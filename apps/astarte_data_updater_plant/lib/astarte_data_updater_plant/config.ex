@@ -383,17 +383,9 @@ defmodule Astarte.DataUpdaterPlant.Config do
   defdelegate xandra_nodes, to: DataAccessConfig
   defdelegate xandra_nodes!, to: DataAccessConfig
 
-  @doc """
-  Returns Cassandra nodes formatted in the CQEx format.
-  """
-  defdelegate cqex_nodes, to: DataAccessConfig
-  defdelegate cqex_nodes!, to: DataAccessConfig
-
   def xandra_options! do
     DataAccessConfig.xandra_options!()
     |> Keyword.put(:name, :xandra)
     |> Keyword.drop([:autodiscovery])
   end
-
-  defdelegate cqex_options!, to: DataAccessConfig
 end

@@ -33,21 +33,19 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.DeviceTrigger
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.SimpleTriggerContainer
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.TriggerTargetContainer
-  alias Astarte.DataAccess.Database
+  alias Astarte.DataUpdaterPlant.DataUpdater.Queries
   alias Astarte.DataUpdaterPlant.AMQPTestHelper
   alias Astarte.DataUpdaterPlant.DatabaseTestHelper
   alias Astarte.DataUpdaterPlant.DataUpdater
   alias Astarte.Core.CQLUtils
-  alias CQEx.Query, as: DatabaseQuery
-  alias CQEx.Result, as: DatabaseResult
 
   setup_all do
     DatabaseTestHelper.await_cluster_connected!()
-    {:ok, _client} = Astarte.DataUpdaterPlant.DatabaseTestHelper.create_test_keyspace()
+    DatabaseTestHelper.create_test_keyspace!()
     {:ok, _pid} = AMQPTestHelper.start_link()
 
     on_exit(fn ->
-      Astarte.DataUpdaterPlant.DatabaseTestHelper.destroy_local_test_keyspace()
+      DatabaseTestHelper.destroy_local_test_keyspace()
     end)
   end
 
@@ -71,8 +69,6 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
     ]
 
     DatabaseTestHelper.insert_device(device_id, insert_opts)
-
-    {:ok, db_client} = Database.connect(realm: realm)
 
     # Install a volatile device test trigger
     simple_trigger_data =
@@ -179,38 +175,34 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
              simple_trigger_id: DatabaseTestHelper.device_connected_trigger_id()
            }
 
-    device_query =
-      DatabaseQuery.new()
-      |> DatabaseQuery.statement("""
-      SELECT connected, total_received_msgs, total_received_bytes,
-      exchanged_msgs_by_interface, exchanged_bytes_by_interface
-      FROM devices WHERE device_id=:device_id;
-      """)
-      |> DatabaseQuery.put(:device_id, device_id)
+    device_id_param = %{"device_id" => device_id}
+
+    device_info_statement = """
+    SELECT connected, total_received_msgs, total_received_bytes,
+    exchanged_msgs_by_interface, exchanged_bytes_by_interface
+    FROM devices WHERE device_id=:device_id;
+    """
 
     device_row =
-      DatabaseQuery.call!(db_client, device_query)
-      |> DatabaseResult.head()
+      Queries.custom_query!(device_info_statement, realm, device_id_param, result: :first!)
 
-    assert device_row == [
-             connected: true,
-             total_received_msgs: 45000,
-             total_received_bytes: 4_500_000,
-             exchanged_msgs_by_interface: nil,
-             exchanged_bytes_by_interface: nil
-           ]
+    assert device_row == %{
+             "connected" => true,
+             "total_received_msgs" => 45000,
+             "total_received_bytes" => 4_500_000,
+             "exchanged_msgs_by_interface" => nil,
+             "exchanged_bytes_by_interface" => nil
+           }
 
     # Introspection sub-test
-    device_introspection_query =
-      DatabaseQuery.new()
-      |> DatabaseQuery.statement("SELECT introspection FROM devices WHERE device_id=:device_id;")
-      |> DatabaseQuery.put(:device_id, device_id)
+    device_introspection_statement =
+      "SELECT introspection FROM devices WHERE device_id=:device_id;"
 
     ^existing_introspection_map =
-      DatabaseQuery.call!(db_client, device_introspection_query)
-      |> DatabaseResult.head()
-      |> Keyword.get(:introspection)
-      |> Enum.into(%{})
+      Queries.custom_query!(device_introspection_statement, realm, device_id_param,
+        result: :first
+      )
+      |> Map.fetch!("introspection")
 
     # Install a volatile incoming introspection test trigger
     incoming_introspection_trigger_data =
@@ -541,10 +533,10 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
     DataUpdater.dump_state(realm, encoded_device_id)
 
     device_introspection =
-      DatabaseQuery.call!(db_client, device_introspection_query)
-      |> DatabaseResult.head()
-      |> Keyword.get(:introspection)
-      |> Enum.into(%{})
+      Queries.custom_query!(device_introspection_statement, realm, device_id_param,
+        result: :first!
+      )
+      |> Map.fetch!("introspection")
 
     assert existing_introspection_map == device_introspection
 
@@ -945,7 +937,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
 
     # We check that all 3 on_incoming_data triggers were correctly installed
     interface_id = CQLUtils.interface_id("com.test.SimpleStreamTest", 1)
-    endpoint_id = retrieve_endpoint_id(db_client, "com.test.SimpleStreamTest", 1, "/0/value")
+    endpoint_id = retrieve_endpoint_id(realm, "com.test.SimpleStreamTest", 1, "/0/value")
     trigger_key = {:on_incoming_data, interface_id, endpoint_id}
     incoming_data_0_value_triggers = Map.get(state.data_triggers, trigger_key)
 
@@ -960,42 +952,44 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
     # It should have 2 targets
     assert length(gt_trigger.trigger_targets) == 2
 
-    endpoint_id = retrieve_endpoint_id(db_client, "com.test.LCDMonitor", 1, "/time/from")
+    endpoint_id = retrieve_endpoint_id(realm, "com.test.LCDMonitor", 1, "/time/from")
 
-    value_query =
-      DatabaseQuery.new()
-      |> DatabaseQuery.statement(
-        "SELECT longinteger_value FROM individual_properties WHERE device_id=:device_id AND interface_id=:interface_id AND endpoint_id=:endpoint_id AND path=:path"
-      )
-      |> DatabaseQuery.put(:device_id, device_id)
-      |> DatabaseQuery.put(:interface_id, CQLUtils.interface_id("com.test.LCDMonitor", 1))
-      |> DatabaseQuery.put(:endpoint_id, endpoint_id)
-      |> DatabaseQuery.put(:path, "/time/from")
+    value_property_statement =
+      "SELECT longinteger_value FROM individual_properties WHERE device_id=:device_id AND interface_id=:interface_id AND endpoint_id=:endpoint_id AND path=:path"
 
-    value =
-      DatabaseQuery.call!(db_client, value_query)
-      |> DatabaseResult.head()
-
-    assert value == [longinteger_value: 9000]
-
-    endpoint_id = retrieve_endpoint_id(db_client, "com.test.SimpleStreamTest", 1, "/0/value")
-
-    value_query =
-      DatabaseQuery.new()
-      |> DatabaseQuery.statement(
-        "SELECT integer_value FROM individual_datastreams WHERE device_id=:device_id AND interface_id=:interface_id AND endpoint_id=:endpoint_id AND path=:path AND value_timestamp>=:value_timestamp"
-      )
-      |> DatabaseQuery.put(:device_id, device_id)
-      |> DatabaseQuery.put(:interface_id, CQLUtils.interface_id("com.test.SimpleStreamTest", 1))
-      |> DatabaseQuery.put(:endpoint_id, endpoint_id)
-      |> DatabaseQuery.put(:path, "/0/value")
-      |> DatabaseQuery.put(:value_timestamp, 1_507_557_632_000)
+    value_property_params = %{
+      "device_id" => device_id,
+      "interface_id" => CQLUtils.interface_id("com.test.LCDMonitor", 1),
+      "endpoint_id" => endpoint_id,
+      "path" => "/time/from"
+    }
 
     value =
-      DatabaseQuery.call!(db_client, value_query)
-      |> DatabaseResult.head()
+      Queries.custom_query!(value_property_statement, realm, value_property_params,
+        result: :first!
+      )
 
-    assert value == [integer_value: 5]
+    assert value == %{"longinteger_value" => 9000}
+
+    endpoint_id = retrieve_endpoint_id(realm, "com.test.SimpleStreamTest", 1, "/0/value")
+
+    value_datastream_statement =
+      "SELECT integer_value FROM individual_datastreams WHERE device_id=:device_id AND interface_id=:interface_id AND endpoint_id=:endpoint_id AND path=:path AND value_timestamp>=:value_timestamp"
+
+    value_datastream_params = %{
+      "device_id" => device_id,
+      "interface_id" => CQLUtils.interface_id("com.test.SimpleStreamTest", 1),
+      "endpoint_id" => endpoint_id,
+      "path" => "/0/value",
+      "value_timestamp" => 1_507_557_632_000
+    }
+
+    value =
+      Queries.custom_query!(value_datastream_statement, realm, value_datastream_params,
+        result: :first!
+      )
+
+    assert value == %{"integer_value" => 5}
 
     assert DataUpdater.handle_delete_volatile_trigger(
              realm,
@@ -1004,7 +998,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
            ) == :ok
 
     timestamp_us_x_10 = make_timestamp("2017-10-09T14:15:32+00:00")
-    timestamp_ms = div(timestamp_us_x_10, 10_000)
+    _timestamp_ms = div(timestamp_us_x_10, 10_000)
 
     # Introspection change subtest
     DataUpdater.handle_introspection(
@@ -1040,7 +1034,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
       make_timestamp("2017-10-26T08:48:50+00:00")
     )
 
-    payload2 = Cyanide.encode!(%{"v" => %{"value" => 0}})
+    payload2 = Cyanide.encode!(%{"v" => %{"value" => 0.0}})
 
     DataUpdater.handle_data(
       realm,
@@ -1079,74 +1073,68 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
 
     DataUpdater.dump_state(realm, encoded_device_id)
 
-    objects_query =
-      DatabaseQuery.new()
-      |> DatabaseQuery.statement(
-        "SELECT * FROM com_example_testobject_v1 WHERE device_id=:device_id AND path='/'"
-      )
-      |> DatabaseQuery.put(:device_id, device_id)
+    objects_statement =
+      "SELECT * FROM com_example_testobject_v1 WHERE device_id=:device_id AND path='/'"
 
-    objects =
-      DatabaseQuery.call!(db_client, objects_query)
-      |> Enum.to_list()
+    objects = Queries.custom_query!(objects_statement, realm, device_id_param, result: :list)
 
     assert objects == [
-             [
-               device_id: device_id,
-               path: "/",
-               reception_timestamp: 1_506_755_400_000,
-               reception_timestamp_submillis: 0,
-               v_string: "aaa",
-               v_value: 1.1
-             ],
-             [
-               device_id: device_id,
-               path: "/",
-               reception_timestamp: 1_506_755_520_000,
-               reception_timestamp_submillis: 0,
-               v_string: "bbb",
-               v_value: 2.2
-             ],
-             [
-               device_id: device_id,
-               path: "/",
-               reception_timestamp: 1_506_755_580_000,
-               reception_timestamp_submillis: 0,
-               v_string: "zzz",
-               v_value: 3.3
-             ],
-             [
-               device_id: device_id,
-               path: "/",
-               reception_timestamp: 1_509_007_729_000,
-               reception_timestamp_submillis: 0,
-               v_string: "Astarteです",
-               v_value: 1.9
-             ],
-             [
-               device_id: device_id,
-               path: "/",
-               reception_timestamp: 1_509_007_730_000,
-               reception_timestamp_submillis: 0,
-               v_string: "Hello World');",
-               v_value: nil
-             ],
-             [
-               device_id: device_id,
-               path: "/",
-               reception_timestamp: 1_509_007_731_000,
-               reception_timestamp_submillis: 0,
-               v_string: nil,
-               v_value: 0.0
-             ],
-             [
-               device_id: device_id,
-               path: "/",
-               reception_timestamp: 1_509_347_580_000,
-               reception_timestamp_submillis: 0,
-               v_string: nil,
-               v_value: nil
-             ]
+             %{
+               "device_id" => device_id,
+               "path" => "/",
+               "reception_timestamp" => 1_506_755_400_000,
+               "reception_timestamp_submillis" => 0,
+               "v_string" => "aaa",
+               "v_value" => 1.1
+             },
+             %{
+               "device_id" => device_id,
+               "path" => "/",
+               "reception_timestamp" => 1_506_755_520_000,
+               "reception_timestamp_submillis" => 0,
+               "v_string" => "bbb",
+               "v_value" => 2.2
+             },
+             %{
+               "device_id" => device_id,
+               "path" => "/",
+               "reception_timestamp" => 1_506_755_580_000,
+               "reception_timestamp_submillis" => 0,
+               "v_string" => "zzz",
+               "v_value" => 3.3
+             },
+             %{
+               "device_id" => device_id,
+               "path" => "/",
+               "reception_timestamp" => 1_509_007_729_000,
+               "reception_timestamp_submillis" => 0,
+               "v_string" => "Astarteです",
+               "v_value" => 1.9
+             },
+             %{
+               "device_id" => device_id,
+               "path" => "/",
+               "reception_timestamp" => 1_509_007_730_000,
+               "reception_timestamp_submillis" => 0,
+               "v_string" => "Hello World');",
+               "v_value" => nil
+             },
+             %{
+               "device_id" => device_id,
+               "path" => "/",
+               "reception_timestamp" => 1_509_007_731_000,
+               "reception_timestamp_submillis" => 0,
+               "v_string" => nil,
+               "v_value" => 0.0
+             },
+             %{
+               "device_id" => device_id,
+               "path" => "/",
+               "reception_timestamp" => 1_509_347_580_000,
+               "reception_timestamp_submillis" => 0,
+               "v_string" => nil,
+               "v_value" => nil
+             }
            ]
 
     # Test /producer/properties control message
@@ -1189,80 +1177,47 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
              simple_trigger_id: DatabaseTestHelper.path_removed_trigger_id()
            }
 
-    endpoint_id = retrieve_endpoint_id(db_client, "com.test.LCDMonitor", 1, "/time/from")
-
-    value_query =
-      DatabaseQuery.new()
-      |> DatabaseQuery.statement(
-        "SELECT longinteger_value FROM individual_properties WHERE device_id=:device_id AND interface_id=:interface_id AND endpoint_id=:endpoint_id AND path=:path"
-      )
-      |> DatabaseQuery.put(:device_id, device_id)
-      |> DatabaseQuery.put(:interface_id, CQLUtils.interface_id("com.test.LCDMonitor", 1))
-      |> DatabaseQuery.put(:endpoint_id, endpoint_id)
-      |> DatabaseQuery.put(:path, "/time/from")
-
     value =
-      DatabaseQuery.call!(db_client, value_query)
-      |> DatabaseResult.head()
-
-    assert value == :empty_dataset
-
-    endpoint_id =
-      retrieve_endpoint_id(db_client, "com.test.LCDMonitor", 1, "/weekSchedule/9/start")
-
-    value_query =
-      DatabaseQuery.new()
-      |> DatabaseQuery.statement(
-        "SELECT longinteger_value FROM individual_properties WHERE device_id=:device_id AND interface_id=:interface_id AND endpoint_id=:endpoint_id AND path=:path"
+      Queries.custom_query(value_property_statement, realm, value_property_params,
+        result: :first!
       )
-      |> DatabaseQuery.put(:device_id, device_id)
-      |> DatabaseQuery.put(:interface_id, CQLUtils.interface_id("com.test.LCDMonitor", 1))
-      |> DatabaseQuery.put(:endpoint_id, endpoint_id)
-      |> DatabaseQuery.put(:path, "/weekSchedule/9/start")
 
-    value =
-      DatabaseQuery.call!(db_client, value_query)
-      |> DatabaseResult.head()
+    assert value == {:error, :not_found}
 
-    assert value == :empty_dataset
+    endpoint_id = retrieve_endpoint_id(realm, "com.test.LCDMonitor", 1, "/weekSchedule/9/start")
 
-    endpoint_id =
-      retrieve_endpoint_id(db_client, "com.test.LCDMonitor", 1, "/weekSchedule/10/start")
+    week9_value_property_params =
+      value_property_params
+      |> Map.put("endpoint_id", endpoint_id)
+      |> Map.put("path", "/weekSchedule/9/start")
 
-    value_query =
-      DatabaseQuery.new()
-      |> DatabaseQuery.statement(
-        "SELECT longinteger_value FROM individual_properties WHERE device_id=:device_id AND interface_id=:interface_id AND endpoint_id=:endpoint_id AND path=:path"
+    week9_value =
+      Queries.custom_query(value_property_statement, realm, week9_value_property_params,
+        result: :first!
       )
-      |> DatabaseQuery.put(:device_id, device_id)
-      |> DatabaseQuery.put(:interface_id, CQLUtils.interface_id("com.test.LCDMonitor", 1))
-      |> DatabaseQuery.put(:endpoint_id, endpoint_id)
-      |> DatabaseQuery.put(:path, "/weekSchedule/10/start")
 
-    value =
-      DatabaseQuery.call!(db_client, value_query)
-      |> DatabaseResult.head()
+    assert week9_value == {:error, :not_found}
 
-    assert value == [longinteger_value: 10]
+    endpoint_id = retrieve_endpoint_id(realm, "com.test.LCDMonitor", 1, "/weekSchedule/10/start")
 
-    endpoint_id = retrieve_endpoint_id(db_client, "com.test.SimpleStreamTest", 1, "/0/value")
+    week10_value_property_params =
+      value_property_params
+      |> Map.put("endpoint_id", endpoint_id)
+      |> Map.put("path", "/weekSchedule/10/start")
 
-    value_query =
-      DatabaseQuery.new()
-      |> DatabaseQuery.statement(
-        "SELECT integer_value FROM individual_datastreams WHERE device_id=:device_id AND interface_id=:interface_id AND endpoint_id=:endpoint_id AND path=:path AND value_timestamp>=:value_timestamp"
+    week10_value =
+      Queries.custom_query!(value_property_statement, realm, week10_value_property_params,
+        result: :first!
       )
-      |> DatabaseQuery.put(:device_id, device_id)
-      |> DatabaseQuery.put(:interface_id, CQLUtils.interface_id("com.test.SimpleStreamTest", 1))
-      |> DatabaseQuery.put(:endpoint_id, endpoint_id)
-      |> DatabaseQuery.put(:path, "/0/value")
-      |> DatabaseQuery.put(:value_timestamp, 1_507_557_632_000)
 
-    value =
-      DatabaseQuery.call!(db_client, value_query)
-      |> DatabaseResult.head()
+    assert week10_value == %{"longinteger_value" => 10}
 
-    assert value == [integer_value: 5]
+    datastream_value =
+      Queries.custom_query!(value_datastream_statement, realm, value_datastream_params,
+        result: :first!
+      )
+
+    assert datastream_value == %{"integer_value" => 5}
 
     # Unset subtest
 
@@ -1285,24 +1240,12 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
 
     DataUpdater.dump_state(realm, encoded_device_id)
 
-    endpoint_id =
-      retrieve_endpoint_id(db_client, "com.test.LCDMonitor", 1, "/weekSchedule/10/start")
-
-    value_query =
-      DatabaseQuery.new()
-      |> DatabaseQuery.statement(
-        "SELECT longinteger_value FROM individual_properties WHERE device_id=:device_id AND interface_id=:interface_id AND endpoint_id=:endpoint_id AND path=:path"
-      )
-      |> DatabaseQuery.put(:device_id, device_id)
-      |> DatabaseQuery.put(:interface_id, CQLUtils.interface_id("com.test.LCDMonitor", 1))
-      |> DatabaseQuery.put(:endpoint_id, endpoint_id)
-      |> DatabaseQuery.put(:path, "/weekSchedule/10/start")
-
     value =
-      DatabaseQuery.call!(db_client, value_query)
-      |> DatabaseResult.head()
+      Queries.custom_query(value_property_statement, realm, week10_value_property_params,
+        result: :first!
+      )
 
-    assert value == :empty_dataset
+    assert value == {:error, :not_found}
 
     # Device disconnection sub-test
     DataUpdater.handle_disconnection(
@@ -1315,24 +1258,23 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
     DataUpdater.dump_state(realm, encoded_device_id)
 
     device_row =
-      DatabaseQuery.call!(db_client, device_query)
-      |> DatabaseResult.head()
+      Queries.custom_query!(device_info_statement, realm, device_id_param, result: :first!)
 
-    assert device_row == [
-             connected: false,
-             total_received_msgs: 45018,
-             total_received_bytes: 4_501_003,
-             exchanged_msgs_by_interface: [
-               {["com.example.TestObject", 1], 5},
-               {["com.test.LCDMonitor", 1], 6},
-               {["com.test.SimpleStreamTest", 1], 1}
-             ],
-             exchanged_bytes_by_interface: [
-               {["com.example.TestObject", 1], 243},
-               {["com.test.LCDMonitor", 1], 291},
-               {["com.test.SimpleStreamTest", 1], 45}
-             ]
-           ]
+    assert device_row == %{
+             "connected" => false,
+             "total_received_msgs" => 45018,
+             "total_received_bytes" => 4_501_007,
+             "exchanged_msgs_by_interface" => %{
+               {"com.example.TestObject", 1} => 5,
+               {"com.test.LCDMonitor", 1} => 6,
+               {"com.test.SimpleStreamTest", 1} => 1
+             },
+             "exchanged_bytes_by_interface" => %{
+               {"com.example.TestObject", 1} => 247,
+               {"com.test.LCDMonitor", 1} => 291,
+               {"com.test.SimpleStreamTest", 1} => 45
+             }
+           }
 
     assert AMQPTestHelper.awaiting_messages_count() == 0
   end
@@ -1351,8 +1293,6 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
     new_introspection_string = "com.test.LCDMonitor:1:0;com.test.SimpleStreamTest:1:0"
 
     DatabaseTestHelper.insert_device(device_id, groups: ["group2"])
-
-    {:ok, db_client} = Database.connect(realm: realm)
 
     timestamp_us_x_10 = make_timestamp("2017-12-09T14:00:32+00:00")
     timestamp_ms = div(timestamp_us_x_10, 10_000)
@@ -1392,20 +1332,20 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
              simple_trigger_id: DatabaseTestHelper.group2_device_connected_trigger_id()
            }
 
-    device_introspection_query =
-      DatabaseQuery.new()
-      |> DatabaseQuery.statement("SELECT introspection FROM devices WHERE device_id=:device_id;")
-      |> DatabaseQuery.put(:device_id, device_id)
+    device_introspection_statement =
+      "SELECT introspection FROM devices WHERE device_id=:device_id;"
+
+    device_id_param = %{"device_id" => device_id}
 
     old_device_introspection =
-      DatabaseQuery.call!(db_client, device_introspection_query)
-      |> DatabaseResult.head()
-      |> Keyword.get(:introspection)
+      device_introspection_statement
+      |> Queries.custom_query!(realm, device_id_param, result: :first!)
+      |> Map.fetch!("introspection")
 
     assert old_device_introspection == nil
 
     timestamp_us_x_10 = make_timestamp("2017-10-09T14:00:32+00:00")
-    timestamp_ms = div(timestamp_us_x_10, 10_000)
+    _timestamp_ms = div(timestamp_us_x_10, 10_000)
 
     DataUpdater.handle_introspection(
       realm,
@@ -1418,10 +1358,9 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
     DataUpdater.dump_state(realm, encoded_device_id)
 
     new_device_introspection =
-      DatabaseQuery.call!(db_client, device_introspection_query)
-      |> DatabaseResult.head()
-      |> Keyword.get(:introspection)
-      |> Enum.into(%{})
+      device_introspection_statement
+      |> Queries.custom_query!(realm, device_id_param, result: :first!)
+      |> Map.fetch!("introspection")
 
     assert new_device_introspection == new_introspection_map
 
@@ -1440,7 +1379,6 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
     {:ok, device_id} = Device.decode_device_id(encoded_device_id)
 
     DatabaseTestHelper.insert_device(device_id)
-    {:ok, db_client} = Database.connect(realm: realm)
 
     DataUpdater.handle_connection(
       realm,
@@ -1461,7 +1399,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
     )
 
     DataUpdater.dump_state(realm, encoded_device_id)
-    assert DatabaseTestHelper.fetch_old_introspection(db_client, device_id) == {:ok, %{}}
+    assert DatabaseTestHelper.fetch_old_introspection(realm, device_id) == {:ok, %{}}
 
     new_introspection_string = "com.test.LCDMonitor:2:0;com.test.SimpleStreamTest:1:0"
 
@@ -1474,12 +1412,12 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
     )
 
     DataUpdater.dump_state(realm, encoded_device_id)
-    DatabaseTestHelper.fetch_old_introspection(db_client, device_id)
+    DatabaseTestHelper.fetch_old_introspection(realm, device_id)
 
-    assert DatabaseTestHelper.fetch_old_introspection(db_client, device_id) ==
+    assert DatabaseTestHelper.fetch_old_introspection(realm, device_id) ==
              {:ok,
               %{
-                ["com.test.LCDMonitor", 1] => 0
+                {"com.test.LCDMonitor", 1} => 0
               }}
 
     new_introspection_string = "com.test.LCDMonitor:2:0"
@@ -1494,11 +1432,11 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
 
     DataUpdater.dump_state(realm, encoded_device_id)
 
-    assert DatabaseTestHelper.fetch_old_introspection(db_client, device_id) ==
+    assert DatabaseTestHelper.fetch_old_introspection(realm, device_id) ==
              {:ok,
               %{
-                ["com.test.LCDMonitor", 1] => 0,
-                ["com.test.SimpleStreamTest", 1] => 0
+                {"com.test.LCDMonitor", 1} => 0,
+                {"com.test.SimpleStreamTest", 1} => 0
               }}
   end
 
@@ -1506,8 +1444,6 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
     AMQPTestHelper.clean_queue()
 
     realm = "autotestrealm"
-
-    {:ok, db_client} = Database.connect(realm: realm)
 
     # Install a volatile device test trigger
     simple_trigger_data =
@@ -1553,11 +1489,10 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
   test "fails to delete volatile trigger on missing device" do
     AMQPTestHelper.clean_queue()
     realm = "autotestrealm"
-    {:ok, db_client} = Database.connect(realm: realm)
     volatile_trigger_id = :crypto.strong_rand_bytes(16)
 
     fail_encoded_device_id = "f0VMRgIBAQBBBBBBBBBBBB"
-    {:ok, fail_device_id} = Device.decode_device_id(fail_encoded_device_id)
+    {:ok, _fail_device_id} = Device.decode_device_id(fail_encoded_device_id)
 
     assert DataUpdater.handle_delete_volatile_trigger(
              realm,
@@ -1581,10 +1516,8 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
 
     DatabaseTestHelper.insert_device(device_id)
 
-    {:ok, db_client} = Database.connect(realm: realm)
-
     timestamp_us_x_10 = make_timestamp("2017-12-09T14:00:32+00:00")
-    timestamp_ms = div(timestamp_us_x_10, 10_000)
+    _timestamp_ms = div(timestamp_us_x_10, 10_000)
 
     # Make sure a process for the device exists
     DataUpdater.handle_connection(
@@ -1626,10 +1559,8 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
 
     DatabaseTestHelper.insert_device(device_id)
 
-    {:ok, db_client} = Database.connect(realm: realm)
-
     timestamp_us_x_10 = make_timestamp("2017-12-09T14:00:32+00:00")
-    timestamp_ms = div(timestamp_us_x_10, 10_000)
+    _timestamp_ms = div(timestamp_us_x_10, 10_000)
 
     # Make sure a process for the device exists
     DataUpdater.handle_connection(
@@ -1653,23 +1584,20 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
              DataUpdater.dump_state(realm, encoded_device_id)
   end
 
-  defp retrieve_endpoint_id(client, interface_name, interface_major, path) do
-    query =
-      DatabaseQuery.new()
-      |> DatabaseQuery.statement(
-        "SELECT * FROM interfaces WHERE name = :name AND major_version = :major_version;"
-      )
-      |> DatabaseQuery.put(:name, interface_name)
-      |> DatabaseQuery.put(:major_version, interface_major)
+  defp retrieve_endpoint_id(realm, interface_name, interface_major, path) do
+    interface_statement =
+      "SELECT * FROM interfaces WHERE name = :name AND major_version = :major_version;"
 
-    interface_row =
-      DatabaseQuery.call!(client, query)
-      |> Enum.take(1)
-      |> hd
+    params = %{
+      "name" => interface_name,
+      "major_version" => interface_major
+    }
+
+    interface_row = Queries.custom_query!(interface_statement, realm, params, result: :first!)
 
     automaton =
-      {:erlang.binary_to_term(interface_row[:automaton_transitions]),
-       :erlang.binary_to_term(interface_row[:automaton_accepting_states])}
+      {:erlang.binary_to_term(interface_row["automaton_transitions"]),
+       :erlang.binary_to_term(interface_row["automaton_accepting_states"])}
 
     {:ok, endpoint_id} = Astarte.Core.Mapping.EndpointsAutomaton.resolve_path(path, automaton)
 

@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2017 Ispirata Srl
+# Copyright 2017-2023 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -21,7 +21,6 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater do
   alias Astarte.DataUpdaterPlant.AMQPDataConsumer
   alias Astarte.DataUpdaterPlant.DataUpdater.Server
   alias Astarte.DataUpdaterPlant.DataUpdater.Queries
-  alias Astarte.DataAccess.Database
   alias Astarte.DataUpdaterPlant.MessageTracker
   require Logger
 
@@ -226,19 +225,14 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater do
 
   defp verify_device_exists(realm_name, encoded_device_id) do
     with {:ok, decoded_device_id} <- Device.decode_device_id(encoded_device_id),
-         {:ok, client} <- Database.connect(realm: realm_name),
-         {:ok, exists?} <- Queries.check_device_exists(client, decoded_device_id) do
-      if exists? do
-        :ok
-      else
-        _ =
-          Logger.warn(
-            "Device #{encoded_device_id} in realm #{realm_name} does not exist.",
-            tag: "device_does_not_exist"
-          )
+         {:error, :device_does_not_exist} <-
+           Queries.check_device_exists(realm_name, decoded_device_id) do
+      Logger.warn(
+        "Device #{encoded_device_id} in realm #{realm_name} does not exist.",
+        tag: "device_does_not_exist"
+      )
 
-        {:error, :device_does_not_exist}
-      end
+      {:error, :device_does_not_exist}
     end
   end
 end

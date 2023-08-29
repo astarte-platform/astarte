@@ -17,20 +17,18 @@
 #
 
 defmodule Astarte.DataUpdaterPlant.DatabaseTestHelper do
+  alias Astarte.DataUpdaterPlant.TriggerPolicy.Queries
   alias Astarte.Core.CQLUtils
   alias Astarte.Core.Device
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.AMQPTriggerTarget
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.DataTrigger
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.DeviceTrigger
-  alias Astarte.Core.Triggers.SimpleTriggersProtobuf.IntrospectionTrigger
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.SimpleTriggerContainer
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.TriggerTargetContainer
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.Utils, as: SimpleTriggersProtobufUtils
   alias Astarte.DataUpdaterPlant.AMQPTestHelper
   alias Astarte.DataUpdaterPlant.Config
-  alias CQEx.Query, as: DatabaseQuery
-  alias CQEx.Client, as: DatabaseClient
-  alias CQEx.Result, as: DatabaseResult
+  alias Astarte.DataUpdaterPlant.DataUpdater.Queries
 
   @create_autotestrealm """
     CREATE KEYSPACE autotestrealm
@@ -354,475 +352,390 @@ defmodule Astarte.DataUpdaterPlant.DatabaseTestHelper do
   VALUES (:object_id, :object_type, :parent_trigger_id, :simple_trigger_id, :trigger_data, :trigger_target);
   """
 
-  def create_test_keyspace do
-    {:ok, client} = DatabaseClient.new(List.first(Config.cqex_nodes!()))
+  def create_test_keyspace! do
+    Queries.custom_query!(@create_autotestrealm)
+    Queries.custom_query!(@create_devices_table)
+    Queries.custom_query!(@create_endpoints_table)
 
-    case DatabaseQuery.call(client, @create_autotestrealm) do
-      {:ok, _} ->
-        DatabaseQuery.call!(client, @create_devices_table)
-        DatabaseQuery.call!(client, @create_endpoints_table)
+    @insert_endpoints
+    |> Enum.each(&Queries.custom_query!/1)
 
-        Enum.each(@insert_endpoints, fn query ->
-          DatabaseQuery.call!(client, query)
-        end)
+    Queries.custom_query!(@create_simple_triggers_table)
+    Queries.custom_query!(@create_individual_properties_table)
+    Queries.custom_query!(@create_individual_datastreams_table)
+    Queries.custom_query!(@create_test_object_table)
 
-        DatabaseQuery.call!(client, @create_simple_triggers_table)
-        DatabaseQuery.call!(client, @create_individual_properties_table)
-        DatabaseQuery.call!(client, @create_individual_datastreams_table)
-        DatabaseQuery.call!(client, @create_test_object_table)
+    @insert_values
+    |> Enum.each(&Queries.custom_query!/1)
 
-        Enum.each(@insert_values, fn query ->
-          DatabaseQuery.call!(client, query)
-        end)
+    Queries.custom_query!(@create_interfaces_table)
+    Queries.custom_query!(@create_kv_store_table)
 
-        DatabaseQuery.call!(client, @create_interfaces_table)
-        DatabaseQuery.call!(client, @create_kv_store_table)
+    params_interface_0 = %{
+      "automaton_accepting_states" =>
+        Base.decode64!(
+          "g3QAAAAFYQNtAAAAEIAeEDVf33Bpjm4/0nkmmathBG0AAAAQjrtis2DBS6JBcp3e3YCcn2EFbQAAABBP5QNKPZuZ7H7DsjcWMD0zYQdtAAAAEOb3NjHv/B1+rVLT86O65QthCG0AAAAQKyxj3bvZVzVtSo5W9QTt2g=="
+        ),
+      "automaton_transitions" =>
+        Base.decode64!(
+          "g3QAAAAIaAJhAG0AAAAKbGNkQ29tbWFuZGEFaAJhAG0AAAAEdGltZWEGaAJhAG0AAAAMd2Vla1NjaGVkdWxlYQFoAmEBbQAAAABhAmgCYQJtAAAABXN0YXJ0YQNoAmECbQAAAARzdG9wYQRoAmEGbQAAAARmcm9tYQdoAmEGbQAAAAJ0b2EI"
+        )
+    }
 
-        query =
-          DatabaseQuery.new()
-          |> DatabaseQuery.statement(@insert_into_interface_0)
-          |> DatabaseQuery.put(
-            :automaton_accepting_states,
-            Base.decode64!(
-              "g3QAAAAFYQNtAAAAEIAeEDVf33Bpjm4/0nkmmathBG0AAAAQjrtis2DBS6JBcp3e3YCcn2EFbQAAABBP5QNKPZuZ7H7DsjcWMD0zYQdtAAAAEOb3NjHv/B1+rVLT86O65QthCG0AAAAQKyxj3bvZVzVtSo5W9QTt2g=="
-            )
-          )
-          |> DatabaseQuery.put(
-            :automaton_transitions,
-            Base.decode64!(
-              "g3QAAAAIaAJhAG0AAAAKbGNkQ29tbWFuZGEFaAJhAG0AAAAEdGltZWEGaAJhAG0AAAAMd2Vla1NjaGVkdWxlYQFoAmEBbQAAAABhAmgCYQJtAAAABXN0YXJ0YQNoAmECbQAAAARzdG9wYQRoAmEGbQAAAARmcm9tYQdoAmEGbQAAAAJ0b2EI"
-            )
-          )
+    params_interface_1 = %{
+      "automaton_accepting_states" =>
+        Base.decode64!(
+          "g3QAAAAFYQJtAAAAEHUBDhsZnu783TXSVLDiCSRhBW0AAAAQOQfUHVvKMp2eUUzqKlSpmmEGbQAAABB6pEwRInNH2eYkSuAp3t6qYQdtAAAAEO/5V88D397tl4SocI49jLlhCG0AAAAQNGyA5MqZYnSB9nscG+WVIQ=="
+        ),
+      "automaton_transitions" =>
+        Base.decode64!(
+          "g3QAAAAIaAJhAG0AAAAAYQFoAmEAbQAAAANmb29hA2gCYQFtAAAABXZhbHVlYQJoAmEDbQAAAABhBGgCYQRtAAAACWJsb2JWYWx1ZWEGaAJhBG0AAAAJbG9uZ1ZhbHVlYQdoAmEEbQAAAAtzdHJpbmdWYWx1ZWEFaAJhBG0AAAAOdGltZXN0YW1wVmFsdWVhCA=="
+        )
+    }
 
-        DatabaseQuery.call!(client, query)
+    params_interface_2 = %{
+      "automaton_accepting_states" =>
+        Base.decode64!("g3QAAAACYQFtAAAAEHyfFOhPL5d/wSbV4buYdudhAm0AAAAQOzn9OuJhJv/lI0wt0VC4ZA=="),
+      "automaton_transitions" =>
+        Base.decode64!("g3QAAAACaAJhAG0AAAAGc3RyaW5nYQFoAmEAbQAAAAV2YWx1ZWEC")
+    }
 
-        query =
-          DatabaseQuery.new()
-          |> DatabaseQuery.statement(@insert_into_interface_1)
-          |> DatabaseQuery.put(
-            :automaton_accepting_states,
-            Base.decode64!(
-              "g3QAAAAFYQJtAAAAEHUBDhsZnu783TXSVLDiCSRhBW0AAAAQOQfUHVvKMp2eUUzqKlSpmmEGbQAAABB6pEwRInNH2eYkSuAp3t6qYQdtAAAAEO/5V88D397tl4SocI49jLlhCG0AAAAQNGyA5MqZYnSB9nscG+WVIQ=="
-            )
-          )
-          |> DatabaseQuery.put(
-            :automaton_transitions,
-            Base.decode64!(
-              "g3QAAAAIaAJhAG0AAAAAYQFoAmEAbQAAAANmb29hA2gCYQFtAAAABXZhbHVlYQJoAmEDbQAAAABhBGgCYQRtAAAACWJsb2JWYWx1ZWEGaAJhBG0AAAAJbG9uZ1ZhbHVlYQdoAmEEbQAAAAtzdHJpbmdWYWx1ZWEFaAJhBG0AAAAOdGltZXN0YW1wVmFsdWVhCA=="
-            )
-          )
+    Queries.custom_query(@insert_into_interface_0, nil, params_interface_0)
 
-        DatabaseQuery.call!(client, query)
+    Queries.custom_query(@insert_into_interface_1, nil, params_interface_1)
 
-        query =
-          DatabaseQuery.new()
-          |> DatabaseQuery.statement(@insert_into_interface_2)
-          |> DatabaseQuery.put(
-            :automaton_accepting_states,
-            Base.decode64!(
-              "g3QAAAACYQFtAAAAEHyfFOhPL5d/wSbV4buYdudhAm0AAAAQOzn9OuJhJv/lI0wt0VC4ZA=="
-            )
-          )
-          |> DatabaseQuery.put(
-            :automaton_transitions,
-            Base.decode64!("g3QAAAACaAJhAG0AAAAGc3RyaW5nYQFoAmEAbQAAAAV2YWx1ZWEC")
-          )
+    Queries.custom_query(@insert_into_interface_2, nil, params_interface_2)
 
-        DatabaseQuery.call!(client, query)
-
-        simple_trigger_data =
-          %Astarte.Core.Triggers.SimpleTriggersProtobuf.SimpleTriggerContainer{
-            simple_trigger: {
-              :data_trigger,
-              %Astarte.Core.Triggers.SimpleTriggersProtobuf.DataTrigger{
-                interface_name: "com.test.LCDMonitor",
-                interface_major: 1,
-                data_trigger_type: :INCOMING_DATA,
-                match_path: "/weekSchedule/%{weekDay}/start",
-                value_match_operator: :GREATER_THAN,
-                known_value: Cyanide.encode!(%{v: 9})
-              }
-            }
+    simple_trigger_data =
+      %Astarte.Core.Triggers.SimpleTriggersProtobuf.SimpleTriggerContainer{
+        simple_trigger: {
+          :data_trigger,
+          %Astarte.Core.Triggers.SimpleTriggersProtobuf.DataTrigger{
+            interface_name: "com.test.LCDMonitor",
+            interface_major: 1,
+            data_trigger_type: :INCOMING_DATA,
+            match_path: "/weekSchedule/%{weekDay}/start",
+            value_match_operator: :GREATER_THAN,
+            known_value: Cyanide.encode!(%{v: 9})
           }
-          |> Astarte.Core.Triggers.SimpleTriggersProtobuf.SimpleTriggerContainer.encode()
+        }
+      }
+      |> Astarte.Core.Triggers.SimpleTriggersProtobuf.SimpleTriggerContainer.encode()
 
-        trigger_target_data =
-          %Astarte.Core.Triggers.SimpleTriggersProtobuf.TriggerTargetContainer{
-            trigger_target: {
-              :amqp_trigger_target,
-              %Astarte.Core.Triggers.SimpleTriggersProtobuf.AMQPTriggerTarget{
-                routing_key: AMQPTestHelper.events_routing_key()
-              }
-            }
+    trigger_target_data =
+      %Astarte.Core.Triggers.SimpleTriggersProtobuf.TriggerTargetContainer{
+        trigger_target: {
+          :amqp_trigger_target,
+          %Astarte.Core.Triggers.SimpleTriggersProtobuf.AMQPTriggerTarget{
+            routing_key: AMQPTestHelper.events_routing_key()
           }
-          |> Astarte.Core.Triggers.SimpleTriggersProtobuf.TriggerTargetContainer.encode()
+        }
+      }
+      |> Astarte.Core.Triggers.SimpleTriggersProtobuf.TriggerTargetContainer.encode()
 
-        query =
-          DatabaseQuery.new()
-          |> DatabaseQuery.statement(@insert_into_simple_triggers)
-          |> DatabaseQuery.put(
-            :object_id,
-            :uuid.string_to_uuid("798b93a5-842e-bbad-2e4d-d20306838051")
-          )
-          |> DatabaseQuery.put(
-            :object_type,
-            SimpleTriggersProtobufUtils.object_type_to_int!(:interface)
-          )
-          |> DatabaseQuery.put(:simple_trigger_id, greater_than_incoming_trigger_id())
-          |> DatabaseQuery.put(:parent_trigger_id, fake_parent_trigger_id())
-          |> DatabaseQuery.put(:trigger_data, simple_trigger_data)
-          |> DatabaseQuery.put(:trigger_target, trigger_target_data)
+    params = %{
+      "object_id" => :uuid.string_to_uuid("798b93a5-842e-bbad-2e4d-d20306838051"),
+      "object_type" => SimpleTriggersProtobufUtils.object_type_to_int!(:interface),
+      "simple_trigger_id" => greater_than_incoming_trigger_id(),
+      "parent_trigger_id" => fake_parent_trigger_id(),
+      "trigger_data" => simple_trigger_data,
+      "trigger_target" => trigger_target_data
+    }
 
-        DatabaseQuery.call!(client, query)
+    Queries.custom_query!(@insert_into_simple_triggers, nil, params)
 
-        simple_trigger_data =
-          %SimpleTriggerContainer{
-            simple_trigger: {
-              :device_trigger,
-              %DeviceTrigger{
-                device_event_type: :DEVICE_CONNECTED
-              }
-            }
+    simple_trigger_data =
+      %SimpleTriggerContainer{
+        simple_trigger: {
+          :device_trigger,
+          %DeviceTrigger{
+            device_event_type: :DEVICE_CONNECTED
           }
-          |> SimpleTriggerContainer.encode()
+        }
+      }
+      |> SimpleTriggerContainer.encode()
 
-        trigger_target_data =
-          %TriggerTargetContainer{
-            trigger_target: {
-              :amqp_trigger_target,
-              %AMQPTriggerTarget{
-                routing_key: AMQPTestHelper.events_routing_key()
-              }
-            }
+    trigger_target_data =
+      %TriggerTargetContainer{
+        trigger_target: {
+          :amqp_trigger_target,
+          %AMQPTriggerTarget{
+            routing_key: AMQPTestHelper.events_routing_key()
           }
-          |> TriggerTargetContainer.encode()
+        }
+      }
+      |> TriggerTargetContainer.encode()
 
-        query =
-          DatabaseQuery.new()
-          |> DatabaseQuery.statement(@insert_into_simple_triggers)
-          |> DatabaseQuery.put(
-            :object_id,
-            :uuid.string_to_uuid("7f454c46-0201-0100-0000-000000000000")
-          )
-          |> DatabaseQuery.put(
-            :object_type,
-            SimpleTriggersProtobufUtils.object_type_to_int!(:device)
-          )
-          |> DatabaseQuery.put(:simple_trigger_id, device_connected_trigger_id())
-          |> DatabaseQuery.put(:parent_trigger_id, fake_parent_trigger_id())
-          |> DatabaseQuery.put(:trigger_data, simple_trigger_data)
-          |> DatabaseQuery.put(:trigger_target, trigger_target_data)
+    params = %{
+      "object_id" => :uuid.string_to_uuid("7f454c46-0201-0100-0000-000000000000"),
+      "object_type" => SimpleTriggersProtobufUtils.object_type_to_int!(:device),
+      "simple_trigger_id" => device_connected_trigger_id(),
+      "parent_trigger_id" => fake_parent_trigger_id(),
+      "trigger_data" => simple_trigger_data,
+      "trigger_target" => trigger_target_data
+    }
 
-        DatabaseQuery.call!(client, query)
+    Queries.custom_query!(@insert_into_simple_triggers, nil, params)
 
-        simple_trigger_data =
-          %SimpleTriggerContainer{
-            simple_trigger: {
-              :data_trigger,
-              %DataTrigger{
-                interface_name: "com.test.LCDMonitor",
-                interface_major: 1,
-                data_trigger_type: :PATH_REMOVED,
-                match_path: "/time/from"
-              }
-            }
+    simple_trigger_data =
+      %SimpleTriggerContainer{
+        simple_trigger: {
+          :data_trigger,
+          %DataTrigger{
+            interface_name: "com.test.LCDMonitor",
+            interface_major: 1,
+            data_trigger_type: :PATH_REMOVED,
+            match_path: "/time/from"
           }
-          |> SimpleTriggerContainer.encode()
+        }
+      }
+      |> SimpleTriggerContainer.encode()
 
-        trigger_target_data =
-          %TriggerTargetContainer{
-            trigger_target: {
-              :amqp_trigger_target,
-              %AMQPTriggerTarget{
-                routing_key: AMQPTestHelper.events_routing_key()
-              }
-            }
+    trigger_target_data =
+      %TriggerTargetContainer{
+        trigger_target: {
+          :amqp_trigger_target,
+          %AMQPTriggerTarget{
+            routing_key: AMQPTestHelper.events_routing_key()
           }
-          |> TriggerTargetContainer.encode()
+        }
+      }
+      |> TriggerTargetContainer.encode()
 
-        query =
-          DatabaseQuery.new()
-          |> DatabaseQuery.statement(@insert_into_simple_triggers)
-          |> DatabaseQuery.put(
-            :object_id,
-            :uuid.string_to_uuid("798b93a5-842e-bbad-2e4d-d20306838051")
-          )
-          |> DatabaseQuery.put(
-            :object_type,
-            SimpleTriggersProtobufUtils.object_type_to_int!(:interface)
-          )
-          |> DatabaseQuery.put(:simple_trigger_id, path_removed_trigger_id())
-          |> DatabaseQuery.put(:parent_trigger_id, fake_parent_trigger_id())
-          |> DatabaseQuery.put(:trigger_data, simple_trigger_data)
-          |> DatabaseQuery.put(:trigger_target, trigger_target_data)
+    params = %{
+      "object_id" => :uuid.string_to_uuid("798b93a5-842e-bbad-2e4d-d20306838051"),
+      "object_type" => SimpleTriggersProtobufUtils.object_type_to_int!(:interface),
+      "simple_trigger_id" => path_removed_trigger_id(),
+      "parent_trigger_id" => fake_parent_trigger_id(),
+      "trigger_data" => simple_trigger_data,
+      "trigger_target" => trigger_target_data
+    }
 
-        DatabaseQuery.call!(client, query)
+    Queries.custom_query!(@insert_into_simple_triggers, nil, params)
 
-        # group 1 device trigger
-        simple_trigger_data =
-          %SimpleTriggerContainer{
-            simple_trigger: {
-              :device_trigger,
-              %DeviceTrigger{
-                device_event_type: :DEVICE_CONNECTED,
-                group_name: "group1"
-              }
-            }
+    # group 1 device trigger
+    simple_trigger_data =
+      %SimpleTriggerContainer{
+        simple_trigger: {
+          :device_trigger,
+          %DeviceTrigger{
+            device_event_type: :DEVICE_CONNECTED,
+            group_name: "group1"
           }
-          |> SimpleTriggerContainer.encode()
+        }
+      }
+      |> SimpleTriggerContainer.encode()
 
-        trigger_target_data =
-          %TriggerTargetContainer{
-            trigger_target: {
-              :amqp_trigger_target,
-              %AMQPTriggerTarget{
-                routing_key: AMQPTestHelper.events_routing_key()
-              }
-            }
+    trigger_target_data =
+      %TriggerTargetContainer{
+        trigger_target: {
+          :amqp_trigger_target,
+          %AMQPTriggerTarget{
+            routing_key: AMQPTestHelper.events_routing_key()
           }
-          |> TriggerTargetContainer.encode()
+        }
+      }
+      |> TriggerTargetContainer.encode()
 
-        object_id = SimpleTriggersProtobufUtils.get_group_object_id("group1")
+    object_id = SimpleTriggersProtobufUtils.get_group_object_id("group1")
 
-        query =
-          DatabaseQuery.new()
-          |> DatabaseQuery.statement(@insert_into_simple_triggers)
-          |> DatabaseQuery.put(:object_id, object_id)
-          |> DatabaseQuery.put(
-            :object_type,
-            SimpleTriggersProtobufUtils.object_type_to_int!(:group)
-          )
-          |> DatabaseQuery.put(:simple_trigger_id, group1_device_connected_trigger_id())
-          |> DatabaseQuery.put(:parent_trigger_id, fake_parent_trigger_id())
-          |> DatabaseQuery.put(:trigger_data, simple_trigger_data)
-          |> DatabaseQuery.put(:trigger_target, trigger_target_data)
+    group_1_params = %{
+      "object_id" => object_id,
+      "object_type" => SimpleTriggersProtobufUtils.object_type_to_int!(:group),
+      "simple_trigger_id" => group1_device_connected_trigger_id(),
+      "parent_trigger_id" => fake_parent_trigger_id(),
+      "trigger_data" => simple_trigger_data,
+      "trigger_target" => trigger_target_data
+    }
 
-        DatabaseQuery.call!(client, query)
+    Queries.custom_query!(@insert_into_simple_triggers, nil, group_1_params)
 
-        # group 2 device trigger
-        simple_trigger_data =
-          %SimpleTriggerContainer{
-            simple_trigger: {
-              :device_trigger,
-              %DeviceTrigger{
-                device_event_type: :DEVICE_CONNECTED,
-                group_name: "group2"
-              }
-            }
+    # group 2 device trigger
+    simple_trigger_data =
+      %SimpleTriggerContainer{
+        simple_trigger: {
+          :device_trigger,
+          %DeviceTrigger{
+            device_event_type: :DEVICE_CONNECTED,
+            group_name: "group2"
           }
-          |> SimpleTriggerContainer.encode()
+        }
+      }
+      |> SimpleTriggerContainer.encode()
 
-        trigger_target_data =
-          %TriggerTargetContainer{
-            trigger_target: {
-              :amqp_trigger_target,
-              %AMQPTriggerTarget{
-                routing_key: AMQPTestHelper.events_routing_key()
-              }
-            }
+    trigger_target_data =
+      %TriggerTargetContainer{
+        trigger_target: {
+          :amqp_trigger_target,
+          %AMQPTriggerTarget{
+            routing_key: AMQPTestHelper.events_routing_key()
           }
-          |> TriggerTargetContainer.encode()
+        }
+      }
+      |> TriggerTargetContainer.encode()
 
-        object_id = SimpleTriggersProtobufUtils.get_group_object_id("group2")
+    object_id = SimpleTriggersProtobufUtils.get_group_object_id("group2")
 
-        query =
-          DatabaseQuery.new()
-          |> DatabaseQuery.statement(@insert_into_simple_triggers)
-          |> DatabaseQuery.put(:object_id, object_id)
-          |> DatabaseQuery.put(
-            :object_type,
-            SimpleTriggersProtobufUtils.object_type_to_int!(:group)
-          )
-          |> DatabaseQuery.put(:simple_trigger_id, group2_device_connected_trigger_id())
-          |> DatabaseQuery.put(:parent_trigger_id, fake_parent_trigger_id())
-          |> DatabaseQuery.put(:trigger_data, simple_trigger_data)
-          |> DatabaseQuery.put(:trigger_target, trigger_target_data)
+    group_2_params = %{
+      "object_id" => object_id,
+      "object_type" => SimpleTriggersProtobufUtils.object_type_to_int!(:group),
+      "simple_trigger_id" => group2_device_connected_trigger_id(),
+      "parent_trigger_id" => fake_parent_trigger_id(),
+      "trigger_data" => simple_trigger_data,
+      "trigger_target" => trigger_target_data
+    }
 
-        DatabaseQuery.call!(client, query)
+    Queries.custom_query!(@insert_into_simple_triggers, nil, group_2_params)
 
-        # Device-specific data trigger
+    # Device-specific data trigger
 
-        target_device_id = "f0VMRgIBAQAAAAAAAAAAAA"
+    target_device_id = "f0VMRgIBAQAAAAAAAAAAAA"
 
-        simple_trigger_data =
-          %Astarte.Core.Triggers.SimpleTriggersProtobuf.SimpleTriggerContainer{
-            simple_trigger: {
-              :data_trigger,
-              %Astarte.Core.Triggers.SimpleTriggersProtobuf.DataTrigger{
-                device_id: target_device_id,
-                interface_name: "com.test.LCDMonitor",
-                interface_major: 1,
-                data_trigger_type: :INCOMING_DATA,
-                match_path: "/weekSchedule/%{weekDay}/start",
-                value_match_operator: :LESS_THAN,
-                known_value: Cyanide.encode!(%{v: 2})
-              }
-            }
+    simple_trigger_data =
+      %Astarte.Core.Triggers.SimpleTriggersProtobuf.SimpleTriggerContainer{
+        simple_trigger: {
+          :data_trigger,
+          %Astarte.Core.Triggers.SimpleTriggersProtobuf.DataTrigger{
+            device_id: target_device_id,
+            interface_name: "com.test.LCDMonitor",
+            interface_major: 1,
+            data_trigger_type: :INCOMING_DATA,
+            match_path: "/weekSchedule/%{weekDay}/start",
+            value_match_operator: :LESS_THAN,
+            known_value: Cyanide.encode!(%{v: 2})
           }
-          |> Astarte.Core.Triggers.SimpleTriggersProtobuf.SimpleTriggerContainer.encode()
+        }
+      }
+      |> Astarte.Core.Triggers.SimpleTriggersProtobuf.SimpleTriggerContainer.encode()
 
-        trigger_target_data =
-          %Astarte.Core.Triggers.SimpleTriggersProtobuf.TriggerTargetContainer{
-            trigger_target: {
-              :amqp_trigger_target,
-              %Astarte.Core.Triggers.SimpleTriggersProtobuf.AMQPTriggerTarget{
-                routing_key: AMQPTestHelper.events_routing_key()
-              }
-            }
+    trigger_target_data =
+      %Astarte.Core.Triggers.SimpleTriggersProtobuf.TriggerTargetContainer{
+        trigger_target: {
+          :amqp_trigger_target,
+          %Astarte.Core.Triggers.SimpleTriggersProtobuf.AMQPTriggerTarget{
+            routing_key: AMQPTestHelper.events_routing_key()
           }
-          |> Astarte.Core.Triggers.SimpleTriggersProtobuf.TriggerTargetContainer.encode()
+        }
+      }
+      |> Astarte.Core.Triggers.SimpleTriggersProtobuf.TriggerTargetContainer.encode()
 
-        {:ok, target_decoded_device_id} = target_device_id |> Device.decode_device_id()
+    {:ok, target_decoded_device_id} = target_device_id |> Device.decode_device_id()
 
-        interface_id = CQLUtils.interface_id("com.test.LCDMonitor", 1)
+    interface_id = CQLUtils.interface_id("com.test.LCDMonitor", 1)
 
-        object_id =
-          SimpleTriggersProtobufUtils.get_device_and_interface_object_id(
-            target_decoded_device_id,
-            interface_id
-          )
+    object_id =
+      SimpleTriggersProtobufUtils.get_device_and_interface_object_id(
+        target_decoded_device_id,
+        interface_id
+      )
 
-        query =
-          DatabaseQuery.new()
-          |> DatabaseQuery.statement(@insert_into_simple_triggers)
-          |> DatabaseQuery.put(
-            :object_id,
-            object_id
-          )
-          |> DatabaseQuery.put(
-            :object_type,
-            SimpleTriggersProtobufUtils.object_type_to_int!(:device_and_interface)
-          )
-          |> DatabaseQuery.put(:simple_trigger_id, less_than_device_incoming_trigger_id())
-          |> DatabaseQuery.put(:parent_trigger_id, fake_parent_trigger_id())
-          |> DatabaseQuery.put(:trigger_data, simple_trigger_data)
-          |> DatabaseQuery.put(:trigger_target, trigger_target_data)
+    device_params = %{
+      "object_id" => object_id,
+      "object_type" => SimpleTriggersProtobufUtils.object_type_to_int!(:device_and_interface),
+      "simple_trigger_id" => less_than_device_incoming_trigger_id(),
+      "parent_trigger_id" => fake_parent_trigger_id(),
+      "trigger_data" => simple_trigger_data,
+      "trigger_target" => trigger_target_data
+    }
 
-        DatabaseQuery.call!(client, query)
+    Queries.custom_query!(@insert_into_simple_triggers, nil, device_params)
 
-        # Group-specific data trigger
-        target_group = "group1"
+    # Group-specific data trigger
+    target_group = "group1"
 
-        simple_trigger_data =
-          %Astarte.Core.Triggers.SimpleTriggersProtobuf.SimpleTriggerContainer{
-            simple_trigger: {
-              :data_trigger,
-              %Astarte.Core.Triggers.SimpleTriggersProtobuf.DataTrigger{
-                group_name: target_group,
-                interface_name: "com.test.LCDMonitor",
-                interface_major: 1,
-                data_trigger_type: :INCOMING_DATA,
-                match_path: "/weekSchedule/%{weekDay}/start",
-                value_match_operator: :EQUAL_TO,
-                known_value: Cyanide.encode!(%{v: 3})
-              }
-            }
+    simple_trigger_data =
+      %Astarte.Core.Triggers.SimpleTriggersProtobuf.SimpleTriggerContainer{
+        simple_trigger: {
+          :data_trigger,
+          %Astarte.Core.Triggers.SimpleTriggersProtobuf.DataTrigger{
+            group_name: target_group,
+            interface_name: "com.test.LCDMonitor",
+            interface_major: 1,
+            data_trigger_type: :INCOMING_DATA,
+            match_path: "/weekSchedule/%{weekDay}/start",
+            value_match_operator: :EQUAL_TO,
+            known_value: Cyanide.encode!(%{v: 3})
           }
-          |> Astarte.Core.Triggers.SimpleTriggersProtobuf.SimpleTriggerContainer.encode()
+        }
+      }
+      |> Astarte.Core.Triggers.SimpleTriggersProtobuf.SimpleTriggerContainer.encode()
 
-        trigger_target_data =
-          %Astarte.Core.Triggers.SimpleTriggersProtobuf.TriggerTargetContainer{
-            trigger_target: {
-              :amqp_trigger_target,
-              %Astarte.Core.Triggers.SimpleTriggersProtobuf.AMQPTriggerTarget{
-                routing_key: AMQPTestHelper.events_routing_key()
-              }
-            }
+    trigger_target_data =
+      %Astarte.Core.Triggers.SimpleTriggersProtobuf.TriggerTargetContainer{
+        trigger_target: {
+          :amqp_trigger_target,
+          %Astarte.Core.Triggers.SimpleTriggersProtobuf.AMQPTriggerTarget{
+            routing_key: AMQPTestHelper.events_routing_key()
           }
-          |> Astarte.Core.Triggers.SimpleTriggersProtobuf.TriggerTargetContainer.encode()
+        }
+      }
+      |> Astarte.Core.Triggers.SimpleTriggersProtobuf.TriggerTargetContainer.encode()
 
-        interface_id = CQLUtils.interface_id("com.test.LCDMonitor", 1)
+    interface_id = CQLUtils.interface_id("com.test.LCDMonitor", 1)
 
-        object_id =
-          SimpleTriggersProtobufUtils.get_group_and_interface_object_id(
-            target_group,
-            interface_id
-          )
+    object_id =
+      SimpleTriggersProtobufUtils.get_group_and_interface_object_id(
+        target_group,
+        interface_id
+      )
 
-        query =
-          DatabaseQuery.new()
-          |> DatabaseQuery.statement(@insert_into_simple_triggers)
-          |> DatabaseQuery.put(
-            :object_id,
-            object_id
-          )
-          |> DatabaseQuery.put(
-            :object_type,
-            SimpleTriggersProtobufUtils.object_type_to_int!(:group_and_interface)
-          )
-          |> DatabaseQuery.put(:simple_trigger_id, equal_to_group_incoming_trigger_id())
-          |> DatabaseQuery.put(:parent_trigger_id, fake_parent_trigger_id())
-          |> DatabaseQuery.put(:trigger_data, simple_trigger_data)
-          |> DatabaseQuery.put(:trigger_target, trigger_target_data)
+    group_specific_params = %{
+      "object_id" => object_id,
+      "object_type" => SimpleTriggersProtobufUtils.object_type_to_int!(:group_and_interface),
+      "simple_trigger_id" => equal_to_group_incoming_trigger_id(),
+      "parent_trigger_id" => fake_parent_trigger_id(),
+      "trigger_data" => simple_trigger_data,
+      "trigger_target" => trigger_target_data
+    }
 
-        DatabaseQuery.call!(client, query)
-
-        {:ok, client}
-
-      %{msg: msg} ->
-        {:error, msg}
-    end
+    Queries.custom_query!(@insert_into_simple_triggers, nil, group_specific_params)
   end
 
   def destroy_local_test_keyspace do
-    {:ok, client} = DatabaseClient.new(List.first(Config.cqex_nodes!()))
-    DatabaseQuery.call(client, "DROP KEYSPACE autotestrealm;")
+    Queries.custom_query("DROP KEYSPACE autotestrealm;")
     :ok
   end
 
   def insert_device(device_id, opts \\ []) do
-    client = DatabaseClient.new!(List.first(Config.cqex_nodes!()))
-    last_connection = Keyword.get(opts, :last_connection)
-    last_disconnection = Keyword.get(opts, :last_disconnection)
+    params =
+      opts
+      |> Keyword.validate!(
+        last_connection: nil,
+        last_disconnection: nil,
+        first_pairing: DateTime.utc_now() |> DateTime.to_unix(:millisecond),
+        last_seen_ip: nil,
+        last_pairing_ip: nil,
+        total_received_msgs: 0,
+        total_received_bytes: 0,
+        introspection: %{},
+        groups: []
+      )
+      |> Keyword.update!(:groups, &Map.new(&1, fn group -> {group, UUID.uuid1()} end))
+      |> Keyword.put(:device_id, device_id)
+      |> Map.new(fn {key, val} -> {to_string(key), val} end)
 
-    first_pairing =
-      Keyword.get(opts, :first_pairing, DateTime.utc_now() |> DateTime.to_unix(:millisecond))
-
-    last_seen_ip = Keyword.get(opts, :last_seen_ip)
-    last_pairing_ip = Keyword.get(opts, :last_pairing_ip)
-    total_received_msgs = Keyword.get(opts, :total_received_msgs, 0)
-    total_received_bytes = Keyword.get(opts, :total_received_bytes, 0)
-    introspection = Keyword.get(opts, :introspection, %{})
-    groups = Keyword.get(opts, :groups, [])
-    groups_map = for group <- groups, do: {group, UUID.uuid1()}
-
-    query =
-      DatabaseQuery.new()
-      |> DatabaseQuery.statement(@insert_device)
-      |> DatabaseQuery.put(:device_id, device_id)
-      |> DatabaseQuery.put(:last_connection, last_connection)
-      |> DatabaseQuery.put(:last_disconnection, last_disconnection)
-      |> DatabaseQuery.put(:first_pairing, first_pairing)
-      |> DatabaseQuery.put(:last_seen_ip, last_seen_ip)
-      |> DatabaseQuery.put(:last_pairing_ip, last_pairing_ip)
-      |> DatabaseQuery.put(:total_received_msgs, total_received_msgs)
-      |> DatabaseQuery.put(:total_received_bytes, total_received_bytes)
-      |> DatabaseQuery.put(:introspection, introspection)
-      |> DatabaseQuery.put(:groups, groups_map)
-
-    DatabaseQuery.call(client, query)
+    Queries.custom_query(@insert_device, nil, params)
   end
 
-  def fetch_old_introspection(db_client, device_id) do
+  def fetch_old_introspection(realm, device_id) do
     old_introspection_statement = """
     SELECT old_introspection
     FROM devices
     WHERE device_id=:device_id
     """
 
-    old_introspection_query =
-      DatabaseQuery.new()
-      |> DatabaseQuery.statement(old_introspection_statement)
-      |> DatabaseQuery.put(:device_id, device_id)
-      |> DatabaseQuery.consistency(:quorum)
+    params = %{
+      "device_id" => device_id
+    }
 
-    with {:ok, result} <- DatabaseQuery.call(db_client, old_introspection_query),
-         [old_introspection: introspection_minors] when is_list(introspection_minors) <-
-           DatabaseResult.head(result) do
-      {:ok, Enum.into(introspection_minors, %{})}
-    else
-      [old_introspection: nil] ->
-        {:ok, %{}}
+    with {:ok, result} <-
+           Queries.custom_query(old_introspection_statement, realm, params,
+             consistency: :quorum,
+             result: :first!
+           ) do
+      %{"old_introspection" => introspection_minors} = result
+      introspection_minors = introspection_minors || %{}
+      {:ok, introspection_minors}
     end
   end
 
