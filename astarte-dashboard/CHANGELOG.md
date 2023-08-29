@@ -16,6 +16,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ([#387](https://github.com/astarte-platform/astarte-dashboard/issues/387))
 - Improve Device stats card to show Total Bytes/Messages value instead of NaN.
 ([#384](https://github.com/astarte-platform/astarte-dashboard/issues/384))
+### Fixed
+- Validate parametric mappings when they overlap on the last leaf.
+([#324](https://github.com/astarte-platform/astarte-dashboard/issues/324))
 
 ## [1.1.0] - 2023-06-20
 
