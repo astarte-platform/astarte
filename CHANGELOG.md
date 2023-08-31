@@ -21,6 +21,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - [astarte_appengine_api] Fix log noise with cassandra during health checks.
   Fix [#817](https://github.com/astarte-platform/astarte/issues/817).
 - [astarte_pairing] Fix crash when using a custom CA certificate.
+- [astarte_data_updater_plant] Remove asynchronous startup of Data Updater, which could lead to Data
+  Updater stalling in some corner cases.
 
 ### Changed
 - [doc] Update the documentation structure. Pages dealing with administrative tasks involving the
