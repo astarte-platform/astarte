@@ -2234,6 +2234,8 @@ defmodule Astarte.RealmManagement.Queries do
       uuid_format: :binary
     )
     |> Enum.to_list()
-    |> Enum.filter(fn %{vmq_ack: vmq_ack, dup_ack: dup_ack} -> vmq_ack and dup_ack end)
+    |> Enum.filter(fn %{vmq_ack: vmq_ack, dup_start_ack: dup_start_ack, dup_end_ack: dup_end_ack} ->
+      vmq_ack and dup_start_ack and dup_end_ack
+    end)
   end
 end

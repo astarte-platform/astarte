@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2017,2018 Ispirata Srl
+# Copyright 2017 - 2023 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -25,6 +25,7 @@ defmodule Astarte.RealmManagement.QueriesTest do
   alias Astarte.RealmManagement.DatabaseTestHelper
   alias Astarte.RealmManagement.Queries
   alias Astarte.RealmManagement.Config
+  alias Astarte.Core.CQLUtils
 
   @object_datastream_interface_json """
   {
@@ -187,6 +188,8 @@ defmodule Astarte.RealmManagement.QueriesTest do
   @list_timestamp_test_values """
     SELECT value_timestamp FROM individual_datastreams WHERE device_id=536be249-aaaa-4e02-9583-5a4833cbfe49 AND interface_id=:interface_id AND endpoint_id=:endpoint_id AND path='/test/:ind/v';
   """
+
+  @realm_name "autotestrealm"
 
   setup do
     with {:ok, client} <- DatabaseTestHelper.connect_to_test_database() do
@@ -576,5 +579,264 @@ defmodule Astarte.RealmManagement.QueriesTest do
 
     assert Queries.get_jwt_public_key_pem(client) ==
              {:ok, DatabaseTestHelper.jwt_public_key_pem_fixture()}
+  end
+
+  test "retrieve and delete individual datastreams for a device" do
+    device_id = :crypto.strong_rand_bytes(16)
+    interface_name = "com.an.individual.datastream.Interface"
+    interface_major = 0
+    endpoint = "/%{sensorId}/value"
+    path = "/0/value"
+
+    DatabaseTestHelper.seed_individual_datastream_test_data!(
+      realm_name: @realm_name,
+      device_id: device_id,
+      interface_name: interface_name,
+      interface_major: interface_major,
+      endpoint: endpoint,
+      path: path
+    )
+
+    assert [
+             %{
+               device_id: ^device_id,
+               interface_id: interface_id,
+               endpoint_id: endpoint_id,
+               path: ^path
+             }
+           ] =
+             Queries.retrieve_individual_datastreams_keys!(
+               @realm_name,
+               device_id
+             )
+
+    assert ^interface_id = CQLUtils.interface_id(interface_name, interface_major)
+
+    assert ^endpoint_id = CQLUtils.endpoint_id(interface_name, interface_major, endpoint)
+
+    assert %Xandra.Void{} =
+             Queries.delete_individual_datastream_values!(
+               @realm_name,
+               device_id,
+               interface_id,
+               endpoint_id,
+               path
+             )
+
+    assert [] =
+             Queries.retrieve_individual_datastreams_keys!(
+               @realm_name,
+               device_id
+             )
+  end
+
+  test "retrieve and delete individual properties for a device" do
+    device_id = :crypto.strong_rand_bytes(16)
+    interface_name = "com.an.individual.property.Interface"
+    interface_major = 0
+
+    DatabaseTestHelper.seed_individual_properties_test_data!(
+      realm_name: @realm_name,
+      device_id: device_id,
+      interface_name: interface_name,
+      interface_major: interface_major
+    )
+
+    assert [
+             %{
+               device_id: ^device_id,
+               interface_id: interface_id
+             }
+           ] =
+             Queries.retrieve_individual_properties_keys!(
+               @realm_name,
+               device_id
+             )
+
+    assert ^interface_id = CQLUtils.interface_id(interface_name, interface_major)
+
+    assert %Xandra.Void{} =
+             Queries.delete_individual_properties_values!(
+               @realm_name,
+               device_id,
+               interface_id
+             )
+
+    assert [] =
+             Queries.retrieve_individual_properties_keys!(
+               @realm_name,
+               device_id
+             )
+  end
+
+  test "retrieve and delete object datastreams for a device" do
+    interface_name = "com.object.datastream.Interface"
+    interface_major = 0
+    device_id = :crypto.strong_rand_bytes(16)
+    path = "/0/value"
+
+    table_name = CQLUtils.interface_name_to_table_name(interface_name, interface_major)
+    DatabaseTestHelper.create_object_datastream_table!(table_name)
+
+    DatabaseTestHelper.seed_object_datastream_test_data!(
+      realm_name: @realm_name,
+      device_id: device_id,
+      interface_name: interface_name,
+      interface_major: interface_major,
+      path: path
+    )
+
+    assert [
+             %{
+               device_id: ^device_id,
+               path: ^path
+             }
+           ] =
+             Queries.retrieve_object_datastream_keys!(
+               @realm_name,
+               device_id,
+               table_name
+             )
+
+    assert %Xandra.Void{} =
+             Queries.delete_object_datastream_values!(
+               @realm_name,
+               device_id,
+               path,
+               table_name
+             )
+
+    assert [] =
+             Queries.retrieve_object_datastream_keys!(
+               @realm_name,
+               device_id,
+               table_name
+             )
+  end
+
+  test "retrieve device introspection" do
+    device_id = :crypto.strong_rand_bytes(16)
+    interface_name = "com.an.object.datastream.Interface"
+    interface_major = 0
+
+    DatabaseTestHelper.add_interface_to_introspection!(
+      realm_name: @realm_name,
+      device_id: device_id,
+      interface_name: interface_name,
+      interface_major: interface_major
+    )
+
+    assert %{^interface_name => ^interface_major} =
+             Queries.retrieve_device_introspection_map!(
+               @realm_name,
+               device_id
+             )
+  end
+
+  test "retrieve interface from introspection" do
+    interface_name = "com.an.object.datastream.Interface"
+    interface_major = 0
+
+    DatabaseTestHelper.seed_interfaces_table_object_test_data!(
+      realm_name: @realm_name,
+      interface_name: interface_name,
+      interface_major: interface_major
+    )
+
+    assert %Astarte.Core.InterfaceDescriptor{
+             name: ^interface_name,
+             major_version: ^interface_major
+           } =
+             Queries.retrieve_interface_descriptor!(
+               @realm_name,
+               interface_name,
+               interface_major
+             )
+  end
+
+  test "retrieve and delete aliases" do
+    device_id = :crypto.strong_rand_bytes(16)
+    device_alias = "a boring device alias"
+
+    DatabaseTestHelper.seed_aliases_test_data!(
+      realm_name: @realm_name,
+      device_id: device_id,
+      device_alias: device_alias
+    )
+
+    assert [
+             %{
+               object_name: ^device_alias
+             }
+           ] = Queries.retrieve_aliases!(@realm_name, device_id)
+
+    assert %Xandra.Void{} =
+             Queries.delete_alias_values!(
+               @realm_name,
+               device_alias
+             )
+
+    assert [] = Queries.retrieve_aliases!(@realm_name, device_id)
+  end
+
+  test "retrieve and delete groups" do
+    device_id = :crypto.strong_rand_bytes(16)
+    {insertion_uuid, _state} = :uuid.get_v1(:uuid.new(self()))
+    group = "group"
+
+    DatabaseTestHelper.seed_groups_test_data!(
+      realm_name: @realm_name,
+      group_name: group,
+      insertion_uuid: insertion_uuid,
+      device_id: device_id
+    )
+
+    assert [
+             %{
+               device_id: ^device_id,
+               insertion_uuid: ^insertion_uuid,
+               group_name: ^group
+             }
+           ] = Queries.retrieve_groups_keys!(@realm_name, device_id)
+
+    assert %Xandra.Void{} =
+             Queries.delete_group_values!(
+               @realm_name,
+               device_id,
+               group,
+               insertion_uuid
+             )
+
+    assert [] = Queries.retrieve_groups_keys!(@realm_name, device_id)
+  end
+
+  test "retrieve and delete kv_store entries" do
+    interface_name = "com.an.individual.datastream.Interface"
+    group = "devices-with-data-on-interface-#{interface_name}-v0"
+
+    device_id = :crypto.strong_rand_bytes(16)
+    encoded_device_id = Astarte.Core.Device.encode_device_id(device_id)
+
+    DatabaseTestHelper.seed_kv_store_test_data!(
+      realm_name: @realm_name,
+      group: group,
+      key: encoded_device_id
+    )
+
+    assert [
+             %{
+               group: ^group,
+               key: ^encoded_device_id
+             }
+           ] = Queries.retrieve_kv_store_entries!(@realm_name, encoded_device_id)
+
+    assert %Xandra.Void{} =
+             Queries.delete_kv_store_entry!(
+               @realm_name,
+               group,
+               encoded_device_id
+             )
+
+    assert [] = Queries.retrieve_kv_store_entries!(@realm_name, encoded_device_id)
   end
 end
