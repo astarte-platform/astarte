@@ -248,6 +248,7 @@ services:
       DOCKER_VERNEMQ_ASTARTE_VMQ_PLUGIN__AMQP__PASSWORD: "guest"
       DOCKER_VERNEMQ_ASTARTE_VMQ_PLUGIN__AMQP__HOST: "rabbitmq"
       DOCKER_VERNEMQ_USER_appengine: "appengine"
+      DOCKER_VERNEMQ_ASTARTE_VMQ_PLUGIN__CASSANDRA__NODES: "scylla:9042"
       CFSSL_URL: "http://cfssl:8080"
     volumes:
       - vernemq-data:/opt/vernemq/data
