@@ -59,8 +59,8 @@ defmodule Astarte.TriggerEngine.Mixfile do
 
   defp astarte_required_modules(_) do
     [
-      {:astarte_core, "~> 1.0.4"},
-      {:astarte_data_access, "~> 1.0.4"}
+      {:astarte_core, "~> 1.0.5"},
+      {:astarte_data_access, "~> 1.0.5"}
     ]
   end
 

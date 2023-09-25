@@ -49,7 +49,7 @@ defmodule AstarteE2E.MixProject do
   # Run "mix help deps" to learn about dependencies.
   defp deps do
     [
-      {:astarte_device, "~> 1.0.4"},
+      {:astarte_device, "~> 1.0.5"},
       {:phoenix_gen_socket_client,
        github: "J0/phoenix_gen_socket_client", ref: "5e8dee43a0fe877f747cf707baf0d45f713b223a"},
       {:websocket_client, "~> 1.2"},
