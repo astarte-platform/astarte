@@ -22,7 +22,7 @@ by visiting http://localhost:3000.
 When first logging into Grafana, you will be prompted to change default
 credentials user `admin`, password: `admin`.
 
-# Configure the datasource
+## Configure the datasource
 
 In order to get data from Astarte, you will need to create a new datasource
 referring to your own Astarte instance.
