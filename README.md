@@ -1,7 +1,7 @@
 # Astarte
 
-![](https://github.com/astarte-platform/astarte/workflows/Build%20and%20Test%20Astarte%20Apps/badge.svg?branch=master)
-[![codecov](https://codecov.io/gh/astarte-platform/astarte/branch/master/graph/badge.svg)](https://codecov.io/gh/astarte-platform/astarte)
+![](https://github.com/astarte-platform/astarte/workflows/Build%20and%20Test%20Astarte%20Apps/badge.svg?branch=release-1.1)
+[![codecov](https://codecov.io/gh/astarte-platform/astarte/tree/release-1.1/graph/badge.svg)](https://codecov.io/gh/astarte-platform/astarte)
 
 <img src="doc/images/mascotte.svg" align="left" width="160px" />Astarte is an Open Source IoT
 platform focused on Data management and processing written in [Elixir](https://github.com/elixir-lang/elixir).
@@ -30,16 +30,12 @@ and [Cassandra](http://cassandra.apache.org/)/[ScyllaDB](https://www.scylladb.co
 
 ## Let's try it!
 
-**This is the master branch, which is not guaranteed to always be in a usable state.**
-
-**For production purposes we recommend using the latest stable release (currently [v1.0.1](https://github.com/astarte-platform/astarte/tree/release-1.0)), this branch should be used only for 1.1 development activities.**
-
 Can't be easier. Pick your favorite machine with at least 4GB of free RAM, make sure it has
 [Docker](https://www.docker.com/), and simply:
 
 ```sh
-$ git clone https://github.com/astarte-platform/astarte.git && cd astarte
-$ docker run -v $(pwd)/compose:/compose astarte/docker-compose-initializer:snapshot
+$ git clone https://github.com/astarte-platform/astarte.git -b v1.1.0 && cd astarte
+$ docker run -v $(pwd)/compose:/compose astarte/docker-compose-initializer:1.1.0
 $ docker-compose pull
 $ docker-compose up -d
 ```

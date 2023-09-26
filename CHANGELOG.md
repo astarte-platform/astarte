@@ -49,7 +49,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - [astarte_appengine_api] Return empty data instead of error when querying `properties` interfaces 
   which are not fully populated. Fix [531](astarte-platform#531).
 
-## [1.0.5] - Unreleased
+## [1.0.5] - 2023-09-26
 ### Fixed
 - [astarte_appengine_api] Correctly handle `binaryblob` and `datetime` in server-owned object
   aggregated interfaces.
@@ -57,6 +57,17 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
   crashing with an Internal Server Error
 - [astarte_appengine_api] Handle updates of objects with invalid keys gracefully instead of crashing
   with an Internal Server Error.
+- [astarte_appengine_api] Return the number of results specified by `downsample_to`
+  when there are more samples than the default query limit.
+  Fix [#824](https://github.com/astarte-platform/astarte/issues/824).
+- [astarte_appengine_api] Return the number of results specified by `downsample_to`
+  when used in combination with `format=disjoint_tables`.
+  Fix [#149](https://github.com/astarte-platform/astarte/issues/149).
+- [astarte_appengine_api] Fix log noise with cassandra during health checks.
+  Fix [#817](https://github.com/astarte-platform/astarte/issues/817).
+- [astarte_pairing] Fix crash when using a custom CA certificate.
+- [astarte_data_updater_plant] Remove asynchronous startup of Data Updater, which could lead to Data
+  Updater stalling in some corner cases.
 
 ### Changed
 - [doc] Update the documentation structure. Pages dealing with administrative tasks involving the

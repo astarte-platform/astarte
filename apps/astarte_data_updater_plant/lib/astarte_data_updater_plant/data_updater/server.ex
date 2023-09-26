@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2017 Ispirata Srl
+# Copyright 2017-2023 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -29,8 +29,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Server do
   def init({realm, device_id, message_tracker}) do
     timeout = Config.data_updater_deactivation_interval_ms!()
 
-    send(self(), {:initialize, realm, device_id, message_tracker})
-    {:ok, nil, timeout}
+    {:ok, Impl.init_state(realm, device_id, message_tracker), timeout}
   end
 
   def handle_cast({:handle_connection, ip_address, message_id, timestamp}, state) do
@@ -150,12 +149,6 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Server do
     timeout = Config.data_updater_deactivation_interval_ms!()
 
     {:reply, state, state, timeout}
-  end
-
-  def handle_info({:initialize, realm, device_id, message_tracker}, nil) do
-    timeout = Config.data_updater_deactivation_interval_ms!()
-
-    {:noreply, Impl.init_state(realm, device_id, message_tracker), timeout}
   end
 
   def handle_info({:DOWN, _, :process, pid, :normal}, %{message_tracker: pid} = state) do
