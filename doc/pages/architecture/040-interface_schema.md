@@ -22,7 +22,6 @@ This schema describes how an Astarte interface should be declared
 |**type**|`string`|Identifies the type of this Interface. Currently two types are supported: datastream and properties. datastream should be used when dealing with streams of non-persistent data, where a single path receives updates and there's no concept of state. properties, instead, are meant to be an actual state and as such they have only a change history, and are retained.| ✔ Yes|
 |**ownership**|`string`|Identifies the quality of the interface. Interfaces are meant to be unidirectional, and this property defines who's sending or receiving data. device means the device/gateway is sending data to Astarte, consumer means the device/gateway is receiving data from Astarte. Bidirectional mode is not supported, you should instantiate another interface for that.| ✔ Yes|
 |**aggregation**|`string`|Identifies the aggregation of the mappings of the interface. Individual means every mapping changes state or streams data independently, whereas an object aggregation treats the interface as an object, making all the mappings changes interdependent. Choosing the right aggregation might drastically improve performances.|No, default: `"individual"`|
-|**explicit_timestamp**|`boolean`|Allow to set a custom timestamp, otherwise a timestamp is added when the message is received. If true explicit timestamp will also be used for sorting. This feature is only supported on datastreams.|No, default: `false`|
 |**description**|`string`|An optional description of the interface.|No|
 |**doc**|`string`|A string containing documentation that will be injected in the generated client code.|No|
 |**mappings**|[`Astarte Mapping Schema`](#reference-astarte-mapping-schema) `[1-1024]`|Mappings define the endpoint of the interface, where actual data is stored/streamed. They are defined as relative URLs (e.g. /my/path) and can be parametrized (e.g.: /%{myparam}/path). A valid interface must have no mappings clash, which means that every mapping must resolve to a unique path or collection of paths (including parametrization). Every mapping acquires type, quality and aggregation of the interface.| ✔ Yes|
@@ -96,15 +95,6 @@ drastically improve performances.
    * `"individual"`
    * `"object"`
 
-### astarte.interface.schema.explicit_timestamp
-
-Allow to set a custom timestamp, otherwise a timestamp is added when the message is received. If
-true explicit timestamp will also be used for sorting. This feature is only supported on
-datastreams.
-
-* **Type**: `boolean`
-* **Required**: No, default: `false`
-
 ### astarte.interface.schema.description
 
 An optional description of the interface.
@@ -147,6 +137,7 @@ Identifies a mapping for an interface. A mapping must consist at least of an end
 |**endpoint**|`string`|The template of the path. This is a UNIX-like path (e.g. /my/path) and can be parametrized. Parameters are in the %{name} form, and can be used to create interfaces which represent dictionaries of mappings. When the interface aggregation is object, an object is composed by all the mappings for one specific parameter combination.| ✔ Yes|
 |**type**|`string`|Defines the type of the mapping.| ✔ Yes|
 |**reliability**|`string`|Useful only with datastream. Defines whether the sent data should be considered delivered when the transport successfully sends the data (unreliable), when we know that the data has been received at least once (guaranteed) or when we know that the data has been received exactly once (unique). unreliable by default. When using reliable data, consider you might incur in additional resource usage on both the transport and the device's end.|No, default: `"unreliable"`|
+|**explicit_timestamp**|`boolean`|Allow to set a custom timestamp, otherwise a timestamp is added when the message is received. If true explicit timestamp will also be used for sorting. This feature is only supported on datastreams.|No, default: `false`|
 |**retention**|`string`|Useful only with datastream. Defines whether the sent data should be discarded if the transport is temporarily uncapable of delivering it (discard) or should be kept in a cache in memory (volatile) or on disk (stored), and guaranteed to be delivered in the timeframe defined by the expiry. discard by default.|No, default: `"discard"`|
 |**expiry**|`integer`|Useful when retention is stored. Defines after how many seconds a specific data entry should be kept before giving up and erasing it from the persistent cache. A value <= 0 means the persistent cache never expires, and is the default.|No, default: `0`|
 |**database_retention_policy**|`string`|Useful only with datastream. Defines whether data should expire from the database after a given interval. Valid values are: no_ttl and use_ttl.|No, default: `"no_ttl"`|
@@ -204,6 +195,15 @@ usage on both the transport and the device's end.
    * `"unreliable"`
    * `"guaranteed"`
    * `"unique"`
+
+### astarte.mapping.schema.explicit_timestamp
+
+Allow to set a custom timestamp, otherwise a timestamp is added when the message is received. If
+true explicit timestamp will also be used for sorting. This feature is only supported on
+datastreams.
+
+* **Type**: `boolean`
+* **Required**: No, default: `false`
 
 ### astarte.mapping.schema.retention
 
@@ -264,4 +264,3 @@ A string containing documentation that will be injected in the generated client 
 
 * **Type**: `string`
 * **Required**: No
-
