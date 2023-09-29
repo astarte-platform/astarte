@@ -19,6 +19,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
   Fix [#149](https://github.com/astarte-platform/astarte/issues/149).
 - [astarte-realm_management] Do not crash when some synchronous operations
   (e.g. interface install) succeed.
+- [astarte_data_updater_plant] Don't crash when handling incoming `binaryblob` values
+  (see https://github.com/astarte-platform/astarte_core/issues/95).
 
 ## [1.1.0] - 2023-06-20
 ### Fixed
