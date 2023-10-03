@@ -36,6 +36,7 @@ shorther than 128 characters.
 * **Type**: `string`
 * **Required**: Yes
 * **Minimum Length**`: >= 1`
+* **Allowed Pattern**: `^([a-zA-Z][a-zA-Z0-9]*.([a-zA-Z0-9][a-zA-Z0-9-]*.)*)?[a-zA-Z][a-zA-Z0-9]*$`
 
 ### astarte.interface.schema.version_major ✔
 
@@ -158,6 +159,7 @@ mappings for one specific parameter combination.
 * **Type**: `string`
 * **Required**: Yes
 * **Minimum Length**`: >= 2`
+* **Allowed Pattern**: `^(/(%{([a-zA-Z_][a-zA-Z0-9_]*)}|[a-zA-Z_][a-zA-Z0-9_]*)){1,64}$`
 
 ### astarte.mapping.schema.type ✔
 
