@@ -1475,6 +1475,52 @@ defmodule Astarte.AppEngine.API.DeviceTest do
       assert_in_delta(DateTime.to_unix(request_ts_2), DateTime.to_unix(time2), 1000)
     end
 
+    test "is successful with binaryblob arrays in object-aggregated payloads and data on the interface can be retrieved" do
+      test_realm = "autotestrealm"
+      device_id = "fmloLzG5T5u0aOUfIkL8KA"
+      interface = "org.astarte-platform.genericsensors.ServerOwnedAggregateObj"
+      path = "/my_path"
+      values = [<<1, 2, 3, 230>>, <<4, 5, 6, 230>>]
+      server_owned_value = %{"binaryblobarray" => Enum.map(values, &Base.encode64/1)}
+      par = nil
+
+      MockRPCClient
+      |> expect(:rpc_call, fn serialized_call, _destination ->
+        assert %Call{call: {:publish, %Publish{} = publish_call}} = Call.decode(serialized_call)
+
+        encoded_payload =
+          %{v: %{"binaryblobarray" => Enum.map(values, &{0, &1})}} |> Cyanide.encode!()
+
+        path_tokens = String.split(path, "/")
+
+        assert %Publish{
+                 topic_tokens: [^test_realm, ^device_id, ^interface | ^path_tokens],
+                 payload: ^encoded_payload,
+                 qos: 2
+               } = publish_call
+
+        {:ok,
+         %Reply{
+           reply: tagged_publish_reply(1)
+         }
+         |> Reply.encode()}
+      end)
+
+      assert Device.update_interface_values(
+               test_realm,
+               device_id,
+               interface,
+               path,
+               server_owned_value,
+               par
+             ) ==
+               {:ok,
+                %Astarte.AppEngine.API.Device.InterfaceValues{
+                  data: server_owned_value,
+                  metadata: nil
+                }}
+    end
+
     test "is successful when PublishReply contains a remote_match or multiple matches" do
       test_realm = "autotestrealm"
       device_id = "fmloLzG5T5u0aOUfIkL8KA"
