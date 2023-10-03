@@ -30,20 +30,11 @@ defmodule Astarte.RealmManagement.Config do
     type: :integer,
     default: 4000
 
-  def cassandra_node!, do: Enum.random(cqex_nodes!())
-
   @doc """
   Returns Cassandra nodes formatted in the Xandra format.
   """
   defdelegate xandra_nodes, to: DataAccessConfig
   defdelegate xandra_nodes!, to: DataAccessConfig
 
-  @doc """
-  Returns Cassandra nodes formatted in the CQEx format.
-  """
-  defdelegate cqex_nodes, to: DataAccessConfig
-  defdelegate cqex_nodes!, to: DataAccessConfig
-
   defdelegate xandra_options!, to: DataAccessConfig
-  defdelegate cqex_options!, to: DataAccessConfig
 end

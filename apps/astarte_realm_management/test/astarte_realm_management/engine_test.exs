@@ -618,20 +618,14 @@ defmodule Astarte.RealmManagement.EngineTest do
   @test_realm_name "autotestrealm"
 
   setup do
-    with {:ok, client} <- DatabaseTestHelper.connect_to_test_database() do
-      DatabaseTestHelper.seed_test_data(client)
-    end
+    DatabaseTestHelper.seed_test_data()
   end
 
   setup_all do
-    with {:ok, client} <- DatabaseTestHelper.connect_to_test_database() do
-      DatabaseTestHelper.create_test_keyspace(client)
-    end
+    DatabaseTestHelper.create_test_keyspace()
 
     on_exit(fn ->
-      with {:ok, client} <- DatabaseTestHelper.connect_to_test_database() do
-        DatabaseTestHelper.drop_test_keyspace(client)
-      end
+      DatabaseTestHelper.drop_test_keyspace()
     end)
   end
 
@@ -677,7 +671,7 @@ defmodule Astarte.RealmManagement.EngineTest do
     assert Engine.list_interface_versions(
              "autotestrealm",
              "com.ispirata.Hemera.DeviceLog.Configuration"
-           ) == {:ok, [[major_version: 1, minor_version: 0]]}
+           ) == {:ok, [%{major_version: 1, minor_version: 0}]}
 
     assert Engine.list_interface_versions(
              "autotestrealm",
@@ -753,9 +747,7 @@ defmodule Astarte.RealmManagement.EngineTest do
              unpack_source({:ok, @test_draft_interface_a_0})
 
     assert Engine.list_interface_versions("autotestrealm", "com.ispirata.Draft") ==
-             {:ok, [[major_version: 0, minor_version: 2]]}
-
-    {:ok, client} = Database.connect(realm: "autotestrealm")
+             {:ok, [%{major_version: 0, minor_version: 2}]}
 
     d = :crypto.strong_rand_bytes(16)
 
@@ -767,10 +759,9 @@ defmodule Astarte.RealmManagement.EngineTest do
       )
 
     p1 = "/filterRules/0/TEST/value"
-    DatabaseTestHelper.seed_properties_test_value(client, d, "com.ispirata.Draft", 0, e1, p1)
+    DatabaseTestHelper.seed_properties_test_value(d, "com.ispirata.Draft", 0, e1, p1)
 
     assert DatabaseTestHelper.count_interface_properties_for_device(
-             client,
              d,
              "com.ispirata.Draft",
              0
@@ -779,7 +770,6 @@ defmodule Astarte.RealmManagement.EngineTest do
     assert Engine.delete_interface("autotestrealm", "com.ispirata.Draft", 0) == :ok
 
     assert DatabaseTestHelper.count_interface_properties_for_device(
-             client,
              d,
              "com.ispirata.Draft",
              0
@@ -801,7 +791,7 @@ defmodule Astarte.RealmManagement.EngineTest do
              unpack_source({:ok, @test_draft_interface_a_0})
 
     assert Engine.list_interface_versions("autotestrealm", "com.ispirata.Draft") ==
-             {:ok, [[major_version: 0, minor_version: 2]]}
+             {:ok, [%{major_version: 0, minor_version: 2}]}
   end
 
   test "install object aggregated interface" do
@@ -810,7 +800,7 @@ defmodule Astarte.RealmManagement.EngineTest do
     assert Engine.get_interfaces_list("autotestrealm") == {:ok, ["com.ObjectAggregation"]}
 
     assert Engine.list_interface_versions("autotestrealm", "com.ObjectAggregation") ==
-             {:ok, [[major_version: 0, minor_version: 3]]}
+             {:ok, [%{major_version: 0, minor_version: 3}]}
 
     assert Engine.delete_interface("autotestrealm", "com.ObjectAggregation", 0) == :ok
 
@@ -826,7 +816,7 @@ defmodule Astarte.RealmManagement.EngineTest do
     assert Engine.get_interfaces_list("autotestrealm") == {:ok, ["com.ObjectAggregation"]}
 
     assert Engine.list_interface_versions("autotestrealm", "com.ObjectAggregation") ==
-             {:ok, [[major_version: 0, minor_version: 3]]}
+             {:ok, [%{major_version: 0, minor_version: 3}]}
 
     assert Engine.delete_interface("autotestrealm", "com.ObjectAggregation", 0) == :ok
   end
@@ -837,16 +827,13 @@ defmodule Astarte.RealmManagement.EngineTest do
     assert Engine.get_interfaces_list("autotestrealm") == {:ok, ["com.ispirata.TestDatastream"]}
 
     assert Engine.list_interface_versions("autotestrealm", "com.ispirata.TestDatastream") ==
-             {:ok, [[major_version: 0, minor_version: 10]]}
-
-    {:ok, client} = Database.connect(realm: "autotestrealm")
+             {:ok, [%{major_version: 0, minor_version: 10}]}
 
     d = :crypto.strong_rand_bytes(16)
     e1 = CQLUtils.endpoint_id("com.ispirata.TestDatastream", 0, "/%{sensorId}/realValues")
     p1 = "/0/realValues"
 
     DatabaseTestHelper.seed_datastream_test_data(
-      client,
       d,
       "com.ispirata.TestDatastream",
       0,
@@ -858,7 +845,6 @@ defmodule Astarte.RealmManagement.EngineTest do
     p2 = "/0/integerValues"
 
     DatabaseTestHelper.seed_datastream_test_data(
-      client,
       d,
       "com.ispirata.TestDatastream",
       0,
@@ -869,7 +855,6 @@ defmodule Astarte.RealmManagement.EngineTest do
     assert Engine.delete_interface("autotestrealm", "com.ispirata.TestDatastream", 0) == :ok
 
     assert DatabaseTestHelper.count_rows_for_datastream(
-             client,
              d,
              "com.ispirata.TestDatastream",
              0,
@@ -878,7 +863,6 @@ defmodule Astarte.RealmManagement.EngineTest do
            ) == 0
 
     assert DatabaseTestHelper.count_rows_for_datastream(
-             client,
              d,
              "com.ispirata.TestDatastream",
              0,
@@ -897,7 +881,7 @@ defmodule Astarte.RealmManagement.EngineTest do
     assert Engine.get_interfaces_list("autotestrealm") == {:ok, ["com.ispirata.TestDatastream"]}
 
     assert Engine.list_interface_versions("autotestrealm", "com.ispirata.TestDatastream") ==
-             {:ok, [[major_version: 0, minor_version: 10]]}
+             {:ok, [%{major_version: 0, minor_version: 10}]}
 
     assert Engine.update_interface("autotestrealm", @test_draft_interface_c_1) == :ok
 
@@ -908,7 +892,7 @@ defmodule Astarte.RealmManagement.EngineTest do
     assert Engine.get_interfaces_list("autotestrealm") == {:ok, ["com.ispirata.TestDatastream"]}
 
     assert Engine.list_interface_versions("autotestrealm", "com.ispirata.TestDatastream") ==
-             {:ok, [[major_version: 0, minor_version: 15]]}
+             {:ok, [%{major_version: 0, minor_version: 15}]}
   end
 
   test "update explicit timestamp, doc, description, expiry and retention for individual datastream interface" do
@@ -917,7 +901,7 @@ defmodule Astarte.RealmManagement.EngineTest do
     assert Engine.get_interfaces_list("autotestrealm") == {:ok, ["org.astarte-platform.Values"]}
 
     assert Engine.list_interface_versions("autotestrealm", "org.astarte-platform.Values") ==
-             {:ok, [[major_version: 1, minor_version: 0]]}
+             {:ok, [%{major_version: 1, minor_version: 0}]}
 
     assert Engine.update_interface("autotestrealm", @test_interface_d_1) == :ok
 
@@ -927,7 +911,7 @@ defmodule Astarte.RealmManagement.EngineTest do
     assert {:ok, ^updated_interface} = unpack_source({:ok, @test_interface_d_1})
 
     assert Engine.list_interface_versions("autotestrealm", "org.astarte-platform.Values") ==
-             {:ok, [[major_version: 1, minor_version: 1]]}
+             {:ok, [%{major_version: 1, minor_version: 1}]}
 
     assert Engine.update_interface("autotestrealm", @test_interface_d_incompatible_change) ==
              {:error, :incompatible_endpoint_change}
@@ -942,7 +926,7 @@ defmodule Astarte.RealmManagement.EngineTest do
     assert Engine.get_interfaces_list("autotestrealm") == {:ok, ["com.ObjectAggregation"]}
 
     assert Engine.list_interface_versions("autotestrealm", "com.ObjectAggregation") ==
-             {:ok, [[major_version: 0, minor_version: 3]]}
+             {:ok, [%{major_version: 0, minor_version: 3}]}
 
     assert Engine.update_interface("autotestrealm", @test_draft_interface_b_1) == :ok
 
@@ -952,7 +936,7 @@ defmodule Astarte.RealmManagement.EngineTest do
     assert Engine.get_interfaces_list("autotestrealm") == {:ok, ["com.ObjectAggregation"]}
 
     assert Engine.list_interface_versions("autotestrealm", "com.ObjectAggregation") ==
-             {:ok, [[major_version: 0, minor_version: 4]]}
+             {:ok, [%{major_version: 0, minor_version: 4}]}
 
     assert Engine.delete_interface("autotestrealm", "com.ObjectAggregation", 0) == :ok
 
@@ -966,7 +950,7 @@ defmodule Astarte.RealmManagement.EngineTest do
              {:ok, ["com.autotest.AggregateValuesUpdate"]}
 
     assert Engine.list_interface_versions("autotestrealm", "com.autotest.AggregateValuesUpdate") ==
-             {:ok, [[major_version: 1, minor_version: 0]]}
+             {:ok, [%{major_version: 1, minor_version: 0}]}
 
     assert Engine.update_interface("autotestrealm", @test_interface_e_1) == :ok
 
@@ -978,7 +962,7 @@ defmodule Astarte.RealmManagement.EngineTest do
     assert {:ok, ^updated_interface} = unpack_source({:ok, @test_interface_e_1})
 
     assert Engine.list_interface_versions("autotestrealm", "com.autotest.AggregateValuesUpdate") ==
-             {:ok, [[major_version: 1, minor_version: 1]]}
+             {:ok, [%{major_version: 1, minor_version: 1}]}
 
     assert Engine.update_interface("autotestrealm", @test_interface_e_incompatible_change) ==
              {:error, :invalid_interface_document}
@@ -994,7 +978,7 @@ defmodule Astarte.RealmManagement.EngineTest do
              "autotestrealm",
              "com.autotest.AggregateValuesUpdateAndAdd"
            ) ==
-             {:ok, [[major_version: 1, minor_version: 0]]}
+             {:ok, [%{major_version: 1, minor_version: 0}]}
 
     assert Engine.update_interface("autotestrealm", @test_interface_f_1) == :ok
 
@@ -1009,7 +993,7 @@ defmodule Astarte.RealmManagement.EngineTest do
              "autotestrealm",
              "com.autotest.AggregateValuesUpdateAndAdd"
            ) ==
-             {:ok, [[major_version: 1, minor_version: 1]]}
+             {:ok, [%{major_version: 1, minor_version: 1}]}
   end
 
   test "fail update missing interface" do
@@ -1026,7 +1010,7 @@ defmodule Astarte.RealmManagement.EngineTest do
     assert Engine.get_interfaces_list("autotestrealm") == {:ok, ["com.ispirata.TestDatastream"]}
 
     assert Engine.list_interface_versions("autotestrealm", "com.ispirata.TestDatastream") ==
-             {:ok, [[major_version: 0, minor_version: 10]]}
+             {:ok, [%{major_version: 0, minor_version: 10}]}
 
     assert Engine.update_interface("autotestrealm", @test_draft_interface_c_wrong_update) ==
              {:error, :missing_endpoints}
@@ -1034,7 +1018,7 @@ defmodule Astarte.RealmManagement.EngineTest do
     assert Engine.get_interfaces_list("autotestrealm") == {:ok, ["com.ispirata.TestDatastream"]}
 
     assert Engine.list_interface_versions("autotestrealm", "com.ispirata.TestDatastream") ==
-             {:ok, [[major_version: 0, minor_version: 10]]}
+             {:ok, [%{major_version: 0, minor_version: 10}]}
 
     assert Engine.update_interface("autotestrealm", @test_draft_interface_c_1) == :ok
 
@@ -1048,7 +1032,7 @@ defmodule Astarte.RealmManagement.EngineTest do
     assert Engine.get_interfaces_list("autotestrealm") == {:ok, ["com.ispirata.TestDatastream"]}
 
     assert Engine.list_interface_versions("autotestrealm", "com.ispirata.TestDatastream") ==
-             {:ok, [[major_version: 0, minor_version: 15]]}
+             {:ok, [%{major_version: 0, minor_version: 15}]}
   end
 
   test "fail on interface type change" do
@@ -1057,7 +1041,7 @@ defmodule Astarte.RealmManagement.EngineTest do
     assert Engine.get_interfaces_list("autotestrealm") == {:ok, ["com.ispirata.TestDatastream"]}
 
     assert Engine.list_interface_versions("autotestrealm", "com.ispirata.TestDatastream") ==
-             {:ok, [[major_version: 0, minor_version: 10]]}
+             {:ok, [%{major_version: 0, minor_version: 10}]}
 
     assert Engine.update_interface("autotestrealm", @test_draft_interface_c_invalid_change) ==
              {:error, :invalid_update}
@@ -1069,7 +1053,7 @@ defmodule Astarte.RealmManagement.EngineTest do
     assert Engine.get_interfaces_list("autotestrealm") == {:ok, ["com.ispirata.TestDatastream"]}
 
     assert Engine.list_interface_versions("autotestrealm", "com.ispirata.TestDatastream") ==
-             {:ok, [[major_version: 0, minor_version: 10]]}
+             {:ok, [%{major_version: 0, minor_version: 10}]}
   end
 
   test "fail on mapping incompatible change" do
@@ -1078,7 +1062,7 @@ defmodule Astarte.RealmManagement.EngineTest do
     assert Engine.get_interfaces_list("autotestrealm") == {:ok, ["com.ispirata.TestDatastream"]}
 
     assert Engine.list_interface_versions("autotestrealm", "com.ispirata.TestDatastream") ==
-             {:ok, [[major_version: 0, minor_version: 10]]}
+             {:ok, [%{major_version: 0, minor_version: 10}]}
 
     assert Engine.update_interface("autotestrealm", @test_draft_interface_c_incompatible_change) ==
              {:error, :incompatible_endpoint_change}
@@ -1090,7 +1074,7 @@ defmodule Astarte.RealmManagement.EngineTest do
     assert Engine.get_interfaces_list("autotestrealm") == {:ok, ["com.ispirata.TestDatastream"]}
 
     assert Engine.list_interface_versions("autotestrealm", "com.ispirata.TestDatastream") ==
-             {:ok, [[major_version: 0, minor_version: 10]]}
+             {:ok, [%{major_version: 0, minor_version: 10}]}
   end
 
   test "fail on interface downgrade" do
@@ -1101,7 +1085,7 @@ defmodule Astarte.RealmManagement.EngineTest do
            ) == unpack_source({:ok, @test_draft_interface_c_0})
 
     assert Engine.list_interface_versions("autotestrealm", "com.ispirata.TestDatastream") ==
-             {:ok, [[major_version: 0, minor_version: 10]]}
+             {:ok, [%{major_version: 0, minor_version: 10}]}
 
     assert Engine.update_interface("autotestrealm", @test_draft_interface_c_1) == :ok
 
@@ -1110,7 +1094,7 @@ defmodule Astarte.RealmManagement.EngineTest do
            ) == unpack_source({:ok, @test_draft_interface_c_1})
 
     assert Engine.list_interface_versions("autotestrealm", "com.ispirata.TestDatastream") ==
-             {:ok, [[major_version: 0, minor_version: 15]]}
+             {:ok, [%{major_version: 0, minor_version: 15}]}
 
     assert Engine.update_interface("autotestrealm", @test_draft_interface_c_downgrade) ==
              {:error, :downgrade_not_allowed}
@@ -1120,7 +1104,7 @@ defmodule Astarte.RealmManagement.EngineTest do
            ) == unpack_source({:ok, @test_draft_interface_c_1})
 
     assert Engine.list_interface_versions("autotestrealm", "com.ispirata.TestDatastream") ==
-             {:ok, [[major_version: 0, minor_version: 15]]}
+             {:ok, [%{major_version: 0, minor_version: 15}]}
   end
 
   test "get JWT public key PEM with existing realm" do
@@ -1417,7 +1401,7 @@ defmodule Astarte.RealmManagement.EngineTest do
     assert Engine.delete_trigger_policy("autotestrealm", "aname") == :ok
   end
 
-  test "trigger with non existant policy fails" do
+  test "trigger with non existent policy fails" do
     trigger = %{
       realm_name: "autotestrealm",
       name: "test_trigger",

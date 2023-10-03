@@ -19,12 +19,12 @@
 defmodule Astarte.RealmManagement.QueriesTest do
   use ExUnit.Case
   require Logger
-  alias CQEx.Query, as: DatabaseQuery
   alias Astarte.Core.Interface, as: InterfaceDocument
   alias Astarte.Core.InterfaceDescriptor
   alias Astarte.RealmManagement.DatabaseTestHelper
   alias Astarte.RealmManagement.Queries
-  alias Astarte.RealmManagement.Config
+
+  @test_realm_name "autotestrealm"
 
   @object_datastream_interface_json """
   {
@@ -75,41 +75,41 @@ defmodule Astarte.RealmManagement.QueriesTest do
   }
   """
   @insert_log_line0_device_a """
-    INSERT INTO com_ispirata_hemera_devicelog_v1
+    INSERT INTO #{@test_realm_name}.com_ispirata_hemera_devicelog_v1
       (device_id, path, reception_timestamp, reception_timestamp_submillis, v_message, v_timestamp, v_monotonictimestamp, v_applicationid, v_pid, v_cmdline)
       VALUES (536be249-aaaa-4e02-9583-5a4833cbfe49, '/', '2010-02-04 04:05+0000', 0, 'test', '2010-02-03 04:05+0000', 9123456789012345678, 'com.test', 5, '/bin/test')
   """
 
   @insert_log_line1_device_a """
-    INSERT INTO com_ispirata_hemera_devicelog_v1
+    INSERT INTO #{@test_realm_name}.com_ispirata_hemera_devicelog_v1
       (device_id, path, reception_timestamp, reception_timestamp_submillis, v_message, v_timestamp, v_monotonictimestamp, v_applicationid, v_pid, v_cmdline)
       VALUES (536be249-aaaa-4e02-9583-5a4833cbfe49, '/', '2012-02-04 04:06+0000', 0, 'testです', '2012-02-03 04:06+0000', -1, 'this.is.a.bit.longer.string', -2, '/usr/bin/things/test')
   """
 
   @insert_log_line0_device_b """
-    INSERT INTO com_ispirata_hemera_devicelog_v1
+    INSERT INTO #{@test_realm_name}.com_ispirata_hemera_devicelog_v1
       (device_id, path, reception_timestamp, reception_timestamp_submillis, v_message, v_timestamp, v_monotonictimestamp, v_applicationid, v_pid, v_cmdline)
       VALUES (536be249-bbbb-4e02-9583-5a4833cbfe49, '/', '2012-02-03 04:06+0000', 0, 'testです', '2010-02-03 04:06+0000', -1, 'this.is.a.bit.longer.string', -2, '/usr/bin/things/test')
   """
 
   @count_log_entries_for_device_a """
-    SELECT COUNT(*) FROM autotestrealm.com_ispirata_hemera_devicelog_v1 WHERE device_id=536be249-aaaa-4e02-9583-5a4833cbfe49 AND path='/';
+    SELECT COUNT(*) FROM #{@test_realm_name}.com_ispirata_hemera_devicelog_v1 WHERE device_id=536be249-aaaa-4e02-9583-5a4833cbfe49 AND path='/';
   """
 
   @count_log_entries_for_device_b """
-    SELECT COUNT(*) FROM autotestrealm.com_ispirata_hemera_devicelog_v1 WHERE device_id=536be249-bbbb-4e02-9583-5a4833cbfe49 AND path='/';
+    SELECT COUNT(*) FROM #{@test_realm_name}.com_ispirata_hemera_devicelog_v1 WHERE device_id=536be249-bbbb-4e02-9583-5a4833cbfe49 AND path='/';
   """
 
   @count_log_entries_for_device_c """
-    SELECT COUNT(*) FROM autotestrealm.com_ispirata_hemera_devicelog_v1 WHERE device_id=536be249-cccc-4e02-9583-5a4833cbfe49 AND path='/';
+    SELECT COUNT(*) FROM #{@test_realm_name}.com_ispirata_hemera_devicelog_v1 WHERE device_id=536be249-cccc-4e02-9583-5a4833cbfe49 AND path='/';
   """
 
   @a_log_entry_for_device_a """
-    SELECT * FROM autotestrealm.com_ispirata_hemera_devicelog_v1 WHERE device_id=536be249-aaaa-4e02-9583-5a4833cbfe49 AND path='/' AND reception_timestamp > '2011-02-03 04:05+0000';
+    SELECT * FROM #{@test_realm_name}.com_ispirata_hemera_devicelog_v1 WHERE device_id=536be249-aaaa-4e02-9583-5a4833cbfe49 AND path='/' AND reception_timestamp > '2011-02-03 04:05+0000';
   """
 
   @an_older_log_entry_for_device_a """
-    SELECT * FROM autotestrealm.com_ispirata_hemera_devicelog_v1 WHERE device_id=536be249-aaaa-4e02-9583-5a4833cbfe49 AND path='/' AND reception_timestamp <= '2011-02-03 04:05+0000';
+    SELECT * FROM #{@test_realm_name}.com_ispirata_hemera_devicelog_v1 WHERE device_id=536be249-aaaa-4e02-9583-5a4833cbfe49 AND path='/' AND reception_timestamp <= '2011-02-03 04:05+0000';
   """
 
   @individual_property_device_owned_interface """
@@ -130,25 +130,25 @@ defmodule Astarte.RealmManagement.QueriesTest do
   """
 
   @insert_devicelog_status_0 """
-  INSERT INTO individual_properties
+  INSERT INTO #{@test_realm_name}.individual_properties
     (device_id, interface_id, endpoint_id, path, reception_timestamp, reception_timestamp_submillis, string_value)
     VALUES (536be249-aaaa-4e02-9583-5a4833cbfe49, :interface_id, :endpoint_id, '/filterRules/0/testKey/value', '2012-02-03 04:06+0000', 0, 'T€ST_VÆLÙE')
   """
 
   @insert_devicelog_status_1 """
-  INSERT INTO individual_properties
+  INSERT INTO #{@test_realm_name}.individual_properties
     (device_id, interface_id, endpoint_id, path, reception_timestamp, reception_timestamp_submillis, string_value)
     VALUES (536be249-aaaa-4e02-9583-5a4833cbfe49, :interface_id, :endpoint_id, '/filterRules/1/testKey2/value', '2012-02-03 04:06+0000', 0, 'test')
   """
 
   @find_devicelog_status_entry """
   SELECT device_id, path, reception_timestamp, string_value
-  FROM individual_properties
+  FROM #{@test_realm_name}.individual_properties
   WHERE device_id=536be249-aaaa-4e02-9583-5a4833cbfe49 AND interface_id=:interface_id AND endpoint_id=:endpoint_id AND path='/filterRules/0/testKey/value'
   """
 
   @find_devicelog_status_entries """
-    SELECT path FROM individual_properties WHERE device_id=536be249-aaaa-4e02-9583-5a4833cbfe49 AND interface_id=:interface_id AND endpoint_id=:endpoint_id;
+    SELECT path FROM #{@test_realm_name}.individual_properties WHERE device_id=536be249-aaaa-4e02-9583-5a4833cbfe49 AND interface_id=:interface_id AND endpoint_id=:endpoint_id;
   """
 
   @individual_datastream_with_explicit_timestamp_interface_json """
@@ -172,89 +172,35 @@ defmodule Astarte.RealmManagement.QueriesTest do
   """
 
   @insert_timestamp_test_value """
-  INSERT INTO individual_datastreams (device_id, interface_id, endpoint_id, path, value_timestamp, reception_timestamp, reception_timestamp_submillis, longinteger_value)
+  INSERT INTO #{@test_realm_name}.individual_datastreams (device_id, interface_id, endpoint_id, path, value_timestamp, reception_timestamp, reception_timestamp_submillis, longinteger_value)
     VALUES (536be249-aaaa-4e02-9583-5a4833cbfe49, :interface_id, :endpoint_id, '/test/:ind/v', :value_timestamp, :reception_timestamp, 0, :num) ;
   """
 
   @list_endpoints_by_interface """
-    SELECT * FROM endpoints WHERE interface_id = :interface_id;
+    SELECT * FROM #{@test_realm_name}.endpoints WHERE interface_id = :interface_id;
   """
 
   @find_interface_by_interface_name """
-    SELECT * FROM interfaces WHERE name = :name AND major_version = :major_version;
+    SELECT * FROM #{@test_realm_name}.interfaces WHERE name = :name AND major_version = :major_version;
   """
 
   @list_timestamp_test_values """
-    SELECT value_timestamp FROM individual_datastreams WHERE device_id=536be249-aaaa-4e02-9583-5a4833cbfe49 AND interface_id=:interface_id AND endpoint_id=:endpoint_id AND path='/test/:ind/v';
+    SELECT value_timestamp FROM #{@test_realm_name}.individual_datastreams WHERE device_id=536be249-aaaa-4e02-9583-5a4833cbfe49 AND interface_id=:interface_id AND endpoint_id=:endpoint_id AND path='/test/:ind/v';
   """
 
   setup do
-    with {:ok, client} <- DatabaseTestHelper.connect_to_test_database() do
-      DatabaseTestHelper.seed_test_data(client)
-    end
+    DatabaseTestHelper.seed_test_data()
   end
 
   setup_all do
-    with {:ok, client} <- DatabaseTestHelper.connect_to_test_database() do
-      DatabaseTestHelper.create_test_keyspace(client)
-    end
+    DatabaseTestHelper.create_test_keyspace()
 
     on_exit(fn ->
-      with {:ok, client} <- DatabaseTestHelper.connect_to_test_database() do
-        DatabaseTestHelper.drop_test_keyspace(client)
-      end
-    end)
-  end
-
-  def connect_to_test_realm(realm) do
-    cqex_options =
-      Config.cqex_options!()
-      |> Keyword.put(:keyspace, realm)
-
-    CQEx.Client.new!(Config.cassandra_node!(), cqex_options)
-  end
-
-  def retrieve_endpoint_id(client, interface_name, interface_major, path) do
-    query =
-      DatabaseQuery.new()
-      |> DatabaseQuery.statement(@find_interface_by_interface_name)
-      |> DatabaseQuery.put(:name, interface_name)
-      |> DatabaseQuery.put(:major_version, interface_major)
-
-    interface_row =
-      DatabaseQuery.call!(client, query)
-      |> Enum.take(1)
-      |> hd
-
-    automaton =
-      {:erlang.binary_to_term(interface_row[:automaton_transitions]),
-       :erlang.binary_to_term(interface_row[:automaton_accepting_states])}
-
-    {:ok, endpoint_id} = Astarte.Core.Mapping.EndpointsAutomaton.resolve_path(path, automaton)
-
-    endpoint_id
-  end
-
-  def find_endpoint(client, interface_name, interface_major, endpoint) do
-    query =
-      DatabaseQuery.new()
-      |> DatabaseQuery.statement(@list_endpoints_by_interface)
-      |> DatabaseQuery.put(
-        :interface_id,
-        Astarte.Core.CQLUtils.interface_id(interface_name, interface_major)
-      )
-
-    DatabaseQuery.call!(client, query)
-    |> Enum.to_list()
-    |> Enum.find(fn row ->
-      row[:endpoint] == endpoint
+      DatabaseTestHelper.drop_test_keyspace()
     end)
   end
 
   test "object interface install" do
-    {:ok, _} = DatabaseTestHelper.connect_to_test_database()
-    client = connect_to_test_realm("autotestrealm")
-
     json_obj = Jason.decode!(@object_datastream_interface_json)
     interface_changeset = InterfaceDocument.changeset(%InterfaceDocument{}, json_obj)
     {:ok, intdoc} = Ecto.Changeset.apply_action(interface_changeset, :insert)
@@ -267,64 +213,73 @@ defmodule Astarte.RealmManagement.QueriesTest do
 
     {:ok, automaton} = Astarte.Core.Mapping.EndpointsAutomaton.build(intdoc.mappings)
 
-    assert Queries.is_interface_major_available?(client, interface_name, major_version) ==
+    assert Queries.is_interface_major_available?(@test_realm_name, interface_name, major_version) ==
              {:ok, false}
 
-    assert Queries.is_interface_major_available?(client, interface_name, major_version - 1) ==
+    assert Queries.is_interface_major_available?(
+             @test_realm_name,
+             interface_name,
+             major_version - 1
+           ) ==
              {:ok, false}
 
-    assert Queries.interface_available_versions(client, interface_name) ==
+    assert Queries.interface_available_versions(@test_realm_name, interface_name) ==
              {:error, :interface_not_found}
 
-    assert Queries.get_interfaces_list(client) == {:ok, []}
+    assert Queries.get_interfaces_list(@test_realm_name) == {:ok, []}
 
-    Queries.install_new_interface(client, intdoc, automaton)
+    Queries.install_new_interface(@test_realm_name, intdoc, automaton)
 
-    assert Queries.is_interface_major_available?(client, interface_name, major_version) ==
+    assert Queries.is_interface_major_available?(@test_realm_name, interface_name, major_version) ==
              {:ok, true}
 
-    assert Queries.is_interface_major_available?(client, interface_name, major_version - 1) ==
+    assert Queries.is_interface_major_available?(
+             @test_realm_name,
+             interface_name,
+             major_version - 1
+           ) ==
              {:ok, false}
 
-    assert Queries.interface_available_versions(client, interface_name) ==
+    assert Queries.interface_available_versions(@test_realm_name, interface_name) ==
              {:ok,
               [
-                [
+                %{
                   major_version: major_version,
                   minor_version: minor_version
-                ]
+                }
               ]}
 
-    assert Queries.get_interfaces_list(client) == {:ok, ["com.ispirata.Hemera.DeviceLog"]}
+    assert Queries.get_interfaces_list(@test_realm_name) ==
+             {:ok, ["com.ispirata.Hemera.DeviceLog"]}
 
-    DatabaseQuery.call!(client, @insert_log_line0_device_a)
-    DatabaseQuery.call!(client, @insert_log_line1_device_a)
-    DatabaseQuery.call!(client, @insert_log_line0_device_b)
-
-    count =
-      DatabaseQuery.call!(client, @count_log_entries_for_device_a)
-      |> Enum.to_list()
-
-    assert count == [[count: 2]]
+    execute_query!(@insert_log_line0_device_a)
+    execute_query!(@insert_log_line1_device_a)
+    execute_query!(@insert_log_line0_device_b)
 
     count =
-      DatabaseQuery.call!(client, @count_log_entries_for_device_b)
+      execute_query!(@count_log_entries_for_device_a)
       |> Enum.to_list()
 
-    assert count == [[count: 1]]
+    assert count == [%{count: 2}]
 
     count =
-      DatabaseQuery.call!(client, @count_log_entries_for_device_c)
+      execute_query!(@count_log_entries_for_device_b)
       |> Enum.to_list()
 
-    assert count == [[count: 0]]
+    assert count == [%{count: 1}]
+
+    count =
+      execute_query!(@count_log_entries_for_device_c)
+      |> Enum.to_list()
+
+    assert count == [%{count: 0}]
 
     a_log_entry =
-      DatabaseQuery.call!(client, @a_log_entry_for_device_a)
+      execute_query!(@a_log_entry_for_device_a)
       |> Enum.to_list()
 
     assert a_log_entry == [
-             [
+             %{
                device_id:
                  <<83, 107, 226, 73, 170, 170, 78, 2, 149, 131, 90, 72, 51, 203, 254, 73>>,
                path: "/",
@@ -336,15 +291,15 @@ defmodule Astarte.RealmManagement.QueriesTest do
                v_monotonictimestamp: -1,
                v_pid: -2,
                v_timestamp: 1_328_241_960_000
-             ]
+             }
            ]
 
     an_older_log_entry =
-      DatabaseQuery.call!(client, @an_older_log_entry_for_device_a)
+      execute_query!(@an_older_log_entry_for_device_a)
       |> Enum.to_list()
 
     assert an_older_log_entry == [
-             [
+             %{
                device_id:
                  <<83, 107, 226, 73, 170, 170, 78, 2, 149, 131, 90, 72, 51, 203, 254, 73>>,
                path: "/",
@@ -356,16 +311,13 @@ defmodule Astarte.RealmManagement.QueriesTest do
                v_monotonictimestamp: 9_123_456_789_012_345_678,
                v_pid: 5,
                v_timestamp: 1_265_169_900_000
-             ]
+             }
            ]
 
-    DatabaseQuery.call!(client, "DROP TABLE com_ispirata_hemera_devicelog_v1")
+    execute_query!("DROP TABLE #{@test_realm_name}.com_ispirata_hemera_devicelog_v1")
   end
 
   test "individual interface install" do
-    {:ok, _} = DatabaseTestHelper.connect_to_test_database()
-    client = connect_to_test_realm("autotestrealm")
-
     json_obj = Jason.decode!(@individual_property_device_owned_interface)
     interface_changeset = InterfaceDocument.changeset(%InterfaceDocument{}, json_obj)
     {:ok, intdoc} = Ecto.Changeset.apply_action(interface_changeset, :insert)
@@ -378,39 +330,47 @@ defmodule Astarte.RealmManagement.QueriesTest do
 
     {:ok, automaton} = Astarte.Core.Mapping.EndpointsAutomaton.build(intdoc.mappings)
 
-    assert Queries.is_interface_major_available?(client, interface_name, major_version) ==
+    assert Queries.is_interface_major_available?(@test_realm_name, interface_name, major_version) ==
              {:ok, false}
 
-    assert Queries.is_interface_major_available?(client, interface_name, major_version - 1) ==
+    assert Queries.is_interface_major_available?(
+             @test_realm_name,
+             interface_name,
+             major_version - 1
+           ) ==
              {:ok, false}
 
-    assert Queries.interface_available_versions(client, interface_name) ==
+    assert Queries.interface_available_versions(@test_realm_name, interface_name) ==
              {:error, :interface_not_found}
 
-    assert Queries.get_interfaces_list(client) == {:ok, []}
+    assert Queries.get_interfaces_list(@test_realm_name) == {:ok, []}
 
-    Queries.install_new_interface(client, intdoc, automaton)
+    Queries.install_new_interface(@test_realm_name, intdoc, automaton)
 
-    assert Queries.is_interface_major_available?(client, interface_name, major_version) ==
+    assert Queries.is_interface_major_available?(@test_realm_name, interface_name, major_version) ==
              {:ok, true}
 
-    assert Queries.is_interface_major_available?(client, interface_name, major_version - 1) ==
+    assert Queries.is_interface_major_available?(
+             @test_realm_name,
+             interface_name,
+             major_version - 1
+           ) ==
              {:ok, false}
 
-    assert Queries.interface_available_versions(client, interface_name) ==
+    assert Queries.interface_available_versions(@test_realm_name, interface_name) ==
              {:ok,
               [
-                [
+                %{
                   major_version: major_version,
                   minor_version: minor_version
-                ]
+                }
               ]}
 
-    assert Queries.get_interfaces_list(client) == {:ok, ["com.ispirata.Hemera.DeviceLog.Status"]}
+    assert Queries.get_interfaces_list(@test_realm_name) ==
+             {:ok, ["com.ispirata.Hemera.DeviceLog.Status"]}
 
     endpoint =
       find_endpoint(
-        client,
         "com.ispirata.Hemera.DeviceLog.Status",
         2,
         "/filterRules/%{ruleId}/%{filterKey}/value"
@@ -427,124 +387,87 @@ defmodule Astarte.RealmManagement.QueriesTest do
     assert endpoint[:allow_unset] == true
     assert endpoint[:value_type] == 7
 
-    query =
-      DatabaseQuery.new()
-      |> DatabaseQuery.statement(@insert_devicelog_status_0)
-      |> DatabaseQuery.put(:interface_id, interface_id)
-      |> DatabaseQuery.put(:endpoint_id, endpoint_id)
+    params = %{interface_id: interface_id, endpoint_id: endpoint_id}
+    execute_query!(@insert_devicelog_status_0, params)
 
-    DatabaseQuery.call!(client, query)
-
-    query =
-      DatabaseQuery.new()
-      |> DatabaseQuery.statement(@insert_devicelog_status_1)
-      |> DatabaseQuery.put(:interface_id, interface_id)
-      |> DatabaseQuery.put(:endpoint_id, endpoint_id)
-
-    DatabaseQuery.call!(client, query)
-
-    query =
-      DatabaseQuery.new()
-      |> DatabaseQuery.statement(@find_devicelog_status_entry)
-      |> DatabaseQuery.put(:interface_id, interface_id)
-      |> DatabaseQuery.put(:endpoint_id, endpoint_id)
+    execute_query!(@insert_devicelog_status_1, params)
 
     entry =
-      DatabaseQuery.call!(client, query)
+      execute_query!(@find_devicelog_status_entry, params)
       |> Enum.to_list()
 
     assert entry == [
-             [
+             %{
                device_id:
                  <<83, 107, 226, 73, 170, 170, 78, 2, 149, 131, 90, 72, 51, 203, 254, 73>>,
                path: "/filterRules/0/testKey/value",
                reception_timestamp: 1_328_241_960_000,
                string_value: "T€ST_VÆLÙE"
-             ]
+             }
            ]
 
-    query =
-      DatabaseQuery.new()
-      |> DatabaseQuery.statement(@find_devicelog_status_entries)
-      |> DatabaseQuery.put(:interface_id, interface_id)
-      |> DatabaseQuery.put(:endpoint_id, endpoint_id)
-
     entries =
-      DatabaseQuery.call!(client, query)
+      execute_query!(@find_devicelog_status_entries, params)
       |> Enum.to_list()
 
     assert entries == [
-             [path: "/filterRules/0/testKey/value"],
-             [path: "/filterRules/1/testKey2/value"]
+             %{path: "/filterRules/0/testKey/value"},
+             %{path: "/filterRules/1/testKey2/value"}
            ]
   end
 
   test "timestamp handling" do
-    {:ok, _} = DatabaseTestHelper.connect_to_test_database()
-    client = connect_to_test_realm("autotestrealm")
-
     json_obj = Jason.decode!(@individual_datastream_with_explicit_timestamp_interface_json)
     interface_changeset = InterfaceDocument.changeset(%InterfaceDocument{}, json_obj)
     {:ok, doc} = Ecto.Changeset.apply_action(interface_changeset, :insert)
 
     {:ok, automaton} = Astarte.Core.Mapping.EndpointsAutomaton.build(doc.mappings)
-    Queries.install_new_interface(client, doc, automaton)
+    Queries.install_new_interface(@test_realm_name, doc, automaton)
 
-    endpoint_id = retrieve_endpoint_id(client, "com.timestamp.Test", 1, "/test/0/v")
+    endpoint_id = retrieve_endpoint_id("com.timestamp.Test", 1, "/test/0/v")
 
-    timestamp_handling_insert_values(client, endpoint_id, 0, 100)
-    timestamp_handling_insert_values(client, endpoint_id, 1, 20)
-    timestamp_handling_insert_values(client, endpoint_id, 2, 10)
+    timestamp_handling_insert_values(endpoint_id, 0, 100)
+    timestamp_handling_insert_values(endpoint_id, 1, 20)
+    timestamp_handling_insert_values(endpoint_id, 2, 10)
 
-    assert timestamp_handling_check_order(client, endpoint_id, 0) == {100, true}
-    assert timestamp_handling_check_order(client, endpoint_id, 1) == {20, true}
-    assert timestamp_handling_check_order(client, endpoint_id, 2) == {10, true}
+    assert timestamp_handling_check_order(endpoint_id, 0) == {100, true}
+    assert timestamp_handling_check_order(endpoint_id, 1) == {20, true}
+    assert timestamp_handling_check_order(endpoint_id, 2) == {10, true}
   end
 
-  defp timestamp_handling_insert_values(_client, _endpoint_id, _ind, 0) do
+  defp timestamp_handling_insert_values(_endpoint_id, _ind, 0) do
   end
 
-  defp timestamp_handling_insert_values(client, endpoint_id, ind, n) do
+  defp timestamp_handling_insert_values(endpoint_id, ind, n) do
     statement =
       @insert_timestamp_test_value
       |> String.replace(":ind", Integer.to_string(ind))
 
-    query =
-      DatabaseQuery.new()
-      |> DatabaseQuery.statement(statement)
-      |> DatabaseQuery.put(:endpoint_id, endpoint_id)
-      |> DatabaseQuery.put(
-        :interface_id,
-        Astarte.Core.CQLUtils.interface_id("com.timestamp.Test", 1)
-      )
-      |> DatabaseQuery.put(:value_timestamp, 1_504_800_339_954 + Enum.random(0..157_700_000_000))
-      |> DatabaseQuery.put(
-        :reception_timestamp,
-        1_504_800_339_954 + Enum.random(0..157_700_000_000)
-      )
-      |> DatabaseQuery.put(:num, n)
+    params = %{
+      endpoint_id: endpoint_id,
+      interface_id: Astarte.Core.CQLUtils.interface_id("com.timestamp.Test", 1),
+      value_timestamp: 1_504_800_339_954 + Enum.random(0..157_700_000_000),
+      reception_timestamp: 1_504_800_339_954 + Enum.random(0..157_700_000_000),
+      num: n
+    }
 
-    DatabaseQuery.call!(client, query)
+    execute_query!(statement, params)
 
-    timestamp_handling_insert_values(client, endpoint_id, ind, n - 1)
+    timestamp_handling_insert_values(endpoint_id, ind, n - 1)
   end
 
-  defp timestamp_handling_check_order(client, endpoint_id, ind) do
+  defp timestamp_handling_check_order(endpoint_id, ind) do
     statement =
       @list_timestamp_test_values
       |> String.replace(":ind", Integer.to_string(ind))
 
-    query =
-      DatabaseQuery.new()
-      |> DatabaseQuery.statement(statement)
-      |> DatabaseQuery.put(
-        :interface_id,
-        Astarte.Core.CQLUtils.interface_id("com.timestamp.Test", 1)
-      )
-      |> DatabaseQuery.put(:endpoint_id, endpoint_id)
+    params = %{
+      interface_id: Astarte.Core.CQLUtils.interface_id("com.timestamp.Test", 1),
+      endpoint_id: endpoint_id
+    }
 
     timestamps =
-      DatabaseQuery.call!(client, query)
+      execute_query!(statement, params)
       |> Enum.to_list()
 
     sorted_timestamps = Enum.sort(timestamps, &(&1[:value_timestamp] <= &2[:value_timestamp]))
@@ -553,28 +476,62 @@ defmodule Astarte.RealmManagement.QueriesTest do
   end
 
   test "get JWT public key PEM" do
-    DatabaseTestHelper.connect_to_test_database()
-    client = connect_to_test_realm("autotestrealm")
-
-    assert Queries.get_jwt_public_key_pem(client) ==
+    assert Queries.get_jwt_public_key_pem(@test_realm_name) ==
              {:ok, DatabaseTestHelper.jwt_public_key_pem_fixture()}
   end
 
   test "update JWT public key PEM" do
-    DatabaseTestHelper.connect_to_test_database()
-    client = connect_to_test_realm("autotestrealm")
-
     new_pem = "not_exactly_a_PEM_but_will_do"
-    assert Queries.update_jwt_public_key_pem(client, new_pem) == :ok
-    assert Queries.get_jwt_public_key_pem(client) == {:ok, new_pem}
+    assert Queries.update_jwt_public_key_pem(@test_realm_name, new_pem) == :ok
+    assert Queries.get_jwt_public_key_pem(@test_realm_name) == {:ok, new_pem}
 
     # Put the PEM fixture back
     assert Queries.update_jwt_public_key_pem(
-             client,
+             @test_realm_name,
              DatabaseTestHelper.jwt_public_key_pem_fixture()
            ) == :ok
 
-    assert Queries.get_jwt_public_key_pem(client) ==
+    assert Queries.get_jwt_public_key_pem(@test_realm_name) ==
              {:ok, DatabaseTestHelper.jwt_public_key_pem_fixture()}
+  end
+
+  defp retrieve_endpoint_id(interface_name, interface_major, path) do
+    params = %{name: interface_name, major_version: interface_major}
+
+    interface_row =
+      execute_query!(@find_interface_by_interface_name, params)
+      |> Enum.to_list()
+      |> hd
+
+    automaton =
+      {:erlang.binary_to_term(interface_row[:automaton_transitions]),
+       :erlang.binary_to_term(interface_row[:automaton_accepting_states])}
+
+    {:ok, endpoint_id} = Astarte.Core.Mapping.EndpointsAutomaton.resolve_path(path, automaton)
+
+    endpoint_id
+  end
+
+  defp find_endpoint(interface_name, interface_major, endpoint) do
+    params = %{
+      interface_id: Astarte.Core.CQLUtils.interface_id(interface_name, interface_major)
+    }
+
+    interface_row =
+      execute_query!(@list_endpoints_by_interface, params)
+      |> Enum.to_list()
+      |> Enum.find(fn row ->
+        row[:endpoint] == endpoint
+      end)
+  end
+
+  defp execute_query!(statement, params \\ %{}) do
+    Xandra.Cluster.run(
+      :xandra,
+      fn conn ->
+        {:ok, prepared} = Xandra.prepare(conn, statement)
+        Xandra.execute!(conn, prepared, params, uuid_format: :binary, timestamp_format: :integer)
+      end
+    )
   end
 end
