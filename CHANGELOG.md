@@ -17,6 +17,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - [astarte_appengine_api] Return the number of results specified by `downsample_to`
   when used in combination with `format=disjoint_tables`.
   Fix [#149](https://github.com/astarte-platform/astarte/issues/149).
+- [astarte-realm_management] Do not crash when some synchronous operations
+  (e.g. interface install) succeed.
 
 ## [1.1.0] - 2023-06-20
 ### Fixed
