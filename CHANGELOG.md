@@ -4,6 +4,9 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## [1.0.6] - Unreleased
+- [astarte_appengine_api] Allow to send binaryblobarrays over server owned interfaces.
+
 ## [1.0.5] - 2023-09-26
 ### Fixed
 - [astarte_appengine_api] Correctly handle `binaryblob` and `datetime` in server-owned object
@@ -23,7 +26,6 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - [astarte_pairing] Fix crash when using a custom CA certificate.
 - [astarte_data_updater_plant] Remove asynchronous startup of Data Updater, which could lead to Data
   Updater stalling in some corner cases.
-- [astarte_appengine_api] Allow to send binaryblobarrays over server owned interfaces.
 
 ### Changed
 - [doc] Update the documentation structure. Pages dealing with administrative tasks involving the
