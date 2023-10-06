@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2017 Ispirata Srl
+# Copyright 2017 - 2023 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -61,6 +61,14 @@ defmodule Astarte.RealmManagement.APIWeb.ErrorView do
 
   def render("overlapping_mappings.json", _assigns) do
     %{errors: %{detail: "Overlapping endpoints in interface mappings"}}
+  end
+
+  def render("invalid_device_id.json", _assigns) do
+    %{errors: %{detail: "The provided id is not a valid device id"}}
+  end
+
+  def render("device_not_found.json", _assigns) do
+    %{errors: %{detail: "Device not found"}}
   end
 
   # In case no render clause matches or no

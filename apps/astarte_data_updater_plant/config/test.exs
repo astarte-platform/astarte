@@ -8,3 +8,5 @@ config :astarte_data_updater_plant, :amqp_consumer_options,
 config :logger, :console,
   format: {PrettyLog.UserFriendlyFormatter, :format},
   metadata: [:realm, :device_id, :function]
+
+config :astarte_data_updater_plant, :rpc_client, MockRPCClient

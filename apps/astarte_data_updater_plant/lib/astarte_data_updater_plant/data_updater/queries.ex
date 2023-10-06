@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2018 Ispirata Srl
+# Copyright 2018 - 2023 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -942,5 +942,152 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
         Logger.warn("Database error while retrieving property: #{inspect(reason)}.")
         {:error, :database_error}
     end
+  end
+
+  def ack_end_device_deletion(realm_name, device_id) do
+    Xandra.Cluster.run(
+      :xandra,
+      &do_ack_end_device_deletion(&1, realm_name, device_id)
+    )
+  end
+
+  defp do_ack_end_device_deletion(conn, realm_name, device_id) do
+    statement = """
+    UPDATE #{realm_name}.deletion_in_progress
+    SET dup_end_ack = true
+    WHERE device_id = :device_id
+    """
+
+    with {:ok, prepared} <- Xandra.prepare(conn, statement),
+         {:ok, %Xandra.Void{}} <-
+           Xandra.execute(conn, prepared, %{"device_id" => device_id}, uuid_format: :binary) do
+      :ok
+    else
+      {:error, %Xandra.Error{} = error} ->
+        _ =
+          Logger.warn(
+            "Database error while writing device deletion end ack: #{Exception.message(error)}"
+          )
+
+        {:error, :database_error}
+
+      {:error, %Xandra.ConnectionError{} = error} ->
+        _ =
+          Logger.warn(
+            "Database connection error while writing device deletion end ack: #{Exception.message(error)}"
+          )
+
+        {:error, :database_connection_error}
+    end
+  end
+
+  def ack_start_device_deletion(realm_name, device_id) do
+    Xandra.Cluster.run(
+      :xandra,
+      &do_ack_start_device_deletion(&1, realm_name, device_id)
+    )
+  end
+
+  defp do_ack_start_device_deletion(conn, realm_name, device_id) do
+    statement = """
+    UPDATE #{realm_name}.deletion_in_progress
+    SET dup_start_ack = true
+    WHERE device_id = :device_id
+    """
+
+    with {:ok, prepared} <- Xandra.prepare(conn, statement),
+         {:ok, %Xandra.Void{}} <-
+           Xandra.execute(conn, prepared, %{"device_id" => device_id}, uuid_format: :binary) do
+      :ok
+    else
+      {:error, %Xandra.Error{} = error} ->
+        _ =
+          Logger.warn(
+            "Database error while writing device deletion start ack: #{Exception.message(error)}"
+          )
+
+        {:error, :database_error}
+
+      {:error, %Xandra.ConnectionError{} = error} ->
+        _ =
+          Logger.warn(
+            "Database connection error while writing device deletion start ack: #{Exception.message(error)}"
+          )
+
+        {:error, :database_connection_error}
+    end
+  end
+
+  def check_device_deletion_in_progress(realm_name, device_id) do
+    Xandra.Cluster.run(
+      :xandra,
+      &do_check_device_deletion_in_progress(&1, realm_name, device_id)
+    )
+  end
+
+  defp do_check_device_deletion_in_progress(conn, realm_name, device_id) do
+    statement = """
+    SELECT *
+    FROM #{realm_name}.deletion_in_progress
+    WHERE device_id = :device_id
+    """
+
+    with {:ok, prepared} <- Xandra.prepare(conn, statement),
+         {:ok, %Xandra.Page{} = page} <-
+           Xandra.execute(conn, prepared, %{"device_id" => device_id}, uuid_format: :binary) do
+      result_not_empty? = not Enum.empty?(page)
+      {:ok, result_not_empty?}
+    else
+      {:error, %Xandra.Error{} = error} ->
+        _ =
+          Logger.warn(
+            "Database error while checking device deletion in progress: #{Exception.message(error)}"
+          )
+
+        {:error, :database_error}
+
+      {:error, %Xandra.ConnectionError{} = error} ->
+        _ =
+          Logger.warn(
+            "Database connection error while checking device deletion in progress: #{Exception.message(error)}"
+          )
+
+        {:error, :database_connection_error}
+    end
+  end
+
+  def retrieve_realms! do
+    statement = """
+    SELECT *
+    FROM astarte.realms
+    """
+
+    realms =
+      Xandra.Cluster.run(
+        :xandra,
+        &Xandra.execute!(&1, statement, %{}, consistency: :local_quorum)
+      )
+
+    Enum.to_list(realms)
+  end
+
+  def retrieve_devices_waiting_to_start_deletion!(realm_name) do
+    Xandra.Cluster.run(
+      :xandra,
+      &do_retrieve_devices_waiting_to_start_deletion!(&1, realm_name)
+    )
+  end
+
+  defp do_retrieve_devices_waiting_to_start_deletion!(conn, realm_name) do
+    statement = """
+    SELECT *
+    FROM #{realm_name}.deletion_in_progress
+    """
+
+    Xandra.execute!(conn, statement, %{},
+      consistency: :local_quorum,
+      uuid_format: :binary
+    )
+    |> Enum.to_list()
   end
 end

@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2017-2020 Ispirata Srl
+# Copyright 2017 - 2023 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -31,6 +31,7 @@ defmodule Astarte.RealmManagement.Engine do
   alias Astarte.Core.Triggers.Trigger
   alias Astarte.Core.Triggers.Policy
   alias Astarte.Core.Triggers.PolicyProtobuf.Policy, as: PolicyProto
+  alias Astarte.Core.Device
   alias Astarte.DataAccess.Database
   alias Astarte.DataAccess.Interface
   alias Astarte.DataAccess.Mappings
@@ -410,8 +411,7 @@ defmodule Astarte.RealmManagement.Engine do
   end
 
   def execute_interface_deletion(client, realm_name, name, major) do
-    with {:ok, interface_row} <-
-           Interface.retrieve_interface_row(realm_name, name, major),
+    with {:ok, interface_row} <- Interface.retrieve_interface_row(realm_name, name, major),
          {:ok, descriptor} <- InterfaceDescriptor.from_db_result(interface_row),
          :ok <- Queries.delete_interface_storage(client, descriptor),
          :ok <- Queries.delete_devices_with_data_on_interface(client, name) do
@@ -992,6 +992,62 @@ defmodule Astarte.RealmManagement.Engine do
       )
 
       {:error, :database_connection_error}
+    end
+  end
+
+  @doc """
+  Starts the deletion of a device. Deletion is carried out asynchronously.
+  The device removal scheduler will take care of eventually deleting the device.
+  See Astarte.RealmManagement.DeviceRemoval.Scheduler.
+  Returns `:ok` or `{:error, reason}`.
+  """
+  @spec delete_device(binary(), Device.encoded_device_id()) :: :ok | {:error, any()}
+  def delete_device(realm_name, device_id) do
+    # TODO check that realm exists, too
+    with {:ok, decoded_device_id} <-
+           Astarte.Core.Device.decode_device_id(device_id, allow_extended_id: true),
+         {:ok, true} <- check_device_exists(realm_name, decoded_device_id),
+         {:ok, %Xandra.Void{}} <-
+           insert_device_into_deletion_in_progress(realm_name, decoded_device_id) do
+      _ = Logger.info("Added device #{device_id} to deletion in progress")
+      :ok
+    end
+  end
+
+  defp check_device_exists(realm_name, device_id) do
+    case Queries.check_device_exists(realm_name, device_id) do
+      {:ok, true} ->
+        {:ok, true}
+
+      {:ok, false} ->
+        _ =
+          Logger.warn(
+            "Device #{inspect(device_id)} does not exist",
+            tag: "device_not_found"
+          )
+
+        {:error, :device_not_found}
+
+      {:error, reason} ->
+        Logger.warn(
+          "Cannot check if device #{inspect(device_id)} exists, reason #{inspect(reason)}",
+          tag: "device_exists_fail"
+        )
+
+        {:error, reason}
+    end
+  end
+
+  defp insert_device_into_deletion_in_progress(realm_name, device_id) do
+    with {:error, reason} <-
+           Queries.insert_device_into_deletion_in_progress(realm_name, device_id) do
+      _ =
+        Logger.warn(
+          "Cannot start deletion of device #{inspect(device_id)}, reason #{inspect(reason)}",
+          tag: "insert_device_into_deleted_fail"
+        )
+
+      {:error, reason}
     end
   end
 end

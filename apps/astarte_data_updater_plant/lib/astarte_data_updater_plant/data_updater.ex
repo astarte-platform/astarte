@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2017 Ispirata Srl
+# Copyright 2017 - 2023 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -158,6 +158,15 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater do
 
     get_data_updater_process(realm, encoded_device_id, message_tracker)
     |> GenServer.call({:dump_state})
+  end
+
+  def start_device_deletion(realm, encoded_device_id, timestamp) do
+    with :ok <- verify_device_exists(realm, encoded_device_id) do
+      message_tracker = get_message_tracker(realm, encoded_device_id, offload_start: true)
+
+      get_data_updater_process(realm, encoded_device_id, message_tracker, offload_start: true)
+      |> GenServer.call({:start_device_deletion, timestamp})
+    end
   end
 
   def get_data_updater_process(realm, encoded_device_id, message_tracker, opts \\ []) do

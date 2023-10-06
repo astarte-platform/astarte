@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2017-2018 Ispirata Srl
+# Copyright 2017 - 2023 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -48,7 +48,8 @@ defmodule Astarte.RealmManagement.API.RPC.RealmManagement do
     GetTriggerPoliciesListReply,
     GetTriggerPolicySource,
     GetTriggerPolicySourceReply,
-    DeleteTriggerPolicy
+    DeleteTriggerPolicy,
+    DeleteDevice
   }
 
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.TaggedSimpleTrigger
@@ -248,6 +249,17 @@ defmodule Astarte.RealmManagement.API.RPC.RealmManagement do
       async_operation: true
     }
     |> encode_call(:delete_trigger_policy)
+    |> @rpc_client.rpc_call(@destination)
+    |> decode_reply()
+    |> extract_reply()
+  end
+
+  def delete_device(realm_name, device_id) do
+    %DeleteDevice{
+      realm_name: realm_name,
+      device_id: device_id
+    }
+    |> encode_call(:delete_device)
     |> @rpc_client.rpc_call(@destination)
     |> decode_reply()
     |> extract_reply()

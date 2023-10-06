@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2017 Ispirata Srl
+# Copyright 2017 - 2023 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -67,8 +67,11 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Server do
 
   def handle_cast({:handle_internal, payload, path, message_id, timestamp}, state) do
     if MessageTracker.can_process_message(state.message_tracker, message_id) do
-      new_state = Impl.handle_internal(state, payload, path, message_id, timestamp)
-      {:noreply, new_state}
+      case Impl.handle_internal(state, payload, path, message_id, timestamp) do
+        {:continue, new_state} -> {:noreply, new_state}
+        # No more messages from this device, time out now in order to stop this process
+        {:stop, new_state} -> {:noreply, new_state, 0}
+      end
     else
       {:noreply, state}
     end
@@ -150,6 +153,11 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Server do
     timeout = Config.data_updater_deactivation_interval_ms!()
 
     {:reply, state, state, timeout}
+  end
+
+  def handle_call({:start_device_deletion, timestamp}, _from, state) do
+    {result, new_state} = Impl.start_device_deletion(state, timestamp)
+    {:reply, result, new_state}
   end
 
   def handle_info({:initialize, realm, device_id, message_tracker}, nil) do
