@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2017-2018 Ispirata Srl
+# Copyright 2017-2023 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -21,6 +21,7 @@ defmodule Astarte.Housekeeping.API.Realms.Realm do
   import Ecto.Changeset
 
   @default_replication_factor 1
+  @default_replication_class "SimpleStrategy"
 
   @required_fields [:realm_name, :jwt_public_key_pem]
   @allowed_fields [
@@ -37,7 +38,7 @@ defmodule Astarte.Housekeeping.API.Realms.Realm do
     field :realm_name
     field :jwt_public_key_pem
     field :replication_factor, :integer
-    field :replication_class, :string, default: "SimpleStrategy"
+    field :replication_class, :string
     field :datacenter_replication_factors, {:map, :integer}
   end
 
@@ -48,7 +49,27 @@ defmodule Astarte.Housekeeping.API.Realms.Realm do
     |> validate_format(:realm_name, ~r/^[a-z][a-z0-9]*$/)
     |> validate_number(:replication_factor, greater_than: 0)
     |> validate_pem_public_key(:jwt_public_key_pem)
-    |> validate_inclusion(:replication_class, ["SimpleStrategy", "NetworkTopologyStrategy"])
+    |> put_default_if_missing(:replication_class, @default_replication_class)
+    |> validate_inclusion(:replication_class, [
+      @default_replication_class,
+      "NetworkTopologyStrategy"
+    ])
+    |> validate_replication()
+    |> maybe_put_default_replication_factor()
+  end
+
+  def update_changeset(realm, params \\ %{}) do
+    realm
+    |> cast(params, @allowed_fields)
+    |> validate_required(:realm_name)
+    |> validate_format(:realm_name, ~r/^[a-z][a-z0-9]*$/)
+    |> validate_number(:replication_factor, greater_than: 0)
+    # Realm update might not include a new jwt_public_key_pem
+    |> validate_pem_public_key_if_present(:jwt_public_key_pem)
+    |> validate_inclusion(:replication_class, [
+      @default_replication_class,
+      "NetworkTopologyStrategy"
+    ])
     |> validate_replication()
   end
 
@@ -93,12 +114,29 @@ defmodule Astarte.Housekeeping.API.Realms.Realm do
           "must be used with replication_class NetworkTopologyStrategy"
         )
 
-      get_field(changeset, :replication_factor) == nil ->
-        changeset
-        |> put_change(:replication_factor, @default_replication_factor)
-
       true ->
         changeset
+    end
+  end
+
+  defp maybe_put_default_replication_factor(changeset) do
+    replication_class = get_field(changeset, :replication_class)
+
+    if replication_class == @default_replication_class and
+         field_missing?(changeset, :replication_factor) do
+      put_change(changeset, :replication_factor, @default_replication_factor)
+    else
+      changeset
+    end
+  end
+
+  defp validate_pem_public_key_if_present(changeset, field) do
+    pem = get_field(changeset, field)
+
+    if pem != nil do
+      validate_pem_public_key(changeset, field)
+    else
+      changeset
     end
   end
 
@@ -120,6 +158,14 @@ defmodule Astarte.Housekeeping.API.Realms.Realm do
       _ ->
         changeset
         |> add_error(field, "is not a valid PEM public key")
+    end
+  end
+
+  defp put_default_if_missing(changeset, field, default) do
+    if field_missing?(changeset, field) do
+      put_change(changeset, field, default)
+    else
+      changeset
     end
   end
 end

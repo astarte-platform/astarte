@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2017 Ispirata Srl
+# Copyright 2017-2023 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -52,10 +52,12 @@ defmodule Astarte.Housekeeping.APIWeb.RealmController do
     end
   end
 
-  def update(conn, %{"id" => id, "data" => realm_params}) do
-    with {:ok, %Realm{} = realm} <- Realms.get_realm(id),
-         {:ok, %Realm{} = realm} <- Realms.update_realm(realm, realm_params) do
-      render(conn, "show.json", realm: realm)
+  def update(%Plug.Conn{method: "PATCH"} = conn, %{
+        "realm_name" => realm_name,
+        "data" => realm_params
+      }) do
+    with {:ok, %Realm{} = updated_realm} <- Realms.update_realm(realm_name, realm_params) do
+      render(conn, "show.json", realm: updated_realm)
     end
   end
 

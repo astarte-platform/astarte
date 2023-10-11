@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2017-2018 Ispirata Srl
+# Copyright 2017-2023 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -29,6 +29,8 @@ defmodule Astarte.Housekeeping.APIWeb.Router do
 
     get "/version", VersionController, :show
 
-    resources "/realms", RealmController, except: [:new, :edit]
+    resources "/realms", RealmController, except: [:new, :edit, :update]
+
+    patch "/realms/:realm_name", RealmController, :update
   end
 end
