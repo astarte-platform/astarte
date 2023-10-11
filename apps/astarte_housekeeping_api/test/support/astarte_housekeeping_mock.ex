@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2017-2018 Ispirata Srl
+# Copyright 2017-2023 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -29,7 +29,8 @@ defmodule Astarte.Housekeeping.Mock do
     GetRealmReply,
     GetRealmsList,
     GetRealmsListReply,
-    Reply
+    Reply,
+    UpdateRealm
   }
 
   alias Astarte.Housekeeping.API.Realms.Realm
@@ -68,6 +69,35 @@ defmodule Astarte.Housekeeping.Mock do
 
     %GenericOkReply{async_operation: async}
     |> encode_reply(:generic_ok_reply)
+    |> ok_wrap
+  end
+
+  defp execute_rpc(
+         {:update_realm,
+          %UpdateRealm{
+            realm: realm,
+            jwt_public_key_pem: pem,
+            replication_factor: rep,
+            replication_class: class,
+            datacenter_replication_factors: dc_repl
+          }}
+       ) do
+    Astarte.Housekeeping.Mock.DB.put_realm(%Realm{
+      realm_name: realm,
+      jwt_public_key_pem: pem,
+      replication_factor: rep,
+      replication_class: class,
+      datacenter_replication_factors: dc_repl
+    })
+
+    %GetRealmReply{
+      realm_name: realm,
+      jwt_public_key_pem: pem,
+      replication_factor: rep,
+      replication_class: class,
+      datacenter_replication_factors: dc_repl
+    }
+    |> encode_reply(:get_realm_reply)
     |> ok_wrap
   end
 
