@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2017-2021 Ispirata Srl
+# Copyright 2017-2023 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -73,7 +73,7 @@ defmodule Astarte.Housekeeping.Mixfile do
     [
       {:astarte_core, github: "astarte-platform/astarte_core", override: true},
       {:astarte_data_access, github: "astarte-platform/astarte_data_access"},
-      {:astarte_rpc, github: "Annopaolo/astarte_rpc", branch: "delete-device"}
+      {:astarte_rpc, github: "astarte-platform/astarte_rpc"}
     ]
   end
 
