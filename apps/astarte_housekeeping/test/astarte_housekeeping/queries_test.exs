@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2017-2018 Ispirata Srl
+# Copyright 2017-2023 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -53,6 +53,25 @@ defmodule Astarte.Housekeeping.QueriesTest do
              replication_class: "SimpleStrategy",
              replication_factor: 1
            } = Queries.get_realm(@realm2)
+  end
+
+  test "update realm public key" do
+    Queries.create_realm(@realm1, "test1publickey", 1, []) == :ok
+
+    new_public_key = "new_public_key"
+
+    assert {:ok, %Xandra.Void{}} = Queries.update_public_key(@realm1, new_public_key)
+
+    assert [
+             %{
+               "value" => ^new_public_key
+             }
+           ] =
+             Xandra.Cluster.execute!(
+               :xandra,
+               "SELECT value FROM #{@realm1}.kv_store WHERE group='auth' AND key='jwt_public_key_pem'"
+             )
+             |> Enum.to_list()
   end
 
   defp realm_cleanup(_context) do

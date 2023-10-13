@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2017-2018 Ispirata Srl
+# Copyright 2017-2023 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -31,7 +31,8 @@ defmodule Astarte.Housekeeping.RPC.HandlerTest do
     GetRealmReply,
     GetRealmsList,
     GetRealmsListReply,
-    Reply
+    Reply,
+    UpdateRealm
   }
 
   alias Astarte.Housekeeping.RPC.Handler
@@ -424,5 +425,87 @@ defmodule Astarte.Housekeeping.RPC.HandlerTest do
     {:ok, reply} = Handler.handle_rpc(encoded)
 
     assert Reply.decode(reply) == generic_error("realm_deletion_disabled")
+  end
+
+  describe "UpdateRealm" do
+    setup do
+      alias Astarte.Housekeeping.Queries
+      :ok = Queries.create_realm(@test_realm, "test1publickey", 1, [])
+
+      on_exit(fn ->
+        DatabaseTestHelper.realm_cleanup(@test_realm)
+      end)
+    end
+
+    test "succeeds when realm exists and update values are valid" do
+      encoded =
+        %Call{
+          call:
+            {:update_realm,
+             UpdateRealm.new(realm: @test_realm, jwt_public_key_pem: @public_key_pem)}
+        }
+        |> Call.encode()
+
+      {:ok, update_reply} = Handler.handle_rpc(encoded)
+
+      expected = %Reply{
+        version: 0,
+        error: false,
+        reply:
+          {:get_realm_reply,
+           %GetRealmReply{
+             realm_name: @test_realm,
+             jwt_public_key_pem: @public_key_pem,
+             replication_class: :SIMPLE_STRATEGY,
+             replication_factor: @replication_factor
+           }}
+      }
+
+      assert Reply.decode(update_reply) == expected
+    end
+
+    test "fails with error when realm does not exist" do
+      encoded =
+        %Call{
+          call:
+            {:update_realm,
+             UpdateRealm.new(realm: "i_dont_exist", jwt_public_key_pem: @public_key_pem)}
+        }
+        |> Call.encode()
+
+      {:ok, update_reply} = Handler.handle_rpc(encoded)
+
+      expected = %Reply{
+        version: 0,
+        error: true,
+        reply:
+          {:generic_error_reply,
+           %GenericErrorReply{
+             error_name: "realm_not_found"
+           }}
+      }
+
+      assert Reply.decode(update_reply) == expected
+    end
+
+    test "fails with error when update parameters are invalid" do
+      encoded =
+        %Call{call: {:update_realm, UpdateRealm.new(realm: @test_realm, replication_factor: 10)}}
+        |> Call.encode()
+
+      {:ok, update_reply} = Handler.handle_rpc(encoded)
+
+      expected = %Reply{
+        version: 0,
+        error: true,
+        reply:
+          {:generic_error_reply,
+           %GenericErrorReply{
+             error_name: "invalid_update_parameters"
+           }}
+      }
+
+      assert Reply.decode(update_reply) == expected
+    end
   end
 end
