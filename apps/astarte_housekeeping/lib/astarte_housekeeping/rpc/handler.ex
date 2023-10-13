@@ -35,7 +35,8 @@ defmodule Astarte.Housekeeping.RPC.Handler do
     GetRealmReply,
     GetRealmsList,
     GetRealmsListReply,
-    Reply
+    Reply,
+    UpdateRealm
   }
 
   require Logger
@@ -147,6 +148,45 @@ defmodule Astarte.Housekeeping.RPC.Handler do
       {:error, {reason, details}} ->
         generic_error(reason, details)
 
+      {:error, reason} ->
+        generic_error(reason)
+    end
+  end
+
+  defp call_rpc({:update_realm, %UpdateRealm{} = call}) do
+    with {:ok, realm} <- Astarte.Housekeeping.Engine.update_realm(call.realm, call) do
+      case realm do
+        %{
+          realm_name: realm_name_reply,
+          jwt_public_key_pem: public_key,
+          replication_class: "SimpleStrategy",
+          replication_factor: replication_factor
+        } ->
+          %GetRealmReply{
+            realm_name: realm_name_reply,
+            jwt_public_key_pem: public_key,
+            replication_class: :SIMPLE_STRATEGY,
+            replication_factor: replication_factor
+          }
+          |> encode_reply(:get_realm_reply)
+          |> ok_wrap
+
+        %{
+          realm_name: realm_name_reply,
+          jwt_public_key_pem: public_key,
+          replication_class: "NetworkTopologyStrategy",
+          datacenter_replication_factors: datacenter_replication_factors
+        } ->
+          %GetRealmReply{
+            realm_name: realm_name_reply,
+            jwt_public_key_pem: public_key,
+            replication_class: :NETWORK_TOPOLOGY_STRATEGY,
+            datacenter_replication_factors: datacenter_replication_factors
+          }
+          |> encode_reply(:get_realm_reply)
+          |> ok_wrap
+      end
+    else
       {:error, reason} ->
         generic_error(reason)
     end
