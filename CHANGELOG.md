@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ## [Unreleased]
 ### Changed
 - Forward port changes from release 1.1.
+- [astarte_housekeeping_api] Introduce a PATCH-based API for realm update.
+  The old POST-based one is deprecated.
+- [astarte_housekeeping] Support the new PATCH-based API for realm update.
 
 ## [1.1.0] - 2023-06-20
 ### Fixed
