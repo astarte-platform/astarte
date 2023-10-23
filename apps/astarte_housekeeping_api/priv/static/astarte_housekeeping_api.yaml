@@ -284,6 +284,11 @@ components:
             datacenter_1: 1
             datacenter_2: 3
           description: "Datacenter replication factor of the keyspace that holds the realm's data (only if replication_class is \"NetworkTopologyStrategy\")."
+        device_registration_limit:
+          type: integer
+          minimum: 0
+          example: 100
+          description: "Optional upper bound to the number of devices that can be registered in the realm."
       example:
         realm_name: myrealm
         jwt_public_key_pem: |
@@ -328,6 +333,11 @@ components:
             datacenter_1: 1
             datacenter_2: 3
           description: "Datacenter replication factor of the keyspace that holds the realm's data (only if replication_class is \"NetworkTopologyStrategy\")."
+        device_registration_limit:
+          type: integer
+          minimum: 0
+          example: 100
+          description: "Optional upper bound to the number of devices that can be registered in the realm."
       example:
         jwt_public_key_pem: |
             -----BEGIN PUBLIC KEY-----
