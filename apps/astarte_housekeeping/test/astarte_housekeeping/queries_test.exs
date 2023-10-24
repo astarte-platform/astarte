@@ -37,26 +37,28 @@ defmodule Astarte.Housekeeping.QueriesTest do
   setup [:realm_cleanup]
 
   test "realm creation" do
-    assert Queries.create_realm(@realm1, "test1publickey", 1, []) == :ok
-    assert Queries.create_realm(@realm2, "test2publickey", 1, []) == :ok
+    assert Queries.create_realm(@realm1, "test1publickey", 1, 1, []) == :ok
+    assert Queries.create_realm(@realm2, "test2publickey", 1, 0, []) == :ok
 
     assert %{
              realm_name: @realm1,
              jwt_public_key_pem: "test1publickey",
              replication_class: "SimpleStrategy",
-             replication_factor: 1
+             replication_factor: 1,
+             device_registration_limit: 1
            } = Queries.get_realm(@realm1)
 
     assert %{
              realm_name: @realm2,
              jwt_public_key_pem: "test2publickey",
              replication_class: "SimpleStrategy",
-             replication_factor: 1
+             replication_factor: 1,
+             device_registration_limit: nil
            } = Queries.get_realm(@realm2)
   end
 
   test "update realm public key" do
-    Queries.create_realm(@realm1, "test1publickey", 1, []) == :ok
+    Queries.create_realm(@realm1, "test1publickey", 1, 1, []) == :ok
 
     new_public_key = "new_public_key"
 
@@ -70,6 +72,44 @@ defmodule Astarte.Housekeeping.QueriesTest do
              Xandra.Cluster.execute!(
                :xandra,
                "SELECT value FROM #{@realm1}.kv_store WHERE group='auth' AND key='jwt_public_key_pem'"
+             )
+             |> Enum.to_list()
+  end
+
+  test "set device registration limit" do
+    Queries.create_realm(@realm1, "test1publickey", 1, 1, []) == :ok
+
+    new_limit = 100
+
+    assert {:ok, %Xandra.Void{}} = Queries.set_device_registration_limit(@realm1, new_limit)
+
+    assert [
+             %{
+               "device_registration_limit" => ^new_limit
+             }
+           ] =
+             Xandra.Cluster.execute!(
+               :xandra,
+               "SELECT device_registration_limit FROM astarte.realms WHERE realm_name = :realm_name",
+               %{"realm_name" => {"varchar", @realm1}}
+             )
+             |> Enum.to_list()
+  end
+
+  test "remove device registration limit" do
+    Queries.create_realm(@realm1, "test1publickey", 1, 1, []) == :ok
+
+    assert {:ok, %Xandra.Void{}} = Queries.delete_device_registration_limit(@realm1)
+
+    assert [
+             %{
+               "device_registration_limit" => nil
+             }
+           ] =
+             Xandra.Cluster.execute!(
+               :xandra,
+               "SELECT device_registration_limit FROM astarte.realms WHERE realm_name = :realm_name",
+               %{"realm_name" => {"varchar", @realm1}}
              )
              |> Enum.to_list()
   end

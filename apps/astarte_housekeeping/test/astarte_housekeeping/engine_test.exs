@@ -45,7 +45,7 @@ defmodule Astarte.Housekeeping.EngineTest do
 
   describe "Realm update" do
     test "succeeds when realm exists and valid update values are given" do
-      :ok = Queries.create_realm(@realm1, "test1publickey", 1, [])
+      :ok = Queries.create_realm(@realm1, "test1publickey", 1, 1, [])
 
       new_public_key = "new_public_key"
 
@@ -57,12 +57,13 @@ defmodule Astarte.Housekeeping.EngineTest do
       assert {:ok,
               %{
                 realm_name: @realm1,
-                jwt_public_key_pem: ^new_public_key
+                jwt_public_key_pem: ^new_public_key,
+                device_registration_limit: 1
               }} = Engine.update_realm(@realm1, update_values)
     end
 
     test "succeeds when realm exists and empty update values are given" do
-      :ok = Queries.create_realm(@realm1, "test1publickey", 1, [])
+      :ok = Queries.create_realm(@realm1, "test1publickey", 1, 1, [])
 
       update_values = %UpdateRealm{
         realm: @realm1
@@ -71,7 +72,52 @@ defmodule Astarte.Housekeeping.EngineTest do
       assert {:ok,
               %{
                 realm_name: @realm1,
-                jwt_public_key_pem: "test1publickey"
+                jwt_public_key_pem: "test1publickey",
+                device_registration_limit: 1
+              }} = Engine.update_realm(@realm1, update_values)
+    end
+
+    test "succeeds when realm exists and device_registration_limit is updated" do
+      :ok = Queries.create_realm(@realm1, "test1publickey", 1, 1, [])
+
+      new_limit = 100
+
+      update_values = %UpdateRealm{
+        device_registration_limit: new_limit
+      }
+
+      assert {:ok,
+              %{
+                realm_name: @realm1,
+                device_registration_limit: ^new_limit
+              }} = Engine.update_realm(@realm1, update_values)
+    end
+
+    test "succeeds when realm exists and device_registration_limit is removed" do
+      :ok = Queries.create_realm(@realm1, "test1publickey", 1, 1, [])
+
+      update_values = %UpdateRealm{
+        device_registration_limit: :remove_limit
+      }
+
+      assert {:ok,
+              %{
+                realm_name: @realm1,
+                device_registration_limit: nil
+              }} = Engine.update_realm(@realm1, update_values)
+    end
+
+    test "succeeds when realm exists and device_registration_limit is not set" do
+      :ok = Queries.create_realm(@realm1, "test1publickey", 1, 1, [])
+
+      update_values = %UpdateRealm{
+        device_registration_limit: nil
+      }
+
+      assert {:ok,
+              %{
+                realm_name: @realm1,
+                device_registration_limit: 1
               }} = Engine.update_realm(@realm1, update_values)
     end
 
@@ -87,7 +133,7 @@ defmodule Astarte.Housekeeping.EngineTest do
     end
 
     test "fails when update values are invalid" do
-      :ok = Queries.create_realm(@realm1, "test1publickey", 1, [])
+      :ok = Queries.create_realm(@realm1, "test1publickey", 1, 1, [])
 
       update_values = %UpdateRealm{
         realm: @realm1,
