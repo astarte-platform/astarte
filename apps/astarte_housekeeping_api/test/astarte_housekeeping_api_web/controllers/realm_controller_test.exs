@@ -120,7 +120,8 @@ defmodule Astarte.Housekeeping.APIWeb.RealmControllerTest do
                "realm_name" => @create_attrs["data"]["realm_name"],
                "jwt_public_key_pem" => @create_attrs["data"]["jwt_public_key_pem"],
                "replication_class" => "SimpleStrategy",
-               "replication_factor" => 1
+               "replication_factor" => 1,
+               "device_registration_limit" => nil
              }
            }
   end
@@ -136,7 +137,8 @@ defmodule Astarte.Housekeeping.APIWeb.RealmControllerTest do
                "realm_name" => @explicit_replication_attrs["data"]["realm_name"],
                "jwt_public_key_pem" => @explicit_replication_attrs["data"]["jwt_public_key_pem"],
                "replication_class" => "SimpleStrategy",
-               "replication_factor" => @explicit_replication_attrs["data"]["replication_factor"]
+               "replication_factor" => @explicit_replication_attrs["data"]["replication_factor"],
+               "device_registration_limit" => nil
              }
            }
   end
@@ -153,7 +155,8 @@ defmodule Astarte.Housekeeping.APIWeb.RealmControllerTest do
                "jwt_public_key_pem" => @network_topology_attrs["data"]["jwt_public_key_pem"],
                "replication_class" => "NetworkTopologyStrategy",
                "datacenter_replication_factors" =>
-                 @network_topology_attrs["data"]["datacenter_replication_factors"]
+                 @network_topology_attrs["data"]["datacenter_replication_factors"],
+               "device_registration_limit" => nil
              }
            }
   end
@@ -199,6 +202,51 @@ defmodule Astarte.Housekeeping.APIWeb.RealmControllerTest do
     assert %{
              "realm_name" => ^realm_name,
              "jwt_public_key_pem" => @other_pubkey
+           } = updated_realm
+  end
+
+  test "updates chosen realm device registration limit", %{conn: conn} do
+    %Realm{realm_name: realm_name} = realm = fixture(:realm)
+    limit = 10
+
+    conn =
+      patch(conn, realm_path(conn, :update, realm), %{
+        "data" => %{"device_registration_limit" => limit}
+      })
+
+    assert %{"data" => updated_realm} = json_response(conn, 200)
+
+    assert %{
+             "realm_name" => ^realm_name,
+             "device_registration_limit" => ^limit
+           } = updated_realm
+  end
+
+  test "removes chosen realm device registration limit", %{conn: conn} do
+    %Realm{realm_name: realm_name} = realm = fixture(:realm)
+
+    conn =
+      patch(conn, realm_path(conn, :update, realm), %{
+        "data" => %{"device_registration_limit" => 10}
+      })
+
+    assert %{"data" => updated_realm} = json_response(conn, 200)
+
+    assert %{
+             "realm_name" => ^realm_name,
+             "device_registration_limit" => 10
+           } = updated_realm
+
+    conn =
+      patch(conn, realm_path(conn, :update, realm), %{
+        "data" => %{"device_registration_limit" => nil}
+      })
+
+    assert %{"data" => updated_realm} = json_response(conn, 200)
+
+    assert %{
+             "realm_name" => ^realm_name,
+             "device_registration_limit" => nil
            } = updated_realm
   end
 
