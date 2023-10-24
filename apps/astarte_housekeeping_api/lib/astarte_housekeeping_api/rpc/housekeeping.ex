@@ -31,7 +31,9 @@ defmodule Astarte.Housekeeping.API.RPC.Housekeeping do
     GetRealmReply,
     GetRealmsList,
     GetRealmsListReply,
+    RemoveLimit,
     Reply,
+    SetLimit,
     UpdateRealm
   }
 
@@ -46,7 +48,8 @@ defmodule Astarte.Housekeeping.API.RPC.Housekeeping do
           realm_name: realm_name,
           jwt_public_key_pem: pem,
           replication_class: "SimpleStrategy",
-          replication_factor: replication_factor
+          replication_factor: replication_factor,
+          device_registration_limit: device_registration_limit
         },
         opts
       ) do
@@ -55,7 +58,8 @@ defmodule Astarte.Housekeeping.API.RPC.Housekeeping do
       async_operation: Keyword.get(opts, :async_operation, true),
       jwt_public_key_pem: pem,
       replication_class: :SIMPLE_STRATEGY,
-      replication_factor: replication_factor
+      replication_factor: replication_factor,
+      device_registration_limit: device_registration_limit
     }
     |> encode_call(:create_realm)
     |> @rpc_client.rpc_call(@destination)
@@ -68,7 +72,8 @@ defmodule Astarte.Housekeeping.API.RPC.Housekeeping do
           realm_name: realm_name,
           jwt_public_key_pem: pem,
           replication_class: "NetworkTopologyStrategy",
-          datacenter_replication_factors: replication_factors_map
+          datacenter_replication_factors: replication_factors_map,
+          device_registration_limit: device_registration_limit
         },
         opts
       ) do
@@ -77,7 +82,8 @@ defmodule Astarte.Housekeeping.API.RPC.Housekeeping do
       async_operation: Keyword.get(opts, :async_operation, true),
       jwt_public_key_pem: pem,
       replication_class: :NETWORK_TOPOLOGY_STRATEGY,
-      datacenter_replication_factors: Enum.to_list(replication_factors_map)
+      datacenter_replication_factors: Enum.to_list(replication_factors_map),
+      device_registration_limit: device_registration_limit
     }
     |> encode_call(:create_realm)
     |> @rpc_client.rpc_call(@destination)
@@ -90,14 +96,16 @@ defmodule Astarte.Housekeeping.API.RPC.Housekeeping do
         jwt_public_key_pem: pem,
         replication_class: replication_class,
         replication_factor: replication_factor,
-        datacenter_replication_factors: replication_factors_map
+        datacenter_replication_factors: replication_factors_map,
+        device_registration_limit: limit
       }) do
     %UpdateRealm{
       realm: realm_name,
       jwt_public_key_pem: pem,
       replication_class: replication_class_to_atom(replication_class),
       replication_factor: replication_factor,
-      datacenter_replication_factors: replication_factors_map
+      datacenter_replication_factors: replication_factors_map,
+      device_registration_limit: device_registration_limit_to_proto(limit)
     }
     |> encode_call(:update_realm)
     |> @rpc_client.rpc_call(@destination)
@@ -183,7 +191,8 @@ defmodule Astarte.Housekeeping.API.RPC.Housekeeping do
             realm_name: realm_name,
             jwt_public_key_pem: pem,
             replication_class: :SIMPLE_STRATEGY,
-            replication_factor: replication_factor
+            replication_factor: replication_factor,
+            device_registration_limit: device_registration_limit
           }}
        ) do
     {:ok,
@@ -191,7 +200,8 @@ defmodule Astarte.Housekeeping.API.RPC.Housekeeping do
        realm_name: realm_name,
        jwt_public_key_pem: pem,
        replication_class: "SimpleStrategy",
-       replication_factor: replication_factor
+       replication_factor: replication_factor,
+       device_registration_limit: device_registration_limit
      }}
   end
 
@@ -201,7 +211,8 @@ defmodule Astarte.Housekeeping.API.RPC.Housekeeping do
             realm_name: realm_name,
             jwt_public_key_pem: pem,
             replication_class: :NETWORK_TOPOLOGY_STRATEGY,
-            datacenter_replication_factors: datacenter_replication_factors
+            datacenter_replication_factors: datacenter_replication_factors,
+            device_registration_limit: device_registration_limit
           }}
        ) do
     {:ok,
@@ -209,7 +220,8 @@ defmodule Astarte.Housekeeping.API.RPC.Housekeeping do
        realm_name: realm_name,
        jwt_public_key_pem: pem,
        replication_class: "NetworkTopologyStrategy",
-       datacenter_replication_factors: Enum.into(datacenter_replication_factors, %{})
+       datacenter_replication_factors: Enum.into(datacenter_replication_factors, %{}),
+       device_registration_limit: device_registration_limit
      }}
   end
 
@@ -258,4 +270,11 @@ defmodule Astarte.Housekeeping.API.RPC.Housekeeping do
   defp replication_class_to_atom("NetworkTopologyStrategy"), do: :NETWORK_TOPOLOGY_STRATEGY
   defp replication_class_to_atom("SimpleStrategy"), do: :SIMPLE_STRATEGY
   defp replication_class_to_atom(nil), do: nil
+
+  defp device_registration_limit_to_proto(:remove_limit), do: {:remove_limit, %RemoveLimit{}}
+  defp device_registration_limit_to_proto(nil), do: nil
+
+  defp device_registration_limit_to_proto(n) when is_integer(n) do
+    {:set_limit, %SetLimit{value: n}}
+  end
 end
