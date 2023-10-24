@@ -24,23 +24,23 @@ defmodule Astarte.Housekeeping.Queries do
 
   @default_replication_factor 1
 
-  def create_realm(realm_name, public_key_pem, nil = _replication_factor, opts) do
-    create_realm(realm_name, public_key_pem, @default_replication_factor, opts)
+  def create_realm(realm_name, public_key_pem, nil = _replication_factor, device_limit, opts) do
+    create_realm(realm_name, public_key_pem, @default_replication_factor, device_limit, opts)
   end
 
-  def create_realm(realm_name, public_key_pem, replication, opts) do
+  def create_realm(realm_name, public_key_pem, replication, device_limit, opts) do
     with :ok <- validate_realm_name(realm_name),
          :ok <- Xandra.Cluster.run(:xandra, &check_replication(&1, replication)),
          {:ok, replication_map_str} <- build_replication_map_str(replication) do
       if opts[:async] do
         {:ok, _pid} =
           Task.start(fn ->
-            do_create_realm(realm_name, public_key_pem, replication_map_str)
+            do_create_realm(realm_name, public_key_pem, replication_map_str, device_limit)
           end)
 
         :ok
       else
-        do_create_realm(realm_name, public_key_pem, replication_map_str)
+        do_create_realm(realm_name, public_key_pem, replication_map_str, device_limit)
       end
     end
   end
@@ -152,7 +152,7 @@ defmodule Astarte.Housekeeping.Queries do
     end
   end
 
-  defp do_create_realm(realm_name, public_key_pem, replication_map_str) do
+  defp do_create_realm(realm_name, public_key_pem, replication_map_str, device_limit) do
     Xandra.Cluster.run(:xandra, [timeout: 60_000], fn conn ->
       with :ok <- validate_realm_name(realm_name),
            :ok <- create_realm_keyspace(conn, realm_name, replication_map_str),
@@ -168,7 +168,7 @@ defmodule Astarte.Housekeeping.Queries do
            :ok <- create_deletion_in_progress_table(realm_conn),
            :ok <- insert_realm_public_key(realm_conn, public_key_pem),
            :ok <- insert_realm_astarte_schema_version(realm_conn),
-           :ok <- insert_realm(realm_conn) do
+           :ok <- insert_realm(realm_conn, device_limit) do
         :ok
       else
         {:error, reason} ->
@@ -675,13 +675,18 @@ defmodule Astarte.Housekeeping.Queries do
     end
   end
 
-  defp insert_realm({conn, realm_name}) do
+  defp insert_realm({conn, realm_name}, device_limit) do
     query = """
-    INSERT INTO astarte.realms (realm_name)
-    VALUES (:realm_name);
+    INSERT INTO astarte.realms (realm_name, device_registration_limit)
+    VALUES (:realm_name, :device_registration_limit);
     """
 
-    params = %{"realm_name" => realm_name}
+    device_registration_limit = if device_limit == 0, do: nil, else: device_limit
+
+    params = %{
+      "realm_name" => realm_name,
+      "device_registration_limit" => device_registration_limit
+    }
 
     with {:ok, prepared} <- Xandra.prepare(conn, query),
          {:ok, %Xandra.Void{}} <-
@@ -782,6 +787,7 @@ defmodule Astarte.Housekeeping.Queries do
     query = """
     CREATE TABLE astarte.realms (
       realm_name varchar,
+      device_registration_limit bigint,
       PRIMARY KEY (realm_name)
     );
     """
@@ -959,7 +965,8 @@ defmodule Astarte.Housekeeping.Queries do
     Xandra.Cluster.run(:xandra, fn conn ->
       with {:ok, true} <- is_realm_existing(conn, realm_name),
            {:ok, public_key} <- get_public_key(conn, realm_name),
-           {:ok, replication_map} <- get_realm_replication(conn, realm_name) do
+           {:ok, replication_map} <- get_realm_replication(conn, realm_name),
+           {:ok, device_registration_limit} <- get_device_registration_limit(conn, realm_name) do
         case replication_map do
           %{
             "class" => "org.apache.cassandra.locator.SimpleStrategy",
@@ -971,7 +978,8 @@ defmodule Astarte.Housekeeping.Queries do
               realm_name: realm_name,
               jwt_public_key_pem: public_key,
               replication_class: "SimpleStrategy",
-              replication_factor: replication_factor
+              replication_factor: replication_factor,
+              device_registration_limit: device_registration_limit
             }
 
           %{"class" => "org.apache.cassandra.locator.NetworkTopologyStrategy"} ->
@@ -989,7 +997,8 @@ defmodule Astarte.Housekeeping.Queries do
               realm_name: realm_name,
               jwt_public_key_pem: public_key,
               replication_class: "NetworkTopologyStrategy",
-              datacenter_replication_factors: datacenter_replication_factors
+              datacenter_replication_factors: datacenter_replication_factors,
+              device_registration_limit: device_registration_limit
             }
         end
       else
@@ -1175,6 +1184,44 @@ defmodule Astarte.Housekeeping.Queries do
             {:error, reason} -> {:halt, {:error, reason}}
           end
       end)
+    end
+  end
+
+  defp get_device_registration_limit(conn, realm_name) do
+    query = """
+    SELECT device_registration_limit
+    FROM astarte.realms
+    WHERE realm_name=:realm_name
+    """
+
+    with {:ok, prepared} <- Xandra.prepare(conn, query),
+         {:ok, page} <- Xandra.execute(conn, prepared, %{"realm_name" => realm_name}) do
+      case Enum.fetch(page, 0) do
+        {:ok, %{"device_registration_limit" => value}} ->
+          {:ok, value}
+
+        :error ->
+          # Something really wrong here, but we still cover this
+          _ =
+            Logger.error("Cannot find realm device_registration_limit.",
+              tag: "realm_device_registration_limit_not_found",
+              realm: realm_name
+            )
+
+          {:error, :realm_device_registration_limit_not_found}
+      end
+    else
+      {:error, %Xandra.Error{} = err} ->
+        _ = Logger.warn("Database error: #{inspect(err)}.", tag: "database_error")
+        {:error, :database_error}
+
+      {:error, %Xandra.ConnectionError{} = err} ->
+        _ =
+          Logger.warn("Database connection error: #{inspect(err)}.",
+            tag: "database_connection_error"
+          )
+
+        {:error, :database_connection_error}
     end
   end
 

@@ -89,13 +89,20 @@ defmodule Astarte.Housekeeping.RPC.Handler do
             jwt_public_key_pem: pub_key,
             replication_class: :NETWORK_TOPOLOGY_STRATEGY,
             datacenter_replication_factors: datacenter_replication_factors,
+            device_registration_limit: device_registration_limit,
             async_operation: async
           }}
        ) do
     with {:ok, false} <- Astarte.Housekeeping.Engine.is_realm_existing(realm),
          datacenter_replication_factors_map = Enum.into(datacenter_replication_factors, %{}),
          :ok <-
-           Engine.create_realm(realm, pub_key, datacenter_replication_factors_map, async: async) do
+           Engine.create_realm(
+             realm,
+             pub_key,
+             datacenter_replication_factors_map,
+             device_registration_limit,
+             async: async
+           ) do
       generic_ok(async)
     else
       # This comes from is_realm_existing
@@ -128,11 +135,15 @@ defmodule Astarte.Housekeeping.RPC.Handler do
             realm: realm,
             jwt_public_key_pem: pub_key,
             replication_factor: replication_factor,
+            device_registration_limit: device_registration_limit,
             async_operation: async
           }}
        ) do
     with {:ok, false} <- Astarte.Housekeeping.Engine.is_realm_existing(realm),
-         :ok <- Engine.create_realm(realm, pub_key, replication_factor, async: async) do
+         :ok <-
+           Engine.create_realm(realm, pub_key, replication_factor, device_registration_limit,
+             async: async
+           ) do
       generic_ok(async)
     else
       # This comes from is_realm_existing
