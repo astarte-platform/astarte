@@ -63,6 +63,22 @@ defmodule Astarte.Housekeeping.Queries do
     end
   end
 
+  def delete_device_registration_limit(realm_name) do
+    with :ok <- validate_realm_name(realm_name) do
+      Xandra.Cluster.run(:xandra, fn conn ->
+        do_delete_device_registration_limit(conn, realm_name)
+      end)
+    end
+  end
+
+  def set_device_registration_limit(realm_name, new_limit) do
+    with :ok <- validate_realm_name(realm_name) do
+      Xandra.Cluster.run(:xandra, fn conn ->
+        do_set_device_registration_limit(conn, realm_name, new_limit)
+      end)
+    end
+  end
+
   defp build_replication_map_str(replication_factor)
        when is_integer(replication_factor) and replication_factor > 0 do
     replication_map_str =
@@ -1112,6 +1128,69 @@ defmodule Astarte.Housekeeping.Queries do
           )
 
         {:error, :database_connection_error}
+    end
+  end
+
+  defp do_set_device_registration_limit(conn, realm_name, new_device_registration_limit) do
+    statement = """
+    UPDATE astarte.realms
+    SET device_registration_limit = :new_device_registration_limit
+    WHERE realm_name = :realm_name
+    """
+
+    params = %{
+      "new_device_registration_limit" => new_device_registration_limit,
+      "realm_name" => realm_name
+    }
+
+    with {:ok, prepared} <- Xandra.prepare(conn, statement) do
+      case Xandra.execute(conn, prepared, params, consistency: :quorum) do
+        {:ok, result} ->
+          {:ok, result}
+
+        {:error, %Xandra.Error{} = err} ->
+          _ = Logger.warn("Database error: #{Exception.message(err)}.", tag: "database_error")
+          {:error, :database_error}
+
+        {:error, %Xandra.ConnectionError{} = err} ->
+          _ =
+            Logger.warn("Database connection error: #{Exception.message(err)}.",
+              tag: "database_connection_error"
+            )
+
+          {:error, :database_connection_error}
+      end
+    end
+  end
+
+  defp do_delete_device_registration_limit(conn, realm_name) do
+    statement = """
+    DELETE device_registration_limit
+    FROM astarte.realms
+    WHERE realm_name = :realm_name
+    """
+
+    params = %{
+      "realm_name" => realm_name
+    }
+
+    with {:ok, prepared} <- Xandra.prepare(conn, statement) do
+      case Xandra.execute(conn, prepared, params, consistency: :quorum) do
+        {:ok, result} ->
+          {:ok, result}
+
+        {:error, %Xandra.Error{} = err} ->
+          _ = Logger.warn("Database error: #{Exception.message(err)}.", tag: "database_error")
+          {:error, :database_error}
+
+        {:error, %Xandra.ConnectionError{} = err} ->
+          _ =
+            Logger.warn("Database connection error: #{Exception.message(err)}.",
+              tag: "database_connection_error"
+            )
+
+          {:error, :database_connection_error}
+      end
     end
   end
 
