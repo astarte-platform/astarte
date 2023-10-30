@@ -180,13 +180,13 @@ or from another machine or device on the same network.
 Astarte's `stream-qt5-test` can be pulled from Docker Hub with:
 
 ```sh
-$ docker pull astarte/astarte-stream-qt5-test:v1.0.4
+$ docker pull astarte/astarte-stream-qt5-test:1.0.4
 ```
 
 Its most basic invocation (from your `astarte` repository tree) is:
 
 ```sh
-$ docker run --net="host" -e "DEVICE_ID=$(astartectl utils device-id generate-random)" -e "PAIRING_URL=http://api.astarte.localhost/pairing" -e "REALM=test" -e "PAIRING_JWT=$(astartectl utils gen-jwt pairing -k test_private.pem)" -e "IGNORE_SSL_ERRORS=true" astarte/astarte-stream-qt5-test:v1.0.4
+$ docker run --net="host" -e "DEVICE_ID=$(astartectl utils device-id generate-random)" -e "PAIRING_URL=http://api.astarte.localhost/pairing" -e "REALM=test" -e "PAIRING_JWT=$(astartectl utils gen-jwt pairing -k test_private.pem)" -e "IGNORE_SSL_ERRORS=true" astarte/astarte-stream-qt5-test:1.0.4
 ```
 
 This will generate a random datastream from a brand new, random Device ID. You can tweak those parameters to whatever suits you better by having a look at the Dockerfile. You can spawn any number of instances you like, or you can have the same Device ID send longer streams of data by saving the container's persistency through a Docker Volume. If you wish to do so, simply add `-v /persistency:<your persistency path>` to your `docker run` invocation.
