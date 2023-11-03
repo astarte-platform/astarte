@@ -229,6 +229,14 @@ defmodule Astarte.Pairing.Queries do
     end
   end
 
+  def fetch_device_registration_limit(realm_name) do
+    Xandra.Cluster.run(:xandra, &do_fetch_device_registration_limit(&1, realm_name))
+  end
+
+  def fetch_registered_devices_count(realm_name) do
+    Xandra.Cluster.run(:xandra, &do_fetch_registered_devices_count(&1, realm_name))
+  end
+
   defp do_select_device(client, device_id, select_statement) do
     device_query =
       Query.new()
@@ -336,6 +344,78 @@ defmodule Astarte.Pairing.Queries do
           )
 
         {:error, :database_connection_error}
+    end
+  end
+
+  defp do_fetch_device_registration_limit(conn, realm_name) do
+    query = """
+    SELECT device_registration_limit
+    FROM astarte.realms
+    WHERE realm_name = :realm_name
+    """
+
+    with {:ok, prepared} <- Xandra.prepare(conn, query),
+         {:ok, page} <-
+           Xandra.execute(conn, prepared, %{"realm_name" => realm_name}, consistency: :one) do
+      case Enum.to_list(page) do
+        [%{"device_registration_limit" => value}] ->
+          {:ok, value}
+
+        [] ->
+          _ =
+            Logger.warn("cannot fetch device registration limit: realm #{realm_name} not found",
+              tag: "realm_not_found"
+            )
+
+          {:error, :realm_not_found}
+      end
+    else
+      {:error, %Xandra.ConnectionError{} = err} ->
+        _ =
+          Logger.warn("Database connection error: #{Exception.message(err)}.",
+            tag: "database_connection_error"
+          )
+
+        {:error, :database_connection_error}
+
+      {:error, %Xandra.Error{} = err} ->
+        _ =
+          Logger.warn("Database error: #{Exception.message(err)}.",
+            tag: "database_error"
+          )
+
+        {:error, :database_error}
+    end
+  end
+
+  defp do_fetch_registered_devices_count(conn, realm_name) do
+    # TODO move away from interpolation like this once NoaccOS' PR is merged
+    query = """
+    SELECT COUNT(*)
+    FROM #{realm_name}.devices
+    """
+
+    with {:ok, prepared} <- Xandra.prepare(conn, query),
+         {:ok, page} <-
+           Xandra.execute(conn, prepared, %{"realm_name" => realm_name}, consistency: :one) do
+      [%{"count" => value}] = Enum.to_list(page)
+      {:ok, value}
+    else
+      {:error, %Xandra.ConnectionError{} = err} ->
+        _ =
+          Logger.warn("Database connection error: #{Exception.message(err)}.",
+            tag: "database_connection_error"
+          )
+
+        {:error, :database_connection_error}
+
+      {:error, %Xandra.Error{} = err} ->
+        _ =
+          Logger.warn("Database error: #{Exception.message(err)}.",
+            tag: "database_error"
+          )
+
+        {:error, :database_error}
     end
   end
 end
