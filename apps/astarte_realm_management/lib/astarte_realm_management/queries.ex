@@ -2238,4 +2238,43 @@ defmodule Astarte.RealmManagement.Queries do
       vmq_ack and dup_start_ack and dup_end_ack
     end)
   end
+
+  def get_device_registration_limit(realm_name) do
+    Xandra.Cluster.run(:xandra, &do_get_device_registration_limit(&1, realm_name))
+  end
+
+  defp do_get_device_registration_limit(conn, realm_name) do
+    query = """
+    SELECT device_registration_limit
+    FROM astarte.realms
+    WHERE realm_name = :realm_name
+    """
+
+    with {:ok, prepared} <- Xandra.prepare(conn, query),
+         {:ok, page} <-
+           Xandra.execute(conn, prepared, %{realm_name: realm_name}, consistency: :one) do
+      case Enum.to_list(page) do
+        [%{device_registration_limit: value}] -> {:ok, value}
+        [] -> {:error, :realm_not_found}
+      end
+    else
+      {:error, %Xandra.ConnectionError{} = error} ->
+        _ =
+          Logger.warn(
+            "Database connection error: #{Exception.message(error)}",
+            tag: "database_connection_error"
+          )
+
+        {:error, :database_connection_error}
+
+      {:error, %Xandra.Error{} = error} ->
+        _ =
+          Logger.warn(
+            "Database error: #{Exception.message(error)}",
+            tag: "database_error"
+          )
+
+        {:error, :database_error}
+    end
+  end
 end

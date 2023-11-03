@@ -1050,4 +1050,27 @@ defmodule Astarte.RealmManagement.Engine do
       {:error, reason}
     end
   end
+
+  @doc """
+  Retrieves the device registration limit of a realm.
+  Returns either `{:ok, limit}` or `{:error, reason}`.
+  The limit is an integer (if set) or `nil` (if unset).
+  """
+  @spec get_device_registration_limit(String.t()) ::
+          {:ok, integer()} | {:ok, nil} | {:error, atom()}
+  def get_device_registration_limit(realm_name) do
+    case Queries.get_device_registration_limit(realm_name) do
+      {:ok, value} ->
+        {:ok, value}
+
+      {:error, reason} ->
+        _ =
+          Logger.warn(
+            "Cannot get device registration limit for realm #{realm_name}",
+            tag: "get_device_registration_limit_fail"
+          )
+
+        {:error, reason}
+    end
+  end
 end
