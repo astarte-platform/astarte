@@ -33,6 +33,12 @@ defmodule Astarte.RealmManagement.APIWeb.RealmConfigController do
     end
   end
 
+  def show(conn, %{"realm_name" => realm_name, "group" => "device_registration_limit"}) do
+    with {:ok, device_registration_limit} = RealmConfig.get_device_registration_limit(realm_name) do
+      render(conn, "show.json", device_registration_limit: device_registration_limit)
+    end
+  end
+
   def update(conn, %{"realm_name" => realm_name, "group" => "auth", "data" => new_config}) do
     with :ok <- RealmConfig.update_auth_config(realm_name, new_config) do
       send_resp(conn, :no_content, "")
