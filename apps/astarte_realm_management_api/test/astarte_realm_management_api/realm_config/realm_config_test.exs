@@ -72,5 +72,12 @@ defmodule Astarte.RealmManagement.API.RealmConfigTest do
       assert RealmConfig.get_auth_config(@realm) ==
                {:ok, %AuthConfig{jwt_public_key_pem: @pubkey}}
     end
+
+    test "get_device_registration_limit/1 returns the limit for an existing realm" do
+      limit = 10
+      DB.put_device_registration_limit(@realm, limit)
+
+      assert {:ok, ^limit} = RealmConfig.get_device_registration_limit(@realm)
+    end
   end
 end

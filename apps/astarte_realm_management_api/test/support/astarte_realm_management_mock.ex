@@ -23,7 +23,9 @@ defmodule Astarte.RealmManagement.Mock do
     DeleteTriggerPolicy,
     GetTriggerPolicySource,
     GetTriggerPolicySourceReply,
-    DeleteDevice
+    DeleteDevice,
+    GetDeviceRegistrationLimit,
+    GetDeviceRegistrationLimitReply
   }
 
   alias Astarte.Core.Interface
@@ -245,6 +247,19 @@ defmodule Astarte.RealmManagement.Mock do
         generic_error(reason)
         |> ok_wrap
     end
+  end
+
+  defp execute_rpc(
+         {:get_device_registration_limit,
+          %GetDeviceRegistrationLimit{
+            realm_name: realm_name
+          }}
+       ) do
+    value = DB.get_device_registration_limit(realm_name)
+
+    %GetDeviceRegistrationLimitReply{device_registration_limit: value}
+    |> encode_reply(:get_device_registration_limit_reply)
+    |> ok_wrap
   end
 
   defp generic_ok(async_operation \\ false) do
