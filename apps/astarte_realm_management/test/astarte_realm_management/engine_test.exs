@@ -22,6 +22,7 @@ defmodule Astarte.RealmManagement.EngineTest do
   alias Astarte.Core.CQLUtils
   alias Astarte.DataAccess.Database
   alias Astarte.RealmManagement.DatabaseTestHelper
+  alias Astarte.RealmManagement.DatabaseFixtures
   alias Astarte.RealmManagement.Engine
   alias Astarte.Core.Triggers.SimpleTriggerConfig
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.TaggedSimpleTrigger
@@ -1475,6 +1476,23 @@ defmodule Astarte.RealmManagement.EngineTest do
     missing_device_id = Device.random_device_id() |> Device.encode_device_id()
 
     assert {:error, :device_not_found} = Engine.delete_device(@test_realm_name, missing_device_id)
+  end
+
+  test "retrieve device registration limit for an existing realm" do
+    limit = 10
+    realm_name = "autotestrealm"
+
+    DatabaseTestHelper.seed_realm_test_data!(
+      realm_name: realm_name,
+      device_registration_limit: limit
+    )
+
+    assert {:ok, ^limit} = Engine.get_device_registration_limit(realm_name)
+  end
+
+  test "fail to retrieve device registration limit if realm does not exist" do
+    realm_name = "realm#{System.unique_integer([:positive])}"
+    assert {:error, :realm_not_found} = Engine.get_device_registration_limit(realm_name)
   end
 
   defp unpack_source({:ok, source}) when is_binary(source) do

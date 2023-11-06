@@ -50,6 +50,7 @@ defmodule Astarte.RealmManagement.DatabaseTestHelper do
   @create_astarte_realms_table """
   CREATE TABLE astarte.realms (
     realm_name ascii,
+    device_registration_limit int,
     PRIMARY KEY (realm_name)
   );
   """
@@ -602,6 +603,23 @@ defmodule Astarte.RealmManagement.DatabaseTestHelper do
 
       prepared = Xandra.prepare!(conn, statement)
       Xandra.execute!(conn, prepared, params, uuid_format: :binary)
+    end)
+
+    :ok
+  end
+
+  def seed_realm_test_data!(opts) do
+    params = DatabaseFixtures.compute_generic_fixtures(opts, DatabaseFixtures.realm_values())
+
+    Xandra.Cluster.run(:xandra, fn conn ->
+      statement = """
+      INSERT INTO astarte.realms
+      (realm_name, device_registration_limit)
+      VALUES (:realm_name, :device_registration_limit)
+      """
+
+      prepared = Xandra.prepare!(conn, statement)
+      Xandra.execute!(conn, prepared, params)
     end)
 
     :ok
