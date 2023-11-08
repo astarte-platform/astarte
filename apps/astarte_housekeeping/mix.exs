@@ -71,9 +71,9 @@ defmodule Astarte.Housekeeping.Mixfile do
 
   defp astarte_required_modules(_) do
     [
-      {:astarte_core, "~> 1.1"},
-      {:astarte_data_access, "~> 1.1"},
-      {:astarte_rpc, "~> 1.1"}
+      {:astarte_core, "~> 1.1.1"},
+      {:astarte_data_access, "~> 1.1.1"},
+      {:astarte_rpc, "~> 1.1.1"}
     ]
   end
 
