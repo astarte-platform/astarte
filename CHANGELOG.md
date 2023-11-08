@@ -21,6 +21,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
   (e.g. interface install) succeed.
 - [astarte_data_updater_plant] Don't crash when handling incoming `binaryblob` values
   (see https://github.com/astarte-platform/astarte_core/issues/95).
+- Forward-port changes from release-1.0 (correctly handle server-owned data,
+  bugfixes in AppEngine, Data Updater Plant and Pairing).
 
 ## [1.1.0] - 2023-06-20
 ### Fixed
@@ -52,6 +54,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ### Fixed
 - [astarte_appengine_api] Return empty data instead of error when querying `properties` interfaces 
   which are not fully populated. Fix [531](astarte-platform#531).
+
+## [1.0.6] - Unreleased
+- [astarte_appengine_api] Allow to send binaryblobarrays over server owned interfaces.
 
 ## [1.0.5] - 2023-09-26
 ### Fixed
