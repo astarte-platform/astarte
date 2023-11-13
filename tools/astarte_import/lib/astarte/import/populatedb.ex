@@ -48,8 +48,8 @@ defmodule Astarte.Import.PopulateDB do
     nodes = Application.get_env(:cqerl, :cassandra_nodes)
     {host, port} = Enum.random(nodes)
     Logger.info("Connecting to #{host}:#{port} cassandra database.", realm: realm)
-
-    {:ok, conn} = Database.connect(realm)
+    opts = [cassandra_nodes: nodes, realm: realm]
+    {:ok, conn} = Database.connect(opts)
     {:ok, xandra_conn} = Xandra.start_link(nodes: ["#{host}:#{port}"])
 
     Logger.info("Connected to database.", realm: realm)
@@ -173,9 +173,7 @@ defmodule Astarte.Import.PopulateDB do
         statement = """
         INSERT INTO #{realm}.#{storage}
         (
-          #{value_timestamp_string} reception_timestamp, reception_timestamp_submillis, #{
-          columns_string
-        }
+          #{value_timestamp_string} reception_timestamp, reception_timestamp_submillis, #{columns_string}
           device_id, path
         )
         VALUES (?, ?, ?, ? #{String.duplicate(", ?", additional_columns + length(value_columns))})
@@ -359,7 +357,7 @@ defmodule Astarte.Import.PopulateDB do
 
       params =
         if explicit_timestamp do
-          reception_timestamp ++ params
+          [reception_timestamp | params]
         else
           params
         end
