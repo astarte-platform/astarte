@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2017 Ispirata Srl
+# Copyright 2017-2023 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -35,6 +35,12 @@ defmodule Astarte.Housekeeping.APIWeb.RealmControllerTest do
     +bxRibfFC0G6SugduGzqIACSdIiLEn4Nubx2jt4tHDpel0BIrYKlCw==
   -----END PUBLIC KEY-----
   """
+  @other_pubkey """
+  -----BEGIN PUBLIC KEY-----
+  MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEat8cZJ77myME8YQYfVkxOz39Wrq9
+  3FYHyYudzQKa11c55Z6ZZaw2H+nUkQl1/jqfHTrqMSiOP4TTf0oTYLWKfg==
+  -----END PUBLIC KEY-----
+  """
 
   @create_attrs %{"data" => %{"realm_name" => "testrealm", "jwt_public_key_pem" => @pubkey}}
   @explicit_replication_attrs %{
@@ -55,8 +61,8 @@ defmodule Astarte.Housekeeping.APIWeb.RealmControllerTest do
       }
     }
   }
-  @update_attrs %{"data" => %{}}
-  @invalid_attrs %{}
+  @update_attrs %{"data" => %{"jwt_public_key_pem" => @other_pubkey}}
+  @invalid_update_attrs %{"data" => %{"jwt_public_key_pem" => @malformed_pubkey}}
   @invalid_name_attrs %{"data" => %{"realm_name" => "0invalid", "jwt_public_key_pem" => @pubkey}}
   @invalid_replication_attrs %{
     "data" => %{
@@ -185,20 +191,20 @@ defmodule Astarte.Housekeeping.APIWeb.RealmControllerTest do
     assert json_response(conn, 422)["errors"] != %{}
   end
 
-  @tag :wip
-  test "updates chosen realm and renders realm when data is valid", %{conn: conn} do
+  test "updates chosen realm when data is valid", %{conn: conn} do
     %Realm{realm_name: realm_name} = realm = fixture(:realm)
-    conn = put(conn, realm_path(conn, :update, realm), @update_attrs)
-    assert %{"realm_name" => ^realm_name} = json_response(conn, 200)
+    conn = patch(conn, realm_path(conn, :update, realm), @update_attrs)
+    assert %{"data" => updated_realm} = json_response(conn, 200)
 
-    conn = get(conn, realm_path(conn, :show, realm_name))
-    assert json_response(conn, 200) == %{"realm_name" => realm_name}
+    assert %{
+             "realm_name" => ^realm_name,
+             "jwt_public_key_pem" => @other_pubkey
+           } = updated_realm
   end
 
-  @tag :wip
   test "does not update chosen realm and renders errors when data is invalid", %{conn: conn} do
-    realm = fixture(:realm)
-    conn = put(conn, realm_path(conn, :update, realm), @invalid_attrs)
+    %Realm{realm_name: realm_name} = realm = fixture(:realm)
+    conn = patch(conn, realm_path(conn, :update, realm), @invalid_update_attrs)
     assert json_response(conn, 422)["errors"] != %{}
   end
 

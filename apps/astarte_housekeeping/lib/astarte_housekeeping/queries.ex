@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2017 - 2023 SECO Mind Srl
+# Copyright 2017-2023 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -52,6 +52,14 @@ defmodule Astarte.Housekeeping.Queries do
       :ok
     else
       do_delete_realm(realm_name)
+    end
+  end
+
+  def update_public_key(realm_name, new_public_key) do
+    with :ok <- validate_realm_name(realm_name) do
+      Xandra.Cluster.run(:xandra, fn conn ->
+        do_update_public_key(conn, realm_name, new_public_key)
+      end)
     end
   end
 
@@ -1065,6 +1073,36 @@ defmodule Astarte.Housekeeping.Queries do
           )
 
         {:error, reason}
+    end
+  end
+
+  defp do_update_public_key(conn, realm_name, new_public_key) do
+    statement = """
+    INSERT INTO :realm_name.kv_store (group, key, value)
+    VALUES('auth','jwt_public_key_pem', varcharAsBlob(:new_public_key))
+    """
+
+    # TODO move away from this when NoaccOS' PR is merged
+    query = String.replace(statement, ":realm_name", realm_name)
+    # TODO refactor when NoaccOS' PR is merged
+    with {:ok, prepared} <- Xandra.prepare(conn, query),
+         {:ok, result} <-
+           Xandra.execute(conn, prepared, %{"new_public_key" => new_public_key},
+             consistency: :quorum
+           ) do
+      {:ok, result}
+    else
+      {:error, %Xandra.Error{} = err} ->
+        _ = Logger.warn("Database error: #{Exception.message(err)}.", tag: "database_error")
+        {:error, :database_error}
+
+      {:error, %Xandra.ConnectionError{} = err} ->
+        _ =
+          Logger.warn("Database connection error: #{Exception.message(err)}.",
+            tag: "database_connection_error"
+          )
+
+        {:error, :database_connection_error}
     end
   end
 

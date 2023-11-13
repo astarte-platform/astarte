@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2017-2018 Ispirata Srl
+# Copyright 2017-2023 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -31,7 +31,8 @@ defmodule Astarte.Housekeeping.API.RPC.Housekeeping do
     GetRealmReply,
     GetRealmsList,
     GetRealmsListReply,
-    Reply
+    Reply,
+    UpdateRealm
   }
 
   alias Astarte.Housekeeping.API.Config
@@ -79,6 +80,26 @@ defmodule Astarte.Housekeeping.API.RPC.Housekeeping do
       datacenter_replication_factors: Enum.to_list(replication_factors_map)
     }
     |> encode_call(:create_realm)
+    |> @rpc_client.rpc_call(@destination)
+    |> decode_reply()
+    |> extract_reply()
+  end
+
+  def update_realm(%Realm{
+        realm_name: realm_name,
+        jwt_public_key_pem: pem,
+        replication_class: replication_class,
+        replication_factor: replication_factor,
+        datacenter_replication_factors: replication_factors_map
+      }) do
+    %UpdateRealm{
+      realm: realm_name,
+      jwt_public_key_pem: pem,
+      replication_class: replication_class_to_atom(replication_class),
+      replication_factor: replication_factor,
+      datacenter_replication_factors: replication_factors_map
+    }
+    |> encode_call(:update_realm)
     |> @rpc_client.rpc_call(@destination)
     |> decode_reply()
     |> extract_reply()
@@ -233,4 +254,8 @@ defmodule Astarte.Housekeeping.API.RPC.Housekeeping do
       :ok
     end
   end
+
+  defp replication_class_to_atom("NetworkTopologyStrategy"), do: :NETWORK_TOPOLOGY_STRATEGY
+  defp replication_class_to_atom("SimpleStrategy"), do: :SIMPLE_STRATEGY
+  defp replication_class_to_atom(nil), do: nil
 end
