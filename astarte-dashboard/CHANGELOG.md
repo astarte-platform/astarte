@@ -34,7 +34,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Major rework for the Interface Editor.
 - Major rework for the Trigger Editor.
 
-## [1.0.5] - Unreleased
+## [1.0.5] - 2023-09-25
 ## Fixed
 - Fix crash while displaying values of an Astarte interface.
 - Fix duplicate items on device list when changing search filters
