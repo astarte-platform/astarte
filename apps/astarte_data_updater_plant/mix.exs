@@ -23,7 +23,7 @@ defmodule Astarte.DataUpdaterPlant.Mixfile do
     [
       app: :astarte_data_updater_plant,
       elixir: "~> 1.14",
-      version: "1.1.0",
+      version: "1.1.1",
       build_embedded: Mix.env() == :prod,
       start_permanent: Mix.env() == :prod,
       test_coverage: [tool: ExCoveralls],
@@ -64,9 +64,8 @@ defmodule Astarte.DataUpdaterPlant.Mixfile do
   defp astarte_required_modules(_) do
     [
       {:astarte_core, "~> 1.1.1"},
-      {:astarte_data_access,
-       github: "astarte-platform/astarte_data_access", branch: "release-1.1"},
-      {:astarte_rpc, "~> 1.1"}
+      {:astarte_data_access, "~> 1.1.1"},
+      {:astarte_rpc, "~> 1.1.1"}
     ]
   end
 

@@ -4,7 +4,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-## [1.1.1.] - Unreleased
+## [1.1.1.] - 2023-11-15
 ### Fixed
 - [astarte_data_updater_plant] Don't crash when retrieving the interface version
   in a device whose introspection is empty, allowing data in `astarte-data_`
