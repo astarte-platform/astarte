@@ -22,7 +22,7 @@ defmodule Astarte.Pairing.API.Mixfile do
   def project do
     [
       app: :astarte_pairing_api,
-      elixir: "~> 1.14",
+      elixir: "~> 1.15",
       version: "1.2.0-dev",
       elixirc_paths: elixirc_paths(Mix.env()),
       compilers: [:phoenix, :gettext] ++ Mix.compilers(),
