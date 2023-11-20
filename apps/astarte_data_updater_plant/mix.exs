@@ -22,7 +22,7 @@ defmodule Astarte.DataUpdaterPlant.Mixfile do
   def project do
     [
       app: :astarte_data_updater_plant,
-      elixir: "~> 1.14",
+      elixir: "~> 1.15",
       version: "1.2.0-dev",
       build_embedded: Mix.env() == :prod,
       start_permanent: Mix.env() == :prod,
