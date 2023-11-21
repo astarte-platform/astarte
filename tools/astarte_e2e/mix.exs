@@ -23,7 +23,7 @@ defmodule AstarteE2E.MixProject do
     [
       app: :astarte_e2e,
       version: "1.2.0-dev",
-      elixir: "~> 1.11",
+      elixir: "~> 1.14",
       start_permanent: Mix.env() == :prod,
       dialyzer_cache_directory: dialyzer_cache_directory(Mix.env()),
       deps: deps()
@@ -50,9 +50,8 @@ defmodule AstarteE2E.MixProject do
   defp deps do
     [
       {:astarte_device, github: "astarte-platform/astarte-device-sdk-elixir"},
-      {:phoenix_gen_socket_client,
-       github: "J0/phoenix_gen_socket_client", ref: "5e8dee43a0fe877f747cf707baf0d45f713b223a"},
-      {:websocket_client, "~> 1.2"},
+      {:phoenix_gen_socket_client, "~> 4.0"},
+      {:websocket_client, "~> 1.5"},
       {:jason, "~> 1.0"},
       {:plug_cowboy, "~> 2.0"},
       {:skogsra, "~> 2.3"},

@@ -64,7 +64,7 @@ BSON is a really simple binary format, breaking down the previous example is ver
 | booleanarray      | Array (0x04)        | (1 + keysize) * count                              |
 | longintegerarray  | Array (0x04)        | (1 + keysize) * count                              |
 | stringarray       | Array (0x04)        | depends on count, length, keys length and encoding |
-| binaryblobarray   | Array (0x4)         | depends on count, keys length and length           |
+| binaryblobarray   | Array (0x04)        | depends on count, keys length and length           |
 
 `integer` and `long` integer are signed integer values, double must be a valid number (`+inf`, `NaN`, etc... are not supported), variable data types might be subject to size limitations and object aggregations are encoded as embedded documents.
 

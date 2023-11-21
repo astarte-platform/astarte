@@ -1054,7 +1054,13 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
     ValueType.validate_value(expected_type, value)
   end
 
-  # Explicitly match on all structs to avoid pattern matching them as maps below
+  # From Cyanide 2.0, binaries are decoded as %Cyanide.Binary{}
+  def validate_value_type(expected_type, %Cyanide.Binary{} = value) do
+    %Cyanide.Binary{subtype: _subtype, data: bin} = value
+    validate_value_type(expected_type, bin)
+  end
+
+  # Explicitly match on all other structs to avoid pattern matching them as maps below
   def validate_value_type(_expected_type, %_{} = _unsupported_struct) do
     {:error, :unexpected_value_type}
   end

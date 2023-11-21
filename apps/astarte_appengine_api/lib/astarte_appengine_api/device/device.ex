@@ -416,7 +416,7 @@ defmodule Astarte.AppEngine.API.Device do
          expected_types <- extract_expected_types(mappings),
          {:ok, value} <- cast_value(expected_types, raw_value),
          :ok <- validate_value_type(expected_types, value),
-         wrapped_value = wrap_to_bson_struct(nil, value),
+         wrapped_value = wrap_to_bson_struct(expected_types, value),
          reliability = extract_aggregate_reliability(mappings),
          interface_type = interface_descriptor.type,
          publish_opts = build_publish_opts(interface_type, reliability),
@@ -782,6 +782,16 @@ defmodule Astarte.AppEngine.API.Device do
 
   defp wrap_to_bson_struct(:binaryblobarray, values) do
     Enum.map(values, &wrap_to_bson_struct(:binaryblob, &1))
+  end
+
+  defp wrap_to_bson_struct(expected_types, values)
+       when is_map(expected_types) and is_map(values) do
+    Enum.map(values, fn {key, value} ->
+      # We can be sure this exists since we validated it in validate_value_type
+      type = Map.fetch!(expected_types, key)
+      {key, wrap_to_bson_struct(type, value)}
+    end)
+    |> Enum.into(%{})
   end
 
   defp wrap_to_bson_struct(_anytype, value) do
