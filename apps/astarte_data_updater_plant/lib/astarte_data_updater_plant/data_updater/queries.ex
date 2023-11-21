@@ -797,7 +797,8 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
     DateTime.to_unix(datetime, :millisecond)
   end
 
-  defp to_db_friendly_type({_subtype, bin}) do
+  # From Cyanide 2.0, binaries are decoded as %Cyanide.Binary{}
+  defp to_db_friendly_type(%Cyanide.Binary{subtype: _subtype, data: bin}) do
     bin
   end
 

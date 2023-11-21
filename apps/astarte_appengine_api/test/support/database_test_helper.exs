@@ -777,6 +777,10 @@ defmodule Astarte.AppEngine.API.DatabaseTestHelper do
       """
       INSERT INTO autotestrealm.endpoints(interface_id, endpoint_id, allow_unset, endpoint, expiry, interface_major_version, interface_minor_version, interface_name, interface_type, reliability, retention, value_type) VALUES
       (65c96ecb-f2d5-b440-4840-16cd84d2c2be, 6ebd007e-dd74-8e32-f032-78d433b1b8e7, False, '/%{sensor_id}/samplingPeriod', 0, 0, 1, 'org.astarte-platform.genericsensors.ServerOwnedAggregateObj', 2, 3, 1, 3);
+      """,
+      """
+      INSERT INTO autotestrealm.endpoints(interface_id, endpoint_id, allow_unset, endpoint, expiry, interface_major_version, interface_minor_version, interface_name, interface_type, reliability, retention, value_type) VALUES
+      (65c96ecb-f2d5-b440-4840-16cd84d2c2be, d42c4f4f-6faa-3f37-b38f-74602e7aec7d, False, '/%{sensor_id}/binaryblobarray', 0, 0, 1, 'org.astarte-platform.genericsensors.ServerOwnedAggregateObj', 2, 3, 1, 12);
       """
     ]
 
@@ -796,12 +800,12 @@ defmodule Astarte.AppEngine.API.DatabaseTestHelper do
       |> DatabaseQuery.statement(insert_into_interface_obj_aggregated_query)
       |> DatabaseQuery.put(
         :automaton_accepting_states,
-        "83740000000261026d0000001076c99541dd316369bcddf2fdacc2d3ff61036d000000106ebd007edd748e32f03278d433b1b8e7"
+        "83740000000361026d0000001076c99541dd316369bcddf2fdacc2d3ff61036d000000106ebd007edd748e32f03278d433b1b8e761046d00000010d42c4f4f6faa3f37b38f74602e7aec7d"
         |> Base.decode16!(case: :lower)
       )
       |> DatabaseQuery.put(
         :automaton_transitions,
-        "837400000003680261006d000000006101680261016d00000006656e61626c656102680261016d0000000e73616d706c696e67506572696f646103"
+        "837400000004680261006d000000006101680261016d0000000f62696e617279626c6f6261727261796104680261016d00000006656e61626c656102680261016d0000000e73616d706c696e67506572696f646103"
         |> Base.decode16!(case: :lower)
       )
 
@@ -817,6 +821,7 @@ defmodule Astarte.AppEngine.API.DatabaseTestHelper do
     reception_timestamp_submillis smallint,
     v_enable boolean,
     v_samplingPeriod double,
+    v_binaryblobarray list<blob>,
     PRIMARY KEY ((device_id, path), reception_timestamp, reception_timestamp_submillis));
     """
 

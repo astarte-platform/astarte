@@ -11,6 +11,29 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
   The old POST-based one is deprecated.
 - [astarte_housekeeping] Support the new PATCH-based API for realm update.
 
+## [1.1.1] - 2023-11-15
+### Fixed
+- [astarte_data_updater_plant] Don't crash when retrieving the interface version
+  in a device whose introspection is empty, allowing data in `astarte-data_`
+  AMQP queues to flow seamlessy.
+- [astarte_appengine_api] Don't crash when retrieving the interface version
+  in a device whose introspection is empty.
+- [astarte_appengine_api] Return the number of results specified by `downsample_to`
+  when there are more samples than the default query limit.
+  Fix [#824](https://github.com/astarte-platform/astarte/issues/824).
+- [astarte_appengine_api] Return the number of results specified by `downsample_to`
+  when used in combination with `format=disjoint_tables`.
+  Fix [#149](https://github.com/astarte-platform/astarte/issues/149).
+- [astarte-realm_management] Do not crash when some synchronous operations
+  (e.g. interface install) succeed.
+- [astarte_data_updater_plant] Don't crash when handling incoming `binaryblob` values
+  (see https://github.com/astarte-platform/astarte_core/issues/95).
+- Forward-port changes from release-1.0 (correctly handle server-owned data,
+  bugfixes in AppEngine, Data Updater Plant and Pairing).
+
+### Changed
+- [astarte_e2e] Update Elixir to 1.14.5 and Erlang/OTP to 25.3.2. (see https://github.com/astarte-platform/astarte/issues/858)
+
 ## [1.1.0] - 2023-06-20
 ### Fixed
 - [astarte_trigger_engine] Allow to decode events that do not contain the
@@ -42,7 +65,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - [astarte_appengine_api] Return empty data instead of error when querying `properties` interfaces 
   which are not fully populated. Fix [531](astarte-platform#531).
 
-## [1.0.5] - Unreleased
+## [1.0.6] - Unreleased
+- [astarte_appengine_api] Allow to send binaryblobarrays over server owned interfaces.
+
+## [1.0.5] - 2023-09-26
 ### Fixed
 - [astarte_appengine_api] Correctly handle `binaryblob` and `datetime` in server-owned object
   aggregated interfaces.
@@ -50,6 +76,17 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
   crashing with an Internal Server Error
 - [astarte_appengine_api] Handle updates of objects with invalid keys gracefully instead of crashing
   with an Internal Server Error.
+- [astarte_appengine_api] Return the number of results specified by `downsample_to`
+  when there are more samples than the default query limit.
+  Fix [#824](https://github.com/astarte-platform/astarte/issues/824).
+- [astarte_appengine_api] Return the number of results specified by `downsample_to`
+  when used in combination with `format=disjoint_tables`.
+  Fix [#149](https://github.com/astarte-platform/astarte/issues/149).
+- [astarte_appengine_api] Fix log noise with cassandra during health checks.
+  Fix [#817](https://github.com/astarte-platform/astarte/issues/817).
+- [astarte_pairing] Fix crash when using a custom CA certificate.
+- [astarte_data_updater_plant] Remove asynchronous startup of Data Updater, which could lead to Data
+  Updater stalling in some corner cases.
 
 ### Changed
 - [doc] Update the documentation structure. Pages dealing with administrative tasks involving the

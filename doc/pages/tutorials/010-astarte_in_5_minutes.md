@@ -40,11 +40,11 @@ $ docker -v
 Docker version 19.03.8
 ```
 
-Docker compose version >= 1.17 is recommended:
+Docker compose version >= 2.21 is recommended:
 
 ```sh
-$ docker-compose -v
-docker compose version 1.17.1, build unknown
+$ docker compose version
+Docker Compose version v2.21.0
 ```
 
 astartectl >= 22.11 is recommended:
@@ -64,8 +64,8 @@ To get our Astarte instance running as fast as possible, we will install Astarte
 ```sh
 $ git clone https://github.com/astarte-platform/astarte.git && cd astarte
 $ docker run -v $(pwd)/compose:/compose astarte/docker-compose-initializer:snapshot
-$ docker-compose pull
-$ docker-compose up -d
+$ docker compose pull
+$ docker compose up -d
 ```
 
 `docker-compose-initializer` will generate a root CA for devices, a key pair for Housekeeping, and a self-signed certificate for the broker (note: this is a *really* bad idea in production). You can tune the compose file further to use legitimate certificates and custom keys, but this is out of the scope of this tutorial.
@@ -86,7 +86,7 @@ Moreover, Compose will forward the following ports to your machine:
 * `80`: HTTP
 * `8883`: MQTTS
 
-To check everything went fine, use `docker ps` to verify relevant containers are up: Astarte itself, VerneMQ, CFSSL, RabbitMQ and ScyllaDB should be now running on your system. If any of them isn't up and running, `docker ps -a` should show it stopped or failed. In those cases, it is advised to issue `docker-compose up -d` again to fix potential temporary failures.
+To check everything went fine, use `docker ps` to verify relevant containers are up: Astarte itself, VerneMQ, CFSSL, RabbitMQ and ScyllaDB should be now running on your system. If any of them isn't up and running, `docker ps -a` should show it stopped or failed. In those cases, it is advised to issue `docker compose up -d` again to fix potential temporary failures.
 
 ## Create a Realm
 
@@ -110,15 +110,19 @@ This creates a `test` realm, which should be ready to be used almost immediately
 $ astartectl housekeeping realms ls --astarte-url http://api.astarte.localhost -k compose/astarte-keys/housekeeping_private.pem
 ```
 
-## Install an interface
+## Install interfaces
 
-We will use [Astarte's Qt5 Stream Generator](https://github.com/astarte-platform/stream-qt5-test) to feed data into Astarte. However before starting, we will have to install `org.astarte-platform.genericsensors.Values` interface into our new realm. To do that, we can use `astartectl` again:
+We will use [Astarte's Qt5 Stream Generator](https://github.com/astarte-platform/stream-qt5-test)
+to feed data into Astarte. However before starting, we will have to install the `org.astarte-
+platform.genericsensors.Values` and the `org.astarte-platform.genericcommands.ServerCommands`
+interfaces into our new realm. To do that, we can use `astartectl` again:
 
 ```sh
 $ astartectl realm-management interfaces sync standard-interfaces/org.astarte-platform.genericsensors.Values.json standard-interfaces/org.astarte-platform.genericcommands.ServerCommands.json --astarte-url http://api.astarte.localhost -r test -k test_private.pem -y
 ```
 
-Now `org.astarte-platform.genericsensors.Values` should show up among our available interfaces:
+Now `org.astarte-platform.genericsensors.Values` and `org.astarte-
+platform.genericcommands.ServerCommands` should show up among our available interfaces:
 
 ```sh
 $ astartectl realm-management interfaces ls --astarte-url http://api.astarte.localhost -r test -k test_private.pem
@@ -211,16 +215,16 @@ From here on, you can use all of Astarte's APIs and features from your own insta
 
 ## Cleaning up
 
-When you're done with your tests and developments, you can use `docker-compose` again to tear down your Astarte instance simply by issuing:
+When you're done with your tests and developments, you can use `docker compose` again to tear down your Astarte instance simply by issuing:
 
 ```sh
-$ docker-compose down
+$ docker compose down
 ```
 
-Unless you add the `-v ` option, persistencies will be kept and next time you will `docker-compose up` the cluster will come back in the very same state you left it last time. `docker-compose down -v` is extremely useful during development, especially if you want a clean slate for testing your applications or your routines every time.
+Unless you add the `-v ` option, persistencies will be kept and next time you will `docker compose up` the cluster will come back in the very same state you left it last time. `docker compose down -v` is extremely useful during development, especially if you want a clean slate for testing your applications or your routines every time.
 
 ## Final notes
 
-Running Astarte through `docker-compose` is the fastest way for going from zero to hero. However, **please keep in mind this setup is unlikely to hold for long in production, and is by design broken for large installations**. We can't stop you from running such a thing in production, but do so as long as you know you voided your warranty by doing so.
+Running Astarte through `docker compose` is the fastest way for going from zero to hero. However, **please keep in mind this setup is unlikely to hold for long in production, and is by design broken for large installations**. We can't stop you from running such a thing in production, but do so as long as you know you voided your warranty by doing so.
 
 This method is great for development and for trying out the system. If you wish to deploy Astarte in a more robust environment, have a look at [Astarte Enterprise](https://astarte.cloud/) or, if you want to go the DIY way, make sure that **at least** every service which requires persistency has reliable storage and adequate redundancy beneath it.

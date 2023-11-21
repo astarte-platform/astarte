@@ -21,7 +21,7 @@ on:
 
 env:
   elixir_version: "1.15"
-  otp_version: "24.2"
+  otp_version: "25.3.2"
 
 jobs:
   end-to-end-test:

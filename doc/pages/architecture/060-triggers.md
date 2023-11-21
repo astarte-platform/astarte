@@ -89,7 +89,7 @@ Triggers](#data-triggers).
 
 Device triggers express conditions matching the state of a device.
 
-This is the generic representation of a Data Trigger:
+This is the generic representation of a Device Trigger:
 
 ```json
 {
@@ -121,7 +121,7 @@ simple trigger, the simple trigger will be installed for all devices in a realm.
 
 Data triggers express conditions matching data coming from a device.
 
-This is the generic representation of a Device Trigger:
+This is the generic representation of a Data Trigger:
 
 ```json
 {

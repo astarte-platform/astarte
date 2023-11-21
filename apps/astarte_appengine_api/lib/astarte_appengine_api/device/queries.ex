@@ -1226,7 +1226,9 @@ defmodule Astarte.AppEngine.API.Device.Queries do
   def get_results_count(client, count_query, opts) do
     with {:ok, result} <- DatabaseQuery.call(client, count_query),
          [{_count_key, count}] <- DatabaseResult.head(result) do
-      min(count, opts.limit)
+      limit = opts.limit || Config.max_results_limit!()
+
+      min(count, limit)
     else
       error ->
         _ =
