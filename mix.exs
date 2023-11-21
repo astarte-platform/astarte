@@ -23,7 +23,7 @@ defmodule Astarte.DataAccess.Mixfile do
     [
       app: :astarte_data_access,
       version: "1.2.0-dev",
-      elixir: "~> 1.14",
+      elixir: "~> 1.15",
       start_permanent: Mix.env() == :prod,
       test_coverage: [tool: ExCoveralls],
       preferred_cli_env: [
@@ -34,7 +34,7 @@ defmodule Astarte.DataAccess.Mixfile do
       ],
       description: description(),
       package: package(),
-      dialyzer_cache_directory: dialyzer_cache_directory(Mix.env()),
+      dialyzer: [plt_core_path: dialyzer_cache_directory(Mix.env())],
       deps: deps() ++ astarte_required_modules(System.get_env("ASTARTE_IN_UMBRELLA")),
       source_url: "https://github.com/astarte-platform/astarte_data_access",
       homepage_url: "https://astarte-platform.org/"
@@ -64,7 +64,7 @@ defmodule Astarte.DataAccess.Mixfile do
 
   defp astarte_required_modules(_) do
     [
-      {:astarte_core, "~> 1.1.1"}
+      {:astarte_core, github: "astarte-platform/astarte_core"}
     ]
   end
 
@@ -77,7 +77,7 @@ defmodule Astarte.DataAccess.Mixfile do
       {:excoveralls, "~> 0.15", only: :test},
       {:castore, "~> 0.1.0"},
       {:ex_doc, ">= 0.0.0", only: :dev, runtime: false},
-      {:dialyzex, github: "Comcast/dialyzex", only: [:dev, :ci]}
+      {:dialyxir, "~> 1.4", only: [:dev, :ci], runtime: false}
     ]
   end
 

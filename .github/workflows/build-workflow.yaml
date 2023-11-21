@@ -12,7 +12,7 @@ on:
   pull_request:
 
 env:
-  elixir_version: "1.14.5"
+  elixir_version: "1.15.7"
   otp_version: "25.3.2"
 
 jobs:
@@ -35,7 +35,8 @@ jobs:
         key: ${{ runner.os }}-${{ env.elixir_version }}-${{ env.otp_version }}-_build-${{ github.sha }}
         restore-keys: |
           ${{ runner.os }}-${{ env.elixir_version }}-${{ env.otp_version }}-_build-
-    - uses: actions/cache@v1
+    - id: plt_cache
+      uses: actions/cache@v1
       with:
         path: dialyzer_cache
         key: ${{ runner.os }}-${{ env.elixir_version }}-${{ env.otp_version }}-dialyzer_cache-${{ github.sha }}
@@ -47,6 +48,9 @@ jobs:
         elixir-version: ${{ env.elixir_version }}
     - name: Install Dependencies
       run: mix deps.get
+    - name: Create PLTs dir
+      if: ${{steps.plt_cache.outputs.cache-hit != 'true'}}
+      run: mkdir -p dialyzer_cache && mix dialyzer --plt
     - name: Run dialyzer
       # FIXME: This should be set to fail when dialyzer issues are fixed
       run: mix dialyzer || exit 0
