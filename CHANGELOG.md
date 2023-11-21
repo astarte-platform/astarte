@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## [1.1.1] - 2023-10-03
+### Fixed
+- Don't crash when retrieving the interface version
+  in a device whose introspection is empty.
+
 ## [1.1.0] - 2023-06-20
 
 ## [1.1.0-rc.0] - 2023-06-08
@@ -15,6 +20,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
   argument instead of a CQEx client.
 
 ## [1.1.0-alpha.0] - 2022-11-14
+
+## [1.0.5] - 2022-09-25
 
 ## [1.0.4] - 2022-10-24
 
