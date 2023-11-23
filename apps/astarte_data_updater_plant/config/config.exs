@@ -2,12 +2,6 @@
 # and its dependencies with the aid of the Mix.Config module.
 import Config
 
-# lager is used by rabbit_common.
-# Silent it by setting the higher loglevel.
-config :lager,
-  error_logger_redirect: false,
-  handlers: [level: :critical]
-
 config :astarte_data_updater_plant, :data_queue_prefix, "astarte_data_"
 
 config :astarte_data_updater_plant, :amqp_consumer_options,

@@ -41,7 +41,7 @@ defmodule Astarte.DataUpdaterPlant.Mixfile do
 
   def application do
     [
-      extra_applications: [:lager, :logger],
+      extra_applications: [:logger],
       mod: {Astarte.DataUpdaterPlant.Application, []}
     ]
   end
@@ -76,7 +76,7 @@ defmodule Astarte.DataUpdaterPlant.Mixfile do
 
   defp deps do
     [
-      {:amqp, "~> 2.1"},
+      {:amqp, "~> 3.3"},
       {:castore, "~> 0.1.0"},
       {:cyanide, "~> 2.0"},
       {:excoveralls, "~> 0.15", only: :test},

@@ -45,7 +45,7 @@ defmodule Astarte.Housekeeping.Mixfile do
 
   def application do
     [
-      extra_applications: [:lager, :logger],
+      extra_applications: [:logger],
       mod: {Astarte.Housekeeping, []}
     ]
   end

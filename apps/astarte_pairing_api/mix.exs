@@ -45,7 +45,7 @@ defmodule Astarte.Pairing.API.Mixfile do
   def application do
     [
       mod: {Astarte.Pairing.API.Application, []},
-      extra_applications: [:lager, :logger, :runtime_tools]
+      extra_applications: [:logger, :runtime_tools]
     ]
   end
 
