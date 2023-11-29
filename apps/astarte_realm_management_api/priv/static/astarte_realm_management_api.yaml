@@ -77,6 +77,26 @@ paths:
           $ref: '#/components/responses/ConfigValidationError'
       requestBody:
         $ref: '#/components/requestBodies/PutAuthConfig'
+  '/{realm_name}/config/device_registration_limit':
+    parameters:
+      - $ref: '#/components/parameters/Realm'
+    get:
+      tags:
+        - config
+      summary: Get device registration limit
+      description: Get the maximum number of devices that can be registered in the realm.
+      operationId: getDeviceRegistrationLimit
+      security:
+        - JWT: []
+      responses:
+        '200':
+          $ref: '#/components/responses/GetDeviceRegistrationLimit'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
   '/{realm_name}/interfaces':
     parameters:
       - $ref: '#/components/parameters/Realm'
@@ -478,6 +498,17 @@ components:
             properties:
               data:
                 $ref: '#/components/schemas/AuthConfig'
+    GetDeviceRegistrationLimit:
+      description: Success
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - data
+            properties:
+              data:
+                $ref: '#/components/schemas/DeviceRegistrationLimit'
     GetInterface:
       description: Success
       content:
@@ -865,6 +896,10 @@ components:
             f9jgaxW4oQV85enS/OJrrC9jU11agRc4bDv1h4s2t+ETWb4llTVk3HMIHbC3EvKJ
             VwIDAQAB
             -----END PUBLIC KEY-----
+    DeviceRegistrationLimit:
+      type: integer
+      minimum: 0
+      example: 100
     Interface:
       type: object
       properties:

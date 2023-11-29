@@ -30,7 +30,9 @@ defmodule Astarte.Housekeeping.Mock do
     GetRealmsList,
     GetRealmsListReply,
     Reply,
-    UpdateRealm
+    UpdateRealm,
+    SetLimit,
+    RemoveLimit
   }
 
   alias Astarte.Housekeeping.API.Realms.Realm
@@ -56,7 +58,8 @@ defmodule Astarte.Housekeeping.Mock do
             jwt_public_key_pem: pem,
             replication_factor: rep,
             replication_class: class,
-            datacenter_replication_factors: dc_repl
+            datacenter_replication_factors: dc_repl,
+            device_registration_limit: dev_reg_limit
           }}
        ) do
     Astarte.Housekeeping.Mock.DB.put_realm(%Realm{
@@ -64,7 +67,8 @@ defmodule Astarte.Housekeeping.Mock do
       jwt_public_key_pem: pem,
       replication_factor: rep,
       replication_class: class,
-      datacenter_replication_factors: dc_repl
+      datacenter_replication_factors: dc_repl,
+      device_registration_limit: dev_reg_limit
     })
 
     %GenericOkReply{async_operation: async}
@@ -75,27 +79,44 @@ defmodule Astarte.Housekeeping.Mock do
   defp execute_rpc(
          {:update_realm,
           %UpdateRealm{
-            realm: realm,
+            realm: realm_name,
             jwt_public_key_pem: pem,
             replication_factor: rep,
             replication_class: class,
-            datacenter_replication_factors: dc_repl
+            datacenter_replication_factors: dc_repl,
+            device_registration_limit: dev_reg_limit
           }}
        ) do
+    # This is backend logic
+    limit =
+      case dev_reg_limit do
+        nil ->
+          %Realm{} = realm = Astarte.Housekeeping.Mock.DB.get_realm(realm_name)
+          realm.device_registration_limit
+
+        {:set_limit, %SetLimit{value: n}} ->
+          n
+
+        {:remove_limit, %RemoveLimit{}} ->
+          nil
+      end
+
     Astarte.Housekeeping.Mock.DB.put_realm(%Realm{
-      realm_name: realm,
+      realm_name: realm_name,
       jwt_public_key_pem: pem,
       replication_factor: rep,
       replication_class: class,
-      datacenter_replication_factors: dc_repl
+      datacenter_replication_factors: dc_repl,
+      device_registration_limit: limit
     })
 
     %GetRealmReply{
-      realm_name: realm,
+      realm_name: realm_name,
       jwt_public_key_pem: pem,
       replication_factor: rep,
       replication_class: class,
-      datacenter_replication_factors: dc_repl
+      datacenter_replication_factors: dc_repl,
+      device_registration_limit: limit
     }
     |> encode_reply(:get_realm_reply)
     |> ok_wrap
@@ -135,14 +156,16 @@ defmodule Astarte.Housekeeping.Mock do
         jwt_public_key_pem: pem,
         replication_factor: rep,
         replication_class: class,
-        datacenter_replication_factors: dc_repl
+        datacenter_replication_factors: dc_repl,
+        device_registration_limit: dev_reg_limit
       } ->
         %GetRealmReply{
           realm_name: realm_name,
           jwt_public_key_pem: pem,
           replication_factor: rep,
           replication_class: class,
-          datacenter_replication_factors: dc_repl
+          datacenter_replication_factors: dc_repl,
+          device_registration_limit: dev_reg_limit
         }
         |> encode_reply(:get_realm_reply)
     end

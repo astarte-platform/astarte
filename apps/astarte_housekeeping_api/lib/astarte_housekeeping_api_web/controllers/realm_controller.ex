@@ -56,7 +56,9 @@ defmodule Astarte.Housekeeping.APIWeb.RealmController do
         "realm_name" => realm_name,
         "data" => realm_params
       }) do
-    with {:ok, %Realm{} = updated_realm} <- Realms.update_realm(realm_name, realm_params) do
+    update_params = normalize_update_attrs(realm_params)
+
+    with {:ok, %Realm{} = updated_realm} <- Realms.update_realm(realm_name, update_params) do
       render(conn, "show.json", realm: updated_realm)
     end
   end
@@ -73,4 +75,13 @@ defmodule Astarte.Housekeeping.APIWeb.RealmController do
       send_resp(conn, :no_content, "")
     end
   end
+
+  defp normalize_update_attrs(update_attrs) when is_map(update_attrs) do
+    update_attrs
+    |> Map.replace_lazy(:device_registration_limit, &normalize_device_registration_limit/1)
+    |> Map.replace_lazy("device_registration_limit", &normalize_device_registration_limit/1)
+  end
+
+  defp normalize_device_registration_limit(value) when is_nil(value), do: :remove_limit
+  defp normalize_device_registration_limit(value), do: value
 end

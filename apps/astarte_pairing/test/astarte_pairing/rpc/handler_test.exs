@@ -259,6 +259,7 @@ defmodule Astarte.Pairing.RPC.HandlerTest do
   describe "RegisterDevice" do
     setup do
       on_exit(fn ->
+        DatabaseTestHelper.set_device_registration_limit(@test_realm, nil)
         DatabaseTestHelper.clean_devices()
       end)
     end
@@ -388,6 +389,32 @@ defmodule Astarte.Pairing.RPC.HandlerTest do
           {:generic_error_reply,
            %GenericErrorReply{
              error_name: "invalid_device_id",
+             error_data: nil,
+             user_readable_error_name: nil,
+             user_readable_message: nil
+           }},
+        version: 0
+      }
+
+      assert expected_err_reply == Reply.decode(reply)
+    end
+
+    test "fails when device registration limit is reached" do
+      DatabaseTestHelper.set_device_registration_limit(@test_realm, 0)
+      device_id = :crypto.strong_rand_bytes(32) |> Base.url_encode64(padding: false)
+
+      encoded =
+        %Call{call: {:register_device, %RegisterDevice{realm: @test_realm, hw_id: device_id}}}
+        |> Call.encode()
+
+      {:ok, reply} = Handler.handle_rpc(encoded)
+
+      expected_err_reply = %Reply{
+        error: true,
+        reply:
+          {:generic_error_reply,
+           %GenericErrorReply{
+             error_name: "device_registration_limit_reached",
              error_data: nil,
              user_readable_error_name: nil,
              user_readable_message: nil

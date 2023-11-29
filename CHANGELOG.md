@@ -5,6 +5,14 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+### Added
+- Add support for limiting the number of registered devices in a realm.
+  Existing realms are not affected by this change.
+- [astarte_realm_management_api] Allow to read realm's device registration limit
+  using the `/config/device_registration_limit` endpoint.
+- [astarte_housekeeping_api] Allow to read and set a realm's device registration
+  limit using the realm fetch and update API, respectively.
+
 ### Changed
 - Forward port changes from release 1.1.
 - [astarte_housekeeping_api] Introduce a PATCH-based API for realm update.

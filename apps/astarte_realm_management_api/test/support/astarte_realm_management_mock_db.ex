@@ -85,6 +85,10 @@ defmodule Astarte.RealmManagement.Mock.DB do
     Agent.get(__MODULE__, &Map.get(&1, "jwt_public_key_pem_#{realm}"))
   end
 
+  def get_device_registration_limit(realm) do
+    Agent.get(__MODULE__, &Map.get(&1, "device_registration_limit_#{realm}"))
+  end
+
   def install_interface(realm, %Interface{name: name, major_version: major} = interface) do
     if get_interface(realm, name, major) != nil do
       {:error, :already_installed_interface}
@@ -120,6 +124,10 @@ defmodule Astarte.RealmManagement.Mock.DB do
 
   def put_jwt_public_key_pem(realm, jwt_public_key_pem) do
     Agent.update(__MODULE__, &Map.put(&1, "jwt_public_key_pem_#{realm}", jwt_public_key_pem))
+  end
+
+  def put_device_registration_limit(realm, limit) do
+    Agent.update(__MODULE__, &Map.put(&1, "device_registration_limit_#{realm}", limit))
   end
 
   def install_trigger_policy(realm, %Policy{name: name} = policy) do

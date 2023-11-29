@@ -182,6 +182,13 @@ defmodule Astarte.RealmManagement.DatabaseFixtures do
     Keyword.merge(fixtures, opts) |> Enum.into(%{})
   end
 
+  def realm_values do
+    [
+      realm_name: "realm#{System.unique_integer([:positive])}",
+      device_registration_limit: System.unique_integer([:positive])
+    ]
+  end
+
   defp time_uuid do
     {time_uuid, _state} = :uuid.get_v1(:uuid.new(self()))
     time_uuid

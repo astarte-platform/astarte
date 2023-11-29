@@ -197,7 +197,8 @@ defmodule Astarte.Pairing.Engine do
       Config.cqex_options!()
       |> Keyword.put(:keyspace, realm)
 
-    with {:ok, device_id} <- Device.decode_device_id(hardware_id, allow_extended_id: true),
+    with :ok <- verify_can_register_device(realm),
+         {:ok, device_id} <- Device.decode_device_id(hardware_id, allow_extended_id: true),
          {:ok, client} <-
            Client.new(
              Config.cassandra_node!(),
@@ -213,6 +214,23 @@ defmodule Astarte.Pairing.Engine do
 
       {:error, reason} ->
         {:error, reason}
+    end
+  end
+
+  defp verify_can_register_device(realm_name) do
+    with {:ok, registration_limit} <- Queries.fetch_device_registration_limit(realm_name),
+         {:ok, registered_devices_count} <- Queries.fetch_registered_devices_count(realm_name) do
+      if registration_limit != nil and registered_devices_count >= registration_limit do
+        _ =
+          Logger.warn("Cannot register device: reached device registration limit",
+            realm_name: realm_name,
+            tag: "device_registration_limit_reached"
+          )
+
+        {:error, :device_registration_limit_reached}
+      else
+        :ok
+      end
     end
   end
 

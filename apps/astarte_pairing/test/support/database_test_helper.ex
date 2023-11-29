@@ -26,6 +26,13 @@ defmodule Astarte.Pairing.DatabaseTestHelper do
   alias CQEx.Client
   alias CQEx.Result
 
+  @create_astarte_keyspace """
+  CREATE KEYSPACE astarte
+    WITH
+    replication = {'class': 'SimpleStrategy', 'replication_factor': '1'} AND
+    durable_writes = true;
+  """
+
   @create_autotestrealm """
   CREATE KEYSPACE autotestrealm
     WITH
@@ -69,6 +76,14 @@ defmodule Astarte.Pairing.DatabaseTestHelper do
   );
   """
 
+  @create_realms_table """
+  CREATE TABLE astarte.realms (
+    realm_name varchar,
+    device_registration_limit bigint,
+    PRIMARY KEY (realm_name)
+  );
+  """
+
   @jwt_public_key_pem """
   -----BEGIN PUBLIC KEY-----
   MFYwEAYHKoZIzj0CAQYFK4EEAAoDQgAE7u5hHn9oE9uy5JoUjwNU6rSEgRlAFh5e
@@ -81,8 +96,17 @@ defmodule Astarte.Pairing.DatabaseTestHelper do
   VALUES ('auth', 'jwt_public_key_pem', varcharAsBlob('#{@jwt_public_key_pem}'))
   """
 
+  @insert_autotestrealm_into_realms """
+  INSERT INTO astarte.realms (realm_name)
+  VALUES ('autotestrealm');
+  """
+
   @drop_autotestrealm """
   DROP KEYSPACE autotestrealm;
+  """
+
+  @drop_astarte_keyspace """
+  DROP KEYSPACE astarte;
   """
 
   @test_realm "autotestrealm"
@@ -143,7 +167,10 @@ defmodule Astarte.Pairing.DatabaseTestHelper do
       Config.cassandra_node!()
       |> Client.new!()
 
-    with {:ok, _} <- Query.call(client, @create_autotestrealm),
+    with {:ok, _} <- Query.call(client, @create_astarte_keyspace),
+         {:ok, _} <- Query.call(client, @create_realms_table),
+         {:ok, _} <- Query.call(client, @insert_autotestrealm_into_realms),
+         {:ok, _} <- Query.call(client, @create_autotestrealm),
          {:ok, _} <- Query.call(client, @create_devices_table),
          {:ok, _} <- Query.call(client, @create_kv_store_table),
          {:ok, _} <- Query.call(client, @insert_jwt_public_key_pem) do
@@ -333,12 +360,27 @@ defmodule Astarte.Pairing.DatabaseTestHelper do
     :ok
   end
 
+  def set_device_registration_limit(realm_name, limit) do
+    query = """
+    UPDATE astarte.realms
+    SET device_registration_limit = :the_limit
+    WHERE realm_name = :realm_name
+    """
+
+    Xandra.Cluster.execute!(:xandra, query, %{
+      "realm_name" => {"varchar", realm_name},
+      "the_limit" => {"bigint", limit}
+    })
+  end
+
   def drop_db do
     client =
       Config.cassandra_node!()
       |> Client.new!()
 
-    Query.call(client, @drop_autotestrealm)
+    Query.call!(client, @drop_autotestrealm)
+    Query.call!(client, @drop_astarte_keyspace)
+
     # Also clean the cache
     Cache.flush()
   end

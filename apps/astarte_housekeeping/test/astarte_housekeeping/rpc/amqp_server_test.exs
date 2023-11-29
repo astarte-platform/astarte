@@ -46,6 +46,7 @@ defmodule Astarte.Housekeeping.RPC.HandlerTest do
   @replication_factor 1
 
   @public_key_pem "this_is_not_a_pem_but_it_will_do_for_tests"
+  @device_limit 1
 
   setup_all do
     :ok = DatabaseTestHelper.wait_and_initialize()
@@ -377,7 +378,7 @@ defmodule Astarte.Housekeeping.RPC.HandlerTest do
   end
 
   test "DeleteRealm successful call" do
-    Engine.create_realm(@test_realm, @public_key_pem, @replication_factor)
+    Engine.create_realm(@test_realm, @public_key_pem, @replication_factor, @device_limit)
 
     encoded =
       %Call{call: {:delete_realm, %DeleteRealm{realm: @test_realm}}}
@@ -414,7 +415,7 @@ defmodule Astarte.Housekeeping.RPC.HandlerTest do
       Config.reload_enable_realm_deletion()
     end)
 
-    Engine.create_realm(@test_realm, @public_key_pem, @replication_factor)
+    Engine.create_realm(@test_realm, @public_key_pem, @replication_factor, @device_limit)
 
     Config.put_enable_realm_deletion(false)
 
@@ -430,7 +431,15 @@ defmodule Astarte.Housekeeping.RPC.HandlerTest do
   describe "UpdateRealm" do
     setup do
       alias Astarte.Housekeeping.Queries
-      :ok = Queries.create_realm(@test_realm, "test1publickey", 1, [])
+
+      :ok =
+        Queries.create_realm(
+          @test_realm,
+          "test1publickey",
+          @replication_factor,
+          @device_limit,
+          []
+        )
 
       on_exit(fn ->
         DatabaseTestHelper.realm_cleanup(@test_realm)
@@ -441,8 +450,7 @@ defmodule Astarte.Housekeeping.RPC.HandlerTest do
       encoded =
         %Call{
           call:
-            {:update_realm,
-             UpdateRealm.new(realm: @test_realm, jwt_public_key_pem: @public_key_pem)}
+            {:update_realm, %UpdateRealm{realm: @test_realm, jwt_public_key_pem: @public_key_pem}}
         }
         |> Call.encode()
 
@@ -457,7 +465,8 @@ defmodule Astarte.Housekeeping.RPC.HandlerTest do
              realm_name: @test_realm,
              jwt_public_key_pem: @public_key_pem,
              replication_class: :SIMPLE_STRATEGY,
-             replication_factor: @replication_factor
+             replication_factor: @replication_factor,
+             device_registration_limit: @device_limit
            }}
       }
 
@@ -469,7 +478,7 @@ defmodule Astarte.Housekeeping.RPC.HandlerTest do
         %Call{
           call:
             {:update_realm,
-             UpdateRealm.new(realm: "i_dont_exist", jwt_public_key_pem: @public_key_pem)}
+             %UpdateRealm{realm: "i_dont_exist", jwt_public_key_pem: @public_key_pem}}
         }
         |> Call.encode()
 
@@ -490,7 +499,7 @@ defmodule Astarte.Housekeeping.RPC.HandlerTest do
 
     test "fails with error when update parameters are invalid" do
       encoded =
-        %Call{call: {:update_realm, UpdateRealm.new(realm: @test_realm, replication_factor: 10)}}
+        %Call{call: {:update_realm, %UpdateRealm{realm: @test_realm, replication_factor: 10}}}
         |> Call.encode()
 
       {:ok, update_reply} = Handler.handle_rpc(encoded)

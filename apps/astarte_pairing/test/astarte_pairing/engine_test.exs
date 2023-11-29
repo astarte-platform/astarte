@@ -159,6 +159,16 @@ defmodule Astarte.Pairing.EngineTest do
       assert Enum.member?(introspection, {"org.astarteplatform.OtherValues", 1})
       assert Enum.member?(introspection_minor, {"org.astarteplatform.OtherValues", 2})
     end
+
+    test "fails when device_registration_limit is reached" do
+      DatabaseTestHelper.set_device_registration_limit(@test_realm, 0)
+      hw_id = DatabaseTestHelper.unregistered_128_bit_hw_id()
+
+      assert DatabaseTestHelper.get_first_registration(hw_id) == nil
+
+      assert {:error, :device_registration_limit_reached} =
+               Engine.register_device(@test_realm, hw_id)
+    end
   end
 
   describe "unregister device" do
@@ -424,6 +434,7 @@ defmodule Astarte.Pairing.EngineTest do
     :ok = DatabaseTestHelper.seed_devices()
 
     on_exit(fn ->
+      DatabaseTestHelper.set_device_registration_limit(@test_realm, nil)
       :ok = DatabaseTestHelper.clean_devices()
     end)
   end

@@ -19,6 +19,7 @@
 defmodule Astarte.RealmManagement.QueriesTest do
   use ExUnit.Case
   require Logger
+  alias Astarte.RealmManagement.DatabaseFixtures
   alias CQEx.Query, as: DatabaseQuery
   alias Astarte.Core.Interface, as: InterfaceDocument
   alias Astarte.Core.InterfaceDescriptor
@@ -838,5 +839,21 @@ defmodule Astarte.RealmManagement.QueriesTest do
              )
 
     assert [] = Queries.retrieve_kv_store_entries!(@realm_name, encoded_device_id)
+  end
+
+  test "retrieve device registration limit for an existing realm" do
+    limit = 10
+
+    DatabaseTestHelper.seed_realm_test_data!(
+      realm_name: @realm_name,
+      device_registration_limit: limit
+    )
+
+    assert {:ok, ^limit} = Queries.get_device_registration_limit(@realm_name)
+  end
+
+  test "fail to retrieve device registration limit if realm does not exist" do
+    realm_name = "realm#{System.unique_integer([:positive])}"
+    assert {:error, :realm_not_found} = Queries.get_device_registration_limit(realm_name)
   end
 end

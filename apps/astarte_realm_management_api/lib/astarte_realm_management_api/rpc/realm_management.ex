@@ -23,6 +23,8 @@ defmodule Astarte.RealmManagement.API.RPC.RealmManagement do
     DeleteTrigger,
     GenericErrorReply,
     GenericOkReply,
+    GetDeviceRegistrationLimit,
+    GetDeviceRegistrationLimitReply,
     GetHealth,
     GetHealthReply,
     GetInterfacesList,
@@ -136,6 +138,16 @@ defmodule Astarte.RealmManagement.API.RPC.RealmManagement do
       realm_name: realm_name
     }
     |> encode_call(:get_jwt_public_key_pem)
+    |> @rpc_client.rpc_call(@destination)
+    |> decode_reply()
+    |> extract_reply()
+  end
+
+  def get_device_registration_limit(realm_name) do
+    %GetDeviceRegistrationLimit{
+      realm_name: realm_name
+    }
+    |> encode_call(:get_device_registration_limit)
     |> @rpc_client.rpc_call(@destination)
     |> decode_reply()
     |> extract_reply()
@@ -384,6 +396,13 @@ defmodule Astarte.RealmManagement.API.RPC.RealmManagement do
          {:get_trigger_policy_source_reply, %GetTriggerPolicySourceReply{source: source}}
        ) do
     {:ok, source}
+  end
+
+  defp extract_reply(
+         {:get_device_registration_limit_reply,
+          %GetDeviceRegistrationLimitReply{device_registration_limit: limit}}
+       ) do
+    {:ok, limit}
   end
 
   defp extract_reply({:error, :rpc_error}) do

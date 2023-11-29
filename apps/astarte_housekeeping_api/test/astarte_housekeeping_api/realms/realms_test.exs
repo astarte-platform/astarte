@@ -43,7 +43,16 @@ defmodule Astarte.Housekeeping.API.RealmsTest do
     -----END PUBLIC KEY-----
     """
 
-    @valid_attrs %{realm_name: "mytestrealm", jwt_public_key_pem: @pubkey}
+    @valid_attrs %{
+      realm_name: "mytestrealm",
+      jwt_public_key_pem: @pubkey,
+      device_registration_limit: 42
+    }
+    @device_registration_limit_attrs %{
+      realm_name: "mytestrealm",
+      jwt_public_key_pem: @pubkey,
+      device_registration_limit: 10
+    }
     @invalid_attrs %{}
     @invalid_update_attrs %{jwt_public_key_pem: @malformed_pubkey}
     @explicit_replication_attrs %{
@@ -163,12 +172,47 @@ defmodule Astarte.Housekeeping.API.RealmsTest do
 
     test "update_realm/2 with valid data updates the realm" do
       %Realm{realm_name: realm_name} = realm = realm_fixture()
+
       assert {:ok, realm} = Realms.update_realm(realm_name, @update_attrs)
 
       assert %Realm{
                realm_name: "mytestrealm",
                jwt_public_key_pem: @update_pubkey
              } = realm
+    end
+
+    test "update_realm/2 with valid data and device registration limit set to a valid value updates the realm" do
+      %Realm{realm_name: realm_name} = realm = realm_fixture()
+      limit = 10
+      update_attrs = Map.put(@update_attrs, :device_registration_limit, limit)
+      assert {:ok, realm} = Realms.update_realm(realm_name, update_attrs)
+
+      assert %Realm{
+               realm_name: "mytestrealm",
+               jwt_public_key_pem: @update_pubkey,
+               device_registration_limit: ^limit
+             } = realm
+    end
+
+    test "update_realm/2 with device registration limit set to :remove_limit removes the limit" do
+      %Realm{realm_name: realm_name, device_registration_limit: device_registration_limit} =
+        realm = realm_fixture()
+
+      assert device_registration_limit != nil
+      update_attrs = Map.put(@update_attrs, :device_registration_limit, :remove_limit)
+      assert {:ok, realm} = Realms.update_realm(realm_name, update_attrs)
+
+      assert %Realm{
+               realm_name: "mytestrealm",
+               jwt_public_key_pem: @update_pubkey,
+               device_registration_limit: nil
+             } = realm
+    end
+
+    test "update_realm/2 with device registration limit set to an invalid value fails" do
+      %Realm{realm_name: realm_name} = realm = realm_fixture()
+      update_attrs = Map.put(@update_attrs, :device_registration_limit, -10)
+      assert {:error, %Ecto.Changeset{}} = Realms.update_realm(realm_name, update_attrs)
     end
 
     test "update_realm/2 with invalid data returns error changeset" do

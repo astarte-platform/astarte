@@ -36,7 +36,8 @@ defmodule Astarte.Housekeeping.RPC.Handler do
     GetRealmsList,
     GetRealmsListReply,
     Reply,
-    UpdateRealm
+    UpdateRealm,
+    SetLimit
   }
 
   require Logger
@@ -89,13 +90,20 @@ defmodule Astarte.Housekeeping.RPC.Handler do
             jwt_public_key_pem: pub_key,
             replication_class: :NETWORK_TOPOLOGY_STRATEGY,
             datacenter_replication_factors: datacenter_replication_factors,
+            device_registration_limit: device_registration_limit,
             async_operation: async
           }}
        ) do
     with {:ok, false} <- Astarte.Housekeeping.Engine.is_realm_existing(realm),
          datacenter_replication_factors_map = Enum.into(datacenter_replication_factors, %{}),
          :ok <-
-           Engine.create_realm(realm, pub_key, datacenter_replication_factors_map, async: async) do
+           Engine.create_realm(
+             realm,
+             pub_key,
+             datacenter_replication_factors_map,
+             device_registration_limit,
+             async: async
+           ) do
       generic_ok(async)
     else
       # This comes from is_realm_existing
@@ -128,11 +136,15 @@ defmodule Astarte.Housekeeping.RPC.Handler do
             realm: realm,
             jwt_public_key_pem: pub_key,
             replication_factor: replication_factor,
+            device_registration_limit: device_registration_limit,
             async_operation: async
           }}
        ) do
     with {:ok, false} <- Astarte.Housekeeping.Engine.is_realm_existing(realm),
-         :ok <- Engine.create_realm(realm, pub_key, replication_factor, async: async) do
+         :ok <-
+           Engine.create_realm(realm, pub_key, replication_factor, device_registration_limit,
+             async: async
+           ) do
       generic_ok(async)
     else
       # This comes from is_realm_existing
@@ -154,19 +166,25 @@ defmodule Astarte.Housekeeping.RPC.Handler do
   end
 
   defp call_rpc({:update_realm, %UpdateRealm{} = call}) do
-    with {:ok, realm} <- Astarte.Housekeeping.Engine.update_realm(call.realm, call) do
+    %UpdateRealm{realm: realm_name, device_registration_limit: device_registration_limit} = call
+    new_limit = extract_device_registration_limit(device_registration_limit)
+    attrs = %{call | device_registration_limit: new_limit}
+
+    with {:ok, realm} <- Astarte.Housekeeping.Engine.update_realm(realm_name, attrs) do
       case realm do
         %{
           realm_name: realm_name_reply,
           jwt_public_key_pem: public_key,
           replication_class: "SimpleStrategy",
-          replication_factor: replication_factor
+          replication_factor: replication_factor,
+          device_registration_limit: limit
         } ->
           %GetRealmReply{
             realm_name: realm_name_reply,
             jwt_public_key_pem: public_key,
             replication_class: :SIMPLE_STRATEGY,
-            replication_factor: replication_factor
+            replication_factor: replication_factor,
+            device_registration_limit: limit
           }
           |> encode_reply(:get_realm_reply)
           |> ok_wrap
@@ -175,13 +193,15 @@ defmodule Astarte.Housekeeping.RPC.Handler do
           realm_name: realm_name_reply,
           jwt_public_key_pem: public_key,
           replication_class: "NetworkTopologyStrategy",
-          datacenter_replication_factors: datacenter_replication_factors
+          datacenter_replication_factors: datacenter_replication_factors,
+          device_registration_limit: limit
         } ->
           %GetRealmReply{
             realm_name: realm_name_reply,
             jwt_public_key_pem: public_key,
             replication_class: :NETWORK_TOPOLOGY_STRATEGY,
-            datacenter_replication_factors: datacenter_replication_factors
+            datacenter_replication_factors: datacenter_replication_factors,
+            device_registration_limit: limit
           }
           |> encode_reply(:get_realm_reply)
           |> ok_wrap
@@ -271,13 +291,15 @@ defmodule Astarte.Housekeeping.RPC.Handler do
         realm_name: realm_name_reply,
         jwt_public_key_pem: public_key,
         replication_class: "SimpleStrategy",
-        replication_factor: replication_factor
+        replication_factor: replication_factor,
+        device_registration_limit: device_registration_limit
       } ->
         %GetRealmReply{
           realm_name: realm_name_reply,
           jwt_public_key_pem: public_key,
           replication_class: :SIMPLE_STRATEGY,
-          replication_factor: replication_factor
+          replication_factor: replication_factor,
+          device_registration_limit: device_registration_limit
         }
         |> encode_reply(:get_realm_reply)
         |> ok_wrap
@@ -286,7 +308,8 @@ defmodule Astarte.Housekeeping.RPC.Handler do
         realm_name: realm_name_reply,
         jwt_public_key_pem: public_key,
         replication_class: "NetworkTopologyStrategy",
-        datacenter_replication_factors: datacenter_replication_factors
+        datacenter_replication_factors: datacenter_replication_factors,
+        device_registration_limit: device_registration_limit
       } ->
         datacenter_replication_factors_list = Enum.into(datacenter_replication_factors, [])
 
@@ -294,7 +317,8 @@ defmodule Astarte.Housekeeping.RPC.Handler do
           realm_name: realm_name_reply,
           jwt_public_key_pem: public_key,
           replication_class: :NETWORK_TOPOLOGY_STRATEGY,
-          datacenter_replication_factors: datacenter_replication_factors_list
+          datacenter_replication_factors: datacenter_replication_factors_list,
+          device_registration_limit: device_registration_limit
         }
         |> encode_reply(:get_realm_reply)
         |> ok_wrap
@@ -339,4 +363,8 @@ defmodule Astarte.Housekeeping.RPC.Handler do
   defp ok_wrap(result) do
     {:ok, result}
   end
+
+  defp extract_device_registration_limit(nil), do: nil
+  defp extract_device_registration_limit({:remove_limit, _}), do: :remove_limit
+  defp extract_device_registration_limit({:set_limit, %SetLimit{value: new_limit}}), do: new_limit
 end

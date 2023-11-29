@@ -26,6 +26,10 @@ defmodule Astarte.RealmManagement.API.RealmConfig do
     end
   end
 
+  def get_device_registration_limit(realm) do
+    RealmManagement.get_device_registration_limit(realm)
+  end
+
   def update_auth_config(realm, new_config_params) do
     with %Ecto.Changeset{valid?: true} = changeset <-
            AuthConfig.changeset(%AuthConfig{}, new_config_params),

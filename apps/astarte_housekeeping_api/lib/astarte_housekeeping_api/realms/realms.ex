@@ -67,7 +67,8 @@ defmodule Astarte.Housekeeping.API.Realms do
       %Realm{}
       |> Realm.changeset(attrs)
 
-    with {:ok, %Realm{} = realm} <- Ecto.Changeset.apply_action(changeset, :insert) do
+    with {:ok, %Realm{} = realm} <-
+           Ecto.Changeset.apply_action(changeset, :insert) do
       case Housekeeping.create_realm(realm, opts) do
         :ok -> {:ok, realm}
         {:ok, :started} -> {:ok, realm}
@@ -85,7 +86,8 @@ defmodule Astarte.Housekeeping.API.Realms do
   def update_realm(realm_name, attrs) do
     changeset = %Realm{realm_name: realm_name} |> Realm.update_changeset(attrs)
 
-    with {:ok, %Realm{} = realm_update} <- Ecto.Changeset.apply_action(changeset, :insert) do
+    with {:ok, %Realm{} = realm_update} <-
+           Ecto.Changeset.apply_action(changeset, :update) do
       Housekeeping.update_realm(realm_update)
     end
   end

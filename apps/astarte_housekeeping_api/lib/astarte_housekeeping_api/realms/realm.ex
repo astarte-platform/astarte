@@ -20,6 +20,8 @@ defmodule Astarte.Housekeeping.API.Realms.Realm do
   use Ecto.Schema
   import Ecto.Changeset
 
+  alias Astarte.Housekeeping.API.Realms.DeviceRegistrationLimitType
+
   @default_replication_factor 1
   @default_replication_class "SimpleStrategy"
 
@@ -27,7 +29,8 @@ defmodule Astarte.Housekeeping.API.Realms.Realm do
   @allowed_fields [
     :replication_factor,
     :replication_class,
-    :datacenter_replication_factors
+    :datacenter_replication_factors,
+    :device_registration_limit
     | @required_fields
   ]
 
@@ -40,6 +43,7 @@ defmodule Astarte.Housekeeping.API.Realms.Realm do
     field :replication_factor, :integer
     field :replication_class, :string
     field :datacenter_replication_factors, {:map, :integer}
+    field :device_registration_limit, DeviceRegistrationLimitType
   end
 
   def changeset(realm, params \\ %{}) do
@@ -122,9 +126,8 @@ defmodule Astarte.Housekeeping.API.Realms.Realm do
   defp maybe_put_default_replication_factor(changeset) do
     replication_class = get_field(changeset, :replication_class)
 
-    if replication_class == @default_replication_class and
-         field_missing?(changeset, :replication_factor) do
-      put_change(changeset, :replication_factor, @default_replication_factor)
+    if replication_class == @default_replication_class do
+      put_default_if_missing(changeset, :replication_factor, @default_replication_factor)
     else
       changeset
     end
