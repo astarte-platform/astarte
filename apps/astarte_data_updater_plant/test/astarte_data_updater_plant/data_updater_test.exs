@@ -30,6 +30,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
   alias Astarte.Core.Triggers.SimpleEvents.InterfaceAddedEvent
   alias Astarte.Core.Triggers.SimpleEvents.InterfaceRemovedEvent
   alias Astarte.Core.Triggers.SimpleEvents.InterfaceMinorUpdatedEvent
+  alias Astarte.Core.Triggers.SimpleEvents.InterfaceVersion
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.AMQPTriggerTarget
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.DataTrigger
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.DeviceTrigger
@@ -76,6 +77,11 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
     received_bytes = 4_500_000
     existing_introspection_map = %{"com.test.LCDMonitor" => 1, "com.test.SimpleStreamTest" => 1}
     existing_introspection_string = "com.test.LCDMonitor:1:0;com.test.SimpleStreamTest:1:0"
+
+    existing_introspection_proto_map = %{
+      "com.test.LCDMonitor" => %InterfaceVersion{major: 1, minor: 0},
+      "com.test.SimpleStreamTest" => %InterfaceVersion{major: 1, minor: 0}
+    }
 
     insert_opts = [
       introspection: existing_introspection_map,
@@ -288,7 +294,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
              event: {
                :incoming_introspection_event,
                %IncomingIntrospectionEvent{
-                 introspection: existing_introspection_string
+                 introspection_map: existing_introspection_proto_map
                }
              },
              timestamp: timestamp_ms,

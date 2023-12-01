@@ -220,6 +220,14 @@ defmodule Astarte.DataUpdaterPlant.Config do
           type: :integer,
           default: 60 * 60 * 1_000
 
+  @envdoc "Generate incoming_introspection events in the old (pre-1.2) string-based format. Defaults to false."
+  app_env :generate_legacy_incoming_introspection_events,
+          :astarte_data_updater_plant,
+          :generate_legacy_introspection_events,
+          os_env: "DATA_UPDATER_PLANT_GENERATE_LEGACY_INCOMING_INTROSPECTION_EVENTS",
+          type: :boolean,
+          default: false
+
   @doc """
   Returns the AMQP data consumer connection options
   """
