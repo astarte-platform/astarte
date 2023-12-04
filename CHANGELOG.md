@@ -19,6 +19,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
   The old POST-based one is deprecated.
 - [astarte_housekeeping] Support the new PATCH-based API for realm update.
 - Update Elixir to 1.15.7.
+- Update Erlang/OTP to 26.1.
 
 ## [1.1.1] - 2023-11-15
 ### Fixed

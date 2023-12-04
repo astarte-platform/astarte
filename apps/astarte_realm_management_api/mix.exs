@@ -49,7 +49,7 @@ defmodule Astarte.RealmManagement.API.Mixfile do
   def application do
     [
       mod: {Astarte.RealmManagement.API.Application, []},
-      extra_applications: [:lager, :logger, :runtime_tools]
+      extra_applications: [:logger, :runtime_tools]
     ]
   end
 

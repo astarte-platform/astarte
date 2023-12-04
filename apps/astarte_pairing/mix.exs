@@ -42,7 +42,7 @@ defmodule Astarte.Pairing.Mixfile do
   def application do
     [
       mod: {Astarte.Pairing, []},
-      extra_applications: [:lager, :logger]
+      extra_applications: [:logger]
     ]
   end
 

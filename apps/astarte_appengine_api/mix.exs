@@ -44,7 +44,7 @@ defmodule Astarte.AppEngine.API.Mixfile do
   def application do
     [
       mod: {Astarte.AppEngine.API.Application, []},
-      extra_applications: [:lager, :logger, :runtime_tools]
+      extra_applications: [:logger, :runtime_tools]
     ]
   end
 

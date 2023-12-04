@@ -5,12 +5,6 @@
 # is restricted to this project.
 import Config
 
-# lager is used by rabbit_common.
-# Silent it by setting the higher loglevel.
-config :lager,
-  error_logger_redirect: false,
-  handlers: [level: :critical]
-
 # General application configuration
 config :astarte_realm_management_api, namespace: Astarte.RealmManagement.API
 

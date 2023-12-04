@@ -66,14 +66,14 @@ defmodule Astarte.TriggerEngine.Mixfile do
 
   def application do
     [
-      extra_applications: [:lager, :logger],
+      extra_applications: [:logger],
       mod: {Astarte.TriggerEngine.Application, []}
     ]
   end
 
   defp deps do
     [
-      {:amqp, "~> 2.1"},
+      {:amqp, "~> 3.3"},
       {:bbmustache, "~> 1.9"},
       {:castore, "~> 0.1.0"},
       {:cyanide, "~> 2.0"},
