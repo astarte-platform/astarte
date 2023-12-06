@@ -32,6 +32,8 @@ FROM debian:bookworm-slim
 
 WORKDIR /app
 
+RUN chown -R nobody /app
+
 RUN apt-get -qq update
 
 # Set the locale
@@ -45,6 +47,9 @@ ARG BUILD_ENV=prod
 
 COPY --from=builder /app/_build/$BUILD_ENV/rel/astarte_housekeeping .
 COPY --from=builder /app/entrypoint.sh .
+
+# Change to non-root user
+USER nobody
 
 ENTRYPOINT ["/bin/bash", "entrypoint.sh"]
 CMD ["start"]

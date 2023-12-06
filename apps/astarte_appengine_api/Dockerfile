@@ -32,6 +32,8 @@ FROM debian:bookworm-slim
 
 WORKDIR /app
 
+RUN chown -R nobody /app
+
 RUN apt-get -qq update
 
 # Set the locale
@@ -44,5 +46,8 @@ RUN apt-get -qq install openssl ca-certificates
 ARG BUILD_ENV=prod
 
 COPY --from=builder /app/_build/$BUILD_ENV/rel/astarte_appengine_api .
+
+# Change to non-root user
+USER nobody
 
 CMD ["./bin/astarte_appengine_api", "start"]

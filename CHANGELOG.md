@@ -21,6 +21,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Update Elixir to 1.15.7.
 - Update Erlang/OTP to 26.1.
 - Update container base image to Debian `Bookworm`.
+- Container user has changed from `root` to `nobody`.
 
 ## [1.1.1] - 2023-11-15
 ### Fixed
