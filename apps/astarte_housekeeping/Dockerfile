@@ -1,4 +1,4 @@
-FROM hexpm/elixir:1.15.7-erlang-26.1-debian-bullseye-20230612-slim as builder
+FROM hexpm/elixir:1.15.7-erlang-26.1-debian-bookworm-20230612-slim as builder
 
 # install build dependencies
 # --allow-releaseinfo-change allows to pull from 'oldstable'
@@ -28,7 +28,7 @@ ADD . .
 RUN mix do compile, release
 
 # Note: it is important to keep Debian versions in sync, or incompatibilities between libcrypto will happen
-FROM debian:bullseye-slim
+FROM debian:bookworm-slim
 
 WORKDIR /app
 
@@ -38,7 +38,7 @@ RUN apt-get -qq update
 ENV LANG C.UTF-8
 
 # We need SSL
-RUN apt-get -qq install libssl1.1
+RUN apt-get -qq install openssl ca-certificates
 
 # We have to redefine this here since it goes out of scope for each build stage
 ARG BUILD_ENV=prod
