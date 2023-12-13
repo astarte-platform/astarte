@@ -72,6 +72,8 @@ In this scenario, devices are imprinted with their *Credentials Secret* in the p
 Device might not even be connected to the Internet, whereas the machine running the Agent has access
 to the target Astarte Cluster and adequate Credentials for Registration.
 
+![Astarte Pairing registration](assets/astarte-pairing-registration.svg)
+
 Once the Agent acquires the Device ID of the Device which should be registered, it issues the
 request to Astarte's Pairing API and obtains the Device's *Credentials Secret*. At this stage, the
 Agent is in charge of delivering the *Credentials Secret* to the Device the way it sees fit. As a
