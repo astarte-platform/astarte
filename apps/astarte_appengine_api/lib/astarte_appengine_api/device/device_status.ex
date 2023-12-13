@@ -40,6 +40,7 @@ defmodule Astarte.AppEngine.API.Device.DeviceStatus do
     field :total_received_bytes, :integer
     field :previous_interfaces, {:array, :map}
     field :groups, {:array, :string}
+    field :deletion_in_progress, :boolean, default: false
   end
 
   @doc false

@@ -105,7 +105,7 @@ defmodule Astarte.AppEngine.API.Groups.Queries do
            {:ok, %Xandra.Page{} = page} <-
              Xandra.execute(conn, prepared, parameters, uuid_format: :binary),
            result when result != [] <- Enum.to_list(page) do
-        {:ok, build_device_list(result, opts)}
+        {:ok, build_device_list(realm_name, result, opts)}
       else
         [] ->
           {:error, :group_not_found}
@@ -234,10 +234,10 @@ defmodule Astarte.AppEngine.API.Groups.Queries do
     select <> from <> where <> suffix
   end
 
-  defp build_device_list(result, opts) do
+  defp build_device_list(realm_name, result, opts) do
     {row_to_device_fun, row_to_token_fun} =
       if opts[:details] do
-        {&DeviceStatus.from_db_row/1, &Map.get(&1, "system.token(device_id)")}
+        {&compute_device_status(realm_name, &1), &Map.get(&1, "system.token(device_id)")}
       else
         {fn %{"device_id" => device_id} -> Device.encode_device_id(device_id) end,
          &Map.get(&1, "insertion_uuid")}
@@ -256,6 +256,44 @@ defmodule Astarte.AppEngine.API.Groups.Queries do
     else
       %DevicesList{devices: Enum.reverse(device_list), last_token: last_token}
     end
+  end
+
+  defp compute_device_status(realm_name, device_row) do
+    %{"device_id" => device_id} = device_row
+    device_status = DeviceStatus.from_db_row(device_row)
+    deletion_in_progress? = deletion_in_progress?(realm_name, device_id)
+    %{device_status | deletion_in_progress: deletion_in_progress?}
+  end
+
+  defp deletion_in_progress?(realm_name, device_id) do
+    Xandra.Cluster.run(:xandra, fn conn ->
+      # TODO change this once NoaccOS' PR is in
+      deletion_in_progress_stmt = """
+      SELECT *
+      FROM :realm.deletion_in_progress
+      WHERE device_id=:device_id
+      """
+
+      with {:ok, prepared} <- prepare_with_realm(conn, realm_name, deletion_in_progress_stmt),
+           {:ok, %Xandra.Page{} = page} <-
+             Xandra.execute(conn, prepared, %{"device_id" => device_id}) do
+        if Enum.empty?(page), do: false, else: true
+      else
+        # Default to false, as done for the connected field (see device/queries.ex, line 690)
+
+        {:error, %Xandra.ConnectionError{} = err} ->
+          _ =
+            Logger.warning("Database conection error: #{Exception.message(err)}",
+              tag: "db_connection_error"
+            )
+
+          false
+
+        {:error, %Xandra.Error{} = err} ->
+          _ = Logger.warning("Database error: #{Exception.message(err)}", tag: "db_error")
+          false
+      end
+    end)
   end
 
   defp check_valid_device_for_group(conn, realm_name, group_name, device_id) do

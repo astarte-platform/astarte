@@ -747,7 +747,9 @@ defmodule Astarte.AppEngine.API.Device.Queries do
 
     with {:ok, result} <- DatabaseQuery.call(client, device_query),
          device_row when is_list(device_row) <- DatabaseResult.head(result) do
-      {:ok, device_status_row_to_device_status(device_row)}
+      device_status = device_status_row_to_device_status(device_row)
+      deletion_in_progress? = deletion_in_progress?(client, device_id)
+      {:ok, %{device_status | deletion_in_progress: deletion_in_progress?}}
     else
       :empty_dataset ->
         {:error, :device_not_found}
@@ -759,6 +761,36 @@ defmodule Astarte.AppEngine.API.Device.Queries do
       {:error, reason} ->
         _ = Logger.warn("Database error, reason: #{inspect(reason)}.", tag: "db_error")
         {:error, :database_error}
+    end
+  end
+
+  defp deletion_in_progress?(client, device_id) do
+    deletion_in_progress_stmt = """
+    SELECT *
+    FROM deletion_in_progress
+    WHERE device_id=:device_id
+    """
+
+    device_query =
+      DatabaseQuery.new()
+      |> DatabaseQuery.statement(deletion_in_progress_stmt)
+      |> DatabaseQuery.put(:device_id, device_id)
+
+    with {:ok, result} <- DatabaseQuery.call(client, device_query),
+         result_row when is_list(result_row) <- DatabaseResult.head(result) do
+      true
+    else
+      # Default to false, as done for the connected field (see line 690)
+      :empty_dataset ->
+        false
+
+      %{acc: _, msg: error_message} ->
+        _ = Logger.warn("Database error: #{error_message}.", tag: "db_error")
+        false
+
+      {:error, reason} ->
+        _ = Logger.warn("Database error, reason: #{inspect(reason)}.", tag: "db_error")
+        false
     end
   end
 
@@ -802,7 +834,17 @@ defmodule Astarte.AppEngine.API.Device.Queries do
           {device, token} =
             if retrieve_details do
               [{:"system.token(device_id)", token} | device_status_row] = row
-              {device_status_row_to_device_status(device_status_row), token}
+              device_status = device_status_row_to_device_status(device_status_row)
+
+              device_id = Keyword.get(device_status_row, :device_id)
+              deletion_in_progress? = deletion_in_progress?(client, device_id)
+
+              device_status_with_deletion = %{
+                device_status
+                | deletion_in_progress: deletion_in_progress?
+              }
+
+              {device_status_with_deletion, token}
             else
               ["system.token(device_id)": token, device_id: device_id] = row
               {Base.url_encode64(device_id, padding: false), token}

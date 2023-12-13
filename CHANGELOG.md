@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
   using the `/config/device_registration_limit` endpoint.
 - [astarte_housekeeping_api] Allow to read and set a realm's device registration
   limit using the realm fetch and update API, respectively.
+- [astarte_appengine_api] Show deletion status in device details.
 
 ### Changed
 - Forward port changes from release 1.1.

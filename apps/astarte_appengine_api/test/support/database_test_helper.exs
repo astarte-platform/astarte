@@ -18,6 +18,7 @@
 defmodule Astarte.AppEngine.API.DatabaseTestHelper do
   alias Astarte.DataAccess.Database
   alias CQEx.Query, as: DatabaseQuery
+  alias Astarte.Core.Device
   alias Astarte.AppEngine.API.JWTTestHelper
 
   @devices_list [
@@ -44,7 +45,10 @@ defmodule Astarte.AppEngine.API.DatabaseTestHelper do
      %{"attribute_key" => "device_c_attribute"}},
     {"DKxaeZ9LzUZLz7WPTTAEAA", 300, %{{"com.test.SimpleStreamTest", 1} => 9},
      %{{"com.test.SimpleStreamTest", 1} => 250}, %{"display_name" => "device_d"},
-     %{"attribute_key" => "device_d_attribute"}}
+     %{"attribute_key" => "device_d_attribute"}},
+    {"ehNpbPVtQ2CcdJdJK3QUlA", 300, %{{"com.test.SimpleStreamTest", 1} => 9},
+     %{{"com.test.SimpleStreamTest", 1} => 250}, %{"display_name" => "device_e"},
+     %{"attribute_key" => "device_e_attribute"}}
   ]
 
   @create_autotestrealm """
@@ -112,6 +116,12 @@ defmodule Astarte.AppEngine.API.DatabaseTestHelper do
 
         PRIMARY KEY (device_id)
       );
+  """
+
+  @create_deletion_in_progress_table """
+  CREATE TABLE autotestrealm.deletion_in_progress (
+    device_id uuid PRIMARY KEY,
+  );
   """
 
   @insert_pubkey_pem """
@@ -444,12 +454,25 @@ defmodule Astarte.AppEngine.API.DatabaseTestHelper do
     DatabaseQuery.call!(client, delete_query)
   end
 
+  def insert_device_into_deletion_in_progress(client, device_id) do
+    insert_statement = "INSERT INTO deletion_in_progress (device_id) VALUES (:device_id)"
+
+    insert_device_query =
+      DatabaseQuery.new()
+      |> DatabaseQuery.statement(insert_statement)
+      |> DatabaseQuery.put(:device_id, device_id)
+
+    DatabaseQuery.call!(client, insert_device_query)
+  end
+
   def create_test_keyspace do
     {:ok, client} = Database.connect()
 
     case DatabaseQuery.call(client, @create_autotestrealm) do
       {:ok, _} ->
         DatabaseQuery.call!(client, @create_devices_table)
+
+        DatabaseQuery.call!(client, @create_deletion_in_progress_table)
 
         DatabaseQuery.call!(client, @create_names_table)
 
@@ -498,7 +521,8 @@ defmodule Astarte.AppEngine.API.DatabaseTestHelper do
         "individual_datastreams",
         "kv_store",
         "devices",
-        "grouped_devices"
+        "grouped_devices",
+        "deletion_in_progress"
       ],
       fn table ->
         DatabaseQuery.call!(client, "TRUNCATE autotestrealm.#{table}")
@@ -636,6 +660,12 @@ defmodule Astarte.AppEngine.API.DatabaseTestHelper do
     Enum.each(@insert_values, fn query ->
       DatabaseQuery.call!(client, query)
     end)
+
+    for {encoded_device_id, _, _, _, _, _} <- @devices_list,
+        encoded_device_id == "ehNpbPVtQ2CcdJdJK3QUlA" do
+      {:ok, device_id} = Device.decode_device_id(encoded_device_id)
+      insert_device_into_deletion_in_progress(client, device_id)
+    end
 
     :ok
   end
