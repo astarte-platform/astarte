@@ -1711,6 +1711,27 @@ defmodule Astarte.RealmManagement.Queries do
     end
   end
 
+  def table_exist?(realm_name, table_name) do
+    Xandra.Cluster.run(
+      :xandra_device_deletion,
+      fn conn ->
+        statement = """
+        SELECT COUNT(*)
+        FROM system_schema.tables
+        WHERE keyspace_name = :keyspace_name
+        AND table_name = :table_name
+        """
+
+        params = %{keyspace_name: realm_name, table_name: table_name}
+
+        prepared = Xandra.prepare!(conn, statement)
+        page = Xandra.execute!(conn, prepared, params)
+        [%{count: table_count}] = Enum.to_list(page)
+        table_count != 0
+      end
+    )
+  end
+
   def insert_device_into_deletion_in_progress(realm_name, device_id) do
     Xandra.Cluster.run(
       :xandra_device_deletion,

@@ -36,10 +36,10 @@ defmodule Astarte.RealmManagement.DeviceRemoval.DeviceRemover do
     encoded_device_id = Device.encode_device_id(device_id)
     _ = Logger.info("Starting to remove device #{encoded_device_id}", tag: "device_delete_start")
 
-    Queries.retrieve_individual_datastreams_keys!(realm_name, device_id)
+    retrieve_individual_datastreams_keys!(realm_name, device_id)
     |> Enum.each(&delete_individual_datastreams_from_key!(realm_name, &1))
 
-    Queries.retrieve_individual_properties_keys!(realm_name, device_id)
+    retrieve_individual_properties_keys!(realm_name, device_id)
     |> Enum.each(&delete_individual_properties_from_key!(realm_name, &1))
 
     retrieve_object_datastream_keys!(realm_name, device_id)
@@ -58,6 +58,22 @@ defmodule Astarte.RealmManagement.DeviceRemoval.DeviceRemover do
     Queries.remove_device_from_deletion_in_progress!(realm_name, device_id)
     _ = Logger.info("Successfully removed device #{encoded_device_id}", tag: "device_delete_ok")
     :ok
+  end
+
+  defp retrieve_individual_datastreams_keys!(realm_name, device_id) do
+    if Queries.table_exist?(realm_name, "individual_datastreams") do
+      Queries.retrieve_individual_datastreams_keys!(realm_name, device_id)
+    else
+      []
+    end
+  end
+
+  defp retrieve_individual_properties_keys!(realm_name, device_id) do
+    if Queries.table_exist?(realm_name, "individual_properties") do
+      Queries.retrieve_individual_properties_keys!(realm_name, device_id)
+    else
+      []
+    end
   end
 
   defp delete_individual_datastreams_from_key!(realm_name, key) do
