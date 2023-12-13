@@ -464,6 +464,34 @@ paths:
           $ref: '#/components/responses/TriggerDeliveryPolicyCurrentlyUsedError'
         '500':
           description: Internal Server Error.
+  '/{realm_name}/devices/{device_id}':
+    parameters:
+      - $ref: '#/components/parameters/Realm'
+      - $ref: '#/components/parameters/DeviceID'
+    delete:
+      tags:
+        - device
+      summary: Delete device
+      description: >-
+        Deletes an existing device with a given `device_id`.
+        Device deletion happens asynchronously, and receiving a 204 response
+        doesn't guarantee immediate deletion of the device.
+      operationId: deleteDevice
+      security:
+        - JWT: []
+      responses:
+        '204':
+          description: Success
+        '400':
+          description: Bad request
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          description: Internal Server Error.
 components:
   responses:
     ConfigValidationError:
@@ -849,6 +877,13 @@ components:
       name: realm_name
       in: path
       description: Target realm
+      required: true
+      schema:
+        type: string
+    DeviceID:
+      name: device_id
+      in: path
+      description: Device ID
       required: true
       schema:
         type: string
