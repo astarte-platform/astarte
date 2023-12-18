@@ -5,7 +5,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
 ## [1.0.6] - Unreleased
+### Fixed
 - [astarte_appengine_api] Allow to send binaryblobarrays over server owned interfaces.
+- [astarte_data_updater_plant] Do not crash when receiving a malformed purge properties message.
 
 ## [1.0.5] - 2023-09-26
 ### Fixed
