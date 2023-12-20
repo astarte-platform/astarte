@@ -172,7 +172,8 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
   end
 
   def handle_internal(state, path, payload, message_id, timestamp) do
-    Logger.warn("Unexpected internal message on #{path}, payload: #{inspect(payload)}",
+    Logger.warn(
+      "Unexpected internal message on #{path}, base64-encoded payload: #{inspect(Base.encode64(payload))}",
       tag: "unexpected_internal_message"
     )
 
@@ -666,7 +667,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
       {:error, :cannot_write_on_server_owned_interface} ->
         Logger.warn(
           "Tried to write on server owned interface: #{interface} on " <>
-            "path: #{path}, payload: #{inspect(payload)}, timestamp: #{inspect(timestamp)}.",
+            "path: #{path}, base64-encoded payload: #{inspect(Base.encode64(payload))}, timestamp: #{inspect(timestamp)}.",
           tag: "write_on_server_owned_interface"
         )
 
@@ -837,7 +838,8 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
         update_stats(new_state, interface, nil, path, payload)
 
       {:error, :undecodable_bson_payload} ->
-        Logger.warn("Invalid BSON payload: #{inspect(payload)} sent to #{interface}#{path}.",
+        Logger.warn(
+          "Invalid BSON base64-encoded payload: #{inspect(Base.encode64(payload))} sent to #{interface}#{path}.",
           tag: "undecodable_bson_payload"
         )
 
@@ -868,7 +870,8 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
         update_stats(new_state, interface, nil, path, payload)
 
       {:error, :unexpected_value_type} ->
-        Logger.warn("Received invalid value: #{inspect(payload)} sent to #{interface}#{path}.",
+        Logger.warn(
+          "Received invalid value: #{inspect(Base.encode64(payload))} sent to #{interface}#{path}.",
           tag: "unexpected_value_type"
         )
 
@@ -899,7 +902,8 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
         update_stats(new_state, interface, nil, path, payload)
 
       {:error, :value_size_exceeded} ->
-        Logger.warn("Received huge payload: #{inspect(payload)} sent to #{interface}#{path}.",
+        Logger.warn(
+          "Received huge base64-encoded payload: #{inspect(Base.encode64(payload))} sent to #{interface}#{path}.",
           tag: "value_size_exceeded"
         )
 
@@ -1156,7 +1160,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
       process_introspection(state, new_introspection_list, payload, message_id, timestamp)
     else
       {:error, :invalid_introspection} ->
-        Logger.warn("Discarding invalid introspection: #{inspect(payload)}.",
+        Logger.warn("Discarding invalid introspection: #{inspect(Base.encode64(payload))}.",
           tag: "invalid_introspection"
         )
 
@@ -1549,7 +1553,8 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
   end
 
   def handle_control(state, path, payload, message_id, timestamp) do
-    Logger.warn("Unexpected control on #{path}, payload: #{inspect(payload)}",
+    Logger.warn(
+      "Unexpected control on #{path}, base64-encoded payload: #{inspect(Base.encode64(payload))}",
       tag: "unexpected_control_message"
     )
 
@@ -2613,7 +2618,8 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
 
       {:ok, %{local_matches: local, remote_matches: remote}} when local + remote > 1 ->
         # This should not happen so we print a warning, but we consider it a succesful publish
-        Logger.warn("Multiple match while publishing #{inspect(payload)} on #{topic}.",
+        Logger.warn(
+          "Multiple match while publishing #{inspect(Base.encode64(payload))} on #{topic}.",
           tag: "publish_multiple_matches"
         )
 
