@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2017 Ispirata Srl
+# Copyright 2017 - 2023 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -1420,11 +1420,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
 
     timestamp_ms = div(timestamp, 10_000)
 
-    operation_result = prune_device_properties(new_state, "", timestamp_ms)
-
-    if operation_result != :ok do
-      Logger.debug("Result is #{inspect(operation_result)} further actions should be required.")
-    end
+    :ok = prune_device_properties(new_state, "", timestamp_ms)
 
     MessageTracker.ack_delivery(new_state.message_tracker, message_id)
 
@@ -1448,24 +1444,33 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
 
     <<_size_header::size(32), zlib_payload::binary>> = payload
 
-    decoded_payload = PayloadsDecoder.safe_inflate(zlib_payload)
+    case PayloadsDecoder.safe_inflate(zlib_payload) do
+      {:ok, decoded_payload} ->
+        :ok = prune_device_properties(new_state, decoded_payload, timestamp_ms)
+        MessageTracker.ack_delivery(new_state.message_tracker, message_id)
 
-    if decoded_payload != :error do
-      operation_result = prune_device_properties(new_state, decoded_payload, timestamp_ms)
+        %{
+          new_state
+          | total_received_msgs: new_state.total_received_msgs + 1,
+            total_received_bytes:
+              new_state.total_received_bytes + byte_size(payload) +
+                byte_size("/producer/properties")
+        }
 
-      if operation_result != :ok do
-        Logger.debug("Result is #{inspect(operation_result)} further actions should be required.")
-      end
+      :error ->
+        Logger.warn("Invalid purge_properties payload", tag: "purge_properties_error")
+
+        {:ok, new_state} = ask_clean_session(new_state, timestamp)
+        MessageTracker.discard(new_state.message_tracker, message_id)
+
+        :telemetry.execute(
+          [:astarte, :data_updater_plant, :data_updater, :discarded_message],
+          %{},
+          %{realm: new_state.realm}
+        )
+
+        new_state
     end
-
-    MessageTracker.ack_delivery(new_state.message_tracker, message_id)
-
-    %{
-      new_state
-      | total_received_msgs: new_state.total_received_msgs + 1,
-        total_received_bytes:
-          new_state.total_received_bytes + byte_size(payload) + byte_size("/producer/properties")
-    }
   end
 
   def handle_control(state, "/emptyCache", _payload, message_id, timestamp) do

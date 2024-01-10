@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2018 Ispirata Srl
+# Copyright 2018 - 2023 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -160,17 +160,17 @@ defmodule Astarte.DataUpdaterPlant.PayloadsDecoderTest do
     short_message = "SHORT MESSAGE"
     compressed = simple_deflate(short_message)
 
-    assert PayloadsDecoder.safe_inflate(compressed) == short_message
+    assert PayloadsDecoder.safe_inflate(compressed) == {:ok, short_message}
 
     empty_message = ""
     compressed = simple_deflate(empty_message)
 
-    assert PayloadsDecoder.safe_inflate(compressed) == empty_message
+    assert PayloadsDecoder.safe_inflate(compressed) == {:ok, empty_message}
 
     rand_bytes = :crypto.strong_rand_bytes(10_485_760 - 1)
     compressed = simple_deflate(rand_bytes)
 
-    assert PayloadsDecoder.safe_inflate(compressed) == rand_bytes
+    assert PayloadsDecoder.safe_inflate(compressed) == {:ok, rand_bytes}
 
     rand_bytes_bigger = :crypto.strong_rand_bytes(10_485_760)
     compressed = simple_deflate(rand_bytes_bigger)
@@ -185,11 +185,16 @@ defmodule Astarte.DataUpdaterPlant.PayloadsDecoderTest do
 
     compressed = simple_deflate(zeroed_bytes)
 
-    assert PayloadsDecoder.safe_inflate(compressed) == zeroed_bytes
+    assert PayloadsDecoder.safe_inflate(compressed) == {:ok, zeroed_bytes}
 
     compressed = simple_deflate(zeroed_bytes <> <<0>>)
 
     assert PayloadsDecoder.safe_inflate(compressed) == :error
+  end
+
+  test "zlib inflate does not crash with a payload that is not zlib deflated" do
+    non_zlib_deflated_bytes = <<120, 185, 188, 158, 201, 217, 87, 12, 0, 251>>
+    assert PayloadsDecoder.safe_inflate(non_zlib_deflated_bytes) == :error
   end
 
   test "device properties paths payload decode" do
