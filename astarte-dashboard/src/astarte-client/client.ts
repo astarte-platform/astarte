@@ -201,16 +201,20 @@ class AstarteClient {
       interfaces:            astarteAPIurl`${config.realmManagementApiUrl}v1/${'realm'}/interfaces`,
       interfaceMajors:       astarteAPIurl`${config.realmManagementApiUrl}v1/${'realm'}/interfaces/${'interfaceName'}`,
       interface:             astarteAPIurl`${config.realmManagementApiUrl}v1/${'realm'}/interfaces/${'interfaceName'}/${'interfaceMajor'}`,
-      interfaceData:         astarteAPIurl`${config.realmManagementApiUrl}v1/${'realm'}/interfaces/${'interfaceName'}/${'interfaceMajor'}`,
+      interfaceData: 
+astarteAPIurl`${config.realmManagementApiUrl}v1/${'realm'}/interfaces/${'interfaceName'}/${'interfaceMajor'}`,
       trigger:               astarteAPIurl`${config.realmManagementApiUrl}v1/${'realm'}/triggers/${'triggerName'}`,
       triggers:              astarteAPIurl`${config.realmManagementApiUrl}v1/${'realm'}/triggers`,
       policies:              astarteAPIurl`${config.realmManagementApiUrl}v1/${'realm'}/policies`,
       policy:                astarteAPIurl`${config.realmManagementApiUrl}v1/${'realm'}/policies/${'policyName'}`,
+      device:                astarteAPIurl`${config.realmManagementApiUrl}v1/${'realm'}/devices/${'deviceId'}`,
       appengineHealth:       astarteAPIurl`${config.appEngineApiUrl}health`,
       devicesStats:          astarteAPIurl`${config.appEngineApiUrl}v1/${'realm'}/stats/devices`,
       devices:               astarteAPIurl`${config.appEngineApiUrl}v1/${'realm'}/devices`,
       deviceInfo:            astarteAPIurl`${config.appEngineApiUrl}v1/${'realm'}/devices/${'deviceId'}`,
-      deviceData:            astarteAPIurl`${config.appEngineApiUrl}v1/${'realm'}/devices/${'deviceId'}/interfaces/${'interfaceName'}${'path'}?keep_milliseconds=true&since=${'since'}&since_after=${'sinceAfter'}&to=${'to'}&limit=${'limit'}`,
+      deviceData: 
+astarteAPIurl`${config.appEngineApiUrl}v1/${'realm'}/devices/${'deviceId'}/interfaces/${'interfaceName'}${'path'}?
+keep_milliseconds=true&since=${'since'}&since_after=${'sinceAfter'}&to=${'to'}&limit=${'limit'}`,
       groups:                astarteAPIurl`${config.appEngineApiUrl}v1/${'realm'}/groups`,
       groupDevices:          astarteAPIurl`${config.appEngineApiUrl}v1/${'realm'}/groups/${'groupName'}/devices`,
       deviceInGroup:         astarteAPIurl`${config.appEngineApiUrl}v1/${'realm'}/groups/${'groupName'}/devices/${'deviceId'}`,
@@ -611,6 +615,10 @@ class AstarteClient {
 
   async wipeDeviceCredentials(deviceId: AstarteDevice['id']): Promise<void> {
     await this.$delete(this.apiConfig.deviceAgent({ deviceId, ...this.config }));
+  }
+
+  async deleteDevice(deviceId: AstarteDevice['id']): Promise<void> {
+    await this.$delete(this.apiConfig.device({ ...this.config, deviceId }));
   }
 
   async getFlowInstances(): Promise<Array<AstarteFlow['name']>> {

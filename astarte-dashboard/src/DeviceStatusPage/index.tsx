@@ -17,8 +17,8 @@
 */
 
 import React, { useCallback, useMemo, useState } from 'react';
-import { Col, Container, Row, Spinner } from 'react-bootstrap';
-import { Link, useParams } from 'react-router-dom';
+import { Col, Container, Form, Row, Spinner } from 'react-bootstrap';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 
 import type { AstarteDevice } from 'astarte-client';
 import BackButton from '../ui/BackButton';
@@ -95,6 +95,11 @@ type ReregisterDeviceModalT = {
   kind: 'reregister_device_modal';
 };
 
+type DeleteDeviceModalT = {
+  kind: 'delete_device_modal';
+  isDeletingDevice: boolean;
+};
+
 function isWipeCredentialsModal(modal: PageModal): modal is WipeCredentialsModalT {
   return modal.kind === 'wipe_credentials_modal';
 }
@@ -131,6 +136,10 @@ function isDeviceReregistrationModal(modal: PageModal): modal is ReregisterDevic
   return modal.kind === 'reregister_device_modal';
 }
 
+function isDeleteDeviceModal(modal: PageModal): modal is DeleteDeviceModalT {
+  return modal.kind === 'delete_device_modal';
+}
+
 type PageModal =
   | WipeCredentialsModalT
   | AddToGroupModalT
@@ -140,15 +149,19 @@ type PageModal =
   | NewAttributeModalT
   | EditAttributeModalT
   | DeleteAttributeModalT
-  | ReregisterDeviceModalT;
+  | ReregisterDeviceModalT
+  | DeleteDeviceModalT;
 
 export default (): React.ReactElement => {
   const { deviceId = '' } = useParams();
   const astarte = useAstarte();
+  const navigate = useNavigate();
   const deviceFetcher = useFetch(() => astarte.client.getDeviceInfo(deviceId));
   const groupsFetcher = useFetch(() => astarte.client.getGroupList());
   const [devicePageAlers, devicePageAlersController] = useAlerts();
   const [activeModal, setActiveModal] = useState<PageModal | null>(null);
+  const [confirmString, setConfirmString] = useState('');
+  const canDelete = confirmString === deviceId;
 
   const unjoinedGroups = useMemo(() => {
     if (deviceFetcher.status === 'ok' && groupsFetcher.status === 'ok') {
@@ -189,6 +202,19 @@ export default (): React.ReactElement => {
         dismissModal();
       });
   }, [astarte.client, deviceId, dismissModal, devicePageAlersController]);
+
+  const handleDeleteDevice = useCallback(() => {
+    astarte.client
+      .deleteDevice(deviceId)
+      .then(() => {
+        setActiveModal({ kind: 'delete_device_modal', isDeletingDevice: true });
+        navigate('/devices');
+      })
+      .catch(() => {
+        devicePageAlersController.showError(`Couldn't delete the device`);
+        dismissModal();
+      });
+  }, [astarte.client, deviceId, dismissModal, devicePageAlersController, navigate]);
 
   const addDeviceToGroup = useCallback(
     (groupName) => {
@@ -313,6 +339,12 @@ export default (): React.ReactElement => {
                     isWipingCredentials: false,
                   })
                 }
+                onDeleteDeviceClick={() =>
+                  setActiveModal({
+                    kind: 'delete_device_modal',
+                    isDeletingDevice: false,
+                  })
+                }
               />
               <AliasesCard
                 device={device}
@@ -399,6 +431,39 @@ export default (): React.ReactElement => {
             This will remove the current device credential secret from Astarte, forcing the device
             to register again and store its new credentials secret. Continue?
           </p>
+        </ConfirmModal>
+      )}
+      {activeModal && isDeleteDeviceModal(activeModal) && (
+        <ConfirmModal
+          title="Delete device"
+          confirmLabel="Delete device"
+          confirmVariant="danger"
+          onCancel={dismissModal}
+          onConfirm={() => {
+            setActiveModal({ ...activeModal, isDeletingDevice: true });
+            handleDeleteDevice();
+          }}
+          isConfirming={activeModal.isDeletingDevice}
+          disabled={!canDelete}
+        >
+          <p>
+            You are going to permanently delete&nbsp;
+            <b>{deviceId}</b> and the corresponding data. Deleted devices cannot be restored but a
+            new one can be registered instead.
+          </p>
+          <p>
+            Please type <b>{deviceId}</b> to proceed.
+          </p>
+          <Form.Group controlId="deleteDevice">
+            <Form.Control
+              type="text"
+              placeholder="Device Id"
+              value={confirmString}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                setConfirmString(e.target.value)
+              }
+            />
+          </Form.Group>
         </ConfirmModal>
       )}
       {activeModal && isAddToGroupModal(activeModal) && (
