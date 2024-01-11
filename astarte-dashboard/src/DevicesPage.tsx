@@ -40,6 +40,7 @@ interface DeviceFilters {
   attributeKey?: string;
   attributeValue?: string;
   activeSinceDate?: Date;
+  showDeletionInProgress?: boolean;
 }
 
 const DEVICES_PER_PAGE = 20;
@@ -100,25 +101,36 @@ const DeviceRow = ({ device, filters }: DeviceRowProps): React.ReactElement => {
   let lastEvent;
   let icon;
   let iconTooltip;
+  let statusLabel;
 
   if (device.isConnected) {
     icon = 'statusConnected' as const;
     iconTooltip = 'Connected';
+    statusLabel = 'Connected';
     lastEvent = `Connected on ${(device.lastConnection as Date).toLocaleString()}`;
   } else if (device.lastConnection) {
     icon = 'statusDisconnected' as const;
     iconTooltip = 'Disconnected';
+    statusLabel = 'Disconnected';
     lastEvent = `Disconnected on ${(device.lastDisconnection as Date).toLocaleString()}`;
   } else {
     icon = 'statusNeverConnected' as const;
     iconTooltip = 'Never connected';
+    statusLabel = 'Never connected';
     lastEvent = 'Never connected';
+  }
+
+  if (device.deletionInProgress) {
+    icon = 'statusInDeletion' as const;
+    iconTooltip = 'In deletion';
+    statusLabel = 'In deletion';
   }
 
   return (
     <tr>
       <td>
-        <Icon icon={icon} tooltip={iconTooltip} tooltipPlacement="right" />
+        <Icon className="mr-2" icon={icon} tooltip={iconTooltip} tooltipPlacement="right" />
+        <span>{statusLabel}</span>
       </td>
       <td className={device.hasNameAlias ? '' : 'text-monospace'}>
         <Link to={`/devices/${device.id}/edit`}>{device.name}</Link>
@@ -159,6 +171,7 @@ const matchFilters = (device: AstarteDevice, filters: DeviceFilters) => {
     showConnected = true,
     showDisconnected = true,
     showNeverConnected = true,
+    showDeletionInProgress = true,
     activeSinceDate,
   } = filters;
 
@@ -177,6 +190,10 @@ const matchFilters = (device: AstarteDevice, filters: DeviceFilters) => {
     return false;
   }
   if (!showNeverConnected && !device.isConnected && !device.lastConnection) {
+    return false;
+  }
+
+  if (!showDeletionInProgress && device.deletionInProgress) {
     return false;
   }
 
@@ -279,6 +296,7 @@ const FilterForm = ({ filters, onUpdateFilters }: FilterFormProps): React.ReactE
     showConnected = true,
     showDisconnected = true,
     showNeverConnected = true,
+    showDeletionInProgress = true,
     attributeKey = '',
     attributeValue = '',
     activeSinceDate,
@@ -327,6 +345,15 @@ const FilterForm = ({ filters, onUpdateFilters }: FilterFormProps): React.ReactE
           checked={showNeverConnected}
           onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
             onUpdateFilters({ ...filters, showNeverConnected: e.target.checked })
+          }
+        />
+        <Form.Check
+          type="checkbox"
+          id="checkbox-deletion-in-progress"
+          label="Deletion in progress"
+          checked={showDeletionInProgress}
+          onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+            onUpdateFilters({ ...filters, showDeletionInProgress: e.target.checked })
           }
         />
       </Form.Group>

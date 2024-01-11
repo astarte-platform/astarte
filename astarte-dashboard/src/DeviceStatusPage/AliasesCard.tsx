@@ -88,7 +88,7 @@ const AliasesCard = ({
         <p>Device has no aliases</p>
       )}
       <div className="mt-auto">
-        <Button variant="primary" onClick={onNewAliasClick}>
+        <Button variant="primary" onClick={onNewAliasClick} disabled={device.deletionInProgress}>
           Add alias
         </Button>
       </div>

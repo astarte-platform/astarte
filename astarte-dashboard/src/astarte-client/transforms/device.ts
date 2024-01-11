@@ -64,6 +64,7 @@ export const fromAstarteDeviceDTO = (dto: AstarteDeviceDTO): AstarteDevice =>
     lastSeenIp: dto.last_seen_ip != null ? dto.last_seen_ip : undefined,
     lastCredentialsRequestIp:
       dto.last_credentials_request_ip != null ? dto.last_credentials_request_ip : undefined,
+    deletionInProgress: !!dto.deletion_in_progress,
   });
 
 export const toAstarteDeviceDTO = (obj: AstarteDevice): AstarteDeviceDTO => ({
@@ -89,4 +90,5 @@ export const toAstarteDeviceDTO = (obj: AstarteDevice): AstarteDeviceDTO => ({
   last_seen_ip: obj.lastSeenIp != null ? obj.lastSeenIp : undefined,
   last_credentials_request_ip:
     obj.lastCredentialsRequestIp != null ? obj.lastCredentialsRequestIp : undefined,
+  deletion_in_progress: !!obj.deletionInProgress,
 });

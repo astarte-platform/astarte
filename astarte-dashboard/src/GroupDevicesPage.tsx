@@ -37,25 +37,36 @@ const deviceTableRow = (
   let icon;
   let iconTooltip;
   let lastEvent;
+  let statusLabel;
 
   if (device.isConnected) {
     icon = 'statusConnected' as const;
     iconTooltip = 'Connected';
+    statusLabel = 'Connected';
     lastEvent = `Connected on ${(device.lastConnection as Date).toLocaleString()}`;
   } else if (device.lastConnection) {
     icon = 'statusDisconnected' as const;
     iconTooltip = 'Disconnected';
+    statusLabel = 'Disconnected';
     lastEvent = `Disconnected on ${(device.lastDisconnection as Date).toLocaleString()}`;
   } else {
     icon = 'statusNeverConnected' as const;
     iconTooltip = 'Never connected';
+    statusLabel = 'Never connected';
     lastEvent = 'Never connected';
+  }
+
+  if (device.deletionInProgress) {
+    icon = 'statusInDeletion' as const;
+    iconTooltip = 'In deletion';
+    statusLabel = 'In deletion';
   }
 
   return (
     <tr key={index}>
       <td>
-        <Icon icon={icon} tooltip={iconTooltip} tooltipPlacement="right" />
+        <Icon className="mr-2" icon={icon} tooltip={iconTooltip} tooltipPlacement="right" />
+        <span>{statusLabel}</span>
       </td>
       <td className={device.hasNameAlias ? '' : 'text-monospace'}>
         <Link to={`/devices/${device.id}/edit`}>{device.name}</Link>

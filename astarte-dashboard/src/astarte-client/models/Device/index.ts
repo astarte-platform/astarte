@@ -60,6 +60,8 @@ export interface AstarteDeviceObject {
   lastSeenIp?: string;
 
   lastCredentialsRequestIp?: string;
+
+  deletionInProgress: boolean;
 }
 
 const generateMapValidation =
@@ -119,10 +121,11 @@ const astarteDeviceObjectSchema: yup.ObjectSchema<AstarteDeviceObject> = yup
     lastConnection: yup.date().notRequired(),
     lastSeenIp: yup.string().notRequired(),
     lastCredentialsRequestIp: yup.string().notRequired(),
+    deletionInProgress: yup.boolean().required(),
   })
   .required();
 
-type AstarteDeviceConnectionStatus = 'never_connected' | 'connected' | 'disconnected';
+type AstarteDeviceStatus = 'never_connected' | 'connected' | 'disconnected' | 'in_deletion';
 
 export class AstarteDevice {
   id: string;
@@ -157,6 +160,8 @@ export class AstarteDevice {
 
   lastCredentialsRequestIp?: string;
 
+  deletionInProgress: boolean;
+
   constructor(obj: AstarteDeviceObject) {
     const validatedObj = astarteDeviceObjectSchema.validateSync(obj);
     this.id = validatedObj.id;
@@ -175,6 +180,7 @@ export class AstarteDevice {
     this.lastConnection = validatedObj.lastConnection;
     this.lastSeenIp = validatedObj.lastSeenIp;
     this.lastCredentialsRequestIp = validatedObj.lastCredentialsRequestIp;
+    this.deletionInProgress = validatedObj.deletionInProgress;
   }
 
   get hasNameAlias(): boolean {
@@ -188,7 +194,10 @@ export class AstarteDevice {
     return this.id;
   }
 
-  get connectionStatus(): AstarteDeviceConnectionStatus {
+  get deviceStatus(): AstarteDeviceStatus {
+    if (this.deletionInProgress) {
+      return 'in_deletion';
+    }
     if (this.lastConnection == null) {
       return 'never_connected';
     }

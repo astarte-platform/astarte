@@ -53,4 +53,5 @@ export interface AstarteDeviceDTO {
     exchanged_msgs?: number;
     exchanged_bytes?: number;
   }>;
+  deletion_in_progress?: boolean;
 }

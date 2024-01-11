@@ -23,11 +23,11 @@ import type { AstarteDevice } from 'astarte-client';
 import FullHeightCard from '../components/FullHeightCard';
 import Icon from '../components/Icon';
 
-interface ConnectionStatusProps {
-  status: AstarteDevice['connectionStatus'];
+interface DeviceStatusProps {
+  status: AstarteDevice['deviceStatus'];
 }
 
-const ConnectionStatus = ({ status }: ConnectionStatusProps): React.ReactElement => {
+const DeviceStatus = ({ status }: DeviceStatusProps): React.ReactElement => {
   let statusString;
   let icon;
 
@@ -40,6 +40,11 @@ const ConnectionStatus = ({ status }: ConnectionStatusProps): React.ReactElement
     case 'disconnected':
       statusString = 'Disconnected';
       icon = 'statusDisconnected' as const;
+      break;
+
+    case 'in_deletion':
+      statusString = 'In deletion';
+      icon = 'statusInDeletion' as const;
       break;
 
     case 'never_connected':
@@ -81,24 +86,43 @@ const DeviceInfoCard = ({
       <p>{device.hasNameAlias ? device.name : 'No name alias set'}</p>
       <h6>Status</h6>
       <p>
-        <ConnectionStatus status={device.connectionStatus} />
+        <DeviceStatus status={device.deviceStatus} />
       </p>
       <h6>Credentials inhibited</h6>
       <p>{device.hasCredentialsInhibited ? 'True' : 'False'}</p>
       <div className="mt-auto">
         {device.hasCredentialsInhibited ? (
-          <Button variant="success text-white" className="mr-1" onClick={onEnableCredentialsClick}>
+          <Button
+            variant="success text-white"
+            className="mr-1"
+            onClick={onEnableCredentialsClick}
+            disabled={device.deletionInProgress}
+          >
             Enable credentials request
           </Button>
         ) : (
-          <Button variant="danger" className="mr-1" onClick={onInhibitCredentialsClick}>
+          <Button
+            variant="danger"
+            className="mr-1"
+            onClick={onInhibitCredentialsClick}
+            disabled={device.deletionInProgress}
+          >
             Inhibit credentials
           </Button>
         )}
-        <Button variant="danger" onClick={onWipeCredentialsClick}>
+        <Button
+          variant="danger"
+          onClick={onWipeCredentialsClick}
+          disabled={device.deletionInProgress}
+        >
           Wipe credential secret
         </Button>
-        <Button variant="danger" className="ml-1" onClick={onDeleteDeviceClick}>
+        <Button
+          variant="danger"
+          className="ml-1"
+          onClick={onDeleteDeviceClick}
+          disabled={device.deletionInProgress}
+        >
           Delete device
         </Button>
       </div>
