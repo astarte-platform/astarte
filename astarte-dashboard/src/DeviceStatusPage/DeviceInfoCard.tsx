@@ -62,6 +62,7 @@ interface DeviceInfoCardProps {
   onInhibitCredentialsClick: () => void;
   onEnableCredentialsClick: () => void;
   onWipeCredentialsClick: () => void;
+  onDeleteDeviceClick: () => void;
 }
 
 const DeviceInfoCard = ({
@@ -69,6 +70,7 @@ const DeviceInfoCard = ({
   onInhibitCredentialsClick,
   onEnableCredentialsClick,
   onWipeCredentialsClick,
+  onDeleteDeviceClick,
 }: DeviceInfoCardProps): React.ReactElement => (
   <FullHeightCard xs={12} md={6} className="mb-4">
     <Card.Header as="h5">Device Info</Card.Header>
@@ -95,6 +97,9 @@ const DeviceInfoCard = ({
         )}
         <Button variant="danger" onClick={onWipeCredentialsClick}>
           Wipe credential secret
+        </Button>
+        <Button variant="danger" className="ml-1" onClick={onDeleteDeviceClick}>
+          Delete device
         </Button>
       </div>
     </Card.Body>
