@@ -23,6 +23,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Update Erlang/OTP to 26.1.
 - Update container base image to Debian `Bookworm`.
 - Container user has changed from `root` to `nobody`.
+- BREAKING: incoming_introspection events display introspection as a map rather
+  than a plaintext string. Revert to the old behaviour by setting
+  `DATA_UPDATER_PLANT_GENERATE_LEGACY_INCOMING_INTROSPECTION_EVENTS` to `true`.
+  See https://github.com/astarte-platform/astarte_core/pull/77.
 
 ## [1.1.1] - 2023-11-15
 ### Fixed
