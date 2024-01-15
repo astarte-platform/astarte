@@ -7,6 +7,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ## [Unreleased]
 ### Added
 - Add Delete device button in Device Info Card ([#397](https://github.com/astarte-platform/astarte-dashboard/issues/397)).
+- Add Deletion in progress column for every device ([#398](https://github.com/astarte-platform/astarte-dashboard/issues/398)).
 
 ## [1.1.0] - 2023-06-20
 

@@ -92,7 +92,11 @@ const AttributesCard = ({
         <p>Device has no attribute</p>
       )}
       <div className="mt-auto">
-        <Button variant="primary" onClick={onNewAttributeClick}>
+        <Button
+          variant="primary"
+          onClick={onNewAttributeClick}
+          disabled={device.deletionInProgress}
+        >
           Add attribute
         </Button>
       </div>
