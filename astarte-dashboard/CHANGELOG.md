@@ -9,6 +9,22 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Add Delete device button in Device Info Card ([#397](https://github.com/astarte-platform/astarte-dashboard/issues/397)).
 - Add Deletion in progress column for every device ([#398](https://github.com/astarte-platform/astarte-dashboard/issues/398)).
 
+## [1.1.1] - 2023-11-15
+### Added
+- Revalidate token when dashboard is reloaded or opened from different tab.
+([#375](https://github.com/astarte-platform/astarte-dashboard/issues/375))
+- Improve history navigation by replacing the browser's location.
+([#385](https://github.com/astarte-platform/astarte-dashboard/issues/385))
+- Show error metadata in live events when AstarteDeviceErrorEvent is received.
+([#377](https://github.com/astarte-platform/astarte-dashboard/issues/377))
+- Allow removing explicit_timestamp from and existing mapping.
+([#387](https://github.com/astarte-platform/astarte-dashboard/issues/387))
+- Improve Device stats card to show Total Bytes/Messages value instead of NaN.
+([#384](https://github.com/astarte-platform/astarte-dashboard/issues/384))
+### Fixed
+- Validate parametric mappings when they overlap on the last leaf.
+([#324](https://github.com/astarte-platform/astarte-dashboard/issues/324))
+
 ## [1.1.0] - 2023-06-20
 
 ## [1.1.0-rc.0] - 2023-06-08
@@ -23,7 +39,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Major rework for the Interface Editor.
 - Major rework for the Trigger Editor.
 
-## [1.0.5] - Unreleased
+## [1.0.5] - 2023-09-25
 ## Fixed
 - Fix crash while displaying values of an Astarte interface.
 - Fix duplicate items on device list when changing search filters

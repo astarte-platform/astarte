@@ -54,6 +54,36 @@ const mappingEndpointPlaceholderRegex = /%{[a-zA-Z]+[a-zA-Z0-9_]*}/;
 const getMappingEndpointPrefix = (endpoint: unknown) =>
   _.isString(endpoint) ? endpoint.split('/').slice(0, -1).join('/') : '';
 
+const isDynamicParameter = (path: string): boolean => path.startsWith('%{') && path.endsWith('}');
+
+const checkIfEndpointsOverlap = (firstEndpoint: string, secondEndpoint: string): boolean => {
+  const partsArray1 = firstEndpoint.split('/').filter((path) => path !== '');
+  const partsArray2 = secondEndpoint.split('/').filter((path) => path !== '');
+  const minLength = Math.min(partsArray1.length, partsArray2.length);
+
+  for (let i = 0; i < minLength; i += 1) {
+    if (
+      partsArray1[i] !== partsArray2[i] &&
+      !isDynamicParameter(partsArray1[i]) &&
+      !isDynamicParameter(partsArray2[i])
+    ) {
+      return false;
+    }
+  }
+  return true;
+};
+
+const checkForOverlap = (mappings: AstarteMappingObject[]): boolean => {
+  for (let i = 0; i < mappings.length; i += 1) {
+    for (let j = i + 1; j < mappings.length; j += 1) {
+      if (checkIfEndpointsOverlap(mappings[i].endpoint, mappings[j].endpoint)) {
+        return true;
+      }
+    }
+  }
+  return false;
+};
+
 const checkMappingsUniqueness = (mappings?: AstarteMappingObject[] | null): boolean => {
   if (mappings == null || mappings.length === 0) {
     return true;
@@ -63,6 +93,9 @@ const checkMappingsUniqueness = (mappings?: AstarteMappingObject[] | null): bool
   const normalizedEndpoints = endpoints.map((mapping) =>
     mapping.toLowerCase().replace(placeholdersRegex, ''),
   );
+  if (checkForOverlap(mappings)) {
+    return false;
+  }
   return _.uniq(normalizedEndpoints).length === endpoints.length;
 };
 

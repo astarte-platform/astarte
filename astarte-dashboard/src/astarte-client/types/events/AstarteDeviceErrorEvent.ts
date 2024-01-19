@@ -46,7 +46,7 @@ type AstarteDeviceErrorEventDTO = AstarteDeviceEventDTO & {
     type: 'device_error';
     // eslint-disable-next-line camelcase
     error_name: DeviceErrorName;
-    metadata: unknown;
+    metadata: Record<string, string> | null | undefined;
   };
 };
 
@@ -61,7 +61,7 @@ const validationSchema: yup.ObjectSchema<AstarteDeviceErrorEventDTO['event']> = 
 export class AstarteDeviceErrorEvent extends AstarteDeviceEvent {
   readonly errorName: DeviceErrorName;
 
-  readonly metadata: unknown;
+  readonly metadata: Record<string, string> | null | undefined;
 
   private constructor(arg: unknown) {
     super(arg);
