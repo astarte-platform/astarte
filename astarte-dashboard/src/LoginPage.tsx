@@ -80,7 +80,7 @@ const TokenForm = ({
     event.stopPropagation();
     const searchParams = new URLSearchParams({ realm });
     const hashParams = new URLSearchParams({ access_token: jwt });
-    navigate(`/auth?${searchParams}#${hashParams}`);
+    navigate(`/auth?${searchParams}#${hashParams}`, { replace: true });
   };
 
   const AstartectlLink = () => (

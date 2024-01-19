@@ -935,6 +935,67 @@ describe('Interface builder tests', () => {
             .should('not.deep.eq', newIface);
         });
       });
+
+      it('can remove insensitive properties from mappings of interface when minor_version is changed', () => {
+        cy.fixture('test.astarte.FirstInterface').then(({ data: initialIface }) => {
+          // Load the example interface
+          cy.intercept(
+            'GET',
+            `/realmmanagement/v1/*/interfaces/${initialIface.interface_name}/${initialIface.version_major}`,
+            { data: initialIface },
+          ).as('getInterfaceRequest');
+
+          cy.visit(`/interfaces/${initialIface.interface_name}/${initialIface.version_major}/edit`);
+          cy.wait('@getInterfaceRequest');
+
+          // Remove explicit_timestamp in JSON source
+          const { explicit_timestamp, ...restOfElements } = initialIface.mappings[0];
+          const updatedIface = {
+            ...initialIface,
+            mappings: [restOfElements],
+          };
+          cy.get('#interfaceSource')
+            .clear()
+            .invoke('val', JSON.stringify(updatedIface, null, 4))
+            .type('{enter}');
+
+          cy.get('[data-testid="/test"]').within(() => {
+            // Check if the mapping endpoint is displayed
+            cy.contains('/test');
+
+            // Check that the Edit and Delete buttons are not present
+            cy.get('button').contains('Edit...').should('not.exist');
+            cy.get('button').contains('Delete').should('not.exist');
+          });
+
+          cy.get('button').contains('Apply changes').scrollIntoView().should('be.disabled');
+
+          // Change version_minor in JSON source
+          const newIface = {
+            ...updatedIface,
+            version_minor: updatedIface.version_minor + 1,
+          };
+          cy.get('#interfaceSource')
+            .clear()
+            .invoke('val', JSON.stringify(newIface, null, 4))
+            .type('{enter}');
+
+          cy.intercept(
+            'PUT',
+            `/realmmanagement/v1/*/interfaces/${newIface.interface_name}/${newIface.version_major}`,
+            {
+              statusCode: 204,
+              body: '',
+            },
+          ).as('saveSpecifiedDefaultsInterfaceRequest');
+
+          cy.get('button').contains('Apply changes').scrollIntoView().should('be.enabled').click();
+          cy.get('.modal.show button').contains('Update').click();
+          cy.wait('@saveSpecifiedDefaultsInterfaceRequest')
+            .its('request.body.data')
+            .should('deep.eq', newIface);
+        });
+      });
     });
   });
 });

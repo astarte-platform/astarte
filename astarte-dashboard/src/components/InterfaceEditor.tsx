@@ -266,16 +266,54 @@ const checkInterfaceHasMajorChanges = (
   if (hasPropertyMajorChange) {
     return true;
   }
-  const hasExistingMappings = initialInterface.mappings.every((initialMapping) => {
+  const hasMajorMappingChanges = initialInterface.mappings.some((initialMapping) => {
     const draftMapping = draftInterface.mappings.find(
       ({ endpoint }) => endpoint === initialMapping.endpoint,
     );
-    return _.isEqual(draftMapping, initialMapping);
+
+    const sensitiveMappingProperties: Array<keyof AstarteMapping> = [
+      'endpoint',
+      'type',
+      'allowUnset',
+      'reliability',
+      'databaseRetentionPolicy',
+      'databaseRetentionTtl',
+    ];
+    if (!draftMapping) {
+      return true;
+    }
+    const hasMajorMappingChange = sensitiveMappingProperties.some(
+      (property) => draftMapping[property] !== initialMapping[property],
+    );
+    return hasMajorMappingChange;
   });
-  if (!hasExistingMappings) {
-    return true;
-  }
-  return false;
+  return hasMajorMappingChanges;
+};
+
+const checkInterfaceHasMinorChanges = (
+  initialInterface: AstarteInterface,
+  draftInterface: AstarteInterface,
+) => {
+  const hasMappingsChange = initialInterface.mappings.some((initialMapping) => {
+    const draftMapping = draftInterface.mappings.find(
+      ({ endpoint }) => endpoint === initialMapping.endpoint,
+    );
+    const insensitiveMappingProperties: Array<keyof AstarteMapping> = [
+      'description',
+      'documentation',
+      'explicitTimestamp',
+      'retention',
+      'expiry',
+    ];
+    if (!draftMapping) {
+      return true;
+    }
+    const hasMinorMappingChanges = insensitiveMappingProperties.some(
+      (property) => draftMapping[property] !== initialMapping[property],
+    );
+    return hasMinorMappingChanges;
+  });
+  return hasMappingsChange;
 };
 
 const formatJSON = (json: unknown): string => JSON.stringify(json, null, 4);
@@ -374,8 +412,15 @@ export default ({
         checkInterfaceHasMajorChanges(initialData, parsedInterface)
       ) {
         throw new Error(
-          'Interface cannot have major changes such as updating name, major, type, aggregation, ownership, or editing already existing mappings',
+          'Interface cannot have major changes such as updating name, major, type, aggregation, ownership, or editing sensitive properties of already existing mappings',
         );
+      }
+      if (
+        initialData != null &&
+        checkInterfaceHasMinorChanges(initialData, parsedInterface) &&
+        parsedInterface.minor <= initialData.minor
+      ) {
+        throw new Error('Change "version_minor" property of the interface to apply changes.');
       }
       return parsedInterface;
     },
@@ -645,6 +690,12 @@ export default ({
       interfaceSourceError = err.message;
     }
   }
+
+  useEffect(() => {
+    if (onChange) {
+      onChange(interfaceDraft, isValidInterfaceSource);
+    }
+  }, [interfaceDraft, isValidInterfaceSource, onChange]);
 
   const mappingToEdit = _.nth(interfaceDraft.mappings, mappingToEditIndex);
 
