@@ -321,8 +321,11 @@ const astarteSimpleDataTriggerObjectSchema: yup.ObjectSchema<AstarteSimpleDataTr
           valueMatchOperator: string | undefined,
           iface: AstarteInterface | null,
         ) => {
-          if (!iface || !matchPath) {
+          if (!matchPath) {
             return yup.mixed<string | boolean | number>().strip(true);
+          }
+          if (!iface) {
+            return yup.mixed<string | boolean | number>();
           }
           const matchMapping = iface.mappings.find((m) =>
             AstarteMapping.matchEndpoint(m.endpoint, matchPath),
