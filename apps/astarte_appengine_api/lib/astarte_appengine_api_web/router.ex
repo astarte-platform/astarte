@@ -130,6 +130,10 @@ defmodule Astarte.AppEngine.APIWeb.Router do
       disable_validator: true
   end
 
+  scope "/version", Astarte.AppEngine.APIWeb do
+    get "/", VersionController, :show
+  end
+
   defp maybe_halt_swagger(conn, _opts) do
     if Application.get_env(:astarte_appengine_api, :swagger_ui, false) do
       conn
