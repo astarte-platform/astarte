@@ -24,9 +24,6 @@ defmodule Astarte.RealmManagement.APIWeb.RealmConfigController do
 
   action_fallback Astarte.RealmManagement.APIWeb.FallbackController
 
-  plug Astarte.RealmManagement.APIWeb.Plug.LogRealm
-  plug Astarte.RealmManagement.APIWeb.Plug.AuthorizePath
-
   def show(conn, %{"realm_name" => realm_name, "group" => "auth"}) do
     with {:ok, %AuthConfig{} = auth_config} = RealmConfig.get_auth_config(realm_name) do
       render(conn, "show.json", auth_config: auth_config)

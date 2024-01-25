@@ -21,6 +21,8 @@ defmodule Astarte.RealmManagement.APIWeb.Router do
 
   pipeline :api do
     plug :accepts, ["json"]
+    plug Astarte.RealmManagement.APIWeb.Plug.LogRealm
+    plug Astarte.RealmManagement.APIWeb.Plug.AuthorizePath
   end
 
   scope "/v1/:realm_name", Astarte.RealmManagement.APIWeb do

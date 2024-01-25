@@ -23,9 +23,6 @@ defmodule Astarte.RealmManagement.APIWeb.DeviceController do
 
   action_fallback Astarte.RealmManagement.APIWeb.FallbackController
 
-  plug Astarte.RealmManagement.APIWeb.Plug.LogRealm
-  plug Astarte.RealmManagement.APIWeb.Plug.AuthorizePath
-
   def delete(conn, %{"realm_name" => realm_name, "device_id" => device_id}) do
     with :ok <- Devices.delete_device(realm_name, device_id) do
       send_resp(conn, :no_content, "")
