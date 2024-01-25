@@ -43,4 +43,8 @@ defmodule Astarte.RealmManagement.APIWeb.Router do
 
     delete "/devices/:device_id", DeviceController, :delete
   end
+
+  scope "/version", Astarte.RealmManagement.APIWeb do
+    get "/", VersionController, :show
+  end
 end
