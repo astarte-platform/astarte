@@ -40,4 +40,8 @@ defmodule Astarte.Pairing.APIWeb.Router do
          DeviceController,
          :verify_credentials
   end
+
+  scope "/version", Astarte.Pairing.APIWeb do
+    get "/", VersionController, :show
+  end
 end
