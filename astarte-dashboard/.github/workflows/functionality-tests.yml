@@ -36,8 +36,8 @@ jobs:
         run: npm run check-lint
       - name: Check Typescript
         run: npm run check-types
-      - name: Run Jest tests
-        run: npm run jest:test
+      - name: Run unit tests
+        run: npm run test
       - name: Start dev server
         run: npm run start & npx wait-on http://localhost:8080
       - name: Run Cypress tests

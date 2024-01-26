@@ -35,7 +35,7 @@
     "check-format": "prettier --check src",
     "check-types": "tsc --noEmit",
     "check-types:watch": "npm run check-types -- --watch",
-    "jest:test": "react-scripts test",
+    "test": "vitest",
     "cypress:test": "cypress run",
     "cypress:open": "cypress open"
   },
