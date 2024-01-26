@@ -1,4 +1,5 @@
 {
+  "type": "module",
   "name": "astarte-dashboard",
   "version": "1.2.0-dev",
   "description": "Astarte dashboard",
@@ -25,9 +26,9 @@
     "url": "https://github.com/astarte-platform/astarte-dashboard"
   },
   "scripts": {
-    "start": "PORT=8080 react-scripts --openssl-legacy-provider start",
-    "build": "react-scripts --openssl-legacy-provider build",
-    "eject": "react-scripts eject",
+    "start": "vite",
+    "build": "tsc && vite build",
+    "serve": "vite preview",
     "lint": "eslint --fix src --ext .js,.jsx,.ts,.tsx",
     "check-lint": "eslint src --ext .js,.jsx,.ts,.tsx",
     "format": "prettier --write src",
