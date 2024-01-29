@@ -212,9 +212,7 @@ astarteAPIurl`${config.realmManagementApiUrl}v1/${'realm'}/interfaces/${'interfa
       devicesStats:          astarteAPIurl`${config.appEngineApiUrl}v1/${'realm'}/stats/devices`,
       devices:               astarteAPIurl`${config.appEngineApiUrl}v1/${'realm'}/devices`,
       deviceInfo:            astarteAPIurl`${config.appEngineApiUrl}v1/${'realm'}/devices/${'deviceId'}`,
-      deviceData: 
-astarteAPIurl`${config.appEngineApiUrl}v1/${'realm'}/devices/${'deviceId'}/interfaces/${'interfaceName'}${'path'}?
-keep_milliseconds=true&since=${'since'}&since_after=${'sinceAfter'}&to=${'to'}&limit=${'limit'}`,
+      deviceData:            astarteAPIurl`${config.appEngineApiUrl}v1/${'realm'}/devices/${'deviceId'}/interfaces/${'interfaceName'}${'path'}?since=${'since'}&since_after=${'sinceAfter'}&to=${'to'}&limit=${'limit'}`,
       groups:                astarteAPIurl`${config.appEngineApiUrl}v1/${'realm'}/groups`,
       groupDevices:          astarteAPIurl`${config.appEngineApiUrl}v1/${'realm'}/groups/${'groupName'}/devices`,
       deviceInGroup:         astarteAPIurl`${config.appEngineApiUrl}v1/${'realm'}/groups/${'groupName'}/devices/${'deviceId'}`,

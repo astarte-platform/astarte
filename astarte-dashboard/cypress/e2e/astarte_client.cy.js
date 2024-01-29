@@ -110,7 +110,7 @@ describe('Astarte-client tests', () => {
       cy.fixture(interfacePathValuesFixture).then((interfacePathValues) => {
         cy.intercept(
           'GET',
-          `/appengine/v1/*/devices/${deviceId}/interfaces/${interfaceName}${interfacePath}?keep_milliseconds=true&since=&since_after=&to=&limit=`,
+          `/appengine/v1/*/devices/${deviceId}/interfaces/${interfaceName}${interfacePath}?since=&since_after=&to=&limit=`,
           interfacePathValues,
         ).as('getDeviceDataRequest');
         cy.intercept('GET', `/realmmanagement/v1/*/interfaces/${interfaceName}/*`, {
