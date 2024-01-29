@@ -9,6 +9,13 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Add Delete device button in Device Info Card ([#397](https://github.com/astarte-platform/astarte-dashboard/issues/397)).
 - Add Deletion in progress column for every device ([#398](https://github.com/astarte-platform/astarte-dashboard/issues/398)).
 
+## [1.1.2] - Unreleased
+### Fixed
+- The known_value filter property for triggers is correctly considered when relevant.
+([#393](https://github.com/astarte-platform/astarte-dashboard/issues/393))
+- Correctly parse and display device data for datastream object interfaces with parametric endpoints.
+([#376](https://github.com/astarte-platform/astarte-dashboard/issues/376))
+
 ## [1.1.1] - 2023-11-15
 ### Added
 - Revalidate token when dashboard is reloaded or opened from different tab.

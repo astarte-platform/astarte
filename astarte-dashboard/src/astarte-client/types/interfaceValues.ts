@@ -1,7 +1,7 @@
 /*
    This file is part of Astarte.
 
-   Copyright 2020 Ispirata Srl
+   Copyright 2020-24 SECO Mind Srl
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -14,6 +14,8 @@
    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
    See the License for the specific language governing permissions and
    limitations under the License.
+
+   SPDX-License-Identifier: Apache-2.0
 */
 
 import type { AstarteDataValue } from './dataType';
@@ -34,12 +36,13 @@ export type AstarteIndividualDatastreamInterfaceValues =
         | AstarteIndividualDatastreamInterfaceValue;
     };
 
-export type AstarteAggregatedDatastreamInterfaceValue = Array<{
+export type AstarteAggregatedDatastreamInterfaceValue = {
   [key: string]: AstarteDataValue;
   timestamp: string;
-}>;
+};
 export type AstarteAggregatedDatastreamInterfaceValues =
   | AstarteAggregatedDatastreamInterfaceValue
+  | AstarteAggregatedDatastreamInterfaceValue[]
   | { [subPath: string]: AstarteAggregatedDatastreamInterfaceValues };
 
 export type AstarteInterfaceValues =
