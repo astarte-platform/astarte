@@ -72,8 +72,8 @@ const generateMapValidation =
       ([key, value]) => keySchema.isValidSync(key) && valueSchema.isValidSync(value),
     );
 
-const astarteDeviceInterfaceStatsSchema: yup.ObjectSchema<AstarteDeviceInterfaceStats> = yup
-  .object({
+const astarteDeviceInterfaceStatsSchema = yup
+  .object<AstarteDeviceInterfaceStats>({
     name: yup.string().required(),
     major: yup.number().integer().min(0).required(),
     minor: yup.number().integer().min(0).required(),
@@ -82,8 +82,8 @@ const astarteDeviceInterfaceStatsSchema: yup.ObjectSchema<AstarteDeviceInterface
   })
   .required();
 
-const astarteDeviceObjectSchema: yup.ObjectSchema<AstarteDeviceObject> = yup
-  .object({
+const astarteDeviceObjectSchema = yup
+  .object<AstarteDeviceObject>({
     id: yup.string().required(),
     aliases: yup
       .mixed<AstarteDeviceObject['aliases']>()
@@ -114,7 +114,11 @@ const astarteDeviceObjectSchema: yup.ObjectSchema<AstarteDeviceObject> = yup
     totalReceivedBytes: yup.number().integer().min(0).required(),
     hasCredentialsInhibited: yup.boolean().required(),
     groups: yup.array().of(yup.string().required()).defined(),
-    previousInterfaces: yup.array().of(astarteDeviceInterfaceStatsSchema).defined(),
+    // @ts-expect-error TODO update yup and verify its correct typings
+    previousInterfaces: yup
+      .array<AstarteDeviceInterfaceStats, AstarteDeviceInterfaceStats>()
+      .of(astarteDeviceInterfaceStatsSchema)
+      .defined(),
     firstRegistration: yup.date().notRequired(),
     firstCredentialsRequest: yup.date().notRequired(),
     lastDisconnection: yup.date().notRequired(),
