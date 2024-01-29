@@ -40,10 +40,8 @@
     "cypress:open": "cypress open"
   },
   "devDependencies": {
-    "@testing-library/jest-dom": "^5.16.5",
     "@testing-library/react": "^11.2.5",
     "@testing-library/user-event": "^12.8.3",
-    "@types/jest": "^26.0.20",
     "@typescript-eslint/eslint-plugin": "^4.15.1",
     "@typescript-eslint/parser": "^4.15.1",
     "cypress": "^12.16.0",
