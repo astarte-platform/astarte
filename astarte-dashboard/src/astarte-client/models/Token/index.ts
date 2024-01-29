@@ -2,7 +2,7 @@
 /*
    This file is part of Astarte.
 
-   Copyright 2020 Ispirata Srl
+   Copyright 2020-24 SECO Mind Srl
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -17,7 +17,7 @@
    limitations under the License.
 */
 
-import jwt from 'jsonwebtoken';
+import RSA from 'jsrsasign';
 import * as yup from 'yup';
 
 interface AstarteTokenObject {
@@ -87,11 +87,10 @@ export class AstarteToken {
   private $issuer: string | null;
 
   constructor(encodedToken: string) {
-    // @ts-expect-error wrong type for decode options
-    const decodedToken = jwt.decode(encodedToken, { complete: true, ignoreExpiration: true });
-    const tokenObj: AstarteTokenObject = astarteTokenObjectSchema.validateSync(
-      decodedToken && decodedToken.payload,
+    const tokenPayload = RSA.KJUR.jws.JWS.readSafeJSONString(
+      RSA.b64utoutf8(encodedToken.split('.')[1]),
     );
+    const tokenObj: AstarteTokenObject = astarteTokenObjectSchema.validateSync(tokenPayload);
     this.$expirationDate = tokenObj.exp ? new Date(tokenObj.exp * 1000) : null;
     this.$issueDate = tokenObj.iat ? new Date(tokenObj.iat * 1000) : null;
     this.$issuer = tokenObj.iss || null;
