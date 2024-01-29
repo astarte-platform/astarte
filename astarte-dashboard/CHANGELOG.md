@@ -8,6 +8,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ### Fixed
 - The known_value filter property for triggers is correctly considered when relevant.
 ([#393](https://github.com/astarte-platform/astarte-dashboard/issues/393))
+- Correctly parse and display device data for datastream object interfaces with parametric endpoints.
+([#376](https://github.com/astarte-platform/astarte-dashboard/issues/376))
 
 ## [1.1.1] - 2023-11-15
 ### Added

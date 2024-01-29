@@ -1,7 +1,7 @@
 /* eslint-disable max-classes-per-file */
 /*
    This file is part of Astarte.
-   Copyright 2020 Ispirata Srl
+   Copyright 2020-24 SECO Mind Srl
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
    You may obtain a copy of the License at
@@ -11,6 +11,8 @@
    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
    See the License for the specific language governing permissions and
    limitations under the License.
+
+   SPDX-License-Identifier: Apache-2.0
 */
 
 import _ from 'lodash';
@@ -37,6 +39,8 @@ const getEndpointDataType = (iface: AstarteInterface, endpoint: string): Astarte
   return matchedMapping.type;
 };
 
+const isTimestamp = (value: unknown): value is string => _.isString(value);
+
 const isAstarteDataValue = (value: unknown): value is AstarteDataValue =>
   !_.isUndefined(value) && (!_.isPlainObject(value) || _.isNull(value));
 
@@ -52,9 +56,30 @@ const isIndividualDatastreamInterfaceValues = (
 ): value is AstarteIndividualDatastreamInterfaceValue[] =>
   _.isArray(value) && value.every(isIndividualDatastreamInterfaceValue);
 
+const isAggregatedDatastreamInterfaceSingleValue = (
+  value: unknown,
+): value is AstarteAggregatedDatastreamInterfaceValue => {
+  const timestamp = _.get(value, 'timestamp');
+  // We also check whether the timestamp is a basic generic value because if
+  // the interface defined a `timestamp` endpoint, Appengine v1 would return
+  // the values of that endpoint, thus overwriting the regular timestamp that
+  // would have been automatically populated instead. See issue:
+  // https://github.com/astarte-platform/astarte/issues/335
+  return isTimestamp(timestamp) || isAstarteDataValue(timestamp);
+};
+
+const isAggregatedDatastreamInterfaceArrayValue = (
+  value: unknown,
+): value is AstarteAggregatedDatastreamInterfaceValue[] =>
+  Array.isArray(value) && value.every(isAggregatedDatastreamInterfaceSingleValue);
+
 const isAggregatedDatastreamInterfaceValue = (
   value: unknown,
-): value is AstarteAggregatedDatastreamInterfaceValue => Array.isArray(value);
+): value is
+  | AstarteAggregatedDatastreamInterfaceValue
+  | AstarteAggregatedDatastreamInterfaceValue[] =>
+  isAggregatedDatastreamInterfaceSingleValue(value) ||
+  isAggregatedDatastreamInterfaceArrayValue(value);
 
 type AstarteDataTreeKind = 'properties' | 'datastream_object' | 'datastream_individual';
 
@@ -472,7 +497,10 @@ function toDatastreamObjectTreeNode(params: {
   | AstarteDataTreeBranchNode<AstarteDatastreamObjectData>
   | AstarteDataTreeLeafNode<AstarteDatastreamObjectData> {
   if (isAggregatedDatastreamInterfaceValue(params.data)) {
-    const leafData: AstarteDatastreamObjectData[] = params.data.map((obj) => ({
+    const data = isAggregatedDatastreamInterfaceArrayValue(params.data)
+      ? params.data
+      : [params.data];
+    const leafData: AstarteDatastreamObjectData[] = data.map((obj) => ({
       endpoint: params.endpoint,
       timestamp: obj.timestamp,
       value: Object.entries(_.omit(obj, 'timestamp')).reduce(

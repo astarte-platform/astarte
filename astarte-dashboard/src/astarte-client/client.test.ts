@@ -59,7 +59,7 @@ describe('AstarteClient', () => {
       }),
     );
     expect(axios.mock.calls[0][0].url.toString()).toBe(
-      `${appEngineApiUrl}v1/${realm}/devices/${deviceId}/interfaces/${interfaceName}?keep_milliseconds=true&since=&since_after=&to=&limit=`,
+      `${appEngineApiUrl}v1/${realm}/devices/${deviceId}/interfaces/${interfaceName}?since=&since_after=&to=&limit=`,
     );
     expect(fetcheData).toEqual(deviceData);
 
@@ -71,7 +71,7 @@ describe('AstarteClient', () => {
     await astarte.getDeviceData({ deviceId, interfaceName, path, since, sinceAfter, to, limit });
     expect(axios).toHaveBeenCalledTimes(2);
     expect(axios.mock.calls[1][0].url.toString()).toBe(
-      `${appEngineApiUrl}v1/${realm}/devices/${deviceId}/interfaces/${interfaceName}${path}?keep_milliseconds=true&since=${since}&since_after=${sinceAfter}&to=${to}&limit=${limit}`,
+      `${appEngineApiUrl}v1/${realm}/devices/${deviceId}/interfaces/${interfaceName}${path}?since=${since}&since_after=${sinceAfter}&to=${to}&limit=${limit}`,
     );
   });
 
@@ -135,7 +135,7 @@ describe('AstarteClient', () => {
     );
     // Third GET to fetch Device data
     expect(axios.mock.calls[2][0].url.toString()).toBe(
-      `${appEngineApiUrl}v1/${realm}/devices/${deviceId}/interfaces/${interfaceName}?keep_milliseconds=true&since=&since_after=&to=&limit=`,
+      `${appEngineApiUrl}v1/${realm}/devices/${deviceId}/interfaces/${interfaceName}?since=&since_after=&to=&limit=`,
     );
     expect(fetcheDataTree).toMatchObject({
       endpoint: '',
