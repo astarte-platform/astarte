@@ -13,6 +13,14 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - [astarte_housekeeping_api] Allow to read and set a realm's device registration
   limit using the realm fetch and update API, respectively.
 - [astarte_appengine_api] Show deletion status in device details.
+- [astarte_appengine_api] Add /version endpoint which returns the microservice
+  application version.
+- [astarte_realm_management_api] Add /version endpoint which returns
+  the microservice application version.
+- [astarte_pairing_api] Add /version endpoint which returns the microservice
+  application version.
+- [astarte_housekeeping_api] Add /version endpoint which returns
+  the microservice application version.
 - [astarte_housekeeping_api] Allow to customize the RPC call timeout with
   `HOUSEKEEPING_API_RPC_TIMEOUT` (default: 5 seconds).
 - Add API usage metrics.
