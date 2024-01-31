@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ### Fixed
 - [astarte_appengine_api] Allow to send binaryblobarrays over server owned interfaces.
 - [astarte_data_updater_plant] Do not crash when receiving a malformed purge properties message.
+- [astarte_pairing_api] Gracefully handle HTTP requests with malformed payload.
 
 ## [1.0.5] - 2023-09-26
 ### Fixed
