@@ -101,7 +101,11 @@ defmodule Astarte.DataUpdaterPlant.AMQPOptionsTest do
       assert virtual_host: Config.amqp_consumer_virtual_host!() in amqp_producer_options
 
       assert Keyword.get(amqp_producer_options, :ssl_options) == nil
-      assert Config.amqp_producer_options!() == Config.amqp_consumer_options!()
+
+      # TODO remove asimmetry here
+      assert Config.amqp_producer_options!() ++
+               [channels: Config.amqp_consumer_channels_per_connection_number!()] ==
+               Config.amqp_consumer_options!()
     end
 
     test "after setting its values" do
@@ -134,7 +138,10 @@ defmodule Astarte.DataUpdaterPlant.AMQPOptionsTest do
       assert server_name_indication:
                Config.amqp_consumer_ssl_custom_sni!() in ssl_amqp_producer_options
 
-      assert Config.amqp_producer_options!() == Config.amqp_consumer_options!()
+      # TODO remove asimmetry here
+      assert Config.amqp_producer_options!() ++
+               [channels: Config.amqp_consumer_channels_per_connection_number!()] ==
+               Config.amqp_consumer_options!()
     end
 
     test "SSL is enabled for consumer and its ca_cert is set" do
@@ -151,7 +158,10 @@ defmodule Astarte.DataUpdaterPlant.AMQPOptionsTest do
       assert server_name_indication:
                Config.amqp_consumer_ssl_custom_sni!() in ssl_amqp_producer_options
 
-      assert Config.amqp_producer_options!() == Config.amqp_consumer_options!()
+      # TODO remove asimmetry here
+      assert Config.amqp_producer_options!() ++
+               [channels: Config.amqp_consumer_channels_per_connection_number!()] ==
+               Config.amqp_consumer_options!()
     end
 
     test "SSL is enabled and ca_cert is set for producer" do

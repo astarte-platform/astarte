@@ -38,6 +38,7 @@ defmodule Astarte.DataUpdaterPlant.Config do
           | {:host, String.t()}
           | {:port, integer()}
           | {:ssl_options, ssl_options}
+          | {:channels, integer()}
 
   @envdoc "The host for the AMQP consumer connection."
   app_env :amqp_consumer_host, :astarte_data_updater_plant, :amqp_consumer_host,
@@ -220,6 +221,27 @@ defmodule Astarte.DataUpdaterPlant.Config do
           type: :integer,
           default: 60 * 60 * 1_000
 
+  @envdoc "The number of connections to RabbitMQ used to consume data"
+  app_env :amqp_consumer_connection_number,
+          :astarte_data_updater_plant,
+          :amqp_consumer_connection_number,
+          os_env: "DATA_UPDATER_PLANT_AMQP_CONSUMER_CONNECTION_NUMBER",
+          type: :integer,
+          default: 10
+
+  @envdoc "The number of connections to RabbitMQ used to produce data"
+  app_env :events_producer_connection_number,
+          :astarte_data_updater_plant,
+          :events_producer_connection_number,
+          os_env: "DATA_UPDATER_PLANT_EVENTS_PRODUCER_CONNECTION_NUMBER",
+          type: :integer,
+          default: 1
+
+  # Since we have one channel per queue, this is not configurable
+  def amqp_consumer_channels_per_connection_number!() do
+    ceil(data_queue_total_count!() / amqp_consumer_connection_number!())
+  end
+
   @doc """
   Returns the AMQP data consumer connection options
   """
@@ -230,7 +252,8 @@ defmodule Astarte.DataUpdaterPlant.Config do
       username: amqp_consumer_username!(),
       password: amqp_consumer_password!(),
       virtual_host: amqp_consumer_virtual_host!(),
-      port: amqp_consumer_port!()
+      port: amqp_consumer_port!(),
+      channels: amqp_consumer_channels_per_connection_number!()
     ]
     |> populate_consumer_ssl_options()
   end
@@ -260,6 +283,15 @@ defmodule Astarte.DataUpdaterPlant.Config do
       server_name = amqp_consumer_ssl_custom_sni!() || amqp_consumer_host!()
       Keyword.put(ssl_options, :server_name_indication, to_charlist(server_name))
     end
+  end
+
+  def amqp_consumer_pool_config!() do
+    [
+      name: {:local, :amqp_consumer_pool},
+      worker_module: ExRabbitPool.Worker.RabbitConnection,
+      size: amqp_consumer_connection_number!(),
+      max_overflow: 0
+    ]
   end
 
   @doc """
@@ -375,6 +407,10 @@ defmodule Astarte.DataUpdaterPlant.Config do
 
   def data_updater_deactivation_interval_ms! do
     device_heartbeat_interval_ms!() * 3
+  end
+
+  def amqp_adapter!() do
+    Application.get_env(:astarte_data_updater_plant, :amqp_adapter)
   end
 
   @doc """

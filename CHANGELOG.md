@@ -5,9 +5,15 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
 ## [1.1.2] - Unreleased
+### Added
+- [astarte_data_updater_plant] customize the number of consumer connections
+  to the AMQP broker using `DATA_UPDATER_PLANT_AMQP_CONSUMER_CONNECTION_NUMBER`
+  (defult: 10).
+
 ### Fixed
 - Forward-port changes from release-1.0 (gracefully handle malformed
   purge properties messages).
+- [astarte_data_updater_plant] do not leak consumer channels in corner cases.
 
 ## [1.1.1.] - 2023-11-15
 ### Fixed
