@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Forward-port changes from release-1.0 (gracefully handle malformed
   purge properties messages).
 - [astarte_data_updater_plant] do not leak consumer channels in corner cases.
+- [astarte_data_updater_plant] do not leak producer channels in corner cases.
 
 ## [1.1.1.] - 2023-11-15
 ### Fixed

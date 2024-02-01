@@ -93,7 +93,7 @@ defmodule Astarte.DataUpdaterPlant.AMQPOptionsTest do
     test "get default values when not set" do
       amqp_producer_options = Config.amqp_producer_options!()
 
-      assert length(amqp_producer_options) == 5
+      assert length(amqp_producer_options) == 6
       assert password: Config.amqp_consumer_password!() in amqp_producer_options
       assert username: Config.amqp_consumer_username!() in amqp_producer_options
       assert port: Config.amqp_consumer_port!() in amqp_producer_options
@@ -102,10 +102,10 @@ defmodule Astarte.DataUpdaterPlant.AMQPOptionsTest do
 
       assert Keyword.get(amqp_producer_options, :ssl_options) == nil
 
-      # TODO remove asimmetry here
-      assert Config.amqp_producer_options!() ++
-               [channels: Config.amqp_consumer_channels_per_connection_number!()] ==
-               Config.amqp_consumer_options!()
+      consumer_options = Keyword.delete(Config.amqp_consumer_options!(), :channels)
+      producer_options = Keyword.delete(Config.amqp_producer_options!(), :channels)
+
+      assert consumer_options == producer_options
     end
 
     test "after setting its values" do
@@ -117,7 +117,7 @@ defmodule Astarte.DataUpdaterPlant.AMQPOptionsTest do
 
       amqp_producer_options = Config.amqp_producer_options!()
 
-      assert length(amqp_producer_options) == 5
+      assert length(amqp_producer_options) == 6
       assert password: "password" in amqp_producer_options
       assert username: "username" in amqp_producer_options
       assert port: 12345 in amqp_producer_options
@@ -138,10 +138,10 @@ defmodule Astarte.DataUpdaterPlant.AMQPOptionsTest do
       assert server_name_indication:
                Config.amqp_consumer_ssl_custom_sni!() in ssl_amqp_producer_options
 
-      # TODO remove asimmetry here
-      assert Config.amqp_producer_options!() ++
-               [channels: Config.amqp_consumer_channels_per_connection_number!()] ==
-               Config.amqp_consumer_options!()
+      consumer_options = Keyword.delete(Config.amqp_consumer_options!(), :channels)
+      producer_options = Keyword.delete(Config.amqp_producer_options!(), :channels)
+
+      assert consumer_options == producer_options
     end
 
     test "SSL is enabled for consumer and its ca_cert is set" do
@@ -158,10 +158,10 @@ defmodule Astarte.DataUpdaterPlant.AMQPOptionsTest do
       assert server_name_indication:
                Config.amqp_consumer_ssl_custom_sni!() in ssl_amqp_producer_options
 
-      # TODO remove asimmetry here
-      assert Config.amqp_producer_options!() ++
-               [channels: Config.amqp_consumer_channels_per_connection_number!()] ==
-               Config.amqp_consumer_options!()
+      consumer_options = Keyword.delete(Config.amqp_consumer_options!(), :channels)
+      producer_options = Keyword.delete(Config.amqp_producer_options!(), :channels)
+
+      assert consumer_options == producer_options
     end
 
     test "SSL is enabled and ca_cert is set for producer" do

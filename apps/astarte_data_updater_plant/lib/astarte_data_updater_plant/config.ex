@@ -229,18 +229,16 @@ defmodule Astarte.DataUpdaterPlant.Config do
           type: :integer,
           default: 10
 
-  @envdoc "The number of connections to RabbitMQ used to produce data"
-  app_env :events_producer_connection_number,
-          :astarte_data_updater_plant,
-          :events_producer_connection_number,
-          os_env: "DATA_UPDATER_PLANT_EVENTS_PRODUCER_CONNECTION_NUMBER",
-          type: :integer,
-          default: 1
-
   # Since we have one channel per queue, this is not configurable
   def amqp_consumer_channels_per_connection_number!() do
     ceil(data_queue_total_count!() / amqp_consumer_connection_number!())
   end
+
+  # Since we have only one producer, this is not configurable
+  def events_producer_connection_number!(), do: 1
+
+  # Since we have one channel per queue, this is not configurable
+  def events_producer_channels_per_connection_number!(), do: 1
 
   @doc """
   Returns the AMQP data consumer connection options
@@ -350,7 +348,8 @@ defmodule Astarte.DataUpdaterPlant.Config do
       username: amqp_producer_username,
       password: amqp_producer_password,
       virtual_host: amqp_producer_virtual_host,
-      port: amqp_producer_port
+      port: amqp_producer_port,
+      channels: events_producer_channels_per_connection_number!()
     ]
     |> populate_producer_ssl_options()
   end
@@ -403,6 +402,15 @@ defmodule Astarte.DataUpdaterPlant.Config do
 
       Keyword.put(ssl_options, :server_name_indication, to_charlist(server_name))
     end
+  end
+
+  def events_producer_pool_config!() do
+    [
+      name: {:local, :events_producer_pool},
+      worker_module: ExRabbitPool.Worker.RabbitConnection,
+      size: events_producer_connection_number!(),
+      max_overflow: 0
+    ]
   end
 
   def data_updater_deactivation_interval_ms! do
