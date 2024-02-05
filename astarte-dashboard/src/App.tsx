@@ -83,7 +83,7 @@ const DashboardSidebar = () => {
         <Sidebar.ApiStatus healthy={isApiHealthy} realm={astarte.realm} />
         <Sidebar.Separator />
         <Sidebar.Item label="Logout" link="/logout" icon="logout" />
-        <Sidebar.AppInfo appVersion={process.env.REACT_APP_VERSION || ''} />
+        <Sidebar.AppInfo appVersion={import.meta.env.VITE_APP_VERSION || ''} />
       </Sidebar>
     </Col>
   );

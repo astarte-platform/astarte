@@ -1,7 +1,7 @@
 /*
    This file is part of Astarte.
 
-   Copyright 2021 Ispirata Srl
+   Copyright 2021-24 SECO Mind Srl
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -20,8 +20,8 @@ import _axios from 'axios';
 
 import AstarteClient from './client';
 
-const axios = _axios as unknown as jest.Mock; // Set correct Typescript type
-jest.mock('axios');
+const axios = vi.mocked(_axios);
+vi.mock('axios');
 
 describe('AstarteClient', () => {
   const realm = 'testrealm';
@@ -41,11 +41,21 @@ describe('AstarteClient', () => {
     token,
   });
 
+  beforeEach(() => {
+    axios.mockClear();
+  });
+
   it('correctly performs getDeviceData', async () => {
     const deviceId = 'deviceId';
     const interfaceName = 'interfaceName';
     const deviceData = { some: { property: { value: 42 } } };
-    axios.mockResolvedValue({ data: { data: deviceData } });
+    axios.mockResolvedValue({
+      data: { data: deviceData },
+      status: 200,
+      statusText: '',
+      headers: undefined,
+      config: {},
+    });
 
     const fetcheData = await astarte.getDeviceData({ deviceId, interfaceName });
     expect(axios).toHaveBeenCalledTimes(1);
@@ -58,6 +68,7 @@ describe('AstarteClient', () => {
         method: 'get',
       }),
     );
+    // @ts-expect-error wrong automatic type for the return values of axios mock
     expect(axios.mock.calls[0][0].url.toString()).toBe(
       `${appEngineApiUrl}v1/${realm}/devices/${deviceId}/interfaces/${interfaceName}?since=&since_after=&to=&limit=`,
     );
@@ -70,6 +81,7 @@ describe('AstarteClient', () => {
     const limit = 5;
     await astarte.getDeviceData({ deviceId, interfaceName, path, since, sinceAfter, to, limit });
     expect(axios).toHaveBeenCalledTimes(2);
+    // @ts-expect-error wrong automatic type for the return values of axios mock
     expect(axios.mock.calls[1][0].url.toString()).toBe(
       `${appEngineApiUrl}v1/${realm}/devices/${deviceId}/interfaces/${interfaceName}${path}?since=${since}&since_after=${sinceAfter}&to=${to}&limit=${limit}`,
     );
@@ -119,21 +131,42 @@ describe('AstarteClient', () => {
       ],
     };
     const deviceData = { bedroom: { heating: true } };
-    axios.mockImplementationOnce(async () => ({ data: { data: device } })); // Mock first call
-    axios.mockImplementationOnce(async () => ({ data: { data: iface } })); // Mock second call
-    axios.mockImplementationOnce(async () => ({ data: { data: deviceData } })); // Mock third call
+    axios.mockImplementationOnce(async () => ({
+      data: { data: device },
+      status: 200,
+      statusText: '',
+      headers: undefined,
+      config: {},
+    })); // Mock first call
+    axios.mockImplementationOnce(async () => ({
+      data: { data: iface },
+      status: 200,
+      statusText: '',
+      headers: undefined,
+      config: {},
+    })); // Mock second call
+    axios.mockImplementationOnce(async () => ({
+      data: { data: deviceData },
+      status: 200,
+      statusText: '',
+      headers: undefined,
+      config: {},
+    })); // Mock third call
 
     const fetcheDataTree = await astarte.getDeviceDataTree({ deviceId, interfaceName });
     expect(axios).toHaveBeenCalledTimes(3);
     // First GET to fetch Device
+    // @ts-expect-error wrong automatic type for the return values of axios mock
     expect(axios.mock.calls[0][0].url.toString()).toBe(
       `${appEngineApiUrl}v1/${realm}/devices/${deviceId}`,
     );
     // Second GET to fetch Interface
+    // @ts-expect-error wrong automatic type for the return values of axios mock
     expect(axios.mock.calls[1][0].url.toString()).toBe(
       `${realmManagementApiUrl}v1/${realm}/interfaces/${interfaceName}/${interfaceMajor}`,
     );
     // Third GET to fetch Device data
+    // @ts-expect-error wrong automatic type for the return values of axios mock
     expect(axios.mock.calls[2][0].url.toString()).toBe(
       `${appEngineApiUrl}v1/${realm}/devices/${deviceId}/interfaces/${interfaceName}?since=&since_after=&to=&limit=`,
     );

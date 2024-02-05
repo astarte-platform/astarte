@@ -1,20 +1,12 @@
 {
-  "extends": [
-    "react-app",
-    "react-app/jest",
-    "airbnb",
-    "prettier",
-    "prettier/react",
-    "plugin:@typescript-eslint/recommended"
-  ],
-  "plugins": ["prettier", "react", "@typescript-eslint"],
+  "extends": ["react-app", "plugin:cypress/recommended", "prettier"],
+  "plugins": ["prettier"],
   "settings": {
     "import/resolver": {
       "node": {
         "extensions": [".js", ".jsx", ".ts", ".tsx"],
         "paths": "src"
-      },
-      "typescript": {}
+      }
     }
   },
   "rules": {
@@ -30,7 +22,7 @@
         "tsx": "never"
       }
     ],
-    "import/no-extraneous-dependencies": ["error", {"devDependencies": true}],
+    "import/no-extraneous-dependencies": ["error", { "devDependencies": true }],
     "import/prefer-default-export": "off",
     "jsx-a11y/click-events-have-key-events": "off",
     "jsx-a11y/label-has-associated-control": "off",

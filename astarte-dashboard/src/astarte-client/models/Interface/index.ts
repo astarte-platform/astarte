@@ -123,7 +123,7 @@ const checkMappingsHaveSameAttributes = (mappings?: AstarteMappingObject[] | nul
 };
 
 const mappingsValidation = yup
-  .array(AstarteMapping.validation)
+  .array<AstarteMappingObject>(AstarteMapping.validation)
   .max(1024)
   .defined()
   .test('unique-mappings', 'Mappings cannot have conflicting endpoints', checkMappingsUniqueness);

@@ -4,6 +4,6 @@ export default defineConfig({
   video: false,
   e2e: {
     setupNodeEvents(on, config) {},
-    baseUrl: 'http://localhost:8080',
+    baseUrl: 'http://dashboard.astarte.localhost:8080',
   },
 });
