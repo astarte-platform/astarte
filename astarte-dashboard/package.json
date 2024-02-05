@@ -47,7 +47,7 @@
     "@emotion/core": "^11.0.0",
     "@emotion/react": "^11.11.3",
     "@emotion/styled": "^11.11.0",
-    "@fortawesome/fontawesome-free": "^5.15.2",
+    "@fortawesome/fontawesome-free": "^6.5.1",
     "@projectstorm/react-canvas-core": "^7.0.2",
     "@projectstorm/react-diagrams": "^7.0.3",
     "@reduxjs/toolkit": "^1.9.0",
