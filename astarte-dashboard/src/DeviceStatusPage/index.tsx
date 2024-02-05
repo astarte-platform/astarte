@@ -1,7 +1,7 @@
 /*
    This file is part of Astarte.
 
-   Copyright 2020-2021 Ispirata Srl
+   Copyright 2020-2024 SECO Mind Srl
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -152,7 +152,7 @@ type PageModal =
   | ReregisterDeviceModalT
   | DeleteDeviceModalT;
 
-export default (): React.ReactElement => {
+const DeviceStatusPage = (): React.ReactElement => {
   const { deviceId = '' } = useParams();
   const astarte = useAstarte();
   const navigate = useNavigate();
@@ -176,7 +176,7 @@ export default (): React.ReactElement => {
   }, []);
 
   const inhibitDeviceCredentialsRequests = useCallback(
-    (inhibit) => {
+    (inhibit: boolean) => {
       astarte.client
         .inhibitDeviceCredentialsRequests(deviceId, inhibit)
         .then(() => {
@@ -217,7 +217,7 @@ export default (): React.ReactElement => {
   }, [astarte.client, deviceId, dismissModal, devicePageAlersController, navigate]);
 
   const addDeviceToGroup = useCallback(
-    (groupName) => {
+    (groupName: string) => {
       astarte.client
         .addDeviceToGroup({
           groupName,
@@ -236,7 +236,7 @@ export default (): React.ReactElement => {
   );
 
   const handleAliasUpdate = useCallback(
-    (key, value) => {
+    (key: string, value: string) => {
       astarte.client
         .insertDeviceAlias(deviceId, key, value)
         .then(() => {
@@ -252,7 +252,7 @@ export default (): React.ReactElement => {
   );
 
   const handleAliasDeletion = useCallback(
-    (key) => {
+    (key: string) => {
       astarte.client
         .deleteDeviceAlias(deviceId, key)
         .then(() => {
@@ -268,7 +268,7 @@ export default (): React.ReactElement => {
   );
 
   const handleAttributeUpdate = useCallback(
-    (key, value) => {
+    (key: string, value: string) => {
       astarte.client
         .insertDeviceAttribute(deviceId, key, value)
         .then(() => {
@@ -284,7 +284,7 @@ export default (): React.ReactElement => {
   );
 
   const handleAttributeDeletion = useCallback(
-    (key) => {
+    (key: string) => {
       astarte.client
         .deleteDeviceAttribute(deviceId, key)
         .then(() => {
@@ -561,3 +561,5 @@ export default (): React.ReactElement => {
     </Container>
   );
 };
+
+export default DeviceStatusPage;

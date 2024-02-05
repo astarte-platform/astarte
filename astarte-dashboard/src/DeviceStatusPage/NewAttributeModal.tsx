@@ -1,7 +1,7 @@
 /*
    This file is part of Astarte.
 
-   Copyright 2020 Ispirata Srl
+   Copyright 2020-2024 SECO Mind Srl
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -22,12 +22,12 @@ import FormModal from '../components/modals/Form';
 
 interface AttributeKeyValue {
   key: string;
-  value?: string;
+  value: string;
 }
 
 const attributeFormSchema: JSONSchema7 = {
   type: 'object',
-  required: ['key'],
+  required: ['key', 'value'],
   properties: {
     key: {
       title: 'Key',

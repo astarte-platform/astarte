@@ -2,7 +2,7 @@
    This file is part of Astarte.
 
    Copyright 2020-2021 Ispirata Srl
-   Copyright 2022 SECO Mind Srl
+   Copyright 2022-2024 SECO Mind Srl
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -309,7 +309,7 @@ const TriggersCard = ({
   </Card>
 );
 
-export default (): React.ReactElement => {
+const HomePage = (): React.ReactElement => {
   const astarte = useAstarte();
   const config = useConfig();
   const devicesStats = useFetch(astarte.client.getDevicesStats);
@@ -318,7 +318,7 @@ export default (): React.ReactElement => {
   const appEngineHealth = useFetch(astarte.client.getAppengineHealth);
   const realmManagementHealth = useFetch(astarte.client.getRealmManagementHealth);
   const pairingHealth = useFetch(astarte.client.getPairingHealth);
-  const flowHealth = config.features.flow ? useFetch(astarte.client.getFlowHealth) : null;
+  const flowHealth = useFetch(config.features.flow ? astarte.client.getFlowHealth : async () => {});
   const navigate = useNavigate();
 
   const connectedDevicesProvider = useMemo(
@@ -333,7 +333,7 @@ export default (): React.ReactElement => {
     appEngineHealth.refresh();
     realmManagementHealth.refresh();
     pairingHealth.refresh();
-    if (config.features.flow && flowHealth) {
+    if (config.features.flow) {
       flowHealth.refresh();
     }
   };
@@ -348,7 +348,7 @@ export default (): React.ReactElement => {
     };
   }, [astarte.client]);
 
-  const redirectToLastInterface = useCallback((e, interfaceName) => {
+  const redirectToLastInterface = useCallback((e: React.SyntheticEvent, interfaceName: string) => {
     e.preventDefault();
     astarte.client.getInterfaceMajors(interfaceName).then((interfaceMajors) => {
       const latestMajor = Math.max(...interfaceMajors);
@@ -370,7 +370,7 @@ export default (): React.ReactElement => {
             realmManagement={realmManagementHealth.status}
             pairing={pairingHealth.status}
             showFlowStatus={config.features.flow}
-            flow={flowHealth ? flowHealth.status : null}
+            flow={config.features.flow ? flowHealth.status : null}
           />
         </Col>
         <WaitForData data={devicesStats.value} status={devicesStats.status}>
@@ -409,3 +409,5 @@ export default (): React.ReactElement => {
     </Container>
   );
 };
+
+export default HomePage;
