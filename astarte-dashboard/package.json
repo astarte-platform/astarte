@@ -68,7 +68,7 @@
     "@types/yup": "^0.29.11",
     "@vitejs/plugin-react": "^4.2.1",
     "ajv": "^6.12.6",
-    "axios": "^0.21.1",
+    "axios": "^1.6.7",
     "bootstrap": "^4.6.0",
     "chart.js": "^4.4.1",
     "closest": "^0.0.1",
