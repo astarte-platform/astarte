@@ -1,7 +1,7 @@
 /*
    This file is part of Astarte.
 
-   Copyright 2020-2021 Ispirata Srl
+   Copyright 2020-2024 SECO Mind Srl
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -20,7 +20,6 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button, Form, Spinner } from 'react-bootstrap';
 import Ajv from 'ajv';
-import metaSchemaDraft04 from 'ajv/lib/refs/json-schema-draft-04.json';
 import { AstartePipeline } from 'astarte-client';
 import type { AstarteBlock } from 'astarte-client';
 import _ from 'lodash';
@@ -32,8 +31,7 @@ import VisualFlowEditor, { getNewModel, nodeModelToSource } from './components/V
 import type NativeBlockModel from './models/NativeBlockModel';
 import SingleCardPage from './ui/SingleCardPage';
 
-const ajv = new Ajv({ schemaId: 'id' });
-ajv.addMetaSchema(metaSchemaDraft04);
+const ajv = new Ajv();
 
 interface CommandRowProps {
   className?: string;

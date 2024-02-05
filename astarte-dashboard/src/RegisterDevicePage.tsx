@@ -1,7 +1,7 @@
 /*
    This file is part of Astarte.
 
-   Copyright 2020 Ispirata Srl
+   Copyright 2020-2024 SECO Mind Srl
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -224,7 +224,7 @@ const NamespaceModal = ({ onCancel, onConfirm }: NamespaceModalProps) => {
             title: 'Namespace UUID in canonical text format',
             type: 'string',
             pattern:
-              '^[0-9a-fA-F]{8}\\-[0-9a-fA-F]{4}\\-[0-9a-fA-F]{4}\\-[0-9a-fA-F]{4}\\-[0-9a-fA-F]{12}$',
+              '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$',
           },
           userString: {
             title: 'Name',
