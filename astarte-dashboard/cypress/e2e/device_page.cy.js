@@ -748,7 +748,7 @@ describe('Device page tests', () => {
             cy.contains(formatBytes(totalBytes));
             cy.contains(totalMessages);
           });
-          cy.get('canvas[class^="chart"]').scrollIntoView().should('be.visible');
+          cy.get('canvas[role="img"]').scrollIntoView().should('be.visible');
         });
     });
 
