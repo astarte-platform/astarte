@@ -19,6 +19,10 @@
 defmodule Astarte.Housekeeping.APIWeb.ErrorView do
   use Astarte.Housekeeping.APIWeb, :view
 
+  def render("400.json", _assigns) do
+    %{errors: %{detail: "Bad request"}}
+  end
+
   def render("404.json", _assigns) do
     %{errors: %{detail: "Page not found"}}
   end
