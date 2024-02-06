@@ -42,7 +42,7 @@ const CommandRow = ({ className = '', children }: CommandRowProps): React.ReactE
   <div className={['d-flex flex-row-reverse', className].join(' ')}>{children}</div>
 );
 
-export default (): React.ReactElement => {
+const NewPipelinePage = (): React.ReactElement => {
   const [editorModel] = useState(getNewModel());
   const [isCreatingPipeline, setIsCreatingPipeline] = useState(false);
   const [blocks, setBlocks] = useState<AstarteBlock[]>([]);
@@ -58,9 +58,13 @@ export default (): React.ReactElement => {
   const navigate = useNavigate();
 
   useEffect(() => {
+    let mounted = true;
     astarte.client
       .getBlocks()
       .then((astarteBlocks) => {
+        if (!mounted) {
+          return;
+        }
         const containerBlock = astarteBlocks.find(
           (block) => block.name === 'container' && block.type === 'producer_consumer',
         );
@@ -78,8 +82,13 @@ export default (): React.ReactElement => {
         }
       })
       .catch((error) => {
-        formAlertsController.showError(`Couldn't retrieve block descriptions: ${error.message}`);
+        mounted &&
+          formAlertsController.showError(`Couldn't retrieve block descriptions: ${error.message}`);
       });
+
+    return () => {
+      mounted = false;
+    };
   }, [astarte.client, formAlertsController]);
 
   const schemaObject = useMemo(() => {
@@ -259,3 +268,5 @@ export default (): React.ReactElement => {
     </SingleCardPage>
   );
 };
+
+export default NewPipelinePage;

@@ -1,7 +1,7 @@
 /*
    This file is part of Astarte.
 
-   Copyright 2017-2021 Ispirata Srl
+   Copyright 2017-2024 SECO Mind Srl
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -17,7 +17,7 @@
 */
 
 import React from 'react';
-import ReactDOM from 'react-dom';
+import { createRoot } from 'react-dom/client';
 
 import './styles/main.scss';
 import App from './App';
@@ -38,10 +38,12 @@ fetch('/user-config/config.json')
   }))
   .catch(() => null)
   .then((config: DashboardConfig | null) => {
-    ReactDOM.render(
+    const container = document.getElementById('root')!;
+    const root = createRoot(container);
+
+    root.render(
       <React.StrictMode>
         <App config={config} />
       </React.StrictMode>,
-      document.getElementById('root'),
     );
   });
