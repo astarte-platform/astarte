@@ -1,6 +1,5 @@
 {
   "extends": ["react-app", "plugin:cypress/recommended", "prettier"],
-  "plugins": ["prettier"],
   "settings": {
     "import/resolver": {
       "node": {
@@ -29,7 +28,6 @@
     "jsx-a11y/no-static-element-interactions": "off",
     "no-case-declarations": "off",
     "no-param-reassign": ["error", { "props": true, "ignorePropertyModificationsFor": ["state"] }],
-    "prettier/prettier": "error",
     "react/jsx-filename-extension": [
       2,
       {
