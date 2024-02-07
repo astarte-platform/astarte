@@ -1,7 +1,7 @@
 /*
    This file is part of Astarte.
 
-   Copyright 2021 Ispirata Srl
+   Copyright 2021-2024 SECO Mind Srl
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -17,7 +17,8 @@
 */
 
 import React, { useMemo } from 'react';
-import { Line } from 'react-chartjs-2';
+import 'chart.js/auto';
+import { Chart, ChartProps } from 'react-chartjs-2';
 import Color from 'color';
 
 import { ChartProvider, TimestampedAggregated, TimestampedIndividual } from 'astarte-charts';
@@ -114,20 +115,18 @@ export const TimeseriesChart = ({
     return { datasets: individualProvidersTimeseries.concat(aggregatedProvidersTimeseries) };
   }, [individualTimeseriesFetcher.data, aggregatedTimeseriesFetcher.data]);
 
-  const chartOptions = useMemo(
+  const chartOptions: ChartProps<'line'>['options'] = useMemo(
     () => ({
       responsive: true,
       legend: {
         display: showLegend,
       },
       scales: {
-        xAxes: [
-          {
-            type: 'time',
-            distribution: scaleDistribution,
-            bounds: 'data',
-          },
-        ],
+        xAxes: {
+          type: 'time',
+          distribution: scaleDistribution,
+          bounds: 'data',
+        },
       },
       elements: {
         line: {
@@ -138,5 +137,7 @@ export const TimeseriesChart = ({
     [showLegend, scaleDistribution],
   );
 
-  return <Line data={chartData} options={chartOptions} width={width} height={height} />;
+  return (
+    <Chart type="line" data={chartData} options={chartOptions} width={width} height={height} />
+  );
 };

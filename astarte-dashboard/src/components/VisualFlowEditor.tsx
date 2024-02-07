@@ -1,7 +1,7 @@
 /*
   This file is part of Astarte.
 
-  Copyright 2020-2021 Ispirata Srl
+  Copyright 2020-2024 SECO Mind Srl
 
   Licensed under the Apache License, Version 2.0 (the "License");
   you may not use this file except in compliance with the License.
@@ -19,7 +19,8 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { CanvasWidget } from '@projectstorm/react-canvas-core';
 import createEngine, { DiagramModel } from '@projectstorm/react-diagrams';
-import type { AstarteBlock } from 'astarte-client';
+import type { Point } from '@projectstorm/geometry';
+import type { AstarteBlock, AstarteBlockType } from 'astarte-client';
 
 import NativeBlockFactory from './NativeBlockFactory';
 import NativeBlockModel from '../models/NativeBlockModel';
@@ -99,7 +100,7 @@ const VisualFlowEditor = ({
   }, [blocks, nodeFactory]);
 
   const addBlock = useCallback(
-    (name, type, position) => {
+    (name: string, type: AstarteBlockType, position: Point) => {
       const newNode = nodeFactory.generateModel({
         name,
         type,
@@ -124,7 +125,7 @@ const VisualFlowEditor = ({
         onDragOver={(e) => e.preventDefault()}
         onDrop={(e) => {
           const blockName = e.dataTransfer.getData('block-name');
-          const blockType = e.dataTransfer.getData('block-type');
+          const blockType = e.dataTransfer.getData('block-type') as AstarteBlockType;
           addBlock(blockName, blockType, engine.getRelativeMousePoint(e));
         }}
       >

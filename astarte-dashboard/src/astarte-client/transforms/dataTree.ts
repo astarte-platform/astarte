@@ -109,13 +109,13 @@ interface AstarteDataTreeNode<
   toData: () => Equals<Data, AstarteDatastreamObjectData> extends true
     ? AstarteDatastreamObjectData[]
     : Equals<Data, AstarteDatastreamIndividualData> extends true
-    ? AstarteDatastreamIndividualData[]
-    : AstartePropertyData[];
+      ? AstarteDatastreamIndividualData[]
+      : AstartePropertyData[];
   toLinearizedData: () => Equals<Data, AstarteDatastreamObjectData> extends true
     ? AstarteDatastreamData[]
     : Equals<Data, AstarteDatastreamIndividualData> extends true
-    ? AstarteDatastreamData[]
-    : AstartePropertyData[];
+      ? AstarteDatastreamData[]
+      : AstartePropertyData[];
   toLastValue: () => JSON<AstarteDataValue>;
 }
 
@@ -126,8 +126,8 @@ interface AstarteDataTreeLeafNodeParams<
   data: Equals<Data, AstarteDatastreamObjectData> extends true
     ? AstarteDatastreamObjectData[]
     : Equals<Data, AstarteDatastreamIndividualData> extends true
-    ? AstarteDatastreamIndividualData[]
-    : AstartePropertyData;
+      ? AstarteDatastreamIndividualData[]
+      : AstartePropertyData;
   endpoint?: string;
   parentNode?: AstarteDataTreeBranchNode<Data> | null;
 }
@@ -145,14 +145,14 @@ class AstarteDataTreeLeafNode<
   private readonly data: Equals<Data, AstarteDatastreamObjectData> extends true
     ? AstarteDatastreamObjectData[]
     : Equals<Data, AstarteDatastreamIndividualData> extends true
-    ? AstarteDatastreamIndividualData[]
-    : AstartePropertyData;
+      ? AstarteDatastreamIndividualData[]
+      : AstartePropertyData;
 
   private readonly linearizedData: Equals<Data, AstarteDatastreamObjectData> extends true
     ? AstarteDatastreamData[]
     : Equals<Data, AstarteDatastreamIndividualData> extends true
-    ? AstarteDatastreamData[]
-    : AstartePropertyData;
+      ? AstarteDatastreamData[]
+      : AstartePropertyData;
 
   constructor({
     interface: iface,
@@ -209,8 +209,8 @@ class AstarteDataTreeLeafNode<
   toData(): Equals<Data, AstarteDatastreamObjectData> extends true
     ? AstarteDatastreamObjectData[]
     : Equals<Data, AstarteDatastreamIndividualData> extends true
-    ? AstarteDatastreamIndividualData[]
-    : [AstartePropertyData] {
+      ? AstarteDatastreamIndividualData[]
+      : [AstartePropertyData] {
     // @ts-expect-error cannot correctly infer from generics
     return _.isArray(this.data) ? this.data : [this.data];
   }
@@ -218,8 +218,8 @@ class AstarteDataTreeLeafNode<
   toLinearizedData(): Equals<Data, AstarteDatastreamObjectData> extends true
     ? AstarteDatastreamData[]
     : Equals<Data, AstarteDatastreamIndividualData> extends true
-    ? AstarteDatastreamData[]
-    : [AstartePropertyData] {
+      ? AstarteDatastreamData[]
+      : [AstartePropertyData] {
     // @ts-expect-error cannot correctly infer from generics
     return _.isArray(this.linearizedData) ? this.linearizedData : [this.linearizedData];
   }
@@ -344,8 +344,8 @@ class AstarteDataTreeBranchNode<
   toData(): Equals<Data, AstarteDatastreamObjectData> extends true
     ? AstarteDatastreamObjectData[]
     : Equals<Data, AstarteDatastreamIndividualData> extends true
-    ? AstarteDatastreamIndividualData[]
-    : AstartePropertyData[] {
+      ? AstarteDatastreamIndividualData[]
+      : AstartePropertyData[] {
     // @ts-expect-error cannot correctly infer from generics
     return this.getLeaves()
       .map((leaf) => leaf.toData())
@@ -355,8 +355,8 @@ class AstarteDataTreeBranchNode<
   toLinearizedData(): Equals<Data, AstarteDatastreamObjectData> extends true
     ? AstarteDatastreamData[]
     : Equals<Data, AstarteDatastreamIndividualData> extends true
-    ? AstarteDatastreamData[]
-    : AstartePropertyData[] {
+      ? AstarteDatastreamData[]
+      : AstartePropertyData[] {
     // @ts-expect-error cannot correctly infer from generics
     return this.getLeaves()
       .map((leaf) => leaf.toLinearizedData())

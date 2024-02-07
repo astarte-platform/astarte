@@ -1,7 +1,7 @@
 /*
    This file is part of Astarte.
 
-   Copyright 2020-2021 Ispirata Srl
+   Copyright 2020-2024 SECO Mind Srl
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -19,12 +19,11 @@
 import React, { useState } from 'react';
 import { Button, Form, Modal, Spinner } from 'react-bootstrap';
 import type { ModalProps } from 'react-bootstrap';
-import metaSchemaDraft04 from 'ajv/lib/refs/json-schema-draft-04.json';
 import JsonSchemaForm from '@rjsf/bootstrap-4';
-import type { WidgetProps, IChangeEvent } from '@rjsf/core';
+import validator from '@rjsf/validator-ajv8';
+import type { IChangeEvent } from '@rjsf/core';
+import type { WidgetProps } from '@rjsf/utils';
 import type { ComponentProps } from 'react';
-
-const additionalMetaSchemas = [metaSchemaDraft04];
 
 export interface TextWidgetProps extends WidgetProps {
   type?: string;
@@ -150,7 +149,7 @@ const FormModal = ({
         <div>
           <JsonSchemaForm
             schema={schema}
-            additionalMetaSchemas={additionalMetaSchemas}
+            validator={validator}
             uiSchema={uiSchema}
             widgets={widgets}
             formData={formData}

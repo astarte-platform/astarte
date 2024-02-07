@@ -1,7 +1,7 @@
 /*
    This file is part of Astarte.
 
-   Copyright 2020-2021 Ispirata Srl
+   Copyright 2020-2024 SECO Mind Srl
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -20,7 +20,6 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button, Form, Spinner } from 'react-bootstrap';
 import Ajv from 'ajv';
-import metaSchemaDraft04 from 'ajv/lib/refs/json-schema-draft-04.json';
 import { AstartePipeline } from 'astarte-client';
 import type { AstarteBlock } from 'astarte-client';
 import _ from 'lodash';
@@ -32,8 +31,7 @@ import VisualFlowEditor, { getNewModel, nodeModelToSource } from './components/V
 import type NativeBlockModel from './models/NativeBlockModel';
 import SingleCardPage from './ui/SingleCardPage';
 
-const ajv = new Ajv({ schemaId: 'id' });
-ajv.addMetaSchema(metaSchemaDraft04);
+const ajv = new Ajv();
 
 interface CommandRowProps {
   className?: string;
@@ -44,7 +42,7 @@ const CommandRow = ({ className = '', children }: CommandRowProps): React.ReactE
   <div className={['d-flex flex-row-reverse', className].join(' ')}>{children}</div>
 );
 
-export default (): React.ReactElement => {
+const NewPipelinePage = (): React.ReactElement => {
   const [editorModel] = useState(getNewModel());
   const [isCreatingPipeline, setIsCreatingPipeline] = useState(false);
   const [blocks, setBlocks] = useState<AstarteBlock[]>([]);
@@ -60,9 +58,13 @@ export default (): React.ReactElement => {
   const navigate = useNavigate();
 
   useEffect(() => {
+    let mounted = true;
     astarte.client
       .getBlocks()
       .then((astarteBlocks) => {
+        if (!mounted) {
+          return;
+        }
         const containerBlock = astarteBlocks.find(
           (block) => block.name === 'container' && block.type === 'producer_consumer',
         );
@@ -80,8 +82,13 @@ export default (): React.ReactElement => {
         }
       })
       .catch((error) => {
-        formAlertsController.showError(`Couldn't retrieve block descriptions: ${error.message}`);
+        mounted &&
+          formAlertsController.showError(`Couldn't retrieve block descriptions: ${error.message}`);
       });
+
+    return () => {
+      mounted = false;
+    };
   }, [astarte.client, formAlertsController]);
 
   const schemaObject = useMemo(() => {
@@ -261,3 +268,5 @@ export default (): React.ReactElement => {
     </SingleCardPage>
   );
 };
+
+export default NewPipelinePage;

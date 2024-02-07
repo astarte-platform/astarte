@@ -1,7 +1,7 @@
 /*
    This file is part of Astarte.
 
-   Copyright 2021 Ispirata Srl
+   Copyright 2021-2024 SECO Mind Srl
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -17,7 +17,8 @@
 */
 
 import React, { useMemo } from 'react';
-import { Pie } from 'react-chartjs-2';
+import 'chart.js/auto';
+import { Chart } from 'react-chartjs-2';
 import Color from 'color';
 import { ChartProvider, Aggregated } from 'astarte-charts';
 
@@ -85,5 +86,5 @@ export const PieChart = <Kind extends Aggregated = Aggregated>({
     [showLegend, legendPosition, legendAlign],
   );
 
-  return <Pie data={chartData} width={width} height={height} options={chartOptions} />;
+  return <Chart type="pie" data={chartData} width={width} height={height} options={chartOptions} />;
 };

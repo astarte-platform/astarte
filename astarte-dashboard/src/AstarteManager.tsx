@@ -1,7 +1,7 @@
 /*
    This file is part of Astarte.
 
-   Copyright 2020-2021 Ispirata Srl
+   Copyright 2020-2024 SECO Mind Srl
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -143,10 +143,13 @@ const AstarteProvider = ({
       if (!realm || !token) {
         return false;
       }
+      if (session?.authUrl === authUrl && session.realm === realm && session.token === token) {
+        return true;
+      }
       updateSession({ realm, token, authUrl });
       return true;
     },
-    [updateSession],
+    [session, updateSession],
   );
 
   const logout = useCallback(() => updateSession(null), [updateSession]);
