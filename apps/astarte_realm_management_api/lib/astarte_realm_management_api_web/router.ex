@@ -24,22 +24,22 @@ defmodule Astarte.RealmManagement.APIWeb.Router do
     plug Astarte.RealmManagement.APIWeb.Plug.Telemetry.CallsCount
   end
 
-  scope "/v1", Astarte.RealmManagement.APIWeb do
+  scope "/v1/:realm_name", Astarte.RealmManagement.APIWeb do
     pipe_through :api
 
-    get "/:realm_name/version", VersionController, :show
+    get "/version", VersionController, :show
 
-    get "/:realm_name/interfaces/:id", InterfaceVersionController, :index
-    resources "/:realm_name/interfaces", InterfaceController, only: [:index, :create]
-    get "/:realm_name/interfaces/:id/:major_version", InterfaceController, :show
-    put "/:realm_name/interfaces/:id/:major_version", InterfaceController, :update
-    delete "/:realm_name/interfaces/:id/:major_version", InterfaceController, :delete
-    get "/:realm_name/config/:group", RealmConfigController, :show
-    put "/:realm_name/config/:group", RealmConfigController, :update
+    get "/interfaces/:id", InterfaceVersionController, :index
+    resources "/interfaces", InterfaceController, only: [:index, :create]
+    get "/interfaces/:id/:major_version", InterfaceController, :show
+    put "/interfaces/:id/:major_version", InterfaceController, :update
+    delete "/interfaces/:id/:major_version", InterfaceController, :delete
+    get "/config/:group", RealmConfigController, :show
+    put "/config/:group", RealmConfigController, :update
 
-    resources "/:realm_name/triggers", TriggerController, except: [:new, :edit]
-    resources "/:realm_name/policies", TriggerPolicyController, except: [:new, :edit]
+    resources "/triggers", TriggerController, except: [:new, :edit]
+    resources "/policies", TriggerPolicyController, except: [:new, :edit]
 
-    delete "/:realm_name/devices/:device_id", DeviceController, :delete
+    delete "/devices/:device_id", DeviceController, :delete
   end
 end
