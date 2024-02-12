@@ -67,20 +67,36 @@ defmodule Astarte.TriggerEngine.EventsConsumer do
          {:ok, action} <- retrieve_trigger_configuration(realm, trigger_id),
          {:ok, payload} <-
            event_to_payload(realm, device_id, event_type, event, action, timestamp_ms),
-         {:ok, headers} <- event_to_headers(realm, device_id, event_type, event, action),
-         :ok <- execute_action(payload, headers, action) do
-      :telemetry.execute(
-        [:astarte, :trigger_engine, :http_action_executed],
-        %{},
-        %{realm: realm, status: :ok}
-      )
-
-      :ok
+         {:ok, headers} <- event_to_headers(realm, device_id, event_type, event, action) do
+      send_simple_event(realm, payload, headers, action)
     else
+      error ->
+        Logger.warn("Error while processing event: #{inspect(error)}")
+
+        error
+    end
+  end
+
+  defp send_simple_event(realm, payload, headers, action) do
+    payload_size = :erlang.byte_size(payload)
+
+    case execute_action(payload, headers, action) do
+      :ok ->
+        :telemetry.execute(
+          [:astarte, :trigger_engine, :http_action_executed],
+          %{size: payload_size},
+          %{
+            realm: realm,
+            status: :ok
+          }
+        )
+
+        :ok
+
       {:error, {:http_error, status_code}} ->
         :telemetry.execute(
           [:astarte, :trigger_engine, :http_action_executed],
-          %{},
+          %{size: payload_size},
           %{realm: realm, status: status_code}
         )
 
@@ -89,16 +105,11 @@ defmodule Astarte.TriggerEngine.EventsConsumer do
       {:error, :connection_error} ->
         :telemetry.execute(
           [:astarte, :trigger_engine, :http_action_executed],
-          %{},
+          %{size: payload_size},
           %{realm: realm, status: :connection_error}
         )
 
         {:error, :connection_error}
-
-      error ->
-        Logger.warn("Error while processing event: #{inspect(error)}")
-
-        error
     end
   end
 
