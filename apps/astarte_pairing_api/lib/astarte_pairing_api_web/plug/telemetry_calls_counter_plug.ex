@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2017-2023 SECO Mind Srl
+# Copyright 2024 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -16,22 +16,16 @@
 # limitations under the License.
 #
 
-defmodule Astarte.Housekeeping.APIWeb.Router do
-  use Astarte.Housekeeping.APIWeb, :router
-
-  pipeline :api do
-    plug :accepts, ["json"]
-    plug Astarte.Housekeeping.APIWeb.Plug.AuthorizePath
-    plug Astarte.Housekeeping.APIWeb.Plug.Telemetry.CallsCount
+defmodule Astarte.Pairing.APIWeb.Plug.Telemetry.CallsCount do
+  def init(opts) do
+    opts
   end
 
-  scope "/v1", Astarte.Housekeeping.APIWeb do
-    pipe_through :api
+  def call(conn, _opts) do
+    :telemetry.execute([:astarte, :pairing, :api, :calls], %{}, %{
+      realm: conn.params["realm_name"]
+    })
 
-    get "/version", VersionController, :show
-
-    resources "/realms", RealmController, except: [:new, :edit, :update]
-
-    patch "/realms/:realm_name", RealmController, :update
+    conn
   end
 end
