@@ -84,7 +84,7 @@ defmodule Astarte.TriggerEngine.EventsConsumer do
       :ok ->
         :telemetry.execute(
           [:astarte, :trigger_engine, :http_action_executed],
-          %{size: payload_size},
+          %{payload_bytes: payload_size},
           %{
             realm: realm,
             status: :ok
@@ -96,7 +96,7 @@ defmodule Astarte.TriggerEngine.EventsConsumer do
       {:error, {:http_error, status_code}} ->
         :telemetry.execute(
           [:astarte, :trigger_engine, :http_action_executed],
-          %{size: payload_size},
+          %{payload_bytes: payload_size},
           %{realm: realm, status: status_code}
         )
 
@@ -105,7 +105,7 @@ defmodule Astarte.TriggerEngine.EventsConsumer do
       {:error, :connection_error} ->
         :telemetry.execute(
           [:astarte, :trigger_engine, :http_action_executed],
-          %{size: payload_size},
+          %{payload_bytes: payload_size},
           %{realm: realm, status: :connection_error}
         )
 
