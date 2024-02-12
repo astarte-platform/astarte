@@ -1901,6 +1901,15 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
   end
 
   defp execute_time_based_actions(state, timestamp, db_client) do
+    if state.connected && state.last_seen_message > 0 do
+      # timestamps are handled as microseconds*10, so we need to divide by 10 when saving as a metric for a coherent data
+      :telemetry.execute(
+        [:astarte, :data_updater_plant, :service, :connected_devices],
+        %{duration: Integer.floor_div(timestamp - state.last_seen_message, 10)},
+        %{realm: state.realm, status: :ok}
+      )
+    end
+
     state
     |> Map.put(:last_seen_message, timestamp)
     |> reload_groups_on_expiry(timestamp, db_client)
