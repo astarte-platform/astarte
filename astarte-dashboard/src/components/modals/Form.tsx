@@ -19,7 +19,9 @@
 import React, { useState } from 'react';
 import { Button, Form, Modal, Spinner } from 'react-bootstrap';
 import type { ModalProps } from 'react-bootstrap';
-import JsonSchemaForm from '@rjsf/bootstrap-4';
+// TODO: use @rjsf/react-bootstrap when @rjsf publishes v6 with support for
+// Bootstrap 5: https://github.com/rjsf-team/react-jsonschema-form/issues/4162
+import JsonSchemaForm from '@astarte-platform/react-bootstrap';
 import validator from '@rjsf/validator-ajv8';
 import type { IChangeEvent } from '@rjsf/core';
 import type { WidgetProps } from '@rjsf/utils';
