@@ -53,7 +53,7 @@ const AliasesTable = ({
           <td>{key}</td>
           <td>{value}</td>
           <td className="text-center">
-            <Icon icon="edit" className="color-grey mr-2" onClick={() => onEditAliasClick(key)} />
+            <Icon icon="edit" className="color-grey me-2" onClick={() => onEditAliasClick(key)} />
             <Icon icon="erase" onClick={() => onRemoveAliasClick({ key, value })} />
           </td>
         </tr>

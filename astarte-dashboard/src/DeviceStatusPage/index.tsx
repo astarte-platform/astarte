@@ -303,7 +303,7 @@ const DeviceStatusPage = (): React.ReactElement => {
     <Container fluid className="p-3">
       <Row>
         <Col>
-          <h2 className="pl-2">
+          <h2 className="ps-2">
             <BackButton href="/devices" />
             Device
           </h2>

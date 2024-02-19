@@ -78,7 +78,7 @@ const DeviceTableRow = ({
           onChange={onToggleChange}
         />
       </td>
-      <td className="text-monospace">
+      <td className="font-monospace">
         <Highlight text={deviceId} word={filter} />
       </td>
       <td>

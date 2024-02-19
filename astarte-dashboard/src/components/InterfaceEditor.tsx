@@ -80,12 +80,12 @@ const MappingRow = ({ className, mapping, onEdit, onDelete }: MappingRowProps) =
       >
         <span className="flex-grow-1">
           <Badge variant="secondary">{mapping.type}</Badge>
-          <Button className="text-left text-truncate" variant="link">
+          <Button className="text-start text-truncate" variant="link">
             {mapping.endpoint}
           </Button>
         </span>
         {onEdit && (
-          <Button className="mr-2" variant="outline-primary" onClick={onEdit}>
+          <Button className="me-2" variant="outline-primary" onClick={onEdit}>
             Edit...
           </Button>
         )}
@@ -1000,7 +1000,7 @@ export default ({
                     className="btn accordion-button w-100 mb-2"
                     onClick={handleAddMapping}
                   >
-                    <Icon icon="add" className="mr-2" /> Add mapping...
+                    <Icon icon="add" className="me-2" /> Add mapping...
                   </button>
                   {interfaceDraft.mappings.map((mapping, index) => {
                     const isExistingMapping = (initialData?.mappings || []).some(
@@ -1037,7 +1037,7 @@ export default ({
           <Form.Group controlId="interfaceSource" className="h-100 d-flex flex-column">
             <Form.Control
               as="textarea"
-              className="flex-grow-1 text-monospace"
+              className="flex-grow-1 font-monospace"
               value={interfaceSource}
               onChange={handleInterfaceSourceChange}
               autoComplete="off"

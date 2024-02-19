@@ -55,7 +55,7 @@ const AttributesTable = ({
           <td className="text-center">
             <Icon
               icon="edit"
-              className="color-grey mr-2"
+              className="color-grey me-2"
               onClick={() => onEditAttributeClick(key)}
             />
             <Icon icon="erase" onClick={() => onRemoveAttributeClick({ key, value })} />

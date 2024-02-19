@@ -165,7 +165,7 @@ const FormModal = ({
           >
             <hr style={{ display: 'block', marginLeft: '-1em', marginRight: '-1em' }} />
             <div className="d-flex justify-content-end">
-              <Button variant="secondary mr-2" onClick={onCancel} style={{ minWidth: '5em' }}>
+              <Button variant="secondary me-2" onClick={onCancel} style={{ minWidth: '5em' }}>
                 {cancelLabel}
               </Button>
               <Button
@@ -176,7 +176,7 @@ const FormModal = ({
                 style={{ minWidth: '5em' }}
               >
                 {isConfirming && (
-                  <Spinner className="mr-2" size="sm" animation="border" role="status" />
+                  <Spinner className="me-2" size="sm" animation="border" role="status" />
                 )}
                 {confirmLabel}
               </Button>

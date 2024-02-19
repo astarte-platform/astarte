@@ -56,7 +56,7 @@ const DeviceStatus = ({ status }: DeviceStatusProps): React.ReactElement => {
 
   return (
     <>
-      <Icon icon={icon} className="mr-1" />
+      <Icon icon={icon} className="me-1" />
       <span>{statusString}</span>
     </>
   );
@@ -81,7 +81,7 @@ const DeviceInfoCard = ({
     <Card.Header as="h5">Device Info</Card.Header>
     <Card.Body className="d-flex flex-column">
       <h6>Device ID</h6>
-      <p className="text-monospace">{device.id}</p>
+      <p className="font-monospace">{device.id}</p>
       <h6>Device name</h6>
       <p>{device.hasNameAlias ? device.name : 'No name alias set'}</p>
       <h6>Status</h6>
@@ -94,7 +94,7 @@ const DeviceInfoCard = ({
         {device.hasCredentialsInhibited ? (
           <Button
             variant="success text-white"
-            className="mr-1"
+            className="me-1"
             onClick={onEnableCredentialsClick}
             disabled={device.deletionInProgress}
           >
@@ -103,7 +103,7 @@ const DeviceInfoCard = ({
         ) : (
           <Button
             variant="danger"
-            className="mr-1"
+            className="me-1"
             onClick={onInhibitCredentialsClick}
             disabled={device.deletionInProgress}
           >
@@ -119,7 +119,7 @@ const DeviceInfoCard = ({
         </Button>
         <Button
           variant="danger"
-          className="ml-1"
+          className="ms-1"
           onClick={onDeleteDeviceClick}
           disabled={device.deletionInProgress}
         >

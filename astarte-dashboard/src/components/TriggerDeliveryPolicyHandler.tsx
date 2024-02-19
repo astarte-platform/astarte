@@ -266,7 +266,7 @@ export default ({ isReadOnly, initialData, onChange }: Props): React.ReactElemen
       <Form.Group controlId="policyHandler">
         {!isReadOnly && (
           <Button variant="link" className="p-0" onClick={() => setIsAddingHandler(true)}>
-            <Icon icon="add" className="mr-2" />
+            <Icon icon="add" className="me-2" />
             Add Error Handler
           </Button>
         )}
@@ -294,7 +294,7 @@ export default ({ isReadOnly, initialData, onChange }: Props): React.ReactElemen
                       <Icon
                         icon="edit"
                         onClick={() => setHandlerToEditIndex(index)}
-                        className="color-grey mr-2"
+                        className="color-grey me-2"
                       />
                       <Icon
                         icon="erase"

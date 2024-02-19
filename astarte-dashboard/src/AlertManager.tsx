@@ -221,7 +221,7 @@ const AlertBanner = ({ alert }: AlertBannerProps) => {
         className="d-flex justify-content-between flex-wrap"
       >
         {alert.message}
-        <div className="col text-right">{alertRelativeTime}</div>
+        <div className="col text-end">{alertRelativeTime}</div>
       </Alert>
     </Col>
   );

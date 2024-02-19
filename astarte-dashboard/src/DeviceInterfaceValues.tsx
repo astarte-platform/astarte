@@ -202,7 +202,7 @@ export default (): React.ReactElement => {
       </h2>
       <Card className="mt-4">
         <Card.Header>
-          <span className="text-monospace">{deviceId}</span> /{interfaceName}
+          <span className="font-monospace">{deviceId}</span> /{interfaceName}
         </Card.Header>
         <Card.Body>
           <WaitForData

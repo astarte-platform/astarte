@@ -27,7 +27,7 @@ interface Props {
 
 export default function BackButton({ href }: Props): React.ReactElement {
   return (
-    <Link to={href} className="mr-2" aria-label="Back">
+    <Link to={href} className="me-2" aria-label="Back">
       <Icon icon="arrowLeft" />
     </Link>
   );

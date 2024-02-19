@@ -253,7 +253,7 @@ export default ({
           <Form.Group controlId="policySource" className="h-100 d-flex flex-column">
             <Form.Control
               as="textarea"
-              className="flex-grow-1 text-monospace"
+              className="flex-grow-1 font-monospace"
               value={policySource}
               onChange={handlePolicySourceChange}
               autoComplete="off"

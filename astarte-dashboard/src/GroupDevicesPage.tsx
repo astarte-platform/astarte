@@ -65,10 +65,10 @@ const deviceTableRow = (
   return (
     <tr key={index}>
       <td>
-        <Icon className="mr-2" icon={icon} tooltip={iconTooltip} tooltipPlacement="right" />
+        <Icon className="me-2" icon={icon} tooltip={iconTooltip} tooltipPlacement="right" />
         <span>{statusLabel}</span>
       </td>
-      <td className={device.hasNameAlias ? '' : 'text-monospace'}>
+      <td className={device.hasNameAlias ? '' : 'font-monospace'}>
         <Link to={`/devices/${device.id}/edit`}>{device.name}</Link>
       </td>
       <td>{lastEvent}</td>

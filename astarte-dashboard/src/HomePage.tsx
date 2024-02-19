@@ -48,14 +48,14 @@ const ServiceStatusRow = ({ service, status }: ServiceStatusRowProps): React.Rea
   } else if (status === 'ok') {
     messageCell = (
       <td className="color-green">
-        <Icon icon="statusOK" className="mr-1" />
+        <Icon icon="statusOK" className="me-1" />
         This service is operating normally
       </td>
     );
   } else {
     messageCell = (
       <td className="color-red">
-        <Icon icon="statusKO" className="mr-1" />
+        <Icon icon="statusKO" className="me-1" />
         This service appears offline
       </td>
     );
@@ -171,7 +171,7 @@ const InterfaceList = ({
               onInterfaceClick(e, interfaceName);
             }}
           >
-            <Icon icon="interfaces" className="mr-1" />
+            <Icon icon="interfaces" className="me-1" />
             {interfaceName}
           </a>
         </li>
@@ -253,7 +253,7 @@ const TriggerList = ({ triggers, maxShownTriggers }: TriggerListProps): React.Re
       {shownTriggers.map((triggerName) => (
         <li key={triggerName} className="my-1">
           <Link to={`/triggers/${triggerName}/edit`}>
-            <Icon icon="triggers" className="mr-1" />
+            <Icon icon="triggers" className="me-1" />
             {triggerName}
           </Link>
         </li>

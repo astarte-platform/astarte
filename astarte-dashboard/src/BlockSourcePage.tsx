@@ -114,7 +114,7 @@ export default (): React.ReactElement => {
             disabled={isDeletingBlock}
           >
             {isDeletingBlock && (
-              <Spinner as="span" size="sm" animation="border" role="status" className="mr-2" />
+              <Spinner as="span" size="sm" animation="border" role="status" className="me-2" />
             )}
             Delete block
           </Button>

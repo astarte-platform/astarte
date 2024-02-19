@@ -300,7 +300,7 @@ const TriggerActionForm = ({
               <Form.Group controlId="actionHttpHeaders">
                 {!isReadOnly && (
                   <Button variant="link" className="p-0" onClick={() => onAddHttpHeader()}>
-                    <Icon icon="add" className="mr-2" />
+                    <Icon icon="add" className="me-2" />
                     Add custom HTTP headers
                   </Button>
                 )}
@@ -323,7 +323,7 @@ const TriggerActionForm = ({
                               <Icon
                                 icon="edit"
                                 onClick={() => onEditHttpHeader(headerName)}
-                                className="color-grey mr-2"
+                                className="color-grey me-2"
                               />
                               <Icon icon="erase" onClick={() => onDeleteHttpHeader(headerName)} />
                             </td>
@@ -454,7 +454,7 @@ const TriggerActionForm = ({
               <Form.Group controlId="actionAmqpHeaders">
                 {!isReadOnly && (
                   <Button variant="link" className="p-0" onClick={() => onAddAmqpHeader()}>
-                    <Icon icon="add" className="mr-2" />
+                    <Icon icon="add" className="me-2" />
                     Add static AMQP headers
                   </Button>
                 )}
@@ -477,7 +477,7 @@ const TriggerActionForm = ({
                               <Icon
                                 icon="edit"
                                 onClick={() => onEditAmqpHeader(headerName)}
-                                className="color-grey mr-2"
+                                className="color-grey me-2"
                               />
                               <Icon icon="erase" onClick={() => onDeleteAmqpHeader(headerName)} />
                             </td>

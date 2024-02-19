@@ -326,7 +326,7 @@ export default (): React.ReactElement => {
             <Form.Label>Device ID</Form.Label>
             <Form.Control
               type="text"
-              className="text-monospace"
+              className="font-monospace"
               placeholder="Your device ID"
               value={deviceId}
               onChange={(e: React.ChangeEvent<HTMLInputElement>) => setDeviceId(e.target.value)}
@@ -372,14 +372,14 @@ export default (): React.ReactElement => {
             onRemoveInterface={removeIntrospectionInterface}
           />
         )}
-        <Form.Row className="flex-row-reverse pr-2">
+        <Form.Row className="flex-row-reverse pe-2">
           <Button
             variant="primary"
             type="submit"
             disabled={!isValidDeviceId || isRegisteringDevice}
           >
             {isRegisteringDevice && (
-              <Spinner as="span" size="sm" animation="border" role="status" className="mr-2" />
+              <Spinner as="span" size="sm" animation="border" role="status" className="me-2" />
             )}
             Register device
           </Button>

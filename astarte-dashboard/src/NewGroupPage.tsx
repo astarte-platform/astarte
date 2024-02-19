@@ -159,7 +159,7 @@ export default (): React.ReactElement => {
                     } selected.`
                   : 'Please select at least one device.'}
               </span>
-              <div className="float-right">
+              <div className="float-end">
                 <FilterInputBox filter={deviceFilter} onFilterChange={setDeviceFilter} />
               </div>
             </div>
@@ -169,10 +169,10 @@ export default (): React.ReactElement => {
               selectedDevices={selectedDevices}
               onToggleDevice={handleDeviceToggle}
             />
-            <Form.Row className="flex-row-reverse pr-2">
+            <Form.Row className="flex-row-reverse pe-2">
               <Button variant="primary" type="submit" disabled={!isValidForm || isCreatingGroup}>
                 {isCreatingGroup && (
-                  <Spinner as="span" size="sm" animation="border" role="status" className="mr-2" />
+                  <Spinner as="span" size="sm" animation="border" role="status" className="me-2" />
                 )}
                 Create group
               </Button>

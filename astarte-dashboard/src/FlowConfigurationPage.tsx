@@ -99,7 +99,7 @@ export default (): React.ReactElement => {
         />
       </Form.Group>
       <Button variant="primary" disabled={!isValidForm || isCreatingFlow} onClick={createFlow}>
-        {isCreatingFlow && <Spinner className="mr-2" size="sm" animation="border" role="status" />}
+        {isCreatingFlow && <Spinner className="me-2" size="sm" animation="border" role="status" />}
         Instantiate Flow
       </Button>
     </Form>

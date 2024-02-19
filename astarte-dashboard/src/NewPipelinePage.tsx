@@ -256,7 +256,7 @@ const NewPipelinePage = (): React.ReactElement => {
                 disabled={!isValidForm || isCreatingPipeline}
               >
                 {isCreatingPipeline && (
-                  <Spinner as="span" size="sm" animation="border" role="status" className="mr-2" />
+                  <Spinner as="span" size="sm" animation="border" role="status" className="me-2" />
                 )}
                 Create new pipeline
               </Button>
