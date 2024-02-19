@@ -18,7 +18,7 @@
 
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Button, Container, Form, InputGroup, Spinner } from 'react-bootstrap';
+import { Button, Container, Form, InputGroup, Row, Spinner } from 'react-bootstrap';
 import type { AstarteDevice } from 'astarte-client';
 
 import { AlertsBanner, useAlerts } from './AlertManager';
@@ -69,13 +69,11 @@ interface FilterInputBoxProps {
 
 const FilterInputBox = ({ filter, onFilterChange }: FilterInputBoxProps): React.ReactElement => (
   <Form.Group>
-    <Form.Label srOnly>Table filter</Form.Label>
+    <Form.Label visuallyHidden>Table filter</Form.Label>
     <InputGroup>
-      <InputGroup.Prepend>
-        <InputGroup.Text>
-          <Icon icon="filter" />
-        </InputGroup.Text>
-      </InputGroup.Prepend>
+      <InputGroup.Text>
+        <Icon icon="filter" />
+      </InputGroup.Text>
       <Form.Control
         type="text"
         value={filter}
@@ -169,14 +167,14 @@ export default (): React.ReactElement => {
               selectedDevices={selectedDevices}
               onToggleDevice={handleDeviceToggle}
             />
-            <Form.Row className="flex-row-reverse pe-2">
+            <Row className="flex-row-reverse pe-2">
               <Button variant="primary" type="submit" disabled={!isValidForm || isCreatingGroup}>
                 {isCreatingGroup && (
                   <Spinner as="span" size="sm" animation="border" role="status" className="me-2" />
                 )}
                 Create group
               </Button>
-            </Form.Row>
+            </Row>
           </Form>
         )}
       </WaitForData>

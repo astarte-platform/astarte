@@ -42,7 +42,7 @@ const InterfaceRow = ({ name, majors }: InterfaceRowProps): React.ReactElement =
         <Col md="auto">
           {majors.map((major) => (
             <Link key={major} to={`/interfaces/${name}/${major}/edit`}>
-              <Badge variant={major > 0 ? 'primary' : 'secondary'} className="me-1 px-2 py-1">
+              <Badge bg={major > 0 ? 'primary' : 'secondary'} className="me-1 px-2 py-1">
                 v{major}
               </Badge>
             </Link>
