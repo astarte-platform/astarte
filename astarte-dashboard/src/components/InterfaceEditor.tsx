@@ -28,6 +28,7 @@ import {
   InputGroup,
   Modal,
   Row,
+  Stack,
 } from 'react-bootstrap';
 import { AstarteInterface, AstarteMapping } from 'astarte-client';
 import _ from 'lodash';
@@ -706,319 +707,320 @@ export default ({
       <Col md={isSourceVisible ? 6 : 12}>
         <Container fluid className="bg-white rounded p-3">
           <Form>
-            <Row className="mb-2">
-              <Col md={6}>
-                <Form.Group controlId="interfaceName">
-                  <Form.Label>Name</Form.Label>
-                  <Form.Control
-                    type="text"
-                    placeholder="Interface name"
-                    value={interfaceDraft.name}
-                    onChange={handleInterfaceNameChange}
-                    autoComplete="off"
-                    required
-                    isInvalid={interfaceValidationErrors.name != null}
-                    readOnly={denyMajorChanges}
-                  />
-                  <Form.Control.Feedback type="invalid">
-                    {interfaceValidationErrors.name}
-                  </Form.Control.Feedback>
-                  {interfaceValidationErrors.name == null && (
-                    <FormControlWarning message={interfaceValidationWarnings.name} />
-                  )}
-                </Form.Group>
-              </Col>
-              <Col md={3}>
-                <Form.Group controlId="interfaceMajor">
-                  <Form.Label>Major</Form.Label>
-                  <Form.Control
-                    type="number"
-                    min={initialData ? initialData.major : 0}
-                    value={interfaceDraft.major}
-                    onChange={handleInterfaceMajorChange}
-                    required
-                    isInvalid={interfaceValidationErrors.major != null}
-                    readOnly={denyMajorChanges}
-                  />
-                  <Form.Control.Feedback type="invalid">
-                    {interfaceValidationErrors.major}
-                  </Form.Control.Feedback>
-                </Form.Group>
-              </Col>
-              <Col md={3}>
-                <Form.Group controlId="interfaceMinor">
-                  <Form.Label>Minor</Form.Label>
-                  <Form.Control
-                    type="number"
-                    min={initialData ? initialData.minor : 0}
-                    value={interfaceDraft.minor}
-                    onChange={handleInterfaceMinorChange}
-                    required
-                    isInvalid={interfaceValidationErrors.minor != null}
-                  />
-                  <Form.Control.Feedback type="invalid">
-                    {interfaceValidationErrors.minor}
-                  </Form.Control.Feedback>
-                </Form.Group>
-              </Col>
-            </Row>
-            <Row className="mb-2">
-              <Col md={4}>
-                <Form.Group>
-                  <Form.Label>Type</Form.Label>
-                  <Form.Check
-                    type="radio"
-                    name="interfaceType"
-                    id="interfaceTypeDatastream"
-                    label="Datastream"
-                    value="datastream"
-                    checked={interfaceDraft.type === 'datastream'}
-                    onChange={handleInterfaceTypeChange}
-                    disabled={denyMajorChanges}
-                  />
-                  <Form.Check
-                    type="radio"
-                    name="interfaceType"
-                    id="interfaceTypeProperties"
-                    label="Properties"
-                    value="properties"
-                    checked={interfaceDraft.type === 'properties'}
-                    onChange={handleInterfaceTypeChange}
-                    disabled={denyMajorChanges}
-                  />
-                </Form.Group>
-              </Col>
-              <Col md={4}>
-                <Form.Group>
-                  <Form.Label>Aggregation</Form.Label>
-                  <Form.Check
-                    type="radio"
-                    name="interfaceAggregation"
-                    id="interfaceAggregationIndividual"
-                    label="Individual"
-                    value="individual"
-                    checked={
-                      interfaceDraft.aggregation === 'individual' || !interfaceDraft.aggregation
-                    }
-                    onChange={handleInterfaceAggregationChange}
-                    disabled={interfaceDraft.type === 'properties' || denyMajorChanges}
-                  />
-                  <Form.Check
-                    type="radio"
-                    name="interfaceAggregation"
-                    id="interfaceAggregationObject"
-                    label="Object"
-                    value="object"
-                    checked={interfaceDraft.aggregation === 'object'}
-                    onChange={handleInterfaceAggregationChange}
-                    disabled={interfaceDraft.type === 'properties' || denyMajorChanges}
-                  />
-                </Form.Group>
-              </Col>
-              <Col md={4}>
-                <Form.Group>
-                  <Form.Label>Ownership</Form.Label>
-                  <Form.Check
-                    type="radio"
-                    name="interfaceOwnership"
-                    id="interfaceOwnershipDevice"
-                    label="Device"
-                    value="device"
-                    checked={interfaceDraft.ownership === 'device'}
-                    onChange={handleInterfaceOwnershipChange}
-                    disabled={denyMajorChanges}
-                  />
-                  <Form.Check
-                    type="radio"
-                    name="interfaceOwnership"
-                    id="interfaceOwnershipServer"
-                    label="Server"
-                    value="server"
-                    checked={interfaceDraft.ownership === 'server'}
-                    onChange={handleInterfaceOwnershipChange}
-                    disabled={denyMajorChanges}
-                  />
-                </Form.Group>
-              </Col>
-            </Row>
-            {interfaceDraft.type === 'datastream' && interfaceDraft.aggregation === 'object' && (
-              <Row className="mb-2">
+            <Stack gap={3}>
+              <Row>
                 <Col md={6}>
-                  <Form.Group controlId="objectMappingReliability">
-                    <Form.Label>Reliability</Form.Label>
-                    <Form.Select
-                      name="mappingReliability"
-                      value={datastreamOptions.reliability || 'unreliable'}
-                      onChange={handleInterfaceReliabilityChange}
-                      disabled={denyMajorChanges}
-                    >
-                      <option value="unreliable">{reliabilityToLabel.unreliable}</option>
-                      <option value="guaranteed">{reliabilityToLabel.guaranteed}</option>
-                      <option value="unique">{reliabilityToLabel.unique}</option>
-                    </Form.Select>
+                  <Form.Group controlId="interfaceName">
+                    <Form.Label>Name</Form.Label>
+                    <Form.Control
+                      type="text"
+                      placeholder="Interface name"
+                      value={interfaceDraft.name}
+                      onChange={handleInterfaceNameChange}
+                      autoComplete="off"
+                      required
+                      isInvalid={interfaceValidationErrors.name != null}
+                      readOnly={denyMajorChanges}
+                    />
+                    <Form.Control.Feedback type="invalid">
+                      {interfaceValidationErrors.name}
+                    </Form.Control.Feedback>
+                    {interfaceValidationErrors.name == null && (
+                      <FormControlWarning message={interfaceValidationWarnings.name} />
+                    )}
                   </Form.Group>
                 </Col>
-                <Col md={6}>
-                  <Form.Group controlId="objectMappingExplicitTimestamp">
-                    <Form.Label>Timestamp</Form.Label>
+                <Col md={3}>
+                  <Form.Group controlId="interfaceMajor">
+                    <Form.Label>Major</Form.Label>
+                    <Form.Control
+                      type="number"
+                      min={initialData ? initialData.major : 0}
+                      value={interfaceDraft.major}
+                      onChange={handleInterfaceMajorChange}
+                      required
+                      isInvalid={interfaceValidationErrors.major != null}
+                      readOnly={denyMajorChanges}
+                    />
+                    <Form.Control.Feedback type="invalid">
+                      {interfaceValidationErrors.major}
+                    </Form.Control.Feedback>
+                  </Form.Group>
+                </Col>
+                <Col md={3}>
+                  <Form.Group controlId="interfaceMinor">
+                    <Form.Label>Minor</Form.Label>
+                    <Form.Control
+                      type="number"
+                      min={initialData ? initialData.minor : 0}
+                      value={interfaceDraft.minor}
+                      onChange={handleInterfaceMinorChange}
+                      required
+                      isInvalid={interfaceValidationErrors.minor != null}
+                    />
+                    <Form.Control.Feedback type="invalid">
+                      {interfaceValidationErrors.minor}
+                    </Form.Control.Feedback>
+                  </Form.Group>
+                </Col>
+              </Row>
+              <Row>
+                <Col md={4}>
+                  <Form.Group>
+                    <Form.Label>Type</Form.Label>
                     <Form.Check
-                      type="checkbox"
-                      name="mappingExplicitTimestamp"
-                      label="Explicit timestamp"
-                      checked={!!datastreamOptions.explicitTimestamp}
-                      onChange={handleInterfaceExplicitTimestampChange}
+                      type="radio"
+                      name="interfaceType"
+                      id="interfaceTypeDatastream"
+                      label="Datastream"
+                      value="datastream"
+                      checked={interfaceDraft.type === 'datastream'}
+                      onChange={handleInterfaceTypeChange}
+                      disabled={denyMajorChanges}
+                    />
+                    <Form.Check
+                      type="radio"
+                      name="interfaceType"
+                      id="interfaceTypeProperties"
+                      label="Properties"
+                      value="properties"
+                      checked={interfaceDraft.type === 'properties'}
+                      onChange={handleInterfaceTypeChange}
+                      disabled={denyMajorChanges}
+                    />
+                  </Form.Group>
+                </Col>
+                <Col md={4}>
+                  <Form.Group>
+                    <Form.Label>Aggregation</Form.Label>
+                    <Form.Check
+                      type="radio"
+                      name="interfaceAggregation"
+                      id="interfaceAggregationIndividual"
+                      label="Individual"
+                      value="individual"
+                      checked={
+                        interfaceDraft.aggregation === 'individual' || !interfaceDraft.aggregation
+                      }
+                      onChange={handleInterfaceAggregationChange}
+                      disabled={interfaceDraft.type === 'properties' || denyMajorChanges}
+                    />
+                    <Form.Check
+                      type="radio"
+                      name="interfaceAggregation"
+                      id="interfaceAggregationObject"
+                      label="Object"
+                      value="object"
+                      checked={interfaceDraft.aggregation === 'object'}
+                      onChange={handleInterfaceAggregationChange}
+                      disabled={interfaceDraft.type === 'properties' || denyMajorChanges}
+                    />
+                  </Form.Group>
+                </Col>
+                <Col md={4}>
+                  <Form.Group>
+                    <Form.Label>Ownership</Form.Label>
+                    <Form.Check
+                      type="radio"
+                      name="interfaceOwnership"
+                      id="interfaceOwnershipDevice"
+                      label="Device"
+                      value="device"
+                      checked={interfaceDraft.ownership === 'device'}
+                      onChange={handleInterfaceOwnershipChange}
+                      disabled={denyMajorChanges}
+                    />
+                    <Form.Check
+                      type="radio"
+                      name="interfaceOwnership"
+                      id="interfaceOwnershipServer"
+                      label="Server"
+                      value="server"
+                      checked={interfaceDraft.ownership === 'server'}
+                      onChange={handleInterfaceOwnershipChange}
                       disabled={denyMajorChanges}
                     />
                   </Form.Group>
                 </Col>
               </Row>
-            )}
-            {interfaceDraft.type === 'datastream' && interfaceDraft.aggregation === 'object' && (
-              <Row className="mb-2">
-                <Col md={showInterfaceExpiry ? 6 : 12}>
-                  <Form.Group controlId="objectMappingRetention">
-                    <Form.Label>Retention</Form.Label>
-                    <Form.Select
-                      name="mappingRetention"
-                      value={datastreamOptions.retention || 'discard'}
-                      onChange={handleInterfaceRetentionChange}
-                      disabled={denyMajorChanges}
-                    >
-                      <option value="discard">{retentionToLabel.discard}</option>
-                      <option value="volatile">{retentionToLabel.volatile}</option>
-                      <option value="stored">{retentionToLabel.stored}</option>
-                    </Form.Select>
-                  </Form.Group>
-                </Col>
-                {showInterfaceExpiry && (
+              {interfaceDraft.type === 'datastream' && interfaceDraft.aggregation === 'object' && (
+                <Row>
                   <Col md={6}>
-                    <Form.Group controlId="objectMappingExpiry">
-                      <Form.Label>Expiry</Form.Label>
-                      <InputGroup>
-                        <Form.Control
-                          type="number"
-                          min={0}
-                          value={datastreamOptions.expiry || 0}
-                          onChange={handleInterfaceExpiryChange}
-                          isInvalid={(datastreamOptions.expiry || 0) < 0}
-                          disabled={denyMajorChanges}
-                        />
-                        <InputGroup.Text>seconds</InputGroup.Text>
-                      </InputGroup>
+                    <Form.Group controlId="objectMappingReliability">
+                      <Form.Label>Reliability</Form.Label>
+                      <Form.Select
+                        name="mappingReliability"
+                        value={datastreamOptions.reliability || 'unreliable'}
+                        onChange={handleInterfaceReliabilityChange}
+                        disabled={denyMajorChanges}
+                      >
+                        <option value="unreliable">{reliabilityToLabel.unreliable}</option>
+                        <option value="guaranteed">{reliabilityToLabel.guaranteed}</option>
+                        <option value="unique">{reliabilityToLabel.unique}</option>
+                      </Form.Select>
                     </Form.Group>
                   </Col>
-                )}
-              </Row>
-            )}
-            {interfaceDraft.type === 'datastream' && interfaceDraft.aggregation === 'object' && (
-              <Row className="mb-2">
-                <Col md={showInterfaceDatabaseRetentionTtl ? 6 : 12}>
-                  <Form.Group controlId="objectMappingDatabaseRetention">
-                    <Form.Label>Database Retention</Form.Label>
-                    <Form.Select
-                      name="mappingDatabaseRetention"
-                      value={datastreamOptions.databaseRetentionPolicy || 'no_ttl'}
-                      onChange={handleInterfaceDatabaseRetentionPolicyChange}
-                      disabled={denyMajorChanges}
-                    >
-                      <option value="no_ttl">{databaseRetentionToLabel.no_ttl}</option>
-                      <option value="use_ttl">{databaseRetentionToLabel.use_ttl}</option>
-                    </Form.Select>
-                  </Form.Group>
-                </Col>
-                {showInterfaceDatabaseRetentionTtl && (
                   <Col md={6}>
-                    <Form.Group controlId="objectMappingTTL">
-                      <Form.Label>TTL</Form.Label>
-                      <InputGroup>
-                        <Form.Control
-                          type="number"
-                          min={60}
-                          value={datastreamOptions.databaseRetentionTtl || 60}
-                          onChange={handleInterfaceDatabaseRetentionTtlChange}
-                          isInvalid={(datastreamOptions.databaseRetentionTtl || 60) < 60}
-                          disabled={denyMajorChanges}
-                        />
-                        <InputGroup.Text>seconds</InputGroup.Text>
-                      </InputGroup>
-                    </Form.Group>
-                  </Col>
-                )}
-              </Row>
-            )}
-            <Row className="mb-2">
-              <Col sm={12}>
-                <Form.Group controlId="interfaceDescription">
-                  <Form.Label>Description</Form.Label>
-                  <Form.Control
-                    as="textarea"
-                    value={interfaceDraft.description || ''}
-                    onChange={handleInterfaceDescriptionChange}
-                    autoComplete="off"
-                    rows={3}
-                    isInvalid={interfaceValidationErrors.description != null}
-                  />
-                  <Form.Control.Feedback type="invalid">
-                    {interfaceValidationErrors.description}
-                  </Form.Control.Feedback>
-                </Form.Group>
-              </Col>
-            </Row>
-            <Row className="mb-2">
-              <Col sm={12}>
-                <Form.Group controlId="interfaceDocumentation">
-                  <Form.Label>Documentation</Form.Label>
-                  <Form.Control
-                    as="textarea"
-                    value={interfaceDraft.documentation || ''}
-                    onChange={handleInterfaceDocumentationChange}
-                    autoComplete="off"
-                    rows={3}
-                    isInvalid={interfaceValidationErrors.documentation != null}
-                  />
-                  <Form.Control.Feedback type="invalid">
-                    {interfaceValidationErrors.documentation}
-                  </Form.Control.Feedback>
-                </Form.Group>
-              </Col>
-            </Row>
-            <Row className="mb-2">
-              <Col sm={12}>
-                <Form.Group controlId="interfaceMappings">
-                  <button
-                    type="button"
-                    className="btn border p-3 w-100 mb-2"
-                    onClick={handleAddMapping}
-                  >
-                    <Icon icon="add" className="me-2" /> Add mapping...
-                  </button>
-                  {interfaceDraft.mappings.map((mapping, index) => {
-                    const isExistingMapping = (initialData?.mappings || []).some(
-                      ({ endpoint }) => endpoint === mapping.endpoint,
-                    );
-                    const canEdit = !(denyMajorChanges && isExistingMapping);
-                    const canDelete = !(denyMajorChanges && isExistingMapping);
-                    return (
-                      <MappingRow
-                        key={mapping.endpoint}
-                        className="mb-2"
-                        mapping={mapping}
-                        onEdit={canEdit ? () => handleEditMapping(index) : undefined}
-                        onDelete={canDelete ? () => handleDeleteMapping(index) : undefined}
+                    <Form.Group controlId="objectMappingExplicitTimestamp">
+                      <Form.Label>Timestamp</Form.Label>
+                      <Form.Check
+                        type="checkbox"
+                        name="mappingExplicitTimestamp"
+                        label="Explicit timestamp"
+                        checked={!!datastreamOptions.explicitTimestamp}
+                        onChange={handleInterfaceExplicitTimestampChange}
+                        disabled={denyMajorChanges}
                       />
-                    );
-                  })}
-                  <Form.Control
-                    className="d-none"
-                    isInvalid={interfaceValidationErrors.mappings != null}
-                  />
-                  <Form.Control.Feedback type="invalid">
-                    {interfaceValidationErrors.mappings}
-                  </Form.Control.Feedback>
-                  <FormControlWarning message={interfaceValidationWarnings.mappings} />
-                </Form.Group>
-              </Col>
-            </Row>
+                    </Form.Group>
+                  </Col>
+                </Row>
+              )}
+              {interfaceDraft.type === 'datastream' && interfaceDraft.aggregation === 'object' && (
+                <Row>
+                  <Col md={showInterfaceExpiry ? 6 : 12}>
+                    <Form.Group controlId="objectMappingRetention">
+                      <Form.Label>Retention</Form.Label>
+                      <Form.Select
+                        name="mappingRetention"
+                        value={datastreamOptions.retention || 'discard'}
+                        onChange={handleInterfaceRetentionChange}
+                        disabled={denyMajorChanges}
+                      >
+                        <option value="discard">{retentionToLabel.discard}</option>
+                        <option value="volatile">{retentionToLabel.volatile}</option>
+                        <option value="stored">{retentionToLabel.stored}</option>
+                      </Form.Select>
+                    </Form.Group>
+                  </Col>
+                  {showInterfaceExpiry && (
+                    <Col md={6}>
+                      <Form.Group controlId="objectMappingExpiry">
+                        <Form.Label>Expiry</Form.Label>
+                        <InputGroup>
+                          <Form.Control
+                            type="number"
+                            min={0}
+                            value={datastreamOptions.expiry || 0}
+                            onChange={handleInterfaceExpiryChange}
+                            isInvalid={(datastreamOptions.expiry || 0) < 0}
+                            disabled={denyMajorChanges}
+                          />
+                          <InputGroup.Text>seconds</InputGroup.Text>
+                        </InputGroup>
+                      </Form.Group>
+                    </Col>
+                  )}
+                </Row>
+              )}
+              {interfaceDraft.type === 'datastream' && interfaceDraft.aggregation === 'object' && (
+                <Row>
+                  <Col md={showInterfaceDatabaseRetentionTtl ? 6 : 12}>
+                    <Form.Group controlId="objectMappingDatabaseRetention">
+                      <Form.Label>Database Retention</Form.Label>
+                      <Form.Select
+                        name="mappingDatabaseRetention"
+                        value={datastreamOptions.databaseRetentionPolicy || 'no_ttl'}
+                        onChange={handleInterfaceDatabaseRetentionPolicyChange}
+                        disabled={denyMajorChanges}
+                      >
+                        <option value="no_ttl">{databaseRetentionToLabel.no_ttl}</option>
+                        <option value="use_ttl">{databaseRetentionToLabel.use_ttl}</option>
+                      </Form.Select>
+                    </Form.Group>
+                  </Col>
+                  {showInterfaceDatabaseRetentionTtl && (
+                    <Col md={6}>
+                      <Form.Group controlId="objectMappingTTL">
+                        <Form.Label>TTL</Form.Label>
+                        <InputGroup>
+                          <Form.Control
+                            type="number"
+                            min={60}
+                            value={datastreamOptions.databaseRetentionTtl || 60}
+                            onChange={handleInterfaceDatabaseRetentionTtlChange}
+                            isInvalid={(datastreamOptions.databaseRetentionTtl || 60) < 60}
+                            disabled={denyMajorChanges}
+                          />
+                          <InputGroup.Text>seconds</InputGroup.Text>
+                        </InputGroup>
+                      </Form.Group>
+                    </Col>
+                  )}
+                </Row>
+              )}
+              <Row>
+                <Col sm={12}>
+                  <Form.Group controlId="interfaceDescription">
+                    <Form.Label>Description</Form.Label>
+                    <Form.Control
+                      as="textarea"
+                      value={interfaceDraft.description || ''}
+                      onChange={handleInterfaceDescriptionChange}
+                      autoComplete="off"
+                      rows={3}
+                      isInvalid={interfaceValidationErrors.description != null}
+                    />
+                    <Form.Control.Feedback type="invalid">
+                      {interfaceValidationErrors.description}
+                    </Form.Control.Feedback>
+                  </Form.Group>
+                </Col>
+              </Row>
+              <Row>
+                <Col sm={12}>
+                  <Form.Group controlId="interfaceDocumentation">
+                    <Form.Label>Documentation</Form.Label>
+                    <Form.Control
+                      as="textarea"
+                      value={interfaceDraft.documentation || ''}
+                      onChange={handleInterfaceDocumentationChange}
+                      autoComplete="off"
+                      rows={3}
+                      isInvalid={interfaceValidationErrors.documentation != null}
+                    />
+                    <Form.Control.Feedback type="invalid">
+                      {interfaceValidationErrors.documentation}
+                    </Form.Control.Feedback>
+                  </Form.Group>
+                </Col>
+              </Row>
+              <Row>
+                <Col sm={12}>
+                  <Form.Group as={Stack} gap={2} controlId="interfaceMappings">
+                    <button
+                      type="button"
+                      className="btn border p-3 w-100"
+                      onClick={handleAddMapping}
+                    >
+                      <Icon icon="add" className="me-2" /> Add mapping...
+                    </button>
+                    {interfaceDraft.mappings.map((mapping, index) => {
+                      const isExistingMapping = (initialData?.mappings || []).some(
+                        ({ endpoint }) => endpoint === mapping.endpoint,
+                      );
+                      const canEdit = !(denyMajorChanges && isExistingMapping);
+                      const canDelete = !(denyMajorChanges && isExistingMapping);
+                      return (
+                        <MappingRow
+                          key={mapping.endpoint}
+                          mapping={mapping}
+                          onEdit={canEdit ? () => handleEditMapping(index) : undefined}
+                          onDelete={canDelete ? () => handleDeleteMapping(index) : undefined}
+                        />
+                      );
+                    })}
+                    <Form.Control
+                      className="d-none"
+                      isInvalid={interfaceValidationErrors.mappings != null}
+                    />
+                    <Form.Control.Feedback type="invalid">
+                      {interfaceValidationErrors.mappings}
+                    </Form.Control.Feedback>
+                    <FormControlWarning message={interfaceValidationWarnings.mappings} />
+                  </Form.Group>
+                </Col>
+              </Row>
+            </Stack>
           </Form>
         </Container>
       </Col>

@@ -18,7 +18,7 @@
 
 import React, { useCallback, useMemo, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { Button, Form, Spinner } from 'react-bootstrap';
+import { Button, Form, Spinner, Stack } from 'react-bootstrap';
 
 import { AlertsBanner, useAlerts } from './AlertManager';
 import { useAstarte } from './AstarteManager';
@@ -76,32 +76,38 @@ export default (): React.ReactElement => {
 
   const innerHTML = (
     <Form>
-      <Form.Group controlId="flowNameInput">
-        <Form.Label>Name</Form.Label>
-        <Form.Control
-          type="text"
-          placeholder="Your flow name"
-          value={flow.name}
-          onChange={(e) => setFlow({ ...flow, name: e.target.value })}
-        />
-      </Form.Group>
-      <label>Pipeline ID</label>
-      <p>
-        <i>{pipelineId}</i>
-      </p>
-      <Form.Group controlId="flowConfigInput">
-        <Form.Label>Flow config</Form.Label>
-        <Form.Control
-          as="textarea"
-          rows={12}
-          value={flow.config}
-          onChange={(e) => setFlow({ ...flow, config: e.target.value })}
-        />
-      </Form.Group>
-      <Button variant="primary" disabled={!isValidForm || isCreatingFlow} onClick={createFlow}>
-        {isCreatingFlow && <Spinner className="me-2" size="sm" animation="border" role="status" />}
-        Instantiate Flow
-      </Button>
+      <Stack gap={3}>
+        <Form.Group controlId="flowNameInput">
+          <Form.Label>Name</Form.Label>
+          <Form.Control
+            type="text"
+            placeholder="Your flow name"
+            value={flow.name}
+            onChange={(e) => setFlow({ ...flow, name: e.target.value })}
+          />
+        </Form.Group>
+        <label>Pipeline ID</label>
+        <p>
+          <i>{pipelineId}</i>
+        </p>
+        <Form.Group controlId="flowConfigInput">
+          <Form.Label>Flow config</Form.Label>
+          <Form.Control
+            as="textarea"
+            rows={12}
+            value={flow.config}
+            onChange={(e) => setFlow({ ...flow, config: e.target.value })}
+          />
+        </Form.Group>
+        <div className="d-flex flex-column flex-md-row">
+          <Button variant="primary" disabled={!isValidForm || isCreatingFlow} onClick={createFlow}>
+            {isCreatingFlow && (
+              <Spinner className="me-2" size="sm" animation="border" role="status" />
+            )}
+            Instantiate Flow
+          </Button>
+        </div>
+      </Stack>
     </Form>
   );
 

@@ -18,7 +18,7 @@
 
 import React, { useCallback, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Button, Container, Form, Spinner } from 'react-bootstrap';
+import { Button, Container, Form, Spinner, Stack } from 'react-bootstrap';
 
 import Empty from './components/Empty';
 import ConfirmModal from './components/modals/Confirm';
@@ -49,26 +49,30 @@ const RealmSettingsForm = ({
 
   return (
     <Form>
-      <Form.Group controlId="public-key">
-        <Form.Label>Public key</Form.Label>
-        <Form.Control
-          as="textarea"
-          className="font-monospace"
-          rows={16}
-          value={values.publicKey}
-          onChange={(e) => setValues({ ...values, publicKey: e.target.value })}
-        />
-      </Form.Group>
-      <Button
-        variant="danger"
-        disabled={!canSubmit || isUpdatingSettings}
-        onClick={() => onSubmit(values)}
-      >
-        {isUpdatingSettings && (
-          <Spinner className="me-2" size="sm" animation="border" role="status" />
-        )}
-        Change
-      </Button>
+      <Stack gap={3}>
+        <Form.Group controlId="public-key">
+          <Form.Label>Public key</Form.Label>
+          <Form.Control
+            as="textarea"
+            className="font-monospace"
+            rows={16}
+            value={values.publicKey}
+            onChange={(e) => setValues({ ...values, publicKey: e.target.value })}
+          />
+        </Form.Group>
+        <div className="d-flex flex-column flex-md-row">
+          <Button
+            variant="danger"
+            disabled={!canSubmit || isUpdatingSettings}
+            onClick={() => onSubmit(values)}
+          >
+            {isUpdatingSettings && (
+              <Spinner className="me-2" size="sm" animation="border" role="status" />
+            )}
+            Change
+          </Button>
+        </div>
+      </Stack>
     </Form>
   );
 };

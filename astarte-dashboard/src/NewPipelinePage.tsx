@@ -18,7 +18,7 @@
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Button, Form, Spinner } from 'react-bootstrap';
+import { Button, Form, Spinner, Stack } from 'react-bootstrap';
 import Ajv from 'ajv';
 import { AstartePipeline } from 'astarte-client';
 import type { AstarteBlock } from 'astarte-client';
@@ -39,7 +39,7 @@ interface CommandRowProps {
 }
 
 const CommandRow = ({ className = '', children }: CommandRowProps): React.ReactElement => (
-  <div className={['d-flex flex-row-reverse', className].join(' ')}>{children}</div>
+  <div className={['d-flex flex-column flex-md-row-reverse', className].join(' ')}>{children}</div>
 );
 
 const NewPipelinePage = (): React.ReactElement => {
@@ -193,76 +193,84 @@ const NewPipelinePage = (): React.ReactElement => {
     >
       <AlertsBanner alerts={formAlerts} />
       <Form>
-        <Form.Group controlId="pipeline-name">
-          <Form.Label>Name</Form.Label>
-          <Form.Control
-            type="text"
-            value={pipeline.name}
-            onChange={(e) => setPipeline({ ...pipeline, name: e.target.value })}
-          />
-        </Form.Group>
-        {pipeline.source === '' ? (
-          <>
-            <Form.Group controlId="pipeline-source">
-              <VisualFlowEditor
-                className="mb-2"
-                blocks={blocks}
-                model={editorModel}
-                onNodeSettingsClick={blockSettingsClickHandler}
-              />
-            </Form.Group>
-            <CommandRow>
-              <Button variant="primary" onClick={sourceConversionHandler}>
-                Generate pipeline source
-              </Button>
-            </CommandRow>
-          </>
-        ) : (
-          <>
-            <Form.Group controlId="pipeline-source">
-              <Form.Label>Source</Form.Label>
-              <Form.Control
-                as="textarea"
-                rows={8}
-                spellCheck={false}
-                value={pipeline.source}
-                onChange={(e) => setPipeline({ ...pipeline, source: e.target.value })}
-              />
-            </Form.Group>
-            <Form.Group controlId="pipeline-schema">
-              <Form.Label>Schema</Form.Label>
-              <Form.Control
-                as="textarea"
-                rows={8}
-                spellCheck={false}
-                value={pipeline.schema}
-                isValid={pipeline.schema !== '' && isValidSchema}
-                isInvalid={pipeline.schema !== '' && !isValidSchema}
-                onChange={(e) => setPipeline({ ...pipeline, schema: e.target.value })}
-              />
-            </Form.Group>
-            <Form.Group controlId="pipeline-description">
-              <Form.Label>Description</Form.Label>
-              <Form.Control
-                as="textarea"
-                value={pipeline.description}
-                onChange={(e) => setPipeline({ ...pipeline, description: e.target.value })}
-              />
-            </Form.Group>
-            <CommandRow>
-              <Button
-                variant="primary"
-                onClick={createPipeline}
-                disabled={!isValidForm || isCreatingPipeline}
-              >
-                {isCreatingPipeline && (
-                  <Spinner as="span" size="sm" animation="border" role="status" className="me-2" />
-                )}
-                Create new pipeline
-              </Button>
-            </CommandRow>
-          </>
-        )}
+        <Stack gap={3}>
+          <Form.Group controlId="pipeline-name">
+            <Form.Label>Name</Form.Label>
+            <Form.Control
+              type="text"
+              value={pipeline.name}
+              onChange={(e) => setPipeline({ ...pipeline, name: e.target.value })}
+            />
+          </Form.Group>
+          {pipeline.source === '' ? (
+            <>
+              <Form.Group controlId="pipeline-source">
+                <VisualFlowEditor
+                  className="mb-2"
+                  blocks={blocks}
+                  model={editorModel}
+                  onNodeSettingsClick={blockSettingsClickHandler}
+                />
+              </Form.Group>
+              <CommandRow>
+                <Button variant="primary" onClick={sourceConversionHandler}>
+                  Generate pipeline source
+                </Button>
+              </CommandRow>
+            </>
+          ) : (
+            <>
+              <Form.Group controlId="pipeline-source">
+                <Form.Label>Source</Form.Label>
+                <Form.Control
+                  as="textarea"
+                  rows={8}
+                  spellCheck={false}
+                  value={pipeline.source}
+                  onChange={(e) => setPipeline({ ...pipeline, source: e.target.value })}
+                />
+              </Form.Group>
+              <Form.Group controlId="pipeline-schema">
+                <Form.Label>Schema</Form.Label>
+                <Form.Control
+                  as="textarea"
+                  rows={8}
+                  spellCheck={false}
+                  value={pipeline.schema}
+                  isValid={pipeline.schema !== '' && isValidSchema}
+                  isInvalid={pipeline.schema !== '' && !isValidSchema}
+                  onChange={(e) => setPipeline({ ...pipeline, schema: e.target.value })}
+                />
+              </Form.Group>
+              <Form.Group controlId="pipeline-description">
+                <Form.Label>Description</Form.Label>
+                <Form.Control
+                  as="textarea"
+                  value={pipeline.description}
+                  onChange={(e) => setPipeline({ ...pipeline, description: e.target.value })}
+                />
+              </Form.Group>
+              <CommandRow>
+                <Button
+                  variant="primary"
+                  onClick={createPipeline}
+                  disabled={!isValidForm || isCreatingPipeline}
+                >
+                  {isCreatingPipeline && (
+                    <Spinner
+                      as="span"
+                      size="sm"
+                      animation="border"
+                      role="status"
+                      className="me-2"
+                    />
+                  )}
+                  Create new pipeline
+                </Button>
+              </CommandRow>
+            </>
+          )}
+        </Stack>
       </Form>
       {activeModal}
     </SingleCardPage>

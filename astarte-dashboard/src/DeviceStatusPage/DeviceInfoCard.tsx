@@ -90,11 +90,10 @@ const DeviceInfoCard = ({
       </p>
       <h6>Credentials inhibited</h6>
       <p>{device.hasCredentialsInhibited ? 'True' : 'False'}</p>
-      <div className="mt-auto">
+      <div className="mt-auto d-flex flex-column flex-md-row flex-wrap gap-2">
         {device.hasCredentialsInhibited ? (
           <Button
             variant="success text-white"
-            className="me-1"
             onClick={onEnableCredentialsClick}
             disabled={device.deletionInProgress}
           >
@@ -103,7 +102,6 @@ const DeviceInfoCard = ({
         ) : (
           <Button
             variant="danger"
-            className="me-1"
             onClick={onInhibitCredentialsClick}
             disabled={device.deletionInProgress}
           >
@@ -117,12 +115,7 @@ const DeviceInfoCard = ({
         >
           Wipe credential secret
         </Button>
-        <Button
-          variant="danger"
-          className="ms-1"
-          onClick={onDeleteDeviceClick}
-          disabled={device.deletionInProgress}
-        >
+        <Button variant="danger" onClick={onDeleteDeviceClick} disabled={device.deletionInProgress}>
           Delete device
         </Button>
       </div>

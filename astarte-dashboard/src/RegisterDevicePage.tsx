@@ -21,7 +21,7 @@
 import React, { useCallback, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { v4 as uuidv4, v5 as uuidv5 } from 'uuid';
-import { Button, Col, Form, Row, Spinner, Table } from 'react-bootstrap';
+import { Button, Col, Form, Row, Spinner, Stack, Table } from 'react-bootstrap';
 import type { AstarteDevice, AstarteInterfaceDescriptor } from 'astarte-client';
 
 import Icon from './components/Icon';
@@ -58,9 +58,11 @@ function pasteSecret() {
 
 type ColNoLabelProps = React.ComponentProps<typeof Col>;
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-const ColNoLabel = ({ sm, className = '', ...otherProps }: ColNoLabelProps): React.ReactElement => (
-  <Col sm="auto" className={'col-no-label '.concat(className)} {...otherProps} />
+const ColNoLabel = ({ children, ...otherProps }: ColNoLabelProps): React.ReactElement => (
+  <Form.Group as={Col} {...otherProps}>
+    <Form.Label />
+    {children}
+  </Form.Group>
 );
 
 interface InterfaceIntrospectionRowProps {
@@ -321,69 +323,75 @@ export default (): React.ReactElement => {
     <SingleCardPage title="Register Device" backLink="/devices">
       <AlertsBanner alerts={registrationAlerts} />
       <Form onSubmit={registerDevice}>
-        <Row className="mb-2">
-          <Form.Group as={Col} controlId="deviceIdInput">
-            <Form.Label>Device ID</Form.Label>
-            <Form.Control
-              type="text"
-              className="font-monospace"
-              placeholder="Your device ID"
-              value={deviceId}
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setDeviceId(e.target.value)}
-              autoComplete="off"
-              required
-              isValid={deviceId !== '' && isValidDeviceId}
-              isInvalid={deviceId !== '' && !isValidDeviceId}
-            />
-            <Form.Control.Feedback type="invalid">
-              Device ID must be a unique 128 bit URL-encoded base64 (without padding) string.
-            </Form.Control.Feedback>
-          </Form.Group>
-          <Form.Group as={ColNoLabel}>
-            <Button variant="secondary" className="mx-1" onClick={generateRandomUUID}>
-              Generate random ID
-            </Button>
-            <Button
-              variant="secondary"
-              className="mx-1"
-              onClick={() => setShowNamespaceModal(true)}
+        <Stack gap={3}>
+          <Row className="d-flex align-items-end flex-wrap g-3">
+            <Form.Group
+              xs={12}
+              md="auto"
+              className="flex-grow-1"
+              as={Col}
+              controlId="deviceIdInput"
             >
-              Generate from name...
-            </Button>
-          </Form.Group>
-        </Row>
-        <Form.Group
-          controlId="sendIntrospectionInput"
-          className={shouldSendIntrospection ? 'mb-0' : ''}
-        >
-          <Form.Check
-            type="checkbox"
-            label="Declare initial introspection"
-            checked={shouldSendIntrospection}
-            onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-              setShouldSendIntrospection(e.target.checked)
-            }
-          />
-        </Form.Group>
-        {shouldSendIntrospection && (
-          <InstrospectionTable
-            interfaces={introspectionInterfaces}
-            onAddInterface={addInterfaceToIntrospection}
-            onRemoveInterface={removeIntrospectionInterface}
-          />
-        )}
-        <Row className="flex-row-reverse pe-2">
-          <Button
-            variant="primary"
-            type="submit"
-            disabled={!isValidDeviceId || isRegisteringDevice}
+              <Form.Label>Device ID</Form.Label>
+              <Form.Control
+                type="text"
+                className="font-monospace"
+                placeholder="Your device ID"
+                value={deviceId}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setDeviceId(e.target.value)}
+                autoComplete="off"
+                required
+                isValid={deviceId !== '' && isValidDeviceId}
+                isInvalid={deviceId !== '' && !isValidDeviceId}
+              />
+              <Form.Control.Feedback type="invalid">
+                Device ID must be a unique 128 bit URL-encoded base64 (without padding) string.
+              </Form.Control.Feedback>
+            </Form.Group>
+            <ColNoLabel as={Col} xs={12} md="auto" className="d-flex flex-column flex-md-row">
+              <Button variant="secondary" onClick={generateRandomUUID}>
+                Generate random ID
+              </Button>
+            </ColNoLabel>
+            <ColNoLabel as={Col} xs={12} md="auto" className="d-flex flex-column flex-md-row">
+              <Button variant="secondary" onClick={() => setShowNamespaceModal(true)}>
+                Generate from name...
+              </Button>
+            </ColNoLabel>
+          </Row>
+          <Form.Group
+            controlId="sendIntrospectionInput"
+            className={shouldSendIntrospection ? 'mb-0' : ''}
           >
-            {isRegisteringDevice && (
-              <Spinner as="span" size="sm" animation="border" role="status" className="me-2" />
-            )}
-            Register device
-          </Button>
-        </Row>
+            <Form.Check
+              type="checkbox"
+              label="Declare initial introspection"
+              checked={shouldSendIntrospection}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                setShouldSendIntrospection(e.target.checked)
+              }
+            />
+          </Form.Group>
+          {shouldSendIntrospection && (
+            <InstrospectionTable
+              interfaces={introspectionInterfaces}
+              onAddInterface={addInterfaceToIntrospection}
+              onRemoveInterface={removeIntrospectionInterface}
+            />
+          )}
+          <div className="d-flex flex-column flex-md-row-reverse">
+            <Button
+              variant="primary"
+              type="submit"
+              disabled={!isValidDeviceId || isRegisteringDevice}
+            >
+              {isRegisteringDevice && (
+                <Spinner as="span" size="sm" animation="border" role="status" className="me-2" />
+              )}
+              Register device
+            </Button>
+          </div>
+        </Stack>
       </Form>
       {showNamespaceModal && (
         <NamespaceModal
