@@ -16,16 +16,26 @@
 # limitations under the License.
 #
 
-defmodule Astarte.Pairing.APIWeb.Plug.Telemetry.CallsCount do
-  def init(opts) do
-    opts
+defmodule Astarte.Pairing.APIWeb.Plug.Telemetry.ResponseCount do
+  import Plug.Conn
+
+  def init(_opts) do
+    nil
   end
 
-  def call(conn, _opts) do
-    :telemetry.execute([:astarte, :pairing, :api, :calls], %{}, %{
-      realm: conn.params["realm_name"]
-    })
+  def call(conn, _default) do
+    register_before_send(conn, fn conn ->
+      :telemetry.execute(
+        [:astarte, :pairing, :api, :responses],
+        %{
+          bytes: IO.iodata_length(conn.resp_body)
+        },
+        %{
+          realm: conn.params["realm_name"]
+        }
+      )
 
-    conn
+      conn
+    end)
   end
 end

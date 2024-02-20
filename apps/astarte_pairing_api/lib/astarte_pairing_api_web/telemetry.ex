@@ -98,8 +98,21 @@ defmodule Astarte.Pairing.APIWeb.Telemetry do
         "astarte.pairing.service.health",
         description: "Service state: 1 if good, 0 if not."
       ),
-      counter("astarte.pairing.api.calls.count",
-        tags: [:realm]
+      counter("astarte.pairing.api.requests.count",
+        tags: [:realm],
+        description: "The number of HTTP requests sent to the service."
+      ),
+      sum("astarte.pairing.api.requests.bytes",
+        tags: [:realm],
+        description: "The total size of bytes received via HTTP requests."
+      ),
+      counter("astarte.pairing.api.responses.count",
+        tags: [:realm],
+        description: "The number of HTTP responses sent by the service."
+      ),
+      sum("astarte.pairing.api.responses.bytes",
+        tags: [:realm],
+        description: "The total size of bytes sent via HTTP responses."
       )
     ]
   end

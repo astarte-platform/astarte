@@ -22,7 +22,8 @@ defmodule Astarte.Pairing.APIWeb.Router do
   pipeline :api do
     plug :accepts, ["json"]
     plug Astarte.Pairing.APIWeb.Plug.LogRealm
-    plug Astarte.Pairing.APIWeb.Plug.Telemetry.CallsCount
+    plug Astarte.Pairing.APIWeb.Plug.Telemetry.RequestCount
+    plug Astarte.Pairing.APIWeb.Plug.Telemetry.ResponseCount
   end
 
   scope "/v1/:realm_name", Astarte.Pairing.APIWeb do
