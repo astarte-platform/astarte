@@ -71,13 +71,9 @@ const databaseRetentionToLabel = {
 };
 
 const MappingRow = ({ className, mapping, onEdit, onDelete }: MappingRowProps) => (
-  <Accordion data-testid={mapping.endpoint}>
-    <Card className={className}>
-      <Accordion.Button
-        eventKey={mapping.endpoint}
-        as={Card.Header}
-        className="d-flex align-items-center flex-wrap"
-      >
+  <Accordion data-testid={mapping.endpoint} className={className}>
+    <Accordion.Item eventKey={mapping.endpoint}>
+      <Accordion.Header className="d-flex align-items-center flex-wrap">
         <span className="flex-grow-1">
           <Badge bg="secondary">{mapping.type}</Badge>
           <Button className="text-start text-truncate" variant="link">
@@ -90,70 +86,68 @@ const MappingRow = ({ className, mapping, onEdit, onDelete }: MappingRowProps) =
           </Button>
         )}
         {onDelete && (
-          <Button variant="outline-primary" onClick={onDelete}>
+          <Button className="me-2" variant="outline-primary" onClick={onDelete}>
             Delete
           </Button>
         )}
-      </Accordion.Button>
-      <Accordion.Collapse eventKey={mapping.endpoint}>
-        <Card.Body>
-          {mapping.description && (
-            <>
-              <h5>Description</h5>
-              <p>{mapping.description}</p>
-            </>
-          )}
-          {mapping.documentation && (
-            <>
-              <h5>Documentation</h5>
-              <p>{mapping.documentation}</p>
-            </>
-          )}
-          {mapping.allowUnset && (
-            <>
-              <h5>Allow Unset</h5>
-              <p>True</p>
-            </>
-          )}
-          {mapping.explicitTimestamp && (
-            <>
-              <h5>Explicit Timestamp</h5>
-              <p>True</p>
-            </>
-          )}
-          {mapping.reliability && (
-            <>
-              <h5>Reliability</h5>
-              <p>{reliabilityToLabel[mapping.reliability]}</p>
-            </>
-          )}
-          {mapping.retention && (
-            <>
-              <h5>Retention</h5>
-              <p>{retentionToLabel[mapping.retention]}</p>
-            </>
-          )}
-          {mapping.expiry && (
-            <>
-              <h5>Expiry</h5>
-              <p>{mapping.expiry} seconds</p>
-            </>
-          )}
-          {mapping.databaseRetentionPolicy && (
-            <>
-              <h5>Database Retention</h5>
-              <p>{databaseRetentionToLabel[mapping.databaseRetentionPolicy]}</p>
-            </>
-          )}
-          {mapping.databaseRetentionTtl != null && (
-            <>
-              <h5>Database Retention TTL</h5>
-              <p>{mapping.databaseRetentionTtl} seconds</p>
-            </>
-          )}
-        </Card.Body>
-      </Accordion.Collapse>
-    </Card>
+      </Accordion.Header>
+      <Accordion.Body>
+        {mapping.description && (
+          <>
+            <h5>Description</h5>
+            <p>{mapping.description}</p>
+          </>
+        )}
+        {mapping.documentation && (
+          <>
+            <h5>Documentation</h5>
+            <p>{mapping.documentation}</p>
+          </>
+        )}
+        {mapping.allowUnset && (
+          <>
+            <h5>Allow Unset</h5>
+            <p>True</p>
+          </>
+        )}
+        {mapping.explicitTimestamp && (
+          <>
+            <h5>Explicit Timestamp</h5>
+            <p>True</p>
+          </>
+        )}
+        {mapping.reliability && (
+          <>
+            <h5>Reliability</h5>
+            <p>{reliabilityToLabel[mapping.reliability]}</p>
+          </>
+        )}
+        {mapping.retention && (
+          <>
+            <h5>Retention</h5>
+            <p>{retentionToLabel[mapping.retention]}</p>
+          </>
+        )}
+        {mapping.expiry && (
+          <>
+            <h5>Expiry</h5>
+            <p>{mapping.expiry} seconds</p>
+          </>
+        )}
+        {mapping.databaseRetentionPolicy && (
+          <>
+            <h5>Database Retention</h5>
+            <p>{databaseRetentionToLabel[mapping.databaseRetentionPolicy]}</p>
+          </>
+        )}
+        {mapping.databaseRetentionTtl != null && (
+          <>
+            <h5>Database Retention TTL</h5>
+            <p>{mapping.databaseRetentionTtl} seconds</p>
+          </>
+        )}
+      </Accordion.Body>
+    </Accordion.Item>
   </Accordion>
 );
 
@@ -993,7 +987,7 @@ export default ({
                 <Form.Group controlId="interfaceMappings">
                   <button
                     type="button"
-                    className="btn accordion-button w-100 mb-2"
+                    className="btn border p-3 w-100 mb-2"
                     onClick={handleAddMapping}
                   >
                     <Icon icon="add" className="me-2" /> Add mapping...
