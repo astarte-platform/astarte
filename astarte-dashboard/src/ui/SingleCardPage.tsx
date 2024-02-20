@@ -51,7 +51,7 @@ export default function SingleCardPage({
           </div>
         )}
       </header>
-      <Container fluid className="bg-white rounded p-3">
+      <Container fluid className="bg-white rounded border p-3">
         {children}
       </Container>
     </Container>

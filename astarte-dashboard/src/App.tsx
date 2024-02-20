@@ -79,7 +79,7 @@ const Dashboard = () => {
       <Container fluid className="px-0">
         <Row className="g-0">
           <DashboardSidebar />
-          <Col className="main-content vh-100 overflow-auto">
+          <Col className="main-content bg-light vh-100 overflow-auto d-flex flex-column">
             <PageRouter />
           </Col>
         </Row>
@@ -97,7 +97,7 @@ const StandaloneEditor = () => (
           <Sidebar.Item label="Interface Editor" link="/" icon="interfaces" />
         </Sidebar>
       </Col>
-      <Col className="main-content vh-100 overflow-auto">
+      <Col className="main-content bg-light vh-100 overflow-auto">
         <InterfaceEditorPage />
       </Col>
     </Row>
