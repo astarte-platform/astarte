@@ -87,9 +87,6 @@ defmodule Astarte.AppEngine.APIWeb.Telemetry do
         tags: [:status],
         tag_values: &extract_status/1
       ),
-      counter("astarte.appengine.api.calls.count",
-        tags: [:realm]
-      ),
       counter("phoenix.router_dispatch.stop.count",
         tags: [:method, :route],
         tag_values: &extract_router_tags/1
@@ -125,6 +122,22 @@ defmodule Astarte.AppEngine.APIWeb.Telemetry do
         "astarte.appengine.service.health",
         tags: [:consistency_level],
         description: "Database connection state: 1 if able to query, 0 if not."
+      ),
+      counter("astarte.appengine.api.requests.count",
+        tags: [:realm],
+        description: "The number of HTTP requests sent to the service."
+      ),
+      sum("astarte.appengine.api.requests.bytes",
+        tags: [:realm],
+        description: "The total size of bytes received via HTTP requests."
+      ),
+      counter("astarte.appengine.api.responses.count",
+        tags: [:realm],
+        description: "The number of HTTP responses sent by the service."
+      ),
+      sum("astarte.appengine.api.responses.bytes",
+        tags: [:realm],
+        description: "The total size of bytes sent via HTTP responses."
       )
     ]
   end

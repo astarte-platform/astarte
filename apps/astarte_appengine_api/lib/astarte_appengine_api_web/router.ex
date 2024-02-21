@@ -23,7 +23,8 @@ defmodule Astarte.AppEngine.APIWeb.Router do
     plug :accepts, ["json"]
     plug LogRealm
     plug Astarte.AppEngine.APIWeb.Plug.AuthorizePath
-    plug Astarte.AppEngine.APIWeb.Plug.Telemetry.CallsCount
+    plug Astarte.AppEngine.APIWeb.Plug.Telemetry.RequestCount
+    plug Astarte.AppEngine.APIWeb.Plug.Telemetry.ResponseCount
   end
 
   pipeline :swagger do
