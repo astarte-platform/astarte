@@ -98,8 +98,21 @@ defmodule Astarte.RealmManagement.APIWeb.Telemetry do
         "astarte.realm_management.service.health",
         description: "Service state: 1 if good, 0 if not."
       ),
-      counter("astarte.realm_management.api.calls.count",
-        tags: [:realm]
+      counter("astarte.realm_management.api.requests.count",
+        tags: [:realm],
+        description: "The number of HTTP requests sent to the service."
+      ),
+      sum("astarte.realm_management.api.requests.bytes",
+        tags: [:realm],
+        description: "The total size of bytes received via HTTP requests."
+      ),
+      counter("astarte.realm_management.api.responses.count",
+        tags: [:realm],
+        description: "The number of HTTP responses sent by the service."
+      ),
+      sum("astarte.realm_management.api.responses.bytes",
+        tags: [:realm],
+        description: "The total size of bytes sent via HTTP responses."
       )
     ]
   end
