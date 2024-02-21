@@ -97,7 +97,18 @@ defmodule Astarte.Housekeeping.APIWeb.Telemetry do
       last_value("astarte.housekeeping.service.health",
         description: "Service state: 1 if health is good, 0 if not."
       ),
-      counter("astarte.housekeeping.api.calls.count")
+      counter("astarte.housekeeping.api.requests.count",
+        description: "The number of HTTP requests sent to the service."
+      ),
+      sum("astarte.housekeeping.api.requests.bytes",
+        description: "The total size of bytes received via HTTP requests."
+      ),
+      counter("astarte.housekeeping.api.responses.count",
+        description: "The number of HTTP responses sent by the service."
+      ),
+      sum("astarte.housekeeping.api.responses.bytes",
+        description: "The total size of bytes sent via HTTP responses."
+      )
     ]
   end
 

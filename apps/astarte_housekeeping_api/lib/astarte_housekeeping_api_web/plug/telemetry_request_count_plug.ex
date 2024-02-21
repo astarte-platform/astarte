@@ -16,14 +16,32 @@
 # limitations under the License.
 #
 
-defmodule Astarte.Housekeeping.APIWeb.Plug.Telemetry.CallsCount do
-  def init(opts) do
-    opts
+defmodule Astarte.Housekeeping.APIWeb.Plug.Telemetry.RequestCount do
+  def init(_opts) do
+    nil
   end
 
   def call(conn, _opts) do
-    :telemetry.execute([:astarte, :housekeeping, :api, :calls], %{}, %{})
+    # The computation of request_size can take a non-negligible amount of time
+    # in the API request/response cycle, so we run it in another process.
+    Task.start(fn ->
+      :telemetry.execute(
+        [:astarte, :housekeeping, :api, :requests],
+        %{
+          bytes: request_size(conn.params)
+        },
+        %{}
+      )
+    end)
 
     conn
+  end
+
+  defp request_size(request) when is_map(request) do
+    Enum.reduce(request, 0, fn {k, v}, acc -> acc + byte_size(k) + request_size(v) end)
+  end
+
+  defp request_size(request) do
+    byte_size(request)
   end
 end
