@@ -41,6 +41,10 @@ defmodule Astarte.Housekeeping.Mock do
     handle_rpc(payload)
   end
 
+  def rpc_call(payload, _destination, _timeout) do
+    handle_rpc(payload)
+  end
+
   def handle_rpc(payload) do
     extract_call_tuple(Call.decode(payload))
     |> execute_rpc()

@@ -62,7 +62,7 @@ defmodule Astarte.Housekeeping.API.RPC.Housekeeping do
       device_registration_limit: device_registration_limit
     }
     |> encode_call(:create_realm)
-    |> @rpc_client.rpc_call(@destination)
+    |> @rpc_client.rpc_call(@destination, Config.rpc_timeout!())
     |> decode_reply()
     |> extract_reply()
   end
@@ -108,7 +108,7 @@ defmodule Astarte.Housekeeping.API.RPC.Housekeeping do
       device_registration_limit: device_registration_limit_to_proto(limit)
     }
     |> encode_call(:update_realm)
-    |> @rpc_client.rpc_call(@destination)
+    |> @rpc_client.rpc_call(@destination, Config.rpc_timeout!())
     |> decode_reply()
     |> extract_reply()
   end
@@ -116,7 +116,7 @@ defmodule Astarte.Housekeeping.API.RPC.Housekeeping do
   def list_realms do
     %GetRealmsList{}
     |> encode_call(:get_realms_list)
-    |> @rpc_client.rpc_call(@destination)
+    |> @rpc_client.rpc_call(@destination, Config.rpc_timeout!())
     |> decode_reply()
     |> extract_reply()
   end
@@ -126,7 +126,7 @@ defmodule Astarte.Housekeeping.API.RPC.Housekeeping do
 
     %DeleteRealm{realm: realm_name, async_operation: async_operation}
     |> encode_call(:delete_realm)
-    |> @rpc_client.rpc_call(@destination)
+    |> @rpc_client.rpc_call(@destination, Config.rpc_timeout!())
     |> decode_reply()
     |> extract_reply()
   end
@@ -134,7 +134,7 @@ defmodule Astarte.Housekeeping.API.RPC.Housekeeping do
   def get_health do
     %GetHealth{}
     |> encode_call(:get_health)
-    |> @rpc_client.rpc_call(@destination)
+    |> @rpc_client.rpc_call(@destination, Config.rpc_timeout!())
     |> decode_reply()
     |> extract_reply()
   end
@@ -142,7 +142,7 @@ defmodule Astarte.Housekeeping.API.RPC.Housekeeping do
   def get_realm(realm_name) do
     %GetRealm{realm_name: realm_name}
     |> encode_call(:get_realm)
-    |> @rpc_client.rpc_call(@destination)
+    |> @rpc_client.rpc_call(@destination, Config.rpc_timeout!())
     |> decode_reply()
     |> extract_reply()
   end
@@ -150,7 +150,7 @@ defmodule Astarte.Housekeeping.API.RPC.Housekeeping do
   def realm_exists?(realm_name) do
     %DoesRealmExist{realm: realm_name}
     |> encode_call(:does_realm_exist)
-    |> @rpc_client.rpc_call(@destination)
+    |> @rpc_client.rpc_call(@destination, Config.rpc_timeout!())
     |> decode_reply()
     |> extract_reply()
   end
