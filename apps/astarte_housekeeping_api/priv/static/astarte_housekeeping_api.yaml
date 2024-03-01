@@ -245,7 +245,7 @@ components:
               data:
                 $ref: '#/components/schemas/RealmPatch'
       description: >-
-        A JSON Merge Patch containing the property changes that should be applied to the realm.
+        A JSON Merge Patch containing the property changes that should be applied to the realm. Explicitly set a property to null to remove it.
       required: true
   schemas:
     Realm:
@@ -289,6 +289,11 @@ components:
           minimum: 0
           example: 100
           description: "Optional upper bound to the number of devices that can be registered in the realm."
+        datastream_maximum_storage_retention:
+          type: integer
+          minimum: 1
+          example: 100
+          description: "Optional upper bound to the retention period of all datastreams in the realm, in seconds."
       example:
         realm_name: myrealm
         jwt_public_key_pem: |
@@ -338,6 +343,11 @@ components:
           minimum: 0
           example: 100
           description: "Optional upper bound to the number of devices that can be registered in the realm."
+        datastream_maximum_storage_retention:
+          type: integer
+          minimum: 1
+          example: 100
+          description: "Optional upper bound to the retention period of all datastreams in the realm, in seconds."
       example:
         jwt_public_key_pem: |
             -----BEGIN PUBLIC KEY-----

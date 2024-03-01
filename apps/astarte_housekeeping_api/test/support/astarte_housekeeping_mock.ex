@@ -29,10 +29,10 @@ defmodule Astarte.Housekeeping.Mock do
     GetRealmReply,
     GetRealmsList,
     GetRealmsListReply,
+    RemoveLimit,
     Reply,
-    UpdateRealm,
     SetLimit,
-    RemoveLimit
+    UpdateRealm
   }
 
   alias Astarte.Housekeeping.API.Realms.Realm
@@ -63,7 +63,8 @@ defmodule Astarte.Housekeeping.Mock do
             replication_factor: rep,
             replication_class: class,
             datacenter_replication_factors: dc_repl,
-            device_registration_limit: dev_reg_limit
+            device_registration_limit: dev_reg_limit,
+            datastream_maximum_storage_retention: ds_max_retention
           }}
        ) do
     Astarte.Housekeeping.Mock.DB.put_realm(%Realm{
@@ -72,7 +73,8 @@ defmodule Astarte.Housekeeping.Mock do
       replication_factor: rep,
       replication_class: class,
       datacenter_replication_factors: dc_repl,
-      device_registration_limit: dev_reg_limit
+      device_registration_limit: dev_reg_limit,
+      datastream_maximum_storage_retention: ds_max_retention
     })
 
     %GenericOkReply{async_operation: async}
@@ -88,7 +90,8 @@ defmodule Astarte.Housekeeping.Mock do
             replication_factor: rep,
             replication_class: class,
             datacenter_replication_factors: dc_repl,
-            device_registration_limit: dev_reg_limit
+            device_registration_limit: dev_reg_limit,
+            datastream_maximum_storage_retention: ds_max_retention
           }}
        ) do
     # This is backend logic
@@ -105,13 +108,27 @@ defmodule Astarte.Housekeeping.Mock do
           nil
       end
 
+    retention =
+      case ds_max_retention do
+        nil ->
+          %Realm{} = realm = Astarte.Housekeeping.Mock.DB.get_realm(realm_name)
+          realm.datastream_maximum_storage_retention
+
+        0 ->
+          nil
+
+        n when is_integer(n) ->
+          n
+      end
+
     Astarte.Housekeeping.Mock.DB.put_realm(%Realm{
       realm_name: realm_name,
       jwt_public_key_pem: pem,
       replication_factor: rep,
       replication_class: class,
       datacenter_replication_factors: dc_repl,
-      device_registration_limit: limit
+      device_registration_limit: limit,
+      datastream_maximum_storage_retention: retention
     })
 
     %GetRealmReply{
@@ -120,7 +137,8 @@ defmodule Astarte.Housekeeping.Mock do
       replication_factor: rep,
       replication_class: class,
       datacenter_replication_factors: dc_repl,
-      device_registration_limit: limit
+      device_registration_limit: limit,
+      datastream_maximum_storage_retention: retention
     }
     |> encode_reply(:get_realm_reply)
     |> ok_wrap
@@ -161,7 +179,8 @@ defmodule Astarte.Housekeeping.Mock do
         replication_factor: rep,
         replication_class: class,
         datacenter_replication_factors: dc_repl,
-        device_registration_limit: dev_reg_limit
+        device_registration_limit: dev_reg_limit,
+        datastream_maximum_storage_retention: ds_max_retention
       } ->
         %GetRealmReply{
           realm_name: realm_name,
@@ -169,7 +188,8 @@ defmodule Astarte.Housekeeping.Mock do
           replication_factor: rep,
           replication_class: class,
           datacenter_replication_factors: dc_repl,
-          device_registration_limit: dev_reg_limit
+          device_registration_limit: dev_reg_limit,
+          datastream_maximum_storage_retention: ds_max_retention
         }
         |> encode_reply(:get_realm_reply)
     end

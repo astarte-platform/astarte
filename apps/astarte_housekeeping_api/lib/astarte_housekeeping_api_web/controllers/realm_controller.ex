@@ -78,10 +78,12 @@ defmodule Astarte.Housekeeping.APIWeb.RealmController do
 
   defp normalize_update_attrs(update_attrs) when is_map(update_attrs) do
     update_attrs
-    |> Map.replace_lazy(:device_registration_limit, &normalize_device_registration_limit/1)
-    |> Map.replace_lazy("device_registration_limit", &normalize_device_registration_limit/1)
+    |> Map.replace_lazy(:device_registration_limit, &normalize_integer_or_nil/1)
+    |> Map.replace_lazy("device_registration_limit", &normalize_integer_or_nil/1)
+    |> Map.replace_lazy(:datastream_maximum_storage_retention, &normalize_integer_or_nil/1)
+    |> Map.replace_lazy("datastream_maximum_storage_retention", &normalize_integer_or_nil/1)
   end
 
-  defp normalize_device_registration_limit(value) when is_nil(value), do: :remove_limit
-  defp normalize_device_registration_limit(value), do: value
+  defp normalize_integer_or_nil(value) when is_nil(value), do: :unset
+  defp normalize_integer_or_nil(value), do: value
 end
