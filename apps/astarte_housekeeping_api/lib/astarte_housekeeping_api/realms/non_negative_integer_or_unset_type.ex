@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2023 SECO Mind srl
+# Copyright 2024 SECO Mind srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -16,11 +16,11 @@
 # limitations under the License.
 #
 
-defmodule Astarte.Housekeeping.API.Realms.DeviceRegistrationLimitType do
+defmodule Astarte.Housekeeping.API.Realms.NonNegativeIntegerOrUnsetType do
   use Ecto.Type
   def type, do: :any
 
-  def cast(:remove_limit), do: {:ok, :remove_limit}
+  def cast(:unset), do: {:ok, :unset}
 
   def cast(n) when is_integer(n) do
     if n >= 0, do: {:ok, n}, else: :error
@@ -29,10 +29,10 @@ defmodule Astarte.Housekeeping.API.Realms.DeviceRegistrationLimitType do
   def cast(_), do: :error
 
   # load and dump are not meaningful for our use-case
-  def load(:remove_limit), do: {:ok, :remove_limit}
+  def load(:unset), do: {:ok, :unset}
   def load(n) when is_integer(n), do: {:ok, n}
   def load(_), do: :error
-  def dump(:remove_limit), do: {:ok, :remove_limit}
+  def dump(:unset), do: {:ok, :unset}
   def dump(n) when is_integer(n), do: {:ok, n}
   def dump(_), do: :error
 end
