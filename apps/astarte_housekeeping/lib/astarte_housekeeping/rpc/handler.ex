@@ -36,8 +36,8 @@ defmodule Astarte.Housekeeping.RPC.Handler do
     GetRealmsList,
     GetRealmsListReply,
     Reply,
-    UpdateRealm,
-    SetLimit
+    SetLimit,
+    UpdateRealm
   }
 
   require Logger
@@ -91,6 +91,7 @@ defmodule Astarte.Housekeeping.RPC.Handler do
             replication_class: :NETWORK_TOPOLOGY_STRATEGY,
             datacenter_replication_factors: datacenter_replication_factors,
             device_registration_limit: device_registration_limit,
+            datastream_maximum_storage_retention: datastream_maximum_storage_retention,
             async_operation: async
           }}
        ) do
@@ -102,6 +103,7 @@ defmodule Astarte.Housekeeping.RPC.Handler do
              pub_key,
              datacenter_replication_factors_map,
              device_registration_limit,
+             datastream_maximum_storage_retention,
              async: async
            ) do
       generic_ok(async)
@@ -137,12 +139,18 @@ defmodule Astarte.Housekeeping.RPC.Handler do
             jwt_public_key_pem: pub_key,
             replication_factor: replication_factor,
             device_registration_limit: device_registration_limit,
+            datastream_maximum_storage_retention: datastream_maximum_storage_retention,
             async_operation: async
           }}
        ) do
     with {:ok, false} <- Astarte.Housekeeping.Engine.is_realm_existing(realm),
          :ok <-
-           Engine.create_realm(realm, pub_key, replication_factor, device_registration_limit,
+           Engine.create_realm(
+             realm,
+             pub_key,
+             replication_factor,
+             device_registration_limit,
+             datastream_maximum_storage_retention,
              async: async
            ) do
       generic_ok(async)
@@ -177,14 +185,16 @@ defmodule Astarte.Housekeeping.RPC.Handler do
           jwt_public_key_pem: public_key,
           replication_class: "SimpleStrategy",
           replication_factor: replication_factor,
-          device_registration_limit: limit
+          device_registration_limit: limit,
+          datastream_maximum_storage_retention: retention
         } ->
           %GetRealmReply{
             realm_name: realm_name_reply,
             jwt_public_key_pem: public_key,
             replication_class: :SIMPLE_STRATEGY,
             replication_factor: replication_factor,
-            device_registration_limit: limit
+            device_registration_limit: limit,
+            datastream_maximum_storage_retention: retention
           }
           |> encode_reply(:get_realm_reply)
           |> ok_wrap
@@ -194,14 +204,16 @@ defmodule Astarte.Housekeeping.RPC.Handler do
           jwt_public_key_pem: public_key,
           replication_class: "NetworkTopologyStrategy",
           datacenter_replication_factors: datacenter_replication_factors,
-          device_registration_limit: limit
+          device_registration_limit: limit,
+          datastream_maximum_storage_retention: retention
         } ->
           %GetRealmReply{
             realm_name: realm_name_reply,
             jwt_public_key_pem: public_key,
             replication_class: :NETWORK_TOPOLOGY_STRATEGY,
             datacenter_replication_factors: datacenter_replication_factors,
-            device_registration_limit: limit
+            device_registration_limit: limit,
+            datastream_maximum_storage_retention: retention
           }
           |> encode_reply(:get_realm_reply)
           |> ok_wrap
@@ -292,14 +304,16 @@ defmodule Astarte.Housekeeping.RPC.Handler do
         jwt_public_key_pem: public_key,
         replication_class: "SimpleStrategy",
         replication_factor: replication_factor,
-        device_registration_limit: device_registration_limit
+        device_registration_limit: device_registration_limit,
+        datastream_maximum_storage_retention: datastream_maximum_storage_retention
       } ->
         %GetRealmReply{
           realm_name: realm_name_reply,
           jwt_public_key_pem: public_key,
           replication_class: :SIMPLE_STRATEGY,
           replication_factor: replication_factor,
-          device_registration_limit: device_registration_limit
+          device_registration_limit: device_registration_limit,
+          datastream_maximum_storage_retention: datastream_maximum_storage_retention
         }
         |> encode_reply(:get_realm_reply)
         |> ok_wrap
@@ -309,7 +323,8 @@ defmodule Astarte.Housekeeping.RPC.Handler do
         jwt_public_key_pem: public_key,
         replication_class: "NetworkTopologyStrategy",
         datacenter_replication_factors: datacenter_replication_factors,
-        device_registration_limit: device_registration_limit
+        device_registration_limit: device_registration_limit,
+        datastream_maximum_storage_retention: datastream_maximum_storage_retention
       } ->
         datacenter_replication_factors_list = Enum.into(datacenter_replication_factors, [])
 
@@ -318,7 +333,8 @@ defmodule Astarte.Housekeeping.RPC.Handler do
           jwt_public_key_pem: public_key,
           replication_class: :NETWORK_TOPOLOGY_STRATEGY,
           datacenter_replication_factors: datacenter_replication_factors_list,
-          device_registration_limit: device_registration_limit
+          device_registration_limit: device_registration_limit,
+          datastream_maximum_storage_retention: datastream_maximum_storage_retention
         }
         |> encode_reply(:get_realm_reply)
         |> ok_wrap
