@@ -295,8 +295,13 @@ export default (): React.ReactElement => {
         setShowCredentialSecretModal(true);
       })
       .catch((err) => {
+        const deviceRegistrationLimitReached =
+          err?.response?.data?.errors?.error_name?.[0] === 'device_registration_limit_reached';
+        const errorMessage = deviceRegistrationLimitReached
+          ? `The device registration limit was reached and there are too many registered devices already.`
+          : err.message;
         setRegisteringDevice(false);
-        registrationAlertsController.showError(`Couldn't register device: ${err.message}`);
+        registrationAlertsController.showError(`Could not register the device. ${errorMessage}`);
       });
   };
 

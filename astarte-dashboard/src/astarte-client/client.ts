@@ -176,6 +176,7 @@ class AstarteClient {
     this.listeners = {};
 
     this.getConfigAuth = this.getConfigAuth.bind(this);
+    this.getDeviceRegistrationLimit = this.getDeviceRegistrationLimit.bind(this);
     this.getBlocks = this.getBlocks.bind(this);
     this.getDeviceData = this.getDeviceData.bind(this);
     this.getDevicesStats = this.getDevicesStats.bind(this);
@@ -198,6 +199,7 @@ class AstarteClient {
     this.apiConfig = {
       realmManagementHealth: astarteAPIurl`${config.realmManagementApiUrl}health`,
       auth:                  astarteAPIurl`${config.realmManagementApiUrl}v1/${'realm'}/config/auth`,
+      deviceRegistrationLimit: astarteAPIurl`${config.realmManagementApiUrl}v1/${'realm'}/config/device_registration_limit`,
       interfaces:            astarteAPIurl`${config.realmManagementApiUrl}v1/${'realm'}/interfaces`,
       interfaceMajors:       astarteAPIurl`${config.realmManagementApiUrl}v1/${'realm'}/interfaces/${'interfaceName'}`,
       interface:             astarteAPIurl`${config.realmManagementApiUrl}v1/${'realm'}/interfaces/${'interfaceName'}/${'interfaceMajor'}`,
@@ -266,6 +268,11 @@ astarteAPIurl`${config.realmManagementApiUrl}v1/${'realm'}/interfaces/${'interfa
     await this.$put(this.apiConfig.auth(this.config), {
       jwt_public_key_pem: params.publicKey,
     });
+  }
+
+  async getDeviceRegistrationLimit(): Promise<number | null> {
+    const response = await this.$get(this.apiConfig.deviceRegistrationLimit(this.config));
+    return response.data;
   }
 
   async getPolicyNames(): Promise<string[]> {
