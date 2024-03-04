@@ -29,29 +29,11 @@ import PageRouter from './Router';
 import AstarteProvider, { useAstarte } from './AstarteManager';
 import type { DashboardConfig } from './types';
 import Snackbar from './ui/Snackbar';
-import useFetch from './hooks/useFetch';
-import useInterval from './hooks/useInterval';
 import createReduxStore from './store';
 
 const DashboardSidebar = () => {
   const config = useConfig();
   const astarte = useAstarte();
-
-  const healthFetcher = useFetch(() => {
-    const apiChecks = [
-      astarte.client.getAppengineHealth(),
-      astarte.client.getRealmManagementHealth(),
-      astarte.client.getPairingHealth(),
-    ];
-    if (config.features.flow) {
-      apiChecks.push(astarte.client.getFlowHealth());
-    }
-    return Promise.all(apiChecks);
-  });
-
-  useInterval(healthFetcher.refresh, 30000);
-
-  const isApiHealthy = healthFetcher.status !== 'err';
 
   if (!astarte.isAuthenticated) {
     return null;
@@ -80,7 +62,7 @@ const DashboardSidebar = () => {
         )}
         <Sidebar.Item label="Realm settings" link="/settings" icon="settings" />
         <Sidebar.Separator />
-        <Sidebar.ApiStatus healthy={isApiHealthy} realm={astarte.realm} />
+        <Sidebar.ApiStatus />
         <Sidebar.Separator />
         <Sidebar.Item label="Logout" link="/logout" icon="logout" />
         <Sidebar.AppInfo appVersion={import.meta.env.VITE_APP_VERSION || ''} />

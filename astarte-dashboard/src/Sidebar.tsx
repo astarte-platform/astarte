@@ -20,28 +20,74 @@ import React, { useMemo } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Nav, NavItem, NavLink } from 'react-bootstrap';
 
+import { useAstarte } from './AstarteManager';
+import { useConfig } from './ConfigManager';
 import Icon from './components/Icon';
+import useFetch from './hooks/useFetch';
+import useInterval from './hooks/useInterval';
 
-interface SidebarApiStatusProps {
-  healthy: boolean;
-  realm: React.ReactNode;
-}
+const SidebarApiStatus = () => {
+  const config = useConfig();
+  const astarte = useAstarte();
+  const deviceRegistrationLimitFetcher = useFetch(astarte.client.getDeviceRegistrationLimit);
+  const devicesStatsFetcher = useFetch(astarte.client.getDevicesStats);
 
-const SidebarApiStatus = ({ healthy, realm }: SidebarApiStatusProps) => (
-  <NavItem className="nav-status pl-4">
-    <div>
-      <b>Realm</b>
-    </div>
-    <p>{realm}</p>
-    <div>
-      <b>API Status</b>
-    </div>
-    <p className="my-1">
-      <Icon icon={healthy ? 'statusConnected' : 'statusDisconnected'} className="mr-2" />
-      {healthy ? 'Up and running' : 'Degraded'}
-    </p>
-  </NavItem>
-);
+  const healthFetcher = useFetch(() => {
+    const apiChecks = [
+      astarte.client.getAppengineHealth(),
+      astarte.client.getRealmManagementHealth(),
+      astarte.client.getPairingHealth(),
+    ];
+    if (config.features.flow) {
+      apiChecks.push(astarte.client.getFlowHealth());
+    }
+    return Promise.all(apiChecks);
+  });
+
+  useInterval(deviceRegistrationLimitFetcher.refresh, 30000);
+  useInterval(devicesStatsFetcher.refresh, 30000);
+  useInterval(healthFetcher.refresh, 30000);
+
+  const isApiHealthy = healthFetcher.status !== 'err';
+
+  if (!astarte.isAuthenticated) {
+    return null;
+  }
+
+  return (
+    <NavItem className="nav-status pl-4">
+      <div>
+        <b>Realm</b>
+      </div>
+      <p>{astarte.realm}</p>
+      <div>
+        <b>Connected devices</b>
+      </div>
+      <p>
+        {devicesStatsFetcher.value != null
+          ? `${devicesStatsFetcher.value.connectedDevices} / ${devicesStatsFetcher.value.totalDevices}`
+          : '-'}
+      </p>
+      <div>
+        <b>Registered devices</b>
+      </div>
+      <p>
+        {devicesStatsFetcher.value != null
+          ? deviceRegistrationLimitFetcher.value != null
+            ? `${devicesStatsFetcher.value.totalDevices} / ${deviceRegistrationLimitFetcher.value}`
+            : devicesStatsFetcher.value.totalDevices
+          : '-'}
+      </p>
+      <div>
+        <b>API Status</b>
+      </div>
+      <p className="my-1">
+        <Icon icon={isApiHealthy ? 'statusConnected' : 'statusDisconnected'} className="mr-2" />
+        {isApiHealthy ? 'Up and running' : 'Degraded'}
+      </p>
+    </NavItem>
+  );
+};
 
 interface SidebarAppInfoProps {
   appVersion: string;
