@@ -82,6 +82,7 @@ export default (): React.ReactElement => {
   const navigate = useNavigate();
 
   const authConfigFetcher = useFetch(astarte.client.getConfigAuth);
+  const deviceRegistrationLimitFetcher = useFetch(astarte.client.getDeviceRegistrationLimit);
 
   const showModal = useCallback(() => setIsModalVisible(true), [setIsModalVisible]);
 
@@ -122,6 +123,10 @@ export default (): React.ReactElement => {
   return (
     <SingleCardPage title="Realm Settings">
       <AlertsBanner alerts={formAlerts} />
+      <Form.Group controlId="device-registration-limit">
+        <Form.Label>Device registration limit</Form.Label>
+        <Form.Control value={deviceRegistrationLimitFetcher.value ?? 'No limit'} readOnly />
+      </Form.Group>
       <WaitForData
         data={authConfigFetcher.value}
         status={authConfigFetcher.status}
