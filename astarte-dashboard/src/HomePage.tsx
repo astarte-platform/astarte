@@ -108,12 +108,14 @@ const ApiStatusCard = ({
 interface DevicesCardProps {
   connectedDevices: number;
   totalDevices: number;
+  deviceRegistrationLimit: number | null;
   connectedDevicesProvider: ChartProvider<'Object', ConnectedDevices>;
 }
 
 const DevicesCard = ({
   connectedDevices,
   totalDevices,
+  deviceRegistrationLimit,
   connectedDevicesProvider,
 }: DevicesCardProps): React.ReactElement => (
   <Card id="devices-card" className="h-100">
@@ -123,9 +125,15 @@ const DevicesCard = ({
         <Row noGutters>
           <Col xs={12} lg={6}>
             <Card.Title>Connected devices</Card.Title>
-            <Card.Text>{connectedDevices}</Card.Text>
+            <Card.Text>
+              {connectedDevices} / {totalDevices}
+            </Card.Text>
             <Card.Title>Registered devices</Card.Title>
-            <Card.Text>{totalDevices}</Card.Text>
+            <Card.Text>
+              {deviceRegistrationLimit != null
+                ? `${totalDevices} / ${deviceRegistrationLimit}`
+                : totalDevices}
+            </Card.Text>
           </Col>
           <Col xs={12} lg={6}>
             {totalDevices > 0 && <ConnectedDevicesChart provider={connectedDevicesProvider} />}
@@ -319,6 +327,7 @@ const HomePage = (): React.ReactElement => {
   const realmManagementHealth = useFetch(astarte.client.getRealmManagementHealth);
   const pairingHealth = useFetch(astarte.client.getPairingHealth);
   const flowHealth = useFetch(config.features.flow ? astarte.client.getFlowHealth : async () => {});
+  const deviceRegistrationLimitFetcher = useFetch(astarte.client.getDeviceRegistrationLimit);
   const navigate = useNavigate();
 
   const connectedDevicesProvider = useMemo(
@@ -379,6 +388,7 @@ const HomePage = (): React.ReactElement => {
               <DevicesCard
                 connectedDevices={connectedDevices}
                 totalDevices={totalDevices}
+                deviceRegistrationLimit={deviceRegistrationLimitFetcher.value}
                 connectedDevicesProvider={connectedDevicesProvider}
               />
             </Col>
