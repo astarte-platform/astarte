@@ -185,7 +185,8 @@ defmodule Astarte.RealmManagement.DatabaseFixtures do
   def realm_values do
     [
       realm_name: "realm#{System.unique_integer([:positive])}",
-      device_registration_limit: System.unique_integer([:positive])
+      device_registration_limit: System.unique_integer([:positive]),
+      datastream_maximum_storage_retention: System.unique_integer([:positive])
     ]
   end
 

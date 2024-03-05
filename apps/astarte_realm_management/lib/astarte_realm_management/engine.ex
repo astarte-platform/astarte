@@ -1073,4 +1073,27 @@ defmodule Astarte.RealmManagement.Engine do
         {:error, reason}
     end
   end
+
+  @doc """
+  Retrieves the maximum datastream storage retention of a realm.
+  Returns either `{:ok, limit}` or `{:error, reason}`.
+  The limit is a strictly positive integer (if set), 0 if unset.
+  """
+  @spec get_datastream_maximum_storage_retention(String.t()) ::
+          {:ok, non_neg_integer()} | {:error, atom()}
+  def get_datastream_maximum_storage_retention(realm_name) do
+    case Queries.get_datastream_maximum_storage_retention(realm_name) do
+      {:ok, value} ->
+        {:ok, value}
+
+      {:error, reason} ->
+        _ =
+          Logger.warning(
+            "Cannot get maximum datastream storage retention for realm #{realm_name}",
+            tag: "get_datastream_maximum_storage_retention_fail"
+          )
+
+        {:error, reason}
+    end
+  end
 end

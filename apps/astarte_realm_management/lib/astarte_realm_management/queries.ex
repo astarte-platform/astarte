@@ -2306,4 +2306,42 @@ defmodule Astarte.RealmManagement.Queries do
         {:error, :database_error}
     end
   end
+
+  def get_datastream_maximum_storage_retention(realm_name) do
+    Xandra.Cluster.run(:xandra, &do_get_datastream_maximum_storage_retention(&1, realm_name))
+  end
+
+  defp do_get_datastream_maximum_storage_retention(conn, realm_name) do
+    # TODO: validate realm name
+    statement = """
+    SELECT blobAsInt(value)
+    FROM :realm_name.kv_store
+    WHERE group='realm_config' AND key='datastream_maximum_storage_retention'
+    """
+
+    query = String.replace(statement, ":realm_name", realm_name)
+
+    with {:ok, prepared} <- Xandra.prepare(conn, query),
+         {:ok, page} <- Xandra.execute(conn, prepared, %{}) do
+      case Enum.fetch(page, 0) do
+        {:ok, %{"system.blobasint(value)": value}} ->
+          {:ok, value}
+
+        :error ->
+          {:ok, 0}
+      end
+    else
+      {:error, %Xandra.Error{} = err} ->
+        _ = Logger.warning("Database error: #{inspect(err)}.", tag: "database_error")
+        {:error, :database_error}
+
+      {:error, %Xandra.ConnectionError{} = err} ->
+        _ =
+          Logger.warning("Database connection error: #{inspect(err)}.",
+            tag: "database_connection_error"
+          )
+
+        {:error, :database_connection_error}
+    end
+  end
 end

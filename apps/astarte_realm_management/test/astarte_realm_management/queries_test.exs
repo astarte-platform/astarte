@@ -856,4 +856,22 @@ defmodule Astarte.RealmManagement.QueriesTest do
     realm_name = "realm#{System.unique_integer([:positive])}"
     assert {:error, :realm_not_found} = Queries.get_device_registration_limit(realm_name)
   end
+
+  test "retrieve datastream_maximum_storage_retention for an existing realm" do
+    retention = 10
+
+    DatabaseTestHelper.seed_realm_test_data!(
+      realm_name: @realm_name,
+      datastream_maximum_storage_retention: retention
+    )
+
+    assert {:ok, ^retention} = Queries.get_datastream_maximum_storage_retention(@realm_name)
+  end
+
+  test "fail to retrieve datastream_maximum_storage_retention if realm does not exist" do
+    realm_name = "realm#{System.unique_integer([:positive])}"
+
+    assert {:error, _} =
+             Queries.get_datastream_maximum_storage_retention(realm_name)
+  end
 end
