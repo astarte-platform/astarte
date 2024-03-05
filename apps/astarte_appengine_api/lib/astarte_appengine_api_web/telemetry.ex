@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2020 Ispirata Srl
+# Copyright 2020-2024 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -19,12 +19,17 @@ defmodule Astarte.AppEngine.APIWeb.Telemetry do
   use Supervisor
   import Telemetry.Metrics
 
+  alias Astarte.AppEngine.APIWeb.Telemetry.APIUsage
+
   def start_link(arg) do
     Supervisor.start_link(__MODULE__, arg, name: __MODULE__)
   end
 
   def init(_arg) do
+    attach_handlers()
+
     children = [
+      {Task.Supervisor, name: Astarte.AppEngine.APIWeb.TelemetryTaskSupervisor},
       {:telemetry_poller, measurements: periodic_measurements(), period: 10_000},
       {TelemetryMetricsPrometheus.Core, metrics: metrics()}
     ]
@@ -87,9 +92,6 @@ defmodule Astarte.AppEngine.APIWeb.Telemetry do
         tags: [:status],
         tag_values: &extract_status/1
       ),
-      counter("astarte.appengine.api.calls.count",
-        tags: [:realm]
-      ),
       counter("phoenix.router_dispatch.stop.count",
         tags: [:method, :route],
         tag_values: &extract_router_tags/1
@@ -125,6 +127,15 @@ defmodule Astarte.AppEngine.APIWeb.Telemetry do
         "astarte.appengine.service.health",
         tags: [:consistency_level],
         description: "Database connection state: 1 if able to query, 0 if not."
+      ),
+      counter("astarte.appengine.api.request.count",
+        tags: [:realm]
+      ),
+      sum("astarte.appengine.api.request.request_body_bytes",
+        tags: [:realm]
+      ),
+      sum("astarte.appengine.api.request.response_body_bytes",
+        tags: [:realm]
       )
     ]
   end
@@ -135,6 +146,10 @@ defmodule Astarte.AppEngine.APIWeb.Telemetry do
       # This function must call :telemetry.execute/3 and a metric must be added above.
       # {MyApp, :count_users, []}
     ]
+  end
+
+  defp attach_handlers do
+    :telemetry.attach(APIUsage, [:cowboy, :request, :stop], &APIUsage.handle_event/4, nil)
   end
 
   defp extract_phoenix_buckets_metadata(%{

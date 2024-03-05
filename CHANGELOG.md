@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - [astarte_appengine_api] Show deletion status in device details.
 - [astarte_housekeeping_api] Allow to customize the RPC call timeout with
   `HOUSEKEEPING_API_RPC_TIMEOUT` (default: 5 seconds).
+- Add API usage metrics.
 
 ### Changed
 - Forward port changes from release 1.1.
