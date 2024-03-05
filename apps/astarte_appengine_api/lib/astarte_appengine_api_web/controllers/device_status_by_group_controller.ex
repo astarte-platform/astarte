@@ -30,8 +30,6 @@ defmodule Astarte.AppEngine.APIWeb.DeviceStatusByGroupController do
         conn,
         %{"realm_name" => realm_name, "group_name" => group_name, "details" => "true"} = params
       ) do
-    group_name
-
     with {:ok, %DevicesList{} = devices_list} <-
            Groups.list_detailed_devices(realm_name, group_name, params) do
       render(conn, "detailed_index.json", devices_list: devices_list, request: params)

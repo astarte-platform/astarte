@@ -94,8 +94,6 @@ defmodule Astarte.AppEngine.API.Mixfile do
       {:ex_json_schema, "~> 0.7"},
       {:phoenix_swagger, "~> 0.8"},
       {:xandra, "~> 0.13"},
-      {:excoveralls, "~> 0.15", only: :test},
-      {:mox, "~> 0.5", only: :test},
       {:pretty_log, "~> 0.1"},
       {:plug_logger_with_meta, "~> 0.1"},
       {:telemetry, "~> 0.4"},
@@ -108,7 +106,11 @@ defmodule Astarte.AppEngine.API.Mixfile do
       {:dialyxir, "~> 1.0", only: [:dev, :ci], runtime: false},
       # Workaround for Elixir 1.15 / ssl_verify_fun issue
       # See also: https://github.com/deadtrickster/ssl_verify_fun.erl/pull/27
-      {:ssl_verify_fun, "~> 1.1.0", manager: :rebar3, override: true}
+      {:ssl_verify_fun, "~> 1.1.0", manager: :rebar3, override: true},
+      # Test section
+      {:excoveralls, "~> 0.15", only: :test},
+      {:mox, "~> 0.5", only: :test},
+      {:stream_data, "~> 0.5", only: :test}
     ]
   end
 end

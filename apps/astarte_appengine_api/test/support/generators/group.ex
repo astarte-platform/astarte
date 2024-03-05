@@ -15,16 +15,29 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule Astarte.AppEngine.APIWeb.Plug.GroupNameDecoder do
+defmodule Astarte.AppEngine.API.GroupTestGenerator do
   @moduledoc """
-  This plug decodes a group name, which may have been encoded
-  to remove the forward slash
+  Helpers group's generators
   """
-  def init(default), do: default
+  use ExUnitProperties
 
-  def call(%Plug.Conn{path_params: %{"group_name" => group_name}} = conn, _) do
-    put_in(conn.path_params["group_name"], URI.decode(group_name))
+  @max_subpath_count 10
+  @max_subpath_length 20
+
+  @doc """
+  Generate a random group name
+  Es.
+  world/europe/italy
+  """
+  def group_name do
+    string(:ascii, min_length: 1, max_length: @max_subpath_length)
+    |> uniq_list_of(
+      min_length: 1,
+      max_length: @max_subpath_count
+    )
+    |> filter(fn [<<first, _::binary>> | _] ->
+      first not in [?@, ?~, ?\s]
+    end)
+    |> map(&Enum.join(&1, "/"))
   end
-
-  def call(conn, _), do: conn
 end

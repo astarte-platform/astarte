@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - [astarte_appengine_api] Show deletion status in device details.
 - [astarte_appengine_api] Add /version endpoint which returns the microservice
   application version.
+- [astarte_appengine_api] Added group name decoder plug
 - [astarte_realm_management_api] Add /version endpoint which returns
   the microservice application version.
 - [astarte_pairing_api] Add /version endpoint which returns the microservice
