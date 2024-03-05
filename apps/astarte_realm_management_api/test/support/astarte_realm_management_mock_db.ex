@@ -89,6 +89,10 @@ defmodule Astarte.RealmManagement.Mock.DB do
     Agent.get(__MODULE__, &Map.get(&1, "device_registration_limit_#{realm}"))
   end
 
+  def get_datastream_maximum_storage_retention(realm) do
+    Agent.get(__MODULE__, &Map.get(&1, "datastream_maximum_storage_retention_#{realm}"))
+  end
+
   def install_interface(realm, %Interface{name: name, major_version: major} = interface) do
     if get_interface(realm, name, major) != nil do
       {:error, :already_installed_interface}
@@ -128,6 +132,13 @@ defmodule Astarte.RealmManagement.Mock.DB do
 
   def put_device_registration_limit(realm, limit) do
     Agent.update(__MODULE__, &Map.put(&1, "device_registration_limit_#{realm}", limit))
+  end
+
+  def put_datastream_maximum_storage_retention(realm, retention) do
+    Agent.update(
+      __MODULE__,
+      &Map.put(&1, "datastream_maximum_storage_retention_#{realm}", retention)
+    )
   end
 
   def install_trigger_policy(realm, %Policy{name: name} = policy) do

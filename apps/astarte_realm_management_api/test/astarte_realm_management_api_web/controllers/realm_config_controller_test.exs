@@ -112,4 +112,14 @@ defmodule Astarte.RealmManagement.APIWeb.RealmControllerTest do
 
     assert json_response(conn, 200)["data"] == limit
   end
+
+  test "returns the datastream_maximum_storage_retention on show", %{conn: conn} do
+    retention = 10
+    DB.put_datastream_maximum_storage_retention(@realm, retention)
+
+    conn =
+      get(conn, realm_config_path(conn, :show, @realm, "datastream_maximum_storage_retention"))
+
+    assert json_response(conn, 200)["data"] == retention
+  end
 end
