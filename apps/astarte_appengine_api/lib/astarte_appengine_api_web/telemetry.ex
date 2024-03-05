@@ -87,9 +87,6 @@ defmodule Astarte.AppEngine.APIWeb.Telemetry do
         tags: [:status],
         tag_values: &extract_status/1
       ),
-      counter("astarte.appengine.api.calls.count",
-        tags: [:realm]
-      ),
       counter("phoenix.router_dispatch.stop.count",
         tags: [:method, :route],
         tag_values: &extract_router_tags/1

@@ -97,7 +97,6 @@ defmodule Astarte.Housekeeping.APIWeb.Telemetry do
       last_value("astarte.housekeeping.service.health",
         description: "Service state: 1 if health is good, 0 if not."
       ),
-      counter("astarte.housekeeping.api.calls.count")
     ]
   end
 

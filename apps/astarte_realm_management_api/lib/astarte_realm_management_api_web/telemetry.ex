@@ -97,9 +97,6 @@ defmodule Astarte.RealmManagement.APIWeb.Telemetry do
       last_value(
         "astarte.realm_management.service.health",
         description: "Service state: 1 if good, 0 if not."
-      ),
-      counter("astarte.realm_management.api.calls.count",
-        tags: [:realm]
       )
     ]
   end

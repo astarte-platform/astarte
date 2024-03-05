@@ -22,7 +22,6 @@ defmodule Astarte.Housekeeping.APIWeb.Router do
   pipeline :api do
     plug :accepts, ["json"]
     plug Astarte.Housekeeping.APIWeb.Plug.AuthorizePath
-    plug Astarte.Housekeeping.APIWeb.Plug.Telemetry.CallsCount
   end
 
   scope "/v1", Astarte.Housekeeping.APIWeb do
