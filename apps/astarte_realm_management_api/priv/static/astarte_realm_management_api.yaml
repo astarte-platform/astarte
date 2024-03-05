@@ -97,6 +97,26 @@ paths:
           $ref: '#/components/responses/Forbidden'
         '404':
           $ref: '#/components/responses/NotFound'
+  '/{realm_name}/config/datastream_maximum_storage_retention':
+    parameters:
+      - $ref: '#/components/parameters/Realm'
+    get:
+      tags:
+        - config
+      summary: Get datastream maximum storage retention
+      description: Get the maximum storage retention for datastreams belonging to the realm, in seconds.
+      operationId: getDatastreamMaximumStorageRetention
+      security:
+        - JWT: []
+      responses:
+        '200':
+          $ref: '#/components/responses/GetDatastreamMaximumStorageRetention'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
   '/{realm_name}/interfaces':
     parameters:
       - $ref: '#/components/parameters/Realm'
@@ -537,6 +557,17 @@ components:
             properties:
               data:
                 $ref: '#/components/schemas/DeviceRegistrationLimit'
+    GetDatastreamMaximumStorageRetention:
+      description: Success
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - data
+            properties:
+              data:
+                $ref: '#/components/schemas/DatastreamMaximumStorageRetention'
     GetInterface:
       description: Success
       content:
@@ -934,6 +965,10 @@ components:
     DeviceRegistrationLimit:
       type: integer
       minimum: 0
+      example: 100
+    DatastreamMaximumStorageRetention:
+      type: integer
+      minimum: 1
       example: 100
     Interface:
       type: object
