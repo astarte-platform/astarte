@@ -47,6 +47,7 @@ defmodule Astarte.Housekeeping.RPC.HandlerTest do
 
   @public_key_pem "this_is_not_a_pem_but_it_will_do_for_tests"
   @device_limit 1
+  @datastream_maximum_storage_retention 1
 
   setup_all do
     :ok = DatabaseTestHelper.wait_and_initialize()
@@ -141,6 +142,42 @@ defmodule Astarte.Housekeeping.RPC.HandlerTest do
           {:create_realm,
            CreateRealm.new(realm: @test_realm, jwt_public_key_pem: @public_key_pem)}
       )
+      |> Call.encode()
+
+    {:ok, create_reply} = Handler.handle_rpc(encoded)
+
+    assert Reply.decode(create_reply) == generic_ok()
+
+    encoded =
+      %Call{call: {:does_realm_exist, %DoesRealmExist{realm: @test_realm}}}
+      |> Call.encode()
+
+    expected = %Reply{
+      error: false,
+      reply: {:does_realm_exist_reply, %DoesRealmExistReply{exists: true}},
+      version: 0
+    }
+
+    {:ok, exists_reply} = Handler.handle_rpc(encoded)
+
+    assert Reply.decode(exists_reply) == expected
+  end
+
+  test "Realm creation succeeds when device_registration_limit is not set" do
+    on_exit(fn ->
+      DatabaseTestHelper.realm_cleanup(@test_realm)
+    end)
+
+    encoded =
+      %Call{
+        call:
+          {:create_realm,
+           %CreateRealm{
+             realm: @test_realm,
+             jwt_public_key_pem: @public_key_pem,
+             device_registration_limit: nil
+           }}
+      }
       |> Call.encode()
 
     {:ok, create_reply} = Handler.handle_rpc(encoded)
@@ -378,7 +415,13 @@ defmodule Astarte.Housekeeping.RPC.HandlerTest do
   end
 
   test "DeleteRealm successful call" do
-    Engine.create_realm(@test_realm, @public_key_pem, @replication_factor, @device_limit)
+    Engine.create_realm(
+      @test_realm,
+      @public_key_pem,
+      @replication_factor,
+      @device_limit,
+      @datastream_maximum_storage_retention
+    )
 
     encoded =
       %Call{call: {:delete_realm, %DeleteRealm{realm: @test_realm}}}
@@ -415,7 +458,13 @@ defmodule Astarte.Housekeeping.RPC.HandlerTest do
       Config.reload_enable_realm_deletion()
     end)
 
-    Engine.create_realm(@test_realm, @public_key_pem, @replication_factor, @device_limit)
+    Engine.create_realm(
+      @test_realm,
+      @public_key_pem,
+      @replication_factor,
+      @device_limit,
+      @datastream_maximum_storage_retention
+    )
 
     Config.put_enable_realm_deletion(false)
 
@@ -438,6 +487,7 @@ defmodule Astarte.Housekeeping.RPC.HandlerTest do
           "test1publickey",
           @replication_factor,
           @device_limit,
+          @datastream_maximum_storage_retention,
           []
         )
 
@@ -466,7 +516,8 @@ defmodule Astarte.Housekeeping.RPC.HandlerTest do
              jwt_public_key_pem: @public_key_pem,
              replication_class: :SIMPLE_STRATEGY,
              replication_factor: @replication_factor,
-             device_registration_limit: @device_limit
+             device_registration_limit: @device_limit,
+             datastream_maximum_storage_retention: @datastream_maximum_storage_retention
            }}
       }
 
