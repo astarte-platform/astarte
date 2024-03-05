@@ -30,19 +30,17 @@ defmodule Astarte.AppEngine.APIWeb.DeviceStatusByGroupController do
         conn,
         %{"realm_name" => realm_name, "group_name" => group_name, "details" => "true"} = params
       ) do
-    decoded_group_name = URI.decode(group_name)
+    group_name
 
     with {:ok, %DevicesList{} = devices_list} <-
-           Groups.list_detailed_devices(realm_name, decoded_group_name, params) do
+           Groups.list_detailed_devices(realm_name, group_name, params) do
       render(conn, "detailed_index.json", devices_list: devices_list, request: params)
     end
   end
 
   def index(conn, %{"realm_name" => realm_name, "group_name" => group_name} = params) do
-    decoded_group_name = URI.decode(group_name)
-
     with {:ok, %DevicesList{} = devices_list} <-
-           Groups.list_devices(realm_name, decoded_group_name, params) do
+           Groups.list_devices(realm_name, group_name, params) do
       render(conn, "index.json", devices_list: devices_list, request: params)
     end
   end

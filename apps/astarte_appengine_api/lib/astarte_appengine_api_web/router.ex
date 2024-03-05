@@ -41,6 +41,8 @@ defmodule Astarte.AppEngine.APIWeb.Router do
     plug Astarte.AppEngine.APIWeb.Plug.JoinPath
     plug Astarte.AppEngine.APIWeb.Plug.LogInterface
     plug Astarte.AppEngine.APIWeb.Plug.LogPath
+    plug Astarte.AppEngine.APIWeb.Plug.Telemetry.CallsCount
+    plug Astarte.AppEngine.APIWeb.Plug.GroupNameDecoder
   end
 
   pipeline :swagger do
