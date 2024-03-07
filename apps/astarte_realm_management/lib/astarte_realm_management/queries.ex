@@ -2312,22 +2312,19 @@ defmodule Astarte.RealmManagement.Queries do
   end
 
   defp do_get_datastream_maximum_storage_retention(conn, realm_name) do
-    # TODO: validate realm name
-    statement = """
+    query = """
     SELECT blobAsInt(value)
-    FROM :realm_name.kv_store
+    FROM #{realm_name}.kv_store
     WHERE group='realm_config' AND key='datastream_maximum_storage_retention'
     """
 
-    query = String.replace(statement, ":realm_name", realm_name)
-
     with {:ok, prepared} <- Xandra.prepare(conn, query),
-         {:ok, page} <- Xandra.execute(conn, prepared, %{}) do
+         {:ok, %Xandra.Page{} = page} <- Xandra.execute(conn, prepared) do
       case Enum.fetch(page, 0) do
         {:ok, %{"system.blobasint(value)": value}} ->
           {:ok, value}
 
-        :error ->
+        _ ->
           {:ok, 0}
       end
     else

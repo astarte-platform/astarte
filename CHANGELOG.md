@@ -43,6 +43,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
   than a plaintext string. Revert to the old behaviour by setting
   `DATA_UPDATER_PLANT_GENERATE_LEGACY_INCOMING_INTROSPECTION_EVENTS` to `true`.
   See https://github.com/astarte-platform/astarte_core/pull/77.
+- BREAKING: [astarte_realm_management] do not allow installation of interfaces
+  where database_retention_ttl exceeds the max database retention for the realm (if set).
 
 ## [1.1.1] - 2023-11-15
 ### Fixed
