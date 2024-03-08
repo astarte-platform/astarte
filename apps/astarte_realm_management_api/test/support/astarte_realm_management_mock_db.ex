@@ -18,6 +18,7 @@
 
 defmodule Astarte.RealmManagement.Mock.DB do
   alias Astarte.Core.Interface
+  alias Astarte.Core.Mapping
   alias Astarte.Core.Triggers.Policy
 
   def start_link do
@@ -94,12 +95,21 @@ defmodule Astarte.RealmManagement.Mock.DB do
   end
 
   def install_interface(realm, %Interface{name: name, major_version: major} = interface) do
-    if get_interface(realm, name, major) != nil do
-      {:error, :already_installed_interface}
-    else
+    with {:already_installed_interface, nil} <-
+           {:already_installed_interface, get_interface(realm, name, major)},
+         max_retention = get_datastream_maximum_storage_retention(realm),
+         {:maximum_database_retention_exceeded, false} <-
+           {:maximum_database_retention_exceeded,
+            mappings_max_storage_retention_exceeded?(interface.mappings, max_retention)} do
       Agent.update(__MODULE__, fn %{interfaces: interfaces} = state ->
         %{state | interfaces: Map.put(interfaces, {realm, name, major}, interface)}
       end)
+    else
+      {:already_installed_interface, %Interface{} = _} ->
+        {:error, :already_installed_interface}
+
+      {:maximum_database_retention_exceeded, true} ->
+        {:error, :maximum_database_retention_exceeded}
     end
   end
 
@@ -206,5 +216,13 @@ defmodule Astarte.RealmManagement.Mock.DB do
         %{state | devices: Map.delete(devices, {realm, device_id})}
       end)
     end
+  end
+
+  defp mappings_max_storage_retention_exceeded?(_mappings, nil), do: false
+
+  defp mappings_max_storage_retention_exceeded?(mappings, max_retention) do
+    Enum.all?(mappings, fn %Mapping{database_retention_ttl: retention} ->
+      retention != nil and retention > max_retention
+    end)
   end
 end
