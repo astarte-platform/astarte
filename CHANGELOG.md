@@ -29,6 +29,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
   realm (in seconds). Existing realms are not affected by this change.
 - [astarte_housekeeping_api] Allow to read and set a realm's maximum datastream
   storage retention period using the realm fetch and update API, respectively.
+- [astarte_realm_management_api] Allow to read realm's maximum datastream
+  storage retention period with the `/config/datastream_maximum_storage_retention`
+  endpoint.
 
 ### Changed
 - Forward port changes from release 1.1.
@@ -44,7 +47,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
   `DATA_UPDATER_PLANT_GENERATE_LEGACY_INCOMING_INTROSPECTION_EVENTS` to `true`.
   See https://github.com/astarte-platform/astarte_core/pull/77.
 - BREAKING: [astarte_realm_management] do not allow installation of interfaces
-  where database_retention_ttl exceeds the max database retention for the realm (if set).
+  where database_retention_ttl exceeds the realm's maximum datastream storage
+  retention period, if set.
 
 ## [1.1.1] - 2023-11-15
 ### Fixed
