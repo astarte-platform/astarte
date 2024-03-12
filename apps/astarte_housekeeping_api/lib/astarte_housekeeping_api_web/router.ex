@@ -33,4 +33,8 @@ defmodule Astarte.Housekeeping.APIWeb.Router do
 
     patch "/realms/:realm_name", RealmController, :update
   end
+
+  scope "/version", Astarte.Housekeeping.APIWeb do
+    get "/", VersionController, :show
+  end
 end

@@ -24,8 +24,6 @@ defmodule Astarte.Pairing.APIWeb.AgentController do
 
   action_fallback Astarte.Pairing.APIWeb.FallbackController
 
-  plug Astarte.Pairing.APIWeb.Plug.AuthorizePath
-
   def create(conn, %{"realm_name" => realm, "data" => params}) do
     with {:ok, %DeviceRegistrationResponse{} = response} <- Agent.register_device(realm, params) do
       conn
