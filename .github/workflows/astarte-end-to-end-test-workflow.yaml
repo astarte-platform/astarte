@@ -35,7 +35,15 @@ jobs:
     - name: Build Astarte containers
       run: docker-compose build --parallel
     - name: Start all Astarte services
-      run: docker-compose up -d
+      run: |
+        docker-compose up -d
+        sleep 60
+      timeout-minutes: 30
+    - name: Check all Astarte services
+      run: |
+        docker-compose ps -a
+        docker compose logs astarte-housekeeping  
+        sleep 10
       timeout-minutes: 30
     - name: Wait for Astarte to come up
       run: |
