@@ -27,6 +27,7 @@ config :logger, :console,
 config :astarte_rpc, :amqp_connection, host: System.get_env("RABBITMQ_HOST") || "rabbitmq"
 
 config :astarte_appengine_api, :rpc_client, MockRPCClient
+config :astarte_appengine_api, :astarte_instance_id, "test"
 
 config :stream_data,
   max_runs: 50

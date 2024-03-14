@@ -21,6 +21,8 @@ defmodule Astarte.AppEngine.APIWeb.InterfaceValuesByDeviceAliasControllerTest do
 
   alias Astarte.AppEngine.API.DatabaseTestHelper
   alias Astarte.AppEngine.API.JWTTestHelper
+  alias Astarte.Core.CQLUtils
+  alias Astarte.AppEngine.API.Config
 
   setup_all do
     {:ok, _client} = DatabaseTestHelper.create_test_keyspace()

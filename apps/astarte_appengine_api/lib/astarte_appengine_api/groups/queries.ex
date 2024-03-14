@@ -20,6 +20,8 @@ defmodule Astarte.AppEngine.API.Groups.Queries do
   alias Astarte.AppEngine.API.Groups.Group
   alias Astarte.AppEngine.API.Device.DeviceStatus
   alias Astarte.AppEngine.API.Device.DevicesList
+  alias Astarte.Core.CQLUtils
+  alias Astarte.AppEngine.API.Config
   alias Astarte.Core.Device
   alias Astarte.Core.Realm
 
@@ -523,6 +525,8 @@ defmodule Astarte.AppEngine.API.Groups.Queries do
   end
 
   defp prepare_with_realm(conn, realm_name, query) do
+    realm_name = CQLUtils.realm_name_to_keyspace_name(realm_name, Config.astarte_instance_id!())
+
     with {:valid, true} <- {:valid, Realm.valid_name?(realm_name)},
          query_with_realm = String.replace(query, ":realm", realm_name),
          {:ok, prepared} <- Xandra.prepare(conn, query_with_realm) do

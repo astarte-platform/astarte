@@ -22,6 +22,8 @@ config :logger,
     [level_lower_than: :info]
   ]
 
+config :astarte_appengine_api, :astarte_instance_id, "default"
+
 config :logger, :console,
   format: {PrettyLog.LogfmtFormatter, :format},
   metadata: [
