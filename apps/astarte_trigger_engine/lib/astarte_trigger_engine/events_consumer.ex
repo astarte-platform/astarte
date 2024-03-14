@@ -24,6 +24,8 @@ defmodule Astarte.TriggerEngine.EventsConsumer do
   alias Astarte.DataAccess.Database
   alias CQEx.Query, as: DatabaseQuery
   alias CQEx.Result, as: DatabaseResult
+  alias Astarte.Core.CQLUtils
+  alias Astarte.TriggerEngine.Config
   require Logger
 
   defmodule Behaviour do
@@ -292,6 +294,8 @@ defmodule Astarte.TriggerEngine.EventsConsumer do
         "SELECT value FROM kv_store WHERE group='triggers' AND key=:trigger_id;"
       )
       |> DatabaseQuery.put(:trigger_id, trigger_id)
+
+    realm_name = CQLUtils.realm_name_to_keyspace_name(realm_name, Config.astarte_instance_id!())
 
     with {:ok, client} <- Database.connect(realm: realm_name),
          {:ok, result} <- DatabaseQuery.call(client, query),
