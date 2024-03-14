@@ -1735,17 +1735,12 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
            interface_major: major,
            match_path: "/*"
          }} ->
-<<<<<<< HEAD
-          with :ok <-
-                 InterfaceQueries.check_if_interface_exists(state.realm, interface_name, major) do
-=======
           keyspace_name =
             CQLUtils.realm_name_to_keyspace_name(state.realm, Config.astarte_instance_id!())
 
           with {:ok, db_client} <- Database.connect(realm: keyspace_name),
                :ok <-
                  InterfaceQueries.check_if_interface_exists(keyspace_name, interface_name, major) do
->>>>>>> 156d28f4 (Edit DUP)
             {:ok, new_state}
           else
             {:error, reason} ->
@@ -1759,17 +1754,12 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
            interface_major: major,
            match_path: match_path
          }} ->
-<<<<<<< HEAD
-          with {:ok, %InterfaceDescriptor{automaton: automaton}} <-
-                 InterfaceQueries.fetch_interface_descriptor(state.realm, interface_name, major),
-=======
           keyspace_name =
             CQLUtils.realm_name_to_keyspace_name(state.realm, Config.astarte_instance_id!())
 
           with {:ok, db_client} <- Database.connect(realm: keyspace_name),
                {:ok, %InterfaceDescriptor{automaton: automaton}} <-
                  InterfaceQueries.fetch_interface_descriptor(keyspace_name, interface_name, major),
->>>>>>> 156d28f4 (Edit DUP)
                {:ok, _endpoint_id} <- EndpointsAutomaton.resolve_path(match_path, automaton) do
             {:ok, new_state}
           else
