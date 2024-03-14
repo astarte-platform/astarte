@@ -68,7 +68,10 @@ defmodule Astarte.RealmManagement.Engine do
   def install_interface(realm_name, interface_json, opts \\ []) do
     _ = Logger.info("Going to install a new interface.", tag: "install_interface")
 
-    with {:ok, client} <- Database.connect(realm: realm_name),
+    keyspace_name =
+      CQLUtils.realm_name_to_keyspace_name(realm_name, Config.astarte_instance_id!())
+
+    with {:ok, client} <- Database.connect(realm: keyspace_name),
          {:ok, json_obj} <- Jason.decode(interface_json),
          interface_changeset <- InterfaceDocument.changeset(%InterfaceDocument{}, json_obj),
          {:ok, interface_doc} <- Ecto.Changeset.apply_action(interface_changeset, :insert),
@@ -130,7 +133,10 @@ defmodule Astarte.RealmManagement.Engine do
   def update_interface(realm_name, interface_json, opts \\ []) do
     _ = Logger.info("Going to perform interface update.", tag: "update_interface")
 
-    with {:ok, client} <- Database.connect(realm: realm_name),
+    keyspace_name =
+      CQLUtils.realm_name_to_keyspace_name(realm_name, Config.astarte_instance_id!())
+
+    with {:ok, client} <- Database.connect(realm: keyspace_name),
          {:ok, json_obj} <- Jason.decode(interface_json),
          interface_changeset <- InterfaceDocument.changeset(%InterfaceDocument{}, json_obj),
          {:ok, interface_doc} <- Ecto.Changeset.apply_action(interface_changeset, :insert),
@@ -140,10 +146,10 @@ defmodule Astarte.RealmManagement.Engine do
          {:interface_avail, {:ok, true}} <-
            {:interface_avail, Queries.is_interface_major_available?(client, name, major)},
          {:ok, installed_interface} <-
-           Interface.fetch_interface_descriptor(realm_name, name, major),
+           Interface.fetch_interface_descriptor(keyspace_name, name, major),
          :ok <- error_on_incompatible_descriptor(installed_interface, interface_descriptor),
          :ok <- error_on_downgrade(installed_interface, interface_descriptor),
-         {:ok, mapping_updates} <- extract_mapping_updates(realm_name, interface_doc),
+         {:ok, mapping_updates} <- extract_mapping_updates(keyspace_name, interface_doc),
          {:ok, automaton} <- EndpointsAutomaton.build(interface_doc.mappings) do
       interface_update =
         Map.merge(installed_interface, interface_descriptor, fn _k, old, new ->
@@ -372,8 +378,11 @@ defmodule Astarte.RealmManagement.Engine do
         interface_major: major
       )
 
+    keyspace_name =
+      CQLUtils.realm_name_to_keyspace_name(realm_name, Config.astarte_instance_id!())
+
     with {:major, 0} <- {:major, major},
-         {:ok, client} <- Database.connect(realm: realm_name),
+         {:ok, client} <- Database.connect(realm: keyspace_name),
          {:major_is_avail, {:ok, true}} <-
            {:major_is_avail, Queries.is_interface_major_available?(client, name, 0)},
          {:devices, {:ok, false}} <-
@@ -387,7 +396,7 @@ defmodule Astarte.RealmManagement.Engine do
 
         {:ok, :started}
       else
-        Engine.execute_interface_deletion(client, realm_name, name, major)
+        Engine.execute_interface_deletion(client, keyspace_name, name, major)
       end
     else
       {:major, _} ->
@@ -433,7 +442,10 @@ defmodule Astarte.RealmManagement.Engine do
         interface_major: major_version
       )
 
-    with {:ok, client} <- Database.connect(realm: realm_name),
+    keyspace_name =
+      CQLUtils.realm_name_to_keyspace_name(realm_name, Config.astarte_instance_id!())
+
+    with {:ok, client} <- Database.connect(realm: keyspace_name),
          {:ok, interface} <- Queries.fetch_interface(client, interface_name, major_version) do
       Jason.encode(interface)
     end
@@ -442,7 +454,10 @@ defmodule Astarte.RealmManagement.Engine do
   def list_interface_versions(realm_name, interface_name) do
     _ = Logger.debug("List interface versions.", interface: interface_name)
 
-    with {:ok, client} <- Database.connect(realm: realm_name) do
+    keyspace_name =
+      CQLUtils.realm_name_to_keyspace_name(realm_name, Config.astarte_instance_id!())
+
+    with {:ok, client} <- Database.connect(realm: keyspace_name) do
       Queries.interface_available_versions(client, interface_name)
     else
       {:error, :database_connection_error} ->
@@ -456,7 +471,10 @@ defmodule Astarte.RealmManagement.Engine do
   def get_interfaces_list(realm_name) do
     _ = Logger.debug("Get interfaces list.")
 
-    with {:ok, client} <- Database.connect(realm: realm_name) do
+    keyspace_name =
+      CQLUtils.realm_name_to_keyspace_name(realm_name, Config.astarte_instance_id!())
+
+    with {:ok, client} <- Database.connect(realm: keyspace_name) do
       Queries.get_interfaces_list(client)
     else
       {:error, :database_connection_error} ->
@@ -470,9 +488,12 @@ defmodule Astarte.RealmManagement.Engine do
   def get_jwt_public_key_pem(realm_name) do
     _ = Logger.debug("Get JWT public key PEM.")
 
+    keyspace_name =
+      CQLUtils.realm_name_to_keyspace_name(realm_name, Config.astarte_instance_id!())
+
     cqex_options =
       Config.cqex_options!()
-      |> Keyword.put(:keyspace, realm_name)
+      |> Keyword.put(:keyspace, keyspace_name)
 
     with {:ok, client} <-
            DatabaseClient.new(
@@ -487,9 +508,12 @@ defmodule Astarte.RealmManagement.Engine do
   end
 
   def update_jwt_public_key_pem(realm_name, jwt_public_key_pem) do
+    keyspace_name =
+      CQLUtils.realm_name_to_keyspace_name(realm_name, Config.astarte_instance_id!())
+
     cqex_options =
       Config.cqex_options!()
-      |> Keyword.put(:keyspace, realm_name)
+      |> Keyword.put(:keyspace, keyspace_name)
 
     with {:ok, client} <-
            DatabaseClient.new(
@@ -820,9 +844,12 @@ defmodule Astarte.RealmManagement.Engine do
   end
 
   defp get_database_client(realm_name) do
+    keyspace_name =
+      CQLUtils.realm_name_to_keyspace_name(realm_name, Config.astarte_instance_id!())
+
     cqex_options =
       Config.cqex_options!()
-      |> Keyword.put(:keyspace, realm_name)
+      |> Keyword.put(:keyspace, keyspace_name)
 
     DatabaseClient.new(
       Config.cassandra_node!(),
@@ -986,7 +1013,10 @@ defmodule Astarte.RealmManagement.Engine do
   end
 
   defp connect_to_db_with_realm(realm_name) do
-    with {:error, :database_connection_error} <- Database.connect(realm: realm_name) do
+    keyspace_name =
+      CQLUtils.realm_name_to_keyspace_name(realm_name, Config.astarte_instance_id!())
+
+    with {:error, :database_connection_error} <- Database.connect(realm: keyspace_name) do
       Logger.warning("Could not connect to database, realm #{realm_name}",
         tag: "database_connection_error"
       )
@@ -1059,7 +1089,10 @@ defmodule Astarte.RealmManagement.Engine do
   @spec get_device_registration_limit(String.t()) ::
           {:ok, integer()} | {:ok, nil} | {:error, atom()}
   def get_device_registration_limit(realm_name) do
-    case Queries.get_device_registration_limit(realm_name) do
+    keyspace_name =
+      CQLUtils.realm_name_to_keyspace_name(realm_name, Config.astarte_instance_id!())
+
+    case Queries.get_device_registration_limit(keyspace_name) do
       {:ok, value} ->
         {:ok, value}
 

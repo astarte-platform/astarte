@@ -20,6 +20,7 @@ defmodule Astarte.RealmManagement.EngineTest do
   use ExUnit.Case
   require Logger
   alias Astarte.Core.CQLUtils
+  alias Astarte.RealmManagement.Config
   alias Astarte.DataAccess.Database
   alias Astarte.RealmManagement.DatabaseTestHelper
   alias Astarte.RealmManagement.DatabaseFixtures
@@ -757,7 +758,11 @@ defmodule Astarte.RealmManagement.EngineTest do
     assert Engine.list_interface_versions("autotestrealm", "com.ispirata.Draft") ==
              {:ok, [[major_version: 0, minor_version: 2]]}
 
-    {:ok, client} = Database.connect(realm: "autotestrealm")
+    {:ok, client} =
+      Database.connect(
+        realm:
+          CQLUtils.realm_name_to_keyspace_name("autotestrealm", Config.astarte_instance_id!())
+      )
 
     d = :crypto.strong_rand_bytes(16)
 
@@ -841,7 +846,11 @@ defmodule Astarte.RealmManagement.EngineTest do
     assert Engine.list_interface_versions("autotestrealm", "com.ispirata.TestDatastream") ==
              {:ok, [[major_version: 0, minor_version: 10]]}
 
-    {:ok, client} = Database.connect(realm: "autotestrealm")
+    {:ok, client} =
+      Database.connect(
+        realm:
+          CQLUtils.realm_name_to_keyspace_name("autotestrealm", Config.astarte_instance_id!())
+      )
 
     d = :crypto.strong_rand_bytes(16)
     e1 = CQLUtils.endpoint_id("com.ispirata.TestDatastream", 0, "/%{sensorId}/realValues")
@@ -1464,7 +1473,7 @@ defmodule Astarte.RealmManagement.EngineTest do
     assert :ok = Engine.delete_device(@test_realm_name, encoded_device_id)
 
     statement = """
-    SELECT * FROM #{@test_realm_name}.deletion_in_progress
+    SELECT * FROM #{CQLUtils.realm_name_to_keyspace_name(@test_realm_name, Config.astarte_instance_id!())}.deletion_in_progress
     """
 
     assert [%{device_id: ^device_id}] =
@@ -1483,7 +1492,7 @@ defmodule Astarte.RealmManagement.EngineTest do
     realm_name = "autotestrealm"
 
     DatabaseTestHelper.seed_realm_test_data!(
-      realm_name: realm_name,
+      realm_name: CQLUtils.realm_name_to_keyspace_name(realm_name, Config.astarte_instance_id!()),
       device_registration_limit: limit
     )
 
