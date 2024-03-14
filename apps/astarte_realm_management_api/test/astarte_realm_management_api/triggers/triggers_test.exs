@@ -18,6 +18,7 @@
 
 defmodule Astarte.RealmManagement.API.TriggersTest do
   use Astarte.RealmManagement.API.DataCase
+  alias Astarte.RealmManagement
 
   describe "triggers" do
     alias Astarte.RealmManagement.API.Triggers.Trigger
