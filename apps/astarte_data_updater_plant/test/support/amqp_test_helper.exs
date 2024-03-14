@@ -15,6 +15,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+Astarte.DataUpdaterPlant.AMQPTestHelper
 
 defmodule Astarte.DataUpdaterPlant.AMQPTestHelper do
   use GenServer

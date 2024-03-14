@@ -22,7 +22,7 @@ defmodule Astarte.DataUpdaterPlant.Health.Queries do
   def get_astarte_health(consistency) do
     query = """
     SELECT COUNT(*)
-    FROM astarte.realms
+    FROM  #{Config.astarte_instance_id!()}_astarte.realms
     """
 
     with {:ok, %Xandra.Page{} = page} <-

@@ -493,6 +493,7 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandler do
     |> dispatch_event(target, policy)
   end
 
+  # make4 sure tihs does not need encoded realm
   defp make_simple_event(
          event,
          event_type,

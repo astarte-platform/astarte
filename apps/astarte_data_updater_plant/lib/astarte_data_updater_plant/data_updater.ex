@@ -23,6 +23,9 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater do
   alias Astarte.DataUpdaterPlant.DataUpdater.Queries
   alias Astarte.DataAccess.Database
   alias Astarte.DataUpdaterPlant.MessageTracker
+  alias Astarte.Core.CQLUtils
+  alias Astarte.DataUpdaterPlant.Config
+
   require Logger
 
   def handle_connection(
@@ -123,6 +126,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater do
     |> GenServer.cast({:handle_control, path, payload, message_id, timestamp})
   end
 
+  # make sure this does not require encoded realm name
   def handle_install_volatile_trigger(
         realm,
         encoded_device_id,
@@ -234,8 +238,11 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater do
   end
 
   defp verify_device_exists(realm_name, encoded_device_id) do
+    keyspace_name =
+      CQLUtils.realm_name_to_keyspace_name(realm_name, Config.astarte_instance_id!())
+
     with {:ok, decoded_device_id} <- Device.decode_device_id(encoded_device_id),
-         {:ok, client} <- Database.connect(realm: realm_name),
+         {:ok, client} <- Database.connect(realm: keyspace_name),
          {:ok, exists?} <- Queries.check_device_exists(client, decoded_device_id) do
       if exists? do
         :ok

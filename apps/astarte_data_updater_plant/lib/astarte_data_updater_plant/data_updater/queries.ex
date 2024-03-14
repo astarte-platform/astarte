@@ -806,7 +806,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
     value
   end
 
-  def retrieve_endpoint_values(client, device_id, interface_descriptor, mapping) do
+  def retrieve_endpoint_values(db_client, device_id, interface_descriptor, mapping) do
     query_statement =
       prepare_get_property_statement(
         mapping.value_type,
@@ -822,7 +822,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
       |> DatabaseQuery.put(:interface_id, interface_descriptor.interface_id)
       |> DatabaseQuery.put(:endpoint_id, mapping.endpoint_id)
 
-    DatabaseQuery.call!(client, query)
+    DatabaseQuery.call!(db_client, query)
   end
 
   defp prepare_get_property_statement(
@@ -1060,7 +1060,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
   def retrieve_realms! do
     statement = """
     SELECT *
-    FROM astarte.realms
+    FROM #{Config.astarte_instance_id!()}_astarte.realms
     """
 
     realms =
