@@ -51,6 +51,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
   @device_triggers_lifespan_decimicroseconds 60 * 10 * 1000 * 10000
   @groups_lifespan_decimicroseconds 60 * 10 * 1000 * 10000
   @deletion_refresh_lifespan_decimicroseconds 60 * 10 * 1000 * 10000
+  @datastream_maximum_retention_refresh_lifespan_decimicroseconds 60 * 10 * 1000 * 10000
 
   def init_state(realm, device_id, message_tracker) do
     MessageTracker.register_data_updater(message_tracker)
@@ -77,7 +78,8 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
       last_groups_refresh: 0,
       trigger_id_to_policy_name: %{},
       discard_messages: false,
-      last_deletion_in_progress_refresh: 0
+      last_deletion_in_progress_refresh: 0,
+      last_datastream_maximum_retention_refresh: 0
     }
 
     encoded_device_id = Device.encode_device_id(device_id)
@@ -1916,6 +1918,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
     |> purge_expired_interfaces(timestamp)
     |> reload_device_triggers_on_expiry(timestamp, db_client)
     |> reload_device_deletion_status_on_expiry(timestamp, db_client)
+    |> reload_datastream_maximum_storage_retention_on_expiry(timestamp, db_client)
   end
 
   defp reload_device_deletion_status_on_expiry(state, timestamp, db_client) do
@@ -1923,6 +1926,32 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
          timestamp do
       new_state = maybe_start_device_deletion(db_client, state, timestamp)
       %State{new_state | last_deletion_in_progress_refresh: timestamp}
+    else
+      state
+    end
+  end
+
+  defp reload_datastream_maximum_storage_retention_on_expiry(state, timestamp, db_client) do
+    if state.last_datastream_maximum_retention_refresh +
+         @datastream_maximum_retention_refresh_lifespan_decimicroseconds <=
+         timestamp do
+      case Queries.fetch_datastream_maximum_storage_retention(db_client) do
+        {:ok, ttl} ->
+          %State{
+            state
+            | datastream_maximum_storage_retention: ttl,
+              last_datastream_maximum_retention_refresh: timestamp
+          }
+
+        {:error, reason} ->
+          _ =
+            Logger.warning(
+              "Failed to load last_datastream_maximum_retention_refresh, keeping old one",
+              tag: "last_datastream_maximum_retention_refresh_fail"
+            )
+
+          state
+      end
     else
       state
     end

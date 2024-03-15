@@ -45,6 +45,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.State do
     :datastream_maximum_storage_retention,
     :trigger_id_to_policy_name,
     :discard_messages,
-    :last_deletion_in_progress_refresh
+    :last_deletion_in_progress_refresh,
+    :last_datastream_maximum_retention_refresh
   ]
 end

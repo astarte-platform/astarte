@@ -24,6 +24,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - [astarte_housekeeping_api] Allow to customize the RPC call timeout with
   `HOUSEKEEPING_API_RPC_TIMEOUT` (default: 5 seconds).
 - Add API usage metrics.
+- Add support for setting the maximum datastream storage retention period in a
+  realm (in seconds). Existing realms are not affected by this change.
+- [astarte_housekeeping_api] Allow to read and set a realm's maximum datastream
+  storage retention period using the realm fetch and update API, respectively.
 
 ### Changed
 - Forward port changes from release 1.1.

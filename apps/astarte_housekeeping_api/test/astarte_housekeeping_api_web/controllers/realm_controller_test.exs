@@ -121,7 +121,8 @@ defmodule Astarte.Housekeeping.APIWeb.RealmControllerTest do
                "jwt_public_key_pem" => @create_attrs["data"]["jwt_public_key_pem"],
                "replication_class" => "SimpleStrategy",
                "replication_factor" => 1,
-               "device_registration_limit" => nil
+               "device_registration_limit" => nil,
+               "datastream_maximum_storage_retention" => nil
              }
            }
   end
@@ -138,7 +139,8 @@ defmodule Astarte.Housekeeping.APIWeb.RealmControllerTest do
                "jwt_public_key_pem" => @explicit_replication_attrs["data"]["jwt_public_key_pem"],
                "replication_class" => "SimpleStrategy",
                "replication_factor" => @explicit_replication_attrs["data"]["replication_factor"],
-               "device_registration_limit" => nil
+               "device_registration_limit" => nil,
+               "datastream_maximum_storage_retention" => nil
              }
            }
   end
@@ -156,7 +158,8 @@ defmodule Astarte.Housekeeping.APIWeb.RealmControllerTest do
                "replication_class" => "NetworkTopologyStrategy",
                "datacenter_replication_factors" =>
                  @network_topology_attrs["data"]["datacenter_replication_factors"],
-               "device_registration_limit" => nil
+               "device_registration_limit" => nil,
+               "datastream_maximum_storage_retention" => nil
              }
            }
   end
@@ -222,6 +225,23 @@ defmodule Astarte.Housekeeping.APIWeb.RealmControllerTest do
            } = updated_realm
   end
 
+  test "updates chosen realm maximum storage retention", %{conn: conn} do
+    %Realm{realm_name: realm_name} = realm = fixture(:realm)
+    limit = 10
+
+    conn =
+      patch(conn, realm_path(conn, :update, realm), %{
+        "data" => %{"datastream_maximum_storage_retention" => limit}
+      })
+
+    assert %{"data" => updated_realm} = json_response(conn, 200)
+
+    assert %{
+             "realm_name" => ^realm_name,
+             "datastream_maximum_storage_retention" => ^limit
+           } = updated_realm
+  end
+
   test "removes chosen realm device registration limit", %{conn: conn} do
     %Realm{realm_name: realm_name} = realm = fixture(:realm)
 
@@ -247,6 +267,34 @@ defmodule Astarte.Housekeeping.APIWeb.RealmControllerTest do
     assert %{
              "realm_name" => ^realm_name,
              "device_registration_limit" => nil
+           } = updated_realm
+  end
+
+  test "removes chosen realm maximum storage retention", %{conn: conn} do
+    %Realm{realm_name: realm_name} = realm = fixture(:realm)
+
+    conn =
+      patch(conn, realm_path(conn, :update, realm), %{
+        "data" => %{"datastream_maximum_storage_retention" => 10}
+      })
+
+    assert %{"data" => updated_realm} = json_response(conn, 200)
+
+    assert %{
+             "realm_name" => ^realm_name,
+             "datastream_maximum_storage_retention" => 10
+           } = updated_realm
+
+    conn =
+      patch(conn, realm_path(conn, :update, realm), %{
+        "data" => %{"datastream_maximum_storage_retention" => nil}
+      })
+
+    assert %{"data" => updated_realm} = json_response(conn, 200)
+
+    assert %{
+             "realm_name" => ^realm_name,
+             "datastream_maximum_storage_retention" => nil
            } = updated_realm
   end
 

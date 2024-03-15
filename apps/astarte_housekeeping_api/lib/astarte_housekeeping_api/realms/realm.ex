@@ -20,7 +20,7 @@ defmodule Astarte.Housekeeping.API.Realms.Realm do
   use Ecto.Schema
   import Ecto.Changeset
 
-  alias Astarte.Housekeeping.API.Realms.DeviceRegistrationLimitType
+  alias Astarte.Housekeeping.API.Realms.NonNegativeIntegerOrUnsetType
 
   @default_replication_factor 1
   @default_replication_class "SimpleStrategy"
@@ -30,7 +30,8 @@ defmodule Astarte.Housekeeping.API.Realms.Realm do
     :replication_factor,
     :replication_class,
     :datacenter_replication_factors,
-    :device_registration_limit
+    :device_registration_limit,
+    :datastream_maximum_storage_retention
     | @required_fields
   ]
 
@@ -43,7 +44,8 @@ defmodule Astarte.Housekeeping.API.Realms.Realm do
     field :replication_factor, :integer
     field :replication_class, :string
     field :datacenter_replication_factors, {:map, :integer}
-    field :device_registration_limit, DeviceRegistrationLimitType
+    field :device_registration_limit, NonNegativeIntegerOrUnsetType
+    field :datastream_maximum_storage_retention, NonNegativeIntegerOrUnsetType
   end
 
   def changeset(realm, params \\ %{}) do

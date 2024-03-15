@@ -24,23 +24,49 @@ defmodule Astarte.Housekeeping.Queries do
 
   @default_replication_factor 1
 
-  def create_realm(realm_name, public_key_pem, nil = _replication_factor, device_limit, opts) do
-    create_realm(realm_name, public_key_pem, @default_replication_factor, device_limit, opts)
+  def create_realm(
+        realm_name,
+        public_key_pem,
+        nil = _replication_factor,
+        device_limit,
+        max_retention,
+        opts
+      ) do
+    create_realm(
+      realm_name,
+      public_key_pem,
+      @default_replication_factor,
+      device_limit,
+      max_retention,
+      opts
+    )
   end
 
-  def create_realm(realm_name, public_key_pem, replication, device_limit, opts) do
+  def create_realm(realm_name, public_key_pem, replication, device_limit, max_retention, opts) do
     with :ok <- validate_realm_name(realm_name),
          :ok <- Xandra.Cluster.run(:xandra, &check_replication(&1, replication)),
          {:ok, replication_map_str} <- build_replication_map_str(replication) do
       if opts[:async] do
         {:ok, _pid} =
           Task.start(fn ->
-            do_create_realm(realm_name, public_key_pem, replication_map_str, device_limit)
+            do_create_realm(
+              realm_name,
+              public_key_pem,
+              replication_map_str,
+              device_limit,
+              max_retention
+            )
           end)
 
         :ok
       else
-        do_create_realm(realm_name, public_key_pem, replication_map_str, device_limit)
+        do_create_realm(
+          realm_name,
+          public_key_pem,
+          replication_map_str,
+          device_limit,
+          max_retention
+        )
       end
     end
   end
@@ -168,7 +194,13 @@ defmodule Astarte.Housekeeping.Queries do
     end
   end
 
-  defp do_create_realm(realm_name, public_key_pem, replication_map_str, device_limit) do
+  defp do_create_realm(
+         realm_name,
+         public_key_pem,
+         replication_map_str,
+         device_limit,
+         max_retention
+       ) do
     Xandra.Cluster.run(:xandra, [timeout: 60_000], fn conn ->
       with :ok <- validate_realm_name(realm_name),
            :ok <- create_realm_keyspace(conn, realm_name, replication_map_str),
@@ -184,7 +216,8 @@ defmodule Astarte.Housekeeping.Queries do
            :ok <- create_deletion_in_progress_table(realm_conn),
            :ok <- insert_realm_public_key(realm_conn, public_key_pem),
            :ok <- insert_realm_astarte_schema_version(realm_conn),
-           :ok <- insert_realm(realm_conn, device_limit) do
+           :ok <- insert_realm(realm_conn, device_limit),
+           :ok <- insert_datastream_max_retention(realm_conn, max_retention) do
         :ok
       else
         {:error, reason} ->
@@ -723,6 +756,44 @@ defmodule Astarte.Housekeeping.Queries do
     end
   end
 
+  # ScyllaDB considers TTL=0 as unset, see
+  # https://opensource.docs.scylladb.com/stable/cql/time-to-live.html#notes
+  defp insert_datastream_max_retention(_conn_realm, 0) do
+    :ok
+  end
+
+  defp insert_datastream_max_retention({conn, realm_name}, max_retention) do
+    statement = """
+    INSERT INTO :realm_name.kv_store (group, key, value)
+    VALUES ('realm_config', 'datastream_maximum_storage_retention', intAsBlob(:max_retention));
+    """
+
+    params = %{
+      "max_retention" => max_retention
+    }
+
+    # This is safe since we checked the realm name in the caller
+    query = String.replace(statement, ":realm_name", realm_name)
+
+    with {:ok, prepared} <- Xandra.prepare(conn, query),
+         {:ok, %Xandra.Void{}} <-
+           Xandra.execute(conn, prepared, params, consistency: :each_quorum) do
+      :ok
+    else
+      {:error, %Xandra.Error{} = err} ->
+        _ = Logger.warning("Database error: #{inspect(err)}.", tag: "database_error")
+        {:error, :database_error}
+
+      {:error, %Xandra.ConnectionError{} = err} ->
+        _ =
+          Logger.warning("Database connection error: #{inspect(err)}.",
+            tag: "database_connection_error"
+          )
+
+        {:error, :database_connection_error}
+    end
+  end
+
   def initialize_database do
     Xandra.Cluster.run(:xandra, [timeout: 60_000], fn conn ->
       with :ok <- create_astarte_keyspace(conn),
@@ -982,7 +1053,8 @@ defmodule Astarte.Housekeeping.Queries do
       with {:ok, true} <- is_realm_existing(conn, realm_name),
            {:ok, public_key} <- get_public_key(conn, realm_name),
            {:ok, replication_map} <- get_realm_replication(conn, realm_name),
-           {:ok, device_registration_limit} <- get_device_registration_limit(conn, realm_name) do
+           {:ok, device_registration_limit} <- get_device_registration_limit(conn, realm_name),
+           {:ok, max_retention} <- get_datastream_maximum_storage_retention(conn, realm_name) do
         case replication_map do
           %{
             "class" => "org.apache.cassandra.locator.SimpleStrategy",
@@ -995,7 +1067,8 @@ defmodule Astarte.Housekeeping.Queries do
               jwt_public_key_pem: public_key,
               replication_class: "SimpleStrategy",
               replication_factor: replication_factor,
-              device_registration_limit: device_registration_limit
+              device_registration_limit: device_registration_limit,
+              datastream_maximum_storage_retention: max_retention
             }
 
           %{"class" => "org.apache.cassandra.locator.NetworkTopologyStrategy"} ->
@@ -1014,7 +1087,8 @@ defmodule Astarte.Housekeeping.Queries do
               jwt_public_key_pem: public_key,
               replication_class: "NetworkTopologyStrategy",
               datacenter_replication_factors: datacenter_replication_factors,
-              device_registration_limit: device_registration_limit
+              device_registration_limit: device_registration_limit,
+              datastream_maximum_storage_retention: max_retention
             }
         end
       else
@@ -1032,6 +1106,24 @@ defmodule Astarte.Housekeeping.Queries do
           {:error, reason}
       end
     end)
+  end
+
+  def set_datastream_maximum_storage_retention(realm_name, new_retention) do
+    with :ok <- validate_realm_name(realm_name) do
+      Xandra.Cluster.run(
+        :xandra,
+        &do_set_datastream_maximum_storage_retention(&1, realm_name, new_retention)
+      )
+    end
+  end
+
+  def delete_datastream_maximum_storage_retention(realm_name) do
+    with :ok <- validate_realm_name(realm_name) do
+      Xandra.Cluster.run(
+        :xandra,
+        &do_delete_datastream_maximum_storage_retention(&1, realm_name)
+      )
+    end
   end
 
   defp is_realm_existing(conn, realm_name) do
@@ -1163,6 +1255,39 @@ defmodule Astarte.Housekeeping.Queries do
     end
   end
 
+  defp do_set_datastream_maximum_storage_retention(conn, realm_name, new_retention) do
+    statement = """
+    UPDATE :realm_name.kv_store
+    SET value = intAsBlob(:new_retention)
+    WHERE group='realm_config' AND key='datastream_maximum_storage_retention'
+    """
+
+    params = %{
+      "new_retention" => new_retention
+    }
+
+    # TODO move away from this when NoaccOS' PR is merged
+    query = String.replace(statement, ":realm_name", realm_name)
+
+    # TODO refactor when NoaccOS' PR is merged
+    with {:ok, prepared} <- Xandra.prepare(conn, query),
+         {:ok, result} <- Xandra.execute(conn, prepared, params, consistency: :quorum) do
+      {:ok, result}
+    else
+      {:error, %Xandra.Error{} = err} ->
+        _ = Logger.warn("Database error: #{Exception.message(err)}.", tag: "database_error")
+        {:error, :database_error}
+
+      {:error, %Xandra.ConnectionError{} = err} ->
+        _ =
+          Logger.warn("Database connection error: #{Exception.message(err)}.",
+            tag: "database_connection_error"
+          )
+
+        {:error, :database_connection_error}
+    end
+  end
+
   defp do_delete_device_registration_limit(conn, realm_name) do
     statement = """
     DELETE device_registration_limit
@@ -1191,6 +1316,34 @@ defmodule Astarte.Housekeeping.Queries do
 
           {:error, :database_connection_error}
       end
+    end
+  end
+
+  defp do_delete_datastream_maximum_storage_retention(conn, realm_name) do
+    statement = """
+    DELETE FROM :realm_name.kv_store
+    WHERE group='realm_config' AND key='datastream_maximum_storage_retention'
+    """
+
+    # TODO move away from this when NoaccOS' PR is merged
+    query = String.replace(statement, ":realm_name", realm_name)
+
+    # TODO refactor when NoaccOS' PR is merged
+    with {:ok, prepared} <- Xandra.prepare(conn, query),
+         {:ok, result} <- Xandra.execute(conn, prepared, %{}, consistency: :quorum) do
+      {:ok, result}
+    else
+      {:error, %Xandra.Error{} = err} ->
+        _ = Logger.warn("Database error: #{Exception.message(err)}.", tag: "database_error")
+        {:error, :database_error}
+
+      {:error, %Xandra.ConnectionError{} = err} ->
+        _ =
+          Logger.warn("Database connection error: #{Exception.message(err)}.",
+            tag: "database_connection_error"
+          )
+
+        {:error, :database_connection_error}
     end
   end
 
@@ -1288,6 +1441,40 @@ defmodule Astarte.Housekeeping.Queries do
             )
 
           {:error, :realm_device_registration_limit_not_found}
+      end
+    else
+      {:error, %Xandra.Error{} = err} ->
+        _ = Logger.warn("Database error: #{inspect(err)}.", tag: "database_error")
+        {:error, :database_error}
+
+      {:error, %Xandra.ConnectionError{} = err} ->
+        _ =
+          Logger.warn("Database connection error: #{inspect(err)}.",
+            tag: "database_connection_error"
+          )
+
+        {:error, :database_connection_error}
+    end
+  end
+
+  defp get_datastream_maximum_storage_retention(conn, realm_name) do
+    statement = """
+    SELECT blobAsInt(value)
+    FROM :realm_name.kv_store
+    WHERE group='realm_config' AND key='datastream_maximum_storage_retention'
+    """
+
+    # TODO change this once NoaccOS' PR is merged
+    with :ok <- validate_realm_name(realm_name),
+         query = String.replace(statement, ":realm_name", realm_name),
+         {:ok, prepared} <- Xandra.prepare(conn, query),
+         {:ok, page} <- Xandra.execute(conn, prepared, %{}) do
+      case Enum.fetch(page, 0) do
+        {:ok, %{"system.blobasint(value)" => value}} ->
+          {:ok, value}
+
+        :error ->
+          {:ok, nil}
       end
     else
       {:error, %Xandra.Error{} = err} ->

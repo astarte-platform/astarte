@@ -37,8 +37,8 @@ defmodule Astarte.Housekeeping.QueriesTest do
   setup [:realm_cleanup]
 
   test "realm creation" do
-    assert Queries.create_realm(@realm1, "test1publickey", 1, 1, []) == :ok
-    assert Queries.create_realm(@realm2, "test2publickey", 1, 0, []) == :ok
+    assert Queries.create_realm(@realm1, "test1publickey", 1, 1, 1, []) == :ok
+    assert Queries.create_realm(@realm2, "test2publickey", 1, 0, 1, []) == :ok
 
     assert %{
              realm_name: @realm1,
@@ -58,7 +58,7 @@ defmodule Astarte.Housekeeping.QueriesTest do
   end
 
   test "update realm public key" do
-    Queries.create_realm(@realm1, "test1publickey", 1, 1, []) == :ok
+    Queries.create_realm(@realm1, "test1publickey", 1, 1, 1, []) == :ok
 
     new_public_key = "new_public_key"
 
@@ -77,7 +77,7 @@ defmodule Astarte.Housekeeping.QueriesTest do
   end
 
   test "set device registration limit" do
-    Queries.create_realm(@realm1, "test1publickey", 1, 1, []) == :ok
+    Queries.create_realm(@realm1, "test1publickey", 1, 1, 1, []) == :ok
 
     new_limit = 100
 
@@ -97,7 +97,7 @@ defmodule Astarte.Housekeeping.QueriesTest do
   end
 
   test "remove device registration limit" do
-    Queries.create_realm(@realm1, "test1publickey", 1, 1, []) == :ok
+    Queries.create_realm(@realm1, "test1publickey", 1, 1, 1, []) == :ok
 
     assert {:ok, %Xandra.Void{}} = Queries.delete_device_registration_limit(@realm1)
 
@@ -111,6 +111,49 @@ defmodule Astarte.Housekeeping.QueriesTest do
                "SELECT device_registration_limit FROM astarte.realms WHERE realm_name = :realm_name",
                %{"realm_name" => {"varchar", @realm1}}
              )
+             |> Enum.to_list()
+  end
+
+  test "set datastream max retention" do
+    :ok = Queries.create_realm(@realm1, "test1publickey", 1, 1, 1, [])
+
+    new_retention = 100
+
+    assert {:ok, %Xandra.Void{}} =
+             Queries.set_datastream_maximum_storage_retention(@realm1, new_retention)
+
+    test_retention_statement =
+      """
+      SELECT blobAsInt(value) FROM #{@realm1}.kv_store
+      WHERE group='realm_config' AND key='datastream_maximum_storage_retention';
+      """
+
+    prepared = Xandra.Cluster.prepare!(:xandra, test_retention_statement)
+
+    assert [
+             %{
+               "system.blobasint(value)" => ^new_retention
+             }
+           ] =
+             Xandra.Cluster.execute!(:xandra, prepared)
+             |> Enum.to_list()
+  end
+
+  test "remove datastream max retention" do
+    :ok = Queries.create_realm(@realm1, "test1publickey", 1, 1, 1, [])
+
+    assert {:ok, %Xandra.Void{}} = Queries.delete_datastream_maximum_storage_retention(@realm1)
+
+    test_retention_statement =
+      """
+      SELECT blobAsInt(value) FROM #{@realm1}.kv_store
+      WHERE group='realm_config' AND key='datastream_maximum_storage_retention';
+      """
+
+    prepared = Xandra.Cluster.prepare!(:xandra, test_retention_statement)
+
+    assert [] =
+             Xandra.Cluster.execute!(:xandra, prepared)
              |> Enum.to_list()
   end
 

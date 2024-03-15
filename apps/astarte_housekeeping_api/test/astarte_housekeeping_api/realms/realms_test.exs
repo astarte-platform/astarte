@@ -46,7 +46,8 @@ defmodule Astarte.Housekeeping.API.RealmsTest do
     @valid_attrs %{
       realm_name: "mytestrealm",
       jwt_public_key_pem: @pubkey,
-      device_registration_limit: 42
+      device_registration_limit: 42,
+      datastream_maximum_storage_retention: 42
     }
     @device_registration_limit_attrs %{
       realm_name: "mytestrealm",
@@ -194,12 +195,12 @@ defmodule Astarte.Housekeeping.API.RealmsTest do
              } = realm
     end
 
-    test "update_realm/2 with device registration limit set to :remove_limit removes the limit" do
+    test "update_realm/2 with device registration limit set to :unset removes the limit" do
       %Realm{realm_name: realm_name, device_registration_limit: device_registration_limit} =
         realm = realm_fixture()
 
       assert device_registration_limit != nil
-      update_attrs = Map.put(@update_attrs, :device_registration_limit, :remove_limit)
+      update_attrs = Map.put(@update_attrs, :device_registration_limit, :unset)
       assert {:ok, realm} = Realms.update_realm(realm_name, update_attrs)
 
       assert %Realm{
@@ -212,6 +213,40 @@ defmodule Astarte.Housekeeping.API.RealmsTest do
     test "update_realm/2 with device registration limit set to an invalid value fails" do
       %Realm{realm_name: realm_name} = realm = realm_fixture()
       update_attrs = Map.put(@update_attrs, :device_registration_limit, -10)
+      assert {:error, %Ecto.Changeset{}} = Realms.update_realm(realm_name, update_attrs)
+    end
+
+    test "update_realm/2 with valid data and datastream maximum storage retention set to a valid value updates the realm" do
+      %Realm{realm_name: realm_name} = realm_fixture()
+      retention = 10
+      update_attrs = Map.put(@update_attrs, :datastream_maximum_storage_retention, retention)
+      assert {:ok, realm} = Realms.update_realm(realm_name, update_attrs)
+
+      assert %Realm{
+               realm_name: "mytestrealm",
+               jwt_public_key_pem: @update_pubkey,
+               datastream_maximum_storage_retention: ^retention
+             } = realm
+    end
+
+    test "update_realm/2 with datastream maximum storage retention set to :unset removes the limit" do
+      %Realm{realm_name: realm_name, datastream_maximum_storage_retention: retention} =
+        realm_fixture()
+
+      assert retention != nil
+      update_attrs = Map.put(@update_attrs, :datastream_maximum_storage_retention, :unset)
+      assert {:ok, realm} = Realms.update_realm(realm_name, update_attrs)
+
+      assert %Realm{
+               realm_name: "mytestrealm",
+               jwt_public_key_pem: @update_pubkey,
+               datastream_maximum_storage_retention: nil
+             } = realm
+    end
+
+    test "update_realm/2 with datastream maximum storage retention set to an invalid value fails" do
+      %Realm{realm_name: realm_name} = realm_fixture()
+      update_attrs = Map.put(@update_attrs, :datastream_maximum_storage_retention, -10)
       assert {:error, %Ecto.Changeset{}} = Realms.update_realm(realm_name, update_attrs)
     end
 
