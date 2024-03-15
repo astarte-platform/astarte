@@ -34,12 +34,12 @@ defmodule Astarte.TriggerEngine.AMQPConsumer.Queries do
       {:ok, policy_list}
     else
       {:error, %Xandra.Error{} = err} ->
-        _ = Logger.warn("Database error: #{inspect(err)}.", tag: "database_error")
+        _ = Logger.warning("Database error: #{inspect(err)}.", tag: "database_error")
         {:error, :database_error}
 
       {:error, %Xandra.ConnectionError{} = err} ->
         _ =
-          Logger.warn("Database connection error: #{inspect(err)}.",
+          Logger.warning("Database connection error: #{inspect(err)}.",
             tag: "database_connection_error"
           )
 
@@ -63,7 +63,7 @@ defmodule Astarte.TriggerEngine.AMQPConsumer.Queries do
 
       {:error, %Xandra.Error{} = err} ->
         _ =
-          Logger.warn("Database error while listing realms: #{inspect(err)}.",
+          Logger.warning("Database error while listing realms: #{inspect(err)}.",
             tag: "database_error"
           )
 
@@ -71,7 +71,7 @@ defmodule Astarte.TriggerEngine.AMQPConsumer.Queries do
 
       {:error, %Xandra.ConnectionError{} = err} ->
         _ =
-          Logger.warn("Database connection error while listing realms: #{inspect(err)}.",
+          Logger.warning("Database connection error while listing realms: #{inspect(err)}.",
             tag: "database_connection_error"
           )
 

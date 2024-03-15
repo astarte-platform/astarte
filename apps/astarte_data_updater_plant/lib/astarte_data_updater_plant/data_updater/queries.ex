@@ -75,12 +75,12 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
       :ok
     else
       %{acc: _, msg: error_message} ->
-        Logger.warn("Database error: #{error_message}.")
+        Logger.warning("Database error: #{error_message}.")
         {:error, :database_error}
 
       {:error, reason} ->
         # DB Error
-        Logger.warn("Failed with reason #{inspect(reason)}.")
+        Logger.warning("Failed with reason #{inspect(reason)}.")
         {:error, :database_error}
     end
   end
@@ -98,7 +98,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
         _opts
       ) do
     if endpoint.allow_unset == false do
-      Logger.warn("Tried to unset value on allow_unset=false mapping.")
+      Logger.warning("Tried to unset value on allow_unset=false mapping.")
       # TODO: should we handle this situation?
     end
 
@@ -252,7 +252,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
 
           {next_query_values_acc, next_placeholders_acc, next_query_acc}
         else
-          Logger.warn(
+          Logger.warning(
             "Unexpected object key #{inspect(obj_key)} with value #{inspect(obj_value)}."
           )
 
@@ -380,7 +380,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
       :ok
     else
       {:error, reason} ->
-        Logger.warn("Error while upserting path: #{path} (reason: #{inspect(reason)}).")
+        Logger.warning("Error while upserting path: #{path} (reason: #{inspect(reason)}).")
         {:error, :database_error}
     end
   end
@@ -532,11 +532,11 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
         {:ok, 0}
 
       %{acc: _, msg: error_message} ->
-        Logger.warn("Database error: #{error_message}.")
+        Logger.warning("Database error: #{error_message}.")
         {:error, :database_error}
 
       {:error, reason} ->
-        Logger.warn("Database error while retrieving property: #{inspect(reason)}.")
+        Logger.warning("Database error while retrieving property: #{inspect(reason)}.")
         {:error, :database_error}
     end
   end
@@ -597,11 +597,11 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
         {:ok, %{}}
 
       %{acc: _, msg: error_message} ->
-        Logger.warn("Database error: #{error_message}.")
+        Logger.warning("Database error: #{error_message}.")
         {:error, :database_error}
 
       {:error, reason} ->
-        Logger.warn("Failed with reason #{inspect(reason)}.")
+        Logger.warning("Failed with reason #{inspect(reason)}.")
         {:error, :database_error}
     end
   end
@@ -627,11 +627,11 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
         {:ok, []}
 
       %{acc: _, msg: error_message} ->
-        Logger.warn("Database error: #{error_message}.", tag: "db_error")
+        Logger.warning("Database error: #{error_message}.", tag: "db_error")
         {:error, :database_error}
 
       {:error, reason} ->
-        Logger.warn("Failed with reason #{inspect(reason)}.", tag: "db_error")
+        Logger.warning("Failed with reason #{inspect(reason)}.", tag: "db_error")
         {:error, :database_error}
     end
   end
@@ -723,7 +723,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
       :ok
     else
       {:error, reason} ->
-        Logger.warn(
+        Logger.warning(
           "Database error: cannot register device-interface pair, reason: #{inspect(reason)}."
         )
 
@@ -751,7 +751,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
       :ok
     else
       {:error, reason} ->
-        Logger.warn(
+        Logger.warning(
           "Database error: cannot unregister device-interface pair: #{inspect(reason)}."
         )
 
@@ -779,11 +779,11 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
         {:ok, false}
 
       %{acc: _, msg: error_message} ->
-        _ = Logger.warn("Database error: #{error_message}.", tag: "db_error")
+        _ = Logger.warning("Database error: #{error_message}.", tag: "db_error")
         {:error, :database_error}
 
       {:error, reason} ->
-        _ = Logger.warn("Database error, reason: #{inspect(reason)}.", tag: "db_error")
+        _ = Logger.warning("Database error, reason: #{inspect(reason)}.", tag: "db_error")
         {:error, :database_error}
     end
   end
@@ -891,11 +891,11 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
         {:ok, nil}
 
       %{acc: _, msg: error_message} ->
-        Logger.warn("Database error: #{error_message}.")
+        Logger.warning("Database error: #{error_message}.")
         {:error, :database_error}
 
       {:error, reason} ->
-        Logger.warn("Failed with reason: #{inspect(reason)}.")
+        Logger.warning("Failed with reason: #{inspect(reason)}.")
         {:error, :database_error}
     end
   end
@@ -936,11 +936,11 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
         {:ok, :no_expiry}
 
       %{acc: _, msg: error_message} ->
-        Logger.warn("Database error: #{error_message}.")
+        Logger.warning("Database error: #{error_message}.")
         {:error, :database_error}
 
       {:error, reason} ->
-        Logger.warn("Database error while retrieving property: #{inspect(reason)}.")
+        Logger.warning("Database error while retrieving property: #{inspect(reason)}.")
         {:error, :database_error}
     end
   end
@@ -966,7 +966,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
     else
       {:error, %Xandra.Error{} = error} ->
         _ =
-          Logger.warn(
+          Logger.warning(
             "Database error while writing device deletion end ack: #{Exception.message(error)}"
           )
 
@@ -974,7 +974,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
 
       {:error, %Xandra.ConnectionError{} = error} ->
         _ =
-          Logger.warn(
+          Logger.warning(
             "Database connection error while writing device deletion end ack: #{Exception.message(error)}"
           )
 
@@ -1003,7 +1003,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
     else
       {:error, %Xandra.Error{} = error} ->
         _ =
-          Logger.warn(
+          Logger.warning(
             "Database error while writing device deletion start ack: #{Exception.message(error)}"
           )
 
@@ -1011,7 +1011,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
 
       {:error, %Xandra.ConnectionError{} = error} ->
         _ =
-          Logger.warn(
+          Logger.warning(
             "Database connection error while writing device deletion start ack: #{Exception.message(error)}"
           )
 
@@ -1041,7 +1041,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
     else
       {:error, %Xandra.Error{} = error} ->
         _ =
-          Logger.warn(
+          Logger.warning(
             "Database error while checking device deletion in progress: #{Exception.message(error)}"
           )
 
@@ -1049,7 +1049,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
 
       {:error, %Xandra.ConnectionError{} = error} ->
         _ =
-          Logger.warn(
+          Logger.warning(
             "Database connection error while checking device deletion in progress: #{Exception.message(error)}"
           )
 

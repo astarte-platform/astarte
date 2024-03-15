@@ -125,7 +125,9 @@ defmodule Astarte.Housekeeping.Engine do
       do_update_realm(realm_name, update_attrs)
     else
       _ =
-        Logger.warn("Rejecting update for realm #{realm_name}", tag: "invalid_update_parameters")
+        Logger.warning("Rejecting update for realm #{realm_name}",
+          tag: "invalid_update_parameters"
+        )
 
       {:error, :invalid_update_parameters}
     end
@@ -159,7 +161,7 @@ defmodule Astarte.Housekeeping.Engine do
 
       {:error, reason} ->
         _ =
-          Logger.warn(
+          Logger.warning(
             "Cannot update JWT public key for realm #{realm_name}, error #{inspect(reason)}",
             tag: "update_public_key_fail"
           )
@@ -214,7 +216,7 @@ defmodule Astarte.Housekeeping.Engine do
 
       {:error, reason} ->
         _ =
-          Logger.warn(
+          Logger.warning(
             "Cannot delete device registration limit, error #{inspect(reason)}",
             tag: "delete_device_registration_limit"
           )
@@ -246,7 +248,7 @@ defmodule Astarte.Housekeeping.Engine do
 
       {:error, reason} ->
         _ =
-          Logger.warn(
+          Logger.warning(
             "Cannot set device registration limit, error #{inspect(reason)}",
             tag: "set_device_registration_limit"
           )
@@ -280,7 +282,7 @@ defmodule Astarte.Housekeeping.Engine do
 
     unless update_valid? do
       _ =
-        Logger.warn("Trying to update replication values for realm",
+        Logger.warning("Trying to update replication values for realm",
           tag: "invalid_replication_value_update"
         )
     end

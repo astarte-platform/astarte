@@ -29,7 +29,6 @@ defmodule Astarte.RealmManagement.API.Mixfile do
       lockfile: "mix.lock",
       elixir: "~> 1.15",
       elixirc_paths: elixirc_paths(Mix.env()),
-      compilers: [:phoenix, :gettext] ++ Mix.compilers(),
       start_permanent: Mix.env() == :prod,
       test_coverage: [tool: ExCoveralls],
       preferred_cli_env: [
@@ -83,12 +82,12 @@ defmodule Astarte.RealmManagement.API.Mixfile do
     [
       {:phoenix, "~> 1.7"},
       {:plug_cowboy, "~> 2.1"},
-      {:gettext, "~> 0.11"},
+      {:gettext, "~> 0.24"},
       {:phoenix_ecto, "~> 4.0"},
       {:phoenix_view, "~> 2.0"},
       {:cors_plug, "~> 2.0"},
       {:jason, "~> 1.2"},
-      {:guardian, "~> 2.1"},
+      {:guardian, "~> 2.3"},
       {:excoveralls, "~> 0.15", only: :test},
       {:pretty_log, "~> 0.1"},
       {:plug_logger_with_meta, "~> 0.1"},

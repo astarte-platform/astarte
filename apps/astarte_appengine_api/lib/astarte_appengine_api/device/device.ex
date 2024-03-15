@@ -90,7 +90,10 @@ defmodule Astarte.AppEngine.API.Device do
   defp update_attributes(client, device_id, attributes) do
     Enum.reduce_while(attributes, :ok, fn
       {"", _attribute_value}, _acc ->
-        Logger.warn("Attribute key cannot be an empty string.", tag: :invalid_attribute_empty_key)
+        Logger.warning("Attribute key cannot be an empty string.",
+          tag: :invalid_attribute_empty_key
+        )
+
         {:halt, {:error, :invalid_attributes}}
 
       {attribute_key, nil}, _acc ->
@@ -116,11 +119,11 @@ defmodule Astarte.AppEngine.API.Device do
   defp update_aliases(client, device_id, aliases) do
     Enum.reduce_while(aliases, :ok, fn
       {_alias_key, ""}, _acc ->
-        Logger.warn("Alias value cannot be an empty string.", tag: :invalid_alias_empty_value)
+        Logger.warning("Alias value cannot be an empty string.", tag: :invalid_alias_empty_value)
         {:halt, {:error, :invalid_alias}}
 
       {"", _alias_value}, _acc ->
-        Logger.warn("Alias key cannot be an empty string.", tag: :invalid_alias_empty_key)
+        Logger.warning("Alias key cannot be an empty string.", tag: :invalid_alias_empty_key)
         {:halt, {:error, :invalid_alias}}
 
       {alias_key, nil}, _acc ->
@@ -301,15 +304,15 @@ defmodule Astarte.AppEngine.API.Device do
        }}
     else
       {:error, :endpoint_guess_not_allowed} ->
-        _ = Logger.warn("Incomplete path not allowed.", tag: "endpoint_guess_not_allowed")
+        _ = Logger.warning("Incomplete path not allowed.", tag: "endpoint_guess_not_allowed")
         {:error, :read_only_resource}
 
       {:error, :unexpected_value_type, expected: value_type} ->
-        _ = Logger.warn("Unexpected value type.", tag: "unexpected_value_type")
+        _ = Logger.warning("Unexpected value type.", tag: "unexpected_value_type")
         {:error, :unexpected_value_type, expected: value_type}
 
       {:error, reason} ->
-        _ = Logger.warn("Error while writing to interface.", tag: "write_to_device_error")
+        _ = Logger.warning("Error while writing to interface.", tag: "write_to_device_error")
         {:error, reason}
     end
   end
@@ -343,7 +346,7 @@ defmodule Astarte.AppEngine.API.Device do
     else
       {:ok, _endpoint_id} ->
         # This is invalid here, publish doesn't happen on endpoints in object aggregated interfaces
-        Logger.warn(
+        Logger.warning(
           "Tried to publish on endpoint #{inspect(path)} for object aggregated " <>
             "interface #{inspect(interface_descriptor.name)}. You should publish on " <>
             "the common prefix",
@@ -353,7 +356,7 @@ defmodule Astarte.AppEngine.API.Device do
         {:error, :mapping_not_found}
 
       {:error, :not_found} ->
-        Logger.warn(
+        Logger.warning(
           "Tried to publish on invalid path #{inspect(path)} for object aggregated " <>
             "interface #{inspect(interface_descriptor.name)}",
           tag: "invalid_path"
@@ -362,7 +365,7 @@ defmodule Astarte.AppEngine.API.Device do
         {:error, :mapping_not_found}
 
       {:error, :invalid_object_aggregation_path} ->
-        Logger.warn(
+        Logger.warning(
           "Tried to publish on invalid path #{inspect(path)} for object aggregated " <>
             "interface #{inspect(interface_descriptor.name)}",
           tag: "invalid_path"
@@ -472,11 +475,11 @@ defmodule Astarte.AppEngine.API.Device do
        }}
     else
       {:error, :unexpected_value_type, expected: value_type} ->
-        Logger.warn("Unexpected value type.", tag: "unexpected_value_type")
+        Logger.warning("Unexpected value type.", tag: "unexpected_value_type")
         {:error, :unexpected_value_type, expected: value_type}
 
       {:error, :invalid_object_aggregation_path} ->
-        Logger.warn("Error while trying to publish on path for object aggregated interface.",
+        Logger.warning("Error while trying to publish on path for object aggregated interface.",
           tag: "invalid_object_aggregation_path"
         )
 
@@ -486,11 +489,13 @@ defmodule Astarte.AppEngine.API.Device do
         {:error, :mapping_not_found}
 
       {:error, :database_error} ->
-        Logger.warn("Error while trying to retrieve ttl.", tag: "database_error")
+        Logger.warning("Error while trying to retrieve ttl.", tag: "database_error")
         {:error, :database_error}
 
       {:error, reason} ->
-        Logger.warn("Unhandled error while updating object interface values: #{inspect(reason)}.")
+        Logger.warning(
+          "Unhandled error while updating object interface values: #{inspect(reason)}."
+        )
 
         {:error, reason}
     end
@@ -534,11 +539,11 @@ defmodule Astarte.AppEngine.API.Device do
       end
     else
       {:ownership, :device} ->
-        _ = Logger.warn("Invalid write (device owned).", tag: "cannot_write_to_device_owned")
+        _ = Logger.warning("Invalid write (device owned).", tag: "cannot_write_to_device_owned")
         {:error, :cannot_write_to_device_owned}
 
       {:error, reason} ->
-        _ = Logger.warn("Error while writing to interface.", tag: "write_to_device_error")
+        _ = Logger.warning("Error while writing to interface.", tag: "write_to_device_error")
         {:error, reason}
     end
   end
@@ -612,7 +617,7 @@ defmodule Astarte.AppEngine.API.Device do
   # Multiple matches, we print a warning but we consider it ok
   defp ensure_publish_reliability(local_matches, remote_matches, _opts)
        when local_matches + remote_matches > 1 do
-    Logger.warn(
+    Logger.warning(
       "Multiple matches while publishing to device, " <>
         "local_matches: #{local_matches}, remote_matches: #{remote_matches}",
       tag: "publish_multiple_matches"
@@ -771,7 +776,7 @@ defmodule Astarte.AppEngine.API.Device do
     end
   end
 
-  defp map_while_ok(not_list_values, _fun) do
+  defp map_while_ok(_not_list_values, _fun) do
     {:error, :values_is_not_a_list}
   end
 
@@ -1184,7 +1189,7 @@ defmodule Astarte.AppEngine.API.Device do
           {:ok, interface_values}
         else
           err ->
-            Logger.warn("An error occurred while retrieving endpoint values: #{inspect(err)}",
+            Logger.warning("An error occurred while retrieving endpoint values: #{inspect(err)}",
               tag: "retrieve_endpoint_values_error"
             )
 
@@ -1378,7 +1383,7 @@ defmodule Astarte.AppEngine.API.Device do
   defp maybe_downsample_to(values, nil, _aggregation, _opts) do
     # TODO: we can't downsample an object without a valid count, propagate an error changeset
     # when we start using changeset consistently here
-    _ = Logger.warn("No valid count in maybe_downsample_to.", tag: "downsample_invalid_count")
+    _ = Logger.warning("No valid count in maybe_downsample_to.", tag: "downsample_invalid_count")
     values
   end
 
@@ -1386,7 +1391,7 @@ defmodule Astarte.AppEngine.API.Device do
     # TODO: we can't downsample an object without downsample_key, propagate an error changeset
     # when we start using changeset consistently here
     _ =
-      Logger.warn("No valid downsample_key found in maybe_downsample_to.",
+      Logger.warning("No valid downsample_key found in maybe_downsample_to.",
         tag: "downsample_invalid_key"
       )
 
@@ -1725,7 +1730,7 @@ defmodule Astarte.AppEngine.API.Device do
       Queries.device_alias_to_device_id(client, device_alias)
     else
       not_ok ->
-        _ = Logger.warn("Database error: #{inspect(not_ok)}.", tag: "db_error")
+        _ = Logger.warning("Database error: #{inspect(not_ok)}.", tag: "db_error")
         {:error, :database_error}
     end
   end

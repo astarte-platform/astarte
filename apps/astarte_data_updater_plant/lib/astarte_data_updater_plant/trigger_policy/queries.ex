@@ -41,7 +41,7 @@ defmodule Astarte.DataUpdaterPlant.TriggerPolicy.Queries do
       end
     else
       {:error, error} ->
-        Logger.warn("Database error #{inspect(error)}", tag: "retrieve_policy_name_db_error")
+        Logger.warning("Database error #{inspect(error)}", tag: "retrieve_policy_name_db_error")
         {:error, error}
     end
   end

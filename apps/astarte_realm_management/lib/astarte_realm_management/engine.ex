@@ -96,7 +96,7 @@ defmodule Astarte.RealmManagement.Engine do
     else
       {:error, {:invalid, _invalid_str, _invalid_pos}} ->
         _ =
-          Logger.warn("Received invalid interface JSON: #{inspect(interface_json)}.",
+          Logger.warning("Received invalid interface JSON: #{inspect(interface_json)}.",
             tag: "invalid_json"
           )
 
@@ -104,7 +104,7 @@ defmodule Astarte.RealmManagement.Engine do
 
       {:error, %Ecto.Changeset{} = changeset} ->
         _ =
-          Logger.warn("Received invalid interface: #{inspect(changeset)}.",
+          Logger.warning("Received invalid interface: #{inspect(changeset)}.",
             tag: "invalid_interface_document"
           )
 
@@ -175,7 +175,7 @@ defmodule Astarte.RealmManagement.Engine do
     else
       {:error, {:invalid, _invalid_str, _invalid_pos}} ->
         _ =
-          Logger.warn("Received invalid interface JSON: #{inspect(interface_json)}.",
+          Logger.warning("Received invalid interface JSON: #{inspect(interface_json)}.",
             tag: "invalid_json"
           )
 
@@ -183,7 +183,7 @@ defmodule Astarte.RealmManagement.Engine do
 
       {:error, %Ecto.Changeset{} = changeset} ->
         _ =
-          Logger.warn("Received invalid interface: #{inspect(changeset)}.",
+          Logger.warning("Received invalid interface: #{inspect(changeset)}.",
             tag: "invalid_interface_document"
           )
 
@@ -769,7 +769,7 @@ defmodule Astarte.RealmManagement.Engine do
           }
         }
       else
-        Logger.warn("Failed to get trigger.",
+        Logger.warning("Failed to get trigger.",
           trigger_name: trigger_name,
           tag: "get_trigger_fail"
         )
@@ -809,7 +809,7 @@ defmodule Astarte.RealmManagement.Engine do
       if delete_all_simple_triggers_succeeded and delete_policy_link_succeeded do
         Queries.delete_trigger(client, trigger_name)
       else
-        Logger.warn("Failed to delete trigger.",
+        Logger.warning("Failed to delete trigger.",
           trigger_name: trigger_name,
           tag: "delete_trigger_fail"
         )
@@ -863,7 +863,7 @@ defmodule Astarte.RealmManagement.Engine do
     with {:error, %Ecto.Changeset{} = changeset} <-
            Ecto.Changeset.apply_action(policy_changeset, :insert) do
       _ =
-        Logger.warn("Received invalid trigger policy: #{inspect(changeset)}.",
+        Logger.warning("Received invalid trigger policy: #{inspect(changeset)}.",
           tag: "invalid_trigger_policy"
         )
 
@@ -874,7 +874,7 @@ defmodule Astarte.RealmManagement.Engine do
   defp decode_policy(policy_json) do
     with {:error, {:invalid, _invalid_str, _invalid_pos}} <- Jason.decode(policy_json) do
       _ =
-        Logger.warn("Received invalid trigger policy JSON: #{inspect(policy_json)}.",
+        Logger.warning("Received invalid trigger policy JSON: #{inspect(policy_json)}.",
           tag: "invalid_trigger_policy_json"
         )
 
@@ -908,7 +908,7 @@ defmodule Astarte.RealmManagement.Engine do
 
   defp fetch_trigger_policy(client, policy_name) do
     with {:error, :policy_not_found} <- Queries.fetch_trigger_policy(client, policy_name) do
-      Logger.warn("Trigger policy not found",
+      Logger.warning("Trigger policy not found",
         tag: "trigger_policy_not_found",
         policy_name: policy_name
       )
@@ -942,7 +942,7 @@ defmodule Astarte.RealmManagement.Engine do
       if not exists? do
         :ok
       else
-        Logger.warn("Trigger policy #{policy_name} already present",
+        Logger.warning("Trigger policy #{policy_name} already present",
           tag: "trigger_policy_already_present"
         )
 
@@ -956,7 +956,7 @@ defmodule Astarte.RealmManagement.Engine do
       if exists? do
         :ok
       else
-        Logger.warn("Trigger policy #{policy_name} not found",
+        Logger.warning("Trigger policy #{policy_name} not found",
           tag: "trigger_policy_not_found"
         )
 
@@ -967,7 +967,7 @@ defmodule Astarte.RealmManagement.Engine do
 
   defp check_trigger_policy_has_triggers(client, policy_name) do
     with {:ok, true} <- Queries.check_policy_has_triggers(client, policy_name) do
-      Logger.warn("Trigger policy #{policy_name} is currently being used by triggers",
+      Logger.warning("Trigger policy #{policy_name} is currently being used by triggers",
         tag: "cannot_delete_currently_used_trigger_policy"
       )
 
@@ -987,7 +987,7 @@ defmodule Astarte.RealmManagement.Engine do
 
   defp connect_to_db_with_realm(realm_name) do
     with {:error, :database_connection_error} <- Database.connect(realm: realm_name) do
-      Logger.warn("Could not connect to database, realm #{realm_name}",
+      Logger.warning("Could not connect to database, realm #{realm_name}",
         tag: "database_connection_error"
       )
 
@@ -1021,7 +1021,7 @@ defmodule Astarte.RealmManagement.Engine do
 
       {:ok, false} ->
         _ =
-          Logger.warn(
+          Logger.warning(
             "Device #{inspect(device_id)} does not exist",
             tag: "device_not_found"
           )
@@ -1029,7 +1029,7 @@ defmodule Astarte.RealmManagement.Engine do
         {:error, :device_not_found}
 
       {:error, reason} ->
-        Logger.warn(
+        Logger.warning(
           "Cannot check if device #{inspect(device_id)} exists, reason #{inspect(reason)}",
           tag: "device_exists_fail"
         )
@@ -1042,7 +1042,7 @@ defmodule Astarte.RealmManagement.Engine do
     with {:error, reason} <-
            Queries.insert_device_into_deletion_in_progress(realm_name, device_id) do
       _ =
-        Logger.warn(
+        Logger.warning(
           "Cannot start deletion of device #{inspect(device_id)}, reason #{inspect(reason)}",
           tag: "insert_device_into_deleted_fail"
         )
@@ -1065,7 +1065,7 @@ defmodule Astarte.RealmManagement.Engine do
 
       {:error, reason} ->
         _ =
-          Logger.warn(
+          Logger.warning(
             "Cannot get device registration limit for realm #{realm_name}",
             tag: "get_device_registration_limit_fail"
           )

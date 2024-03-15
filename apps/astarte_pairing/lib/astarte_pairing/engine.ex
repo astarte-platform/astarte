@@ -143,7 +143,7 @@ defmodule Astarte.Pairing.Engine do
         _credentials_secret,
         _device_ip
       ) do
-    Logger.warn(
+    Logger.warning(
       "get_credentials: unknown protocol #{inspect(protocol)} with params #{inspect(credentials_params)}"
     )
 
@@ -222,7 +222,7 @@ defmodule Astarte.Pairing.Engine do
          {:ok, registered_devices_count} <- Queries.fetch_registered_devices_count(realm_name) do
       if registration_limit != nil and registered_devices_count >= registration_limit do
         _ =
-          Logger.warn("Cannot register device: reached device registration limit",
+          Logger.warning("Cannot register device: reached device registration limit",
             realm_name: realm_name,
             tag: "device_registration_limit_reached"
           )
@@ -296,7 +296,7 @@ defmodule Astarte.Pairing.Engine do
   end
 
   def verify_credentials(protocol, credentials_map, _realm, _hw_id, _secret) do
-    Logger.warn(
+    Logger.warning(
       "verify_credentials: unknown protocol #{inspect(protocol)} with params #{inspect(credentials_map)}"
     )
 

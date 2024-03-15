@@ -192,7 +192,7 @@ defmodule Astarte.DataUpdaterPlant.AMQPDataConsumer do
   # Under the hood DataUpdater calls Process.monitor so those monitor are leaked into this process.
   def handle_info({:DOWN, _, :process, _pid, reason}, state) do
     # Channel went down, stop the process
-    Logger.warn("AMQP channel crashed, reason: #{inspect(reason)}",
+    Logger.warning("AMQP channel crashed, reason: #{inspect(reason)}",
       tag: "data_consumer_chan_crash"
     )
 
@@ -210,7 +210,7 @@ defmodule Astarte.DataUpdaterPlant.AMQPDataConsumer do
       {:ok, chan}
     else
       {:error, reason} ->
-        Logger.warn("Error initializing AMQPDataConsumer: #{inspect(reason)}",
+        Logger.warning("Error initializing AMQPDataConsumer: #{inspect(reason)}",
           tag: "data_consumer_init_err"
         )
 
@@ -359,7 +359,7 @@ defmodule Astarte.DataUpdaterPlant.AMQPDataConsumer do
   end
 
   defp handle_invalid_msg(payload, headers, timestamp, meta) do
-    Logger.warn(
+    Logger.warning(
       "Invalid AMQP message: #{inspect(Base.encode64(payload))} #{inspect(headers)} #{inspect(timestamp)} #{inspect(meta)}",
       tag: "data_consumer_invalid_msg"
     )

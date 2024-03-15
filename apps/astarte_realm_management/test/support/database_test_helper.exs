@@ -376,7 +376,7 @@ defmodule Astarte.RealmManagement.DatabaseTestHelper do
       :ok
     else
       error ->
-        Logger.warn("Database error: #{inspect(error)}")
+        Logger.warning("Database error: #{inspect(error)}")
         {:error, :database_error}
     end
   end
@@ -387,7 +387,7 @@ defmodule Astarte.RealmManagement.DatabaseTestHelper do
       :ok
     else
       error ->
-        Logger.warn("Database error: #{inspect(error)}")
+        Logger.warning("Database error: #{inspect(error)}")
         {:error, :database_error}
     end
   end

@@ -71,7 +71,7 @@ defmodule Astarte.TriggerEngine.EventsConsumer do
       send_simple_event(realm, payload, headers, action)
     else
       error ->
-        Logger.warn("Error while processing event: #{inspect(error)}")
+        Logger.warning("Error while processing event: #{inspect(error)}")
 
         error
     end
@@ -246,14 +246,14 @@ defmodule Astarte.TriggerEngine.EventsConsumer do
       end
     else
       {:error, reason} ->
-        Logger.warn(
+        Logger.warning(
           "Error while processing the request: #{inspect(reason)}. Payload: #{inspect(payload)}, headers: #{inspect(headers)}, action: #{inspect(action)}"
         )
 
         {:error, :connection_error}
 
       error ->
-        Logger.warn("Error while processing event: #{inspect(error)}")
+        Logger.warning("Error while processing event: #{inspect(error)}")
         error
     end
   end
@@ -301,11 +301,11 @@ defmodule Astarte.TriggerEngine.EventsConsumer do
       {:ok, action}
     else
       {:error, :database_connection_error} ->
-        Logger.warn("Database connection error.")
+        Logger.warning("Database connection error.")
         {:error, :database_connection_error}
 
       error ->
-        Logger.warn("Error while processing event: #{inspect(error)}")
+        Logger.warning("Error while processing event: #{inspect(error)}")
         {:error, :trigger_not_found}
     end
   end

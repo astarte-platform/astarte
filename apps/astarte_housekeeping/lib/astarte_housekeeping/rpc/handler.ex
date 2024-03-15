@@ -49,7 +49,7 @@ defmodule Astarte.Housekeeping.RPC.Handler do
   end
 
   defp extract_call_tuple(%Call{call: nil}) do
-    _ = Logger.warn("Received empty call.", tag: "rpc_call_empty")
+    _ = Logger.warning("Received empty call.", tag: "rpc_call_empty")
     {:error, :empty_call}
   end
 
@@ -59,26 +59,30 @@ defmodule Astarte.Housekeeping.RPC.Handler do
 
   # Here for retrocompatibility with old protos serialized with Exprotobuf
   defp call_rpc({:create_realm, %CreateRealm{realm: ""}}) do
-    _ = Logger.warn("CreateRealm with empty realm.", tag: "rpc_create_nil_realm")
+    _ = Logger.warning("CreateRealm with empty realm.", tag: "rpc_create_nil_realm")
     generic_error(:empty_name, "empty realm name")
   end
 
   # Here for retrocompatibility with old protos serialized with Exprotobuf
   defp call_rpc({:create_realm, %CreateRealm{jwt_public_key_pem: ""}}) do
     _ =
-      Logger.warn("CreateRealm with empty jwt_public_key_pem.", tag: "rpc_create_nil_public_key")
+      Logger.warning("CreateRealm with empty jwt_public_key_pem.",
+        tag: "rpc_create_nil_public_key"
+      )
 
     generic_error(:empty_public_key, "empty jwt public key pem")
   end
 
   defp call_rpc({:create_realm, %CreateRealm{realm: nil}}) do
-    _ = Logger.warn("CreateRealm with empty realm.", tag: "rpc_create_nil_realm")
+    _ = Logger.warning("CreateRealm with empty realm.", tag: "rpc_create_nil_realm")
     generic_error(:empty_name, "empty realm name")
   end
 
   defp call_rpc({:create_realm, %CreateRealm{jwt_public_key_pem: nil}}) do
     _ =
-      Logger.warn("CreateRealm with empty jwt_public_key_pem.", tag: "rpc_create_nil_public_key")
+      Logger.warning("CreateRealm with empty jwt_public_key_pem.",
+        tag: "rpc_create_nil_public_key"
+      )
 
     generic_error(:empty_public_key, "empty jwt public key pem")
   end
@@ -111,7 +115,7 @@ defmodule Astarte.Housekeeping.RPC.Handler do
       # This comes from is_realm_existing
       {:ok, true} ->
         _ =
-          Logger.warn("CreateRealm with already existing realm.",
+          Logger.warning("CreateRealm with already existing realm.",
             tag: "rpc_create_existing_realm",
             realm: realm
           )
@@ -158,7 +162,7 @@ defmodule Astarte.Housekeeping.RPC.Handler do
       # This comes from is_realm_existing
       {:ok, true} ->
         _ =
-          Logger.warn("CreateRealm with already existing realm.",
+          Logger.warning("CreateRealm with already existing realm.",
             tag: "rpc_create_existing_realm",
             realm: realm
           )
@@ -226,12 +230,12 @@ defmodule Astarte.Housekeeping.RPC.Handler do
 
   # Here for retrocompatibility with old protos serialized with Exprotobuf
   defp call_rpc({:delete_realm, %DeleteRealm{realm: ""}}) do
-    _ = Logger.warn("DeleteRealm with empty realm.", tag: "rpc_delete_empty_realm")
+    _ = Logger.warning("DeleteRealm with empty realm.", tag: "rpc_delete_empty_realm")
     generic_error(:empty_name, "empty realm name")
   end
 
   defp call_rpc({:delete_realm, %DeleteRealm{realm: nil}}) do
-    _ = Logger.warn("DeleteRealm with empty realm.", tag: "rpc_delete_empty_realm")
+    _ = Logger.warning("DeleteRealm with empty realm.", tag: "rpc_delete_empty_realm")
     generic_error(:empty_name, "empty realm name")
   end
 
@@ -242,7 +246,7 @@ defmodule Astarte.Housekeeping.RPC.Handler do
     else
       {:ok, false} ->
         _ =
-          Logger.warn("DeleteRealm with non-existing realm.",
+          Logger.warning("DeleteRealm with non-existing realm.",
             tag: "rpc_delete_non_existing_realm",
             realm: realm
           )

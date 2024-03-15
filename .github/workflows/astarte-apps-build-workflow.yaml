@@ -154,7 +154,7 @@ jobs:
         rm rabbitmqadmin
     - name: Compile
       working-directory: ./apps/${{ matrix.app }}
-      run: mix do compile
+      run: mix compile --warnings-as-errors --force
     - uses: actions/setup-node@v1
       with:
         node-version: '10.x'

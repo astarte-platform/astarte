@@ -84,7 +84,7 @@ jobs:
       working-directory: tools/astarte_e2e
       run: |
         mix deps.get
-        mix compile
+        mix compile --warnings-as-errors --force
     - name: Run Astarte E2E
       working-directory: tools/astarte_e2e
       env:

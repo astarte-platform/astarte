@@ -416,12 +416,12 @@ defmodule Astarte.RealmManagement.RPC.Handler do
               )
 
             invalid_call ->
-              _ = Logger.warn("Received unexpected call: #{inspect(invalid_call)}.")
+              _ = Logger.warning("Received unexpected call: #{inspect(invalid_call)}.")
               {:error, :unexpected_call}
           end
 
         invalid_message ->
-          _ = Logger.warn("Received unexpected message: #{inspect(invalid_message)}.")
+          _ = Logger.warning("Received unexpected message: #{inspect(invalid_message)}.")
           {:error, :unexpected_message}
       end
 

@@ -89,7 +89,7 @@ defmodule Astarte.AppEngine.API.RPC.DataUpdaterPlant do
   end
 
   defp decode_reply({:error, reason}) do
-    _ = Logger.warn("RPC error: #{inspect(reason)}.", tag: "rpc_remote_exception")
+    _ = Logger.warning("RPC error: #{inspect(reason)}.", tag: "rpc_remote_exception")
     {:error, reason}
   end
 

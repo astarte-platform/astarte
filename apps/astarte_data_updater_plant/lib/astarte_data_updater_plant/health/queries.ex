@@ -32,7 +32,7 @@ defmodule Astarte.DataUpdaterPlant.Health.Queries do
     else
       :error ->
         _ =
-          Logger.warn("Cannot retrieve count for astarte.realms table.",
+          Logger.warning("Cannot retrieve count for astarte.realms table.",
             tag: "health_check_error"
           )
 
@@ -40,7 +40,7 @@ defmodule Astarte.DataUpdaterPlant.Health.Queries do
 
       {:error, %Xandra.Error{} = err} ->
         _ =
-          Logger.warn("Database error, health is not good: #{inspect(err)}.",
+          Logger.warning("Database error, health is not good: #{inspect(err)}.",
             tag: "health_check_database_error"
           )
 
@@ -48,7 +48,7 @@ defmodule Astarte.DataUpdaterPlant.Health.Queries do
 
       {:error, %Xandra.ConnectionError{} = err} ->
         _ =
-          Logger.warn("Database error, health is not good: #{inspect(err)}.",
+          Logger.warning("Database error, health is not good: #{inspect(err)}.",
             tag: "health_check_database_connection_error"
           )
 
