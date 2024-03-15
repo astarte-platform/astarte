@@ -29,6 +29,14 @@ jobs:
       with:
         repository: astarte-platform/docs
         path: docs
+    - name: Generates diagrams
+      working-directory: ./astarte/doc/diagrams
+      run: |
+        curl -fsSL https://d2lang.com/install.sh | sh -s --
+        for diagram in *.d2; do d2 --layout elk --theme 1 $diagram; done
+    - name: Copy diagrams to doc/images folder
+      working-directory: ./astarte/doc/diagrams
+      run: cp *.svg ../images/
     - uses: erlef/setup-beam@v1.15
       with:
         elixir-version: "1.15.7"
