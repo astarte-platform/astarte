@@ -19,6 +19,8 @@
 defmodule Astarte.AppEngine.API.Stats.DevicesStats do
   defstruct [
     :total_devices,
-    :connected_devices
+    :connected_devices,
+    :disconnected_devices,
+    :never_connected_devices
   ]
 end
