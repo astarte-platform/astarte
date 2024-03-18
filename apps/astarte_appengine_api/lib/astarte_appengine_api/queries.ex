@@ -19,7 +19,6 @@ defmodule Astarte.AppEngine.API.Queries do
   alias CQEx.Query, as: DatabaseQuery
   alias CQEx.Result, as: DatabaseResult
   alias Astarte.AppEngine.API.Config
-  alias Astarte.Core.CQLUtils
 
   require Logger
 

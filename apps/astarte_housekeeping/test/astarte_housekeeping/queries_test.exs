@@ -125,7 +125,7 @@ defmodule Astarte.Housekeeping.QueriesTest do
 
     test_retention_statement =
       """
-      SELECT blobAsInt(value) FROM #{@realm1}.kv_store
+      SELECT blobAsInt(value) FROM #{CQLUtils.realm_name_to_keyspace_name(@realm1, Config.astarte_instance_id!())}.kv_store
       WHERE group='realm_config' AND key='datastream_maximum_storage_retention';
       """
 
@@ -147,7 +147,7 @@ defmodule Astarte.Housekeeping.QueriesTest do
 
     test_retention_statement =
       """
-      SELECT blobAsInt(value) FROM #{@realm1}.kv_store
+      SELECT blobAsInt(value) FROM #{CQLUtils.realm_name_to_keyspace_name(@realm1, Config.astarte_instance_id!())}.kv_store
       WHERE group='realm_config' AND key='datastream_maximum_storage_retention';
       """
 

@@ -28,7 +28,6 @@ defmodule Astarte.RealmManagement.DeviceRemoval.DeviceRemover do
   require Logger
   alias Astarte.Core.InterfaceDescriptor
   alias Astarte.Core.CQLUtils
-  alias Astarte.RealmManagement.Config
   alias Astarte.RealmManagement.Queries
   alias Astarte.Core.Device
 

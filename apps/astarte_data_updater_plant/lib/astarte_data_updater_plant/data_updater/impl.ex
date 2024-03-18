@@ -1738,7 +1738,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
           keyspace_name =
             CQLUtils.realm_name_to_keyspace_name(state.realm, Config.astarte_instance_id!())
 
-          with {:ok, db_client} <- Database.connect(realm: keyspace_name),
+          with {:ok, _db_client} <- Database.connect(realm: keyspace_name),
                :ok <-
                  InterfaceQueries.check_if_interface_exists(keyspace_name, interface_name, major) do
             {:ok, new_state}
@@ -1757,7 +1757,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
           keyspace_name =
             CQLUtils.realm_name_to_keyspace_name(state.realm, Config.astarte_instance_id!())
 
-          with {:ok, db_client} <- Database.connect(realm: keyspace_name),
+          with {:ok, _db_client} <- Database.connect(realm: keyspace_name),
                {:ok, %InterfaceDescriptor{automaton: automaton}} <-
                  InterfaceQueries.fetch_interface_descriptor(keyspace_name, interface_name, major),
                {:ok, _endpoint_id} <- EndpointsAutomaton.resolve_path(match_path, automaton) do

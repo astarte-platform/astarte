@@ -17,7 +17,6 @@
 #
 
 defmodule Astarte.TriggerEngine.Health.Queries do
-  alias Astarte.Core.CQLUtils
   alias Astarte.TriggerEngine.Config
   require Logger
 

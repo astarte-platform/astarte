@@ -18,6 +18,7 @@
 
 defmodule Astarte.DataUpdaterPlant.Health.Queries do
   require Logger
+  alias Astarte.DataUpdaterPlant.Config
 
   def get_astarte_health(consistency) do
     query = """

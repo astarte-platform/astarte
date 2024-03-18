@@ -1091,64 +1091,65 @@ defmodule Astarte.Housekeeping.Queries do
       with {:ok, true} <- is_realm_existing(conn, realm_name),
            {:ok, public_key} <- get_public_key(conn, keyspace_name),
            {:ok, replication_map} <- get_realm_replication(conn, keyspace_name),
-           {:ok, device_registration_limit} <- get_device_registration_limit(conn, realm_name)
+           {:ok, device_registration_limit} <- get_device_registration_limit(conn, realm_name),
+           {:ok, max_retention} <-
+             get_datastream_maximum_storage_retention(conn, keyspace_name) do
+        case replication_map do
+          %{
+            "class" => "org.apache.cassandra.locator.SimpleStrategy",
+            "replication_factor" => replication_factor_string
+          } ->
+            {replication_factor, ""} = Integer.parse(replication_factor_string)
 
-      {:ok, max_retention} <-
-        get_datastream_maximum_storage_retention(conn, keyspace_name) do
-          case replication_map do
             %{
-              "class" => "org.apache.cassandra.locator.SimpleStrategy",
-              "replication_factor" => replication_factor_string
-            } ->
-              {replication_factor, ""} = Integer.parse(replication_factor_string)
+              realm_name: realm_name,
+              jwt_public_key_pem: public_key,
+              replication_class: "SimpleStrategy",
+              replication_factor: replication_factor,
+              device_registration_limit: device_registration_limit,
+              datastream_maximum_storage_retention: max_retention
+            }
 
-              %{
-                realm_name: realm_name,
-                jwt_public_key_pem: public_key,
-                replication_class: "SimpleStrategy",
-                replication_factor: replication_factor,
-                device_registration_limit: device_registration_limit,
-                datastream_maximum_storage_retention: max_retention
-              }
+          %{"class" => "org.apache.cassandra.locator.NetworkTopologyStrategy"} ->
+            datacenter_replication_factors =
+              Enum.reduce(replication_map, %{}, fn
+                {"class", _}, acc ->
+                  acc
 
-            %{"class" => "org.apache.cassandra.locator.NetworkTopologyStrategy"} ->
-              datacenter_replication_factors =
-                Enum.reduce(replication_map, %{}, fn
-                  {"class", _}, acc ->
-                    acc
+                {datacenter, replication_factor_string}, acc ->
+                  {replication_factor, ""} = Integer.parse(replication_factor_string)
+                  Map.put(acc, datacenter, replication_factor)
+              end)
 
-                  {datacenter, replication_factor_string}, acc ->
-                    {replication_factor, ""} = Integer.parse(replication_factor_string)
-                    Map.put(acc, datacenter, replication_factor)
-                end)
-
-              %{
-                realm_name: realm_name,
-                jwt_public_key_pem: public_key,
-                replication_class: "NetworkTopologyStrategy",
-                datacenter_replication_factors: datacenter_replication_factors,
-                device_registration_limit: device_registration_limit,
-                datastream_maximum_storage_retention: max_retention
-              }
-          end
-        else
-          # Returned by is_realm_existing
-          {:ok, false} ->
-            {:error, :realm_not_found}
-
-          {:error, reason} ->
-            _ =
-              Logger.warning("Error while getting realm: #{inspect(reason)}.",
-                tag: "get_realm_error",
-                realm: realm_name
-              )
-
-            {:error, reason}
+            %{
+              realm_name: realm_name,
+              jwt_public_key_pem: public_key,
+              replication_class: "NetworkTopologyStrategy",
+              datacenter_replication_factors: datacenter_replication_factors,
+              device_registration_limit: device_registration_limit,
+              datastream_maximum_storage_retention: max_retention
+            }
         end
+      else
+        # Returned by is_realm_existing
+        {:ok, false} ->
+          {:error, :realm_not_found}
+
+        {:error, reason} ->
+          _ =
+            Logger.warning("Error while getting realm: #{inspect(reason)}.",
+              tag: "get_realm_error",
+              realm: realm_name
+            )
+
+          {:error, reason}
+      end
     end)
   end
 
   def set_datastream_maximum_storage_retention(realm_name, new_retention) do
+    realm_name = CQLUtils.realm_name_to_keyspace_name(realm_name, Config.astarte_instance_id!())
+
     with :ok <- validate_realm_name(realm_name) do
       Xandra.Cluster.run(
         :xandra,
@@ -1158,6 +1159,8 @@ defmodule Astarte.Housekeeping.Queries do
   end
 
   def delete_datastream_maximum_storage_retention(realm_name) do
+    realm_name = CQLUtils.realm_name_to_keyspace_name(realm_name, Config.astarte_instance_id!())
+
     with :ok <- validate_realm_name(realm_name) do
       Xandra.Cluster.run(
         :xandra,

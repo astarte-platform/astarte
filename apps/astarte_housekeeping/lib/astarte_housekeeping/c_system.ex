@@ -97,10 +97,10 @@ defmodule CSystem do
 
     case result do
       {:error, :timeout} ->
-        Xandra.Error.new(:agreement_timeout, "Schema agreement wait timeout.")
+        Xandra.Error.new(:agreement_timeout, "Schema agreement wait timeout.", [])
 
       {:error, :no_schema_change} ->
-        Xandra.Error.new(:no_schema_change, "Statement did not change the schema_version.")
+        Xandra.Error.new(:no_schema_change, "Statement did not change the schema_version.", [])
 
       any ->
         any
