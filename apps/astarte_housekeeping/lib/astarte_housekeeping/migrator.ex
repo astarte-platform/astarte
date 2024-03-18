@@ -90,12 +90,12 @@ defmodule Astarte.Housekeeping.Migrator do
       end
     else
       {:error, %Xandra.Error{} = err} ->
-        _ = Logger.warn("Database error: #{inspect(err)}.", tag: "database_error")
+        _ = Logger.warning("Database error: #{inspect(err)}.", tag: "database_error")
         {:error, :database_error}
 
       {:error, %Xandra.ConnectionError{} = err} ->
         _ =
-          Logger.warn("Database connection error: #{inspect(err)}.",
+          Logger.warning("Database connection error: #{inspect(err)}.",
             tag: "database_connection_error"
           )
 
@@ -122,12 +122,12 @@ defmodule Astarte.Housekeeping.Migrator do
         :ok
 
       {:error, %Xandra.Error{} = err} ->
-        _ = Logger.warn("Database error: #{inspect(err)}.", tag: "database_error")
+        _ = Logger.warning("Database error: #{inspect(err)}.", tag: "database_error")
         {:error, :database_error}
 
       {:error, %Xandra.ConnectionError{} = err} ->
         _ =
-          Logger.warn("Database connection error: #{inspect(err)}.",
+          Logger.warning("Database connection error: #{inspect(err)}.",
             tag: "database_connection_error"
           )
 
@@ -157,12 +157,12 @@ defmodule Astarte.Housekeeping.Migrator do
         :ok
 
       {:error, %Xandra.Error{} = err} ->
-        _ = Logger.warn("Database error: #{inspect(err)}.", tag: "database_error")
+        _ = Logger.warning("Database error: #{inspect(err)}.", tag: "database_error")
         {:error, :database_error}
 
       {:error, %Xandra.ConnectionError{} = err} ->
         _ =
-          Logger.warn("Database connection error: #{inspect(err)}.",
+          Logger.warning("Database connection error: #{inspect(err)}.",
             tag: "database_connection_error"
           )
 
@@ -189,12 +189,12 @@ defmodule Astarte.Housekeeping.Migrator do
       end
     else
       {:error, %Xandra.Error{} = err} ->
-        _ = Logger.warn("Database error: #{inspect(err)}.", tag: "database_error")
+        _ = Logger.warning("Database error: #{inspect(err)}.", tag: "database_error")
         {:error, :database_error}
 
       {:error, %Xandra.ConnectionError{} = err} ->
         _ =
-          Logger.warn("Database connection error: #{inspect(err)}.",
+          Logger.warning("Database connection error: #{inspect(err)}.",
             tag: "database_connection_error"
           )
 
@@ -296,12 +296,12 @@ defmodule Astarte.Housekeeping.Migrator do
       execute_migrations(keyspace_conn, tail)
     else
       {:error, %Xandra.Error{} = err} ->
-        _ = Logger.warn("Database error: #{inspect(err)}.", tag: "database_error")
+        _ = Logger.warning("Database error: #{inspect(err)}.", tag: "database_error")
         {:error, :database_error}
 
       {:error, %Xandra.ConnectionError{} = err} ->
         _ =
-          Logger.warn("Database connection error: #{inspect(err)}.",
+          Logger.warning("Database connection error: #{inspect(err)}.",
             tag: "database_connection_error"
           )
 
@@ -332,12 +332,12 @@ defmodule Astarte.Housekeeping.Migrator do
       :ok
     else
       {:error, %Xandra.Error{} = err} ->
-        _ = Logger.warn("Database error: #{inspect(err)}.", tag: "database_error")
+        _ = Logger.warning("Database error: #{inspect(err)}.", tag: "database_error")
         {:error, :database_error}
 
       {:error, %Xandra.ConnectionError{} = err} ->
         _ =
-          Logger.warn("Database connection error: #{inspect(err)}.",
+          Logger.warning("Database connection error: #{inspect(err)}.",
             tag: "database_connection_error"
           )
 

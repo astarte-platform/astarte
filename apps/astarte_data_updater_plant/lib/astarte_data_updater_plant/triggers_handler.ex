@@ -17,7 +17,8 @@
 #
 
 defmodule Astarte.DataUpdaterPlant.TriggersHandler do
-  use Bitwise, only_operators: true
+  # https://hexdocs.pm/elixir/1.13.4/Bitwise.html
+  import Bitwise
   require Logger
   alias Astarte.DataUpdaterPlant.Config
 
@@ -541,7 +542,7 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandler do
   end
 
   defp wait_backoff_and_publish({:error, reason}, retry, exchange, routing_key, payload, opts) do
-    Logger.warn(
+    Logger.warning(
       "Failed publish on events exchange with #{routing_key}. Reason: #{inspect(reason)}"
     )
 

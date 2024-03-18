@@ -241,7 +241,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater do
         :ok
       else
         _ =
-          Logger.warn(
+          Logger.warning(
             "Device #{encoded_device_id} in realm #{realm_name} does not exist.",
             tag: "device_does_not_exist"
           )

@@ -48,7 +48,7 @@ defmodule Astarte.Pairing.Queries do
         {:error, :public_key_not_found}
 
       error ->
-        Logger.warn("DB error: #{inspect(error)}")
+        Logger.warning("DB error: #{inspect(error)}")
         {:error, :database_error}
     end
   end
@@ -81,12 +81,15 @@ defmodule Astarte.Pairing.Queries do
           do_register_device(client, device_id, credentials_secret, registration_timestamp, opts)
 
         [first_credentials_request: _timestamp, first_registration: _registration_timestamp] ->
-          Logger.warn("register request for existing confirmed device: #{inspect(extended_id)}")
+          Logger.warning(
+            "register request for existing confirmed device: #{inspect(extended_id)}"
+          )
+
           {:error, :already_registered}
       end
     else
       error ->
-        Logger.warn("DB error: #{inspect(error)}")
+        Logger.warning("DB error: #{inspect(error)}")
         {:error, :database_error}
     end
   end
@@ -97,11 +100,11 @@ defmodule Astarte.Pairing.Queries do
       :ok
     else
       %{acc: _acc, msg: msg} ->
-        Logger.warn("DB error: #{inspect(msg)}")
+        Logger.warning("DB error: #{inspect(msg)}")
         {:error, :database_error}
 
       {:error, reason} ->
-        Logger.warn("Unregister error: #{inspect(reason)}")
+        Logger.warning("Unregister error: #{inspect(reason)}")
         {:error, reason}
     end
   end
@@ -224,7 +227,7 @@ defmodule Astarte.Pairing.Queries do
         :ok
 
       error ->
-        Logger.warn("DB error: #{inspect(error)}")
+        Logger.warning("DB error: #{inspect(error)}")
         {:error, :database_error}
     end
   end
@@ -252,7 +255,7 @@ defmodule Astarte.Pairing.Queries do
         {:error, :device_not_found}
 
       error ->
-        Logger.warn("DB error: #{inspect(error)}")
+        Logger.warning("DB error: #{inspect(error)}")
         {:error, :database_error}
     end
   end
@@ -293,7 +296,7 @@ defmodule Astarte.Pairing.Queries do
         :ok
 
       error ->
-        Logger.warn("DB error: #{inspect(error)}")
+        Logger.warning("DB error: #{inspect(error)}")
         {:error, :database_error}
     end
   end
@@ -323,7 +326,7 @@ defmodule Astarte.Pairing.Queries do
     else
       :error ->
         _ =
-          Logger.warn("Cannot retrieve count for astarte.realms table.",
+          Logger.warning("Cannot retrieve count for astarte.realms table.",
             tag: "health_check_error"
           )
 
@@ -331,7 +334,7 @@ defmodule Astarte.Pairing.Queries do
 
       {:error, %Xandra.Error{} = err} ->
         _ =
-          Logger.warn("Database error, health is not good: #{inspect(err)}.",
+          Logger.warning("Database error, health is not good: #{inspect(err)}.",
             tag: "health_check_database_error"
           )
 
@@ -339,7 +342,7 @@ defmodule Astarte.Pairing.Queries do
 
       {:error, %Xandra.ConnectionError{} = err} ->
         _ =
-          Logger.warn("Database error, health is not good: #{inspect(err)}.",
+          Logger.warning("Database error, health is not good: #{inspect(err)}.",
             tag: "health_check_database_connection_error"
           )
 
@@ -363,7 +366,8 @@ defmodule Astarte.Pairing.Queries do
 
         [] ->
           _ =
-            Logger.warn("cannot fetch device registration limit: realm #{realm_name} not found",
+            Logger.warning(
+              "cannot fetch device registration limit: realm #{realm_name} not found",
               tag: "realm_not_found"
             )
 
@@ -372,7 +376,7 @@ defmodule Astarte.Pairing.Queries do
     else
       {:error, %Xandra.ConnectionError{} = err} ->
         _ =
-          Logger.warn("Database connection error: #{Exception.message(err)}.",
+          Logger.warning("Database connection error: #{Exception.message(err)}.",
             tag: "database_connection_error"
           )
 
@@ -380,7 +384,7 @@ defmodule Astarte.Pairing.Queries do
 
       {:error, %Xandra.Error{} = err} ->
         _ =
-          Logger.warn("Database error: #{Exception.message(err)}.",
+          Logger.warning("Database error: #{Exception.message(err)}.",
             tag: "database_error"
           )
 
@@ -403,7 +407,7 @@ defmodule Astarte.Pairing.Queries do
     else
       {:error, %Xandra.ConnectionError{} = err} ->
         _ =
-          Logger.warn("Database connection error: #{Exception.message(err)}.",
+          Logger.warning("Database connection error: #{Exception.message(err)}.",
             tag: "database_connection_error"
           )
 
@@ -411,7 +415,7 @@ defmodule Astarte.Pairing.Queries do
 
       {:error, %Xandra.Error{} = err} ->
         _ =
-          Logger.warn("Database error: #{Exception.message(err)}.",
+          Logger.warning("Database error: #{Exception.message(err)}.",
             tag: "database_error"
           )
 

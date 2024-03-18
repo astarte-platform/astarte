@@ -25,7 +25,6 @@ defmodule Astarte.Pairing.API.Mixfile do
       elixir: "~> 1.15",
       version: "1.2.0-dev",
       elixirc_paths: elixirc_paths(Mix.env()),
-      compilers: [:phoenix, :gettext] ++ Mix.compilers(),
       start_permanent: Mix.env() == :prod,
       test_coverage: [tool: ExCoveralls],
       preferred_cli_env: [
@@ -81,12 +80,12 @@ defmodule Astarte.Pairing.API.Mixfile do
   defp deps do
     [
       {:phoenix, "~> 1.7"},
-      {:gettext, "~> 0.11"},
+      {:gettext, "~> 0.24"},
       {:plug_cowboy, "~> 2.2"},
       {:phoenix_ecto, "~> 4.0"},
       {:phoenix_view, "~> 2.0"},
       {:jason, "~> 1.2"},
-      {:guardian, "~> 2.1"},
+      {:guardian, "~> 2.3.2"},
       {:remote_ip, "~> 1.0"},
       {:excoveralls, "~> 0.15", only: :test},
       {:mox, "~> 0.5", only: :test},

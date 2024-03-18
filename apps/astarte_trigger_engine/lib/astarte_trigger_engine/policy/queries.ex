@@ -43,12 +43,12 @@ defmodule Astarte.TriggerEngine.Policy.Queries do
       {:ok, policy}
     else
       {:error, %Xandra.Error{} = err} ->
-        _ = Logger.warn("Database error: #{inspect(err)}.", tag: "database_error")
+        _ = Logger.warning("Database error: #{inspect(err)}.", tag: "database_error")
         {:error, :database_error}
 
       {:error, %Xandra.ConnectionError{} = err} ->
         _ =
-          Logger.warn("Database connection error: #{inspect(err)}.",
+          Logger.warning("Database connection error: #{inspect(err)}.",
             tag: "database_connection_error"
           )
 
@@ -61,7 +61,7 @@ defmodule Astarte.TriggerEngine.Policy.Queries do
       :ok
     else
       _ =
-        Logger.warn("Invalid realm name.",
+        Logger.warning("Invalid realm name.",
           tag: "invalid_realm_name",
           realm: realm_name
         )

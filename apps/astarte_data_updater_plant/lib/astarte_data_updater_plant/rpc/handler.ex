@@ -39,7 +39,7 @@ defmodule Astarte.DataUpdaterPlant.RPC.Handler do
   end
 
   defp extract_call_tuple(%Call{call: nil}) do
-    Logger.warn("Received empty call")
+    Logger.warning("Received empty call")
     {:error, :empty_call}
   end
 

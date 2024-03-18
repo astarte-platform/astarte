@@ -75,7 +75,7 @@ defmodule Astarte.DataUpdaterPlant.AMQPEventsProducer do
   end
 
   def handle_info({:DOWN, _, :process, _pid, reason}, _state) do
-    Logger.warn("RabbitMQ connection lost: #{inspect(reason)}. Trying to reconnect...",
+    Logger.warning("RabbitMQ connection lost: #{inspect(reason)}. Trying to reconnect...",
       tag: "events_producer_conn_lost"
     )
 
@@ -92,21 +92,21 @@ defmodule Astarte.DataUpdaterPlant.AMQPEventsProducer do
       {:ok, chan}
     else
       {:error, reason} ->
-        Logger.warn("RabbitMQ Connection error: #{inspect(reason)}",
+        Logger.warning("RabbitMQ Connection error: #{inspect(reason)}",
           tag: "events_producer_conn_err"
         )
 
         maybe_retry(retry)
 
       :error ->
-        Logger.warn("Unknown RabbitMQ connection error", tag: "events_producer_conn_err")
+        Logger.warning("Unknown RabbitMQ connection error", tag: "events_producer_conn_err")
         maybe_retry(retry)
     end
   end
 
   defp maybe_retry(retry) do
     if retry do
-      Logger.warn("Retrying connection in #{@connection_backoff} ms")
+      Logger.warning("Retrying connection in #{@connection_backoff} ms")
       :erlang.send_after(@connection_backoff, :erlang.self(), :try_to_connect)
       {:ok, :not_connected}
     else

@@ -46,7 +46,7 @@ defmodule Astarte.AppEngine.API.Rooms.AMQPClient do
 
   def terminate(reason, %Channel{conn: conn} = chan) do
     _ =
-      Logger.warn(
+      Logger.warning(
         "Rooms.AMQPClient terminating with reason: #{inspect(reason)}, " <>
           "closing Channel and Connection.",
         tag: "rooms_events_consumer_terminate"
@@ -58,7 +58,7 @@ defmodule Astarte.AppEngine.API.Rooms.AMQPClient do
 
   def terminate(reason, :not_connected) do
     _ =
-      Logger.warn("Rooms.AMQPClient terminating with reason #{inspect(reason)}.",
+      Logger.warning("Rooms.AMQPClient terminating with reason #{inspect(reason)}.",
         tag: "rooms_events_consumer_terminate"
       )
   end
@@ -97,7 +97,7 @@ defmodule Astarte.AppEngine.API.Rooms.AMQPClient do
 
   def handle_info({:DOWN, _, :process, chan_pid, reason}, %Channel{pid: chan_pid, conn: conn}) do
     _ =
-      Logger.warn("RabbitMQ channel crashed: #{inspect(reason)}. Trying to reopen...",
+      Logger.warning("RabbitMQ channel crashed: #{inspect(reason)}. Trying to reopen...",
         tag: "rooms_events_chan_crash"
       )
 
@@ -129,7 +129,7 @@ defmodule Astarte.AppEngine.API.Rooms.AMQPClient do
     else
       {:error, reason} ->
         _ =
-          Logger.warn("RabbitMQ Connection error: #{inspect(reason)}.",
+          Logger.warning("RabbitMQ Connection error: #{inspect(reason)}.",
             tag: "rooms_events_conn_err"
           )
 
@@ -137,7 +137,7 @@ defmodule Astarte.AppEngine.API.Rooms.AMQPClient do
         {:ok, :not_connected}
 
       _ ->
-        _ = Logger.warn("Unknown RabbitMQ connection error.", tag: "rooms_events_conn_err")
+        _ = Logger.warning("Unknown RabbitMQ connection error.", tag: "rooms_events_conn_err")
         retry_after(@connection_backoff)
         {:ok, :not_connected}
     end
@@ -164,7 +164,7 @@ defmodule Astarte.AppEngine.API.Rooms.AMQPClient do
   end
 
   defp retry_after(backoff) do
-    _ = Logger.warn("Retrying connection in #{backoff} ms.", tag: "rooms_events_conn_retry")
+    _ = Logger.warning("Retrying connection in #{backoff} ms.", tag: "rooms_events_conn_retry")
     :erlang.send_after(backoff, self(), :try_to_connect)
   end
 end

@@ -91,7 +91,7 @@ defmodule Astarte.DataUpdaterPlant.MessageTracker.Server do
     cond do
       not :queue.is_empty(queue) ->
         # We are in a dirty state, so we will not deactivate and we return an error
-        Logger.warn("Refusing to deactivate MessageTracker with non-empty queue.",
+        Logger.warning("Refusing to deactivate MessageTracker with non-empty queue.",
           tag: "message_tracker_deactivate_failed"
         )
 
@@ -99,7 +99,7 @@ defmodule Astarte.DataUpdaterPlant.MessageTracker.Server do
 
       ids != %{} ->
         # We are in a dirty state, so we will not deactivate and we return an error
-        Logger.warn("Refusing to deactivate MessageTracker with non-empty ids.",
+        Logger.warning("Refusing to deactivate MessageTracker with non-empty ids.",
           tag: "message_tracker_deactivate_failed"
         )
 
@@ -107,7 +107,7 @@ defmodule Astarte.DataUpdaterPlant.MessageTracker.Server do
 
       state != :accepting ->
         # We are in a dirty state, so we will not deactivate and we return an error
-        Logger.warn("Refusing to deactivate MessageTracker not in :accepting state.",
+        Logger.warning("Refusing to deactivate MessageTracker not in :accepting state.",
           tag: "message_tracker_deactivate_failed"
         )
 
@@ -161,7 +161,7 @@ defmodule Astarte.DataUpdaterPlant.MessageTracker.Server do
         {:DOWN, _, :process, _pid, reason},
         {state, queue, ids, acknowledger} = s
       ) do
-    Logger.warn("Crash detected. Reason: #{inspect(reason)}, state: #{inspect(s)}.",
+    Logger.warning("Crash detected. Reason: #{inspect(reason)}, state: #{inspect(s)}.",
       tag: "data_upd_crash_detected"
     )
 

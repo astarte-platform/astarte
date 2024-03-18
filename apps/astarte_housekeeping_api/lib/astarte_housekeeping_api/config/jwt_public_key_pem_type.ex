@@ -35,7 +35,10 @@ defmodule Astarte.Housekeeping.API.Config.JWTPublicKeyPEMType do
           {:ok, key}
 
         {:error, reason} ->
-          Logger.warn("Error while reading file: #{inspect(reason)}.", tag: "file_error_jwt_key")
+          Logger.warning("Error while reading file: #{inspect(reason)}.",
+            tag: "file_error_jwt_key"
+          )
+
           :error
       end
     end

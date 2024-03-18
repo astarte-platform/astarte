@@ -18,8 +18,6 @@
 defmodule Astarte.RealmManagement.APIWeb.VersionView do
   use Astarte.RealmManagement.APIWeb, :view
 
-  alias Astarte.RealmManagement.APIWeb.VersionView
-
   def render("show.json", %{version: version}) do
     %{data: version}
   end

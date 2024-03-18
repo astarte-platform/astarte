@@ -34,7 +34,7 @@ defmodule Astarte.AppEngine.API.Stats.Queries do
         {:ok, stats}
       else
         {:error, reason} ->
-          _ = Logger.warn("Database error: #{inspect(reason)}.", tag: "db_error")
+          _ = Logger.warning("Database error: #{inspect(reason)}.", tag: "db_error")
           {:error, :database_error}
       end
     end)
@@ -83,7 +83,7 @@ defmodule Astarte.AppEngine.API.Stats.Queries do
         {:error, :not_found}
 
       {:error, reason} ->
-        _ = Logger.warn("Database error: #{inspect(reason)}.", tag: "db_error")
+        _ = Logger.warning("Database error: #{inspect(reason)}.", tag: "db_error")
         {:error, :database_error}
     end
   end

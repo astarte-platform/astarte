@@ -79,7 +79,7 @@ defmodule Astarte.DataUpdaterPlant.AMQPDataConsumer.ConnectionManager do
         {:next_state, :connected, new_data, actions}
 
       {:error, reason} ->
-        Logger.warn(
+        Logger.warning(
           "RabbitMQ Connection error: #{inspect(reason)}. " <>
             "Retrying connection in #{@connection_backoff} ms.",
           tag: "data_consumer_conn_err"
@@ -133,7 +133,7 @@ defmodule Astarte.DataUpdaterPlant.AMQPDataConsumer.ConnectionManager do
           monitor_ref: monitor_ref
         } = data
       ) do
-    Logger.warn("RabbitMQ connection lost: #{inspect(reason)}. Trying to reconnect...",
+    Logger.warning("RabbitMQ connection lost: #{inspect(reason)}. Trying to reconnect...",
       tag: "data_consumer_conn_lost"
     )
 

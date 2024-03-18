@@ -126,7 +126,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
           ip_address
 
         _ ->
-          Logger.warn("Received invalid IP address #{ip_address_string}.")
+          Logger.warning("Received invalid IP address #{ip_address_string}.")
           {0, 0, 0, 0}
       end
 
@@ -194,7 +194,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
   end
 
   def handle_internal(state, path, payload, message_id, timestamp) do
-    Logger.warn(
+    Logger.warning(
       "Unexpected internal message on #{path}, base64-encoded payload: #{inspect(Base.encode64(payload))}",
       tag: "unexpected_internal_message"
     )
@@ -622,7 +622,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
             end
 
         interface_descriptor.type == :datastream ->
-          Logger.warn("Tried to unset a datastream.", tag: "unset_on_datastream")
+          Logger.warning("Tried to unset a datastream.", tag: "unset_on_datastream")
           MessageTracker.discard(new_state.message_tracker, message_id)
 
           :telemetry.execute(
@@ -701,7 +701,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
       update_stats(new_state, interface, interface_descriptor.major_version, path, payload)
     else
       {:error, :cannot_write_on_server_owned_interface} ->
-        Logger.warn(
+        Logger.warning(
           "Tried to write on server owned interface: #{interface} on " <>
             "path: #{path}, base64-encoded payload: #{inspect(Base.encode64(payload))}, timestamp: #{inspect(timestamp)}.",
           tag: "write_on_server_owned_interface"
@@ -734,7 +734,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
         update_stats(new_state, interface, nil, path, payload)
 
       {:error, :invalid_interface} ->
-        Logger.warn("Received invalid interface: #{inspect(interface)}.",
+        Logger.warning("Received invalid interface: #{inspect(interface)}.",
           tag: "invalid_interface"
         )
 
@@ -766,7 +766,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
         new_state
 
       {:error, :invalid_path} ->
-        Logger.warn("Received invalid path: #{inspect(path)}.", tag: "invalid_path")
+        Logger.warning("Received invalid path: #{inspect(path)}.", tag: "invalid_path")
         {:ok, new_state} = ask_clean_session(new_state, timestamp)
         MessageTracker.discard(new_state.message_tracker, message_id)
 
@@ -789,7 +789,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
         update_stats(new_state, interface, nil, path, payload)
 
       {:error, :mapping_not_found} ->
-        Logger.warn("Mapping not found for #{interface}#{path}. Maybe outdated introspection?",
+        Logger.warning("Mapping not found for #{interface}#{path}. Maybe outdated introspection?",
           tag: "mapping_not_found"
         )
 
@@ -815,7 +815,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
         update_stats(new_state, interface, nil, path, payload)
 
       {:error, :interface_loading_failed} ->
-        Logger.warn("Cannot load interface: #{interface}.", tag: "interface_loading_failed")
+        Logger.warning("Cannot load interface: #{interface}.", tag: "interface_loading_failed")
         # TODO: think about additional actions since the problem
         # could be a missing interface in the DB
         {:ok, new_state} = ask_clean_session(new_state, timestamp)
@@ -845,7 +845,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
         update_stats(new_state, interface, nil, path, payload)
 
       {:guessed, _guessed_endpoints} ->
-        Logger.warn("Mapping guessed for #{interface}#{path}. Maybe outdated introspection?",
+        Logger.warning("Mapping guessed for #{interface}#{path}. Maybe outdated introspection?",
           tag: "ambiguous_path"
         )
 
@@ -876,7 +876,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
         update_stats(new_state, interface, nil, path, payload)
 
       {:error, :undecodable_bson_payload} ->
-        Logger.warn(
+        Logger.warning(
           "Invalid BSON base64-encoded payload: #{inspect(Base.encode64(payload))} sent to #{interface}#{path}.",
           tag: "undecodable_bson_payload"
         )
@@ -908,7 +908,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
         update_stats(new_state, interface, nil, path, payload)
 
       {:error, :unexpected_value_type} ->
-        Logger.warn(
+        Logger.warning(
           "Received invalid value: #{inspect(Base.encode64(payload))} sent to #{interface}#{path}.",
           tag: "unexpected_value_type"
         )
@@ -940,7 +940,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
         update_stats(new_state, interface, nil, path, payload)
 
       {:error, :value_size_exceeded} ->
-        Logger.warn(
+        Logger.warning(
           "Received huge base64-encoded payload: #{inspect(Base.encode64(payload))} sent to #{interface}#{path}.",
           tag: "value_size_exceeded"
         )
@@ -969,7 +969,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
       {:error, :unexpected_object_key} ->
         base64_payload = Base.encode64(payload)
 
-        Logger.warn(
+        Logger.warning(
           "Received object with unexpected key, object base64 is: #{base64_payload} sent to #{interface}#{path}.",
           tag: "unexpected_object_key"
         )
@@ -1081,7 +1081,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
           {:halt, {:error, reason}}
 
         :error ->
-          Logger.warn("Unexpected key #{inspect(key)} in object #{inspect(object)}.",
+          Logger.warning("Unexpected key #{inspect(key)} in object #{inspect(object)}.",
             tag: "unexpected_object_key"
           )
 
@@ -1203,7 +1203,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
       process_introspection(state, new_introspection_list, payload, message_id, timestamp)
     else
       {:error, :invalid_introspection} ->
-        Logger.warn("Discarding invalid introspection: #{inspect(Base.encode64(payload))}.",
+        Logger.warning("Discarding invalid introspection: #{inspect(Base.encode64(payload))}.",
           tag: "invalid_introspection"
         )
 
@@ -1541,7 +1541,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
       new_state
     else
       {:error, :session_not_found} ->
-        Logger.warn("Cannot push data to device.", tag: "device_session_not_found")
+        Logger.warning("Cannot push data to device.", tag: "device_session_not_found")
 
         {:ok, new_state} = ask_clean_session(new_state, timestamp)
         MessageTracker.discard(new_state.message_tracker, message_id)
@@ -1557,7 +1557,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
         new_state
 
       {:error, :sending_properties_to_interface_failed} ->
-        Logger.warn("Cannot resend properties to interface",
+        Logger.warning("Cannot resend properties to interface",
           tag: "resend_interface_properties_failed"
         )
 
@@ -1579,7 +1579,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
         new_state
 
       {:error, reason} ->
-        Logger.warn("Unhandled error during emptyCache: #{inspect(reason)}",
+        Logger.warning("Unhandled error during emptyCache: #{inspect(reason)}",
           tag: "empty_cache_error"
         )
 
@@ -1601,7 +1601,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
   end
 
   def handle_control(state, path, payload, message_id, timestamp) do
-    Logger.warn(
+    Logger.warning(
       "Unexpected control on #{path}, base64-encoded payload: #{inspect(Base.encode64(payload))}",
       tag: "unexpected_control_message"
     )
@@ -1696,8 +1696,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
            interface_major: major,
            match_path: "/*"
          }} ->
-          with {:ok, db_client} <- Database.connect(realm: state.realm),
-               :ok <-
+          with :ok <-
                  InterfaceQueries.check_if_interface_exists(state.realm, interface_name, major) do
             {:ok, new_state}
           else
@@ -1712,8 +1711,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
            interface_major: major,
            match_path: match_path
          }} ->
-          with {:ok, db_client} <- Database.connect(realm: state.realm),
-               {:ok, %InterfaceDescriptor{automaton: automaton}} <-
+          with {:ok, %InterfaceDescriptor{automaton: automaton}} <-
                  InterfaceQueries.fetch_interface_descriptor(state.realm, interface_name, major),
                {:ok, _endpoint_id} <- EndpointsAutomaton.resolve_path(match_path, automaton) do
             {:ok, new_state}
@@ -1943,7 +1941,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
               last_datastream_maximum_retention_refresh: timestamp
           }
 
-        {:error, reason} ->
+        {:error, _reason} ->
           _ =
             Logger.warning(
               "Failed to load last_datastream_maximum_retention_refresh, keeping old one",
@@ -1986,7 +1984,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
 
       {:error, reason} ->
         _ =
-          Logger.warn(
+          Logger.warning(
             "Cannot check device deletion status for #{inspect(device_id)}, reason #{inspect(reason)}",
             tag: "should_start_device_deletion_fail"
           )
@@ -2136,7 +2134,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
         {:error, :interface_loading_failed}
 
       other ->
-        Logger.warn("maybe_handle_cache_miss failed: #{inspect(other)}")
+        Logger.warning("maybe_handle_cache_miss failed: #{inspect(other)}")
         {:error, :interface_loading_failed}
     end
   end
@@ -2184,7 +2182,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
           {:ok, new_state}
 
         interface_descriptor.ownership != :device ->
-          Logger.warn("Tried to prune server owned interface: #{interface}.")
+          Logger.warning("Tried to prune server owned interface: #{interface}.")
           {:error, :maybe_outdated_introspection}
 
         true ->
@@ -2280,7 +2278,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
          %State{realm: realm, device_id: device_id} = state,
          timestamp
        ) do
-    Logger.warn("Disconnecting client and asking clean session.")
+    Logger.warning("Disconnecting client and asking clean session.")
 
     encoded_device_id = Device.encode_device_id(device_id)
 
@@ -2301,7 +2299,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
       {:ok, new_state}
     else
       {:error, reason} ->
-        Logger.warn("Disconnect failed due to error: #{inspect(reason)}")
+        Logger.warning("Disconnect failed due to error: #{inspect(reason)}")
         # TODO: die gracefully here
         {:error, :clean_session_failed}
     end
@@ -2566,14 +2564,17 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
         else
           :error ->
             # Map.fetch failed
-            Logger.warn(
+            Logger.warning(
               "endpoint_id for path #{inspect(path)} not found in mappings #{inspect(mappings)}."
             )
 
             {:error, :mapping_not_found}
 
           {:error, reason} ->
-            Logger.warn("EndpointsAutomaton.resolve_path failed with reason #{inspect(reason)}.")
+            Logger.warning(
+              "EndpointsAutomaton.resolve_path failed with reason #{inspect(reason)}."
+            )
+
             {:error, :mapping_not_found}
 
           {:guessed, guessed_endpoints} ->
@@ -2601,7 +2602,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
         else
           {:ok, _endpoint_id} ->
             # This is invalid here, publish doesn't happen on endpoints in object aggregated interfaces
-            Logger.warn(
+            Logger.warning(
               "Tried to publish on endpoint #{inspect(path)} for object aggregated " <>
                 "interface #{inspect(interface_descriptor.name)}. You should publish on " <>
                 "the common prefix",
@@ -2611,7 +2612,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
             {:error, :mapping_not_found}
 
           {:error, :not_found} ->
-            Logger.warn(
+            Logger.warning(
               "Tried to publish on invalid path #{inspect(path)} for object aggregated " <>
                 "interface #{inspect(interface_descriptor.name)}",
               tag: "invalid_path"
@@ -2620,7 +2621,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
             {:error, :mapping_not_found}
 
           {:error, :invalid_object_aggregation_path} ->
-            Logger.warn(
+            Logger.warning(
               "Tried to publish on invalid path #{inspect(path)} for object aggregated " <>
                 "interface #{inspect(interface_descriptor.name)}",
               tag: "invalid_path"
@@ -2692,7 +2693,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
             gather_interface_properties(new_state, db_client, interface_descriptor)
 
           {:error, :interface_loading_failed} ->
-            Logger.warn("Failed #{interface} interface loading.")
+            Logger.warning("Failed #{interface} interface loading.")
             []
         end
       end)
@@ -2733,7 +2734,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
         {:cont, {:ok, new_state}}
       else
         {:error, :interface_loading_failed} ->
-          Logger.warn("Failed #{interface} interface loading.")
+          Logger.warning("Failed #{interface} interface loading.")
           {:halt, {:error, :sending_properties_to_interface_failed}}
 
         {:error, reason} ->
@@ -2784,7 +2785,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
 
       {:ok, %{local_matches: local, remote_matches: remote}} when local + remote > 1 ->
         # This should not happen so we print a warning, but we consider it a succesful publish
-        Logger.warn(
+        Logger.warning(
           "Multiple match while publishing #{inspect(Base.encode64(payload))} on #{topic}.",
           tag: "publish_multiple_matches"
         )
@@ -2813,7 +2814,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
 
       {:ok, %{local_matches: local, remote_matches: remote}} when local + remote > 1 ->
         # This should not happen so we print a warning, but we consider it a succesful publish
-        Logger.warn(
+        Logger.warning(
           "Multiple match while publishing #{inspect(encapsulated_value)} on #{topic}.",
           tag: "publish_multiple_matches"
         )
