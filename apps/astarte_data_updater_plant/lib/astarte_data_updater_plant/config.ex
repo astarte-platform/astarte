@@ -231,7 +231,7 @@ defmodule Astarte.DataUpdaterPlant.Config do
   @envdoc "The astarte instance id to generate keyspaces with"
   app_env :astarte_instance_id, :astarte_data_updater_plant, :astarte_instance_id,
     os_env: "ASTARTE_INSTANCE_ID",
-    default: "default",
+    default: "",
     type: :binary
 
   @doc """

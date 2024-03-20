@@ -44,11 +44,9 @@ defmodule Astarte.Housekeeping.Queries do
   end
 
   def create_realm(realm_name, public_key_pem, replication, device_limit, max_retention, opts) do
-    keyspace_name =
-      CQLUtils.realm_name_to_keyspace_name(realm_name, Config.astarte_instance_id!())
-
     with :ok <- validate_realm_name(realm_name),
-         :ok <- validate_realm_name(keyspace_name),
+         keyspace_name <-
+           CQLUtils.realm_name_to_keyspace_name(realm_name, Config.astarte_instance_id!()),
          :ok <- Xandra.Cluster.run(:xandra, &check_replication(&1, replication)),
          {:ok, replication_map_str} <- build_replication_map_str(replication) do
       if opts[:async] do
@@ -92,10 +90,9 @@ defmodule Astarte.Housekeeping.Queries do
   end
 
   def update_public_key(realm_name, new_public_key) do
-    keyspace_name =
-      CQLUtils.realm_name_to_keyspace_name(realm_name, Config.astarte_instance_id!())
-
-    with :ok <- validate_realm_name(realm_name), :ok <- validate_realm_name(keyspace_name) do
+    with :ok <- validate_realm_name(realm_name),
+         keyspace_name <-
+           CQLUtils.realm_name_to_keyspace_name(realm_name, Config.astarte_instance_id!()) do
       Xandra.Cluster.run(:xandra, fn conn ->
         do_update_public_key(conn, keyspace_name, new_public_key)
       end)
@@ -176,8 +173,7 @@ defmodule Astarte.Housekeeping.Queries do
   end
 
   defp verify_realm_deletion_preconditions(conn, keyspace_name) do
-    with :ok <- validate_realm_name(keyspace_name),
-         :ok <- check_no_connected_devices(conn, keyspace_name) do
+    with :ok <- check_no_connected_devices(conn, keyspace_name) do
       :ok
     else
       {:error, reason} ->
@@ -216,8 +212,7 @@ defmodule Astarte.Housekeeping.Queries do
          max_retention
        ) do
     Xandra.Cluster.run(:xandra, [timeout: 60_000], fn conn ->
-      with :ok <- validate_realm_name(keyspace_name),
-           :ok <- validate_realm_name(realm_name),
+      with :ok <- validate_realm_name(realm_name),
            :ok <- create_realm_keyspace(conn, keyspace_name, replication_map_str),
            {:ok, realm_conn} <- build_realm_conn(conn, keyspace_name),
            {:ok, realm_conn_plain} <- build_realm_conn(conn, realm_name),
@@ -782,9 +777,9 @@ defmodule Astarte.Housekeeping.Queries do
     :ok
   end
 
-  defp insert_datastream_max_retention({conn, realm_name}, max_retention) do
+  defp insert_datastream_max_retention({conn, keyspace_name}, max_retention) do
     statement = """
-    INSERT INTO :realm_name.kv_store (group, key, value)
+    INSERT INTO :keyspace_name.kv_store (group, key, value)
     VALUES ('realm_config', 'datastream_maximum_storage_retention', intAsBlob(:max_retention));
     """
 
@@ -793,7 +788,7 @@ defmodule Astarte.Housekeeping.Queries do
     }
 
     # This is safe since we checked the realm name in the caller
-    query = String.replace(statement, ":realm_name", realm_name)
+    query = String.replace(statement, ":keyspace_name", keyspace_name)
 
     with {:ok, prepared} <- Xandra.prepare(conn, query),
          {:ok, %Xandra.Void{}} <-
@@ -1241,12 +1236,12 @@ defmodule Astarte.Housekeeping.Queries do
 
   defp do_update_public_key(conn, keyspace_name, new_public_key) do
     statement = """
-    INSERT INTO :realm_name.kv_store (group, key, value)
+    INSERT INTO :keyspace_name.kv_store (group, key, value)
     VALUES('auth','jwt_public_key_pem', varcharAsBlob(:new_public_key))
     """
 
     # TODO move away from this when NoaccOS' PR is merged
-    query = String.replace(statement, ":realm_name", keyspace_name)
+    query = String.replace(statement, ":keyspace_name", keyspace_name)
     # TODO refactor when NoaccOS' PR is merged
     with {:ok, prepared} <- Xandra.prepare(conn, query),
          {:ok, result} <-

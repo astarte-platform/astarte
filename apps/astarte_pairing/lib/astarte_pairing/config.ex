@@ -52,7 +52,7 @@ defmodule Astarte.Pairing.Config do
   @envdoc "The astarte instance id to generate keyspaces with"
   app_env :astarte_instance_id, :astarte_pairing, :astarte_instance_id,
     os_env: "ASTARTE_INSTANCE_ID",
-    default: "default",
+    default: "",
     type: :binary
 
   def init! do
