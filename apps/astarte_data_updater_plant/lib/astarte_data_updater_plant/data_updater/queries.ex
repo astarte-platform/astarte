@@ -1060,7 +1060,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
   def retrieve_realms! do
     statement = """
     SELECT *
-    FROM #{Config.astarte_instance_id!()}_astarte.realms
+    FROM #{Config.astarte_instance_id!()}astarte.realms
     """
 
     realms =

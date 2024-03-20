@@ -196,7 +196,7 @@ defmodule Astarte.Housekeeping.Queries do
         _ =
           Logger.warning("Cannot delete realm: #{inspect(reason)}.",
             tag: "realm_deletion_failed",
-            realm: realm_name
+            realm: keyspace_name
           )
 
         {:error, reason}
@@ -712,7 +712,7 @@ defmodule Astarte.Housekeeping.Queries do
     instance_id = Config.astarte_instance_id!()
     # undecoded realm name
     query = """
-    DELETE FROM #{instance_id}_astarte.realms
+    DELETE FROM #{instance_id}astarte.realms
     WHERE realm_name = :realm_name;
     """
 
@@ -741,7 +741,7 @@ defmodule Astarte.Housekeeping.Queries do
     instance_id = Config.astarte_instance_id!()
 
     query = """
-    INSERT INTO #{instance_id}_astarte.realms (realm_name, device_registration_limit)
+    INSERT INTO #{instance_id}astarte.realms (realm_name, device_registration_limit)
     VALUES (:realm_name, :device_registration_limit);
     """
 
@@ -855,7 +855,7 @@ defmodule Astarte.Housekeeping.Queries do
 
     with {:ok, replication_map_str} <- build_replication_map_str(astarte_keyspace_replication),
          query = """
-         CREATE KEYSPACE #{instance_id}_astarte
+         CREATE KEYSPACE #{instance_id}astarte
          WITH replication = #{replication_map_str}
          AND durable_writes = true;
          """,
@@ -890,7 +890,7 @@ defmodule Astarte.Housekeeping.Queries do
     instance_id = Config.astarte_instance_id!()
 
     query = """
-    CREATE TABLE #{instance_id}_astarte.realms (
+    CREATE TABLE #{instance_id}astarte.realms (
       realm_name varchar,
       device_registration_limit bigint,
       PRIMARY KEY (realm_name)
@@ -919,7 +919,7 @@ defmodule Astarte.Housekeeping.Queries do
     instance_id = Config.astarte_instance_id!()
 
     query = """
-    CREATE TABLE #{instance_id}_astarte.kv_store (
+    CREATE TABLE #{instance_id}astarte.kv_store (
       group varchar,
       key varchar,
       value blob,
@@ -950,7 +950,7 @@ defmodule Astarte.Housekeeping.Queries do
     instance_id = Config.astarte_instance_id!()
 
     query = """
-    INSERT INTO #{instance_id}_astarte.kv_store
+    INSERT INTO #{instance_id}astarte.kv_store
     (group, key, value)
     VALUES ('astarte', 'schema_version', bigintAsBlob(#{Migrator.latest_astarte_schema_version()}));
     """
@@ -984,7 +984,7 @@ defmodule Astarte.Housekeeping.Queries do
     query = """
     SELECT keyspace_name
     FROM system_schema.keyspaces
-    WHERE keyspace_name='#{instance_id}_astarte'
+    WHERE keyspace_name='#{instance_id}astarte'
     """
 
     case Xandra.Cluster.execute(:xandra, query) do
@@ -1014,7 +1014,7 @@ defmodule Astarte.Housekeeping.Queries do
     # unencoded
     query = """
     SELECT COUNT(*)
-    FROM #{instance_id}_astarte.realms
+    FROM #{instance_id}astarte.realms
     """
 
     with {:ok, %Xandra.Page{} = page} <-
@@ -1024,7 +1024,7 @@ defmodule Astarte.Housekeeping.Queries do
     else
       :error ->
         _ =
-          Logger.warning("Cannot retrieve count for #{instance_id}_astarte.realms table.",
+          Logger.warning("Cannot retrieve count for #{instance_id}astarte.realms table.",
             tag: "health_check_error"
           )
 
@@ -1053,7 +1053,7 @@ defmodule Astarte.Housekeeping.Queries do
     # unencoded
     query = """
     SELECT realm_name
-    FROM #{instance_id}_astarte.realms;
+    FROM #{instance_id}astarte.realms;
     """
 
     case Xandra.Cluster.execute(:xandra, query, %{}, consistency: :quorum) do
@@ -1169,7 +1169,7 @@ defmodule Astarte.Housekeeping.Queries do
     instance_id = Config.astarte_instance_id!()
 
     query = """
-    SELECT realm_name from #{instance_id}_astarte.realms
+    SELECT realm_name from #{instance_id}astarte.realms
     WHERE realm_name=:realm_name;
     """
 
@@ -1269,7 +1269,7 @@ defmodule Astarte.Housekeeping.Queries do
     instance_id = Config.astarte_instance_id!()
 
     statement = """
-    UPDATE #{instance_id}_astarte.realms
+    UPDATE #{instance_id}astarte.realms
     SET device_registration_limit = :new_device_registration_limit
     WHERE realm_name = :realm_name
     """
@@ -1338,7 +1338,7 @@ defmodule Astarte.Housekeeping.Queries do
 
     statement = """
     DELETE device_registration_limit
-    FROM  #{instance_id}_astarte.realms
+    FROM  #{instance_id}astarte.realms
     WHERE realm_name = :realm_name
     """
 
@@ -1472,7 +1472,7 @@ defmodule Astarte.Housekeeping.Queries do
 
     query = """
     SELECT device_registration_limit
-    FROM  #{instance_id}_astarte.realms
+    FROM  #{instance_id}astarte.realms
     WHERE realm_name=:realm_name
     """
 

@@ -26,7 +26,7 @@ defmodule Astarte.TriggerEngine.DatabaseTestHelper do
   @test_realm "autotestrealm"
 
   @create_astarte_keyspace """
-    CREATE KEYSPACE #{Config.astarte_instance_id!()}_astarte
+    CREATE KEYSPACE #{Config.astarte_instance_id!()}astarte
       WITH
         replication = {'class': 'SimpleStrategy', 'replication_factor': '1'} AND
         durable_writes = true;
@@ -40,7 +40,7 @@ defmodule Astarte.TriggerEngine.DatabaseTestHelper do
   """
 
   @create_realms_table """
-  CREATE TABLE #{Config.astarte_instance_id!()}_astarte.realms (
+  CREATE TABLE #{Config.astarte_instance_id!()}astarte.realms (
     realm_name varchar,
 
     PRIMARY KEY ((realm_name))
@@ -66,11 +66,11 @@ defmodule Astarte.TriggerEngine.DatabaseTestHelper do
   """
 
   @insert_realm """
-  INSERT INTO #{Config.astarte_instance_id!()}_astarte.realms (realm_name) VALUES (:realm_name)
+  INSERT INTO #{Config.astarte_instance_id!()}astarte.realms (realm_name) VALUES (:realm_name)
   """
 
   @drop_astarte_keyspace """
-    DROP KEYSPACE #{Config.astarte_instance_id!()}_astarte
+    DROP KEYSPACE #{Config.astarte_instance_id!()}astarte
   """
 
   @drop_test_keyspace """

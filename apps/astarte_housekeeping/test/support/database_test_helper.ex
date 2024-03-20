@@ -39,7 +39,7 @@ defmodule Astarte.Housekeeping.DatabaseTestHelper do
   end
 
   def drop_astarte_keyspace do
-    query = "DROP KEYSPACE #{Config.astarte_instance_id!()}_astarte"
+    query = "DROP KEYSPACE #{Config.astarte_instance_id!()}astarte"
 
     _ = Xandra.Cluster.execute(:xandra, query, %{}, timeout: 60_000)
 

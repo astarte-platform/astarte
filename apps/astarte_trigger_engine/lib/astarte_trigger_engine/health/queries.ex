@@ -23,7 +23,7 @@ defmodule Astarte.TriggerEngine.Health.Queries do
   def get_astarte_health(consistency) do
     query = """
     SELECT COUNT(*)
-    FROM #{Config.astarte_instance_id!()}_astarte.realms
+    FROM #{Config.astarte_instance_id!()}astarte.realms
     """
 
     with {:ok, %Xandra.Page{} = page} <-

@@ -28,7 +28,7 @@ defmodule Astarte.Pairing.DatabaseTestHelper do
   alias CQEx.Result
 
   @create_astarte_keyspace """
-  CREATE KEYSPACE #{Config.astarte_instance_id!()}_astarte
+  CREATE KEYSPACE #{Config.astarte_instance_id!()}astarte
     WITH
     replication = {'class': 'SimpleStrategy', 'replication_factor': '1'} AND
     durable_writes = true;
@@ -78,7 +78,7 @@ defmodule Astarte.Pairing.DatabaseTestHelper do
   """
 
   @create_realms_table """
-  CREATE TABLE #{Config.astarte_instance_id!()}_astarte.realms (
+  CREATE TABLE #{Config.astarte_instance_id!()}astarte.realms (
     realm_name varchar,
     device_registration_limit bigint,
     PRIMARY KEY (realm_name)
@@ -98,7 +98,7 @@ defmodule Astarte.Pairing.DatabaseTestHelper do
   """
 
   @insert_autotestrealm_into_realms """
-  INSERT INTO #{Config.astarte_instance_id!()}_astarte.realms (realm_name)
+  INSERT INTO #{Config.astarte_instance_id!()}astarte.realms (realm_name)
   VALUES ('autotestrealm');
   """
 
@@ -107,7 +107,7 @@ defmodule Astarte.Pairing.DatabaseTestHelper do
   """
 
   @drop_astarte_keyspace """
-  DROP KEYSPACE #{Config.astarte_instance_id!()}_astarte;
+  DROP KEYSPACE #{Config.astarte_instance_id!()}astarte;
   """
 
   @test_realm "autotestrealm"
@@ -373,7 +373,7 @@ defmodule Astarte.Pairing.DatabaseTestHelper do
 
   def set_device_registration_limit(realm_name, limit) do
     query = """
-    UPDATE #{Config.astarte_instance_id!()}_astarte.realms
+    UPDATE #{Config.astarte_instance_id!()}astarte.realms
     SET device_registration_limit = :the_limit
     WHERE realm_name = :realm_name
     """

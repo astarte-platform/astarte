@@ -57,7 +57,7 @@ defmodule Astarte.TriggerEngine.AMQPConsumer.Queries do
   def do_list_realms(conn) do
     query = """
     SELECT realm_name
-    FROM #{Config.astarte_instance_id!()}_astarte.realms;
+    FROM #{Config.astarte_instance_id!()}astarte.realms;
     """
 
     case Xandra.execute(conn, query, %{}, consistency: :quorum) do

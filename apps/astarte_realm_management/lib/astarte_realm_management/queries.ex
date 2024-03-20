@@ -216,7 +216,7 @@ defmodule Astarte.RealmManagement.Queries do
   def check_astarte_health(client, consistency) do
     schema_statement = """
       SELECT count(value)
-      FROM #{Config.astarte_instance_id!()}_astarte.kv_store
+      FROM #{Config.astarte_instance_id!()}astarte.kv_store
       WHERE group='astarte' AND key='schema_version'
     """
 
@@ -224,7 +224,7 @@ defmodule Astarte.RealmManagement.Queries do
     # no realm name can contain '_', '^'
     realms_statement = """
     SELECT *
-    FROM #{Config.astarte_instance_id!()}_astarte.realms
+    FROM #{Config.astarte_instance_id!()}astarte.realms
     WHERE realm_name='_invalid^name_'
     """
 
@@ -831,7 +831,7 @@ defmodule Astarte.RealmManagement.Queries do
   def check_astarte_health(consistency) do
     schema_statement = """
       SELECT count(value)
-      FROM #{Config.astarte_instance_id!()}_astarte.kv_store
+      FROM #{Config.astarte_instance_id!()}astarte.kv_store
       WHERE group='astarte' AND key='schema_version'
     """
 
@@ -839,7 +839,7 @@ defmodule Astarte.RealmManagement.Queries do
     # no realm name can contain '_', '^'
     realms_statement = """
     SELECT *
-    FROM #{Config.astarte_instance_id!()}_astarte.realms
+    FROM #{Config.astarte_instance_id!()}astarte.realms
     WHERE realm_name='_invalid^name_'
     """
 
@@ -2275,7 +2275,7 @@ defmodule Astarte.RealmManagement.Queries do
   def retrieve_realms!() do
     statement = """
     SELECT *
-    FROM #{Config.astarte_instance_id!()}_astarte.realms
+    FROM #{Config.astarte_instance_id!()}astarte.realms
     """
 
     realms =
@@ -2317,7 +2317,7 @@ defmodule Astarte.RealmManagement.Queries do
   defp do_get_device_registration_limit(conn, realm_name) do
     query = """
     SELECT device_registration_limit
-    FROM #{Config.astarte_instance_id!()}_astarte.realms
+    FROM #{Config.astarte_instance_id!()}astarte.realms
     WHERE realm_name = :realm_name
     """
 

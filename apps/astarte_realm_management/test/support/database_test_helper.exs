@@ -42,14 +42,14 @@ defmodule Astarte.RealmManagement.DatabaseTestHelper do
   """
 
   @create_astarte_keyspace """
-    CREATE KEYSPACE #{Config.astarte_instance_id!()}_astarte
+    CREATE KEYSPACE #{Config.astarte_instance_id!()}astarte
       WITH
         replication = {'class': 'SimpleStrategy', 'replication_factor': '1'} AND
         durable_writes = true;
   """
 
   @create_astarte_realms_table """
-  CREATE TABLE #{Config.astarte_instance_id!()}_astarte.realms (
+  CREATE TABLE #{Config.astarte_instance_id!()}astarte.realms (
     realm_name ascii,
     device_registration_limit int,
     PRIMARY KEY (realm_name)
@@ -57,7 +57,7 @@ defmodule Astarte.RealmManagement.DatabaseTestHelper do
   """
 
   @insert_autotestrealm_into_realms """
-  INSERT INTO #{Config.astarte_instance_id!()}_astarte.realms (realm_name)
+  INSERT INTO #{Config.astarte_instance_id!()}astarte.realms (realm_name)
   VALUES ('#{CQLUtils.realm_name_to_keyspace_name("autotestrealm", Config.astarte_instance_id!())}');
   """
 
@@ -392,7 +392,7 @@ defmodule Astarte.RealmManagement.DatabaseTestHelper do
              "DROP KEYSPACE #{CQLUtils.realm_name_to_keyspace_name("autotestrealm", Config.astarte_instance_id!())}"
            ),
          {:ok, _result} <-
-           DatabaseQuery.call(client, "DROP KEYSPACE #{Config.astarte_instance_id!()}_astarte") do
+           DatabaseQuery.call(client, "DROP KEYSPACE #{Config.astarte_instance_id!()}astarte") do
       :ok
     else
       error ->
@@ -642,7 +642,7 @@ defmodule Astarte.RealmManagement.DatabaseTestHelper do
 
     Xandra.Cluster.run(:xandra, fn conn ->
       statement = """
-      INSERT INTO #{Config.astarte_instance_id!()}_astarte.realms
+      INSERT INTO #{Config.astarte_instance_id!()}astarte.realms
       (realm_name, device_registration_limit)
       VALUES (:realm_name, :device_registration_limit)
       """

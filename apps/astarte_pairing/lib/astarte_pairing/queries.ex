@@ -317,7 +317,7 @@ defmodule Astarte.Pairing.Queries do
   def check_astarte_health(consistency) do
     query = """
     SELECT COUNT(*)
-    FROM #{Config.astarte_instance_id!()}_astarte.realms
+    FROM #{Config.astarte_instance_id!()}astarte.realms
     """
 
     with {:ok, %Xandra.Page{} = page} <-
@@ -354,7 +354,7 @@ defmodule Astarte.Pairing.Queries do
   defp do_fetch_device_registration_limit(conn, realm_name) do
     query = """
     SELECT device_registration_limit
-    FROM #{Config.astarte_instance_id!()}_astarte.realms
+    FROM #{Config.astarte_instance_id!()}astarte.realms
     WHERE realm_name = :realm_name
     """
 

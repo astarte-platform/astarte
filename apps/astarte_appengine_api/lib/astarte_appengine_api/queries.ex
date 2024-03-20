@@ -47,7 +47,7 @@ defmodule Astarte.AppEngine.API.Queries do
 
     schema_statement = """
       SELECT count(value)
-      FROM #{instance_id}_astarte.kv_store
+      FROM #{instance_id}astarte.kv_store
       WHERE group='astarte' AND key='schema_version'
     """
 
@@ -55,7 +55,7 @@ defmodule Astarte.AppEngine.API.Queries do
     # no realm name can contain '_', '^'
     realms_statement = """
       SELECT *
-      FROM #{instance_id}_astarte.realms
+      FROM #{instance_id}astarte.realms
       WHERE realm_name='_invalid^name_'
     """
 
