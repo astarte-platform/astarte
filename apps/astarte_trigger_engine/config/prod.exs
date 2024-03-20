@@ -23,7 +23,7 @@ config :logger,
     [level_lower_than: :info]
   ]
 
-config :astarte_trigger_engine, :astarte_instance_id, "default"
+config :astarte_trigger_engine, :astarte_instance_id, ""
 
 config :logger, :console,
   format: {PrettyLog.LogfmtFormatter, :format},

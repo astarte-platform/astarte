@@ -27,4 +27,4 @@ config :logger, :console,
   format: {PrettyLog.LogfmtFormatter, :format},
   metadata: [:module, :function, :tag]
 
-config :astarte_pairing, :astarte_instance_id, "default"
+config :astarte_pairing, :astarte_instance_id, ""

@@ -22,7 +22,7 @@ config :astarte_pairing, :broker_url, "mqtts://broker.beta.astarte.cloud:8883/"
 
 config :astarte_pairing, :cfssl_url, "http://localhost:8888"
 
-config :astarte_pairing, :astarte_instance_id, "default"
+config :astarte_pairing, :astarte_instance_id, ""
 
 config :logger, :console,
   format: {PrettyLog.LogfmtFormatter, :format},

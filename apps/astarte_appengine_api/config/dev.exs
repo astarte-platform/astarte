@@ -13,7 +13,7 @@ config :astarte_appengine_api, Astarte.AppEngine.APIWeb.Endpoint,
   check_origin: false,
   watchers: []
 
-config :astarte_appengine_api, :astarte_instance_id, "default"
+config :astarte_appengine_api, :astarte_instance_id, ""
 
 config :logger, :console,
   format: {PrettyLog.LogfmtFormatter, :format},
