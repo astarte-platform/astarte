@@ -246,7 +246,7 @@ services:
 
   # VerneMQ
   vernemq:
-    image: astarte/vernemq:snapshot
+    build: https://github.com/eddbbt/astarte_vmq_plugin.git#keyspaces_edit
     env_file:
       - ./compose.env
     environment:
