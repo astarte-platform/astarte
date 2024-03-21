@@ -132,7 +132,7 @@ defmodule Astarte.AppEngine.API.Config do
   app_env :astarte_instance_id, :astarte_appengine_api, :astarte_instance_id,
     os_env: "ASTARTE_INSTANCE_ID",
     default: "",
-    type: :binary
+    type: AstarteInstanceIdType
 
   @doc """
   Returns the routing key used for Rooms AMQP events consumer. A constant for now.

@@ -34,7 +34,7 @@ defmodule Astarte.RealmManagement.Config do
   app_env :astarte_instance_id, :astarte_realm_management, :astarte_instance_id,
     os_env: "ASTARTE_INSTANCE_ID",
     default: "",
-    type: :binary
+    type: AstarteInstanceIdType
 
   def cassandra_node!, do: Enum.random(cqex_nodes!())
 

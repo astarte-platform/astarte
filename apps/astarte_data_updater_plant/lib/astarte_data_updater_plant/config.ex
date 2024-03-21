@@ -232,7 +232,7 @@ defmodule Astarte.DataUpdaterPlant.Config do
   app_env :astarte_instance_id, :astarte_data_updater_plant, :astarte_instance_id,
     os_env: "ASTARTE_INSTANCE_ID",
     default: "",
-    type: :binary
+    type: AstarteInstanceIdType
 
   @doc """
   Returns the AMQP data consumer connection options

@@ -53,7 +53,7 @@ defmodule Astarte.Pairing.Config do
   app_env :astarte_instance_id, :astarte_pairing, :astarte_instance_id,
     os_env: "ASTARTE_INSTANCE_ID",
     default: "",
-    type: :binary
+    type: AstarteInstanceIdType
 
   def init! do
     if {:ok, nil} == ca_cert() do

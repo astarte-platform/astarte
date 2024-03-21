@@ -125,7 +125,7 @@ defmodule Astarte.TriggerEngine.Config do
   app_env :astarte_instance_id, :astarte_trigger_engine, :astarte_instance_id,
     os_env: "ASTARTE_INSTANCE_ID",
     default: "",
-    type: :binary
+    type: AstarteInstanceIdType
 
   @doc """
   Returns the AMQP events consumer connection options
