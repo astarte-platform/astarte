@@ -30,6 +30,7 @@ defmodule Astarte.AppEngine.APIWeb.Router do
   end
 
   pipeline :device_group_api do
+    plug Astarte.AppEngine.APIWeb.Plug.GroupNameDecoder
     plug Astarte.AppEngine.APIWeb.Plug.LogGroupName
   end
 
