@@ -18,6 +18,7 @@
 
 defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
   alias Astarte.Core.CQLUtils
+  alias Astarte.DataUpdaterPlant.Config
   alias Astarte.Core.Device
   alias Astarte.Core.InterfaceDescriptor
   alias Astarte.Core.Mapping
@@ -86,7 +87,10 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
     Logger.metadata(realm: realm, device_id: encoded_device_id)
     Logger.info("Created device process.", tag: "device_process_created")
 
-    {:ok, db_client} = Database.connect(realm: new_state.realm)
+    keyspace_name =
+      CQLUtils.realm_name_to_keyspace_name(new_state.realm, Config.astarte_instance_id!())
+
+    {:ok, db_client} = Database.connect(realm: keyspace_name)
 
     stats_and_introspection =
       Queries.retrieve_device_stats_and_introspection!(db_client, device_id)
@@ -109,7 +113,10 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
   end
 
   def handle_connection(state, ip_address_string, message_id, timestamp) do
-    {:ok, db_client} = Database.connect(realm: state.realm)
+    keyspace_name =
+      CQLUtils.realm_name_to_keyspace_name(state.realm, Config.astarte_instance_id!())
+
+    {:ok, db_client} = Database.connect(realm: keyspace_name)
 
     new_state = execute_time_based_actions(state, timestamp, db_client)
 
@@ -144,7 +151,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
       end)
 
     device_id_string = Device.encode_device_id(new_state.device_id)
-
+    # here prob
     TriggersHandler.device_connected(
       trigger_target_with_policy_list,
       new_state.realm,
@@ -170,7 +177,10 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
 
   # TODO make this private when all heartbeats will be moved to internal
   def handle_heartbeat(state, message_id, timestamp) do
-    {:ok, db_client} = Database.connect(realm: state.realm)
+    keyspace_name =
+      CQLUtils.realm_name_to_keyspace_name(state.realm, Config.astarte_instance_id!())
+
+    {:ok, db_client} = Database.connect(realm: keyspace_name)
 
     new_state = execute_time_based_actions(state, timestamp, db_client)
 
@@ -187,7 +197,10 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
   end
 
   def handle_internal(%State{discard_messages: true} = state, "/f", _, message_id, _) do
-    :ok = Queries.ack_end_device_deletion(state.realm, state.device_id)
+    keyspace_name =
+      CQLUtils.realm_name_to_keyspace_name(state.realm, Config.astarte_instance_id!())
+
+    :ok = Queries.ack_end_device_deletion(keyspace_name, state.device_id)
     _ = Logger.info("End device deletion acked.", tag: "device_delete_ack")
     MessageTracker.ack_delivery(state.message_tracker, message_id)
     {:stop, state}
@@ -227,7 +240,10 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
   end
 
   def start_device_deletion(state, timestamp) do
-    {:ok, db_client} = Database.connect(realm: state.realm)
+    keyspace_name =
+      CQLUtils.realm_name_to_keyspace_name(state.realm, Config.astarte_instance_id!())
+
+    {:ok, db_client} = Database.connect(realm: keyspace_name)
 
     # Device deletion is among time-based actions
     new_state = execute_time_based_actions(state, timestamp, db_client)
@@ -236,7 +252,10 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
   end
 
   def handle_disconnection(state, message_id, timestamp) do
-    {:ok, db_client} = Database.connect(realm: state.realm)
+    keyspace_name =
+      CQLUtils.realm_name_to_keyspace_name(state.realm, Config.astarte_instance_id!())
+
+    {:ok, db_client} = Database.connect(realm: keyspace_name)
 
     new_state =
       state
@@ -494,7 +513,10 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
   end
 
   def handle_data(state, interface, path, payload, message_id, timestamp) do
-    {:ok, db_client} = Database.connect(realm: state.realm)
+    keyspace_name =
+      CQLUtils.realm_name_to_keyspace_name(state.realm, Config.astarte_instance_id!())
+
+    {:ok, db_client} = Database.connect(realm: keyspace_name)
 
     new_state = execute_time_based_actions(state, timestamp, db_client)
 
@@ -540,9 +562,14 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
 
       previous_value =
         with {:has_change_triggers, :ok} <- {:has_change_triggers, has_change_triggers},
+             keyspace_name <-
+               CQLUtils.realm_name_to_keyspace_name(
+                 new_state.realm,
+                 Config.astarte_instance_id!()
+               ),
              {:ok, property_value} <-
                Data.fetch_property(
-                 new_state.realm,
+                 keyspace_name,
                  new_state.device_id,
                  interface_descriptor,
                  endpoint,
@@ -1234,7 +1261,10 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
   end
 
   def process_introspection(state, new_introspection_list, payload, message_id, timestamp) do
-    {:ok, db_client} = Database.connect(realm: state.realm)
+    keyspace_name =
+      CQLUtils.realm_name_to_keyspace_name(state.realm, Config.astarte_instance_id!())
+
+    {:ok, db_client} = Database.connect(realm: keyspace_name)
 
     new_state = execute_time_based_actions(state, timestamp, db_client)
 
@@ -1466,7 +1496,10 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
   end
 
   def handle_control(state, "/producer/properties", <<0, 0, 0, 0>>, message_id, timestamp) do
-    {:ok, db_client} = Database.connect(realm: state.realm)
+    keyspace_name =
+      CQLUtils.realm_name_to_keyspace_name(state.realm, Config.astarte_instance_id!())
+
+    {:ok, db_client} = Database.connect(realm: keyspace_name)
 
     new_state = execute_time_based_actions(state, timestamp, db_client)
 
@@ -1490,7 +1523,10 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
   end
 
   def handle_control(state, "/producer/properties", payload, message_id, timestamp) do
-    {:ok, db_client} = Database.connect(realm: state.realm)
+    keyspace_name =
+      CQLUtils.realm_name_to_keyspace_name(state.realm, Config.astarte_instance_id!())
+
+    {:ok, db_client} = Database.connect(realm: keyspace_name)
 
     new_state = execute_time_based_actions(state, timestamp, db_client)
 
@@ -1523,7 +1559,10 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
   def handle_control(state, "/emptyCache", _payload, message_id, timestamp) do
     Logger.debug("Received /emptyCache")
 
-    {:ok, db_client} = Database.connect(realm: state.realm)
+    keyspace_name =
+      CQLUtils.realm_name_to_keyspace_name(state.realm, Config.astarte_instance_id!())
+
+    {:ok, db_client} = Database.connect(realm: keyspace_name)
 
     new_state = execute_time_based_actions(state, timestamp, db_client)
 
@@ -1696,8 +1735,12 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
            interface_major: major,
            match_path: "/*"
          }} ->
-          with :ok <-
-                 InterfaceQueries.check_if_interface_exists(state.realm, interface_name, major) do
+          keyspace_name =
+            CQLUtils.realm_name_to_keyspace_name(state.realm, Config.astarte_instance_id!())
+
+          with {:ok, _db_client} <- Database.connect(realm: keyspace_name),
+               :ok <-
+                 InterfaceQueries.check_if_interface_exists(keyspace_name, interface_name, major) do
             {:ok, new_state}
           else
             {:error, reason} ->
@@ -1711,8 +1754,12 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
            interface_major: major,
            match_path: match_path
          }} ->
-          with {:ok, %InterfaceDescriptor{automaton: automaton}} <-
-                 InterfaceQueries.fetch_interface_descriptor(state.realm, interface_name, major),
+          keyspace_name =
+            CQLUtils.realm_name_to_keyspace_name(state.realm, Config.astarte_instance_id!())
+
+          with {:ok, _db_client} <- Database.connect(realm: keyspace_name),
+               {:ok, %InterfaceDescriptor{automaton: automaton}} <-
+                 InterfaceQueries.fetch_interface_descriptor(keyspace_name, interface_name, major),
                {:ok, _endpoint_id} <- EndpointsAutomaton.resolve_path(match_path, automaton) do
             {:ok, new_state}
           else
@@ -1966,7 +2013,10 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
         Logger.info("Stop handling data from device in deletion, device_id #{encoded_device_id}")
 
       # It's ok to repeat that, as we always write ⊤
-      Queries.ack_start_device_deletion(state.realm, state.device_id)
+      keyspace_name =
+        CQLUtils.realm_name_to_keyspace_name(state.realm, Config.astarte_instance_id!())
+
+      Queries.ack_start_device_deletion(keyspace_name, state.device_id)
 
       %State{new_state | discard_messages: true}
     else
@@ -1975,7 +2025,10 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
   end
 
   defp should_start_device_deletion?(realm_name, device_id) do
-    case Queries.check_device_deletion_in_progress(realm_name, device_id) do
+    keyspace_name =
+      CQLUtils.realm_name_to_keyspace_name(realm_name, Config.astarte_instance_id!())
+
+    case Queries.check_device_deletion_in_progress(keyspace_name, device_id) do
       {:ok, true} ->
         true
 
@@ -2069,14 +2122,17 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
   end
 
   defp maybe_handle_cache_miss(nil, interface_name, state, db_client) do
+    keyspace_name =
+      CQLUtils.realm_name_to_keyspace_name(state.realm, Config.astarte_instance_id!())
+
     with {:ok, major_version} <-
-           DeviceQueries.interface_version(state.realm, state.device_id, interface_name),
+           DeviceQueries.interface_version(keyspace_name, state.device_id, interface_name),
          {:ok, interface_row} <-
-           InterfaceQueries.retrieve_interface_row(state.realm, interface_name, major_version),
+           InterfaceQueries.retrieve_interface_row(keyspace_name, interface_name, major_version),
          %InterfaceDescriptor{interface_id: interface_id} = interface_descriptor <-
            InterfaceDescriptor.from_db_result!(interface_row),
          {:ok, mappings} <-
-           Mappings.fetch_interface_mappings_map(state.realm, interface_id),
+           Mappings.fetch_interface_mappings_map(keyspace_name, interface_id),
          new_interfaces_by_expiry <-
            state.interfaces_by_expiry ++
              [{state.last_seen_message + @interface_lifespan_decimicroseconds, interface_name}],
@@ -2158,7 +2214,10 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
     {:ok, paths_set} =
       PayloadsDecoder.parse_device_properties_payload(decoded_payload, state.introspection)
 
-    {:ok, db_client} = Database.connect(realm: state.realm)
+    keyspace_name =
+      CQLUtils.realm_name_to_keyspace_name(state.realm, Config.astarte_instance_id!())
+
+    {:ok, db_client} = Database.connect(realm: keyspace_name)
 
     Enum.each(state.introspection, fn {interface, _} ->
       # TODO: check result here
@@ -2282,7 +2341,10 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
 
     encoded_device_id = Device.encode_device_id(device_id)
 
-    {:ok, db_client} = Database.connect(realm: state.realm)
+    keyspace_name =
+      CQLUtils.realm_name_to_keyspace_name(state.realm, Config.astarte_instance_id!())
+
+    {:ok, db_client} = Database.connect(realm: keyspace_name)
 
     with :ok <- Queries.set_pending_empty_cache(db_client, device_id, true),
          :ok <- force_disconnection(realm, encoded_device_id) do
@@ -2379,10 +2441,10 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
     end
   end
 
-  defp populate_triggers_for_object!(state, client, object_id, object_type) do
+  defp populate_triggers_for_object!(state, db_client, object_id, object_type) do
     object_type_int = SimpleTriggersProtobufUtils.object_type_to_int!(object_type)
 
-    simple_triggers_rows = Queries.query_simple_triggers!(client, object_id, object_type_int)
+    simple_triggers_rows = Queries.query_simple_triggers!(db_client, object_id, object_type_int)
 
     new_state =
       Enum.reduce(simple_triggers_rows, state, fn row, state_acc ->
@@ -2538,8 +2600,11 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
   defp maybe_cache_trigger_policy(state, %AMQPTriggerTarget{parent_trigger_id: parent_trigger_id}) do
     %State{realm: realm_name, trigger_id_to_policy_name: trigger_id_to_policy_name} = state
 
+    keyspace_name =
+      CQLUtils.realm_name_to_keyspace_name(realm_name, Config.astarte_instance_id!())
+
     case PolicyQueries.retrieve_policy_name(
-           realm_name,
+           keyspace_name,
            parent_trigger_id
          ) do
       {:ok, policy_name} ->

@@ -44,6 +44,12 @@ defmodule Astarte.Housekeeping.Config do
     type: :boolean,
     default: false
 
+  @envdoc "The astarte instance id to generate keyspaces with"
+  app_env :astarte_instance_id, :astarte_housekeeping, :astarte_instance_id,
+    os_env: "ASTARTE_INSTANCE_ID",
+    default: "",
+    type: AstarteInstanceIdType
+
   defdelegate xandra_nodes, to: DataAccessConfig
   defdelegate xandra_nodes!, to: DataAccessConfig
 

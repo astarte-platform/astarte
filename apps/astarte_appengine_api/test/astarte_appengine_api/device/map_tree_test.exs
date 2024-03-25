@@ -19,6 +19,8 @@
 defmodule Astarte.AppEngine.API.MapTreeTest do
   use ExUnit.Case
   alias Astarte.AppEngine.API.Device.MapTree
+  alias Astarte.Core.CQLUtils
+  alias Astarte.AppEngine.API.Config
 
   test "inflate a 1 item flat map" do
     flat_map1 = %{

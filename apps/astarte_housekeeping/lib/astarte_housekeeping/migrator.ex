@@ -18,7 +18,7 @@
 
 defmodule Astarte.Housekeeping.Migrator do
   require Logger
-
+  alias Astarte.Housekeeping.Config
   alias Astarte.Housekeeping.Queries
 
   @query_timeout 60_000
@@ -78,7 +78,7 @@ defmodule Astarte.Housekeeping.Migrator do
     query = """
     SELECT table_name
     FROM system_schema.tables
-    WHERE keyspace_name='astarte' AND table_name='kv_store'
+    WHERE keyspace_name='#{Config.astarte_instance_id!()}astarte' AND table_name='kv_store'
     """
 
     with {:ok, %Xandra.Page{} = page} <-
@@ -105,7 +105,7 @@ defmodule Astarte.Housekeeping.Migrator do
 
   defp create_astarte_kv_store do
     query = """
-    CREATE TABLE astarte.kv_store (
+    CREATE TABLE #{Config.astarte_instance_id!()}astarte.kv_store (
       group varchar,
       key varchar,
       value blob,
@@ -137,7 +137,7 @@ defmodule Astarte.Housekeeping.Migrator do
 
   defp get_astarte_schema_version do
     Xandra.Cluster.run(:xandra, fn conn ->
-      with :ok <- use_keyspace(conn, "astarte") do
+      with :ok <- use_keyspace(conn, "#{Config.astarte_instance_id!()}astarte") do
         get_keyspace_astarte_schema_version(conn)
       end
     end)
@@ -211,7 +211,7 @@ defmodule Astarte.Housekeeping.Migrator do
       |> filter_migrations(current_schema_version)
 
     Xandra.Cluster.run(:xandra, [timeout: :infinity], fn conn ->
-      with :ok <- use_keyspace(conn, "astarte"),
+      with :ok <- use_keyspace(conn, "#{Config.astarte_instance_id!()}astarte"),
            :ok <- execute_migrations(conn, migrations) do
         _ = Logger.info("Finished migrating Astarte keyspace.", tag: "astarte_migration_finished")
 

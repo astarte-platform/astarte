@@ -29,6 +29,8 @@ defmodule Astarte.RealmManagement.DeviceRemoval.Scheduler do
 
   alias Astarte.RealmManagement.Queries
   alias Astarte.RealmManagement.DeviceRemoval.DeviceRemover
+  alias Astarte.Core.CQLUtils
+  alias Astarte.RealmManagement.Config
 
   require Logger
 
@@ -76,7 +78,10 @@ defmodule Astarte.RealmManagement.DeviceRemoval.Scheduler do
     realms = Queries.retrieve_realms!()
 
     Enum.flat_map(realms, fn %{realm_name: realm_name} ->
-      devices = Queries.retrieve_devices_to_delete!(realm_name)
+      keyspace_name =
+        CQLUtils.realm_name_to_keyspace_name(realm_name, Config.astarte_instance_id!())
+
+      devices = Queries.retrieve_devices_to_delete!(keyspace_name)
       Enum.map(devices, &Map.put(&1, :realm_name, realm_name))
     end)
   end

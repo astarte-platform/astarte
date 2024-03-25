@@ -1,9 +1,9 @@
 version: '3.8'
 services:
   astarte-housekeeping:
-    image: astarte/astarte_housekeeping:snapshot
     build:
       context: apps/astarte_housekeeping
+      dockerfile: ./Dockerfile
     env_file:
       - ./compose.env
     restart: on-failure
@@ -12,9 +12,9 @@ services:
       - "scylla"
 
   astarte-housekeeping-api:
-    image: astarte/astarte_housekeeping_api:snapshot
     build:
       context: apps/astarte_housekeeping_api
+      dockerfile: ./Dockerfile
     env_file:
       - ./compose.env
     environment:
@@ -39,9 +39,9 @@ services:
       - "traefik.http.services.astarte-housekeeping-api.loadbalancer.server.port=4001"
 
   astarte-realm-management:
-    image: astarte/astarte_realm_management:snapshot
     build:
       context: apps/astarte_realm_management
+      dockerfile: ./Dockerfile
     env_file:
       - ./compose.env
     restart: on-failure
@@ -71,9 +71,9 @@ services:
       - "traefik.http.services.astarte-realm-management-api.loadbalancer.server.port=4000"
 
   astarte-pairing:
-    image: astarte/astarte_pairing:snapshot
     build:
       context: apps/astarte_pairing
+      dockerfile: ./Dockerfile
     env_file:
       - ./compose.env
     environment:
@@ -84,9 +84,9 @@ services:
       - "scylla"
 
   astarte-pairing-api:
-    image: astarte/astarte_pairing_api:snapshot
     build:
       context: apps/astarte_pairing_api
+      dockerfile: ./Dockerfile
     env_file:
       - ./compose.env
     restart: on-failure
@@ -105,9 +105,9 @@ services:
       - "traefik.http.services.astarte-pairing-api.loadbalancer.server.port=4003"
 
   astarte-appengine-api:
-    image: astarte/astarte_appengine_api:snapshot
     build:
       context: apps/astarte_appengine_api
+      dockerfile: ./Dockerfile
     env_file:
       - ./compose.env
     environment:
@@ -129,9 +129,9 @@ services:
       - "traefik.http.services.astarte-appengine-api.loadbalancer.server.port=4002"
 
   astarte-data-updater-plant:
-    image: astarte/astarte_data_updater_plant:snapshot
     build:
       context: apps/astarte_data_updater_plant
+      dockerfile: ./Dockerfile
     env_file:
       - ./compose.env
     environment:
@@ -147,9 +147,9 @@ services:
       - "scylla"
 
   astarte-trigger-engine:
-    image: astarte/astarte_trigger_engine:snapshot
     build:
       context: apps/astarte_trigger_engine
+      dockerfile: ./Dockerfile
     env_file:
       - ./compose.env
     environment:
@@ -241,12 +241,10 @@ services:
   scylla:
     image: scylladb/scylla:5.2.2
     restart: on-failure
-    volumes:
-      - scylla-data:/var/lib/scylla
 
   # VerneMQ
   vernemq:
-    image: astarte/vernemq:snapshot
+    build: https://github.com/eddbbt/astarte_vmq_plugin.git#keyspaces_edit
     env_file:
       - ./compose.env
     environment:

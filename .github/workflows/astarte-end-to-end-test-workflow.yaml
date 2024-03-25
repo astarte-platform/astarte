@@ -27,6 +27,7 @@ jobs:
   end-to-end-test:
     name: End-to-end Test
     runs-on: ubuntu-22.04
+    timeout-minutes: 30
     steps:
     - uses: actions/checkout@v2
     - name: Initialize docker-compose files
@@ -34,12 +35,22 @@ jobs:
     - name: Build Astarte containers
       run: docker-compose build --parallel
     - name: Start all Astarte services
-      run: docker-compose up -d
+      run: |
+        docker-compose up -d
+        sleep 60
+      timeout-minutes: 30
+    - name: Check all Astarte services
+      run: |
+        docker-compose ps -a
+        docker compose logs astarte-housekeeping  
+        sleep 10
+      timeout-minutes: 30
     - name: Wait for Astarte to come up
       run: |
         wget https://github.com/astarte-platform/wait-for-astarte-docker-compose/releases/download/v1.1.0/wait-for-astarte-docker-compose_1.1.0_linux_amd64.tar.gz
         tar xf wait-for-astarte-docker-compose_1.1.0_linux_amd64.tar.gz
-        ./wait-for-astarte-docker-compose
+        ./wait-for-astarte-docker-compose -t 9000
+      timeout-minutes: 30
     - name: Install astartectl
       run: |
         wget https://github.com/astarte-platform/astartectl/releases/download/v22.11.02/astartectl_22.11.02_linux_x86_64.tar.gz

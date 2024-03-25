@@ -5,6 +5,8 @@ config :logger,
     [level_lower_than: :info]
   ]
 
+config :astarte_realm_management, :astarte_instance_id, ""
+
 config :logger, :console,
   format: {PrettyLog.LogfmtFormatter, :format},
   metadata: [

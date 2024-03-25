@@ -17,12 +17,13 @@
 #
 
 defmodule Astarte.TriggerEngine.Health.Queries do
+  alias Astarte.TriggerEngine.Config
   require Logger
 
   def get_astarte_health(consistency) do
     query = """
     SELECT COUNT(*)
-    FROM astarte.realms
+    FROM #{Config.astarte_instance_id!()}astarte.realms
     """
 
     with {:ok, %Xandra.Page{} = page} <-

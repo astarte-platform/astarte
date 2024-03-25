@@ -35,7 +35,8 @@ defmodule Astarte.AppEngine.API.Rooms.Room do
   alias Astarte.Core.Device
   alias Astarte.DataAccess.Database
   alias Astarte.AppEngine.API.Rooms.Queries
-
+  alias Astarte.Core.CQLUtils
+  alias Astarte.AppEngine.API.Config
   require Logger
 
   # API
@@ -297,6 +298,8 @@ defmodule Astarte.AppEngine.API.Rooms.Room do
   end
 
   defp verify_device_exists(realm_name, encoded_device_id) do
+    realm_name = CQLUtils.realm_name_to_keyspace_name(realm_name, Config.astarte_instance_id!())
+
     with {:ok, decoded_device_id} <- Device.decode_device_id(encoded_device_id),
          {:ok, client} <- Database.connect(realm: realm_name),
          {:ok, exists?} <- Queries.check_device_exists(client, decoded_device_id) do

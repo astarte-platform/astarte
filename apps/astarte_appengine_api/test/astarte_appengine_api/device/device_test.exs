@@ -25,6 +25,8 @@ defmodule Astarte.AppEngine.API.DeviceTest do
   alias Astarte.AppEngine.API.Device.InterfaceValues
   alias Astarte.DataAccess.Database
   alias CQEx.Query, as: DatabaseQuery
+  alias Astarte.Core.CQLUtils
+  alias Astarte.AppEngine.API.Config
 
   alias Astarte.RPC.Protocol.VMQ.Plugin.{
     Call,
@@ -963,7 +965,11 @@ defmodule Astarte.AppEngine.API.DeviceTest do
     test = "autotestrealm"
     device_id = "f0VMRgIBAQAAAAAAAAAAAA"
 
-    {:ok, client} = Database.connect(realm: test)
+    {:ok, client} =
+      Database.connect(
+        realm: CQLUtils.realm_name_to_keyspace_name(test, Config.astarte_instance_id!())
+      )
+
     DatabaseQuery.call!(client, "TRUNCATE com_example_testobject_v1")
     DatabaseQuery.call!(client, "TRUNCATE individual_properties")
 

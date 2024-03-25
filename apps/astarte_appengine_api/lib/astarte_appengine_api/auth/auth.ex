@@ -19,11 +19,15 @@
 defmodule Astarte.AppEngine.API.Auth do
   alias Astarte.AppEngine.API.Queries
   alias Astarte.DataAccess.Database
+  alias Astarte.AppEngine.API.Config
+  alias Astarte.Core.CQLUtils
 
   require Logger
 
   def fetch_public_key(realm) do
-    with {:ok, client} <- Database.connect(realm: realm),
+    keyspace_name = CQLUtils.realm_name_to_keyspace_name(realm, Config.astarte_instance_id!())
+
+    with {:ok, client} <- Database.connect(realm: keyspace_name),
          {:ok, public_key} <- Queries.fetch_public_key(client) do
       {:ok, public_key}
     else

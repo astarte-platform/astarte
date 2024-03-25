@@ -30,6 +30,12 @@ defmodule Astarte.RealmManagement.Config do
     type: :integer,
     default: 4000
 
+  @envdoc "The astarte instance id to generate keyspaces with"
+  app_env :astarte_instance_id, :astarte_realm_management, :astarte_instance_id,
+    os_env: "ASTARTE_INSTANCE_ID",
+    default: "",
+    type: AstarteInstanceIdType
+
   def cassandra_node!, do: Enum.random(cqex_nodes!())
 
   @doc """

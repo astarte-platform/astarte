@@ -28,6 +28,7 @@ defmodule Astarte.AppEngine.API.Device.Queries do
   alias Astarte.Core.Mapping
   alias Astarte.Core.Mapping.ValueType
   alias Astarte.Core.StorageType
+
   alias CQEx.Query, as: DatabaseQuery
   alias CQEx.Result, as: DatabaseResult
   require CQEx

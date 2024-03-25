@@ -18,11 +18,12 @@
 
 defmodule Astarte.DataUpdaterPlant.Health.Queries do
   require Logger
+  alias Astarte.DataUpdaterPlant.Config
 
   def get_astarte_health(consistency) do
     query = """
     SELECT COUNT(*)
-    FROM astarte.realms
+    FROM  #{Config.astarte_instance_id!()}astarte.realms
     """
 
     with {:ok, %Xandra.Page{} = page} <-

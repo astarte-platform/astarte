@@ -69,7 +69,7 @@ defmodule Astarte.Pairing.API.Mixfile do
 
   defp astarte_required_modules(_) do
     [
-      {:astarte_core, github: "astarte-platform/astarte_core"},
+      {:astarte_core, github: "eddbbt/astarte_core", branch: "keyspace_feature", override: true},
       {:astarte_rpc, github: "astarte-platform/astarte_rpc"}
     ]
   end

@@ -18,6 +18,7 @@
 defmodule Astarte.AppEngine.API.Queries do
   alias CQEx.Query, as: DatabaseQuery
   alias CQEx.Result, as: DatabaseResult
+  alias Astarte.AppEngine.API.Config
 
   require Logger
 
@@ -42,9 +43,11 @@ defmodule Astarte.AppEngine.API.Queries do
   end
 
   def check_astarte_health(client, consistency) do
+    instance_id = Config.astarte_instance_id!()
+
     schema_statement = """
       SELECT count(value)
-      FROM astarte.kv_store
+      FROM #{instance_id}astarte.kv_store
       WHERE group='astarte' AND key='schema_version'
     """
 
@@ -52,7 +55,7 @@ defmodule Astarte.AppEngine.API.Queries do
     # no realm name can contain '_', '^'
     realms_statement = """
       SELECT *
-      FROM astarte.realms
+      FROM #{instance_id}astarte.realms
       WHERE realm_name='_invalid^name_'
     """
 

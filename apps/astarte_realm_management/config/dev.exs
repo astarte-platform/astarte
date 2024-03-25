@@ -12,3 +12,5 @@ config :logger, :console,
     :function,
     :tag
   ]
+
+config :astarte_realm_management, :astarte_instance_id, ""

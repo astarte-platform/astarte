@@ -121,6 +121,12 @@ defmodule Astarte.TriggerEngine.Config do
           type: :integer,
           default: 10
 
+  @envdoc "The astarte instance id to generate keyspaces with"
+  app_env :astarte_instance_id, :astarte_trigger_engine, :astarte_instance_id,
+    os_env: "ASTARTE_INSTANCE_ID",
+    default: "",
+    type: AstarteInstanceIdType
+
   @doc """
   Returns the AMQP events consumer connection options
   """

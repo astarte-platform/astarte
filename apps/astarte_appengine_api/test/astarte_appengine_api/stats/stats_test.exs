@@ -21,6 +21,8 @@ defmodule Astarte.AppEngine.API.StatsTest do
   alias Astarte.AppEngine.API.DatabaseTestHelper
   alias Astarte.AppEngine.API.Stats
   alias Astarte.AppEngine.API.Stats.DevicesStats
+  alias Astarte.Core.CQLUtils
+  alias Astarte.AppEngine.API.Config
 
   setup_all do
     {:ok, _client} = DatabaseTestHelper.create_test_keyspace()

@@ -49,6 +49,12 @@ defmodule Astarte.Pairing.Config do
     os_env: "PAIRING_CA_CERT",
     type: :binary
 
+  @envdoc "The astarte instance id to generate keyspaces with"
+  app_env :astarte_instance_id, :astarte_pairing, :astarte_instance_id,
+    os_env: "ASTARTE_INSTANCE_ID",
+    default: "",
+    type: AstarteInstanceIdType
+
   def init! do
     if {:ok, nil} == ca_cert() do
       case CFSSLCredentials.ca_cert() do

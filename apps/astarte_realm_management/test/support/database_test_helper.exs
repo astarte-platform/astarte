@@ -18,11 +18,12 @@
 
 defmodule Astarte.RealmManagement.DatabaseTestHelper do
   alias Astarte.Core.CQLUtils
+  alias Astarte.RealmManagement.Config
   alias Astarte.Core.Device
   alias CQEx.Query, as: DatabaseQuery
   alias CQEx.Client, as: DatabaseClient
   alias CQEx.Result, as: DatabaseResult
-  alias Astarte.RealmManagement.Config
+
   alias Astarte.RealmManagement.DatabaseFixtures
   require Logger
 
@@ -34,21 +35,21 @@ defmodule Astarte.RealmManagement.DatabaseTestHelper do
   """
 
   @create_autotestrealm """
-    CREATE KEYSPACE autotestrealm
+    CREATE KEYSPACE #{CQLUtils.realm_name_to_keyspace_name("autotestrealm", Config.astarte_instance_id!())}
       WITH
         replication = {'class': 'SimpleStrategy', 'replication_factor': '1'} AND
         durable_writes = true;
   """
 
   @create_astarte_keyspace """
-    CREATE KEYSPACE astarte
+    CREATE KEYSPACE #{Config.astarte_instance_id!()}astarte
       WITH
         replication = {'class': 'SimpleStrategy', 'replication_factor': '1'} AND
         durable_writes = true;
   """
 
   @create_astarte_realms_table """
-  CREATE TABLE astarte.realms (
+  CREATE TABLE #{Config.astarte_instance_id!()}astarte.realms (
     realm_name ascii,
     device_registration_limit int,
     PRIMARY KEY (realm_name)
@@ -56,12 +57,12 @@ defmodule Astarte.RealmManagement.DatabaseTestHelper do
   """
 
   @insert_autotestrealm_into_realms """
-  INSERT INTO astarte.realms (realm_name)
-  VALUES ('autotestrealm');
+  INSERT INTO #{Config.astarte_instance_id!()}astarte.realms (realm_name)
+  VALUES ('#{CQLUtils.realm_name_to_keyspace_name("autotestrealm", Config.astarte_instance_id!())}');
   """
 
   @create_interfaces_table """
-      CREATE TABLE autotestrealm.interfaces (
+      CREATE TABLE #{CQLUtils.realm_name_to_keyspace_name("autotestrealm", Config.astarte_instance_id!())}.interfaces (
         name ascii,
         major_version int,
         minor_version int,
@@ -81,7 +82,7 @@ defmodule Astarte.RealmManagement.DatabaseTestHelper do
   """
 
   @create_endpoints_table """
-      CREATE TABLE autotestrealm.endpoints (
+      CREATE TABLE #{CQLUtils.realm_name_to_keyspace_name("autotestrealm", Config.astarte_instance_id!())}.endpoints (
         interface_id uuid,
         endpoint_id uuid,
         interface_name ascii,
@@ -105,7 +106,7 @@ defmodule Astarte.RealmManagement.DatabaseTestHelper do
   """
 
   @create_individual_properties_table """
-      CREATE TABLE autotestrealm.individual_properties (
+      CREATE TABLE #{CQLUtils.realm_name_to_keyspace_name("autotestrealm", Config.astarte_instance_id!())}.individual_properties (
         device_id uuid,
         interface_id uuid,
         endpoint_id uuid,
@@ -133,7 +134,7 @@ defmodule Astarte.RealmManagement.DatabaseTestHelper do
   """
 
   @create_kv_store_table """
-    CREATE TABLE autotestrealm.kv_store (
+    CREATE TABLE #{CQLUtils.realm_name_to_keyspace_name("autotestrealm", Config.astarte_instance_id!())}.kv_store (
       group varchar,
       key varchar,
       value blob,
@@ -143,7 +144,7 @@ defmodule Astarte.RealmManagement.DatabaseTestHelper do
   """
 
   @create_simple_triggers_table """
-      CREATE TABLE autotestrealm.simple_triggers (
+      CREATE TABLE #{CQLUtils.realm_name_to_keyspace_name("autotestrealm", Config.astarte_instance_id!())}.simple_triggers (
         object_id uuid,
         object_type int,
         parent_trigger_id uuid,
@@ -156,12 +157,12 @@ defmodule Astarte.RealmManagement.DatabaseTestHelper do
   """
 
   @insert_public_key """
-    INSERT INTO autotestrealm.kv_store (group, key, value)
+    INSERT INTO #{CQLUtils.realm_name_to_keyspace_name("autotestrealm", Config.astarte_instance_id!())}.kv_store (group, key, value)
     VALUES ('auth', 'jwt_public_key_pem', varcharAsBlob(:pem));
   """
 
   @create_individual_datastreams_table """
-    CREATE TABLE IF NOT EXISTS autotestrealm.individual_datastreams (
+    CREATE TABLE IF NOT EXISTS #{CQLUtils.realm_name_to_keyspace_name("autotestrealm", Config.astarte_instance_id!())}.individual_datastreams (
       device_id uuid,
       interface_id uuid,
       endpoint_id uuid,
@@ -190,7 +191,7 @@ defmodule Astarte.RealmManagement.DatabaseTestHelper do
   """
 
   @create_names_table """
-  CREATE TABLE IF NOT EXISTS autotestrealm.names (
+  CREATE TABLE IF NOT EXISTS #{CQLUtils.realm_name_to_keyspace_name("autotestrealm", Config.astarte_instance_id!())}.names (
       object_name varchar,
       object_uuid uuid,
       PRIMARY KEY ((object_name))
@@ -198,7 +199,7 @@ defmodule Astarte.RealmManagement.DatabaseTestHelper do
   """
 
   @create_grouped_devices_table """
-  CREATE TABLE IF NOT EXISTS autotestrealm.grouped_devices (
+  CREATE TABLE IF NOT EXISTS #{CQLUtils.realm_name_to_keyspace_name("autotestrealm", Config.astarte_instance_id!())}.grouped_devices (
       group_name varchar,
       insertion_uuid timeuuid,
       device_id uuid,
@@ -207,7 +208,7 @@ defmodule Astarte.RealmManagement.DatabaseTestHelper do
   """
 
   @create_deleted_devices_table """
-  CREATE TABLE IF NOT EXISTS autotestrealm.deletion_in_progress (
+  CREATE TABLE IF NOT EXISTS #{CQLUtils.realm_name_to_keyspace_name("autotestrealm", Config.astarte_instance_id!())}.deletion_in_progress (
       device_id uuid,
       vmq_ack boolean,
       dup_start_ack boolean,
@@ -217,7 +218,7 @@ defmodule Astarte.RealmManagement.DatabaseTestHelper do
   """
 
   @create_devices_table """
-  CREATE TABLE IF NOT EXISTS autotestrealm.devices (
+  CREATE TABLE IF NOT EXISTS #{CQLUtils.realm_name_to_keyspace_name("autotestrealm", Config.astarte_instance_id!())}.devices (
       device_id uuid,
       introspection map<ascii, int>,
       PRIMARY KEY ((device_id))
@@ -364,7 +365,10 @@ defmodule Astarte.RealmManagement.DatabaseTestHelper do
 
   def seed_test_data(client) do
     Enum.each(["interfaces", "endpoints", "individual_properties", "kv_store"], fn table ->
-      DatabaseQuery.call!(client, "TRUNCATE autotestrealm.#{table}")
+      DatabaseQuery.call!(
+        client,
+        "TRUNCATE #{CQLUtils.realm_name_to_keyspace_name("autotestrealm", Config.astarte_instance_id!())}.#{table}"
+      )
     end)
 
     query =
@@ -382,8 +386,13 @@ defmodule Astarte.RealmManagement.DatabaseTestHelper do
   end
 
   def drop_test_keyspace(client) do
-    with {:ok, _result} <- DatabaseQuery.call(client, "DROP KEYSPACE autotestrealm"),
-         {:ok, _result} <- DatabaseQuery.call(client, "DROP KEYSPACE astarte") do
+    with {:ok, _result} <-
+           DatabaseQuery.call(
+             client,
+             "DROP KEYSPACE #{CQLUtils.realm_name_to_keyspace_name("autotestrealm", Config.astarte_instance_id!())}"
+           ),
+         {:ok, _result} <-
+           DatabaseQuery.call(client, "DROP KEYSPACE #{Config.astarte_instance_id!()}astarte") do
       :ok
     else
       error ->
@@ -411,6 +420,8 @@ defmodule Astarte.RealmManagement.DatabaseTestHelper do
         opts,
         DatabaseFixtures.datastream_values()
       )
+
+    realm_name = CQLUtils.realm_name_to_keyspace_name(realm_name, Config.astarte_instance_id!())
 
     Xandra.Cluster.run(:xandra, fn conn ->
       statement = """
@@ -443,6 +454,8 @@ defmodule Astarte.RealmManagement.DatabaseTestHelper do
       params =
       DatabaseFixtures.compute_interface_fixtures(opts, DatabaseFixtures.properties_values())
 
+    realm_name = CQLUtils.realm_name_to_keyspace_name(realm_name, Config.astarte_instance_id!())
+
     Xandra.Cluster.run(:xandra, fn conn ->
       statement = """
       INSERT INTO #{realm_name}.individual_properties
@@ -464,6 +477,8 @@ defmodule Astarte.RealmManagement.DatabaseTestHelper do
         opts,
         DatabaseFixtures.introspection_values()
       )
+
+    realm_name = CQLUtils.realm_name_to_keyspace_name(realm_name, Config.astarte_instance_id!())
 
     Xandra.Cluster.run(:xandra, fn conn ->
       statement = """
@@ -487,6 +502,8 @@ defmodule Astarte.RealmManagement.DatabaseTestHelper do
         DatabaseFixtures.interfaces_object_values()
       )
 
+    realm_name = CQLUtils.realm_name_to_keyspace_name(realm_name, Config.astarte_instance_id!())
+
     statement = """
       INSERT INTO #{realm_name}.interfaces
       (name, major_version, minor_version, interface_id, storage_type, storage, type, ownership, aggregation, automaton_transitions, automaton_accepting_states, description, doc)
@@ -498,10 +515,13 @@ defmodule Astarte.RealmManagement.DatabaseTestHelper do
   end
 
   def create_object_datastream_table!(table_name) do
-    Xandra.Cluster.execute(:xandra, "TRUNCATE TABLE autotestrealm.#{table_name}")
+    Xandra.Cluster.execute(
+      :xandra,
+      "TRUNCATE TABLE #{CQLUtils.realm_name_to_keyspace_name("autotestrealm", Config.astarte_instance_id!())}.#{table_name}"
+    )
 
     Xandra.Cluster.execute!(:xandra, """
-        CREATE TABLE IF NOT EXISTS autotestrealm.#{table_name} (
+        CREATE TABLE IF NOT EXISTS #{CQLUtils.realm_name_to_keyspace_name("autotestrealm", Config.astarte_instance_id!())}.#{table_name} (
           device_id uuid,
           path varchar,
           PRIMARY KEY((device_id, path))
@@ -521,6 +541,7 @@ defmodule Astarte.RealmManagement.DatabaseTestHelper do
         DatabaseFixtures.datastream_values()
       )
 
+    realm_name = CQLUtils.realm_name_to_keyspace_name(realm_name, Config.astarte_instance_id!())
     interface_table = CQLUtils.interface_name_to_table_name(interface_name, interface_major)
 
     Xandra.Cluster.run(:xandra, fn conn ->
@@ -540,6 +561,8 @@ defmodule Astarte.RealmManagement.DatabaseTestHelper do
     %{realm_name: realm_name} =
       params = DatabaseFixtures.compute_alias_fixtures(opts, DatabaseFixtures.alias_values())
 
+    realm_name = CQLUtils.realm_name_to_keyspace_name(realm_name, Config.astarte_instance_id!())
+
     Xandra.Cluster.run(:xandra, fn conn ->
       statement = """
       INSERT INTO #{realm_name}.names
@@ -557,6 +580,8 @@ defmodule Astarte.RealmManagement.DatabaseTestHelper do
   def seed_groups_test_data!(opts) do
     %{realm_name: realm_name} =
       params = DatabaseFixtures.compute_generic_fixtures(opts, DatabaseFixtures.group_values())
+
+    realm_name = CQLUtils.realm_name_to_keyspace_name(realm_name, Config.astarte_instance_id!())
 
     Xandra.Cluster.run(:xandra, fn conn ->
       statement = """
@@ -576,6 +601,8 @@ defmodule Astarte.RealmManagement.DatabaseTestHelper do
     %{realm_name: realm_name} =
       params = DatabaseFixtures.compute_generic_fixtures(opts, DatabaseFixtures.kv_store_values())
 
+    realm_name = CQLUtils.realm_name_to_keyspace_name(realm_name, Config.astarte_instance_id!())
+
     Xandra.Cluster.run(:xandra, fn conn ->
       statement = """
       INSERT INTO #{realm_name}.kv_store
@@ -593,6 +620,8 @@ defmodule Astarte.RealmManagement.DatabaseTestHelper do
   def seed_devices_test_data!(opts) do
     %{realm_name: realm_name} =
       params = DatabaseFixtures.compute_generic_fixtures(opts, DatabaseFixtures.devices_values())
+
+    realm_name = CQLUtils.realm_name_to_keyspace_name(realm_name, Config.astarte_instance_id!())
 
     Xandra.Cluster.run(:xandra, fn conn ->
       statement = """
@@ -613,7 +642,7 @@ defmodule Astarte.RealmManagement.DatabaseTestHelper do
 
     Xandra.Cluster.run(:xandra, fn conn ->
       statement = """
-      INSERT INTO astarte.realms
+      INSERT INTO #{Config.astarte_instance_id!()}astarte.realms
       (realm_name, device_registration_limit)
       VALUES (:realm_name, :device_registration_limit)
       """

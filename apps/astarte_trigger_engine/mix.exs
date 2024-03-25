@@ -59,7 +59,7 @@ defmodule Astarte.TriggerEngine.Mixfile do
 
   defp astarte_required_modules(_) do
     [
-      {:astarte_core, github: "astarte-platform/astarte_core"},
+      {:astarte_core, github: "eddbbt/astarte_core", branch: "keyspace_feature", override: true},
       {:astarte_data_access, github: "astarte-platform/astarte_data_access"}
     ]
   end
