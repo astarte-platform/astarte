@@ -2,6 +2,8 @@ defmodule Astarte.RealmManagement.Mock do
   alias Astarte.RPC.Protocol.RealmManagement.{
     Call,
     DeleteInterface,
+    GetDatastreamMaximumStorageRetention,
+    GetDatastreamMaximumStorageRetentionReply,
     GenericErrorReply,
     GenericOkReply,
     GetInterfaceSource,
@@ -259,6 +261,19 @@ defmodule Astarte.RealmManagement.Mock do
 
     %GetDeviceRegistrationLimitReply{device_registration_limit: value}
     |> encode_reply(:get_device_registration_limit_reply)
+    |> ok_wrap
+  end
+
+  defp execute_rpc(
+         {:get_datastream_maximum_storage_retention,
+          %GetDatastreamMaximumStorageRetention{
+            realm_name: realm_name
+          }}
+       ) do
+    value = DB.get_datastream_maximum_storage_retention(realm_name)
+
+    %GetDatastreamMaximumStorageRetentionReply{datastream_maximum_storage_retention: value}
+    |> encode_reply(:get_datastream_maximum_storage_retention_reply)
     |> ok_wrap
   end
 

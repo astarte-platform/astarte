@@ -32,6 +32,12 @@ defmodule Astarte.RealmManagement.APIWeb.RealmConfigView do
     }
   end
 
+  def render("show.json", %{datastream_maximum_storage_retention: ttl}) do
+    %{
+      data: ttl
+    }
+  end
+
   def render("auth_config.json", %{auth_config: auth_config}) do
     %{jwt_public_key_pem: auth_config.jwt_public_key_pem}
   end
