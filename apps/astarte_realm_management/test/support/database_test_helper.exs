@@ -609,17 +609,29 @@ defmodule Astarte.RealmManagement.DatabaseTestHelper do
   end
 
   def seed_realm_test_data!(opts) do
-    params = DatabaseFixtures.compute_generic_fixtures(opts, DatabaseFixtures.realm_values())
+    params =
+      %{realm_name: realm_name} =
+      DatabaseFixtures.compute_generic_fixtures(opts, DatabaseFixtures.realm_values())
 
     Xandra.Cluster.run(:xandra, fn conn ->
-      statement = """
+      device_registration_limit_statement = """
       INSERT INTO astarte.realms
       (realm_name, device_registration_limit)
       VALUES (:realm_name, :device_registration_limit)
       """
 
-      prepared = Xandra.prepare!(conn, statement)
-      Xandra.execute!(conn, prepared, params)
+      device_registration_limit_prepared =
+        Xandra.prepare!(conn, device_registration_limit_statement)
+
+      Xandra.execute!(conn, device_registration_limit_prepared, params)
+
+      max_retention_statement = """
+      INSERT INTO #{realm_name}.kv_store (group, key, value)
+      VALUES ('realm_config', 'datastream_maximum_storage_retention', intAsBlob(:datastream_maximum_storage_retention));
+      """
+
+      max_retention_prepared = Xandra.prepare!(conn, max_retention_statement)
+      Xandra.execute!(conn, max_retention_prepared, params)
     end)
 
     :ok

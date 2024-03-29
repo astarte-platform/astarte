@@ -79,5 +79,12 @@ defmodule Astarte.RealmManagement.API.RealmConfigTest do
 
       assert {:ok, ^limit} = RealmConfig.get_device_registration_limit(@realm)
     end
+
+    test "get_datastream_maximum_storage_retention/1 returns the retention for an existing realm" do
+      retention = 10
+      DB.put_datastream_maximum_storage_retention(@realm, retention)
+
+      assert {:ok, ^retention} = RealmConfig.get_datastream_maximum_storage_retention(@realm)
+    end
   end
 end

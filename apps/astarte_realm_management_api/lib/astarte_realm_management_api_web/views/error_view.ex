@@ -63,6 +63,10 @@ defmodule Astarte.RealmManagement.APIWeb.ErrorView do
     %{errors: %{detail: "Overlapping endpoints in interface mappings"}}
   end
 
+  def render("maximum_database_retention_exceeded.json", _assigns) do
+    %{errors: %{detail: "database_retention_ttl exceeds the maximum storage retention"}}
+  end
+
   def render("invalid_device_id.json", _assigns) do
     %{errors: %{detail: "The provided id is not a valid device id"}}
   end

@@ -36,6 +36,15 @@ defmodule Astarte.RealmManagement.APIWeb.RealmConfigController do
     end
   end
 
+  def show(conn, %{"realm_name" => realm_name, "group" => "datastream_maximum_storage_retention"}) do
+    with {:ok, datastream_maximum_storage_retention} =
+           RealmConfig.get_datastream_maximum_storage_retention(realm_name) do
+      render(conn, "show.json",
+        datastream_maximum_storage_retention: datastream_maximum_storage_retention
+      )
+    end
+  end
+
   def update(conn, %{"realm_name" => realm_name, "group" => "auth", "data" => new_config}) do
     with :ok <- RealmConfig.update_auth_config(realm_name, new_config) do
       send_resp(conn, :no_content, "")

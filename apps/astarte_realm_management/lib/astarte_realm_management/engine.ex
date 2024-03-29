@@ -72,6 +72,7 @@ defmodule Astarte.RealmManagement.Engine do
          {:ok, json_obj} <- Jason.decode(interface_json),
          interface_changeset <- InterfaceDocument.changeset(%InterfaceDocument{}, json_obj),
          {:ok, interface_doc} <- Ecto.Changeset.apply_action(interface_changeset, :insert),
+         :ok <- verify_mappings_max_storage_retention(realm_name, interface_doc),
          interface_descriptor <- InterfaceDescriptor.from_interface(interface_doc),
          %InterfaceDescriptor{name: name, major_version: major} <- interface_descriptor,
          {:interface_avail, {:ok, false}} <-
@@ -118,6 +119,9 @@ defmodule Astarte.RealmManagement.Engine do
 
       {:interface_avail, {:ok, true}} ->
         {:error, :already_installed_interface}
+
+      {:error, :maximum_database_retention_exceeded} ->
+        {:error, :maximum_database_retention_exceeded}
 
       {:error, :interface_name_collision} ->
         {:error, :interface_name_collision}
@@ -937,6 +941,24 @@ defmodule Astarte.RealmManagement.Engine do
     end
   end
 
+  defp verify_mappings_max_storage_retention(realm_name, interface) do
+    with {:ok, max_retention} <- get_datastream_maximum_storage_retention(realm_name) do
+      if mappings_retention_valid?(interface.mappings, max_retention) do
+        :ok
+      else
+        {:error, :maximum_database_retention_exceeded}
+      end
+    end
+  end
+
+  defp mappings_retention_valid?(_mappings, 0), do: true
+
+  defp mappings_retention_valid?(mappings, max_retention) do
+    Enum.all?(mappings, fn %Mapping{database_retention_ttl: retention} ->
+      retention <= max_retention
+    end)
+  end
+
   defp verify_trigger_policy_not_exists(client, policy_name) do
     with {:ok, exists?} <- Queries.check_trigger_policy_already_present(client, policy_name) do
       if not exists? do
@@ -1068,6 +1090,29 @@ defmodule Astarte.RealmManagement.Engine do
           Logger.warning(
             "Cannot get device registration limit for realm #{realm_name}",
             tag: "get_device_registration_limit_fail"
+          )
+
+        {:error, reason}
+    end
+  end
+
+  @doc """
+  Retrieves the maximum datastream storage retention of a realm.
+  Returns either `{:ok, limit}` or `{:error, reason}`.
+  The limit is a strictly positive integer (if set), 0 if unset.
+  """
+  @spec get_datastream_maximum_storage_retention(String.t()) ::
+          {:ok, non_neg_integer()} | {:error, atom()}
+  def get_datastream_maximum_storage_retention(realm_name) do
+    case Queries.get_datastream_maximum_storage_retention(realm_name) do
+      {:ok, value} ->
+        {:ok, value}
+
+      {:error, reason} ->
+        _ =
+          Logger.warning(
+            "Cannot get maximum datastream storage retention for realm #{realm_name}",
+            tag: "get_datastream_maximum_storage_retention_fail"
           )
 
         {:error, reason}
