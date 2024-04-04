@@ -19,8 +19,8 @@
 import React, { createContext, useCallback, useContext, useMemo, useState } from 'react';
 import AstarteClient, { AstarteToken } from 'astarte-client';
 import _ from 'lodash';
-
 import type { DashboardConfig } from './types';
+import Cookies from 'js-cookie';
 
 const parseAstarteApiUrls = (params: DashboardConfig) => {
   const { astarteApiUrl } = params;
@@ -72,16 +72,16 @@ const SESSION_VERSION = 1;
 
 function saveSession(session?: Session | null): void {
   if (!session) {
-    localStorage.removeItem('session');
+    Cookies.remove('session');
   } else {
-    localStorage.setItem('session', JSON.stringify({ ...session, _version: SESSION_VERSION }));
+    Cookies.set('session', JSON.stringify({ ...session, _version: SESSION_VERSION }));
   }
 }
 
 function loadSession(): Session | null {
   let session: Session | null = null;
   try {
-    session = JSON.parse(localStorage.getItem('session') || '');
+    session = JSON.parse(`${Cookies.get('session')}`);
   } catch {
     session = null;
   }
