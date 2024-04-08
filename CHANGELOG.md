@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ## [1.0.6] - Unreleased
 ### Fixed
 - [astarte_appengine_api] Allow to send binaryblobarrays over server owned interfaces.
+- [astarte_appengine_api] Doubles and DoubleArrays without decimal part are no longer saved as 
+  integer, but a trailing zero is added.
 - [astarte_data_updater_plant] Do not crash when receiving a malformed purge properties message.
 - [astarte_pairing_api] Gracefully handle HTTP requests with malformed payload.
 - [astarte_housekeeping_api] Gracefully handle HTTP requests with malformed payload.
