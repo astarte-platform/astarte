@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2017-2018 Ispirata Srl
+# Copyright 2017-2024 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -64,9 +64,18 @@ defmodule Astarte.TriggerEngine.EventsConsumer do
 
   defp handle_simple_event(realm, device_id, headers_map, event_type, event, timestamp_ms) do
     with {:ok, trigger_id} <- Map.fetch(headers_map, "x_astarte_parent_trigger_id"),
-         {:ok, action} <- retrieve_trigger_configuration(realm, trigger_id),
+         {:ok, %{action: action, trigger_name: trigger_name}} <-
+           retrieve_trigger_configuration(realm, trigger_id),
          {:ok, payload} <-
-           event_to_payload(realm, device_id, event_type, event, action, timestamp_ms),
+           event_to_payload(
+             realm,
+             device_id,
+             event_type,
+             event,
+             action,
+             trigger_name,
+             timestamp_ms
+           ),
          {:ok, headers} <- event_to_headers(realm, device_id, event_type, event, action) do
       send_simple_event(realm, payload, headers, action)
     else
@@ -113,10 +122,17 @@ defmodule Astarte.TriggerEngine.EventsConsumer do
     end
   end
 
-  defp build_values_map(realm, device_id, event_type, event) do
+  defp build_values_map(
+         realm,
+         device_id,
+         event_type,
+         event,
+         trigger_name
+       ) do
     base_values = %{
       "realm" => realm,
       "device_id" => device_id,
+      "trigger_name" => trigger_name,
       "event_type" => to_string(event_type)
     }
 
@@ -172,22 +188,32 @@ defmodule Astarte.TriggerEngine.EventsConsumer do
            "template" => template,
            "template_type" => "mustache"
          },
+         trigger_name,
          _timestamp_ms
        ) do
     event = maybe_normalize_introspection_event(event)
-    values = build_values_map(realm, device_id, event_type, event)
+    values = build_values_map(realm, device_id, event_type, event, trigger_name)
 
     {:ok, :bbmustache.render(template, values, key_type: :binary)}
   end
 
-  defp event_to_payload(_realm, device_id, _event_type, event, _action, timestamp_ms) do
+  defp event_to_payload(
+         _realm,
+         device_id,
+         _event_type,
+         event,
+         _action,
+         trigger_name,
+         timestamp_ms
+       ) do
     event = maybe_normalize_introspection_event(event)
 
     with {:ok, timestamp} <- DateTime.from_unix(timestamp_ms, :millisecond) do
       %{
         "timestamp" => timestamp,
         "device_id" => device_id,
-        "event" => event
+        "event" => event,
+        "trigger_name" => trigger_name
       }
       |> Jason.encode()
     end
@@ -298,7 +324,7 @@ defmodule Astarte.TriggerEngine.EventsConsumer do
          [value: trigger_data] <- DatabaseResult.head(result),
          trigger <- Trigger.decode(trigger_data),
          {:ok, action} <- Jason.decode(trigger.action) do
-      {:ok, action}
+      {:ok, %{action: action, trigger_name: trigger.name}}
     else
       {:error, :database_connection_error} ->
         Logger.warning("Database connection error.")
