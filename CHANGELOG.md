@@ -6,6 +6,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 ### Added
+- [astarte_trigger_engine] Add `trigger_name` to envent payload
+  and mustache template
 - Add support for limiting the number of registered devices in a realm.
   Existing realms are not affected by this change.
 - [astarte_realm_management_api] Allow to read realm's device registration limit
