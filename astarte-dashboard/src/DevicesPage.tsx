@@ -129,10 +129,10 @@ const DeviceRow = ({ device, filters }: DeviceRowProps): React.ReactElement => {
   return (
     <tr>
       <td>
-        <Icon className="mr-2" icon={icon} tooltip={iconTooltip} tooltipPlacement="right" />
+        <Icon className="me-2" icon={icon} tooltip={iconTooltip} tooltipPlacement="right" />
         <span>{statusLabel}</span>
       </td>
-      <td className={device.hasNameAlias ? '' : 'text-monospace'}>
+      <td className={device.hasNameAlias ? '' : 'font-monospace'}>
         <Link to={`/devices/${device.id}/edit`}>{device.name}</Link>
         <MatchedAttributes filters={filters} attributes={device.attributes} />
       </td>
@@ -503,7 +503,7 @@ export default (): React.ReactElement => {
                   </Col>
                   <Col xs="auto" className="p-1">
                     <div className="p-2 mb-2" onClick={() => setShowSidebar(!showSidebar)}>
-                      <Icon icon="filter" className="mr-1" />
+                      <Icon icon="filter" className="me-1" />
                       {showSidebar && <b>Filters</b>}
                     </div>
                     {showSidebar && (

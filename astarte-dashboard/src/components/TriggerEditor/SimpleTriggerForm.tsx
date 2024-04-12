@@ -17,7 +17,7 @@
 */
 
 import React, { useCallback, useMemo } from 'react';
-import { Col, Form } from 'react-bootstrap';
+import { Col, Form, Row } from 'react-bootstrap';
 import {
   AstarteInterface,
   AstarteMapping,
@@ -132,7 +132,7 @@ const SimpleTriggerForm = ({
   }, [simpleTriggerInterface, triggerMatchPath]);
 
   const handleTriggerTypeChange = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => {
+    (e: React.ChangeEvent<HTMLSelectElement>) => {
       const { value } = e.currentTarget;
       const type = value as AstarteSimpleTrigger['type'];
       onChange(type === 'data_trigger' ? defaultSimpleDataTrigger : defaultSimpleDeviceTrigger);
@@ -141,7 +141,7 @@ const SimpleTriggerForm = ({
   );
 
   const handleTriggerConditionChange = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => {
+    (e: React.ChangeEvent<HTMLSelectElement>) => {
       const { value } = e.currentTarget;
       const on = value as AstarteSimpleTrigger['on'];
       onChange({ ...simpleTrigger, on } as AstarteSimpleTrigger);
@@ -150,7 +150,7 @@ const SimpleTriggerForm = ({
   );
 
   const handleTriggerTargetChange = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => {
+    (e: React.ChangeEvent<HTMLSelectElement>) => {
       const { value } = e.currentTarget;
       const target = value as 'all_devices' | 'device' | 'group';
       if (target === 'device') {
@@ -181,7 +181,7 @@ const SimpleTriggerForm = ({
   );
 
   const handleTriggerInterfaceNameChange = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => {
+    (e: React.ChangeEvent<HTMLSelectElement>) => {
       const { value } = e.target;
       const interfaceName = value;
       const newSimpleTrigger = {
@@ -207,7 +207,7 @@ const SimpleTriggerForm = ({
   );
 
   const handleTriggerInterfaceMajorChange = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => {
+    (e: React.ChangeEvent<HTMLSelectElement>) => {
       const { value } = e.target;
       const interfaceMajor = parseInt(value, 10);
       onChange({
@@ -238,7 +238,7 @@ const SimpleTriggerForm = ({
   );
 
   const handleTriggerInterfaceOperatorChange = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => {
+    (e: React.ChangeEvent<HTMLSelectElement>) => {
       const { value } = e.target;
       const valueMatchOperator = value as AstarteSimpleDataTrigger['valueMatchOperator'];
       if (valueMatchOperator === '*') {
@@ -361,12 +361,11 @@ const SimpleTriggerForm = ({
 
   return (
     <Form>
-      <Form.Row className="mb-2">
+      <Row className="mb-2">
         <Col sm={12}>
           <Form.Group controlId="triggerSimpleTriggerType">
             <Form.Label>Trigger type</Form.Label>
-            <Form.Control
-              as="select"
+            <Form.Select
               name="triggerSimpleTriggerType"
               disabled={isReadOnly}
               value={_.get(simpleTrigger, 'type')}
@@ -375,19 +374,18 @@ const SimpleTriggerForm = ({
             >
               <option value="device_trigger">Device Trigger</option>
               <option value="data_trigger">Data Trigger</option>
-            </Form.Control>
+            </Form.Select>
             <Form.Control.Feedback type="invalid">
               {_.get(validationErrors, 'type')}
             </Form.Control.Feedback>
           </Form.Group>
         </Col>
-      </Form.Row>
-      <Form.Row className="mb-2">
+      </Row>
+      <Row className="mb-2">
         <Col sm={hasTargetDevice || hasTargetGroup ? 4 : 12}>
           <Form.Group controlId="triggerTargetSelect">
             <Form.Label>Target</Form.Label>
-            <Form.Control
-              as="select"
+            <Form.Select
               name="triggerTargetSelect"
               disabled={isReadOnly}
               value={triggerTargetType}
@@ -396,7 +394,7 @@ const SimpleTriggerForm = ({
               <option value="all_devices">All devices</option>
               <option value="device">Device</option>
               <option value="group">Group</option>
-            </Form.Control>
+            </Form.Select>
           </Form.Group>
         </Col>
         {hasTargetDevice && (
@@ -437,13 +435,12 @@ const SimpleTriggerForm = ({
             </Form.Group>
           </Col>
         )}
-      </Form.Row>
-      <Form.Row className="mb-2">
+      </Row>
+      <Row className="mb-2">
         <Col sm={12}>
           <Form.Group controlId="triggerCondition">
             <Form.Label>Trigger condition</Form.Label>
-            <Form.Control
-              as="select"
+            <Form.Select
               name="triggerCondition"
               disabled={isReadOnly || isLoadingInterface}
               value={_.get(simpleTrigger, 'on')}
@@ -451,21 +448,20 @@ const SimpleTriggerForm = ({
               isInvalid={_.get(validationErrors, 'on') != null}
             >
               {renderTriggerConditionOptions()}
-            </Form.Control>
+            </Form.Select>
             <Form.Control.Feedback type="invalid">
               {_.get(validationErrors, 'on')}
             </Form.Control.Feedback>
           </Form.Group>
         </Col>
-      </Form.Row>
+      </Row>
       {isDataTrigger && (
         <>
-          <Form.Row className="mb-2">
+          <Row className="mb-2">
             <Col sm={hasSelectedInterface ? 8 : 12}>
               <Form.Group controlId="triggerInterfaceName">
                 <Form.Label>Interface name</Form.Label>
-                <Form.Control
-                  as="select"
+                <Form.Select
                   name="triggerInterfaceName"
                   disabled={isReadOnly || isLoadingInterfacesName}
                   value={triggerInterfaceName || '*'}
@@ -473,7 +469,7 @@ const SimpleTriggerForm = ({
                   isInvalid={_.get(validationErrors, 'interfaceName') != null}
                 >
                   {renderInterfaceNameOptions()}
-                </Form.Control>
+                </Form.Select>
                 <Form.Control.Feedback type="invalid">
                   {_.get(validationErrors, 'interfaceName')}
                 </Form.Control.Feedback>
@@ -483,8 +479,7 @@ const SimpleTriggerForm = ({
               <Col sm={4}>
                 <Form.Group controlId="triggerInterfaceMajor">
                   <Form.Label>Interface major</Form.Label>
-                  <Form.Control
-                    as="select"
+                  <Form.Select
                     name="triggerInterfaceMajor"
                     disabled={isReadOnly || isLoadingInterfaceMajors || isLoadingInterface}
                     value={_.get(simpleTrigger, 'interfaceMajor') || 0}
@@ -492,17 +487,17 @@ const SimpleTriggerForm = ({
                     isInvalid={_.get(validationErrors, 'interfaceMajor') != null}
                   >
                     {renderInterfaceMajorOptions()}
-                  </Form.Control>
+                  </Form.Select>
                   <Form.Control.Feedback type="invalid">
                     {_.get(validationErrors, 'interfaceMajor')}
                   </Form.Control.Feedback>
                 </Form.Group>
               </Col>
             )}
-          </Form.Row>
+          </Row>
           {hasSelectedInterface && (
             <>
-              <Form.Row className="mb-2">
+              <Row className="mb-2">
                 <Col sm={12}>
                   <Form.Group controlId="triggerPath">
                     <Form.Label>Path</Form.Label>
@@ -520,13 +515,12 @@ const SimpleTriggerForm = ({
                     </Form.Control.Feedback>
                   </Form.Group>
                 </Col>
-              </Form.Row>
-              <Form.Row className="mb-2">
+              </Row>
+              <Row className="mb-2">
                 <Col sm={4}>
                   <Form.Group controlId="triggerOperator">
                     <Form.Label>Operator</Form.Label>
-                    <Form.Control
-                      as="select"
+                    <Form.Select
                       name="triggerOperator"
                       disabled={isReadOnly || isLoadingInterfaceMajors || isLoadingInterface}
                       value={triggerValueMatchOperator || '*'}
@@ -534,7 +528,7 @@ const SimpleTriggerForm = ({
                       isInvalid={_.get(validationErrors, 'valueMatchOperator') != null}
                     >
                       {renderTriggerOperatorOptions()}
-                    </Form.Control>
+                    </Form.Select>
                     <Form.Control.Feedback type="invalid">
                       {_.get(validationErrors, 'valueMatchOperator')}
                     </Form.Control.Feedback>
@@ -559,7 +553,7 @@ const SimpleTriggerForm = ({
                     </Form.Group>
                   </Col>
                 )}
-              </Form.Row>
+              </Row>
             </>
           )}
         </>

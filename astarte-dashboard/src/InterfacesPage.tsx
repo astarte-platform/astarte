@@ -35,14 +35,14 @@ const InterfaceRow = ({ name, majors }: InterfaceRowProps): React.ReactElement =
       <Row>
         <Col>
           <Link to={`/interfaces/${name}/${Math.max(...majors)}/edit`}>
-            <Icon icon="interfaces" className="mr-2" />
+            <Icon icon="interfaces" className="me-2" />
             {name}
           </Link>
         </Col>
         <Col md="auto">
           {majors.map((major) => (
             <Link key={major} to={`/interfaces/${name}/${major}/edit`}>
-              <Badge variant={major > 0 ? 'primary' : 'secondary'} className="mr-1 px-2 py-1">
+              <Badge bg={major > 0 ? 'primary' : 'secondary'} className="me-1 px-2 py-1">
                 v{major}
               </Badge>
             </Link>
@@ -110,7 +110,7 @@ export default (): React.ReactElement => {
           <ListGroup>
             <ListGroup.Item>
               <Button variant="link" className="p-0" onClick={() => navigate('/interfaces/new')}>
-                <Icon icon="add" className="mr-2" />
+                <Icon icon="add" className="me-2" />
                 Install a new interface...
               </Button>
             </ListGroup.Item>

@@ -17,7 +17,7 @@
 */
 
 import React, { useCallback } from 'react';
-import { Button, Col, Form, InputGroup, Table } from 'react-bootstrap';
+import { Button, Col, Form, InputGroup, Row, Table } from 'react-bootstrap';
 import { AstarteTrigger, AstarteTriggerHTTPAction, AstarteTriggerAMQPAction } from 'astarte-client';
 import _ from 'lodash';
 
@@ -68,7 +68,7 @@ const TriggerActionForm = ({
   const triggerAmqpHeaders = _.get(action, 'amqpStaticHeaders') || {};
 
   const handleTriggerActionTypeChange = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => {
+    (e: React.ChangeEvent<HTMLSelectElement>) => {
       const { value } = e.target;
       const actionType = value as 'amqp' | 'http';
       onChange(actionType === 'http' ? defaultTriggerHttpAction : defaultTriggerAmqpAction);
@@ -77,7 +77,7 @@ const TriggerActionForm = ({
   );
 
   const handleTriggerActionHttpMethodChange = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => {
+    (e: React.ChangeEvent<HTMLSelectElement>) => {
       const { value } = e.target;
       const httpMethod = value as AstarteTriggerHTTPAction['httpMethod'];
       onChange({ ...action, httpMethod });
@@ -104,7 +104,7 @@ const TriggerActionForm = ({
   );
 
   const handleTriggerActionHttpPayloadTypeChange = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => {
+    (e: React.ChangeEvent<HTMLSelectElement>) => {
       const { value } = e.target;
       const payloadType = value as 'default' | 'mustache';
       if (payloadType === 'mustache') {
@@ -178,12 +178,11 @@ const TriggerActionForm = ({
 
   return (
     <Form>
-      <Form.Row className="mb-2">
+      <Row className="mb-2">
         <Col sm={12}>
           <Form.Group controlId="triggerActionType">
             <Form.Label>Action type</Form.Label>
-            <Form.Control
-              as="select"
+            <Form.Select
               name="triggerActionType"
               disabled={isReadOnly}
               value={isAmqpAction ? 'amqp' : 'http'}
@@ -191,18 +190,17 @@ const TriggerActionForm = ({
             >
               <option value="http">HTTP request</option>
               <option value="amqp">AMQP Message</option>
-            </Form.Control>
+            </Form.Select>
           </Form.Group>
         </Col>
-      </Form.Row>
+      </Row>
       {isHttpAction && (
         <>
-          <Form.Row className="mb-2">
+          <Row className="mb-2">
             <Col sm={4}>
               <Form.Group controlId="triggerMethod">
                 <Form.Label>Method</Form.Label>
-                <Form.Control
-                  as="select"
+                <Form.Select
                   name="triggerMethod"
                   disabled={isReadOnly}
                   value={_.get(action, 'httpMethod') || 'post'}
@@ -214,7 +212,7 @@ const TriggerActionForm = ({
                       {method.toUpperCase()}
                     </option>
                   ))}
-                </Form.Control>
+                </Form.Select>
                 <Form.Control.Feedback type="invalid">
                   {_.get(validationErrors, 'httpMethod')}
                 </Form.Control.Feedback>
@@ -237,8 +235,8 @@ const TriggerActionForm = ({
                 </Form.Control.Feedback>
               </Form.Group>
             </Col>
-          </Form.Row>
-          <Form.Row className="mb-2">
+          </Row>
+          <Row className="mb-2">
             <Col sm={12}>
               <Form.Group controlId="actionIgnoreSSLErrors">
                 <Form.Check
@@ -255,13 +253,12 @@ const TriggerActionForm = ({
                 </Form.Control.Feedback>
               </Form.Group>
             </Col>
-          </Form.Row>
-          <Form.Row className="mb-2">
+          </Row>
+          <Row className="mb-2">
             <Col sm={12}>
               <Form.Group controlId="triggerTemplateType">
                 <Form.Label>Payload type</Form.Label>
-                <Form.Control
-                  as="select"
+                <Form.Select
                   name="triggerTemplateType"
                   disabled={isReadOnly}
                   value={triggerPayloadType}
@@ -269,12 +266,12 @@ const TriggerActionForm = ({
                 >
                   <option value="default">Use default event format (JSON)</option>
                   <option value="mustache">Mustache</option>
-                </Form.Control>
+                </Form.Select>
               </Form.Group>
             </Col>
-          </Form.Row>
+          </Row>
           {triggerPayloadType === 'mustache' && (
-            <Form.Row className="mb-2">
+            <Row className="mb-2">
               <Col sm={12}>
                 <Form.Group controlId="actionPayload">
                   <Form.Label>Payload</Form.Label>
@@ -293,14 +290,14 @@ const TriggerActionForm = ({
                   </Form.Control.Feedback>
                 </Form.Group>
               </Col>
-            </Form.Row>
+            </Row>
           )}
-          <Form.Row className="mb-2">
+          <Row className="mb-2">
             <Col sm={12}>
               <Form.Group controlId="actionHttpHeaders">
                 {!isReadOnly && (
                   <Button variant="link" className="p-0" onClick={() => onAddHttpHeader()}>
-                    <Icon icon="add" className="mr-2" />
+                    <Icon icon="add" className="me-2" />
                     Add custom HTTP headers
                   </Button>
                 )}
@@ -323,7 +320,7 @@ const TriggerActionForm = ({
                               <Icon
                                 icon="edit"
                                 onClick={() => onEditHttpHeader(headerName)}
-                                className="color-grey mr-2"
+                                className="color-grey me-2"
                               />
                               <Icon icon="erase" onClick={() => onDeleteHttpHeader(headerName)} />
                             </td>
@@ -342,12 +339,12 @@ const TriggerActionForm = ({
                 </Form.Control.Feedback>
               </Form.Group>
             </Col>
-          </Form.Row>
+          </Row>
         </>
       )}
       {isAmqpAction && (
         <>
-          <Form.Row className="mb-2">
+          <Row className="mb-2">
             <Col sm={12}>
               <Form.Group controlId="amqpExchange">
                 <Form.Label>Exchange</Form.Label>
@@ -366,8 +363,8 @@ const TriggerActionForm = ({
                 </Form.Control.Feedback>
               </Form.Group>
             </Col>
-          </Form.Row>
-          <Form.Row className="mb-2">
+          </Row>
+          <Row className="mb-2">
             <Col sm={12}>
               <Form.Group controlId="amqpRoutingKey">
                 <Form.Label>Routing key</Form.Label>
@@ -385,8 +382,8 @@ const TriggerActionForm = ({
                 </Form.Control.Feedback>
               </Form.Group>
             </Col>
-          </Form.Row>
-          <Form.Row className="mb-2">
+          </Row>
+          <Row className="mb-2">
             <Col sm={12}>
               <Form.Group controlId="amqpPersistency">
                 <Form.Label>Persistency</Form.Label>
@@ -404,8 +401,8 @@ const TriggerActionForm = ({
                 </Form.Control.Feedback>
               </Form.Group>
             </Col>
-          </Form.Row>
-          <Form.Row className="mb-2">
+          </Row>
+          <Row className="mb-2">
             <Col sm={12}>
               <Form.Group controlId="amqpPriority">
                 <Form.Label>Priority</Form.Label>
@@ -424,8 +421,8 @@ const TriggerActionForm = ({
                 </Form.Control.Feedback>
               </Form.Group>
             </Col>
-          </Form.Row>
-          <Form.Row className="mb-2">
+          </Row>
+          <Row className="mb-2">
             <Col sm={12}>
               <Form.Group controlId="amqpExpiration">
                 <Form.Label>Expiration</Form.Label>
@@ -439,22 +436,20 @@ const TriggerActionForm = ({
                     onChange={handleTriggerActionAmqpMessageExpirationMillisecondsChange}
                     isInvalid={_.get(validationErrors, 'amqpMessageExpirationMilliseconds') != null}
                   />
-                  <InputGroup.Append>
-                    <InputGroup.Text>milliseconds</InputGroup.Text>
-                  </InputGroup.Append>
+                  <InputGroup.Text>milliseconds</InputGroup.Text>
                   <Form.Control.Feedback type="invalid">
                     {_.get(validationErrors, 'amqpMessageExpirationMilliseconds')}
                   </Form.Control.Feedback>
                 </InputGroup>
               </Form.Group>
             </Col>
-          </Form.Row>
-          <Form.Row className="mb-2">
+          </Row>
+          <Row className="mb-2">
             <Col sm={12}>
               <Form.Group controlId="actionAmqpHeaders">
                 {!isReadOnly && (
                   <Button variant="link" className="p-0" onClick={() => onAddAmqpHeader()}>
-                    <Icon icon="add" className="mr-2" />
+                    <Icon icon="add" className="me-2" />
                     Add static AMQP headers
                   </Button>
                 )}
@@ -477,7 +472,7 @@ const TriggerActionForm = ({
                               <Icon
                                 icon="edit"
                                 onClick={() => onEditAmqpHeader(headerName)}
-                                className="color-grey mr-2"
+                                className="color-grey me-2"
                               />
                               <Icon icon="erase" onClick={() => onDeleteAmqpHeader(headerName)} />
                             </td>
@@ -496,7 +491,7 @@ const TriggerActionForm = ({
                 </Form.Control.Feedback>
               </Form.Group>
             </Col>
-          </Form.Row>
+          </Row>
         </>
       )}
     </Form>

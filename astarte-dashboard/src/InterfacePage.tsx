@@ -206,12 +206,12 @@ export default (): React.ReactElement => {
                 denyMajorChanges
               />
               <Row className="justify-content-end m-3">
-                <Button variant="secondary" className="mr-2" onClick={handleToggleSourceVisibility}>
+                <Button variant="secondary" className="me-2" onClick={handleToggleSourceVisibility}>
                   {isSourceVisible ? 'Hide' : 'Show'} source
                 </Button>
                 {iface.major === 0 && (
                   <Button
-                    className="mr-2"
+                    className="me-2"
                     variant="danger"
                     onClick={isDeletingInterface ? undefined : showConfirmDeleteModal}
                     disabled={isDeletingInterface}
@@ -222,7 +222,7 @@ export default (): React.ReactElement => {
                         size="sm"
                         animation="border"
                         role="status"
-                        className="mr-2"
+                        className="me-2"
                       />
                     )}
                     Delete interface
@@ -239,7 +239,7 @@ export default (): React.ReactElement => {
                       size="sm"
                       animation="border"
                       role="status"
-                      className="mr-2"
+                      className="me-2"
                     />
                   )}
                   Apply changes

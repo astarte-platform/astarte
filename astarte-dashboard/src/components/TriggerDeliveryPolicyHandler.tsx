@@ -95,7 +95,7 @@ const HandlerModal = ({
     typeof handlerOn === 'object' ? handler.on.toString() : '',
   );
 
-  const handleOnChange = (event: ChangeEvent<HTMLInputElement>) => {
+  const handleOnChange = (event: ChangeEvent<HTMLSelectElement>) => {
     const { value } = event.target;
     setSelectedErrorType(value);
     setHandlerOn(value as 'any_error' | 'client_error' | 'server_error' | number[]);
@@ -141,11 +141,10 @@ const HandlerModal = ({
           <Form>
             <Form.Group className="mb-3" controlId="errorHandlerOn">
               <Form.Label>On</Form.Label>
-              <Form.Control
-                as="select"
+              <Form.Select
                 required
                 name="on"
-                readOnly={readOnly}
+                disabled={readOnly}
                 value={typeof handlerOn === 'object' ? 'custom_errors' : handlerOn.toString()}
                 onChange={handleOnChange}
               >
@@ -153,7 +152,7 @@ const HandlerModal = ({
                 <option value="server_error">server_error</option>
                 <option value="client_error">client_error</option>
                 <option value="custom_errors">Enter custom array of error numbers (400-599)</option>
-              </Form.Control>
+              </Form.Select>
             </Form.Group>
             {selectedErrorType === 'custom_errors' && (
               <ErrorCodesControl
@@ -165,17 +164,16 @@ const HandlerModal = ({
             )}
             <Form.Group className="mb-3" controlId="errorHandlerStrategy">
               <Form.Label>Strategy</Form.Label>
-              <Form.Control
-                as="select"
+              <Form.Select
                 value={handlerStrategy}
-                readOnly={readOnly}
+                disabled={readOnly}
                 required
                 name="strategy"
                 onChange={handleStrategyChange}
               >
                 <option value="discard">Discard</option>
                 <option value="retry">Retry</option>
-              </Form.Control>
+              </Form.Select>
             </Form.Group>
           </Form>
         </Modal.Body>
@@ -266,7 +264,7 @@ export default ({ isReadOnly, initialData, onChange }: Props): React.ReactElemen
       <Form.Group controlId="policyHandler">
         {!isReadOnly && (
           <Button variant="link" className="p-0" onClick={() => setIsAddingHandler(true)}>
-            <Icon icon="add" className="mr-2" />
+            <Icon icon="add" className="me-2" />
             Add Error Handler
           </Button>
         )}
@@ -294,7 +292,7 @@ export default ({ isReadOnly, initialData, onChange }: Props): React.ReactElemen
                       <Icon
                         icon="edit"
                         onClick={() => setHandlerToEditIndex(index)}
-                        className="color-grey mr-2"
+                        className="color-grey me-2"
                       />
                       <Icon
                         icon="erase"

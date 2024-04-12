@@ -18,7 +18,7 @@
 
 import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Button, Card, CardDeck, Container, Spinner } from 'react-bootstrap';
+import { Button, Card, Col, Container, Row, Spinner } from 'react-bootstrap';
 import type { AstartePipeline } from 'astarte-client';
 
 import { useAstarte } from './AstarteManager';
@@ -31,13 +31,15 @@ interface NewPipelineCardProps {
 }
 
 const NewPipelineCard = ({ onCreate }: NewPipelineCardProps): React.ReactElement => (
-  <Card className="mb-4">
+  <Card className="mb-4 h-100">
     <Card.Header as="h5">New Pipeline</Card.Header>
-    <Card.Body>
+    <Card.Body className="d-flex flex-column">
       <Card.Text>Create your custom pipeline</Card.Text>
-      <Button variant="secondary" onClick={onCreate}>
-        Create
-      </Button>
+      <div className="mt-auto d-flex flex-column flex-md-row">
+        <Button variant="secondary" onClick={onCreate}>
+          Create
+        </Button>
+      </div>
     </Card.Body>
   </Card>
 );
@@ -53,15 +55,17 @@ const PipelineCard = ({
   onInstantiate,
   showLink,
 }: PipelineCardProps): React.ReactElement => (
-  <Card className="mb-4">
+  <Card className="mb-4 h-100">
     <Card.Header as="h5">
       <Link to={showLink}>{pipeline.name}</Link>
     </Card.Header>
-    <Card.Body>
+    <Card.Body className="d-flex flex-column">
       <Card.Text>{pipeline.description}</Card.Text>
-      <Button variant="primary" onClick={onInstantiate}>
-        Instantiate
-      </Button>
+      <div className="mt-auto d-flex flex-column flex-md-row">
+        <Button variant="primary" onClick={onInstantiate}>
+          Instantiate
+        </Button>
+      </div>
     </Card.Body>
   </Card>
 );
@@ -74,8 +78,10 @@ export default (): React.ReactElement => {
   return (
     <Container fluid className="p-3">
       <h2>Pipelines</h2>
-      <CardDeck className="mt-4">
-        <NewPipelineCard onCreate={() => navigate('/pipelines/new')} />
+      <Row xs={1} lg={2} xxl={3} className="mt-4 g-4">
+        <Col>
+          <NewPipelineCard onCreate={() => navigate('/pipelines/new')} />
+        </Col>
         <WaitForData
           data={pipelinesFetcher.value}
           status={pipelinesFetcher.status}
@@ -90,9 +96,8 @@ export default (): React.ReactElement => {
         >
           {(pipelines) => (
             <>
-              {pipelines.map((pipeline, index) => (
-                <React.Fragment key={`fragment-${index}`}>
-                  {index % 2 ? <div className="w-100 d-none d-md-block" /> : null}
+              {pipelines.map((pipeline) => (
+                <Col key={pipeline.name}>
                   <PipelineCard
                     pipeline={pipeline}
                     onInstantiate={() => {
@@ -100,15 +105,12 @@ export default (): React.ReactElement => {
                     }}
                     showLink={`/pipelines/${pipeline.name}/edit`}
                   />
-                  {index === pipelines.length - 1 && pipelines.length % 2 === 0 ? (
-                    <div className="w-50 d-none d-md-block" />
-                  ) : null}
-                </React.Fragment>
+                </Col>
               ))}
             </>
           )}
         </WaitForData>
-      </CardDeck>
+      </Row>
     </Container>
   );
 };

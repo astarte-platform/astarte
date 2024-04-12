@@ -158,7 +158,7 @@ interface TimestampProps {
 const Timestamp = ({ children }: TimestampProps): React.ReactElement => {
   const formattedTimestamp = children.toISOString().substring(11, 23);
 
-  return <small className="text-secondary text-monospace mr-2">{`[${formattedTimestamp}]`}</small>;
+  return <small className="text-secondary font-monospace me-2">{`[${formattedTimestamp}]`}</small>;
 };
 
 const deviceErrorNameToString = (errorName: string): string => {
@@ -217,7 +217,7 @@ const astarteDeviceEventBody = (event: AstarteDeviceEvent) => {
   if (event instanceof AstarteDeviceConnectedEvent) {
     return (
       <>
-        <Badge variant="success" className="mr-2">
+        <Badge bg="success" className="me-2">
           device connected
         </Badge>
         <span>IP : {event.ip}</span>
@@ -227,7 +227,7 @@ const astarteDeviceEventBody = (event: AstarteDeviceEvent) => {
   if (event instanceof AstarteDeviceDisconnectedEvent) {
     return (
       <>
-        <Badge variant="warning" className="mr-2">
+        <Badge bg="warning" className="me-2">
           device disconnected
         </Badge>
         <span>Device disconnected</span>
@@ -237,12 +237,12 @@ const astarteDeviceEventBody = (event: AstarteDeviceEvent) => {
   if (event instanceof AstarteDeviceIncomingDataEvent) {
     return (
       <>
-        <Badge variant="info" className="mr-2">
+        <Badge bg="info" className="me-2">
           incoming data
         </Badge>
-        <span className="mr-2">{event.interfaceName}</span>
-        <span className="mr-2">{event.path}</span>
-        <span className="mr-2 text-monospace">
+        <span className="me-2">{event.interfaceName}</span>
+        <span className="me-2">{event.path}</span>
+        <span className="me-2 font-monospace">
           {_.isObject(event.value) ? JSON.stringify(event.value) : event.value}
         </span>
       </>
@@ -251,10 +251,10 @@ const astarteDeviceEventBody = (event: AstarteDeviceEvent) => {
   if (event instanceof AstarteDeviceUnsetPropertyEvent) {
     return (
       <>
-        <Badge variant="info" className="mr-2">
+        <Badge bg="info" className="me-2">
           unset property
         </Badge>
-        <span className="mr-2">{event.interfaceName}</span>
+        <span className="me-2">{event.interfaceName}</span>
         <span>{event.path}</span>
       </>
     );
@@ -262,7 +262,7 @@ const astarteDeviceEventBody = (event: AstarteDeviceEvent) => {
   if (event instanceof AstarteDeviceErrorEvent) {
     return (
       <>
-        <Badge variant="danger" className="mr-2">
+        <Badge bg="danger" className="me-2">
           device error
         </Badge>
         <span>{deviceErrorNameToString(event.errorName)}</span>
@@ -272,7 +272,7 @@ const astarteDeviceEventBody = (event: AstarteDeviceEvent) => {
             <div style={{ paddingLeft: '6.3em' }}>
               {Object.entries(event.metadata).map(([key, value]) => (
                 <span key={key}>
-                  {key}:<span className="text-secondary pl-2 pr-4">{value}</span>
+                  {key}:<span className="text-secondary ps-2 pe-4">{value}</span>
                 </span>
               ))}
             </div>
@@ -305,7 +305,7 @@ const SystemEventDelegate = ({ event }: SystemEventDelegateProps) => {
       return (
         <li className="px-2">
           <Timestamp>{new Date(event.timestamp)}</Timestamp>
-          <Badge variant="secondary" className="mr-2">
+          <Badge bg="secondary" className="me-2">
             channel
           </Badge>
           <span className="text-danger">{event.message}</span>
@@ -317,7 +317,7 @@ const SystemEventDelegate = ({ event }: SystemEventDelegateProps) => {
       return (
         <li className="px-2">
           <Timestamp>{new Date(event.timestamp)}</Timestamp>
-          <Badge variant="secondary" className="mr-2">
+          <Badge bg="secondary" className="me-2">
             channel
           </Badge>
           <span className="text-secondary">{event.message}</span>

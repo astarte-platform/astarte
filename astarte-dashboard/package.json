@@ -44,6 +44,7 @@
     "prettier": "^3.2.5"
   },
   "dependencies": {
+    "@astarte-platform/react-bootstrap": "^5.15.0",
     "@emotion/core": "^11.0.0",
     "@emotion/react": "^11.11.3",
     "@emotion/styled": "^11.11.0",
@@ -51,7 +52,6 @@
     "@projectstorm/react-canvas-core": "^7.0.2",
     "@projectstorm/react-diagrams": "^7.0.3",
     "@reduxjs/toolkit": "^2.1.0",
-    "@rjsf/bootstrap-4": "^5.17.0",
     "@rjsf/core": "^5.17.0",
     "@rjsf/validator-ajv8": "^5.17.0",
     "@testing-library/react": "^14.2.1",
@@ -70,7 +70,7 @@
     "@vitejs/plugin-react": "^4.2.1",
     "ajv": "^8.12.0",
     "axios": "^1.6.7",
-    "bootstrap": "^4.6.0",
+    "bootstrap": "^5.3.2",
     "chart.js": "^4.4.1",
     "closest": "^0.0.1",
     "color": "^4.2.3",
@@ -90,7 +90,7 @@
     "paths-js": "^0.4.11",
     "phoenix": "^1.7.11",
     "react": "^18.2.0",
-    "react-bootstrap": "^1.5.0",
+    "react-bootstrap": "^2.10.1",
     "react-chartjs-2": "^5.2.0",
     "react-datepicker": "^6.1.0",
     "react-dom": "^18.2.0",

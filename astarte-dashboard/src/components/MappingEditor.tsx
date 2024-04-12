@@ -17,7 +17,7 @@
 */
 
 import React from 'react';
-import { Col, Form, InputGroup } from 'react-bootstrap';
+import { Col, Form, InputGroup, Row } from 'react-bootstrap';
 import { AstarteMapping } from 'astarte-client';
 import type { AstarteInterface } from 'astarte-client';
 import _ from 'lodash';
@@ -72,7 +72,7 @@ export default ({
 
   return (
     <Form>
-      <Form.Row className="mb-2">
+      <Row className="mb-2">
         <Col sm={12}>
           <Form.Group controlId="mappingEndpoint">
             <Form.Label>Endpoint</Form.Label>
@@ -89,13 +89,12 @@ export default ({
             </Form.Control.Feedback>
           </Form.Group>
         </Col>
-      </Form.Row>
-      <Form.Row className="mb-2">
+      </Row>
+      <Row className="mb-2">
         <Col sm={isPropertiesInterface ? 8 : 12}>
           <Form.Group controlId="mappingType">
             <Form.Label>Type</Form.Label>
-            <Form.Control
-              as="select"
+            <Form.Select
               value={mapping.type}
               onChange={({ target: { value } }) =>
                 onChange({ ...mapping, type: value as AstarteMapping['type'] })
@@ -105,7 +104,7 @@ export default ({
               {astarteDataTypes.map((t) => (
                 <option key={t}>{t}</option>
               ))}
-            </Form.Control>
+            </Form.Select>
             <Form.Control.Feedback type="invalid">
               {mappingValidationErrors.type}
             </Form.Control.Feedback>
@@ -131,14 +130,13 @@ export default ({
             </Form.Group>
           </Col>
         )}
-      </Form.Row>
+      </Row>
       {isDatastreamIndividualInterface && (
-        <Form.Row className="mb-2">
+        <Row className="mb-2">
           <Col md={6}>
             <Form.Group controlId="mappingReliability">
               <Form.Label>Reliability</Form.Label>
-              <Form.Control
-                as="select"
+              <Form.Select
                 name="reliability"
                 value={mapping.reliability || 'unreliable'}
                 onChange={({ currentTarget: { value } }) => {
@@ -151,7 +149,7 @@ export default ({
                 <option value="unreliable">Unreliable</option>
                 <option value="guaranteed">Guaranteed</option>
                 <option value="unique">Unique</option>
-              </Form.Control>
+              </Form.Select>
               <Form.Control.Feedback type="invalid">
                 {mappingValidationErrors.reliability}
               </Form.Control.Feedback>
@@ -175,15 +173,14 @@ export default ({
               </Form.Control.Feedback>
             </Form.Group>
           </Col>
-        </Form.Row>
+        </Row>
       )}
       {isDatastreamIndividualInterface && (
-        <Form.Row className="mb-2">
+        <Row className="mb-2">
           <Col md={showMappingExpiry ? 6 : 12}>
             <Form.Group controlId="mappingRetention">
               <Form.Label>Retention</Form.Label>
-              <Form.Control
-                as="select"
+              <Form.Select
                 name="retention"
                 value={mapping.retention || 'discard'}
                 onChange={({ currentTarget: { value } }) => {
@@ -199,7 +196,7 @@ export default ({
                 <option value="discard">Discard</option>
                 <option value="volatile">Volatile</option>
                 <option value="stored">Stored</option>
-              </Form.Control>
+              </Form.Select>
               <Form.Control.Feedback type="invalid">
                 {mappingValidationErrors.retention}
               </Form.Control.Feedback>
@@ -220,9 +217,7 @@ export default ({
                     }}
                     isInvalid={mappingValidationErrors.expiry != null}
                   />
-                  <InputGroup.Append>
-                    <InputGroup.Text>seconds</InputGroup.Text>
-                  </InputGroup.Append>
+                  <InputGroup.Text>seconds</InputGroup.Text>
                   <Form.Control.Feedback type="invalid">
                     {mappingValidationErrors.expiry}
                   </Form.Control.Feedback>
@@ -230,15 +225,14 @@ export default ({
               </Form.Group>
             </Col>
           )}
-        </Form.Row>
+        </Row>
       )}
       {isDatastreamIndividualInterface && (
-        <Form.Row className="mb-2">
+        <Row className="mb-2">
           <Col md={showInterfaceDatabaseRetentionTtl ? 6 : 12}>
             <Form.Group controlId="mappingDatabaseRetention">
               <Form.Label>Database retention</Form.Label>
-              <Form.Control
-                as="select"
+              <Form.Select
                 name="mappingDatabaseRetention"
                 value={mapping.databaseRetentionPolicy || 'no_ttl'}
                 onChange={({ currentTarget: { value } }) => {
@@ -258,7 +252,7 @@ export default ({
               >
                 <option value="no_ttl">No TTL</option>
                 <option value="use_ttl">Use TTL</option>
-              </Form.Control>
+              </Form.Select>
               <Form.Control.Feedback type="invalid">
                 {mappingValidationErrors.databaseRetentionPolicy}
               </Form.Control.Feedback>
@@ -279,9 +273,7 @@ export default ({
                     }}
                     isInvalid={mappingValidationErrors.databaseRetentionTtl != null}
                   />
-                  <InputGroup.Append>
-                    <InputGroup.Text>seconds</InputGroup.Text>
-                  </InputGroup.Append>
+                  <InputGroup.Text>seconds</InputGroup.Text>
                   <Form.Control.Feedback type="invalid">
                     {mappingValidationErrors.databaseRetentionTtl}
                   </Form.Control.Feedback>
@@ -289,9 +281,9 @@ export default ({
               </Form.Group>
             </Col>
           )}
-        </Form.Row>
+        </Row>
       )}
-      <Form.Row className="mb-2">
+      <Row className="mb-2">
         <Col sm={12}>
           <Form.Group controlId="mappingDescription">
             <Form.Label>Description</Form.Label>
@@ -309,8 +301,8 @@ export default ({
             </Form.Control.Feedback>
           </Form.Group>
         </Col>
-      </Form.Row>
-      <Form.Row className="mb-2">
+      </Row>
+      <Row className="mb-2">
         <Col sm={12}>
           <Form.Group controlId="mappingDocumentation">
             <Form.Label>Documentation</Form.Label>
@@ -328,7 +320,7 @@ export default ({
             </Form.Control.Feedback>
           </Form.Group>
         </Col>
-      </Form.Row>
+      </Row>
     </Form>
   );
 };

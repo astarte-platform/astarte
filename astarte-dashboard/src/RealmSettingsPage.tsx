@@ -53,7 +53,7 @@ const RealmSettingsForm = ({
         <Form.Label>Public key</Form.Label>
         <Form.Control
           as="textarea"
-          className="text-monospace"
+          className="font-monospace"
           rows={16}
           value={values.publicKey}
           onChange={(e) => setValues({ ...values, publicKey: e.target.value })}
@@ -65,7 +65,7 @@ const RealmSettingsForm = ({
         onClick={() => onSubmit(values)}
       >
         {isUpdatingSettings && (
-          <Spinner className="mr-2" size="sm" animation="border" role="status" />
+          <Spinner className="me-2" size="sm" animation="border" role="status" />
         )}
         Change
       </Button>

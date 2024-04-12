@@ -49,7 +49,7 @@ const AddToGroupModal = ({
               className={groupName === selectedGroup ? 'p-2 bg-success text-white' : 'p-2'}
             >
               <span onClick={() => setSelectedGroup(groupName)}>
-                <Icon icon="add" className="mr-2" />
+                <Icon icon="add" className="me-2" />
                 {groupName}
               </span>
             </li>
@@ -73,7 +73,7 @@ const AddToGroupModal = ({
           style={{ minWidth: '5em' }}
         >
           {isAddingToGroup && (
-            <Spinner className="mr-2" size="sm" animation="border" role="status" />
+            <Spinner className="me-2" size="sm" animation="border" role="status" />
           )}
           Add to group
         </Button>

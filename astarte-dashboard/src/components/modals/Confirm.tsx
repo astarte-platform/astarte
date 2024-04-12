@@ -87,7 +87,7 @@ const ConfirmModal = ({
             style={{ minWidth: '5em' }}
           >
             {isConfirming && (
-              <Spinner className="mr-2" size="sm" animation="border" role="status" />
+              <Spinner className="me-2" size="sm" animation="border" role="status" />
             )}
             {confirmLabel}
           </Button>

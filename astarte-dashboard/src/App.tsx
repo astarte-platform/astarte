@@ -77,7 +77,7 @@ const Dashboard = () => {
   return (
     <ReduxProvider store={reduxStore}>
       <Container fluid className="px-0">
-        <Row className="no-gutters">
+        <Row className="g-0">
           <DashboardSidebar />
           <Col className="main-content vh-100 overflow-auto">
             <PageRouter />
@@ -90,7 +90,7 @@ const Dashboard = () => {
 
 const StandaloneEditor = () => (
   <Container fluid className="px-0">
-    <Row className="no-gutters">
+    <Row className="g-0">
       <Col id="main-navbar" className="col-auto nav-col">
         <Sidebar>
           <Sidebar.Brand />

@@ -232,7 +232,7 @@ const OAuthForm = ({
 };
 
 const LeftColumn = (): React.ReactElement => (
-  <Col lg={6} className="p-0 no-gutters d-none d-lg-block">
+  <Col lg={6} className="p-0 g-0 d-none d-lg-block">
     <div className="d-flex flex-column align-items-center justify-content-center position-relative login-image-container">
       <img
         src="/static/img/background-login-top.svg"

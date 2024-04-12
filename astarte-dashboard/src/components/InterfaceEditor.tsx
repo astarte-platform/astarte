@@ -71,89 +71,83 @@ const databaseRetentionToLabel = {
 };
 
 const MappingRow = ({ className, mapping, onEdit, onDelete }: MappingRowProps) => (
-  <Accordion data-testid={mapping.endpoint}>
-    <Card className={className}>
-      <Accordion.Toggle
-        eventKey={mapping.endpoint}
-        as={Card.Header}
-        className="d-flex align-items-center flex-wrap"
-      >
+  <Accordion data-testid={mapping.endpoint} className={className}>
+    <Accordion.Item eventKey={mapping.endpoint}>
+      <Accordion.Header className="d-flex align-items-center flex-wrap">
         <span className="flex-grow-1">
-          <Badge variant="secondary">{mapping.type}</Badge>
-          <Button className="text-left text-truncate" variant="link">
+          <Badge bg="secondary">{mapping.type}</Badge>
+          <Button className="text-start text-truncate" variant="link">
             {mapping.endpoint}
           </Button>
         </span>
         {onEdit && (
-          <Button className="mr-2" variant="outline-primary" onClick={onEdit}>
+          <Button className="me-2" variant="outline-primary" onClick={onEdit}>
             Edit...
           </Button>
         )}
         {onDelete && (
-          <Button variant="outline-primary" onClick={onDelete}>
+          <Button className="me-2" variant="outline-primary" onClick={onDelete}>
             Delete
           </Button>
         )}
-      </Accordion.Toggle>
-      <Accordion.Collapse eventKey={mapping.endpoint}>
-        <Card.Body>
-          {mapping.description && (
-            <>
-              <h5>Description</h5>
-              <p>{mapping.description}</p>
-            </>
-          )}
-          {mapping.documentation && (
-            <>
-              <h5>Documentation</h5>
-              <p>{mapping.documentation}</p>
-            </>
-          )}
-          {mapping.allowUnset && (
-            <>
-              <h5>Allow Unset</h5>
-              <p>True</p>
-            </>
-          )}
-          {mapping.explicitTimestamp && (
-            <>
-              <h5>Explicit Timestamp</h5>
-              <p>True</p>
-            </>
-          )}
-          {mapping.reliability && (
-            <>
-              <h5>Reliability</h5>
-              <p>{reliabilityToLabel[mapping.reliability]}</p>
-            </>
-          )}
-          {mapping.retention && (
-            <>
-              <h5>Retention</h5>
-              <p>{retentionToLabel[mapping.retention]}</p>
-            </>
-          )}
-          {mapping.expiry && (
-            <>
-              <h5>Expiry</h5>
-              <p>{mapping.expiry} seconds</p>
-            </>
-          )}
-          {mapping.databaseRetentionPolicy && (
-            <>
-              <h5>Database Retention</h5>
-              <p>{databaseRetentionToLabel[mapping.databaseRetentionPolicy]}</p>
-            </>
-          )}
-          {mapping.databaseRetentionTtl != null && (
-            <>
-              <h5>Database Retention TTL</h5>
-              <p>{mapping.databaseRetentionTtl} seconds</p>
-            </>
-          )}
-        </Card.Body>
-      </Accordion.Collapse>
-    </Card>
+      </Accordion.Header>
+      <Accordion.Body>
+        {mapping.description && (
+          <>
+            <h5>Description</h5>
+            <p>{mapping.description}</p>
+          </>
+        )}
+        {mapping.documentation && (
+          <>
+            <h5>Documentation</h5>
+            <p>{mapping.documentation}</p>
+          </>
+        )}
+        {mapping.allowUnset && (
+          <>
+            <h5>Allow Unset</h5>
+            <p>True</p>
+          </>
+        )}
+        {mapping.explicitTimestamp && (
+          <>
+            <h5>Explicit Timestamp</h5>
+            <p>True</p>
+          </>
+        )}
+        {mapping.reliability && (
+          <>
+            <h5>Reliability</h5>
+            <p>{reliabilityToLabel[mapping.reliability]}</p>
+          </>
+        )}
+        {mapping.retention && (
+          <>
+            <h5>Retention</h5>
+            <p>{retentionToLabel[mapping.retention]}</p>
+          </>
+        )}
+        {mapping.expiry && (
+          <>
+            <h5>Expiry</h5>
+            <p>{mapping.expiry} seconds</p>
+          </>
+        )}
+        {mapping.databaseRetentionPolicy && (
+          <>
+            <h5>Database Retention</h5>
+            <p>{databaseRetentionToLabel[mapping.databaseRetentionPolicy]}</p>
+          </>
+        )}
+        {mapping.databaseRetentionTtl != null && (
+          <>
+            <h5>Database Retention TTL</h5>
+            <p>{mapping.databaseRetentionTtl} seconds</p>
+          </>
+        )}
+      </Accordion.Body>
+    </Accordion.Item>
   </Accordion>
 );
 
@@ -513,12 +507,15 @@ export default ({
     [],
   );
 
-  const handleInterfaceReliabilityChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    const { value } = e.currentTarget;
-    let reliability = value as AstarteMapping['reliability'];
-    reliability = reliability === 'unreliable' ? undefined : reliability;
-    setDatastreamOptions((options) => ({ ...options, reliability }));
-  }, []);
+  const handleInterfaceReliabilityChange = useCallback(
+    (e: React.ChangeEvent<HTMLSelectElement>) => {
+      const { value } = e.currentTarget;
+      let reliability = value as AstarteMapping['reliability'];
+      reliability = reliability === 'unreliable' ? undefined : reliability;
+      setDatastreamOptions((options) => ({ ...options, reliability }));
+    },
+    [],
+  );
 
   const handleInterfaceExplicitTimestampChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -529,7 +526,7 @@ export default ({
     [],
   );
 
-  const handleInterfaceRetentionChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleInterfaceRetentionChange = useCallback((e: React.ChangeEvent<HTMLSelectElement>) => {
     const { value } = e.currentTarget;
     const retention = value as AstarteMapping['retention'];
     setDatastreamOptions((options) => ({
@@ -545,7 +542,7 @@ export default ({
   }, []);
 
   const handleInterfaceDatabaseRetentionPolicyChange = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => {
+    (e: React.ChangeEvent<HTMLSelectElement>) => {
       const { value } = e.currentTarget;
       const databaseRetentionPolicy = value as AstarteMapping['databaseRetentionPolicy'];
       setDatastreamOptions((options) => ({
@@ -709,7 +706,7 @@ export default ({
       <Col md={isSourceVisible ? 6 : 12}>
         <Container fluid className="bg-white rounded p-3">
           <Form>
-            <Form.Row className="mb-2">
+            <Row className="mb-2">
               <Col md={6}>
                 <Form.Group controlId="interfaceName">
                   <Form.Label>Name</Form.Label>
@@ -764,8 +761,8 @@ export default ({
                   </Form.Control.Feedback>
                 </Form.Group>
               </Col>
-            </Form.Row>
-            <Form.Row className="mb-2">
+            </Row>
+            <Row className="mb-2">
               <Col md={4}>
                 <Form.Group>
                   <Form.Label>Type</Form.Label>
@@ -843,14 +840,13 @@ export default ({
                   />
                 </Form.Group>
               </Col>
-            </Form.Row>
+            </Row>
             {interfaceDraft.type === 'datastream' && interfaceDraft.aggregation === 'object' && (
-              <Form.Row className="mb-2">
+              <Row className="mb-2">
                 <Col md={6}>
                   <Form.Group controlId="objectMappingReliability">
                     <Form.Label>Reliability</Form.Label>
-                    <Form.Control
-                      as="select"
+                    <Form.Select
                       name="mappingReliability"
                       value={datastreamOptions.reliability || 'unreliable'}
                       onChange={handleInterfaceReliabilityChange}
@@ -859,7 +855,7 @@ export default ({
                       <option value="unreliable">{reliabilityToLabel.unreliable}</option>
                       <option value="guaranteed">{reliabilityToLabel.guaranteed}</option>
                       <option value="unique">{reliabilityToLabel.unique}</option>
-                    </Form.Control>
+                    </Form.Select>
                   </Form.Group>
                 </Col>
                 <Col md={6}>
@@ -875,15 +871,14 @@ export default ({
                     />
                   </Form.Group>
                 </Col>
-              </Form.Row>
+              </Row>
             )}
             {interfaceDraft.type === 'datastream' && interfaceDraft.aggregation === 'object' && (
-              <Form.Row className="mb-2">
+              <Row className="mb-2">
                 <Col md={showInterfaceExpiry ? 6 : 12}>
                   <Form.Group controlId="objectMappingRetention">
                     <Form.Label>Retention</Form.Label>
-                    <Form.Control
-                      as="select"
+                    <Form.Select
                       name="mappingRetention"
                       value={datastreamOptions.retention || 'discard'}
                       onChange={handleInterfaceRetentionChange}
@@ -892,7 +887,7 @@ export default ({
                       <option value="discard">{retentionToLabel.discard}</option>
                       <option value="volatile">{retentionToLabel.volatile}</option>
                       <option value="stored">{retentionToLabel.stored}</option>
-                    </Form.Control>
+                    </Form.Select>
                   </Form.Group>
                 </Col>
                 {showInterfaceExpiry && (
@@ -908,22 +903,19 @@ export default ({
                           isInvalid={(datastreamOptions.expiry || 0) < 0}
                           disabled={denyMajorChanges}
                         />
-                        <InputGroup.Append>
-                          <InputGroup.Text>seconds</InputGroup.Text>
-                        </InputGroup.Append>
+                        <InputGroup.Text>seconds</InputGroup.Text>
                       </InputGroup>
                     </Form.Group>
                   </Col>
                 )}
-              </Form.Row>
+              </Row>
             )}
             {interfaceDraft.type === 'datastream' && interfaceDraft.aggregation === 'object' && (
-              <Form.Row className="mb-2">
+              <Row className="mb-2">
                 <Col md={showInterfaceDatabaseRetentionTtl ? 6 : 12}>
                   <Form.Group controlId="objectMappingDatabaseRetention">
                     <Form.Label>Database Retention</Form.Label>
-                    <Form.Control
-                      as="select"
+                    <Form.Select
                       name="mappingDatabaseRetention"
                       value={datastreamOptions.databaseRetentionPolicy || 'no_ttl'}
                       onChange={handleInterfaceDatabaseRetentionPolicyChange}
@@ -931,7 +923,7 @@ export default ({
                     >
                       <option value="no_ttl">{databaseRetentionToLabel.no_ttl}</option>
                       <option value="use_ttl">{databaseRetentionToLabel.use_ttl}</option>
-                    </Form.Control>
+                    </Form.Select>
                   </Form.Group>
                 </Col>
                 {showInterfaceDatabaseRetentionTtl && (
@@ -947,16 +939,14 @@ export default ({
                           isInvalid={(datastreamOptions.databaseRetentionTtl || 60) < 60}
                           disabled={denyMajorChanges}
                         />
-                        <InputGroup.Append>
-                          <InputGroup.Text>seconds</InputGroup.Text>
-                        </InputGroup.Append>
+                        <InputGroup.Text>seconds</InputGroup.Text>
                       </InputGroup>
                     </Form.Group>
                   </Col>
                 )}
-              </Form.Row>
+              </Row>
             )}
-            <Form.Row className="mb-2">
+            <Row className="mb-2">
               <Col sm={12}>
                 <Form.Group controlId="interfaceDescription">
                   <Form.Label>Description</Form.Label>
@@ -973,8 +963,8 @@ export default ({
                   </Form.Control.Feedback>
                 </Form.Group>
               </Col>
-            </Form.Row>
-            <Form.Row className="mb-2">
+            </Row>
+            <Row className="mb-2">
               <Col sm={12}>
                 <Form.Group controlId="interfaceDocumentation">
                   <Form.Label>Documentation</Form.Label>
@@ -991,16 +981,16 @@ export default ({
                   </Form.Control.Feedback>
                 </Form.Group>
               </Col>
-            </Form.Row>
-            <Form.Row className="mb-2">
+            </Row>
+            <Row className="mb-2">
               <Col sm={12}>
                 <Form.Group controlId="interfaceMappings">
                   <button
                     type="button"
-                    className="btn accordion-button w-100 mb-2"
+                    className="btn border p-3 w-100 mb-2"
                     onClick={handleAddMapping}
                   >
-                    <Icon icon="add" className="mr-2" /> Add mapping...
+                    <Icon icon="add" className="me-2" /> Add mapping...
                   </button>
                   {interfaceDraft.mappings.map((mapping, index) => {
                     const isExistingMapping = (initialData?.mappings || []).some(
@@ -1028,7 +1018,7 @@ export default ({
                   <FormControlWarning message={interfaceValidationWarnings.mappings} />
                 </Form.Group>
               </Col>
-            </Form.Row>
+            </Row>
           </Form>
         </Container>
       </Col>
@@ -1037,7 +1027,7 @@ export default ({
           <Form.Group controlId="interfaceSource" className="h-100 d-flex flex-column">
             <Form.Control
               as="textarea"
-              className="flex-grow-1 text-monospace"
+              className="flex-grow-1 font-monospace"
               value={interfaceSource}
               onChange={handleInterfaceSourceChange}
               autoComplete="off"

@@ -288,7 +288,7 @@ export default ({
     setTriggerDraft((draft) => ({ ...draft, name: value }));
   }, []);
 
-  const handleTriggerPolicyNameChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleTriggerPolicyNameChange = useCallback((e: React.ChangeEvent<HTMLSelectElement>) => {
     const { value } = e.target;
     if (value) {
       setTriggerDraft((draft) => ({ ...draft, policy: value }));
@@ -448,7 +448,7 @@ export default ({
       <Col md={isSourceVisible ? 6 : 12}>
         <Container fluid className="bg-white rounded p-3">
           <Form>
-            <Form.Row className="mb-2">
+            <Row className="mb-2">
               <Col sm={12}>
                 <Form.Group controlId="triggerName">
                   <Form.Label>Name</Form.Label>
@@ -466,7 +466,7 @@ export default ({
                   </Form.Control.Feedback>
                 </Form.Group>
               </Col>
-            </Form.Row>
+            </Row>
           </Form>
           <SimpleTriggerForm
             fetchInterface={handleFetchInterface}
@@ -496,12 +496,11 @@ export default ({
             validationErrors={actionValidationErrors}
           />
           <Form>
-            <Form.Row className="mb-2">
+            <Row className="mb-2">
               <Col sm={12}>
                 <Form.Group controlId="triggerPolicyName">
                   <Form.Label>Trigger delivery policy</Form.Label>
-                  <Form.Control
-                    as="select"
+                  <Form.Select
                     name="triggerPolicyName"
                     disabled={isReadOnly || isLoadingPoliciesName}
                     value={_.get(triggerDraft, 'policy')}
@@ -517,13 +516,13 @@ export default ({
                         {policy}
                       </option>
                     ))}
-                  </Form.Control>
+                  </Form.Select>
                   <Form.Control.Feedback type="invalid">
                     {_.get(triggerValidationErrors, 'policy')}
                   </Form.Control.Feedback>
                 </Form.Group>
               </Col>
-            </Form.Row>
+            </Row>
           </Form>
         </Container>
       </Col>
@@ -532,7 +531,7 @@ export default ({
           <Form.Group controlId="triggerSource" className="h-100 d-flex flex-column">
             <Form.Control
               as="textarea"
-              className="flex-grow-1 text-monospace"
+              className="flex-grow-1 font-monospace"
               autoComplete="off"
               spellCheck={false}
               required

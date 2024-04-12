@@ -561,7 +561,7 @@ describe('Interface builder tests', () => {
         cy.get('#interfaceName').clear().paste('name');
         cy.get('#interfaceName').should('not.have.class', 'is-invalid');
         cy.get('#interfaceName')
-          .parents('.form-group')
+          .parents()
           .get('.warning-feedback')
           .should('be.visible')
           .and('not.empty');
@@ -570,7 +570,7 @@ describe('Interface builder tests', () => {
         cy.get('#interfaceName').clear().paste('com.sample.Name');
         cy.get('#interfaceName').should('not.have.class', 'is-invalid');
         cy.get('#interfaceName')
-          .parents('.form-group')
+          .parents()
           .get('.warning-feedback')
           .should('not.exist');
       });

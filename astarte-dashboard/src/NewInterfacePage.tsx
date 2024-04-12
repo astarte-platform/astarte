@@ -135,7 +135,7 @@ export default (): React.ReactElement => {
         <AlertsBanner alerts={installationAlerts} />
         <InterfaceEditor onChange={handleInterfaceChange} isSourceVisible={isSourceVisible} />
         <Row className="justify-content-end m-0 mt-3">
-          <Button variant="secondary" className="mr-2" onClick={handleToggleSourceVisibility}>
+          <Button variant="secondary" className="me-2" onClick={handleToggleSourceVisibility}>
             {isSourceVisible ? 'Hide' : 'Show'} source
           </Button>
           <Button
@@ -144,7 +144,7 @@ export default (): React.ReactElement => {
             disabled={isInstallingInterface || !isValidInterface}
           >
             {isInstallingInterface && (
-              <Spinner as="span" size="sm" animation="border" role="status" className="mr-2" />
+              <Spinner as="span" size="sm" animation="border" role="status" className="me-2" />
             )}
             Install interface
           </Button>

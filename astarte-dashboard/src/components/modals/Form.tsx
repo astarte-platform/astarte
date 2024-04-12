@@ -19,7 +19,9 @@
 import React, { useState } from 'react';
 import { Button, Form, Modal, Spinner } from 'react-bootstrap';
 import type { ModalProps } from 'react-bootstrap';
-import JsonSchemaForm from '@rjsf/bootstrap-4';
+// TODO: use @rjsf/react-bootstrap when @rjsf publishes v6 with support for
+// Bootstrap 5: https://github.com/rjsf-team/react-jsonschema-form/issues/4162
+import JsonSchemaForm from '@astarte-platform/react-bootstrap';
 import validator from '@rjsf/validator-ajv8';
 import type { IChangeEvent } from '@rjsf/core';
 import type { WidgetProps } from '@rjsf/utils';
@@ -163,7 +165,7 @@ const FormModal = ({
           >
             <hr style={{ display: 'block', marginLeft: '-1em', marginRight: '-1em' }} />
             <div className="d-flex justify-content-end">
-              <Button variant="secondary mr-2" onClick={onCancel} style={{ minWidth: '5em' }}>
+              <Button variant="secondary me-2" onClick={onCancel} style={{ minWidth: '5em' }}>
                 {cancelLabel}
               </Button>
               <Button
@@ -174,7 +176,7 @@ const FormModal = ({
                 style={{ minWidth: '5em' }}
               >
                 {isConfirming && (
-                  <Spinner className="mr-2" size="sm" animation="border" role="status" />
+                  <Spinner className="me-2" size="sm" animation="border" role="status" />
                 )}
                 {confirmLabel}
               </Button>

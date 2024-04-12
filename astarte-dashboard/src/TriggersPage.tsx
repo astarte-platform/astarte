@@ -35,7 +35,7 @@ interface TriggerRowProps {
 const TriggerRow = ({ name, onClick }: TriggerRowProps): React.ReactElement => (
   <ListGroup.Item>
     <Button variant="link" className="p-0" onClick={onClick}>
-      <Icon icon="triggers" className="mr-2" />
+      <Icon icon="triggers" className="me-2" />
       {name}
     </Button>
   </ListGroup.Item>
@@ -84,7 +84,7 @@ export default (): React.ReactElement => {
                   navigate('/triggers/new');
                 }}
               >
-                <Icon icon="add" className="mr-2" />
+                <Icon icon="add" className="me-2" />
                 Install a new trigger...
               </Button>
             </ListGroup.Item>

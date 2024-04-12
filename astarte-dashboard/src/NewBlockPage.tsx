@@ -104,9 +104,7 @@ export default (): React.ReactElement => {
           </Form.Group>
           <Form.Group controlId="block-type">
             <Form.Label>Type</Form.Label>
-            <Form.Control
-              as="select"
-              custom
+            <Form.Select
               value={block.type}
               onChange={(e) =>
                 setBlock({ ...block, type: e.target.value as AstarteCustomBlock['type'] })
@@ -117,7 +115,7 @@ export default (): React.ReactElement => {
               <option value="producer">Producer</option>
               <option value="consumer">Consumer</option>
               <option value="producer_consumer">Producer &amp; Consumer</option>
-            </Form.Control>
+            </Form.Select>
           </Form.Group>
           <Form.Group controlId="block-source">
             <Form.Label>Source</Form.Label>
@@ -150,7 +148,7 @@ export default (): React.ReactElement => {
           disabled={isRegisteringBlock || !isValidBlock}
         >
           {isRegisteringBlock && (
-            <Spinner as="span" size="sm" animation="border" role="status" className="mr-2" />
+            <Spinner as="span" size="sm" animation="border" role="status" className="me-2" />
           )}
           Create new block
         </Button>

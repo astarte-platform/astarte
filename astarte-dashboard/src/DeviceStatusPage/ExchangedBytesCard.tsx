@@ -49,10 +49,10 @@ interface StatsTableRowProps {
 const StatsTableRow = ({ stats }: StatsTableRowProps): React.ReactElement => (
   <tr>
     <td>{stats.name}</td>
-    <td className="text-right">{formatBytes(stats.bytes)}</td>
-    <td className="d-xl-table-cell d-none text-right">{`${stats.bytesPercent.toFixed(2)}%`}</td>
-    <td className="text-right">{stats.messages}</td>
-    <td className="d-xl-table-cell d-none text-right">{`${stats.messagesPercent.toFixed(2)}%`}</td>
+    <td className="text-end">{formatBytes(stats.bytes)}</td>
+    <td className="d-xl-table-cell d-none text-end">{`${stats.bytesPercent.toFixed(2)}%`}</td>
+    <td className="text-end">{stats.messages}</td>
+    <td className="d-xl-table-cell d-none text-end">{`${stats.messagesPercent.toFixed(2)}%`}</td>
   </tr>
 );
 
@@ -113,10 +113,10 @@ const ExchangedBytesCard = ({ astarte, device }: ExchangedBytesCardProps): React
               <thead>
                 <tr>
                   <th>Interface</th>
-                  <th className="text-right">Bytes</th>
-                  <th className="d-xl-table-cell d-none text-right">Bytes (%)</th>
-                  <th className="text-right">Messages</th>
-                  <th className="d-xl-table-cell d-none text-right">Messages (%)</th>
+                  <th className="text-end">Bytes</th>
+                  <th className="d-xl-table-cell d-none text-end">Bytes (%)</th>
+                  <th className="text-end">Messages</th>
+                  <th className="d-xl-table-cell d-none text-end">Messages (%)</th>
                 </tr>
               </thead>
               <tbody>

@@ -167,7 +167,7 @@ export default (): React.ReactElement => {
                 isSourceVisible={isSourceVisible}
               />
               <Row className="justify-content-end m-0 mt-3">
-                <Button variant="secondary" className="mr-2" onClick={handleToggleSourceVisibility}>
+                <Button variant="secondary" className="me-2" onClick={handleToggleSourceVisibility}>
                   {isSourceVisible ? 'Hide' : 'Show'} source
                 </Button>
                 <Button
@@ -181,7 +181,7 @@ export default (): React.ReactElement => {
                       size="sm"
                       animation="border"
                       role="status"
-                      className="mr-2"
+                      className="me-2"
                     />
                   )}
                   Delete Trigger Delivery Policy

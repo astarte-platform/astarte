@@ -172,7 +172,7 @@ export default ({
       <Col md={isSourceVisible ? 6 : 12}>
         <Container fluid className="bg-white rounded p-3">
           <Form>
-            <Form.Row className="mb-2">
+            <Row className="mb-2">
               <Col sm={12}>
                 <Form.Group controlId="policyName">
                   <Form.Label>Name</Form.Label>
@@ -238,13 +238,11 @@ export default ({
                       value={_.get(policyDraft, 'event_ttl') || 0}
                       onChange={handleEventTtlChange}
                     />
-                    <InputGroup.Append>
-                      <InputGroup.Text>seconds</InputGroup.Text>
-                    </InputGroup.Append>
+                    <InputGroup.Text>seconds</InputGroup.Text>
                   </InputGroup>
                 </Form.Group>
               </Col>
-            </Form.Row>
+            </Row>
           </Form>
         </Container>
       </Col>
@@ -253,7 +251,7 @@ export default ({
           <Form.Group controlId="policySource" className="h-100 d-flex flex-column">
             <Form.Control
               as="textarea"
-              className="flex-grow-1 text-monospace"
+              className="flex-grow-1 font-monospace"
               value={policySource}
               onChange={handlePolicySourceChange}
               autoComplete="off"

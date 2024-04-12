@@ -18,7 +18,7 @@
 
 import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Badge, Button, Card, CardDeck, Container, Spinner } from 'react-bootstrap';
+import { Badge, Button, Card, Col, Container, Row, Spinner } from 'react-bootstrap';
 import { AstarteNativeBlock } from 'astarte-client';
 import type { AstarteBlock } from 'astarte-client';
 
@@ -32,13 +32,15 @@ interface NewBlockCardProps {
 
 function NewBlockCard({ onCreate }: NewBlockCardProps) {
   return (
-    <Card className="mb-4">
+    <Card className="mb-4 h-100">
       <Card.Header as="h5">New Block</Card.Header>
-      <Card.Body>
+      <Card.Body className="d-flex flex-column">
         <Card.Text>Create your custom block</Card.Text>
-        <Button variant="secondary" onClick={onCreate}>
-          Create
-        </Button>
+        <div className="mt-auto d-flex flex-column flex-md-row">
+          <Button variant="secondary" onClick={onCreate}>
+            Create
+          </Button>
+        </div>
       </Card.Body>
     </Card>
   );
@@ -57,22 +59,24 @@ interface BlockCardProps {
 
 function BlockCard({ block, onShow }: BlockCardProps) {
   return (
-    <Card className="mb-4" data-testid={block.name}>
+    <Card className="mb-4 h-100" data-testid={block.name}>
       <Card.Header as="h5" className="d-flex justify-content-between align-items-center">
         <Button variant="link" className="p-0" onClick={onShow}>
           {block.name}
         </Button>
         {block instanceof AstarteNativeBlock && (
-          <Badge variant="secondary" className="h6 text-light">
+          <Badge bg="secondary" className="h6 text-light">
             native
           </Badge>
         )}
       </Card.Header>
-      <Card.Body>
+      <Card.Body className="d-flex flex-column">
         <Card.Text>{blockTypeToLabel[block.type]}</Card.Text>
-        <Button variant="primary" onClick={onShow}>
-          Show
-        </Button>
+        <div className="mt-auto d-flex flex-column flex-md-row">
+          <Button variant="primary" onClick={onShow}>
+            Show
+          </Button>
+        </div>
       </Card.Body>
     </Card>
   );
@@ -91,8 +95,10 @@ export default (): React.ReactElement => {
   return (
     <Container fluid className="p-3">
       <h2>Blocks</h2>
-      <CardDeck className="mt-4">
-        <NewBlockCard onCreate={() => navigate('/blocks/new')} />
+      <Row xs={1} lg={2} xxl={3} className="mt-4 g-4">
+        <Col>
+          <NewBlockCard onCreate={() => navigate('/blocks/new')} />
+        </Col>
         <WaitForData
           data={blocksData}
           status={blocksStatus}
@@ -110,19 +116,15 @@ export default (): React.ReactElement => {
         >
           {(blocks) => (
             <>
-              {blocks.map((block, index) => (
-                <React.Fragment key={`fragment-${index}`}>
-                  {index % 2 ? <div className="w-100 d-none d-md-block" /> : null}
+              {blocks.map((block) => (
+                <Col key={block.name}>
                   <BlockCard block={block} onShow={() => navigate(`/blocks/${block.name}/edit`)} />
-                  {index === blocks.length - 1 && blocks.length % 2 === 0 ? (
-                    <div className="w-50 d-none d-md-block" />
-                  ) : null}
-                </React.Fragment>
+                </Col>
               ))}
             </>
           )}
         </WaitForData>
-      </CardDeck>
+      </Row>
     </Container>
   );
 };
