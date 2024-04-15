@@ -136,7 +136,9 @@ const DevicesCard = ({
             </Card.Text>
           </Col>
           <Col xs={12} lg={6}>
-            {totalDevices > 0 && <ConnectedDevicesChart provider={connectedDevicesProvider} />}
+            <div style={{ maxHeight: '18em' }}>
+              {totalDevices > 0 && <ConnectedDevicesChart provider={connectedDevicesProvider} />}
+            </div>
           </Col>
         </Row>
       </Container>
