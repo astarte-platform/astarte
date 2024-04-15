@@ -17,15 +17,15 @@
 */
 
 import React from 'react';
-import { Container } from 'react-bootstrap';
+import { Container, Stack } from 'react-bootstrap';
 
 import InterfaceEditor from './components/InterfaceEditor';
 
 export default (): React.ReactElement => (
   <Container fluid className="p-3">
     <h2>Interface Editor</h2>
-    <div className="mt-4">
+    <Stack gap={3} className="mt-3">
       <InterfaceEditor isSourceVisible />
-    </div>
+    </Stack>
   </Container>
 );

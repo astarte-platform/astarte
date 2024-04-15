@@ -63,7 +63,7 @@ export const ConnectedDevicesChart = ({
       datasets: [
         {
           data: [disconnected.value, connected.value],
-          backgroundColor: ['#cc5b6d', '#5bcc6c'],
+          backgroundColor: ['#dc3545', '#33a344'],
         },
       ],
     };

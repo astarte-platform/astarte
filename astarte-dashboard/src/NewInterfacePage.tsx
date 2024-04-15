@@ -18,7 +18,7 @@
 
 import React, { useCallback, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Button, Container, Row, Spinner } from 'react-bootstrap';
+import { Button, Container, Spinner, Stack } from 'react-bootstrap';
 import { AstarteInterface } from 'astarte-client';
 import _ from 'lodash';
 
@@ -131,11 +131,11 @@ export default (): React.ReactElement => {
         <BackButton href="/interfaces" />
         Interface Editor
       </h2>
-      <div className="mt-4">
+      <Stack gap={3} className="mt-3">
         <AlertsBanner alerts={installationAlerts} />
         <InterfaceEditor onChange={handleInterfaceChange} isSourceVisible={isSourceVisible} />
-        <Row className="justify-content-end m-0 mt-3">
-          <Button variant="secondary" className="me-2" onClick={handleToggleSourceVisibility}>
+        <div className="d-flex flex-column flex-md-row justify-content-end gap-3">
+          <Button variant="secondary" onClick={handleToggleSourceVisibility}>
             {isSourceVisible ? 'Hide' : 'Show'} source
           </Button>
           <Button
@@ -144,21 +144,21 @@ export default (): React.ReactElement => {
             disabled={isInstallingInterface || !isValidInterface}
           >
             {isInstallingInterface && (
-              <Spinner as="span" size="sm" animation="border" role="status" className="me-2" />
+              <Spinner as="span" size="sm" animation="border" role="status" />
             )}
             Install interface
           </Button>
-        </Row>
-        {showInstallModal && (
-          <InstallModal
-            onCancel={hideConfirmInstallModal}
-            onConfirm={handleConfirmInstallInterface}
-            isInstallingInterface={isInstallingInterface}
-            interfaceName={_.get(interfaceDraft, 'name', '')}
-            isDraft={_.get(interfaceDraft, 'major', 0) === 0}
-          />
-        )}
-      </div>
+        </div>
+      </Stack>
+      {showInstallModal && (
+        <InstallModal
+          onCancel={hideConfirmInstallModal}
+          onConfirm={handleConfirmInstallInterface}
+          isInstallingInterface={isInstallingInterface}
+          interfaceName={_.get(interfaceDraft, 'name', '')}
+          isDraft={_.get(interfaceDraft, 'major', 0) === 0}
+        />
+      )}
     </Container>
   );
 };

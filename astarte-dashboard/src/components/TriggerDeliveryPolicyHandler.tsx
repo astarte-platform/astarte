@@ -17,7 +17,7 @@ limitations under the License.
 */
 
 import React, { ChangeEvent, useEffect, useState } from 'react';
-import { Button, Form, Modal, Table } from 'react-bootstrap';
+import { Button, Form, Modal, Stack, Table } from 'react-bootstrap';
 import {
   AstarteTriggerDeliveryPolicyDTO,
   AstarteTriggerDeliveryPolicyHandlerDTO,
@@ -139,42 +139,46 @@ const HandlerModal = ({
         </Modal.Header>
         <Modal.Body>
           <Form>
-            <Form.Group className="mb-3" controlId="errorHandlerOn">
-              <Form.Label>On</Form.Label>
-              <Form.Select
-                required
-                name="on"
-                disabled={readOnly}
-                value={typeof handlerOn === 'object' ? 'custom_errors' : handlerOn.toString()}
-                onChange={handleOnChange}
-              >
-                <option value="any_error">any_error</option>
-                <option value="server_error">server_error</option>
-                <option value="client_error">client_error</option>
-                <option value="custom_errors">Enter custom array of error numbers (400-599)</option>
-              </Form.Select>
-            </Form.Group>
-            {selectedErrorType === 'custom_errors' && (
-              <ErrorCodesControl
-                name="custom_errors"
-                value={customErrorsText}
-                readonly={!readOnly}
-                onChange={handleCodes}
-              />
-            )}
-            <Form.Group className="mb-3" controlId="errorHandlerStrategy">
-              <Form.Label>Strategy</Form.Label>
-              <Form.Select
-                value={handlerStrategy}
-                disabled={readOnly}
-                required
-                name="strategy"
-                onChange={handleStrategyChange}
-              >
-                <option value="discard">Discard</option>
-                <option value="retry">Retry</option>
-              </Form.Select>
-            </Form.Group>
+            <Stack gap={3}>
+              <Form.Group controlId="errorHandlerOn">
+                <Form.Label>On</Form.Label>
+                <Form.Select
+                  required
+                  name="on"
+                  disabled={readOnly}
+                  value={typeof handlerOn === 'object' ? 'custom_errors' : handlerOn.toString()}
+                  onChange={handleOnChange}
+                >
+                  <option value="any_error">any_error</option>
+                  <option value="server_error">server_error</option>
+                  <option value="client_error">client_error</option>
+                  <option value="custom_errors">
+                    Enter custom array of error numbers (400-599)
+                  </option>
+                </Form.Select>
+              </Form.Group>
+              {selectedErrorType === 'custom_errors' && (
+                <ErrorCodesControl
+                  name="custom_errors"
+                  value={customErrorsText}
+                  readonly={!readOnly}
+                  onChange={handleCodes}
+                />
+              )}
+              <Form.Group controlId="errorHandlerStrategy">
+                <Form.Label>Strategy</Form.Label>
+                <Form.Select
+                  value={handlerStrategy}
+                  disabled={readOnly}
+                  required
+                  name="strategy"
+                  onChange={handleStrategyChange}
+                >
+                  <option value="discard">Discard</option>
+                  <option value="retry">Retry</option>
+                </Form.Select>
+              </Form.Group>
+            </Stack>
           </Form>
         </Modal.Body>
         <Modal.Footer>

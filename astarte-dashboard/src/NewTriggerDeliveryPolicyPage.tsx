@@ -19,7 +19,7 @@ limitations under the License.
 
 import React, { useCallback, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Button, Container, Row, Spinner } from 'react-bootstrap';
+import { Button, Container, Spinner, Stack } from 'react-bootstrap';
 import { AstarteTriggerDeliveryPolicyDTO } from 'astarte-client/types/dto';
 
 import { AlertsBanner, useAlerts } from './AlertManager';
@@ -94,10 +94,10 @@ export default (): React.ReactElement => {
         onChange={handlePolicyChange}
         isReadOnly={false}
       />
-      <div className="mt-4">
+      <Stack gap={3} className="mt-3">
         <AlertsBanner alerts={installationAlerts} />
-        <Row className="justify-content-end m-0 mt-3">
-          <Button variant="secondary" className="me-2" onClick={handleToggleSourceVisibility}>
+        <div className="d-flex flex-column flex-md-row justify-content-end gap-3">
+          <Button variant="secondary" onClick={handleToggleSourceVisibility}>
             {isSourceVisible ? 'Hide' : 'Show'} source
           </Button>
           <Button
@@ -110,8 +110,8 @@ export default (): React.ReactElement => {
             )}
             Install Trigger Delivery Policy
           </Button>
-        </Row>
-      </div>
+        </div>
+      </Stack>
     </Container>
   );
 };

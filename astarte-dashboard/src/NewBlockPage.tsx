@@ -18,7 +18,7 @@
 
 import React, { useCallback, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Button, Form, Row, Spinner } from 'react-bootstrap';
+import { Button, Form, Spinner, Stack } from 'react-bootstrap';
 import { AstarteCustomBlock } from 'astarte-client';
 import _ from 'lodash';
 
@@ -92,56 +92,58 @@ export default (): React.ReactElement => {
       <SingleCardPage title="New Block" backLink="/blocks">
         <AlertsBanner alerts={creationAlerts} />
         <Form noValidate>
-          <Form.Group controlId="block-name">
-            <Form.Label>Name</Form.Label>
-            <Form.Control
-              type="text"
-              value={block.name}
-              onChange={(e) => setBlock({ ...block, name: e.target.value })}
-              isValid={isValidated && isValidBlockName}
-              isInvalid={isValidated && !isValidBlockName}
-            />
-          </Form.Group>
-          <Form.Group controlId="block-type">
-            <Form.Label>Type</Form.Label>
-            <Form.Select
-              value={block.type}
-              onChange={(e) =>
-                setBlock({ ...block, type: e.target.value as AstarteCustomBlock['type'] })
-              }
-              isValid={isValidated && isValidBlockType}
-              isInvalid={isValidated && !isValidBlockType}
-            >
-              <option value="producer">Producer</option>
-              <option value="consumer">Consumer</option>
-              <option value="producer_consumer">Producer &amp; Consumer</option>
-            </Form.Select>
-          </Form.Group>
-          <Form.Group controlId="block-source">
-            <Form.Label>Source</Form.Label>
-            <Form.Control
-              as="textarea"
-              rows={12}
-              value={block.source}
-              onChange={(e) => setBlock({ ...block, source: e.target.value })}
-              isValid={isValidated && isValidBlockSource}
-              isInvalid={isValidated && !isValidBlockSource}
-            />
-          </Form.Group>
-          <Form.Group controlId="block-schema">
-            <Form.Label>Schema</Form.Label>
-            <Form.Control
-              as="textarea"
-              rows={12}
-              value={block.schema}
-              onChange={(e) => setBlock({ ...block, schema: e.target.value })}
-              isValid={isValidated && isValidBlockSchema}
-              isInvalid={isValidated && !isValidBlockSchema}
-            />
-          </Form.Group>
+          <Stack gap={3}>
+            <Form.Group controlId="block-name">
+              <Form.Label>Name</Form.Label>
+              <Form.Control
+                type="text"
+                value={block.name}
+                onChange={(e) => setBlock({ ...block, name: e.target.value })}
+                isValid={isValidated && isValidBlockName}
+                isInvalid={isValidated && !isValidBlockName}
+              />
+            </Form.Group>
+            <Form.Group controlId="block-type">
+              <Form.Label>Type</Form.Label>
+              <Form.Select
+                value={block.type}
+                onChange={(e) =>
+                  setBlock({ ...block, type: e.target.value as AstarteCustomBlock['type'] })
+                }
+                isValid={isValidated && isValidBlockType}
+                isInvalid={isValidated && !isValidBlockType}
+              >
+                <option value="producer">Producer</option>
+                <option value="consumer">Consumer</option>
+                <option value="producer_consumer">Producer &amp; Consumer</option>
+              </Form.Select>
+            </Form.Group>
+            <Form.Group controlId="block-source">
+              <Form.Label>Source</Form.Label>
+              <Form.Control
+                as="textarea"
+                rows={12}
+                value={block.source}
+                onChange={(e) => setBlock({ ...block, source: e.target.value })}
+                isValid={isValidated && isValidBlockSource}
+                isInvalid={isValidated && !isValidBlockSource}
+              />
+            </Form.Group>
+            <Form.Group controlId="block-schema">
+              <Form.Label>Schema</Form.Label>
+              <Form.Control
+                as="textarea"
+                rows={12}
+                value={block.schema}
+                onChange={(e) => setBlock({ ...block, schema: e.target.value })}
+                isValid={isValidated && isValidBlockSchema}
+                isInvalid={isValidated && !isValidBlockSchema}
+              />
+            </Form.Group>
+          </Stack>
         </Form>
       </SingleCardPage>
-      <Row className="justify-content-end m-3">
+      <div className="d-flex flex-column flex-md-row-reverse m-3">
         <Button
           variant="primary"
           onClick={isRegisteringBlock ? undefined : handleSubmit}
@@ -152,7 +154,7 @@ export default (): React.ReactElement => {
           )}
           Create new block
         </Button>
-      </Row>
+      </div>
     </>
   );
 };

@@ -231,13 +231,19 @@ interface AlertsBannerProps {
   alerts: IAlert[];
 }
 
-const AlertsBanner = ({ alerts }: AlertsBannerProps) => (
-  <Row>
-    {alerts.map((alert) => (
-      <AlertBanner key={alert.id} alert={alert} />
-    ))}
-  </Row>
-);
+const AlertsBanner = ({ alerts }: AlertsBannerProps) => {
+  if (!alerts.length) {
+    return null;
+  }
+
+  return (
+    <Row>
+      {alerts.map((alert) => (
+        <AlertBanner key={alert.id} alert={alert} />
+      ))}
+    </Row>
+  );
+};
 
 const useGlobalAlerts = (): AlertsController => {
   const alertContext = useContext(GlobalAlertsUtilsContext) as React.RefObject<AlertsController>;

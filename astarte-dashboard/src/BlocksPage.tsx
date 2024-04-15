@@ -95,7 +95,7 @@ export default (): React.ReactElement => {
   return (
     <Container fluid className="p-3">
       <h2>Blocks</h2>
-      <Row xs={1} lg={2} xxl={3} className="mt-4 g-4">
+      <Row xs={1} lg={2} xxl={3} className="g-4">
         <Col>
           <NewBlockCard onCreate={() => navigate('/blocks/new')} />
         </Col>

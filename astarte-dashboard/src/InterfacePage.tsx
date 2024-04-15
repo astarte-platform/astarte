@@ -18,7 +18,7 @@
 
 import React, { useCallback, useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { Button, Container, Form, Row, Spinner } from 'react-bootstrap';
+import { Button, Container, Form, Row, Spinner, Stack } from 'react-bootstrap';
 import { AstarteInterface } from 'astarte-client';
 
 import { AlertsBanner, useAlerts } from './AlertManager';
@@ -183,7 +183,7 @@ export default (): React.ReactElement => {
         <BackButton href="/interfaces" />
         Interface Editor
       </h2>
-      <div className="mt-4">
+      <Stack gap={3} className="mt-3">
         <AlertsBanner alerts={actionAlerts} />
         <WaitForData
           data={interfaceFetcher.value}
@@ -205,13 +205,12 @@ export default (): React.ReactElement => {
                 isSourceVisible={isSourceVisible}
                 denyMajorChanges
               />
-              <Row className="justify-content-end m-3">
-                <Button variant="secondary" className="me-2" onClick={handleToggleSourceVisibility}>
+              <div className="d-flex flex-column flex-md-row justify-content-end gap-3">
+                <Button variant="secondary" onClick={handleToggleSourceVisibility}>
                   {isSourceVisible ? 'Hide' : 'Show'} source
                 </Button>
                 {iface.major === 0 && (
                   <Button
-                    className="me-2"
                     variant="danger"
                     onClick={isDeletingInterface ? undefined : showConfirmDeleteModal}
                     disabled={isDeletingInterface}
@@ -244,7 +243,7 @@ export default (): React.ReactElement => {
                   )}
                   Apply changes
                 </Button>
-              </Row>
+              </div>
               {showUpdateModal && (
                 <ConfirmModal
                   title="Confirmation Required"
@@ -270,7 +269,7 @@ export default (): React.ReactElement => {
             </>
           )}
         </WaitForData>
-      </div>
+      </Stack>
     </Container>
   );
 };

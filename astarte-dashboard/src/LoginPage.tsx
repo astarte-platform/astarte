@@ -18,7 +18,7 @@
 
 import React, { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Button, Col, Container, Form, Row } from 'react-bootstrap';
+import { Button, Col, Container, Form, Row, Stack } from 'react-bootstrap';
 import { AstarteRealm, AstarteToken } from 'astarte-client';
 import type { AuthOptions, LoginType } from 'ConfigManager';
 
@@ -95,51 +95,53 @@ const TokenForm = ({
 
   return (
     <Form className="login-form p-3 w-100" onSubmit={handleTokenLogin}>
-      <Form.Group controlId="astarteRealm">
-        <Form.Label>Realm</Form.Label>
-        <Form.Control
-          type="text"
-          placeholder="Astarte Realm"
-          value={realm}
-          onChange={(e) => {
-            setRealm(e.target.value);
-          }}
-          isValid={realm !== '' && isValidRealm}
-          isInvalid={realm !== '' && !isValidRealm}
-          required
-        />
-      </Form.Group>
-      <Form.Group controlId="astarteToken">
-        <Form.Label>Token</Form.Label>
-        <Form.Control
-          as="textarea"
-          rows={6}
-          placeholder="Auth token"
-          value={jwt}
-          onChange={(e) => {
-            setJwt(e.target.value.trim());
-          }}
-          isValid={jwt !== '' && tokenValidation === 'valid'}
-          isInvalid={jwt !== '' && tokenValidation !== 'valid'}
-          required
-        />
-        {tokenValidationFeedback(tokenValidation)}
-      </Form.Group>
-      <Button type="submit" variant="primary" disabled={!canSubmitForm} className="w-100">
-        Login
-      </Button>
-      {canSwitchLoginType && (
-        <div className="d-flex flex-row-reverse mt-2">
-          <Button variant="link" onClick={() => onSwitchLoginType('oauth')}>
-            Switch to OAuth login
-          </Button>
+      <Stack gap={3}>
+        <Form.Group controlId="astarteRealm">
+          <Form.Label>Realm</Form.Label>
+          <Form.Control
+            type="text"
+            placeholder="Astarte Realm"
+            value={realm}
+            onChange={(e) => {
+              setRealm(e.target.value);
+            }}
+            isValid={realm !== '' && isValidRealm}
+            isInvalid={realm !== '' && !isValidRealm}
+            required
+          />
+        </Form.Group>
+        <Form.Group controlId="astarteToken">
+          <Form.Label>Token</Form.Label>
+          <Form.Control
+            as="textarea"
+            rows={6}
+            placeholder="Auth token"
+            value={jwt}
+            onChange={(e) => {
+              setJwt(e.target.value.trim());
+            }}
+            isValid={jwt !== '' && tokenValidation === 'valid'}
+            isInvalid={jwt !== '' && tokenValidation !== 'valid'}
+            required
+          />
+          {tokenValidationFeedback(tokenValidation)}
+        </Form.Group>
+        <Button type="submit" variant="primary" disabled={!canSubmitForm} className="w-100">
+          Login
+        </Button>
+        {canSwitchLoginType && (
+          <div className="d-flex flex-row-reverse">
+            <Button variant="link" onClick={() => onSwitchLoginType('oauth')}>
+              Switch to OAuth login
+            </Button>
+          </div>
+        )}
+        <div className="container-fluid border rounded p-2 bg-light">
+          A valid JWT token should be used, you can use <AstartectlLink /> to generate one:
+          <br />
+          <code>$ astartectl utils gen-jwt all-realm-apis -k your_key.pem</code>
         </div>
-      )}
-      <div className="container-fluid border rounded p-2 bg-light mt-3">
-        A valid JWT token should be used, you can use <AstartectlLink /> to generate one:
-        <br />
-        <code>$ astartectl utils gen-jwt all-realm-apis -k your_key.pem</code>
-      </div>
+      </Stack>
     </Form>
   );
 };
@@ -182,51 +184,53 @@ const OAuthForm = ({
 
   return (
     <Form className="login-form p-3 w-100" onSubmit={handleOAuthLogin}>
-      <Form.Group controlId="astarteRealm">
-        <Form.Label>Realm</Form.Label>
-        <Form.Control
-          type="text"
-          placeholder="Astarte Realm"
-          value={realm}
-          onChange={(e) => {
-            setRealm(e.target.value);
-          }}
-          isValid={realm !== '' && isValidRealm}
-          isInvalid={realm !== '' && !isValidRealm}
-          required
-        />
-      </Form.Group>
-      {!defaultOAuthURL && (
-        <Form.Group controlId="oauthProviderUrl">
-          <Form.Label>OAuth provider URL</Form.Label>
+      <Stack gap={3}>
+        <Form.Group controlId="astarteRealm">
+          <Form.Label>Realm</Form.Label>
           <Form.Control
             type="text"
-            placeholder="https://auth.example.com"
-            value={providerUrl}
+            placeholder="Astarte Realm"
+            value={realm}
             onChange={(e) => {
-              setProviderUrl(e.target.value);
+              setRealm(e.target.value);
             }}
-            isValid={providerUrl !== '' && isValidProviderUrl}
-            isInvalid={providerUrl !== '' && !isValidProviderUrl}
+            isValid={realm !== '' && isValidRealm}
+            isInvalid={realm !== '' && !isValidRealm}
             required
           />
         </Form.Group>
-      )}
-      <Button
-        type="submit"
-        variant="primary"
-        disabled={!isValidRealm || !isValidProviderUrl}
-        className="w-100"
-      >
-        Login
-      </Button>
-      {canSwitchLoginType && (
-        <div className="d-flex flex-row-reverse mt-2">
-          <Button variant="link" onClick={() => onSwitchLoginType('token')}>
-            Switch to token login
-          </Button>
-        </div>
-      )}
+        {!defaultOAuthURL && (
+          <Form.Group controlId="oauthProviderUrl">
+            <Form.Label>OAuth provider URL</Form.Label>
+            <Form.Control
+              type="text"
+              placeholder="https://auth.example.com"
+              value={providerUrl}
+              onChange={(e) => {
+                setProviderUrl(e.target.value);
+              }}
+              isValid={providerUrl !== '' && isValidProviderUrl}
+              isInvalid={providerUrl !== '' && !isValidProviderUrl}
+              required
+            />
+          </Form.Group>
+        )}
+        <Button
+          type="submit"
+          variant="primary"
+          disabled={!isValidRealm || !isValidProviderUrl}
+          className="w-100"
+        >
+          Login
+        </Button>
+        {canSwitchLoginType && (
+          <div className="d-flex flex-row-reverse">
+            <Button variant="link" onClick={() => onSwitchLoginType('token')}>
+              Switch to token login
+            </Button>
+          </div>
+        )}
+      </Stack>
     </Form>
   );
 };
