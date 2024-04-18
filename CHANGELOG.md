@@ -14,6 +14,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - [astarte_housekeeping_api] Gracefully handle HTTP requests with malformed payload.
 - [astarte_realm_management_api] Gracefully handle HTTP requests with malformed payload.
 - [astarte_appengine_api] Expose exchanged_bytes metrics as `sum` (instead of `counter`).
+- [astarte_pairing] Do not reset total sent messages/bytes when re-registering a device.
+  Fix [#776](https://github.com/astarte-platform/astarte/issues/776).
 
 ## [1.0.5] - 2023-09-26
 ### Fixed

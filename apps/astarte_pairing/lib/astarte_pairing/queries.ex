@@ -78,7 +78,14 @@ defmodule Astarte.Pairing.Queries do
 
         [first_credentials_request: nil, first_registration: registration_timestamp] ->
           Logger.info("register request for existing unconfirmed device: #{inspect(extended_id)}")
-          do_register_device(client, device_id, credentials_secret, registration_timestamp, opts)
+
+          do_register_unconfirmed_device(
+            client,
+            device_id,
+            credentials_secret,
+            registration_timestamp,
+            opts
+          )
 
         [first_credentials_request: _timestamp, first_registration: _registration_timestamp] ->
           Logger.warn("register request for existing confirmed device: #{inspect(extended_id)}")
@@ -276,6 +283,53 @@ defmodule Astarte.Pairing.Queries do
       |> Query.put(:protocol_revision, 0)
       |> Query.put(:total_received_bytes, 0)
       |> Query.put(:total_received_msgs, 0)
+      |> Query.put(:introspection, introspection)
+      |> Query.put(:introspection_minor, introspection_minor)
+      |> Query.consistency(:quorum)
+
+    case Query.call(client, query) do
+      {:ok, _res} ->
+        :ok
+
+      error ->
+        Logger.warn("DB error: #{inspect(error)}")
+        {:error, :database_error}
+    end
+  end
+
+  defp do_register_unconfirmed_device(
+         client,
+         device_id,
+         credentials_secret,
+         registration_timestamp,
+         opts
+       ) do
+    statement = """
+    UPDATE devices
+    SET
+      first_registration = :first_registration,
+      credentials_secret = :credentials_secret,
+      inhibit_credentials_request = :inhibit_credentials_request,
+      protocol_revision = :protocol_revision,
+      introspection = :introspection,
+      introspection_minor = :introspection_minor
+
+    WHERE device_id = :device_id
+    """
+
+    {introspection, introspection_minor} =
+      opts
+      |> Keyword.get(:initial_introspection, [])
+      |> build_initial_introspection_maps()
+
+    query =
+      Query.new()
+      |> Query.statement(statement)
+      |> Query.put(:device_id, device_id)
+      |> Query.put(:first_registration, registration_timestamp)
+      |> Query.put(:credentials_secret, credentials_secret)
+      |> Query.put(:inhibit_credentials_request, false)
+      |> Query.put(:protocol_revision, 0)
       |> Query.put(:introspection, introspection)
       |> Query.put(:introspection_minor, introspection_minor)
       |> Query.consistency(:quorum)
