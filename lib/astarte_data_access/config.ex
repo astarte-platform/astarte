@@ -113,6 +113,16 @@ defmodule Astarte.DataAccess.Config do
     type: :boolean,
     default: false
 
+  @envdoc """
+  A string that uniquely identifies this Astarte instance.
+  It will be used to generate Scylla keyspaces starting from Astarte realm names.
+  Defaults to "".
+  """
+  app_env :astarte_instance_id, :astarte_data_access, :astarte_instance_id,
+    os_env: "ASTARTE_INSTANCE_ID",
+    default: "",
+    type: :binary
+
   defp populate_xandra_ssl_options(options) do
     if ssl_enabled!() do
       ssl_options = build_ssl_options()

@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2018 Ispirata Srl
+# Copyright 2018 - 2024 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -20,6 +20,7 @@ defmodule Astarte.DataAccess.Database do
   require Logger
 
   alias Astarte.DataAccess.Config
+  alias Astarte.Core.CQLUtils
 
   @spec connect(realm: String.t(), cassandra_nodes: list) ::
           {:ok, :cqerl.client()} | {:error, atom}
@@ -60,8 +61,10 @@ defmodule Astarte.DataAccess.Database do
   defp get_client_opts(opts) do
     case Keyword.fetch(opts, :realm) do
       {:ok, realm} ->
+        keyspace = CQLUtils.realm_name_to_keyspace_name(realm, Config.astarte_instance_id!())
+
         Config.cqex_options!()
-        |> Keyword.put(:keyspace, realm)
+        |> Keyword.put(:keyspace, keyspace)
 
       :error ->
         Config.cqex_options!()

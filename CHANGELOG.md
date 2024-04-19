@@ -5,6 +5,11 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+### Added
+- Add the `ASTARTE_INSTANCE_ID` env to allow sharing
+  the database between multiple Astarte instances.
+  Default to `""` to maintain backward compatibility.
+
 ### Changed
 - Update Elixir to 1.15.7.
 - Update Erlang/OTP to 26.1.

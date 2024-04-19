@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2018 - 2023 SECO Mind Srl
+# Copyright 2018 - 2024 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -48,12 +48,12 @@ defmodule Astarte.DataAccess.Data do
     )
   end
 
-  defp do_fetch_property(conn, realm_name, device_id, interface_descriptor, mapping, path) do
+  defp do_fetch_property(conn, keyspace_name, device_id, interface_descriptor, mapping, path) do
     value_column = CQLUtils.type_to_db_column_name(mapping.value_type)
 
     statement = """
     SELECT #{value_column}
-    FROM #{realm_name}."#{interface_descriptor.storage}"
+    FROM #{keyspace_name}."#{interface_descriptor.storage}"
     WHERE device_id=:device_id AND interface_id=:interface_id
       AND endpoint_id=:endpoint_id AND path=:path
     """
@@ -108,11 +108,11 @@ defmodule Astarte.DataAccess.Data do
     )
   end
 
-  defp do_path_exists?(conn, realm_name, device_id, interface_descriptor, mapping, path) do
+  defp do_path_exists?(conn, keyspace_name, device_id, interface_descriptor, mapping, path) do
     # TODO: do not hardcode individual_properties here
     statement = """
     SELECT COUNT(*)
-    FROM #{realm_name}.#{@individual_properties_table}
+    FROM #{keyspace_name}.#{@individual_properties_table}
     WHERE device_id=:device_id AND interface_id=:interface_id
       AND endpoint_id=:endpoint_id AND path=:path
     """
@@ -175,7 +175,7 @@ defmodule Astarte.DataAccess.Data do
 
   defp do_fetch_last_path_update(
          conn,
-         realm_name,
+         keyspace_name,
          device_id,
          interface_descriptor,
          mapping,
@@ -184,7 +184,7 @@ defmodule Astarte.DataAccess.Data do
     # TODO: do not hardcode individual_properties here
     statement = """
     SELECT datetime_value, reception_timestamp, reception_timestamp_submillis
-    FROM #{realm_name}.#{@individual_properties_table}
+    FROM #{keyspace_name}.#{@individual_properties_table}
     WHERE device_id=:device_id AND interface_id=:interface_id
       AND endpoint_id=:endpoint_id AND path=:path
     """
