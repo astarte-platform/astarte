@@ -21,6 +21,7 @@ defmodule Astarte.Pairing.EngineTest do
 
   alias Astarte.Core.Device
   alias Astarte.Pairing.Config
+  alias Astarte.Core.CQLUtils
   alias Astarte.Pairing.CredentialsSecret
   alias Astarte.Pairing.DatabaseTestHelper
   alias Astarte.Pairing.Engine
@@ -371,7 +372,10 @@ defmodule Astarte.Pairing.EngineTest do
 
       db_client =
         Config.cassandra_node!()
-        |> CQEx.Client.new!(keyspace: @test_realm)
+        |> CQEx.Client.new!(
+          keyspace:
+            CQLUtils.realm_name_to_keyspace_name(@test_realm, Config.astarte_instance_id!())
+        )
 
       {:ok, device} = Queries.select_device_for_credentials_request(db_client, device_id)
 
@@ -387,7 +391,10 @@ defmodule Astarte.Pairing.EngineTest do
 
       db_client =
         Config.cassandra_node!()
-        |> CQEx.Client.new!(keyspace: @test_realm)
+        |> CQEx.Client.new!(
+          keyspace:
+            CQLUtils.realm_name_to_keyspace_name(@test_realm, Config.astarte_instance_id!())
+        )
 
       {:ok, no_credentials_requested_device} =
         Queries.select_device_for_credentials_request(db_client, device_id)
