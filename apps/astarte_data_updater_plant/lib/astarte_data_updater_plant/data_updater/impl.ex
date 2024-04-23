@@ -18,6 +18,7 @@
 
 defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
   alias Astarte.Core.CQLUtils
+  alias Astarte.DataUpdaterPlant.Config
   alias Astarte.Core.Device
   alias Astarte.Core.InterfaceDescriptor
   alias Astarte.Core.Mapping
@@ -187,7 +188,10 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
   end
 
   def handle_internal(%State{discard_messages: true} = state, "/f", _, message_id, _) do
-    :ok = Queries.ack_end_device_deletion(state.realm, state.device_id)
+    keyspace_name =
+      CQLUtils.realm_name_to_keyspace_name(state.realm, Config.astarte_instance_id!())
+
+    :ok = Queries.ack_end_device_deletion(keyspace_name, state.device_id)
     _ = Logger.info("End device deletion acked.", tag: "device_delete_ack")
     MessageTracker.ack_delivery(state.message_tracker, message_id)
     {:stop, state}
@@ -1521,8 +1525,6 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
   end
 
   def handle_control(state, "/emptyCache", _payload, message_id, timestamp) do
-    Logger.debug("Received /emptyCache")
-
     {:ok, db_client} = Database.connect(realm: state.realm)
 
     new_state = execute_time_based_actions(state, timestamp, db_client)
@@ -1966,7 +1968,10 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
         Logger.info("Stop handling data from device in deletion, device_id #{encoded_device_id}")
 
       # It's ok to repeat that, as we always write ⊤
-      Queries.ack_start_device_deletion(state.realm, state.device_id)
+      keyspace_name =
+        CQLUtils.realm_name_to_keyspace_name(state.realm, Config.astarte_instance_id!())
+
+      Queries.ack_start_device_deletion(keyspace_name, state.device_id)
 
       %State{new_state | discard_messages: true}
     else
@@ -1975,7 +1980,10 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
   end
 
   defp should_start_device_deletion?(realm_name, device_id) do
-    case Queries.check_device_deletion_in_progress(realm_name, device_id) do
+    keyspace_name =
+      CQLUtils.realm_name_to_keyspace_name(realm_name, Config.astarte_instance_id!())
+
+    case Queries.check_device_deletion_in_progress(keyspace_name, device_id) do
       {:ok, true} ->
         true
 
