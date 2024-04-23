@@ -40,6 +40,7 @@ defmodule Astarte.AppEngine.API.Device do
   alias Astarte.DataAccess.Device, as: DeviceQueries
   alias Astarte.DataAccess.Interface, as: InterfaceQueries
   alias Ecto.Changeset
+  alias Astarte.Core.CQLUtils
   require Logger
 
   def list_devices!(realm_name, params) do
@@ -412,7 +413,10 @@ defmodule Astarte.AppEngine.API.Device do
       |> DateTime.to_unix(:microsecond)
 
     with {:ok, mappings} <-
-           Mappings.fetch_interface_mappings(realm_name, interface_descriptor.interface_id),
+           Mappings.fetch_interface_mappings(
+             realm_name,
+             interface_descriptor.interface_id
+           ),
          {:ok, endpoint} <-
            resolve_object_aggregation_path(path, interface_descriptor, mappings),
          endpoint_id <- endpoint.endpoint_id,

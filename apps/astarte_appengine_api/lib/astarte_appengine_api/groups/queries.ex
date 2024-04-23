@@ -20,6 +20,8 @@ defmodule Astarte.AppEngine.API.Groups.Queries do
   alias Astarte.AppEngine.API.Groups.Group
   alias Astarte.AppEngine.API.Device.DeviceStatus
   alias Astarte.AppEngine.API.Device.DevicesList
+  alias Astarte.Core.CQLUtils
+  alias Astarte.AppEngine.API.Config
   alias Astarte.Core.Device
   alias Astarte.Core.Realm
 
@@ -53,7 +55,7 @@ defmodule Astarte.AppEngine.API.Groups.Queries do
 
   def list_groups(realm_name) do
     Xandra.Cluster.run(:xandra, fn conn ->
-      query = "SELECT DISTINCT group_name FROM :realm.grouped_devices"
+      query = "SELECT DISTINCT group_name FROM :keyspace.grouped_devices"
 
       with {:ok, prepared} <- prepare_with_realm(conn, realm_name, query),
            {:ok, %Xandra.Page{} = page} <- Xandra.execute(conn, prepared) do
@@ -70,7 +72,7 @@ defmodule Astarte.AppEngine.API.Groups.Queries do
     Xandra.Cluster.run(:xandra, fn conn ->
       query = """
         SELECT DISTINCT group_name
-        FROM :realm.grouped_devices
+        FROM :keyspace.grouped_devices
         WHERE group_name = :group_name
       """
 
@@ -181,7 +183,7 @@ defmodule Astarte.AppEngine.API.Groups.Queries do
         """
 
         from = """
-        FROM :realm.devices
+        FROM :keyspace.devices
         """
 
         where =
@@ -209,7 +211,7 @@ defmodule Astarte.AppEngine.API.Groups.Queries do
         """
 
         from = """
-        FROM :realm.grouped_devices
+        FROM :keyspace.grouped_devices
         """
 
         where =
@@ -270,7 +272,7 @@ defmodule Astarte.AppEngine.API.Groups.Queries do
       # TODO change this once NoaccOS' PR is in
       deletion_in_progress_stmt = """
       SELECT *
-      FROM :realm.deletion_in_progress
+      FROM :keyspace.deletion_in_progress
       WHERE device_id=:device_id
       """
 
@@ -326,7 +328,7 @@ defmodule Astarte.AppEngine.API.Groups.Queries do
   end
 
   defp device_exists?(conn, realm_name, encoded_device_id) do
-    query = "SELECT device_id FROM :realm.devices WHERE device_id = :device_id"
+    query = "SELECT device_id FROM :keyspace.devices WHERE device_id = :device_id"
 
     with {:ok, device_id} <- Device.decode_device_id(encoded_device_id),
          {:ok, prepared} <- prepare_with_realm(conn, realm_name, query),
@@ -345,7 +347,7 @@ defmodule Astarte.AppEngine.API.Groups.Queries do
   end
 
   defp group_exists?(conn, realm_name, group_name) do
-    query = "SELECT group_name FROM :realm.grouped_devices WHERE group_name = :group_name"
+    query = "SELECT group_name FROM :keyspace.grouped_devices WHERE group_name = :group_name"
 
     with {:ok, prepared} <- prepare_with_realm(conn, realm_name, query),
          {:ok, %Xandra.Page{} = page} <-
@@ -365,7 +367,7 @@ defmodule Astarte.AppEngine.API.Groups.Queries do
   defp do_check_device_in_group(conn, realm_name, group_name, encoded_device_id) do
     query = """
       SELECT groups
-      FROM :realm.devices
+      FROM :keyspace.devices
       WHERE device_id = :device_id
     """
 
@@ -395,13 +397,13 @@ defmodule Astarte.AppEngine.API.Groups.Queries do
 
   defp remove_from_group(conn, realm_name, group_name, encoded_device_id) do
     device_query = """
-      UPDATE :realm.devices
+      UPDATE :keyspace.devices
       SET groups = groups - :group_name_set
       WHERE device_id = :device_id
     """
 
     grouped_devices_query = """
-      DELETE FROM :realm.grouped_devices
+      DELETE FROM :keyspace.grouped_devices
       WHERE group_name = :group_name
       AND insertion_uuid = :insertion_uuid
       AND device_id = :device_id
@@ -442,7 +444,7 @@ defmodule Astarte.AppEngine.API.Groups.Queries do
   defp retrieve_group_insertion_uuid(conn, realm_name, group_name, device_id) do
     query = """
       SELECT groups
-      FROM :realm.devices
+      FROM :keyspace.devices
       WHERE device_id = :device_id
     """
 
@@ -469,13 +471,13 @@ defmodule Astarte.AppEngine.API.Groups.Queries do
 
   defp add_to_group(conn, realm_name, group_name, devices) do
     device_query = """
-      UPDATE :realm.devices
+      UPDATE :keyspace.devices
       SET groups = groups + :group_map
       WHERE device_id = :device_id
     """
 
     grouped_devices_query = """
-      INSERT INTO :realm.grouped_devices
+      INSERT INTO :keyspace.grouped_devices
       (group_name, insertion_uuid, device_id)
       VALUES
       (:group_name, :insertion_uuid, :device_id)
@@ -523,9 +525,12 @@ defmodule Astarte.AppEngine.API.Groups.Queries do
   end
 
   defp prepare_with_realm(conn, realm_name, query) do
+    keyspace_name =
+      CQLUtils.realm_name_to_keyspace_name(realm_name, Config.astarte_instance_id!())
+
     with {:valid, true} <- {:valid, Realm.valid_name?(realm_name)},
-         query_with_realm = String.replace(query, ":realm", realm_name),
-         {:ok, prepared} <- Xandra.prepare(conn, query_with_realm) do
+         query_with_keyspace = String.replace(query, ":keyspace", keyspace_name),
+         {:ok, prepared} <- Xandra.prepare(conn, query_with_keyspace) do
       {:ok, prepared}
     else
       {:valid, false} ->
