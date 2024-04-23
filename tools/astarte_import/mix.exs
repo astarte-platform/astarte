@@ -23,8 +23,8 @@ defmodule Astarte.Import.MixProject do
     [
       {:xandra, "~> 0.13"},
       {:logfmt, "~> 3.3"},
-      {:astarte_core, "~> 1.0.5"},
-      {:astarte_data_access, "~> 1.0.5"},
+      {:astarte_core, "~> 1.0.6"},
+      {:astarte_data_access, "~> 1.0.6"},
       {:distillery, "~> 2.0"}
     ]
   end
