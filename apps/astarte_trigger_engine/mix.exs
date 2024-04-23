@@ -75,7 +75,7 @@ defmodule Astarte.TriggerEngine.Mixfile do
     [
       {:amqp, "~> 3.3"},
       {:bbmustache, "~> 1.9"},
-      {:castore, "~> 0.1.0"},
+      {:castore, "~> 1.0.0"},
       {:cyanide, "~> 2.0"},
       {:httpoison, "~> 1.6"},
       {:jason, "~> 1.2"},

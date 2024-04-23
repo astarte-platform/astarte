@@ -101,7 +101,7 @@ defmodule Astarte.AppEngine.API.Mixfile do
       {:telemetry_poller, "~> 0.4"},
       {:telemetry_metrics_prometheus_core, "~> 0.4"},
       {:skogsra, "~> 2.2"},
-      {:castore, "~> 0.1.0"},
+      {:castore, "~> 1.0.0"},
       {:observer_cli, "~> 1.5"},
       {:dialyxir, "~> 1.0", only: [:dev, :ci], runtime: false},
       # Workaround for Elixir 1.15 / ssl_verify_fun issue
