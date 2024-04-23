@@ -44,6 +44,9 @@ defmodule Astarte.Housekeeping.Config do
     type: :boolean,
     default: false
 
+  defdelegate astarte_instance_id!, to: DataAccessConfig
+  defdelegate astarte_instance_id, to: DataAccessConfig
+
   defdelegate xandra_nodes, to: DataAccessConfig
   defdelegate xandra_nodes!, to: DataAccessConfig
 

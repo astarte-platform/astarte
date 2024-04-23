@@ -19,9 +19,10 @@
 defmodule Astarte.Housekeeping.QueriesTest do
   use ExUnit.Case
   doctest Astarte.Housekeeping.Queries
-
+  alias Astarte.Housekeeping.Config
   alias Astarte.Housekeeping.DatabaseTestHelper
   alias Astarte.Housekeeping.Queries
+  alias Astarte.Core.CQLUtils
 
   @realm1 "test1"
   @realm2 "test2"
@@ -71,7 +72,7 @@ defmodule Astarte.Housekeeping.QueriesTest do
            ] =
              Xandra.Cluster.execute!(
                :xandra,
-               "SELECT value FROM #{@realm1}.kv_store WHERE group='auth' AND key='jwt_public_key_pem'"
+               "SELECT value FROM #{CQLUtils.realm_name_to_keyspace_name(@realm1, Config.astarte_instance_id!())}.kv_store WHERE group='auth' AND key='jwt_public_key_pem'"
              )
              |> Enum.to_list()
   end
@@ -90,7 +91,7 @@ defmodule Astarte.Housekeeping.QueriesTest do
            ] =
              Xandra.Cluster.execute!(
                :xandra,
-               "SELECT device_registration_limit FROM astarte.realms WHERE realm_name = :realm_name",
+               "SELECT device_registration_limit FROM #{CQLUtils.realm_name_to_keyspace_name("astarte", Config.astarte_instance_id!())}.realms WHERE realm_name = :realm_name",
                %{"realm_name" => {"varchar", @realm1}}
              )
              |> Enum.to_list()
@@ -108,7 +109,7 @@ defmodule Astarte.Housekeeping.QueriesTest do
            ] =
              Xandra.Cluster.execute!(
                :xandra,
-               "SELECT device_registration_limit FROM astarte.realms WHERE realm_name = :realm_name",
+               "SELECT device_registration_limit FROM #{CQLUtils.realm_name_to_keyspace_name("astarte", Config.astarte_instance_id!())}.realms WHERE realm_name = :realm_name",
                %{"realm_name" => {"varchar", @realm1}}
              )
              |> Enum.to_list()
@@ -124,7 +125,7 @@ defmodule Astarte.Housekeeping.QueriesTest do
 
     test_retention_statement =
       """
-      SELECT blobAsInt(value) FROM #{@realm1}.kv_store
+      SELECT blobAsInt(value) FROM #{CQLUtils.realm_name_to_keyspace_name(@realm1, Config.astarte_instance_id!())}.kv_store
       WHERE group='realm_config' AND key='datastream_maximum_storage_retention';
       """
 
@@ -146,7 +147,7 @@ defmodule Astarte.Housekeeping.QueriesTest do
 
     test_retention_statement =
       """
-      SELECT blobAsInt(value) FROM #{@realm1}.kv_store
+      SELECT blobAsInt(value) FROM #{CQLUtils.realm_name_to_keyspace_name(@realm1, Config.astarte_instance_id!())}.kv_store
       WHERE group='realm_config' AND key='datastream_maximum_storage_retention';
       """
 
