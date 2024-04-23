@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2018 - 2023 SECO Mind Srl
+# Copyright 2018 - 2024 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -27,7 +27,7 @@ defmodule Astarte.DataAccess.Mappings do
     XandraUtils.run(realm, &do_fetch_interface_mappings(&1, &2, interface_id, opts))
   end
 
-  defp do_fetch_interface_mappings(conn, realm_name, interface_id, opts) do
+  defp do_fetch_interface_mappings(conn, keyspace_name, interface_id, opts) do
     include_docs =
       if Keyword.get(opts, :include_docs) do
         ", doc, description"
@@ -39,7 +39,7 @@ defmodule Astarte.DataAccess.Mappings do
     SELECT endpoint, value_type, reliability, retention, database_retention_policy,
       database_retention_ttl, expiry, allow_unset, explicit_timestamp, endpoint_id,
       interface_id #{include_docs}
-    FROM #{realm_name}.endpoints
+    FROM #{keyspace_name}.endpoints
     WHERE interface_id=:interface_id
     """
 

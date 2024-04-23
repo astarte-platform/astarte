@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2018 - 2023 SECO Mind Srl
+# Copyright 2018 - 2024 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -27,10 +27,10 @@ defmodule Astarte.DataAccess.Device do
     XandraUtils.run(realm, &do_interface_version(&1, &2, device_id, interface_name))
   end
 
-  defp do_interface_version(conn, realm_name, device_id, interface_name) do
+  defp do_interface_version(conn, keyspace_name, device_id, interface_name) do
     statement = """
     SELECT introspection
-    FROM #{realm_name}.devices
+    FROM #{keyspace_name}.devices
     WHERE device_id=:device_id
     """
 

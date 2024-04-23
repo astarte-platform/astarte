@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2023 SECO Mind Srl
+# Copyright 2023 - 2024 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -18,13 +18,18 @@
 
 defmodule Astarte.DataAccess.XandraUtils do
   alias Astarte.Core.Realm
+  alias Astarte.Core.CQLUtils
+  alias Astarte.DataAccess.Config
+
   require Logger
 
   @spec run(String.t(), (Xandra.Connection.t(), String.t() -> any)) ::
           any | {:error, :invalid_realm_name}
   def run(realm, fun) do
     with :ok <- verify_realm(realm) do
-      Xandra.Cluster.run(:astarte_data_access_xandra, &fun.(&1, realm))
+      keyspace = CQLUtils.realm_name_to_keyspace_name(realm, Config.astarte_instance_id!())
+
+      Xandra.Cluster.run(:astarte_data_access_xandra, &fun.(&1, keyspace))
     end
   end
 

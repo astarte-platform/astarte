@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2018 - 2023 SECO Mind Srl
+# Copyright 2018 - 2024 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -33,12 +33,12 @@ defmodule Astarte.DataAccess.Interface do
     )
   end
 
-  def do_retrieve_interface_row(conn, realm_name, interface_name, major_version, opts) do
+  def do_retrieve_interface_row(conn, keyspace_name, interface_name, major_version, opts) do
     selector = if opts[:include_docs], do: "*", else: @interface_row_default_selector
 
     statement = """
     SELECT #{selector}
-    FROM #{realm_name}.interfaces
+    FROM #{keyspace_name}.interfaces
     WHERE name=:name AND major_version=:major_version
     """
 
@@ -74,10 +74,10 @@ defmodule Astarte.DataAccess.Interface do
     )
   end
 
-  defp do_check_if_interface_exists(conn, realm_name, interface_name, major_version) do
+  defp do_check_if_interface_exists(conn, keyspace_name, interface_name, major_version) do
     statement = """
     SELECT COUNT(*)
-    FROM #{realm_name}.interfaces
+    FROM #{keyspace_name}.interfaces
     WHERE name=:name AND major_version=:major_version
     """
 
