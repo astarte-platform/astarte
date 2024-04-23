@@ -95,23 +95,23 @@ defmodule Astarte.RealmManagement.QueriesTest do
   """
 
   @count_log_entries_for_device_a """
-    SELECT COUNT(*) FROM autotestrealm.com_ispirata_hemera_devicelog_v1 WHERE device_id=536be249-aaaa-4e02-9583-5a4833cbfe49 AND path='/';
+    SELECT COUNT(*) FROM #{CQLUtils.realm_name_to_keyspace_name("autotestrealm", Config.astarte_instance_id!())}.com_ispirata_hemera_devicelog_v1 WHERE device_id=536be249-aaaa-4e02-9583-5a4833cbfe49 AND path='/';
   """
 
   @count_log_entries_for_device_b """
-    SELECT COUNT(*) FROM autotestrealm.com_ispirata_hemera_devicelog_v1 WHERE device_id=536be249-bbbb-4e02-9583-5a4833cbfe49 AND path='/';
+    SELECT COUNT(*) FROM #{CQLUtils.realm_name_to_keyspace_name("autotestrealm", Config.astarte_instance_id!())}.com_ispirata_hemera_devicelog_v1 WHERE device_id=536be249-bbbb-4e02-9583-5a4833cbfe49 AND path='/';
   """
 
   @count_log_entries_for_device_c """
-    SELECT COUNT(*) FROM autotestrealm.com_ispirata_hemera_devicelog_v1 WHERE device_id=536be249-cccc-4e02-9583-5a4833cbfe49 AND path='/';
+    SELECT COUNT(*) FROM #{CQLUtils.realm_name_to_keyspace_name("autotestrealm", Config.astarte_instance_id!())}.com_ispirata_hemera_devicelog_v1 WHERE device_id=536be249-cccc-4e02-9583-5a4833cbfe49 AND path='/';
   """
 
   @a_log_entry_for_device_a """
-    SELECT * FROM autotestrealm.com_ispirata_hemera_devicelog_v1 WHERE device_id=536be249-aaaa-4e02-9583-5a4833cbfe49 AND path='/' AND reception_timestamp > '2011-02-03 04:05+0000';
+    SELECT * FROM #{CQLUtils.realm_name_to_keyspace_name("autotestrealm", Config.astarte_instance_id!())}.com_ispirata_hemera_devicelog_v1 WHERE device_id=536be249-aaaa-4e02-9583-5a4833cbfe49 AND path='/' AND reception_timestamp > '2011-02-03 04:05+0000';
   """
 
   @an_older_log_entry_for_device_a """
-    SELECT * FROM autotestrealm.com_ispirata_hemera_devicelog_v1 WHERE device_id=536be249-aaaa-4e02-9583-5a4833cbfe49 AND path='/' AND reception_timestamp <= '2011-02-03 04:05+0000';
+    SELECT * FROM #{CQLUtils.realm_name_to_keyspace_name("autotestrealm", Config.astarte_instance_id!())}.com_ispirata_hemera_devicelog_v1 WHERE device_id=536be249-aaaa-4e02-9583-5a4833cbfe49 AND path='/' AND reception_timestamp <= '2011-02-03 04:05+0000';
   """
 
   @individual_property_device_owned_interface """
@@ -213,7 +213,10 @@ defmodule Astarte.RealmManagement.QueriesTest do
   def connect_to_test_realm(realm) do
     cqex_options =
       Config.cqex_options!()
-      |> Keyword.put(:keyspace, realm)
+      |> Keyword.put(
+        :keyspace,
+        CQLUtils.realm_name_to_keyspace_name(realm, Config.astarte_instance_id!())
+      )
 
     CQEx.Client.new!(Config.cassandra_node!(), cqex_options)
   end
