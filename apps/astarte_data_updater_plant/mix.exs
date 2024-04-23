@@ -22,7 +22,7 @@ defmodule Astarte.DataUpdaterPlant.Mixfile do
   def project do
     [
       app: :astarte_data_updater_plant,
-      version: "1.0.5",
+      version: "1.0.6",
       elixir: "~> 1.11",
       build_embedded: Mix.env() == :prod,
       start_permanent: Mix.env() == :prod,
@@ -63,9 +63,9 @@ defmodule Astarte.DataUpdaterPlant.Mixfile do
 
   defp astarte_required_modules(_) do
     [
-      {:astarte_core, "~> 1.0.5"},
-      {:astarte_data_access, "~> 1.0.5"},
-      {:astarte_rpc, "~> 1.0.5"}
+      {:astarte_core, "~> 1.0.6"},
+      {:astarte_data_access, "~> 1.0.6"},
+      {:astarte_rpc, "~> 1.0.6"}
     ]
   end
 

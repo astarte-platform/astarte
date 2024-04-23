@@ -4,7 +4,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-## [1.0.6] - Unreleased
+## [1.0.6] - 2024-04-23
 ### Fixed
 - [astarte_appengine_api] Allow to send binaryblobarrays over server owned interfaces.
 - [astarte_appengine_api] Doubles and DoubleArrays without decimal part are no longer saved as 
