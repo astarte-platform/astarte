@@ -750,6 +750,22 @@ defmodule Astarte.AppEngine.API.Device do
     end
   end
 
+  # conversion adding 0.0 is required because anyvalue comes from a json value,
+  # that does not distinguish from double or int and automatically strip out trailing decimal zeroes
+  defp cast_value(:double, anyvalue) do
+    {:ok, anyvalue + 0.0}
+  end
+
+  defp cast_value(:doublearray, values) do
+    case map_while_ok(values, &cast_value(:double, &1)) do
+      {:ok, mapped_values} ->
+        {:ok, mapped_values}
+
+      _ ->
+        {:error, :unexpected_value_type, expected: :doublearray}
+    end
+  end
+
   defp cast_value(_anytype, anyvalue) do
     {:ok, anyvalue}
   end
