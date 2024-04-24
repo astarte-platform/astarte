@@ -23,7 +23,8 @@ defmodule Astarte.Pairing.Queries do
 
   alias CQEx.Query
   alias CQEx.Result
-
+  alias Astarte.Core.CQLUtils
+  alias Astarte.Pairing.Config
   require Logger
 
   @protocol_revision 1
@@ -316,7 +317,7 @@ defmodule Astarte.Pairing.Queries do
   def check_astarte_health(consistency) do
     query = """
     SELECT COUNT(*)
-    FROM astarte.realms
+    FROM #{CQLUtils.realm_name_to_keyspace_name("astarte", Config.astarte_instance_id!())}.realms
     """
 
     with {:ok, %Xandra.Page{} = page} <-
@@ -353,7 +354,7 @@ defmodule Astarte.Pairing.Queries do
   defp do_fetch_device_registration_limit(conn, realm_name) do
     query = """
     SELECT device_registration_limit
-    FROM astarte.realms
+    FROM #{CQLUtils.realm_name_to_keyspace_name("astarte", Config.astarte_instance_id!())}.realms
     WHERE realm_name = :realm_name
     """
 
@@ -394,14 +395,17 @@ defmodule Astarte.Pairing.Queries do
 
   defp do_fetch_registered_devices_count(conn, realm_name) do
     # TODO move away from interpolation like this once NoaccOS' PR is merged
+    keyspace_name =
+      CQLUtils.realm_name_to_keyspace_name(realm_name, Config.astarte_instance_id!())
+
     query = """
     SELECT COUNT(*)
-    FROM #{realm_name}.devices
+    FROM #{keyspace_name}.devices
     """
 
     with {:ok, prepared} <- Xandra.prepare(conn, query),
          {:ok, page} <-
-           Xandra.execute(conn, prepared, %{"realm_name" => realm_name}, consistency: :one) do
+           Xandra.execute(conn, prepared, %{}, consistency: :one) do
       [%{"count" => value}] = Enum.to_list(page)
       {:ok, value}
     else

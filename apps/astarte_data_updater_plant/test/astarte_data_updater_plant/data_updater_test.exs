@@ -20,6 +20,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
   use ExUnit.Case
   import Mox
 
+  alias Astarte.DataUpdaterPlant.Config
   alias Astarte.Core.Device
   alias Astarte.Core.Triggers.SimpleEvents.DeviceConnectedEvent
   alias Astarte.Core.Triggers.SimpleEvents.IncomingDataEvent
@@ -1527,8 +1528,6 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
 
     realm = "autotestrealm"
 
-    {:ok, db_client} = Database.connect(realm: realm)
-
     # Install a volatile device test trigger
     simple_trigger_data =
       %SimpleTriggerContainer{
@@ -1573,7 +1572,6 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
   test "fails to delete volatile trigger on missing device" do
     AMQPTestHelper.clean_queue()
     realm = "autotestrealm"
-    {:ok, db_client} = Database.connect(realm: realm)
     volatile_trigger_id = :crypto.strong_rand_bytes(16)
 
     fail_encoded_device_id = "f0VMRgIBAQBBBBBBBBBBBB"
@@ -1600,8 +1598,6 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
     {:ok, device_id} = Device.decode_device_id(encoded_device_id)
 
     DatabaseTestHelper.insert_device(device_id)
-
-    {:ok, db_client} = Database.connect(realm: realm)
 
     timestamp_us_x_10 = make_timestamp("2017-12-09T14:00:32+00:00")
     timestamp_ms = div(timestamp_us_x_10, 10_000)
@@ -1645,8 +1641,6 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
     {:ok, device_id} = Device.decode_device_id(encoded_device_id)
 
     DatabaseTestHelper.insert_device(device_id)
-
-    {:ok, db_client} = Database.connect(realm: realm)
 
     timestamp_us_x_10 = make_timestamp("2017-12-09T14:00:32+00:00")
     timestamp_ms = div(timestamp_us_x_10, 10_000)
@@ -1699,7 +1693,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
 
     # Set device deletion to in progress
     deletion_in_progress_statement = """
-    INSERT INTO #{realm}.deletion_in_progress (device_id)
+    INSERT INTO #{CQLUtils.realm_name_to_keyspace_name(realm, Config.astarte_instance_id!())}.deletion_in_progress (device_id)
     VALUES (:device_id)
     """
 
@@ -1731,7 +1725,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
     # Check DUP start ack in deleted_devices table
     dup_start_ack_statement = """
     SELECT dup_start_ack
-    FROM #{realm}.deletion_in_progress
+    FROM #{CQLUtils.realm_name_to_keyspace_name(realm, Config.astarte_instance_id!())}.deletion_in_progress
     WHERE device_id = :device_id
     """
 
@@ -1761,7 +1755,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
 
     received_data_statement = """
     SELECT total_received_msgs, total_received_bytes
-    FROM #{realm}.devices WHERE device_id=:device_id;
+    FROM #{CQLUtils.realm_name_to_keyspace_name(realm, Config.astarte_instance_id!())}.devices WHERE device_id=:device_id;
     """
 
     received_data_result =
@@ -1798,7 +1792,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
     # Check DUP end ack in deleted_devices table
     dup_end_ack_statement = """
     SELECT dup_end_ack
-    FROM #{realm}.deletion_in_progress
+    FROM #{CQLUtils.realm_name_to_keyspace_name(realm, Config.astarte_instance_id!())}.deletion_in_progress
     WHERE device_id = :device_id
     """
 

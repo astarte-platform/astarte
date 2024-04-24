@@ -21,6 +21,7 @@ defmodule Astarte.RealmManagement.DeviceRemoval.DeviceRemoverTest do
   require Logger
 
   alias Astarte.Core.CQLUtils
+  alias Astarte.RealmManagement.Config
   alias Astarte.RealmManagement.DeviceRemoval.DeviceRemover
   alias Astarte.RealmManagement.DatabaseTestHelper
   alias Astarte.RealmManagement.Queries
@@ -50,7 +51,7 @@ defmodule Astarte.RealmManagement.DeviceRemoval.DeviceRemoverTest do
       Xandra.Cluster.prepare!(
         :xandra,
         """
-          INSERT INTO #{@realm_name}.deletion_in_progress (device_id, vmq_ack, dup_start_ack, dup_end_ack)
+          INSERT INTO #{CQLUtils.realm_name_to_keyspace_name(@realm_name, Config.astarte_instance_id!())}.deletion_in_progress (device_id, vmq_ack, dup_start_ack, dup_end_ack)
           VALUES (:device_id, false, false, false)
         """
       )
@@ -89,7 +90,7 @@ defmodule Astarte.RealmManagement.DeviceRemoval.DeviceRemoverTest do
     devices_prepared =
       Xandra.Cluster.prepare!(
         :xandra,
-        "SELECT * FROM #{@realm_name}.devices WHERE device_id = :device_id"
+        "SELECT * FROM #{CQLUtils.realm_name_to_keyspace_name(@realm_name, Config.astarte_instance_id!())}.devices WHERE device_id = :device_id"
       )
 
     assert [] =

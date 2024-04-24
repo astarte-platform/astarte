@@ -18,6 +18,7 @@
 
 defmodule Astarte.Pairing.DatabaseTestHelper do
   alias Astarte.Core.Device
+  alias Astarte.Core.CQLUtils
   alias Astarte.Pairing.Config
   alias Astarte.Pairing.TestHelper
   alias Astarte.Pairing.CredentialsSecret
@@ -27,21 +28,21 @@ defmodule Astarte.Pairing.DatabaseTestHelper do
   alias CQEx.Result
 
   @create_astarte_keyspace """
-  CREATE KEYSPACE astarte
+  CREATE KEYSPACE #{CQLUtils.realm_name_to_keyspace_name("astarte", Config.astarte_instance_id!())}
     WITH
     replication = {'class': 'SimpleStrategy', 'replication_factor': '1'} AND
     durable_writes = true;
   """
 
   @create_autotestrealm """
-  CREATE KEYSPACE autotestrealm
+  CREATE KEYSPACE #{CQLUtils.realm_name_to_keyspace_name("autotestrealm", Config.astarte_instance_id!())}
     WITH
     replication = {'class': 'SimpleStrategy', 'replication_factor': '1'} AND
     durable_writes = true;
   """
 
   @create_devices_table """
-  CREATE TABLE autotestrealm.devices (
+  CREATE TABLE #{CQLUtils.realm_name_to_keyspace_name("autotestrealm", Config.astarte_instance_id!())}.devices (
     device_id uuid,
     introspection map<ascii, int>,
     introspection_minor map<ascii, int>,
@@ -67,7 +68,7 @@ defmodule Astarte.Pairing.DatabaseTestHelper do
   """
 
   @create_kv_store_table """
-  CREATE TABLE autotestrealm.kv_store (
+  CREATE TABLE #{CQLUtils.realm_name_to_keyspace_name("autotestrealm", Config.astarte_instance_id!())}.kv_store (
     group varchar,
     key varchar,
     value blob,
@@ -77,7 +78,7 @@ defmodule Astarte.Pairing.DatabaseTestHelper do
   """
 
   @create_realms_table """
-  CREATE TABLE astarte.realms (
+  CREATE TABLE #{CQLUtils.realm_name_to_keyspace_name("astarte", Config.astarte_instance_id!())}.realms (
     realm_name varchar,
     device_registration_limit bigint,
     PRIMARY KEY (realm_name)
@@ -92,21 +93,21 @@ defmodule Astarte.Pairing.DatabaseTestHelper do
   """
 
   @insert_jwt_public_key_pem """
-  INSERT INTO autotestrealm.kv_store (group, key, value)
+  INSERT INTO #{CQLUtils.realm_name_to_keyspace_name("autotestrealm", Config.astarte_instance_id!())}.kv_store (group, key, value)
   VALUES ('auth', 'jwt_public_key_pem', varcharAsBlob('#{@jwt_public_key_pem}'))
   """
 
   @insert_autotestrealm_into_realms """
-  INSERT INTO astarte.realms (realm_name)
+  INSERT INTO #{CQLUtils.realm_name_to_keyspace_name("astarte", Config.astarte_instance_id!())}.realms (realm_name)
   VALUES ('autotestrealm');
   """
 
   @drop_autotestrealm """
-  DROP KEYSPACE autotestrealm;
+  DROP KEYSPACE #{CQLUtils.realm_name_to_keyspace_name("autotestrealm", Config.astarte_instance_id!())};
   """
 
   @drop_astarte_keyspace """
-  DROP KEYSPACE astarte;
+  DROP KEYSPACE #{CQLUtils.realm_name_to_keyspace_name("astarte", Config.astarte_instance_id!())};
   """
 
   @test_realm "autotestrealm"
@@ -186,7 +187,9 @@ defmodule Astarte.Pairing.DatabaseTestHelper do
   def seed_devices do
     client =
       Config.cassandra_node!()
-      |> Client.new!(keyspace: @test_realm)
+      |> Client.new!(
+        keyspace: CQLUtils.realm_name_to_keyspace_name(@test_realm, Config.astarte_instance_id!())
+      )
 
     {:ok, registered_not_confirmed_device_id} =
       Device.decode_device_id(@registered_not_confirmed_hw_id, allow_extended_id: true)
@@ -276,7 +279,9 @@ defmodule Astarte.Pairing.DatabaseTestHelper do
   def get_first_registration(hardware_id) do
     client =
       Config.cassandra_node!()
-      |> Client.new!(keyspace: @test_realm)
+      |> Client.new!(
+        keyspace: CQLUtils.realm_name_to_keyspace_name(@test_realm, Config.astarte_instance_id!())
+      )
 
     {:ok, device_id} = Device.decode_device_id(hardware_id, allow_extended_id: true)
 
@@ -303,7 +308,9 @@ defmodule Astarte.Pairing.DatabaseTestHelper do
   def get_introspection(hardware_id) do
     client =
       Config.cassandra_node!()
-      |> Client.new!(keyspace: @test_realm)
+      |> Client.new!(
+        keyspace: CQLUtils.realm_name_to_keyspace_name(@test_realm, Config.astarte_instance_id!())
+      )
 
     {:ok, device_id} = Device.decode_device_id(hardware_id, allow_extended_id: true)
 
@@ -327,7 +334,9 @@ defmodule Astarte.Pairing.DatabaseTestHelper do
   def get_introspection_minor(hardware_id) do
     client =
       Config.cassandra_node!()
-      |> Client.new!(keyspace: @test_realm)
+      |> Client.new!(
+        keyspace: CQLUtils.realm_name_to_keyspace_name(@test_realm, Config.astarte_instance_id!())
+      )
 
     {:ok, device_id} = Device.decode_device_id(hardware_id, allow_extended_id: true)
 
@@ -351,7 +360,9 @@ defmodule Astarte.Pairing.DatabaseTestHelper do
   def clean_devices do
     client =
       Config.cassandra_node!()
-      |> Client.new!(keyspace: @test_realm)
+      |> Client.new!(
+        keyspace: CQLUtils.realm_name_to_keyspace_name(@test_realm, Config.astarte_instance_id!())
+      )
 
     Query.call!(client, "TRUNCATE devices")
     # Also clean the cache
@@ -362,7 +373,7 @@ defmodule Astarte.Pairing.DatabaseTestHelper do
 
   def set_device_registration_limit(realm_name, limit) do
     query = """
-    UPDATE astarte.realms
+    UPDATE #{CQLUtils.realm_name_to_keyspace_name("astarte", Config.astarte_instance_id!())}.realms
     SET device_registration_limit = :the_limit
     WHERE realm_name = :realm_name
     """

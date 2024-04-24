@@ -20,6 +20,7 @@ defmodule Astarte.RealmManagement.EngineTest do
   use ExUnit.Case
   require Logger
   alias Astarte.Core.CQLUtils
+  alias Astarte.RealmManagement.Config
   alias Astarte.DataAccess.Database
   alias Astarte.RealmManagement.DatabaseTestHelper
   alias Astarte.RealmManagement.DatabaseFixtures
@@ -1526,7 +1527,7 @@ defmodule Astarte.RealmManagement.EngineTest do
     assert :ok = Engine.delete_device(@test_realm_name, encoded_device_id)
 
     statement = """
-    SELECT * FROM #{@test_realm_name}.deletion_in_progress
+    SELECT * FROM #{CQLUtils.realm_name_to_keyspace_name(@test_realm_name, Config.astarte_instance_id!())}.deletion_in_progress
     """
 
     assert [%{device_id: ^device_id}] =

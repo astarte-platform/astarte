@@ -28,6 +28,7 @@ defmodule Astarte.Pairing.Engine do
   alias Astarte.Pairing.CredentialsSecret
   alias Astarte.Pairing.Queries
   alias CQEx.Client
+  alias Astarte.Core.CQLUtils
 
   require Logger
 
@@ -56,9 +57,11 @@ defmodule Astarte.Pairing.Engine do
   end
 
   def get_agent_public_key_pems(realm) do
+    keyspace = CQLUtils.realm_name_to_keyspace_name(realm, Config.astarte_instance_id!())
+
     cqex_options =
       Config.cqex_options!()
-      |> Keyword.put(:keyspace, realm)
+      |> Keyword.put(:keyspace, keyspace)
 
     with {:ok, client} <-
            Client.new(
@@ -89,10 +92,11 @@ defmodule Astarte.Pairing.Engine do
     )
 
     :telemetry.execute([:astarte, :pairing, :get_credentials], %{}, %{realm: realm})
+    keyspace_name = CQLUtils.realm_name_to_keyspace_name(realm, Config.astarte_instance_id!())
 
     cqex_options =
       Config.cqex_options!()
-      |> Keyword.put(:keyspace, realm)
+      |> Keyword.put(:keyspace, keyspace_name)
 
     with {:ok, device_id} <- Device.decode_device_id(hardware_id, allow_extended_id: true),
          {:ok, ip_tuple} <- parse_ip(device_ip),
@@ -152,10 +156,11 @@ defmodule Astarte.Pairing.Engine do
 
   def get_info(realm, hardware_id, credentials_secret) do
     Logger.debug("get_info request for device #{inspect(hardware_id)} in realm #{inspect(realm)}")
+    keyspace_name = CQLUtils.realm_name_to_keyspace_name(realm, Config.astarte_instance_id!())
 
     cqex_options =
       Config.cqex_options!()
-      |> Keyword.put(:keyspace, realm)
+      |> Keyword.put(:keyspace, keyspace_name)
 
     with {:ok, device_id} <- Device.decode_device_id(hardware_id, allow_extended_id: true),
          {:ok, client} <-
@@ -192,10 +197,11 @@ defmodule Astarte.Pairing.Engine do
     )
 
     :telemetry.execute([:astarte, :pairing, :register_new_device], %{}, %{realm: realm})
+    keyspace_name = CQLUtils.realm_name_to_keyspace_name(realm, Config.astarte_instance_id!())
 
     cqex_options =
       Config.cqex_options!()
-      |> Keyword.put(:keyspace, realm)
+      |> Keyword.put(:keyspace, keyspace_name)
 
     with :ok <- verify_can_register_device(realm),
          {:ok, device_id} <- Device.decode_device_id(hardware_id, allow_extended_id: true),
@@ -240,9 +246,11 @@ defmodule Astarte.Pairing.Engine do
         "in realm #{inspect(realm)}"
     )
 
+    keyspace_name = CQLUtils.realm_name_to_keyspace_name(realm, Config.astarte_instance_id!())
+
     cqex_options =
       Config.cqex_options!()
-      |> Keyword.put(:keyspace, realm)
+      |> Keyword.put(:keyspace, keyspace_name)
 
     with {:ok, device_id} <- Device.decode_device_id(encoded_device_id),
          {:ok, client} <-
@@ -266,9 +274,11 @@ defmodule Astarte.Pairing.Engine do
       "verify_credentials request for device #{inspect(hardware_id)} in realm #{inspect(realm)}"
     )
 
+    keyspace_name = CQLUtils.realm_name_to_keyspace_name(realm, Config.astarte_instance_id!())
+
     cqex_options =
       Config.cqex_options!()
-      |> Keyword.put(:keyspace, realm)
+      |> Keyword.put(:keyspace, keyspace_name)
 
     with {:ok, device_id} <- Device.decode_device_id(hardware_id, allow_extended_id: true),
          {:ok, client} <-

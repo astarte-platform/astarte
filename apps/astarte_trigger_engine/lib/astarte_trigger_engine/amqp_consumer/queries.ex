@@ -17,6 +17,8 @@
 #
 
 defmodule Astarte.TriggerEngine.AMQPConsumer.Queries do
+  alias Astarte.Core.CQLUtils
+  alias Astarte.TriggerEngine.Config
   require Logger
 
   def list_policies(realm_name) do
@@ -24,7 +26,11 @@ defmodule Astarte.TriggerEngine.AMQPConsumer.Queries do
   end
 
   defp do_list_policies(conn, realm_name) do
-    list_policies_statement = "SELECT * FROM #{realm_name}.kv_store WHERE group='trigger_policy';"
+    keyspace_name =
+      CQLUtils.realm_name_to_keyspace_name(realm_name, Config.astarte_instance_id!())
+
+    list_policies_statement =
+      "SELECT * FROM #{keyspace_name}.kv_store WHERE group='trigger_policy';"
 
     with {:ok, prepared} <-
            Xandra.prepare(conn, list_policies_statement),
@@ -54,7 +60,7 @@ defmodule Astarte.TriggerEngine.AMQPConsumer.Queries do
   def do_list_realms(conn) do
     query = """
     SELECT realm_name
-    FROM astarte.realms;
+    FROM #{CQLUtils.realm_name_to_keyspace_name("astarte", Config.astarte_instance_id!())}.realms;
     """
 
     case Xandra.execute(conn, query, %{}, consistency: :quorum) do

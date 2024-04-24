@@ -1060,7 +1060,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
   def retrieve_realms! do
     statement = """
     SELECT *
-    FROM astarte.realms
+    FROM #{CQLUtils.realm_name_to_keyspace_name("astarte", Config.astarte_instance_id!())}.realms
     """
 
     realms =

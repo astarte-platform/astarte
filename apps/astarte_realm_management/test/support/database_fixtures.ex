@@ -19,10 +19,12 @@
 defmodule Astarte.RealmManagement.DatabaseFixtures do
   alias Astarte.Core.Device
   alias Astarte.Core.CQLUtils
+  alias Astarte.RealmManagement.Config
 
   def datastream_values do
     [
-      realm_name: "realm#{System.unique_integer([:positive])}",
+      realm_name:
+        "#{CQLUtils.realm_name_to_keyspace_name("realm#{System.unique_integer([:positive])}", Config.astarte_instance_id!())}",
       device_id: Device.random_device_id(),
       interface_name: "com.datastream.Interface#{System.unique_integer([:positive])}",
       interface_major: System.unique_integer([:positive]),
@@ -37,7 +39,8 @@ defmodule Astarte.RealmManagement.DatabaseFixtures do
 
   def properties_values do
     [
-      realm_name: "realm#{System.unique_integer([:positive])}",
+      realm_name:
+        "#{CQLUtils.realm_name_to_keyspace_name("realm#{System.unique_integer([:positive])}", Config.astarte_instance_id!())}",
       device_id: Device.random_device_id(),
       interface_name: "com.properties.Interface#{System.unique_integer([:positive])}",
       interface_major: System.unique_integer([:positive]),
@@ -51,7 +54,8 @@ defmodule Astarte.RealmManagement.DatabaseFixtures do
 
   def introspection_values do
     [
-      realm_name: "realm#{System.unique_integer([:positive])}",
+      realm_name:
+        "#{CQLUtils.realm_name_to_keyspace_name("realm#{System.unique_integer([:positive])}", Config.astarte_instance_id!())}",
       device_id: Device.random_device_id(),
       interface_name: "com.Interface#{System.unique_integer([:positive])}",
       interface_major: System.unique_integer([:positive])
@@ -60,7 +64,8 @@ defmodule Astarte.RealmManagement.DatabaseFixtures do
 
   def alias_values do
     [
-      realm_name: "realm#{System.unique_integer([:positive])}",
+      realm_name:
+        "#{CQLUtils.realm_name_to_keyspace_name("realm#{System.unique_integer([:positive])}", Config.astarte_instance_id!())}",
       device_alias: "alias_n_#{System.unique_integer([:positive])}",
       device_id: Device.random_device_id()
     ]
@@ -68,7 +73,8 @@ defmodule Astarte.RealmManagement.DatabaseFixtures do
 
   def group_values do
     [
-      realm_name: "realm#{System.unique_integer([:positive])}",
+      realm_name:
+        "#{CQLUtils.realm_name_to_keyspace_name("realm#{System.unique_integer([:positive])}", Config.astarte_instance_id!())}",
       device_id: Device.random_device_id(),
       group_name: "group_n_#{System.unique_integer([:positive])}",
       insertion_uuid: time_uuid()
@@ -77,7 +83,8 @@ defmodule Astarte.RealmManagement.DatabaseFixtures do
 
   def kv_store_values do
     [
-      realm_name: "realm#{System.unique_integer([:positive])}",
+      realm_name:
+        "#{CQLUtils.realm_name_to_keyspace_name("realm#{System.unique_integer([:positive])}", Config.astarte_instance_id!())}",
       group: "group_n_#{System.unique_integer([:positive])}",
       key: "key_n_#{System.unique_integer([:positive])}",
       value: "bigintAsBlob(#{System.unique_integer([:positive])})"
@@ -86,7 +93,8 @@ defmodule Astarte.RealmManagement.DatabaseFixtures do
 
   def devices_values do
     [
-      realm_name: "realm#{System.unique_integer([:positive])}",
+      realm_name:
+        "#{CQLUtils.realm_name_to_keyspace_name("realm#{System.unique_integer([:positive])}", Config.astarte_instance_id!())}",
       device_id: Device.random_device_id()
     ]
   end
@@ -96,7 +104,8 @@ defmodule Astarte.RealmManagement.DatabaseFixtures do
     interface_major = System.unique_integer([:positive])
 
     [
-      realm_name: "realm#{System.unique_integer([:positive])}",
+      realm_name:
+        "#{CQLUtils.realm_name_to_keyspace_name("realm#{System.unique_integer([:positive])}", Config.astarte_instance_id!())}",
       interface_name: interface_name,
       interface_major: interface_major,
       interface_minor: System.unique_integer([:positive]),
@@ -184,7 +193,8 @@ defmodule Astarte.RealmManagement.DatabaseFixtures do
 
   def realm_values do
     [
-      realm_name: "realm#{System.unique_integer([:positive])}",
+      realm_name:
+        "#{CQLUtils.realm_name_to_keyspace_name("realm#{System.unique_integer([:positive])}", Config.astarte_instance_id!())}",
       device_registration_limit: System.unique_integer([:positive]),
       datastream_maximum_storage_retention: System.unique_integer([:positive])
     ]
