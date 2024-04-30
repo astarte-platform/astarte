@@ -25,6 +25,7 @@ defmodule Astarte.AppEngine.API.Rooms.Room do
   alias Astarte.AppEngine.API.RPC.DataUpdaterPlant
   alias Astarte.AppEngine.API.RPC.DataUpdaterPlant.VolatileTrigger
   alias Astarte.AppEngine.API.Utils
+  alias Astarte.AppEngine.API.Config
   alias Astarte.AppEngine.APIWeb.Endpoint
   alias Astarte.Core.Triggers.SimpleTriggerConfig
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.AMQPTriggerTarget
