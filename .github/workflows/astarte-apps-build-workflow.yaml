@@ -123,7 +123,7 @@ jobs:
     - uses: actions/checkout@v2
     - uses: actions/cache@v1
       with:
-        path: apps/${{ matrix.app }}/deps
+        path: apps/${{ matrix.app }}/deps
         key: ${{ runner.os }}-apps-mix-${{ env.otp_version }}-${{ env.elixir_version }}-${{ matrix.app }}-${{ hashFiles(format('{0}{1}{2}{3}', github.workspace, '/apps/', matrix.app, '/mix.lock')) }}
         restore-keys: |
           ${{ runner.os }}-apps-mix-${{ env.otp_version }}-${{ env.elixir_version }}-${{ matrix.app }}-
@@ -170,5 +170,10 @@ jobs:
     - name: Upload Coverage Results to CodeCov
       # Don't upload more than once per component
       if: matrix.database == 'scylladb/scylla:5.2.2'
-      working-directory: ./apps/${{ matrix.app }}
-      run: bash <(curl -s https://codecov.io/bash)
+      uses: codecov/codecov-action@v4
+      with:
+        fail_ci_if_error: true #default = false
+        token: ${{ secrets.CODECOV_TOKEN }}
+        verbose: true #default = false
+        working-directory: ./apps/${{ matrix.app }}
+        directory: ./coverage_results
