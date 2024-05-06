@@ -12,11 +12,12 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ### Fixed
 - Forward-port changes from release-1.0 (gracefully handle malformed
-  purge properties messages).
+  purge properties messages, fix message count metrics, fix typing issues
+  in payloads).
 - [astarte_data_updater_plant] do not leak consumer channels in corner cases.
 - [astarte_data_updater_plant] do not leak producer channels in corner cases.
 
-## [1.1.1.] - 2023-11-15
+## [1.1.1] - 2023-11-15
 ### Fixed
 - [astarte_data_updater_plant] Don't crash when retrieving the interface version
   in a device whose introspection is empty, allowing data in `astarte-data_`
@@ -70,10 +71,18 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - [astarte_appengine_api] Return empty data instead of error when querying `properties` interfaces 
   which are not fully populated. Fix [531](astarte-platform#531).
 
-## [1.0.6] - Unreleased
+## [1.0.6] - 2024-04-23
 ### Fixed
 - [astarte_appengine_api] Allow to send binaryblobarrays over server owned interfaces.
+- [astarte_appengine_api] Doubles and DoubleArrays without decimal part are no longer saved as 
+  integer, but a trailing zero is added.
 - [astarte_data_updater_plant] Do not crash when receiving a malformed purge properties message.
+- [astarte_pairing_api] Gracefully handle HTTP requests with malformed payload.
+- [astarte_housekeeping_api] Gracefully handle HTTP requests with malformed payload.
+- [astarte_realm_management_api] Gracefully handle HTTP requests with malformed payload.
+- [astarte_appengine_api] Expose exchanged_bytes metrics as `sum` (instead of `counter`).
+- [astarte_pairing] Do not reset total sent messages/bytes when re-registering a device.
+  Fix [#776](https://github.com/astarte-platform/astarte/issues/776).
 
 ## [1.0.5] - 2023-09-26
 ### Fixed

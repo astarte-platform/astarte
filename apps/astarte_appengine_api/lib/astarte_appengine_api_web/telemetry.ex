@@ -97,7 +97,7 @@ defmodule Astarte.AppEngine.APIWeb.Telemetry do
         tags: [:realm],
         description: "AppEngine sent messages count."
       ),
-      counter("astarte.appengine.device.message_sent.exchanged_bytes",
+      sum("astarte.appengine.device.message_sent.exchanged_bytes",
         tags: [:realm],
         description: "AppEngine exchanged bytes count."
       ),
