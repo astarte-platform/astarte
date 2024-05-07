@@ -1514,7 +1514,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
         }
 
       :error ->
-        Logger.warn("Invalid purge_properties payload", tag: "purge_properties_error")
+        Logger.warning("Invalid purge_properties payload", tag: "purge_properties_error")
 
         {:ok, new_state} = ask_clean_session(new_state, timestamp)
         MessageTracker.discard(new_state.message_tracker, message_id)

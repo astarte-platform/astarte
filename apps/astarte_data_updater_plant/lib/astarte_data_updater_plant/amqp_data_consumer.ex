@@ -155,7 +155,7 @@ defmodule Astarte.DataUpdaterPlant.AMQPDataConsumer do
         %{monitor: monitor, channel: %{pid: chan_pid}} = state
       ) do
     # Channel went down, stop the process
-    Logger.warn("AMQP data consumer crashed, reason: #{inspect(reason)}",
+    Logger.warning("AMQP data consumer crashed, reason: #{inspect(reason)}",
       tag: "data_consumer_chan_crash"
     )
 
@@ -211,7 +211,7 @@ defmodule Astarte.DataUpdaterPlant.AMQPDataConsumer do
 
       {:error, reason} ->
         _ =
-          Logger.warn(
+          Logger.warning(
             "Failed to check out channel for consumer on queue #{state.queue_name}: #{inspect(reason)}",
             tag: "channel_checkout_fail"
           )
@@ -238,7 +238,7 @@ defmodule Astarte.DataUpdaterPlant.AMQPDataConsumer do
       {:noreply, %State{state | channel: channel, monitor: ref}}
     else
       {:error, reason} ->
-        Logger.warn(
+        Logger.warning(
           "Error initializing AMQPDataConsumer on queue #{state.queue_name}: #{inspect(reason)}",
           tag: "data_consumer_init_err"
         )

@@ -98,7 +98,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.PayloadsDecoder do
     # :zlib functions might throw errors, catch them so we do not crash
     :error, error ->
       _ =
-        Logger.warn("Received invalid deflated zlib payload: #{inspect(error)}",
+        Logger.warning("Received invalid deflated zlib payload: #{inspect(error)}",
           tag: "inflate_fail"
         )
 

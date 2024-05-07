@@ -351,7 +351,7 @@ defmodule Astarte.Pairing.Queries do
         :ok
 
       error ->
-        Logger.warn("DB error: #{inspect(error)}")
+        Logger.warning("DB error: #{inspect(error)}")
         {:error, :database_error}
     end
   end
