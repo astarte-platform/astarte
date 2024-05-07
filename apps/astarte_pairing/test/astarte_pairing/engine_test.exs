@@ -170,6 +170,29 @@ defmodule Astarte.Pairing.EngineTest do
       assert {:error, :device_registration_limit_reached} =
                Engine.register_device(@test_realm, hw_id)
     end
+
+    test "does not reset received message count with registered and not confirmed device" do
+      total_received_msgs = System.unique_integer([:positive])
+      total_received_bytes = System.unique_integer([:positive])
+      hw_id = DatabaseTestHelper.registered_not_confirmed_hw_id()
+
+      assert DatabaseTestHelper.get_first_registration(hw_id) != nil
+
+      DatabaseTestHelper.set_received_message_count_for_device(
+        hw_id,
+        total_received_msgs,
+        total_received_bytes
+      )
+
+      assert {:ok, _new_credentials_secret} = Engine.register_device(@test_realm, hw_id)
+
+      assert [
+               %{
+                 "total_received_msgs" => ^total_received_msgs,
+                 "total_received_bytes" => ^total_received_bytes
+               }
+             ] = DatabaseTestHelper.get_message_count_for_device(hw_id)
+    end
   end
 
   describe "unregister device" do

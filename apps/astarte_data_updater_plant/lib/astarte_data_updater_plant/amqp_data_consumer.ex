@@ -17,17 +17,24 @@
 #
 
 defmodule Astarte.DataUpdaterPlant.AMQPDataConsumer do
+  defmodule State do
+    defstruct [
+      :channel,
+      :monitor,
+      :queue_name
+    ]
+  end
+
   require Logger
   use GenServer
 
-  alias AMQP.Basic
   alias AMQP.Channel
-  alias AMQP.Connection
-  alias AMQP.Queue
   alias Astarte.DataUpdaterPlant.Config
   alias Astarte.DataUpdaterPlant.DataUpdater
-  alias Astarte.DataUpdaterPlant.AMQPDataConsumer.ConnectionManager
 
+  # TODO should this be customizable?
+  @reconnect_interval 1_000
+  @adapter Config.amqp_adapter!()
   @msg_type_header "x_astarte_msg_type"
   @realm_header "x_astarte_realm"
   @device_id_header "x_astarte_device_id"
@@ -94,64 +101,85 @@ defmodule Astarte.DataUpdaterPlant.AMQPDataConsumer do
 
   # Server callbacks
 
+  @impl true
   def init(args) do
     queue_name = Keyword.fetch!(args, :queue_name)
-    # Init asynchronously since we will wait for the AMQP connection
-    send(self(), {:async_init, queue_name})
-    {:ok, nil}
+    {:ok, %State{queue_name: queue_name}, {:continue, :init_consume}}
   end
 
-  def terminate(reason, %Channel{conn: conn} = chan) do
-    Logger.info("AMQPDataConsumer terminating due to reason: #{inspect(reason)}.",
-      tag: "data_consumer_terminate"
+  @impl true
+  def handle_continue(:init_consume, state), do: init_consume(state)
+
+  @impl true
+  def handle_call({:ack, delivery_tag}, _from, %State{channel: chan} = state) do
+    res = @adapter.ack(chan, delivery_tag)
+    {:reply, res, state}
+  end
+
+  def handle_call({:discard, delivery_tag}, _from, %State{channel: chan} = state) do
+    res = @adapter.reject(chan, delivery_tag, requeue: false)
+    {:reply, res, state}
+  end
+
+  def handle_call({:requeue, delivery_tag}, _from, %State{channel: chan} = state) do
+    res = @adapter.reject(chan, delivery_tag, requeue: true)
+    {:reply, res, state}
+  end
+
+  def handle_call({:start_message_tracker, realm, device_id}, _from, state) do
+    res = DataUpdater.get_message_tracker(realm, device_id)
+    {:reply, res, state}
+  end
+
+  def handle_call({:start_data_updater, realm, device_id, message_tracker}, _from, state) do
+    res = DataUpdater.get_data_updater_process(realm, device_id, message_tracker)
+    {:reply, res, state}
+  end
+
+  @impl true
+  def handle_info(:init_consume, state), do: init_consume(state)
+
+  def handle_info(
+        {:DOWN, _, :process, pid, :normal},
+        %State{channel: %Channel{pid: chan_pid}} = state
+      )
+      when pid != chan_pid do
+    # This is a Message Tracker deactivating itself normally, do nothing
+    {:noreply, state}
+  end
+
+  # Make sure to handle monitored message trackers exit messages
+  # Under the hood DataUpdater calls Process.monitor so those monitor are leaked into this process.
+  def handle_info(
+        {:DOWN, monitor, :process, chan_pid, reason},
+        %{monitor: monitor, channel: %{pid: chan_pid}} = state
+      ) do
+    # Channel went down, stop the process
+    Logger.warn("AMQP data consumer crashed, reason: #{inspect(reason)}",
+      tag: "data_consumer_chan_crash"
     )
 
-    Channel.close(chan)
-    Connection.close(conn)
-  end
-
-  def handle_call({:ack, delivery_tag}, _from, chan) do
-    res = Basic.ack(chan, delivery_tag)
-    {:reply, res, chan}
-  end
-
-  def handle_call({:discard, delivery_tag}, _from, chan) do
-    res = Basic.reject(chan, delivery_tag, requeue: false)
-    {:reply, res, chan}
-  end
-
-  def handle_call({:requeue, delivery_tag}, _from, chan) do
-    res = Basic.reject(chan, delivery_tag, requeue: true)
-    {:reply, res, chan}
-  end
-
-  def handle_call({:start_message_tracker, realm, device_id}, _from, chan) do
-    res = DataUpdater.get_message_tracker(realm, device_id)
-    {:reply, res, chan}
-  end
-
-  def handle_call({:start_data_updater, realm, device_id, message_tracker}, _from, chan) do
-    res = DataUpdater.get_data_updater_process(realm, device_id, message_tracker)
-    {:reply, res, chan}
+    init_consume(%State{state | channel: nil, monitor: nil})
   end
 
   # Confirmation sent by the broker after registering this process as a consumer
-  def handle_info({:basic_consume_ok, %{consumer_tag: _consumer_tag}}, chan) do
-    {:noreply, chan}
+  def handle_info({:basic_consume_ok, %{consumer_tag: _consumer_tag}}, state) do
+    {:noreply, state}
   end
 
   # Sent by the broker when the consumer is unexpectedly cancelled (such as after a queue deletion)
-  def handle_info({:basic_cancel, %{consumer_tag: _consumer_tag}}, chan) do
-    {:noreply, chan}
+  def handle_info({:basic_cancel, %{consumer_tag: _consumer_tag}}, state) do
+    {:noreply, state}
   end
 
   # Confirmation sent by the broker to the consumer process after a Basic.cancel
-  def handle_info({:basic_cancel_ok, %{consumer_tag: _consumer_tag}}, chan) do
-    {:noreply, chan}
+  def handle_info({:basic_cancel_ok, %{consumer_tag: _consumer_tag}}, state) do
+    {:noreply, state}
   end
 
   # Message consumed
-  def handle_info({:basic_deliver, payload, meta}, chan) do
+  def handle_info({:basic_deliver, payload, meta}, state) do
+    %State{channel: chan} = state
     {headers, no_headers_meta} = Map.pop(meta, :headers, [])
     headers_map = amqp_headers_to_map(headers)
     msg_type = Map.get(headers_map, @msg_type_header, headers_map)
@@ -164,57 +192,61 @@ defmodule Astarte.DataUpdaterPlant.AMQPDataConsumer do
 
       :invalid_msg ->
         # ACK invalid msg to discard them
-        Basic.ack(chan, meta.delivery_tag)
+        @adapter.ack(chan, meta.delivery_tag)
     end
 
-    {:noreply, chan}
+    {:noreply, state}
   end
 
-  def handle_info({:async_init, queue_name}, _state) do
-    # This will block until Rabbit connection is up
-    rabbitmq_connection = ConnectionManager.get_connection()
-
-    {:ok, chan} = initialize_chan(rabbitmq_connection, queue_name)
-
-    {:noreply, chan}
+  defp schedule_connect() do
+    Process.send_after(self(), :init_consume, @reconnect_interval)
   end
 
-  def handle_info(
-        {:DOWN, _, :process, pid, :normal},
-        %Channel{pid: chan_pid, conn: %Connection{pid: conn_pid}} = chan
-      )
-      when pid != chan_pid and pid != conn_pid do
-    # This is a Message Tracker deactivating itself normally, do nothing
-    {:noreply, chan}
+  defp init_consume(state) do
+    conn = ExRabbitPool.get_connection_worker(:amqp_consumer_pool)
+
+    case ExRabbitPool.checkout_channel(conn) do
+      {:ok, channel} ->
+        try_to_setup_consume(channel, conn, state)
+
+      {:error, reason} ->
+        _ =
+          Logger.warn(
+            "Failed to check out channel for consumer on queue #{state.queue_name}: #{inspect(reason)}",
+            tag: "channel_checkout_fail"
+          )
+
+        schedule_connect()
+        {:noreply, state}
+    end
   end
 
-  # Make sure to handle monitored message trackers exit messages
-  # Under the hood DataUpdater calls Process.monitor so those monitor are leaked into this process.
-  def handle_info({:DOWN, _, :process, _pid, reason}, state) do
-    # Channel went down, stop the process
-    Logger.warning("AMQP channel crashed, reason: #{inspect(reason)}",
-      tag: "data_consumer_chan_crash"
-    )
+  defp try_to_setup_consume(channel, conn, state) do
+    %Channel{pid: channel_pid} = channel
+    %State{queue_name: queue_name} = state
 
-    Channel.close(state)
-    {:stop, reason}
-  end
+    with :ok <- @adapter.qos(channel, prefetch_count: Config.consumer_prefetch_count!()),
+         {:ok, _queue} <- @adapter.declare_queue(channel, queue_name, durable: true),
+         {:ok, _consumer_tag} <- @adapter.consume(channel, queue_name, self()) do
+      ref = Process.monitor(channel_pid)
 
-  defp initialize_chan(rabbitmq_connection, queue_name) do
-    with {:ok, chan} <- Channel.open(rabbitmq_connection),
-         # Get a message if the channel goes down
-         Process.monitor(chan.pid),
-         :ok <- Basic.qos(chan, prefetch_count: Config.consumer_prefetch_count!()),
-         {:ok, _queue} <- Queue.declare(chan, queue_name, durable: true),
-         {:ok, _consumer_tag} <- Basic.consume(chan, queue_name) do
-      {:ok, chan}
+      _ =
+        Logger.debug("AMQPDataConsumer for queue #{queue_name} initialized",
+          tag: "data_consumer_init_ok"
+        )
+
+      {:noreply, %State{state | channel: channel, monitor: ref}}
     else
       {:error, reason} ->
-        Logger.warning("Error initializing AMQPDataConsumer: #{inspect(reason)}",
+        Logger.warn(
+          "Error initializing AMQPDataConsumer on queue #{state.queue_name}: #{inspect(reason)}",
           tag: "data_consumer_init_err"
         )
 
-        {:stop, reason}
+        # Something went wrong, let's put the channel back where it belongs
+        _ = ExRabbitPool.checkin_channel(conn, channel)
+        schedule_connect()
+        {:noreply, %{state | channel: nil, monitor: nil}}
     end
   end
 
