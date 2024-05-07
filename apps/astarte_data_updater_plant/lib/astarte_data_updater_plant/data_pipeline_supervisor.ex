@@ -22,6 +22,7 @@ defmodule Astarte.DataUpdaterPlant.DataPipelineSupervisor do
   alias Astarte.DataUpdaterPlant.ConsumersSupervisor
   alias Astarte.DataUpdaterPlant.AMQPEventsProducer
   alias Astarte.DataUpdaterPlant.RPC.Handler
+  alias Astarte.DataUpdaterPlant.Config
 
   alias Astarte.RPC.Protocol.DataUpdaterPlant, as: Protocol
 
@@ -34,6 +35,9 @@ defmodule Astarte.DataUpdaterPlant.DataPipelineSupervisor do
     children = [
       {Registry, [keys: :unique, name: Registry.MessageTracker]},
       {Registry, [keys: :unique, name: Registry.DataUpdater]},
+      {ExRabbitPool.PoolSupervisor,
+       rabbitmq_config: Config.amqp_producer_options!(),
+       connection_pools: [Config.events_producer_pool_config!()]},
       AMQPEventsProducer,
       ConsumersSupervisor,
       {Astarte.RPC.AMQP.Server, [amqp_queue: Protocol.amqp_queue(), handler: Handler]},

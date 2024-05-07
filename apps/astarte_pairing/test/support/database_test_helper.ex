@@ -384,6 +384,51 @@ defmodule Astarte.Pairing.DatabaseTestHelper do
     })
   end
 
+  def get_message_count_for_device(device_id) do
+    {:ok, device_id} = Device.decode_device_id(device_id, allow_extended_id: true)
+
+    statement = """
+    SELECT total_received_msgs, total_received_bytes
+    FROM #{@test_realm}.devices
+    WHERE device_id=:device_id
+    """
+
+    %Xandra.Page{} =
+      page =
+      Xandra.Cluster.run(:xandra, fn conn ->
+        %Xandra.Prepared{} = prepared = Xandra.prepare!(conn, statement)
+        Xandra.execute!(conn, prepared, %{"device_id" => device_id}, uuid_format: :binary)
+      end)
+
+    Enum.to_list(page)
+  end
+
+  def set_received_message_count_for_device(device_id, total_received_msgs, total_received_bytes) do
+    {:ok, device_id} = Device.decode_device_id(device_id, allow_extended_id: true)
+
+    statement = """
+    UPDATE #{@test_realm}.devices
+    SET total_received_msgs = :total_received_msgs,
+        total_received_bytes = :total_received_bytes
+    WHERE device_id=:device_id
+    """
+
+    %Xandra.Void{} =
+      Xandra.Cluster.run(:xandra, fn conn ->
+        %Xandra.Prepared{} = prepared = Xandra.prepare!(conn, statement)
+
+        params = %{
+          "device_id" => device_id,
+          "total_received_msgs" => total_received_msgs,
+          "total_received_bytes" => total_received_bytes
+        }
+
+        Xandra.execute!(conn, prepared, params, uuid_format: :binary)
+      end)
+
+    :ok
+  end
+
   def drop_db do
     client =
       Config.cassandra_node!()

@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2018 Ispirata Srl
+# Copyright 2018 - 2023 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -17,6 +17,7 @@
 #
 
 defmodule Astarte.DataUpdaterPlant.DataUpdater.PayloadsDecoder do
+  require Logger
   alias Astarte.Core.Interface
 
   @max_uncompressed_payload_size 10_485_760
@@ -65,7 +66,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.PayloadsDecoder do
   Safely decodes a zlib deflated binary and inflates it.
   This function avoids zip bomb vulnerabilities, and it decodes up to 10_485_760 bytes.
   """
-  @spec safe_inflate(binary) :: binary
+  @spec safe_inflate(binary) :: {:ok, binary} | :error
   def safe_inflate(zlib_payload) do
     z = :zlib.open()
     :ok = :zlib.inflateInit(z)
@@ -77,7 +78,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.PayloadsDecoder do
         acc + byte_size(output_block)
       end)
 
-    deflated_payload =
+    inflated_result =
       if uncompressed_size < @max_uncompressed_payload_size do
         output_acc =
           List.foldl(output_list, <<>>, fn output_block, acc ->
@@ -92,7 +93,16 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.PayloadsDecoder do
     :zlib.inflateEnd(z)
     :zlib.close(z)
 
-    deflated_payload
+    inflated_result
+  catch
+    # :zlib functions might throw errors, catch them so we do not crash
+    :error, error ->
+      _ =
+        Logger.warning("Received invalid deflated zlib payload: #{inspect(error)}",
+          tag: "inflate_fail"
+        )
+
+      :error
   end
 
   defp safe_inflate_loop(z, output_acc, size_acc, :continue) do
@@ -116,7 +126,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.PayloadsDecoder do
   end
 
   defp safe_inflate_loop(_z, output_acc, _size_acc, :finished) do
-    output_acc
+    {:ok, output_acc}
   end
 
   @doc """

@@ -19,6 +19,10 @@
 defmodule Astarte.Pairing.APIWeb.ErrorView do
   use Astarte.Pairing.APIWeb, :view
 
+  def render("400.json", _assigns) do
+    %{errors: %{detail: "Bad request"}}
+  end
+
   def render("401.json", _assigns) do
     %{errors: %{detail: "Unauthorized"}}
   end

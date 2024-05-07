@@ -20,13 +20,11 @@ defmodule Astarte.DataUpdaterPlant.AMQPEventsProducer do
   require Logger
   use GenServer
 
-  alias AMQP.Basic
-  alias AMQP.Channel
-  alias AMQP.Connection
-  alias AMQP.Exchange
   alias Astarte.DataUpdaterPlant.Config
+  alias AMQP.Channel
 
   @connection_backoff 10000
+  @adapter Config.amqp_adapter!()
 
   # API
 
@@ -46,17 +44,20 @@ defmodule Astarte.DataUpdaterPlant.AMQPEventsProducer do
 
   # Server callbacks
 
-  def init(_args) do
-    rabbitmq_connect(false)
+  @impl true
+  def init(_opts) do
+    case init_producer() do
+      {:ok, chan} ->
+        {:ok, chan}
+
+      {:error, reason} ->
+        {:stop, reason}
+    end
   end
 
-  def terminate(_reason, %Channel{conn: conn} = chan) do
-    Channel.close(chan)
-    Connection.close(conn)
-  end
-
+  @impl true
   def handle_call({:publish, exchange, routing_key, payload, opts}, _from, chan) do
-    reply = Basic.publish(chan, exchange, routing_key, payload, opts)
+    reply = @adapter.publish(chan, exchange, routing_key, payload, opts)
 
     {:reply, reply, chan}
   end
@@ -64,53 +65,75 @@ defmodule Astarte.DataUpdaterPlant.AMQPEventsProducer do
   def handle_call({:declare_exchange, exchange}, _from, chan) do
     # TODO: we need to decide who is responsible of deleting the exchange once it is
     # no longer needed
-    reply = Exchange.declare(chan, exchange, :direct, durable: true)
+    reply = @adapter.declare_exchange(chan, exchange, type: :direct, durable: true)
 
     {:reply, reply, chan}
   end
 
-  def handle_info(:try_to_connect, _state) do
-    {:ok, new_state} = rabbitmq_connect()
-    {:noreply, new_state}
-  end
-
+  @impl true
   def handle_info({:DOWN, _, :process, _pid, reason}, _state) do
     Logger.warning("RabbitMQ connection lost: #{inspect(reason)}. Trying to reconnect...",
       tag: "events_producer_conn_lost"
     )
 
-    {:ok, new_state} = rabbitmq_connect()
-    {:noreply, new_state}
+    case init_producer() do
+      {:ok, channel} ->
+        {:noreply, channel}
+
+      {:error, _reason} ->
+        schedule_connect()
+        {:noreply, :not_connected}
+    end
   end
 
-  defp rabbitmq_connect(retry \\ true) do
-    with {:ok, conn} <- Connection.open(Config.amqp_producer_options!()),
-         {:ok, chan} <- Channel.open(conn),
-         :ok <- Exchange.declare(chan, Config.events_exchange_name!(), :direct, durable: true),
-         # Get notifications when the chan or connection goes down
-         Process.monitor(chan.pid) do
-      {:ok, chan}
-    else
-      {:error, reason} ->
-        Logger.warning("RabbitMQ Connection error: #{inspect(reason)}",
-          tag: "events_producer_conn_err"
+  defp init_producer() do
+    conn = ExRabbitPool.get_connection_worker(:events_producer_pool)
+
+    with {:ok, channel} <- checkout_channel(conn),
+         :ok <- declare_default_events_exchange(channel, conn) do
+      %Channel{pid: channel_pid} = channel
+      _ref = Process.monitor(channel_pid)
+
+      _ =
+        Logger.debug("AMQPEventsProducer initialized",
+          tag: "event_producer_init_ok"
         )
 
-        maybe_retry(retry)
-
-      :error ->
-        Logger.warning("Unknown RabbitMQ connection error", tag: "events_producer_conn_err")
-        maybe_retry(retry)
+      {:ok, channel}
     end
   end
 
-  defp maybe_retry(retry) do
-    if retry do
-      Logger.warning("Retrying connection in #{@connection_backoff} ms")
-      :erlang.send_after(@connection_backoff, :erlang.self(), :try_to_connect)
-      {:ok, :not_connected}
-    else
-      {:stop, :connection_failed}
+  defp checkout_channel(conn) do
+    with {:error, reason} <- ExRabbitPool.checkout_channel(conn) do
+      _ =
+        Logger.warning(
+          "Failed to check out channel for producer: #{inspect(reason)}",
+          tag: "event_producer_channel_checkout_fail"
+        )
+
+      {:error, :event_producer_channel_checkout_fail}
     end
+  end
+
+  defp declare_default_events_exchange(channel, conn) do
+    with {:error, reason} <-
+           @adapter.declare_exchange(channel, Config.events_exchange_name!(),
+             type: :direct,
+             durable: true
+           ) do
+      Logger.warning(
+        "Error declaring AMQPEventsProducer default events exchange: #{inspect(reason)}",
+        tag: "event_producer_init_fail"
+      )
+
+      # Something went wrong, let's put the channel back where it belongs
+      _ = ExRabbitPool.checkin_channel(conn, channel)
+      {:error, :event_producer_init_fail}
+    end
+  end
+
+  defp schedule_connect() do
+    _ = Logger.warning("Retrying connection in #{@connection_backoff} ms")
+    Process.send_after(@connection_backoff, self(), :init)
   end
 end

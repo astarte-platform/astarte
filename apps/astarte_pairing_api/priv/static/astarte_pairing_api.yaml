@@ -244,7 +244,7 @@ paths:
                 response:
                   value:
                     data:
-                      client_certificate: >
+                      client_crt: >
                         -----BEGIN CERTIFICATE-----
                         MIIFfzCCA2egAwIBAgIJALsySXafOY1aMA0GCSqGSIb3DQEBCwUAMFYxCzAJBgNV
                         BAYTAklUMRAwDgYDVQQIDAdFeGFtcGxlMSEwHwYDVQQKDBhJbnRlcm5ldCBXaWRn
@@ -364,7 +364,12 @@ paths:
                     $ref: >-
                       #/components/schemas/AstarteMQTTV1VerifyCredentialsResponse
               examples:
-                response:
+                response valid certificate:
+                  value:
+                    data:
+                      valid: true
+                      until: 2025-03-25 19:25:00.000Z
+                response invalid certificate:
                   value:
                     data:
                       valid: false
@@ -403,7 +408,7 @@ paths:
                   $ref: '#/components/schemas/AstarteMQTTV1VerifyCredentialsRequest'
               example:
                 data:
-                  client_certificate: >
+                  client_crt: >
                     -----BEGIN CERTIFICATE-----
                     MIIFfzCCA2egAwIBAgIJALsySXafOY1aMA0GCSqGSIb3DQEBCwUAMFYxCzAJBgNV
                     BAYTAklUMRAwDgYDVQQIDAdFeGFtcGxlMSEwHwYDVQQKDBhJbnRlcm5ldCBXaWRn
@@ -510,8 +515,6 @@ components:
           type: string
         protocols:
           type: object
-    CredentialsObject:
-      type: object
     AstarteMQTTV1CredentialsRequest:
       type: object
       properties:
@@ -525,10 +528,8 @@ components:
     AstarteMQTTV1VerifyCredentialsRequest:
       type: object
       properties:
-        purpose:
+        client_crt:
           type: string
-        credentials:
-          $ref: '#/components/schemas/CredentialsObject'
     AstarteMQTTV1VerifyCredentialsResponse:
       type: object
       properties:
