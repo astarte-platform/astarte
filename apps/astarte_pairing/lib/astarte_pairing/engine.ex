@@ -203,8 +203,8 @@ defmodule Astarte.Pairing.Engine do
       Config.cqex_options!()
       |> Keyword.put(:keyspace, keyspace_name)
 
-    with :ok <- verify_can_register_device(realm),
-         {:ok, device_id} <- Device.decode_device_id(hardware_id, allow_extended_id: true),
+    with {:ok, device_id} <- Device.decode_device_id(hardware_id, allow_extended_id: true),
+         :ok <- verify_can_register_device(realm, device_id),
          {:ok, client} <-
            Client.new(
              Config.cassandra_node!(),
@@ -223,7 +223,28 @@ defmodule Astarte.Pairing.Engine do
     end
   end
 
-  defp verify_can_register_device(realm_name) do
+  defp verify_can_register_device(realm_name, device_id) do
+    # An already existing device should always be able to retrieve a new credentials secret
+    case Queries.check_already_registered_device(realm_name, device_id) do
+      {:ok, true} ->
+        :ok
+
+      {:ok, false} ->
+        verify_can_register_new_device(realm_name)
+
+      {:error, reason} ->
+        # Consider a failing database as a negative answer
+        _ =
+          Logger.warning(
+            "Failed to verify if unconfirmed device #{Device.encode_device_id(device_id)} exists, reason: #{inspect(reason)}",
+            realm_name: realm_name
+          )
+
+        verify_can_register_new_device(realm_name)
+    end
+  end
+
+  defp verify_can_register_new_device(realm_name) do
     with {:ok, registration_limit} <- Queries.fetch_device_registration_limit(realm_name),
          {:ok, registered_devices_count} <- Queries.fetch_registered_devices_count(realm_name) do
       if registration_limit != nil and registered_devices_count >= registration_limit do

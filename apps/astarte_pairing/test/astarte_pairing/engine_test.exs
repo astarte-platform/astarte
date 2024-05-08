@@ -162,6 +162,8 @@ defmodule Astarte.Pairing.EngineTest do
     end
 
     test "fails when device_registration_limit is reached" do
+      on_exit(fn -> DatabaseTestHelper.set_device_registration_limit(@test_realm, nil) end)
+
       DatabaseTestHelper.set_device_registration_limit(@test_realm, 0)
       hw_id = DatabaseTestHelper.unregistered_128_bit_hw_id()
 
@@ -192,6 +194,18 @@ defmodule Astarte.Pairing.EngineTest do
                  "total_received_bytes" => ^total_received_bytes
                }
              ] = DatabaseTestHelper.get_message_count_for_device(hw_id)
+    end
+
+    test "succeeds when re-registering an existing device after device_registration_limit is reached" do
+      on_exit(fn -> DatabaseTestHelper.set_device_registration_limit(@test_realm, nil) end)
+
+      # We've registered 4 devices until now
+      DatabaseTestHelper.set_device_registration_limit(@test_realm, 5)
+      device_id = DatabaseTestHelper.unregistered_128_bit_hw_id()
+      {:ok, _credentials_secret} = Engine.register_device(@test_realm, device_id)
+      :ok = Engine.unregister_device(@test_realm, device_id)
+
+      assert {:ok, _credentials_secret} = Engine.register_device(@test_realm, device_id)
     end
   end
 
