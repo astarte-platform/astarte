@@ -134,9 +134,6 @@ defmodule Astarte.RealmManagement.Engine do
   def update_interface(realm_name, interface_json, opts \\ []) do
     _ = Logger.info("Going to perform interface update.", tag: "update_interface")
 
-    keyspace_name =
-      CQLUtils.realm_name_to_keyspace_name(realm_name, Config.astarte_instance_id!())
-
     with {:ok, client} <- Database.connect(realm: realm_name),
          {:ok, json_obj} <- Jason.decode(interface_json),
          interface_changeset <- InterfaceDocument.changeset(%InterfaceDocument{}, json_obj),
@@ -150,7 +147,7 @@ defmodule Astarte.RealmManagement.Engine do
            Interface.fetch_interface_descriptor(realm_name, name, major),
          :ok <- error_on_incompatible_descriptor(installed_interface, interface_descriptor),
          :ok <- error_on_downgrade(installed_interface, interface_descriptor),
-         {:ok, mapping_updates} <- extract_mapping_updates(keyspace_name, interface_doc),
+         {:ok, mapping_updates} <- extract_mapping_updates(realm_name, interface_doc),
          {:ok, automaton} <- EndpointsAutomaton.build(interface_doc.mappings) do
       interface_update =
         Map.merge(installed_interface, interface_descriptor, fn _k, old, new ->
