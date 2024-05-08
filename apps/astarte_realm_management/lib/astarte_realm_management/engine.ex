@@ -379,9 +379,6 @@ defmodule Astarte.RealmManagement.Engine do
         interface_major: major
       )
 
-    keyspace_name =
-      CQLUtils.realm_name_to_keyspace_name(realm_name, Config.astarte_instance_id!())
-
     with {:major, 0} <- {:major, major},
          {:ok, client} <- Database.connect(realm: realm_name),
          {:major_is_avail, {:ok, true}} <-
@@ -393,11 +390,11 @@ defmodule Astarte.RealmManagement.Engine do
            {:triggers, Queries.has_interface_simple_triggers?(client, interface_id)} do
       if opts[:async] do
         # TODO: add _ = Logger.metadata(realm: realm_name)
-        Task.start_link(Engine, :execute_interface_deletion, [client, keyspace_name, name, major])
+        Task.start_link(Engine, :execute_interface_deletion, [client, realm_name, name, major])
 
         {:ok, :started}
       else
-        Engine.execute_interface_deletion(client, keyspace_name, name, major)
+        Engine.execute_interface_deletion(client, realm_name, name, major)
       end
     else
       {:major, _} ->
