@@ -41,12 +41,14 @@ defmodule Astarte.AppEngine.API.Rooms.Queries do
       :empty_dataset ->
         {:ok, false}
 
-      %{acc: _, msg: error_message} ->
-        _ = Logger.warning("Database error: #{error_message}.", tag: "db_error")
-        {:error, :database_error}
-
       {:error, reason} ->
-        _ = Logger.warning("Database error, reason: #{inspect(reason)}.", tag: "db_error")
+        error_message =
+          case reason do
+            %{acc: _, msg: error_msg} -> error_msg
+            _ -> inspect(reason)
+          end
+
+        Logger.warning("Database error, reason: #{error_message}.", tag: "db_error")
         {:error, :database_error}
     end
   end
