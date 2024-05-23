@@ -17,6 +17,8 @@
 #
 
 defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
+  @behaviour Mississippi.Consumer.DataUpdater.Handler
+
   alias Astarte.Core.CQLUtils
   alias Astarte.DataUpdaterPlant.Config
   alias Astarte.Core.Device
@@ -53,6 +55,79 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
   @groups_lifespan_decimicroseconds 60 * 10 * 1000 * 10000
   @deletion_refresh_lifespan_decimicroseconds 60 * 10 * 1000 * 10000
   @datastream_maximum_retention_refresh_lifespan_decimicroseconds 60 * 10 * 1000 * 10000
+
+  use GenServer
+
+  @impl true
+  def init(sharding_key) do
+    # TODO change this, we want extended device IDs to fall in the same process
+    {realm, device_id} = sharding_key
+
+    state = %State{
+      realm: realm,
+      device_id: device_id,
+      connected: true,
+      groups: [],
+      interfaces: %{},
+      interface_ids_to_name: %{},
+      interfaces_by_expiry: [],
+      mappings: %{},
+      paths_cache: Cache.new(@paths_cache_size),
+      device_triggers: %{},
+      data_triggers: %{},
+      volatile_triggers: [],
+      interface_exchanged_bytes: %{},
+      interface_exchanged_msgs: %{},
+      last_seen_message: 0,
+      last_device_triggers_refresh: 0,
+      last_groups_refresh: 0,
+      trigger_id_to_policy_name: %{},
+      discard_messages: false,
+      last_deletion_in_progress_refresh: 0,
+      last_datastream_maximum_retention_refresh: 0
+    }
+
+    encoded_device_id = Device.encode_device_id(device_id)
+    Logger.metadata(realm: realm, device_id: encoded_device_id)
+    Logger.info("Created device process.", tag: "device_process_created")
+
+    {:ok, db_client} = Database.connect(realm: state.realm)
+
+    stats_and_introspection =
+      Queries.retrieve_device_stats_and_introspection!(db_client, device_id)
+
+    {:ok, ttl} = Queries.fetch_datastream_maximum_storage_retention(db_client)
+
+    new_state =
+      Map.merge(state, stats_and_introspection)
+      |> Map.put(:datastream_maximum_storage_retention, ttl)
+
+    {:ok, new_state}
+  end
+
+  @impl true
+  def handle_message(_, _, _, _, state) do
+    # Ack all messages for now
+    {:ack, :ok, state}
+  end
+
+  @impl true
+  def handle_signal(_, state) do
+    # All is ok for now
+    {:ok, state}
+  end
+
+  @impl true
+  def handle_continue(_, state) do
+    # All is ok for now
+    {:ok, state}
+  end
+
+  @impl true
+  def terminate(_, state) do
+    # All is ok for now
+    {:ok, state}
+  end
 
   def init_state(realm, device_id, message_tracker) do
     MessageTracker.register_data_updater(message_tracker)
