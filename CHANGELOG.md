@@ -16,6 +16,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
   in payloads).
 - [astarte_data_updater_plant] do not leak consumer channels in corner cases.
 - [astarte_data_updater_plant] do not leak producer channels in corner cases.
+- [astarte_trigger_engine] Always treat event TTL for trigger policies in seconds,
+  not milliseconds.
 
 ## [1.1.1] - 2023-11-15
 ### Fixed
