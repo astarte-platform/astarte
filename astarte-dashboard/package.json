@@ -1,7 +1,7 @@
 {
   "type": "module",
   "name": "astarte-dashboard",
-  "version": "1.2.0-dev",
+  "version": "1.2.0-rc.0",
   "description": "Astarte dashboard",
   "keywords": [
     "astarte",
