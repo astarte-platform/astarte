@@ -38,7 +38,7 @@ Before starting you must have:
 
 - [Docker](https://docs.docker.com/get-docker/) version 19.0 or greater.
 - An Astarte instance up and running, either locally or on a remote cluster.
-  You can have a look at [Astarte in 5 minutes](https://docs.astarte-platform.org/1.1/010-astarte_in_5_minutes.html#content)
+  You can have a look at [Astarte in 5 minutes](https://docs.astarte-platform.org/1.2/010-astarte_in_5_minutes.html#content)
   if you haven't already.
 
 ### Configuration
@@ -189,4 +189,4 @@ Distributed under the Apache2.0 License. See [LICENSE](LICENSE) for more informa
 
 
 <!-- https://www.markdownguide.org/basic-syntax/#reference-style-links -->
-[dashboard-home-screenshot]: https://github.com/astarte-platform/astarte/blob/release-1.1/doc/images/astarte-dashboard-realm-overview.png
+[dashboard-home-screenshot]: https://github.com/astarte-platform/astarte/blob/release-1.2/doc/images/astarte-dashboard-realm-overview.png

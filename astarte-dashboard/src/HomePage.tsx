@@ -221,7 +221,7 @@ const InterfacesCard = ({
           </Card.Text>
           <Card.Text>
             <a
-              href="https://docs.astarte-platform.org/1.1/030-interface.html"
+              href="https://docs.astarte-platform.org/1.2/030-interface.html"
               target="_blank"
               rel="noreferrer"
             >
@@ -299,7 +299,7 @@ const TriggersCard = ({
           </Card.Text>
           <Card.Text>
             <a
-              href="https://docs.astarte-platform.org/1.1/060-using_triggers.html"
+              href="https://docs.astarte-platform.org/1.2/060-using_triggers.html"
               target="_blank"
               rel="noreferrer"
             >
