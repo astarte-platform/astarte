@@ -1,5 +1,5 @@
 %{
-  "astarte_core": {:git, "https://github.com/astarte-platform/astarte_core.git", "dc964b7d9b3a3a4e20127b763705d9e53bd88890", []},
+  "astarte_core": {:git, "https://github.com/astarte-platform/astarte_core.git", "3574f38f759e7b012060c66a46b594ac2cdb53c3", [tag: "v1.2.0-rc.0"]},
   "castore": {:hex, :castore, "1.0.7", "b651241514e5f6956028147fe6637f7ac13802537e895a724f90bf3e36ddd1dd", [:mix], [], "hexpm", "da7785a4b0d2a021cd1292a60875a784b6caef71e76bf4917bdee1f390455cf5"},
   "certifi": {:hex, :certifi, "2.6.1", "dbab8e5e155a0763eea978c913ca280a6b544bfa115633fa20249c3d396d9493", [:rebar3], [], "hexpm", "524c97b4991b3849dd5c17a631223896272c6b0af446778ba4675a1dff53bb7e"},
   "connection": {:hex, :connection, "1.1.0", "ff2a49c4b75b6fb3e674bfc5536451607270aac754ffd1bdfe175abe4a6d7a68", [:mix], [], "hexpm", "722c1eb0a418fbe91ba7bd59a47e28008a189d47e37e0e7bb85585a016b2869c"},
