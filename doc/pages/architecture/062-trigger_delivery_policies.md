@@ -47,7 +47,7 @@ A Trigger Delivery Policy is composed of:
   A single policy does not allow to retry sending events for different amount of times, but different policies may have different numbers.
   This is optional, but required if the policy specifies at least one handler with retry strategy.
 
-- Event TTL: in orer to further lower the space requirement of the event queue, events may be equipped with a TTL which specifies the amount of
+- Event TTL: in order to further lower the space requirement of the event queue, events may be equipped with a TTL which specifies the amount of
   seconds an event is retained in the event queue. When an event expires, it is discarded from the event queue, even if it has not been
   delivered. This is optional.
 

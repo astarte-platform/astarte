@@ -365,7 +365,7 @@ paths:
         '403':
           $ref: '#/components/responses/Forbidden'
         '404':
-          $ref: '#/components/responses/NotFound'
+          $ref: '#/components/responses/TriggerNotFound'
         '500':
           description: Internal Server Error.
     delete:
@@ -387,7 +387,7 @@ paths:
         '403':
           $ref: '#/components/responses/Forbidden'
         '404':
-          $ref: '#/components/responses/NotFound'
+          $ref: '#/components/responses/TriggerNotFound'
         '500':
           description: Internal Server Error.
   '/{realm_name}/policies':
@@ -457,7 +457,7 @@ paths:
         '403':
           $ref: '#/components/responses/Forbidden'
         '404':
-          $ref: '#/components/responses/NotFound'
+          $ref: '#/components/responses/TriggerDeliveryPolicyNotFound'
         '500':
           description: Internal Server Error.
     delete:
@@ -479,7 +479,7 @@ paths:
         '403':
           $ref: '#/components/responses/Forbidden'
         '404':
-          $ref: '#/components/responses/NotFound'
+          $ref: '#/components/responses/TriggerDeliveryPolicyNotFound'
         '409':
           $ref: '#/components/responses/TriggerDeliveryPolicyCurrentlyUsedError'
         '500':
@@ -747,6 +747,15 @@ components:
               mappings:
                 type:
                   - is invalid
+    TriggerNotFound:
+      description: Requested trigger was not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/GenericError'
+          example:
+            errors:
+              detail: Trigger not found
     TriggerValidationError:
       description: The provided trigger configuration is not valid.
       content:
@@ -785,15 +794,15 @@ components:
           example:
             errors:
               detail: is invalid
-    NotFound:
-      description: Resource not found
+    TriggerDeliveryPolicyNotFound:
+      description: Requested trigger delivery policy was not found
       content:
         application/json:
           schema:
             $ref: '#/components/schemas/GenericError'
           example:
             errors:
-              detail: Not found
+              detail: Trigger policy not found
     Unauthorized:
       description: Authorization information is missing or invalid.
       content:
@@ -1252,7 +1261,7 @@ components:
           description: >-
             The range of errors the handler refers to. Must be one of: 'any_error',
             'client_error', 'server_error' or a custom error range (e.g. '[418, 419, 420, 500]').
-        retry_strategy:
+        strategy:
           type: string
           enum:
           - discard
@@ -1260,7 +1269,7 @@ components:
           description: What Astarte must do if an HTTP error occurs when delivering errors the handler refers to.
       required:
         - 'on'
-        - retry_strategy
+        - strategy
       example:
         'on': any_error
         strategy: discard

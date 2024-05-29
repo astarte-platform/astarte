@@ -196,17 +196,17 @@ defmodule Astarte.TriggerEngine.AMQPConsumer.AMQPMessageConsumer do
   end
 
   defp generate_policy_x_args(%PolicyStruct{
-         maximum_capacity: maximum_capacity,
+         maximum_capacity: max_capacity,
          event_ttl: event_ttl
        }) do
     []
-    |> put_x_arg_if(maximum_capacity != nil, {"x-max-length", :signedint, maximum_capacity})
+    |> put_x_arg_if(max_capacity != nil, fn _ -> {"x-max-length", :signedint, max_capacity} end)
     # AMQP message TTLs are in milliseconds!
-    |> put_x_arg_if(event_ttl != nil, {"x-message-ttl", :signedint, event_ttl * 1_000})
+    |> put_x_arg_if(event_ttl != nil, fn _ -> {"x-message-ttl", :signedint, event_ttl * 1_000} end)
   end
 
-  defp put_x_arg_if(list, true, x_arg), do: [x_arg | list]
-  defp put_x_arg_if(list, false, _x_arg), do: list
+  defp put_x_arg_if(list, true, x_arg_fun), do: [x_arg_fun.() | list]
+  defp put_x_arg_if(list, false, _x_arg_fun), do: list
 
   defp generate_queue_name(realm, policy) do
     "#{realm}_#{policy}_queue"
