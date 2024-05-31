@@ -73,8 +73,8 @@ defmodule Astarte.RealmManagement.API.Mixfile do
 
   defp astarte_required_modules(_) do
     [
-      {:astarte_core, github: "astarte-platform/astarte_core"},
-      {:astarte_rpc, github: "astarte-platform/astarte_rpc"}
+      {:astarte_core, github: "astarte-platform/astarte_core", tag: "v1.2.0-rc.0"},
+      {:astarte_rpc, github: "astarte-platform/astarte_rpc", tag: "v1.2.0-rc.0"}
     ]
   end
 
