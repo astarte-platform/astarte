@@ -22,7 +22,7 @@ defmodule Astarte.Housekeeping.Mixfile do
   def project do
     [
       app: :astarte_housekeeping,
-      version: "1.2.0-dev",
+      version: "1.2.0-rc.0",
       build_path: "_build",
       config_path: "config/config.exs",
       deps_path: "deps",
