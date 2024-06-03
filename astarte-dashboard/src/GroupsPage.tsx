@@ -40,6 +40,7 @@ type GroupsTableProps = {
 };
 
 const GroupsTable = ({ groupMap }: GroupsTableProps) => {
+  const astarte = useAstarte();
   if (groupMap.size === 0) {
     return <p>No registered group</p>;
   }
@@ -58,7 +59,11 @@ const GroupsTable = ({ groupMap }: GroupsTableProps) => {
           return (
             <tr key={group.name}>
               <td>
-                <Link to={`/groups/${encodedGroupName}/edit`}>{group.name}</Link>
+                {astarte.token?.can('appEngine', 'GET', `/groups/${group.name}`) ? (
+                  <Link to={`/groups/${encodedGroupName}/edit`}>{group.name}</Link>
+                ) : (
+                  group.name
+                )}
               </td>
               <td>{group.connectedDevices}</td>
               <td>{group.totalDevices}</td>
@@ -123,6 +128,7 @@ export default (): React.ReactElement => {
       </WaitForData>
       <Button
         variant="primary"
+        hidden={!astarte.token?.can('appEngine', 'POST', '/groups')}
         onClick={() => {
           navigate('/groups/new');
         }}

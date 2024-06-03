@@ -141,6 +141,7 @@ export default (): React.ReactElement => {
           <Button
             variant="primary"
             onClick={showConfirmInstallModal}
+            hidden={!astarte.token?.can('realmManagement', 'POST', '/interfaces')}
             disabled={isInstallingInterface || !isValidInterface}
           >
             {isInstallingInterface && (

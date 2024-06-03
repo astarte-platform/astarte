@@ -162,29 +162,45 @@ const InterfaceList = ({
 }: InterfaceListProps): React.ReactElement => {
   const shownInterfaces = interfaces.slice(0, maxShownInterfaces);
   const remainingInterfaces = interfaces.length - maxShownInterfaces;
+  const astarte = useAstarte();
 
   return (
     <ul className="list-unstyled">
       {shownInterfaces.map((interfaceName) => (
         <li key={interfaceName} className="my-1">
-          <a
-            href="/interfaces"
-            onClick={(e) => {
-              onInterfaceClick(e, interfaceName);
-            }}
-          >
-            <Icon icon="interfaces" className="me-1" />
-            {interfaceName}
-          </a>
+          {astarte.token?.can('realmManagement', 'GET', `/interfaces/${interfaceName}`) ? (
+            <a
+              href="/interfaces"
+              onClick={(e) => {
+                onInterfaceClick(e, interfaceName);
+              }}
+            >
+              <Icon icon="interfaces" className="me-1" />
+              {interfaceName}
+            </a>
+          ) : (
+            <>
+              <Icon icon="interfaces" className="me-1" />
+              {interfaceName}
+            </>
+          )}
         </li>
       ))}
       {remainingInterfaces > 0 && (
         <li>
-          <Link to="/interfaces">
-            {`${remainingInterfaces} more installed ${
-              remainingInterfaces > 1 ? 'interfaces' : 'interface'
-            }…`}
-          </Link>
+          {astarte.token?.can('realmManagement', 'GET', `/interfaces`) ? (
+            <Link to="/interfaces">
+              {`${remainingInterfaces} more installed ${
+                remainingInterfaces > 1 ? 'interfaces' : 'interface'
+              }…`}
+            </Link>
+          ) : (
+            <>
+              {`${remainingInterfaces} more installed ${
+                remainingInterfaces > 1 ? 'interfaces' : 'interface'
+              }…`}
+            </>
+          )}
         </li>
       )}
     </ul>
@@ -204,42 +220,46 @@ const InterfacesCard = ({
   interfaceList,
   onInterfaceClick,
   onInstallInterfaceClick,
-}: InterfacesCardProps): React.ReactElement => (
-  <Card id="interfaces-card" className="h-100">
-    <Card.Header as="h5">Interfaces</Card.Header>
-    <Card.Body className="d-flex flex-column">
-      {interfaceList.length > 0 ? (
-        <InterfaceList
-          interfaces={interfaceList}
-          onInterfaceClick={onInterfaceClick}
-          maxShownInterfaces={4}
-        />
-      ) : (
-        <>
-          <Card.Text>
-            Interfaces defines how data is exchanged between Astarte and its peers.
-          </Card.Text>
-          <Card.Text>
-            <a
-              href="https://docs.astarte-platform.org/1.2/030-interface.html"
-              target="_blank"
-              rel="noreferrer"
-            >
-              Learn more...
-            </a>
-          </Card.Text>
-        </>
-      )}
-      <Button
-        variant="primary"
-        className="align-self-start mt-auto"
-        onClick={onInstallInterfaceClick}
-      >
-        Install a new interface
-      </Button>
-    </Card.Body>
-  </Card>
-);
+}: InterfacesCardProps): React.ReactElement => {
+  const astarte = useAstarte();
+  return (
+    <Card id="interfaces-card" className="h-100">
+      <Card.Header as="h5">Interfaces</Card.Header>
+      <Card.Body className="d-flex flex-column">
+        {interfaceList.length > 0 ? (
+          <InterfaceList
+            interfaces={interfaceList}
+            onInterfaceClick={onInterfaceClick}
+            maxShownInterfaces={4}
+          />
+        ) : (
+          <>
+            <Card.Text>
+              Interfaces defines how data is exchanged between Astarte and its peers.
+            </Card.Text>
+            <Card.Text>
+              <a
+                href="https://docs.astarte-platform.org/1.2/030-interface.html"
+                target="_blank"
+                rel="noreferrer"
+              >
+                Learn more...
+              </a>
+            </Card.Text>
+          </>
+        )}
+        <Button
+          variant="primary"
+          className="align-self-start mt-auto"
+          hidden={!astarte.token?.can('realmManagement', 'POST', '/interfaces')}
+          onClick={onInstallInterfaceClick}
+        >
+          Install a new interface
+        </Button>
+      </Card.Body>
+    </Card>
+  );
+};
 
 interface TriggerListProps {
   triggers: string[];
@@ -249,24 +269,40 @@ interface TriggerListProps {
 const TriggerList = ({ triggers, maxShownTriggers }: TriggerListProps): React.ReactElement => {
   const shownTriggers = triggers.slice(0, maxShownTriggers);
   const remainingTriggers = triggers.length - maxShownTriggers;
+  const astarte = useAstarte();
 
   return (
     <ul className="list-unstyled">
       {shownTriggers.map((triggerName) => (
         <li key={triggerName} className="my-1">
-          <Link to={`/triggers/${triggerName}/edit`}>
-            <Icon icon="triggers" className="me-1" />
-            {triggerName}
-          </Link>
+          {astarte.token?.can('realmManagement', 'GET', `/triggers/${triggerName}`) ? (
+            <Link to={`/triggers/${triggerName}/edit`}>
+              <Icon icon="triggers" className="me-1" />
+              {triggerName}
+            </Link>
+          ) : (
+            <>
+              <Icon icon="triggers" className="me-1" />
+              {triggerName}
+            </>
+          )}
         </li>
       ))}
       {remainingTriggers > 0 && (
         <li>
-          <Link to="/triggers">
-            {`${remainingTriggers} more installed ${
-              remainingTriggers > 1 ? 'triggers' : 'trigger'
-            }…`}
-          </Link>
+          {astarte.token?.can('realmManagement', 'GET', `/triggers`) ? (
+            <Link to="/triggers">
+              {`${remainingTriggers} more installed ${
+                remainingTriggers > 1 ? 'triggers' : 'trigger'
+              }…`}
+            </Link>
+          ) : (
+            <>
+              {`${remainingTriggers} more installed ${
+                remainingTriggers > 1 ? 'triggers' : 'trigger'
+              }…`}
+            </>
+          )}
         </li>
       )}
     </ul>
@@ -281,55 +317,77 @@ interface TriggersCardProps {
 const TriggersCard = ({
   triggerList,
   onInstallTriggerClick,
-}: TriggersCardProps): React.ReactElement => (
-  <Card id="triggers-card" className="h-100">
-    <Card.Header as="h5">Triggers</Card.Header>
-    <Card.Body className="d-flex flex-column">
-      {triggerList.length > 0 ? (
-        <TriggerList triggers={triggerList} maxShownTriggers={4} />
-      ) : (
-        <>
-          <Card.Text>
-            Triggers in Astarte are the go-to mechanism for generating push events.
-          </Card.Text>
-          <Card.Text>
-            Triggers allow users to specify conditions upon which a custom payload is delivered to a
-            recipient, using a specific action, which usually maps to a specific transport/protocol,
-            such as HTTP.
-          </Card.Text>
-          <Card.Text>
-            <a
-              href="https://docs.astarte-platform.org/1.2/060-using_triggers.html"
-              target="_blank"
-              rel="noreferrer"
-            >
-              Learn more...
-            </a>
-          </Card.Text>
-        </>
-      )}
-      <Button
-        variant="primary"
-        className="align-self-start mt-auto"
-        onClick={onInstallTriggerClick}
-      >
-        Install a new trigger
-      </Button>
-    </Card.Body>
-  </Card>
-);
+}: TriggersCardProps): React.ReactElement => {
+  const astarte = useAstarte();
+  return (
+    <Card id="triggers-card" className="h-100">
+      <Card.Header as="h5">Triggers</Card.Header>
+      <Card.Body className="d-flex flex-column">
+        {triggerList.length > 0 ? (
+          <TriggerList triggers={triggerList} maxShownTriggers={4} />
+        ) : (
+          <>
+            <Card.Text>
+              Triggers in Astarte are the go-to mechanism for generating push events.
+            </Card.Text>
+            <Card.Text>
+              Triggers allow users to specify conditions upon which a custom payload is delivered to
+              a recipient, using a specific action, which usually maps to a specific
+              transport/protocol, such as HTTP.
+            </Card.Text>
+            <Card.Text>
+              <a
+                href="https://docs.astarte-platform.org/1.2/060-using_triggers.html"
+                target="_blank"
+                rel="noreferrer"
+              >
+                Learn more...
+              </a>
+            </Card.Text>
+          </>
+        )}
+        <Button
+          variant="primary"
+          className="align-self-start mt-auto"
+          hidden={!astarte.token?.can('realmManagement', 'POST', '/triggers')}
+          onClick={onInstallTriggerClick}
+        >
+          Install a new trigger
+        </Button>
+      </Card.Body>
+    </Card>
+  );
+};
 
 const HomePage = (): React.ReactElement => {
   const astarte = useAstarte();
   const config = useConfig();
-  const devicesStats = useFetch(astarte.client.getDevicesStats);
-  const interfaces = useFetch(astarte.client.getInterfaceNames);
-  const triggers = useFetch(astarte.client.getTriggerNames);
+  const canFetchInterfaces = astarte.token?.can('realmManagement', 'GET', '/interfaces');
+  const canFetchTriggers = astarte.token?.can('realmManagement', 'GET', '/triggers');
+  const canFetchDeviceStats = astarte.token?.can('appEngine', 'GET', '/stats/devices');
+  const canFetchDeviceRegistrationLimit = astarte.token?.can(
+    'realmManagement',
+    'GET',
+    '/config/device_registration_limit',
+  );
+  const devicesStats = useFetch(
+    canFetchDeviceStats
+      ? astarte.client.getDevicesStats
+      : async () => ({ connectedDevices: 0, totalDevices: 0 }),
+  );
+  const interfaces = useFetch(
+    canFetchInterfaces ? astarte.client.getInterfaceNames : async () => [],
+  );
+  const triggers = useFetch(canFetchTriggers ? astarte.client.getTriggerNames : async () => []);
   const appEngineHealth = useFetch(astarte.client.getAppengineHealth);
   const realmManagementHealth = useFetch(astarte.client.getRealmManagementHealth);
   const pairingHealth = useFetch(astarte.client.getPairingHealth);
   const flowHealth = useFetch(config.features.flow ? astarte.client.getFlowHealth : async () => {});
-  const deviceRegistrationLimitFetcher = useFetch(astarte.client.getDeviceRegistrationLimit);
+  const deviceRegistrationLimitFetcher = useFetch(
+    canFetchDeviceRegistrationLimit && canFetchDeviceStats
+      ? astarte.client.getDeviceRegistrationLimit
+      : async () => null,
+  );
   const navigate = useNavigate();
 
   const connectedDevicesProvider = useMemo(
@@ -338,9 +396,15 @@ const HomePage = (): React.ReactElement => {
   );
 
   const refreshData = () => {
-    devicesStats.refresh();
-    interfaces.refresh();
-    triggers.refresh();
+    if (canFetchDeviceStats) {
+      devicesStats.refresh();
+    }
+    if (canFetchInterfaces) {
+      interfaces.refresh();
+    }
+    if (canFetchTriggers) {
+      triggers.refresh();
+    }
     appEngineHealth.refresh();
     realmManagementHealth.refresh();
     pairingHealth.refresh();
@@ -384,39 +448,45 @@ const HomePage = (): React.ReactElement => {
             flow={config.features.flow ? flowHealth.status : null}
           />
         </Col>
-        <WaitForData data={devicesStats.value} status={devicesStats.status}>
-          {({ connectedDevices, totalDevices }) => (
-            <Col xs={6} className={cellSpacingClass}>
-              <DevicesCard
-                connectedDevices={connectedDevices}
-                totalDevices={totalDevices}
-                deviceRegistrationLimit={deviceRegistrationLimitFetcher.value}
-                connectedDevicesProvider={connectedDevicesProvider}
-              />
-            </Col>
-          )}
-        </WaitForData>
-        <WaitForData data={interfaces.value} status={interfaces.status}>
-          {(interfaceList) => (
-            <Col xs={6} className={cellSpacingClass}>
-              <InterfacesCard
-                interfaceList={interfaceList}
-                onInterfaceClick={redirectToLastInterface}
-                onInstallInterfaceClick={() => navigate('/interfaces/new')}
-              />
-            </Col>
-          )}
-        </WaitForData>
-        <WaitForData data={triggers.value} status={triggers.status}>
-          {(triggerList) => (
-            <Col xs={6} className={cellSpacingClass}>
-              <TriggersCard
-                triggerList={triggerList}
-                onInstallTriggerClick={() => navigate('/triggers/new')}
-              />
-            </Col>
-          )}
-        </WaitForData>
+        {canFetchDeviceStats && (
+          <WaitForData data={devicesStats.value} status={devicesStats.status}>
+            {({ connectedDevices, totalDevices }) => (
+              <Col xs={6} className={cellSpacingClass}>
+                <DevicesCard
+                  connectedDevices={connectedDevices}
+                  totalDevices={totalDevices}
+                  deviceRegistrationLimit={deviceRegistrationLimitFetcher.value}
+                  connectedDevicesProvider={connectedDevicesProvider}
+                />
+              </Col>
+            )}
+          </WaitForData>
+        )}
+        {canFetchInterfaces && (
+          <WaitForData data={interfaces.value} status={interfaces.status}>
+            {(interfaceList) => (
+              <Col xs={6} className={cellSpacingClass}>
+                <InterfacesCard
+                  interfaceList={interfaceList}
+                  onInterfaceClick={redirectToLastInterface}
+                  onInstallInterfaceClick={() => navigate('/interfaces/new')}
+                />
+              </Col>
+            )}
+          </WaitForData>
+        )}
+        {canFetchTriggers && (
+          <WaitForData data={triggers.value} status={triggers.status}>
+            {(triggerList) => (
+              <Col xs={6} className={cellSpacingClass}>
+                <TriggersCard
+                  triggerList={triggerList}
+                  onInstallTriggerClick={() => navigate('/triggers/new')}
+                />
+              </Col>
+            )}
+          </WaitForData>
+        )}
       </Row>
     </Container>
   );

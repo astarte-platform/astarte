@@ -5,6 +5,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
 ## [1.3.0-dev] - Unreleased
+### Added
+- Compute permissions from the JWT and disable unavailable UI sections, ([#416](https://github.com/astarte-platform/astarte-dashboard/issues/416)).
 
 ## [1.2.0-rc.0] - 2024-05-28
 ### Added

@@ -32,14 +32,24 @@ interface TriggerRowProps {
   onClick: () => void;
 }
 
-const TriggerRow = ({ name, onClick }: TriggerRowProps): React.ReactElement => (
-  <ListGroup.Item>
-    <Button variant="link" className="p-0" onClick={onClick}>
-      <Icon icon="triggers" className="me-2" />
-      {name}
-    </Button>
-  </ListGroup.Item>
-);
+const TriggerRow = ({ name, onClick }: TriggerRowProps): React.ReactElement => {
+  const astarte = useAstarte();
+  return (
+    <ListGroup.Item>
+      {astarte.token?.can('realmManagement', 'GET', `/triggers/${name}`) ? (
+        <Button variant="link" className="p-0" onClick={onClick}>
+          <Icon icon="triggers" className="me-2" />
+          {name}
+        </Button>
+      ) : (
+        <>
+          <Icon icon="triggers" className="me-2" />
+          {name}
+        </>
+      )}
+    </ListGroup.Item>
+  );
+};
 
 const LoadingRow = (): React.ReactElement => (
   <ListGroup.Item>
@@ -80,6 +90,7 @@ export default (): React.ReactElement => {
               <Button
                 variant="link"
                 className="p-0"
+                hidden={!astarte.token?.can('realmManagement', 'POST', '/triggers')}
                 onClick={() => {
                   navigate('/triggers/new');
                 }}

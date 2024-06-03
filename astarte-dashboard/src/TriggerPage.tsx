@@ -153,6 +153,9 @@ export default (): React.ReactElement => {
                 </Button>
                 <Button
                   variant="danger"
+                  hidden={
+                    !astarte.token?.can('realmManagement', 'DELETE', `/triggers/${triggerName}`)
+                  }
                   onClick={showConfirmDeleteModal}
                   disabled={isDeletingTrigger}
                 >

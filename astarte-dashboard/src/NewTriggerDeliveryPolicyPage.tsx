@@ -103,6 +103,7 @@ export default (): React.ReactElement => {
           <Button
             variant="primary"
             onClick={handleInstallPolicy}
+            hidden={!astarte.token?.can('realmManagement', 'POST', '/policies')}
             disabled={isInstallingPolicy || !isValidPolicy}
           >
             {isInstallingPolicy && (

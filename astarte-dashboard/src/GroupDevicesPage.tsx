@@ -29,15 +29,17 @@ import WaitForData from './components/WaitForData';
 import useFetch from './hooks/useFetch';
 import { useAstarte } from './AstarteManager';
 
-const deviceTableRow = (
+const DeviceTableRow = (
   device: AstarteDevice,
   index: number,
+  groupName: string,
   showModal: (d: AstarteDevice) => void,
 ) => {
   let icon;
   let iconTooltip;
   let lastEvent;
   let statusLabel;
+  const astarte = useAstarte();
 
   if (device.isConnected) {
     icon = 'statusConnected' as const;
@@ -69,23 +71,33 @@ const deviceTableRow = (
         <span>{statusLabel}</span>
       </td>
       <td className={device.hasNameAlias ? '' : 'font-monospace'}>
-        <Link to={`/devices/${device.id}/edit`}>{device.name}</Link>
+        {astarte.token?.can('appEngine', 'GET', `/devices/${device.id}`) ? (
+          <Link to={`/devices/${device.id}/edit`}>{device.name}</Link>
+        ) : (
+          device.name
+        )}
       </td>
       <td>{lastEvent}</td>
       <td>
-        <Icon
-          icon="delete"
-          as="button"
-          tooltip="Remove from group"
-          tooltipPlacement="left"
-          onClick={() => showModal(device)}
-        />
+        {astarte.token?.can('appEngine', 'DELETE', `/groups/${groupName}/devices/${device.id}`) && (
+          <Icon
+            icon="delete"
+            as="button"
+            tooltip="Remove from group"
+            tooltipPlacement="left"
+            onClick={() => showModal(device)}
+          />
+        )}
       </td>
     </tr>
   );
 };
 
-const deviceTable = (deviceList: AstarteDevice[], showModal: (d: AstarteDevice) => void) => (
+const deviceTable = (
+  deviceList: AstarteDevice[],
+  groupName: string,
+  showModal: (d: AstarteDevice) => void,
+) => (
   <Table responsive>
     <thead>
       <tr>
@@ -95,7 +107,9 @@ const deviceTable = (deviceList: AstarteDevice[], showModal: (d: AstarteDevice) 
         <th>Actions</th>
       </tr>
     </thead>
-    <tbody>{deviceList.map((device, index) => deviceTableRow(device, index, showModal))}</tbody>
+    <tbody>
+      {deviceList.map((device, index) => DeviceTableRow(device, index, groupName, showModal))}
+    </tbody>
   </Table>
 );
 
@@ -173,7 +187,7 @@ const GroupDevicesPage = (): React.ReactElement => {
           <Empty title="Couldn't load devices in group" onRetry={devicesFetcher.refresh} />
         }
       >
-        {(devices) => deviceTable(devices, showModal)}
+        {(devices) => deviceTable(devices, groupName, showModal)}
       </WaitForData>
       {isModalVisible && (
         <ConfirmModal

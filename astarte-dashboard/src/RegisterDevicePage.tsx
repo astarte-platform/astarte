@@ -384,6 +384,7 @@ export default (): React.ReactElement => {
               variant="primary"
               type="submit"
               disabled={!isValidDeviceId || isRegisteringDevice}
+              hidden={!astarte.token?.can('pairing', 'POST', '/agent/devices')}
             >
               {isRegisteringDevice && (
                 <Spinner as="span" size="sm" animation="border" role="status" className="me-2" />

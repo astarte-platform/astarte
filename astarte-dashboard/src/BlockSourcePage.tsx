@@ -29,6 +29,7 @@ import Empty from './components/Empty';
 import ConfirmModal from './components/modals/Confirm';
 import SingleCardPage from './ui/SingleCardPage';
 import WaitForData from './components/WaitForData';
+import { useAstarte } from 'AstarteManager';
 
 const blockTypeToLabel = {
   consumer: 'Consumer',
@@ -45,6 +46,7 @@ export default (): React.ReactElement => {
   const blockData = useStoreSelector((selectors) => selectors.block(blockId));
   const blockStatus = useStoreSelector((selectors) => selectors.blockStatus(blockId));
   const isDeletingBlock = useStoreSelector((selectors) => selectors.isDeletingBlock(blockId));
+  const astarte = useAstarte();
 
   useEffect(() => {
     dispatch(actions.blocks.get(blockId));
@@ -111,6 +113,7 @@ export default (): React.ReactElement => {
           <Button
             variant="danger"
             onClick={() => setShowDeleteModal(true)}
+            hidden={!astarte.token?.can('flow', 'DELETE', `/blocks/${blockData.name}`)}
             disabled={isDeletingBlock}
           >
             {isDeletingBlock && (

@@ -22,6 +22,7 @@ import type { AstarteDevice } from 'astarte-client';
 
 import FullHeightCard from '../components/FullHeightCard';
 import Icon from '../components/Icon';
+import { useAstarte } from 'AstarteManager';
 
 interface AttributeKeyValuePair {
   key: string;
@@ -29,42 +30,51 @@ interface AttributeKeyValuePair {
 }
 
 interface AttributesTableProps {
+  deviceId: string;
   attributes: Map<string, string>;
   onEditAttributeClick: (key: string) => void;
   onRemoveAttributeClick: ({ key, value }: AttributeKeyValuePair) => void;
 }
 
 const AttributesTable = ({
+  deviceId,
   attributes,
   onEditAttributeClick,
   onRemoveAttributeClick,
-}: AttributesTableProps): React.ReactElement => (
-  <Table responsive>
-    <thead>
-      <tr>
-        <th>Field</th>
-        <th>Value</th>
-        <th className="action-column">Actions</th>
-      </tr>
-    </thead>
-    <tbody>
-      {Array.from(attributes.entries()).map(([key, value]) => (
-        <tr key={key}>
-          <td>{key}</td>
-          <td>{value}</td>
-          <td className="text-center">
-            <Icon
-              icon="edit"
-              className="color-grey me-2"
-              onClick={() => onEditAttributeClick(key)}
-            />
-            <Icon icon="erase" onClick={() => onRemoveAttributeClick({ key, value })} />
-          </td>
+}: AttributesTableProps): React.ReactElement => {
+  const astarte = useAstarte();
+  return (
+    <Table responsive>
+      <thead>
+        <tr>
+          <th>Field</th>
+          <th>Value</th>
+          <th className="action-column">Actions</th>
         </tr>
-      ))}
-    </tbody>
-  </Table>
-);
+      </thead>
+      <tbody>
+        {Array.from(attributes.entries()).map(([key, value]) => (
+          <tr key={key}>
+            <td>{key}</td>
+            <td>{value}</td>
+            <td className="text-center">
+              {astarte.token?.can('appEngine', 'PATCH', `/devices/${deviceId}`) && (
+                <Icon
+                  icon="edit"
+                  className="color-grey me-2"
+                  onClick={() => onEditAttributeClick(key)}
+                />
+              )}
+              {astarte.token?.can('appEngine', 'PATCH', `/devices/${deviceId}`) && (
+                <Icon icon="erase" onClick={() => onRemoveAttributeClick({ key, value })} />
+              )}
+            </td>
+          </tr>
+        ))}
+      </tbody>
+    </Table>
+  );
+};
 
 interface AttributesCardProps {
   device: AstarteDevice;
@@ -78,30 +88,35 @@ const AttributesCard = ({
   onNewAttributeClick,
   onEditAttributeClick,
   onRemoveAttributeClick,
-}: AttributesCardProps): React.ReactElement => (
-  <FullHeightCard xs={12} md={6} className="mb-4">
-    <Card.Header as="h5">Attributes</Card.Header>
-    <Card.Body className="d-flex flex-column">
-      {device.attributes.size > 0 ? (
-        <AttributesTable
-          attributes={device.attributes}
-          onEditAttributeClick={onEditAttributeClick}
-          onRemoveAttributeClick={onRemoveAttributeClick}
-        />
-      ) : (
-        <p>Device has no attribute</p>
-      )}
-      <div className="mt-auto">
-        <Button
-          variant="primary"
-          onClick={onNewAttributeClick}
-          disabled={device.deletionInProgress}
-        >
-          Add attribute
-        </Button>
-      </div>
-    </Card.Body>
-  </FullHeightCard>
-);
+}: AttributesCardProps): React.ReactElement => {
+  const astarte = useAstarte();
+  return (
+    <FullHeightCard xs={12} md={6} className="mb-4">
+      <Card.Header as="h5">Attributes</Card.Header>
+      <Card.Body className="d-flex flex-column">
+        {device.attributes.size > 0 ? (
+          <AttributesTable
+            deviceId={device.id}
+            attributes={device.attributes}
+            onEditAttributeClick={onEditAttributeClick}
+            onRemoveAttributeClick={onRemoveAttributeClick}
+          />
+        ) : (
+          <p>Device has no attribute</p>
+        )}
+        <div className="mt-auto">
+          <Button
+            variant="primary"
+            onClick={onNewAttributeClick}
+            hidden={!astarte.token?.can('appEngine', 'PATCH', `/devices/${device.id}`)}
+            disabled={device.deletionInProgress}
+          >
+            Add attribute
+          </Button>
+        </div>
+      </Card.Body>
+    </FullHeightCard>
+  );
+};
 
 export default AttributesCard;

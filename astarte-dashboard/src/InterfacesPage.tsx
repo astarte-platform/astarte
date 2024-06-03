@@ -29,29 +29,49 @@ interface InterfaceRowProps {
   majors: number[];
 }
 
-const InterfaceRow = ({ name, majors }: InterfaceRowProps): React.ReactElement => (
-  <ListGroup.Item>
-    <Container className="p-0" fluid>
-      <Row>
-        <Col>
-          <Link to={`/interfaces/${name}/${Math.max(...majors)}/edit`}>
-            <Icon icon="interfaces" className="me-2" />
-            {name}
-          </Link>
-        </Col>
-        <Col md="auto">
-          {majors.map((major) => (
-            <Link key={major} to={`/interfaces/${name}/${major}/edit`}>
-              <Badge bg={major > 0 ? 'primary' : 'secondary'} className="me-1 px-2 py-1">
-                v{major}
-              </Badge>
-            </Link>
-          ))}
-        </Col>
-      </Row>
-    </Container>
-  </ListGroup.Item>
-);
+const InterfaceRow = ({ name, majors }: InterfaceRowProps): React.ReactElement => {
+  const astarte = useAstarte();
+  return (
+    <ListGroup.Item>
+      <Container className="p-0" fluid>
+        <Row>
+          <Col>
+            {astarte.token?.can(
+              'realmManagement',
+              'GET',
+              `/interfaces/${name}/${Math.max(...majors)}`,
+            ) ? (
+              <Link to={`/interfaces/${name}/${Math.max(...majors)}/edit`}>
+                <Icon icon="interfaces" className="me-2" />
+                {name}
+              </Link>
+            ) : (
+              <>
+                <Icon icon="interfaces" className="me-2" />
+                {name}
+              </>
+            )}
+          </Col>
+          <Col md="auto">
+            {majors.map((major) =>
+              astarte.token?.can('realmManagement', 'GET', `/interfaces/${name}/${major}`) ? (
+                <Link key={major} to={`/interfaces/${name}/${major}/edit`}>
+                  <Badge bg={major > 0 ? 'primary' : 'secondary'} className="me-1 px-2 py-1">
+                    v{major}
+                  </Badge>
+                </Link>
+              ) : (
+                <Badge bg={major > 0 ? 'primary' : 'secondary'} className="me-1 px-2 py-1">
+                  v{major}
+                </Badge>
+              ),
+            )}
+          </Col>
+        </Row>
+      </Container>
+    </ListGroup.Item>
+  );
+};
 
 const LoadingRow = (): React.ReactElement => (
   <ListGroup.Item>
@@ -109,7 +129,12 @@ export default (): React.ReactElement => {
         <Col sm={12}>
           <ListGroup>
             <ListGroup.Item>
-              <Button variant="link" className="p-0" onClick={() => navigate('/interfaces/new')}>
+              <Button
+                variant="link"
+                hidden={!astarte.token?.can('realmManagement', 'POST', '/interfaces')}
+                className="p-0"
+                onClick={() => navigate('/interfaces/new')}
+              >
                 <Icon icon="add" className="me-2" />
                 Install a new interface...
               </Button>

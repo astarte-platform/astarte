@@ -173,6 +173,9 @@ export default (): React.ReactElement => {
                 <Button
                   variant="danger"
                   onClick={showConfirmDeleteModal}
+                  hidden={
+                    !astarte.token?.can('realmManagement', 'DELETE', `/policies/${policyName}`)
+                  }
                   disabled={isDeletingPolicy}
                 >
                   {isDeletingPolicy && (

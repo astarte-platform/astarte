@@ -100,7 +100,12 @@ export default (): React.ReactElement => {
           />
         </Form.Group>
         <div className="d-flex flex-column flex-md-row">
-          <Button variant="primary" disabled={!isValidForm || isCreatingFlow} onClick={createFlow}>
+          <Button
+            variant="primary"
+            disabled={!isValidForm || isCreatingFlow}
+            onClick={createFlow}
+            hidden={!astarte.token?.can('flow', 'POST', '/flows')}
+          >
             {isCreatingFlow && (
               <Spinner className="me-2" size="sm" animation="border" role="status" />
             )}

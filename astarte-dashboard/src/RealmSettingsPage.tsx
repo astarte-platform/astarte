@@ -46,6 +46,7 @@ const RealmSettingsForm = ({
 }: RealmSettingsFormProps) => {
   const [values, setValues] = useState(initialValues);
   const canSubmit = values.publicKey.trim() !== '' && values.publicKey !== initialValues.publicKey;
+  const astarte = useAstarte();
 
   return (
     <Form>
@@ -64,6 +65,7 @@ const RealmSettingsForm = ({
           <Button
             variant="danger"
             disabled={!canSubmit || isUpdatingSettings}
+            hidden={!astarte.token?.can('realmManagement', 'PUT', '/config/auth')}
             onClick={() => onSubmit(values)}
           >
             {isUpdatingSettings && (
@@ -86,7 +88,11 @@ export default (): React.ReactElement => {
   const navigate = useNavigate();
 
   const authConfigFetcher = useFetch(astarte.client.getConfigAuth);
-  const deviceRegistrationLimitFetcher = useFetch(astarte.client.getDeviceRegistrationLimit);
+  const deviceRegistrationLimitFetcher = useFetch(
+    astarte.token?.can('realmManagement', 'GET', '/config/device_registration_limit')
+      ? astarte.client.getDeviceRegistrationLimit
+      : async () => null,
+  );
 
   const showModal = useCallback(() => setIsModalVisible(true), [setIsModalVisible]);
 

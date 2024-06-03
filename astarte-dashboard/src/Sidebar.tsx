@@ -29,8 +29,16 @@ import useInterval from './hooks/useInterval';
 const SidebarApiStatus = () => {
   const config = useConfig();
   const astarte = useAstarte();
-  const deviceRegistrationLimitFetcher = useFetch(astarte.client.getDeviceRegistrationLimit);
-  const devicesStatsFetcher = useFetch(astarte.client.getDevicesStats);
+  const deviceRegistrationLimitFetcher = useFetch(
+    astarte.token?.can('realmManagement', 'GET', '/config/device_registration_limit')
+      ? astarte.client.getDeviceRegistrationLimit
+      : async () => null,
+  );
+  const devicesStatsFetcher = useFetch(
+    astarte.token?.can('appEngine', 'GET', '/stats/devices')
+      ? astarte.client.getDevicesStats
+      : async () => null,
+  );
 
   const healthFetcher = useFetch(() => {
     const apiChecks = [

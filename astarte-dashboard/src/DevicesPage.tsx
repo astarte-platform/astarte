@@ -543,6 +543,7 @@ export default (): React.ReactElement => {
       </WaitForData>
       <Button
         variant="primary"
+        hidden={!astarte.token?.can('pairing', 'POST', '/agent/devices')}
         onClick={() => {
           navigate('/devices/register');
         }}

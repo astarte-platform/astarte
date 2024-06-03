@@ -22,6 +22,7 @@ import { Link } from 'react-router-dom';
 
 import type { AstarteDevice, AstarteDeviceInterfaceStats } from 'astarte-client';
 import FullHeightCard from '../components/FullHeightCard';
+import { useAstarte } from 'AstarteManager';
 
 interface IntrospectionTableProps {
   deviceId: string;
@@ -31,28 +32,40 @@ interface IntrospectionTableProps {
 const IntrospectionTable = ({
   deviceId,
   introspection,
-}: IntrospectionTableProps): React.ReactElement => (
-  <Table responsive>
-    <thead>
-      <tr>
-        <th>Name</th>
-        <th>Major</th>
-        <th>Minor</th>
-      </tr>
-    </thead>
-    <tbody>
-      {introspection.map((iface) => (
-        <tr key={iface.name}>
-          <td>
-            <Link to={`/devices/${deviceId}/interfaces/${iface.name}`}>{iface.name}</Link>
-          </td>
-          <td>{iface.major}</td>
-          <td>{iface.minor}</td>
+}: IntrospectionTableProps): React.ReactElement => {
+  const astarte = useAstarte();
+
+  return (
+    <Table responsive>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Major</th>
+          <th>Minor</th>
         </tr>
-      ))}
-    </tbody>
-  </Table>
-);
+      </thead>
+      <tbody>
+        {introspection.map((iface) => (
+          <tr key={iface.name}>
+            <td>
+              {astarte.token?.can(
+                'appEngine',
+                'GET',
+                `/devices/${deviceId}/interfaces/${iface.name}`,
+              ) ? (
+                <Link to={`/devices/${deviceId}/interfaces/${iface.name}`}>{iface.name}</Link>
+              ) : (
+                iface.name
+              )}
+            </td>
+            <td>{iface.major}</td>
+            <td>{iface.minor}</td>
+          </tr>
+        ))}
+      </tbody>
+    </Table>
+  );
+};
 
 interface IntrospectionCardProps {
   device: AstarteDevice;
