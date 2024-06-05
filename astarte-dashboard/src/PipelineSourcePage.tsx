@@ -100,6 +100,7 @@ export default (): React.ReactElement => {
           <Button
             variant="danger"
             onClick={() => setShowDeleteModal(true)}
+            hidden={!astarte.token?.can('flow', 'DELETE', `/pipelines/${pipelineId}`)}
             disabled={isDeletingPipeline}
           >
             {isDeletingPipeline && (

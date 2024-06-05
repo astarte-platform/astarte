@@ -32,14 +32,24 @@ interface TriggerPolicyRowProps {
   onClick: () => void;
 }
 
-const TriggerPolicyRow = ({ name, onClick }: TriggerPolicyRowProps): React.ReactElement => (
-  <ListGroup.Item>
-    <Button variant="link" className="p-0" onClick={onClick}>
-      <Icon icon="policy" className="me-2" />
-      {name}
-    </Button>
-  </ListGroup.Item>
-);
+const TriggerPolicyRow = ({ name, onClick }: TriggerPolicyRowProps): React.ReactElement => {
+  const astarte = useAstarte();
+  return (
+    <ListGroup.Item>
+      {astarte.token?.can('realmManagement', 'GET', `/policies/${name}`) ? (
+        <Button variant="link" className="p-0" onClick={onClick}>
+          <Icon icon="policy" className="me-2" />
+          {name}
+        </Button>
+      ) : (
+        <>
+          <Icon icon="policy" className="me-2" />
+          {name}
+        </>
+      )}
+    </ListGroup.Item>
+  );
+};
 
 const LoadingRow = (): React.ReactElement => (
   <ListGroup.Item>
@@ -80,6 +90,7 @@ export default (): React.ReactElement => {
               <Button
                 variant="link"
                 className="p-0"
+                hidden={!astarte.token?.can('realmManagement', 'POST', '/policies')}
                 onClick={() => {
                   navigate('/trigger-delivery-policies/new');
                 }}

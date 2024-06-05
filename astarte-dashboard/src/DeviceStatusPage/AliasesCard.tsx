@@ -22,6 +22,7 @@ import { Button, Card, Table } from 'react-bootstrap';
 import type { AstarteDevice } from 'astarte-client';
 import FullHeightCard from '../components/FullHeightCard';
 import Icon from '../components/Icon';
+import { useAstarte } from 'AstarteManager';
 
 interface AliasKeyValuePair {
   key: string;
@@ -29,38 +30,51 @@ interface AliasKeyValuePair {
 }
 
 interface AliasesTableProps {
+  deviceId: string;
   aliases: Map<string, string>;
   onEditAliasClick: (key: string) => void;
   onRemoveAliasClick: ({ key, value }: AliasKeyValuePair) => void;
 }
 
 const AliasesTable = ({
+  deviceId,
   aliases,
   onEditAliasClick,
   onRemoveAliasClick,
-}: AliasesTableProps): React.ReactElement => (
-  <Table responsive>
-    <thead>
-      <tr>
-        <th>Tag</th>
-        <th>Alias</th>
-        <th className="action-column">Actions</th>
-      </tr>
-    </thead>
-    <tbody>
-      {Array.from(aliases.entries()).map(([key, value]) => (
-        <tr key={key}>
-          <td>{key}</td>
-          <td>{value}</td>
-          <td className="text-center">
-            <Icon icon="edit" className="color-grey me-2" onClick={() => onEditAliasClick(key)} />
-            <Icon icon="erase" onClick={() => onRemoveAliasClick({ key, value })} />
-          </td>
+}: AliasesTableProps): React.ReactElement => {
+  const astarte = useAstarte();
+  return (
+    <Table responsive>
+      <thead>
+        <tr>
+          <th>Tag</th>
+          <th>Alias</th>
+          <th className="action-column">Actions</th>
         </tr>
-      ))}
-    </tbody>
-  </Table>
-);
+      </thead>
+      <tbody>
+        {Array.from(aliases.entries()).map(([key, value]) => (
+          <tr key={key}>
+            <td>{key}</td>
+            <td>{value}</td>
+            <td className="text-center">
+              {astarte.token?.can('appEngine', 'PATCH', `/devices/${deviceId}`) && (
+                <Icon
+                  icon="edit"
+                  className="color-grey me-2"
+                  onClick={() => onEditAliasClick(key)}
+                />
+              )}
+              {astarte.token?.can('appEngine', 'PATCH', `/devices/${deviceId}`) && (
+                <Icon icon="erase" onClick={() => onRemoveAliasClick({ key, value })} />
+              )}
+            </td>
+          </tr>
+        ))}
+      </tbody>
+    </Table>
+  );
+};
 
 interface AliasesCardProps {
   device: AstarteDevice;
@@ -74,26 +88,35 @@ const AliasesCard = ({
   onNewAliasClick,
   onEditAliasClick,
   onRemoveAliasClick,
-}: AliasesCardProps): React.ReactElement => (
-  <FullHeightCard xs={12} md={6} className="mb-4">
-    <Card.Header as="h5">Aliases</Card.Header>
-    <Card.Body className="d-flex flex-column">
-      {device.aliases.size > 0 ? (
-        <AliasesTable
-          aliases={device.aliases}
-          onEditAliasClick={onEditAliasClick}
-          onRemoveAliasClick={onRemoveAliasClick}
-        />
-      ) : (
-        <p>Device has no aliases</p>
-      )}
-      <div className="mt-auto">
-        <Button variant="primary" onClick={onNewAliasClick} disabled={device.deletionInProgress}>
-          Add alias
-        </Button>
-      </div>
-    </Card.Body>
-  </FullHeightCard>
-);
+}: AliasesCardProps): React.ReactElement => {
+  const astarte = useAstarte();
+  return (
+    <FullHeightCard xs={12} md={6} className="mb-4">
+      <Card.Header as="h5">Aliases</Card.Header>
+      <Card.Body className="d-flex flex-column">
+        {device.aliases.size > 0 ? (
+          <AliasesTable
+            deviceId={device.id}
+            aliases={device.aliases}
+            onEditAliasClick={onEditAliasClick}
+            onRemoveAliasClick={onRemoveAliasClick}
+          />
+        ) : (
+          <p>Device has no aliases</p>
+        )}
+        <div className="mt-auto">
+          <Button
+            variant="primary"
+            onClick={onNewAliasClick}
+            hidden={!astarte.token?.can('appEngine', 'PATCH', `/devices/${device.id}`)}
+            disabled={device.deletionInProgress}
+          >
+            Add alias
+          </Button>
+        </div>
+      </Card.Body>
+    </FullHeightCard>
+  );
+};
 
 export default AliasesCard;

@@ -54,21 +54,32 @@ const PipelineCard = ({
   pipeline,
   onInstantiate,
   showLink,
-}: PipelineCardProps): React.ReactElement => (
-  <Card className="mb-4 h-100">
-    <Card.Header as="h5">
-      <Link to={showLink}>{pipeline.name}</Link>
-    </Card.Header>
-    <Card.Body className="d-flex flex-column">
-      <Card.Text>{pipeline.description}</Card.Text>
-      <div className="mt-auto d-flex flex-column flex-md-row">
-        <Button variant="primary" onClick={onInstantiate}>
-          Instantiate
-        </Button>
-      </div>
-    </Card.Body>
-  </Card>
-);
+}: PipelineCardProps): React.ReactElement => {
+  const astarte = useAstarte();
+  return (
+    <Card className="mb-4 h-100">
+      <Card.Header as="h5">
+        {astarte.token?.can('flow', 'GET', `/pipelines/${pipeline.name}`) ? (
+          <Link to={showLink}>{pipeline.name}</Link>
+        ) : (
+          pipeline.name
+        )}
+      </Card.Header>
+      <Card.Body className="d-flex flex-column">
+        <Card.Text>{pipeline.description}</Card.Text>
+        <div className="mt-auto d-flex flex-column flex-md-row">
+          <Button
+            variant="primary"
+            onClick={onInstantiate}
+            hidden={!astarte.token?.can('flow', 'POST', '/flows')}
+          >
+            Instantiate
+          </Button>
+        </div>
+      </Card.Body>
+    </Card>
+  );
+};
 
 export default (): React.ReactElement => {
   const astarte = useAstarte();
@@ -79,9 +90,11 @@ export default (): React.ReactElement => {
     <Container fluid className="p-3">
       <h2>Pipelines</h2>
       <Row xs={1} lg={2} xxl={3} className="g-4">
-        <Col>
-          <NewPipelineCard onCreate={() => navigate('/pipelines/new')} />
-        </Col>
+        {astarte.token?.can('flow', 'POST', '/pipelines') && (
+          <Col>
+            <NewPipelineCard onCreate={() => navigate('/pipelines/new')} />
+          </Col>
+        )}
         <WaitForData
           data={pipelinesFetcher.value}
           status={pipelinesFetcher.status}

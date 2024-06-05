@@ -22,6 +22,7 @@ import { Button, Card } from 'react-bootstrap';
 import type { AstarteDevice } from 'astarte-client';
 import FullHeightCard from '../components/FullHeightCard';
 import Icon from '../components/Icon';
+import { useAstarte } from 'AstarteManager';
 
 interface DeviceStatusProps {
   status: AstarteDevice['deviceStatus'];
@@ -76,51 +77,62 @@ const DeviceInfoCard = ({
   onEnableCredentialsClick,
   onWipeCredentialsClick,
   onDeleteDeviceClick,
-}: DeviceInfoCardProps): React.ReactElement => (
-  <FullHeightCard xs={12} md={6} className="mb-4">
-    <Card.Header as="h5">Device Info</Card.Header>
-    <Card.Body className="d-flex flex-column">
-      <h6>Device ID</h6>
-      <p className="font-monospace">{device.id}</p>
-      <h6>Device name</h6>
-      <p>{device.hasNameAlias ? device.name : 'No name alias set'}</p>
-      <h6>Status</h6>
-      <p>
-        <DeviceStatus status={device.deviceStatus} />
-      </p>
-      <h6>Credentials inhibited</h6>
-      <p>{device.hasCredentialsInhibited ? 'True' : 'False'}</p>
-      <div className="mt-auto d-flex flex-column flex-md-row flex-wrap gap-2">
-        {device.hasCredentialsInhibited ? (
-          <Button
-            variant="success text-white"
-            onClick={onEnableCredentialsClick}
-            disabled={device.deletionInProgress}
-          >
-            Enable credentials request
-          </Button>
-        ) : (
+}: DeviceInfoCardProps): React.ReactElement => {
+  const astarte = useAstarte();
+  return (
+    <FullHeightCard xs={12} md={6} className="mb-4">
+      <Card.Header as="h5">Device Info</Card.Header>
+      <Card.Body className="d-flex flex-column">
+        <h6>Device ID</h6>
+        <p className="font-monospace">{device.id}</p>
+        <h6>Device name</h6>
+        <p>{device.hasNameAlias ? device.name : 'No name alias set'}</p>
+        <h6>Status</h6>
+        <p>
+          <DeviceStatus status={device.deviceStatus} />
+        </p>
+        <h6>Credentials inhibited</h6>
+        <p>{device.hasCredentialsInhibited ? 'True' : 'False'}</p>
+        <div className="mt-auto d-flex flex-column flex-md-row flex-wrap gap-2">
+          {device.hasCredentialsInhibited ? (
+            <Button
+              variant="success text-white"
+              onClick={onEnableCredentialsClick}
+              disabled={device.deletionInProgress}
+              hidden={!astarte.token?.can('appEngine', 'PATCH', `/devices/${device.id}`)}
+            >
+              Enable credentials request
+            </Button>
+          ) : (
+            <Button
+              variant="danger"
+              onClick={onInhibitCredentialsClick}
+              disabled={device.deletionInProgress}
+              hidden={!astarte.token?.can('appEngine', 'PATCH', `/devices/${device.id}`)}
+            >
+              Inhibit credentials
+            </Button>
+          )}
           <Button
             variant="danger"
-            onClick={onInhibitCredentialsClick}
+            onClick={onWipeCredentialsClick}
+            hidden={!astarte.token?.can('pairing', 'DELETE', `/agent/devices/${device.id}`)}
             disabled={device.deletionInProgress}
           >
-            Inhibit credentials
+            Wipe credential secret
           </Button>
-        )}
-        <Button
-          variant="danger"
-          onClick={onWipeCredentialsClick}
-          disabled={device.deletionInProgress}
-        >
-          Wipe credential secret
-        </Button>
-        <Button variant="danger" onClick={onDeleteDeviceClick} disabled={device.deletionInProgress}>
-          Delete device
-        </Button>
-      </div>
-    </Card.Body>
-  </FullHeightCard>
-);
+          <Button
+            variant="danger"
+            onClick={onDeleteDeviceClick}
+            hidden={!astarte.token?.can('realmManagement', 'DELETE', `/devices/${device.id}`)}
+            disabled={device.deletionInProgress}
+          >
+            Delete device
+          </Button>
+        </div>
+      </Card.Body>
+    </FullHeightCard>
+  );
+};
 
 export default DeviceInfoCard;

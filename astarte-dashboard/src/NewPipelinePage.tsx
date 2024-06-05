@@ -255,6 +255,7 @@ const NewPipelinePage = (): React.ReactElement => {
                   variant="primary"
                   onClick={createPipeline}
                   disabled={!isValidForm || isCreatingPipeline}
+                  hidden={!astarte.token?.can('flow', 'POST', '/pipelines')}
                 >
                   {isCreatingPipeline && (
                     <Spinner

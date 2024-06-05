@@ -171,6 +171,10 @@ const DeviceStatusPage = (): React.ReactElement => {
     return [];
   }, [deviceFetcher.status, groupsFetcher.status]);
 
+  const canAddDeviceToGroups = unjoinedGroups.some((groupName) =>
+    astarte.token?.can('appEngine', 'POST', `/groups/${groupName}/devices`),
+  );
+
   const dismissModal = useCallback(() => {
     setActiveModal(null);
   }, []);
@@ -396,7 +400,7 @@ const DeviceStatusPage = (): React.ReactElement => {
               />
               <GroupsCard
                 device={device}
-                showAddToGropButton={unjoinedGroups.length > 0}
+                showAddToGropButton={canAddDeviceToGroups}
                 onAddToGroupClick={() =>
                   setActiveModal({
                     kind: 'add_to_group_modal',

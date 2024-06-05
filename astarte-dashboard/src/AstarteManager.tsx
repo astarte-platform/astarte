@@ -97,6 +97,7 @@ function loadSession(): Session | null {
 type AstarteContextValue = {
   client: AstarteClient;
   realm: string | null;
+  token: AstarteToken | null;
   isAuthenticated: boolean;
   login: (params: { realm: string; token: string; authUrl: string | null }) => boolean;
   logout: () => void;
@@ -158,6 +159,7 @@ const AstarteProvider = ({
     () => ({
       client,
       realm: session && session.realm,
+      token: session && new AstarteToken(session.token),
       isAuthenticated: session != null,
       login,
       logout,

@@ -22,32 +22,40 @@ import { Link } from 'react-router-dom';
 
 import type { AstarteDevice } from 'astarte-client';
 import FullHeightCard from '../components/FullHeightCard';
+import { useAstarte } from 'AstarteManager';
 
 interface GroupsTableProps {
   groups: string[];
 }
 
-const GroupsTable = ({ groups }: GroupsTableProps): React.ReactElement => (
-  <Table responsive>
-    <thead>
-      <tr>
-        <th>Name</th>
-      </tr>
-    </thead>
-    <tbody>
-      {groups.map((groupName, index) => {
-        const encodedGroupName = encodeURIComponent(encodeURIComponent(groupName));
-        return (
-          <tr key={index}>
-            <td>
-              <Link to={`/groups/${encodedGroupName}/edit`}>{groupName}</Link>
-            </td>
-          </tr>
-        );
-      })}
-    </tbody>
-  </Table>
-);
+const GroupsTable = ({ groups }: GroupsTableProps): React.ReactElement => {
+  const astarte = useAstarte();
+  return (
+    <Table responsive>
+      <thead>
+        <tr>
+          <th>Name</th>
+        </tr>
+      </thead>
+      <tbody>
+        {groups.map((groupName, index) => {
+          const encodedGroupName = encodeURIComponent(encodeURIComponent(groupName));
+          return (
+            <tr key={index}>
+              <td>
+                {astarte.token?.can('appEngine', 'GET', `/groups/${groupName}/devices`) ? (
+                  <Link to={`/groups/${encodedGroupName}/edit`}>{groupName}</Link>
+                ) : (
+                  groupName
+                )}
+              </td>
+            </tr>
+          );
+        })}
+      </tbody>
+    </Table>
+  );
+};
 
 interface GroupsCardProps {
   device: AstarteDevice;

@@ -91,6 +91,7 @@ export default (): React.ReactElement => {
           </Button>
           <Button
             variant="primary"
+            hidden={!astarte.token?.can('realmManagement', 'POST', '/triggers')}
             onClick={handleInstallTrigger}
             disabled={isInstallingTrigger || !isValidTrigger}
           >

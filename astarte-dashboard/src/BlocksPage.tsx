@@ -25,6 +25,7 @@ import type { AstarteBlock } from 'astarte-client';
 import { actions, useStoreDispatch, useStoreSelector } from './store';
 import WaitForData from './components/WaitForData';
 import Empty from './components/Empty';
+import { useAstarte } from 'AstarteManager';
 
 interface NewBlockCardProps {
   onCreate: () => void;
@@ -58,12 +59,17 @@ interface BlockCardProps {
 }
 
 function BlockCard({ block, onShow }: BlockCardProps) {
+  const astarte = useAstarte();
   return (
     <Card className="mb-4 h-100" data-testid={block.name}>
       <Card.Header as="h5" className="d-flex justify-content-between align-items-center">
-        <Button variant="link" className="p-0" onClick={onShow}>
-          {block.name}
-        </Button>
+        {astarte.token?.can('flow', 'GET', `/blocks/${block.name}`) ? (
+          <Button variant="link" className="p-0" onClick={onShow}>
+            {block.name}
+          </Button>
+        ) : (
+          block.name
+        )}
         {block instanceof AstarteNativeBlock && (
           <Badge bg="secondary" className="h6 text-light">
             native
@@ -73,7 +79,11 @@ function BlockCard({ block, onShow }: BlockCardProps) {
       <Card.Body className="d-flex flex-column">
         <Card.Text>{blockTypeToLabel[block.type]}</Card.Text>
         <div className="mt-auto d-flex flex-column flex-md-row">
-          <Button variant="primary" onClick={onShow}>
+          <Button
+            variant="primary"
+            disabled={!astarte.token?.can('flow', 'GET', `/blocks/${block.name}`)}
+            onClick={onShow}
+          >
             Show
           </Button>
         </div>
@@ -87,6 +97,7 @@ export default (): React.ReactElement => {
   const dispatch = useStoreDispatch();
   const blocksData = useStoreSelector((selectors) => selectors.blocks());
   const blocksStatus = useStoreSelector((selectors) => selectors.blocksStatus());
+  const astarte = useAstarte();
 
   useEffect(() => {
     dispatch(actions.blocks.getList());
@@ -96,9 +107,11 @@ export default (): React.ReactElement => {
     <Container fluid className="p-3">
       <h2>Blocks</h2>
       <Row xs={1} lg={2} xxl={3} className="g-4">
-        <Col>
-          <NewBlockCard onCreate={() => navigate('/blocks/new')} />
-        </Col>
+        {astarte.token?.can('flow', 'POST', '/blocks') && (
+          <Col>
+            <NewBlockCard onCreate={() => navigate('/blocks/new')} />
+          </Col>
+        )}
         <WaitForData
           data={blocksData}
           status={blocksStatus}

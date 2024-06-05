@@ -35,26 +35,35 @@ interface TableRowProps {
   onDelete: (instance: AstarteFlow) => void;
 }
 
-const TableRow = ({ instance, onDelete }: TableRowProps): React.ReactElement => (
-  <tr>
-    <td>
-      <Icon icon="statusConnected" tooltip="Running" tooltipPlacement="right" />
-    </td>
-    <td>
-      <Link to={`/flows/${instance.name}/edit`}>{instance.name}</Link>
-    </td>
-    <td>{instance.pipeline}</td>
-    <td>
-      <Icon
-        icon="delete"
-        as="button"
-        tooltip="Delete instance"
-        tooltipPlacement="left"
-        onClick={() => onDelete(instance)}
-      />
-    </td>
-  </tr>
-);
+const TableRow = ({ instance, onDelete }: TableRowProps): React.ReactElement => {
+  const astarte = useAstarte();
+  return (
+    <tr>
+      <td>
+        <Icon icon="statusConnected" tooltip="Running" tooltipPlacement="right" />
+      </td>
+      <td>
+        {astarte.token?.can('flow', 'GET', `/flows/${instance.name}`) ? (
+          <Link to={`/flows/${instance.name}/edit`}>{instance.name}</Link>
+        ) : (
+          instance.name
+        )}
+      </td>
+      <td>{instance.pipeline}</td>
+      <td>
+        {astarte.token?.can('flow', 'DELETE', `/flows/${instance.name}`) && (
+          <Icon
+            icon="delete"
+            as="button"
+            tooltip="Delete instance"
+            tooltipPlacement="left"
+            onClick={() => onDelete(instance)}
+          />
+        )}
+      </td>
+    </tr>
+  );
+};
 
 interface InstancesTableProps {
   instances: AstarteFlow[];
@@ -152,7 +161,11 @@ export default (): React.ReactElement => {
       >
         {(instances) => <InstancesTable instances={instances} onDelete={handleDeleteFlow} />}
       </WaitForData>
-      <Button variant="primary" onClick={() => navigate('/pipelines')}>
+      <Button
+        variant="primary"
+        hidden={!astarte.token?.can('flow', 'GET', '/pipelines')}
+        onClick={() => navigate('/pipelines')}
+      >
         New flow
       </Button>
       {flowToConfirmDelete != null && (

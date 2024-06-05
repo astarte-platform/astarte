@@ -169,7 +169,12 @@ export default (): React.ReactElement => {
                 onToggleDevice={handleDeviceToggle}
               />
               <div className="d-flex flex-column flex-md-row-reverse">
-                <Button variant="primary" type="submit" disabled={!isValidForm || isCreatingGroup}>
+                <Button
+                  variant="primary"
+                  type="submit"
+                  hidden={!astarte.token?.can('appEngine', 'POST', '/groups')}
+                  disabled={!isValidForm || isCreatingGroup}
+                >
                   {isCreatingGroup && (
                     <Spinner
                       as="span"

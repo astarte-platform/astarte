@@ -45,23 +45,48 @@ const DashboardSidebar = () => {
         <Sidebar.Brand />
         <Sidebar.Item label="Home" link="/" icon="home" />
         <Sidebar.Separator />
-        <Sidebar.Item label="Interfaces" link="/interfaces" icon="interfaces" />
-        <Sidebar.Item label="Triggers" link="/triggers" icon="triggers" />
-        <Sidebar.Item label="Delivery Policies" link="/trigger-delivery-policies" icon="policy" />
-        <Sidebar.Separator />
-        <Sidebar.Item label="Devices" link="/devices" icon="devices" />
-        <Sidebar.Item label="Groups" link="/groups" icon="groups" />
-        <Sidebar.Separator />
+        {astarte.token?.can('realmManagement', 'GET', '/interfaces') && (
+          <Sidebar.Item label="Interfaces" link="/interfaces" icon="interfaces" />
+        )}
+        {astarte.token?.can('realmManagement', 'GET', '/triggers') && (
+          <Sidebar.Item label="Triggers" link="/triggers" icon="triggers" />
+        )}
+        {astarte.token?.can('realmManagement', 'GET', '/policies') && (
+          <Sidebar.Item label="Delivery Policies" link="/trigger-delivery-policies" icon="policy" />
+        )}
+        {(astarte.token?.can('realmManagement', 'GET', '/interfaces') ||
+          astarte.token?.can('realmManagement', 'GET', '/triggers') ||
+          astarte.token?.can('realmManagement', 'GET', '/policies')) && <Sidebar.Separator />}
+        {astarte.token?.can('appEngine', 'GET', '/devices') && (
+          <Sidebar.Item label="Devices" link="/devices" icon="devices" />
+        )}
+        {astarte.token?.can('appEngine', 'GET', '/groups') && (
+          <Sidebar.Item label="Groups" link="/groups" icon="groups" />
+        )}
+        {(astarte.token?.can('appEngine', 'GET', '/devices') ||
+          astarte.token?.can('appEngine', 'GET', '/groups')) && <Sidebar.Separator />}
         {config.features.flow && (
           <>
-            <Sidebar.Item label="Flows" link="/flows" icon="flows" />
-            <Sidebar.Item label="Pipelines" link="/pipelines" icon="pipelines" />
-            <Sidebar.Item label="Blocks" link="/blocks" icon="blocks" />
+            {astarte.token?.can('flow', 'GET', '/flows') && (
+              <Sidebar.Item label="Flows" link="/flows" icon="flows" />
+            )}
+            {astarte.token?.can('flow', 'GET', '/pipelines') && (
+              <Sidebar.Item label="Pipelines" link="/pipelines" icon="pipelines" />
+            )}
+            {astarte.token?.can('flow', 'GET', '/blocks') && (
+              <Sidebar.Item label="Blocks" link="/blocks" icon="blocks" />
+            )}
+            {(astarte.token?.can('flow', 'GET', '/flows') ||
+              astarte.token?.can('flow', 'GET', '/pipelines') ||
+              astarte.token?.can('flow', 'GET', '/blocks')) && <Sidebar.Separator />}
+          </>
+        )}
+        {astarte.token?.can('realmManagement', 'GET', '/config') && (
+          <>
+            <Sidebar.Item label="Realm settings" link="/settings" icon="settings" />
             <Sidebar.Separator />
           </>
         )}
-        <Sidebar.Item label="Realm settings" link="/settings" icon="settings" />
-        <Sidebar.Separator />
         <Sidebar.ApiStatus />
         <Sidebar.Separator />
         <Sidebar.Item label="Logout" link="/logout" icon="logout" />

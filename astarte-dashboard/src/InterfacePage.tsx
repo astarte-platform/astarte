@@ -212,6 +212,13 @@ export default (): React.ReactElement => {
                 {iface.major === 0 && (
                   <Button
                     variant="danger"
+                    hidden={
+                      !astarte.token?.can(
+                        'realmManagement',
+                        'DELETE',
+                        `/interfaces/${interfaceName}/${interfaceMajor}`,
+                      )
+                    }
                     onClick={isDeletingInterface ? undefined : showConfirmDeleteModal}
                     disabled={isDeletingInterface}
                   >
@@ -230,6 +237,13 @@ export default (): React.ReactElement => {
                 <Button
                   variant="primary"
                   onClick={isUpdatingInterface ? undefined : showConfirmUpdateModal}
+                  hidden={
+                    !astarte.token?.can(
+                      'realmManagement',
+                      'PUT',
+                      `/interfaces/${interfaceName}/${interfaceMajor}`,
+                    )
+                  }
                   disabled={isUpdatingInterface || !canUpdateInterface}
                 >
                   {isUpdatingInterface && (
