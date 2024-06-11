@@ -45,6 +45,7 @@ defmodule AstarteDeviceFleetSimulator.MixProject do
       {:logfmt, "~> 3.3"},
       {:pretty_log, "~> 0.1"},
       {:elixir_uuid, "~> 1.2"},
+      {:csv, "~> 3.2"}
     ]
   end
 end
