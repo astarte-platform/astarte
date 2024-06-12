@@ -200,9 +200,9 @@ defmodule Astarte.TriggerEngine.AMQPConsumer.AMQPMessageConsumer do
          event_ttl: event_ttl
        }) do
     []
-    |> put_x_arg_if(max_capacity != nil, fn _ -> {"x-max-length", :signedint, max_capacity} end)
+    |> put_x_arg_if(max_capacity != nil, fn -> {"x-max-length", :signedint, max_capacity} end)
     # AMQP message TTLs are in milliseconds!
-    |> put_x_arg_if(event_ttl != nil, fn _ -> {"x-message-ttl", :signedint, event_ttl * 1_000} end)
+    |> put_x_arg_if(event_ttl != nil, fn -> {"x-message-ttl", :signedint, event_ttl * 1_000} end)
   end
 
   defp put_x_arg_if(list, true, x_arg_fun), do: [x_arg_fun.() | list]
