@@ -219,6 +219,7 @@ astarteAPIurl`${config.realmManagementApiUrl}v1/${'realm'}/interfaces/${'interfa
       groupDevices:          astarteAPIurl`${config.appEngineApiUrl}v1/${'realm'}/groups/${'groupName'}/devices`,
       deviceInGroup:         astarteAPIurl`${config.appEngineApiUrl}v1/${'realm'}/groups/${'groupName'}/devices/${'deviceId'}`,
       phoenixSocket:         astarteAPIurl`${config.appEngineApiUrl}v1/socket`,
+      sendInterfaceData:     astarteAPIurl`${config.appEngineApiUrl}v1/${'realm'}/devices/${'deviceId'}/interfaces/${'interfaceName'}${'path'}`,      
       pairingHealth:         astarteAPIurl`${config.pairingApiUrl}health`,
       registerDevice:        astarteAPIurl`${config.pairingApiUrl}v1/${'realm'}/agent/devices`,
       deviceAgent:           astarteAPIurl`${config.pairingApiUrl}v1/${'realm'}/agent/devices/${'deviceId'}`,
@@ -895,6 +896,19 @@ astarteAPIurl`${config.realmManagementApiUrl}v1/${'realm'}/interfaces/${'interfa
 
   get realm(): string | null {
     return this.config.realm || null;
+  }
+
+  async sendDataToInterface(params: {
+    deviceId: string;
+    interfaceName: string;
+    path: string;
+    data: any;
+  }): Promise<void> {
+    const { deviceId, interfaceName, path, data } = params;
+    await this.$post(
+      this.apiConfig.sendInterfaceData({ ...this.config, deviceId, interfaceName, path }),
+      data,
+    );
   }
 }
 
