@@ -7,6 +7,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ## [1.3.0-dev] - Unreleased
 ### Added
 - Compute permissions from the JWT and disable unavailable UI sections, ([#416](https://github.com/astarte-platform/astarte-dashboard/issues/416)).
+- For server-owned interfaces, display a form to send data to the device, ([#417](https://github.com/astarte-platform/astarte-dashboard/issues/417)).
 
 ## [1.2.0-rc.0] - 2024-05-28
 ### Added

@@ -103,6 +103,7 @@ interface AstarteDataTreeNode<
   dataKind: AstarteDataTreeKind;
   name: string;
   endpoint: string;
+  interface: AstarteInterface;
   getParentNode: () => AstarteDataTreeNode<Data> | null;
   getNode: (endpoint: string) => AstarteDataTreeNode<Data> | null;
   getLeaves: () => AstarteDataTreeNode<Data>[];
@@ -140,6 +141,8 @@ class AstarteDataTreeLeafNode<
 
   readonly endpoint: string;
 
+  readonly interface: AstarteInterface;
+
   private readonly parent: AstarteDataTreeBranchNode<Data> | null;
 
   private readonly data: Equals<Data, AstarteDatastreamObjectData> extends true
@@ -164,6 +167,7 @@ class AstarteDataTreeLeafNode<
     this.parent = parentNode;
     this.dataKind = getDataTreeKind(iface);
     this.data = data;
+    this.interface = iface;
     if (iface.type === 'properties') {
       // @ts-expect-error cannot correctly infer from generics
       this.linearizedData = data as AstartePropertyData;
@@ -264,6 +268,8 @@ class AstarteDataTreeBranchNode<
 
   readonly endpoint: string;
 
+  readonly interface: AstarteInterface;
+
   private readonly parent: AstarteDataTreeBranchNode<Data> | null;
 
   private readonly children: Array<AstarteDataTreeBranchNode<Data> | AstarteDataTreeLeafNode<Data>>;
@@ -277,6 +283,7 @@ class AstarteDataTreeBranchNode<
     this.endpoint = endpoint;
     this.parent = parentNode;
     this.dataKind = getDataTreeKind(iface);
+    this.interface = iface;
     if (iface.type === 'properties') {
       // @ts-expect-error cannot correctly infer from generics
       this.children = Object.entries(data).map(([prop, propValue]) =>

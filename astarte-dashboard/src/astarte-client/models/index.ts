@@ -26,3 +26,4 @@ export * from './Mapping';
 export * from './Interface';
 export * from './Trigger';
 export * from './Policy';
+export * from './InterfaceValue';
