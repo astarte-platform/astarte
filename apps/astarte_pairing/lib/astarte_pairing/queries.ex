@@ -103,7 +103,7 @@ defmodule Astarte.Pairing.Queries do
   end
 
   def unregister_device(client, device_id) do
-    with :ok <- check_already_registered_device(client, device_id),
+    with :ok <- verify_already_registered_device(client, device_id),
          :ok <- do_unregister_device(client, device_id) do
       :ok
     else
@@ -117,7 +117,35 @@ defmodule Astarte.Pairing.Queries do
     end
   end
 
-  defp check_already_registered_device(client, device_id) do
+  def check_already_registered_device(realm_name, device_id) do
+    keyspace_name =
+      CQLUtils.realm_name_to_keyspace_name(realm_name, Config.astarte_instance_id!())
+
+    Xandra.Cluster.run(:xandra, fn conn ->
+      query = """
+      SELECT device_id
+      FROM #{keyspace_name}.devices
+      WHERE device_id=:device_id
+      """
+
+      with {:ok, prepared} <- Xandra.prepare(conn, query),
+           {:ok, page} <-
+             Xandra.execute(conn, prepared, %{"device_id" => device_id},
+               uuid_format: :binary,
+               consistency: :quorum
+             ) do
+        case Enum.to_list(page) do
+          [%{"device_id" => _device_id}] ->
+            {:ok, true}
+
+          [] ->
+            {:ok, false}
+        end
+      end
+    end)
+  end
+
+  defp verify_already_registered_device(client, device_id) do
     statement = """
     SELECT device_id
     FROM devices
