@@ -45,6 +45,7 @@ describe('DataTree for properties interface', () => {
     expect(dataTree).toEqual({
       dataKind: 'properties',
       endpoint: '',
+      interface: iface,
       parent: null,
       children: [],
     });
@@ -76,6 +77,7 @@ describe('DataTree for datastream individual interface', () => {
     expect(dataTree).toEqual({
       dataKind: 'datastream_individual',
       endpoint: '',
+      interface: iface,
       parent: null,
       children: [],
     });
@@ -108,6 +110,7 @@ describe('DataTree for datastream object interface', () => {
     expect(dataTree).toEqual({
       dataKind: 'datastream_object',
       endpoint: '',
+      interface: iface,
       parent: null,
       children: [],
     });
