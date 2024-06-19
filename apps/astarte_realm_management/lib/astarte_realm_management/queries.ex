@@ -166,18 +166,14 @@ defmodule Astarte.RealmManagement.Queries do
     with {:ok, _result} <- DatabaseQuery.call(client, batch) do
       :ok
     else
-      %{acc: _, msg: error_message} ->
-        _ =
-          Logger.warning("Failed batch due to database error: #{error_message}.", tag: "db_error")
-
-        {:error, :database_error}
-
       {:error, reason} ->
-        _ =
-          Logger.warning("Failed batch due to database error: #{inspect(reason)}.",
-            tag: "db_error"
-          )
+        error_message =
+          case reason do
+            %{acc: _, msg: error_msg} -> error_msg
+            _ -> inspect(reason)
+          end
 
+        Logger.warning("Failed batch due to database error: #{error_message}.", tag: "db_error")
         {:error, :database_error}
     end
   end
@@ -192,21 +188,17 @@ defmodule Astarte.RealmManagement.Queries do
       with {:ok, _result} <- DatabaseQuery.call(client, query) do
         {:cont, :ok}
       else
-        %{acc: _, msg: err_msg} ->
-          _ =
-            Logger.warning(
-              "Failed due to database error: #{err_msg}. Changes will not be undone!",
-              tag: "db_error"
-            )
+        {:error, reason} ->
+          error_message =
+            case reason do
+              %{acc: _, msg: error_msg} -> error_msg
+              _ -> inspect(reason)
+            end
 
-          {:halt, {:error, :database_error}}
-
-        {:error, err} ->
-          _ =
-            Logger.warning(
-              "Failed due to database error: #{inspect(err)}. Changes will not be undone!",
-              tag: "db_error"
-            )
+          Logger.warning(
+            "Failed batch due to database error: #{error_message}. Changes will not be undone!",
+            tag: "db_error"
+          )
 
           {:halt, {:error, :database_error}}
       end
@@ -243,14 +235,15 @@ defmodule Astarte.RealmManagement.Queries do
          {:ok, _result} <- DatabaseQuery.call(client, realms_query) do
       :ok
     else
-      %{acc: _, msg: err_msg} ->
-        _ = Logger.warning("Health is not good: #{err_msg}.", tag: "health_check_bad")
+      {:error, reason} ->
+        error_message =
+          case reason do
+            %{acc: _, msg: error_msg} -> error_msg
+            _ -> inspect(reason)
+          end
 
-        {:error, :health_check_bad}
-
-      {:error, err} ->
         _ =
-          Logger.warning("Health is not good, reason: #{inspect(err)}.", tag: "health_check_bad")
+          Logger.warning("Health is not good, reason: #{error_message}.", tag: "health_check_bad")
 
         {:error, :health_check_bad}
     end
@@ -464,12 +457,14 @@ defmodule Astarte.RealmManagement.Queries do
            DatabaseQuery.call(client, update_storage_statement) do
       :ok
     else
-      %{acc: _, msg: error_message} ->
-        _ = Logger.warning("Database error: #{error_message}.", tag: "db_error")
-        {:error, :database_error}
-
       {:error, reason} ->
-        _ = Logger.warning("Database error: #{inspect(reason)}.", tag: "db_error")
+        error_message =
+          case reason do
+            %{acc: _, msg: error_msg} -> error_msg
+            _ -> inspect(reason)
+          end
+
+        Logger.warning("Database error: #{error_message}.", tag: "db_error")
         {:error, :database_error}
     end
   end
@@ -512,9 +507,15 @@ defmodule Astarte.RealmManagement.Queries do
       :ok
     else
       {:error, reason} ->
+        error_message =
+          case reason do
+            %{acc: _, msg: error_msg} -> error_msg
+            _ -> inspect(reason)
+          end
+
         _ =
           Logger.error(
-            "Database error while deleting #{interface_name}, reason: #{inspect(reason)}.",
+            "Database error while deleting #{interface_name}, reason: #{error_message}.",
             tag: "db_error"
           )
 
@@ -536,7 +537,13 @@ defmodule Astarte.RealmManagement.Queries do
       :ok
     else
       {:error, reason} ->
-        _ = Logger.warning("Database error: #{inspect(reason)}.", tag: "db_error")
+        error_message =
+          case reason do
+            %{acc: _, msg: error_msg} -> error_msg
+            _ -> inspect(reason)
+          end
+
+        _ = Logger.warning("Database error: #{error_message}.", tag: "db_error")
         {:error, :database_error}
     end
   end
@@ -572,7 +579,13 @@ defmodule Astarte.RealmManagement.Queries do
         {:ok, false}
 
       {:error, reason} ->
-        _ = Logger.warning("Database error: #{inspect(reason)}.", tag: "db_error")
+        error_message =
+          case reason do
+            %{acc: _, msg: error_msg} -> error_msg
+            _ -> inspect(reason)
+          end
+
+        _ = Logger.warning("Database error: #{error_message}.", tag: "db_error")
         {:error, :database_error}
     end
   end
@@ -602,7 +615,13 @@ defmodule Astarte.RealmManagement.Queries do
       :ok
     else
       {:error, reason} ->
-        _ = Logger.warning("Database error: #{inspect(reason)}.", tag: "db_error")
+        error_message =
+          case reason do
+            %{acc: _, msg: error_msg} -> error_msg
+            _ -> inspect(reason)
+          end
+
+        _ = Logger.warning("Database error: #{error_message}.", tag: "db_error")
         {:error, :database_error}
     end
   end
@@ -633,8 +652,14 @@ defmodule Astarte.RealmManagement.Queries do
       :ok
     else
       {:error, reason} ->
+        error_message =
+          case reason do
+            %{acc: _, msg: error_msg} -> error_msg
+            _ -> inspect(reason)
+          end
+
         _ =
-          Logger.warning("Database error: cannot delete values. Reason: #{inspect(reason)}.",
+          Logger.warning("Database error: cannot delete values. Reason: #{error_message}.",
             tag: "db_error"
           )
 
@@ -698,8 +723,14 @@ defmodule Astarte.RealmManagement.Queries do
       :ok
     else
       {:error, reason} ->
+        error_message =
+          case reason do
+            %{acc: _, msg: error_msg} -> error_msg
+            _ -> inspect(reason)
+          end
+
         _ =
-          Logger.warning("Database error: cannot delete path values. Reason: #{inspect(reason)}.",
+          Logger.warning("Database error: cannot delete path values. Reason: #{error_message}.",
             tag: "db_error"
           )
 
@@ -756,8 +787,14 @@ defmodule Astarte.RealmManagement.Queries do
       :ok
     else
       {:error, reason} ->
+        error_message =
+          case reason do
+            %{acc: _, msg: error_msg} -> error_msg
+            _ -> inspect(reason)
+          end
+
         _ =
-          Logger.warning("Database error while deleting all paths: #{inspect(reason)}.",
+          Logger.warning("Database error while deleting all paths:  #{error_message}.",
             tag: "db_error"
           )
 
@@ -785,12 +822,14 @@ defmodule Astarte.RealmManagement.Queries do
       [] ->
         {:error, :interface_not_found}
 
-      %{acc: _, msg: error_message} ->
-        _ = Logger.warning("Database error: #{error_message}.", tag: "db_error")
-        {:error, :database_error}
-
       {:error, reason} ->
-        _ = Logger.warning("Database error: #{inspect(reason)}.", tag: "db_error")
+        error_message =
+          case reason do
+            %{acc: _, msg: error_msg} -> error_msg
+            _ -> inspect(reason)
+          end
+
+        _ = Logger.warning("Database error: #{error_message}.", tag: "db_error")
         {:error, :database_error}
     end
   end
@@ -813,12 +852,14 @@ defmodule Astarte.RealmManagement.Queries do
          [count: count] <- DatabaseResult.head(result) do
       {:ok, count != 0}
     else
-      %{acc: _, msg: error_message} ->
-        _ = Logger.warning("Database error: #{error_message}.", tag: "db_error")
-        {:error, :database_error}
-
       {:error, reason} ->
-        _ = Logger.warning("Database error: #{inspect(reason)}.", tag: "db_error")
+        error_message =
+          case reason do
+            %{acc: _, msg: error_msg} -> error_msg
+            _ -> inspect(reason)
+          end
+
+        _ = Logger.warning("Database error: #{error_message}.", tag: "db_error")
         {:error, :database_error}
     end
   end
@@ -904,12 +945,14 @@ defmodule Astarte.RealmManagement.Queries do
         end
       end)
     else
-      %{acc: _, msg: error_message} ->
-        _ = Logger.warning("Database error: #{error_message}.", tag: "db_error")
-        {:error, :database_error}
-
       {:error, reason} ->
-        Logger.warning("Database error: #{inspect(reason)}.", tag: "db_error")
+        error_message =
+          case reason do
+            %{acc: _, msg: error_msg} -> error_msg
+            _ -> inspect(reason)
+          end
+
+        _ = Logger.warning("Database error: #{error_message}.", tag: "db_error")
         {:error, :database_error}
     end
   end
@@ -1010,12 +1053,14 @@ defmodule Astarte.RealmManagement.Queries do
       :empty_dataset ->
         {:error, :interface_not_found}
 
-      %{acc: _, msg: error_message} ->
-        _ = Logger.warning("Database error: #{error_message}.", tag: "db_error")
-        {:error, :database_error}
-
       {:error, reason} ->
-        _ = Logger.warning("Failed, reason: #{inspect(reason)}.", tag: "db_error")
+        error_message =
+          case reason do
+            %{acc: _, msg: error_msg} -> error_msg
+            _ -> inspect(reason)
+          end
+
+        _ = Logger.warning("Database error: #{error_message}.", tag: "db_error")
         {:error, :database_error}
     end
   end
@@ -1045,16 +1090,14 @@ defmodule Astarte.RealmManagement.Queries do
 
       {:ok, list}
     else
-      %{acc: _, msg: error_message} ->
-        _ = Logger.warning("Database error: #{error_message}.", tag: "db_error")
-        {:error, :database_error}
-
       {:error, reason} ->
-        _ =
-          Logger.warning("Database error: failed with reason: #{inspect(reason)}.",
-            tag: "db_error"
-          )
+        error_message =
+          case reason do
+            %{acc: _, msg: error_msg} -> error_msg
+            _ -> inspect(reason)
+          end
 
+        _ = Logger.warning("Database error: #{error_message}.", tag: "db_error")
         {:error, :database_error}
     end
   end
@@ -1081,12 +1124,14 @@ defmodule Astarte.RealmManagement.Queries do
         {:ok, false}
       end
     else
-      %{acc: _, msg: error_message} ->
-        _ = Logger.warning("Database error: #{error_message}.", tag: "db_error")
-        {:error, :database_error}
-
       {:error, reason} ->
-        _ = Logger.warning("Failed with reason: #{inspect(reason)}.", tag: "db_error")
+        error_message =
+          case reason do
+            %{acc: _, msg: error_msg} -> error_msg
+            _ -> inspect(reason)
+          end
+
+        _ = Logger.warning("Database error: #{error_message}.", tag: "db_error")
         {:error, :database_error}
     end
   end
@@ -1146,6 +1191,16 @@ defmodule Astarte.RealmManagement.Queries do
          {:ok, _res} <- DatabaseQuery.call(client, insert_query) do
       :ok
     else
+      {:error, reason} ->
+        error_message =
+          case reason do
+            %{acc: _, msg: error_msg} -> error_msg
+            _ -> inspect(reason)
+          end
+
+        _ = Logger.warning("Database error: #{inspect(error_message)}.", tag: "db_error")
+        {:error, :cannot_install_trigger}
+
       not_ok ->
         _ = Logger.warning("Database error: #{inspect(not_ok)}.", tag: "db_error")
         {:error, :cannot_install_trigger}
@@ -1195,6 +1250,16 @@ defmodule Astarte.RealmManagement.Queries do
          {:ok, _res} <- DatabaseQuery.call(client, insert_simple_trigger_by_uuid_query) do
       :ok
     else
+      {:error, reason} ->
+        error_message =
+          case reason do
+            %{acc: _, msg: error_msg} -> error_msg
+            _ -> inspect(reason)
+          end
+
+        _ = Logger.warning("Database error: #{inspect(error_message)}.", tag: "db_error")
+        {:error, :cannot_install_simple_trigger}
+
       not_ok ->
         _ = Logger.warning("Database error: #{inspect(not_ok)}.", tag: "db_error")
         {:error, :cannot_install_simple_trigger}
@@ -1229,6 +1294,16 @@ defmodule Astarte.RealmManagement.Queries do
          {:ok, _result} <- DatabaseQuery.call(client, insert_trigger_to_policy_query) do
       :ok
     else
+      {:error, reason} ->
+        error_message =
+          case reason do
+            %{acc: _, msg: error_msg} -> error_msg
+            _ -> inspect(reason)
+          end
+
+        _ = Logger.warning("Database error: #{inspect(error_message)}.", tag: "db_error")
+        {:error, :cannot_install_trigger_policy_link}
+
       not_ok ->
         _ = Logger.warning("Database error: #{inspect(not_ok)}.", tag: "db_error")
         {:error, :cannot_install_trigger_policy_link}
@@ -1256,6 +1331,16 @@ defmodule Astarte.RealmManagement.Queries do
     else
       :empty_dataset ->
         {:error, :trigger_not_found}
+
+      {:error, reason} ->
+        error_message =
+          case reason do
+            %{acc: _, msg: error_msg} -> error_msg
+            _ -> inspect(reason)
+          end
+
+        _ = Logger.warning("Database error: #{inspect(error_message)}.", tag: "db_error")
+        {:error, :cannot_retrieve_trigger_uuid}
 
       not_ok ->
         _ = Logger.warning("Database error: #{inspect(not_ok)}.", tag: "db_error")
@@ -1289,6 +1374,16 @@ defmodule Astarte.RealmManagement.Queries do
          {:ok, _result} <- DatabaseQuery.call(client, delete_trigger_to_policy_query) do
       :ok
     else
+      {:error, reason} ->
+        error_message =
+          case reason do
+            %{acc: _, msg: error_msg} -> error_msg
+            _ -> inspect(reason)
+          end
+
+        _ = Logger.warning("Database error: #{inspect(error_message)}.", tag: "db_error")
+        {:error, :cannot_delete_trigger_policy_link}
+
       not_ok ->
         _ = Logger.warning("Database error: #{inspect(not_ok)}.", tag: "db_error")
         {:error, :cannot_delete_trigger_policy_link}
@@ -1317,6 +1412,16 @@ defmodule Astarte.RealmManagement.Queries do
            {:ok, _result} <- DatabaseQuery.call(client, delete_trigger_by_name_query) do
         :ok
       else
+        {:error, reason} ->
+          error_message =
+            case reason do
+              %{acc: _, msg: error_msg} -> error_msg
+              _ -> inspect(reason)
+            end
+
+          _ = Logger.warning("Database error: #{inspect(error_message)}.", tag: "db_error")
+          {:error, :cannot_delete_trigger}
+
         not_ok ->
           _ = Logger.warning("Database error: #{inspect(not_ok)}.", tag: "db_error")
           {:error, :cannot_delete_trigger}
@@ -1334,6 +1439,16 @@ defmodule Astarte.RealmManagement.Queries do
           trigger[:key]
         end
       else
+        {:error, reason} ->
+          error_message =
+            case reason do
+              %{acc: _, msg: error_msg} -> error_msg
+              _ -> inspect(reason)
+            end
+
+          _ = Logger.warning("Database error: #{inspect(error_message)}.", tag: "db_error")
+          {:error, :cannot_list_triggers}
+
         not_ok ->
           _ = Logger.warning("Database error: #{inspect(not_ok)}.", tag: "db_error")
           {:error, :cannot_list_triggers}
@@ -1358,6 +1473,16 @@ defmodule Astarte.RealmManagement.Queries do
       else
         :empty_dataset ->
           {:error, :trigger_not_found}
+
+        {:error, reason} ->
+          error_message =
+            case reason do
+              %{acc: _, msg: error_msg} -> error_msg
+              _ -> inspect(reason)
+            end
+
+          _ = Logger.warning("Database error: #{inspect(error_message)}.", tag: "db_error")
+          {:error, :cannot_retrieve_trigger}
 
         not_ok ->
           _ = Logger.warning("Database error: #{inspect(not_ok)}.", tag: "db_error")
@@ -1397,6 +1522,20 @@ defmodule Astarte.RealmManagement.Queries do
           }
         }
       else
+        {:error, reason} ->
+          error_message =
+            case reason do
+              %{acc: _, msg: error_msg} -> error_msg
+              _ -> inspect(reason)
+            end
+
+          _ =
+            Logger.warning("Possible inconsistency found: database error: #{error_message}.",
+              tag: "db_error"
+            )
+
+          {:error, :cannot_retrieve_simple_trigger}
+
         not_ok ->
           _ =
             Logger.warning("Possible inconsistency found: database error: #{inspect(not_ok)}.",
@@ -1444,6 +1583,16 @@ defmodule Astarte.RealmManagement.Queries do
            {:ok, _result} <- DatabaseQuery.call(client, delete_astarte_ref_query) do
         :ok
       else
+        {:error, reason} ->
+          error_message =
+            case reason do
+              %{acc: _, msg: error_msg} -> error_msg
+              _ -> inspect(reason)
+            end
+
+          _ = Logger.warning("Database error: #{inspect(error_message)}.", tag: "db_error")
+          {:error, :cannot_delete_simple_trigger}
+
         not_ok ->
           _ = Logger.warning("Database error: #{inspect(not_ok)}.", tag: "db_error")
           {:error, :cannot_delete_simple_trigger}
@@ -1467,6 +1616,16 @@ defmodule Astarte.RealmManagement.Queries do
       :empty_dataset ->
         {:error, :trigger_not_found}
 
+      {:error, reason} ->
+        error_message =
+          case reason do
+            %{acc: _, msg: error_msg} -> error_msg
+            _ -> inspect(reason)
+          end
+
+        _ = Logger.warning("Database error: #{inspect(error_message)}.", tag: "db_error")
+        {:error, :cannot_retrieve_simple_trigger}
+
       not_ok ->
         _ = Logger.warning("Database error: #{inspect(not_ok)}.", tag: "db_error")
 
@@ -1487,6 +1646,16 @@ defmodule Astarte.RealmManagement.Queries do
     with {:ok, _res} <- DatabaseQuery.call(client, insert_query) do
       :ok
     else
+      {:error, reason} ->
+        error_message =
+          case reason do
+            %{acc: _, msg: error_msg} -> error_msg
+            _ -> inspect(reason)
+          end
+
+        _ = Logger.warning("Database error: #{inspect(error_message)}.", tag: "db_error")
+        {:error, :cannot_install_trigger_policy}
+
       not_ok ->
         _ = Logger.warning("Database error: #{inspect(not_ok)}.", tag: "db_error")
         {:error, :cannot_install_trigger_policy}
@@ -1512,16 +1681,14 @@ defmodule Astarte.RealmManagement.Queries do
 
       {:ok, list}
     else
-      %{acc: _, msg: error_message} ->
-        _ = Logger.warning("Database error: #{error_message}.", tag: "db_error")
-        {:error, :database_error}
-
       {:error, reason} ->
-        _ =
-          Logger.warning("Database error: failed with reason: #{inspect(reason)}.",
-            tag: "db_error"
-          )
+        error_message =
+          case reason do
+            %{acc: _, msg: error_msg} -> error_msg
+            _ -> inspect(reason)
+          end
 
+        _ = Logger.warning("Database error: #{inspect(error_message)}.", tag: "db_error")
         {:error, :database_error}
     end
   end
@@ -1548,12 +1715,14 @@ defmodule Astarte.RealmManagement.Queries do
       :empty_dataset ->
         {:error, :policy_not_found}
 
-      %{acc: _, msg: error_message} ->
-        _ = Logger.warning("Database error: #{error_message}.", tag: "db_error")
-        {:error, :database_error}
-
       {:error, reason} ->
-        _ = Logger.warning("Failed, reason: #{inspect(reason)}.", tag: "db_error")
+        error_message =
+          case reason do
+            %{acc: _, msg: error_msg} -> error_msg
+            _ -> inspect(reason)
+          end
+
+        _ = Logger.warning("Database error: #{inspect(error_message)}.", tag: "db_error")
         {:error, :database_error}
     end
   end
@@ -1575,9 +1744,15 @@ defmodule Astarte.RealmManagement.Queries do
         {:ok, false}
 
       {:error, reason} ->
+        error_message =
+          case reason do
+            %{acc: _, msg: error_msg} -> error_msg
+            _ -> inspect(reason)
+          end
+
         _ =
           Logger.error(
-            "Database error while checking #{policy_name}, reason: #{inspect(reason)}.",
+            "Database error while checking #{policy_name}, reason: #{error_message}.",
             tag: "db_error"
           )
 
@@ -1624,9 +1799,15 @@ defmodule Astarte.RealmManagement.Queries do
       :ok
     else
       {:error, reason} ->
+        error_message =
+          case reason do
+            %{acc: _, msg: error_msg} -> error_msg
+            _ -> inspect(reason)
+          end
+
         _ =
           Logger.error(
-            "Database error while deleting #{policy_name}, reason: #{inspect(reason)}.",
+            "Database error while deleting #{policy_name}, reason: #{error_message}.",
             tag: "db_error"
           )
 
@@ -1655,12 +1836,14 @@ defmodule Astarte.RealmManagement.Queries do
       [count: _] ->
         {:ok, true}
 
-      %{acc: _, msg: error_message} ->
-        _ = Logger.warning("Database error: #{error_message}.", tag: "db_error")
-        {:error, :database_error}
-
       {:error, reason} ->
-        _ = Logger.warning("Database error: #{inspect(reason)}.", tag: "db_error")
+        error_message =
+          case reason do
+            %{acc: _, msg: error_msg} -> error_msg
+            _ -> inspect(reason)
+          end
+
+        _ = Logger.warning("Database error: #{error_message}.", tag: "db_error")
         {:error, :database_error}
     end
   end

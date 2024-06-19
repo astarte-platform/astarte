@@ -74,13 +74,14 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
     with {:ok, _result} <- DatabaseQuery.call(db_client, update_pending) do
       :ok
     else
-      %{acc: _, msg: error_message} ->
-        Logger.warning("Database error: #{error_message}.")
-        {:error, :database_error}
-
       {:error, reason} ->
-        # DB Error
-        Logger.warning("Failed with reason #{inspect(reason)}.")
+        error_message =
+          case reason do
+            %{acc: _, msg: error_msg} -> error_msg
+            _ -> inspect(reason)
+          end
+
+        Logger.warning("Database error, reason: #{error_message}.", tag: "db_error")
         {:error, :database_error}
     end
   end
@@ -380,7 +381,16 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
       :ok
     else
       {:error, reason} ->
-        Logger.warning("Error while upserting path: #{path} (reason: #{inspect(reason)}).")
+        error_message =
+          case reason do
+            %{acc: _, msg: error_msg} -> error_msg
+            _ -> inspect(reason)
+          end
+
+        Logger.warning("Error while upserting path: #{path} (reason:#{error_message}).",
+          tag: "db_error"
+        )
+
         {:error, :database_error}
     end
   end
@@ -531,12 +541,17 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
       ["ttl(connected)": nil] ->
         {:ok, 0}
 
-      %{acc: _, msg: error_message} ->
-        Logger.warning("Database error: #{error_message}.")
-        {:error, :database_error}
-
       {:error, reason} ->
-        Logger.warning("Database error while retrieving property: #{inspect(reason)}.")
+        error_message =
+          case reason do
+            %{acc: _, msg: error_msg} -> error_msg
+            _ -> inspect(reason)
+          end
+
+        Logger.warning("Database error while retrieving property: #{error_message}).",
+          tag: "db_error"
+        )
+
         {:error, :database_error}
     end
   end
@@ -596,12 +611,14 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
       [introspection_minor: nil] ->
         {:ok, %{}}
 
-      %{acc: _, msg: error_message} ->
-        Logger.warning("Database error: #{error_message}.")
-        {:error, :database_error}
-
       {:error, reason} ->
-        Logger.warning("Failed with reason #{inspect(reason)}.")
+        error_message =
+          case reason do
+            %{acc: _, msg: error_msg} -> error_msg
+            _ -> inspect(reason)
+          end
+
+        Logger.warning("Failed with reason #{error_message}).", tag: "db_error")
         {:error, :database_error}
     end
   end
@@ -626,12 +643,14 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
       [groups: nil] ->
         {:ok, []}
 
-      %{acc: _, msg: error_message} ->
-        Logger.warning("Database error: #{error_message}.", tag: "db_error")
-        {:error, :database_error}
-
       {:error, reason} ->
-        Logger.warning("Failed with reason #{inspect(reason)}.", tag: "db_error")
+        error_message =
+          case reason do
+            %{acc: _, msg: error_msg} -> error_msg
+            _ -> inspect(reason)
+          end
+
+        Logger.warning("Failed with reason #{error_message}).", tag: "db_error")
         {:error, :database_error}
     end
   end
@@ -723,8 +742,14 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
       :ok
     else
       {:error, reason} ->
+        error_message =
+          case reason do
+            %{acc: _, msg: error_msg} -> error_msg
+            _ -> inspect(reason)
+          end
+
         Logger.warning(
-          "Database error: cannot register device-interface pair, reason: #{inspect(reason)}."
+          "Database error: cannot register device-interface pair, reason: #{error_message}."
         )
 
         {:error, reason}
@@ -751,8 +776,14 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
       :ok
     else
       {:error, reason} ->
+        error_message =
+          case reason do
+            %{acc: _, msg: error_msg} -> error_msg
+            _ -> inspect(reason)
+          end
+
         Logger.warning(
-          "Database error: cannot unregister device-interface pair: #{inspect(reason)}."
+          "Database error: cannot unregister device-interface pair: #{error_message}."
         )
 
         {:error, reason}
@@ -778,12 +809,14 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
       :empty_dataset ->
         {:ok, false}
 
-      %{acc: _, msg: error_message} ->
-        _ = Logger.warning("Database error: #{error_message}.", tag: "db_error")
-        {:error, :database_error}
-
       {:error, reason} ->
-        _ = Logger.warning("Database error, reason: #{inspect(reason)}.", tag: "db_error")
+        error_message =
+          case reason do
+            %{acc: _, msg: error_msg} -> error_msg
+            _ -> inspect(reason)
+          end
+
+        _ = Logger.warning("Database error, reason: #{error_message}.", tag: "db_error")
         {:error, :database_error}
     end
   end
@@ -890,12 +923,14 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
       :empty_dataset ->
         {:ok, nil}
 
-      %{acc: _, msg: error_message} ->
-        Logger.warning("Database error: #{error_message}.")
-        {:error, :database_error}
-
       {:error, reason} ->
-        Logger.warning("Failed with reason: #{inspect(reason)}.")
+        error_message =
+          case reason do
+            %{acc: _, msg: error_msg} -> error_msg
+            _ -> inspect(reason)
+          end
+
+        _ = Logger.warning("Database error, reason: #{error_message}.", tag: "db_error")
         {:error, :database_error}
     end
   end
@@ -935,12 +970,18 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
       ["ttl(datetime_value)": nil] ->
         {:ok, :no_expiry}
 
-      %{acc: _, msg: error_message} ->
-        Logger.warning("Database error: #{error_message}.")
-        {:error, :database_error}
-
       {:error, reason} ->
-        Logger.warning("Database error while retrieving property: #{inspect(reason)}.")
+        error_message =
+          case reason do
+            %{acc: _, msg: error_msg} -> error_msg
+            _ -> inspect(reason)
+          end
+
+        _ =
+          Logger.warning("Database error while retrieving property: #{error_message}.",
+            tag: "db_error"
+          )
+
         {:error, :database_error}
     end
   end
