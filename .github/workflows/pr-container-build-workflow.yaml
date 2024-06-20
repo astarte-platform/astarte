@@ -30,4 +30,4 @@ jobs:
       env:
         CONTAINER_IMAGE_NAME: gh_actions_test
       working-directory: ./apps/${{ matrix.app }}
-      run: docker build -t $CONTAINER_IMAGE_NAME:ci-test .
+      run: docker build -t ${CONTAINER_IMAGE_NAME}:ci-test -f ../../Dockerfile .
