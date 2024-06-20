@@ -1,0 +1,55 @@
+# GitHub recommends pinning actions to a commit SHA.
+# To get a newer version, you will need to update the SHA.
+# You can also reference a tag or branch, but the action may change without warning.
+
+name: Publish Docker images of Astarte tools
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  push_tool_release_to_registry:
+    name: Push Docker images of Astarte tools to Docker Hub 
+    runs-on: ubuntu-22.04
+    permissions:
+      packages: write
+      contents: read
+      attestations: write
+      id-token: write
+    strategy:
+      fail-fast: true
+      matrix:
+        app:
+        - astarte_device_fleet_simulator
+        - astarte_e2e
+        - astarte_export
+        - astarte_import
+    steps:
+      - name: Check out the repo
+        uses: actions/checkout@v4
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@f4ef78c080cd8ba55a85445d5b36e214a81df20a
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Extract metadata (tags, labels) of Astarte tools for Docker
+        id: meta
+        uses: docker/metadata-action@9ec57ed1fcdbf14dcef7dfbe97b2010124a938b7
+        with:
+          images: |
+            astarte/${{ matrix.app }}
+          tags: |
+            type=semver,pattern={{version}}
+
+      - name: Build and push tagged Docker image of Astarte tools
+        id: push
+        uses: docker/build-push-action@3b5e8027fcad23fda98b2e3ac259d8d67585f671
+        with:
+          context: tools/${{ matrix.app }}
+          file: tools/${{ matrix.app }}/Dockerfile
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
