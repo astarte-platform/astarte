@@ -18,6 +18,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - [astarte_data_updater_plant] do not leak producer channels in corner cases.
 - [astarte_trigger_engine] Always treat event TTL for trigger policies in seconds,
   not milliseconds.
+- [astarte_trigger_engine] ack messages even with unreachable target (see https://github.com/astarte-platform/astarte/issues/936)
 
 ## [1.1.1] - 2023-11-15
 ### Fixed
