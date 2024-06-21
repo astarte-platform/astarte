@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## [1.2.0] - Unreleased
+### Fixed
+- Forward port changes from release-1.1 (connection failure when delivering
+  triggers is handled as an error).
+
 ## [1.2.0-rc.0] 11-06-2024
 ### Added
 - [astarte_trigger_engine] Add `trigger_name` to envent payload
