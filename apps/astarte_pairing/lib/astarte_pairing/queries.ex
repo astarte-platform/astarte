@@ -23,6 +23,7 @@ defmodule Astarte.Pairing.Queries do
 
   alias CQEx.Query
   alias CQEx.Result
+  alias Astarte.Core.Device
   alias Astarte.Core.CQLUtils
   alias Astarte.Pairing.Config
   require Logger
@@ -301,6 +302,10 @@ defmodule Astarte.Pairing.Queries do
 
     case Query.call(client, query) do
       {:ok, _res} ->
+        Enum.each(introspection, fn {interface, major} ->
+          register_device_with_interface(client, device_id, interface, major)
+        end)
+
         :ok
 
       error ->
@@ -348,6 +353,10 @@ defmodule Astarte.Pairing.Queries do
 
     case Query.call(client, query) do
       {:ok, _res} ->
+        Enum.each(introspection, fn {interface, major} ->
+          register_device_with_interface(client, device_id, interface, major)
+        end)
+
         :ok
 
       error ->
@@ -478,6 +487,45 @@ defmodule Astarte.Pairing.Queries do
           )
 
         {:error, :database_error}
+    end
+  end
+
+  defp register_device_with_interface(db_client, device_id, interface_name, interface_major) do
+    key_insert_statement = """
+    INSERT INTO kv_store (group, key)
+    VALUES (:group, :key)
+    """
+
+    major_str = "v#{Integer.to_string(interface_major)}"
+    encoded_device_id = Device.encode_device_id(device_id)
+
+    insert_device_by_interface_query =
+      Query.new()
+      |> Query.statement(key_insert_statement)
+      |> Query.put(:group, "devices-by-interface-#{interface_name}-#{major_str}")
+      |> Query.put(:key, encoded_device_id)
+      |> Query.consistency(:each_quorum)
+
+    insert_to_with_data_on_interface =
+      Query.new()
+      |> Query.statement(key_insert_statement)
+      |> Query.put(
+        :group,
+        "devices-with-data-on-interface-#{interface_name}-#{major_str}"
+      )
+      |> Query.put(:key, encoded_device_id)
+      |> Query.consistency(:each_quorum)
+
+    with {:ok, _result} <- Query.call(db_client, insert_device_by_interface_query),
+         {:ok, _result} <- Query.call(db_client, insert_to_with_data_on_interface) do
+      :ok
+    else
+      {:error, reason} ->
+        Logger.warning(
+          "Database error: cannot register device-interface pair, reason: #{inspect(reason)}."
+        )
+
+        {:error, reason}
     end
   end
 end
