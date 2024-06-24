@@ -79,6 +79,9 @@ defmodule Astarte.TriggerEngine.Policy do
       {:http_error, status_code} ->
         maybe_requeue_message(chan, meta, status_code, policy, retry_map)
 
+      {:error, :connection_error} ->
+        maybe_requeue_message(chan, meta, 503, policy, retry_map)
+
       {:error, :trigger_not_found} ->
         discard_message(chan, meta, policy, retry_map)
     end

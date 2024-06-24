@@ -134,6 +134,37 @@ defmodule Astarte.TriggerEngine.PolicyTest do
     assert {@realm_name, @retry_all_policy.name} in registered_policies
   end
 
+  test "successfully retry message with retry strategy when consumer responds with connection_error" do
+    routing_key = generate_routing_key(@realm_name, @retry_all_policy.name)
+
+    headers_list = [x_astarte_trigger_policy: @retry_all_policy.name] ++ @headers
+
+    mock =
+      MockEventsConsumer
+      |> expect(:consume, 1, fn payload, headers ->
+        assert payload == @payload
+        assert headers == headers_list
+        {:error, :connection_error}
+      end)
+      |> expect(:consume, 1, fn payload, headers ->
+        assert payload == @payload
+        assert headers == headers_list
+        :ok
+      end)
+
+    Mox.allow(mock, self(), get_policy_process(@realm_name, @retry_all_policy))
+
+    assert :ok =
+             ExRabbitPool.with_channel(:events_consumer_pool, fn {:ok, chan} ->
+               produce_event(chan, routing_key, @payload, headers_list, @message_id)
+             end)
+
+    registered_policies =
+      Registry.select(Registry.PolicyRegistry, [{{:"$1", :_, :_}, [], [:"$1"]}])
+
+    assert {@realm_name, @retry_all_policy.name} in registered_policies
+  end
+
   test "discard message with retry strategy policy when delivery fails >= retry_times" do
     routing_key = generate_routing_key(@realm_name, @retry_all_policy_2.name)
 
@@ -171,6 +202,32 @@ defmodule Astarte.TriggerEngine.PolicyTest do
         assert payload == @payload
         assert headers == headers_list
         {:http_error, 500}
+      end)
+
+    Mox.allow(mock, self(), get_policy_process(@realm_name, @discard_all_policy))
+
+    assert :ok =
+             ExRabbitPool.with_channel(:events_consumer_pool, fn {:ok, chan} ->
+               produce_event(chan, routing_key, @payload, headers_list, @message_id)
+             end)
+
+    registered_policies =
+      Registry.select(Registry.PolicyRegistry, [{{:"$1", :_, :_}, [], [:"$1"]}])
+
+    assert {@realm_name, @discard_all_policy.name} in registered_policies
+  end
+
+  test "discard message with discard strategy when delivery fails  when consumer responds with connection_error" do
+    routing_key = generate_routing_key(@realm_name, @discard_all_policy.name)
+
+    headers_list = [x_astarte_trigger_policy: @discard_all_policy.name] ++ @headers
+
+    mock =
+      MockEventsConsumer
+      |> expect(:consume, 1, fn payload, headers ->
+        assert payload == @payload
+        assert headers == headers_list
+        {:error, :connection_error}
       end)
 
     Mox.allow(mock, self(), get_policy_process(@realm_name, @discard_all_policy))
