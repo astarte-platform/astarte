@@ -5,6 +5,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
 ## [1.2.0.rc.1] - Unreleased
+### Changed
+- Update Astarte logo in the login page and in the sidebar.
 
 ## [1.2.0-rc.0] - 2024-05-28
 ### Added
