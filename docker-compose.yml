@@ -1,8 +1,8 @@
-version: '3.8'
 services:
   astarte-housekeeping:
     image: astarte/astarte_housekeeping:snapshot
     build:
+      dockerfile: ../../Dockerfile
       context: apps/astarte_housekeeping
     env_file:
       - ./compose.env
@@ -14,6 +14,7 @@ services:
   astarte-housekeeping-api:
     image: astarte/astarte_housekeeping_api:snapshot
     build:
+      dockerfile: ../../Dockerfile
       context: apps/astarte_housekeeping_api
     env_file:
       - ./compose.env
@@ -41,6 +42,7 @@ services:
   astarte-realm-management:
     image: astarte/astarte_realm_management:snapshot
     build:
+      dockerfile: ../../Dockerfile
       context: apps/astarte_realm_management
     env_file:
       - ./compose.env
@@ -52,6 +54,7 @@ services:
   astarte-realm-management-api:
     image: astarte/astarte_realm_management_api:snapshot
     build:
+      dockerfile: ../../Dockerfile
       context: apps/astarte_realm_management_api
     env_file:
       - ./compose.env
@@ -73,6 +76,7 @@ services:
   astarte-pairing:
     image: astarte/astarte_pairing:snapshot
     build:
+      dockerfile: ../../Dockerfile
       context: apps/astarte_pairing
     env_file:
       - ./compose.env
@@ -86,6 +90,7 @@ services:
   astarte-pairing-api:
     image: astarte/astarte_pairing_api:snapshot
     build:
+      dockerfile: ../../Dockerfile
       context: apps/astarte_pairing_api
     env_file:
       - ./compose.env
@@ -107,16 +112,17 @@ services:
   astarte-appengine-api:
     image: astarte/astarte_appengine_api:snapshot
     build:
+      dockerfile: ../../Dockerfile
       context: apps/astarte_appengine_api
     env_file:
       - ./compose.env
     environment:
-      APPENGINE_API_ROOMS_AMQP_CLIENT_HOST: "rabbitmq"
+      APPENGINE_API_ROOMS_AMQP_CLIENT_HOST: rabbitmq
     restart: on-failure
     depends_on:
-      - "rabbitmq"
-      - "scylla"
-      - "traefik"
+      - rabbitmq
+      - scylla
+      - traefik
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.astarte-appengine-api.rule=Host(`api.astarte.localhost`)"
@@ -131,6 +137,7 @@ services:
   astarte-data-updater-plant:
     image: astarte/astarte_data_updater_plant:snapshot
     build:
+      dockerfile: ../../Dockerfile
       context: apps/astarte_data_updater_plant
     env_file:
       - ./compose.env
@@ -149,6 +156,7 @@ services:
   astarte-trigger-engine:
     image: astarte/astarte_trigger_engine:snapshot
     build:
+      dockerfile: ../../Dockerfile
       context: apps/astarte_trigger_engine
     env_file:
       - ./compose.env
