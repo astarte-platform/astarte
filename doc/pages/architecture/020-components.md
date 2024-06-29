@@ -2,6 +2,8 @@
 
 Astarte is a distributed system interacting over AMQP, as explained in [Design Principles](010-design_principles.html). This is an overview of its main internal services.
 
+![Astarte architecture](assets/astarte-architecture.svg)
+
 ## Pairing
 
 Pairing takes care of Device Authentication and Authorization. It interacts with Astarte's CA and orchestrates the way devices connect and interact with Transports. It also handles Device Registration. Agent, Device and Pairing interaction is described in detail [here](050-pairing_mechanism.html).

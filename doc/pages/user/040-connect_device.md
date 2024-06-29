@@ -22,6 +22,8 @@ Secret*. This *Credentials Secret* is the token the device uses for performing t
 routine, which results in the device obtaining its Credentials for accessing its designated
 Transport.
 
+![Astarte Pairing authentication](assets/astarte-pairing-authentication.svg)
+
 A Device's *Credentials Secret* allows access to [Pairing API's Device REST
 API](https://docs.astarte-platform.org/astarte/1.1/api/?urls.primaryName=Pairing%20API#/device),
 which is then used for obtaining information about which Transports the Device can use for

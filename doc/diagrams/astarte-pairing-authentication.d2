@@ -1,0 +1,30 @@
+shape: sequence_diagram
+
+device: Device {
+  shape: image
+  icon: https://icons.terrastruct.com/tech%2F014-cpu.svg
+}
+pairing: Astarte Pairing {
+  shape: image
+  icon: ../images/mascot.png
+}
+cfssl: CFSSL / CA {
+  shape: image
+  icon: https://icons.terrastruct.com/essentials%2F216-key.svg
+}
+vernemq: VerneMQ / MQTT {
+  shape: image
+  icon: ../images/mascot.png
+}
+rabbitmq: RabbitMQ / AMQP {
+  shape: image
+  icon: ../images/mascot.png
+}
+
+device -> pairing: Device requests Transport Credentials
+pairing -> cfssl: Pairing coordinates with CA\nto authenticate and authorize Device
+pairing -> device: Pairing delivers Transport Credentials
+device -> vernemq: Device connects to Transport
+vernemq -> cfssl: Transport validates\nCredentials against CA
+device -> vernemq: Device advertises used\nInterfaces and exchanges messages
+vernemq -> rabbitmq: Transport forwards\nmessages to an Exchange
