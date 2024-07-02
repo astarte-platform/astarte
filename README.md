@@ -30,10 +30,6 @@ and [Cassandra](http://cassandra.apache.org/)/[ScyllaDB](https://www.scylladb.co
 
 ## Let's try it!
 
-**This is a dev branch, which is not guaranteed to always be in a usable state.**
-
-**For production purposes we recommend using the latest stable release (currently [v1.1](https://github.com/astarte-platform/astarte/tree/release-1.1)), this branch should be used only for v1.2 development activities.**
-
 Can't be easier. Pick your favorite machine with at least 4GB of free RAM, make sure it has
 [Docker](https://www.docker.com/), and simply:
 
