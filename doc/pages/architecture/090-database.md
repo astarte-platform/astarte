@@ -27,6 +27,7 @@ CREATE KEYSPACE astarte
 ```sql
 CREATE TABLE astarte.realms (
   realm_name varchar,
+  device_registration_limit bigint,
 
   PRIMARY KEY (realm_name)
 );
@@ -34,8 +35,8 @@ CREATE TABLE astarte.realms (
 
 ```sql
 CREATE TABLE astarte.kv_store (
-    group text,
-    key text,
+    group varchar,
+    key varchar,
     value blob,
     PRIMARY KEY (group, key)
 )
@@ -139,8 +140,8 @@ CREATE TABLE <realm name>.endpoints (
   database_retention_policy int,
   allow_unset boolean,
   explicit_timestamp boolean,
-  description text,
-  doc text,
+  description varchar,
+  doc varchar,
 
   PRIMARY KEY ((interface_id), endpoint_id)
 );
@@ -159,8 +160,8 @@ CREATE TABLE <realm name>.interfaces (
   aggregation int,
   automaton_transitions blob,
   automaton_accepting_states blob,
-  description text,
-  doc text,
+  description varchar,
+  doc varchar,
 
   PRIMARY KEY (name, major_version)
 );
@@ -212,28 +213,28 @@ CREATE TABLE <realm name>.individual_properties (
   device_id uuid,
   interface_id uuid,
   endpoint_id uuid,
-  path text,
+  path varchar,
   reception_timestamp timestamp,
   reception_timestamp_submillis smallint,
   double_value double,
   integer_value int,
   boolean_value boolean,
   longinteger_value bigint,
-  string_value text,
+  string_value varchar,
   binaryblob_value blob,
   datetime_value timestamp,
   doublearray_value list<double>,
   integerarray_value list<int>,
   booleanarray_value list<boolean>,
   longintegerarray_value list<bigint>,
-  stringarray_value list<text>,
+  stringarray_value list<varchar>,
   binaryblobarray_value list<blob>,
   datetimearray_value list<timestamp>,
 
   PRIMARY KEY((device_id, interface_id), endpoint_id, path)
 );
-
 ```
+
 The following table is generated upon datastream interface creation for keeping all data sent to Astarte through the interface.
 
 The table name is derived from lower case interface name where `.` and `-` have been replaced by `_` and `""` (empty string), then the major version is appended with a `_v` prefix. 
