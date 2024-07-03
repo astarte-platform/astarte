@@ -766,6 +766,34 @@ defmodule Astarte.AppEngine.API.Device do
     end
   end
 
+  defp cast_value(:longinteger, string_value) when is_binary(string_value) do
+    case Integer.parse(string_value) do
+      {int_value, ""} ->
+        {:ok, int_value}
+
+      _ ->
+        {:error, :unexpected_value_type, expected: :longinteger}
+    end
+  end
+
+  defp cast_value(:longinteger, int_value) when is_integer(int_value) do
+    {:ok, int_value}
+  end
+
+  defp cast_value(:longinteger, _value) do
+    {:error, :unexpected_value_type, expected: :longinteger}
+  end
+
+  defp cast_value(:longintegerarray, values) do
+    case map_while_ok(values, &cast_value(:longinteger, &1)) do
+      {:ok, mapped_values} ->
+        {:ok, mapped_values}
+
+      _ ->
+        {:error, :unexpected_value_type, expected: :longintegerarray}
+    end
+  end
+
   defp cast_value(_anytype, anyvalue) do
     {:ok, anyvalue}
   end
