@@ -16,15 +16,19 @@
    limitations under the License.
 */
 
-import React from 'react';
+import React, { ChangeEvent, useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { Card, Container, Spinner, Table } from 'react-bootstrap';
-import type {
+import { Button, Card, Col, Container, Form, Modal, Row, Spinner, Table } from 'react-bootstrap';
+import {
   AstarteDataTuple,
   AstarteDataTreeNode,
   AstartePropertyData,
   AstarteDatastreamIndividualData,
   AstarteDatastreamObjectData,
+  AstarteInterface,
+  AstarteMapping,
+  AstarteDataValue,
+  AstarteDataType,
 } from 'astarte-client';
 import _ from 'lodash';
 
@@ -33,6 +37,9 @@ import Empty from './components/Empty';
 import WaitForData from './components/WaitForData';
 import useFetch from './hooks/useFetch';
 import { useAstarte } from './AstarteManager';
+import { AlertsBanner, useAlerts } from 'AlertManager';
+import * as yup from 'yup';
+import { getValidationSchema } from 'astarte-client/models/InterfaceValue';
 
 const MAX_SHOWN_VALUES = 20;
 
@@ -184,6 +191,264 @@ const InterfaceData = ({ interfaceData }: InterfaceDataProps): React.ReactElemen
   );
 };
 
+interface SendInterfaceDataModalProps {
+  showModal: boolean;
+  interfaceDefinition: AstarteInterface;
+  sendingData: boolean;
+  handleShowModal: () => void;
+  sendInterfaceData: (data: { endpoint: string; value: any }) => void;
+}
+
+const SendInterfaceDataModal = ({
+  showModal,
+  sendingData,
+  interfaceDefinition,
+  handleShowModal,
+  sendInterfaceData,
+}: SendInterfaceDataModalProps) => {
+  const [selectedMapping, setSelectedMapping] = useState<AstarteMapping | null>(null);
+  const [endpoint, setEndpoint] = useState('');
+  const [endpointWithParams, setEndpointWithParams] = useState('');
+  const [paramValues, setParamValues] = useState<{ [key: string]: string }>({});
+  const [pathParams, setPathParams] = useState<string[]>([]);
+  const [value, setValue] = useState('');
+  const [parsedIndividualValue, setParsedIndividualValue] = useState<AstarteDataValue>();
+  const [data, setData] = useState<{ [key: string]: string }>({});
+  const [parsedObjectData, setParsedObjectData] = useState<{ [key: string]: AstarteDataValue }>({});
+  const [errors, setErrors] = useState<{ [key: string]: string }>({});
+
+  const parseValue = (type: AstarteDataType, value: string) => {
+    switch (type) {
+      case 'string':
+      case 'binaryblob':
+      case 'datetime':
+        return value;
+      case 'integer':
+      case 'longinteger':
+        return parseInt(value, 10);
+      case 'double':
+        return parseFloat(value);
+      case 'boolean':
+        return value.toLowerCase() === 'true';
+      case 'doublearray':
+      case 'integerarray':
+      case 'booleanarray':
+      case 'longintegerarray':
+      case 'stringarray':
+      case 'binaryblobarray':
+      case 'datetimearray':
+        return JSON.parse(value);
+    }
+  };
+
+  const handleSelectedMapping = (e: ChangeEvent<HTMLSelectElement>) => {
+    const selected = interfaceDefinition?.mappings.find(
+      (mapping) => mapping.endpoint === e.target.value,
+    );
+    setSelectedMapping((selected as AstarteMapping) || null);
+    setEndpoint(e.target.value);
+    setValue('');
+    setParamValues({});
+    setErrors({});
+  };
+
+  const handleValueChange = (e: ChangeEvent<HTMLInputElement>) => {
+    setValue(e.target.value);
+    setErrors({});
+  };
+
+  const handleParamChange = (paramName: string, paramValue: string) => {
+    setParamValues((prevValues) => ({ ...prevValues, [paramName]: paramValue }));
+  };
+
+  const handleObjectData = (dataName: string, dataValue: string) => {
+    const mapping = interfaceDefinition?.mappings.find((m) => {
+      const segments = m.endpoint.split('/');
+      return segments[segments.length - 1] === dataName;
+    });
+    if (mapping) {
+      setData((prevValues) => ({
+        ...prevValues,
+        [dataName]: dataValue,
+      }));
+      const schema = getValidationSchema(mapping.type);
+      schema
+        .validate(dataValue)
+        .then(() => {
+          setParsedObjectData((prevValues) => ({
+            ...prevValues,
+            [dataName]: parseValue(mapping.type, dataValue),
+          }));
+          setErrors((prevErrors) => ({ ...prevErrors, [dataName]: '' }));
+        })
+        .catch((err) => {
+          setErrors((prevErrors) => ({ ...prevErrors, [dataName]: err.message }));
+        });
+    }
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    sendInterfaceData({
+      endpoint: endpointWithParams,
+      value:
+        interfaceDefinition?.aggregation === 'object' ? parsedObjectData : parsedIndividualValue,
+    });
+  };
+
+  useEffect(() => {
+    const pathParamsArray = AstarteMapping.getEndpointParameters(endpoint);
+    setPathParams(pathParamsArray);
+  }, [endpoint]);
+
+  useEffect(() => {
+    let formattedEndpoint = endpoint;
+    pathParams.forEach((param) => {
+      formattedEndpoint = formattedEndpoint.replace(`%{${param}}`, paramValues[param] || '');
+    });
+    setEndpointWithParams(formattedEndpoint);
+    if (selectedMapping) {
+      const schema = yup.object().shape({
+        value: getValidationSchema(selectedMapping.type),
+      });
+      schema
+        .validate({ value })
+        .then(() => {
+          setParsedIndividualValue(parseValue(selectedMapping.type, value));
+        })
+        .catch((err) => {
+          setErrors({ value: err.message });
+        });
+    }
+    if (interfaceDefinition?.aggregation === 'object') {
+      const endpoints: string[] = interfaceDefinition.mappings.map((mapping) => mapping.endpoint);
+      const endpointParts: string[][] = endpoints.map((endpoint) => endpoint.split('/'));
+      const commonParts: string[] = [];
+      for (let i = 0; i < endpointParts[0].length; i++) {
+        const currentPart: string = endpointParts[0][i];
+        if (endpointParts.every((parts) => parts[i] === currentPart)) {
+          commonParts.push(currentPart);
+        } else {
+          break;
+        }
+      }
+      setEndpoint(commonParts.join('/'));
+
+      interfaceDefinition.mappings.forEach((mapping) => {
+        const path: string = mapping.endpoint.split('/').pop() || '';
+        data[path] = '';
+      });
+    }
+  }, [value, pathParams, paramValues]);
+
+  return (
+    <Modal size="lg" centered show={showModal} onHide={handleShowModal}>
+      <Form onSubmit={handleSubmit}>
+        <Modal.Header closeButton>
+          <Modal.Title>Publish data to interface</Modal.Title>
+        </Modal.Header>
+
+        <Modal.Body>
+          {(interfaceDefinition?.aggregation === 'individual' ||
+            interfaceDefinition?.type === 'properties') && (
+            <Form.Group as={Col} controlId="formEndpoint" className="mb-3">
+              <Form.Select as="select" value={endpoint} onChange={handleSelectedMapping}>
+                <option value="">Choose an endpoint for sending data</option>
+                {interfaceDefinition?.mappings.map((mapping, index) => (
+                  <option key={index} value={mapping.endpoint}>
+                    {mapping.endpoint}
+                  </option>
+                ))}
+              </Form.Select>
+            </Form.Group>
+          )}
+
+          {!!pathParams.length && (
+            <Row className="d-flex justify-content-start my-4">
+              <p className="m-0">Please enter endpoint parameters:</p>
+              {pathParams.map((param, index) => (
+                <Col key={index} md="4" className="my-2">
+                  <Form.Group controlId={`param_${index}`}>
+                    <Form.Control
+                      type="text"
+                      required
+                      placeholder={param}
+                      value={paramValues[param] || ''}
+                      onChange={(e) => handleParamChange(param, e.target.value)}
+                      isInvalid={!paramValues[param]}
+                    />
+                  </Form.Group>
+                </Col>
+              ))}
+            </Row>
+          )}
+
+          {selectedMapping && (
+            <Form.Group as={Col} controlId="formValue">
+              <Form.Label className="m-0">Please enter the value:</Form.Label>
+              <Form.Control
+                type={
+                  selectedMapping.type === 'integer' ||
+                  // TODO: Long integer should not be number, validate them with BigInt, and send them to Astarte as strings.
+                  selectedMapping.type === 'longinteger' ||
+                  selectedMapping.type === 'double'
+                    ? 'number'
+                    : 'text'
+                }
+                value={value}
+                onChange={handleValueChange}
+                isInvalid={!!errors.value}
+              />
+              <Form.Control.Feedback type="invalid">{errors.value}</Form.Control.Feedback>
+            </Form.Group>
+          )}
+
+          {interfaceDefinition?.aggregation === 'object' && (
+            <Row className="d-flex justify-content-start mt-1 ">
+              <p className="m-0">Please enter values:</p>
+              {Object.keys(data).map((param, index) => (
+                <Col key={index} md="4" className="my-2">
+                  <Form.Group controlId={`data_${index}`}>
+                    <Form.Control
+                      type={
+                        interfaceDefinition.mappings[index].type === 'integer' ||
+                        // TODO: Long integer should not be number, validate them with BigInt, and send them to Astarte as strings.
+                        interfaceDefinition.mappings[index].type === 'longinteger' ||
+                        interfaceDefinition.mappings[index].type === 'double'
+                          ? 'number'
+                          : 'text'
+                      }
+                      placeholder={param}
+                      value={data[param] || ''}
+                      required
+                      onChange={(e) => handleObjectData(param, e.target.value)}
+                      isInvalid={!!errors[param]}
+                    />
+                    <Form.Control.Feedback type="invalid">{errors[param]}</Form.Control.Feedback>
+                  </Form.Group>
+                </Col>
+              ))}
+            </Row>
+          )}
+        </Modal.Body>
+
+        <Modal.Footer>
+          <Button variant="danger" onClick={handleShowModal}>
+            Cancel
+          </Button>
+          <Button variant="primary" type="submit" disabled={sendingData || !!errors.value}>
+            {sendingData ? (
+              <Spinner className="me-2" size="sm" animation="border" role="status" />
+            ) : (
+              'Send Data'
+            )}
+          </Button>
+        </Modal.Footer>
+      </Form>
+    </Modal>
+  );
+};
+
 export default (): React.ReactElement => {
   const { deviceId = '', interfaceName = '' } = useParams();
   const astarte = useAstarte();
@@ -193,13 +458,53 @@ export default (): React.ReactElement => {
       interfaceName,
     }),
   );
+  const [showModal, setShowModal] = useState(false);
+  const [sendingData, setSendingData] = useState(false);
+  const [formAlerts, formAlertsController] = useAlerts();
+  const iface = deviceDataFetcher.value?.interface as AstarteInterface;
+
+  const handleShowModal = () => {
+    setShowModal(!showModal);
+  };
+
+  const sendInterfaceData = (data: { endpoint: string; value: AstarteDataValue }) => {
+    setSendingData(true);
+    astarte.client
+      .sendDataToInterface({ deviceId, interfaceName, path: data.endpoint, data: data.value })
+      .then(() => {
+        handleShowModal();
+        deviceDataFetcher.refresh();
+      })
+      .catch((err) => {
+        formAlertsController.showError(
+          `Could not send data to interface: ${err.response.data.errors.detail}`,
+        );
+        handleShowModal();
+      })
+      .finally(() => {
+        setSendingData(false);
+      });
+  };
 
   return (
     <Container fluid className="p-3">
-      <h2>
-        <BackButton href={`/devices/${deviceId}/edit`} />
-        Interface Data
-      </h2>
+      <div className="d-flex justify-content-between">
+        <h2>
+          <BackButton href={`/devices/${deviceId}/edit`} />
+          Interface Data
+        </h2>
+        {astarte.token?.can(
+          'appEngine',
+          'POST',
+          `devices/${deviceId}/interfaces/${interfaceName}`,
+        ) &&
+          iface?.ownership === 'server' && (
+            <Button onClick={handleShowModal} className="m-2">
+              Publish Data
+            </Button>
+          )}
+      </div>
+      <AlertsBanner alerts={formAlerts} />
       <Card className="mt-4">
         <Card.Header>
           <span className="font-monospace">{deviceId}</span> /{interfaceName}
@@ -221,6 +526,15 @@ export default (): React.ReactElement => {
           </WaitForData>
         </Card.Body>
       </Card>
+      {showModal && (
+        <SendInterfaceDataModal
+          showModal={showModal}
+          interfaceDefinition={iface}
+          sendingData={sendingData}
+          handleShowModal={handleShowModal}
+          sendInterfaceData={sendInterfaceData}
+        />
+      )}
     </Container>
   );
 };

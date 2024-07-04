@@ -50,6 +50,7 @@ interface AstarteMappingObject {
 
 const mappingEndpointRegex = /^(\/(%{([a-zA-Z][a-zA-Z0-9_]*)}|[a-zA-Z][a-zA-Z0-9_]*)){1,64}$/;
 const mappingEndpointParamRegex = /^%{([a-zA-Z][a-zA-Z0-9_]*)}$/;
+const mappingEndpointPathParamsRegex = /%\{(.+?)\}/g;
 
 const astarteDataTypes: AstarteDataType[] = [
   'string',
@@ -151,6 +152,18 @@ class AstarteMapping {
 
   static toJSON(mapping: AstarteMapping): AstarteMappingJSON {
     return toAstarteMappingDTO(mapping);
+  }
+
+  static getEndpointParameters(endpoint: string): string[] {
+    const pathParamsArray: string[] = [];
+    const endpointParams = endpoint.match(mappingEndpointPathParamsRegex);
+    if (endpointParams) {
+      endpointParams.forEach((param) => {
+        const paramName = param.slice(2, -1);
+        pathParamsArray.push(paramName);
+      });
+    }
+    return pathParamsArray;
   }
 }
 
