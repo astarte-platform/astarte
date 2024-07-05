@@ -6,10 +6,9 @@ services:
         BUILD_ENV: dev
     command:
       - |
-        # TODO run migration script 
-        # set -e
-        # mix eval Elixir.Astarte.Housekeeping.ReleaseTasks.init_database
-        # mix eval Elixir.Astarte.Housekeeping.ReleaseTasks.migrate
+        set -e
+        mix eval Elixir.Astarte.Housekeeping.ReleaseTasks.init_database
+        mix eval Elixir.Astarte.Housekeeping.ReleaseTasks.migrate
         mix run --no-halt
     develop:
       watch:
