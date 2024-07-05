@@ -248,7 +248,7 @@ const LeftColumn = (): React.ReactElement => (
         alt="Background visual spacer"
         className="w-100 position-absolute bottom-background-image"
       />
-      <img src="/static/img/logo-login.svg" alt="Astarte logo" className="logo m-4" />
+      <img src="/static/img/logo.png" alt="Astarte logo" className="logo m-4" />
       <img
         src="/static/img/mascotte-computer.svg"
         alt="Astarte mascotte"
