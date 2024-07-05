@@ -109,7 +109,7 @@ const SidebarAppInfo = ({ appVersion }: SidebarAppInfoProps) => (
 
 const SidebarBrand = () => (
   <Link to="/" className="nav-brand mb-3">
-    <img alt="Astarte logo" src="/static/img/logo.svg" className="brand-logo" />
+    <img alt="Astarte logo" src="/static/img/logo.png" className="brand-logo" />
   </Link>
 );
 
