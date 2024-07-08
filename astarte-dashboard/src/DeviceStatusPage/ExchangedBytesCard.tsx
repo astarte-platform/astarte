@@ -73,18 +73,21 @@ const ExchangedBytesCard = ({ astarte, device }: ExchangedBytesCardProps): React
   const computedStats: BytesAndMessagesStats[] = [];
   let interfaceBytes = 0;
   let interfaceMessages = 0;
-  fullList.forEach((interfaceStats: AstarteDeviceInterfaceStats) => {
-    interfaceBytes += interfaceStats.exchangedBytes;
-    interfaceMessages += interfaceStats.exchangedMessages;
-    computedStats.push({
-      name: `${interfaceStats.name} v${interfaceStats.major}.${interfaceStats.minor}`,
-      bytes: interfaceStats.exchangedBytes,
-      bytesPercent: interfaceBytes !== 0 ? (interfaceStats.exchangedBytes * 100) / totalBytes : 0,
-      messages: interfaceStats.exchangedMessages,
-      messagesPercent:
-        interfaceMessages !== 0 ? (interfaceStats.exchangedMessages * 100) / totalMessages : 0,
+  fullList
+    .filter((interfaceStats: AstarteDeviceInterfaceStats) => interfaceStats.exchangedMessages > 0)
+    .forEach((interfaceStats: AstarteDeviceInterfaceStats) => {
+      interfaceBytes += interfaceStats.exchangedBytes;
+      interfaceMessages += interfaceStats.exchangedMessages;
+
+      computedStats.push({
+        name: `${interfaceStats.name} v${interfaceStats.major}.${interfaceStats.minor}`,
+        bytes: interfaceStats.exchangedBytes,
+        bytesPercent: interfaceBytes !== 0 ? (interfaceStats.exchangedBytes * 100) / totalBytes : 0,
+        messages: interfaceStats.exchangedMessages,
+        messagesPercent:
+          interfaceMessages !== 0 ? (interfaceStats.exchangedMessages * 100) / totalMessages : 0,
+      });
     });
-  });
 
   computedStats.push({
     name: 'Other',
