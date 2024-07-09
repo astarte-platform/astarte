@@ -247,7 +247,7 @@ export default ({
             ...newHeaders,
           },
           _.isUndefined,
-        );
+        ) as _.Dictionary<string>;
         return {
           ...draft,
           action: {
@@ -270,7 +270,7 @@ export default ({
             ...newHeaders,
           },
           _.isUndefined,
-        );
+        ) as _.Dictionary<string>;
         return {
           ...draft,
           action: {

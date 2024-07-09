@@ -39,7 +39,7 @@ const GroupsTable = ({ groups }: GroupsTableProps): React.ReactElement => {
       </thead>
       <tbody>
         {groups.map((groupName, index) => {
-          const encodedGroupName = encodeURIComponent(encodeURIComponent(groupName));
+          const encodedGroupName = encodeURIComponent(groupName);
           return (
             <tr key={index}>
               <td>

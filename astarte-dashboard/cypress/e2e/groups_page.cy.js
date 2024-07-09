@@ -75,7 +75,7 @@ describe('Groups page tests', () => {
         cy.get('table td').contains(groupName).click();
         cy.location('pathname').should(
           'eq',
-          `/groups/${encodeURIComponent(encodedGroupName)}/edit`,
+          `/groups/${encodedGroupName}/edit`,
         );
       });
     });

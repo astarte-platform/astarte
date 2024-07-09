@@ -55,7 +55,7 @@ const GroupsTable = ({ groupMap }: GroupsTableProps) => {
       </thead>
       <tbody>
         {Array.from(groupMap.values()).map((group) => {
-          const encodedGroupName = encodeURIComponent(encodeURIComponent(group.name));
+          const encodedGroupName = encodeURIComponent(group.name);
           return (
             <tr key={group.name}>
               <td>
