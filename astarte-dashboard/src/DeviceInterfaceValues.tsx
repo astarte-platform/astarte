@@ -358,7 +358,7 @@ const SendInterfaceDataModal = ({
                 <option value="">Choose an endpoint for sending data</option>
                 {interfaceDefinition?.mappings.map((mapping, index) => (
                   <option key={index} value={mapping.endpoint}>
-                    {mapping.endpoint}
+                    {mapping.endpoint} ({mapping.type})
                   </option>
                 ))}
               </Form.Select>
