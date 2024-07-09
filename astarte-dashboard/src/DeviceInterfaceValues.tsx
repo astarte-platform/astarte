@@ -252,7 +252,9 @@ const SendInterfaceDataModal = ({
     setErrors({});
   };
 
-  const handleValueChange = (e: ChangeEvent<HTMLInputElement>) => {
+  type FormControlElement = HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement;
+
+  const handleValueChange = (e: ChangeEvent<FormControlElement>) => {
     setValue(e.target.value);
     setErrors({});
   };
@@ -386,48 +388,72 @@ const SendInterfaceDataModal = ({
           {selectedMapping && (
             <Form.Group as={Col} controlId="formValue">
               <Form.Label className="m-0">Please enter the value:</Form.Label>
-              <Form.Control
-                type={
-                  selectedMapping.type === 'integer' ||
-                  // TODO: Long integer should not be number, validate them with BigInt, and send them to Astarte as strings.
-                  selectedMapping.type === 'longinteger' ||
-                  selectedMapping.type === 'double'
-                    ? 'number'
-                    : 'text'
-                }
-                value={value}
-                onChange={handleValueChange}
-                isInvalid={!!errors.value}
-              />
+              {selectedMapping.type === 'boolean' ? (
+                <Form.Select value={value} onChange={handleValueChange} isInvalid={!!errors.value}>
+                  <option value="">Select a value</option>
+                  <option value="true">true</option>
+                  <option value="false">false</option>
+                </Form.Select>
+              ) : (
+                <Form.Control
+                  type={
+                    selectedMapping.type === 'integer' ||
+                    // TODO: Long integer should not be number, validate them with BigInt, and send them to Astarte as strings.
+                    selectedMapping.type === 'longinteger' ||
+                    selectedMapping.type === 'double'
+                      ? 'number'
+                      : 'text'
+                  }
+                  value={value}
+                  onChange={handleValueChange}
+                  isInvalid={!!errors.value}
+                />
+              )}
               <Form.Control.Feedback type="invalid">{errors.value}</Form.Control.Feedback>
             </Form.Group>
           )}
 
           {interfaceDefinition?.aggregation === 'object' && (
-            <Row className="d-flex justify-content-start mt-1 ">
+            <Row className="d-flex justify-content-start mt-1">
               <p className="m-0">Please enter values:</p>
-              {Object.keys(data).map((param, index) => (
-                <Col key={index} md="4" className="my-2">
-                  <Form.Group controlId={`data_${index}`}>
-                    <Form.Control
-                      type={
-                        interfaceDefinition.mappings[index].type === 'integer' ||
-                        // TODO: Long integer should not be number, validate them with BigInt, and send them to Astarte as strings.
-                        interfaceDefinition.mappings[index].type === 'longinteger' ||
-                        interfaceDefinition.mappings[index].type === 'double'
-                          ? 'number'
-                          : 'text'
-                      }
-                      placeholder={param}
-                      value={data[param] || ''}
-                      required
-                      onChange={(e) => handleObjectData(param, e.target.value)}
-                      isInvalid={!!errors[param]}
-                    />
-                    <Form.Control.Feedback type="invalid">{errors[param]}</Form.Control.Feedback>
-                  </Form.Group>
-                </Col>
-              ))}
+              {Object.keys(data).map((param, index) => {
+                const paramType = interfaceDefinition.mappings[index].type;
+                return (
+                  <Col key={index} md="4" className="my-2">
+                    <Form.Group controlId={`data_${index}`}>
+                      {paramType === 'boolean' ? (
+                        <Form.Select
+                          value={data[param] || ''}
+                          required
+                          onChange={(e) => handleObjectData(param, e.target.value)}
+                          isInvalid={!!errors[param]}
+                        >
+                          <option value="">Select a value</option>
+                          <option value="true">true</option>
+                          <option value="false">false</option>
+                        </Form.Select>
+                      ) : (
+                        <Form.Control
+                          type={
+                            paramType === 'integer' ||
+                            // TODO: Long integer should not be number, validate them with BigInt, and send them to Astarte as strings.
+                            paramType === 'longinteger' ||
+                            paramType === 'double'
+                              ? 'number'
+                              : 'text'
+                          }
+                          placeholder={param}
+                          value={data[param] || ''}
+                          required
+                          onChange={(e) => handleObjectData(param, e.target.value)}
+                          isInvalid={!!errors[param]}
+                        />
+                      )}
+                      <Form.Control.Feedback type="invalid">{errors[param]}</Form.Control.Feedback>
+                    </Form.Group>
+                  </Col>
+                );
+              })}
             </Row>
           )}
         </Modal.Body>
