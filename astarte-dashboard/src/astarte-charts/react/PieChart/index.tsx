@@ -55,8 +55,9 @@ export const PieChart = <Kind extends Aggregated = Aggregated>({
       return noChartData;
     }
     const { data } = providerData;
-    const labels = Object.keys(data);
-    const series = labels.map((label) => Number(data[label].value));
+    const filteredEntries = Object.entries(data).filter(([, value]) => Number(value.value) !== 0);
+    const labels = filteredEntries.map(([label]) => label);
+    const series = filteredEntries.map(([, value]) => Number(value.value));
     const colors = labels.map((label, index) =>
       Color.hsl((index * 360) / labels.length, 70, 70)
         .rgb()
