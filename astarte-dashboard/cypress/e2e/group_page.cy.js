@@ -24,11 +24,11 @@ describe('Group page tests', () => {
           `/appengine/v1/${this.realm.name}/groups/*/devices?details=true`,
           groupDevices,
         );
-        cy.visit(`/groups/${encodeURIComponent(encodedGroupName)}/edit`);
+        cy.visit(`/groups/${encodedGroupName}/edit`);
         cy.location('pathname').should(
           'eq',
           // Browsers will convert single quotes but encodeURIComponent don't
-          `/groups/${encodeURIComponent(encodedGroupName).replace(/'/g, '%27')}/edit`,
+          `/groups/${encodedGroupName.replace(/'/g, '%27')}/edit`,
         );
         cy.get('h2').contains('Group Devices');
         cy.contains('Devices in group').should('have.text', `Devices in group ${groupName}`);
@@ -47,7 +47,7 @@ describe('Group page tests', () => {
           `/appengine/v1/${this.realm.name}/groups/${encodedGroupName}/devices?details=true`,
           groupDevices,
         );
-        cy.visit(`/groups/${encodeURIComponent(encodedGroupName)}/edit`);
+        cy.visit(`/groups/${encodedGroupName}/edit`);
         cy.get('.main-content').within(() => {
           cy.get('table tbody').find('tr').should('have.length', groupDevices.data.length);
           groupDevices.data.forEach((device, index) => {
@@ -75,7 +75,7 @@ describe('Group page tests', () => {
         cy.intercept('DELETE', `/appengine/v1/${this.realm.name}/groups/*/devices/*`, {
           statusCode: 204,
         }).as('deleteDeviceRequest');
-        cy.visit(`/groups/${encodeURIComponent(encodedGroupName)}/edit`);
+        cy.visit(`/groups/${encodedGroupName}/edit`);
         cy.get('.main-content table tbody tr .btn').first().click();
         cy.get('[role="dialog"]').get('button').contains('Remove').click();
         cy.wait('@deleteDeviceRequest');
@@ -96,7 +96,7 @@ describe('Group page tests', () => {
           statusCode: 204,
         }).as('deleteDeviceRequest');
 
-        cy.visit(`/groups/${encodeURIComponent(encodedGroupName)}/edit`);
+        cy.visit(`/groups/${encodedGroupName}/edit`);
         cy.get('.main-content table tbody tr .btn').first().click();
         cy.get('[role="dialog"]').get('button').contains('Remove').click();
         cy.wait('@deleteDeviceRequest');
