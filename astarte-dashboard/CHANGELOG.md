@@ -9,7 +9,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Compute permissions from the JWT and disable unavailable UI sections, ([#416](https://github.com/astarte-platform/astarte-dashboard/issues/416)).
 - For server-owned interfaces, display a form to send data to the device, ([#417](https://github.com/astarte-platform/astarte-dashboard/issues/417)).
 ### Changed
-- Adapt Device Stats and PieChart to exclude interfaces with 0 exchanged messages, ([[#428](https://github.com/astarte-platform/astarte-dashboard/issues/428)]).
+- Adapt Device Stats and PieChart to exclude interfaces with 0 exchanged messages, ([#428](https://github.com/astarte-platform/astarte-dashboard/issues/428)).
+- Persist login using cookies instead of localStorage, ([#419](https://github.com/astarte-platform/astarte-dashboard/issues/419)).
 
 ## [1.2.0] - 2024-07-01
 ### Changed
