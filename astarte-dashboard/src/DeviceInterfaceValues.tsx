@@ -40,6 +40,8 @@ import { useAstarte } from './AstarteManager';
 import { AlertsBanner, useAlerts } from 'AlertManager';
 import * as yup from 'yup';
 import { getValidationSchema } from 'astarte-client/models/InterfaceValue';
+import DatePicker from 'react-datepicker';
+import 'react-datepicker/dist/react-datepicker.css';
 
 const MAX_SHOWN_VALUES = 20;
 
@@ -216,13 +218,20 @@ const SendInterfaceDataModal = ({
   const [data, setData] = useState<{ [key: string]: string }>({});
   const [parsedObjectData, setParsedObjectData] = useState<{ [key: string]: AstarteDataValue }>({});
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
+  const [selectedDate, setSelectedDate] = useState<Date>();
 
+  const parseValidDateTimeValue = (datetime: string) => {
+    const date = new Date(datetime);
+    date.setMinutes(date.getMinutes() - date.getTimezoneOffset());
+    return date.toISOString();
+  };
   const parseValue = (type: AstarteDataType, value: string) => {
     switch (type) {
       case 'string':
       case 'binaryblob':
-      case 'datetime':
         return value;
+      case 'datetime':
+        return parseValidDateTimeValue(value);
       case 'integer':
       case 'longinteger':
         return parseInt(value, 10);
@@ -259,6 +268,12 @@ const SendInterfaceDataModal = ({
     setErrors({});
   };
 
+  const handleDateTimeChange = (selectedDate: Date) => {
+    setSelectedDate(selectedDate);
+    setValue(selectedDate.toISOString());
+    setErrors({});
+  };
+
   const handleParamChange = (paramName: string, paramValue: string) => {
     setParamValues((prevValues) => ({ ...prevValues, [paramName]: paramValue }));
   };
@@ -291,6 +306,7 @@ const SendInterfaceDataModal = ({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+
     sendInterfaceData({
       endpoint: endpointWithParams,
       value:
@@ -394,6 +410,18 @@ const SendInterfaceDataModal = ({
                   <option value="true">true</option>
                   <option value="false">false</option>
                 </Form.Select>
+              ) : selectedMapping.type === 'datetime' ? (
+                <>
+                  <DatePicker
+                    selected={selectedDate}
+                    onChange={(date: Date) => handleDateTimeChange(date)}
+                    showTimeSelect
+                    dateFormat="Pp"
+                    className={`form-control ${!!errors.value ? 'is-invalid' : ''}`}
+                    placeholderText="Select date and time"
+                  />
+                  <Form.Text className="text-muted">"(UTC)"</Form.Text>
+                </>
               ) : (
                 <Form.Control
                   type={
@@ -432,6 +460,20 @@ const SendInterfaceDataModal = ({
                           <option value="true">true</option>
                           <option value="false">false</option>
                         </Form.Select>
+                      ) : paramType === 'datetime' ? (
+                        <>
+                          <DatePicker
+                            selected={data[param] ? new Date(data[param]) : null}
+                            onChange={(date) =>
+                              handleObjectData(param, date ? date.toISOString() : '')
+                            }
+                            showTimeSelect
+                            dateFormat="Pp"
+                            className={`form-control ${!!errors[param] ? 'is-invalid' : ''}`}
+                            placeholderText="Select date and time"
+                          />
+                          <Form.Text className="text-muted">"(UTC)"</Form.Text>
+                        </>
                       ) : (
                         <Form.Control
                           type={
