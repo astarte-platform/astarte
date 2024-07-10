@@ -31,7 +31,7 @@ Cypress.Commands.add('login', () => {
       realm: realm.name,
       token: realm.infinite_token,
     };
-    localStorage.session = JSON.stringify(session);
+    cy.setCookie('session', JSON.stringify(session))
   });
 });
 
