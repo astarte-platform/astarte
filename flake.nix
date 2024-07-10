@@ -8,8 +8,9 @@
       flake = false;
     };
     elixir-utils = {
-      url = github:noaccOS/elixir-utils;
+      url = "github:noaccOS/elixir-utils";
       inputs.nixpkgs.follows = "nixpkgs";
+      inputs.flake-utils.follows = "flake-utils";
     };
   };
   outputs = { self, nixpkgs, elixir-utils, flake-utils, ... }:
