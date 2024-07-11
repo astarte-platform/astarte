@@ -55,7 +55,9 @@ defmodule Astarte.RealmManagement.RPC.Handler do
     GetTriggerPolicySource,
     GetTriggerPolicySourceReply,
     DeleteTriggerPolicy,
-    DeleteDevice
+    DeleteDevice,
+    GetDetailedInterfacesList,
+    GetDetailedInterfacesListReply
   }
 
   alias Astarte.Core.Triggers.Trigger
@@ -187,6 +189,14 @@ defmodule Astarte.RealmManagement.RPC.Handler do
     {:ok, Reply.encode(%Reply{error: false, reply: {:get_trigger_policy_source_reply, msg}})}
   end
 
+  def encode_reply(:get_detailed_interfaces_list, {:ok, reply}) do
+    msg = %GetDetailedInterfacesListReply{
+      interface_json: reply
+    }
+
+    {:ok, Reply.encode(%Reply{error: false, reply: {:get_detailed_interfaces_list_reply, msg}})}
+  end
+
   def encode_reply(:delete_trigger_policy, :ok) do
     {:ok, Reply.encode(%Reply{error: false, reply: {:generic_ok_reply, %GenericOkReply{}}})}
   end
@@ -294,6 +304,14 @@ defmodule Astarte.RealmManagement.RPC.Handler do
             {:get_interfaces_list, %GetInterfacesList{realm_name: realm_name}} ->
               _ = Logger.metadata(realm: realm_name)
               encode_reply(:get_interfaces_list, Engine.get_interfaces_list(realm_name))
+
+            {:get_detailed_interfaces_list, %GetDetailedInterfacesList{realm_name: realm_name}} ->
+              _ = Logger.metadata(realm: realm_name)
+
+              encode_reply(
+                :get_detailed_interfaces_list,
+                Engine.get_detailed_interfaces_list(realm_name)
+              )
 
             {:update_interface,
              %UpdateInterface{
