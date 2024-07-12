@@ -72,6 +72,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - [astarte_trigger_engine] Always treat event TTL for trigger policies in seconds,
   not milliseconds.
 - [astarte_trigger_engine] ack messages even with unreachable target (see https://github.com/astarte-platform/astarte/issues/936)
+- [astarte_appengine_api] Handle type casting for `longinteger` inputs
+- [astarte_appengine_api] refactor `device.ex` file - extract `cast_value` functions
+  into `InterfaceValue` module and add tests
 
 ## [1.1.1] - 2023-11-15
 ### Fixed
