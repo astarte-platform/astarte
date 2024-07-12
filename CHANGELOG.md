@@ -34,6 +34,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - [astarte_realm_management_api] Allow to read realm's maximum datastream
   storage retention period with the `/config/datastream_maximum_storage_retention`
   endpoint.
+- [astarte_realm_management_api] Allow to list all interfaces definitions using 
+  the `detailed=true` parameter
 
 ### Changed
 - Forward port changes from release 1.1.
