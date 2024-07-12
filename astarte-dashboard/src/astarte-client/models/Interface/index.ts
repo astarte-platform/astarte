@@ -212,7 +212,9 @@ class AstarteInterface {
       validatedObj.type === 'datastream'
         ? new AstarteMapping({
             ...mapping,
-            explicitTimestamp: mapping.explicitTimestamp || false,
+            ...(validatedObj.ownership === 'device' && {
+              explicitTimestamp: mapping.explicitTimestamp || false,
+            }),
             reliability: mapping.reliability || 'unreliable',
             retention: mapping.retention || 'discard',
             expiry: mapping.expiry || 0,

@@ -45,6 +45,7 @@ const defaultMapping: AstarteMapping = {
 };
 
 interface Props {
+  interfaceOwner: AstarteInterface['ownership'];
   interfaceType: AstarteInterface['type'];
   interfaceAggregation?: AstarteInterface['aggregation'];
   mapping?: AstarteMapping;
@@ -52,6 +53,7 @@ interface Props {
 }
 
 export default ({
+  interfaceOwner,
   interfaceType,
   interfaceAggregation = 'individual',
   mapping = defaultMapping,
@@ -60,9 +62,9 @@ export default ({
   const isPropertiesInterface = interfaceType === 'properties';
   const isDatastreamIndividualInterface =
     interfaceType === 'datastream' && interfaceAggregation === 'individual';
+  const isDevice = interfaceOwner === 'device';
   const showMappingExpiry = mapping.retention === 'volatile' || mapping.retention === 'stored';
   const showInterfaceDatabaseRetentionTtl = mapping.databaseRetentionPolicy === 'use_ttl';
-
   let mappingValidationErrors: { [property: string]: string } = {};
   try {
     AstarteMapping.validation.validateSync(mapping, { abortEarly: false });
@@ -156,23 +158,26 @@ export default ({
                 </Form.Control.Feedback>
               </Form.Group>
             </Col>
+
             <Col sm={6}>
-              <Form.Group controlId="mappingExplicitTimestamp">
-                <Form.Label>Timestamp</Form.Label>
-                <Form.Check
-                  type="checkbox"
-                  label="Explicit timestamp"
-                  checked={!!mapping.explicitTimestamp}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-                    const explicitTimestamp = !!e.target.checked;
-                    onChange({ ...mapping, explicitTimestamp: explicitTimestamp || undefined });
-                  }}
-                  isInvalid={mappingValidationErrors.explicitTimestamp != null}
-                />
-                <Form.Control.Feedback type="invalid">
-                  {mappingValidationErrors.explicitTimestamp}
-                </Form.Control.Feedback>
-              </Form.Group>
+              {isDevice && (
+                <Form.Group controlId="mappingExplicitTimestamp">
+                  <Form.Label>Timestamp</Form.Label>
+                  <Form.Check
+                    type="checkbox"
+                    label="Explicit timestamp"
+                    checked={!!mapping.explicitTimestamp}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                      const explicitTimestamp = !!e.target.checked;
+                      onChange({ ...mapping, explicitTimestamp: explicitTimestamp || undefined });
+                    }}
+                    isInvalid={mappingValidationErrors.explicitTimestamp != null}
+                  />
+                  <Form.Control.Feedback type="invalid">
+                    {mappingValidationErrors.explicitTimestamp}
+                  </Form.Control.Feedback>
+                </Form.Group>
+              )}
             </Col>
           </Row>
         )}
