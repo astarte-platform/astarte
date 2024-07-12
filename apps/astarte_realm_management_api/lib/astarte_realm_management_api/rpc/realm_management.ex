@@ -53,7 +53,9 @@ defmodule Astarte.RealmManagement.API.RPC.RealmManagement do
     GetTriggerPolicySource,
     GetTriggerPolicySourceReply,
     DeleteTriggerPolicy,
-    DeleteDevice
+    DeleteDevice,
+    GetDetailedInterfacesList,
+    GetDetailedInterfacesListReply
   }
 
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.TaggedSimpleTrigger
@@ -81,6 +83,16 @@ defmodule Astarte.RealmManagement.API.RPC.RealmManagement do
       realm_name: realm_name
     }
     |> encode_call(:get_interfaces_list)
+    |> @rpc_client.rpc_call(@destination)
+    |> decode_reply()
+    |> extract_reply()
+  end
+
+  def get_detailed_interfaces_list(realm_name) do
+    %GetDetailedInterfacesList{
+      realm_name: realm_name
+    }
+    |> encode_call(:get_detailed_interfaces_list)
     |> @rpc_client.rpc_call(@destination)
     |> decode_reply()
     |> extract_reply()
@@ -352,6 +364,13 @@ defmodule Astarte.RealmManagement.API.RPC.RealmManagement do
 
   defp extract_reply(
          {:get_interfaces_list_reply, %GetInterfacesListReply{interfaces_names: list}}
+       ) do
+    {:ok, list}
+  end
+
+  defp extract_reply(
+         {:get_detailed_interfaces_list_reply,
+          %GetDetailedInterfacesListReply{interface_json: list}}
        ) do
     {:ok, list}
   end
