@@ -27,7 +27,9 @@ defmodule Astarte.RealmManagement.Mock do
     GetTriggerPolicySourceReply,
     DeleteDevice,
     GetDeviceRegistrationLimit,
-    GetDeviceRegistrationLimitReply
+    GetDeviceRegistrationLimitReply,
+    GetDetailedInterfacesList,
+    GetDetailedInterfacesListReply
   }
 
   alias Astarte.Core.Interface
@@ -71,6 +73,16 @@ defmodule Astarte.RealmManagement.Mock do
 
     %GetInterfacesListReply{interfaces_names: list}
     |> encode_reply(:get_interfaces_list_reply)
+    |> ok_wrap
+  end
+
+  defp execute_rpc(
+         {:get_detailed_interfaces_list, %GetDetailedInterfacesList{realm_name: realm_name}}
+       ) do
+    list = DB.get_detailed_interfaces_list(realm_name)
+
+    %GetDetailedInterfacesListReply{interface_json: list}
+    |> encode_reply(:get_detailed_interfaces_list_reply)
     |> ok_wrap
   end
 

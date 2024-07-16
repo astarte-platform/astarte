@@ -52,6 +52,17 @@ defmodule Astarte.RealmManagement.Mock.DB do
     end)
   end
 
+  def get_detailed_interfaces_list(_realm) do
+    Agent.get(__MODULE__, fn %{interfaces: interfaces} ->
+      keys = Map.keys(interfaces)
+
+      Enum.map(keys, fn key ->
+        {:ok, result} = Jason.encode(Map.get(interfaces, key))
+        result
+      end)
+    end)
+  end
+
   def get_interface_versions_list(realm, name) do
     Agent.get(__MODULE__, fn %{interfaces: interfaces} ->
       keys = Map.keys(interfaces)
