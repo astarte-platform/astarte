@@ -124,10 +124,20 @@ paths:
       tags:
         - interface
       summary: Get interface list
-      description: Get a list of all installed interface names.
+      description: Get a list of all installed interfaces. By default a list of interface names 
+        is returned. The complete interface definitions list can be optionally retrieved rather than interfaces names list using
+        the `detailed` option.
       operationId: getInterfaceList
       security:
         - JWT: []
+      parameters:
+        - name: detailed
+          in: query
+          description: If true, interface definitions are returned instead of just names.
+          required: false
+          schema:
+            type: boolean
+            default: false
       responses:
         '200':
           $ref: '#/components/responses/GetInterfaceList'
