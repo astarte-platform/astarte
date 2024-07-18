@@ -155,8 +155,13 @@ const MappingRow = ({ className, mapping, onEdit, onDelete }: MappingRowProps) =
 const getDefaultMapping = (params: {
   interfaceType: AstarteInterface['type'];
   interfaceAggregation: AstarteInterface['aggregation'];
+  interfaceOwner: AstarteInterface['ownership'];
 }): AstarteMapping => {
-  if (params.interfaceType === 'datastream' && params.interfaceAggregation === 'individual') {
+  if (
+    params.interfaceType === 'datastream' &&
+    params.interfaceAggregation === 'individual' &&
+    params.interfaceOwner == 'device'
+  ) {
     return {
       endpoint: '',
       type: 'double',
@@ -170,6 +175,7 @@ const getDefaultMapping = (params: {
 };
 
 interface MappingModalProps {
+  interfaceOwner: AstarteInterface['ownership'];
   interfaceType: AstarteInterface['type'];
   interfaceAggregation?: AstarteInterface['aggregation'];
   mapping?: AstarteMapping;
@@ -178,6 +184,7 @@ interface MappingModalProps {
 }
 
 const MappingModal = ({
+  interfaceOwner,
   interfaceType,
   interfaceAggregation = 'individual',
   mapping,
@@ -185,7 +192,7 @@ const MappingModal = ({
   onConfirm,
 }: MappingModalProps): React.ReactElement => {
   const [mappingDraft, setMappingDraft] = useState(
-    mapping || getDefaultMapping({ interfaceType, interfaceAggregation }),
+    mapping || getDefaultMapping({ interfaceType, interfaceAggregation, interfaceOwner }),
   );
 
   const handleChange = useCallback((newMapping: AstarteMapping) => {
@@ -201,6 +208,7 @@ const MappingModal = ({
       </Modal.Header>
       <Modal.Body>
         <MappingEditor
+          interfaceOwner={interfaceOwner}
           interfaceType={interfaceType}
           interfaceAggregation={interfaceAggregation}
           mapping={mappingDraft}
@@ -438,25 +446,32 @@ export default ({
   }, []);
 
   const clearMappingsOptions = useCallback(
-    (params: { type: AstarteInterface['type']; aggregation: AstarteInterface['aggregation'] }) => {
+    (params: {
+      type: AstarteInterface['type'];
+      aggregation: AstarteInterface['aggregation'];
+      ownership: AstarteInterface['ownership'];
+    }) => {
       setInterfaceDraft((draft) => {
-        const mappings = draft.mappings.map((mapping) =>
-          _.omit(mapping, [
+        const mappings = draft.mappings.map((mapping) => {
+          return _.omit(mapping, [
             'allowUnset',
             'reliability',
             'retention',
             'expiry',
             'databaseRetentionPolicy',
             'databaseRetentionTtl',
-            'explicitTimestamp',
-          ]),
-        );
+          ]);
+        });
         return { ...draft, mappings };
       });
+
       if (params.type === 'datastream' && params.aggregation === 'object') {
-        setDatastreamOptions(defaultDatastreamOptions);
+        setDatastreamOptions({
+          ...defaultDatastreamOptions,
+          explicitTimestamp: params.ownership === 'device',
+        });
       } else {
-        setDatastreamOptions({});
+        setDatastreamOptions({ explicitTimestamp: params.ownership === 'device' });
       }
     },
     [],
@@ -467,33 +482,91 @@ export default ({
       const { value } = e.currentTarget;
       const type = value as AstarteInterface['type'];
       const aggregation = type === 'datastream' ? 'individual' : undefined;
-      clearMappingsOptions({ type, aggregation });
-      setInterfaceDraft((draft) => ({ ...draft, type, aggregation }));
+
+      clearMappingsOptions({ type, aggregation, ownership: interfaceDraft.ownership });
+      setInterfaceDraft((draft) => {
+        const mappings = draft.mappings.map((mapping) => {
+          if (type === 'properties') {
+            return _.omit(mapping, ['explicitTimestamp']) as AstarteMapping;
+          } else {
+            return {
+              ...mapping,
+              explicitTimestamp: interfaceDraft.ownership === 'device',
+            } as AstarteMapping;
+          }
+        });
+
+        return {
+          ...draft,
+          mappings,
+          type,
+          aggregation,
+        };
+      });
     },
-    [clearMappingsOptions],
+    [clearMappingsOptions, interfaceDraft],
   );
 
   const handleInterfaceAggregationChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
       const { value } = e.currentTarget;
       const aggregation = value as AstarteInterface['aggregation'];
-      clearMappingsOptions({ type: 'datastream', aggregation });
-      setInterfaceDraft((draft) => ({
-        ...draft,
+
+      setInterfaceDraft((draft) => {
+        const mappings: AstarteMapping[] = draft.mappings.map((mapping) => {
+          return {
+            ...mapping,
+            explicitTimestamp: draft.ownership === 'device',
+          } as AstarteMapping;
+        });
+
+        return {
+          ...draft,
+          mappings,
+          aggregation,
+        };
+      });
+
+      clearMappingsOptions({
+        type: 'datastream',
         aggregation,
-      }));
+        ownership: interfaceDraft.ownership,
+      });
     },
-    [clearMappingsOptions],
+    [clearMappingsOptions, interfaceDraft],
   );
 
-  const handleInterfaceOwnershipChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    const { value } = e.currentTarget;
-    const ownership = value as AstarteInterface['ownership'];
-    setInterfaceDraft((draft) => ({
-      ...draft,
-      ownership,
-    }));
-  }, []);
+  const handleInterfaceOwnershipChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const { value } = e.currentTarget;
+      const ownership = value as AstarteInterface['ownership'];
+
+      setInterfaceDraft((draft) => {
+        const mappings: AstarteMapping[] = draft.mappings.map((mapping) => {
+          if (interfaceDraft.type === 'properties') {
+            return _.omit(mapping, ['explicitTimestamp']) as AstarteMapping;
+          } else {
+            return {
+              ...mapping,
+              explicitTimestamp: ownership === 'device',
+            } as AstarteMapping;
+          }
+        });
+
+        return {
+          ...draft,
+          mappings,
+          ownership,
+        };
+      });
+      clearMappingsOptions({
+        type: interfaceDraft.type,
+        aggregation: interfaceDraft.aggregation,
+        ownership: ownership,
+      });
+    },
+    [clearMappingsOptions, interfaceDraft],
+  );
 
   const handleInterfaceDescriptionChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const { value } = e.target;
@@ -860,19 +933,21 @@ export default ({
                       </Form.Select>
                     </Form.Group>
                   </Col>
-                  <Col md={6}>
-                    <Form.Group controlId="objectMappingExplicitTimestamp">
-                      <Form.Label>Timestamp</Form.Label>
-                      <Form.Check
-                        type="checkbox"
-                        name="mappingExplicitTimestamp"
-                        label="Explicit timestamp"
-                        checked={!!datastreamOptions.explicitTimestamp}
-                        onChange={handleInterfaceExplicitTimestampChange}
-                        disabled={denyMajorChanges}
-                      />
-                    </Form.Group>
-                  </Col>
+                  {interfaceDraft.ownership === 'device' && (
+                    <Col md={6}>
+                      <Form.Group controlId="objectMappingExplicitTimestamp">
+                        <Form.Label>Timestamp</Form.Label>
+                        <Form.Check
+                          type="checkbox"
+                          name="mappingExplicitTimestamp"
+                          label="Explicit timestamp"
+                          checked={!!datastreamOptions.explicitTimestamp}
+                          onChange={handleInterfaceExplicitTimestampChange}
+                          disabled={denyMajorChanges}
+                        />
+                      </Form.Group>
+                    </Col>
+                  )}
                 </Row>
               )}
               {interfaceDraft.type === 'datastream' && interfaceDraft.aggregation === 'object' && (
@@ -1043,6 +1118,7 @@ export default ({
       )}
       {isMappingModalVisible && (
         <MappingModal
+          interfaceOwner={interfaceDraft.ownership}
           interfaceType={interfaceDraft.type}
           interfaceAggregation={interfaceDraft.aggregation}
           mapping={mappingToEdit}
