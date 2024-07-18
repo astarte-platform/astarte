@@ -16,28 +16,14 @@
 # limitations under the License.
 #
 
-defmodule AstarteDevTool.MixProject do
-  use Mix.Project
-
-  def project do
-    [
-      app: :astarte_dev_tool,
-      version: "0.1.0",
-      elixir: "~> 1.15",
-      start_permanent: Mix.env() == :prod,
-      deps: deps()
-    ]
-  end
-
-  # Run "mix help compile.app" to learn about applications.
-  def application do
-    [
-      extra_applications: [:logger]
-    ]
-  end
-
-  # Run "mix help deps" to learn about dependencies.
-  defp deps do
-    []
+defmodule AstarteDevTool.Utilities.Path do
+  def directory_path_from(path) when is_bitstring(path) do
+    with abs_path <- Path.expand(path),
+         true <- File.exists?(abs_path),
+         true <- File.dir?(abs_path) do
+      {:ok, abs_path}
+    else
+      _ -> {:error, "Invalid directory: #{path}"}
+    end
   end
 end

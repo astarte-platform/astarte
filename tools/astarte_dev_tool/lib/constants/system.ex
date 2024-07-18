@@ -16,28 +16,16 @@
 # limitations under the License.
 #
 
-defmodule AstarteDevTool.MixProject do
-  use Mix.Project
+defmodule AstarteDevTool.Constants.System do
+  def command, do: "docker"
 
-  def project do
-    [
-      app: :astarte_dev_tool,
-      version: "0.1.0",
-      elixir: "~> 1.15",
-      start_permanent: Mix.env() == :prod,
-      deps: deps()
-    ]
-  end
+  def command_up_args,
+    do: ~w(compose -f docker-compose.yml -f docker-compose.dev.yml up --build --watch -d)
 
-  # Run "mix help compile.app" to learn about applications.
-  def application do
-    [
-      extra_applications: [:logger]
-    ]
-  end
+  def command_down_args, do: ~w(compose -f docker-compose.yml -f docker-compose.dev.yml down)
 
-  # Run "mix help deps" to learn about dependencies.
-  defp deps do
-    []
-  end
+  def command_watch_args,
+    do: ~w(compose -f docker-compose.yml -f docker-compose.dev.yml watch --no-up)
+
+  def base_opts, do: [stderr_to_stdout: true, into: IO.stream(:stdio, :line)]
 end
