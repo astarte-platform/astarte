@@ -1027,6 +1027,94 @@ defmodule Astarte.RealmManagement.Queries do
     end
   end
 
+  def get_detailed_interfaces_list(client) do
+    with {:ok, interfaces} <- fetch_interfaces_without_mappings(client),
+         {:ok, mappings} <- fetch_mappings(client) do
+      # Convert list to a map grouped by interface_id
+      mappings_map = Enum.group_by(mappings, & &1.interface_id)
+
+      # Merge mappings into parent interfaces
+      interfaces_details =
+        Enum.map(interfaces, fn interface ->
+          interface_mappings = Map.get(mappings_map, interface.interface_id, [])
+          Map.put(interface, :mappings, interface_mappings)
+        end)
+
+      # Encode interfaces to JSON
+      interfaces_jsons =
+        Enum.map(interfaces_details, fn interface ->
+          %InterfaceDocument{
+            name: interface.name,
+            major_version: interface.major_version,
+            minor_version: interface.minor_version,
+            interface_id: interface.interface_id,
+            type: interface.type,
+            ownership: interface.ownership,
+            aggregation: interface.aggregation,
+            mappings: interface.mappings
+          }
+          |> Jason.encode!()
+        end)
+
+      {:ok, interfaces_jsons}
+    end
+  end
+
+  defp fetch_interfaces_without_mappings(client) do
+    interfaces_details_query = """
+    SELECT * FROM interfaces
+    """
+
+    query =
+      DatabaseQuery.new()
+      |> DatabaseQuery.statement(interfaces_details_query)
+      |> DatabaseQuery.consistency(:quorum)
+
+    with {:ok, interfaces_result} <- DatabaseQuery.call(client, query) do
+      interfaces = Enum.map(interfaces_result, &InterfaceDescriptor.from_db_result!/1)
+      {:ok, interfaces}
+    else
+      %{acc: _, msg: error_message} ->
+        _ = Logger.warning("Database error: #{error_message}.", tag: "db_error")
+        {:error, :database_error}
+
+      {:error, reason} ->
+        _ =
+          Logger.warning("Database error: failed with reason: #{inspect(reason)}.",
+            tag: "db_error"
+          )
+
+        {:error, :database_error}
+    end
+  end
+
+  defp fetch_mappings(client) do
+    all_endpoints_cols_statement = """
+    SELECT *
+    FROM endpoints
+    """
+
+    endpoints_query =
+      DatabaseQuery.new()
+      |> DatabaseQuery.statement(all_endpoints_cols_statement)
+      |> DatabaseQuery.consistency(:quorum)
+
+    with {:ok, endpoints_result} <- DatabaseQuery.call(client, endpoints_query) do
+      {:ok, Enum.map(endpoints_result, &Mapping.from_db_result!/1)}
+    else
+      :empty_dataset ->
+        {:error, :interface_not_found}
+
+      %{acc: _, msg: error_message} ->
+        _ = Logger.warning("Database error: #{error_message}.", tag: "db_error")
+        {:error, :database_error}
+
+      {:error, reason} ->
+        _ = Logger.warning("Failed, reason: #{inspect(reason)}.", tag: "db_error")
+        {:error, :database_error}
+    end
+  end
+
   def get_interfaces_list(client) do
     interfaces_list_statement = """
     SELECT DISTINCT name FROM interfaces

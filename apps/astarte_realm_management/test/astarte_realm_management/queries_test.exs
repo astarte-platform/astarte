@@ -258,6 +258,54 @@ defmodule Astarte.RealmManagement.QueriesTest do
     end)
   end
 
+  test "get_interfaces_details/1 returns interface with mappings" do
+    {:ok, _} = DatabaseTestHelper.connect_to_test_database()
+    client = connect_to_test_realm("autotestrealm")
+
+    interface_doc = %InterfaceDocument{
+      name: "org.astarte-platform.genericsensors.Values",
+      major_version: 1,
+      minor_version: 0,
+      interface_id: <<194, 56, 178, 68, 185, 15, 76, 109, 242, 118, 37, 118, 139, 246, 171, 172>>,
+      type: :datastream,
+      ownership: :device,
+      aggregation: :individual,
+      mappings: [
+        %Astarte.Core.Mapping{
+          allow_unset: false,
+          database_retention_policy: :no_ttl,
+          database_retention_ttl: nil,
+          description: "Sampled real value.",
+          doc: "Datastream of sampled real values.",
+          endpoint: "/%{sensor_id}/value",
+          endpoint_id: <<51, 117, 20, 18, 62, 119, 173, 31, 173, 87, 40, 12, 201, 250, 213, 129>>,
+          expiry: 0,
+          explicit_timestamp: true,
+          interface_id:
+            <<194, 56, 178, 68, 185, 15, 76, 109, 242, 118, 37, 118, 139, 246, 171, 172>>,
+          path: nil,
+          reliability: :unreliable,
+          retention: :discard,
+          type: nil,
+          value_type: :double
+        }
+      ]
+    }
+
+    {:ok, automaton} = Astarte.Core.Mapping.EndpointsAutomaton.build(interface_doc.mappings)
+
+    Queries.install_new_interface(client, interface_doc, automaton)
+
+    {:ok, interface_list} = Queries.get_detailed_interfaces_list(client)
+    {:ok, interface_list_decoded} = Jason.decode(List.first(interface_list))
+
+    interface_from_db = InterfaceDocument.changeset(%InterfaceDocument{}, interface_list_decoded)
+
+    {:ok, interface_doc_from_db} = Ecto.Changeset.apply_action(interface_from_db, :insert)
+
+    assert interface_doc_from_db == interface_doc
+  end
+
   test "object interface install" do
     {:ok, _} = DatabaseTestHelper.connect_to_test_database()
     client = connect_to_test_realm("autotestrealm")

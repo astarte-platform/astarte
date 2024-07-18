@@ -471,6 +471,14 @@ defmodule Astarte.RealmManagement.Engine do
     end
   end
 
+  def get_detailed_interfaces_list(realm_name) do
+    _ = Logger.debug("Get detailed interfaces list.")
+
+    with {:ok, client} <- Database.connect(realm: realm_name) do
+      Queries.get_detailed_interfaces_list(client)
+    end
+  end
+
   def get_jwt_public_key_pem(realm_name) do
     _ = Logger.debug("Get JWT public key PEM.")
 
