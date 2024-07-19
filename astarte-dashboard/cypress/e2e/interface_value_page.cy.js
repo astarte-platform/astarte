@@ -12,8 +12,8 @@ describe('Interface values page tests', () => {
     });
 
     it('correctly loads the page', () => {
-      cy.visit('/devices/deviceId/interfaces/interfaceName');
-      cy.location('pathname').should('eq', '/devices/deviceId/interfaces/interfaceName');
+      cy.visit('/devices/deviceId/interfaces/interfaceName/interfaceMajor');
+      cy.location('pathname').should('eq', '/devices/deviceId/interfaces/interfaceName/interfaceMajor');
       cy.get('.main-content').within(() => {
         cy.get('h2').contains('Interface Data');
         cy.get('.card-header').contains('deviceId /interfaceName');
@@ -31,8 +31,9 @@ describe('Interface values page tests', () => {
 
       const deviceId = '0ma4SioESHKk28VhYGcW1w';
       const interfaceName = 'test.astarte.IndividualObjectInterface';
+      const interfaceMajor = 0;
 
-      cy.visit(`/devices/${deviceId}/interfaces/${interfaceName}`);
+      cy.visit(`/devices/${deviceId}/interfaces/${interfaceName}/${interfaceMajor}`);
       cy.get('[aria-label="Back"]').click();
       cy.location('pathname').should('eq', `/devices/${deviceId}/edit`);
     });
@@ -47,17 +48,18 @@ describe('Interface values page tests', () => {
             .then((device) => {
               const interfaceName = iface.data.interface_name;
               const deviceId = device.data.id;
+              const interfaceMajor = iface.data.interfaceMajor;
               cy.intercept('GET', `/appengine/v1/*/devices/${deviceId}`, device);
               cy.intercept(
                 'GET',
-                `/appengine/v1/*/devices/${deviceId}/interfaces/${interfaceName}`,
+                `/appengine/v1/*/devices/${deviceId}/interfaces/${interfaceName}/${interfaceMajor}`,
                 { fixture: 'test_aggregated_object_interface_values' },
               );
-              cy.intercept('GET', `/realmmanagement/v1/*/interfaces/${interfaceName}/*`, {
+              cy.intercept('GET', `/realmmanagement/v1/*/interfaces/${interfaceName}/${interfaceMajor}/*`, {
                 statusCode: 418,
                 body: '',
               });
-              cy.visit(`/devices/${deviceId}/interfaces/${interfaceName}`);
+              cy.visit(`/devices/${deviceId}/interfaces/${interfaceName}/${interfaceMajor}`);
               cy.get('.main-content .card-body').contains("Couldn't load interface data");
             });
         });
@@ -73,17 +75,18 @@ describe('Interface values page tests', () => {
             .then((device) => {
               const interfaceName = iface.data.interface_name;
               const deviceId = device.data.id;
-              cy.intercept('GET', `/realmmanagement/v1/*/interfaces/${interfaceName}/*`, iface);
+              const interfaceMajor = iface.data.interfaceMajor;
+              cy.intercept('GET', `/realmmanagement/v1/*/interfaces/${interfaceName}/${interfaceMajor}/*`, iface);
               cy.intercept(
                 'GET',
-                `/appengine/v1/*/devices/${deviceId}/interfaces/${interfaceName}`,
+                `/appengine/v1/*/devices/${deviceId}/interfaces/${interfaceName}/${interfaceMajor}`,
                 { fixture: 'test_aggregated_object_interface_values' },
               );
               cy.intercept('GET', `/appengine/v1/*/devices/${deviceId}`, {
                 statusCode: 418,
                 body: '',
               });
-              cy.visit(`/devices/${deviceId}/interfaces/${interfaceName}`);
+              cy.visit(`/devices/${deviceId}/interfaces/${interfaceName}/${interfaceMajor}`);
               cy.get('.main-content .card-body').contains("Couldn't load interface data");
             });
         });
@@ -99,17 +102,18 @@ describe('Interface values page tests', () => {
             .then((device) => {
               const interfaceName = iface.data.interface_name;
               const deviceId = device.data.id;
-              cy.intercept('GET', `/realmmanagement/v1/*/interfaces/${interfaceName}/*`, iface);
+              const interfaceMajor = iface.data.interfaceMajor;
+              cy.intercept('GET', `/realmmanagement/v1/*/interfaces/${interfaceName}/${interfaceMajor}/*`, iface);
               cy.intercept('GET', `/appengine/v1/*/devices/${deviceId}`, device);
               cy.intercept(
                 'GET',
-                `/appengine/v1/*/devices/${deviceId}/interfaces/${interfaceName}`,
+                `/appengine/v1/*/devices/${deviceId}/interfaces/${interfaceName}/${interfaceMajor}`,
                 {
                   statusCode: 418,
                   body: '',
                 },
               );
-              cy.visit(`/devices/${deviceId}/interfaces/${interfaceName}`);
+              cy.visit(`/devices/${deviceId}/interfaces/${interfaceName}/${interfaceMajor}`);
               cy.get('.main-content .card-body').contains("Couldn't load interface data");
             });
         });
@@ -132,8 +136,9 @@ describe('Interface values page tests', () => {
       it('shows correct aggregated datastream data', function () {
         const deviceId = this.device.data.id;
         const interfaceName = this.interface.data.interface_name;
-        cy.visit(`/devices/${deviceId}/interfaces/${interfaceName}`);
-        cy.location('pathname').should('eq', `/devices/${deviceId}/interfaces/${interfaceName}`);
+        const interfaceMajor = this.interface.data.interfaceMajor;
+        cy.visit(`/devices/${deviceId}/interfaces/${interfaceName}/${interfaceMajor}`);
+        cy.location('pathname').should('eq', `/devices/${deviceId}/interfaces/${interfaceName}/${interfaceMajor}`);
         cy.get('.main-content').within(() => {
           cy.get('.card-header').contains(`${deviceId} /${interfaceName}`);
           Object.keys(this.interface_data.data.sensors).forEach((sensorId) => {
@@ -172,8 +177,9 @@ describe('Interface values page tests', () => {
       it('shows correct individual datastream data', function () {
         const deviceId = this.device.data.id;
         const interfaceName = this.interface.data.interface_name;
-        cy.visit(`/devices/${deviceId}/interfaces/${interfaceName}`);
-        cy.location('pathname').should('eq', `/devices/${deviceId}/interfaces/${interfaceName}`);
+        const interfaceMajor = this.interface.data.interfaceMajor;
+        cy.visit(`/devices/${deviceId}/interfaces/${interfaceName}/${interfaceMajor}`);
+        cy.location('pathname').should('eq', `/devices/${deviceId}/interfaces/${interfaceName}/${interfaceMajor}`);
         cy.get('.main-content').within(() => {
           cy.get('.card-header').contains(`${deviceId} /${interfaceName}`);
           cy.get('.card-body table').within(() => {
@@ -204,8 +210,9 @@ describe('Interface values page tests', () => {
       it('shows correct properties data', function () {
         const deviceId = this.device.data.id;
         const interfaceName = this.interface.data.interface_name;
-        cy.visit(`/devices/${deviceId}/interfaces/${interfaceName}`);
-        cy.location('pathname').should('eq', `/devices/${deviceId}/interfaces/${interfaceName}`);
+        const interfaceMajor = this.interface.data.interfaceMajor;
+        cy.visit(`/devices/${deviceId}/interfaces/${interfaceName}/${interfaceMajor}`);
+        cy.location('pathname').should('eq', `/devices/${deviceId}/interfaces/${interfaceName}/${interfaceMajor}`);
         cy.get('.main-content').within(() => {
           cy.get('.card-header').contains(`${deviceId} /${interfaceName}`);
           Object.keys(this.interface_data.data).forEach((key) => {

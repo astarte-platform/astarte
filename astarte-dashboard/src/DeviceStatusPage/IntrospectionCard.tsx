@@ -53,7 +53,9 @@ const IntrospectionTable = ({
                 'GET',
                 `/devices/${deviceId}/interfaces/${iface.name}`,
               ) ? (
-                <Link to={`/devices/${deviceId}/interfaces/${iface.name}`}>{iface.name}</Link>
+                <Link to={`/devices/${deviceId}/interfaces/${iface.name}/${iface.major}`}>
+                  {iface.name}
+                </Link>
               ) : (
                 iface.name
               )}
