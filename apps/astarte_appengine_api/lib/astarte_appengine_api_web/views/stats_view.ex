@@ -27,7 +27,9 @@ defmodule Astarte.AppEngine.APIWeb.StatsView do
   def render("devices_stats.json", %{devices_stats: devices_stats}) do
     %{
       total_devices: devices_stats.total_devices,
-      connected_devices: devices_stats.connected_devices
+      connected_devices: devices_stats.connected_devices,
+      disconnected_devices: devices_stats.disconnected_devices,
+      never_connected_devices: devices_stats.never_connected_devices
     }
   end
 end
