@@ -59,11 +59,12 @@ function AttemptLogin(): React.ReactElement {
   const realm = searchParams.get('realm');
   const token = hashParams.get('access_token');
   const authUrl = searchParams.get('authUrl');
+  const persistent = false;
 
   let succesfulLogin = false;
 
   if (realm && token) {
-    succesfulLogin = astarte.login({ realm, token, authUrl });
+    succesfulLogin = astarte.login({ realm, token, authUrl }, persistent);
   }
 
   if (!succesfulLogin) {

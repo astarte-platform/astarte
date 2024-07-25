@@ -21,6 +21,7 @@ import { useNavigate } from 'react-router-dom';
 import { Button, Col, Container, Form, Row, Stack } from 'react-bootstrap';
 import { AstarteRealm, AstarteToken } from 'astarte-client';
 import type { AuthOptions, LoginType } from 'ConfigManager';
+import { useAstarte } from 'AstarteManager';
 
 function isValidUrl(urlString: string): boolean {
   try {
@@ -68,6 +69,8 @@ const TokenForm = ({
   const navigate = useNavigate();
   const [realm, setRealm] = useState(defaultRealm);
   const [jwt, setJwt] = useState('');
+  const [keepMeLoggedIn, setKeepMeLoggedIn] = useState(false);
+  const { login } = useAstarte();
 
   const isValidRealm = AstarteRealm.isValidName(realm);
 
@@ -78,9 +81,10 @@ const TokenForm = ({
   const handleTokenLogin = (event: React.FormEvent<HTMLElement>) => {
     event.preventDefault();
     event.stopPropagation();
-    const searchParams = new URLSearchParams({ realm });
-    const hashParams = new URLSearchParams({ access_token: jwt });
-    navigate(`/auth?${searchParams}#${hashParams}`, { replace: true });
+    const successfulLogin = login({ realm, token: jwt, authUrl: null }, keepMeLoggedIn);
+    if (successfulLogin) {
+      navigate('/', { replace: true });
+    }
   };
 
   const AstartectlLink = () => (
@@ -125,6 +129,14 @@ const TokenForm = ({
             required
           />
           {tokenValidationFeedback(tokenValidation)}
+        </Form.Group>
+        <Form.Group controlId="keepMeLoggedIn">
+          <Form.Check
+            type="checkbox"
+            label="Keep me logged in"
+            checked={keepMeLoggedIn}
+            onChange={(e) => setKeepMeLoggedIn(e.target.checked)}
+          />
         </Form.Group>
         <Button type="submit" variant="primary" disabled={!canSubmitForm} className="w-100">
           Login
