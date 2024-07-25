@@ -8,4 +8,14 @@ defmodule Astarte.Test.Generators.Number do
       {first, second, third}
     end
   end
+
+  def longinteger_array() do
+    StreamData.one_of([
+      StreamData.list_of(StreamData.integer(), min_length: 1, max_length: 10),
+      StreamData.list_of(StreamData.map(StreamData.integer(), &Integer.to_string/1),
+        min_length: 1,
+        max_length: 10
+      )
+    ])
+  end
 end
