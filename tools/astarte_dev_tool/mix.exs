@@ -38,6 +38,8 @@ defmodule AstarteDevTool.MixProject do
 
   # Run "mix help deps" to learn about dependencies.
   defp deps do
-    []
+    [
+      {:astarte_client, github: "astarte-platform/astarte-client-elixir"}
+    ]
   end
 end
