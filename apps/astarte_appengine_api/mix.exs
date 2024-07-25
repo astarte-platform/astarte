@@ -22,7 +22,7 @@ defmodule Astarte.AppEngine.API.Mixfile do
     [
       app: :astarte_appengine_api,
       elixir: "~> 1.15",
-      version: "1.2.0",
+      version: "1.2.1",
       elixirc_paths: elixirc_paths(Mix.env()),
       start_permanent: Mix.env() == :prod,
       test_coverage: [tool: ExCoveralls],
