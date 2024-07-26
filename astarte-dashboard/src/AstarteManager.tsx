@@ -70,11 +70,16 @@ type Session = {
 
 const SESSION_VERSION = 1;
 
-function saveSession(session?: Session | null): void {
+function saveSession(session?: Session | null, persistent: boolean = false): void {
   if (!session) {
     Cookies.remove('session');
   } else {
-    Cookies.set('session', JSON.stringify({ ...session, _version: SESSION_VERSION }));
+    const cookieOptions = persistent ? { expires: 365 } : undefined;
+    Cookies.set(
+      'session',
+      JSON.stringify({ ...session, _version: SESSION_VERSION }),
+      cookieOptions,
+    );
   }
 }
 
@@ -99,7 +104,10 @@ type AstarteContextValue = {
   realm: string | null;
   token: AstarteToken | null;
   isAuthenticated: boolean;
-  login: (params: { realm: string; token: string; authUrl: string | null }) => boolean;
+  login: (
+    params: { realm: string; token: string; authUrl: string | null },
+    persistent: boolean,
+  ) => boolean;
   logout: () => void;
 };
 
@@ -125,21 +133,26 @@ const AstarteProvider = ({
   }, [config]);
 
   const updateSession = useCallback(
-    (newSession: Session | null) => {
-      client.setCredentials(
-        newSession && {
+    (newSession: Session | null, persistent: boolean = false) => {
+      if (newSession) {
+        client.setCredentials({
           realm: newSession.realm,
           token: newSession.token,
-        },
-      );
+        });
+      } else {
+        client.setCredentials(null);
+      }
       setSession(newSession);
-      saveSession(newSession);
+      saveSession(newSession, persistent);
     },
     [client],
   );
 
   const login = useCallback(
-    (params: { realm: string; token: string; authUrl: string | null }) => {
+    (
+      params: { realm: string; token: string; authUrl: string | null },
+      persistent: boolean = false,
+    ) => {
       const { realm, token, authUrl } = params;
       if (!realm || !token) {
         return false;
@@ -147,7 +160,7 @@ const AstarteProvider = ({
       if (session?.authUrl === authUrl && session.realm === realm && session.token === token) {
         return true;
       }
-      updateSession({ realm, token, authUrl });
+      updateSession({ realm, token, authUrl }, persistent);
       return true;
     },
     [session, updateSession],
