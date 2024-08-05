@@ -517,6 +517,83 @@ const SendInterfaceDataModal = ({
   );
 };
 
+interface UnsetDataModalProps {
+  showUnsetModal: boolean;
+  interfaceDefinition: AstarteInterface;
+  unsettingData: boolean;
+  handleShowUnsetModal: () => void;
+  unsetInterfaceData: (endpoint: string) => void;
+}
+
+const UnsetDataModal = ({
+  showUnsetModal,
+  interfaceDefinition,
+  unsettingData,
+  handleShowUnsetModal,
+  unsetInterfaceData,
+}: UnsetDataModalProps) => {
+  const [selectedEndpoint, setSelectedEndpoint] = useState<string>('');
+  const [errors, setErrors] = useState<string>('');
+
+  const handleEndpointChange = (e: ChangeEvent<HTMLSelectElement>) => {
+    setSelectedEndpoint(e.target.value);
+    setErrors('');
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedEndpoint) {
+      setErrors('Please select an endpoint.');
+      return;
+    }
+    unsetInterfaceData(selectedEndpoint);
+  };
+
+  return (
+    <Modal size="lg" centered show={showUnsetModal} onHide={handleShowUnsetModal}>
+      <Form onSubmit={handleSubmit}>
+        <Modal.Header closeButton>
+          <Modal.Title>Unset Data</Modal.Title>
+        </Modal.Header>
+
+        <Modal.Body>
+          <Form.Group as={Col} controlId="formEndpoint">
+            <Form.Label>Select endpoint to unset</Form.Label>
+            <Form.Select
+              value={selectedEndpoint}
+              onChange={handleEndpointChange}
+              isInvalid={!!errors}
+            >
+              <option value="">Select an endpoint</option>
+              {interfaceDefinition?.mappings
+                .filter((mapping) => mapping.allowUnset)
+                .map((mapping, index) => (
+                  <option key={index} value={mapping.endpoint}>
+                    {mapping.endpoint}
+                  </option>
+                ))}
+            </Form.Select>
+            <Form.Control.Feedback type="invalid">{errors}</Form.Control.Feedback>
+          </Form.Group>
+        </Modal.Body>
+
+        <Modal.Footer>
+          <Button variant="secondary" onClick={handleShowUnsetModal}>
+            Cancel
+          </Button>
+          <Button variant="primary" type="submit" disabled={unsettingData}>
+            {unsettingData ? (
+              <Spinner className="me-2" size="sm" animation="border" role="status" />
+            ) : (
+              'Unset Data'
+            )}
+          </Button>
+        </Modal.Footer>
+      </Form>
+    </Modal>
+  );
+};
+
 export default (): React.ReactElement => {
   const { deviceId = '', interfaceName = '' } = useParams();
   const astarte = useAstarte();
@@ -527,12 +604,18 @@ export default (): React.ReactElement => {
     }),
   );
   const [showModal, setShowModal] = useState(false);
+  const [showUnsetModal, setShowUnsetModal] = useState(false);
   const [sendingData, setSendingData] = useState(false);
+  const [unsettingData, setUnsettingData] = useState(false);
   const [formAlerts, formAlertsController] = useAlerts();
   const iface = deviceDataFetcher.value?.interface as AstarteInterface;
 
   const handleShowModal = () => {
     setShowModal(!showModal);
+  };
+
+  const handleShowUnsetModal = () => {
+    setShowUnsetModal(!showUnsetModal);
   };
 
   const sendInterfaceData = (data: { endpoint: string; value: AstarteDataValue }) => {
@@ -554,6 +637,25 @@ export default (): React.ReactElement => {
       });
   };
 
+  const unsetInterfaceData = (endpoint: string) => {
+    setUnsettingData(true);
+    astarte.client
+      .unsetProperty({ deviceId, interfaceName, path: endpoint })
+      .then(() => {
+        handleShowUnsetModal();
+        deviceDataFetcher.refresh();
+      })
+      .catch((err) => {
+        formAlertsController.showError(
+          `Could not unset data from interface: ${err.response.data.errors.detail}`,
+        );
+        handleShowUnsetModal();
+      })
+      .finally(() => {
+        setUnsettingData(false);
+      });
+  };
+
   return (
     <Container fluid className="p-3">
       <div className="d-flex justify-content-between">
@@ -567,9 +669,18 @@ export default (): React.ReactElement => {
           `devices/${deviceId}/interfaces/${interfaceName}`,
         ) &&
           iface?.ownership === 'server' && (
-            <Button onClick={handleShowModal} className="m-2">
-              Publish Data
-            </Button>
+            <>
+              <div className="button-container">
+                <Button onClick={handleShowModal} className="m-2">
+                  Publish Data
+                </Button>
+                {iface.mappings.some((mapping) => mapping.allowUnset) && (
+                  <Button onClick={handleShowUnsetModal} className="m-2">
+                    Unset Data
+                  </Button>
+                )}
+              </div>
+            </>
           )}
       </div>
       <AlertsBanner alerts={formAlerts} />
@@ -601,6 +712,15 @@ export default (): React.ReactElement => {
           sendingData={sendingData}
           handleShowModal={handleShowModal}
           sendInterfaceData={sendInterfaceData}
+        />
+      )}
+      {showUnsetModal && (
+        <UnsetDataModal
+          showUnsetModal={showUnsetModal}
+          interfaceDefinition={iface}
+          unsettingData={unsettingData}
+          handleShowUnsetModal={handleShowUnsetModal}
+          unsetInterfaceData={unsetInterfaceData}
         />
       )}
     </Container>

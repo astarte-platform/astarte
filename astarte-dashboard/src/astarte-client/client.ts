@@ -910,6 +910,17 @@ astarteAPIurl`${config.realmManagementApiUrl}v1/${'realm'}/interfaces/${'interfa
       data,
     );
   }
+  async unsetProperty(params: {
+    deviceId: string;
+    interfaceName: string;
+    path: string;
+  }): Promise<void> {
+    const { deviceId, interfaceName, path } = params;
+
+    await this.$delete(
+      this.apiConfig.sendInterfaceData({ ...this.config, deviceId, interfaceName, path }),
+    );
+  }
 }
 
 export default AstarteClient;
