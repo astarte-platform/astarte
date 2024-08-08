@@ -501,7 +501,7 @@ const SendInterfaceDataModal = ({
         </Modal.Body>
 
         <Modal.Footer>
-          <Button variant="danger" onClick={handleShowModal}>
+          <Button variant="secondary" onClick={handleShowModal}>
             Cancel
           </Button>
           <Button variant="primary" type="submit" disabled={sendingData || !!errors.value}>
