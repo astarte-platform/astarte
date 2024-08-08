@@ -37,8 +37,8 @@ defmodule Mix.Tasks.AstarteDevTool.System.Up do
 
   ## Examples
 
-      $ mix system.up -p /absolute/path/astarte
-      $ mix system.up -p ../../relative/to/astarte
+      $ mix astarte_dev_tool.system.up -p /absolute/path/astarte
+      $ mix astarte_dev_tool.system.up -p ../../relative/to/astarte
 
   ## Command line options
     * `-p` `--path` - (required) working Astarte project directory

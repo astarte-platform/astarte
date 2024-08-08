@@ -39,8 +39,8 @@ defmodule Mix.Tasks.AstarteDevTool.System.Down do
 
   ## Examples
 
-      $ mix system.down -p /absolute/path/astarte
-      $ mix system.down -p ../../relative/to/astarte -v
+      $ mix astarte_dev_tool.system.down -p /absolute/path/astarte
+      $ mix astarte_dev_tool.system.down -p ../../relative/to/astarte -v
 
   ## Command line options
     * `-p` `--path` - (required) working Astarte project directory
