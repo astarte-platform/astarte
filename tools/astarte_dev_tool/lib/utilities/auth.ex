@@ -16,20 +16,10 @@
 # limitations under the License.
 #
 
-defmodule AstarteDevTool.Utilities.Path do
-  @moduledoc false
-  def path_from(path) when is_bitstring(path) do
-    abs_path = Path.expand(path)
-    if File.exists?(abs_path), do: {:ok, abs_path}, else: {:error, "Invalid path: #{path}"}
-  end
+defmodule AstarteDevTool.Utilities.Auth do
+  alias Astarte.Client.Credentials
 
-  def directory_path_from(path) when is_bitstring(path) do
-    case path_from(path) do
-      {:ok, abs_path} ->
-        if File.dir?(abs_path), do: {:ok, abs_path}, else: {:error, "#{path} is not a directory"}
-
-      error ->
-        error
-    end
+  def gen_auth_token(private_key) when is_bitstring(private_key) do
+    Credentials.dashboard_credentials() |> Credentials.to_jwt(private_key)
   end
 end
