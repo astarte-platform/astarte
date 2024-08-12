@@ -15,25 +15,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-
 defmodule AstarteDevTool.Commands.Dashboard.Open do
   @moduledoc false
 
   require Logger
 
-  def exec(opts) do
-    dashboard_url = Keyword.get(opts, :dashboard_url, "http://dashboard.astarte.localhost/")
-    realm_name = Keyword.get(opts, :realm_name, "test")
-    private_key_path = Keyword.get(opts, :realm_private_key, "../../test_private.pem")
-
-    {:ok, auth_token} =
-      with :error <- Keyword.fetch(opts, :auth_token) do
-        private_key = File.read!(private_key_path)
-
-        Astarte.Client.Credentials.dashboard_credentials()
-        |> Astarte.Client.Credentials.to_jwt(private_key)
-      end
-
+  def exec(realm_name, dashboard_url, auth_token) do
     authenticated_url =
       dashboard_url
       |> URI.new!()
@@ -43,9 +30,10 @@ defmodule AstarteDevTool.Commands.Dashboard.Open do
       |> Kernel.<>("#access_token=" <> auth_token)
       |> URI.encode()
 
-    _ = open_in_browser(authenticated_url)
-
-    {:ok, authenticated_url}
+    case open_in_browser(authenticated_url) do
+      :ok -> {:ok, authenticated_url}
+      :error -> {:error, "Failed to open browser"}
+    end
   end
 
   defp open_in_browser(url) do
@@ -70,12 +58,9 @@ defmodule AstarteDevTool.Commands.Dashboard.Open do
 
     case cmd_args do
       {cmd, args} ->
-        {_result, exit_status} = System.cmd(cmd, args)
-
-        if exit_status == 0 do
-          :ok
-        else
-          :error
+        case System.cmd(cmd, args) do
+          {_result, 0} -> :ok
+          {_result, _} -> :error
         end
 
       nil ->
