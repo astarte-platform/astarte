@@ -371,7 +371,9 @@ const SendInterfaceDataModal = ({
             interfaceDefinition?.type === 'properties') && (
             <Form.Group as={Col} controlId="formEndpoint" className="mb-3">
               <Form.Select as="select" value={endpoint} onChange={handleSelectedMapping}>
-                <option value="">Choose an endpoint for sending data</option>
+                <option value="" disabled>
+                  Choose an endpoint for sending data
+                </option>
                 {interfaceDefinition?.mappings.map((mapping, index) => (
                   <option key={index} value={mapping.endpoint}>
                     {mapping.endpoint} ({mapping.type})
@@ -406,7 +408,9 @@ const SendInterfaceDataModal = ({
               <Form.Label className="m-0">Please enter the value:</Form.Label>
               {selectedMapping.type === 'boolean' ? (
                 <Form.Select value={value} onChange={handleValueChange} isInvalid={!!errors.value}>
-                  <option value="">Select a value</option>
+                  <option value="" disabled>
+                    Select a value
+                  </option>
                   <option value="true">true</option>
                   <option value="false">false</option>
                 </Form.Select>
@@ -456,7 +460,9 @@ const SendInterfaceDataModal = ({
                           onChange={(e) => handleObjectData(param, e.target.value)}
                           isInvalid={!!errors[param]}
                         >
-                          <option value="">Select a value</option>
+                          <option value="" disabled>
+                            Select a value
+                          </option>
                           <option value="true">true</option>
                           <option value="false">false</option>
                         </Form.Select>
