@@ -517,12 +517,19 @@ const SendInterfaceDataModal = ({
   );
 };
 
+const matchMapping = (endpoint: string, mapping: AstarteMapping): boolean => {
+  const endpointPattern = mapping.endpoint.replace(/%\{[^}]+\}/g, '[^/]+');
+  const endpointRegex = new RegExp(`^${endpointPattern}$`);
+  return endpointRegex.test(endpoint);
+};
+
 interface UnsetDataModalProps {
   showUnsetModal: boolean;
   interfaceDefinition: AstarteInterface;
   unsettingData: boolean;
   handleShowUnsetModal: () => void;
   unsetInterfaceData: (endpoint: string) => void;
+  propertyData?: AstartePropertyData[];
 }
 
 const UnsetDataModal = ({
@@ -531,8 +538,10 @@ const UnsetDataModal = ({
   unsettingData,
   handleShowUnsetModal,
   unsetInterfaceData,
+  propertyData,
 }: UnsetDataModalProps) => {
   const [selectedEndpoint, setSelectedEndpoint] = useState<string>('');
+  const [endpointsToUnset, setEndpointsToUnset] = useState<string[]>([]);
   const [errors, setErrors] = useState<string>('');
 
   const handleEndpointChange = (e: ChangeEvent<HTMLSelectElement>) => {
@@ -549,6 +558,26 @@ const UnsetDataModal = ({
     unsetInterfaceData(selectedEndpoint);
   };
 
+  useEffect(() => {
+    if (propertyData && interfaceDefinition) {
+      const mappingsWithUnsetAllowed = interfaceDefinition.mappings.filter(
+        (mapping) => mapping.allowUnset,
+      );
+
+      const validEndpoints = propertyData
+        .filter((property) => {
+          const hasValue = property.value !== null;
+          return (
+            hasValue &&
+            mappingsWithUnsetAllowed.some((mapping) => matchMapping(property.endpoint, mapping))
+          );
+        })
+        .map((property) => property.endpoint);
+
+      setEndpointsToUnset(validEndpoints);
+    }
+  }, [propertyData, interfaceDefinition]);
+
   return (
     <Modal size="lg" centered show={showUnsetModal} onHide={handleShowUnsetModal}>
       <Form onSubmit={handleSubmit}>
@@ -564,14 +593,14 @@ const UnsetDataModal = ({
               onChange={handleEndpointChange}
               isInvalid={!!errors}
             >
-              <option value="">Select an endpoint</option>
-              {interfaceDefinition?.mappings
-                .filter((mapping) => mapping.allowUnset)
-                .map((mapping, index) => (
-                  <option key={index} value={mapping.endpoint}>
-                    {mapping.endpoint}
-                  </option>
-                ))}
+              <option value="" disabled>
+                Select an endpoint
+              </option>
+              {endpointsToUnset.map((endpoint, index) => (
+                <option key={index} value={endpoint}>
+                  {endpoint}
+                </option>
+              ))}
             </Form.Select>
             <Form.Control.Feedback type="invalid">{errors}</Form.Control.Feedback>
           </Form.Group>
@@ -609,6 +638,7 @@ export default (): React.ReactElement => {
   const [unsettingData, setUnsettingData] = useState(false);
   const [formAlerts, formAlertsController] = useAlerts();
   const iface = deviceDataFetcher.value?.interface as AstarteInterface;
+  const propertyData = deviceDataFetcher.value?.toLinearizedData();
 
   const handleShowModal = () => {
     setShowModal(!showModal);
@@ -721,6 +751,7 @@ export default (): React.ReactElement => {
           unsettingData={unsettingData}
           handleShowUnsetModal={handleShowUnsetModal}
           unsetInterfaceData={unsetInterfaceData}
+          propertyData={propertyData}
         />
       )}
     </Container>
