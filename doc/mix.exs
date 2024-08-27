@@ -41,7 +41,7 @@ defmodule Doc.MixProject do
         "User Guide": ~r"/user/",
         "Administrator Guide": ~r"/administrator/",
         Tutorials: ~r"/tutorials/",
-        "REST API Reference": ~r"/api/"
+        "API Reference": ~r"/api/"
       ],
       groups_for_modules: [
         "App Engine": ~r"Astarte.AppEngine",
