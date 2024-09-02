@@ -194,10 +194,12 @@ class AstarteClient {
     this.getPipeline = this.getPipeline.bind(this);
     this.getPipelines = this.getPipelines.bind(this);
     this.getPolicyNames = this.getPolicyNames.bind(this);
+    this.getRealmManagementVersion = this.getRealmManagementVersion.bind(this);
 
     // prettier-ignore
     this.apiConfig = {
       realmManagementHealth: astarteAPIurl`${config.realmManagementApiUrl}health`,
+      realmManagementVersion:astarteAPIurl`${config.realmManagementApiUrl}v1/${'realm'}/version`,
       auth:                  astarteAPIurl`${config.realmManagementApiUrl}v1/${'realm'}/config/auth`,
       deviceRegistrationLimit: astarteAPIurl`${config.realmManagementApiUrl}v1/${'realm'}/config/device_registration_limit`,
       interfaces:            astarteAPIurl`${config.realmManagementApiUrl}v1/${'realm'}/interfaces`,
@@ -725,6 +727,11 @@ astarteAPIurl`${config.realmManagementApiUrl}v1/${'realm'}/interfaces/${'interfa
 
   async getFlowHealth(): Promise<void> {
     await this.$get(this.apiConfig.flowHealth(this.config));
+  }
+
+  async getRealmManagementVersion(): Promise<string> {
+    const response = await this.$get(this.apiConfig.realmManagementVersion(this.config));
+    return response.data;
   }
 
   private async $get(url: string) {
