@@ -79,8 +79,13 @@ export default (): React.ReactElement => {
   const astarte = useAstarte();
   const navigate = useNavigate();
   const { triggerName = '' } = useParams();
+  const { triggerDeliveryPoliciesSupported } = astarte;
 
   const triggerFetcher = useFetch(() => astarte.client.getTrigger(triggerName));
+
+  const fetchPoliciesName = triggerDeliveryPoliciesSupported
+    ? astarte.client.getPolicyNames
+    : undefined;
 
   const handleToggleSourceVisibility = useCallback(() => {
     setIsSourceVisible((isVisible) => !isVisible);
@@ -142,7 +147,7 @@ export default (): React.ReactElement => {
                 isReadOnly
                 onError={handleTriggerEditorError}
                 isSourceVisible={isSourceVisible}
-                fetchPoliciesName={astarte.client.getPolicyNames}
+                fetchPoliciesName={fetchPoliciesName}
                 fetchInterfacesName={astarte.client.getInterfaceNames}
                 fetchInterfaceMajors={astarte.client.getInterfaceMajors}
                 fetchInterface={astarte.client.getInterface}

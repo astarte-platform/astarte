@@ -16,11 +16,12 @@
    limitations under the License.
 */
 
-import React, { createContext, useCallback, useContext, useMemo, useState } from 'react';
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import AstarteClient, { AstarteToken } from 'astarte-client';
 import _ from 'lodash';
 import type { DashboardConfig } from './types';
 import Cookies from 'js-cookie';
+import semver from 'semver';
 
 const parseAstarteApiUrls = (params: DashboardConfig) => {
   const { astarteApiUrl } = params;
@@ -109,6 +110,7 @@ type AstarteContextValue = {
     persistent: boolean,
   ) => boolean;
   logout: () => void;
+  triggerDeliveryPoliciesSupported: boolean;
 };
 
 const AstarteContext = createContext<AstarteContextValue | null>(null);
@@ -118,12 +120,15 @@ interface AstarteProviderProps {
   config: DashboardConfig;
 }
 
+const astarteVersionWithTriggerDeliveryPoliciesSupport = '1.1.1';
+
 const AstarteProvider = ({
   children,
   config,
   ...props
 }: AstarteProviderProps): React.ReactElement => {
   const [session, setSession] = useState(loadSession());
+  const [realmManagementVersion, setRealmManagementVersion] = useState<string | null>(null);
 
   const client = useMemo(() => {
     const apiConfig = parseAstarteApiUrls(config);
@@ -168,6 +173,20 @@ const AstarteProvider = ({
 
   const logout = useCallback(() => updateSession(null), [updateSession]);
 
+  useEffect(() => {
+    client
+      .getRealmManagementVersion()
+      .then((version) => setRealmManagementVersion(version))
+      .catch(() => setRealmManagementVersion(null));
+  }, [client]);
+
+  const triggerDeliveryPoliciesSupported = useMemo(() => {
+    return (
+      realmManagementVersion != null &&
+      semver.gte(realmManagementVersion, astarteVersionWithTriggerDeliveryPoliciesSupport)
+    );
+  }, [realmManagementVersion]);
+
   const contextValue = useMemo(
     () => ({
       client,
@@ -176,8 +195,9 @@ const AstarteProvider = ({
       isAuthenticated: session != null,
       login,
       logout,
+      triggerDeliveryPoliciesSupported,
     }),
-    [client, login, logout, session],
+    [client, login, logout, session, triggerDeliveryPoliciesSupported],
   );
 
   return (
