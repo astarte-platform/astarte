@@ -225,9 +225,9 @@ of a valid aggregated interface mapping:
 Additional limitations (which stem from the MQTT protocol specification) can be outlined. When using
 parametric endpoints, the actual values used in place of parameter placeholders must fulfill the
 following requirements:
-* endpoint parameters must be UTF-8 encoded strings;
-* endpoint parameters must not contain the following characters: `+` and `#`. In particular, those
-  characters are treated as wildcards for MQTT topics and therefore must be avoided;
+* endpoint parameters must be non-empty UTF-8 encoded strings;
+* endpoint parameters must not contain the following characters: `+` and `#`. Those characters are
+  treated as wildcards for MQTT topics and therefore must be avoided;
 * endpoint parameters must not contain the `/` character.
 
 ## Aggregation
