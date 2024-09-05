@@ -34,6 +34,7 @@ import createReduxStore from './store';
 const DashboardSidebar = () => {
   const config = useConfig();
   const astarte = useAstarte();
+  const { triggerDeliveryPoliciesSupported } = useAstarte();
 
   if (!astarte.isAuthenticated) {
     return null;
@@ -51,9 +52,14 @@ const DashboardSidebar = () => {
         {astarte.token?.can('realmManagement', 'GET', '/triggers') && (
           <Sidebar.Item label="Triggers" link="/triggers" icon="triggers" />
         )}
-        {astarte.token?.can('realmManagement', 'GET', '/policies') && (
-          <Sidebar.Item label="Delivery Policies" link="/trigger-delivery-policies" icon="policy" />
-        )}
+        {triggerDeliveryPoliciesSupported &&
+          astarte.token?.can('realmManagement', 'GET', '/policies') && (
+            <Sidebar.Item
+              label="Delivery Policies"
+              link="/trigger-delivery-policies"
+              icon="policy"
+            />
+          )}
         {(astarte.token?.can('realmManagement', 'GET', '/interfaces') ||
           astarte.token?.can('realmManagement', 'GET', '/triggers') ||
           astarte.token?.can('realmManagement', 'GET', '/policies')) && <Sidebar.Separator />}
