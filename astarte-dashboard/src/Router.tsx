@@ -49,6 +49,7 @@ import { useAstarte } from './AstarteManager';
 import TriggerPoliciesPage from './TriggerDeliveryPoliciesPage';
 import NewPolicyPage from './NewTriggerDeliveryPolicyPage';
 import TriggerDeliveryPolicyPage from './TriggerDeliveryPolicyPage';
+import DeviceDataStreamValues from 'DeviceDataStreamValues';
 
 function AttemptLogin(): React.ReactElement {
   const { search, hash } = useLocation();
@@ -119,7 +120,14 @@ const privateRoutes: RouteObject[] = [
   { path: 'devices', element: <DevicesPage /> },
   { path: 'devices/register', element: <RegisterDevicePage /> },
   { path: 'devices/:deviceId/edit', element: <DeviceStatusPage /> },
-  { path: 'devices/:deviceId/interfaces/:interfaceName', element: <DeviceInterfaceValues /> },
+  {
+    path: 'devices/:deviceId/interfaces/:interfaceName/:interfaceMajor',
+    element: <DeviceInterfaceValues />,
+  },
+  {
+    path: 'devices/:deviceId/interfaces/:interfaceName/:interfaceMajor/datastream',
+    element: <DeviceDataStreamValues />,
+  },
   { path: 'groups', element: <GroupsPage /> },
   { path: 'groups/new', element: <NewGroupPage /> },
   { path: 'groups/:groupName/edit', element: <GroupDevicesPage /> },

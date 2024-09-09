@@ -17,7 +17,7 @@
 */
 
 import React, { ChangeEvent, useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { Link, useParams } from 'react-router-dom';
 import { Button, Card, Col, Container, Form, Modal, Row, Spinner, Table } from 'react-bootstrap';
 import {
   AstarteDataTuple,
@@ -83,6 +83,7 @@ const IndividualDatastreamTable = ({
   treeNode,
 }: IndividualDatastreamTableProps): React.ReactElement => {
   const dataValues = treeNode.toLinearizedData();
+
   if (dataValues.length === 0) {
     return <p>No data sent by the device.</p>;
   }
@@ -117,6 +118,7 @@ const ObjectDatastreamTable = ({
   dataTreeNode,
 }: ObjectDatastreamTableProps): React.ReactElement => {
   const treeData = dataTreeNode.toData();
+
   if (treeData.length === 0) {
     return <p>No data sent by the device.</p>;
   }
@@ -694,19 +696,19 @@ export default (): React.ReactElement => {
 
   return (
     <Container fluid className="p-3">
-      <div className="d-flex justify-content-between">
+      <div className="d-flex justify-content-between align-items-center">
         <h2>
           <BackButton href={`/devices/${deviceId}/edit`} />
           Interface Data
         </h2>
-        {astarte.token?.can(
-          'appEngine',
-          'POST',
-          `devices/${deviceId}/interfaces/${interfaceName}`,
-        ) &&
-          iface?.ownership === 'server' && (
-            <>
-              <div className="button-container">
+        <div className="d-flex align-items-center">
+          {astarte.token?.can(
+            'appEngine',
+            'POST',
+            `devices/${deviceId}/interfaces/${interfaceName}`,
+          ) &&
+            iface?.ownership === 'server' && (
+              <>
                 <Button onClick={handleShowModal} className="m-2">
                   Publish Data
                 </Button>
@@ -715,9 +717,17 @@ export default (): React.ReactElement => {
                     Unset Data
                   </Button>
                 )}
-              </div>
-            </>
+              </>
+            )}
+          {iface?.type === 'datastream' && (
+            <Link
+              to={`/devices/${deviceId}/interfaces/${interfaceName}/${iface.major}/datastream`}
+              className="ml-2"
+            >
+              Filter Data
+            </Link>
           )}
+        </div>
       </div>
       <AlertsBanner alerts={formAlerts} />
       <Card className="mt-4">
