@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ([#393](https://github.com/astarte-platform/astarte-dashboard/issues/393))
 - Correctly parse and display device data for datastream object interfaces with parametric endpoints.
 ([#376](https://github.com/astarte-platform/astarte-dashboard/issues/376))
+- Avoid querying Astarte for trigger delivery policies when Astarte does not support them ([#459](https://github.com/astarte-platform/astarte-dashboard/issues/459)).
 
 ## [1.1.1] - 2023-11-15
 ### Added

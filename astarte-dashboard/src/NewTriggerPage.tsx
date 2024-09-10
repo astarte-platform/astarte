@@ -33,7 +33,12 @@ export default (): React.ReactElement => {
   const [isSourceVisible, setIsSourceVisible] = useState(true);
   const [installationAlerts, installationAlertsController] = useAlerts();
   const astarte = useAstarte();
+  const { triggerDeliveryPoliciesSupported } = astarte;
   const navigate = useNavigate();
+
+  const fetchPoliciesName = triggerDeliveryPoliciesSupported
+    ? astarte.client.getPolicyNames
+    : undefined;
 
   const handleToggleSourceVisibility = useCallback(() => {
     setIsSourceVisible((isVisible) => !isVisible);
@@ -80,7 +85,7 @@ export default (): React.ReactElement => {
           onChange={handleTriggerChange}
           onError={handleTriggerEditorError}
           isSourceVisible={isSourceVisible}
-          fetchPoliciesName={astarte.client.getPolicyNames}
+          fetchPoliciesName={fetchPoliciesName}
           fetchInterfacesName={astarte.client.getInterfaceNames}
           fetchInterfaceMajors={astarte.client.getInterfaceMajors}
           fetchInterface={astarte.client.getInterface}
