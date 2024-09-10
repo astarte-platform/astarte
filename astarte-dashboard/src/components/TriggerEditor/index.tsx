@@ -78,7 +78,7 @@ interface Props {
     interfaceName: string;
     interfaceMajor: number;
   }) => Promise<AstarteInterface>;
-  fetchPoliciesName: () => Promise<string[]>;
+  fetchPoliciesName?: () => Promise<string[]>;
   initialData?: AstarteTrigger;
   isReadOnly?: boolean;
   isSourceVisible?: boolean;
@@ -127,8 +127,11 @@ export default ({
   );
 
   const handleFetchPoliciesName = useCallback(async () => {
-    setIsLoadingPoliciesName(true);
     let policies: string[] = [];
+    if (!fetchPoliciesName) {
+      return policies;
+    }
+    setIsLoadingPoliciesName(true);
     try {
       policies = await fetchPoliciesName();
     } catch (err: any) {

@@ -34,6 +34,7 @@ import createReduxStore from './store';
 const DashboardSidebar = () => {
   const config = useConfig();
   const astarte = useAstarte();
+  const { triggerDeliveryPoliciesSupported } = useAstarte();
 
   if (!astarte.isAuthenticated) {
     return null;
@@ -47,7 +48,9 @@ const DashboardSidebar = () => {
         <Sidebar.Separator />
         <Sidebar.Item label="Interfaces" link="/interfaces" icon="interfaces" />
         <Sidebar.Item label="Triggers" link="/triggers" icon="triggers" />
-        <Sidebar.Item label="Delivery Policies" link="/trigger-delivery-policies" icon="policy" />
+        {triggerDeliveryPoliciesSupported && (
+          <Sidebar.Item label="Delivery Policies" link="/trigger-delivery-policies" icon="policy" />
+        )}
         <Sidebar.Separator />
         <Sidebar.Item label="Devices" link="/devices" icon="devices" />
         <Sidebar.Item label="Groups" link="/groups" icon="groups" />
