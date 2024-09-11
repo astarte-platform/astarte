@@ -359,6 +359,9 @@ const SimpleTriggerForm = ({
     return options;
   }, [triggerInterfacePathType]);
 
+  const hasNumericKnownValue =
+    triggerInterfacePathType != null && ['double', 'integer'].includes(triggerInterfacePathType);
+
   return (
     <Form>
       <Form.Row className="mb-2">
@@ -545,7 +548,7 @@ const SimpleTriggerForm = ({
                     <Form.Group controlId="triggerKnownValue">
                       <Form.Label>Value</Form.Label>
                       <Form.Control
-                        type="text"
+                        type={hasNumericKnownValue ? 'number' : 'text'}
                         autoComplete="off"
                         required
                         readOnly={isReadOnly || isLoadingInterfaceMajors || isLoadingInterface}
