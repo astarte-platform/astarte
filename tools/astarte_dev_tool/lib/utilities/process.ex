@@ -38,6 +38,10 @@ defmodule AstarteDevTool.Utilities.Process do
         end
 
       {:ok, result}
+    else
+      :error ->
+        {:error, :version_badformatted}
+    end
   end
 
   defp clean_version(version), do: {:ok, version |> String.trim() |> String.trim("'")}
