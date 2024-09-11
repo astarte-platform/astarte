@@ -20,12 +20,15 @@ defmodule AstarteDevTool.Constants.System do
   def command, do: "docker"
 
   def command_up_args,
-    do: ~w(compose -f docker-compose.yml -f docker-compose.dev.yml up --build --watch -d)
+    do: ~w(compose -f docker-compose.yml -f docker-compose.dev.yml up --build -d)
 
   def command_down_args, do: ~w(compose -f docker-compose.yml -f docker-compose.dev.yml down)
 
   def command_watch_args,
     do: ~w(compose -f docker-compose.yml -f docker-compose.dev.yml watch --no-up)
+
+  def command_version_args,
+    do: ~w(version --format '{{.Client.Version}}')
 
   def base_opts, do: [stderr_to_stdout: true, into: IO.stream(:stdio, :line)]
 end

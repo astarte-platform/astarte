@@ -17,6 +17,31 @@
 #
 
 defmodule AstarteDevTool.Utilities.Process do
+  alias AstarteDevTool.Constants.System, as: SystemConstants
+
+  def version_ref,
+    do: %Version{
+      major: 27,
+      minor: 2,
+      patch: 2
+    }
+
+  def check_valid_version() do
+    with {version, 0} <-
+           System.cmd(SystemConstants.command(), SystemConstants.command_version_args()),
+         {:ok, version} <- clean_version(version),
+         {:ok, version} <- Version.parse(version) do
+      result =
+        case Version.compare(version, version_ref()) do
+          :lt -> false
+          _ -> true
+        end
+
+      {:ok, result}
+  end
+
+  defp clean_version(version), do: {:ok, version |> String.trim() |> String.trim("'")}
+
   def check_process(command, args, path) when is_list(args) do
     command = "#{command} #{Enum.join(args, "")}"
     check_process(command, path)
