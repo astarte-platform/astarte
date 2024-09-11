@@ -97,6 +97,8 @@ const SimpleTriggerForm = ({
   simpleTriggerInterface,
   validationErrors = {},
 }: SimpleTriggerFormProps): React.ReactElement => {
+  const endpointList =
+    simpleTriggerInterface?.mappings.map((mapping: AstarteMapping) => mapping.endpoint) || [];
   const isDeviceTrigger = _.get(simpleTrigger, 'type') === 'device_trigger';
   const isDataTrigger = _.get(simpleTrigger, 'type') === 'data_trigger';
   const hasTargetDevice = _.get(simpleTrigger, 'deviceId') != null;
@@ -510,10 +512,18 @@ const SimpleTriggerForm = ({
                         value={_.get(simpleTrigger, 'matchPath') || ''}
                         isInvalid={_.get(validationErrors, 'matchPath') != null}
                         onChange={handleTriggerInterfacePathChange}
+                        list="endpoints-list"
                       />
                       <Form.Control.Feedback type="invalid">
                         {_.get(validationErrors, 'matchPath')}
                       </Form.Control.Feedback>
+                      <datalist id="endpoints-list">
+                        {endpointList.map((endpoint, index) => (
+                          <option key={index} value={endpoint}>
+                            {endpoint}
+                          </option>
+                        ))}
+                      </datalist>
                     </Form.Group>
                   </Col>
                 </Row>
