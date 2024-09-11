@@ -127,11 +127,11 @@ export default ({
   );
 
   const handleFetchPoliciesName = useCallback(async () => {
+    let policies: string[] = [];
     if (!fetchPoliciesName) {
-      return;
+      return policies;
     }
     setIsLoadingPoliciesName(true);
-    let policies: string[] = [];
     try {
       policies = await fetchPoliciesName();
     } catch (err: any) {

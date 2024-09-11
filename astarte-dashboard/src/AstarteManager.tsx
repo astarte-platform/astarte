@@ -19,9 +19,10 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import AstarteClient, { AstarteToken } from 'astarte-client';
 import _ from 'lodash';
+import semver from 'semver';
+
 import type { DashboardConfig } from './types';
 import Cookies from 'js-cookie';
-import semver from 'semver';
 
 const parseAstarteApiUrls = (params: DashboardConfig) => {
   const { astarteApiUrl } = params;
@@ -180,12 +181,12 @@ const AstarteProvider = ({
       .catch(() => setRealmManagementVersion(null));
   }, [client]);
 
-  const triggerDeliveryPoliciesSupported = useMemo(() => {
-    return (
+  const triggerDeliveryPoliciesSupported = useMemo(
+    () =>
       realmManagementVersion != null &&
-      semver.gte(realmManagementVersion, astarteVersionWithTriggerDeliveryPoliciesSupport)
-    );
-  }, [realmManagementVersion]);
+      semver.gte(realmManagementVersion, astarteVersionWithTriggerDeliveryPoliciesSupport),
+    [realmManagementVersion],
+  );
 
   const contextValue = useMemo(
     () => ({
