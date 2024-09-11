@@ -11,12 +11,12 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Add a "keep me logged in" during login, ([#451](https://github.com/astarte-platform/astarte-dashboard/issues/451)).
 - Allow unsetting property endpoints, ([#450](https://github.com/astarte-platform/astarte-dashboard/issues/450)).
 - Allow to filter time of Interface DataStream data, ([#441](https://github.com/astarte-platform/astarte-dashboard/issues/441)).
-### Fixed
-- Avoid querying Astarte for trigger delivery policies when Astarte does not support them ([#459](https://github.com/astarte-platform/astarte-dashboard/issues/459)).
-
 ### Changed
 - Adapt Device Stats and PieChart to exclude interfaces with 0 exchanged messages, ([#428](https://github.com/astarte-platform/astarte-dashboard/issues/428)).
 - Persist login using cookies instead of localStorage, ([#419](https://github.com/astarte-platform/astarte-dashboard/issues/419)).
+
+## [1.2.1] - Unreleased
+- Support redirection to a specific page after successful authentication
 
 ## [1.2.0] - 2024-07-01
 ### Changed
@@ -34,6 +34,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ([#393](https://github.com/astarte-platform/astarte-dashboard/issues/393))
 - Correctly parse and display device data for datastream object interfaces with parametric endpoints.
 ([#376](https://github.com/astarte-platform/astarte-dashboard/issues/376))
+- Avoid querying Astarte for trigger delivery policies when Astarte does not support them ([#459](https://github.com/astarte-platform/astarte-dashboard/issues/459)).
 
 ## [1.1.1] - 2023-11-15
 ### Added

@@ -60,6 +60,8 @@ function AttemptLogin(): React.ReactElement {
   const realm = searchParams.get('realm');
   const token = hashParams.get('access_token');
   const authUrl = searchParams.get('authUrl');
+  const redirectTo = searchParams.get('redirectTo');
+
   const persistent = false;
 
   let succesfulLogin = false;
@@ -72,7 +74,7 @@ function AttemptLogin(): React.ReactElement {
     return <Navigate to="/login" replace />;
   }
 
-  return <Navigate to="/" replace />;
+  return redirectTo ? <Navigate to={redirectTo} replace /> : <Navigate to="/" replace />;
 }
 
 function Logout(): React.ReactElement {
