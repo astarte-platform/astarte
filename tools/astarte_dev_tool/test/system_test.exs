@@ -16,19 +16,14 @@
 # limitations under the License.
 #
 
-defmodule AstarteDevTool.Constants.System do
-  def command, do: "docker"
+defmodule AstarteDevToolTest.System do
+  use ExUnit.Case
+  alias AstarteDevTool.Utilities.Process
+  # doctest AstarteDevToolTest
 
-  def command_up_args,
-    do: ~w(compose -f docker-compose.yml -f docker-compose.dev.yml up --build -d)
-
-  def command_down_args, do: ~w(compose -f docker-compose.yml -f docker-compose.dev.yml down)
-
-  def command_watch_args,
-    do: ~w(compose -f docker-compose.yml -f docker-compose.dev.yml watch --no-up)
-
-  def command_version_args,
-    do: ~w(version --format '{{.Client.Version}}')
-
-  def base_opts, do: [stderr_to_stdout: true, into: IO.stream(:stdio, :line)]
+  @moduletag :system
+  test "check_version/0" do
+    {:ok, result} = Process.check_valid_version()
+    assert is_boolean(result)
+  end
 end

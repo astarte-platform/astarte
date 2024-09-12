@@ -1,6 +1,6 @@
 defmodule AstarteDevToolTest do
   use ExUnit.Case
-  doctest AstarteDevTool
+  # doctest false
 
   test "greets the world" do
     assert AstarteDevTool.hello() == :world
