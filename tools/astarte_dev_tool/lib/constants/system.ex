@@ -30,5 +30,8 @@ defmodule AstarteDevTool.Constants.System do
   def command_version_args,
     do: ~w(version --format '{{.Client.Version}}')
 
+  def command_initialize_keys,
+    do: ~w(run -v ./compose:/compose astarte/docker-compose-initializer:snapshot)
+
   def base_opts, do: [stderr_to_stdout: true, into: IO.stream(:stdio, :line)]
 end
