@@ -18,8 +18,29 @@
 
 defmodule AstarteDevTool.Utilities.Auth do
   alias Astarte.Client.Credentials
+  alias X509.PrivateKey
+  alias X509.PublicKey
 
   def gen_auth_token(private_key) when is_bitstring(private_key) do
     Credentials.dashboard_credentials() |> Credentials.to_jwt(private_key)
+  end
+
+  def new_ec_private_key(), do: {:ok, PrivateKey.new_ec(:secp256r1) |> PrivateKey.to_pem()}
+
+  def public_key_from(priv) do
+    case PrivateKey.from_pem(priv) do
+      {:ok, result} -> {:ok, result |> PublicKey.derive() |> PublicKey.to_pem()}
+      error -> error
+    end
+  end
+
+  # Useful feature for when `astarte_dev_tool` is a stateful application.
+  # It will not be used directly by `mix astarte_dev_tool.auth.keys`, as it would not
+  # make sense to write a key pair to `stdout`
+  def pem_keys() do
+    with {:ok, priv} <- new_ec_private_key(),
+         {:ok, pub} <- public_key_from(priv) do
+      {:ok, {priv, pub}}
+    end
   end
 end
