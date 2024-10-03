@@ -44,8 +44,6 @@ defmodule AstarteDevTool.Utilities.Process do
     end
   end
 
-  defp clean_version(version), do: {:ok, version |> String.trim() |> String.trim("'")}
-
   def check_process(command, args, path) when is_list(args) do
     command = "#{command} #{Enum.join(args, "")}"
     check_process(command, path)
@@ -58,17 +56,18 @@ defmodule AstarteDevTool.Utilities.Process do
     end
   end
 
-  defp find_pids_by_command(command) do
-    case System.cmd("pgrep", ["-f", command]) do
-      {pids_str, 0} -> {:ok, String.trim(pids_str) |> String.split("\n")}
-      _ -> {:ok, []}
-    end
+  defp clean_version(version), do: {:ok, version |> String.trim() |> String.trim("'")}
+
+  def process_check(command, args, path) when is_list(args) do
+    command = "#{command} #{Enum.join(args, "")}"
+    process_check(command, path)
   end
 
-  defp find_pid_by_path([], _path), do: {:ok, nil}
-
-  defp find_pid_by_path([pid | rest], path) do
-    if process_matches_path?(pid, path), do: {:ok, pid}, else: find_pid_by_path(rest, path)
+  def process_check(command, path) when is_bitstring(command) and is_bitstring(path) do
+    with {:ok, pids} <- find_pids_by_command(command),
+         {:ok, pid} <- find_pid_by_path(pids, path) do
+      {:ok, pid}
+    end
   end
 
   def process_matches_path?(pid, path) do
@@ -84,5 +83,18 @@ defmodule AstarteDevTool.Utilities.Process do
       end
 
     cwd == path
+  end
+
+  defp find_pids_by_command(command) do
+    case System.cmd("pgrep", ["-f", command]) do
+      {pids_str, 0} -> {:ok, String.trim(pids_str) |> String.split("\n")}
+      _ -> {:ok, []}
+    end
+  end
+
+  defp find_pid_by_path([], _path), do: {:ok, nil}
+
+  defp find_pid_by_path([pid | rest], path) do
+    if process_matches_path?(pid, path), do: {:ok, pid}, else: find_pid_by_path(rest, path)
   end
 end
