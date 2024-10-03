@@ -23,6 +23,7 @@ defmodule Astarte.Housekeeping.EngineTest do
   alias Astarte.Housekeeping.DatabaseTestHelper
   alias Astarte.Housekeeping.Engine
   alias Astarte.Housekeeping.Queries
+  alias Astarte.DataAccess.Realm
   alias Astarte.RPC.Protocol.Housekeeping.UpdateRealm
 
   @realm1 "test1"
@@ -45,7 +46,7 @@ defmodule Astarte.Housekeeping.EngineTest do
 
   describe "Realm update" do
     test "succeeds when realm exists and valid update values are given" do
-      :ok = Queries.create_realm(@realm1, "test1publickey", 1, 1, 1, [])
+      :ok = Realm.create_realm(@realm1, "test1publickey", 1, 1, 1, [])
 
       new_public_key = "new_public_key"
 
@@ -64,7 +65,7 @@ defmodule Astarte.Housekeeping.EngineTest do
     end
 
     test "succeeds when realm exists and empty update values are given" do
-      :ok = Queries.create_realm(@realm1, "test1publickey", 1, 1, 1, [])
+      :ok = Realm.create_realm(@realm1, "test1publickey", 1, 1, 1, [])
 
       update_values = %UpdateRealm{
         realm: @realm1
@@ -80,7 +81,7 @@ defmodule Astarte.Housekeeping.EngineTest do
     end
 
     test "succeeds when realm exists and device_registration_limit is updated" do
-      :ok = Queries.create_realm(@realm1, "test1publickey", 1, 1, 1, [])
+      :ok = Realm.create_realm(@realm1, "test1publickey", 1, 1, 1, [])
 
       new_limit = 100
 
@@ -96,7 +97,7 @@ defmodule Astarte.Housekeeping.EngineTest do
     end
 
     test "succeeds when realm exists and device_registration_limit is removed" do
-      :ok = Queries.create_realm(@realm1, "test1publickey", 1, 1, 1, [])
+      :ok = Realm.create_realm(@realm1, "test1publickey", 1, 1, 1, [])
 
       update_values = %UpdateRealm{
         device_registration_limit: :remove_limit
@@ -110,7 +111,7 @@ defmodule Astarte.Housekeeping.EngineTest do
     end
 
     test "succeeds when realm exists and device_registration_limit is not set" do
-      :ok = Queries.create_realm(@realm1, "test1publickey", 1, 1, 1, [])
+      :ok = Realm.create_realm(@realm1, "test1publickey", 1, 1, 1, [])
 
       update_values = %UpdateRealm{
         device_registration_limit: nil
@@ -124,7 +125,7 @@ defmodule Astarte.Housekeeping.EngineTest do
     end
 
     test "succeeds when realm exists and datastream_maximum_storage_retention is updated" do
-      :ok = Queries.create_realm(@realm1, "test1publickey", 1, 1, 1, [])
+      :ok = Realm.create_realm(@realm1, "test1publickey", 1, 1, 1, [])
 
       new_retention = 100
 
@@ -140,7 +141,7 @@ defmodule Astarte.Housekeeping.EngineTest do
     end
 
     test "succeeds when realm exists and datastream_maximum_storage_retention is removed" do
-      :ok = Queries.create_realm(@realm1, "test1publickey", 1, 1, 1, [])
+      :ok = Realm.create_realm(@realm1, "test1publickey", 1, 1, 1, [])
 
       update_values = %UpdateRealm{
         datastream_maximum_storage_retention: 0
@@ -154,7 +155,7 @@ defmodule Astarte.Housekeeping.EngineTest do
     end
 
     test "succeeds when realm exists and datastream_maximum_storage_retention is not set" do
-      :ok = Queries.create_realm(@realm1, "test1publickey", 1, 1, 1, [])
+      :ok = Realm.create_realm(@realm1, "test1publickey", 1, 1, 1, [])
 
       update_values = %UpdateRealm{
         datastream_maximum_storage_retention: nil
@@ -179,7 +180,7 @@ defmodule Astarte.Housekeeping.EngineTest do
     end
 
     test "fails when update values are invalid" do
-      :ok = Queries.create_realm(@realm1, "test1publickey", 1, 1, 1, [])
+      :ok = Realm.create_realm(@realm1, "test1publickey", 1, 1, 1, [])
 
       update_values = %UpdateRealm{
         realm: @realm1,
