@@ -92,6 +92,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ### Changed
 - [astarte_e2e] Update Elixir to 1.14.5 and Erlang/OTP to 25.3.2. (see https://github.com/astarte-platform/astarte/issues/858)
 
+### Fixed
+- [all] API now only accepts json requests
+
 ## [1.1.0] - 2023-06-20
 ### Fixed
 - [astarte_trigger_engine] Allow to decode events that do not contain the
