@@ -32,28 +32,6 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Server do
     {:ok, Impl.init_state(realm, device_id, message_tracker), timeout}
   end
 
-  # TODO remove this when all heartbeats will be moved to internal
-  def handle_cast({:handle_heartbeat, message_id, timestamp}, state) do
-    if MessageTracker.can_process_message(state.message_tracker, message_id) do
-      new_state = Impl.handle_heartbeat(state, message_id, timestamp)
-      {:noreply, new_state}
-    else
-      {:noreply, state}
-    end
-  end
-
-  def handle_cast({:handle_internal, payload, path, message_id, timestamp}, state) do
-    if MessageTracker.can_process_message(state.message_tracker, message_id) do
-      case Impl.handle_internal(state, payload, path, message_id, timestamp) do
-        {:continue, new_state} -> {:noreply, new_state}
-        # No more messages from this device, time out now in order to stop this process
-        {:stop, new_state} -> {:noreply, new_state, 0}
-      end
-    else
-      {:noreply, state}
-    end
-  end
-
   def handle_cast({:handle_data, interface, path, payload, message_id, timestamp}, state) do
     timeout = Config.data_updater_deactivation_interval_ms!()
 

@@ -60,6 +60,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
 
   @msg_type_header "x_astarte_msg_type"
   @ip_header "x_astarte_remote_ip"
+  @internal_path_header "x_astarte_internal_path"
 
   use GenServer
 
@@ -111,7 +112,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
   end
 
   @impl true
-  def handle_message(_payload, headers, _message_id, timestamp, state) do
+  def handle_message(payload, headers, _message_id, timestamp, state) do
     %{@msg_type_header => message_type} = headers
 
     case message_type do
@@ -121,6 +122,13 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
 
       "disconnection" ->
         handle_disconnection(state, timestamp)
+
+      "heartbeat" ->
+        handle_heartbeat(state, timestamp)
+
+      "internal" ->
+        %{@internal_path_header => internal_path} = headers
+        handle_internal(state, internal_path, payload, timestamp)
 
       _ ->
         # Ack all messages for now
@@ -140,12 +148,6 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
       _ ->
         {:ok, state}
     end
-  end
-
-  @impl true
-  def handle_continue(_, state) do
-    # All is ok for now
-    {:ok, state}
   end
 
   @impl true
@@ -403,52 +405,55 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
     {:ack, :ok, %{new_state | last_seen_message: timestamp}}
   end
 
-  def handle_heartbeat(%State{discard_messages: true} = state, _, message_id, _) do
-    MessageTracker.discard(state.message_tracker, message_id)
-    state
+  def handle_heartbeat(%State{discard_messages: true} = state, _) do
+    # Don't care
+    {:ack, :discard_messages, state}
   end
 
   # TODO make this private when all heartbeats will be moved to internal
-  def handle_heartbeat(state, message_id, timestamp) do
+  def handle_heartbeat(state, timestamp) do
     {:ok, db_client} = Database.connect(realm: state.realm)
 
     new_state = execute_time_based_actions(state, timestamp, db_client)
 
     Queries.maybe_refresh_device_connected!(db_client, new_state.device_id)
 
-    MessageTracker.ack_delivery(new_state.message_tracker, message_id)
     Logger.info("Device heartbeat.", tag: "device_heartbeat")
 
-    %{new_state | connected: true, last_seen_message: timestamp}
+    {:ack, :ok, %{new_state | connected: true, last_seen_message: timestamp}}
   end
 
-  def handle_internal(state, "/heartbeat", _payload, message_id, timestamp) do
-    {:continue, handle_heartbeat(state, message_id, timestamp)}
+  def handle_internal(state, "/heartbeat", _payload, timestamp) do
+    handle_heartbeat(state, timestamp)
   end
 
-  def handle_internal(%State{discard_messages: true} = state, "/f", _, message_id, _) do
+  def handle_internal(%State{discard_messages: true} = state, "/f", _, _) do
     keyspace_name =
       CQLUtils.realm_name_to_keyspace_name(state.realm, Config.astarte_instance_id!())
 
     :ok = Queries.ack_end_device_deletion(keyspace_name, state.device_id)
     _ = Logger.info("End device deletion acked.", tag: "device_delete_ack")
-    MessageTracker.ack_delivery(state.message_tracker, message_id)
-    {:stop, state}
+    {:stop, :ack_end_device_deletion, :ack, state}
   end
 
-  def handle_internal(state, path, payload, message_id, timestamp) do
+  def handle_internal(state, path, payload, timestamp) do
     Logger.warning(
       "Unexpected internal message on #{path}, base64-encoded payload: #{inspect(Base.encode64(payload))}",
       tag: "unexpected_internal_message"
     )
 
     {:ok, new_state} = ask_clean_session(state, timestamp)
-    MessageTracker.discard(new_state.message_tracker, message_id)
+    continue_arg = {:unexpected_internal_message, payload, path, timestamp}
 
+    {:discard, :unexpected_internal_message, new_state, {:continue, continue_arg}}
+  end
+
+  @impl true
+  def handle_continue({:unexpected_internal_message, payload, path, timestamp}, state) do
     :telemetry.execute(
       [:astarte, :data_updater_plant, :data_updater, :discarded_internal_message],
       %{},
-      %{realm: new_state.realm}
+      %{realm: state.realm}
     )
 
     base64_payload = Base.encode64(payload)
@@ -460,13 +465,43 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
 
     # TODO maybe we don't want triggers on unexpected internal messages?
     execute_device_error_triggers(
-      new_state,
+      state,
       "unexpected_internal_message",
       error_metadata,
       timestamp
     )
 
-    {:continue, update_stats(new_state, "", nil, path, payload)}
+    {:ok, update_stats(state, "", nil, path, payload)}
+  end
+
+  @impl true
+  def handle_continue({:invalid_introspection, payload, timestamp}, state) do
+    :telemetry.execute(
+      [:astarte, :data_updater_plant, :data_updater, :discarded_introspection],
+      %{},
+      %{realm: state.realm}
+    )
+
+    base64_payload = Base.encode64(payload)
+
+    error_metadata = %{
+      "base64_payload" => base64_payload
+    }
+
+    execute_device_error_triggers(
+      state,
+      "invalid_introspection",
+      error_metadata,
+      timestamp
+    )
+
+    {:ok, update_stats(state, "", nil, "", payload)}
+  end
+
+  @impl true
+  def handle_continue(_, state) do
+    # All is ok for now
+    {:ok, state}
   end
 
   def start_device_deletion(state, timestamp) do
