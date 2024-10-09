@@ -130,6 +130,9 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
         %{@internal_path_header => internal_path} = headers
         handle_internal(state, internal_path, payload, timestamp)
 
+      "introspection" ->
+        handle_introspection(state, payload, timestamp)
+
       _ ->
         # Ack all messages for now
         {:ack, :ok, state}
@@ -502,6 +505,26 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
   def handle_continue(_, state) do
     # All is ok for now
     {:ok, state}
+  end
+
+  def handle_introspection(%State{discard_messages: true} = state, _, _) do
+    {:ack, :discard_messages, state}
+  end
+
+  def handle_introspection(state, payload, timestamp) do
+    with {:ok, new_introspection_list} <- PayloadsDecoder.parse_introspection(payload) do
+      process_introspection(state, new_introspection_list, payload, timestamp)
+    else
+      {:error, :invalid_introspection} ->
+        Logger.warning("Discarding invalid introspection: #{inspect(Base.encode64(payload))}.",
+          tag: "invalid_introspection"
+        )
+
+        {:ok, new_state} = ask_clean_session(state, timestamp)
+        continue_arg = {:invalid_introspection, payload, timestamp}
+
+        {:discard, :invalid_introspection, new_state, {:continue, continue_arg}}
+    end
   end
 
   def start_device_deletion(state, timestamp) do
@@ -1457,47 +1480,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
     }
   end
 
-  def handle_introspection(%State{discard_messages: true} = state, _, message_id, _) do
-    MessageTracker.discard(state.message_tracker, message_id)
-    state
-  end
-
-  def handle_introspection(state, payload, message_id, timestamp) do
-    with {:ok, new_introspection_list} <- PayloadsDecoder.parse_introspection(payload) do
-      process_introspection(state, new_introspection_list, payload, message_id, timestamp)
-    else
-      {:error, :invalid_introspection} ->
-        Logger.warning("Discarding invalid introspection: #{inspect(Base.encode64(payload))}.",
-          tag: "invalid_introspection"
-        )
-
-        {:ok, new_state} = ask_clean_session(state, timestamp)
-        MessageTracker.discard(new_state.message_tracker, message_id)
-
-        :telemetry.execute(
-          [:astarte, :data_updater_plant, :data_updater, :discarded_introspection],
-          %{},
-          %{realm: new_state.realm}
-        )
-
-        base64_payload = Base.encode64(payload)
-
-        error_metadata = %{
-          "base64_payload" => base64_payload
-        }
-
-        execute_device_error_triggers(
-          new_state,
-          "invalid_introspection",
-          error_metadata,
-          timestamp
-        )
-
-        update_stats(new_state, "", nil, "", payload)
-    end
-  end
-
-  def process_introspection(state, new_introspection_list, payload, message_id, timestamp) do
+  def process_introspection(state, new_introspection_list, payload, timestamp) do
     {:ok, db_client} = Database.connect(realm: state.realm)
 
     new_state = execute_time_based_actions(state, timestamp, db_client)
@@ -1707,21 +1690,21 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
       db_introspection_minor_map
     )
 
-    MessageTracker.ack_delivery(new_state.message_tracker, message_id)
-
     :telemetry.execute(
       [:astarte, :data_updater_plant, :data_updater, :processed_introspection],
       %{},
       %{realm: realm}
     )
 
-    %{
+    final_state = %{
       new_state
       | introspection: db_introspection_map,
         paths_cache: Cache.new(@paths_cache_size),
         total_received_msgs: new_state.total_received_msgs + 1,
         total_received_bytes: new_state.total_received_bytes + byte_size(payload)
     }
+
+    {:ack, :ok, final_state}
   end
 
   def handle_control(%State{discard_messages: true} = state, _, _, message_id, _) do
