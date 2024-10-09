@@ -107,36 +107,6 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Server do
     end
   end
 
-  def handle_call(
-        {:handle_install_volatile_trigger, object_id, object_type, parent_id, trigger_id,
-         simple_trigger, trigger_target},
-        _from,
-        state
-      ) do
-    timeout = Config.data_updater_deactivation_interval_ms!()
-
-    {return_value, new_state} =
-      Impl.handle_install_volatile_trigger(
-        state,
-        object_id,
-        object_type,
-        parent_id,
-        trigger_id,
-        simple_trigger,
-        trigger_target
-      )
-
-    {:reply, return_value, new_state, timeout}
-  end
-
-  def handle_call({:handle_delete_volatile_trigger, trigger_id}, _from, state) do
-    timeout = Config.data_updater_deactivation_interval_ms!()
-
-    {result, new_state} = Impl.handle_delete_volatile_trigger(state, trigger_id)
-
-    {:reply, result, new_state, timeout}
-  end
-
   def handle_call({:dump_state}, _from, state) do
     timeout = Config.data_updater_deactivation_interval_ms!()
 
