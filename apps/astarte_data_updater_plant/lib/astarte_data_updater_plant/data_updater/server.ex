@@ -32,12 +32,6 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Server do
     {:ok, Impl.init_state(realm, device_id, message_tracker), timeout}
   end
 
-  def handle_call({:dump_state}, _from, state) do
-    timeout = Config.data_updater_deactivation_interval_ms!()
-
-    {:reply, state, state, timeout}
-  end
-
   def handle_call({:start_device_deletion, timestamp}, _from, state) do
     {result, new_state} = Impl.start_device_deletion(state, timestamp)
     {:reply, result, new_state}

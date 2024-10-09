@@ -159,6 +159,9 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
       {:handle_delete_volatile_trigger, delete_volatile_trigger} ->
         handle_delete_volatile_trigger(state, delete_volatile_trigger)
 
+      :dump_state ->
+        {state, state}
+
       _ ->
         {:ok, state}
     end
