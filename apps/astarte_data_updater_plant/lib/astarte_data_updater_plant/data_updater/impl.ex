@@ -56,6 +56,9 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
   @deletion_refresh_lifespan_decimicroseconds 60 * 10 * 1000 * 10000
   @datastream_maximum_retention_refresh_lifespan_decimicroseconds 60 * 10 * 1000 * 10000
 
+  @msg_type_header "x_astarte_msg_type"
+  @ip_header "x_astarte_remote_ip"
+
   use GenServer
 
   @impl true
@@ -106,9 +109,18 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
   end
 
   @impl true
-  def handle_message(_, _, _, _, state) do
-    # Ack all messages for now
-    {:ack, :ok, state}
+  def handle_message(_payload, headers, _message_id, timestamp, state) do
+    %{@msg_type_header => message_type} = headers
+
+    case message_type do
+      "connection" ->
+        %{@ip_header => ip_address} = headers
+        handle_connection(state, ip_address, timestamp)
+
+      _ ->
+        # Ack all messages for now
+        {:ack, :ok, state}
+    end
   end
 
   @impl true
@@ -179,12 +191,11 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
     :ok
   end
 
-  def handle_connection(%State{discard_messages: true} = state, _, message_id, _) do
-    MessageTracker.discard(state.message_tracker, message_id)
-    state
+  def handle_connection(%State{discard_messages: true} = state, _, _, _) do
+    {:ack, :discard_messages, state}
   end
 
-  def handle_connection(state, ip_address_string, message_id, timestamp) do
+  def handle_connection(state, ip_address_string, timestamp) do
     {:ok, db_client} = Database.connect(realm: state.realm)
 
     new_state = execute_time_based_actions(state, timestamp, db_client)
@@ -229,14 +240,13 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
       timestamp_ms
     )
 
-    MessageTracker.ack_delivery(new_state.message_tracker, message_id)
     Logger.info("Device connected.", ip_address: ip_address_string, tag: "device_connected")
 
     :telemetry.execute([:astarte, :data_updater_plant, :data_updater, :device_connection], %{}, %{
       realm: new_state.realm
     })
 
-    %{new_state | connected: true, last_seen_message: timestamp}
+    {:ack, :ok, %{new_state | connected: true, last_seen_message: timestamp}}
   end
 
   def handle_heartbeat(%State{discard_messages: true} = state, _, message_id, _) do
