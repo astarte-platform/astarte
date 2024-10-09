@@ -119,6 +119,9 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
         %{@ip_header => ip_address} = headers
         handle_connection(state, ip_address, timestamp)
 
+      "disconnection" ->
+        handle_disconnection(state, timestamp)
+
       _ ->
         # Ack all messages for now
         {:ack, :ok, state}
@@ -387,6 +390,19 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
     end
   end
 
+  def handle_disconnection(state, timestamp) do
+    {:ok, db_client} = Database.connect(realm: state.realm)
+
+    new_state =
+      state
+      |> execute_time_based_actions(timestamp, db_client)
+      |> set_device_disconnected(db_client, timestamp)
+
+    Logger.info("Device disconnected.", tag: "device_disconnected")
+
+    {:ack, :ok, %{new_state | last_seen_message: timestamp}}
+  end
+
   def handle_heartbeat(%State{discard_messages: true} = state, _, message_id, _) do
     MessageTracker.discard(state.message_tracker, message_id)
     state
@@ -460,20 +476,6 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
     new_state = execute_time_based_actions(state, timestamp, db_client)
 
     {:ok, new_state}
-  end
-
-  def handle_disconnection(state, message_id, timestamp) do
-    {:ok, db_client} = Database.connect(realm: state.realm)
-
-    new_state =
-      state
-      |> execute_time_based_actions(timestamp, db_client)
-      |> set_device_disconnected(db_client, timestamp)
-
-    MessageTracker.ack_delivery(new_state.message_tracker, message_id)
-    Logger.info("Device disconnected.", tag: "device_disconnected")
-
-    %{new_state | last_seen_message: timestamp}
   end
 
   defp execute_incoming_data_triggers(
