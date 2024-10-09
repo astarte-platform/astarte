@@ -26,10 +26,10 @@ defmodule Astarte.DataUpdater.DeletionScheduler do
   use GenServer
 
   alias Astarte.DataUpdaterPlant.DataUpdater.Queries
-  alias Astarte.DataUpdaterPlant.DataUpdater
   alias Astarte.DataUpdaterPlant.Config
   alias Astarte.Core.Device
   alias Astarte.Core.CQLUtils
+  alias Mississippi.Consumer.DataUpdater
 
   require Logger
 
@@ -55,10 +55,10 @@ defmodule Astarte.DataUpdater.DeletionScheduler do
 
   defp start_device_deletion! do
     retrieve_devices_to_delete!()
-    |> Enum.each(fn %{realm_name: realm_name, encoded_device_id: encoded_device_id} ->
+    |> Enum.each(fn %{realm_name: realm_name, device_id: device_id} ->
       timestamp = now_us_x10_timestamp()
-      # This must be a call, as we want to be sure this was completed
-      :ok = DataUpdater.start_device_deletion(realm_name, encoded_device_id, timestamp)
+      {:ok, pid} = DataUpdater.get_data_updater_process({realm_name, device_id})
+      :ok = DataUpdater.handle_signal(pid, {:start_device_deletion, timestamp})
     end)
   end
 
@@ -73,30 +73,16 @@ defmodule Astarte.DataUpdater.DeletionScheduler do
         keyspace_name =
           CQLUtils.realm_name_to_keyspace_name(realm_name, Config.astarte_instance_id!()),
         %{"device_id" => device_id} <-
-          Queries.retrieve_devices_waiting_to_start_deletion!(keyspace_name),
-        encoded_device_id = Device.encode_device_id(device_id),
-        should_handle_data_from_device?(realm_name, encoded_device_id) do
+          Queries.retrieve_devices_waiting_to_start_deletion!(keyspace_name) do
       _ =
         Logger.debug("Retrieved device to delete",
           tag: "device_to_delete",
           realm_name: realm_name,
-          device_id: encoded_device_id
+          encoded_device_id: Device.encode_device_id(device_id)
         )
 
-      %{realm_name: realm_name, encoded_device_id: encoded_device_id}
+      %{realm_name: realm_name, device_id: device_id}
     end
-  end
-
-  defp should_handle_data_from_device?(realm_name, encoded_device_id) do
-    # TODO extract a function from Astarte.DataUpdaterPlant.AMQPDataConsumer
-    # This is the same sharding algorithm used in astarte_vmq_plugin
-    # Make sure they stay in sync
-    queue_index =
-      {realm_name, encoded_device_id}
-      |> :erlang.phash2(Config.data_queue_total_count!())
-
-    queue_index >= Config.data_queue_range_start!() and
-      queue_index <= Config.data_queue_range_end!()
   end
 
   # TODO this is copied from astarte_vmq_plugin
