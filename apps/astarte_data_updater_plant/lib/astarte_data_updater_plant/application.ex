@@ -53,6 +53,7 @@ defmodule Astarte.DataUpdaterPlant.Application do
       Astarte.DataUpdaterPlantWeb.Telemetry,
       {Xandra.Cluster, dup_xandra_opts},
       {Astarte.DataAccess, data_access_opts},
+      Astarte.DataUpdaterPlant.DataPipelineSupervisor,
       {Mississippi.Consumer, mississippi_consumer_opts!()}
     ]
 

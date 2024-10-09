@@ -87,7 +87,7 @@ defmodule Astarte.DataUpdaterPlant.AMQPEventsProducer do
   end
 
   defp init_producer() do
-    conn = ExRabbitPool.get_connection_worker(:events_producer_pool)
+    conn = ExRabbitPool.get_connection_worker(:dup_events_producer_pool)
 
     with {:ok, channel} <- checkout_channel(conn),
          :ok <- declare_default_events_exchange(channel, conn) do

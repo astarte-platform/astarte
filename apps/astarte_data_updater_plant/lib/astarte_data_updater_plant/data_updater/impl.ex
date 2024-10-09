@@ -42,7 +42,6 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
   alias Astarte.DataUpdaterPlant.DataUpdater.EventTypeUtils
   alias Astarte.DataUpdaterPlant.DataUpdater.PayloadsDecoder
   alias Astarte.DataUpdaterPlant.DataUpdater.Queries
-  alias Astarte.DataUpdaterPlant.MessageTracker
   alias Astarte.DataUpdaterPlant.RPC.VMQPlugin
   alias Astarte.DataUpdaterPlant.TriggersHandler
   alias Astarte.DataUpdaterPlant.ValueMatchOperators
@@ -64,8 +63,6 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
   @interface_header "x_astarte_interface"
   @path_header "x_astarte_path"
   @control_path_header "x_astarte_control_path"
-
-  use GenServer
 
   @impl true
   def init(sharding_key) do
@@ -174,50 +171,6 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
   def terminate(_, state) do
     # All is ok for now
     {:ok, state}
-  end
-
-  def init_state(realm, device_id, message_tracker) do
-    MessageTracker.register_data_updater(message_tracker)
-    Process.monitor(message_tracker)
-
-    new_state = %State{
-      realm: realm,
-      device_id: device_id,
-      message_tracker: message_tracker,
-      connected: true,
-      groups: [],
-      interfaces: %{},
-      interface_ids_to_name: %{},
-      interfaces_by_expiry: [],
-      mappings: %{},
-      paths_cache: Cache.new(@paths_cache_size),
-      device_triggers: %{},
-      data_triggers: %{},
-      volatile_triggers: [],
-      interface_exchanged_bytes: %{},
-      interface_exchanged_msgs: %{},
-      last_seen_message: 0,
-      last_device_triggers_refresh: 0,
-      last_groups_refresh: 0,
-      trigger_id_to_policy_name: %{},
-      discard_messages: false,
-      last_deletion_in_progress_refresh: 0,
-      last_datastream_maximum_retention_refresh: 0
-    }
-
-    encoded_device_id = Device.encode_device_id(device_id)
-    Logger.metadata(realm: realm, device_id: encoded_device_id)
-    Logger.info("Created device process.", tag: "device_process_created")
-
-    {:ok, db_client} = Database.connect(realm: new_state.realm)
-
-    stats_and_introspection =
-      Queries.retrieve_device_stats_and_introspection!(db_client, device_id)
-
-    {:ok, ttl} = Queries.fetch_datastream_maximum_storage_retention(db_client)
-
-    Map.merge(new_state, stats_and_introspection)
-    |> Map.put(:datastream_maximum_storage_retention, ttl)
   end
 
   def handle_deactivation(_state) do

@@ -19,7 +19,7 @@
 defmodule Astarte.DataUpdaterPlant.DataPipelineSupervisor do
   use Supervisor
 
-  alias Astarte.DataUpdaterPlant.ConsumersSupervisor
+  alias Astarte.DataUpdater.DeletionScheduler
   alias Astarte.DataUpdaterPlant.AMQPEventsProducer
   alias Astarte.DataUpdaterPlant.RPC.Handler
   alias Astarte.DataUpdaterPlant.Config
@@ -33,13 +33,11 @@ defmodule Astarte.DataUpdaterPlant.DataPipelineSupervisor do
   @impl true
   def init(_init_arg) do
     children = [
-      {Registry, [keys: :unique, name: Registry.MessageTracker]},
-      {Registry, [keys: :unique, name: Registry.DataUpdater]},
       {ExRabbitPool.PoolSupervisor,
        rabbitmq_config: Config.amqp_producer_options!(),
        connection_pools: [Config.events_producer_pool_config!()]},
       AMQPEventsProducer,
-      ConsumersSupervisor,
+      DeletionScheduler,
       {Astarte.RPC.AMQP.Server, [amqp_queue: Protocol.amqp_queue(), handler: Handler]},
       Astarte.RPC.AMQP.Client
     ]
