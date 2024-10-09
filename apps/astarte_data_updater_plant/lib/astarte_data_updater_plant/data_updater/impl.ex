@@ -63,6 +63,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
   @internal_path_header "x_astarte_internal_path"
   @interface_header "x_astarte_interface"
   @path_header "x_astarte_path"
+  @control_path_header "x_astarte_control_path"
 
   use GenServer
 
@@ -138,6 +139,10 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
       "data" ->
         %{@interface_header => interface, @path_header => path} = headers
         handle_data(state, interface, path, payload, timestamp)
+
+      "control" ->
+        %{@control_path_header => control_path} = headers
+        handle_control(state, control_path, payload, timestamp)
 
       _ ->
         # Ack all messages for now
@@ -505,12 +510,6 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
     )
 
     {:ok, update_stats(state, "", nil, "", payload)}
-  end
-
-  @impl true
-  def handle_continue(_, state) do
-    # All is ok for now
-    {:ok, state}
   end
 
   def handle_introspection(%State{discard_messages: true} = state, _, _) do
@@ -1583,12 +1582,11 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
     {:ack, :ok, final_state}
   end
 
-  def handle_control(%State{discard_messages: true} = state, _, _, message_id, _) do
-    MessageTracker.discard(state.message_tracker, message_id)
-    state
+  def handle_control(%State{discard_messages: true} = state, _, _, _) do
+    {:ack, :discard_messages, state}
   end
 
-  def handle_control(state, "/producer/properties", <<0, 0, 0, 0>>, message_id, timestamp) do
+  def handle_control(state, "/producer/properties", <<0, 0, 0, 0>>, timestamp) do
     {:ok, db_client} = Database.connect(realm: state.realm)
 
     new_state = execute_time_based_actions(state, timestamp, db_client)
@@ -1597,18 +1595,18 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
 
     :ok = prune_device_properties(new_state, "", timestamp_ms)
 
-    MessageTracker.ack_delivery(new_state.message_tracker, message_id)
-
-    %{
+    final_state = %{
       new_state
       | total_received_msgs: new_state.total_received_msgs + 1,
         total_received_bytes:
           new_state.total_received_bytes + byte_size(<<0, 0, 0, 0>>) +
             byte_size("/producer/properties")
     }
+
+    {:ack, :ok, final_state}
   end
 
-  def handle_control(state, "/producer/properties", payload, message_id, timestamp) do
+  def handle_control(state, "/producer/properties", payload, timestamp) do
     {:ok, db_client} = Database.connect(realm: state.realm)
 
     new_state = execute_time_based_actions(state, timestamp, db_client)
@@ -1622,9 +1620,8 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
     case PayloadsDecoder.safe_inflate(zlib_payload) do
       {:ok, decoded_payload} ->
         :ok = prune_device_properties(new_state, decoded_payload, timestamp_ms)
-        MessageTracker.ack_delivery(new_state.message_tracker, message_id)
 
-        %{
+        final_state = %{
           new_state
           | total_received_msgs: new_state.total_received_msgs + 1,
             total_received_bytes:
@@ -1632,23 +1629,25 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
                 byte_size("/producer/properties")
         }
 
+        {:ack, :ok, final_state}
+
       :error ->
         Logger.warning("Invalid purge_properties payload", tag: "purge_properties_error")
 
         {:ok, new_state} = ask_clean_session(new_state, timestamp)
-        MessageTracker.discard(new_state.message_tracker, message_id)
 
+        # TODO this could be handled in handle_continue
         :telemetry.execute(
           [:astarte, :data_updater_plant, :data_updater, :discarded_message],
           %{},
           %{realm: new_state.realm}
         )
 
-        new_state
+        {:discard, :purge_properties_error, new_state}
     end
   end
 
-  def handle_control(state, "/emptyCache", _payload, message_id, timestamp) do
+  def handle_control(state, "/emptyCache", _payload, timestamp) do
     {:ok, db_client} = Database.connect(realm: state.realm)
 
     new_state = execute_time_based_actions(state, timestamp, db_client)
@@ -1656,31 +1655,20 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
     with :ok <- send_control_consumer_properties(state, db_client),
          {:ok, new_state} <- resend_all_properties(state, db_client),
          :ok <- Queries.set_pending_empty_cache(db_client, new_state.device_id, false) do
-      MessageTracker.ack_delivery(state.message_tracker, message_id)
-
       :telemetry.execute(
         [:astarte, :data_updater_plant, :data_updater, :processed_empty_cache],
         %{},
         %{realm: new_state.realm}
       )
 
-      new_state
+      {:ack, :ok, new_state}
     else
       {:error, :session_not_found} ->
         Logger.warning("Cannot push data to device.", tag: "device_session_not_found")
 
         {:ok, new_state} = ask_clean_session(new_state, timestamp)
-        MessageTracker.discard(new_state.message_tracker, message_id)
-
-        :telemetry.execute(
-          [:astarte, :data_updater_plant, :data_updater, :discarded_message],
-          %{},
-          %{realm: new_state.realm}
-        )
-
-        execute_device_error_triggers(new_state, "device_session_not_found", timestamp)
-
-        new_state
+        continue_arg = {:session_not_found, timestamp}
+        {:discard, :session_not_found, new_state, {:continue, continue_arg}}
 
       {:error, :sending_properties_to_interface_failed} ->
         Logger.warning("Cannot resend properties to interface",
@@ -1688,21 +1676,8 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
         )
 
         {:ok, new_state} = ask_clean_session(new_state, timestamp)
-        MessageTracker.discard(new_state.message_tracker, message_id)
-
-        :telemetry.execute(
-          [:astarte, :data_updater_plant, :data_updater, :discarded_message],
-          %{},
-          %{realm: new_state.realm}
-        )
-
-        execute_device_error_triggers(
-          new_state,
-          "resend_interface_properties_failed",
-          timestamp
-        )
-
-        new_state
+        continue_arg = {:resend_interface_properties_failed, timestamp}
+        {:discard, :resend_interface_properties_failed, new_state, {:continue, continue_arg}}
 
       {:error, reason} ->
         Logger.warning("Unhandled error during emptyCache: #{inspect(reason)}",
@@ -1710,35 +1685,57 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
         )
 
         {:ok, new_state} = ask_clean_session(new_state, timestamp)
-        MessageTracker.discard(new_state.message_tracker, message_id)
-
-        :telemetry.execute(
-          [:astarte, :data_updater_plant, :data_updater, :discarded_message],
-          %{},
-          %{realm: new_state.realm}
-        )
-
-        error_metadata = %{"reason" => inspect(reason)}
-
-        execute_device_error_triggers(new_state, "empty_cache_error", error_metadata, timestamp)
-
-        new_state
+        continue_arg = {:empty_cache_error, reason, timestamp}
+        {:discard, :empty_cache_error, new_state, {:continue, continue_arg}}
     end
   end
 
-  def handle_control(state, path, payload, message_id, timestamp) do
+  def handle_control(state, path, payload, timestamp) do
     Logger.warning(
       "Unexpected control on #{path}, base64-encoded payload: #{inspect(Base.encode64(payload))}",
       tag: "unexpected_control_message"
     )
 
     {:ok, new_state} = ask_clean_session(state, timestamp)
-    MessageTracker.discard(new_state.message_tracker, message_id)
+    continue_arg = {:unexpected_control_message, path, payload, timestamp}
+    {:discard, :unexpected_control_message, new_state, {:continue, continue_arg}}
+  end
 
+  @impl true
+  def handle_continue({failure, timestamp}, state)
+      when failure in [:session_not_found, :resend_interface_properties_failed] do
+    :telemetry.execute(
+      [:astarte, :data_updater_plant, :data_updater, :discarded_message],
+      %{},
+      %{realm: state.realm}
+    )
+
+    execute_device_error_triggers(state, Atom.to_string(failure), timestamp)
+
+    {:ok, state}
+  end
+
+  @impl true
+  def handle_continue({:empty_cache_error, reason, timestamp}, state) do
+    :telemetry.execute(
+      [:astarte, :data_updater_plant, :data_updater, :discarded_message],
+      %{},
+      %{realm: state.realm}
+    )
+
+    error_metadata = %{"reason" => inspect(reason)}
+
+    execute_device_error_triggers(state, "empty_cache_error", error_metadata, timestamp)
+
+    {:ok, state}
+  end
+
+  @impl true
+  def handle_continue({:unexpected_control_message, path, payload, timestamp}, state) do
     :telemetry.execute(
       [:astarte, :data_updater_plant, :data_updater, :discarded_control_message],
       %{},
-      %{realm: new_state.realm}
+      %{realm: state.realm}
     )
 
     base64_payload = Base.encode64(payload)
@@ -1749,13 +1746,14 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
     }
 
     execute_device_error_triggers(
-      new_state,
+      state,
       "unexpected_control_message",
       error_metadata,
       timestamp
     )
 
-    update_stats(new_state, "", nil, path, payload)
+    new_state = update_stats(state, "", nil, path, payload)
+    {:ok, new_state}
   end
 
   defp delete_volatile_trigger(
