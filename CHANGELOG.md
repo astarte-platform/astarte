@@ -6,6 +6,16 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 ### Added
+- [astarte_realm_management_api] Allow to list all interfaces definitions using 
+  the `detailed=true` parameter
+
+## [1.2.0] - 2024-07-02
+### Fixed
+- Forward port changes from release-1.1 (connection failure when delivering
+  triggers is handled as an error).
+
+## [1.2.0-rc.0] 11-06-2024
+### Added
 - [astarte_trigger_engine] Add `trigger_name` to envent payload
   and mustache template
 - Add support for limiting the number of registered devices in a realm.
@@ -34,8 +44,6 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - [astarte_realm_management_api] Allow to read realm's maximum datastream
   storage retention period with the `/config/datastream_maximum_storage_retention`
   endpoint.
-- [astarte_realm_management_api] Allow to list all interfaces definitions using 
-  the `detailed=true` parameter
 
 ### Changed
 - Forward port changes from release 1.1.
@@ -68,6 +76,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - [astarte_data_updater_plant] do not leak producer channels in corner cases.
 - [astarte_trigger_engine] Always treat event TTL for trigger policies in seconds,
   not milliseconds.
+- [astarte_trigger_engine] ack messages even with unreachable target (see https://github.com/astarte-platform/astarte/issues/936)
+- [astarte_appengine_api] Handle type casting for `longinteger` inputs
+- [astarte_appengine_api] refactor `device.ex` file - extract `cast_value` functions
+  into `InterfaceValue` module and add tests
 
 ## [1.1.1] - 2023-11-15
 ### Fixed

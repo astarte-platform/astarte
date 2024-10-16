@@ -24,6 +24,7 @@ defmodule Astarte.AppEngine.API.Device do
   alias Astarte.AppEngine.API.Device.DevicesListOptions
   alias Astarte.AppEngine.API.Device.DeviceStatus
   alias Astarte.AppEngine.API.Device.MapTree
+  alias Astarte.AppEngine.API.Device.InterfaceValue
   alias Astarte.AppEngine.API.Device.InterfaceValues
   alias Astarte.AppEngine.API.Device.InterfaceValuesOptions
   alias Astarte.AppEngine.API.Device.Queries
@@ -236,7 +237,7 @@ defmodule Astarte.AppEngine.API.Device do
     with {:ok, [endpoint_id]} <- get_endpoint_ids(interface_descriptor.automaton, path),
          mapping <-
            Queries.retrieve_mapping(client, interface_descriptor.interface_id, endpoint_id),
-         {:ok, value} <- cast_value(mapping.value_type, raw_value),
+         {:ok, value} <- InterfaceValue.cast_value(mapping.value_type, raw_value),
          :ok <- validate_value_type(mapping.value_type, value),
          wrapped_value = wrap_to_bson_struct(mapping.value_type, value),
          interface_type = interface_descriptor.type,
@@ -421,7 +422,7 @@ defmodule Astarte.AppEngine.API.Device do
            resolve_object_aggregation_path(path, interface_descriptor, mappings),
          endpoint_id <- endpoint.endpoint_id,
          expected_types <- extract_expected_types(mappings),
-         {:ok, value} <- cast_value(expected_types, raw_value),
+         {:ok, value} <- InterfaceValue.cast_value(expected_types, raw_value),
          :ok <- validate_value_type(expected_types, value),
          wrapped_value = wrap_to_bson_struct(expected_types, value),
          reliability = extract_aggregate_reliability(mappings),
@@ -687,117 +688,6 @@ defmodule Astarte.AppEngine.API.Device do
       {:error, reason} ->
         {:error, reason}
     end
-  end
-
-  defp cast_value(expected_types, object) when is_map(expected_types) and is_map(object) do
-    Enum.reduce_while(object, {:ok, %{}}, fn {key, value}, {:ok, acc} ->
-      with {:ok, expected_type} <- Map.fetch(expected_types, key),
-           {:ok, normalized_value} <- cast_value(expected_type, value) do
-        {:cont, {:ok, Map.put(acc, key, normalized_value)}}
-      else
-        {:error, reason, expected} ->
-          {:halt, {:error, reason, expected}}
-
-        :error ->
-          {:halt, {:error, :unexpected_object_key}}
-      end
-    end)
-  end
-
-  defp cast_value(:datetime, value) when is_binary(value) do
-    with {:ok, datetime, _utc_off} <- DateTime.from_iso8601(value) do
-      {:ok, datetime}
-    else
-      {:error, _reason} ->
-        {:error, :unexpected_value_type, expected: :datetime}
-    end
-  end
-
-  defp cast_value(:datetime, value) when is_integer(value) do
-    with {:ok, datetime} <- DateTime.from_unix(value, :millisecond) do
-      {:ok, datetime}
-    else
-      {:error, _reason} ->
-        {:error, :unexpected_value_type, expected: :datetime}
-    end
-  end
-
-  defp cast_value(:datetime, _value) do
-    {:error, :unexpected_value_type, expected: :datetime}
-  end
-
-  defp cast_value(:binaryblob, value) when is_binary(value) do
-    with {:ok, binvalue} <- Base.decode64(value) do
-      {:ok, binvalue}
-    else
-      :error ->
-        {:error, :unexpected_value_type, expected: :binaryblob}
-    end
-  end
-
-  defp cast_value(:binaryblob, _value) do
-    {:error, :unexpected_value_type, expected: :binaryblob}
-  end
-
-  defp cast_value(:datetimearray, values) do
-    case map_while_ok(values, &cast_value(:datetime, &1)) do
-      {:ok, mapped_values} ->
-        {:ok, mapped_values}
-
-      _ ->
-        {:error, :unexpected_value_type, expected: :datetimearray}
-    end
-  end
-
-  defp cast_value(:binaryblobarray, values) do
-    case map_while_ok(values, &cast_value(:binaryblob, &1)) do
-      {:ok, mapped_values} ->
-        {:ok, mapped_values}
-
-      _ ->
-        {:error, :unexpected_value_type, expected: :binaryblobarray}
-    end
-  end
-
-  # conversion adding 0.0 is required because anyvalue comes from a json value,
-  # that does not distinguish from double or int and automatically strip out trailing decimal zeroes
-  defp cast_value(:double, anyvalue) do
-    {:ok, anyvalue + 0.0}
-  end
-
-  defp cast_value(:doublearray, values) do
-    case map_while_ok(values, &cast_value(:double, &1)) do
-      {:ok, mapped_values} ->
-        {:ok, mapped_values}
-
-      _ ->
-        {:error, :unexpected_value_type, expected: :doublearray}
-    end
-  end
-
-  defp cast_value(_anytype, anyvalue) do
-    {:ok, anyvalue}
-  end
-
-  defp map_while_ok(values, fun) when is_list(values) do
-    result =
-      Enum.reduce_while(values, {:ok, []}, fn value, {:ok, acc} ->
-        case fun.(value) do
-          {:ok, mapped_value} ->
-            {:cont, {:ok, [mapped_value | acc]}}
-
-          other ->
-            {:halt, other}
-        end
-      end)
-
-    with {:ok, mapped_values} <- result do
-      {:ok, Enum.reverse(mapped_values)}
-    end
-  end
-
-  defp map_while_ok(_not_list_values, _fun) do
-    {:error, :values_is_not_a_list}
   end
 
   defp wrap_to_bson_struct(:binaryblob, value) do
