@@ -29,12 +29,12 @@ jobs:
     runs-on: ubuntu-22.04
     steps:
     - uses: actions/checkout@v2
-    - name: Initialize docker-compose files
+    - name: Initialize docker compose files
       run: docker run -v $(pwd)/compose:/compose astarte/docker-compose-initializer
     - name: Build Astarte containers
-      run: docker-compose build --parallel
+      run: docker compose build --parallel
     - name: Start all Astarte services
-      run: docker-compose up -d
+      run: docker compose up -d
     - name: Wait for Astarte to come up
       run: |
         wget https://github.com/astarte-platform/wait-for-astarte-docker-compose/releases/download/v1.1.0/wait-for-astarte-docker-compose_1.1.0_linux_amd64.tar.gz
@@ -100,6 +100,6 @@ jobs:
     - name: Check Docker
       if: ${{ failure() }}
       run: |
-        docker-compose logs
+        docker compose logs
     - name: Bring down Astarte docker-compose
-      run: docker-compose down
+      run: docker compose down
