@@ -19,7 +19,7 @@
 defmodule Astarte.DataUpdaterPlant.DataPipelineSupervisor do
   use Supervisor
 
-  alias Astarte.DataUpdaterPlant.ConsumersSupervisor
+  alias Astarte.DataUpdaterPlant.DeletionScheduler
   alias Astarte.DataUpdaterPlant.AMQPEventsProducer
   alias Astarte.DataUpdaterPlant.RPC.Handler
   alias Astarte.DataUpdaterPlant.Config
@@ -39,7 +39,7 @@ defmodule Astarte.DataUpdaterPlant.DataPipelineSupervisor do
        rabbitmq_config: Config.amqp_producer_options!(),
        connection_pools: [Config.events_producer_pool_config!()]},
       AMQPEventsProducer,
-      ConsumersSupervisor,
+      DeletionScheduler,
       {Astarte.RPC.AMQP.Server, [amqp_queue: Protocol.amqp_queue(), handler: Handler]},
       Astarte.RPC.AMQP.Client
     ]
