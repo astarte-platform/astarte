@@ -491,6 +491,83 @@ defmodule Astarte.Import.PopulateDB do
     end
   end
 
+  defp to_native_type(value_chars, :doublearray) do
+    with doublearray_string = to_string(value_chars),
+         {:ok, doublearray_list} <- Jason.decode(doublearray_string),
+         true <- Enum.all?(doublearray_list, &is_number/1) do
+      {:ok, doublearray_list}
+    else
+      _any ->
+        {:error, :invalid_value}
+    end
+  end
+
+  defp to_native_type(value_chars, :integerarray) do
+    with integerarray_string = to_string(value_chars),
+         {:ok, integerarray_list} <- Jason.decode(integerarray_string),
+         true <- Enum.all?(integerarray_list, &is_number/1) do
+      {:ok, integerarray_list}
+    else
+      _any ->
+        {:error, :invalid_value}
+    end
+  end
+
+  defp to_native_type(value_chars, :booleanarray) do
+    with booleanarray_string = to_string(value_chars),
+         {:ok, booleanarray_list} <- Jason.decode(booleanarray_string),
+         true <- Enum.all?(booleanarray_list, &is_boolean/1) do
+      {:ok, booleanarray_list}
+    else
+      _any ->
+        {:error, :invalid_value}
+    end
+  end
+
+  defp to_native_type(value_chars, :longintegerarray) do
+    with longintegerarray_string = to_string(value_chars),
+         {:ok, longintegerarray_list} <- Jason.decode(longintegerarray_string),
+         true <- Enum.all?(longintegerarray_list, &is_integer/1) do
+      {:ok, longintegerarray_list}
+    else
+      _any ->
+        {:error, :invalid_value}
+    end
+  end
+
+  defp to_native_type(value_chars, :stringarray) do
+    with string = to_string(value_chars),
+         {:ok, stringarray_list} <- Jason.decode(string),
+         true <- Enum.all?(stringarray_list, &is_binary/1) do
+      {:ok, stringarray_list}
+    else
+      _any ->
+        {:error, :invalid_value}
+    end
+  end
+
+  defp to_native_type(value_chars, :datetimearray) do
+    with datetimearray_string = to_string(value_chars),
+         {:ok, datetimearray_list} <- Jason.decode(datetimearray_string),
+         datetime_list <- Enum.map(datetimearray_list, &DateTime.from_iso8601/1) do
+      {:ok, Enum.map(datetime_list, fn {:ok, datetime, 0} -> datetime end)}
+    else
+      _any ->
+        {:error, :invalid_value}
+    end
+  end
+
+  defp to_native_type(value_chars, :binaryblobarray) do
+    with binaryblobarray_string = to_string(value_chars),
+         {:ok, binaryblobarray_list} <- Jason.decode(binaryblobarray_string),
+         binary_list <- Enum.map(binaryblobarray_list, &Base.decode64/1) do
+      {:ok, Enum.map(binary_list, fn {:ok, binary} -> binary end)}
+    else
+      _any ->
+        {:error, :invalid_value}
+    end
+  end
+
   defp to_native_type(values, expected_types) when is_map(values) and is_map(expected_types) do
     obj =
       Enum.reduce(values, %{}, fn {"/" <> key, value}, acc ->
