@@ -154,7 +154,8 @@ Additional properties are allowed.
 The template of the path. This is a UNIX-like path (e.g. /my/path) and can be parametrized.
 Parameters are in the %{name} form, and can be used to create interfaces which represent
 dictionaries of mappings. When the interface aggregation is object, an object is composed by all the
-mappings for one specific parameter combination.
+mappings for one specific parameter combination. Refer to the mapping section of the
+[interface](030-interface.html) page for further details on allowed parameter substitution values.
 
 * **Type**: `string`
 * **Required**: Yes

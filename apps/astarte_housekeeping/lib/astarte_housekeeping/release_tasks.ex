@@ -117,13 +117,4 @@ defmodule Astarte.Housekeeping.ReleaseTasks do
 
     :ok
   end
-
-  defp stop_services do
-    _ =
-      Logger.info("Astarte database correctly initialized",
-        tag: "astarte_db_initialization_finished"
-      )
-
-    :init.stop()
-  end
 end

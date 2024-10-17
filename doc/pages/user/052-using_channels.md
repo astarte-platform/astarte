@@ -6,6 +6,9 @@ provide such a thing over [WebSockets](https://en.wikipedia.org/wiki/WebSocket) 
 WebSockets can be used natively from a Web Browser and follow the same authentication pattern as a
 standard HTTP call.
 
+The AppEngine API for Astarte Channels is located at the URL:
+`ws://<astarte-base-url>/appengine/v1/socket/websocket`.
+
 Astarte Channels define a semantic on top of Phoenix Channels which allows read-only monitoring of
 `device` Interfaces. Authentication and Authorization over Channels happens in the very same way as
 `AppEngine`, and the `a_ch` claim in the token is respected when joining rooms and installing
