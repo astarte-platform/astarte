@@ -8,48 +8,334 @@ docker run -e CASSANDRA_DB_HOST=127.0.0.1 -e CASSANDRA_DB_PORT=9042 \
  --net=host astarte/astarte_import
 ```
 
-The following example is a valid Astarte Import XML file:
 ```xml
-<?xml version="1.0" encoding="UTF-8"?>
 <astarte>
-  <devices>
-    <device device_id="yKA3CMd07kWaDyj6aMP4Dg">
-      <protocol revision="0" pending_empty_cache="false" />
-      <registration secret_bcrypt_hash="$2b$12$bKly9EEKmxfVyDeXjXu1vOebWgr34C8r4IHd9Cd.34Ozm0TWVo1Ve" first_registration="2019-05-30T13:49:57.045000Z" />
-      <credentials inhibit_request="false" cert_serial="324725654494785828109237459525026742139358888604" cert_aki="a8eaf08a797f0b10bb9e7b5dca027ec2571c5ea6" first_credentials_request="2019-05-30T13:49:57.355000Z" last_credentials_request_ip="198.51.100.1" />
-      <stats total_received_msgs="64" total_received_bytes="3960" last_connection="2019-05-30T13:49:57.561000Z" last_disconnection="2019-05-30T13:51:00.038000Z" last_seen_ip="198.51.100.89" />
-      <interfaces>
-        <interface name="org.astarteplatform.Values" major_version="0" minor_version="1" active="true">
-          <datastream path="/realValue">
-            <value reception_timestamp="2019-05-31T09:12:42.789379Z">0.1</value>
-            <value reception_timestamp="2019-05-31T09:13:29.144111Z">0.2</value>
-            <value reception_timestamp="2019-05-31T09:13:52.040373Z">0.3</value>
-          </datastream>
-        </interface>
-        <interface name="org.astarteplatform.ValuesXYZ" major_version="0" minor_version="1" active="true">
-          <datastream path="/realValues">
-            <object reception_timestamp="2019-06-11T13:24:03.200820Z">
-              <item name="/x">0.1</item>
-              <item name="/y">0.2</item>
-              <item name="/z">0.3</item>
-            </object>
-            <object reception_timestamp="2019-06-11T13:26:28.994144Z">
-              <item name="/x">1.0</item>
-              <item name="/y">2.0</item>
-              <item name="/z">3.0</item>
-            </object>
-            <object reception_timestamp="2019-06-11T13:26:44.218092Z">
-              <item name="/x">10</item>
-              <item name="/y">20</item>
-              <item name="/z">30</item>
-            </object>
-          </datastream>
-        </interface>
-        <interface name="org.astarteplatform.PropertyValue" major_version="0" minor_version="1" active="true">
-          <property path="/realValue" reception_timestamp="2019-06-12T14:45:49.706034Z">4.2</property>
-        </interface>
-      </interfaces>
-    </device>
-  </devices>
+<devices>
+<device device_id="yKA3CMd07kWaDyj6aMP4Dg">
+  <protocol pending_empty_cache="false" revision="0"></protocol>
+  <registration first_registration="2024-05-30T13:49:57.045Z" secret_bcrypt_hash="$2b$12$bKly9EEKmxfVyDeXjXu1vOebWgr34C8r4IHd9Cd.34Ozm0TWVo1Ve"></registration>
+  <credentials cert_aki="a8eaf08a797f0b10bb9e7b5dca027ec2571c5ea6" cert_serial="324725654494785828109237459525026742139358888604" first_credentials_request="2024-05-30T13:49:57.355Z" inhibit_request="false"></credentials>
+  <stats last_connection="2024-05-30T13:49:57.561Z" last_disconnection="2024-05-30T13:51:00.038Z" last_seen_ip="198.51.100.89" total_received_bytes="3960" total_received_msgs="64"></stats>
+  <interfaces>
+    <interface active="true" major_version="0" minor_version="1" name="test.individual.parametric.Datastream">
+      <datastream path="/a/boolean">
+        <value reception_timestamp="2024-09-09T09:00:00.000Z">true</value>
+      </datastream>
+      <datastream path="/a/integer">
+        <value reception_timestamp="2024-09-09T09:00:00.000Z">123</value>
+      </datastream>
+      <datastream path="/a/double">
+        <value reception_timestamp="2024-09-09T09:00:00.000Z">123.45</value>
+      </datastream>
+      <datastream path="/a/longinteger">
+        <value reception_timestamp="2024-09-09T09:00:00.000Z">123456789012345</value>
+      </datastream>
+      <datastream path="/a/string">
+        <value reception_timestamp="2024-09-09T09:00:00.000Z">example string</value>
+      </datastream>
+      <datastream path="/a/binaryblob">
+        <value reception_timestamp="2024-09-09T09:00:00.000Z">aGVsbG8gd29ybGQ=</value>
+      </datastream>
+      <datastream path="/a/datetime">
+        <value reception_timestamp="2024-09-09T09:00:00.000Z">2024-10-17T13:25:19.130Z</value>
+      </datastream>
+      <datastream path="/a/doublearray">
+        <value reception_timestamp="2024-09-09T09:00:00.000Z">[123.45, 678.90]</value>
+      </datastream>
+      <datastream path="/a/integerarray">
+        <value reception_timestamp="2024-09-09T09:00:00.000Z">[123, 456]</value>
+      </datastream>
+      <datastream path="/a/booleanarray">
+        <value reception_timestamp="2024-09-09T09:00:00.000Z">[true, false]</value>
+      </datastream>
+      <datastream path="/a/longintegerarray">
+        <value reception_timestamp="2024-09-09T09:00:00.000Z">[123456789012345, 678901234567890]</value>
+      </datastream>
+      <datastream path="/a/stringarray">
+        <value reception_timestamp="2024-09-09T09:00:00.000Z">["string1", "string2"]</value>
+      </datastream>
+      <datastream path="/a/datetimearray">
+        <value reception_timestamp="2024-09-09T09:00:00.000Z">["2024-10-17T13:25:19.130Z", "2024-10-16T13:25:19.130Z"]</value>
+      </datastream>
+      <datastream path="/a/binaryblobarray">
+        <value reception_timestamp="2024-09-09T09:00:00.000Z">["aGVsbG8gd29ybGQ=", "d29ybGQgaGVsbG8="]</value>
+      </datastream>
+    <interface active="true" major_version="0" minor_version="1" name="test.object.parametric.Datastream">
+      <datastream path="/a">
+        <object reception_timestamp="2024-09-09T09:00:00.000Z">
+          <item name="/boolean">true</item>
+          <item name="/integer">123</item>
+          <item name="/double">123.45</item>
+          <item name="/longinteger">123456789012345</item>
+          <item name="/string">example string</item>
+          <item name="/binaryblob">aGVsbG8gd29ybGQ=</item>
+          <item name="/datetime">2024-10-17T13:25:19.130Z</item>
+          <item name="/doublearray">[123.45, 678.90]</item>
+          <item name="/integerarray">[123, 456]</item>
+          <item name="/booleanarray">[true, false]</item>
+          <item name="/longintegerarray">[123456789012345, 678901234567890]</item>
+          <item name="/stringarray">["string1", "string2"]</item>
+          <item name="/datetimearray">["2024-10-17T13:25:19.130Z", "2024-10-16T13:25:19.130Z"]</item>
+          <item name="/binaryblobarray">["aGVsbG8gd29ybGQ=", "d29ybGQgaGVsbG8="]</item>
+        </object>
+      </datastream>
+    </interface>
+    <interface active="true" major_version="0" minor_version="1" name="test.parametric.Properties">
+      <property path="/a/boolean" reception_timestamp="2024-09-09T09:00:00.000Z">true</property>
+      <property path="/a/integer" reception_timestamp="2024-09-09T09:00:00.000Z">123</property>
+      <property path="/a/double" reception_timestamp="2024-09-09T09:00:00.000Z">123.45</property>
+      <property path="/a/longinteger" reception_timestamp="2024-09-09T09:00:00.000Z">123456789012345</property>
+      <property path="/a/string" reception_timestamp="2024-09-09T09:00:00.000Z">example string</property>
+      <property path="/a/binaryblob" reception_timestamp="2024-09-09T09:00:00.000Z">aGVsbG8gd29ybGQ=</property>
+      <property path="/a/datetime" reception_timestamp="2024-09-09T09:00:00.000Z">2024-10-17T13:25:19.130Z</property>
+      <property path="/a/doublearray" reception_timestamp="2024-09-09T09:00:00.000Z">[123.45, 678.90]</property>
+      <property path="/a/integerarray" reception_timestamp="2024-09-09T09:00:00.000Z">[123, 456]</property>
+      <property path="/a/booleanarray" reception_timestamp="2024-09-09T09:00:00.000Z">[true, false]</property>
+      <property path="/a/longintegerarray" reception_timestamp="2024-09-09T09:00:00.000Z">[123456789012345, 678901234567890]</property>
+      <property path="/a/stringarray" reception_timestamp="2024-09-09T09:00:00.000Z">["string1", "string2"]</property>
+      <property path="/a/datetimearray" reception_timestamp="2024-09-09T09:00:00.000Z">["2024-10-17T13:25:19.130Z", "2024-10-16T13:25:19.130Z"]<property>
+      <property path="/a/binaryblobarray" reception_timestamp="2024-09-09T09:00:00.000Z">["aGVsbG8gd29ybGQ=", "d29ybGQgaGVsbG8="]</property>
+    </interface>
+  </interfaces>
+</device>
+</devices>
 </astarte>
+```
+
+### Interfaces for import data in Astarte
+
+``` json
+{
+    "interface_name": "test.individual.parametric.Datastream",
+    "version_major": 1,
+    "version_minor": 0,
+    "type": "datastream",
+    "ownership": "device",
+    "description": "A device-owned datastream interface with individual aggregation and parametric endpoint.",
+    "mappings": [
+        {
+            "endpoint": "/%{parameter}/boolean",
+            "type": "boolean",
+            "explicit_timestamp": true
+        },
+        {
+            "endpoint": "/%{parameter}/integer",
+            "type": "integer",
+            "explicit_timestamp": true
+        },
+        {
+            "endpoint": "/%{parameter}/double",
+            "type": "double",
+            "explicit_timestamp": true
+        },
+        {
+            "endpoint": "/%{parameter}/longinteger",
+            "type": "longinteger",
+            "explicit_timestamp": true
+        },
+        {
+            "endpoint": "/%{parameter}/string",
+            "type": "string",
+            "explicit_timestamp": true
+        },
+        {
+            "endpoint": "/%{parameter}/binaryblob",
+            "type": "binaryblob",
+            "explicit_timestamp": true
+        },
+        {
+            "endpoint": "/%{parameter}/datetime",
+            "type": "datetime",
+            "explicit_timestamp": true
+        },
+        {
+            "endpoint": "/%{parameter}/doublearray",
+            "type": "doublearray",
+            "explicit_timestamp": true
+        },
+        {
+            "endpoint": "/%{parameter}/integerarray",
+            "type": "integerarray",
+            "explicit_timestamp": true
+        },
+        {
+            "endpoint": "/%{parameter}/booleanarray",
+            "type": "booleanarray",
+            "explicit_timestamp": true
+        },
+        {
+            "endpoint": "/%{parameter}/longintegerarray",
+            "type": "longintegerarray",
+            "explicit_timestamp": true
+        },
+        {
+            "endpoint": "/%{parameter}/stringarray",
+            "type": "stringarray",
+            "explicit_timestamp": true
+        },
+        {
+            "endpoint": "/%{parameter}/datetimearray",
+            "type": "datetimearray",
+            "explicit_timestamp": true
+        },
+        {
+            "endpoint": "/%{parameter}/binaryblobarray",
+            "type": "binaryblobarray",
+            "explicit_timestamp": true
+        }
+    ]
+}
+```
+``` json
+{
+    "interface_name": "test.object.parametric.Datastream",
+    "version_major": 1,
+    "version_minor": 0,
+    "type": "datastream",
+    "ownership": "device",
+    "aggregation": "object",
+    "description": "A device-owned datastream interface with object aggregation and parametric endpoint.",
+    "mappings": [
+        {
+            "endpoint": "/%{parameter}/boolean",
+            "type": "boolean",
+            "explicit_timestamp": true
+        },
+        {
+            "endpoint": "/%{parameter}/integer",
+            "type": "integer",
+            "explicit_timestamp": true
+        },
+        {
+            "endpoint": "/%{parameter}/double",
+            "type": "double",
+            "explicit_timestamp": true
+        },
+        {
+            "endpoint": "/%{parameter}/longinteger",
+            "type": "longinteger",
+            "explicit_timestamp": true
+        },
+        {
+            "endpoint": "/%{parameter}/string",
+            "type": "string",
+            "explicit_timestamp": true
+        },
+        {
+            "endpoint": "/%{parameter}/binaryblob",
+            "type": "binaryblob",
+            "explicit_timestamp": true
+        },
+        {
+            "endpoint": "/%{parameter}/datetime",
+            "type": "datetime",
+            "explicit_timestamp": true
+        },
+        {
+            "endpoint": "/%{parameter}/doublearray",
+            "type": "doublearray",
+            "explicit_timestamp": true
+        },
+        {
+            "endpoint": "/%{parameter}/integerarray",
+            "type": "integerarray",
+            "explicit_timestamp": true
+        },
+        {
+            "endpoint": "/%{parameter}/booleanarray",
+            "type": "booleanarray",
+            "explicit_timestamp": true
+        },
+        {
+            "endpoint": "/%{parameter}/longintegerarray",
+            "type": "longintegerarray",
+            "explicit_timestamp": true
+        },
+        {
+            "endpoint": "/%{parameter}/stringarray",
+            "type": "stringarray",
+            "explicit_timestamp": true
+        },
+        {
+            "endpoint": "/%{parameter}/datetimearray",
+            "type": "datetimearray",
+            "explicit_timestamp": true
+        },
+        {
+            "endpoint": "/%{parameter}/binaryblobarray",
+            "type": "binaryblobarray",
+            "explicit_timestamp": true
+        }
+    ]
+}
+
+```
+
+```json
+{
+    "interface_name": "test.parametric.Properties",
+    "version_major": 1,
+    "version_minor": 0,
+    "type": "properties",
+    "ownership": "device",
+    "description": "A device-owned properties interface with individual aggregation and parametric endpoint.",
+    "mappings": [
+        {
+            "endpoint": "/%{parameter}/boolean",
+            "type": "boolean"
+        },
+        {
+            "endpoint": "/%{parameter}/integer",
+            "type": "integer"
+        },
+        {
+            "endpoint": "/%{parameter}/double",
+            "type": "double"
+        },
+        {
+            "endpoint": "/%{parameter}/longinteger",
+            "type": "longinteger"
+        },
+        {
+            "endpoint": "/%{parameter}/string",
+            "type": "string"
+        },
+        {
+            "endpoint": "/%{parameter}/binaryblob",
+            "type": "binaryblob"
+        },
+        {
+            "endpoint": "/%{parameter}/datetime",
+            "type": "datetime"
+        },
+        {
+            "endpoint": "/%{parameter}/doublearray",
+            "type": "doublearray"
+        },
+        {
+            "endpoint": "/%{parameter}/integerarray",
+            "type": "integerarray"
+        },
+        {
+            "endpoint": "/%{parameter}/booleanarray",
+            "type": "booleanarray"
+        },
+        {
+            "endpoint": "/%{parameter}/longintegerarray",
+            "type": "longintegerarray"
+        },
+        {
+            "endpoint": "/%{parameter}/stringarray",
+            "type": "stringarray"
+        },
+        {
+            "endpoint": "/%{parameter}/datetimearray",
+            "type": "datetimearray"
+        },
+        {
+            "endpoint": "/%{parameter}/binaryblobarray",
+            "type": "binaryblobarray"
+        }
+    ]
+}
 ```
