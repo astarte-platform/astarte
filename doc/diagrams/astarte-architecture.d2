@@ -1,0 +1,132 @@
+astarte: Astarte Core Services {
+  auth: Auth management {
+    cfssl: CFSSL {
+      shape: image
+      icon: https://icons.terrastruct.com/essentials%2F216-key.svg
+      tooltip: Manages CA / PKI
+    }
+    pairing: Pairing {
+      shape: image
+      icon: https://icons.terrastruct.com/essentials%2F204-settings.svg
+      tooltip: Manages Device Auth, interacts with CA to issue certificates and secrets
+    }
+  }
+  ingress: Data ingress {
+    vernemq: VerneMQ / MQTT {
+      shape: image
+      icon: https://icons.terrastruct.com/infra%2F041-tower.svg
+      tooltip: Transports validate Devices with CA and forward messages to AMQP
+    }
+  }
+  ingestion: Data ingestion {
+    data_updater_plant: Data Updater Plant {
+      shape: image
+      icon: https://icons.terrastruct.com/essentials%2F204-settings.svg
+      tooltip: Ensures correct ingestion of valid messages
+    }
+    cassandra: Cassandra / Scylla {
+      shape: image
+      icon: https://icons.terrastruct.com/essentials%2F117-database.svg
+      tooltip: Stores messages for future retrieval
+    }
+  }
+  exchange: Data exchange {
+    trigger_engine: Trigger Engine {
+      shape: image
+      icon: https://icons.terrastruct.com/essentials%2F204-settings.svg
+      tooltip: Processes triggers: subscriptions to messages that result into HTTP or AMQP actions
+    }
+    appengine: Appengine {
+      shape: image
+      icon: https://icons.terrastruct.com/essentials%2F204-settings.svg
+      tooltip: Main endpoint to exchange data with Devices
+    }
+  }
+  management: Service management {
+    realm_management: Realm Management {
+      shape: image
+      icon: https://icons.terrastruct.com/essentials%2F204-settings.svg
+      tooltip: Manages Interfaces and Triggers within each Realm
+    }
+    housekeeping: Housekeeping {
+      shape: image
+      icon: https://icons.terrastruct.com/essentials%2F204-settings.svg
+      tooltip: Manages Realms and cluster maintenance
+    }
+  }
+}
+
+ai: Astarte AI {
+  flow: Astarte Flow {
+    shape: image
+    icon: https://icons.terrastruct.com/essentials%2F204-settings.svg
+    tooltip: Manages Pipelines for AI processing on data
+  }
+}
+
+clients: Astarte clients {
+  astartectl: astartectl {
+    shape: image
+    icon: https://icons.terrastruct.com/tech%2F065-monitor-4.svg
+    tooltip: CLI tool to interact with Astarte services
+  }
+  dashboard: Astarte Dashboard {
+    shape: image
+    icon: https://icons.terrastruct.com/tech%2F065-monitor-4.svg
+    tooltip: Graphical tool to interact with Astarte services
+  }
+  grafana: Grafana {
+    shape: image
+    icon: https://icons.terrastruct.com/tech%2F065-monitor-4.svg
+    tooltip: Used to aggregate and visualize devices data
+  }
+}
+
+devices: IoT Devices {
+  manufacturer_device: Device {
+    shape: image
+    icon: https://icons.terrastruct.com/tech%2F014-cpu.svg
+    tooltip: Devices are registered and authorized by Pairing
+  }
+  iot_device: Device {
+    shape: image
+    icon: https://icons.terrastruct.com/tech%2F014-cpu.svg
+    tooltip: Devices advertise Interfaces and exchange messages via a Transport
+  }
+}
+
+apps: 3rd party Apps {
+  android_app: Android App {
+    shape: image
+    icon: https://icons.terrastruct.com/tech%2F052-smartphone-3.svg
+    tooltip: Apps can listen to real-time events via Channels (WebSockets)
+  }
+  ios_app: iOS App {
+    shape: image
+    icon: https://icons.terrastruct.com/tech%2F052-smartphone-3.svg
+    tooltip: Apps can request data from Devices via REST APIs
+  }
+  backend: Backend {
+    shape: image
+    icon: https://icons.terrastruct.com/tech/022-server.svg
+    tooltip: Can listen to real-time events via Web Hooks
+  }
+}
+
+astarte.auth.pairing -> astarte.auth.cfssl
+astarte.ingress.vernemq -> astarte.auth.cfssl
+astarte.ingress.vernemq -> astarte.ingestion.data_updater_plant
+astarte.ingestion.data_updater_plant -> astarte.ingestion.cassandra
+astarte.ingestion.data_updater_plant -> astarte.exchange.trigger_engine
+astarte.exchange.appengine -> astarte.ingestion.cassandra
+astarte.management.realm_management -> astarte.ingestion.cassandra
+astarte.management.housekeeping -> astarte.ingestion.cassandra
+devices.iot_device -> astarte.ingress.vernemq
+devices.manufacturer_device -> astarte.auth.pairing
+clients.astartectl -> astarte.management.housekeeping
+clients.dashboard -> astarte.management.realm_management
+clients.grafana <- astarte.exchange.appengine
+astarte.ingestion.data_updater_plant -> ai.flow
+apps.backend <- astarte.exchange.trigger_engine
+apps.android_app <- astarte.exchange.appengine
+apps.ios_app -> astarte.exchange.appengine
