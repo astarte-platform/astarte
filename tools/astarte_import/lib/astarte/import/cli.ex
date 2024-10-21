@@ -22,9 +22,8 @@ defmodule Astarte.Import.CLI do
 
   @chunk_size 4096
 
-  def main(args) do
+  def main([realm, file_name]) do
     with {:started, {:ok, _}} <- {:started, Application.ensure_all_started(:astarte_import)},
-         [realm, file_name] <- args,
          true <- String.valid?(realm),
          true <- String.valid?(file_name),
          {:ok, file} <- File.open(file_name, [:read]),
@@ -34,33 +33,15 @@ defmodule Astarte.Import.CLI do
           {data, state}
         else
           :eof ->
-            {"", state}
-
-          {:error, reason} ->
-            Logger.error("Cannot read #{file_name}: #{inspect(reason)}.", realm: realm)
-            throw({:error, :cannot_read})
-
-          any ->
-            Logger.error("Cannot read #{file_name}. unexpected: #{inspect(any)}.", realm: realm)
-            throw({:error, :cannot_read})
+            {nil, state}
         end
       end
 
+      # Call the populate function with the necessary arguments
       PopulateDB.populate(realm, data, more_data)
     else
-      {:started, {:error, reason}} ->
-        Logger.error("Cannot ensure all applications startup: #{inspect(reason)}")
-
-      {:error, :enoent} ->
-        [realm, file_name] = args
-        Logger.error("File not found: #{file_name}.", realm: realm)
-
-      {:error, :eacces} ->
-        [realm, file_name] = args
-        Logger.error("Cannot access: #{file_name}.", realm: realm)
-
-      any ->
-        Logger.error("Invalid args: #{inspect(any)}. exiting.")
+      error ->
+        Logger.error("Failed to start import: #{inspect(error)}")
     end
   end
 end

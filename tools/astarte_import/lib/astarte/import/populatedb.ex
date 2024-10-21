@@ -22,7 +22,6 @@ defmodule Astarte.Import.PopulateDB do
   alias Astarte.Core.InterfaceDescriptor
   alias Astarte.Core.Mapping
   alias Astarte.Core.Mapping.EndpointsAutomaton
-  alias Astarte.DataAccess.Database
   alias Astarte.DataAccess.Interface
   alias Astarte.DataAccess.Mappings
   alias Astarte.Import
@@ -48,11 +47,8 @@ defmodule Astarte.Import.PopulateDB do
     nodes = Application.get_env(:cqerl, :cassandra_nodes)
     {host, port} = Enum.random(nodes)
     Logger.info("Connecting to #{host}:#{port} cassandra database.", realm: realm)
-    opts = [cassandra_nodes: nodes, realm: realm]
-    {:ok, conn} = Database.connect(opts)
-    {:ok, xandra_conn} = Xandra.start_link(nodes: ["#{host}:#{port}"])
 
-    Logger.info("Connected to database.", realm: realm)
+    {:ok, xandra_conn} = Xandra.start_link(nodes: ["#{host}:#{port}"])
 
     got_interface_fun = fn %Import.State{data: data} = state, interface_name, major, minor ->
       Logger.info("Importing data for #{interface_name} v#{major}.#{minor}.",
@@ -60,8 +56,8 @@ defmodule Astarte.Import.PopulateDB do
         device_id: state.device_id
       )
 
-      {:ok, interface_desc} = Interface.fetch_interface_descriptor(conn, interface_name, major)
-      {:ok, mappings} = Mappings.fetch_interface_mappings(conn, interface_desc.interface_id)
+      {:ok, interface_desc} = Interface.fetch_interface_descriptor(realm, interface_name, major)
+      {:ok, mappings} = Mappings.fetch_interface_mappings(realm, interface_desc.interface_id)
 
       %Import.State{
         state
