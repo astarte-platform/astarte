@@ -242,9 +242,7 @@ const astarteDeviceEventBody = (event: AstarteDeviceEvent) => {
         </Badge>
         <span className="mr-2">{event.interfaceName}</span>
         <span className="mr-2">{event.path}</span>
-        <span className="mr-2 text-monospace">
-          {_.isObject(event.value) ? JSON.stringify(event.value) : event.value}
-        </span>
+        <span className="mr-2 text-monospace">{JSON.stringify(event.value)}</span>
       </>
     );
   }
