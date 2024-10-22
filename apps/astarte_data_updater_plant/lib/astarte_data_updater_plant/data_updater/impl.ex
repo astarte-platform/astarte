@@ -421,56 +421,6 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
     {:discard, :unexpected_internal_message, new_state, {:continue, continue_arg}}
   end
 
-  @impl true
-  def handle_continue({:unexpected_internal_message, payload, path, timestamp}, state) do
-    :telemetry.execute(
-      [:astarte, :data_updater_plant, :data_updater, :discarded_internal_message],
-      %{},
-      %{realm: state.realm}
-    )
-
-    base64_payload = Base.encode64(payload)
-
-    error_metadata = %{
-      "path" => inspect(path),
-      "base64_payload" => base64_payload
-    }
-
-    # TODO maybe we don't want triggers on unexpected internal messages?
-    execute_device_error_triggers(
-      state,
-      "unexpected_internal_message",
-      error_metadata,
-      timestamp
-    )
-
-    {:ok, update_stats(state, "", nil, path, payload)}
-  end
-
-  @impl true
-  def handle_continue({:invalid_introspection, payload, timestamp}, state) do
-    :telemetry.execute(
-      [:astarte, :data_updater_plant, :data_updater, :discarded_introspection],
-      %{},
-      %{realm: state.realm}
-    )
-
-    base64_payload = Base.encode64(payload)
-
-    error_metadata = %{
-      "base64_payload" => base64_payload
-    }
-
-    execute_device_error_triggers(
-      state,
-      "invalid_introspection",
-      error_metadata,
-      timestamp
-    )
-
-    {:ok, update_stats(state, "", nil, "", payload)}
-  end
-
   def handle_introspection(%State{discard_messages: true} = state, _, _) do
     {:ack, :discard_messages, state}
   end
@@ -1015,6 +965,56 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
   end
 
   @impl true
+  def handle_continue({:unexpected_internal_message, payload, path, timestamp}, state) do
+    :telemetry.execute(
+      [:astarte, :data_updater_plant, :data_updater, :discarded_internal_message],
+      %{},
+      %{realm: state.realm}
+    )
+
+    base64_payload = Base.encode64(payload)
+
+    error_metadata = %{
+      "path" => inspect(path),
+      "base64_payload" => base64_payload
+    }
+
+    # TODO maybe we don't want triggers on unexpected internal messages?
+    execute_device_error_triggers(
+      state,
+      "unexpected_internal_message",
+      error_metadata,
+      timestamp
+    )
+
+    {:ok, update_stats(state, "", nil, path, payload)}
+  end
+
+  @impl true
+  def handle_continue({:invalid_introspection, payload, timestamp}, state) do
+    :telemetry.execute(
+      [:astarte, :data_updater_plant, :data_updater, :discarded_introspection],
+      %{},
+      %{realm: state.realm}
+    )
+
+    base64_payload = Base.encode64(payload)
+
+    error_metadata = %{
+      "base64_payload" => base64_payload
+    }
+
+    execute_device_error_triggers(
+      state,
+      "invalid_introspection",
+      error_metadata,
+      timestamp
+    )
+
+    {:ok, update_stats(state, "", nil, "", payload)}
+  end
+
+  @impl true
   def handle_continue({:processed_message, interface_descriptor, interface, path, payload}, state) do
     :telemetry.execute(
       [:astarte, :data_updater_plant, :data_updater, :processed_message],
@@ -1118,6 +1118,61 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
     )
 
     new_state = update_stats(state, interface, nil, path, payload)
+    {:ok, new_state}
+  end
+
+  @impl true
+  def handle_continue({failure, timestamp}, state)
+      when failure in [:session_not_found, :resend_interface_properties_failed] do
+    :telemetry.execute(
+      [:astarte, :data_updater_plant, :data_updater, :discarded_message],
+      %{},
+      %{realm: state.realm}
+    )
+
+    execute_device_error_triggers(state, Atom.to_string(failure), timestamp)
+
+    {:ok, state}
+  end
+
+  @impl true
+  def handle_continue({:empty_cache_error, reason, timestamp}, state) do
+    :telemetry.execute(
+      [:astarte, :data_updater_plant, :data_updater, :discarded_message],
+      %{},
+      %{realm: state.realm}
+    )
+
+    error_metadata = %{"reason" => inspect(reason)}
+
+    execute_device_error_triggers(state, "empty_cache_error", error_metadata, timestamp)
+
+    {:ok, state}
+  end
+
+  @impl true
+  def handle_continue({:unexpected_control_message, path, payload, timestamp}, state) do
+    :telemetry.execute(
+      [:astarte, :data_updater_plant, :data_updater, :discarded_control_message],
+      %{},
+      %{realm: state.realm}
+    )
+
+    base64_payload = Base.encode64(payload)
+
+    error_metadata = %{
+      "path" => inspect(path),
+      "base64_payload" => base64_payload
+    }
+
+    execute_device_error_triggers(
+      state,
+      "unexpected_control_message",
+      error_metadata,
+      timestamp
+    )
+
+    new_state = update_stats(state, "", nil, path, payload)
     {:ok, new_state}
   end
 
@@ -1658,61 +1713,6 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
     {:ok, new_state} = ask_clean_session(state, timestamp)
     continue_arg = {:unexpected_control_message, path, payload, timestamp}
     {:discard, :unexpected_control_message, new_state, {:continue, continue_arg}}
-  end
-
-  @impl true
-  def handle_continue({failure, timestamp}, state)
-      when failure in [:session_not_found, :resend_interface_properties_failed] do
-    :telemetry.execute(
-      [:astarte, :data_updater_plant, :data_updater, :discarded_message],
-      %{},
-      %{realm: state.realm}
-    )
-
-    execute_device_error_triggers(state, Atom.to_string(failure), timestamp)
-
-    {:ok, state}
-  end
-
-  @impl true
-  def handle_continue({:empty_cache_error, reason, timestamp}, state) do
-    :telemetry.execute(
-      [:astarte, :data_updater_plant, :data_updater, :discarded_message],
-      %{},
-      %{realm: state.realm}
-    )
-
-    error_metadata = %{"reason" => inspect(reason)}
-
-    execute_device_error_triggers(state, "empty_cache_error", error_metadata, timestamp)
-
-    {:ok, state}
-  end
-
-  @impl true
-  def handle_continue({:unexpected_control_message, path, payload, timestamp}, state) do
-    :telemetry.execute(
-      [:astarte, :data_updater_plant, :data_updater, :discarded_control_message],
-      %{},
-      %{realm: state.realm}
-    )
-
-    base64_payload = Base.encode64(payload)
-
-    error_metadata = %{
-      "path" => inspect(path),
-      "base64_payload" => base64_payload
-    }
-
-    execute_device_error_triggers(
-      state,
-      "unexpected_control_message",
-      error_metadata,
-      timestamp
-    )
-
-    new_state = update_stats(state, "", nil, path, payload)
-    {:ok, new_state}
   end
 
   defp delete_volatile_trigger(
