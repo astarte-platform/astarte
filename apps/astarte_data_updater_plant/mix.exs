@@ -80,10 +80,11 @@ defmodule Astarte.DataUpdaterPlant.Mixfile do
       {:castore, "~> 1.0.0"},
       {:cyanide, "~> 2.0"},
       {:excoveralls, "~> 0.15", only: :test},
+      {:mississippi, github: "secomind/mississippi"},
       {:mox, "~> 1.0", only: :test},
       # hex.pm package and esl/ex_rabbit_pool do not support amqp version 2.1.
       # This fork is supporting amqp ~> 2.0 and also ~> 3.0.
-      {:ex_rabbit_pool, github: "leductam/ex_rabbit_pool"},
+      {:ex_rabbit_pool, github: "simplebet/ex_rabbit_pool", ref: "latest-amqp"},
       {:pretty_log, "~> 0.1"},
       {:plug_cowboy, "~> 2.1"},
       {:telemetry_metrics_prometheus_core, "~> 0.4"},
