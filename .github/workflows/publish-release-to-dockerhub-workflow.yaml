@@ -9,6 +9,12 @@ on:
     types: [published]
 
 jobs:
+  container_tests:
+    uses: ./.github/workflows/astarte-apps-build-workflow.yaml
+
+  e2e_tests:
+    uses: ./.github/workflows/astarte-end-to-end-test-workflow.yaml
+
   push_release_to_registry:
     name: Push Docker images to Docker Hub
     runs-on: ubuntu-22.04
@@ -30,7 +36,9 @@ jobs:
         - astarte_realm_management
         - astarte_realm_management_api
         - astarte_trigger_engine
-    needs: [test-coverage, end-to-end-test]
+    needs:
+    - container_tests
+    - e2e_tests
     steps:
       - name: Check out the repo
         uses: actions/checkout@v4

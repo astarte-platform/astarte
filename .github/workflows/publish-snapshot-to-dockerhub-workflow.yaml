@@ -15,6 +15,12 @@ on:
     - 'release-*'
 
 jobs:
+  container_tests:
+    uses: ./.github/workflows/astarte-apps-build-workflow.yaml
+
+  e2e_tests:
+    uses: ./.github/workflows/astarte-end-to-end-test-workflow.yaml
+
   push_snapshot_to_registry:
     name: Push Docker images to Docker Hub
     runs-on: ubuntu-22.04
@@ -23,6 +29,9 @@ jobs:
       contents: read
       attestations: write
       id-token: write
+    needs:
+    - container_tests
+    - e2e_tests
     strategy:
       fail-fast: true
       matrix:
@@ -36,7 +45,6 @@ jobs:
         - astarte_realm_management
         - astarte_realm_management_api
         - astarte_trigger_engine
-    needs: [test-coverage, end-to-end-test]
     steps:
       - name: Check out the repo
         uses: actions/checkout@v4
