@@ -16,6 +16,8 @@ on:
     paths:
     - 'apps/**'
     - '.github/workflows/astarte-apps-build-workflow.yaml'
+  # Allow this workflow to be called  by others
+  workflow_call:
 
 env:
   elixir_version: "1.15"
