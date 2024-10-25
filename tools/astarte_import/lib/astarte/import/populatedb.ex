@@ -487,6 +487,76 @@ defmodule Astarte.Import.PopulateDB do
     end
   end
 
+  defp to_native_type(value_chars, :doublearray) do
+    value =
+      Enum.map(value_chars, fn element ->
+        {:ok, value} = to_native_type(element, :double)
+        value
+      end)
+
+    {:ok, value}
+  end
+
+  defp to_native_type(value_chars, :integerarray) do
+    value =
+      Enum.map(value_chars, fn element ->
+        {:ok, value} = to_native_type(element, :integer)
+        value
+      end)
+
+    {:ok, value}
+  end
+
+  defp to_native_type(value_chars, :booleanarray) do
+    value =
+      Enum.map(value_chars, fn element ->
+        {:ok, value} = to_native_type(element, :boolean)
+        value
+      end)
+
+    {:ok, value}
+  end
+
+  defp to_native_type(value_chars, :longintegerarray) do
+    value =
+      Enum.map(value_chars, fn element ->
+        {:ok, value} = to_native_type(element, :longinteger)
+        value
+      end)
+
+    {:ok, value}
+  end
+
+  defp to_native_type(value_chars, :stringarray) do
+    value =
+      Enum.map(value_chars, fn element ->
+        {:ok, value} = to_native_type(element, :string)
+        value
+      end)
+
+    {:ok, value}
+  end
+
+  defp to_native_type(value_chars, :datetimearray) do
+    value =
+      Enum.map(value_chars, fn element ->
+        {:ok, value} = to_native_type(element, :datetime)
+        value
+      end)
+
+    {:ok, value}
+  end
+
+  defp to_native_type(value_chars, :binaryblobarray) do
+    value =
+      Enum.map(value_chars, fn element ->
+        {:ok, value} = to_native_type(element, :binaryblob)
+        value
+      end)
+
+    {:ok, value}
+  end
+
   defp to_native_type(values, expected_types) when is_map(values) and is_map(expected_types) do
     obj =
       Enum.reduce(values, %{}, fn {"/" <> key, value}, acc ->

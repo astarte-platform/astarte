@@ -8,6 +8,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ### Added
 - [astarte_realm_management_api] Allow to list all interfaces definitions using 
   the `detailed=true` parameter
+- [astarte_import] Added support for data types: `doublearray`, `integerarray`,
+  `booleanarray`, `longintegerarray`, `stringarray`, `datetimearray`, `binaryblobarray`.
 
 ## [1.2.0] - 2024-07-02
 ### Fixed
