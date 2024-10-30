@@ -414,7 +414,7 @@ defmodule Astarte.DataUpdaterPlant.Config do
 
   def events_producer_pool_config!() do
     [
-      name: {:local, :events_producer_pool},
+      name: {:local, :dup_events_producer_pool},
       worker_module: ExRabbitPool.Worker.RabbitConnection,
       size: events_producer_connection_number!(),
       max_overflow: 0
