@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Simplified floating point values for specifying `known_value` in "incoming data" triggers.
 ([#465](https://github.com/astarte-platform/astarte-dashboard/issues/465))
 - Show falsey values in the DeviceLiveEventCard by `JSON.stringify` all values and not only objects.
+- Resolved an issue where the search filter term was appended to the device ID and alias fields in the device list.
 
 ## [1.1.1] - 2023-11-15
 ### Added
