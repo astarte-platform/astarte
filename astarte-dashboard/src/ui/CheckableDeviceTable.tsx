@@ -1,7 +1,7 @@
 /*
    This file is part of Astarte.
 
-   Copyright 2020 Ispirata Srl
+   Copyright 2024 SECO Mind Srl
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -32,15 +32,14 @@ const Highlight = ({ text, word }: HighlightProps): React.ReactElement => {
 
   return (
     <>
-      {text.split(word).reduce(
-        (prev: React.ReactElement[], current, index) => [
-          ...prev,
+      {text.split(new RegExp(`(${word})`, 'gi')).map((part, index) =>
+        part.toLowerCase() === word?.toLowerCase() ? (
           <span key={index} className="bg-warning text-dark">
-            {word}
-          </span>,
-          <span>{current}</span>,
-        ],
-        [],
+            {part}
+          </span>
+        ) : (
+          <span key={index}>{part}</span>
+        ),
       )}
     </>
   );
