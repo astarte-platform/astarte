@@ -288,6 +288,13 @@ astarteAPIurl`${config.realmManagementApiUrl}v1/${'realm'}/interfaces/${'interfa
     return response.data;
   }
 
+  async getInterfaces(): Promise<string[]> {
+    const endpointUri = new URL(this.apiConfig.interfaces(this.config));
+    endpointUri.searchParams.set('detailed', 'true');
+    const response = await this.$get(endpointUri.toString());
+    return response.data;
+  }
+
   async getInterfaceMajors(interfaceName: string): Promise<number[]> {
     const response = await this.$get(
       this.apiConfig.interfaceMajors({ ...this.config, interfaceName }),
