@@ -496,7 +496,7 @@ export default (): React.ReactElement => {
           </Container>
         }
         errorFallback={
-          <Empty title="Couldn't load the device list" onRetry={() => devicesFetcher.refresh()} />
+          <Empty title="Couldn't load the device list" onRetry={() => devicesFetcher.refresh({})} />
         }
       >
         {({ devices, nextToken }) =>
