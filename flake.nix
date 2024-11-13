@@ -15,7 +15,7 @@
   };
   outputs = { self, nixpkgs, elixir-utils, flake-utils, ... }:
     {
-      overlays.default = elixir-utils.lib.asdfOverlay { src = ./.; };
+      overlays.default = elixir-utils.lib.asdfOverlay { toolVersions = ./.tool-versions; };
     } //
     flake-utils.lib.eachSystem elixir-utils.lib.defaultSystems (system:
       let pkgs = import nixpkgs { inherit system; overlays = [ self.overlays.default ]; };
