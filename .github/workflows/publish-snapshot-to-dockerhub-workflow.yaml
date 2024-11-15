@@ -17,6 +17,7 @@ on:
 jobs:
   container_tests:
     uses: ./.github/workflows/astarte-apps-build-workflow.yaml
+    secrets: inherit
 
   e2e_tests:
     uses: ./.github/workflows/astarte-end-to-end-test-workflow.yaml
