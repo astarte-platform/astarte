@@ -23,6 +23,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
   alias Astarte.DataUpdaterPlant.Config
   alias Astarte.Core.Device
   alias Astarte.Core.Triggers.SimpleEvents.DeviceConnectedEvent
+  alias Astarte.Core.Triggers.SimpleEvents.DeviceDisconnectedEvent
   alias Astarte.Core.Triggers.SimpleEvents.IncomingDataEvent
   alias Astarte.Core.Triggers.SimpleEvents.PathRemovedEvent
   alias Astarte.Core.Triggers.SimpleEvents.SimpleEvent
@@ -1811,6 +1812,101 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
 
     # Finally, check that the related DataUpdater process exists no more
     assert [] = Registry.lookup(Registry.DataUpdater, {realm, device_id})
+  end
+
+  test "a disconnected device does not generate a disconnection trigger" do
+    AMQPTestHelper.clean_queue()
+
+    realm = "autotestrealm"
+
+    encoded_device_id =
+      :crypto.strong_rand_bytes(16)
+      |> Base.url_encode64(padding: false)
+
+    {:ok, device_id} = Device.decode_device_id(encoded_device_id)
+
+    DatabaseTestHelper.insert_device(device_id)
+
+    timestamp_us_x_10 = make_timestamp("2017-12-09T14:00:32+00:00")
+    timestamp_ms = div(timestamp_us_x_10, 10_000)
+
+    volatile_trigger_parent_id = :crypto.strong_rand_bytes(16)
+    volatile_trigger_id = :crypto.strong_rand_bytes(16)
+
+    assert DataUpdater.handle_install_volatile_trigger(
+             realm,
+             encoded_device_id,
+             device_id,
+             1,
+             volatile_trigger_parent_id,
+             volatile_trigger_id,
+             generate_disconnection_trigger_data(),
+             generate_trigger_target()
+           ) == :ok
+
+    DataUpdater.handle_disconnection(
+      realm,
+      encoded_device_id,
+      gen_tracking_id(),
+      timestamp_us_x_10
+    )
+
+    # Receive the first disconnection trigger
+    {event, headers, _metadata} = AMQPTestHelper.wait_and_get_message()
+    assert headers["x_astarte_event_type"] == "device_disconnected_event"
+    assert headers["x_astarte_realm"] == realm
+    assert headers["x_astarte_device_id"] == encoded_device_id
+
+    assert :uuid.string_to_uuid(headers["x_astarte_parent_trigger_id"]) ==
+             volatile_trigger_parent_id
+
+    assert :uuid.string_to_uuid(headers["x_astarte_simple_trigger_id"]) == volatile_trigger_id
+
+    assert SimpleEvent.decode(event) == %SimpleEvent{
+             device_id: encoded_device_id,
+             event: {
+               :device_disconnected_event,
+               %DeviceDisconnectedEvent{}
+             },
+             parent_trigger_id: volatile_trigger_parent_id,
+             timestamp: timestamp_ms,
+             realm: realm,
+             simple_trigger_id: volatile_trigger_id
+           }
+
+    DataUpdater.handle_disconnection(
+      realm,
+      encoded_device_id,
+      gen_tracking_id(),
+      timestamp_us_x_10
+    )
+
+    # The second disconnection trigger is not sent
+    assert AMQPTestHelper.awaiting_messages_count() == 0
+  end
+
+  defp generate_disconnection_trigger_data() do
+    %SimpleTriggerContainer{
+      simple_trigger: {
+        :device_trigger,
+        %DeviceTrigger{
+          device_event_type: :DEVICE_DISCONNECTED
+        }
+      }
+    }
+    |> SimpleTriggerContainer.encode()
+  end
+
+  defp generate_trigger_target() do
+    %TriggerTargetContainer{
+      trigger_target: {
+        :amqp_trigger_target,
+        %AMQPTriggerTarget{
+          routing_key: AMQPTestHelper.events_routing_key()
+        }
+      }
+    }
+    |> TriggerTargetContainer.encode()
   end
 
   defp retrieve_endpoint_id(client, interface_name, interface_major, path) do
