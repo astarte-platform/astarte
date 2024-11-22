@@ -63,7 +63,7 @@ defmodule Astarte.DataUpdaterPlant.Application do
 
   defp mississippi_consumer_opts!() do
     [
-      amqp_consumer_options: [host: Config.amqp_consumer_host!()],
+      amqp_consumer_options: Config.amqp_consumer_options!(),
       mississippi_config: [
         queues: [
           events_exchange_name: Config.events_exchange_name!(),
