@@ -237,6 +237,14 @@ defmodule Astarte.DataUpdaterPlant.Config do
           type: :integer,
           default: 10
 
+  @envdoc "The Erlang cluster strategy to use. One of `none`, `kubernetes`. Defaults to `none`."
+  app_env :clustering_strategy,
+          :astarte_data_updater_plant,
+          :clustering_strategy,
+          os_env: "DATA_UPDATER_PLANT_CLUSTERING_STRATEGY",
+          type: Astarte.DataUpdaterPlant.ClusteringStrategy,
+          default: "none"
+
   # Since we have one channel per queue, this is not configurable
   def amqp_consumer_channels_per_connection_number!() do
     ceil(data_queue_total_count!() / amqp_consumer_connection_number!())
@@ -427,6 +435,27 @@ defmodule Astarte.DataUpdaterPlant.Config do
 
   def amqp_adapter!() do
     Application.get_env(:astarte_data_updater_plant, :amqp_adapter)
+  end
+
+  def cluster_topologies!() do
+    case clustering_strategy!() do
+      "none" ->
+        []
+
+      "kubernetes" ->
+        [
+          data_updater_plant_k8s: [
+            strategy: Elixir.Cluster.Strategy.Kubernetes,
+            config: [
+              mode: :ip,
+              kubernetes_node_basename: "astarte_data_updater_plant",
+              kubernetes_selector: "app=astarte-data-updater-plant",
+              kubernetes_namespace: "astarte",
+              polling_interval: 10_000
+            ]
+          ]
+        ]
+    end
   end
 
   @doc """
