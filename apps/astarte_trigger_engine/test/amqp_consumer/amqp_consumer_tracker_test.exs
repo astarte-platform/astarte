@@ -83,6 +83,7 @@ defmodule Astarte.TriggerEngine.AMQPConsumer.AMQPConsumerTrackerTest do
 
     # make sure we update the consumer list without waiting for the update timeout
     AMQPConsumerTracker.handle_info(:update_consumers, [])
+    Process.sleep(3000)
 
     assert Enum.member?(
              Registry.select(Registry.AMQPConsumerRegistry, [{{:"$1", :_, :_}, [], [:"$1"]}]),
@@ -93,6 +94,7 @@ defmodule Astarte.TriggerEngine.AMQPConsumer.AMQPConsumerTrackerTest do
 
     # make sure we update the consumer list without waiting for the update timeout
     AMQPConsumerTracker.handle_info(:update_consumers, [])
+    Process.sleep(3000)
 
     assert not Enum.member?(
              Registry.select(Registry.AMQPConsumerRegistry, [{{:"$1", :_, :_}, [], [:"$1"]}]),
