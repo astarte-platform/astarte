@@ -1,11 +1,10 @@
-version: '3.8'
 services:
   astarte-housekeeping:
     image: astarte/astarte_housekeeping:1.2.0
     build:
       context: apps/astarte_housekeeping
     env_file:
-      - ./compose.env
+      - ./.env
     restart: on-failure
     depends_on:
       - "rabbitmq"
@@ -16,7 +15,7 @@ services:
     build:
       context: apps/astarte_housekeeping_api
     env_file:
-      - ./compose.env
+      - ./.env
     environment:
       HOUSEKEEPING_API_JWT_PUBLIC_KEY_PATH: "/keys/housekeeping_public.pem"
     volumes:
@@ -29,7 +28,7 @@ services:
       - "traefik"
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.astarte-housekeeping-api.rule=Host(`api.astarte.localhost`)"
+      - "traefik.http.routers.astarte-housekeeping-api.rule=Host(`api.${DOCKER_COMPOSE_ASTARTE_BASE_DOMAIN}`)"
       - "traefik.http.routers.astarte-housekeeping-api.rule=PathPrefix(`/housekeeping`)"
       - "traefik.http.routers.astarte-housekeeping-api.entrypoints=web"
       - "traefik.http.routers.astarte-housekeeping-api.middlewares=astarte-housekeeping-api"
@@ -43,7 +42,7 @@ services:
     build:
       context: apps/astarte_realm_management
     env_file:
-      - ./compose.env
+      - ./.env
     restart: on-failure
     depends_on:
       - "rabbitmq"
@@ -54,14 +53,14 @@ services:
     build:
       context: apps/astarte_realm_management_api
     env_file:
-      - ./compose.env
+      - ./.env
     restart: on-failure
     depends_on:
       - "rabbitmq"
       - "traefik"
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.astarte-realm-management-api.rule=Host(`api.astarte.localhost`)"
+      - "traefik.http.routers.astarte-realm-management-api.rule=Host(`api.${DOCKER_COMPOSE_ASTARTE_BASE_DOMAIN}`)"
       - "traefik.http.routers.astarte-realm-management-api.rule=PathPrefix(`/realmmanagement`)"
       - "traefik.http.routers.astarte-realm-management-api.entrypoints=web"
       - "traefik.http.routers.astarte-realm-management-api.middlewares=astarte-realm-management-api"
@@ -75,7 +74,7 @@ services:
     build:
       context: apps/astarte_pairing
     env_file:
-      - ./compose.env
+      - ./.env
     environment:
       PAIRING_CFSSL_URL: "http://cfssl:8080"
     restart: on-failure
@@ -88,14 +87,14 @@ services:
     build:
       context: apps/astarte_pairing_api
     env_file:
-      - ./compose.env
+      - ./.env
     restart: on-failure
     depends_on:
       - "rabbitmq"
       - "traefik"
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.astarte-pairing-api.rule=Host(`api.astarte.localhost`)"
+      - "traefik.http.routers.astarte-pairing-api.rule=Host(`api.${DOCKER_COMPOSE_ASTARTE_BASE_DOMAIN}`)"
       - "traefik.http.routers.astarte-pairing-api.rule=PathPrefix(`/pairing`)"
       - "traefik.http.routers.astarte-pairing-api.entrypoints=web"
       - "traefik.http.routers.astarte-pairing-api.middlewares=astarte-pairing-api"
@@ -109,7 +108,7 @@ services:
     build:
       context: apps/astarte_appengine_api
     env_file:
-      - ./compose.env
+      - ./.env
     environment:
       APPENGINE_API_ROOMS_AMQP_CLIENT_HOST: "rabbitmq"
     restart: on-failure
@@ -119,7 +118,7 @@ services:
       - "traefik"
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.astarte-appengine-api.rule=Host(`api.astarte.localhost`)"
+      - "traefik.http.routers.astarte-appengine-api.rule=Host(`api.${DOCKER_COMPOSE_ASTARTE_BASE_DOMAIN}`)"
       - "traefik.http.routers.astarte-appengine-api.rule=PathPrefix(`/appengine`)"
       - "traefik.http.routers.astarte-appengine-api.entrypoints=web"
       - "traefik.http.routers.astarte-appengine-api.middlewares=astarte-appengine-api"
@@ -133,7 +132,7 @@ services:
     build:
       context: apps/astarte_data_updater_plant
     env_file:
-      - ./compose.env
+      - ./.env
     environment:
       DATA_UPDATER_PLANT_AMQP_CONSUMER_HOST: "rabbitmq"
       DATA_UPDATER_PLANT_AMQP_PRODUCER_HOST: "rabbitmq"
@@ -151,7 +150,7 @@ services:
     build:
       context: apps/astarte_trigger_engine
     env_file:
-      - ./compose.env
+      - ./.env
     environment:
       TRIGGER_ENGINE_AMQP_CONSUMER_HOST: "rabbitmq"
     restart: on-failure
@@ -169,7 +168,7 @@ services:
       - "traefik"
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.astarte-dashboard.rule=Host(`dashboard.astarte.localhost`)"
+      - "traefik.http.routers.astarte-dashboard.rule=Host(`dashboard.${DOCKER_COMPOSE_ASTARTE_BASE_DOMAIN}`)"
       - "traefik.http.routers.astarte-dashboard.entrypoints=web"
       - "traefik.http.routers.astarte-dashboard.service=astarte-dashboard"
       - "traefik.http.services.astarte-dashboard.loadbalancer.server.port=80"
@@ -181,7 +180,7 @@ services:
       - "traefik"
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.astarte-grafana.rule=Host(`grafana.astarte.localhost`)"
+      - "traefik.http.routers.astarte-grafana.rule=Host(`grafana.${DOCKER_COMPOSE_ASTARTE_BASE_DOMAIN}`)"
       - "traefik.http.routers.astarte-grafana.entrypoints=web"
       - "traefik.http.routers.astarte-grafana.service=astarte-grafana"
       - "traefik.http.services.astarte-grafana.loadbalancer.server.port=3000"
@@ -215,10 +214,10 @@ services:
         aliases:
           # Create traefik aliases for its hosts, so that other containers
           # in the same network can curl them.
-          - api.astarte.localhost
-          - dashboard.astarte.localhost
-          - grafana.astarte.localhost
-          - broker.astarte.localhost
+          - api.${DOCKER_COMPOSE_ASTARTE_BASE_DOMAIN}
+          - dashboard.${DOCKER_COMPOSE_ASTARTE_BASE_DOMAIN}
+          - grafana.${DOCKER_COMPOSE_ASTARTE_BASE_DOMAIN}
+          - broker.${DOCKER_COMPOSE_ASTARTE_BASE_DOMAIN}
 
   # RabbitMQ
   rabbitmq:
@@ -248,7 +247,7 @@ services:
   vernemq:
     image: astarte/vernemq:1.2.0
     env_file:
-      - ./compose.env
+      - ./.env
     environment:
       DOCKER_VERNEMQ_LISTENER__SSL__DEFAULT__CAFILE: "/opt/vernemq/etc/ca.pem"
       DOCKER_VERNEMQ_LISTENER__SSL__DEFAULT__CERTFILE: "/opt/vernemq/etc/cert.pem"
@@ -272,7 +271,7 @@ services:
     restart: on-failure
     labels:
       - "traefik.enable=true"
-      - "traefik.tcp.routers.vernemq.rule=HostSNI(`broker.astarte.localhost`)"
+      - "traefik.tcp.routers.vernemq.rule=HostSNI(`broker.${DOCKER_COMPOSE_ASTARTE_BASE_DOMAIN}`)"
       - "traefik.tcp.routers.vernemq.entrypoints=vernemq"
       - "traefik.tcp.routers.vernemq.tls.passthrough=true"
       - "traefik.tcp.routers.vernemq.service=vernemq"
