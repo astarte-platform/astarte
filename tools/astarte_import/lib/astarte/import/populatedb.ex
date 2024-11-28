@@ -330,14 +330,16 @@ defmodule Astarte.Import.PopulateDB do
     got_end_of_object_fun = fn state, object ->
       %Import.State{
         reception_timestamp: reception_timestamp,
-        data: %State{
-          mappings: mappings,
-          prepared_params: prepared_params,
-          prepared_query: prepared_query,
-          value_columns: value_columns,
-          value_type: expected_types
-        }
+        data: data
       } = state
+
+      %State{
+        mappings: mappings,
+        prepared_params: prepared_params,
+        prepared_query: prepared_query,
+        value_columns: value_columns,
+        value_type: expected_types
+      } = data
 
       reception_submillis = rem(DateTime.to_unix(reception_timestamp, :microsecond), 100)
       {:ok, native_value} = to_native_type(object, expected_types)
@@ -360,7 +362,10 @@ defmodule Astarte.Import.PopulateDB do
 
       {:ok, %Xandra.Void{}} = Xandra.execute(xandra_conn, prepared_query, params)
 
-      state
+      %Import.State{
+        state
+        | data: %State{data | last_seen_reception_timestamp: reception_timestamp}
+      }
     end
 
     got_end_of_property_fun = fn state, chars ->
