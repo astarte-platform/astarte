@@ -20,10 +20,10 @@ defmodule AstarteDevTool.Commands.System.Watch do
   @moduledoc false
   require Logger
   alias AstarteDevTool.Constants.System, as: Constants
-  alias AstarteDevTool.Utilities.Process, as: AstarteProcess
+  alias AstarteDevTool.Utilities.Process, as: ProcessUtilities
 
   def exec(path) do
-    case AstarteProcess.check_process(Constants.command(), Constants.command_watch_args(), path) do
+    case ProcessUtilities.process_check(Constants.command(), Constants.command_watch_args(), path) do
       {:ok, pid} when not is_nil(pid) -> kill_zombie_process(pid)
       _ -> :ok
     end
