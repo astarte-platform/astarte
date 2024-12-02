@@ -1,7 +1,5 @@
 # Astarte in 5 minutes
 
-**This documentation page describes a development version, for production systems please use the [stable version](https://docs.astarte-platform.org/latest) instead.**
-
 This tutorial will guide you through bringing up your Astarte instance, creating a realm and streaming your first data from a device simulator (or a real device) before your cup of tea is ready.
 
 ## Before you begin
