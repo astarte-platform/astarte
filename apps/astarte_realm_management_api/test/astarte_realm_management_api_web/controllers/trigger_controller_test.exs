@@ -19,12 +19,16 @@
 defmodule Astarte.RealmManagement.APIWeb.TriggerControllerTest do
   use Astarte.RealmManagement.APIWeb.ConnCase
 
+  alias Astarte.RealmManagement.API.JWTTestHelper
+  alias Astarte.RealmManagement.Mock
+
   @create_attrs %{}
   @invalid_attrs %{}
 
   @test_realm "test"
 
   setup %{conn: conn} do
+    Mock.DB.put_jwt_public_key_pem(@test_realm, JWTTestHelper.public_key_pem())
     {:ok, conn: put_req_header(conn, "accept", "application/json")}
   end
 
