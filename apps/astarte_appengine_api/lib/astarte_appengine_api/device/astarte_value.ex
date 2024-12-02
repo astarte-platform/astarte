@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2018 Ispirata Srl
+# Copyright 2018 - 2025 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -51,10 +51,15 @@ defmodule Astarte.AppEngine.API.Device.AstarteValue do
   end
 
   def to_json_friendly(value, :datetime, opts) do
-    if opts[:keep_milliseconds] do
-      value
-    else
-      DateTime.from_unix!(value, :millisecond)
+    cond do
+      opts[:keep_milliseconds] ->
+        value
+
+      is_integer(value) ->
+        DateTime.from_unix!(value, :millisecond)
+
+      true ->
+        DateTime.truncate(value, :millisecond)
     end
   end
 

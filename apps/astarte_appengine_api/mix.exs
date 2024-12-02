@@ -90,6 +90,7 @@ defmodule Astarte.AppEngine.API.Mixfile do
       {:ex_lttb, "~> 0.3"},
       {:cyanide, "~> 2.0"},
       {:guardian, "~> 2.3.2"},
+      {:exandra, github: "noaccOS/exandra", branch: "push-nnwonukzzrxs", override: true},
       # Required by :phoenix_swagger, otherwise it fails finding ex_json_schema.app
       {:ex_json_schema, "~> 0.7"},
       {:phoenix_swagger, "~> 0.8"},
