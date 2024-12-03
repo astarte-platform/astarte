@@ -1,3 +1,7 @@
+# Copyright 2019 SECO Mind Srl
+#
+# SPDX-License-Identifier: Apache-2.0
+
 defmodule Astarte.Export.XMLGenerate do
   def xml_write_default_header(fd) do
     {:ok, _doc, state} = XMLStreamWriter.new_document()

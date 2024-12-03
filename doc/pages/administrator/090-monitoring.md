@@ -1,3 +1,9 @@
+<!--
+Copyright 2020 SECO Mind Srl
+
+SPDX-License-Identifier: Apache-2.0
+-->
+
 # Monitoring
 
 Astarte is a complex, distributed system that may pose several challenges when deployed in production. Individual services report health and metrics to ensure production clusters can be properly monitored and proactive actions can be taken in case of faults or unexpected behavior.

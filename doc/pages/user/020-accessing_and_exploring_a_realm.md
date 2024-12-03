@@ -1,3 +1,9 @@
+<!--
+Copyright 2018-2023 SECO Mind Srl
+
+SPDX-License-Identifier: Apache-2.0
+-->
+
 # Accessing and Exploring a Realm
 
 In Astarte, a Realm is a logical partition which holds a number of devices and an Authentication

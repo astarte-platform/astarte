@@ -1,3 +1,7 @@
+// Copyright 2020 SECO Mind Srl
+//
+// SPDX-License-Identifier: Apache-2.0
+
 import "bootstrap/dist/css/bootstrap.min.css";
 import "./assets/css/cast.css";
 

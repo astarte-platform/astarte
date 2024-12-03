@@ -1,3 +1,9 @@
+<!--
+Copyright 2018-2021 SECO Mind Srl
+
+SPDX-License-Identifier: Apache-2.0
+-->
+
 # Troubleshooting
 
 Be sure to check [known issues](095-known_issues.html) to see if your problem is already covered

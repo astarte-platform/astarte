@@ -1,3 +1,9 @@
+<!--
+Copyright 2019-2024 SECO Mind Srl
+
+SPDX-License-Identifier: Apache-2.0
+-->
+
 # Astarte Import
 
 Astarte Import is an easy to use tool that allows to import devices and data into an existing Astarte realm.

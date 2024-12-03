@@ -1,3 +1,7 @@
+# Copyright 2019 SECO Mind Srl
+#
+# SPDX-License-Identifier: Apache-2.0
+
 app:appengine_api:
   - apps/astarte_appengine_api/**
 

@@ -1,3 +1,7 @@
+# Copyright 2020-2024 SECO Mind Srl
+#
+# SPDX-License-Identifier: Apache-2.0
+
 name: Astarte end-to-end test
 
 on:

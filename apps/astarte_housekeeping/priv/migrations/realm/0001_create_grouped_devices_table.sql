@@ -1,3 +1,7 @@
+-- Copyright 2019 SECO Mind Srl
+--
+-- SPDX-License-Identifier: Apache-2.0
+
 CREATE TABLE grouped_devices (
   group_name varchar,
   insertion_uuid timeuuid,

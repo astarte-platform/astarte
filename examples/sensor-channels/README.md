@@ -1,3 +1,9 @@
+<!--
+Copyright 2021 SECO Mind Srl
+
+SPDX-License-Identifier: Apache-2.0
+-->
+
 # Sensor Channels example
 
 This is a sample web page made in React that leverages Astarte Channels and shows live data of a

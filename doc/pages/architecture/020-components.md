@@ -1,3 +1,9 @@
+<!--
+Copyright 2018-2021 SECO Mind Srl
+
+SPDX-License-Identifier: Apache-2.0
+-->
+
 # Components
 
 Astarte is a distributed system interacting over AMQP, as explained in [Design Principles](010-design_principles.html). This is an overview of its main internal services.

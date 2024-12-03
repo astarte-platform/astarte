@@ -1,3 +1,9 @@
+<!--
+Copyright 2019-2020 SECO Mind Srl
+
+SPDX-License-Identifier: Apache-2.0
+-->
+
 # Managing Groups
 
 Devices can be divided in groups to provide group-specific access to the APIs.

@@ -1,4 +1,10 @@
 <!--
+Copyright 2022 SECO Mind Srl
+
+SPDX-License-Identifier: Apache-2.0
+-->
+
+<!--
   Copyright 2014 Coraline Ada Ehmke
 
   SPDX-License-Identifier: CC-BY-4.0

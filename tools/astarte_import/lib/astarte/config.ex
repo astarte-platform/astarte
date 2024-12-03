@@ -1,3 +1,7 @@
+# Copyright 2024 SECO Mind Srl
+#
+# SPDX-License-Identifier: Apache-2.0
+
 defmodule Astarte.Config do
   alias Astarte.DataAccess.Config, as: DataAccessConfig
 

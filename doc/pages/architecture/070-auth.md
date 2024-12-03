@@ -1,3 +1,9 @@
+<!--
+Copyright 2018-2023 SECO Mind Srl
+
+SPDX-License-Identifier: Apache-2.0
+-->
+
 # Authentication and Authorization
 
 Authentication and authorization are crucial, as Astarte likely holds sensitive resources and is capable to send mass commands to a device fleet.

@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2019-2020 SECO Mind Srl
+#
+# SPDX-License-Identifier: Apache-2.0
+
 language: elixir
 dist: bionic
 services:
