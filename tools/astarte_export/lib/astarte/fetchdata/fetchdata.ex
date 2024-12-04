@@ -3,6 +3,16 @@ defmodule Astarte.Export.FetchData do
   alias Astarte.Core.CQLUtils
   alias Astarte.Export.FetchData.Queries
 
+  @base_types %{
+    binaryblobarray: :binaryblob,
+    datetimearray: :datetime,
+    stringarray: :string,
+    integerarray: :integer,
+    longintegerarray: :longinteger,
+    doublearray: :double,
+    booleanarray: :boolean
+  }
+
   def db_connection_identifier() do
     with {:ok, conn_ref} <- Queries.get_connection() do
       {:ok, conn_ref}
@@ -285,16 +295,12 @@ defmodule Astarte.Export.FetchData do
     end
   end
 
-  defp from_native_type(value, :binaryblob) do
-    {:ok, binary_blob} = Base.encode64(value)
-    binary_blob
+  defp from_native_type(value, native_type) when is_list(value) do
+    type = Map.get(@base_types, native_type, native_type)
+    Enum.map(value, &from_native_type(&1, type))
   end
 
-  defp from_native_type(value, :datetime) do
-    DateTime.to_iso8601(value)
-  end
-
-  defp from_native_type(value, _any_type) do
-    to_string(value)
-  end
+  defp from_native_type(value, :binaryblob), do: Base.encode64(value)
+  defp from_native_type(value, :datetime), do: DateTime.to_iso8601(value)
+  defp from_native_type(value, _any_type), do: to_string(value)
 end
