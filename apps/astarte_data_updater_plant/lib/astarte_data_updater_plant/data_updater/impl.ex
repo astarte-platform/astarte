@@ -2263,6 +2263,16 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
       state.interface_exchanged_bytes
     )
 
+    maybe_execute_device_disconnected_trigger(state, timestamp_ms)
+
+    %{state | connected: false}
+  end
+
+  defp maybe_execute_device_disconnected_trigger(%State{connected: false}, _) do
+    :ok
+  end
+
+  defp maybe_execute_device_disconnected_trigger(state, timestamp_ms) do
     trigger_target_with_policy_list =
       Map.get(state.device_triggers, :on_device_disconnection, [])
       |> Enum.map(fn target ->
@@ -2283,8 +2293,6 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
       %{},
       %{realm: state.realm}
     )
-
-    %{state | connected: false}
   end
 
   defp ask_clean_session(
