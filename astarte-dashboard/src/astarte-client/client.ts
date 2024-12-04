@@ -195,6 +195,8 @@ class AstarteClient {
     this.getPipelines = this.getPipelines.bind(this);
     this.getPolicyNames = this.getPolicyNames.bind(this);
     this.getRealmManagementVersion = this.getRealmManagementVersion.bind(this);
+    this.getAppEngineVersion = this.getAppEngineVersion.bind(this);
+    this.getPairingVersion = this.getPairingVersion.bind(this);
 
     // prettier-ignore
     this.apiConfig = {
@@ -213,6 +215,7 @@ astarteAPIurl`${config.realmManagementApiUrl}v1/${'realm'}/interfaces/${'interfa
       policy:                astarteAPIurl`${config.realmManagementApiUrl}v1/${'realm'}/policies/${'policyName'}`,
       device:                astarteAPIurl`${config.realmManagementApiUrl}v1/${'realm'}/devices/${'deviceId'}`,
       appengineHealth:       astarteAPIurl`${config.appEngineApiUrl}health`,
+      appengineVersion:      astarteAPIurl`${config.appEngineApiUrl}v1/${'realm'}/version`,
       devicesStats:          astarteAPIurl`${config.appEngineApiUrl}v1/${'realm'}/stats/devices`,
       devices:               astarteAPIurl`${config.appEngineApiUrl}v1/${'realm'}/devices`,
       deviceInfo:            astarteAPIurl`${config.appEngineApiUrl}v1/${'realm'}/devices/${'deviceId'}`,
@@ -223,6 +226,7 @@ astarteAPIurl`${config.realmManagementApiUrl}v1/${'realm'}/interfaces/${'interfa
       phoenixSocket:         astarteAPIurl`${config.appEngineApiUrl}v1/socket`,
       sendInterfaceData:     astarteAPIurl`${config.appEngineApiUrl}v1/${'realm'}/devices/${'deviceId'}/interfaces/${'interfaceName'}${'path'}`,      
       pairingHealth:         astarteAPIurl`${config.pairingApiUrl}health`,
+      pairingVersion:        astarteAPIurl`${config.pairingApiUrl}v1/${'realm'}/version`,
       registerDevice:        astarteAPIurl`${config.pairingApiUrl}v1/${'realm'}/agent/devices`,
       deviceAgent:           astarteAPIurl`${config.pairingApiUrl}v1/${'realm'}/agent/devices/${'deviceId'}`,
       flowHealth:            astarteAPIurl`${config.flowApiUrl}health`,
@@ -738,6 +742,16 @@ astarteAPIurl`${config.realmManagementApiUrl}v1/${'realm'}/interfaces/${'interfa
 
   async getRealmManagementVersion(): Promise<string> {
     const response = await this.$get(this.apiConfig.realmManagementVersion(this.config));
+    return response.data;
+  }
+
+  async getAppEngineVersion(): Promise<string> {
+    const response = await this.$get(this.apiConfig.appengineVersion(this.config));
+    return response.data;
+  }
+
+  async getPairingVersion(): Promise<string> {
+    const response = await this.$get(this.apiConfig.pairingVersion(this.config));
     return response.data;
   }
 
