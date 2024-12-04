@@ -285,9 +285,16 @@ defmodule Astarte.Export.FetchData do
     end
   end
 
-  defp from_native_type(value, :binaryblob) do
-    {:ok, binary_blob} = Base.encode64(value)
-    binary_blob
+  defp from_native_type(value, native_type) when is_list(value) do
+    case native_type do
+      :binaryblobarray -> Enum.map(value, &from_native_type(&1, :binaryblob))
+      :datetimearray -> Enum.map(value, &from_native_type(&1, :datetime))
+      _ -> Enum.map(value, &from_native_type(&1, native_type))
+    end
+  end
+
+  defp from_native_type(value, :binaryblob) when is_binary(value) do
+    Base.encode64(value)
   end
 
   defp from_native_type(value, :datetime) do
