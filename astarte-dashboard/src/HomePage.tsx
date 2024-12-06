@@ -33,10 +33,15 @@ type ServiceStatus = 'loading' | 'ok' | 'err';
 
 interface ServiceStatusRowProps {
   service: string;
+  version?: string | null;
   status: ServiceStatus;
 }
 
-const ServiceStatusRow = ({ service, status }: ServiceStatusRowProps): React.ReactElement => {
+const ServiceStatusRow = ({
+  service,
+  version,
+  status,
+}: ServiceStatusRowProps): React.ReactElement => {
   let messageCell;
 
   if (status === 'loading') {
@@ -64,6 +69,7 @@ const ServiceStatusRow = ({ service, status }: ServiceStatusRowProps): React.Rea
   return (
     <tr>
       <td>{service}</td>
+      <td>{version}</td>
       {messageCell}
     </tr>
   );
@@ -71,16 +77,22 @@ const ServiceStatusRow = ({ service, status }: ServiceStatusRowProps): React.Rea
 
 interface ApiStatusCardProps {
   appengine: ServiceStatus;
+  appengineVersion: string | null;
   realmManagement: ServiceStatus;
+  realmManagementVersion: string | null;
   pairing: ServiceStatus;
+  pairingVersion: string | null;
   showFlowStatus: boolean;
   flow: ServiceStatus | null;
 }
 
 const ApiStatusCard = ({
   appengine,
+  appengineVersion,
   realmManagement,
+  realmManagementVersion,
   pairing,
+  pairingVersion,
   showFlowStatus,
   flow,
 }: ApiStatusCardProps): React.ReactElement => (
@@ -91,13 +103,18 @@ const ApiStatusCard = ({
         <thead>
           <tr>
             <th>Service</th>
+            <th>Version</th>
             <th>Status</th>
           </tr>
         </thead>
         <tbody>
-          <ServiceStatusRow service="Realm Management" status={realmManagement} />
-          <ServiceStatusRow service="AppEngine" status={appengine} />
-          <ServiceStatusRow service="Pairing" status={pairing} />
+          <ServiceStatusRow
+            service="Realm Management"
+            version={realmManagementVersion}
+            status={realmManagement}
+          />
+          <ServiceStatusRow service="AppEngine" version={appengineVersion} status={appengine} />
+          <ServiceStatusRow service="Pairing" version={pairingVersion} status={pairing} />
           {showFlowStatus && flow && <ServiceStatusRow service="Flow" status={flow} />}
         </tbody>
       </Table>
@@ -380,8 +397,11 @@ const HomePage = (): React.ReactElement => {
   );
   const triggers = useFetch(canFetchTriggers ? astarte.client.getTriggerNames : async () => []);
   const appEngineHealth = useFetch(astarte.client.getAppengineHealth);
+  const appengineVersion = useFetch(astarte.client.getAppEngineVersion);
   const realmManagementHealth = useFetch(astarte.client.getRealmManagementHealth);
+  const realmManagementVersion = useFetch(astarte.client.getRealmManagementVersion);
   const pairingHealth = useFetch(astarte.client.getPairingHealth);
+  const pairingVersion = useFetch(astarte.client.getPairingVersion);
   const flowHealth = useFetch(config.features.flow ? astarte.client.getFlowHealth : async () => {});
   const deviceRegistrationLimitFetcher = useFetch(
     canFetchDeviceRegistrationLimit && canFetchDeviceStats
@@ -442,8 +462,11 @@ const HomePage = (): React.ReactElement => {
         <Col xs={6} className={cellSpacingClass}>
           <ApiStatusCard
             appengine={appEngineHealth.status}
+            appengineVersion={appengineVersion.value}
             realmManagement={realmManagementHealth.status}
+            realmManagementVersion={realmManagementVersion.value}
             pairing={pairingHealth.status}
+            pairingVersion={pairingVersion.value}
             showFlowStatus={config.features.flow}
             flow={config.features.flow ? flowHealth.status : null}
           />
