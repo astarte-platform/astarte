@@ -1,3 +1,9 @@
+<!--
+Copyright 2018-2020 SECO Mind Srl
+
+SPDX-License-Identifier: Apache-2.0
+-->
+
 # Pairing Mechanism
 
 Astarte's Pairing is a unified mechanism for [Registering Devices](035-register_device.html) and

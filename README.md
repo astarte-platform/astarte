@@ -1,3 +1,9 @@
+<!--
+Copyright 2018-2024 SECO Mind Srl
+
+SPDX-License-Identifier: Apache-2.0
+-->
+
 # Astarte
 
 ![](https://github.com/astarte-platform/astarte/workflows/Build%20and%20Test%20Astarte%20Apps/badge.svg?branch=master)

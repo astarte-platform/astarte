@@ -1,3 +1,9 @@
+<!--
+Copyright 2018-2020 SECO Mind Srl
+
+SPDX-License-Identifier: Apache-2.0
+-->
+
 # Design Principles
 
 Astarte has a strongly opinionated design aimed at the generic IoT / data-driven use case. As such, and unlike other platforms, it strives to streamline a very simple user workflow for ingesting, distributing and retrieving data, built on a set of concepts and principles.

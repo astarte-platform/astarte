@@ -1,3 +1,7 @@
+# Copyright 2018-2024 SECO Mind Srl
+#
+# SPDX-License-Identifier: Apache-2.0
+
 FROM hexpm/elixir:1.15.7-erlang-26.1-debian-bookworm-20230612-slim as base
 
 # install build dependencies

@@ -1,3 +1,9 @@
+<!--
+Copyright 2018-2022 SECO Mind Srl
+
+SPDX-License-Identifier: Apache-2.0
+-->
+
 # Introduction
 
 <img align="right" src="assets/mascot_architecture.svg" style="border:20px solid transparent" alt="Join Puppy Lion and have some fun with Astarte!" width="40%" />

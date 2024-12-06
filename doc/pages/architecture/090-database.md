@@ -1,3 +1,9 @@
+<!--
+Copyright 2018-2024 SECO Mind Srl
+
+SPDX-License-Identifier: Apache-2.0
+-->
+
 # Astarte Database
 
 Astarte leverages [Cassandra](http://cassandra.apache.org/) to store all of its data, including data ingested from devices (which might scale to insane amounts). Cassandra offers scalability and high availability with [good performances](https://www.datastax.com/apache-cassandra-leads-nosql-benchmark).

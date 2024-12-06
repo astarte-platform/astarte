@@ -1,3 +1,9 @@
+<!--
+Copyright 2018-2024 SECO Mind Srl
+
+SPDX-License-Identifier: Apache-2.0
+-->
+
 # Astarte in 5 minutes
 
 This tutorial will guide you through bringing up your Astarte instance, creating a realm and streaming your first data from a device simulator (or a real device) before your cup of tea is ready.

@@ -1,3 +1,9 @@
+<!--
+Copyright 2018-2023 SECO Mind Srl
+
+SPDX-License-Identifier: Apache-2.0
+-->
+
 # Astarte Datasource Plugin for Grafana
 
 Astarte Datasource Plugin conveys data from Astarte to

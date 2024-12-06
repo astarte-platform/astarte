@@ -1,3 +1,9 @@
+<!--
+Copyright 2022-2024 SECO Mind Srl
+
+SPDX-License-Identifier: Apache-2.0
+-->
+
 # Trigger Delivery Policies
 
 When an [HTTP action](060-triggers.html#http-actions) is triggered, an event is sent to a specific URL.

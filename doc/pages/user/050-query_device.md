@@ -1,3 +1,9 @@
+<!--
+Copyright 2018-2024 SECO Mind Srl
+
+SPDX-License-Identifier: Apache-2.0
+-->
+
 # Querying a Device
 
 Once you have your devices connected, up and running in Astarte, you can start interacting with them.

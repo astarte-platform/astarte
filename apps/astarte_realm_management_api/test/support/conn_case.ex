@@ -1,3 +1,7 @@
+# Copyright 2017-2019 SECO Mind Srl
+#
+# SPDX-License-Identifier: Apache-2.0
+
 defmodule Astarte.RealmManagement.APIWeb.ConnCase do
   @moduledoc """
   This module defines the test case to be used by

@@ -1,3 +1,9 @@
+<!--
+Copyright 2019-2022 SECO Mind Srl
+
+SPDX-License-Identifier: Apache-2.0
+-->
+
 # Using Triggers
 
 Triggers allow receiving notifications when a device connects, disconnects or publishes specific

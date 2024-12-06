@@ -1,3 +1,9 @@
+<!--
+Copyright 2018-2019 SECO Mind Srl
+
+SPDX-License-Identifier: Apache-2.0
+-->
+
 # Registering a Device
 
 Devices are Astarte's main entities for exchanging data. Even though a Device usually represents the

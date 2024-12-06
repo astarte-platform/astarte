@@ -1,3 +1,9 @@
+<!--
+Copyright 2018-2023 SECO Mind Srl
+
+SPDX-License-Identifier: Apache-2.0
+-->
+
 # Astarte MQTT v1 Protocol
 
 Astarte MQTT v1 Protocol allows communication between Astarte and devices. It is the first protocol that has been implemented in Astarte, and it exploits every feature provided by Astarte itself. Astarte MQTT v1 doesn't mandate a specific Transport Credentials format: the broker must handle Authentication, Authorization and [Pairing integration](050-pairing_mechanism.html) the way it sees fit. Astarte MQTT v1 is implemented by Astarte's Reference Transport, [Astarte/VerneMQ](https://github.com/astarte-platform/astarte_vmq_plugin) - a client wishing to interact with it must implement MQTT v3.1.1 and all needed features for Pairing to work.
