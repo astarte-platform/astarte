@@ -62,7 +62,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
   @encoded_generic_ok_reply %Reply{reply: {:generic_ok_reply, %GenericOkReply{}}}
                             |> Reply.encode()
 
-  setup_all do
+  setup do
     {:ok, _client} = Astarte.DataUpdaterPlant.DatabaseTestHelper.create_test_keyspace()
     {:ok, _pid} = Mississippi.Producer.start_link(mississippi_producer_opts!())
     {:ok, _pid} = AMQPTestHelper.start_link()
