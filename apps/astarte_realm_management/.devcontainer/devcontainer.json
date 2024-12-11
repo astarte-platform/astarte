@@ -1,0 +1,35 @@
+// For format details, see https://aka.ms/devcontainer.json. For config options, see the
+// README at: https://github.com/devcontainers/templates/tree/main/src/debian
+{
+    "name": "astarte-realm-management",
+    // Or use a Dockerfile or Docker Compose file. More info: https://containers.dev/guide/dockerfile
+    // "image": "mcr.microsoft.com/devcontainers/base:bullseye"
+    // "build": {
+    //     "dockerfile": "../../../Dockerfile",
+    //     "target": "base"
+    // },
+    // 
+    "dockerComposeFile": [
+        "../../../docker-compose.yml",
+        "../../../docker-compose.dev.yml"
+    ],
+    "service": "astarte-realm-management",
+    "workspaceFolder": "/workspaces/${localWorkspaceFolderBasename}",
+    // 
+    // Features to add to the dev container. More info: https://containers.dev/features.
+    // "features": {},
+    // Use 'forwardPorts' to make a list of ports inside the container available locally.
+    // "forwardPorts": [],
+    // Configure tool-specific properties.
+    "customizations": {
+        "vscode": {
+            "extensions": [
+                "JakeBecker.elixir-ls",
+                "animus-coop.vscode-elixir-mix-formatter",
+                "ms-azuretools.vscode-docker"
+            ]
+        }
+    }
+    // Uncomment to connect as root instead. More info: https://aka.ms/dev-containers-non-root.
+    // "remoteUser": "root",
+}
