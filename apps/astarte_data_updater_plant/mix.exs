@@ -68,9 +68,9 @@ defmodule Astarte.DataUpdaterPlant.Mixfile do
 
   defp astarte_required_modules(_) do
     [
-      {:astarte_core, "~> 1.2"},
-      {:astarte_data_access, "~> 1.2"},
-      {:astarte_rpc, "~> 1.2"}
+      {:astarte_core, github: "astarte-platform/astarte_core"},
+      {:astarte_data_access, github: "astarte-platform/astarte_data_access"},
+      {:astarte_rpc, github: "astarte-platform/astarte_rpc"}
     ]
   end
 
@@ -79,25 +79,21 @@ defmodule Astarte.DataUpdaterPlant.Mixfile do
       {:amqp, "~> 3.3"},
       {:castore, "~> 1.0.0"},
       {:cyanide, "~> 2.0"},
-      {:excoveralls, "~> 0.15", only: :test},
-      {:mississippi, github: "secomind/mississippi"},
-      {:mox, "~> 1.0", only: :test},
-      # hex.pm package and esl/ex_rabbit_pool do not support amqp version 2.1.
-      # This fork is supporting amqp ~> 2.0 and also ~> 3.0.
-      {:ex_rabbit_pool, github: "simplebet/ex_rabbit_pool", ref: "latest-amqp"},
-      {:pretty_log, "~> 0.1"},
+      {:observer_cli, "~> 1.5"},
       {:plug_cowboy, "~> 2.1"},
+      {:pretty_log, "~> 0.1"},
+      {:skogsra, "~> 2.2"},
       {:telemetry_metrics_prometheus_core, "~> 0.4"},
       {:telemetry_metrics, "~> 0.4"},
       {:telemetry_poller, "~> 0.4"},
-      {:xandra, "~> 0.13"},
-      {:skogsra, "~> 2.2"},
       {:telemetry, "~> 0.4"},
-      {:observer_cli, "~> 1.5"},
+      {:xandra, "~> 0.13"},
+      {:re2, "~> 1.9", override: true},
+      {:ex_rabbit_pool, github: "simplebet/ex_rabbit_pool", ref: "latest-amqp"},
+      {:mississippi, github: "secomind/mississippi"},
       {:dialyxir, "~> 1.0", only: [:dev, :ci], runtime: false},
-      # Workaround for Elixir 1.15 / ssl_verify_fun issue
-      # See also: https://github.com/deadtrickster/ssl_verify_fun.erl/pull/27
-      {:ssl_verify_fun, "~> 1.1.0", manager: :rebar3, override: true}
+      {:excoveralls, "~> 0.15", only: :test},
+      {:mox, "~> 1.0", only: :test},
     ]
   end
 end
