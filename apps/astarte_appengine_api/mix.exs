@@ -69,9 +69,9 @@ defmodule Astarte.AppEngine.API.Mixfile do
 
   defp astarte_required_modules(_) do
     [
-      {:astarte_core, "~> 1.2"},
-      {:astarte_data_access, "~> 1.2"},
-      {:astarte_rpc, "~> 1.2"}
+      {:astarte_core, github: "astarte-platform/astarte_core"},
+      {:astarte_data_access, github: "astarte-platform/astarte_data_access"},
+      {:astarte_rpc, github: "astarte-platform/astarte_rpc"}
     ]
   end
 
@@ -80,34 +80,35 @@ defmodule Astarte.AppEngine.API.Mixfile do
   # Type `mix help deps` for examples and options.
   defp deps do
     [
-      {:phoenix, "~> 1.7"},
-      {:phoenix_ecto, "~> 4.0"},
-      {:phoenix_view, "~> 2.0"},
-      {:gettext, "~> 0.24"},
-      {:plug_cowboy, "~> 2.1"},
-      {:jason, "~> 1.2"},
+      {:castore, "~> 1.0.0"},
       {:cors_plug, "~> 2.0"},
-      {:ex_lttb, "~> 0.3"},
       {:cyanide, "~> 2.0"},
-      {:guardian, "~> 2.3.2"},
       # Required by :phoenix_swagger, otherwise it fails finding ex_json_schema.app
       {:ex_json_schema, "~> 0.7"},
+      {:ex_lttb, "~> 0.3"},
+      {:gettext, "~> 0.24"},
+      {:guardian, "~> 2.3.2"},
+      {:jason, "~> 1.2"},
+      {:observer_cli, "~> 1.5"},
+      {:phoenix_ecto, "~> 4.0"},
       {:phoenix_swagger, "~> 0.8"},
-      {:xandra, "~> 0.13"},
-      {:pretty_log, "~> 0.1"},
+      {:phoenix_view, "~> 2.0"},
+      {:phoenix, "~> 1.7"},
+      {:plug_cowboy, "~> 2.1"},
       {:plug_logger_with_meta, "~> 0.1"},
-      {:telemetry, "~> 0.4"},
+      {:pretty_log, "~> 0.1"},
+      {:skogsra, "~> 2.2"},
+      {:telemetry_metrics_prometheus_core, "~> 0.4"},
       {:telemetry_metrics, "~> 0.4"},
       {:telemetry_poller, "~> 0.4"},
-      {:telemetry_metrics_prometheus_core, "~> 0.4"},
-      {:skogsra, "~> 2.2"},
-      {:castore, "~> 1.0.0"},
-      {:observer_cli, "~> 1.5"},
-      {:dialyxir, "~> 1.0", only: [:dev, :ci], runtime: false},
+      {:telemetry, "~> 0.4"},
+      {:xandra, "~> 0.13"},
+      {:re2, "~> 1.9", override: true},
       # Workaround for Elixir 1.15 / ssl_verify_fun issue
       # See also: https://github.com/deadtrickster/ssl_verify_fun.erl/pull/27
       {:ssl_verify_fun, "~> 1.1.0", manager: :rebar3, override: true},
       # Test section
+      {:dialyxir, "~> 1.0", only: [:dev, :ci], runtime: false},
       {:excoveralls, "~> 0.15", only: :test},
       {:mox, "~> 0.5", only: :test},
       {:stream_data, "~> 0.5", only: :test}
