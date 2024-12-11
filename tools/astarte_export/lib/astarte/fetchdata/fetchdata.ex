@@ -22,14 +22,24 @@ defmodule Astarte.Export.FetchData do
   end
 
   def fetch_device_data(conn, realm, opts) do
-    with {:ok, result} <- Queries.stream_devices(conn, realm, opts),
-         [_device_data | _] = result_list <- Enum.to_list(result) do
-      updated_options = Keyword.put(opts, :paging_state, result.paging_state)
-      {:more_data, result_list, updated_options}
-    else
-      [] -> {:ok, :completed}
+    case Queries.stream_devices(conn, realm, opts) do
+      {:ok, result} ->
+        result_list = Enum.to_list(result)
+
+        if result_list == [] do
+          {:ok, :completed}
+        else
+          updated_options = Keyword.put(opts, :paging_state, result.paging_state)
+          filtered_devices = remove_never_connected_device(result_list)
+          {:more_data, filtered_devices, updated_options}
+        end
+
       {:error, reason} -> {:error, reason}
     end
+  end
+
+  defp remove_never_connected_device(devices) do
+    Enum.reject(devices, fn device -> device.connected == nil end)
   end
 
   def process_device_data(device_data) do
