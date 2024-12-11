@@ -29,7 +29,7 @@ defmodule Doc.MixProject do
   defp docs do
     [
       main: "001-intro_user",
-      logo: "images/mascot.png",
+      logo: "images/clea_bw.png",
       # It's in the docs repo root
       javascript_config_path: "../common_vars.js",
       extras: Path.wildcard("pages/*/*.md"),
