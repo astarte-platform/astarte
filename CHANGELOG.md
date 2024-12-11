@@ -11,6 +11,11 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - [astarte_import] Added support for data types: `doublearray`, `integerarray`,
   `booleanarray`, `longintegerarray`, `stringarray`, `datetimearray`, `binaryblobarray`.
 
+## [1.2.1] - Unreleased
+### Changed
+- Update the docker-compose configuration to allow both physical and virtual devices
+  to connect to Astarte, provided that the devices and the host are on the same LAN.
+
 ## [1.2.0] - 2024-07-02
 ### Fixed
 - Forward port changes from release-1.1 (connection failure when delivering
