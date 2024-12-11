@@ -231,6 +231,7 @@ services:
     env_file:
       - ./compose.env
     environment:
+      DOCKER_VERNEMQ_ACCEPT_EULA: "yes"
       DOCKER_VERNEMQ_LISTENER__SSL__DEFAULT__CAFILE: "/opt/vernemq/etc/ca.pem"
       DOCKER_VERNEMQ_LISTENER__SSL__DEFAULT__CERTFILE: "/opt/vernemq/etc/cert.pem"
       DOCKER_VERNEMQ_LISTENER__SSL__DEFAULT__KEYFILE: "/opt/vernemq/etc/privkey.pem"
@@ -248,7 +249,7 @@ services:
       - "rabbitmq"
       - "traefik"
     # Ensure we wait for rabbit and cfssl
-    command: wait-for rabbitmq:5672 -t 90 -- wait-for cfssl:8080 -t 90 -- /opt/vernemq/bin/vernemq.sh
+    command: start_vernemq
     # Restart if we fail
     restart: on-failure
     labels:
