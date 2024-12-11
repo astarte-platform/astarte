@@ -136,12 +136,8 @@ services:
     build:
       dockerfile: Dockerfile
       context: ../astarte_vmq_plugin
-      target: builder
       args:
         BUILD_ENV: dev
-    command:
-      - |
-        mix run --no-halt
     develop:
       watch:
         - path: ../astarte_vmq_plugin
