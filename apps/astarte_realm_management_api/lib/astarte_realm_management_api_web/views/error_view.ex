@@ -39,6 +39,33 @@ defmodule Astarte.RealmManagement.APIWeb.ErrorView do
     %{errors: %{detail: "Forbidden"}}
   end
 
+  def render("missing_token.json", _assigns) do
+    %{errors: %{detail: "Missing authorization token"}}
+  end
+
+  def render("invalid_token.json", _assigns) do
+    %{errors: %{detail: "Invalid JWT token"}}
+  end
+
+  # TODO: add error message for invalid_token_signature
+
+  def render("invalid_auth_path.json", _assigns) do
+    %{
+      errors: %{
+        detail:
+          "Authorization failed due to an invalid path. Ensure the realm name and endpoint are correctly specified in the request"
+      }
+    }
+  end
+
+  def render("authorization_path_not_matched.json", %{method: method, path: path}) do
+    %{
+      errors: %{
+        detail: "Unauthorized access to #{method} #{path}. Please verify your permissions"
+      }
+    }
+  end
+
   def render("interface_not_found.json", _assigns) do
     %{errors: %{detail: "Interface not found"}}
   end

@@ -130,11 +130,37 @@ defmodule Astarte.RealmManagement.APIWeb.FallbackController do
   end
 
   # This is called when no JWT token is present
-  def auth_error(conn, {:unauthenticated, _reason}, _opts) do
+  def auth_error(conn, {:unauthenticated, :unauthenticated}, _opts) do
     conn
     |> put_status(:unauthorized)
     |> put_view(Astarte.RealmManagement.APIWeb.ErrorView)
-    |> render(:"401")
+    |> render(:missing_token)
+  end
+
+  # Invalid JWT token
+  def auth_error(conn, {:invalid_token, :invalid_token}, _opts) do
+    conn
+    |> put_status(:unauthorized)
+    |> put_view(Astarte.RealmManagement.APIWeb.ErrorView)
+    |> render(:invalid_token)
+  end
+
+  # TODO: add another auth_error for invalid_token_signature
+
+  # Invalid authorized path
+  def call(conn, {:error, :invalid_auth_path}) do
+    conn
+    |> put_status(:unauthorized)
+    |> put_view(Astarte.RealmManagement.APIWeb.ErrorView)
+    |> render(:invalid_auth_path)
+  end
+
+  # Path not authorized
+  def auth_error(conn, {:unauthorized, :authorization_path_not_matched}, _opts) do
+    conn
+    |> put_status(:forbidden)
+    |> put_view(Astarte.RealmManagement.APIWeb.ErrorView)
+    |> render(:authorization_path_not_matched, %{method: conn.method, path: conn.request_path})
   end
 
   # In all other cases, we reply with 403
