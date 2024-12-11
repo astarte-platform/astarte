@@ -8,6 +8,12 @@
     //     "dockerfile": "../../../Dockerfile",
     //     "target": "base"
     // },
+    // "remoteEnv": {
+    //     "BUILD_ENV": "dev"
+    // },
+    // "containerEnv": {
+    //     "BUILD_ENV": "dev"
+    // }
     // 
     "dockerComposeFile": [
         "../../../docker-compose.yml",
