@@ -67,31 +67,32 @@ defmodule Astarte.Pairing.Mixfile do
 
   defp astarte_required_modules(_) do
     [
-      {:astarte_core, "~> 1.2"},
-      {:astarte_data_access, "~> 1.2"},
-      {:astarte_rpc, "~> 1.2"}
+      {:astarte_core, github: "astarte-platform/astarte_core"},
+      {:astarte_data_access, github: "astarte-platform/astarte_data_access"},
+      {:astarte_rpc, github: "astarte-platform/astarte_rpc"}
     ]
   end
 
   # Run "mix help deps" to learn about dependencies.
   defp deps do
     [
-      {:cfxxl, github: "ispirata/cfxxl"},
       {:bcrypt_elixir, "~> 2.2"},
-      {:excoveralls, "~> 0.15", only: :test},
+      {:observer_cli, "~> 1.5"},
       {:plug_cowboy, "~> 2.1"},
+      {:pretty_log, "~> 0.1"},
+      {:skogsra, "~> 2.2"},
       {:telemetry_metrics_prometheus_core, "~> 0.4"},
       {:telemetry_metrics, "~> 0.4"},
       {:telemetry_poller, "~> 0.4"},
-      {:xandra, "~> 0.13"},
-      {:pretty_log, "~> 0.1"},
-      {:skogsra, "~> 2.2"},
       {:telemetry, "~> 0.4"},
-      {:observer_cli, "~> 1.5"},
-      {:dialyxir, "~> 1.0", only: [:dev, :ci], runtime: false},
+      {:xandra, "~> 0.13"},
       # Workaround for Elixir 1.15 / ssl_verify_fun issue
       # See also: https://github.com/deadtrickster/ssl_verify_fun.erl/pull/27
-      {:ssl_verify_fun, "~> 1.1.0", manager: :rebar3, override: true}
+      {:ssl_verify_fun, "~> 1.1.0", manager: :rebar3, override: true},
+      {:re2, "~> 1.9", override: true},
+      {:cfxxl, github: "ispirata/cfxxl"},
+      {:dialyxir, "~> 1.0", only: [:dev, :ci], runtime: false},
+      {:excoveralls, "~> 0.15", only: :test},
     ]
   end
 end

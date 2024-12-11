@@ -68,7 +68,7 @@ defmodule Astarte.Housekeeping.API.Mixfile do
 
   defp astarte_required_modules(_) do
     [
-      {:astarte_rpc, "~> 1.2"}
+      {:astarte_rpc, github: "astarte-platform/astarte_rpc"}
     ]
   end
 
@@ -77,26 +77,29 @@ defmodule Astarte.Housekeeping.API.Mixfile do
   # Type `mix help deps` for examples and options.
   defp deps do
     [
+      {:cors_plug, "~> 2.0"},
+      {:gettext, "~> 0.24"},
+      {:guardian, "~> 2.3.2"},
       {:jason, "~> 1.2"},
-      {:phoenix, "~> 1.7"},
+      {:observer_cli, "~> 1.5"},
       {:phoenix_ecto, "~> 4.0"},
       {:phoenix_view, "~> 2.0"},
-      {:gettext, "~> 0.24"},
-      {:cors_plug, "~> 2.0"},
+      {:phoenix, "~> 1.7"},
       {:plug_cowboy, "~> 2.1"},
-      {:guardian, "~> 2.3.2"},
-      {:excoveralls, "~> 0.15", only: :test},
       {:pretty_log, "~> 0.1"},
-      {:skogsra, "~> 2.2"},
-      {:observer_cli, "~> 1.5"},
-      {:telemetry, "~> 0.4"},
+      {:skogsra, "~> 2.5"},
+      {:telemetry_metrics_prometheus_core, "~> 0.4"},
       {:telemetry_metrics, "~> 0.4"},
       {:telemetry_poller, "~> 0.4"},
-      {:telemetry_metrics_prometheus_core, "~> 0.4"},
+      {:telemetry, "~> 0.4"},
+
+      {:re2, "~> 1.9", override: true},
+
+      {:excoveralls, "~> 0.15", only: :test},
       {:dialyxir, "~> 1.0", only: [:dev, :ci], runtime: false},
       # Workaround for Elixir 1.15 / ssl_verify_fun issue
       # See also: https://github.com/deadtrickster/ssl_verify_fun.erl/pull/27
-      {:ssl_verify_fun, "~> 1.1.0", manager: :rebar3, override: true}
+      # {:ssl_verify_fun, "~> 1.1.0", manager: :rebar3, override: true}
     ]
   end
 end

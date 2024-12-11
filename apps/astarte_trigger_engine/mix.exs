@@ -59,8 +59,8 @@ defmodule Astarte.TriggerEngine.Mixfile do
 
   defp astarte_required_modules(_) do
     [
-      {:astarte_core, "~> 1.2"},
-      {:astarte_data_access, "~> 1.2"}
+      {:astarte_core, github: "astarte-platform/astarte_core"},
+      {:astarte_data_access, github: "astarte-platform/astarte_data_access"},
     ]
   end
 
@@ -79,24 +79,25 @@ defmodule Astarte.TriggerEngine.Mixfile do
       {:cyanide, "~> 2.0"},
       {:httpoison, "~> 1.6"},
       {:jason, "~> 1.2"},
-      {:excoveralls, "~> 0.15", only: :test},
-      # hex.pm package and esl/ex_rabbit_pool do not support amqp version 2.1.
-      # This fork is supporting amqp ~> 2.0 and also ~> 3.0.
-      {:ex_rabbit_pool, github: "leductam/ex_rabbit_pool"},
+      {:observer_cli, "~> 1.5"},
       {:plug_cowboy, "~> 2.1"},
+      {:pretty_log, "~> 0.1"},
+      {:skogsra, "~> 2.2"},
       {:telemetry_metrics_prometheus_core, "~> 0.4"},
       {:telemetry_metrics, "~> 0.4"},
       {:telemetry_poller, "~> 0.4"},
-      {:mox, "~> 0.5", only: :test},
-      {:pretty_log, "~> 0.1"},
       {:telemetry, "~> 0.4"},
       {:xandra, "~> 0.13"},
-      {:skogsra, "~> 2.2"},
-      {:observer_cli, "~> 1.5"},
-      {:dialyxir, "~> 1.0", only: [:dev, :ci], runtime: false},
+      {:re2, "~> 1.9", override: true},
       # Workaround for Elixir 1.15 / ssl_verify_fun issue
       # See also: https://github.com/deadtrickster/ssl_verify_fun.erl/pull/27
-      {:ssl_verify_fun, "~> 1.1.0", manager: :rebar3, override: true}
+      {:ssl_verify_fun, "~> 1.1.0", manager: :rebar3, override: true},
+      # hex.pm package and esl/ex_rabbit_pool do not support amqp version 2.1.
+      # This fork is supporting amqp ~> 2.0 and also ~> 3.0.
+      {:ex_rabbit_pool, github: "leductam/ex_rabbit_pool"},
+      {:dialyxir, "~> 1.0", only: [:dev, :ci], runtime: false},
+      {:excoveralls, "~> 0.15", only: :test},
+      {:mox, "~> 0.5", only: :test}
     ]
   end
 end
