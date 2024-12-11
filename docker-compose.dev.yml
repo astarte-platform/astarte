@@ -146,3 +146,6 @@ services:
       watch:
         - path: ../astarte_vmq_plugin
           action: rebuild
+  scylla:
+    ports:
+      - 9042:9042

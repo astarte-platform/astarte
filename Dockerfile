@@ -7,6 +7,7 @@ RUN apt-get update --allow-releaseinfo-change -y && \
     build-essential \
     git \
     openssl \
+    erlang-dev \
     ca-certificates \
     inotify-tools && \
     apt-get clean && \
