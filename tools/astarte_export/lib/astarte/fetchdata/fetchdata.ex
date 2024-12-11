@@ -22,13 +22,19 @@ defmodule Astarte.Export.FetchData do
   end
 
   def fetch_device_data(conn, realm, opts) do
-    with {:ok, result} <- Queries.stream_devices(conn, realm, opts),
-         [_device_data | _] = result_list <- Enum.to_list(result) do
-      updated_options = Keyword.put(opts, :paging_state, result.paging_state)
-      {:more_data, result_list, updated_options}
-    else
-      [] -> {:ok, :completed}
-      {:error, reason} -> {:error, reason}
+    case Queries.stream_devices(conn, realm, opts) do
+      {:ok, result} ->
+        result_list = Enum.to_list(result)
+
+        if result_list == [] do
+          {:ok, :completed}
+        else
+          updated_options = Keyword.put(opts, :paging_state, result.paging_state)
+          {:more_data, result_list, updated_options}
+        end
+
+      {:error, reason} ->
+        {:error, reason}
     end
   end
 
@@ -43,35 +49,71 @@ defmodule Astarte.Export.FetchData do
 
     secret_bcrypt_hash = device_data.credentials_secret
 
-    first_registration = DateTime.to_iso8601(device_data.first_registration)
+    first_registration =
+      case device_data.first_registration do
+        nil -> ""
+        datetime -> DateTime.to_iso8601(datetime)
+      end
 
     inhibit_request =
-      device_data.inhibit_credentials_request
-      |> to_string
-      |> String.downcase()
+      case device_data.inhibit_credentials_request do
+        nil -> ""
+        value -> value |> to_string() |> String.downcase()
+      end
 
-    cert_serial = device_data.cert_serial
-    cert_aki = device_data.cert_aki
+    cert_serial =
+      case device_data.cert_serial do
+        nil -> ""
+        serial -> serial
+      end
 
-    first_credentials_request = DateTime.to_iso8601(device_data.first_credentials_request)
+    cert_aki =
+      case device_data.cert_aki do
+        nil -> ""
+        serial -> serial
+      end
+
+    first_credentials_request =
+      case device_data.first_credentials_request do
+        nil -> ""
+        datetime -> DateTime.to_iso8601(datetime)
+      end
 
     last_credentials_request_ip =
-      device_data.last_credentials_request_ip
-      |> :inet_parse.ntoa()
-      |> to_string()
+      case device_data.last_credentials_request_ip do
+        nil -> ""
+        ip -> ip |> :inet_parse.ntoa() |> to_string()
+      end
 
-    total_received_msgs = to_string(device_data.total_received_msgs)
+    total_received_msgs =
+      case device_data.total_received_msgs do
+        nil -> "0"
+        msgs -> to_string(msgs)
+      end
 
-    total_received_bytes = to_string(device_data.total_received_bytes)
+    total_received_bytes =
+      case device_data.total_received_bytes do
+        nil -> "0"
+        bytes -> to_string(bytes)
+      end
 
-    last_connection = DateTime.to_iso8601(device_data.last_connection)
+    last_connection =
+      case device_data.last_connection do
+        nil -> ""
+        datetime -> DateTime.to_iso8601(datetime)
+      end
 
-    last_disconnection = DateTime.to_iso8601(device_data.last_disconnection)
+    last_disconnection =
+      case device_data.last_disconnection do
+        nil -> ""
+        datetime -> DateTime.to_iso8601(datetime)
+      end
 
     last_seen_ip =
-      device_data.last_seen_ip
-      |> :inet_parse.ntoa()
-      |> to_string()
+      case device_data.last_seen_ip do
+        nil -> ""
+        ip -> ip |> :inet_parse.ntoa() |> to_string()
+      end
 
     device_attributes = [device_id: device_id]
 
@@ -110,6 +152,8 @@ defmodule Astarte.Export.FetchData do
   def get_interface_details(conn, realm, device_data) do
     device_id = device_data.device_id
     introspection = device_data.introspection
+
+    introspection = if introspection == nil, do: [], else: introspection
 
     mapped_interfaces =
       Enum.reduce(introspection, [], fn {interface_name, major_version}, acc ->
