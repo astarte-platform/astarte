@@ -14,7 +14,7 @@ defmodule Doc.MixProject do
       elixir: "~> 1.14",
       start_permanent: Mix.env() == :prod,
       deps: deps(),
-      name: "Astarte",
+      name: "Clea Astarte",
       homepage_url: "https://docs.astarte-platform.org/astarte/#{source_version}/",
       source_url: "https://github.com/astarte-platform/astarte",
       docs: docs()
