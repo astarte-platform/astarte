@@ -79,18 +79,17 @@ defmodule Astarte.Housekeeping.Mixfile do
 
   defp deps do
     [
-      {:xandra, "~> 0.19.1"},
       {:amqp, "~> 3.3"},
-      {:re2, "~> 1.9", override: true},
-      {:snappyer, "~> 1.2", override: true},
+      {:observer_cli, "~> 1.7"},
       {:plug_cowboy, "~> 2.7"},
-      {:skogsra, "~> 2.5"},
       {:pretty_log, "~> 0.9"},
+      {:skogsra, "~> 2.5"},
       {:telemetry_metrics_prometheus_core, "~> 1.2"},
       {:telemetry_metrics, "~> 1.0"},
       {:telemetry_poller, "~> 1.1"},
-      {:observer_cli, "~> 1.7"},
-
+      {:xandra, "~> 0.19.1"},
+      {:re2, "~> 1.9", override: true},
+      {:snappyer, "~> 1.2", override: true},
       {:dialyxir, "~> 1.0", only: [:dev, :ci], runtime: false},
       {:excoveralls, "~> 0.15", only: :test},
     ]

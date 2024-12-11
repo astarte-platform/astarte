@@ -4,12 +4,18 @@
 	"name": "astarte-housekeeping",
 	// Or use a Dockerfile or Docker Compose file. More info: https://containers.dev/guide/dockerfile
 	// "image": "mcr.microsoft.com/devcontainers/base:bullseye"
+	// "build": {
+	// 	"dockerfile": "../../../Dockerfile",
+	// 	"target": "base"
+	// },
+	// 
 	"dockerComposeFile": [
 		"../../../docker-compose.yml",
 		"../../../docker-compose.dev.yml"
 	],
 	"service": "astarte-housekeeping",
 	"workspaceFolder": "/workspaces/${localWorkspaceFolderBasename}",
+	// 
 	// Features to add to the dev container. More info: https://containers.dev/features.
 	// "features": {},
 	// Use 'forwardPorts' to make a list of ports inside the container available locally.
