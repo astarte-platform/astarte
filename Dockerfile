@@ -7,6 +7,7 @@ RUN apt-get update --allow-releaseinfo-change -y && \
     build-essential \
     git \
     openssl \
+    docker.io \
     erlang-dev \
     ca-certificates \
     inotify-tools && \
