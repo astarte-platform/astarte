@@ -690,10 +690,12 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
   end
 
   def handle_data(%State{discard_messages: true} = state, _, _, _, _) do
+    # TODO: do we want to include this in the handling time metric?
     {:ack, :discard_messages, state}
   end
 
   def handle_data(state, interface, path, payload, timestamp) do
+    start = System.monotonic_time()
     {:ok, db_client} = Database.connect(realm: state.realm)
 
     new_state = execute_time_based_actions(state, timestamp, db_client)
@@ -865,7 +867,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
       paths_cache = Cache.put(new_state.paths_cache, {interface, path}, %CachedPath{}, ttl)
       new_state = %{new_state | paths_cache: paths_cache}
 
-      continue_arg = {:processed_message, interface_descriptor, interface, path, payload}
+      continue_arg = {:processed_message, interface_descriptor, interface, path, payload, start}
       {:ack, :ok, new_state, {:continue, continue_arg}}
     else
       {:error, :cannot_write_on_server_owned_interface} ->
@@ -1015,7 +1017,10 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
   end
 
   @impl true
-  def handle_continue({:processed_message, interface_descriptor, interface, path, payload}, state) do
+  def handle_continue(
+        {:processed_message, interface_descriptor, interface, path, payload, start_time},
+        state
+      ) do
     :telemetry.execute(
       [:astarte, :data_updater_plant, :data_updater, :processed_message],
       %{},
@@ -1026,6 +1031,13 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
     )
 
     new_state = update_stats(state, interface, interface_descriptor.major_version, path, payload)
+
+    :telemetry.execute(
+      [:astarte, :data_updater_plant, :data_updater, :handle_data],
+      %{duration: System.monotonic_time() - start_time},
+      %{realm: state.realm}
+    )
+
     {:ok, new_state}
   end
 
