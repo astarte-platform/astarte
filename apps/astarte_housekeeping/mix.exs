@@ -71,27 +71,27 @@ defmodule Astarte.Housekeeping.Mixfile do
 
   defp astarte_required_modules(_) do
     [
-      {:astarte_core, "~> 1.2"},
-      {:astarte_data_access, "~> 1.2"},
-      {:astarte_rpc, "~> 1.2"}
+      {:astarte_core, github: "astarte-platform/astarte_core"},
+      {:astarte_data_access, github: "astarte-platform/astarte_data_access"},
+      {:astarte_rpc, github: "astarte-platform/astarte_rpc"}
     ]
   end
 
   defp deps do
     [
-      {:xandra, "~> 0.13", override: true},
-      {:excoveralls, "~> 0.15", only: :test},
+      {:amqp, "~> 3.3"},
+      {:observer_cli, "~> 1.7"},
+      {:plug_cowboy, "~> 2.7"},
+      {:pretty_log, "~> 0.9"},
+      {:skogsra, "~> 2.5"},
+      {:telemetry_metrics_prometheus_core, "~> 1.2"},
+      {:telemetry_metrics, "~> 1.0"},
+      {:telemetry_poller, "~> 1.1"},
+      {:xandra, "~> 0.19.1"},
+      {:re2, "~> 1.9", override: true},
+      {:snappyer, "~> 1.2", override: true},
       {:dialyxir, "~> 1.0", only: [:dev, :ci], runtime: false},
-      {:plug_cowboy, "~> 2.1"},
-      {:skogsra, "~> 2.2"},
-      {:pretty_log, "~> 0.1"},
-      {:telemetry_metrics_prometheus_core, "~> 0.4"},
-      {:telemetry_metrics, "~> 0.4"},
-      {:telemetry_poller, "~> 0.4"},
-      {:observer_cli, "~> 1.5"},
-      # Workaround for Elixir 1.15 / ssl_verify_fun issue
-      # See also: https://github.com/deadtrickster/ssl_verify_fun.erl/pull/27
-      {:ssl_verify_fun, "~> 1.1.0", manager: :rebar3, override: true}
+      {:excoveralls, "~> 0.15", only: :test},
     ]
   end
 end

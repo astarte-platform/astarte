@@ -54,3 +54,6 @@ apps/*/_checkouts/
 
 examples/*/node_modules/
 examples/*/.idea/
+
+# MacOS
+.DS_Store
