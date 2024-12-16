@@ -59,9 +59,9 @@ jobs:
         sleep 5
     - name: Install e2e test interfaces
       run: |
-        for i in $(ls tools/astarte_e2e/priv/interfaces/); do
+        for i in $(ls tools/astarte_e2e/priv/interfaces/*.json); do
           echo "Installing $i"
-          ./astartectl realm-management interfaces install tools/astarte_e2e/priv/interfaces/$i --astarte-url http://api.astarte.localhost -k test_private.pem -r $E2E_REALM
+          ./astartectl realm-management interfaces install $i --astarte-url http://api.astarte.localhost -k test_private.pem -r $E2E_REALM
           sleep 2
         done
     - name: Register device

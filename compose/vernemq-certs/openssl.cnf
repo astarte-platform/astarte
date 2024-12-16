@@ -1,3 +1,6 @@
+# Copyright 2018 SECO Mind Srl
+#
+# SPDX-License-Identifier: Apache-2.0
 # OpenSSL root CA configuration file.
 # Copy to `/root/ca/openssl.cnf`.
 
