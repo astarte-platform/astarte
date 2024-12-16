@@ -10,6 +10,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
   the `detailed=true` parameter
 - [astarte_import] Added support for data types: `doublearray`, `integerarray`,
   `booleanarray`, `longintegerarray`, `stringarray`, `datetimearray`, `binaryblobarray`.
+- [astarte_data_updater_plant] Automatically shard queues between DUP instances,
+  allowing to autoscale the service. This is done via Erlang clustering, so
+  the `DATA_UPDATER_PLANT_CLUSTERING_STRATEGY` env var (default `none`) has
+  been introduced to set clustering strategy.
 
 ## [1.2.1] - Unreleased
 ### Changed
