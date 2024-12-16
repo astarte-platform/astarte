@@ -27,6 +27,7 @@ defmodule Astarte.RealmManagement.APIWeb.DeviceControllerTest do
   @other_device_id :crypto.strong_rand_bytes(16) |> Base.url_encode64(padding: false)
 
   setup %{conn: conn} do
+    Mock.DB.put_jwt_public_key_pem(@realm, JWTTestHelper.public_key_pem())
     Mock.DB.create_device(@realm, @device_id)
     token = JWTTestHelper.gen_jwt_all_access_token()
 
