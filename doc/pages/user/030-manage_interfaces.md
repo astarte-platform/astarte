@@ -1,3 +1,9 @@
+<!--
+Copyright 2018-2021 SECO Mind Srl
+
+SPDX-License-Identifier: Apache-2.0
+-->
+
 # Managing Interfaces
 
 [Interfaces](030-interface.html) define how data is exchanged over Astarte. For a Device to be

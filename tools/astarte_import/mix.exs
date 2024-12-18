@@ -1,3 +1,7 @@
+# Copyright 2019-2024 SECO Mind Srl
+#
+# SPDX-License-Identifier: Apache-2.0
+
 defmodule Astarte.Import.MixProject do
   use Mix.Project
 

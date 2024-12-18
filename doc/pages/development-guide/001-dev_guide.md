@@ -1,3 +1,9 @@
+<!--
+Copyright 2024 SECO Mind Srl
+
+SPDX-License-Identifier: Apache-2.0
+-->
+
 # Development Guide
 
 Welcome to Astarte! To learn more about contributing to the [Astarte project](https://www.github.com/astarte-platform/astarte), check out the [Contributor's Guide](https://github.com/astarte-platform/astarte/blob/master/CONTRIBUTING.md).

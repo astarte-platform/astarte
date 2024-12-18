@@ -1,3 +1,9 @@
+<!--
+Copyright 2020-2023 SECO Mind Srl
+
+SPDX-License-Identifier: Apache-2.0
+-->
+
 # AstarteE2E
 
 AstarteE2E is employed as a monitoring tool with the following functions:

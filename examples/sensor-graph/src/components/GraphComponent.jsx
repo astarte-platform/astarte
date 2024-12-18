@@ -1,3 +1,7 @@
+// Copyright 2020-2021 SECO Mind Srl
+//
+// SPDX-License-Identifier: Apache-2.0
+
 import React, { Component } from "react";
 import { Col, ListGroup, Row } from "react-bootstrap";
 import { getSensorValueById } from "../apiHandler";

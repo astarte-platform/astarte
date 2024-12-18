@@ -1,3 +1,7 @@
+// Copyright 2021 SECO Mind Srl
+//
+// SPDX-License-Identifier: Apache-2.0
+
 import React from "react";
 import { Card, ListGroup } from "react-bootstrap";
 import moment from "moment";

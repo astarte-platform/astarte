@@ -1,3 +1,7 @@
+# Copyright 2018 SECO Mind Srl
+#
+# SPDX-License-Identifier: Apache-2.0
+
 defmodule Astarte.RealmManagement.API.DataCase do
   use ExUnit.CaseTemplate
 

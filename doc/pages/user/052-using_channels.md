@@ -1,3 +1,9 @@
+<!--
+Copyright 2018-2024 SECO Mind Srl
+
+SPDX-License-Identifier: Apache-2.0
+-->
+
 # Using Astarte Channels (WebSockets)
 
 Especially when building Frontend applications, it is useful to receive real-time updates about data

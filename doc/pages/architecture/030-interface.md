@@ -1,3 +1,9 @@
+<!--
+Copyright 2018-2024 SECO Mind Srl
+
+SPDX-License-Identifier: Apache-2.0
+-->
+
 # Interfaces
 
 Interfaces are a core concept of Astarte which defines how data is exchanged between Astarte and its

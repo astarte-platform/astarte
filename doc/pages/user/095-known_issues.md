@@ -1,3 +1,9 @@
+<!--
+Copyright 2021 SECO Mind Srl
+
+SPDX-License-Identifier: Apache-2.0
+-->
+
 # Known issues
 
 This page collects some notable issues which affect Astarte `v1.0`. This is by no means an

@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2018-2023 SECO Mind Srl
+#
+# SPDX-License-Identifier: CC0-1.0
+
 # Ignore compose files
 compose/astarte-keys/*
 compose/vernemq-certs/*

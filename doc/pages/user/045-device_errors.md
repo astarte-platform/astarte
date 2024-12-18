@@ -1,3 +1,9 @@
+<!--
+Copyright 2020-2022 SECO Mind Srl
+
+SPDX-License-Identifier: Apache-2.0
+-->
+
 # Device errors
 
 This page details the errors that can affect a device while it's sending data. The user can monitor

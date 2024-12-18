@@ -1,3 +1,9 @@
+<!--
+Copyright 2021 SECO Mind Srl
+
+SPDX-License-Identifier: Apache-2.0
+-->
+
 # Sensor Graph example
 
 This is a sample web page made in React that you can use to plot data coming from a sensor of a

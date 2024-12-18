@@ -1,3 +1,9 @@
+<!--
+Copyright 2018-2024 SECO Mind Srl
+
+SPDX-License-Identifier: Apache-2.0
+-->
+
 # Triggers
 
 Triggers in Astarte are the go-to mechanism for generating push events. In contrast with AppEngine's

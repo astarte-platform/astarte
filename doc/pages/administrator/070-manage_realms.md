@@ -1,3 +1,9 @@
+<!--
+Copyright 2018-2023 SECO Mind Srl
+
+SPDX-License-Identifier: Apache-2.0
+-->
+
 # Managing Realms
 
 Once the Cluster is set up, you can start managing it by creating Realms.

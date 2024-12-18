@@ -1,3 +1,7 @@
+# Copyright 2017 SECO Mind Srl
+#
+# SPDX-License-Identifier: Apache-2.0
+
 ## This file is a PO Template file.
 ##
 ## `msgid`s here are often extracted from source code.

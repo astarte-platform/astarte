@@ -1,3 +1,7 @@
+# Copyright 2023-2024 SECO Mind Srl
+#
+# SPDX-License-Identifier: Apache-2.0
+
 {
   description = "Open Source IoT platform focused on Data management and processing";
   inputs = {

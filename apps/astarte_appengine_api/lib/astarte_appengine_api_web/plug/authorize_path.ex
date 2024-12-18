@@ -1,3 +1,7 @@
+# Copyright 2018 SECO Mind Srl
+#
+# SPDX-License-Identifier: Apache-2.0
+
 defmodule Astarte.AppEngine.APIWeb.Plug.AuthorizePath do
   alias Astarte.AppEngine.API.Config
   alias Astarte.AppEngine.APIWeb.Plug.GuardianAuthorizePath

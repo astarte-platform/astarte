@@ -1,3 +1,7 @@
+# Copyright 2019-2023 SECO Mind Srl
+#
+# SPDX-License-Identifier: Apache-2.0
+
 FROM hexpm/elixir:1.15.7-erlang-25.3.2.7-debian-bullseye-20231009-slim as builder
 
 # install build dependencies
