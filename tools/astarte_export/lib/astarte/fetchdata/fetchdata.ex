@@ -168,6 +168,21 @@ defmodule Astarte.Export.FetchData do
         {:ok, mappings} = Queries.fetch_interface_mappings(conn, realm, interface_id, [])
         mappings = Enum.sort_by(mappings, fn mapping -> mapping.endpoint end)
 
+        mappings =
+          Enum.map(mappings, fn mapping ->
+            path =
+              fetch_all_endpoint_paths(
+                conn,
+                realm,
+                interface_id,
+                device_id,
+                mapping.endpoint_id,
+                aggregation
+              )
+
+            Map.put(mapping, :path, path |> Enum.at(0) || mapping.endpoint)
+          end)
+
         interface_attributes = [
           interface_name: interface_name,
           major_version: to_string(major_version),
@@ -203,6 +218,20 @@ defmodule Astarte.Export.FetchData do
     {:ok, mapped_interfaces}
   end
 
+  defp fetch_all_endpoint_paths(conn, realm, interface_id, device_id, endpoint_id, aggregation) do
+    with {:ok, result} <-
+           Queries.retrieve_all_endpoint_paths(
+             conn,
+             realm,
+             interface_id,
+             device_id,
+             endpoint_id,
+             aggregation
+           ) do
+      result
+    end
+  end
+
   def fetch_individual_datastreams(conn, realm, mapping, interface_info, options) do
     %{
       device_id: device_id,
@@ -210,7 +239,7 @@ defmodule Astarte.Export.FetchData do
     } = interface_info
 
     endpoint_id = mapping.endpoint_id
-    path = mapping.endpoint
+    path = mapping.path
     data_type = mapping.value_type
     data_field = CQLUtils.type_to_db_column_name(data_type)
 
@@ -300,7 +329,7 @@ defmodule Astarte.Export.FetchData do
       interface_id: interface_id
     } = interface_info
 
-    path = mapping.endpoint
+    path = mapping.path
     endpoint_id = mapping.endpoint_id
     data_type = mapping.value_type
     data_field = CQLUtils.type_to_db_column_name(data_type)
