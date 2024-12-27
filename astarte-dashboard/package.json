@@ -41,7 +41,7 @@
   },
   "devDependencies": {
     "cypress": "^12.16.0",
-    "prettier": "^3.2.5"
+    "prettier": "^3.4.2"
   },
   "dependencies": {
     "@astarte-platform/react-bootstrap": "^5.15.0",
