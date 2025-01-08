@@ -861,7 +861,7 @@ defmodule Astarte.AppEngine.API.DatabaseTestHelper do
     reception_timestamp timestamp,
     reception_timestamp_submillis smallint,
     v_enable boolean,
-    v_samplingPeriod double,
+    v_samplingPeriod int,
     v_binaryblobarray list<blob>,
     PRIMARY KEY ((device_id, path), reception_timestamp, reception_timestamp_submillis));
     """
