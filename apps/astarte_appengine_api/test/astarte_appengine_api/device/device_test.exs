@@ -1464,12 +1464,12 @@ defmodule Astarte.AppEngine.API.DeviceTest do
                 data: %{
                   "my_new_path" => %{
                     "enable" => false,
-                    "samplingPeriod" => 100.0,
+                    "samplingPeriod" => 100,
                     "timestamp" => time1
                   },
                   "my_path" => %{
                     "enable" => true,
-                    "samplingPeriod" => 10.0,
+                    "samplingPeriod" => 10,
                     "timestamp" => time2
                   }
                 },
@@ -1618,12 +1618,12 @@ defmodule Astarte.AppEngine.API.DeviceTest do
                 data: %{
                   "my_new_path" => %{
                     "enable" => false,
-                    "samplingPeriod" => 100.0,
+                    "samplingPeriod" => 100,
                     "timestamp" => time1
                   },
                   "my_path" => %{
                     "enable" => true,
-                    "samplingPeriod" => 10.0,
+                    "samplingPeriod" => 10,
                     "timestamp" => time2
                   }
                 },
