@@ -39,7 +39,7 @@ defmodule AstarteDevTool.Utilities.Process do
 
       {:ok, result}
     else
-      :error ->
+      _ ->
         {:error, :version_badformatted}
     end
   end
@@ -47,7 +47,7 @@ defmodule AstarteDevTool.Utilities.Process do
   defp clean_version(version), do: {:ok, version |> String.trim() |> String.trim("'")}
 
   def check_process(command, args, path) when is_list(args) do
-    command = "#{command} #{Enum.join(args, "")}"
+    command = "#{command} #{Enum.join(args, " ")}"
     check_process(command, path)
   end
 
