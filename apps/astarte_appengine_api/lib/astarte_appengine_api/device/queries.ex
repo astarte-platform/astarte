@@ -471,7 +471,12 @@ defmodule Astarte.AppEngine.API.Device.Queries do
     Repo.fetch(query, device_id, error: :device_not_found)
   end
 
-  defp deletion_in_progress?(keyspace, device_id) do
+  def deletion_in_progress?(realm_name, device_id) do
+    keyspace = keyspace_name(realm_name)
+    do_deletion_in_progress?(keyspace, device_id)
+  end
+
+  defp do_deletion_in_progress?(keyspace, device_id) do
     case Repo.fetch(DeletionInProgress, device_id, prefix: keyspace) do
       {:ok, _} -> true
       {:error, _} -> false
@@ -538,6 +543,112 @@ defmodule Astarte.AppEngine.API.Device.Queries do
         where: d.object_type == 1 and d.object_name == ^device_alias
 
     Repo.fetch_one(query, consistency: :quorum, error: :device_not_found)
+  end
+
+  def find_all_aliases(realm_name, alias_list) do
+    keyspace = keyspace_name(realm_name)
+
+    # Queries are chunked to avoid hitting scylla's `max_clustering_key_restrictions_per_query`
+    alias_list
+    |> Enum.chunk_every(99)
+    |> Enum.map(&from(n in Name, where: n.object_type == 1 and n.object_name in ^&1))
+    |> Enum.map(&Repo.all(&1, prefix: keyspace))
+    |> List.flatten()
+  end
+
+  def merge_device_status(_, _, device_status_changes, _, _)
+      when map_size(device_status_changes) == 0,
+      do: :ok
+
+  def merge_device_status(realm_name, device, changes, alias_tags_to_delete, aliases_to_update) do
+    keyspace = keyspace_name(realm_name)
+
+    device_query = merge_device_status_device_query(keyspace, device.device_id, changes)
+
+    aliases_queries =
+      merge_device_status_aliases_queries(
+        keyspace,
+        device,
+        alias_tags_to_delete,
+        aliases_to_update
+      )
+
+    queries = [device_query | aliases_queries]
+
+    case Exandra.execute_batch(Repo, %Exandra.Batch{queries: queries}, consistency: :each_quorum) do
+      :ok ->
+        :ok
+
+      {:error, reason} ->
+        Logger.warning("Database error, reason: #{inspect(reason)}", tag: "db_error")
+        {:error, :database_error}
+    end
+  end
+
+  defp merge_device_status_device_query(keyspace, device_id, changes) do
+    changes =
+      case Map.fetch(changes, :credentials_inhibited) do
+        {:ok, inhibit_credentials_request} ->
+          changes
+          |> Map.delete(:credentials_inhibited)
+          |> Map.put(:inhibit_credentials_request, inhibit_credentials_request)
+
+        :error ->
+          changes
+      end
+      |> Keyword.new()
+
+    device_query =
+      from DatabaseDevice,
+        prefix: ^keyspace,
+        where: [device_id: ^device_id],
+        update: [set: ^changes]
+
+    Repo.to_sql(:update_all, device_query)
+  end
+
+  defp merge_device_status_aliases_queries(
+         keyspace,
+         device,
+         alias_tags_to_delete,
+         aliases_to_update
+       ) do
+    {update_tags, update_values} = Enum.unzip(aliases_to_update)
+
+    all_tags = alias_tags_to_delete ++ update_tags
+
+    tags_to_delete =
+      device.aliases
+      |> Enum.filter(fn {tag, _value} -> tag in all_tags end)
+
+    # We delete both aliases we mean to delete, and also existing aliases we want to update
+    # as the name is part of the primary key for the names table.
+    # Queries are chunked to avoid hitting scylla's `max_clustering_key_restrictions_per_query`
+    delete_queries =
+      tags_to_delete
+      |> Enum.map(fn {_tag, value} -> value end)
+      |> Enum.chunk_every(99)
+      |> Enum.map(fn alias_chunk ->
+        query =
+          from n in Name,
+            prefix: ^keyspace,
+            where: n.object_type == 1 and n.object_name in ^alias_chunk
+
+        Repo.to_sql(:delete_all, query)
+      end)
+
+    insert_queries =
+      update_values
+      |> Enum.map(
+        &%Name{
+          object_name: &1,
+          object_type: 1,
+          object_uuid: device.device_id
+        }
+      )
+      |> Enum.map(&Repo.insert_to_sql(&1, prefix: keyspace))
+
+    delete_queries ++ insert_queries
   end
 
   def insert_attribute(realm_name, device_id, attribute_key, attribute_value) do
@@ -939,7 +1050,7 @@ defmodule Astarte.AppEngine.API.Device.Queries do
         groups -> groups |> Map.keys()
       end
 
-    deletion_in_progress? = deletion_in_progress?(keyspace, device_id)
+    deletion_in_progress? = do_deletion_in_progress?(keyspace, device_id)
 
     device_id = Device.encode_device_id(device_id)
     connected = connected || false
