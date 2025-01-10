@@ -112,6 +112,10 @@ defmodule Astarte.AppEngine.API.Device.DeviceStatus do
 
     # groups_map could be nil, default to empty map
     groups = Map.keys(groups_map || %{})
+    last_connection = truncate_datetime(last_connection)
+    last_disconnection = truncate_datetime(last_disconnection)
+    first_registration = truncate_datetime(first_registration)
+    first_credentials_request = truncate_datetime(first_credentials_request)
 
     %DeviceStatus{
       id: Device.encode_device_id(device_id),
@@ -132,6 +136,9 @@ defmodule Astarte.AppEngine.API.Device.DeviceStatus do
       groups: groups
     }
   end
+
+  defp truncate_datetime(nil), do: nil
+  defp truncate_datetime(datetime), do: datetime |> DateTime.truncate(:millisecond)
 
   defp ip_string(nil) do
     nil
