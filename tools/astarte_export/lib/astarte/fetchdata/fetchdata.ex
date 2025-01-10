@@ -169,7 +169,7 @@ defmodule Astarte.Export.FetchData do
         mappings = Enum.sort_by(mappings, fn mapping -> mapping.endpoint end)
 
         interface_attributes = [
-          interface_name: interface_name,
+          name: interface_name,
           major_version: to_string(major_version),
           minor_version: to_string(minor_version),
           active: "true"
