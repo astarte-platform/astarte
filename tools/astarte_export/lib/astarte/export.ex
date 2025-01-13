@@ -185,9 +185,7 @@ defmodule Astarte.Export do
 
   defp process_object_streams(conn, realm, mappings, interface_info, fd, state, opts) do
     [h | _t] = mappings
-    fullpath = h.endpoint
-    [_, endpointprefix, _] = String.split(fullpath, "/")
-    path = "/" <> endpointprefix
+    path = "" <> h.path
 
     sub_paths_info =
       Enum.reduce(mappings, [], fn mapping, acc1 ->
@@ -215,7 +213,7 @@ defmodule Astarte.Export do
 
   defp process_individual_streams(conn, realm, [h | t], interface_info, fd, state, opts) do
     with {:ok, state} <-
-           XMLGenerate.xml_write_start_tag(fd, {"datastream", [path: h.endpoint]}, state),
+           XMLGenerate.xml_write_start_tag(fd, {"datastream", [path: h.path]}, state),
          {:ok, state} <-
            do_process_individual_streams(conn, realm, h, interface_info, fd, state, opts),
          {:ok, state} <- XMLGenerate.xml_write_end_tag(fd, state) do
