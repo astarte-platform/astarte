@@ -1,9 +1,5 @@
 # astarte_export
 
-## ⚠ Warning
-
-This tool is still in alpha phase, don't rely on it for critical migrations.
-
 Astarte Export is an easy to use tool that allows to exporting all the devices and data from an existing Astarte realm to XML format.
 
 ```iex
@@ -15,6 +11,55 @@ level=info ts=2020-02-03T03:57:21.437+00:00 msg="Export Completed." module=Astar
 {:ok, :export_completed}
 iex(astarte_export@127.0.0.1)7>
 ```
+
+## Environment variables
+
+``` bash
+  export export CASSANDRA_DB_HOST="127.0.0.1"
+  export CASSANDRA_DB_PORT=9042
+  export CASSANDRA_NODES="localhost:9042"
+```
+## Exporting Data with Astarte
+
+You can export data from an Astarte realm using the following commands.
+
+Export Data for All Devices in a Realm
+To export data for all devices in a realm:
+
+```bash
+mix astarte.export <REALM> <FILE_XML>
+```
+- `<REALM>`: The name of the Astarte realm.
+- `<FILE_XML>`: The output file path where the exported data will be saved.
+
+Export Data for All Devices in a Realm
+To export data for all devices in a realm:
+
+## Export Data for a Specific Device
+
+To export data for a single device in a realm:
+
+```bash
+mix astarte.export <REALM> <FILE_XML> <DEVICE_ID>
+```
+
+- `<REALM>`: The name of the Astarte realm.
+- `<FILE_XML>`: The output file path where the exported data will be saved.
+- `<DEVICE_ID>`: The unique identifier of the device (e.g., "ogmcilZpRDeDWwuNfJr0yA").
+
+## Example Commands
+
+Export all devices in the realm example_realm:
+
+``` bash
+mix astarte.export example_realm devices_data.xml
+```
+Export data for a specific device yKA3CMd07kWaDyj6aMP4Dg in the realm example_realm:
+
+``` bash
+mix astarte.export example_realm device_data.xml yKA3CMd07kWaDyj6aMP4Dg
+```
+
 The exported realm data is captured in xml_format as below.
 
 ```xml
