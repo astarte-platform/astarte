@@ -9,6 +9,11 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Update the docker-compose configuration to allow both physical and virtual devices
   to connect to Astarte, provided that the devices and the host are on the same LAN.
 
+### Fixed
+- [astarte_data_updater_plant] Do not generate redundant disconnection
+  triggers in corner cases when a device is already disconnected.
+  Fix [#1014](https://github.com/astarte-platform/astarte/issues/1014).
+
 ## [1.2.0] - 2024-07-02
 ### Fixed
 - Forward port changes from release-1.1 (connection failure when delivering
