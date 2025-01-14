@@ -34,27 +34,28 @@ defmodule Astarte.Export do
     the arguments are
     - realm-name -> This is a string format of input
     - file      -> file where to export the realm data.
+    - options   -> options to export the realm data.
   """
 
-  @spec export_realm_data(String.t(), String.t()) ::
+  @spec export_realm_data(String.t(), String.t(), keyword()) ::
           :ok | {:error, :invalid_parameters} | {:error, any()}
 
-  def export_realm_data(realm, file) do
+  def export_realm_data(realm, file, opts \\ []) do
     file = Path.expand(file) |> Path.absname()
 
     with {:ok, fd} <- File.open(file, [:write]) do
-      generate_xml(realm, fd)
+      generate_xml(realm, fd, opts)
     end
   end
 
-  defp generate_xml(realm, fd) do
+  defp generate_xml(realm, fd, opts \\ []) do
     Logger.info("Export started.", realm: realm, tag: "export_started")
 
     with {:ok, state} <- XMLGenerate.xml_write_default_header(fd),
          {:ok, state} <- XMLGenerate.xml_write_start_tag(fd, {"astarte", []}, state),
          {:ok, state} <- XMLGenerate.xml_write_start_tag(fd, {"devices", []}, state),
          {:ok, conn} <- FetchData.db_connection_identifier(),
-         {:ok, state} <- process_devices(conn, realm, fd, state),
+         {:ok, state} <- process_devices(conn, realm, fd, state, opts),
          {:ok, state} <- XMLGenerate.xml_write_end_tag(fd, state),
          {:ok, _state} <- XMLGenerate.xml_write_end_tag(fd, state),
          :ok <- File.close(fd) do
@@ -67,20 +68,20 @@ defmodule Astarte.Export do
     end
   end
 
-  defp process_devices(conn, realm, fd, state) do
+  defp process_devices(conn, realm, fd, state, opts \\ []) do
     tables_page_configs = Application.get_env(:xandra, :cassandra_table_page_sizes, [])
     page_size = Keyword.get(tables_page_configs, :device_table_page_size, 100)
     options = [page_size: page_size]
-    process_devices(conn, realm, fd, state, options)
+    process_devices(conn, realm, fd, state, options, opts)
   end
 
-  defp process_devices(conn, realm, fd, state, options) do
+  defp process_devices(conn, realm, fd, state, options, opts) do
     with {:more_data, device_list, updated_options} <-
-           FetchData.fetch_device_data(conn, realm, options),
+           FetchData.fetch_device_data(conn, realm, options, opts),
          {:ok, state} <- process_device_list(conn, realm, device_list, fd, state),
          {:ok, paging_state} when paging_state != nil <-
            Keyword.fetch(updated_options, :paging_state) do
-      process_devices(conn, realm, fd, state, updated_options)
+      process_devices(conn, realm, fd, state, updated_options, opts)
     else
       {:ok, nil} -> {:ok, state}
       {:ok, :completed} -> {:ok, state}

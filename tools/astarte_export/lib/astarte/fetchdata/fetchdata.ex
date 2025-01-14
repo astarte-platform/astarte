@@ -21,15 +21,15 @@ defmodule Astarte.Export.FetchData do
     end
   end
 
-  def fetch_device_data(conn, realm, opts) do
-    case Queries.stream_devices(conn, realm, opts) do
+  def fetch_device_data(conn, realm, options, device_options \\ []) do
+    case Queries.stream_devices(conn, realm, options, device_options) do
       {:ok, result} ->
         result_list = Enum.to_list(result)
 
         if result_list == [] do
           {:ok, :completed}
         else
-          updated_options = Keyword.put(opts, :paging_state, result.paging_state)
+          updated_options = Keyword.put(options, :paging_state, result.paging_state)
           {:more_data, result_list, updated_options}
         end
 
