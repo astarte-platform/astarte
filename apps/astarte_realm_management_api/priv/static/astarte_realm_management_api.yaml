@@ -541,7 +541,9 @@ components:
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/GenericError'
+            oneOf:
+              - $ref: '#/components/schemas/AuthorizationPathNotMatchedError'
+              - $ref: '#/components/schemas/GenericError'
           example:
             errors:
               detail: Forbidden
@@ -814,14 +816,24 @@ components:
             errors:
               detail: Trigger policy not found
     Unauthorized:
-      description: Authorization information is missing or invalid.
+      description: Token/Realm doesn't exist or operation not allowed.
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/GenericError'
-          example:
-            errors:
-              detail: Unauthorized
+            oneOf:
+              - $ref: '#/components/schemas/MissingTokenError'
+              - $ref: '#/components/schemas/InvalidTokenError'
+              - $ref: '#/components/schemas/InvalidAuthPathError'
+              - $ref: '#/components/schemas/GenericError'
+    AuthorizationPathNotMatched:
+      description: Authorization path not matched.
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              data:
+                $ref: '#/components/schemas/AuthorizationPathNotMatchedError'
     UpdateConflict:
       description: >-
         The updated interface is valid, but there's a conflict with the existing
@@ -1422,3 +1434,50 @@ components:
       properties:
         errors:
           type: object
+    MissingTokenError:
+      type: object
+      properties:
+        errors:
+          type: object
+          properties:
+            detail:
+              type: string
+      example:
+        errors:
+          detail: Missing authorization token
+
+    InvalidTokenError:
+      type: object
+      properties:
+        errors:
+          type: object
+          properties:
+            detail:
+              type: string
+      example:
+        errors:
+          detail: Invalid JWT token
+
+    InvalidAuthPathError:
+      type: object
+      properties:
+        errors:
+          type: object
+          properties:
+            detail:
+              type: string
+      example:
+        errors:
+          detail: Authorization failed due to an invalid path
+
+    AuthorizationPathNotMatchedError:
+      type: object
+      properties:
+        errors:
+          type: object
+          properties:
+            detail:
+              type: string
+      example:
+        errors:
+          detail: Unauthorized access to GET /api/v1/some_path. Please verify your permissions

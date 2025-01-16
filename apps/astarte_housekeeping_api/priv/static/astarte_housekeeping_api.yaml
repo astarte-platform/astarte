@@ -49,6 +49,17 @@ paths:
                   data:
                     - arealm
                     - anotherrealm
+        '401':
+          description: Token doesn't exist or operation not allowed.
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: '#/components/schemas/MissingTokenError'
+                  - $ref: '#/components/schemas/InvalidTokenError'
+                  - $ref: '#/components/schemas/InvalidAuthPathError'
+        '403':
+          $ref: '#/components/responses/AuthorizationPathNotMatched'
     post:
       tags:
         - realm
@@ -81,6 +92,17 @@ paths:
                 properties:
                   data:
                     $ref: '#/components/schemas/Realm'
+        '401':
+          description: Token doesn't exist or operation not allowed.
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: '#/components/schemas/MissingTokenError'
+                  - $ref: '#/components/schemas/InvalidTokenError'
+                  - $ref: '#/components/schemas/InvalidAuthPathError'
+        '403':
+          $ref: '#/components/responses/AuthorizationPathNotMatched'
       requestBody:
         $ref: '#/components/requestBodies/createRealmBody'
   '/realms/{realm_name}':
@@ -108,6 +130,10 @@ paths:
                 properties:
                   data:
                     $ref: '#/components/schemas/Realm'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/AuthorizationPathNotMatched'
     put:
       tags:
         - realm
@@ -126,6 +152,10 @@ paths:
       responses:
         '200':
           description: Success
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/AuthorizationPathNotMatched'
       requestBody:
         $ref: '#/components/requestBodies/createRealmBody'
     delete:
@@ -162,6 +192,10 @@ paths:
       responses:
         '204':
           description: Success
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/AuthorizationPathNotMatched'
         '405':
           description: Realm deletion disabled
         '422':
@@ -193,14 +227,9 @@ paths:
         '400':
           description: Bad request
         '401':
-          description: Authorization information is missing or invalid.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/GenericError'
-              example:
-                errors:
-                  detail: Unauthorized
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/AuthorizationPathNotMatched'
         '404':
           description: Realm not found.
           content:
@@ -247,6 +276,25 @@ components:
       description: >-
         A JSON Merge Patch containing the property changes that should be applied to the realm. Explicitly set a property to null to remove it.
       required: true
+  responses:
+    Unauthorized:
+      description: Token/Realm doesn't exist or operation not allowed.
+      content:
+        application/json:
+          schema:
+            oneOf:
+              - $ref: '#/components/schemas/MissingTokenError'
+              - $ref: '#/components/schemas/InvalidTokenError'
+              - $ref: '#/components/schemas/InvalidAuthPathError'
+    AuthorizationPathNotMatched:
+      description: Authorization path not matched.
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              data:
+                $ref: '#/components/schemas/AuthorizationPathNotMatchedError'
   schemas:
     Realm:
       type: object
@@ -369,3 +417,50 @@ components:
           properties:
             detail:
               type: string
+    MissingTokenError:
+      type: object
+      properties:
+        errors:
+          type: object
+          properties:
+            detail:
+              type: string
+      example:
+        errors:
+          detail: Missing authorization token
+
+    InvalidTokenError:
+      type: object
+      properties:
+        errors:
+          type: object
+          properties:
+            detail:
+              type: string
+      example:
+        errors:
+          detail: Invalid JWT token
+
+    InvalidAuthPathError:
+      type: object
+      properties:
+        errors:
+          type: object
+          properties:
+            detail:
+              type: string
+      example:
+        errors:
+          detail: Authorization failed due to an invalid path
+
+    AuthorizationPathNotMatchedError:
+      type: object
+      properties:
+        errors:
+          type: object
+          properties:
+            detail:
+              type: string
+      example:
+        errors:
+          detail: Unauthorized access to GET /api/v1/some_path. Please verify your permissions

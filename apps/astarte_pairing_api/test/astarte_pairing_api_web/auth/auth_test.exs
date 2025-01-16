@@ -45,6 +45,11 @@ defmodule Astarte.Pairing.APIWeb.AuthTest do
       {:ok, conn: conn}
     end
 
+    test "no token returns 401", %{conn: conn} do
+      conn = post(conn, agent_path(conn, :create, @realm), data: @create_attrs)
+      assert json_response(conn, 401)["errors"]["detail"] == "Missing authorization token"
+    end
+
     test "succeeds with specific authorizations", %{conn: conn} do
       register_authorizations = ["POST::agent/devices"]
 
@@ -86,7 +91,8 @@ defmodule Astarte.Pairing.APIWeb.AuthTest do
         |> authorize_conn(register_authorizations)
         |> post(agent_path(conn, :create, @realm), data: @create_attrs)
 
-      assert json_response(conn, 403)["errors"]["detail"] == "Forbidden"
+      assert json_response(conn, 403)["errors"]["detail"] ==
+               "Unauthorized access to #{conn.assigns.method} #{conn.assigns.path}. Please verify your permissions"
     end
 
     test "fails with authorization for different method", %{conn: conn} do
@@ -97,7 +103,30 @@ defmodule Astarte.Pairing.APIWeb.AuthTest do
         |> authorize_conn(register_authorizations)
         |> post(agent_path(conn, :create, @realm), data: @create_attrs)
 
-      assert json_response(conn, 403)["errors"]["detail"] == "Forbidden"
+      assert json_response(conn, 403)["errors"]["detail"] ==
+               "Unauthorized access to #{conn.assigns.method} #{conn.assigns.path}. Please verify your permissions"
+    end
+
+    test "invalid JWT token returns 401", %{conn: conn} do
+      conn =
+        put_req_header(
+          conn,
+          "authorization",
+          "bearer invalid_token"
+        )
+        |> post(agent_path(conn, :create, @realm), data: @create_attrs)
+
+      assert json_response(conn, 401)["errors"]["detail"] == "Invalid JWT token"
+    end
+
+    test "token with mismatched signature returns 401", %{conn: conn} do
+      token = JWTTestHelper.gen_jwt_token_with_wrong_signature(["^POST$::agent/devices"])
+
+      conn =
+        put_req_header(conn, "authorization", "bearer #{token}")
+        |> post(agent_path(conn, :create, @realm), data: @create_attrs)
+
+      assert json_response(conn, 401)["errors"]["detail"] == "Invalid JWT token"
     end
   end
 

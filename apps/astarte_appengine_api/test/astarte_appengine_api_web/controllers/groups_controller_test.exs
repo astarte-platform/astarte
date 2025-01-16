@@ -61,7 +61,7 @@ defmodule Astarte.AppEngine.APIWeb.GroupsControllerTest do
     test "returns 403 on unexisting realm", %{conn: conn} do
       conn = get(conn, groups_path(conn, :index, "unexisting"))
 
-      assert json_response(conn, 403)["errors"] == %{"detail" => "Forbidden"}
+      assert json_response(conn, 401)["errors"] == %{"detail" => "Invalid JWT token"}
     end
 
     test "returns an empty list on empty realm", %{conn: conn} do
