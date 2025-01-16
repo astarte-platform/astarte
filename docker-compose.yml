@@ -275,7 +275,7 @@ services:
       - "rabbitmq"
       - "traefik"
     # Ensure we wait for rabbit and cfssl
-    command: wait-for rabbitmq:5672 -t 90 -- wait-for cfssl:8080 -t 90 -- /opt/vernemq/bin/vernemq.sh
+    command: start_vernemq
     # Restart if we fail
     restart: on-failure
     labels:
