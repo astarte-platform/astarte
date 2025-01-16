@@ -10,6 +10,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
   the `detailed=true` parameter
 - [astarte_import] Added support for data types: `doublearray`, `integerarray`,
   `booleanarray`, `longintegerarray`, `stringarray`, `datetimearray`, `binaryblobarray`.
+- [astarte_export] Added a new command for exporting by device_id. 
+  `mix astarte.export $REALM $FILE_XML $DEVICE_ID`
 
 ## [1.2.1] - Unreleased
 ### Changed

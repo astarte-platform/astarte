@@ -1,6 +1,9 @@
 defmodule Astarte.Export.FetchData.Queries do
+  require IEx
   alias Astarte.Core.InterfaceDescriptor
   alias Astarte.Core.Mapping
+  alias Astarte.Core.Device
+
   require Logger
 
   def get_connection() do
@@ -57,12 +60,27 @@ defmodule Astarte.Export.FetchData.Queries do
     end
   end
 
-  def stream_devices(conn, realm, options) do
-    devices_statement = """
-    SELECT * from #{realm}.devices
-    """
+  def stream_devices(conn, realm, options, device_options \\ []) do
+    device_id = device_id_to_uuid(device_options[:device_id])
 
-    params = []
+    {devices_statement, params} =
+      case device_id do
+        nil ->
+          {
+            """
+            SELECT * from #{realm}.devices
+            """,
+            []
+          }
+
+        device_uuid ->
+          {
+            """
+            SELECT * from #{realm}.devices WHERE device_id=?
+            """,
+            [{"uuid", device_id}]
+          }
+      end
 
     options = options ++ [uuid_format: :binary, timestamp_format: :datetime]
 
@@ -259,7 +277,9 @@ defmodule Astarte.Export.FetchData.Queries do
       rows = Enum.map(result, fn row -> row[:path] end)
 
       if rows == [] do
-        Logger.info("No paths found for interface_id: #{inspect(interface_id)}", tag: "no_paths_found")
+        Logger.info("No paths found for interface_id: #{inspect(interface_id)}",
+          tag: "no_paths_found"
+        )
       else
         {:ok, rows}
       end
@@ -284,5 +304,14 @@ defmodule Astarte.Export.FetchData.Queries do
 
         {:error, :database_connection_error}
     end
+  end
+
+  defp device_id_to_uuid(device_id) when is_nil(device_id) do
+    nil
+  end
+
+  defp device_id_to_uuid(device_id) do
+    {:ok, device_uuid, _} = Device.decode_extended_device_id(device_id)
+    device_uuid
   end
 end
