@@ -12,6 +12,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
   `booleanarray`, `longintegerarray`, `stringarray`, `datetimearray`, `binaryblobarray`.
 - [astarte_export] Added a new command for exporting by device_id. 
   `mix astarte.export $REALM $FILE_XML $DEVICE_ID`
+- [astarte_data_updater_plant] Handle `capabilities` messages,
+  which allow the device to declare whether it supports optional
+  Astarte MQTT v1 protocol features. For the moment,
+  just purge properties compression format is customizable.
 
 ## [1.2.1] - Unreleased
 ### Changed

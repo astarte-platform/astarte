@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2017 - 2023 SECO Mind Srl
+# Copyright 2017 - 2025 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -63,15 +63,16 @@ defmodule Astarte.DataUpdaterPlant.DatabaseTestHelper do
         last_pairing_ip inet,
         last_seen_ip inet,
         groups map<text, timeuuid>,
+        purge_properties_compression_format int,
 
         PRIMARY KEY (device_id)
     );
   """
 
   @insert_device """
-        INSERT INTO #{CQLUtils.realm_name_to_keyspace_name("autotestrealm", Config.astarte_instance_id!())}.devices (device_id, connected, last_connection, last_disconnection, first_pairing, last_seen_ip, last_pairing_ip, total_received_msgs, total_received_bytes, introspection, groups)
+        INSERT INTO #{CQLUtils.realm_name_to_keyspace_name("autotestrealm", Config.astarte_instance_id!())}.devices (device_id, connected, last_connection, last_disconnection, first_pairing, last_seen_ip, last_pairing_ip, total_received_msgs, total_received_bytes, introspection, groups, purge_properties_compression_format)
           VALUES (:device_id, false, :last_connection, :last_disconnection, :first_pairing,
-          :last_seen_ip, :last_pairing_ip, :total_received_msgs, :total_received_bytes, :introspection, :groups);
+          :last_seen_ip, :last_pairing_ip, :total_received_msgs, :total_received_bytes, :introspection, :groups, :purge_properties_compression_format);
   """
 
   @create_interfaces_table """
@@ -803,6 +804,13 @@ defmodule Astarte.DataUpdaterPlant.DatabaseTestHelper do
     groups = Keyword.get(opts, :groups, [])
     groups_map = for group <- groups, do: {group, UUID.uuid1()}
 
+    compression_format =
+      case Keyword.get(opts, :purge_properties_compression_format) do
+        nil -> 0
+        :zlib -> 0
+        :plaintext -> 1
+      end
+
     query =
       DatabaseQuery.new()
       |> DatabaseQuery.statement(@insert_device)
@@ -816,6 +824,7 @@ defmodule Astarte.DataUpdaterPlant.DatabaseTestHelper do
       |> DatabaseQuery.put(:total_received_bytes, total_received_bytes)
       |> DatabaseQuery.put(:introspection, introspection)
       |> DatabaseQuery.put(:groups, groups_map)
+      |> DatabaseQuery.put(:purge_properties_compression_format, compression_format)
 
     DatabaseQuery.call(client, query)
   end

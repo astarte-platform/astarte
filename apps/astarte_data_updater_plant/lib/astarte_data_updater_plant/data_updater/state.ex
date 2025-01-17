@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2017 - 2023 SECO Mind Srl
+# Copyright 2017 - 2025 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -46,6 +46,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.State do
     :trigger_id_to_policy_name,
     :discard_messages,
     :last_deletion_in_progress_refresh,
-    :last_datastream_maximum_retention_refresh
+    :last_datastream_maximum_retention_refresh,
+    :capabilities
   ]
 end

@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2017 - 2023 SECO Mind Srl
+# Copyright 2017 - 2025 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -22,6 +22,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
 
   alias Astarte.DataUpdaterPlant.Config
   alias Astarte.Core.Device
+  alias Astarte.Core.Device.Capabilities
   alias Astarte.Core.Triggers.SimpleEvents.DeviceConnectedEvent
   alias Astarte.Core.Triggers.SimpleEvents.IncomingDataEvent
   alias Astarte.Core.Triggers.SimpleEvents.PathRemovedEvent
@@ -40,6 +41,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
   alias Astarte.DataAccess.Database
   alias Astarte.DataUpdaterPlant.AMQPTestHelper
   alias Astarte.DataUpdaterPlant.DatabaseTestHelper
+  alias Astarte.DataUpdaterPlant.DataUpdater.State
   alias Astarte.Core.CQLUtils
   alias CQEx.Query, as: DatabaseQuery
   alias CQEx.Result, as: DatabaseResult
@@ -1750,6 +1752,35 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
     assert [%{"dup_end_ack" => true}] = dup_end_ack_result
   end
 
+  test "capabilities message correctly handled" do
+    AMQPTestHelper.clean_queue()
+
+    realm = "autotestrealm"
+
+    device_id = Device.random_device_id()
+    encoded_device_id = Device.encode_device_id(device_id)
+
+    DatabaseTestHelper.insert_device(device_id)
+
+    state = dump_state(realm, encoded_device_id)
+    assert %Capabilities{purge_properties_compression_format: :zlib} = state.capabilities
+
+    timestamp_us_x_10 = make_timestamp("2025-01-20T14:00:32+00:00")
+
+    payload = Cyanide.encode!(%{"purge_properties_compression_format" => "plaintext"})
+
+    handle_capabilities(
+      realm,
+      encoded_device_id,
+      payload,
+      gen_tracking_id(),
+      timestamp_us_x_10
+    )
+
+    new_state = dump_state(realm, encoded_device_id)
+    assert %Capabilities{purge_properties_compression_format: :plaintext} = new_state.capabilities
+  end
+
   defp retrieve_endpoint_id(client, interface_name, interface_major, path) do
     query =
       DatabaseQuery.new()
@@ -1880,6 +1911,27 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
 
     :ok = Mississippi.Producer.EventsProducer.publish(value, publish_opts)
     ensure_message_has_been_handled(realm, device_id)
+  end
+
+  defp handle_capabilities(realm, encoded_device_id, payload, _tracking_id, timestamp) do
+    {:ok, device_id} = Astarte.Core.Device.decode_device_id(encoded_device_id)
+
+    headers =
+      headers_fixture(realm, encoded_device_id, x_astarte_msg_type: "capabilities")
+
+    publish_opts = [
+      headers: headers,
+      message_id: generate_message_id(realm, encoded_device_id, timestamp),
+      timestamp: timestamp,
+      sharding_key: {realm, device_id}
+    ]
+
+    {:ok, pid} = Mississippi.Consumer.MessageTracker.get_message_tracker({realm, device_id})
+    :erlang.trace(pid, true, [:receive])
+
+    :ok = Mississippi.Producer.EventsProducer.publish(payload, publish_opts)
+
+    assert_receive {:trace, ^pid, :receive, {_, {_, _}, {:ack_delivery, _message}}}
   end
 
   defp handle_control(realm, encoded_device_id, control_path, value, _tracking_id, timestamp) do
