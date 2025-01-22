@@ -220,7 +220,7 @@ services:
 
   # Scylla
   scylla:
-    image: scylladb/scylla:5.2.2
+    image: scylladb/scylla:6.2
     restart: on-failure
     volumes:
       - scylla-data:/var/lib/scylla
