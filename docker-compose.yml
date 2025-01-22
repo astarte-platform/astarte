@@ -1,9 +1,6 @@
 services:
   astarte-housekeeping:
     image: astarte/astarte_housekeeping:snapshot
-    build:
-      dockerfile: ../../Dockerfile
-      context: apps/astarte_housekeeping
     env_file:
       - ./.env
     restart: on-failure
@@ -13,9 +10,6 @@ services:
 
   astarte-housekeeping-api:
     image: astarte/astarte_housekeeping_api:snapshot
-    build:
-      dockerfile: ../../Dockerfile
-      context: apps/astarte_housekeeping_api
     env_file:
       - ./.env
     environment:
@@ -41,9 +35,6 @@ services:
 
   astarte-realm-management:
     image: astarte/astarte_realm_management:snapshot
-    build:
-      dockerfile: ../../Dockerfile
-      context: apps/astarte_realm_management
     env_file:
       - ./.env
     restart: on-failure
@@ -53,9 +44,6 @@ services:
 
   astarte-realm-management-api:
     image: astarte/astarte_realm_management_api:snapshot
-    build:
-      dockerfile: ../../Dockerfile
-      context: apps/astarte_realm_management_api
     env_file:
       - ./.env
     restart: on-failure
@@ -75,9 +63,6 @@ services:
 
   astarte-pairing:
     image: astarte/astarte_pairing:snapshot
-    build:
-      dockerfile: ../../Dockerfile
-      context: apps/astarte_pairing
     env_file:
       - ./.env
     environment:
@@ -89,9 +74,6 @@ services:
 
   astarte-pairing-api:
     image: astarte/astarte_pairing_api:snapshot
-    build:
-      dockerfile: ../../Dockerfile
-      context: apps/astarte_pairing_api
     env_file:
       - ./.env
     restart: on-failure
@@ -111,9 +93,6 @@ services:
 
   astarte-appengine-api:
     image: astarte/astarte_appengine_api:snapshot
-    build:
-      dockerfile: ../../Dockerfile
-      context: apps/astarte_appengine_api
     env_file:
       - ./.env
     environment:
@@ -136,9 +115,6 @@ services:
 
   astarte-data-updater-plant:
     image: astarte/astarte_data_updater_plant:snapshot
-    build:
-      dockerfile: ../../Dockerfile
-      context: apps/astarte_data_updater_plant
     env_file:
       - ./.env
     environment:
@@ -155,9 +131,6 @@ services:
 
   astarte-trigger-engine:
     image: astarte/astarte_trigger_engine:snapshot
-    build:
-      dockerfile: ../../Dockerfile
-      context: apps/astarte_trigger_engine
     env_file:
       - ./.env
     environment:
