@@ -79,6 +79,7 @@ defmodule Astarte.DataUpdaterPlant.Mixfile do
       {:amqp, "~> 3.3"},
       {:castore, "~> 1.0.0"},
       {:cyanide, "~> 2.0"},
+      {:ecto_sql, "~> 3.12"},
       {:excoveralls, "~> 0.15", only: :test},
       {:mississippi, github: "secomind/mississippi"},
       {:mox, "~> 1.0", only: :test},
