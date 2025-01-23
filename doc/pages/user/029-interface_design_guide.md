@@ -1,3 +1,9 @@
+<!--
+Copyright 2018-2020 SECO Mind Srl
+
+SPDX-License-Identifier: Apache-2.0
+-->
+
 # Interface Design Guide
 
 Before we begin, let's get this straight:

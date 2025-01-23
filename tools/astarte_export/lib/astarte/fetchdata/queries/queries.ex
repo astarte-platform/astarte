@@ -1,3 +1,7 @@
+# Copyright 2019 SECO Mind Srl
+#
+# SPDX-License-Identifier: Apache-2.0
+
 defmodule Astarte.Export.FetchData.Queries do
   require IEx
   alias Astarte.Core.InterfaceDescriptor

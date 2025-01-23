@@ -1,3 +1,9 @@
+<!--
+Copyright 2019 SECO Mind Srl
+
+SPDX-License-Identifier: Apache-2.0
+-->
+
 # Groups
 
 Astarte supports creating groups of devices in a realm.

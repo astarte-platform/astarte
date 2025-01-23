@@ -1,3 +1,9 @@
+<!--
+Copyright 2019 SECO Mind Srl
+
+SPDX-License-Identifier: Apache-2.0
+-->
+
 # astarte_export
 
 Astarte Export is an easy to use tool that allows to exporting all the devices and data from an existing Astarte realm to XML format.

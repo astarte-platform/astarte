@@ -1,3 +1,9 @@
+<!--
+Copyright 2021-2023 SECO Mind Srl
+
+SPDX-License-Identifier: Apache-2.0
+-->
+
 # Astarte Dashboard
 
 Astarte provides a built-in UI that can be used for managing Interfaces, Devices, and Triggers. The

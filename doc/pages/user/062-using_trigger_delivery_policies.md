@@ -1,3 +1,9 @@
+<!--
+Copyright 2022-2023 SECO Mind Srl
+
+SPDX-License-Identifier: Apache-2.0
+-->
+
 # Using Trigger Delivery Policies
 
 *Note: Trigger Delivery Policies are an experimental feature, see [Known Issues](#known-issues) for more information about their current status.*

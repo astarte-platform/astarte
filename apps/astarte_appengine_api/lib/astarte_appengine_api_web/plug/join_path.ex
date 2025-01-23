@@ -1,3 +1,7 @@
+# Copyright 2019 SECO Mind Srl
+#
+# SPDX-License-Identifier: Apache-2.0
+
 defmodule Astarte.AppEngine.APIWeb.Plug.JoinPath do
   @moduledoc """
   This plug looks for `path_tokens` in `path_params`. If it finds it, it joins

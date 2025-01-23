@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2020 SECO Mind Srl
+#
+# SPDX-License-Identifier: Apache-2.0
+
 # Standard Elixir gitignore to be applied to all apps
 _build
 cover

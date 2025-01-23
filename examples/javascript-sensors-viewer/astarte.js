@@ -1,3 +1,7 @@
+// Copyright 2020-2021 SECO Mind Srl
+//
+// SPDX-License-Identifier: Apache-2.0
+
 class Astarte {
   constructor({ endpoint, realm, token, device, version = "v1" }) {
     this.token = token;

@@ -1,3 +1,9 @@
+<!--
+Copyright 2021 SECO Mind Srl
+
+SPDX-License-Identifier: Apache-2.0
+-->
+
 # Examples
 
 This is a collection of examples that shows how to interact with Astarte in common use cases.

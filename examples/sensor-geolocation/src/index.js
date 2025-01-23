@@ -1,3 +1,7 @@
+// Copyright 2020-2021 SECO Mind Srl
+//
+// SPDX-License-Identifier: Apache-2.0
+
 import React from "react";
 import ReactDOM from "react-dom";
 import "bootstrap/dist/css/bootstrap.min.css";

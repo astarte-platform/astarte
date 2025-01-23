@@ -1,2 +1,6 @@
+# Copyright 2018 SECO Mind Srl
+#
+# SPDX-License-Identifier: Apache-2.0
+
 require:
   members: false

@@ -1,7 +1,9 @@
+# Copyright 2017-2023 SECO Mind Srl
+#
+# SPDX-License-Identifier: Apache-2.0
+
 #
 # This file is part of Astarte.
-#
-# Copyright 2017-2018 Ispirata Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.

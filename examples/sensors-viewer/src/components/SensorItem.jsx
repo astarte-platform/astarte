@@ -1,3 +1,7 @@
+// Copyright 2020-2021 SECO Mind Srl
+//
+// SPDX-License-Identifier: Apache-2.0
+
 import { Accordion, Button, Card, ListGroup } from "react-bootstrap";
 import { Images } from "../Images";
 import React from "react";

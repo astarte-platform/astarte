@@ -1,3 +1,7 @@
+# Copyright 2019 SECO Mind Srl
+#
+# SPDX-License-Identifier: Apache-2.0
+
 defmodule Mix.Tasks.Astarte.Export do
   use Mix.Task
   alias Astarte.Export

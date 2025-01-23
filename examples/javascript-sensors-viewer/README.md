@@ -1,3 +1,9 @@
+<!--
+Copyright 2021 SECO Mind Srl
+
+SPDX-License-Identifier: Apache-2.0
+-->
+
 # Sensors Viewer example
 
 This is a sample web page made in vanilla JavaScript that you can use to show available sensors of a

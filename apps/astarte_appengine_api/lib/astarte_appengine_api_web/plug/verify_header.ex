@@ -1,3 +1,7 @@
+# Copyright 2018-2019 SECO Mind Srl
+#
+# SPDX-License-Identifier: Apache-2.0
+
 defmodule Astarte.AppEngine.APIWeb.Plug.VerifyHeader do
   @moduledoc """
   This is a wrapper around `Guardian.Plug.VerifyHeader` that allows to recover

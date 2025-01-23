@@ -1,3 +1,9 @@
+<!--
+Copyright 2018 SECO Mind Srl
+
+SPDX-License-Identifier: Apache-2.0
+-->
+
 # 1. Record architecture decisions
 
 Date: 2018-04-03
