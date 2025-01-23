@@ -1,0 +1,4 @@
+services:
+  astarte-realm-management:
+    volumes:
+      - ../../../:/workspace/astarte
