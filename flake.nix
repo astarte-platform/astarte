@@ -1,26 +1,36 @@
 {
   description = "Open Source IoT platform focused on Data management and processing";
   inputs = {
-    nixpkgs.url = "nixpkgs/nixpkgs-unstable";
-    flake-utils.url = "github:numtide/flake-utils";
-    flake-compat = {
-      url = "github:edolstra/flake-compat";
-      flake = false;
-    };
+    nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
+
+    flake-parts.url = "github:hercules-ci/flake-parts";
+    flake-parts.inputs.nixpkgs-lib.follows = "nixpkgs";
+
     elixir-utils = {
       url = "github:noaccOS/elixir-utils";
       inputs.nixpkgs.follows = "nixpkgs";
-      inputs.flake-utils.follows = "flake-utils";
+      inputs.flake-parts.follows = "flake-parts";
     };
   };
-  outputs = { self, nixpkgs, elixir-utils, flake-utils, ... }:
-    {
-      overlays.default = elixir-utils.lib.asdfOverlay { toolVersions = ./.tool-versions; };
-    } //
-    flake-utils.lib.eachSystem elixir-utils.lib.defaultSystems (system:
-      let pkgs = import nixpkgs { inherit system; overlays = [ self.overlays.default ]; };
-      in {
-        devShells.default = pkgs.elixirDevShell;
-        formatter = pkgs.nixpkgs-fmt;
-      });
+  outputs =
+    inputs@{
+      self,
+      flake-parts,
+      elixir-utils,
+      nixpkgs,
+      ...
+    }:
+    flake-parts.lib.mkFlake { inherit inputs; } {
+      systems = elixir-utils.lib.defaultSystems;
+
+      perSystem =
+        { pkgs, ... }:
+        {
+          devShells.default = pkgs.callPackage elixir-utils.lib.asdfDevShell {
+            toolVersions = ./.tool-versions;
+            wxSupport = false;
+          };
+          formatter = pkgs.nixfmt-rfc-style;
+        };
+    };
 }
