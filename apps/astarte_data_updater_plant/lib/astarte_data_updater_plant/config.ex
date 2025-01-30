@@ -245,6 +245,22 @@ defmodule Astarte.DataUpdaterPlant.Config do
           type: Astarte.DataUpdaterPlant.ClusteringStrategy,
           default: "none"
 
+  @envdoc "The Kubernetes selector to use when `kubernetes` Erlang clustering strategy is used. Defaults to `app=astarte-data-updater-plant`."
+  app_env :clustering_kubernetes_selector,
+          :astarte_data_updater_plant,
+          :clustering_kubernetes_selector,
+          os_env: "DATA_UPDATER_PLANT_CLUSTERING_KUBERNETES_SELECTOR",
+          type: :binary,
+          default: "app=astarte-data-updater-plant"
+
+  @envdoc "The Kubernetes namespace to use when `kubernetes` Erlang clustering strategy is used. Defaults to `astarte`."
+  app_env :clustering_kubernetes_namespace,
+          :astarte_data_updater_plant,
+          :clustering_kubernetes_namespace,
+          os_env: "DATA_UPDATER_PLANT_CLUSTERING_KUBERNETES_NAMESPACE",
+          type: :binary,
+          default: "astarte"
+
   # Since we have one channel per queue, this is not configurable
   def amqp_consumer_channels_per_connection_number!() do
     ceil(data_queue_total_count!() / amqp_consumer_connection_number!())
@@ -449,8 +465,8 @@ defmodule Astarte.DataUpdaterPlant.Config do
             config: [
               mode: :ip,
               kubernetes_node_basename: "astarte_data_updater_plant",
-              kubernetes_selector: "app=astarte-data-updater-plant",
-              kubernetes_namespace: "astarte",
+              kubernetes_selector: clustering_kubernetes_selector!(),
+              kubernetes_namespace: clustering_kubernetes_namespace!(),
               polling_interval: 10_000
             ]
           ]
