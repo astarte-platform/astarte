@@ -16,16 +16,10 @@
 # limitations under the License.
 
 defmodule Astarte.AppEngine.API.Queries do
-  alias CQEx.Query, as: DatabaseQuery
-  alias CQEx.Result, as: DatabaseResult
-  alias Astarte.AppEngine.API.Config
-  alias Astarte.Core.CQLUtils
   alias Astarte.DataAccess.Astarte.KvStore
   alias Astarte.DataAccess.Astarte.Realm
 
   import Ecto.Query
-
-  require Logger
 
   def fetch_public_key(realm_name) do
     keyspace = Realm.keyspace_name(realm_name)
@@ -34,50 +28,5 @@ defmodule Astarte.AppEngine.API.Queries do
       prefix: ^keyspace,
       select: fragment("blobAsVarchar(?)", r.value),
       where: r.group == "auth" and r.key == "jwt_public_key_pem"
-  end
-
-  def check_astarte_health(client, consistency) do
-    schema_statement = """
-      SELECT count(value)
-      FROM #{CQLUtils.realm_name_to_keyspace_name("astarte", Config.astarte_instance_id!())}.kv_store
-      WHERE group='astarte' AND key='schema_version'
-    """
-
-    # no-op, just to check if nodes respond
-    # no realm name can contain '_', '^'
-    realms_statement = """
-      SELECT *
-      FROM #{CQLUtils.realm_name_to_keyspace_name("astarte", Config.astarte_instance_id!())}.realms
-      WHERE realm_name='_invalid^name_'
-    """
-
-    schema_query =
-      DatabaseQuery.new()
-      |> DatabaseQuery.statement(schema_statement)
-      |> DatabaseQuery.consistency(consistency)
-
-    realms_query =
-      DatabaseQuery.new()
-      |> DatabaseQuery.statement(realms_statement)
-      |> DatabaseQuery.consistency(consistency)
-
-    with {:ok, result} <- DatabaseQuery.call(client, schema_query),
-         ["system.count(value)": _count] <- DatabaseResult.head(result),
-         {:ok, _result} <- DatabaseQuery.call(client, realms_query) do
-      :ok
-    else
-      %{acc: _, msg: err_msg} ->
-        _ = Logger.warning("Health is not good: #{err_msg}.", tag: "db_health_check_bad")
-
-        {:error, :health_check_bad}
-
-      {:error, err} ->
-        _ =
-          Logger.warning("Health is not good, reason: #{inspect(err)}.",
-            tag: "db_health_check_bad"
-          )
-
-        {:error, :health_check_bad}
-    end
   end
 end
