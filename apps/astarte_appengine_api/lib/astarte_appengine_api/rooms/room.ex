@@ -33,8 +33,10 @@ defmodule Astarte.AppEngine.API.Rooms.Room do
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.TaggedSimpleTrigger
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.TriggerTargetContainer
   alias Astarte.Core.Device
-  alias Astarte.DataAccess.Database
-  alias Astarte.AppEngine.API.Rooms.Queries
+  alias Astarte.DataAccess.Repo
+  alias Astarte.DataAccess.Realms.Device, as: DatabaseDevice
+  alias Astarte.DataAccess.Astarte.Realm
+
   require Logger
 
   # API
@@ -296,19 +298,26 @@ defmodule Astarte.AppEngine.API.Rooms.Room do
   end
 
   defp verify_device_exists(realm_name, encoded_device_id) do
-    with {:ok, decoded_device_id} <- Device.decode_device_id(encoded_device_id),
-         {:ok, client} <- Database.connect(realm: realm_name),
-         {:ok, exists?} <- Queries.check_device_exists(client, decoded_device_id) do
-      if exists? do
-        :ok
-      else
-        _ =
+    with {:ok, decoded_device_id} <- Device.decode_device_id(encoded_device_id) do
+      keyspace = Realm.keyspace_name(realm_name)
+
+      result =
+        Repo.fetch(DatabaseDevice, decoded_device_id,
+          error: :device_does_not_exist,
+          prefix: keyspace
+        )
+
+      case result do
+        {:ok, _device} ->
+          :ok
+
+        {:error, reason} ->
           Logger.warning(
             "Device #{encoded_device_id} in realm #{realm_name} does not exist.",
             tag: "device_does_not_exist"
           )
 
-        {:error, :device_does_not_exist}
+          {:error, reason}
       end
     end
   end
