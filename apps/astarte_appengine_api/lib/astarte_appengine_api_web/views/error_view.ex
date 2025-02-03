@@ -98,6 +98,14 @@ defmodule Astarte.AppEngine.APIWeb.ErrorView do
     %{errors: %{detail: "Unexpected object key"}}
   end
 
+  def render("500.json", %{conn: %{assigns: %{reason: %Xandra.ConnectionError{}}}}) do
+    %{errors: %{detail: "Database connection error"}}
+  end
+
+  def render("500.json", %{conn: %{assigns: %{reason: %Xandra.Error{message: message}}}}) do
+    %{errors: %{detail: "Database error: #{message}"}}
+  end
+
   def render("500.json", _assigns) do
     %{errors: %{detail: "Internal server error"}}
   end
