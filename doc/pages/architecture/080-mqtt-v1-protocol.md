@@ -15,6 +15,7 @@ Astarte MQTT v1 Protocol relies on few well known reserved topics.
 | Topic                                                  | Purpose          | Published By | QoS     | Payload Format                          |
 |--------------------------------------------------------|------------------|--------------|---------|-----------------------------------------|
 | `<realm name>/<device id>`                             | Introspection    | Device       | 2       | ASCII plain text, ':' and ';' delimited |
+| `<realm name>/<device id>/capabilities`                | Capabilities     | Device       | 2       | BSON                                    |
 | `<realm name>/<device id>/control/emptyCache`          | Empty Cache      | Device       | 2       | ASCII plain text (always "1")           |
 | `<realm name>/<device id>/control/consumer/properties` | Purge Properties | Astarte      | 2       | deflated plain text                     |
 | `<realm name>/<device id>/control/producer/properties` | Purge Properties | Device       | 2       | deflated plain text                     |
@@ -112,13 +113,42 @@ Astarte performs this task by telling the broker to disconnect the device and cl
 
 After a clean session properties might be purged.
 
+## Device capabilities
+
+A device can define how future communication with Astarte will take place by
+specifying **capabilities**. Interacting with astarte to set capabilities works
+as follows:
+
+1. A device can send one or more capabilities at a time.
+2. If a capability is not explicitly set, its default value is used.
+3. When a device sends a capabilities message, two things can happen. Either the
+   message is valid and the new values override the current ones, or the message
+   was malformed. In this case the following happens:
+   + the previously stored values remain unchanged;
+   + the device gets forcefully disconnected.
+4. Capabilities are preserved in the database, ensuring consistency across sessions.
+
+### Capabilities List
+
+The following is a comprehensive list of all capabilities currently implemented.
+In the *possible values* column the **default value** is marked in bold.
+
+| Name                                  | Values                  | Purpose                                                                                          |
+|---------------------------------------|-------------------------|--------------------------------------------------------------------------------------------------|
+| `purge_properties_compression_format` | **"zlib"**, "plaintext" | Set if Astarte should send the purge properties payload compressed with *zlib* or in *plaintext* |
+
 ## Purge Properties
 
 Either a Device or Astarte may tell the remote host the set properties list. Any property that is not part of the list will be deleted from any cache or database.
 This task is called _purge properties_ in Astarte jargon, and it is performed by publishing a the list of known set properties to `/control/consumer/properties` or `/control/producer/properties`.
 
-Purge Properties payload is a zlib deflated plain text, with an additional 4 bytes header.
-The additional 4 bytes header is the size of the uncompressed payload, encoded as big endian uint32.
+Purge Properties payload can either be a plain text or a zlib deflated plain
+text, with an additional 4 bytes header. The additional 4 bytes header is the
+size of the uncompressed payload, encoded as big endian uint32.
+
+Astarte chooses which type of purge properties payload to use according to the
+`purge_properties_compression_format` capability of the device (with **zlib** as
+default).
 
 The following example is a payload compressed using zlib default compression, with the additional 4 bytes header:
 
