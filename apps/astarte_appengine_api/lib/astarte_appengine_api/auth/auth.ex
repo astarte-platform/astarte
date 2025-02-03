@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2018 Ispirata Srl
+# Copyright 2018 - 2025 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -18,22 +18,26 @@
 
 defmodule Astarte.AppEngine.API.Auth do
   alias Astarte.AppEngine.API.Queries
-  alias Astarte.DataAccess.Database
+  alias Astarte.DataAccess.Repo
 
   require Logger
 
   def fetch_public_key(realm) do
-    with {:ok, client} <- Database.connect(realm: realm),
-         {:ok, public_key} <- Queries.fetch_public_key(client) do
-      {:ok, public_key}
-    else
-      {:error, :public_key_not_found} ->
-        _ = Logger.warning("No public key found in realm #{realm}.", tag: "no_public_key_found")
+    public_key_query = Queries.fetch_public_key(realm)
+    {sql, params} = Repo.to_sql(:all, public_key_query)
+
+    # Equivalent to a `Repo.fetch_one`, but does not raise if we get a Xandra.Error.
+    case Repo.query(sql, params) do
+      {:ok, %{rows: [[public_key]]}} ->
+        {:ok, public_key}
+
+      {:ok, %{num_rows: 0}} ->
+        Logger.warning("No public key found in realm #{realm}.", tag: "no_public_key_found")
         {:error, :public_key_not_found}
 
-      {:error, :database_connection_error} ->
-        _ = Logger.info("Auth request for unexisting realm #{realm}.", tag: "unexisting_realm")
-        # TODO: random busy wait here to prevent realm enumeration
+      {:error, %Xandra.Error{reason: :invalid}} ->
+        # TODO: random busy wait here to prevent realm enumeration                 
+        Logger.info("Auth request for unexisting realm #{realm}.", tag: "unexisting_realm")
         {:error, :not_existing_realm}
     end
   end
