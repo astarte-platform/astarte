@@ -29,12 +29,12 @@ import useFetch from './hooks/useFetch';
 import Icon from './components/Icon';
 import WaitForData from './components/WaitForData';
 
-type ServiceStatus = 'loading' | 'ok' | 'err';
+type ServiceStatus = 'loading' | 'ok' | 'err' | 'warn';
 
 interface ServiceStatusRowProps {
   service: string;
   version?: string | null;
-  status: ServiceStatus;
+  status?: ServiceStatus;
 }
 
 const ServiceStatusRow = ({
@@ -55,6 +55,13 @@ const ServiceStatusRow = ({
       <td className="color-green">
         <Icon icon="statusOK" className="me-1" />
         This service is operating normally
+      </td>
+    );
+  } else if (status === 'warn') {
+    messageCell = (
+      <td className="color-yellow">
+        <Icon icon="statusExWarning" className="me-1" />
+        This service is operating normally but token is invalid
       </td>
     );
   } else {
@@ -78,10 +85,13 @@ const ServiceStatusRow = ({
 interface ApiStatusCardProps {
   appengine: ServiceStatus;
   appengineVersion: string | null;
+  appengineAuth: string | null;
   realmManagement: ServiceStatus;
   realmManagementVersion: string | null;
+  realmManagementAuth: string | null;
   pairing: ServiceStatus;
   pairingVersion: string | null;
+  pairingAuth: string | null;
   showFlowStatus: boolean;
   flow: ServiceStatus | null;
 }
@@ -89,10 +99,13 @@ interface ApiStatusCardProps {
 const ApiStatusCard = ({
   appengine,
   appengineVersion,
+  appengineAuth,
   realmManagement,
   realmManagementVersion,
+  realmManagementAuth,
   pairing,
   pairingVersion,
+  pairingAuth,
   showFlowStatus,
   flow,
 }: ApiStatusCardProps): React.ReactElement => (
@@ -111,10 +124,18 @@ const ApiStatusCard = ({
           <ServiceStatusRow
             service="Realm Management"
             version={realmManagementVersion}
-            status={realmManagement}
+            status={!realmManagementAuth ? 'warn' : realmManagement}
           />
-          <ServiceStatusRow service="AppEngine" version={appengineVersion} status={appengine} />
-          <ServiceStatusRow service="Pairing" version={pairingVersion} status={pairing} />
+          <ServiceStatusRow
+            service="AppEngine"
+            version={appengineVersion}
+            status={!appengineAuth ? 'warn' : appengine}
+          />
+          <ServiceStatusRow
+            service="Pairing"
+            version={pairingVersion}
+            status={!pairingAuth ? 'warn' : pairing}
+          />
           {showFlowStatus && flow && <ServiceStatusRow service="Flow" status={flow} />}
         </tbody>
       </Table>
@@ -139,7 +160,7 @@ const DevicesCard = ({
     <Card.Header as="h5">Devices</Card.Header>
     <Card.Body>
       <Container className="h-100 p-0" fluid>
-        <Row noGutters>
+        <Row className="g-0">
           <Col xs={12} lg={6}>
             <Card.Title>Connected devices</Card.Title>
             <Card.Text>
@@ -397,11 +418,14 @@ const HomePage = (): React.ReactElement => {
   );
   const triggers = useFetch(canFetchTriggers ? astarte.client.getTriggerNames : async () => []);
   const appEngineHealth = useFetch(astarte.client.getAppengineHealth);
-  const appengineVersion = useFetch(astarte.client.getAppEngineVersion);
   const realmManagementHealth = useFetch(astarte.client.getRealmManagementHealth);
-  const realmManagementVersion = useFetch(astarte.client.getRealmManagementVersion);
   const pairingHealth = useFetch(astarte.client.getPairingHealth);
-  const pairingVersion = useFetch(astarte.client.getPairingVersion);
+  const realmManagementVersion = useFetch(astarte.client.getUnauthenticatedRealmManagementVersion);
+  const appengineVersion = useFetch(astarte.client.getUnauthenticatedAppEngineVersion);
+  const pairingVersion = useFetch(astarte.client.getUnauthenticatedPairingVersion);
+  const realmManagementAuth = useFetch(astarte.client.getRealmManagementVersion);
+  const appengineAuth = useFetch(astarte.client.getAppEngineVersion);
+  const pairingAuth = useFetch(astarte.client.getPairingVersion);
   const flowHealth = useFetch(config.features.flow ? astarte.client.getFlowHealth : async () => {});
   const deviceRegistrationLimitFetcher = useFetch(
     canFetchDeviceRegistrationLimit && canFetchDeviceStats
@@ -463,10 +487,13 @@ const HomePage = (): React.ReactElement => {
           <ApiStatusCard
             appengine={appEngineHealth.status}
             appengineVersion={appengineVersion.value}
+            appengineAuth={appengineAuth.value}
             realmManagement={realmManagementHealth.status}
             realmManagementVersion={realmManagementVersion.value}
+            realmManagementAuth={realmManagementAuth.value}
             pairing={pairingHealth.status}
             pairingVersion={pairingVersion.value}
+            pairingAuth={pairingAuth.value}
             showFlowStatus={config.features.flow}
             flow={config.features.flow ? flowHealth.status : null}
           />

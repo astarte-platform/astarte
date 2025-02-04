@@ -194,13 +194,18 @@ class AstarteClient {
     this.getPipeline = this.getPipeline.bind(this);
     this.getPipelines = this.getPipelines.bind(this);
     this.getPolicyNames = this.getPolicyNames.bind(this);
+    this.getUnauthenticatedRealmManagementVersion =
+      this.getUnauthenticatedRealmManagementVersion.bind(this);
     this.getRealmManagementVersion = this.getRealmManagementVersion.bind(this);
+    this.getUnauthenticatedAppEngineVersion = this.getUnauthenticatedAppEngineVersion.bind(this);
     this.getAppEngineVersion = this.getAppEngineVersion.bind(this);
+    this.getUnauthenticatedPairingVersion = this.getUnauthenticatedPairingVersion.bind(this);
     this.getPairingVersion = this.getPairingVersion.bind(this);
 
     // prettier-ignore
     this.apiConfig = {
       realmManagementHealth: astarteAPIurl`${config.realmManagementApiUrl}health`,
+      unAuthenticatedRealmManagementVersion: astarteAPIurl`${config.realmManagementApiUrl}version`,
       realmManagementVersion:astarteAPIurl`${config.realmManagementApiUrl}v1/${'realm'}/version`,
       auth:                  astarteAPIurl`${config.realmManagementApiUrl}v1/${'realm'}/config/auth`,
       deviceRegistrationLimit: astarteAPIurl`${config.realmManagementApiUrl}v1/${'realm'}/config/device_registration_limit`,
@@ -215,6 +220,7 @@ astarteAPIurl`${config.realmManagementApiUrl}v1/${'realm'}/interfaces/${'interfa
       policy:                astarteAPIurl`${config.realmManagementApiUrl}v1/${'realm'}/policies/${'policyName'}`,
       device:                astarteAPIurl`${config.realmManagementApiUrl}v1/${'realm'}/devices/${'deviceId'}`,
       appengineHealth:       astarteAPIurl`${config.appEngineApiUrl}health`,
+      unAuthenticatedAppEngineVersion: astarteAPIurl`${config.appEngineApiUrl}version`,
       appengineVersion:      astarteAPIurl`${config.appEngineApiUrl}v1/${'realm'}/version`,
       devicesStats:          astarteAPIurl`${config.appEngineApiUrl}v1/${'realm'}/stats/devices`,
       devices:               astarteAPIurl`${config.appEngineApiUrl}v1/${'realm'}/devices`,
@@ -226,6 +232,7 @@ astarteAPIurl`${config.realmManagementApiUrl}v1/${'realm'}/interfaces/${'interfa
       phoenixSocket:         astarteAPIurl`${config.appEngineApiUrl}v1/socket`,
       sendInterfaceData:     astarteAPIurl`${config.appEngineApiUrl}v1/${'realm'}/devices/${'deviceId'}/interfaces/${'interfaceName'}${'path'}`,      
       pairingHealth:         astarteAPIurl`${config.pairingApiUrl}health`,
+      unAuthenticatedPairingVersion: astarteAPIurl`${config.pairingApiUrl}version`,
       pairingVersion:        astarteAPIurl`${config.pairingApiUrl}v1/${'realm'}/version`,
       registerDevice:        astarteAPIurl`${config.pairingApiUrl}v1/${'realm'}/agent/devices`,
       deviceAgent:           astarteAPIurl`${config.pairingApiUrl}v1/${'realm'}/agent/devices/${'deviceId'}`,
@@ -740,13 +747,30 @@ astarteAPIurl`${config.realmManagementApiUrl}v1/${'realm'}/interfaces/${'interfa
     await this.$get(this.apiConfig.flowHealth(this.config));
   }
 
+  async getUnauthenticatedRealmManagementVersion(): Promise<string> {
+    const response = await this.$get(
+      this.apiConfig.unAuthenticatedRealmManagementVersion(this.config),
+    );
+    return response.data;
+  }
+
   async getRealmManagementVersion(): Promise<string> {
     const response = await this.$get(this.apiConfig.realmManagementVersion(this.config));
     return response.data;
   }
 
+  async getUnauthenticatedAppEngineVersion(): Promise<string> {
+    const response = await this.$get(this.apiConfig.unAuthenticatedAppEngineVersion(this.config));
+    return response.data;
+  }
+
   async getAppEngineVersion(): Promise<string> {
     const response = await this.$get(this.apiConfig.appengineVersion(this.config));
+    return response.data;
+  }
+
+  async getUnauthenticatedPairingVersion(): Promise<string> {
+    const response = await this.$get(this.apiConfig.unAuthenticatedPairingVersion(this.config));
     return response.data;
   }
 
