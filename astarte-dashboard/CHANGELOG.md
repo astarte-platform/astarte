@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Add a "keep me logged in" during login, ([#451](https://github.com/astarte-platform/astarte-dashboard/issues/451)).
 - Allow unsetting property endpoints, ([#450](https://github.com/astarte-platform/astarte-dashboard/issues/450)).
 - Allow to filter time of Interface DataStream data, ([#441](https://github.com/astarte-platform/astarte-dashboard/issues/441)).
+- Add useful feedback about the invalid JWT token, ([#485](https://github.com/astarte-platform/astarte-dashboard/issues/485)).
 ### Changed
 - Adapt Device Stats and PieChart to exclude interfaces with 0 exchanged messages, ([#428](https://github.com/astarte-platform/astarte-dashboard/issues/428)).
 - Persist login using cookies instead of localStorage, ([#419](https://github.com/astarte-platform/astarte-dashboard/issues/419)).
