@@ -18,10 +18,12 @@
 
 defmodule Astarte.Pairing.APIWeb.Router do
   use Astarte.Pairing.APIWeb, :router
+  alias Astarte.Pairing.APIWeb.Plug.LogRealm
 
   pipeline :realm_api do
     plug :accepts, ["json"]
-    plug Astarte.Pairing.APIWeb.Plug.LogRealm
+    plug LogRealm
+    plug Astarte.Pairing.APIWeb.Plug.AuthorizePath
   end
 
   pipeline :agent_api do
