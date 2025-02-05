@@ -14,6 +14,15 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
   triggers in corner cases when a device is already disconnected.
   Fix [#1014](https://github.com/astarte-platform/astarte/issues/1014).
 
+## [1.2.1] - Unreleased
+## Fixed
+- [astarte_appengine_api] Correctly handle Cassandra `varchar`s.
+- [astarte_data_updater_plant] Correctly handle Cassandra `varchar`s.
+- [astarte_housekeeping] Correctly handle Cassandra `varchar`s.
+- [astarte_pairing] Correctly handle Cassandra `varchar`s.
+- [astarte_realm_management] Correctly handle Cassandra `varchar`s.
+- [astarte_trigger_engine] Correctly handle Cassandra `varchar`s.
+
 ## [1.2.0] - 2024-07-02
 ### Fixed
 - Forward port changes from release-1.1 (connection failure when delivering
