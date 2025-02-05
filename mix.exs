@@ -73,6 +73,8 @@ defmodule Astarte.DataAccess.Mixfile do
     [
       {:xandra, "~> 0.11"},
       {:cqex, "~> 1.0"},
+      # Forcing latest cqerl version
+      {:cqerl, "~> 2.1", override: true},
       {:skogsra, "~> 2.2"},
       {:excoveralls, "~> 0.15", only: :test},
       {:castore, "~> 1.0.0"},
