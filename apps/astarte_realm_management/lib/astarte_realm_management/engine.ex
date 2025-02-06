@@ -477,20 +477,7 @@ defmodule Astarte.RealmManagement.Engine do
     keyspace_name =
       CQLUtils.realm_name_to_keyspace_name(realm_name, Config.astarte_instance_id!())
 
-    cqex_options =
-      Config.cqex_options!()
-      |> Keyword.put(:keyspace, keyspace_name)
-
-    with {:ok, client} <-
-           DatabaseClient.new(
-             Config.cassandra_node!(),
-             cqex_options
-           ) do
-      Queries.get_jwt_public_key_pem(client)
-    else
-      {:error, :shutdown} ->
-        {:error, :realm_not_found}
-    end
+    Queries.get_jwt_public_key_pem(keyspace_name)
   end
 
   def update_jwt_public_key_pem(realm_name, jwt_public_key_pem) do
