@@ -26,6 +26,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
   when connection to the database might fail.
 - [astarte_realm_management] Fix a corner case in the realm public key retrieval
   when connection to the database might fail.
+- [astarte_appengine_api] Fix a corner case in the realm public key retrieval
+  when connection to the database might fail.
 
 ## [1.2.0] - 2024-07-02
 ### Fixed

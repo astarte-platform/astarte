@@ -18,23 +18,14 @@
 
 defmodule Astarte.AppEngine.API.Auth do
   alias Astarte.AppEngine.API.Queries
-  alias Astarte.DataAccess.Database
+  alias Astarte.AppEngine.API.Config
+  alias Astarte.Core.CQLUtils
 
   require Logger
 
   def fetch_public_key(realm) do
-    with {:ok, client} <- Database.connect(realm: realm),
-         {:ok, public_key} <- Queries.fetch_public_key(client) do
-      {:ok, public_key}
-    else
-      {:error, :public_key_not_found} ->
-        _ = Logger.warning("No public key found in realm #{realm}.", tag: "no_public_key_found")
-        {:error, :public_key_not_found}
+    keyspace = CQLUtils.realm_name_to_keyspace_name(realm, Config.astarte_instance_id!())
 
-      {:error, :database_connection_error} ->
-        _ = Logger.info("Auth request for unexisting realm #{realm}.", tag: "unexisting_realm")
-        # TODO: random busy wait here to prevent realm enumeration
-        {:error, :not_existing_realm}
-    end
+    Queries.fetch_public_key(keyspace)
   end
 end
