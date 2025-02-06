@@ -56,27 +56,10 @@ defmodule Astarte.Pairing.Engine do
     end
   end
 
-  def get_agent_public_key_pems(realm) do
-    keyspace = CQLUtils.realm_name_to_keyspace_name(realm, Config.astarte_instance_id!())
+  def get_agent_public_key_pems(realm_name) do
+    keyspace = CQLUtils.realm_name_to_keyspace_name(realm_name, Config.astarte_instance_id!())
 
-    cqex_options =
-      Config.cqex_options!()
-      |> Keyword.put(:keyspace, keyspace)
-
-    with {:ok, client} <-
-           Client.new(
-             Config.cassandra_node!(),
-             cqex_options
-           ),
-         {:ok, jwt_pems} <- Queries.get_agent_public_key_pems(client) do
-      {:ok, jwt_pems}
-    else
-      {:error, :shutdown} ->
-        {:error, :realm_not_found}
-
-      {:error, reason} ->
-        {:error, reason}
-    end
+    Queries.get_agent_public_key_pems(keyspace)
   end
 
   def get_credentials(

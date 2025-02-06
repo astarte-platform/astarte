@@ -23,23 +23,68 @@ defmodule Astarte.AppEngine.API.Queries do
 
   require Logger
 
-  def fetch_public_key(client) do
-    query =
-      DatabaseQuery.new()
-      |> DatabaseQuery.statement(
-        "SELECT blobAsVarchar(value) FROM kv_store WHERE group='auth' AND key='jwt_public_key_pem'"
-      )
+  @keyspace_does_not_exist_regex ~r/Keyspace (.*) does not exist/
 
-    result =
-      DatabaseQuery.call!(client, query)
-      |> DatabaseResult.head()
+  def fetch_public_key(keyspace_name) do
+    case Xandra.Cluster.run(:xandra, &do_fetch_public_key(keyspace_name, &1)) do
+      {:ok, pem} ->
+        {:ok, pem}
 
-    case result do
-      ["system.blobasvarchar(value)": public_key] ->
-        {:ok, public_key}
+      {:error, %Xandra.ConnectionError{} = err} ->
+        _ =
+          Logger.warning("Database connection error #{Exception.message(err)}.",
+            tag: "database_connection_error"
+          )
 
-      :empty_dataset ->
-        {:error, :public_key_not_found}
+        {:error, :database_connection_error}
+
+      {:error, %Xandra.Error{} = err} ->
+        handle_xandra_error(err)
+    end
+  end
+
+  defp do_fetch_public_key(keyspace_name, conn) do
+    query = """
+    SELECT blobAsVarchar(value)
+    FROM #{keyspace_name}.kv_store
+    WHERE group='auth' AND key='jwt_public_key_pem';
+    """
+
+    with {:ok, prepared} <- Xandra.prepare(conn, query),
+         {:ok, page} <-
+           Xandra.execute(conn, prepared, %{},
+             uuid_format: :binary,
+             consistency: :quorum
+           ) do
+      case Enum.to_list(page) do
+        [%{"system.blobasvarchar(value)" => pem}] ->
+          {:ok, pem}
+
+        [] ->
+          {:error, :public_key_not_found}
+      end
+    end
+  end
+
+  defp handle_xandra_error(error) do
+    %Xandra.Error{message: message} = error
+
+    case Regex.run(@keyspace_does_not_exist_regex, message) do
+      [_message, keyspace] ->
+        Logger.warning("Keyspace #{keyspace} does not exist.",
+          tag: "realm_not_found"
+        )
+
+        {:error, :not_existing_realm}
+
+      nil ->
+        _ =
+          Logger.warning(
+            "Database error, cannot get realm public key: #{Exception.message(error)}.",
+            tag: "database_error"
+          )
+
+        {:error, :database_error}
     end
   end
 

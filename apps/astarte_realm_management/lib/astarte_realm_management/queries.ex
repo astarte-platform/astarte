@@ -93,16 +93,12 @@ defmodule Astarte.RealmManagement.Queries do
     )
   """
 
-  @query_jwt_public_key_pem """
-    SELECT blobAsVarchar(value)
-    FROM kv_store
-    WHERE group='auth' AND key='jwt_public_key_pem';
-  """
-
   @query_insert_jwt_public_key_pem """
   INSERT INTO kv_store (group, key, value)
   VALUES ('auth', 'jwt_public_key_pem', varcharAsBlob(:pem));
   """
+
+  @keyspace_does_not_exist_regex ~r/Keyspace (.*) does not exist/
 
   defp create_one_object_columns_for_mappings(mappings) do
     for %Mapping{endpoint: endpoint, value_type: value_type} <- mappings do
@@ -1091,17 +1087,66 @@ defmodule Astarte.RealmManagement.Queries do
     end
   end
 
-  def get_jwt_public_key_pem(client) do
-    query =
-      DatabaseQuery.new()
-      |> DatabaseQuery.statement(@query_jwt_public_key_pem)
+  def get_jwt_public_key_pem(keyspace) do
+    case Xandra.Cluster.run(:xandra, &do_get_jwt_public_key_pem(keyspace, &1)) do
+      {:ok, pem} ->
+        {:ok, pem}
 
-    with {:ok, result} <- DatabaseQuery.call(client, query),
-         ["system.blobasvarchar(value)": pem] <- DatabaseResult.head(result) do
-      {:ok, pem}
-    else
-      _ ->
-        {:error, :public_key_not_found}
+      {:error, %Xandra.ConnectionError{} = err} ->
+        _ =
+          Logger.warning("Database connection error #{Exception.message(err)}.",
+            tag: "database_connection_error"
+          )
+
+        {:error, :database_connection_error}
+
+      {:error, %Xandra.Error{} = err} ->
+        handle_xandra_error(err)
+    end
+  end
+
+  defp do_get_jwt_public_key_pem(keyspace_name, conn) do
+    query = """
+    SELECT blobAsVarchar(value)
+    FROM #{keyspace_name}.kv_store
+    WHERE group='auth' AND key='jwt_public_key_pem';
+    """
+
+    with {:ok, prepared} <- Xandra.prepare(conn, query),
+         {:ok, page} <-
+           Xandra.execute(conn, prepared, %{},
+             uuid_format: :binary,
+             consistency: :quorum
+           ) do
+      case Enum.to_list(page) do
+        [%{"system.blobasvarchar(value)": pem}] ->
+          {:ok, pem}
+
+        [] ->
+          {:error, :public_key_not_found}
+      end
+    end
+  end
+
+  defp handle_xandra_error(error) do
+    %Xandra.Error{message: message} = error
+
+    case Regex.run(@keyspace_does_not_exist_regex, message) do
+      [_message, keyspace] ->
+        Logger.warning("Keyspace #{keyspace} does not exist.",
+          tag: "realm_not_found"
+        )
+
+        {:error, :realm_not_found}
+
+      nil ->
+        _ =
+          Logger.warning(
+            "Database error, cannot get realm public key: #{Exception.message(error)}.",
+            tag: "database_error"
+          )
+
+        {:error, :database_error}
     end
   end
 

@@ -22,6 +22,12 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - [astarte_pairing] Correctly handle Cassandra `varchar`s.
 - [astarte_realm_management] Correctly handle Cassandra `varchar`s.
 - [astarte_trigger_engine] Correctly handle Cassandra `varchar`s.
+- [astarte_pairing] Fix a corner case in the realm public key retrieval
+  when connection to the database might fail.
+- [astarte_realm_management] Fix a corner case in the realm public key retrieval
+  when connection to the database might fail.
+- [astarte_appengine_api] Fix a corner case in the realm public key retrieval
+  when connection to the database might fail.
 
 ## [1.2.0] - 2024-07-02
 ### Fixed
