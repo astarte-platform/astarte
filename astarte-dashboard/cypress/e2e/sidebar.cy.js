@@ -15,7 +15,9 @@ describe('Sidebar tests', () => {
     });
 
     it('correctly renders sidebar elements', function () {
-      cy.intercept('GET', '/realmmanagement/v1/testrealm/version', { data: '1.1.1' });
+      cy.intercept('GET', '**/version', (req) => {
+        req.reply({ data: '1.1.1' });
+      })
       cy.intercept('GET', '/appengine/health', '');
       cy.intercept('GET', '/realmmanagement/health', '');
       cy.intercept('GET', '/pairing/health', '');

@@ -22,6 +22,7 @@ import {
   Col,
   Container,
   Form,
+  ListGroup,
   Pagination,
   Row,
   Spinner,
@@ -417,6 +418,24 @@ const FilterForm = ({ filters, onUpdateFilters }: FilterFormProps): React.ReactE
   );
 };
 
+interface ErrorRowProps {
+  onRetry: () => void;
+  errorMessage?: string;
+}
+
+const ErrorRow = ({ onRetry, errorMessage }: ErrorRowProps): React.ReactElement => (
+  <ListGroup.Item>
+    <Empty
+      title={
+        errorMessage?.includes('401')
+          ? "The JWT token is invalid or does not match the realm's public key."
+          : "Couldn't load the device list"
+      }
+      onRetry={onRetry}
+    />
+  </ListGroup.Item>
+);
+
 export default (): React.ReactElement => {
   const [activePage, setActivePage] = useState(0);
   const [showSidebar, setShowSidebar] = useState(true);
@@ -496,7 +515,10 @@ export default (): React.ReactElement => {
           </Container>
         }
         errorFallback={
-          <Empty title="Couldn't load the device list" onRetry={() => devicesFetcher.refresh({})} />
+          <ErrorRow
+            onRetry={() => devicesFetcher.refresh({})}
+            errorMessage={devicesFetcher.error?.message}
+          />
         }
       >
         {({ devices, nextToken }) =>

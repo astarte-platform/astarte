@@ -18,7 +18,7 @@
 
 import React, { useCallback, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Button, Container, Form, Spinner, Stack } from 'react-bootstrap';
+import { Button, Container, Form, ListGroup, Spinner, Stack } from 'react-bootstrap';
 
 import Empty from './components/Empty';
 import ConfirmModal from './components/modals/Confirm';
@@ -78,6 +78,24 @@ const RealmSettingsForm = ({
     </Form>
   );
 };
+
+interface ErrorRowProps {
+  onRetry: () => void;
+  errorMessage?: string;
+}
+
+const ErrorRow = ({ onRetry, errorMessage }: ErrorRowProps): React.ReactElement => (
+  <ListGroup.Item>
+    <Empty
+      title={
+        errorMessage?.includes('401')
+          ? "The JWT token is invalid or does not match the realm's public key."
+          : "Couldn't load realm settings"
+      }
+      onRetry={onRetry}
+    />
+  </ListGroup.Item>
+);
 
 export default (): React.ReactElement => {
   const [draftRealmSettings, setDraftRealmSettings] = useState<RealmSettings | null>(null);
@@ -146,7 +164,10 @@ export default (): React.ReactElement => {
           </Container>
         }
         errorFallback={
-          <Empty title="Couldn't load realm settings" onRetry={authConfigFetcher.refresh} />
+          <ErrorRow
+            onRetry={authConfigFetcher.refresh}
+            errorMessage={authConfigFetcher.error?.message}
+          />
         }
       >
         {({ publicKey }) => (

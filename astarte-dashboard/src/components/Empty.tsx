@@ -18,6 +18,7 @@
 
 import React from 'react';
 import { Button, Container } from 'react-bootstrap';
+import { Link } from 'react-router-dom';
 
 interface Props {
   title: string;
@@ -33,6 +34,16 @@ const Empty = ({ title, onRetry }: Props): React.ReactElement => {
     'try again'
   );
 
+  const isJWTError = title.includes('JWT');
+
+  const message = isJWTError ? (
+    <>
+      Please check your JWT token and <Link to="/logout">log out</Link>.
+    </>
+  ) : (
+    <>Please check your connectivity and {tryAgain}.</>
+  );
+
   return (
     <Container fluid className="text-center">
       <img
@@ -41,7 +52,7 @@ const Empty = ({ title, onRetry }: Props): React.ReactElement => {
         style={{ maxWidth: 200 }}
       />
       <h5 className="mt-2">{title}</h5>
-      <p>Please check your connectivity and {tryAgain}.</p>
+      <p>{message}</p>
     </Container>
   );
 };

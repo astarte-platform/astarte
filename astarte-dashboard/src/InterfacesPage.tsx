@@ -83,11 +83,19 @@ const LoadingRow = (): React.ReactElement => (
 
 interface ErrorRowProps {
   onRetry: () => void;
+  errorMessage?: string;
 }
 
-const ErrorRow = ({ onRetry }: ErrorRowProps): React.ReactElement => (
+const ErrorRow = ({ onRetry, errorMessage }: ErrorRowProps): React.ReactElement => (
   <ListGroup.Item>
-    <Empty title="Couldn't load available interfaces" onRetry={onRetry} />
+    <Empty
+      title={
+        errorMessage?.includes('401')
+          ? "The JWT token is invalid or does not match the realm's public key."
+          : "Couldn't load available interfaces"
+      }
+      onRetry={onRetry}
+    />
   </ListGroup.Item>
 );
 
@@ -143,7 +151,12 @@ export default (): React.ReactElement => {
               data={interfacesInfoFetcher.value}
               status={interfacesInfoFetcher.status}
               fallback={<LoadingRow />}
-              errorFallback={<ErrorRow onRetry={interfacesInfoFetcher.refresh} />}
+              errorFallback={
+                <ErrorRow
+                  onRetry={interfacesInfoFetcher.refresh}
+                  errorMessage={interfacesInfoFetcher.error?.message}
+                />
+              }
             >
               {(interfaces) => (
                 <>

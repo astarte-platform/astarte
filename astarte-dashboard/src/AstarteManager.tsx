@@ -176,10 +176,31 @@ const AstarteProvider = ({
 
   useEffect(() => {
     client
-      .getRealmManagementVersion()
+      .getUnauthenticatedRealmManagementVersion()
       .then((version) => setRealmManagementVersion(version))
       .catch(() => setRealmManagementVersion(null));
-  }, [client]);
+
+    client.getRealmManagementVersion().catch((error) => {
+      if (error.response && error.response.status === 401) {
+        // This prevents the "Cannot update a component while rendering a different component" warning
+        setTimeout(() => logout(), 0);
+      }
+    });
+
+    client.getAppEngineVersion().catch((error) => {
+      if (error.response && error.response.status === 401) {
+        // This prevents the "Cannot update a component while rendering a different component" warning.
+        setTimeout(() => logout(), 0);
+      }
+    });
+
+    client.getPairingVersion().catch((error) => {
+      if (error.response && error.response.status === 401) {
+        // This prevents the "Cannot update a component while rendering a different component" warning.
+        setTimeout(() => logout(), 0);
+      }
+    });
+  }, [client, logout]);
 
   const triggerDeliveryPoliciesSupported = useMemo(
     () =>

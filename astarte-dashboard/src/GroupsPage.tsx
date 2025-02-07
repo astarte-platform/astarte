@@ -18,7 +18,7 @@
 
 import React, { useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Button, Container, Spinner, Table } from 'react-bootstrap';
+import { Button, Container, ListGroup, Spinner, Table } from 'react-bootstrap';
 
 import SingleCardPage from './ui/SingleCardPage';
 import { AlertsBanner, useAlerts } from './AlertManager';
@@ -75,6 +75,24 @@ const GroupsTable = ({ groupMap }: GroupsTableProps) => {
   );
 };
 
+interface ErrorRowProps {
+  onRetry: () => void;
+  errorMessage?: string;
+}
+
+const ErrorRow = ({ onRetry, errorMessage }: ErrorRowProps): React.ReactElement => (
+  <ListGroup.Item>
+    <Empty
+      title={
+        errorMessage?.includes('401')
+          ? "The JWT token is invalid or does not match the realm's public key."
+          : "Couldn't load groups"
+      }
+      onRetry={onRetry}
+    />
+  </ListGroup.Item>
+);
+
 export default (): React.ReactElement => {
   const astarte = useAstarte();
   const [pageAlerts, pageAlertsController] = useAlerts();
@@ -122,7 +140,9 @@ export default (): React.ReactElement => {
             <Spinner animation="border" role="status" />
           </Container>
         }
-        errorFallback={<Empty title="Couldn't load groups" onRetry={groupsFetcher.refresh} />}
+        errorFallback={
+          <ErrorRow onRetry={groupsFetcher.refresh} errorMessage={groupsFetcher.error?.message} />
+        }
       >
         {(groupMap) => <GroupsTable groupMap={groupMap} />}
       </WaitForData>
