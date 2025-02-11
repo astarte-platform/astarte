@@ -9,6 +9,14 @@ This guide is focused on writing and testing changes to Astarte. It assumes basi
 - You have already run at least once [Astarte in 5 minutes](010-astarte_in_5_minutes.md)
 - If you plan to work on the code, you have some knowledge of Elixir and Docker
 
+### Platforms
+
+Currently, the development of [Astarte project](https://www.github.com/astarte-platform/astarte) is tested on the following platforms:
+
+- Ubuntu linux >= 20.04, amd64/arm64
+- Debian linux >= bullseye, amd64/arm64
+- macOS amd64/arm64, via Microsoft VSCode devcontainer
+
 ## Where to start?
 
 To make your contribution, let's first identify where to do it.
@@ -38,11 +46,27 @@ The main Astarte repo contains a number of tools that can be used everyday when 
 - Astarte Device Fleet Simulator: create a fleet of virtual devices. Mainly used for load testing
 - Astarte E2E: a tool that sends data from a virtual device and checks the resulting value in Astarte using triggers. Mainly used for monitoring
 - Astarte Import and Astarte Export: used to load/export data into/from Astarte
+- Astarte Dev Tool: development helper, facilitating the up & running of the platform in development mode (see [astarte_dev_tool](#astarte_dev_tool))
 
-## Setting up Elixir
+## Environment
+
+There are two possible alternatives for development, depending on whether you want to use a complete setup on the development host or prefer to use devcontainers.
+The choice also falls on whether you want to [work on a single component](#testing-a-single-component) or prefer to start up the entire Astarte platform.
+
+### Devcontainers (preferred on macOs, requires Microsoft VSCode as IDE)
+
+The development system only requires _docker_ and _docker compose_ to be installed. macOS users normally prefer to use _Docker Desktop_, in which case _docker compose_ is automatically installed.
+The development containers will already have the necessary add-ons to optimise the work.
+
+> [!NOTE]
+> When using dev containers, it is only possible to work on Astarte  [apps](https://www.github.com/astarte-platform/astarte), with the main requirement that all the Astarte containers must  be started.
+> If you want to work on the other tools or libraries (e.g. [Astarte Core](https://github.com/astarte-platform/astarte_core)), you must use another set-up method.
+
+### Host with Elixir installed
+
 In order to install and manage Elixir (and Erlang), we recommend using either the [asdf](https://asdf-vm.com/) runtime version manager or the [nix](https://nixos.org/) package manager.
 
-### Using asdf
+#### Using asdf
 
 From inside the main Astarte directory, install the Elixir and Erlang asdf plugins
 ```bash
@@ -55,38 +79,51 @@ Then install Elang/OTP and Elixir with
 asdf install
 ```
 
-### Using nix
+#### Using nix
 
 From inside the main Astarte directory, just run
 - `nix develop`, if you are using flakes
 - `nix-shell`, if not
 
-## Can I use an Elixir REPL to help me during development?
+## Development on the entire platform
+
+The easiest way to develop on the whole platform is to start the project (and, thus, every astarte container) with _docker compose_ in "development" mode.
+This way you can also enable the hot reloading mode with the 'watch' command of [astarte_dev_tool](https://www.github.com/astarte-platform/astarte) or directly with _docker compose_.
+
+From inside the astarte_dev_tool directory, `mix build` to build the tool itself, followed by the commands to use it. Note that the root Astarte directory must be explicitly specified with `-p`:
+
+- `mix astarte_dev_tool.system.up -p <path>`, starts the platform and all containers in "dev-mode".
+- `mix astarte_dev_tool.system.watch -p <path>`, starts the "watcher", which allows hot-code reloading in case of code changes. The process is stopped and must be explicitly closed with `ENTER`.
+- `mix astarte_dev_tool.system.down -p <path> [-v]`, to terminate the platform. The `-v` parameter will also delete the volumes of the respective containers.
+
+### docker compose
+
+From inside the Astarte directory:
+
+- `docker compose -f docker-compose.yml -f docker-compose.dev.yml up --build [-d]`, starts the platform and all containers in "dev-mode".
+- `docker compose -f docker-compose.dev.yml -f docker-compose.dev.yml watch --no-up`, starts the watching. The process must be terminated explicitly with `Ctrl+C`.
+- `docker compose -f docker-compose.dev.yml -f docker-compose.dev.yml down [-v]`, to terminate the platform. The `-v` parameter will also delete the volumes of the respective containers.
+
+## Development on individual components
+
+It is also possible not to start the entire platform, to do so enter the directory of the service you are interested in and run the appropriate mix command (varies from service to service).
+Usually you don't want to do so, though.
+
+### Can I use an Elixir REPL to help me during development?
 
 Sure thing! However, usually Astarte services do need some context around them.
 Refer to the following ["Testing a single component"](#testing-a-single-component) paragraph for dependencies, then you can start your application with an interactive shell by replacing `mix test` with `iex -S mix`
-
-## Ok, I made changes, what now?
-
-Once you got your hands dirty, is time to test them.
-You can test changes to a single component, or run E2E tests if more than one service is involved.
-
-Remember that a contribution should always include tests for the new functionality or the fix.
-We use the [ExUnit](https://hexdocs.pm/ex_unit/ExUnit.html) framework for unit testing.
-Work is under way to add property-based testing too! 
 
 ### Testing a single component
 
 In general, you will have to bring up a RabbitMQ and a Scylla instance (not all services need both: API services will not need access to the database).
 You can do so by running
-
 ```bash
 docker run --rm -p 5672:5672 -p 15672:15672 rabbitmq:management
 docker run --rm -p 9042:9042 scylladb/scylla
 ```
 
 Then, you can run test in the component directory with
-
 ```bash
 RABBITMQ_HOST=localhost CASSANDRA_NODES=localhost mix test --exclude wip
 ```
@@ -103,11 +140,19 @@ RABBITMQ_HOST=localhost CASSANDRA_NODES=localhost mix test --exclude wip
 >  ```bash
 >  docker run --net=host -p 8080/tcp ispirata/docker-alpine-cfssl-autotest:astarte
 >  ```
-> 
 > and then test using
 >  ```bash
 >  RABBITMQ_HOST=localhost CASSANDRA_NODES=localhost CFSSL_API_URL=http://localhost:8080 mix test --exclude wip
 >  ```
+
+## Ok, I made changes, what now?
+
+Once you got your hands dirty, is time to test them.
+You can test changes to a single component, or run E2E tests if more than one service is involved.
+
+Remember that a contribution should always include tests for the new functionality or the fix.
+We use the [ExUnit](https://hexdocs.pm/ex_unit/ExUnit.html) framework for unit testing.
+Work is under way to add property-based testing too!
 
 ### E2E testing
 
