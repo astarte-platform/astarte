@@ -1,4 +1,4 @@
-FROM hexpm/elixir:1.15.7-erlang-26.1-debian-bookworm-20230612-slim as base
+FROM --platform=${BUILDPLATFORM} hexpm/elixir:1.15.7-erlang-26.1-debian-bookworm-20230612-slim as base
 
 # install build dependencies
 # --allow-releaseinfo-change allows to pull from 'oldstable'
@@ -61,7 +61,7 @@ RUN if [ -f "./entrypoint.sh" ]; then \
 
 # Note: it is important to keep Debian versions in sync, 
 # or incompatibilities between libcrypto will happen
-FROM debian:bookworm-slim
+FROM --platform=${BUILDPLATFORM} debian:bookworm-slim
 
 # Set the locale
 ENV LANG C.UTF-8
