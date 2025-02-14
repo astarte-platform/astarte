@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2017-2023 SECO Mind Srl
+# Copyright 2017 - 2025 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -923,13 +923,13 @@ defmodule Astarte.AppEngine.API.DeviceTest do
       :ok,
       %Astarte.AppEngine.API.Device.InterfaceValues{
         data: [
-          [elem(DateTime.from_iso8601("2017-09-30 07:10:00.000Z"), 1), 1.1, "aaa"],
-          [elem(DateTime.from_iso8601("2017-09-30 07:12:00.000Z"), 1), 2.2, "bbb"],
-          [elem(DateTime.from_iso8601("2017-09-30 07:13:00.000Z"), 1), 3.3, "ccc"]
+          ["aaa", elem(DateTime.from_iso8601("2017-09-30 07:10:00.000Z"), 1), 1.1],
+          ["bbb", elem(DateTime.from_iso8601("2017-09-30 07:12:00.000Z"), 1), 2.2],
+          ["ccc", elem(DateTime.from_iso8601("2017-09-30 07:13:00.000Z"), 1), 3.3]
         ],
         metadata: %{
-          "columns" => %{"string" => 2, "timestamp" => 0, "value" => 1},
-          "table_header" => ["timestamp", "value", "string"]
+          "columns" => %{"string" => 0, "timestamp" => 1, "value" => 2},
+          "table_header" => ["string", "timestamp", "value"]
         }
       }
     }
