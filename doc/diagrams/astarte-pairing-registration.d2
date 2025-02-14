@@ -1,0 +1,24 @@
+shape: sequence_diagram
+
+device: Device {
+  shape: image
+  icon: https://icons.terrastruct.com/tech%2F014-cpu.svg
+}
+agent: Agent {
+  shape: image
+  icon: https://icons.terrastruct.com/essentials%2F005-programmer.svg
+}
+pairing: Astarte Pairing {
+  shape: image
+  icon: https://icons.terrastruct.com/infra%2F033-protection.svg
+}
+cfssl: CA {
+  shape: image
+  icon: https://icons.terrastruct.com/essentials%2F216-key.svg
+}
+
+device -> agent: Device advertises its identity to Agent\nor Agent explictly discovers Device
+agent -> pairing: Inside the Plant, Agent trusts Device identity\nand requests registration and Credentials Secret for Device
+pairing -> cfssl: Pairing coordinates with CA to\ngenerate certificates and secrets
+pairing -> agent: Pairing returns Credentials Secret
+agent -> device: Agent delivers Credentials Secret to Device
