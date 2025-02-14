@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2017-2018 Ispirata Srl
+# Copyright 2017 - 2025 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -17,6 +17,8 @@
 #
 
 defmodule Astarte.AppEngine.API.Device.Queries do
+  import Ecto.Query
+
   alias Astarte.AppEngine.API.Config
   alias Astarte.AppEngine.API.Device.DeviceStatus
   alias Astarte.AppEngine.API.Device.DevicesList
@@ -25,11 +27,13 @@ defmodule Astarte.AppEngine.API.Device.Queries do
   alias Astarte.Core.CQLUtils
   alias Astarte.Core.Device
   alias Astarte.Core.InterfaceDescriptor
-  alias Astarte.Core.Mapping
-  alias Astarte.Core.Mapping.ValueType
-  alias Astarte.Core.StorageType
   alias CQEx.Query, as: DatabaseQuery
   alias CQEx.Result, as: DatabaseResult
+
+  alias Astarte.DataAccess.Realms.Device, as: DatabaseDevice
+  alias Astarte.DataAccess.Realms.Endpoint, as: DatabaseEndpoint
+  alias Astarte.DataAccess.Astarte.Realm
+
   require CQEx
   require Logger
 
@@ -37,88 +41,50 @@ defmodule Astarte.AppEngine.API.Device.Queries do
     DatabaseResult.head(values)
   end
 
-  @spec retrieve_interfaces_list(:cqerl.client(), binary) ::
-          {:ok, list(String.t())} | {:error, atom}
-  def retrieve_interfaces_list(client, device_id) do
-    device_introspection_statement = """
-    SELECT introspection
-    FROM devices
-    WHERE device_id=:device_id
-    """
+  def retrieve_interfaces_list(realm_name) do
+    keyspace = Realm.keyspace_name(realm_name)
 
-    device_introspection_query =
-      DatabaseQuery.new()
-      |> DatabaseQuery.statement(device_introspection_statement)
-      |> DatabaseQuery.put(:device_id, device_id)
-
-    with {:ok, result} <- DatabaseQuery.call(client, device_introspection_query),
-         [introspection: introspection_or_nil] <- DatabaseResult.head(result) do
-      introspection = introspection_or_nil || []
-
-      interfaces_list =
-        for {interface_name, _interface_major} <- introspection do
-          interface_name
-        end
-
-      {:ok, interfaces_list}
-    else
-      :empty_dataset ->
-        {:error, :device_not_found}
-
-      {:error, reason} ->
-        _ = Logger.warning("Database error: #{inspect(reason)}.", tag: "db_error")
-        {:error, :database_error}
-    end
+    from DatabaseDevice,
+      prefix: ^keyspace,
+      select: [:introspection]
   end
 
-  def retrieve_all_endpoint_ids_for_interface!(client, interface_id) do
-    endpoints_with_type_statement = """
-    SELECT value_type, endpoint_id
-    FROM endpoints
-    WHERE interface_id=:interface_id
-    """
+  def retrieve_all_endpoint_ids_for_interface!(realm_name, interface_id) do
+    keyspace = Realm.keyspace_name(realm_name)
 
-    endpoint_query =
-      DatabaseQuery.new()
-      |> DatabaseQuery.statement(endpoints_with_type_statement)
-      |> DatabaseQuery.put(:interface_id, interface_id)
-
-    DatabaseQuery.call!(client, endpoint_query)
+    from DatabaseEndpoint,
+      prefix: ^keyspace,
+      where: [interface_id: ^interface_id],
+      select: [:value_type, :endpoint_id]
   end
 
-  def retrieve_all_endpoints_for_interface!(client, interface_id) do
-    endpoints_with_type_statement = """
-    SELECT value_type, endpoint
-    FROM endpoints
-    WHERE interface_id=:interface_id
-    """
+  def retrieve_all_endpoints_for_interface!(realm_name, interface_id) do
+    keyspace = Realm.keyspace_name(realm_name)
 
-    endpoint_query =
-      DatabaseQuery.new()
-      |> DatabaseQuery.statement(endpoints_with_type_statement)
-      |> DatabaseQuery.put(:interface_id, interface_id)
-
-    DatabaseQuery.call!(client, endpoint_query)
+    from DatabaseEndpoint,
+      prefix: ^keyspace,
+      where: [interface_id: ^interface_id],
+      select: [:value_type, :endpoint]
   end
 
-  def retrieve_mapping(db_client, interface_id, endpoint_id) do
-    mapping_statement = """
-    SELECT endpoint, value_type, reliability, retention, database_retention_policy,
-           database_retention_ttl, expiry, allow_unset, endpoint_id, interface_id,
-           explicit_timestamp
-    FROM endpoints
-    WHERE interface_id=:interface_id AND endpoint_id=:endpoint_id
-    """
+  def retrieve_mapping(realm_name) do
+    keyspace = Realm.keyspace_name(realm_name)
 
-    mapping_query =
-      DatabaseQuery.new()
-      |> DatabaseQuery.statement(mapping_statement)
-      |> DatabaseQuery.put(:interface_id, interface_id)
-      |> DatabaseQuery.put(:endpoint_id, endpoint_id)
-
-    DatabaseQuery.call!(db_client, mapping_query)
-    |> DatabaseResult.head()
-    |> Mapping.from_db_result!()
+    from DatabaseEndpoint,
+      prefix: ^keyspace,
+      select: [
+        :endpoint,
+        :value_type,
+        :reliability,
+        :retention,
+        :database_retention_policy,
+        :database_retention_ttl,
+        :expiry,
+        :allow_unset,
+        :endpoint_id,
+        :interface_id,
+        :explicit_timestamp
+      ]
   end
 
   def prepare_get_property_statement(
@@ -262,10 +228,10 @@ defmodule Astarte.AppEngine.API.Device.Queries do
       ) do
     {values_query_statement, _count_query_statement, q_params} =
       prepare_get_individual_datastream_statement(
-        ValueType.from_int(endpoint_row[:value_type]),
+        endpoint_row.value_type,
         false,
-        interface_row[:storage],
-        StorageType.from_int(interface_row[:storage_type]),
+        interface_row.storage,
+        interface_row.storage_type,
         %{opts | limit: 1}
       )
 
@@ -273,7 +239,7 @@ defmodule Astarte.AppEngine.API.Device.Queries do
       DatabaseQuery.new()
       |> DatabaseQuery.statement(values_query_statement)
       |> DatabaseQuery.put(:device_id, device_id)
-      |> DatabaseQuery.put(:interface_id, interface_row[:interface_id])
+      |> DatabaseQuery.put(:interface_id, interface_row.interface_id)
       |> DatabaseQuery.put(:endpoint_id, endpoint_id)
       |> DatabaseQuery.put(:path, path)
       |> DatabaseQuery.merge(q_params)
@@ -1214,7 +1180,7 @@ defmodule Astarte.AppEngine.API.Device.Queries do
       "WHERE device_id=:device_id #{since_statement} AND path=:path #{to_statement} #{limit_statement} ;"
 
     values_query_statement =
-      "SELECT #{columns} #{timestamp_column} FROM #{interface_row[:storage]} #{where_clause};"
+      "SELECT #{columns} #{timestamp_column} FROM #{interface_row.storage} #{where_clause};"
 
     values_query =
       DatabaseQuery.new()
@@ -1249,7 +1215,7 @@ defmodule Astarte.AppEngine.API.Device.Queries do
     values = DatabaseQuery.call!(client, values_query)
 
     count_query_statement =
-      "SELECT count(#{timestamp_column}) FROM #{interface_row[:storage]} #{where_clause} ;"
+      "SELECT count(#{timestamp_column}) FROM #{interface_row.storage} #{where_clause} ;"
 
     count_query =
       values_query
@@ -1285,17 +1251,17 @@ defmodule Astarte.AppEngine.API.Device.Queries do
   def all_properties_for_endpoint!(client, device_id, interface_row, endpoint_row, endpoint_id) do
     query_statement =
       prepare_get_property_statement(
-        ValueType.from_int(endpoint_row[:value_type]),
+        endpoint_row.value_type,
         false,
-        interface_row[:storage],
-        StorageType.from_int(interface_row[:storage_type])
+        interface_row.storage,
+        interface_row.storage_type
       )
 
     query =
       DatabaseQuery.new()
       |> DatabaseQuery.statement(query_statement)
       |> DatabaseQuery.put(:device_id, device_id)
-      |> DatabaseQuery.put(:interface_id, interface_row[:interface_id])
+      |> DatabaseQuery.put(:interface_id, interface_row.interface_id)
       |> DatabaseQuery.put(:endpoint_id, endpoint_id)
 
     DatabaseQuery.call!(client, query)
@@ -1312,10 +1278,10 @@ defmodule Astarte.AppEngine.API.Device.Queries do
       ) do
     {values_query_statement, count_query_statement, q_params} =
       prepare_get_individual_datastream_statement(
-        ValueType.from_int(endpoint_row[:value_type]),
+        endpoint_row.value_type,
         false,
-        interface_row[:storage],
-        StorageType.from_int(interface_row[:storage_type]),
+        interface_row.storage,
+        interface_row.storage_type,
         opts
       )
 
@@ -1323,7 +1289,7 @@ defmodule Astarte.AppEngine.API.Device.Queries do
       DatabaseQuery.new()
       |> DatabaseQuery.statement(values_query_statement)
       |> DatabaseQuery.put(:device_id, device_id)
-      |> DatabaseQuery.put(:interface_id, interface_row[:interface_id])
+      |> DatabaseQuery.put(:interface_id, interface_row.interface_id)
       |> DatabaseQuery.put(:endpoint_id, endpoint_id)
       |> DatabaseQuery.put(:path, path)
       |> DatabaseQuery.merge(q_params)
@@ -1339,24 +1305,11 @@ defmodule Astarte.AppEngine.API.Device.Queries do
     {:ok, count, values}
   end
 
-  def prepare_value_type_query(interface_id) do
-    value_type_statement = """
-    SELECT value_type
-    FROM endpoints
-    WHERE interface_id=:interface_id AND endpoint_id=:endpoint_id
-    """
+  def value_type_query(realm_name) do
+    keyspace = Realm.keyspace_name(realm_name)
 
-    DatabaseQuery.new()
-    |> DatabaseQuery.statement(value_type_statement)
-    |> DatabaseQuery.put(:interface_id, interface_id)
-  end
-
-  def execute_value_type_query(client, value_type_query, endpoint_id) do
-    value_type_query =
-      value_type_query
-      |> DatabaseQuery.put(:endpoint_id, endpoint_id)
-
-    DatabaseQuery.call!(client, value_type_query)
-    |> DatabaseResult.head()
+    from DatabaseEndpoint,
+      prefix: ^keyspace,
+      select: [:value_type]
   end
 end
