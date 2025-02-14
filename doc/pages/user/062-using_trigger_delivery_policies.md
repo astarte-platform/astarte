@@ -17,7 +17,7 @@ At any time, you can list existing Trigger Delivery Policies in a Realm and fetc
 
 To list all existing Trigger Delivery Policies in a Realm:
 
-`GET api.<your astarte domain>/realmmanagement/v1/<realm name>/policies`
+`GET <astarte base API URL>/realmmanagement/v1/<realm name>/policies`
 
 ```json
 {
@@ -32,7 +32,7 @@ To list all existing Trigger Delivery Policies in a Realm:
 
 To get a Trigger Delivery Policy definition:
 
-`GET api.<your astarte domain>/realmmanagement/v1/<realm name>/policies/simple_trigger_delivery_policy`
+`GET <astarte base API URL>/realmmanagement/v1/<realm name>/policies/simple_trigger_delivery_policy`
 
 ```json
 {
@@ -57,7 +57,7 @@ The name of the Trigger Delivery Policy must be unique within the Realm, or an e
 
 ### Installing a Trigger Delivery Policy using Realm Management APIs
 
-`POST api.<your astarte domain>/realmmanagement/v1/<realm name>/policies`
+`POST <astarte base API URL>/realmmanagement/v1/<realm name>/policies`
 
 The POST request must have the following request body, with content type `application/json`
 
@@ -83,7 +83,7 @@ A Trigger Delivery Policy can be deleted only if no Triggers linked to it are pr
 
 ### Deleting a Trigger Delivery Policy using Realm Management APIs
 
-`DELETE api.<your astarte domain>/realmmanagement/v1/<realm name>/policies/simple_trigger_delivery_policy`
+`DELETE <astarte base API URL>/realmmanagement/v1/<realm name>/policies/simple_trigger_delivery_policy`
 
 ## Trigger Delivery Policy examples
 
