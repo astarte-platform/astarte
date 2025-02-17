@@ -1,4 +1,4 @@
-# AstarteGenerators
+# Astarte.Core.Generators
 
 **TODO: Add description**
 
@@ -10,7 +10,7 @@ by adding `astarte_generators` to your list of dependencies in `mix.exs`:
 ```elixir
 def deps do
   [
-    {:astarte_generators, "~> 0.1.0"}
+    {:astarte_generators, github: astarte_platform/astarte_generators}
   ]
 end
 ```
