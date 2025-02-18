@@ -29,9 +29,9 @@ jobs:
       with:
         repository: astarte-platform/docs
         path: docs
-    - uses: erlef/setup-beam@v1.15
+    - uses: erlef/setup-beam@v1.17
       with:
-        elixir-version: "1.15.7"
+        elixir-version: "1.18"
         otp-version: "26.1"
     - name: Install Dependencies
       working-directory: ./astarte/doc
