@@ -20,7 +20,7 @@ on:
   workflow_call:
 
 env:
-  elixir_version: "1.15"
+  elixir_version: "1.18"
   otp_version: "26.1"
 
 jobs:
@@ -63,7 +63,7 @@ jobs:
         key: ${{ runner.os }}-dialyzer_cache-${{ env.otp_version }}-${{ env.elixir_version }}-${{ matrix.app }}-${{ github.sha }}
         restore-keys: |
           ${{ runner.os }}-dialyzer_cache-${{ env.otp_version }}-${{ env.elixir_version }}-${{ matrix.app }}-
-    - uses: erlef/setup-beam@v1.15
+    - uses: erlef/setup-beam@v1.17
       with:
         otp-version: ${{ env.otp_version }}
         elixir-version: ${{ env.elixir_version }}
@@ -137,7 +137,7 @@ jobs:
     #     key: ${{ runner.os }}-apps-_build-${{ env.otp_version }}-${{ env.elixir_version }}-${{ matrix.app }}-${{ github.sha }}
     #     restore-keys: |
     #       ${{ runner.os }}-apps-_build-${{ env.otp_version }}-${{ env.elixir_version }}-${{ matrix.app }}-
-    - uses: erlef/setup-beam@v1.15
+    - uses: erlef/setup-beam@v1.17
       with:
         otp-version: ${{ env.otp_version }}
         elixir-version: ${{ env.elixir_version }}

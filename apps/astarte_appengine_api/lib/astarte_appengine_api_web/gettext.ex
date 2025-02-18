@@ -37,5 +37,5 @@ defmodule Astarte.AppEngine.APIWeb.Gettext do
 
   See the [Gettext Docs](https://hexdocs.pm/gettext) for detailed usage.
   """
-  use Gettext, otp_app: :astarte_appengine_api
+  use Gettext.Backend, otp_app: :astarte_appengine_api
 end

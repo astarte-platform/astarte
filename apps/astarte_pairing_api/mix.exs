@@ -22,7 +22,7 @@ defmodule Astarte.Pairing.API.Mixfile do
   def project do
     [
       app: :astarte_pairing_api,
-      elixir: "~> 1.15",
+      elixir: "~> 1.18",
       version: "1.3.0-dev",
       elixirc_paths: elixirc_paths(Mix.env()),
       start_permanent: Mix.env() == :prod,
@@ -89,18 +89,18 @@ defmodule Astarte.Pairing.API.Mixfile do
       {:remote_ip, "~> 1.0"},
       {:excoveralls, "~> 0.15", only: :test},
       {:mox, "~> 0.5", only: :test},
-      {:pretty_log, "~> 0.1"},
+      {:pretty_log, "~> 0.9"},
       {:plug_logger_with_meta, "~> 0.1"},
       {:dialyxir, "~> 1.0", only: [:dev, :ci], runtime: false},
-      {:skogsra, "~> 2.2"},
+      {:skogsra, "~> 2.5"},
       {:cors_plug, "~> 2.0"},
-      {:telemetry_metrics, "~> 0.4"},
-      {:telemetry_poller, "~> 0.4"},
-      {:telemetry_metrics_prometheus_core, "~> 0.4"},
-      {:observer_cli, "~> 1.5"},
+      {:telemetry_metrics, "~> 1.0"},
+      {:telemetry_poller, "~> 1.1"},
+      {:telemetry_metrics_prometheus_core, "~> 1.2"},
+      {:observer_cli, "~> 1.7"},
       # Workaround for Elixir 1.15 / ssl_verify_fun issue
       # See also: https://github.com/deadtrickster/ssl_verify_fun.erl/pull/27
-      {:ssl_verify_fun, "~> 1.1.0", manager: :rebar3, override: true}
+      {:ssl_verify_fun, "~> 1.1.7", manager: :rebar3, override: true}
     ]
   end
 end

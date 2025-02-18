@@ -27,7 +27,7 @@ defmodule Astarte.Housekeeping.Mixfile do
       config_path: "config/config.exs",
       deps_path: "deps",
       lockfile: "mix.lock",
-      elixir: "~> 1.15",
+      elixir: "~> 1.18",
       elixirc_paths: elixirc_paths(Mix.env()),
       build_embedded: Mix.env() == :prod,
       start_permanent: Mix.env() == :prod,
@@ -72,7 +72,7 @@ defmodule Astarte.Housekeeping.Mixfile do
   defp astarte_required_modules(_) do
     [
       {:astarte_core, github: "astarte-platform/astarte_core"},
-      {:astarte_data_access, github: "astarte-platform/astarte_data_access"},
+      {:astarte_data_access, github: "eddbbt/astarte_data_access", branch: "remove_old_options"},
       {:astarte_rpc, github: "astarte-platform/astarte_rpc"}
     ]
   end
@@ -82,18 +82,18 @@ defmodule Astarte.Housekeeping.Mixfile do
       {:xandra, "~> 0.19"},
       {:excoveralls, "~> 0.15", only: :test},
       {:dialyxir, "~> 1.0", only: [:dev, :ci], runtime: false},
-      {:plug_cowboy, "~> 2.1"},
-      {:skogsra, "~> 2.2"},
-      {:pretty_log, "~> 0.1"},
-      {:telemetry_metrics_prometheus_core, "~> 0.4"},
-      {:telemetry_metrics, "~> 0.4"},
-      {:telemetry_poller, "~> 0.4"},
-      {:observer_cli, "~> 1.5"},
+      {:plug_cowboy, "~> 2.7"},
+      {:skogsra, "~> 2.5"},
+      {:pretty_log, "~> 0.9"},
+      {:telemetry_metrics_prometheus_core, "~> 1.2"},
+      {:telemetry_metrics, "~> 1.0"},
+      {:telemetry_poller, "~> 1.1"},
+      {:observer_cli, "~> 1.7"},
       # Fix: re2 1.9.8 to build on arm64
       {:re2, "~> 1.9.8", override: true},
       # Workaround for Elixir 1.15 / ssl_verify_fun issue
       # See also: https://github.com/deadtrickster/ssl_verify_fun.erl/pull/27
-      {:ssl_verify_fun, "~> 1.1.0", manager: :rebar3, override: true}
+      {:ssl_verify_fun, "~> 1.1.7", manager: :rebar3, override: true}
     ]
   end
 end
