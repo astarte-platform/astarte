@@ -38,5 +38,5 @@ defmodule Astarte.RealmManagement.APIWeb.Gettext do
 
   See the [Gettext Docs](https://hexdocs.pm/gettext) for detailed usage.
   """
-  use Gettext, otp_app: :astarte_realm_management_api
+  use Gettext.Backend, otp_app: :astarte_realm_management_api
 end

@@ -955,7 +955,7 @@ defmodule Astarte.AppEngine.API.Device.Queries do
         {:ok, _result} ->
           :ok
 
-        %{acc: _, msg: error_message} ->
+        {:error, %{acc: _, msg: error_message}} ->
           _ = Logger.warning("Database error: #{error_message}.", tag: "db_error")
           {:error, :database_error}
 

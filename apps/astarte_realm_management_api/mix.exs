@@ -27,7 +27,7 @@ defmodule Astarte.RealmManagement.API.Mixfile do
       config_path: "config/config.exs",
       deps_path: "deps",
       lockfile: "mix.lock",
-      elixir: "~> 1.15",
+      elixir: "~> 1.18",
       elixirc_paths: elixirc_paths(Mix.env()),
       start_permanent: Mix.env() == :prod,
       test_coverage: [tool: ExCoveralls],
@@ -81,7 +81,7 @@ defmodule Astarte.RealmManagement.API.Mixfile do
   defp deps do
     [
       {:phoenix, "~> 1.7"},
-      {:plug_cowboy, "~> 2.1"},
+      {:plug_cowboy, "~> 2.7"},
       {:gettext, "~> 0.24"},
       {:phoenix_ecto, "~> 4.0"},
       {:phoenix_view, "~> 2.0"},
@@ -89,17 +89,17 @@ defmodule Astarte.RealmManagement.API.Mixfile do
       {:jason, "~> 1.2"},
       {:guardian, "~> 2.3"},
       {:excoveralls, "~> 0.15", only: :test},
-      {:pretty_log, "~> 0.1"},
+      {:pretty_log, "~> 0.9"},
       {:plug_logger_with_meta, "~> 0.1"},
-      {:skogsra, "~> 2.2"},
-      {:observer_cli, "~> 1.5"},
-      {:telemetry_metrics, "~> 0.4"},
-      {:telemetry_poller, "~> 0.4"},
-      {:telemetry_metrics_prometheus_core, "~> 0.4"},
+      {:skogsra, "~> 2.5"},
+      {:observer_cli, "~> 1.7"},
+      {:telemetry_metrics, "~> 1.0"},
+      {:telemetry_poller, "~> 1.1"},
+      {:telemetry_metrics_prometheus_core, "~> 1.2"},
       {:dialyxir, "~> 1.0", only: [:dev, :ci], runtime: false},
       # Workaround for Elixir 1.15 / ssl_verify_fun issue
       # See also: https://github.com/deadtrickster/ssl_verify_fun.erl/pull/27
-      {:ssl_verify_fun, "~> 1.1.0", manager: :rebar3, override: true}
+      {:ssl_verify_fun, "~> 1.1.7", manager: :rebar3, override: true}
     ]
   end
 end

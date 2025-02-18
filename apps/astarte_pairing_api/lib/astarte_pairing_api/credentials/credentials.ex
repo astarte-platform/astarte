@@ -81,7 +81,11 @@ defmodule Astarte.Pairing.API.Credentials do
     end
   end
 
-  defp build_astarte_mqtt_v1_credentials_status(%{valid: true, timestamp: timestamp, until: until}) do
+  defp build_astarte_mqtt_v1_credentials_status(%{
+         valid: true,
+         timestamp: timestamp,
+         until: until
+       }) do
     %AstarteMQTTV1.CredentialsStatus{
       valid: true,
       timestamp: timestamp,

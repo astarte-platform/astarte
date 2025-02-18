@@ -22,7 +22,7 @@ defmodule Astarte.RealmManagement.Mixfile do
   def project do
     [
       app: :astarte_realm_management,
-      elixir: "~> 1.15",
+      elixir: "~> 1.18",
       version: "1.3.0-dev",
       elixirc_paths: elixirc_paths(Mix.env()),
       build_embedded: Mix.env() == :prod,
@@ -68,7 +68,7 @@ defmodule Astarte.RealmManagement.Mixfile do
   defp astarte_required_modules(_) do
     [
       {:astarte_core, github: "astarte-platform/astarte_core"},
-      {:astarte_data_access, github: "astarte-platform/astarte_data_access"},
+      {:astarte_data_access, github: "eddbbt/astarte_data_access", branch: "remove_old_options"},
       {:astarte_rpc, github: "astarte-platform/astarte_rpc"}
     ]
   end
@@ -76,21 +76,21 @@ defmodule Astarte.RealmManagement.Mixfile do
   defp deps do
     [
       {:excoveralls, "~> 0.15", only: :test},
-      {:pretty_log, "~> 0.1"},
-      {:plug_cowboy, "~> 2.1"},
+      {:pretty_log, "~> 0.9"},
+      {:plug_cowboy, "~> 2.7"},
       {:jason, "~> 1.2"},
-      {:skogsra, "~> 2.2"},
-      {:telemetry_metrics_prometheus_core, "~> 0.4"},
-      {:telemetry_metrics, "~> 0.4"},
-      {:telemetry_poller, "~> 0.4"},
-      {:xandra, "~> 0.13"},
-      {:observer_cli, "~> 1.5"},
+      {:skogsra, "~> 2.5"},
+      {:telemetry_metrics_prometheus_core, "~> 1.2"},
+      {:telemetry_metrics, "~> 1.0"},
+      {:telemetry_poller, "~> 1.1"},
+      {:xandra, "~> 0.19"},
+      {:observer_cli, "~> 1.7"},
       # Fix: re2 1.9.8 to build on arm64
       {:re2, "~> 1.9.8", override: true},
       {:dialyxir, "~> 1.0", only: [:dev, :ci], runtime: false},
       # Workaround for Elixir 1.15 / ssl_verify_fun issue
       # See also: https://github.com/deadtrickster/ssl_verify_fun.erl/pull/27
-      {:ssl_verify_fun, "~> 1.1.0", manager: :rebar3, override: true}
+      {:ssl_verify_fun, "~> 1.1.7", manager: :rebar3, override: true}
     ]
   end
 end
