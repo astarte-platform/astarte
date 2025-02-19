@@ -68,11 +68,11 @@ jobs:
       run: |
         JWT=$(./astartectl utils gen-jwt appengine channels -k test_private.pem)
         echo "E2E_JWT=$JWT" >> $GITHUB_ENV
-    - uses: actions/cache@v1
+    - uses: actions/cache@v4
       with:
         path: tools/astarte_e2e/deps
         key: deps-${{ env.otp_version }}-${{ env.elixir_version }}-${{ hashFiles(format('{0}{1}{2}', github.workspace, '/tools/astarte_e2e', '/mix.lock')) }}
-    - uses: actions/cache@v1
+    - uses: actions/cache@v4
       with:
         path: tools/astarte_e2e/_build
         key: build-${{ env.otp_version }}-${{ env.elixir_version }}

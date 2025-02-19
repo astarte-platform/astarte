@@ -42,19 +42,19 @@ jobs:
       MIX_ENV: ci
     steps:
     - uses: actions/checkout@v2
-    - uses: actions/cache@v1
+    - uses: actions/cache@v4
       with:
         path: apps/${{ matrix.app }}/deps
         key: ${{ runner.os }}-dialyzer-mix-${{ env.otp_version }}-${{ env.elixir_version }}-${{ matrix.app }}-${{ hashFiles(format('{0}{1}{2}{3}', github.workspace, '/apps/', matrix.app, '/mix.lock')) }}
         restore-keys: |
           ${{ runner.os }}-dialyzer-mix-${{ env.otp_version }}-${{ env.elixir_version }}-${{ matrix.app }}-
-    - uses: actions/cache@v1
+    - uses: actions/cache@v4
       with:
         path: apps/${{ matrix.app }}/_build
         key: ${{ runner.os }}-dialyzer-_build-${{ env.otp_version }}-${{ env.elixir_version }}-${{ matrix.app }}-${{ github.sha }}
         restore-keys: |
           ${{ runner.os }}-dialyzer-_build-${{ env.otp_version }}-${{ env.elixir_version }}-${{ matrix.app }}-
-    - uses: actions/cache@v1
+    - uses: actions/cache@v4
       id: plt_cache
       with:
         path: apps/${{ matrix.app }}/dialyzer_cache
@@ -121,7 +121,7 @@ jobs:
       RABBITMQ_HOST: localhost
     steps:
     - uses: actions/checkout@v2
-    - uses: actions/cache@v1
+    - uses: actions/cache@v4
       with:
         path: apps/${{ matrix.app }}/deps
         key: ${{ runner.os }}-apps-mix-${{ env.otp_version }}-${{ env.elixir_version }}-${{ matrix.app }}-${{ hashFiles(format('{0}{1}{2}{3}', github.workspace, '/apps/', matrix.app, '/mix.lock')) }}
