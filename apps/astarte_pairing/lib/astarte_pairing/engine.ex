@@ -56,11 +56,7 @@ defmodule Astarte.Pairing.Engine do
     end
   end
 
-  def get_agent_public_key_pems(realm_name) do
-    keyspace = CQLUtils.realm_name_to_keyspace_name(realm_name, Config.astarte_instance_id!())
-
-    Queries.get_agent_public_key_pems(keyspace)
-  end
+  defdelegate get_agent_public_key_pems(realm_name), to: Queries
 
   def get_credentials(
         :astarte_mqtt_v1,

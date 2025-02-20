@@ -25,30 +25,40 @@ defmodule Astarte.Pairing.Queries do
   alias CQEx.Result
   alias Astarte.Core.CQLUtils
   alias Astarte.Pairing.Config
+  alias Astarte.Pairing.Astarte.Realm
+  alias Astarte.Pairing.Realms.KvStore
   require Logger
 
   @protocol_revision 1
   @keyspace_does_not_exist_regex ~r/Keyspace (.*) does not exist/
 
-  def get_agent_public_key_pems(keyspace_name) do
-    case Xandra.Cluster.run(:xandra, &do_get_agent_public_key_pems(keyspace_name, &1)) do
-      {:ok, pems} ->
-        {:ok, pems}
+  def get_agent_public_key_pems(realm_name) do
+    keyspace = CQLUtils.realm_name_to_keyspace_name(realm_name, Config.astarte_instance_id!())
 
-      {:error, %Xandra.ConnectionError{} = err} ->
-        _ =
-          Logger.warning("Database connection error #{Exception.message(err)}.",
-            tag: "database_connection_error"
-          )
-
-        {:error, :database_connection_error}
-
-      {:error, %Xandra.Error{} = err} ->
-        handle_xandra_error(err)
+    try do
+      with {:ok, pem} <-
+             KvStore.fetch_value("auth", "jwt_public_key_pem", :string,
+               prefix: keyspace,
+               consistency: :quorum,
+               error: :public_key_not_found
+             ) do
+        {:ok, [pem]}
+      end
+    rescue
+      err -> handle_xandra_error(err)
     end
   end
 
-  defp handle_xandra_error(error) do
+  defp handle_xandra_error(%Xandra.ConnectionError{} = error) do
+    _ =
+      Logger.warning("Database connection error #{Exception.message(error)}.",
+        tag: "database_connection_error"
+      )
+
+    {:error, :database_connection_error}
+  end
+
+  defp handle_xandra_error(%Xandra.Error{} = error) do
     %Xandra.Error{message: message} = error
 
     case Regex.run(@keyspace_does_not_exist_regex, message) do
@@ -62,34 +72,11 @@ defmodule Astarte.Pairing.Queries do
       nil ->
         _ =
           Logger.warning(
-            "Database error, cannot get realm public key: #{Exception.message(error)}.",
+            "Database error: #{Exception.message(error)}.",
             tag: "database_error"
           )
 
         {:error, :database_error}
-    end
-  end
-
-  defp do_get_agent_public_key_pems(keyspace_name, conn) do
-    query = """
-    SELECT blobAsVarchar(value)
-    FROM #{keyspace_name}.kv_store
-    WHERE group='auth' AND key='jwt_public_key_pem';
-    """
-
-    with {:ok, prepared} <- Xandra.prepare(conn, query),
-         {:ok, page} <-
-           Xandra.execute(conn, prepared, %{},
-             uuid_format: :binary,
-             consistency: :quorum
-           ) do
-      case Enum.to_list(page) do
-        [%{"system.blobasvarchar(value)" => pem}] ->
-          {:ok, [pem]}
-
-        [] ->
-          {:error, :public_key_not_found}
-      end
     end
   end
 
