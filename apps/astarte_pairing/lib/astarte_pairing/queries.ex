@@ -215,16 +215,6 @@ defmodule Astarte.Pairing.Queries do
     end
   end
 
-  def select_device_for_credentials_request(client, device_id) do
-    statement = """
-    SELECT first_credentials_request, cert_aki, cert_serial, inhibit_credentials_request, credentials_secret
-    FROM devices
-    WHERE device_id=:device_id
-    """
-
-    do_select_device(client, device_id, statement)
-  end
-
   def select_device_for_verify_credentials(client, device_id) do
     statement = """
     SELECT credentials_secret
@@ -236,9 +226,7 @@ defmodule Astarte.Pairing.Queries do
   end
 
   def update_device_after_credentials_request(client, device_id, cert_data, device_ip, nil) do
-    first_credentials_request_timestamp =
-      DateTime.utc_now()
-      |> DateTime.to_unix(:millisecond)
+    first_credentials_request_timestamp = DateTime.utc_now()
 
     update_device_after_credentials_request(
       client,
@@ -254,7 +242,7 @@ defmodule Astarte.Pairing.Queries do
         device_id,
         %{serial: serial, aki: aki} = _cert_data,
         device_ip,
-        first_credentials_request_timestamp
+        %DateTime{} = first_credentials_request_timestamp
       ) do
     statement = """
     UPDATE devices
@@ -270,7 +258,10 @@ defmodule Astarte.Pairing.Queries do
       |> Query.put(:cert_aki, aki)
       |> Query.put(:cert_serial, serial)
       |> Query.put(:last_credentials_request_ip, device_ip)
-      |> Query.put(:first_credentials_request, first_credentials_request_timestamp)
+      |> Query.put(
+        :first_credentials_request,
+        first_credentials_request_timestamp |> DateTime.to_unix(:millisecond)
+      )
       |> Query.put(:protocol_revision, @protocol_revision)
       |> Query.consistency(:quorum)
 
