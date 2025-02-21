@@ -279,7 +279,28 @@ defmodule Astarte.Pairing.Queries do
   end
 
   def fetch_device_registration_limit(realm_name) do
-    Xandra.Cluster.run(:xandra, &do_fetch_device_registration_limit(&1, realm_name))
+    keyspace = CQLUtils.realm_name_to_keyspace_name("astarte", Config.astarte_instance_id!())
+
+    try do
+      case Repo.fetch(Realm, realm_name,
+             prefix: keyspace,
+             consistency: :one,
+             error: :realm_not_found
+           ) do
+        {:ok, realm} ->
+          {:ok, realm.device_registration_limit}
+
+        {:error, :realm_not_found} ->
+          Logger.warning(
+            "cannot fetch device registration limit: realm #{realm_name} not found",
+            tag: "realm_not_found"
+          )
+
+          {:error, :realm_not_found}
+      end
+    rescue
+      err -> handle_xandra_error(err)
+    end
   end
 
   def fetch_registered_devices_count(realm_name) do
@@ -440,48 +461,6 @@ defmodule Astarte.Pairing.Queries do
           )
 
         {:error, :database_connection_error}
-    end
-  end
-
-  defp do_fetch_device_registration_limit(conn, realm_name) do
-    query = """
-    SELECT device_registration_limit
-    FROM #{CQLUtils.realm_name_to_keyspace_name("astarte", Config.astarte_instance_id!())}.realms
-    WHERE realm_name = :realm_name
-    """
-
-    with {:ok, prepared} <- Xandra.prepare(conn, query),
-         {:ok, page} <-
-           Xandra.execute(conn, prepared, %{"realm_name" => realm_name}, consistency: :one) do
-      case Enum.to_list(page) do
-        [%{"device_registration_limit" => value}] ->
-          {:ok, value}
-
-        [] ->
-          _ =
-            Logger.warning(
-              "cannot fetch device registration limit: realm #{realm_name} not found",
-              tag: "realm_not_found"
-            )
-
-          {:error, :realm_not_found}
-      end
-    else
-      {:error, %Xandra.ConnectionError{} = err} ->
-        _ =
-          Logger.warning("Database connection error: #{Exception.message(err)}.",
-            tag: "database_connection_error"
-          )
-
-        {:error, :database_connection_error}
-
-      {:error, %Xandra.Error{} = err} ->
-        _ =
-          Logger.warning("Database error: #{Exception.message(err)}.",
-            tag: "database_error"
-          )
-
-        {:error, :database_error}
     end
   end
 
