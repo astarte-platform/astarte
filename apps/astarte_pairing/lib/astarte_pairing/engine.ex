@@ -234,26 +234,9 @@ defmodule Astarte.Pairing.Engine do
         "in realm #{inspect(realm)}"
     )
 
-    keyspace_name = CQLUtils.realm_name_to_keyspace_name(realm, Config.astarte_instance_id!())
-
-    cqex_options =
-      Config.cqex_options!()
-      |> Keyword.put(:keyspace, keyspace_name)
-
     with {:ok, device_id} <- Device.decode_device_id(encoded_device_id),
-         {:ok, client} <-
-           Client.new(
-             Config.cassandra_node!(),
-             cqex_options
-           ),
-         :ok <- Queries.unregister_device(client, device_id) do
+         :ok <- Queries.unregister_device(realm, device_id) do
       :ok
-    else
-      {:error, :shutdown} ->
-        {:error, :realm_not_found}
-
-      {:error, reason} ->
-        {:error, reason}
     end
   end
 
