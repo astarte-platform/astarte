@@ -200,19 +200,24 @@ defmodule Astarte.Pairing.Queries do
     end
   end
 
+  def fetch_device(realm_name, device_id) do
+    keyspace_name =
+      CQLUtils.realm_name_to_keyspace_name(realm_name, Config.astarte_instance_id!())
+
+    try do
+      Repo.fetch(Device, device_id,
+        prefix: keyspace_name,
+        consistency: :quorum,
+        error: :device_not_found
+      )
+    rescue
+      err -> handle_xandra_error(err)
+    end
+  end
+
   def select_device_for_credentials_request(client, device_id) do
     statement = """
     SELECT first_credentials_request, cert_aki, cert_serial, inhibit_credentials_request, credentials_secret
-    FROM devices
-    WHERE device_id=:device_id
-    """
-
-    do_select_device(client, device_id, statement)
-  end
-
-  def select_device_for_info(client, device_id) do
-    statement = """
-    SELECT credentials_secret, inhibit_credentials_request, first_credentials_request
     FROM devices
     WHERE device_id=:device_id
     """
