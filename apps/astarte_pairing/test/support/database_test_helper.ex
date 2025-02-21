@@ -44,10 +44,11 @@ defmodule Astarte.Pairing.DatabaseTestHelper do
   @create_devices_table """
   CREATE TABLE #{CQLUtils.realm_name_to_keyspace_name("autotestrealm", Config.astarte_instance_id!())}.devices (
     device_id uuid,
+    aliases map<ascii, varchar>,
     introspection map<ascii, int>,
     introspection_minor map<ascii, int>,
+    old_introspection map<frozen<tuple<ascii, int>>, int>,
     protocol_revision int,
-    triggers set<ascii>,
     first_registration timestamp,
     inhibit_credentials_request boolean,
     credentials_secret ascii,
@@ -60,8 +61,13 @@ defmodule Astarte.Pairing.DatabaseTestHelper do
     pending_empty_cache boolean,
     total_received_msgs bigint,
     total_received_bytes bigint,
+    exchanged_bytes_by_interface map<frozen<tuple<ascii, int>>, bigint>,
+    exchanged_msgs_by_interface map<frozen<tuple<ascii, int>>, bigint>,
     last_credentials_request_ip inet,
     last_seen_ip inet,
+    attributes map<varchar, varchar>,
+
+    groups map<text, timeuuid>,
 
     PRIMARY KEY (device_id)
   );

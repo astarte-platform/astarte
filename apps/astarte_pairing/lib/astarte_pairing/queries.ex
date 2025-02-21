@@ -26,7 +26,9 @@ defmodule Astarte.Pairing.Queries do
   alias Astarte.Core.CQLUtils
   alias Astarte.Pairing.Config
   alias Astarte.Pairing.Astarte.Realm
+  alias Astarte.Pairing.Realms.Device
   alias Astarte.Pairing.Realms.KvStore
+  alias Astarte.Pairing.Repo
   require Logger
 
   @protocol_revision 1
@@ -147,28 +149,10 @@ defmodule Astarte.Pairing.Queries do
     keyspace_name =
       CQLUtils.realm_name_to_keyspace_name(realm_name, Config.astarte_instance_id!())
 
-    Xandra.Cluster.run(:xandra, fn conn ->
-      query = """
-      SELECT device_id
-      FROM #{keyspace_name}.devices
-      WHERE device_id=:device_id
-      """
-
-      with {:ok, prepared} <- Xandra.prepare(conn, query),
-           {:ok, page} <-
-             Xandra.execute(conn, prepared, %{"device_id" => device_id},
-               uuid_format: :binary,
-               consistency: :quorum
-             ) do
-        case Enum.to_list(page) do
-          [%{"device_id" => _device_id}] ->
-            {:ok, true}
-
-          [] ->
-            {:ok, false}
-        end
-      end
-    end)
+    case Repo.get(Device, device_id, prefix: keyspace_name, consistency: :quorum) do
+      %Device{} -> true
+      nil -> false
+    end
   end
 
   defp verify_already_registered_device(client, device_id) do
