@@ -164,22 +164,12 @@ defmodule Astarte.Pairing.Engine do
     )
 
     :telemetry.execute([:astarte, :pairing, :register_new_device], %{}, %{realm: realm})
-    keyspace_name = CQLUtils.realm_name_to_keyspace_name(realm, Config.astarte_instance_id!())
-
-    cqex_options =
-      Config.cqex_options!()
-      |> Keyword.put(:keyspace, keyspace_name)
 
     with {:ok, device_id} <- Device.decode_device_id(hardware_id, allow_extended_id: true),
          :ok <- verify_can_register_device(realm, device_id),
-         {:ok, client} <-
-           Client.new(
-             Config.cassandra_node!(),
-             cqex_options
-           ),
          credentials_secret <- CredentialsSecret.generate(),
          secret_hash <- CredentialsSecret.hash(credentials_secret),
-         :ok <- Queries.register_device(client, device_id, hardware_id, secret_hash, opts) do
+         :ok <- Queries.register_device(realm, device_id, hardware_id, secret_hash, opts) do
       {:ok, credentials_secret}
     else
       {:error, :shutdown} ->

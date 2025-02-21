@@ -21,8 +21,8 @@ defmodule Astarte.Pairing.Queries do
   This module is responsible for the interaction with the database.
   """
 
+  alias CQEx.Client
   alias CQEx.Query
-  alias CQEx.Result
   alias Astarte.Core.CQLUtils
   alias Astarte.Pairing.Config
   alias Astarte.Pairing.Astarte.Realm
@@ -83,51 +83,42 @@ defmodule Astarte.Pairing.Queries do
     end
   end
 
-  def register_device(client, device_id, extended_id, credentials_secret, opts \\ []) do
-    statement = """
-    SELECT first_credentials_request, first_registration
-    FROM devices
-    WHERE device_id=:device_id
-    """
+  def register_device(realm_name, device_id, extended_id, credentials_secret, opts \\ []) do
+    case fetch_device(realm_name, device_id) do
+      {:error, :device_not_found} ->
+        Logger.info("register request for new device: #{inspect(extended_id)}")
 
-    device_exists_query =
-      Query.new()
-      |> Query.statement(statement)
-      |> Query.put(:device_id, device_id)
-      |> Query.consistency(:quorum)
+        registration_timestamp = DateTime.utc_now()
 
-    with {:ok, res} <- Query.call(client, device_exists_query) do
-      case Result.head(res) do
-        :empty_dataset ->
-          registration_timestamp =
-            DateTime.utc_now()
-            |> DateTime.to_unix(:millisecond)
+        do_register_device(
+          realm_name,
+          device_id,
+          credentials_secret,
+          registration_timestamp,
+          opts
+        )
 
-          Logger.info("register request for new device: #{inspect(extended_id)}")
-          do_register_device(client, device_id, credentials_secret, registration_timestamp, opts)
-
-        [first_credentials_request: nil, first_registration: registration_timestamp] ->
+      {:ok, device} ->
+        if is_nil(device.first_credentials_request) do
           Logger.info("register request for existing unconfirmed device: #{inspect(extended_id)}")
 
           do_register_unconfirmed_device(
-            client,
+            realm_name,
             device_id,
             credentials_secret,
-            registration_timestamp,
+            device.first_registration,
             opts
           )
-
-        [first_credentials_request: _timestamp, first_registration: _registration_timestamp] ->
+        else
           Logger.warning(
             "register request for existing confirmed device: #{inspect(extended_id)}"
           )
 
           {:error, :already_registered}
-      end
-    else
-      error ->
-        Logger.warning("DB error: #{inspect(error)}")
-        {:error, :database_error}
+        end
+
+      {:error, reason} ->
+        {:error, reason}
     end
   end
 
@@ -302,7 +293,13 @@ defmodule Astarte.Pairing.Queries do
     end
   end
 
-  defp do_register_device(client, device_id, credentials_secret, registration_timestamp, opts) do
+  defp do_register_device(
+         realm_name,
+         device_id,
+         credentials_secret,
+         %DateTime{} = registration_timestamp,
+         opts
+       ) do
     statement = """
     INSERT INTO devices
     (device_id, first_registration, credentials_secret, inhibit_credentials_request,
@@ -323,7 +320,7 @@ defmodule Astarte.Pairing.Queries do
       Query.new()
       |> Query.statement(statement)
       |> Query.put(:device_id, device_id)
-      |> Query.put(:first_registration, registration_timestamp)
+      |> Query.put(:first_registration, registration_timestamp |> DateTime.to_unix(:millisecond))
       |> Query.put(:credentials_secret, credentials_secret)
       |> Query.put(:inhibit_credentials_request, false)
       |> Query.put(:protocol_revision, 0)
@@ -333,10 +330,21 @@ defmodule Astarte.Pairing.Queries do
       |> Query.put(:introspection_minor, introspection_minor)
       |> Query.consistency(:quorum)
 
-    case Query.call(client, query) do
-      {:ok, _res} ->
-        :ok
+    keyspace_name =
+      CQLUtils.realm_name_to_keyspace_name(realm_name, Config.astarte_instance_id!())
 
+    cqex_options =
+      Config.cqex_options!()
+      |> Keyword.put(:keyspace, keyspace_name)
+
+    with {:ok, client} <-
+           Client.new(
+             Config.cassandra_node!(),
+             cqex_options
+           ),
+         {:ok, _res} <- Query.call(client, query) do
+      :ok
+    else
       error ->
         Logger.warning("DB error: #{inspect(error)}")
         {:error, :database_error}
@@ -344,10 +352,10 @@ defmodule Astarte.Pairing.Queries do
   end
 
   defp do_register_unconfirmed_device(
-         client,
+         realm_name,
          device_id,
          credentials_secret,
-         registration_timestamp,
+         %DateTime{} = registration_timestamp,
          opts
        ) do
     statement = """
@@ -372,7 +380,7 @@ defmodule Astarte.Pairing.Queries do
       Query.new()
       |> Query.statement(statement)
       |> Query.put(:device_id, device_id)
-      |> Query.put(:first_registration, registration_timestamp)
+      |> Query.put(:first_registration, registration_timestamp |> DateTime.to_unix(:millisecond))
       |> Query.put(:credentials_secret, credentials_secret)
       |> Query.put(:inhibit_credentials_request, false)
       |> Query.put(:protocol_revision, 0)
@@ -380,10 +388,21 @@ defmodule Astarte.Pairing.Queries do
       |> Query.put(:introspection_minor, introspection_minor)
       |> Query.consistency(:quorum)
 
-    case Query.call(client, query) do
-      {:ok, _res} ->
-        :ok
+    keyspace_name =
+      CQLUtils.realm_name_to_keyspace_name(realm_name, Config.astarte_instance_id!())
 
+    cqex_options =
+      Config.cqex_options!()
+      |> Keyword.put(:keyspace, keyspace_name)
+
+    with {:ok, client} <-
+           Client.new(
+             Config.cassandra_node!(),
+             cqex_options
+           ),
+         {:ok, _res} <- Query.call(client, query) do
+      :ok
+    else
       error ->
         Logger.warning("DB error: #{inspect(error)}")
         {:error, :database_error}
