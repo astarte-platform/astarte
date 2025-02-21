@@ -82,6 +82,7 @@ defmodule Astarte.DataUpdaterPlant.Mixfile do
       {:cyanide, "~> 2.0"},
       {:excoveralls, "~> 0.15", only: :test},
       {:mox, "~> 1.0", only: :test},
+      {:exandra, "~> 0.12"},
       # hex.pm package and esl/ex_rabbit_pool do not support amqp version 2.1.
       # This fork is supporting amqp ~> 2.0 and also ~> 3.0.
       {:ex_rabbit_pool, github: "leductam/ex_rabbit_pool"},
@@ -90,6 +91,7 @@ defmodule Astarte.DataUpdaterPlant.Mixfile do
       {:telemetry_metrics_prometheus_core, "~> 0.4"},
       {:telemetry_metrics, "~> 0.4"},
       {:telemetry_poller, "~> 0.4"},
+      {:typed_ecto_schema, "~> 0.4"},
       {:xandra, "~> 0.13"},
       {:skogsra, "~> 2.2"},
       {:telemetry, "~> 0.4"},
