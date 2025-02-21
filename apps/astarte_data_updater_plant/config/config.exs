@@ -19,4 +19,8 @@ config :astarte_rpc, :amqp_queue, "data_updater_plant_rpc"
 
 config :astarte_data_updater_plant, :amqp_adapter, ExRabbitPool.RabbitMQ
 
+config :astarte_data_updater_plant, ecto_repos: [Astarte.DataUpdaterPlant.Repo]
+
+config :astarte_data_updater_plant, Astarte.DataUpdaterPlant.Repo, []
+
 import_config "#{config_env()}.exs"
