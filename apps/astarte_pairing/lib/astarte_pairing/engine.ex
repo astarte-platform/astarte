@@ -262,21 +262,10 @@ defmodule Astarte.Pairing.Engine do
       "verify_credentials request for device #{inspect(hardware_id)} in realm #{inspect(realm)}"
     )
 
-    keyspace_name = CQLUtils.realm_name_to_keyspace_name(realm, Config.astarte_instance_id!())
-
-    cqex_options =
-      Config.cqex_options!()
-      |> Keyword.put(:keyspace, keyspace_name)
-
     with {:ok, device_id} <- Device.decode_device_id(hardware_id, allow_extended_id: true),
-         {:ok, client} <-
-           Client.new(
-             Config.cassandra_node!(),
-             cqex_options
-           ),
-         {:ok, device_row} <- Queries.select_device_for_verify_credentials(client, device_id),
+         {:ok, device} <- Queries.fetch_device(realm, device_id),
          {:authorized?, true} <-
-           {:authorized?, CredentialsSecret.verify(secret, device_row[:credentials_secret])} do
+           {:authorized?, CredentialsSecret.verify(secret, device.credentials_secret)} do
       CertVerifier.verify(client_crt, Config.ca_cert!())
     else
       {:authorized?, false} ->
