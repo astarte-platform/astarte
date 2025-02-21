@@ -131,9 +131,9 @@ defmodule Astarte.Pairing.Queries do
     end
   end
 
-  def unregister_device(client, device_id) do
-    with :ok <- verify_already_registered_device(client, device_id),
-         :ok <- do_unregister_device(client, device_id) do
+  def unregister_device(realm_name, device_id) do
+    with :ok <- verify_already_registered_device(realm_name, device_id),
+         :ok <- do_unregister_device(realm_name, device_id) do
       :ok
     else
       %{acc: _acc, msg: msg} ->
@@ -156,31 +156,15 @@ defmodule Astarte.Pairing.Queries do
     end
   end
 
-  defp verify_already_registered_device(client, device_id) do
-    statement = """
-    SELECT device_id
-    FROM devices
-    WHERE device_id=:device_id
-    """
-
-    query =
-      Query.new()
-      |> Query.statement(statement)
-      |> Query.put(:device_id, device_id)
-      |> Query.consistency(:quorum)
-
-    with {:ok, res} <- Query.call(client, query) do
-      case Result.head(res) do
-        [device_id: _device_id] ->
-          :ok
-
-        :empty_dataset ->
-          {:error, :device_not_registered}
-      end
+  defp verify_already_registered_device(realm_name, device_id) do
+    case fetch_device(realm_name, device_id) do
+      {:ok, _device} -> :ok
+      {:error, :device_not_found} -> {:error, :device_not_registered}
+      {:error, reason} -> {:error, reason}
     end
   end
 
-  defp do_unregister_device(client, device_id) do
+  defp do_unregister_device(realm_name, device_id) do
     statement = """
     INSERT INTO devices
     (device_id, first_credentials_request, credentials_secret)
@@ -195,7 +179,19 @@ defmodule Astarte.Pairing.Queries do
       |> Query.put(:credentials_secret, nil)
       |> Query.consistency(:quorum)
 
-    with {:ok, _res} <- Query.call(client, query) do
+    keyspace_name =
+      CQLUtils.realm_name_to_keyspace_name(realm_name, Config.astarte_instance_id!())
+
+    cqex_options =
+      Config.cqex_options!()
+      |> Keyword.put(:keyspace, keyspace_name)
+
+    with {:ok, client} <-
+           CQEx.Client.new(
+             Config.cassandra_node!(),
+             cqex_options
+           ),
+         {:ok, _res} <- Query.call(client, query) do
       :ok
     end
   end
