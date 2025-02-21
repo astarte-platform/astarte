@@ -30,6 +30,7 @@ defmodule Astarte.Pairing.Queries do
   alias Astarte.Pairing.Realms.KvStore
   alias Astarte.Pairing.Repo
   require Logger
+  import Ecto.Query
 
   @protocol_revision 1
   @keyspace_does_not_exist_regex ~r/Keyspace (.*) does not exist/
@@ -304,7 +305,19 @@ defmodule Astarte.Pairing.Queries do
   end
 
   def fetch_registered_devices_count(realm_name) do
-    Xandra.Cluster.run(:xandra, &do_fetch_registered_devices_count(&1, realm_name))
+    keyspace =
+      CQLUtils.realm_name_to_keyspace_name(realm_name, Config.astarte_instance_id!())
+
+    try do
+      count =
+        Device
+        |> select([d], count())
+        |> Repo.one!(prefix: keyspace, consistency: :one)
+
+      {:ok, count}
+    rescue
+      err -> handle_xandra_error(err)
+    end
   end
 
   defp do_select_device(client, device_id, select_statement) do
@@ -461,40 +474,6 @@ defmodule Astarte.Pairing.Queries do
           )
 
         {:error, :database_connection_error}
-    end
-  end
-
-  defp do_fetch_registered_devices_count(conn, realm_name) do
-    # TODO move away from interpolation like this once NoaccOS' PR is merged
-    keyspace_name =
-      CQLUtils.realm_name_to_keyspace_name(realm_name, Config.astarte_instance_id!())
-
-    query = """
-    SELECT COUNT(*)
-    FROM #{keyspace_name}.devices
-    """
-
-    with {:ok, prepared} <- Xandra.prepare(conn, query),
-         {:ok, page} <-
-           Xandra.execute(conn, prepared, %{}, consistency: :one) do
-      [%{"count" => value}] = Enum.to_list(page)
-      {:ok, value}
-    else
-      {:error, %Xandra.ConnectionError{} = err} ->
-        _ =
-          Logger.warning("Database connection error: #{Exception.message(err)}.",
-            tag: "database_connection_error"
-          )
-
-        {:error, :database_connection_error}
-
-      {:error, %Xandra.Error{} = err} ->
-        _ =
-          Logger.warning("Database error: #{Exception.message(err)}.",
-            tag: "database_error"
-          )
-
-        {:error, :database_error}
     end
   end
 end
