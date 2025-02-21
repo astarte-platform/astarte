@@ -50,6 +50,7 @@ defmodule Astarte.RealmManagement do
       xandra_cluster_child_spec(xandra_opts: xandra_opts, name: :xandra),
       xandra_cluster_child_spec(xandra_opts: xandra_opts, name: :xandra_device_deletion),
       {Astarte.DataAccess, data_access_opts},
+      {Astarte.RealmManagement.Repo, xandra_opts},
       {Astarte.RPC.AMQP.Server, [amqp_queue: Protocol.amqp_queue(), handler: Handler]},
       {Task.Supervisor, name: Astarte.RealmManagement.DeviceRemoverSupervisor},
       Astarte.RealmManagement.DeviceRemoval.Scheduler
