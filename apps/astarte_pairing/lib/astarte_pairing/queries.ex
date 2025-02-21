@@ -215,16 +215,6 @@ defmodule Astarte.Pairing.Queries do
     end
   end
 
-  def select_device_for_verify_credentials(client, device_id) do
-    statement = """
-    SELECT credentials_secret
-    FROM devices
-    WHERE device_id=:device_id
-    """
-
-    do_select_device(client, device_id, statement)
-  end
-
   def update_device_after_credentials_request(client, device_id, cert_data, device_ip, nil) do
     first_credentials_request_timestamp = DateTime.utc_now()
 
@@ -313,26 +303,6 @@ defmodule Astarte.Pairing.Queries do
       {:ok, count}
     rescue
       err -> handle_xandra_error(err)
-    end
-  end
-
-  defp do_select_device(client, device_id, select_statement) do
-    device_query =
-      Query.new()
-      |> Query.statement(select_statement)
-      |> Query.put(:device_id, device_id)
-      |> Query.consistency(:quorum)
-
-    with {:ok, res} <- Query.call(client, device_query),
-         device_row when is_list(device_row) <- Result.head(res) do
-      {:ok, device_row}
-    else
-      :empty_dataset ->
-        {:error, :device_not_found}
-
-      error ->
-        Logger.warning("DB error: #{inspect(error)}")
-        {:error, :database_error}
     end
   end
 
