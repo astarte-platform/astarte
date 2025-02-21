@@ -203,19 +203,19 @@ defmodule Astarte.Pairing.Engine do
   end
 
   defp verify_can_register_device(realm_name, device_id) do
-    # An already existing device should always be able to retrieve a new credentials secret
-    case Queries.check_already_registered_device(realm_name, device_id) do
-      {:ok, true} ->
+    try do
+      if Queries.check_already_registered_device(realm_name, device_id) do
+        # An already existing device should always be able to retrieve a new credentials secret
         :ok
-
-      {:ok, false} ->
+      else
         verify_can_register_new_device(realm_name)
-
-      {:error, reason} ->
+      end
+    rescue
+      err ->
         # Consider a failing database as a negative answer
         _ =
           Logger.warning(
-            "Failed to verify if unconfirmed device #{Device.encode_device_id(device_id)} exists, reason: #{inspect(reason)}",
+            "Failed to verify if unconfirmed device #{Device.encode_device_id(device_id)} exists, reason: #{Exception.message(err)}",
             realm_name: realm_name
           )
 
