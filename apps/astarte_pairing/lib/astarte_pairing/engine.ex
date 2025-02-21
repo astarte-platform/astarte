@@ -135,23 +135,12 @@ defmodule Astarte.Pairing.Engine do
 
   def get_info(realm, hardware_id, credentials_secret) do
     Logger.debug("get_info request for device #{inspect(hardware_id)} in realm #{inspect(realm)}")
-    keyspace_name = CQLUtils.realm_name_to_keyspace_name(realm, Config.astarte_instance_id!())
-
-    cqex_options =
-      Config.cqex_options!()
-      |> Keyword.put(:keyspace, keyspace_name)
 
     with {:ok, device_id} <- Device.decode_device_id(hardware_id, allow_extended_id: true),
-         {:ok, client} <-
-           Client.new(
-             Config.cassandra_node!(),
-             cqex_options
-           ),
-         {:ok, device_row} <- Queries.select_device_for_info(client, device_id),
+         {:ok, device} <- Queries.fetch_device(realm, device_id),
          {:authorized?, true} <-
-           {:authorized?,
-            CredentialsSecret.verify(credentials_secret, device_row[:credentials_secret])} do
-      device_status = device_status_string(device_row)
+           {:authorized?, CredentialsSecret.verify(credentials_secret, device.credentials_secret)} do
+      device_status = device_status_string(device)
       protocols = get_protocol_info()
 
       {:ok, %{version: @version, device_status: device_status, protocols: protocols}}
@@ -313,17 +302,12 @@ defmodule Astarte.Pairing.Engine do
     {:error, :unknown_protocol}
   end
 
-  defp device_status_string(device_row) do
+  defp device_status_string(device) do
     # The device is pending until the first credendtial request
     cond do
-      Keyword.get(device_row, :inhibit_credentials_request) ->
-        "inhibited"
-
-      Keyword.get(device_row, :first_credentials_request) ->
-        "confirmed"
-
-      true ->
-        "pending"
+      device.inhibit_credentials_request -> "inhibited"
+      device.first_credentials_request -> "confirmed"
+      true -> "pending"
     end
   end
 
