@@ -23,6 +23,7 @@
 defmodule Astarte.RealmManagement.Repo do
   @moduledoc false
   use Ecto.Repo, otp_app: :astarte_realm_management, adapter: Exandra
+  require Logger
   alias Astarte.DataAccess.Config
   require Ecto.Query
 

@@ -260,7 +260,8 @@ defmodule Astarte.RealmManagement.QueriesTest do
 
   test "object interface install" do
     {:ok, _} = DatabaseTestHelper.connect_to_test_database()
-    client = connect_to_test_realm("autotestrealm")
+    realm_name = "autotestrealm"
+    client = connect_to_test_realm(realm_name)
 
     json_obj = Jason.decode!(@object_datastream_interface_json)
     interface_changeset = InterfaceDocument.changeset(%InterfaceDocument{}, json_obj)
@@ -274,26 +275,26 @@ defmodule Astarte.RealmManagement.QueriesTest do
 
     {:ok, automaton} = Astarte.Core.Mapping.EndpointsAutomaton.build(intdoc.mappings)
 
-    assert Queries.is_interface_major_available?(client, interface_name, major_version) ==
+    assert Queries.is_interface_major_available?(realm_name, interface_name, major_version) ==
              {:ok, false}
 
-    assert Queries.is_interface_major_available?(client, interface_name, major_version - 1) ==
+    assert Queries.is_interface_major_available?(realm_name, interface_name, major_version - 1) ==
              {:ok, false}
 
-    assert Queries.interface_available_versions(client, interface_name) ==
+    assert Queries.interface_available_versions(realm_name, interface_name) ==
              {:error, :interface_not_found}
 
-    assert Queries.get_interfaces_list(client) == {:ok, []}
+    assert Queries.get_interfaces_list(realm_name) == {:ok, []}
 
     Queries.install_new_interface(client, intdoc, automaton)
 
-    assert Queries.is_interface_major_available?(client, interface_name, major_version) ==
+    assert Queries.is_interface_major_available?(realm_name, interface_name, major_version) ==
              {:ok, true}
 
-    assert Queries.is_interface_major_available?(client, interface_name, major_version - 1) ==
+    assert Queries.is_interface_major_available?(realm_name, interface_name, major_version - 1) ==
              {:ok, false}
 
-    assert Queries.interface_available_versions(client, interface_name) ==
+    assert Queries.interface_available_versions(realm_name, interface_name) ==
              {:ok,
               [
                 [
@@ -302,7 +303,7 @@ defmodule Astarte.RealmManagement.QueriesTest do
                 ]
               ]}
 
-    assert Queries.get_interfaces_list(client) == {:ok, ["com.ispirata.Hemera.DeviceLog"]}
+    assert Queries.get_interfaces_list(realm_name) == {:ok, ["com.ispirata.Hemera.DeviceLog"]}
 
     DatabaseQuery.call!(client, @insert_log_line0_device_a)
     DatabaseQuery.call!(client, @insert_log_line1_device_a)
@@ -371,7 +372,8 @@ defmodule Astarte.RealmManagement.QueriesTest do
 
   test "individual interface install" do
     {:ok, _} = DatabaseTestHelper.connect_to_test_database()
-    client = connect_to_test_realm("autotestrealm")
+    realm_name = "autotestrealm"
+    client = connect_to_test_realm(realm_name)
 
     json_obj = Jason.decode!(@individual_property_device_owned_interface)
     interface_changeset = InterfaceDocument.changeset(%InterfaceDocument{}, json_obj)
@@ -385,26 +387,26 @@ defmodule Astarte.RealmManagement.QueriesTest do
 
     {:ok, automaton} = Astarte.Core.Mapping.EndpointsAutomaton.build(intdoc.mappings)
 
-    assert Queries.is_interface_major_available?(client, interface_name, major_version) ==
+    assert Queries.is_interface_major_available?(realm_name, interface_name, major_version) ==
              {:ok, false}
 
-    assert Queries.is_interface_major_available?(client, interface_name, major_version - 1) ==
+    assert Queries.is_interface_major_available?(realm_name, interface_name, major_version - 1) ==
              {:ok, false}
 
-    assert Queries.interface_available_versions(client, interface_name) ==
+    assert Queries.interface_available_versions(realm_name, interface_name) ==
              {:error, :interface_not_found}
 
-    assert Queries.get_interfaces_list(client) == {:ok, []}
+    assert Queries.get_interfaces_list(realm_name) == {:ok, []}
 
     Queries.install_new_interface(client, intdoc, automaton)
 
-    assert Queries.is_interface_major_available?(client, interface_name, major_version) ==
+    assert Queries.is_interface_major_available?(realm_name, interface_name, major_version) ==
              {:ok, true}
 
-    assert Queries.is_interface_major_available?(client, interface_name, major_version - 1) ==
+    assert Queries.is_interface_major_available?(realm_name, interface_name, major_version - 1) ==
              {:ok, false}
 
-    assert Queries.interface_available_versions(client, interface_name) ==
+    assert Queries.interface_available_versions(realm_name, interface_name) ==
              {:ok,
               [
                 [
@@ -413,7 +415,8 @@ defmodule Astarte.RealmManagement.QueriesTest do
                 ]
               ]}
 
-    assert Queries.get_interfaces_list(client) == {:ok, ["com.ispirata.Hemera.DeviceLog.Status"]}
+    assert Queries.get_interfaces_list(realm_name) ==
+             {:ok, ["com.ispirata.Hemera.DeviceLog.Status"]}
 
     endpoint =
       find_endpoint(
