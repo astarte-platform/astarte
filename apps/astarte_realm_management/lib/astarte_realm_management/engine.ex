@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2017 - 2023 SECO Mind Srl
+# Copyright 2017 - 2025 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -44,13 +44,11 @@ defmodule Astarte.RealmManagement.Engine do
   def get_health() do
     _ = Logger.debug("Get health.")
 
-    with {:ok, client} <- Database.connect(),
-         :ok <- Queries.check_astarte_health(client, :quorum) do
+    with :ok <- Queries.check_astarte_health(:quorum) do
       {:ok, %{status: :ready}}
     else
       {:error, :health_check_bad} ->
-        with {:ok, client} <- Database.connect(),
-             :ok <- Queries.check_astarte_health(client, :one) do
+        with :ok <- Queries.check_astarte_health(:one) do
           {:ok, %{status: :degraded}}
         else
           {:error, :health_check_bad} ->
@@ -76,8 +74,8 @@ defmodule Astarte.RealmManagement.Engine do
          interface_descriptor <- InterfaceDescriptor.from_interface(interface_doc),
          %InterfaceDescriptor{name: name, major_version: major} <- interface_descriptor,
          {:interface_avail, {:ok, false}} <-
-           {:interface_avail, Queries.is_interface_major_available?(client, name, major)},
-         :ok <- Queries.check_interface_name_collision(client, name),
+           {:interface_avail, Queries.is_interface_major_available?(realm_name, name, major)},
+         :ok <- Queries.check_interface_name_collision(realm_name, name),
          {:ok, automaton} <- EndpointsAutomaton.build(interface_doc.mappings) do
       _ =
         Logger.info("Installing interface.",
@@ -142,7 +140,7 @@ defmodule Astarte.RealmManagement.Engine do
          interface_descriptor <- InterfaceDescriptor.from_interface(interface_doc),
          %InterfaceDescriptor{name: name, major_version: major} <- interface_descriptor,
          {:interface_avail, {:ok, true}} <-
-           {:interface_avail, Queries.is_interface_major_available?(client, name, major)},
+           {:interface_avail, Queries.is_interface_major_available?(realm_name, name, major)},
          {:ok, installed_interface} <-
            Interface.fetch_interface_descriptor(realm_name, name, major),
          :ok <- error_on_incompatible_descriptor(installed_interface, interface_descriptor),
@@ -379,12 +377,12 @@ defmodule Astarte.RealmManagement.Engine do
     with {:major, 0} <- {:major, major},
          {:ok, client} <- Database.connect(realm: realm_name),
          {:major_is_avail, {:ok, true}} <-
-           {:major_is_avail, Queries.is_interface_major_available?(client, name, 0)},
+           {:major_is_avail, Queries.is_interface_major_available?(realm_name, name, 0)},
          {:devices, {:ok, false}} <-
-           {:devices, Queries.is_any_device_using_interface?(client, name)},
+           {:devices, Queries.is_any_device_using_interface?(realm_name, name)},
          interface_id = CQLUtils.interface_id(name, major),
          {:triggers, {:ok, false}} <-
-           {:triggers, Queries.has_interface_simple_triggers?(client, interface_id)} do
+           {:triggers, Queries.has_interface_simple_triggers?(realm_name, interface_id)} do
       if opts[:async] do
         # TODO: add _ = Logger.metadata(realm: realm_name)
         Task.start_link(Engine, :execute_interface_deletion, [client, realm_name, name, major])
@@ -417,7 +415,7 @@ defmodule Astarte.RealmManagement.Engine do
   def execute_interface_deletion(client, realm_name, name, major) do
     with {:ok, interface_row} <- Interface.retrieve_interface_row(realm_name, name, major),
          {:ok, descriptor} <- InterfaceDescriptor.from_db_result(interface_row),
-         :ok <- Queries.delete_interface_storage(client, descriptor),
+         :ok <- Queries.delete_interface_storage(client, descriptor, realm_name),
          :ok <- Queries.delete_devices_with_data_on_interface(client, name) do
       _ =
         Logger.info("Interface deletion started.",
@@ -437,8 +435,7 @@ defmodule Astarte.RealmManagement.Engine do
         interface_major: major_version
       )
 
-    with {:ok, client} <- Database.connect(realm: realm_name),
-         {:ok, interface} <- Queries.fetch_interface(client, interface_name, major_version) do
+    with {:ok, interface} <- Queries.fetch_interface(realm_name, interface_name, major_version) do
       Jason.encode(interface)
     end
   end
@@ -446,29 +443,13 @@ defmodule Astarte.RealmManagement.Engine do
   def list_interface_versions(realm_name, interface_name) do
     _ = Logger.debug("List interface versions.", interface: interface_name)
 
-    with {:ok, client} <- Database.connect(realm: realm_name) do
-      Queries.interface_available_versions(client, interface_name)
-    else
-      {:error, :database_connection_error} ->
-        {:error, :realm_not_found}
-
-      {:error, reason} ->
-        {:error, reason}
-    end
+    Queries.interface_available_versions(realm_name, interface_name)
   end
 
   def get_interfaces_list(realm_name) do
     _ = Logger.debug("Get interfaces list.")
 
-    with {:ok, client} <- Database.connect(realm: realm_name) do
-      Queries.get_interfaces_list(client)
-    else
-      {:error, :database_connection_error} ->
-        {:error, :realm_not_found}
-
-      {:error, reason} ->
-        {:error, reason}
-    end
+    Queries.get_interfaces_list(realm_name)
   end
 
   def get_jwt_public_key_pem(realm_name) do
@@ -516,14 +497,14 @@ defmodule Astarte.RealmManagement.Engine do
 
     with {:ok, client} <- get_database_client(realm_name),
          {:exists?, {:error, :trigger_not_found}} <-
-           {:exists?, Queries.retrieve_trigger_uuid(client, trigger_name)},
+           {:exists?, Queries.retrieve_trigger_uuid(realm_name, trigger_name)},
          simple_trigger_maps = build_simple_trigger_maps(serialized_tagged_simple_triggers),
          trigger = build_trigger(trigger_name, trigger_policy_name, simple_trigger_maps, action),
          %Trigger{trigger_uuid: trigger_uuid} = trigger,
          {:ok, action_map} <- Jason.decode(action),
          trigger_target = target_from_action(action_map, trigger_uuid),
          t_container = build_trigger_target_container(trigger_target),
-         :ok <- validate_simple_triggers(client, simple_trigger_maps),
+         :ok <- validate_simple_triggers(realm_name, simple_trigger_maps),
          # TODO: these should be batched together
          :ok <- install_simple_triggers(client, simple_trigger_maps, trigger_uuid, t_container),
          :ok <- install_trigger_policy_link(client, trigger_uuid, trigger_policy_name) do
@@ -617,12 +598,12 @@ defmodule Astarte.RealmManagement.Engine do
     }
   end
 
-  defp validate_simple_triggers(client, simple_trigger_maps) do
+  defp validate_simple_triggers(realm_name, simple_trigger_maps) do
     Enum.reduce_while(simple_trigger_maps, :ok, fn
       %{simple_trigger: simple_trigger_container}, _acc ->
         %SimpleTriggerContainer{simple_trigger: {_tag, simple_trigger}} = simple_trigger_container
 
-        case validate_simple_trigger(client, simple_trigger) do
+        case validate_simple_trigger(realm_name, simple_trigger) do
           :ok ->
             {:cont, :ok}
 
@@ -637,7 +618,7 @@ defmodule Astarte.RealmManagement.Engine do
     :ok
   end
 
-  defp validate_simple_trigger(client, %DataTrigger{} = data_trigger) do
+  defp validate_simple_trigger(realm_name, %DataTrigger{} = data_trigger) do
     %DataTrigger{
       interface_name: interface_name,
       interface_major: interface_major,
@@ -646,8 +627,9 @@ defmodule Astarte.RealmManagement.Engine do
       data_trigger_type: data_trigger_type
     } = data_trigger
 
-    # This will fail with {:error, :interface_not_found} if the interface does not exist
-    with {:ok, interface} <- Queries.fetch_interface(client, interface_name, interface_major) do
+    # This should fail with {:error, :interface_not_found} if the interface does not exist
+    with {:ok, interface} <-
+           Queries.fetch_interface(realm_name, interface_name, interface_major) do
       case interface.aggregation do
         :individual ->
           cond do
@@ -734,7 +716,7 @@ defmodule Astarte.RealmManagement.Engine do
     _ = Logger.debug("Get trigger.", trigger_name: trigger_name)
 
     with {:ok, client} <- get_database_client(realm_name),
-         {:ok, %Trigger{} = trigger} <- Queries.retrieve_trigger(client, trigger_name) do
+         {:ok, %Trigger{} = trigger} <- Queries.retrieve_trigger(client, trigger_name, realm_name) do
       %Trigger{
         trigger_uuid: parent_uuid,
         simple_triggers_uuids: simple_triggers_uuids
@@ -779,16 +761,14 @@ defmodule Astarte.RealmManagement.Engine do
   def get_triggers_list(realm_name) do
     _ = Logger.debug("Get triggers list.")
 
-    with {:ok, client} <- get_database_client(realm_name) do
-      Queries.get_triggers_list(client)
-    end
+    Queries.get_triggers_list(realm_name)
   end
 
   def delete_trigger(realm_name, trigger_name) do
     _ = Logger.info("Going to delete trigger.", trigger_name: trigger_name, tag: "delete_trigger")
 
     with {:ok, client} <- get_database_client(realm_name),
-         {:ok, trigger} <- Queries.retrieve_trigger(client, trigger_name) do
+         {:ok, trigger} <- Queries.retrieve_trigger(client, trigger_name, realm_name) do
       _ =
         Logger.info("Deleting trigger.",
           trigger_name: trigger_name,
@@ -804,7 +784,7 @@ defmodule Astarte.RealmManagement.Engine do
         Queries.delete_trigger_policy_link(client, trigger.trigger_uuid, trigger.policy) == :ok
 
       if delete_all_simple_triggers_succeeded and delete_policy_link_succeeded do
-        Queries.delete_trigger(client, trigger_name)
+        Queries.delete_trigger(client, trigger_name, realm_name)
       else
         Logger.warning("Failed to delete trigger.",
           trigger_name: trigger_name,

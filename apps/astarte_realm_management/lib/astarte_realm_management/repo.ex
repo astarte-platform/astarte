@@ -23,8 +23,11 @@
 defmodule Astarte.RealmManagement.Repo do
   @moduledoc false
   use Ecto.Repo, otp_app: :astarte_realm_management, adapter: Exandra
+  require Logger
   alias Astarte.DataAccess.Config
   require Ecto.Query
+
+  @keyspace_does_not_exist_regex ~r/Keyspace (.*) does not exist/
 
   @impl Ecto.Repo
   def init(_context, config) do
@@ -50,10 +53,81 @@ defmodule Astarte.RealmManagement.Repo do
   def fetch_one(queryable, opts \\ []) do
     {error, opts} = Keyword.pop_first(opts, :error, :not_found)
 
-    case all(queryable, opts) do
-      [item] -> {:ok, item}
-      [] -> {:error, error}
-      other -> raise Ecto.MultipleResultsError, queryable: queryable, count: length(other)
+    try do
+      case all(queryable, opts) do
+        [item] -> {:ok, item}
+        [] -> {:error, error}
+        other -> raise Ecto.MultipleResultsError, queryable: queryable, count: length(other)
+      end
+    rescue
+      err in Xandra.Error ->
+        handle_xandra_error(err)
+
+      err in Xandra.ConnectionError ->
+        _ =
+          Logger.warning("Database connection error #{Exception.message(err)}.",
+            tag: "database_connection_error"
+          )
+
+        {:error, :database_connection_error}
+    end
+  end
+
+  def fetch_all(queryable, opts \\ []) do
+    try do
+      {:ok, all(queryable, opts)}
+    rescue
+      err in Xandra.Error ->
+        handle_xandra_error(err)
+
+      err in Xandra.ConnectionError ->
+        _ =
+          Logger.warning("Database connection error #{Exception.message(err)}.",
+            tag: "database_connection_error"
+          )
+
+        {:error, :database_connection_error}
+    end
+  end
+
+  defp handle_xandra_error(error) do
+    %Xandra.Error{message: message} = error
+
+    case Regex.run(@keyspace_does_not_exist_regex, message) do
+      [_message, keyspace] ->
+        Logger.warning("Keyspace #{keyspace} does not exist.",
+          tag: "realm_not_found"
+        )
+
+        {:error, :realm_not_found}
+
+      nil ->
+        _ =
+          Logger.warning(
+            "Database error: #{Exception.message(error)}.",
+            tag: "database_error"
+          )
+
+        {:error, :database_error}
+    end
+  end
+
+  @doc """
+  Reimplementation of `exists?` from Ecto, without using `select(1)` as scylla does not support it.
+  """
+  def some?(queryable, opts \\ []) do
+    Ecto.Query.exclude(queryable, :select)
+    |> Ecto.Query.exclude(:preload)
+    |> Ecto.Query.exclude(:order_by)
+    |> Ecto.Query.exclude(:distinct)
+    |> Ecto.Query.limit(1)
+
+    # no need to rewrite the combinators, let scylla work more it's ok
+    with {:ok, result} <- fetch_all(queryable, opts) do
+      case result do
+        [] -> {:ok, false}
+        [_something] -> {:ok, true}
+      end
     end
   end
 
