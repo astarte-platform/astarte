@@ -39,7 +39,11 @@ describe('Home page tests', () => {
           services.forEach((service, index) => {
             cy.get(`table tbody tr:nth-child(${index + 1})`).within(() => {
               cy.contains(service);
-              cy.contains('This service is operating normally');
+              if (service === 'Flow') {
+                cy.contains('This service is operating normally');
+              } else {
+                cy.contains('Cannot query the service with the current token');
+              }
             });
           });
         });

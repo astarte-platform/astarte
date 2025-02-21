@@ -61,7 +61,7 @@ const ServiceStatusRow = ({
     messageCell = (
       <td className="color-yellow">
         <Icon icon="statusExWarning" className="me-1" />
-        This service is operating normally but token is invalid
+        Cannot query the service with the current token
       </td>
     );
   } else {
@@ -400,6 +400,9 @@ const TriggersCard = ({
 const HomePage = (): React.ReactElement => {
   const astarte = useAstarte();
   const config = useConfig();
+  const canFetchRealmManagementVersion = astarte.token?.can('realmManagement', 'GET', '/version');
+  const canFetchAppEngineVersion = astarte.token?.can('appEngine', 'GET', '/version');
+  const canFetchPairingVersion = astarte.token?.can('pairing', 'GET', '/version');
   const canFetchInterfaces = astarte.token?.can('realmManagement', 'GET', '/interfaces');
   const canFetchTriggers = astarte.token?.can('realmManagement', 'GET', '/triggers');
   const canFetchDeviceStats = astarte.token?.can('appEngine', 'GET', '/stats/devices');
@@ -420,12 +423,18 @@ const HomePage = (): React.ReactElement => {
   const appEngineHealth = useFetch(astarte.client.getAppengineHealth);
   const realmManagementHealth = useFetch(astarte.client.getRealmManagementHealth);
   const pairingHealth = useFetch(astarte.client.getPairingHealth);
+  const realmManagementAuth = useFetch(
+    canFetchRealmManagementVersion ? astarte.client.getRealmManagementVersion : async () => null,
+  );
+  const appengineAuth = useFetch(
+    canFetchAppEngineVersion ? astarte.client.getAppEngineVersion : async () => null,
+  );
+  const pairingAuth = useFetch(
+    canFetchPairingVersion ? astarte.client.getPairingVersion : async () => null,
+  );
   const realmManagementVersion = useFetch(astarte.client.getUnauthenticatedRealmManagementVersion);
   const appengineVersion = useFetch(astarte.client.getUnauthenticatedAppEngineVersion);
   const pairingVersion = useFetch(astarte.client.getUnauthenticatedPairingVersion);
-  const realmManagementAuth = useFetch(astarte.client.getRealmManagementVersion);
-  const appengineAuth = useFetch(astarte.client.getAppEngineVersion);
-  const pairingAuth = useFetch(astarte.client.getPairingVersion);
   const flowHealth = useFetch(config.features.flow ? astarte.client.getFlowHealth : async () => {});
   const deviceRegistrationLimitFetcher = useFetch(
     canFetchDeviceRegistrationLimit && canFetchDeviceStats
@@ -486,13 +495,13 @@ const HomePage = (): React.ReactElement => {
         <Col xs={6} className={cellSpacingClass}>
           <ApiStatusCard
             appengine={appEngineHealth.status}
-            appengineVersion={appengineVersion.value}
+            appengineVersion={appengineVersion.value || appengineAuth.value}
             appengineAuth={appengineAuth.value}
             realmManagement={realmManagementHealth.status}
-            realmManagementVersion={realmManagementVersion.value}
+            realmManagementVersion={realmManagementVersion.value || realmManagementAuth.value}
             realmManagementAuth={realmManagementAuth.value}
             pairing={pairingHealth.status}
-            pairingVersion={pairingVersion.value}
+            pairingVersion={pairingVersion.value || pairingAuth.value}
             pairingAuth={pairingAuth.value}
             showFlowStatus={config.features.flow}
             flow={config.features.flow ? flowHealth.status : null}
