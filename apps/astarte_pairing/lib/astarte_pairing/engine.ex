@@ -84,13 +84,12 @@ defmodule Astarte.Pairing.Engine do
              Config.cassandra_node!(),
              cqex_options
            ),
-         {:ok, device_row} <- Queries.select_device_for_credentials_request(client, device_id),
+         {:ok, device} <- Queries.fetch_device(realm, device_id),
          {:authorized?, true} <-
-           {:authorized?,
-            CredentialsSecret.verify(credentials_secret, device_row[:credentials_secret])},
+           {:authorized?, CredentialsSecret.verify(credentials_secret, device.credentials_secret)},
          {:credentials_inhibited?, false} <-
-           {:credentials_inhibited?, device_row[:inhibit_credentials_request]},
-         _ <- CFSSLCredentials.revoke(device_row[:cert_serial], device_row[:cert_aki]),
+           {:credentials_inhibited?, device.inhibit_credentials_request},
+         _ <- CFSSLCredentials.revoke(device.cert_serial, device.cert_aki),
          encoded_device_id <- Device.encode_device_id(device_id),
          {:ok, %{cert: cert, aki: _aki, serial: _serial} = cert_data} <-
            CFSSLCredentials.get_certificate(csr, realm, encoded_device_id),
@@ -100,7 +99,7 @@ defmodule Astarte.Pairing.Engine do
              device_id,
              cert_data,
              ip_tuple,
-             device_row[:first_credentials_request]
+             device.first_credentials_request
            ) do
       {:ok, %{client_crt: cert}}
     else
