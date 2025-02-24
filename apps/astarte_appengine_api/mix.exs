@@ -95,6 +95,10 @@ defmodule Astarte.AppEngine.API.Mixfile do
       {:ex_json_schema, "~> 0.7"},
       {:phoenix_swagger, "~> 0.8"},
       {:xandra, "~> 0.13"},
+      {:exandra, "~> 0.12"},
+      {:typed_ecto_schema, "~> 0.4"},
+      # Fix: could not compile dependency due to an old snappy version (1.2.8). Delete when removing xandra
+      {:snappyer, "~> 1.2.10", override: true},
       {:pretty_log, "~> 0.1"},
       {:plug_logger_with_meta, "~> 0.1"},
       {:telemetry, "~> 0.4"},
@@ -111,7 +115,7 @@ defmodule Astarte.AppEngine.API.Mixfile do
       # Test section
       {:excoveralls, "~> 0.15", only: :test},
       {:mox, "~> 0.5", only: :test},
-      {:stream_data, "~> 0.5", only: :test}
+      {:stream_data, "~> 0.5", only: [:test, :dev]}
     ]
   end
 end

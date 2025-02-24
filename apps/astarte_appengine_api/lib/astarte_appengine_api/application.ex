@@ -55,7 +55,8 @@ defmodule Astarte.AppEngine.API.Application do
       Astarte.AppEngine.API.Rooms.AMQPClient,
       Astarte.AppEngine.APIWeb.Endpoint,
       {Xandra.Cluster, ae_xandra_opts},
-      {Astarte.DataAccess, data_access_opts}
+      {Astarte.DataAccess, data_access_opts},
+      {Astarte.AppEngine.API.Repo, xandra_options}
     ]
 
     # See https://hexdocs.pm/elixir/Supervisor.html
