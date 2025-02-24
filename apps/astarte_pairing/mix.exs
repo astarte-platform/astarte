@@ -84,7 +84,7 @@ defmodule Astarte.Pairing.Mixfile do
       {:telemetry_metrics_prometheus_core, "~> 0.4"},
       {:telemetry_metrics, "~> 0.4"},
       {:telemetry_poller, "~> 0.4"},
-      {:xandra, "~> 0.13"},
+      {:xandra, "~> 0.19"},
       {:pretty_log, "~> 0.1"},
       {:skogsra, "~> 2.2"},
       {:telemetry, "~> 0.4"},
@@ -95,7 +95,10 @@ defmodule Astarte.Pairing.Mixfile do
       {:ssl_verify_fun, "~> 1.1.0", manager: :rebar3, override: true},
       # Fix: could not compile dependency due to an old snappy version (1.2.8).
       # Delete when updating/removing cqerl from astarte_data_access.
-      {:snappyer, "~> 1.2.10", override: true}
+      {:snappyer, "~> 1.2.10", override: true},
+      {:ecto, "~> 3.12"},
+      {:exandra, "~> 0.12"},
+      {:typed_ecto_schema, "~> 0.4"}
     ]
   end
 end
