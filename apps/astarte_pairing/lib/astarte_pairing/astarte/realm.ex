@@ -1,7 +1,6 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2017-2018 Ispirata Srl
 # Copyright 2025 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -17,12 +16,19 @@
 # limitations under the License.
 #
 
-# This file is responsible for configuring your application
-# and its dependencies with the aid of the Mix.Config module.
-import Config
+defmodule Astarte.Pairing.Astarte.Realm do
+  use TypedEctoSchema
 
-config :astarte_pairing, ecto_repos: [Astarte.Pairing.Repo]
+  alias Astarte.Core.CQLUtils
+  alias Astarte.Pairing.Config
 
-config :astarte_pairing, Astarte.Pairing.Repo, []
+  @primary_key {:realm_name, :string, autogenerate: false}
+  typed_schema "realms" do
+    field :device_registration_limit, :integer
+  end
 
-import_config "#{config_env()}.exs"
+  @spec keyspace_name(String.t()) :: String.t()
+  def keyspace_name(realm_name) do
+    CQLUtils.realm_name_to_keyspace_name(realm_name, Config.astarte_instance_id!())
+  end
+end

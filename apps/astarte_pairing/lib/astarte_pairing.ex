@@ -2,6 +2,7 @@
 # This file is part of Astarte.
 #
 # Copyright 2017-2018 Ispirata Srl
+# Copyright 2025 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -50,6 +51,7 @@ defmodule Astarte.Pairing do
     children = [
       Astarte.PairingWeb.Telemetry,
       {Xandra.Cluster, xandra_options},
+      {Astarte.Pairing.Repo, Config.xandra_options!()},
       {Astarte.RPC.AMQP.Server, [amqp_queue: Protocol.amqp_queue(), handler: Handler]},
       {Astarte.Pairing.CredentialsSecret.Cache, []}
     ]
