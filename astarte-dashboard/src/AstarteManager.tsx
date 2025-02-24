@@ -178,24 +178,26 @@ const AstarteProvider = ({
     client
       .getUnauthenticatedRealmManagementVersion()
       .then((version) => setRealmManagementVersion(version))
-      .catch(() => setRealmManagementVersion(null));
+      .catch(() =>
+        client
+          .getRealmManagementVersion()
+          .then((version) => setRealmManagementVersion(version))
+          .catch(() => setRealmManagementVersion(null)),
+      );
+    Promise.allSettled([
+      client.getRealmManagementVersion(),
+      client.getAppEngineVersion(),
+      client.getPairingVersion(),
+    ]).then((results) => {
+      const hasUnauthorized = results.some(
+        (result) => result.status === 'rejected' && result.reason?.response?.status === 401,
+      );
 
-    client.getRealmManagementVersion().catch((error) => {
-      if (error.response && error.response.status === 401) {
-        // This prevents the "Cannot update a component while rendering a different component" warning
-        setTimeout(() => logout(), 0);
-      }
-    });
+      const allForbidden = results.every(
+        (result) => result.status === 'rejected' && result.reason?.response?.status === 403,
+      );
 
-    client.getAppEngineVersion().catch((error) => {
-      if (error.response && error.response.status === 401) {
-        // This prevents the "Cannot update a component while rendering a different component" warning.
-        setTimeout(() => logout(), 0);
-      }
-    });
-
-    client.getPairingVersion().catch((error) => {
-      if (error.response && error.response.status === 401) {
+      if (hasUnauthorized || allForbidden) {
         // This prevents the "Cannot update a component while rendering a different component" warning.
         setTimeout(() => logout(), 0);
       }

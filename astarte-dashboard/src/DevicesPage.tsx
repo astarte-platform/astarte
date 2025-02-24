@@ -427,7 +427,7 @@ const ErrorRow = ({ onRetry, errorMessage }: ErrorRowProps): React.ReactElement 
   <ListGroup.Item>
     <Empty
       title={
-        errorMessage?.includes('401')
+        errorMessage?.includes('401') || errorMessage?.includes('403')
           ? "The JWT token is invalid or does not match the realm's public key."
           : "Couldn't load the device list"
       }
