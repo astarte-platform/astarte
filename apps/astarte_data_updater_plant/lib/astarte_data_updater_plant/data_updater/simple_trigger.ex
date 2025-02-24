@@ -16,10 +16,11 @@
 # limitations under the License.
 #
 
-defmodule Astarte.DataUpdaterPlant.SimpleTrigger do
+defmodule Astarte.DataUpdaterPlant.DataUpdater.SimpleTrigger do
   use TypedEctoSchema
   alias Astarte.DataUpdaterPlant.DataUpdater.UUID
 
+  @primary_key false
   typed_schema "simple_triggers" do
     field :object_id, UUID, primary_key: true
     field :object_type, :integer, primary_key: true

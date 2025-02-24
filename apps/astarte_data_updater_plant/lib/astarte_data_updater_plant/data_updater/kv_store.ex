@@ -19,6 +19,7 @@
 defmodule Astarte.DataUpdaterPlant.DataUpdater.KvStore do
   use TypedEctoSchema
 
+  @primary_key false
   typed_schema "kv_store" do
     field :group, :string, primary_key: true
     field :key, :string, primary_key: true
