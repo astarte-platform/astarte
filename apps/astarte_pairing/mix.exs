@@ -92,7 +92,10 @@ defmodule Astarte.Pairing.Mixfile do
       {:dialyxir, "~> 1.0", only: [:dev, :ci], runtime: false},
       # Workaround for Elixir 1.15 / ssl_verify_fun issue
       # See also: https://github.com/deadtrickster/ssl_verify_fun.erl/pull/27
-      {:ssl_verify_fun, "~> 1.1.0", manager: :rebar3, override: true}
+      {:ssl_verify_fun, "~> 1.1.0", manager: :rebar3, override: true},
+      # Fix: could not compile dependency due to an old snappy version (1.2.8).
+      # Delete when updating/removing cqerl from astarte_data_access.
+      {:snappyer, "~> 1.2.10", override: true}
     ]
   end
 end
