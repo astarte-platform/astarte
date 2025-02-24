@@ -25,7 +25,6 @@ defmodule Astarte.AppEngine.API.Device.Queries do
   alias Astarte.AppEngine.API.Device.InterfaceValuesOptions
   alias Astarte.AppEngine.API.Device.InterfaceInfo
   alias Astarte.AppEngine.API.Repo
-  alias Astarte.Core.StorageType
   alias Astarte.Core.CQLUtils
   alias Astarte.Core.Device
   alias Astarte.Core.InterfaceDescriptor
@@ -119,107 +118,6 @@ defmodule Astarte.AppEngine.API.Device.Queries do
     |> Repo.one!(prefix: keyspace)
   end
 
-  def prepare_get_property_statement(
-        value_type,
-        metadata,
-        table_name,
-        :multi_interface_individual_properties_dbtable
-      ) do
-    metadata_column =
-      if metadata do
-        ",metadata"
-      else
-        ""
-      end
-
-    # TODO: should we filter on path for performance reason?
-    # TODO: probably we should sanitize also table_name: right now it is stored on database
-    "SELECT path, #{Astarte.Core.CQLUtils.type_to_db_column_name(value_type)} #{metadata_column} FROM #{table_name}" <>
-      " WHERE device_id=:device_id AND interface_id=:interface_id AND endpoint_id=:endpoint_id;"
-  end
-
-  def prepare_get_individual_datastream_statement(
-        value_type,
-        metadata,
-        table_name,
-        :multi_interface_individual_datastream_dbtable,
-        opts
-      ) do
-    metadata_column =
-      if metadata do
-        ",metadata"
-      else
-        ""
-      end
-
-    {since_statement, since_value} =
-      cond do
-        opts.since != nil ->
-          {"AND value_timestamp >= :since", opts.since}
-
-        opts.since_after != nil ->
-          {"AND value_timestamp > :since", opts.since_after}
-
-        opts.since == nil and opts.since_after == nil ->
-          {"", nil}
-      end
-
-    {to_statement, to_value} =
-      if opts.to != nil do
-        {"AND value_timestamp < :to_timestamp", opts.to}
-      else
-        {"", nil}
-      end
-
-    query_limit = min(opts.limit, Config.max_results_limit!())
-
-    {limit_statement, limit_value} =
-      cond do
-        # Check the explicit user defined limit to know if we have to reorder data
-        opts.limit != nil and since_value == nil ->
-          {"ORDER BY value_timestamp DESC, reception_timestamp DESC, reception_timestamp_submillis DESC LIMIT :limit_nrows",
-           query_limit}
-
-        query_limit != nil ->
-          {"LIMIT :limit_nrows", query_limit}
-
-        true ->
-          {"", nil}
-      end
-
-    query =
-      if since_statement != "" do
-        %{since: DateTime.to_unix(since_value, :millisecond)}
-      else
-        %{}
-      end
-
-    query =
-      if to_statement != "" do
-        query
-        |> Map.put(:to_timestamp, DateTime.to_unix(to_value, :millisecond))
-      else
-        query
-      end
-
-    query =
-      if limit_statement != "" do
-        query
-        |> Map.put(:limit_nrows, limit_value)
-      else
-        query
-      end
-
-    where_clause =
-      " WHERE device_id=:device_id AND interface_id=:interface_id AND endpoint_id=:endpoint_id AND path=:path #{since_statement} #{to_statement} #{limit_statement}"
-
-    {
-      "SELECT value_timestamp, reception_timestamp, reception_timestamp_submillis, #{CQLUtils.type_to_db_column_name(value_type)} #{metadata_column} FROM #{table_name} #{where_clause}",
-      "SELECT count(value_timestamp) FROM #{table_name} #{where_clause}",
-      query
-    }
-  end
-
   def fetch_datastream_maximum_storage_retention(client) do
     maximum_storage_retention_statement = """
     SELECT blobAsInt(value)
@@ -250,7 +148,7 @@ defmodule Astarte.AppEngine.API.Device.Queries do
   end
 
   def last_datastream_value!(
-        client,
+        realm_name,
         device_id,
         interface_row,
         endpoint_row,
@@ -258,43 +156,19 @@ defmodule Astarte.AppEngine.API.Device.Queries do
         path,
         opts
       ) do
-    {values_query_statement, _count_query_statement, q_params} =
-      prepare_get_individual_datastream_statement(
-        endpoint_row.value_type,
-        false,
-        interface_row.storage,
-        StorageType.from_int(interface_row.storage_type),
-        %{opts | limit: 1}
-      )
+    columns = default_endpoint_column_selection(endpoint_row)
 
-    values_query =
-      DatabaseQuery.new()
-      |> DatabaseQuery.statement(values_query_statement)
-      |> DatabaseQuery.put(:device_id, device_id)
-      |> DatabaseQuery.put(:interface_id, interface_row[:interface_id])
-      |> DatabaseQuery.put(:endpoint_id, endpoint_id)
-      |> DatabaseQuery.put(:path, path)
-      |> DatabaseQuery.merge(q_params)
+    opts = %{opts | limit: 1}
 
-    DatabaseQuery.call!(client, values_query)
-    |> DatabaseResult.head()
+    do_get_datastream_values(realm_name, device_id, interface_row, endpoint_id, path, opts)
+    |> select(^columns)
+    |> Repo.fetch_one()
   end
 
-  def retrieve_all_endpoint_paths!(client, device_id, interface_id, endpoint_id) do
-    all_paths_statement = """
-      SELECT path
-      FROM individual_properties
-      WHERE device_id=:device_id AND interface_id=:interface_id AND endpoint_id=:endpoint_id
-    """
-
-    all_paths_query =
-      DatabaseQuery.new()
-      |> DatabaseQuery.statement(all_paths_statement)
-      |> DatabaseQuery.put(:device_id, device_id)
-      |> DatabaseQuery.put(:interface_id, interface_id)
-      |> DatabaseQuery.put(:endpoint_id, endpoint_id)
-
-    DatabaseQuery.call!(client, all_paths_query)
+  def retrieve_all_endpoint_paths!(realm_name, device_id, interface_id, endpoint_id) do
+    find_endpoints(realm_name, "individual_properties", device_id, interface_id, endpoint_id)
+    |> select([:path])
+    |> Repo.all()
   end
 
   defp get_ttl_string(opts) do
@@ -1166,96 +1040,27 @@ defmodule Astarte.AppEngine.API.Device.Queries do
     end
   end
 
-  def retrieve_object_datastream_values(client, device_id, interface_row, path, columns, opts) do
-    timestamp_column =
-      if opts.explicit_timestamp do
-        "value_timestamp"
-      else
-        "reception_timestamp"
-      end
+  def retrieve_object_datastream_values(realm_name, device_id, interface_row, path, columns, opts) do
+    keyspace = keyspace_name(realm_name)
 
-    {since_statement, since_value} =
-      cond do
-        opts.since != nil ->
-          {"AND #{timestamp_column} >= :since", opts.since}
+    query_limit = query_limit(opts)
+    timestamp_column = timestamp_column(opts.explicit_timestamp)
+    columns = [timestamp_column | columns]
 
-        opts.since_after != nil ->
-          {"AND #{timestamp_column} > :since", opts.since_after}
+    # Check the explicit user defined limit to know if we have to reorder data
+    data_ordering = if explicit_limit?(opts), do: [desc: timestamp_column], else: []
 
-        opts.since == nil and opts.since_after == nil ->
-          {"", nil}
-      end
+    query =
+      from(interface_row.storage, prefix: ^keyspace)
+      |> where(device_id: ^device_id, path: ^path)
+      |> filter_timestamp_range(timestamp_column, opts)
+      |> order_by(^data_ordering)
+      |> limit(^query_limit)
 
-    {to_statement, to_value} =
-      if opts.to != nil do
-        {"AND #{timestamp_column} < :to_timestamp", opts.to}
-      else
-        {"", nil}
-      end
+    values = query |> select(^columns) |> Repo.all()
+    count = query |> select([d], count(field(d, ^timestamp_column))) |> Repo.one()
 
-    query_limit = min(opts.limit, Config.max_results_limit!())
-
-    {limit_statement, limit_value} =
-      cond do
-        # Check the explicit user defined limit to know if we have to reorder data
-        opts.limit != nil and since_value == nil ->
-          {"ORDER BY #{timestamp_column} DESC LIMIT :limit_nrows", query_limit}
-
-        query_limit != nil ->
-          {"LIMIT :limit_nrows", query_limit}
-
-        true ->
-          {"", nil}
-      end
-
-    where_clause =
-      "WHERE device_id=:device_id #{since_statement} AND path=:path #{to_statement} #{limit_statement} ;"
-
-    values_query_statement =
-      "SELECT #{columns} #{timestamp_column} FROM #{interface_row[:storage]} #{where_clause};"
-
-    values_query =
-      DatabaseQuery.new()
-      |> DatabaseQuery.statement(values_query_statement)
-      |> DatabaseQuery.put(:device_id, device_id)
-      |> DatabaseQuery.put(:path, path)
-
-    values_query =
-      if since_statement != "" do
-        values_query
-        |> DatabaseQuery.put(:since, DateTime.to_unix(since_value, :millisecond))
-      else
-        values_query
-      end
-
-    values_query =
-      if to_statement != "" do
-        values_query
-        |> DatabaseQuery.put(:to_timestamp, DateTime.to_unix(to_value, :millisecond))
-      else
-        values_query
-      end
-
-    values_query =
-      if limit_statement != "" do
-        values_query
-        |> DatabaseQuery.put(:limit_nrows, limit_value)
-      else
-        values_query
-      end
-
-    values = DatabaseQuery.call!(client, values_query)
-
-    count_query_statement =
-      "SELECT count(#{timestamp_column}) FROM #{interface_row[:storage]} #{where_clause} ;"
-
-    count_query =
-      values_query
-      |> DatabaseQuery.statement(count_query_statement)
-
-    count = get_results_count(client, count_query, opts)
-
-    {:ok, count, values}
+    {count, values}
   end
 
   def get_results_count(_client, _count_query, %InterfaceValuesOptions{downsample_to: nil}) do
@@ -1280,27 +1085,29 @@ defmodule Astarte.AppEngine.API.Device.Queries do
     end
   end
 
-  def all_properties_for_endpoint!(client, device_id, interface_row, endpoint_row, endpoint_id) do
-    query_statement =
-      prepare_get_property_statement(
-        endpoint_row.value_type,
-        false,
-        interface_row.storage,
-        StorageType.from_int(interface_row.storage_type)
-      )
+  def all_properties_for_endpoint!(
+        realm_name,
+        device_id,
+        interface_row,
+        endpoint_row,
+        endpoint_id
+      ) do
+    value_column = CQLUtils.type_to_db_column_name(endpoint_row.value_type) |> String.to_atom()
+    columns = [:path, value_column]
 
-    query =
-      DatabaseQuery.new()
-      |> DatabaseQuery.statement(query_statement)
-      |> DatabaseQuery.put(:device_id, device_id)
-      |> DatabaseQuery.put(:interface_id, interface_row[:interface_id])
-      |> DatabaseQuery.put(:endpoint_id, endpoint_id)
-
-    DatabaseQuery.call!(client, query)
+    find_endpoints(
+      realm_name,
+      interface_row.storage,
+      device_id,
+      interface_row.interface_id,
+      endpoint_id
+    )
+    |> select(^columns)
+    |> Repo.all()
   end
 
   def retrieve_datastream_values(
-        client,
+        realm_name,
         device_id,
         interface_row,
         endpoint_row,
@@ -1308,33 +1115,15 @@ defmodule Astarte.AppEngine.API.Device.Queries do
         path,
         opts
       ) do
-    {values_query_statement, count_query_statement, q_params} =
-      prepare_get_individual_datastream_statement(
-        endpoint_row.value_type,
-        false,
-        interface_row.storage,
-        StorageType.from_int(interface_row.storage_type),
-        opts
-      )
+    columns = default_endpoint_column_selection(endpoint_row)
 
-    values_query =
-      DatabaseQuery.new()
-      |> DatabaseQuery.statement(values_query_statement)
-      |> DatabaseQuery.put(:device_id, device_id)
-      |> DatabaseQuery.put(:interface_id, interface_row[:interface_id])
-      |> DatabaseQuery.put(:endpoint_id, endpoint_id)
-      |> DatabaseQuery.put(:path, path)
-      |> DatabaseQuery.merge(q_params)
+    query =
+      do_get_datastream_values(realm_name, device_id, interface_row, endpoint_id, path, opts)
 
-    values = DatabaseQuery.call!(client, values_query)
+    values = query |> select(^columns) |> Repo.all()
+    count = query |> select([d], count(d.value_timestamp)) |> Repo.one!()
 
-    count_query =
-      values_query
-      |> DatabaseQuery.statement(count_query_statement)
-
-    count = get_results_count(client, count_query, opts)
-
-    {:ok, count, values}
+    {count, values}
   end
 
   def value_type_query(realm_name, interface_id, endpoint_id) do
@@ -1344,10 +1133,102 @@ defmodule Astarte.AppEngine.API.Device.Queries do
     Repo.get_by!(query, [interface_id: interface_id, endpoint_id: endpoint_id], prefix: keyspace)
   end
 
+  defp do_get_datastream_values(
+         realm_name,
+         device_id,
+         interface_row,
+         endpoint_id,
+         path,
+         opts
+       ) do
+    keyspace = keyspace_name(realm_name)
+
+    query_limit = query_limit(opts)
+
+    # Check the explicit user defined limit to know if we have to reorder data
+    data_ordering =
+      if explicit_limit?(opts),
+        do: [
+          desc: :value_timestamp,
+          desc: :reception_timestamp,
+          desc: :reception_timestamp_submillis
+        ],
+        else: []
+
+    storage_id = [
+      device_id: device_id,
+      interface_id: interface_row.interface_id,
+      endpoint_id: endpoint_id,
+      path: path
+    ]
+
+    from(interface_row.storage, prefix: ^keyspace)
+    |> where(^storage_id)
+    |> filter_timestamp_range(:value_timestamp, opts)
+    |> order_by(^data_ordering)
+    |> limit(^query_limit)
+  end
+
+  defp query_limit(opts), do: min(opts.limit, Config.max_results_limit!())
+
+  defp explicit_limit?(opts) do
+    user_defined_limit? = opts.limit != nil
+    no_lower_timestamp_limit? = is_nil(opts.since) and is_nil(opts.since_after)
+
+    user_defined_limit? and no_lower_timestamp_limit?
+  end
+
+  defp filter_timestamp_range(query, timestamp_column, query_opts) do
+    filter_since =
+      case {query_opts.since, query_opts.since_after} do
+        {nil, nil} -> true
+        {nil, since_after} -> dynamic([o], field(o, ^timestamp_column) > ^since_after)
+        {since, _} -> dynamic([o], field(o, ^timestamp_column) >= ^since)
+      end
+
+    filter_to =
+      case query_opts.to do
+        nil -> true
+        to -> dynamic([o], field(o, ^timestamp_column) < ^to)
+      end
+
+    query
+    |> where(^filter_since)
+    |> where(^filter_to)
+  end
+
+  defp find_endpoints(realm_name, table_name, device_id, interface_id, endpoint_id) do
+    keyspace = keyspace_name(realm_name)
+
+    from(table_name, prefix: ^keyspace)
+    |> where(device_id: ^device_id, interface_id: ^interface_id, endpoint_id: ^endpoint_id)
+  end
+
+  defp default_endpoint_column_selection do
+    [
+      :value_timestamp,
+      :reception_timestamp,
+      :reception_timestamp_submillis
+    ]
+  end
+
+  defp default_endpoint_column_selection(endpoint_row) do
+    value_column = CQLUtils.type_to_db_column_name(endpoint_row.value_type) |> String.to_atom()
+    [value_column | default_endpoint_column_selection()]
+  end
+
   defp keyspace_name(realm_name) do
     Astarte.Core.CQLUtils.realm_name_to_keyspace_name(
       realm_name,
       Astarte.DataAccess.Config.astarte_instance_id!()
     )
+  end
+
+  defp timestamp_column(explicit_timestamp?) do
+    case explicit_timestamp? do
+      nil -> :reception_timestamp
+      false -> :reception_timestamp
+      true -> :value_timestamp
+    end
   end
 end
