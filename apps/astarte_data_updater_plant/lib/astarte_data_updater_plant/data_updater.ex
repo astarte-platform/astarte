@@ -21,7 +21,6 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater do
   alias Astarte.DataUpdaterPlant.AMQPDataConsumer
   alias Astarte.DataUpdaterPlant.DataUpdater.Server
   alias Astarte.DataUpdaterPlant.DataUpdater.Queries
-  alias Astarte.DataAccess.Database
   alias Astarte.DataUpdaterPlant.MessageTracker
   require Logger
 
@@ -235,8 +234,8 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater do
 
   defp verify_device_exists(realm_name, encoded_device_id) do
     with {:ok, decoded_device_id} <- Device.decode_device_id(encoded_device_id),
-         {:ok, client} <- Database.connect(realm: realm_name),
-         {:ok, exists?} <- Queries.check_device_exists(client, decoded_device_id) do
+         # TODO this could be a bang!
+         {:ok, exists?} <- Queries.check_device_exists(realm_name, decoded_device_id) do
       if exists? do
         :ok
       else
