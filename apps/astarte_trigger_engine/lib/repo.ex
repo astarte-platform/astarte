@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2017 - 2025 SECO Mind Srl
+# Copyright 2025 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -16,7 +16,16 @@
 # limitations under the License.
 #
 
-[
-  inputs: ["{mix,.formatter}.exs", "{config,lib,test}/**/*.{ex,exs}"],
-  import_deps: [:plug, :skogsra, :ecto]
-]
+defmodule Astarte.TriggerEngine.Repo do
+  use Ecto.Repo, otp_app: :astarte_trigger_engine, adapter: Exandra
+  alias Astarte.TriggerEngine.Config
+
+  @impl Ecto.Repo
+  def init(_context, config) do
+    config =
+      Config.xandra_options!()
+      |> Keyword.merge(config)
+
+    {:ok, config}
+  end
+end

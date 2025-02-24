@@ -1,7 +1,6 @@
-#
 # This file is part of Astarte.
 #
-# Copyright 2017 - 2025 SECO Mind Srl
+# Copyright 2025 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -16,7 +15,13 @@
 # limitations under the License.
 #
 
-[
-  inputs: ["{mix,.formatter}.exs", "{config,lib,test}/**/*.{ex,exs}"],
-  import_deps: [:plug, :skogsra, :ecto]
-]
+defmodule Astarte.TriggerEngine.KvStore do
+  use TypedEctoSchema
+
+  @primary_key false
+  typed_schema "kv_store" do
+    field :group, :string, primary_key: true
+    field :key, :string, primary_key: true
+    field :value, :binary
+  end
+end

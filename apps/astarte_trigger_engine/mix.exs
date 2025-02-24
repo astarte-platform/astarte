@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2017-2021 Ispirata Srl
+# Copyright 2017 - 2025 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -80,21 +80,24 @@ defmodule Astarte.TriggerEngine.Mixfile do
       {:cyanide, "~> 2.0"},
       {:httpoison, "~> 1.6"},
       {:jason, "~> 1.2"},
-      {:excoveralls, "~> 0.15", only: :test},
-      # hex.pm package and esl/ex_rabbit_pool do not support amqp version 2.1.
-      # This fork is supporting amqp ~> 2.0 and also ~> 3.0.
-      {:ex_rabbit_pool, github: "leductam/ex_rabbit_pool"},
       {:plug_cowboy, "~> 2.1"},
       {:telemetry_metrics_prometheus_core, "~> 0.4"},
       {:telemetry_metrics, "~> 0.4"},
       {:telemetry_poller, "~> 0.4"},
-      {:mox, "~> 0.5", only: :test},
+      {:typed_ecto_schema, "~> 0.4"},
+      {:ecto, "~> 3.12"},
+      {:exandra, "~> 0.12"},
       {:pretty_log, "~> 0.1"},
       {:telemetry, "~> 0.4"},
-      {:xandra, "~> 0.13"},
+      {:xandra, "~> 0.19"},
       {:skogsra, "~> 2.2"},
       {:observer_cli, "~> 1.5"},
+      # hex.pm package and esl/ex_rabbit_pool do not support amqp version 2.1.
+      # This fork is supporting amqp ~> 2.0 and also ~> 3.0.
+      {:ex_rabbit_pool, github: "leductam/ex_rabbit_pool"},
       {:dialyxir, "~> 1.0", only: [:dev, :ci], runtime: false},
+      {:excoveralls, "~> 0.15", only: :test},
+      {:mox, "~> 0.5", only: :test},
       # Workaround for Elixir 1.15 / ssl_verify_fun issue
       # See also: https://github.com/deadtrickster/ssl_verify_fun.erl/pull/27
       {:ssl_verify_fun, "~> 1.1.0", manager: :rebar3, override: true}
