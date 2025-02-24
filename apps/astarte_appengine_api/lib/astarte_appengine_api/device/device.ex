@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2017-2023 Ispirata Srl
+# Copyright 2017 - 2025 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -161,9 +161,8 @@ defmodule Astarte.AppEngine.API.Device do
   Returns the list of interfaces.
   """
   def list_interfaces(realm_name, encoded_device_id) do
-    with {:ok, client} <- Database.connect(realm: realm_name),
-         {:ok, device_id} <- Device.decode_device_id(encoded_device_id) do
-      Queries.retrieve_interfaces_list(client, device_id)
+    with {:ok, device_id} <- Device.decode_device_id(encoded_device_id) do
+      Queries.retrieve_interfaces_list(realm_name, device_id)
     end
   end
 
@@ -182,9 +181,10 @@ defmodule Astarte.AppEngine.API.Device do
          {:ok, interface_row} <-
            InterfaceQueries.retrieve_interface_row(realm_name, interface, major_version) do
       do_get_interface_values!(
+        realm_name,
         client,
         device_id,
-        Aggregation.from_int(interface_row[:aggregation]),
+        Aggregation.from_int(interface_row.aggregation),
         interface_row,
         options
       )
@@ -210,16 +210,14 @@ defmodule Astarte.AppEngine.API.Device do
          {:ok, interface_descriptor} <- InterfaceDescriptor.from_db_result(interface_row),
          {:ok, endpoint_ids} <-
            get_endpoint_ids(interface_descriptor.automaton, path, allow_guess: true) do
-      endpoint_query = Queries.prepare_value_type_query(interface_row[:interface_id])
-
       do_get_interface_values!(
+        realm_name,
         client,
         device_id,
-        Aggregation.from_int(interface_row[:aggregation]),
-        Type.from_int(interface_row[:type]),
+        Aggregation.from_int(interface_row.aggregation),
+        Type.from_int(interface_row.type),
         interface_row,
         endpoint_ids,
-        endpoint_query,
         path,
         options
       )
@@ -235,8 +233,8 @@ defmodule Astarte.AppEngine.API.Device do
          raw_value
        ) do
     with {:ok, [endpoint_id]} <- get_endpoint_ids(interface_descriptor.automaton, path),
-         mapping <-
-           Queries.retrieve_mapping(client, interface_descriptor.interface_id, endpoint_id),
+         mapping =
+           Queries.retrieve_mapping(realm_name, interface_descriptor.interface_id, endpoint_id),
          {:ok, value} <- InterfaceValue.cast_value(mapping.value_type, raw_value),
          :ok <- validate_value_type(mapping.value_type, value),
          wrapped_value = wrap_to_bson_struct(mapping.value_type, value),
@@ -726,7 +724,8 @@ defmodule Astarte.AppEngine.API.Device do
          {:ownership, :server} <- {:ownership, interface_descriptor.ownership},
          path <- "/" <> no_prefix_path,
          {:ok, [endpoint_id]} <- get_endpoint_ids(interface_descriptor.automaton, path) do
-      mapping = Queries.retrieve_mapping(client, interface_descriptor.interface_id, endpoint_id)
+      mapping =
+        Queries.retrieve_mapping(realm_name, interface_descriptor.interface_id, endpoint_id)
 
       Queries.insert_value_into_db(
         client,
@@ -768,9 +767,9 @@ defmodule Astarte.AppEngine.API.Device do
     end
   end
 
-  defp do_get_interface_values!(client, device_id, :individual, interface_row, opts) do
+  defp do_get_interface_values!(realm_name, client, device_id, :individual, interface_row, opts) do
     endpoint_rows =
-      Queries.retrieve_all_endpoint_ids_for_interface!(client, interface_row[:interface_id])
+      Queries.retrieve_all_endpoint_ids_for_interface!(realm_name, interface_row.interface_id)
 
     values_map =
       Enum.reduce(endpoint_rows, %{}, fn endpoint_row, values ->
@@ -779,10 +778,10 @@ defmodule Astarte.AppEngine.API.Device do
           retrieve_endpoint_values(
             client,
             device_id,
-            Aggregation.from_int(interface_row[:aggregation]),
-            Type.from_int(interface_row[:type]),
+            Aggregation.from_int(interface_row.aggregation),
+            Type.from_int(interface_row.type),
             interface_row,
-            endpoint_row[:endpoint_id],
+            endpoint_row.endpoint_id,
             endpoint_row,
             "/",
             opts
@@ -794,43 +793,38 @@ defmodule Astarte.AppEngine.API.Device do
     {:ok, %InterfaceValues{data: MapTree.inflate_tree(values_map)}}
   end
 
-  defp do_get_interface_values!(client, device_id, :object, interface_row, opts) do
-    # We need to know if mappings have explicit_timestamp set, so we retrieve it from the
-    # first one.
-    endpoint =
-      Queries.retrieve_all_endpoint_ids_for_interface!(client, interface_row[:interface_id])
-      |> CQEx.Result.head()
-
-    mapping =
-      Queries.retrieve_mapping(client, interface_row[:interface_id], endpoint[:endpoint_id])
+  defp do_get_interface_values!(realm_name, client, device_id, :object, interface_row, opts) do
+    explicit_timestamp =
+      Queries.interface_has_explicit_timestamp?(realm_name, interface_row.interface_id)
 
     do_get_interface_values!(
+      realm_name,
       client,
       device_id,
-      Aggregation.from_int(interface_row[:aggregation]),
-      Type.from_int(interface_row[:type]),
+      Aggregation.from_int(interface_row.aggregation),
+      Type.from_int(interface_row.type),
       interface_row,
       nil,
-      nil,
       "/",
-      %{opts | explicit_timestamp: mapping.explicit_timestamp}
+      %{opts | explicit_timestamp: explicit_timestamp}
     )
   end
 
   defp do_get_interface_values!(
+         realm_name,
          client,
          device_id,
          :individual,
          :properties,
          interface_row,
          endpoint_ids,
-         endpoint_query,
          path,
          opts
        ) do
     result =
       List.foldl(endpoint_ids, %{}, fn endpoint_id, values ->
-        endpoint_row = Queries.execute_value_type_query(client, endpoint_query, endpoint_id)
+        endpoint_row =
+          Queries.value_type_query(realm_name, interface_row.interface_id, endpoint_id)
 
         value =
           retrieve_endpoint_values(
@@ -861,19 +855,18 @@ defmodule Astarte.AppEngine.API.Device do
   end
 
   defp do_get_interface_values!(
+         realm_name,
          client,
          device_id,
          :individual,
          :datastream,
          interface_row,
          endpoint_ids,
-         endpoint_query,
          path,
          opts
        ) do
     [endpoint_id] = endpoint_ids
-
-    endpoint_row = Queries.execute_value_type_query(client, endpoint_query, endpoint_id)
+    endpoint_row = Queries.value_type_query(realm_name, interface_row.interface_id, endpoint_id)
 
     retrieve_endpoint_values(
       client,
@@ -889,27 +882,21 @@ defmodule Astarte.AppEngine.API.Device do
   end
 
   defp do_get_interface_values!(
+         realm_name,
          client,
          device_id,
          :object,
          :datastream,
          interface_row,
          _endpoint_ids,
-         _endpoint_query,
          path,
          opts
        ) do
-    # We need to know if mappings have explicit_timestamp set, so we retrieve it from the
-    # first one.
-    endpoint =
-      Queries.retrieve_all_endpoint_ids_for_interface!(client, interface_row[:interface_id])
-      |> CQEx.Result.head()
-
-    mapping =
-      Queries.retrieve_mapping(client, interface_row[:interface_id], endpoint[:endpoint_id])
+    explicit_timestamp =
+      Queries.interface_has_explicit_timestamp?(realm_name, interface_row.interface_id)
 
     endpoint_rows =
-      Queries.retrieve_all_endpoints_for_interface!(client, interface_row[:interface_id])
+      Queries.retrieve_all_endpoints_for_interface!(realm_name, interface_row.interface_id)
 
     interface_values =
       retrieve_endpoint_values(
@@ -921,7 +908,7 @@ defmodule Astarte.AppEngine.API.Device do
         nil,
         endpoint_rows,
         path,
-        %{opts | explicit_timestamp: mapping.explicit_timestamp}
+        %{opts | explicit_timestamp: explicit_timestamp}
       )
 
     cond do
@@ -982,8 +969,7 @@ defmodule Astarte.AppEngine.API.Device do
          opts
        ) do
     path = "/"
-
-    interface_id = interface_row[:interface_id]
+    interface_id = interface_row.interface_id
 
     values =
       Queries.retrieve_all_endpoint_paths!(client, device_id, interface_id, endpoint_id)
@@ -1017,7 +1003,7 @@ defmodule Astarte.AppEngine.API.Device do
               nice_value =
                 AstarteValue.to_json_friendly(
                   v,
-                  ValueType.from_int(endpoint_row[:value_type]),
+                  endpoint_row.value_type,
                   fetch_biginteger_opts_or_default(opts)
                 )
 
@@ -1155,10 +1141,10 @@ defmodule Astarte.AppEngine.API.Device do
       Enum.reduce(endpoint_rows, {"", %{}, nil}, fn endpoint,
                                                     {query_acc, atoms_map,
                                                      prev_downsample_column_atom} ->
-        endpoint_name = endpoint[:endpoint]
+        endpoint_name = endpoint.endpoint
         column_name = CQLUtils.endpoint_to_db_column_name(endpoint_name)
 
-        value_type = endpoint[:value_type] |> ValueType.from_int()
+        value_type = endpoint.value_type
 
         next_query_acc = "#{query_acc} #{column_name}, "
         column_atom = String.to_atom(column_name)
@@ -1247,7 +1233,7 @@ defmodule Astarte.AppEngine.API.Device do
           nice_value =
             AstarteValue.to_json_friendly(
               row_value,
-              ValueType.from_int(endpoint_row[:value_type]),
+              endpoint_row.value_type,
               fetch_biginteger_opts_or_default(opts)
             )
 
@@ -1380,8 +1366,7 @@ defmodule Astarte.AppEngine.API.Device do
               :datetime,
               keep_milliseconds: opts.keep_milliseconds
             ),
-          "value" =>
-            AstarteValue.to_json_friendly(v, ValueType.from_int(endpoint_row[:value_type]), [])
+          "value" => AstarteValue.to_json_friendly(v, endpoint_row.value_type, [])
         }
       end
 
@@ -1414,9 +1399,7 @@ defmodule Astarte.AppEngine.API.Device do
 
         [
           AstarteValue.to_json_friendly(tstamp, :datetime, []),
-          AstarteValue.to_json_friendly(
-            v,
-            ValueType.from_int(endpoint_row[:value_type]),
+          AstarteValue.to_json_friendly(v, endpoint_row.value_type,
             keep_milliseconds: opts.keep_milliseconds
           )
         ]
@@ -1449,7 +1432,7 @@ defmodule Astarte.AppEngine.API.Device do
         [{:value_timestamp, tstamp}, _, _, {_, v}] = value
 
         [
-          AstarteValue.to_json_friendly(v, ValueType.from_int(endpoint_row[:value_type]), []),
+          AstarteValue.to_json_friendly(v, endpoint_row.value_type, []),
           AstarteValue.to_json_friendly(
             tstamp,
             :datetime,
