@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2017-2024 SECO Mind Srl
+# Copyright 2017 - 2025 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -17,14 +17,18 @@
 #
 
 defmodule Astarte.TriggerEngine.EventsConsumer do
+  require Logger
+
+  import Ecto.Query
+
+  alias Astarte.Core.CQLUtils
   alias Astarte.Core.Triggers.SimpleEvents.IncomingIntrospectionEvent
   alias Astarte.Core.Triggers.SimpleEvents.InterfaceVersion
   alias Astarte.Core.Triggers.SimpleEvents.SimpleEvent
   alias Astarte.Core.Triggers.Trigger
-  alias Astarte.DataAccess.Database
-  alias CQEx.Query, as: DatabaseQuery
-  alias CQEx.Result, as: DatabaseResult
-  require Logger
+  alias Astarte.TriggerEngine.Config
+  alias Astarte.TriggerEngine.Repo
+  alias Astarte.TriggerEngine.KvStore
 
   defmodule Behaviour do
     @callback consume(payload :: binary, headers :: map) :: :ok | {:error, reason :: atom}
@@ -312,27 +316,27 @@ defmodule Astarte.TriggerEngine.EventsConsumer do
   end
 
   defp retrieve_trigger_configuration(realm_name, trigger_id) do
-    query =
-      DatabaseQuery.new()
-      |> DatabaseQuery.statement(
-        "SELECT value FROM kv_store WHERE group='triggers' AND key=:trigger_id;"
-      )
-      |> DatabaseQuery.put(:trigger_id, trigger_id)
+    keyspace_name =
+      CQLUtils.realm_name_to_keyspace_name(realm_name, Config.astarte_instance_id!())
 
-    with {:ok, client} <- Database.connect(realm: realm_name),
-         {:ok, result} <- DatabaseQuery.call(client, query),
-         [value: trigger_data] <- DatabaseResult.head(result),
-         trigger <- Trigger.decode(trigger_data),
+    query =
+      from kvstore in KvStore,
+        prefix: ^keyspace_name,
+        where: kvstore.group == "triggers" and kvstore.key == ^trigger_id,
+        select: kvstore.value
+
+    with encoded_trigger when encoded_trigger != nil <- Repo.one(query),
+         trigger <- Trigger.decode(encoded_trigger),
          {:ok, action} <- Jason.decode(trigger.action) do
       {:ok, %{action: action, trigger_name: trigger.name}}
     else
-      {:error, :database_connection_error} ->
-        Logger.warning("Database connection error.")
-        {:error, :database_connection_error}
-
-      error ->
-        Logger.warning("Error while processing event: #{inspect(error)}")
+      nil ->
+        Logger.warning("Trigger not found: #{inspect(trigger_id)}")
         {:error, :trigger_not_found}
+
+      _ ->
+        Logger.warning("Error while decoding trigger: #{inspect(trigger_id)}")
+        {:error, :trigger_decoding_error}
     end
   end
 end
