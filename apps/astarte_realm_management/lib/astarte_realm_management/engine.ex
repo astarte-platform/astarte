@@ -869,9 +869,7 @@ defmodule Astarte.RealmManagement.Engine do
   def get_trigger_policies_list(realm_name) do
     _ = Logger.debug("Get trigger policy list", tag: "get_trigger_policies_list")
 
-    with {:ok, client} <- connect_to_db_with_realm(realm_name) do
-      Queries.get_trigger_policies_list(client)
-    end
+    Queries.get_trigger_policies_list(realm_name)
   end
 
   def trigger_policy_source(realm_name, policy_name) do

@@ -1224,37 +1224,15 @@ defmodule Astarte.RealmManagement.Queries do
     end
   end
 
-  def get_trigger_policies_list(client) do
-    trigger_policies_list_statement = """
-    SELECT key FROM kv_store WHERE group=:group_name
-    """
+  def get_trigger_policies_list(realm_name) do
+    keyspace = Realm.keyspace_name(realm_name)
 
     query =
-      DatabaseQuery.new()
-      |> DatabaseQuery.statement(trigger_policies_list_statement)
-      |> DatabaseQuery.put(:group_name, "trigger_policy")
-      |> DatabaseQuery.consistency(:quorum)
+      from store in KvStore,
+        select: store.key,
+        where: [group: "trigger_policy"]
 
-    with {:ok, result} <- DatabaseQuery.call(client, query) do
-      list =
-        Enum.map(result, fn row ->
-          Keyword.fetch!(row, :key)
-        end)
-
-      {:ok, list}
-    else
-      %{acc: _, msg: error_message} ->
-        _ = Logger.warning("Database error: #{error_message}.", tag: "db_error")
-        {:error, :database_error}
-
-      {:error, reason} ->
-        _ =
-          Logger.warning("Database error: failed with reason: #{inspect(reason)}.",
-            tag: "db_error"
-          )
-
-        {:error, :database_error}
-    end
+    Repo.fetch_all(query, prefix: keyspace, consistency: :quorum)
   end
 
   def fetch_trigger_policy(client, policy_name) do
