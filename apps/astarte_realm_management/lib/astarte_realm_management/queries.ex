@@ -1154,9 +1154,9 @@ defmodule Astarte.RealmManagement.Queries do
     end
   end
 
-  def delete_simple_trigger(client, parent_trigger_uuid, simple_trigger_uuid) do
+  def delete_simple_trigger(client, parent_trigger_uuid, simple_trigger_uuid, realm_name) do
     with %{object_uuid: object_id, object_type: object_type} <-
-           retrieve_simple_trigger_astarte_ref(client, simple_trigger_uuid) do
+           retrieve_simple_trigger_astarte_ref(realm_name, simple_trigger_uuid) do
       delete_simple_trigger_statement = """
       DELETE FROM simple_triggers
       WHERE object_id=:object_id AND object_type=:object_type AND
@@ -1190,26 +1190,18 @@ defmodule Astarte.RealmManagement.Queries do
     end
   end
 
-  defp retrieve_simple_trigger_astarte_ref(client, simple_trigger_uuid) do
-    retrieve_astarte_ref_statement =
-      "SELECT value FROM kv_store WHERE group='simple-triggers-by-uuid' AND key=:simple_trigger_uuid;"
+  defp retrieve_simple_trigger_astarte_ref(realm_name, simple_trigger_uuid) do
+    keyspace = Realm.keyspace_name(realm_name)
 
-    retrieve_astarte_ref_query =
-      DatabaseQuery.new()
-      |> DatabaseQuery.statement(retrieve_astarte_ref_statement)
-      |> DatabaseQuery.put(:simple_trigger_uuid, :uuid.uuid_to_string(simple_trigger_uuid))
+    simple_trigger_uuid = :uuid.uuid_to_string(simple_trigger_uuid)
 
-    with {:ok, result} <- DatabaseQuery.call(client, retrieve_astarte_ref_query),
-         [value: astarte_ref_blob] <- DatabaseResult.head(result) do
-      AstarteReference.decode(astarte_ref_blob)
-    else
-      :empty_dataset ->
-        {:error, :trigger_not_found}
+    query =
+      from store in KvStore,
+        select: store.value,
+        where: [groups: "simple-triggers-by-uuid", key: ^simple_trigger_uuid]
 
-      not_ok ->
-        _ = Logger.warning("Database error: #{inspect(not_ok)}.", tag: "db_error")
-
-        {:error, :cannot_retrieve_simple_trigger}
+    with {:ok, result} <- Repo.fetch_one(query, prefix: keyspace, error: :trigger_not_found) do
+      AstarteReference.decode(result)
     end
   end
 

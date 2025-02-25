@@ -776,7 +776,12 @@ defmodule Astarte.RealmManagement.Engine do
 
       delete_all_simple_triggers_succeeded =
         Enum.all?(trigger.simple_triggers_uuids, fn simple_trigger_uuid ->
-          Queries.delete_simple_trigger(client, trigger.trigger_uuid, simple_trigger_uuid) == :ok
+          Queries.delete_simple_trigger(
+            client,
+            trigger.trigger_uuid,
+            simple_trigger_uuid,
+            realm_name
+          ) == :ok
         end)
 
       delete_policy_link_succeeded =
