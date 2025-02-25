@@ -1246,31 +1246,17 @@ defmodule Astarte.RealmManagement.Queries do
     Repo.fetch_one(query, prefix: keyspace, error: :policy_not_found)
   end
 
-  def check_policy_has_triggers(client, policy_name) do
-    devices_statement = "SELECT key FROM kv_store WHERE group=:group_name LIMIT 1"
+  def check_policy_has_triggers(realm_name, policy_name) do
+    keyspace = Realm.keyspace_name(realm_name)
+    group_name = "triggers-with-policy-#{policy_name}"
 
-    devices_query =
-      DatabaseQuery.new()
-      |> DatabaseQuery.statement(devices_statement)
-      |> DatabaseQuery.put(:group_name, "triggers-with-policy-#{policy_name}")
-      |> DatabaseQuery.consistency(:quorum)
+    query =
+      from store in KvStore,
+        select: store.key,
+        where: [group: ^group_name],
+        limit: 1
 
-    with {:ok, result} <- DatabaseQuery.call(client, devices_query),
-         [key: _device_id] <- DatabaseResult.head(result) do
-      {:ok, true}
-    else
-      :empty_dataset ->
-        {:ok, false}
-
-      {:error, reason} ->
-        _ =
-          Logger.error(
-            "Database error while checking #{policy_name}, reason: #{inspect(reason)}.",
-            tag: "db_error"
-          )
-
-        {:error, :database_error}
-    end
+    Repo.some?(query, prefix: keyspace, consistency: :quorum)
   end
 
   def delete_trigger_policy(client, policy_name) do

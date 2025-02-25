@@ -907,7 +907,7 @@ defmodule Astarte.RealmManagement.Engine do
 
     with {:ok, client} <- connect_to_db_with_realm(realm_name),
          :ok <- verify_trigger_policy_exists(client, policy_name),
-         {:ok, false} <- check_trigger_policy_has_triggers(client, policy_name) do
+         {:ok, false} <- check_trigger_policy_has_triggers(realm_name, policy_name) do
       if opts[:async] do
         Task.start_link(Engine, :execute_trigger_policy_deletion, [client, policy_name])
 
@@ -964,8 +964,8 @@ defmodule Astarte.RealmManagement.Engine do
     end
   end
 
-  defp check_trigger_policy_has_triggers(client, policy_name) do
-    with {:ok, true} <- Queries.check_policy_has_triggers(client, policy_name) do
+  defp check_trigger_policy_has_triggers(realm_name, policy_name) do
+    with {:ok, true} <- Queries.check_policy_has_triggers(realm_name, policy_name) do
       Logger.warning("Trigger policy #{policy_name} is currently being used by triggers",
         tag: "cannot_delete_currently_used_trigger_policy"
       )
