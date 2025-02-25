@@ -25,6 +25,8 @@ defmodule Astarte.AppEngine.API.Device.Queries do
   alias Astarte.AppEngine.API.Device.DevicesList
   alias Astarte.AppEngine.API.Device.InterfaceValuesOptions
   alias Astarte.AppEngine.API.Device.InterfaceInfo
+  alias Astarte.AppEngine.API.KvStore
+  alias Astarte.AppEngine.API.Name
   alias Astarte.AppEngine.API.Repo
   alias Astarte.Core.CQLUtils
   alias Astarte.Core.Device
@@ -119,32 +121,14 @@ defmodule Astarte.AppEngine.API.Device.Queries do
     |> Repo.one!(prefix: keyspace)
   end
 
-  def fetch_datastream_maximum_storage_retention(client) do
-    maximum_storage_retention_statement = """
-    SELECT blobAsInt(value)
-    FROM kv_store
-    WHERE group='realm_config' AND key='datastream_maximum_storage_retention'
-    """
+  def fetch_datastream_maximum_storage_retention(realm_name) do
+    keyspace = keyspace_name(realm_name)
+    group = "realm_config"
+    key = "datastream_maximum_storage_retention"
 
-    query =
-      DatabaseQuery.new()
-      |> DatabaseQuery.statement(maximum_storage_retention_statement)
-      |> DatabaseQuery.consistency(:quorum)
-
-    with {:ok, res} <- DatabaseQuery.call(client, query),
-         ["system.blobasint(value)": maximum_storage_retention] <- DatabaseResult.head(res) do
-      {:ok, maximum_storage_retention}
-    else
-      :empty_dataset ->
-        {:ok, nil}
-
-      %{acc: _, msg: error_message} ->
-        Logger.warning("Database error: #{error_message}.")
-        {:error, :database_error}
-
-      {:error, reason} ->
-        Logger.warning("Failed with reason: #{inspect(reason)}.")
-        {:error, :database_error}
+    case KvStore.fetch_value(group, key, :integer, consistency: :quorum, prefix: keyspace) do
+      {:ok, value} -> value
+      {:error, _} -> nil
     end
   end
 
@@ -549,30 +533,19 @@ defmodule Astarte.AppEngine.API.Device.Queries do
     end
   end
 
-  def device_alias_to_device_id(client, device_alias) do
-    device_id_statement = """
-    SELECT object_uuid
-    FROM names
-    WHERE object_name = :device_alias AND object_type = 1
-    """
+  def device_alias_to_device_id(realm_name, device_alias) do
+    keyspace = keyspace_name(realm_name)
+    do_device_alias_to_device_id(keyspace, device_alias)
+  end
 
-    device_id_query =
-      DatabaseQuery.new()
-      |> DatabaseQuery.statement(device_id_statement)
-      |> DatabaseQuery.put(:device_alias, device_alias)
-      |> DatabaseQuery.consistency(:quorum)
+  defp do_device_alias_to_device_id(keyspace, device_alias) do
+    query =
+      from d in Name,
+        prefix: ^keyspace,
+        select: d.object_uuid,
+        where: d.object_type == 1 and d.object_name == ^device_alias
 
-    with {:ok, result} <- DatabaseQuery.call(client, device_id_query),
-         [object_uuid: device_id] <- DatabaseResult.head(result) do
-      {:ok, device_id}
-    else
-      :empty_dataset ->
-        {:error, :device_not_found}
-
-      not_ok ->
-        _ = Logger.warning("Database error: #{inspect(not_ok)}.", tag: "db_error")
-        {:error, :database_error}
-    end
+    Repo.fetch_one(query, consistency: :quorum, error: :device_not_found)
   end
 
   def insert_attribute(client, device_id, attribute_key, attribute_value) do
@@ -657,7 +630,7 @@ defmodule Astarte.AppEngine.API.Device.Queries do
     end
   end
 
-  def insert_alias(client, device_id, alias_tag, alias_value) do
+  def insert_alias(realm_name, client, device_id, alias_tag, alias_value) do
     insert_alias_to_names_statement = """
     INSERT INTO names
     (object_name, object_type, object_uuid)
@@ -695,8 +668,8 @@ defmodule Astarte.AppEngine.API.Device.Queries do
       )
 
     with {:existing, {:error, :device_not_found}} <-
-           {:existing, device_alias_to_device_id(client, alias_value)},
-         :ok <- try_delete_alias(client, device_id, alias_tag),
+           {:existing, device_alias_to_device_id(realm_name, alias_value)},
+         :ok <- try_delete_alias(realm_name, client, device_id, alias_tag),
          {:ok, _result} <- DatabaseQuery.call(client, insert_batch) do
       :ok
     else
@@ -719,24 +692,18 @@ defmodule Astarte.AppEngine.API.Device.Queries do
     end
   end
 
-  def delete_alias(client, device_id, alias_tag) do
-    retrieve_aliases_statement = """
-    SELECT aliases
-    FROM devices
-    WHERE device_id = :device_id
-    """
+  def delete_alias(realm_name, client, device_id, alias_tag) do
+    keyspace = keyspace_name(realm_name)
 
-    retrieve_aliases_query =
-      DatabaseQuery.new()
-      |> DatabaseQuery.statement(retrieve_aliases_statement)
-      |> DatabaseQuery.put(:device_id, device_id)
-      |> DatabaseQuery.consistency(:quorum)
+    query =
+      from d in DatabaseDevice,
+        select: d.aliases
 
-    with {:ok, result} <- DatabaseQuery.call(client, retrieve_aliases_query),
-         [aliases: aliases] <- DatabaseResult.head(result),
-         {^alias_tag, alias_value} <-
-           Enum.find(aliases || [], fn a -> match?({^alias_tag, _}, a) end),
-         {:check, {:ok, ^device_id}} <- {:check, device_alias_to_device_id(client, alias_value)} do
+    opts = [prefix: keyspace, consistency: :quorum, error: :device_not_found]
+
+    with {:ok, result} <- Repo.fetch(query, device_id, opts),
+         {:ok, alias_value} <- get_value(result, alias_tag, :alias_tag_not_found),
+         :ok <- check_alias_ownership(keyspace, device_id, alias_tag, alias_value) do
       delete_alias_from_device_statement = """
       DELETE aliases[:alias_tag]
       FROM devices
@@ -782,34 +749,11 @@ defmodule Astarte.AppEngine.API.Device.Queries do
           _ = Logger.warning("Database error, reason: #{inspect(reason)}.", tag: "db_error")
           {:error, :database_error}
       end
-    else
-      {:check, _} ->
-        _ =
-          Logger.error("Inconsistent alias for #{alias_tag}.",
-            device_id: device_id,
-            tag: "inconsistent_alias"
-          )
-
-        {:error, :database_error}
-
-      :empty_dataset ->
-        {:error, :device_not_found}
-
-      nil ->
-        {:error, :alias_tag_not_found}
-
-      %{acc: _, msg: error_message} ->
-        _ = Logger.warning("Database error: #{error_message}.", tag: "db_error")
-        {:error, :database_error}
-
-      {:error, reason} ->
-        _ = Logger.warning("Database error, reason: #{inspect(reason)}.", tag: "db_error")
-        {:error, :database_error}
     end
   end
 
-  defp try_delete_alias(client, device_id, alias_tag) do
-    case delete_alias(client, device_id, alias_tag) do
+  defp try_delete_alias(realm_name, client, device_id, alias_tag) do
+    case delete_alias(realm_name, client, device_id, alias_tag) do
       :ok ->
         :ok
 
@@ -1152,5 +1096,29 @@ defmodule Astarte.AppEngine.API.Device.Queries do
       previous_interfaces: previous_interfaces,
       groups: groups
     }
+  end
+
+  defp get_value(nil = _collection, _key, error), do: {:error, error}
+
+  defp get_value(collection, key, error) do
+    case Map.fetch(collection, key) do
+      {:ok, value} -> {:ok, value}
+      :error -> {:error, error}
+    end
+  end
+
+  defp check_alias_ownership(keyspace, expected_device_id, alias_tag, alias_value) do
+    case do_device_alias_to_device_id(keyspace, alias_value) do
+      {:ok, ^expected_device_id} ->
+        :ok
+
+      _ ->
+        Logger.error("Inconsistent alias for #{alias_tag}.",
+          device_id: expected_device_id,
+          tag: "inconsistent_alias"
+        )
+
+        {:error, :database_error}
+    end
   end
 end

@@ -80,7 +80,7 @@ defmodule Astarte.AppEngine.API.Device do
          :ok <- change_credentials_inhibited(client, device_id, credentials_inhibited_change),
          aliases_change = Map.get(changeset.changes, :aliases, %{}),
          attributes_change = Map.get(changeset.changes, :attributes, %{}),
-         :ok <- update_aliases(client, device_id, aliases_change),
+         :ok <- update_aliases(realm_name, client, device_id, aliases_change),
          :ok <- update_attributes(client, device_id, attributes_change) do
       # Manually merge aliases since changesets don't perform maps deep merge
       merged_aliases = merge_data(device_status.aliases, updated_device_status.aliases)
@@ -124,7 +124,7 @@ defmodule Astarte.AppEngine.API.Device do
     end)
   end
 
-  defp update_aliases(client, device_id, aliases) do
+  defp update_aliases(realm_name, client, device_id, aliases) do
     Enum.reduce_while(aliases, :ok, fn
       {_alias_key, ""}, _acc ->
         Logger.warning("Alias value cannot be an empty string.", tag: :invalid_alias_empty_value)
@@ -135,13 +135,13 @@ defmodule Astarte.AppEngine.API.Device do
         {:halt, {:error, :invalid_alias}}
 
       {alias_key, nil}, _acc ->
-        case Queries.delete_alias(client, device_id, alias_key) do
+        case Queries.delete_alias(realm_name, client, device_id, alias_key) do
           :ok -> {:cont, :ok}
           {:error, reason} -> {:halt, {:error, reason}}
         end
 
       {alias_key, alias_value}, _acc ->
-        case Queries.insert_alias(client, device_id, alias_key, alias_value) do
+        case Queries.insert_alias(realm_name, client, device_id, alias_key, alias_value) do
           :ok -> {:cont, :ok}
           {:error, reason} -> {:halt, {:error, reason}}
         end
@@ -252,9 +252,9 @@ defmodule Astarte.AppEngine.API.Device do
              path,
              wrapped_value,
              publish_opts
-           ),
-         {:ok, realm_max_ttl} <-
-           Queries.fetch_datastream_maximum_storage_retention(client) do
+           ) do
+      realm_max_ttl = Queries.fetch_datastream_maximum_storage_retention(realm_name)
+
       timestamp_micro =
         DateTime.utc_now()
         |> DateTime.to_unix(:microsecond)
@@ -437,9 +437,8 @@ defmodule Astarte.AppEngine.API.Device do
              path,
              wrapped_value,
              publish_opts
-           ),
-         {:ok, realm_max_ttl} <-
-           Queries.fetch_datastream_maximum_storage_retention(client) do
+           ) do
+      realm_max_ttl = Queries.fetch_datastream_maximum_storage_retention(realm_name)
       db_max_ttl = min(realm_max_ttl, object_retention(mappings))
 
       opts =
@@ -1566,12 +1565,6 @@ defmodule Astarte.AppEngine.API.Device do
   end
 
   def device_alias_to_device_id(realm_name, device_alias) do
-    with {:ok, client} <- Database.connect(realm: realm_name) do
-      Queries.device_alias_to_device_id(client, device_alias)
-    else
-      not_ok ->
-        _ = Logger.warning("Database error: #{inspect(not_ok)}.", tag: "db_error")
-        {:error, :database_error}
-    end
+    Queries.device_alias_to_device_id(realm_name, device_alias)
   end
 end
