@@ -38,26 +38,26 @@ defmodule Astarte.AppEngine.API.StatsTest do
 
   describe "get_devices_stats" do
     test "returns an error for unexisting realm" do
-      assert {:error, _reason} = Stats.get_devices_stats("unexisting")
+      assert_raise Xandra.Error, fn -> Stats.get_devices_stats("unexisting") end
     end
 
     test "returns the correct stats for the autotestrealm" do
-      assert {:ok, %DevicesStats{} = stats} = Stats.get_devices_stats("autotestrealm")
+      stats = Stats.get_devices_stats("autotestrealm")
 
       assert stats.total_devices == DatabaseTestHelper.devices_count()
       assert stats.connected_devices == 0
     end
 
     test "gets updated connected count after device connection" do
-      assert {:ok, %DevicesStats{connected_devices: 0}} = Stats.get_devices_stats("autotestrealm")
+      assert %DevicesStats{connected_devices: 0} = Stats.get_devices_stats("autotestrealm")
 
       DatabaseTestHelper.fake_connect_device("f0VMRgIBAQAAAAAAAAAAAA", true)
 
-      assert {:ok, %DevicesStats{connected_devices: 1}} = Stats.get_devices_stats("autotestrealm")
+      assert %DevicesStats{connected_devices: 1} = Stats.get_devices_stats("autotestrealm")
 
       DatabaseTestHelper.fake_connect_device("f0VMRgIBAQAAAAAAAAAAAA", false)
 
-      assert {:ok, %DevicesStats{connected_devices: 0}} = Stats.get_devices_stats("autotestrealm")
+      assert %DevicesStats{connected_devices: 0} = Stats.get_devices_stats("autotestrealm")
     end
   end
 end

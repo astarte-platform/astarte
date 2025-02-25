@@ -51,25 +51,25 @@ defmodule Astarte.AppEngine.API.Device.DeviceStatus do
 
   def from_db_row(row) when is_map(row) do
     %{
-      "device_id" => device_id,
-      "aliases" => aliases,
-      "introspection" => introspection_major,
-      "introspection_minor" => introspection_minor,
-      "connected" => connected,
-      "last_connection" => last_connection,
-      "last_disconnection" => last_disconnection,
-      "first_registration" => first_registration,
-      "first_credentials_request" => first_credentials_request,
-      "last_credentials_request_ip" => last_credentials_request_ip,
-      "last_seen_ip" => last_seen_ip,
-      "attributes" => attributes,
-      "inhibit_credentials_request" => credentials_inhibited,
-      "total_received_msgs" => total_received_msgs,
-      "total_received_bytes" => total_received_bytes,
-      "groups" => groups_map,
-      "exchanged_msgs_by_interface" => exchanged_msgs_by_interface,
-      "exchanged_bytes_by_interface" => exchanged_bytes_by_interface,
-      "old_introspection" => old_introspection
+      device_id: device_id,
+      aliases: aliases,
+      introspection: introspection_major,
+      introspection_minor: introspection_minor,
+      connected: connected,
+      last_connection: last_connection,
+      last_disconnection: last_disconnection,
+      first_registration: first_registration,
+      first_credentials_request: first_credentials_request,
+      last_credentials_request_ip: last_credentials_request_ip,
+      last_seen_ip: last_seen_ip,
+      attributes: attributes,
+      inhibit_credentials_request: credentials_inhibited,
+      total_received_msgs: total_received_msgs,
+      total_received_bytes: total_received_bytes,
+      groups: groups_map,
+      exchanged_msgs_by_interface: exchanged_msgs_by_interface,
+      exchanged_bytes_by_interface: exchanged_bytes_by_interface,
+      old_introspection: old_introspection
     } = row
 
     introspection =

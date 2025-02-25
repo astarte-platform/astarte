@@ -32,7 +32,10 @@ defmodule Astarte.AppEngine.APIWeb.DeviceStatusByGroupController do
       ) do
     with {:ok, %DevicesList{} = devices_list} <-
            Groups.list_detailed_devices(realm_name, group_name, params) do
+      IO.inspect(devices_list)
       render(conn, "detailed_index.json", devices_list: devices_list, request: params)
+    else
+      err -> IO.inspect(err)
     end
   end
 
