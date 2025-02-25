@@ -122,7 +122,11 @@ defmodule Astarte.AppEngine.API.DatabaseTestHelper do
 
   @create_deletion_in_progress_table """
   CREATE TABLE #{CQLUtils.realm_name_to_keyspace_name("autotestrealm", Config.astarte_instance_id!())}.deletion_in_progress (
-    device_id uuid PRIMARY KEY,
+    device_id uuid,
+    vmq_ack boolean,
+    dup_start_ack boolean,
+    dup_end_ack boolean,
+    PRIMARY KEY (device_id)
   );
   """
 

@@ -47,9 +47,16 @@ defmodule Astarte.AppEngine.API.Device do
   def list_devices!(realm_name, params) do
     changeset = DevicesListOptions.changeset(%DevicesListOptions{}, params)
 
-    with {:ok, options} <- Changeset.apply_action(changeset, :insert),
-         {:ok, client} <- Database.connect(realm: realm_name) do
-      Queries.retrieve_devices_list(client, options.limit, options.details, options.from_token)
+    with {:ok, options} <- Changeset.apply_action(changeset, :insert) do
+      devices_list =
+        Queries.retrieve_devices_list(
+          realm_name,
+          options.limit,
+          options.details,
+          options.from_token
+        )
+
+      {:ok, devices_list}
     end
   end
 
@@ -58,16 +65,15 @@ defmodule Astarte.AppEngine.API.Device do
   Device status returns information such as connected, last_connection and last_disconnection.
   """
   def get_device_status!(realm_name, encoded_device_id) do
-    with {:ok, client} <- Database.connect(realm: realm_name),
-         {:ok, device_id} <- Device.decode_device_id(encoded_device_id) do
-      Queries.retrieve_device_status(client, device_id)
+    with {:ok, device_id} <- Device.decode_device_id(encoded_device_id) do
+      Queries.retrieve_device_status(realm_name, device_id)
     end
   end
 
   def merge_device_status(realm_name, encoded_device_id, device_status_merge) do
     with {:ok, client} <- Database.connect(realm: realm_name),
          {:ok, device_id} <- Device.decode_device_id(encoded_device_id),
-         {:ok, device_status} <- Queries.retrieve_device_status(client, device_id),
+         {:ok, device_status} <- Queries.retrieve_device_status(realm_name, device_id),
          changeset = DeviceStatus.changeset(device_status, device_status_merge),
          {:ok, updated_device_status} <- Ecto.Changeset.apply_action(changeset, :update),
          credentials_inhibited_change = Map.get(changeset.changes, :credentials_inhibited),

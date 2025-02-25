@@ -20,6 +20,7 @@ defmodule Astarte.AppEngine.API.Device.Queries do
   import Ecto.Query
 
   alias Astarte.AppEngine.API.Config
+  alias Astarte.AppEngine.API.Device.DeletionInProgress
   alias Astarte.AppEngine.API.Device.DeviceStatus
   alias Astarte.AppEngine.API.Device.DevicesList
   alias Astarte.AppEngine.API.Device.InterfaceValuesOptions
@@ -449,151 +450,29 @@ defmodule Astarte.AppEngine.API.Device.Queries do
     value
   end
 
-  @device_status_columns_without_device_id """
-    , aliases
-    , introspection
-    , introspection_minor
-    , connected
-    , last_connection
-    , last_disconnection
-    , first_registration
-    , first_credentials_request
-    , last_credentials_request_ip
-    , last_seen_ip
-    , attributes
-    , total_received_msgs
-    , total_received_bytes
-    , exchanged_msgs_by_interface
-    , exchanged_bytes_by_interface
-    , groups
-    , old_introspection
-    , inhibit_credentials_request
-  """
+  @device_status_columns_without_device_id [
+    :aliases,
+    :introspection,
+    :introspection_minor,
+    :connected,
+    :last_connection,
+    :last_disconnection,
+    :first_registration,
+    :first_credentials_request,
+    :last_credentials_request_ip,
+    :last_seen_ip,
+    :attributes,
+    :total_received_msgs,
+    :total_received_bytes,
+    :exchanged_msgs_by_interface,
+    :exchanged_bytes_by_interface,
+    :groups,
+    :old_introspection,
+    :inhibit_credentials_request
+  ]
 
-  defp device_status_row_to_device_status(row) do
-    [
-      device_id: device_id,
-      aliases: aliases,
-      introspection: introspection_major,
-      introspection_minor: introspection_minor,
-      connected: connected,
-      last_connection: last_connection,
-      last_disconnection: last_disconnection,
-      first_registration: first_registration,
-      first_credentials_request: first_credentials_request,
-      last_credentials_request_ip: last_credentials_request_ip,
-      last_seen_ip: last_seen_ip,
-      attributes: attributes,
-      total_received_msgs: total_received_msgs,
-      total_received_bytes: total_received_bytes,
-      exchanged_msgs_by_interface: exchanged_msgs_by_interface,
-      exchanged_bytes_by_interface: exchanged_bytes_by_interface,
-      groups: groups_proplist,
-      old_introspection: old_introspection,
-      inhibit_credentials_request: credentials_inhibited
-    ] = row
-
-    interface_msgs_map =
-      exchanged_msgs_by_interface
-      |> convert_map_result()
-      |> convert_tuple_keys()
-
-    interface_bytes_map =
-      exchanged_bytes_by_interface
-      |> convert_map_result()
-      |> convert_tuple_keys()
-
-    only_major_introspection =
-      Enum.reduce(introspection_major || %{}, %{}, fn {interface, major}, acc ->
-        Map.put(acc, interface, %InterfaceInfo{major: major})
-      end)
-
-    introspection =
-      Enum.reduce(introspection_minor || %{}, %{}, fn {interface, minor}, acc ->
-        with {:ok, major_item} <- Map.fetch(only_major_introspection, interface) do
-          msgs = Map.get(interface_msgs_map, {interface, major_item.major}, 0)
-          bytes = Map.get(interface_bytes_map, {interface, major_item.major}, 0)
-
-          Map.put(acc, interface, %{
-            major_item
-            | minor: minor,
-              exchanged_msgs: msgs,
-              exchanged_bytes: bytes
-          })
-        else
-          :error ->
-            device = Device.encode_device_id(device_id)
-
-            _ =
-              Logger.error("Introspection has no minor version for interface. Corrupted entry?",
-                interface: interface,
-                device_id: device
-              )
-
-            acc
-        end
-      end)
-
-    previous_interfaces =
-      old_introspection
-      |> convert_map_result()
-      |> convert_tuple_keys()
-      |> Enum.map(fn {{interface_name, major}, minor} ->
-        msgs = Map.get(interface_msgs_map, {interface_name, major}, 0)
-        bytes = Map.get(interface_bytes_map, {interface_name, major}, 0)
-
-        %InterfaceInfo{
-          name: interface_name,
-          major: major,
-          minor: minor,
-          exchanged_msgs: msgs,
-          exchanged_bytes: bytes
-        }
-      end)
-
-    # groups_proplist could be nil, default to empty keyword list
-    groups = :proplists.get_keys(groups_proplist || [])
-
-    %DeviceStatus{
-      id: Base.url_encode64(device_id, padding: false),
-      aliases: Enum.into(aliases || [], %{}),
-      introspection: introspection,
-      connected: connected || false,
-      last_connection: millis_or_null_to_datetime!(last_connection),
-      last_disconnection: millis_or_null_to_datetime!(last_disconnection),
-      first_registration: millis_or_null_to_datetime!(first_registration),
-      first_credentials_request: millis_or_null_to_datetime!(first_credentials_request),
-      last_credentials_request_ip: ip_or_null_to_string(last_credentials_request_ip),
-      last_seen_ip: ip_or_null_to_string(last_seen_ip),
-      attributes: Enum.into(attributes || [], %{}),
-      credentials_inhibited: credentials_inhibited,
-      total_received_msgs: total_received_msgs,
-      total_received_bytes: total_received_bytes,
-      previous_interfaces: previous_interfaces,
-      groups: groups
-    }
-  end
-
-  defp convert_map_result(nil), do: %{}
-  defp convert_map_result(result) when is_list(result), do: Enum.into(result, %{})
-  defp convert_map_result(result) when is_map(result), do: result
-
-  # CQEx returns tuple keys as lists, convert them to tuples
-  defp convert_tuple_keys(map) when is_map(map) do
-    for {key, value} <- map, into: %{} do
-      {List.to_tuple(key), value}
-    end
-  end
-
-  # TODO: copy&pasted from Device
-  defp millis_or_null_to_datetime!(nil) do
-    nil
-  end
-
-  # TODO: copy&pasted from Device
-  defp millis_or_null_to_datetime!(millis) do
-    DateTime.from_unix!(millis, :millisecond)
-  end
+  defp truncate_datetime(nil), do: nil
+  defp truncate_datetime(datetime), do: datetime |> DateTime.truncate(:millisecond)
 
   defp ip_or_null_to_string(nil) do
     nil
@@ -605,139 +484,68 @@ defmodule Astarte.AppEngine.API.Device.Queries do
     |> to_string()
   end
 
-  def retrieve_device_status(client, device_id) do
-    device_statement = """
-    SELECT device_id #{@device_status_columns_without_device_id}
-    FROM devices
-    WHERE device_id=:device_id
-    """
+  def retrieve_device_status(realm_name, device_id) do
+    keyspace = keyspace_name(realm_name)
+    fields = [:device_id | @device_status_columns_without_device_id]
 
-    device_query =
-      DatabaseQuery.new()
-      |> DatabaseQuery.statement(device_statement)
-      |> DatabaseQuery.put(:device_id, device_id)
+    query = from(DatabaseDevice, prefix: ^keyspace, select: ^fields)
 
-    with {:ok, result} <- DatabaseQuery.call(client, device_query),
-         device_row when is_list(device_row) <- DatabaseResult.head(result) do
-      device_status = device_status_row_to_device_status(device_row)
-      deletion_in_progress? = deletion_in_progress?(client, device_id)
-      {:ok, %{device_status | deletion_in_progress: deletion_in_progress?}}
-    else
-      :empty_dataset ->
-        {:error, :device_not_found}
-
-      %{acc: _, msg: error_message} ->
-        _ = Logger.warning("Database error: #{error_message}.", tag: "db_error")
-        {:error, :database_error}
-
-      {:error, reason} ->
-        _ = Logger.warning("Database error, reason: #{inspect(reason)}.", tag: "db_error")
-        {:error, :database_error}
+    with {:ok, device} <- Repo.fetch(query, device_id, error: :device_not_found) do
+      {:ok, build_device_status(keyspace, device)}
     end
   end
 
-  defp deletion_in_progress?(client, device_id) do
-    deletion_in_progress_stmt = """
-    SELECT *
-    FROM deletion_in_progress
-    WHERE device_id=:device_id
-    """
-
-    device_query =
-      DatabaseQuery.new()
-      |> DatabaseQuery.statement(deletion_in_progress_stmt)
-      |> DatabaseQuery.put(:device_id, device_id)
-
-    with {:ok, result} <- DatabaseQuery.call(client, device_query),
-         result_row when is_list(result_row) <- DatabaseResult.head(result) do
-      true
-    else
-      # Default to false, as done for the connected field (see line 690)
-      :empty_dataset ->
-        false
-
-      %{acc: _, msg: error_message} ->
-        _ = Logger.warning("Database error: #{error_message}.", tag: "db_error")
-        false
-
-      {:error, reason} ->
-        _ = Logger.warning("Database error, reason: #{inspect(reason)}.", tag: "db_error")
-        false
+  defp deletion_in_progress?(keyspace, device_id) do
+    case Repo.fetch(DeletionInProgress, device_id, prefix: keyspace) do
+      {:ok, _} -> true
+      {:error, _} -> false
     end
   end
 
-  defp execute_devices_list_query(client, limit, retrieve_details, previous_token) do
-    retrieve_details_string =
-      if retrieve_details do
-        @device_status_columns_without_device_id
+  def retrieve_devices_list(realm_name, limit, retrieve_details?, previous_token) do
+    keyspace = keyspace_name(realm_name)
+
+    field_selection =
+      if retrieve_details? do
+        [:device_id | @device_status_columns_without_device_id]
       else
-        ""
+        [:device_id]
       end
 
-    previous_token =
+    token_filter =
       case previous_token do
         nil ->
-          # This is -2^63, that is the lowest 64 bit integer
-          -9_223_372_036_854_775_808
+          true
 
         first ->
-          first + 1
+          min_token = first + 1
+          dynamic([d], fragment("TOKEN(?)", d.device_id) >= ^min_token)
       end
 
-    devices_list_statement = """
-    SELECT TOKEN(device_id), device_id #{retrieve_details_string}
-    FROM devices
-    WHERE TOKEN(device_id) >= :previous_token LIMIT #{Integer.to_string(limit)};
-    """
+    devices =
+      from(d in DatabaseDevice,
+        prefix: ^keyspace,
+        select: merge(map(d, ^field_selection), %{"token" => fragment("TOKEN(?)", d.device_id)}),
+        where: ^token_filter,
+        limit: ^limit
+      )
+      |> Repo.all()
 
-    devices_list_query =
-      DatabaseQuery.new()
-      |> DatabaseQuery.statement(devices_list_statement)
-      |> DatabaseQuery.put(:previous_token, previous_token)
-
-    DatabaseQuery.call(client, devices_list_query)
-  end
-
-  def retrieve_devices_list(client, limit, retrieve_details, previous_token) do
-    with {:ok, result} <-
-           execute_devices_list_query(client, limit, retrieve_details, previous_token) do
-      {devices_list, count, last_token} =
-        Enum.reduce(result, {[], 0, nil}, fn row, {devices_acc, count, _last_seen_token} ->
-          {device, token} =
-            if retrieve_details do
-              [{:"system.token(device_id)", token} | device_status_row] = row
-              device_status = device_status_row_to_device_status(device_status_row)
-
-              device_id = Keyword.get(device_status_row, :device_id)
-              deletion_in_progress? = deletion_in_progress?(client, device_id)
-
-              device_status_with_deletion = %{
-                device_status
-                | deletion_in_progress: deletion_in_progress?
-              }
-
-              {device_status_with_deletion, token}
-            else
-              ["system.token(device_id)": token, device_id: device_id] = row
-              {Base.url_encode64(device_id, padding: false), token}
-            end
-
-          {[device | devices_acc], count + 1, token}
-        end)
-
-      if count < limit do
-        {:ok, %DevicesList{devices: Enum.reverse(devices_list)}}
+    devices_info =
+      if retrieve_details? do
+        devices |> Enum.map(fn device -> build_device_status(keyspace, device) end)
       else
-        {:ok, %DevicesList{devices: Enum.reverse(devices_list), last_token: last_token}}
+        devices
+        |> Enum.map(fn device ->
+          Device.encode_device_id(device.device_id)
+        end)
       end
-    else
-      %{acc: _, msg: error_message} ->
-        _ = Logger.warning("Database error: #{error_message}.", tag: "db_error")
-        {:error, :database_error}
 
-      {:error, reason} ->
-        _ = Logger.warning("Database error, reason: #{inspect(reason)}.", tag: "db_error")
-        {:error, :database_error}
+    if Enum.count(devices) < limit || Enum.count(devices) == 0 do
+      %DevicesList{devices: devices_info}
+    else
+      token = devices |> List.last() |> Map.fetch!("token")
+      %DevicesList{devices: devices_info, last_token: token}
     end
   end
 
@@ -1230,5 +1038,119 @@ defmodule Astarte.AppEngine.API.Device.Queries do
       false -> :reception_timestamp
       true -> :value_timestamp
     end
+  end
+
+  defp clean_device_introspection(device) do
+    introspection_major = device.introspection || %{}
+    introspection_minor = device.introspection_minor || %{}
+
+    major_keys = introspection_major |> Map.keys() |> MapSet.new()
+    minor_keys = introspection_minor |> Map.keys() |> MapSet.new()
+
+    corrupted = MapSet.symmetric_difference(major_keys, minor_keys) |> MapSet.to_list()
+
+    for interface <- corrupted do
+      device_id = Device.encode_device_id(device.device_id)
+
+      Logger.error("Introspection has either major or minor, but not both. Corrupted entry?",
+        interface: interface,
+        device_id: device_id
+      )
+    end
+
+    introspection_major = introspection_major |> Map.drop(corrupted)
+    introspection_minor = introspection_minor |> Map.drop(corrupted)
+
+    {introspection_major, introspection_minor}
+  end
+
+  defp build_device_status(keyspace, device) do
+    {introspection_major, introspection_minor} = clean_device_introspection(device)
+
+    %{
+      device_id: device_id,
+      aliases: aliases,
+      connected: connected,
+      last_connection: last_connection,
+      last_disconnection: last_disconnection,
+      first_registration: first_registration,
+      first_credentials_request: first_credentials_request,
+      last_credentials_request_ip: last_credentials_request_ip,
+      last_seen_ip: last_seen_ip,
+      attributes: attributes,
+      total_received_msgs: total_received_msgs,
+      total_received_bytes: total_received_bytes,
+      exchanged_msgs_by_interface: exchanged_msgs_by_interface,
+      exchanged_bytes_by_interface: exchanged_bytes_by_interface,
+      groups: groups,
+      old_introspection: old_introspection,
+      inhibit_credentials_request: credentials_inhibited
+    } = device
+
+    introspection =
+      Map.merge(introspection_major, introspection_minor, fn interface, major, minor ->
+        interface_key = {interface, major}
+        messages = exchanged_msgs_by_interface |> Map.get(interface_key, 0)
+        bytes = exchanged_bytes_by_interface |> Map.get(interface_key, 0)
+
+        %InterfaceInfo{
+          major: major,
+          minor: minor,
+          exchanged_msgs: messages,
+          exchanged_bytes: bytes
+        }
+      end)
+
+    previous_interfaces =
+      for {{interface, major}, minor} <- old_introspection do
+        interface_key = {interface, major}
+        msgs = exchanged_msgs_by_interface |> Map.get(interface_key, 0)
+        bytes = exchanged_bytes_by_interface |> Map.get(interface_key, 0)
+
+        %InterfaceInfo{
+          name: interface,
+          major: major,
+          minor: minor,
+          exchanged_msgs: msgs,
+          exchanged_bytes: bytes
+        }
+      end
+
+    groups =
+      case groups do
+        nil -> []
+        groups -> groups |> Map.keys()
+      end
+
+    deletion_in_progress? = deletion_in_progress?(keyspace, device_id)
+
+    device_id = Device.encode_device_id(device_id)
+    connected = connected || false
+    last_credentials_request_ip = ip_or_null_to_string(last_credentials_request_ip)
+    last_seen_ip = ip_or_null_to_string(last_seen_ip)
+    last_connection = truncate_datetime(last_connection)
+    last_disconnection = truncate_datetime(last_disconnection)
+    first_registration = truncate_datetime(first_registration)
+    first_credentials_request = truncate_datetime(first_credentials_request)
+
+    %DeviceStatus{
+      id: device_id,
+      aliases: aliases,
+      introspection: introspection,
+      connected: connected,
+      deletion_in_progress: deletion_in_progress?,
+      last_connection: last_connection,
+      last_disconnection: last_disconnection,
+      first_registration: first_registration,
+      first_credentials_request: first_credentials_request,
+      last_credentials_request_ip: last_credentials_request_ip,
+      last_seen_ip: last_seen_ip,
+      attributes: attributes,
+      credentials_inhibited: credentials_inhibited,
+      total_received_msgs: total_received_msgs,
+      total_received_bytes: total_received_bytes,
+      previous_interfaces: previous_interfaces,
+      groups: groups
+    }
   end
 end
