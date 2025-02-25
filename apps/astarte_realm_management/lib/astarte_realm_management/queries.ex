@@ -47,7 +47,6 @@ defmodule Astarte.RealmManagement.Queries do
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.TriggerTargetContainer
   alias Astarte.Core.Triggers.Trigger
   alias CQEx.Query, as: DatabaseQuery
-  alias CQEx.Result, as: DatabaseResult
   alias CQEx.Result.SchemaChanged
 
   import Ecto.Query
@@ -1308,35 +1307,14 @@ defmodule Astarte.RealmManagement.Queries do
     end
   end
 
-  def check_trigger_policy_already_present(client, policy_name) do
-    policy_cols_statement = """
-    SELECT COUNT(*)
-    FROM kv_store
-    WHERE group= :group_name and key= :policy_name
-    """
+  def check_trigger_policy_already_present(realm_name, policy_name) do
+    keyspace = Realm.keyspace_name(realm_name)
 
     query =
-      DatabaseQuery.new()
-      |> DatabaseQuery.statement(policy_cols_statement)
-      |> DatabaseQuery.put(:group_name, "trigger_policy")
-      |> DatabaseQuery.put(:policy_name, policy_name)
-      |> DatabaseQuery.consistency(:quorum)
+      from store in KvStore,
+        where: [group: "trigger_policy", key: ^policy_name]
 
-    with {:ok, result} <- DatabaseQuery.call(client, query),
-         [count: 0] <- DatabaseResult.head(result) do
-      {:ok, false}
-    else
-      [count: _] ->
-        {:ok, true}
-
-      %{acc: _, msg: error_message} ->
-        _ = Logger.warning("Database error: #{error_message}.", tag: "db_error")
-        {:error, :database_error}
-
-      {:error, reason} ->
-        _ = Logger.warning("Database error: #{inspect(reason)}.", tag: "db_error")
-        {:error, :database_error}
-    end
+    Repo.some?(query, prefix: keyspace, consistency: :quorum)
   end
 
   def check_device_exists(realm_name, device_id) do
