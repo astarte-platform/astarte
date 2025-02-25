@@ -21,34 +21,47 @@ defmodule Astarte.Pairing.Queries do
   This module is responsible for the interaction with the database.
   """
 
+  alias CQEx.Client
   alias CQEx.Query
-  alias CQEx.Result
   alias Astarte.Core.CQLUtils
   alias Astarte.Pairing.Config
+  alias Astarte.Pairing.Astarte.Realm
+  alias Astarte.Pairing.Realms.Device
+  alias Astarte.Pairing.Realms.KvStore
+  alias Astarte.Pairing.Repo
   require Logger
+  import Ecto.Query
 
   @protocol_revision 1
   @keyspace_does_not_exist_regex ~r/Keyspace (.*) does not exist/
 
-  def get_agent_public_key_pems(keyspace_name) do
-    case Xandra.Cluster.run(:xandra, &do_get_agent_public_key_pems(keyspace_name, &1)) do
-      {:ok, pems} ->
-        {:ok, pems}
+  def get_agent_public_key_pems(realm_name) do
+    keyspace = CQLUtils.realm_name_to_keyspace_name(realm_name, Config.astarte_instance_id!())
 
-      {:error, %Xandra.ConnectionError{} = err} ->
-        _ =
-          Logger.warning("Database connection error #{Exception.message(err)}.",
-            tag: "database_connection_error"
-          )
-
-        {:error, :database_connection_error}
-
-      {:error, %Xandra.Error{} = err} ->
-        handle_xandra_error(err)
+    try do
+      with {:ok, pem} <-
+             KvStore.fetch_value("auth", "jwt_public_key_pem", :string,
+               prefix: keyspace,
+               consistency: :quorum,
+               error: :public_key_not_found
+             ) do
+        {:ok, [pem]}
+      end
+    rescue
+      err -> handle_xandra_error(err)
     end
   end
 
-  defp handle_xandra_error(error) do
+  defp handle_xandra_error(%Xandra.ConnectionError{} = error) do
+    _ =
+      Logger.warning("Database connection error #{Exception.message(error)}.",
+        tag: "database_connection_error"
+      )
+
+    {:error, :database_connection_error}
+  end
+
+  defp handle_xandra_error(%Xandra.Error{} = error) do
     %Xandra.Error{message: message} = error
 
     case Regex.run(@keyspace_does_not_exist_regex, message) do
@@ -62,7 +75,7 @@ defmodule Astarte.Pairing.Queries do
       nil ->
         _ =
           Logger.warning(
-            "Database error, cannot get realm public key: #{Exception.message(error)}.",
+            "Database error: #{Exception.message(error)}.",
             tag: "database_error"
           )
 
@@ -70,80 +83,48 @@ defmodule Astarte.Pairing.Queries do
     end
   end
 
-  defp do_get_agent_public_key_pems(keyspace_name, conn) do
-    query = """
-    SELECT blobAsVarchar(value)
-    FROM #{keyspace_name}.kv_store
-    WHERE group='auth' AND key='jwt_public_key_pem';
-    """
+  def register_device(realm_name, device_id, extended_id, credentials_secret, opts \\ []) do
+    case fetch_device(realm_name, device_id) do
+      {:error, :device_not_found} ->
+        Logger.info("register request for new device: #{inspect(extended_id)}")
 
-    with {:ok, prepared} <- Xandra.prepare(conn, query),
-         {:ok, page} <-
-           Xandra.execute(conn, prepared, %{},
-             uuid_format: :binary,
-             consistency: :quorum
-           ) do
-      case Enum.to_list(page) do
-        [%{"system.blobasvarchar(value)" => pem}] ->
-          {:ok, [pem]}
+        registration_timestamp = DateTime.utc_now()
 
-        [] ->
-          {:error, :public_key_not_found}
-      end
-    end
-  end
+        do_register_device(
+          realm_name,
+          device_id,
+          credentials_secret,
+          registration_timestamp,
+          opts
+        )
 
-  def register_device(client, device_id, extended_id, credentials_secret, opts \\ []) do
-    statement = """
-    SELECT first_credentials_request, first_registration
-    FROM devices
-    WHERE device_id=:device_id
-    """
-
-    device_exists_query =
-      Query.new()
-      |> Query.statement(statement)
-      |> Query.put(:device_id, device_id)
-      |> Query.consistency(:quorum)
-
-    with {:ok, res} <- Query.call(client, device_exists_query) do
-      case Result.head(res) do
-        :empty_dataset ->
-          registration_timestamp =
-            DateTime.utc_now()
-            |> DateTime.to_unix(:millisecond)
-
-          Logger.info("register request for new device: #{inspect(extended_id)}")
-          do_register_device(client, device_id, credentials_secret, registration_timestamp, opts)
-
-        [first_credentials_request: nil, first_registration: registration_timestamp] ->
+      {:ok, device} ->
+        if is_nil(device.first_credentials_request) do
           Logger.info("register request for existing unconfirmed device: #{inspect(extended_id)}")
 
           do_register_unconfirmed_device(
-            client,
+            realm_name,
             device_id,
             credentials_secret,
-            registration_timestamp,
+            device.first_registration,
             opts
           )
-
-        [first_credentials_request: _timestamp, first_registration: _registration_timestamp] ->
+        else
           Logger.warning(
             "register request for existing confirmed device: #{inspect(extended_id)}"
           )
 
           {:error, :already_registered}
-      end
-    else
-      error ->
-        Logger.warning("DB error: #{inspect(error)}")
-        {:error, :database_error}
+        end
+
+      {:error, reason} ->
+        {:error, reason}
     end
   end
 
-  def unregister_device(client, device_id) do
-    with :ok <- verify_already_registered_device(client, device_id),
-         :ok <- do_unregister_device(client, device_id) do
+  def unregister_device(realm_name, device_id) do
+    with :ok <- verify_already_registered_device(realm_name, device_id),
+         :ok <- do_unregister_device(realm_name, device_id) do
       :ok
     else
       %{acc: _acc, msg: msg} ->
@@ -160,55 +141,21 @@ defmodule Astarte.Pairing.Queries do
     keyspace_name =
       CQLUtils.realm_name_to_keyspace_name(realm_name, Config.astarte_instance_id!())
 
-    Xandra.Cluster.run(:xandra, fn conn ->
-      query = """
-      SELECT device_id
-      FROM #{keyspace_name}.devices
-      WHERE device_id=:device_id
-      """
-
-      with {:ok, prepared} <- Xandra.prepare(conn, query),
-           {:ok, page} <-
-             Xandra.execute(conn, prepared, %{"device_id" => device_id},
-               uuid_format: :binary,
-               consistency: :quorum
-             ) do
-        case Enum.to_list(page) do
-          [%{"device_id" => _device_id}] ->
-            {:ok, true}
-
-          [] ->
-            {:ok, false}
-        end
-      end
-    end)
-  end
-
-  defp verify_already_registered_device(client, device_id) do
-    statement = """
-    SELECT device_id
-    FROM devices
-    WHERE device_id=:device_id
-    """
-
-    query =
-      Query.new()
-      |> Query.statement(statement)
-      |> Query.put(:device_id, device_id)
-      |> Query.consistency(:quorum)
-
-    with {:ok, res} <- Query.call(client, query) do
-      case Result.head(res) do
-        [device_id: _device_id] ->
-          :ok
-
-        :empty_dataset ->
-          {:error, :device_not_registered}
-      end
+    case Repo.get(Device, device_id, prefix: keyspace_name, consistency: :quorum) do
+      %Device{} -> true
+      nil -> false
     end
   end
 
-  defp do_unregister_device(client, device_id) do
+  defp verify_already_registered_device(realm_name, device_id) do
+    case fetch_device(realm_name, device_id) do
+      {:ok, _device} -> :ok
+      {:error, :device_not_found} -> {:error, :device_not_registered}
+      {:error, reason} -> {:error, reason}
+    end
+  end
+
+  defp do_unregister_device(realm_name, device_id) do
     statement = """
     INSERT INTO devices
     (device_id, first_credentials_request, credentials_secret)
@@ -223,45 +170,40 @@ defmodule Astarte.Pairing.Queries do
       |> Query.put(:credentials_secret, nil)
       |> Query.consistency(:quorum)
 
-    with {:ok, _res} <- Query.call(client, query) do
+    keyspace_name =
+      CQLUtils.realm_name_to_keyspace_name(realm_name, Config.astarte_instance_id!())
+
+    cqex_options =
+      Config.cqex_options!()
+      |> Keyword.put(:keyspace, keyspace_name)
+
+    with {:ok, client} <-
+           CQEx.Client.new(
+             Config.cassandra_node!(),
+             cqex_options
+           ),
+         {:ok, _res} <- Query.call(client, query) do
       :ok
     end
   end
 
-  def select_device_for_credentials_request(client, device_id) do
-    statement = """
-    SELECT first_credentials_request, cert_aki, cert_serial, inhibit_credentials_request, credentials_secret
-    FROM devices
-    WHERE device_id=:device_id
-    """
+  def fetch_device(realm_name, device_id) do
+    keyspace_name =
+      CQLUtils.realm_name_to_keyspace_name(realm_name, Config.astarte_instance_id!())
 
-    do_select_device(client, device_id, statement)
-  end
-
-  def select_device_for_info(client, device_id) do
-    statement = """
-    SELECT credentials_secret, inhibit_credentials_request, first_credentials_request
-    FROM devices
-    WHERE device_id=:device_id
-    """
-
-    do_select_device(client, device_id, statement)
-  end
-
-  def select_device_for_verify_credentials(client, device_id) do
-    statement = """
-    SELECT credentials_secret
-    FROM devices
-    WHERE device_id=:device_id
-    """
-
-    do_select_device(client, device_id, statement)
+    try do
+      Repo.fetch(Device, device_id,
+        prefix: keyspace_name,
+        consistency: :quorum,
+        error: :device_not_found
+      )
+    rescue
+      err -> handle_xandra_error(err)
+    end
   end
 
   def update_device_after_credentials_request(client, device_id, cert_data, device_ip, nil) do
-    first_credentials_request_timestamp =
-      DateTime.utc_now()
-      |> DateTime.to_unix(:millisecond)
+    first_credentials_request_timestamp = DateTime.utc_now()
 
     update_device_after_credentials_request(
       client,
@@ -277,7 +219,7 @@ defmodule Astarte.Pairing.Queries do
         device_id,
         %{serial: serial, aki: aki} = _cert_data,
         device_ip,
-        first_credentials_request_timestamp
+        %DateTime{} = first_credentials_request_timestamp
       ) do
     statement = """
     UPDATE devices
@@ -293,7 +235,10 @@ defmodule Astarte.Pairing.Queries do
       |> Query.put(:cert_aki, aki)
       |> Query.put(:cert_serial, serial)
       |> Query.put(:last_credentials_request_ip, device_ip)
-      |> Query.put(:first_credentials_request, first_credentials_request_timestamp)
+      |> Query.put(
+        :first_credentials_request,
+        first_credentials_request_timestamp |> DateTime.to_unix(:millisecond)
+      )
       |> Query.put(:protocol_revision, @protocol_revision)
       |> Query.consistency(:quorum)
 
@@ -308,34 +253,53 @@ defmodule Astarte.Pairing.Queries do
   end
 
   def fetch_device_registration_limit(realm_name) do
-    Xandra.Cluster.run(:xandra, &do_fetch_device_registration_limit(&1, realm_name))
-  end
+    keyspace = CQLUtils.realm_name_to_keyspace_name("astarte", Config.astarte_instance_id!())
 
-  def fetch_registered_devices_count(realm_name) do
-    Xandra.Cluster.run(:xandra, &do_fetch_registered_devices_count(&1, realm_name))
-  end
+    try do
+      case Repo.fetch(Realm, realm_name,
+             prefix: keyspace,
+             consistency: :one,
+             error: :realm_not_found
+           ) do
+        {:ok, realm} ->
+          {:ok, realm.device_registration_limit}
 
-  defp do_select_device(client, device_id, select_statement) do
-    device_query =
-      Query.new()
-      |> Query.statement(select_statement)
-      |> Query.put(:device_id, device_id)
-      |> Query.consistency(:quorum)
+        {:error, :realm_not_found} ->
+          Logger.warning(
+            "cannot fetch device registration limit: realm #{realm_name} not found",
+            tag: "realm_not_found"
+          )
 
-    with {:ok, res} <- Query.call(client, device_query),
-         device_row when is_list(device_row) <- Result.head(res) do
-      {:ok, device_row}
-    else
-      :empty_dataset ->
-        {:error, :device_not_found}
-
-      error ->
-        Logger.warning("DB error: #{inspect(error)}")
-        {:error, :database_error}
+          {:error, :realm_not_found}
+      end
+    rescue
+      err -> handle_xandra_error(err)
     end
   end
 
-  defp do_register_device(client, device_id, credentials_secret, registration_timestamp, opts) do
+  def fetch_registered_devices_count(realm_name) do
+    keyspace =
+      CQLUtils.realm_name_to_keyspace_name(realm_name, Config.astarte_instance_id!())
+
+    try do
+      count =
+        Device
+        |> select([d], count())
+        |> Repo.one!(prefix: keyspace, consistency: :one)
+
+      {:ok, count}
+    rescue
+      err -> handle_xandra_error(err)
+    end
+  end
+
+  defp do_register_device(
+         realm_name,
+         device_id,
+         credentials_secret,
+         %DateTime{} = registration_timestamp,
+         opts
+       ) do
     statement = """
     INSERT INTO devices
     (device_id, first_registration, credentials_secret, inhibit_credentials_request,
@@ -356,7 +320,7 @@ defmodule Astarte.Pairing.Queries do
       Query.new()
       |> Query.statement(statement)
       |> Query.put(:device_id, device_id)
-      |> Query.put(:first_registration, registration_timestamp)
+      |> Query.put(:first_registration, registration_timestamp |> DateTime.to_unix(:millisecond))
       |> Query.put(:credentials_secret, credentials_secret)
       |> Query.put(:inhibit_credentials_request, false)
       |> Query.put(:protocol_revision, 0)
@@ -366,10 +330,21 @@ defmodule Astarte.Pairing.Queries do
       |> Query.put(:introspection_minor, introspection_minor)
       |> Query.consistency(:quorum)
 
-    case Query.call(client, query) do
-      {:ok, _res} ->
-        :ok
+    keyspace_name =
+      CQLUtils.realm_name_to_keyspace_name(realm_name, Config.astarte_instance_id!())
 
+    cqex_options =
+      Config.cqex_options!()
+      |> Keyword.put(:keyspace, keyspace_name)
+
+    with {:ok, client} <-
+           Client.new(
+             Config.cassandra_node!(),
+             cqex_options
+           ),
+         {:ok, _res} <- Query.call(client, query) do
+      :ok
+    else
       error ->
         Logger.warning("DB error: #{inspect(error)}")
         {:error, :database_error}
@@ -377,10 +352,10 @@ defmodule Astarte.Pairing.Queries do
   end
 
   defp do_register_unconfirmed_device(
-         client,
+         realm_name,
          device_id,
          credentials_secret,
-         registration_timestamp,
+         %DateTime{} = registration_timestamp,
          opts
        ) do
     statement = """
@@ -405,7 +380,7 @@ defmodule Astarte.Pairing.Queries do
       Query.new()
       |> Query.statement(statement)
       |> Query.put(:device_id, device_id)
-      |> Query.put(:first_registration, registration_timestamp)
+      |> Query.put(:first_registration, registration_timestamp |> DateTime.to_unix(:millisecond))
       |> Query.put(:credentials_secret, credentials_secret)
       |> Query.put(:inhibit_credentials_request, false)
       |> Query.put(:protocol_revision, 0)
@@ -413,10 +388,21 @@ defmodule Astarte.Pairing.Queries do
       |> Query.put(:introspection_minor, introspection_minor)
       |> Query.consistency(:quorum)
 
-    case Query.call(client, query) do
-      {:ok, _res} ->
-        :ok
+    keyspace_name =
+      CQLUtils.realm_name_to_keyspace_name(realm_name, Config.astarte_instance_id!())
 
+    cqex_options =
+      Config.cqex_options!()
+      |> Keyword.put(:keyspace, keyspace_name)
+
+    with {:ok, client} <-
+           Client.new(
+             Config.cassandra_node!(),
+             cqex_options
+           ),
+         {:ok, _res} <- Query.call(client, query) do
+      :ok
+    else
       error ->
         Logger.warning("DB error: #{inspect(error)}")
         {:error, :database_error}
@@ -469,82 +455,6 @@ defmodule Astarte.Pairing.Queries do
           )
 
         {:error, :database_connection_error}
-    end
-  end
-
-  defp do_fetch_device_registration_limit(conn, realm_name) do
-    query = """
-    SELECT device_registration_limit
-    FROM #{CQLUtils.realm_name_to_keyspace_name("astarte", Config.astarte_instance_id!())}.realms
-    WHERE realm_name = :realm_name
-    """
-
-    with {:ok, prepared} <- Xandra.prepare(conn, query),
-         {:ok, page} <-
-           Xandra.execute(conn, prepared, %{"realm_name" => realm_name}, consistency: :one) do
-      case Enum.to_list(page) do
-        [%{"device_registration_limit" => value}] ->
-          {:ok, value}
-
-        [] ->
-          _ =
-            Logger.warning(
-              "cannot fetch device registration limit: realm #{realm_name} not found",
-              tag: "realm_not_found"
-            )
-
-          {:error, :realm_not_found}
-      end
-    else
-      {:error, %Xandra.ConnectionError{} = err} ->
-        _ =
-          Logger.warning("Database connection error: #{Exception.message(err)}.",
-            tag: "database_connection_error"
-          )
-
-        {:error, :database_connection_error}
-
-      {:error, %Xandra.Error{} = err} ->
-        _ =
-          Logger.warning("Database error: #{Exception.message(err)}.",
-            tag: "database_error"
-          )
-
-        {:error, :database_error}
-    end
-  end
-
-  defp do_fetch_registered_devices_count(conn, realm_name) do
-    # TODO move away from interpolation like this once NoaccOS' PR is merged
-    keyspace_name =
-      CQLUtils.realm_name_to_keyspace_name(realm_name, Config.astarte_instance_id!())
-
-    query = """
-    SELECT COUNT(*)
-    FROM #{keyspace_name}.devices
-    """
-
-    with {:ok, prepared} <- Xandra.prepare(conn, query),
-         {:ok, page} <-
-           Xandra.execute(conn, prepared, %{}, consistency: :one) do
-      [%{"count" => value}] = Enum.to_list(page)
-      {:ok, value}
-    else
-      {:error, %Xandra.ConnectionError{} = err} ->
-        _ =
-          Logger.warning("Database connection error: #{Exception.message(err)}.",
-            tag: "database_connection_error"
-          )
-
-        {:error, :database_connection_error}
-
-      {:error, %Xandra.Error{} = err} ->
-        _ =
-          Logger.warning("Database error: #{Exception.message(err)}.",
-            tag: "database_error"
-          )
-
-        {:error, :database_error}
     end
   end
 end

@@ -407,17 +407,10 @@ defmodule Astarte.Pairing.EngineTest do
 
       {:ok, device_id} = Device.decode_device_id(hw_id, allow_extended_id: true)
 
-      db_client =
-        Config.cassandra_node!()
-        |> CQEx.Client.new!(
-          keyspace:
-            CQLUtils.realm_name_to_keyspace_name(@test_realm, Config.astarte_instance_id!())
-        )
+      {:ok, device} = Queries.fetch_device(@test_realm, device_id)
 
-      {:ok, device} = Queries.select_device_for_credentials_request(db_client, device_id)
-
-      assert device[:cert_aki] == second_aki
-      assert device[:cert_serial] == second_serial
+      assert device.cert_aki == second_aki
+      assert device.cert_serial == second_serial
     end
 
     test "retains first_credentials_request timestamp" do
@@ -426,17 +419,9 @@ defmodule Astarte.Pairing.EngineTest do
 
       {:ok, device_id} = Device.decode_device_id(hw_id, allow_extended_id: true)
 
-      db_client =
-        Config.cassandra_node!()
-        |> CQEx.Client.new!(
-          keyspace:
-            CQLUtils.realm_name_to_keyspace_name(@test_realm, Config.astarte_instance_id!())
-        )
+      {:ok, no_credentials_requested_device} = Queries.fetch_device(@test_realm, device_id)
 
-      {:ok, no_credentials_requested_device} =
-        Queries.select_device_for_credentials_request(db_client, device_id)
-
-      assert no_credentials_requested_device[:first_credentials_request] == nil
+      assert no_credentials_requested_device.first_credentials_request == nil
 
       assert {:ok, %{client_crt: _first_certificate}} =
                Engine.get_credentials(
@@ -448,11 +433,10 @@ defmodule Astarte.Pairing.EngineTest do
                  @valid_ip
                )
 
-      {:ok, credentials_requested_device} =
-        Queries.select_device_for_credentials_request(db_client, device_id)
+      {:ok, credentials_requested_device} = Queries.fetch_device(@test_realm, device_id)
 
       first_credentials_request_timestamp =
-        credentials_requested_device[:first_credentials_request]
+        credentials_requested_device.first_credentials_request
 
       assert first_credentials_request_timestamp != nil
 
@@ -466,11 +450,10 @@ defmodule Astarte.Pairing.EngineTest do
                  @valid_ip
                )
 
-      {:ok, credentials_requested_again_device} =
-        Queries.select_device_for_credentials_request(db_client, device_id)
+      {:ok, credentials_requested_again_device} = Queries.fetch_device(@test_realm, device_id)
 
       assert first_credentials_request_timestamp ==
-               credentials_requested_again_device[:first_credentials_request]
+               credentials_requested_again_device.first_credentials_request
     end
   end
 
