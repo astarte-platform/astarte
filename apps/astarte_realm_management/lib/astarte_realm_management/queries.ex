@@ -1106,26 +1106,19 @@ defmodule Astarte.RealmManagement.Queries do
     Repo.fetch_all(query, prefix: keyspace)
   end
 
-  def retrieve_trigger(client, trigger_name, realm_name) do
+  def retrieve_trigger(realm_name, trigger_name) do
     with {:ok, trigger_uuid} <- retrieve_trigger_uuid(realm_name, trigger_name) do
-      retrieve_trigger_statement =
-        "SELECT value FROM kv_store WHERE group='triggers' AND key=:trigger_uuid;"
+      keyspace = Realm.keyspace_name(realm_name)
 
-      retrieve_trigger_query =
-        DatabaseQuery.new()
-        |> DatabaseQuery.statement(retrieve_trigger_statement)
-        |> DatabaseQuery.put(:trigger_uuid, trigger_uuid)
+      trigger_uuid = to_string(trigger_uuid)
 
-      with {:ok, result} <- DatabaseQuery.call(client, retrieve_trigger_query),
-           [value: trigger_data] <- DatabaseResult.head(result) do
-        {:ok, Trigger.decode(trigger_data)}
-      else
-        :empty_dataset ->
-          {:error, :trigger_not_found}
+      query =
+        from store in KvStore,
+          select: store.value,
+          where: [group: "triggers", key: ^trigger_uuid]
 
-        not_ok ->
-          _ = Logger.warning("Database error: #{inspect(not_ok)}.", tag: "db_error")
-          {:error, :cannot_retrieve_trigger}
+      with {:ok, result} <- Repo.fetch_one(query, prefix: keyspace, error: :trigger_not_found) do
+        {:ok, Trigger.decode(result)}
       end
     end
   end
