@@ -879,8 +879,7 @@ defmodule Astarte.RealmManagement.Engine do
         policy_name: policy_name
       )
 
-    with {:ok, client} <- connect_to_db_with_realm(realm_name),
-         {:ok, policy_proto} <- fetch_trigger_policy(client, policy_name) do
+    with {:ok, policy_proto} <- fetch_trigger_policy(realm_name, policy_name) do
       policy_proto
       |> PolicyProto.decode()
       |> Policy.from_policy_proto!()
@@ -888,8 +887,8 @@ defmodule Astarte.RealmManagement.Engine do
     end
   end
 
-  defp fetch_trigger_policy(client, policy_name) do
-    with {:error, :policy_not_found} <- Queries.fetch_trigger_policy(client, policy_name) do
+  defp fetch_trigger_policy(realm_name, policy_name) do
+    with {:error, :policy_not_found} <- Queries.fetch_trigger_policy(realm_name, policy_name) do
       Logger.warning("Trigger policy not found",
         tag: "trigger_policy_not_found",
         policy_name: policy_name

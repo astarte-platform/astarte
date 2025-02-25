@@ -1235,36 +1235,15 @@ defmodule Astarte.RealmManagement.Queries do
     Repo.fetch_all(query, prefix: keyspace, consistency: :quorum)
   end
 
-  def fetch_trigger_policy(client, policy_name) do
-    policy_cols_statement = """
-    SELECT value
-    FROM kv_store
-    WHERE group=:group_name and key=:policy_name
-    """
+  def fetch_trigger_policy(realm_name, policy_name) do
+    keyspace = Realm.keyspace_name(realm_name)
 
     query =
-      DatabaseQuery.new()
-      |> DatabaseQuery.statement(policy_cols_statement)
-      |> DatabaseQuery.put(:group_name, "trigger_policy")
-      |> DatabaseQuery.put(:policy_name, policy_name)
-      |> DatabaseQuery.consistency(:quorum)
+      from store in KvStore,
+        select: store.value,
+        where: [group: "trigger_policy", policy_name: ^policy_name]
 
-    with {:ok, result} <- DatabaseQuery.call(client, query),
-         policy_row when is_list(policy_row) <- DatabaseResult.head(result),
-         {:ok, container} <- Keyword.fetch(policy_row, :value) do
-      {:ok, container}
-    else
-      :empty_dataset ->
-        {:error, :policy_not_found}
-
-      %{acc: _, msg: error_message} ->
-        _ = Logger.warning("Database error: #{error_message}.", tag: "db_error")
-        {:error, :database_error}
-
-      {:error, reason} ->
-        _ = Logger.warning("Failed, reason: #{inspect(reason)}.", tag: "db_error")
-        {:error, :database_error}
-    end
+    Repo.fetch_one(query, prefix: keyspace, error: :policy_not_found)
   end
 
   def check_policy_has_triggers(client, policy_name) do
