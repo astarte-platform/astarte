@@ -715,8 +715,7 @@ defmodule Astarte.RealmManagement.Engine do
   def get_trigger(realm_name, trigger_name) do
     _ = Logger.debug("Get trigger.", trigger_name: trigger_name)
 
-    with {:ok, client} <- get_database_client(realm_name),
-         {:ok, %Trigger{} = trigger} <- Queries.retrieve_trigger(realm_name, trigger_name) do
+    with {:ok, %Trigger{} = trigger} <- Queries.retrieve_trigger(realm_name, trigger_name) do
       %Trigger{
         trigger_uuid: parent_uuid,
         simple_triggers_uuids: simple_triggers_uuids
@@ -730,7 +729,7 @@ defmodule Astarte.RealmManagement.Engine do
             {false, []}
 
           uuid, {true, acc} ->
-            case Queries.retrieve_tagged_simple_trigger(client, parent_uuid, uuid) do
+            case Queries.retrieve_tagged_simple_trigger(realm_name, parent_uuid, uuid) do
               {:ok, %TaggedSimpleTrigger{} = result} ->
                 {true, [TaggedSimpleTrigger.encode(result) | acc]}
 

@@ -1125,26 +1125,23 @@ defmodule Astarte.RealmManagement.Queries do
 
   # TODO: simple_trigger_uuid is required due how we made the compound key
   # should we move simple_trigger_uuid to the first part of the key?
-  def retrieve_tagged_simple_trigger(client, parent_trigger_uuid, simple_trigger_uuid) do
+  def retrieve_tagged_simple_trigger(realm_name, parent_trigger_uuid, simple_trigger_uuid) do
+    keyspace = Realm.keyspace_name(realm_name)
+
     with %{object_uuid: object_id, object_type: object_type} <-
-           retrieve_simple_trigger_astarte_ref(client, simple_trigger_uuid) do
-      retrieve_simple_trigger_statement = """
-      SELECT trigger_data
-      FROM simple_triggers
-      WHERE object_id=:object_id AND object_type=:object_type AND
-            parent_trigger_id=:parent_trigger_id AND simple_trigger_id=:simple_trigger_id
-      """
+           retrieve_simple_trigger_astarte_ref(realm_name, simple_trigger_uuid) do
+      query =
+        from trigger in SimpleTrigger,
+          select: trigger.trigger_data,
+          where: [
+            object_id: ^object_id,
+            object_type: ^object_type,
+            parent_trigger_id: ^parent_trigger_uuid,
+            simple_trigger_id: ^simple_trigger_uuid
+          ]
 
-      retrieve_simple_trigger_query =
-        DatabaseQuery.new()
-        |> DatabaseQuery.statement(retrieve_simple_trigger_statement)
-        |> DatabaseQuery.put(:object_id, object_id)
-        |> DatabaseQuery.put(:object_type, object_type)
-        |> DatabaseQuery.put(:parent_trigger_id, parent_trigger_uuid)
-        |> DatabaseQuery.put(:simple_trigger_id, simple_trigger_uuid)
-
-      with {:ok, result} <- DatabaseQuery.call(client, retrieve_simple_trigger_query),
-           [trigger_data: trigger_data] <- DatabaseResult.head(result) do
+      with {:ok, trigger_data} <-
+             Repo.fetch_one(query, prefix: keyspace, error: :simple_trigger_not_found) do
         {
           :ok,
           %TaggedSimpleTrigger{
@@ -1153,22 +1150,7 @@ defmodule Astarte.RealmManagement.Queries do
             simple_trigger_container: SimpleTriggerContainer.decode(trigger_data)
           }
         }
-      else
-        not_ok ->
-          _ =
-            Logger.warning("Possible inconsistency found: database error: #{inspect(not_ok)}.",
-              tag: "db_error"
-            )
-
-          {:error, :cannot_retrieve_simple_trigger}
       end
-    else
-      :empty_dataset ->
-        {:error, :simple_trigger_not_found}
-
-      not_ok ->
-        _ = Logger.warning("Database error: #{inspect(not_ok)}.", tag: "db_error")
-        {:error, :cannot_retrieve_simple_trigger}
     end
   end
 
