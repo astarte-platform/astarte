@@ -19,6 +19,7 @@
 defmodule Astarte.RealmManagement.Queries do
   require CQEx
   require Logger
+  alias Astarte.RealmManagement.Realms.DeletionInProgress
   alias Astarte.RealmManagement.Realms.GroupedDevice
   alias Astarte.RealmManagement.Realms.Name
   alias Astarte.RealmManagement.Realms.IndividualDatastream
@@ -1786,27 +1787,11 @@ defmodule Astarte.RealmManagement.Queries do
   end
 
   def retrieve_devices_to_delete!(realm_name) do
-    Xandra.Cluster.run(:xandra_device_deletion, &do_retrieve_devices_to_delete!(&1, realm_name))
-  end
+    keyspace = Realm.keyspace_name(realm_name)
 
-  defp do_retrieve_devices_to_delete!(conn, realm_name) do
-    # TODO: validate realm name
-    keyspace_name =
-      CQLUtils.realm_name_to_keyspace_name(realm_name, Config.astarte_instance_id!())
-
-    statement = """
-    SELECT *
-    FROM #{keyspace_name}.deletion_in_progress
-    """
-
-    Xandra.execute!(conn, statement, %{},
-      consistency: :local_quorum,
-      uuid_format: :binary
-    )
-    |> Enum.to_list()
-    |> Enum.filter(fn %{vmq_ack: vmq_ack, dup_start_ack: dup_start_ack, dup_end_ack: dup_end_ack} ->
-      vmq_ack and dup_start_ack and dup_end_ack
-    end)
+    from(DeletionInProgress)
+    |> Repo.all(prefix: keyspace, consistency: :local_quorum)
+    |> Enum.filter(&DeletionInProgress.all_ack?/1)
   end
 
   def get_device_registration_limit(realm_name) do
