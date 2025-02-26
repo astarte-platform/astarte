@@ -1780,18 +1780,9 @@ defmodule Astarte.RealmManagement.Queries do
   end
 
   def retrieve_realms!() do
-    statement = """
-    SELECT *
-    FROM #{CQLUtils.realm_name_to_keyspace_name("astarte", Config.astarte_instance_id!())}.realms
-    """
+    keyspace = Realm.keyspace_name("astarte")
 
-    realms =
-      Xandra.Cluster.run(
-        :xandra,
-        &Xandra.execute!(&1, statement, %{}, consistency: :local_quorum)
-      )
-
-    Enum.to_list(realms)
+    Repo.all(Realm, prefix: keyspace, consistency: :local_quorum)
   end
 
   def retrieve_devices_to_delete!(realm_name) do
