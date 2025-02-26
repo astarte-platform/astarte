@@ -19,6 +19,7 @@
 defmodule Astarte.RealmManagement.Queries do
   require CQEx
   require Logger
+  alias Astarte.RealmManagement.Realms.Name
   alias Astarte.RealmManagement.Realms.IndividualDatastream
   alias Astarte.RealmManagement.Realms.Device, as: RealmsDevice
   alias Astarte.RealmManagement.Realms.Interface
@@ -1596,27 +1597,15 @@ defmodule Astarte.RealmManagement.Queries do
   end
 
   def retrieve_aliases!(realm_name, device_id) do
-    Xandra.Cluster.run(
-      :xandra_device_deletion,
-      &do_retrieve_aliases!(&1, realm_name, device_id)
-    )
-  end
+    keyspace = Realm.keyspace_name(realm_name)
 
-  defp do_retrieve_aliases!(conn, realm_name, device_id) do
-    # TODO: validate realm name
-    keyspace_name =
-      CQLUtils.realm_name_to_keyspace_name(realm_name, Config.astarte_instance_id!())
+    query =
+      from Name,
+        hints: ["ALLOW FILTERING"],
+        select: [:object_name],
+        where: [object_uuid: ^device_id]
 
-    statement = """
-    SELECT object_name
-    FROM #{keyspace_name}.names
-    WHERE object_uuid =:device_id ALLOW FILTERING
-    """
-
-    params = %{device_id: device_id}
-
-    prepared = Xandra.prepare!(conn, statement)
-    Xandra.execute!(conn, prepared, params, uuid_format: :binary) |> Enum.to_list()
+    Repo.all(query, prefix: keyspace)
   end
 
   def delete_alias_values!(realm_name, device_alias) do
