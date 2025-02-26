@@ -1795,42 +1795,14 @@ defmodule Astarte.RealmManagement.Queries do
   end
 
   def get_device_registration_limit(realm_name) do
-    Xandra.Cluster.run(:xandra, &do_get_device_registration_limit(&1, realm_name))
-  end
+    keyspace = Realm.keyspace_name("astarte")
 
-  defp do_get_device_registration_limit(conn, realm_name) do
-    query = """
-    SELECT device_registration_limit
-    FROM #{CQLUtils.realm_name_to_keyspace_name("astarte", Config.astarte_instance_id!())}.realms
-    WHERE realm_name = :realm_name
-    """
+    query =
+      from realm in Realm,
+        select: realm.device_registration_limit,
+        where: [realm_name: ^realm_name]
 
-    with {:ok, prepared} <- Xandra.prepare(conn, query),
-         {:ok, page} <-
-           Xandra.execute(conn, prepared, %{realm_name: realm_name}, consistency: :one) do
-      case Enum.to_list(page) do
-        [%{device_registration_limit: value}] -> {:ok, value}
-        [] -> {:error, :realm_not_found}
-      end
-    else
-      {:error, %Xandra.ConnectionError{} = error} ->
-        _ =
-          Logger.warning(
-            "Database connection error: #{Exception.message(error)}",
-            tag: "database_connection_error"
-          )
-
-        {:error, :database_connection_error}
-
-      {:error, %Xandra.Error{} = error} ->
-        _ =
-          Logger.warning(
-            "Database error: #{Exception.message(error)}",
-            tag: "database_error"
-          )
-
-        {:error, :database_error}
-    end
+    Repo.fetch_one(query, prefix: keyspace, consistency: :one, error: :realm_not_found)
   end
 
   def get_datastream_maximum_storage_retention(realm_name) do
