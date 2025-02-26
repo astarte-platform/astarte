@@ -546,32 +546,19 @@ defmodule Astarte.AppEngine.API.Device.Queries do
     Repo.fetch_one(query, consistency: :quorum, error: :device_not_found)
   end
 
-  def insert_attribute(client, device_id, attribute_key, attribute_value) do
-    insert_attribute_statement = """
-    UPDATE devices
-    SET attributes[:attribute_key] = :attribute_value
-    WHERE device_id = :device_id
-    """
+  def insert_attribute(realm_name, device_id, attribute_key, attribute_value) do
+    keyspace = keyspace_name(realm_name)
+    new_attribute = %{attribute_key => attribute_value}
 
     query =
-      DatabaseQuery.new()
-      |> DatabaseQuery.statement(insert_attribute_statement)
-      |> DatabaseQuery.put(:attribute_key, attribute_key)
-      |> DatabaseQuery.put(:attribute_value, attribute_value)
-      |> DatabaseQuery.put(:device_id, device_id)
-      |> DatabaseQuery.consistency(:each_quorum)
+      from d in DatabaseDevice,
+        prefix: ^keyspace,
+        where: d.device_id == ^device_id,
+        update: [set: [attributes: fragment("attributes + ?", ^new_attribute)]]
 
-    with {:ok, _result} <- DatabaseQuery.call(client, query) do
-      :ok
-    else
-      %{acc: _, msg: error_message} ->
-        _ = Logger.warning("Database error: #{error_message}.", tag: "db_error")
-        {:error, :database_error}
+    Repo.update_all(query, [], consistency: :each_quorum)
 
-      {:error, reason} ->
-        _ = Logger.warning("Database error, reason: #{inspect(reason)}.", tag: "db_error")
-        {:error, :database_error}
-    end
+    :ok
   end
 
   def delete_attribute(realm_name, client, device_id, attribute_key) do
@@ -744,31 +731,18 @@ defmodule Astarte.AppEngine.API.Device.Queries do
     end
   end
 
-  def set_inhibit_credentials_request(client, device_id, inhibit_credentials_request) do
-    statement = """
-    UPDATE devices
-    SET inhibit_credentials_request = :inhibit_credentials_request
-    WHERE device_id = :device_id
-    """
+  def set_inhibit_credentials_request(realm_name, device_id, inhibit_credentials_request) do
+    keyspace = keyspace_name(realm_name)
 
     query =
-      DatabaseQuery.new()
-      |> DatabaseQuery.statement(statement)
-      |> DatabaseQuery.put(:inhibit_credentials_request, inhibit_credentials_request)
-      |> DatabaseQuery.put(:device_id, device_id)
-      |> DatabaseQuery.consistency(:each_quorum)
+      from DatabaseDevice,
+        prefix: ^keyspace,
+        update: [set: [inhibit_credentials_request: ^inhibit_credentials_request]],
+        where: [device_id: ^device_id]
 
-    with {:ok, _result} <- DatabaseQuery.call(client, query) do
-      :ok
-    else
-      %{acc: _, msg: error_message} ->
-        _ = Logger.warning("Database error: #{error_message}.", tag: "db_error")
-        {:error, :database_error}
+    Repo.update_all(query, [], consistency: :each_quorum)
 
-      {:error, reason} ->
-        _ = Logger.warning("Update failed, reason: #{inspect(reason)}.", tag: "db_error")
-        {:error, :database_error}
-    end
+    :ok
   end
 
   def retrieve_object_datastream_values(realm_name, device_id, interface_row, path, columns, opts) do

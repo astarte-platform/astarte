@@ -77,7 +77,7 @@ defmodule Astarte.AppEngine.API.Device do
          changeset = DeviceStatus.changeset(device_status, device_status_merge),
          {:ok, updated_device_status} <- Ecto.Changeset.apply_action(changeset, :update),
          credentials_inhibited_change = Map.get(changeset.changes, :credentials_inhibited),
-         :ok <- change_credentials_inhibited(client, device_id, credentials_inhibited_change),
+         :ok <- change_credentials_inhibited(realm_name, device_id, credentials_inhibited_change),
          aliases_change = Map.get(changeset.changes, :aliases, %{}),
          attributes_change = Map.get(changeset.changes, :attributes, %{}),
          :ok <- update_aliases(realm_name, client, device_id, aliases_change),
@@ -114,7 +114,7 @@ defmodule Astarte.AppEngine.API.Device do
         end
 
       {attribute_key, attribute_value}, _acc ->
-        case Queries.insert_attribute(client, device_id, attribute_key, attribute_value) do
+        case Queries.insert_attribute(realm_name, device_id, attribute_key, attribute_value) do
           :ok ->
             {:cont, :ok}
 
@@ -154,13 +154,13 @@ defmodule Astarte.AppEngine.API.Device do
     |> Enum.into(%{})
   end
 
-  defp change_credentials_inhibited(_client, _device_id, nil) do
+  defp change_credentials_inhibited(_realm_name, _device_id, nil) do
     :ok
   end
 
-  defp change_credentials_inhibited(client, device_id, credentials_inhibited)
+  defp change_credentials_inhibited(realm_name, device_id, credentials_inhibited)
        when is_boolean(credentials_inhibited) do
-    Queries.set_inhibit_credentials_request(client, device_id, credentials_inhibited)
+    Queries.set_inhibit_credentials_request(realm_name, device_id, credentials_inhibited)
   end
 
   @doc """
