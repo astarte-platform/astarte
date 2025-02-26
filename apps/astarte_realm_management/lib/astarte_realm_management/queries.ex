@@ -1636,29 +1636,15 @@ defmodule Astarte.RealmManagement.Queries do
   end
 
   def retrieve_groups_keys!(realm_name, device_id) do
-    Xandra.Cluster.run(
-      :xandra_device_deletion,
-      &do_retrieve_groups_keys!(&1, realm_name, device_id)
-    )
-  end
+    keyspace = Realm.keyspace_name(realm_name)
 
-  defp do_retrieve_groups_keys!(conn, realm_name, device_id) do
-    # TODO: validate realm name
-    keyspace_name =
-      CQLUtils.realm_name_to_keyspace_name(realm_name, Config.astarte_instance_id!())
+    query =
+      from GroupedDevice,
+        hints: ["ALLOW FILTERING"],
+        select: [:group_name, :insertion_uuid, :device_id],
+        where: [device_id: ^device_id]
 
-    statement = """
-    SELECT group_name, insertion_uuid, device_id
-    FROM #{keyspace_name}.grouped_devices
-    WHERE device_id=:device_id ALLOW FILTERING
-    """
-
-    params = %{device_id: device_id}
-
-    prepared = Xandra.prepare!(conn, statement)
-
-    Xandra.execute!(conn, prepared, params, uuid_format: :binary, timeuuid_format: :binary)
-    |> Enum.to_list()
+    Repo.all(query, prefix: keyspace)
   end
 
   def delete_group_values!(realm_name, device_id, group_name, insertion_uuid) do
