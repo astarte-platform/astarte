@@ -19,6 +19,7 @@
 defmodule Astarte.RealmManagement.Queries do
   require CQEx
   require Logger
+  alias Astarte.RealmManagement.Realms.Device, as: RealmsDevice
   alias Astarte.RealmManagement.Realms.Interface
   alias Astarte.RealmManagement.Realms.IndividualProperty
   alias Astarte.RealmManagement.Realms.Endpoint
@@ -1318,60 +1319,14 @@ defmodule Astarte.RealmManagement.Queries do
   end
 
   def check_device_exists(realm_name, device_id) do
-    Xandra.Cluster.run(
-      :xandra_device_deletion,
-      &do_check_device_exists(&1, realm_name, device_id)
-    )
-  end
+    keyspace = Realm.keyspace_name(realm_name)
 
-  defp do_check_device_exists(conn, realm_name, device_id) do
-    keyspace = CQLUtils.realm_name_to_keyspace_name(realm_name, Config.astarte_instance_id!())
+    query =
+      from device in RealmsDevice,
+        select: device.device_id,
+        where: [device_id: ^device_id]
 
-    # TODO: validate realm name
-    statement = """
-    SELECT COUNT (*)
-    FROM #{keyspace}.devices
-    WHERE device_id = :device_id
-    """
-
-    params = %{device_id: device_id}
-
-    with {:ok, prepared} <- Xandra.prepare(conn, statement),
-         {:ok, [result]} <-
-           execute_device_exists_query(conn, prepared, params,
-             consistency: :quorum,
-             uuid_format: :binary
-           ) do
-      {:ok, device_exists_result_to_boolean(result)}
-    end
-  end
-
-  defp device_exists_result_to_boolean(%{count: 1}), do: true
-  defp device_exists_result_to_boolean(_), do: false
-
-  defp execute_device_exists_query(conn, prepared, params, opts) do
-    case Xandra.execute(conn, prepared, params, opts) do
-      {:ok, %Xandra.Page{} = page} ->
-        {:ok, Enum.to_list(page)}
-
-      {:error, %Xandra.ConnectionError{}} ->
-        _ =
-          Logger.warning(
-            "Cannot check if device exists, connection error",
-            tag: "check_device_exists_connection_error"
-          )
-
-        {:error, :database_connection_error}
-
-      {:error, %Xandra.Error{} = error} ->
-        _ =
-          Logger.warning(
-            "Cannot check if device exists, reason #{error.message}",
-            tag: "check_device_exists_error"
-          )
-
-        {:error, error.reason}
-    end
+    Repo.some?(query, prefix: keyspace, consistency: :quorum)
   end
 
   def table_exist?(realm_name, table_name) do
