@@ -507,7 +507,7 @@ defmodule Astarte.RealmManagement.Engine do
          :ok <- validate_simple_triggers(realm_name, simple_trigger_maps),
          # TODO: these should be batched together
          :ok <- install_simple_triggers(client, simple_trigger_maps, trigger_uuid, t_container),
-         :ok <- install_trigger_policy_link(client, trigger_uuid, trigger_policy_name) do
+         :ok <- install_trigger_policy_link(client, trigger_uuid, trigger_policy_name, realm_name) do
       _ =
         Logger.info("Installing trigger.",
           trigger_name: trigger_name,
@@ -698,16 +698,16 @@ defmodule Astarte.RealmManagement.Engine do
     end)
   end
 
-  defp install_trigger_policy_link(_client, _trigger_uuid, nil) do
+  defp install_trigger_policy_link(_client, _trigger_uuid, nil, _realm_name) do
     :ok
   end
 
-  defp install_trigger_policy_link(_client, _trigger_uuid, "") do
+  defp install_trigger_policy_link(_client, _trigger_uuid, "", _realm_name) do
     :ok
   end
 
-  defp install_trigger_policy_link(client, trigger_uuid, trigger_policy_name) do
-    with :ok <- verify_trigger_policy_exists(client, trigger_policy_name) do
+  defp install_trigger_policy_link(client, trigger_uuid, trigger_policy_name, realm_name) do
+    with :ok <- verify_trigger_policy_exists(realm_name, trigger_policy_name) do
       Queries.install_trigger_policy_link(client, trigger_uuid, trigger_policy_name)
     end
   end
@@ -715,8 +715,7 @@ defmodule Astarte.RealmManagement.Engine do
   def get_trigger(realm_name, trigger_name) do
     _ = Logger.debug("Get trigger.", trigger_name: trigger_name)
 
-    with {:ok, client} <- get_database_client(realm_name),
-         {:ok, %Trigger{} = trigger} <- Queries.retrieve_trigger(client, trigger_name, realm_name) do
+    with {:ok, %Trigger{} = trigger} <- Queries.retrieve_trigger(realm_name, trigger_name) do
       %Trigger{
         trigger_uuid: parent_uuid,
         simple_triggers_uuids: simple_triggers_uuids
@@ -730,7 +729,7 @@ defmodule Astarte.RealmManagement.Engine do
             {false, []}
 
           uuid, {true, acc} ->
-            case Queries.retrieve_tagged_simple_trigger(client, parent_uuid, uuid) do
+            case Queries.retrieve_tagged_simple_trigger(realm_name, parent_uuid, uuid) do
               {:ok, %TaggedSimpleTrigger{} = result} ->
                 {true, [TaggedSimpleTrigger.encode(result) | acc]}
 
@@ -768,7 +767,7 @@ defmodule Astarte.RealmManagement.Engine do
     _ = Logger.info("Going to delete trigger.", trigger_name: trigger_name, tag: "delete_trigger")
 
     with {:ok, client} <- get_database_client(realm_name),
-         {:ok, trigger} <- Queries.retrieve_trigger(client, trigger_name, realm_name) do
+         {:ok, trigger} <- Queries.retrieve_trigger(realm_name, trigger_name) do
       _ =
         Logger.info("Deleting trigger.",
           trigger_name: trigger_name,
@@ -777,7 +776,12 @@ defmodule Astarte.RealmManagement.Engine do
 
       delete_all_simple_triggers_succeeded =
         Enum.all?(trigger.simple_triggers_uuids, fn simple_trigger_uuid ->
-          Queries.delete_simple_trigger(client, trigger.trigger_uuid, simple_trigger_uuid) == :ok
+          Queries.delete_simple_trigger(
+            client,
+            trigger.trigger_uuid,
+            simple_trigger_uuid,
+            realm_name
+          ) == :ok
         end)
 
       delete_policy_link_succeeded =
@@ -817,7 +821,7 @@ defmodule Astarte.RealmManagement.Engine do
          {:ok, json_obj} <- decode_policy(policy_json),
          policy_changeset = Policy.changeset(%Policy{}, json_obj),
          {:ok, %Policy{name: policy_name} = policy} <- validate_trigger_policy(policy_changeset),
-         :ok <- verify_trigger_policy_not_exists(client, policy_name) do
+         :ok <- verify_trigger_policy_not_exists(realm_name, policy_name) do
       _ =
         Logger.info("Installing trigger policy",
           tag: "install_policy_started",
@@ -865,9 +869,7 @@ defmodule Astarte.RealmManagement.Engine do
   def get_trigger_policies_list(realm_name) do
     _ = Logger.debug("Get trigger policy list", tag: "get_trigger_policies_list")
 
-    with {:ok, client} <- connect_to_db_with_realm(realm_name) do
-      Queries.get_trigger_policies_list(client)
-    end
+    Queries.get_trigger_policies_list(realm_name)
   end
 
   def trigger_policy_source(realm_name, policy_name) do
@@ -877,8 +879,7 @@ defmodule Astarte.RealmManagement.Engine do
         policy_name: policy_name
       )
 
-    with {:ok, client} <- connect_to_db_with_realm(realm_name),
-         {:ok, policy_proto} <- fetch_trigger_policy(client, policy_name) do
+    with {:ok, policy_proto} <- fetch_trigger_policy(realm_name, policy_name) do
       policy_proto
       |> PolicyProto.decode()
       |> Policy.from_policy_proto!()
@@ -886,8 +887,8 @@ defmodule Astarte.RealmManagement.Engine do
     end
   end
 
-  defp fetch_trigger_policy(client, policy_name) do
-    with {:error, :policy_not_found} <- Queries.fetch_trigger_policy(client, policy_name) do
+  defp fetch_trigger_policy(realm_name, policy_name) do
+    with {:error, :policy_not_found} <- Queries.fetch_trigger_policy(realm_name, policy_name) do
       Logger.warning("Trigger policy not found",
         tag: "trigger_policy_not_found",
         policy_name: policy_name
@@ -905,8 +906,8 @@ defmodule Astarte.RealmManagement.Engine do
       )
 
     with {:ok, client} <- connect_to_db_with_realm(realm_name),
-         :ok <- verify_trigger_policy_exists(client, policy_name),
-         {:ok, false} <- check_trigger_policy_has_triggers(client, policy_name) do
+         :ok <- verify_trigger_policy_exists(realm_name, policy_name),
+         {:ok, false} <- check_trigger_policy_has_triggers(realm_name, policy_name) do
       if opts[:async] do
         Task.start_link(Engine, :execute_trigger_policy_deletion, [client, policy_name])
 
@@ -935,8 +936,8 @@ defmodule Astarte.RealmManagement.Engine do
     end)
   end
 
-  defp verify_trigger_policy_not_exists(client, policy_name) do
-    with {:ok, exists?} <- Queries.check_trigger_policy_already_present(client, policy_name) do
+  defp verify_trigger_policy_not_exists(realm_name, policy_name) do
+    with {:ok, exists?} <- Queries.check_trigger_policy_already_present(realm_name, policy_name) do
       if not exists? do
         :ok
       else
@@ -963,8 +964,8 @@ defmodule Astarte.RealmManagement.Engine do
     end
   end
 
-  defp check_trigger_policy_has_triggers(client, policy_name) do
-    with {:ok, true} <- Queries.check_policy_has_triggers(client, policy_name) do
+  defp check_trigger_policy_has_triggers(realm_name, policy_name) do
+    with {:ok, true} <- Queries.check_policy_has_triggers(realm_name, policy_name) do
       Logger.warning("Trigger policy #{policy_name} is currently being used by triggers",
         tag: "cannot_delete_currently_used_trigger_policy"
       )

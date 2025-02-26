@@ -47,7 +47,6 @@ defmodule Astarte.RealmManagement.Queries do
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.TriggerTargetContainer
   alias Astarte.Core.Triggers.Trigger
   alias CQEx.Query, as: DatabaseQuery
-  alias CQEx.Result, as: DatabaseResult
   alias CQEx.Result.SchemaChanged
 
   import Ecto.Query
@@ -1106,52 +1105,42 @@ defmodule Astarte.RealmManagement.Queries do
     Repo.fetch_all(query, prefix: keyspace)
   end
 
-  def retrieve_trigger(client, trigger_name, realm_name) do
+  def retrieve_trigger(realm_name, trigger_name) do
     with {:ok, trigger_uuid} <- retrieve_trigger_uuid(realm_name, trigger_name) do
-      retrieve_trigger_statement =
-        "SELECT value FROM kv_store WHERE group='triggers' AND key=:trigger_uuid;"
+      keyspace = Realm.keyspace_name(realm_name)
 
-      retrieve_trigger_query =
-        DatabaseQuery.new()
-        |> DatabaseQuery.statement(retrieve_trigger_statement)
-        |> DatabaseQuery.put(:trigger_uuid, trigger_uuid)
+      trigger_uuid = to_string(trigger_uuid)
 
-      with {:ok, result} <- DatabaseQuery.call(client, retrieve_trigger_query),
-           [value: trigger_data] <- DatabaseResult.head(result) do
-        {:ok, Trigger.decode(trigger_data)}
-      else
-        :empty_dataset ->
-          {:error, :trigger_not_found}
+      query =
+        from store in KvStore,
+          select: store.value,
+          where: [group: "triggers", key: ^trigger_uuid]
 
-        not_ok ->
-          _ = Logger.warning("Database error: #{inspect(not_ok)}.", tag: "db_error")
-          {:error, :cannot_retrieve_trigger}
+      with {:ok, result} <- Repo.fetch_one(query, prefix: keyspace, error: :trigger_not_found) do
+        {:ok, Trigger.decode(result)}
       end
     end
   end
 
   # TODO: simple_trigger_uuid is required due how we made the compound key
   # should we move simple_trigger_uuid to the first part of the key?
-  def retrieve_tagged_simple_trigger(client, parent_trigger_uuid, simple_trigger_uuid) do
+  def retrieve_tagged_simple_trigger(realm_name, parent_trigger_uuid, simple_trigger_uuid) do
+    keyspace = Realm.keyspace_name(realm_name)
+
     with %{object_uuid: object_id, object_type: object_type} <-
-           retrieve_simple_trigger_astarte_ref(client, simple_trigger_uuid) do
-      retrieve_simple_trigger_statement = """
-      SELECT trigger_data
-      FROM simple_triggers
-      WHERE object_id=:object_id AND object_type=:object_type AND
-            parent_trigger_id=:parent_trigger_id AND simple_trigger_id=:simple_trigger_id
-      """
+           retrieve_simple_trigger_astarte_ref(realm_name, simple_trigger_uuid) do
+      query =
+        from trigger in SimpleTrigger,
+          select: trigger.trigger_data,
+          where: [
+            object_id: ^object_id,
+            object_type: ^object_type,
+            parent_trigger_id: ^parent_trigger_uuid,
+            simple_trigger_id: ^simple_trigger_uuid
+          ]
 
-      retrieve_simple_trigger_query =
-        DatabaseQuery.new()
-        |> DatabaseQuery.statement(retrieve_simple_trigger_statement)
-        |> DatabaseQuery.put(:object_id, object_id)
-        |> DatabaseQuery.put(:object_type, object_type)
-        |> DatabaseQuery.put(:parent_trigger_id, parent_trigger_uuid)
-        |> DatabaseQuery.put(:simple_trigger_id, simple_trigger_uuid)
-
-      with {:ok, result} <- DatabaseQuery.call(client, retrieve_simple_trigger_query),
-           [trigger_data: trigger_data] <- DatabaseResult.head(result) do
+      with {:ok, trigger_data} <-
+             Repo.fetch_one(query, prefix: keyspace, error: :simple_trigger_not_found) do
         {
           :ok,
           %TaggedSimpleTrigger{
@@ -1160,28 +1149,13 @@ defmodule Astarte.RealmManagement.Queries do
             simple_trigger_container: SimpleTriggerContainer.decode(trigger_data)
           }
         }
-      else
-        not_ok ->
-          _ =
-            Logger.warning("Possible inconsistency found: database error: #{inspect(not_ok)}.",
-              tag: "db_error"
-            )
-
-          {:error, :cannot_retrieve_simple_trigger}
       end
-    else
-      :empty_dataset ->
-        {:error, :simple_trigger_not_found}
-
-      not_ok ->
-        _ = Logger.warning("Database error: #{inspect(not_ok)}.", tag: "db_error")
-        {:error, :cannot_retrieve_simple_trigger}
     end
   end
 
-  def delete_simple_trigger(client, parent_trigger_uuid, simple_trigger_uuid) do
+  def delete_simple_trigger(client, parent_trigger_uuid, simple_trigger_uuid, realm_name) do
     with %{object_uuid: object_id, object_type: object_type} <-
-           retrieve_simple_trigger_astarte_ref(client, simple_trigger_uuid) do
+           retrieve_simple_trigger_astarte_ref(realm_name, simple_trigger_uuid) do
       delete_simple_trigger_statement = """
       DELETE FROM simple_triggers
       WHERE object_id=:object_id AND object_type=:object_type AND
@@ -1215,26 +1189,18 @@ defmodule Astarte.RealmManagement.Queries do
     end
   end
 
-  defp retrieve_simple_trigger_astarte_ref(client, simple_trigger_uuid) do
-    retrieve_astarte_ref_statement =
-      "SELECT value FROM kv_store WHERE group='simple-triggers-by-uuid' AND key=:simple_trigger_uuid;"
+  defp retrieve_simple_trigger_astarte_ref(realm_name, simple_trigger_uuid) do
+    keyspace = Realm.keyspace_name(realm_name)
 
-    retrieve_astarte_ref_query =
-      DatabaseQuery.new()
-      |> DatabaseQuery.statement(retrieve_astarte_ref_statement)
-      |> DatabaseQuery.put(:simple_trigger_uuid, :uuid.uuid_to_string(simple_trigger_uuid))
+    simple_trigger_uuid = :uuid.uuid_to_string(simple_trigger_uuid)
 
-    with {:ok, result} <- DatabaseQuery.call(client, retrieve_astarte_ref_query),
-         [value: astarte_ref_blob] <- DatabaseResult.head(result) do
-      AstarteReference.decode(astarte_ref_blob)
-    else
-      :empty_dataset ->
-        {:error, :trigger_not_found}
+    query =
+      from store in KvStore,
+        select: store.value,
+        where: [groups: "simple-triggers-by-uuid", key: ^simple_trigger_uuid]
 
-      not_ok ->
-        _ = Logger.warning("Database error: #{inspect(not_ok)}.", tag: "db_error")
-
-        {:error, :cannot_retrieve_simple_trigger}
+    with {:ok, result} <- Repo.fetch_one(query, prefix: keyspace, error: :trigger_not_found) do
+      AstarteReference.decode(result)
     end
   end
 
@@ -1257,96 +1223,39 @@ defmodule Astarte.RealmManagement.Queries do
     end
   end
 
-  def get_trigger_policies_list(client) do
-    trigger_policies_list_statement = """
-    SELECT key FROM kv_store WHERE group=:group_name
-    """
+  def get_trigger_policies_list(realm_name) do
+    keyspace = Realm.keyspace_name(realm_name)
 
     query =
-      DatabaseQuery.new()
-      |> DatabaseQuery.statement(trigger_policies_list_statement)
-      |> DatabaseQuery.put(:group_name, "trigger_policy")
-      |> DatabaseQuery.consistency(:quorum)
+      from store in KvStore,
+        select: store.key,
+        where: [group: "trigger_policy"]
 
-    with {:ok, result} <- DatabaseQuery.call(client, query) do
-      list =
-        Enum.map(result, fn row ->
-          Keyword.fetch!(row, :key)
-        end)
-
-      {:ok, list}
-    else
-      %{acc: _, msg: error_message} ->
-        _ = Logger.warning("Database error: #{error_message}.", tag: "db_error")
-        {:error, :database_error}
-
-      {:error, reason} ->
-        _ =
-          Logger.warning("Database error: failed with reason: #{inspect(reason)}.",
-            tag: "db_error"
-          )
-
-        {:error, :database_error}
-    end
+    Repo.fetch_all(query, prefix: keyspace, consistency: :quorum)
   end
 
-  def fetch_trigger_policy(client, policy_name) do
-    policy_cols_statement = """
-    SELECT value
-    FROM kv_store
-    WHERE group=:group_name and key=:policy_name
-    """
+  def fetch_trigger_policy(realm_name, policy_name) do
+    keyspace = Realm.keyspace_name(realm_name)
 
     query =
-      DatabaseQuery.new()
-      |> DatabaseQuery.statement(policy_cols_statement)
-      |> DatabaseQuery.put(:group_name, "trigger_policy")
-      |> DatabaseQuery.put(:policy_name, policy_name)
-      |> DatabaseQuery.consistency(:quorum)
+      from store in KvStore,
+        select: store.value,
+        where: [group: "trigger_policy", policy_name: ^policy_name]
 
-    with {:ok, result} <- DatabaseQuery.call(client, query),
-         policy_row when is_list(policy_row) <- DatabaseResult.head(result),
-         {:ok, container} <- Keyword.fetch(policy_row, :value) do
-      {:ok, container}
-    else
-      :empty_dataset ->
-        {:error, :policy_not_found}
-
-      %{acc: _, msg: error_message} ->
-        _ = Logger.warning("Database error: #{error_message}.", tag: "db_error")
-        {:error, :database_error}
-
-      {:error, reason} ->
-        _ = Logger.warning("Failed, reason: #{inspect(reason)}.", tag: "db_error")
-        {:error, :database_error}
-    end
+    Repo.fetch_one(query, prefix: keyspace, error: :policy_not_found)
   end
 
-  def check_policy_has_triggers(client, policy_name) do
-    devices_statement = "SELECT key FROM kv_store WHERE group=:group_name LIMIT 1"
+  def check_policy_has_triggers(realm_name, policy_name) do
+    keyspace = Realm.keyspace_name(realm_name)
+    group_name = "triggers-with-policy-#{policy_name}"
 
-    devices_query =
-      DatabaseQuery.new()
-      |> DatabaseQuery.statement(devices_statement)
-      |> DatabaseQuery.put(:group_name, "triggers-with-policy-#{policy_name}")
-      |> DatabaseQuery.consistency(:quorum)
+    query =
+      from store in KvStore,
+        select: store.key,
+        where: [group: ^group_name],
+        limit: 1
 
-    with {:ok, result} <- DatabaseQuery.call(client, devices_query),
-         [key: _device_id] <- DatabaseResult.head(result) do
-      {:ok, true}
-    else
-      :empty_dataset ->
-        {:ok, false}
-
-      {:error, reason} ->
-        _ =
-          Logger.error(
-            "Database error while checking #{policy_name}, reason: #{inspect(reason)}.",
-            tag: "db_error"
-          )
-
-        {:error, :database_error}
-    end
+    Repo.some?(query, prefix: keyspace, consistency: :quorum)
   end
 
   def delete_trigger_policy(client, policy_name) do
@@ -1398,35 +1307,14 @@ defmodule Astarte.RealmManagement.Queries do
     end
   end
 
-  def check_trigger_policy_already_present(client, policy_name) do
-    policy_cols_statement = """
-    SELECT COUNT(*)
-    FROM kv_store
-    WHERE group= :group_name and key= :policy_name
-    """
+  def check_trigger_policy_already_present(realm_name, policy_name) do
+    keyspace = Realm.keyspace_name(realm_name)
 
     query =
-      DatabaseQuery.new()
-      |> DatabaseQuery.statement(policy_cols_statement)
-      |> DatabaseQuery.put(:group_name, "trigger_policy")
-      |> DatabaseQuery.put(:policy_name, policy_name)
-      |> DatabaseQuery.consistency(:quorum)
+      from store in KvStore,
+        where: [group: "trigger_policy", key: ^policy_name]
 
-    with {:ok, result} <- DatabaseQuery.call(client, query),
-         [count: 0] <- DatabaseResult.head(result) do
-      {:ok, false}
-    else
-      [count: _] ->
-        {:ok, true}
-
-      %{acc: _, msg: error_message} ->
-        _ = Logger.warning("Database error: #{error_message}.", tag: "db_error")
-        {:error, :database_error}
-
-      {:error, reason} ->
-        _ = Logger.warning("Database error: #{inspect(reason)}.", tag: "db_error")
-        {:error, :database_error}
-    end
+    Repo.some?(query, prefix: keyspace, consistency: :quorum)
   end
 
   def check_device_exists(realm_name, device_id) do
