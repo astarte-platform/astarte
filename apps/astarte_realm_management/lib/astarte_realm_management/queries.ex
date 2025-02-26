@@ -19,6 +19,7 @@
 defmodule Astarte.RealmManagement.Queries do
   require CQEx
   require Logger
+  alias Astarte.RealmManagement.Realms.IndividualDatastream
   alias Astarte.RealmManagement.Realms.Device, as: RealmsDevice
   alias Astarte.RealmManagement.Realms.Interface
   alias Astarte.RealmManagement.Realms.IndividualProperty
@@ -1432,27 +1433,16 @@ defmodule Astarte.RealmManagement.Queries do
   end
 
   def retrieve_individual_datastreams_keys!(realm_name, device_id) do
-    Xandra.Cluster.run(
-      :xandra_device_deletion,
-      &do_retrieve_individual_datastreams_keys!(&1, realm_name, device_id)
-    )
-  end
+    keyspace = Realm.keyspace_name(realm_name)
 
-  defp do_retrieve_individual_datastreams_keys!(conn, realm_name, device_id) do
-    keyspace_name =
-      CQLUtils.realm_name_to_keyspace_name(realm_name, Config.astarte_instance_id!())
+    query =
+      from IndividualDatastream,
+        hints: ["ALLOW FILTERING"],
+        distinct: true,
+        select: [:device_id, :interface_id, :endpoint_id, :path],
+        where: [device_id: ^device_id]
 
-    # TODO: validate realm name
-    statement = """
-    SELECT DISTINCT device_id, interface_id, endpoint_id, path
-    FROM #{keyspace_name}.individual_datastreams
-    WHERE device_id=:device_id ALLOW FILTERING
-    """
-
-    params = %{device_id: device_id}
-
-    prepared = Xandra.prepare!(conn, statement)
-    Xandra.execute!(conn, prepared, params, uuid_format: :binary) |> Enum.to_list()
+    Repo.all(query, prefix: keyspace)
   end
 
   def delete_individual_datastream_values!(
