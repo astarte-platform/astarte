@@ -18,44 +18,49 @@
 
 defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
   alias Astarte.Core.CQLUtils
-  alias Astarte.Core.Device
+  alias Astarte.Core.Device, as: CoreDevice
   alias Astarte.Core.InterfaceDescriptor
   alias Astarte.Core.Mapping
   alias Astarte.DataUpdaterPlant.Config
+  alias Astarte.DataUpdaterPlant.DataUpdater.SimpleTrigger
+  alias Astarte.DataUpdaterPlant.DataUpdater.Device
+  alias Astarte.DataUpdaterPlant.DataUpdater.Endpoint
+  alias Astarte.DataUpdaterPlant.DataUpdater.IndividualProperty
+  alias Astarte.DataUpdaterPlant.DataUpdater.KvStore
+  alias Astarte.DataUpdaterPlant.DataUpdater.Realm
   alias CQEx.Query, as: DatabaseQuery
-  alias CQEx.Result, as: DatabaseResult
+  alias Astarte.DataUpdaterPlant.Repo
+  import Ecto.Query
   require Logger
 
-  def query_simple_triggers!(db_client, object_id, object_type_int) do
-    simple_triggers_statement = """
-    SELECT simple_trigger_id, parent_trigger_id, trigger_data, trigger_target
-    FROM simple_triggers
-    WHERE object_id=:object_id AND object_type=:object_type_int
-    """
+  def query_simple_triggers!(realm, object_id, object_type_int) do
+    keyspace_name = Realm.keyspace_name(realm)
 
-    simple_triggers_query =
-      DatabaseQuery.new()
-      |> DatabaseQuery.statement(simple_triggers_statement)
-      |> DatabaseQuery.put(:object_id, object_id)
-      |> DatabaseQuery.put(:object_type_int, object_type_int)
+    query =
+      SimpleTrigger
+      |> where(object_id: ^object_id, object_type: ^object_type_int)
+      |> put_query_prefix(keyspace_name)
 
-    DatabaseQuery.call!(db_client, simple_triggers_query)
+    Repo.all(query)
   end
 
-  def query_all_endpoint_paths!(db_client, device_id, interface_descriptor, endpoint_id) do
-    all_paths_statement = """
-    SELECT path FROM #{interface_descriptor.storage}
-    WHERE device_id=:device_id AND interface_id=:interface_id AND endpoint_id=:endpoint_id
-    """
+  def all_device_owned_property_endpoint_paths!(
+        realm,
+        device_id,
+        interface_descriptor,
+        endpoint_id
+      ) do
+    %InterfaceDescriptor{interface_id: interface_id, storage: storage} = interface_descriptor
 
-    all_paths_query =
-      DatabaseQuery.new()
-      |> DatabaseQuery.statement(all_paths_statement)
-      |> DatabaseQuery.put(:device_id, device_id)
-      |> DatabaseQuery.put(:interface_id, interface_descriptor.interface_id)
-      |> DatabaseQuery.put(:endpoint_id, endpoint_id)
+    keyspace_name = Realm.keyspace_name(realm)
 
-    DatabaseQuery.call!(db_client, all_paths_query)
+    q =
+      from(storage)
+      |> select([s], s.path)
+      |> where(device_id: ^device_id, interface_id: ^interface_id, endpoint_id: ^endpoint_id)
+      |> put_query_prefix(keyspace_name)
+
+    Repo.all(q)
   end
 
   def set_pending_empty_cache(db_client, device_id, pending_empty_cache) do
@@ -87,6 +92,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
 
   def insert_value_into_db(
         db_client,
+        _realm,
         device_id,
         %InterfaceDescriptor{storage_type: :multi_interface_individual_properties_dbtable} =
           interface_descriptor,
@@ -121,6 +127,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
 
   def insert_value_into_db(
         db_client,
+        _realm,
         device_id,
         %InterfaceDescriptor{storage_type: :multi_interface_individual_properties_dbtable} =
           interface_descriptor,
@@ -155,6 +162,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
 
   def insert_value_into_db(
         db_client,
+        _realm,
         device_id,
         %InterfaceDescriptor{storage_type: :multi_interface_individual_datastream_dbtable} =
           interface_descriptor,
@@ -193,6 +201,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
 
   def insert_value_into_db(
         db_client,
+        realm,
         device_id,
         %InterfaceDescriptor{storage_type: :one_object_datastream_dbtable} = interface_descriptor,
         _endpoint,
@@ -204,33 +213,33 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
       ) do
     ttl_string = get_ttl_string(opts)
 
-    # TODO: we should cache endpoints by interface_id
-    endpoint_query =
-      DatabaseQuery.new()
-      |> DatabaseQuery.statement(
-        "SELECT endpoint, value_type FROM endpoints WHERE interface_id=:interface_id;"
-      )
-      |> DatabaseQuery.put(:interface_id, interface_descriptor.interface_id)
+    keyspace_name = Realm.keyspace_name(realm)
 
-    endpoint_rows = DatabaseQuery.call!(db_client, endpoint_query)
+    %InterfaceDescriptor{interface_id: interface_id} = interface_descriptor
+
+    # TODO: we should cache endpoints by interface_id
+    endpoint_rows =
+      Endpoint
+      |> select([:endpoint, :value_type])
+      |> where(interface_id: ^interface_id)
+      |> put_query_prefix(keyspace_name)
+      |> Repo.all()
 
     # TODO: we should also cache explicit_timestamp
     explicit_timestamp_query =
-      DatabaseQuery.new()
-      |> DatabaseQuery.statement(
-        "SELECT explicit_timestamp FROM endpoints WHERE interface_id=:interface_id LIMIT 1;"
-      )
-      |> DatabaseQuery.put(:interface_id, interface_descriptor.interface_id)
+      from e in Endpoint,
+        prefix: ^keyspace_name,
+        where: e.interface_id == ^interface_id,
+        select: e.explicit_timestamp,
+        limit: 1
 
-    [explicit_timestamp: explicit_timestamp] =
-      DatabaseQuery.call!(db_client, explicit_timestamp_query)
-      |> CQEx.Result.head()
+    [explicit_timestamp?] = Repo.all(explicit_timestamp_query)
 
     # FIXME: new atoms are created here, we should avoid this. We need to replace CQEx.
     column_atoms =
       Enum.reduce(endpoint_rows, %{}, fn endpoint, column_atoms_acc ->
         endpoint_name =
-          endpoint[:endpoint]
+          endpoint.endpoint
           |> String.split("/")
           |> List.last()
 
@@ -261,7 +270,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
       end)
 
     {query_columns, placeholders} =
-      if explicit_timestamp do
+      if explicit_timestamp? do
         {"value_timestamp, #{query_columns}", ":value_timestamp, #{placeholders}"}
       else
         {query_columns, placeholders}
@@ -402,52 +411,29 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
     :ok
   end
 
-  def retrieve_device_stats_and_introspection!(db_client, device_id) do
-    stats_and_introspection_statement = """
-    SELECT total_received_msgs, total_received_bytes, introspection,
-           exchanged_bytes_by_interface, exchanged_msgs_by_interface
-    FROM devices
-    WHERE device_id=:device_id
-    """
+  def retrieve_device_stats_and_introspection(realm, device_id) do
+    keyspace_name = Realm.keyspace_name(realm)
 
-    device_row_query =
-      DatabaseQuery.new()
-      |> DatabaseQuery.statement(stats_and_introspection_statement)
-      |> DatabaseQuery.put(:device_id, device_id)
-      |> DatabaseQuery.consistency(:local_quorum)
-
-    device_row =
-      DatabaseQuery.call!(db_client, device_row_query)
-      |> DatabaseResult.head()
-
-    introspection_map = convert_map_result(device_row[:introspection])
-
-    initial_interface_exchanged_bytes =
-      convert_map_result(device_row[:exchanged_bytes_by_interface])
-      |> convert_tuple_keys()
-
-    initial_interface_exchanged_msgs =
-      convert_map_result(device_row[:exchanged_msgs_by_interface])
-      |> convert_tuple_keys()
+    stats =
+      Device
+      |> where(device_id: ^device_id)
+      |> select([
+        :total_received_msgs,
+        :total_received_bytes,
+        :introspection,
+        :exchanged_bytes_by_interface,
+        :exchanged_msgs_by_interface
+      ])
+      |> put_query_prefix(keyspace_name)
+      |> Repo.fetch_one(consistency: :local_quorum)
 
     %{
-      introspection: introspection_map,
-      total_received_msgs: device_row[:total_received_msgs],
-      total_received_bytes: device_row[:total_received_bytes],
-      initial_interface_exchanged_bytes: initial_interface_exchanged_bytes,
-      initial_interface_exchanged_msgs: initial_interface_exchanged_msgs
+      introspection: stats.introspection,
+      total_received_msgs: stats.total_received_msgs,
+      total_received_bytes: stats.total_received_bytes,
+      initial_interface_exchanged_bytes: stats.exchanged_bytes_by_interface,
+      initial_interface_exchanged_msgs: stats.exchanged_msgs_by_interface
     }
-  end
-
-  defp convert_map_result(nil), do: %{}
-  defp convert_map_result(result) when is_list(result), do: Enum.into(result, %{})
-  defp convert_map_result(result) when is_map(result), do: result
-
-  # CQEx returns tuple keys as lists, convert them to tuples
-  defp convert_tuple_keys(map) when is_map(map) do
-    for {key, value} <- map, into: %{} do
-      {List.to_tuple(key), value}
-    end
   end
 
   def set_device_connected!(db_client, device_id, timestamp_ms, ip_address) do
@@ -457,8 +443,8 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
     refresh_device_connected!(db_client, device_id, ttl)
   end
 
-  def maybe_refresh_device_connected!(db_client, device_id) do
-    with {:ok, remaining_ttl} <- get_connected_remaining_ttl(db_client, device_id) do
+  def maybe_refresh_device_connected!(db_client, realm, device_id) do
+    with {:ok, remaining_ttl} <- get_connected_remaining_ttl(realm, device_id) do
       if remaining_ttl < heartbeat_interval_seconds() * 2 do
         Logger.debug("Refreshing connected status", tag: "refresh_device_connected")
         write_ttl = heartbeat_interval_seconds() * 8
@@ -508,36 +494,19 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
     DatabaseQuery.call!(db_client, refresh_connected_query)
   end
 
-  defp get_connected_remaining_ttl(db_client, device_id) do
-    fetch_connected_ttl_statement = """
-    SELECT TTL(connected)
-    FROM devices
-    WHERE device_id=:device_id
-    """
+  defp get_connected_remaining_ttl(realm, device_id) do
+    keyspace_name = Realm.keyspace_name(realm)
 
-    fetch_connected_ttl_query =
-      DatabaseQuery.new()
-      |> DatabaseQuery.statement(fetch_connected_ttl_statement)
-      |> DatabaseQuery.put(:device_id, device_id)
-      |> DatabaseQuery.consistency(:quorum)
+    query =
+      Device
+      |> where(device_id: ^device_id)
+      |> select([device], fragment("TTL(?)", device.connected))
+      |> put_query_prefix(keyspace_name)
 
-    with {:ok, result} <- DatabaseQuery.call(db_client, fetch_connected_ttl_query),
-         ["ttl(connected)": ttl] when is_integer(ttl) <- DatabaseResult.head(result) do
-      {:ok, ttl}
-    else
-      :empty_dataset ->
-        {:error, :device_not_found}
-
-      ["ttl(connected)": nil] ->
-        {:ok, 0}
-
-      %{acc: _, msg: error_message} ->
-        Logger.warning("Database error: #{error_message}.")
-        {:error, :database_error}
-
-      {:error, reason} ->
-        Logger.warning("Database error while retrieving property: #{inspect(reason)}.")
-        {:error, :database_error}
+    case Repo.fetch_one(query, consistency: :quorum) do
+      n when is_number(n) -> {:ok, n}
+      nil -> {:error, :device_not_found}
+      {:error, reason} -> {:error, reason}
     end
   end
 
@@ -575,64 +544,31 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
     DatabaseQuery.call!(db_client, device_update_query)
   end
 
-  def fetch_device_introspection_minors(db_client, device_id) do
-    introspection_minor_statement = """
-    SELECT introspection_minor
-    FROM devices
-    WHERE device_id=:device_id
-    """
+  def fetch_device_introspection_minors(realm, device_id) do
+    keyspace_name = Realm.keyspace_name(realm)
 
-    introspection_minor_query =
-      DatabaseQuery.new()
-      |> DatabaseQuery.statement(introspection_minor_statement)
-      |> DatabaseQuery.put(:device_id, device_id)
-      |> DatabaseQuery.consistency(:quorum)
+    query =
+      Device
+      |> select([d], d.introspection_minor)
+      |> where(device_id: ^device_id)
+      |> put_query_prefix(keyspace_name)
 
-    with {:ok, result} <- DatabaseQuery.call(db_client, introspection_minor_query),
-         [introspection_minor: introspection_minors] when is_list(introspection_minors) <-
-           DatabaseResult.head(result) do
-      {:ok, Enum.into(introspection_minors, %{})}
-    else
-      [introspection_minor: nil] ->
-        {:ok, %{}}
-
-      %{acc: _, msg: error_message} ->
-        Logger.warning("Database error: #{error_message}.")
-        {:error, :database_error}
-
-      {:error, reason} ->
-        Logger.warning("Failed with reason #{inspect(reason)}.")
-        {:error, :database_error}
+    with minors when is_map(minors) <- Repo.fetch_one(query, consistency: :quorum) do
+      {:ok, minors}
     end
   end
 
-  def get_device_groups(db_client, device_id) do
-    groups_statement = """
-    SELECT groups
-    FROM devices
-    WHERE device_id=:device_id
-    """
+  def get_device_groups(realm, device_id) do
+    keyspace_name = Realm.keyspace_name(realm)
 
-    groups_query =
-      DatabaseQuery.new()
-      |> DatabaseQuery.statement(groups_statement)
-      |> DatabaseQuery.put(:device_id, device_id)
-      |> DatabaseQuery.consistency(:quorum)
+    query =
+      Device
+      |> select([d], d.groups)
+      |> where(device_id: ^device_id)
+      |> put_query_prefix(keyspace_name)
 
-    with {:ok, result} <- DatabaseQuery.call(db_client, groups_query),
-         [groups: groups] when is_list(groups) <- DatabaseResult.head(result) do
-      {:ok, :proplists.get_keys(groups)}
-    else
-      [groups: nil] ->
-        {:ok, []}
-
-      %{acc: _, msg: error_message} ->
-        Logger.warning("Database error: #{error_message}.", tag: "db_error")
-        {:error, :database_error}
-
-      {:error, reason} ->
-        Logger.warning("Failed with reason #{inspect(reason)}.", tag: "db_error")
-        {:error, :database_error}
+    with groups when is_map(groups) <- Repo.fetch_one(query, consistency: :quorum) do
+      {:ok, Map.keys(groups)}
     end
   end
 
@@ -699,7 +635,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
     """
 
     major_str = "v#{Integer.to_string(interface_major)}"
-    encoded_device_id = Device.encode_device_id(device_id)
+    encoded_device_id = CoreDevice.encode_device_id(device_id)
 
     insert_device_by_interface_query =
       DatabaseQuery.new()
@@ -738,7 +674,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
     """
 
     major_str = "v#{Integer.to_string(interface_major)}"
-    encoded_device_id = Device.encode_device_id(device_id)
+    encoded_device_id = CoreDevice.encode_device_id(device_id)
 
     delete_device_by_interface_query =
       DatabaseQuery.new()
@@ -759,32 +695,19 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
     end
   end
 
-  def check_device_exists(client, device_id) do
-    device_statement = """
-    SELECT device_id
-    FROM devices
-    WHERE device_id=:device_id
-    """
+  def check_device_exists(realm, device_id) do
+    keyspace_name = Realm.keyspace_name(realm)
 
-    device_query =
-      DatabaseQuery.new()
-      |> DatabaseQuery.statement(device_statement)
-      |> DatabaseQuery.put(:device_id, device_id)
+    query =
+      Device
+      |> select([d], d.device_id)
+      |> where(device_id: ^device_id)
+      |> put_query_prefix(keyspace_name)
 
-    with {:ok, result} <- DatabaseQuery.call(client, device_query),
-         device_row when is_list(device_row) <- DatabaseResult.head(result) do
-      {:ok, true}
-    else
-      :empty_dataset ->
-        {:ok, false}
-
-      %{acc: _, msg: error_message} ->
-        _ = Logger.warning("Database error: #{error_message}.", tag: "db_error")
-        {:error, :database_error}
-
-      {:error, reason} ->
-        _ = Logger.warning("Database error, reason: #{inspect(reason)}.", tag: "db_error")
-        {:error, :database_error}
+    case Repo.fetch_one(query) do
+      device_id when is_binary(device_id) -> {:ok, true}
+      nil -> {:ok, false}
+      {:error, reason} -> {:error, reason}
     end
   end
 
@@ -806,42 +729,23 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
     value
   end
 
-  def retrieve_endpoint_values(client, device_id, interface_descriptor, mapping) do
-    query_statement =
-      prepare_get_property_statement(
-        mapping.value_type,
-        false,
-        interface_descriptor.storage,
-        interface_descriptor.storage_type
-      )
+  def retrieve_property_values(realm, device_id, interface_descriptor, mapping) do
+    %InterfaceDescriptor{
+      storage_type: :multi_interface_individual_properties_dbtable,
+      interface_id: interface_id,
+      storage: storage
+    } = interface_descriptor
 
-    query =
-      DatabaseQuery.new()
-      |> DatabaseQuery.statement(query_statement)
-      |> DatabaseQuery.put(:device_id, device_id)
-      |> DatabaseQuery.put(:interface_id, interface_descriptor.interface_id)
-      |> DatabaseQuery.put(:endpoint_id, mapping.endpoint_id)
+    %Mapping{endpoint_id: endpoint_id, value_type: value_type} = mapping
 
-    DatabaseQuery.call!(client, query)
-  end
+    column_name = CQLUtils.mapping_value_type_to_db_type(value_type) |> String.to_existing_atom()
+    keyspace_name = Realm.keyspace_name(realm)
 
-  defp prepare_get_property_statement(
-         value_type,
-         metadata,
-         table_name,
-         :multi_interface_individual_properties_dbtable
-       ) do
-    metadata_column =
-      if metadata do
-        ",metadata"
-      else
-        ""
-      end
-
-    # TODO: should we filter on path for performance reason?
-    # TODO: probably we should sanitize also table_name: right now it is stored on database
-    "SELECT path, #{Astarte.Core.CQLUtils.type_to_db_column_name(value_type)} #{metadata_column} FROM #{table_name}" <>
-      " WHERE device_id=:device_id AND interface_id=:interface_id AND endpoint_id=:endpoint_id;"
+    from(storage)
+    |> select(^[:path, column_name])
+    |> where(device_id: ^device_id, interface_id: ^interface_id, endpoint_id: ^endpoint_id)
+    |> put_query_prefix(keyspace_name)
+    |> Repo.all()
   end
 
   defp path_consistency(_interface_descriptor, %Mapping{reliability: :unreliable} = _mapping) do
@@ -871,77 +775,53 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
     :one
   end
 
-  def fetch_datastream_maximum_storage_retention(client) do
-    maximum_storage_retention_statement = """
-    SELECT blobAsInt(value)
-    FROM kv_store
-    WHERE group='realm_config' AND key='datastream_maximum_storage_retention'
-    """
+  def fetch_datastream_maximum_storage_retention(realm) do
+    keyspace_name = Realm.keyspace_name(realm)
 
     query =
-      DatabaseQuery.new()
-      |> DatabaseQuery.statement(maximum_storage_retention_statement)
-      |> DatabaseQuery.consistency(:quorum)
+      KvStore
+      |> where(group: "realm_config", key: "datastream_maximum_storage_retention")
+      |> select([v], fragment("blobAsInt(?)", v.value))
+      |> put_query_prefix(keyspace_name)
 
-    with {:ok, res} <- DatabaseQuery.call(client, query),
-         ["system.blobasint(value)": maximum_storage_retention] <- DatabaseResult.head(res) do
-      {:ok, maximum_storage_retention}
-    else
-      :empty_dataset ->
-        {:ok, nil}
-
-      %{acc: _, msg: error_message} ->
-        Logger.warning("Database error: #{error_message}.")
-        {:error, :database_error}
-
-      {:error, reason} ->
-        Logger.warning("Failed with reason: #{inspect(reason)}.")
-        {:error, :database_error}
+    with n when is_number(n) or is_nil(n) <- Repo.fetch_one(query, consistency: :quorum) do
+      {:ok, n}
     end
   end
 
-  def fetch_path_expiry(db_client, device_id, interface_descriptor, %Mapping{} = mapping, path)
+  def fetch_path_expiry(realm, device_id, interface_descriptor, %Mapping{} = mapping, path)
       when is_binary(device_id) and is_binary(path) do
-    # TODO: do not hardcode individual_properties here
-    fetch_property_value_statement = """
-    SELECT TTL(datetime_value)
-    FROM individual_properties
-    WHERE device_id=:device_id AND interface_id=:interface_id
-      AND endpoint_id=:endpoint_id AND path=:path
-    """
+    %InterfaceDescriptor{interface_id: interface_id} = interface_descriptor
+    %Mapping{endpoint_id: endpoint_id} = mapping
 
-    fetch_property_query =
-      DatabaseQuery.new()
-      |> DatabaseQuery.statement(fetch_property_value_statement)
-      |> DatabaseQuery.put(:device_id, device_id)
-      |> DatabaseQuery.put(:interface_id, interface_descriptor.interface_id)
-      |> DatabaseQuery.put(:endpoint_id, mapping.endpoint_id)
-      |> DatabaseQuery.put(:path, path)
-      |> DatabaseQuery.consistency(:quorum)
+    keyspace_name = Realm.keyspace_name(realm)
 
-    with {:ok, result} <- DatabaseQuery.call(db_client, fetch_property_query),
-         ["ttl(datetime_value)": ttl] when is_integer(ttl) <- DatabaseResult.head(result) do
-      expiry_datetime =
-        DateTime.utc_now()
-        |> DateTime.to_unix()
-        |> :erlang.+(ttl)
-        |> DateTime.from_unix!()
+    q =
+      IndividualProperty
+      |> where(
+        device_id: ^device_id,
+        interface_id: ^interface_id,
+        endpoint_id: ^endpoint_id,
+        path: ^path
+      )
+      |> put_query_prefix(keyspace_name)
+      |> select([p], fragment("TTL(?)", p.reception_timestamp))
 
-      {:ok, expiry_datetime}
-    else
-      :empty_dataset ->
+    case Repo.all(q, consistency: :quorum) do
+      [] ->
         {:error, :property_not_set}
 
-      ["ttl(datetime_value)": nil] ->
+      [nil] ->
         {:ok, :no_expiry}
 
-      %{acc: _, msg: error_message} ->
-        Logger.warning("Database error: #{error_message}.")
-        {:error, :database_error}
+      [ttl] when is_integer(ttl) ->
+        expiry_datetime =
+          DateTime.utc_now()
+          |> DateTime.to_unix()
+          |> :erlang.+(ttl)
+          |> DateTime.from_unix!()
 
-      {:error, reason} ->
-        Logger.warning("Database error while retrieving property: #{inspect(reason)}.")
-        {:error, :database_error}
+        {:ok, expiry_datetime}
     end
   end
 

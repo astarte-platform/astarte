@@ -22,6 +22,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.IndividualDatastream do
   alias Astarte.DataUpdaterPlant.DataUpdater.SmallInt
   alias Astarte.DataUpdaterPlant.DataUpdater.BigInt
 
+  @primary_key false
   typed_schema "individual_datastreams" do
     field :device_id, UUID, primary_key: true
     field :interface_id, UUID, primary_key: true
