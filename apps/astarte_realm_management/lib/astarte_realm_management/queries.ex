@@ -1806,37 +1806,16 @@ defmodule Astarte.RealmManagement.Queries do
   end
 
   def get_datastream_maximum_storage_retention(realm_name) do
-    Xandra.Cluster.run(:xandra, &do_get_datastream_maximum_storage_retention(&1, realm_name))
-  end
+    keyspace = Realm.keyspace_name(realm_name)
 
-  defp do_get_datastream_maximum_storage_retention(conn, realm_name) do
-    query = """
-    SELECT blobAsInt(value)
-    FROM #{CQLUtils.realm_name_to_keyspace_name(realm_name, Config.astarte_instance_id!())}.kv_store
-    WHERE group='realm_config' AND key='datastream_maximum_storage_retention'
-    """
-
-    with {:ok, prepared} <- Xandra.prepare(conn, query),
-         {:ok, %Xandra.Page{} = page} <- Xandra.execute(conn, prepared) do
-      case Enum.fetch(page, 0) do
-        {:ok, %{"system.blobasint(value)": value}} ->
-          {:ok, value}
-
-        _ ->
-          {:ok, 0}
-      end
-    else
-      {:error, %Xandra.Error{} = err} ->
-        _ = Logger.warning("Database error: #{inspect(err)}.", tag: "database_error")
-        {:error, :database_error}
-
-      {:error, %Xandra.ConnectionError{} = err} ->
-        _ =
-          Logger.warning("Database connection error: #{inspect(err)}.",
-            tag: "database_connection_error"
-          )
-
-        {:error, :database_connection_error}
+    case KvStore.fetch_value("realm_config", "datastream_maximum_storage_retention", :integer,
+           prefix: keyspace,
+           error: :fetch_error
+         ) do
+      {:ok, value} -> {:ok, value}
+      # not found means default maximum storage retention of 0
+      {:error, :fetch_error} -> {:ok, 0}
+      error -> error
     end
   end
 end
