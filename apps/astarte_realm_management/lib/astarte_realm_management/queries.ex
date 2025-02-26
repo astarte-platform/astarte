@@ -1406,42 +1406,29 @@ defmodule Astarte.RealmManagement.Queries do
         interface_name,
         interface_major
       ) do
-    Xandra.Cluster.run(
-      :xandra_device_deletion,
-      &do_retrieve_interface_descriptor!(
-        &1,
-        realm_name,
-        interface_name,
-        interface_major
+    keyspace = Realm.keyspace_name(realm_name)
+
+    interface =
+      Repo.get_by!(Interface, [name: interface_name, major_version: interface_major],
+        prefix: keyspace,
+        consistency: :quorum
       )
-    )
-  end
 
-  defp do_retrieve_interface_descriptor!(
-         conn,
-         realm_name,
-         interface_name,
-         interface_major
-       ) do
-    # TODO: validate realm name
-    keyspace_name =
-      CQLUtils.realm_name_to_keyspace_name(realm_name, Config.astarte_instance_id!())
-
-    statement = """
-    SELECT *
-    FROM #{keyspace_name}.interfaces
-    WHERE name=:name AND major_version=:major_version
-    """
-
-    params = %{name: interface_name, major_version: interface_major}
-
-    prepared = Xandra.prepare!(conn, statement)
-
-    Xandra.execute!(conn, prepared, params, consistency: :quorum)
-    |> Enum.to_list()
-    # If we're looking for a descriptor of an interface of known name and major, we're fairly sure the result is unique
-    |> hd()
-    |> Astarte.Core.InterfaceDescriptor.from_db_result!()
+    %InterfaceDescriptor{
+      name: interface.name,
+      major_version: interface.major_version,
+      minor_version: interface.minor_version,
+      type: interface.type,
+      ownership: interface.ownership,
+      aggregation: interface.aggregation,
+      interface_id: interface.interface_id,
+      automaton: {
+        :erlang.binary_to_term(interface.automaton_transitions),
+        :erlang.binary_to_term(interface.automaton_accepting_states)
+      },
+      storage: interface.storage,
+      storage_type: interface.storage_type
+    }
   end
 
   def retrieve_individual_datastreams_keys!(realm_name, device_id) do
