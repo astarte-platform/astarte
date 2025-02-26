@@ -81,7 +81,7 @@ defmodule Astarte.AppEngine.API.Device do
          aliases_change = Map.get(changeset.changes, :aliases, %{}),
          attributes_change = Map.get(changeset.changes, :attributes, %{}),
          :ok <- update_aliases(realm_name, client, device_id, aliases_change),
-         :ok <- update_attributes(client, device_id, attributes_change) do
+         :ok <- update_attributes(realm_name, client, device_id, attributes_change) do
       # Manually merge aliases since changesets don't perform maps deep merge
       merged_aliases = merge_data(device_status.aliases, updated_device_status.aliases)
       merged_attributes = merge_data(device_status.attributes, updated_device_status.attributes)
@@ -95,7 +95,7 @@ defmodule Astarte.AppEngine.API.Device do
     end
   end
 
-  defp update_attributes(client, device_id, attributes) do
+  defp update_attributes(realm_name, client, device_id, attributes) do
     Enum.reduce_while(attributes, :ok, fn
       {"", _attribute_value}, _acc ->
         Logger.warning("Attribute key cannot be an empty string.",
@@ -105,7 +105,7 @@ defmodule Astarte.AppEngine.API.Device do
         {:halt, {:error, :invalid_attributes}}
 
       {attribute_key, nil}, _acc ->
-        case Queries.delete_attribute(client, device_id, attribute_key) do
+        case Queries.delete_attribute(realm_name, client, device_id, attribute_key) do
           :ok ->
             {:cont, :ok}
 
@@ -276,6 +276,7 @@ defmodule Astarte.AppEngine.API.Device do
         end
 
       Queries.insert_value_into_db(
+        realm_name,
         client,
         device_id,
         interface_descriptor,
@@ -451,6 +452,7 @@ defmodule Astarte.AppEngine.API.Device do
         end
 
       Queries.insert_value_into_db(
+        realm_name,
         client,
         device_id,
         interface_descriptor,
@@ -729,6 +731,7 @@ defmodule Astarte.AppEngine.API.Device do
         Queries.retrieve_mapping(realm_name, interface_descriptor.interface_id, endpoint_id)
 
       Queries.insert_value_into_db(
+        realm_name,
         client,
         device_id,
         interface_descriptor,

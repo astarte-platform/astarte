@@ -112,7 +112,10 @@ defmodule Astarte.AppEngine.API.Device.Queries do
 
   def interface_has_explicit_timestamp?(realm_name, interface_id) do
     keyspace = keyspace_name(realm_name)
+    do_interface_has_explicit_timestamp?(keyspace, interface_id)
+  end
 
+  def do_interface_has_explicit_timestamp?(keyspace, interface_id) do
     from(d in DatabaseEndpoint,
       where: [interface_id: ^interface_id],
       select: d.explicit_timestamp,
@@ -210,6 +213,7 @@ defmodule Astarte.AppEngine.API.Device.Queries do
 
   # TODO Copy&pasted from data updater plant, make it a library
   def insert_value_into_db(
+        _realm_name,
         db_client,
         device_id,
         %InterfaceDescriptor{storage_type: :multi_interface_individual_properties_dbtable} =
@@ -248,6 +252,7 @@ defmodule Astarte.AppEngine.API.Device.Queries do
 
   # TODO Copy&pasted from data updater plant, make it a library
   def insert_value_into_db(
+        _realm_name,
         db_client,
         device_id,
         %InterfaceDescriptor{storage_type: :multi_interface_individual_properties_dbtable} =
@@ -286,6 +291,7 @@ defmodule Astarte.AppEngine.API.Device.Queries do
 
   # TODO Copy&pasted from data updater plant, make it a library
   def insert_value_into_db(
+        _realm_name,
         db_client,
         device_id,
         %InterfaceDescriptor{storage_type: :multi_interface_individual_datastream_dbtable} =
@@ -326,6 +332,7 @@ defmodule Astarte.AppEngine.API.Device.Queries do
 
   # TODO Copy&pasted from data updater plant, make it a library
   def insert_value_into_db(
+        realm_name,
         db_client,
         device_id,
         %InterfaceDescriptor{storage_type: :one_object_datastream_dbtable} = interface_descriptor,
@@ -337,32 +344,23 @@ defmodule Astarte.AppEngine.API.Device.Queries do
         opts
       ) do
     ttl_string = get_ttl_string(opts)
+    keyspace = keyspace_name(realm_name)
+    interface_id = interface_descriptor.interface_id
 
-    endpoint_query =
-      DatabaseQuery.new()
-      |> DatabaseQuery.statement(
-        "SELECT endpoint, value_type FROM endpoints WHERE interface_id=:interface_id;"
+    endpoint_rows =
+      from(DatabaseEndpoint,
+        where: [interface_id: ^interface_id],
+        select: [:endpoint, :value_type]
       )
-      |> DatabaseQuery.put(:interface_id, interface_descriptor.interface_id)
+      |> Repo.all(prefix: keyspace)
 
-    endpoint_rows = DatabaseQuery.call!(db_client, endpoint_query)
-
-    explicit_timestamp_query =
-      DatabaseQuery.new()
-      |> DatabaseQuery.statement(
-        "SELECT explicit_timestamp FROM endpoints WHERE interface_id=:interface_id LIMIT 1;"
-      )
-      |> DatabaseQuery.put(:interface_id, interface_descriptor.interface_id)
-
-    [explicit_timestamp: explicit_timestamp] =
-      DatabaseQuery.call!(db_client, explicit_timestamp_query)
-      |> DatabaseResult.head()
+    explicit_timestamp = do_interface_has_explicit_timestamp?(keyspace, interface_id)
 
     # FIXME: new atoms are created here, we should avoid this. We need to replace CQEx.
     column_atoms =
       Enum.reduce(endpoint_rows, %{}, fn endpoint, column_atoms_acc ->
         endpoint_name =
-          endpoint[:endpoint]
+          endpoint.endpoint
           |> String.split("/")
           |> List.last()
 
@@ -576,21 +574,13 @@ defmodule Astarte.AppEngine.API.Device.Queries do
     end
   end
 
-  def delete_attribute(client, device_id, attribute_key) do
-    retrieve_attribute_statement = """
-    SELECT attributes FROM devices WHERE device_id = :device_id
-    """
+  def delete_attribute(realm_name, client, device_id, attribute_key) do
+    keyspace = keyspace_name(realm_name)
+    query = from(d in DatabaseDevice, select: d.attributes)
+    opts = [prefix: keyspace, consistency: :quorum]
 
-    retrieve_attribute_query =
-      DatabaseQuery.new()
-      |> DatabaseQuery.statement(retrieve_attribute_statement)
-      |> DatabaseQuery.put(:device_id, device_id)
-      |> DatabaseQuery.consistency(:quorum)
-
-    with {:ok, result} <- DatabaseQuery.call(client, retrieve_attribute_query),
-         [attributes: attributes] <- DatabaseResult.head(result),
-         {^attribute_key, _attribute_value} <-
-           Enum.find(attributes || [], fn m -> match?({^attribute_key, _}, m) end) do
+    with {:ok, attributes} <- Repo.fetch(query, device_id, opts),
+         {:ok, _} <- get_value(attributes, attribute_key, :attribute_key_not_found) do
       delete_attribute_statement = """
         DELETE attributes[:attribute_key]
         FROM devices
@@ -616,17 +606,6 @@ defmodule Astarte.AppEngine.API.Device.Queries do
           _ = Logger.warning("Database error, reason: #{inspect(reason)}.", tag: "db_error")
           {:error, :database_error}
       end
-    else
-      nil ->
-        {:error, :attribute_key_not_found}
-
-      %{acc: _, msg: error_message} ->
-        _ = Logger.warning("Database error: #{error_message}.", tag: "db_error")
-        {:error, :database_error}
-
-      {:error, reason} ->
-        _ = Logger.warning("Database error, reason: #{inspect(reason)}.", tag: "db_error")
-        {:error, :database_error}
     end
   end
 
