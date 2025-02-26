@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2017 - 2023 SECO Mind Srl
+# Copyright 2017 - 2025 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -19,6 +19,14 @@
 defmodule Astarte.RealmManagement.Queries do
   require CQEx
   require Logger
+  alias Astarte.RealmManagement.Realms.Interface
+  alias Astarte.RealmManagement.Realms.IndividualProperty
+  alias Astarte.RealmManagement.Realms.Endpoint
+  alias Astarte.RealmManagement.Realms.SimpleTrigger
+  alias Astarte.RealmManagement
+  alias Astarte.RealmManagement.Repo
+  alias Astarte.RealmManagement.Astarte.Realm
+  alias Astarte.RealmManagement.Astarte.KvStore
   alias Astarte.Core.AstarteReference
   alias Astarte.Core.CQLUtils
   alias Astarte.RealmManagement.Config
@@ -41,6 +49,8 @@ defmodule Astarte.RealmManagement.Queries do
   alias CQEx.Query, as: DatabaseQuery
   alias CQEx.Result, as: DatabaseResult
   alias CQEx.Result.SchemaChanged
+
+  import Ecto.Query
 
   @max_batch_queries 32
 
@@ -97,8 +107,6 @@ defmodule Astarte.RealmManagement.Queries do
   INSERT INTO kv_store (group, key, value)
   VALUES ('auth', 'jwt_public_key_pem', varcharAsBlob(:pem));
   """
-
-  @keyspace_does_not_exist_regex ~r/Keyspace (.*) does not exist/
 
   defp create_one_object_columns_for_mappings(mappings) do
     for %Mapping{endpoint: endpoint, value_type: value_type} <- mappings do
@@ -209,41 +217,26 @@ defmodule Astarte.RealmManagement.Queries do
     end)
   end
 
-  def check_astarte_health(client, consistency) do
-    schema_statement = """
-      SELECT count(value)
-      FROM #{CQLUtils.realm_name_to_keyspace_name("astarte", Config.astarte_instance_id!())}.kv_store
-      WHERE group='astarte' AND key='schema_version'
-    """
-
-    # no-op, just to check if nodes respond
-    # no realm name can contain '_', '^'
-    realms_statement = """
-    SELECT *
-    FROM #{CQLUtils.realm_name_to_keyspace_name("astarte", Config.astarte_instance_id!())}.realms
-    WHERE realm_name='_invalid^name_'
-    """
+  def check_astarte_health(consistency) do
+    keyspace = Realm.keyspace_name("astarte")
 
     schema_query =
-      DatabaseQuery.new()
-      |> DatabaseQuery.statement(schema_statement)
-      |> DatabaseQuery.consistency(consistency)
+      from KvStore,
+        where: [group: "astarte", key: "schema_version"],
+        limit: 1
 
+    # no-op, just to check if nodes respond no realm name can contain '_', '^'.
+    # Should return {:error, :not_found}
     realms_query =
-      DatabaseQuery.new()
-      |> DatabaseQuery.statement(realms_statement)
-      |> DatabaseQuery.consistency(consistency)
+      from RealmManagement.Astarte.Realm,
+        where: [realm_name: "_invalid^name_"],
+        limit: 1
 
-    with {:ok, result} <- DatabaseQuery.call(client, schema_query),
-         ["system.count(value)": _count] <- DatabaseResult.head(result),
-         {:ok, _result} <- DatabaseQuery.call(client, realms_query) do
+    with {:ok, _} <- Repo.fetch_one(schema_query, prefix: keyspace, consistency: consistency),
+         {:error, :not_found} <-
+           Repo.fetch_one(realms_query, prefix: keyspace, consistency: consistency) do
       :ok
     else
-      %{acc: _, msg: err_msg} ->
-        _ = Logger.warning("Health is not good: #{err_msg}.", tag: "health_check_bad")
-
-        {:error, :health_check_bad}
-
       {:error, err} ->
         _ =
           Logger.warning("Health is not good, reason: #{inspect(err)}.", tag: "health_check_bad")
@@ -523,7 +516,8 @@ defmodule Astarte.RealmManagement.Queries do
         %InterfaceDescriptor{
           storage_type: :one_object_datastream_dbtable,
           storage: table_name
-        } = _interface_descriptor
+        } = _interface_descriptor,
+        _relam_name
       ) do
     delete_statement = "DROP TABLE IF EXISTS #{table_name}"
 
@@ -537,11 +531,11 @@ defmodule Astarte.RealmManagement.Queries do
     end
   end
 
-  def delete_interface_storage(client, %InterfaceDescriptor{} = interface_descriptor) do
-    with {:ok, result} <- devices_with_data_on_interface(client, interface_descriptor.name) do
-      Enum.reduce_while(result, :ok, fn [key: encoded_device_id], _acc ->
+  def delete_interface_storage(client, %InterfaceDescriptor{} = interface_descriptor, realm_name) do
+    with {:ok, result} <- devices_with_data_on_interface(realm_name, interface_descriptor.name) do
+      Enum.reduce_while(result, :ok, fn encoded_device_id, _acc ->
         with {:ok, device_id} <- Device.decode_device_id(encoded_device_id),
-             :ok <- delete_values(client, device_id, interface_descriptor) do
+             :ok <- delete_values(client, device_id, interface_descriptor, realm_name) do
           {:cont, :ok}
         else
           {:error, reason} ->
@@ -551,38 +545,29 @@ defmodule Astarte.RealmManagement.Queries do
     end
   end
 
-  def is_any_device_using_interface?(client, interface_name) do
-    devices_statement = "SELECT key FROM kv_store WHERE group=:group_name LIMIT 1"
+  def is_any_device_using_interface?(realm_name, interface_name) do
+    group_name = "devices-by-interface-#{interface_name}-v0"
+    keyspace = Realm.keyspace_name(realm_name)
 
     devices_query =
-      DatabaseQuery.new()
-      |> DatabaseQuery.statement(devices_statement)
-      |> DatabaseQuery.put(:group_name, "devices-by-interface-#{interface_name}-v0")
-      |> DatabaseQuery.consistency(:quorum)
+      from map in KvStore,
+        select: map.key,
+        where: [group: ^group_name],
+        limit: 1
 
-    with {:ok, result} <- DatabaseQuery.call(client, devices_query),
-         [key: _device_id] <- DatabaseResult.head(result) do
-      {:ok, true}
-    else
-      :empty_dataset ->
-        {:ok, false}
-
-      {:error, reason} ->
-        _ = Logger.warning("Database error: #{inspect(reason)}.", tag: "db_error")
-        {:error, :database_error}
-    end
+    Repo.some?(devices_query, prefix: keyspace, consistency: :quorum)
   end
 
-  def devices_with_data_on_interface(client, interface_name) do
-    devices_statement = "SELECT key FROM kv_store WHERE group=:group_name"
+  def devices_with_data_on_interface(realm_name, interface_name) do
+    group_name = "devices-with-data-on-interface-#{interface_name}-v0"
+    keyspace = Realm.keyspace_name(realm_name)
 
-    devices_query =
-      DatabaseQuery.new()
-      |> DatabaseQuery.statement(devices_statement)
-      |> DatabaseQuery.put(:group_name, "devices-with-data-on-interface-#{interface_name}-v0")
-      |> DatabaseQuery.consistency(:quorum)
+    query =
+      from map in KvStore,
+        select: map.key,
+        where: [group: ^group_name]
 
-    DatabaseQuery.call(client, devices_query)
+    Repo.fetch_all(query, prefix: keyspace, consistency: :quorum)
   end
 
   def delete_devices_with_data_on_interface(client, interface_name) do
@@ -610,7 +595,8 @@ defmodule Astarte.RealmManagement.Queries do
           interface_id: interface_id,
           storage_type: :multi_interface_individual_properties_dbtable,
           storage: table_name
-        } = _interface_descriptor
+        } = _interface_descriptor,
+        _realm_name
       ) do
     delete_values_statement = """
     DELETE
@@ -643,10 +629,11 @@ defmodule Astarte.RealmManagement.Queries do
         device_id,
         %InterfaceDescriptor{
           storage_type: :multi_interface_individual_datastream_dbtable
-        } = interface_descriptor
+        } = interface_descriptor,
+        realm_name
       ) do
     with {:ok, result} <-
-           fetch_all_paths_and_endpoint_ids(client, device_id, interface_descriptor),
+           fetch_all_paths_and_endpoint_ids(realm_name, device_id, interface_descriptor),
          :ok <- delete_all_paths_values(client, device_id, interface_descriptor, result) do
       delete_all_paths(client, device_id, interface_descriptor)
     end
@@ -704,27 +691,28 @@ defmodule Astarte.RealmManagement.Queries do
   end
 
   defp fetch_all_paths_and_endpoint_ids(
-         client,
+         realm_name,
          device_id,
          %InterfaceDescriptor{
            interface_id: interface_id,
            storage_type: :multi_interface_individual_datastream_dbtable
          } = _interface_descriptor
        ) do
-    all_paths_statement = """
-    SELECT endpoint_id, path
-    FROM individual_properties
-    WHERE device_id=:device_id AND interface_id=:interface_id
-    """
+    keyspace = Realm.keyspace_name(realm_name)
 
-    all_paths_query =
-      DatabaseQuery.new()
-      |> DatabaseQuery.statement(all_paths_statement)
-      |> DatabaseQuery.put(:device_id, device_id)
-      |> DatabaseQuery.put(:interface_id, interface_id)
-      |> DatabaseQuery.consistency(:quorum)
+    query =
+      from IndividualProperty,
+        select: [:endpoint_id, :path],
+        where: [device_id: ^device_id, interface_id: ^interface_id]
 
-    DatabaseQuery.call(client, all_paths_query)
+    with {:ok, properties} <- Repo.fetch_all(query, prefix: keyspace, consistency: :quorum) do
+      properties =
+        Enum.map(properties, fn property ->
+          [endpoint_id: property.endpoint_id, path: property.path]
+        end)
+
+      {:ok, properties}
+    end
   end
 
   defp delete_all_paths(
@@ -761,62 +749,40 @@ defmodule Astarte.RealmManagement.Queries do
     end
   end
 
-  def interface_available_versions(client, interface_name) do
-    interface_versions_statement = """
-    SELECT major_version, minor_version
-    FROM interfaces
-    WHERE name = :interface_name
-    """
+  def interface_available_versions(realm_name, interface_name) do
+    keyspace = Realm.keyspace_name(realm_name)
 
-    query =
-      DatabaseQuery.new()
-      |> DatabaseQuery.statement(interface_versions_statement)
-      |> DatabaseQuery.put(:interface_name, interface_name)
-      |> DatabaseQuery.consistency(:quorum)
+    interface_versions_query =
+      from Interface,
+        select: [:major_version, :minor_version],
+        where: [name: ^interface_name]
 
-    with {:ok, result} <- DatabaseQuery.call(client, query),
-         [head | tail] <- Enum.to_list(result) do
-      {:ok, [head | tail]}
-    else
-      [] ->
-        {:error, :interface_not_found}
+    with {:ok, interface_versions_map} <-
+           Repo.fetch_all(interface_versions_query, prefix: keyspace, consistency: :quorum) do
+      case interface_versions_map do
+        [] ->
+          {:error, :interface_not_found}
 
-      %{acc: _, msg: error_message} ->
-        _ = Logger.warning("Database error: #{error_message}.", tag: "db_error")
-        {:error, :database_error}
+        interfaces ->
+          major_minor_mapping =
+            Enum.map(interfaces, fn interface ->
+              [major_version: interface.major_version, minor_version: interface.minor_version]
+            end)
 
-      {:error, reason} ->
-        _ = Logger.warning("Database error: #{inspect(reason)}.", tag: "db_error")
-        {:error, :database_error}
+          {:ok, major_minor_mapping}
+      end
     end
   end
 
-  def is_interface_major_available?(client, interface_name, interface_major) do
-    interface_available_major_statement = """
-    SELECT COUNT(*)
-    FROM interfaces
-    WHERE name = :interface_name AND major_version = :interface_major
-    """
+  def is_interface_major_available?(realm_name, interface_name, interface_major) do
+    keyspace = Realm.keyspace_name(realm_name)
 
     query =
-      DatabaseQuery.new()
-      |> DatabaseQuery.statement(interface_available_major_statement)
-      |> DatabaseQuery.put(:interface_name, interface_name)
-      |> DatabaseQuery.put(:interface_major, interface_major)
-      |> DatabaseQuery.consistency(:quorum)
+      from i in Interface,
+        where: i.name == ^interface_name,
+        where: i.major_version == ^interface_major
 
-    with {:ok, result} <- DatabaseQuery.call(client, query),
-         [count: count] <- DatabaseResult.head(result) do
-      {:ok, count != 0}
-    else
-      %{acc: _, msg: error_message} ->
-        _ = Logger.warning("Database error: #{error_message}.", tag: "db_error")
-        {:error, :database_error}
-
-      {:error, reason} ->
-        _ = Logger.warning("Database error: #{inspect(reason)}.", tag: "db_error")
-        {:error, :database_error}
-    end
+    Repo.some?(query, prefix: keyspace, consistency: :quorum)
   end
 
   defp normalize_interface_name(interface_name) do
@@ -824,71 +790,19 @@ defmodule Astarte.RealmManagement.Queries do
     |> String.downcase()
   end
 
-  def check_astarte_health(consistency) do
-    schema_statement = """
-      SELECT count(value)
-      FROM #{CQLUtils.realm_name_to_keyspace_name("astarte", Config.astarte_instance_id!())}.kv_store
-      WHERE group='astarte' AND key='schema_version'
-    """
-
-    # no-op, just to check if nodes respond
-    # no realm name can contain '_', '^'
-    realms_statement = """
-    SELECT *
-    FROM #{CQLUtils.realm_name_to_keyspace_name("astarte", Config.astarte_instance_id!())}.realms
-    WHERE realm_name='_invalid^name_'
-    """
-
-    with {:ok, %Xandra.Page{} = page} <-
-           Xandra.Cluster.execute(:xandra, schema_statement, %{}, consistency: consistency),
-         {:ok, _} <- Enum.fetch(page, 0),
-         {:ok, %Xandra.Page{} = _page} <-
-           Xandra.Cluster.execute(:xandra, realms_statement, %{}, consistency: consistency) do
-      :ok
-    else
-      :error ->
-        _ =
-          Logger.warning("Cannot retrieve health query data.",
-            tag: "health_check_error"
-          )
-
-        {:error, :health_check_bad}
-
-      {:error, %Xandra.Error{} = err} ->
-        _ =
-          Logger.warning("Database error, health is not good: #{inspect(err)}.",
-            tag: "health_check_database_error"
-          )
-
-        {:error, :health_check_bad}
-
-      {:error, %Xandra.ConnectionError{} = err} ->
-        _ =
-          Logger.warning("Database error, health is not good: #{inspect(err)}.",
-            tag: "health_check_database_connection_error"
-          )
-
-        {:error, :database_connection_error}
-    end
-  end
-
-  def check_interface_name_collision(client, interface_name) do
+  def check_interface_name_collision(realm_name, interface_name) do
     normalized_interface = normalize_interface_name(interface_name)
-
-    all_names_statement = """
-    SELECT DISTINCT name
-    FROM interfaces
-    """
+    keyspace = Realm.keyspace_name(realm_name)
 
     all_names_query =
-      DatabaseQuery.new()
-      |> DatabaseQuery.statement(all_names_statement)
-      |> DatabaseQuery.consistency(:quorum)
+      from i in Interface,
+        distinct: true,
+        select: i.name
 
-    with {:ok, result} <- DatabaseQuery.call(client, all_names_query) do
-      Enum.reduce_while(result, :ok, fn row, _acc ->
-        if normalize_interface_name(row[:name]) == normalized_interface do
-          if row[:name] == interface_name do
+    with {:ok, names} <- Repo.fetch_all(all_names_query, prefix: keyspace, consistency: :quorum) do
+      Enum.reduce_while(names, :ok, fn name, _acc ->
+        if normalize_interface_name(name) == normalized_interface do
+          if name == interface_name do
             # If there is already an interface with the same name, we know it's possible to install it.
             # Version conflicts will be checked in another function.
             {:halt, :ok}
@@ -899,255 +813,83 @@ defmodule Astarte.RealmManagement.Queries do
           {:cont, :ok}
         end
       end)
-    else
-      %{acc: _, msg: error_message} ->
-        _ = Logger.warning("Database error: #{error_message}.", tag: "db_error")
-        {:error, :database_error}
-
-      {:error, reason} ->
-        Logger.warning("Database error: #{inspect(reason)}.", tag: "db_error")
-        {:error, :database_error}
     end
   end
 
-  def fetch_interface(client, interface_name, interface_major) do
-    # TODO: replace with retrieve_interface_row
-    all_interface_cols_statement = """
-    SELECT *
-    FROM interfaces
-    WHERE name = :name AND major_version = :major_version
-    """
+  def fetch_interface(realm_name, interface_name, interface_major) do
+    keyspace = Realm.keyspace_name(realm_name)
 
-    query =
-      DatabaseQuery.new()
-      |> DatabaseQuery.statement(all_interface_cols_statement)
-      |> DatabaseQuery.put(:name, interface_name)
-      |> DatabaseQuery.put(:major_version, interface_major)
-      |> DatabaseQuery.consistency(:quorum)
-
-    # TODO: replace with Astarte.DataAccess.Mappings.fetch_interface_mappings
-    all_endpoints_cols_statement = """
-    SELECT *
-    FROM endpoints
-    WHERE interface_id = :interface_id
-    """
-
-    endpoints_query =
-      DatabaseQuery.new()
-      |> DatabaseQuery.statement(all_endpoints_cols_statement)
-      |> DatabaseQuery.consistency(:quorum)
-
-    with {:ok, result} <- DatabaseQuery.call(client, query),
-         interface_row when is_list(interface_row) <- DatabaseResult.head(result),
-         {:ok, interface_id} <- Keyword.fetch(interface_row, :interface_id),
-         endpoints_query <- DatabaseQuery.put(endpoints_query, :interface_id, interface_id),
-         {:ok, endpoints_result} <- DatabaseQuery.call(client, endpoints_query) do
+    with {:ok, interface} <-
+           Repo.fetch_by(
+             Interface,
+             [name: interface_name, major_version: interface_major],
+             prefix: keyspace,
+             consistency: :quorum,
+             error: :interface_not_found
+           ),
+         endpoints_query = from(Endpoint, where: [interface_id: ^interface.interface_id]),
+         {:ok, mappings} <-
+           Repo.fetch_all(endpoints_query, prefix: keyspace, consistency: :quorum) do
       mappings =
-        Enum.map(endpoints_result, fn mapping_row ->
-          %{
-            endpoint_id: endpoint_id,
-            allow_unset: allow_unset,
-            database_retention_policy: database_retention_policy,
-            database_retention_ttl: database_retention_ttl,
-            explicit_timestamp: explicit_timestamp,
-            endpoint: endpoint,
-            expiry: expiry,
-            reliability: reliability,
-            retention: retention,
-            value_type: value_type,
-            description: mapping_description,
-            doc: mapping_doc
-          } = Enum.into(mapping_row, %{})
-
-          %Mapping{
-            endpoint_id: endpoint_id,
-            allow_unset: allow_unset,
-            database_retention_policy:
-              database_retention_policy_from_maybe_int(database_retention_policy),
-            database_retention_ttl: database_retention_ttl,
-            explicit_timestamp: explicit_timestamp,
-            endpoint: endpoint,
-            expiry: expiry,
-            reliability: Reliability.from_int(reliability),
-            retention: Retention.from_int(retention),
-            value_type: ValueType.from_int(value_type),
-            description: mapping_description,
-            doc: mapping_doc
-          }
+        Enum.map(mappings, fn endpoint ->
+          %Mapping{}
+          |> Mapping.changeset(Map.from_struct(endpoint),
+            interface_name: interface.name,
+            interface_id: interface.interface_id,
+            interface_major: interface.major_version,
+            interface_type: interface.type
+          )
+          |> Ecto.Changeset.apply_changes()
+          |> Map.from_struct()
+          |> Map.put(:type, endpoint.value_type)
         end)
 
-      %{
-        name: name,
-        major_version: major_version,
-        minor_version: minor_version,
-        interface_id: interface_id,
-        type: type,
-        ownership: ownership,
-        aggregation: aggregation,
-        description: description,
-        doc: doc
-      } = Enum.into(interface_row, %{})
+      interface =
+        interface
+        |> Map.from_struct()
+        |> Map.put(:mappings, mappings)
+        |> Map.put(:version_major, interface.major_version)
+        |> Map.put(:version_minor, interface.minor_version)
+        |> Map.put(:interface_name, interface.name)
 
-      interface = %InterfaceDocument{
-        name: name,
-        major_version: major_version,
-        minor_version: minor_version,
-        interface_id: interface_id,
-        type: InterfaceType.from_int(type),
-        ownership: Ownership.from_int(ownership),
-        aggregation: Aggregation.from_int(aggregation),
-        mappings: mappings,
-        description: description,
-        doc: doc
-      }
+      interface_document =
+        %InterfaceDocument{}
+        |> InterfaceDocument.changeset(interface)
+        |> Ecto.Changeset.apply_changes()
 
-      {:ok, interface}
-    else
-      :empty_dataset ->
-        {:error, :interface_not_found}
-
-      %{acc: _, msg: error_message} ->
-        _ = Logger.warning("Database error: #{error_message}.", tag: "db_error")
-        {:error, :database_error}
-
-      {:error, reason} ->
-        _ = Logger.warning("Failed, reason: #{inspect(reason)}.", tag: "db_error")
-        {:error, :database_error}
+      {:ok, interface_document}
     end
   end
 
-  defp database_retention_policy_from_maybe_int(database_retention_policy) do
-    case database_retention_policy do
-      nil -> :no_ttl
-      _any_int -> DatabaseRetentionPolicy.from_int(database_retention_policy)
-    end
-  end
-
-  def get_interfaces_list(client) do
-    interfaces_list_statement = """
-    SELECT DISTINCT name FROM interfaces
-    """
+  def get_interfaces_list(realm_name) do
+    keyspace = Realm.keyspace_name(realm_name)
 
     query =
-      DatabaseQuery.new()
-      |> DatabaseQuery.statement(interfaces_list_statement)
-      |> DatabaseQuery.consistency(:quorum)
+      from i in Interface,
+        distinct: true,
+        select: i.name
 
-    with {:ok, result} <- DatabaseQuery.call(client, query) do
-      list =
-        Enum.map(result, fn row ->
-          Keyword.fetch!(row, :name)
-        end)
-
-      {:ok, list}
-    else
-      %{acc: _, msg: error_message} ->
-        _ = Logger.warning("Database error: #{error_message}.", tag: "db_error")
-        {:error, :database_error}
-
-      {:error, reason} ->
-        _ =
-          Logger.warning("Database error: failed with reason: #{inspect(reason)}.",
-            tag: "db_error"
-          )
-
-        {:error, :database_error}
-    end
+    Repo.fetch_all(query, prefix: keyspace, consistency: :quorum)
   end
 
-  def has_interface_simple_triggers?(db_client, object_id) do
-    # FIXME: hardcoded object type here
-    simple_triggers_statement = """
-    SELECT COUNT(*)
-    FROM simple_triggers
-    WHERE object_id=:object_id AND object_type=2
-    """
+  def has_interface_simple_triggers?(realm_name, object_id) do
+    keyspace = Realm.keyspace_name(realm_name)
 
     simple_triggers_query =
-      DatabaseQuery.new()
-      |> DatabaseQuery.statement(simple_triggers_statement)
-      |> DatabaseQuery.put(:object_id, object_id)
-      |> DatabaseQuery.consistency(:quorum)
+      from SimpleTrigger,
+        where: [object_id: ^object_id, object_type: 2]
 
-    with {:ok, result} <- DatabaseQuery.call(db_client, simple_triggers_query),
-         [count: count] <- DatabaseResult.head(result) do
-      if count != 0 do
-        {:ok, true}
-      else
-        {:ok, false}
-      end
-    else
-      %{acc: _, msg: error_message} ->
-        _ = Logger.warning("Database error: #{error_message}.", tag: "db_error")
-        {:error, :database_error}
-
-      {:error, reason} ->
-        _ = Logger.warning("Failed with reason: #{inspect(reason)}.", tag: "db_error")
-        {:error, :database_error}
-    end
+    Repo.some?(simple_triggers_query, prefix: keyspace, consistency: :quorum)
   end
 
-  def get_jwt_public_key_pem(keyspace) do
-    case Xandra.Cluster.run(:xandra, &do_get_jwt_public_key_pem(keyspace, &1)) do
-      {:ok, pem} ->
-        {:ok, pem}
+  def get_jwt_public_key_pem(realm_name) do
+    keyspace = Realm.keyspace_name(realm_name)
 
-      {:error, %Xandra.ConnectionError{} = err} ->
-        _ =
-          Logger.warning("Database connection error #{Exception.message(err)}.",
-            tag: "database_connection_error"
-          )
-
-        {:error, :database_connection_error}
-
-      {:error, %Xandra.Error{} = err} ->
-        handle_xandra_error(err)
-    end
-  end
-
-  defp do_get_jwt_public_key_pem(keyspace_name, conn) do
-    query = """
-    SELECT blobAsVarchar(value)
-    FROM #{keyspace_name}.kv_store
-    WHERE group='auth' AND key='jwt_public_key_pem';
-    """
-
-    with {:ok, prepared} <- Xandra.prepare(conn, query),
-         {:ok, page} <-
-           Xandra.execute(conn, prepared, %{},
-             uuid_format: :binary,
-             consistency: :quorum
-           ) do
-      case Enum.to_list(page) do
-        [%{"system.blobasvarchar(value)": pem}] ->
-          {:ok, pem}
-
-        [] ->
-          {:error, :public_key_not_found}
-      end
-    end
-  end
-
-  defp handle_xandra_error(error) do
-    %Xandra.Error{message: message} = error
-
-    case Regex.run(@keyspace_does_not_exist_regex, message) do
-      [_message, keyspace] ->
-        Logger.warning("Keyspace #{keyspace} does not exist.",
-          tag: "realm_not_found"
-        )
-
-        {:error, :realm_not_found}
-
-      nil ->
-        _ =
-          Logger.warning(
-            "Database error, cannot get realm public key: #{Exception.message(error)}.",
-            tag: "database_error"
-          )
-
-        {:error, :database_error}
-    end
+    KvStore.fetch_value("auth", "jwt_public_key_pem", :string,
+      prefix: keyspace,
+      consistency: :quorum,
+      error: :public_key_not_found
+    )
   end
 
   def update_jwt_public_key_pem(client, jwt_public_key_pem) do
@@ -1280,31 +1022,15 @@ defmodule Astarte.RealmManagement.Queries do
     end
   end
 
-  def retrieve_trigger_uuid(client, trigger_name, format \\ :string) do
-    trigger_uuid_query_statement =
-      "SELECT value FROM kv_store WHERE group='triggers-by-name' AND key=:trigger_name;"
+  def retrieve_trigger_uuid(realm_name, trigger_name) do
+    keyspace = Realm.keyspace_name(realm_name)
 
-    trigger_uuid_query =
-      DatabaseQuery.new()
-      |> DatabaseQuery.statement(trigger_uuid_query_statement)
-      |> DatabaseQuery.put(:trigger_name, trigger_name)
-
-    with {:ok, result} <- DatabaseQuery.call(client, trigger_uuid_query),
-         [value: trigger_uuid] <- DatabaseResult.head(result) do
-      case format do
-        :string ->
-          {:ok, :uuid.uuid_to_string(trigger_uuid)}
-
-        :bytes ->
-          {:ok, trigger_uuid}
-      end
-    else
-      :empty_dataset ->
-        {:error, :trigger_not_found}
-
-      not_ok ->
-        _ = Logger.warning("Database error: #{inspect(not_ok)}.", tag: "db_error")
-        {:error, :cannot_retrieve_trigger_uuid}
+    with {:ok, uuid} <-
+           KvStore.fetch_value("triggers-by-name", trigger_name, :binary,
+             prefix: keyspace,
+             error: :trigger_not_found
+           ) do
+      {:ok, :uuid.uuid_to_string(uuid)}
     end
   end
 
@@ -1340,8 +1066,8 @@ defmodule Astarte.RealmManagement.Queries do
     end
   end
 
-  def delete_trigger(client, trigger_name) do
-    with {:ok, trigger_uuid} <- retrieve_trigger_uuid(client, trigger_name) do
+  def delete_trigger(client, trigger_name, realm_name) do
+    with {:ok, trigger_uuid} <- retrieve_trigger_uuid(realm_name, trigger_name) do
       delete_trigger_by_name_statement =
         "DELETE FROM kv_store WHERE group='triggers-by-name' AND key=:trigger_name;"
 
@@ -1369,26 +1095,19 @@ defmodule Astarte.RealmManagement.Queries do
     end
   end
 
-  def get_triggers_list(client) do
-    triggers_list_statement = "SELECT key FROM kv_store WHERE group = 'triggers-by-name';"
+  def get_triggers_list(realm_name) do
+    keyspace = Realm.keyspace_name(realm_name)
 
-    query_result =
-      with {:ok, result} <- DatabaseQuery.call(client, triggers_list_statement),
-           triggers_rows <- Enum.to_list(result) do
-        for trigger <- triggers_rows do
-          trigger[:key]
-        end
-      else
-        not_ok ->
-          _ = Logger.warning("Database error: #{inspect(not_ok)}.", tag: "db_error")
-          {:error, :cannot_list_triggers}
-      end
+    query =
+      from store in KvStore,
+        select: store.key,
+        where: [group: "triggers-by-name"]
 
-    {:ok, query_result}
+    Repo.fetch_all(query, prefix: keyspace)
   end
 
-  def retrieve_trigger(client, trigger_name) do
-    with {:ok, trigger_uuid} <- retrieve_trigger_uuid(client, trigger_name) do
+  def retrieve_trigger(client, trigger_name, realm_name) do
+    with {:ok, trigger_uuid} <- retrieve_trigger_uuid(realm_name, trigger_name) do
       retrieve_trigger_statement =
         "SELECT value FROM kv_store WHERE group='triggers' AND key=:trigger_uuid;"
 
