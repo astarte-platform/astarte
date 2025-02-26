@@ -1547,32 +1547,16 @@ defmodule Astarte.RealmManagement.Queries do
   end
 
   def retrieve_object_datastream_keys!(realm_name, device_id, table_name) do
-    Xandra.Cluster.run(
-      :xandra_device_deletion,
-      &do_retrieve_object_datastream_keys!(&1, realm_name, device_id, table_name)
-    )
-  end
+    keyspace = Realm.keyspace_name(realm_name)
 
-  defp do_retrieve_object_datastream_keys!(
-         conn,
-         realm_name,
-         device_id,
-         table_name
-       ) do
-    # TODO: validate realm name
-    keyspace_name =
-      CQLUtils.realm_name_to_keyspace_name(realm_name, Config.astarte_instance_id!())
+    query =
+      from table_name,
+        hints: ["ALLOW FILTERING"],
+        distinct: true,
+        select: [:device_id, :path],
+        where: [device_id: ^device_id]
 
-    statement = """
-    SELECT DISTINCT device_id, path
-    FROM #{keyspace_name}.#{table_name}
-    WHERE device_id=:device_id ALLOW FILTERING
-    """
-
-    params = %{device_id: device_id}
-
-    prepared = Xandra.prepare!(conn, statement)
-    Xandra.execute!(conn, prepared, params, uuid_format: :binary) |> Enum.to_list()
+    Repo.all(query, prefix: keyspace)
   end
 
   def delete_object_datastream_values!(realm_name, device_id, path, table_name) do
