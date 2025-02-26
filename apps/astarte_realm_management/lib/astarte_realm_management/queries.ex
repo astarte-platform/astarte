@@ -19,6 +19,7 @@
 defmodule Astarte.RealmManagement.Queries do
   require CQEx
   require Logger
+  alias Astarte.RealmManagement.Realms.GroupedDevice
   alias Astarte.RealmManagement.Realms.Name
   alias Astarte.RealmManagement.Realms.IndividualDatastream
   alias Astarte.RealmManagement.Realms.Device, as: RealmsDevice
@@ -1686,27 +1687,15 @@ defmodule Astarte.RealmManagement.Queries do
   end
 
   def retrieve_kv_store_entries!(realm_name, device_id) do
-    Xandra.Cluster.run(
-      :xandra_device_deletion,
-      &do_retrieve_kv_store_entries!(&1, realm_name, device_id)
-    )
-  end
+    keyspace = Realm.keyspace_name(realm_name)
 
-  defp do_retrieve_kv_store_entries!(conn, realm_name, encoded_device_id) do
-    # TODO: validate realm name
-    keyspace_name =
-      CQLUtils.realm_name_to_keyspace_name(realm_name, Config.astarte_instance_id!())
+    query =
+      from KvStore,
+        hints: ["ALLOW FILTERING"],
+        select: [:group, :key],
+        where: [key: ^device_id]
 
-    statement = """
-    SELECT group, key
-    FROM #{keyspace_name}.kv_store
-    WHERE key=:key ALLOW FILTERING
-    """
-
-    params = %{key: encoded_device_id}
-
-    prepared = Xandra.prepare!(conn, statement)
-    Xandra.execute!(conn, prepared, params, uuid_format: :binary) |> Enum.to_list()
+    Repo.all(query, prefix: keyspace)
   end
 
   def delete_kv_store_entry!(realm_name, group, key) do
