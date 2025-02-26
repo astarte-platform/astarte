@@ -1391,32 +1391,14 @@ defmodule Astarte.RealmManagement.Queries do
 
   # TODO maybe move to AstarteDataAccess
   def retrieve_device_introspection_map!(realm_name, device_id) do
-    Xandra.Cluster.run(
-      :xandra_device_deletion,
-      &do_retrieve_introspection_map!(&1, realm_name, device_id)
-    )
-  end
+    keyspace = Realm.keyspace_name(realm_name)
 
-  defp do_retrieve_introspection_map!(conn, realm_name, device_id) do
-    keyspace_name =
-      CQLUtils.realm_name_to_keyspace_name(realm_name, Config.astarte_instance_id!())
+    query =
+      from device in RealmsDevice,
+        select: device.introspection,
+        where: [device_id: ^device_id]
 
-    # TODO: validate realm name
-    statement = """
-    SELECT introspection
-    FROM #{keyspace_name}.devices
-    WHERE device_id=:device_id
-    """
-
-    params = %{device_id: device_id}
-    prepared = Xandra.prepare!(conn, statement)
-
-    [%{introspection: introspection_map}] =
-      Xandra.execute!(conn, prepared, params, consistency: :quorum, uuid_format: :binary)
-      |> Enum.to_list()
-
-    # Introspection might be still empty: handle the nil case
-    introspection_map || %{}
+    Repo.one(query, prefix: keyspace, consistency: :quorum)
   end
 
   def retrieve_interface_descriptor!(
