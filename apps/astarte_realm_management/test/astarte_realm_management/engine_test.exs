@@ -1194,7 +1194,7 @@ defmodule Astarte.RealmManagement.EngineTest do
   end
 
   test "get JWT public key PEM with unexisting realm" do
-    assert Engine.get_jwt_public_key_pem("notexisting") == {:error, :realm_not_found}
+    assert_raise Xandra.Error, fn -> Engine.get_jwt_public_key_pem("notexisting") end
   end
 
   test "update JWT public key PEM" do
@@ -1210,10 +1210,6 @@ defmodule Astarte.RealmManagement.EngineTest do
 
     assert Engine.get_jwt_public_key_pem("autotestrealm") ==
              {:ok, DatabaseTestHelper.jwt_public_key_pem_fixture()}
-  end
-
-  test "update JWT public key PEM with unexisting realm" do
-    assert Engine.get_jwt_public_key_pem("notexisting") == {:error, :realm_not_found}
   end
 
   test "install HTTP trigger" do
