@@ -51,14 +51,6 @@ defmodule Astarte.RealmManagement.Queries do
 
   import Ecto.Query
 
-  @max_batch_queries 32
-
-  @insert_into_interfaces """
-    INSERT INTO interfaces
-      (name, major_version, minor_version, interface_id, storage_type, storage, type, ownership, aggregation, automaton_transitions, automaton_accepting_states, description, doc)
-      VALUES (:name, :major_version, :minor_version, :interface_id, :storage_type, :storage, :type, :ownership, :aggregation, :automaton_transitions, :automaton_accepting_states, :description, :doc)
-  """
-
   @create_datastream_individual_multiinterface_table """
     CREATE TABLE IF NOT EXISTS individual_datastreams (
       device_id uuid,
@@ -163,59 +155,6 @@ defmodule Astarte.RealmManagement.Queries do
     {:one_object_datastream_dbtable, table_name, create_table_statement}
   end
 
-  defp execute_batch(client, queries) when length(queries) < @max_batch_queries do
-    batch = CQEx.cql_query_batch(consistency: :each_quorum, mode: :logged, queries: queries)
-
-    with {:ok, _result} <- DatabaseQuery.call(client, batch) do
-      :ok
-    else
-      %{acc: _, msg: error_message} ->
-        _ =
-          Logger.warning("Failed batch due to database error: #{error_message}.", tag: "db_error")
-
-        {:error, :database_error}
-
-      {:error, reason} ->
-        _ =
-          Logger.warning("Failed batch due to database error: #{inspect(reason)}.",
-            tag: "db_error"
-          )
-
-        {:error, :database_error}
-    end
-  end
-
-  defp execute_batch(client, queries) do
-    _ =
-      Logger.debug(
-        "Trying to run #{inspect(length(queries))} queries, not running in batched mode."
-      )
-
-    Enum.reduce_while(queries, :ok, fn query, _acc ->
-      with {:ok, _result} <- DatabaseQuery.call(client, query) do
-        {:cont, :ok}
-      else
-        %{acc: _, msg: err_msg} ->
-          _ =
-            Logger.warning(
-              "Failed due to database error: #{err_msg}. Changes will not be undone!",
-              tag: "db_error"
-            )
-
-          {:halt, {:error, :database_error}}
-
-        {:error, err} ->
-          _ =
-            Logger.warning(
-              "Failed due to database error: #{inspect(err)}. Changes will not be undone!",
-              tag: "db_error"
-            )
-
-          {:halt, {:error, :database_error}}
-      end
-    end)
-  end
-
   def check_astarte_health(consistency) do
     keyspace = Realm.keyspace_name("astarte")
 
@@ -244,36 +183,19 @@ defmodule Astarte.RealmManagement.Queries do
     end
   end
 
-  def install_new_interface(client, interface_document, automaton) do
-    interface_descriptor = InterfaceDescriptor.from_interface(interface_document)
-
-    %InterfaceDescriptor{
-      interface_id: interface_id,
-      name: interface_name,
-      major_version: major,
-      minor_version: minor,
-      type: interface_type,
-      ownership: interface_ownership,
-      aggregation: aggregation
-    } = interface_descriptor
-
-    %InterfaceDocument{
-      description: description,
-      doc: doc
-    } = interface_document
+  def install_new_interface(client, realm_name, interface_document, automaton) do
+    keyspace = Realm.keyspace_name(realm_name)
 
     table_type =
-      if aggregation == :individual do
-        :multi
-      else
-        :one
-      end
+      if interface_document.aggregation == :individual,
+        do: :multi,
+        else: :one
 
     {storage_type, table_name, create_table_statement} =
       create_interface_table(
-        aggregation,
+        interface_document.aggregation,
         table_type,
-        interface_descriptor,
+        InterfaceDescriptor.from_interface(interface_document),
         interface_document.mappings
       )
 
@@ -297,75 +219,108 @@ defmodule Astarte.RealmManagement.Queries do
 
     accepting_states_bin =
       accepting_states_no_ids
-      |> replace_automaton_acceptings_with_ids(interface_name, major)
+      |> replace_automaton_acceptings_with_ids(
+        interface_document.name,
+        interface_document.major_version
+      )
       |> :erlang.term_to_binary()
 
-    insert_interface_query =
-      DatabaseQuery.new()
-      |> DatabaseQuery.statement(@insert_into_interfaces)
-      |> DatabaseQuery.put(:name, interface_name)
-      |> DatabaseQuery.put(:major_version, major)
-      |> DatabaseQuery.put(:minor_version, minor)
-      |> DatabaseQuery.put(:interface_id, interface_id)
-      |> DatabaseQuery.put(:storage_type, StorageType.to_int(storage_type))
-      |> DatabaseQuery.put(:storage, table_name)
-      |> DatabaseQuery.put(:type, InterfaceType.to_int(interface_type))
-      |> DatabaseQuery.put(:ownership, Ownership.to_int(interface_ownership))
-      |> DatabaseQuery.put(:aggregation, Aggregation.to_int(aggregation))
-      |> DatabaseQuery.put(:automaton_transitions, transitions_bin)
-      |> DatabaseQuery.put(:automaton_accepting_states, accepting_states_bin)
-      |> DatabaseQuery.put(:description, description)
-      |> DatabaseQuery.put(:doc, doc)
-      |> DatabaseQuery.consistency(:each_quorum)
-      |> DatabaseQuery.convert()
+    # Here order matters, must be the same as the `?` in @insert_into_interface
+    params =
+      [
+        interface_document.name,
+        interface_document.major_version,
+        interface_document.minor_version,
+        interface_document.interface_id,
+        StorageType.to_int(storage_type),
+        table_name,
+        InterfaceType.to_int(interface_document.type),
+        Ownership.to_int(interface_document.ownership),
+        Aggregation.to_int(interface_document.aggregation),
+        transitions_bin,
+        accepting_states_bin,
+        interface_document.description,
+        interface_document.doc
+      ]
 
-    insert_endpoints =
+    interface_table = Interface.__schema__(:source)
+
+    insert_interface_statement = """
+      INSERT INTO #{keyspace}.#{interface_table}
+        (name, major_version, minor_version, interface_id, storage_type, storage, type, ownership, aggregation, automaton_transitions, automaton_accepting_states, description, doc)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    """
+
+    interface_query = {insert_interface_statement, params}
+
+    endpoints_queries =
       for mapping <- interface_document.mappings do
-        insert_mapping_query(interface_id, interface_name, major, minor, interface_type, mapping)
-        |> DatabaseQuery.convert()
+        insert_mapping_query(
+          keyspace,
+          interface_document.interface_id,
+          interface_document.name,
+          interface_document.major_version,
+          interface_document.minor_version,
+          interface_document.type,
+          mapping
+        )
       end
 
-    execute_batch(client, insert_endpoints ++ [insert_interface_query])
+    Exandra.execute_batch(
+      Repo,
+      %Exandra.Batch{
+        queries: [interface_query | endpoints_queries]
+      },
+      consistency: :each_quorum
+    )
   end
 
-  defp insert_mapping_query(interface_id, interface_name, major, minor, interface_type, mapping) do
+  defp insert_mapping_query(
+         keyspace,
+         interface_id,
+         interface_name,
+         major,
+         minor,
+         interface_type,
+         mapping
+       ) do
+    table_name = Endpoint.__schema__(:source)
+
     insert_mapping_statement = """
-    INSERT INTO endpoints
+    INSERT INTO #{keyspace}.#{table_name}
     (
       interface_id, endpoint_id, interface_name, interface_major_version, interface_minor_version,
       interface_type, endpoint, value_type, reliability, retention, database_retention_policy,
       database_retention_ttl, expiry, allow_unset, explicit_timestamp, description, doc
     )
     VALUES (
-      :interface_id, :endpoint_id, :interface_name, :interface_major_version, :interface_minor_version,
-      :interface_type, :endpoint, :value_type, :reliability, :retention, :database_retention_policy,
-      :database_retention_ttl, :expiry, :allow_unset, :explicit_timestamp, :description, :doc
+      ?, ?, ?, ?, ?,
+      ?, ?, ?, ?, ?, ?,
+      ?, ?, ?, ?, ?, ?
     )
     """
 
-    DatabaseQuery.new()
-    |> DatabaseQuery.statement(insert_mapping_statement)
-    |> DatabaseQuery.put(:interface_id, interface_id)
-    |> DatabaseQuery.put(:endpoint_id, mapping.endpoint_id)
-    |> DatabaseQuery.put(:interface_name, interface_name)
-    |> DatabaseQuery.put(:interface_major_version, major)
-    |> DatabaseQuery.put(:interface_minor_version, minor)
-    |> DatabaseQuery.put(:interface_type, InterfaceType.to_int(interface_type))
-    |> DatabaseQuery.put(:endpoint, mapping.endpoint)
-    |> DatabaseQuery.put(:value_type, ValueType.to_int(mapping.value_type))
-    |> DatabaseQuery.put(:reliability, Reliability.to_int(mapping.reliability))
-    |> DatabaseQuery.put(:retention, Retention.to_int(mapping.retention))
-    |> DatabaseQuery.put(
-      :database_retention_policy,
-      DatabaseRetentionPolicy.to_int(mapping.database_retention_policy)
-    )
-    |> DatabaseQuery.put(:database_retention_ttl, mapping.database_retention_ttl)
-    |> DatabaseQuery.put(:expiry, mapping.expiry)
-    |> DatabaseQuery.put(:allow_unset, mapping.allow_unset)
-    |> DatabaseQuery.put(:explicit_timestamp, mapping.explicit_timestamp)
-    |> DatabaseQuery.put(:description, mapping.description)
-    |> DatabaseQuery.put(:doc, mapping.doc)
-    |> DatabaseQuery.consistency(:each_quorum)
+    params = [
+      interface_id,
+      mapping.endpoint_id,
+      interface_name,
+      major,
+      minor,
+      InterfaceType.to_int(interface_type),
+      mapping.endpoint,
+      ValueType.to_int(mapping.value_type),
+      Reliability.to_int(mapping.reliability),
+      Retention.to_int(mapping.retention),
+      DatabaseRetentionPolicy.to_int(mapping.database_retention_policy),
+      mapping.database_retention_ttl,
+      mapping.expiry,
+      mapping.allow_unset,
+      mapping.explicit_timestamp,
+      mapping.description,
+      mapping.doc
+    ]
+
+    {insert_mapping_statement, params}
   end
 
   # TODO: this was needed when Cassandra used to generate endpoint IDs
@@ -378,7 +333,16 @@ defmodule Astarte.RealmManagement.Queries do
     end)
   end
 
-  def update_interface(client, interface_descriptor, new_mappings, automaton, description, doc) do
+  def update_interface(
+        realm_name,
+        interface_descriptor,
+        new_mappings,
+        automaton,
+        description,
+        doc
+      ) do
+    keyspace = Realm.keyspace_name(realm_name)
+
     %InterfaceDescriptor{
       name: interface_name,
       major_version: major,
@@ -396,33 +360,53 @@ defmodule Astarte.RealmManagement.Queries do
 
     automaton_transitions_bin = :erlang.term_to_binary(automaton_transitions)
 
-    update_interface_statement = """
-    UPDATE interfaces
-    SET minor_version=:minor_version, automaton_accepting_states=:automaton_accepting_states,
-      automaton_transitions = :automaton_transitions, description = :description, doc = :doc
-    WHERE name=:name AND major_version=:major_version
-    """
+    changes = [
+      minor_version: minor,
+      automaton_accepting_states: automaton_accepting_states_bin,
+      automaton_transitions: automaton_transitions_bin,
+      description: description,
+      doc: doc
+    ]
 
-    update_interface_query =
-      DatabaseQuery.new()
-      |> DatabaseQuery.statement(update_interface_statement)
-      |> DatabaseQuery.put(:name, interface_name)
-      |> DatabaseQuery.put(:major_version, major)
-      |> DatabaseQuery.put(:minor_version, minor)
-      |> DatabaseQuery.put(:automaton_accepting_states, automaton_accepting_states_bin)
-      |> DatabaseQuery.put(:automaton_transitions, automaton_transitions_bin)
-      |> DatabaseQuery.put(:description, description)
-      |> DatabaseQuery.put(:doc, doc)
-      |> DatabaseQuery.consistency(:each_quorum)
-      |> DatabaseQuery.convert()
+    update_query_base =
+      from Interface,
+        prefix: ^keyspace,
+        where: [name: ^interface_name],
+        where: [major_version: ^major]
+
+    update_query = put_changes(update_query_base, changes)
+
+    update_interface_query = Repo.to_sql(:update_all, update_query)
 
     insert_mapping_queries =
       for mapping <- new_mappings do
-        insert_mapping_query(interface_id, interface_name, major, minor, interface_type, mapping)
-        |> DatabaseQuery.convert()
+        insert_mapping_query(
+          keyspace,
+          interface_id,
+          interface_name,
+          major,
+          minor,
+          interface_type,
+          mapping
+        )
       end
 
-    execute_batch(client, insert_mapping_queries ++ [update_interface_query])
+    Exandra.execute_batch(
+      Repo,
+      %Exandra.Batch{
+        queries: [update_interface_query | insert_mapping_queries]
+      }
+    )
+  end
+
+  # TODO: here due to an Exandra bug: it does not support `:set` with a list.
+  # When fixed we could just write `update: [set: ^changes]` in the original query.
+  defp put_changes(query, []), do: query
+
+  defp put_changes(query, [{key, value} | rest]) do
+    query
+    |> Ecto.Query.update(set: [{^key, ^value}])
+    |> put_changes(rest)
   end
 
   def update_interface_storage(_client, _interface_descriptor, []) do

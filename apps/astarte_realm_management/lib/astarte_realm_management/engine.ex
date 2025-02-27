@@ -86,11 +86,11 @@ defmodule Astarte.RealmManagement.Engine do
 
       if opts[:async] do
         # TODO: add _ = Logger.metadata(realm: realm_name)
-        Task.start(Queries, :install_new_interface, [client, interface_doc, automaton])
+        Task.start(Queries, :install_new_interface, [client, realm_name, interface_doc, automaton])
 
         {:ok, :started}
       else
-        Queries.install_new_interface(client, interface_doc, automaton)
+        Queries.install_new_interface(client, realm_name, interface_doc, automaton)
       end
     else
       {:error, {:invalid, _invalid_str, _invalid_pos}} ->
@@ -167,6 +167,7 @@ defmodule Astarte.RealmManagement.Engine do
       else
         execute_interface_update(
           client,
+          realm_name,
           interface_update,
           mapping_updates,
           automaton,
@@ -222,6 +223,7 @@ defmodule Astarte.RealmManagement.Engine do
 
   def execute_interface_update(
         client,
+        realm_name,
         interface_descriptor,
         %MappingUpdates{} = mapping_updates,
         automaton,
@@ -243,7 +245,7 @@ defmodule Astarte.RealmManagement.Engine do
 
     with :ok <- Queries.update_interface_storage(client, interface_descriptor, new_mappings) do
       Queries.update_interface(
-        client,
+        realm_name,
         interface_descriptor,
         all_changed_mappings,
         automaton,
