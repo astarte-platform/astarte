@@ -30,6 +30,15 @@ defmodule Astarte.DataUpdaterPlant.Repo do
     {:ok, config}
   end
 
+  def fetch_all(queryable, opts \\ []) do
+    try do
+      all(queryable, opts)
+    catch
+      error ->
+        handle_xandra_error(error)
+    end
+  end
+
   def fetch_one(queryable, opts \\ []) do
     try do
       one(queryable, opts)
