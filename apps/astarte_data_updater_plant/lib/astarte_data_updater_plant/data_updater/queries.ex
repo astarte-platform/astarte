@@ -411,7 +411,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
     :ok
   end
 
-  def retrieve_device_stats_and_introspection(realm, device_id) do
+  def retrieve_device_stats_and_introspection!(realm, device_id) do
     keyspace_name = Realm.keyspace_name(realm)
 
     stats =
@@ -425,7 +425,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
         :exchanged_msgs_by_interface
       ])
       |> put_query_prefix(keyspace_name)
-      |> Repo.fetch_one(consistency: :local_quorum)
+      |> Repo.one(consistency: :local_quorum)
 
     %{
       introspection: stats.introspection,
@@ -504,9 +504,21 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
       |> put_query_prefix(keyspace_name)
 
     case Repo.fetch_one(query, consistency: :quorum) do
-      n when is_number(n) -> {:ok, n}
-      nil -> {:error, :device_not_found}
-      {:error, reason} -> {:error, reason}
+      n when is_number(n) ->
+        {:ok, n}
+
+      nil ->
+        {:error, :device_not_found}
+
+      {:error, reason} ->
+        _ =
+          Logger.warning(
+            "Could not get remaining connection ttl for #{CoreDevice.encode_device_id(device_id)}",
+            realm: "realm",
+            tag: "get_connected_remaining_ttl_fail"
+          )
+
+        {:error, reason}
     end
   end
 
@@ -807,7 +819,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
       |> put_query_prefix(keyspace_name)
       |> select([p], fragment("TTL(?)", p.reception_timestamp))
 
-    case Repo.all(q, consistency: :quorum) do
+    case Repo.fetch_all(q, consistency: :quorum) do
       [] ->
         {:error, :property_not_set}
 
@@ -822,6 +834,19 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
           |> DateTime.from_unix!()
 
         {:ok, expiry_datetime}
+
+      {:error, reason} ->
+        %InterfaceDescriptor{name: name, major_version: major, minor_version: minor} =
+          interface_descriptor
+
+        _ =
+          Logger.warning(
+            "Could not fetch path #{path} expiry for #{name} v#{major}.#{minor}: #{inspect(reason)}",
+            realm: realm,
+            tag: "fetch_path_expiry_fail"
+          )
+
+        {:error, reason}
     end
   end
 

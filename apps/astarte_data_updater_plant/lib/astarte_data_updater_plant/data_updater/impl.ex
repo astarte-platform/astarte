@@ -88,7 +88,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
     Logger.info("Created device process.", tag: "device_process_created")
 
     stats_and_introspection =
-      Queries.retrieve_device_stats_and_introspection(new_state.realm, device_id)
+      Queries.retrieve_device_stats_and_introspection!(new_state.realm, device_id)
 
     # TODO this could be a bang!
     {:ok, ttl} = Queries.fetch_datastream_maximum_storage_retention(new_state.realm)
