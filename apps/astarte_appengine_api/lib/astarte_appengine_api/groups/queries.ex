@@ -17,106 +17,46 @@
 #
 
 defmodule Astarte.AppEngine.API.Groups.Queries do
-  alias Astarte.AppEngine.API.Groups.Group
+  alias Astarte.AppEngine.API.Groups.GroupedDevice, as: GroupedDevice
   alias Astarte.AppEngine.API.Device.DeviceStatus
   alias Astarte.AppEngine.API.Device.DevicesList
+  alias Astarte.AppEngine.API.Devices.Device, as: DataAccessDevice
+  alias Astarte.AppEngine.API.Realm, as: DataAccessRealm
   alias Astarte.Core.CQLUtils
   alias Astarte.AppEngine.API.Config
   alias Astarte.Core.Device
   alias Astarte.Core.Realm
+  alias Astarte.AppEngine.API.Repo
 
   require Logger
-
-  def create_group(realm_name, group_changeset) do
-    Xandra.Cluster.run(:xandra, fn conn ->
-      with {:ok, %Group{devices: devices, group_name: group_name} = group} <-
-             Ecto.Changeset.apply_action(group_changeset, :insert),
-           :ok <- check_all_devices_exist(conn, realm_name, devices),
-           {:group_exists?, false} <-
-             {:group_exists?, group_exists?(conn, realm_name, group_name)},
-           :ok <- add_to_group(conn, realm_name, group_name, devices) do
-        {:ok, group}
-      else
-        {:group_exists?, true} ->
-          {:error, :group_already_exists}
-
-        {:error, {:device_not_found, device_id}} ->
-          error_changeset =
-            group_changeset
-            |> Ecto.Changeset.add_error(:devices, "must exist (#{device_id} not found)")
-
-          {:error, error_changeset}
-
-        {:error, %Ecto.Changeset{} = error_changeset} ->
-          {:error, error_changeset}
-      end
-    end)
-  end
-
-  def list_groups(realm_name) do
-    Xandra.Cluster.run(:xandra, fn conn ->
-      query = "SELECT DISTINCT group_name FROM :keyspace.grouped_devices"
-
-      with {:ok, prepared} <- prepare_with_realm(conn, realm_name, query),
-           {:ok, %Xandra.Page{} = page} <- Xandra.execute(conn, prepared) do
-        {:ok, Enum.map(page, fn %{"group_name" => group_name} -> group_name end)}
-      else
-        {:error, reason} ->
-          _ = Logger.error("Database error: #{inspect(reason)}.", tag: "db_error")
-          {:error, :database_error}
-      end
-    end)
-  end
-
-  def get_group(realm_name, group_name) do
-    Xandra.Cluster.run(:xandra, fn conn ->
-      query = """
-        SELECT DISTINCT group_name
-        FROM :keyspace.grouped_devices
-        WHERE group_name = :group_name
-      """
-
-      with {:ok, prepared} <- prepare_with_realm(conn, realm_name, query),
-           {:ok, %Xandra.Page{} = page} <-
-             Xandra.execute(conn, prepared, %{"group_name" => group_name}),
-           [%{"group_name" => ^group_name}] <- Enum.to_list(page) do
-        {:ok, %Group{group_name: group_name}}
-      else
-        [] ->
-          {:error, :group_not_found}
-
-        {:error, reason} ->
-          _ = Logger.error("Database error: #{inspect(reason)}.", tag: "db_error")
-          {:error, :database_error}
-      end
-    end)
-  end
+  import Ecto.Query
 
   def list_devices(realm_name, group_name, opts \\ []) do
-    Xandra.Cluster.run(:xandra, fn conn ->
-      query = build_list_devices_statement(opts)
+    keyspace = DataAccessRealm.keyspace_name(realm_name)
 
-      # We put them all, even if some of them could be ignored depending on the query
-      parameters = %{
-        "group_name" => group_name,
-        "previous_token" => opts[:from_token],
-        "page_size" => opts[:limit]
-      }
+    if(opts[:details],
+      do: list_devices_with_details(keyspace, group_name, opts),
+      else: list_grouped_devices(keyspace, group_name, opts)
+    )
+  end
 
-      with {:ok, prepared} <- prepare_with_realm(conn, realm_name, query),
-           {:ok, %Xandra.Page{} = page} <-
-             Xandra.execute(conn, prepared, parameters, uuid_format: :binary),
-           result when result != [] <- Enum.to_list(page) do
-        {:ok, build_device_list(realm_name, result, opts)}
-      else
-        [] ->
-          {:error, :group_not_found}
+  defp list_devices_with_details(keyspace, group_name, opts) do
+    limit = opts[:limit]
+    query = list_devices_with_details_query(keyspace, group_name, opts) |> limit(^limit)
 
-        {:error, reason} ->
-          _ = Logger.error("Database error: #{inspect(reason)}.", tag: "db_error")
-          {:error, :database_error}
-      end
-    end)
+    case Repo.all(query) do
+      [] -> {:error, :group_not_found}
+      devices -> {:ok, build_device_list(keyspace, devices, opts)}
+    end
+  end
+
+  defp list_grouped_devices(keyspace, group_name, opts) do
+    query = list_grouped_devices_query(keyspace, group_name, opts)
+
+    case Repo.all(query) do
+      [] -> {:error, :group_not_found}
+      devices -> {:ok, build_device_list(keyspace, devices, opts)}
+    end
   end
 
   def add_device(realm_name, group_name, device_changeset) do
@@ -170,84 +110,80 @@ defmodule Astarte.AppEngine.API.Groups.Queries do
     end)
   end
 
-  defp build_list_devices_statement(opts) do
-    {select, from, where, suffix} =
-      if opts[:details] do
-        select = """
-        SELECT TOKEN(device_id), device_id, aliases, introspection, inhibit_credentials_request,
-        introspection_minor, connected, last_connection, last_disconnection,
-        first_registration, first_credentials_request, last_credentials_request_ip,
-        last_seen_ip, total_received_msgs, total_received_bytes, groups,
-        exchanged_msgs_by_interface, exchanged_bytes_by_interface, old_introspection,
-        attributes
-        """
+  defp list_devices_with_details_query(keyspace, group_name, opts) do
+    previous_token = opts[:from_token]
+    limit = opts[:limit]
 
-        from = """
-        FROM :keyspace.devices
-        """
+    from_previous_token =
+      if previous_token,
+        do: dynamic([d], fragment("TOKEN(?)", d.device_id) > ^previous_token),
+        else: true
 
-        where =
-          if opts[:from_token] do
-            """
-            WHERE TOKEN(device_id) > :previous_token
-            AND groups CONTAINS KEY :group_name
-            """
-          else
-            """
-            WHERE groups CONTAINS KEY :group_name
-            """
-          end
+    # TODO: this needs to be done with ALLOW FILTERING, so it's not particularly efficient
+    from d in DataAccessDevice,
+      prefix: ^keyspace,
+      hints: ["ALLOW FILTERING"],
+      select: %{
+        token: fragment("TOKEN(?)", d.device_id),
+        device_id: d.device_id,
+        aliases: d.aliases,
+        introspection: d.introspection,
+        inhibit_credentials_request: d.inhibit_credentials_request,
+        introspection_minor: d.introspection_minor,
+        connected: d.connected,
+        last_connection: d.last_connection,
+        last_disconnection: d.last_disconnection,
+        first_registration: d.first_registration,
+        first_credentials_request: d.first_credentials_request,
+        last_credentials_request_ip: d.last_credentials_request_ip,
+        last_seen_ip: d.last_seen_ip,
+        total_received_msgs: d.total_received_msgs,
+        total_received_bytes: d.total_received_bytes,
+        groups: d.groups,
+        exchanged_msgs_by_interface: d.exchanged_msgs_by_interface,
+        exchanged_bytes_by_interface: d.exchanged_bytes_by_interface,
+        old_introspection: d.old_introspection,
+        attributes: d.attributes
+      },
+      where: ^from_previous_token,
+      where: fragment("? CONTAINS KEY ?", d.groups, ^group_name),
+      limit: ^limit
+  end
 
-        # TODO: this needs to be done with ALLOW FILTERING, so it's not particularly efficient
-        suffix = """
-        LIMIT :page_size
-        ALLOW FILTERING
-        """
+  defp list_grouped_devices_query(keyspace, group_name, opts) do
+    previous_token = opts[:from_token]
+    limit = opts[:limit]
 
-        {select, from, where, suffix}
-      else
-        select = """
-        SELECT insertion_uuid, device_id
-        """
+    from_previous_token =
+      if previous_token,
+        do: dynamic([d], d.insertion_uuid > ^previous_token),
+        else: true
 
-        from = """
-        FROM :keyspace.grouped_devices
-        """
-
-        where =
-          if opts[:from_token] do
-            """
-            WHERE group_name = :group_name
-            AND insertion_uuid > :previous_token
-            """
-          else
-            """
-            WHERE group_name = :group_name
-            """
-          end
-
-        suffix = """
-        LIMIT :page_size
-        """
-
-        {select, from, where, suffix}
-      end
-
-    select <> from <> where <> suffix
+    from GroupedDevice,
+      prefix: ^keyspace,
+      select: [:insertion_uuid, :device_id],
+      where: [group_name: ^group_name],
+      where: ^from_previous_token,
+      limit: ^limit
   end
 
   defp build_device_list(realm_name, result, opts) do
     {row_to_device_fun, row_to_token_fun} =
       if opts[:details] do
-        {&compute_device_status(realm_name, &1), &Map.get(&1, "system.token(device_id)")}
+        {&compute_device_status(realm_name, &1), &Map.get(&1, :token)}
       else
-        {fn %{"device_id" => device_id} -> Device.encode_device_id(device_id) end,
-         &Map.get(&1, "insertion_uuid")}
+        {fn %{:device_id => device_id} -> Device.encode_device_id(device_id) end,
+         &(Map.get(&1, :insertion_uuid) |> Ecto.UUID.load())}
       end
 
     {device_list, last_token, count} =
       Enum.reduce(result, {[], nil, 0}, fn row, {device_list, _token, count} ->
-        latest_token = row_to_token_fun.(row)
+        latest_token =
+          case row_to_token_fun.(row) do
+            {:ok, value} -> value
+            val -> val
+          end
+
         device = row_to_device_fun.(row)
 
         {[device | device_list], latest_token, count + 1}
@@ -261,8 +197,12 @@ defmodule Astarte.AppEngine.API.Groups.Queries do
   end
 
   defp compute_device_status(realm_name, device_row) do
-    %{"device_id" => device_id} = device_row
+    %{
+      device_id: device_id
+    } = device_row
+
     device_status = DeviceStatus.from_db_row(device_row)
+    # TODO: rebase on newer devicestatus
     deletion_in_progress? = deletion_in_progress?(realm_name, device_id)
     %{device_status | deletion_in_progress: deletion_in_progress?}
   end
@@ -312,18 +252,6 @@ defmodule Astarte.AppEngine.API.Groups.Queries do
 
       {:in_group?, {:error, reason}} ->
         {:error, reason}
-    end
-  end
-
-  defp check_all_devices_exist(_conn, _realm_name, []) do
-    :ok
-  end
-
-  defp check_all_devices_exist(conn, realm_name, [device_id | tail]) do
-    if device_exists?(conn, realm_name, device_id) do
-      check_all_devices_exist(conn, realm_name, tail)
-    else
-      {:error, {:device_not_found, device_id}}
     end
   end
 

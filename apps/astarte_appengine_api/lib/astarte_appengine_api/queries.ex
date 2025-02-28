@@ -16,13 +16,12 @@
 # limitations under the License.
 
 defmodule Astarte.AppEngine.API.Queries do
-  alias CQEx.Query, as: DatabaseQuery
-  alias CQEx.Result, as: DatabaseResult
-  alias Astarte.AppEngine.API.Config
-  alias Astarte.Core.CQLUtils
+  alias Astarte.AppEngine.API.KvStore
+
+  alias Astarte.AppEngine.API.Repo
 
   require Logger
-
+  import Ecto.Query
   @keyspace_does_not_exist_regex ~r/Keyspace (.*) does not exist/
 
   def fetch_public_key(keyspace_name) do
@@ -31,38 +30,66 @@ defmodule Astarte.AppEngine.API.Queries do
         {:ok, pem}
 
       {:error, %Xandra.ConnectionError{} = err} ->
-        _ =
-          Logger.warning("Database connection error #{Exception.message(err)}.",
-            tag: "database_connection_error"
-          )
+        Logger.warning("Database connection error #{Exception.message(err)}.",
+          tag: "database_connection_error"
+        )
 
         {:error, :database_connection_error}
 
       {:error, %Xandra.Error{} = err} ->
         handle_xandra_error(err)
+
+      {:error, error} ->
+        {:error, error}
     end
   end
 
-  defp do_fetch_public_key(keyspace_name, conn) do
-    query = """
-    SELECT blobAsVarchar(value)
-    FROM #{keyspace_name}.kv_store
-    WHERE group='auth' AND key='jwt_public_key_pem';
-    """
+  defp do_fetch_public_key(keyspace_name, _conn) do
+    schema_query =
+      from r in KvStore,
+        prefix: ^keyspace_name,
+        select: fragment("blobAsVarchar(?)", r.value),
+        where: r.group == "auth" and r.key == "jwt_public_key_pem"
 
-    with {:ok, prepared} <- Xandra.prepare(conn, query),
-         {:ok, page} <-
-           Xandra.execute(conn, prepared, %{},
-             uuid_format: :binary,
-             consistency: :quorum
-           ) do
-      case Enum.to_list(page) do
-        [%{"system.blobasvarchar(value)" => pem}] ->
-          {:ok, pem}
+    opts = [uuid_format: :binary, consistency: :quorum]
 
-        [] ->
-          {:error, :public_key_not_found}
-      end
+    case safe_query(schema_query, opts) do
+      {:ok, %{rows: [[public_key]]}} ->
+        {:ok, public_key}
+
+      {:ok, %{num_rows: 0}} ->
+        Logger.warning("No public key found in realm #{keyspace_name}.",
+          tag: "no_public_key_found"
+        )
+
+        {:error, :public_key_not_found}
+
+      {:error, error} ->
+        {:error, error}
+    end
+  end
+
+  defp safe_query(ecto_query, opts) do
+    {sql, params} = Repo.to_sql(:all, ecto_query)
+
+    # Equivalent to a `Repo.all`, but does not raise if we get a Xandra Error.
+    case Repo.query(sql, params, opts) do
+      {:ok, result} ->
+        {:ok, result}
+
+      {:error, %Xandra.ConnectionError{}} ->
+        {:error, :database_connection_error}
+
+      {:error, %Xandra.Error{message: message, reason: reason}} ->
+        error_message =
+          case message do
+            "" -> inspect(reason)
+            message -> message
+          end
+
+        Logger.warning("Health is not good: #{error_message}", tag: "db_health_check_bad")
+
+        {:error, :health_check_bad}
     end
   end
 
@@ -85,51 +112,6 @@ defmodule Astarte.AppEngine.API.Queries do
           )
 
         {:error, :database_error}
-    end
-  end
-
-  def check_astarte_health(client, consistency) do
-    schema_statement = """
-      SELECT count(value)
-      FROM #{CQLUtils.realm_name_to_keyspace_name("astarte", Config.astarte_instance_id!())}.kv_store
-      WHERE group='astarte' AND key='schema_version'
-    """
-
-    # no-op, just to check if nodes respond
-    # no realm name can contain '_', '^'
-    realms_statement = """
-      SELECT *
-      FROM #{CQLUtils.realm_name_to_keyspace_name("astarte", Config.astarte_instance_id!())}.realms
-      WHERE realm_name='_invalid^name_'
-    """
-
-    schema_query =
-      DatabaseQuery.new()
-      |> DatabaseQuery.statement(schema_statement)
-      |> DatabaseQuery.consistency(consistency)
-
-    realms_query =
-      DatabaseQuery.new()
-      |> DatabaseQuery.statement(realms_statement)
-      |> DatabaseQuery.consistency(consistency)
-
-    with {:ok, result} <- DatabaseQuery.call(client, schema_query),
-         ["system.count(value)": _count] <- DatabaseResult.head(result),
-         {:ok, _result} <- DatabaseQuery.call(client, realms_query) do
-      :ok
-    else
-      %{acc: _, msg: err_msg} ->
-        _ = Logger.warning("Health is not good: #{err_msg}.", tag: "db_health_check_bad")
-
-        {:error, :health_check_bad}
-
-      {:error, err} ->
-        _ =
-          Logger.warning("Health is not good, reason: #{inspect(err)}.",
-            tag: "db_health_check_bad"
-          )
-
-        {:error, :health_check_bad}
     end
   end
 end
