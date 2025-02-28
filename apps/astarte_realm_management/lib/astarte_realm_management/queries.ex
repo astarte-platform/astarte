@@ -455,7 +455,7 @@ defmodule Astarte.RealmManagement.Queries do
     :ok
   end
 
-  def delete_interface(client, interface_name, interface_major_version) do
+  def delete_interface(realm_name, interface_name, interface_major_version) do
     _ =
       Logger.info("Delete interface.",
         interface: interface_name,
@@ -463,40 +463,32 @@ defmodule Astarte.RealmManagement.Queries do
         tag: "db_delete_interface"
       )
 
-    delete_endpoints_statement = "DELETE FROM endpoints WHERE interface_id=:interface_id"
+    keyspace = Realm.keyspace_name(realm_name)
 
     interface_id = CQLUtils.interface_id(interface_name, interface_major_version)
 
-    delete_endpoints =
-      DatabaseQuery.new()
-      |> DatabaseQuery.statement(delete_endpoints_statement)
-      |> DatabaseQuery.put(:interface_id, interface_id)
-      |> DatabaseQuery.consistency(:each_quorum)
+    endpoint_query =
+      from Endpoint,
+        prefix: ^keyspace,
+        where: [interface_id: ^interface_id]
 
-    delete_interface_statement =
-      "DELETE FROM interfaces WHERE name=:name AND major_version=:major"
+    interface_query =
+      from Interface,
+        prefix: ^keyspace,
+        where: [name: ^interface_name, major_version: ^interface_major_version]
 
-    delete_interface =
-      DatabaseQuery.new()
-      |> DatabaseQuery.statement(delete_interface_statement)
-      |> DatabaseQuery.put(:name, interface_name)
-      |> DatabaseQuery.put(:major, interface_major_version)
-      |> DatabaseQuery.consistency(:each_quorum)
+    queries = [
+      Repo.to_sql(:delete_all, endpoint_query),
+      Repo.to_sql(:delete_all, interface_query)
+    ]
 
-    # TODO: use a batch here
-    with {:ok, _result} <- DatabaseQuery.call(client, delete_endpoints),
-         {:ok, _result} <- DatabaseQuery.call(client, delete_interface) do
-      :ok
-    else
-      {:error, reason} ->
-        _ =
-          Logger.error(
-            "Database error while deleting #{interface_name}, reason: #{inspect(reason)}.",
-            tag: "db_error"
-          )
-
-        {:error, :database_error}
-    end
+    Exandra.execute_batch(
+      Repo,
+      %Exandra.Batch{
+        queries: queries
+      },
+      consistency: :each_quorum
+    )
   end
 
   def delete_interface_storage(

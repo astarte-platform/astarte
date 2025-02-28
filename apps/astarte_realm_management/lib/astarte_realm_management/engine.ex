@@ -426,7 +426,7 @@ defmodule Astarte.RealmManagement.Engine do
           tag: "delete_interface_started"
         )
 
-      Queries.delete_interface(client, name, major)
+      Queries.delete_interface(realm_name, name, major)
     end
   end
 
