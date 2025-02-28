@@ -21,8 +21,6 @@ defmodule Astarte.Pairing.Queries do
   This module is responsible for the interaction with the database.
   """
 
-  alias CQEx.Client
-  alias CQEx.Query
   alias Astarte.Core.CQLUtils
   alias Astarte.Pairing.Config
   alias Astarte.Pairing.Astarte.Realm
@@ -103,9 +101,8 @@ defmodule Astarte.Pairing.Queries do
 
           do_register_unconfirmed_device(
             realm_name,
-            device_id,
+            device,
             credentials_secret,
-            device.first_registration,
             opts
           )
         else
@@ -249,113 +246,52 @@ defmodule Astarte.Pairing.Queries do
          %DateTime{} = registration_timestamp,
          opts
        ) do
-    statement = """
-    INSERT INTO devices
-    (device_id, first_registration, credentials_secret, inhibit_credentials_request,
-    protocol_revision, total_received_bytes, total_received_msgs, introspection,
-    introspection_minor)
-    VALUES
-    (:device_id, :first_registration, :credentials_secret, :inhibit_credentials_request,
-    :protocol_revision, :total_received_bytes, :total_received_msgs, :introspection,
-    :introspection_minor)
-    """
-
     {introspection, introspection_minor} =
       opts
       |> Keyword.get(:initial_introspection, [])
       |> build_initial_introspection_maps()
 
-    query =
-      Query.new()
-      |> Query.statement(statement)
-      |> Query.put(:device_id, device_id)
-      |> Query.put(:first_registration, registration_timestamp |> DateTime.to_unix(:millisecond))
-      |> Query.put(:credentials_secret, credentials_secret)
-      |> Query.put(:inhibit_credentials_request, false)
-      |> Query.put(:protocol_revision, 0)
-      |> Query.put(:total_received_bytes, 0)
-      |> Query.put(:total_received_msgs, 0)
-      |> Query.put(:introspection, introspection)
-      |> Query.put(:introspection_minor, introspection_minor)
-      |> Query.consistency(:quorum)
-
     keyspace_name =
       CQLUtils.realm_name_to_keyspace_name(realm_name, Config.astarte_instance_id!())
 
-    cqex_options =
-      Config.cqex_options!()
-      |> Keyword.put(:keyspace, keyspace_name)
-
-    with {:ok, client} <-
-           Client.new(
-             Config.cassandra_node!(),
-             cqex_options
-           ),
-         {:ok, _res} <- Query.call(client, query) do
-      :ok
-    else
-      error ->
-        Logger.warning("DB error: #{inspect(error)}")
-        {:error, :database_error}
-    end
+    %Device{}
+    |> Ecto.Changeset.change(%{
+      device_id: device_id,
+      first_registration: registration_timestamp,
+      credentials_secret: credentials_secret,
+      inhibit_credentials_request: false,
+      protocol_revision: 0,
+      total_received_bytes: 0,
+      total_received_msgs: 0,
+      introspection: introspection,
+      introspection_minor: introspection_minor
+    })
+    |> Repo.insert(prefix: keyspace_name, consistency: :quorum)
   end
 
   defp do_register_unconfirmed_device(
          realm_name,
-         device_id,
+         %Device{} = device,
          credentials_secret,
-         %DateTime{} = registration_timestamp,
          opts
        ) do
-    statement = """
-    UPDATE devices
-    SET
-      first_registration = :first_registration,
-      credentials_secret = :credentials_secret,
-      inhibit_credentials_request = :inhibit_credentials_request,
-      protocol_revision = :protocol_revision,
-      introspection = :introspection,
-      introspection_minor = :introspection_minor
-
-    WHERE device_id = :device_id
-    """
-
     {introspection, introspection_minor} =
       opts
       |> Keyword.get(:initial_introspection, [])
       |> build_initial_introspection_maps()
 
-    query =
-      Query.new()
-      |> Query.statement(statement)
-      |> Query.put(:device_id, device_id)
-      |> Query.put(:first_registration, registration_timestamp |> DateTime.to_unix(:millisecond))
-      |> Query.put(:credentials_secret, credentials_secret)
-      |> Query.put(:inhibit_credentials_request, false)
-      |> Query.put(:protocol_revision, 0)
-      |> Query.put(:introspection, introspection)
-      |> Query.put(:introspection_minor, introspection_minor)
-      |> Query.consistency(:quorum)
-
     keyspace_name =
       CQLUtils.realm_name_to_keyspace_name(realm_name, Config.astarte_instance_id!())
 
-    cqex_options =
-      Config.cqex_options!()
-      |> Keyword.put(:keyspace, keyspace_name)
-
-    with {:ok, client} <-
-           Client.new(
-             Config.cassandra_node!(),
-             cqex_options
-           ),
-         {:ok, _res} <- Query.call(client, query) do
-      :ok
-    else
-      error ->
-        Logger.warning("DB error: #{inspect(error)}")
-        {:error, :database_error}
-    end
+    device
+    |> Ecto.Changeset.change(%{
+      credentials_secret: credentials_secret,
+      inhibit_credentials_request: false,
+      protocol_revision: 0,
+      introspection: introspection,
+      introspection_minor: introspection_minor
+    })
+    |> Repo.update(prefix: keyspace_name, consistency: :quorum)
   end
 
   defp build_initial_introspection_maps(initial_introspection) do

@@ -27,7 +27,6 @@ defmodule Astarte.Pairing.Engine do
   alias Astarte.Pairing.Config
   alias Astarte.Pairing.CredentialsSecret
   alias Astarte.Pairing.Queries
-  alias CQEx.Client
 
   require Logger
 
@@ -155,7 +154,8 @@ defmodule Astarte.Pairing.Engine do
          :ok <- verify_can_register_device(realm, device_id),
          credentials_secret <- CredentialsSecret.generate(),
          secret_hash <- CredentialsSecret.hash(credentials_secret),
-         :ok <- Queries.register_device(realm, device_id, hardware_id, secret_hash, opts) do
+         {:ok, _device} <-
+           Queries.register_device(realm, device_id, hardware_id, secret_hash, opts) do
       {:ok, credentials_secret}
     else
       {:error, :shutdown} ->
