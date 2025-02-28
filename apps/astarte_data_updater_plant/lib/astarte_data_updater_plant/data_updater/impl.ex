@@ -1395,8 +1395,8 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
         Map.put(acc, {iface, prev_major}, prev_minor)
       end)
 
-    :ok = Queries.add_old_interfaces(db_client, new_state.device_id, old_introspection)
-    :ok = Queries.remove_old_interfaces(db_client, new_state.device_id, readded_introspection)
+    :ok = Queries.add_old_interfaces(realm, new_state.device_id, old_introspection)
+    :ok = Queries.remove_old_interfaces(realm, new_state.device_id, readded_introspection)
 
     # Deliver interface_minor_updated triggers if needed
     for {interface_name, old_minor} <- old_minors,
@@ -1435,7 +1435,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
     new_state = forget_interfaces(new_state, interfaces_to_drop_list)
 
     Queries.update_device_introspection!(
-      db_client,
+      realm,
       new_state.device_id,
       db_introspection_map,
       db_introspection_minor_map
