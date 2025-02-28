@@ -26,6 +26,25 @@ defmodule Astarte.RealmManagement.Realms.Interface do
   alias Astarte.Core.Interface.Type
   alias Astarte.Core.StorageType
 
+  import Ecto.Changeset
+
+  @required_fields [:name, :major_version]
+
+  @permitted_fields @required_fields ++
+                      [
+                        :aggregation,
+                        :automaton_accepting_states,
+                        :automaton_transitions,
+                        :description,
+                        :doc,
+                        :interface_id,
+                        :minor_version,
+                        :ownership,
+                        :storage,
+                        :storage_type,
+                        :type
+                      ]
+
   @primary_key false
   typed_schema "interfaces" do
     field :name, :string, primary_key: true
@@ -41,5 +60,11 @@ defmodule Astarte.RealmManagement.Realms.Interface do
     field :storage, :string
     field :storage_type, StorageType
     field :type, Type
+  end
+
+  def changeset(interface, params) do
+    interface
+    |> cast(params, @permitted_fields)
+    |> validate_required(@required_fields)
   end
 end

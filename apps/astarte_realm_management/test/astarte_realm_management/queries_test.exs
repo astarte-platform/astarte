@@ -286,7 +286,7 @@ defmodule Astarte.RealmManagement.QueriesTest do
 
     assert Queries.get_interfaces_list(realm_name) == {:ok, []}
 
-    Queries.install_new_interface(client, intdoc, automaton)
+    Queries.install_new_interface(client, realm_name, intdoc, automaton)
 
     assert Queries.is_interface_major_available?(realm_name, interface_name, major_version) ==
              {:ok, true}
@@ -398,7 +398,7 @@ defmodule Astarte.RealmManagement.QueriesTest do
 
     assert Queries.get_interfaces_list(realm_name) == {:ok, []}
 
-    Queries.install_new_interface(client, intdoc, automaton)
+    Queries.install_new_interface(client, realm_name, intdoc, automaton)
 
     assert Queries.is_interface_major_available?(realm_name, interface_name, major_version) ==
              {:ok, true}
@@ -491,14 +491,15 @@ defmodule Astarte.RealmManagement.QueriesTest do
 
   test "timestamp handling" do
     {:ok, _} = DatabaseTestHelper.connect_to_test_database()
-    client = connect_to_test_realm("autotestrealm")
+    realm_name = "autotestrealm"
+    client = connect_to_test_realm(realm_name)
 
     json_obj = Jason.decode!(@individual_datastream_with_explicit_timestamp_interface_json)
     interface_changeset = InterfaceDocument.changeset(%InterfaceDocument{}, json_obj)
     {:ok, doc} = Ecto.Changeset.apply_action(interface_changeset, :insert)
 
     {:ok, automaton} = Astarte.Core.Mapping.EndpointsAutomaton.build(doc.mappings)
-    Queries.install_new_interface(client, doc, automaton)
+    Queries.install_new_interface(client, realm_name, doc, automaton)
 
     endpoint_id = retrieve_endpoint_id(client, "com.timestamp.Test", 1, "/test/0/v")
 

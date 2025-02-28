@@ -25,6 +25,27 @@ defmodule Astarte.RealmManagement.Realms.Endpoint do
   alias Astarte.Core.Mapping.Retention
   alias Astarte.Core.Mapping.ValueType
 
+  import Ecto.Changeset
+
+  @required_fields [:interface_id, :endpoint_id]
+  @permitted_fields [
+                      :allow_unset,
+                      :database_retention_policy,
+                      :database_retention_ttl,
+                      :description,
+                      :doc,
+                      :endpoint,
+                      :expiry,
+                      :explicit_timestamp,
+                      :interface_major_version,
+                      :interface_minor_version,
+                      :interface_name,
+                      :interface_type,
+                      :reliability,
+                      :retention,
+                      :value_type
+                    ] ++ @required_fields
+
   @primary_key false
   typed_schema "endpoints" do
     field :interface_id, Astarte.DataAccess.UUID, primary_key: true
@@ -44,5 +65,12 @@ defmodule Astarte.RealmManagement.Realms.Endpoint do
     field :reliability, Reliability
     field :retention, Retention
     field :value_type, ValueType
+  end
+
+  def changeset(endpoint, params \\ %{}) do
+    endpoint
+    |> cast(params, @permitted_fields)
+    |> validate_required(@required_fields)
+    |> unique_constraint([:interface_id, :endpoint_id])
   end
 end
