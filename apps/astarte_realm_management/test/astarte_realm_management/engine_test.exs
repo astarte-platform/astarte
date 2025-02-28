@@ -1569,8 +1569,9 @@ defmodule Astarte.RealmManagement.EngineTest do
   test "fail to retrieve datastream_maximum_storage_retention if realm does not exist" do
     realm_name = "realm#{System.unique_integer([:positive])}"
 
-    assert {:error, _} =
-             Engine.get_datastream_maximum_storage_retention(realm_name)
+    assert_raise Xandra.Error, fn ->
+      Engine.get_datastream_maximum_storage_retention(realm_name)
+    end
   end
 
   defp unpack_source({:ok, source}) when is_binary(source) do
