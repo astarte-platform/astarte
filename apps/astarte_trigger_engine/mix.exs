@@ -86,7 +86,7 @@ defmodule Astarte.TriggerEngine.Mixfile do
       {:telemetry_poller, "~> 0.4"},
       {:typed_ecto_schema, "~> 0.4"},
       {:ecto, "~> 3.12"},
-      {:exandra, "~> 0.12"},
+      {:exandra, github: "vinniefranco/exandra"},
       {:pretty_log, "~> 0.1"},
       {:telemetry, "~> 0.4"},
       {:xandra, "~> 0.19"},
