@@ -33,7 +33,7 @@ defmodule Astarte.AppEngine.API.Device.Queries do
   alias Astarte.Core.InterfaceDescriptor
   alias CQEx.Query, as: DatabaseQuery
   alias CQEx.Result, as: DatabaseResult
-
+  alias Astarte.AppEngine.API.Realm
   alias Astarte.AppEngine.API.Devices.Device, as: DatabaseDevice
   alias Astarte.AppEngine.API.Endpoint, as: DatabaseEndpoint
 
@@ -213,12 +213,12 @@ defmodule Astarte.AppEngine.API.Device.Queries do
 
   # TODO Copy&pasted from data updater plant, make it a library
   def insert_value_into_db(
-        _realm_name,
-        db_client,
+        realm_name,
+        _db_client,
         device_id,
         %InterfaceDescriptor{storage_type: :multi_interface_individual_properties_dbtable} =
           interface_descriptor,
-        _endpoint_id,
+        endpoint_id,
         endpoint,
         path,
         nil,
@@ -235,17 +235,23 @@ defmodule Astarte.AppEngine.API.Device.Queries do
     end
 
     # TODO: :reception_timestamp_submillis is just a place holder right now
-    unset_query =
-      DatabaseQuery.new()
-      |> DatabaseQuery.statement(
-        "DELETE FROM #{interface_descriptor.storage} WHERE device_id=:device_id AND interface_id=:interface_id AND endpoint_id=:endpoint_id AND path=:path"
-      )
-      |> DatabaseQuery.put(:device_id, device_id)
-      |> DatabaseQuery.put(:interface_id, interface_descriptor.interface_id)
-      |> DatabaseQuery.put(:endpoint_id, endpoint.endpoint_id)
-      |> DatabaseQuery.put(:path, path)
+    %InterfaceDescriptor{interface_id: interface_id, storage: storage} = interface_descriptor
+    keyspace_name = Realm.keyspace_name(realm_name)
 
-    DatabaseQuery.call!(db_client, unset_query)
+    q =
+      from v in storage,
+        prefix: ^keyspace_name,
+        where:
+          v.device_id == ^device_id and v.interface_id == ^interface_id and
+            v.endpoint_id == ^endpoint_id and v.path == ^path
+
+    with {0, _} <- Repo.delete_all(q) do
+      Logger.warning(
+        "Could not unset value for  #{Device.encode_device_id(device_id)} in #{storage}}",
+        realm: "realm",
+        tag: "cant_unset"
+      )
+    end
 
     :ok
   end
@@ -561,42 +567,34 @@ defmodule Astarte.AppEngine.API.Device.Queries do
     :ok
   end
 
-  def delete_attribute(realm_name, client, device_id, attribute_key) do
+  def delete_attribute(realm_name, device_id, attribute_key) do
     keyspace = keyspace_name(realm_name)
     query = from(d in DatabaseDevice, select: d.attributes)
     opts = [prefix: keyspace, consistency: :quorum]
 
     with {:ok, attributes} <- Repo.fetch(query, device_id, opts),
          {:ok, _} <- get_value(attributes, attribute_key, :attribute_key_not_found) do
-      delete_attribute_statement = """
-        DELETE attributes[:attribute_key]
-        FROM devices
-        WHERE device_id = :device_id
-      """
+      map_new_attribute = MapSet.new([attribute_key])
 
-      delete_attribute_query =
-        DatabaseQuery.new()
-        |> DatabaseQuery.statement(delete_attribute_statement)
-        |> DatabaseQuery.put(:attribute_key, attribute_key)
-        |> DatabaseQuery.put(:device_id, device_id)
-        |> DatabaseQuery.consistency(:each_quorum)
+      query_delete_attributes =
+        from DatabaseDevice,
+          prefix: ^keyspace,
+          where: [device_id: ^device_id],
+          update: [set: [attributes: fragment("attributes - ?", ^map_new_attribute)]]
 
-      case DatabaseQuery.call(client, delete_attribute_query) do
-        {:ok, _result} ->
-          :ok
-
-        %{acc: _, msg: error_message} ->
-          _ = Logger.warning("Database error: #{error_message}.", tag: "db_error")
-          {:error, :database_error}
-
-        {:error, reason} ->
-          _ = Logger.warning("Database error, reason: #{inspect(reason)}.", tag: "db_error")
-          {:error, :database_error}
+      with {0, _} <- Repo.update_all(query_delete_attributes, [], consistency: :each_quorum) do
+        Logger.warning(
+          "Could not unset attribute #{attribute_key} for  #{Device.encode_device_id(device_id)} }",
+          realm: "#{realm_name}",
+          tag: "cant_unset_attribute"
+        )
       end
+
+      :ok
     end
   end
 
-  def insert_alias(realm_name, client, device_id, alias_tag, alias_value) do
+  def insert_alias(realm_name, device_id, alias_tag, alias_value) do
     keyspace = keyspace_name(realm_name)
     names_table = Name.__schema__(:source)
 
@@ -624,7 +622,7 @@ defmodule Astarte.AppEngine.API.Device.Queries do
 
     with {:existing, {:error, :device_not_found}} <-
            {:existing, device_alias_to_device_id(realm_name, alias_value)},
-         :ok <- try_delete_alias(realm_name, client, device_id, alias_tag),
+         :ok <- try_delete_alias(realm_name, device_id, alias_tag),
          :ok <- Exandra.execute_batch(Repo, insert_batch, consistency: :each_quorum) do
       :ok
     else
@@ -639,7 +637,7 @@ defmodule Astarte.AppEngine.API.Device.Queries do
     end
   end
 
-  def delete_alias(realm_name, client, device_id, alias_tag) do
+  def delete_alias(realm_name, device_id, alias_tag) do
     keyspace = keyspace_name(realm_name)
 
     query =
@@ -651,56 +649,33 @@ defmodule Astarte.AppEngine.API.Device.Queries do
     with {:ok, result} <- Repo.fetch(query, device_id, opts),
          {:ok, alias_value} <- get_value(result, alias_tag, :alias_tag_not_found),
          :ok <- check_alias_ownership(keyspace, device_id, alias_tag, alias_value) do
-      delete_alias_from_device_statement = """
-      DELETE aliases[:alias_tag]
-      FROM devices
-      WHERE device_id = :device_id
-      """
+      map_new_alias = MapSet.new([alias_tag])
 
-      delete_alias_from_device_query =
-        DatabaseQuery.new()
-        |> DatabaseQuery.statement(delete_alias_from_device_statement)
-        |> DatabaseQuery.put(:alias_tag, alias_tag)
-        |> DatabaseQuery.put(:device_id, device_id)
-        |> DatabaseQuery.consistency(:each_quorum)
-        |> DatabaseQuery.convert()
+      query_delete_alias =
+        from DatabaseDevice,
+          prefix: ^keyspace,
+          where: [device_id: ^device_id],
+          update: [set: [aliases: fragment("aliases - ?", ^map_new_alias)]]
 
-      delete_alias_from_names_statement = """
-      DELETE FROM names
-      WHERE object_name = :alias AND object_type = 1
-      """
+      sql_query_delete_alias = Repo.to_sql(:update_all, query_delete_alias)
 
-      delete_alias_from_names_query =
-        DatabaseQuery.new()
-        |> DatabaseQuery.statement(delete_alias_from_names_statement)
-        |> DatabaseQuery.put(:alias, alias_value)
-        |> DatabaseQuery.put(:device_id, device_id)
-        |> DatabaseQuery.consistency(:each_quorum)
-        |> DatabaseQuery.convert()
-
-      delete_batch =
-        CQEx.cql_query_batch(
-          consistency: :each_quorum,
-          mode: :logged,
-          queries: [delete_alias_from_device_query, delete_alias_from_names_query]
+      query_delete_in_name =
+        from(d in Name,
+          prefix: ^keyspace,
+          where: [object_name: ^alias_value, object_type: 1]
         )
 
-      with {:ok, _result} <- DatabaseQuery.call(client, delete_batch) do
-        :ok
-      else
-        %{acc: _, msg: error_message} ->
-          _ = Logger.warning("Database error: #{error_message}.", tag: "db_error")
-          {:error, :database_error}
+      sql_query_delete_in_name = Repo.to_sql(:delete_all, query_delete_in_name)
 
-        {:error, reason} ->
-          _ = Logger.warning("Database error, reason: #{inspect(reason)}.", tag: "db_error")
-          {:error, :database_error}
-      end
+      update_and_delete_batch =
+        %Exandra.Batch{queries: [sql_query_delete_alias, sql_query_delete_in_name]}
+
+      Exandra.execute_batch(Repo, update_and_delete_batch, consistency: :each_quorum)
     end
   end
 
-  defp try_delete_alias(realm_name, client, device_id, alias_tag) do
-    case delete_alias(realm_name, client, device_id, alias_tag) do
+  defp try_delete_alias(realm_name, device_id, alias_tag) do
+    case delete_alias(realm_name, device_id, alias_tag) do
       :ok ->
         :ok
 
