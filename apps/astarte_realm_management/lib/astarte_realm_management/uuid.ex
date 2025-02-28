@@ -18,7 +18,7 @@
 
 # TODO: Copied from astarte_data_access PR #71, see: https://github.com/astarte-platform/astarte_data_access/pull/71
 # use `astarte_data_access` when it will be merged
-defmodule Astarte.DataAccess.UUID do
+defmodule Astarte.RealmManagement.UUID do
   @moduledoc """
   Ecto type for UUIDs, just like Ecto.UUID.
   The difference is that its internal representation, and thus its result after `load/1`,
