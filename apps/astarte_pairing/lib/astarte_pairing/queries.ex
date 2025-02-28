@@ -32,7 +32,6 @@ defmodule Astarte.Pairing.Queries do
   require Logger
   import Ecto.Query
 
-  @protocol_revision 1
   @keyspace_does_not_exist_regex ~r/Keyspace (.*) does not exist/
 
   def get_agent_public_key_pems(realm_name) do
@@ -170,12 +169,12 @@ defmodule Astarte.Pairing.Queries do
     end
   end
 
-  def update_device_after_credentials_request(client, device_id, cert_data, device_ip, nil) do
+  def update_device_after_credentials_request(realm_name, device, cert_data, device_ip, nil) do
     first_credentials_request_timestamp = DateTime.utc_now()
 
     update_device_after_credentials_request(
-      client,
-      device_id,
+      realm_name,
+      device,
       cert_data,
       device_ip,
       first_credentials_request_timestamp
@@ -183,41 +182,23 @@ defmodule Astarte.Pairing.Queries do
   end
 
   def update_device_after_credentials_request(
-        client,
-        device_id,
+        realm_name,
+        %Device{} = device,
         %{serial: serial, aki: aki} = _cert_data,
         device_ip,
         %DateTime{} = first_credentials_request_timestamp
       ) do
-    statement = """
-    UPDATE devices
-    SET cert_aki=:cert_aki, cert_serial=:cert_serial, last_credentials_request_ip=:last_credentials_request_ip,
-    first_credentials_request=:first_credentials_request
-    WHERE device_id=:device_id
-    """
+    keyspace_name =
+      CQLUtils.realm_name_to_keyspace_name(realm_name, Config.astarte_instance_id!())
 
-    query =
-      Query.new()
-      |> Query.statement(statement)
-      |> Query.put(:device_id, device_id)
-      |> Query.put(:cert_aki, aki)
-      |> Query.put(:cert_serial, serial)
-      |> Query.put(:last_credentials_request_ip, device_ip)
-      |> Query.put(
-        :first_credentials_request,
-        first_credentials_request_timestamp |> DateTime.to_unix(:millisecond)
-      )
-      |> Query.put(:protocol_revision, @protocol_revision)
-      |> Query.consistency(:quorum)
-
-    case Query.call(client, query) do
-      {:ok, _res} ->
-        :ok
-
-      error ->
-        Logger.warning("DB error: #{inspect(error)}")
-        {:error, :database_error}
-    end
+    device
+    |> Ecto.Changeset.change(%{
+      cert_aki: aki,
+      cert_serial: serial,
+      last_credentials_request_ip: device_ip,
+      first_credentials_request: first_credentials_request_timestamp
+    })
+    |> Repo.update(prefix: keyspace_name, consistency: :quorum)
   end
 
   def fetch_device_registration_limit(realm_name) do

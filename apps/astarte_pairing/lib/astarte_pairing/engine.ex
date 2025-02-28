@@ -28,7 +28,6 @@ defmodule Astarte.Pairing.Engine do
   alias Astarte.Pairing.CredentialsSecret
   alias Astarte.Pairing.Queries
   alias CQEx.Client
-  alias Astarte.Core.CQLUtils
 
   require Logger
 
@@ -71,19 +70,9 @@ defmodule Astarte.Pairing.Engine do
     )
 
     :telemetry.execute([:astarte, :pairing, :get_credentials], %{}, %{realm: realm})
-    keyspace_name = CQLUtils.realm_name_to_keyspace_name(realm, Config.astarte_instance_id!())
-
-    cqex_options =
-      Config.cqex_options!()
-      |> Keyword.put(:keyspace, keyspace_name)
 
     with {:ok, device_id} <- Device.decode_device_id(hardware_id, allow_extended_id: true),
          {:ok, ip_tuple} <- parse_ip(device_ip),
-         {:ok, client} <-
-           Client.new(
-             Config.cassandra_node!(),
-             cqex_options
-           ),
          {:ok, device} <- Queries.fetch_device(realm, device_id),
          {:authorized?, true} <-
            {:authorized?, CredentialsSecret.verify(credentials_secret, device.credentials_secret)},
@@ -93,10 +82,10 @@ defmodule Astarte.Pairing.Engine do
          encoded_device_id <- Device.encode_device_id(device_id),
          {:ok, %{cert: cert, aki: _aki, serial: _serial} = cert_data} <-
            CFSSLCredentials.get_certificate(csr, realm, encoded_device_id),
-         :ok <-
+         {:ok, _device} <-
            Queries.update_device_after_credentials_request(
-             client,
-             device_id,
+             realm,
+             device,
              cert_data,
              ip_tuple,
              device.first_credentials_request
@@ -108,9 +97,6 @@ defmodule Astarte.Pairing.Engine do
 
       {:credentials_inhibited?, true} ->
         {:error, :credentials_request_inhibited}
-
-      {:error, :shutdown} ->
-        {:error, :realm_not_found}
 
       {:error, reason} ->
         {:error, reason}
