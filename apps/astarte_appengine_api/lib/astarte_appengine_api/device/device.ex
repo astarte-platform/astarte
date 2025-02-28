@@ -81,7 +81,7 @@ defmodule Astarte.AppEngine.API.Device do
          aliases_change = Map.get(changeset.changes, :aliases, %{}),
          attributes_change = Map.get(changeset.changes, :attributes, %{}),
          :ok <- update_aliases(realm_name, client, device_id, aliases_change),
-         :ok <- update_attributes(realm_name, client, device_id, attributes_change) do
+         :ok <- update_attributes(realm_name, device_id, attributes_change) do
       # Manually merge aliases since changesets don't perform maps deep merge
       merged_aliases = merge_data(device_status.aliases, updated_device_status.aliases)
       merged_attributes = merge_data(device_status.attributes, updated_device_status.attributes)
@@ -95,32 +95,34 @@ defmodule Astarte.AppEngine.API.Device do
     end
   end
 
-  defp update_attributes(realm_name, client, device_id, attributes) do
-    Enum.reduce_while(attributes, :ok, fn
-      {"", _attribute_value}, _acc ->
-        Logger.warning("Attribute key cannot be an empty string.",
-          tag: :invalid_attribute_empty_key
-        )
+  defp update_attributes(realm_name, device_id, attributes) do
+    Enum.reduce_while(attributes, :ok, fn {attribute_key, attribute_value}, _ ->
+      case {attribute_key, attribute_value} do
+        {"", _attribute_value} ->
+          Logger.warning("Attribute key cannot be an empty string.",
+            tag: :invalid_attribute_empty_key
+          )
 
-        {:halt, {:error, :invalid_attributes}}
+          {:halt, {:error, :invalid_attributes}}
 
-      {attribute_key, nil}, _acc ->
-        case Queries.delete_attribute(realm_name, client, device_id, attribute_key) do
-          :ok ->
-            {:cont, :ok}
+        {attribute_key, nil} ->
+          case Queries.delete_attribute(realm_name, device_id, attribute_key) do
+            :ok ->
+              {:cont, :ok}
 
-          {:error, reason} ->
-            {:halt, {:error, reason}}
-        end
+            {:error, reason} ->
+              {:halt, {:error, reason}}
+          end
 
-      {attribute_key, attribute_value}, _acc ->
-        case Queries.insert_attribute(realm_name, device_id, attribute_key, attribute_value) do
-          :ok ->
-            {:cont, :ok}
+        {attribute_key, attribute_value} ->
+          case Queries.insert_attribute(realm_name, device_id, attribute_key, attribute_value) do
+            :ok ->
+              {:cont, :ok}
 
-          {:error, reason} ->
-            {:halt, {:error, reason}}
-        end
+            {:error, reason} ->
+              {:halt, {:error, reason}}
+          end
+      end
     end)
   end
 
