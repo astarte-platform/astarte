@@ -558,22 +558,15 @@ defmodule Astarte.RealmManagement.Queries do
     Repo.fetch_all(query, prefix: keyspace, consistency: :quorum)
   end
 
-  def delete_devices_with_data_on_interface(client, interface_name) do
-    devices_statement = "DELETE FROM kv_store WHERE group=:group_name"
+  def delete_devices_with_data_on_interface(realm_name, interface_name) do
+    keyspace = Realm.keyspace_name(realm_name)
+    group_name = "devices-with-data-on-interface-#{interface_name}-v0"
 
-    devices_query =
-      DatabaseQuery.new()
-      |> DatabaseQuery.statement(devices_statement)
-      |> DatabaseQuery.put(:group_name, "devices-with-data-on-interface-#{interface_name}-v0")
-      |> DatabaseQuery.consistency(:each_quorum)
+    query = from KvStore, where: [group: ^group_name]
 
-    with {:ok, _result} <- DatabaseQuery.call(client, devices_query) do
-      :ok
-    else
-      {:error, reason} ->
-        _ = Logger.warning("Database error: #{inspect(reason)}.", tag: "db_error")
-        {:error, :database_error}
-    end
+    _ = Repo.delete_all(query, prefix: keyspace, consistency: :each_quorum)
+
+    :ok
   end
 
   def delete_values(
