@@ -19,6 +19,11 @@
 defmodule Astarte.RealmManagement.Queries do
   require CQEx
   require Logger
+  alias Astarte.RealmManagement.Realms.DeletionInProgress
+  alias Astarte.RealmManagement.Realms.GroupedDevice
+  alias Astarte.RealmManagement.Realms.Name
+  alias Astarte.RealmManagement.Realms.IndividualDatastream
+  alias Astarte.RealmManagement.Realms.Device, as: RealmsDevice
   alias Astarte.RealmManagement.Realms.Interface
   alias Astarte.RealmManagement.Realms.IndividualProperty
   alias Astarte.RealmManagement.Realms.Endpoint
@@ -1318,84 +1323,25 @@ defmodule Astarte.RealmManagement.Queries do
   end
 
   def check_device_exists(realm_name, device_id) do
-    Xandra.Cluster.run(
-      :xandra_device_deletion,
-      &do_check_device_exists(&1, realm_name, device_id)
-    )
-  end
+    keyspace = Realm.keyspace_name(realm_name)
 
-  defp do_check_device_exists(conn, realm_name, device_id) do
-    keyspace = CQLUtils.realm_name_to_keyspace_name(realm_name, Config.astarte_instance_id!())
+    query =
+      from device in RealmsDevice,
+        select: device.device_id,
+        where: [device_id: ^device_id]
 
-    # TODO: validate realm name
-    statement = """
-    SELECT COUNT (*)
-    FROM #{keyspace}.devices
-    WHERE device_id = :device_id
-    """
-
-    params = %{device_id: device_id}
-
-    with {:ok, prepared} <- Xandra.prepare(conn, statement),
-         {:ok, [result]} <-
-           execute_device_exists_query(conn, prepared, params,
-             consistency: :quorum,
-             uuid_format: :binary
-           ) do
-      {:ok, device_exists_result_to_boolean(result)}
-    end
-  end
-
-  defp device_exists_result_to_boolean(%{count: 1}), do: true
-  defp device_exists_result_to_boolean(_), do: false
-
-  defp execute_device_exists_query(conn, prepared, params, opts) do
-    case Xandra.execute(conn, prepared, params, opts) do
-      {:ok, %Xandra.Page{} = page} ->
-        {:ok, Enum.to_list(page)}
-
-      {:error, %Xandra.ConnectionError{}} ->
-        _ =
-          Logger.warning(
-            "Cannot check if device exists, connection error",
-            tag: "check_device_exists_connection_error"
-          )
-
-        {:error, :database_connection_error}
-
-      {:error, %Xandra.Error{} = error} ->
-        _ =
-          Logger.warning(
-            "Cannot check if device exists, reason #{error.message}",
-            tag: "check_device_exists_error"
-          )
-
-        {:error, error.reason}
-    end
+    Repo.some?(query, prefix: keyspace, consistency: :quorum)
   end
 
   def table_exist?(realm_name, table_name) do
-    Xandra.Cluster.run(
-      :xandra_device_deletion,
-      fn conn ->
-        statement = """
-        SELECT COUNT(*)
-        FROM system_schema.tables
-        WHERE keyspace_name = :keyspace_name
-        AND table_name = :table_name
-        """
+    keyspace = Realm.keyspace_name(realm_name)
 
-        keyspace_name =
-          CQLUtils.realm_name_to_keyspace_name(realm_name, Config.astarte_instance_id!())
+    query =
+      from schema in "system_schema.tables",
+        select: schema.table_name,
+        where: [table_name: ^table_name, keyspace_name: ^keyspace]
 
-        params = %{keyspace_name: keyspace_name, table_name: table_name}
-
-        prepared = Xandra.prepare!(conn, statement)
-        page = Xandra.execute!(conn, prepared, params)
-        [%{count: table_count}] = Enum.to_list(page)
-        table_count != 0
-      end
-    )
+    Repo.some?(query)
   end
 
   def insert_device_into_deletion_in_progress(realm_name, device_id) do
@@ -1449,32 +1395,14 @@ defmodule Astarte.RealmManagement.Queries do
 
   # TODO maybe move to AstarteDataAccess
   def retrieve_device_introspection_map!(realm_name, device_id) do
-    Xandra.Cluster.run(
-      :xandra_device_deletion,
-      &do_retrieve_introspection_map!(&1, realm_name, device_id)
-    )
-  end
+    keyspace = Realm.keyspace_name(realm_name)
 
-  defp do_retrieve_introspection_map!(conn, realm_name, device_id) do
-    keyspace_name =
-      CQLUtils.realm_name_to_keyspace_name(realm_name, Config.astarte_instance_id!())
+    query =
+      from device in RealmsDevice,
+        select: device.introspection,
+        where: [device_id: ^device_id]
 
-    # TODO: validate realm name
-    statement = """
-    SELECT introspection
-    FROM #{keyspace_name}.devices
-    WHERE device_id=:device_id
-    """
-
-    params = %{device_id: device_id}
-    prepared = Xandra.prepare!(conn, statement)
-
-    [%{introspection: introspection_map}] =
-      Xandra.execute!(conn, prepared, params, consistency: :quorum, uuid_format: :binary)
-      |> Enum.to_list()
-
-    # Introspection might be still empty: handle the nil case
-    introspection_map || %{}
+    Repo.one(query, prefix: keyspace, consistency: :quorum)
   end
 
   def retrieve_interface_descriptor!(
@@ -1482,66 +1410,42 @@ defmodule Astarte.RealmManagement.Queries do
         interface_name,
         interface_major
       ) do
-    Xandra.Cluster.run(
-      :xandra_device_deletion,
-      &do_retrieve_interface_descriptor!(
-        &1,
-        realm_name,
-        interface_name,
-        interface_major
+    keyspace = Realm.keyspace_name(realm_name)
+
+    interface =
+      Repo.get_by!(Interface, [name: interface_name, major_version: interface_major],
+        prefix: keyspace,
+        consistency: :quorum
       )
-    )
-  end
 
-  defp do_retrieve_interface_descriptor!(
-         conn,
-         realm_name,
-         interface_name,
-         interface_major
-       ) do
-    # TODO: validate realm name
-    keyspace_name =
-      CQLUtils.realm_name_to_keyspace_name(realm_name, Config.astarte_instance_id!())
-
-    statement = """
-    SELECT *
-    FROM #{keyspace_name}.interfaces
-    WHERE name=:name AND major_version=:major_version
-    """
-
-    params = %{name: interface_name, major_version: interface_major}
-
-    prepared = Xandra.prepare!(conn, statement)
-
-    Xandra.execute!(conn, prepared, params, consistency: :quorum)
-    |> Enum.to_list()
-    # If we're looking for a descriptor of an interface of known name and major, we're fairly sure the result is unique
-    |> hd()
-    |> Astarte.Core.InterfaceDescriptor.from_db_result!()
+    %InterfaceDescriptor{
+      name: interface.name,
+      major_version: interface.major_version,
+      minor_version: interface.minor_version,
+      type: interface.type,
+      ownership: interface.ownership,
+      aggregation: interface.aggregation,
+      interface_id: interface.interface_id,
+      automaton: {
+        :erlang.binary_to_term(interface.automaton_transitions),
+        :erlang.binary_to_term(interface.automaton_accepting_states)
+      },
+      storage: interface.storage,
+      storage_type: interface.storage_type
+    }
   end
 
   def retrieve_individual_datastreams_keys!(realm_name, device_id) do
-    Xandra.Cluster.run(
-      :xandra_device_deletion,
-      &do_retrieve_individual_datastreams_keys!(&1, realm_name, device_id)
-    )
-  end
+    keyspace = Realm.keyspace_name(realm_name)
 
-  defp do_retrieve_individual_datastreams_keys!(conn, realm_name, device_id) do
-    keyspace_name =
-      CQLUtils.realm_name_to_keyspace_name(realm_name, Config.astarte_instance_id!())
+    query =
+      from IndividualDatastream,
+        hints: ["ALLOW FILTERING"],
+        distinct: true,
+        select: [:device_id, :interface_id, :endpoint_id, :path],
+        where: [device_id: ^device_id]
 
-    # TODO: validate realm name
-    statement = """
-    SELECT DISTINCT device_id, interface_id, endpoint_id, path
-    FROM #{keyspace_name}.individual_datastreams
-    WHERE device_id=:device_id ALLOW FILTERING
-    """
-
-    params = %{device_id: device_id}
-
-    prepared = Xandra.prepare!(conn, statement)
-    Xandra.execute!(conn, prepared, params, uuid_format: :binary) |> Enum.to_list()
+    Repo.all(query, prefix: keyspace)
   end
 
   def delete_individual_datastream_values!(
@@ -1598,27 +1502,16 @@ defmodule Astarte.RealmManagement.Queries do
   end
 
   def retrieve_individual_properties_keys!(realm_name, device_id) do
-    Xandra.Cluster.run(
-      :xandra_device_deletion,
-      &do_retrieve_individual_properties_keys!(&1, realm_name, device_id)
-    )
-  end
+    keyspace = Realm.keyspace_name(realm_name)
 
-  defp do_retrieve_individual_properties_keys!(conn, realm_name, device_id) do
-    keyspace_name =
-      CQLUtils.realm_name_to_keyspace_name(realm_name, Config.astarte_instance_id!())
+    query =
+      from IndividualProperty,
+        hints: ["ALLOW FILTERING"],
+        distinct: true,
+        select: [:device_id, :interface_id],
+        where: [device_id: ^device_id]
 
-    # TODO: validate realm name
-    statement = """
-    SELECT DISTINCT device_id, interface_id
-    FROM #{keyspace_name}.individual_properties
-    WHERE device_id=:device_id ALLOW FILTERING
-    """
-
-    params = %{device_id: device_id}
-
-    prepared = Xandra.prepare!(conn, statement)
-    Xandra.execute!(conn, prepared, params, uuid_format: :binary) |> Enum.to_list()
+    Repo.all(query, prefix: keyspace)
   end
 
   def delete_individual_properties_values!(realm_name, device_id, interface_id) do
@@ -1657,32 +1550,16 @@ defmodule Astarte.RealmManagement.Queries do
   end
 
   def retrieve_object_datastream_keys!(realm_name, device_id, table_name) do
-    Xandra.Cluster.run(
-      :xandra_device_deletion,
-      &do_retrieve_object_datastream_keys!(&1, realm_name, device_id, table_name)
-    )
-  end
+    keyspace = Realm.keyspace_name(realm_name)
 
-  defp do_retrieve_object_datastream_keys!(
-         conn,
-         realm_name,
-         device_id,
-         table_name
-       ) do
-    # TODO: validate realm name
-    keyspace_name =
-      CQLUtils.realm_name_to_keyspace_name(realm_name, Config.astarte_instance_id!())
+    query =
+      from table_name,
+        hints: ["ALLOW FILTERING"],
+        distinct: true,
+        select: [:device_id, :path],
+        where: [device_id: ^device_id]
 
-    statement = """
-    SELECT DISTINCT device_id, path
-    FROM #{keyspace_name}.#{table_name}
-    WHERE device_id=:device_id ALLOW FILTERING
-    """
-
-    params = %{device_id: device_id}
-
-    prepared = Xandra.prepare!(conn, statement)
-    Xandra.execute!(conn, prepared, params, uuid_format: :binary) |> Enum.to_list()
+    Repo.all(query, prefix: keyspace)
   end
 
   def delete_object_datastream_values!(realm_name, device_id, path, table_name) do
@@ -1722,27 +1599,15 @@ defmodule Astarte.RealmManagement.Queries do
   end
 
   def retrieve_aliases!(realm_name, device_id) do
-    Xandra.Cluster.run(
-      :xandra_device_deletion,
-      &do_retrieve_aliases!(&1, realm_name, device_id)
-    )
-  end
+    keyspace = Realm.keyspace_name(realm_name)
 
-  defp do_retrieve_aliases!(conn, realm_name, device_id) do
-    # TODO: validate realm name
-    keyspace_name =
-      CQLUtils.realm_name_to_keyspace_name(realm_name, Config.astarte_instance_id!())
+    query =
+      from Name,
+        hints: ["ALLOW FILTERING"],
+        select: [:object_name],
+        where: [object_uuid: ^device_id]
 
-    statement = """
-    SELECT object_name
-    FROM #{keyspace_name}.names
-    WHERE object_uuid =:device_id ALLOW FILTERING
-    """
-
-    params = %{device_id: device_id}
-
-    prepared = Xandra.prepare!(conn, statement)
-    Xandra.execute!(conn, prepared, params, uuid_format: :binary) |> Enum.to_list()
+    Repo.all(query, prefix: keyspace)
   end
 
   def delete_alias_values!(realm_name, device_alias) do
@@ -1773,29 +1638,15 @@ defmodule Astarte.RealmManagement.Queries do
   end
 
   def retrieve_groups_keys!(realm_name, device_id) do
-    Xandra.Cluster.run(
-      :xandra_device_deletion,
-      &do_retrieve_groups_keys!(&1, realm_name, device_id)
-    )
-  end
+    keyspace = Realm.keyspace_name(realm_name)
 
-  defp do_retrieve_groups_keys!(conn, realm_name, device_id) do
-    # TODO: validate realm name
-    keyspace_name =
-      CQLUtils.realm_name_to_keyspace_name(realm_name, Config.astarte_instance_id!())
+    query =
+      from GroupedDevice,
+        hints: ["ALLOW FILTERING"],
+        select: [:group_name, :insertion_uuid, :device_id],
+        where: [device_id: ^device_id]
 
-    statement = """
-    SELECT group_name, insertion_uuid, device_id
-    FROM #{keyspace_name}.grouped_devices
-    WHERE device_id=:device_id ALLOW FILTERING
-    """
-
-    params = %{device_id: device_id}
-
-    prepared = Xandra.prepare!(conn, statement)
-
-    Xandra.execute!(conn, prepared, params, uuid_format: :binary, timeuuid_format: :binary)
-    |> Enum.to_list()
+    Repo.all(query, prefix: keyspace)
   end
 
   def delete_group_values!(realm_name, device_id, group_name, insertion_uuid) do
@@ -1837,27 +1688,15 @@ defmodule Astarte.RealmManagement.Queries do
   end
 
   def retrieve_kv_store_entries!(realm_name, device_id) do
-    Xandra.Cluster.run(
-      :xandra_device_deletion,
-      &do_retrieve_kv_store_entries!(&1, realm_name, device_id)
-    )
-  end
+    keyspace = Realm.keyspace_name(realm_name)
 
-  defp do_retrieve_kv_store_entries!(conn, realm_name, encoded_device_id) do
-    # TODO: validate realm name
-    keyspace_name =
-      CQLUtils.realm_name_to_keyspace_name(realm_name, Config.astarte_instance_id!())
+    query =
+      from KvStore,
+        hints: ["ALLOW FILTERING"],
+        select: [:group, :key],
+        where: [key: ^device_id]
 
-    statement = """
-    SELECT group, key
-    FROM #{keyspace_name}.kv_store
-    WHERE key=:key ALLOW FILTERING
-    """
-
-    params = %{key: encoded_device_id}
-
-    prepared = Xandra.prepare!(conn, statement)
-    Xandra.execute!(conn, prepared, params, uuid_format: :binary) |> Enum.to_list()
+    Repo.all(query, prefix: keyspace)
   end
 
   def delete_kv_store_entry!(realm_name, group, key) do
@@ -1942,115 +1781,41 @@ defmodule Astarte.RealmManagement.Queries do
   end
 
   def retrieve_realms!() do
-    statement = """
-    SELECT *
-    FROM #{CQLUtils.realm_name_to_keyspace_name("astarte", Config.astarte_instance_id!())}.realms
-    """
+    keyspace = Realm.keyspace_name("astarte")
 
-    realms =
-      Xandra.Cluster.run(
-        :xandra,
-        &Xandra.execute!(&1, statement, %{}, consistency: :local_quorum)
-      )
-
-    Enum.to_list(realms)
+    Repo.all(Realm, prefix: keyspace, consistency: :local_quorum)
   end
 
   def retrieve_devices_to_delete!(realm_name) do
-    Xandra.Cluster.run(:xandra_device_deletion, &do_retrieve_devices_to_delete!(&1, realm_name))
-  end
+    keyspace = Realm.keyspace_name(realm_name)
 
-  defp do_retrieve_devices_to_delete!(conn, realm_name) do
-    # TODO: validate realm name
-    keyspace_name =
-      CQLUtils.realm_name_to_keyspace_name(realm_name, Config.astarte_instance_id!())
-
-    statement = """
-    SELECT *
-    FROM #{keyspace_name}.deletion_in_progress
-    """
-
-    Xandra.execute!(conn, statement, %{},
-      consistency: :local_quorum,
-      uuid_format: :binary
-    )
-    |> Enum.to_list()
-    |> Enum.filter(fn %{vmq_ack: vmq_ack, dup_start_ack: dup_start_ack, dup_end_ack: dup_end_ack} ->
-      vmq_ack and dup_start_ack and dup_end_ack
-    end)
+    from(DeletionInProgress)
+    |> Repo.all(prefix: keyspace, consistency: :local_quorum)
+    |> Enum.filter(&DeletionInProgress.all_ack?/1)
   end
 
   def get_device_registration_limit(realm_name) do
-    Xandra.Cluster.run(:xandra, &do_get_device_registration_limit(&1, realm_name))
-  end
+    keyspace = Realm.keyspace_name("astarte")
 
-  defp do_get_device_registration_limit(conn, realm_name) do
-    query = """
-    SELECT device_registration_limit
-    FROM #{CQLUtils.realm_name_to_keyspace_name("astarte", Config.astarte_instance_id!())}.realms
-    WHERE realm_name = :realm_name
-    """
+    query =
+      from realm in Realm,
+        select: realm.device_registration_limit,
+        where: [realm_name: ^realm_name]
 
-    with {:ok, prepared} <- Xandra.prepare(conn, query),
-         {:ok, page} <-
-           Xandra.execute(conn, prepared, %{realm_name: realm_name}, consistency: :one) do
-      case Enum.to_list(page) do
-        [%{device_registration_limit: value}] -> {:ok, value}
-        [] -> {:error, :realm_not_found}
-      end
-    else
-      {:error, %Xandra.ConnectionError{} = error} ->
-        _ =
-          Logger.warning(
-            "Database connection error: #{Exception.message(error)}",
-            tag: "database_connection_error"
-          )
-
-        {:error, :database_connection_error}
-
-      {:error, %Xandra.Error{} = error} ->
-        _ =
-          Logger.warning(
-            "Database error: #{Exception.message(error)}",
-            tag: "database_error"
-          )
-
-        {:error, :database_error}
-    end
+    Repo.fetch_one(query, prefix: keyspace, consistency: :one, error: :realm_not_found)
   end
 
   def get_datastream_maximum_storage_retention(realm_name) do
-    Xandra.Cluster.run(:xandra, &do_get_datastream_maximum_storage_retention(&1, realm_name))
-  end
+    keyspace = Realm.keyspace_name(realm_name)
 
-  defp do_get_datastream_maximum_storage_retention(conn, realm_name) do
-    query = """
-    SELECT blobAsInt(value)
-    FROM #{CQLUtils.realm_name_to_keyspace_name(realm_name, Config.astarte_instance_id!())}.kv_store
-    WHERE group='realm_config' AND key='datastream_maximum_storage_retention'
-    """
-
-    with {:ok, prepared} <- Xandra.prepare(conn, query),
-         {:ok, %Xandra.Page{} = page} <- Xandra.execute(conn, prepared) do
-      case Enum.fetch(page, 0) do
-        {:ok, %{"system.blobasint(value)": value}} ->
-          {:ok, value}
-
-        _ ->
-          {:ok, 0}
-      end
-    else
-      {:error, %Xandra.Error{} = err} ->
-        _ = Logger.warning("Database error: #{inspect(err)}.", tag: "database_error")
-        {:error, :database_error}
-
-      {:error, %Xandra.ConnectionError{} = err} ->
-        _ =
-          Logger.warning("Database connection error: #{inspect(err)}.",
-            tag: "database_connection_error"
-          )
-
-        {:error, :database_connection_error}
+    case KvStore.fetch_value("realm_config", "datastream_maximum_storage_retention", :integer,
+           prefix: keyspace,
+           error: :fetch_error
+         ) do
+      {:ok, value} -> {:ok, value}
+      # not found means default maximum storage retention of 0
+      {:error, :fetch_error} -> {:ok, 0}
+      error -> error
     end
   end
 end
