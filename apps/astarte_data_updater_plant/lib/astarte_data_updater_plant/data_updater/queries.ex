@@ -89,8 +89,8 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
   end
 
   def insert_value_into_db(
-        db_client,
-        _realm,
+        _db_client,
+        realm,
         device_id,
         %InterfaceDescriptor{storage_type: :multi_interface_individual_properties_dbtable} =
           interface_descriptor,
@@ -106,19 +106,20 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
       # TODO: should we handle this situation?
     end
 
-    # TODO: :reception_timestamp_submillis is just a place holder right now
-    unset_query =
-      DatabaseQuery.new()
-      |> DatabaseQuery.statement(
-        "DELETE FROM #{interface_descriptor.storage} WHERE device_id=:device_id AND interface_id=:interface_id AND endpoint_id=:endpoint_id AND path=:path"
-      )
-      |> DatabaseQuery.put(:device_id, device_id)
-      |> DatabaseQuery.put(:interface_id, interface_descriptor.interface_id)
-      |> DatabaseQuery.put(:endpoint_id, endpoint.endpoint_id)
-      |> DatabaseQuery.put(:path, path)
-      |> DatabaseQuery.consistency(insert_consistency(interface_descriptor, endpoint))
+    %InterfaceDescriptor{storage: storage, interface_id: interface_id} = interface_descriptor
+    keyspace = Realm.keyspace_name(realm)
+    opts = [consistency: insert_consistency(interface_descriptor, endpoint)]
 
-    DatabaseQuery.call!(db_client, unset_query)
+    _ =
+      remove_property_row(
+        keyspace,
+        storage,
+        device_id,
+        interface_id,
+        endpoint.endpoint_id,
+        path,
+        opts
+      )
 
     :ok
   end
@@ -296,6 +297,28 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
     :ok
   end
 
+  defp remove_property_row(
+         keyspace,
+         table,
+         device_id,
+         interface_id,
+         endpoint_id,
+         path,
+         opts \\ []
+       ) do
+    query =
+      from table,
+        prefix: ^keyspace,
+        where: [
+          device_id: ^device_id,
+          interface_id: ^interface_id,
+          endpoint_id: ^endpoint_id,
+          path: ^path
+        ]
+
+    _ = Repo.delete_all(query, opts)
+  end
+
   defp get_ttl_string(opts) do
     with {:ok, value} when is_integer(value) <- Keyword.fetch(opts, :ttl) do
       "USING TTL #{to_string(value)}"
@@ -392,20 +415,12 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
     end
   end
 
-  def delete_property_from_db(state, db_client, interface_descriptor, endpoint_id, path) do
-    delete_query =
-      DatabaseQuery.new()
-      |> DatabaseQuery.statement(
-        "DELETE FROM #{interface_descriptor.storage} WHERE device_id=:device_id AND interface_id=:interface_id AND endpoint_id=:endpoint_id AND path=:path;"
-      )
-      |> DatabaseQuery.put(:device_id, state.device_id)
-      |> DatabaseQuery.put(:interface_id, interface_descriptor.interface_id)
-      |> DatabaseQuery.put(:endpoint_id, endpoint_id)
-      |> DatabaseQuery.put(:path, path)
+  def delete_property_from_db(realm, device_id, interface_descriptor, endpoint_id, path) do
+    %InterfaceDescriptor{storage: storage, interface_id: interface_id} = interface_descriptor
+    keyspace_name = Realm.keyspace_name(realm)
 
-    # TODO: |> DatabaseQuery.consistency(insert_consistency(interface_descriptor, endpoint))
-
-    DatabaseQuery.call!(db_client, delete_query)
+    # TODO: consistency: insert_consistency(interface_descriptor, endpoint)
+    _ = remove_property_row(keyspace_name, storage, device_id, interface_id, endpoint_id, path)
     :ok
   end
 
@@ -664,25 +679,22 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
     end
   end
 
-  def unregister_device_with_interface(db_client, device_id, interface_name, interface_major) do
-    key_delete_statement = """
-    DELETE FROM kv_store
-    WHERE group=:group AND key=:key
-    """
-
-    major_str = "v#{Integer.to_string(interface_major)}"
+  def unregister_device_with_interface(realm, device_id, interface_name, interface_major) do
+    keyspace_name = Realm.keyspace_name(realm)
+    group = "devices-by-interface-#{interface_name}-v#{interface_major}"
     encoded_device_id = CoreDevice.encode_device_id(device_id)
 
-    delete_device_by_interface_query =
-      DatabaseQuery.new()
-      |> DatabaseQuery.statement(key_delete_statement)
-      |> DatabaseQuery.put(:group, "devices-by-interface-#{interface_name}-#{major_str}")
-      |> DatabaseQuery.put(:key, encoded_device_id)
-      |> DatabaseQuery.consistency(:each_quorum)
+    query =
+      from(
+        KvStore
+        |> where(group: ^group, key: ^encoded_device_id)
+        |> put_query_prefix(keyspace_name)
+      )
 
-    with {:ok, _result} <- DatabaseQuery.call(db_client, delete_device_by_interface_query) do
-      :ok
-    else
+    case Repo.safe_delete_all(query, consistency: :each_quorum) do
+      {n, _} when is_integer(n) ->
+        :ok
+
       {:error, reason} ->
         Logger.warning(
           "Database error: cannot unregister device-interface pair: #{inspect(reason)}."
