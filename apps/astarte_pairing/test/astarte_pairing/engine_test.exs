@@ -20,8 +20,6 @@ defmodule Astarte.Pairing.EngineTest do
   use ExUnit.Case
 
   alias Astarte.Core.Device
-  alias Astarte.Pairing.Config
-  alias Astarte.Core.CQLUtils
   alias Astarte.Pairing.CredentialsSecret
   alias Astarte.Pairing.DatabaseTestHelper
   alias Astarte.Pairing.Engine
@@ -226,7 +224,7 @@ defmodule Astarte.Pairing.EngineTest do
     test "fails with never registered device_id" do
       device_id = DatabaseTestHelper.unregistered_128_bit_hw_id()
 
-      assert {:error, :device_not_registered} = Engine.unregister_device(@test_realm, device_id)
+      assert {:error, :device_not_found} = Engine.unregister_device(@test_realm, device_id)
     end
 
     test "succeeds with registered and confirmed device_id, and makes it possible to register it again" do

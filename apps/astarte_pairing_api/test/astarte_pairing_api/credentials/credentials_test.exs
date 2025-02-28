@@ -189,13 +189,13 @@ defmodule Astarte.Pairing.API.CredentialsTest do
                )
     end
 
-    test "returns forbidden with device not found" do
+    test "returns device_not_found with device not found" do
       MockRPCClient
       |> expect(:rpc_call, fn _serialized_call, @rpc_destination, @timeout ->
         {:ok, @encoded_device_not_found_response}
       end)
 
-      assert {:error, :forbidden} =
+      assert {:error, :device_not_found} =
                Credentials.get_astarte_mqtt_v1(
                  @realm,
                  @unexisting_hw_id,
@@ -336,13 +336,13 @@ defmodule Astarte.Pairing.API.CredentialsTest do
                )
     end
 
-    test "returns forbidden with device not found" do
+    test "returns device_not_found with device not found" do
       MockRPCClient
       |> expect(:rpc_call, fn _serialized_call, @rpc_destination, @timeout ->
         {:ok, @encoded_device_not_found_response}
       end)
 
-      assert {:error, :forbidden} =
+      assert {:error, :device_not_found} =
                Credentials.verify_astarte_mqtt_v1(
                  @realm,
                  @unexisting_hw_id,

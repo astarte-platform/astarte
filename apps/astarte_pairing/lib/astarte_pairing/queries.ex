@@ -123,14 +123,10 @@ defmodule Astarte.Pairing.Queries do
   end
 
   def unregister_device(realm_name, device_id) do
-    with :ok <- verify_already_registered_device(realm_name, device_id),
-         :ok <- do_unregister_device(realm_name, device_id) do
+    with {:ok, device} <- fetch_device(realm_name, device_id),
+         {:ok, _device} <- do_unregister_device(realm_name, device) do
       :ok
     else
-      %{acc: _acc, msg: msg} ->
-        Logger.warning("DB error: #{inspect(msg)}")
-        {:error, :database_error}
-
       {:error, reason} ->
         Logger.warning("Unregister error: #{inspect(reason)}")
         {:error, reason}
@@ -147,44 +143,16 @@ defmodule Astarte.Pairing.Queries do
     end
   end
 
-  defp verify_already_registered_device(realm_name, device_id) do
-    case fetch_device(realm_name, device_id) do
-      {:ok, _device} -> :ok
-      {:error, :device_not_found} -> {:error, :device_not_registered}
-      {:error, reason} -> {:error, reason}
-    end
-  end
-
-  defp do_unregister_device(realm_name, device_id) do
-    statement = """
-    INSERT INTO devices
-    (device_id, first_credentials_request, credentials_secret)
-    VALUES (:device_id, :first_credentials_request, :credentials_secret)
-    """
-
-    query =
-      Query.new()
-      |> Query.statement(statement)
-      |> Query.put(:device_id, device_id)
-      |> Query.put(:first_credentials_request, nil)
-      |> Query.put(:credentials_secret, nil)
-      |> Query.consistency(:quorum)
-
+  defp do_unregister_device(realm_name, %Device{} = device) do
     keyspace_name =
       CQLUtils.realm_name_to_keyspace_name(realm_name, Config.astarte_instance_id!())
 
-    cqex_options =
-      Config.cqex_options!()
-      |> Keyword.put(:keyspace, keyspace_name)
-
-    with {:ok, client} <-
-           CQEx.Client.new(
-             Config.cassandra_node!(),
-             cqex_options
-           ),
-         {:ok, _res} <- Query.call(client, query) do
-      :ok
-    end
+    device
+    |> Ecto.Changeset.change(
+      first_credentials_request: nil,
+      credentials_secret: nil
+    )
+    |> Repo.update(prefix: keyspace_name, consistency: :quorum)
   end
 
   def fetch_device(realm_name, device_id) do
