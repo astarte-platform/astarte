@@ -85,7 +85,7 @@ defmodule Astarte.RealmManagement.Mixfile do
       {:telemetry_metrics, "~> 0.4"},
       {:telemetry_poller, "~> 0.4"},
       {:xandra, "~> 0.13"},
-      {:exandra, "~> 0.12"},
+      {:exandra, github: "vinniefranco/exandra"},
       {:typed_ecto_schema, "~> 0.4"},
       # Fix: could not compile dependency due to an old snappy version (1.2.8). Delete when removing cqex/cqerl
       {:snappyer, "~> 1.2.10", override: true},

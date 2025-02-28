@@ -97,7 +97,7 @@ defmodule Astarte.Pairing.Mixfile do
       # Delete when updating/removing cqerl from astarte_data_access.
       {:snappyer, "~> 1.2.10", override: true},
       {:ecto, "~> 3.12"},
-      {:exandra, "~> 0.12"},
+      {:exandra, github: "vinniefranco/exandra"},
       {:typed_ecto_schema, "~> 0.4"}
     ]
   end
