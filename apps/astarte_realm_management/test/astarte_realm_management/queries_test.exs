@@ -875,7 +875,8 @@ defmodule Astarte.RealmManagement.QueriesTest do
   test "fail to retrieve datastream_maximum_storage_retention if realm does not exist" do
     realm_name = "realm#{System.unique_integer([:positive])}"
 
-    assert {:error, _} =
-             Queries.get_datastream_maximum_storage_retention(realm_name)
+    assert_raise Xandra.Error, fn ->
+      Queries.get_datastream_maximum_storage_retention(realm_name)
+    end
   end
 end
