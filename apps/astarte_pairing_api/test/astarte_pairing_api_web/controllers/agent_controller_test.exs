@@ -212,11 +212,11 @@ defmodule Astarte.Pairing.APIWeb.AgentControllerTest do
                                    reply: {:generic_ok_reply, %GenericOkReply{}}
                                  }
                                  |> Reply.encode()
-    @encoded_device_not_registered_response %Reply{
+    @encoded_device_not_found_response %Reply{
                                               reply:
                                                 {:generic_error_reply,
                                                  %GenericErrorReply{
-                                                   error_name: "device_not_registered"
+                                                   error_name: "device_not_found"
                                                  }}
                                             }
                                             |> Reply.encode()
@@ -240,11 +240,11 @@ defmodule Astarte.Pairing.APIWeb.AgentControllerTest do
         {:ok, @encoded_pubkey_response}
       end)
       |> expect(:rpc_call, fn _serialized_call, @rpc_destination, @timeout ->
-        {:ok, @encoded_device_not_registered_response}
+        {:ok, @encoded_device_not_found_response}
       end)
 
       conn = delete(conn, agent_path(conn, :delete, @realm, @device_id))
-      assert json_response(conn, 404)["errors"] == %{"detail" => "Device not found"}
+      assert json_response(conn, 403)["errors"] == %{"detail" => "Forbidden"}
     end
 
     test "renders errors when unauthorized", %{conn: conn} do

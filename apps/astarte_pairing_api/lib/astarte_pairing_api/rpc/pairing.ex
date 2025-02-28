@@ -212,12 +212,6 @@ defmodule Astarte.Pairing.API.RPC.Pairing do
     {:error, :forbidden}
   end
 
-  defp extract_reply(
-         {:generic_error_reply, %GenericErrorReply{error_name: "device_not_registered"}}
-       ) do
-    {:error, :device_not_found}
-  end
-
   defp extract_reply({:generic_error_reply, error_struct = %GenericErrorReply{}}) do
     error_map = Map.from_struct(error_struct)
 

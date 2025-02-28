@@ -157,11 +157,11 @@ defmodule Astarte.Pairing.API.AgentTest do
                                    reply: {:generic_ok_reply, %GenericOkReply{}}
                                  }
                                  |> Reply.encode()
-    @encoded_device_not_registered_response %Reply{
+    @encoded_device_not_found_response %Reply{
                                               reply:
                                                 {:generic_error_reply,
                                                  %GenericErrorReply{
-                                                   error_name: "device_not_registered"
+                                                   error_name: "device_not_found"
                                                  }}
                                             }
                                             |> Reply.encode()
@@ -205,7 +205,7 @@ defmodule Astarte.Pairing.API.AgentTest do
                  device_id: @test_device_id
                } = unregister_call
 
-        {:ok, @encoded_device_not_registered_response}
+        {:ok, @encoded_device_not_found_response}
       end)
 
       assert {:error, :device_not_found} = Agent.unregister_device(@test_realm, @test_device_id)
