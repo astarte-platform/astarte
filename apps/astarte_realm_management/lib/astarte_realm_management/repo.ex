@@ -27,8 +27,6 @@ defmodule Astarte.RealmManagement.Repo do
   alias Astarte.DataAccess.Config
   require Ecto.Query
 
-  @keyspace_does_not_exist_regex ~r/Keyspace (.*) does not exist/
-
   @impl Ecto.Repo
   def init(_context, config) do
     config =
@@ -53,63 +51,15 @@ defmodule Astarte.RealmManagement.Repo do
   def fetch_one(queryable, opts \\ []) do
     {error, opts} = Keyword.pop_first(opts, :error, :not_found)
 
-    try do
-      case all(queryable, opts) do
-        [item] -> {:ok, item}
-        [] -> {:error, error}
-        other -> raise Ecto.MultipleResultsError, queryable: queryable, count: length(other)
-      end
-    rescue
-      err in Xandra.Error ->
-        handle_xandra_error(err)
-
-      err in Xandra.ConnectionError ->
-        _ =
-          Logger.warning("Database connection error #{Exception.message(err)}.",
-            tag: "database_connection_error"
-          )
-
-        {:error, :database_connection_error}
+    case all(queryable, opts) do
+      [item] -> {:ok, item}
+      [] -> {:error, error}
+      other -> raise Ecto.MultipleResultsError, queryable: queryable, count: length(other)
     end
   end
 
   def fetch_all(queryable, opts \\ []) do
-    try do
-      {:ok, all(queryable, opts)}
-    rescue
-      err in Xandra.Error ->
-        handle_xandra_error(err)
-
-      err in Xandra.ConnectionError ->
-        _ =
-          Logger.warning("Database connection error #{Exception.message(err)}.",
-            tag: "database_connection_error"
-          )
-
-        {:error, :database_connection_error}
-    end
-  end
-
-  defp handle_xandra_error(error) do
-    %Xandra.Error{message: message} = error
-
-    case Regex.run(@keyspace_does_not_exist_regex, message) do
-      [_message, keyspace] ->
-        Logger.warning("Keyspace #{keyspace} does not exist.",
-          tag: "realm_not_found"
-        )
-
-        {:error, :realm_not_found}
-
-      nil ->
-        _ =
-          Logger.warning(
-            "Database error: #{Exception.message(error)}.",
-            tag: "database_error"
-          )
-
-        {:error, :database_error}
-    end
+    {:ok, all(queryable, opts)}
   end
 
   @doc """
