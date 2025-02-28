@@ -278,7 +278,6 @@ defmodule Astarte.AppEngine.API.Device do
 
       Queries.insert_value_into_db(
         realm_name,
-        client,
         device_id,
         interface_descriptor,
         endpoint_id,
@@ -454,7 +453,6 @@ defmodule Astarte.AppEngine.API.Device do
 
       Queries.insert_value_into_db(
         realm_name,
-        client,
         device_id,
         interface_descriptor,
         nil,
@@ -718,8 +716,7 @@ defmodule Astarte.AppEngine.API.Device do
   # TODO: we should probably allow delete for every path regardless of the interface type
   # just for maintenance reasons
   def delete_interface_values(realm_name, encoded_device_id, interface, no_prefix_path) do
-    with {:ok, client} <- Database.connect(realm: realm_name),
-         {:ok, device_id} <- Device.decode_device_id(encoded_device_id),
+    with {:ok, device_id} <- Device.decode_device_id(encoded_device_id),
          {:ok, major_version} <-
            DeviceQueries.interface_version(realm_name, device_id, interface),
          {:ok, interface_row} <-
@@ -733,7 +730,6 @@ defmodule Astarte.AppEngine.API.Device do
 
       Queries.insert_value_into_db(
         realm_name,
-        client,
         device_id,
         interface_descriptor,
         endpoint_id,

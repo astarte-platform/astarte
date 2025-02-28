@@ -222,7 +222,6 @@ defmodule Astarte.AppEngine.API.Device.Queries do
   # TODO Copy&pasted from data updater plant, make it a library
   def insert_value_into_db(
         realm_name,
-        _db_client,
         device_id,
         %InterfaceDescriptor{storage_type: :multi_interface_individual_properties_dbtable} =
           interface_descriptor,
@@ -266,8 +265,7 @@ defmodule Astarte.AppEngine.API.Device.Queries do
 
   # TODO Copy&pasted from data updater plant, make it a library
   def insert_value_into_db(
-        _realm_name,
-        db_client,
+        realm_name,
         device_id,
         %InterfaceDescriptor{storage_type: :multi_interface_individual_properties_dbtable} =
           interface_descriptor,
@@ -278,37 +276,34 @@ defmodule Astarte.AppEngine.API.Device.Queries do
         timestamp,
         opts
       ) do
-    ttl_string = get_ttl_string(opts)
+    value_column = CQLUtils.type_to_db_column_name(endpoint.value_type)
+    keyspace = keyspace_name(realm_name)
 
     {timestamp_ms, timestamp_submillis} = split_ms_and_submillis(timestamp)
 
     # TODO: :reception_timestamp_submillis is just a place holder right now
-    insert_query =
-      DatabaseQuery.new()
-      |> DatabaseQuery.statement("""
-      INSERT INTO #{interface_descriptor.storage}
-        (device_id, interface_id, endpoint_id, path, reception_timestamp,
-          #{CQLUtils.type_to_db_column_name(endpoint.value_type)})
-        VALUES (:device_id, :interface_id, :endpoint_id, :path, :reception_timestamp,
-          :value) #{ttl_string};
-      """)
-      |> DatabaseQuery.put(:device_id, device_id)
-      |> DatabaseQuery.put(:interface_id, interface_descriptor.interface_id)
-      |> DatabaseQuery.put(:endpoint_id, endpoint_id)
-      |> DatabaseQuery.put(:path, path)
-      |> DatabaseQuery.put(:reception_timestamp, timestamp_ms)
-      |> DatabaseQuery.put(:reception_timestamp_submillis, timestamp_submillis)
-      |> DatabaseQuery.put(:value, to_db_friendly_type(value))
+    interface_storage_attributes = %{
+      value_column => to_db_friendly_type(value),
+      device_id: device_id,
+      interface_id: interface_descriptor.interface_id,
+      endpoint_id: endpoint_id,
+      path: path,
+      reception_timestamp: timestamp_ms,
+      reception_timestamp_submillis: timestamp_submillis
+    }
 
-    DatabaseQuery.call!(db_client, insert_query)
+    {1, _} =
+      Repo.insert_all(interface_descriptor.storage, [interface_storage_attributes],
+        prefix: keyspace,
+        ttl: opts[:ttl]
+      )
 
     :ok
   end
 
   # TODO Copy&pasted from data updater plant, make it a library
   def insert_value_into_db(
-        _realm_name,
-        db_client,
+        realm_name,
         device_id,
         %InterfaceDescriptor{storage_type: :multi_interface_individual_datastream_dbtable} =
           interface_descriptor,
@@ -319,38 +314,28 @@ defmodule Astarte.AppEngine.API.Device.Queries do
         timestamp,
         opts
       ) do
-    ttl_string = get_ttl_string(opts)
+    value_column = CQLUtils.type_to_db_column_name(endpoint.value_type)
+    keyspace = keyspace_name(realm_name)
     {timestamp_ms, timestamp_submillis} = split_ms_and_submillis(timestamp)
 
-    insert_query =
-      DatabaseQuery.new()
-      |> DatabaseQuery.statement("""
-      INSERT INTO #{interface_descriptor.storage}
-        (device_id, interface_id, endpoint_id, path, value_timestamp, reception_timestamp, reception_timestamp_submillis,
-          #{CQLUtils.type_to_db_column_name(endpoint.value_type)})
-        VALUES (:device_id, :interface_id, :endpoint_id, :path, :value_timestamp, :reception_timestamp,
-          :reception_timestamp_submillis, :value) #{ttl_string};
-      """)
-      |> DatabaseQuery.put(:device_id, device_id)
-      |> DatabaseQuery.put(:interface_id, interface_descriptor.interface_id)
-      |> DatabaseQuery.put(:endpoint_id, endpoint.endpoint_id)
-      |> DatabaseQuery.put(:path, path)
-      |> DatabaseQuery.put(:value_timestamp, timestamp_ms)
-      |> DatabaseQuery.put(:reception_timestamp, timestamp_ms)
-      |> DatabaseQuery.put(:reception_timestamp_submillis, timestamp_submillis)
-      |> DatabaseQuery.put(:value, to_db_friendly_type(value))
+    attributes = %{
+      value_column => to_db_friendly_type(value),
+      device_id: device_id,
+      interface_id: interface_descriptor.interface_id,
+      endpoint_id: endpoint.endpoint_id,
+      path: path,
+      value_timestamp: timestamp_ms,
+      reception_timestamp: timestamp_ms,
+      reception_timestamp_submillis: timestamp_submillis
+    }
 
-    # TODO: |> DatabaseQuery.consistency(insert_consistency(interface_descriptor, endpoint))
-
-    DatabaseQuery.call!(db_client, insert_query)
-
+    Repo.insert_all(interface_descriptor.storage, [attributes], prefix: keyspace, ttl: opts[:ttl])
     :ok
   end
 
   # TODO Copy&pasted from data updater plant, make it a library
   def insert_value_into_db(
         realm_name,
-        db_client,
         device_id,
         %InterfaceDescriptor{storage_type: :one_object_datastream_dbtable} = interface_descriptor,
         _endpoint_id,
@@ -360,7 +345,6 @@ defmodule Astarte.AppEngine.API.Device.Queries do
         timestamp,
         opts
       ) do
-    ttl_string = get_ttl_string(opts)
     keyspace = keyspace_name(realm_name)
     interface_id = interface_descriptor.interface_id
 
@@ -371,70 +355,72 @@ defmodule Astarte.AppEngine.API.Device.Queries do
       )
       |> Repo.all(prefix: keyspace)
 
-    explicit_timestamp = do_interface_has_explicit_timestamp?(keyspace, interface_id)
+    explicit_timestamp? = do_interface_has_explicit_timestamp?(keyspace, interface_id)
 
-    # FIXME: new atoms are created here, we should avoid this. We need to replace CQEx.
-    column_atoms =
-      Enum.reduce(endpoint_rows, %{}, fn endpoint, column_atoms_acc ->
-        endpoint_name =
-          endpoint.endpoint
-          |> String.split("/")
-          |> List.last()
-
+    column_meta =
+      endpoint_rows
+      |> Map.new(fn endpoint ->
+        endpoint_name = endpoint.endpoint |> String.split("/") |> List.last()
         column_name = CQLUtils.endpoint_to_db_column_name(endpoint_name)
-
-        Map.put(column_atoms_acc, endpoint_name, String.to_atom(column_name))
+        {endpoint_name, %{name: column_name, type: endpoint.value_type}}
       end)
 
-    {query_values, placeholders, query_columns} =
-      Enum.reduce(value, {%{}, "", ""}, fn {obj_key, obj_value},
-                                           {query_values_acc, placeholders_acc, query_acc} ->
-        if column_atoms[obj_key] != nil do
-          column_name = CQLUtils.endpoint_to_db_column_name(obj_key)
+    {timestamp_ms, submillis} = split_ms_and_submillis(timestamp)
 
-          db_value = to_db_friendly_type(obj_value)
-          next_query_values_acc = Map.put(query_values_acc, column_atoms[obj_key], db_value)
-          next_placeholders_acc = "#{placeholders_acc} :#{to_string(column_atoms[obj_key])},"
-          next_query_acc = "#{query_acc} #{column_name}, "
+    base_attributes = %{
+      device_id: device_id,
+      path: path
+    }
 
-          {next_query_values_acc, next_placeholders_acc, next_query_acc}
-        else
-          Logger.warning(
-            "Unexpected object key #{inspect(obj_key)} with value #{inspect(obj_value)}."
-          )
+    timestamp_attributes = timestamp_attributes(explicit_timestamp?, timestamp_ms, submillis)
+    value_attributes = value_attributes(column_meta, value)
 
-          query_values_acc
+    object_datastream =
+      base_attributes
+      |> Map.merge(timestamp_attributes)
+      |> Map.merge(value_attributes)
+
+    ttl = Keyword.get(opts, :ttl)
+    # TODO: consistency = insert_consistency(interface_descriptor, endpoint)
+    opts = [prefix: keyspace, ttl: ttl, returning: false]
+
+    Repo.insert_all(interface_descriptor.storage, [object_datastream], opts)
+
+    :ok
+  end
+
+  defp timestamp_attributes(true = _explicit_timestamp?, timestamp, submillis) do
+    %{
+      value_timestamp: timestamp,
+      reception_timestamp: timestamp,
+      reception_timestamp_submillis: submillis
+    }
+  end
+
+  defp timestamp_attributes(_nil_or_false_explicit_timestamp?, timestamp, submillis) do
+    %{reception_timestamp: timestamp, reception_timestamp_submillis: submillis}
+  end
+
+  defp value_attributes(column_meta, value) do
+    value =
+      value
+      |> Enum.flat_map(fn {key, value} ->
+        # filter map
+        case Map.fetch(column_meta, key) do
+          {:ok, meta} ->
+            %{name: name, type: type} = meta
+            data = %{type: type, value: value}
+            [{name, data}]
+
+          :error ->
+            Logger.warning("Unexpected object key #{inspect(key)} with value #{inspect(value)}.")
+
+            []
         end
       end)
 
-    {query_columns, placeholders} =
-      if explicit_timestamp do
-        {"value_timestamp, #{query_columns}", ":value_timestamp, #{placeholders}"}
-      else
-        {query_columns, placeholders}
-      end
-
-    {timestamp_ms, timestamp_submillis} = split_ms_and_submillis(timestamp)
-
-    # TODO: :reception_timestamp_submillis is just a place holder right now
-    insert_query =
-      DatabaseQuery.new()
-      |> DatabaseQuery.statement("""
-      INSERT INTO #{interface_descriptor.storage} (device_id, path, #{query_columns} reception_timestamp, reception_timestamp_submillis)
-        VALUES (:device_id, :path, #{placeholders} :reception_timestamp, :reception_timestamp_submillis) #{ttl_string};
-      """)
-      |> DatabaseQuery.put(:device_id, device_id)
-      |> DatabaseQuery.put(:path, path)
-      |> DatabaseQuery.put(:value_timestamp, timestamp_ms)
-      |> DatabaseQuery.put(:reception_timestamp, timestamp_ms)
-      |> DatabaseQuery.put(:reception_timestamp_submillis, timestamp_submillis)
-      |> DatabaseQuery.merge(query_values)
-
-    # TODO: |> DatabaseQuery.consistency(insert_consistency(interface_descriptor, endpoint))
-
-    DatabaseQuery.call!(db_client, insert_query)
-
-    :ok
+    value
+    |> Map.new(fn {column, data} -> {column, data.value} end)
   end
 
   # TODO Copy&pasted from data updater plant, make it a library
