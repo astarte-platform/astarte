@@ -560,59 +560,72 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
     end
   end
 
-  def update_device_introspection!(db_client, device_id, introspection, introspection_minor) do
-    introspection_update_statement = """
-    UPDATE devices
-    SET introspection=:introspection, introspection_minor=:introspection_minor
-    WHERE device_id=:device_id
-    """
+  def update_device_introspection!(realm, device_id, introspection, introspection_minor) do
+    keyspace_name = Realm.keyspace_name(realm)
 
-    introspection_update_query =
-      DatabaseQuery.new()
-      |> DatabaseQuery.statement(introspection_update_statement)
-      |> DatabaseQuery.put(:device_id, device_id)
-      |> DatabaseQuery.put(:introspection, introspection)
-      |> DatabaseQuery.put(:introspection_minor, introspection_minor)
-      |> DatabaseQuery.consistency(:quorum)
+    changes = %{
+      introspection: introspection,
+      introspection_minor: introspection_minor
+    }
 
-    DatabaseQuery.call!(db_client, introspection_update_query)
+    changeset = compute_device_update_changes(device_id, changes)
+
+    Repo.update!(changeset, prefix: keyspace_name, consistency: :quorum)
   end
 
-  def add_old_interfaces(db_client, device_id, old_interfaces) do
-    old_introspection_update_statement = """
-    UPDATE devices
-    SET old_introspection = old_introspection + :introspection
-    WHERE device_id=:device_id
-    """
+  def add_old_interfaces(realm, device_id, old_interfaces) do
+    keyspace_name = Realm.keyspace_name(realm)
 
-    old_introspection_update_query =
-      DatabaseQuery.new()
-      |> DatabaseQuery.statement(old_introspection_update_statement)
-      |> DatabaseQuery.put(:device_id, device_id)
-      |> DatabaseQuery.put(:introspection, old_interfaces)
-      |> DatabaseQuery.consistency(:quorum)
+    device =
+      from d in Device,
+        prefix: ^keyspace_name,
+        where: d.device_id == ^device_id,
+        update: [set: [old_introspection: fragment(" old_introspection + ?", ^old_interfaces)]]
 
-    with {:ok, _result} <- DatabaseQuery.call(db_client, old_introspection_update_query) do
-      :ok
+    case Repo.safe_update(device, [], consistency: :quorum) do
+      {1, _} ->
+        :ok
+
+      {:error, reason} ->
+        encoded_device_id = CoreDevice.encode_device_id(device_id)
+
+        _ =
+          Logger.warning(
+            "Could not update old introspection on device #{encoded_device_id}, reason: #{inspect(reason)}",
+            realm: realm,
+            tag: "add_old_interfaces_fail"
+          )
+
+        {:error, reason}
     end
   end
 
-  def remove_old_interfaces(db_client, device_id, old_interfaces) do
-    old_introspection_remove_statement = """
-    UPDATE devices
-    SET old_introspection = old_introspection - :old_interfaces
-    WHERE device_id=:device_id
-    """
+  def remove_old_interfaces(realm, device_id, old_interfaces) do
+    keyspace_name = Realm.keyspace_name(realm)
 
-    old_introspection_remove_query =
-      DatabaseQuery.new()
-      |> DatabaseQuery.statement(old_introspection_remove_statement)
-      |> DatabaseQuery.put(:device_id, device_id)
-      |> DatabaseQuery.put(:old_interfaces, old_interfaces)
-      |> DatabaseQuery.consistency(:quorum)
+    old_interfaces = MapSet.new(old_interfaces)
 
-    with {:ok, _result} <- DatabaseQuery.call(db_client, old_introspection_remove_query) do
-      :ok
+    device =
+      from d in Device,
+        prefix: ^keyspace_name,
+        where: d.device_id == ^device_id,
+        update: [set: [old_introspection: fragment(" old_introspection - ?", ^old_interfaces)]]
+
+    case Repo.safe_update(device, [], consistency: :quorum) do
+      {1, _} ->
+        :ok
+
+      {:error, reason} ->
+        encoded_device_id = CoreDevice.encode_device_id(device_id)
+
+        _ =
+          Logger.warning(
+            "Could not update old introspection on device #{encoded_device_id}, reason: #{inspect(reason)}",
+            realm: realm,
+            tag: "remove_old_interfaces_fail"
+          )
+
+        {:error, reason}
     end
   end
 
