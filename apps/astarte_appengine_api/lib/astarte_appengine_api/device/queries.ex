@@ -546,32 +546,19 @@ defmodule Astarte.AppEngine.API.Device.Queries do
     Repo.fetch_one(query, consistency: :quorum, error: :device_not_found)
   end
 
-  def insert_attribute(client, device_id, attribute_key, attribute_value) do
-    insert_attribute_statement = """
-    UPDATE devices
-    SET attributes[:attribute_key] = :attribute_value
-    WHERE device_id = :device_id
-    """
+  def insert_attribute(realm_name, device_id, attribute_key, attribute_value) do
+    keyspace = keyspace_name(realm_name)
+    new_attribute = %{attribute_key => attribute_value}
 
     query =
-      DatabaseQuery.new()
-      |> DatabaseQuery.statement(insert_attribute_statement)
-      |> DatabaseQuery.put(:attribute_key, attribute_key)
-      |> DatabaseQuery.put(:attribute_value, attribute_value)
-      |> DatabaseQuery.put(:device_id, device_id)
-      |> DatabaseQuery.consistency(:each_quorum)
+      from d in DatabaseDevice,
+        prefix: ^keyspace,
+        where: d.device_id == ^device_id,
+        update: [set: [attributes: fragment("attributes + ?", ^new_attribute)]]
 
-    with {:ok, _result} <- DatabaseQuery.call(client, query) do
-      :ok
-    else
-      %{acc: _, msg: error_message} ->
-        _ = Logger.warning("Database error: #{error_message}.", tag: "db_error")
-        {:error, :database_error}
+    Repo.update_all(query, [], consistency: :each_quorum)
 
-      {:error, reason} ->
-        _ = Logger.warning("Database error, reason: #{inspect(reason)}.", tag: "db_error")
-        {:error, :database_error}
-    end
+    :ok
   end
 
   def delete_attribute(realm_name, client, device_id, attribute_key) do
@@ -610,46 +597,35 @@ defmodule Astarte.AppEngine.API.Device.Queries do
   end
 
   def insert_alias(realm_name, client, device_id, alias_tag, alias_value) do
+    keyspace = keyspace_name(realm_name)
+    names_table = Name.__schema__(:source)
+
     insert_alias_to_names_statement = """
-    INSERT INTO names
+    INSERT INTO #{keyspace}.#{names_table}
     (object_name, object_type, object_uuid)
-    VALUES (:alias, 1, :device_id)
+    VALUES (?, 1, ?)
     """
 
-    insert_alias_to_names_query =
-      DatabaseQuery.new()
-      |> DatabaseQuery.statement(insert_alias_to_names_statement)
-      |> DatabaseQuery.put(:alias, alias_value)
-      |> DatabaseQuery.put(:device_id, device_id)
-      |> DatabaseQuery.consistency(:each_quorum)
-      |> DatabaseQuery.convert()
+    insert_alias_to_names_params = [alias_value, device_id]
+    insert_alias_to_names_query = {insert_alias_to_names_statement, insert_alias_to_names_params}
 
-    insert_alias_to_device_statement = """
-    UPDATE devices
-    SET aliases[:alias_tag] = :alias
-    WHERE device_id = :device_id
-    """
+    new_alias = %{alias_tag => alias_value}
 
-    insert_alias_to_device_query =
-      DatabaseQuery.new()
-      |> DatabaseQuery.statement(insert_alias_to_device_statement)
-      |> DatabaseQuery.put(:alias_tag, alias_tag)
-      |> DatabaseQuery.put(:alias, alias_value)
-      |> DatabaseQuery.put(:device_id, device_id)
-      |> DatabaseQuery.consistency(:each_quorum)
-      |> DatabaseQuery.convert()
+    insert_alias_to_device =
+      from DatabaseDevice,
+        prefix: ^keyspace,
+        where: [device_id: ^device_id],
+        update: [set: [aliases: fragment("aliases + ?", ^new_alias)]]
+
+    insert_alias_to_device_query = Repo.to_sql(:update_all, insert_alias_to_device)
 
     insert_batch =
-      CQEx.cql_query_batch(
-        consistency: :each_quorum,
-        mode: :logged,
-        queries: [insert_alias_to_names_query, insert_alias_to_device_query]
-      )
+      %Exandra.Batch{queries: [insert_alias_to_names_query, insert_alias_to_device_query]}
 
     with {:existing, {:error, :device_not_found}} <-
            {:existing, device_alias_to_device_id(realm_name, alias_value)},
          :ok <- try_delete_alias(realm_name, client, device_id, alias_tag),
-         {:ok, _result} <- DatabaseQuery.call(client, insert_batch) do
+         :ok <- Exandra.execute_batch(Repo, insert_batch, consistency: :each_quorum) do
       :ok
     else
       {:existing, {:ok, _device_uuid}} ->
@@ -660,14 +636,6 @@ defmodule Astarte.AppEngine.API.Device.Queries do
 
       {:error, :device_not_found} ->
         {:error, :device_not_found}
-
-      %{acc: _, msg: error_message} ->
-        _ = Logger.warning("Database error: #{error_message}.", tag: "db_error")
-        {:error, :database_error}
-
-      {:error, reason} ->
-        _ = Logger.warning("Database error, reason: #{inspect(reason)}.", tag: "db_error")
-        {:error, :database_error}
     end
   end
 
@@ -744,31 +712,18 @@ defmodule Astarte.AppEngine.API.Device.Queries do
     end
   end
 
-  def set_inhibit_credentials_request(client, device_id, inhibit_credentials_request) do
-    statement = """
-    UPDATE devices
-    SET inhibit_credentials_request = :inhibit_credentials_request
-    WHERE device_id = :device_id
-    """
+  def set_inhibit_credentials_request(realm_name, device_id, inhibit_credentials_request) do
+    keyspace = keyspace_name(realm_name)
 
     query =
-      DatabaseQuery.new()
-      |> DatabaseQuery.statement(statement)
-      |> DatabaseQuery.put(:inhibit_credentials_request, inhibit_credentials_request)
-      |> DatabaseQuery.put(:device_id, device_id)
-      |> DatabaseQuery.consistency(:each_quorum)
+      from DatabaseDevice,
+        prefix: ^keyspace,
+        update: [set: [inhibit_credentials_request: ^inhibit_credentials_request]],
+        where: [device_id: ^device_id]
 
-    with {:ok, _result} <- DatabaseQuery.call(client, query) do
-      :ok
-    else
-      %{acc: _, msg: error_message} ->
-        _ = Logger.warning("Database error: #{error_message}.", tag: "db_error")
-        {:error, :database_error}
+    Repo.update_all(query, [], consistency: :each_quorum)
 
-      {:error, reason} ->
-        _ = Logger.warning("Update failed, reason: #{inspect(reason)}.", tag: "db_error")
-        {:error, :database_error}
-    end
+    :ok
   end
 
   def retrieve_object_datastream_values(realm_name, device_id, interface_row, path, columns, opts) do
