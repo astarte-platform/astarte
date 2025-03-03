@@ -94,32 +94,25 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
         device_id,
         %InterfaceDescriptor{storage_type: :multi_interface_individual_properties_dbtable} =
           interface_descriptor,
-        endpoint,
+        mapping,
         path,
         nil,
         _value_timestamp,
         _reception_timestamp,
         _opts
       ) do
-    if endpoint.allow_unset == false do
+    if mapping.allow_unset == false do
       Logger.warning("Tried to unset value on allow_unset=false mapping.")
       # TODO: should we handle this situation?
     end
 
     %InterfaceDescriptor{storage: storage, interface_id: interface_id} = interface_descriptor
+    %Mapping{endpoint_id: endpoint_id} = mapping
     keyspace = Realm.keyspace_name(realm)
-    opts = [consistency: insert_consistency(interface_descriptor, endpoint)]
+    opts = [consistency: insert_consistency(interface_descriptor, mapping)]
 
     _ =
-      remove_property_row(
-        keyspace,
-        storage,
-        device_id,
-        interface_id,
-        endpoint.endpoint_id,
-        path,
-        opts
-      )
+      remove_property_row(keyspace, storage, device_id, interface_id, endpoint_id, path, opts)
 
     :ok
   end
@@ -130,7 +123,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
         device_id,
         %InterfaceDescriptor{storage_type: :multi_interface_individual_properties_dbtable} =
           interface_descriptor,
-        endpoint,
+        mapping,
         path,
         value,
         _value_timestamp,
@@ -142,17 +135,17 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
       DatabaseQuery.new()
       |> DatabaseQuery.statement(
         "INSERT INTO #{interface_descriptor.storage} " <>
-          "(device_id, interface_id, endpoint_id, path, reception_timestamp, #{CQLUtils.type_to_db_column_name(endpoint.value_type)}) " <>
+          "(device_id, interface_id, endpoint_id, path, reception_timestamp, #{CQLUtils.type_to_db_column_name(mapping.value_type)}) " <>
           "VALUES (:device_id, :interface_id, :endpoint_id, :path, :reception_timestamp, :value);"
       )
       |> DatabaseQuery.put(:device_id, device_id)
       |> DatabaseQuery.put(:interface_id, interface_descriptor.interface_id)
-      |> DatabaseQuery.put(:endpoint_id, endpoint.endpoint_id)
+      |> DatabaseQuery.put(:endpoint_id, mapping.endpoint_id)
       |> DatabaseQuery.put(:path, path)
       |> DatabaseQuery.put(:reception_timestamp, div(reception_timestamp, 10000))
       |> DatabaseQuery.put(:reception_timestamp_submillis, rem(reception_timestamp, 10000))
       |> DatabaseQuery.put(:value, to_db_friendly_type(value))
-      |> DatabaseQuery.consistency(insert_consistency(interface_descriptor, endpoint))
+      |> DatabaseQuery.consistency(insert_consistency(interface_descriptor, mapping))
 
     DatabaseQuery.call!(db_client, insert_query)
 
@@ -165,7 +158,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
         device_id,
         %InterfaceDescriptor{storage_type: :multi_interface_individual_datastream_dbtable} =
           interface_descriptor,
-        endpoint,
+        mapping,
         path,
         value,
         value_timestamp,
@@ -180,18 +173,18 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
       DatabaseQuery.new()
       |> DatabaseQuery.statement(
         "INSERT INTO #{interface_descriptor.storage} " <>
-          "(device_id, interface_id, endpoint_id, path, value_timestamp, reception_timestamp, reception_timestamp_submillis, #{CQLUtils.type_to_db_column_name(endpoint.value_type)}) " <>
+          "(device_id, interface_id, endpoint_id, path, value_timestamp, reception_timestamp, reception_timestamp_submillis, #{CQLUtils.type_to_db_column_name(mapping.value_type)}) " <>
           "VALUES (:device_id, :interface_id, :endpoint_id, :path, :value_timestamp, :reception_timestamp, :reception_timestamp_submillis, :value) #{ttl_string};"
       )
       |> DatabaseQuery.put(:device_id, device_id)
       |> DatabaseQuery.put(:interface_id, interface_descriptor.interface_id)
-      |> DatabaseQuery.put(:endpoint_id, endpoint.endpoint_id)
+      |> DatabaseQuery.put(:endpoint_id, mapping.endpoint_id)
       |> DatabaseQuery.put(:path, path)
       |> DatabaseQuery.put(:value_timestamp, value_timestamp)
       |> DatabaseQuery.put(:reception_timestamp, div(reception_timestamp, 10000))
       |> DatabaseQuery.put(:reception_timestamp_submillis, rem(reception_timestamp, 10000))
       |> DatabaseQuery.put(:value, to_db_friendly_type(value))
-      |> DatabaseQuery.consistency(insert_consistency(interface_descriptor, endpoint))
+      |> DatabaseQuery.consistency(insert_consistency(interface_descriptor, mapping))
 
     DatabaseQuery.call!(db_client, insert_query)
 
@@ -203,7 +196,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
         realm,
         device_id,
         %InterfaceDescriptor{storage_type: :one_object_datastream_dbtable} = interface_descriptor,
-        _endpoint,
+        _mapping,
         path,
         value,
         value_timestamp,

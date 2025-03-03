@@ -500,19 +500,19 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
            maybe_handle_cache_miss(maybe_descriptor, interface, new_state),
          :ok <- can_write_on_interface?(interface_descriptor),
          interface_id <- interface_descriptor.interface_id,
-         {:ok, endpoint} <- resolve_path(path, interface_descriptor, new_state.mappings),
-         endpoint_id <- endpoint.endpoint_id,
-         db_retention_policy = endpoint.database_retention_policy,
-         db_ttl = endpoint.database_retention_ttl,
+         {:ok, mapping} <- resolve_path(path, interface_descriptor, new_state.mappings),
+         endpoint_id <- mapping.endpoint_id,
+         db_retention_policy = mapping.database_retention_policy,
+         db_ttl = mapping.database_retention_ttl,
          {value, value_timestamp, _metadata} <-
            PayloadsDecoder.decode_bson_payload(payload, timestamp),
          expected_types <-
-           extract_expected_types(path, interface_descriptor, endpoint, new_state.mappings),
+           extract_expected_types(path, interface_descriptor, mapping, new_state.mappings),
          :ok <- validate_value_type(expected_types, value) do
       device_id_string = Device.encode_device_id(new_state.device_id)
 
       maybe_explicit_value_timestamp =
-        if endpoint.explicit_timestamp do
+        if mapping.explicit_timestamp do
           value_timestamp
         else
           div(timestamp, 10000)
@@ -540,7 +540,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
                  new_state.realm,
                  new_state.device_id,
                  interface_descriptor,
-                 endpoint,
+                 mapping,
                  path
                ) do
           property_value
@@ -597,7 +597,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
                   new_state.realm,
                   new_state.device_id,
                   interface_descriptor,
-                  endpoint,
+                  mapping,
                   path
                 ),
                 db_max_ttl
@@ -609,7 +609,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
                   db_client,
                   new_state.device_id,
                   interface_descriptor,
-                  endpoint,
+                  mapping,
                   path,
                   maybe_explicit_value_timestamp,
                   timestamp,
@@ -655,7 +655,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
           new_state.realm,
           new_state.device_id,
           interface_descriptor,
-          endpoint,
+          mapping,
           path,
           value,
           maybe_explicit_value_timestamp,
