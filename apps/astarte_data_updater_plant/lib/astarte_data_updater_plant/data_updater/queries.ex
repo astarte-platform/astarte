@@ -28,7 +28,6 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
   alias Astarte.DataUpdaterPlant.DataUpdater.IndividualProperty
   alias Astarte.DataUpdaterPlant.DataUpdater.KvStore
   alias Astarte.DataUpdaterPlant.DataUpdater.Realm
-  alias CQEx.Query, as: DatabaseQuery
   alias Astarte.DataUpdaterPlant.Repo
   import Ecto.Query
   require Logger
@@ -89,7 +88,6 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
   end
 
   def insert_value_into_db(
-        _db_client,
         realm,
         device_id,
         %InterfaceDescriptor{storage_type: :multi_interface_individual_properties_dbtable} =
@@ -118,8 +116,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
   end
 
   def insert_value_into_db(
-        db_client,
-        _realm,
+        realm,
         device_id,
         %InterfaceDescriptor{storage_type: :multi_interface_individual_properties_dbtable} =
           interface_descriptor,
@@ -130,31 +127,35 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
         reception_timestamp,
         _opts
       ) do
+    %InterfaceDescriptor{interface_id: interface_id, storage: storage} = interface_descriptor
+    %Mapping{endpoint_id: endpoint_id, value_type: value_type} = mapping
+    keyspace_name = Realm.keyspace_name(realm)
+    timestamp = div(reception_timestamp, 10000)
+    reception_timestamp_submillis = rem(reception_timestamp, 10000)
+    column_name = CQLUtils.type_to_db_column_name(value_type)
+
     # TODO: :reception_timestamp_submillis is just a place holder right now
-    insert_query =
-      DatabaseQuery.new()
-      |> DatabaseQuery.statement(
-        "INSERT INTO #{interface_descriptor.storage} " <>
-          "(device_id, interface_id, endpoint_id, path, reception_timestamp, #{CQLUtils.type_to_db_column_name(mapping.value_type)}) " <>
-          "VALUES (:device_id, :interface_id, :endpoint_id, :path, :reception_timestamp, :value);"
-      )
-      |> DatabaseQuery.put(:device_id, device_id)
-      |> DatabaseQuery.put(:interface_id, interface_descriptor.interface_id)
-      |> DatabaseQuery.put(:endpoint_id, mapping.endpoint_id)
-      |> DatabaseQuery.put(:path, path)
-      |> DatabaseQuery.put(:reception_timestamp, div(reception_timestamp, 10000))
-      |> DatabaseQuery.put(:reception_timestamp_submillis, rem(reception_timestamp, 10000))
-      |> DatabaseQuery.put(:value, to_db_friendly_type(value))
-      |> DatabaseQuery.consistency(insert_consistency(interface_descriptor, mapping))
+    insert_value = %{
+      "device_id" => device_id,
+      "interface_id" => interface_id,
+      "endpoint_id" => endpoint_id,
+      "path" => path,
+      "reception_timestamp" => timestamp,
+      "reception_timestamp_submillis" => reception_timestamp_submillis,
+      column_name => value
+    }
 
-    DatabaseQuery.call!(db_client, insert_query)
+    insert_opts = [
+      prefix: keyspace_name,
+      consistency: insert_consistency(interface_descriptor, mapping)
+    ]
 
+    _ = Repo.insert_all(storage, [insert_value], insert_opts)
     :ok
   end
 
   def insert_value_into_db(
-        db_client,
-        _realm,
+        realm,
         device_id,
         %InterfaceDescriptor{storage_type: :multi_interface_individual_datastream_dbtable} =
           interface_descriptor,
@@ -165,34 +166,37 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
         reception_timestamp,
         opts
       ) do
-    ttl_string = get_ttl_string(opts)
+    %InterfaceDescriptor{interface_id: interface_id, storage: storage} = interface_descriptor
+    %Mapping{endpoint_id: endpoint_id, value_type: value_type} = mapping
+    keyspace_name = Realm.keyspace_name(realm)
+    timestamp = div(reception_timestamp, 10000)
+    reception_timestamp_submillis = rem(reception_timestamp, 10000)
+    column_name = CQLUtils.type_to_db_column_name(value_type)
 
     # TODO: use received value_timestamp when needed
     # TODO: :reception_timestamp_submillis is just a place holder right now
-    insert_query =
-      DatabaseQuery.new()
-      |> DatabaseQuery.statement(
-        "INSERT INTO #{interface_descriptor.storage} " <>
-          "(device_id, interface_id, endpoint_id, path, value_timestamp, reception_timestamp, reception_timestamp_submillis, #{CQLUtils.type_to_db_column_name(mapping.value_type)}) " <>
-          "VALUES (:device_id, :interface_id, :endpoint_id, :path, :value_timestamp, :reception_timestamp, :reception_timestamp_submillis, :value) #{ttl_string};"
-      )
-      |> DatabaseQuery.put(:device_id, device_id)
-      |> DatabaseQuery.put(:interface_id, interface_descriptor.interface_id)
-      |> DatabaseQuery.put(:endpoint_id, mapping.endpoint_id)
-      |> DatabaseQuery.put(:path, path)
-      |> DatabaseQuery.put(:value_timestamp, value_timestamp)
-      |> DatabaseQuery.put(:reception_timestamp, div(reception_timestamp, 10000))
-      |> DatabaseQuery.put(:reception_timestamp_submillis, rem(reception_timestamp, 10000))
-      |> DatabaseQuery.put(:value, to_db_friendly_type(value))
-      |> DatabaseQuery.consistency(insert_consistency(interface_descriptor, mapping))
+    insert_value = %{
+      "device_id" => device_id,
+      "interface_id" => interface_id,
+      "endpoint_id" => endpoint_id,
+      "path" => path,
+      "value_timestamp" => value_timestamp,
+      "reception_timestamp" => timestamp,
+      "reception_timestamp_submillis" => reception_timestamp_submillis,
+      column_name => value
+    }
 
-    DatabaseQuery.call!(db_client, insert_query)
+    insert_opts = [
+      prefix: keyspace_name,
+      consistency: insert_consistency(interface_descriptor, mapping)
+    ]
+
+    _ = Repo.insert_all(storage, [insert_value], Keyword.merge(opts, insert_opts))
 
     :ok
   end
 
   def insert_value_into_db(
-        db_client,
         realm,
         device_id,
         %InterfaceDescriptor{storage_type: :one_object_datastream_dbtable} = interface_descriptor,
@@ -203,19 +207,24 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
         reception_timestamp,
         opts
       ) do
-    ttl_string = get_ttl_string(opts)
+    %InterfaceDescriptor{interface_id: interface_id, storage: storage} = interface_descriptor
 
     keyspace_name = Realm.keyspace_name(realm)
-
-    %InterfaceDescriptor{interface_id: interface_id} = interface_descriptor
+    timestamp = div(reception_timestamp, 10000)
+    reception_timestamp_submillis = rem(reception_timestamp, 10000)
 
     # TODO: we should cache endpoints by interface_id
-    endpoint_rows =
+    column_info =
       Endpoint
       |> select([:endpoint, :value_type])
       |> where(interface_id: ^interface_id)
       |> put_query_prefix(keyspace_name)
       |> Repo.all()
+      |> Map.new(fn endpoint ->
+        value_name = endpoint.endpoint |> String.split("/") |> List.last()
+        column_name = CQLUtils.endpoint_to_db_column_name(value_name)
+        {value_name, column_name}
+      end)
 
     # TODO: we should also cache explicit_timestamp
     explicit_timestamp_query =
@@ -227,65 +236,31 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
 
     [explicit_timestamp?] = Repo.all(explicit_timestamp_query)
 
-    # FIXME: new atoms are created here, we should avoid this. We need to replace CQEx.
-    column_atoms =
-      Enum.reduce(endpoint_rows, %{}, fn endpoint, column_atoms_acc ->
-        endpoint_name =
-          endpoint.endpoint
-          |> String.split("/")
-          |> List.last()
-
-        column_name = CQLUtils.endpoint_to_db_column_name(endpoint_name)
-
-        Map.put(column_atoms_acc, endpoint_name, String.to_atom(column_name))
-      end)
-
-    {query_values, placeholders, query_columns} =
-      Enum.reduce(value, {%{}, "", ""}, fn {obj_key, obj_value},
-                                           {query_values_acc, placeholders_acc, query_acc} ->
-        if column_atoms[obj_key] != nil do
-          column_name = CQLUtils.endpoint_to_db_column_name(obj_key)
-
-          db_value = to_db_friendly_type(obj_value)
-          next_query_values_acc = Map.put(query_values_acc, column_atoms[obj_key], db_value)
-          next_placeholders_acc = "#{placeholders_acc} :#{to_string(column_atoms[obj_key])},"
-          next_query_acc = "#{query_acc} #{column_name}, "
-
-          {next_query_values_acc, next_placeholders_acc, next_query_acc}
-        else
-          Logger.warning(
-            "Unexpected object key #{inspect(obj_key)} with value #{inspect(obj_value)}."
-          )
-
-          query_values_acc
-        end
-      end)
-
-    {query_columns, placeholders} =
-      if explicit_timestamp? do
-        {"value_timestamp, #{query_columns}", ":value_timestamp, #{placeholders}"}
-      else
-        {query_columns, placeholders}
-      end
-
     # TODO: use received value_timestamp when needed
     # TODO: :reception_timestamp_submillis is just a place holder right now
-    insert_query =
-      DatabaseQuery.new()
-      |> DatabaseQuery.statement(
-        "INSERT INTO #{interface_descriptor.storage} (device_id, path, #{query_columns} reception_timestamp, reception_timestamp_submillis) " <>
-          "VALUES (:device_id, :path, #{placeholders} :reception_timestamp, :reception_timestamp_submillis) #{ttl_string};"
-      )
-      |> DatabaseQuery.put(:device_id, device_id)
-      |> DatabaseQuery.put(:path, path)
-      |> DatabaseQuery.put(:value_timestamp, value_timestamp)
-      |> DatabaseQuery.put(:reception_timestamp, div(reception_timestamp, 10000))
-      |> DatabaseQuery.put(:reception_timestamp_submillis, rem(reception_timestamp, 10000))
-      |> DatabaseQuery.merge(query_values)
+    insert_params = %{
+      "device_id" => device_id,
+      "path" => path,
+      "reception_timestamp" => timestamp,
+      "reception_timestamp_submillis" => reception_timestamp_submillis
+    }
 
-    # TODO: |> DatabaseQuery.consistency(insert_consistency(interface_descriptor, endpoint))
+    object_value = compute_db_object_entries(column_info, value)
 
-    DatabaseQuery.call!(db_client, insert_query)
+    insert_value = Map.merge(insert_params, object_value)
+
+    insert_value =
+      if explicit_timestamp? do
+        Map.put(insert_value, "value_timestamp", value_timestamp)
+      else
+        insert_value
+      end
+
+    insert_opts = [
+      prefix: keyspace_name
+    ]
+
+    _ = Repo.insert_all(storage, [insert_value], Keyword.merge(opts, insert_opts))
 
     :ok
   end
@@ -312,17 +287,26 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
     _ = Repo.delete_all(query, opts)
   end
 
-  defp get_ttl_string(opts) do
-    with {:ok, value} when is_integer(value) <- Keyword.fetch(opts, :ttl) do
-      "USING TTL #{to_string(value)}"
-    else
-      _any_error ->
-        ""
-    end
+  defp compute_db_object_entries(column_info, object) do
+    Enum.reduce(object, %{}, fn {object_key, object_value}, acc ->
+      case Map.fetch(column_info, object_key) do
+        {:ok, column_name} ->
+          db_value = to_db_friendly_type(object_value)
+          Map.put(acc, column_name, db_value)
+
+        :error ->
+          _ =
+            Logger.warning(
+              "Unexpected object key #{object_key} with value #{inspect(object_value)}."
+            )
+
+          acc
+      end
+    end)
   end
 
   def insert_path_into_db(
-        db_client,
+        realm,
         device_id,
         %InterfaceDescriptor{storage_type: :multi_interface_individual_datastream_dbtable} =
           interface_descriptor,
@@ -332,8 +316,9 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
         reception_timestamp,
         opts
       ) do
+    # FIXME: this inserts a row in `individual_properties` even if the interface is datastream
     insert_path(
-      db_client,
+      realm,
       device_id,
       interface_descriptor,
       mapping,
@@ -345,7 +330,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
   end
 
   def insert_path_into_db(
-        db_client,
+        realm,
         device_id,
         %InterfaceDescriptor{storage_type: :one_object_datastream_dbtable} = interface_descriptor,
         mapping,
@@ -354,8 +339,9 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
         reception_timestamp,
         opts
       ) do
+    # FIXME: this inserts a row in `individual_properties` even if the interface is datastream
     insert_path(
-      db_client,
+      realm,
       device_id,
       interface_descriptor,
       mapping,
@@ -367,41 +353,44 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
   end
 
   defp insert_path(
-         db_client,
+         realm,
          device_id,
          interface_descriptor,
-         endpoint,
+         mapping,
          path,
          value_timestamp,
          reception_timestamp,
          opts
        ) do
-    ttl_string = get_ttl_string(opts)
+    %InterfaceDescriptor{interface_id: interface_id} = interface_descriptor
+    %Mapping{endpoint_id: endpoint_id} = mapping
+    keyspace_name = Realm.keyspace_name(realm)
+    timestamp = div(reception_timestamp, 10000) |> DateTime.from_unix!(:microsecond)
+    reception_timestamp_submillis = rem(reception_timestamp, 10000)
 
-    # TODO: do not hardcode individual_properties here
-    insert_statement = """
-    INSERT INTO individual_properties
-        (device_id, interface_id, endpoint_id, path,
-        reception_timestamp, reception_timestamp_submillis, datetime_value)
-    VALUES (:device_id, :interface_id, :endpoint_id, :path,
-        :reception_timestamp, :reception_timestamp_submillis, :datetime_value) #{ttl_string}
-    """
+    # TODO: :reception_timestamp_submillis is just a place holder right now
+    entry = %{
+      device_id: device_id,
+      interface_id: interface_id,
+      endpoint_id: endpoint_id,
+      path: path,
+      reception_timestamp: timestamp,
+      reception_timestamp_submillis: reception_timestamp_submillis,
+      datetime_value: DateTime.from_unix!(value_timestamp, :microsecond)
+    }
 
-    insert_query =
-      DatabaseQuery.new()
-      |> DatabaseQuery.statement(insert_statement)
-      |> DatabaseQuery.put(:device_id, device_id)
-      |> DatabaseQuery.put(:interface_id, interface_descriptor.interface_id)
-      |> DatabaseQuery.put(:endpoint_id, endpoint.endpoint_id)
-      |> DatabaseQuery.put(:path, path)
-      |> DatabaseQuery.put(:reception_timestamp, div(reception_timestamp, 10000))
-      |> DatabaseQuery.put(:reception_timestamp_submillis, rem(reception_timestamp, 10000))
-      |> DatabaseQuery.put(:datetime_value, value_timestamp)
-      |> DatabaseQuery.consistency(path_consistency(interface_descriptor, endpoint))
+    opts =
+      [
+        prefix: keyspace_name,
+        consistency: path_consistency(interface_descriptor, mapping)
+      ]
+      |> Keyword.merge(opts)
 
-    with {:ok, %CQEx.Result.Empty{}} <- DatabaseQuery.call(db_client, insert_query) do
-      :ok
-    else
+    # TODO: do not hardcode IndividualProperty here
+    case Repo.safe_insert_all(IndividualProperty, [entry], opts) do
+      {:ok, _} ->
+        :ok
+
       {:error, reason} ->
         Logger.warning("Error while upserting path: #{path} (reason: #{inspect(reason)}).")
         {:error, :database_error}
@@ -633,34 +622,24 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
     end
   end
 
-  def register_device_with_interface(db_client, device_id, interface_name, interface_major) do
-    key_insert_statement = """
-    INSERT INTO kv_store (group, key)
-    VALUES (:group, :key)
-    """
-
-    major_str = "v#{Integer.to_string(interface_major)}"
+  def register_device_with_interface(realm, device_id, interface_name, interface_major) do
+    keyspace_name = Realm.keyspace_name(realm)
     encoded_device_id = CoreDevice.encode_device_id(device_id)
 
-    insert_device_by_interface_query =
-      DatabaseQuery.new()
-      |> DatabaseQuery.statement(key_insert_statement)
-      |> DatabaseQuery.put(:group, "devices-by-interface-#{interface_name}-#{major_str}")
-      |> DatabaseQuery.put(:key, encoded_device_id)
-      |> DatabaseQuery.consistency(:each_quorum)
+    devices_by_interface = %{
+      "group" => "devices-by-interface-#{interface_name}-v#{interface_major}",
+      "key" => encoded_device_id
+    }
 
-    insert_to_with_data_on_interface =
-      DatabaseQuery.new()
-      |> DatabaseQuery.statement(key_insert_statement)
-      |> DatabaseQuery.put(
-        :group,
-        "devices-with-data-on-interface-#{interface_name}-#{major_str}"
-      )
-      |> DatabaseQuery.put(:key, encoded_device_id)
-      |> DatabaseQuery.consistency(:each_quorum)
+    devices_on_interface = %{
+      "group" => "devices-with-data-on-interface-#{interface_name}-v#{interface_major}",
+      "key" => encoded_device_id
+    }
 
-    with {:ok, _result} <- DatabaseQuery.call(db_client, insert_device_by_interface_query),
-         {:ok, _result} <- DatabaseQuery.call(db_client, insert_to_with_data_on_interface) do
+    opts = [prefix: keyspace_name, consistency: :each_quorum]
+
+    with {:ok, _} <- Repo.safe_insert_all(KvStore, [devices_by_interface], opts),
+         {:ok, _} <- Repo.safe_insert_all(KvStore, [devices_on_interface], opts) do
       :ok
     else
       {:error, reason} ->
@@ -768,7 +747,9 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
   end
 
   defp insert_consistency(_interface_descriptor, %Mapping{reliability: :unreliable} = _mapping) do
-    :any
+    # TODO change this back to :any when Xandra supports it
+    # See https://github.com/whatyouhide/xandra/issues/380
+    :one
   end
 
   defp insert_consistency(_interface_descriptor, _mapping) do
@@ -805,7 +786,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
         path: ^path
       )
       |> put_query_prefix(keyspace_name)
-      |> select([p], fragment("TTL(?)", p.reception_timestamp))
+      |> select([p], fragment("TTL(?)", p.datetime_value))
 
     case Repo.fetch_all(q, consistency: :quorum) do
       [] ->

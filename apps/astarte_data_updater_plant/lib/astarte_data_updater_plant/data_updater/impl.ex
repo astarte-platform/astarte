@@ -31,7 +31,6 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.Utils, as: SimpleTriggersProtobufUtils
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.AMQPTriggerTarget
   alias Astarte.DataAccess.Data
-  alias Astarte.DataAccess.Database
   alias Astarte.DataAccess.Device, as: DeviceQueries
   alias Astarte.DataAccess.Interface, as: InterfaceQueries
   alias Astarte.DataAccess.Mappings
@@ -489,8 +488,6 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
   end
 
   def handle_data(state, interface, path, payload, message_id, timestamp) do
-    {:ok, db_client} = Database.connect(realm: state.realm)
-
     new_state = execute_time_based_actions(state, timestamp)
 
     with :ok <- validate_interface(interface),
@@ -606,7 +603,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
 
               true ->
                 Queries.insert_path_into_db(
-                  db_client,
+                  new_state.realm,
                   new_state.device_id,
                   interface_descriptor,
                   mapping,
@@ -651,7 +648,6 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
       # TODO: handle insert failures here
       insert_result =
         Queries.insert_value_into_db(
-          db_client,
           new_state.realm,
           new_state.device_id,
           interface_descriptor,
@@ -1231,8 +1227,6 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
   end
 
   def process_introspection(state, new_introspection_list, payload, message_id, timestamp) do
-    {:ok, db_client} = Database.connect(realm: state.realm)
-
     new_state = execute_time_based_actions(state, timestamp)
 
     timestamp_ms = div(timestamp, 10_000)
@@ -1292,7 +1286,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
             :ok =
               if interface_major == 0 do
                 Queries.register_device_with_interface(
-                  db_client,
+                  realm,
                   state.device_id,
                   interface_name,
                   0
