@@ -1219,52 +1219,17 @@ defmodule Astarte.RealmManagement.Queries do
   end
 
   def insert_device_into_deletion_in_progress(realm_name, device_id) do
-    Xandra.Cluster.run(
-      :xandra_device_deletion,
-      &do_insert_device_into_deletion_in_progress(&1, realm_name, device_id)
-    )
-  end
+    keyspace = Realm.keyspace_name(realm_name)
 
-  defp do_insert_device_into_deletion_in_progress(conn, realm_name, device_id) do
-    keyspace_name =
-      CQLUtils.realm_name_to_keyspace_name(realm_name, Config.astarte_instance_id!())
+    deletion = %DeletionInProgress{
+      device_id: device_id,
+      vmq_ack: false,
+      dup_start_ack: false,
+      dup_end_ack: false
+    }
 
-    # TODO: validate realm name
-    statement = """
-    INSERT INTO #{keyspace_name}.deletion_in_progress
-    (device_id, vmq_ack, dup_start_ack, dup_end_ack)
-    VALUES (:device_id, false, false, false)
-    """
-
-    params = %{device_id: device_id}
-
-    with {:ok, prepared} <- Xandra.prepare(conn, statement) do
-      case Xandra.execute(conn, prepared, params,
-             consistency: :quorum,
-             uuid_format: :binary
-           ) do
-        {:ok, result} ->
-          {:ok, result}
-
-        {:error, %Xandra.ConnectionError{}} ->
-          _ =
-            Logger.warning(
-              "Cannot insert device #{inspect(device_id)} into deleted, connection error",
-              tag: "insert_device_into_deleted_connection_error"
-            )
-
-          {:error, :database_connection_error}
-
-        {:error, %Xandra.Error{} = error} ->
-          _ =
-            Logger.warning(
-              "Cannot insert device #{inspect(device_id)} into deleted, reason #{error.message}",
-              tag: "insert_device_into_deleted_error"
-            )
-
-          {:error, error.reason}
-      end
-    end
+    Repo.insert!(deletion, consistency: :quorum, prefix: keyspace)
+    :ok
   end
 
   # TODO maybe move to AstarteDataAccess
