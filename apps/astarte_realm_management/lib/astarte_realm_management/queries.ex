@@ -1068,39 +1068,35 @@ defmodule Astarte.RealmManagement.Queries do
     end
   end
 
-  def delete_simple_trigger(client, parent_trigger_uuid, simple_trigger_uuid, realm_name) do
+  def delete_simple_trigger(realm_name, parent_trigger_uuid, simple_trigger_uuid) do
     with %{object_uuid: object_id, object_type: object_type} <-
            retrieve_simple_trigger_astarte_ref(realm_name, simple_trigger_uuid) do
-      delete_simple_trigger_statement = """
-      DELETE FROM simple_triggers
-      WHERE object_id=:object_id AND object_type=:object_type AND
-            parent_trigger_id=:parent_trigger_id AND simple_trigger_id=:simple_trigger_id
-      """
+      keyspace = Realm.keyspace_name(realm_name)
 
       delete_simple_trigger_query =
-        DatabaseQuery.new()
-        |> DatabaseQuery.statement(delete_simple_trigger_statement)
-        |> DatabaseQuery.put(:object_id, object_id)
-        |> DatabaseQuery.put(:object_type, object_type)
-        |> DatabaseQuery.put(:parent_trigger_id, parent_trigger_uuid)
-        |> DatabaseQuery.put(:simple_trigger_id, simple_trigger_uuid)
+        from SimpleTrigger,
+          prefix: ^keyspace,
+          where: [
+            object_id: ^object_id,
+            object_type: ^object_type,
+            parent_trigger_id: ^parent_trigger_uuid,
+            simple_trigger_id: ^simple_trigger_uuid
+          ]
 
-      delete_astarte_ref_statement =
-        "DELETE FROM kv_store WHERE group='simple-triggers-by-uuid' AND key=:simple_trigger_uuid;"
+      simple_trigger_uuid =
+        simple_trigger_uuid
+        |> :uuid.uuid_to_string()
+        |> to_string()
 
       delete_astarte_ref_query =
-        DatabaseQuery.new()
-        |> DatabaseQuery.statement(delete_astarte_ref_statement)
-        |> DatabaseQuery.put(:simple_trigger_uuid, :uuid.uuid_to_string(simple_trigger_uuid))
+        from KvStore,
+          prefix: ^keyspace,
+          where: [group: "simple-triggers-by-uuid", key: ^simple_trigger_uuid]
 
-      with {:ok, _result} <- DatabaseQuery.call(client, delete_simple_trigger_query),
-           {:ok, _result} <- DatabaseQuery.call(client, delete_astarte_ref_query) do
-        :ok
-      else
-        not_ok ->
-          _ = Logger.warning("Database error: #{inspect(not_ok)}.", tag: "db_error")
-          {:error, :cannot_delete_simple_trigger}
-      end
+      _ = Repo.delete_all(delete_astarte_ref_query)
+      _ = Repo.delete_all(delete_simple_trigger_query)
+
+      :ok
     end
   end
 

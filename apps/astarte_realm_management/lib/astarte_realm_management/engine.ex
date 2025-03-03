@@ -770,8 +770,7 @@ defmodule Astarte.RealmManagement.Engine do
   def delete_trigger(realm_name, trigger_name) do
     _ = Logger.info("Going to delete trigger.", trigger_name: trigger_name, tag: "delete_trigger")
 
-    with {:ok, client} <- get_database_client(realm_name),
-         {:ok, trigger} <- Queries.retrieve_trigger(realm_name, trigger_name) do
+    with {:ok, trigger} <- Queries.retrieve_trigger(realm_name, trigger_name) do
       _ =
         Logger.info("Deleting trigger.",
           trigger_name: trigger_name,
@@ -781,10 +780,9 @@ defmodule Astarte.RealmManagement.Engine do
       delete_all_simple_triggers_succeeded =
         Enum.all?(trigger.simple_triggers_uuids, fn simple_trigger_uuid ->
           Queries.delete_simple_trigger(
-            client,
+            realm_name,
             trigger.trigger_uuid,
-            simple_trigger_uuid,
-            realm_name
+            simple_trigger_uuid
           ) == :ok
         end)
 
