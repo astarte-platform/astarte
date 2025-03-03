@@ -961,33 +961,32 @@ defmodule Astarte.RealmManagement.Queries do
     :ok
   end
 
-  def install_trigger_policy_link(client, trigger_uuid, trigger_policy) do
-    insert_trigger_with_policy_statement =
-      "INSERT INTO kv_store (group, key, value) VALUES (:policy_group, :trigger_uuid, uuidAsBlob(:t_uuid_to_be_converted))"
+  def install_trigger_policy_link(realm_name, trigger_uuid, trigger_policy) do
+    keyspace = Realm.keyspace_name(realm_name)
 
-    insert_trigger_with_policy_query =
-      DatabaseQuery.new()
-      |> DatabaseQuery.statement(insert_trigger_with_policy_statement)
-      |> DatabaseQuery.put(:policy_group, "triggers-with-policy-#{trigger_policy}")
-      |> DatabaseQuery.put(:trigger_uuid, :uuid.uuid_to_string(trigger_uuid))
-      |> DatabaseQuery.put(:t_uuid_to_be_converted, :uuid.uuid_to_string(trigger_uuid))
+    trigger_uuid =
+      trigger_uuid
+      |> :uuid.uuid_to_string()
+      |> to_string()
 
-    insert_trigger_to_policy_statement =
-      "INSERT INTO kv_store (group, key, value) VALUES ('trigger_to_policy',  :trigger_uuid, :trigger_policy);"
+    triggers_with_policy =
+      %{
+        group: "triggers-with-policy-#{trigger_policy}",
+        key: trigger_uuid,
+        value: trigger_uuid,
+        value_type: :uuid
+      }
 
-    insert_trigger_to_policy_query =
-      DatabaseQuery.new()
-      |> DatabaseQuery.statement(insert_trigger_to_policy_statement)
-      |> DatabaseQuery.put(:trigger_uuid, :uuid.uuid_to_string(trigger_uuid))
-      |> DatabaseQuery.put(:trigger_policy, trigger_policy)
+    trigger_to_policy =
+      %{
+        group: "trigger_to_policy",
+        key: trigger_uuid,
+        value: trigger_policy
+      }
 
-    with {:ok, _result} <- DatabaseQuery.call(client, insert_trigger_with_policy_query),
-         {:ok, _result} <- DatabaseQuery.call(client, insert_trigger_to_policy_query) do
+    with :ok <- KvStore.insert(triggers_with_policy, prefix: keyspace),
+         :ok <- KvStore.insert(trigger_to_policy, prefix: keyspace) do
       :ok
-    else
-      not_ok ->
-        _ = Logger.warning("Database error: #{inspect(not_ok)}.", tag: "db_error")
-        {:error, :cannot_install_trigger_policy_link}
     end
   end
 

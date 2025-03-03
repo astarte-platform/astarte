@@ -77,6 +77,7 @@ defmodule Astarte.RealmManagement.Astarte.KvStore do
         :integer -> "intAsBlob(?)"
         :big_integer -> "bigintAsBlob(?)"
         :string -> "varcharAsBlob(?)"
+        :uuid -> "uuidAsBlob(?)"
       end
 
     sql =
