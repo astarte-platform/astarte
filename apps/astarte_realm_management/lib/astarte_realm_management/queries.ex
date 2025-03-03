@@ -1114,23 +1114,16 @@ defmodule Astarte.RealmManagement.Queries do
     end
   end
 
-  def install_new_trigger_policy(client, policy_name, policy_proto) do
-    insert_query_statement =
-      "INSERT INTO kv_store (group, key, value) VALUES ('trigger_policy', :policy_name, :policy_container);"
+  def install_new_trigger_policy(realm_name, policy_name, policy_proto) do
+    keyspace = Realm.keyspace_name(realm_name)
 
-    insert_query =
-      DatabaseQuery.new()
-      |> DatabaseQuery.statement(insert_query_statement)
-      |> DatabaseQuery.put(:policy_name, policy_name)
-      |> DatabaseQuery.put(:policy_container, policy_proto)
+    params = %{
+      group: "trigger_policy",
+      key: policy_name,
+      value: policy_proto
+    }
 
-    with {:ok, _res} <- DatabaseQuery.call(client, insert_query) do
-      :ok
-    else
-      not_ok ->
-        _ = Logger.warning("Database error: #{inspect(not_ok)}.", tag: "db_error")
-        {:error, :cannot_install_trigger_policy}
-    end
+    KvStore.insert(params, prefix: keyspace)
   end
 
   def get_trigger_policies_list(realm_name) do
