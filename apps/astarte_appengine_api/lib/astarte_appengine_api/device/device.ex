@@ -295,8 +295,8 @@ defmodule Astarte.AppEngine.API.Device do
           interface_descriptor,
           endpoint_id,
           path,
-          timestamp_micro,
           div(timestamp_micro, 1000),
+          timestamp_micro,
           opts
         )
       end
@@ -470,8 +470,8 @@ defmodule Astarte.AppEngine.API.Device do
         interface_descriptor,
         endpoint_id,
         path,
-        timestamp_micro,
         div(timestamp_micro, 1000),
+        timestamp_micro,
         opts
       )
 
