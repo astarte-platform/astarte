@@ -1002,36 +1002,33 @@ defmodule Astarte.RealmManagement.Queries do
     end
   end
 
-  def delete_trigger_policy_link(_client, _trigger_uuid, nil) do
+  def delete_trigger_policy_link(_realm_name, _trigger_uuid, nil) do
     :ok
   end
 
-  def delete_trigger_policy_link(client, trigger_uuid, trigger_policy) do
-    delete_trigger_with_policy_statement =
-      "DELETE FROM kv_store WHERE group=:policy_group AND key=:trigger_uuid;"
+  def delete_trigger_policy_link(realm_name, trigger_uuid, trigger_policy) do
+    keyspace = Realm.keyspace_name(realm_name)
+    policy_group = "triggers-with-policy-#{trigger_policy}"
 
-    delete_trigger_with_policy_query =
-      DatabaseQuery.new()
-      |> DatabaseQuery.statement(delete_trigger_with_policy_statement)
-      |> DatabaseQuery.put(:policy_group, "triggers-with-policy-#{trigger_policy}")
-      |> DatabaseQuery.put(:trigger_uuid, :uuid.uuid_to_string(trigger_uuid))
+    trigger_uuid =
+      trigger_uuid
+      |> :uuid.uuid_to_string()
+      |> to_string()
 
-    delete_trigger_to_policy_statement =
-      "DELETE FROM kv_store WHERE group='trigger_to_policy' AND key=:trigger_uuid;"
+    triggers_with_policy =
+      from KvStore,
+        prefix: ^keyspace,
+        where: [group: ^policy_group, key: ^trigger_uuid]
 
-    delete_trigger_to_policy_query =
-      DatabaseQuery.new()
-      |> DatabaseQuery.statement(delete_trigger_to_policy_statement)
-      |> DatabaseQuery.put(:trigger_uuid, :uuid.uuid_to_string(trigger_uuid))
+    trigger_to_policy =
+      from KvStore,
+        prefix: ^keyspace,
+        where: [group: "trigger_to_policy", key: ^trigger_uuid]
 
-    with {:ok, _result} <- DatabaseQuery.call(client, delete_trigger_with_policy_query),
-         {:ok, _result} <- DatabaseQuery.call(client, delete_trigger_to_policy_query) do
-      :ok
-    else
-      not_ok ->
-        _ = Logger.warning("Database error: #{inspect(not_ok)}.", tag: "db_error")
-        {:error, :cannot_delete_trigger_policy_link}
-    end
+    _ = Repo.delete_all(triggers_with_policy)
+    _ = Repo.delete_all(trigger_to_policy)
+
+    :ok
   end
 
   def delete_trigger(client, trigger_name, realm_name) do
