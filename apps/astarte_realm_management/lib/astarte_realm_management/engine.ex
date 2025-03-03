@@ -892,15 +892,14 @@ defmodule Astarte.RealmManagement.Engine do
         policy_name: policy_name
       )
 
-    with {:ok, client} <- connect_to_db_with_realm(realm_name),
-         :ok <- verify_trigger_policy_exists(realm_name, policy_name),
+    with :ok <- verify_trigger_policy_exists(realm_name, policy_name),
          {:ok, false} <- check_trigger_policy_has_triggers(realm_name, policy_name) do
       if opts[:async] do
-        Task.start_link(Engine, :execute_trigger_policy_deletion, [client, policy_name])
+        Task.start_link(Engine, :execute_trigger_policy_deletion, [realm_name, policy_name])
 
         {:ok, :started}
       else
-        Engine.execute_trigger_policy_deletion(client, policy_name)
+        Engine.execute_trigger_policy_deletion(realm_name, policy_name)
       end
     end
   end
@@ -961,24 +960,14 @@ defmodule Astarte.RealmManagement.Engine do
     end
   end
 
-  def execute_trigger_policy_deletion(client, policy_name) do
+  def execute_trigger_policy_deletion(realm_name, policy_name) do
     _ =
       Logger.info("Trigger policy deletion started.",
         policy_name: policy_name,
         tag: "delete_trigger_policy_started"
       )
 
-    Queries.delete_trigger_policy(client, policy_name)
-  end
-
-  defp connect_to_db_with_realm(realm_name) do
-    with {:error, :database_connection_error} <- Database.connect(realm: realm_name) do
-      Logger.warning("Could not connect to database, realm #{realm_name}",
-        tag: "database_connection_error"
-      )
-
-      {:error, :database_connection_error}
-    end
+    Queries.delete_trigger_policy(realm_name, policy_name)
   end
 
   @doc """

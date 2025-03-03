@@ -1161,53 +1161,37 @@ defmodule Astarte.RealmManagement.Queries do
     Repo.some?(query, prefix: keyspace, consistency: :quorum)
   end
 
-  def delete_trigger_policy(client, policy_name) do
+  def delete_trigger_policy(realm_name, policy_name) do
     _ =
       Logger.info("Delete trigger policy.",
         policy_name: policy_name,
         tag: "db_delete_trigger_policy"
       )
 
-    delete_policy_statement =
-      "DELETE FROM kv_store WHERE group= :group_name AND key= :policy_name"
+    keyspace = Realm.keyspace_name(realm_name)
 
-    delete_policy =
-      DatabaseQuery.new()
-      |> DatabaseQuery.statement(delete_policy_statement)
-      |> DatabaseQuery.put(:group_name, "trigger_policy")
-      |> DatabaseQuery.put(:policy_name, policy_name)
-      |> DatabaseQuery.consistency(:each_quorum)
+    delete_policy_query =
+      from KvStore,
+        prefix: ^keyspace,
+        where: [group: "trigger_policy", key: ^policy_name]
 
-    # TODO check warning
-    delete_triggers_with_policy_group_statement = "DELETE FROM kv_store WHERE group=:group_name"
+    group_name = "triggers-with-policy-#{policy_name}"
 
     delete_triggers_with_policy_group_query =
-      DatabaseQuery.new()
-      |> DatabaseQuery.statement(delete_triggers_with_policy_group_statement)
-      |> DatabaseQuery.put(:group_name, "triggers-with-policy-#{policy_name}")
-      |> DatabaseQuery.consistency(:each_quorum)
-
-    delete_trigger_to_policy_statement = "DELETE FROM kv_store WHERE group=:group_name;"
+      from KvStore,
+        prefix: ^keyspace,
+        where: [group: ^group_name]
 
     delete_trigger_to_policy_query =
-      DatabaseQuery.new()
-      |> DatabaseQuery.statement(delete_trigger_to_policy_statement)
-      |> DatabaseQuery.put(:group_name, "trigger_to_policy")
+      from KvStore,
+        prefix: ^keyspace,
+        where: [group: "trigger_to_policy"]
 
-    with {:ok, _result} <- DatabaseQuery.call(client, delete_policy),
-         {:ok, _result} <- DatabaseQuery.call(client, delete_triggers_with_policy_group_query),
-         {:ok, _result} <- DatabaseQuery.call(client, delete_trigger_to_policy_query) do
-      :ok
-    else
-      {:error, reason} ->
-        _ =
-          Logger.error(
-            "Database error while deleting #{policy_name}, reason: #{inspect(reason)}.",
-            tag: "db_error"
-          )
+    _ = Repo.delete_all(delete_policy_query, consistency: :each_quorum)
+    _ = Repo.delete_all(delete_triggers_with_policy_group_query, consistency: :each_quorum)
+    _ = Repo.delete_all(delete_trigger_to_policy_query, consistency: :each_quorum)
 
-        {:error, :database_error}
-    end
+    :ok
   end
 
   def check_trigger_policy_already_present(realm_name, policy_name) do
