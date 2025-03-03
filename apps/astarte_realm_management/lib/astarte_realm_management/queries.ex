@@ -920,7 +920,7 @@ defmodule Astarte.RealmManagement.Queries do
   end
 
   def install_simple_trigger(
-        client,
+        realm_name,
         object_id,
         object_type,
         parent_trigger_id,
@@ -928,43 +928,39 @@ defmodule Astarte.RealmManagement.Queries do
         simple_trigger,
         trigger_target
       ) do
-    insert_simple_trigger_statement = """
-    INSERT INTO simple_triggers
-    (object_id, object_type, parent_trigger_id, simple_trigger_id, trigger_data, trigger_target)
-    VALUES (:object_id, :object_type, :parent_trigger_id, :simple_trigger_id, :simple_trigger_data, :trigger_target_data);
-    """
+    keyspace = Realm.keyspace_name(realm_name)
 
-    insert_simple_trigger_query =
-      DatabaseQuery.new()
-      |> DatabaseQuery.statement(insert_simple_trigger_statement)
-      |> DatabaseQuery.put(:object_id, object_id)
-      |> DatabaseQuery.put(:object_type, object_type)
-      |> DatabaseQuery.put(:parent_trigger_id, parent_trigger_id)
-      |> DatabaseQuery.put(:simple_trigger_id, simple_trigger_id)
-      |> DatabaseQuery.put(:simple_trigger_data, SimpleTriggerContainer.encode(simple_trigger))
-      |> DatabaseQuery.put(:trigger_target_data, TriggerTargetContainer.encode(trigger_target))
-
-    astarte_ref = %AstarteReference{
+    simple_trigger = %SimpleTrigger{
+      object_id: object_id,
       object_type: object_type,
-      object_uuid: object_id
+      parent_trigger_id: parent_trigger_id,
+      simple_trigger_id: simple_trigger_id,
+      trigger_data: SimpleTriggerContainer.encode(simple_trigger),
+      trigger_target: TriggerTargetContainer.encode(trigger_target)
     }
 
-    insert_simple_trigger_by_uuid_statement =
-      "INSERT INTO kv_store (group, key, value) VALUES ('simple-triggers-by-uuid', :simple_trigger_id, :astarte_ref);"
+    astarte_ref =
+      %AstarteReference{
+        object_type: object_type,
+        object_uuid: object_id
+      }
+      |> AstarteReference.encode()
 
-    insert_simple_trigger_by_uuid_query =
-      DatabaseQuery.new()
-      |> DatabaseQuery.statement(insert_simple_trigger_by_uuid_statement)
-      |> DatabaseQuery.put(:simple_trigger_id, :uuid.uuid_to_string(simple_trigger_id))
-      |> DatabaseQuery.put(:astarte_ref, AstarteReference.encode(astarte_ref))
+    simple_trigger_id =
+      simple_trigger_id
+      |> :uuid.uuid_to_string()
+      |> to_string()
 
-    with {:ok, _res} <- DatabaseQuery.call(client, insert_simple_trigger_query),
-         {:ok, _res} <- DatabaseQuery.call(client, insert_simple_trigger_by_uuid_query) do
+    kv_insert =
+      %{
+        group: "simple-triggers-by-uuid",
+        key: simple_trigger_id,
+        value: astarte_ref
+      }
+
+    with {:ok, _} <- Repo.insert(simple_trigger, prefix: keyspace),
+         :ok <- KvStore.insert(kv_insert, prefix: keyspace) do
       :ok
-    else
-      not_ok ->
-        _ = Logger.warning("Database error: #{inspect(not_ok)}.", tag: "db_error")
-        {:error, :cannot_install_simple_trigger}
     end
   end
 

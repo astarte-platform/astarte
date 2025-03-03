@@ -508,7 +508,8 @@ defmodule Astarte.RealmManagement.Engine do
          t_container = build_trigger_target_container(trigger_target),
          :ok <- validate_simple_triggers(realm_name, simple_trigger_maps),
          # TODO: these should be batched together
-         :ok <- install_simple_triggers(client, simple_trigger_maps, trigger_uuid, t_container),
+         :ok <-
+           install_simple_triggers(realm_name, simple_trigger_maps, trigger_uuid, t_container),
          :ok <- install_trigger_policy_link(client, trigger_uuid, trigger_policy_name, realm_name) do
       _ =
         Logger.info("Installing trigger.",
@@ -672,7 +673,7 @@ defmodule Astarte.RealmManagement.Engine do
     end
   end
 
-  defp install_simple_triggers(client, simple_trigger_maps, trigger_uuid, trigger_target) do
+  defp install_simple_triggers(realm_name, simple_trigger_maps, trigger_uuid, trigger_target) do
     Enum.reduce_while(simple_trigger_maps, :ok, fn
       simple_trigger_map, _acc ->
         %{
@@ -683,7 +684,7 @@ defmodule Astarte.RealmManagement.Engine do
         } = simple_trigger_map
 
         case Queries.install_simple_trigger(
-               client,
+               realm_name,
                object_id,
                object_type,
                trigger_uuid,
