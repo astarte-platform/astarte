@@ -493,11 +493,11 @@ defmodule Astarte.RealmManagement.Queries do
 
   def delete_interface_storage(
         client,
+        _realm_name,
         %InterfaceDescriptor{
           storage_type: :one_object_datastream_dbtable,
           storage: table_name
-        } = _interface_descriptor,
-        _relam_name
+        } = _interface_descriptor
       ) do
     delete_statement = "DROP TABLE IF EXISTS #{table_name}"
 
@@ -511,11 +511,11 @@ defmodule Astarte.RealmManagement.Queries do
     end
   end
 
-  def delete_interface_storage(client, %InterfaceDescriptor{} = interface_descriptor, realm_name) do
+  def delete_interface_storage(_client, realm_name, %InterfaceDescriptor{} = interface_descriptor) do
     with {:ok, result} <- devices_with_data_on_interface(realm_name, interface_descriptor.name) do
       Enum.reduce_while(result, :ok, fn encoded_device_id, _acc ->
         with {:ok, device_id} <- Device.decode_device_id(encoded_device_id),
-             :ok <- delete_values(client, device_id, interface_descriptor, realm_name) do
+             :ok <- delete_values(realm_name, device_id, interface_descriptor) do
           {:cont, :ok}
         else
           {:error, reason} ->
@@ -562,59 +562,43 @@ defmodule Astarte.RealmManagement.Queries do
   end
 
   def delete_values(
-        client,
+        realm_name,
         device_id,
         %InterfaceDescriptor{
           interface_id: interface_id,
           storage_type: :multi_interface_individual_properties_dbtable,
           storage: table_name
-        } = _interface_descriptor,
-        _realm_name
+        } = _interface_descriptor
       ) do
-    delete_values_statement = """
-    DELETE
-    FROM #{table_name}
-    WHERE device_id=:device_id AND interface_id=:interface_id
-    """
+    keyspace = Realm.keyspace_name(realm_name)
 
-    delete_query =
-      DatabaseQuery.new()
-      |> DatabaseQuery.statement(delete_values_statement)
-      |> DatabaseQuery.put(:device_id, device_id)
-      |> DatabaseQuery.put(:interface_id, interface_id)
-      |> DatabaseQuery.consistency(:each_quorum)
+    query =
+      from table_name,
+        where: [device_id: ^device_id, interface_id: ^interface_id]
 
-    with {:ok, _res} <- DatabaseQuery.call(client, delete_query) do
-      :ok
-    else
-      {:error, reason} ->
-        _ =
-          Logger.warning("Database error: cannot delete values. Reason: #{inspect(reason)}.",
-            tag: "db_error"
-          )
+    _ = Repo.delete_all(query, prefix: keyspace, consistency: :each_quorum)
 
-        {:error, :database_error}
-    end
+    :ok
   end
 
   def delete_values(
-        client,
+        realm_name,
         device_id,
         %InterfaceDescriptor{
           storage_type: :multi_interface_individual_datastream_dbtable
-        } = interface_descriptor,
-        realm_name
+        } = interface_descriptor
       ) do
     with {:ok, result} <-
            fetch_all_paths_and_endpoint_ids(realm_name, device_id, interface_descriptor),
-         :ok <- delete_all_paths_values(client, device_id, interface_descriptor, result) do
-      delete_all_paths(client, device_id, interface_descriptor)
+         :ok <- delete_all_paths_values(realm_name, device_id, interface_descriptor, result) do
+      delete_all_paths(realm_name, device_id, interface_descriptor)
     end
   end
 
-  defp delete_all_paths_values(client, device_id, interface_descriptor, all_paths) do
+  defp delete_all_paths_values(realm_name, device_id, interface_descriptor, all_paths) do
     Enum.reduce_while(all_paths, :ok, fn [endpoint_id: endpoint_id, path: path], _acc ->
-      with :ok <- delete_path_values(client, device_id, interface_descriptor, endpoint_id, path) do
+      with :ok <-
+             delete_path_values(realm_name, device_id, interface_descriptor, endpoint_id, path) do
         {:cont, :ok}
       else
         {:error, reason} ->
@@ -624,7 +608,7 @@ defmodule Astarte.RealmManagement.Queries do
   end
 
   def delete_path_values(
-        client,
+        realm_name,
         device_id,
         %InterfaceDescriptor{
           interface_id: interface_id,
@@ -634,33 +618,20 @@ defmodule Astarte.RealmManagement.Queries do
         endpoint_id,
         path
       ) do
-    delete_path_values_statement = """
-    DELETE
-    FROM #{table_name}
-    WHERE device_id=:device_id AND interface_id=:interface_id
-      AND endpoint_id=:endpoint_id AND path=:path
-    """
+    keyspace = Realm.keyspace_name(realm_name)
 
-    delete_query =
-      DatabaseQuery.new()
-      |> DatabaseQuery.statement(delete_path_values_statement)
-      |> DatabaseQuery.put(:device_id, device_id)
-      |> DatabaseQuery.put(:interface_id, interface_id)
-      |> DatabaseQuery.put(:endpoint_id, endpoint_id)
-      |> DatabaseQuery.put(:path, path)
-      |> DatabaseQuery.consistency(:quorum)
+    query =
+      from table_name,
+        where: [
+          device_id: ^device_id,
+          interface_id: ^interface_id,
+          endpoint_id: ^endpoint_id,
+          path: ^path
+        ]
 
-    with {:ok, _res} <- DatabaseQuery.call(client, delete_query) do
-      :ok
-    else
-      {:error, reason} ->
-        _ =
-          Logger.warning("Database error: cannot delete path values. Reason: #{inspect(reason)}.",
-            tag: "db_error"
-          )
+    _ = Repo.delete_all(query, prefix: keyspace, consistency: :quorum)
 
-        {:error, :database_error}
-    end
+    :ok
   end
 
   defp fetch_all_paths_and_endpoint_ids(
@@ -689,37 +660,22 @@ defmodule Astarte.RealmManagement.Queries do
   end
 
   defp delete_all_paths(
-         client,
+         realm_name,
          device_id,
          %InterfaceDescriptor{
            interface_id: interface_id,
            storage_type: :multi_interface_individual_datastream_dbtable
          } = _interface_descriptor
        ) do
-    delete_paths_statement = """
-    DELETE
-    FROM individual_properties
-    WHERE device_id=:device_id AND interface_id=:interface_id
-    """
+    keyspace = Realm.keyspace_name(realm_name)
 
-    all_paths_query =
-      DatabaseQuery.new()
-      |> DatabaseQuery.statement(delete_paths_statement)
-      |> DatabaseQuery.put(:device_id, device_id)
-      |> DatabaseQuery.put(:interface_id, interface_id)
-      |> DatabaseQuery.consistency(:each_quorum)
+    query =
+      from IndividualProperty,
+        where: [device_id: ^device_id, interface_id: ^interface_id]
 
-    with {:ok, _result} <- DatabaseQuery.call(client, all_paths_query) do
-      :ok
-    else
-      {:error, reason} ->
-        _ =
-          Logger.warning("Database error while deleting all paths: #{inspect(reason)}.",
-            tag: "db_error"
-          )
+    _ = Repo.delete_all(query, consistency: :each_quorum, prefix: keyspace)
 
-        {:error, :database_error}
-    end
+    :ok
   end
 
   def interface_available_versions(realm_name, interface_name) do
