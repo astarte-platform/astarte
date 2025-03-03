@@ -203,7 +203,7 @@ defmodule Astarte.AppEngine.API.Device.Queries do
       |> DatabaseQuery.put(:endpoint_id, endpoint_id)
       |> DatabaseQuery.put(:path, path)
       |> DatabaseQuery.put(:reception_timestamp, div(reception_timestamp, 1000))
-      |> DatabaseQuery.put(:reception_timestamp_submillis, rem(reception_timestamp, 100))
+      |> DatabaseQuery.put(:reception_timestamp_submillis, rem(reception_timestamp, 1000))
       |> DatabaseQuery.put(:datetime_value, value_timestamp)
 
     DatabaseQuery.call!(db_client, insert_query)
@@ -320,7 +320,7 @@ defmodule Astarte.AppEngine.API.Device.Queries do
       |> DatabaseQuery.put(:path, path)
       |> DatabaseQuery.put(:value_timestamp, div(timestamp, 1000))
       |> DatabaseQuery.put(:reception_timestamp, div(timestamp, 1000))
-      |> DatabaseQuery.put(:reception_timestamp_submillis, rem(timestamp, 100))
+      |> DatabaseQuery.put(:reception_timestamp_submillis, rem(timestamp, 1000))
       |> DatabaseQuery.put(:value, to_db_friendly_type(value))
 
     # TODO: |> DatabaseQuery.consistency(insert_consistency(interface_descriptor, endpoint))
@@ -408,7 +408,7 @@ defmodule Astarte.AppEngine.API.Device.Queries do
       |> DatabaseQuery.put(:path, path)
       |> DatabaseQuery.put(:value_timestamp, div(timestamp, 1000))
       |> DatabaseQuery.put(:reception_timestamp, div(timestamp, 1000))
-      |> DatabaseQuery.put(:reception_timestamp_submillis, rem(timestamp, 100))
+      |> DatabaseQuery.put(:reception_timestamp_submillis, rem(timestamp, 1000))
       |> DatabaseQuery.merge(query_values)
 
     # TODO: |> DatabaseQuery.consistency(insert_consistency(interface_descriptor, endpoint))
