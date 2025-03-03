@@ -836,30 +836,29 @@ defmodule Astarte.RealmManagement.Queries do
     end
   end
 
-  def install_trigger(client, trigger) do
-    # TODO: use IF NOT EXISTS
-    insert_by_name_query_statement =
-      "INSERT INTO kv_store (group, key, value) VALUES ('triggers-by-name', :trigger_name, uuidAsBlob(:trigger_uuid));"
+  def install_trigger(realm_name, trigger) do
+    keyspace = Realm.keyspace_name(realm_name)
 
-    insert_by_name_query =
-      DatabaseQuery.new()
-      |> DatabaseQuery.statement(insert_by_name_query_statement)
-      |> DatabaseQuery.put(:trigger_name, trigger.name)
-      |> DatabaseQuery.put(:trigger_uuid, trigger.trigger_uuid)
+    insert_by_name = %{
+      group: "triggers-by-name",
+      key: trigger.name,
+      value: trigger.trigger_uuid,
+      value_type: :uuid
+    }
 
-    # TODO: use IF NOT EXISTS
-    insert_query_statement =
-      "INSERT INTO kv_store (group, key, value) VALUES ('triggers', :trigger_uuid, :trigger_data);"
+    uuid_string =
+      trigger.trigger_uuid
+      |> :uuid.uuid_to_string()
+      |> to_string()
 
-    insert_query =
-      DatabaseQuery.new()
-      |> DatabaseQuery.statement(insert_query_statement)
-      |> DatabaseQuery.put(:trigger_uuid, :uuid.uuid_to_string(trigger.trigger_uuid))
-      |> DatabaseQuery.put(:trigger_data, Trigger.encode(trigger))
+    insert = %{
+      group: "triggers",
+      key: uuid_string,
+      value: Trigger.encode(trigger)
+    }
 
-    # TODO: Batch queries
-    with {:ok, _res} <- DatabaseQuery.call(client, insert_by_name_query),
-         {:ok, _res} <- DatabaseQuery.call(client, insert_query) do
+    with :ok <- KvStore.insert(insert_by_name, prefix: keyspace),
+         :ok <- KvStore.insert(insert, prefix: keyspace) do
       :ok
     else
       not_ok ->
