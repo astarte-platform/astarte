@@ -201,6 +201,8 @@ defmodule Astarte.AppEngine.API.Device.Queries do
         :reception_timestamp_submillis, :datetime_value) #{ttl_string};
     """
 
+    {reception_ms, reception_submillis} = split_ms_and_submillis(reception_timestamp)
+
     insert_query =
       DatabaseQuery.new()
       |> DatabaseQuery.statement(insert_statement)
@@ -208,8 +210,8 @@ defmodule Astarte.AppEngine.API.Device.Queries do
       |> DatabaseQuery.put(:interface_id, interface_descriptor.interface_id)
       |> DatabaseQuery.put(:endpoint_id, endpoint_id)
       |> DatabaseQuery.put(:path, path)
-      |> DatabaseQuery.put(:reception_timestamp, div(reception_timestamp, 1000))
-      |> DatabaseQuery.put(:reception_timestamp_submillis, rem(reception_timestamp, 1000))
+      |> DatabaseQuery.put(:reception_timestamp, reception_ms)
+      |> DatabaseQuery.put(:reception_timestamp_submillis, reception_submillis)
       |> DatabaseQuery.put(:datetime_value, value_timestamp)
 
     DatabaseQuery.call!(db_client, insert_query)
@@ -278,6 +280,8 @@ defmodule Astarte.AppEngine.API.Device.Queries do
       ) do
     ttl_string = get_ttl_string(opts)
 
+    {timestamp_ms, timestamp_submillis} = split_ms_and_submillis(timestamp)
+
     # TODO: :reception_timestamp_submillis is just a place holder right now
     insert_query =
       DatabaseQuery.new()
@@ -292,8 +296,8 @@ defmodule Astarte.AppEngine.API.Device.Queries do
       |> DatabaseQuery.put(:interface_id, interface_descriptor.interface_id)
       |> DatabaseQuery.put(:endpoint_id, endpoint_id)
       |> DatabaseQuery.put(:path, path)
-      |> DatabaseQuery.put(:reception_timestamp, div(timestamp, 1000))
-      |> DatabaseQuery.put(:reception_timestamp_submillis, div(timestamp, 100))
+      |> DatabaseQuery.put(:reception_timestamp, timestamp_ms)
+      |> DatabaseQuery.put(:reception_timestamp_submillis, timestamp_submillis)
       |> DatabaseQuery.put(:value, to_db_friendly_type(value))
 
     DatabaseQuery.call!(db_client, insert_query)
@@ -316,6 +320,7 @@ defmodule Astarte.AppEngine.API.Device.Queries do
         opts
       ) do
     ttl_string = get_ttl_string(opts)
+    {timestamp_ms, timestamp_submillis} = split_ms_and_submillis(timestamp)
 
     insert_query =
       DatabaseQuery.new()
@@ -330,9 +335,9 @@ defmodule Astarte.AppEngine.API.Device.Queries do
       |> DatabaseQuery.put(:interface_id, interface_descriptor.interface_id)
       |> DatabaseQuery.put(:endpoint_id, endpoint.endpoint_id)
       |> DatabaseQuery.put(:path, path)
-      |> DatabaseQuery.put(:value_timestamp, div(timestamp, 1000))
-      |> DatabaseQuery.put(:reception_timestamp, div(timestamp, 1000))
-      |> DatabaseQuery.put(:reception_timestamp_submillis, rem(timestamp, 1000))
+      |> DatabaseQuery.put(:value_timestamp, timestamp_ms)
+      |> DatabaseQuery.put(:reception_timestamp, timestamp_ms)
+      |> DatabaseQuery.put(:reception_timestamp_submillis, timestamp_submillis)
       |> DatabaseQuery.put(:value, to_db_friendly_type(value))
 
     # TODO: |> DatabaseQuery.consistency(insert_consistency(interface_descriptor, endpoint))
@@ -409,6 +414,8 @@ defmodule Astarte.AppEngine.API.Device.Queries do
         {query_columns, placeholders}
       end
 
+    {timestamp_ms, timestamp_submillis} = split_ms_and_submillis(timestamp)
+
     # TODO: :reception_timestamp_submillis is just a place holder right now
     insert_query =
       DatabaseQuery.new()
@@ -418,9 +425,9 @@ defmodule Astarte.AppEngine.API.Device.Queries do
       """)
       |> DatabaseQuery.put(:device_id, device_id)
       |> DatabaseQuery.put(:path, path)
-      |> DatabaseQuery.put(:value_timestamp, div(timestamp, 1000))
-      |> DatabaseQuery.put(:reception_timestamp, div(timestamp, 1000))
-      |> DatabaseQuery.put(:reception_timestamp_submillis, rem(timestamp, 1000))
+      |> DatabaseQuery.put(:value_timestamp, timestamp_ms)
+      |> DatabaseQuery.put(:reception_timestamp, timestamp_ms)
+      |> DatabaseQuery.put(:reception_timestamp_submillis, timestamp_submillis)
       |> DatabaseQuery.merge(query_values)
 
     # TODO: |> DatabaseQuery.consistency(insert_consistency(interface_descriptor, endpoint))
@@ -1035,5 +1042,12 @@ defmodule Astarte.AppEngine.API.Device.Queries do
 
         {:error, :database_error}
     end
+  end
+
+  defp split_ms_and_submillis(timestamp_micro) do
+    timestamp_ms = div(timestamp_micro, 1000)
+    timestamp_submillis = rem(timestamp_micro, 1000)
+
+    {timestamp_ms, timestamp_submillis}
   end
 end
