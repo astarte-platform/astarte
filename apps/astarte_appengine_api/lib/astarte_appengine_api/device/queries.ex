@@ -596,16 +596,14 @@ defmodule Astarte.AppEngine.API.Device.Queries do
 
   def insert_alias(realm_name, device_id, alias_tag, alias_value) do
     keyspace = keyspace_name(realm_name)
-    names_table = Name.__schema__(:source)
 
-    insert_alias_to_names_statement = """
-    INSERT INTO #{keyspace}.#{names_table}
-    (object_name, object_type, object_uuid)
-    VALUES (?, 1, ?)
-    """
+    name = %Name{
+      object_name: alias_value,
+      object_type: 1,
+      object_uuid: device_id
+    }
 
-    insert_alias_to_names_params = [alias_value, device_id]
-    insert_alias_to_names_query = {insert_alias_to_names_statement, insert_alias_to_names_params}
+    insert_alias_to_names_query = Repo.insert_to_sql(name, prefix: keyspace)
 
     new_alias = %{alias_tag => alias_value}
 

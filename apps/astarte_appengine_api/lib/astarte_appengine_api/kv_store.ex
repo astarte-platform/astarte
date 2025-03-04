@@ -54,12 +54,6 @@ defmodule Astarte.AppEngine.API.KvStore do
           Keyword.t()
         ) :: :ok | {:error, Exception.t()}
   def insert(kv_store_map, opts \\ []) do
-    %{
-      group: group,
-      key: key,
-      value: value
-    } = kv_store_map
-
     value_type = Map.get(kv_store_map, :value_type, :binary)
 
     value_expr =
@@ -70,15 +64,13 @@ defmodule Astarte.AppEngine.API.KvStore do
         :string -> "varcharAsBlob(?)"
       end
 
-    {keyspace, opts} = Keyword.pop!(opts, :prefix)
+    kv_store = %__MODULE__{
+      group: kv_store_map.group,
+      key: kv_store_map.key,
+      value: {:custom, value_expr, kv_store_map.value}
+    }
 
-    sql =
-      """
-        INSERT INTO #{keyspace}.#{@source} (group, key, value)
-        VALUES (?, ?, #{value_expr})
-      """
-
-    params = [group, key, value]
+    {sql, params} = Repo.insert_to_sql(kv_store, opts)
 
     with {:ok, _} <- Repo.query(sql, params, opts) do
       :ok

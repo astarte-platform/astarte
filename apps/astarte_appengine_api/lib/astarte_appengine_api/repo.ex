@@ -35,6 +35,42 @@ defmodule Astarte.AppEngine.API.Repo do
     {:ok, config}
   end
 
+  def insert_to_sql(struct, opts) when is_struct(struct) do
+    table = struct.__meta__.source
+    insert_to_sql(table, struct, opts)
+  end
+
+  def insert_to_sql(table, value, opts) do
+    {exandra_opts, opts} = Keyword.split(opts, [:ttl, :overwrite, :timestamp])
+    {prefix, _opts} = Keyword.pop(opts, :prefix)
+
+    {keys, values} =
+      value
+      |> Map.drop([:__struct__, :__meta__])
+      |> Enum.unzip()
+
+    keys = Enum.join(keys, ", ")
+
+    {values, params} =
+      values
+      |> Enum.map(fn
+        {:custom, string, values} when is_list(values) -> {string, values}
+        {:custom, string, value} -> {string, [value]}
+        value -> {"?", [value]}
+      end)
+      |> Enum.unzip()
+
+    values = Enum.join(values, ", ")
+
+    # We need to get rid of one level of wrapping
+    params = Enum.flat_map(params, & &1)
+
+    sql =
+      "INSERT INTO #{quote_table(prefix, table)} (#{keys}) VALUES (#{values}) #{insert_suffix(exandra_opts)}"
+
+    {sql, params}
+  end
+
   def fetch(queryable, id, opts \\ []) do
     queryable
     |> query_for_get(id)
@@ -86,5 +122,37 @@ defmodule Astarte.AppEngine.API.Repo do
     raise Ecto.QueryError,
       query: query,
       message: "expected a from expression with a schema"
+  end
+
+  # source: exandra lib/exandra/connection.ex
+  defp quote_table(nil, name), do: quote_table(name)
+  defp quote_table(prefix, name), do: [quote_table(prefix), ?., quote_table(name)]
+  defp quote_table(name) when is_atom(name), do: quote_table(Atom.to_string(name))
+  defp quote_table(name), do: [name]
+
+  # source: exandra lib/exandra/connection.ex
+  defp insert_suffix(opts) do
+    suffix =
+      case Keyword.get(opts, :overwrite, true) do
+        true ->
+          []
+
+        _ ->
+          [" IF NOT EXISTS"]
+      end
+
+    suffix =
+      case Keyword.get(opts, :ttl, nil) do
+        nil -> suffix
+        seconds when is_number(seconds) -> suffix ++ [" USING TTL #{seconds}"]
+      end
+
+    case Keyword.get(opts, :timestamp, nil) do
+      nil ->
+        suffix
+
+      epoch_in_microseconds when is_number(epoch_in_microseconds) ->
+        suffix ++ [" AND TIMESTAMP #{epoch_in_microseconds}"]
+    end
   end
 end
