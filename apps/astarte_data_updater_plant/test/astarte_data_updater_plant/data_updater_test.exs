@@ -1062,7 +1062,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
       make_timestamp("2017-10-26T08:48:50+00:00")
     )
 
-    payload2 = Cyanide.encode!(%{"v" => %{"value" => 0}})
+    payload2 = Cyanide.encode!(%{"v" => %{"value" => 0.0}})
 
     DataUpdater.handle_data(
       realm,
@@ -1343,14 +1343,14 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
     assert device_row == [
              connected: false,
              total_received_msgs: 45018,
-             total_received_bytes: 4_501_003,
+             total_received_bytes: 4_501_007,
              exchanged_msgs_by_interface: [
                {["com.example.TestObject", 1], 5},
                {["com.test.LCDMonitor", 1], 6},
                {["com.test.SimpleStreamTest", 1], 1}
              ],
              exchanged_bytes_by_interface: [
-               {["com.example.TestObject", 1], 243},
+               {["com.example.TestObject", 1], 247},
                {["com.test.LCDMonitor", 1], 291},
                {["com.test.SimpleStreamTest", 1], 45}
              ]
