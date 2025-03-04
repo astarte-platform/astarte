@@ -23,7 +23,6 @@ defmodule Astarte.AppEngine.API.Device.Queries do
   alias Astarte.AppEngine.API.Device.DeletionInProgress
   alias Astarte.AppEngine.API.Device.DeviceStatus
   alias Astarte.AppEngine.API.Device.DevicesList
-  alias Astarte.AppEngine.API.Device.InterfaceValuesOptions
   alias Astarte.AppEngine.API.Device.InterfaceInfo
   alias Astarte.AppEngine.API.Realms.IndividualProperty
   alias Astarte.AppEngine.API.KvStore
@@ -32,18 +31,12 @@ defmodule Astarte.AppEngine.API.Device.Queries do
   alias Astarte.Core.CQLUtils
   alias Astarte.Core.Device
   alias Astarte.Core.InterfaceDescriptor
-  alias CQEx.Query, as: DatabaseQuery
-  alias CQEx.Result, as: DatabaseResult
   alias Astarte.AppEngine.API.Realm
   alias Astarte.AppEngine.API.Devices.Device, as: DatabaseDevice
   alias Astarte.AppEngine.API.Endpoint, as: DatabaseEndpoint
 
   require CQEx
   require Logger
-
-  def first_result_row(values) do
-    DatabaseResult.head(values)
-  end
 
   def retrieve_interfaces_list(realm_name, device_id) do
     keyspace = keyspace_name(realm_name)
@@ -708,28 +701,6 @@ defmodule Astarte.AppEngine.API.Device.Queries do
     count = query |> select([d], count(field(d, ^timestamp_column))) |> Repo.one()
 
     {count, values}
-  end
-
-  def get_results_count(_client, _count_query, %InterfaceValuesOptions{downsample_to: nil}) do
-    # Count will be ignored since there's no downsample_to
-    nil
-  end
-
-  def get_results_count(client, count_query, opts) do
-    with {:ok, result} <- DatabaseQuery.call(client, count_query),
-         [{_count_key, count}] <- DatabaseResult.head(result) do
-      limit = opts.limit || Config.max_results_limit!()
-
-      min(count, limit)
-    else
-      error ->
-        _ =
-          Logger.warning("Can't retrieve count for #{inspect(count_query)}: #{inspect(error)}.",
-            tag: "db_error"
-          )
-
-        nil
-    end
   end
 
   def all_properties_for_endpoint!(
