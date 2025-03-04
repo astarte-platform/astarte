@@ -497,8 +497,7 @@ defmodule Astarte.RealmManagement.Engine do
         tag: "install_trigger"
       )
 
-    with {:ok, client} <- get_database_client(realm_name),
-         {:exists?, {:error, :trigger_not_found}} <-
+    with {:exists?, {:error, :trigger_not_found}} <-
            {:exists?, Queries.retrieve_trigger_uuid(realm_name, trigger_name)},
          simple_trigger_maps = build_simple_trigger_maps(serialized_tagged_simple_triggers),
          trigger = build_trigger(trigger_name, trigger_policy_name, simple_trigger_maps, action),
@@ -518,7 +517,7 @@ defmodule Astarte.RealmManagement.Engine do
           tag: "install_trigger_started"
         )
 
-      Queries.install_trigger(client, trigger)
+      Queries.install_trigger(realm_name, trigger)
     else
       {:exists?, _} ->
         {:error, :already_installed_trigger}
