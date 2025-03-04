@@ -39,7 +39,6 @@ defmodule Astarte.RealmManagement.Engine do
   alias Astarte.RealmManagement.Engine.MappingUpdates
   alias Astarte.RealmManagement.Queries
   alias Astarte.RealmManagement.Config
-  alias CQEx.Client, as: DatabaseClient
 
   def get_health() do
     _ = Logger.debug("Get health.")
@@ -464,24 +463,8 @@ defmodule Astarte.RealmManagement.Engine do
   end
 
   def update_jwt_public_key_pem(realm_name, jwt_public_key_pem) do
-    keyspace_name =
-      CQLUtils.realm_name_to_keyspace_name(realm_name, Config.astarte_instance_id!())
-
-    cqex_options =
-      Config.cqex_options!()
-      |> Keyword.put(:keyspace, keyspace_name)
-
-    with {:ok, client} <-
-           DatabaseClient.new(
-             Config.cassandra_node!(),
-             cqex_options
-           ) do
-      _ = Logger.info("Updating JWT public key PEM.", tag: "updating_jwt_pub_key")
-      Queries.update_jwt_public_key_pem(client, jwt_public_key_pem)
-    else
-      {:error, :shutdown} ->
-        {:error, :realm_not_found}
-    end
+    _ = Logger.info("Updating JWT public key PEM.", tag: "updating_jwt_pub_key")
+    Queries.update_jwt_public_key_pem(realm_name, jwt_public_key_pem)
   end
 
   def install_trigger(

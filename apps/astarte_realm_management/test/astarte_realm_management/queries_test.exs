@@ -570,19 +570,19 @@ defmodule Astarte.RealmManagement.QueriesTest do
 
   test "update JWT public key PEM" do
     DatabaseTestHelper.connect_to_test_database()
-    client = connect_to_test_realm("autotestrealm")
+    realm_name = "autotestrealm"
 
     new_pem = "not_exactly_a_PEM_but_will_do"
-    assert Queries.update_jwt_public_key_pem(client, new_pem) == :ok
-    assert Queries.get_jwt_public_key_pem("autotestrealm") == {:ok, new_pem}
+    assert Queries.update_jwt_public_key_pem(realm_name, new_pem) == :ok
+    assert Queries.get_jwt_public_key_pem(realm_name) == {:ok, new_pem}
 
     # Put the PEM fixture back
     assert Queries.update_jwt_public_key_pem(
-             client,
+             realm_name,
              DatabaseTestHelper.jwt_public_key_pem_fixture()
            ) == :ok
 
-    assert Queries.get_jwt_public_key_pem("autotestrealm") ==
+    assert Queries.get_jwt_public_key_pem(realm_name) ==
              {:ok, DatabaseTestHelper.jwt_public_key_pem_fixture()}
   end
 

@@ -99,11 +99,6 @@ defmodule Astarte.RealmManagement.Queries do
     )
   """
 
-  @query_insert_jwt_public_key_pem """
-  INSERT INTO kv_store (group, key, value)
-  VALUES ('auth', 'jwt_public_key_pem', varcharAsBlob(:pem));
-  """
-
   defp create_one_object_columns_for_mappings(mappings) do
     for %Mapping{endpoint: endpoint, value_type: value_type} <- mappings do
       column_name = CQLUtils.endpoint_to_db_column_name(endpoint)
@@ -821,19 +816,16 @@ defmodule Astarte.RealmManagement.Queries do
     )
   end
 
-  def update_jwt_public_key_pem(client, jwt_public_key_pem) do
-    query =
-      DatabaseQuery.new()
-      |> DatabaseQuery.statement(@query_insert_jwt_public_key_pem)
-      |> DatabaseQuery.put(:pem, jwt_public_key_pem)
+  def update_jwt_public_key_pem(realm_name, jwt_public_key_pem) do
+    keyspace = Realm.keyspace_name(realm_name)
 
-    case DatabaseQuery.call(client, query) do
-      {:ok, _res} ->
-        :ok
-
-      _ ->
-        {:error, :cant_update_public_key}
-    end
+    %{
+      group: "auth",
+      key: "jwt_public_key_pem",
+      value: jwt_public_key_pem,
+      value_type: :string
+    }
+    |> KvStore.insert(prefix: keyspace)
   end
 
   def install_trigger(realm_name, trigger) do
