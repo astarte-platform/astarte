@@ -63,30 +63,28 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
     Repo.all(q)
   end
 
-  def set_pending_empty_cache(db_client, device_id, pending_empty_cache) do
-    pending_empty_cache_statement = """
-    UPDATE devices
-    SET pending_empty_cache = :pending_empty_cache
-    WHERE device_id = :device_id
-    """
+  def set_pending_empty_cache(realm, device_id, pending_empty_cache) do
+    keyspace_name = Realm.keyspace_name(realm)
 
-    update_pending =
-      DatabaseQuery.new()
-      |> DatabaseQuery.statement(pending_empty_cache_statement)
-      |> DatabaseQuery.put(:device_id, device_id)
-      |> DatabaseQuery.put(:pending_empty_cache, pending_empty_cache)
+    device =
+      from d in Device,
+        prefix: ^keyspace_name,
+        where: [device_id: ^device_id],
+        update: [set: [pending_empty_cache: ^pending_empty_cache]]
 
-    with {:ok, _result} <- DatabaseQuery.call(db_client, update_pending) do
-      :ok
-    else
-      %{acc: _, msg: error_message} ->
-        Logger.warning("Database error: #{error_message}.")
-        {:error, :database_error}
+    case Repo.safe_update_all(device, []) do
+      {1, _} ->
+        :ok
 
       {:error, reason} ->
-        # DB Error
-        Logger.warning("Failed with reason #{inspect(reason)}.")
-        {:error, :database_error}
+        _ =
+          Logger.warning(
+            "Cannot set pending empty cache for device #{CoreDevice.encode_device_id(device_id)}: #{inspect(reason)}",
+            realm: realm,
+            tag: "set_pending_empty_cache_fail"
+          )
+
+        {:error, reason}
     end
   end
 
@@ -436,19 +434,19 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
     }
   end
 
-  def set_device_connected!(db_client, device_id, timestamp_ms, ip_address) do
-    set_connection_info!(db_client, device_id, timestamp_ms, ip_address)
+  def set_device_connected!(realm, device_id, timestamp, ip_address) do
+    set_connection_info!(realm, device_id, timestamp, ip_address)
 
     ttl = heartbeat_interval_seconds() * 8
-    refresh_device_connected!(db_client, device_id, ttl)
+    refresh_device_connected!(realm, device_id, ttl)
   end
 
-  def maybe_refresh_device_connected!(db_client, realm, device_id) do
+  def maybe_refresh_device_connected!(realm, device_id) do
     with {:ok, remaining_ttl} <- get_connected_remaining_ttl(realm, device_id) do
       if remaining_ttl < heartbeat_interval_seconds() * 2 do
         Logger.debug("Refreshing connected status", tag: "refresh_device_connected")
         write_ttl = heartbeat_interval_seconds() * 8
-        refresh_device_connected!(db_client, device_id, write_ttl)
+        refresh_device_connected!(realm, device_id, write_ttl)
       else
         :ok
       end
@@ -459,39 +457,26 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
     Config.device_heartbeat_interval_ms!() |> div(1000)
   end
 
-  defp set_connection_info!(db_client, device_id, timestamp_ms, ip_address) do
-    device_update_statement = """
-    UPDATE devices
-    SET last_connection=:last_connection, last_seen_ip=:last_seen_ip
-    WHERE device_id=:device_id
-    """
+  defp set_connection_info!(realm, device_id, timestamp, ip_address) do
+    keyspace_name = Realm.keyspace_name(realm)
 
-    device_update_query =
-      DatabaseQuery.new()
-      |> DatabaseQuery.statement(device_update_statement)
-      |> DatabaseQuery.put(:device_id, device_id)
-      |> DatabaseQuery.put(:last_connection, timestamp_ms)
-      |> DatabaseQuery.put(:last_seen_ip, ip_address)
-      |> DatabaseQuery.consistency(:local_quorum)
-
-    DatabaseQuery.call!(db_client, device_update_query)
+    %Device{device_id: device_id}
+    |> Ecto.Changeset.change(
+      last_connection: timestamp,
+      last_seen_ip: ip_address
+    )
+    |> Repo.update!(prefix: keyspace_name, consistency: :local_quorum)
   end
 
-  defp refresh_device_connected!(db_client, device_id, ttl) do
-    refresh_connected_statement = """
-    UPDATE devices
-    USING TTL #{ttl}
-    SET connected=true
-    WHERE device_id=:device_id
-    """
+  defp refresh_device_connected!(realm, device_id, ttl) do
+    keyspace_name = Realm.keyspace_name(realm)
 
-    refresh_connected_query =
-      DatabaseQuery.new()
-      |> DatabaseQuery.statement(refresh_connected_statement)
-      |> DatabaseQuery.put(:device_id, device_id)
-      |> DatabaseQuery.consistency(:local_quorum)
+    changeset =
+      %Device{device_id: device_id}
+      |> Ecto.Changeset.change(connected: true)
 
-    DatabaseQuery.call!(db_client, refresh_connected_query)
+    # We use `insert` here becuase Exandra does not support ttl on updates. However, this is an upsert in Scylla.
+    Repo.insert!(changeset, prefix: keyspace_name, ttl: ttl, consistency: :local_quorum)
   end
 
   defp get_connected_remaining_ttl(realm, device_id) do
@@ -523,7 +508,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
   end
 
   def set_device_disconnected!(
-        db_client,
+        realm,
         device_id,
         timestamp_ms,
         total_received_msgs,
@@ -531,29 +516,18 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
         interface_exchanged_msgs,
         interface_exchanged_bytes
       ) do
-    device_update_statement = """
-    UPDATE devices
-    SET connected=false,
-        last_disconnection=:last_disconnection,
-        total_received_msgs=:total_received_msgs,
-        total_received_bytes=:total_received_bytes,
-        exchanged_bytes_by_interface=exchanged_bytes_by_interface + :exchanged_bytes_by_interface,
-        exchanged_msgs_by_interface=exchanged_msgs_by_interface + :exchanged_msgs_by_interface
-    WHERE device_id=:device_id
-    """
+    keyspace_name = Realm.keyspace_name(realm)
 
-    device_update_query =
-      DatabaseQuery.new()
-      |> DatabaseQuery.statement(device_update_statement)
-      |> DatabaseQuery.put(:device_id, device_id)
-      |> DatabaseQuery.put(:last_disconnection, timestamp_ms)
-      |> DatabaseQuery.put(:total_received_msgs, total_received_msgs)
-      |> DatabaseQuery.put(:total_received_bytes, total_received_bytes)
-      |> DatabaseQuery.put(:exchanged_bytes_by_interface, interface_exchanged_bytes)
-      |> DatabaseQuery.put(:exchanged_msgs_by_interface, interface_exchanged_msgs)
-      |> DatabaseQuery.consistency(:local_quorum)
-
-    DatabaseQuery.call!(db_client, device_update_query)
+    %Device{device_id: device_id}
+    |> Ecto.Changeset.change(
+      connected: false,
+      last_disconnection: timestamp_ms,
+      total_received_msgs: total_received_msgs,
+      total_received_bytes: total_received_bytes,
+      exchanged_bytes_by_interface: interface_exchanged_bytes,
+      exchanged_msgs_by_interface: interface_exchanged_msgs
+    )
+    |> Repo.update!(prefix: keyspace_name, consistency: :local_quorum)
   end
 
   def fetch_device_introspection_minors(realm, device_id) do
@@ -584,59 +558,70 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
     end
   end
 
-  def update_device_introspection!(db_client, device_id, introspection, introspection_minor) do
-    introspection_update_statement = """
-    UPDATE devices
-    SET introspection=:introspection, introspection_minor=:introspection_minor
-    WHERE device_id=:device_id
-    """
+  def update_device_introspection!(realm, device_id, introspection, introspection_minor) do
+    keyspace_name = Realm.keyspace_name(realm)
 
-    introspection_update_query =
-      DatabaseQuery.new()
-      |> DatabaseQuery.statement(introspection_update_statement)
-      |> DatabaseQuery.put(:device_id, device_id)
-      |> DatabaseQuery.put(:introspection, introspection)
-      |> DatabaseQuery.put(:introspection_minor, introspection_minor)
-      |> DatabaseQuery.consistency(:quorum)
-
-    DatabaseQuery.call!(db_client, introspection_update_query)
+    %Device{device_id: device_id}
+    |> Ecto.Changeset.change(
+      introspection: introspection,
+      introspection_minor: introspection_minor
+    )
+    |> Repo.update!(prefix: keyspace_name, consistency: :quorum)
   end
 
-  def add_old_interfaces(db_client, device_id, old_interfaces) do
-    old_introspection_update_statement = """
-    UPDATE devices
-    SET old_introspection = old_introspection + :introspection
-    WHERE device_id=:device_id
-    """
+  def add_old_interfaces(realm, device_id, old_interfaces) do
+    keyspace_name = Realm.keyspace_name(realm)
 
-    old_introspection_update_query =
-      DatabaseQuery.new()
-      |> DatabaseQuery.statement(old_introspection_update_statement)
-      |> DatabaseQuery.put(:device_id, device_id)
-      |> DatabaseQuery.put(:introspection, old_interfaces)
-      |> DatabaseQuery.consistency(:quorum)
+    device =
+      from d in Device,
+        prefix: ^keyspace_name,
+        where: d.device_id == ^device_id,
+        update: [set: [old_introspection: fragment(" old_introspection + ?", ^old_interfaces)]]
 
-    with {:ok, _result} <- DatabaseQuery.call(db_client, old_introspection_update_query) do
-      :ok
+    case Repo.safe_update_all(device, [], consistency: :quorum) do
+      {1, _} ->
+        :ok
+
+      {:error, reason} ->
+        encoded_device_id = CoreDevice.encode_device_id(device_id)
+
+        _ =
+          Logger.warning(
+            "Could not update old introspection on device #{encoded_device_id}, reason: #{inspect(reason)}",
+            realm: realm,
+            tag: "add_old_interfaces_fail"
+          )
+
+        {:error, reason}
     end
   end
 
-  def remove_old_interfaces(db_client, device_id, old_interfaces) do
-    old_introspection_remove_statement = """
-    UPDATE devices
-    SET old_introspection = old_introspection - :old_interfaces
-    WHERE device_id=:device_id
-    """
+  def remove_old_interfaces(realm, device_id, old_interfaces) do
+    keyspace_name = Realm.keyspace_name(realm)
 
-    old_introspection_remove_query =
-      DatabaseQuery.new()
-      |> DatabaseQuery.statement(old_introspection_remove_statement)
-      |> DatabaseQuery.put(:device_id, device_id)
-      |> DatabaseQuery.put(:old_interfaces, old_interfaces)
-      |> DatabaseQuery.consistency(:quorum)
+    old_interfaces = MapSet.new(old_interfaces)
 
-    with {:ok, _result} <- DatabaseQuery.call(db_client, old_introspection_remove_query) do
-      :ok
+    device =
+      from d in Device,
+        prefix: ^keyspace_name,
+        where: d.device_id == ^device_id,
+        update: [set: [old_introspection: fragment(" old_introspection - ?", ^old_interfaces)]]
+
+    case Repo.safe_update_all(device, [], consistency: :quorum) do
+      {1, _} ->
+        :ok
+
+      {:error, reason} ->
+        encoded_device_id = CoreDevice.encode_device_id(device_id)
+
+        _ =
+          Logger.warning(
+            "Could not update old introspection on device #{encoded_device_id}, reason: #{inspect(reason)}",
+            realm: realm,
+            tag: "remove_old_interfaces_fail"
+          )
+
+        {:error, reason}
     end
   end
 

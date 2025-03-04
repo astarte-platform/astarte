@@ -109,9 +109,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
   end
 
   def handle_connection(state, ip_address_string, message_id, timestamp) do
-    {:ok, db_client} = Database.connect(realm: state.realm)
-
-    new_state = execute_time_based_actions(state, timestamp, db_client)
+    new_state = execute_time_based_actions(state, timestamp)
 
     timestamp_ms = div(timestamp, 10_000)
 
@@ -131,9 +129,9 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
       end
 
     Queries.set_device_connected!(
-      db_client,
+      new_state.realm,
       new_state.device_id,
-      timestamp_ms,
+      DateTime.from_unix!(timestamp_ms, :microsecond),
       ip_address
     )
 
@@ -170,11 +168,9 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
 
   # TODO make this private when all heartbeats will be moved to internal
   def handle_heartbeat(state, message_id, timestamp) do
-    {:ok, db_client} = Database.connect(realm: state.realm)
+    new_state = execute_time_based_actions(state, timestamp)
 
-    new_state = execute_time_based_actions(state, timestamp, db_client)
-
-    Queries.maybe_refresh_device_connected!(db_client, new_state.realm, new_state.device_id)
+    Queries.maybe_refresh_device_connected!(new_state.realm, new_state.device_id)
 
     MessageTracker.ack_delivery(new_state.message_tracker, message_id)
     Logger.info("Device heartbeat.", tag: "device_heartbeat")
@@ -230,21 +226,17 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
   end
 
   def start_device_deletion(state, timestamp) do
-    {:ok, db_client} = Database.connect(realm: state.realm)
-
     # Device deletion is among time-based actions
-    new_state = execute_time_based_actions(state, timestamp, db_client)
+    new_state = execute_time_based_actions(state, timestamp)
 
     {:ok, new_state}
   end
 
   def handle_disconnection(state, message_id, timestamp) do
-    {:ok, db_client} = Database.connect(realm: state.realm)
-
     new_state =
       state
-      |> execute_time_based_actions(timestamp, db_client)
-      |> set_device_disconnected(db_client, timestamp)
+      |> execute_time_based_actions(timestamp)
+      |> set_device_disconnected(timestamp)
 
     MessageTracker.ack_delivery(new_state.message_tracker, message_id)
     Logger.info("Device disconnected.", tag: "device_disconnected")
@@ -499,7 +491,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
   def handle_data(state, interface, path, payload, message_id, timestamp) do
     {:ok, db_client} = Database.connect(realm: state.realm)
 
-    new_state = execute_time_based_actions(state, timestamp, db_client)
+    new_state = execute_time_based_actions(state, timestamp)
 
     with :ok <- validate_interface(interface),
          :ok <- validate_path(path),
@@ -1241,7 +1233,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
   def process_introspection(state, new_introspection_list, payload, message_id, timestamp) do
     {:ok, db_client} = Database.connect(realm: state.realm)
 
-    new_state = execute_time_based_actions(state, timestamp, db_client)
+    new_state = execute_time_based_actions(state, timestamp)
 
     timestamp_ms = div(timestamp, 10_000)
 
@@ -1403,8 +1395,8 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
         Map.put(acc, {iface, prev_major}, prev_minor)
       end)
 
-    :ok = Queries.add_old_interfaces(db_client, new_state.device_id, old_introspection)
-    :ok = Queries.remove_old_interfaces(db_client, new_state.device_id, readded_introspection)
+    :ok = Queries.add_old_interfaces(realm, new_state.device_id, old_introspection)
+    :ok = Queries.remove_old_interfaces(realm, new_state.device_id, readded_introspection)
 
     # Deliver interface_minor_updated triggers if needed
     for {interface_name, old_minor} <- old_minors,
@@ -1443,7 +1435,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
     new_state = forget_interfaces(new_state, interfaces_to_drop_list)
 
     Queries.update_device_introspection!(
-      db_client,
+      realm,
       new_state.device_id,
       db_introspection_map,
       db_introspection_minor_map
@@ -1472,9 +1464,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
   end
 
   def handle_control(state, "/producer/properties", <<0, 0, 0, 0>>, message_id, timestamp) do
-    {:ok, db_client} = Database.connect(realm: state.realm)
-
-    new_state = execute_time_based_actions(state, timestamp, db_client)
+    new_state = execute_time_based_actions(state, timestamp)
 
     timestamp_ms = div(timestamp, 10_000)
 
@@ -1492,9 +1482,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
   end
 
   def handle_control(state, "/producer/properties", payload, message_id, timestamp) do
-    {:ok, db_client} = Database.connect(realm: state.realm)
-
-    new_state = execute_time_based_actions(state, timestamp, db_client)
+    new_state = execute_time_based_actions(state, timestamp)
 
     timestamp_ms = div(timestamp, 10_000)
 
@@ -1532,13 +1520,11 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
   end
 
   def handle_control(state, "/emptyCache", _payload, message_id, timestamp) do
-    {:ok, db_client} = Database.connect(realm: state.realm)
-
-    new_state = execute_time_based_actions(state, timestamp, db_client)
+    new_state = execute_time_based_actions(state, timestamp)
 
     with :ok <- send_control_consumer_properties(state),
          {:ok, new_state} <- resend_all_properties(state),
-         :ok <- Queries.set_pending_empty_cache(db_client, new_state.device_id, false) do
+         :ok <- Queries.set_pending_empty_cache(new_state.realm, new_state.device_id, false) do
       MessageTracker.ack_delivery(state.message_tracker, message_id)
 
       :telemetry.execute(
@@ -1909,7 +1895,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
     )
   end
 
-  defp execute_time_based_actions(state, timestamp, db_client) do
+  defp execute_time_based_actions(state, timestamp) do
     if state.connected && state.last_seen_message > 0 do
       # timestamps are handled as microseconds*10, so we need to divide by 10 when saving as a metric for a coherent data
       :telemetry.execute(
@@ -1924,14 +1910,14 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
     |> reload_groups_on_expiry(timestamp)
     |> purge_expired_interfaces(timestamp)
     |> reload_device_triggers_on_expiry(timestamp)
-    |> reload_device_deletion_status_on_expiry(timestamp, db_client)
+    |> reload_device_deletion_status_on_expiry(timestamp)
     |> reload_datastream_maximum_storage_retention_on_expiry(timestamp)
   end
 
-  defp reload_device_deletion_status_on_expiry(state, timestamp, db_client) do
+  defp reload_device_deletion_status_on_expiry(state, timestamp) do
     if state.last_deletion_in_progress_refresh + @deletion_refresh_lifespan_decimicroseconds <=
          timestamp do
-      new_state = maybe_start_device_deletion(db_client, state, timestamp)
+      new_state = maybe_start_device_deletion(state, timestamp)
       %State{new_state | last_deletion_in_progress_refresh: timestamp}
     else
       state
@@ -1965,21 +1951,23 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
     end
   end
 
-  defp maybe_start_device_deletion(db_client, state, timestamp) do
-    if should_start_device_deletion?(state.realm, state.device_id) do
-      encoded_device_id = Device.encode_device_id(state.device_id)
+  defp maybe_start_device_deletion(state, timestamp) do
+    %State{realm: realm, device_id: device_id} = state
 
-      :ok = force_device_deletion_from_broker(state.realm, encoded_device_id)
-      new_state = set_device_disconnected(state, db_client, timestamp)
+    if should_start_device_deletion?(realm, device_id) do
+      encoded_device_id = Device.encode_device_id(device_id)
+
+      :ok = force_device_deletion_from_broker(realm, encoded_device_id)
+      new_state = set_device_disconnected(state, timestamp)
 
       _ =
         Logger.info("Stop handling data from device in deletion, device_id #{encoded_device_id}")
 
       # It's ok to repeat that, as we always write ⊤
       keyspace_name =
-        CQLUtils.realm_name_to_keyspace_name(state.realm, Config.astarte_instance_id!())
+        CQLUtils.realm_name_to_keyspace_name(realm, Config.astarte_instance_id!())
 
-      Queries.ack_start_device_deletion(keyspace_name, state.device_id)
+      Queries.ack_start_device_deletion(keyspace_name, device_id)
 
       %State{new_state | discard_messages: true}
     else
@@ -2252,13 +2240,13 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
     end)
   end
 
-  defp set_device_disconnected(state, db_client, timestamp) do
+  defp set_device_disconnected(state, timestamp) do
     timestamp_ms = div(timestamp, 10_000)
 
     Queries.set_device_disconnected!(
-      db_client,
+      state.realm,
       state.device_id,
-      timestamp_ms,
+      DateTime.from_unix!(timestamp_ms, :microsecond),
       state.total_received_msgs,
       state.total_received_bytes,
       state.interface_exchanged_msgs,
@@ -2297,19 +2285,15 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
     )
   end
 
-  defp ask_clean_session(
-         %State{realm: realm, device_id: device_id} = state,
-         timestamp
-       ) do
+  defp ask_clean_session(state, timestamp) do
     Logger.warning("Disconnecting client and asking clean session.")
+    %State{realm: realm, device_id: device_id} = state
 
     encoded_device_id = Device.encode_device_id(device_id)
 
-    {:ok, db_client} = Database.connect(realm: state.realm)
-
-    with :ok <- Queries.set_pending_empty_cache(db_client, device_id, true),
+    with :ok <- Queries.set_pending_empty_cache(realm, device_id, true),
          :ok <- force_disconnection(realm, encoded_device_id) do
-      new_state = set_device_disconnected(state, db_client, timestamp)
+      new_state = set_device_disconnected(realm, timestamp)
 
       Logger.info("Successfully forced device disconnection.", tag: "forced_device_disconnection")
 

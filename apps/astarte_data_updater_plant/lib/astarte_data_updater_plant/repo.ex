@@ -48,6 +48,15 @@ defmodule Astarte.DataUpdaterPlant.Repo do
     end
   end
 
+  def safe_update_all(queryable, updates, opts \\ []) do
+    try do
+      update_all(queryable, updates, opts)
+    catch
+      error ->
+        handle_xandra_error(error)
+    end
+  end
+
   defp handle_xandra_error(%Xandra.ConnectionError{} = error) do
     _ =
       Logger.warning("Database connection error #{Exception.message(error)}.",
