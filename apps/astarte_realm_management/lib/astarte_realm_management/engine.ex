@@ -510,7 +510,8 @@ defmodule Astarte.RealmManagement.Engine do
          # TODO: these should be batched together
          :ok <-
            install_simple_triggers(realm_name, simple_trigger_maps, trigger_uuid, t_container),
-         :ok <- install_trigger_policy_link(client, trigger_uuid, trigger_policy_name, realm_name) do
+         :ok <-
+           install_trigger_policy_link(realm_name, trigger_uuid, trigger_policy_name) do
       _ =
         Logger.info("Installing trigger.",
           trigger_name: trigger_name,
@@ -701,17 +702,17 @@ defmodule Astarte.RealmManagement.Engine do
     end)
   end
 
-  defp install_trigger_policy_link(_client, _trigger_uuid, nil, _realm_name) do
+  defp install_trigger_policy_link(_realm_name, _trigger_uuid, nil) do
     :ok
   end
 
-  defp install_trigger_policy_link(_client, _trigger_uuid, "", _realm_name) do
+  defp install_trigger_policy_link(_realm_name, _trigger_uuid, "") do
     :ok
   end
 
-  defp install_trigger_policy_link(client, trigger_uuid, trigger_policy_name, realm_name) do
+  defp install_trigger_policy_link(realm_name, trigger_uuid, trigger_policy_name) do
     with :ok <- verify_trigger_policy_exists(realm_name, trigger_policy_name) do
-      Queries.install_trigger_policy_link(client, trigger_uuid, trigger_policy_name)
+      Queries.install_trigger_policy_link(realm_name, trigger_uuid, trigger_policy_name)
     end
   end
 
