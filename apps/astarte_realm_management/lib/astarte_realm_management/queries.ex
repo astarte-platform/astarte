@@ -1031,32 +1031,25 @@ defmodule Astarte.RealmManagement.Queries do
     :ok
   end
 
-  def delete_trigger(client, trigger_name, realm_name) do
+  def delete_trigger(realm_name, trigger_name) do
     with {:ok, trigger_uuid} <- retrieve_trigger_uuid(realm_name, trigger_name) do
-      delete_trigger_by_name_statement =
-        "DELETE FROM kv_store WHERE group='triggers-by-name' AND key=:trigger_name;"
+      keyspace = Realm.keyspace_name(realm_name)
+      trigger_uuid = to_string(trigger_uuid)
 
-      delete_trigger_by_name_query =
-        DatabaseQuery.new()
-        |> DatabaseQuery.statement(delete_trigger_by_name_statement)
-        |> DatabaseQuery.put(:trigger_name, trigger_name)
+      trigger_by_name_query =
+        KvStore
+        |> where(group: "triggers-by-name", key: ^trigger_name)
+        |> put_query_prefix(keyspace)
 
-      delete_trigger_statement =
-        "DELETE FROM kv_store WHERE group='triggers' AND key=:trigger_uuid;"
+      triggers_query =
+        KvStore
+        |> where(group: "triggers", key: ^trigger_uuid)
+        |> put_query_prefix(keyspace)
 
-      delete_trigger_query =
-        DatabaseQuery.new()
-        |> DatabaseQuery.statement(delete_trigger_statement)
-        |> DatabaseQuery.put(:trigger_uuid, trigger_uuid)
+      _ = Repo.delete_all(trigger_by_name_query)
+      _ = Repo.delete_all(triggers_query)
 
-      with {:ok, _result} <- DatabaseQuery.call(client, delete_trigger_query),
-           {:ok, _result} <- DatabaseQuery.call(client, delete_trigger_by_name_query) do
-        :ok
-      else
-        not_ok ->
-          _ = Logger.warning("Database error: #{inspect(not_ok)}.", tag: "db_error")
-          {:error, :cannot_delete_trigger}
-      end
+      :ok
     end
   end
 

@@ -793,7 +793,7 @@ defmodule Astarte.RealmManagement.Engine do
           :ok
 
       if delete_all_simple_triggers_succeeded and delete_policy_link_succeeded do
-        Queries.delete_trigger(client, trigger_name, realm_name)
+        Queries.delete_trigger(realm_name, trigger_name)
       else
         Logger.warning("Failed to delete trigger.",
           trigger_name: trigger_name,
