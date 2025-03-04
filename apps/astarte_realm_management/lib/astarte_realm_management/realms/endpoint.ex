@@ -48,8 +48,8 @@ defmodule Astarte.RealmManagement.Realms.Endpoint do
 
   @primary_key false
   typed_schema "endpoints" do
-    field :interface_id, Astarte.DataAccess.UUID, primary_key: true
-    field :endpoint_id, Astarte.DataAccess.UUID, primary_key: true
+    field :interface_id, Astarte.RealmManagement.UUID, primary_key: true
+    field :endpoint_id, Astarte.RealmManagement.UUID, primary_key: true
     field :allow_unset, :boolean
     field :database_retention_policy, DatabaseRetentionPolicy
     field :database_retention_ttl, :integer

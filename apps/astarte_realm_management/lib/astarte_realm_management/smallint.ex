@@ -15,27 +15,31 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-# SPDX-License-Identifier: Apache-2.0
-#
 
-defmodule Astarte.RealmManagement.Realms.DeletionInProgress do
-  @moduledoc false
+defmodule Astarte.RealmManagement.SmallInt do
+  @moduledoc """
+  Ecto type for Cassandra/Scylla smallints, aka u16.
+  """
+  use Ecto.Type
 
-  use TypedEctoSchema
+  @type t() :: non_neg_integer()
 
-  alias __MODULE__, as: Data
+  @max_smallint 2 ** 16 - 1
 
-  @primary_key false
-  schema "deletion_in_progress" do
-    field :device_id, Astarte.RealmManagement.UUID, primary_key: true
-    field :vmq_ack, :boolean
-    field :dup_start_ack, :boolean
-    field :dup_end_ack, :boolean
-  end
+  @doc false
+  @impl Ecto.Type
+  def type, do: :smallint
 
-  def all_ack?(%Data{} = deletion) do
-    %Data{vmq_ack: vmq, dup_start_ack: dup_start, dup_end_ack: dup_end} = deletion
+  @impl Ecto.Type
+  @spec load(t() | any()) :: {:ok, t()} | :error
+  def load(n) when is_integer(n) and n >= 0 and n <= @max_smallint, do: {:ok, n}
+  def load(_), do: :error
 
-    vmq and dup_start and dup_end
-  end
+  @impl Ecto.Type
+  @spec dump(t() | any()) :: {:ok, t()} | :error
+  def dump(n), do: load(n)
+
+  @impl Ecto.Type
+  @spec cast(t() | any()) :: {:ok, t()} | :error
+  def cast(n), do: load(n)
 end

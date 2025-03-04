@@ -19,7 +19,7 @@
 defmodule Astarte.RealmManagement.Realms.Device do
   use TypedEctoSchema
 
-  @primary_key {:device_id, Astarte.DataAccess.UUID, autogenerate: false}
+  @primary_key {:device_id, Astarte.RealmManagement.UUID, autogenerate: false}
   typed_schema "devices" do
     field :aliases, Exandra.Map, key: :string, value: :string
     field :attributes, Exandra.Map, key: :string, value: :string
@@ -40,7 +40,7 @@ defmodule Astarte.RealmManagement.Realms.Device do
 
     field :first_credentials_request, :utc_datetime_usec
     field :first_registration, :utc_datetime_usec
-    field :groups, Exandra.Map, key: :string, value: Astarte.DataAccess.UUID
+    field :groups, Exandra.Map, key: :string, value: Astarte.RealmManagement.UUID
     field :inhibit_credentials_request, :boolean
     field :introspection, Exandra.Map, key: :string, value: :integer
     field :introspection_minor, Exandra.Map, key: :string, value: :integer
