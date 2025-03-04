@@ -53,6 +53,16 @@ defmodule Astarte.RealmManagement.Astarte.KvStore do
           Keyword.t()
         ) :: :ok | {:error, Exception.t()}
   def insert(kv_store_map, opts \\ []) do
+    {keyspace, opts} = Keyword.pop!(opts, :prefix)
+
+    {sql, params} = insert_sql(kv_store_map, keyspace)
+
+    with {:ok, _} <- Repo.query(sql, params, opts) do
+      :ok
+    end
+  end
+
+  def insert_sql(kv_store_map, keyspace) do
     %{
       group: group,
       key: key,
@@ -69,8 +79,6 @@ defmodule Astarte.RealmManagement.Astarte.KvStore do
         :string -> "varcharAsBlob(?)"
       end
 
-    {keyspace, opts} = Keyword.pop!(opts, :prefix)
-
     sql =
       """
         INSERT INTO #{keyspace}.#{@source} (group, key, value)
@@ -79,9 +87,7 @@ defmodule Astarte.RealmManagement.Astarte.KvStore do
 
     params = [group, key, value]
 
-    with {:ok, _} <- Repo.query(sql, params, opts) do
-      :ok
-    end
+    {sql, params}
   end
 
   @spec fetch_value(String.t(), String.t(), value_type(), Keyword.t()) ::
