@@ -30,53 +30,16 @@ defmodule Astarte.Pairing.Queries do
   require Logger
   import Ecto.Query
 
-  @keyspace_does_not_exist_regex ~r/Keyspace (.*) does not exist/
-
   def get_agent_public_key_pems(realm_name) do
     keyspace = CQLUtils.realm_name_to_keyspace_name(realm_name, Config.astarte_instance_id!())
 
-    try do
-      with {:ok, pem} <-
-             KvStore.fetch_value("auth", "jwt_public_key_pem", :string,
-               prefix: keyspace,
-               consistency: :quorum,
-               error: :public_key_not_found
-             ) do
-        {:ok, [pem]}
-      end
-    rescue
-      err -> handle_xandra_error(err)
-    end
-  end
-
-  defp handle_xandra_error(%Xandra.ConnectionError{} = error) do
-    _ =
-      Logger.warning("Database connection error #{Exception.message(error)}.",
-        tag: "database_connection_error"
-      )
-
-    {:error, :database_connection_error}
-  end
-
-  defp handle_xandra_error(%Xandra.Error{} = error) do
-    %Xandra.Error{message: message} = error
-
-    case Regex.run(@keyspace_does_not_exist_regex, message) do
-      [_message, keyspace] ->
-        Logger.warning("Keyspace #{keyspace} does not exist.",
-          tag: "realm_not_found"
-        )
-
-        {:error, :realm_not_found}
-
-      nil ->
-        _ =
-          Logger.warning(
-            "Database error: #{Exception.message(error)}.",
-            tag: "database_error"
-          )
-
-        {:error, :database_error}
+    with {:ok, pem} <-
+           KvStore.fetch_value("auth", "jwt_public_key_pem", :string,
+             prefix: keyspace,
+             consistency: :quorum,
+             error: :public_key_not_found
+           ) do
+      {:ok, [pem]}
     end
   end
 
@@ -155,15 +118,11 @@ defmodule Astarte.Pairing.Queries do
     keyspace_name =
       CQLUtils.realm_name_to_keyspace_name(realm_name, Config.astarte_instance_id!())
 
-    try do
-      Repo.fetch(Device, device_id,
-        prefix: keyspace_name,
-        consistency: :quorum,
-        error: :device_not_found
-      )
-    rescue
-      err -> handle_xandra_error(err)
-    end
+    Repo.fetch(Device, device_id,
+      prefix: keyspace_name,
+      consistency: :quorum,
+      error: :device_not_found
+    )
   end
 
   def update_device_after_credentials_request(realm_name, device, cert_data, device_ip, nil) do
@@ -201,25 +160,21 @@ defmodule Astarte.Pairing.Queries do
   def fetch_device_registration_limit(realm_name) do
     keyspace = CQLUtils.realm_name_to_keyspace_name("astarte", Config.astarte_instance_id!())
 
-    try do
-      case Repo.fetch(Realm, realm_name,
-             prefix: keyspace,
-             consistency: :one,
-             error: :realm_not_found
-           ) do
-        {:ok, realm} ->
-          {:ok, realm.device_registration_limit}
+    case Repo.fetch(Realm, realm_name,
+           prefix: keyspace,
+           consistency: :one,
+           error: :realm_not_found
+         ) do
+      {:ok, realm} ->
+        {:ok, realm.device_registration_limit}
 
-        {:error, :realm_not_found} ->
-          Logger.warning(
-            "cannot fetch device registration limit: realm #{realm_name} not found",
-            tag: "realm_not_found"
-          )
+      {:error, :realm_not_found} ->
+        Logger.warning(
+          "cannot fetch device registration limit: realm #{realm_name} not found",
+          tag: "realm_not_found"
+        )
 
-          {:error, :realm_not_found}
-      end
-    rescue
-      err -> handle_xandra_error(err)
+        {:error, :realm_not_found}
     end
   end
 
@@ -227,16 +182,12 @@ defmodule Astarte.Pairing.Queries do
     keyspace =
       CQLUtils.realm_name_to_keyspace_name(realm_name, Config.astarte_instance_id!())
 
-    try do
-      count =
-        Device
-        |> select([d], count())
-        |> Repo.one!(prefix: keyspace, consistency: :one)
+    count =
+      Device
+      |> select([d], count())
+      |> Repo.one!(prefix: keyspace, consistency: :one)
 
-      {:ok, count}
-    rescue
-      err -> handle_xandra_error(err)
-    end
+    {:ok, count}
   end
 
   defp do_register_device(

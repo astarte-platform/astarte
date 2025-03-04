@@ -127,23 +127,9 @@ defmodule Astarte.Pairing.RPC.HandlerTest do
         %Call{call: {:get_agent_public_key_pems, %GetAgentPublicKeyPEMs{realm: "invalid"}}}
         |> Call.encode()
 
-      {:ok, reply} = Handler.handle_rpc(encoded)
-
-      expected_err_reply = %Reply{
-        error: true,
-        reply:
-          {:generic_error_reply,
-           %GenericErrorReply{
-             error_name: "realm_not_found",
-             error_data: nil,
-             user_readable_error_name: nil,
-             user_readable_message: nil,
-             user_readable_message: nil
-           }},
-        version: 0
-      }
-
-      assert Reply.decode(reply) == expected_err_reply
+      assert_raise Xandra.Error, "Keyspace invalid does not exist", fn ->
+        Handler.handle_rpc(encoded)
+      end
     end
 
     test "successful call" do
@@ -183,23 +169,9 @@ defmodule Astarte.Pairing.RPC.HandlerTest do
         %Call{call: {:get_info, %GetInfo{realm: "invalid", hw_id: hw_id, secret: secret}}}
         |> Call.encode()
 
-      {:ok, reply} = Handler.handle_rpc(encoded)
-
-      expected_err_reply = %Reply{
-        error: true,
-        reply:
-          {:generic_error_reply,
-           %GenericErrorReply{
-             error_name: "realm_not_found",
-             error_data: nil,
-             user_readable_error_name: nil,
-             user_readable_message: nil,
-             user_readable_message: nil
-           }},
-        version: 0
-      }
-
-      assert Reply.decode(reply) == expected_err_reply
+      assert_raise Xandra.Error, "Keyspace invalid does not exist", fn ->
+        Handler.handle_rpc(encoded)
+      end
     end
 
     test "successful call with pending device", %{hw_id: hw_id, secret: secret} do
