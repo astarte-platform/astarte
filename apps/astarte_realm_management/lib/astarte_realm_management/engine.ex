@@ -65,8 +65,7 @@ defmodule Astarte.RealmManagement.Engine do
   def install_interface(realm_name, interface_json, opts \\ []) do
     _ = Logger.info("Going to install a new interface.", tag: "install_interface")
 
-    with {:ok, client} <- Database.connect(realm: realm_name),
-         {:ok, json_obj} <- Jason.decode(interface_json),
+    with {:ok, json_obj} <- Jason.decode(interface_json),
          interface_changeset <- InterfaceDocument.changeset(%InterfaceDocument{}, json_obj),
          {:ok, interface_doc} <- Ecto.Changeset.apply_action(interface_changeset, :insert),
          :ok <- verify_mappings_max_storage_retention(realm_name, interface_doc),
@@ -85,11 +84,11 @@ defmodule Astarte.RealmManagement.Engine do
 
       if opts[:async] do
         # TODO: add _ = Logger.metadata(realm: realm_name)
-        Task.start(Queries, :install_new_interface, [client, realm_name, interface_doc, automaton])
+        Task.start(Queries, :install_new_interface, [realm_name, interface_doc, automaton])
 
         {:ok, :started}
       else
-        Queries.install_new_interface(client, realm_name, interface_doc, automaton)
+        Queries.install_new_interface(realm_name, interface_doc, automaton)
       end
     else
       {:error, {:invalid, _invalid_str, _invalid_pos}} ->
@@ -131,8 +130,7 @@ defmodule Astarte.RealmManagement.Engine do
   def update_interface(realm_name, interface_json, opts \\ []) do
     _ = Logger.info("Going to perform interface update.", tag: "update_interface")
 
-    with {:ok, client} <- Database.connect(realm: realm_name),
-         {:ok, json_obj} <- Jason.decode(interface_json),
+    with {:ok, json_obj} <- Jason.decode(interface_json),
          interface_changeset <- InterfaceDocument.changeset(%InterfaceDocument{}, json_obj),
          {:ok, interface_doc} <- Ecto.Changeset.apply_action(interface_changeset, :insert),
          %InterfaceDocument{description: description, doc: doc} <- interface_doc,
@@ -154,7 +152,7 @@ defmodule Astarte.RealmManagement.Engine do
       if opts[:async] do
         # TODO: add _ = Logger.metadata(realm: realm_name)
         Task.start_link(__MODULE__, :execute_interface_update, [
-          client,
+          realm_name,
           interface_update,
           mapping_updates,
           automaton,
@@ -165,7 +163,6 @@ defmodule Astarte.RealmManagement.Engine do
         {:ok, :started}
       else
         execute_interface_update(
-          client,
           realm_name,
           interface_update,
           mapping_updates,
@@ -221,7 +218,6 @@ defmodule Astarte.RealmManagement.Engine do
   end
 
   def execute_interface_update(
-        client,
         realm_name,
         interface_descriptor,
         %MappingUpdates{} = mapping_updates,
@@ -242,7 +238,7 @@ defmodule Astarte.RealmManagement.Engine do
     %MappingUpdates{new: new_mappings, updated: updated_mappings} = mapping_updates
     all_changed_mappings = new_mappings ++ updated_mappings
 
-    with :ok <- Queries.update_interface_storage(client, interface_descriptor, new_mappings) do
+    with :ok <- Queries.update_interface_storage(realm_name, interface_descriptor, new_mappings) do
       Queries.update_interface(
         realm_name,
         interface_descriptor,
