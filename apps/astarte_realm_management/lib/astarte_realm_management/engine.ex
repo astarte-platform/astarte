@@ -789,7 +789,8 @@ defmodule Astarte.RealmManagement.Engine do
         end)
 
       delete_policy_link_succeeded =
-        Queries.delete_trigger_policy_link(client, trigger.trigger_uuid, trigger.policy) == :ok
+        Queries.delete_trigger_policy_link(realm_name, trigger.trigger_uuid, trigger.policy) ==
+          :ok
 
       if delete_all_simple_triggers_succeeded and delete_policy_link_succeeded do
         Queries.delete_trigger(client, trigger_name, realm_name)
