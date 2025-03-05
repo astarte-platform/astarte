@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2017 Ispirata Srl
+# Copyright 2017 - 2025 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -16,12 +16,12 @@
 # limitations under the License.
 
 defmodule Astarte.AppEngine.API.Queries do
-  alias CQEx.Query, as: DatabaseQuery
-  alias CQEx.Result, as: DatabaseResult
-  alias Astarte.AppEngine.API.Config
-  alias Astarte.Core.CQLUtils
+  alias Astarte.AppEngine.API.KvStore
+  alias Astarte.AppEngine.API.Realm
+  alias Astarte.AppEngine.API.Repo
 
   require Logger
+  import Ecto.Query
 
   @keyspace_does_not_exist_regex ~r/Keyspace (.*) does not exist/
 
@@ -31,10 +31,9 @@ defmodule Astarte.AppEngine.API.Queries do
         {:ok, pem}
 
       {:error, %Xandra.ConnectionError{} = err} ->
-        _ =
-          Logger.warning("Database connection error #{Exception.message(err)}.",
-            tag: "database_connection_error"
-          )
+        Logger.warning("Database connection error #{Exception.message(err)}.",
+          tag: "database_connection_error"
+        )
 
         {:error, :database_connection_error}
 
@@ -88,46 +87,43 @@ defmodule Astarte.AppEngine.API.Queries do
     end
   end
 
-  def check_astarte_health(client, consistency) do
-    schema_statement = """
-      SELECT count(value)
-      FROM #{CQLUtils.realm_name_to_keyspace_name("astarte", Config.astarte_instance_id!())}.kv_store
-      WHERE group='astarte' AND key='schema_version'
-    """
-
-    # no-op, just to check if nodes respond
-    # no realm name can contain '_', '^'
-    realms_statement = """
-      SELECT *
-      FROM #{CQLUtils.realm_name_to_keyspace_name("astarte", Config.astarte_instance_id!())}.realms
-      WHERE realm_name='_invalid^name_'
-    """
-
+  def check_astarte_health(astarte_keyspace, consistency) do
     schema_query =
-      DatabaseQuery.new()
-      |> DatabaseQuery.statement(schema_statement)
-      |> DatabaseQuery.consistency(consistency)
+      from kv in KvStore,
+        prefix: ^astarte_keyspace,
+        where: kv.group == "astarte" and kv.key == "schema_version",
+        select: count(kv.value)
 
-    realms_query =
-      DatabaseQuery.new()
-      |> DatabaseQuery.statement(realms_statement)
-      |> DatabaseQuery.consistency(consistency)
+    realm_query =
+      from Realm,
+        prefix: ^astarte_keyspace,
+        where: [realm_name: "_invalid^name_"]
 
-    with {:ok, result} <- DatabaseQuery.call(client, schema_query),
-         ["system.count(value)": _count] <- DatabaseResult.head(result),
-         {:ok, _result} <- DatabaseQuery.call(client, realms_query) do
+    opts = [consistency: consistency]
+
+    with {:ok, _result} <- safe_query(schema_query, opts),
+         {:ok, _result} <- safe_query(realm_query, opts) do
       :ok
     else
-      %{acc: _, msg: err_msg} ->
-        _ = Logger.warning("Health is not good: #{err_msg}.", tag: "db_health_check_bad")
+      err -> err
+    end
+  end
 
-        {:error, :health_check_bad}
+  defp safe_query(ecto_query, opts) do
+    {sql, params} = Repo.to_sql(:all, ecto_query)
 
-      {:error, err} ->
-        _ =
-          Logger.warning("Health is not good, reason: #{inspect(err)}.",
-            tag: "db_health_check_bad"
-          )
+    # Equivalent to a `Repo.all`, but does not raise if we get a Xandra Error.
+    case Repo.query(sql, params, opts) do
+      {:ok, result} ->
+        {:ok, result}
+
+      {:error, %Xandra.ConnectionError{}} ->
+        {:error, :database_connection_error}
+
+      {:error, %Xandra.Error{} = err} ->
+        Logger.warning("Health is not good: #{Exception.message(err)}",
+          tag: "db_health_check_bad"
+        )
 
         {:error, :health_check_bad}
     end
