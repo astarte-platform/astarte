@@ -500,19 +500,19 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
            maybe_handle_cache_miss(maybe_descriptor, interface, new_state),
          :ok <- can_write_on_interface?(interface_descriptor),
          interface_id <- interface_descriptor.interface_id,
-         {:ok, endpoint} <- resolve_path(path, interface_descriptor, new_state.mappings),
-         endpoint_id <- endpoint.endpoint_id,
-         db_retention_policy = endpoint.database_retention_policy,
-         db_ttl = endpoint.database_retention_ttl,
+         {:ok, mapping} <- resolve_path(path, interface_descriptor, new_state.mappings),
+         endpoint_id <- mapping.endpoint_id,
+         db_retention_policy = mapping.database_retention_policy,
+         db_ttl = mapping.database_retention_ttl,
          {value, value_timestamp, _metadata} <-
            PayloadsDecoder.decode_bson_payload(payload, timestamp),
          expected_types <-
-           extract_expected_types(path, interface_descriptor, endpoint, new_state.mappings),
+           extract_expected_types(path, interface_descriptor, mapping, new_state.mappings),
          :ok <- validate_value_type(expected_types, value) do
       device_id_string = Device.encode_device_id(new_state.device_id)
 
       maybe_explicit_value_timestamp =
-        if endpoint.explicit_timestamp do
+        if mapping.explicit_timestamp do
           value_timestamp
         else
           div(timestamp, 10000)
@@ -540,7 +540,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
                  new_state.realm,
                  new_state.device_id,
                  interface_descriptor,
-                 endpoint,
+                 mapping,
                  path
                ) do
           property_value
@@ -597,7 +597,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
                   new_state.realm,
                   new_state.device_id,
                   interface_descriptor,
-                  endpoint,
+                  mapping,
                   path
                 ),
                 db_max_ttl
@@ -609,7 +609,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
                   db_client,
                   new_state.device_id,
                   interface_descriptor,
-                  endpoint,
+                  mapping,
                   path,
                   maybe_explicit_value_timestamp,
                   timestamp,
@@ -655,7 +655,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
           new_state.realm,
           new_state.device_id,
           interface_descriptor,
-          endpoint,
+          mapping,
           path,
           value,
           maybe_explicit_value_timestamp,
@@ -1332,7 +1332,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
             :ok =
               if interface_major == 0 do
                 Queries.unregister_device_with_interface(
-                  db_client,
+                  realm,
                   state.device_id,
                   interface_name,
                   0
@@ -2159,17 +2159,15 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
     {:ok, paths_set} =
       PayloadsDecoder.parse_device_properties_payload(decoded_payload, state.introspection)
 
-    {:ok, db_client} = Database.connect(realm: state.realm)
-
     Enum.each(state.introspection, fn {interface, _} ->
       # TODO: check result here
-      prune_interface(state, db_client, interface, paths_set, timestamp)
+      prune_interface(state, interface, paths_set, timestamp)
     end)
 
     :ok
   end
 
-  defp prune_interface(state, db_client, interface, all_paths_set, timestamp) do
+  defp prune_interface(state, interface, all_paths_set, timestamp) do
     with {:ok, interface_descriptor, new_state} <-
            maybe_handle_cache_miss(
              Map.get(state.interfaces, interface),
@@ -2186,14 +2184,14 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
           {:error, :maybe_outdated_introspection}
 
         true ->
-          do_prune(new_state, db_client, interface_descriptor, all_paths_set, timestamp)
+          do_prune(new_state, interface_descriptor, all_paths_set, timestamp)
           # TODO: nobody uses new_state
           {:ok, new_state}
       end
     end
   end
 
-  defp do_prune(state, db, interface_descriptor, all_paths_set, timestamp) do
+  defp do_prune(state, interface_descriptor, all_paths_set, timestamp) do
     each_interface_mapping(state.mappings, interface_descriptor, fn mapping ->
       endpoint_id = mapping.endpoint_id
 
@@ -2210,7 +2208,13 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
           {:ok, endpoint_id} =
             EndpointsAutomaton.resolve_path(path, interface_descriptor.automaton)
 
-          Queries.delete_property_from_db(state, db, interface_descriptor, endpoint_id, path)
+          Queries.delete_property_from_db(
+            state.realm,
+            state.device_id,
+            interface_descriptor,
+            endpoint_id,
+            path
+          )
 
           interface_id = interface_descriptor.interface_id
 
