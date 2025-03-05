@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2022 SECO Mind Srl
+# Copyright 2022-2025 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -17,37 +17,35 @@
 #
 
 defmodule Astarte.AppEngine.API.Rooms.Queries do
-  alias CQEx.Query, as: DatabaseQuery
-  alias CQEx.Result, as: DatabaseResult
-  require CQEx
+  alias Astarte.AppEngine.API.Devices.Device, as: DatabaseDevice
+  alias Astarte.Core.Device
+  alias Astarte.AppEngine.API.Realm
+  alias Astarte.AppEngine.API.Repo
+
   require Logger
 
-  def check_device_exists(client, device_id) do
-    device_statement = """
-    SELECT device_id
-    FROM devices
-    WHERE device_id=:device_id
-    """
+  def verify_device_exists(realm_name, encoded_device_id) do
+    with {:ok, decoded_device_id} <- Device.decode_device_id(encoded_device_id) do
+      keyspace = Realm.keyspace_name(realm_name)
 
-    device_query =
-      DatabaseQuery.new()
-      |> DatabaseQuery.statement(device_statement)
-      |> DatabaseQuery.put(:device_id, device_id)
+      result =
+        Repo.fetch(DatabaseDevice, decoded_device_id,
+          error: :device_does_not_exist,
+          prefix: keyspace
+        )
 
-    with {:ok, result} <- DatabaseQuery.call(client, device_query),
-         device_row when is_list(device_row) <- DatabaseResult.head(result) do
-      {:ok, true}
-    else
-      :empty_dataset ->
-        {:ok, false}
+      case result do
+        {:ok, _device} ->
+          :ok
 
-      %{acc: _, msg: error_message} ->
-        _ = Logger.warning("Database error: #{error_message}.", tag: "db_error")
-        {:error, :database_error}
+        {:error, reason} ->
+          Logger.warning(
+            "Device #{encoded_device_id} in realm #{realm_name} does not exist.",
+            tag: "device_does_not_exist"
+          )
 
-      {:error, reason} ->
-        _ = Logger.warning("Database error, reason: #{inspect(reason)}.", tag: "db_error")
-        {:error, :database_error}
+          {:error, reason}
+      end
     end
   end
 end

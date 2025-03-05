@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2019 Ispirata Srl
+# Copyright 2019-2025 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -17,28 +17,26 @@
 #
 
 defmodule Astarte.AppEngine.API.Health do
+  alias Astarte.AppEngine.API.Realm
   alias Astarte.AppEngine.API.Queries
-  alias Astarte.DataAccess.Database
+
+  require Logger
 
   def get_health do
-    with {:ok, client} <- Database.connect(),
-         :ok <- Queries.check_astarte_health(client, :quorum) do
-      :ok
-    else
-      {:error, :health_check_bad} ->
-        with {:ok, client} <- Database.connect(),
-             :ok <- Queries.check_astarte_health(client, :one) do
-          {:error, :degraded_health}
-        else
-          {:error, :health_check_bad} ->
-            {:error, :bad_health}
+    astarte_keyspace = Realm.keyspace_name("astarte")
 
-          {:error, :database_connection_error} ->
-            {:error, :bad_health}
-        end
+    case Queries.check_astarte_health(astarte_keyspace, :quorum) do
+      :ok ->
+        :ok
 
       {:error, :database_connection_error} ->
         {:error, :bad_health}
+
+      {:error, :health_check_bad} ->
+        case Queries.check_astarte_health(astarte_keyspace, :one) do
+          :ok -> {:error, :degraded_health}
+          _error -> {:error, :bad_health}
+        end
     end
   end
 end
