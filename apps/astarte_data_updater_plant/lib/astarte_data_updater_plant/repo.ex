@@ -48,6 +48,15 @@ defmodule Astarte.DataUpdaterPlant.Repo do
     end
   end
 
+  def safe_insert_all(source, entries, opts \\ []) do
+    try do
+      {:ok, insert_all(source, entries, opts)}
+    catch
+      error ->
+        handle_xandra_error(error)
+    end
+  end
+
   def safe_update_all(queryable, updates, opts \\ []) do
     try do
       {:ok, update_all(queryable, updates, opts)}
