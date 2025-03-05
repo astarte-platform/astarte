@@ -802,25 +802,10 @@ defmodule Astarte.RealmManagement.Engine do
     end
   end
 
-  defp get_database_client(realm_name) do
-    keyspace_name =
-      CQLUtils.realm_name_to_keyspace_name(realm_name, Config.astarte_instance_id!())
-
-    cqex_options =
-      Config.cqex_options!()
-      |> Keyword.put(:keyspace, keyspace_name)
-
-    DatabaseClient.new(
-      Config.cassandra_node!(),
-      cqex_options
-    )
-  end
-
   def install_trigger_policy(realm_name, policy_json, opts \\ []) do
     _ = Logger.info("Going to install a new trigger policy.", tag: "install_trigger_policy")
 
-    with {:ok, client} <- connect_to_db_with_realm(realm_name),
-         {:ok, json_obj} <- decode_policy(policy_json),
+    with {:ok, json_obj} <- decode_policy(policy_json),
          policy_changeset = Policy.changeset(%Policy{}, json_obj),
          {:ok, %Policy{name: policy_name} = policy} <- validate_trigger_policy(policy_changeset),
          :ok <- verify_trigger_policy_not_exists(realm_name, policy_name) do
@@ -836,11 +821,11 @@ defmodule Astarte.RealmManagement.Engine do
         |> PolicyProto.encode()
 
       if opts[:async] do
-        Task.start(Queries, :install_new_trigger_policy, [client, policy_name, policy_proto])
+        Task.start(Queries, :install_new_trigger_policy, [realm_name, policy_name, policy_proto])
 
         {:ok, :started}
       else
-        Queries.install_new_trigger_policy(client, policy_name, policy_proto)
+        Queries.install_new_trigger_policy(realm_name, policy_name, policy_proto)
       end
     end
   end
