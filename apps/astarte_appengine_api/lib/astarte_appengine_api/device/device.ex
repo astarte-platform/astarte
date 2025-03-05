@@ -1562,7 +1562,6 @@ defmodule Astarte.AppEngine.API.Device do
 
   defp timestamp_column(explicit_timestamp?) do
     case explicit_timestamp? do
-      nil -> :reception_timestamp
       false -> :reception_timestamp
       true -> :value_timestamp
     end

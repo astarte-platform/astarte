@@ -116,12 +116,18 @@ defmodule Astarte.AppEngine.API.Device.Queries do
   end
 
   def do_interface_has_explicit_timestamp?(keyspace, interface_id) do
-    from(d in DatabaseEndpoint,
-      where: [interface_id: ^interface_id],
-      select: d.explicit_timestamp,
-      limit: 1
-    )
-    |> Repo.one!(prefix: keyspace)
+    interface_explicit_timestamp =
+      from(d in DatabaseEndpoint,
+        where: [interface_id: ^interface_id],
+        select: d.explicit_timestamp,
+        limit: 1
+      )
+      |> Repo.one!(prefix: keyspace)
+
+    # ensure boolean value
+    with nil <- interface_explicit_timestamp do
+      false
+    end
   end
 
   def fetch_datastream_maximum_storage_retention(realm_name) do
