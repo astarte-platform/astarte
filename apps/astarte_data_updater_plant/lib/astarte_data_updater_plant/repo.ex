@@ -50,7 +50,7 @@ defmodule Astarte.DataUpdaterPlant.Repo do
 
   def safe_update_all(queryable, updates, opts \\ []) do
     try do
-      update_all(queryable, updates, opts)
+      {:ok, update_all(queryable, updates, opts)}
     catch
       error ->
         handle_xandra_error(error)
@@ -59,7 +59,7 @@ defmodule Astarte.DataUpdaterPlant.Repo do
 
   def safe_delete_all(queryable, opts \\ []) do
     try do
-      delete_all(queryable, opts)
+      {:ok, delete_all(queryable, opts)}
     catch
       error ->
         handle_xandra_error(error)
