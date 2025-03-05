@@ -209,12 +209,6 @@ defmodule Astarte.Pairing.API.RPC.Pairing do
   end
 
   defp extract_reply({:generic_error_reply, %GenericErrorReply{error_name: "device_not_found"}}) do
-    {:error, :forbidden}
-  end
-
-  defp extract_reply(
-         {:generic_error_reply, %GenericErrorReply{error_name: "device_not_registered"}}
-       ) do
     {:error, :device_not_found}
   end
 

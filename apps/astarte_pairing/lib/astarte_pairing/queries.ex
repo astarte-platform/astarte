@@ -21,8 +21,6 @@ defmodule Astarte.Pairing.Queries do
   This module is responsible for the interaction with the database.
   """
 
-  alias CQEx.Client
-  alias CQEx.Query
   alias Astarte.Core.CQLUtils
   alias Astarte.Pairing.Config
   alias Astarte.Pairing.Astarte.Realm
@@ -32,7 +30,6 @@ defmodule Astarte.Pairing.Queries do
   require Logger
   import Ecto.Query
 
-  @protocol_revision 1
   @keyspace_does_not_exist_regex ~r/Keyspace (.*) does not exist/
 
   def get_agent_public_key_pems(realm_name) do
@@ -104,9 +101,8 @@ defmodule Astarte.Pairing.Queries do
 
           do_register_unconfirmed_device(
             realm_name,
-            device_id,
+            device,
             credentials_secret,
-            device.first_registration,
             opts
           )
         else
@@ -123,14 +119,10 @@ defmodule Astarte.Pairing.Queries do
   end
 
   def unregister_device(realm_name, device_id) do
-    with :ok <- verify_already_registered_device(realm_name, device_id),
-         :ok <- do_unregister_device(realm_name, device_id) do
+    with {:ok, device} <- fetch_device(realm_name, device_id),
+         {:ok, _device} <- do_unregister_device(realm_name, device) do
       :ok
     else
-      %{acc: _acc, msg: msg} ->
-        Logger.warning("DB error: #{inspect(msg)}")
-        {:error, :database_error}
-
       {:error, reason} ->
         Logger.warning("Unregister error: #{inspect(reason)}")
         {:error, reason}
@@ -147,44 +139,16 @@ defmodule Astarte.Pairing.Queries do
     end
   end
 
-  defp verify_already_registered_device(realm_name, device_id) do
-    case fetch_device(realm_name, device_id) do
-      {:ok, _device} -> :ok
-      {:error, :device_not_found} -> {:error, :device_not_registered}
-      {:error, reason} -> {:error, reason}
-    end
-  end
-
-  defp do_unregister_device(realm_name, device_id) do
-    statement = """
-    INSERT INTO devices
-    (device_id, first_credentials_request, credentials_secret)
-    VALUES (:device_id, :first_credentials_request, :credentials_secret)
-    """
-
-    query =
-      Query.new()
-      |> Query.statement(statement)
-      |> Query.put(:device_id, device_id)
-      |> Query.put(:first_credentials_request, nil)
-      |> Query.put(:credentials_secret, nil)
-      |> Query.consistency(:quorum)
-
+  defp do_unregister_device(realm_name, %Device{} = device) do
     keyspace_name =
       CQLUtils.realm_name_to_keyspace_name(realm_name, Config.astarte_instance_id!())
 
-    cqex_options =
-      Config.cqex_options!()
-      |> Keyword.put(:keyspace, keyspace_name)
-
-    with {:ok, client} <-
-           CQEx.Client.new(
-             Config.cassandra_node!(),
-             cqex_options
-           ),
-         {:ok, _res} <- Query.call(client, query) do
-      :ok
-    end
+    device
+    |> Ecto.Changeset.change(
+      first_credentials_request: nil,
+      credentials_secret: nil
+    )
+    |> Repo.update(prefix: keyspace_name, consistency: :quorum)
   end
 
   def fetch_device(realm_name, device_id) do
@@ -202,12 +166,12 @@ defmodule Astarte.Pairing.Queries do
     end
   end
 
-  def update_device_after_credentials_request(client, device_id, cert_data, device_ip, nil) do
+  def update_device_after_credentials_request(realm_name, device, cert_data, device_ip, nil) do
     first_credentials_request_timestamp = DateTime.utc_now()
 
     update_device_after_credentials_request(
-      client,
-      device_id,
+      realm_name,
+      device,
       cert_data,
       device_ip,
       first_credentials_request_timestamp
@@ -215,41 +179,23 @@ defmodule Astarte.Pairing.Queries do
   end
 
   def update_device_after_credentials_request(
-        client,
-        device_id,
+        realm_name,
+        %Device{} = device,
         %{serial: serial, aki: aki} = _cert_data,
         device_ip,
         %DateTime{} = first_credentials_request_timestamp
       ) do
-    statement = """
-    UPDATE devices
-    SET cert_aki=:cert_aki, cert_serial=:cert_serial, last_credentials_request_ip=:last_credentials_request_ip,
-    first_credentials_request=:first_credentials_request
-    WHERE device_id=:device_id
-    """
+    keyspace_name =
+      CQLUtils.realm_name_to_keyspace_name(realm_name, Config.astarte_instance_id!())
 
-    query =
-      Query.new()
-      |> Query.statement(statement)
-      |> Query.put(:device_id, device_id)
-      |> Query.put(:cert_aki, aki)
-      |> Query.put(:cert_serial, serial)
-      |> Query.put(:last_credentials_request_ip, device_ip)
-      |> Query.put(
-        :first_credentials_request,
-        first_credentials_request_timestamp |> DateTime.to_unix(:millisecond)
-      )
-      |> Query.put(:protocol_revision, @protocol_revision)
-      |> Query.consistency(:quorum)
-
-    case Query.call(client, query) do
-      {:ok, _res} ->
-        :ok
-
-      error ->
-        Logger.warning("DB error: #{inspect(error)}")
-        {:error, :database_error}
-    end
+    device
+    |> Ecto.Changeset.change(%{
+      cert_aki: aki,
+      cert_serial: serial,
+      last_credentials_request_ip: device_ip,
+      first_credentials_request: first_credentials_request_timestamp
+    })
+    |> Repo.update(prefix: keyspace_name, consistency: :quorum)
   end
 
   def fetch_device_registration_limit(realm_name) do
@@ -300,113 +246,52 @@ defmodule Astarte.Pairing.Queries do
          %DateTime{} = registration_timestamp,
          opts
        ) do
-    statement = """
-    INSERT INTO devices
-    (device_id, first_registration, credentials_secret, inhibit_credentials_request,
-    protocol_revision, total_received_bytes, total_received_msgs, introspection,
-    introspection_minor)
-    VALUES
-    (:device_id, :first_registration, :credentials_secret, :inhibit_credentials_request,
-    :protocol_revision, :total_received_bytes, :total_received_msgs, :introspection,
-    :introspection_minor)
-    """
-
     {introspection, introspection_minor} =
       opts
       |> Keyword.get(:initial_introspection, [])
       |> build_initial_introspection_maps()
 
-    query =
-      Query.new()
-      |> Query.statement(statement)
-      |> Query.put(:device_id, device_id)
-      |> Query.put(:first_registration, registration_timestamp |> DateTime.to_unix(:millisecond))
-      |> Query.put(:credentials_secret, credentials_secret)
-      |> Query.put(:inhibit_credentials_request, false)
-      |> Query.put(:protocol_revision, 0)
-      |> Query.put(:total_received_bytes, 0)
-      |> Query.put(:total_received_msgs, 0)
-      |> Query.put(:introspection, introspection)
-      |> Query.put(:introspection_minor, introspection_minor)
-      |> Query.consistency(:quorum)
-
     keyspace_name =
       CQLUtils.realm_name_to_keyspace_name(realm_name, Config.astarte_instance_id!())
 
-    cqex_options =
-      Config.cqex_options!()
-      |> Keyword.put(:keyspace, keyspace_name)
-
-    with {:ok, client} <-
-           Client.new(
-             Config.cassandra_node!(),
-             cqex_options
-           ),
-         {:ok, _res} <- Query.call(client, query) do
-      :ok
-    else
-      error ->
-        Logger.warning("DB error: #{inspect(error)}")
-        {:error, :database_error}
-    end
+    %Device{}
+    |> Ecto.Changeset.change(%{
+      device_id: device_id,
+      first_registration: registration_timestamp,
+      credentials_secret: credentials_secret,
+      inhibit_credentials_request: false,
+      protocol_revision: 0,
+      total_received_bytes: 0,
+      total_received_msgs: 0,
+      introspection: introspection,
+      introspection_minor: introspection_minor
+    })
+    |> Repo.insert(prefix: keyspace_name, consistency: :quorum)
   end
 
   defp do_register_unconfirmed_device(
          realm_name,
-         device_id,
+         %Device{} = device,
          credentials_secret,
-         %DateTime{} = registration_timestamp,
          opts
        ) do
-    statement = """
-    UPDATE devices
-    SET
-      first_registration = :first_registration,
-      credentials_secret = :credentials_secret,
-      inhibit_credentials_request = :inhibit_credentials_request,
-      protocol_revision = :protocol_revision,
-      introspection = :introspection,
-      introspection_minor = :introspection_minor
-
-    WHERE device_id = :device_id
-    """
-
     {introspection, introspection_minor} =
       opts
       |> Keyword.get(:initial_introspection, [])
       |> build_initial_introspection_maps()
 
-    query =
-      Query.new()
-      |> Query.statement(statement)
-      |> Query.put(:device_id, device_id)
-      |> Query.put(:first_registration, registration_timestamp |> DateTime.to_unix(:millisecond))
-      |> Query.put(:credentials_secret, credentials_secret)
-      |> Query.put(:inhibit_credentials_request, false)
-      |> Query.put(:protocol_revision, 0)
-      |> Query.put(:introspection, introspection)
-      |> Query.put(:introspection_minor, introspection_minor)
-      |> Query.consistency(:quorum)
-
     keyspace_name =
       CQLUtils.realm_name_to_keyspace_name(realm_name, Config.astarte_instance_id!())
 
-    cqex_options =
-      Config.cqex_options!()
-      |> Keyword.put(:keyspace, keyspace_name)
-
-    with {:ok, client} <-
-           Client.new(
-             Config.cassandra_node!(),
-             cqex_options
-           ),
-         {:ok, _res} <- Query.call(client, query) do
-      :ok
-    else
-      error ->
-        Logger.warning("DB error: #{inspect(error)}")
-        {:error, :database_error}
-    end
+    device
+    |> Ecto.Changeset.change(%{
+      credentials_secret: credentials_secret,
+      inhibit_credentials_request: false,
+      protocol_revision: 0,
+      introspection: introspection,
+      introspection_minor: introspection_minor
+    })
+    |> Repo.update(prefix: keyspace_name, consistency: :quorum)
   end
 
   defp build_initial_introspection_maps(initial_introspection) do
