@@ -36,7 +36,6 @@ defmodule Astarte.AppEngine.API.Device do
   alias Astarte.Core.Mapping
   alias Astarte.Core.Mapping.EndpointsAutomaton
   alias Astarte.Core.Mapping.ValueType
-  alias Astarte.DataAccess.Database
   alias Astarte.DataAccess.Mappings
   alias Astarte.DataAccess.Device, as: DeviceQueries
   alias Astarte.DataAccess.Interface, as: InterfaceQueries
@@ -228,7 +227,6 @@ defmodule Astarte.AppEngine.API.Device do
   end
 
   defp update_individual_interface_values(
-         client,
          realm_name,
          device_id,
          interface_descriptor,
@@ -256,8 +254,10 @@ defmodule Astarte.AppEngine.API.Device do
            ) do
       realm_max_ttl = Queries.fetch_datastream_maximum_storage_retention(realm_name)
 
+      now = DateTime.utc_now()
+
       timestamp_micro =
-        DateTime.utc_now()
+        now
         |> DateTime.to_unix(:microsecond)
 
       db_max_ttl =
@@ -290,13 +290,13 @@ defmodule Astarte.AppEngine.API.Device do
 
       if interface_descriptor.type == :datastream do
         Queries.insert_path_into_db(
-          client,
+          realm_name,
           device_id,
           interface_descriptor,
           endpoint_id,
           path,
-          div(timestamp_micro, 1000),
-          timestamp_micro,
+          now,
+          now,
           opts
         )
       end
@@ -403,15 +403,16 @@ defmodule Astarte.AppEngine.API.Device do
   end
 
   defp update_object_interface_values(
-         client,
          realm_name,
          device_id,
          interface_descriptor,
          path,
          raw_value
        ) do
+    now = DateTime.utc_now()
+
     timestamp_micro =
-      DateTime.utc_now()
+      now
       |> DateTime.to_unix(:microsecond)
 
     with {:ok, mappings} <-
@@ -464,13 +465,13 @@ defmodule Astarte.AppEngine.API.Device do
       )
 
       Queries.insert_path_into_db(
-        client,
+        realm_name,
         device_id,
         interface_descriptor,
         endpoint_id,
         path,
-        div(timestamp_micro, 1000),
-        timestamp_micro,
+        now,
+        now,
         opts
       )
 
@@ -514,8 +515,7 @@ defmodule Astarte.AppEngine.API.Device do
         raw_value,
         _params
       ) do
-    with {:ok, client} <- Database.connect(realm: realm_name),
-         {:ok, device_id} <- Device.decode_device_id(encoded_device_id),
+    with {:ok, device_id} <- Device.decode_device_id(encoded_device_id),
          {:ok, major_version} <-
            DeviceQueries.interface_version(realm_name, device_id, interface),
          {:ok, interface_row} <-
@@ -525,7 +525,6 @@ defmodule Astarte.AppEngine.API.Device do
          path <- "/" <> no_prefix_path do
       if interface_descriptor.aggregation == :individual do
         update_individual_interface_values(
-          client,
           realm_name,
           device_id,
           interface_descriptor,
@@ -534,7 +533,6 @@ defmodule Astarte.AppEngine.API.Device do
         )
       else
         update_object_interface_values(
-          client,
           realm_name,
           device_id,
           interface_descriptor,

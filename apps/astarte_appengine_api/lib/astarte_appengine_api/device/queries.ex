@@ -23,26 +23,20 @@ defmodule Astarte.AppEngine.API.Device.Queries do
   alias Astarte.AppEngine.API.Device.DeletionInProgress
   alias Astarte.AppEngine.API.Device.DeviceStatus
   alias Astarte.AppEngine.API.Device.DevicesList
-  alias Astarte.AppEngine.API.Device.InterfaceValuesOptions
   alias Astarte.AppEngine.API.Device.InterfaceInfo
+  alias Astarte.AppEngine.API.Realms.IndividualProperty
   alias Astarte.AppEngine.API.KvStore
   alias Astarte.AppEngine.API.Name
   alias Astarte.AppEngine.API.Repo
   alias Astarte.Core.CQLUtils
   alias Astarte.Core.Device
   alias Astarte.Core.InterfaceDescriptor
-  alias CQEx.Query, as: DatabaseQuery
-  alias CQEx.Result, as: DatabaseResult
   alias Astarte.AppEngine.API.Realm
   alias Astarte.AppEngine.API.Devices.Device, as: DatabaseDevice
   alias Astarte.AppEngine.API.Endpoint, as: DatabaseEndpoint
 
   require CQEx
   require Logger
-
-  def first_result_row(values) do
-    DatabaseResult.head(values)
-  end
 
   def retrieve_interfaces_list(realm_name, device_id) do
     keyspace = keyspace_name(realm_name)
@@ -165,17 +159,8 @@ defmodule Astarte.AppEngine.API.Device.Queries do
     |> Repo.all()
   end
 
-  defp get_ttl_string(opts) do
-    with {:ok, value} when is_integer(value) <- Keyword.fetch(opts, :ttl) do
-      "USING TTL #{to_string(value)}"
-    else
-      _any_error ->
-        ""
-    end
-  end
-
   def insert_path_into_db(
-        db_client,
+        realm_name,
         device_id,
         %InterfaceDescriptor{storage_type: storage_type} = interface_descriptor,
         endpoint_id,
@@ -191,30 +176,25 @@ defmodule Astarte.AppEngine.API.Device.Queries do
     # TODO: use received value_timestamp when needed
     # TODO: :reception_timestamp_submillis is just a place holder right now
 
-    ttl_string = get_ttl_string(opts)
+    keyspace = keyspace_name(realm_name)
 
-    insert_statement = """
-    INSERT INTO individual_properties
-        (device_id, interface_id, endpoint_id, path,
-        reception_timestamp, reception_timestamp_submillis, datetime_value)
-    VALUES (:device_id, :interface_id, :endpoint_id, :path, :reception_timestamp,
-        :reception_timestamp_submillis, :datetime_value) #{ttl_string};
-    """
+    # Ecto expects microsecond precision
+    {reception, reception_submillis} = split_datetime_to_ms_and_submillis(reception_timestamp)
+    value_timestamp = value_timestamp |> DateTime.truncate(:millisecond) |> pad_usec()
 
-    {reception_ms, reception_submillis} = split_ms_and_submillis(reception_timestamp)
+    value = %IndividualProperty{
+      device_id: device_id,
+      interface_id: interface_descriptor.interface_id,
+      endpoint_id: endpoint_id,
+      path: path,
+      reception_timestamp: reception,
+      reception_timestamp_submillis: reception_submillis,
+      datetime_value: value_timestamp
+    }
 
-    insert_query =
-      DatabaseQuery.new()
-      |> DatabaseQuery.statement(insert_statement)
-      |> DatabaseQuery.put(:device_id, device_id)
-      |> DatabaseQuery.put(:interface_id, interface_descriptor.interface_id)
-      |> DatabaseQuery.put(:endpoint_id, endpoint_id)
-      |> DatabaseQuery.put(:path, path)
-      |> DatabaseQuery.put(:reception_timestamp, reception_ms)
-      |> DatabaseQuery.put(:reception_timestamp_submillis, reception_submillis)
-      |> DatabaseQuery.put(:datetime_value, value_timestamp)
+    ttl = opts[:ttl]
 
-    DatabaseQuery.call!(db_client, insert_query)
+    Repo.insert!(value, prefix: keyspace, ttl: ttl)
 
     :ok
   end
@@ -723,28 +703,6 @@ defmodule Astarte.AppEngine.API.Device.Queries do
     {count, values}
   end
 
-  def get_results_count(_client, _count_query, %InterfaceValuesOptions{downsample_to: nil}) do
-    # Count will be ignored since there's no downsample_to
-    nil
-  end
-
-  def get_results_count(client, count_query, opts) do
-    with {:ok, result} <- DatabaseQuery.call(client, count_query),
-         [{_count_key, count}] <- DatabaseResult.head(result) do
-      limit = opts.limit || Config.max_results_limit!()
-
-      min(count, limit)
-    else
-      error ->
-        _ =
-          Logger.warning("Can't retrieve count for #{inspect(count_query)}: #{inspect(error)}.",
-            tag: "db_error"
-          )
-
-        nil
-    end
-  end
-
   def all_properties_for_endpoint!(
         realm_name,
         device_id,
@@ -1035,5 +993,23 @@ defmodule Astarte.AppEngine.API.Device.Queries do
     timestamp_submillis = rem(timestamp_micro, 1000)
 
     {timestamp_ms, timestamp_submillis}
+  end
+
+  defp split_datetime_to_ms_and_submillis(datetime) do
+    datetime_ms = datetime |> DateTime.truncate(:millisecond) |> pad_usec()
+
+    {usec, _} = datetime.microsecond
+    submillis = usec |> rem(1000)
+
+    {datetime_ms, submillis}
+  end
+
+  defp pad_usec(nil), do: nil
+
+  defp pad_usec(timestamp) do
+    case timestamp.microsecond do
+      {_, 6} -> timestamp
+      {usec, _} -> %{timestamp | microsecond: {usec, 6}}
+    end
   end
 end
