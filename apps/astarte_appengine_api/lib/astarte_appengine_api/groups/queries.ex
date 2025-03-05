@@ -136,36 +136,10 @@ defmodule Astarte.AppEngine.API.Groups.Queries do
 
   def check_device_in_group(realm_name, group_name, device_id) do
     keyspace = DataAccessRealm.keyspace_name(realm_name)
-    {:ok, decoded_device_id} = Device.decode_device_id(device_id)
 
-    query =
-      from(d in DataBaseDevice,
-        prefix: ^keyspace,
-        where: d.device_id == ^decoded_device_id,
-        select: d.groups
-      )
-
-    result = Repo.one(query) || %{}
-
-    with true <- Map.has_key?(result, group_name) do
-      {:ok, true}
-    else
-      {:error, :invalid_device_id} ->
-        {:error, :device_not_found}
-
-      {:error, reason} ->
-        _ = Logger.error("Database error: #{inspect(reason)}.", tag: "db_error")
-        {:error, :database_error}
-
-      [] ->
-        {:ok, false}
-
-      false ->
-        {:ok, false}
-
-      smth ->
-        dbg(smth)
-        {:error, :device_not_found}
+    case fetch_device_groups(keyspace, device_id) do
+      {:ok, groups} -> {:ok, Map.has_key?(groups, group_name)}
+      {:error, _reason} -> {:error, :device_not_found}
     end
   end
 
@@ -239,20 +213,21 @@ defmodule Astarte.AppEngine.API.Groups.Queries do
       {fn %{:device_id => device_id} -> Device.encode_device_id(device_id) end,
        &(Map.get(&1, :insertion_uuid) |> Ecto.UUID.load!())}
 
-    do_build_device_list(result, opts, {row_to_device_fun, row_to_token_fun})
+    do_build_device_list(result, opts, row_to_device_fun, row_to_token_fun)
   end
 
   defp build_device_list_with_details(keyspace, result, opts) do
     {row_to_device_fun, row_to_token_fun} =
       {&compute_device_status(keyspace, &1), &Map.get(&1, :token)}
 
-    do_build_device_list(result, opts, {row_to_device_fun, row_to_token_fun})
+    do_build_device_list(result, opts, row_to_device_fun, row_to_token_fun)
   end
 
   defp do_build_device_list(
          result,
          opts,
-         {row_to_device_fun, row_to_token_fun}
+         row_to_device_fun,
+         row_to_token_fun
        ) do
     {device_list, last_token, count} =
       Enum.reduce(result, {[], nil, 0}, fn row, {device_list, _token, count} ->
@@ -275,7 +250,6 @@ defmodule Astarte.AppEngine.API.Groups.Queries do
     } = device_row
 
     device_status = DeviceStatus.from_db_row(device_row)
-    # TODO: rebase on newer devicestatus
     deletion_in_progress? = deletion_in_progress?(realm_name, device_id)
     %{device_status | deletion_in_progress: deletion_in_progress?}
   end
@@ -311,24 +285,15 @@ defmodule Astarte.AppEngine.API.Groups.Queries do
     keyspace = DataAccessRealm.keyspace_name(realm_name)
 
     query =
-      from(d in GroupedDevice,
+      from d in GroupedDevice,
         prefix: ^keyspace,
         where: d.group_name == ^group_name,
-        select: d.group_name
-      )
+        select: d.group_name,
+        limit: 1
 
-    with false <- Repo.all(query) |> Enum.empty?() do
-      true
-    else
-      {:error, reason} ->
-        _ = Logger.error("Database error: #{inspect(reason)}.", tag: "db_error")
-        false
-
-      [] ->
-        false
-
-      true ->
-        false
+    case Repo.fetch_one(query) do
+      {:ok, _} -> true
+      _not_found -> false
     end
   end
 
@@ -478,12 +443,6 @@ defmodule Astarte.AppEngine.API.Groups.Queries do
 
   def add_to_grouped_device(realm_name, group_name, decoded_device_ids) do
     keyspace = DataAccessRealm.keyspace_name(realm_name)
-    grouped_device_table = GroupedDevice.__schema__(:source)
-
-    insert_grouped_device_sql = """
-      INSERT INTO #{keyspace}.#{grouped_device_table} (group_name, insertion_uuid, device_id)
-      values (?, ?, ?)
-    """
 
     queries =
       decoded_device_ids
@@ -499,8 +458,14 @@ defmodule Astarte.AppEngine.API.Groups.Queries do
         update_device_groups =
           Repo.to_sql(:update_all, query)
 
-        insert_grouped_device_params = [group_name, insertion_uuid, device_id]
-        insert_grouped_device = {insert_grouped_device_sql, insert_grouped_device_params}
+        grouped_device =
+          %GroupedDevice{
+            group_name: group_name,
+            insertion_uuid: insertion_uuid,
+            device_id: device_id
+          }
+
+        insert_grouped_device = Repo.insert_to_sql(grouped_device, prefix: keyspace)
 
         [update_device_groups, insert_grouped_device]
       end)
