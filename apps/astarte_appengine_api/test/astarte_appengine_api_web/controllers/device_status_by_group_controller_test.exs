@@ -97,6 +97,25 @@ defmodule Astarte.AppEngine.APIWeb.DeviceStatusByGroupControllerTest do
     "groups" => [@group_name],
     "deletion_in_progress" => false
   }
+  @expected_device_status_long_timestamps %{
+    "connected" => false,
+    "id" => @expected_device_id,
+    "aliases" => %{"display_name" => "device_a"},
+    "introspection" => @expected_introspection,
+    "last_credentials_request_ip" => "198.51.100.89",
+    "last_seen_ip" => "198.51.100.81",
+    "attributes" => %{"attribute_key" => "device_a_attribute"},
+    "credentials_inhibited" => false,
+    "total_received_bytes" => 4_500_000,
+    "total_received_msgs" => 45000,
+    "previous_interfaces" => @expected_previous_interfaces,
+    "groups" => [@group_name],
+    "deletion_in_progress" => false,
+    "first_credentials_request" => "2016-08-20T09:44:00.000000Z",
+    "first_registration" => "2016-08-15T09:44:00.000000Z",
+    "last_connection" => "2017-09-28T03:45:00.000000Z",
+    "last_disconnection" => "2017-09-29T18:25:00.000000Z"
+  }
 
   setup_all do
     {:ok, _client} = DatabaseTestHelper.create_test_keyspace()
@@ -158,10 +177,6 @@ defmodule Astarte.AppEngine.APIWeb.DeviceStatusByGroupControllerTest do
           "aliases" => _,
           "introspection" => _,
           "last_connection" => _,
-          "last_disconnection" => _,
-          "first_registration" => _,
-          "first_credentials_request" => _,
-          "last_credentials_request_ip" => _,
           "attributes" => _,
           "last_seen_ip" => _,
           "credentials_inhibited" => _,
@@ -174,7 +189,7 @@ defmodule Astarte.AppEngine.APIWeb.DeviceStatusByGroupControllerTest do
       end
 
       assert Enum.find(devices, &(Map.get(&1, "id") == @expected_device_id)) ==
-               @expected_device_status
+               @expected_device_status_long_timestamps
     end
 
     test "implements pagination correctly", %{conn: conn} do

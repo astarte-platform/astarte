@@ -439,7 +439,8 @@ defmodule Astarte.AppEngine.API.DatabaseTestHelper do
   end
 
   def insert_empty_device(client, device_id) do
-    insert_statement = "INSERT INTO devices (device_id) VALUES (:device_id)"
+    insert_statement =
+      "INSERT INTO #{CQLUtils.realm_name_to_keyspace_name("autotestrealm", Config.astarte_instance_id!())}.devices (device_id) VALUES (:device_id)"
 
     insert_device_query =
       DatabaseQuery.new()
@@ -450,7 +451,8 @@ defmodule Astarte.AppEngine.API.DatabaseTestHelper do
   end
 
   def remove_device(client, device_id) do
-    delete_statement = "DELETE FROM devices WHERE device_id=:device_id"
+    delete_statement =
+      "DELETE FROM #{CQLUtils.realm_name_to_keyspace_name("autotestrealm", Config.astarte_instance_id!())}.devices WHERE device_id=:device_id"
 
     delete_query =
       DatabaseQuery.new()
@@ -461,7 +463,8 @@ defmodule Astarte.AppEngine.API.DatabaseTestHelper do
   end
 
   def insert_device_into_deletion_in_progress(client, device_id) do
-    insert_statement = "INSERT INTO deletion_in_progress (device_id) VALUES (:device_id)"
+    insert_statement =
+      "INSERT INTO #{CQLUtils.realm_name_to_keyspace_name("autotestrealm", Config.astarte_instance_id!())}.deletion_in_progress (device_id) VALUES (:device_id)"
 
     insert_device_query =
       DatabaseQuery.new()

@@ -46,7 +46,13 @@ defmodule Astarte.AppEngine.APIWeb.DeviceStatusByGroupView do
       next_params = Map.put(request_params, "from_token", last_token)
 
       next_path =
-        RouterHelpers.device_status_by_group_path(Endpoint, :index, realm, group, next_params)
+        RouterHelpers.device_status_by_group_path(
+          Endpoint,
+          :index,
+          realm,
+          group,
+          next_params
+        )
 
       %{self: self_path, next: next_path}
     else
