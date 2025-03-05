@@ -73,7 +73,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
         update: [set: [pending_empty_cache: ^pending_empty_cache]]
 
     case Repo.safe_update_all(device, []) do
-      {1, _} ->
+      {:ok, _} ->
         :ok
 
       {:error, reason} ->
@@ -587,7 +587,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
         update: [set: [old_introspection: fragment(" old_introspection + ?", ^old_interfaces)]]
 
     case Repo.safe_update_all(device, [], consistency: :quorum) do
-      {1, _} ->
+      {:ok, _} ->
         :ok
 
       {:error, reason} ->
@@ -616,7 +616,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
         update: [set: [old_introspection: fragment(" old_introspection - ?", ^old_interfaces)]]
 
     case Repo.safe_update_all(device, [], consistency: :quorum) do
-      {1, _} ->
+      {:ok, _} ->
         :ok
 
       {:error, reason} ->
@@ -678,14 +678,12 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
     encoded_device_id = CoreDevice.encode_device_id(device_id)
 
     query =
-      from(
-        KvStore
-        |> where(group: ^group, key: ^encoded_device_id)
-        |> put_query_prefix(keyspace_name)
-      )
+      from(KvStore)
+      |> where(group: ^group, key: ^encoded_device_id)
+      |> put_query_prefix(keyspace_name)
 
     case Repo.safe_delete_all(query, consistency: :each_quorum) do
-      {n, _} when is_integer(n) ->
+      {:ok, _} ->
         :ok
 
       {:error, reason} ->

@@ -501,7 +501,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
          :ok <- can_write_on_interface?(interface_descriptor),
          interface_id <- interface_descriptor.interface_id,
          {:ok, mapping} <- resolve_path(path, interface_descriptor, new_state.mappings),
-         endpoint_id <- mapping.endpoint_id,
+         endpoint_id = mapping.endpoint_id,
          db_retention_policy = mapping.database_retention_policy,
          db_ttl = mapping.database_retention_ttl,
          {value, value_timestamp, _metadata} <-
