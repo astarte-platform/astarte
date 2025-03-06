@@ -68,12 +68,14 @@ defmodule Astarte.AppEngine.API.Groups.Queries do
   end
 
   def add_device(realm_name, group_name, device_changeset) do
+    keyspace = DataAccessRealm.keyspace_name(realm_name)
+
     Xandra.Cluster.run(:xandra, fn conn ->
       with {:ok, %{device_id: device_id}} <-
              Ecto.Changeset.apply_action(device_changeset, :insert),
            {:group_exists?, true} <-
              {:group_exists?, group_exists?(realm_name, group_name)},
-           :ok <- check_valid_device_for_group(realm_name, group_name, device_id),
+           :ok <- check_valid_device_for_group(keyspace, group_name, device_id),
            :ok <- add_to_group(conn, realm_name, group_name, [device_id]) do
         :ok
       else
