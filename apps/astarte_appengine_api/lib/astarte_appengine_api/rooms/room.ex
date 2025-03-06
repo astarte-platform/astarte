@@ -22,6 +22,7 @@ defmodule Astarte.AppEngine.API.Rooms.Room do
   alias Astarte.AppEngine.API.Device.DevicesList
   alias Astarte.AppEngine.API.Groups
   alias Astarte.AppEngine.API.Rooms.WatchRequest
+  alias Astarte.AppEngine.API.Rooms.Queries
   alias Astarte.AppEngine.API.RPC.DataUpdaterPlant
   alias Astarte.AppEngine.API.RPC.DataUpdaterPlant.VolatileTrigger
   alias Astarte.AppEngine.API.Utils
@@ -32,7 +33,6 @@ defmodule Astarte.AppEngine.API.Rooms.Room do
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.SimpleTriggerContainer
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.TaggedSimpleTrigger
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.TriggerTargetContainer
-  alias Astarte.AppEngine.API.Rooms.Queries
 
   require Logger
 

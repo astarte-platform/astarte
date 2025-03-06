@@ -22,13 +22,23 @@ defmodule Astarte.AppEngine.API.Queries do
 
   require Logger
   import Ecto.Query
-
   @keyspace_does_not_exist_regex ~r/Keyspace (.*) does not exist/
 
   def fetch_public_key(keyspace_name) do
-    case Xandra.Cluster.run(:xandra, &do_fetch_public_key(keyspace_name, &1)) do
-      {:ok, pem} ->
+    schema_query =
+      from r in KvStore,
+        prefix: ^keyspace_name,
+        select: fragment("blobAsVarchar(?)", r.value),
+        where: r.group == "auth" and r.key == "jwt_public_key_pem"
+
+    opts = [uuid_format: :binary, consistency: :quorum]
+
+    case safe_query(schema_query, opts) do
+      {:ok, %{rows: [[pem]]}} ->
         {:ok, pem}
+
+      {:ok, %{num_rows: 0}} ->
+        {:error, :public_key_not_found}
 
       {:error, %Xandra.ConnectionError{} = err} ->
         Logger.warning("Database connection error #{Exception.message(err)}.",
@@ -39,29 +49,9 @@ defmodule Astarte.AppEngine.API.Queries do
 
       {:error, %Xandra.Error{} = err} ->
         handle_xandra_error(err)
-    end
-  end
 
-  defp do_fetch_public_key(keyspace_name, conn) do
-    query = """
-    SELECT blobAsVarchar(value)
-    FROM #{keyspace_name}.kv_store
-    WHERE group='auth' AND key='jwt_public_key_pem';
-    """
-
-    with {:ok, prepared} <- Xandra.prepare(conn, query),
-         {:ok, page} <-
-           Xandra.execute(conn, prepared, %{},
-             uuid_format: :binary,
-             consistency: :quorum
-           ) do
-      case Enum.to_list(page) do
-        [%{"system.blobasvarchar(value)" => pem}] ->
-          {:ok, pem}
-
-        [] ->
-          {:error, :public_key_not_found}
-      end
+      {:error, error} ->
+        {:error, error}
     end
   end
 
