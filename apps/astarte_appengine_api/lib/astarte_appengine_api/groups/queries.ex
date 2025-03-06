@@ -24,10 +24,7 @@ defmodule Astarte.AppEngine.API.Groups.Queries do
   alias Astarte.AppEngine.API.Device.DeletionInProgress
   alias Astarte.AppEngine.API.Devices.Device, as: DataBaseDevice
   alias Astarte.AppEngine.API.Realm, as: DataAccessRealm
-  alias Astarte.Core.CQLUtils
-  alias Astarte.AppEngine.API.Config
   alias Astarte.Core.Device
-  alias Astarte.Core.Realm
   alias Astarte.AppEngine.API.Repo
   alias Ecto.Changeset
 
@@ -70,32 +67,30 @@ defmodule Astarte.AppEngine.API.Groups.Queries do
   def add_device(realm_name, group_name, device_changeset) do
     keyspace = DataAccessRealm.keyspace_name(realm_name)
 
-    Xandra.Cluster.run(:xandra, fn conn ->
-      with {:ok, %{device_id: device_id}} <-
-             Ecto.Changeset.apply_action(device_changeset, :insert),
-           {:group_exists?, true} <-
-             {:group_exists?, group_exists?(realm_name, group_name)},
-           :ok <- check_valid_device_for_group(keyspace, group_name, device_id),
-           :ok <- add_to_group(conn, realm_name, group_name, [device_id]) do
-        :ok
-      else
-        {:group_exists?, false} ->
-          {:error, :group_not_found}
+    with {:ok, %{device_id: device_id}} <-
+           Ecto.Changeset.apply_action(device_changeset, :insert),
+         {:group_exists?, true} <-
+           {:group_exists?, group_exists?(realm_name, group_name)},
+         :ok <- check_valid_device_for_group(keyspace, group_name, device_id),
+         :ok <- add_to_group(keyspace, group_name, [device_id]) do
+      :ok
+    else
+      {:group_exists?, false} ->
+        {:error, :group_not_found}
 
-        {:error, :device_not_found} ->
-          error_changeset =
-            device_changeset
-            |> Ecto.Changeset.add_error(:device_id, "does not exist")
+      {:error, :device_not_found} ->
+        error_changeset =
+          device_changeset
+          |> Ecto.Changeset.add_error(:device_id, "does not exist")
 
-          {:error, error_changeset}
+        {:error, error_changeset}
 
-        {:error, %Ecto.Changeset{} = error_changeset} ->
-          {:error, error_changeset}
+      {:error, %Ecto.Changeset{} = error_changeset} ->
+        {:error, error_changeset}
 
-        {:error, reason} ->
-          {:error, reason}
-      end
-    end)
+      {:error, reason} ->
+        {:error, reason}
+    end
   end
 
   def remove_device(realm_name, group_name, device_id) do
@@ -332,75 +327,48 @@ defmodule Astarte.AppEngine.API.Groups.Queries do
     end
   end
 
-  defp add_to_group(conn, realm_name, group_name, devices) do
-    device_query = """
-      UPDATE :keyspace.devices
-      SET groups = groups + :group_map
-      WHERE device_id = :device_id
-    """
+  defp add_to_group(keyspace, group_name, devices) do
+    {batch_queries, _uuid_state} =
+      Enum.reduce(devices, {[], :uuid.new(self())}, fn encoded_device_id, {batch, uuid_state} ->
+        # We can be sure that this succeeds since it was validated in `check_all_devices_exist`
+        {:ok, device_id} = Device.decode_device_id(encoded_device_id)
 
-    grouped_devices_query = """
-      INSERT INTO :keyspace.grouped_devices
-      (group_name, insertion_uuid, device_id)
-      VALUES
-      (:group_name, :insertion_uuid, :device_id)
-    """
+        # TODO: in the future we probably want to check that this generated insertion_uuid
+        # is greater than the last insertion_uuid in the grouped_devices column
+        {insertion_uuid, new_uuid_state} = :uuid.get_v1(uuid_state)
 
-    with {:ok, device_prepared} <- prepare_with_realm(conn, realm_name, device_query),
-         {:ok, grouped_devices_prepared} <-
-           prepare_with_realm(conn, realm_name, grouped_devices_query) do
-      {batch, _uuid_state} =
-        Enum.reduce(devices, {Xandra.Batch.new(), :uuid.new(self())}, fn encoded_device_id,
-                                                                         {batch, uuid_state} ->
-          # We can be sure that this succeeds since it was validated in `check_all_devices_exist`
-          {:ok, device_id} = Device.decode_device_id(encoded_device_id)
+        group_map = %{group_name => insertion_uuid}
 
-          # TODO: in the future we probably want to check that this generated insertion_uuid
-          # is greater than the last insertion_uuid in the grouped_devices column
-          {insertion_uuid, new_uuid_state} = :uuid.get_v1(uuid_state)
+        device_query =
+          from(d in DataBaseDevice,
+            prefix: ^keyspace,
+            where: d.device_id == ^device_id,
+            update: [set: [groups: fragment("groups + ?", ^group_map)]]
+          )
 
-          group_map = %{group_name => insertion_uuid}
+        device_query = Repo.to_sql(:update_all, device_query)
 
-          new_batch =
-            batch
-            |> Xandra.Batch.add(device_prepared, %{
-              "group_map" => group_map,
-              "device_id" => device_id
-            })
-            |> Xandra.Batch.add(grouped_devices_prepared, %{
-              "group_name" => group_name,
-              "insertion_uuid" => insertion_uuid,
-              "device_id" => device_id
-            })
+        grouped_device = %GroupedDevice{
+          group_name: group_name,
+          insertion_uuid: insertion_uuid,
+          device_id: device_id
+        }
 
-          {new_batch, new_uuid_state}
-        end)
+        grouped_device_query = Repo.insert_to_sql(grouped_device, prefix: keyspace)
 
-      case Xandra.execute(conn, batch) do
-        {:ok, %Xandra.Void{}} ->
-          :ok
+        new_batch = [device_query | [grouped_device_query | batch]]
 
-        {:error, reason} ->
-          _ = Logger.error("Database error: #{inspect(reason)}.", tag: "db_error")
-          {:error, :database_error}
-      end
-    end
-  end
+        {new_batch, new_uuid_state}
+      end)
 
-  defp prepare_with_realm(conn, realm_name, query) do
-    keyspace_name =
-      CQLUtils.realm_name_to_keyspace_name(realm_name, Config.astarte_instance_id!())
+    batch = %Exandra.Batch{queries: batch_queries}
 
-    with {:valid, true} <- {:valid, Realm.valid_name?(realm_name)},
-         query_with_keyspace = String.replace(query, ":keyspace", keyspace_name),
-         {:ok, prepared} <- Xandra.prepare(conn, query_with_keyspace) do
-      {:ok, prepared}
-    else
-      {:valid, false} ->
-        {:error, :not_found}
+    case Exandra.execute_batch(Repo, batch) do
+      :ok ->
+        :ok
 
       {:error, reason} ->
-        _ = Logger.error("Database error: #{inspect(reason)}.")
+        _ = Logger.error("Database error: #{inspect(reason)}.", tag: "db_error")
         {:error, :database_error}
     end
   end
