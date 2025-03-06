@@ -451,15 +451,24 @@ defmodule Astarte.AppEngine.API.Device.Queries do
     |> to_string()
   end
 
+  def retrieve_device_for_status(realm_name, device_id) do
+    keyspace = keyspace_name(realm_name)
+    do_retrieve_device_for_status(keyspace, device_id)
+  end
+
   def retrieve_device_status(realm_name, device_id) do
     keyspace = keyspace_name(realm_name)
-    fields = [:device_id | @device_status_columns_without_device_id]
 
-    query = from(DatabaseDevice, prefix: ^keyspace, select: ^fields)
-
-    with {:ok, device} <- Repo.fetch(query, device_id, error: :device_not_found) do
+    with {:ok, device} <- do_retrieve_device_for_status(keyspace, device_id) do
       {:ok, build_device_status(keyspace, device)}
     end
+  end
+
+  defp do_retrieve_device_for_status(keyspace, device_id) do
+    fields = [:device_id | @device_status_columns_without_device_id]
+    query = from(DatabaseDevice, prefix: ^keyspace, select: ^fields)
+
+    Repo.fetch(query, device_id, error: :device_not_found)
   end
 
   defp deletion_in_progress?(keyspace, device_id) do
