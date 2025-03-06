@@ -17,7 +17,6 @@
 #
 
 defmodule Astarte.RealmManagement.Queries do
-  require CQEx
   require Logger
   alias Astarte.RealmManagement.Realms.DeletionInProgress
   alias Astarte.RealmManagement.Realms.GroupedDevice
@@ -51,53 +50,8 @@ defmodule Astarte.RealmManagement.Queries do
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.TaggedSimpleTrigger
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.TriggerTargetContainer
   alias Astarte.Core.Triggers.Trigger
-  alias CQEx.Query, as: DatabaseQuery
-  alias CQEx.Result.SchemaChanged
 
   import Ecto.Query
-
-  @create_datastream_individual_multiinterface_table """
-    CREATE TABLE IF NOT EXISTS individual_datastreams (
-      device_id uuid,
-      interface_id uuid,
-      endpoint_id uuid,
-      path varchar,
-      value_timestamp timestamp,
-      reception_timestamp timestamp,
-      reception_timestamp_submillis smallint,
-
-      double_value double,
-      integer_value int,
-      boolean_value boolean,
-      longinteger_value bigint,
-      string_value varchar,
-      binaryblob_value blob,
-      datetime_value timestamp,
-      doublearray_value list<double>,
-      integerarray_value list<int>,
-      booleanarray_value list<boolean>,
-      longintegerarray_value list<bigint>,
-      stringarray_value list<varchar>,
-      binaryblobarray_value list<blob>,
-      datetimearray_value list<timestamp>,
-
-      PRIMARY KEY((device_id, interface_id, endpoint_id, path), value_timestamp, reception_timestamp, reception_timestamp_submillis)
-    )
-  """
-
-  @create_interface_table_with_object_aggregation """
-    CREATE TABLE :interface_name (
-      device_id uuid,
-      path varchar,
-
-      :value_timestamp,
-      reception_timestamp timestamp,
-      reception_timestamp_submillis smallint,
-      :columns,
-
-      PRIMARY KEY((device_id, path), :key_timestamp reception_timestamp, reception_timestamp_submillis)
-    )
-  """
 
   defp create_one_object_columns_for_mappings(mappings) do
     for %Mapping{endpoint: endpoint, value_type: value_type} <- mappings do
@@ -109,25 +63,61 @@ defmodule Astarte.RealmManagement.Queries do
   end
 
   defp create_interface_table(
+         _keyspace,
          :individual,
          :multi,
          %InterfaceDescriptor{type: :properties},
          _mappings
        ) do
-    {:multi_interface_individual_properties_dbtable, "individual_properties", ""}
+    {:multi_interface_individual_properties_dbtable, "individual_properties"}
   end
 
   defp create_interface_table(
+         keyspace,
          :individual,
          :multi,
          %InterfaceDescriptor{type: :datastream},
          _mappings
        ) do
-    {:multi_interface_individual_datastream_dbtable, "individual_datastreams",
-     @create_datastream_individual_multiinterface_table}
+    create_datastream_individual_multiinterface_table = """
+      CREATE TABLE IF NOT EXISTS #{keyspace}.individual_datastreams (
+        device_id uuid,
+        interface_id uuid,
+        endpoint_id uuid,
+        path varchar,
+        value_timestamp timestamp,
+        reception_timestamp timestamp,
+        reception_timestamp_submillis smallint,
+
+        double_value double,
+        integer_value int,
+        boolean_value boolean,
+        longinteger_value bigint,
+        string_value varchar,
+        binaryblob_value blob,
+        datetime_value timestamp,
+        doublearray_value list<double>,
+        integerarray_value list<int>,
+        booleanarray_value list<boolean>,
+        longintegerarray_value list<bigint>,
+        stringarray_value list<varchar>,
+        binaryblobarray_value list<blob>,
+        datetimearray_value list<timestamp>,
+
+        PRIMARY KEY((device_id, interface_id, endpoint_id, path), value_timestamp, reception_timestamp, reception_timestamp_submillis)
+      )
+    """
+
+    _ = Logger.info("Creating new interface table.", tag: "create_interface_table")
+
+    CSystem.run_with_schema_agreement(fn ->
+      _ = Repo.query(create_datastream_individual_multiinterface_table)
+    end)
+
+    {:multi_interface_individual_datastream_dbtable, "individual_datastreams"}
   end
 
-  defp create_interface_table(:object, :one, interface_descriptor, mappings) do
+  defp create_interface_table(keyspace, :object, :one, interface_descriptor, mappings) do
     table_name =
       CQLUtils.interface_name_to_table_name(
         interface_descriptor.name,
@@ -139,20 +129,31 @@ defmodule Astarte.RealmManagement.Queries do
     [%Mapping{explicit_timestamp: explicit_timestamp} | _tail] = mappings
 
     {value_timestamp, key_timestamp} =
-      if explicit_timestamp do
-        {"value_timestamp timestamp,", "value_timestamp,"}
-      else
-        {"", ""}
-      end
+      if explicit_timestamp,
+        do: {"value_timestamp timestamp,", "value_timestamp,"},
+        else: {"", ""}
 
-    create_table_statement =
-      @create_interface_table_with_object_aggregation
-      |> String.replace(":interface_name", table_name)
-      |> String.replace(":value_timestamp", value_timestamp)
-      |> String.replace(":columns", columns)
-      |> String.replace(":key_timestamp", key_timestamp)
+    create_interface_table_with_object_aggregation = """
+      CREATE TABLE #{keyspace}.#{table_name} (
+        device_id uuid,
+        path varchar,
 
-    {:one_object_datastream_dbtable, table_name, create_table_statement}
+        #{value_timestamp},
+        reception_timestamp timestamp,
+        reception_timestamp_submillis smallint,
+        #{columns},
+
+        PRIMARY KEY((device_id, path), #{key_timestamp} reception_timestamp, reception_timestamp_submillis)
+      )
+    """
+
+    _ = Logger.info("Creating new interface table.", tag: "create_interface_table")
+
+    CSystem.run_with_schema_agreement(fn ->
+      _ = Repo.query(create_interface_table_with_object_aggregation)
+    end)
+
+    {:one_object_datastream_dbtable, table_name}
   end
 
   def check_astarte_health(consistency) do
@@ -183,7 +184,7 @@ defmodule Astarte.RealmManagement.Queries do
     end
   end
 
-  def install_new_interface(client, realm_name, interface_document, automaton) do
+  def install_new_interface(realm_name, interface_document, automaton) do
     keyspace = Realm.keyspace_name(realm_name)
 
     table_type =
@@ -191,27 +192,14 @@ defmodule Astarte.RealmManagement.Queries do
         do: :multi,
         else: :one
 
-    {storage_type, table_name, create_table_statement} =
+    {storage_type, table_name} =
       create_interface_table(
+        keyspace,
         interface_document.aggregation,
         table_type,
         InterfaceDescriptor.from_interface(interface_document),
         interface_document.mappings
       )
-
-    {:ok, _} =
-      if create_table_statement != "" do
-        _ = Logger.info("Creating new interface table.", tag: "create_interface_table")
-
-        {:ok, _res} =
-          Xandra.Cluster.run(:xandra, fn conn ->
-            CSystem.run_with_schema_agreement(conn, fn ->
-              DatabaseQuery.call(client, create_table_statement)
-            end)
-          end)
-      else
-        {:ok, nil}
-      end
 
     {transitions, accepting_states_no_ids} = automaton
 
@@ -225,7 +213,7 @@ defmodule Astarte.RealmManagement.Queries do
       )
       |> :erlang.term_to_binary()
 
-    # Here order matters, must be the same as the `?` in @insert_into_interface
+    # Here order matters, must be the same as the `?` in `insert_interface_statement`
     params =
       [
         interface_document.name,
@@ -409,17 +397,19 @@ defmodule Astarte.RealmManagement.Queries do
     |> put_changes(rest)
   end
 
-  def update_interface_storage(_client, _interface_descriptor, []) do
+  def update_interface_storage(_realm_name, _interface_descriptor, []) do
     # No new mappings, nothing to do
     :ok
   end
 
   def update_interface_storage(
-        client,
+        realm_name,
         %InterfaceDescriptor{storage_type: :one_object_datastream_dbtable, storage: table_name} =
           _interface_descriptor,
         new_mappings
       ) do
+    keyspace = Realm.keyspace_name(realm_name)
+
     add_cols = create_one_object_columns_for_mappings(new_mappings)
 
     _ =
@@ -427,26 +417,18 @@ defmodule Astarte.RealmManagement.Queries do
         tag: "db_interface_add_table_cols"
       )
 
-    update_storage_statement = """
-    ALTER TABLE #{table_name}
-    ADD (#{add_cols})
-    """
+    update_storage_statement =
+      """
+      ALTER TABLE #{keyspace}.#{table_name}
+      ADD (#{add_cols})
+      """
 
-    with {:ok, %SchemaChanged{change_type: :updated} = _result} <-
-           DatabaseQuery.call(client, update_storage_statement) do
+    with {:ok, _} <- Repo.query(update_storage_statement) do
       :ok
-    else
-      %{acc: _, msg: error_message} ->
-        _ = Logger.warning("Database error: #{error_message}.", tag: "db_error")
-        {:error, :database_error}
-
-      {:error, reason} ->
-        _ = Logger.warning("Database error: #{inspect(reason)}.", tag: "db_error")
-        {:error, :database_error}
     end
   end
 
-  def update_interface_storage(_client, _interface_descriptor, _new_mappings) do
+  def update_interface_storage(_realm_name, _interface_descriptor, _new_mappings) do
     :ok
   end
 
@@ -487,23 +469,18 @@ defmodule Astarte.RealmManagement.Queries do
   end
 
   def delete_interface_storage(
-        client,
-        _realm_name,
+        realm_name,
         %InterfaceDescriptor{
           storage_type: :one_object_datastream_dbtable,
           storage: table_name
         } = _interface_descriptor
       ) do
-    delete_statement = "DROP TABLE IF EXISTS #{table_name}"
+    keyspace = Realm.keyspace_name(realm_name)
+    delete_statement = "DROP TABLE IF EXISTS #{keyspace}.#{table_name}"
 
-    with {:ok, _res} <- DatabaseQuery.call(client, delete_statement) do
-      _ = Logger.info("Deleted #{table_name} table.", tag: "db_delete_interface_table")
-      :ok
-    else
-      {:error, reason} ->
-        _ = Logger.warning("Database error: #{inspect(reason)}.", tag: "db_error")
-        {:error, :database_error}
-    end
+    _ = Repo.query!(delete_statement)
+    _ = Logger.info("Deleted #{table_name} table.", tag: "db_delete_interface_table")
+    :ok
   end
 
   def delete_interface_storage(_client, realm_name, %InterfaceDescriptor{} = interface_descriptor) do

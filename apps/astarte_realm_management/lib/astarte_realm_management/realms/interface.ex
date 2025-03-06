@@ -54,7 +54,7 @@ defmodule Astarte.RealmManagement.Realms.Interface do
     field :automaton_transitions, :binary
     field :description, :string
     field :doc, :string
-    field :interface_id, Astarte.DataAccess.UUID
+    field :interface_id, Astarte.RealmManagement.UUID
     field :minor_version, :integer
     field :ownership, Ownership
     field :storage, :string

@@ -23,6 +23,6 @@ defmodule Astarte.RealmManagement.Realms.Name do
   typed_schema "names" do
     field :object_name, :string, primary_key: true
     field :object_type, :integer, primary_key: true
-    field :object_uuid, Astarte.DataAccess.UUID
+    field :object_uuid, Astarte.RealmManagement.UUID
   end
 end

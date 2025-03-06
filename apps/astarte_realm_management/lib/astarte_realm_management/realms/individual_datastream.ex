@@ -20,16 +20,19 @@
 # use `astarte_data_access` when it will be merged
 defmodule Astarte.RealmManagement.Realms.IndividualDatastream do
   use TypedEctoSchema
+  alias Astarte.RealmManagement.UUID
+  alias Astarte.RealmManagement.SmallInt
+  alias Astarte.RealmManagement.BigInt
 
   @primary_key false
   typed_schema "individual_datastreams" do
-    field :device_id, Astarte.DataAccess.UUID, primary_key: true
-    field :interface_id, Astarte.DataAccess.UUID, primary_key: true
-    field :endpoint_id, Astarte.DataAccess.UUID, primary_key: true
+    field :device_id, UUID, primary_key: true
+    field :interface_id, UUID, primary_key: true
+    field :endpoint_id, UUID, primary_key: true
     field :path, :string, primary_key: true
     field :value_timestamp, :utc_datetime_usec, primary_key: true
     field :reception_timestamp, :utc_datetime_usec, primary_key: true
-    field :reception_timestamp_submillis, :integer, primary_key: true
+    field :reception_timestamp_submillis, SmallInt, primary_key: true
     field :binaryblob_value, :binary
     field :binaryblobarray_value, {:array, :binary}
     field :boolean_value, :boolean
@@ -40,8 +43,8 @@ defmodule Astarte.RealmManagement.Realms.IndividualDatastream do
     field :doublearray_value, {:array, :float}
     field :integer_value, :integer
     field :integerarray_value, {:array, :integer}
-    field :longinteger_value, :integer
-    field :longintegerarray_value, {:array, :integer}
+    field :longinteger_value, BigInt
+    field :longintegerarray_value, {:array, BigInt}
     field :string_value, :string
     field :stringarray_value, {:array, :string}
   end

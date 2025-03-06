@@ -286,7 +286,7 @@ defmodule Astarte.RealmManagement.QueriesTest do
 
     assert Queries.get_interfaces_list(realm_name) == {:ok, []}
 
-    Queries.install_new_interface(client, realm_name, intdoc, automaton)
+    Queries.install_new_interface(realm_name, intdoc, automaton)
 
     assert Queries.is_interface_major_available?(realm_name, interface_name, major_version) ==
              {:ok, true}
@@ -398,7 +398,7 @@ defmodule Astarte.RealmManagement.QueriesTest do
 
     assert Queries.get_interfaces_list(realm_name) == {:ok, []}
 
-    Queries.install_new_interface(client, realm_name, intdoc, automaton)
+    Queries.install_new_interface(realm_name, intdoc, automaton)
 
     assert Queries.is_interface_major_available?(realm_name, interface_name, major_version) ==
              {:ok, true}
@@ -499,7 +499,7 @@ defmodule Astarte.RealmManagement.QueriesTest do
     {:ok, doc} = Ecto.Changeset.apply_action(interface_changeset, :insert)
 
     {:ok, automaton} = Astarte.Core.Mapping.EndpointsAutomaton.build(doc.mappings)
-    Queries.install_new_interface(client, realm_name, doc, automaton)
+    Queries.install_new_interface(realm_name, doc, automaton)
 
     endpoint_id = retrieve_endpoint_id(client, "com.timestamp.Test", 1, "/test/0/v")
 

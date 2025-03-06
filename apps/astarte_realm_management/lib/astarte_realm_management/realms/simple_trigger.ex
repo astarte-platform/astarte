@@ -20,7 +20,7 @@
 defmodule Astarte.RealmManagement.Realms.SimpleTrigger do
   use TypedEctoSchema
 
-  alias Astarte.DataAccess.UUID
+  alias Astarte.RealmManagement.UUID
 
   @primary_key false
   typed_schema "simple_triggers" do
