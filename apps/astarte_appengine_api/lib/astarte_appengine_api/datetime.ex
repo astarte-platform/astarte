@@ -40,4 +40,14 @@ defmodule Astarte.AppEngine.API.DateTime do
 
   @spec cast(t() | any()) :: {:ok, t()} | :error
   def cast(datetime_or_timestamp_or_any), do: load(datetime_or_timestamp_or_any)
+
+  def split_submillis(timestamp) do
+    timestamp_ms = DateTime.truncate(timestamp, :millisecond)
+    submillis = timestamp |> DateTime.to_unix(:microsecond) |> rem(1000)
+    # `DateTime`s are microsecond precision, individual_properties's submillis
+    # have one extra digit. Keep the unit consistent with DUP
+    decimicrosecond_submillis = submillis * 10
+
+    {timestamp_ms, decimicrosecond_submillis}
+  end
 end

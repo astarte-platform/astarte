@@ -20,6 +20,7 @@ defmodule Astarte.AppEngine.API.Device.Queries do
   import Ecto.Query
 
   alias Astarte.AppEngine.API.Config
+  alias Astarte.AppEngine.API.DateTime, as: DateTimeMs
   alias Astarte.AppEngine.API.Device.DeletionInProgress
   alias Astarte.AppEngine.API.Device.DeviceStatus
   alias Astarte.AppEngine.API.Device.DevicesList
@@ -181,19 +182,17 @@ defmodule Astarte.AppEngine.API.Device.Queries do
 
     keyspace = DataAccessRealm.keyspace_name(realm_name)
 
-    # Ecto expects microsecond precision
-    {reception, reception_submillis} = split_datetime_to_ms_and_submillis(reception_timestamp)
-    value_timestamp = value_timestamp |> DateTime.truncate(:millisecond) |> pad_usec()
+    value =
+      %IndividualProperty{
+        device_id: device_id,
+        interface_id: interface_descriptor.interface_id,
+        endpoint_id: endpoint_id,
+        path: path,
+        reception: reception_timestamp,
+        datetime_value: value_timestamp
+      }
 
-    value = %IndividualProperty{
-      device_id: device_id,
-      interface_id: interface_descriptor.interface_id,
-      endpoint_id: endpoint_id,
-      path: path,
-      reception_timestamp: reception,
-      reception_timestamp_submillis: reception_submillis,
-      datetime_value: value_timestamp
-    }
+    value = value |> IndividualProperty.prepare_for_db()
 
     ttl = opts[:ttl]
 
@@ -262,7 +261,7 @@ defmodule Astarte.AppEngine.API.Device.Queries do
     value_column = CQLUtils.type_to_db_column_name(endpoint.value_type)
     keyspace = DataAccessRealm.keyspace_name(realm_name)
 
-    {timestamp_ms, timestamp_submillis} = split_ms_and_submillis(timestamp)
+    {timestamp_ms, timestamp_submillis} = DateTimeMs.split_submillis(timestamp)
 
     # TODO: :reception_timestamp_submillis is just a place holder right now
     interface_storage_attributes = %{
@@ -299,7 +298,7 @@ defmodule Astarte.AppEngine.API.Device.Queries do
       ) do
     value_column = CQLUtils.type_to_db_column_name(endpoint.value_type)
     keyspace = DataAccessRealm.keyspace_name(realm_name)
-    {timestamp_ms, timestamp_submillis} = split_ms_and_submillis(timestamp)
+    {timestamp_ms, timestamp_submillis} = DateTimeMs.split_submillis(timestamp)
 
     attributes = %{
       value_column => to_db_friendly_type(value),
@@ -312,7 +311,12 @@ defmodule Astarte.AppEngine.API.Device.Queries do
       reception_timestamp_submillis: timestamp_submillis
     }
 
-    Repo.insert_all(interface_descriptor.storage, [attributes], prefix: keyspace, ttl: opts[:ttl])
+    {1, _} =
+      Repo.insert_all(interface_descriptor.storage, [attributes],
+        prefix: keyspace,
+        ttl: opts[:ttl]
+      )
+
     :ok
   end
 
@@ -348,14 +352,12 @@ defmodule Astarte.AppEngine.API.Device.Queries do
         {endpoint_name, %{name: column_name, type: endpoint.value_type}}
       end)
 
-    {timestamp_ms, submillis} = split_ms_and_submillis(timestamp)
-
     base_attributes = %{
       device_id: device_id,
       path: path
     }
 
-    timestamp_attributes = timestamp_attributes(explicit_timestamp?, timestamp_ms, submillis)
+    timestamp_attributes = timestamp_attributes(explicit_timestamp?, timestamp)
     value_attributes = value_attributes(column_meta, value)
 
     object_datastream =
@@ -372,7 +374,10 @@ defmodule Astarte.AppEngine.API.Device.Queries do
     :ok
   end
 
-  defp timestamp_attributes(true = _explicit_timestamp?, timestamp, submillis) do
+  defp timestamp_attributes(true = _explicit_timestamp?, timestamp) do
+    {timestamp, submillis} =
+      Astarte.AppEngine.API.DateTime.split_submillis(timestamp)
+
     %{
       value_timestamp: timestamp,
       reception_timestamp: timestamp,
@@ -380,7 +385,10 @@ defmodule Astarte.AppEngine.API.Device.Queries do
     }
   end
 
-  defp timestamp_attributes(_nil_or_false_explicit_timestamp?, timestamp, submillis) do
+  defp timestamp_attributes(_nil_or_false_explicit_timestamp?, timestamp) do
+    {timestamp, submillis} =
+      Astarte.AppEngine.API.DateTime.split_submillis(timestamp)
+
     %{reception_timestamp: timestamp, reception_timestamp_submillis: submillis}
   end
 
@@ -986,31 +994,6 @@ defmodule Astarte.AppEngine.API.Device.Queries do
         )
 
         {:error, :database_error}
-    end
-  end
-
-  defp split_ms_and_submillis(timestamp_micro) do
-    timestamp_ms = div(timestamp_micro, 1000)
-    timestamp_submillis = rem(timestamp_micro, 1000)
-
-    {timestamp_ms, timestamp_submillis}
-  end
-
-  defp split_datetime_to_ms_and_submillis(datetime) do
-    datetime_ms = datetime |> DateTime.truncate(:millisecond) |> pad_usec()
-
-    {usec, _} = datetime.microsecond
-    submillis = usec |> rem(1000)
-
-    {datetime_ms, submillis}
-  end
-
-  defp pad_usec(nil), do: nil
-
-  defp pad_usec(timestamp) do
-    case timestamp.microsecond do
-      {_, 6} -> timestamp
-      {usec, _} -> %{timestamp | microsecond: {usec, 6}}
     end
   end
 end

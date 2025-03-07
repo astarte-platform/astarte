@@ -16,43 +16,44 @@
 # limitations under the License.
 #
 
-defmodule Astarte.AppEngine.API.Realms.IndividualProperty do
+defmodule Astarte.AppEngine.API.Realms.IndividualDatastream do
   use TypedEctoSchema
   alias Astarte.AppEngine.API.DateTime, as: DateTimeMs
   alias Astarte.AppEngine.API.UUID
 
   @primary_key false
-  typed_schema "individual_properties" do
+  typed_schema "individual_datastreams" do
     field :reception, DateTimeMs, virtual: true
     field :device_id, UUID, primary_key: true
     field :interface_id, UUID, primary_key: true
     field :endpoint_id, UUID, primary_key: true
     field :path, :string, primary_key: true
-    field :reception_timestamp, DateTimeMs
-    field :reception_timestamp_submillis, :integer
-    field :double_value, :float
-    field :integer_value, :integer
-    field :boolean_value, :boolean
-    field :longinteger_value, :integer
-    field :string_value, :string
+    field :value_timestamp, DateTimeMs, primary_key: true
+    field :reception_timestamp, DateTimeMs, primary_key: true
+    field :reception_timestamp_submillis, :integer, primary_key: true
     field :binaryblob_value, :binary
-    field :datetime_value, DateTimeMs
-    field :doublearray_value, {:array, :float}
-    field :integerarray_value, {:array, :integer}
-    field :booleanarray_value, {:array, :boolean}
-    field :longintegerarray_value, {:array, :integer}
-    field :stringarray_value, {:array, :string}
     field :binaryblobarray_value, {:array, :binary}
+    field :boolean_value, :boolean
+    field :booleanarray_value, {:array, :boolean}
+    field :datetime_value, DateTimeMs
     field :datetimearray_value, {:array, DateTimeMs}
+    field :double_value, :float
+    field :doublearray_value, {:array, :float}
+    field :integer_value, :integer
+    field :integerarray_value, {:array, :integer}
+    field :longinteger_value, :integer
+    field :longintegerarray_value, {:array, :integer}
+    field :string_value, :string
+    field :stringarray_value, {:array, :string}
   end
 
-  def prepare_for_db(%{reception: nil} = individual_property), do: individual_property
+  def prepare_for_db(%{reception: nil} = individual_datastream), do: individual_datastream
 
-  def prepare_for_db(individual_property) do
-    {reception_ms, submillis} = DateTimeMs.split_submillis(individual_property.reception)
+  def prepare_for_db(individual_datastream) do
+    {reception_ms, submillis} = DateTimeMs.split_submillis(individual_datastream.reception)
 
     %{
-      individual_property
+      individual_datastream
       | reception_timestamp: reception_ms,
         reception_timestamp_submillis: submillis
     }
