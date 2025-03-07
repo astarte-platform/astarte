@@ -18,16 +18,17 @@
 
 defmodule Astarte.AppEngine.API.Realms.IndividualProperty do
   use TypedEctoSchema
+  alias Astarte.AppEngine.API.DateTime, as: DateTimeMs
   alias Astarte.AppEngine.API.UUID
 
   @primary_key false
   typed_schema "individual_properties" do
-    field :reception, :utc_datetime_usec, virtual: true
+    field :reception, DateTimeMs, virtual: true
     field :device_id, UUID, primary_key: true
     field :interface_id, UUID, primary_key: true
     field :endpoint_id, UUID, primary_key: true
     field :path, :string, primary_key: true
-    field :reception_timestamp, :utc_datetime_usec
+    field :reception_timestamp, DateTimeMs
     field :reception_timestamp_submillis, :integer
     field :double_value, :float
     field :integer_value, :integer
@@ -35,14 +36,14 @@ defmodule Astarte.AppEngine.API.Realms.IndividualProperty do
     field :longinteger_value, :integer
     field :string_value, :string
     field :binaryblob_value, :binary
-    field :datetime_value, :utc_datetime_usec
+    field :datetime_value, DateTimeMs
     field :doublearray_value, {:array, :float}
     field :integerarray_value, {:array, :integer}
     field :booleanarray_value, {:array, :boolean}
     field :longintegerarray_value, {:array, :integer}
     field :stringarray_value, {:array, :string}
     field :binaryblobarray_value, {:array, :binary}
-    field :datetimearray_value, {:array, :utc_datetime_usec}
+    field :datetimearray_value, {:array, DateTimeMs}
   end
 
   def reception(individual_property) do
