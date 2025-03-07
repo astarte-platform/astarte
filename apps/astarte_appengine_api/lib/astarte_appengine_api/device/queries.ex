@@ -31,7 +31,7 @@ defmodule Astarte.AppEngine.API.Device.Queries do
   alias Astarte.Core.CQLUtils
   alias Astarte.Core.Device
   alias Astarte.Core.InterfaceDescriptor
-  alias Astarte.AppEngine.API.Realm
+  alias Astarte.AppEngine.API.Realm, as: DataAccessRealm
   alias Astarte.AppEngine.API.Devices.Device, as: DatabaseDevice
   alias Astarte.AppEngine.API.Endpoint, as: DatabaseEndpoint
 
@@ -39,7 +39,7 @@ defmodule Astarte.AppEngine.API.Device.Queries do
   require Logger
 
   def retrieve_interfaces_list(realm_name, device_id) do
-    keyspace = keyspace_name(realm_name)
+    keyspace = DataAccessRealm.keyspace_name(realm_name)
 
     query =
       from d in DatabaseDevice,
@@ -53,7 +53,7 @@ defmodule Astarte.AppEngine.API.Device.Queries do
   end
 
   def retrieve_all_endpoint_ids_for_interface!(realm_name, interface_id, opts \\ []) do
-    keyspace = keyspace_name(realm_name)
+    keyspace = DataAccessRealm.keyspace_name(realm_name)
 
     query =
       from DatabaseEndpoint,
@@ -71,7 +71,7 @@ defmodule Astarte.AppEngine.API.Device.Queries do
   end
 
   def retrieve_all_endpoints_for_interface!(realm_name, interface_id) do
-    keyspace = keyspace_name(realm_name)
+    keyspace = DataAccessRealm.keyspace_name(realm_name)
 
     query =
       from DatabaseEndpoint,
@@ -83,7 +83,7 @@ defmodule Astarte.AppEngine.API.Device.Queries do
   end
 
   def retrieve_mapping(realm_name, interface_id, endpoint_id) do
-    keyspace = keyspace_name(realm_name)
+    keyspace = DataAccessRealm.keyspace_name(realm_name)
 
     query =
       from DatabaseEndpoint,
@@ -105,7 +105,7 @@ defmodule Astarte.AppEngine.API.Device.Queries do
   end
 
   def interface_has_explicit_timestamp?(realm_name, interface_id) do
-    keyspace = keyspace_name(realm_name)
+    keyspace = DataAccessRealm.keyspace_name(realm_name)
     do_interface_has_explicit_timestamp?(keyspace, interface_id)
   end
 
@@ -125,7 +125,7 @@ defmodule Astarte.AppEngine.API.Device.Queries do
   end
 
   def fetch_datastream_maximum_storage_retention(realm_name) do
-    keyspace = keyspace_name(realm_name)
+    keyspace = DataAccessRealm.keyspace_name(realm_name)
     group = "realm_config"
     key = "datastream_maximum_storage_retention"
 
@@ -145,16 +145,19 @@ defmodule Astarte.AppEngine.API.Device.Queries do
         opts
       ) do
     columns = default_endpoint_column_selection(endpoint_row)
+    keyspace = DataAccessRealm.keyspace_name(realm_name)
 
     opts = %{opts | limit: 1}
 
-    do_get_datastream_values(realm_name, device_id, interface_row, endpoint_id, path, opts)
+    do_get_datastream_values(keyspace, device_id, interface_row, endpoint_id, path, opts)
     |> select(^columns)
     |> Repo.fetch_one()
   end
 
   def retrieve_all_endpoint_paths!(realm_name, device_id, interface_id, endpoint_id) do
-    find_endpoints(realm_name, "individual_properties", device_id, interface_id, endpoint_id)
+    keyspace = DataAccessRealm.keyspace_name(realm_name)
+
+    find_endpoints(keyspace, "individual_properties", device_id, interface_id, endpoint_id)
     |> select([:path])
     |> Repo.all()
   end
@@ -176,7 +179,7 @@ defmodule Astarte.AppEngine.API.Device.Queries do
     # TODO: use received value_timestamp when needed
     # TODO: :reception_timestamp_submillis is just a place holder right now
 
-    keyspace = keyspace_name(realm_name)
+    keyspace = DataAccessRealm.keyspace_name(realm_name)
 
     # Ecto expects microsecond precision
     {reception, reception_submillis} = split_datetime_to_ms_and_submillis(reception_timestamp)
@@ -223,7 +226,7 @@ defmodule Astarte.AppEngine.API.Device.Queries do
 
     # TODO: :reception_timestamp_submillis is just a place holder right now
     %InterfaceDescriptor{interface_id: interface_id, storage: storage} = interface_descriptor
-    keyspace_name = Realm.keyspace_name(realm_name)
+    keyspace_name = DataAccessRealm.keyspace_name(realm_name)
 
     q =
       from v in storage,
@@ -257,7 +260,7 @@ defmodule Astarte.AppEngine.API.Device.Queries do
         opts
       ) do
     value_column = CQLUtils.type_to_db_column_name(endpoint.value_type)
-    keyspace = keyspace_name(realm_name)
+    keyspace = DataAccessRealm.keyspace_name(realm_name)
 
     {timestamp_ms, timestamp_submillis} = split_ms_and_submillis(timestamp)
 
@@ -295,7 +298,7 @@ defmodule Astarte.AppEngine.API.Device.Queries do
         opts
       ) do
     value_column = CQLUtils.type_to_db_column_name(endpoint.value_type)
-    keyspace = keyspace_name(realm_name)
+    keyspace = DataAccessRealm.keyspace_name(realm_name)
     {timestamp_ms, timestamp_submillis} = split_ms_and_submillis(timestamp)
 
     attributes = %{
@@ -325,7 +328,7 @@ defmodule Astarte.AppEngine.API.Device.Queries do
         timestamp,
         opts
       ) do
-    keyspace = keyspace_name(realm_name)
+    keyspace = DataAccessRealm.keyspace_name(realm_name)
     interface_id = interface_descriptor.interface_id
 
     endpoint_rows =
@@ -452,12 +455,12 @@ defmodule Astarte.AppEngine.API.Device.Queries do
   end
 
   def retrieve_device_for_status(realm_name, device_id) do
-    keyspace = keyspace_name(realm_name)
+    keyspace = DataAccessRealm.keyspace_name(realm_name)
     do_retrieve_device_for_status(keyspace, device_id)
   end
 
   def retrieve_device_status(realm_name, device_id) do
-    keyspace = keyspace_name(realm_name)
+    keyspace = DataAccessRealm.keyspace_name(realm_name)
 
     with {:ok, device} <- do_retrieve_device_for_status(keyspace, device_id) do
       {:ok, build_device_status(keyspace, device)}
@@ -479,7 +482,7 @@ defmodule Astarte.AppEngine.API.Device.Queries do
   end
 
   def retrieve_devices_list(realm_name, limit, retrieve_details?, previous_token) do
-    keyspace = keyspace_name(realm_name)
+    keyspace = DataAccessRealm.keyspace_name(realm_name)
 
     field_selection =
       if retrieve_details? do
@@ -526,7 +529,7 @@ defmodule Astarte.AppEngine.API.Device.Queries do
   end
 
   def device_alias_to_device_id(realm_name, device_alias) do
-    keyspace = keyspace_name(realm_name)
+    keyspace = DataAccessRealm.keyspace_name(realm_name)
     do_device_alias_to_device_id(keyspace, device_alias)
   end
 
@@ -541,7 +544,7 @@ defmodule Astarte.AppEngine.API.Device.Queries do
   end
 
   def insert_attribute(realm_name, device_id, attribute_key, attribute_value) do
-    keyspace = keyspace_name(realm_name)
+    keyspace = DataAccessRealm.keyspace_name(realm_name)
     new_attribute = %{attribute_key => attribute_value}
 
     query =
@@ -556,7 +559,7 @@ defmodule Astarte.AppEngine.API.Device.Queries do
   end
 
   def delete_attribute(realm_name, device_id, attribute_key) do
-    keyspace = keyspace_name(realm_name)
+    keyspace = DataAccessRealm.keyspace_name(realm_name)
     query = from(d in DatabaseDevice, select: d.attributes)
     opts = [prefix: keyspace, consistency: :quorum]
 
@@ -583,7 +586,7 @@ defmodule Astarte.AppEngine.API.Device.Queries do
   end
 
   def insert_alias(realm_name, device_id, alias_tag, alias_value) do
-    keyspace = keyspace_name(realm_name)
+    keyspace = DataAccessRealm.keyspace_name(realm_name)
 
     name = %Name{
       object_name: alias_value,
@@ -624,7 +627,7 @@ defmodule Astarte.AppEngine.API.Device.Queries do
   end
 
   def delete_alias(realm_name, device_id, alias_tag) do
-    keyspace = keyspace_name(realm_name)
+    keyspace = DataAccessRealm.keyspace_name(realm_name)
 
     query =
       from d in DatabaseDevice,
@@ -674,7 +677,7 @@ defmodule Astarte.AppEngine.API.Device.Queries do
   end
 
   def set_inhibit_credentials_request(realm_name, device_id, inhibit_credentials_request) do
-    keyspace = keyspace_name(realm_name)
+    keyspace = DataAccessRealm.keyspace_name(realm_name)
 
     query =
       from DatabaseDevice,
@@ -688,7 +691,7 @@ defmodule Astarte.AppEngine.API.Device.Queries do
   end
 
   def retrieve_object_datastream_values(realm_name, device_id, interface_row, path, columns, opts) do
-    keyspace = keyspace_name(realm_name)
+    keyspace = DataAccessRealm.keyspace_name(realm_name)
 
     query_limit = query_limit(opts)
     timestamp_column = timestamp_column(opts.explicit_timestamp)
@@ -719,9 +722,10 @@ defmodule Astarte.AppEngine.API.Device.Queries do
       ) do
     value_column = CQLUtils.type_to_db_column_name(endpoint_row.value_type) |> String.to_atom()
     columns = [:path, value_column]
+    keyspace = DataAccessRealm.keyspace_name(realm_name)
 
     find_endpoints(
-      realm_name,
+      keyspace,
       interface_row.storage,
       device_id,
       interface_row.interface_id,
@@ -741,9 +745,10 @@ defmodule Astarte.AppEngine.API.Device.Queries do
         opts
       ) do
     columns = default_endpoint_column_selection(endpoint_row)
+    keyspace = DataAccessRealm.keyspace_name(realm_name)
 
     query =
-      do_get_datastream_values(realm_name, device_id, interface_row, endpoint_id, path, opts)
+      do_get_datastream_values(keyspace, device_id, interface_row, endpoint_id, path, opts)
 
     values = query |> select(^columns) |> Repo.all()
     count = query |> select([d], count(d.value_timestamp)) |> Repo.one!()
@@ -752,22 +757,20 @@ defmodule Astarte.AppEngine.API.Device.Queries do
   end
 
   def value_type_query(realm_name, interface_id, endpoint_id) do
-    keyspace = keyspace_name(realm_name)
+    keyspace = DataAccessRealm.keyspace_name(realm_name)
     query = from DatabaseEndpoint, select: [:value_type]
 
     Repo.get_by!(query, [interface_id: interface_id, endpoint_id: endpoint_id], prefix: keyspace)
   end
 
   defp do_get_datastream_values(
-         realm_name,
+         keyspace,
          device_id,
          interface_row,
          endpoint_id,
          path,
          opts
        ) do
-    keyspace = keyspace_name(realm_name)
-
     query_limit = query_limit(opts)
 
     # Check the explicit user defined limit to know if we have to reorder data
@@ -822,9 +825,7 @@ defmodule Astarte.AppEngine.API.Device.Queries do
     |> where(^filter_to)
   end
 
-  defp find_endpoints(realm_name, table_name, device_id, interface_id, endpoint_id) do
-    keyspace = keyspace_name(realm_name)
-
+  defp find_endpoints(keyspace, table_name, device_id, interface_id, endpoint_id) do
     from(table_name, prefix: ^keyspace)
     |> where(device_id: ^device_id, interface_id: ^interface_id, endpoint_id: ^endpoint_id)
   end
@@ -840,13 +841,6 @@ defmodule Astarte.AppEngine.API.Device.Queries do
   defp default_endpoint_column_selection(endpoint_row) do
     value_column = CQLUtils.type_to_db_column_name(endpoint_row.value_type) |> String.to_atom()
     [value_column | default_endpoint_column_selection()]
-  end
-
-  defp keyspace_name(realm_name) do
-    Astarte.Core.CQLUtils.realm_name_to_keyspace_name(
-      realm_name,
-      Astarte.DataAccess.Config.astarte_instance_id!()
-    )
   end
 
   defp timestamp_column(explicit_timestamp?) do

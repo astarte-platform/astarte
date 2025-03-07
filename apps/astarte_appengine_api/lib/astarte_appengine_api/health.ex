@@ -17,15 +17,12 @@
 #
 
 defmodule Astarte.AppEngine.API.Health do
-  alias Astarte.AppEngine.API.Realm
   alias Astarte.AppEngine.API.Queries
 
   require Logger
 
   def get_health do
-    astarte_keyspace = Realm.keyspace_name("astarte")
-
-    case Queries.check_astarte_health(astarte_keyspace, :quorum) do
+    case Queries.check_astarte_health(:quorum) do
       :ok ->
         :ok
 
@@ -33,7 +30,7 @@ defmodule Astarte.AppEngine.API.Health do
         {:error, :bad_health}
 
       {:error, :health_check_bad} ->
-        case Queries.check_astarte_health(astarte_keyspace, :one) do
+        case Queries.check_astarte_health(:one) do
           :ok -> {:error, :degraded_health}
           _error -> {:error, :bad_health}
         end

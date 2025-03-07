@@ -18,14 +18,10 @@
 
 defmodule Astarte.AppEngine.API.Auth do
   alias Astarte.AppEngine.API.Queries
-  alias Astarte.AppEngine.API.Config
-  alias Astarte.Core.CQLUtils
 
   require Logger
 
   def fetch_public_key(realm) do
-    keyspace = CQLUtils.realm_name_to_keyspace_name(realm, Config.astarte_instance_id!())
-
-    Queries.fetch_public_key(keyspace)
+    Queries.fetch_public_key(realm)
   end
 end

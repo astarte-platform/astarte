@@ -17,14 +17,16 @@
 
 defmodule Astarte.AppEngine.API.Queries do
   alias Astarte.AppEngine.API.KvStore
-  alias Astarte.AppEngine.API.Realm
+  alias Astarte.AppEngine.API.Realm, as: DataAccessRealm
   alias Astarte.AppEngine.API.Repo
 
   require Logger
   import Ecto.Query
   @keyspace_does_not_exist_regex ~r/Keyspace (.*) does not exist/
 
-  def fetch_public_key(keyspace_name) do
+  def fetch_public_key(realm_name) do
+    keyspace_name = DataAccessRealm.keyspace_name(realm_name)
+
     schema_query =
       from r in KvStore,
         prefix: ^keyspace_name,
@@ -77,7 +79,9 @@ defmodule Astarte.AppEngine.API.Queries do
     end
   end
 
-  def check_astarte_health(astarte_keyspace, consistency) do
+  def check_astarte_health(consistency) do
+    astarte_keyspace = DataAccessRealm.astarte_keyspace_name()
+
     schema_query =
       from kv in KvStore,
         prefix: ^astarte_keyspace,
@@ -85,7 +89,7 @@ defmodule Astarte.AppEngine.API.Queries do
         select: count(kv.value)
 
     realm_query =
-      from Realm,
+      from DataAccessRealm,
         prefix: ^astarte_keyspace,
         where: [realm_name: "_invalid^name_"]
 
