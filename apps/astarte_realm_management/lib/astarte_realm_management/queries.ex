@@ -50,6 +50,7 @@ defmodule Astarte.RealmManagement.Queries do
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.TaggedSimpleTrigger
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.TriggerTargetContainer
   alias Astarte.Core.Triggers.Trigger
+  alias Astarte.RealmManagement.Migrations.CreateDatastreamIndividualMultiInterface
 
   import Ecto.Query
 
@@ -79,39 +80,14 @@ defmodule Astarte.RealmManagement.Queries do
          %InterfaceDescriptor{type: :datastream},
          _mappings
        ) do
-    create_datastream_individual_multiinterface_table = """
-      CREATE TABLE IF NOT EXISTS #{keyspace}.individual_datastreams (
-        device_id uuid,
-        interface_id uuid,
-        endpoint_id uuid,
-        path varchar,
-        value_timestamp timestamp,
-        reception_timestamp timestamp,
-        reception_timestamp_submillis smallint,
-
-        double_value double,
-        integer_value int,
-        boolean_value boolean,
-        longinteger_value bigint,
-        string_value varchar,
-        binaryblob_value blob,
-        datetime_value timestamp,
-        doublearray_value list<double>,
-        integerarray_value list<int>,
-        booleanarray_value list<boolean>,
-        longintegerarray_value list<bigint>,
-        stringarray_value list<varchar>,
-        binaryblobarray_value list<blob>,
-        datetimearray_value list<timestamp>,
-
-        PRIMARY KEY((device_id, interface_id, endpoint_id, path), value_timestamp, reception_timestamp, reception_timestamp_submillis)
-      )
-    """
-
     _ = Logger.info("Creating new interface table.", tag: "create_interface_table")
 
     CSystem.run_with_schema_agreement(fn ->
-      _ = Repo.query(create_datastream_individual_multiinterface_table)
+      _ =
+        Ecto.Migrator.run(Repo, [{0, CreateDatastreamIndividualMultiInterface}], :up,
+          prefix: keyspace,
+          all: true
+        )
     end)
 
     {:multi_interface_individual_datastream_dbtable, "individual_datastreams"}
