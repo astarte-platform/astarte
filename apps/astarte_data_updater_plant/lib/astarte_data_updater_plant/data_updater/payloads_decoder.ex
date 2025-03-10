@@ -26,30 +26,30 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.PayloadsDecoder do
   Decode a BSON payload a returns a tuple containing the decoded value, the timestamp and metadata.
   reception_timestamp is used if no timestamp has been sent with the payload.
   """
-  @spec decode_bson_payload(binary, integer) :: {map, integer, map}
+  @spec decode_bson_payload(binary, integer) :: {map, DateTime.t(), map}
   def decode_bson_payload(payload, reception_timestamp) do
+    reception = reception_timestamp |> div(10000) |> DateTime.from_unix!(:millisecond)
+
     if byte_size(payload) != 0 do
       case Cyanide.decode(payload) do
-        {:ok, %{"v" => bson_value, "t" => %DateTime{} = timestamp, "m" => %{} = metadata}} ->
-          bson_timestamp = DateTime.to_unix(timestamp, :millisecond)
+        {:ok, %{"v" => bson_value, "t" => %DateTime{} = bson_timestamp, "m" => %{} = metadata}} ->
           {bson_value, bson_timestamp, metadata}
 
         {:ok, %{"v" => bson_value, "m" => %{} = metadata}} ->
-          {bson_value, div(reception_timestamp, 10000), metadata}
+          {bson_value, reception, metadata}
 
-        {:ok, %{"v" => bson_value, "t" => %DateTime{} = timestamp}} ->
-          bson_timestamp = DateTime.to_unix(timestamp, :millisecond)
+        {:ok, %{"v" => bson_value, "t" => %DateTime{} = bson_timestamp}} ->
           {bson_value, bson_timestamp, %{}}
 
         {:ok, %{"v" => %Cyanide.Binary{data: <<>>}}} ->
           {nil, nil, nil}
 
         {:ok, %{"v" => bson_value}} ->
-          {bson_value, div(reception_timestamp, 10000), %{}}
+          {bson_value, reception, %{}}
 
         {:ok, %{} = bson_value} ->
           # Handling old format object aggregation
-          {bson_value, div(reception_timestamp, 10000), %{}}
+          {bson_value, reception, %{}}
 
         {:error, _reason} ->
           {:error, :undecodable_bson_payload}

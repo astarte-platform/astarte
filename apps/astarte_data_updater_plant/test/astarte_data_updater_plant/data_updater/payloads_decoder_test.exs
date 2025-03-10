@@ -39,7 +39,7 @@ defmodule Astarte.DataUpdaterPlant.PayloadsDecoderTest do
   test "individual value payloads without metadata and without timestamp" do
     {:ok, date_time, 0} = DateTime.from_iso8601("2018-03-19T14:15:32+00:00")
     timestamp = DateTime.to_unix(date_time, :microsecond) * 10 + 123
-    expected_timestamp = DateTime.to_unix(date_time, :millisecond)
+    expected_timestamp = DateTime.add(date_time, 0, :millisecond)
 
     string_payload = Base.decode64!("FAAAAAJ2AAgAAAAjRTVEOTAwAAA=")
 
@@ -60,7 +60,7 @@ defmodule Astarte.DataUpdaterPlant.PayloadsDecoderTest do
   test "individual value payloads with timestamp and without metadata" do
     {:ok, date_time, 0} = DateTime.from_iso8601("2018-02-19T14:15:32+00:00")
     rec_timestamp = DateTime.to_unix(date_time, :microsecond) * 10 + 123
-    expected_timestamp = 1_521_464_570_595
+    expected_timestamp = DateTime.from_unix!(1_521_464_570_595, :millisecond)
 
     double_payload = Base.decode64!("GwAAAAF2AGZRYzaGqOE/CXQA4/JaPmIBAAAA")
 
@@ -71,7 +71,7 @@ defmodule Astarte.DataUpdaterPlant.PayloadsDecoderTest do
   test "individual value payloads with metadata and without timestamp" do
     {:ok, date_time, 0} = DateTime.from_iso8601("2018-02-19T14:15:32+00:00")
     rec_timestamp = DateTime.to_unix(date_time, :microsecond) * 10 + 123
-    expected_timestamp = DateTime.to_unix(date_time, :millisecond)
+    expected_timestamp = DateTime.add(date_time, 0, :millisecond)
 
     double_payload =
       Base.decode64!("MAAAAANtAB0AAAACbWV0YTEAAgAAAGEAEG1ldGEyAAIAAAAAAXYAZlFjNoao4T8A")
@@ -83,7 +83,7 @@ defmodule Astarte.DataUpdaterPlant.PayloadsDecoderTest do
   test "deprecated object aggregation" do
     {:ok, date_time, 0} = DateTime.from_iso8601("2018-03-19T14:15:32+00:00")
     timestamp = DateTime.to_unix(date_time, :microsecond) * 10 + 123
-    expected_timestamp = DateTime.to_unix(date_time, :millisecond)
+    expected_timestamp = DateTime.add(date_time, 0, :millisecond)
 
     object_payload =
       "SwAAAAViaW4ABAAAAAAAAQIDCHRlc3QxAAECdGVzdDIACgAAAMSnZcWCxYLDuAABdGVzdDMAAAAAAAAAFEAJdG0AaGcvSGIBAAAA"
@@ -102,7 +102,7 @@ defmodule Astarte.DataUpdaterPlant.PayloadsDecoderTest do
   test "object aggregation without timestamp and without metadata" do
     {:ok, date_time, 0} = DateTime.from_iso8601("2018-03-19T14:15:32+00:00")
     timestamp = DateTime.to_unix(date_time, :microsecond) * 10 + 123
-    expected_timestamp = DateTime.to_unix(date_time, :millisecond)
+    expected_timestamp = DateTime.add(date_time, 0, :millisecond)
 
     object_payload =
       "UwAAAAN2AEsAAAAFYmluAAQAAAAAAAECAwh0ZXN0MQABAnRlc3QyAAoAAADEp2XFgsWCw7gAAXRlc3QzAAAAAAAAABRACXRtAGhnL0hiAQAAAAA="
@@ -121,7 +121,7 @@ defmodule Astarte.DataUpdaterPlant.PayloadsDecoderTest do
   test "object aggregation with timestamp and without metadata" do
     {:ok, date_time, 0} = DateTime.from_iso8601("2018-03-19T14:15:32+00:00")
     timestamp = DateTime.to_unix(date_time, :microsecond) * 10 + 123
-    expected_timestamp = 1_521_464_570_595
+    expected_timestamp = DateTime.from_unix!(1_521_464_570_595, :millisecond)
 
     object_payload =
       "XgAAAAl0AOPyWj5iAQAAA3YASwAAAAViaW4ABAAAAAAAAQIDCHRlc3QxAAECdGVzdDIACgAAAMSnZcWCxYLDuAABdGVzdDMAAAAAAAAAFEAJdG0AaGcvSGIBAAAAAA=="
@@ -140,7 +140,7 @@ defmodule Astarte.DataUpdaterPlant.PayloadsDecoderTest do
   test "object aggregation with timestamp and metadata" do
     {:ok, date_time, 0} = DateTime.from_iso8601("2018-03-19T14:15:32+00:00")
     timestamp = DateTime.to_unix(date_time, :microsecond) * 10 + 123
-    expected_timestamp = 1_521_464_570_595
+    expected_timestamp = DateTime.from_unix!(1_521_464_570_595, :millisecond)
 
     object_payload =
       "cAAAAANtAA8AAAAQbWV0YQACAAAAAAl0AOPyWj5iAQAAA3YASwAAAAViaW4ABAAAAAAAAQIDCHRlc3QxAAECdGVzdDIACgAAAMSnZcWCxYLDuAABdGVzdDMAAAAAAAAAFEAJdG0AaGcvSGIBAAAAAA=="
