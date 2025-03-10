@@ -800,10 +800,8 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
 
       [ttl] when is_integer(ttl) ->
         expiry_datetime =
-          DateTime.utc_now()
-          |> DateTime.to_unix()
-          |> :erlang.+(ttl)
-          |> DateTime.from_unix!()
+          DateTime.utc_now(:second)
+          |> DateTime.add(ttl)
 
         {:ok, expiry_datetime}
 

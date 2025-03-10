@@ -1014,15 +1014,13 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
   end
 
   defp is_still_valid?({:ok, expiry_date}, ttl) do
-    expiry_secs = DateTime.to_unix(expiry_date)
+    # add 1 hour of tolerance for clock synchronization issues
+    now_with_tolerance =
+      DateTime.utc_now(:second)
+      |> DateTime.add(ttl)
+      |> DateTime.add(1, :hour)
 
-    now_secs =
-      DateTime.utc_now()
-      |> DateTime.to_unix()
-
-    # 3600 seconds is one hour
-    # this adds 1 hour of tolerance to clock synchronization issues
-    now_secs + ttl + 3600 < expiry_secs
+    DateTime.before?(now_with_tolerance, expiry_date)
   end
 
   defp validate_interface(interface) do
