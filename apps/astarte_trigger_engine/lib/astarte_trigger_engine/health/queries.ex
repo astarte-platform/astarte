@@ -19,42 +19,28 @@
 defmodule Astarte.TriggerEngine.Health.Queries do
   alias Astarte.TriggerEngine.Config
   alias Astarte.Core.CQLUtils
+  alias Astarte.TriggerEngine.Realms
+  alias Astarte.TriggerEngine.Repo
   require Logger
 
+  import Ecto.Query
+
   def get_astarte_health(consistency) do
-    query = """
-    SELECT COUNT(*)
-    FROM #{CQLUtils.realm_name_to_keyspace_name("astarte", Config.astarte_instance_id!())}.realms
-    """
+    keyspace_name =
+      CQLUtils.realm_name_to_keyspace_name("astarte", Config.astarte_instance_id!())
 
-    with {:ok, %Xandra.Page{} = page} <-
-           Xandra.Cluster.execute(:xandra, query, %{}, consistency: consistency),
-         {:ok, _} <- Enum.fetch(page, 0) do
-      :ok
-    else
-      :error ->
-        _ =
-          Logger.warning("Cannot retrieve count for astarte.realms table.",
-            tag: "health_check_error"
-          )
+    query =
+      from r in Realms,
+        prefix: ^keyspace_name,
+        select: count()
 
-        {:error, :health_check_bad}
+    case Repo.safe_fetch_one(query, consistency: consistency) do
+      {:ok, count} ->
+        {:ok, count}
 
-      {:error, %Xandra.Error{} = err} ->
-        _ =
-          Logger.warning("Database error, health is not good: #{inspect(err)}.",
-            tag: "health_check_database_error"
-          )
-
-        {:error, :health_check_bad}
-
-      {:error, %Xandra.ConnectionError{} = err} ->
-        _ =
-          Logger.warning("Database error, health is not good: #{inspect(err)}.",
-            tag: "health_check_database_connection_error"
-          )
-
-        {:error, :database_connection_error}
+      {:error, reason} ->
+        _ = Logger.warning("Could not fetch astarte health: #{inspect(reason)}")
+        {:error, reason}
     end
   end
 end

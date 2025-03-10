@@ -19,6 +19,7 @@
 defmodule Astarte.TriggerEngine.Repo do
   use Ecto.Repo, otp_app: :astarte_trigger_engine, adapter: Exandra
   alias Astarte.TriggerEngine.Config
+  require Logger
 
   @impl Ecto.Repo
   def init(_context, config) do
@@ -27,5 +28,54 @@ defmodule Astarte.TriggerEngine.Repo do
       |> Keyword.merge(config)
 
     {:ok, config}
+  end
+
+  def safe_fetch_all(queryable, opts \\ []) do
+    try do
+      {:ok, all(queryable, opts)}
+    catch
+      error ->
+        handle_xandra_error(error)
+    end
+  end
+
+  def safe_fetch_one(queryable, opts \\ []) do
+    try do
+      {:ok, one(queryable, opts)}
+    catch
+      error ->
+        handle_xandra_error(error)
+    end
+  end
+
+  defp handle_xandra_error(%Xandra.ConnectionError{} = error) do
+    _ =
+      Logger.warning("Database connection error #{Exception.message(error)}.",
+        tag: "database_connection_error"
+      )
+
+    {:error, :database_connection_error}
+  end
+
+  defp handle_xandra_error(%Xandra.Error{} = error) do
+    %Xandra.Error{message: message} = error
+
+    case Regex.run(~r/Keyspace (.*) does not exist/, message) do
+      [_message, keyspace] ->
+        Logger.warning("Keyspace #{keyspace} does not exist.",
+          tag: "realm_not_found"
+        )
+
+        {:error, :realm_not_found}
+
+      nil ->
+        _ =
+          Logger.warning(
+            "Database error: #{Exception.message(error)}.",
+            tag: "database_error"
+          )
+
+        {:error, :database_error}
+    end
   end
 end
