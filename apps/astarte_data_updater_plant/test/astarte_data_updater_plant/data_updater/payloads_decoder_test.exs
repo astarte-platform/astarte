@@ -18,11 +18,13 @@
 
 defmodule Astarte.DataUpdaterPlant.PayloadsDecoderTest do
   use ExUnit.Case
+  alias Astarte.Core.DecimicrosecondDateTime
   alias Astarte.DataUpdaterPlant.DataUpdater.PayloadsDecoder
 
   test "unset" do
     {:ok, date_time, 0} = DateTime.from_iso8601("2018-03-19T14:15:32+00:00")
     timestamp = DateTime.to_unix(date_time, :millisecond) * 10000 + 123
+    timestamp = DecimicrosecondDateTime.from_unix!(timestamp, :decimicrosecond)
 
     assert PayloadsDecoder.decode_bson_payload(<<>>, timestamp) == {nil, nil, nil}
   end
@@ -30,6 +32,7 @@ defmodule Astarte.DataUpdaterPlant.PayloadsDecoderTest do
   test "deprecated unset" do
     {:ok, date_time, 0} = DateTime.from_iso8601("2018-03-19T14:15:32+00:00")
     timestamp = DateTime.to_unix(date_time, :millisecond) * 10000 + 123
+    timestamp = DecimicrosecondDateTime.from_unix!(timestamp, :decimicrosecond)
 
     unset_payload = Base.decode64!("DQAAAAV2AAAAAAAAAA==")
 
@@ -39,6 +42,7 @@ defmodule Astarte.DataUpdaterPlant.PayloadsDecoderTest do
   test "individual value payloads without metadata and without timestamp" do
     {:ok, date_time, 0} = DateTime.from_iso8601("2018-03-19T14:15:32+00:00")
     timestamp = DateTime.to_unix(date_time, :microsecond) * 10 + 123
+    timestamp = DecimicrosecondDateTime.from_unix!(timestamp, :decimicrosecond)
     expected_timestamp = DateTime.add(date_time, 0, :millisecond)
 
     string_payload = Base.decode64!("FAAAAAJ2AAgAAAAjRTVEOTAwAAA=")
@@ -60,6 +64,7 @@ defmodule Astarte.DataUpdaterPlant.PayloadsDecoderTest do
   test "individual value payloads with timestamp and without metadata" do
     {:ok, date_time, 0} = DateTime.from_iso8601("2018-02-19T14:15:32+00:00")
     rec_timestamp = DateTime.to_unix(date_time, :microsecond) * 10 + 123
+    rec_timestamp = DecimicrosecondDateTime.from_unix!(rec_timestamp, :decimicrosecond)
     expected_timestamp = DateTime.from_unix!(1_521_464_570_595, :millisecond)
 
     double_payload = Base.decode64!("GwAAAAF2AGZRYzaGqOE/CXQA4/JaPmIBAAAA")
@@ -71,6 +76,7 @@ defmodule Astarte.DataUpdaterPlant.PayloadsDecoderTest do
   test "individual value payloads with metadata and without timestamp" do
     {:ok, date_time, 0} = DateTime.from_iso8601("2018-02-19T14:15:32+00:00")
     rec_timestamp = DateTime.to_unix(date_time, :microsecond) * 10 + 123
+    rec_timestamp = DecimicrosecondDateTime.from_unix!(rec_timestamp, :decimicrosecond)
     expected_timestamp = DateTime.add(date_time, 0, :millisecond)
 
     double_payload =
@@ -83,6 +89,7 @@ defmodule Astarte.DataUpdaterPlant.PayloadsDecoderTest do
   test "deprecated object aggregation" do
     {:ok, date_time, 0} = DateTime.from_iso8601("2018-03-19T14:15:32+00:00")
     timestamp = DateTime.to_unix(date_time, :microsecond) * 10 + 123
+    timestamp = DecimicrosecondDateTime.from_unix!(timestamp, :decimicrosecond)
     expected_timestamp = DateTime.add(date_time, 0, :millisecond)
 
     object_payload =
@@ -102,6 +109,7 @@ defmodule Astarte.DataUpdaterPlant.PayloadsDecoderTest do
   test "object aggregation without timestamp and without metadata" do
     {:ok, date_time, 0} = DateTime.from_iso8601("2018-03-19T14:15:32+00:00")
     timestamp = DateTime.to_unix(date_time, :microsecond) * 10 + 123
+    timestamp = DecimicrosecondDateTime.from_unix!(timestamp, :decimicrosecond)
     expected_timestamp = DateTime.add(date_time, 0, :millisecond)
 
     object_payload =
@@ -121,6 +129,7 @@ defmodule Astarte.DataUpdaterPlant.PayloadsDecoderTest do
   test "object aggregation with timestamp and without metadata" do
     {:ok, date_time, 0} = DateTime.from_iso8601("2018-03-19T14:15:32+00:00")
     timestamp = DateTime.to_unix(date_time, :microsecond) * 10 + 123
+    timestamp = DecimicrosecondDateTime.from_unix!(timestamp, :decimicrosecond)
     expected_timestamp = DateTime.from_unix!(1_521_464_570_595, :millisecond)
 
     object_payload =
@@ -140,6 +149,7 @@ defmodule Astarte.DataUpdaterPlant.PayloadsDecoderTest do
   test "object aggregation with timestamp and metadata" do
     {:ok, date_time, 0} = DateTime.from_iso8601("2018-03-19T14:15:32+00:00")
     timestamp = DateTime.to_unix(date_time, :microsecond) * 10 + 123
+    timestamp = DecimicrosecondDateTime.from_unix!(timestamp, :decimicrosecond)
     expected_timestamp = DateTime.from_unix!(1_521_464_570_595, :millisecond)
 
     object_payload =

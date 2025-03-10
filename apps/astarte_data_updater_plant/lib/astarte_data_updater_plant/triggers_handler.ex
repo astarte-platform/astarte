@@ -20,6 +20,7 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandler do
   # https://hexdocs.pm/elixir/1.13.4/Bitwise.html
   import Bitwise
   require Logger
+  alias Astarte.Core.DecimicrosecondDateTime
   alias Astarte.DataUpdaterPlant.Config
 
   @moduledoc """
@@ -507,7 +508,7 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandler do
       parent_trigger_id: parent_trigger_id,
       realm: realm,
       device_id: device_id,
-      timestamp: timestamp,
+      timestamp: DecimicrosecondDateTime.to_unix(timestamp, :millisecond),
       event: {event_type, event}
     }
   end

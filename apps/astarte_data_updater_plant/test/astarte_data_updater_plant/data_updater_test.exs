@@ -21,6 +21,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
   import Mox
 
   alias Astarte.DataUpdaterPlant.Config
+  alias Astarte.Core.DecimicrosecondDateTime
   alias Astarte.Core.Device
   alias Astarte.Core.Triggers.SimpleEvents.DeviceConnectedEvent
   alias Astarte.Core.Triggers.SimpleEvents.DeviceDisconnectedEvent
@@ -140,7 +141,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
            ) == :ok
 
     timestamp_us_x_10 = make_timestamp("2017-10-09T14:00:32+00:00")
-    timestamp_ms = div(timestamp_us_x_10, 10_000)
+    timestamp_ms = DecimicrosecondDateTime.to_unix(timestamp_us_x_10, :millisecond)
 
     DataUpdater.handle_connection(
       realm,
@@ -658,7 +659,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
 
     # Incoming data sub-test
     timestamp_us_x_10 = make_timestamp("2017-10-09T14:10:31+00:00")
-    timestamp_ms = div(timestamp_us_x_10, 10_000)
+    timestamp_ms = DecimicrosecondDateTime.to_unix(timestamp_us_x_10, :millisecond)
 
     DataUpdater.handle_data(
       realm,
@@ -854,7 +855,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
            ) == {:error, :invalid_match_path}
 
     timestamp_us_x_10 = make_timestamp("2017-10-09T14:10:32+00:00")
-    timestamp_ms = div(timestamp_us_x_10, 10_000)
+    timestamp_ms = DecimicrosecondDateTime.to_unix(timestamp_us_x_10, :millisecond)
 
     DataUpdater.handle_data(
       realm,
@@ -922,7 +923,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
            }
 
     timestamp_us_x_10 = make_timestamp("2017-10-09T14:15:32+00:00")
-    timestamp_ms = div(timestamp_us_x_10, 10_000)
+    timestamp_ms = DecimicrosecondDateTime.to_unix(timestamp_us_x_10, :millisecond)
 
     # This should trigger matching_simple_trigger
     DataUpdater.handle_data(
@@ -1026,7 +1027,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
            ) == :ok
 
     timestamp_us_x_10 = make_timestamp("2017-10-09T14:15:32+00:00")
-    timestamp_ms = div(timestamp_us_x_10, 10_000)
+    timestamp_ms = DecimicrosecondDateTime.to_unix(timestamp_us_x_10, :millisecond)
 
     # Introspection change subtest
     DataUpdater.handle_introspection(
@@ -1177,7 +1178,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
         :zlib.compress("com.test.LCDMonitor/time/to;com.test.LCDMonitor/weekSchedule/10/start")
 
     timestamp_us_x_10 = make_timestamp("2017-10-09T14:00:32+00:00")
-    timestamp_ms = div(timestamp_us_x_10, 10_000)
+    timestamp_ms = DecimicrosecondDateTime.to_unix(timestamp_us_x_10, :millisecond)
 
     DataUpdater.handle_control(
       realm,
@@ -1377,7 +1378,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
     {:ok, db_client} = Database.connect(realm: realm)
 
     timestamp_us_x_10 = make_timestamp("2017-12-09T14:00:32+00:00")
-    timestamp_ms = div(timestamp_us_x_10, 10_000)
+    timestamp_ms = DecimicrosecondDateTime.to_unix(timestamp_us_x_10, :millisecond)
 
     DataUpdater.handle_connection(
       realm,
@@ -1427,7 +1428,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
     assert old_device_introspection == nil
 
     timestamp_us_x_10 = make_timestamp("2017-10-09T14:00:32+00:00")
-    timestamp_ms = div(timestamp_us_x_10, 10_000)
+    timestamp_ms = DecimicrosecondDateTime.to_unix(timestamp_us_x_10, :millisecond)
 
     DataUpdater.handle_introspection(
       realm,
@@ -1601,7 +1602,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
     DatabaseTestHelper.insert_device(device_id)
 
     timestamp_us_x_10 = make_timestamp("2017-12-09T14:00:32+00:00")
-    timestamp_ms = div(timestamp_us_x_10, 10_000)
+    timestamp_ms = DecimicrosecondDateTime.to_unix(timestamp_us_x_10, :millisecond)
 
     # Make sure a process for the device exists
     DataUpdater.handle_connection(
@@ -1644,7 +1645,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
     DatabaseTestHelper.insert_device(device_id)
 
     timestamp_us_x_10 = make_timestamp("2017-12-09T14:00:32+00:00")
-    timestamp_ms = div(timestamp_us_x_10, 10_000)
+    timestamp_ms = DecimicrosecondDateTime.to_unix(timestamp_us_x_10, :millisecond)
 
     # Make sure a process for the device exists
     DataUpdater.handle_connection(
@@ -1719,9 +1720,9 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
     end)
 
     timestamp_us_x_10 = make_timestamp("2017-10-09T15:00:32+00:00")
-    timestamp_ms = div(timestamp_us_x_10, 10_000)
+    timestamp_ms = DecimicrosecondDateTime.to_unix(timestamp_us_x_10, :millisecond)
 
-    DataUpdater.start_device_deletion(realm, encoded_device_id, timestamp_ms)
+    DataUpdater.start_device_deletion(realm, encoded_device_id, timestamp_us_x_10)
 
     # Check DUP start ack in deleted_devices table
     dup_start_ack_statement = """
@@ -1828,7 +1829,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
     DatabaseTestHelper.insert_device(device_id)
 
     timestamp_us_x_10 = make_timestamp("2017-12-09T14:00:32+00:00")
-    timestamp_ms = div(timestamp_us_x_10, 10_000)
+    timestamp_ms = DecimicrosecondDateTime.to_unix(timestamp_us_x_10, :millisecond)
 
     volatile_trigger_parent_id = :crypto.strong_rand_bytes(16)
     volatile_trigger_id = :crypto.strong_rand_bytes(16)
@@ -1935,7 +1936,8 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
   defp make_timestamp(timestamp_string) do
     {:ok, date_time, _} = DateTime.from_iso8601(timestamp_string)
 
-    DateTime.to_unix(date_time, :millisecond) * 10000
+    timestamp = DateTime.to_unix(date_time, :millisecond) * 10000
+    DecimicrosecondDateTime.from_unix!(timestamp, :decimicrosecond)
   end
 
   defp gen_tracking_id() do

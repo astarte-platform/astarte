@@ -132,7 +132,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
     %InterfaceDescriptor{interface_id: interface_id, storage: storage} = interface_descriptor
     %Mapping{endpoint_id: endpoint_id, value_type: value_type} = mapping
     keyspace_name = Realm.keyspace_name(realm)
-    {timestamp, reception_timestamp_submillis} = split_submillis(reception_timestamp)
+    {timestamp, reception_timestamp_submillis} = MsDateTime.split_submillis(reception_timestamp)
     column_name = CQLUtils.type_to_db_column_name(value_type)
 
     # TODO: :reception_timestamp_submillis is just a place holder right now
@@ -170,7 +170,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
     %InterfaceDescriptor{interface_id: interface_id, storage: storage} = interface_descriptor
     %Mapping{endpoint_id: endpoint_id, value_type: value_type} = mapping
     keyspace_name = Realm.keyspace_name(realm)
-    {timestamp, reception_timestamp_submillis} = split_submillis(reception_timestamp)
+    {timestamp, reception_timestamp_submillis} = MsDateTime.split_submillis(reception_timestamp)
     value_timestamp = Ecto.Type.cast!(MsDateTime, value_timestamp)
     column_name = CQLUtils.type_to_db_column_name(value_type)
 
@@ -211,7 +211,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
     %InterfaceDescriptor{interface_id: interface_id, storage: storage} = interface_descriptor
 
     keyspace_name = Realm.keyspace_name(realm)
-    {timestamp, reception_timestamp_submillis} = split_submillis(reception_timestamp)
+    {timestamp, reception_timestamp_submillis} = MsDateTime.split_submillis(reception_timestamp)
 
     # TODO: we should cache endpoints by interface_id
     column_info =
@@ -367,7 +367,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
     %InterfaceDescriptor{interface_id: interface_id} = interface_descriptor
     %Mapping{endpoint_id: endpoint_id} = mapping
     keyspace_name = Realm.keyspace_name(realm)
-    {timestamp, reception_timestamp_submillis} = split_submillis(reception_timestamp)
+    {timestamp, reception_timestamp_submillis} = MsDateTime.split_submillis(reception_timestamp)
     value_timestamp = Ecto.Type.cast!(MsDateTime, value_timestamp)
 
     # TODO: :reception_timestamp_submillis is just a place holder right now
@@ -922,14 +922,5 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
       uuid_format: :binary
     )
     |> Enum.to_list()
-  end
-
-  defp split_submillis(decimicro_ts) do
-    millisecond_ts = decimicro_ts |> div(10000)  
-    submillis = decimicro_ts |> rem(10000)
-
-    millisecond_datetime = Ecto.Type.cast!(MsDateTime, millisecond_ts)
-
-    {millisecond_datetime, submillis}
   end
 end

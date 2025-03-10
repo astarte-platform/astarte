@@ -18,6 +18,7 @@
 
 defmodule Astarte.DataUpdaterPlant.DataUpdater.PayloadsDecoder do
   require Logger
+  alias Astarte.Core.DecimicrosecondDateTime
   alias Astarte.Core.Interface
 
   @max_uncompressed_payload_size 10_485_760
@@ -26,9 +27,9 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.PayloadsDecoder do
   Decode a BSON payload a returns a tuple containing the decoded value, the timestamp and metadata.
   reception_timestamp is used if no timestamp has been sent with the payload.
   """
-  @spec decode_bson_payload(binary, integer) :: {map, DateTime.t(), map}
+  @spec decode_bson_payload(binary, DecimicrosecondDateTime.t()) :: {map, DateTime.t(), map}
   def decode_bson_payload(payload, reception_timestamp) do
-    reception = reception_timestamp |> div(10000) |> DateTime.from_unix!(:millisecond)
+    reception = DateTime.truncate(reception_timestamp.datetime, :millisecond)
 
     if byte_size(payload) != 0 do
       case Cyanide.decode(payload) do
