@@ -307,39 +307,18 @@ defmodule Astarte.Pairing.Queries do
   end
 
   def check_astarte_health(consistency) do
-    query = """
-    SELECT COUNT(*)
-    FROM #{CQLUtils.realm_name_to_keyspace_name("astarte", Config.astarte_instance_id!())}.realms
-    """
+    keyspace =
+      CQLUtils.realm_name_to_keyspace_name("astarte", Config.astarte_instance_id!())
 
-    with {:ok, %Xandra.Page{} = page} <-
-           Xandra.Cluster.execute(:xandra, query, %{}, consistency: consistency),
-         {:ok, _} <- Enum.fetch(page, 0) do
+    try do
+      _ =
+        Realm
+        |> select([r], count())
+        |> Repo.one!(prefix: keyspace, consistency: consistency)
+
       :ok
-    else
-      :error ->
-        _ =
-          Logger.warning("Cannot retrieve count for astarte.realms table.",
-            tag: "health_check_error"
-          )
-
-        {:error, :health_check_bad}
-
-      {:error, %Xandra.Error{} = err} ->
-        _ =
-          Logger.warning("Database error, health is not good: #{inspect(err)}.",
-            tag: "health_check_database_error"
-          )
-
-        {:error, :health_check_bad}
-
-      {:error, %Xandra.ConnectionError{} = err} ->
-        _ =
-          Logger.warning("Database error, health is not good: #{inspect(err)}.",
-            tag: "health_check_database_connection_error"
-          )
-
-        {:error, :database_connection_error}
+    rescue
+      err -> handle_xandra_error(err)
     end
   end
 end
