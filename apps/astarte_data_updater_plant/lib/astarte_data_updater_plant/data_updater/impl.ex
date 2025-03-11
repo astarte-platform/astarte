@@ -130,7 +130,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
     Queries.set_device_connected!(
       new_state.realm,
       new_state.device_id,
-      DateTime.from_unix!(timestamp_ms, :microsecond),
+      DateTime.from_unix!(timestamp_ms, :millisecond),
       ip_address
     )
 
@@ -2244,7 +2244,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
     Queries.set_device_disconnected!(
       state.realm,
       state.device_id,
-      DateTime.from_unix!(timestamp_ms, :microsecond),
+      DateTime.from_unix!(timestamp_ms, :millisecond),
       state.total_received_msgs,
       state.total_received_bytes,
       state.interface_exchanged_msgs,
