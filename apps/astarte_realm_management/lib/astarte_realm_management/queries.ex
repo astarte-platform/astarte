@@ -1247,50 +1247,22 @@ defmodule Astarte.RealmManagement.Queries do
         endpoint_id,
         path
       ) do
-    Xandra.Cluster.run(
-      :xandra_device_deletion,
-      &do_delete_individual_datastream_values!(
-        &1,
-        realm_name,
-        device_id,
-        interface_id,
-        endpoint_id,
-        path
-      )
-    )
-  end
-
-  defp do_delete_individual_datastream_values!(
-         conn,
-         realm_name,
-         device_id,
-         interface_id,
-         endpoint_id,
-         path
-       ) do
     # TODO: validate realm name
     keyspace_name =
       CQLUtils.realm_name_to_keyspace_name(realm_name, Config.astarte_instance_id!())
 
-    statement = """
-    DELETE FROM #{keyspace_name}.individual_datastreams
-    WHERE device_id=:device_id AND interface_id=:interface_id
-    AND endpoint_id=:endpoint_id AND path=:path
-    """
+    query =
+      from IndividualDatastream,
+        where: [
+          device_id: ^device_id,
+          interface_id: ^interface_id,
+          endpoint_id: ^endpoint_id,
+          path: ^path
+        ]
 
-    params = %{
-      device_id: device_id,
-      interface_id: interface_id,
-      endpoint_id: endpoint_id,
-      path: path
-    }
+    _ = Repo.delete_all(query, prefix: keyspace_name, consistency: :local_quorum)
 
-    prepared = Xandra.prepare!(conn, statement)
-
-    Xandra.execute!(conn, prepared, params,
-      consistency: :local_quorum,
-      uuid_format: :binary
-    )
+    :ok
   end
 
   def retrieve_individual_properties_keys!(realm_name, device_id) do
@@ -1307,38 +1279,17 @@ defmodule Astarte.RealmManagement.Queries do
   end
 
   def delete_individual_properties_values!(realm_name, device_id, interface_id) do
-    Xandra.Cluster.run(
-      :xandra_device_deletion,
-      &do_delete_individual_properties_values!(&1, realm_name, device_id, interface_id)
-    )
-  end
-
-  defp do_delete_individual_properties_values!(
-         conn,
-         realm_name,
-         device_id,
-         interface_id
-       ) do
     # TODO: validate realm name
     keyspace_name =
       CQLUtils.realm_name_to_keyspace_name(realm_name, Config.astarte_instance_id!())
 
-    statement = """
-    DELETE FROM #{keyspace_name}.individual_properties
-    WHERE device_id=:device_id AND interface_id=:interface_id
-    """
+    query =
+      from IndividualProperty,
+        where: [device_id: ^device_id, interface_id: ^interface_id]
 
-    params = %{
-      device_id: device_id,
-      interface_id: interface_id
-    }
+    _ = Repo.delete_all(query, prefix: keyspace_name, consistency: :local_quorum)
 
-    prepared = Xandra.prepare!(conn, statement)
-
-    Xandra.execute!(conn, prepared, params,
-      consistency: :local_quorum,
-      uuid_format: :binary
-    )
+    :ok
   end
 
   def retrieve_object_datastream_keys!(realm_name, device_id, table_name) do
@@ -1355,39 +1306,17 @@ defmodule Astarte.RealmManagement.Queries do
   end
 
   def delete_object_datastream_values!(realm_name, device_id, path, table_name) do
-    Xandra.Cluster.run(
-      :xandra_device_deletion,
-      &do_delete_object_datastream_values!(&1, realm_name, device_id, path, table_name)
-    )
-  end
-
-  defp do_delete_object_datastream_values!(
-         conn,
-         realm_name,
-         device_id,
-         path,
-         table_name
-       ) do
     # TODO: validate realm name
     keyspace_name =
       CQLUtils.realm_name_to_keyspace_name(realm_name, Config.astarte_instance_id!())
 
-    statement = """
-    DELETE FROM #{keyspace_name}.#{table_name}
-    WHERE device_id=:device_id AND path=:path
-    """
+    query =
+      from table_name,
+        where: [device_id: ^device_id, path: ^path]
 
-    params = %{
-      device_id: device_id,
-      path: path
-    }
+    _ = Repo.delete_all(query, prefix: keyspace_name, consistency: :local_quorum)
 
-    prepared = Xandra.prepare!(conn, statement)
-
-    Xandra.execute!(conn, prepared, params,
-      consistency: :local_quorum,
-      uuid_format: :binary
-    )
+    :ok
   end
 
   def retrieve_aliases!(realm_name, device_id) do
@@ -1403,30 +1332,17 @@ defmodule Astarte.RealmManagement.Queries do
   end
 
   def delete_alias_values!(realm_name, device_alias) do
-    Xandra.Cluster.run(
-      :xandra_device_deletion,
-      &do_delete_alias_values!(&1, realm_name, device_alias)
-    )
-  end
-
-  defp do_delete_alias_values!(conn, realm_name, device_alias) do
     # TODO: validate realm name
     keyspace_name =
       CQLUtils.realm_name_to_keyspace_name(realm_name, Config.astarte_instance_id!())
 
-    statement = """
-    DELETE FROM #{keyspace_name}.names
-    WHERE object_name = :device_alias
-    """
+    query =
+      from Name,
+        where: [object_name: ^device_alias]
 
-    params = %{device_alias: device_alias}
+    _ = Repo.delete_all(query, prefix: keyspace_name, consistency: :local_quorum)
 
-    prepared = Xandra.prepare!(conn, statement)
-
-    Xandra.execute!(conn, prepared, params,
-      consistency: :local_quorum,
-      uuid_format: :binary
-    )
+    :ok
   end
 
   def retrieve_groups_keys!(realm_name, device_id) do
@@ -1442,41 +1358,16 @@ defmodule Astarte.RealmManagement.Queries do
   end
 
   def delete_group_values!(realm_name, device_id, group_name, insertion_uuid) do
-    Xandra.Cluster.run(
-      :xandra_device_deletion,
-      &do_delete_group_values!(&1, realm_name, device_id, group_name, insertion_uuid)
-    )
-  end
-
-  defp do_delete_group_values!(
-         conn,
-         realm_name,
-         device_id,
-         group_name,
-         insertion_uuid
-       ) do
-    # TODO: validate realm name
     keyspace_name =
       CQLUtils.realm_name_to_keyspace_name(realm_name, Config.astarte_instance_id!())
 
-    statement = """
-    DELETE FROM #{keyspace_name}.grouped_devices
-    WHERE group_name = :group_name AND insertion_uuid = :insertion_uuid AND device_id = :device_id
-    """
+    query =
+      from GroupedDevice,
+        where: [group_name: ^group_name, insertion_uuid: ^insertion_uuid, device_id: ^device_id]
 
-    params = %{
-      group_name: group_name,
-      insertion_uuid: insertion_uuid,
-      device_id: device_id
-    }
+    _ = Repo.delete_all(query, prefix: keyspace_name, consistency: :local_quorum)
 
-    prepared = Xandra.prepare!(conn, statement)
-
-    Xandra.execute!(conn, prepared, params,
-      consistency: :local_quorum,
-      uuid_format: :binary,
-      timeuuid_format: :binary
-    )
+    :ok
   end
 
   def retrieve_kv_store_entries!(realm_name, device_id) do
@@ -1492,84 +1383,45 @@ defmodule Astarte.RealmManagement.Queries do
   end
 
   def delete_kv_store_entry!(realm_name, group, key) do
-    Xandra.Cluster.run(
-      :xandra_device_deletion,
-      &do_delete_kv_store_entry!(&1, realm_name, group, key)
-    )
-  end
-
-  defp do_delete_kv_store_entry!(conn, realm_name, group, key) do
     # TODO: validate realm name
     keyspace_name =
       CQLUtils.realm_name_to_keyspace_name(realm_name, Config.astarte_instance_id!())
 
-    statement = """
-    DELETE FROM #{keyspace_name}.kv_store
-    WHERE group = :group AND key = :key
-    """
+    query =
+      from KvStore,
+        where: [group: ^group, key: ^key]
 
-    params = %{group: group, key: key}
+    _ = Repo.delete_all(query, prefix: keyspace_name, consistency: :local_quorum)
 
-    prepared = Xandra.prepare!(conn, statement)
-
-    Xandra.execute!(conn, prepared, params,
-      consistency: :local_quorum,
-      uuid_format: :binary
-    )
+    :ok
   end
 
   def delete_device!(realm_name, device_id) do
-    Xandra.Cluster.run(
-      :xandra_device_deletion,
-      &do_delete_device!(&1, realm_name, device_id)
-    )
-  end
-
-  defp do_delete_device!(conn, realm_name, device_id) do
     # TODO: validate realm name
     keyspace_name =
       CQLUtils.realm_name_to_keyspace_name(realm_name, Config.astarte_instance_id!())
 
-    statement = """
-    DELETE FROM #{keyspace_name}.devices
-    WHERE device_id = :device_id
-    """
+    query =
+      from RealmsDevice,
+        where: [device_id: ^device_id]
 
-    params = %{device_id: device_id}
+    _ = Repo.delete_all(query, prefix: keyspace_name, consistency: :local_quorum)
 
-    prepared = Xandra.prepare!(conn, statement)
-
-    Xandra.execute!(conn, prepared, params,
-      consistency: :local_quorum,
-      uuid_format: :binary
-    )
+    :ok
   end
 
   def remove_device_from_deletion_in_progress!(realm_name, device_id) do
-    Xandra.Cluster.run(
-      :xandra_device_deletion,
-      &do_remove_device_from_deletion_in_progress!(&1, realm_name, device_id)
-    )
-  end
-
-  defp do_remove_device_from_deletion_in_progress!(conn, realm_name, device_id) do
     # TODO: validate realm name
     keyspace_name =
       CQLUtils.realm_name_to_keyspace_name(realm_name, Config.astarte_instance_id!())
 
-    statement = """
-    DELETE FROM #{keyspace_name}.deletion_in_progress
-    WHERE device_id = :device_id
-    """
+    query =
+      from DeletionInProgress,
+        where: [device_id: ^device_id]
 
-    params = %{device_id: device_id}
+    _ = Repo.delete_all(query, prefix: keyspace_name, consistency: :local_quorum)
 
-    prepared = Xandra.prepare!(conn, statement)
-
-    Xandra.execute!(conn, prepared, params,
-      consistency: :local_quorum,
-      uuid_format: :binary
-    )
+    :ok
   end
 
   def retrieve_realms!() do

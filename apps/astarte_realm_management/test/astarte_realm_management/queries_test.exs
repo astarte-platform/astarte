@@ -619,7 +619,7 @@ defmodule Astarte.RealmManagement.QueriesTest do
 
     assert ^endpoint_id = CQLUtils.endpoint_id(interface_name, interface_major, endpoint)
 
-    assert %Xandra.Void{} =
+    assert :ok =
              Queries.delete_individual_datastream_values!(
                @realm_name,
                device_id,
@@ -660,7 +660,7 @@ defmodule Astarte.RealmManagement.QueriesTest do
 
     assert ^interface_id = CQLUtils.interface_id(interface_name, interface_major)
 
-    assert %Xandra.Void{} =
+    assert :ok =
              Queries.delete_individual_properties_values!(
                @realm_name,
                device_id,
@@ -703,7 +703,7 @@ defmodule Astarte.RealmManagement.QueriesTest do
                table_name
              )
 
-    assert %Xandra.Void{} =
+    assert :ok =
              Queries.delete_object_datastream_values!(
                @realm_name,
                device_id,
@@ -775,7 +775,7 @@ defmodule Astarte.RealmManagement.QueriesTest do
              }
            ] = Queries.retrieve_aliases!(@realm_name, device_id)
 
-    assert %Xandra.Void{} =
+    assert :ok =
              Queries.delete_alias_values!(
                @realm_name,
                device_alias
@@ -804,7 +804,7 @@ defmodule Astarte.RealmManagement.QueriesTest do
              }
            ] = Queries.retrieve_groups_keys!(@realm_name, device_id)
 
-    assert %Xandra.Void{} =
+    assert :ok =
              Queries.delete_group_values!(
                @realm_name,
                device_id,
@@ -835,7 +835,7 @@ defmodule Astarte.RealmManagement.QueriesTest do
              }
            ] = Queries.retrieve_kv_store_entries!(@realm_name, encoded_device_id)
 
-    assert %Xandra.Void{} =
+    assert :ok =
              Queries.delete_kv_store_entry!(
                @realm_name,
                group,
