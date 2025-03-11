@@ -48,6 +48,8 @@ defmodule Astarte.DataUpdaterPlant.Application do
     dup_xandra_opts = Keyword.put(xandra_options, :name, :xandra)
 
     children = [
+      {Cluster.Supervisor,
+       [Config.cluster_topologies!(), [name: Astarte.DataUpdaterPlant.ClusterSupervisor]]},
       Astarte.DataUpdaterPlantWeb.Telemetry,
       {Xandra.Cluster, dup_xandra_opts},
       {Astarte.DataAccess, data_access_opts},
