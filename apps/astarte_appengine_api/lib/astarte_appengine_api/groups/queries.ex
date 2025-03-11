@@ -70,7 +70,7 @@ defmodule Astarte.AppEngine.API.Groups.Queries do
     with {:ok, %{device_id: device_id}} <-
            Ecto.Changeset.apply_action(device_changeset, :insert),
          {:group_exists?, true} <-
-           {:group_exists?, group_exists?(realm_name, group_name)},
+           {:group_exists?, group_exists?(keyspace, group_name)},
          :ok <- check_valid_device_for_group(keyspace, group_name, device_id),
          :ok <- add_to_group(keyspace, group_name, [device_id]) do
       :ok
@@ -94,9 +94,10 @@ defmodule Astarte.AppEngine.API.Groups.Queries do
   end
 
   def remove_device(realm_name, group_name, device_id) do
+    keyspace = DataAccessRealm.keyspace_name(realm_name)
+
     with {:group_exists?, true} <-
-           {:group_exists?, group_exists?(realm_name, group_name)},
-         keyspace = DataAccessRealm.keyspace_name(realm_name),
+           {:group_exists?, group_exists?(keyspace, group_name)},
          :ok <- remove_from_group(keyspace, group_name, device_id) do
       :ok
     else
@@ -241,19 +242,17 @@ defmodule Astarte.AppEngine.API.Groups.Queries do
     end
   end
 
-  defp compute_device_status(realm_name, device_row) do
+  defp compute_device_status(keyspace, device_row) do
     %{
       device_id: device_id
     } = device_row
 
     device_status = DeviceStatus.from_db_row(device_row)
-    deletion_in_progress? = deletion_in_progress?(realm_name, device_id)
+    deletion_in_progress? = deletion_in_progress?(keyspace, device_id)
     %{device_status | deletion_in_progress: deletion_in_progress?}
   end
 
-  defp deletion_in_progress?(realm_name, device_id) do
-    keyspace = DataAccessRealm.keyspace_name(realm_name)
-
+  defp deletion_in_progress?(keyspace, device_id) do
     case Repo.fetch(DeletionInProgress, device_id, prefix: keyspace) do
       {:ok, _} ->
         true
@@ -278,9 +277,7 @@ defmodule Astarte.AppEngine.API.Groups.Queries do
     end
   end
 
-  defp group_exists?(realm_name, group_name) do
-    keyspace = DataAccessRealm.keyspace_name(realm_name)
-
+  defp group_exists?(keyspace, group_name) do
     query =
       from d in GroupedDevice,
         prefix: ^keyspace,

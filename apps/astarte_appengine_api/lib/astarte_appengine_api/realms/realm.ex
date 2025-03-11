@@ -21,6 +21,7 @@ defmodule Astarte.AppEngine.API.Realm do
   use TypedEctoSchema
 
   alias Astarte.Core.CQLUtils
+  alias Astarte.Core.Realm
   alias Astarte.DataAccess.Config
 
   @primary_key {:realm_name, :string, autogenerate: false}
@@ -29,7 +30,15 @@ defmodule Astarte.AppEngine.API.Realm do
   end
 
   @spec keyspace_name(String.t()) :: String.t()
+
   def keyspace_name(realm_name) do
-    CQLUtils.realm_name_to_keyspace_name(realm_name, Config.astarte_instance_id!())
+    case Realm.valid_name?(realm_name) do
+      true -> CQLUtils.realm_name_to_keyspace_name(realm_name, Config.astarte_instance_id!())
+      _ -> raise ArgumentError, "invalid realm name"
+    end
+  end
+
+  def astarte_keyspace_name() do
+    CQLUtils.realm_name_to_keyspace_name("astarte", Config.astarte_instance_id!())
   end
 end

@@ -40,7 +40,7 @@ defmodule Astarte.AppEngine.API.Device do
   alias Astarte.DataAccess.Device, as: DeviceQueries
   alias Astarte.DataAccess.Interface, as: InterfaceQueries
   alias Ecto.Changeset
-  alias Astarte.Core.CQLUtils
+
   require Logger
 
   def list_devices!(realm_name, params) do

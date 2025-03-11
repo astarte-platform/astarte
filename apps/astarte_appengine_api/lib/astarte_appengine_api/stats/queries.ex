@@ -18,7 +18,7 @@
 
 defmodule Astarte.AppEngine.API.Stats.Queries do
   alias Astarte.Core.Device
-  alias Astarte.AppEngine.API.Realm
+  alias Astarte.AppEngine.API.Realm, as: DataAccessRealm
   alias Astarte.AppEngine.API.Repo
   alias Astarte.AppEngine.API.Devices.Device
   alias Astarte.AppEngine.API.Stats.DevicesStats
@@ -28,7 +28,7 @@ defmodule Astarte.AppEngine.API.Stats.Queries do
   import Ecto.Query
 
   def for_realm(realm_name) do
-    keyspace = Realm.keyspace_name(realm_name)
+    keyspace = DataAccessRealm.keyspace_name(realm_name)
 
     device_count = Repo.aggregate(Device, :count, prefix: keyspace)
 
