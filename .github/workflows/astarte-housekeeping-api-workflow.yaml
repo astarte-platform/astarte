@@ -1,0 +1,37 @@
+name: Build and Test Astarte Housekeeping API
+
+on:
+  # Run when pushing to stable branches
+  push:
+    paths:
+    - 'apps/astarte_housekeeping'
+    - 'apps/astarte_housekeeping_api'
+    - '.github/workflows/astarte-apps-build-workflow.yaml'
+    - '.github/workflows/astarte-housekeeping-api-workflow.yaml'
+    branches:
+    - 'master'
+    - 'release-*'
+  # Run on branch/tag creation
+  create:
+  # Run on pull requests for astarte_housekeeping_api
+  pull_request:
+    paths:
+    - 'apps/astarte_housekeeping'
+    - 'apps/astarte_housekeeping_api'
+    - '.github/workflows/astarte-apps-build-workflow.yaml'
+    - '.github/workflows/astarte-housekeeping-api-workflow.yaml'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  astarte_housekeeping_api:
+    uses: ./.github/workflows/astarte-apps-build-workflow.yaml
+    with:
+      app: "astarte_housekeeping_api"
+    secrets: inherit
