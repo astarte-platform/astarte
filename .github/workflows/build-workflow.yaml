@@ -1,5 +1,4 @@
 name: Build and Test
-
 on:
   # Run when pushing to stable branches
   push:
@@ -10,11 +9,9 @@ on:
   create:
   # Run on pull requests
   pull_request:
-
 env:
   elixir_version: "1.15.7"
   otp_version: "26.1"
-
 jobs:
   test-dialyzer:
     name: Check Dialyzer
@@ -23,20 +20,20 @@ jobs:
       MIX_ENV: ci
     steps:
     - uses: actions/checkout@v2
-    - uses: actions/cache@v1
+    - uses: actions/cache@v4
       with:
         path: deps
         key: ${{ runner.os }}-${{ env.elixir_version }}-${{ env.otp_version }}-mix-${{ hashFiles(format('{0}{1}', github.workspace, '/mix.lock')) }}
         restore-keys: |
           ${{ runner.os }}-${{ env.elixir_version }}-${{ env.otp_version }}-mix-
-    - uses: actions/cache@v1
+    - uses: actions/cache@v4
       with:
         path: _build
         key: ${{ runner.os }}-${{ env.elixir_version }}-${{ env.otp_version }}-_build-${{ github.sha }}
         restore-keys: |
           ${{ runner.os }}-${{ env.elixir_version }}-${{ env.otp_version }}-_build-
     - id: plt_cache
-      uses: actions/cache@v1
+      uses: actions/cache@v4
       with:
         path: dialyzer_cache
         key: ${{ runner.os }}-${{ env.elixir_version }}-${{ env.otp_version }}-dialyzer_cache-${{ github.sha }}
@@ -54,7 +51,6 @@ jobs:
     - name: Run dialyzer
       # FIXME: This should be set to fail when dialyzer issues are fixed
       run: mix dialyzer || exit 0
-
   test-coverage:
     name: Build and Test
     runs-on: ubuntu-22.04
@@ -78,13 +74,13 @@ jobs:
       ASTARTE_CASSANDRA_NODES: localhost
     steps:
     - uses: actions/checkout@v2
-    - uses: actions/cache@v1
+    - uses: actions/cache@v4
       with:
         path: deps
         key: ${{ runner.os }}-${{ env.elixir_version }}-${{ env.otp_version }}-mix-${{ hashFiles(format('{0}{1}', github.workspace, '/mix.lock')) }}
         restore-keys: |
           ${{ runner.os }}-${{ env.elixir_version }}-${{ env.otp_version }}-mix-
-    - uses: actions/cache@v1
+    - uses: actions/cache@v4
       with:
         path: _build
         key: ${{ runner.os }}-${{ env.elixir_version }}-${{ env.otp_version }}-_build-${{ github.sha }}
