@@ -4,7 +4,7 @@ on:
   # Run when pushing to stable branches
   push:
     paths:
-    - 'apps/astarte_data_updater_plant'
+    - 'apps/astarte_data_updater_plant/**'
     - '.github/workflows/astarte-apps-build-workflow.yaml'
     - '.github/workflows/astarte-data-updater-plant-workflow.yaml'
     branches:
@@ -15,7 +15,7 @@ on:
   # Run on pull requests for astarte_data_updater_plant
   pull_request:
     paths:
-    - 'apps/astarte_data_updater_plant'
+    - 'apps/astarte_data_updater_plant/**'
     - '.github/workflows/astarte-apps-build-workflow.yaml'
     - '.github/workflows/astarte-data-updater-plant-workflow.yaml'
 

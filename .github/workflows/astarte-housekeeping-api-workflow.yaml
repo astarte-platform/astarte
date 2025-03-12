@@ -4,8 +4,8 @@ on:
   # Run when pushing to stable branches
   push:
     paths:
-    - 'apps/astarte_housekeeping'
-    - 'apps/astarte_housekeeping_api'
+    - 'apps/astarte_housekeeping/**'
+    - 'apps/astarte_housekeeping_api/**'
     - '.github/workflows/astarte-apps-build-workflow.yaml'
     - '.github/workflows/astarte-housekeeping-api-workflow.yaml'
     branches:
@@ -16,8 +16,8 @@ on:
   # Run on pull requests for astarte_housekeeping_api
   pull_request:
     paths:
-    - 'apps/astarte_housekeeping'
-    - 'apps/astarte_housekeeping_api'
+    - 'apps/astarte_housekeeping/**'
+    - 'apps/astarte_housekeeping_api/**'
     - '.github/workflows/astarte-apps-build-workflow.yaml'
     - '.github/workflows/astarte-housekeeping-api-workflow.yaml'
 
