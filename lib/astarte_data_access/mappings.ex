@@ -18,6 +18,7 @@
 
 defmodule Astarte.DataAccess.Mappings do
   alias Astarte.Core.Mapping
+  alias Astarte.DataAccess.Consistency
   alias Astarte.DataAccess.XandraUtils
   require Logger
 
@@ -43,9 +44,11 @@ defmodule Astarte.DataAccess.Mappings do
     WHERE interface_id=:interface_id
     """
 
+    consistency = Consistency.domain_model(:read)
+
     with {:ok, %Xandra.Page{} = page} <-
            XandraUtils.retrieve_page(conn, statement, %{interface_id: interface_id},
-             consistency: :quorum
+             consistency: consistency
            ) do
       to_mapping_list(page)
     end

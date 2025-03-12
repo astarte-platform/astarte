@@ -18,6 +18,7 @@
 
 defmodule Astarte.DataAccess.Device do
   require Logger
+  alias Astarte.DataAccess.Consistency
   alias Astarte.DataAccess.XandraUtils
   alias Astarte.Core.Device
 
@@ -34,8 +35,12 @@ defmodule Astarte.DataAccess.Device do
     WHERE device_id=:device_id
     """
 
+    consistency = Consistency.device_info(:read)
+
     with {:ok, %Xandra.Page{} = page} <-
-           XandraUtils.retrieve_page(conn, statement, %{device_id: device_id}),
+           XandraUtils.retrieve_page(conn, statement, %{device_id: device_id},
+             consistency: consistency
+           ),
          {:ok, introspection} <- retrieve_introspection(page),
          {:ok, major} <- retrieve_major(introspection, interface_name) do
       {:ok, major}
