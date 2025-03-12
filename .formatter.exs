@@ -4,5 +4,5 @@
     "test/**/*.{ex,exs}",
     "mix.exs"
   ],
-  import_deps: [:skogsra]
+  import_deps: [:skogsra, :ecto]
 ]
