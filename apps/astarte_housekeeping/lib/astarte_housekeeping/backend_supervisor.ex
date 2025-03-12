@@ -21,8 +21,8 @@ defmodule Astarte.Housekeeping.BackendSupervisor do
   require Logger
 
   alias Astarte.RPC.Protocol.Housekeeping, as: Protocol
-  alias Astarte.Housekeeping.RPC.Handler
   alias Astarte.Housekeeping.Config
+  alias Astarte.Housekeeping.RPC.Handler
 
   def start_link(init_arg) do
     Supervisor.start_link(__MODULE__, init_arg, name: __MODULE__)
