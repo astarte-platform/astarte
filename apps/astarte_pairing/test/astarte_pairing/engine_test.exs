@@ -63,7 +63,9 @@ defmodule Astarte.Pairing.EngineTest do
 
   describe "get_agent_public_key_pem" do
     test "fails with non-existing realm" do
-      assert {:error, :realm_not_found} = Engine.get_agent_public_key_pems("nonexisting")
+      assert_raise Xandra.Error, "Keyspace nonexisting does not exist", fn ->
+        Engine.get_agent_public_key_pems("nonexisting")
+      end
     end
 
     test "successful call" do
@@ -214,7 +216,9 @@ defmodule Astarte.Pairing.EngineTest do
       realm = "nonexisting"
       device_id = TestHelper.random_128_bit_hw_id()
 
-      assert {:error, :realm_not_found} = Engine.unregister_device(realm, device_id)
+      assert_raise Xandra.Error, "Keyspace nonexisting does not exist", fn ->
+        Engine.unregister_device(realm, device_id)
+      end
     end
 
     test "fails with invalid device_id" do
@@ -292,15 +296,16 @@ defmodule Astarte.Pairing.EngineTest do
     test "fails with unexisting realm", %{hw_id: hw_id, secret: secret} do
       realm = "unexisting"
 
-      assert {:error, :realm_not_found} =
-               Engine.get_credentials(
-                 @astarte_protocol,
-                 @astarte_credentials_params,
-                 realm,
-                 hw_id,
-                 secret,
-                 @valid_ip
-               )
+      assert_raise Xandra.Error, "Keyspace unexisting does not exist", fn ->
+        Engine.get_credentials(
+          @astarte_protocol,
+          @astarte_credentials_params,
+          realm,
+          hw_id,
+          secret,
+          @valid_ip
+        )
+      end
     end
 
     test "fails with not registered device" do
