@@ -16,8 +16,6 @@
 # limitations under the License.
 #
 
-# TODO: Copied from astarte_data_access PR #71, see: https://github.com/astarte-platform/astarte_data_access/pull/71
-# use `astarte_data_access` when it will be merged
 defmodule Astarte.DataAccess.Realms.Endpoint do
   use TypedEctoSchema
 

@@ -14,9 +14,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-#
-# TODO: Copied from astarte_data_access PR #71, see: https://github.com/astarte-platform/astarte_data_access/pull/71
-# use `astarte_data_access` when it will be merged
+
 defmodule Astarte.DataAccess.Realms.Realm do
   use TypedEctoSchema
 
