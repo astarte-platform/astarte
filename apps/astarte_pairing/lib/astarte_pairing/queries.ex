@@ -269,7 +269,11 @@ defmodule Astarte.Pairing.Queries do
 
       :ok
     rescue
-      err -> handle_xandra_error(err)
+      Xandra.ConnectionError ->
+        {:error, :database_connection_error}
+
+      Xandra.Error ->
+        {:error, :health_check_bad}
     end
   end
 end
