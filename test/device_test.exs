@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2018 Ispirata Srl
+# Copyright 2018 - 2025 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -83,8 +83,8 @@ defmodule Astarte.DataAccess.Device.XandraTest do
       Xandra.Cluster.prepare!(:astarte_data_access_xandra, insert_empty_introspection_stmt)
 
     Xandra.Cluster.execute!(:astarte_data_access_xandra, prepared, %{
-      device_id: device_id,
-      empty_introspection: %{}
+      "device_id" => device_id,
+      "empty_introspection" => %{}
     })
 
     assert Device.interface_version(

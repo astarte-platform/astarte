@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2017 Ispirata Srl
+# Copyright 2017 - 2025 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -50,6 +50,7 @@ defmodule Astarte.DataAccess.DatabaseTestHelper do
         aliases map<ascii, varchar>,
         introspection map<ascii, int>,
         introspection_minor map<ascii, int>,
+        old_introspection map<frozen<tuple<ascii, int>>, int>,
         protocol_revision int,
         first_registration timestamp,
         credentials_secret ascii,
@@ -63,8 +64,12 @@ defmodule Astarte.DataAccess.DatabaseTestHelper do
         pending_empty_cache boolean,
         total_received_msgs bigint,
         total_received_bytes bigint,
+        exchanged_bytes_by_interface map<frozen<tuple<ascii, int>>, bigint>,
+        exchanged_msgs_by_interface map<frozen<tuple<ascii, int>>, bigint>,
         last_credentials_request_ip inet,
         last_seen_ip inet,
+        attributes map<varchar, varchar>,
+        groups map<text, timeuuid>,
 
         PRIMARY KEY (device_id)
       );
@@ -420,9 +425,9 @@ defmodule Astarte.DataAccess.DatabaseTestHelper do
       device_id = Base.url_decode64!(encoded_device_id, padding: false)
 
       insert_device_query_params = %{
-        device_id: device_id,
-        aliases: aliases,
-        total_received_bytes: total_received_bytes
+        "device_id" => device_id,
+        "aliases" => aliases,
+        "total_received_bytes" => total_received_bytes
       }
 
       insert_device_query_prp = Xandra.prepare!(conn, @insert_device_statement)
@@ -431,8 +436,8 @@ defmodule Astarte.DataAccess.DatabaseTestHelper do
 
       for {_key, device_alias} <- aliases || %{} do
         insert_alias_query_params = %{
-          device_id: device_id,
-          alias: device_alias
+          "device_id" => device_id,
+          "alias" => device_alias
         }
 
         alias_query_prepared = Xandra.prepare!(conn, @insert_alias_statement)
@@ -442,11 +447,11 @@ defmodule Astarte.DataAccess.DatabaseTestHelper do
     end
 
     insert_into_interface_0_params = %{
-      automaton_accepting_states:
+      "automaton_accepting_states" =>
         Base.decode64!(
           "g3QAAAAFYQNtAAAAEIAeEDVf33Bpjm4/0nkmmathBG0AAAAQjrtis2DBS6JBcp3e3YCcn2EFbQAAABBP5QNKPZuZ7H7DsjcWMD0zYQdtAAAAEOb3NjHv/B1+rVLT86O65QthCG0AAAAQKyxj3bvZVzVtSo5W9QTt2g=="
         ),
-      automaton_transitions:
+      "automaton_transitions" =>
         Base.decode64!(
           "g3QAAAAIaAJhAG0AAAAKbGNkQ29tbWFuZGEFaAJhAG0AAAAEdGltZWEGaAJhAG0AAAAMd2Vla1NjaGVkdWxlYQFoAmEBbQAAAABhAmgCYQJtAAAABXN0YXJ0YQNoAmECbQAAAARzdG9wYQRoAmEGbQAAAARmcm9tYQdoAmEGbQAAAAJ0b2EI"
         )
@@ -457,11 +462,11 @@ defmodule Astarte.DataAccess.DatabaseTestHelper do
     Xandra.execute!(conn, insert_into_interface_0_prepared, insert_into_interface_0_params)
 
     insert_into_interface_1_params = %{
-      automaton_accepting_states:
+      "automaton_accepting_states" =>
         Base.decode64!(
           "g3QAAAAFYQJtAAAAEHUBDhsZnu783TXSVLDiCSRhBW0AAAAQOQfUHVvKMp2eUUzqKlSpmmEGbQAAABB6pEwRInNH2eYkSuAp3t6qYQdtAAAAEO/5V88D397tl4SocI49jLlhCG0AAAAQNGyA5MqZYnSB9nscG+WVIQ=="
         ),
-      automaton_transitions:
+      "automaton_transitions" =>
         Base.decode64!(
           "g3QAAAAIaAJhAG0AAAAAYQFoAmEAbQAAAANmb29hA2gCYQFtAAAABXZhbHVlYQJoAmEDbQAAAABhBGgCYQRtAAAACWJsb2JWYWx1ZWEGaAJhBG0AAAAJbG9uZ1ZhbHVlYQdoAmEEbQAAAAtzdHJpbmdWYWx1ZWEFaAJhBG0AAAAOdGltZXN0YW1wVmFsdWVhCA=="
         )
@@ -474,8 +479,8 @@ defmodule Astarte.DataAccess.DatabaseTestHelper do
     Xandra.execute!(conn, @insert_into_interface_2, %{})
 
     insert_into_interface_3_params = %{
-      automaton_accepting_states: Base.decode64!("g3QAAAABYQNtAAAAEOPZVKNVUNqw17mW3O0hiYc="),
-      automaton_transitions:
+      "automaton_accepting_states" => Base.decode64!("g3QAAAABYQNtAAAAEOPZVKNVUNqw17mW3O0hiYc="),
+      "automaton_transitions" =>
         Base.decode64!("g3QAAAADaAJhAG0AAAAAYQFoAmEBbQAAAABhAmgCYQJtAAAABWNvbG9yYQM=")
     }
 
@@ -484,8 +489,8 @@ defmodule Astarte.DataAccess.DatabaseTestHelper do
     Xandra.execute!(conn, insert_into_interface_3_prepared, insert_into_interface_3_params)
 
     insert_into_interface_4_params = %{
-      automaton_accepting_states: Base.decode64!("g3QAAAABYQNtAAAAEGZjaujopxRZWiHuQLZfzfQ="),
-      automaton_transitions:
+      "automaton_accepting_states" => Base.decode64!("g3QAAAABYQNtAAAAEGZjaujopxRZWiHuQLZfzfQ="),
+      "automaton_transitions" =>
         Base.decode64!(
           "g3QAAAADaAJhAG0AAAADbmV3YQFoAmEBbQAAAAlpbnRlcmZhY2VhAmgCYQJtAAAABXZhbHVlYQM="
         )
@@ -509,5 +514,18 @@ defmodule Astarte.DataAccess.DatabaseTestHelper do
   def destroy_local_test_keyspace(conn) do
     Xandra.execute(conn, "DROP KEYSPACE autotestrealm;")
     :ok
+  end
+
+  def await_cluster_connected!(cluster, tries \\ 10) do
+    fun = &Xandra.execute!(&1, "SELECT * FROM system.local")
+
+    with {:error, %Xandra.ConnectionError{}} <- Xandra.Cluster.run(cluster, _options = [], fun) do
+      if tries > 0 do
+        Process.sleep(100)
+        await_cluster_connected!(cluster, tries - 1)
+      else
+        raise("Connection to the cluster failed")
+      end
+    end
   end
 end
