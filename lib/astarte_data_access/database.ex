@@ -43,7 +43,7 @@ defmodule Astarte.DataAccess.Database do
         {:error, :database_connection_error}
 
       any_error ->
-        Logger.warn("Failed connection to the database. Reason: #{inspect(any_error)}")
+        Logger.warning("Failed connection to the database. Reason: #{inspect(any_error)}")
         {:error, :database_connection_error}
     end
   end

@@ -55,11 +55,13 @@ defmodule Astarte.DataAccess.XandraUtils do
 
       case Xandra.execute(conn, prepared, params, opts) do
         {:error, %Xandra.Error{} = reason} ->
-          _ = Logger.warn("Database error while retrieving data: #{inspect(reason)}")
+          _ = Logger.warning("Database error while retrieving data: #{inspect(reason)}")
           {:error, :database_error}
 
         {:error, %Xandra.ConnectionError{} = reason} ->
-          _ = Logger.warn("Database connection error while retrieving data: #{inspect(reason)}")
+          _ =
+            Logger.warning("Database connection error while retrieving data: #{inspect(reason)}")
+
           {:error, :database_connection_error}
 
         {:ok, %Xandra.Page{} = page} ->
@@ -71,11 +73,11 @@ defmodule Astarte.DataAccess.XandraUtils do
   defp prepare_query(conn, statement, opts \\ []) do
     case Xandra.prepare(conn, statement, opts) do
       {:error, %Xandra.Error{} = reason} ->
-        _ = Logger.warn("Database error while preparing query: #{inspect(reason)}")
+        _ = Logger.warning("Database error while preparing query: #{inspect(reason)}")
         {:error, :database_error}
 
       {:error, %Xandra.ConnectionError{} = reason} ->
-        _ = Logger.warn("Database connection error while preparing query: #{inspect(reason)}")
+        _ = Logger.warning("Database connection error while preparing query: #{inspect(reason)}")
         {:error, :database_connection_error}
 
       {:ok, %Xandra.Prepared{} = prepared} ->
