@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2018 - 2023 SECO Mind Srl
+# Copyright 2018 - 2025 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -23,6 +23,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
   alias Astarte.Core.Mapping
   alias Astarte.DataUpdaterPlant.Config
   alias Astarte.DataUpdaterPlant.DataUpdater.SimpleTrigger
+  alias Astarte.DataUpdaterPlant.DataUpdater.DeletionInProgress
   alias Astarte.DataUpdaterPlant.DataUpdater.Device
   alias Astarte.DataUpdaterPlant.DataUpdater.Endpoint
   alias Astarte.DataUpdaterPlant.DataUpdater.IndividualProperty
@@ -820,76 +821,32 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
   end
 
   def ack_end_device_deletion(realm_name, device_id) do
-    Xandra.Cluster.run(
-      :xandra,
-      &do_ack_end_device_deletion(&1, realm_name, device_id)
-    )
-  end
+    keyspace_name = Realm.keyspace_name(realm_name)
 
-  defp do_ack_end_device_deletion(conn, realm_name, device_id) do
-    statement = """
-    UPDATE #{realm_name}.deletion_in_progress
-    SET dup_end_ack = true
-    WHERE device_id = :device_id
-    """
+    query =
+      from(d in DeletionInProgress,
+        prefix: ^keyspace_name,
+        where: d.device_id == ^device_id,
+        update: [set: [dup_end_ack: true]]
+      )
 
-    with {:ok, prepared} <- Xandra.prepare(conn, statement),
-         {:ok, %Xandra.Void{}} <-
-           Xandra.execute(conn, prepared, %{"device_id" => device_id}, uuid_format: :binary) do
+    with {:ok, _} <- Repo.update_all(query, []) do
       :ok
-    else
-      {:error, %Xandra.Error{} = error} ->
-        _ =
-          Logger.warning(
-            "Database error while writing device deletion end ack: #{Exception.message(error)}"
-          )
-
-        {:error, :database_error}
-
-      {:error, %Xandra.ConnectionError{} = error} ->
-        _ =
-          Logger.warning(
-            "Database connection error while writing device deletion end ack: #{Exception.message(error)}"
-          )
-
-        {:error, :database_connection_error}
     end
   end
 
   def ack_start_device_deletion(realm_name, device_id) do
-    Xandra.Cluster.run(
-      :xandra,
-      &do_ack_start_device_deletion(&1, realm_name, device_id)
-    )
-  end
+    keyspace_name = Realm.keyspace_name(realm_name)
 
-  defp do_ack_start_device_deletion(conn, realm_name, device_id) do
-    statement = """
-    UPDATE #{realm_name}.deletion_in_progress
-    SET dup_start_ack = true
-    WHERE device_id = :device_id
-    """
+    query =
+      from(d in DeletionInProgress,
+        prefix: ^keyspace_name,
+        where: d.device_id == ^device_id,
+        update: [set: [dup_start_ack: true]]
+      )
 
-    with {:ok, prepared} <- Xandra.prepare(conn, statement),
-         {:ok, %Xandra.Void{}} <-
-           Xandra.execute(conn, prepared, %{"device_id" => device_id}, uuid_format: :binary) do
+    with {:ok, _} <- Repo.update_all(query, []) do
       :ok
-    else
-      {:error, %Xandra.Error{} = error} ->
-        _ =
-          Logger.warning(
-            "Database error while writing device deletion start ack: #{Exception.message(error)}"
-          )
-
-        {:error, :database_error}
-
-      {:error, %Xandra.ConnectionError{} = error} ->
-        _ =
-          Logger.warning(
-            "Database connection error while writing device deletion start ack: #{Exception.message(error)}"
-          )
-
-        {:error, :database_connection_error}
     end
   end
 
