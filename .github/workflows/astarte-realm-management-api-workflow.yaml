@@ -4,8 +4,8 @@ on:
   # Run when pushing to stable branches
   push:
     paths:
-    - 'apps/astarte_realm_management'
-    - 'apps/astarte_realm_management_api'
+    - 'apps/astarte_realm_management/**'
+    - 'apps/astarte_realm_management_api/**'
     - '.github/workflows/astarte-apps-build-workflow.yaml'
     - '.github/workflows/astarte-realm-management-api-workflow.yaml'
     branches:
@@ -16,8 +16,8 @@ on:
   # Run on pull requests for astarte_realm_managemenet_api
   pull_request:
     paths:
-    - 'apps/astarte_realm_management'
-    - 'apps/astarte_realm_management_api'
+    - 'apps/astarte_realm_management/**'
+    - 'apps/astarte_realm_management_api/**'
     - '.github/workflows/astarte-apps-build-workflow.yaml'
     - '.github/workflows/astarte-realm-management-api-workflow.yaml'
 
