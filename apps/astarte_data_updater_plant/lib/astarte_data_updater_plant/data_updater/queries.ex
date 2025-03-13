@@ -457,6 +457,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
 
   defp set_connection_info!(realm, device_id, timestamp, ip_address) do
     keyspace_name = Realm.keyspace_name(realm)
+    timestamp = Ecto.Type.cast!(:utc_datetime_usec, timestamp)
 
     %Device{device_id: device_id}
     |> Ecto.Changeset.change(
@@ -515,6 +516,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
         interface_exchanged_bytes
       ) do
     keyspace_name = Realm.keyspace_name(realm)
+    timestamp_ms = Ecto.Type.cast!(:utc_datetime_usec, timestamp_ms)
 
     %Device{device_id: device_id}
     |> Ecto.Changeset.change(
