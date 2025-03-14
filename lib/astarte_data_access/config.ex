@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2020 Ispirata Srl
+# Copyright 2020-2025 Ispirata Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -218,14 +218,13 @@ defmodule Astarte.DataAccess.Config do
     }
   end
 
-  @spec xandra_options!() :: Xandra.start_options()
+  @spec xandra_options!() :: [Xandra.start_option()]
   def xandra_options! do
     [
       nodes: xandra_nodes!(),
       authentication: xandra_authentication_options!(),
       pool_size: pool_size!(),
-      encryption: ssl_enabled!(),
-      autodiscovery: autodiscovery_enabled!()
+      encryption: ssl_enabled!()
     ]
     |> populate_xandra_ssl_options()
   end

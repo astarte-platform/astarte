@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2023 SECO Mind Srl
+# Copyright 2023-2025 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -26,14 +26,10 @@ defmodule Astarte.DataAccess do
 
   @impl true
   def init(init_arg) do
-    xandra_options =
-      Keyword.fetch!(init_arg, :xandra_options)
-      |> Keyword.put(:name, :astarte_data_access_xandra)
-      # TODO move to string keys
-      |> Keyword.put(:atom_keys, true)
+    xandra_options = Keyword.fetch!(init_arg, :xandra_options)
 
     children = [
-      {Xandra.Cluster, xandra_options}
+      {Astarte.DataAccess.Repo, xandra_options}
     ]
 
     opts = [strategy: :one_for_one, name: Astarte.DataAccess.Supervisor]
