@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2017-2022 Ispirata Srl
+# Copyright 2017-2025 SECO Mind srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -64,7 +64,7 @@ defmodule Astarte.DataAccess.Mixfile do
 
   defp astarte_required_modules(_) do
     [
-      {:astarte_core, "~> 1.2"}
+      {:astarte_core, github: "astarte-platform/astarte_core", branch: "release-1.2"}
     ]
   end
 
