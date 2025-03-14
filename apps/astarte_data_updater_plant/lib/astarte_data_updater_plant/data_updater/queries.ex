@@ -21,6 +21,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
   alias Astarte.Core.Device, as: CoreDevice
   alias Astarte.Core.InterfaceDescriptor
   alias Astarte.Core.Mapping
+  alias Astarte.DataAccess.Consistency
   alias Astarte.DataUpdaterPlant.Config
   alias Astarte.DataAccess.Realms.SimpleTrigger
   alias Astarte.DataAccess.Device.DeletionInProgress
@@ -41,7 +42,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
       |> where(object_id: ^object_id, object_type: ^object_type_int)
       |> put_query_prefix(keyspace_name)
 
-    Repo.all(query)
+    Repo.all(query, consistency: Consistency.domain_model(:read))
   end
 
   def all_device_owned_property_endpoint_paths!(
@@ -60,7 +61,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
       |> where(device_id: ^device_id, interface_id: ^interface_id, endpoint_id: ^endpoint_id)
       |> put_query_prefix(keyspace_name)
 
-    Repo.all(q)
+    Repo.all(q, consistency: Consistency.device_info(:read))
   end
 
   def set_pending_empty_cache(realm, device_id, pending_empty_cache) do
@@ -72,7 +73,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
         where: [device_id: ^device_id],
         update: [set: [pending_empty_cache: ^pending_empty_cache]]
 
-    case Repo.safe_update_all(device, []) do
+    case Repo.safe_update_all(device, [], consistency: Consistency.device_info(:write)) do
       {:ok, _} ->
         :ok
 
@@ -98,7 +99,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
         nil,
         _value_timestamp,
         _reception_timestamp,
-        _opts
+        opts
       ) do
     if mapping.allow_unset == false do
       Logger.warning("Tried to unset value on allow_unset=false mapping.")
@@ -108,7 +109,6 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
     %InterfaceDescriptor{storage: storage, interface_id: interface_id} = interface_descriptor
     %Mapping{endpoint_id: endpoint_id} = mapping
     keyspace = Realm.keyspace_name(realm)
-    opts = [consistency: insert_consistency(interface_descriptor, mapping)]
 
     _ =
       remove_property_row(keyspace, storage, device_id, interface_id, endpoint_id, path, opts)
@@ -148,7 +148,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
 
     insert_opts = [
       prefix: keyspace_name,
-      consistency: insert_consistency(interface_descriptor, mapping)
+      consistency: Consistency.device_info(:write)
     ]
 
     _ = Repo.insert_all(storage, [insert_value], insert_opts)
@@ -189,7 +189,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
 
     insert_opts = [
       prefix: keyspace_name,
-      consistency: insert_consistency(interface_descriptor, mapping)
+      consistency: Consistency.time_series(:write, mapping)
     ]
 
     _ = Repo.insert_all(storage, [insert_value], Keyword.merge(opts, insert_opts))
@@ -201,7 +201,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
         realm,
         device_id,
         %InterfaceDescriptor{storage_type: :one_object_datastream_dbtable} = interface_descriptor,
-        _mapping,
+        mapping,
         path,
         value,
         value_timestamp,
@@ -220,7 +220,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
       |> select([:endpoint, :value_type])
       |> where(interface_id: ^interface_id)
       |> put_query_prefix(keyspace_name)
-      |> Repo.all()
+      |> Repo.all(consistency: Consistency.domain_model(:read))
       |> Map.new(fn endpoint ->
         value_name = endpoint.endpoint |> String.split("/") |> List.last()
         column_name = CQLUtils.endpoint_to_db_column_name(value_name)
@@ -235,7 +235,8 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
         select: e.explicit_timestamp,
         limit: 1
 
-    [explicit_timestamp?] = Repo.all(explicit_timestamp_query)
+    [explicit_timestamp?] =
+      Repo.all(explicit_timestamp_query, consistency: Consistency.domain_model(:read))
 
     # TODO: use received value_timestamp when needed
     # TODO: :reception_timestamp_submillis is just a place holder right now
@@ -258,7 +259,8 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
       end
 
     insert_opts = [
-      prefix: keyspace_name
+      prefix: keyspace_name,
+      consistency: Consistency.time_series(:write, mapping)
     ]
 
     _ = Repo.insert_all(storage, [insert_value], Keyword.merge(opts, insert_opts))
@@ -284,6 +286,8 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
           endpoint_id: ^endpoint_id,
           path: ^path
         ]
+
+    opts = Keyword.merge(opts, consistency: Consistency.device_info(:write))
 
     _ = Repo.delete_all(query, opts)
   end
@@ -383,7 +387,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
     opts =
       [
         prefix: keyspace_name,
-        consistency: path_consistency(interface_descriptor, mapping)
+        consistency: Consistency.device_info(:write)
       ]
       |> Keyword.merge(opts)
 
@@ -402,7 +406,6 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
     %InterfaceDescriptor{storage: storage, interface_id: interface_id} = interface_descriptor
     keyspace_name = Realm.keyspace_name(realm)
 
-    # TODO: consistency: insert_consistency(interface_descriptor, endpoint)
     _ = remove_property_row(keyspace_name, storage, device_id, interface_id, endpoint_id, path)
     :ok
   end
@@ -421,7 +424,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
         :exchanged_msgs_by_interface
       ])
       |> put_query_prefix(keyspace_name)
-      |> Repo.one(consistency: :local_quorum)
+      |> Repo.one(consistency: Consistency.device_info(:read))
 
     %{
       introspection: stats.introspection,
@@ -464,7 +467,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
       last_connection: timestamp,
       last_seen_ip: ip_address
     )
-    |> Repo.update!(prefix: keyspace_name, consistency: :local_quorum)
+    |> Repo.update!(prefix: keyspace_name, consistency: Consistency.device_info(:write))
   end
 
   defp refresh_device_connected!(realm, device_id, ttl) do
@@ -474,8 +477,10 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
       %Device{device_id: device_id}
       |> Ecto.Changeset.change(connected: true)
 
+    opts = [prefix: keyspace_name, ttl: ttl, consistency: Consistency.device_info(:write)]
+
     # We use `insert` here becuase Exandra does not support ttl on updates. However, this is an upsert in Scylla.
-    Repo.insert!(changeset, prefix: keyspace_name, ttl: ttl, consistency: :local_quorum)
+    Repo.insert!(changeset, opts)
   end
 
   defp get_connected_remaining_ttl(realm, device_id) do
@@ -487,7 +492,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
       |> select([device], fragment("TTL(?)", device.connected))
       |> put_query_prefix(keyspace_name)
 
-    case Repo.fetch_one(query, consistency: :quorum) do
+    case Repo.fetch_one(query, consistency: Consistency.device_info(:read)) do
       n when is_number(n) ->
         {:ok, n}
 
@@ -518,16 +523,20 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
     keyspace_name = Realm.keyspace_name(realm)
     timestamp_ms = Ecto.Type.cast!(:utc_datetime_usec, timestamp_ms)
 
-    %Device{device_id: device_id}
-    |> Ecto.Changeset.change(
-      connected: false,
-      last_disconnection: timestamp_ms,
-      total_received_msgs: total_received_msgs,
-      total_received_bytes: total_received_bytes,
-      exchanged_bytes_by_interface: interface_exchanged_bytes,
-      exchanged_msgs_by_interface: interface_exchanged_msgs
-    )
-    |> Repo.update!(prefix: keyspace_name, consistency: :local_quorum)
+    changeset =
+      %Device{device_id: device_id}
+      |> Ecto.Changeset.change(
+        connected: false,
+        last_disconnection: timestamp_ms,
+        total_received_msgs: total_received_msgs,
+        total_received_bytes: total_received_bytes,
+        exchanged_bytes_by_interface: interface_exchanged_bytes,
+        exchanged_msgs_by_interface: interface_exchanged_msgs
+      )
+
+    opts = [prefix: keyspace_name, consistency: Consistency.device_info(:write)]
+
+    Repo.update!(changeset, opts)
   end
 
   def fetch_device_introspection_minors(realm, device_id) do
@@ -539,7 +548,9 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
       |> where(device_id: ^device_id)
       |> put_query_prefix(keyspace_name)
 
-    with minors when is_map(minors) <- Repo.fetch_one(query, consistency: :quorum) do
+    consistency = Consistency.device_info(:read)
+
+    with minors when is_map(minors) <- Repo.fetch_one(query, consistency: consistency) do
       {:ok, minors}
     end
   end
@@ -553,7 +564,9 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
       |> where(device_id: ^device_id)
       |> put_query_prefix(keyspace_name)
 
-    with groups when is_map(groups) <- Repo.fetch_one(query, consistency: :quorum) do
+    consistency = Consistency.device_info(:read)
+
+    with groups when is_map(groups) <- Repo.fetch_one(query, consistency: consistency) do
       {:ok, Map.keys(groups)}
     end
   end
@@ -561,12 +574,16 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
   def update_device_introspection!(realm, device_id, introspection, introspection_minor) do
     keyspace_name = Realm.keyspace_name(realm)
 
-    %Device{device_id: device_id}
-    |> Ecto.Changeset.change(
-      introspection: introspection,
-      introspection_minor: introspection_minor
-    )
-    |> Repo.update!(prefix: keyspace_name, consistency: :quorum)
+    changeset =
+      %Device{device_id: device_id}
+      |> Ecto.Changeset.change(
+        introspection: introspection,
+        introspection_minor: introspection_minor
+      )
+
+    opts = [prefix: keyspace_name, consistency: Consistency.device_info(:write)]
+
+    Repo.update!(changeset, opts)
   end
 
   def add_old_interfaces(realm, device_id, old_interfaces) do
@@ -578,7 +595,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
         where: d.device_id == ^device_id,
         update: [set: [old_introspection: fragment(" old_introspection + ?", ^old_interfaces)]]
 
-    case Repo.safe_update_all(device, [], consistency: :quorum) do
+    case Repo.safe_update_all(device, [], consistency: Consistency.device_info(:write)) do
       {:ok, _} ->
         :ok
 
@@ -607,7 +624,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
         where: d.device_id == ^device_id,
         update: [set: [old_introspection: fragment(" old_introspection - ?", ^old_interfaces)]]
 
-    case Repo.safe_update_all(device, [], consistency: :quorum) do
+    case Repo.safe_update_all(device, [], consistency: Consistency.device_info(:write)) do
       {:ok, _} ->
         :ok
 
@@ -639,7 +656,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
       key: encoded_device_id
     }
 
-    opts = [prefix: keyspace_name, consistency: :each_quorum]
+    opts = [prefix: keyspace_name, consistency: Consistency.device_info(:write)]
 
     with {:ok, _} <- Repo.safe_insert_all(KvStore, [devices_by_interface], opts),
          {:ok, _} <- Repo.safe_insert_all(KvStore, [devices_on_interface], opts) do
@@ -664,7 +681,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
       |> where(group: ^group, key: ^encoded_device_id)
       |> put_query_prefix(keyspace_name)
 
-    case Repo.safe_delete_all(query, consistency: :each_quorum) do
+    case Repo.safe_delete_all(query, consistency: Consistency.device_info(:write)) do
       {:ok, _} ->
         :ok
 
@@ -686,7 +703,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
       |> where(device_id: ^device_id)
       |> put_query_prefix(keyspace_name)
 
-    case Repo.fetch_one(query) do
+    case Repo.fetch_one(query, consistency: Consistency.device_info(:read)) do
       device_id when is_binary(device_id) -> {:ok, true}
       nil -> {:ok, false}
       {:error, reason} -> {:error, reason}
@@ -727,36 +744,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
     |> select(^[:path, column_name])
     |> where(device_id: ^device_id, interface_id: ^interface_id, endpoint_id: ^endpoint_id)
     |> put_query_prefix(keyspace_name)
-    |> Repo.all()
-  end
-
-  defp path_consistency(_interface_descriptor, %Mapping{reliability: :unreliable} = _mapping) do
-    :one
-  end
-
-  defp path_consistency(_interface_descriptor, _mapping) do
-    :local_quorum
-  end
-
-  defp insert_consistency(%InterfaceDescriptor{type: :properties}, _mapping) do
-    :quorum
-  end
-
-  defp insert_consistency(%InterfaceDescriptor{type: :datastream}, %Mapping{
-         reliability: :guaranteed,
-         retention: :stored
-       }) do
-    :local_quorum
-  end
-
-  defp insert_consistency(_interface_descriptor, %Mapping{reliability: :unreliable} = _mapping) do
-    # TODO change this back to :any when Xandra supports it
-    # See https://github.com/whatyouhide/xandra/issues/380
-    :one
-  end
-
-  defp insert_consistency(_interface_descriptor, _mapping) do
-    :one
+    |> Repo.all(consistency: Consistency.device_info(:read))
   end
 
   def fetch_datastream_maximum_storage_retention(realm) do
@@ -768,7 +756,9 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
       |> select([v], fragment("blobAsInt(?)", v.value))
       |> put_query_prefix(keyspace_name)
 
-    with n when is_number(n) or is_nil(n) <- Repo.fetch_one(query, consistency: :quorum) do
+    consistency = Consistency.domain_model(:read)
+
+    with n when is_number(n) or is_nil(n) <- Repo.fetch_one(query, consistency: consistency) do
       {:ok, n}
     end
   end
@@ -791,7 +781,9 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
       |> put_query_prefix(keyspace_name)
       |> select([p], fragment("TTL(?)", p.datetime_value))
 
-    case Repo.fetch_all(q, consistency: :quorum) do
+    consistency = Consistency.device_info(:read)
+
+    case Repo.fetch_all(q, consistency: consistency) do
       [] ->
         {:error, :property_not_set}
 
@@ -832,7 +824,9 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
         update: [set: [dup_end_ack: true]]
       )
 
-    with {:ok, _} <- Repo.safe_update_all(query, []) do
+    consistency = Consistency.device_info(:write)
+
+    with {:ok, _} <- Repo.safe_update_all(query, [], consistency: consistency) do
       :ok
     end
   end
@@ -847,7 +841,9 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
         update: [set: [dup_start_ack: true]]
       )
 
-    with {:ok, _} <- Repo.safe_update_all(query, []) do
+    consistency = Consistency.device_info(:write)
+
+    with {:ok, _} <- Repo.safe_update_all(query, [], consistency: consistency) do
       :ok
     end
   end
@@ -866,9 +862,14 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
     WHERE device_id = :device_id
     """
 
+    opts = [
+      consistency: Consistency.device_info(:read),
+      uuid_format: :binary
+    ]
+
     with {:ok, prepared} <- Xandra.prepare(conn, statement),
          {:ok, %Xandra.Page{} = page} <-
-           Xandra.execute(conn, prepared, %{"device_id" => device_id}, uuid_format: :binary) do
+           Xandra.execute(conn, prepared, %{"device_id" => device_id}, opts) do
       result_not_empty? = not Enum.empty?(page)
       {:ok, result_not_empty?}
     else
@@ -899,7 +900,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
     realms =
       Xandra.Cluster.run(
         :xandra,
-        &Xandra.execute!(&1, statement, %{}, consistency: :local_quorum)
+        &Xandra.execute!(&1, statement, %{}, consistency: Consistency.domain_model(:read))
       )
 
     Enum.to_list(realms)
@@ -919,7 +920,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
     """
 
     Xandra.execute!(conn, statement, %{},
-      consistency: :local_quorum,
+      consistency: Consistency.device_info(:read),
       uuid_format: :binary
     )
     |> Enum.to_list()
