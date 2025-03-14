@@ -17,59 +17,67 @@
 #
 
 defmodule Astarte.DataAccess.Mappings do
+  import Ecto.Query
+
   alias Astarte.Core.Mapping
+
   alias Astarte.DataAccess.Consistency
   alias Astarte.DataAccess.XandraUtils
+
+  alias Astarte.DataAccess.Realms.Realm
+  alias Astarte.DataAccess.Realms.Endpoint
+  alias Astarte.DataAccess.Repo
+
   require Logger
+
+  @default_selection [
+    :endpoint,
+    :value_type,
+    :reliability,
+    :retention,
+    :database_retention_policy,
+    :database_retention_ttl,
+    :expiry,
+    :allow_unset,
+    :explicit_timestamp,
+    :endpoint_id,
+    :interface_id
+  ]
 
   @spec fetch_interface_mappings(String.t(), binary, keyword) ::
           {:ok, list(%Mapping{})} | {:error, atom}
   def fetch_interface_mappings(realm, interface_id, opts \\ []) do
-    XandraUtils.run(realm, &do_fetch_interface_mappings(&1, &2, interface_id, opts))
-  end
+    keyspace = Realm.keyspace_name(realm)
 
-  defp do_fetch_interface_mappings(conn, keyspace_name, interface_id, opts) do
-    include_docs =
-      if Keyword.get(opts, :include_docs) do
-        ", doc, description"
-      else
-        ""
-      end
+    query =
+      from Endpoint,
+        prefix: ^keyspace,
+        where: [interface_id: ^interface_id]
 
-    statement = """
-    SELECT endpoint, value_type, reliability, retention, database_retention_policy,
-      database_retention_ttl, expiry, allow_unset, explicit_timestamp, endpoint_id,
-      interface_id #{include_docs}
-    FROM #{keyspace_name}.endpoints
-    WHERE interface_id=:interface_id
-    """
+    query =
+      if Keyword.get(opts, :include_docs),
+        do: query,
+        else: query |> select(^@default_selection)
 
     consistency = Consistency.domain_model(:read)
 
-    with {:ok, %Xandra.Page{} = page} <-
-           XandraUtils.retrieve_page(conn, statement, %{interface_id: interface_id},
-             consistency: consistency
-           ) do
-      to_mapping_list(page)
+    Repo.all(query, consistency: consistency)
+    |> Enum.map(&Mapping.from_db_result!/1)
+    |> case do
+      [] -> {:error, :interface_not_found}
+      mappings -> {:ok, mappings}
     end
   end
 
-  @spec fetch_interface_mappings_map(String.t(), binary, keyword) :: {:ok, map()} | {:error, atom}
+  @spec fetch_interface_mappings_map(String.t(), binary, keyword) ::
+          {:ok, map()} | {:error, atom}
   def fetch_interface_mappings_map(realm_name, interface_id, opts \\ []) do
     with {:ok, mappings_list} <- fetch_interface_mappings(realm_name, interface_id, opts) do
       mappings_map =
-        Enum.into(mappings_list, %{}, fn %Mapping{} = mapping ->
-          {mapping.endpoint_id, mapping}
-        end)
+        mappings_list
+        |> Map.new(&{&1.endpoint_id, &1})
 
       {:ok, mappings_map}
-    end
-  end
-
-  defp to_mapping_list(page) do
-    case Enum.to_list(page) do
-      [] -> {:error, :interface_not_found}
-      mappings -> {:ok, Enum.map(mappings, &Mapping.from_db_result!/1)}
     end
   end
 end

@@ -20,50 +20,38 @@ defmodule Astarte.DataAccess.Device do
   require Logger
   alias Astarte.DataAccess.Consistency
   alias Astarte.DataAccess.XandraUtils
-  alias Astarte.Core.Device
+  alias Astarte.DataAccess.Realms.Realm
+  alias Astarte.DataAccess.Devices.Device
+  alias Astarte.DataAccess.Repo
+  alias Astarte.Core.Device, as: DeviceCore
+  import Ecto.Query
 
-  @spec interface_version(String.t(), Device.device_id(), String.t()) ::
+  @spec interface_version(String.t(), DeviceCore.device_id(), String.t()) ::
           {:ok, integer} | {:error, atom}
   def interface_version(realm, device_id, interface_name) do
-    XandraUtils.run(realm, &do_interface_version(&1, &2, device_id, interface_name))
-  end
-
-  defp do_interface_version(conn, keyspace_name, device_id, interface_name) do
-    statement = """
-    SELECT introspection
-    FROM #{keyspace_name}.devices
-    WHERE device_id=:device_id
-    """
-
+    keyspace = Realm.keyspace_name(realm)
     consistency = Consistency.device_info(:read)
 
-    with {:ok, %Xandra.Page{} = page} <-
-           XandraUtils.retrieve_page(conn, statement, %{device_id: device_id},
-             consistency: consistency
-           ),
-         {:ok, introspection} <- retrieve_introspection(page),
-         {:ok, major} <- retrieve_major(introspection, interface_name) do
+    device_fetch =
+      Device
+      |> where(device_id: ^device_id)
+      |> select([:introspection])
+      |> Repo.fetch_one(error: :device_not_found, prefix: keyspace, consistency: consistency)
+
+    with device <- device_fetch,
+         {:ok, major} <- retrieve_major(device, interface_name) do
       {:ok, major}
     end
   end
 
-  defp retrieve_introspection(page) do
-    case Enum.to_list(page) do
-      [] ->
-        {:error, :device_not_found}
-
-      # We're here if the device has been registered but has not declared its introspection yet
-      [%{introspection: nil}] ->
-        {:ok, %{}}
-
-      [%{introspection: introspection}] ->
-        {:ok, introspection}
+  defp retrieve_major(%{introspection: introspection}, interface_name) do
+    case introspection do
+      %{^interface_name => major} -> {:ok, major}
+      _ -> {:error, :interface_not_in_introspection}
     end
   end
 
-  defp retrieve_major(introspection, interface_name) do
-    with :error <- Map.fetch(introspection, interface_name) do
-      {:error, :interface_not_in_introspection}
-    end
+  defp retrieve_major(nil, _) do
+    {:error, :device_not_found}
   end
 end

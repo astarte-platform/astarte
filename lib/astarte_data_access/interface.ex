@@ -22,84 +22,71 @@ defmodule Astarte.DataAccess.Interface do
   alias Astarte.DataAccess.Consistency
   alias Astarte.DataAccess.XandraUtils
 
-  @interface_row_default_selector "name, major_version, minor_version, interface_id, type, ownership, aggregation,
-  storage, storage_type, automaton_transitions, automaton_accepting_states"
+  import Ecto.Query
+
+  alias Astarte.Core.InterfaceDescriptor
+  alias Astarte.DataAccess.Realms.Realm
+  alias Astarte.DataAccess.Realms.Interface
+  alias Astarte.DataAccess.Repo
+
+  require Logger
+
+  @default_selection [
+    :name,
+    :major_version,
+    :minor_version,
+    :interface_id,
+    :type,
+    :ownership,
+    :aggregation,
+    :storage,
+    :storage_type,
+    :automaton_transitions,
+    :automaton_accepting_states
+  ]
 
   @spec retrieve_interface_row(String.t(), String.t(), integer, keyword()) ::
-          {:ok, keyword()} | {:error, atom}
+          {:ok, Interface.t()} | {:error, atom}
   def retrieve_interface_row(realm, interface_name, major_version, opts \\ []) do
-    XandraUtils.run(
-      realm,
-      &do_retrieve_interface_row(&1, &2, interface_name, major_version, opts)
-    )
-  end
+    keyspace = Realm.keyspace_name(realm)
 
-  def do_retrieve_interface_row(conn, keyspace_name, interface_name, major_version, opts) do
-    selector = if opts[:include_docs], do: "*", else: @interface_row_default_selector
+    query =
+      from Interface,
+        prefix: ^keyspace,
+        where: [name: ^interface_name, major_version: ^major_version]
 
-    statement = """
-    SELECT #{selector}
-    FROM #{keyspace_name}.interfaces
-    WHERE name=:name AND major_version=:major_version
-    """
-
-    params = %{
-      name: interface_name,
-      major_version: major_version
-    }
+    query =
+      if Keyword.get(opts, :include_docs),
+        do: query,
+        else: query |> select(^@default_selection)
 
     consistency = Consistency.domain_model(:read)
-
-    with {:ok, %Xandra.Page{} = page} <-
-           XandraUtils.retrieve_page(conn, statement, params, consistency: consistency) do
-      case Enum.to_list(page) do
-        [] -> {:error, :interface_not_found}
-        [row] -> {:ok, row}
-      end
-    end
+    {:ok, Repo.fetch_one(query, error: :interface_not_found, consistency: consistency)}
   end
 
   @spec fetch_interface_descriptor(String.t(), String.t(), non_neg_integer) ::
           {:ok, %InterfaceDescriptor{}} | {:error, atom}
   def fetch_interface_descriptor(realm_name, interface_name, major_version) do
-    with {:ok, interface_row} <-
-           retrieve_interface_row(realm_name, interface_name, major_version) do
-      InterfaceDescriptor.from_db_result(interface_row)
+    with {:ok, interface} <- retrieve_interface_row(realm_name, interface_name, major_version) do
+      InterfaceDescriptor.from_db_result(interface)
     end
   end
 
   @spec check_if_interface_exists(String.t(), String.t(), non_neg_integer) ::
           :ok | {:error, atom}
   def check_if_interface_exists(realm, interface_name, major_version) do
-    XandraUtils.run(
-      realm,
-      &do_check_if_interface_exists(&1, &2, interface_name, major_version)
-    )
-  end
+    keyspace = Realm.keyspace_name(realm)
 
-  defp do_check_if_interface_exists(conn, keyspace_name, interface_name, major_version) do
-    statement = """
-    SELECT COUNT(*)
-    FROM #{keyspace_name}.interfaces
-    WHERE name=:name AND major_version=:major_version
-    """
-
-    params = %{
-      name: interface_name,
-      major_version: major_version
-    }
+    query =
+      from Interface,
+        prefix: ^keyspace,
+        where: [name: ^interface_name, major_version: ^major_version]
 
     consistency = Consistency.domain_model(:read)
 
-    with {:ok, %Xandra.Page{} = page} <-
-           XandraUtils.retrieve_page(conn, statement, params, consistency: consistency) do
-      case Enum.to_list(page) do
-        [%{count: 1}] ->
-          :ok
-
-        [%{count: 0}] ->
-          {:error, :interface_not_found}
-      end
+    case Repo.some?(query, consistency: consistency) do
+      {:ok, true} -> :ok
+      {:ok, false} -> {:error, :interface_not_found}
     end
   end
 end
