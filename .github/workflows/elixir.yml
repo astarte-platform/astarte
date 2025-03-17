@@ -79,6 +79,8 @@ jobs:
           name: build
       - name: Run Dialyzer
         run: mix dialyzer
+      - name: Run credo
+        run: mix credo
 
   test:
     name: Run Tests
