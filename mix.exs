@@ -23,7 +23,7 @@ defmodule Astarte.Core.Generators.MixProject do
     [
       app: :astarte_generators,
       version: "0.1.0",
-      elixir: "~> 1.18",
+      elixir: "~> 1.15.7",
       start_permanent: Mix.env() == :prod,
       deps: deps() ++ astarte_required_modules(),
       package: package()
