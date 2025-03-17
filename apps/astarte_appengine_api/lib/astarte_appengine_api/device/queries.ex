@@ -483,7 +483,7 @@ defmodule Astarte.AppEngine.API.Device.Queries do
   end
 
   def deletion_in_progress?(realm_name, device_id) do
-    keyspace = keyspace_name(realm_name)
+    keyspace = DataAccessRealm.keyspace_name(realm_name)
     do_deletion_in_progress?(keyspace, device_id)
   end
 
@@ -557,7 +557,7 @@ defmodule Astarte.AppEngine.API.Device.Queries do
   end
 
   def find_all_aliases(realm_name, alias_list) do
-    keyspace = keyspace_name(realm_name)
+    keyspace = DataAccessRealm.keyspace_name(realm_name)
 
     # Queries are chunked to avoid hitting scylla's `max_clustering_key_restrictions_per_query`
     alias_list
@@ -572,7 +572,7 @@ defmodule Astarte.AppEngine.API.Device.Queries do
       do: :ok
 
   def merge_device_status(realm_name, device, changes, alias_tags_to_delete, aliases_to_update) do
-    keyspace = keyspace_name(realm_name)
+    keyspace = DataAccessRealm.keyspace_name(realm_name)
 
     device_query = merge_device_status_device_query(keyspace, device.device_id, changes)
 
