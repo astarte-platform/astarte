@@ -1,39 +1,108 @@
-# This workflow uses actions that are not certified by GitHub.
-# They are provided by a third-party and are governed by
-# separate terms of service, privacy policy, and support
-# documentation.
+# This file is part of Astarte.
+#
+# Copyright 2025 SECO Mind Srl
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
 
 name: Elixir CI
 
 on:
   push:
-    branches: [ "main" ]
+    branches:
+      - main
+      - "release-*"
   pull_request:
-    branches: [ "main" ]
 
 permissions:
   contents: read
 
 jobs:
-  build:
-
-    name: Build and test
-    runs-on: ubuntu-latest
-
+  setup:
+    name: Setup
+    runs-on: ubuntu-22.04
+    env:
+      MIX_ENV: ci
     steps:
-    - uses: actions/checkout@v4
-    - name: Set up Elixir
-      uses: erlef/setup-beam@61e01a43a562a89bfc54c7f9a378ff67b03e4a21 # v1.16.0
-      with:
-        elixir-version: '1.15.2' # [Required] Define the Elixir version
-        otp-version: '26.0'      # [Required] Define the Erlang/OTP version
-    - name: Restore dependencies cache
-      uses: actions/cache@v3
-      with:
-        path: deps
-        key: ${{ runner.os }}-mix-${{ hashFiles('**/mix.lock') }}
-        restore-keys: ${{ runner.os }}-mix-
-    - name: Install dependencies
-      run: mix deps.get
-    - name: Run tests
-      run: mix test
+      - uses: actions/checkout@v4
+      - name: Set up Elixir
+        uses: erlef/setup-beam@v1.18.0
+        id: setup-elixir
+        with:
+          version-file: .tool-versions
+          version-type: strict
+      - uses: actions/cache@v4
+        id: cache-deps
+        with:
+          path: deps
+          key: ${{ runner.os }}-${{ steps.setup-elixir.outputs.elixir-version }}-${{ steps.setup-elixir.outputs.otp-version }}-mix-${{ hashFiles('mix.lock') }}
+      - name: Install Dependencies and Compile
+        run: mix deps.get && mix deps.compile
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: build
+          path: _build
+
+  dializer:
+    name: Run Dialyzer
+    runs-on: ubuntu-22.04
+    needs: setup
+    env:
+      MIX_ENV: ci
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Elixir
+        uses: erlef/setup-beam@v1.18.0
+        id: setup-elixir
+        with:
+          version-file: .tool-versions
+          version-type: strict
+      - uses: actions/cache@v4
+        id: cache-deps
+        with:
+          path: deps
+          key: ${{ runner.os }}-${{ steps.setup-elixir.outputs.elixir-version }}-${{ steps.setup-elixir.outputs.otp-version }}-mix-${{ hashFiles('mix.lock') }}
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: build
+      - name: Run Dialyzer
+        run: mix dialyzer
+
+  test:
+    name: Run Tests
+    runs-on: ubuntu-22.04
+    needs: setup
+    env:
+      MIX_ENV: ci
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Elixir
+        uses: erlef/setup-beam@v1.18.0
+        id: setup-elixir
+        with:
+          version-file: .tool-versions
+          version-type: strict
+      - uses: actions/cache@v4
+        with:
+          path: deps
+          key: ${{ runner.os }}-${{ steps.setup-elixir.outputs.elixir-version }}-${{ steps.setup-elixir.outputs.otp-version }}-mix-${{ hashFiles('mix.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-${{ steps.setup-elixir.outputs.elixir-version }}-${{ steps.setup-elixir.outputs.otp-version }}-mix-
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: build
+      - name: Run Tests
+        run: mix test
