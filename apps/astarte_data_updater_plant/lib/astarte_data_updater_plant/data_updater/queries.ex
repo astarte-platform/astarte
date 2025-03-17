@@ -630,13 +630,13 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
     encoded_device_id = CoreDevice.encode_device_id(device_id)
 
     devices_by_interface = %{
-      "group" => "devices-by-interface-#{interface_name}-v#{interface_major}",
-      "key" => encoded_device_id
+      group: "devices-by-interface-#{interface_name}-v#{interface_major}",
+      key: encoded_device_id
     }
 
     devices_on_interface = %{
-      "group" => "devices-with-data-on-interface-#{interface_name}-v#{interface_major}",
-      "key" => encoded_device_id
+      group: "devices-with-data-on-interface-#{interface_name}-v#{interface_major}",
+      key: encoded_device_id
     }
 
     opts = [prefix: keyspace_name, consistency: :each_quorum]
