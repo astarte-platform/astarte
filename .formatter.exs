@@ -24,7 +24,7 @@
     "lib/**/*.{ex,exs}",
     "test/**/*.{ex,exs}",
     "mix.exs",
-    "config/**/*.{ex,exs}"
+    "config/**/*.{ex,exs}",
+    ".credo.exs"
   ]
 ]
-
