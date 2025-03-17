@@ -23,8 +23,8 @@ defmodule Astarte.Core.Generators.RealmTest do
   use ExUnit.Case, async: true
   use ExUnitProperties
 
-  alias Astarte.Core.Realm
   alias Astarte.Core.Generators.Realm, as: RealmGenerator
+  alias Astarte.Core.Realm
 
   @moduletag :realm
 

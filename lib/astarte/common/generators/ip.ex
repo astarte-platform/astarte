@@ -38,27 +38,31 @@ defmodule Astarte.Common.Generators.Ip do
   def ip(:ipv6), do: ipv6_address()
 
   defp ipv4_address do
-    # Using a tree of bind, to optimize performance and
-    # avoid generating invalid IPs - to be removing by filtering -
     one_of([
       integer(1..9),
       integer(11..126),
       integer(128..223)
     ])
-    |> bind(fn a ->
-      second(a)
-      |> bind(fn b ->
-        third(a, b)
-        |> bind(fn c ->
-          tuple({
-            constant(a),
-            constant(b),
-            constant(c),
-            integer(1..254)
-          })
-        end)
-      end)
-    end)
+    |> bind(&ipv4_second/1)
+  end
+
+  defp ipv4_second(a) do
+    second(a)
+    |> bind(fn b -> ipv4_third(a, b) end)
+  end
+
+  defp ipv4_third(a, b) do
+    third(a, b)
+    |> bind(fn c -> ipv4_forth(a, b, c) end)
+  end
+
+  defp ipv4_forth(a, b, c) do
+    tuple({
+      constant(a),
+      constant(b),
+      constant(c),
+      integer(1..254)
+    })
   end
 
   defp second(100), do: one_of([integer(0..63), integer(128..255)])
@@ -72,7 +76,7 @@ defmodule Astarte.Common.Generators.Ip do
   defp third(203, 0), do: one_of([integer(0..112), integer(114..255)])
   defp third(_, _), do: integer(0..255)
 
-  defp ipv6_address() do
+  defp ipv6_address do
     raise "Not implemented yet"
   end
 end

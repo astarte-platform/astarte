@@ -38,7 +38,7 @@ defmodule Astarte.Core.Generators.Mapping do
           :prefix => String.t(),
           :reliability => :unreliable | :guaranteed | :unique,
           optional(:retention) => :discard | :volatile | :stored
-        }) :: StreamData.t(%Mapping{})
+        }) :: StreamData.t(Mapping.t())
   def mapping(config) do
     gen all(
           required <- required_fields(config),
@@ -60,7 +60,7 @@ defmodule Astarte.Core.Generators.Mapping do
     end
   end
 
-  defp type() do
+  defp type do
     member_of([
       :double,
       :integer,
@@ -80,29 +80,29 @@ defmodule Astarte.Core.Generators.Mapping do
   end
 
   @spec reliability() :: StreamData.t(:unreliable | :guaranteed | :unique)
-  def reliability(), do: member_of([:unreliable, :guaranteed, :unique])
+  def reliability, do: member_of([:unreliable, :guaranteed, :unique])
 
   @spec explicit_timestamp() :: StreamData.t(boolean())
-  def explicit_timestamp(), do: boolean()
+  def explicit_timestamp, do: boolean()
 
   @spec retention() :: StreamData.t(:discard | :volatile | :stored)
-  def retention(), do: member_of([:discard, :volatile, :stored])
+  def retention, do: member_of([:discard, :volatile, :stored])
 
   @spec expiry() :: StreamData.t(0 | pos_integer())
-  def expiry(), do: one_of([constant(0), integer(1..10_000)])
+  def expiry, do: one_of([constant(0), integer(1..10_000)])
 
   @spec database_retention_policy() :: StreamData.t(:no_ttl | :use_ttl)
-  def database_retention_policy(), do: member_of([:no_ttl, :use_ttl])
+  def database_retention_policy, do: member_of([:no_ttl, :use_ttl])
 
   @spec database_retention_ttl() :: StreamData.t(non_neg_integer())
-  def database_retention_ttl(), do: integer(0..10_1000)
+  def database_retention_ttl, do: integer(0..101_000)
 
   @spec allow_unset() :: StreamData.t(boolean())
-  def allow_unset(), do: boolean()
+  def allow_unset, do: boolean()
 
-  defp description(), do: string(:ascii, min_length: 1, max_length: 1000)
+  defp description, do: string(:ascii, min_length: 1, max_length: 1000)
 
-  defp doc(), do: string(:ascii, min_length: 1, max_length: 100_000)
+  defp doc, do: string(:ascii, min_length: 1, max_length: 100_000)
 
   defp required_fields(%{
          aggregation: aggregation,
