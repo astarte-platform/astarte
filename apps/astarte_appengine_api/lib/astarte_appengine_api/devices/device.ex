@@ -18,6 +18,7 @@
 
 defmodule Astarte.AppEngine.API.Devices.Device do
   use TypedEctoSchema
+  alias Astarte.AppEngine.API.DateTime, as: DateTimeMs
   alias Astarte.AppEngine.API.UUID
 
   @primary_key {:device_id, UUID, autogenerate: false}
@@ -39,16 +40,16 @@ defmodule Astarte.AppEngine.API.Devices.Device do
       types: [:string, :integer],
       value: :integer
 
-    field :first_credentials_request, :utc_datetime_usec
-    field :first_registration, :utc_datetime_usec
+    field :first_credentials_request, DateTimeMs
+    field :first_registration, DateTimeMs
     field :groups, Exandra.Map, key: :string, value: UUID
     field :inhibit_credentials_request, :boolean
     field :introspection, Exandra.Map, key: :string, value: :integer
     field :introspection_minor, Exandra.Map, key: :string, value: :integer
-    field :last_connection, :utc_datetime_usec
+    field :last_connection, DateTimeMs
     field :last_credentials_request_ip, Exandra.Inet
 
-    field :last_disconnection, :utc_datetime_usec
+    field :last_disconnection, DateTimeMs
     field :last_seen_ip, Exandra.Inet
 
     field :old_introspection,

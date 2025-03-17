@@ -221,10 +221,6 @@ defmodule Astarte.AppEngine.API.Device do
 
       now = DateTime.utc_now()
 
-      timestamp_micro =
-        now
-        |> DateTime.to_unix(:microsecond)
-
       db_max_ttl =
         if mapping.database_retention_policy == :use_ttl do
           min(realm_max_ttl, mapping.database_retention_ttl)
@@ -249,7 +245,7 @@ defmodule Astarte.AppEngine.API.Device do
         mapping,
         path,
         value,
-        timestamp_micro,
+        now,
         opts
       )
 
@@ -376,10 +372,6 @@ defmodule Astarte.AppEngine.API.Device do
        ) do
     now = DateTime.utc_now()
 
-    timestamp_micro =
-      now
-      |> DateTime.to_unix(:microsecond)
-
     with {:ok, mappings} <-
            Mappings.fetch_interface_mappings(
              realm_name,
@@ -425,7 +417,7 @@ defmodule Astarte.AppEngine.API.Device do
         nil,
         path,
         value,
-        timestamp_micro,
+        now,
         opts
       )
 
