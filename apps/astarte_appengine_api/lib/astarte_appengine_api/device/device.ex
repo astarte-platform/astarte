@@ -20,6 +20,8 @@ defmodule Astarte.AppEngine.API.Device do
   The Device context.
   """
   alias Astarte.AppEngine.API.DataTransmitter
+  alias Astarte.AppEngine.API.Device.Aliases
+  alias Astarte.AppEngine.API.Device.Attributes
   alias Astarte.AppEngine.API.Device.AstarteValue
   alias Astarte.AppEngine.API.Device.DevicesListOptions
   alias Astarte.AppEngine.API.Device.DeviceStatus
@@ -70,97 +72,60 @@ defmodule Astarte.AppEngine.API.Device do
   end
 
   def merge_device_status(realm_name, encoded_device_id, device_status_merge) do
+    aliases = device_status_merge["aliases"]
+    attributes = device_status_merge["attributes"]
+
     with {:ok, device_id} <- Device.decode_device_id(encoded_device_id),
-         {:ok, device_status} <- Queries.retrieve_device_status(realm_name, device_id),
-         changeset = DeviceStatus.changeset(device_status, device_status_merge),
-         {:ok, updated_device_status} <- Ecto.Changeset.apply_action(changeset, :update),
-         credentials_inhibited_change = Map.get(changeset.changes, :credentials_inhibited),
-         :ok <- change_credentials_inhibited(realm_name, device_id, credentials_inhibited_change),
-         aliases_change = Map.get(changeset.changes, :aliases, %{}),
-         attributes_change = Map.get(changeset.changes, :attributes, %{}),
-         :ok <- update_aliases(realm_name, device_id, aliases_change),
-         :ok <- update_attributes(realm_name, device_id, attributes_change) do
-      # Manually merge aliases since changesets don't perform maps deep merge
-      merged_aliases = merge_data(device_status.aliases, updated_device_status.aliases)
-      merged_attributes = merge_data(device_status.attributes, updated_device_status.attributes)
-
-      updated_map =
-        updated_device_status
-        |> Map.put(:aliases, merged_aliases)
-        |> Map.put(:attributes, merged_attributes)
-
-      {:ok, updated_map}
+         {:ok, device} <- Queries.retrieve_device_for_status(realm_name, device_id),
+         {:ok, aliases} <- Aliases.validate(aliases, realm_name, device),
+         {:ok, attributes} <- Attributes.validate(attributes) do
+      do_merge_device_status(realm_name, device_status_merge, device, aliases, attributes)
     end
   end
 
-  defp update_attributes(realm_name, device_id, attributes) do
-    Enum.reduce_while(attributes, :ok, fn {attribute_key, attribute_value}, _ ->
-      case {attribute_key, attribute_value} do
-        {"", _attribute_value} ->
-          Logger.warning("Attribute key cannot be an empty string.",
-            tag: :invalid_attribute_empty_key
+  defp do_merge_device_status(realm_name, device_status_merge, device, aliases, attributes) do
+    params =
+      case Map.fetch(device_status_merge, "credentials_inhibited") do
+        {:ok, credentials_inhibited} -> %{credentials_inhibited: credentials_inhibited}
+        :error -> %{}
+      end
+
+    changeset =
+      DeviceStatus.from_db_row(device)
+      |> Changeset.cast(params, [:credentials_inhibited])
+      |> Aliases.apply(aliases)
+      |> Attributes.apply(attributes)
+
+    case Changeset.apply_action(changeset, :update) do
+      {:ok, status} ->
+        %Aliases{to_delete: alias_tags_to_delete, to_update: aliases_to_update} = aliases
+
+        merge_device_status_result =
+          Queries.merge_device_status(
+            realm_name,
+            device,
+            changeset.changes,
+            alias_tags_to_delete,
+            aliases_to_update
           )
 
-          {:halt, {:error, :invalid_attributes}}
-
-        {attribute_key, nil} ->
-          case Queries.delete_attribute(realm_name, device_id, attribute_key) do
-            :ok ->
-              {:cont, :ok}
-
-            {:error, reason} ->
-              {:halt, {:error, reason}}
-          end
-
-        {attribute_key, attribute_value} ->
-          case Queries.insert_attribute(realm_name, device_id, attribute_key, attribute_value) do
-            :ok ->
-              {:cont, :ok}
-
-            {:error, reason} ->
-              {:halt, {:error, reason}}
-          end
-      end
-    end)
-  end
-
-  defp update_aliases(realm_name, device_id, aliases) do
-    Enum.reduce_while(aliases, :ok, fn
-      {_alias_key, ""}, _acc ->
-        Logger.warning("Alias value cannot be an empty string.", tag: :invalid_alias_empty_value)
-        {:halt, {:error, :invalid_alias}}
-
-      {"", _alias_value}, _acc ->
-        Logger.warning("Alias key cannot be an empty string.", tag: :invalid_alias_empty_key)
-        {:halt, {:error, :invalid_alias}}
-
-      {alias_key, nil}, _acc ->
-        case Queries.delete_alias(realm_name, device_id, alias_key) do
-          :ok -> {:cont, :ok}
-          {:error, reason} -> {:halt, {:error, reason}}
+        with :ok <- merge_device_status_result do
+          deletion_in_progress? = Queries.deletion_in_progress?(realm_name, device.device_id)
+          {:ok, %{status | deletion_in_progress: deletion_in_progress?}}
         end
 
-      {alias_key, alias_value}, _acc ->
-        case Queries.insert_alias(realm_name, device_id, alias_key, alias_value) do
-          :ok -> {:cont, :ok}
-          {:error, reason} -> {:halt, {:error, reason}}
-        end
+      {:error, changeset} ->
+        {:error, sanitize_error(changeset)}
+    end
+  end
+
+  defp sanitize_error(changeset) do
+    # if there is a custom error, return it: it was created by Aliases.apply or Attributes.apply
+    Enum.find_value(changeset.errors, changeset, fn
+      {:aliases, {"", [reason: reason]}} -> reason
+      {:attributes, {"", [reason: reason]}} -> reason
+      _ -> false
     end)
-  end
-
-  defp merge_data(old_data, new_data) when is_map(old_data) and is_map(new_data) do
-    Map.merge(old_data, new_data)
-    |> Enum.reject(fn {_, v} -> v == nil end)
-    |> Enum.into(%{})
-  end
-
-  defp change_credentials_inhibited(_realm_name, _device_id, nil) do
-    :ok
-  end
-
-  defp change_credentials_inhibited(realm_name, device_id, credentials_inhibited)
-       when is_boolean(credentials_inhibited) do
-    Queries.set_inhibit_credentials_request(realm_name, device_id, credentials_inhibited)
   end
 
   @doc """
