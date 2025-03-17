@@ -2756,7 +2756,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
       %Mapping{value_type: value_type} = mapping
 
       column_name =
-        CQLUtils.mapping_value_type_to_db_type(value_type) |> String.to_existing_atom()
+        CQLUtils.type_to_db_column_name(value_type) |> String.to_existing_atom()
 
       Queries.retrieve_property_values(realm, device_id, interface_descriptor, mapping)
       |> Enum.reduce_while(:ok, fn %{:path => path, ^column_name => value}, _acc ->

@@ -720,7 +720,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
 
     %Mapping{endpoint_id: endpoint_id, value_type: value_type} = mapping
 
-    column_name = CQLUtils.mapping_value_type_to_db_type(value_type) |> String.to_existing_atom()
+    column_name = CQLUtils.type_to_db_column_name(value_type) |> String.to_existing_atom()
     keyspace_name = Realm.keyspace_name(realm)
 
     from(storage)
