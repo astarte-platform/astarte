@@ -200,12 +200,7 @@ defmodule Astarte.TriggerEngine.Config do
   defdelegate xandra_nodes, to: DataAccessConfig
   defdelegate xandra_nodes!, to: DataAccessConfig
 
-  @doc "A list of {host, port} values of accessible Cassandra nodes in a CQEx compliant format"
-  defdelegate cqex_nodes, to: DataAccessConfig
-  defdelegate cqex_nodes!, to: DataAccessConfig
-
   defdelegate xandra_options!, to: DataAccessConfig
-  defdelegate cqex_options!, to: DataAccessConfig
 
   defdelegate astarte_instance_id!, to: DataAccessConfig
   defdelegate astarte_instance_id, to: DataAccessConfig

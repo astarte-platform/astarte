@@ -17,8 +17,6 @@
 #
 
 defmodule Astarte.TriggerEngine.Health.Queries do
-  alias Astarte.TriggerEngine.Config
-  alias Astarte.Core.CQLUtils
   alias Astarte.DataAccess.Realms.Realm
   alias Astarte.TriggerEngine.Repo
   require Logger
