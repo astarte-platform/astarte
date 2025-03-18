@@ -71,7 +71,8 @@ defmodule Astarte.Housekeeping.Mixfile do
 
   defp astarte_required_modules(_) do
     [
-      {:astarte_core, "~> 1.2"},
+      {:astarte_core, github: "astarte-platform/astarte_core", branch: "release-1.2"},
+      # {:astarte_core, "~> 1.2"},
       {:astarte_data_access,
        github: "astarte-platform/astarte_data_access", branch: "release-1.2"},
       {:astarte_rpc, "~> 1.2"}
@@ -90,8 +91,8 @@ defmodule Astarte.Housekeeping.Mixfile do
       {:telemetry_metrics, "~> 0.4"},
       {:telemetry_poller, "~> 0.4"},
       {:observer_cli, "~> 1.5"},
-      {:exandra, "~> 0.13.0"},
-      # Workaround for Elixir 1.15 / ssl_verify_fun issue
+      {:exandra, github: "vinniefranco/exandra", override: true},
+            # Workaround for Elixir 1.15 / ssl_verify_fun issue
       # See also: https://github.com/deadtrickster/ssl_verify_fun.erl/pull/27
       {:ssl_verify_fun, "~> 1.1.0", manager: :rebar3, override: true}
     ]
