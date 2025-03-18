@@ -22,8 +22,8 @@ defmodule Astarte.DataUpdaterPlant.TriggerPolicy.Queries do
   import Ecto.Query
 
   alias Astarte.DataUpdaterPlant.Repo
-  alias Astarte.DataUpdaterPlant.DataUpdater.KvStore
-  alias Astarte.DataUpdaterPlant.DataUpdater.Realm
+  alias Astarte.DataAccess.KvStore
+  alias Astarte.DataAccess.Realms.Realm
 
   def retrieve_policy_name(realm_name, trigger_id) do
     keyspace_name = Realm.keyspace_name(realm_name)

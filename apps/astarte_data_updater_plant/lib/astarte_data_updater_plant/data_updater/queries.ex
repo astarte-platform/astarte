@@ -22,13 +22,13 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
   alias Astarte.Core.InterfaceDescriptor
   alias Astarte.Core.Mapping
   alias Astarte.DataUpdaterPlant.Config
-  alias Astarte.DataUpdaterPlant.DataUpdater.SimpleTrigger
-  alias Astarte.DataUpdaterPlant.DataUpdater.DeletionInProgress
-  alias Astarte.DataUpdaterPlant.DataUpdater.Device
-  alias Astarte.DataUpdaterPlant.DataUpdater.Endpoint
-  alias Astarte.DataUpdaterPlant.DataUpdater.IndividualProperty
-  alias Astarte.DataUpdaterPlant.DataUpdater.KvStore
-  alias Astarte.DataUpdaterPlant.DataUpdater.Realm
+  alias Astarte.DataAccess.Realms.SimpleTrigger
+  alias Astarte.DataAccess.Device.DeletionInProgress
+  alias Astarte.DataAccess.Devices.Device
+  alias Astarte.DataAccess.Realms.Endpoint
+  alias Astarte.DataAccess.Realms.IndividualProperty
+  alias Astarte.DataAccess.KvStore
+  alias Astarte.DataAccess.Realms.Realm
   alias Astarte.DataUpdaterPlant.Repo
   import Ecto.Query
   require Logger
