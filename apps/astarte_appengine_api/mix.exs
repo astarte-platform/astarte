@@ -69,7 +69,7 @@ defmodule Astarte.AppEngine.API.Mixfile do
 
   defp astarte_required_modules(_) do
     [
-      {:astarte_core, "~> 1.2"},
+      {:astarte_core, github: "astarte-platform/astarte_core", branch: "release-1.2"},
       {:astarte_data_access,
        github: "astarte-platform/astarte_data_access", branch: "release-1.2"},
       {:astarte_rpc, "~> 1.2"}
@@ -95,7 +95,7 @@ defmodule Astarte.AppEngine.API.Mixfile do
       {:ex_json_schema, "~> 0.7"},
       {:phoenix_swagger, "~> 0.8"},
       {:xandra, "~> 0.13"},
-      {:exandra, github: "vinniefranco/exandra"},
+      {:exandra, "~> 0.13"},
       {:typed_ecto_schema, "~> 0.4"},
       # Fix: could not compile dependency due to an old snappy version (1.2.8). Delete when removing xandra
       {:snappyer, "~> 1.2.10", override: true},
