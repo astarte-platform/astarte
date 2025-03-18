@@ -17,6 +17,7 @@
 #
 
 defmodule Astarte.TriggerEngine.AMQPConsumer.Queries do
+  alias Astarte.DataAccess.Consistency
   alias Astarte.DataAccess.KvStore
   alias Astarte.DataAccess.Realms.Realm
   alias Astarte.TriggerEngine.Repo
@@ -32,7 +33,7 @@ defmodule Astarte.TriggerEngine.AMQPConsumer.Queries do
         prefix: ^keyspace_name,
         where: k.group == "trigger_policy"
 
-    case Repo.safe_fetch_all(query, []) do
+    case Repo.safe_fetch_all(query, consistency: Consistency.domain_model(:read)) do
       {:ok, policies} ->
         {:ok, Enum.map(policies, &extract_name_and_data/1)}
 
@@ -50,7 +51,7 @@ defmodule Astarte.TriggerEngine.AMQPConsumer.Queries do
         prefix: ^keyspace_name,
         select: r.realm_name
 
-    case Repo.safe_fetch_all(query, []) do
+    case Repo.safe_fetch_all(query, consistency: Consistency.domain_model(:read)) do
       {:ok, realms} ->
         {:ok, realms}
 

@@ -26,6 +26,7 @@ defmodule Astarte.TriggerEngine.EventsConsumer do
   alias Astarte.Core.Triggers.SimpleEvents.SimpleEvent
   alias Astarte.Core.Triggers.Trigger
   alias Astarte.TriggerEngine.Repo
+  alias Astarte.DataAccess.Consistency
   alias Astarte.DataAccess.KvStore
   alias Astarte.DataAccess.Realms.Realm
 
@@ -323,7 +324,9 @@ defmodule Astarte.TriggerEngine.EventsConsumer do
         where: kvstore.group == "triggers" and kvstore.key == ^trigger_id,
         select: kvstore.value
 
-    with encoded_trigger when encoded_trigger != nil <- Repo.one(query),
+    opts = [consistency: Consistency.domain_model(:read)]
+
+    with encoded_trigger when encoded_trigger != nil <- Repo.one(query, opts),
          trigger <- Trigger.decode(encoded_trigger),
          {:ok, action} <- Jason.decode(trigger.action) do
       {:ok, %{action: action, trigger_name: trigger.name}}
