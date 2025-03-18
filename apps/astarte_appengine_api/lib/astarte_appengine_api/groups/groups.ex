@@ -22,7 +22,7 @@ defmodule Astarte.AppEngine.API.Groups do
   """
 
   alias Astarte.AppEngine.API.Device.DevicesListOptions
-  alias Astarte.AppEngine.API.Groups.Group
+  alias Astarte.DataAccess.Groups.Group
   alias Astarte.AppEngine.API.Groups.Queries
   alias Astarte.Core.Device
 

@@ -17,16 +17,16 @@
 #
 
 defmodule Astarte.AppEngine.API.Rooms.Queries do
-  alias Astarte.AppEngine.API.Devices.Device, as: DatabaseDevice
+  alias Astarte.DataAccess.Devices.Device, as: DatabaseDevice
   alias Astarte.Core.Device
-  alias Astarte.AppEngine.API.Realm, as: DataAccessRealm
+  alias Astarte.DataAccess.Realms.Realm
   alias Astarte.AppEngine.API.Repo
 
   require Logger
 
   def verify_device_exists(realm_name, encoded_device_id) do
     with {:ok, decoded_device_id} <- Device.decode_device_id(encoded_device_id) do
-      keyspace = DataAccessRealm.keyspace_name(realm_name)
+      keyspace = Realm.keyspace_name(realm_name)
 
       result =
         Repo.fetch(DatabaseDevice, decoded_device_id,

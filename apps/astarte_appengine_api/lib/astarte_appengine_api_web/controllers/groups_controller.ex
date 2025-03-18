@@ -20,7 +20,7 @@ defmodule Astarte.AppEngine.APIWeb.GroupsController do
   use Astarte.AppEngine.APIWeb, :controller
 
   alias Astarte.AppEngine.API.Groups
-  alias Astarte.AppEngine.API.Groups.Group
+  alias Astarte.DataAccess.Groups.Group
 
   action_fallback Astarte.AppEngine.APIWeb.FallbackController
 
