@@ -18,6 +18,7 @@
 
 defmodule Astarte.DataAccess.Data do
   require Logger
+  alias Astarte.DataAccess.Consistency
   alias Astarte.DataAccess.XandraUtils
   alias Astarte.Core.CQLUtils
   alias Astarte.Core.Device
@@ -65,8 +66,10 @@ defmodule Astarte.DataAccess.Data do
       path: path
     }
 
+    consistency = Consistency.device_info(:read)
+
     with {:ok, %Xandra.Page{} = page} <-
-           XandraUtils.retrieve_page(conn, statement, params, consistency: :quorum) do
+           XandraUtils.retrieve_page(conn, statement, params, consistency: consistency) do
       retrieve_property_value(page, value_column)
     end
   end
@@ -124,8 +127,10 @@ defmodule Astarte.DataAccess.Data do
       path: path
     }
 
+    consistency = Consistency.domain_model(:read)
+
     with {:ok, %Xandra.Page{} = page} <-
-           XandraUtils.retrieve_page(conn, statement, params, consistency: :quorum),
+           XandraUtils.retrieve_page(conn, statement, params, consistency: consistency),
          {:ok, value} <- retrieve_path_count(page) do
       case value do
         0 ->
@@ -196,8 +201,10 @@ defmodule Astarte.DataAccess.Data do
       path: path
     }
 
+    consistency = Consistency.device_info(:read)
+
     with {:ok, %Xandra.Page{} = page} <-
-           XandraUtils.retrieve_page(conn, statement, params, consistency: :quorum) do
+           XandraUtils.retrieve_page(conn, statement, params, consistency: consistency) do
       retrieve_last_path_update(page)
     end
   end

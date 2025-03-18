@@ -24,6 +24,7 @@ defmodule Astarte.DataAccess.Config do
 
   alias Astarte.DataAccess.Config.CQExNodes
   alias Astarte.DataAccess.Config.XandraNodes
+  alias Astarte.Core.Mapping
 
   use Skogsra
 
@@ -123,6 +124,58 @@ defmodule Astarte.DataAccess.Config do
     default: "",
     type: :binary
 
+  @envdoc """
+  The consistency level that is used to read information related to realms, interfaces, triggers
+  and all other Astarte entities that are not device or time series.
+  Defaults to `:one`.
+  """
+  app_env :domain_model_read_consistency, :astarte_data_access, :domain_model_read_consistency,
+    default: :one,
+    type: :atom
+
+  @envdoc """
+  The consistency level that is used to write information related to realms, interfaces, triggers
+  and all other Astarte entities that are not device or time series.
+  Defaults to `:all`.
+  """
+  app_env :domain_model_write_consistency, :astarte_data_access, :domain_model_write_consistency,
+    default: :all,
+    type: :atom
+
+  @envdoc """
+  The consistency level that is used to read all information related to device status, such as
+  connection, deletion in progress, property values.
+  Defaults to `:quorum`.
+  """
+  app_env :device_info_read_consistency, :astarte_data_access, :device_info_read_consistency,
+    default: :quorum,
+    type: :atom
+
+  @envdoc """
+  The consistency level that is used to write all information related to device status, such as
+  connection, deletion in progress, property values.
+  Defaults to `:quorum`.
+  """
+  app_env :device_info_write_consistency, :astarte_data_access, :device_info_write_consistency,
+    default: :quorum,
+    type: :atom
+
+  @envdoc """
+  The consistency level that is used to read time series (datastreams).
+  This will overwrite the default one, which is computed for each time series,
+  based on the mapping reliability.
+  """
+  app_env :time_series_read_consistency, :astarte_data_access, :time_series_read_consistency,
+    type: :atom
+
+  @envdoc """
+  The consistency level that is used to write time series (datastreams).
+  This will overwrite the default one, which is computed for each time series,
+  based on the mapping reliability.
+  """
+  app_env :time_series_write_consistency, :astarte_data_access, :time_series_write_consistency,
+    type: :atom
+
   defp populate_xandra_ssl_options(options) do
     if ssl_enabled!() do
       ssl_options = build_ssl_options()
@@ -183,5 +236,33 @@ defmodule Astarte.DataAccess.Config do
       auth: cqex_authentication_options!()
     ]
     |> populate_cqex_ssl_options()
+  end
+
+  def time_series_consistency(operation, mapping) do
+    overwritten_consistency = time_series_read_consistency!()
+
+    if overwritten_consistency,
+      do: overwritten_consistency,
+      else: default_time_series_consistency(operation, mapping)
+  end
+
+  defp default_time_series_consistency(_operation, %Mapping{reliability: :guaranteed}) do
+    :quorum
+  end
+
+  defp default_time_series_consistency(:write, %Mapping{reliability: :unreliable}) do
+    :any
+  end
+
+  defp default_time_series_consistency(:write, _mapping) do
+    :one
+  end
+
+  defp default_time_series_consistency(:read, %Mapping{reliability: :unreliable}) do
+    :one
+  end
+
+  defp default_time_series_consistency(:read, _mapping) do
+    :one
   end
 end

@@ -19,6 +19,7 @@
 defmodule Astarte.DataAccess.Interface do
   require Logger
   alias Astarte.Core.InterfaceDescriptor
+  alias Astarte.DataAccess.Consistency
   alias Astarte.DataAccess.XandraUtils
 
   @interface_row_default_selector "name, major_version, minor_version, interface_id, type, ownership, aggregation,
@@ -47,8 +48,10 @@ defmodule Astarte.DataAccess.Interface do
       major_version: major_version
     }
 
+    consistency = Consistency.domain_model(:read)
+
     with {:ok, %Xandra.Page{} = page} <-
-           XandraUtils.retrieve_page(conn, statement, params) do
+           XandraUtils.retrieve_page(conn, statement, params, consistency: consistency) do
       case Enum.to_list(page) do
         [] -> {:error, :interface_not_found}
         [row] -> {:ok, row}
@@ -86,7 +89,10 @@ defmodule Astarte.DataAccess.Interface do
       major_version: major_version
     }
 
-    with {:ok, %Xandra.Page{} = page} <- XandraUtils.retrieve_page(conn, statement, params) do
+    consistency = Consistency.domain_model(:read)
+
+    with {:ok, %Xandra.Page{} = page} <-
+           XandraUtils.retrieve_page(conn, statement, params, consistency: consistency) do
       case Enum.to_list(page) do
         [%{count: 1}] ->
           :ok
