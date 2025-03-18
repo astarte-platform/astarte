@@ -68,9 +68,8 @@ defmodule Astarte.DataUpdaterPlant.Mixfile do
 
   defp astarte_required_modules(_) do
     [
-      {:astarte_core, github: "astarte-platform/astarte_core", branch: "release-1.2"},
-      {:astarte_data_access,
-       github: "astarte-platform/astarte_data_access", branch: "release-1.2"},
+      {:astarte_core, github: "noaccOS/astarte_core", branch: "chore/decimicro"},
+      {:astarte_data_access, github: "noaccOS/astarte_data_access", branch: "chore/decimicro"},
       {:astarte_rpc, "~> 1.2"}
     ]
   end
