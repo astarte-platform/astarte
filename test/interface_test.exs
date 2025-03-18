@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2018 Ispirata Srl
+# Copyright 2018 - 2025 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -64,6 +64,8 @@ defmodule Astarte.DataAccess.Interfaces.XandraTest do
   end
 
   setup_all do
+    DatabaseTestHelper.await_cluster_connected!(:astarte_data_access_xandra)
+
     Xandra.Cluster.run(:astarte_data_access_xandra, fn conn ->
       DatabaseTestHelper.create_test_keyspace(conn)
     end)

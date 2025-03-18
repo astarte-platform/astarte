@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2017 Ispirata Srl
+# Copyright 2017 - 2025 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -26,17 +26,8 @@ import Config
 # if you want to provide default values for your application for
 # 3rd-party users, it should be done in your "mix.exs" file.
 
-# You can configure your application as:
-#
-#     config :astarte_data_access, key: :value
-#
-# and access this configuration in your application as:
-#
-#     Application.get_env(:astarte_data_access, :key)
-#
-# You can also configure a 3rd-party app:
-#
-#     config :logger, level: :info
-#
+config :astarte_data_access, ecto_repos: [Astarte.DataAccess.Repo]
+
+config :astarte_data_access, Astarte.DataAccess.Repo, sync_connect: 5000
 
 import_config "#{config_env()}.exs"

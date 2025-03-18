@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2017-2022 Ispirata Srl
+# Copyright 2017-2025 SECO Mind srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -64,7 +64,7 @@ defmodule Astarte.DataAccess.Mixfile do
 
   defp astarte_required_modules(_) do
     [
-      {:astarte_core, "~> 1.2"}
+      {:astarte_core, github: "astarte-platform/astarte_core", branch: "release-1.2"}
     ]
   end
 
@@ -73,9 +73,9 @@ defmodule Astarte.DataAccess.Mixfile do
     [
       {:exandra, "~> 0.13"},
       {:typed_ecto_schema, "~> 0.4"},
-      {:cqex, "~> 1.0", optional: true},
+      {:cqex, "~> 1.0"},
       # Forcing latest cqerl version
-      {:cqerl, "~> 2.1", override: true, optional: true},
+      {:cqerl, "~> 2.1", override: true},
       {:snappyer, "~> 1.2.10", override: true},
       {:skogsra, "~> 2.2"},
       {:excoveralls, "~> 0.15", only: :test},

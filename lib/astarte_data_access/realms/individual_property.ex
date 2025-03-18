@@ -21,16 +21,17 @@ defmodule Astarte.DataAccess.Realms.IndividualProperty do
   alias Astarte.DataAccess.UUID
   alias Astarte.DataAccess.SmallInt
   alias Astarte.DataAccess.BigInt
+  alias Astarte.DataAccess.DateTime, as: DateTimeMs
 
   @primary_key false
   typed_schema "individual_properties" do
     # property reception not present in dup
-    field :reception, :utc_datetime_usec, virtual: true
+    field :reception, DateTimeMs, virtual: true
     field :device_id, UUID, primary_key: true
     field :interface_id, UUID, primary_key: true
     field :endpoint_id, UUID, primary_key: true
     field :path, :string, primary_key: true
-    field :reception_timestamp, :utc_datetime_usec
+    field :reception_timestamp, DateTimeMs
     field :reception_timestamp_submillis, SmallInt
     field :double_value, :float
     field :integer_value, :integer
@@ -38,14 +39,14 @@ defmodule Astarte.DataAccess.Realms.IndividualProperty do
     field :longinteger_value, BigInt
     field :string_value, :string
     field :binaryblob_value, :binary
-    field :datetime_value, :utc_datetime_usec
+    field :datetime_value, DateTimeMs
     field :doublearray_value, {:array, :float}
     field :integerarray_value, {:array, :integer}
     field :booleanarray_value, {:array, :boolean}
     field :longintegerarray_value, {:array, BigInt}
     field :stringarray_value, {:array, :string}
     field :binaryblobarray_value, {:array, :binary}
-    field :datetimearray_value, {:array, :utc_datetime_usec}
+    field :datetimearray_value, {:array, DateTimeMs}
   end
 
   def reception(individual_property) do
@@ -56,5 +57,17 @@ defmodule Astarte.DataAccess.Realms.IndividualProperty do
 
     individual_property.reception_timestamp
     |> DateTime.add(nanos, :nanosecond)
+  end
+
+  def prepare_for_db(%{reception: nil} = individual_property), do: individual_property
+
+  def prepare_for_db(individual_property) do
+    {reception_ms, submillis} = DateTimeMs.split_submillis(individual_property.reception)
+
+    %{
+      individual_property
+      | reception_timestamp: reception_ms,
+        reception_timestamp_submillis: submillis
+    }
   end
 end
