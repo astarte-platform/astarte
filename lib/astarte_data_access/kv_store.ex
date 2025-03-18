@@ -90,9 +90,8 @@ defmodule Astarte.DataAccess.KvStore do
     primary_key = [group: group, key: key]
 
     case Repo.fetch_by(query, primary_key, opts) do
-      nil -> {:error, nil}
       {:error, error} -> {:error, error}
-      row -> {:ok, row}
+      {:ok, row} -> {:ok, row}
     end
   end
 end

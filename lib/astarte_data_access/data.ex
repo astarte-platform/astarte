@@ -73,7 +73,8 @@ defmodule Astarte.DataAccess.Data do
 
     case property do
       nil -> {:error, :property_not_set}
-      value -> {:ok, value}
+      {:error, err} -> {:error, err}
+      {:ok, value} -> {:ok, value}
     end
   end
 
@@ -130,7 +131,7 @@ defmodule Astarte.DataAccess.Data do
         prefix: ^keyspace,
         select: [:datetime_value, :reception_timestamp, :reception_timestamp_submillis]
 
-    with property <- Repo.fetch_by(query, fetch_clause, error: :path_not_set) do
+    with {:ok, property} <- Repo.fetch_by(query, fetch_clause, error: :path_not_set) do
       value_timestamp = property.datetime_value |> DateTime.truncate(:millisecond)
       reception_timestamp = IndividualProperty.reception(property)
 

@@ -126,11 +126,12 @@ defmodule Astarte.DataAccess.Repo do
   end
 
   def fetch_one(queryable, opts \\ []) do
-    try do
-      one(queryable, opts)
-    catch
-      error ->
-        handle_xandra_error(error)
+    {error, opts} = Keyword.pop_first(opts, :error, :not_found)
+
+    case all(queryable, opts) do
+      [item] -> {:ok, item}
+      [] -> {:error, error}
+      other -> raise Ecto.MultipleResultsError, queryable: queryable, count: length(other)
     end
   end
 
@@ -203,11 +204,10 @@ defmodule Astarte.DataAccess.Repo do
     |> Ecto.Query.limit(1)
 
     # no need to rewrite the combinators, let scylla work more it's ok
-    with {:ok, result} <- fetch_all(queryable, opts) do
-      case result do
-        [] -> {:ok, false}
-        [_something] -> {:ok, true}
-      end
+
+    case fetch_all(queryable, opts) do
+      [] -> {:ok, false}
+      [_something] -> {:ok, true}
     end
   end
 

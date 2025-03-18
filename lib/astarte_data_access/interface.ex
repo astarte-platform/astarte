@@ -61,7 +61,7 @@ defmodule Astarte.DataAccess.Interface do
         else: query |> select(^@default_selection)
 
     consistency = Consistency.domain_model(:read)
-    {:ok, Repo.fetch_one(query, error: :interface_not_found, consistency: consistency)}
+    Repo.fetch_one(query, error: :interface_not_found, consistency: consistency)
   end
 
   @spec fetch_interface_descriptor(String.t(), String.t(), non_neg_integer) ::

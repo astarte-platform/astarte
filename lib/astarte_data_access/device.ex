@@ -38,7 +38,7 @@ defmodule Astarte.DataAccess.Device do
       |> select([:introspection])
       |> Repo.fetch_one(error: :device_not_found, prefix: keyspace, consistency: consistency)
 
-    with device <- device_fetch,
+    with {:ok, device} <- device_fetch,
          {:ok, major} <- retrieve_major(device, interface_name) do
       {:ok, major}
     end
