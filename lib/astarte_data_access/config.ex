@@ -22,7 +22,6 @@ defmodule Astarte.DataAccess.Config do
   Data Access
   """
 
-  alias Astarte.DataAccess.Config.CQExNodes
   alias Astarte.DataAccess.Config.XandraNodes
   alias Astarte.Core.Mapping
 
@@ -35,22 +34,12 @@ defmodule Astarte.DataAccess.Config do
           | {:depth, integer()}
   @type ssl_options :: :none | [ssl_option]
   @type auth_options :: {module(), [{String.t(), String.t()}]}
-  @type cqex_opts ::
-          {:ssl, ssl_options}
-          | {:auth, auth_options}
-          | {:keyspace, String.t()}
 
   @envdoc "A list of host values of accessible Cassandra nodes formatted in the Xandra format"
   app_env :xandra_nodes, :astarte_data_access, :xandra_nodes,
     os_env: "CASSANDRA_NODES",
     type: XandraNodes,
     default: ["localhost:9042"]
-
-  @envdoc "A list of {host, port} values of accessible Cassandra nodes in a cqex compliant format"
-  app_env :cqex_nodes, :astarte_data_access, :cqex_nodes,
-    os_env: "CASSANDRA_NODES",
-    type: CQExNodes,
-    default: [{"localhost", 9042}]
 
   @envdoc """
   The username used to log into cassandra. Defaults to "cassandra".
@@ -185,15 +174,6 @@ defmodule Astarte.DataAccess.Config do
     end
   end
 
-  defp populate_cqex_ssl_options(options) do
-    if ssl_enabled!() do
-      ssl_options = build_ssl_options()
-      Keyword.put(options, :ssl, ssl_options)
-    else
-      options
-    end
-  end
-
   defp build_ssl_options do
     [
       cacertfile: ssl_ca_file!(),
@@ -211,13 +191,6 @@ defmodule Astarte.DataAccess.Config do
      ]}
   end
 
-  defp cqex_authentication_options! do
-    {
-      :cqerl_auth_plain_handler,
-      [{cassandra_username!(), cassandra_password!()}]
-    }
-  end
-
   @spec xandra_options!() :: [Xandra.start_option()]
   def xandra_options! do
     [
@@ -227,14 +200,6 @@ defmodule Astarte.DataAccess.Config do
       encryption: ssl_enabled!()
     ]
     |> populate_xandra_ssl_options()
-  end
-
-  @spec cqex_options!() :: [cqex_opts]
-  def(cqex_options!()) do
-    [
-      auth: cqex_authentication_options!()
-    ]
-    |> populate_cqex_ssl_options()
   end
 
   def time_series_consistency(operation, mapping) do

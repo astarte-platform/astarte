@@ -73,10 +73,6 @@ defmodule Astarte.DataAccess.Mixfile do
     [
       {:exandra, "~> 0.13"},
       {:typed_ecto_schema, "~> 0.4"},
-      {:cqex, "~> 1.0"},
-      # Forcing latest cqerl version
-      {:cqerl, "~> 2.1", override: true},
-      {:snappyer, "~> 1.2.10", override: true},
       {:skogsra, "~> 2.2"},
       {:excoveralls, "~> 0.15", only: :test},
       {:castore, "~> 1.0.0"},
