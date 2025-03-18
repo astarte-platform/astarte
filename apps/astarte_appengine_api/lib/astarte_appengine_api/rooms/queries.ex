@@ -21,6 +21,7 @@ defmodule Astarte.AppEngine.API.Rooms.Queries do
   alias Astarte.Core.Device
   alias Astarte.AppEngine.API.Realm, as: DataAccessRealm
   alias Astarte.AppEngine.API.Repo
+  alias Astarte.DataAccess.Consistency
 
   require Logger
 
@@ -28,11 +29,13 @@ defmodule Astarte.AppEngine.API.Rooms.Queries do
     with {:ok, decoded_device_id} <- Device.decode_device_id(encoded_device_id) do
       keyspace = DataAccessRealm.keyspace_name(realm_name)
 
-      result =
-        Repo.fetch(DatabaseDevice, decoded_device_id,
-          error: :device_does_not_exist,
-          prefix: keyspace
-        )
+      opts = [
+        prefix: keyspace,
+        consistency: Consistency.device_info(:read),
+        error: :device_does_not_exist
+      ]
+
+      result = Repo.fetch(DatabaseDevice, decoded_device_id, opts)
 
       case result do
         {:ok, _device} ->
