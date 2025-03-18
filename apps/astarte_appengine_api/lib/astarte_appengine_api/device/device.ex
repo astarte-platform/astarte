@@ -33,8 +33,6 @@ defmodule Astarte.AppEngine.API.Device do
   alias Astarte.Core.CQLUtils
   alias Astarte.Core.Device
   alias Astarte.Core.InterfaceDescriptor
-  alias Astarte.Core.Interface.Aggregation
-  alias Astarte.Core.Interface.Type
   alias Astarte.Core.Mapping
   alias Astarte.Core.Mapping.EndpointsAutomaton
   alias Astarte.Core.Mapping.ValueType
@@ -153,7 +151,7 @@ defmodule Astarte.AppEngine.API.Device do
       do_get_interface_values!(
         realm_name,
         device_id,
-        Aggregation.from_int(interface_row.aggregation),
+        interface_row.aggregation,
         interface_row,
         options
       )
@@ -181,8 +179,8 @@ defmodule Astarte.AppEngine.API.Device do
       do_get_interface_values!(
         realm_name,
         device_id,
-        Aggregation.from_int(interface_row.aggregation),
-        Type.from_int(interface_row.type),
+        interface_row.aggregation,
+        interface_row.type,
         interface_row,
         endpoint_ids,
         path,
@@ -734,8 +732,8 @@ defmodule Astarte.AppEngine.API.Device do
           retrieve_endpoint_values(
             realm_name,
             device_id,
-            Aggregation.from_int(interface_row.aggregation),
-            Type.from_int(interface_row.type),
+            interface_row.aggregation,
+            interface_row.type,
             interface_row,
             endpoint_row.endpoint_id,
             endpoint_row,
@@ -756,8 +754,8 @@ defmodule Astarte.AppEngine.API.Device do
     do_get_interface_values!(
       realm_name,
       device_id,
-      Aggregation.from_int(interface_row.aggregation),
-      Type.from_int(interface_row.type),
+      interface_row.aggregation,
+      interface_row.type,
       interface_row,
       nil,
       "/",
@@ -984,9 +982,9 @@ defmodule Astarte.AppEngine.API.Device do
        ) do
     path = "/"
 
-    interface_id = interface_row[:interface_id]
+    interface_id = interface_row.interface_id
 
-    endpoint_id = CQLUtils.endpoint_id(interface_row[:name], interface_row[:major_version], "")
+    endpoint_id = CQLUtils.endpoint_id(interface_row.name, interface_row.major_version, "")
 
     {count, paths} =
       Queries.retrieve_all_endpoint_paths!(realm_name, device_id, interface_id, endpoint_id)

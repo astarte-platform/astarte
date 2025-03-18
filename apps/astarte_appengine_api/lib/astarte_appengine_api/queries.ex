@@ -16,8 +16,8 @@
 # limitations under the License.
 
 defmodule Astarte.AppEngine.API.Queries do
-  alias Astarte.AppEngine.API.KvStore
-  alias Astarte.AppEngine.API.Realm, as: DataAccessRealm
+  alias Astarte.DataAccess.KvStore
+  alias Astarte.DataAccess.Realms.Realm
   alias Astarte.AppEngine.API.Repo
 
   require Logger
@@ -25,7 +25,7 @@ defmodule Astarte.AppEngine.API.Queries do
   @keyspace_does_not_exist_regex ~r/Keyspace (.*) does not exist/
 
   def fetch_public_key(realm_name) do
-    keyspace_name = DataAccessRealm.keyspace_name(realm_name)
+    keyspace_name = Realm.keyspace_name(realm_name)
 
     schema_query =
       from r in KvStore,
@@ -80,7 +80,7 @@ defmodule Astarte.AppEngine.API.Queries do
   end
 
   def check_astarte_health(consistency) do
-    astarte_keyspace = DataAccessRealm.astarte_keyspace_name()
+    astarte_keyspace = Realm.astarte_keyspace_name()
 
     schema_query =
       from kv in KvStore,
@@ -89,7 +89,7 @@ defmodule Astarte.AppEngine.API.Queries do
         select: count(kv.value)
 
     realm_query =
-      from DataAccessRealm,
+      from Realm,
         prefix: ^astarte_keyspace,
         where: [realm_name: "_invalid^name_"]
 

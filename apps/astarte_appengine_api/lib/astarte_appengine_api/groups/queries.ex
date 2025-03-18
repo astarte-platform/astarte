@@ -17,13 +17,13 @@
 #
 
 defmodule Astarte.AppEngine.API.Groups.Queries do
-  alias Astarte.AppEngine.API.Groups.GroupedDevice, as: GroupedDevice
-  alias Astarte.AppEngine.API.Groups.Group
+  alias Astarte.DataAccess.Groups.GroupedDevice
+  alias Astarte.DataAccess.Groups.Group
   alias Astarte.AppEngine.API.Device.DeviceStatus
   alias Astarte.AppEngine.API.Device.DevicesList
-  alias Astarte.AppEngine.API.Device.DeletionInProgress
-  alias Astarte.AppEngine.API.Devices.Device, as: DataBaseDevice
-  alias Astarte.AppEngine.API.Realm, as: DataAccessRealm
+  alias Astarte.DataAccess.Device.DeletionInProgress
+  alias Astarte.DataAccess.Devices.Device, as: DataBaseDevice
+  alias Astarte.DataAccess.Realms.Realm
   alias Astarte.Core.Device
   alias Astarte.AppEngine.API.Repo
   alias Ecto.Changeset
@@ -32,7 +32,7 @@ defmodule Astarte.AppEngine.API.Groups.Queries do
   import Ecto.Query
 
   def list_devices(realm_name, group_name, opts \\ []) do
-    keyspace = DataAccessRealm.keyspace_name(realm_name)
+    keyspace = Realm.keyspace_name(realm_name)
 
     if(opts[:details],
       do: list_devices_with_details(keyspace, group_name, opts),
@@ -65,7 +65,7 @@ defmodule Astarte.AppEngine.API.Groups.Queries do
   end
 
   def add_device(realm_name, group_name, device_changeset) do
-    keyspace = DataAccessRealm.keyspace_name(realm_name)
+    keyspace = Realm.keyspace_name(realm_name)
 
     with {:ok, %{device_id: device_id}} <-
            Ecto.Changeset.apply_action(device_changeset, :insert),
@@ -94,7 +94,7 @@ defmodule Astarte.AppEngine.API.Groups.Queries do
   end
 
   def remove_device(realm_name, group_name, device_id) do
-    keyspace = DataAccessRealm.keyspace_name(realm_name)
+    keyspace = Realm.keyspace_name(realm_name)
 
     with {:group_exists?, true} <-
            {:group_exists?, group_exists?(keyspace, group_name)},
@@ -133,7 +133,7 @@ defmodule Astarte.AppEngine.API.Groups.Queries do
   end
 
   def check_device_in_group(realm_name, group_name, device_id) do
-    keyspace = DataAccessRealm.keyspace_name(realm_name)
+    keyspace = Realm.keyspace_name(realm_name)
 
     case fetch_device_groups(keyspace, device_id) do
       {:ok, groups} -> {:ok, Map.has_key?(groups, group_name)}
@@ -371,7 +371,7 @@ defmodule Astarte.AppEngine.API.Groups.Queries do
   end
 
   def check_all_devices_exist(realm_name, device_ids, group_changeset) do
-    keyspace = DataAccessRealm.keyspace_name(realm_name)
+    keyspace = Realm.keyspace_name(realm_name)
 
     device_ids
     |> Enum.chunk_every(100)
@@ -402,14 +402,14 @@ defmodule Astarte.AppEngine.API.Groups.Queries do
   end
 
   def check_group_exists(realm_name, group_name) do
-    keyspace = DataAccessRealm.keyspace_name(realm_name)
+    keyspace = Realm.keyspace_name(realm_name)
 
     from(GroupedDevice, select: [:group_name], limit: 1)
     |> Repo.fetch_by([group_name: group_name], prefix: keyspace)
   end
 
   def add_to_grouped_device(realm_name, group_name, decoded_device_ids) do
-    keyspace = DataAccessRealm.keyspace_name(realm_name)
+    keyspace = Realm.keyspace_name(realm_name)
 
     queries =
       decoded_device_ids
@@ -441,14 +441,14 @@ defmodule Astarte.AppEngine.API.Groups.Queries do
   end
 
   def list_groups(realm_name) do
-    keyspace = DataAccessRealm.keyspace_name(realm_name)
+    keyspace = Realm.keyspace_name(realm_name)
 
     from(g in GroupedDevice, prefix: ^keyspace, select: g.group_name, distinct: true)
     |> Repo.all()
   end
 
   def get_group(realm_name, group_name) do
-    keyspace = DataAccessRealm.keyspace_name(realm_name)
+    keyspace = Realm.keyspace_name(realm_name)
     group_query = from g in GroupedDevice, select: g.group_name, limit: 1
     fetch_clause = [group_name: group_name]
     opts = [prefix: keyspace, error: :group_not_found]
