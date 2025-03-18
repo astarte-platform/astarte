@@ -68,7 +68,7 @@ defmodule Astarte.DataUpdaterPlant.Mixfile do
 
   defp astarte_required_modules(_) do
     [
-      {:astarte_core, "~> 1.2"},
+      {:astarte_core, github: "astarte-platform/astarte_core", branch: "release-1.2"},
       {:astarte_data_access,
        github: "astarte-platform/astarte_data_access", branch: "release-1.2"},
       {:astarte_rpc, "~> 1.2"}
@@ -82,7 +82,7 @@ defmodule Astarte.DataUpdaterPlant.Mixfile do
       {:cyanide, "~> 2.0"},
       {:excoveralls, "~> 0.15", only: :test},
       {:mox, "~> 1.0", only: :test},
-      {:exandra, github: "vinniefranco/exandra"},
+      {:exandra, "~> 0.13"},
       # hex.pm package and esl/ex_rabbit_pool do not support amqp version 2.1.
       # This fork is supporting amqp ~> 2.0 and also ~> 3.0.
       {:ex_rabbit_pool, github: "leductam/ex_rabbit_pool"},
