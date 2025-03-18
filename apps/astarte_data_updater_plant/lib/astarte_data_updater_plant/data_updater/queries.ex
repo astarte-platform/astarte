@@ -832,7 +832,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
         update: [set: [dup_end_ack: true]]
       )
 
-    with {:ok, _} <- Repo.update_all(query, []) do
+    with {:ok, _} <- Repo.safe_update_all(query, []) do
       :ok
     end
   end
@@ -847,7 +847,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
         update: [set: [dup_start_ack: true]]
       )
 
-    with {:ok, _} <- Repo.update_all(query, []) do
+    with {:ok, _} <- Repo.safe_update_all(query, []) do
       :ok
     end
   end
