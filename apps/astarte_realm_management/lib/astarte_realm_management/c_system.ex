@@ -17,6 +17,7 @@
 #
 
 defmodule CSystem do
+  alias Astarte.DataAccess.Consistency
   alias Astarte.RealmManagement.Repo
   import Ecto.Query
 
@@ -74,14 +75,17 @@ defmodule CSystem do
   @spec schema_versions :: [Astarte.RealmManagement.UUID.t()]
   def query_peers_schema_versions do
     from(p in "peers", select: p.schema_version)
-    |> Repo.all(prefix: "system", consistency: :one)
+    |> Repo.all(prefix: "system", consistency: Consistency.domain_model(:read))
     |> Enum.uniq()
   end
 
   @spec schema_versions :: Astarte.RealmManagement.UUID.t()
   def query_local_schema_version do
     from(l in "local", select: l.schema_version)
-    |> Repo.get_by!([key: "local"], prefix: "system", consistency: :one)
+    |> Repo.get_by!([key: "local"],
+      prefix: "system",
+      consistency: Consistency.domain_model(:read)
+    )
   end
 
   @spec execute_schema_change(String.t()) ::
@@ -89,9 +93,11 @@ defmodule CSystem do
   def execute_schema_change(query) do
     query_params = []
 
+    consistency = Consistency.domain_model(:write)
+
     result =
       run_with_schema_agreement(fn ->
-        Repo.query(query, query_params, consistency: :each_quorum, timeout: 60_000)
+        Repo.query(query, query_params, consistency: consistency, timeout: 60_000)
       end)
 
     case result do
