@@ -31,10 +31,12 @@ defmodule Astarte.AppEngine.API.Device.Queries do
   alias Astarte.AppEngine.API.Repo
   alias Astarte.Core.CQLUtils
   alias Astarte.Core.Device
+  alias Astarte.Core.Mapping
   alias Astarte.Core.InterfaceDescriptor
   alias Astarte.DataAccess.Realms.Realm
-  alias Astarte.DataAccess.Devices.Device, as: DatabaseDevice
   alias Astarte.DataAccess.Realms.Endpoint
+  alias Astarte.DataAccess.Devices.Device, as: DatabaseDevice
+  alias Astarte.DataAccess.Consistency
 
   require Logger
 
@@ -46,7 +48,9 @@ defmodule Astarte.AppEngine.API.Device.Queries do
         prefix: ^keyspace,
         select: d.introspection
 
-    with {:ok, introspection} <- Repo.fetch(query, device_id, error: :device_not_found) do
+    opts = [consistency: Consistency.device_info(:read), error: :device_not_found]
+
+    with {:ok, introspection} <- Repo.fetch(query, device_id, opts) do
       interfaces_list = introspection |> Map.keys()
       {:ok, interfaces_list}
     end
@@ -67,7 +71,7 @@ defmodule Astarte.AppEngine.API.Device.Queries do
         limit -> query |> limit(^limit)
       end
 
-    Repo.all(query)
+    Repo.all(query, consistency: Consistency.domain_model(:read))
   end
 
   def retrieve_all_endpoints_for_interface!(realm_name, interface_id) do
@@ -79,7 +83,7 @@ defmodule Astarte.AppEngine.API.Device.Queries do
         where: [interface_id: ^interface_id],
         select: [:value_type, :endpoint]
 
-    Repo.all(query)
+    Repo.all(query, consistency: Consistency.domain_model(:read))
   end
 
   def retrieve_mapping(realm_name, interface_id, endpoint_id) do
@@ -101,7 +105,12 @@ defmodule Astarte.AppEngine.API.Device.Queries do
           :explicit_timestamp
         ]
 
-    Repo.get_by!(query, [interface_id: interface_id, endpoint_id: endpoint_id], prefix: keyspace)
+    opts = [
+      prefix: keyspace,
+      consistency: Consistency.domain_model(:read)
+    ]
+
+    Repo.get_by!(query, [interface_id: interface_id, endpoint_id: endpoint_id], opts)
   end
 
   def interface_has_explicit_timestamp?(realm_name, interface_id) do
@@ -116,7 +125,7 @@ defmodule Astarte.AppEngine.API.Device.Queries do
         select: d.explicit_timestamp,
         limit: 1
       )
-      |> Repo.one!(prefix: keyspace)
+      |> Repo.one!(prefix: keyspace, consistency: Consistency.domain_model(:read))
 
     # ensure boolean value
     with nil <- interface_explicit_timestamp do
@@ -129,7 +138,9 @@ defmodule Astarte.AppEngine.API.Device.Queries do
     group = "realm_config"
     key = "datastream_maximum_storage_retention"
 
-    case KvStore.fetch_value(group, key, :integer, consistency: :quorum, prefix: keyspace) do
+    opts = [prefix: keyspace, consistency: Consistency.domain_model(:read)]
+
+    case KvStore.fetch_value(group, key, :integer, opts) do
       {:ok, value} -> value
       {:error, _} -> nil
     end
@@ -151,7 +162,7 @@ defmodule Astarte.AppEngine.API.Device.Queries do
 
     do_get_datastream_values(keyspace, device_id, interface_row, endpoint_id, path, opts)
     |> select(^columns)
-    |> Repo.fetch_one()
+    |> Repo.fetch_one(consistency: Consistency.time_series(:read, endpoint_row))
   end
 
   def retrieve_all_endpoint_paths!(realm_name, device_id, interface_id, endpoint_id) do
@@ -159,7 +170,7 @@ defmodule Astarte.AppEngine.API.Device.Queries do
 
     find_endpoints(keyspace, "individual_properties", device_id, interface_id, endpoint_id)
     |> select([:path])
-    |> Repo.all()
+    |> Repo.all(consistency: Consistency.device_info(:read))
   end
 
   def insert_path_into_db(
@@ -195,7 +206,9 @@ defmodule Astarte.AppEngine.API.Device.Queries do
 
     ttl = opts[:ttl]
 
-    Repo.insert!(value, prefix: keyspace, ttl: ttl)
+    opts = [prefix: keyspace, ttl: ttl, consistency: Consistency.device_info(:write)]
+
+    Repo.insert!(value, opts)
 
     :ok
   end
@@ -233,7 +246,7 @@ defmodule Astarte.AppEngine.API.Device.Queries do
           v.device_id == ^device_id and v.interface_id == ^interface_id and
             v.endpoint_id == ^endpoint_id and v.path == ^path
 
-    with {0, _} <- Repo.delete_all(q) do
+    with {0, _} <- Repo.delete_all(q, consistency: Consistency.device_info(:write)) do
       Logger.warning(
         "Could not unset value for  #{Device.encode_device_id(device_id)} in #{storage}}",
         realm: "realm",
@@ -273,11 +286,14 @@ defmodule Astarte.AppEngine.API.Device.Queries do
       reception_timestamp_submillis: timestamp_submillis
     }
 
+    opts = [
+      prefix: keyspace,
+      ttl: opts[:ttl],
+      consistency: Consistency.device_info(:write)
+    ]
+
     {1, _} =
-      Repo.insert_all(interface_descriptor.storage, [interface_storage_attributes],
-        prefix: keyspace,
-        ttl: opts[:ttl]
-      )
+      Repo.insert_all(interface_descriptor.storage, [interface_storage_attributes], opts)
 
     :ok
   end
@@ -310,11 +326,13 @@ defmodule Astarte.AppEngine.API.Device.Queries do
       reception_timestamp_submillis: timestamp_submillis
     }
 
-    {1, _} =
-      Repo.insert_all(interface_descriptor.storage, [attributes],
-        prefix: keyspace,
-        ttl: opts[:ttl]
-      )
+    opts = [
+      prefix: keyspace,
+      ttl: opts[:ttl],
+      consistency: Consistency.time_series(:write, endpoint)
+    ]
+
+    {1, _} = Repo.insert_all(interface_descriptor.storage, [attributes], opts)
 
     :ok
   end
@@ -325,7 +343,7 @@ defmodule Astarte.AppEngine.API.Device.Queries do
         device_id,
         %InterfaceDescriptor{storage_type: :one_object_datastream_dbtable} = interface_descriptor,
         _endpoint_id,
-        _mapping,
+        mapping,
         path,
         value,
         timestamp,
@@ -339,7 +357,7 @@ defmodule Astarte.AppEngine.API.Device.Queries do
         where: [interface_id: ^interface_id],
         select: [:endpoint, :value_type]
       )
-      |> Repo.all(prefix: keyspace)
+      |> Repo.all(prefix: keyspace, consistency: Consistency.domain_model(:read))
 
     explicit_timestamp? = do_interface_has_explicit_timestamp?(keyspace, interface_id)
 
@@ -365,8 +383,13 @@ defmodule Astarte.AppEngine.API.Device.Queries do
       |> Map.merge(value_attributes)
 
     ttl = Keyword.get(opts, :ttl)
-    # TODO: consistency = insert_consistency(interface_descriptor, endpoint)
-    opts = [prefix: keyspace, ttl: ttl, returning: false]
+
+    opts = [
+      prefix: keyspace,
+      ttl: ttl,
+      returning: false,
+      consistency: Consistency.time_series(:write, mapping)
+    ]
 
     Repo.insert_all(interface_descriptor.storage, [object_datastream], opts)
 
@@ -476,9 +499,15 @@ defmodule Astarte.AppEngine.API.Device.Queries do
 
   defp do_retrieve_device_for_status(keyspace, device_id) do
     fields = [:device_id | @device_status_columns_without_device_id]
-    query = from(DatabaseDevice, prefix: ^keyspace, select: ^fields)
 
-    Repo.fetch(query, device_id, error: :device_not_found)
+    query =
+      from DatabaseDevice,
+        prefix: ^keyspace,
+        select: ^fields
+
+    opts = [consistency: Consistency.device_info(:read), error: :device_not_found]
+
+    Repo.fetch(query, device_id, opts)
   end
 
   def deletion_in_progress?(realm_name, device_id) do
@@ -487,7 +516,9 @@ defmodule Astarte.AppEngine.API.Device.Queries do
   end
 
   defp do_deletion_in_progress?(keyspace, device_id) do
-    case Repo.fetch(DeletionInProgress, device_id, prefix: keyspace) do
+    opts = [prefix: keyspace, consistency: Consistency.device_info(:read)]
+
+    case Repo.fetch(DeletionInProgress, device_id, opts) do
       {:ok, _} -> true
       {:error, _} -> false
     end
@@ -520,7 +551,7 @@ defmodule Astarte.AppEngine.API.Device.Queries do
         where: ^token_filter,
         limit: ^limit
       )
-      |> Repo.all()
+      |> Repo.all(consistency: Consistency.device_info(:read))
 
     devices_info =
       if retrieve_details? do
@@ -552,7 +583,9 @@ defmodule Astarte.AppEngine.API.Device.Queries do
         select: d.object_uuid,
         where: d.object_type == 1 and d.object_name == ^device_alias
 
-    Repo.fetch_one(query, consistency: :quorum, error: :device_not_found)
+    opts = [consistency: Consistency.device_info(:read), error: :device_not_found]
+
+    Repo.fetch_one(query, opts)
   end
 
   def find_all_aliases(realm_name, alias_list) do
@@ -562,7 +595,7 @@ defmodule Astarte.AppEngine.API.Device.Queries do
     alias_list
     |> Enum.chunk_every(99)
     |> Enum.map(&from(n in Name, where: n.object_type == 1 and n.object_name in ^&1))
-    |> Enum.map(&Repo.all(&1, prefix: keyspace))
+    |> Enum.map(&Repo.all(&1, prefix: keyspace, consistency: Consistency.device_info(:read)))
     |> List.flatten()
   end
 
@@ -585,7 +618,9 @@ defmodule Astarte.AppEngine.API.Device.Queries do
 
     queries = [device_query | aliases_queries]
 
-    case Exandra.execute_batch(Repo, %Exandra.Batch{queries: queries}, consistency: :each_quorum) do
+    consistency = Consistency.device_info(:write)
+
+    case Exandra.execute_batch(Repo, %Exandra.Batch{queries: queries}, consistency: consistency) do
       :ok ->
         :ok
 
@@ -671,14 +706,20 @@ defmodule Astarte.AppEngine.API.Device.Queries do
         where: d.device_id == ^device_id,
         update: [set: [attributes: fragment("attributes + ?", ^new_attribute)]]
 
-    Repo.update_all(query, [], consistency: :each_quorum)
+    consistency = Consistency.device_info(:write)
+
+    Repo.update_all(query, [], consistency: consistency)
 
     :ok
   end
 
   def delete_attribute(realm_name, device_id, attribute_key) do
     keyspace = Realm.keyspace_name(realm_name)
-    query = from(d in DatabaseDevice, select: d.attributes)
+
+    query =
+      from d in DatabaseDevice,
+        select: d.attributes
+
     opts = [prefix: keyspace, consistency: :quorum]
 
     with {:ok, attributes} <- Repo.fetch(query, device_id, opts),
@@ -691,7 +732,9 @@ defmodule Astarte.AppEngine.API.Device.Queries do
           where: [device_id: ^device_id],
           update: [set: [attributes: fragment("attributes - ?", ^map_new_attribute)]]
 
-      with {0, _} <- Repo.update_all(query_delete_attributes, [], consistency: :each_quorum) do
+      consistency = Consistency.device_info(:write)
+
+      with {0, _} <- Repo.update_all(query_delete_attributes, [], consistency: consistency) do
         Logger.warning(
           "Could not unset attribute #{attribute_key} for  #{Device.encode_device_id(device_id)} }",
           realm: "#{realm_name}",
@@ -727,10 +770,12 @@ defmodule Astarte.AppEngine.API.Device.Queries do
     insert_batch =
       %Exandra.Batch{queries: [insert_alias_to_names_query, insert_alias_to_device_query]}
 
+    consistency = Consistency.device_info(:write)
+
     with {:existing, {:error, :device_not_found}} <-
            {:existing, device_alias_to_device_id(realm_name, alias_value)},
          :ok <- try_delete_alias(realm_name, device_id, alias_tag),
-         :ok <- Exandra.execute_batch(Repo, insert_batch, consistency: :each_quorum) do
+         :ok <- Exandra.execute_batch(Repo, insert_batch, consistency: consistency) do
       :ok
     else
       {:existing, {:ok, _device_uuid}} ->
@@ -751,9 +796,13 @@ defmodule Astarte.AppEngine.API.Device.Queries do
       from d in DatabaseDevice,
         select: d.aliases
 
-    opts = [prefix: keyspace, consistency: :quorum, error: :device_not_found]
+    fetch_opts = [
+      prefix: keyspace,
+      consistency: Consistency.device_info(:read),
+      error: :device_not_found
+    ]
 
-    with {:ok, result} <- Repo.fetch(query, device_id, opts),
+    with {:ok, result} <- Repo.fetch(query, device_id, fetch_opts),
          {:ok, alias_value} <- get_value(result, alias_tag, :alias_tag_not_found),
          :ok <- check_alias_ownership(keyspace, device_id, alias_tag, alias_value) do
       map_new_alias = MapSet.new([alias_tag])
@@ -767,17 +816,18 @@ defmodule Astarte.AppEngine.API.Device.Queries do
       sql_query_delete_alias = Repo.to_sql(:update_all, query_delete_alias)
 
       query_delete_in_name =
-        from(d in Name,
+        from d in Name,
           prefix: ^keyspace,
           where: [object_name: ^alias_value, object_type: 1]
-        )
 
       sql_query_delete_in_name = Repo.to_sql(:delete_all, query_delete_in_name)
 
       update_and_delete_batch =
         %Exandra.Batch{queries: [sql_query_delete_alias, sql_query_delete_in_name]}
 
-      Exandra.execute_batch(Repo, update_and_delete_batch, consistency: :each_quorum)
+      Exandra.execute_batch(Repo, update_and_delete_batch,
+        consistency: Consistency.device_info(:write)
+      )
     end
   end
 
@@ -803,12 +853,33 @@ defmodule Astarte.AppEngine.API.Device.Queries do
         update: [set: [inhibit_credentials_request: ^inhibit_credentials_request]],
         where: [device_id: ^device_id]
 
-    Repo.update_all(query, [], consistency: :each_quorum)
+    Repo.update_all(query, [], consistency: Consistency.device_info(:write))
 
     :ok
   end
 
-  def retrieve_object_datastream_values(realm_name, device_id, interface_row, path, columns, opts) do
+  def retrieve_object_datastream_values(
+        _realm_name,
+        _device_id,
+        _interface_row,
+        [],
+        _path,
+        _columns,
+        _opts
+      ) do
+    # No endpoint rows means no datastream values, we can just return
+    {0, []}
+  end
+
+  def retrieve_object_datastream_values(
+        realm_name,
+        device_id,
+        interface_row,
+        endpoint_rows,
+        path,
+        columns,
+        opts
+      ) do
     keyspace = Realm.keyspace_name(realm_name)
 
     query_limit = query_limit(opts)
@@ -825,8 +896,23 @@ defmodule Astarte.AppEngine.API.Device.Queries do
       |> order_by(^data_ordering)
       |> limit(^query_limit)
 
-    values = query |> select(^columns) |> Repo.all()
-    count = query |> select([d], count(field(d, ^timestamp_column))) |> Repo.one()
+    # It is a datastream object: all endpoints have the same reliability
+    mapping =
+      endpoint_rows
+      |> List.first()
+      |> Mapping.from_db_result!()
+
+    consistency = Consistency.time_series(:read, mapping)
+
+    values =
+      query
+      |> select(^columns)
+      |> Repo.all(consistency: consistency)
+
+    count =
+      query
+      |> select([d], count(field(d, ^timestamp_column)))
+      |> Repo.one(consistency: consistency)
 
     {count, values}
   end
@@ -850,7 +936,7 @@ defmodule Astarte.AppEngine.API.Device.Queries do
       endpoint_id
     )
     |> select(^columns)
-    |> Repo.all()
+    |> Repo.all(consistency: Consistency.device_info(:read))
   end
 
   def retrieve_datastream_values(
@@ -868,8 +954,19 @@ defmodule Astarte.AppEngine.API.Device.Queries do
     query =
       do_get_datastream_values(keyspace, device_id, interface_row, endpoint_id, path, opts)
 
-    values = query |> select(^columns) |> Repo.all()
-    count = query |> select([d], count(d.value_timestamp)) |> Repo.one!()
+    mapping = Mapping.from_db_result!(endpoint_row)
+
+    consistency = Consistency.time_series(:read, mapping)
+
+    values =
+      query
+      |> select(^columns)
+      |> Repo.all(consistency: consistency)
+
+    count =
+      query
+      |> select([d], count(d.value_timestamp))
+      |> Repo.one!(consistency: consistency)
 
     {count, values}
   end
@@ -878,7 +975,9 @@ defmodule Astarte.AppEngine.API.Device.Queries do
     keyspace = Realm.keyspace_name(realm_name)
     query = from Endpoint, select: [:value_type]
 
-    Repo.get_by!(query, [interface_id: interface_id, endpoint_id: endpoint_id], prefix: keyspace)
+    opts = [prefix: keyspace, consistency: Consistency.domain_model(:read)]
+
+    Repo.get_by!(query, [interface_id: interface_id, endpoint_id: endpoint_id], opts)
   end
 
   defp do_get_datastream_values(
