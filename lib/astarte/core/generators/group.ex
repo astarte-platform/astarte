@@ -17,12 +17,18 @@
 #
 
 defmodule Astarte.Core.Generators.Group do
+  @moduledoc """
+  This module provides generators for Astarte Groups.
+
+  See https://docs.astarte-platform.org/astarte/0.11/065-groups.html
+  """
   use ExUnitProperties
 
   @max_subpath_count 10
   @max_subpath_length 20
 
-  def name() do
+  @spec name() :: StreamData.t(String.t())
+  def name do
     string(:ascii, min_length: 1, max_length: @max_subpath_length)
     |> uniq_list_of(
       min_length: 1,
@@ -34,6 +40,7 @@ defmodule Astarte.Core.Generators.Group do
     end)
   end
 
+  @spec group([{:devices, any()}, ...]) :: StreamData.t(map())
   def group(devices: devices) do
     gen all(
           name <- name(),

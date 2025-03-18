@@ -23,9 +23,9 @@ defmodule Astarte.Core.Generators.InterfaceTest do
   use ExUnit.Case, async: true
   use ExUnitProperties
 
-  alias Ecto.Changeset
-  alias Astarte.Core.Interface
   alias Astarte.Core.Generators.Interface, as: InterfaceGenerator
+  alias Astarte.Core.Interface
+  alias Ecto.Changeset
 
   @moduletag :interface
 

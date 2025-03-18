@@ -24,17 +24,18 @@ defmodule Astarte.Core.Generators.Interface do
   """
   use ExUnitProperties
 
-  alias Ecto.UUID
-  alias Astarte.Core.Interface
+  alias Astarte.Core.Generators.Interface
   alias Astarte.Core.Generators.Mapping, as: MappingGenerator
+  alias Astarte.Core.Interface
+  alias Ecto.UUID
 
   @doc """
   Generates a valid Astarte Interface.
 
   https://github.com/astarte-platform/astarte_core/blob/master/lib/astarte_core/interface.ex
   """
-  @spec interface() :: StreamData.t(%Interface{})
-  def interface() do
+  @spec interface() :: StreamData.t(Interface.t())
+  def interface do
     gen all(
           required <- required_fields(),
           optional <- optional_fields()
@@ -43,9 +44,9 @@ defmodule Astarte.Core.Generators.Interface do
     end
   end
 
-  defp id(), do: repeatedly(&UUID.bingenerate/0)
+  defp id, do: repeatedly(&UUID.bingenerate/0)
 
-  defp name() do
+  defp name do
     string(:alphanumeric, min_length: 1, max_length: 16)
     |> list_of(
       min_length: 2,
@@ -57,7 +58,7 @@ defmodule Astarte.Core.Generators.Interface do
     |> map(&Enum.join(&1, "."))
   end
 
-  defp versions() do
+  defp versions do
     gen all(
           major_version <- integer(0..9),
           minor_version <- integer(0..255)
@@ -69,9 +70,9 @@ defmodule Astarte.Core.Generators.Interface do
     end
   end
 
-  defp type(), do: member_of([:datastream, :properties])
+  defp type, do: member_of([:datastream, :properties])
 
-  defp ownership(), do: member_of([:device, :server])
+  defp ownership, do: member_of([:device, :server])
 
   defp mappings(config) do
     uniq_list_of(MappingGenerator.mapping(config), min_length: 1, max_length: 1000)
@@ -80,25 +81,26 @@ defmodule Astarte.Core.Generators.Interface do
   defp aggregation(%{type: :properties}), do: constant(:individual)
   defp aggregation(_), do: member_of([:individual, :object])
 
-  defp description() do
+  defp description do
     string(:ascii, min_length: 1, max_length: 1000)
   end
 
-  defp doc() do
+  defp doc do
     string(:ascii, min_length: 1, max_length: 100_000)
   end
 
-  defp endpoint_subpath() do
+  defp endpoint_subpath do
     string([?a..?z, ?_], min_length: 1, max_length: 5)
   end
 
-  def endpoint_parametric_subpath() do
+  @spec endpoint_parametric_subpath() :: StreamData.t(any())
+  def endpoint_parametric_subpath do
     gen all(subpath <- endpoint_subpath()) do
       "%{" <> subpath <> "}"
     end
   end
 
-  defp endpoint_prefix() do
+  defp endpoint_prefix do
     gen all(
           prefix <-
             frequency([
@@ -115,7 +117,7 @@ defmodule Astarte.Core.Generators.Interface do
     end
   end
 
-  defp required_fields() do
+  defp required_fields do
     gen all(
           id <- id(),
           name <- name(),
@@ -158,7 +160,7 @@ defmodule Astarte.Core.Generators.Interface do
     end
   end
 
-  defp optional_fields() do
+  defp optional_fields do
     optional_map(%{
       description: description(),
       doc: doc()

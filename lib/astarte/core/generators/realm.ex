@@ -37,8 +37,8 @@ defmodule Astarte.Core.Generators.Realm do
         ) do
       first <> rest
     end
-    |> filter(&is_valid?/1)
+    |> filter(&valid?/1)
   end
 
-  defp is_valid?(name), do: Realm.valid_name?(name)
+  defp valid?(name), do: Realm.valid_name?(name)
 end

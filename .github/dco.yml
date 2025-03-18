@@ -16,26 +16,5 @@
 # limitations under the License.
 #
 
-defmodule Astarte.Core.Generators.RealmTest do
-  @moduledoc """
-  Tests for Astarte Realm generator.
-  """
-  use ExUnit.Case, async: true
-  use ExUnitProperties
-
-  alias Astarte.Core.Generators.Realm, as: RealmGenerator
-  alias Astarte.Core.Realm
-
-  @moduletag :realm
-
-  @doc """
-  Property test for Astarte Realm generator.
-  """
-  describe "realm generator" do
-    property "valid realm name" do
-      check all(realm_name <- RealmGenerator.realm_name()) do
-        assert Realm.valid_name?(realm_name), "Invalid realm name: #{inspect(realm_name)}"
-      end
-    end
-  end
-end
+require:
+  members: false
