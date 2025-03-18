@@ -19,6 +19,7 @@ defmodule Astarte.AppEngine.API.Queries do
   alias Astarte.AppEngine.API.KvStore
   alias Astarte.AppEngine.API.Realm, as: DataAccessRealm
   alias Astarte.AppEngine.API.Repo
+  alias Astarte.DataAccess.Consistency
 
   require Logger
   import Ecto.Query
@@ -33,7 +34,7 @@ defmodule Astarte.AppEngine.API.Queries do
         select: fragment("blobAsVarchar(?)", r.value),
         where: r.group == "auth" and r.key == "jwt_public_key_pem"
 
-    opts = [uuid_format: :binary, consistency: :quorum]
+    opts = [uuid_format: :binary, consistency: Consistency.domain_model(:read)]
 
     case safe_query(schema_query, opts) do
       {:ok, %{rows: [[pem]]}} ->
