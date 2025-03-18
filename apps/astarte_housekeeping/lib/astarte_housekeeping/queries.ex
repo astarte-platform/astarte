@@ -22,6 +22,7 @@ defmodule Astarte.Housekeeping.Queries do
   alias Astarte.Core.CQLUtils
   alias Astarte.Housekeeping.Config
   alias Astarte.Housekeeping.Migrator
+  alias Astarte.DataAccess.Realms.Realm, as DataAccessRealm
 
   @default_replication_factor 1
 
@@ -44,9 +45,7 @@ defmodule Astarte.Housekeeping.Queries do
   end
 
   def create_realm(realm_name, public_key_pem, replication, device_limit, max_retention, opts) do
-    with :ok <- validate_realm_name(realm_name),
-         keyspace_name =
-           CQLUtils.realm_name_to_keyspace_name(realm_name, Config.astarte_instance_id!()),
+    with keyspace_name <- DataAccessRealm.keyspace_name(realm_name),
          :ok <- Xandra.Cluster.run(:xandra, &check_replication(&1, replication)),
          {:ok, replication_map_str} <- build_replication_map_str(replication) do
       if opts[:async] do
@@ -77,8 +76,7 @@ defmodule Astarte.Housekeeping.Queries do
   end
 
   def delete_realm(realm_name, opts \\ []) do
-    keyspace_name =
-      CQLUtils.realm_name_to_keyspace_name(realm_name, Config.astarte_instance_id!())
+    keyspace_name = DataAccessRealm.keyspace_name(realm_name)
 
     if opts[:async] do
       {:ok, _pid} = Task.start(fn -> do_delete_realm(realm_name, keyspace_name) end)
@@ -90,9 +88,7 @@ defmodule Astarte.Housekeeping.Queries do
   end
 
   def update_public_key(realm_name, new_public_key) do
-    with :ok <- validate_realm_name(realm_name),
-         keyspace_name =
-           CQLUtils.realm_name_to_keyspace_name(realm_name, Config.astarte_instance_id!()) do
+    with keyspace_name <- DataAccessRealm.keyspace_name(realm_name) do
       Xandra.Cluster.run(:xandra, fn conn ->
         do_update_public_key(conn, keyspace_name, new_public_key)
       end)
@@ -138,20 +134,6 @@ defmodule Astarte.Housekeeping.Queries do
 
   defp build_replication_map_str(_invalid_replication) do
     {:error, :invalid_replication}
-  end
-
-  defp validate_realm_name(realm_name) do
-    if Realm.valid_name?(realm_name) do
-      :ok
-    else
-      _ =
-        Logger.warning("Invalid realm name.",
-          tag: "invalid_realm_name",
-          realm: realm_name
-        )
-
-      {:error, :realm_not_allowed}
-    end
   end
 
   defp do_delete_realm(realm_name, keyspace_name) do
@@ -710,7 +692,7 @@ defmodule Astarte.Housekeeping.Queries do
   defp remove_realm(conn, realm_name) do
     # undecoded realm name
     query = """
-    DELETE FROM #{CQLUtils.realm_name_to_keyspace_name("astarte", Config.astarte_instance_id!())}.realms
+    DELETE FROM #{DataAccessRealm.astarte_keyspace_name()}.realms
     WHERE realm_name = :realm_name;
     """
 
@@ -737,7 +719,7 @@ defmodule Astarte.Housekeeping.Queries do
 
   defp insert_realm(conn, realm_name, device_limit) do
     query = """
-    INSERT INTO #{CQLUtils.realm_name_to_keyspace_name("astarte", Config.astarte_instance_id!())}.realms (realm_name, device_registration_limit)
+    INSERT INTO #{DataAccessRealm.astarte_keyspace_name()}.realms (realm_name, device_registration_limit)
     VALUES (:realm_name, :device_registration_limit);
     """
 
@@ -850,7 +832,7 @@ defmodule Astarte.Housekeeping.Queries do
 
     with {:ok, replication_map_str} <- build_replication_map_str(astarte_keyspace_replication),
          query = """
-         CREATE KEYSPACE #{CQLUtils.realm_name_to_keyspace_name("astarte", Config.astarte_instance_id!())}
+         CREATE KEYSPACE #{DataAccessRealm.astarte_keyspace_name()}
          WITH replication = #{replication_map_str}
          AND durable_writes = true;
          """,
@@ -883,7 +865,7 @@ defmodule Astarte.Housekeeping.Queries do
 
   defp create_realms_table(conn) do
     query = """
-    CREATE TABLE #{CQLUtils.realm_name_to_keyspace_name("astarte", Config.astarte_instance_id!())}.realms (
+    CREATE TABLE #{DataAccessRealm.astarte_keyspace_name()}.realms (
       realm_name varchar,
       device_registration_limit bigint,
       PRIMARY KEY (realm_name)
@@ -910,7 +892,7 @@ defmodule Astarte.Housekeeping.Queries do
 
   defp create_astarte_kv_store(conn) do
     query = """
-    CREATE TABLE #{CQLUtils.realm_name_to_keyspace_name("astarte", Config.astarte_instance_id!())}.kv_store (
+    CREATE TABLE #{DataAccessRealm.astarte_keyspace_name()}.kv_store (
       group varchar,
       key varchar,
       value blob,
@@ -939,7 +921,7 @@ defmodule Astarte.Housekeeping.Queries do
 
   defp insert_astarte_schema_version(conn) do
     query = """
-    INSERT INTO #{CQLUtils.realm_name_to_keyspace_name("astarte", Config.astarte_instance_id!())}.kv_store
+    INSERT INTO #{DataAccessRealm.astarte_keyspace_name()}.kv_store
     (group, key, value)
     VALUES ('astarte', 'schema_version', bigintAsBlob(#{Migrator.latest_astarte_schema_version()}));
     """
@@ -969,7 +951,7 @@ defmodule Astarte.Housekeeping.Queries do
     query = """
     SELECT keyspace_name
     FROM system_schema.keyspaces
-    WHERE keyspace_name='#{CQLUtils.realm_name_to_keyspace_name("astarte", Config.astarte_instance_id!())}'
+    WHERE keyspace_name='#{DataAccessRealm.astarte_keyspace_name()}'
     """
 
     case Xandra.Cluster.execute(:xandra, query) do
@@ -997,7 +979,7 @@ defmodule Astarte.Housekeeping.Queries do
   def check_astarte_health(consistency) do
     query = """
     SELECT COUNT(*)
-    FROM #{CQLUtils.realm_name_to_keyspace_name("astarte", Config.astarte_instance_id!())}.realms
+    FROM #{DataAccessRealm.astarte_keyspace_name()}.realms
     """
 
     with {:ok, %Xandra.Page{} = page} <-
@@ -1008,7 +990,7 @@ defmodule Astarte.Housekeeping.Queries do
       :error ->
         _ =
           Logger.warning(
-            "Cannot retrieve count for #{CQLUtils.realm_name_to_keyspace_name("astarte", Config.astarte_instance_id!())}.realms table.",
+            "Cannot retrieve count for #{DataAccessRealm.astarte_keyspace_name()}.realms table.",
             tag: "health_check_error"
           )
 
@@ -1035,7 +1017,7 @@ defmodule Astarte.Housekeeping.Queries do
   def list_realms do
     query = """
     SELECT realm_name
-    FROM #{CQLUtils.realm_name_to_keyspace_name("astarte", Config.astarte_instance_id!())}.realms;
+    FROM #{DataAccessRealm.astarte_keyspace_name()}.realms;
     """
 
     case Xandra.Cluster.execute(:xandra, query, %{}, consistency: :quorum) do
@@ -1061,8 +1043,7 @@ defmodule Astarte.Housekeeping.Queries do
   end
 
   def get_realm(realm_name) do
-    keyspace_name =
-      CQLUtils.realm_name_to_keyspace_name(realm_name, Config.astarte_instance_id!())
+    keyspace_name = DataAccessRealm.keyspace_name(realm_name)
 
     Xandra.Cluster.run(:xandra, fn conn ->
       with {:ok, true} <- is_realm_existing(conn, realm_name),
@@ -1125,8 +1106,7 @@ defmodule Astarte.Housekeeping.Queries do
   end
 
   def set_datastream_maximum_storage_retention(realm_name, new_retention) do
-    keyspace_name =
-      CQLUtils.realm_name_to_keyspace_name(realm_name, Config.astarte_instance_id!())
+    keyspace_name = DataAccessRealm.keyspace_name(realm_name)
 
     with :ok <- validate_realm_name(realm_name) do
       Xandra.Cluster.run(
@@ -1137,8 +1117,7 @@ defmodule Astarte.Housekeeping.Queries do
   end
 
   def delete_datastream_maximum_storage_retention(realm_name) do
-    keyspace_name =
-      CQLUtils.realm_name_to_keyspace_name(realm_name, Config.astarte_instance_id!())
+    keyspace_name = DataAccessRealm.keyspace_name(realm_name)
 
     with :ok <- validate_realm_name(realm_name) do
       Xandra.Cluster.run(
@@ -1150,7 +1129,7 @@ defmodule Astarte.Housekeeping.Queries do
 
   defp is_realm_existing(conn, realm_name) do
     query = """
-    SELECT realm_name from #{CQLUtils.realm_name_to_keyspace_name("astarte", Config.astarte_instance_id!())}.realms
+    SELECT realm_name from #{DataAccessRealm.astarte_keyspace_name()}.realms
     WHERE realm_name=:realm_name;
     """
 
@@ -1247,7 +1226,7 @@ defmodule Astarte.Housekeeping.Queries do
 
   defp do_set_device_registration_limit(conn, realm_name, new_device_registration_limit) do
     statement = """
-    UPDATE #{CQLUtils.realm_name_to_keyspace_name("astarte", Config.astarte_instance_id!())}.realms
+    UPDATE #{DataAccessRealm.astarte_keyspace_name()}.realms
     SET device_registration_limit = :new_device_registration_limit
     WHERE realm_name = :realm_name
     """
@@ -1313,7 +1292,7 @@ defmodule Astarte.Housekeeping.Queries do
   defp do_delete_device_registration_limit(conn, realm_name) do
     statement = """
     DELETE device_registration_limit
-    FROM  #{CQLUtils.realm_name_to_keyspace_name("astarte", Config.astarte_instance_id!())}.realms
+    FROM  #{DataAccessRealm.astarte_keyspace_name()}.realms
     WHERE realm_name = :realm_name
     """
 
@@ -1444,7 +1423,7 @@ defmodule Astarte.Housekeeping.Queries do
   defp get_device_registration_limit(conn, realm_name) do
     query = """
     SELECT device_registration_limit
-    FROM  #{CQLUtils.realm_name_to_keyspace_name("astarte", Config.astarte_instance_id!())}.realms
+    FROM  #{DataAccessRealm.astarte_keyspace_name()}.realms
     WHERE realm_name=:realm_name
     """
 

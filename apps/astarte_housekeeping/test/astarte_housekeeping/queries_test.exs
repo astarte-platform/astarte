@@ -91,7 +91,7 @@ defmodule Astarte.Housekeeping.QueriesTest do
            ] =
              Xandra.Cluster.execute!(
                :xandra,
-               "SELECT device_registration_limit FROM #{CQLUtils.realm_name_to_keyspace_name("astarte", Config.astarte_instance_id!())}.realms WHERE realm_name = :realm_name",
+               "SELECT device_registration_limit FROM #{DataAccessRealm.astarte_keyspace_name()}.realms WHERE realm_name = :realm_name",
                %{"realm_name" => {"varchar", @realm1}}
              )
              |> Enum.to_list()
@@ -109,7 +109,7 @@ defmodule Astarte.Housekeeping.QueriesTest do
            ] =
              Xandra.Cluster.execute!(
                :xandra,
-               "SELECT device_registration_limit FROM #{CQLUtils.realm_name_to_keyspace_name("astarte", Config.astarte_instance_id!())}.realms WHERE realm_name = :realm_name",
+               "SELECT device_registration_limit FROM #{DataAccessRealm.astarte_keyspace_name()}.realms WHERE realm_name = :realm_name",
                %{"realm_name" => {"varchar", @realm1}}
              )
              |> Enum.to_list()

@@ -79,7 +79,7 @@ defmodule Astarte.Housekeeping.Migrator do
     query = """
     SELECT table_name
     FROM system_schema.tables
-    WHERE keyspace_name='#{CQLUtils.realm_name_to_keyspace_name("astarte", Config.astarte_instance_id!())}' AND table_name='kv_store'
+    WHERE keyspace_name='#{DataAccessRealm.astarte_keyspace_name()}' AND table_name='kv_store'
     """
 
     with {:ok, %Xandra.Page{} = page} <-
@@ -106,7 +106,7 @@ defmodule Astarte.Housekeeping.Migrator do
 
   defp create_astarte_kv_store do
     query = """
-    CREATE TABLE #{CQLUtils.realm_name_to_keyspace_name("astarte", Config.astarte_instance_id!())}.kv_store (
+    CREATE TABLE #{DataAccessRealm.astarte_keyspace_name()}.kv_store (
       group varchar,
       key varchar,
       value blob,
@@ -141,7 +141,7 @@ defmodule Astarte.Housekeeping.Migrator do
       with :ok <-
              use_keyspace(
                conn,
-               "#{CQLUtils.realm_name_to_keyspace_name("astarte", Config.astarte_instance_id!())}"
+               "#{DataAccessRealm.astarte_keyspace_name()}"
              ) do
         get_keyspace_astarte_schema_version(conn)
       end
@@ -153,7 +153,7 @@ defmodule Astarte.Housekeeping.Migrator do
       with :ok <-
              use_keyspace(
                conn,
-               CQLUtils.realm_name_to_keyspace_name(realm_name, Config.astarte_instance_id!())
+               DataAccessRealm.keyspace_name(realm_name)
              ) do
         get_keyspace_astarte_schema_version(conn)
       end
@@ -223,7 +223,7 @@ defmodule Astarte.Housekeeping.Migrator do
       with :ok <-
              use_keyspace(
                conn,
-               "#{CQLUtils.realm_name_to_keyspace_name("astarte", Config.astarte_instance_id!())}"
+               "#{DataAccessRealm.astarte_keyspace_name()}"
              ),
            :ok <- execute_migrations(conn, migrations) do
         _ = Logger.info("Finished migrating Astarte keyspace.", tag: "astarte_migration_finished")
@@ -245,7 +245,7 @@ defmodule Astarte.Housekeeping.Migrator do
       with :ok <-
              use_keyspace(
                conn,
-               CQLUtils.realm_name_to_keyspace_name(realm_name, Config.astarte_instance_id!())
+               DataAccessRealm.keyspace_name(realm_name)
              ),
            :ok <- execute_migrations(conn, migrations) do
         _ =

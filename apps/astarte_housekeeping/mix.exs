@@ -92,7 +92,7 @@ defmodule Astarte.Housekeeping.Mixfile do
       {:telemetry_poller, "~> 0.4"},
       {:observer_cli, "~> 1.5"},
       {:exandra, github: "vinniefranco/exandra", override: true},
-            # Workaround for Elixir 1.15 / ssl_verify_fun issue
+      # Workaround for Elixir 1.15 / ssl_verify_fun issue
       # See also: https://github.com/deadtrickster/ssl_verify_fun.erl/pull/27
       {:ssl_verify_fun, "~> 1.1.0", manager: :rebar3, override: true}
     ]
