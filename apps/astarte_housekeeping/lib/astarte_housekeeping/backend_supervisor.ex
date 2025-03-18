@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2020 Ispirata Srl
+# Copyright 2020 - 2025 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -32,13 +32,15 @@ defmodule Astarte.Housekeeping.BackendSupervisor do
   def init(_init_arg) do
     Logger.info("BackendSupervisor init", tag: "housekeeping_backend_sup_init")
 
-    xandra_options =
-      Config.xandra_options!()
-      |> Keyword.put(:name, :xandra)
+    xandra_options = repo_opts = Config.xandra_options!()
+    data_access_opts = [xandra_options: xandra_options]
+    hk_xandra_opts = Keyword.put(xandra_options, :name, :xandra)
 
     children = [
-      {Xandra.Cluster, xandra_options},
-      {Astarte.RPC.AMQP.Server, [amqp_queue: Protocol.amqp_queue(), handler: Handler]}
+      {Astarte.RPC.AMQP.Server, [amqp_queue: Protocol.amqp_queue(), handler: Handler]},
+      {Xandra.Cluster, hk_xandra_opts},
+      {Astarte.DataAccess, data_access_opts},
+      {Astarte.Housekeeping.Repo, repo_opts}
     ]
 
     opts = [strategy: :rest_for_one, name: __MODULE__]

@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2020 Ispirata Srl
+# Copyright 2020 - 2025 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -17,15 +17,20 @@
 #
 
 defmodule CSystem do
+  import Ecto.Query
+
+  alias Astarte.Housekeeping.Repo
   @agreement_sleep_millis 200
 
-  def run_with_schema_agreement(conn, opts \\ [], fun) when is_function(fun) do
+  # TODO: `conn` is no longer used, since it was ported to Exandra
+  # mainteined for compatibility
+  def run_with_schema_agreement(_conn, opts \\ [], fun) when is_function(fun) do
     timeout = Keyword.get(opts, :timeout, 30000)
     expect_change = Keyword.get(opts, :expect_change, false)
 
-    with {:ok, initial} <- wait_schema_agreement(conn, timeout),
+    with {:ok, initial} <- wait_schema_agreement(timeout),
          out = fun.(),
-         {:ok, final} <- wait_schema_agreement(conn, timeout) do
+         {:ok, final} <- wait_schema_agreement(timeout) do
       unless expect_change and initial == final do
         out
       else
@@ -34,73 +39,67 @@ defmodule CSystem do
     end
   end
 
-  def wait_schema_agreement(conn, timeout) when is_integer(timeout) and timeout >= 0 do
-    case schema_versions(conn) do
-      {:ok, [version]} ->
+  def wait_schema_agreement(timeout) when is_integer(timeout) and timeout >= 0 do
+    case schema_versions() do
+      [version] ->
         {:ok, version}
 
-      {:ok, _versions} ->
-        millis = min(timeout, @agreement_sleep_millis)
+      _ ->
+        case min(timeout, @agreement_sleep_millis) do
+          0 ->
+            {:error, :timeout}
 
-        if millis == 0 do
-          {:error, :timeout}
-        else
-          Process.sleep(millis)
-          wait_schema_agreement(conn, timeout - millis)
+          millis ->
+            Process.sleep(millis)
+            wait_schema_agreement(timeout - millis)
         end
-
-      any_other ->
-        any_other
     end
   end
 
-  def schema_versions(conn) do
-    with {:ok, local_version} <- query_local_schema_version(conn),
-         {:ok, peers_versions} <- query_peers_schema_versions(conn) do
-      {:ok, Enum.uniq([local_version | peers_versions])}
-    end
+  def schema_versions() do
+    local_version = query_local_schema_version()
+    peers_versions = query_peers_schema_versions()
+    Enum.uniq([local_version | peers_versions])
   end
 
-  def query_peers_schema_versions(conn) do
-    query = "SELECT schema_version FROM system.peers"
+  def query_peers_schema_versions() do
+    query =
+      from(peers in "peers",
+        prefix: "system",
+        select: peers.schema_version
+      )
 
-    with {:ok, res} <- Xandra.execute(conn, query, %{}, consistency: :one) do
-      schema_versions =
-        res
-        |> Stream.map(&Map.fetch!(&1, "schema_version"))
-        |> Stream.uniq()
-        |> Enum.to_list()
-
-      {:ok, schema_versions}
-    end
+    Repo.all(query, consistency: :one)
+    |> Stream.uniq()
+    |> Enum.to_list()
   end
 
-  def query_local_schema_version(conn) do
-    query = "SELECT schema_version FROM system.local WHERE key='local'"
+  def query_local_schema_version() do
+    query =
+      from(locals in "local",
+        prefix: "system",
+        where: locals.key == "local",
+        select: locals.schema_version
+      )
 
-    with {:ok, res} <- Xandra.execute(conn, query, %{}, consistency: :one) do
-      schema_version =
-        res
-        |> Enum.take(1)
-        |> List.first()
-        |> Map.fetch!("schema_version")
-
-      {:ok, schema_version}
-    end
+    Repo.one!(query, consistency: :one)
   end
 
   def execute_schema_change(conn, query) do
     result =
-      CSystem.run_with_schema_agreement(conn, fn ->
+      run_with_schema_agreement(conn, fn ->
         Xandra.execute(conn, query, %{}, consistency: :each_quorum, timeout: 60_000)
       end)
 
     case result do
       {:error, :timeout} ->
-        Xandra.Error.new(:agreement_timeout, "Schema agreement wait timeout.")
+        %Xandra.Error{reason: :agreement_timeout, message: "Schema agreement wait timeout."}
 
       {:error, :no_schema_change} ->
-        Xandra.Error.new(:no_schema_change, "Statement did not change the schema_version.")
+        %Xandra.Error{
+          reason: :no_schema_change,
+          message: "Statement did not change the schema_version."
+        }
 
       any ->
         any
