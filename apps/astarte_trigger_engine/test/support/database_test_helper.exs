@@ -18,76 +18,93 @@
 
 defmodule Astarte.TriggerEngine.DatabaseTestHelper do
   require Logger
-  alias Astarte.Core.CQLUtils
-  alias Astarte.TriggerEngine.Config
   alias Astarte.Core.Triggers.Policy
   alias Astarte.Core.Triggers.PolicyProtobuf.Policy, as: PolicyProto
+  alias Astarte.DataAccess.Realms.Realm
 
   @test_realm "autotestrealm"
 
-  @create_astarte_keyspace """
-    CREATE KEYSPACE #{CQLUtils.realm_name_to_keyspace_name("astarte", Config.astarte_instance_id!())}
-      WITH
-        replication = {'class': 'SimpleStrategy', 'replication_factor': '1'} AND
-        durable_writes = true;
-  """
+  defp create_astarte_keyspace do
+    """
+      CREATE KEYSPACE #{Realm.astarte_keyspace_name()}
+        WITH
+          replication = {'class': 'SimpleStrategy', 'replication_factor': '1'} AND
+          durable_writes = true;
+    """
+  end
 
-  @create_test_keyspace """
-    CREATE KEYSPACE #{CQLUtils.realm_name_to_keyspace_name(@test_realm, Config.astarte_instance_id!())}
-      WITH
-        replication = {'class': 'SimpleStrategy', 'replication_factor': '1'} AND
-        durable_writes = true;
-  """
+  defp create_test_keyspace do
+    """
+      CREATE KEYSPACE #{Realm.keyspace_name(@test_realm)}
+        WITH
+          replication = {'class': 'SimpleStrategy', 'replication_factor': '1'} AND
+          durable_writes = true;
+    """
+  end
 
-  @create_realms_table """
-  CREATE TABLE #{CQLUtils.realm_name_to_keyspace_name("astarte", Config.astarte_instance_id!())}.realms (
-    realm_name varchar,
+  defp create_realms_table do
+    """
+    CREATE TABLE #{Realm.astarte_keyspace_name()}.realms (
+      realm_name varchar,
 
-    PRIMARY KEY ((realm_name))
-  );
-  """
-
-  @create_kv_store_table """
-    CREATE TABLE #{CQLUtils.realm_name_to_keyspace_name(@test_realm, Config.astarte_instance_id!())}.kv_store (
-      group varchar,
-      key varchar,
-      value blob,
-
-      PRIMARY KEY ((group), key)
+      PRIMARY KEY ((realm_name))
     );
-  """
+    """
+  end
 
-  @insert_policy_into_kv_store """
-    INSERT INTO #{CQLUtils.realm_name_to_keyspace_name(@test_realm, Config.astarte_instance_id!())}.kv_store (group, key, value) VALUES ('trigger_policy', :policy_name, :policy_proto)
-  """
+  defp create_kv_store_table do
+    """
+      CREATE TABLE #{Realm.keyspace_name(@test_realm)}.kv_store (
+        group varchar,
+        key varchar,
+        value blob,
 
-  @delete_policy_from_kv_store """
-    DELETE FROM #{CQLUtils.realm_name_to_keyspace_name(@test_realm, Config.astarte_instance_id!())}.kv_store WHERE group = 'trigger_policy' AND key = :policy_name
-  """
+        PRIMARY KEY ((group), key)
+      );
+    """
+  end
 
-  @insert_realm """
-  INSERT INTO #{CQLUtils.realm_name_to_keyspace_name("astarte", Config.astarte_instance_id!())}.realms (realm_name) VALUES (:realm_name)
-  """
+  defp insert_policy_into_kv_store do
+    """
+      INSERT INTO #{Realm.keyspace_name(@test_realm)}.kv_store (group, key, value) VALUES ('trigger_policy', :policy_name, :policy_proto)
+    """
+  end
 
-  @drop_astarte_keyspace """
-    DROP KEYSPACE #{CQLUtils.realm_name_to_keyspace_name("astarte", Config.astarte_instance_id!())}
-  """
+  defp delete_policy_from_kv_store do
+    """
+      DELETE FROM #{Realm.keyspace_name(@test_realm)}.kv_store WHERE group = 'trigger_policy' AND key = :policy_name
+    """
+  end
 
-  @drop_test_keyspace """
-    DROP KEYSPACE #{CQLUtils.realm_name_to_keyspace_name(@test_realm, Config.astarte_instance_id!())}
-  """
+  defp insert_realm do
+    """
+    INSERT INTO #{Realm.astarte_keyspace_name()}.realms (realm_name) VALUES (:realm_name)
+    """
+  end
+
+  defp drop_astarte_keyspace do
+    """
+      DROP KEYSPACE #{Realm.astarte_keyspace_name()}
+    """
+  end
+
+  defp drop_test_keyspace do
+    """
+      DROP KEYSPACE #{Realm.keyspace_name(@test_realm)}
+    """
+  end
 
   def create_test_env() do
     {:ok, _result} =
-      Xandra.Cluster.execute(:xandra, @create_astarte_keyspace, %{}, consistency: :all)
+      Xandra.Cluster.execute(:xandra, create_astarte_keyspace(), %{}, consistency: :all)
 
     {:ok, _result} =
-      Xandra.Cluster.execute(:xandra, @create_test_keyspace, %{}, consistency: :all)
+      Xandra.Cluster.execute(:xandra, create_test_keyspace(), %{}, consistency: :all)
 
-    {:ok, _result} = Xandra.Cluster.execute(:xandra, @create_realms_table, %{})
-    {:ok, _result} = Xandra.Cluster.execute(:xandra, @create_kv_store_table, %{})
+    {:ok, _result} = Xandra.Cluster.execute(:xandra, create_realms_table(), %{})
+    {:ok, _result} = Xandra.Cluster.execute(:xandra, create_kv_store_table(), %{})
 
-    {:ok, insert_realm} = Xandra.Cluster.prepare(:xandra, @insert_realm)
+    {:ok, insert_realm} = Xandra.Cluster.prepare(:xandra, insert_realm())
     {:ok, _result} = Xandra.Cluster.execute(:xandra, insert_realm, %{"realm_name" => @test_realm})
     :ok
   end
@@ -98,7 +115,7 @@ defmodule Astarte.TriggerEngine.DatabaseTestHelper do
       |> Policy.to_policy_proto()
       |> PolicyProto.encode()
 
-    {:ok, prepared} = Xandra.Cluster.prepare(:xandra, @insert_policy_into_kv_store)
+    {:ok, prepared} = Xandra.Cluster.prepare(:xandra, insert_policy_into_kv_store())
 
     {:ok, _result} =
       Xandra.Cluster.execute(:xandra, prepared, %{
@@ -108,13 +125,13 @@ defmodule Astarte.TriggerEngine.DatabaseTestHelper do
   end
 
   def delete_policy(policy_name) do
-    {:ok, prepared} = Xandra.Cluster.prepare(:xandra, @delete_policy_from_kv_store)
+    {:ok, prepared} = Xandra.Cluster.prepare(:xandra, delete_policy_from_kv_store())
     {:ok, _result} = Xandra.Cluster.execute(:xandra, prepared, %{"policy_name" => policy_name})
   end
 
   def drop_test_env() do
-    {:ok, _result} = Xandra.Cluster.execute(:xandra, @drop_astarte_keyspace, %{})
-    {:ok, _result} = Xandra.Cluster.execute(:xandra, @drop_test_keyspace, %{})
+    {:ok, _result} = Xandra.Cluster.execute(:xandra, drop_astarte_keyspace(), %{})
+    {:ok, _result} = Xandra.Cluster.execute(:xandra, drop_test_keyspace(), %{})
 
     :ok
   end
