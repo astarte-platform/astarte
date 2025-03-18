@@ -25,6 +25,7 @@ defmodule Astarte.AppEngine.API.Groups.Queries do
   alias Astarte.AppEngine.API.Devices.Device, as: DataBaseDevice
   alias Astarte.AppEngine.API.Realm, as: DataAccessRealm
   alias Astarte.Core.Device
+  alias Astarte.DataAccess.Consistency
   alias Astarte.AppEngine.API.Repo
   alias Ecto.Changeset
 
@@ -49,7 +50,9 @@ defmodule Astarte.AppEngine.API.Groups.Queries do
         :error -> query
       end
 
-    case Repo.all(query) do
+    consistency = Consistency.device_info(:read)
+
+    case Repo.all(query, consistency: consistency) do
       [] -> {:error, :group_not_found}
       devices -> {:ok, build_device_list_with_details(keyspace, devices, opts)}
     end
@@ -57,8 +60,9 @@ defmodule Astarte.AppEngine.API.Groups.Queries do
 
   defp list_grouped_devices(keyspace, group_name, opts) do
     query = list_grouped_devices_query(keyspace, group_name, opts)
+    consistency = Consistency.device_info(:read)
 
-    case Repo.all(query) do
+    case Repo.all(query, consistency: consistency) do
       [] -> {:error, :group_not_found}
       devices -> {:ok, build_device_list(devices, opts)}
     end
@@ -127,8 +131,10 @@ defmodule Astarte.AppEngine.API.Groups.Queries do
   defp fetch_device_groups(keyspace, encoded_device_id) do
     query = from d in DataBaseDevice, prefix: ^keyspace, select: d.groups
 
+    consistency = Consistency.device_info(:read)
+
     with {:ok, device_id} <- Device.decode_device_id(encoded_device_id) do
-      Repo.fetch(query, device_id, error: :device_not_found)
+      Repo.fetch(query, device_id, consistency: consistency, error: :device_not_found)
     end
   end
 
@@ -253,7 +259,9 @@ defmodule Astarte.AppEngine.API.Groups.Queries do
   end
 
   defp deletion_in_progress?(keyspace, device_id) do
-    case Repo.fetch(DeletionInProgress, device_id, prefix: keyspace) do
+    opts = [prefix: keyspace, consistency: Consistency.device_info(:read)]
+
+    case Repo.fetch(DeletionInProgress, device_id, opts) do
       {:ok, _} ->
         true
 
@@ -285,7 +293,7 @@ defmodule Astarte.AppEngine.API.Groups.Queries do
         select: d.group_name,
         limit: 1
 
-    case Repo.fetch_one(query) do
+    case Repo.fetch_one(query, consistency: Consistency.device_info(:read)) do
       {:ok, _} -> true
       _not_found -> false
     end
@@ -320,7 +328,9 @@ defmodule Astarte.AppEngine.API.Groups.Queries do
 
       grouped_device_query = Repo.to_sql(:delete_all, grouped_device_query)
 
-      Exandra.execute_batch(Repo, %Exandra.Batch{queries: [device_query, grouped_device_query]})
+      Exandra.execute_batch(Repo, %Exandra.Batch{queries: [device_query, grouped_device_query]},
+        consistency: Consistency.device_info(:write)
+      )
     end
   end
 
@@ -360,7 +370,7 @@ defmodule Astarte.AppEngine.API.Groups.Queries do
 
     batch = %Exandra.Batch{queries: batch_queries}
 
-    case Exandra.execute_batch(Repo, batch) do
+    case Exandra.execute_batch(Repo, batch, consistency: Consistency.device_info(:write)) do
       :ok ->
         :ok
 
@@ -382,7 +392,7 @@ defmodule Astarte.AppEngine.API.Groups.Queries do
           where: d.device_id in ^id_chunk,
           select: d.device_id
         )
-        |> Repo.all()
+        |> Repo.all(consistency: Consistency.device_info(:read))
 
       if Enum.count(existing_ids) == Enum.count(id_chunk) do
         {:cont, :ok}
@@ -403,9 +413,10 @@ defmodule Astarte.AppEngine.API.Groups.Queries do
 
   def check_group_exists(realm_name, group_name) do
     keyspace = DataAccessRealm.keyspace_name(realm_name)
+    opts = [prefix: keyspace, consistency: Consistency.device_info(:read)]
 
     from(GroupedDevice, select: [:group_name], limit: 1)
-    |> Repo.fetch_by([group_name: group_name], prefix: keyspace)
+    |> Repo.fetch_by([group_name: group_name], opts)
   end
 
   def add_to_grouped_device(realm_name, group_name, decoded_device_ids) do
@@ -437,21 +448,28 @@ defmodule Astarte.AppEngine.API.Groups.Queries do
         [update_device_groups, insert_grouped_device]
       end)
 
-    Exandra.execute_batch(Repo, %Exandra.Batch{queries: queries})
+    Exandra.execute_batch(Repo, %Exandra.Batch{queries: queries},
+      consistency: Consistency.device_info(:write)
+    )
   end
 
   def list_groups(realm_name) do
     keyspace = DataAccessRealm.keyspace_name(realm_name)
 
     from(g in GroupedDevice, prefix: ^keyspace, select: g.group_name, distinct: true)
-    |> Repo.all()
+    |> Repo.all(consistency: Consistency.device_info(:read))
   end
 
   def get_group(realm_name, group_name) do
     keyspace = DataAccessRealm.keyspace_name(realm_name)
     group_query = from g in GroupedDevice, select: g.group_name, limit: 1
     fetch_clause = [group_name: group_name]
-    opts = [prefix: keyspace, error: :group_not_found]
+
+    opts = [
+      prefix: keyspace,
+      consistency: Consistency.device_info(:read),
+      error: :group_not_found
+    ]
 
     with {:ok, group_name} <- Repo.fetch_by(group_query, fetch_clause, opts) do
       {:ok, %Group{group_name: group_name}}
