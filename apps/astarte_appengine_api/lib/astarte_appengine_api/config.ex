@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2017 Ispirata Srl
+# Copyright 2017-2025 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -21,9 +21,16 @@ defmodule Astarte.AppEngine.API.Config do
   """
 
   alias Astarte.DataAccess.Config, as: DataAccessConfig
+  alias Astarte.AppEngine.API.Config.CQExNodes
   alias Astarte.AppEngine.API.Config.NonNegativeInteger
 
   use Skogsra
+
+  @envdoc "A list of {host, port} values of accessible Cassandra nodes in a cqex compliant format"
+  app_env :cqex_nodes, :astarte_appengine_api, :cqex_nodes,
+    os_env: "CASSANDRA_NODES",
+    type: CQExNodes,
+    default: [{"localhost", 9042}]
 
   @envdoc """
   The max number of data points returned by AppEngine API with a single call. Defaults to 10000. If <= 0, 0 is returned and results are unlimited.
@@ -128,6 +135,30 @@ defmodule Astarte.AppEngine.API.Config do
     type: :module,
     default: Astarte.RPC.AMQP.Client
 
+  defp populate_cqex_ssl_options(options) do
+    if DataAccessConfig.ssl_enabled!() do
+      ssl_options = build_ssl_options()
+      Keyword.put(options, :ssl, ssl_options)
+    else
+      options
+    end
+  end
+
+  defp cqex_authentication_options! do
+    {
+      :cqerl_auth_plain_handler,
+      [{DataAccessConfig.cassandra_username!(), DataAccessConfig.cassandra_password!()}]
+    }
+  end
+
+  @spec cqex_options!() :: [cqex_opts]
+  def(cqex_options!()) do
+    [
+      auth: cqex_authentication_options!()
+    ]
+    |> populate_cqex_ssl_options()
+  end
+
   @doc """
   Returns the routing key used for Rooms AMQP events consumer. A constant for now.
   """
@@ -152,6 +183,12 @@ defmodule Astarte.AppEngine.API.Config do
           | {:server_name_indication, :disable | charlist()}
           | {:depth, integer()}
   @type ssl_options :: :none | [ssl_option]
+
+  @type auth_options :: {module(), [{String.t(), String.t()}]}
+  @type cqex_opts ::
+          {:ssl, ssl_options}
+          | {:auth, auth_options}
+          | {:keyspace, String.t()}
 
   @type options ::
           {:username, String.t()}
@@ -209,8 +246,6 @@ defmodule Astarte.AppEngine.API.Config do
   @doc """
   Returns cassandra nodes formatted in the CQEx format
   """
-  defdelegate cqex_nodes, to: DataAccessConfig
-  defdelegate cqex_nodes!, to: DataAccessConfig
 
   defdelegate xandra_options!, to: DataAccessConfig
 

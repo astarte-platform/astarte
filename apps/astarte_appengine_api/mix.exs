@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2017-2021 Ispirata Srl
+# Copyright 2017-2025 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -116,7 +116,9 @@ defmodule Astarte.AppEngine.API.Mixfile do
       # Test section
       {:excoveralls, "~> 0.15", only: :test},
       {:mox, "~> 0.5", only: :test},
-      {:stream_data, "~> 0.5", only: [:test, :dev]}
+      {:stream_data, "~> 0.5", only: [:test, :dev]},
+      {:cqex, "~> 1.0", only: :test},
+      {:cqerl, "~> 2.1", override: true, only: :test}
     ]
   end
 end

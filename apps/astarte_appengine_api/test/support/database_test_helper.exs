@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2017-2023 SECO Mind Srl
+# Copyright 2017-2025 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -16,12 +16,13 @@
 # limitations under the License.
 
 defmodule Astarte.AppEngine.API.DatabaseTestHelper do
-  alias Astarte.DataAccess.Database
   alias CQEx.Query, as: DatabaseQuery
   alias Astarte.Core.Device
   alias Astarte.AppEngine.API.JWTTestHelper
   alias Astarte.Core.CQLUtils
   alias Astarte.AppEngine.API.Config
+
+  require Logger
 
   @devices_list [
     {"f0VMRgIBAQAAAAAAAAAAAA", 4_500_000,
@@ -434,8 +435,57 @@ defmodule Astarte.AppEngine.API.DatabaseTestHelper do
     ('com.example.ServerOwnedTestObject', 1, :automaton_accepting_states, :automaton_transitions, 2, f0deb891-a02d-19db-ce8e-e8ed82c45587, 0, 2, 'com_example_testobject_v1', 5, 2)
   """
 
+  @spec connect(realm: String.t(), cassandra_nodes: list) ::
+          {:ok, :cqerl.client()} | {:error, atom}
+  def connect(opts \\ []) when is_list(opts) do
+    with {:nodes, nodes} when is_list(nodes) <- get_nodes(opts),
+         client_opts = get_client_opts(opts),
+         {:node, node} when is_tuple(node) <- {:node, Enum.random(nodes)},
+         {:ok, client} <- CQEx.Client.new(node, client_opts) do
+      {:ok, client}
+    else
+      {:error, :shutdown} ->
+        {:error, :database_connection_error}
+
+      {:nodes, nil} ->
+        Logger.error("Database is not configured.")
+        {:error, :database_connection_error}
+
+      {:node, any} ->
+        Logger.error("Database looks misconfigured: #{inspect(any)}.")
+        {:error, :database_connection_error}
+
+      any_error ->
+        Logger.warning("Failed connection to the database. Reason: #{inspect(any_error)}")
+        {:error, :database_connection_error}
+    end
+  end
+
+  defp get_nodes(opts) do
+    case Keyword.fetch(opts, :cassandra_nodes) do
+      {:ok, cassandra_nodes} ->
+        {:nodes, cassandra_nodes}
+
+      :error ->
+        {:nodes, Config.cqex_nodes!()}
+    end
+  end
+
+  defp get_client_opts(opts) do
+    case Keyword.fetch(opts, :realm) do
+      {:ok, realm} ->
+        keyspace = CQLUtils.realm_name_to_keyspace_name(realm, Config.astarte_instance_id!())
+
+        Config.cqex_options!()
+        |> Keyword.put(:keyspace, keyspace)
+
+      :error ->
+        Config.cqex_options!()
+    end
+  end
+
   def connect_to_test_keyspace() do
-    Database.connect(realm: "autotestrealm")
+    connect(realm: "autotestrealm")
   end
 
   def insert_empty_device(client, device_id) do
@@ -475,7 +525,7 @@ defmodule Astarte.AppEngine.API.DatabaseTestHelper do
   end
 
   def create_test_keyspace do
-    {:ok, client} = Database.connect()
+    {:ok, client} = connect()
 
     case DatabaseQuery.call(client, @create_autotestrealm) do
       {:ok, _} ->
@@ -505,7 +555,7 @@ defmodule Astarte.AppEngine.API.DatabaseTestHelper do
   end
 
   def create_public_key_only_keyspace do
-    {:ok, client} = Database.connect(realm: "autotestrealm")
+    {:ok, client} = connect(realm: "autotestrealm")
 
     DatabaseQuery.call!(client, @create_autotestrealm)
 
@@ -520,7 +570,7 @@ defmodule Astarte.AppEngine.API.DatabaseTestHelper do
   end
 
   def seed_data do
-    {:ok, client} = Database.connect(realm: "autotestrealm")
+    {:ok, client} = connect(realm: "autotestrealm")
 
     Enum.each(
       [
@@ -700,7 +750,7 @@ defmodule Astarte.AppEngine.API.DatabaseTestHelper do
   end
 
   def create_datastream_receiving_device do
-    {:ok, client} = Database.connect(realm: "autotestrealm")
+    {:ok, client} = connect(realm: "autotestrealm")
 
     insert_datastream_receiving_device(client)
     insert_datastream_receiving_device_endpoints(client)
@@ -778,7 +828,7 @@ defmodule Astarte.AppEngine.API.DatabaseTestHelper do
   end
 
   def remove_datastream_receiving_device do
-    {:ok, client} = Database.connect(realm: "autotestrealm")
+    {:ok, client} = connect(realm: "autotestrealm")
 
     {:ok, device_id} = Astarte.Core.Device.decode_device_id("fmloLzG5T5u0aOUfIkL8KA")
 
@@ -804,7 +854,7 @@ defmodule Astarte.AppEngine.API.DatabaseTestHelper do
   end
 
   def create_object_receiving_device do
-    {:ok, client} = Database.connect(realm: "autotestrealm")
+    {:ok, client} = connect(realm: "autotestrealm")
 
     insert_object_receiving_device(client)
     create_server_owned_aggregated_object_table(client)
@@ -911,7 +961,7 @@ defmodule Astarte.AppEngine.API.DatabaseTestHelper do
   end
 
   def remove_object_receiving_device do
-    {:ok, client} = Database.connect(realm: "autotestrealm")
+    {:ok, client} = connect(realm: "autotestrealm")
 
     {:ok, device_id} = Astarte.Core.Device.decode_device_id("fmloLzG5T5u0aOUfIkL8KA")
 
@@ -947,7 +997,7 @@ defmodule Astarte.AppEngine.API.DatabaseTestHelper do
       VALUES ('realm_config', 'datastream_maximum_storage_retention', intAsBlob(:ttl_s))
     """
 
-    {:ok, client} = Database.connect(realm: "autotestrealm")
+    {:ok, client} = connect(realm: "autotestrealm")
 
     query =
       DatabaseQuery.new()
@@ -962,7 +1012,7 @@ defmodule Astarte.AppEngine.API.DatabaseTestHelper do
       DELETE FROM #{CQLUtils.realm_name_to_keyspace_name("autotestrealm", Config.astarte_instance_id!())}.kv_store WHERE group='realm_config' AND key='datastream_maximum_storage_retention'
     """
 
-    {:ok, client} = Database.connect(realm: "autotestrealm")
+    {:ok, client} = connect(realm: "autotestrealm")
 
     query =
       DatabaseQuery.new()
@@ -976,7 +1026,7 @@ defmodule Astarte.AppEngine.API.DatabaseTestHelper do
   end
 
   def destroy_local_test_keyspace do
-    {:ok, client} = Database.connect(realm: "autotestrealm")
+    {:ok, client} = connect(realm: "autotestrealm")
 
     DatabaseQuery.call(
       client,
