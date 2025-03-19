@@ -60,6 +60,7 @@ defmodule Astarte.DataAccess.KvStore do
         :integer -> "intAsBlob(?)"
         :big_integer -> "bigintAsBlob(?)"
         :string -> "varcharAsBlob(?)"
+        :uuid -> "uuidAsBlob(?)"
       end
 
     kv_store = %__MODULE__{
