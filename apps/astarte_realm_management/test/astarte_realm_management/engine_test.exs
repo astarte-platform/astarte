@@ -21,9 +21,7 @@ defmodule Astarte.RealmManagement.EngineTest do
   require Logger
   alias Astarte.Core.CQLUtils
   alias Astarte.RealmManagement.Config
-  alias Astarte.DataAccess.Database
   alias Astarte.RealmManagement.DatabaseTestHelper
-  alias Astarte.RealmManagement.DatabaseFixtures
   alias Astarte.RealmManagement.Engine
   alias Astarte.Core.Triggers.SimpleTriggerConfig
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.TaggedSimpleTrigger
@@ -779,7 +777,7 @@ defmodule Astarte.RealmManagement.EngineTest do
     assert Engine.list_interface_versions("autotestrealm", "com.ispirata.Draft") ==
              {:ok, [[major_version: 0, minor_version: 2]]}
 
-    {:ok, client} = Database.connect(realm: "autotestrealm")
+    {:ok, client} = DatabaseTestHelper.connect(realm: "autotestrealm")
 
     d = :crypto.strong_rand_bytes(16)
 
@@ -904,7 +902,7 @@ defmodule Astarte.RealmManagement.EngineTest do
     assert Engine.list_interface_versions("autotestrealm", "com.ispirata.TestDatastream") ==
              {:ok, [[major_version: 0, minor_version: 10]]}
 
-    {:ok, client} = Database.connect(realm: "autotestrealm")
+    {:ok, client} = DatabaseTestHelper.connect(realm: "autotestrealm")
 
     d = :crypto.strong_rand_bytes(16)
     e1 = CQLUtils.endpoint_id("com.ispirata.TestDatastream", 0, "/%{sensorId}/realValues")
