@@ -19,16 +19,15 @@
 defmodule Astarte.TriggerEngine.AMQPConsumer.Queries do
   alias Astarte.Core.CQLUtils
   alias Astarte.TriggerEngine.Config
-  alias Astarte.TriggerEngine.KvStore
-  alias Astarte.TriggerEngine.Realms
+  alias Astarte.DataAccess.KvStore
+  alias Astarte.DataAccess.Realms.Realm
   alias Astarte.TriggerEngine.Repo
   require Logger
 
   import Ecto.Query
 
   def list_policies(realm_name) do
-    keyspace_name =
-      CQLUtils.realm_name_to_keyspace_name(realm_name, Config.astarte_instance_id!())
+    keyspace_name = Realm.keyspace_name(realm_name)
 
     query =
       from k in KvStore,
@@ -46,11 +45,10 @@ defmodule Astarte.TriggerEngine.AMQPConsumer.Queries do
   end
 
   def list_realms do
-    keyspace_name =
-      CQLUtils.realm_name_to_keyspace_name("astarte", Config.astarte_instance_id!())
+    keyspace_name = Realm.astarte_keyspace_name()
 
     query =
-      from r in Realms,
+      from r in Realm,
         prefix: ^keyspace_name,
         select: r.realm_name
 
@@ -66,9 +64,5 @@ defmodule Astarte.TriggerEngine.AMQPConsumer.Queries do
 
   defp extract_name_and_data(%KvStore{key: name, value: data}) do
     {name, data}
-  end
-
-  defp extract_realm_name(%{"realm_name" => name}) do
-    name
   end
 end

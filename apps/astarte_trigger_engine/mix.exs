@@ -59,7 +59,7 @@ defmodule Astarte.TriggerEngine.Mixfile do
 
   defp astarte_required_modules(_) do
     [
-      {:astarte_core, "~> 1.2"},
+      {:astarte_core, github: "astarte-platform/astarte_core", branch: "release-1.2"},
       {:astarte_data_access,
        github: "astarte-platform/astarte_data_access", branch: "release-1.2"}
     ]
@@ -86,10 +86,10 @@ defmodule Astarte.TriggerEngine.Mixfile do
       {:telemetry_poller, "~> 0.4"},
       {:typed_ecto_schema, "~> 0.4"},
       {:ecto, "~> 3.12"},
-      {:exandra, github: "vinniefranco/exandra"},
       {:pretty_log, "~> 0.1"},
       {:telemetry, "~> 0.4"},
       {:xandra, "~> 0.19"},
+      {:exandra, "~> 0.13"},
       {:skogsra, "~> 2.2"},
       {:observer_cli, "~> 1.5"},
       # hex.pm package and esl/ex_rabbit_pool do not support amqp version 2.1.

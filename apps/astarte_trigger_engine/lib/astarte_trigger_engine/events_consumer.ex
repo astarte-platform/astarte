@@ -28,7 +28,7 @@ defmodule Astarte.TriggerEngine.EventsConsumer do
   alias Astarte.Core.Triggers.Trigger
   alias Astarte.TriggerEngine.Config
   alias Astarte.TriggerEngine.Repo
-  alias Astarte.TriggerEngine.KvStore
+  alias Astarte.DataAccess.KvStore
 
   defmodule Behaviour do
     @callback consume(payload :: binary, headers :: map) :: :ok | {:error, reason :: atom}
@@ -316,8 +316,7 @@ defmodule Astarte.TriggerEngine.EventsConsumer do
   end
 
   defp retrieve_trigger_configuration(realm_name, trigger_id) do
-    keyspace_name =
-      CQLUtils.realm_name_to_keyspace_name(realm_name, Config.astarte_instance_id!())
+    keyspace_name = Realm.keyspace_name(realm_name)
 
     query =
       from kvstore in KvStore,
