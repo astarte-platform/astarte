@@ -32,7 +32,6 @@ defmodule Astarte.RealmManagement.Engine do
   alias Astarte.Core.Triggers.Policy
   alias Astarte.Core.Triggers.PolicyProtobuf.Policy, as: PolicyProto
   alias Astarte.Core.Device
-  alias Astarte.DataAccess.Database
   alias Astarte.DataAccess.Interface
   alias Astarte.DataAccess.Mappings
   alias Astarte.RealmManagement.Engine
@@ -372,7 +371,6 @@ defmodule Astarte.RealmManagement.Engine do
       )
 
     with {:major, 0} <- {:major, major},
-         {:ok, client} <- Database.connect(realm: realm_name),
          {:major_is_avail, {:ok, true}} <-
            {:major_is_avail, Queries.is_interface_major_available?(realm_name, name, 0)},
          {:devices, {:ok, false}} <-
@@ -382,11 +380,11 @@ defmodule Astarte.RealmManagement.Engine do
            {:triggers, Queries.has_interface_simple_triggers?(realm_name, interface_id)} do
       if opts[:async] do
         # TODO: add _ = Logger.metadata(realm: realm_name)
-        Task.start_link(Engine, :execute_interface_deletion, [client, realm_name, name, major])
+        Task.start_link(Engine, :execute_interface_deletion, [realm_name, name, major])
 
         {:ok, :started}
       else
-        Engine.execute_interface_deletion(client, realm_name, name, major)
+        Engine.execute_interface_deletion(realm_name, name, major)
       end
     else
       {:major, _} ->
@@ -409,10 +407,10 @@ defmodule Astarte.RealmManagement.Engine do
     end
   end
 
-  def execute_interface_deletion(client, realm_name, name, major) do
+  def execute_interface_deletion(realm_name, name, major) do
     with {:ok, interface_row} <- Interface.retrieve_interface_row(realm_name, name, major),
          {:ok, descriptor} <- InterfaceDescriptor.from_db_result(interface_row),
-         :ok <- Queries.delete_interface_storage(client, realm_name, descriptor),
+         :ok <- Queries.delete_interface_storage(realm_name, descriptor),
          :ok <- Queries.delete_devices_with_data_on_interface(realm_name, name) do
       _ =
         Logger.info("Interface deletion started.",

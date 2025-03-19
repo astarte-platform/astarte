@@ -459,7 +459,7 @@ defmodule Astarte.RealmManagement.Queries do
     :ok
   end
 
-  def delete_interface_storage(_client, realm_name, %InterfaceDescriptor{} = interface_descriptor) do
+  def delete_interface_storage(realm_name, %InterfaceDescriptor{} = interface_descriptor) do
     with {:ok, result} <- devices_with_data_on_interface(realm_name, interface_descriptor.name) do
       Enum.reduce_while(result, :ok, fn encoded_device_id, _acc ->
         with {:ok, device_id} <- Device.decode_device_id(encoded_device_id),
