@@ -42,13 +42,16 @@ defmodule Astarte.RealmManagement do
     RPCConfig.validate!()
 
     xandra_opts = Config.xandra_options!()
+    xandra_opts = Keyword.put(xandra_opts, :atom_keys, true)
+
+    rm_xandra_opts = Keyword.put(xandra_opts, :name, :xandra)
 
     data_access_opts = [xandra_options: xandra_opts]
 
     children = [
       Astarte.RealmManagementWeb.Telemetry,
-      xandra_cluster_child_spec(xandra_opts: xandra_opts, name: :xandra),
       xandra_cluster_child_spec(xandra_opts: xandra_opts, name: :xandra_device_deletion),
+      {Xandra.Cluster, rm_xandra_opts},
       {Astarte.DataAccess, data_access_opts},
       {Astarte.RealmManagement.Repo, xandra_opts},
       {Astarte.RPC.AMQP.Server, [amqp_queue: Protocol.amqp_queue(), handler: Handler]},
