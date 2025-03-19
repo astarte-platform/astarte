@@ -40,6 +40,7 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandlerTest do
   alias AMQP.Channel
   alias AMQP.Connection
   alias AMQP.Queue
+  alias Astarte.Core.DecimicrosecondDateTime
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.AMQPTriggerTarget
   alias Astarte.DataUpdaterPlant.Config
   alias Astarte.DataUpdaterPlant.TriggersHandler
@@ -121,6 +122,8 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandlerTest do
 
       assert_receive {:event, payload, meta}
 
+      timestamp = DecimicrosecondDateTime.to_unix(timestamp, :millisecond)
+
       assert %SimpleEvent{
                device_id: @device_id,
                parent_trigger_id: ^parent_trigger_id,
@@ -171,6 +174,8 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandlerTest do
 
       assert_receive {:event, payload, meta}
 
+      timestamp = DecimicrosecondDateTime.to_unix(timestamp, :millisecond)
+
       assert %SimpleEvent{
                device_id: @device_id,
                parent_trigger_id: ^parent_trigger_id,
@@ -214,6 +219,8 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandlerTest do
       TriggersHandler.device_disconnected(target, @realm, @device_id, timestamp, nil)
 
       assert_receive {:event, payload, meta}
+
+      timestamp = DecimicrosecondDateTime.to_unix(timestamp, :millisecond)
 
       assert %SimpleEvent{
                device_id: @device_id,
@@ -261,6 +268,8 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandlerTest do
       )
 
       assert_receive {:event, payload, meta}
+
+      timestamp = DecimicrosecondDateTime.to_unix(timestamp, :millisecond)
 
       assert %SimpleEvent{
                device_id: @device_id,
@@ -318,6 +327,8 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandlerTest do
 
       assert_receive {:event, payload, meta}
 
+      timestamp = DecimicrosecondDateTime.to_unix(timestamp, :millisecond)
+
       assert %SimpleEvent{
                device_id: @device_id,
                parent_trigger_id: ^parent_trigger_id,
@@ -367,6 +378,8 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandlerTest do
 
       assert_receive {:event, payload, meta}
 
+      timestamp = DecimicrosecondDateTime.to_unix(timestamp, :millisecond)
+
       assert %SimpleEvent{
                device_id: @device_id,
                parent_trigger_id: ^parent_trigger_id,
@@ -414,6 +427,8 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandlerTest do
       )
 
       assert_receive {:event, payload, meta}
+
+      timestamp = DecimicrosecondDateTime.to_unix(timestamp, :millisecond)
 
       assert %SimpleEvent{
                device_id: @device_id,
@@ -470,6 +485,8 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandlerTest do
 
       assert_receive {:event, payload, meta}
 
+      timestamp = DecimicrosecondDateTime.to_unix(timestamp, :millisecond)
+
       assert %SimpleEvent{
                device_id: @device_id,
                parent_trigger_id: ^parent_trigger_id,
@@ -521,6 +538,8 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandlerTest do
 
       assert_receive {:event, payload, meta}
 
+      timestamp = DecimicrosecondDateTime.to_unix(timestamp, :millisecond)
+
       assert %SimpleEvent{
                device_id: @device_id,
                parent_trigger_id: ^parent_trigger_id,
@@ -571,6 +590,8 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandlerTest do
 
       assert_receive {:event, payload, meta}
 
+      timestamp = DecimicrosecondDateTime.to_unix(timestamp, :millisecond)
+
       assert %SimpleEvent{
                device_id: @device_id,
                parent_trigger_id: ^parent_trigger_id,
@@ -619,6 +640,8 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandlerTest do
       TriggersHandler.path_removed(target, @realm, @device_id, @interface, @path, timestamp, nil)
 
       assert_receive {:event, payload, meta}
+
+      timestamp = DecimicrosecondDateTime.to_unix(timestamp, :millisecond)
 
       assert %SimpleEvent{
                device_id: @device_id,
@@ -679,6 +702,8 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandlerTest do
       )
 
       assert_receive {:event, payload, meta}
+
+      timestamp = DecimicrosecondDateTime.to_unix(timestamp, :millisecond)
 
       assert %SimpleEvent{
                device_id: @device_id,
@@ -741,6 +766,8 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandlerTest do
       )
 
       assert_receive {:event, payload, meta}
+
+      timestamp = DecimicrosecondDateTime.to_unix(timestamp, :millisecond)
 
       assert %SimpleEvent{
                device_id: @device_id,
@@ -818,6 +845,8 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandlerTest do
 
       assert_receive {:event, payload, meta}
 
+      timestamp = DecimicrosecondDateTime.to_unix(timestamp, :millisecond)
+
       assert %SimpleEvent{
                device_id: @device_id,
                parent_trigger_id: ^parent_trigger_id,
@@ -880,6 +909,8 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandlerTest do
       )
 
       assert_receive {:event, payload, meta}
+
+      timestamp = DecimicrosecondDateTime.to_unix(timestamp, :millisecond)
 
       assert %SimpleEvent{
                device_id: @device_id,
@@ -944,6 +975,8 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandlerTest do
 
       assert_receive {:event, payload, meta}
 
+      timestamp = DecimicrosecondDateTime.to_unix(timestamp, :millisecond)
+
       assert %SimpleEvent{
                device_id: @device_id,
                parent_trigger_id: ^parent_trigger_id,
@@ -986,6 +1019,7 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandlerTest do
   defp get_timestamp do
     DateTime.utc_now()
     |> DateTime.to_unix(:microsecond)
+    |> DecimicrosecondDateTime.from_unix!(:microsecond)
   end
 
   defp subscribe_to_queue(chan, queue_name) do

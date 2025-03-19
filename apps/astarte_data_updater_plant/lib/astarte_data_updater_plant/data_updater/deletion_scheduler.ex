@@ -28,6 +28,7 @@ defmodule Astarte.DataUpdater.DeletionScheduler do
   alias Astarte.DataUpdaterPlant.DataUpdater.Queries
   alias Astarte.DataUpdaterPlant.DataUpdater
   alias Astarte.DataUpdaterPlant.Config
+  alias Astarte.Core.DecimicrosecondDateTime
   alias Astarte.Core.Device
   alias Astarte.Core.CQLUtils
 
@@ -56,7 +57,7 @@ defmodule Astarte.DataUpdater.DeletionScheduler do
   defp start_device_deletion! do
     retrieve_devices_to_delete!()
     |> Enum.each(fn %{realm_name: realm_name, encoded_device_id: encoded_device_id} ->
-      timestamp = now_us_x10_timestamp()
+      timestamp = now_us_x10_timestamp() |> DecimicrosecondDateTime.from_unix!(:decimicrosecond)
       # This must be a call, as we want to be sure this was completed
       :ok = DataUpdater.start_device_deletion(realm_name, encoded_device_id, timestamp)
     end)

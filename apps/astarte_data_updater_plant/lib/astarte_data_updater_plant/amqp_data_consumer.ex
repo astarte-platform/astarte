@@ -29,6 +29,7 @@ defmodule Astarte.DataUpdaterPlant.AMQPDataConsumer do
   use GenServer
 
   alias AMQP.Channel
+  alias Astarte.Core.DecimicrosecondDateTime
   alias Astarte.DataUpdaterPlant.Config
   alias Astarte.DataUpdaterPlant.DataUpdater
 
@@ -185,6 +186,7 @@ defmodule Astarte.DataUpdaterPlant.AMQPDataConsumer do
     msg_type = Map.get(headers_map, @msg_type_header, headers_map)
 
     {timestamp, clean_meta} = Map.pop(no_headers_meta, :timestamp)
+    timestamp = DecimicrosecondDateTime.from_unix!(timestamp, :decimicrosecond)
 
     case handle_consume(msg_type, payload, headers_map, timestamp, clean_meta) do
       :ok ->
@@ -391,6 +393,8 @@ defmodule Astarte.DataUpdaterPlant.AMQPDataConsumer do
   end
 
   defp handle_invalid_msg(payload, headers, timestamp, meta) do
+    timestamp = DecimicrosecondDateTime.to_unix(timestamp, :millisecond)
+
     Logger.warning(
       "Invalid AMQP message: #{inspect(Base.encode64(payload))} #{inspect(headers)} #{inspect(timestamp)} #{inspect(meta)}",
       tag: "data_consumer_invalid_msg"

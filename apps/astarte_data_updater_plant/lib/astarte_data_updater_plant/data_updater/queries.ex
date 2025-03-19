@@ -21,6 +21,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
   alias Astarte.Core.Device, as: CoreDevice
   alias Astarte.Core.InterfaceDescriptor
   alias Astarte.Core.Mapping
+  alias Astarte.DataAccess.DateTime, as: MsDateTime
   alias Astarte.DataUpdaterPlant.Config
   alias Astarte.DataAccess.Realms.SimpleTrigger
   alias Astarte.DataAccess.Device.DeletionInProgress
@@ -131,8 +132,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
     %InterfaceDescriptor{interface_id: interface_id, storage: storage} = interface_descriptor
     %Mapping{endpoint_id: endpoint_id, value_type: value_type} = mapping
     keyspace_name = Realm.keyspace_name(realm)
-    timestamp = div(reception_timestamp, 10000)
-    reception_timestamp_submillis = rem(reception_timestamp, 10000)
+    {timestamp, reception_timestamp_submillis} = MsDateTime.split_submillis(reception_timestamp)
     column_name = CQLUtils.type_to_db_column_name(value_type)
 
     # TODO: :reception_timestamp_submillis is just a place holder right now
@@ -170,8 +170,8 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
     %InterfaceDescriptor{interface_id: interface_id, storage: storage} = interface_descriptor
     %Mapping{endpoint_id: endpoint_id, value_type: value_type} = mapping
     keyspace_name = Realm.keyspace_name(realm)
-    timestamp = div(reception_timestamp, 10000)
-    reception_timestamp_submillis = rem(reception_timestamp, 10000)
+    {timestamp, reception_timestamp_submillis} = MsDateTime.split_submillis(reception_timestamp)
+    value_timestamp = Ecto.Type.cast!(MsDateTime, value_timestamp)
     column_name = CQLUtils.type_to_db_column_name(value_type)
 
     # TODO: use received value_timestamp when needed
@@ -211,8 +211,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
     %InterfaceDescriptor{interface_id: interface_id, storage: storage} = interface_descriptor
 
     keyspace_name = Realm.keyspace_name(realm)
-    timestamp = div(reception_timestamp, 10000)
-    reception_timestamp_submillis = rem(reception_timestamp, 10000)
+    {timestamp, reception_timestamp_submillis} = MsDateTime.split_submillis(reception_timestamp)
 
     # TODO: we should cache endpoints by interface_id
     column_info =
@@ -252,6 +251,8 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
 
     insert_value =
       if explicit_timestamp? do
+        value_timestamp = Ecto.Type.cast!(MsDateTime, value_timestamp)
+
         Map.put(insert_value, "value_timestamp", value_timestamp)
       else
         insert_value
@@ -366,8 +367,8 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
     %InterfaceDescriptor{interface_id: interface_id} = interface_descriptor
     %Mapping{endpoint_id: endpoint_id} = mapping
     keyspace_name = Realm.keyspace_name(realm)
-    timestamp = div(reception_timestamp, 10000) |> DateTime.from_unix!(:microsecond)
-    reception_timestamp_submillis = rem(reception_timestamp, 10000)
+    {timestamp, reception_timestamp_submillis} = MsDateTime.split_submillis(reception_timestamp)
+    value_timestamp = Ecto.Type.cast!(MsDateTime, value_timestamp)
 
     # TODO: :reception_timestamp_submillis is just a place holder right now
     entry = %{
@@ -377,7 +378,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
       path: path,
       reception_timestamp: timestamp,
       reception_timestamp_submillis: reception_timestamp_submillis,
-      datetime_value: DateTime.from_unix!(value_timestamp, :microsecond)
+      datetime_value: value_timestamp
     }
 
     opts =
@@ -457,7 +458,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
 
   defp set_connection_info!(realm, device_id, timestamp, ip_address) do
     keyspace_name = Realm.keyspace_name(realm)
-    timestamp = Ecto.Type.cast!(:utc_datetime_usec, timestamp)
+    timestamp = Ecto.Type.cast!(MsDateTime, timestamp)
 
     %Device{device_id: device_id}
     |> Ecto.Changeset.change(
@@ -516,7 +517,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
         interface_exchanged_bytes
       ) do
     keyspace_name = Realm.keyspace_name(realm)
-    timestamp_ms = Ecto.Type.cast!(:utc_datetime_usec, timestamp_ms)
+    timestamp_ms = Ecto.Type.cast!(MsDateTime, timestamp_ms)
 
     %Device{device_id: device_id}
     |> Ecto.Changeset.change(
@@ -800,10 +801,8 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
 
       [ttl] when is_integer(ttl) ->
         expiry_datetime =
-          DateTime.utc_now()
-          |> DateTime.to_unix()
-          |> :erlang.+(ttl)
-          |> DateTime.from_unix!()
+          DateTime.utc_now(:second)
+          |> DateTime.add(ttl)
 
         {:ok, expiry_datetime}
 
