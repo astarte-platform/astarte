@@ -19,18 +19,17 @@
 defmodule Astarte.TriggerEngine.Health.Queries do
   alias Astarte.TriggerEngine.Config
   alias Astarte.Core.CQLUtils
-  alias Astarte.TriggerEngine.Realms
+  alias Astarte.DataAccess.Realms.Realm
   alias Astarte.TriggerEngine.Repo
   require Logger
 
   import Ecto.Query
 
   def get_astarte_health(consistency) do
-    keyspace_name =
-      CQLUtils.realm_name_to_keyspace_name("astarte", Config.astarte_instance_id!())
+    keyspace_name = Realm.astarte_keyspace_name()
 
     query =
-      from r in Realms,
+      from r in Realm,
         prefix: ^keyspace_name,
         select: count()
 
