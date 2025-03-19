@@ -42,11 +42,13 @@ defmodule Astarte.TriggerEngine.Application do
 
     xandra_options = Config.xandra_options!()
     xandra_cluster_options = Keyword.put(xandra_options, :name, :xandra)
+    data_access_opts = [xandra_options: xandra_options]
 
     children = [
       Astarte.TriggerEngineWeb.Telemetry,
       {Xandra.Cluster, xandra_cluster_options},
       {Astarte.TriggerEngine.Repo, xandra_options},
+      {Astarte.DataAccess, data_access_opts},
       DeliverySupervisor
     ]
 
