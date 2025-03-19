@@ -34,6 +34,7 @@ defmodule Astarte.RealmManagement.Engine do
   alias Astarte.Core.Device
   alias Astarte.DataAccess.Interface
   alias Astarte.DataAccess.Mappings
+  alias Astarte.DataAccess.Realms.Realm
   alias Astarte.RealmManagement.Engine
   alias Astarte.RealmManagement.Engine.MappingUpdates
   alias Astarte.RealmManagement.Queries
@@ -450,8 +451,7 @@ defmodule Astarte.RealmManagement.Engine do
   def get_jwt_public_key_pem(realm_name) do
     _ = Logger.debug("Get JWT public key PEM.")
 
-    keyspace_name =
-      CQLUtils.realm_name_to_keyspace_name(realm_name, Config.astarte_instance_id!())
+    keyspace_name = Realm.keyspace_name(realm_name)
 
     Queries.get_jwt_public_key_pem(keyspace_name)
   end

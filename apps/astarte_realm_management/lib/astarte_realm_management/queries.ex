@@ -18,19 +18,19 @@
 
 defmodule Astarte.RealmManagement.Queries do
   require Logger
-  alias Astarte.RealmManagement.Realms.DeletionInProgress
-  alias Astarte.RealmManagement.Realms.GroupedDevice
-  alias Astarte.RealmManagement.Realms.Name
-  alias Astarte.RealmManagement.Realms.IndividualDatastream
-  alias Astarte.RealmManagement.Realms.Device, as: RealmsDevice
-  alias Astarte.RealmManagement.Realms.Interface
-  alias Astarte.RealmManagement.Realms.IndividualProperty
-  alias Astarte.RealmManagement.Realms.Endpoint
-  alias Astarte.RealmManagement.Realms.SimpleTrigger
+  alias Astarte.DataAccess.Device.DeletionInProgress
+  alias Astarte.DataAccess.Groups.GroupedDevice
+  alias Astarte.DataAccess.Realms.Name
+  alias Astarte.DataAccess.Realms.IndividualDatastream
+  alias Astarte.DataAccess.Devices.Device, as: RealmsDevice
+  alias Astarte.DataAccess.Realms.Interface
+  alias Astarte.DataAccess.Realms.IndividualProperty
+  alias Astarte.DataAccess.Realms.Endpoint
+  alias Astarte.DataAccess.Realms.SimpleTrigger
   alias Astarte.RealmManagement
   alias Astarte.RealmManagement.Repo
-  alias Astarte.RealmManagement.Astarte.Realm
-  alias Astarte.RealmManagement.Astarte.KvStore
+  alias Astarte.DataAccess.Realms.Realm
+  alias Astarte.DataAccess.KvStore
   alias Astarte.Core.AstarteReference
   alias Astarte.Core.CQLUtils
   alias Astarte.RealmManagement.Config
@@ -133,7 +133,7 @@ defmodule Astarte.RealmManagement.Queries do
   end
 
   def check_astarte_health(consistency) do
-    keyspace = Realm.keyspace_name("astarte")
+    keyspace = Realm.astarte_keyspace_name()
 
     schema_query =
       from KvStore,
@@ -143,7 +143,7 @@ defmodule Astarte.RealmManagement.Queries do
     # no-op, just to check if nodes respond no realm name can contain '_', '^'.
     # Should return {:error, :not_found}
     realms_query =
-      from RealmManagement.Astarte.Realm,
+      from Realm,
         where: [realm_name: "_invalid^name_"],
         limit: 1
 
@@ -1248,8 +1248,7 @@ defmodule Astarte.RealmManagement.Queries do
         path
       ) do
     # TODO: validate realm name
-    keyspace_name =
-      CQLUtils.realm_name_to_keyspace_name(realm_name, Config.astarte_instance_id!())
+    keyspace_name = Realm.keyspace_name(realm_name)
 
     query =
       from IndividualDatastream,
@@ -1280,8 +1279,7 @@ defmodule Astarte.RealmManagement.Queries do
 
   def delete_individual_properties_values!(realm_name, device_id, interface_id) do
     # TODO: validate realm name
-    keyspace_name =
-      CQLUtils.realm_name_to_keyspace_name(realm_name, Config.astarte_instance_id!())
+    keyspace_name = Realm.keyspace_name(realm_name)
 
     query =
       from IndividualProperty,
@@ -1307,8 +1305,7 @@ defmodule Astarte.RealmManagement.Queries do
 
   def delete_object_datastream_values!(realm_name, device_id, path, table_name) do
     # TODO: validate realm name
-    keyspace_name =
-      CQLUtils.realm_name_to_keyspace_name(realm_name, Config.astarte_instance_id!())
+    keyspace_name = Realm.keyspace_name(realm_name)
 
     query =
       from table_name,
@@ -1333,8 +1330,7 @@ defmodule Astarte.RealmManagement.Queries do
 
   def delete_alias_values!(realm_name, device_alias) do
     # TODO: validate realm name
-    keyspace_name =
-      CQLUtils.realm_name_to_keyspace_name(realm_name, Config.astarte_instance_id!())
+    keyspace_name = Realm.keyspace_name(realm_name)
 
     query =
       from Name,
@@ -1358,8 +1354,7 @@ defmodule Astarte.RealmManagement.Queries do
   end
 
   def delete_group_values!(realm_name, device_id, group_name, insertion_uuid) do
-    keyspace_name =
-      CQLUtils.realm_name_to_keyspace_name(realm_name, Config.astarte_instance_id!())
+    keyspace_name = Realm.keyspace_name(realm_name)
 
     query =
       from GroupedDevice,
@@ -1384,8 +1379,7 @@ defmodule Astarte.RealmManagement.Queries do
 
   def delete_kv_store_entry!(realm_name, group, key) do
     # TODO: validate realm name
-    keyspace_name =
-      CQLUtils.realm_name_to_keyspace_name(realm_name, Config.astarte_instance_id!())
+    keyspace_name = Realm.keyspace_name(realm_name)
 
     query =
       from KvStore,
@@ -1398,8 +1392,7 @@ defmodule Astarte.RealmManagement.Queries do
 
   def delete_device!(realm_name, device_id) do
     # TODO: validate realm name
-    keyspace_name =
-      CQLUtils.realm_name_to_keyspace_name(realm_name, Config.astarte_instance_id!())
+    keyspace_name = Realm.keyspace_name(realm_name)
 
     query =
       from RealmsDevice,
@@ -1412,8 +1405,7 @@ defmodule Astarte.RealmManagement.Queries do
 
   def remove_device_from_deletion_in_progress!(realm_name, device_id) do
     # TODO: validate realm name
-    keyspace_name =
-      CQLUtils.realm_name_to_keyspace_name(realm_name, Config.astarte_instance_id!())
+    keyspace_name = Realm.keyspace_name(realm_name)
 
     query =
       from DeletionInProgress,
@@ -1425,7 +1417,7 @@ defmodule Astarte.RealmManagement.Queries do
   end
 
   def retrieve_realms!() do
-    keyspace = Realm.keyspace_name("astarte")
+    keyspace = Realm.astarte_keyspace_name()
 
     Repo.all(Realm, prefix: keyspace, consistency: :local_quorum)
   end
@@ -1439,7 +1431,7 @@ defmodule Astarte.RealmManagement.Queries do
   end
 
   def get_device_registration_limit(realm_name) do
-    keyspace = Realm.keyspace_name("astarte")
+    keyspace = Realm.astarte_keyspace_name()
 
     query =
       from realm in Realm,
