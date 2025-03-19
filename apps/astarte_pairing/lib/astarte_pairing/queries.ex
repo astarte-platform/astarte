@@ -21,17 +21,15 @@ defmodule Astarte.Pairing.Queries do
   This module is responsible for the interaction with the database.
   """
 
-  alias Astarte.Core.CQLUtils
-  alias Astarte.Pairing.Config
-  alias Astarte.Pairing.Astarte.Realm
-  alias Astarte.Pairing.Realms.Device
-  alias Astarte.Pairing.Realms.KvStore
+  alias Astarte.DataAccess.Realms.Realm
+  alias Astarte.DataAccess.Devices.Device
+  alias Astarte.DataAccess.KvStore
   alias Astarte.Pairing.Repo
   require Logger
   import Ecto.Query
 
   def get_agent_public_key_pems(realm_name) do
-    keyspace = CQLUtils.realm_name_to_keyspace_name(realm_name, Config.astarte_instance_id!())
+    keyspace = Realm.keyspace_name(realm_name)
 
     with {:ok, pem} <-
            KvStore.fetch_value("auth", "jwt_public_key_pem", :string,
@@ -93,8 +91,7 @@ defmodule Astarte.Pairing.Queries do
   end
 
   def check_already_registered_device(realm_name, device_id) do
-    keyspace_name =
-      CQLUtils.realm_name_to_keyspace_name(realm_name, Config.astarte_instance_id!())
+    keyspace_name = Realm.keyspace_name(realm_name)
 
     case Repo.get(Device, device_id, prefix: keyspace_name, consistency: :quorum) do
       %Device{} -> true
@@ -103,8 +100,7 @@ defmodule Astarte.Pairing.Queries do
   end
 
   defp do_unregister_device(realm_name, %Device{} = device) do
-    keyspace_name =
-      CQLUtils.realm_name_to_keyspace_name(realm_name, Config.astarte_instance_id!())
+    keyspace_name = Realm.keyspace_name(realm_name)
 
     device
     |> Ecto.Changeset.change(
@@ -115,8 +111,7 @@ defmodule Astarte.Pairing.Queries do
   end
 
   def fetch_device(realm_name, device_id) do
-    keyspace_name =
-      CQLUtils.realm_name_to_keyspace_name(realm_name, Config.astarte_instance_id!())
+    keyspace_name = Realm.keyspace_name(realm_name)
 
     Repo.fetch(Device, device_id,
       prefix: keyspace_name,
@@ -144,8 +139,7 @@ defmodule Astarte.Pairing.Queries do
         device_ip,
         %DateTime{} = first_credentials_request_timestamp
       ) do
-    keyspace_name =
-      CQLUtils.realm_name_to_keyspace_name(realm_name, Config.astarte_instance_id!())
+    keyspace_name = Realm.keyspace_name(realm_name)
 
     device
     |> Ecto.Changeset.change(%{
@@ -158,7 +152,7 @@ defmodule Astarte.Pairing.Queries do
   end
 
   def fetch_device_registration_limit(realm_name) do
-    keyspace = CQLUtils.realm_name_to_keyspace_name("astarte", Config.astarte_instance_id!())
+    keyspace = Realm.astarte_keyspace_name()
 
     case Repo.fetch(Realm, realm_name,
            prefix: keyspace,
@@ -179,8 +173,7 @@ defmodule Astarte.Pairing.Queries do
   end
 
   def fetch_registered_devices_count(realm_name) do
-    keyspace =
-      CQLUtils.realm_name_to_keyspace_name(realm_name, Config.astarte_instance_id!())
+    keyspace = Realm.keyspace_name(realm_name)
 
     count =
       Device
@@ -202,8 +195,7 @@ defmodule Astarte.Pairing.Queries do
       |> Keyword.get(:initial_introspection, [])
       |> build_initial_introspection_maps()
 
-    keyspace_name =
-      CQLUtils.realm_name_to_keyspace_name(realm_name, Config.astarte_instance_id!())
+    keyspace_name = Realm.keyspace_name(realm_name)
 
     %Device{}
     |> Ecto.Changeset.change(%{
@@ -231,8 +223,7 @@ defmodule Astarte.Pairing.Queries do
       |> Keyword.get(:initial_introspection, [])
       |> build_initial_introspection_maps()
 
-    keyspace_name =
-      CQLUtils.realm_name_to_keyspace_name(realm_name, Config.astarte_instance_id!())
+    keyspace_name = Realm.keyspace_name(realm_name)
 
     device
     |> Ecto.Changeset.change(%{
@@ -258,8 +249,7 @@ defmodule Astarte.Pairing.Queries do
   end
 
   def check_astarte_health(consistency) do
-    keyspace =
-      CQLUtils.realm_name_to_keyspace_name("astarte", Config.astarte_instance_id!())
+    keyspace = Realm.astarte_keyspace_name()
 
     try do
       _ =
