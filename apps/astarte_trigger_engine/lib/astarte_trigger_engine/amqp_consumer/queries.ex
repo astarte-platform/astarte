@@ -17,8 +17,6 @@
 #
 
 defmodule Astarte.TriggerEngine.AMQPConsumer.Queries do
-  alias Astarte.Core.CQLUtils
-  alias Astarte.TriggerEngine.Config
   alias Astarte.DataAccess.KvStore
   alias Astarte.DataAccess.Realms.Realm
   alias Astarte.TriggerEngine.Repo

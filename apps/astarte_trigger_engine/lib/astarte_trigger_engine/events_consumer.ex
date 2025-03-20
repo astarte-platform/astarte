@@ -21,14 +21,13 @@ defmodule Astarte.TriggerEngine.EventsConsumer do
 
   import Ecto.Query
 
-  alias Astarte.Core.CQLUtils
   alias Astarte.Core.Triggers.SimpleEvents.IncomingIntrospectionEvent
   alias Astarte.Core.Triggers.SimpleEvents.InterfaceVersion
   alias Astarte.Core.Triggers.SimpleEvents.SimpleEvent
   alias Astarte.Core.Triggers.Trigger
-  alias Astarte.TriggerEngine.Config
   alias Astarte.TriggerEngine.Repo
   alias Astarte.DataAccess.KvStore
+  alias Astarte.DataAccess.Realms.Realm
 
   defmodule Behaviour do
     @callback consume(payload :: binary, headers :: map) :: :ok | {:error, reason :: atom}
