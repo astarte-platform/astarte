@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2017 - 2023 SECO Mind Srl
+# Copyright 2017 - 2025 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -99,7 +99,11 @@ defmodule Astarte.DataUpdaterPlant.Mixfile do
       {:dialyxir, "~> 1.0", only: [:dev, :ci], runtime: false},
       # Workaround for Elixir 1.15 / ssl_verify_fun issue
       # See also: https://github.com/deadtrickster/ssl_verify_fun.erl/pull/27
-      {:ssl_verify_fun, "~> 1.1.0", manager: :rebar3, override: true}
+      {:ssl_verify_fun, "~> 1.1.0", manager: :rebar3, override: true},
+      {:cqex, "~> 1.0", only: :test},
+      {:cqerl, "~> 2.1", override: true, only: :test},
+      {:snappyer, "~> 1.2.10", override: true},
+      {:uuid, "~> 2.0", hex: :uuid_erl}
     ]
   end
 end
