@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2017 - 2023 SECO Mind Srl
+# Copyright 2017 - 2025 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -94,7 +94,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
 
     DatabaseTestHelper.insert_device(device_id, insert_opts)
 
-    {:ok, db_client} = Database.connect(realm: realm)
+    {:ok, db_client} = DatabaseTestHelper.connect(realm: realm)
 
     # Install a volatile device test trigger
     simple_trigger_data =
@@ -1374,7 +1374,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
 
     DatabaseTestHelper.insert_device(device_id, groups: ["group2"])
 
-    {:ok, db_client} = Database.connect(realm: realm)
+    {:ok, db_client} = DatabaseTestHelper.connect(realm: realm)
 
     timestamp_us_x_10 = make_timestamp("2017-12-09T14:00:32+00:00")
     timestamp_ms = div(timestamp_us_x_10, 10_000)
@@ -1462,7 +1462,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
     {:ok, device_id} = Device.decode_device_id(encoded_device_id)
 
     DatabaseTestHelper.insert_device(device_id)
-    {:ok, db_client} = Database.connect(realm: realm)
+    {:ok, db_client} = DatabaseTestHelper.connect(realm: realm)
 
     DataUpdater.handle_connection(
       realm,
