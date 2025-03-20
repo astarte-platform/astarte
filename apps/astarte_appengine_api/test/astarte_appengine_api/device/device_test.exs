@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2017-2023 SECO Mind Srl
+# Copyright 2017-2025 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -23,7 +23,6 @@ defmodule Astarte.AppEngine.API.DeviceTest do
   alias Astarte.AppEngine.API.Device.DevicesList
   alias Astarte.AppEngine.API.Device.InterfaceInfo
   alias Astarte.AppEngine.API.Device.InterfaceValues
-  alias Astarte.DataAccess.Database
   alias CQEx.Query, as: DatabaseQuery
 
   alias Astarte.RPC.Protocol.VMQ.Plugin.{
@@ -963,7 +962,7 @@ defmodule Astarte.AppEngine.API.DeviceTest do
     test = "autotestrealm"
     device_id = "f0VMRgIBAQAAAAAAAAAAAA"
 
-    {:ok, client} = Database.connect(realm: test)
+    {:ok, client} = DatabaseTestHelper.connect(realm: test)
     DatabaseQuery.call!(client, "TRUNCATE com_example_testobject_v1")
     DatabaseQuery.call!(client, "TRUNCATE individual_properties")
 
