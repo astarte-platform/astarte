@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2017-2021 Ispirata Srl
+# Copyright 2017-2025 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -98,7 +98,9 @@ defmodule Astarte.Pairing.Mixfile do
       {:snappyer, "~> 1.2.10", override: true},
       {:ecto, "~> 3.12"},
       {:exandra, "~> 0.13"},
-      {:typed_ecto_schema, "~> 0.4"}
+      {:typed_ecto_schema, "~> 0.4"},
+      {:cqex, "~> 1.0", only: :test},
+      {:cqerl, "~> 2.1", override: true, only: :test}
     ]
   end
 end
