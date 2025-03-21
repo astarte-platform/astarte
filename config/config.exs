@@ -16,3 +16,8 @@
 #
 
 import Config
+
+config :ex_unit,
+  timeout: 10_000
+
+import_config "#{config_env()}.exs"
