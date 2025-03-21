@@ -19,7 +19,6 @@
 defmodule Astarte.RealmManagement.QueriesTest do
   use ExUnit.Case
   require Logger
-  alias Astarte.RealmManagement.DatabaseFixtures
   alias CQEx.Query, as: DatabaseQuery
   alias Astarte.Core.Interface, as: InterfaceDocument
   alias Astarte.Core.InterfaceDescriptor
