@@ -17,7 +17,7 @@
 #
 
 defmodule Astarte.TriggerEngine.AMQPConsumer.AMQPConsumerTrackerTest do
-  use ExUnit.Case
+  use ExUnit.Case, async: true
   use Mimic
 
   alias Astarte.TriggerEngine.AMQPConsumer.AMQPConsumerTracker

@@ -17,7 +17,7 @@
 #
 
 defmodule Astarte.TriggerEngine.PolicyTest do
-  use ExUnit.Case
+  use ExUnit.Case, async: true
   require Logger
   import Mox
   alias Astarte.TriggerEngine.Config
