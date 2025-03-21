@@ -21,6 +21,7 @@ defmodule Astarte.DataUpdaterPlant.TriggerPolicy.Queries do
 
   import Ecto.Query
 
+  alias Astarte.DataAccess.Consistency
   alias Astarte.DataUpdaterPlant.Repo
   alias Astarte.DataAccess.KvStore
   alias Astarte.DataAccess.Realms.Realm
@@ -39,7 +40,7 @@ defmodule Astarte.DataUpdaterPlant.TriggerPolicy.Queries do
         where: kvstore.group == "trigger_to_policy" and kvstore.key == ^trigger_id,
         select: kvstore.value
 
-    case Repo.one(query) do
+    case Repo.one(query, consistency: Consistency.domain_model(:read)) do
       nil -> {:error, :policy_not_found}
       value -> {:ok, value}
     end
