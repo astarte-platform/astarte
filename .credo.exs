@@ -22,7 +22,7 @@
       name: "default",
       strict: true,
       files: %{
-        included: ["lib/", "test/"],
+        included: ["lib/", "test/", "config/"],
         excluded: [~r"/_build/", ~r"/deps/"]
       },
       checks: [
