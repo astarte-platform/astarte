@@ -48,6 +48,7 @@ defmodule Astarte.RealmManagement.Queries do
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.TaggedSimpleTrigger
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.TriggerTargetContainer
   alias Astarte.Core.Triggers.Trigger
+  alias Astarte.DataAccess.Consistency
   alias Astarte.RealmManagement.Migrations.CreateDatastreamIndividualMultiInterface
 
   import Ecto.Query
@@ -228,12 +229,14 @@ defmodule Astarte.RealmManagement.Queries do
         )
       end
 
+    consistency = Consistency.domain_model(:write)
+
     Exandra.execute_batch(
       Repo,
       %Exandra.Batch{
         queries: [interface_query | endpoints_queries]
       },
-      consistency: :each_quorum
+      consistency: consistency
     )
   end
 
@@ -330,13 +333,12 @@ defmodule Astarte.RealmManagement.Queries do
       doc: doc
     ]
 
-    update_query_base =
+    update_query =
       from Interface,
         prefix: ^keyspace,
         where: [name: ^interface_name],
-        where: [major_version: ^major]
-
-    update_query = put_changes(update_query_base, changes)
+        where: [major_version: ^major],
+        update: [set: ^changes]
 
     update_interface_query = Repo.to_sql(:update_all, update_query)
 
@@ -353,22 +355,15 @@ defmodule Astarte.RealmManagement.Queries do
         )
       end
 
+    consistency = Consistency.domain_model(:write)
+
     Exandra.execute_batch(
       Repo,
       %Exandra.Batch{
         queries: [update_interface_query | insert_mapping_queries]
-      }
+      },
+      consistency: consistency
     )
-  end
-
-  # TODO: here due to an Exandra bug: it does not support `:set` with a list.
-  # When fixed we could just write `update: [set: ^changes]` in the original query.
-  defp put_changes(query, []), do: query
-
-  defp put_changes(query, [{key, value} | rest]) do
-    query
-    |> Ecto.Query.update(set: [{^key, ^value}])
-    |> put_changes(rest)
   end
 
   def update_interface_storage(_realm_name, _interface_descriptor, []) do
@@ -397,7 +392,9 @@ defmodule Astarte.RealmManagement.Queries do
       ADD (#{add_cols})
       """
 
-    with {:ok, _} <- Repo.query(update_storage_statement) do
+    consistency = Consistency.domain_model(:write)
+
+    with {:ok, _} <- Repo.query(update_storage_statement, [], consistency: consistency) do
       :ok
     end
   end
@@ -433,12 +430,14 @@ defmodule Astarte.RealmManagement.Queries do
       Repo.to_sql(:delete_all, interface_query)
     ]
 
+    consistency = Consistency.domain_model(:write)
+
     Exandra.execute_batch(
       Repo,
       %Exandra.Batch{
         queries: queries
       },
-      consistency: :each_quorum
+      consistency: consistency
     )
   end
 
@@ -451,8 +450,9 @@ defmodule Astarte.RealmManagement.Queries do
       ) do
     keyspace = Realm.keyspace_name(realm_name)
     delete_statement = "DROP TABLE IF EXISTS #{keyspace}.#{table_name}"
+    consistency = Consistency.domain_model(:write)
 
-    _ = Repo.query!(delete_statement)
+    _ = Repo.query!(delete_statement, [], consistency: consistency)
     _ = Logger.info("Deleted #{table_name} table.", tag: "db_delete_interface_table")
     :ok
   end
@@ -481,7 +481,9 @@ defmodule Astarte.RealmManagement.Queries do
         where: [group: ^group_name],
         limit: 1
 
-    Repo.some?(devices_query, prefix: keyspace, consistency: :quorum)
+    consistency = Consistency.domain_model(:read)
+
+    Repo.some?(devices_query, prefix: keyspace, consistency: consistency)
   end
 
   def devices_with_data_on_interface(realm_name, interface_name) do
@@ -493,7 +495,9 @@ defmodule Astarte.RealmManagement.Queries do
         select: map.key,
         where: [group: ^group_name]
 
-    Repo.fetch_all(query, prefix: keyspace, consistency: :quorum)
+    consistency = Consistency.domain_model(:read)
+
+    Repo.fetch_all(query, prefix: keyspace, consistency: consistency)
   end
 
   def delete_devices_with_data_on_interface(realm_name, interface_name) do
@@ -502,7 +506,9 @@ defmodule Astarte.RealmManagement.Queries do
 
     query = from KvStore, where: [group: ^group_name]
 
-    _ = Repo.delete_all(query, prefix: keyspace, consistency: :each_quorum)
+    consistency = Consistency.domain_model(:write)
+
+    _ = Repo.delete_all(query, prefix: keyspace, consistency: consistency)
 
     :ok
   end
@@ -522,7 +528,9 @@ defmodule Astarte.RealmManagement.Queries do
       from table_name,
         where: [device_id: ^device_id, interface_id: ^interface_id]
 
-    _ = Repo.delete_all(query, prefix: keyspace, consistency: :each_quorum)
+    consistency = Consistency.device_info(:write)
+
+    _ = Repo.delete_all(query, prefix: keyspace, consistency: consistency)
 
     :ok
   end
@@ -575,7 +583,9 @@ defmodule Astarte.RealmManagement.Queries do
           path: ^path
         ]
 
-    _ = Repo.delete_all(query, prefix: keyspace, consistency: :quorum)
+    consistency = Consistency.device_info(:write)
+
+    _ = Repo.delete_all(query, prefix: keyspace, consistency: consistency)
 
     :ok
   end
@@ -595,7 +605,9 @@ defmodule Astarte.RealmManagement.Queries do
         select: [:endpoint_id, :path],
         where: [device_id: ^device_id, interface_id: ^interface_id]
 
-    with {:ok, properties} <- Repo.fetch_all(query, prefix: keyspace, consistency: :quorum) do
+    consistency = Consistency.device_info(:read)
+
+    with {:ok, properties} <- Repo.fetch_all(query, prefix: keyspace, consistency: consistency) do
       properties =
         Enum.map(properties, fn property ->
           [endpoint_id: property.endpoint_id, path: property.path]
@@ -619,7 +631,9 @@ defmodule Astarte.RealmManagement.Queries do
       from IndividualProperty,
         where: [device_id: ^device_id, interface_id: ^interface_id]
 
-    _ = Repo.delete_all(query, consistency: :each_quorum, prefix: keyspace)
+    consistency = Consistency.device_info(:write)
+
+    _ = Repo.delete_all(query, consistency: consistency, prefix: keyspace)
 
     :ok
   end
@@ -632,8 +646,10 @@ defmodule Astarte.RealmManagement.Queries do
         select: [:major_version, :minor_version],
         where: [name: ^interface_name]
 
+    consistency = Consistency.domain_model(:read)
+
     with {:ok, interface_versions_map} <-
-           Repo.fetch_all(interface_versions_query, prefix: keyspace, consistency: :quorum) do
+           Repo.fetch_all(interface_versions_query, prefix: keyspace, consistency: consistency) do
       case interface_versions_map do
         [] ->
           {:error, :interface_not_found}
@@ -657,7 +673,9 @@ defmodule Astarte.RealmManagement.Queries do
         where: i.name == ^interface_name,
         where: i.major_version == ^interface_major
 
-    Repo.some?(query, prefix: keyspace, consistency: :quorum)
+    consistency = Consistency.domain_model(:read)
+
+    Repo.some?(query, prefix: keyspace, consistency: consistency)
   end
 
   defp normalize_interface_name(interface_name) do
@@ -674,7 +692,10 @@ defmodule Astarte.RealmManagement.Queries do
         distinct: true,
         select: i.name
 
-    with {:ok, names} <- Repo.fetch_all(all_names_query, prefix: keyspace, consistency: :quorum) do
+    consistency = Consistency.domain_model(:read)
+
+    with {:ok, names} <-
+           Repo.fetch_all(all_names_query, prefix: keyspace, consistency: consistency) do
       Enum.reduce_while(names, :ok, fn name, _acc ->
         if normalize_interface_name(name) == normalized_interface do
           if name == interface_name do
@@ -694,17 +715,19 @@ defmodule Astarte.RealmManagement.Queries do
   def fetch_interface(realm_name, interface_name, interface_major) do
     keyspace = Realm.keyspace_name(realm_name)
 
+    consistency = Consistency.domain_model(:read)
+
     with {:ok, interface} <-
            Repo.fetch_by(
              Interface,
              [name: interface_name, major_version: interface_major],
              prefix: keyspace,
-             consistency: :quorum,
+             consistency: consistency,
              error: :interface_not_found
            ),
          endpoints_query = from(Endpoint, where: [interface_id: ^interface.interface_id]),
          {:ok, mappings} <-
-           Repo.fetch_all(endpoints_query, prefix: keyspace, consistency: :quorum) do
+           Repo.fetch_all(endpoints_query, prefix: keyspace, consistency: consistency) do
       mappings =
         Enum.map(mappings, fn endpoint ->
           %Mapping{}
@@ -744,7 +767,9 @@ defmodule Astarte.RealmManagement.Queries do
         distinct: true,
         select: i.name
 
-    Repo.fetch_all(query, prefix: keyspace, consistency: :quorum)
+    consistency = Consistency.domain_model(:read)
+
+    Repo.fetch_all(query, prefix: keyspace, consistency: consistency)
   end
 
   def has_interface_simple_triggers?(realm_name, object_id) do
@@ -754,15 +779,19 @@ defmodule Astarte.RealmManagement.Queries do
       from SimpleTrigger,
         where: [object_id: ^object_id, object_type: 2]
 
-    Repo.some?(simple_triggers_query, prefix: keyspace, consistency: :quorum)
+    consistency = Consistency.domain_model(:read)
+
+    Repo.some?(simple_triggers_query, prefix: keyspace, consistency: consistency)
   end
 
   def get_jwt_public_key_pem(realm_name) do
     keyspace = Realm.keyspace_name(realm_name)
 
+    consistency = Consistency.domain_model(:read)
+
     KvStore.fetch_value("auth", "jwt_public_key_pem", :string,
       prefix: keyspace,
-      consistency: :quorum,
+      consistency: consistency,
       error: :public_key_not_found
     )
   end
@@ -770,13 +799,15 @@ defmodule Astarte.RealmManagement.Queries do
   def update_jwt_public_key_pem(realm_name, jwt_public_key_pem) do
     keyspace = Realm.keyspace_name(realm_name)
 
+    consistency = Consistency.domain_model(:write)
+
     %{
       group: "auth",
       key: "jwt_public_key_pem",
       value: jwt_public_key_pem,
       value_type: :string
     }
-    |> KvStore.insert(prefix: keyspace)
+    |> KvStore.insert(prefix: keyspace, consistency: consistency)
   end
 
   def install_trigger(realm_name, trigger) do
@@ -800,8 +831,10 @@ defmodule Astarte.RealmManagement.Queries do
       value: Trigger.encode(trigger)
     }
 
-    with :ok <- KvStore.insert(insert_by_name, prefix: keyspace),
-         :ok <- KvStore.insert(insert, prefix: keyspace) do
+    consistency = Consistency.domain_model(:write)
+
+    with :ok <- KvStore.insert(insert_by_name, prefix: keyspace, consistency: consistency),
+         :ok <- KvStore.insert(insert, prefix: keyspace, consistency: consistency) do
       :ok
     else
       not_ok ->
@@ -849,8 +882,10 @@ defmodule Astarte.RealmManagement.Queries do
         value: astarte_ref
       }
 
-    with {:ok, _} <- Repo.insert(simple_trigger, prefix: keyspace),
-         :ok <- KvStore.insert(kv_insert, prefix: keyspace) do
+    opts = [prefix: keyspace, consistency: Consistency.domain_model(:write)]
+
+    with {:ok, _} <- Repo.insert(simple_trigger, opts),
+         :ok <- KvStore.insert(kv_insert, opts) do
       :ok
     end
   end
@@ -882,8 +917,10 @@ defmodule Astarte.RealmManagement.Queries do
         value: trigger_policy
       }
 
-    with :ok <- KvStore.insert(triggers_with_policy, prefix: keyspace),
-         :ok <- KvStore.insert(trigger_to_policy, prefix: keyspace) do
+    opts = [prefix: keyspace, consistency: Consistency.domain_model(:write)]
+
+    with :ok <- KvStore.insert(triggers_with_policy, opts),
+         :ok <- KvStore.insert(trigger_to_policy, opts) do
       :ok
     end
   end
@@ -891,11 +928,14 @@ defmodule Astarte.RealmManagement.Queries do
   def retrieve_trigger_uuid(realm_name, trigger_name) do
     keyspace = Realm.keyspace_name(realm_name)
 
+    opts = [
+      prefix: keyspace,
+      consistency: Consistency.domain_model(:read),
+      error: :trigger_not_found
+    ]
+
     with {:ok, uuid} <-
-           KvStore.fetch_value("triggers-by-name", trigger_name, :binary,
-             prefix: keyspace,
-             error: :trigger_not_found
-           ) do
+           KvStore.fetch_value("triggers-by-name", trigger_name, :binary, opts) do
       {:ok, :uuid.uuid_to_string(uuid)}
     end
   end
@@ -923,8 +963,10 @@ defmodule Astarte.RealmManagement.Queries do
         prefix: ^keyspace,
         where: [group: "trigger_to_policy", key: ^trigger_uuid]
 
-    _ = Repo.delete_all(triggers_with_policy)
-    _ = Repo.delete_all(trigger_to_policy)
+    consistency = Consistency.domain_model(:write)
+
+    _ = Repo.delete_all(triggers_with_policy, consistency: consistency)
+    _ = Repo.delete_all(trigger_to_policy, consistency: consistency)
 
     :ok
   end
@@ -944,8 +986,10 @@ defmodule Astarte.RealmManagement.Queries do
         |> where(group: "triggers", key: ^trigger_uuid)
         |> put_query_prefix(keyspace)
 
-      _ = Repo.delete_all(trigger_by_name_query)
-      _ = Repo.delete_all(triggers_query)
+      consistency = Consistency.domain_model(:write)
+
+      _ = Repo.delete_all(trigger_by_name_query, consistency: consistency)
+      _ = Repo.delete_all(triggers_query, consistency: consistency)
 
       :ok
     end
@@ -959,7 +1003,9 @@ defmodule Astarte.RealmManagement.Queries do
         select: store.key,
         where: [group: "triggers-by-name"]
 
-    Repo.fetch_all(query, prefix: keyspace)
+    opts = [prefix: keyspace, consistency: Consistency.domain_model(:read)]
+
+    Repo.fetch_all(query, opts)
   end
 
   def retrieve_trigger(realm_name, trigger_name) do
@@ -973,7 +1019,13 @@ defmodule Astarte.RealmManagement.Queries do
           select: store.value,
           where: [group: "triggers", key: ^trigger_uuid]
 
-      with {:ok, result} <- Repo.fetch_one(query, prefix: keyspace, error: :trigger_not_found) do
+      opts = [
+        prefix: keyspace,
+        consistency: Consistency.domain_model(:read),
+        error: :trigger_not_found
+      ]
+
+      with {:ok, result} <- Repo.fetch_one(query, opts) do
         {:ok, Trigger.decode(result)}
       end
     end
@@ -996,8 +1048,13 @@ defmodule Astarte.RealmManagement.Queries do
             simple_trigger_id: ^simple_trigger_uuid
           ]
 
-      with {:ok, trigger_data} <-
-             Repo.fetch_one(query, prefix: keyspace, error: :simple_trigger_not_found) do
+      opts = [
+        prefix: keyspace,
+        consistency: Consistency.domain_model(:read),
+        error: :simple_trigger_not_found
+      ]
+
+      with {:ok, trigger_data} <- Repo.fetch_one(query, opts) do
         {
           :ok,
           %TaggedSimpleTrigger{
@@ -1035,8 +1092,10 @@ defmodule Astarte.RealmManagement.Queries do
           prefix: ^keyspace,
           where: [group: "simple-triggers-by-uuid", key: ^simple_trigger_uuid]
 
-      _ = Repo.delete_all(delete_astarte_ref_query)
-      _ = Repo.delete_all(delete_simple_trigger_query)
+      consistency = Consistency.domain_model(:write)
+
+      _ = Repo.delete_all(delete_astarte_ref_query, consistency: consistency)
+      _ = Repo.delete_all(delete_simple_trigger_query, consistency: consistency)
 
       :ok
     end
@@ -1052,7 +1111,13 @@ defmodule Astarte.RealmManagement.Queries do
         select: store.value,
         where: [groups: "simple-triggers-by-uuid", key: ^simple_trigger_uuid]
 
-    with {:ok, result} <- Repo.fetch_one(query, prefix: keyspace, error: :trigger_not_found) do
+    opts = [
+      prefix: keyspace,
+      consistency: Consistency.domain_model(:read),
+      error: :trigger_not_found
+    ]
+
+    with {:ok, result} <- Repo.fetch_one(query, opts) do
       AstarteReference.decode(result)
     end
   end
@@ -1066,7 +1131,12 @@ defmodule Astarte.RealmManagement.Queries do
       value: policy_proto
     }
 
-    KvStore.insert(params, prefix: keyspace)
+    opts = [
+      prefix: keyspace,
+      consistency: Consistency.domain_model(:write)
+    ]
+
+    KvStore.insert(params, opts)
   end
 
   def get_trigger_policies_list(realm_name) do
@@ -1077,7 +1147,12 @@ defmodule Astarte.RealmManagement.Queries do
         select: store.key,
         where: [group: "trigger_policy"]
 
-    Repo.fetch_all(query, prefix: keyspace, consistency: :quorum)
+    opts = [
+      prefix: keyspace,
+      consistency: Consistency.domain_model(:read)
+    ]
+
+    Repo.fetch_all(query, opts)
   end
 
   def fetch_trigger_policy(realm_name, policy_name) do
@@ -1088,7 +1163,13 @@ defmodule Astarte.RealmManagement.Queries do
         select: store.value,
         where: [group: "trigger_policy", policy_name: ^policy_name]
 
-    Repo.fetch_one(query, prefix: keyspace, error: :policy_not_found)
+    opts = [
+      prefix: keyspace,
+      consistency: Consistency.domain_model(:read),
+      error: :policy_not_found
+    ]
+
+    Repo.fetch_one(query, opts)
   end
 
   def check_policy_has_triggers(realm_name, policy_name) do
@@ -1101,7 +1182,12 @@ defmodule Astarte.RealmManagement.Queries do
         where: [group: ^group_name],
         limit: 1
 
-    Repo.some?(query, prefix: keyspace, consistency: :quorum)
+    opts = [
+      prefix: keyspace,
+      consistency: Consistency.domain_model(:read)
+    ]
+
+    Repo.some?(query, opts)
   end
 
   def delete_trigger_policy(realm_name, policy_name) do
@@ -1130,9 +1216,11 @@ defmodule Astarte.RealmManagement.Queries do
         prefix: ^keyspace,
         where: [group: "trigger_to_policy"]
 
-    _ = Repo.delete_all(delete_policy_query, consistency: :each_quorum)
-    _ = Repo.delete_all(delete_triggers_with_policy_group_query, consistency: :each_quorum)
-    _ = Repo.delete_all(delete_trigger_to_policy_query, consistency: :each_quorum)
+    consistency = Consistency.domain_model(:write)
+
+    _ = Repo.delete_all(delete_policy_query, consistency: consistency)
+    _ = Repo.delete_all(delete_triggers_with_policy_group_query, consistency: consistency)
+    _ = Repo.delete_all(delete_trigger_to_policy_query, consistency: consistency)
 
     :ok
   end
@@ -1144,7 +1232,12 @@ defmodule Astarte.RealmManagement.Queries do
       from store in KvStore,
         where: [group: "trigger_policy", key: ^policy_name]
 
-    Repo.some?(query, prefix: keyspace, consistency: :quorum)
+    opts = [
+      prefix: keyspace,
+      consistency: Consistency.domain_model(:read)
+    ]
+
+    Repo.some?(query, opts)
   end
 
   def check_device_exists(realm_name, device_id) do
@@ -1155,7 +1248,12 @@ defmodule Astarte.RealmManagement.Queries do
         select: device.device_id,
         where: [device_id: ^device_id]
 
-    Repo.some?(query, prefix: keyspace, consistency: :quorum)
+    opts = [
+      prefix: keyspace,
+      consistency: Consistency.device_info(:read)
+    ]
+
+    Repo.some?(query, opts)
   end
 
   def table_exist?(realm_name, table_name) do
@@ -1166,7 +1264,7 @@ defmodule Astarte.RealmManagement.Queries do
         select: schema.table_name,
         where: [table_name: ^table_name, keyspace_name: ^keyspace]
 
-    Repo.some?(query)
+    Repo.some?(query, consistency: Consistency.domain_model(:read))
   end
 
   def insert_device_into_deletion_in_progress(realm_name, device_id) do
@@ -1179,7 +1277,12 @@ defmodule Astarte.RealmManagement.Queries do
       dup_end_ack: false
     }
 
-    Repo.insert!(deletion, consistency: :quorum, prefix: keyspace)
+    opts = [
+      prefix: keyspace,
+      consistency: Consistency.device_info(:write)
+    ]
+
+    Repo.insert!(deletion, opts)
     :ok
   end
 
@@ -1192,7 +1295,12 @@ defmodule Astarte.RealmManagement.Queries do
         select: device.introspection,
         where: [device_id: ^device_id]
 
-    Repo.one(query, prefix: keyspace, consistency: :quorum)
+    opts = [
+      prefix: keyspace,
+      consistency: Consistency.device_info(:read)
+    ]
+
+    Repo.one(query, opts)
   end
 
   def retrieve_interface_descriptor!(
@@ -1202,11 +1310,13 @@ defmodule Astarte.RealmManagement.Queries do
       ) do
     keyspace = Realm.keyspace_name(realm_name)
 
+    opts = [
+      prefix: keyspace,
+      consistency: Consistency.domain_model(:read)
+    ]
+
     interface =
-      Repo.get_by!(Interface, [name: interface_name, major_version: interface_major],
-        prefix: keyspace,
-        consistency: :quorum
-      )
+      Repo.get_by!(Interface, [name: interface_name, major_version: interface_major], opts)
 
     %InterfaceDescriptor{
       name: interface.name,
@@ -1235,7 +1345,12 @@ defmodule Astarte.RealmManagement.Queries do
         select: [:device_id, :interface_id, :endpoint_id, :path],
         where: [device_id: ^device_id]
 
-    Repo.all(query, prefix: keyspace)
+    opts = [
+      prefix: keyspace,
+      consistency: Consistency.device_info(:read)
+    ]
+
+    Repo.all(query, opts)
   end
 
   def delete_individual_datastream_values!(
@@ -1257,7 +1372,12 @@ defmodule Astarte.RealmManagement.Queries do
           path: ^path
         ]
 
-    _ = Repo.delete_all(query, prefix: keyspace_name, consistency: :local_quorum)
+    opts = [
+      prefix: keyspace_name,
+      consistency: Consistency.device_info(:write)
+    ]
+
+    _ = Repo.delete_all(query, opts)
 
     :ok
   end
@@ -1272,7 +1392,12 @@ defmodule Astarte.RealmManagement.Queries do
         select: [:device_id, :interface_id],
         where: [device_id: ^device_id]
 
-    Repo.all(query, prefix: keyspace)
+    opts = [
+      prefix: keyspace,
+      consistency: Consistency.device_info(:read)
+    ]
+
+    Repo.all(query, opts)
   end
 
   def delete_individual_properties_values!(realm_name, device_id, interface_id) do
@@ -1283,7 +1408,12 @@ defmodule Astarte.RealmManagement.Queries do
       from IndividualProperty,
         where: [device_id: ^device_id, interface_id: ^interface_id]
 
-    _ = Repo.delete_all(query, prefix: keyspace_name, consistency: :local_quorum)
+    opts = [
+      prefix: keyspace_name,
+      consistency: Consistency.device_info(:write)
+    ]
+
+    _ = Repo.delete_all(query, opts)
 
     :ok
   end
@@ -1298,7 +1428,12 @@ defmodule Astarte.RealmManagement.Queries do
         select: [:device_id, :path],
         where: [device_id: ^device_id]
 
-    Repo.all(query, prefix: keyspace)
+    opts = [
+      prefix: keyspace,
+      consistency: Consistency.device_info(:read)
+    ]
+
+    Repo.all(query, opts)
   end
 
   def delete_object_datastream_values!(realm_name, device_id, path, table_name) do
@@ -1309,7 +1444,12 @@ defmodule Astarte.RealmManagement.Queries do
       from table_name,
         where: [device_id: ^device_id, path: ^path]
 
-    _ = Repo.delete_all(query, prefix: keyspace_name, consistency: :local_quorum)
+    opts = [
+      prefix: keyspace_name,
+      consistency: Consistency.device_info(:write)
+    ]
+
+    _ = Repo.delete_all(query, opts)
 
     :ok
   end
@@ -1323,7 +1463,12 @@ defmodule Astarte.RealmManagement.Queries do
         select: [:object_name],
         where: [object_uuid: ^device_id]
 
-    Repo.all(query, prefix: keyspace)
+    opts = [
+      prefix: keyspace,
+      consistency: Consistency.device_info(:read)
+    ]
+
+    Repo.all(query, opts)
   end
 
   def delete_alias_values!(realm_name, device_alias) do
@@ -1334,7 +1479,12 @@ defmodule Astarte.RealmManagement.Queries do
       from Name,
         where: [object_name: ^device_alias]
 
-    _ = Repo.delete_all(query, prefix: keyspace_name, consistency: :local_quorum)
+    opts = [
+      prefix: keyspace_name,
+      consistency: Consistency.device_info(:write)
+    ]
+
+    _ = Repo.delete_all(query, opts)
 
     :ok
   end
@@ -1348,7 +1498,12 @@ defmodule Astarte.RealmManagement.Queries do
         select: [:group_name, :insertion_uuid, :device_id],
         where: [device_id: ^device_id]
 
-    Repo.all(query, prefix: keyspace)
+    opts = [
+      prefix: keyspace,
+      consistency: Consistency.device_info(:read)
+    ]
+
+    Repo.all(query, opts)
   end
 
   def delete_group_values!(realm_name, device_id, group_name, insertion_uuid) do
@@ -1358,7 +1513,12 @@ defmodule Astarte.RealmManagement.Queries do
       from GroupedDevice,
         where: [group_name: ^group_name, insertion_uuid: ^insertion_uuid, device_id: ^device_id]
 
-    _ = Repo.delete_all(query, prefix: keyspace_name, consistency: :local_quorum)
+    opts = [
+      prefix: keyspace_name,
+      consistency: Consistency.device_info(:write)
+    ]
+
+    _ = Repo.delete_all(query, opts)
 
     :ok
   end
@@ -1372,7 +1532,12 @@ defmodule Astarte.RealmManagement.Queries do
         select: [:group, :key],
         where: [key: ^device_id]
 
-    Repo.all(query, prefix: keyspace)
+    opts = [
+      prefix: keyspace,
+      consistency: Consistency.device_info(:read)
+    ]
+
+    Repo.all(query, opts)
   end
 
   def delete_kv_store_entry!(realm_name, group, key) do
@@ -1383,7 +1548,12 @@ defmodule Astarte.RealmManagement.Queries do
       from KvStore,
         where: [group: ^group, key: ^key]
 
-    _ = Repo.delete_all(query, prefix: keyspace_name, consistency: :local_quorum)
+    opts = [
+      prefix: keyspace_name,
+      consistency: Consistency.device_info(:write)
+    ]
+
+    _ = Repo.delete_all(query, opts)
 
     :ok
   end
@@ -1396,7 +1566,13 @@ defmodule Astarte.RealmManagement.Queries do
       from RealmsDevice,
         where: [device_id: ^device_id]
 
-    _ = Repo.delete_all(query, prefix: keyspace_name, consistency: :local_quorum)
+    # TODO check
+    opts = [
+      prefix: keyspace_name,
+      consistency: Consistency.device_info(:write)
+    ]
+
+    _ = Repo.delete_all(query, opts)
 
     :ok
   end
@@ -1409,7 +1585,12 @@ defmodule Astarte.RealmManagement.Queries do
       from DeletionInProgress,
         where: [device_id: ^device_id]
 
-    _ = Repo.delete_all(query, prefix: keyspace_name, consistency: :local_quorum)
+    opts = [
+      prefix: keyspace_name,
+      consistency: Consistency.device_info(:write)
+    ]
+
+    _ = Repo.delete_all(query, opts)
 
     :ok
   end
@@ -1417,14 +1598,24 @@ defmodule Astarte.RealmManagement.Queries do
   def retrieve_realms!() do
     keyspace = Realm.astarte_keyspace_name()
 
-    Repo.all(Realm, prefix: keyspace, consistency: :local_quorum)
+    opts = [
+      prefix: keyspace,
+      consistency: Consistency.domain_model(:read)
+    ]
+
+    Repo.all(Realm, opts)
   end
 
   def retrieve_devices_to_delete!(realm_name) do
     keyspace = Realm.keyspace_name(realm_name)
 
+    opts = [
+      prefix: keyspace,
+      consistency: Consistency.device_info(:read)
+    ]
+
     from(DeletionInProgress)
-    |> Repo.all(prefix: keyspace, consistency: :local_quorum)
+    |> Repo.all(opts)
     |> Enum.filter(&DeletionInProgress.all_ack?/1)
   end
 
@@ -1436,15 +1627,29 @@ defmodule Astarte.RealmManagement.Queries do
         select: realm.device_registration_limit,
         where: [realm_name: ^realm_name]
 
-    Repo.fetch_one(query, prefix: keyspace, consistency: :one, error: :realm_not_found)
+    opts = [
+      prefix: keyspace,
+      consistency: Consistency.domain_model(:read),
+      error: :realm_not_found
+    ]
+
+    Repo.fetch_one(query, opts)
   end
 
   def get_datastream_maximum_storage_retention(realm_name) do
     keyspace = Realm.keyspace_name(realm_name)
 
-    case KvStore.fetch_value("realm_config", "datastream_maximum_storage_retention", :integer,
-           prefix: keyspace,
-           error: :fetch_error
+    opts = [
+      prefix: keyspace,
+      consistency: Consistency.domain_model(:read),
+      error: :fetch_error
+    ]
+
+    case KvStore.fetch_value(
+           "realm_config",
+           "datastream_maximum_storage_retention",
+           :integer,
+           opts
          ) do
       {:ok, value} -> {:ok, value}
       # not found means default maximum storage retention of 0
