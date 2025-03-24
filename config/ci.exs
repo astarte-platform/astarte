@@ -16,3 +16,9 @@
 #
 
 import Config
+
+config :stream_data,
+  max_runs: 1_000
+
+config :ex_unit,
+  timeout: 120_000
