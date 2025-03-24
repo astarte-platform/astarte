@@ -27,13 +27,11 @@ defmodule Astarte.RealmManagement.Queries do
   alias Astarte.DataAccess.Realms.IndividualProperty
   alias Astarte.DataAccess.Realms.Endpoint
   alias Astarte.DataAccess.Realms.SimpleTrigger
-  alias Astarte.RealmManagement
   alias Astarte.RealmManagement.Repo
   alias Astarte.DataAccess.Realms.Realm
   alias Astarte.DataAccess.KvStore
   alias Astarte.Core.AstarteReference
   alias Astarte.Core.CQLUtils
-  alias Astarte.RealmManagement.Config
   alias Astarte.Core.Device
   alias Astarte.Core.Interface, as: InterfaceDocument
   alias Astarte.Core.InterfaceDescriptor
