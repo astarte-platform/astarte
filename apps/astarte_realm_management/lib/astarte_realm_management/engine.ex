@@ -34,11 +34,9 @@ defmodule Astarte.RealmManagement.Engine do
   alias Astarte.Core.Device
   alias Astarte.DataAccess.Interface
   alias Astarte.DataAccess.Mappings
-  alias Astarte.DataAccess.Realms.Realm
   alias Astarte.RealmManagement.Engine
   alias Astarte.RealmManagement.Engine.MappingUpdates
   alias Astarte.RealmManagement.Queries
-  alias Astarte.RealmManagement.Config
 
   def get_health() do
     _ = Logger.debug("Get health.")
@@ -451,9 +449,7 @@ defmodule Astarte.RealmManagement.Engine do
   def get_jwt_public_key_pem(realm_name) do
     _ = Logger.debug("Get JWT public key PEM.")
 
-    keyspace_name = Realm.keyspace_name(realm_name)
-
-    Queries.get_jwt_public_key_pem(keyspace_name)
+    Queries.get_jwt_public_key_pem(realm_name)
   end
 
   def update_jwt_public_key_pem(realm_name, jwt_public_key_pem) do
