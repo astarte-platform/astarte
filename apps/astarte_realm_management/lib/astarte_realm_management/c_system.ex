@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2020 - 2023 SECO Mind Srl
+# Copyright 2020 - 2025 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -42,7 +42,7 @@ defmodule CSystem do
   end
 
   @spec wait_schema_agreement(integer()) ::
-          {:ok, Astarte.RealmManagement.UUID.t()} | {:error, :timeout}
+          {:ok, Ecto.UUID.t()} | {:error, :timeout}
   def wait_schema_agreement(timeout) when is_integer(timeout) and timeout >= 0 do
     case schema_versions() do
       [version] ->
@@ -62,7 +62,7 @@ defmodule CSystem do
     end
   end
 
-  @spec schema_versions :: [Astarte.RealmManagement.UUID.t()]
+  @spec schema_versions :: [Ecto.UUID.t()]
   def schema_versions do
     local_version = query_local_schema_version()
     peers_version = query_peers_schema_versions()
@@ -71,14 +71,14 @@ defmodule CSystem do
     |> Enum.uniq()
   end
 
-  @spec schema_versions :: [Astarte.RealmManagement.UUID.t()]
+  @spec schema_versions :: [Ecto.UUID.t()]
   def query_peers_schema_versions do
     from(p in "peers", select: p.schema_version)
     |> Repo.all(prefix: "system", consistency: :one)
     |> Enum.uniq()
   end
 
-  @spec schema_versions :: Astarte.RealmManagement.UUID.t()
+  @spec schema_versions :: Ecto.UUID.t()
   def query_local_schema_version do
     from(l in "local", select: l.schema_version)
     |> Repo.get_by!([key: "local"], prefix: "system", consistency: :one)
