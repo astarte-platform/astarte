@@ -17,9 +17,11 @@
 #
 
 defmodule CSystem do
+  alias Astarte.Housekeeping.Repo
+  alias Astarte.DataAccess.Consistency
+
   import Ecto.Query
 
-  alias Astarte.Housekeeping.Repo
   @agreement_sleep_millis 200
 
   # TODO: `conn` is no longer used, since it was ported to Exandra
@@ -69,7 +71,7 @@ defmodule CSystem do
         select: peers.schema_version
       )
 
-    Repo.all(query, consistency: :one)
+    Repo.all(query, consistency: Consistency.domain_model(:read))
     |> Stream.uniq()
     |> Enum.to_list()
   end
@@ -82,13 +84,15 @@ defmodule CSystem do
         select: locals.schema_version
       )
 
-    Repo.one!(query, consistency: :one)
+    Repo.one!(query, consistency: Consistency.domain_model(:read))
   end
 
   def execute_schema_change(conn, query) do
+    consistency = Consistency.domain_model(:write)
+
     result =
-      run_with_schema_agreement(conn, fn ->
-        Xandra.execute(conn, query, %{}, consistency: :each_quorum, timeout: 60_000)
+      CSystem.run_with_schema_agreement(conn, fn ->
+        Xandra.execute(conn, query, %{}, consistency: consistency, timeout: 60_000)
       end)
 
     case result do

@@ -19,6 +19,7 @@
 defmodule Astarte.Housekeeping.Migrator do
   require Logger
   alias Astarte.Core.CQLUtils
+  alias Astarte.DataAccess.Consistency
   alias Astarte.Housekeeping.Config
 
   alias Astarte.Housekeeping.Queries
@@ -82,8 +83,10 @@ defmodule Astarte.Housekeeping.Migrator do
     WHERE keyspace_name='#{CQLUtils.realm_name_to_keyspace_name("astarte", Config.astarte_instance_id!())}' AND table_name='kv_store'
     """
 
+    consistency = Consistency.domain_model(:read)
+
     with {:ok, %Xandra.Page{} = page} <-
-           Xandra.Cluster.execute(:xandra, query, %{}, consistency: :quorum) do
+           Xandra.Cluster.execute(:xandra, query, %{}, consistency: consistency) do
       if Enum.count(page) == 1 do
         :ok
       else
@@ -116,7 +119,7 @@ defmodule Astarte.Housekeeping.Migrator do
     """
 
     case Xandra.Cluster.execute(:xandra, query, %{},
-           consistency: :each_quorum,
+           consistency: Consistency.domain_model(:write),
            timeout: @query_timeout
          ) do
       {:ok, %Xandra.SchemaChange{}} ->
@@ -186,8 +189,10 @@ defmodule Astarte.Housekeeping.Migrator do
     WHERE group='astarte' AND key='schema_version'
     """
 
+    consistency = Consistency.domain_model(:read)
+
     with {:ok, %Xandra.Page{} = page} <-
-           Xandra.execute(keyspace_conn, query, %{}, consistency: :quorum) do
+           Xandra.execute(keyspace_conn, query, %{}, consistency: consistency) do
       case Enum.to_list(page) do
         [%{"system.blobasbigint(value)" => schema_version}] ->
           {:ok, schema_version}
@@ -343,7 +348,7 @@ defmodule Astarte.Housekeeping.Migrator do
 
     with {:ok, %Xandra.Void{}} <-
            Xandra.execute(keyspace_conn, query, params,
-             consistency: :each_quorum,
+             consistency: Consistency.domain_model(:write),
              timeout: @query_timeout
            ) do
       :ok
