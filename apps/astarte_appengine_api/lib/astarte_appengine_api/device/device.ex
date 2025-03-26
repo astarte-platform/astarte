@@ -1100,6 +1100,7 @@ defmodule Astarte.AppEngine.API.Device do
         realm_name,
         device_id,
         interface_row,
+        endpoint_rows,
         path,
         columns,
         opts

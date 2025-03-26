@@ -21,6 +21,7 @@ defmodule Astarte.AppEngine.API.Stats.Queries do
   alias Astarte.DataAccess.Realms.Realm
   alias Astarte.AppEngine.API.Repo
   alias Astarte.DataAccess.Devices.Device
+  alias Astarte.DataAccess.Consistency
   alias Astarte.AppEngine.API.Stats.DevicesStats
 
   require Logger
@@ -39,7 +40,9 @@ defmodule Astarte.AppEngine.API.Stats.Queries do
         prefix: ^keyspace,
         where: [connected: true]
 
-    online_count = Repo.aggregate(online_query, :count)
+    consistency = Consistency.device_info(:read)
+
+    online_count = Repo.aggregate(online_query, :count, consistency: consistency)
 
     %DevicesStats{
       total_devices: device_count,
