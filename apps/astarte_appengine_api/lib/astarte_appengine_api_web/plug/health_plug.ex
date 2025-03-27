@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2020 Ispirata Srl
+# Copyright 2020 - 2025 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -20,7 +20,7 @@ defmodule Astarte.AppEngine.APIWeb.HealthPlug do
   @behaviour Plug
   import Plug.Conn
 
-  alias Astarte.AppEngine.API.Health
+  alias Astarte.DataAccess.Health.Health
 
   def init(_opts) do
     nil
@@ -30,7 +30,7 @@ defmodule Astarte.AppEngine.APIWeb.HealthPlug do
     try do
       status =
         case Health.get_health() do
-          :ok ->
+          {:ok, %{status: :ready}} ->
             :telemetry.execute(
               [:astarte, :appengine, :service],
               %{health: 1},
@@ -45,7 +45,7 @@ defmodule Astarte.AppEngine.APIWeb.HealthPlug do
 
             :ok
 
-          {:error, :degraded_health} ->
+          {:ok, %{status: :degraded}} ->
             :telemetry.execute(
               [:astarte, :appengine, :service],
               %{health: 0},

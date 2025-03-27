@@ -42,15 +42,8 @@ defmodule Astarte.AppEngine.API.Queries do
       {:ok, %{num_rows: 0}} ->
         {:error, :public_key_not_found}
 
-      {:error, %Xandra.ConnectionError{} = err} ->
-        Logger.warning("Database connection error #{Exception.message(err)}.",
-          tag: "database_connection_error"
-        )
-
+      {:error, :database_connection_error} ->
         {:error, :database_connection_error}
-
-      {:error, %Xandra.Error{} = err} ->
-        handle_xandra_error(err)
 
       {:error, error} ->
         {:error, error}
@@ -79,30 +72,6 @@ defmodule Astarte.AppEngine.API.Queries do
     end
   end
 
-  def check_astarte_health(consistency) do
-    astarte_keyspace = Realm.astarte_keyspace_name()
-
-    schema_query =
-      from kv in KvStore,
-        prefix: ^astarte_keyspace,
-        where: kv.group == "astarte" and kv.key == "schema_version",
-        select: count(kv.value)
-
-    realm_query =
-      from Realm,
-        prefix: ^astarte_keyspace,
-        where: [realm_name: "_invalid^name_"]
-
-    opts = [consistency: consistency]
-
-    with {:ok, _result} <- safe_query(schema_query, opts),
-         {:ok, _result} <- safe_query(realm_query, opts) do
-      :ok
-    else
-      err -> err
-    end
-  end
-
   defp safe_query(ecto_query, opts) do
     {sql, params} = Repo.to_sql(:all, ecto_query)
 
@@ -111,15 +80,15 @@ defmodule Astarte.AppEngine.API.Queries do
       {:ok, result} ->
         {:ok, result}
 
-      {:error, %Xandra.ConnectionError{}} ->
-        {:error, :database_connection_error}
-
-      {:error, %Xandra.Error{} = err} ->
-        Logger.warning("Health is not good: #{Exception.message(err)}",
-          tag: "db_health_check_bad"
+      {:error, %Xandra.ConnectionError{} = error} ->
+        Logger.warning("Database connection error #{Exception.message(error)}.",
+          tag: "database_connection_error"
         )
 
-        {:error, :health_check_bad}
+        {:error, :database_connection_error}
+
+      {:error, %Xandra.Error{} = error} ->
+        handle_xandra_error(error)
     end
   end
 end
