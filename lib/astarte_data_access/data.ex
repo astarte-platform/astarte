@@ -19,7 +19,6 @@
 defmodule Astarte.DataAccess.Data do
   require Logger
   alias Astarte.DataAccess.Consistency
-  alias Astarte.DataAccess.XandraUtils
   import Ecto.Query
   alias Astarte.Core.CQLUtils
   alias Astarte.Core.Device
