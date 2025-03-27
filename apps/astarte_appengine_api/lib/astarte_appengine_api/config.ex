@@ -135,6 +135,30 @@ defmodule Astarte.AppEngine.API.Config do
     type: :module,
     default: Astarte.RPC.AMQP.Client
 
+  @envdoc "The Erlang cluster strategy to use. One of `none`, `kubernetes`. Defaults to `none`."
+  app_env :clustering_strategy,
+          :astarte_data_updater_plant,
+          :clustering_strategy,
+          os_env: "CLUSTERING_STRATEGY",
+          type: Astarte.AppEngine.API.ClusteringStrategy,
+          default: "none"
+
+  @envdoc "The Kubernetes selector to use when `kubernetes` Erlang clustering strategy is used. Defaults to `app=astarte-data-updater-plant`."
+  app_env :clustering_kubernetes_selector,
+          :astarte_data_updater_plant,
+          :clustering_kubernetes_selector,
+          os_env: "CLUSTERING_KUBERNETES_SELECTOR",
+          type: :binary,
+          default: "clustering=astarte"
+
+  @envdoc "The Kubernetes namespace to use when `kubernetes` Erlang clustering strategy is used. Defaults to `astarte`."
+  app_env :clustering_kubernetes_namespace,
+          :astarte_data_updater_plant,
+          :clustering_kubernetes_namespace,
+          os_env: "CLUSTERING_KUBERNETES_NAMESPACE",
+          type: :binary,
+          default: "astarte"
+
   defp populate_cqex_ssl_options(options) do
     if DataAccessConfig.ssl_enabled!() do
       ssl_options = build_ssl_options()
@@ -234,6 +258,27 @@ defmodule Astarte.AppEngine.API.Config do
     else
       server_name = rooms_amqp_client_ssl_custom_sni!() || rooms_amqp_client_host!()
       Keyword.put(ssl_options, :server_name_indication, to_charlist(server_name))
+    end
+  end
+
+  def cluster_topologies!() do
+    case clustering_strategy!() do
+      "none" ->
+        []
+
+      "kubernetes" ->
+        [
+          data_updater_plant_k8s: [
+            strategy: Elixir.Cluster.Strategy.Kubernetes,
+            config: [
+              mode: :ip,
+              kubernetes_node_basename: "astarte",
+              kubernetes_selector: clustering_kubernetes_selector!(),
+              kubernetes_namespace: clustering_kubernetes_namespace!(),
+              polling_interval: 10_000
+            ]
+          ]
+        ]
     end
   end
 

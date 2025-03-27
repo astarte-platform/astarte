@@ -48,6 +48,8 @@ defmodule Astarte.AppEngine.API.Application do
 
     # Define workers and child supervisors to be supervised
     children = [
+      {Cluster.Supervisor,
+       [Config.cluster_topologies!(), [name: Astarte.AppEngine.API.ClusterSupervisor]]},
       Astarte.AppEngine.APIWeb.Telemetry,
       {Phoenix.PubSub, name: Astarte.AppEngine.API.PubSub},
       Astarte.RPC.AMQP.Client,
