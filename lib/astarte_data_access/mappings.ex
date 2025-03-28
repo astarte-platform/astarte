@@ -22,7 +22,6 @@ defmodule Astarte.DataAccess.Mappings do
   alias Astarte.Core.Mapping
 
   alias Astarte.DataAccess.Consistency
-  alias Astarte.DataAccess.XandraUtils
 
   alias Astarte.DataAccess.Realms.Realm
   alias Astarte.DataAccess.Realms.Endpoint

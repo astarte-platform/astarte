@@ -19,7 +19,6 @@
 defmodule Astarte.DataAccess.Device do
   require Logger
   alias Astarte.DataAccess.Consistency
-  alias Astarte.DataAccess.XandraUtils
   alias Astarte.DataAccess.Realms.Realm
   alias Astarte.DataAccess.Devices.Device
   alias Astarte.DataAccess.Repo

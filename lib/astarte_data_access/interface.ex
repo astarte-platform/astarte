@@ -20,7 +20,6 @@ defmodule Astarte.DataAccess.Interface do
   require Logger
   alias Astarte.Core.InterfaceDescriptor
   alias Astarte.DataAccess.Consistency
-  alias Astarte.DataAccess.XandraUtils
 
   import Ecto.Query
 
