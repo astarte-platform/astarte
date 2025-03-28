@@ -17,7 +17,8 @@
 #
 
 defmodule Astarte.TriggerEngine.AMQPConsumer.AMQPConsumerTrackerTest do
-  use ExUnit.Case
+  use ExUnit.Case, async: true
+  use Mimic
 
   alias Astarte.TriggerEngine.AMQPConsumer.AMQPConsumerTracker
   alias Astarte.Core.Triggers.Policy
@@ -28,9 +29,30 @@ defmodule Astarte.TriggerEngine.AMQPConsumer.AMQPConsumerTrackerTest do
   @test_realm DatabaseTestHelper.test_realm()
 
   setup_all do
+    astarte_instance_id = "test#{System.unique_integer([:positive])}"
+
+    Astarte.DataAccess.Config
+    |> stub(:astarte_instance_id, fn -> {:ok, astarte_instance_id} end)
+    |> stub(:astarte_instance_id!, fn -> astarte_instance_id end)
+
     DatabaseTestHelper.create_test_env()
 
-    on_exit(&DatabaseTestHelper.drop_test_env/0)
+    on_exit(fn ->
+      Astarte.DataAccess.Config
+      |> stub(:astarte_instance_id, fn -> {:ok, astarte_instance_id} end)
+      |> stub(:astarte_instance_id!, fn -> astarte_instance_id end)
+
+      DatabaseTestHelper.drop_test_env()
+    end)
+
+    %{astarte_instance_id: astarte_instance_id}
+  end
+
+  setup %{astarte_instance_id: astarte_instance_id} do
+    Astarte.DataAccess.Config
+    |> stub(:astarte_instance_id, fn -> {:ok, astarte_instance_id} end)
+    |> stub(:astarte_instance_id!, fn -> astarte_instance_id end)
+
     :ok
   end
 

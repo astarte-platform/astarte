@@ -98,6 +98,7 @@ defmodule Astarte.TriggerEngine.Mixfile do
       {:dialyxir, "~> 1.0", only: [:dev, :ci], runtime: false},
       {:excoveralls, "~> 0.15", only: :test},
       {:mox, "~> 0.5", only: :test},
+      {:mimic, "~> 1.11", only: :test},
       # Workaround for Elixir 1.15 / ssl_verify_fun issue
       # See also: https://github.com/deadtrickster/ssl_verify_fun.erl/pull/27
       {:ssl_verify_fun, "~> 1.1.0", manager: :rebar3, override: true}

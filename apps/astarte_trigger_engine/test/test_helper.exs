@@ -16,5 +16,7 @@
 # limitations under the License.
 #
 
+Mimic.copy(Astarte.DataAccess.Config)
+
 ExUnit.start()
 Code.require_file("support/database_test_helper.exs", __DIR__)
