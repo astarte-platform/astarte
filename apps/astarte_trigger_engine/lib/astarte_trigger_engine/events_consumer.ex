@@ -56,7 +56,7 @@ defmodule Astarte.TriggerEngine.EventsConsumer do
       case decoded_payload.timestamp do
         nil ->
           DateTime.utc_now()
-          |> DateTime.from_unix(:millisecond)
+          |> DateTime.to_unix(:millisecond)
 
         timestamp when is_integer(timestamp) ->
           timestamp
