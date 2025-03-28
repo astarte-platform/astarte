@@ -16,7 +16,7 @@
 # limitations under the License.
 
 defmodule Astarte.AppEngine.API.Device.Aliases do
-  alias Astarte.DataAccess.Realms.Device
+  alias Astarte.DataAccess.Devices.Device
   alias Ecto.Changeset
 
   alias Astarte.AppEngine.API.Device.Queries
