@@ -1811,7 +1811,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
     assert [%{"dup_end_ack" => true}] = dup_end_ack_result
 
     # Finally, check that the related DataUpdater process exists no more
-    assert [] = Registry.lookup(Registry.DataUpdater, {realm, device_id})
+    assert [] = Horde.Registry.lookup(Registry.DataUpdater, {realm, device_id})
   end
 
   test "a disconnected device does not generate a disconnection trigger" do

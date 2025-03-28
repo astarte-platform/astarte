@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2017 - 2023 SECO Mind Srl
+# Copyright 2017 - 2025 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -22,13 +22,17 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Server do
   alias Astarte.DataUpdaterPlant.DataUpdater.Impl
   alias Astarte.DataUpdaterPlant.MessageTracker
 
-  def start(realm, device_id, message_tracker, opts \\ []) do
-    GenServer.start(__MODULE__, {realm, device_id, message_tracker}, opts)
+  require Logger
+
+  def start_link({realm, device_id, _message_tracker} = args) do
+    name = {:via, Horde.Registry, {Registry.DataUpdater, {realm, device_id}}}
+    GenServer.start_link(__MODULE__, args, name: name)
   end
 
   def init({realm, device_id, message_tracker}) do
     timeout = Config.data_updater_deactivation_interval_ms!()
 
+    Process.flag(:trap_exit, true)
     {:ok, Impl.init_state(realm, device_id, message_tracker), timeout}
   end
 
@@ -170,6 +174,20 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Server do
 
   def handle_info({:DOWN, _, :process, _pid, _reason}, state) do
     {:stop, :monitored_process_died, state}
+  end
+
+  @impl GenServer
+  def handle_info(
+        {:EXIT, _pid, {:name_conflict, {_name, _value}, _registry, _winning_pid}},
+        state
+      ) do
+    _ =
+      Logger.warning(
+        "Received a :name_confict signal from the outer space, maybe a netsplit occurred? Gracefully shutting down.",
+        tag: "name_conflict"
+      )
+
+    {:stop, :normal, state}
   end
 
   def handle_info(:timeout, state) do
