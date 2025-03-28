@@ -249,6 +249,30 @@ defmodule Astarte.DataUpdaterPlant.Config do
           type: :integer,
           default: 10
 
+  @envdoc "The Erlang cluster strategy to use. One of `none`, `kubernetes`. Defaults to `none`."
+  app_env :clustering_strategy,
+          :astarte_data_updater_plant,
+          :clustering_strategy,
+          os_env: "CLUSTERING_STRATEGY",
+          type: Astarte.DataUpdaterPlant.ClusteringStrategy,
+          default: "none"
+
+  @envdoc "The Kubernetes selector to use when `kubernetes` Erlang clustering strategy is used. Defaults to `clustering=astarte`."
+  app_env :clustering_kubernetes_selector,
+          :astarte_data_updater_plant,
+          :clustering_kubernetes_selector,
+          os_env: "CLUSTERING_KUBERNETES_SELECTOR",
+          type: :binary,
+          default: "clustering=astarte"
+
+  @envdoc "The Kubernetes namespace to use when `kubernetes` Erlang clustering strategy is used. Defaults to `astarte`."
+  app_env :clustering_kubernetes_namespace,
+          :astarte_data_updater_plant,
+          :clustering_kubernetes_namespace,
+          os_env: "CLUSTERING_KUBERNETES_NAMESPACE",
+          type: :binary,
+          default: "astarte"
+
   defp populate_cqex_ssl_options(options) do
     if DataAccessConfig.ssl_enabled!() do
       ssl_options = build_ssl_options()
@@ -472,6 +496,27 @@ defmodule Astarte.DataUpdaterPlant.Config do
 
   def amqp_adapter!() do
     Application.get_env(:astarte_data_updater_plant, :amqp_adapter)
+  end
+
+  def cluster_topologies!() do
+    case clustering_strategy!() do
+      "none" ->
+        []
+
+      "kubernetes" ->
+        [
+          data_updater_plant_k8s: [
+            strategy: Elixir.Cluster.Strategy.Kubernetes,
+            config: [
+              mode: :ip,
+              kubernetes_node_basename: "astarte",
+              kubernetes_selector: clustering_kubernetes_selector!(),
+              kubernetes_namespace: clustering_kubernetes_namespace!(),
+              polling_interval: 10_000
+            ]
+          ]
+        ]
+    end
   end
 
   @doc """
