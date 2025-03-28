@@ -25,7 +25,7 @@ defmodule Astarte.DataUpdaterPlant.Config.ClusteringStrategy do
 
   use Skogsra.Type
 
-  @allowed_strategies ~w(none kubernetes)
+  @allowed_strategies ~w(none kubernetes docker-compose)
 
   @impl Skogsra.Type
   def cast(value) when value in @allowed_strategies do
