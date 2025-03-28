@@ -70,8 +70,9 @@ defmodule Astarte.Core.Generators.DeviceTest do
     property "success base device creation" do
       check all(
               interfaces <-
-                InterfaceGenerator.interface() |> list_of(min_length: 0, max_length: 100),
-              device <- DeviceGenerator.device(interfaces: interfaces)
+                InterfaceGenerator.interface() |> list_of(min_length: 0, max_length: 10),
+              device <- DeviceGenerator.device(interfaces: interfaces),
+              max_runs: 300
             ) do
         refute device == nil
       end
