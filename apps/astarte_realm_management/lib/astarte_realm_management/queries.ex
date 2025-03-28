@@ -1104,12 +1104,12 @@ defmodule Astarte.RealmManagement.Queries do
   defp retrieve_simple_trigger_astarte_ref(realm_name, simple_trigger_uuid) do
     keyspace = Realm.keyspace_name(realm_name)
 
-    simple_trigger_uuid = :uuid.uuid_to_string(simple_trigger_uuid)
+    simple_trigger_uuid = :uuid.uuid_to_string(simple_trigger_uuid, :binary_standard)
 
     query =
       from store in KvStore,
         select: store.value,
-        where: [groups: "simple-triggers-by-uuid", key: ^simple_trigger_uuid]
+        where: [group: "simple-triggers-by-uuid", key: ^simple_trigger_uuid]
 
     opts = [
       prefix: keyspace,
