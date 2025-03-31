@@ -18,9 +18,9 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
-defmodule AstarteDataUpdaterPlant.ClusteringStrategy do
+defmodule Astarte.AppEngine.API.Config.ClusteringStrategy do
   @moduledoc """
-  The clustering strategy that the node should use to discover other nodes.
+  Clustering strategy for node discovery with libcluster.
   """
 
   use Skogsra.Type
