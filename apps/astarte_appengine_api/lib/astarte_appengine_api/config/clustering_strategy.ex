@@ -18,7 +18,7 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
-defmodule AstarteAppengineApi.ClusteringStrategy do
+defmodule Astarte.AppEngine.API.Config.ClusteringStrategy do
   @moduledoc """
   Clustering strategy for node discovery with libcluster.
   """
