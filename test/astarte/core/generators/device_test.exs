@@ -31,9 +31,7 @@ defmodule Astarte.Core.Generators.DeviceTest do
 
   @device_id_size 16
 
-  @doc """
-  Property test for Astarte Device generator Ids.
-  """
+  @doc false
   describe "device generator ids" do
     @tag :success
     property "success valid device id size" do
@@ -62,9 +60,7 @@ defmodule Astarte.Core.Generators.DeviceTest do
     end
   end
 
-  @doc """
-  Property test for Astarte Device struct.
-  """
+  @doc false
   describe "device generator struct" do
     @tag :success
     property "success base device creation" do
