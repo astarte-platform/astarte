@@ -17,7 +17,6 @@
 #
 
 defmodule Astarte.DataUpdaterPlant.MessageTracker.Server do
-  alias Astarte.DataUpdaterPlant.AMQPDataConsumer
   require Logger
   use GenServer
 
@@ -26,11 +25,19 @@ defmodule Astarte.DataUpdaterPlant.MessageTracker.Server do
 
   # TODO: this should probably be a :gen_statem so we can simplify state data
 
+  def start_link(args) do
+    name = Keyword.fetch!(args, :name)
+    GenServer.start_link(__MODULE__, args, name: name)
+  end
+
+  @impl GenServer
   def init(args) do
     acknowledger = Keyword.fetch!(args, :acknowledger)
+    Process.flag(:trap_exit, true)
     {:ok, {:new, :queue.new(), %{}, acknowledger}}
   end
 
+  @impl GenServer
   def handle_call(:register_data_updater, from, {:new, queue, ids, acknowledger}) do
     monitor(from)
     {:reply, :ok, {:accepting, queue, ids, acknowledger}}
@@ -191,6 +198,20 @@ defmodule Astarte.DataUpdaterPlant.MessageTracker.Server do
       _ ->
         {:noreply, {:new, queue, marked_ids, acknowledger}}
     end
+  end
+
+  @impl GenServer
+  def handle_info(
+        {:EXIT, _pid, {:name_conflict, {_name, _value}, _registry, _winning_pid}},
+        state
+      ) do
+    _ =
+      Logger.warning(
+        "Received a :name_confict signal from the outer space, maybe a netsplit occurred? Gracefully shutting down.",
+        tag: "name_conflict"
+      )
+
+    {:stop, :normal, state}
   end
 
   defp monitor({pid, _ref}) do
