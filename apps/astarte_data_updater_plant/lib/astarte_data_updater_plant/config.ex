@@ -516,6 +516,18 @@ defmodule Astarte.DataUpdaterPlant.Config do
             ]
           ]
         ]
+
+      "docker-compose" ->
+        [
+          data_updater_plant: [
+            strategy: Elixir.Cluster.Strategy.DNSPoll,
+            config: [
+              polling_interval: 5_000,
+              query: "astarte-data-updater-plant",
+              node_basename: "astarte_data_updater_plant"
+            ]
+          ]
+        ]
     end
   end
 
