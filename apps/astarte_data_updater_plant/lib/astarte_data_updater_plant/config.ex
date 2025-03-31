@@ -254,16 +254,16 @@ defmodule Astarte.DataUpdaterPlant.Config do
           :astarte_data_updater_plant,
           :clustering_strategy,
           os_env: "CLUSTERING_STRATEGY",
-          type: Astarte.DataUpdaterPlant.ClusteringStrategy,
+          type: Astarte.DataUpdaterPlant.Config.ClusteringStrategy,
           default: "none"
 
-  @envdoc "The Kubernetes selector to use when `kubernetes` Erlang clustering strategy is used. Defaults to `clustering=astarte`."
-  app_env :clustering_kubernetes_selector,
+  @envdoc "The endpoint label to query to get other data updater plant instances. Defaults to `app=astarte-data-updater-plant`."
+  app_env :dup_clustering_kubernetes_selector,
           :astarte_data_updater_plant,
-          :clustering_kubernetes_selector,
-          os_env: "CLUSTERING_KUBERNETES_SELECTOR",
+          :dup_clustering_kubernetes_selector,
+          os_env: "DATA_UPDATER_PLANT_CLUSTERING_KUBERNETES_SELECTOR",
           type: :binary,
-          default: "clustering=astarte"
+          default: "app=astarte-data-updater-plant"
 
   @envdoc "The Kubernetes namespace to use when `kubernetes` Erlang clustering strategy is used. Defaults to `astarte`."
   app_env :clustering_kubernetes_namespace,
@@ -509,8 +509,8 @@ defmodule Astarte.DataUpdaterPlant.Config do
             strategy: Elixir.Cluster.Strategy.Kubernetes,
             config: [
               mode: :ip,
-              kubernetes_node_basename: "astarte",
-              kubernetes_selector: clustering_kubernetes_selector!(),
+              kubernetes_node_basename: "astarte_data_updater_plant",
+              kubernetes_selector: dup_clustering_kubernetes_selector!(),
               kubernetes_namespace: clustering_kubernetes_namespace!(),
               polling_interval: 10_000
             ]
