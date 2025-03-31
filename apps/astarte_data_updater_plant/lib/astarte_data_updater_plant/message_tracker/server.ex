@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2018 Ispirata Srl
+# Copyright 2018 - 2025 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -208,7 +208,8 @@ defmodule Astarte.DataUpdaterPlant.MessageTracker.Server do
   end
 
   defp requeue(acknowledger, delivery_tag) when is_integer(delivery_tag) do
-    AMQPDataConsumer.requeue(acknowledger, delivery_tag)
+    Logger.debug("Going to requeue #{inspect(delivery_tag)}")
+    GenServer.call(acknowledger, {:requeue, delivery_tag})
   end
 
   defp requeue(_acknowledger, {:requeued, delivery_tag}) when is_integer(delivery_tag) do
@@ -221,7 +222,8 @@ defmodule Astarte.DataUpdaterPlant.MessageTracker.Server do
   end
 
   defp ack(acknowledger, delivery_tag) when is_integer(delivery_tag) do
-    AMQPDataConsumer.ack(acknowledger, delivery_tag)
+    Logger.debug("Going to ack #{inspect(delivery_tag)}")
+    GenServer.call(acknowledger, {:ack, delivery_tag})
   end
 
   defp discard(_acknowledger, {:injected_msg, _ref}) do
@@ -229,6 +231,7 @@ defmodule Astarte.DataUpdaterPlant.MessageTracker.Server do
   end
 
   defp discard(acknowledger, delivery_tag) when is_integer(delivery_tag) do
-    AMQPDataConsumer.discard(acknowledger, delivery_tag)
+    Logger.debug("Going to discard #{inspect(delivery_tag)}")
+    GenServer.call(acknowledger, {:discard, delivery_tag})
   end
 end

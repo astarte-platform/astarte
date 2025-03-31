@@ -79,7 +79,7 @@ defmodule Astarte.DataUpdaterPlant.AMQPDataConsumer do
   end
 
   defp get_queue_via_tuple(queue_index) when is_integer(queue_index) do
-    {:via, Registry, {Registry.AMQPDataConsumer, {:queue_index, queue_index}}}
+    {:via, Horde.Registry, {Registry.AMQPDataConsumer, {:queue_index, queue_index}}}
   end
 
   defp fetch_queue_via_tuple(realm, encoded_device_id)

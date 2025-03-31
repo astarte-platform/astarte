@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2020 Ispirata Srl
+# Copyright 2020 - 2025 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -35,6 +35,7 @@ defmodule Astarte.DataUpdaterPlant.DataPipelineSupervisor do
     children = [
       {Registry, [keys: :unique, name: Registry.MessageTracker]},
       {Registry, [keys: :unique, name: Registry.DataUpdater]},
+      {Horde.Registry, [keys: :unique, name: Registry.AMQPDataConsumer, members: :auto]},
       {ExRabbitPool.PoolSupervisor,
        rabbitmq_config: Config.amqp_producer_options!(),
        connection_pools: [Config.events_producer_pool_config!()]},
