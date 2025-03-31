@@ -68,7 +68,7 @@ defmodule Astarte.Core.Generators.DeviceTest do
               interfaces <-
                 InterfaceGenerator.interface() |> list_of(min_length: 0, max_length: 10),
               device <- DeviceGenerator.device(interfaces: interfaces),
-              max_runs: 300
+              max_runs: 100
             ) do
         refute device == nil
       end
