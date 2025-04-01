@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2017-2018 Ispirata Srl
+# Copyright 2017 - 2025 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -19,6 +19,7 @@
 defmodule Astarte.Housekeeping.RPC.Handler do
   @behaviour Astarte.RPC.Handler
 
+  alias Astarte.DataAccess.Health.Health
   alias Astarte.Housekeeping.Engine
 
   alias Astarte.RPC.Protocol.Housekeeping.{
@@ -274,7 +275,7 @@ defmodule Astarte.Housekeeping.RPC.Handler do
   end
 
   defp call_rpc({:get_health, %GetHealth{}}) do
-    {:ok, %{status: status}} = Engine.get_health()
+    {:ok, %{status: status}} = Health.get_health()
 
     status_enum =
       case status do

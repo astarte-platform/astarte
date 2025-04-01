@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2017-2023 SECO Mind Srl
+# Copyright 2017 - 2025 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -1011,44 +1011,6 @@ defmodule Astarte.Housekeeping.Queries do
         _ =
           Logger.warning("Database connection error: #{inspect(err)}.",
             tag: "database_connection_error"
-          )
-
-        {:error, :database_connection_error}
-    end
-  end
-
-  def check_astarte_health(consistency) do
-    query = """
-    SELECT COUNT(*)
-    FROM #{CQLUtils.realm_name_to_keyspace_name("astarte", Config.astarte_instance_id!())}.realms
-    """
-
-    with {:ok, %Xandra.Page{} = page} <-
-           Xandra.Cluster.execute(:xandra, query, %{}, consistency: consistency),
-         {:ok, _} <- Enum.fetch(page, 0) do
-      :ok
-    else
-      :error ->
-        _ =
-          Logger.warning(
-            "Cannot retrieve count for #{CQLUtils.realm_name_to_keyspace_name("astarte", Config.astarte_instance_id!())}.realms table.",
-            tag: "health_check_error"
-          )
-
-        {:error, :health_check_bad}
-
-      {:error, %Xandra.Error{} = err} ->
-        _ =
-          Logger.warning("Database error, health is not good: #{inspect(err)}.",
-            tag: "health_check_database_error"
-          )
-
-        {:error, :health_check_bad}
-
-      {:error, %Xandra.ConnectionError{} = err} ->
-        _ =
-          Logger.warning("Database error, health is not good: #{inspect(err)}.",
-            tag: "health_check_database_connection_error"
           )
 
         {:error, :database_connection_error}
