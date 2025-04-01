@@ -100,9 +100,6 @@ defmodule Astarte.DataUpdaterPlant.Mixfile do
       # Workaround for Elixir 1.15 / ssl_verify_fun issue
       # See also: https://github.com/deadtrickster/ssl_verify_fun.erl/pull/27
       {:ssl_verify_fun, "~> 1.1.0", manager: :rebar3, override: true},
-      {:cqex, "~> 1.0", only: :test},
-      {:cqerl, "~> 2.1", override: true, only: :test},
-      {:snappyer, "~> 1.2.10", override: true},
       {:uuid, "~> 2.0", hex: :uuid_erl}
     ]
   end
