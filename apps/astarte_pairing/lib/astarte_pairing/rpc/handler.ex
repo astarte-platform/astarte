@@ -21,6 +21,7 @@ defmodule Astarte.Pairing.RPC.Handler do
 
   @behaviour Astarte.RPC.Handler
 
+  alias Astarte.DataAccess.Health.Health
   alias Astarte.Pairing.Engine
 
   alias Astarte.RPC.Protocol.Pairing.{
@@ -146,7 +147,7 @@ defmodule Astarte.Pairing.RPC.Handler do
   end
 
   defp call_rpc({:get_health, %GetHealth{}}) do
-    {:ok, %{status: status}} = Engine.get_health()
+    {:ok, %{status: status}} = Health.get_health()
 
     status_enum =
       case status do

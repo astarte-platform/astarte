@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2017-2018 Ispirata Srl
+# Copyright 2017 - 2025 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -31,28 +31,6 @@ defmodule Astarte.Pairing.Engine do
   require Logger
 
   @version Mix.Project.config()[:version]
-
-  def get_health do
-    case Queries.check_astarte_health(:quorum) do
-      :ok ->
-        {:ok, %{status: :ready}}
-
-      {:error, :health_check_bad} ->
-        case Queries.check_astarte_health(:one) do
-          :ok ->
-            {:ok, %{status: :degraded}}
-
-          {:error, :health_check_bad} ->
-            {:ok, %{status: :bad}}
-
-          {:error, :database_connection_error} ->
-            {:ok, %{status: :error}}
-        end
-
-      {:error, :database_connection_error} ->
-        {:ok, %{status: :error}}
-    end
-  end
 
   defdelegate get_agent_public_key_pems(realm_name), to: Queries
 
