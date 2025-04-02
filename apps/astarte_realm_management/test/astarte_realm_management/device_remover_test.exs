@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2023 SECO Mind Srl
+# Copyright 2023 - 2025 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -18,7 +18,6 @@
 
 defmodule Astarte.RealmManagement.DeviceRemoval.DeviceRemoverTest do
   use ExUnit.Case
-  require Logger
 
   alias Astarte.Core.CQLUtils
   alias Astarte.RealmManagement.Config
@@ -36,13 +35,11 @@ defmodule Astarte.RealmManagement.DeviceRemoval.DeviceRemoverTest do
   @path "/a/path"
 
   setup_all do
-    {:ok, client} = DatabaseTestHelper.connect_to_test_database()
-    DatabaseTestHelper.create_test_keyspace(client)
+    DatabaseTestHelper.create_test_keyspace()
     seed_device_data!()
 
     on_exit(fn ->
-      {:ok, client} = DatabaseTestHelper.connect_to_test_database()
-      DatabaseTestHelper.drop_test_keyspace(client)
+      DatabaseTestHelper.drop_test_keyspace()
     end)
   end
 
