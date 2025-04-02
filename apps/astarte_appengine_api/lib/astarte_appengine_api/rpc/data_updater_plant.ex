@@ -23,22 +23,13 @@ defmodule Astarte.AppEngine.API.RPC.DataUpdaterPlant do
 
   require Logger
 
-  alias Astarte.RPC.Protocol.DataUpdaterPlant, as: Protocol
-
-  alias Astarte.RPC.Protocol.DataUpdaterPlant.{
-    Call,
-    DeleteVolatileTrigger,
-    GenericErrorReply,
-    GenericOkReply,
-    InstallVolatileTrigger,
-    Reply
-  }
-
-  alias Astarte.AppEngine.API.Config
   alias Astarte.AppEngine.API.RPC.DataUpdaterPlant.VolatileTrigger
 
-  @rpc_client Config.rpc_client!()
-  @destination Protocol.amqp_queue()
+  @rpc_behaviour Application.compile_env(
+                   :astarte_appengine_api,
+                   :data_updater_plant_rpc_client,
+                   Astarte.AppEngine.API.RPC.DataUpdaterPlant.Client
+                 )
 
   def install_volatile_trigger(realm_name, device_id, %VolatileTrigger{} = volatile_trigger) do
     %VolatileTrigger{
@@ -50,56 +41,29 @@ defmodule Astarte.AppEngine.API.RPC.DataUpdaterPlant do
       serialized_trigger_target: serialized_trigger_target
     } = volatile_trigger
 
-    %InstallVolatileTrigger{
-      realm_name: realm_name,
-      device_id: device_id,
-      object_id: object_id,
-      object_type: object_type,
-      parent_id: parent_id,
-      simple_trigger: serialized_simple_trigger,
-      simple_trigger_id: simple_trigger_id,
-      trigger_target: serialized_trigger_target
-    }
-    |> encode_call(:install_volatile_trigger)
-    |> @rpc_client.rpc_call(@destination)
-    |> decode_reply()
-    |> extract_reply()
+    volatile_trigger =
+      %{
+        realm_name: realm_name,
+        device_id: device_id,
+        object_id: object_id,
+        object_type: object_type,
+        parent_id: parent_id,
+        simple_trigger: serialized_simple_trigger,
+        simple_trigger_id: simple_trigger_id,
+        trigger_target: serialized_trigger_target
+      }
+
+    @rpc_behaviour.install_volatile_trigger(volatile_trigger)
   end
 
   def delete_volatile_trigger(realm_name, device_id, trigger_id) do
-    %DeleteVolatileTrigger{
-      realm_name: realm_name,
-      device_id: device_id,
-      trigger_id: trigger_id
-    }
-    |> encode_call(:delete_volatile_trigger)
-    |> @rpc_client.rpc_call(@destination)
-    |> decode_reply()
-    |> extract_reply()
-  end
+    delete_trigger =
+      %{
+        realm_name: realm_name,
+        device_id: device_id,
+        trigger_id: trigger_id
+      }
 
-  defp encode_call(call, callname) do
-    %Call{call: {callname, call}}
-    |> Call.encode()
-  end
-
-  defp decode_reply({:ok, encoded_reply}) when is_binary(encoded_reply) do
-    %Reply{reply: reply} = Reply.decode(encoded_reply)
-    reply
-  end
-
-  defp decode_reply({:error, reason}) do
-    _ = Logger.warning("RPC error: #{inspect(reason)}.", tag: "rpc_remote_exception")
-    {:error, reason}
-  end
-
-  defp extract_reply({:generic_ok_reply, %GenericOkReply{}}) do
-    :ok
-  end
-
-  defp extract_reply({:generic_error_reply, error_struct = %GenericErrorReply{}}) do
-    error_map = Map.from_struct(error_struct)
-
-    {:error, error_map}
+    @rpc_behaviour.delete_volatile_trigger(delete_trigger)
   end
 end

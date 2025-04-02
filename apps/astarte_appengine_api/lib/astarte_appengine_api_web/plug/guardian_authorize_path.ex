@@ -70,8 +70,8 @@ defmodule Astarte.AppEngine.APIWeb.Plug.GuardianAuthorizePath do
           {:ok, {method_regex, path_regex}} ->
             _ =
               Logger.debug(
-                "Checking #{method} against #{inspect(method_regex)} and " <>
-                  "#{auth_path} against #{inspect(path_regex)}."
+                "Checking #{inspect(method)} against #{inspect(method_regex)} and " <>
+                  "#{inspect(auth_path)} against #{inspect(path_regex)}."
               )
 
             Regex.match?(method_regex, method) and Regex.match?(path_regex, auth_path)

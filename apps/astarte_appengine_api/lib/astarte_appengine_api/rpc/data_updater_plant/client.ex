@@ -18,8 +18,21 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
-Mox.defmock(MockRPCClient, for: Astarte.RPC.Client)
+defmodule Astarte.AppEngine.API.RPC.DataUpdaterPlant.Client do
+  @moduledoc false
+  @behaviour Astarte.AppEngine.API.RPC.DataUpdaterPlant.Behaviour
 
-Mox.defmock(Astarte.AppEngine.API.RPC.DataUpdaterPlant.ClientMock,
-  for: Astarte.AppEngine.API.RPC.DataUpdaterPlant.Behaviour
-)
+  @impl Astarte.AppEngine.API.RPC.DataUpdaterPlant.Behaviour
+  def install_volatile_trigger(request_data) do
+    server_via_tuple()
+    |> GenServer.call({:install_volatile_trigger, request_data})
+  end
+
+  @impl Astarte.AppEngine.API.RPC.DataUpdaterPlant.Behaviour
+  def delete_volatile_trigger(request_data) do
+    server_via_tuple()
+    |> GenServer.call({:delete_volatile_trigger, request_data})
+  end
+
+  defp server_via_tuple(), do: {:via, Horde.Registry, {Registry.DataUpdaterRPC, :server}}
+end
