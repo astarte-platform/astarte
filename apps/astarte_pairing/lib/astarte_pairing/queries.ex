@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2017-2018 Ispirata Srl
+# Copyright 2017 - 2025 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -263,24 +263,5 @@ defmodule Astarte.Pairing.Queries do
 
       {[{interface_name, major_version} | majors], [{interface_name, minor_version} | minors]}
     end)
-  end
-
-  def check_astarte_health(consistency) do
-    keyspace = Realm.astarte_keyspace_name()
-
-    try do
-      _ =
-        Realm
-        |> select([r], count())
-        |> Repo.one!(prefix: keyspace, consistency: consistency)
-
-      :ok
-    rescue
-      Xandra.ConnectionError ->
-        {:error, :database_connection_error}
-
-      Xandra.Error ->
-        {:error, :health_check_bad}
-    end
   end
 end
