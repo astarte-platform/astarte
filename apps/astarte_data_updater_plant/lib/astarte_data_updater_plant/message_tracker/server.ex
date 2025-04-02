@@ -43,12 +43,14 @@ defmodule Astarte.DataUpdaterPlant.MessageTracker.Server do
     {:reply, :ok, {:accepting, queue, ids, acknowledger}}
   end
 
+  @impl GenServer
   def handle_call(:register_data_updater, from, {_state, queue, ids, acknowledger}) do
     Logger.debug("Blocked data updater registration. Queue is #{inspect(queue)}.")
 
     {:noreply, {{:waiting_cleanup, from}, queue, ids, acknowledger}}
   end
 
+  @impl GenServer
   def handle_call(
         {:can_process_message, message_id},
         from,
@@ -76,6 +78,7 @@ defmodule Astarte.DataUpdaterPlant.MessageTracker.Server do
     end
   end
 
+  @impl GenServer
   def handle_call({:ack_delivery, message_id}, _from, {:accepting, queue, ids, acknowledger}) do
     {{:value, ^message_id}, new_queue} = :queue.out(queue)
     {delivery_tag, new_ids} = Map.pop(ids, message_id)
@@ -85,6 +88,7 @@ defmodule Astarte.DataUpdaterPlant.MessageTracker.Server do
     {:reply, :ok, {:accepting, new_queue, new_ids, acknowledger}}
   end
 
+  @impl GenServer
   def handle_call({:discard, message_id}, _from, {:accepting, queue, ids, acknowledger}) do
     {{:value, ^message_id}, new_queue} = :queue.out(queue)
     {delivery_tag, new_ids} = Map.pop(ids, message_id)
@@ -94,6 +98,7 @@ defmodule Astarte.DataUpdaterPlant.MessageTracker.Server do
     {:reply, :ok, {:accepting, new_queue, new_ids, acknowledger}}
   end
 
+  @impl GenServer
   def handle_call(:deactivate, _from, {state, queue, ids, _acknowledger} = s) do
     cond do
       not :queue.is_empty(queue) ->
@@ -126,6 +131,7 @@ defmodule Astarte.DataUpdaterPlant.MessageTracker.Server do
     end
   end
 
+  @impl GenServer
   def handle_cast(
         {:track_delivery, message_id, delivery_tag},
         {{:waiting_delivery, waiting_process}, queue, ids, acknowledger}
@@ -151,6 +157,7 @@ defmodule Astarte.DataUpdaterPlant.MessageTracker.Server do
     end
   end
 
+  @impl GenServer
   def handle_cast(
         {:track_delivery, message_id, delivery_tag},
         {state, queue, ids, acknowledger}
@@ -164,6 +171,7 @@ defmodule Astarte.DataUpdaterPlant.MessageTracker.Server do
     end
   end
 
+  @impl GenServer
   def handle_info(
         {:DOWN, _, :process, _pid, reason},
         {state, queue, ids, acknowledger} = s

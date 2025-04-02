@@ -284,7 +284,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater do
     end
   end
 
-  defp verify_device_exists(realm_name, encoded_device_id) do
+  def verify_device_exists(realm_name, encoded_device_id) do
     with {:ok, decoded_device_id} <- Device.decode_device_id(encoded_device_id),
          # TODO this could be a bang!
          {:ok, exists?} <- Queries.check_device_exists(realm_name, decoded_device_id) do
