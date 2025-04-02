@@ -29,15 +29,25 @@ defmodule Astarte.Core.Generators.InterfaceTest do
 
   @moduletag :interface
 
-  @doc """
-  Property test for Astarte Interface generator.
-  """
-  describe "interface generator" do
-    property "validate interface" do
-      check all(interface <- InterfaceGenerator.interface()) do
-        %Changeset{valid?: valid, errors: errors} = Interface.changeset(interface)
+  defp validation_helper(interface) do
+    Interface.changeset(interface)
+  end
 
-        assert valid, "Invalid interface: " <> (errors |> Enum.join(", "))
+  defp validation_fixture(_context), do: {:ok, validate: &validation_helper/1}
+
+  @doc false
+  describe "interface generator" do
+    @describetag :success
+    @describetag :ut
+
+    setup :validation_fixture
+
+    property "validate interface using Changeset", %{validate: validate} do
+      check all(
+              interface <- InterfaceGenerator.interface(),
+              changeset = validate.(interface)
+            ) do
+        assert changeset.valid?, "Invalid interface: #{inspect(changeset.errors)}"
       end
     end
   end

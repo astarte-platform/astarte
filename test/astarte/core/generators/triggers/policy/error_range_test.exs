@@ -31,21 +31,15 @@ defmodule Astarte.Core.Generators.Triggers.Policy.ErrorRangeTest do
   @moduletag :policy
   @moduletag :error_range
 
-  # ? TODO move validate to a fixture file and make it generic
-  defp validation_fixture(_context) do
-    {
-      :ok,
-      validate: fn %ErrorRange{} = error_range ->
-        error_range
-        |> Changeset.change()
-        |> ErrorRange.validate()
-      end
-    }
+  defp validation_helper(error_keyword) do
+    error_keyword
+    |> Changeset.change()
+    |> ErrorRange.validate()
   end
 
-  @doc """
-  Property test for Astarte Triggers Policy ErrorRange generator.
-  """
+  defp validation_fixture(_context), do: {:ok, validate: &validation_helper/1}
+
+  @doc false
   describe "triggers policy error_range generator" do
     @describetag :success
     @describetag :ut

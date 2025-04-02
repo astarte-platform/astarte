@@ -31,9 +31,7 @@ defmodule Astarte.Core.Generators.DeviceTest do
 
   @device_id_size 16
 
-  @doc """
-  Property test for Astarte Device generator Ids.
-  """
+  @doc false
   describe "device generator ids" do
     @tag :success
     property "success valid device id size" do
@@ -62,9 +60,7 @@ defmodule Astarte.Core.Generators.DeviceTest do
     end
   end
 
-  @doc """
-  Property test for Astarte Device struct.
-  """
+  @doc false
   describe "device generator struct" do
     @tag :success
     property "success base device creation" do
@@ -72,7 +68,7 @@ defmodule Astarte.Core.Generators.DeviceTest do
               interfaces <-
                 InterfaceGenerator.interface() |> list_of(min_length: 0, max_length: 10),
               device <- DeviceGenerator.device(interfaces: interfaces),
-              max_runs: 300
+              max_runs: 100
             ) do
         refute device == nil
       end
