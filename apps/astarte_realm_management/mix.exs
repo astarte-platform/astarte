@@ -87,15 +87,11 @@ defmodule Astarte.RealmManagement.Mixfile do
       {:xandra, "~> 0.13"},
       {:exandra, "~> 0.13"},
       {:typed_ecto_schema, "~> 0.4"},
-      # Fix: could not compile dependency due to an old snappy version (1.2.8). Delete when removing cqex/cqerl
-      {:snappyer, "~> 1.2.10", override: true},
       {:observer_cli, "~> 1.5"},
       {:dialyxir, "~> 1.0", only: [:dev, :ci], runtime: false},
       # Workaround for Elixir 1.15 / ssl_verify_fun issue
       # See also: https://github.com/deadtrickster/ssl_verify_fun.erl/pull/27
       {:ssl_verify_fun, "~> 1.1.0", manager: :rebar3, override: true},
-      {:cqex, "~> 1.0", only: :test},
-      {:cqerl, "~> 2.1", override: true, only: :test},
       {:uuid, "~> 2.0", hex: :uuid_erl}
     ]
   end
