@@ -38,28 +38,6 @@ defmodule Astarte.RealmManagement.Engine do
   alias Astarte.RealmManagement.Engine.MappingUpdates
   alias Astarte.RealmManagement.Queries
 
-  def get_health() do
-    _ = Logger.debug("Get health.")
-
-    with :ok <- Queries.check_astarte_health(:quorum) do
-      {:ok, %{status: :ready}}
-    else
-      {:error, :health_check_bad} ->
-        with :ok <- Queries.check_astarte_health(:one) do
-          {:ok, %{status: :degraded}}
-        else
-          {:error, :health_check_bad} ->
-            {:ok, %{status: :bad}}
-
-          {:error, :database_connection_error} ->
-            {:ok, %{status: :error}}
-        end
-
-      {:error, :database_connection_error} ->
-        {:ok, %{status: :error}}
-    end
-  end
-
   def install_interface(realm_name, interface_json, opts \\ []) do
     _ = Logger.info("Going to install a new interface.", tag: "install_interface")
 
