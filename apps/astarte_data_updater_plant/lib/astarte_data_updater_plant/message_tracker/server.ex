@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2018 Ispirata Srl
+# Copyright 2018 - 2025 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -17,7 +17,6 @@
 #
 
 defmodule Astarte.DataUpdaterPlant.MessageTracker.Server do
-  alias Astarte.DataUpdaterPlant.AMQPDataConsumer
   require Logger
   use GenServer
 
@@ -26,11 +25,19 @@ defmodule Astarte.DataUpdaterPlant.MessageTracker.Server do
 
   # TODO: this should probably be a :gen_statem so we can simplify state data
 
+  def start_link(args) do
+    name = Keyword.fetch!(args, :name)
+    GenServer.start_link(__MODULE__, args, name: name)
+  end
+
+  @impl GenServer
   def init(args) do
     acknowledger = Keyword.fetch!(args, :acknowledger)
+    Process.flag(:trap_exit, true)
     {:ok, {:new, :queue.new(), %{}, acknowledger}}
   end
 
+  @impl GenServer
   def handle_call(:register_data_updater, from, {:new, queue, ids, acknowledger}) do
     monitor(from)
     {:reply, :ok, {:accepting, queue, ids, acknowledger}}
@@ -193,6 +200,20 @@ defmodule Astarte.DataUpdaterPlant.MessageTracker.Server do
     end
   end
 
+  @impl GenServer
+  def handle_info(
+        {:EXIT, _pid, {:name_conflict, {_name, _value}, _registry, _winning_pid}},
+        state
+      ) do
+    _ =
+      Logger.warning(
+        "Received a :name_confict signal from the outer space, maybe a netsplit occurred? Gracefully shutting down.",
+        tag: "name_conflict"
+      )
+
+    {:stop, :normal, state}
+  end
+
   defp monitor({pid, _ref}) do
     Process.monitor(pid)
   end
@@ -208,7 +229,8 @@ defmodule Astarte.DataUpdaterPlant.MessageTracker.Server do
   end
 
   defp requeue(acknowledger, delivery_tag) when is_integer(delivery_tag) do
-    AMQPDataConsumer.requeue(acknowledger, delivery_tag)
+    Logger.debug("Going to requeue #{inspect(delivery_tag)}")
+    GenServer.call(acknowledger, {:requeue, delivery_tag})
   end
 
   defp requeue(_acknowledger, {:requeued, delivery_tag}) when is_integer(delivery_tag) do
@@ -221,7 +243,8 @@ defmodule Astarte.DataUpdaterPlant.MessageTracker.Server do
   end
 
   defp ack(acknowledger, delivery_tag) when is_integer(delivery_tag) do
-    AMQPDataConsumer.ack(acknowledger, delivery_tag)
+    Logger.debug("Going to ack #{inspect(delivery_tag)}")
+    GenServer.call(acknowledger, {:ack, delivery_tag})
   end
 
   defp discard(_acknowledger, {:injected_msg, _ref}) do
@@ -229,6 +252,7 @@ defmodule Astarte.DataUpdaterPlant.MessageTracker.Server do
   end
 
   defp discard(acknowledger, delivery_tag) when is_integer(delivery_tag) do
-    AMQPDataConsumer.discard(acknowledger, delivery_tag)
+    Logger.debug("Going to discard #{inspect(delivery_tag)}")
+    GenServer.call(acknowledger, {:discard, delivery_tag})
   end
 end
