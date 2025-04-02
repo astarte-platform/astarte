@@ -38,43 +38,28 @@ defmodule Astarte.Common.Generators.Ip do
   def ip(:ipv6), do: ipv6_address()
 
   defp ipv4_address do
-    one_of([
-      integer(1..9),
-      integer(11..126),
-      integer(128..223)
-    ])
-    |> bind(&ipv4_second/1)
+    gen all first <- ipv4_first(),
+            second <- ipv4_second(first),
+            third <- ipv4_third(first, second),
+            fourth <- ipv4_fourth() do
+      {first, second, third, fourth}
+    end
   end
 
-  defp ipv4_second(a) do
-    second(a)
-    |> bind(fn b -> ipv4_third(a, b) end)
-  end
+  defp ipv4_first, do: one_of([integer(1..9), integer(11..126), integer(128..223)])
 
-  defp ipv4_third(a, b) do
-    third(a, b)
-    |> bind(fn c -> ipv4_forth(a, b, c) end)
-  end
+  defp ipv4_second(100), do: one_of([integer(0..63), integer(128..255)])
+  defp ipv4_second(169), do: one_of([integer(0..253), constant(255)])
+  defp ipv4_second(172), do: one_of([integer(0..15), integer(32..255)])
+  defp ipv4_second(192), do: one_of([integer(0..87), integer(89..167), integer(169..255)])
+  defp ipv4_second(198), do: one_of([integer(0..17), integer(19..255)])
+  defp ipv4_second(_), do: integer(0..255)
 
-  defp ipv4_forth(a, b, c) do
-    tuple({
-      constant(a),
-      constant(b),
-      constant(c),
-      integer(1..254)
-    })
-  end
+  defp ipv4_third(198, 51), do: one_of([integer(0..99), integer(101..255)])
+  defp ipv4_third(203, 0), do: one_of([integer(0..112), integer(114..255)])
+  defp ipv4_third(_, _), do: integer(0..255)
 
-  defp second(100), do: one_of([integer(0..63), integer(128..255)])
-  defp second(169), do: one_of([integer(0..253), constant(255)])
-  defp second(172), do: one_of([integer(0..15), integer(32..255)])
-  defp second(192), do: one_of([integer(0..87), integer(89..167), integer(169..255)])
-  defp second(198), do: one_of([integer(0..17), integer(19..255)])
-  defp second(_), do: integer(0..255)
-
-  defp third(198, 51), do: one_of([integer(0..99), integer(101..255)])
-  defp third(203, 0), do: one_of([integer(0..112), integer(114..255)])
-  defp third(_, _), do: integer(0..255)
+  defp ipv4_fourth, do: integer(1..254)
 
   defp ipv6_address do
     raise "Not implemented yet"
