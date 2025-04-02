@@ -131,34 +131,6 @@ defmodule Astarte.RealmManagement.Queries do
     {:one_object_datastream_dbtable, table_name}
   end
 
-  def check_astarte_health(consistency) do
-    keyspace = Realm.astarte_keyspace_name()
-
-    schema_query =
-      from KvStore,
-        where: [group: "astarte", key: "schema_version"],
-        limit: 1
-
-    # no-op, just to check if nodes respond no realm name can contain '_', '^'.
-    # Should return {:error, :not_found}
-    realms_query =
-      from Realm,
-        where: [realm_name: "_invalid^name_"],
-        limit: 1
-
-    with {:ok, _} <- Repo.fetch_one(schema_query, prefix: keyspace, consistency: consistency),
-         {:error, :not_found} <-
-           Repo.fetch_one(realms_query, prefix: keyspace, consistency: consistency) do
-      :ok
-    else
-      {:error, err} ->
-        _ =
-          Logger.warning("Health is not good, reason: #{inspect(err)}.", tag: "health_check_bad")
-
-        {:error, :health_check_bad}
-    end
-  end
-
   def install_new_interface(realm_name, interface_document, automaton) do
     keyspace = Realm.keyspace_name(realm_name)
 

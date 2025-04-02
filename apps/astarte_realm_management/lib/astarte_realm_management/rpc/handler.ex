@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2017 - 2023 SECO Mind Srl
+# Copyright 2017 - 2025 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -18,6 +18,8 @@
 
 defmodule Astarte.RealmManagement.RPC.Handler do
   @behaviour Astarte.RPC.Handler
+
+  alias Astarte.DataAccess.Health.Health
 
   alias Astarte.RPC.Protocol.RealmManagement.{
     Call,
@@ -237,7 +239,7 @@ defmodule Astarte.RealmManagement.RPC.Handler do
         %Call{call: call_tuple} when call_tuple != nil ->
           case call_tuple do
             {:get_health, %GetHealth{}} ->
-              encode_reply(:get_health, Engine.get_health())
+              encode_reply(:get_health, Health.get_health())
 
             {:get_device_registration_limit, %GetDeviceRegistrationLimit{realm_name: realm_name}} ->
               _ = Logger.metadata(realm: realm_name)
