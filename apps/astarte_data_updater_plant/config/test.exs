@@ -1,9 +1,9 @@
 import Config
 
-config :astarte_rpc, :amqp_connection, host: System.get_env("RABBITMQ_HOST") || "rabbitmq"
+config :astarte_rpc, :amqp_connection, host: System.get_env("RABBITMQ_HOST") || "localhost"
 
 config :astarte_data_updater_plant, :amqp_consumer_options,
-  host: System.get_env("RABBITMQ_HOST") || "rabbitmq"
+  host: System.get_env("RABBITMQ_HOST") || "localhost"
 
 config :logger, :console,
   format: {PrettyLog.UserFriendlyFormatter, :format},
