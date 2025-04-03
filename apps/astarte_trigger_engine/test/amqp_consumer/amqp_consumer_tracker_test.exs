@@ -58,7 +58,7 @@ defmodule Astarte.TriggerEngine.AMQPConsumer.AMQPConsumerTrackerTest do
 
   test "@default policy consumer is always there" do
     # make sure we update the consumer list without waiting for the update timeout
-    AMQPConsumerTracker.handle_info(:update_consumers, [])
+    AMQPConsumerTracker.update_consumers()
 
     assert Enum.member?(
              Registry.select(Registry.AMQPConsumerRegistry, [{{:"$1", :_, :_}, [], [:"$1"]}]),
@@ -81,7 +81,7 @@ defmodule Astarte.TriggerEngine.AMQPConsumer.AMQPConsumerTrackerTest do
     DatabaseTestHelper.install_policy(policy)
 
     # make sure we update the consumer list without waiting for the update timeout
-    AMQPConsumerTracker.handle_info(:update_consumers, [])
+    AMQPConsumerTracker.update_consumers()
 
     assert Enum.member?(
              Registry.select(Registry.AMQPConsumerRegistry, [{{:"$1", :_, :_}, [], [:"$1"]}]),
@@ -104,23 +104,44 @@ defmodule Astarte.TriggerEngine.AMQPConsumer.AMQPConsumerTrackerTest do
     DatabaseTestHelper.install_policy(policy)
 
     # make sure we update the consumer list without waiting for the update timeout
-    AMQPConsumerTracker.handle_info(:update_consumers, [])
-    Process.sleep(3000)
+    AMQPConsumerTracker.update_consumers()
 
     assert Enum.member?(
              Registry.select(Registry.AMQPConsumerRegistry, [{{:"$1", :_, :_}, [], [:"$1"]}]),
              {@test_realm, policy_name}
            )
 
+    trace_registry()
     DatabaseTestHelper.delete_policy(policy_name)
 
     # make sure we update the consumer list without waiting for the update timeout
-    AMQPConsumerTracker.handle_info(:update_consumers, [])
-    Process.sleep(3000)
+    AMQPConsumerTracker.update_consumers()
+    ensure_element_deleted()
 
     assert not Enum.member?(
              Registry.select(Registry.AMQPConsumerRegistry, [{{:"$1", :_, :_}, [], [:"$1"]}]),
              {@test_realm, policy_name}
            )
+  end
+
+  defp trace_registry(registry \\ Registry.AMQPConsumerRegistry) do
+    # Elixir registries use partitions to monitor processes; we need to monitor those
+    # instead of the registry process
+
+    registry
+    |> Supervisor.which_children()
+    |> Enum.filter(fn {_id, _pid, type, modules} ->
+      type == :worker && modules == [Registry.Partition]
+    end)
+    |> Enum.map(fn {_, pid, _, _} -> pid end)
+    |> Enum.each(fn partition -> :erlang.trace(partition, true, [:receive]) end)
+  end
+
+  defp ensure_element_deleted do
+    # The partition received the message for the dead process
+    assert_receive {:trace, _, :receive, {:EXIT, _, :shutdown}}
+
+    # magic sauce
+    Process.sleep(1)
   end
 end
