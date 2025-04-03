@@ -50,8 +50,10 @@ defmodule Astarte.AppEngine.API.Application do
     children = [
       {Cluster.Supervisor,
        [Config.cluster_topologies!(), [name: Astarte.AppEngine.API.ClusterSupervisor]]},
+      {Horde.Registry, [keys: :unique, name: Registry.DataUpdaterRPC, members: :auto]},
       Astarte.AppEngine.APIWeb.Telemetry,
       {Phoenix.PubSub, name: Astarte.AppEngine.API.PubSub},
+      # TODO: still needed for VerneMQ RPC, remove once moved to erlang clustering
       Astarte.RPC.AMQP.Client,
       Astarte.AppEngine.API.Rooms.MasterSupervisor,
       Astarte.AppEngine.API.Rooms.AMQPClient,

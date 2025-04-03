@@ -18,8 +18,23 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
-Mox.defmock(MockRPCClient, for: Astarte.RPC.Client)
+defmodule Astarte.DataUpdaterPlant.RPC.Supervisor do
+  @moduledoc """
+  Supervisor of the RPC server module.
+  """
 
-Mox.defmock(Astarte.AppEngine.API.RPC.DataUpdaterPlant.ClientMock,
-  for: Astarte.AppEngine.API.RPC.DataUpdaterPlant.Behaviour
-)
+  use Supervisor
+
+  def start_link(init_arg) do
+    Supervisor.start_link(__MODULE__, init_arg, name: __MODULE__)
+  end
+
+  @impl Supervisor
+  def init(_init_arg) do
+    children = [
+      Astarte.DataUpdaterPlant.RPC.Server
+    ]
+
+    Supervisor.init(children, strategy: :one_for_one)
+  end
+end

@@ -21,10 +21,7 @@ defmodule Astarte.DataUpdaterPlant.DataPipelineSupervisor do
 
   alias Astarte.DataUpdaterPlant.ConsumersSupervisor
   alias Astarte.DataUpdaterPlant.AMQPEventsProducer
-  alias Astarte.DataUpdaterPlant.RPC.Handler
   alias Astarte.DataUpdaterPlant.Config
-
-  alias Astarte.RPC.Protocol.DataUpdaterPlant, as: Protocol
 
   def start_link(init_arg) do
     Supervisor.start_link(__MODULE__, init_arg, name: __MODULE__)
@@ -35,6 +32,7 @@ defmodule Astarte.DataUpdaterPlant.DataPipelineSupervisor do
     children = [
       {Horde.Registry, [keys: :unique, name: Registry.MessageTracker, members: :auto]},
       {Horde.Registry, [keys: :unique, name: Registry.DataUpdater, members: :auto]},
+      {Horde.Registry, [keys: :unique, name: Registry.DataUpdaterRPC, members: :auto]},
       {Horde.Registry, [keys: :unique, name: Registry.AMQPDataConsumer, members: :auto]},
       {Horde.DynamicSupervisor,
        [
@@ -57,7 +55,7 @@ defmodule Astarte.DataUpdaterPlant.DataPipelineSupervisor do
        connection_pools: [Config.events_producer_pool_config!()]},
       AMQPEventsProducer,
       ConsumersSupervisor,
-      {Astarte.RPC.AMQP.Server, [amqp_queue: Protocol.amqp_queue(), handler: Handler]},
+      Astarte.DataUpdaterPlant.RPC.Supervisor,
       Astarte.RPC.AMQP.Client
     ]
 
