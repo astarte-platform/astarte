@@ -47,15 +47,10 @@ defmodule Astarte.Core.Generators.Interface do
   defp id, do: repeatedly(&UUID.bingenerate/0)
 
   defp name do
-    string(:alphanumeric, min_length: 1, max_length: 16)
-    |> list_of(
-      min_length: 2,
-      max_length: 5
-    )
-    |> filter(fn [<<first, _::binary>> | _] ->
-      first < 48 or first > 57
-    end)
-    |> map(&Enum.join(&1, "."))
+    gen all optional_part <- name_optional(),
+            required_part <- name_required(optional_part) do
+      optional_part <> required_part
+    end
   end
 
   defp versions do
@@ -74,8 +69,11 @@ defmodule Astarte.Core.Generators.Interface do
 
   defp ownership, do: member_of([:device, :server])
 
-  defp mappings(config) do
-    uniq_list_of(MappingGenerator.mapping(config), min_length: 1, max_length: 1000)
+  defp mappings(interface_type, config) do
+    uniq_list_of(MappingGenerator.mapping(interface_type, config),
+      min_length: 1,
+      max_length: 1000
+    )
   end
 
   defp aggregation(%{type: :properties}), do: constant(:individual)
@@ -126,13 +124,13 @@ defmodule Astarte.Core.Generators.Interface do
           aggregation <- aggregation(%{type: type}),
           ownership <- ownership(),
           prefix <- endpoint_prefix(),
-          retention <- MappingGenerator.retention(),
-          reliability <- MappingGenerator.reliability(),
-          expiry <- MappingGenerator.expiry(),
-          allow_unset <- MappingGenerator.allow_unset(),
-          explicit_timestamp <- MappingGenerator.explicit_timestamp(),
+          retention <- retention_for(type),
+          reliability <- reliability_for(type),
+          expiry <- expiry_for(type),
+          allow_unset <- allow_unset_for(type),
+          explicit_timestamp <- explicit_timestamp_for(type),
           mappings <-
-            mappings(%{
+            mappings(type, %{
               aggregation: aggregation,
               prefix: prefix,
               retention: retention,
@@ -165,5 +163,43 @@ defmodule Astarte.Core.Generators.Interface do
       description: description(),
       doc: doc()
     })
+  end
+
+  defp retention_for(:datastream), do: MappingGenerator.retention()
+  defp retention_for(:properties), do: nil
+  defp reliability_for(:datastream), do: MappingGenerator.reliability()
+  defp reliability_for(:properties), do: nil
+  defp expiry_for(:datastream), do: MappingGenerator.expiry()
+  defp expiry_for(:properties), do: nil
+  defp allow_unset_for(:datastream), do: nil
+  defp allow_unset_for(:properties), do: MappingGenerator.allow_unset()
+  defp explicit_timestamp_for(:datastream), do: MappingGenerator.explicit_timestamp()
+  defp explicit_timestamp_for(:properties), do: nil
+
+  defp name_optional do
+    gen all first <- string([?a..?z, ?A..?Z], length: 1),
+            rest <- string(:alphanumeric, max_length: 10),
+            repeating <- list_of(name_repeating(), max_length: 5) do
+      initial = first <> rest
+      repeating = Enum.join(repeating)
+      initial <> "." <> repeating
+    end
+    |> filter(&(String.length(&1) < 127))
+  end
+
+  defp name_repeating do
+    gen all initial <- string(:alphanumeric, length: 1),
+            rest <- string([?a..?z, ?A..?Z, ?0..?9, ?-], max_length: 10) do
+      initial <> rest <> "."
+    end
+  end
+
+  defp name_required(name_optional) do
+    max_length = 127 - String.length(name_optional)
+
+    gen all first <- string([?a..?z, ?A..?Z], length: 1),
+            rest <- string(:alphanumeric, max_length: max_length) do
+      first <> rest
+    end
   end
 end
