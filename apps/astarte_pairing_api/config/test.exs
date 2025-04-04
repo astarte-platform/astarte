@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2017 Ispirata Srl
+# Copyright 2017-2025 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -77,3 +77,14 @@ config :astarte_pairing_api, :agent_public_key_pems, [
   -----END PUBLIC KEY-----
   """
 ]
+
+config :astarte_pairing_api, :broker_url, "mqtts://broker.beta.astarte.cloud:8883/"
+
+config :astarte_pairing_api,
+       :cfssl_url,
+       System.get_env("CFSSL_API_URL") || "http://ispirata-docker-alpine-cfssl-autotest:8080"
+
+config :astarte_pairing_api, :astarte_instance_id, "test"
+
+config :bcrypt_elixir,
+  log_rounds: 4
