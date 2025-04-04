@@ -137,7 +137,7 @@ defmodule Astarte.AppEngine.API.Config do
 
   @envdoc "The Erlang cluster strategy to use. One of `none`, `kubernetes`. Defaults to `none`."
   app_env :clustering_strategy,
-          :astarte_data_updater_plant,
+          :astarte_appengine_api,
           :clustering_strategy,
           os_env: "CLUSTERING_STRATEGY",
           type: Astarte.AppEngine.API.Config.ClusteringStrategy,
@@ -145,7 +145,7 @@ defmodule Astarte.AppEngine.API.Config do
 
   @envdoc "The Endpoint label to use to query Kubernetes to find data updater plant instances. Defaults to `app=astarte-data-updater-plant`."
   app_env :dup_clustering_kubernetes_selector,
-          :astarte_data_updater_plant,
+          :astarte_appengine_api,
           :dup_clustering_kubernetes_selector,
           os_env: "DATA_UPDATER_PLANT_CLUSTERING_KUBERNETES_SELECTOR",
           type: :binary,
@@ -153,7 +153,7 @@ defmodule Astarte.AppEngine.API.Config do
 
   @envdoc "The Kubernetes namespace to use when `kubernetes` Erlang clustering strategy is used. Defaults to `astarte`."
   app_env :clustering_kubernetes_namespace,
-          :astarte_data_updater_plant,
+          :astarte_appengine_api,
           :clustering_kubernetes_namespace,
           os_env: "CLUSTERING_KUBERNETES_NAMESPACE",
           type: :binary,
