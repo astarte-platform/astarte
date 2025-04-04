@@ -37,7 +37,7 @@ defmodule Astarte.AppEngine.APIWeb.GroupsControllerTest do
   @device_id_in_group "olFkumNuZ_J0f_d6-8XCDg"
 
   setup_all do
-    {:ok, _client} = DatabaseTestHelper.create_test_keyspace()
+    DatabaseTestHelper.create_test_keyspace()
 
     on_exit(fn ->
       DatabaseTestHelper.destroy_local_test_keyspace()
