@@ -23,7 +23,8 @@ defmodule Astarte.AppEngine.API.DeviceTest do
   alias Astarte.AppEngine.API.Device.DevicesList
   alias Astarte.AppEngine.API.Device.InterfaceInfo
   alias Astarte.AppEngine.API.Device.InterfaceValues
-  alias CQEx.Query, as: DatabaseQuery
+  alias Astarte.AppEngine.API.Repo
+  alias Astarte.DataAccess.Realms.Realm
 
   alias Astarte.RPC.Protocol.VMQ.Plugin.{
     Call,
@@ -154,7 +155,7 @@ defmodule Astarte.AppEngine.API.DeviceTest do
   end
 
   setup_all do
-    {:ok, _client} = DatabaseTestHelper.create_test_keyspace()
+    DatabaseTestHelper.create_test_keyspace()
 
     on_exit(fn ->
       DatabaseTestHelper.destroy_local_test_keyspace()
@@ -177,13 +178,13 @@ defmodule Astarte.AppEngine.API.DeviceTest do
 
   test "list_interfaces/2 returns [] on a device without introspection" do
     encoded_device_id = "9ovH-plr6J_JPGWIp7c29w"
-    {:ok, client} = DatabaseTestHelper.connect_to_test_keyspace()
+
     {:ok, device_id} = Astarte.Core.Device.decode_device_id(encoded_device_id)
-    DatabaseTestHelper.insert_empty_device(client, device_id)
+    DatabaseTestHelper.insert_empty_device(device_id)
 
     assert Device.list_interfaces("autotestrealm", encoded_device_id) == {:ok, []}
 
-    DatabaseTestHelper.remove_device(client, device_id)
+    DatabaseTestHelper.remove_device(device_id)
   end
 
   test "get_interface_values! returns interfaces values on individual property interface" do
@@ -962,9 +963,8 @@ defmodule Astarte.AppEngine.API.DeviceTest do
     test = "autotestrealm"
     device_id = "f0VMRgIBAQAAAAAAAAAAAA"
 
-    {:ok, client} = DatabaseTestHelper.connect(realm: test)
-    DatabaseQuery.call!(client, "TRUNCATE com_example_testobject_v1")
-    DatabaseQuery.call!(client, "TRUNCATE individual_properties")
+    Repo.query!("TRUNCATE #{Realm.keyspace_name(test)}.com_example_testobject_v1")
+    Repo.query!("TRUNCATE #{Realm.keyspace_name(test)}.individual_properties")
 
     expected_reply = {:ok, %InterfaceValues{data: %{}}}
 
@@ -1124,14 +1124,14 @@ defmodule Astarte.AppEngine.API.DeviceTest do
                 data: %{
                   "1" => %{
                     "samplingPeriod" => %{
-                      "reception_timestamp" => reception_ts_1,
+                      "reception_timestamp" => _reception_ts_1,
                       "timestamp" => ts_1,
                       "value" => 10
                     }
                   },
                   "2" => %{
                     "samplingPeriod" => %{
-                      "reception_timestamp" => reception_ts_2,
+                      "reception_timestamp" => _reception_ts_2,
                       "timestamp" => ts_2,
                       "value" => 11
                     }
@@ -1236,14 +1236,14 @@ defmodule Astarte.AppEngine.API.DeviceTest do
                 data: %{
                   "1" => %{
                     "samplingPeriod" => %{
-                      "reception_timestamp" => reception_ts_1,
+                      "reception_timestamp" => _reception_ts_1,
                       "timestamp" => ts_1,
                       "value" => 10
                     }
                   },
                   "2" => %{
                     "samplingPeriod" => %{
-                      "reception_timestamp" => reception_ts_2,
+                      "reception_timestamp" => _reception_ts_2,
                       "timestamp" => ts_2,
                       "value" => 11
                     }
@@ -2149,7 +2149,7 @@ defmodule Astarte.AppEngine.API.DeviceTest do
   end
 
   defp tagged_publish_reply(local_matches, remote_matches \\ 0) do
-    reply = PublishReply.new(local_matches: local_matches, remote_matches: remote_matches)
+    reply = %PublishReply{local_matches: local_matches, remote_matches: remote_matches}
     {:publish_reply, reply}
   end
 end
