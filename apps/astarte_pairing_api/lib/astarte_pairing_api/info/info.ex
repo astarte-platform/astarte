@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2017-2018 Ispirata Srl
+# Copyright 2017-2025 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -22,14 +22,16 @@ defmodule Astarte.Pairing.API.Info do
   """
 
   alias Astarte.Pairing.API.Info.DeviceInfo
-  alias Astarte.Pairing.API.RPC.Pairing
+  alias Astarte.Pairing.API.Engine
+
+  require Logger
 
   @doc """
   Retrieves device info.
   """
   def get_device_info(realm, hw_id, secret) do
-    with {:ok, %{version: version, status: status, protocols: protocols}} <-
-           Pairing.get_info(realm, hw_id, secret) do
+    with {:ok, %{device_status: status, version: version, protocols: protocols}} <-
+           Engine.get_info(realm, hw_id, secret) do
       device_info = %DeviceInfo{
         version: version,
         status: status,
@@ -37,12 +39,6 @@ defmodule Astarte.Pairing.API.Info do
       }
 
       {:ok, device_info}
-    else
-      {:error, :forbidden} ->
-        {:error, :forbidden}
-
-      {:error, _other} ->
-        {:error, :rpc_error}
     end
   end
 end

@@ -21,23 +21,7 @@ defmodule Astarte.Pairing.APIWeb.DeviceControllerTest do
   use Astarte.Cases.Device
   use Astarte.Pairing.APIWeb.ConnCase, async: true
 
-  alias Astarte.RPC.Protocol.Pairing.{
-    AstarteMQTTV1Credentials,
-    AstarteMQTTV1CredentialsStatus,
-    AstarteMQTTV1Status,
-    GenericErrorReply,
-    GetCredentialsReply,
-    GetInfoReply,
-    ProtocolStatus,
-    Reply,
-    VerifyCredentialsReply
-  }
-
-  import Mox
   import Astarte.Helpers.Device
-
-  @realm "testrealm"
-  @hw_id "o9RQb8B-R8WY_N7kR56M2w"
 
   @secret "supersecret"
 
@@ -98,9 +82,6 @@ defmodule Astarte.Pairing.APIWeb.DeviceControllerTest do
   3JUIkrX38f7JqgQ6BX3YXfH79iiPvhx9uhYrlTc=
   -----END CERTIFICATE-----
   """
-
-  @rpc_destination Astarte.RPC.Protocol.Pairing.amqp_queue()
-  @timeout 30_000
 
   setup :set_ca_cert
 
@@ -293,37 +274,12 @@ defmodule Astarte.Pairing.APIWeb.DeviceControllerTest do
   end
 
   describe "get device info" do
-    @version "0.1.0"
-    @status "pending"
-    @broker_url "ssl://broker.example.com"
+    @version Mix.Project.config()[:version]
+    @broker_url "mqtts://broker.beta.astarte.cloud:8883/"
 
-    @encoded_info_response %Reply{
-                             reply:
-                               {:get_info_reply,
-                                %GetInfoReply{
-                                  version: @version,
-                                  device_status: @status,
-                                  protocols: [
-                                    %ProtocolStatus{
-                                      status:
-                                        {:astarte_mqtt_v1,
-                                         %AstarteMQTTV1Status{
-                                           broker_url: @broker_url
-                                         }}
-                                    }
-                                  ]
-                                }}
-                           }
-                           |> Reply.encode()
+    setup %{conn: conn, realm_name: realm_name, device: device} do
+      update_credentials_secret!(realm_name, device.id, @secret)
 
-    @encoded_forbidden_response %Reply{
-                                  reply:
-                                    {:generic_error_reply,
-                                     %GenericErrorReply{error_name: "forbidden"}}
-                                }
-                                |> Reply.encode()
-
-    setup %{conn: conn} do
       conn =
         conn
         |> put_req_header("authorization", "BEARER #{@secret}")
@@ -332,27 +288,65 @@ defmodule Astarte.Pairing.APIWeb.DeviceControllerTest do
       {:ok, conn: conn}
     end
 
-    test "renders info status", %{conn: conn} do
-      MockRPCClient
-      |> expect(:rpc_call, fn _serialized_call, @rpc_destination, @timeout ->
-        {:ok, @encoded_info_response}
-      end)
+    test "renders info status", ctx do
+      %{conn: conn, realm_name: realm_name, device: device} = ctx
 
-      conn = get(conn, device_path(conn, :show_info, @realm, @hw_id))
+      conn = get(conn, device_path(conn, :show_info, realm_name, device.encoded_id))
 
-      assert %{"version" => @version, "status" => @status, "protocols" => protocols} =
+      assert %{"version" => @version, "status" => status, "protocols" => protocols} =
                json_response(conn, 200)["data"]
+
+      assert status in ["pending", "confirmed", "inhibited"]
 
       assert %{"astarte_mqtt_v1" => %{"broker_url" => @broker_url}} = protocols
     end
 
-    test "renders error with invalid secret", %{conn: conn} do
-      MockRPCClient
-      |> expect(:rpc_call, fn _serialized_call, @rpc_destination, @timeout ->
-        {:ok, @encoded_forbidden_response}
-      end)
+    test "renders info status as inhibited when credentials request is inhibited", ctx do
+      %{conn: conn, realm_name: realm_name, device: device} = ctx
 
-      conn = get(conn, device_path(conn, :show_info, @realm, @hw_id))
+      update_device!(realm_name, device.id, inhibit_credentials_request: true)
+
+      conn = get(conn, device_path(conn, :show_info, realm_name, device.encoded_id))
+
+      assert %{"status" => status} = json_response(conn, 200)["data"]
+      assert status == "inhibited"
+    end
+
+    test "renders info status as confirmed when device has a first credentials request", ctx do
+      %{conn: conn, realm_name: realm_name, device: device} = ctx
+
+      update_device!(realm_name, device.id,
+        inhibit_credentials_request: false,
+        first_credentials_request: DateTime.utc_now()
+      )
+
+      conn = get(conn, device_path(conn, :show_info, realm_name, device.encoded_id))
+
+      assert %{"status" => status} = json_response(conn, 200)["data"]
+      assert status == "confirmed"
+    end
+
+    test "renders info status as pending when device doesn't have a first credentials request",
+         ctx do
+      %{conn: conn, realm_name: realm_name, device: device} = ctx
+
+      update_device!(realm_name, device.id,
+        inhibit_credentials_request: false,
+        first_credentials_request: nil
+      )
+
+      conn = get(conn, device_path(conn, :show_info, realm_name, device.encoded_id))
+
+      assert %{"status" => status} = json_response(conn, 200)["data"]
+      assert status == "pending"
+    end
+
+    test "renders error with invalid secret", ctx do
+      %{conn: conn, realm_name: realm_name, device: device} = ctx
+
+      conn = put_req_header(conn, "authorization", "BEARER invalidsecret")
+
+      conn = get(conn, device_path(conn, :show_info, realm_name, device.encoded_id))
       assert json_response(conn, 403)["errors"] == %{"detail" => "Forbidden"}
     end
   end
