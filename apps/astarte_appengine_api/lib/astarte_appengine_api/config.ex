@@ -151,6 +151,14 @@ defmodule Astarte.AppEngine.API.Config do
           type: :binary,
           default: "app=astarte-data-updater-plant"
 
+  @envdoc "The Endpoint label to use to query Kubernetes to find vernemq instances. Defaults to `app=astarte-vernemq`."
+  app_env :vernemq_clustering_kubernetes_selector,
+          :astarte_appengine_api,
+          :vernemq_clustering_kubernetes_selector,
+          os_env: "VERNEMQ_CLUSTERING_KUBERNETES_SELECTOR",
+          type: :binary,
+          default: "app=astarte-vernemq"
+
   @envdoc "The Kubernetes namespace to use when `kubernetes` Erlang clustering strategy is used. Defaults to `astarte`."
   app_env :clustering_kubernetes_namespace,
           :astarte_appengine_api,
@@ -277,6 +285,18 @@ defmodule Astarte.AppEngine.API.Config do
               kubernetes_namespace: clustering_kubernetes_namespace!(),
               polling_interval: 10_000
             ]
+          ],
+          vernemq_k8s: [
+            strategy: Elixir.Cluster.Strategy.Kubernetes,
+            config: [
+              mode: :hostname,
+              kubernetes_service_name: "astarte-vernemq",
+              kubernetes_node_basename: "VerneMQ",
+              kubernetes_ip_lookup_mode: :pods,
+              kubernetes_selector: vernemq_clustering_kubernetes_selector!(),
+              kubernetes_namespace: clustering_kubernetes_namespace!(),
+              polling_interval: 10_000
+            ]
           ]
         ]
 
@@ -288,6 +308,14 @@ defmodule Astarte.AppEngine.API.Config do
               polling_interval: 5_000,
               query: "astarte-data-updater-plant",
               node_basename: "astarte_data_updater_plant"
+            ]
+          ],
+          vernemq: [
+            strategy: Elixir.Cluster.Strategy.DNSPoll,
+            config: [
+              polling_interval: 5_000,
+              query: "vernemq",
+              node_basename: "VerneMQ"
             ]
           ]
         ]
