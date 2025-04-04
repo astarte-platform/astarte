@@ -20,6 +20,7 @@ defmodule Astarte.Pairing.API.Application do
   use Application
 
   require Logger
+  alias Astarte.DataAccess.Config, as: DataAccessConfig
   alias Astarte.Pairing.API.Config
   alias Astarte.RPC.Config, as: RPCConfig
 
@@ -36,12 +37,24 @@ defmodule Astarte.Pairing.API.Application do
 
     Logger.info("Starting application v#{@app_version}.", tag: "pairing_api_start")
 
+    DataAccessConfig.validate!()
     Config.validate!()
+    Config.init!()
     RPCConfig.validate()
+
+    xandra_options = repo_opts = Config.xandra_options!()
+
+    data_access_opts = [xandra_options: xandra_options]
+
+    pairing_xandra_opts = Keyword.put(xandra_options, :name, :xandra)
 
     # Define workers and child supervisors to be supervised
     children = [
       Astarte.Pairing.APIWeb.Telemetry,
+      {Xandra.Cluster, pairing_xandra_opts},
+      {Astarte.Pairing.API.CredentialsSecret.Cache, []},
+      {Astarte.DataAccess, data_access_opts},
+      {Astarte.Pairing.API.Repo, repo_opts},
       Astarte.Pairing.APIWeb.Endpoint,
       Astarte.RPC.AMQP.Client
     ]

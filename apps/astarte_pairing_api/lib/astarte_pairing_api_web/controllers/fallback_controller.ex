@@ -46,6 +46,13 @@ defmodule Astarte.Pairing.APIWeb.FallbackController do
     |> render(:"404_device_not_found")
   end
 
+  def call(conn, {:error, :device_already_registered}) do
+    conn
+    |> put_status(:unprocessable_entity)
+    |> put_view(Astarte.Pairing.APIWeb.ErrorView)
+    |> render(:"422_device_already_registered")
+  end
+
   def call(conn, {:error, :unauthorized}) do
     _ = Logger.info("Refusing unauthorized request.", tag: "unauthorized")
 
