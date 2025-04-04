@@ -17,96 +17,31 @@
 #
 
 defmodule Astarte.Pairing.API.AgentTest do
-  use Astarte.Pairing.API.DataCase, async: true
+  use Astarte.Cases.Data, async: true
+  use Astarte.Cases.Device
 
+  alias Astarte.Helpers.Database
   alias Astarte.Pairing.API.Agent
-
-  alias Astarte.RPC.Protocol.Pairing.{
-    Call,
-    GenericErrorReply,
-    GenericOkReply,
-    IntrospectionEntry,
-    RegisterDevice,
-    RegisterDeviceReply,
-    Reply,
-    UnregisterDevice
-  }
 
   import Mox
 
   describe "register_device" do
     alias Astarte.Pairing.API.Agent.DeviceRegistrationResponse
 
-    @test_realm "testrealm"
     @test_hw_id "PDL3KNj7RVifHZD-1w_6wA"
-    @already_registered_hw_id "PY3wK1OKQ3qKyQMBxi6S5w"
-
-    @credentials_secret "7wfs9MIBysBGG/v6apqNVBXXQii6Bris6CeU7FdCgWU="
-    @encoded_register_response %Reply{
-                                 reply:
-                                   {:register_device_reply,
-                                    %RegisterDeviceReply{credentials_secret: @credentials_secret}}
-                               }
-                               |> Reply.encode()
-    @encoded_error_response %Reply{
-                              reply:
-                                {:generic_error_reply,
-                                 %GenericErrorReply{error_name: "already_registered"}}
-                            }
-                            |> Reply.encode()
 
     @valid_attrs %{"hw_id" => @test_hw_id}
     @no_hw_id_attrs %{}
     @invalid_hw_id_attrs %{"hw_id" => "invalid"}
 
-    @rpc_destination Astarte.RPC.Protocol.Pairing.amqp_queue()
-    @timeout 30_000
+    test "successful call", %{realm_name: realm_name} do
+      assert {:ok, %DeviceRegistrationResponse{credentials_secret: credentials_secret}} =
+               Agent.register_device(realm_name, @valid_attrs)
 
-    test "successful call" do
-      MockRPCClient
-      |> expect(:rpc_call, fn serialized_call, @rpc_destination, @timeout ->
-        assert %Call{call: {:register_device, %RegisterDevice{} = register_call}} =
-                 Call.decode(serialized_call)
-
-        assert %RegisterDevice{
-                 realm: @test_realm,
-                 hw_id: @test_hw_id,
-                 initial_introspection: []
-               } = register_call
-
-        {:ok, @encoded_register_response}
-      end)
-
-      assert {:ok, %DeviceRegistrationResponse{credentials_secret: @credentials_secret}} =
-               Agent.register_device(@test_realm, @valid_attrs)
+      assert is_binary(credentials_secret)
     end
 
-    test "succesful call with initial_introspection" do
-      MockRPCClient
-      |> expect(:rpc_call, fn serialized_call, @rpc_destination, @timeout ->
-        assert %Call{call: {:register_device, register_device}} = Call.decode(serialized_call)
-
-        assert Enum.member?(
-                 register_device.initial_introspection,
-                 %IntrospectionEntry{
-                   interface_name: "org.astarteplatform.Values",
-                   major_version: 0,
-                   minor_version: 4
-                 }
-               )
-
-        assert Enum.member?(
-                 register_device.initial_introspection,
-                 %IntrospectionEntry{
-                   interface_name: "org.astarteplatform.OtherValues",
-                   major_version: 1,
-                   minor_version: 0
-                 }
-               )
-
-        {:ok, @encoded_register_response}
-      end)
-
+    test "succesful call with initial_introspection", %{realm_name: realm_name} do
       initial_introspection = %{
         "org.astarteplatform.Values" => %{"major" => 0, "minor" => 4},
         "org.astarteplatform.OtherValues" => %{"major" => 1, "minor" => 0}
@@ -114,138 +49,114 @@ defmodule Astarte.Pairing.API.AgentTest do
 
       attrs = Map.put(@valid_attrs, "initial_introspection", initial_introspection)
 
-      assert {:ok, %DeviceRegistrationResponse{credentials_secret: @credentials_secret}} =
-               Agent.register_device(@test_realm, attrs)
+      assert {:ok, %DeviceRegistrationResponse{credentials_secret: credentials_secret}} =
+               Agent.register_device(realm_name, attrs)
+
+      assert is_binary(credentials_secret)
     end
 
-    test "returns error changeset with invalid data" do
-      assert {:error, %Ecto.Changeset{}} = Agent.register_device(@test_realm, @no_hw_id_attrs)
+    test "returns error changeset with missing hardware ID", %{realm_name: realm_name} do
+      assert {:error, changeset} = Agent.register_device(realm_name, @no_hw_id_attrs)
 
-      assert {:error, %Ecto.Changeset{}} =
-               Agent.register_device(@test_realm, @invalid_hw_id_attrs)
+      assert is_struct(changeset, Ecto.Changeset)
+      assert changeset.valid? == false
+
+      assert changeset.errors[:hw_id] ==
+               {"can't be blank", [{:validation, :required}]}
     end
 
-    test "returns error changeset for negative major version in introspection" do
+    test "returns error changeset with invalid hardware ID", %{realm_name: realm_name} do
+      assert {:error, changeset} =
+               Agent.register_device(realm_name, @invalid_hw_id_attrs)
+
+      assert is_struct(changeset, Ecto.Changeset)
+      assert changeset.valid? == false
+
+      assert changeset.errors[:hw_id] ==
+               {"is not a valid base64 encoded 128 bits id", []}
+    end
+
+    test "returns error changeset for negative major version in introspection", %{
+      realm_name: realm_name
+    } do
       initial_introspection = %{
         "org.astarteplatform.Values" => %{"major" => -1, "minor" => 0}
       }
 
       attrs = Map.put(@valid_attrs, "initial_introspection", initial_introspection)
-      assert {:error, _changeset} = Agent.register_device(@test_realm, attrs)
+      assert {:error, changeset} = Agent.register_device(realm_name, attrs)
+
+      assert is_struct(changeset, Ecto.Changeset)
+      assert changeset.valid? == false
+
+      assert changeset.errors[:initial_introspection] ==
+               {"has negative versions in interface org.astarteplatform.Values", []}
     end
 
-    test "returns error changeset for negative minor version in introspection" do
+    test "returns error changeset for negative minor version in introspection", %{
+      realm_name: realm_name
+    } do
       initial_introspection = %{
         "org.astarteplatform.OtherValues" => %{"major" => 1, "minor" => -2}
       }
 
       attrs = Map.put(@valid_attrs, "initial_introspection", initial_introspection)
-      assert {:error, _changeset} = Agent.register_device(@test_realm, attrs)
+      assert {:error, changeset} = Agent.register_device(realm_name, attrs)
+
+      assert is_struct(changeset, Ecto.Changeset)
+      assert changeset.valid? == false
+
+      assert changeset.errors[:initial_introspection] ==
+               {"has negative versions in interface org.astarteplatform.OtherValues", []}
     end
 
-    test "returns error if RPC returns error" do
-      MockRPCClient
-      |> expect(:rpc_call, fn serialized_call, @rpc_destination, @timeout ->
-        assert %Call{call: {:register_device, %RegisterDevice{} = register_call}} =
-                 Call.decode(serialized_call)
+    test "registers an existing unconfirmed device", %{
+      realm_name: realm_name,
+      device: device
+    } do
+      {:ok, _} = Database.update_device(device.id, realm_name, first_credentials_request: nil)
 
-        assert %RegisterDevice{
-                 realm: @test_realm,
-                 hw_id: @already_registered_hw_id,
-                 initial_introspection: []
-               } = register_call
+      assert {:ok, %DeviceRegistrationResponse{credentials_secret: credentials_secret}} =
+               Agent.register_device(realm_name, %{"hw_id" => device.encoded_id})
 
-        {:ok, @encoded_error_response}
-      end)
+      assert is_binary(credentials_secret)
+    end
 
-      assert {:error, %Ecto.Changeset{}} =
-               Agent.register_device(@test_realm, %{"hw_id" => @already_registered_hw_id})
+    test "fails for an existing confirmed device", %{
+      realm_name: realm_name,
+      device: device
+    } do
+      {:ok, _} =
+        Database.update_device(device.id, realm_name,
+          first_credentials_request: DateTime.utc_now()
+        )
+
+      assert {:error, :device_already_registered} =
+               Agent.register_device(realm_name, %{"hw_id" => device.encoded_id})
     end
   end
 
   describe "unregister device" do
     setup [:verify_on_exit!]
 
-    @test_realm "testrealm"
-    @test_device_id "PDL3KNj7RVifHZD-1w_6wA"
-
-    @encoded_unregister_response %Reply{
-                                   reply: {:generic_ok_reply, %GenericOkReply{}}
-                                 }
-                                 |> Reply.encode()
-    @encoded_device_not_found_response %Reply{
-                                         reply:
-                                           {:generic_error_reply,
-                                            %GenericErrorReply{
-                                              error_name: "device_not_found"
-                                            }}
-                                       }
-                                       |> Reply.encode()
-    @encoded_realm_not_found_response %Reply{
-                                        reply:
-                                          {:generic_error_reply,
-                                           %GenericErrorReply{
-                                             error_name: "realm_not_found"
-                                           }}
-                                      }
-                                      |> Reply.encode()
-
-    @rpc_destination Astarte.RPC.Protocol.Pairing.amqp_queue()
-    @timeout 30_000
-
-    test "successful call" do
-      MockRPCClient
-      |> expect(:rpc_call, fn serialized_call, @rpc_destination, @timeout ->
-        assert %Call{call: {:unregister_device, %UnregisterDevice{} = unregister_call}} =
-                 Call.decode(serialized_call)
-
-        assert %UnregisterDevice{
-                 realm: @test_realm,
-                 device_id: @test_device_id
-               } = unregister_call
-
-        {:ok, @encoded_unregister_response}
-      end)
-
-      assert :ok = Agent.unregister_device(@test_realm, @test_device_id)
+    test "successful call", %{realm_name: realm_name, device: device} do
+      assert :ok = Agent.unregister_device(realm_name, device.encoded_id)
     end
 
-    test "unregistered device" do
-      MockRPCClient
-      |> expect(:rpc_call, fn serialized_call, @rpc_destination, @timeout ->
-        assert %Call{call: {:unregister_device, %UnregisterDevice{} = unregister_call}} =
-                 Call.decode(serialized_call)
-
-        assert %UnregisterDevice{
-                 realm: @test_realm,
-                 device_id: @test_device_id
-               } = unregister_call
-
-        {:ok, @encoded_device_not_found_response}
-      end)
-
-      assert {:error, :device_not_found} = Agent.unregister_device(@test_realm, @test_device_id)
+    test "unregistered device", %{realm_name: realm_name} do
+      device_id = Astarte.Core.Device.random_device_id() |> Astarte.Core.Device.encode_device_id()
+      assert {:error, :device_not_found} = Agent.unregister_device(realm_name, device_id)
     end
 
-    test "realm not found" do
-      MockRPCClient
-      |> expect(:rpc_call, fn serialized_call, @rpc_destination, @timeout ->
-        assert %Call{call: {:unregister_device, %UnregisterDevice{} = unregister_call}} =
-                 Call.decode(serialized_call)
-
-        assert %UnregisterDevice{
-                 realm: @test_realm,
-                 device_id: @test_device_id
-               } = unregister_call
-
-        {:ok, @encoded_realm_not_found_response}
-      end)
-
-      assert {:error, :forbidden} = Agent.unregister_device(@test_realm, @test_device_id)
+    test "realm not found", %{device: device} do
+      # TODO: This should not raise an error, but return an error tuple
+      assert_raise Xandra.Error, ~r"Keyspace .*nonexistingrealm does not exist", fn ->
+        Agent.unregister_device("nonexistingrealm", device.encoded_id)
+      end
     end
 
-    test "invalid device id" do
-      assert {:error, :invalid_device_id} = Agent.unregister_device(@test_realm, "invalid")
+    test "invalid device id", %{realm_name: realm_name} do
+      assert {:error, :invalid_device_id} = Agent.unregister_device(realm_name, "invalid")
     end
   end
 end
