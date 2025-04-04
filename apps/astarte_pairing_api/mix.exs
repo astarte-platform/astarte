@@ -63,13 +63,16 @@ defmodule Astarte.Pairing.API.Mixfile do
   defp astarte_required_modules("true") do
     [
       {:astarte_core, in_umbrella: true},
-      {:astarte_rpc, in_umbrella: true}
+      {:astarte_rpc, in_umbrella: true},
+      {:astarte_data_access, in_umbrella: true}
     ]
   end
 
   defp astarte_required_modules(_) do
     [
-      {:astarte_core, "~> 1.2"},
+      {:astarte_core, github: "astarte-platform/astarte_core", branch: "release-1.2"},
+      {:astarte_data_access,
+       github: "astarte-platform/astarte_data_access", branch: "release-1.2"},
       {:astarte_rpc, "~> 1.2"}
     ]
   end
@@ -100,7 +103,19 @@ defmodule Astarte.Pairing.API.Mixfile do
       {:observer_cli, "~> 1.5"},
       # Workaround for Elixir 1.15 / ssl_verify_fun issue
       # See also: https://github.com/deadtrickster/ssl_verify_fun.erl/pull/27
-      {:ssl_verify_fun, "~> 1.1.0", manager: :rebar3, override: true}
+      {:ssl_verify_fun, "~> 1.1.0", manager: :rebar3, override: true},
+      {:cfxxl, github: "ispirata/cfxxl"},
+      {:bcrypt_elixir, "~> 2.2"},
+      {:xandra, "~> 0.19"},
+      {:telemetry, "~> 0.4"},
+      # Fix: could not compile dependency due to an old snappy version (1.2.8).
+      # Delete when updating/removing cqerl from astarte_data_access.
+      {:snappyer, "~> 1.2.10", override: true},
+      {:ecto, "~> 3.12"},
+      {:exandra, "~> 0.13"},
+      {:typed_ecto_schema, "~> 0.4"},
+      {:cqex, "~> 1.0", only: :test},
+      {:cqerl, "~> 2.1", override: true, only: :test}
     ]
   end
 end
