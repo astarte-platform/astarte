@@ -40,7 +40,7 @@ defmodule Astarte.Core.Generators.MixProject do
 
   defp astarte_required_modules() do
     [
-      {:astarte_core, "~> 1.2"}
+      {:astarte_core, github: "astarte-platform/astarte_core", branch: "release-1.2"}
     ]
   end
 
