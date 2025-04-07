@@ -30,15 +30,18 @@ defmodule Astarte.Core.Generators.Mapping do
   Generates a Mapping struct.
   See https://docs.astarte-platform.org/astarte/latest/040-interface_schema.html#mapping
   """
-  @spec mapping(%{
-          :aggregation => :individual | :object,
-          :allow_unset => boolean(),
-          :expiry => non_neg_integer(),
-          :explicit_timestamp => boolean(),
-          :prefix => String.t(),
-          :reliability => :unreliable | :guaranteed | :unique,
-          optional(:retention) => :discard | :volatile | :stored
-        }) :: StreamData.t(Mapping.t())
+  @spec mapping(
+          :datastream | :properties,
+          %{
+            :aggregation => :individual | :object,
+            :allow_unset => boolean(),
+            :expiry => non_neg_integer(),
+            :explicit_timestamp => boolean(),
+            :prefix => String.t(),
+            :reliability => :unreliable | :guaranteed | :unique,
+            optional(:retention) => :discard | :volatile | :stored
+          }
+        ) :: StreamData.t(Mapping.t())
   def mapping(interface_type \\ :datastream, config) do
     gen all(
           required <- required_fields(config),
