@@ -32,8 +32,10 @@ defmodule Astarte.Core.Generators.Triggers.Policy.ErrorKeywordTest do
   @moduletag :error_keyword
 
   defp validation_helper(error_keyword) do
-    error_keyword
-    |> Changeset.change()
+    changes = Map.from_struct(error_keyword)
+
+    %ErrorKeyword{}
+    |> Changeset.change(changes)
     |> ErrorKeyword.validate()
   end
 
