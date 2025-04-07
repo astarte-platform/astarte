@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2017 - 2023 SECO Mind Srl
+# Copyright 2017 - 2025 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -17,13 +17,18 @@
 #
 
 defmodule Astarte.RealmManagement.DatabaseTestHelper do
+  import Ecto.Query
+
   alias Astarte.Core.CQLUtils
-  alias Astarte.RealmManagement.Config
   alias Astarte.Core.Device
-  alias CQEx.Query, as: DatabaseQuery
-  alias CQEx.Client, as: DatabaseClient
-  alias CQEx.Result, as: DatabaseResult
+  alias Astarte.DataAccess.Consistency
+  alias Astarte.DataAccess.KvStore
+  alias Astarte.DataAccess.Realms.IndividualProperty
+  alias Astarte.DataAccess.Realms.IndividualDatastream
+  alias Astarte.DataAccess.Realms.Realm
+  alias Astarte.RealmManagement.Config
   alias Astarte.RealmManagement.DatabaseFixtures
+  alias Astarte.RealmManagement.Repo
   require Logger
 
   @jwt_public_key_pem """
@@ -32,136 +37,157 @@ defmodule Astarte.RealmManagement.DatabaseTestHelper do
   u9/f1dNImWDuIPeLu8nEiuHlCMy02+YDu0wN2U1psPC7w6AFjv4uTg==
   -----END PUBLIC KEY-----
   """
-
-  @create_autotestrealm """
-    CREATE KEYSPACE #{CQLUtils.realm_name_to_keyspace_name("autotestrealm", Config.astarte_instance_id!())}
+  @test_realm "autotestrealm"
+  defp create_autotestrealm do
+    """
+    CREATE KEYSPACE #{Realm.keyspace_name(@test_realm)}
       WITH
         replication = {'class': 'SimpleStrategy', 'replication_factor': '1'} AND
         durable_writes = true;
-  """
+    """
+  end
 
-  @create_astarte_keyspace """
-    CREATE KEYSPACE #{CQLUtils.realm_name_to_keyspace_name("astarte", Config.astarte_instance_id!())}
+  defp create_astarte_keyspace do
+    """
+    CREATE KEYSPACE #{Realm.astarte_keyspace_name()}
       WITH
         replication = {'class': 'SimpleStrategy', 'replication_factor': '1'} AND
         durable_writes = true;
-  """
+    """
+  end
 
-  @create_astarte_realms_table """
-  CREATE TABLE #{CQLUtils.realm_name_to_keyspace_name("astarte", Config.astarte_instance_id!())}.realms (
-    realm_name ascii,
-    device_registration_limit int,
-    PRIMARY KEY (realm_name)
-  );
-  """
+  defp create_astarte_realms_table do
+    """
+    CREATE TABLE #{Realm.astarte_keyspace_name()}.realms (
+      realm_name ascii,
+      device_registration_limit int,
+      PRIMARY KEY (realm_name)
+    );
+    """
+  end
 
-  @insert_autotestrealm_into_realms """
-  INSERT INTO #{CQLUtils.realm_name_to_keyspace_name("astarte", Config.astarte_instance_id!())}.realms (realm_name)
-  VALUES ('#{CQLUtils.realm_name_to_keyspace_name("autotestrealm", Config.astarte_instance_id!())}');
-  """
+  defp insert_autotestrealm_into_realms do
+    """
+    INSERT INTO #{Realm.astarte_keyspace_name()}.realms (realm_name)
+    VALUES ('#{Realm.keyspace_name(@test_realm)}');
+    """
+  end
 
-  @create_interfaces_table """
-      CREATE TABLE #{CQLUtils.realm_name_to_keyspace_name("autotestrealm", Config.astarte_instance_id!())}.interfaces (
-        name ascii,
-        major_version int,
-        minor_version int,
-        interface_id uuid,
-        storage_type int,
-        storage ascii,
-        type int,
-        ownership int,
-        aggregation int,
-        automaton_transitions blob,
-        automaton_accepting_states blob,
-        description varchar,
-        doc varchar,
+  defp create_interfaces_table do
+    """
+    CREATE TABLE #{Realm.keyspace_name(@test_realm)}.interfaces (
+      name ascii,
+      major_version int,
+      minor_version int,
+      interface_id uuid,
+      storage_type int,
+      storage ascii,
+      type int,
+      ownership int,
+      aggregation int,
+      automaton_transitions blob,
+      automaton_accepting_states blob,
+      description varchar,
+      doc varchar,
 
-        PRIMARY KEY (name, major_version)
-      );
-  """
+      PRIMARY KEY (name, major_version)
+    );
+    """
+  end
 
-  @create_endpoints_table """
-      CREATE TABLE #{CQLUtils.realm_name_to_keyspace_name("autotestrealm", Config.astarte_instance_id!())}.endpoints (
-        interface_id uuid,
-        endpoint_id uuid,
-        interface_name ascii,
-        interface_major_version int,
-        interface_minor_version int,
-        interface_type int,
-        endpoint ascii,
-        value_type int,
-        reliability int,
-        retention int,
-        database_retention_policy int,
-        database_retention_ttl int,
-        expiry int,
-        allow_unset boolean,
-        explicit_timestamp boolean,
-        description varchar,
-        doc varchar,
+  defp create_endpoints_table do
+    """
+    CREATE TABLE #{Realm.keyspace_name(@test_realm)}.endpoints (
+      interface_id uuid,
+      endpoint_id uuid,
+      interface_name ascii,
+      interface_major_version int,
+      interface_minor_version int,
+      interface_type int,
+      endpoint ascii,
+      value_type int,
+      reliability int,
+      retention int,
+      database_retention_policy int,
+      database_retention_ttl int,
+      expiry int,
+      allow_unset boolean,
+      explicit_timestamp boolean,
+      description varchar,
+      doc varchar,
 
-        PRIMARY KEY ((interface_id), endpoint_id)
-      );
-  """
+      PRIMARY KEY ((interface_id), endpoint_id)
+    );
+    """
+  end
 
-  @create_individual_properties_table """
-      CREATE TABLE #{CQLUtils.realm_name_to_keyspace_name("autotestrealm", Config.astarte_instance_id!())}.individual_properties (
-        device_id uuid,
-        interface_id uuid,
-        endpoint_id uuid,
-        path varchar,
-        reception_timestamp timestamp,
-        reception_timestamp_submillis smallint,
+  defp create_individual_properties_table do
+    """
+    CREATE TABLE #{Realm.keyspace_name(@test_realm)}.individual_properties (
+      device_id uuid,
+      interface_id uuid,
+      endpoint_id uuid,
+      path varchar,
+      reception_timestamp timestamp,
+      reception_timestamp_submillis smallint,
 
-        double_value double,
-        integer_value int,
-        boolean_value boolean,
-        longinteger_value bigint,
-        string_value varchar,
-        binaryblob_value blob,
-        datetime_value timestamp,
-        doublearray_value list<double>,
-        integerarray_value list<int>,
-        booleanarray_value list<boolean>,
-        longintegerarray_value list<bigint>,
-        stringarray_value list<varchar>,
-        binaryblobarray_value list<blob>,
-        datetimearray_value list<timestamp>,
+      double_value double,
+      integer_value int,
+      boolean_value boolean,
+      longinteger_value bigint,
+      string_value varchar,
+      binaryblob_value blob,
+      datetime_value timestamp,
+      doublearray_value list<double>,
+      integerarray_value list<int>,
+      booleanarray_value list<boolean>,
+      longintegerarray_value list<bigint>,
+      stringarray_value list<varchar>,
+      binaryblobarray_value list<blob>,
+      datetimearray_value list<timestamp>,
 
-        PRIMARY KEY((device_id, interface_id), endpoint_id, path)
-      )
-  """
+      PRIMARY KEY((device_id, interface_id), endpoint_id, path)
+    )
+    """
+  end
 
-  @create_kv_store_table """
-    CREATE TABLE #{CQLUtils.realm_name_to_keyspace_name("autotestrealm", Config.astarte_instance_id!())}.kv_store (
+  defp create_kv_store_table do
+    """
+    CREATE TABLE #{Realm.keyspace_name(@test_realm)}.kv_store (
       group varchar,
       key varchar,
       value blob,
 
       PRIMARY KEY ((group), key)
     );
-  """
+    """
+  end
 
-  @create_simple_triggers_table """
-      CREATE TABLE #{CQLUtils.realm_name_to_keyspace_name("autotestrealm", Config.astarte_instance_id!())}.simple_triggers (
-        object_id uuid,
-        object_type int,
-        parent_trigger_id uuid,
-        simple_trigger_id uuid,
-        trigger_data blob,
-        trigger_target blob,
+  defp create_simple_triggers_table do
+    """
+    CREATE TABLE #{Realm.keyspace_name(@test_realm)}.simple_triggers (
+      object_id uuid,
+      object_type int,
+      parent_trigger_id uuid,
+      simple_trigger_id uuid,
+      trigger_data blob,
+      trigger_target blob,
 
-        PRIMARY KEY ((object_id, object_type), parent_trigger_id, simple_trigger_id)
-      );
-  """
+      PRIMARY KEY ((object_id, object_type), parent_trigger_id, simple_trigger_id)
+    );
+    """
+  end
 
-  @insert_public_key """
-    INSERT INTO #{CQLUtils.realm_name_to_keyspace_name("autotestrealm", Config.astarte_instance_id!())}.kv_store (group, key, value)
+  defp insert_public_key do
+    """
+    INSERT INTO #{Realm.keyspace_name(@test_realm)}.kv_store (group, key, value)
     VALUES ('auth', 'jwt_public_key_pem', varcharAsBlob(:pem));
-  """
+    """
+  end
 
-  @create_individual_datastreams_table """
-    CREATE TABLE IF NOT EXISTS #{CQLUtils.realm_name_to_keyspace_name("autotestrealm", Config.astarte_instance_id!())}.individual_datastreams (
+  defp create_individual_datastreams_table do
+    """
+    CREATE TABLE IF NOT EXISTS #{Realm.keyspace_name(@test_realm)}.individual_datastreams (
       device_id uuid,
       interface_id uuid,
       endpoint_id uuid,
@@ -187,244 +213,183 @@ defmodule Astarte.RealmManagement.DatabaseTestHelper do
 
       PRIMARY KEY((device_id, interface_id, endpoint_id, path), value_timestamp, reception_timestamp, reception_timestamp_submillis)
     )
-  """
-
-  @create_names_table """
-  CREATE TABLE IF NOT EXISTS #{CQLUtils.realm_name_to_keyspace_name("autotestrealm", Config.astarte_instance_id!())}.names (
-      object_name varchar,
-      object_uuid uuid,
-      PRIMARY KEY ((object_name))
-    )
-  """
-
-  @create_grouped_devices_table """
-  CREATE TABLE IF NOT EXISTS #{CQLUtils.realm_name_to_keyspace_name("autotestrealm", Config.astarte_instance_id!())}.grouped_devices (
-      group_name varchar,
-      insertion_uuid timeuuid,
-      device_id uuid,
-      PRIMARY KEY ((group_name), insertion_uuid, device_id)
-    )
-  """
-
-  @create_deleted_devices_table """
-  CREATE TABLE IF NOT EXISTS #{CQLUtils.realm_name_to_keyspace_name("autotestrealm", Config.astarte_instance_id!())}.deletion_in_progress (
-      device_id uuid,
-      vmq_ack boolean,
-      dup_start_ack boolean,
-      dup_end_ack boolean,
-      PRIMARY KEY ((device_id))
-    )
-  """
-
-  @create_devices_table """
-  CREATE TABLE IF NOT EXISTS #{CQLUtils.realm_name_to_keyspace_name("autotestrealm", Config.astarte_instance_id!())}.devices (
-      device_id uuid,
-      introspection map<ascii, int>,
-      PRIMARY KEY ((device_id))
-    )
-  """
-
-  @spec connect(realm: String.t(), cassandra_nodes: list) ::
-          {:ok, :cqerl.client()} | {:error, atom}
-  def connect(opts \\ []) when is_list(opts) do
-    with {:nodes, nodes} when is_list(nodes) <- get_nodes(opts),
-         client_opts = get_client_opts(opts),
-         {:node, node} when is_tuple(node) <- {:node, Enum.random(nodes)},
-         {:ok, client} <- CQEx.Client.new(node, client_opts) do
-      {:ok, client}
-    else
-      {:error, :shutdown} ->
-        {:error, :database_connection_error}
-
-      {:nodes, nil} ->
-        Logger.error("Database is not configured.")
-        {:error, :database_connection_error}
-
-      {:node, any} ->
-        Logger.error("Database looks misconfigured: #{inspect(any)}.")
-        {:error, :database_connection_error}
-
-      any_error ->
-        Logger.warning("Failed connection to the database. Reason: #{inspect(any_error)}")
-        {:error, :database_connection_error}
-    end
+    """
   end
 
-  defp get_nodes(opts) do
-    case Keyword.fetch(opts, :cassandra_nodes) do
-      {:ok, cassandra_nodes} ->
-        {:nodes, cassandra_nodes}
-
-      :error ->
-        {:nodes, Config.cqex_nodes!()}
-    end
+  defp create_names_table do
+    """
+    CREATE TABLE IF NOT EXISTS #{Realm.keyspace_name(@test_realm)}.names (
+        object_name varchar,
+        object_uuid uuid,
+        PRIMARY KEY ((object_name))
+      )
+    """
   end
 
-  defp get_client_opts(opts) do
-    case Keyword.fetch(opts, :realm) do
-      {:ok, realm} ->
-        keyspace = CQLUtils.realm_name_to_keyspace_name(realm, Config.astarte_instance_id!())
-
-        Config.cqex_options!()
-        |> Keyword.put(:keyspace, keyspace)
-
-      :error ->
-        Config.cqex_options!()
-    end
+  defp create_grouped_devices_table do
+    """
+    CREATE TABLE IF NOT EXISTS #{Realm.keyspace_name(@test_realm)}.grouped_devices (
+        group_name varchar,
+        insertion_uuid timeuuid,
+        device_id uuid,
+        PRIMARY KEY ((group_name), insertion_uuid, device_id)
+      )
+    """
   end
 
-  def seed_datastream_test_data(client, device_id, interface_name, major, endpoint_id, path) do
+  defp create_deleted_devices_table do
+    """
+    CREATE TABLE IF NOT EXISTS #{Realm.keyspace_name(@test_realm)}.deletion_in_progress (
+        device_id uuid,
+        vmq_ack boolean,
+        dup_start_ack boolean,
+        dup_end_ack boolean,
+        PRIMARY KEY ((device_id))
+      )
+    """
+  end
+
+  defp create_devices_table do
+    """
+    CREATE TABLE IF NOT EXISTS #{Realm.keyspace_name(@test_realm)}.devices (
+        device_id uuid,
+        introspection map<ascii, int>,
+        PRIMARY KEY ((device_id))
+      )
+    """
+  end
+
+  def seed_datastream_test_data(device_id, interface_name, major, endpoint_id, path) do
+    keyspace_name =
+      Realm.keyspace_name(@test_realm)
+
     interface_id = CQLUtils.interface_id(interface_name, major)
 
-    Enum.each(
-      [
-        """
-        INSERT INTO individual_properties
-          (device_id, interface_id, endpoint_id, path)
-        VALUES (:device_id, :interface_id, :endpoint_id, :path);
-        """,
-        """
-        INSERT INTO individual_datastreams
-          (device_id, interface_id, endpoint_id, path, value_timestamp, reception_timestamp, reception_timestamp_submillis, integer_value)
-        VALUES (:device_id, :interface_id, :endpoint_id, '/0/integerValues', '2017-09-28 04:06+0000', '2017-09-28 05:06+0000', 0, 42);
-        """
-      ],
-      fn statement ->
-        query =
-          DatabaseQuery.new()
-          |> DatabaseQuery.statement(statement)
-          |> DatabaseQuery.put(:device_id, device_id)
-          |> DatabaseQuery.put(:interface_id, interface_id)
-          |> DatabaseQuery.put(:endpoint_id, endpoint_id)
-          |> DatabaseQuery.put(:path, path)
+    %IndividualProperty{}
+    |> Ecto.Changeset.change(%{
+      device_id: device_id,
+      interface_id: interface_id,
+      endpoint_id: endpoint_id,
+      path: path
+    })
+    |> Ecto.Changeset.validate_required([:device_id, :interface_id, :endpoint_id, :path])
+    |> Repo.insert!(prefix: keyspace_name)
 
-        DatabaseQuery.call!(client, query)
-      end
-    )
+    %IndividualDatastream{}
+    |> Ecto.Changeset.change(%{
+      device_id: device_id,
+      interface_id: interface_id,
+      endpoint_id: endpoint_id,
+      path: "/0/integerValues",
+      value_timestamp: DateTime.utc_now() |> DateTime.truncate(:microsecond),
+      reception_timestamp: DateTime.utc_now() |> DateTime.truncate(:microsecond),
+      reception_timestamp_submillis: 0,
+      integer_value: 42
+    })
+    |> Ecto.Changeset.validate_required([
+      :device_id,
+      :interface_id,
+      :endpoint_id,
+      :path,
+      :value_timestamp,
+      :reception_timestamp,
+      :integer_value
+    ])
+    |> Repo.insert!(prefix: keyspace_name)
 
-    kv_store_statement = "INSERT INTO kv_store (group, key) VALUES (:group, :key)"
+    kv_insert_value =
+      %{
+        group: "devices-with-data-on-interface-#{interface_name}-v0",
+        key: Device.encode_device_id(device_id),
+        value: "some_default_value"
+      }
 
-    kv_query =
-      DatabaseQuery.new()
-      |> DatabaseQuery.statement(kv_store_statement)
-      |> DatabaseQuery.put(:group, "devices-with-data-on-interface-#{interface_name}-v0")
-      |> DatabaseQuery.put(:key, Device.encode_device_id(device_id))
-      |> DatabaseQuery.consistency(:all)
-
-    DatabaseQuery.call!(client, kv_query)
+    KvStore.insert(kv_insert_value, prefix: keyspace_name, consistency: :all)
 
     :ok
   end
 
-  def count_rows_for_datastream(client, device_id, interface_name, major, endpoint_id, path) do
-    count_statement = """
-    SELECT COUNT(*)
-    FROM individual_datastreams
-    WHERE device_id=:device_id AND interface_id=:interface_id
-      AND endpoint_id=:endpoint_id AND path=:path
-    """
-
+  def count_rows_for_datastream(device_id, interface_name, major, endpoint_id, path) do
+    keyspace_name = Realm.keyspace_name(@test_realm)
     interface_id = CQLUtils.interface_id(interface_name, major)
-
-    count_query =
-      DatabaseQuery.new()
-      |> DatabaseQuery.statement(count_statement)
-      |> DatabaseQuery.put(:device_id, device_id)
-      |> DatabaseQuery.put(:interface_id, interface_id)
-      |> DatabaseQuery.put(:endpoint_id, endpoint_id)
-      |> DatabaseQuery.put(:path, path)
-
-    DatabaseQuery.call!(client, count_query)
-    |> DatabaseResult.head()
-    |> Keyword.fetch!(:count)
-  end
-
-  def seed_properties_test_value(client, device_id, interface_name, major, endpoint_id, path) do
-    interface_id = CQLUtils.interface_id(interface_name, major)
-
-    property_statement = """
-    INSERT INTO individual_properties
-      (device_id, interface_id, endpoint_id, path)
-    VALUES (:device_id, :interface_id, :endpoint_id, :path)
-    """
 
     query =
-      DatabaseQuery.new()
-      |> DatabaseQuery.statement(property_statement)
-      |> DatabaseQuery.put(:device_id, device_id)
-      |> DatabaseQuery.put(:interface_id, interface_id)
-      |> DatabaseQuery.put(:endpoint_id, endpoint_id)
-      |> DatabaseQuery.put(:path, path)
+      from k in IndividualDatastream,
+        prefix: ^keyspace_name,
+        where:
+          k.device_id == ^device_id and k.interface_id == ^interface_id and
+            k.endpoint_id == ^endpoint_id and k.path == ^path,
+        select: count()
 
-    DatabaseQuery.call!(client, query)
-
-    kv_store_statement = "INSERT INTO kv_store (group, key) VALUES (:group, :key)"
-
-    kv_query =
-      DatabaseQuery.new()
-      |> DatabaseQuery.statement(kv_store_statement)
-      |> DatabaseQuery.put(:group, "devices-with-data-on-interface-#{interface_name}-v0")
-      |> DatabaseQuery.put(:key, Device.encode_device_id(device_id))
-      |> DatabaseQuery.consistency(:all)
-
-    DatabaseQuery.call!(client, kv_query)
-
-    :ok
+    Repo.one(query, consistency: Consistency.domain_model(:read))
   end
 
-  def count_interface_properties_for_device(client, device_id, interface_name, major) do
-    count_statement = """
-    SELECT COUNT(*)
-    FROM individual_properties
-    WHERE device_id=:device_id AND interface_id=:interface_id
-    """
-
+  def seed_properties_test_value(device_id, interface_name, major, endpoint_id, path) do
+    keyspace_name = Realm.keyspace_name(@test_realm)
     interface_id = CQLUtils.interface_id(interface_name, major)
 
-    count_query =
-      DatabaseQuery.new()
-      |> DatabaseQuery.statement(count_statement)
-      |> DatabaseQuery.put(:device_id, device_id)
-      |> DatabaseQuery.put(:interface_id, interface_id)
+    %IndividualProperty{}
+    |> Ecto.Changeset.change(%{
+      device_id: device_id,
+      interface_id: interface_id,
+      endpoint_id: endpoint_id,
+      path: path
+    })
+    |> Ecto.Changeset.validate_required([:device_id, :interface_id, :endpoint_id, :path])
+    |> Repo.insert!(prefix: keyspace_name)
 
-    DatabaseQuery.call!(client, count_query)
-    |> DatabaseResult.head()
-    |> Keyword.fetch!(:count)
-  end
+    kv_insert_value =
+      %{
+        group: "devices-with-data-on-interface-#{interface_name}-v0",
+        key: Device.encode_device_id(device_id),
+        value: "some_value"
+      }
 
-  def create_test_keyspace(client) do
-    DatabaseQuery.call!(client, @create_autotestrealm)
-    DatabaseQuery.call!(client, @create_astarte_keyspace)
-    DatabaseQuery.call!(client, @create_astarte_realms_table)
-    DatabaseQuery.call!(client, @insert_autotestrealm_into_realms)
-    DatabaseQuery.call!(client, @create_interfaces_table)
-    DatabaseQuery.call!(client, @create_endpoints_table)
-    DatabaseQuery.call!(client, @create_individual_properties_table)
-    DatabaseQuery.call!(client, @create_kv_store_table)
-    DatabaseQuery.call!(client, @create_simple_triggers_table)
-    DatabaseQuery.call!(client, @create_individual_datastreams_table)
-    DatabaseQuery.call!(client, @create_names_table)
-    DatabaseQuery.call!(client, @create_grouped_devices_table)
-    DatabaseQuery.call!(client, @create_deleted_devices_table)
-    DatabaseQuery.call!(client, @create_devices_table)
+    KvStore.insert(kv_insert_value, prefix: keyspace_name)
 
     :ok
   end
 
-  def seed_test_data(client) do
+  def count_interface_properties_for_device(device_id, interface_name, major) do
+    interface_id = CQLUtils.interface_id(interface_name, major)
+
+    keyspace_name =
+      Realm.keyspace_name(@test_realm)
+
+    query =
+      from i in IndividualProperty,
+        prefix: ^keyspace_name,
+        where: i.device_id == ^device_id and i.interface_id == ^interface_id,
+        select: count()
+
+    Repo.one(query, consistency: Consistency.domain_model(:read))
+  end
+
+  def create_test_keyspace() do
+    Repo.query!(create_autotestrealm())
+    Repo.query!(create_astarte_keyspace())
+    Repo.query!(create_astarte_realms_table())
+    Repo.query!(insert_autotestrealm_into_realms())
+    Repo.query!(create_interfaces_table())
+    Repo.query!(create_endpoints_table())
+    Repo.query!(create_individual_properties_table())
+    Repo.query!(create_kv_store_table())
+    Repo.query!(create_simple_triggers_table())
+    Repo.query!(create_individual_datastreams_table())
+    Repo.query!(create_names_table())
+    Repo.query!(create_grouped_devices_table())
+    Repo.query!(create_deleted_devices_table())
+    Repo.query!(create_devices_table())
+
+    :ok
+  end
+
+  def seed_test_data() do
     Enum.each(["interfaces", "endpoints", "individual_properties", "kv_store"], fn table ->
-      DatabaseQuery.call!(
-        client,
-        "TRUNCATE #{CQLUtils.realm_name_to_keyspace_name("autotestrealm", Config.astarte_instance_id!())}.#{table}"
-      )
+      Repo.query!("TRUNCATE #{Realm.keyspace_name(@test_realm)}.#{table}")
     end)
 
-    query =
-      DatabaseQuery.new()
-      |> DatabaseQuery.statement(@insert_public_key)
-      |> DatabaseQuery.put(:pem, @jwt_public_key_pem)
-
-    with {:ok, _result} <- DatabaseQuery.call(client, query) do
+    with {:ok, _result} <- Repo.query(insert_public_key(), %{pem: @jwt_public_key_pem}) do
       :ok
     else
       error ->
@@ -433,27 +398,18 @@ defmodule Astarte.RealmManagement.DatabaseTestHelper do
     end
   end
 
-  def drop_test_keyspace(client) do
-    with {:ok, _result} <-
-           DatabaseQuery.call(
-             client,
-             "DROP KEYSPACE #{CQLUtils.realm_name_to_keyspace_name("autotestrealm", Config.astarte_instance_id!())}"
-           ),
-         {:ok, _result} <-
-           DatabaseQuery.call(
-             client,
-             "DROP KEYSPACE #{CQLUtils.realm_name_to_keyspace_name("astarte", Config.astarte_instance_id!())}"
-           ) do
+  def drop_test_keyspace do
+    query1 = "DROP KEYSPACE #{Realm.keyspace_name(@test_realm)}"
+    query2 = "DROP KEYSPACE #{Realm.astarte_keyspace_name()}"
+
+    with {:ok, _} <- Repo.query(query1),
+         {:ok, _} <- Repo.query(query2) do
       :ok
     else
       error ->
         Logger.warning("Database error: #{inspect(error)}")
         {:error, :database_error}
     end
-  end
-
-  def connect_to_test_database do
-    DatabaseClient.new(List.first(Config.cqex_nodes!()))
   end
 
   def jwt_public_key_pem_fixture do
@@ -490,7 +446,8 @@ defmodule Astarte.RealmManagement.DatabaseTestHelper do
 
       kv_store_params = %{
         group: "devices-with-data-on-interface-#{interface_name}-v0",
-        key: Device.encode_device_id(device_id)
+        key: Device.encode_device_id(device_id),
+        value: "some_value"
       }
 
       kv_store_prepared = Xandra.prepare!(conn, kv_store_statement)
@@ -573,11 +530,11 @@ defmodule Astarte.RealmManagement.DatabaseTestHelper do
   def create_object_datastream_table!(table_name) do
     Xandra.Cluster.execute(
       :xandra,
-      "TRUNCATE TABLE #{CQLUtils.realm_name_to_keyspace_name("autotestrealm", Config.astarte_instance_id!())}.#{table_name}"
+      "TRUNCATE TABLE #{CQLUtils.realm_name_to_keyspace_name(@test_realm, Config.astarte_instance_id!())}.#{table_name}"
     )
 
     Xandra.Cluster.execute!(:xandra, """
-        CREATE TABLE IF NOT EXISTS #{CQLUtils.realm_name_to_keyspace_name("autotestrealm", Config.astarte_instance_id!())}.#{table_name} (
+        CREATE TABLE IF NOT EXISTS #{CQLUtils.realm_name_to_keyspace_name(@test_realm, Config.astarte_instance_id!())}.#{table_name} (
           device_id uuid,
           path varchar,
           PRIMARY KEY((device_id, path))
