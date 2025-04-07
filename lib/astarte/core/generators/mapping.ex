@@ -39,12 +39,14 @@ defmodule Astarte.Core.Generators.Mapping do
           :reliability => :unreliable | :guaranteed | :unique,
           optional(:retention) => :discard | :volatile | :stored
         }) :: StreamData.t(Mapping.t())
-  def mapping(config) do
+  def mapping(interface_type \\ :datastream, config) do
     gen all(
           required <- required_fields(config),
+          database_retention <- database_retention_fields(interface_type),
           optional <- optional_fields(config)
         ) do
-      struct(Mapping, Map.merge(required, optional))
+      fields = Enum.reduce([required, database_retention, optional], &Map.merge/2)
+      struct(Mapping, fields)
     end
   end
 
@@ -95,7 +97,7 @@ defmodule Astarte.Core.Generators.Mapping do
   def database_retention_policy, do: member_of([:no_ttl, :use_ttl])
 
   @spec database_retention_ttl() :: StreamData.t(non_neg_integer())
-  def database_retention_ttl, do: integer(0..101_000)
+  def database_retention_ttl, do: integer(60..630_720_000)
 
   @spec allow_unset() :: StreamData.t(boolean())
   def allow_unset, do: boolean()
@@ -126,10 +128,21 @@ defmodule Astarte.Core.Generators.Mapping do
 
   defp optional_fields(_config) do
     optional_map(%{
-      database_retention_policy: database_retention_policy(),
-      database_retention_ttl: database_retention_ttl(),
       description: description(),
       doc: doc()
     })
+  end
+
+  defp database_retention_fields(:properties), do: constant(%{})
+
+  defp database_retention_fields(:datastream) do
+    gen all database_retention_policy <- database_retention_policy(),
+            database_retention_ttl <-
+              if(database_retention_policy == :use_ttl, do: database_retention_ttl()) do
+      %{
+        database_retention_policy: database_retention_policy,
+        database_retention_ttl: database_retention_ttl
+      }
+    end
   end
 end

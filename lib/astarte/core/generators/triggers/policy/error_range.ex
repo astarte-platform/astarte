@@ -38,9 +38,6 @@ defmodule Astarte.Core.Generators.Triggers.Policy.ErrorRange do
   end
 
   defp error_codes do
-    one_of([
-      integer(400..599),
-      list_of(integer(400..599), min_length: 1)
-    ])
+    list_of(integer(400..599), min_length: 1)
   end
 end

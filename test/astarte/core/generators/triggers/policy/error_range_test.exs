@@ -32,8 +32,10 @@ defmodule Astarte.Core.Generators.Triggers.Policy.ErrorRangeTest do
   @moduletag :error_range
 
   defp validation_helper(error_keyword) do
-    error_keyword
-    |> Changeset.change()
+    changes = Map.from_struct(error_keyword)
+
+    %ErrorRange{}
+    |> Changeset.change(changes)
     |> ErrorRange.validate()
   end
 
