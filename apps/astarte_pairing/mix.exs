@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2017-2021 Ispirata Srl
+# Copyright 2017-2025 Ispirata Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -67,9 +67,10 @@ defmodule Astarte.Pairing.Mixfile do
 
   defp astarte_required_modules(_) do
     [
-      {:astarte_core, "~> 1.2"},
+      {:astarte_core,
+       github: "astarte-platform/astarte_core", branch: "release-1.2", override: true},
       {:astarte_data_access,
-       github: "astarte-platform/astarte_data_access", branch: "release-1.2"},
+       github: "astarte-platform/astarte_data_access", branch: "release-1.2", override: true},
       {:astarte_rpc, "~> 1.2"}
     ]
   end
@@ -97,8 +98,9 @@ defmodule Astarte.Pairing.Mixfile do
       # Delete when updating/removing cqerl from astarte_data_access.
       {:snappyer, "~> 1.2.10", override: true},
       {:ecto, "~> 3.12"},
-      {:exandra, github: "vinniefranco/exandra"},
-      {:typed_ecto_schema, "~> 0.4"}
+      {:exandra, github: "vinniefranco/exandra", override: true},
+      {:typed_ecto_schema, "~> 0.4"},
+      {:astarte_generators, github: "astarte-platform/astarte_generators", only: [:test, :ci]}
     ]
   end
 end
