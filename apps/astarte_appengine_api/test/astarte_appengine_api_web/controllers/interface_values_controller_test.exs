@@ -22,7 +22,7 @@ defmodule Astarte.AppEngine.APIWeb.InterfaceValuesControllerTest do
   alias Astarte.AppEngine.API.JWTTestHelper
 
   setup_all do
-    {:ok, _client} = DatabaseTestHelper.create_test_keyspace()
+    DatabaseTestHelper.create_test_keyspace()
 
     on_exit(fn ->
       DatabaseTestHelper.destroy_local_test_keyspace()

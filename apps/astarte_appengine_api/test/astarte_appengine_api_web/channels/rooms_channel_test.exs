@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2018 Ispirata Srl
+# Copyright 2018 - 2025 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -846,8 +846,7 @@ defmodule Astarte.AppEngine.APIWeb.RoomsChannelTest do
 
   defp insert_device_id(device_id) do
     {:ok, decoded_device_id} = Astarte.Core.Device.decode_device_id(device_id)
-    {:ok, client} = DatabaseTestHelper.connect_to_test_keyspace()
-    DatabaseTestHelper.insert_empty_device(client, decoded_device_id)
+    DatabaseTestHelper.insert_empty_device(decoded_device_id)
   end
 
   defp room_join_authorized_socket(_context) do
