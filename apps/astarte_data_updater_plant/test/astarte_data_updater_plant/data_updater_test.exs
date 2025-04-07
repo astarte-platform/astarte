@@ -47,17 +47,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
   alias CQEx.Result, as: DatabaseResult
   alias Astarte.RPC.Protocol.VMQ.Plugin, as: Protocol
 
-  alias Astarte.RPC.Protocol.VMQ.Plugin.{
-    Call,
-    Delete,
-    GenericOkReply,
-    Disconnect,
-    Reply
-  }
-
-  @vmq_plugin_destination Protocol.amqp_queue()
-  @encoded_generic_ok_reply %Reply{reply: {:generic_ok_reply, %GenericOkReply{}}}
-                            |> Reply.encode()
+  setup :verify_on_exit!
 
   setup_all do
     {:ok, _client} = Astarte.DataUpdaterPlant.DatabaseTestHelper.create_test_keyspace()
@@ -1706,16 +1696,11 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
     end)
 
     # We expect that sooner or later the device will be disconnected
-    MockRPCClient
-    |> expect(:rpc_call, fn serialized_call, @vmq_plugin_destination ->
-      assert %Call{call: {:delete, %Delete{} = delete_call}} = Call.decode(serialized_call)
+    Astarte.DataUpdaterPlant.RPC.VMQPlugin.ClientMock
+    |> expect(:delete, fn data ->
+      assert %{realm_name: ^realm, device_id: ^encoded_device_id} = data
 
-      assert %Delete{
-               realm_name: realm,
-               device_id: encoded_device_id
-             } = delete_call
-
-      {:ok, @encoded_generic_ok_reply}
+      :ok
     end)
 
     timestamp_us_x_10 = make_timestamp("2017-10-09T15:00:32+00:00")
