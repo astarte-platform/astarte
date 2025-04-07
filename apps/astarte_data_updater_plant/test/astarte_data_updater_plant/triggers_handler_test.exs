@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2017 Ispirata Srl
+# Copyright 2017 - 2025 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -33,8 +33,7 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandlerTest do
     PathRemovedEvent,
     SimpleEvent,
     ValueChangeAppliedEvent,
-    ValueChangeEvent,
-    ValueStoredEvent
+    ValueChangeEvent
   }
 
   alias AMQP.Channel
@@ -787,7 +786,7 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandlerTest do
       end)
     end
 
-    test "HTTP trigger with no policy defaults to default one", %{chan: chan} do
+    test "HTTP trigger with no policy defaults to default one" do
       simple_trigger_id = :uuid.get_v4()
       parent_trigger_id = :uuid.get_v4()
       static_header_key = "important_metadata_value_change_applied"
@@ -850,7 +849,7 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandlerTest do
       assert Map.get(headers_map, static_header_key) == static_header_value
     end
 
-    test "HTTP trigger with explicit trigger policy is correctly routed", %{chan: chan} do
+    test "HTTP trigger with explicit trigger policy is correctly routed" do
       simple_trigger_id = :uuid.get_v4()
       parent_trigger_id = :uuid.get_v4()
       static_header_key = "important_metadata_value_change_applied"
@@ -913,7 +912,7 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandlerTest do
       assert Map.get(headers_map, static_header_key) == static_header_value
     end
 
-    test "AMQP trigger has no trigger policy", %{chan: chan} do
+    test "AMQP trigger has no trigger policy" do
       simple_trigger_id = :uuid.get_v4()
       parent_trigger_id = :uuid.get_v4()
       static_header_key = "important_metadata_value_change_applied"

@@ -21,7 +21,6 @@ defmodule Astarte.DataUpdaterPlant.Config do
   This module handles the configuration of DataUpdaterPlant
   """
 
-  alias Astarte.DataUpdaterPlant.Config.CQExNodes
   alias Astarte.DataAccess.Config, as: DataAccessConfig
   use Skogsra
 
@@ -31,11 +30,6 @@ defmodule Astarte.DataUpdaterPlant.Config do
           | {:server_name_indication, charlist() | :disable}
           | {:depth, integer()}
   @type ssl_options :: :none | [ssl_option]
-  @type auth_options :: {module(), [{String.t(), String.t()}]}
-  @type cqex_opts ::
-          {:ssl, ssl_options}
-          | {:auth, auth_options}
-          | {:keyspace, String.t()}
 
   @type amqp_options ::
           {:username, String.t()}
@@ -45,12 +39,6 @@ defmodule Astarte.DataUpdaterPlant.Config do
           | {:port, integer()}
           | {:ssl_options, ssl_options}
           | {:channels, integer()}
-
-  @envdoc "A list of {host, port} values of accessible Cassandra nodes in a cqex compliant format"
-  app_env :cqex_nodes, :astarte_data_updater_plant, :cqex_nodes,
-    os_env: "CASSANDRA_NODES",
-    type: CQExNodes,
-    default: [{"localhost", 9042}]
 
   @envdoc "The host for the AMQP consumer connection."
   app_env :amqp_consumer_host, :astarte_data_updater_plant, :amqp_consumer_host,
@@ -248,39 +236,6 @@ defmodule Astarte.DataUpdaterPlant.Config do
           os_env: "DATA_UPDATER_PLANT_AMQP_CONSUMER_CONNECTION_NUMBER",
           type: :integer,
           default: 10
-
-  defp populate_cqex_ssl_options(options) do
-    if DataAccessConfig.ssl_enabled!() do
-      ssl_options = build_ssl_options()
-      Keyword.put(options, :ssl, ssl_options)
-    else
-      options
-    end
-  end
-
-  defp build_ssl_options do
-    [
-      cacertfile: DataAccessConfig.ssl_ca_file!(),
-      verify: :verify_peer,
-      depth: 10,
-      server_name_indication: :disable
-    ]
-  end
-
-  defp cqex_authentication_options! do
-    {
-      :cqerl_auth_plain_handler,
-      [{DataAccessConfig.cassandra_username!(), DataAccessConfig.cassandra_password!()}]
-    }
-  end
-
-  @spec cqex_options!() :: [cqex_opts]
-  def(cqex_options!()) do
-    [
-      auth: cqex_authentication_options!()
-    ]
-    |> populate_cqex_ssl_options()
-  end
 
   # Since we have one channel per queue, this is not configurable
   def amqp_consumer_channels_per_connection_number!() do
