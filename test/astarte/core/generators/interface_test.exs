@@ -25,12 +25,38 @@ defmodule Astarte.Core.Generators.InterfaceTest do
 
   alias Astarte.Core.Generators.Interface, as: InterfaceGenerator
   alias Astarte.Core.Interface
-  alias Ecto.Changeset
 
   @moduletag :interface
 
+  defp changes_from_struct(interface) do
+    %Interface{
+      name: name,
+      major_version: major_version,
+      minor_version: minor_version,
+      mappings: mappings
+    } = interface
+
+    mappings = Enum.map(mappings, &Map.from_struct/1)
+
+    changeset_params =
+      %{
+        interface_name: name,
+        version_major: major_version,
+        version_minor: minor_version,
+        mappings: mappings
+      }
+
+    valid_params =
+      Map.take(interface, [:type, :ownership, :aggregation, :description, :doc, :quality])
+
+    Map.merge(changeset_params, valid_params)
+  end
+
   defp validation_helper(interface) do
-    Interface.changeset(interface)
+    changes = changes_from_struct(interface)
+
+    %Interface{}
+    |> Interface.changeset(changes)
   end
 
   defp validation_fixture(_context), do: {:ok, validate: &validation_helper/1}
