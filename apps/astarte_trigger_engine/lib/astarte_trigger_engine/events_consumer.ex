@@ -140,6 +140,7 @@ defmodule Astarte.TriggerEngine.EventsConsumer do
 
     # TODO: check this with object aggregations
     Map.from_struct(event)
+    |> Map.delete(:__unknown_fields__)
     |> Enum.reduce(base_values, fn {item_key, item_value}, acc ->
       case item_key do
         :bson_value ->
