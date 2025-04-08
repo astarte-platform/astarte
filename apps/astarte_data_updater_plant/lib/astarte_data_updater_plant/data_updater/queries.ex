@@ -134,6 +134,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
     timestamp = div(reception_timestamp, 10000)
     reception_timestamp_submillis = rem(reception_timestamp, 10000)
     column_name = CQLUtils.type_to_db_column_name(value_type)
+    db_value = to_db_friendly_type(value)
 
     # TODO: :reception_timestamp_submillis is just a place holder right now
     insert_value = %{
@@ -143,7 +144,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
       "path" => path,
       "reception_timestamp" => timestamp,
       "reception_timestamp_submillis" => reception_timestamp_submillis,
-      column_name => value
+      column_name => db_value
     }
 
     insert_opts = [
@@ -173,6 +174,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
     timestamp = div(reception_timestamp, 10000)
     reception_timestamp_submillis = rem(reception_timestamp, 10000)
     column_name = CQLUtils.type_to_db_column_name(value_type)
+    db_value = to_db_friendly_type(value)
 
     # TODO: use received value_timestamp when needed
     # TODO: :reception_timestamp_submillis is just a place holder right now
@@ -184,7 +186,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
       "value_timestamp" => value_timestamp,
       "reception_timestamp" => timestamp,
       "reception_timestamp_submillis" => reception_timestamp_submillis,
-      column_name => value
+      column_name => db_value
     }
 
     insert_opts = [
