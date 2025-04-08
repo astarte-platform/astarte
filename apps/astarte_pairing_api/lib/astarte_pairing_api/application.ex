@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2017 Ispirata Srl
+# Copyright 2017-2025 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -22,7 +22,6 @@ defmodule Astarte.Pairing.API.Application do
   require Logger
   alias Astarte.DataAccess.Config, as: DataAccessConfig
   alias Astarte.Pairing.API.Config
-  alias Astarte.RPC.Config, as: RPCConfig
 
   @app_version Mix.Project.config()[:version]
 
@@ -40,7 +39,6 @@ defmodule Astarte.Pairing.API.Application do
     DataAccessConfig.validate!()
     Config.validate!()
     Config.init!()
-    RPCConfig.validate()
 
     xandra_options = repo_opts = Config.xandra_options!()
 
@@ -55,8 +53,7 @@ defmodule Astarte.Pairing.API.Application do
       {Astarte.Pairing.API.CredentialsSecret.Cache, []},
       {Astarte.DataAccess, data_access_opts},
       {Astarte.Pairing.API.Repo, repo_opts},
-      Astarte.Pairing.APIWeb.Endpoint,
-      Astarte.RPC.AMQP.Client
+      Astarte.Pairing.APIWeb.Endpoint
     ]
 
     # See https://hexdocs.pm/elixir/Supervisor.html

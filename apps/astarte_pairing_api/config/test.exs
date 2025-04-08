@@ -38,8 +38,6 @@ config :logger, :console,
     :tag
   ]
 
-config :astarte_rpc, :amqp_connection, host: System.get_env("RABBITMQ_HOST") || "rabbitmq"
-
 config :astarte_pairing_api, :rpc_client, MockRPCClient
 
 config :astarte_pairing_api,

@@ -70,13 +70,6 @@ defmodule Astarte.Pairing.API.Config do
     type: :binary,
     default: false
 
-  @envdoc "The RPC Client."
-  app_env :rpc_client, :astarte_pairing_api, :rpc_client,
-    os_env: "PAIRING_API_RPC_CLIENT",
-    type: :module,
-    binding_skip: [:system],
-    default: Astarte.RPC.AMQP.Client
-
   @doc """
   Returns the cassandra node configuration
   """

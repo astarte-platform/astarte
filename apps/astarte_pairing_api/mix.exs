@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2017-2021 Ispirata Srl
+# Copyright 2017-2025 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -63,7 +63,6 @@ defmodule Astarte.Pairing.API.Mixfile do
   defp astarte_required_modules("true") do
     [
       {:astarte_core, in_umbrella: true},
-      {:astarte_rpc, in_umbrella: true},
       {:astarte_data_access, in_umbrella: true}
     ]
   end
@@ -73,7 +72,6 @@ defmodule Astarte.Pairing.API.Mixfile do
       {:astarte_core, github: "astarte-platform/astarte_core", branch: "release-1.2"},
       {:astarte_data_access,
        github: "astarte-platform/astarte_data_access", branch: "release-1.2"},
-      {:astarte_rpc, "~> 1.2"},
       {:astarte_generators, github: "astarte-platform/astarte_generators", only: [:dev, :test]},
       {:astarte_realm_management,
        path: "../astarte_realm_management", only: [:dev, :test], runtime: false}
