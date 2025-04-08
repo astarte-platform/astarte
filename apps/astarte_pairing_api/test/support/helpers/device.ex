@@ -70,4 +70,22 @@ defmodule Astarte.Helpers.Device do
   def fallible_value_types do
     @fallible_value_type
   end
+
+  def update_credentials_secret!(realm_name, device_id, new_secret) do
+    keyspace = Realm.keyspace_name(realm_name)
+
+    hashed_secret = Astarte.Pairing.API.CredentialsSecret.hash(new_secret)
+
+    Repo.get!(Device, device_id, prefix: keyspace)
+    |> Ecto.Changeset.change(credentials_secret: hashed_secret)
+    |> Repo.update!(prefix: keyspace)
+  end
+
+  def update_device!(realm_name, device_id, params \\ []) do
+    keyspace = Realm.keyspace_name(realm_name)
+
+    Repo.get!(Device, device_id, prefix: keyspace)
+    |> Ecto.Changeset.change(params)
+    |> Repo.update!(prefix: keyspace)
+  end
 end

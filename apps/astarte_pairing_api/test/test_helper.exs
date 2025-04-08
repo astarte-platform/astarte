@@ -17,5 +17,6 @@
 #
 
 Mimic.copy(Astarte.DataAccess.Config)
+Mimic.copy(Astarte.Pairing.API.Config)
 
 ExUnit.start(capture_log: true)

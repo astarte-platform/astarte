@@ -17,6 +17,8 @@
 #
 
 defmodule Astarte.Pairing.APIWeb.DeviceControllerTest do
+  use Astarte.Cases.Data, async: true
+  use Astarte.Cases.Device
   use Astarte.Pairing.APIWeb.ConnCase, async: true
 
   alias Astarte.RPC.Protocol.Pairing.{
@@ -32,9 +34,29 @@ defmodule Astarte.Pairing.APIWeb.DeviceControllerTest do
   }
 
   import Mox
+  import Astarte.Helpers.Device
 
   @realm "testrealm"
   @hw_id "o9RQb8B-R8WY_N7kR56M2w"
+
+  @secret "supersecret"
+
+  @ca_cert """
+  -----BEGIN CERTIFICATE-----
+  MIICNTCCAdqgAwIBAgIUIOSSE9sxXZWckOs+jtq+wBiGCiIwCgYIKoZIzj0EAwIw
+  dzELMAkGA1UEBhMCVVMxDzANBgNVBAgTBk5ldmFkYTESMBAGA1UEBxMJTGFzIFZl
+  Z2FzMRgwFgYDVQQKEw9FeGFtcGxlIENvbXBhbnkxFDASBgNVBAsTC0NBIFNlcnZp
+  Y2VzMRMwEQYDVQQDEwpNeSBSb290IENBMCAXDTI1MDYyNDA3MTgwMFoYDzIwNTUw
+  NjE3MDcxODAwWjB3MQswCQYDVQQGEwJVUzEPMA0GA1UECBMGTmV2YWRhMRIwEAYD
+  VQQHEwlMYXMgVmVnYXMxGDAWBgNVBAoTD0V4YW1wbGUgQ29tcGFueTEUMBIGA1UE
+  CxMLQ0EgU2VydmljZXMxEzARBgNVBAMTCk15IFJvb3QgQ0EwWTATBgcqhkjOPQIB
+  BggqhkjOPQMBBwNCAARdrgh5v5PtcHlVD+0j4rQnDPHLsyx3PI9SRIfoO5X2r69X
+  Fj4ZPCoMaavhUjcjmeh62KFdtPdzwDucNPpo60Zxo0IwQDAOBgNVHQ8BAf8EBAMC
+  AQYwDwYDVR0TAQH/BAUwAwEB/zAdBgNVHQ4EFgQUshI4rsI0qYhfHVALQb4TeItb
+  78YwCgYIKoZIzj0EAwIDSQAwRgIhAID+zw34Tkz0O5UCrSlxM9+ud+P9/mpjbePn
+  aqkyw+ahAiEA1u/5NagV9BX2PbMQzkjywdby+z42udBTEzUgZrOWpLQ=
+  -----END CERTIFICATE-----
+  """
   @csr """
   -----BEGIN CERTIFICATE REQUEST-----
   MIICwTCCAakCAQAwfDELMAkGA1UEBhMCQVUxEzARBgNVBAgMClNvbWUtU3RhdGUx
@@ -54,29 +76,48 @@ defmodule Astarte.Pairing.APIWeb.DeviceControllerTest do
   nBWYJpUTEDTAbDYx4F9YwSfuXrA9jCABgZw92ggqnh2dzRQWSw==
   -----END CERTIFICATE REQUEST-----
   """
-
-  @secret "supersecret"
-  @client_crt "not exactly a certificate"
+  @client_crt """
+  -----BEGIN CERTIFICATE-----
+  MIIDSTCCAvCgAwIBAgIUZ0Rnyy9sfanGRUzF8nOf8iG8nvswCgYIKoZIzj0EAwIw
+  dzELMAkGA1UEBhMCVVMxDzANBgNVBAgTBk5ldmFkYTESMBAGA1UEBxMJTGFzIFZl
+  Z2FzMRgwFgYDVQQKEw9FeGFtcGxlIENvbXBhbnkxFDASBgNVBAsTC0NBIFNlcnZp
+  Y2VzMRMwEQYDVQQDEwpNeSBSb290IENBMB4XDTI1MDYyNDA5MTIwMFoXDTI1MDgy
+  MzA5MTIwMFowgZAxCzAJBgNVBAYTAkFVMRMwEQYDVQQIEwpTb21lLVN0YXRlMQ0w
+  CwYDVQQHEwRjaXR5MSEwHwYDVQQKExhJbnRlcm5ldCBXaWRnaXRzIFB0eSBMdGQx
+  EDAOBgNVBAsTB3NlY3Rpb24xKDAmBgNVBAMTH3JlYWxtMTMxL1gxOEVwV2lmUk9t
+  RnFMazVwWDlZZkEwggEiMA0GCSqGSIb3DQEBAQUAA4IBDwAwggEKAoIBAQC1neUX
+  JSjPdfUDVNRDMDGapwnRqsfOFbEMcm1+q4yav5OxbdHRrFjeKheJyUeoIySdzs4g
+  ncZEAaLWqXoxN4xNiH5EYUJWBDV/SYJSpXFlSdDcidOZ4fUKCRU5NIoGAQEfU9wF
+  Pr6V7Q5c/U5GB4PG12i5i4i79gyNn0SdFezIkSxPdpzi0Wn+icBvH/9JKJ+IWi2y
+  V7EI6/tUy9xnC46ejpeD267xYhCwV4rjX5Xs3dirhipxVYbCa1QE+VY3B8yCTKui
+  YUTySJQt2VFj7zQe4Y26EzSP4AoVi1sSNbL8bs8KCWSblMJpjctRclRx/c1zwy61
+  BW7oYuujf2R5v561AgMBAAGjdTBzMA4GA1UdDwEB/wQEAwIFoDATBgNVHSUEDDAK
+  BggrBgEFBQcDAjAMBgNVHRMBAf8EAjAAMB0GA1UdDgQWBBR1XskiVL9asyf6ceUr
+  yteHWMkxEDAfBgNVHSMEGDAWgBSyEjiuwjSpiF8dUAtBvhN4i1vvxjAKBggqhkjO
+  PQQDAgNHADBEAiAC+24qHLC/b+xnuXO/pYCXFnA8GsdfHI3zBQbMvgzlRQIgAoEX
+  3JUIkrX38f7JqgQ6BX3YXfH79iiPvhx9uhYrlTc=
+  -----END CERTIFICATE-----
+  """
 
   @rpc_destination Astarte.RPC.Protocol.Pairing.amqp_queue()
   @timeout 30_000
+
+  setup :set_ca_cert
+
+  defp set_ca_cert(_ctx) do
+    Mimic.stub(Astarte.Pairing.API.Config, :ca_cert!, fn -> @ca_cert end)
+
+    :ok
+  end
 
   describe "create Astarte MQTT V1 credentials" do
     @create_attrs %{"csr" => @csr}
     @invalid_attrs %{}
 
-    @encoded_credentials_response %Reply{
-                                    reply:
-                                      {:get_credentials_reply,
-                                       %GetCredentialsReply{
-                                         credentials:
-                                           {:astarte_mqtt_v1,
-                                            %AstarteMQTTV1Credentials{client_crt: @client_crt}}
-                                       }}
-                                  }
-                                  |> Reply.encode()
+    setup %{conn: conn, realm_name: realm_name, device: device} do
+      update_credentials_secret!(realm_name, device.id, @secret)
+      update_device!(realm_name, device.id, inhibit_credentials_request: false)
 
-    setup %{conn: conn} do
       conn =
         conn
         |> put_req_header("authorization", "bearer #{@secret}")
@@ -85,51 +126,80 @@ defmodule Astarte.Pairing.APIWeb.DeviceControllerTest do
       {:ok, conn: conn}
     end
 
-    test "renders credentials when data is valid", %{conn: conn} do
-      MockRPCClient
-      |> expect(:rpc_call, fn _serialized_call, @rpc_destination, @timeout ->
-        {:ok, @encoded_credentials_response}
-      end)
+    test "renders credentials when data is valid", ctx do
+      %{conn: conn, realm_name: realm_name, device: device} = ctx
 
       conn =
         post(
           conn,
-          device_path(conn, :create_credentials, @realm, @hw_id, "astarte_mqtt_v1"),
+          device_path(
+            conn,
+            :create_credentials,
+            realm_name,
+            device.encoded_id,
+            "astarte_mqtt_v1"
+          ),
           data: @create_attrs
         )
 
-      assert %{"client_crt" => @client_crt} = json_response(conn, 201)["data"]
+      assert %{"client_crt" => client_crt} = json_response(conn, 201)["data"]
+
+      assert client_crt =~ "-----BEGIN CERTIFICATE-----"
     end
 
-    test "renders errors when data is invalid", %{conn: conn} do
+    test "renders errors when data is invalid", ctx do
+      %{conn: conn, realm_name: realm_name, device: device} = ctx
+
       conn =
         post(
           conn,
-          device_path(conn, :create_credentials, @realm, @hw_id, "astarte_mqtt_v1"),
+          device_path(
+            conn,
+            :create_credentials,
+            realm_name,
+            device.encoded_id,
+            "astarte_mqtt_v1"
+          ),
           data: @invalid_attrs
         )
 
       assert json_response(conn, 422)["errors"] != %{}
     end
 
-    test "renders errors when no authorization header", %{conn: conn} do
+    test "renders errors when no authorization header", ctx do
+      %{conn: conn, realm_name: realm_name, device: device} = ctx
+
       conn =
         conn
         |> delete_req_header("authorization")
         |> post(
-          device_path(conn, :create_credentials, @realm, @hw_id, "astarte_mqtt_v1"),
+          device_path(
+            conn,
+            :create_credentials,
+            realm_name,
+            device.encoded_id,
+            "astarte_mqtt_v1"
+          ),
           data: @create_attrs
         )
 
       assert json_response(conn, 401)["errors"] == %{"detail" => "Unauthorized"}
     end
 
-    test "renders errors when forbidden", %{conn: conn} do
+    test "renders errors when forbidden", ctx do
+      %{conn: conn, realm_name: realm_name, device: device} = ctx
+
       conn =
         conn
         |> put_req_header("authorization", "invalidsecret")
         |> post(
-          device_path(conn, :create_credentials, @realm, @hw_id, "astarte_mqtt_v1"),
+          device_path(
+            conn,
+            :create_credentials,
+            realm_name,
+            device.encoded_id,
+            "astarte_mqtt_v1"
+          ),
           data: @create_attrs
         )
 
@@ -138,51 +208,15 @@ defmodule Astarte.Pairing.APIWeb.DeviceControllerTest do
   end
 
   describe "verify Astarte MQTT V1 credentials" do
-    @expired_client_crt "expired crt"
+    @invalid_client_crt "invalid crt"
 
     @verify_attrs %{"client_crt" => @client_crt}
-    @expired_crt_attrs %{"client_crt" => @expired_client_crt}
-    @invalid_attrs %{"client_crt" => ""}
+    @invalid_request_attrs %{"client_crt" => ""}
+    @invalid_crt_attrs %{"client_crt" => @invalid_client_crt}
 
-    @now DateTime.utc_now() |> DateTime.truncate(:millisecond)
-    @now_ms @now |> DateTime.to_unix(:millisecond)
-    @now_string @now |> DateTime.to_string()
-    @one_month_from_now_ms 2_678_400_000 + @now_ms
-    @one_month_from_now_string @one_month_from_now_ms
-                               |> DateTime.from_unix!(:millisecond)
-                               |> DateTime.to_string()
+    setup %{conn: conn, realm_name: realm_name, device: device} do
+      update_credentials_secret!(realm_name, device.id, @secret)
 
-    @encoded_verify_valid_response %Reply{
-                                     reply:
-                                       {:verify_credentials_reply,
-                                        %VerifyCredentialsReply{
-                                          credentials_status:
-                                            {:astarte_mqtt_v1,
-                                             %AstarteMQTTV1CredentialsStatus{
-                                               valid: true,
-                                               timestamp: @now_ms,
-                                               until: @one_month_from_now_ms
-                                             }}
-                                        }}
-                                   }
-                                   |> Reply.encode()
-
-    @encoded_verify_not_valid_response %Reply{
-                                         reply:
-                                           {:verify_credentials_reply,
-                                            %VerifyCredentialsReply{
-                                              credentials_status:
-                                                {:astarte_mqtt_v1,
-                                                 %AstarteMQTTV1CredentialsStatus{
-                                                   valid: false,
-                                                   timestamp: @now_ms,
-                                                   cause: :EXPIRED
-                                                 }}
-                                            }}
-                                       }
-                                       |> Reply.encode()
-
-    setup %{conn: conn} do
       conn =
         conn
         |> put_req_header("authorization", "Bearer #{@secret}")
@@ -191,51 +225,68 @@ defmodule Astarte.Pairing.APIWeb.DeviceControllerTest do
       {:ok, conn: conn}
     end
 
-    test "renders credentials status when data is valid", %{conn: conn} do
-      MockRPCClient
-      |> expect(:rpc_call, fn _serialized_call, @rpc_destination, @timeout ->
-        {:ok, @encoded_verify_valid_response}
-      end)
+    test "renders credentials status when data is valid", ctx do
+      %{conn: conn, realm_name: realm_name, device: device} = ctx
 
       conn =
         post(
           conn,
-          device_path(conn, :verify_credentials, @realm, @hw_id, "astarte_mqtt_v1"),
+          device_path(
+            conn,
+            :verify_credentials,
+            realm_name,
+            device.encoded_id,
+            "astarte_mqtt_v1"
+          ),
           data: @verify_attrs
         )
 
-      assert %{"valid" => true, "timestamp" => @now_string, "until" => @one_month_from_now_string} =
+      assert %{"valid" => true, "timestamp" => timestamp, "until" => until} =
                json_response(conn, 200)["data"]
+
+      assert {:ok, _timestamp_dt, 0} = DateTime.from_iso8601(timestamp)
+      assert {:ok, _until_dt, 0} = DateTime.from_iso8601(until)
     end
 
-    test "renders errors when data is invalid", %{conn: conn} do
+    test "renders errors when request is invalid", ctx do
+      %{conn: conn, realm_name: realm_name, device: device} = ctx
+
       conn =
         post(
           conn,
-          device_path(conn, :verify_credentials, @realm, @hw_id, "astarte_mqtt_v1"),
-          data: @invalid_attrs
+          device_path(
+            conn,
+            :verify_credentials,
+            realm_name,
+            device.encoded_id,
+            "astarte_mqtt_v1"
+          ),
+          data: @invalid_request_attrs
         )
 
-      assert json_response(conn, 422)["errors"] != %{}
+      assert json_response(conn, 422)["errors"] == %{"client_crt" => ["can't be blank"]}
     end
 
-    test "renders credentials status when credentials are invalid", %{conn: conn} do
-      MockRPCClient
-      |> expect(:rpc_call, fn _serialized_call, @rpc_destination, @timeout ->
-        {:ok, @encoded_verify_not_valid_response}
-      end)
+    test "renders errors when credentials are invalid", ctx do
+      %{conn: conn, realm_name: realm_name, device: device} = ctx
 
       conn =
         post(
           conn,
-          device_path(conn, :verify_credentials, @realm, @hw_id, "astarte_mqtt_v1"),
-          data: @expired_crt_attrs
+          device_path(
+            conn,
+            :verify_credentials,
+            realm_name,
+            device.encoded_id,
+            "astarte_mqtt_v1"
+          ),
+          data: @invalid_crt_attrs
         )
 
       assert %{
                "valid" => false,
-               "timestamp" => @now_string,
-               "cause" => "EXPIRED",
+               "timestamp" => _timestamp,
+               "cause" => "INVALID",
                "details" => nil
              } = json_response(conn, 200)["data"]
     end
