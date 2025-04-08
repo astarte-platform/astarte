@@ -20,69 +20,30 @@ defmodule Astarte.Pairing.API.HealthTest do
   use Astarte.Pairing.API.DataCase, async: true
 
   alias Astarte.Pairing.API.Health
+  alias Astarte.DataAccess.Health.Health, as: DataAccessHealth
   alias Astarte.Pairing.API.Health.BackendHealth
-  alias Astarte.RPC.Protocol.Pairing.Call
-  alias Astarte.RPC.Protocol.Pairing.GetHealth
-  alias Astarte.RPC.Protocol.Pairing.GetHealthReply
-  alias Astarte.RPC.Protocol.Pairing.Reply
-
-  import Mox
-
-  defp encoded_health_response(status) do
-    %Reply{
-      reply:
-        {:get_health_reply,
-         %GetHealthReply{
-           status: status
-         }}
-    }
-    |> Reply.encode()
-  end
-
-  @rpc_destination Astarte.RPC.Protocol.Pairing.amqp_queue()
-  @timeout 30_000
 
   describe "health" do
-    test "returns :ready when RealmManagement replies with ready status" do
-      MockRPCClient
-      |> expect(:rpc_call, fn serialized_call, @rpc_destination, @timeout ->
-        assert %Call{call: {:get_health, %GetHealth{}}} = Call.decode(serialized_call)
-
-        {:ok, encoded_health_response(:READY)}
-      end)
+    test "returns :ready when get_health replies with ready status" do
+      Mimic.stub(DataAccessHealth, :get_health, fn -> {:ok, %{status: :ready}} end)
 
       assert {:ok, %BackendHealth{status: :ready}} = Health.get_backend_health()
     end
 
-    test "returns :bad when RealmManagement replies with bad status" do
-      MockRPCClient
-      |> expect(:rpc_call, fn serialized_call, @rpc_destination, @timeout ->
-        assert %Call{call: {:get_health, %GetHealth{}}} = Call.decode(serialized_call)
-
-        {:ok, encoded_health_response(:BAD)}
-      end)
+    test "returns :bad when get_health replies with bad status" do
+      Mimic.stub(DataAccessHealth, :get_health, fn -> {:ok, %{status: :bad}} end)
 
       assert {:ok, %BackendHealth{status: :bad}} = Health.get_backend_health()
     end
 
-    test "returns :degraded when RealmManagement replies with degraded status" do
-      MockRPCClient
-      |> expect(:rpc_call, fn serialized_call, @rpc_destination, @timeout ->
-        assert %Call{call: {:get_health, %GetHealth{}}} = Call.decode(serialized_call)
-
-        {:ok, encoded_health_response(:DEGRADED)}
-      end)
+    test "returns :degraded when get_health replies with degraded status" do
+      Mimic.stub(DataAccessHealth, :get_health, fn -> {:ok, %{status: :degraded}} end)
 
       assert {:ok, %BackendHealth{status: :degraded}} = Health.get_backend_health()
     end
 
     test "returns :error when get_health returns an unexpected status" do
-      MockRPCClient
-      |> expect(:rpc_call, fn serialized_call, @rpc_destination, @timeout ->
-        assert %Call{call: {:get_health, %GetHealth{}}} = Call.decode(serialized_call)
-
-        {:ok, encoded_health_response(:ERROR)}
-      end)
+      Mimic.stub(DataAccessHealth, :get_health, fn -> {:ok, %{status: :error}} end)
 
       assert {:ok, %BackendHealth{status: :error}} = Health.get_backend_health()
     end

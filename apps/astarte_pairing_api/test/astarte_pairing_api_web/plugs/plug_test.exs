@@ -17,37 +17,14 @@
 #
 
 defmodule Astarte.Pairing.APIWeb.PlugTest do
+  use Astarte.Cases.Data, async: true
   use Astarte.Pairing.APIWeb.ConnCase, async: true
 
-  alias Astarte.RPC.Protocol.Pairing.Call
-  alias Astarte.RPC.Protocol.Pairing.GetHealth
-  alias Astarte.RPC.Protocol.Pairing.GetHealthReply
-  alias Astarte.RPC.Protocol.Pairing.Reply
-
-  import Mox
-
-  defp encoded_health_response(status) do
-    %Reply{
-      reply:
-        {:get_health_reply,
-         %GetHealthReply{
-           status: status
-         }}
-    }
-    |> Reply.encode()
-  end
-
-  @rpc_destination Astarte.RPC.Protocol.Pairing.amqp_queue()
-  @timeout 30_000
+  alias Astarte.DataAccess.Health.Health
 
   describe "GET /health" do
     test "returns 200 OK when status is :ready", %{conn: conn} do
-      MockRPCClient
-      |> expect(:rpc_call, fn serialized_call, @rpc_destination, @timeout ->
-        assert %Call{call: {:get_health, %GetHealth{}}} = Call.decode(serialized_call)
-
-        {:ok, encoded_health_response(:READY)}
-      end)
+      Mimic.stub(Health, :get_health, fn -> {:ok, %{status: :ready}} end)
 
       conn = get(conn, "/health")
 
@@ -56,12 +33,7 @@ defmodule Astarte.Pairing.APIWeb.PlugTest do
     end
 
     test "returns 200 OK when status is :degraded", %{conn: conn} do
-      MockRPCClient
-      |> expect(:rpc_call, fn serialized_call, @rpc_destination, @timeout ->
-        assert %Call{call: {:get_health, %GetHealth{}}} = Call.decode(serialized_call)
-
-        {:ok, encoded_health_response(:DEGRADED)}
-      end)
+      Mimic.stub(Health, :get_health, fn -> {:ok, %{status: :degraded}} end)
 
       conn = get(conn, "/health")
 
@@ -70,12 +42,7 @@ defmodule Astarte.Pairing.APIWeb.PlugTest do
     end
 
     test "returns 503 when status is :bad", %{conn: conn} do
-      MockRPCClient
-      |> expect(:rpc_call, fn serialized_call, @rpc_destination, @timeout ->
-        assert %Call{call: {:get_health, %GetHealth{}}} = Call.decode(serialized_call)
-
-        {:ok, encoded_health_response(:BAD)}
-      end)
+      Mimic.stub(Health, :get_health, fn -> {:ok, %{status: :bad}} end)
 
       conn = get(conn, "/health")
 
@@ -84,12 +51,7 @@ defmodule Astarte.Pairing.APIWeb.PlugTest do
     end
 
     test "returns 503 when status is :error", %{conn: conn} do
-      MockRPCClient
-      |> expect(:rpc_call, fn serialized_call, @rpc_destination, @timeout ->
-        assert %Call{call: {:get_health, %GetHealth{}}} = Call.decode(serialized_call)
-
-        {:ok, encoded_health_response(:ERROR)}
-      end)
+      Mimic.stub(Health, :get_health, fn -> {:ok, %{status: :error}} end)
 
       conn = get(conn, "/health")
 
