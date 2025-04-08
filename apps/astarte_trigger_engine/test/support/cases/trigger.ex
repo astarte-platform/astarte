@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2017 - 2025 SECO Mind Srl
+# Copyright 2025 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -16,7 +16,25 @@
 # limitations under the License.
 #
 
-Mimic.copy(Astarte.DataAccess.Config)
-Mimic.copy(HTTPoison)
+defmodule Astarte.Cases.Trigger do
+  use ExUnit.CaseTemplate
+  use Mimic
 
-ExUnit.start()
+  using opts do
+    triggers = Keyword.fetch!(opts, :triggers)
+
+    quote do
+      @moduletag triggers: unquote(triggers)
+
+      import Astarte.Helpers.Trigger
+    end
+  end
+
+  alias Astarte.Helpers.Trigger
+
+  setup_all context do
+    %{realm_name: realm_name, triggers: triggers} = context
+
+    Enum.each(triggers, &Trigger.install_trigger(realm_name, &1))
+  end
+end
