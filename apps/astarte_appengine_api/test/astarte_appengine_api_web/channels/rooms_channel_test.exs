@@ -32,14 +32,6 @@ defmodule Astarte.AppEngine.APIWeb.RoomsChannelTest do
   alias Astarte.Core.Triggers.SimpleEvents.IncomingDataEvent
   alias Astarte.Core.Triggers.SimpleEvents.SimpleEvent
 
-  alias Astarte.RPC.Protocol.DataUpdaterPlant, as: Protocol
-  alias Astarte.RPC.Protocol.DataUpdaterPlant.Call
-  alias Astarte.RPC.Protocol.DataUpdaterPlant.DeleteVolatileTrigger
-  alias Astarte.RPC.Protocol.DataUpdaterPlant.GenericErrorReply
-  alias Astarte.RPC.Protocol.DataUpdaterPlant.GenericOkReply
-  alias Astarte.RPC.Protocol.DataUpdaterPlant.InstallVolatileTrigger
-  alias Astarte.RPC.Protocol.DataUpdaterPlant.Reply
-
   import Mox
 
   @all_access_regex ".*"
@@ -57,8 +49,6 @@ defmodule Astarte.AppEngine.APIWeb.RoomsChannelTest do
   @group_name "my_group"
   @authorized_group_watch_path "groups/#{@group_name}/#{@interface_exact}#{@path}"
   @authorized_group "groups/#{@group_name}"
-
-  @dup_rpc_destination Protocol.amqp_queue()
 
   @name "testwatch"
 
@@ -81,20 +71,6 @@ defmodule Astarte.AppEngine.APIWeb.RoomsChannelTest do
   @timestamp 1_573_233_693_478
 
   @unauthorized_reason %{reason: "unauthorized"}
-
-  @encoded_generic_ok_reply %Reply{
-                              reply: {:generic_ok_reply, %GenericOkReply{async_operation: false}}
-                            }
-                            |> Reply.encode()
-
-  @error_string "unsupported_interface_aggregation"
-  @encoded_generic_error_reply %Reply{
-                                 error: true,
-                                 reply:
-                                   {:generic_error_reply,
-                                    %GenericErrorReply{error_name: @error_string}}
-                               }
-                               |> Reply.encode()
 
   @event_simple_trigger_id Utils.get_uuid()
   @event_value 1000

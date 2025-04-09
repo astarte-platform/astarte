@@ -153,6 +153,8 @@ defmodule Astarte.AppEngine.API.DeviceTest do
     DatabaseTestHelper.seed_data()
   end
 
+  setup :verify_on_exit!
+
   setup_all do
     {:ok, _client} = DatabaseTestHelper.create_test_keyspace()
 
@@ -1044,24 +1046,19 @@ defmodule Astarte.AppEngine.API.DeviceTest do
 
       request_ts_1 = DateTime.utc_now()
 
-      MockRPCClient
-      |> expect(:rpc_call, fn serialized_call, _destination ->
-        assert %Call{call: {:publish, %Publish{} = publish_call}} = Call.decode(serialized_call)
+      Astarte.AppEngine.API.RPC.VMQPlugin.ClientMock
+      |> expect(:publish, fn data ->
+        %{
+          topic_tokens: topic_tokens,
+          payload: payload,
+          qos: qos
+        } = data
 
-        encoded_payload = Cyanide.encode!(%{v: value})
         path_tokens = String.split(path, "/")
-
-        assert %Publish{
-                 topic_tokens: [^test_realm, ^device_id, ^test_interface | ^path_tokens],
-                 payload: ^encoded_payload,
-                 qos: 2
-               } = publish_call
-
-        {:ok,
-         %Reply{
-           reply: tagged_publish_reply(1)
-         }
-         |> Reply.encode()}
+        assert ^topic_tokens = [test_realm, device_id, test_interface | path_tokens]
+        assert %{"v" => ^value} = Cyanide.decode!(payload)
+        assert 2 = qos
+        {:ok, %{local_matches: 1, remote_matches: 0}}
       end)
 
       assert Device.update_interface_values(
@@ -1083,24 +1080,19 @@ defmodule Astarte.AppEngine.API.DeviceTest do
 
       request_ts_2 = DateTime.utc_now()
 
-      MockRPCClient
-      |> expect(:rpc_call, fn serialized_call, _destination ->
-        assert %Call{call: {:publish, %Publish{} = publish_call}} = Call.decode(serialized_call)
+      Astarte.AppEngine.API.RPC.VMQPlugin.ClientMock
+      |> expect(:publish, fn data ->
+        %{
+          topic_tokens: topic_tokens,
+          payload: payload,
+          qos: qos
+        } = data
 
-        encoded_payload = Cyanide.encode!(%{v: value})
         path_tokens = String.split(path, "/")
-
-        assert %Publish{
-                 topic_tokens: [^test_realm, ^device_id, ^test_interface | ^path_tokens],
-                 payload: ^encoded_payload,
-                 qos: 2
-               } = publish_call
-
-        {:ok,
-         %Reply{
-           reply: tagged_publish_reply(1)
-         }
-         |> Reply.encode()}
+        assert ^topic_tokens = [test_realm, device_id, test_interface | path_tokens]
+        assert %{"v" => ^value} = Cyanide.decode!(payload)
+        assert 2 = qos
+        {:ok, %{local_matches: 1, remote_matches: 0}}
       end)
 
       assert Device.update_interface_values(
@@ -1154,25 +1146,19 @@ defmodule Astarte.AppEngine.API.DeviceTest do
 
       request_ts_1 = DateTime.utc_now()
 
-      MockRPCClient
-      |> expect(:rpc_call, fn serialized_call, _destination ->
-        assert %Call{call: {:publish, %Publish{} = publish_call}} = Call.decode(serialized_call)
+      Astarte.AppEngine.API.RPC.VMQPlugin.ClientMock
+      |> expect(:publish, fn data ->
+        %{
+          topic_tokens: topic_tokens,
+          payload: payload,
+          qos: qos
+        } = data
 
-        encoded_payload = Cyanide.encode!(%{v: value})
         path_tokens = String.split(path, "/")
-
-        assert %Publish{
-                 topic_tokens: [^test_realm, ^device_id, ^test_interface | ^path_tokens],
-                 payload: ^encoded_payload,
-                 qos: 2
-               } = publish_call
-
-        {:ok,
-         %Reply{
-           # Remote match
-           reply: tagged_publish_reply(0, 1)
-         }
-         |> Reply.encode()}
+        assert ^topic_tokens = [test_realm, device_id, test_interface | path_tokens]
+        assert %{"v" => ^value} = Cyanide.decode!(payload)
+        assert 2 = qos
+        {:ok, %{local_matches: 0, remote_matches: 1}}
       end)
 
       assert Device.update_interface_values(
@@ -1194,25 +1180,19 @@ defmodule Astarte.AppEngine.API.DeviceTest do
 
       request_ts_2 = DateTime.utc_now()
 
-      MockRPCClient
-      |> expect(:rpc_call, fn serialized_call, _destination ->
-        assert %Call{call: {:publish, %Publish{} = publish_call}} = Call.decode(serialized_call)
+      Astarte.AppEngine.API.RPC.VMQPlugin.ClientMock
+      |> expect(:publish, fn data ->
+        %{
+          topic_tokens: topic_tokens,
+          payload: payload,
+          qos: qos
+        } = data
 
-        encoded_payload = Cyanide.encode!(%{v: value})
         path_tokens = String.split(path, "/")
-
-        assert %Publish{
-                 topic_tokens: [^test_realm, ^device_id, ^test_interface | ^path_tokens],
-                 payload: ^encoded_payload,
-                 qos: 2
-               } = publish_call
-
-        {:ok,
-         %Reply{
-           # Multiple matches
-           reply: tagged_publish_reply(2, 3)
-         }
-         |> Reply.encode()}
+        assert ^topic_tokens = [test_realm, device_id, test_interface | path_tokens]
+        assert %{"v" => ^value} = Cyanide.decode!(payload)
+        assert 2 = qos
+        {:ok, %{local_matches: 2, remote_matches: 3}}
       end)
 
       assert Device.update_interface_values(
@@ -1264,24 +1244,19 @@ defmodule Astarte.AppEngine.API.DeviceTest do
       path = "/1/samplingPeriod"
       par = %{}
 
-      MockRPCClient
-      |> expect(:rpc_call, fn serialized_call, _destination ->
-        assert %Call{call: {:publish, %Publish{} = publish_call}} = Call.decode(serialized_call)
+      Astarte.AppEngine.API.RPC.VMQPlugin.ClientMock
+      |> expect(:publish, fn data ->
+        %{
+          topic_tokens: topic_tokens,
+          payload: payload,
+          qos: qos
+        } = data
 
-        encoded_payload = Cyanide.encode!(%{v: value})
         path_tokens = String.split(path, "/")
-
-        assert %Publish{
-                 topic_tokens: [^test_realm, ^device_id, ^test_interface | ^path_tokens],
-                 payload: ^encoded_payload,
-                 qos: 2
-               } = publish_call
-
-        {:ok,
-         %Reply{
-           reply: tagged_publish_reply(0)
-         }
-         |> Reply.encode()}
+        assert ^topic_tokens = [test_realm, device_id, test_interface | path_tokens]
+        assert %{"v" => ^value} = Cyanide.decode!(payload)
+        assert 2 = qos
+        {:ok, %{local_matches: 0, remote_matches: 0}}
       end)
 
       assert Device.update_interface_values(
@@ -1383,24 +1358,19 @@ defmodule Astarte.AppEngine.API.DeviceTest do
 
       request_ts_1 = DateTime.utc_now()
 
-      MockRPCClient
-      |> expect(:rpc_call, fn serialized_call, _destination ->
-        assert %Call{call: {:publish, %Publish{} = publish_call}} = Call.decode(serialized_call)
+      Astarte.AppEngine.API.RPC.VMQPlugin.ClientMock
+      |> expect(:publish, fn data ->
+        %{
+          topic_tokens: topic_tokens,
+          payload: payload,
+          qos: qos
+        } = data
 
-        encoded_payload = Cyanide.encode!(%{v: value})
         path_tokens = String.split(path, "/")
-
-        assert %Publish{
-                 topic_tokens: [^test_realm, ^device_id, ^interface | ^path_tokens],
-                 payload: ^encoded_payload,
-                 qos: 2
-               } = publish_call
-
-        {:ok,
-         %Reply{
-           reply: tagged_publish_reply(1)
-         }
-         |> Reply.encode()}
+        assert ^topic_tokens = [test_realm, device_id, interface | path_tokens]
+        assert %{"v" => ^value} = Cyanide.decode!(payload)
+        assert 2 = qos
+        {:ok, %{local_matches: 1, remote_matches: 0}}
       end)
 
       assert Device.update_interface_values(
@@ -1422,24 +1392,19 @@ defmodule Astarte.AppEngine.API.DeviceTest do
 
       request_ts_2 = DateTime.utc_now()
 
-      MockRPCClient
-      |> expect(:rpc_call, 2, fn serialized_call, _destination ->
-        assert %Call{call: {:publish, %Publish{} = publish_call}} = Call.decode(serialized_call)
+      Astarte.AppEngine.API.RPC.VMQPlugin.ClientMock
+      |> expect(:publish, fn data ->
+        %{
+          topic_tokens: topic_tokens,
+          payload: payload,
+          qos: qos
+        } = data
 
-        encoded_payload = Cyanide.encode!(%{v: value})
         path_tokens = String.split(path, "/")
-
-        assert %Publish{
-                 topic_tokens: [^test_realm, ^device_id, ^interface | ^path_tokens],
-                 payload: ^encoded_payload,
-                 qos: 2
-               } = publish_call
-
-        {:ok,
-         %Reply{
-           reply: tagged_publish_reply(1)
-         }
-         |> Reply.encode()}
+        assert ^topic_tokens = [test_realm, device_id, interface | path_tokens]
+        assert %{"v" => ^value} = Cyanide.decode!(payload)
+        assert 2 = qos
+        {:ok, %{local_matches: 1, remote_matches: 0}}
       end)
 
       assert Device.update_interface_values(
@@ -1488,26 +1453,24 @@ defmodule Astarte.AppEngine.API.DeviceTest do
       server_owned_value = %{"binaryblobarray" => Enum.map(values, &Base.encode64/1)}
       par = nil
 
-      MockRPCClient
-      |> expect(:rpc_call, fn serialized_call, _destination ->
-        assert %Call{call: {:publish, %Publish{} = publish_call}} = Call.decode(serialized_call)
-
-        encoded_payload =
-          %{v: %{"binaryblobarray" => Enum.map(values, &{0, &1})}} |> Cyanide.encode!()
+      Astarte.AppEngine.API.RPC.VMQPlugin.ClientMock
+      |> expect(:publish, fn data ->
+        %{
+          topic_tokens: topic_tokens,
+          payload: payload,
+          qos: qos
+        } = data
 
         path_tokens = String.split(path, "/")
+        assert ^topic_tokens = [test_realm, device_id, interface | path_tokens]
 
-        assert %Publish{
-                 topic_tokens: [^test_realm, ^device_id, ^interface | ^path_tokens],
-                 payload: ^encoded_payload,
-                 qos: 2
-               } = publish_call
+        blob = Enum.map(values, &%Cyanide.Binary{subtype: :generic, data: &1})
 
-        {:ok,
-         %Reply{
-           reply: tagged_publish_reply(1)
-         }
-         |> Reply.encode()}
+        assert %{"v" => %{"binaryblobarray" => ^blob}} =
+                 Cyanide.decode!(payload)
+
+        assert 2 = qos
+        {:ok, %{local_matches: 1, remote_matches: 0}}
       end)
 
       assert Device.update_interface_values(
@@ -1535,25 +1498,19 @@ defmodule Astarte.AppEngine.API.DeviceTest do
 
       request_ts_1 = DateTime.utc_now()
 
-      MockRPCClient
-      |> expect(:rpc_call, fn serialized_call, _destination ->
-        assert %Call{call: {:publish, %Publish{} = publish_call}} = Call.decode(serialized_call)
+      Astarte.AppEngine.API.RPC.VMQPlugin.ClientMock
+      |> expect(:publish, fn data ->
+        %{
+          topic_tokens: topic_tokens,
+          payload: payload,
+          qos: qos
+        } = data
 
-        encoded_payload = Cyanide.encode!(%{v: value})
         path_tokens = String.split(path, "/")
-
-        assert %Publish{
-                 topic_tokens: [^test_realm, ^device_id, ^interface | ^path_tokens],
-                 payload: ^encoded_payload,
-                 qos: 2
-               } = publish_call
-
-        {:ok,
-         %Reply{
-           # Remote match
-           reply: tagged_publish_reply(0, 1)
-         }
-         |> Reply.encode()}
+        assert ^topic_tokens = [test_realm, device_id, interface | path_tokens]
+        assert %{"v" => ^value} = Cyanide.decode!(payload)
+        assert 2 = qos
+        {:ok, %{local_matches: 0, remote_matches: 1}}
       end)
 
       assert Device.update_interface_values(
@@ -1575,25 +1532,19 @@ defmodule Astarte.AppEngine.API.DeviceTest do
 
       request_ts_2 = DateTime.utc_now()
 
-      MockRPCClient
-      |> expect(:rpc_call, 2, fn serialized_call, _destination ->
-        assert %Call{call: {:publish, %Publish{} = publish_call}} = Call.decode(serialized_call)
+      Astarte.AppEngine.API.RPC.VMQPlugin.ClientMock
+      |> expect(:publish, fn data ->
+        %{
+          topic_tokens: topic_tokens,
+          payload: payload,
+          qos: qos
+        } = data
 
-        encoded_payload = Cyanide.encode!(%{v: value})
         path_tokens = String.split(path, "/")
-
-        assert %Publish{
-                 topic_tokens: [^test_realm, ^device_id, ^interface | ^path_tokens],
-                 payload: ^encoded_payload,
-                 qos: 2
-               } = publish_call
-
-        {:ok,
-         %Reply{
-           # Multiple matches
-           reply: tagged_publish_reply(2, 3)
-         }
-         |> Reply.encode()}
+        assert ^topic_tokens = [test_realm, device_id, interface | path_tokens]
+        assert %{"v" => ^value} = Cyanide.decode!(payload)
+        assert 2 = qos
+        {:ok, %{local_matches: 2, remote_matches: 3}}
       end)
 
       assert Device.update_interface_values(
@@ -1641,24 +1592,19 @@ defmodule Astarte.AppEngine.API.DeviceTest do
       value = %{"enable" => true, "samplingPeriod" => 10}
       par = nil
 
-      MockRPCClient
-      |> expect(:rpc_call, fn serialized_call, _destination ->
-        assert %Call{call: {:publish, %Publish{} = publish_call}} = Call.decode(serialized_call)
+      Astarte.AppEngine.API.RPC.VMQPlugin.ClientMock
+      |> expect(:publish, fn data ->
+        %{
+          topic_tokens: topic_tokens,
+          payload: payload,
+          qos: qos
+        } = data
 
-        encoded_payload = Cyanide.encode!(%{v: value})
         path_tokens = String.split(path, "/")
-
-        assert %Publish{
-                 topic_tokens: [^test_realm, ^device_id, ^interface | ^path_tokens],
-                 payload: ^encoded_payload,
-                 qos: 2
-               } = publish_call
-
-        {:ok,
-         %Reply{
-           reply: tagged_publish_reply(0)
-         }
-         |> Reply.encode()}
+        assert ^topic_tokens = [test_realm, device_id, interface | path_tokens]
+        assert %{"v" => ^value} = Cyanide.decode!(payload)
+        assert 2 = qos
+        {:ok, %{local_matches: 0, remote_matches: 0}}
       end)
 
       assert Device.update_interface_values(
@@ -1691,24 +1637,19 @@ defmodule Astarte.AppEngine.API.DeviceTest do
       path = "/1/samplingPeriod"
       par = %{}
 
-      MockRPCClient
-      |> expect(:rpc_call, fn serialized_call, _destination ->
-        assert %Call{call: {:publish, %Publish{} = publish_call}} = Call.decode(serialized_call)
+      Astarte.AppEngine.API.RPC.VMQPlugin.ClientMock
+      |> expect(:publish, fn data ->
+        %{
+          topic_tokens: topic_tokens,
+          payload: payload,
+          qos: qos
+        } = data
 
-        encoded_payload = Cyanide.encode!(%{v: value})
         path_tokens = String.split(path, "/")
-
-        assert %Publish{
-                 topic_tokens: [^test_realm, ^device_id, ^test_interface | ^path_tokens],
-                 payload: ^encoded_payload,
-                 qos: 2
-               } = publish_call
-
-        {:ok,
-         %Reply{
-           reply: tagged_publish_reply(1)
-         }
-         |> Reply.encode()}
+        assert ^topic_tokens = [test_realm, device_id, test_interface | path_tokens]
+        assert %{"v" => ^value} = Cyanide.decode!(payload)
+        assert 2 = qos
+        {:ok, %{local_matches: 1, remote_matches: 0}}
       end)
 
       assert Device.update_interface_values(
@@ -1755,24 +1696,19 @@ defmodule Astarte.AppEngine.API.DeviceTest do
       value = %{"enable" => true, "samplingPeriod" => 10}
       par = nil
 
-      MockRPCClient
-      |> expect(:rpc_call, fn serialized_call, _destination ->
-        assert %Call{call: {:publish, %Publish{} = publish_call}} = Call.decode(serialized_call)
+      Astarte.AppEngine.API.RPC.VMQPlugin.ClientMock
+      |> expect(:publish, fn data ->
+        %{
+          topic_tokens: topic_tokens,
+          payload: payload,
+          qos: qos
+        } = data
 
-        encoded_payload = Cyanide.encode!(%{v: value})
         path_tokens = String.split(path, "/")
-
-        assert %Publish{
-                 topic_tokens: [^test_realm, ^device_id, ^test_interface | ^path_tokens],
-                 payload: ^encoded_payload,
-                 qos: 2
-               } = publish_call
-
-        {:ok,
-         %Reply{
-           reply: tagged_publish_reply(1)
-         }
-         |> Reply.encode()}
+        assert ^topic_tokens = [test_realm, device_id, test_interface | path_tokens]
+        assert %{"v" => ^value} = Cyanide.decode!(payload)
+        assert 2 = qos
+        {:ok, %{local_matches: 1, remote_matches: 0}}
       end)
 
       assert Device.update_interface_values(
