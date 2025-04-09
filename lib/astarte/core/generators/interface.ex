@@ -24,7 +24,6 @@ defmodule Astarte.Core.Generators.Interface do
   """
   use ExUnitProperties
 
-  alias Astarte.Core.Generators.Interface
   alias Astarte.Core.Generators.Mapping, as: MappingGenerator
   alias Astarte.Core.Interface
   alias Ecto.UUID
@@ -166,15 +165,15 @@ defmodule Astarte.Core.Generators.Interface do
   end
 
   defp retention_for(:datastream), do: MappingGenerator.retention()
-  defp retention_for(:properties), do: nil
+  defp retention_for(:properties), do: constant(:discard)
   defp reliability_for(:datastream), do: MappingGenerator.reliability()
-  defp reliability_for(:properties), do: nil
+  defp reliability_for(:properties), do: constant(:unreliable)
   defp expiry_for(:datastream), do: MappingGenerator.expiry()
-  defp expiry_for(:properties), do: nil
-  defp allow_unset_for(:datastream), do: nil
+  defp expiry_for(:properties), do: constant(0)
+  defp allow_unset_for(:datastream), do: constant(false)
   defp allow_unset_for(:properties), do: MappingGenerator.allow_unset()
   defp explicit_timestamp_for(:datastream), do: MappingGenerator.explicit_timestamp()
-  defp explicit_timestamp_for(:properties), do: nil
+  defp explicit_timestamp_for(:properties), do: constant(false)
 
   defp name_optional do
     gen all first <- string([?a..?z, ?A..?Z], length: 1),

@@ -28,6 +28,38 @@ defmodule Astarte.Core.Generators.InterfaceTest do
 
   @moduletag :interface
 
+  defp mapping_changes(:properties, mapping) do
+    expiry = if mapping.expiry == 0, do: nil, else: mapping.expiry
+    retention = if mapping.retention == :discard, do: nil, else: mapping.retention
+    reliability = if mapping.reliability == :unreliable, do: nil, else: mapping.reliability
+
+    database_retention_policy =
+      if mapping.database_retention_policy == :no_ttl,
+        do: nil,
+        else: mapping.database_retention_policy
+
+    explicit_timestamp =
+      if mapping.explicit_timestamp == false, do: nil, else: mapping.explicit_timestamp
+
+    nilified_params = %{
+      expiry: expiry,
+      retention: retention,
+      reliability: reliability,
+      database_retention_policy: database_retention_policy,
+      explicit_timestamp: explicit_timestamp
+    }
+
+    Map.from_struct(mapping)
+    |> Map.merge(nilified_params)
+  end
+
+  defp mapping_changes(:datastream, mapping) do
+    allow_unset = if mapping.allow_unset == false, do: nil, else: mapping.allow_unset
+
+    Map.from_struct(mapping)
+    |> Map.put(:allow_unset, allow_unset)
+  end
+
   defp changes_from_struct(interface) do
     %Interface{
       name: name,
@@ -36,7 +68,7 @@ defmodule Astarte.Core.Generators.InterfaceTest do
       mappings: mappings
     } = interface
 
-    mappings = Enum.map(mappings, &Map.from_struct/1)
+    mappings = Enum.map(mappings, &mapping_changes(interface.type, &1))
 
     changeset_params =
       %{
