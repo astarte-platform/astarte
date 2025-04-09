@@ -23,18 +23,29 @@ defmodule Astarte.DataUpdaterPlant.RPC.Supervisor do
   Supervisor of the RPC server module.
   """
 
-  use Supervisor
+  use Horde.DynamicSupervisor
 
-  def start_link(init_arg) do
-    Supervisor.start_link(__MODULE__, init_arg, name: __MODULE__)
+  def start_link(init_arg, opts \\ []) do
+    opts = [{:name, __MODULE__} | opts]
+
+    with {:ok, pid} <- Horde.DynamicSupervisor.start_link(__MODULE__, init_arg, opts) do
+      with [] <- Horde.Registry.lookup(Registry.DataUpdaterRPC, :server) do
+        _ = Horde.DynamicSupervisor.start_child(pid, Astarte.DataUpdaterPlant.RPC.Server)
+      end
+
+      {:ok, pid}
+    end
   end
 
-  @impl Supervisor
-  def init(_init_arg) do
-    children = [
-      Astarte.DataUpdaterPlant.RPC.Server
+  @impl Horde.DynamicSupervisor
+  def init(init_arg) do
+    [
+      strategy: :one_for_one,
+      members: :auto,
+      distribution_strategy: Horde.UniformDistribution,
+      restart: :always
     ]
-
-    Supervisor.init(children, strategy: :one_for_one)
+    |> Keyword.merge(init_arg)
+    |> Horde.DynamicSupervisor.init()
   end
 end
