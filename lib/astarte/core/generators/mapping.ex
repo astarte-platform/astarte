@@ -120,7 +120,7 @@ defmodule Astarte.Core.Generators.Mapping do
        }) do
     fixed_map(%{
       endpoint: endpoint(aggregation, prefix),
-      type: type(),
+      value_type: type(),
       retention: constant(retention),
       reliability: constant(reliability),
       explicit_timestamp: constant(explicit_timestamp),
