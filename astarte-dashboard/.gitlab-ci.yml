@@ -6,7 +6,7 @@ stages:
     - deploy
 
 next:build:
-    image: node:20.3.1
+    image: node:22.14.0
     stage: build
     script:
         - apt-get -y update
