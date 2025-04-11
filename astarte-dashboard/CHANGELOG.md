@@ -16,7 +16,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Adapt Device Stats and PieChart to exclude interfaces with 0 exchanged messages, ([#428](https://github.com/astarte-platform/astarte-dashboard/issues/428)).
 - Persist login using cookies instead of localStorage, ([#419](https://github.com/astarte-platform/astarte-dashboard/issues/419)).
 
-## [1.2.1] - Unreleased
+## [1.2.1-alpha.0] - 2025-04-10
+### Added
 - Support redirection to a specific page after successful authentication
 
 ## [1.2.0] - 2024-07-01
