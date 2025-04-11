@@ -49,14 +49,22 @@ defmodule Astarte.Core.Generators.InterfaceTest do
       explicit_timestamp: explicit_timestamp
     }
 
-    Map.from_struct(mapping)
+    mapping = Map.from_struct(mapping)
+    {value_type, mapping} = Map.pop(mapping, :value_type)
+
+    mapping
+    |> Map.put(:type, value_type)
     |> Map.merge(nilified_params)
   end
 
   defp mapping_changes(:datastream, mapping) do
     allow_unset = if mapping.allow_unset == false, do: nil, else: mapping.allow_unset
 
-    Map.from_struct(mapping)
+    mapping = Map.from_struct(mapping)
+    {value_type, mapping} = Map.pop(mapping, :value_type)
+
+    mapping
+    |> Map.put(:type, value_type)
     |> Map.put(:allow_unset, allow_unset)
   end
 
