@@ -26,19 +26,20 @@ defmodule Astarte.Core.Generators.Interface do
 
   alias Astarte.Core.Generators.Mapping, as: MappingGenerator
   alias Astarte.Core.Interface
+  alias Astarte.Generators.Utilities.ParamsGen
   alias Ecto.UUID
+
+  import ParamsGen
 
   @doc """
   Generates a valid Astarte Interface.
 
   https://github.com/astarte-platform/astarte_core/blob/master/lib/astarte_core/interface.ex
   """
-  @spec interface() :: StreamData.t(Interface.t())
-  def interface do
-    gen all(
-          required <- required_fields(),
-          optional <- optional_fields()
-        ) do
+  @spec interface(params :: Keyword.t()) :: StreamData.t(Interface.t())
+  def interface(params \\ []) do
+    gen all required <- required_fields(params),
+            optional <- optional_fields(params) do
       struct(Interface, Map.merge(required, optional))
     end
   end
@@ -52,15 +53,10 @@ defmodule Astarte.Core.Generators.Interface do
     end
   end
 
-  defp versions do
-    gen all(
-          major_version <- integer(0..9),
-          minor_version <- integer(0..255)
-        ) do
-      case {major_version, minor_version} do
-        {0, 0} -> {0, 1}
-        valid -> valid
-      end
+  defp minor_version(major_version) do
+    case major_version do
+      0 -> integer(1..255)
+      _n -> integer(0..255)
     end
   end
 
@@ -114,31 +110,31 @@ defmodule Astarte.Core.Generators.Interface do
     end
   end
 
-  defp required_fields do
-    gen all(
-          id <- id(),
-          name <- name(),
-          {major_version, minor_version} <- versions(),
-          type <- type(),
-          aggregation <- aggregation(%{type: type}),
-          ownership <- ownership(),
-          prefix <- endpoint_prefix(),
-          retention <- retention_for(type),
-          reliability <- reliability_for(type),
-          expiry <- expiry_for(type),
-          allow_unset <- allow_unset_for(type),
-          explicit_timestamp <- explicit_timestamp_for(type),
-          mappings <-
-            mappings(type, %{
-              aggregation: aggregation,
-              prefix: prefix,
-              retention: retention,
-              reliability: reliability,
-              expiry: expiry,
-              allow_unset: allow_unset,
-              explicit_timestamp: explicit_timestamp
-            })
-        ) do
+  defp required_fields(params) do
+    params gen all id <- id(),
+                   name <- name(),
+                   major_version <- integer(0..9),
+                   minor_version <- minor_version(major_version),
+                   type <- type(),
+                   aggregation <- aggregation(%{type: type}),
+                   ownership <- ownership(),
+                   prefix <- endpoint_prefix(),
+                   retention <- retention_for(type),
+                   reliability <- reliability_for(type),
+                   expiry <- expiry_for(type),
+                   allow_unset <- allow_unset_for(type),
+                   explicit_timestamp <- explicit_timestamp_for(type),
+                   mappings <-
+                     mappings(type, %{
+                       aggregation: aggregation,
+                       prefix: prefix,
+                       retention: retention,
+                       reliability: reliability,
+                       expiry: expiry,
+                       allow_unset: allow_unset,
+                       explicit_timestamp: explicit_timestamp
+                     }),
+                   params: params do
       %{
         id: id,
         interface_id: id,
@@ -157,11 +153,16 @@ defmodule Astarte.Core.Generators.Interface do
     end
   end
 
-  defp optional_fields do
-    optional_map(%{
-      description: description(),
-      doc: doc()
-    })
+  defp optional_fields(params) do
+    params gen all description <- optional(description()),
+                   doc <- optional(doc()),
+                   params: params do
+      %{description: description, doc: doc}
+    end
+  end
+
+  defp optional(generator) do
+    one_of([generator, nil])
   end
 
   defp retention_for(:datastream), do: MappingGenerator.retention()
