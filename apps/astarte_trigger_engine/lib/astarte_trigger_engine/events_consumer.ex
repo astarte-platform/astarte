@@ -23,7 +23,7 @@ defmodule Astarte.TriggerEngine.EventsConsumer do
 
   alias Astarte.Core.Triggers.SimpleEvents.SimpleEvent
   alias Astarte.Core.Triggers.Trigger
-  alias Astarte.TriggerEngine.Repo
+  alias Astarte.DataAccess.Repo
   alias Astarte.DataAccess.Consistency
   alias Astarte.DataAccess.KvStore
   alias Astarte.DataAccess.Realms.Realm

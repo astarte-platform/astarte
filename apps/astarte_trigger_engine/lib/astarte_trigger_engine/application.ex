@@ -47,7 +47,6 @@ defmodule Astarte.TriggerEngine.Application do
     children = [
       Astarte.TriggerEngineWeb.Telemetry,
       {Xandra.Cluster, xandra_cluster_options},
-      {Astarte.TriggerEngine.Repo, xandra_options},
       {Astarte.DataAccess, data_access_opts},
       DeliverySupervisor
     ]
