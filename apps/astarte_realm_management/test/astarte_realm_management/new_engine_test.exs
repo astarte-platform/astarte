@@ -17,6 +17,10 @@
 #
 
 defmodule Astarte.RealmManagement.EngineTestv2 do
+  alias Astarte.Core.Triggers.PolicyProtobuf.Policy, as: PolicyProto
+  alias Astarte.Core.Generators.Triggers.Policy
+  alias Astarte.Core.Triggers.Policy
+  alias Astarte.Core.Triggers.Trigger
   alias Astarte.RealmManagement.Queries
   alias Astarte.RealmManagement.Engine
 
@@ -168,6 +172,43 @@ defmodule Astarte.RealmManagement.EngineTestv2 do
 
         _ = Engine.install_interface(realm, json_interface)
         {:error, :downgrade_not_allowed} = Engine.update_interface(realm, json_updated_interface)
+      end
+    end
+  end
+
+  describe "Test trigger policy" do
+    @describetag :trigger_policy
+
+    property "is installed correctly", %{realm: realm} do
+      check all(policy <- Astarte.Core.Generators.Triggers.Policy.policy()) do
+        policy_json = Jason.encode!(policy)
+        :ok = Engine.install_trigger_policy(realm, policy_json)
+
+        {:ok, fetched_policy} = Queries.fetch_trigger_policy(realm, policy.name)
+
+        fetched_policy =
+          fetched_policy
+          |> PolicyProto.decode()
+          |> Policy.from_policy_proto!()
+
+        assert policy.event_ttl == fetched_policy.event_ttl
+        assert policy.maximum_capacity == policy.maximum_capacity
+        assert policy.name == fetched_policy.name
+        assert (policy.prefetch_count || 0) == fetched_policy.prefetch_count
+        assert (policy.retry_times || 0) == fetched_policy.retry_times
+
+        assert Enum.sort(policy.error_handlers) == Enum.sort(fetched_policy.error_handlers)
+      end
+    end
+
+    property "is deleted correctly", %{realm: realm} do
+      check all(policy <- Astarte.Core.Generators.Triggers.Policy.policy()) do
+        policy_json = Jason.encode!(policy)
+        _ = Engine.install_trigger_policy(realm, policy_json)
+
+        :ok = Engine.delete_trigger_policy(realm, policy.name)
+
+        {:error, :trigger_policy_not_found} = Engine.trigger_policy_source(realm, policy.name)
       end
     end
   end

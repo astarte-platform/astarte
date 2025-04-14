@@ -1130,18 +1130,11 @@ defmodule Astarte.RealmManagement.Queries do
   def fetch_trigger_policy(realm_name, policy_name) do
     keyspace = Realm.keyspace_name(realm_name)
 
-    query =
-      from store in KvStore,
-        select: store.value,
-        where: [group: "trigger_policy", policy_name: ^policy_name]
-
-    opts = [
+    KvStore.fetch_value("trigger_policy", policy_name, :binary,
       prefix: keyspace,
       consistency: Consistency.domain_model(:read),
       error: :policy_not_found
-    ]
-
-    Repo.fetch_one(query, opts)
+    )
   end
 
   def check_policy_has_triggers(realm_name, policy_name) do
