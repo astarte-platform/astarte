@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2017 - 2025 SECO Mind Srl
+# Copyright 2025 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -16,8 +16,15 @@
 # limitations under the License.
 #
 
-Mimic.copy(AMQP.Basic)
-Mimic.copy(Astarte.DataAccess.Config)
-Mimic.copy(HTTPoison)
+defmodule Astarte.Cases.Policy do
+  use ExUnit.CaseTemplate
 
-ExUnit.start()
+  alias Astarte.Core.Generators.Triggers.Policy
+
+  setup do
+    realm_name = "realm#{System.unique_integer([:positive])}"
+    policy = Policy.policy() |> Enum.at(0)
+
+    %{realm_name: realm_name, policy: policy}
+  end
+end
