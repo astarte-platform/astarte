@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2017 Ispirata Srl
+# Copyright 2017-2025 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -16,12 +16,12 @@
 # limitations under the License.
 #
 
-defmodule Astarte.Housekeeping.APIWeb.ChannelCase do
+defmodule Astarte.Housekeeping.APIWeb.ConnCase do
   @moduledoc """
   This module defines the test case to be used by
-  channel tests.
+  tests that require setting up a connection.
 
-  Such tests rely on `Phoenix.ChannelTest` and also
+  Such tests rely on `Phoenix.ConnTest` and also
   import other functionality to make it easier
   to build common datastructures and query the data layer.
 
@@ -35,15 +35,26 @@ defmodule Astarte.Housekeeping.APIWeb.ChannelCase do
 
   using do
     quote do
-      # Import conveniences for testing with channels
-      use Phoenix.ChannelTest
+      # Import conveniences for testing with connections
+      import Plug.Conn
+      import Phoenix.ConnTest
+      import Astarte.Housekeeping.APIWeb.Router.Helpers
 
       # The default endpoint for testing
       @endpoint Astarte.Housekeeping.APIWeb.Endpoint
     end
   end
 
-  setup _tags do
+  setup_all do
+    Astarte.Housekeeping.Mock.DB.start_link()
     :ok
+  end
+
+  setup _tags do
+    on_exit(fn ->
+      Astarte.Housekeeping.Mock.DB.clean()
+    end)
+
+    {:ok, conn: Phoenix.ConnTest.build_conn()}
   end
 end
