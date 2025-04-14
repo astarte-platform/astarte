@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2022 SECO Mind Srl
+# Copyright 2022 - 2025 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -18,22 +18,25 @@
 
 defmodule Astarte.TriggerEngine.AMQPConsumer.AMQPMessageConsumer do
   defmodule State do
-    defstruct [
-      :channel,
-      :monitor,
-      :realm_name,
-      :policy
-    ]
+    use TypedStruct
+
+    alias Astarte.Core.Triggers.Policy
+    alias AMQP.Channel
+
+    typedstruct do
+      field :channel, Channel.t()
+      field :monitor, reference()
+      field :realm_name, String.t()
+      field :policy, Policy.t()
+    end
   end
 
   use GenServer
   require Logger
+  alias Astarte.TriggerEngine.AMQPConsumer.AMQPMessageConsumer.Impl
   alias Astarte.TriggerEngine.Policy
-  alias Astarte.TriggerEngine.Config
-  alias Astarte.Core.Triggers.Policy, as: PolicyStruct
 
   @reconnect_interval 1_000
-  @adapter Config.amqp_adapter!()
 
   def start_link(args \\ []) do
     realm_name = Keyword.fetch!(args, :realm_name)
@@ -67,17 +70,17 @@ defmodule Astarte.TriggerEngine.AMQPConsumer.AMQPMessageConsumer do
   end
 
   @impl true
-  def handle_continue(:connect, state), do: do_connect(state)
+  def handle_continue(:connect, state), do: connect(state)
 
   @impl true
-  def handle_info(:connect, state), do: do_connect(state)
+  def handle_info(:connect, state), do: connect(state)
 
   @impl true
   def handle_info(
         {:DOWN, monitor, :process, chan_pid, _reason},
         %{monitor: monitor, channel: %{pid: chan_pid}} = state
       ) do
-    do_connect(state)
+    connect(state)
   end
 
   # Confirmation sent by the broker after registering this process as a consumer
@@ -141,79 +144,23 @@ defmodule Astarte.TriggerEngine.AMQPConsumer.AMQPMessageConsumer do
     Process.send_after(self(), :connect, @reconnect_interval)
   end
 
-  # Gets a connection worker out of the connection pool, if there is one available
-  # takes a channel out of it channel pool, if there is one available
-  # subscribe itself as a consumer process.
+  defp connect(state) do
+    %{channel: channel, monitor: monitor} = do_connect(state)
+    new_state = %{state | channel: channel, monitor: monitor}
+    {:noreply, new_state}
+  end
+
+  @spec do_connect(State.t()) ::
+          %{channel: AMQP.Channel.t(), monitor: reference()} | %{channel: nil, monitor: nil}
   defp do_connect(state) do
-    conn = ExRabbitPool.get_connection_worker(:events_consumer_pool)
-
-    case ExRabbitPool.checkout_channel(conn) do
-      {:ok, channel} ->
-        try_to_connect(channel, state)
+    case Impl.connect(state.realm_name, state.policy) do
+      {:ok, channel, monitor} ->
+        %{channel: channel, monitor: monitor}
 
       {:error, _reason} ->
         schedule_connect()
-        {:noreply, state}
+        %{channel: nil, monitor: nil}
     end
-  end
-
-  # When successfully checks out a channel, sets up exchange and queue, subscribe itself as a consumer
-  # process and monitors it handle crashes and reconnections
-  defp try_to_connect(channel, state) do
-    %{pid: channel_pid} = channel
-    %{policy: policy, realm_name: realm_name} = state
-
-    exchange_name = Config.events_exchange_name!()
-    queue_name = generate_queue_name(realm_name, policy.name)
-    routing_key = generate_routing_key(realm_name, policy.name)
-
-    with :ok <- @adapter.qos(channel, prefetch_count: Config.amqp_consumer_prefetch_count!()),
-         :ok <- @adapter.declare_exchange(channel, exchange_name, type: :direct, durable: true),
-         {:ok, _queue} <- @adapter.declare_queue(channel, queue_name, durable: true),
-         :ok <-
-           @adapter.queue_bind(
-             channel,
-             queue_name,
-             exchange_name,
-             routing_key: routing_key,
-             arguments: [{"x-queue-mode", :longstr, "lazy"} | generate_policy_x_args(policy)]
-           ),
-         {:ok, _consumer_tag} <- @adapter.consume(channel, queue_name, self()) do
-      ref = Process.monitor(channel_pid)
-
-      _ =
-        Logger.debug(
-          "Queue #{queue_name} on exchange #{exchange_name} declared, bound with routing key #{routing_key}",
-          tag: "queue_bound"
-        )
-
-      {:noreply, %{state | channel: channel, monitor: ref}}
-    else
-      {:error, _reason} ->
-        schedule_connect()
-        {:noreply, %{state | channel: nil, monitor: nil}}
-    end
-  end
-
-  defp generate_policy_x_args(%PolicyStruct{
-         maximum_capacity: max_capacity,
-         event_ttl: event_ttl
-       }) do
-    []
-    |> put_x_arg_if(max_capacity != nil, fn -> {"x-max-length", :signedint, max_capacity} end)
-    # AMQP message TTLs are in milliseconds!
-    |> put_x_arg_if(event_ttl != nil, fn -> {"x-message-ttl", :signedint, event_ttl * 1_000} end)
-  end
-
-  defp put_x_arg_if(list, true, x_arg_fun), do: [x_arg_fun.() | list]
-  defp put_x_arg_if(list, false, _x_arg_fun), do: list
-
-  defp generate_queue_name(realm, policy) do
-    "#{realm}_#{policy}_queue"
-  end
-
-  defp generate_routing_key(realm, policy) do
-    "#{realm}_#{policy}"
   end
 
   defp get_policy_process(realm_name, policy) do
