@@ -45,12 +45,10 @@ defmodule Astarte.Generators.Utilities.ParamsGen do
 
     # Override the default integer generator using params gen all
     def parametric_generators(params \\ [a: { 2, 3, 4}])
-    params gen(
-      all a <- integer(),
-          b <- list_of(string(:ascii)),
-          c <- constant({:amicizia, "dottore"}),
-          params: params
-    ) do
+    params gen all a <- integer(),
+                   b <- list_of(string(:ascii)),
+                   c <- constant({:amicizia, "dottore"}),
+                   params: params do
         {a, b, c}
       end
   end

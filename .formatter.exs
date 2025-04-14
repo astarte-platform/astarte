@@ -16,15 +16,26 @@
 # limitations under the License.
 #
 
+locals_without_parens = [
+  # stream_data
+  all: :*,
+  check: 1,
+  check: 2,
+  property: 1,
+  property: 2,
+
+  # astarte_generators
+  gen: :*
+]
+
 [
-  import_deps: [
-    :stream_data
-  ],
   inputs: [
     "lib/**/*.{ex,exs}",
     "test/**/*.{ex,exs}",
     "mix.exs",
     "config/**/*.{ex,exs}",
     ".credo.exs"
-  ]
+  ],
+  locals_without_parens: locals_without_parens,
+  export: [locals_without_parens: locals_without_parens]
 ]

@@ -25,22 +25,18 @@ defmodule Astarte.Generators.Utilities.ParamsGenTest do
   @moduletag :fans
 
   defp gen_helper do
-    params gen(
-             all a <- integer(0..0),
-                 b <- string(?a..?a, length: 1),
-                 c <- constant("friend")
-           ) do
+    params gen all a <- integer(0..0),
+                   b <- string(?a..?a, length: 1),
+                   c <- constant("friend") do
       {a, b, c}
     end
   end
 
   defp param_gen_helper(params) do
-    params gen(
-             all a <- integer(0..0),
-                 b <- string(?a..?a, length: 1),
-                 c <- constant("friend"),
-                 params: params
-           ) do
+    params gen all a <- integer(0..0),
+                   b <- string(?a..?a, length: 1),
+                   c <- constant("friend"),
+                   params: params do
       {a, b, c}
     end
   end
