@@ -87,6 +87,7 @@ defmodule Astarte.TriggerEngine.Mixfile do
       {:telemetry_metrics, "~> 0.4"},
       {:telemetry_poller, "~> 0.4"},
       {:typed_ecto_schema, "~> 0.4"},
+      {:typedstruct, "~> 0.5"},
       {:ecto, "~> 3.12"},
       {:pretty_log, "~> 0.1"},
       {:telemetry, "~> 0.4"},
