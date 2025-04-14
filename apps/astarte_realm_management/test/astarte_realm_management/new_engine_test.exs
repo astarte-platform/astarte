@@ -87,6 +87,89 @@ defmodule Astarte.RealmManagement.EngineTestv2 do
         refute interface.name in interfaces
       end
     end
+
+    property "can update only the same major version", %{realm: realm} do
+      check all(
+              interface <-
+                Astarte.Core.Generators.Interface.interface(major_version: integer(0..8)),
+              update_interface <-
+                Astarte.Core.Generators.Interface.interface(
+                  name: interface.name,
+                  major_version: interface.major_version + 1
+                )
+            ) do
+        json_interface = Jason.encode!(interface)
+        json_updated_interface = Jason.encode!(update_interface)
+
+        _ = Engine.install_interface(realm, json_interface)
+
+        assert {:error, :interface_major_version_does_not_exist} =
+                 Engine.update_interface(realm, json_updated_interface)
+      end
+    end
+
+    property "is updated with valid update", %{realm: realm} do
+      check all(
+              interface <-
+                Astarte.Core.Generators.Interface.interface(minor_version: integer(1..254)),
+              valid_update_interface <-
+                Astarte.Core.Generators.Interface.interface(
+                  name: interface.name,
+                  major_version: interface.major_version,
+                  minor_version: integer((interface.minor_version + 1)..255),
+                  type: interface.type,
+                  ownership: interface.ownership,
+                  aggregation: interface.aggregation,
+                  interface_id: interface.interface_id,
+                  mappings: interface.mappings
+                )
+            ) do
+        json_interface = Jason.encode!(interface)
+        json_updated_interface = Jason.encode!(valid_update_interface)
+
+        _ = Engine.install_interface(realm, json_interface)
+        :ok = Engine.update_interface(realm, json_updated_interface)
+
+        {:ok, interface} =
+          Queries.fetch_interface(realm, interface.name, interface.major_version)
+
+        %{
+          name: name,
+          major_version: major,
+          minor_version: minor
+        } = interface
+
+        assert %Astarte.Core.Interface{
+                 name: ^name,
+                 major_version: ^major,
+                 minor_version: ^minor
+               } = valid_update_interface
+      end
+    end
+
+    property "is not updated on downgrade", %{realm: realm} do
+      check all(
+              interface <-
+                Astarte.Core.Generators.Interface.interface(minor_version: integer(2..255)),
+              updated_interface <-
+                Astarte.Core.Generators.Interface.interface(
+                  name: interface.name,
+                  major_version: interface.major_version,
+                  minor_version: interface.minor_version - 1,
+                  type: interface.type,
+                  ownership: interface.ownership,
+                  aggregation: interface.aggregation,
+                  interface_id: interface.interface_id,
+                  mappings: interface.mappings
+                )
+            ) do
+        json_interface = Jason.encode!(interface)
+        json_updated_interface = Jason.encode!(updated_interface)
+
+        _ = Engine.install_interface(realm, json_interface)
+        {:error, :downgrade_not_allowed} = Engine.update_interface(realm, json_updated_interface)
+      end
+    end
   end
 
   # Drops virtual and incomparable elements
