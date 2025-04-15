@@ -111,17 +111,4 @@ defmodule Astarte.Housekeeping.API.Realms do
       {:error, reason} -> {:error, reason}
     end
   end
-
-  @doc """
-  Returns a datastructure for tracking realm changes.
-
-  ## Examples
-
-      iex> change_realm(realm)
-      %Todo{...}
-
-  """
-  def change_realm(%Realm{} = _realm) do
-    raise "TODO"
-  end
 end

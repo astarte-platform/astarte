@@ -261,11 +261,5 @@ defmodule Astarte.Housekeeping.API.RealmsTest do
       assert {:ok, %Realm{}} = Realms.delete_realm(realm)
       assert_raise Ecto.NoResultsError, fn -> Realms.get_realm!(realm.id) end
     end
-
-    @tag :wip
-    test "change_realm/1 returns a realm changeset" do
-      realm = realm_fixture()
-      assert %Ecto.Changeset{} = Realms.change_realm(realm)
-    end
   end
 end
