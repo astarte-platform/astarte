@@ -24,35 +24,42 @@ defmodule Astarte.Core.Generators.Triggers.Policy do
 
   use ExUnitProperties
 
+  import Astarte.Generators.Utilities.ParamsGen
+
   alias Astarte.Core.Triggers.Policy
   alias Astarte.Core.Triggers.Policy.ErrorKeyword
   alias Astarte.Core.Triggers.Policy.ErrorRange
   alias Astarte.Core.Triggers.Policy.Handler
 
-  @spec policy :: StreamData.t(Policy.t())
-  def policy do
-    gen all retry_times <- integer(1..100),
-            fields <-
-              optional_map(
-                %{
-                  name: policy_name(),
-                  error_handlers: policy_handlers(),
-                  maximum_capacity: integer(1..1_000_000),
-                  event_ttl: integer(1..86_400),
-                  prefetch_count: integer(1..300)
-                },
-                [:event_ttl, :prefetch_count]
-              ) do
+  @spec policy(keyword) :: StreamData.t(Policy.t())
+  def policy(params \\ []) do
+    params gen all retry_times <- integer(1..100),
+                   name <- policy_name(),
+                   error_handlers <- policy_handlers(),
+                   maximum_capacity <- integer(1..1_000_000),
+                   event_ttl <- optional(integer(1..86_400)),
+                   prefetch_count <- optional(integer(1..300)),
+                   params: params do
       retry_times =
-        case Enum.all?(fields.error_handlers, &Handler.discards?/1) do
+        case Enum.all?(error_handlers, &Handler.discards?/1) do
           true -> nil
           false -> retry_times
         end
 
-      fields = fields |> Map.put(:retry_times, retry_times)
+      fields = %{
+        retry_times: retry_times,
+        name: name,
+        error_handlers: error_handlers,
+        maximum_capacity: maximum_capacity,
+        event_ttl: event_ttl,
+        prefetch_count: prefetch_count
+      }
+
       struct(Policy, fields)
     end
   end
+
+  defp optional(gen), do: one_of([nil, gen])
 
   defp policy_name do
     string(:utf8, min_length: 1, max_length: 128)
