@@ -245,7 +245,7 @@ services:
 
   # VerneMQ
   vernemq:
-    image: astarte/vernemq:1.2.0
+    image: astarte/vernemq:1.2-snapshot
     env_file:
       - ./.env
     environment:

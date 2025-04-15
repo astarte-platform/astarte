@@ -34,6 +34,7 @@ defmodule Astarte.DataUpdaterPlant.DataPipelineSupervisor do
       {Horde.Registry, [keys: :unique, name: Registry.DataUpdater, members: :auto]},
       {Horde.Registry, [keys: :unique, name: Registry.DataUpdaterRPC, members: :auto]},
       {Horde.Registry, [keys: :unique, name: Registry.AMQPDataConsumer, members: :auto]},
+      {Horde.Registry, [keys: :unique, name: Registry.VMQPluginRPC, members: :auto]},
       {Horde.DynamicSupervisor,
        [
          name: Supervisor.MessageTracker,
@@ -55,8 +56,7 @@ defmodule Astarte.DataUpdaterPlant.DataPipelineSupervisor do
        connection_pools: [Config.events_producer_pool_config!()]},
       AMQPEventsProducer,
       ConsumersSupervisor,
-      Astarte.DataUpdaterPlant.RPC.Supervisor,
-      Astarte.RPC.AMQP.Client
+      Astarte.DataUpdaterPlant.RPC.Supervisor
     ]
 
     Supervisor.init(children, strategy: :rest_for_one)
