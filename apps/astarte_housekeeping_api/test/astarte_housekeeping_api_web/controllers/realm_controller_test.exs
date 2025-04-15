@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2017-2023 SECO Mind Srl
+# Copyright 2017-2025 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -18,17 +18,11 @@
 
 defmodule Astarte.Housekeeping.APIWeb.RealmControllerTest do
   use Astarte.Housekeeping.APIWeb.ConnCase
+  use Astarte.Housekeeping.APIWeb.AuthCase
 
-  alias Astarte.Housekeeping.API.Realms
   alias Astarte.Housekeeping.API.Realms.Realm
-  alias Astarte.Housekeeping.API.Config
+  import Astarte.Housekeeping.API.Fixtures.Realm
 
-  @pubkey """
-  -----BEGIN PUBLIC KEY-----
-  MFYwEAYHKoZIzj0CAQYFK4EEAAoDQgAE6ssZpULEsn+wSQdc+DI2+4aj98a1hDKM
-  +bxRibfFC0G6SugduGzqIACSdIiLEn4Nubx2jt4tHDpel0BIrYKlCw==
-  -----END PUBLIC KEY-----
-  """
   @malformed_pubkey """
   -----BEGIN PUBLIC KEY-----
   MFYwEAYHKoZIzj0CAQYAoDQgAE6ssZpw4aj98a1hDKM
@@ -42,18 +36,18 @@ defmodule Astarte.Housekeeping.APIWeb.RealmControllerTest do
   -----END PUBLIC KEY-----
   """
 
-  @create_attrs %{"data" => %{"realm_name" => "testrealm", "jwt_public_key_pem" => @pubkey}}
+  @create_attrs %{"data" => %{"realm_name" => "testrealm", "jwt_public_key_pem" => pubkey()}}
   @explicit_replication_attrs %{
     "data" => %{
       "realm_name" => "testrealm2",
-      "jwt_public_key_pem" => @pubkey,
+      "jwt_public_key_pem" => pubkey(),
       "replication_factor" => 3
     }
   }
   @network_topology_attrs %{
     "data" => %{
       "realm_name" => "testrealm3",
-      "jwt_public_key_pem" => @pubkey,
+      "jwt_public_key_pem" => pubkey(),
       "replication_class" => "NetworkTopologyStrategy",
       "datacenter_replication_factors" => %{
         "boston" => 2,
@@ -63,11 +57,11 @@ defmodule Astarte.Housekeeping.APIWeb.RealmControllerTest do
   }
   @update_attrs %{"data" => %{"jwt_public_key_pem" => @other_pubkey}}
   @invalid_update_attrs %{"data" => %{"jwt_public_key_pem" => @malformed_pubkey}}
-  @invalid_name_attrs %{"data" => %{"realm_name" => "0invalid", "jwt_public_key_pem" => @pubkey}}
+  @invalid_name_attrs %{"data" => %{"realm_name" => "0invalid", "jwt_public_key_pem" => pubkey()}}
   @invalid_replication_attrs %{
     "data" => %{
       "realm_name" => "testrealm",
-      "jwt_public_key_pem" => @pubkey,
+      "jwt_public_key_pem" => pubkey(),
       "replication_factor" => -3
     }
   }
@@ -80,19 +74,6 @@ defmodule Astarte.Housekeeping.APIWeb.RealmControllerTest do
     }
   }
   @non_existing_realm_name "nonexistingrealm"
-
-  def fixture(:realm) do
-    {:ok, realm} = Realms.create_realm(@create_attrs["data"])
-    realm
-  end
-
-  setup_all do
-    Config.put_disable_authentication(true)
-
-    on_exit(fn ->
-      Config.reload_disable_authentication()
-    end)
-  end
 
   setup %{conn: conn} do
     {:ok, conn: put_req_header(conn, "accept", "application/json")}
@@ -198,7 +179,7 @@ defmodule Astarte.Housekeeping.APIWeb.RealmControllerTest do
   end
 
   test "updates chosen realm when data is valid", %{conn: conn} do
-    %Realm{realm_name: realm_name} = realm = fixture(:realm)
+    %Realm{realm_name: realm_name} = realm = realm_fixture()
     conn = patch(conn, realm_path(conn, :update, realm), @update_attrs)
     assert %{"data" => updated_realm} = json_response(conn, 200)
 
@@ -209,7 +190,7 @@ defmodule Astarte.Housekeeping.APIWeb.RealmControllerTest do
   end
 
   test "updates chosen realm device registration limit", %{conn: conn} do
-    %Realm{realm_name: realm_name} = realm = fixture(:realm)
+    %Realm{realm_name: realm_name} = realm = realm_fixture()
     limit = 10
 
     conn =
@@ -226,7 +207,7 @@ defmodule Astarte.Housekeeping.APIWeb.RealmControllerTest do
   end
 
   test "updates chosen realm maximum storage retention", %{conn: conn} do
-    %Realm{realm_name: realm_name} = realm = fixture(:realm)
+    %Realm{realm_name: realm_name} = realm = realm_fixture()
     limit = 10
 
     conn =
@@ -243,7 +224,7 @@ defmodule Astarte.Housekeeping.APIWeb.RealmControllerTest do
   end
 
   test "removes chosen realm device registration limit", %{conn: conn} do
-    %Realm{realm_name: realm_name} = realm = fixture(:realm)
+    %Realm{realm_name: realm_name} = realm = realm_fixture()
 
     conn =
       patch(conn, realm_path(conn, :update, realm), %{
@@ -271,7 +252,7 @@ defmodule Astarte.Housekeeping.APIWeb.RealmControllerTest do
   end
 
   test "removes chosen realm maximum storage retention", %{conn: conn} do
-    %Realm{realm_name: realm_name} = realm = fixture(:realm)
+    %Realm{realm_name: realm_name} = realm = realm_fixture()
 
     conn =
       patch(conn, realm_path(conn, :update, realm), %{
@@ -299,13 +280,13 @@ defmodule Astarte.Housekeeping.APIWeb.RealmControllerTest do
   end
 
   test "does not update chosen realm and renders errors when data is invalid", %{conn: conn} do
-    %Realm{realm_name: realm_name} = realm = fixture(:realm)
+    realm = realm_fixture()
     conn = patch(conn, realm_path(conn, :update, realm), @invalid_update_attrs)
     assert json_response(conn, 422)["errors"] != %{}
   end
 
   test "deletes chosen realm", %{conn: conn} do
-    realm = fixture(:realm)
+    realm = realm_fixture()
     conn = delete(conn, realm_path(conn, :delete, realm))
     assert response(conn, 204)
 
