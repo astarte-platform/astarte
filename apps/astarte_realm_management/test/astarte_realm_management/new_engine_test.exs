@@ -268,6 +268,28 @@ defmodule Astarte.RealmManagement.EngineTestv2 do
         _ = Engine.delete_trigger(realm, trigger.name)
       end
     end
+
+    property "are deleted correctly", %{realm: realm} do
+      check all(
+              interface <- Astarte.Core.Generators.Interface.interface(),
+              device <- Astarte.Core.Generators.Device.device(interfaces: [interface]),
+              trigger <- trigger(string(:utf8)),
+              simple_trigger <-
+                simple_trigger_config(interface.name, interface.major_version, device.device_id)
+            ) do
+        :ok =
+          Engine.install_trigger(
+            realm,
+            trigger.name,
+            nil,
+            trigger.action,
+            serialize_simple_triggers([simple_trigger])
+          )
+
+        :ok = Engine.delete_trigger(realm, trigger.name)
+        assert {:error, :trigger_not_found} = Engine.get_trigger(realm, trigger.name)
+      end
+    end
   end
 
   # Drops virtual and incomparable elements
