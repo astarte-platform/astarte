@@ -43,6 +43,14 @@ defmodule Astarte.Housekeeping.Mock.DB do
     Agent.get(__MODULE__, &Map.keys(&1))
   end
 
+  def set_health_status(status) do
+    Agent.update(__MODULE__, &Map.put(&1, :health_status, status))
+  end
+
+  def get_health_status do
+    Agent.get(__MODULE__, &Map.get(&1, :health_status, :READY))
+  end
+
   def clean do
     Agent.update(__MODULE__, fn _x -> %{} end)
   end
