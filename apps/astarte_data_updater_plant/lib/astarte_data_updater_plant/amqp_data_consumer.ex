@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2017 Ispirata Srl
+# Copyright 2017 - 2025 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -51,52 +51,8 @@ defmodule Astarte.DataUpdaterPlant.AMQPDataConsumer do
     GenServer.start_link(__MODULE__, args, name: get_queue_via_tuple(index))
   end
 
-  def ack(pid, delivery_tag) do
-    Logger.debug("Going to ack #{inspect(delivery_tag)}")
-    GenServer.call(pid, {:ack, delivery_tag})
-  end
-
-  def discard(pid, delivery_tag) do
-    Logger.debug("Going to discard #{inspect(delivery_tag)}")
-    GenServer.call(pid, {:discard, delivery_tag})
-  end
-
-  def requeue(pid, delivery_tag) do
-    Logger.debug("Going to requeue #{inspect(delivery_tag)}")
-    GenServer.call(pid, {:requeue, delivery_tag})
-  end
-
-  def start_message_tracker(realm, encoded_device_id) do
-    with {:ok, via_tuple} <- fetch_queue_via_tuple(realm, encoded_device_id) do
-      GenServer.call(via_tuple, {:start_message_tracker, realm, encoded_device_id})
-    end
-  end
-
-  def start_data_updater(realm, encoded_device_id, message_tracker) do
-    with {:ok, via_tuple} <- fetch_queue_via_tuple(realm, encoded_device_id) do
-      GenServer.call(via_tuple, {:start_data_updater, realm, encoded_device_id, message_tracker})
-    end
-  end
-
   defp get_queue_via_tuple(queue_index) when is_integer(queue_index) do
-    {:via, Registry, {Registry.AMQPDataConsumer, {:queue_index, queue_index}}}
-  end
-
-  defp fetch_queue_via_tuple(realm, encoded_device_id)
-       when is_binary(realm) and is_binary(encoded_device_id) do
-    # This is the same sharding algorithm used in astarte_vmq_plugin
-    # Make sure they stay in sync
-    queue_index =
-      {realm, encoded_device_id}
-      |> :erlang.phash2(Config.data_queue_total_count!())
-
-    if queue_index >= Config.data_queue_range_start!() and
-         queue_index <= Config.data_queue_range_end!() do
-      {:ok, get_queue_via_tuple(queue_index)}
-    else
-      # This device is handled by a differente DUP instance
-      {:error, :unhandled_device}
-    end
+    {:via, Horde.Registry, {Registry.AMQPDataConsumer, {:queue_index, queue_index}}}
   end
 
   # Server callbacks
@@ -123,16 +79,6 @@ defmodule Astarte.DataUpdaterPlant.AMQPDataConsumer do
 
   def handle_call({:requeue, delivery_tag}, _from, %State{channel: chan} = state) do
     res = @adapter.reject(chan, delivery_tag, requeue: true)
-    {:reply, res, state}
-  end
-
-  def handle_call({:start_message_tracker, realm, device_id}, _from, state) do
-    res = DataUpdater.get_message_tracker(realm, device_id)
-    {:reply, res, state}
-  end
-
-  def handle_call({:start_data_updater, realm, device_id, message_tracker}, _from, state) do
-    res = DataUpdater.get_data_updater_process(realm, device_id, message_tracker)
     {:reply, res, state}
   end
 

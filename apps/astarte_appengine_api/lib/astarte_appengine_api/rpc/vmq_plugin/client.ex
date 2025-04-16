@@ -18,12 +18,15 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
-Mox.defmock(MockRPCClient, for: Astarte.RPC.Client)
+defmodule Astarte.AppEngine.API.RPC.VMQPlugin.Client do
+  @moduledoc false
+  @behaviour Astarte.AppEngine.API.RPC.VMQPlugin.Behaviour
 
-Mox.defmock(Astarte.AppEngine.API.RPC.DataUpdaterPlant.ClientMock,
-  for: Astarte.AppEngine.API.RPC.DataUpdaterPlant.Behaviour
-)
-
-Mox.defmock(Astarte.AppEngine.API.RPC.VMQPlugin.ClientMock,
-  for: Astarte.AppEngine.API.RPC.VMQPlugin.Behaviour
-)
+  @impl Astarte.AppEngine.API.RPC.VMQPlugin.Behaviour
+  def publish(data) do
+    case Horde.Registry.lookup(Registry.VMQPluginRPC, :server) do
+      [] -> {:error, :no_rpc_server}
+      [{pid, _value}] -> GenServer.call(pid, {:publish, data})
+    end
+  end
+end

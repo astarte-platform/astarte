@@ -18,12 +18,15 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
-Mox.defmock(MockRPCClient, for: Astarte.RPC.Client)
+defmodule Astarte.AppEngine.API.RPC.DataUpdaterPlant.Behaviour do
+  @moduledoc false
 
-Mox.defmock(Astarte.AppEngine.API.RPC.DataUpdaterPlant.ClientMock,
-  for: Astarte.AppEngine.API.RPC.DataUpdaterPlant.Behaviour
-)
+  alias Astarte.AppEngine.API.RPC.DataUpdaterPlant.InstallVolatileTrigger
+  alias Astarte.AppEngine.API.RPC.DataUpdaterPlant.DeleteVolatileTrigger
 
-Mox.defmock(Astarte.AppEngine.API.RPC.VMQPlugin.ClientMock,
-  for: Astarte.AppEngine.API.RPC.VMQPlugin.Behaviour
-)
+  @callback install_volatile_trigger(request_data :: InstallVolatileTrigger.RequestData.t()) ::
+              :ok | {:error, term()}
+
+  @callback delete_volatile_trigger(request_data :: DeleteVolatileTrigger.RequestData.t()) ::
+              :ok | {:error, term()}
+end
