@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2017 - 2025 SECO Mind Srl
+# Copyright 2025 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -15,25 +15,20 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+# SPDX-License-Identifier: Apache-2.0
+#
 
-defmodule Astarte.RealmManagement.EngineTestv2 do
-  alias Astarte.Core.Triggers.SimpleTriggersProtobuf.TaggedSimpleTrigger
-  alias Astarte.Core.Triggers.SimpleTriggerConfig
-  alias Astarte.Core.Triggers.PolicyProtobuf.Policy, as: PolicyProto
-  alias Astarte.Core.Triggers.Policy
-  alias Astarte.Core.Triggers.Trigger
+defmodule Astarte.RealmManagement.InterfacesTest do
   alias Astarte.RealmManagement.Queries
   alias Astarte.RealmManagement.Engine
-
-  import Astarte.Fixtures.Trigger
-  import Astarte.Fixtures.SimpleTriggerConfig
 
   use Astarte.RealmManagement.DataCase, async: true
   use ExUnitProperties
 
   describe "Test interface" do
-    @describetag :interface
+    @describetag :interfaces
 
+    @tag :creation
     property "is installed properly", %{realm: realm} do
       check all(interface <- Astarte.Core.Generators.Interface.interface()) do
         json_interface = Jason.encode!(interface)
@@ -67,6 +62,7 @@ defmodule Astarte.RealmManagement.EngineTestv2 do
       end
     end
 
+    @tag :deletion
     property "does not get deleted if major version is not 0", %{realm: realm} do
       check all(
               interface <-
@@ -84,6 +80,7 @@ defmodule Astarte.RealmManagement.EngineTestv2 do
       end
     end
 
+    @tag :deletion
     property "is deleted if the major version is 0", %{realm: realm} do
       check all(interface <- Astarte.Core.Generators.Interface.interface(major_version: 0)) do
         json_interface = Jason.encode!(interface)
@@ -96,6 +93,7 @@ defmodule Astarte.RealmManagement.EngineTestv2 do
       end
     end
 
+    @tag :update
     property "can update only the same major version", %{realm: realm} do
       check all(
               interface <-
@@ -116,6 +114,7 @@ defmodule Astarte.RealmManagement.EngineTestv2 do
       end
     end
 
+    @tag :update
     property "is updated with valid update", %{realm: realm} do
       check all(
               interface <-
@@ -155,6 +154,7 @@ defmodule Astarte.RealmManagement.EngineTestv2 do
       end
     end
 
+    @tag :update
     property "is not updated on downgrade", %{realm: realm} do
       check all(
               interface <-
@@ -180,118 +180,6 @@ defmodule Astarte.RealmManagement.EngineTestv2 do
     end
   end
 
-  describe "Test trigger policy" do
-    @describetag :trigger_policy
-
-    property "is installed correctly", %{realm: realm} do
-      check all(policy <- Astarte.Core.Generators.Triggers.Policy.policy()) do
-        policy_json = Jason.encode!(policy)
-        :ok = Engine.install_trigger_policy(realm, policy_json)
-
-        {:ok, fetched_policy} = Queries.fetch_trigger_policy(realm, policy.name)
-
-        fetched_policy =
-          fetched_policy
-          |> PolicyProto.decode()
-          |> Policy.from_policy_proto!()
-
-        assert policy.event_ttl == fetched_policy.event_ttl
-        assert policy.maximum_capacity == policy.maximum_capacity
-        assert policy.name == fetched_policy.name
-        assert (policy.prefetch_count || 0) == fetched_policy.prefetch_count
-        assert (policy.retry_times || 0) == fetched_policy.retry_times
-
-        assert Enum.sort(policy.error_handlers) == Enum.sort(fetched_policy.error_handlers)
-      end
-    end
-
-    property "is deleted correctly", %{realm: realm} do
-      check all(policy <- Astarte.Core.Generators.Triggers.Policy.policy()) do
-        policy_json = Jason.encode!(policy)
-        _ = Engine.install_trigger_policy(realm, policy_json)
-
-        :ok = Engine.delete_trigger_policy(realm, policy.name)
-
-        {:error, :trigger_policy_not_found} = Engine.trigger_policy_source(realm, policy.name)
-      end
-    end
-  end
-
-  describe "Test triggers" do
-    @describetag :triggers
-    property "are installed correctly", %{realm: realm} do
-      check all(
-              interface <- Astarte.Core.Generators.Interface.interface(),
-              device <- Astarte.Core.Generators.Device.device(interfaces: [interface]),
-              trigger <- trigger(string(:utf8)),
-              policy <- Astarte.Core.Generators.Triggers.Policy.policy(),
-              simple_trigger <-
-                simple_trigger_config(interface.name, interface.major_version, device.device_id)
-            ) do
-        _ = Engine.install_trigger_policy(realm, Jason.encode!(policy))
-
-        :ok =
-          Engine.install_trigger(
-            realm,
-            trigger.name,
-            policy.name,
-            trigger.action,
-            serialize_simple_triggers([simple_trigger])
-          )
-
-        {:ok,
-         %{
-           trigger: fetched_trigger,
-           serialized_tagged_simple_triggers: serialized_tagged_simple_triggers
-         }} =
-          Engine.get_trigger(realm, trigger.name)
-
-        assert trigger.action == fetched_trigger.action
-        assert trigger.name == fetched_trigger.name
-        assert trigger.version == fetched_trigger.version
-        assert policy.name == fetched_trigger.policy
-
-        serialized_tagged_simple_triggers =
-          serialized_tagged_simple_triggers
-          |> Enum.map(fn stst ->
-            TaggedSimpleTrigger.decode(stst)
-            |> SimpleTriggerConfig.from_tagged_simple_trigger()
-          end)
-
-        simple_trigger =
-          unless simple_trigger.interface_major,
-            do: Map.put(simple_trigger, :interface_major, 0),
-            else: simple_trigger
-
-        assert serialized_tagged_simple_triggers == [simple_trigger]
-
-        _ = Engine.delete_trigger(realm, trigger.name)
-      end
-    end
-
-    property "are deleted correctly", %{realm: realm} do
-      check all(
-              interface <- Astarte.Core.Generators.Interface.interface(),
-              device <- Astarte.Core.Generators.Device.device(interfaces: [interface]),
-              trigger <- trigger(string(:utf8)),
-              simple_trigger <-
-                simple_trigger_config(interface.name, interface.major_version, device.device_id)
-            ) do
-        :ok =
-          Engine.install_trigger(
-            realm,
-            trigger.name,
-            nil,
-            trigger.action,
-            serialize_simple_triggers([simple_trigger])
-          )
-
-        :ok = Engine.delete_trigger(realm, trigger.name)
-        assert {:error, :trigger_not_found} = Engine.get_trigger(realm, trigger.name)
-      end
-    end
-  end
-
   # Drops virtual and incomparable elements
   defp mapping_to_comparable_map(mapping) do
     Map.from_struct(mapping)
@@ -312,17 +200,4 @@ defmodule Astarte.RealmManagement.EngineTestv2 do
   defp is_empty?(string) do
     String.replace(string, " ", "") == ""
   end
-
-  defp serialize_simple_triggers(simple_triggers) do
-    simple_triggers
-    |> Enum.map(&SimpleTriggerConfig.to_tagged_simple_trigger/1)
-    |> Enum.map(&TaggedSimpleTrigger.encode/1)
-  end
-
-  # Custom generators
-  # TODO remove once `astarte_generators` implements generators for triggers
-  defp trigger(name_gen), do: member_of(triggers(name_gen))
-
-  defp simple_trigger_config(interface_name, interface_major, device_id),
-    do: member_of(simple_trigger_configs(interface_name, interface_major, device_id))
 end
