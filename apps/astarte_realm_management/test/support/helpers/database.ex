@@ -214,6 +214,16 @@ defmodule Astarte.Test.Helpers.Database do
   )
   """
 
+  @create_deletion_in_progress_table """
+  CREATE TABLE :keyspace.deletion_in_progress (
+      device_id uuid,
+      vmq_ack boolean,
+      dup_start_ack boolean,
+      dup_end_ack boolean,
+      PRIMARY KEY ((device_id))
+    )
+  """
+
   @insert_public_key """
     INSERT INTO :keyspace.kv_store (group, key, value)
     VALUES ('auth', 'jwt_public_key_pem', varcharAsBlob(:pem));
@@ -238,6 +248,7 @@ defmodule Astarte.Test.Helpers.Database do
     execute!(realm_keyspace, @create_individual_properties_table)
     execute!(realm_keyspace, @create_individual_datastreams_table)
     execute!(realm_keyspace, @create_interfaces_table)
+    execute!(realm_keyspace, @create_deletion_in_progress_table)
 
     astarte_keyspace = Realm.astarte_keyspace_name()
     execute!(astarte_keyspace, @create_keyspace)
