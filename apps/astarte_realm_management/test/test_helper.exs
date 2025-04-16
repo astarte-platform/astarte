@@ -17,3 +17,5 @@
 #
 
 ExUnit.start()
+
+Mimic.copy(Astarte.DataAccess.Config)

@@ -27,6 +27,7 @@ defmodule Astarte.RealmManagement.DataCase do
   """
 
   use ExUnit.CaseTemplate
+  use Mimic
   import Astarte.Test.Helpers.Database
 
   using do
@@ -38,13 +39,24 @@ defmodule Astarte.RealmManagement.DataCase do
 
   setup do
     realm = "autotestrealm#{System.unique_integer([:positive])}"
+
+    astarte_instance_id = "test#{System.unique_integer([:positive])}"
+
+    Astarte.DataAccess.Config
+    |> stub(:astarte_instance_id, fn -> {:ok, astarte_instance_id} end)
+    |> stub(:astarte_instance_id!, fn -> astarte_instance_id end)
+
     setup!(realm)
     insert_public_key!(realm)
 
     on_exit(fn ->
+      Astarte.DataAccess.Config
+      |> stub(:astarte_instance_id, fn -> {:ok, astarte_instance_id} end)
+      |> stub(:astarte_instance_id!, fn -> astarte_instance_id end)
+
       teardown!(realm)
     end)
 
-    %{realm: realm}
+    %{realm: realm, astarte_instance_id: astarte_instance_id}
   end
 end
