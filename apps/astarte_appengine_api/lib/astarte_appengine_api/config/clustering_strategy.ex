@@ -18,12 +18,22 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
-Mox.defmock(MockRPCClient, for: Astarte.RPC.Client)
+defmodule Astarte.AppEngine.API.Config.ClusteringStrategy do
+  @moduledoc """
+  Clustering strategy for node discovery with libcluster.
+  """
 
-Mox.defmock(Astarte.AppEngine.API.RPC.DataUpdaterPlant.ClientMock,
-  for: Astarte.AppEngine.API.RPC.DataUpdaterPlant.Behaviour
-)
+  use Skogsra.Type
 
-Mox.defmock(Astarte.AppEngine.API.RPC.VMQPlugin.ClientMock,
-  for: Astarte.AppEngine.API.RPC.VMQPlugin.Behaviour
-)
+  @allowed_strategies ~w(none kubernetes docker-compose)
+
+  @impl Skogsra.Type
+  def cast(value) when value in @allowed_strategies do
+    {:ok, value}
+  end
+
+  @impl Skogsra.Type
+  def cast(_) do
+    :error
+  end
+end

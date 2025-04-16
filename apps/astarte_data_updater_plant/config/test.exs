@@ -11,3 +11,7 @@ config :logger, :console,
 
 config :astarte_data_updater_plant, :astarte_instance_id, "test"
 config :astarte_data_updater_plant, :rpc_client, MockRPCClient
+
+config :astarte_data_updater_plant,
+       :vernemq_plugin_rpc_client,
+       Astarte.DataUpdaterPlant.RPC.VMQPlugin.ClientMock

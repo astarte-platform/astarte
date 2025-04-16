@@ -2291,7 +2291,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
 
     with :ok <- Queries.set_pending_empty_cache(realm, device_id, true),
          :ok <- force_disconnection(realm, encoded_device_id) do
-      new_state = set_device_disconnected(realm, timestamp)
+      new_state = set_device_disconnected(state, timestamp)
 
       Logger.info("Successfully forced device disconnection.", tag: "forced_device_disconnection")
 

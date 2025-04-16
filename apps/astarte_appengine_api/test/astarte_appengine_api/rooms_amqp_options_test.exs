@@ -16,7 +16,7 @@
 # limitations under the License.
 #
 
-defmodule Astarte.Appengine.API.RoomsAMQPOptionsTest do
+defmodule Astarte.AppEngine.API.RoomsAMQPOptionsTest do
   alias Astarte.AppEngine.API.Config
   use ExUnit.Case
 

@@ -33,7 +33,6 @@ defmodule Astarte.DataUpdaterPlant.ConsumersSupervisor do
     Logger.info("AMQPDataConsumer supervisor init.", tag: "data_consumer_sup_init")
 
     children = [
-      {Registry, [keys: :unique, name: Registry.AMQPDataConsumer]},
       {ExRabbitPool.PoolSupervisor,
        rabbitmq_config: Config.amqp_consumer_options!(),
        connection_pools: [Config.amqp_consumer_pool_config!()]},

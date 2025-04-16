@@ -18,12 +18,19 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
-Mox.defmock(MockRPCClient, for: Astarte.RPC.Client)
+defmodule Astarte.AppEngine.API.RPC.DataUpdaterPlant.DeleteVolatileTrigger.RequestData do
+  @moduledoc false
 
-Mox.defmock(Astarte.AppEngine.API.RPC.DataUpdaterPlant.ClientMock,
-  for: Astarte.AppEngine.API.RPC.DataUpdaterPlant.Behaviour
-)
+  defstruct [
+    :realm_name,
+    :device_id,
+    :trigger_id
+  ]
 
-Mox.defmock(Astarte.AppEngine.API.RPC.VMQPlugin.ClientMock,
-  for: Astarte.AppEngine.API.RPC.VMQPlugin.Behaviour
-)
+  # TODO: actually type things
+  @type t() :: %__MODULE__{
+          realm_name: String.t(),
+          device_id: binary(),
+          trigger_id: binary()
+        }
+end

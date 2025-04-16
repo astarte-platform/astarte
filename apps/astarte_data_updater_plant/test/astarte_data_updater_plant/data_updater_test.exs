@@ -50,16 +50,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
   alias Astarte.Core.CQLUtils
   alias Astarte.RPC.Protocol.VMQ.Plugin, as: Protocol
 
-  alias Astarte.RPC.Protocol.VMQ.Plugin.{
-    Call,
-    Delete,
-    GenericOkReply,
-    Reply
-  }
-
-  @vmq_plugin_destination Protocol.amqp_queue()
-  @encoded_generic_ok_reply %Reply{reply: {:generic_ok_reply, %GenericOkReply{}}}
-                            |> Reply.encode()
+  setup :verify_on_exit!
 
   setup_all do
     DatabaseTestHelper.destroy_local_test_keyspace()
@@ -1675,16 +1666,11 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
     end)
 
     # We expect that sooner or later the device will be disconnected
-    MockRPCClient
-    |> expect(:rpc_call, fn serialized_call, @vmq_plugin_destination ->
-      assert %Call{call: {:delete, %Delete{} = delete_call}} = Call.decode(serialized_call)
+    Astarte.DataUpdaterPlant.RPC.VMQPlugin.ClientMock
+    |> expect(:delete, fn data ->
+      assert %{realm_name: ^realm, device_id: ^encoded_device_id} = data
 
-      assert %Delete{
-               realm_name: ^realm,
-               device_id: ^encoded_device_id
-             } = delete_call
-
-      {:ok, @encoded_generic_ok_reply}
+      :ok
     end)
 
     timestamp_us_x_10 = make_timestamp("2017-10-09T15:00:32+00:00")
@@ -1780,7 +1766,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
     assert [%{"dup_end_ack" => true}] = dup_end_ack_result
 
     # Finally, check that the related DataUpdater process exists no more
-    assert [] = Registry.lookup(Registry.DataUpdater, {realm, device_id})
+    assert [] = Horde.Registry.lookup(Registry.DataUpdater, {realm, device_id})
   end
 
   test "a disconnected device does not generate a disconnection trigger" do

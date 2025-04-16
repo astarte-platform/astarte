@@ -18,12 +18,16 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
-Mox.defmock(MockRPCClient, for: Astarte.RPC.Client)
+defmodule Astarte.DataUpdaterPlant.RPC.VMQPlugin.Behaviour do
+  @moduledoc false
 
-Mox.defmock(Astarte.AppEngine.API.RPC.DataUpdaterPlant.ClientMock,
-  for: Astarte.AppEngine.API.RPC.DataUpdaterPlant.Behaviour
-)
+  @callback publish(data :: %{topic_tokens: list(binary()), payload: binary(), qos: 0 | 1 | 2}) ::
+              :ok
+              | {:ok, %{local_matches: integer(), remote_matches: integer()}}
+              | {:error, term()}
 
-Mox.defmock(Astarte.AppEngine.API.RPC.VMQPlugin.ClientMock,
-  for: Astarte.AppEngine.API.RPC.VMQPlugin.Behaviour
-)
+  @callback delete(data :: %{realm_name: binary(), device_id: binary()}) :: :ok | {:error, term()}
+
+  @callback disconnect(data :: %{client_id: binary(), discard_state: boolean()}) ::
+              :ok | {:error, term()}
+end
