@@ -17,6 +17,8 @@
 #
 
 defmodule Astarte.Test.Helpers.Database do
+  alias Astarte.Core.Realm
+  alias Astarte.DataAccess.KvStore
   alias Astarte.DataAccess.Repo
   alias Astarte.DataAccess.Realms.Realm
 
@@ -256,6 +258,28 @@ defmodule Astarte.Test.Helpers.Database do
     execute!(astarte_keyspace, @drop_keyspace)
 
     :ok
+  end
+
+  def insert_device_registration_limit!(realm, limit) do
+    keyspace = Realm.astarte_keyspace_name()
+
+    %Realm{
+      realm_name: realm,
+      device_registration_limit: limit
+    }
+    |> Repo.insert!(prefix: keyspace)
+  end
+
+  def set_datastream_maximum_storage_retention(realm, value) do
+    keyspace = Realm.keyspace_name(realm)
+
+    %{
+      group: "realm_config",
+      key: "datastream_maximum_storage_retention",
+      value: value,
+      value_type: :integer
+    }
+    |> KvStore.insert(prefix: keyspace)
   end
 
   def insert_public_key!(realm_name) do
