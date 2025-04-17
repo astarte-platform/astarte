@@ -21,7 +21,7 @@ config :logger, :console,
     :tag
   ]
 
-config :astarte_realm_management_api, :rpc_client, Astarte.RealmManagement.Mock
+config :astarte_realm_management_api, :rpc_client, Astarte.RealmManagement.API.Helpers.RPCMock
 
 config :astarte_realm_management_api,
        :test_priv_key,

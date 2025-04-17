@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2018 Ispirata Srl
+# Copyright 2018 - 2025 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -19,8 +19,8 @@
 defmodule Astarte.RealmManagement.APIWeb.TriggerControllerTest do
   use Astarte.RealmManagement.APIWeb.ConnCase
 
-  alias Astarte.RealmManagement.API.JWTTestHelper
-  alias Astarte.RealmManagement.Mock
+  alias Astarte.RealmManagement.API.Helpers.JWTTestHelper
+  alias Astarte.RealmManagement.API.Helpers.RPCMock.DB
 
   @create_attrs %{}
   @invalid_attrs %{}
@@ -28,7 +28,7 @@ defmodule Astarte.RealmManagement.APIWeb.TriggerControllerTest do
   @test_realm "test"
 
   setup %{conn: conn} do
-    Mock.DB.put_jwt_public_key_pem(@test_realm, JWTTestHelper.public_key_pem())
+    DB.put_jwt_public_key_pem(@test_realm, JWTTestHelper.public_key_pem())
     {:ok, conn: put_req_header(conn, "accept", "application/json")}
   end
 

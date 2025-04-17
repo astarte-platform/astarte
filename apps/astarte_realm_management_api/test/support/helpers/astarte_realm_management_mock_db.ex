@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2021 - 2023 SECO Mind Srl
+# Copyright 2021 - 2025 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -16,19 +16,34 @@
 # limitations under the License.
 #
 
-defmodule Astarte.RealmManagement.Mock.DB do
+defmodule Astarte.RealmManagement.API.Helpers.RPCMock.DB do
   alias Astarte.Core.Interface
   alias Astarte.Core.Mapping
   alias Astarte.Core.Triggers.Policy
 
-  def start_link do
+  def start_link(opts \\ []) do
     Agent.start_link(fn -> %{interfaces: %{}, trigger_policies: %{}, devices: %{}} end,
-      name: __MODULE__
+      name: Keyword.get(opts, :name, __MODULE__)
     )
   end
 
-  def drop_interfaces() do
-    Agent.update(__MODULE__, &Map.put(&1, :interfaces, %{}))
+  def child_spec(opts) do
+    %{
+      id: __MODULE__,
+      start: {__MODULE__, :start_link, [opts]},
+      type: :worker,
+      restart: :temporary,
+      shutdown: 500
+    }
+  end
+
+  def clean() do
+    Agent.update(__MODULE__, fn state ->
+      state
+      |> Map.put(:interfaces, %{})
+      |> Map.put(:trigger_policies, %{})
+      |> Map.put(:devices, %{})
+    end)
   end
 
   def delete_interface(realm, name, major) do
