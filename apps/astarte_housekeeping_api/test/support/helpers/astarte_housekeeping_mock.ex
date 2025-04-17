@@ -29,6 +29,7 @@ defmodule Astarte.Housekeeping.Mock do
     GetRealmReply,
     GetRealmsList,
     GetRealmsListReply,
+    GetHealthReply,
     RemoveLimit,
     Reply,
     SetLimit,
@@ -194,6 +195,29 @@ defmodule Astarte.Housekeeping.Mock do
         |> encode_reply(:get_realm_reply)
     end
     |> ok_wrap
+  end
+
+  defp execute_rpc({:get_health, _msg}) do
+    case Astarte.Housekeeping.Mock.DB.get_health_status() do
+      :READY ->
+        %GetHealthReply{status: :READY}
+        |> encode_reply(:get_health_reply)
+        |> ok_wrap()
+
+      :DEGRADED ->
+        %GetHealthReply{status: :DEGRADED}
+        |> encode_reply(:get_health_reply)
+        |> ok_wrap()
+
+      :BAD ->
+        %GetHealthReply{status: :BAD}
+        |> encode_reply(:get_health_reply)
+        |> ok_wrap()
+
+      _ ->
+        generic_error(:internal_error)
+        |> ok_wrap()
+    end
   end
 
   defp generic_error(error_name) do

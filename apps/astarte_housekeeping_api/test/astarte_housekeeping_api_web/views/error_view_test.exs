@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2017 Ispirata Srl
+# Copyright 2017-2025 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -21,6 +21,11 @@ defmodule Astarte.Housekeeping.APIWeb.ErrorViewTest do
 
   # Bring render/3 and render_to_string/3 for testing custom views
   import Phoenix.View
+
+  test "renders 400.json" do
+    assert render(Astarte.Housekeeping.APIWeb.ErrorView, "400.json", []) ==
+             %{errors: %{detail: "Bad request"}}
+  end
 
   test "renders 404.json" do
     assert render(Astarte.Housekeeping.APIWeb.ErrorView, "404.json", []) ==
