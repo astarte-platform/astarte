@@ -20,6 +20,7 @@ defmodule Astarte.Housekeeping.Migrator do
   require Logger
   alias Astarte.Core.CQLUtils
   alias Astarte.DataAccess.Consistency
+  alias Astarte.DataAccess.CSystem
   alias Astarte.Housekeeping.Config
 
   alias Astarte.Housekeeping.Queries
