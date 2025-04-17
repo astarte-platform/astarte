@@ -16,4 +16,4 @@
 # limitations under the License.
 #
 
-ExUnit.start()
+ExUnit.start(capture_log: true)
