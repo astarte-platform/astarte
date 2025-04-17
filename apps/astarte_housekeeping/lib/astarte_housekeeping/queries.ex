@@ -161,6 +161,18 @@ defmodule Astarte.Housekeeping.Queries do
            :ok <- execute_realm_deletion(conn, realm_name, keyspace_name) do
         :ok
       else
+        {:error, %Xandra.Error{} = err} ->
+          _ = Logger.warning("Database error: #{inspect(err)}.", tag: "database_error")
+          {:error, :database_error}
+
+        {:error, %Xandra.ConnectionError{} = err} ->
+          _ =
+            Logger.warning("Database connection error: #{inspect(err)}.",
+              tag: "database_connection_error"
+            )
+
+          {:error, :database_connection_error}
+
         {:error, reason} ->
           _ =
             Logger.warning("Cannot delete realm: #{inspect(reason)}.",
@@ -231,6 +243,18 @@ defmodule Astarte.Housekeeping.Queries do
            :ok <- insert_datastream_max_retention(keyspace_conn, max_retention) do
         :ok
       else
+        {:error, %Xandra.Error{} = err} ->
+          _ = Logger.warning("Database error: #{inspect(err)}.", tag: "database_error")
+          {:error, :database_error}
+
+        {:error, %Xandra.ConnectionError{} = err} ->
+          _ =
+            Logger.warning("Database connection error: #{inspect(err)}.",
+              tag: "database_connection_error"
+            )
+
+          {:error, :database_connection_error}
+
         {:error, reason} ->
           _ =
             Logger.warning("Cannot create realm: #{inspect(reason)}.",
@@ -278,18 +302,6 @@ defmodule Astarte.Housekeeping.Queries do
 
         {:error, :connected_devices_present}
       end
-    else
-      {:error, %Xandra.Error{} = err} ->
-        _ = Logger.warning("Database error: #{inspect(err)}.", tag: "database_error")
-        {:error, :database_error}
-
-      {:error, %Xandra.ConnectionError{} = err} ->
-        _ =
-          Logger.warning("Database connection error: #{inspect(err)}.",
-            tag: "database_connection_error"
-          )
-
-        {:error, :database_connection_error}
     end
   end
 
@@ -300,18 +312,6 @@ defmodule Astarte.Housekeeping.Queries do
 
     with {:ok, %Xandra.SchemaChange{}} <- CSystem.execute_schema_change(conn, query) do
       :ok
-    else
-      {:error, %Xandra.Error{} = err} ->
-        _ = Logger.warning("Database error: #{inspect(err)}.", tag: "database_error")
-        {:error, :database_error}
-
-      {:error, %Xandra.ConnectionError{} = err} ->
-        _ =
-          Logger.warning("Database connection error: #{inspect(err)}.",
-            tag: "database_connection_error"
-          )
-
-        {:error, :database_connection_error}
     end
   end
 
@@ -325,17 +325,14 @@ defmodule Astarte.Housekeeping.Queries do
     with {:ok, %Xandra.SchemaChange{}} <- CSystem.execute_schema_change(conn, query) do
       :ok
     else
-      {:error, %Xandra.Error{} = err} ->
-        _ = Logger.warning("Database error: #{inspect(err)}.", tag: "database_error")
-        {:error, :database_error}
-
-      {:error, %Xandra.ConnectionError{} = err} ->
+      {:error, reason} ->
         _ =
-          Logger.warning("Database connection error: #{inspect(err)}.",
-            tag: "database_connection_error"
+          Logger.warning("Cannot create keyspace: #{inspect(reason)}.",
+            tag: "build_keyspace_error",
+            realm: realm_name
           )
 
-        {:error, :database_connection_error}
+        {:error, reason}
     end
   end
 
@@ -353,17 +350,14 @@ defmodule Astarte.Housekeeping.Queries do
     with {:ok, %Xandra.SchemaChange{}} <- CSystem.execute_schema_change(conn, query) do
       :ok
     else
-      {:error, %Xandra.Error{} = err} ->
-        _ = Logger.warning("Database error: #{inspect(err)}.", tag: "database_error")
-        {:error, :database_error}
-
-      {:error, %Xandra.ConnectionError{} = err} ->
+      {:error, reason} ->
         _ =
-          Logger.warning("Database connection error: #{inspect(err)}.",
-            tag: "database_connection_error"
+          Logger.warning("Cannot create kv_store: #{inspect(reason)}.",
+            tag: "build_kv_store_error",
+            realm: realm
           )
 
-        {:error, :database_connection_error}
+        {:error, reason}
     end
   end
 
@@ -379,18 +373,6 @@ defmodule Astarte.Housekeeping.Queries do
 
     with {:ok, %Xandra.SchemaChange{}} <- CSystem.execute_schema_change(conn, query) do
       :ok
-    else
-      {:error, %Xandra.Error{} = err} ->
-        _ = Logger.warning("Database error: #{inspect(err)}.", tag: "database_error")
-        {:error, :database_error}
-
-      {:error, %Xandra.ConnectionError{} = err} ->
-        _ =
-          Logger.warning("Database connection error: #{inspect(err)}.",
-            tag: "database_connection_error"
-          )
-
-        {:error, :database_connection_error}
     end
   end
 
@@ -429,18 +411,6 @@ defmodule Astarte.Housekeeping.Queries do
 
     with {:ok, %Xandra.SchemaChange{}} <- CSystem.execute_schema_change(conn, query) do
       :ok
-    else
-      {:error, %Xandra.Error{} = err} ->
-        _ = Logger.warning("Database error: #{inspect(err)}.", tag: "database_error")
-        {:error, :database_error}
-
-      {:error, %Xandra.ConnectionError{} = err} ->
-        _ =
-          Logger.warning("Database connection error: #{inspect(err)}.",
-            tag: "database_connection_error"
-          )
-
-        {:error, :database_connection_error}
     end
   end
 
@@ -471,18 +441,6 @@ defmodule Astarte.Housekeeping.Queries do
 
     with {:ok, %Xandra.SchemaChange{}} <- CSystem.execute_schema_change(conn, query) do
       :ok
-    else
-      {:error, %Xandra.Error{} = err} ->
-        _ = Logger.warning("Database error: #{inspect(err)}.", tag: "database_error")
-        {:error, :database_error}
-
-      {:error, %Xandra.ConnectionError{} = err} ->
-        _ =
-          Logger.warning("Database connection error: #{inspect(err)}.",
-            tag: "database_connection_error"
-          )
-
-        {:error, :database_connection_error}
     end
   end
 
@@ -509,18 +467,6 @@ defmodule Astarte.Housekeeping.Queries do
 
     with {:ok, %Xandra.SchemaChange{}} <- CSystem.execute_schema_change(conn, query) do
       :ok
-    else
-      {:error, %Xandra.Error{} = err} ->
-        _ = Logger.warning("Database error: #{inspect(err)}.", tag: "database_error")
-        {:error, :database_error}
-
-      {:error, %Xandra.ConnectionError{} = err} ->
-        _ =
-          Logger.warning("Database connection error: #{inspect(err)}.",
-            tag: "database_connection_error"
-          )
-
-        {:error, :database_connection_error}
     end
   end
 
@@ -555,18 +501,6 @@ defmodule Astarte.Housekeeping.Queries do
 
     with {:ok, %Xandra.SchemaChange{}} <- CSystem.execute_schema_change(conn, query) do
       :ok
-    else
-      {:error, %Xandra.Error{} = err} ->
-        _ = Logger.warning("Database error: #{inspect(err)}.", tag: "database_error")
-        {:error, :database_error}
-
-      {:error, %Xandra.ConnectionError{} = err} ->
-        _ =
-          Logger.warning("Database connection error: #{inspect(err)}.",
-            tag: "database_connection_error"
-          )
-
-        {:error, :database_connection_error}
     end
   end
 
@@ -586,18 +520,6 @@ defmodule Astarte.Housekeeping.Queries do
 
     with {:ok, %Xandra.SchemaChange{}} <- CSystem.execute_schema_change(conn, query) do
       :ok
-    else
-      {:error, %Xandra.Error{} = err} ->
-        _ = Logger.warning("Database error: #{inspect(err)}.", tag: "database_error")
-        {:error, :database_error}
-
-      {:error, %Xandra.ConnectionError{} = err} ->
-        _ =
-          Logger.warning("Database connection error: #{inspect(err)}.",
-            tag: "database_connection_error"
-          )
-
-        {:error, :database_connection_error}
     end
   end
 
@@ -614,18 +536,6 @@ defmodule Astarte.Housekeeping.Queries do
 
     with {:ok, %Xandra.SchemaChange{}} <- CSystem.execute_schema_change(conn, query) do
       :ok
-    else
-      {:error, %Xandra.Error{} = err} ->
-        _ = Logger.warning("Database error: #{inspect(err)}.", tag: "database_error")
-        {:error, :database_error}
-
-      {:error, %Xandra.ConnectionError{} = err} ->
-        _ =
-          Logger.warning("Database connection error: #{inspect(err)}.",
-            tag: "database_connection_error"
-          )
-
-        {:error, :database_connection_error}
     end
   end
 
@@ -640,21 +550,8 @@ defmodule Astarte.Housekeeping.Queries do
     );
     """
 
-    case CSystem.execute_schema_change(conn, query) do
-      {:ok, %Xandra.SchemaChange{}} ->
-        :ok
-
-      {:error, %Xandra.Error{} = err} ->
-        _ = Logger.warning("Database error: #{Exception.message(err)}.", tag: "database_error")
-        {:error, :database_error}
-
-      {:error, %Xandra.ConnectionError{} = err} ->
-        _ =
-          Logger.warning("Database connection error: #{Exception.message(err)}.",
-            tag: "database_connection_error"
-          )
-
-        {:error, :database_connection_error}
+    with {:ok, %Xandra.SchemaChange{}} <- CSystem.execute_schema_change(conn, query) do
+      :ok
     end
   end
 
@@ -672,18 +569,6 @@ defmodule Astarte.Housekeeping.Queries do
          {:ok, %Xandra.Void{}} <-
            Xandra.execute(conn, prepared, params, consistency: consistency) do
       :ok
-    else
-      {:error, %Xandra.Error{} = err} ->
-        _ = Logger.warning("Database error: #{inspect(err)}.", tag: "database_error")
-        {:error, :database_error}
-
-      {:error, %Xandra.ConnectionError{} = err} ->
-        _ =
-          Logger.warning("Database connection error: #{inspect(err)}.",
-            tag: "database_connection_error"
-          )
-
-        {:error, :database_connection_error}
     end
   end
 
@@ -699,18 +584,6 @@ defmodule Astarte.Housekeeping.Queries do
     with {:ok, %Xandra.Void{}} <-
            Xandra.execute(conn, query, %{}, consistency: consistency) do
       :ok
-    else
-      {:error, %Xandra.Error{} = err} ->
-        _ = Logger.warning("Database error: #{inspect(err)}.", tag: "database_error")
-        {:error, :database_error}
-
-      {:error, %Xandra.ConnectionError{} = err} ->
-        _ =
-          Logger.warning("Database connection error: #{inspect(err)}.",
-            tag: "database_connection_error"
-          )
-
-        {:error, :database_connection_error}
     end
   end
 
@@ -729,18 +602,6 @@ defmodule Astarte.Housekeeping.Queries do
          {:ok, %Xandra.Void{}} <-
            Xandra.execute(conn, prepared, params, consistency: consistency) do
       :ok
-    else
-      {:error, %Xandra.Error{} = err} ->
-        _ = Logger.warning("Database error: #{inspect(err)}.", tag: "database_error")
-        {:error, :database_error}
-
-      {:error, %Xandra.ConnectionError{} = err} ->
-        _ =
-          Logger.warning("Database connection error: #{inspect(err)}.",
-            tag: "database_connection_error"
-          )
-
-        {:error, :database_connection_error}
     end
   end
 
@@ -763,18 +624,6 @@ defmodule Astarte.Housekeeping.Queries do
          {:ok, %Xandra.Void{}} <-
            Xandra.execute(conn, prepared, params, consistency: consistency) do
       :ok
-    else
-      {:error, %Xandra.Error{} = err} ->
-        _ = Logger.warning("Database error: #{inspect(err)}.", tag: "database_error")
-        {:error, :database_error}
-
-      {:error, %Xandra.ConnectionError{} = err} ->
-        _ =
-          Logger.warning("Database connection error: #{inspect(err)}.",
-            tag: "database_connection_error"
-          )
-
-        {:error, :database_connection_error}
     end
   end
 
@@ -803,18 +652,6 @@ defmodule Astarte.Housekeeping.Queries do
          {:ok, %Xandra.Void{}} <-
            Xandra.execute(conn, prepared, params, consistency: consistency) do
       :ok
-    else
-      {:error, %Xandra.Error{} = err} ->
-        _ = Logger.warning("Database error: #{inspect(err)}.", tag: "database_error")
-        {:error, :database_error}
-
-      {:error, %Xandra.ConnectionError{} = err} ->
-        _ =
-          Logger.warning("Database connection error: #{inspect(err)}.",
-            tag: "database_connection_error"
-          )
-
-        {:error, :database_connection_error}
     end
   end
 
@@ -874,18 +711,6 @@ defmodule Astarte.Housekeeping.Queries do
            Xandra.execute(conn, query, %{}, consistency: consistency) do
       :ok
     else
-      {:error, %Xandra.Error{} = err} ->
-        _ = Logger.warning("Database error: #{inspect(err)}.", tag: "database_error")
-        {:error, :database_error}
-
-      {:error, %Xandra.ConnectionError{} = err} ->
-        _ =
-          Logger.warning("Database connection error: #{inspect(err)}.",
-            tag: "database_connection_error"
-          )
-
-        {:error, :database_connection_error}
-
       {:error, reason} ->
         _ =
           Logger.warning("Cannot create Astarte Keyspace: #{inspect(reason)}.",
@@ -910,18 +735,6 @@ defmodule Astarte.Housekeeping.Queries do
     with {:ok, %Xandra.SchemaChange{}} <-
            Xandra.execute(conn, query, %{}, consistency: consistency) do
       :ok
-    else
-      {:error, %Xandra.Error{} = err} ->
-        _ = Logger.warning("Database error: #{inspect(err)}.", tag: "database_error")
-        {:error, :database_error}
-
-      {:error, %Xandra.ConnectionError{} = err} ->
-        _ =
-          Logger.warning("Database connection error: #{inspect(err)}.",
-            tag: "database_connection_error"
-          )
-
-        {:error, :database_connection_error}
     end
   end
 
@@ -941,18 +754,6 @@ defmodule Astarte.Housekeeping.Queries do
     with {:ok, %Xandra.SchemaChange{}} <-
            Xandra.execute(conn, query, %{}, consistency: consistency) do
       :ok
-    else
-      {:error, %Xandra.Error{} = err} ->
-        _ = Logger.warning("Database error: #{inspect(err)}.", tag: "database_error")
-        {:error, :database_error}
-
-      {:error, %Xandra.ConnectionError{} = err} ->
-        _ =
-          Logger.warning("Database connection error: #{inspect(err)}.",
-            tag: "database_connection_error"
-          )
-
-        {:error, :database_connection_error}
     end
   end
 
@@ -967,18 +768,6 @@ defmodule Astarte.Housekeeping.Queries do
 
     with {:ok, %Xandra.Void{}} <- Xandra.execute(conn, query, %{}, consistency: consistency) do
       :ok
-    else
-      {:error, %Xandra.Error{} = err} ->
-        _ = Logger.warning("Database error: #{inspect(err)}.", tag: "database_error")
-        {:error, :database_error}
-
-      {:error, %Xandra.ConnectionError{} = err} ->
-        _ =
-          Logger.warning("Database connection error: #{inspect(err)}.",
-            tag: "database_connection_error"
-          )
-
-        {:error, :database_connection_error}
     end
   end
 
@@ -1099,6 +888,18 @@ defmodule Astarte.Housekeeping.Queries do
         {:ok, false} ->
           {:error, :realm_not_found}
 
+        {:error, %Xandra.Error{} = err} ->
+          _ = Logger.warning("Database error: #{inspect(err)}.", tag: "database_error")
+          {:error, :database_error}
+
+        {:error, %Xandra.ConnectionError{} = err} ->
+          _ =
+            Logger.warning("Database connection error: #{inspect(err)}.",
+              tag: "database_connection_error"
+            )
+
+          {:error, :database_connection_error}
+
         {:error, reason} ->
           _ =
             Logger.warning("Error while getting realm: #{inspect(reason)}.",
@@ -1184,18 +985,6 @@ defmodule Astarte.Housekeeping.Queries do
           {:error, :public_key_not_found}
       end
     else
-      {:error, %Xandra.Error{} = err} ->
-        _ = Logger.warning("Database error: #{inspect(err)}.", tag: "database_error")
-        {:error, :database_error}
-
-      {:error, %Xandra.ConnectionError{} = err} ->
-        _ =
-          Logger.warning("Database connection error: #{inspect(err)}.",
-            tag: "database_connection_error"
-          )
-
-        {:error, :database_connection_error}
-
       {:error, reason} ->
         _ =
           Logger.warning("Cannot get public key: #{inspect(reason)}.",
@@ -1395,18 +1184,6 @@ defmodule Astarte.Housekeeping.Queries do
 
           {:error, :realm_replication_not_found}
       end
-    else
-      {:error, %Xandra.Error{} = err} ->
-        _ = Logger.warning("Database error: #{inspect(err)}.", tag: "database_error")
-        {:error, :database_error}
-
-      {:error, %Xandra.ConnectionError{} = err} ->
-        _ =
-          Logger.warning("Database connection error: #{inspect(err)}.",
-            tag: "database_connection_error"
-          )
-
-        {:error, :database_connection_error}
     end
   end
 
@@ -1469,18 +1246,6 @@ defmodule Astarte.Housekeeping.Queries do
 
           {:error, :realm_device_registration_limit_not_found}
       end
-    else
-      {:error, %Xandra.Error{} = err} ->
-        _ = Logger.warning("Database error: #{inspect(err)}.", tag: "database_error")
-        {:error, :database_error}
-
-      {:error, %Xandra.ConnectionError{} = err} ->
-        _ =
-          Logger.warning("Database connection error: #{inspect(err)}.",
-            tag: "database_connection_error"
-          )
-
-        {:error, :database_connection_error}
     end
   end
 
@@ -1505,18 +1270,6 @@ defmodule Astarte.Housekeeping.Queries do
         :error ->
           {:ok, nil}
       end
-    else
-      {:error, %Xandra.Error{} = err} ->
-        _ = Logger.warning("Database error: #{inspect(err)}.", tag: "database_error")
-        {:error, :database_error}
-
-      {:error, %Xandra.ConnectionError{} = err} ->
-        _ =
-          Logger.warning("Database connection error: #{inspect(err)}.",
-            tag: "database_connection_error"
-          )
-
-        {:error, :database_connection_error}
     end
   end
 
