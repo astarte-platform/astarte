@@ -17,14 +17,18 @@
 #
 
 defmodule Astarte.RealmManagement.EngineTestv2 do
+  alias Astarte.Core.Triggers.SimpleTriggersProtobuf.TaggedSimpleTrigger
+  alias Astarte.Core.Triggers.SimpleTriggerConfig
   alias Astarte.Core.Triggers.PolicyProtobuf.Policy, as: PolicyProto
-  alias Astarte.Core.Generators.Triggers.Policy
   alias Astarte.Core.Triggers.Policy
   alias Astarte.Core.Triggers.Trigger
   alias Astarte.RealmManagement.Queries
   alias Astarte.RealmManagement.Engine
 
-  use Astarte.RealmManagement.DataCase
+  import Astarte.Fixtures.Trigger
+  import Astarte.Fixtures.SimpleTriggerConfig
+
+  use Astarte.RealmManagement.DataCase, async: true
   use ExUnitProperties
 
   describe "Test interface" do
@@ -213,6 +217,81 @@ defmodule Astarte.RealmManagement.EngineTestv2 do
     end
   end
 
+  describe "Test triggers" do
+    @describetag :triggers
+    property "are installed correctly", %{realm: realm} do
+      check all(
+              interface <- Astarte.Core.Generators.Interface.interface(),
+              device <- Astarte.Core.Generators.Device.device(interfaces: [interface]),
+              trigger <- trigger(string(:utf8)),
+              policy <- Astarte.Core.Generators.Triggers.Policy.policy(),
+              simple_trigger <-
+                simple_trigger_config(interface.name, interface.major_version, device.device_id)
+            ) do
+        _ = Engine.install_trigger_policy(realm, Jason.encode!(policy))
+
+        :ok =
+          Engine.install_trigger(
+            realm,
+            trigger.name,
+            policy.name,
+            trigger.action,
+            serialize_simple_triggers([simple_trigger])
+          )
+
+        {:ok,
+         %{
+           trigger: fetched_trigger,
+           serialized_tagged_simple_triggers: serialized_tagged_simple_triggers
+         }} =
+          Engine.get_trigger(realm, trigger.name)
+
+        assert trigger.action == fetched_trigger.action
+        assert trigger.name == fetched_trigger.name
+        assert trigger.version == fetched_trigger.version
+        assert policy.name == fetched_trigger.policy
+
+        serialized_tagged_simple_triggers =
+          serialized_tagged_simple_triggers
+          |> Enum.map(fn stst ->
+            TaggedSimpleTrigger.decode(stst)
+            |> SimpleTriggerConfig.from_tagged_simple_trigger()
+          end)
+
+        simple_trigger =
+          unless simple_trigger.interface_major,
+            do: Map.put(simple_trigger, :interface_major, 0),
+            else: simple_trigger
+
+        assert serialized_tagged_simple_triggers == [simple_trigger]
+
+        _ = Engine.delete_trigger(realm, trigger.name)
+      end
+    end
+
+    property "are deleted correctly", %{realm: realm} do
+      check all(
+              interface <- Astarte.Core.Generators.Interface.interface(),
+              device <- Astarte.Core.Generators.Device.device(interfaces: [interface]),
+              trigger <- trigger(string(:utf8)),
+              simple_trigger <-
+                simple_trigger_config(interface.name, interface.major_version, device.device_id)
+            ) do
+        :ok =
+          Engine.install_trigger(
+            realm,
+            trigger.name,
+            nil,
+            trigger.action,
+            serialize_simple_triggers([simple_trigger])
+          )
+
+        :ok = Engine.delete_trigger(realm, trigger.name)
+        assert {:error, :trigger_not_found} = Engine.get_trigger(realm, trigger.name)
+      end
+    end
+  end
+
   # Drops virtual and incomparable elements
   defp mapping_to_comparable_map(mapping) do
     Map.from_struct(mapping)
@@ -233,4 +312,17 @@ defmodule Astarte.RealmManagement.EngineTestv2 do
   defp is_empty?(string) do
     String.replace(string, " ", "") == ""
   end
+
+  defp serialize_simple_triggers(simple_triggers) do
+    simple_triggers
+    |> Enum.map(&SimpleTriggerConfig.to_tagged_simple_trigger/1)
+    |> Enum.map(&TaggedSimpleTrigger.encode/1)
+  end
+
+  # Custom generators
+  # TODO remove once `astarte_generators` implements generators for triggers
+  defp trigger(name_gen), do: member_of(triggers(name_gen))
+
+  defp simple_trigger_config(interface_name, interface_major, device_id),
+    do: member_of(simple_trigger_configs(interface_name, interface_major, device_id))
 end
