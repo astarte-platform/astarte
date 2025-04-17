@@ -42,11 +42,5 @@ defmodule Astarte.RealmManagement.Config do
   @doc """
   Returns Cassandra nodes formatted in the Xandra format.
   """
-  defdelegate xandra_nodes, to: DataAccessConfig
-  defdelegate xandra_nodes!, to: DataAccessConfig
-
   defdelegate xandra_options!, to: DataAccessConfig
-
-  defdelegate astarte_instance_id!, to: DataAccessConfig
-  defdelegate astarte_instance_id, to: DataAccessConfig
 end

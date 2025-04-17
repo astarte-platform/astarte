@@ -27,7 +27,7 @@ defmodule Astarte.RealmManagement.Queries do
   alias Astarte.DataAccess.Realms.IndividualProperty
   alias Astarte.DataAccess.Realms.Endpoint
   alias Astarte.DataAccess.Realms.SimpleTrigger
-  alias Astarte.RealmManagement.Repo
+  alias Astarte.DataAccess.Repo
   alias Astarte.DataAccess.Realms.Realm
   alias Astarte.DataAccess.KvStore
   alias Astarte.Core.AstarteReference
@@ -430,7 +430,7 @@ defmodule Astarte.RealmManagement.Queries do
   end
 
   def delete_interface_storage(realm_name, %InterfaceDescriptor{} = interface_descriptor) do
-    with {:ok, result} <- devices_with_data_on_interface(realm_name, interface_descriptor.name) do
+    with result <- devices_with_data_on_interface(realm_name, interface_descriptor.name) do
       Enum.reduce_while(result, :ok, fn encoded_device_id, _acc ->
         with {:ok, device_id} <- Device.decode_device_id(encoded_device_id),
              :ok <- delete_values(realm_name, device_id, interface_descriptor) do
@@ -579,14 +579,14 @@ defmodule Astarte.RealmManagement.Queries do
 
     consistency = Consistency.device_info(:read)
 
-    with {:ok, properties} <- Repo.fetch_all(query, prefix: keyspace, consistency: consistency) do
-      properties =
-        Enum.map(properties, fn property ->
-          [endpoint_id: property.endpoint_id, path: property.path]
-        end)
+    properties =
+      query
+      |> Repo.fetch_all(prefix: keyspace, consistency: consistency)
+      |> Enum.map(fn property ->
+        [endpoint_id: property.endpoint_id, path: property.path]
+      end)
 
-      {:ok, properties}
-    end
+    {:ok, properties}
   end
 
   defp delete_all_paths(
@@ -620,20 +620,20 @@ defmodule Astarte.RealmManagement.Queries do
 
     consistency = Consistency.domain_model(:read)
 
-    with {:ok, interface_versions_map} <-
-           Repo.fetch_all(interface_versions_query, prefix: keyspace, consistency: consistency) do
-      case interface_versions_map do
-        [] ->
-          {:error, :interface_not_found}
+    interface_versions =
+      Repo.fetch_all(interface_versions_query, prefix: keyspace, consistency: consistency)
 
-        interfaces ->
-          major_minor_mapping =
-            Enum.map(interfaces, fn interface ->
-              [major_version: interface.major_version, minor_version: interface.minor_version]
-            end)
+    case interface_versions do
+      [] ->
+        {:error, :interface_not_found}
 
-          {:ok, major_minor_mapping}
-      end
+      interfaces ->
+        major_minor_mapping =
+          Enum.map(interfaces, fn interface ->
+            [major_version: interface.major_version, minor_version: interface.minor_version]
+          end)
+
+        {:ok, major_minor_mapping}
     end
   end
 
@@ -666,22 +666,21 @@ defmodule Astarte.RealmManagement.Queries do
 
     consistency = Consistency.domain_model(:read)
 
-    with {:ok, names} <-
-           Repo.fetch_all(all_names_query, prefix: keyspace, consistency: consistency) do
-      Enum.reduce_while(names, :ok, fn name, _acc ->
-        if normalize_interface_name(name) == normalized_interface do
-          if name == interface_name do
-            # If there is already an interface with the same name, we know it's possible to install it.
-            # Version conflicts will be checked in another function.
-            {:halt, :ok}
-          else
-            {:halt, {:error, :interface_name_collision}}
-          end
+    all_names_query
+    |> Repo.fetch_all(prefix: keyspace, consistency: consistency)
+    |> Enum.reduce_while(:ok, fn name, _acc ->
+      if normalize_interface_name(name) == normalized_interface do
+        if name == interface_name do
+          # If there is already an interface with the same name, we know it's possible to install it.
+          # Version conflicts will be checked in another function.
+          {:halt, :ok}
         else
-          {:cont, :ok}
+          {:halt, {:error, :interface_name_collision}}
         end
-      end)
-    end
+      else
+        {:cont, :ok}
+      end
+    end)
   end
 
   def fetch_interface(realm_name, interface_name, interface_major) do
@@ -696,12 +695,13 @@ defmodule Astarte.RealmManagement.Queries do
              prefix: keyspace,
              consistency: consistency,
              error: :interface_not_found
-           ),
-         endpoints_query = from(Endpoint, where: [interface_id: ^interface.interface_id]),
-         {:ok, mappings} <-
-           Repo.fetch_all(endpoints_query, prefix: keyspace, consistency: consistency) do
+           ) do
+      endpoints_query = from(Endpoint, where: [interface_id: ^interface.interface_id])
+
       mappings =
-        Enum.map(mappings, fn endpoint ->
+        endpoints_query
+        |> Repo.fetch_all(prefix: keyspace, consistency: consistency)
+        |> Enum.map(fn endpoint ->
           %Mapping{}
           |> Mapping.changeset(Map.from_struct(endpoint),
             interface_name: interface.name,

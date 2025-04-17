@@ -75,7 +75,7 @@ defmodule Astarte.RealmManagement.InterfacesTest do
         assert {:error, :forbidden} =
                  Engine.delete_interface(realm, interface.name, interface.major_version)
 
-        {:ok, interfaces} = Engine.get_interfaces_list(realm)
+        interfaces = Engine.get_interfaces_list(realm)
         assert interface.name in interfaces
       end
     end
@@ -88,7 +88,7 @@ defmodule Astarte.RealmManagement.InterfacesTest do
         _ = Engine.install_interface(realm, json_interface)
 
         assert :ok = Engine.delete_interface(realm, interface.name, interface.major_version)
-        {:ok, interfaces} = Engine.get_interfaces_list(realm)
+        interfaces = Engine.get_interfaces_list(realm)
         refute interface.name in interfaces
       end
     end

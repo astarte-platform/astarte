@@ -25,10 +25,10 @@ defmodule Astarte.RealmManagement.DeviceTest do
   alias Astarte.RealmManagement.Queries
   alias Astarte.RealmManagement.Engine
   alias Astarte.DataAccess.Realms.Realm
-  alias Astarte.RealmManagement.Repo
+  alias Astarte.DataAccess.Repo
   alias Astarte.DataAccess.Device.DeletionInProgress
-  alias Astarte.DataAccess.Devices.Device
   alias Astarte.RealmManagement.DatabaseTestHelper
+  alias Astarte.DataAccess.Devices.Device
 
   use Astarte.RealmManagement.DataCase, async: true
   use ExUnitProperties

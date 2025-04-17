@@ -18,7 +18,7 @@
 
 defmodule CSystem do
   alias Astarte.DataAccess.Consistency
-  alias Astarte.RealmManagement.Repo
+  alias Astarte.DataAccess.Repo
   import Ecto.Query
 
   @agreement_sleep_millis 200
@@ -86,32 +86,5 @@ defmodule CSystem do
       prefix: "system",
       consistency: Consistency.domain_model(:read)
     )
-  end
-
-  @spec execute_schema_change(String.t()) ::
-          {:ok, Ecto.Adapters.SQL.query_result()} | {:error, Exception.t()} | Xandra.Error.t()
-  def execute_schema_change(query) do
-    query_params = []
-
-    consistency = Consistency.domain_model(:write)
-
-    result =
-      run_with_schema_agreement(fn ->
-        Repo.query(query, query_params, consistency: consistency, timeout: 60_000)
-      end)
-
-    case result do
-      {:error, :timeout} ->
-        %Xandra.Error{reason: :agreement_timeout, message: "Schema agreement wait timeout."}
-
-      {:error, :no_schema_change} ->
-        %Xandra.Error{
-          reason: :no_schema_change,
-          message: "Statement did not change the schema_version."
-        }
-
-      any ->
-        any
-    end
   end
 end
