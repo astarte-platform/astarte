@@ -24,23 +24,17 @@ defmodule Astarte.Housekeeping.EngineTest do
   alias Astarte.Housekeeping.Engine
   alias Astarte.Housekeeping.Queries
   alias Astarte.RPC.Protocol.Housekeeping.UpdateRealm
+  alias Astarte.Housekeeping.Helpers.Database
 
-  @realm1 "test1"
-
-  setup_all do
-    DatabaseTestHelper.wait_and_initialize()
-
-    on_exit(fn ->
-      DatabaseTestHelper.drop_astarte_keyspace()
-    end)
-  end
+  @realm1 "testrealm1"
 
   setup do
     on_exit(fn ->
       DatabaseTestHelper.realm_cleanup(@realm1)
+      Database.destroy_test_astarte_keyspace!(:xandra)
     end)
 
-    :ok
+    Queries.initialize_database()
   end
 
   describe "Realm update" do
