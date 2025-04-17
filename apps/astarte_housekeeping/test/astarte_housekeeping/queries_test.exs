@@ -1,169 +1,536 @@
-#
-# This file is part of Astarte.
-#
-# Copyright 2017-2023 SECO Mind Srl
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#    http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-#
-
-defmodule Astarte.Housekeeping.QueriesTest do
+defmodule Astarte.Housekeeping.V2.QueriesTest do
   use ExUnit.Case
-  doctest Astarte.Housekeeping.Queries
-  alias Astarte.Housekeeping.Config
-  alias Astarte.Housekeeping.DatabaseTestHelper
+
+  alias Astarte.Housekeeping.Helpers.Database
+  # da verificare se serve ancora
+
   alias Astarte.Housekeeping.Queries
-  alias Astarte.Core.CQLUtils
 
-  @realm1 "test1"
-  @realm2 "test2"
+  use Mimic
+  setup :set_mimic_private
 
-  setup_all do
-    DatabaseTestHelper.wait_and_initialize()
+  describe "database inizialization" do
+    test "returns ok" do
+      on_exit(fn ->
+        Database.destroy_test_astarte_keyspace!(:xandra)
+      end)
 
-    on_exit(fn ->
-      DatabaseTestHelper.drop_astarte_keyspace()
-    end)
+      assert :ok = Queries.initialize_database()
+    end
+
+    test "returns database error" do
+      Xandra |> stub(:execute, fn _, _, _, _ -> {:error, %Xandra.Error{}} end)
+      assert {:error, :database_error} = Queries.initialize_database()
+    end
+
+    test "returns connection error" do
+      Xandra |> stub(:execute, fn _, _, _, _ -> {:error, %Xandra.ConnectionError{}} end)
+      assert {:error, :database_connection_error} = Queries.initialize_database()
+    end
+
+    test "returns another error" do
+      Xandra |> stub(:execute, fn _, _, _, _ -> {:error, "generic error"} end)
+      assert {:error, _} = Queries.initialize_database()
+    end
+
+    test "xandra throws an exception" do
+      Xandra |> stub()
+      assert_raise Mimic.UnexpectedCallError, fn -> Queries.initialize_database() end
+    end
   end
 
-  setup [:realm_cleanup]
+  describe "create a realm," do
+    setup do
+      on_exit(fn ->
+        Database.destroy_test_astarte_keyspace!(:xandra)
+      end)
 
-  test "realm creation" do
-    assert Queries.create_realm(@realm1, "test1publickey", 1, 1, 1, []) == :ok
-    assert Queries.create_realm(@realm2, "test2publickey", 1, 0, 1, []) == :ok
+      Queries.initialize_database()
+    end
 
-    assert %{
-             realm_name: @realm1,
-             jwt_public_key_pem: "test1publickey",
-             replication_class: "SimpleStrategy",
-             replication_factor: 1,
-             device_registration_limit: 1
-           } = Queries.get_realm(@realm1)
+    test "creations returns ok" do
+      on_exit(fn ->
+        Database.destroy_test_keyspace!(:xandra, "testrealm")
+      end)
 
-    assert %{
-             realm_name: @realm2,
-             jwt_public_key_pem: "test2publickey",
-             replication_class: "SimpleStrategy",
-             replication_factor: 1,
-             device_registration_limit: nil
-           } = Queries.get_realm(@realm2)
+      assert :ok = Queries.create_realm("testrealm", "test1publickey", 1, 1, 1, [])
+    end
+
+    test "creations returns ok with nil replication factor" do
+      on_exit(fn ->
+        Database.destroy_test_keyspace!(:xandra, "testrealm")
+      end)
+
+      assert :ok = Queries.create_realm("testrealm", "test1publickey", nil, 1, 1, [])
+    end
+
+    test "creations returns ok with 0 max retentions factor" do
+      on_exit(fn ->
+        Database.destroy_test_keyspace!(:xandra, "testrealm")
+      end)
+
+      assert :ok = Queries.create_realm("testrealm", "test1publickey", 1, 1, 0, [])
+    end
+
+    test "creations returns error with bigger than nodes replication factor" do
+      assert {:error,
+              {:invalid_replication,
+               "replication_factor 10 is >= 1 nodes in datacenter datacenter1"}} =
+               Queries.create_realm("testrealm", "test1publickey", 10, 1, 1, [])
+    end
+
+    test "async creations returns ok" do
+      on_exit(fn ->
+        Process.sleep(1000)
+        Database.destroy_test_keyspace!(:xandra, "testrealm")
+      end)
+
+      assert :ok = Queries.create_realm("testrealm", "test1publickey", 1, 1, 1, async: true)
+    end
+
+    test "creations returns an error" do
+      Xandra.Cluster |> stub(:run, fn _, _, _ -> {:error, "generic error"} end)
+
+      assert {:error, "generic error"} =
+               Queries.create_realm("testrealm", "test1publickey", 1, 1, 1, [])
+    end
   end
 
-  test "update realm public key" do
-    Queries.create_realm(@realm1, "test1publickey", 1, 1, 1, []) == :ok
+  describe "delete a realm," do
+    setup do
+      Database.setup!("testrealm")
+    end
 
-    new_public_key = "new_public_key"
+    test "deletions returns ok" do
+      on_exit(fn ->
+        Database.destroy_test_astarte_keyspace!(:xandra)
+      end)
 
-    assert {:ok, %Xandra.Void{}} = Queries.update_public_key(@realm1, new_public_key)
+      assert :ok = Queries.delete_realm("testrealm", [])
+    end
 
-    assert [
-             %{
-               "value" => ^new_public_key
-             }
-           ] =
-             Xandra.Cluster.execute!(
-               :xandra,
-               "SELECT value FROM #{CQLUtils.realm_name_to_keyspace_name(@realm1, Config.astarte_instance_id!())}.kv_store WHERE group='auth' AND key='jwt_public_key_pem'"
-             )
-             |> Enum.to_list()
+    test "async deletions returns ok" do
+      on_exit(fn ->
+        Process.sleep(1000)
+        Database.destroy_test_astarte_keyspace!(:xandra)
+      end)
+
+      assert :ok = Queries.delete_realm("testrealm", async: true)
+    end
+
+    test "deletions returns an error" do
+      on_exit(fn ->
+        Database.teardown!("testrealm")
+      end)
+
+      Xandra.Cluster |> stub(:run, fn _, _, _ -> {:error, "generic error"} end)
+
+      assert {:error, "generic error"} =
+               Queries.delete_realm("testrealm")
+    end
   end
 
-  test "set device registration limit" do
-    Queries.create_realm(@realm1, "test1publickey", 1, 1, 1, []) == :ok
+  describe "list/get realm(s)," do
+    setup do
+      on_exit(fn ->
+        Database.teardown!("testrealm")
+      end)
 
-    new_limit = 100
+      Database.setup!("testrealm")
+      :ok
+    end
 
-    assert {:ok, %Xandra.Void{}} = Queries.set_device_registration_limit(@realm1, new_limit)
+    test "list returns one element" do
+      assert {:ok, ["testrealm"]} = Queries.list_realms()
+    end
 
-    assert [
-             %{
-               "device_registration_limit" => ^new_limit
-             }
-           ] =
-             Xandra.Cluster.execute!(
-               :xandra,
-               "SELECT device_registration_limit FROM #{CQLUtils.realm_name_to_keyspace_name("astarte", Config.astarte_instance_id!())}.realms WHERE realm_name = :realm_name",
-               %{"realm_name" => {"varchar", @realm1}}
-             )
-             |> Enum.to_list()
+    test "list returns two element" do
+      on_exit(fn ->
+        Queries.delete_realm("anotherrealm", [])
+      end)
+
+      assert :ok = Queries.create_realm("anotherrealm", "test2publickey", 1, 1, 1, [])
+
+      assert {:ok, ["anotherrealm", "testrealm"]} = Queries.list_realms()
+    end
+
+    test "get returns the realm data just inserted" do
+      on_exit(fn ->
+        Queries.delete_realm("anotherrealm", [])
+      end)
+
+      assert :ok = Queries.create_realm("anotherrealm", "test2publickey", 1, 1, 1, [])
+
+      assert %{
+               replication_factor: 1,
+               datastream_maximum_storage_retention: 1,
+               device_registration_limit: 1,
+               jwt_public_key_pem: "test2publickey",
+               realm_name: "anotherrealm",
+               replication_class: "SimpleStrategy"
+             } = Queries.get_realm("anotherrealm")
+    end
+
+    test "get returns error due to get_public_key error" do
+      on_exit(fn ->
+        Queries.delete_realm("anotherrealm", [])
+      end)
+
+      assert :ok = Queries.create_realm("anotherrealm", "test2publickey", 1, 1, 1, [])
+      Xandra |> stub(:execute, fn _, _, %{}, _ -> {:error, %Xandra.ConnectionError{}} end)
+
+      assert {:error, :database_connection_error} =
+               Queries.get_realm("anotherrealm")
+    end
+
+    test "get returns the realm data just inserted, with a different replication class" do
+      on_exit(fn ->
+        Queries.delete_realm("anotherrealm", [])
+      end)
+
+      assert :ok =
+               Queries.create_realm(
+                 "anotherrealm",
+                 "test2publickey",
+                 %{"datacenter1" => 1},
+                 1,
+                 1,
+                 []
+               )
+
+      assert %{
+               datastream_maximum_storage_retention: 1,
+               device_registration_limit: 1,
+               jwt_public_key_pem: "test2publickey",
+               realm_name: "anotherrealm",
+               replication_class: "NetworkTopologyStrategy",
+               datacenter_replication_factors: %{"datacenter1" => 1}
+             } = Queries.get_realm("anotherrealm")
+    end
+
+    test "get returns error due to inconsistent db data" do
+      # testrealm does not have a public key saved
+
+      assert {:error, :public_key_not_found} = Queries.get_realm("testrealm")
+    end
+
+    test "get returns error due to not existent db data" do
+      # testrealm does not have a public key saved
+
+      assert {:error, :realm_not_found} = Queries.get_realm("fakerealm")
+    end
+
+    test "returns database error" do
+      Xandra |> stub(:execute, fn _, _, _, _ -> {:error, %Xandra.Error{}} end)
+      assert {:error, :database_error} = Queries.list_realms()
+    end
+
+    test "returns connection error" do
+      Xandra |> stub(:execute, fn _, _, _, _ -> {:error, %Xandra.ConnectionError{}} end)
+      assert {:error, :database_connection_error} = Queries.list_realms()
+    end
   end
 
-  test "remove device registration limit" do
-    Queries.create_realm(@realm1, "test1publickey", 1, 1, 1, []) == :ok
+  describe "realm exists," do
+    setup do
+      on_exit(fn ->
+        Database.teardown!("testrealm")
+      end)
 
-    assert {:ok, %Xandra.Void{}} = Queries.delete_device_registration_limit(@realm1)
+      Database.setup!("testrealm")
+    end
 
-    assert [
-             %{
-               "device_registration_limit" => nil
-             }
-           ] =
-             Xandra.Cluster.execute!(
-               :xandra,
-               "SELECT device_registration_limit FROM #{CQLUtils.realm_name_to_keyspace_name("astarte", Config.astarte_instance_id!())}.realms WHERE realm_name = :realm_name",
-               %{"realm_name" => {"varchar", @realm1}}
-             )
-             |> Enum.to_list()
+    test "true" do
+      assert {:ok, true} = Queries.is_realm_existing("testrealm")
+    end
+
+    test "error due to db connection" do
+      Xandra |> stub(:execute, fn _, _, _, _ -> {:error, %Xandra.ConnectionError{}} end)
+      assert {:error, _} = Queries.is_realm_existing("testrealm")
+    end
+
+    test "false" do
+      assert {:ok, false} = Queries.is_realm_existing("testrealm2")
+    end
   end
 
-  test "set datastream max retention" do
-    :ok = Queries.create_realm(@realm1, "test1publickey", 1, 1, 1, [])
+  describe "astarte keyspace exists," do
+    test "true" do
+      on_exit(fn ->
+        Database.destroy_test_astarte_keyspace!(:xandra)
+      end)
 
-    new_retention = 100
+      assert :ok = Queries.initialize_database()
+      assert {:ok, true} = Queries.is_astarte_keyspace_existing()
+    end
 
-    assert {:ok, %Xandra.Void{}} =
-             Queries.set_datastream_maximum_storage_retention(@realm1, new_retention)
+    test "false" do
+      assert {:ok, false} = Queries.is_astarte_keyspace_existing()
+    end
 
-    test_retention_statement =
-      """
-      SELECT blobAsInt(value) FROM #{CQLUtils.realm_name_to_keyspace_name(@realm1, Config.astarte_instance_id!())}.kv_store
-      WHERE group='realm_config' AND key='datastream_maximum_storage_retention';
-      """
+    test "fails due to db error" do
+      Xandra |> stub(:execute, fn _, _, _, _ -> {:error, %Xandra.Error{}} end)
+      assert {:error, :database_error} = Queries.is_astarte_keyspace_existing()
+    end
 
-    prepared = Xandra.Cluster.prepare!(:xandra, test_retention_statement)
+    test "fails due to db connection error" do
+      Xandra |> stub(:execute, fn _, _, _, _ -> {:error, %Xandra.ConnectionError{}} end)
 
-    assert [
-             %{
-               "system.blobasint(value)" => ^new_retention
-             }
-           ] =
-             Xandra.Cluster.execute!(:xandra, prepared)
-             |> Enum.to_list()
+      assert {:error, :database_connection_error} = Queries.is_astarte_keyspace_existing()
+    end
+
+    test "raise due to generic error" do
+      Xandra |> stub(:execute, fn _, _, _, _ -> {:error, "another error"} end)
+
+      assert_raise CaseClauseError, fn -> Queries.is_astarte_keyspace_existing() end
+    end
   end
 
-  test "remove datastream max retention" do
-    :ok = Queries.create_realm(@realm1, "test1publickey", 1, 1, 1, [])
+  describe "set device registration limit" do
+    setup do
+      on_exit(fn ->
+        Queries.delete_realm("testrealm", [])
+        Database.destroy_test_astarte_keyspace!(:xandra)
+      end)
 
-    assert {:ok, %Xandra.Void{}} = Queries.delete_datastream_maximum_storage_retention(@realm1)
+      Queries.initialize_database()
+      Queries.create_realm("testrealm", "test2publickey", 1, 1, 1, [])
+    end
 
-    test_retention_statement =
-      """
-      SELECT blobAsInt(value) FROM #{CQLUtils.realm_name_to_keyspace_name(@realm1, Config.astarte_instance_id!())}.kv_store
-      WHERE group='realm_config' AND key='datastream_maximum_storage_retention';
-      """
+    test "set limit returns ok " do
+      assert {:ok, _} = Queries.set_device_registration_limit("testrealm", 10)
 
-    prepared = Xandra.Cluster.prepare!(:xandra, test_retention_statement)
+      assert %{
+               replication_factor: 1,
+               datastream_maximum_storage_retention: 1,
+               device_registration_limit: 10,
+               jwt_public_key_pem: "test2publickey",
+               realm_name: "testrealm",
+               replication_class: "SimpleStrategy"
+             } = Queries.get_realm("testrealm")
+    end
 
-    assert [] =
-             Xandra.Cluster.execute!(:xandra, prepared)
-             |> Enum.to_list()
+    test "set limit fails due to db error" do
+      Xandra |> stub(:execute, fn _, _, _, _ -> {:error, %Xandra.Error{}} end)
+      assert {:error, :database_error} = Queries.set_device_registration_limit("testrealm", 10)
+    end
+
+    test "set limit fails due to db connection error" do
+      Xandra |> stub(:execute, fn _, _, _, _ -> {:error, %Xandra.ConnectionError{}} end)
+
+      assert {:error, :database_connection_error} =
+               Queries.set_device_registration_limit("testrealm", 10)
+    end
+
+    test "set limit raise due to generic error" do
+      Xandra |> stub(:execute, fn _, _, _, _ -> {:error, "another error"} end)
+
+      assert_raise CaseClauseError, fn ->
+        Queries.set_device_registration_limit("testrealm", 10)
+      end
+    end
   end
 
-  defp realm_cleanup(_context) do
-    on_exit(fn ->
-      DatabaseTestHelper.realm_cleanup(@realm1)
-      DatabaseTestHelper.realm_cleanup(@realm2)
-    end)
+  describe "delete device registration limit" do
+    setup do
+      on_exit(fn ->
+        Queries.delete_realm("testrealm", [])
+        Database.destroy_test_astarte_keyspace!(:xandra)
+      end)
 
-    :ok
+      Queries.initialize_database()
+      Queries.create_realm("testrealm", "test2publickey", 1, 1, 1, [])
+      Queries.set_device_registration_limit("testrealm", 10)
+      :ok
+    end
+
+    test "delete limit returns ok " do
+      assert {:ok, _} = Queries.delete_device_registration_limit("testrealm")
+
+      assert %{
+               replication_factor: 1,
+               datastream_maximum_storage_retention: 1,
+               device_registration_limit: nil,
+               jwt_public_key_pem: "test2publickey",
+               realm_name: "testrealm",
+               replication_class: "SimpleStrategy"
+             } = Queries.get_realm("testrealm")
+    end
+
+    test "fails due to db error" do
+      Xandra |> stub(:execute, fn _, _, _, _ -> {:error, %Xandra.Error{}} end)
+      assert {:error, :database_error} = Queries.delete_device_registration_limit("testrealm")
+    end
+
+    test "fails due to db connection error" do
+      Xandra |> stub(:execute, fn _, _, _, _ -> {:error, %Xandra.ConnectionError{}} end)
+
+      assert {:error, :database_connection_error} =
+               Queries.delete_device_registration_limit("testrealm")
+    end
+
+    test "raise due to generic error" do
+      Xandra |> stub(:execute, fn _, _, _, _ -> {:error, "another error"} end)
+
+      assert_raise CaseClauseError, fn ->
+        Queries.delete_device_registration_limit("testrealm")
+      end
+    end
+  end
+
+  describe "set storage retention" do
+    setup do
+      on_exit(fn ->
+        Queries.delete_realm("testrealm", [])
+        Database.destroy_test_astarte_keyspace!(:xandra)
+      end)
+
+      Queries.initialize_database()
+      Queries.create_realm("testrealm", "test2publickey", 1, 1, 1, [])
+    end
+
+    test "returns ok " do
+      assert {:ok, _} = Queries.set_datastream_maximum_storage_retention("testrealm", 10)
+
+      assert %{
+               replication_factor: 1,
+               datastream_maximum_storage_retention: 10,
+               device_registration_limit: 1,
+               jwt_public_key_pem: "test2publickey",
+               realm_name: "testrealm",
+               replication_class: "SimpleStrategy"
+             } = Queries.get_realm("testrealm")
+    end
+
+    test "returns ok using 0" do
+      assert {:ok, _} = Queries.set_datastream_maximum_storage_retention("testrealm", 0)
+
+      assert %{
+               replication_factor: 1,
+               datastream_maximum_storage_retention: 0,
+               device_registration_limit: 1,
+               jwt_public_key_pem: "test2publickey",
+               realm_name: "testrealm",
+               replication_class: "SimpleStrategy"
+             } = Queries.get_realm("testrealm")
+    end
+
+    test "fails due to db error" do
+      Xandra |> stub(:execute, fn _, _, _, _ -> {:error, %Xandra.Error{}} end)
+
+      assert {:error, :database_error} =
+               Queries.set_datastream_maximum_storage_retention("testrealm", 10)
+    end
+
+    test "fails due to db connection error" do
+      Xandra |> stub(:execute, fn _, _, _, _ -> {:error, %Xandra.ConnectionError{}} end)
+
+      assert {:error, :database_connection_error} =
+               Queries.set_datastream_maximum_storage_retention("testrealm", 10)
+    end
+
+    test "raise due to generic error" do
+      Xandra |> stub(:execute, fn _, _, _, _ -> {:error, "another error"} end)
+
+      assert_raise WithClauseError, fn ->
+        Queries.set_datastream_maximum_storage_retention("testrealm", 10)
+      end
+    end
+  end
+
+  describe "delete storage retention" do
+    setup do
+      on_exit(fn ->
+        Queries.delete_realm("testrealm", [])
+        Database.destroy_test_astarte_keyspace!(:xandra)
+      end)
+
+      Queries.initialize_database()
+      Queries.create_realm("testrealm", "test2publickey", 1, 1, 1, [])
+      Queries.set_datastream_maximum_storage_retention("testrealm", 10)
+      :ok
+    end
+
+    test "returns ok " do
+      assert {:ok, _} = Queries.delete_datastream_maximum_storage_retention("testrealm")
+
+      assert %{
+               replication_factor: 1,
+               datastream_maximum_storage_retention: nil,
+               device_registration_limit: 1,
+               jwt_public_key_pem: "test2publickey",
+               realm_name: "testrealm",
+               replication_class: "SimpleStrategy"
+             } = Queries.get_realm("testrealm")
+    end
+
+    test "fails due to db error" do
+      Xandra |> stub(:execute, fn _, _, _, _ -> {:error, %Xandra.Error{}} end)
+
+      assert {:error, :database_error} =
+               Queries.delete_datastream_maximum_storage_retention("testrealm")
+    end
+
+    test "fails due to db connection error" do
+      Xandra |> stub(:execute, fn _, _, _, _ -> {:error, %Xandra.ConnectionError{}} end)
+
+      assert {:error, :database_connection_error} =
+               Queries.delete_datastream_maximum_storage_retention("testrealm")
+    end
+
+    test "raise due to generic error" do
+      Xandra |> stub(:execute, fn _, _, _, _ -> {:error, "another error"} end)
+
+      assert_raise WithClauseError, fn ->
+        Queries.delete_datastream_maximum_storage_retention("testrealm")
+      end
+    end
+  end
+
+  describe "update public key" do
+    setup do
+      on_exit(fn ->
+        Queries.delete_realm("testrealm", [])
+        Database.destroy_test_astarte_keyspace!(:xandra)
+      end)
+
+      Queries.initialize_database()
+      Queries.create_realm("testrealm", "test2publickey", 1, 1, 1, [])
+
+      :ok
+    end
+
+    test "returns ok " do
+      assert {:ok, _} = Queries.update_public_key("testrealm", "newPublicKey")
+
+      assert %{
+               replication_factor: 1,
+               datastream_maximum_storage_retention: 1,
+               device_registration_limit: 1,
+               jwt_public_key_pem: "newPublicKey",
+               realm_name: "testrealm",
+               replication_class: "SimpleStrategy"
+             } = Queries.get_realm("testrealm")
+    end
+
+    test "fails due to db error" do
+      Xandra |> stub(:execute, fn _, _, _, _ -> {:error, %Xandra.Error{}} end)
+      assert {:error, :database_error} = Queries.update_public_key("testrealm", "newPublicKey")
+    end
+
+    test "fails due to db connection error" do
+      Xandra |> stub(:execute, fn _, _, _, _ -> {:error, %Xandra.ConnectionError{}} end)
+
+      assert {:error, :database_connection_error} =
+               Queries.update_public_key("testrealm", "newPublicKey")
+    end
+
+    test "raise due to generic error" do
+      Xandra |> stub(:execute, fn _, _, _, _ -> {:error, "another error"} end)
+
+      assert_raise WithClauseError, fn ->
+        Queries.update_public_key("testrealm", "newPublicKey")
+      end
+    end
   end
 end

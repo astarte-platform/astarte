@@ -39,6 +39,9 @@ defmodule Astarte.Housekeeping.RPC.HandlerTest do
   alias Astarte.Housekeeping.Config
   alias Astarte.Housekeeping.Engine
   alias Astarte.Housekeeping.DatabaseTestHelper
+  alias Astarte.Housekeeping.Helpers.Database
+
+  alias Astarte.Housekeeping.Queries
 
   @invalid_test_realm "not~valid"
   @not_existing_realm "nonexistingrealm"
@@ -49,12 +52,12 @@ defmodule Astarte.Housekeeping.RPC.HandlerTest do
   @device_limit 1
   @datastream_maximum_storage_retention 1
 
-  setup_all do
-    :ok = DatabaseTestHelper.wait_and_initialize()
-
+  setup do
     on_exit(fn ->
-      DatabaseTestHelper.drop_astarte_keyspace()
+      Database.destroy_test_astarte_keyspace!(:xandra)
     end)
+
+    Queries.initialize_database()
   end
 
   defp generic_error(
