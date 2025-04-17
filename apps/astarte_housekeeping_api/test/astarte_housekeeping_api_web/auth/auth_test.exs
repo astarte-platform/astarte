@@ -19,7 +19,7 @@
 defmodule Astarte.Housekeeping.APIWeb.AuthTest do
   use Astarte.Housekeeping.APIWeb.ConnCase
 
-  alias Astarte.Housekeeping.API.JWTTestHelper
+  alias Astarte.Helpers.JWTTestHelper
 
   @request_path "/v1/realms"
   @valid_auth_path "^realms$"
