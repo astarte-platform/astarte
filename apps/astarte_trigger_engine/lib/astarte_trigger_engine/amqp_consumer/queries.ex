@@ -20,7 +20,7 @@ defmodule Astarte.TriggerEngine.AMQPConsumer.Queries do
   alias Astarte.DataAccess.Consistency
   alias Astarte.DataAccess.KvStore
   alias Astarte.DataAccess.Realms.Realm
-  alias Astarte.TriggerEngine.Repo
+  alias Astarte.DataAccess.Repo
   require Logger
 
   import Ecto.Query
@@ -33,8 +33,8 @@ defmodule Astarte.TriggerEngine.AMQPConsumer.Queries do
         prefix: ^keyspace_name,
         where: k.group == "trigger_policy"
 
-    case Repo.safe_fetch_all(query, consistency: Consistency.domain_model(:read)) do
-      {:ok, policies} ->
+    case Repo.fetch_all(query, consistency: Consistency.domain_model(:read)) do
+      policies when is_list(policies) ->
         {:ok, Enum.map(policies, &extract_name_and_data/1)}
 
       {:error, reason} ->
@@ -51,8 +51,8 @@ defmodule Astarte.TriggerEngine.AMQPConsumer.Queries do
         prefix: ^keyspace_name,
         select: r.realm_name
 
-    case Repo.safe_fetch_all(query, consistency: Consistency.domain_model(:read)) do
-      {:ok, realms} ->
+    case Repo.fetch_all(query, consistency: Consistency.domain_model(:read)) do
+      realms when is_list(realms) ->
         {:ok, realms}
 
       {:error, reason} ->

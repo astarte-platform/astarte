@@ -37,8 +37,6 @@ config :astarte_trigger_engine, :events_consumer, Astarte.TriggerEngine.EventsCo
 
 config :astarte_trigger_engine, :amqp_adapter, ExRabbitPool.RabbitMQ
 
-config :astarte_trigger_engine, ecto_repos: [Astarte.TriggerEngine.Repo]
-
-config :astarte_trigger_engine, Astarte.TriggerEngine.Repo, []
+config :astarte_trigger_engine, ecto_repos: [Astarte.DataAccess.Repo]
 
 import_config "#{config_env()}.exs"
