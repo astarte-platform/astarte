@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2017 - 2025 SECO Mind Srl
+# Copyright 2025 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -16,8 +16,16 @@
 # limitations under the License.
 #
 
-Mimic.copy(AMQP.Basic)
-Mimic.copy(Astarte.DataAccess.Config)
-Mimic.copy(HTTPoison)
+defmodule Astarte.TriggerEngine.Policy.State do
+  use TypedStruct
 
-ExUnit.start()
+  alias Astarte.Core.Triggers.Policy
+
+  @type message_id() :: term()
+  @type retry_map() :: %{message_id() => pos_integer()}
+
+  typedstruct do
+    field :retry_map, retry_map()
+    field :policy, Policy.t()
+  end
+end
