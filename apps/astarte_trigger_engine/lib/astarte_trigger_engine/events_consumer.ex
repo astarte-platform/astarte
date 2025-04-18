@@ -21,8 +21,6 @@ defmodule Astarte.TriggerEngine.EventsConsumer do
 
   import Ecto.Query
 
-  alias Astarte.Core.Triggers.SimpleEvents.IncomingIntrospectionEvent
-  alias Astarte.Core.Triggers.SimpleEvents.InterfaceVersion
   alias Astarte.Core.Triggers.SimpleEvents.SimpleEvent
   alias Astarte.Core.Triggers.Trigger
   alias Astarte.TriggerEngine.Repo
@@ -142,6 +140,7 @@ defmodule Astarte.TriggerEngine.EventsConsumer do
 
     # TODO: check this with object aggregations
     Map.from_struct(event)
+    |> Map.delete(:__unknown_fields__)
     |> Enum.reduce(base_values, fn {item_key, item_value}, acc ->
       case item_key do
         :bson_value ->
@@ -195,7 +194,6 @@ defmodule Astarte.TriggerEngine.EventsConsumer do
          trigger_name,
          _timestamp_ms
        ) do
-    event = maybe_normalize_introspection_event(event)
     values = build_values_map(realm, device_id, event_type, event, trigger_name)
 
     {:ok, :bbmustache.render(template, values, key_type: :binary)}
@@ -210,8 +208,6 @@ defmodule Astarte.TriggerEngine.EventsConsumer do
          trigger_name,
          timestamp_ms
        ) do
-    event = maybe_normalize_introspection_event(event)
-
     with {:ok, timestamp} <- DateTime.from_unix(timestamp_ms, :millisecond) do
       %{
         "timestamp" => timestamp,
@@ -230,28 +226,6 @@ defmodule Astarte.TriggerEngine.EventsConsumer do
   defp build_request_opts(_action) do
     []
   end
-
-  # If introspection = nil, it means we are using the introspection map format
-  # instead of the old one (pre-1.2) where introspection is a string
-  defp maybe_normalize_introspection_event(
-         %IncomingIntrospectionEvent{introspection: nil} = event
-       ) do
-    %IncomingIntrospectionEvent{introspection_map: introspection_map} = event
-
-    Enum.reduce(introspection_map, fn {interface_name, version}, acc ->
-      %InterfaceVersion{
-        major: version_major,
-        minor: version_minor
-      } = version
-
-      Map.put_new(acc, interface_name, %{
-        major: version_major,
-        minor: version_minor
-      })
-    end)
-  end
-
-  defp maybe_normalize_introspection_event(event), do: event
 
   defp execute_action(payload, headers, action) do
     with {:ok, method, url} <- fetch_method_and_url(action),
