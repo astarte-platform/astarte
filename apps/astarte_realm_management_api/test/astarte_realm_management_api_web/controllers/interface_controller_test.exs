@@ -19,6 +19,8 @@
 defmodule Astarte.RealmManagement.APIWeb.InterfaceControllerTest do
   use Astarte.RealmManagement.APIWeb.ConnCase
 
+  @moduletag :interfaces
+
   alias Astarte.RealmManagement.API.Helpers.JWTTestHelper
   alias Astarte.RealmManagement.API.Helpers.RPCMock.DB
 
@@ -66,6 +68,8 @@ defmodule Astarte.RealmManagement.APIWeb.InterfaceControllerTest do
   end
 
   describe "index" do
+    @describetag :index
+
     test "lists empty interfaces", %{conn: conn} do
       conn = get(conn, interface_path(conn, :index, @realm))
       assert json_response(conn, 200)["data"] == []
@@ -81,6 +85,8 @@ defmodule Astarte.RealmManagement.APIWeb.InterfaceControllerTest do
   end
 
   describe "show" do
+    @describetag :show
+
     test "shows existing interface", %{conn: conn} do
       post_conn = post(conn, interface_path(conn, :create, @realm), data: @valid_attrs)
       assert response(post_conn, 201) == ""
@@ -100,6 +106,8 @@ defmodule Astarte.RealmManagement.APIWeb.InterfaceControllerTest do
   end
 
   describe "create interface" do
+    @describetag :creation
+
     test "renders interface when data is valid", %{conn: conn} do
       post_conn = post(conn, interface_path(conn, :create, @realm), data: @valid_attrs)
       assert response(post_conn, 201) == ""
@@ -144,6 +152,33 @@ defmodule Astarte.RealmManagement.APIWeb.InterfaceControllerTest do
 
       conn = post(conn, interface_path(conn, :create, @realm), data: iface_with_invalid_mappings)
       assert json_response(conn, 422)["errors"] != %{}
+    end
+
+    test "fails when interface name collides after normalization", %{conn: conn} do
+      interface_name = "com.astarteplatform.Interface"
+
+      first_attrs =
+        @valid_attrs
+        |> Map.put("interface_name", interface_name)
+
+      post_conn = post(conn, interface_path(conn, :create, @realm), data: first_attrs)
+      assert response(post_conn, 201) == ""
+
+      get_conn =
+        get(conn, interface_path(conn, :show, @realm, interface_name, @interface_major_str))
+
+      assert json_response(get_conn, 200)["data"] == first_attrs
+
+      colliding_name = "com.astarte-platform.Interface"
+
+      colliding_attrs =
+        @valid_attrs
+        |> Map.put("interface_name", colliding_name)
+
+      post_conn = post(conn, interface_path(conn, :create, @realm), data: colliding_attrs)
+
+      assert json_response(post_conn, 409)["errors"]["detail"] ==
+               "Interface name collision detected. Make sure that the difference between two interface names is not limited to the casing or the presence of hyphens."
     end
   end
 

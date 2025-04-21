@@ -19,9 +19,12 @@
 defmodule Astarte.RealmManagement.API.InterfacesTest do
   use Astarte.RealmManagement.API.DataCase
 
+  @moduletag :interfaces
+
   alias Astarte.RealmManagement.API.Interfaces
   alias Astarte.Core.Interface
   alias Astarte.Core.Mapping
+
   @realm "testrealm"
   @interface_name "com.Some.Interface"
   @interface_major 2
@@ -53,6 +56,8 @@ defmodule Astarte.RealmManagement.API.InterfacesTest do
   }
 
   describe "interface creation" do
+    @describetag :creation
+
     test "succeeds with valid attrs" do
       assert {:ok, %Interface{} = interface} = Interfaces.create_interface(@realm, @valid_attrs)
 
@@ -80,6 +85,21 @@ defmodule Astarte.RealmManagement.API.InterfacesTest do
                Interfaces.create_interface(@realm, @valid_attrs)
     end
 
+    test "fails when interface name collides after normalization" do
+      normalized_attrs =
+        @valid_attrs
+        |> Map.put("interface_name", "com.astarteplatform.Interface")
+
+      {:ok, %Interface{}} = Interfaces.create_interface(@realm, normalized_attrs)
+
+      colliding_normalized_attrs =
+        @valid_attrs
+        |> Map.put("interface_name", "com.astarte-platform.Interface")
+
+      assert {:error, :interface_name_collision} =
+               Interfaces.create_interface(@realm, colliding_normalized_attrs)
+    end
+
     test "fails with invalid attrs" do
       assert {:error, %Ecto.Changeset{errors: [type: _]}} =
                Interfaces.create_interface(@realm, @invalid_attrs)
@@ -87,7 +107,7 @@ defmodule Astarte.RealmManagement.API.InterfacesTest do
 
     test "succeeds using a synchronous call" do
       assert {:ok, %Interface{} = interface} =
-               Interfaces.create_interface(@realm, @valid_attrs, ascync_operation: false)
+               Interfaces.create_interface(@realm, @valid_attrs, async_operation: false)
 
       assert %Interface{
                name: @interface_name,

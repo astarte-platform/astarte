@@ -115,7 +115,13 @@ defmodule Astarte.RealmManagement.API.Helpers.RPCMock.DB do
          max_retention = get_datastream_maximum_storage_retention(realm),
          {:maximum_database_retention_exceeded, false} <-
            {:maximum_database_retention_exceeded,
-            mappings_max_storage_retention_exceeded?(interface.mappings, max_retention)} do
+            mappings_max_storage_retention_exceeded?(interface.mappings, max_retention)},
+         normalized_name = normalize_interface_name(name),
+         {:interface_name_collision, false} <-
+           {:interface_name_collision,
+            Enum.any?(get_interfaces_list(realm), fn existing_name ->
+              name != existing_name and normalize_interface_name(existing_name) == normalized_name
+            end)} do
       Agent.update(__MODULE__, fn %{interfaces: interfaces} = state ->
         %{state | interfaces: Map.put(interfaces, {realm, name, major}, interface)}
       end)
@@ -125,7 +131,15 @@ defmodule Astarte.RealmManagement.API.Helpers.RPCMock.DB do
 
       {:maximum_database_retention_exceeded, true} ->
         {:error, :maximum_database_retention_exceeded}
+
+      {:interface_name_collision, true} ->
+        {:error, :interface_name_collision}
     end
+  end
+
+  defp normalize_interface_name(interface_name) do
+    String.replace(interface_name, "-", "")
+    |> String.downcase()
   end
 
   def update_interface(realm, %Interface{name: name, major_version: major} = interface) do
