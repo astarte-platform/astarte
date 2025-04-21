@@ -26,12 +26,12 @@ defmodule Astarte.RealmManagement.APIWeb.InterfaceControllerTest do
 
   @realm "testrealm"
   @interface_name "com.Some.Interface"
-  @interface_major 2
+  @interface_major 0
   @interface_major_str Integer.to_string(@interface_major)
   @valid_attrs %{
     "interface_name" => @interface_name,
-    "version_major" => 2,
-    "version_minor" => 1,
+    "version_major" => @interface_major,
+    "version_minor" => 2,
     "type" => "properties",
     "ownership" => "device",
     "mappings" => [
@@ -183,10 +183,15 @@ defmodule Astarte.RealmManagement.APIWeb.InterfaceControllerTest do
   end
 
   describe "update" do
-    test "updates interface when data is valid", %{conn: conn} do
-      create_conn = post(conn, interface_path(conn, :create, @realm), data: @valid_attrs)
-      assert response(create_conn, 201) == ""
+    @describetag :update
 
+    setup %{conn: conn} do
+      post_conn = post(conn, interface_path(conn, :create, @realm), data: @valid_attrs)
+      assert response(post_conn, 201) == ""
+      {:ok, conn: conn}
+    end
+
+    test "updates interface when data is valid", %{conn: conn} do
       new_mapping = %{"endpoint" => "/other", "type" => "string"}
       updated_mappings = [new_mapping | @valid_attrs["mappings"]]
       new_minor = @valid_attrs["version_minor"] + 1
@@ -268,6 +273,132 @@ defmodule Astarte.RealmManagement.APIWeb.InterfaceControllerTest do
         )
 
       assert json_response(conn, 404)["errors"] != %{}
+    end
+
+    test "renders error when minor version is not increased", %{conn: conn} do
+      new_mapping = %{"endpoint" => "/other", "type" => "string"}
+      updated_mappings = [new_mapping | @valid_attrs["mappings"]]
+
+      update_attrs = %{
+        @valid_attrs
+        | "mappings" => updated_mappings
+      }
+
+      update_conn =
+        put(
+          conn,
+          interface_path(conn, :update, @realm, @interface_name, @interface_major_str),
+          data: update_attrs
+        )
+
+      assert json_response(update_conn, 409)["errors"]["detail"] ==
+               "Interface minor version was not increased"
+    end
+
+    test "renders error minor version is decreased", %{conn: conn} do
+      new_mapping = %{"endpoint" => "/other", "type" => "string"}
+      updated_mappings = [new_mapping | @valid_attrs["mappings"]]
+      new_minor = @valid_attrs["version_minor"] - 1
+
+      update_attrs = %{
+        @valid_attrs
+        | "version_minor" => new_minor,
+          "mappings" => updated_mappings
+      }
+
+      update_conn =
+        put(
+          conn,
+          interface_path(conn, :update, @realm, @interface_name, @interface_major_str),
+          data: update_attrs
+        )
+
+      assert json_response(update_conn, 409)["errors"]["detail"] ==
+               "Interface downgrade not allowed"
+    end
+
+    test "renders error when mappings have missing endpoints", %{conn: conn} do
+      update_attrs = %{
+        @valid_attrs
+        | "version_minor" => @valid_attrs["version_minor"] + 1,
+          "mappings" => [
+            %{
+              "endpoint" => "/new_endpoint",
+              "type" => "integer"
+            }
+          ]
+      }
+
+      update_conn =
+        put(
+          conn,
+          interface_path(conn, :update, @realm, @interface_name, @interface_major_str),
+          data: update_attrs
+        )
+
+      assert json_response(update_conn, 409)["errors"]["detail"] ==
+               "Interface update has missing endpoints"
+    end
+
+    test "renders error when mappings have incompatible changes", %{conn: conn} do
+      update_attrs = %{
+        @valid_attrs
+        | "version_minor" => @valid_attrs["version_minor"] + 1,
+          "mappings" => [
+            %{
+              "endpoint" => "/test",
+              # Changing the type from integer to string
+              "type" => "string"
+            }
+          ]
+      }
+
+      update_conn =
+        put(
+          conn,
+          interface_path(conn, :update, @realm, @interface_name, @interface_major_str),
+          data: update_attrs
+        )
+
+      assert json_response(update_conn, 409)["errors"]["detail"] ==
+               "Interface update contains incompatible endpoint changes"
+    end
+
+    test "renders error when type changes", %{conn: conn} do
+      update_attrs = %{
+        @valid_attrs
+        | "version_minor" => @valid_attrs["version_minor"] + 1,
+          # Changed type
+          "type" => "datastream"
+      }
+
+      update_conn =
+        put(
+          conn,
+          interface_path(conn, :update, @realm, @interface_name, @interface_major_str),
+          data: update_attrs
+        )
+
+      assert json_response(update_conn, 409)["errors"]["detail"] == "Invalid update"
+    end
+
+    test "renders error when ownership changes", %{conn: conn} do
+      update_attrs = %{
+        @valid_attrs
+        | "version_minor" => @valid_attrs["version_minor"] + 1,
+          # Changed ownership
+          "ownership" => "server"
+      }
+
+      update_conn =
+        put(
+          conn,
+          interface_path(conn, :update, @realm, @interface_name, @interface_major_str),
+          data: update_attrs
+        )
+
+      assert json_response(update_conn, 409)["errors"]["detail"] ==
+               "Invalid update"
     end
   end
 

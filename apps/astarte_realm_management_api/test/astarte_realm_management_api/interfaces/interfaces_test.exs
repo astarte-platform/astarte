@@ -27,11 +27,11 @@ defmodule Astarte.RealmManagement.API.InterfacesTest do
 
   @realm "testrealm"
   @interface_name "com.Some.Interface"
-  @interface_major 2
+  @interface_major 0
   @valid_attrs %{
     "interface_name" => @interface_name,
-    "version_major" => 2,
-    "version_minor" => 1,
+    "version_major" => @interface_major,
+    "version_minor" => 2,
     "type" => "properties",
     "ownership" => "device",
     "mappings" => [
@@ -64,7 +64,7 @@ defmodule Astarte.RealmManagement.API.InterfacesTest do
       assert %Interface{
                name: @interface_name,
                major_version: @interface_major,
-               minor_version: 1,
+               minor_version: 2,
                type: :properties,
                ownership: :device,
                mappings: [mapping]
@@ -112,7 +112,7 @@ defmodule Astarte.RealmManagement.API.InterfacesTest do
       assert %Interface{
                name: @interface_name,
                major_version: @interface_major,
-               minor_version: 1,
+               minor_version: 2,
                type: :properties,
                ownership: :device,
                mappings: [mapping]
@@ -150,6 +150,8 @@ defmodule Astarte.RealmManagement.API.InterfacesTest do
   end
 
   describe "interface update" do
+    @describetag :update
+
     setup do
       {:ok, %Interface{}} = Interfaces.create_interface(@realm, @valid_attrs)
       :ok
@@ -181,7 +183,7 @@ defmodule Astarte.RealmManagement.API.InterfacesTest do
 
       assert %Interface{
                name: "com.Some.Interface",
-               major_version: 2,
+               major_version: @interface_major,
                minor_version: 10,
                type: :properties,
                ownership: :device,
@@ -206,6 +208,80 @@ defmodule Astarte.RealmManagement.API.InterfacesTest do
                Interfaces.update_interface(
                  @realm,
                  "com.NotExisting",
+                 @interface_major,
+                 update_attrs
+               )
+    end
+
+    test "fails when minor version is not increased" do
+      doc = "some doc"
+
+      update_attrs =
+        @valid_attrs
+        |> Map.put("doc", doc)
+
+      assert {:error, :minor_version_not_increased} ==
+               Interfaces.update_interface(
+                 @realm,
+                 @interface_name,
+                 @interface_major,
+                 update_attrs
+               )
+    end
+
+    test "fails when minor version is decreased" do
+      doc = "some doc"
+
+      update_attrs =
+        @valid_attrs
+        |> Map.put("version_minor", 1)
+        |> Map.put("doc", doc)
+
+      assert {:error, :downgrade_not_allowed} ==
+               Interfaces.update_interface(
+                 @realm,
+                 @interface_name,
+                 @interface_major,
+                 update_attrs
+               )
+    end
+
+    test "fails with missing endpoints" do
+      update_attrs =
+        @valid_attrs
+        |> Map.put("version_minor", 10)
+        |> Map.put("mappings", [
+          %{
+            "endpoint" => "/new_endpoint",
+            "type" => "integer"
+          }
+        ])
+
+      assert {:error, :missing_endpoints} ==
+               Interfaces.update_interface(
+                 @realm,
+                 @interface_name,
+                 @interface_major,
+                 update_attrs
+               )
+    end
+
+    test "fails with incompatible endpoint change" do
+      update_attrs =
+        @valid_attrs
+        |> Map.put("version_minor", 10)
+        |> Map.put("mappings", [
+          %{
+            "endpoint" => "/test",
+            # Changing the type from integer to string
+            "type" => "string"
+          }
+        ])
+
+      assert {:error, :incompatible_endpoint_change} ==
+               Interfaces.update_interface(
+                 @realm,
+                 @interface_name,
                  @interface_major,
                  update_attrs
                )
@@ -243,7 +319,7 @@ defmodule Astarte.RealmManagement.API.InterfacesTest do
 
       assert %Interface{
                name: "com.Some.Interface",
-               major_version: 2,
+               major_version: @interface_major,
                minor_version: 10,
                type: :properties,
                ownership: :device,

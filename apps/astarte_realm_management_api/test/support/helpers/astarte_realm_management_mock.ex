@@ -162,7 +162,11 @@ defmodule Astarte.RealmManagement.API.Helpers.RPCMock do
 
   defp execute_rpc(
          {:update_interface,
-          %UpdateInterface{realm_name: realm_name, interface_json: interface_json}}
+          %UpdateInterface{
+            realm_name: realm_name,
+            interface_json: interface_json,
+            async_operation: async
+          }}
        ) do
     {:ok, params} = Jason.decode(interface_json)
 
@@ -170,7 +174,7 @@ defmodule Astarte.RealmManagement.API.Helpers.RPCMock do
       Interface.changeset(%Interface{}, params) |> Ecto.Changeset.apply_action(:insert)
 
     with :ok <- DB.update_interface(realm_name, interface) do
-      generic_ok(true)
+      generic_ok(async)
       |> ok_wrap
     else
       {:error, reason} ->

@@ -142,14 +142,20 @@ defmodule Astarte.RealmManagement.API.Helpers.RPCMock.DB do
     |> String.downcase()
   end
 
-  def update_interface(realm, %Interface{name: name, major_version: major} = interface) do
+  def update_interface(
+        realm,
+        %Interface{name: name, major_version: major, mappings: new_mappings} = interface
+      ) do
     # Some basic error checking simulation
     with {:old_interface, old_interface} when not is_nil(old_interface) <-
            {:old_interface, get_interface(realm, name, major)},
          {:different_minor, true} <-
            {:different_minor, old_interface.minor_version != interface.minor_version},
          {:minor_bumped, true} <-
-           {:minor_bumped, old_interface.minor_version < interface.minor_version} do
+           {:minor_bumped, old_interface.minor_version < interface.minor_version},
+         {:mappings_valid, :ok} <-
+           {:mappings_valid, validate_mappings(old_interface.mappings, new_mappings)},
+         :ok <- validate_descriptor_compatibility(old_interface, interface) do
       Agent.update(__MODULE__, fn %{interfaces: interfaces} = state ->
         %{state | interfaces: Map.put(interfaces, {realm, name, major}, interface)}
       end)
@@ -162,7 +168,62 @@ defmodule Astarte.RealmManagement.API.Helpers.RPCMock.DB do
 
       {:minor_bumped, false} ->
         {:error, :downgrade_not_allowed}
+
+      {:mappings_valid, {:error, :missing_endpoints}} ->
+        {:error, :missing_endpoints}
+
+      {:mappings_valid, {:error, :incompatible_endpoint_change}} ->
+        {:error, :incompatible_endpoint_change}
+
+      {:error, :invalid_update} ->
+        {:error, :invalid_update}
     end
+  end
+
+  defp validate_descriptor_compatibility(old_interface, new_interface) do
+    if old_interface.type == new_interface.type and
+         old_interface.ownership == new_interface.ownership do
+      :ok
+    else
+      {:error, :invalid_update}
+    end
+  end
+
+  defp validate_mappings(old_mappings, new_mappings) do
+    old_mappings_map =
+      Enum.into(old_mappings, %{}, fn mapping -> {mapping.endpoint_id, mapping} end)
+
+    new_mappings_map =
+      Enum.into(new_mappings, %{}, fn mapping -> {mapping.endpoint_id, mapping} end)
+
+    Enum.reduce_while(old_mappings_map, :ok, fn {endpoint_id, old_mapping}, acc ->
+      case Map.fetch(new_mappings_map, endpoint_id) do
+        {:ok, new_mapping} ->
+          if allowed_mapping_update?(old_mapping, new_mapping) do
+            {:cont, acc}
+          else
+            {:halt, {:error, :incompatible_endpoint_change}}
+          end
+
+        :error ->
+          {:halt, {:error, :missing_endpoints}}
+      end
+    end)
+  end
+
+  defp allowed_mapping_update?(old_mapping, new_mapping) do
+    drop_mapping_negligible_fields(old_mapping) == drop_mapping_negligible_fields(new_mapping)
+  end
+
+  defp drop_mapping_negligible_fields(%Mapping{} = mapping) do
+    %{
+      mapping
+      | doc: nil,
+        description: nil,
+        explicit_timestamp: false,
+        retention: nil,
+        expiry: nil
+    }
   end
 
   def put_jwt_public_key_pem(realm, jwt_public_key_pem) do
