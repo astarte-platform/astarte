@@ -70,17 +70,18 @@ defmodule Astarte.RealmManagement.API.Helpers.RPCMock do
           %DeleteInterface{
             realm_name: realm_name,
             interface_name: name,
-            interface_major_version: major
+            interface_major_version: major,
+            async_operation: async
           }}
        ) do
     case DB.delete_interface(realm_name, name, major) do
       :ok ->
-        generic_ok()
-        |> ok_wrap()
+        generic_ok(async)
+        |> ok_wrap
 
       {:error, reason} ->
         generic_error(reason)
-        |> ok_wrap()
+        |> ok_wrap
     end
   end
 

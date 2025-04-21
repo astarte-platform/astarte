@@ -335,4 +335,56 @@ defmodule Astarte.RealmManagement.API.InterfacesTest do
       assert {:ok, ["com.Some.Interface"]} = Interfaces.list_interfaces(@realm)
     end
   end
+
+  describe "interface deletion" do
+    @describetag :deletion
+
+    setup do
+      {:ok, %Interface{}} = Interfaces.create_interface(@realm, @valid_attrs)
+      :ok
+    end
+
+    test "succeeds with valid interface" do
+      assert :ok = Interfaces.delete_interface(@realm, @interface_name, @interface_major)
+
+      assert {:error, :interface_not_found} =
+               Interfaces.get_interface(@realm, @interface_name, @interface_major)
+    end
+
+    test "fails if major version is other than 0" do
+      new_interface_major = 1
+
+      major_attrs =
+        @valid_attrs
+        |> Map.put("version_major", new_interface_major)
+
+      assert {:ok, %Interface{}} = Interfaces.create_interface(@realm, major_attrs)
+
+      assert {:error, :forbidden} =
+               Interfaces.delete_interface(@realm, @interface_name, new_interface_major)
+    end
+
+    test "fails with not installed interface" do
+      assert {:error, :interface_not_found} =
+               Interfaces.delete_interface(@realm, "com.NotExisting", @interface_major)
+    end
+
+    test "returns error for invalid realm" do
+      assert {:error, :interface_not_found} =
+               Interfaces.delete_interface("invalidrealm", @interface_name, @interface_major)
+    end
+
+    test "succeeds using a synchronous call" do
+      assert :ok =
+               Interfaces.delete_interface(
+                 @realm,
+                 @interface_name,
+                 @interface_major,
+                 async_operation: false
+               )
+
+      assert {:error, :interface_not_found} =
+               Interfaces.get_interface(@realm, @interface_name, @interface_major)
+    end
+  end
 end

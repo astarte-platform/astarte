@@ -47,12 +47,17 @@ defmodule Astarte.RealmManagement.API.Helpers.RPCMock.DB do
   end
 
   def delete_interface(realm, name, major) do
-    if get_interface(realm, name, major) == nil do
-      {:error, :interface_not_found}
-    else
-      Agent.update(__MODULE__, fn %{interfaces: interfaces} = state ->
-        %{state | interfaces: Map.delete(interfaces, {realm, name, major})}
-      end)
+    cond do
+      major != 0 ->
+        {:error, :forbidden}
+
+      get_interface(realm, name, major) |> is_nil() ->
+        {:error, :interface_not_found}
+
+      true ->
+        Agent.update(__MODULE__, fn %{interfaces: interfaces} = state ->
+          %{state | interfaces: Map.delete(interfaces, {realm, name, major})}
+        end)
     end
   end
 

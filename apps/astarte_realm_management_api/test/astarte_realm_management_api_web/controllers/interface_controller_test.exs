@@ -403,19 +403,50 @@ defmodule Astarte.RealmManagement.APIWeb.InterfaceControllerTest do
   end
 
   describe "delete" do
+    @describetag :deletion
+
     test "deletes existing interface", %{conn: conn} do
       post_conn = post(conn, interface_path(conn, :create, @realm), data: @valid_attrs)
       assert response(post_conn, 201) == ""
 
       delete_conn =
-        get(conn, interface_path(conn, :delete, @realm, @interface_name, @interface_major_str))
+        delete(conn, interface_path(conn, :delete, @realm, @interface_name, @interface_major_str))
 
-      assert response(delete_conn, 200)
+      assert response(delete_conn, 204) == ""
+    end
+
+    test "fails if major version is other than 0", %{conn: conn} do
+      new_interface_major = 1
+
+      major_attrs =
+        @valid_attrs
+        |> Map.put("version_major", new_interface_major)
+
+      post_conn = post(conn, interface_path(conn, :create, @realm), data: major_attrs)
+      assert response(post_conn, 201) == ""
+
+      delete_conn =
+        delete(
+          conn,
+          interface_path(
+            conn,
+            :delete,
+            @realm,
+            @interface_name,
+            Integer.to_string(new_interface_major)
+          )
+        )
+
+      assert json_response(delete_conn, 403)["errors"]["detail"] ==
+               "Interface can't be deleted"
     end
 
     test "renders error on non-existing interface", %{conn: conn} do
       delete_conn =
-        get(conn, interface_path(conn, :delete, @realm, "com.Nonexisting", @interface_major_str))
+        delete(
+          conn,
+          interface_path(conn, :delete, @realm, "com.Nonexisting", @interface_major_str)
+        )
 
       assert json_response(delete_conn, 404)["errors"] != %{}
     end
