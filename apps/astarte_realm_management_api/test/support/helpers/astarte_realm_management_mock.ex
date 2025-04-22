@@ -35,6 +35,7 @@ defmodule Astarte.RealmManagement.API.Helpers.RPCMock do
     GetJWTPublicKeyPEMReply,
     InstallInterface,
     Reply,
+    GetHealthReply,
     UpdateInterface,
     UpdateJWTPublicKeyPEM,
     InstallTriggerPolicy,
@@ -63,6 +64,29 @@ defmodule Astarte.RealmManagement.API.Helpers.RPCMock do
 
   defp extract_call_tuple(%Call{call: call_tuple}) do
     call_tuple
+  end
+
+  defp execute_rpc({:get_health, _msg}) do
+    case DB.get_health_status() do
+      :READY ->
+        %GetHealthReply{status: :READY}
+        |> encode_reply(:get_health_reply)
+        |> ok_wrap()
+
+      :DEGRADED ->
+        %GetHealthReply{status: :DEGRADED}
+        |> encode_reply(:get_health_reply)
+        |> ok_wrap()
+
+      :BAD ->
+        %GetHealthReply{status: :BAD}
+        |> encode_reply(:get_health_reply)
+        |> ok_wrap()
+
+      _ ->
+        generic_error(:internal_error)
+        |> ok_wrap()
+    end
   end
 
   defp execute_rpc(
