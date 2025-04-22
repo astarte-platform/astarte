@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2018 Ispirata Srl
+# Copyright 2018 - 2025 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -19,8 +19,8 @@
 defmodule Astarte.RealmManagement.APIWeb.InterfaceControllerTest do
   use Astarte.RealmManagement.APIWeb.ConnCase
 
-  alias Astarte.RealmManagement.API.JWTTestHelper
-  alias Astarte.RealmManagement.Mock
+  alias Astarte.RealmManagement.API.Helpers.JWTTestHelper
+  alias Astarte.RealmManagement.API.Helpers.RPCMock.DB
 
   @realm "testrealm"
   @interface_name "com.Some.Interface"
@@ -54,7 +54,7 @@ defmodule Astarte.RealmManagement.APIWeb.InterfaceControllerTest do
   }
 
   setup %{conn: conn} do
-    Mock.DB.put_jwt_public_key_pem(@realm, JWTTestHelper.public_key_pem())
+    DB.put_jwt_public_key_pem(@realm, JWTTestHelper.public_key_pem())
     token = JWTTestHelper.gen_jwt_all_access_token()
 
     conn =
@@ -126,7 +126,6 @@ defmodule Astarte.RealmManagement.APIWeb.InterfaceControllerTest do
     test "renders error on mapping with higher database_retention_ttl than the maximum", %{
       conn: conn
     } do
-      alias Astarte.RealmManagement.Mock.DB
       DB.put_datastream_maximum_storage_retention(@realm, 1)
       on_exit(fn -> DB.put_datastream_maximum_storage_retention(@realm, 0) end)
 

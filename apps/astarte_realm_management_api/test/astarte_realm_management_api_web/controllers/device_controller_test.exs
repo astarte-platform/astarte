@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2023 SECO Mind Srl
+# Copyright 2023 - 2025 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -19,15 +19,15 @@
 defmodule Astarte.RealmManagement.APIWeb.DeviceControllerTest do
   use Astarte.RealmManagement.APIWeb.ConnCase
 
-  alias Astarte.RealmManagement.API.JWTTestHelper
-  alias Astarte.RealmManagement.Mock
+  alias Astarte.RealmManagement.API.Helpers.JWTTestHelper
+  alias Astarte.RealmManagement.API.Helpers.RPCMock.DB
 
   @realm "testrealm"
   @device_id :crypto.strong_rand_bytes(16) |> Base.url_encode64(padding: false)
   @other_device_id :crypto.strong_rand_bytes(16) |> Base.url_encode64(padding: false)
 
   setup %{conn: conn} do
-    Mock.DB.create_device(@realm, @device_id)
+    DB.create_device(@realm, @device_id)
     token = JWTTestHelper.gen_jwt_all_access_token()
 
     conn =

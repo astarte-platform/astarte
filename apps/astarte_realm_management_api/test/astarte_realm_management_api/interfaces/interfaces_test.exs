@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2018 Ispirata Srl
+# Copyright 2018 - 2025 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -107,7 +107,7 @@ defmodule Astarte.RealmManagement.API.InterfacesTest do
     end
 
     test "fails when a mapping higher database_retention_ttl than the maximum" do
-      alias Astarte.RealmManagement.Mock.DB
+      alias Astarte.RealmManagement.API.Helpers.RPCMock.DB
       DB.put_datastream_maximum_storage_retention(@realm, 1)
       on_exit(fn -> DB.put_datastream_maximum_storage_retention(@realm, 0) end)
 

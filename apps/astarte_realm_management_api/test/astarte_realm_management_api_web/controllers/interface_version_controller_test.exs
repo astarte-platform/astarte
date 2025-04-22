@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2018 Ispirata Srl
+# Copyright 2018 - 2025 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -19,8 +19,8 @@
 defmodule Astarte.RealmManagement.APIWeb.InterfaceVersionControllerTest do
   use Astarte.RealmManagement.APIWeb.ConnCase
 
-  alias Astarte.RealmManagement.API.JWTTestHelper
-  alias Astarte.RealmManagement.Mock
+  alias Astarte.RealmManagement.API.Helpers.JWTTestHelper
+  alias Astarte.RealmManagement.API.Helpers.RPCMock.DB
 
   @realm "testrealm"
   @interface_name "com.Some.Interface"
@@ -40,7 +40,7 @@ defmodule Astarte.RealmManagement.APIWeb.InterfaceVersionControllerTest do
   }
 
   setup %{conn: conn} do
-    Mock.DB.put_jwt_public_key_pem(@realm, JWTTestHelper.public_key_pem())
+    DB.put_jwt_public_key_pem(@realm, JWTTestHelper.public_key_pem())
     token = JWTTestHelper.gen_jwt_all_access_token()
 
     conn =
