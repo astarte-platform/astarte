@@ -28,6 +28,7 @@ defmodule Astarte.RealmManagement.APIWeb.DeviceControllerTest do
 
   setup %{conn: conn} do
     DB.create_device(@realm, @device_id)
+    DB.put_jwt_public_key_pem(@realm, JWTTestHelper.public_key_pem())
     token = JWTTestHelper.gen_jwt_all_access_token()
 
     conn =
