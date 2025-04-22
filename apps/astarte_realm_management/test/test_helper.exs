@@ -16,6 +16,5 @@
 # limitations under the License.
 #
 
-ExUnit.start()
-
 Mimic.copy(Astarte.DataAccess.Config)
+ExUnit.start(capture_log: true)

@@ -20,4 +20,4 @@ Mimic.copy(AMQP.Basic)
 Mimic.copy(Astarte.DataAccess.Config)
 Mimic.copy(HTTPoison)
 
-ExUnit.start()
+ExUnit.start(capture_log: true)
