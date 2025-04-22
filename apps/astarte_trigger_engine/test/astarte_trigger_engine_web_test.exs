@@ -25,9 +25,7 @@ defmodule Astarte.TriggerEngineWebTest do
   test "/health returns ok if astarte is working correctly" do
     conn = get("/health")
 
-    # FIXME: remove commented out assertion when health check works again
-    _ = conn
-    # assert conn.status == 200
+    assert conn.status == 200
   end
 
   test "/metrics return prometheus metrics" do
