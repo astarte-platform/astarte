@@ -31,6 +31,11 @@ defmodule Astarte.Core.Generators.Triggers.Policy do
   alias Astarte.Core.Triggers.Policy.ErrorRange
   alias Astarte.Core.Triggers.Policy.Handler
 
+  # \n: 10
+  # @: 0x40
+  @utf8_except_newline_and_atsign [0..9, 11..0x39, 0x41..0xD7FF, 0xE000..0x10FFFF]
+  @utf8_except_newline [?@ | @utf8_except_newline_and_atsign]
+
   @spec policy(keyword) :: StreamData.t(Policy.t())
   def policy(params \\ []) do
     params gen all retry_times <- integer(1..100),
@@ -62,8 +67,10 @@ defmodule Astarte.Core.Generators.Triggers.Policy do
   defp optional(gen), do: one_of([nil, gen])
 
   defp policy_name do
-    string(:utf8, min_length: 1, max_length: 128)
-    |> filter(fn <<first::utf8, _rest::binary>> -> first != ?@ end)
+    gen all first <- string(@utf8_except_newline_and_atsign, length: 1),
+            rest <- string(@utf8_except_newline, max_length: 127) do
+      first <> rest
+    end
   end
 
   defp policy_handlers do
