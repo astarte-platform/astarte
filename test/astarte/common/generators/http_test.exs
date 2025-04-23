@@ -25,6 +25,18 @@ defmodule Astarte.Common.Generators.HTTPTest do
   @moduletag :common
   @moduletag :http
 
+  @valid_http_methods [
+    "get",
+    "head",
+    "options",
+    "trace",
+    "put",
+    "delete",
+    "post",
+    "patch",
+    "connect"
+  ]
+
   describe "url generator" do
     property "generates valid urls" do
       check all url <- HTTP.url(), max_runs: 100 do
@@ -32,6 +44,14 @@ defmodule Astarte.Common.Generators.HTTPTest do
 
         assert scheme != nil
         assert authority != nil
+      end
+    end
+  end
+
+  describe "method generator" do
+    property "generates valid http methods" do
+      check all method <- HTTP.method() do
+        assert method in @valid_http_methods
       end
     end
   end

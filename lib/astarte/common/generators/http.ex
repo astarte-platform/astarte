@@ -28,6 +28,22 @@ defmodule Astarte.Common.Generators.HTTP do
     end
   end
 
+  @doc """
+    Generator for HTTP methods
+  """
+  @spec method() :: StreamData.t(String.t())
+  def method do
+    member_of([
+      "delete",
+      "get",
+      "head",
+      "options",
+      "patch",
+      "post",
+      "put"
+    ])
+  end
+
   defp hier_part do
     gen all authority <- authority(),
             path <- one_of([path_abempty(), path_absolute(), path_rootless(), path_empty()]) do
