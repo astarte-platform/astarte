@@ -70,8 +70,9 @@ defmodule Astarte.Core.Generators.Triggers.Policy do
     gen all keywords <-
               one_of([
                 constant(["any_error"]),
-                uniq_list_of(member_of(["client_error", "server_error"]), max_length: 2)
+                list_of(member_of(["client_error", "server_error"]), max_length: 2)
               ]),
+            keywords = Enum.dedup(keywords),
             error_codes <- policy_handler_error_codes_from_used_keywords(keywords) do
       total_handlers = length(keywords) + length(error_codes)
       strategies = member_of(["discard", "retry"]) |> Enum.take(total_handlers)
