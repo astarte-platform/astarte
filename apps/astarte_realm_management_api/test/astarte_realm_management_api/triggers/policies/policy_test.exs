@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2021 Ispirata Srl
+# Copyright 2021 - 2025 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -18,13 +18,19 @@
 
 defmodule Astarte.RealmManagement.API.Triggers.Policies.PolicyTest do
   use Astarte.RealmManagement.API.DataCase
+  use ExUnitProperties
+
+  @moduletag :trigger_policy
 
   alias Astarte.RealmManagement.API.Triggers.Policies
+  alias Astarte.Core.Generators.Triggers.Policy, as: PolicyGenerator
   alias Astarte.Core.Triggers.Policy
   alias Astarte.Core.Triggers.Policy.Handler
   alias Astarte.Core.Triggers.Policy.ErrorKeyword
+  alias Astarte.Core.Triggers.Policy.ErrorRange
+
   @realm "testrealm"
-  @policy_name "aname"
+  @policy_name "policy_name"
   @valid_attrs %{
     name: @policy_name,
     maximum_capacity: 300,
@@ -39,46 +45,95 @@ defmodule Astarte.RealmManagement.API.Triggers.Policies.PolicyTest do
     "maximum_capacity" => 100
   }
 
-  test "install, list, source and delete succeed with valid attrs" do
-    assert {:ok, %Policy{} = policy} = Policies.create_trigger_policy(@realm, @valid_attrs)
+  describe "Policy creation" do
+    @describetag :creation
 
-    assert %Policy{
-             name: @policy_name,
-             maximum_capacity: 300,
-             retry_times: 10,
-             event_ttl: 10,
-             error_handlers: [handler]
-           } = policy
+    property "successfully creates and retrieves valid policies" do
+      check all(policy_struct <- PolicyGenerator.policy()) do
+        policy_map = policy_struct_to_map(policy_struct)
 
-    assert %Handler{
-             on: %ErrorKeyword{keyword: "any_error"},
-             strategy: "retry"
-           } = handler
+        name = policy_map.name
 
-    assert [@policy_name] = Policies.list_trigger_policies(@realm)
+        assert {:ok, %Policy{name: ^name}} = Policies.create_trigger_policy(@realm, policy_map)
+      end
+    end
 
-    assert {:ok, json} = Policies.get_trigger_policy_source(@realm, @policy_name)
-    assert {:ok, %{name: @policy_name}} = Jason.decode(json, keys: :atoms)
+    test "fails with invalid attributes" do
+      assert {:error, %Ecto.Changeset{errors: _}} =
+               Policies.create_trigger_policy(@realm, @invalid_attrs)
+    end
 
-    assert {:error, :trigger_policy_already_present} =
-             Policies.create_trigger_policy(@realm, @valid_attrs)
+    test "fails when policy already exists" do
+      assert {:ok, %Policy{}} = Policies.create_trigger_policy(@realm, @valid_attrs)
 
-    assert :ok = Policies.delete_trigger_policy(@realm, @policy_name)
-
-    assert {:ok, %Policy{} = policy} = Policies.create_trigger_policy(@realm, @valid_attrs)
+      assert {:error, :trigger_policy_already_present} =
+               Policies.create_trigger_policy(@realm, @valid_attrs)
+    end
   end
 
-  test "install fails with invalid attrs" do
-    assert {:error, %Ecto.Changeset{errors: _}} =
-             Policies.create_trigger_policy(@realm, @invalid_attrs)
+  describe "Policy listing" do
+    @describetag :policy_listing
+
+    test "lists installed policies" do
+      assert {:ok, %Policy{}} = Policies.create_trigger_policy(@realm, @valid_attrs)
+
+      assert [@policy_name] = Policies.list_trigger_policies(@realm)
+    end
   end
 
-  test "delete fails when policy is not installed" do
-    assert {:error, :trigger_policy_not_found} = Policies.delete_trigger_policy(@realm, "pippo")
+  describe "Policy source retrieval" do
+    @describetag :policy_source
+
+    test "retrieves source for installed policy" do
+      assert {:ok, %Policy{}} = Policies.create_trigger_policy(@realm, @valid_attrs)
+
+      assert {:ok, json} = Policies.get_trigger_policy_source(@realm, @policy_name)
+      assert {:ok, %{name: @policy_name}} = Jason.decode(json, keys: :atoms)
+    end
+
+    test "fails when policy is not installed" do
+      assert {:error, :trigger_policy_not_found} =
+               Policies.get_trigger_policy_source(@realm, "nonexistent_policy")
+    end
   end
 
-  test "source fails when policy is not installed" do
-    assert {:error, :trigger_policy_not_found} =
-             Policies.get_trigger_policy_source(@realm, "pippo")
+  describe "Policy deletion" do
+    @describetag :deletion
+
+    property "successfully deletes installed policies" do
+      check all(policy_struct <- PolicyGenerator.policy()) do
+        policy_map = policy_struct_to_map(policy_struct)
+
+        name = policy_map.name
+
+        assert {:ok, %Policy{name: ^name}} = Policies.create_trigger_policy(@realm, policy_map)
+        assert {:ok, :started} = Policies.delete_trigger_policy(@realm, name)
+
+        assert {:error, :trigger_policy_not_found} =
+                 Policies.get_trigger_policy_source(@realm, name)
+      end
+    end
+
+    test "fails when policy is not installed" do
+      assert {:error, :trigger_policy_not_found} =
+               Policies.delete_trigger_policy(@realm, "nonexistent_policy")
+    end
+  end
+
+  # TODO: Remove this function when changeset generators are exposed on astarte_generators
+  defp policy_struct_to_map(%Policy{} = policy_struct) do
+    policy_struct
+    |> Map.from_struct()
+    |> Map.update!(:error_handlers, fn handlers ->
+      Enum.map(handlers, fn %Handler{on: on, strategy: strategy} ->
+        on_map =
+          case on do
+            %ErrorKeyword{keyword: keyword} -> %{on: keyword}
+            %ErrorRange{error_codes: codes} -> %{on: codes}
+          end
+
+        Map.put(on_map, :strategy, strategy)
+      end)
+    end)
   end
 end

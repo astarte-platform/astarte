@@ -225,7 +225,7 @@ defmodule Astarte.RealmManagement.API.Helpers.RPCMock do
        ) do
     case DB.delete_trigger_policy(realm_name, name) do
       :ok ->
-        generic_ok()
+        generic_ok(true)
         |> ok_wrap()
 
       {:error, reason} ->
