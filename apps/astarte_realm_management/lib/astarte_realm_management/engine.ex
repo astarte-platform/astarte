@@ -933,8 +933,7 @@ defmodule Astarte.RealmManagement.Engine do
     with {:ok, decoded_device_id} <-
            Astarte.Core.Device.decode_device_id(device_id, allow_extended_id: true),
          {:ok, true} <- check_device_exists(realm_name, decoded_device_id),
-         {:ok, %Xandra.Void{}} <-
-           insert_device_into_deletion_in_progress(realm_name, decoded_device_id) do
+         :ok <- insert_device_into_deletion_in_progress(realm_name, decoded_device_id) do
       _ = Logger.info("Added device #{device_id} to deletion in progress")
       :ok
     end

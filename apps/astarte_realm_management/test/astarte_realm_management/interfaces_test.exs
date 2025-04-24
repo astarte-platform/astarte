@@ -33,7 +33,7 @@ defmodule Astarte.RealmManagement.InterfacesTest do
       check all(interface <- Astarte.Core.Generators.Interface.interface()) do
         json_interface = Jason.encode!(interface)
 
-        _ = Engine.install_interface(realm, json_interface)
+        :ok = Engine.install_interface(realm, json_interface)
 
         {:ok, fetched_interface} =
           Queries.fetch_interface(realm, interface.name, interface.major_version)
@@ -58,7 +58,7 @@ defmodule Astarte.RealmManagement.InterfacesTest do
 
         assert MapSet.equal?(fetched_mappings, interface_mappings)
 
-        _ = Engine.delete_interface(realm, interface.name, interface.major_version)
+        _ = Queries.delete_interface(realm, interface.name, interface.major_version)
       end
     end
 
@@ -75,7 +75,7 @@ defmodule Astarte.RealmManagement.InterfacesTest do
         assert {:error, :forbidden} =
                  Engine.delete_interface(realm, interface.name, interface.major_version)
 
-        {:ok, interfaces} = Engine.get_interfaces_list(realm)
+        interfaces = Engine.get_interfaces_list(realm)
         assert interface.name in interfaces
       end
     end
@@ -88,7 +88,7 @@ defmodule Astarte.RealmManagement.InterfacesTest do
         _ = Engine.install_interface(realm, json_interface)
 
         assert :ok = Engine.delete_interface(realm, interface.name, interface.major_version)
-        {:ok, interfaces} = Engine.get_interfaces_list(realm)
+        interfaces = Engine.get_interfaces_list(realm)
         refute interface.name in interfaces
       end
     end

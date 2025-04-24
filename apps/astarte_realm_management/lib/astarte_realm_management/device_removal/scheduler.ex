@@ -34,13 +34,14 @@ defmodule Astarte.RealmManagement.DeviceRemoval.Scheduler do
 
   # TODO expose this via config
   @reconciliation_timeout :timer.minutes(5)
-  def start_link(_args) do
-    GenServer.start_link(__MODULE__, [], name: __MODULE__)
+  def start_link(args) do
+    GenServer.start_link(__MODULE__, args, name: __MODULE__)
   end
 
-  def init(_init_arg) do
-    # TODO: find a way to run start_device_deletion!() manually
-    schedule_device_deletion()
+  def init(args) do
+    if !args[:wait_start],
+      do: schedule_device_deletion()
+
     {:ok, %{}}
   end
 
@@ -49,6 +50,7 @@ defmodule Astarte.RealmManagement.DeviceRemoval.Scheduler do
 
     start_device_deletion!()
     schedule_device_deletion()
+
     {:noreply, state}
   end
 
