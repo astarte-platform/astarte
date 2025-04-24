@@ -70,17 +70,18 @@ defmodule Astarte.RealmManagement.API.Helpers.RPCMock do
           %DeleteInterface{
             realm_name: realm_name,
             interface_name: name,
-            interface_major_version: major
+            interface_major_version: major,
+            async_operation: async
           }}
        ) do
     case DB.delete_interface(realm_name, name, major) do
       :ok ->
-        generic_ok()
-        |> ok_wrap()
+        generic_ok(async)
+        |> ok_wrap
 
       {:error, reason} ->
         generic_error(reason)
-        |> ok_wrap()
+        |> ok_wrap
     end
   end
 
@@ -139,7 +140,11 @@ defmodule Astarte.RealmManagement.API.Helpers.RPCMock do
 
   defp execute_rpc(
          {:install_interface,
-          %InstallInterface{realm_name: realm_name, interface_json: interface_json}}
+          %InstallInterface{
+            realm_name: realm_name,
+            interface_json: interface_json,
+            async_operation: async
+          }}
        ) do
     {:ok, params} = Jason.decode(interface_json)
 
@@ -147,7 +152,7 @@ defmodule Astarte.RealmManagement.API.Helpers.RPCMock do
       Interface.changeset(%Interface{}, params) |> Ecto.Changeset.apply_action(:insert)
 
     with :ok <- DB.install_interface(realm_name, interface) do
-      generic_ok(true)
+      generic_ok(async)
       |> ok_wrap
     else
       {:error, reason} ->
@@ -158,7 +163,11 @@ defmodule Astarte.RealmManagement.API.Helpers.RPCMock do
 
   defp execute_rpc(
          {:update_interface,
-          %UpdateInterface{realm_name: realm_name, interface_json: interface_json}}
+          %UpdateInterface{
+            realm_name: realm_name,
+            interface_json: interface_json,
+            async_operation: async
+          }}
        ) do
     {:ok, params} = Jason.decode(interface_json)
 
@@ -166,7 +175,7 @@ defmodule Astarte.RealmManagement.API.Helpers.RPCMock do
       Interface.changeset(%Interface{}, params) |> Ecto.Changeset.apply_action(:insert)
 
     with :ok <- DB.update_interface(realm_name, interface) do
-      generic_ok(true)
+      generic_ok(async)
       |> ok_wrap
     else
       {:error, reason} ->
