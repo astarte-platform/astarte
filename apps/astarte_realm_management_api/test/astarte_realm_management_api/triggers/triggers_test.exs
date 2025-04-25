@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2018 Ispirata Srl
+# Copyright 2018 - 2025 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -61,23 +61,6 @@ defmodule Astarte.RealmManagement.API.TriggersTest do
     end
 
     @tag :wip
-    test "update_trigger/2 with valid data updates the trigger" do
-      trigger = trigger_fixture()
-      assert {:ok, trigger} = RealmManagement.API.Triggers.update_trigger(trigger, @update_attrs)
-      assert %Trigger{} = trigger
-    end
-
-    @tag :wip
-    test "update_trigger/2 with invalid data returns error changeset" do
-      trigger = trigger_fixture()
-
-      assert {:error, %Ecto.Changeset{}} =
-               RealmManagement.API.Triggers.update_trigger(trigger, @invalid_attrs)
-
-      assert trigger == RealmManagement.API.Triggers.get_trigger!(trigger.id)
-    end
-
-    @tag :wip
     test "delete_trigger/1 deletes the trigger" do
       trigger = trigger_fixture()
       assert {:ok, %Trigger{}} = RealmManagement.API.Triggers.delete_trigger(trigger)
@@ -85,12 +68,6 @@ defmodule Astarte.RealmManagement.API.TriggersTest do
       assert_raise Ecto.NoResultsError, fn ->
         RealmManagement.API.Triggers.get_trigger!(trigger.id)
       end
-    end
-
-    @tag :wip
-    test "change_trigger/1 returns a trigger changeset" do
-      trigger = trigger_fixture()
-      assert %Ecto.Changeset{} = RealmManagement.API.Triggers.change_trigger(trigger)
     end
   end
 end

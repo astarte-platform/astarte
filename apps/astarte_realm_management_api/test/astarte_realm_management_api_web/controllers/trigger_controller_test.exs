@@ -52,14 +52,6 @@ defmodule Astarte.RealmManagement.APIWeb.TriggerControllerTest do
   end
 
   @tag :wip
-  describe "update trigger" do
-    test "renders errors when data is invalid", %{conn: conn, trigger: trigger} do
-      conn = put(conn, trigger_path(conn, :update, trigger, @test_realm), trigger: @invalid_attrs)
-      assert json_response(conn, 422)["errors"] != %{}
-    end
-  end
-
-  @tag :wip
   describe "delete trigger" do
     test "deletes chosen trigger", %{conn: conn, trigger: trigger} do
       conn = delete(conn, trigger_path(conn, :delete, trigger, @test_realm))
