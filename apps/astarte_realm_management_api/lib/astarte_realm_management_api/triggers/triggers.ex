@@ -22,9 +22,10 @@ defmodule Astarte.RealmManagement.API.Triggers do
   """
 
   import Ecto.Query, warn: false
-  alias Astarte.RealmManagement.API.RPC.RealmManagement
 
+  alias Astarte.RealmManagement.API.RPC.RealmManagement
   alias Astarte.Core.Triggers.SimpleTriggerConfig
+  alias Astarte.RealmManagement.API.Triggers.Action
   alias Astarte.RealmManagement.API.Triggers.Trigger
   alias Ecto.Changeset
 
@@ -61,14 +62,16 @@ defmodule Astarte.RealmManagement.API.Triggers do
             tagged_simple_triggers: tagged_simple_triggers,
             policy: policy
           }} <- RealmManagement.get_trigger(realm_name, trigger_name),
-         {:ok, action_map} <- Jason.decode(action) do
+         {:ok, action_map} <- Jason.decode(action, keys: :atoms!) do
       simple_triggers_configs =
         Enum.map(tagged_simple_triggers, &SimpleTriggerConfig.from_tagged_simple_trigger/1)
+
+      action_struct = struct(Action, action_map)
 
       {:ok,
        %Trigger{
          name: name,
-         action: action_map,
+         action: action_struct,
          simple_triggers: simple_triggers_configs,
          policy: policy
        }}

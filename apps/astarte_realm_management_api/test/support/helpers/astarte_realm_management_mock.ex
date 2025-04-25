@@ -46,12 +46,16 @@ defmodule Astarte.RealmManagement.API.Helpers.RPCMock do
     GetTriggerPolicySourceReply,
     DeleteDevice,
     GetDeviceRegistrationLimit,
-    GetDeviceRegistrationLimitReply
+    GetDeviceRegistrationLimitReply,
+    GetTriggerReply,
+    GetTrigger
   }
 
   alias Astarte.Core.Interface
   alias Astarte.Core.Triggers.Policy
   alias Astarte.RealmManagement.API.Helpers.RPCMock.DB
+  alias Astarte.Core.Triggers.SimpleTriggersProtobuf.TaggedSimpleTrigger
+  alias Astarte.Core.Triggers.Trigger
 
   def rpc_call(payload, _destination) do
     handle_rpc(payload)
@@ -326,6 +330,88 @@ defmodule Astarte.RealmManagement.API.Helpers.RPCMock do
     %GetDatastreamMaximumStorageRetentionReply{datastream_maximum_storage_retention: value}
     |> encode_reply(:get_datastream_maximum_storage_retention_reply)
     |> ok_wrap
+  end
+
+  defp execute_rpc(
+         {:get_trigger,
+          %GetTrigger{
+            realm_name: realm_name,
+            trigger_name: trigger_name
+          }}
+       ) do
+    case DB.get_trigger(realm_name, trigger_name) do
+      %{
+        trigger_name: ^trigger_name,
+        policy: policy,
+        trigger_action: trigger_action,
+        tagged_simple_triggers: tagged_simple_triggers
+      } ->
+        serialized_tagged_simple_triggers =
+          Enum.map(tagged_simple_triggers, &TaggedSimpleTrigger.encode/1)
+
+        simple_trigger_maps =
+          build_simple_trigger_maps(serialized_tagged_simple_triggers)
+
+        trigger =
+          build_trigger(
+            trigger_name,
+            policy,
+            simple_trigger_maps,
+            trigger_action
+          )
+
+        trigger_data = Trigger.encode(trigger)
+
+        %GetTriggerReply{
+          trigger_data: trigger_data,
+          serialized_tagged_simple_triggers: serialized_tagged_simple_triggers
+        }
+        |> encode_reply(:get_trigger_reply)
+        |> ok_wrap
+
+      _ ->
+        generic_error(:trigger_not_found)
+        |> ok_wrap
+    end
+  end
+
+  defp build_trigger(trigger_name, policy, simple_trigger_maps, action) do
+    simple_trigger_uuids =
+      for simple_trigger_map <- simple_trigger_maps do
+        simple_trigger_map[:simple_trigger_uuid]
+      end
+
+    policy =
+      if policy == "" do
+        nil
+      else
+        policy
+      end
+
+    %Trigger{
+      trigger_uuid: :uuid.get_v4(),
+      simple_triggers_uuids: simple_trigger_uuids,
+      action: action,
+      name: trigger_name,
+      policy: policy
+    }
+  end
+
+  defp build_simple_trigger_maps(serialized_tagged_simple_triggers) do
+    for serialized_tagged_simple_trigger <- serialized_tagged_simple_triggers do
+      %TaggedSimpleTrigger{
+        object_id: object_id,
+        object_type: object_type,
+        simple_trigger_container: simple_trigger_container
+      } = TaggedSimpleTrigger.decode(serialized_tagged_simple_trigger)
+
+      %{
+        object_id: object_id,
+        object_type: object_type,
+        simple_trigger_uuid: :uuid.get_v4(),
+        simple_trigger: simple_trigger_container
+      }
+    end
   end
 
   defp generic_ok(async_operation \\ false) do

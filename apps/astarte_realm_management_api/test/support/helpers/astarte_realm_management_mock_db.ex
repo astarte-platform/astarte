@@ -22,7 +22,8 @@ defmodule Astarte.RealmManagement.API.Helpers.RPCMock.DB do
   alias Astarte.Core.Triggers.Policy
 
   def start_link(opts \\ []) do
-    Agent.start_link(fn -> %{interfaces: %{}, trigger_policies: %{}, devices: %{}} end,
+    Agent.start_link(
+      fn -> %{interfaces: %{}, trigger_policies: %{}, devices: %{}, triggers: %{}} end,
       name: Keyword.get(opts, :name, __MODULE__)
     )
   end
@@ -43,6 +44,7 @@ defmodule Astarte.RealmManagement.API.Helpers.RPCMock.DB do
       |> Map.put(:interfaces, %{})
       |> Map.put(:trigger_policies, %{})
       |> Map.put(:devices, %{})
+      |> Map.put(:triggers, %{})
     end)
   end
 
@@ -326,6 +328,12 @@ defmodule Astarte.RealmManagement.API.Helpers.RPCMock.DB do
   defp mappings_max_storage_retention_exceeded?(mappings, max_retention) do
     Enum.all?(mappings, fn %Mapping{database_retention_ttl: retention} ->
       retention != nil and retention > max_retention
+    end)
+  end
+
+  def get_trigger(realm_name, trigger_name) do
+    Agent.get(__MODULE__, fn %{triggers: triggers} ->
+      Map.get(triggers, {realm_name, trigger_name})
     end)
   end
 end
