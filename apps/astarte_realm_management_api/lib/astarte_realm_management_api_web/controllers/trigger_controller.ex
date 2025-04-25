@@ -86,6 +86,10 @@ defmodule Astarte.RealmManagement.APIWeb.TriggerController do
         conn
         |> put_status(:internal_server_error)
         |> render("cannot_delete_simple_trigger.json")
+
+      # To FallbackController
+      {:error, other} ->
+        {:error, other}
     end
   end
 end

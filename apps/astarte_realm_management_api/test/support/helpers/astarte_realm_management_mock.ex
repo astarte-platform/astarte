@@ -51,7 +51,8 @@ defmodule Astarte.RealmManagement.API.Helpers.RPCMock do
     GetTriggerReply,
     GetTrigger,
     GetTriggersListReply,
-    GetTriggersList
+    GetTriggersList,
+    DeleteTrigger
   }
 
   alias Astarte.Core.Interface
@@ -409,6 +410,24 @@ defmodule Astarte.RealmManagement.API.Helpers.RPCMock do
 
       _ ->
         generic_error(:trigger_not_found)
+        |> ok_wrap
+    end
+  end
+
+  defp execute_rpc(
+         {:delete_trigger,
+          %DeleteTrigger{
+            realm_name: realm_name,
+            trigger_name: trigger_name
+          }}
+       ) do
+    with :ok <- DB.delete_trigger(realm_name, trigger_name) do
+      %GenericOkReply{}
+      |> encode_reply(:generic_ok_reply)
+      |> ok_wrap
+    else
+      {:error, reason} ->
+        generic_error(reason)
         |> ok_wrap
     end
   end

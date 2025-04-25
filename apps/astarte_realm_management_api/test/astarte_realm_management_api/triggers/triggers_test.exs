@@ -79,14 +79,23 @@ defmodule Astarte.RealmManagement.API.TriggersTest do
       assert {:ok, installed_trigger} == Triggers.get_trigger(@test_realm, installed_trigger.name)
     end
 
-    @tag :wip
     test "delete_trigger/1 deletes the trigger" do
-      trigger = trigger_fixture()
-      assert {:ok, %Trigger{}} = RealmManagement.API.Triggers.delete_trigger(trigger)
+      trigger_attrs = TriggerFixture.valid_trigger_attrs()
 
-      assert_raise Ecto.NoResultsError, fn ->
-        RealmManagement.API.Triggers.get_trigger!(trigger.id)
-      end
+      assert {:ok, %Trigger{} = installed_trigger} =
+               Triggers.create_trigger(@test_realm, trigger_attrs)
+
+      assert {:ok, %Trigger{}} = Triggers.delete_trigger(@test_realm, installed_trigger)
+    end
+
+    test "delete_trigger/1 fails on an already deleted trigger" do
+      trigger_attrs = TriggerFixture.valid_trigger_attrs()
+
+      assert {:ok, %Trigger{} = trigger} =
+               Triggers.create_trigger(@test_realm, trigger_attrs)
+
+      assert {:ok, %Trigger{}} = Triggers.delete_trigger(@test_realm, trigger)
+      assert {:error, :trigger_not_found} = Triggers.delete_trigger(@test_realm, trigger)
     end
   end
 

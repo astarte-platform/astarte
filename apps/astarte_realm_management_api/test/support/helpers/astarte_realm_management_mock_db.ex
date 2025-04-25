@@ -374,4 +374,14 @@ defmodule Astarte.RealmManagement.API.Helpers.RPCMock.DB do
       Map.get(triggers, {realm_name, trigger_name})
     end)
   end
+
+  def delete_trigger(realm_name, trigger_name) do
+    if get_trigger(realm_name, trigger_name) == nil do
+      {:error, :trigger_not_found}
+    else
+      Agent.update(__MODULE__, fn %{triggers: triggers} = state ->
+        %{state | triggers: Map.delete(triggers, {realm_name, trigger_name})}
+      end)
+    end
+  end
 end

@@ -95,15 +95,24 @@ defmodule Astarte.RealmManagement.APIWeb.TriggerControllerTest do
     end
   end
 
-  @tag :wip
-  describe "delete trigger" do
-    test "deletes chosen trigger", %{conn: conn, trigger: trigger} do
-      conn = delete(conn, trigger_path(conn, :delete, trigger, @test_realm))
-      assert response(conn, 204)
+  describe "delete" do
+    test "deletes trigger", %{conn: conn} do
+      post_conn =
+        post(conn, trigger_path(conn, :create, @test_realm), data: valid_trigger_attrs())
 
-      assert_error_sent(404, fn ->
-        get(conn, trigger_path(conn, :show, trigger, @test_realm))
-      end)
+      response = json_response(post_conn, 201)["data"]
+
+      delete_conn =
+        delete(conn, trigger_path(conn, :delete, @test_realm, valid_trigger_attrs()["name"]))
+
+      assert response(delete_conn, 204)
+    end
+
+    test "renders error when trigger doesn't exist", %{conn: conn} do
+      delete_conn =
+        delete(conn, trigger_path(conn, :delete, @test_realm, valid_trigger_attrs()["name"]))
+
+      assert json_response(delete_conn, 404)["errors"] == %{"detail" => "Trigger not found"}
     end
   end
 end
