@@ -358,6 +358,17 @@ defmodule Astarte.RealmManagement.API.Helpers.RPCMock.DB do
     end
   end
 
+  def get_triggers_list(realm_name) do
+    Agent.get(__MODULE__, fn %{triggers: triggers} ->
+      keys = Map.keys(triggers)
+
+      for {^realm_name, trigger_name} <- keys do
+        trigger_name
+      end
+      |> Enum.uniq()
+    end)
+  end
+
   def get_trigger(realm_name, trigger_name) do
     Agent.get(__MODULE__, fn %{triggers: triggers} ->
       Map.get(triggers, {realm_name, trigger_name})

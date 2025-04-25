@@ -49,7 +49,9 @@ defmodule Astarte.RealmManagement.API.Helpers.RPCMock do
     GetDeviceRegistrationLimitReply,
     InstallTrigger,
     GetTriggerReply,
-    GetTrigger
+    GetTrigger,
+    GetTriggersListReply,
+    GetTriggersList
   }
 
   alias Astarte.Core.Interface
@@ -358,6 +360,14 @@ defmodule Astarte.RealmManagement.API.Helpers.RPCMock do
         generic_error(reason)
         |> ok_wrap
     end
+  end
+
+  defp execute_rpc({:get_triggers_list, %GetTriggersList{realm_name: realm_name}}) do
+    list = DB.get_triggers_list(realm_name)
+
+    %GetTriggersListReply{triggers_names: list}
+    |> encode_reply(:get_triggers_list_reply)
+    |> ok_wrap
   end
 
   defp execute_rpc(

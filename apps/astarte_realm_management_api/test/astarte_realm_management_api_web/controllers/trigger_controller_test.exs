@@ -41,11 +41,16 @@ defmodule Astarte.RealmManagement.APIWeb.TriggerControllerTest do
     {:ok, conn: conn}
   end
 
-  @tag :wip
   describe "index" do
     test "lists all triggers", %{conn: conn} do
       conn = get(conn, trigger_path(conn, :index, @test_realm))
       assert json_response(conn, 200)["data"] == []
+    end
+
+    test "lists all triggers after installing it", %{conn: conn} do
+      conn = post(conn, trigger_path(conn, :create, @test_realm), data: valid_trigger_attrs())
+      conn = get(conn, trigger_path(conn, :index, @test_realm))
+      assert json_response(conn, 200)["data"] == [@trigger_name]
     end
   end
 

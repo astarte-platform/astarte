@@ -61,10 +61,13 @@ defmodule Astarte.RealmManagement.API.TriggersTest do
                Triggers.create_trigger(@test_realm, trigger_attrs)
     end
 
-    @tag :wip
     test "list_triggers/0 returns all triggers" do
-      trigger = trigger_fixture()
-      assert RealmManagement.API.Triggers.list_triggers() == [trigger]
+      trigger_attrs = TriggerFixture.valid_trigger_attrs()
+
+      assert {:ok, %Trigger{} = installed_trigger} =
+               Triggers.create_trigger(@test_realm, trigger_attrs)
+
+      assert Triggers.list_triggers(@test_realm) == [installed_trigger.name]
     end
 
     test "get_trigger/1 returns the trigger with given name" do
