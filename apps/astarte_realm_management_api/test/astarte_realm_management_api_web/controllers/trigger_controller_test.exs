@@ -19,17 +19,26 @@
 defmodule Astarte.RealmManagement.APIWeb.TriggerControllerTest do
   use Astarte.RealmManagement.APIWeb.ConnCase
 
+  @moduletag :triggers
+
   alias Astarte.RealmManagement.API.Helpers.JWTTestHelper
   alias Astarte.RealmManagement.API.Helpers.RPCMock.DB
 
-  @create_attrs %{}
-  @invalid_attrs %{}
+  import Astarte.RealmManagement.API.Fixtures.Trigger
 
+  @trigger_name valid_trigger_attrs()["name"]
   @test_realm "test"
 
   setup %{conn: conn} do
     DB.put_jwt_public_key_pem(@test_realm, JWTTestHelper.public_key_pem())
-    {:ok, conn: put_req_header(conn, "accept", "application/json")}
+    token = JWTTestHelper.gen_jwt_all_access_token()
+
+    conn =
+      conn
+      |> put_req_header("accept", "application/json")
+      |> put_req_header("authorization", "Bearer #{token}")
+
+    {:ok, conn: conn}
   end
 
   @tag :wip
@@ -40,14 +49,44 @@ defmodule Astarte.RealmManagement.APIWeb.TriggerControllerTest do
     end
   end
 
-  @tag :wip
   describe "create trigger" do
     test "renders trigger when data is valid", %{conn: conn} do
-      conn = post(conn, trigger_path(conn, :create, @test_realm), trigger: @create_attrs)
-      assert %{"id" => id} = json_response(conn, 201)["data"]
+      conn = post(conn, trigger_path(conn, :create, @test_realm), data: valid_trigger_attrs())
+      assert json_response(conn, 201)["data"]["name"] == @trigger_name
 
-      conn = get(conn, trigger_path(conn, :show, id, @test_realm))
-      assert json_response(conn, 200)["data"] == %{"id" => id}
+      conn = get(conn, trigger_path(conn, :show, @test_realm, @trigger_name))
+
+      assert json_response(conn, 200)["data"] == %{
+               "name" => @trigger_name,
+               "action" => %{
+                 "http_method" => "delete",
+                 "http_url" => "http://www.example.com",
+                 "ignore_ssl_errors" => false
+               },
+               "simple_triggers" => [
+                 %{"device_id" => "*", "on" => "device_connected", "type" => "device_trigger"}
+               ]
+             }
+    end
+
+    test "renders errors when http method in action is invalid", %{conn: conn} do
+      conn = post(conn, trigger_path(conn, :create, @test_realm), data: invalid_http_method())
+
+      assert json_response(conn, 422)["errors"]["action"] == %{
+               "http_method" => ["is invalid"]
+             }
+    end
+
+    test "renders errors when creating the same trigger twice", %{conn: conn} do
+      post_conn =
+        post(conn, trigger_path(conn, :create, @test_realm), data: valid_trigger_attrs())
+
+      assert json_response(post_conn, 201)["data"]["name"] == @trigger_name
+
+      post_conn =
+        post(conn, trigger_path(conn, :create, @test_realm), data: valid_trigger_attrs())
+
+      assert json_response(post_conn, 409)["errors"] == %{"detail" => "Trigger already exists"}
     end
   end
 

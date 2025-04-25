@@ -19,21 +19,46 @@
 defmodule Astarte.RealmManagement.API.TriggersTest do
   use Astarte.RealmManagement.API.DataCase
 
+  @moduletag :triggers
+
+  alias Astarte.RealmManagement.API.Triggers
+  alias Astarte.RealmManagement.API.Triggers.Trigger
+  alias Astarte.RealmManagement.API.Triggers.Action
+  alias Astarte.RealmManagement.API.Fixtures.Trigger, as: TriggerFixture
+
+  @test_realm "test"
+
   describe "triggers" do
-    alias Astarte.RealmManagement.API.Triggers.Trigger
+    test "create_trigger/1 with valid data creates a trigger" do
+      trigger_attrs = TriggerFixture.valid_trigger_attrs()
 
-    @valid_attrs %{}
-    @update_attrs %{}
-    @invalid_attrs %{}
+      assert {:ok, installed_trigger} =
+               Triggers.create_trigger(@test_realm, trigger_attrs)
 
-    def trigger_fixture(attrs \\ %{}) do
-      trigger_attrs =
-        attrs
-        |> Enum.into(@valid_attrs)
+      expected_action = trigger_attrs["action"]
 
-      {:ok, trigger} = RealmManagement.API.Triggers.create_trigger("test", trigger_attrs)
+      assert installed_trigger.name == trigger_attrs["name"]
 
-      trigger
+      assert installed_trigger.action.http_method == expected_action["http_method"]
+      assert installed_trigger.action.http_url == expected_action["http_url"]
+      assert installed_trigger.action.ignore_ssl_errors == expected_action["ignore_ssl_errors"]
+
+      assert simple_triggers_to_map(installed_trigger.simple_triggers) ==
+               trigger_attrs["simple_triggers"]
+    end
+
+    test "create_trigger/1 with invalid data returns error changeset" do
+      trigger_attrs = TriggerFixture.invalid_trigger_attrs()
+
+      assert {:error, %Ecto.Changeset{}} = Triggers.create_trigger(@test_realm, trigger_attrs)
+    end
+
+    test "create_trigger/1 fails if trigger already exists" do
+      trigger_attrs = TriggerFixture.valid_trigger_attrs()
+      Triggers.create_trigger(@test_realm, trigger_attrs)
+
+      assert {:error, :already_installed_trigger} =
+               Triggers.create_trigger(@test_realm, trigger_attrs)
     end
 
     @tag :wip
@@ -42,22 +67,13 @@ defmodule Astarte.RealmManagement.API.TriggersTest do
       assert RealmManagement.API.Triggers.list_triggers() == [trigger]
     end
 
-    @tag :wip
-    test "get_trigger!/1 returns the trigger with given id" do
-      trigger = trigger_fixture()
-      assert RealmManagement.API.Triggers.get_trigger!(trigger.id) == trigger
-    end
+    test "get_trigger/1 returns the trigger with given name" do
+      trigger_attrs = TriggerFixture.valid_trigger_attrs()
 
-    @tag :wip
-    test "create_trigger/1 with valid data creates a trigger" do
-      assert {:ok, %Trigger{} = trigger} =
-               RealmManagement.API.Triggers.create_trigger(@valid_attrs)
-    end
+      assert {:ok, %Trigger{} = installed_trigger} =
+               Triggers.create_trigger(@test_realm, trigger_attrs)
 
-    @tag :wip
-    test "create_trigger/1 with invalid data returns error changeset" do
-      assert {:error, %Ecto.Changeset{}} =
-               RealmManagement.API.Triggers.create_trigger(@invalid_attrs)
+      assert {:ok, installed_trigger} == Triggers.get_trigger(@test_realm, installed_trigger.name)
     end
 
     @tag :wip
@@ -69,5 +85,16 @@ defmodule Astarte.RealmManagement.API.TriggersTest do
         RealmManagement.API.Triggers.get_trigger!(trigger.id)
       end
     end
+  end
+
+  defp simple_triggers_to_map(simple_triggers) do
+    Enum.map(simple_triggers, fn st ->
+      %{
+        "type" => st.type,
+        "device_id" => st.device_id,
+        "on" => st.on,
+        "interface_major" => st.interface_major
+      }
+    end)
   end
 end

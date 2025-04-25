@@ -20,6 +20,7 @@ defmodule Astarte.RealmManagement.API.Helpers.RPCMock.DB do
   alias Astarte.Core.Interface
   alias Astarte.Core.Mapping
   alias Astarte.Core.Triggers.Policy
+  alias Astarte.Core.Triggers.SimpleTriggersProtobuf.TaggedSimpleTrigger
 
   def start_link(opts \\ []) do
     Agent.start_link(
@@ -329,6 +330,32 @@ defmodule Astarte.RealmManagement.API.Helpers.RPCMock.DB do
     Enum.all?(mappings, fn %Mapping{database_retention_ttl: retention} ->
       retention != nil and retention > max_retention
     end)
+  end
+
+  def install_trigger(
+        realm_name,
+        trigger_name,
+        policy_name,
+        action,
+        serialized_tagged_simple_triggers
+      ) do
+    if get_trigger(realm_name, trigger_name) do
+      {:error, :already_installed_trigger}
+    else
+      tagged_simple_triggers =
+        Enum.map(serialized_tagged_simple_triggers, &TaggedSimpleTrigger.decode/1)
+
+      trigger = %{
+        trigger_name: trigger_name,
+        policy: policy_name,
+        trigger_action: action,
+        tagged_simple_triggers: tagged_simple_triggers
+      }
+
+      Agent.update(__MODULE__, fn %{triggers: triggers} = state ->
+        %{state | triggers: Map.put(triggers, {realm_name, trigger_name}, trigger)}
+      end)
+    end
   end
 
   def get_trigger(realm_name, trigger_name) do
