@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2020 Ispirata Srl
+# Copyright 2020 - 2025 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -18,7 +18,11 @@
 
 defmodule Astarte.RealmManagement.API.Triggers.AMQPActionTest do
   use ExUnit.Case
+
+  @moduletag :trigger_actions
+
   alias Astarte.RealmManagement.API.Triggers.AMQPAction
+  alias Astarte.RealmManagement.API.Triggers.Trigger
   alias Ecto.Changeset
 
   test "a valid AMQP action is accepted" do
@@ -200,5 +204,32 @@ defmodule Astarte.RealmManagement.API.Triggers.AMQPActionTest do
              {"is invalid", [type: {:map, :string}, validation: :cast]}
 
     assert length(errors) == 1
+  end
+
+  test "headers over the max size are rejected" do
+    value = String.duplicate("a", 2048)
+    headers = Enum.into(1..40, %{}, &{Integer.to_string(&1), value})
+
+    input = %{
+      "amqp_exchange" => "astarte_events_test_exchange",
+      "amqp_routing_key" => "key",
+      "amqp_message_persistent" => true,
+      "amqp_message_expiration_ms" => 5000,
+      "amqp_static_headers" => headers
+    }
+
+    changeset = AMQPAction.changeset(%AMQPAction{}, input, realm_name: "test")
+
+    assert {"headers total size must be lower than 65536", _} =
+             Keyword.get(changeset.errors, :amqp_static_headers)
+  end
+
+  test "recognizes atom keys for AMQP action" do
+    action = %{amqp_exchange: "some_exchange"}
+    input = %{name: "test", policy: "ok", action: action}
+
+    updated = Trigger.move_action(input)
+    assert Map.has_key?(updated, :amqp_action)
+    assert updated[:amqp_action] == action
   end
 end
