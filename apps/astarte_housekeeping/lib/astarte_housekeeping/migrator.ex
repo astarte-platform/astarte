@@ -21,6 +21,7 @@ defmodule Astarte.Housekeeping.Migrator do
   alias Astarte.Core.CQLUtils
   alias Astarte.DataAccess.Consistency
   alias Astarte.Housekeeping.Config
+  alias Astarte.DataAccess.CSystem
 
   alias Astarte.Housekeeping.Queries
   @query_timeout 60_000

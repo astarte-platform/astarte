@@ -23,6 +23,7 @@ defmodule Astarte.Housekeeping.Queries do
   alias Astarte.DataAccess.Consistency
   alias Astarte.Housekeeping.Config
   alias Astarte.Housekeeping.Migrator
+  alias Astarte.DataAccess.CSystem
 
   @default_replication_factor 1
 
