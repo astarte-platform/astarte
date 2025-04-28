@@ -1,8 +1,6 @@
 name: PR Size Bot
 
-on:
-  pull_request:
-    types: [opened, synchronize]
+on: pull_request_target
 
 jobs:
   pr-size-labeler:
