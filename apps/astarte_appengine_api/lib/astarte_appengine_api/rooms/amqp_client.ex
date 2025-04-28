@@ -148,6 +148,8 @@ defmodule Astarte.AppEngine.API.Rooms.AMQPClient do
          :ok <- Basic.qos(chan, prefetch_count: @prefetch_count),
          :ok <-
            Exchange.declare(chan, Config.rooms_events_routing_key!(), :direct, durable: true),
+         :ok <-
+           Exchange.declare(chan, Config.events_exchange_name!(), :direct, durable: true),
          {:ok, _queue} <- Queue.declare(chan, Config.rooms_events_queue_name!(), durable: true),
          :ok <-
            Queue.bind(
