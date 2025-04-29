@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2017-2018 Ispirata Srl
+# Copyright 2017 - 2025 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -19,7 +19,7 @@
 defmodule Astarte.Pairing.APIWeb.AgentControllerTest do
   use Astarte.Pairing.APIWeb.ConnCase
 
-  alias Astarte.Pairing.APIWeb.JWTTestHelper
+  alias Astarte.Pairing.APIWeb.Helpers.JWTTestHelper
 
   alias Astarte.RPC.Protocol.Pairing.{
     Call,
