@@ -22,11 +22,9 @@ defmodule Astarte.Pairing.APIWeb.AgentControllerTest do
   alias Astarte.Pairing.APIWeb.Helpers.JWTTestHelper
 
   alias Astarte.RPC.Protocol.Pairing.{
-    Call,
     GenericErrorReply,
     GenericOkReply,
     GetAgentPublicKeyPEMsReply,
-    IntrospectionEntry,
     RegisterDeviceReply,
     Reply
   }

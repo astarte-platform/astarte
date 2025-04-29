@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2017-2018 Ispirata Srl
+# Copyright 2017 - 2025 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -150,9 +150,7 @@ defmodule Astarte.Pairing.API.AgentTest do
 
     @test_realm "testrealm"
     @test_device_id "PDL3KNj7RVifHZD-1w_6wA"
-    @already_registered_hw_id "PY3wK1OKQ3qKyQMBxi6S5w"
 
-    @credentials_secret "7wfs9MIBysBGG/v6apqNVBXXQii6Bris6CeU7FdCgWU="
     @encoded_unregister_response %Reply{
                                    reply: {:generic_ok_reply, %GenericOkReply{}}
                                  }
