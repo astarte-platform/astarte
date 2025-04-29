@@ -125,6 +125,24 @@ defmodule Astarte.Pairing.API.AgentTest do
                Agent.register_device(@test_realm, @invalid_hw_id_attrs)
     end
 
+    test "returns error changeset for negative major version in introspection" do
+      initial_introspection = %{
+        "org.astarteplatform.Values" => %{"major" => -1, "minor" => 0}
+      }
+
+      attrs = Map.put(@valid_attrs, "initial_introspection", initial_introspection)
+      assert {:error, _changeset} = Agent.register_device(@test_realm, attrs)
+    end
+
+    test "returns error changeset for negative minor version in introspection" do
+      initial_introspection = %{
+        "org.astarteplatform.OtherValues" => %{"major" => 1, "minor" => -2}
+      }
+
+      attrs = Map.put(@valid_attrs, "initial_introspection", initial_introspection)
+      assert {:error, _changeset} = Agent.register_device(@test_realm, attrs)
+    end
+
     test "returns error if RPC returns error" do
       MockRPCClient
       |> expect(:rpc_call, fn serialized_call, @rpc_destination, @timeout ->
