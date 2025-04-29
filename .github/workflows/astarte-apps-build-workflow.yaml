@@ -119,13 +119,6 @@ jobs:
     - name: Check formatting
       working-directory: ./apps/${{ inputs.app }}
       run: mix format --check-formatted
-    - name: Setup Events Exchange
-      if: inputs.app == 'astarte_appengine_api'
-      run: |
-        wget http://guest:guest@localhost:15672/cli/rabbitmqadmin -O rabbitmqadmin
-        chmod +x ./rabbitmqadmin
-        ./rabbitmqadmin declare exchange name=astarte_events type=direct
-        rm rabbitmqadmin
     - name: Compile
       working-directory: ./apps/${{ inputs.app }}
       run: mix compile --warning-as-errors --force
