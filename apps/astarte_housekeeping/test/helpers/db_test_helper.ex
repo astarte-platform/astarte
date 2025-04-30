@@ -34,7 +34,7 @@ defmodule Astarte.Housekeeping.Helpers.Database do
   """
 
   @drop_keyspace """
-  DROP KEYSPACE :keyspace
+  DROP KEYSPACE IF EXISTS :keyspace
   """
 
   ###
@@ -350,10 +350,6 @@ defmodule Astarte.Housekeeping.Helpers.Database do
     WITH
       replication = {'class': 'SimpleStrategy', 'replication_factor': '1'} AND
       durable_writes = true;
-  """
-
-  @drop_keyspace """
-  DROP KEYSPACE :keyspace
   """
 
   @create_realms_table """

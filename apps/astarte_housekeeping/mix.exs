@@ -65,7 +65,8 @@ defmodule Astarte.Housekeeping.Mixfile do
     [
       {:astarte_core, in_umbrella: true},
       {:astarte_data_access, in_umbrella: true},
-      {:astarte_rpc, in_umbrella: true}
+      {:astarte_rpc, in_umbrella: true},
+      {:astarte_generators, in_umbrella: true}
     ]
   end
 
@@ -74,7 +75,8 @@ defmodule Astarte.Housekeeping.Mixfile do
       {:astarte_core, github: "astarte-platform/astarte_core", branch: "release-1.2"},
       {:astarte_data_access,
        github: "astarte-platform/astarte_data_access", branch: "release-1.2"},
-      {:astarte_rpc, "~> 1.2"}
+      {:astarte_rpc, "~> 1.2"},
+      {:astarte_generators, github: "astarte-platform/astarte_generators", only: [:dev, :test]}
     ]
   end
 
