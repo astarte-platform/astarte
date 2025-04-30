@@ -20,9 +20,11 @@ defmodule Astarte.RealmManagement.API.Helpers.RPCMock.DB do
   alias Astarte.Core.Interface
   alias Astarte.Core.Mapping
   alias Astarte.Core.Triggers.Policy
+  alias Astarte.Core.Triggers.SimpleTriggersProtobuf.TaggedSimpleTrigger
 
   def start_link(opts \\ []) do
-    Agent.start_link(fn -> %{interfaces: %{}, trigger_policies: %{}, devices: %{}} end,
+    Agent.start_link(
+      fn -> %{interfaces: %{}, trigger_policies: %{}, devices: %{}, triggers: %{}} end,
       name: Keyword.get(opts, :name, __MODULE__)
     )
   end
@@ -43,6 +45,7 @@ defmodule Astarte.RealmManagement.API.Helpers.RPCMock.DB do
       |> Map.put(:interfaces, %{})
       |> Map.put(:trigger_policies, %{})
       |> Map.put(:devices, %{})
+      |> Map.put(:triggers, %{})
     end)
   end
 
@@ -327,5 +330,58 @@ defmodule Astarte.RealmManagement.API.Helpers.RPCMock.DB do
     Enum.all?(mappings, fn %Mapping{database_retention_ttl: retention} ->
       retention != nil and retention > max_retention
     end)
+  end
+
+  def install_trigger(
+        realm_name,
+        trigger_name,
+        policy_name,
+        action,
+        serialized_tagged_simple_triggers
+      ) do
+    if get_trigger(realm_name, trigger_name) do
+      {:error, :already_installed_trigger}
+    else
+      tagged_simple_triggers =
+        Enum.map(serialized_tagged_simple_triggers, &TaggedSimpleTrigger.decode/1)
+
+      trigger = %{
+        trigger_name: trigger_name,
+        policy: policy_name,
+        trigger_action: action,
+        tagged_simple_triggers: tagged_simple_triggers
+      }
+
+      Agent.update(__MODULE__, fn %{triggers: triggers} = state ->
+        %{state | triggers: Map.put(triggers, {realm_name, trigger_name}, trigger)}
+      end)
+    end
+  end
+
+  def get_triggers_list(realm_name) do
+    Agent.get(__MODULE__, fn %{triggers: triggers} ->
+      keys = Map.keys(triggers)
+
+      for {^realm_name, trigger_name} <- keys do
+        trigger_name
+      end
+      |> Enum.uniq()
+    end)
+  end
+
+  def get_trigger(realm_name, trigger_name) do
+    Agent.get(__MODULE__, fn %{triggers: triggers} ->
+      Map.get(triggers, {realm_name, trigger_name})
+    end)
+  end
+
+  def delete_trigger(realm_name, trigger_name) do
+    if get_trigger(realm_name, trigger_name) == nil do
+      {:error, :trigger_not_found}
+    else
+      Agent.update(__MODULE__, fn %{triggers: triggers} = state ->
+        %{state | triggers: Map.delete(triggers, {realm_name, trigger_name})}
+      end)
+    end
   end
 end
