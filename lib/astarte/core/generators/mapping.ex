@@ -23,6 +23,7 @@ defmodule Astarte.Core.Generators.Mapping do
   See https://docs.astarte-platform.org/astarte/latest/040-interface_schema.html#mapping
   """
   use ExUnitProperties
+  use Astarte.Generators.Utilities.ParamsGen
 
   alias Astarte.Core.Mapping
 
@@ -40,13 +41,14 @@ defmodule Astarte.Core.Generators.Mapping do
             :prefix => String.t(),
             :reliability => :unreliable | :guaranteed | :unique,
             optional(:retention) => :discard | :volatile | :stored
-          }
+          },
+          Keyword.t()
         ) :: StreamData.t(Mapping.t())
-  def mapping(interface_type \\ :datastream, config) do
+  def mapping(interface_type \\ :datastream, config, params \\ []) do
     gen all(
-          required <- required_fields(config),
-          database_retention <- database_retention_fields(interface_type),
-          optional <- optional_fields(config)
+          required <- required_fields(config, params),
+          database_retention <- database_retention_fields(interface_type, params),
+          optional <- optional_fields(config, params)
         ) do
       fields = Enum.reduce([required, database_retention, optional], &Map.merge/2)
       struct(Mapping, fields)
@@ -109,39 +111,55 @@ defmodule Astarte.Core.Generators.Mapping do
 
   defp doc, do: string(:ascii, min_length: 1, max_length: 100_000)
 
-  defp required_fields(%{
-         aggregation: aggregation,
-         prefix: prefix,
-         retention: retention,
-         reliability: reliability,
-         explicit_timestamp: explicit_timestamp,
-         allow_unset: allow_unset,
-         expiry: expiry
-       }) do
-    fixed_map(%{
-      endpoint: endpoint(aggregation, prefix),
-      value_type: type(),
-      retention: constant(retention),
-      reliability: constant(reliability),
-      explicit_timestamp: constant(explicit_timestamp),
-      allow_unset: constant(allow_unset),
-      expiry: constant(expiry)
-    })
+  defp required_fields(
+         %{
+           aggregation: aggregation,
+           prefix: prefix,
+           retention: retention,
+           reliability: reliability,
+           explicit_timestamp: explicit_timestamp,
+           allow_unset: allow_unset,
+           expiry: expiry
+         },
+         params
+       ) do
+    params gen all endpoint <- endpoint(aggregation, prefix),
+                   value_type <- type(),
+                   retention <- constant(retention),
+                   reliability <- constant(reliability),
+                   explicit_timestamp <- constant(explicit_timestamp),
+                   allow_unset <- constant(allow_unset),
+                   expiry <- constant(expiry),
+                   params: params do
+      %{
+        endpoint: endpoint,
+        value_type: value_type,
+        retention: retention,
+        reliability: reliability,
+        explicit_timestamp: explicit_timestamp,
+        allow_unset: allow_unset,
+        expiry: expiry
+      }
+    end
   end
 
-  defp optional_fields(_config) do
-    optional_map(%{
-      description: description(),
-      doc: doc()
-    })
+  defp optional_fields(_config, params) do
+    params gen all description <- optional(description()),
+                   doc <- optional(doc()),
+                   params: params do
+      %{description: description, doc: doc}
+    end
   end
 
-  defp database_retention_fields(:properties), do: constant(%{})
+  defp optional(generator), do: one_of([generator, nil])
 
-  defp database_retention_fields(:datastream) do
-    gen all database_retention_policy <- database_retention_policy(),
-            database_retention_ttl <-
-              if(database_retention_policy == :use_ttl, do: database_retention_ttl()) do
+  defp database_retention_fields(:properties, _params), do: constant(%{})
+
+  defp database_retention_fields(:datastream, params) do
+    params gen all database_retention_policy <- database_retention_policy(),
+                   database_retention_ttl <-
+                     if(database_retention_policy == :use_ttl, do: database_retention_ttl()),
+                   params: params do
       %{
         database_retention_policy: database_retention_policy,
         database_retention_ttl: database_retention_ttl

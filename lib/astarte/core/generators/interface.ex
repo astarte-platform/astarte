@@ -64,8 +64,8 @@ defmodule Astarte.Core.Generators.Interface do
 
   defp ownership, do: member_of([:device, :server])
 
-  defp mappings(interface_type, config) do
-    uniq_list_of(MappingGenerator.mapping(interface_type, config),
+  defp mappings(interface_type, config, params) do
+    uniq_list_of(MappingGenerator.mapping(interface_type, config, params),
       min_length: 1,
       max_length: 1000
     )
@@ -133,7 +133,7 @@ defmodule Astarte.Core.Generators.Interface do
                        expiry: expiry,
                        allow_unset: allow_unset,
                        explicit_timestamp: explicit_timestamp
-                     }),
+                     }, params),
                    params: params do
       %{
         id: id,
