@@ -1,1 +1,1 @@
-DROP TABLE astarte_schema;
+DROP TABLE if exists astarte_schema;
