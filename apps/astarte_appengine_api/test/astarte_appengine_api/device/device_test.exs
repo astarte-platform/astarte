@@ -17,7 +17,7 @@
 
 defmodule Astarte.AppEngine.API.DeviceTest do
   use ExUnit.Case
-  alias Astarte.AppEngine.API.DatabaseTestHelper
+  alias Astarte.Helpers.Database, as: DatabaseTestHelper
   alias Astarte.AppEngine.API.Device
   alias Astarte.AppEngine.API.Device.DeviceStatus
   alias Astarte.AppEngine.API.Device.DevicesList

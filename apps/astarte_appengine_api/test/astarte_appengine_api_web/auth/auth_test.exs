@@ -16,10 +16,10 @@
 # limitations under the License.
 
 defmodule Astarte.AppEngine.APIWeb.AuthTest do
-  use Astarte.AppEngine.APIWeb.ConnCase
+  use Astarte.Cases.Conn
 
-  alias Astarte.AppEngine.API.DatabaseTestHelper
-  alias Astarte.AppEngine.API.JWTTestHelper
+  alias Astarte.Helpers.Database, as: DatabaseTestHelper
+  alias Astarte.Helpers.JWT, as: JWTTestHelper
 
   @realm "autotestrealm"
   @device_id "f0VMRgIBAQAAAAAAAAAAAA"

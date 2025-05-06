@@ -17,10 +17,10 @@
 #
 
 defmodule Astarte.AppEngine.APIWeb.InterfaceValuesByGroupControllerTest do
-  use Astarte.AppEngine.APIWeb.ConnCase
+  use Astarte.Cases.Conn
 
-  alias Astarte.AppEngine.API.DatabaseTestHelper
-  alias Astarte.AppEngine.API.JWTTestHelper
+  alias Astarte.Helpers.Database, as: DatabaseTestHelper
+  alias Astarte.Helpers.JWT, as: JWTTestHelper
   alias Astarte.AppEngine.API.Groups
 
   @realm "autotestrealm"

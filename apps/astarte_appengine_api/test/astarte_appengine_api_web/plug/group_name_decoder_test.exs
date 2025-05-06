@@ -16,7 +16,7 @@
 # limitations under the License.
 
 defmodule Astarte.AppEngine.APIWeb.Plug.GroupNameDecoderTest do
-  use Astarte.AppEngine.APIWeb.ConnCase
+  use Astarte.Cases.Conn
   use ExUnitProperties
   alias Astarte.AppEngine.APIWeb.Plug.GroupNameDecoder
   alias Astarte.AppEngine.API.GroupTestGenerator

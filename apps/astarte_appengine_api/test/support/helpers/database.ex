@@ -15,12 +15,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule Astarte.AppEngine.API.DatabaseTestHelper do
+defmodule Astarte.Helpers.Database do
   import Ecto.Query
 
   alias Astarte.DataAccess.Interface
   alias Astarte.Core.Device
-  alias Astarte.AppEngine.API.JWTTestHelper
+  alias Astarte.Helpers.JWT, as: JWTTestHelper
   alias Astarte.DataAccess.Realms.Realm
   alias Astarte.DataAccess.Devices.Device, as: DeviceSchema
   alias Astarte.DataAccess.KvStore
