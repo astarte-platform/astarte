@@ -39,8 +39,7 @@ defmodule Astarte.Housekeeping.BackendSupervisor do
     children = [
       {Astarte.RPC.AMQP.Server, [amqp_queue: Protocol.amqp_queue(), handler: Handler]},
       {Xandra.Cluster, hk_xandra_opts},
-      {Astarte.DataAccess, data_access_opts},
-      {Astarte.Housekeeping.Repo, repo_opts}
+      {Astarte.DataAccess, data_access_opts}
     ]
 
     opts = [strategy: :rest_for_one, name: __MODULE__]

@@ -20,8 +20,8 @@
 # and its dependencies with the aid of the Mix.Config module.
 import Config
 
-config :astarte_housekeeping, ecto_repos: [Astarte.Housekeeping.Repo]
+config :astarte_housekeeping, ecto_repos: [Astarte.DataAccess.Repo]
 
-config :astarte_housekeeping, Astarte.Housekeeping.Repo, []
+config :astarte_housekeeping, Astarte.DataAccess.Repo, []
 
 import_config "#{config_env()}.exs"
