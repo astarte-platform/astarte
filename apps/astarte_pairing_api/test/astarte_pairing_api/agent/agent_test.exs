@@ -17,7 +17,7 @@
 #
 
 defmodule Astarte.Pairing.API.AgentTest do
-  use Astarte.Pairing.API.DataCase
+  use Astarte.Pairing.API.DataCase, async: true
 
   alias Astarte.Pairing.API.Agent
 

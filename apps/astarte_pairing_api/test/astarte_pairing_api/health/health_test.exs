@@ -17,7 +17,7 @@
 #
 
 defmodule Astarte.Pairing.API.HealthTest do
-  use Astarte.Pairing.API.DataCase
+  use Astarte.Pairing.API.DataCase, async: true
 
   alias Astarte.Pairing.API.Health
   alias Astarte.Pairing.API.Health.BackendHealth

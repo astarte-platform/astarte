@@ -17,7 +17,7 @@
 #
 
 defmodule Astarte.Pairing.APIWeb.AuthTest do
-  use Astarte.Pairing.APIWeb.ConnCase
+  use Astarte.Pairing.APIWeb.ConnCase, async: true
 
   alias Astarte.Pairing.APIWeb.Helpers.JWTTestHelper
 
