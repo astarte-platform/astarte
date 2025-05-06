@@ -76,6 +76,89 @@ defmodule Astarte.AppEngine.API.Device.DeviceV2Test do
     end
   end
 
+  property "fails for invalid device id", args do
+    %{realm_name: realm_name, interfaces: interfaces, device: device} = args
+    valid_interfaces_for_update = interfaces |> Enum.filter(&(&1.ownership == :server))
+    extended_id = device.encoded_id <> "ab"
+
+    check all interface <- member_of(valid_interfaces_for_update),
+              mapping_update <- valid_mapping_update_for(interface) do
+      assert {:error, _} =
+               Device.update_interface_values(
+                 realm_name,
+                 extended_id,
+                 interface.name,
+                 mapping_update.path,
+                 mapping_update.value,
+                 []
+               )
+    end
+  end
+
+  property "fails for device owned interfaces", args do
+    %{realm_name: realm_name, interfaces: interfaces, device: device} = args
+    device_owned_interfaces = interfaces |> Enum.filter(&(&1.ownership == :device))
+
+    check all interface <- member_of(device_owned_interfaces),
+              mapping_update <- valid_mapping_update_for(interface) do
+      assert {:error, :cannot_write_to_device_owned} ==
+               Device.update_interface_values(
+                 realm_name,
+                 device.encoded_id,
+                 interface.name,
+                 mapping_update.path,
+                 mapping_update.value,
+                 []
+               )
+    end
+  end
+
+  property "fails for invalid types", args do
+    %{realm_name: realm_name, interfaces: interfaces, device: device} = args
+    valid_interfaces_for_update = interfaces |> Enum.filter(&(&1.ownership == :server))
+
+    check all interface <- member_of(valid_interfaces_for_update),
+              mapping_update <- valid_nonempty_mapping_update_for(interface),
+              value <- invalid_type(mapping_update.value_type) do
+      assert {:error, :unexpected_value_type, [{:expected, _}]} =
+               Device.update_interface_values(
+                 realm_name,
+                 device.encoded_id,
+                 interface.name,
+                 mapping_update.path,
+                 value,
+                 []
+               )
+    end
+  end
+
+  property "fails for invalid values", args do
+    %{realm_name: realm_name, interfaces: interfaces, device: device} = args
+
+    valid_interfaces_for_update =
+      interfaces |> Enum.filter(&is_fallible?/1) |> Enum.filter(&(&1.ownership == :server))
+
+    check all interface <- member_of(valid_interfaces_for_update),
+              mapping_update <- valid_fallible_mapping_update_for(interface),
+              value <- invalid_value(mapping_update.value_type) do
+      result =
+        Device.update_interface_values(
+          realm_name,
+          device.encoded_id,
+          interface.name,
+          mapping_update.path,
+          value,
+          []
+        )
+
+      case result do
+        {:error, _} -> :ok
+        {:error, :unexpected_value_type, _} -> :ok
+        _ -> flunk("Wrong return type: #{inspect(result)}")
+      end
+    end
+  end
+
   defp expected_qos_for!(mapping_update) do
     case mapping_update.reliability do
       :unreliable -> 0
