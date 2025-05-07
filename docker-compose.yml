@@ -19,9 +19,7 @@ services:
     environment:
       HOUSEKEEPING_API_JWT_PUBLIC_KEY_PATH: "/keys/housekeeping_public.pem"
     volumes:
-      - type: bind
-        source: ./compose/astarte-keys/housekeeping_public.pem
-        target: /keys/housekeeping_public.pem
+      - ./compose/astarte-keys/housekeeping_public.pem:/keys/housekeeping_public.pem:z
     restart: on-failure
     depends_on:
       - "rabbitmq"
@@ -161,7 +159,7 @@ services:
   astarte-dashboard:
     image: astarte/astarte-dashboard:1.2-snapshot
     volumes:
-      - ./compose/astarte-dashboard/config.json:/usr/share/nginx/html/user-config/config.json
+      - ./compose/astarte-dashboard/config.json:/usr/share/nginx/html/user-config/config.json:z
     depends_on:
       - "astarte-realm-management-api"
       - "astarte-appengine-api"
@@ -208,7 +206,9 @@ services:
       - "8883:8883"
     volumes:
       # So that Traefik can listen to the Docker events
-      - /var/run/docker.sock:/var/run/docker.sock
+      - /var/run/docker.sock:/var/run/docker.sock:z
+    security_opt:
+      - label=type:container_runtime_t
     networks:
       default:
         aliases:
@@ -230,7 +230,7 @@ services:
   cfssl:
     image: astarte/cfssl:1.5.0-astarte.4
     volumes:
-      - ./compose/cfssl-config:/config
+      - ./compose/cfssl-config:/config:z
       - cfssl-data:/data
     command: cfssl serve -address=0.0.0.0 -ca=/data/ca.pem -ca-key=/data/ca-key.pem -port=8080 -config=/etc/cfssl/ca_root_config.json
     # Restart if we fail
@@ -260,7 +260,7 @@ services:
       CFSSL_URL: "http://cfssl:8080"
     volumes:
       - vernemq-data:/opt/vernemq/data
-      - ./compose/vernemq-certs:/etc/ssl/vernemq-certs
+      - ./compose/vernemq-certs:/etc/ssl/vernemq-certs:z
     depends_on:
       - "cfssl"
       - "rabbitmq"
