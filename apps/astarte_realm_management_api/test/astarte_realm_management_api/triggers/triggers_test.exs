@@ -23,7 +23,6 @@ defmodule Astarte.RealmManagement.API.TriggersTest do
 
   alias Astarte.RealmManagement.API.Triggers
   alias Astarte.RealmManagement.API.Triggers.Trigger
-  alias Astarte.RealmManagement.API.Triggers.Action
   alias Astarte.RealmManagement.API.Fixtures.Trigger, as: TriggerFixture
 
   @test_realm "test"
