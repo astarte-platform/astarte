@@ -114,11 +114,9 @@ defmodule Astarte.DataAccess.Repo do
     end
   end
 
-  # just to compare
-
   def fetch_all(queryable, opts \\ []) do
     try do
-      all(queryable, opts)
+      {:ok, all(queryable, opts)}
     catch
       error ->
         handle_xandra_error(error)
@@ -205,9 +203,10 @@ defmodule Astarte.DataAccess.Repo do
 
     # no need to rewrite the combinators, let scylla work more it's ok
 
-    case fetch_all(queryable, opts) do
-      [] -> {:ok, false}
-      [_something] -> {:ok, true}
+    # `fetch_one` is safe as we're limiting to 1 here, it should not raise
+    case fetch_one(queryable, opts) do
+      {:ok, _} -> {:ok, true}
+      {:error, _} -> {:ok, false}
     end
   end
 
