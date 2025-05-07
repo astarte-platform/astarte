@@ -625,6 +625,9 @@ defmodule Astarte.AppEngine.API.Device do
         {:error, reason, expected} ->
           {:halt, {:error, reason, expected}}
 
+        {:error, reason} ->
+          {:halt, {:error, reason}}
+
         :error ->
           {:halt, {:error, :unexpected_object_key}}
       end
