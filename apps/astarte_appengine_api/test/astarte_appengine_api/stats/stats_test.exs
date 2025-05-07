@@ -18,7 +18,7 @@
 
 defmodule Astarte.AppEngine.API.StatsTest do
   use ExUnit.Case
-  alias Astarte.AppEngine.API.DatabaseTestHelper
+  alias Astarte.Helpers.Database, as: DatabaseTestHelper
   alias Astarte.AppEngine.API.Stats
   alias Astarte.AppEngine.API.Stats.DevicesStats
 

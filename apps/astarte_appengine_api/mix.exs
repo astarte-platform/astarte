@@ -72,6 +72,9 @@ defmodule Astarte.AppEngine.API.Mixfile do
       {:astarte_core, github: "astarte-platform/astarte_core", branch: "release-1.2"},
       {:astarte_data_access,
        github: "astarte-platform/astarte_data_access", branch: "release-1.2"},
+      {:astarte_generators, github: "astarte-platform/astarte_generators", only: [:dev, :test]},
+      {:astarte_realm_management,
+       path: "../astarte_realm_management", only: [:dev, :test], runtime: false},
       {:astarte_rpc, "~> 1.2"}
     ]
   end
@@ -116,7 +119,7 @@ defmodule Astarte.AppEngine.API.Mixfile do
       # Test section
       {:excoveralls, "~> 0.15", only: :test},
       {:mox, "~> 0.5", only: :test},
-      {:stream_data, "~> 0.5", only: [:test, :dev]}
+      {:mimic, "~> 1.11", only: :test}
     ]
   end
 end

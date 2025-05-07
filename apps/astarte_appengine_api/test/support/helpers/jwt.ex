@@ -15,7 +15,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule Astarte.AppEngine.API.JWTTestHelper do
+defmodule Astarte.Helpers.JWT do
   alias Astarte.AppEngine.API.Auth.User
   alias Astarte.AppEngine.APIWeb.AuthGuardian
 

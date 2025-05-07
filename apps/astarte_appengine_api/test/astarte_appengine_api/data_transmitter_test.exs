@@ -17,7 +17,7 @@
 #
 
 defmodule Astarte.AppEngine.APIWeb.DataTransmitterTest do
-  use Astarte.AppEngine.APIWeb.ChannelCase
+  use Astarte.Cases.Conn
 
   alias Astarte.RPC.Protocol.VMQ.Plugin, as: Protocol
 

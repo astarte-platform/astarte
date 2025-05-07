@@ -16,12 +16,12 @@
 # limitations under the License.
 
 defmodule Astarte.AppEngine.APIWeb.DeviceStatusControllerTest do
-  use Astarte.AppEngine.APIWeb.ConnCase
+  use Astarte.Cases.Conn
 
-  alias Astarte.AppEngine.API.DatabaseTestHelper
+  alias Astarte.Helpers.Database, as: DatabaseTestHelper
+  alias Astarte.Helpers.JWT, as: JWTTestHelper
   alias Astarte.AppEngine.API.Device
   alias Astarte.AppEngine.API.Device.DeviceStatus
-  alias Astarte.AppEngine.API.JWTTestHelper
 
   @expected_introspection %{
     "com.example.PixelsConfiguration" => %{

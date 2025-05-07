@@ -17,20 +17,19 @@
 #
 
 defmodule Astarte.AppEngine.APIWeb.RoomsChannelTest do
-  use Astarte.AppEngine.APIWeb.ChannelCase
+  use Astarte.Cases.Channel
 
   alias Astarte.AppEngine.API.Auth.RoomsUser
-  alias Astarte.AppEngine.API.DatabaseTestHelper
   alias Astarte.AppEngine.API.Groups
-  alias Astarte.AppEngine.API.JWTTestHelper
   alias Astarte.AppEngine.API.Rooms.EventsDispatcher
   alias Astarte.AppEngine.API.Rooms.Room
   alias Astarte.AppEngine.API.Utils
   alias Astarte.AppEngine.APIWeb.RoomsChannel
   alias Astarte.AppEngine.APIWeb.UserSocket
-
   alias Astarte.Core.Triggers.SimpleEvents.IncomingDataEvent
   alias Astarte.Core.Triggers.SimpleEvents.SimpleEvent
+  alias Astarte.Helpers.Database, as: DatabaseTestHelper
+  alias Astarte.Helpers.JWT, as: JWTTestHelper
 
   import Mox
 
