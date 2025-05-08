@@ -1271,10 +1271,15 @@ defmodule Astarte.AppEngine.API.Device do
        when downsampled_size > 2 do
     avg_bucket_size = max(1, (count - 2) / (downsampled_size - 2))
 
-    sample_to_x_fun = fn sample -> sample.value_timestamp |> DateTime.to_unix(:millisecond) end
+    sample_to_x_fun = fn sample -> sample.value_timestamp end
     sample_to_y_fun = fn sample -> Map.fetch!(sample, value_column) end
 
-    xy_to_sample_fun = fn x, y -> [{:value_timestamp, x}, {:generic_key, y}] end
+    xy_to_sample_fun = fn x, y -> %{value_column => y, value_timestamp: x} end
+
+    values =
+      Enum.map(values, fn value ->
+        Map.update!(value, :value_timestamp, &DateTime.to_unix(&1, :millisecond))
+      end)
 
     ExLTTB.Stream.downsample(
       values,
