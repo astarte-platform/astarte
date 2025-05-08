@@ -34,7 +34,7 @@ defmodule Astarte.TriggerEngine.AMQPConsumer.Queries do
         where: k.group == "trigger_policy"
 
     case Repo.fetch_all(query, consistency: Consistency.domain_model(:read)) do
-      policies when is_list(policies) ->
+      {:ok, policies} ->
         {:ok, Enum.map(policies, &extract_name_and_data/1)}
 
       {:error, reason} ->
@@ -51,13 +51,9 @@ defmodule Astarte.TriggerEngine.AMQPConsumer.Queries do
         prefix: ^keyspace_name,
         select: r.realm_name
 
-    case Repo.fetch_all(query, consistency: Consistency.domain_model(:read)) do
-      realms when is_list(realms) ->
-        {:ok, realms}
-
-      {:error, reason} ->
-        _ = Logger.warning("Could not list realms, reason: #{inspect(reason)}")
-        {:error, reason}
+    with {:error, reason} <- Repo.fetch_all(query, consistency: Consistency.domain_model(:read)) do
+      _ = Logger.warning("Could not list realms, reason: #{inspect(reason)}")
+      {:error, reason}
     end
   end
 
