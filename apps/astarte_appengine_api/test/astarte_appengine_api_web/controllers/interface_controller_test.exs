@@ -95,6 +95,37 @@ defmodule Astarte.AppEngine.APIWeb.InterfaceControllerTest do
         assert json_response(conn, 200)["data"] == mapping_update.value
       end
     end
+
+    property "read calls device module", context do
+      %{realm_name: realm_name, interfaces: interfaces, device: device, auth_conn: conn} = context
+
+      check all interface <- member_of(interfaces),
+                mapping <- member_of(interface.mappings),
+                path <- path_from_endpoint(mapping.endpoint),
+                value <- valid_update_value_for(mapping.value_type) do
+        interface_name = interface.name
+        device_id = device.encoded_id
+
+        request_path =
+          interface_values_path(
+            conn,
+            :show,
+            realm_name,
+            device.encoded_id,
+            interface_name,
+            path_tokens(path)
+          )
+
+        Device
+        |> allow(self(), conn.owner)
+        |> expect(:get_interface_values!, fn ^realm_name, ^device_id, ^interface_name, _params ->
+          {:ok, %InterfaceValues{data: value}}
+        end)
+
+        conn = get(conn, request_path)
+        assert json_response(conn, 200)["data"] == value
+      end
+    end
   end
 
   defp path_tokens(path) do
