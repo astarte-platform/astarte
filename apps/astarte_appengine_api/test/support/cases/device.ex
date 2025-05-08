@@ -19,10 +19,19 @@
 defmodule Astarte.Cases.Device do
   alias Astarte.Core.Generators.Device, as: DeviceGenerator
   alias Astarte.Core.Generators.Interface, as: InterfaceGenerator
+  alias Astarte.DataAccess.Interface
+
   use ExUnit.CaseTemplate
   use ExUnitProperties
 
   import Astarte.Helpers.Device
+  import Astarte.InterfaceUpdateGenerators
+
+  using do
+    quote do
+      import unquote(__MODULE__)
+    end
+  end
 
   setup_all %{realm_name: realm_name} do
     interfaces = interfaces_for_update()
@@ -32,6 +41,73 @@ defmodule Astarte.Cases.Device do
     Enum.each(interfaces, &insert_interface_cleanly(realm_name, &1))
 
     %{interfaces: interfaces, device: device}
+  end
+
+  def populate_interfaces(context) do
+    %{realm_name: realm_name, interfaces: interfaces, device: device} = context
+
+    random_interfaces =
+      Enum.group_by(interfaces, fn interface ->
+        {interface.type, interface.ownership, interface.aggregation}
+      end)
+      |> Map.new(fn {key, values} -> {key, Enum.random(values)} end)
+
+    individual_datastream_device =
+      Map.fetch!(random_interfaces, {:datastream, :device, :individual})
+
+    individual_datastream_server =
+      Map.fetch!(random_interfaces, {:datastream, :server, :individual})
+
+    object_datastream_device = Map.fetch!(random_interfaces, {:datastream, :device, :object})
+    object_datastream_server = Map.fetch!(random_interfaces, {:datastream, :server, :object})
+
+    individual_properties_device =
+      Map.fetch!(random_interfaces, {:properties, :device, :individual})
+
+    individual_properties_server =
+      Map.fetch!(random_interfaces, {:properties, :server, :individual})
+
+    interfaces_with_data =
+      [
+        individual_datastream_device,
+        individual_datastream_server,
+        object_datastream_device,
+        object_datastream_server,
+        individual_properties_device,
+        individual_properties_server
+      ]
+
+    registered_paths =
+      for interface <- interfaces_with_data, into: %{} do
+        inserted_paths = populate(realm_name, device.device_id, interface)
+        interface_key = {interface.name, interface.major_version}
+
+        {interface_key, inserted_paths}
+      end
+
+    %{
+      registered_paths: registered_paths,
+      interfaces_with_data: interfaces_with_data,
+      individual_datastream_device_interface: individual_datastream_device,
+      individual_datastream_server_interface: individual_datastream_server,
+      object_datastream_device_interface: object_datastream_device,
+      object_datastream_server_interface: object_datastream_server,
+      individual_properties_device_interface: individual_properties_device,
+      individual_properties_server_interface: individual_properties_server
+    }
+  end
+
+  defp populate(realm_name, device_id, interface) do
+    {:ok, descriptor} =
+      Interface.fetch_interface_descriptor(realm_name, interface.name, interface.major_version)
+
+    values =
+      list_of(valid_mapping_update_for(interface), length: 100..10_000)
+      |> Enum.at(0)
+
+    insert_values(realm_name, device_id, descriptor, values)
+
+    MapSet.new(values, & &1.path)
   end
 
   defp interfaces_for_update do
