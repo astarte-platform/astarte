@@ -33,6 +33,7 @@ defmodule Astarte.AppEngine.APIWeb.InterfaceControllerTest do
   use Mimic
 
   import Astarte.InterfaceUpdateGenerators
+  import Astarte.Helpers.Device
 
   setup_all %{realm_name: realm} do
     keyspace = Realm.keyspace_name(realm)
@@ -126,9 +127,75 @@ defmodule Astarte.AppEngine.APIWeb.InterfaceControllerTest do
         assert json_response(conn, 200)["data"] == value
       end
     end
+
+    property "reading published data is consistent", context do
+      %{realm_name: realm_name, interfaces: interfaces, device: device, auth_conn: conn} = context
+      valid_interfaces_for_update = interfaces |> Enum.filter(&(&1.ownership == :server))
+
+      check all interface_to_update <- member_of(valid_interfaces_for_update),
+                mapping_update <- valid_mapping_update_for(interface_to_update) do
+        request_path =
+          interface_values_path(
+            conn,
+            :update,
+            realm_name,
+            device.encoded_id,
+            interface_to_update.name,
+            path_tokens(mapping_update.path)
+          )
+
+        update_value = mapping_update.value
+        path_tokens = path_tokens(mapping_update.path)
+        expected_token = [realm_name, device.encoded_id, interface_to_update.name | path_tokens]
+
+        expected_published_value =
+          expected_published_value!(mapping_update.value_type, update_value)
+
+        expected_qos = expected_qos_for!(mapping_update)
+
+        expected_read_value = expected_read_value!(mapping_update.value_type, update_value)
+
+        publish_result_ok(interface_to_update, mapping_update, fn args ->
+          assert %{payload: payload, topic_tokens: topic_tokens, qos: qos} = args
+          assert topic_tokens == expected_token
+          assert qos == expected_qos
+          assert {:ok, %{"v" => ^expected_published_value}} = Cyanide.decode(payload)
+        end)
+
+        conn = post(conn, request_path, %{"data" => mapping_update.value})
+
+        assert json_response(conn, 200)["data"] == mapping_update.value
+
+        request_path =
+          interface_values_path(
+            conn,
+            :show,
+            realm_name,
+            device.encoded_id,
+            interface_to_update.name,
+            path_tokens(mapping_update.path)
+          )
+
+        conn = get(conn, request_path)
+
+        assert valid_result?(
+                 json_response(conn, 200) |> get_in(["data" | path_tokens]),
+                 interface_to_update,
+                 expected_read_value
+               )
+      end
+    end
   end
 
   defp path_tokens(path) do
     String.split(path, "/", trim: true)
+  end
+
+  defp expected_qos_for!(mapping_update) do
+    case mapping_update.reliability do
+      :unreliable -> 0
+      :guaranteed -> 1
+      :unique -> 2
+    end
   end
 end
