@@ -741,7 +741,10 @@ defmodule Astarte.RealmManagement.Queries do
 
     consistency = Consistency.domain_model(:read)
 
-    Repo.fetch_all(query, prefix: keyspace, consistency: consistency)
+    with result when is_list(result) <-
+           Repo.fetch_all(query, prefix: keyspace, consistency: consistency) do
+      {:ok, result}
+    end
   end
 
   def has_interface_simple_triggers?(realm_name, object_id) do
