@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2017-2025 SECO Mind Srl
+# Copyright 2017 - 2025 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -19,14 +19,13 @@
 defmodule Astarte.Housekeeping.API.DataCase do
   use ExUnit.CaseTemplate
 
-  setup_all do
-    Astarte.Housekeeping.Mock.DB.start_link()
-    :ok
-  end
-
   setup do
-    on_exit(fn ->
-      Astarte.Housekeeping.Mock.DB.clean()
-    end)
+    agent_name = :"test_agent_#{System.unique_integer([:positive])}"
+
+    start_supervised!({Astarte.Housekeeping.Mock.DB, agent_name})
+
+    Process.put(:current_agent, agent_name)
+
+    :ok
   end
 end
