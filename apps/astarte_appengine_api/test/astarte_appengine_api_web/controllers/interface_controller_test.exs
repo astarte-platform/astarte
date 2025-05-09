@@ -128,6 +128,38 @@ defmodule Astarte.AppEngine.APIWeb.InterfaceControllerTest do
       end
     end
 
+    property "delete calls the device module", context do
+      %{realm_name: realm_name, interfaces: interfaces, device: device, auth_conn: conn} = context
+
+      check all interface <- member_of(interfaces),
+                mapping <- member_of(interface.mappings),
+                path <- path_from_endpoint(mapping.endpoint) do
+        interface_name = interface.name
+        device_id = device.encoded_id
+
+        request_path =
+          interface_values_path(
+            conn,
+            :delete,
+            realm_name,
+            device.encoded_id,
+            interface_name,
+            path_tokens(path)
+          )
+
+        Device
+        |> allow(self(), conn.owner)
+        |> expect(:delete_interface_values, fn ^realm_name, ^device_id, ^interface_name, i_path ->
+          full_path = "/" <> i_path
+          assert full_path == path
+          :ok
+        end)
+
+        conn = delete(conn, request_path)
+        assert response(conn, 204)
+      end
+    end
+
     property "reading published data is consistent", context do
       %{realm_name: realm_name, interfaces: interfaces, device: device, auth_conn: conn} = context
       valid_interfaces_for_update = interfaces |> Enum.filter(&(&1.ownership == :server))
