@@ -22,25 +22,29 @@ defmodule Astarte.RealmManagement.API.Helpers.RPCMock.DB do
   alias Astarte.Core.Triggers.Policy
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.TaggedSimpleTrigger
 
-  def start_link(opts \\ []) do
+  def start_link(agent_name \\ __MODULE__) do
     Agent.start_link(
       fn -> %{interfaces: %{}, trigger_policies: %{}, devices: %{}, triggers: %{}} end,
-      name: Keyword.get(opts, :name, __MODULE__)
+      name: agent_name
     )
   end
 
-  def child_spec(opts) do
+  def child_spec(name) do
     %{
       id: __MODULE__,
-      start: {__MODULE__, :start_link, [opts]},
+      start: {__MODULE__, :start_link, [name]},
       type: :worker,
       restart: :temporary,
       shutdown: 500
     }
   end
 
+  defp current_agent do
+    Process.get(:current_agent, __MODULE__)
+  end
+
   def clean() do
-    Agent.update(__MODULE__, fn state ->
+    Agent.update(current_agent(), fn state ->
       state
       |> Map.put(:interfaces, %{})
       |> Map.put(:trigger_policies, %{})
@@ -50,11 +54,11 @@ defmodule Astarte.RealmManagement.API.Helpers.RPCMock.DB do
   end
 
   def set_health_status(status) do
-    Agent.update(__MODULE__, &Map.put(&1, :health_status, status))
+    Agent.update(current_agent(), &Map.put(&1, :health_status, status))
   end
 
   def get_health_status do
-    Agent.get(__MODULE__, &Map.get(&1, :health_status, :READY))
+    Agent.get(current_agent(), &Map.get(&1, :health_status, :READY))
   end
 
   def delete_interface(realm, name, major) do
@@ -66,14 +70,14 @@ defmodule Astarte.RealmManagement.API.Helpers.RPCMock.DB do
         {:error, :interface_not_found}
 
       true ->
-        Agent.update(__MODULE__, fn %{interfaces: interfaces} = state ->
+        Agent.update(current_agent(), fn %{interfaces: interfaces} = state ->
           %{state | interfaces: Map.delete(interfaces, {realm, name, major})}
         end)
     end
   end
 
   def get_interfaces_list(realm) do
-    Agent.get(__MODULE__, fn %{interfaces: interfaces} ->
+    Agent.get(current_agent(), fn %{interfaces: interfaces} ->
       keys = Map.keys(interfaces)
 
       for {^realm, name, _major} <- keys do
@@ -84,7 +88,7 @@ defmodule Astarte.RealmManagement.API.Helpers.RPCMock.DB do
   end
 
   def get_interface_versions_list(realm, name) do
-    Agent.get(__MODULE__, fn %{interfaces: interfaces} ->
+    Agent.get(current_agent(), fn %{interfaces: interfaces} ->
       keys = Map.keys(interfaces)
 
       majors =
@@ -108,21 +112,21 @@ defmodule Astarte.RealmManagement.API.Helpers.RPCMock.DB do
   end
 
   def get_interface(realm, name, major) do
-    Agent.get(__MODULE__, fn %{interfaces: interfaces} ->
+    Agent.get(current_agent(), fn %{interfaces: interfaces} ->
       Map.get(interfaces, {realm, name, major})
     end)
   end
 
   def get_jwt_public_key_pem(realm) do
-    Agent.get(__MODULE__, &Map.get(&1, "jwt_public_key_pem_#{realm}"))
+    Agent.get(current_agent(), &Map.get(&1, "jwt_public_key_pem_#{realm}"))
   end
 
   def get_device_registration_limit(realm) do
-    Agent.get(__MODULE__, &Map.get(&1, "device_registration_limit_#{realm}"))
+    Agent.get(current_agent(), &Map.get(&1, "device_registration_limit_#{realm}"))
   end
 
   def get_datastream_maximum_storage_retention(realm) do
-    Agent.get(__MODULE__, &Map.get(&1, "datastream_maximum_storage_retention_#{realm}"))
+    Agent.get(current_agent(), &Map.get(&1, "datastream_maximum_storage_retention_#{realm}"))
   end
 
   def install_interface(realm, %Interface{name: name, major_version: major} = interface) do
@@ -138,7 +142,7 @@ defmodule Astarte.RealmManagement.API.Helpers.RPCMock.DB do
             Enum.any?(get_interfaces_list(realm), fn existing_name ->
               name != existing_name and normalize_interface_name(existing_name) == normalized_name
             end)} do
-      Agent.update(__MODULE__, fn %{interfaces: interfaces} = state ->
+      Agent.update(current_agent(), fn %{interfaces: interfaces} = state ->
         %{state | interfaces: Map.put(interfaces, {realm, name, major}, interface)}
       end)
     else
@@ -172,7 +176,7 @@ defmodule Astarte.RealmManagement.API.Helpers.RPCMock.DB do
          {:mappings_valid, :ok} <-
            {:mappings_valid, validate_mappings(old_interface.mappings, new_mappings)},
          :ok <- validate_descriptor_compatibility(old_interface, interface) do
-      Agent.update(__MODULE__, fn %{interfaces: interfaces} = state ->
+      Agent.update(current_agent(), fn %{interfaces: interfaces} = state ->
         %{state | interfaces: Map.put(interfaces, {realm, name, major}, interface)}
       end)
     else
@@ -243,16 +247,16 @@ defmodule Astarte.RealmManagement.API.Helpers.RPCMock.DB do
   end
 
   def put_jwt_public_key_pem(realm, jwt_public_key_pem) do
-    Agent.update(__MODULE__, &Map.put(&1, "jwt_public_key_pem_#{realm}", jwt_public_key_pem))
+    Agent.update(current_agent(), &Map.put(&1, "jwt_public_key_pem_#{realm}", jwt_public_key_pem))
   end
 
   def put_device_registration_limit(realm, limit) do
-    Agent.update(__MODULE__, &Map.put(&1, "device_registration_limit_#{realm}", limit))
+    Agent.update(current_agent(), &Map.put(&1, "device_registration_limit_#{realm}", limit))
   end
 
   def put_datastream_maximum_storage_retention(realm, retention) do
     Agent.update(
-      __MODULE__,
+      current_agent(),
       &Map.put(&1, "datastream_maximum_storage_retention_#{realm}", retention)
     )
   end
@@ -261,14 +265,14 @@ defmodule Astarte.RealmManagement.API.Helpers.RPCMock.DB do
     if get_trigger_policy(realm, name) != nil do
       {:error, :trigger_policy_already_present}
     else
-      Agent.update(__MODULE__, fn %{trigger_policies: trigger_policies} = state ->
+      Agent.update(current_agent(), fn %{trigger_policies: trigger_policies} = state ->
         %{state | trigger_policies: Map.put(trigger_policies, {realm, name}, policy)}
       end)
     end
   end
 
   def get_trigger_policies_list(realm) do
-    Agent.get(__MODULE__, fn %{trigger_policies: trigger_policies} ->
+    Agent.get(current_agent(), fn %{trigger_policies: trigger_policies} ->
       keys = Map.keys(trigger_policies)
 
       for {^realm, name} <- keys do
@@ -279,7 +283,7 @@ defmodule Astarte.RealmManagement.API.Helpers.RPCMock.DB do
   end
 
   def get_trigger_policy(realm, name) do
-    Agent.get(__MODULE__, fn %{trigger_policies: trigger_policies} ->
+    Agent.get(current_agent(), fn %{trigger_policies: trigger_policies} ->
       Map.get(trigger_policies, {realm, name})
     end)
   end
@@ -288,7 +292,7 @@ defmodule Astarte.RealmManagement.API.Helpers.RPCMock.DB do
     if get_trigger_policy(realm, name) == nil do
       {:error, :trigger_policy_not_found}
     else
-      Agent.update(__MODULE__, fn %{interfaces: interfaces} = state ->
+      Agent.update(current_agent(), fn %{interfaces: interfaces} = state ->
         %{state | trigger_policies: Map.delete(interfaces, {realm, name})}
       end)
     end
@@ -303,13 +307,13 @@ defmodule Astarte.RealmManagement.API.Helpers.RPCMock.DB do
   end
 
   def create_device(realm, device_id) do
-    Agent.update(__MODULE__, fn %{devices: devices} = state ->
+    Agent.update(current_agent(), fn %{devices: devices} = state ->
       %{state | devices: Map.put(devices, {realm, device_id}, {realm, device_id})}
     end)
   end
 
   def get_device(realm, device_id) do
-    Agent.get(__MODULE__, fn %{devices: devices} ->
+    Agent.get(current_agent(), fn %{devices: devices} ->
       Map.get(devices, {realm, device_id})
     end)
   end
@@ -318,7 +322,7 @@ defmodule Astarte.RealmManagement.API.Helpers.RPCMock.DB do
     if get_device(realm, device_id) == nil do
       {:error, :device_not_found}
     else
-      Agent.update(__MODULE__, fn %{devices: devices} = state ->
+      Agent.update(current_agent(), fn %{devices: devices} = state ->
         %{state | devices: Map.delete(devices, {realm, device_id})}
       end)
     end
@@ -352,14 +356,14 @@ defmodule Astarte.RealmManagement.API.Helpers.RPCMock.DB do
         tagged_simple_triggers: tagged_simple_triggers
       }
 
-      Agent.update(__MODULE__, fn %{triggers: triggers} = state ->
+      Agent.update(current_agent(), fn %{triggers: triggers} = state ->
         %{state | triggers: Map.put(triggers, {realm_name, trigger_name}, trigger)}
       end)
     end
   end
 
   def get_triggers_list(realm_name) do
-    Agent.get(__MODULE__, fn %{triggers: triggers} ->
+    Agent.get(current_agent(), fn %{triggers: triggers} ->
       keys = Map.keys(triggers)
 
       for {^realm_name, trigger_name} <- keys do
@@ -370,7 +374,7 @@ defmodule Astarte.RealmManagement.API.Helpers.RPCMock.DB do
   end
 
   def get_trigger(realm_name, trigger_name) do
-    Agent.get(__MODULE__, fn %{triggers: triggers} ->
+    Agent.get(current_agent(), fn %{triggers: triggers} ->
       Map.get(triggers, {realm_name, trigger_name})
     end)
   end
@@ -379,7 +383,7 @@ defmodule Astarte.RealmManagement.API.Helpers.RPCMock.DB do
     if get_trigger(realm_name, trigger_name) == nil do
       {:error, :trigger_not_found}
     else
-      Agent.update(__MODULE__, fn %{triggers: triggers} = state ->
+      Agent.update(current_agent(), fn %{triggers: triggers} = state ->
         %{state | triggers: Map.delete(triggers, {realm_name, trigger_name})}
       end)
     end

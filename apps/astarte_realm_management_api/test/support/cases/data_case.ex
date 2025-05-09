@@ -19,22 +19,14 @@
 defmodule Astarte.RealmManagement.API.DataCase do
   use ExUnit.CaseTemplate
 
-  setup_all do
-    case start_supervised(Astarte.RealmManagement.API.Helpers.RPCMock.DB) do
-      {:ok, _pid} ->
-        :ok
-
-      {:error, {:already_started, _pid}} ->
-        :ok
-
-      {:error, reason} ->
-        raise "Failed to start Astarte.RealmManagement.API.Helpers.RPCMock.DB: #{inspect(reason)}"
-    end
-  end
-
   setup do
-    on_exit(fn ->
-      Astarte.RealmManagement.API.Helpers.RPCMock.DB.clean()
-    end)
+    realm = "autotestrealm#{System.unique_integer([:positive])}"
+    agent_name = :"test_agent_#{System.unique_integer([:positive])}"
+
+    start_supervised!({Astarte.RealmManagement.API.Helpers.RPCMock.DB, agent_name})
+
+    Process.put(:current_agent, agent_name)
+
+    %{realm: realm}
   end
 end
