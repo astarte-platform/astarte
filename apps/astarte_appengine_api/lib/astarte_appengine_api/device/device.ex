@@ -236,35 +236,36 @@ defmodule Astarte.AppEngine.API.Device do
             [ttl: db_max_ttl]
         end
 
-      Queries.insert_value_into_db(
-        realm_name,
-        device_id,
-        interface_descriptor,
-        endpoint_id,
-        mapping,
-        path,
-        value,
-        now,
-        opts
-      )
+      with :ok <-
+             Queries.insert_value_into_db(
+               realm_name,
+               device_id,
+               interface_descriptor,
+               endpoint_id,
+               mapping,
+               path,
+               value,
+               now,
+               opts
+             ) do
+        if interface_descriptor.type == :datastream do
+          Queries.insert_path_into_db(
+            realm_name,
+            device_id,
+            interface_descriptor,
+            endpoint_id,
+            path,
+            now,
+            now,
+            opts
+          )
+        end
 
-      if interface_descriptor.type == :datastream do
-        Queries.insert_path_into_db(
-          realm_name,
-          device_id,
-          interface_descriptor,
-          endpoint_id,
-          path,
-          now,
-          now,
-          opts
-        )
+        {:ok,
+         %InterfaceValues{
+           data: raw_value
+         }}
       end
-
-      {:ok,
-       %InterfaceValues{
-         data: raw_value
-       }}
     else
       {:error, :endpoint_guess_not_allowed} ->
         _ = Logger.warning("Incomplete path not allowed.", tag: "endpoint_guess_not_allowed")
@@ -409,33 +410,34 @@ defmodule Astarte.AppEngine.API.Device do
             [ttl: db_max_ttl]
         end
 
-      Queries.insert_value_into_db(
-        realm_name,
-        device_id,
-        interface_descriptor,
-        nil,
-        nil,
-        path,
-        value,
-        now,
-        opts
-      )
+      with :ok <-
+             Queries.insert_value_into_db(
+               realm_name,
+               device_id,
+               interface_descriptor,
+               nil,
+               nil,
+               path,
+               value,
+               now,
+               opts
+             ) do
+        Queries.insert_path_into_db(
+          realm_name,
+          device_id,
+          interface_descriptor,
+          endpoint_id,
+          path,
+          now,
+          now,
+          opts
+        )
 
-      Queries.insert_path_into_db(
-        realm_name,
-        device_id,
-        interface_descriptor,
-        endpoint_id,
-        path,
-        now,
-        now,
-        opts
-      )
-
-      {:ok,
-       %InterfaceValues{
-         data: raw_value
-       }}
+        {:ok,
+         %InterfaceValues{
+           data: raw_value
+         }}
+      end
     else
       {:error, :unexpected_value_type, expected: value_type} ->
         Logger.warning("Unexpected value type.", tag: "unexpected_value_type")
@@ -686,24 +688,25 @@ defmodule Astarte.AppEngine.API.Device do
       mapping =
         Queries.retrieve_mapping(realm_name, interface_descriptor.interface_id, endpoint_id)
 
-      Queries.insert_value_into_db(
-        realm_name,
-        device_id,
-        interface_descriptor,
-        endpoint_id,
-        mapping,
-        path,
-        nil,
-        nil,
-        []
-      )
+      with :ok <-
+             Queries.insert_value_into_db(
+               realm_name,
+               device_id,
+               interface_descriptor,
+               endpoint_id,
+               mapping,
+               path,
+               nil,
+               nil,
+               []
+             ) do
+        case interface_descriptor.type do
+          :properties ->
+            unset_property(realm_name, device_id, interface, path)
 
-      case interface_descriptor.type do
-        :properties ->
-          unset_property(realm_name, device_id, interface, path)
-
-        :datastream ->
-          :ok
+          :datastream ->
+            :ok
+        end
       end
     else
       {:ownership, :device} ->

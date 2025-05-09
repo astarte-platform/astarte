@@ -220,41 +220,55 @@ defmodule Astarte.AppEngine.API.Device.Queries do
         %InterfaceDescriptor{storage_type: :multi_interface_individual_properties_dbtable} =
           interface_descriptor,
         endpoint_id,
-        endpoint,
+        %Endpoint{allow_unset: true},
         path,
         nil,
         _timestamp,
         _opts
       ) do
-    if endpoint.allow_unset == false do
-      _ =
-        Logger.warning("Tried to unset value on allow_unset=false mapping.",
-          tag: "unset_not_allowed"
-        )
-
-      # TODO: should we handle this situation?
-    end
-
     # TODO: :reception_timestamp_submillis is just a place holder right now
     %InterfaceDescriptor{interface_id: interface_id, storage: storage} = interface_descriptor
     keyspace_name = Realm.keyspace_name(realm_name)
 
-    q =
+    delete_match =
       from v in storage,
         prefix: ^keyspace_name,
         where:
           v.device_id == ^device_id and v.interface_id == ^interface_id and
             v.endpoint_id == ^endpoint_id and v.path == ^path
 
-    with {0, _} <- Repo.delete_all(q, consistency: Consistency.device_info(:write)) do
-      Logger.warning(
-        "Could not unset value for  #{Device.encode_device_id(device_id)} in #{storage}}",
-        realm: "realm",
-        tag: "cant_unset"
-      )
+    {c, _} = Repo.delete_all(delete_match, consistency: Consistency.device_info(:write))
+
+    if c == 0 do
+      _ =
+        Logger.warning(
+          "Could not unset value for #{Device.encode_device_id(device_id)} in #{storage} or there was no data",
+          realm: "realm",
+          tag: "cant_unset"
+        )
     end
 
     :ok
+  end
+
+  def insert_value_into_db(
+        _realm_name,
+        _device_id,
+        %InterfaceDescriptor{storage_type: :multi_interface_individual_properties_dbtable} =
+          _interface_descriptor,
+        _endpoint_id,
+        _endpoint,
+        _path,
+        nil,
+        _timestamp,
+        _opts
+      ) do
+    _ =
+      Logger.warning("Tried to unset value on allow_unset=false mapping.",
+        tag: "unset_not_allowed"
+      )
+
+    {:error, :unset_not_allowed}
   end
 
   # TODO Copy&pasted from data updater plant, make it a library
