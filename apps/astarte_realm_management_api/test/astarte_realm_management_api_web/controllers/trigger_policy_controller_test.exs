@@ -17,7 +17,7 @@
 #
 
 defmodule Astarte.RealmManagement.APIWeb.TriggerPolicyControllerTest do
-  use Astarte.RealmManagement.APIWeb.ConnCase
+  use Astarte.RealmManagement.APIWeb.ConnCase, async: true
   @moduletag :trigger_policy
 
   alias Astarte.RealmManagement.API.Helpers.JWTTestHelper

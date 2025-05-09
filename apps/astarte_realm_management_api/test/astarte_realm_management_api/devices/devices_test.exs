@@ -17,7 +17,7 @@
 #
 
 defmodule Astarte.RealmManagement.API.DevicesTest do
-  use Astarte.RealmManagement.API.DataCase
+  use Astarte.RealmManagement.API.DataCase, async: true
   use ExUnitProperties
 
   alias Astarte.RealmManagement.API.Devices

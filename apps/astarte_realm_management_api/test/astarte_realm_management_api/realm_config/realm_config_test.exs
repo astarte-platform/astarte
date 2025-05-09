@@ -17,7 +17,7 @@
 #
 
 defmodule Astarte.RealmManagement.API.RealmConfigTest do
-  use Astarte.RealmManagement.API.DataCase
+  use Astarte.RealmManagement.API.DataCase, async: true
 
   alias Astarte.RealmManagement.API.RealmConfig
   alias Astarte.RealmManagement.API.RealmConfig.AuthConfig

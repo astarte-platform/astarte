@@ -17,7 +17,7 @@
 #
 
 defmodule Astarte.RealmManagement.API.Triggers.Policies.PolicyTest do
-  use Astarte.RealmManagement.API.DataCase
+  use Astarte.RealmManagement.API.DataCase, async: true
   use ExUnitProperties
 
   @moduletag :trigger_policy

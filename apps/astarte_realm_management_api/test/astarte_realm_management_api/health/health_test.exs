@@ -17,7 +17,7 @@
 #
 
 defmodule Astarte.RealmManagement.API.HealthTest do
-  use Astarte.RealmManagement.API.DataCase
+  use Astarte.RealmManagement.API.DataCase, async: true
 
   alias Astarte.RealmManagement.API.Health
   alias Astarte.RealmManagement.API.Health.BackendHealth

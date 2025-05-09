@@ -17,7 +17,7 @@
 #
 
 defmodule Astarte.RealmManagement.API.TriggersTest do
-  use Astarte.RealmManagement.API.DataCase
+  use Astarte.RealmManagement.API.DataCase, async: true
 
   @moduletag :triggers
 
