@@ -115,6 +115,9 @@ defmodule Astarte.Helpers.Device do
     |> Enum.all?()
   end
 
+  defp similar?(result, value) when is_binary(result) and is_struct(value, DateTime),
+    do: result == DateTime.to_iso8601(value)
+
   defp similar?(%{"reception_timestamp" => _, "value" => v}, value), do: similar?(v, value)
 
   defp similar?(result, value), do: result == value

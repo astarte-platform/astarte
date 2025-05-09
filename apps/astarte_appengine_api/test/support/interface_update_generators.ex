@@ -135,7 +135,7 @@ defmodule Astarte.InterfaceUpdateGenerators do
     random_value(value_type)
   end
 
-  defp path_from_endpoint(prefix) do
+  def path_from_endpoint(prefix) do
     prefix
     |> String.split("/")
     |> Enum.map(fn token ->
