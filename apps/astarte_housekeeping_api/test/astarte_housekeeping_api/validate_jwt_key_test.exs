@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2020 Ispirata Srl
+# Copyright 2020 - 2025 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -17,9 +17,11 @@
 #
 
 defmodule Astarte.Housekeeping.API.ValidateJWTKeyTest do
+  use ExUnit.Case, async: true
+
   alias Astarte.Housekeeping.API.Config
   alias Astarte.Housekeeping.API.Config.JWTPublicKeyPEMType
-  use ExUnit.Case
+
   @pubkeypath "pubkey_file.txt"
 
   @pubkey """

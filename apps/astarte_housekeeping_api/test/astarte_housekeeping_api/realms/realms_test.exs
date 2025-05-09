@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2017-2025 SECO Mind Srl
+# Copyright 2017 - 2025 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -17,7 +17,7 @@
 #
 
 defmodule Astarte.Housekeeping.API.RealmsTest do
-  use Astarte.Housekeeping.API.DataCase
+  use Astarte.Housekeeping.API.DataCase, async: true
   use ExUnitProperties
 
   alias Astarte.Housekeeping.API.Realms.Realm
