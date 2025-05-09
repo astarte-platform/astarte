@@ -25,14 +25,12 @@ defmodule Astarte.RealmManagement.API.TriggersTest do
   alias Astarte.RealmManagement.API.Triggers.Trigger
   alias Astarte.RealmManagement.API.Fixtures.Trigger, as: TriggerFixture
 
-  @test_realm "test"
-
   describe "triggers" do
-    test "create_trigger/1 with valid data creates a trigger" do
+    test "create_trigger/1 with valid data creates a trigger", %{realm: realm} do
       trigger_attrs = TriggerFixture.valid_trigger_attrs()
 
       assert {:ok, installed_trigger} =
-               Triggers.create_trigger(@test_realm, trigger_attrs)
+               Triggers.create_trigger(realm, trigger_attrs)
 
       expected_action = trigger_attrs["action"]
 
@@ -46,55 +44,55 @@ defmodule Astarte.RealmManagement.API.TriggersTest do
                trigger_attrs["simple_triggers"]
     end
 
-    test "create_trigger/1 with invalid data returns error changeset" do
+    test "create_trigger/1 with invalid data returns error changeset", %{realm: realm} do
       trigger_attrs = TriggerFixture.invalid_trigger_attrs()
 
-      assert {:error, %Ecto.Changeset{}} = Triggers.create_trigger(@test_realm, trigger_attrs)
+      assert {:error, %Ecto.Changeset{}} = Triggers.create_trigger(realm, trigger_attrs)
     end
 
-    test "create_trigger/1 fails if trigger already exists" do
+    test "create_trigger/1 fails if trigger already exists", %{realm: realm} do
       trigger_attrs = TriggerFixture.valid_trigger_attrs()
-      Triggers.create_trigger(@test_realm, trigger_attrs)
+      Triggers.create_trigger(realm, trigger_attrs)
 
       assert {:error, :already_installed_trigger} =
-               Triggers.create_trigger(@test_realm, trigger_attrs)
+               Triggers.create_trigger(realm, trigger_attrs)
     end
 
-    test "list_triggers/0 returns all triggers" do
+    test "list_triggers/0 returns all triggers", %{realm: realm} do
       trigger_attrs = TriggerFixture.valid_trigger_attrs()
 
       assert {:ok, %Trigger{} = installed_trigger} =
-               Triggers.create_trigger(@test_realm, trigger_attrs)
+               Triggers.create_trigger(realm, trigger_attrs)
 
-      assert Triggers.list_triggers(@test_realm) == [installed_trigger.name]
+      assert Triggers.list_triggers(realm) == [installed_trigger.name]
     end
 
-    test "get_trigger/1 returns the trigger with given name" do
+    test "get_trigger/1 returns the trigger with given name", %{realm: realm} do
       trigger_attrs = TriggerFixture.valid_trigger_attrs()
 
       assert {:ok, %Trigger{} = installed_trigger} =
-               Triggers.create_trigger(@test_realm, trigger_attrs)
+               Triggers.create_trigger(realm, trigger_attrs)
 
-      assert {:ok, installed_trigger} == Triggers.get_trigger(@test_realm, installed_trigger.name)
+      assert {:ok, installed_trigger} == Triggers.get_trigger(realm, installed_trigger.name)
     end
 
-    test "delete_trigger/1 deletes the trigger" do
+    test "delete_trigger/1 deletes the trigger", %{realm: realm} do
       trigger_attrs = TriggerFixture.valid_trigger_attrs()
 
       assert {:ok, %Trigger{} = installed_trigger} =
-               Triggers.create_trigger(@test_realm, trigger_attrs)
+               Triggers.create_trigger(realm, trigger_attrs)
 
-      assert {:ok, %Trigger{}} = Triggers.delete_trigger(@test_realm, installed_trigger)
+      assert {:ok, %Trigger{}} = Triggers.delete_trigger(realm, installed_trigger)
     end
 
-    test "delete_trigger/1 fails on an already deleted trigger" do
+    test "delete_trigger/1 fails on an already deleted trigger", %{realm: realm} do
       trigger_attrs = TriggerFixture.valid_trigger_attrs()
 
       assert {:ok, %Trigger{} = trigger} =
-               Triggers.create_trigger(@test_realm, trigger_attrs)
+               Triggers.create_trigger(realm, trigger_attrs)
 
-      assert {:ok, %Trigger{}} = Triggers.delete_trigger(@test_realm, trigger)
-      assert {:error, :trigger_not_found} = Triggers.delete_trigger(@test_realm, trigger)
+      assert {:ok, %Trigger{}} = Triggers.delete_trigger(realm, trigger)
+      assert {:error, :trigger_not_found} = Triggers.delete_trigger(realm, trigger)
     end
   end
 

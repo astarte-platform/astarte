@@ -40,51 +40,53 @@ defmodule Astarte.RealmManagement.API.RealmConfigTest do
     -----END PUBLIC KEY-----
     """
 
-    @realm "mock_realm"
     @update_attrs %{jwt_public_key_pem: @pubkey}
     @invalid_pubkey_attrs %{jwt_public_key_pem: "invalid"}
     @malformed_pubkey_attrs %{jwt_public_key_pem: @malformed_pubkey}
     @empty_pubkey_attrs %{jwt_public_key_pem: nil}
 
-    setup do
-      DB.put_jwt_public_key_pem(@realm, JWTTestHelper.public_key_pem())
+    setup %{realm: realm} do
+      DB.put_jwt_public_key_pem(realm, JWTTestHelper.public_key_pem())
     end
 
-    test "get_auth_config/1 returns the auth config for the given realm" do
-      assert RealmConfig.get_auth_config(@realm) ==
+    test "get_auth_config/1 returns the auth config for the given realm", %{realm: realm} do
+      assert RealmConfig.get_auth_config(realm) ==
                {:ok, %AuthConfig{jwt_public_key_pem: JWTTestHelper.public_key_pem()}}
     end
 
-    test "update_auth_config/2 with invalid data returns error changeset" do
+    test "update_auth_config/2 with invalid data returns error changeset", %{realm: realm} do
       assert {:error, %Ecto.Changeset{}} =
-               RealmConfig.update_auth_config(@realm, @empty_pubkey_attrs)
+               RealmConfig.update_auth_config(realm, @empty_pubkey_attrs)
 
       assert {:error, %Ecto.Changeset{}} =
-               RealmConfig.update_auth_config(@realm, @invalid_pubkey_attrs)
+               RealmConfig.update_auth_config(realm, @invalid_pubkey_attrs)
 
       assert {:error, %Ecto.Changeset{}} =
-               RealmConfig.update_auth_config(@realm, @malformed_pubkey_attrs)
+               RealmConfig.update_auth_config(realm, @malformed_pubkey_attrs)
     end
 
-    test "update_auth_config/2 with valid data returns :ok and changes the data" do
-      assert :ok = RealmConfig.update_auth_config(@realm, @update_attrs)
+    test "update_auth_config/2 with valid data returns :ok and changes the data", %{realm: realm} do
+      assert :ok = RealmConfig.update_auth_config(realm, @update_attrs)
 
-      assert RealmConfig.get_auth_config(@realm) ==
+      assert RealmConfig.get_auth_config(realm) ==
                {:ok, %AuthConfig{jwt_public_key_pem: @pubkey}}
     end
 
-    test "get_device_registration_limit/1 returns the limit for an existing realm" do
+    test "get_device_registration_limit/1 returns the limit for an existing realm", %{
+      realm: realm
+    } do
       limit = 10
-      DB.put_device_registration_limit(@realm, limit)
+      DB.put_device_registration_limit(realm, limit)
 
-      assert {:ok, ^limit} = RealmConfig.get_device_registration_limit(@realm)
+      assert {:ok, ^limit} = RealmConfig.get_device_registration_limit(realm)
     end
 
-    test "get_datastream_maximum_storage_retention/1 returns the retention for an existing realm" do
+    test "get_datastream_maximum_storage_retention/1 returns the retention for an existing realm",
+         %{realm: realm} do
       retention = 10
-      DB.put_datastream_maximum_storage_retention(@realm, retention)
+      DB.put_datastream_maximum_storage_retention(realm, retention)
 
-      assert {:ok, ^retention} = RealmConfig.get_datastream_maximum_storage_retention(@realm)
+      assert {:ok, ^retention} = RealmConfig.get_datastream_maximum_storage_retention(realm)
     end
   end
 end

@@ -25,7 +25,6 @@ defmodule Astarte.RealmManagement.API.InterfacesTest do
   alias Astarte.Core.Interface
   alias Astarte.Core.Mapping
 
-  @realm "testrealm"
   @interface_name "com.Some.Interface"
   @interface_major 0
   @valid_attrs %{
@@ -58,8 +57,8 @@ defmodule Astarte.RealmManagement.API.InterfacesTest do
   describe "interface creation" do
     @describetag :creation
 
-    test "succeeds with valid attrs" do
-      assert {:ok, %Interface{} = interface} = Interfaces.create_interface(@realm, @valid_attrs)
+    test "succeeds with valid attrs", %{realm: realm} do
+      assert {:ok, %Interface{} = interface} = Interfaces.create_interface(realm, @valid_attrs)
 
       assert %Interface{
                name: @interface_name,
@@ -75,39 +74,39 @@ defmodule Astarte.RealmManagement.API.InterfacesTest do
                value_type: :integer
              } = mapping
 
-      assert {:ok, [@interface_name]} = Interfaces.list_interfaces(@realm)
+      assert {:ok, [@interface_name]} = Interfaces.list_interfaces(realm)
     end
 
-    test "fails with already installed interface" do
-      assert {:ok, %Interface{} = _interface} = Interfaces.create_interface(@realm, @valid_attrs)
+    test "fails with already installed interface", %{realm: realm} do
+      assert {:ok, %Interface{} = _interface} = Interfaces.create_interface(realm, @valid_attrs)
 
       assert {:error, :already_installed_interface} =
-               Interfaces.create_interface(@realm, @valid_attrs)
+               Interfaces.create_interface(realm, @valid_attrs)
     end
 
-    test "fails when interface name collides after normalization" do
+    test "fails when interface name collides after normalization", %{realm: realm} do
       normalized_attrs =
         @valid_attrs
         |> Map.put("interface_name", "com.astarteplatform.Interface")
 
-      {:ok, %Interface{}} = Interfaces.create_interface(@realm, normalized_attrs)
+      {:ok, %Interface{}} = Interfaces.create_interface(realm, normalized_attrs)
 
       colliding_normalized_attrs =
         @valid_attrs
         |> Map.put("interface_name", "com.astarte-platform.Interface")
 
       assert {:error, :interface_name_collision} =
-               Interfaces.create_interface(@realm, colliding_normalized_attrs)
+               Interfaces.create_interface(realm, colliding_normalized_attrs)
     end
 
-    test "fails with invalid attrs" do
+    test "fails with invalid attrs", %{realm: realm} do
       assert {:error, %Ecto.Changeset{errors: [type: _]}} =
-               Interfaces.create_interface(@realm, @invalid_attrs)
+               Interfaces.create_interface(realm, @invalid_attrs)
     end
 
-    test "succeeds using a synchronous call" do
+    test "succeeds using a synchronous call", %{realm: realm} do
       assert {:ok, %Interface{} = interface} =
-               Interfaces.create_interface(@realm, @valid_attrs, async_operation: false)
+               Interfaces.create_interface(realm, @valid_attrs, async_operation: false)
 
       assert %Interface{
                name: @interface_name,
@@ -123,13 +122,12 @@ defmodule Astarte.RealmManagement.API.InterfacesTest do
                value_type: :integer
              } = mapping
 
-      assert {:ok, [@interface_name]} = Interfaces.list_interfaces(@realm)
+      assert {:ok, [@interface_name]} = Interfaces.list_interfaces(realm)
     end
 
-    test "fails when a mapping higher database_retention_ttl than the maximum" do
+    test "fails when a mapping higher database_retention_ttl than the maximum", %{realm: realm} do
       alias Astarte.RealmManagement.API.Helpers.RPCMock.DB
-      DB.put_datastream_maximum_storage_retention(@realm, 1)
-      on_exit(fn -> DB.put_datastream_maximum_storage_retention(@realm, 0) end)
+      DB.put_datastream_maximum_storage_retention(realm, 1)
 
       iface_with_invalid_mappings = %{
         @valid_attrs
@@ -145,19 +143,19 @@ defmodule Astarte.RealmManagement.API.InterfacesTest do
       }
 
       assert {:error, :maximum_database_retention_exceeded} =
-               Interfaces.create_interface(@realm, iface_with_invalid_mappings)
+               Interfaces.create_interface(realm, iface_with_invalid_mappings)
     end
   end
 
   describe "interface update" do
     @describetag :update
 
-    setup do
-      {:ok, %Interface{}} = Interfaces.create_interface(@realm, @valid_attrs)
+    setup %{realm: realm} do
+      {:ok, %Interface{}} = Interfaces.create_interface(realm, @valid_attrs)
       :ok
     end
 
-    test "succeeds with valid attrs" do
+    test "succeeds with valid attrs", %{realm: realm} do
       doc = "some doc"
 
       update_attrs =
@@ -167,14 +165,14 @@ defmodule Astarte.RealmManagement.API.InterfacesTest do
 
       assert :ok ==
                Interfaces.update_interface(
-                 @realm,
+                 realm,
                  @interface_name,
                  @interface_major,
                  update_attrs
                )
 
       assert {:ok, interface_source} =
-               Interfaces.get_interface(@realm, @interface_name, @interface_major)
+               Interfaces.get_interface(realm, @interface_name, @interface_major)
 
       assert {:ok, map} = Jason.decode(interface_source)
 
@@ -196,24 +194,24 @@ defmodule Astarte.RealmManagement.API.InterfacesTest do
                value_type: :integer
              } = mapping
 
-      assert {:ok, ["com.Some.Interface"]} = Interfaces.list_interfaces(@realm)
+      assert {:ok, ["com.Some.Interface"]} = Interfaces.list_interfaces(realm)
     end
 
-    test "fails with not installed interface" do
+    test "fails with not installed interface", %{realm: realm} do
       update_attrs =
         @valid_attrs
         |> Map.put("interface_name", "com.NotExisting")
 
       assert {:error, :interface_major_version_does_not_exist} =
                Interfaces.update_interface(
-                 @realm,
+                 realm,
                  "com.NotExisting",
                  @interface_major,
                  update_attrs
                )
     end
 
-    test "fails when minor version is not increased" do
+    test "fails when minor version is not increased", %{realm: realm} do
       doc = "some doc"
 
       update_attrs =
@@ -222,14 +220,14 @@ defmodule Astarte.RealmManagement.API.InterfacesTest do
 
       assert {:error, :minor_version_not_increased} ==
                Interfaces.update_interface(
-                 @realm,
+                 realm,
                  @interface_name,
                  @interface_major,
                  update_attrs
                )
     end
 
-    test "fails when minor version is decreased" do
+    test "fails when minor version is decreased", %{realm: realm} do
       doc = "some doc"
 
       update_attrs =
@@ -239,14 +237,14 @@ defmodule Astarte.RealmManagement.API.InterfacesTest do
 
       assert {:error, :downgrade_not_allowed} ==
                Interfaces.update_interface(
-                 @realm,
+                 realm,
                  @interface_name,
                  @interface_major,
                  update_attrs
                )
     end
 
-    test "fails with missing endpoints" do
+    test "fails with missing endpoints", %{realm: realm} do
       update_attrs =
         @valid_attrs
         |> Map.put("version_minor", 10)
@@ -259,14 +257,14 @@ defmodule Astarte.RealmManagement.API.InterfacesTest do
 
       assert {:error, :missing_endpoints} ==
                Interfaces.update_interface(
-                 @realm,
+                 realm,
                  @interface_name,
                  @interface_major,
                  update_attrs
                )
     end
 
-    test "fails with incompatible endpoint change" do
+    test "fails with incompatible endpoint change", %{realm: realm} do
       update_attrs =
         @valid_attrs
         |> Map.put("version_minor", 10)
@@ -280,19 +278,19 @@ defmodule Astarte.RealmManagement.API.InterfacesTest do
 
       assert {:error, :incompatible_endpoint_change} ==
                Interfaces.update_interface(
-                 @realm,
+                 realm,
                  @interface_name,
                  @interface_major,
                  update_attrs
                )
     end
 
-    test "fails with invalid attrs" do
+    test "fails with invalid attrs", %{realm: realm} do
       assert {:error, %Ecto.Changeset{errors: [type: _]}} =
-               Interfaces.create_interface(@realm, @invalid_attrs)
+               Interfaces.create_interface(realm, @invalid_attrs)
     end
 
-    test "succeeds with valid attrs using a synchronous call" do
+    test "succeeds with valid attrs using a synchronous call", %{realm: realm} do
       doc = "some doc"
 
       update_attrs =
@@ -302,7 +300,7 @@ defmodule Astarte.RealmManagement.API.InterfacesTest do
 
       assert :ok ==
                Interfaces.update_interface(
-                 @realm,
+                 realm,
                  @interface_name,
                  @interface_major,
                  update_attrs,
@@ -310,7 +308,7 @@ defmodule Astarte.RealmManagement.API.InterfacesTest do
                )
 
       assert {:ok, interface_source} =
-               Interfaces.get_interface(@realm, @interface_name, @interface_major)
+               Interfaces.get_interface(realm, @interface_name, @interface_major)
 
       assert {:ok, map} = Jason.decode(interface_source)
 
@@ -332,41 +330,41 @@ defmodule Astarte.RealmManagement.API.InterfacesTest do
                value_type: :integer
              } = mapping
 
-      assert {:ok, ["com.Some.Interface"]} = Interfaces.list_interfaces(@realm)
+      assert {:ok, ["com.Some.Interface"]} = Interfaces.list_interfaces(realm)
     end
   end
 
   describe "interface deletion" do
     @describetag :deletion
 
-    setup do
-      {:ok, %Interface{}} = Interfaces.create_interface(@realm, @valid_attrs)
+    setup %{realm: realm} do
+      {:ok, %Interface{}} = Interfaces.create_interface(realm, @valid_attrs)
       :ok
     end
 
-    test "succeeds with valid interface" do
-      assert :ok = Interfaces.delete_interface(@realm, @interface_name, @interface_major)
+    test "succeeds with valid interface", %{realm: realm} do
+      assert :ok = Interfaces.delete_interface(realm, @interface_name, @interface_major)
 
       assert {:error, :interface_not_found} =
-               Interfaces.get_interface(@realm, @interface_name, @interface_major)
+               Interfaces.get_interface(realm, @interface_name, @interface_major)
     end
 
-    test "fails if major version is other than 0" do
+    test "fails if major version is other than 0", %{realm: realm} do
       new_interface_major = 1
 
       major_attrs =
         @valid_attrs
         |> Map.put("version_major", new_interface_major)
 
-      assert {:ok, %Interface{}} = Interfaces.create_interface(@realm, major_attrs)
+      assert {:ok, %Interface{}} = Interfaces.create_interface(realm, major_attrs)
 
       assert {:error, :forbidden} =
-               Interfaces.delete_interface(@realm, @interface_name, new_interface_major)
+               Interfaces.delete_interface(realm, @interface_name, new_interface_major)
     end
 
-    test "fails with not installed interface" do
+    test "fails with not installed interface", %{realm: realm} do
       assert {:error, :interface_not_found} =
-               Interfaces.delete_interface(@realm, "com.NotExisting", @interface_major)
+               Interfaces.delete_interface(realm, "com.NotExisting", @interface_major)
     end
 
     test "returns error for invalid realm" do
@@ -374,17 +372,17 @@ defmodule Astarte.RealmManagement.API.InterfacesTest do
                Interfaces.delete_interface("invalidrealm", @interface_name, @interface_major)
     end
 
-    test "succeeds using a synchronous call" do
+    test "succeeds using a synchronous call", %{realm: realm} do
       assert :ok =
                Interfaces.delete_interface(
-                 @realm,
+                 realm,
                  @interface_name,
                  @interface_major,
                  async_operation: false
                )
 
       assert {:error, :interface_not_found} =
-               Interfaces.get_interface(@realm, @interface_name, @interface_major)
+               Interfaces.get_interface(realm, @interface_name, @interface_major)
     end
   end
 end

@@ -24,20 +24,18 @@ defmodule Astarte.RealmManagement.API.DevicesTest do
   alias Astarte.RealmManagement.API.Helpers.RPCMock.DB
   alias Astarte.Core.Generators.Device, as: DeviceGenerator
 
-  @realm "testrealm"
-
   describe "property based device tests" do
     @describetag :devices
-    property "delete device succeeds when the device exists" do
+    property "delete device succeeds when the device exists", %{realm: realm} do
       check all(device_id <- DeviceGenerator.encoded_id()) do
-        DB.create_device(@realm, device_id)
-        assert :ok = Devices.delete_device(@realm, device_id)
+        DB.create_device(realm, device_id)
+        assert :ok = Devices.delete_device(realm, device_id)
       end
     end
 
-    property "delete device fails on a non-existing device" do
+    property "delete device fails on a non-existing device", %{realm: realm} do
       check all(device_id <- DeviceGenerator.encoded_id()) do
-        assert {:error, :device_not_found} = Devices.delete_device(@realm, device_id)
+        assert {:error, :device_not_found} = Devices.delete_device(realm, device_id)
       end
     end
   end
