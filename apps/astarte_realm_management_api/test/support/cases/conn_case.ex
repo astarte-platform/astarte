@@ -39,7 +39,7 @@ defmodule Astarte.RealmManagement.APIWeb.ConnCase do
       import Plug.Conn
       import Phoenix.ConnTest
       import Astarte.RealmManagement.APIWeb.Router.Helpers
-
+      use Astarte.RealmManagement.API.DataCase
       # The default endpoint for testing
       @endpoint Astarte.RealmManagement.APIWeb.Endpoint
     end
