@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2017-2025 SECO Mind Srl
+# Copyright 2017 - 2025 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -39,22 +39,14 @@ defmodule Astarte.Housekeeping.APIWeb.ConnCase do
       import Plug.Conn
       import Phoenix.ConnTest
       import Astarte.Housekeeping.APIWeb.Router.Helpers
+      use Astarte.Housekeeping.API.DataCase
 
       # The default endpoint for testing
       @endpoint Astarte.Housekeeping.APIWeb.Endpoint
     end
   end
 
-  setup_all do
-    Astarte.Housekeeping.Mock.DB.start_link()
-    :ok
-  end
-
-  setup _tags do
-    on_exit(fn ->
-      Astarte.Housekeeping.Mock.DB.clean()
-    end)
-
+  setup do
     {:ok, conn: Phoenix.ConnTest.build_conn()}
   end
 end

@@ -17,7 +17,7 @@
 #
 
 defmodule Astarte.Housekeeping.API.HealthTest do
-  use Astarte.Housekeeping.API.DataCase
+  use Astarte.Housekeeping.API.DataCase, async: true
 
   alias Astarte.Housekeeping.API.Health
 

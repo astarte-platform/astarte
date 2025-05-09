@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2018 Ispirata Srl
+# Copyright 2018 - 2025 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -17,7 +17,7 @@
 #
 
 defmodule Astarte.Housekeeping.APIWeb.AuthTest do
-  use Astarte.Housekeeping.APIWeb.ConnCase
+  use Astarte.Housekeeping.APIWeb.ConnCase, async: true
 
   alias Astarte.Helpers.JWTTestHelper
 
@@ -28,8 +28,6 @@ defmodule Astarte.Housekeeping.APIWeb.AuthTest do
   @non_matching_auth_path "^stats.*$"
 
   @expected_data %{"data" => []}
-
-  require Logger
 
   setup %{conn: conn} do
     {:ok, conn: put_req_header(conn, "accept", "application/json")}

@@ -15,15 +15,21 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+
 defmodule Astarte.Housekeeping.APIWeb.AuthCase do
   use ExUnit.CaseTemplate
-  alias Astarte.Housekeeping.API.Config
+  import Plug.Conn
 
-  setup_all do
-    Config.put_disable_authentication(true)
+  alias Astarte.Helpers.JWTTestHelper
 
-    on_exit(fn ->
-      Config.reload_disable_authentication()
-    end)
+  setup %{conn: conn} do
+    token = JWTTestHelper.gen_jwt_all_access_token()
+
+    conn =
+      conn
+      |> put_req_header("accept", "application/json")
+      |> put_req_header("authorization", "Bearer #{token}")
+
+    {:ok, conn: conn}
   end
 end

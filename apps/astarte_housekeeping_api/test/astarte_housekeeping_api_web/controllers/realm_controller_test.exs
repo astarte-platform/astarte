@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2017-2025 SECO Mind Srl
+# Copyright 2017 - 2025 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -17,7 +17,7 @@
 #
 
 defmodule Astarte.Housekeeping.APIWeb.RealmControllerTest do
-  use Astarte.Housekeeping.APIWeb.ConnCase
+  use Astarte.Housekeeping.APIWeb.ConnCase, async: true
   use Astarte.Housekeeping.APIWeb.AuthCase
 
   alias Astarte.Housekeeping.API.Realms.Realm
@@ -74,10 +74,6 @@ defmodule Astarte.Housekeeping.APIWeb.RealmControllerTest do
     }
   }
   @non_existing_realm_name "nonexistingrealm"
-
-  setup %{conn: conn} do
-    {:ok, conn: put_req_header(conn, "accept", "application/json")}
-  end
 
   test "lists all entries on index", %{conn: conn} do
     conn = get(conn, realm_path(conn, :index))
