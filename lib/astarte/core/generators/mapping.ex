@@ -102,7 +102,7 @@ defmodule Astarte.Core.Generators.Mapping do
   def database_retention_policy, do: member_of([:no_ttl, :use_ttl])
 
   @spec database_retention_ttl() :: StreamData.t(non_neg_integer())
-  def database_retention_ttl, do: integer(60..630_720_000)
+  def database_retention_ttl, do: integer(60..1_048_576)
 
   @spec allow_unset() :: StreamData.t(boolean())
   def allow_unset, do: boolean()
