@@ -16,16 +16,23 @@
 # limitations under the License.
 #
 
-defmodule Astarte.Housekeeping.ApiWeb.VersionControllerTest do
-  use Astarte.Housekeeping.APIWeb.ConnCase
+defmodule Astarte.Housekeeping.APIWeb.VersionControllerTest do
+  use Astarte.Housekeeping.APIWeb.ConnCase, async: true
   use Astarte.Housekeeping.APIWeb.AuthCase
 
-  test "returns a 200 status code", %{conn: conn} do
-    expected_version = Mix.Project.config()[:version]
-    conn = get(conn, "/v1/version")
+  @expected_version Mix.Project.config()[:version]
 
-    assert json_response(conn, 200) == %{
-             "data" => expected_version
-           }
+  describe "GET /v1/version" do
+    test "returns the app version", %{conn: conn} do
+      conn = get(conn, version_path(conn, :show))
+      assert json_response(conn, 200) == %{"data" => @expected_version}
+    end
+  end
+
+  describe "GET /version" do
+    test "returns the app version with realm", %{conn: conn} do
+      conn = get(conn, "/version")
+      assert json_response(conn, 200) == %{"data" => @expected_version}
+    end
   end
 end
