@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2017-2025 SECO Mind Srl
+# Copyright 2017 - 2025 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -21,8 +21,6 @@ defmodule Astarte.Housekeeping.Mock do
     Call,
     CreateRealm,
     DeleteRealm,
-    DoesRealmExist,
-    DoesRealmExistReply,
     GenericErrorReply,
     GenericOkReply,
     GetRealm,
@@ -150,14 +148,6 @@ defmodule Astarte.Housekeeping.Mock do
 
     %GenericOkReply{async_operation: async}
     |> encode_reply(:generic_ok_reply)
-    |> ok_wrap
-  end
-
-  defp execute_rpc({:does_realm_exist, %DoesRealmExist{realm: realm}}) do
-    exists = Astarte.Housekeeping.Mock.DB.realm_exists?(realm)
-
-    %DoesRealmExistReply{exists: exists}
-    |> encode_reply(:does_realm_exist_reply)
     |> ok_wrap
   end
 

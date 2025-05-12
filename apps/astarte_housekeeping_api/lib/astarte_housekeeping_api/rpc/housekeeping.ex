@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2017-2023 SECO Mind Srl
+# Copyright 2017 - 2025 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -21,8 +21,6 @@ defmodule Astarte.Housekeeping.API.RPC.Housekeeping do
     Call,
     CreateRealm,
     DeleteRealm,
-    DoesRealmExist,
-    DoesRealmExistReply,
     GenericErrorReply,
     GenericOkReply,
     GetHealth,
@@ -154,14 +152,6 @@ defmodule Astarte.Housekeeping.API.RPC.Housekeeping do
     |> extract_reply()
   end
 
-  def realm_exists?(realm_name) do
-    %DoesRealmExist{realm: realm_name}
-    |> encode_call(:does_realm_exist)
-    |> @rpc_client.rpc_call(@destination, Config.rpc_timeout!())
-    |> decode_reply()
-    |> extract_reply()
-  end
-
   defp encode_call(call, callname) do
     %Call{call: {callname, call}}
     |> Call.encode()
@@ -170,10 +160,6 @@ defmodule Astarte.Housekeeping.API.RPC.Housekeeping do
   defp decode_reply({:ok, encoded_reply}) when is_binary(encoded_reply) do
     %Reply{reply: reply} = Reply.decode(encoded_reply)
     reply
-  end
-
-  defp extract_reply({:does_realm_exist_reply, %DoesRealmExistReply{exists: exists}}) do
-    exists
   end
 
   defp extract_reply({:get_realms_list_reply, %GetRealmsListReply{realms_names: realms_list}}) do
