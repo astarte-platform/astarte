@@ -154,6 +154,10 @@ defmodule Astarte.Cases.Device do
     other_interfaces = list_of(InterfaceGenerator.interface()) |> Enum.at(0)
     properties_device = list_of(properties(:device), min_length: 1) |> Enum.at(0)
     properties_server = list_of(properties(:server), min_length: 1) |> Enum.at(0)
+
+    properties_server_allow_unset =
+      list_of(properties(:server, true), min_length: 1) |> Enum.at(0)
+
     fallible_interfaces = list_of(fallible(:server), min_length: 1) |> Enum.at(0)
     individual_downsampable = list_of(individual_downsampable(), min_length: 1) |> Enum.at(0)
     object_downsampable = list_of(object_downsampable(), min_length: 1) |> Enum.at(0)
@@ -169,7 +173,8 @@ defmodule Astarte.Cases.Device do
         properties_server,
         fallible_interfaces,
         individual_downsampable,
-        object_downsampable
+        object_downsampable,
+        properties_server_allow_unset
       ]
       |> Enum.concat()
 
@@ -214,7 +219,11 @@ defmodule Astarte.Cases.Device do
     )
   end
 
-  defp properties(ownership) do
-    InterfaceGenerator.interface(ownership: ownership, type: :properties)
+  defp properties(ownership, allow_unset \\ nil) do
+    InterfaceGenerator.interface(
+      ownership: ownership,
+      type: :properties,
+      allow_unset: allow_unset
+    )
   end
 end
