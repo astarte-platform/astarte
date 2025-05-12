@@ -34,7 +34,13 @@ defmodule Astarte.Housekeeping.Mock.DB do
   end
 
   def put_realm(realm = %Realm{realm_name: realm_name}) do
-    Agent.update(current_agent(), &Map.put(&1, realm_name, realm))
+    cond do
+      realm_exists?(realm_name) ->
+        {:error, :existing_realm}
+
+      true ->
+        Agent.update(current_agent(), &Map.put(&1, realm_name, realm))
+    end
   end
 
   def get_realm(realm_name) do
@@ -42,7 +48,16 @@ defmodule Astarte.Housekeeping.Mock.DB do
   end
 
   def delete_realm(realm_name) do
-    Agent.update(current_agent(), &Map.delete(&1, realm_name))
+    cond do
+      !realm_exists?(realm_name) ->
+        {:error, :realm_not_found}
+
+      realm_deletion_disabled?() ->
+        {:error, :realm_deletion_disabled}
+
+      true ->
+        Agent.update(current_agent(), &Map.delete(&1, realm_name))
+    end
   end
 
   def realm_exists?(realm_name) do
@@ -59,6 +74,14 @@ defmodule Astarte.Housekeeping.Mock.DB do
 
   def get_health_status do
     Agent.get(current_agent(), &Map.get(&1, :health_status, :READY))
+  end
+
+  def set_realm_deletion_status(status) when is_boolean(status) do
+    Agent.update(current_agent(), &Map.put(&1, :realm_deletion_disabled, !status))
+  end
+
+  defp realm_deletion_disabled? do
+    Agent.get(current_agent(), &Map.get(&1, :realm_deletion_disabled, false))
   end
 
   defp current_agent do

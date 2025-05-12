@@ -29,6 +29,7 @@ defmodule Astarte.Housekeeping.API.Realms.NonNegativeIntegerOrUnsetType do
   def cast(_), do: :error
 
   # load and dump are not meaningful for our use-case
+  # coveralls-ignore-start
   def load(:unset), do: {:ok, :unset}
   def load(n) when is_integer(n), do: {:ok, n}
   def load(_), do: :error
