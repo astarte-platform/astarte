@@ -659,39 +659,68 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
           ttl: db_max_ttl
         )
 
-      :ok = insert_result
-
-      if has_change_triggers == :ok do
-        :ok =
-          execute_post_change_triggers(
-            change_triggers,
-            new_state.realm,
-            device_id_string,
-            interface_descriptor.name,
-            path,
-            previous_value,
-            value,
-            maybe_explicit_value_timestamp,
-            state.trigger_id_to_policy_name
+      case insert_result do
+        {:error, :unset_not_allowed} ->
+          Logger.warning("Tried to unset a property with `allow_unset`=false.",
+            tag: "unset_not_allowed"
           )
+
+          MessageTracker.discard(new_state.message_tracker, message_id)
+
+          :telemetry.execute(
+            [:astarte, :data_updater_plant, :data_updater, :discarded_message],
+            %{},
+            %{realm: new_state.realm}
+          )
+
+          base64_payload = Base.encode64(payload)
+
+          error_metadata = %{
+            "interface" => inspect(interface),
+            "path" => inspect(path),
+            "base64_payload" => base64_payload
+          }
+
+          execute_device_error_triggers(
+            new_state,
+            "unset_not_allowed",
+            error_metadata,
+            timestamp
+          )
+
+        :ok ->
+          if has_change_triggers == :ok do
+            :ok =
+              execute_post_change_triggers(
+                change_triggers,
+                new_state.realm,
+                device_id_string,
+                interface_descriptor.name,
+                path,
+                previous_value,
+                value,
+                maybe_explicit_value_timestamp,
+                state.trigger_id_to_policy_name
+              )
+          end
+
+          ttl = db_max_ttl
+          paths_cache = Cache.put(new_state.paths_cache, {interface, path}, %CachedPath{}, ttl)
+          new_state = %{new_state | paths_cache: paths_cache}
+
+          MessageTracker.ack_delivery(new_state.message_tracker, message_id)
+
+          :telemetry.execute(
+            [:astarte, :data_updater_plant, :data_updater, :processed_message],
+            %{},
+            %{
+              realm: new_state.realm,
+              interface_type: interface_descriptor.type
+            }
+          )
+
+          update_stats(new_state, interface, interface_descriptor.major_version, path, payload)
       end
-
-      ttl = db_max_ttl
-      paths_cache = Cache.put(new_state.paths_cache, {interface, path}, %CachedPath{}, ttl)
-      new_state = %{new_state | paths_cache: paths_cache}
-
-      MessageTracker.ack_delivery(new_state.message_tracker, message_id)
-
-      :telemetry.execute(
-        [:astarte, :data_updater_plant, :data_updater, :processed_message],
-        %{},
-        %{
-          realm: new_state.realm,
-          interface_type: interface_descriptor.type
-        }
-      )
-
-      update_stats(new_state, interface, interface_descriptor.major_version, path, payload)
     else
       {:error, :cannot_write_on_server_owned_interface} ->
         Logger.warning(

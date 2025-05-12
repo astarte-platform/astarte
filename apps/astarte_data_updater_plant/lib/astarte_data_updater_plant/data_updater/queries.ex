@@ -94,18 +94,13 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
         device_id,
         %InterfaceDescriptor{storage_type: :multi_interface_individual_properties_dbtable} =
           interface_descriptor,
-        mapping,
+        %Mapping{allow_unset: true} = mapping,
         path,
         nil,
         _value_timestamp,
         _reception_timestamp,
         opts
       ) do
-    if mapping.allow_unset == false do
-      Logger.warning("Tried to unset value on allow_unset=false mapping.")
-      # TODO: should we handle this situation?
-    end
-
     %InterfaceDescriptor{storage: storage, interface_id: interface_id} = interface_descriptor
     %Mapping{endpoint_id: endpoint_id} = mapping
     keyspace = Realm.keyspace_name(realm)
@@ -114,6 +109,27 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
       remove_property_row(keyspace, storage, device_id, interface_id, endpoint_id, path, opts)
 
     :ok
+  end
+
+  def insert_value_into_db(
+        realm,
+        device_id,
+        %InterfaceDescriptor{storage_type: :multi_interface_individual_properties_dbtable} =
+          _interface_descriptor,
+        _mapping,
+        _path,
+        nil,
+        _value_timestamp,
+        _reception_timestamp,
+        _opts
+      ) do
+    _ =
+      Logger.warning(
+        "Device #{inspect(device_id)} in realm #{realm} tried to unset an unsettable property.",
+        tag: :unset_not_allowed
+      )
+
+    {:error, :unset_not_allowed}
   end
 
   def insert_value_into_db(
