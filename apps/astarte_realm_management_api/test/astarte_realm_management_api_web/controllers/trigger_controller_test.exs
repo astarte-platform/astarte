@@ -17,7 +17,7 @@
 #
 
 defmodule Astarte.RealmManagement.APIWeb.TriggerControllerTest do
-  use Astarte.RealmManagement.APIWeb.ConnCase
+  use Astarte.RealmManagement.APIWeb.ConnCase, async: true
 
   @moduletag :triggers
 
@@ -27,10 +27,9 @@ defmodule Astarte.RealmManagement.APIWeb.TriggerControllerTest do
   import Astarte.RealmManagement.API.Fixtures.Trigger
 
   @trigger_name valid_trigger_attrs()["name"]
-  @test_realm "test"
 
-  setup %{conn: conn} do
-    DB.put_jwt_public_key_pem(@test_realm, JWTTestHelper.public_key_pem())
+  setup %{conn: conn, realm: realm} do
+    DB.put_jwt_public_key_pem(realm, JWTTestHelper.public_key_pem())
     token = JWTTestHelper.gen_jwt_all_access_token()
 
     conn =
@@ -42,24 +41,24 @@ defmodule Astarte.RealmManagement.APIWeb.TriggerControllerTest do
   end
 
   describe "index" do
-    test "lists all triggers", %{conn: conn} do
-      conn = get(conn, trigger_path(conn, :index, @test_realm))
+    test "lists all triggers", %{conn: conn, realm: realm} do
+      conn = get(conn, trigger_path(conn, :index, realm))
       assert json_response(conn, 200)["data"] == []
     end
 
-    test "lists all triggers after installing it", %{conn: conn} do
-      conn = post(conn, trigger_path(conn, :create, @test_realm), data: valid_trigger_attrs())
-      conn = get(conn, trigger_path(conn, :index, @test_realm))
+    test "lists all triggers after installing it", %{conn: conn, realm: realm} do
+      conn = post(conn, trigger_path(conn, :create, realm), data: valid_trigger_attrs())
+      conn = get(conn, trigger_path(conn, :index, realm))
       assert json_response(conn, 200)["data"] == [@trigger_name]
     end
   end
 
   describe "create trigger" do
-    test "renders trigger when data is valid", %{conn: conn} do
-      conn = post(conn, trigger_path(conn, :create, @test_realm), data: valid_trigger_attrs())
+    test "renders trigger when data is valid", %{conn: conn, realm: realm} do
+      conn = post(conn, trigger_path(conn, :create, realm), data: valid_trigger_attrs())
       assert json_response(conn, 201)["data"]["name"] == @trigger_name
 
-      conn = get(conn, trigger_path(conn, :show, @test_realm, @trigger_name))
+      conn = get(conn, trigger_path(conn, :show, realm, @trigger_name))
 
       assert json_response(conn, 200)["data"] == %{
                "name" => @trigger_name,
@@ -74,43 +73,43 @@ defmodule Astarte.RealmManagement.APIWeb.TriggerControllerTest do
              }
     end
 
-    test "renders errors when http method in action is invalid", %{conn: conn} do
-      conn = post(conn, trigger_path(conn, :create, @test_realm), data: invalid_http_method())
+    test "renders errors when http method in action is invalid", %{conn: conn, realm: realm} do
+      conn = post(conn, trigger_path(conn, :create, realm), data: invalid_http_method())
 
       assert json_response(conn, 422)["errors"]["action"] == %{
                "http_method" => ["is invalid"]
              }
     end
 
-    test "renders errors when creating the same trigger twice", %{conn: conn} do
+    test "renders errors when creating the same trigger twice", %{conn: conn, realm: realm} do
       post_conn =
-        post(conn, trigger_path(conn, :create, @test_realm), data: valid_trigger_attrs())
+        post(conn, trigger_path(conn, :create, realm), data: valid_trigger_attrs())
 
       assert json_response(post_conn, 201)["data"]["name"] == @trigger_name
 
       post_conn =
-        post(conn, trigger_path(conn, :create, @test_realm), data: valid_trigger_attrs())
+        post(conn, trigger_path(conn, :create, realm), data: valid_trigger_attrs())
 
       assert json_response(post_conn, 409)["errors"] == %{"detail" => "Trigger already exists"}
     end
   end
 
   describe "delete" do
-    test "deletes trigger", %{conn: conn} do
+    test "deletes trigger", %{conn: conn, realm: realm} do
       post_conn =
-        post(conn, trigger_path(conn, :create, @test_realm), data: valid_trigger_attrs())
+        post(conn, trigger_path(conn, :create, realm), data: valid_trigger_attrs())
 
       response = json_response(post_conn, 201)["data"]
 
       delete_conn =
-        delete(conn, trigger_path(conn, :delete, @test_realm, valid_trigger_attrs()["name"]))
+        delete(conn, trigger_path(conn, :delete, realm, valid_trigger_attrs()["name"]))
 
       assert response(delete_conn, 204)
     end
 
-    test "renders error when trigger doesn't exist", %{conn: conn} do
+    test "renders error when trigger doesn't exist", %{conn: conn, realm: realm} do
       delete_conn =
-        delete(conn, trigger_path(conn, :delete, @test_realm, valid_trigger_attrs()["name"]))
+        delete(conn, trigger_path(conn, :delete, realm, valid_trigger_attrs()["name"]))
 
       assert json_response(delete_conn, 404)["errors"] == %{"detail" => "Trigger not found"}
     end

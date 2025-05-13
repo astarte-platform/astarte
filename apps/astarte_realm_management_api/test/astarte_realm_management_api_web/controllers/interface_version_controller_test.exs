@@ -17,12 +17,11 @@
 #
 
 defmodule Astarte.RealmManagement.APIWeb.InterfaceVersionControllerTest do
-  use Astarte.RealmManagement.APIWeb.ConnCase
+  use Astarte.RealmManagement.APIWeb.ConnCase, async: true
 
   alias Astarte.RealmManagement.API.Helpers.JWTTestHelper
   alias Astarte.RealmManagement.API.Helpers.RPCMock.DB
 
-  @realm "testrealm"
   @interface_name "com.Some.Interface"
   @interface_major 2
   @valid_attrs %{
@@ -39,8 +38,8 @@ defmodule Astarte.RealmManagement.APIWeb.InterfaceVersionControllerTest do
     ]
   }
 
-  setup %{conn: conn} do
-    DB.put_jwt_public_key_pem(@realm, JWTTestHelper.public_key_pem())
+  setup %{conn: conn, realm: realm} do
+    DB.put_jwt_public_key_pem(realm, JWTTestHelper.public_key_pem())
     token = JWTTestHelper.gen_jwt_all_access_token()
 
     conn =
@@ -52,28 +51,28 @@ defmodule Astarte.RealmManagement.APIWeb.InterfaceVersionControllerTest do
   end
 
   describe "index" do
-    test "lists empty interface versions", %{conn: conn} do
-      conn = get(conn, interface_version_path(conn, :index, @realm, @interface_name))
+    test "lists empty interface versions", %{conn: conn, realm: realm} do
+      conn = get(conn, interface_version_path(conn, :index, realm, @interface_name))
       assert json_response(conn, 200)["data"] == []
     end
 
-    test "lists interface after installing it", %{conn: conn} do
-      post_conn = post(conn, interface_path(conn, :create, @realm), data: @valid_attrs)
+    test "lists interface after installing it", %{conn: conn, realm: realm} do
+      post_conn = post(conn, interface_path(conn, :create, realm), data: @valid_attrs)
       assert response(post_conn, 201) == ""
 
-      list_conn = get(conn, interface_version_path(conn, :index, @realm, @interface_name))
+      list_conn = get(conn, interface_version_path(conn, :index, realm, @interface_name))
       assert json_response(list_conn, 200)["data"] == [@interface_major]
     end
 
-    test "lists multiple major versions", %{conn: conn} do
-      post_conn_1 = post(conn, interface_path(conn, :create, @realm), data: @valid_attrs)
+    test "lists multiple major versions", %{conn: conn, realm: realm} do
+      post_conn_1 = post(conn, interface_path(conn, :create, realm), data: @valid_attrs)
       assert response(post_conn_1, 201) == ""
 
       next_major_attrs = %{@valid_attrs | "version_major" => @interface_major + 1}
-      post_conn_2 = post(conn, interface_path(conn, :create, @realm), data: next_major_attrs)
+      post_conn_2 = post(conn, interface_path(conn, :create, realm), data: next_major_attrs)
       assert response(post_conn_2, 201) == ""
 
-      list_conn = get(conn, interface_version_path(conn, :index, @realm, @interface_name))
+      list_conn = get(conn, interface_version_path(conn, :index, realm, @interface_name))
       assert json_response(list_conn, 200)["data"] == [@interface_major, @interface_major + 1]
     end
   end

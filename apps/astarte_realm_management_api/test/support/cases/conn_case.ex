@@ -33,30 +33,19 @@ defmodule Astarte.RealmManagement.APIWeb.ConnCase do
 
   use ExUnit.CaseTemplate
 
-  alias Astarte.RealmManagement.API.Helpers.RPCMock.DB
-
   using do
     quote do
       # Import conveniences for testing with connections
       import Plug.Conn
       import Phoenix.ConnTest
       import Astarte.RealmManagement.APIWeb.Router.Helpers
-
+      use Astarte.RealmManagement.API.DataCase
       # The default endpoint for testing
       @endpoint Astarte.RealmManagement.APIWeb.Endpoint
     end
   end
 
-  setup _tags do
-    on_exit(fn ->
-      DB.clean()
-    end)
-
+  setup do
     {:ok, conn: Phoenix.ConnTest.build_conn()}
-  end
-
-  setup_all do
-    DB.start_link()
-    :ok
   end
 end

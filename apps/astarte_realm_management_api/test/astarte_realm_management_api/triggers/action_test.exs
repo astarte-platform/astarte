@@ -17,7 +17,7 @@
 #
 
 defmodule Astarte.RealmManagement.API.Triggers.ActionTest do
-  use ExUnit.Case
+  use ExUnit.Case, async: true
 
   @moduletag :trigger_actions
 
