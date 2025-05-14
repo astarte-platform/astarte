@@ -68,6 +68,42 @@ defmodule Astarte.AppEngine.API.Device.DeviceV2ReadingTest do
         assert result_size(result) <= downsample_to
       end
     end
+
+    property "allows downsampling object datastreams when all values are not nil", context do
+      %{
+        realm_name: realm_name,
+        device: device,
+        registered_paths: registered_paths,
+        downsampable_object_interface: interface
+      } = context
+
+      interface_key = {interface.name, interface.major_version}
+      paths = Map.fetch!(registered_paths, interface_key)
+
+      object_keys =
+        interface.mappings
+        |> Enum.map(fn mapping -> mapping.endpoint |> String.split("/") |> List.last() end)
+
+      check all "/" <> path <- member_of(paths),
+                downsample_key <- member_of(object_keys),
+                downsample_to <- integer(3..100),
+                opts <-
+                  interface_values_options(
+                    downsample_to: downsample_to,
+                    downsample_key: downsample_key
+                  ) do
+        {:ok, %InterfaceValues{data: result}} =
+          Device.get_interface_values!(
+            realm_name,
+            device.encoded_id,
+            interface.name,
+            path,
+            opts
+          )
+
+        assert result_size(result) <= downsample_to
+      end
+    end
   end
 
   defp result_size(result) when is_list(result), do: Enum.count(result)

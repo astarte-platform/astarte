@@ -83,6 +83,10 @@ defmodule Astarte.Cases.Device do
     individual_properties_server =
       Map.fetch!(random_interfaces, {:properties, :server, :individual})
 
+    flags = %{
+      downsampable_object_interface => [:complete_update]
+    }
+
     interfaces_with_data =
       [
         individual_datastream_device,
@@ -97,7 +101,8 @@ defmodule Astarte.Cases.Device do
 
     registered_paths =
       for interface <- interfaces_with_data, into: %{} do
-        inserted_paths = populate(realm_name, device.device_id, interface)
+        flags = Map.get(flags, interface, [])
+        inserted_paths = populate(realm_name, device.device_id, interface, flags)
         interface_key = {interface.name, interface.major_version}
 
         {interface_key, inserted_paths}
@@ -117,12 +122,18 @@ defmodule Astarte.Cases.Device do
     }
   end
 
-  defp populate(realm_name, device_id, interface) do
+  defp populate(realm_name, device_id, interface, flags) do
     {:ok, descriptor} =
       Interface.fetch_interface_descriptor(realm_name, interface.name, interface.major_version)
 
+    mapping_update =
+      case :complete_update in flags do
+        true -> valid_complete_mapping_update_for(interface)
+        false -> valid_mapping_update_for(interface)
+      end
+
     values =
-      list_of(valid_mapping_update_for(interface), length: 100..10_000)
+      list_of(mapping_update, length: 100..10_000)
       |> Enum.at(0)
 
     insert_values(realm_name, device_id, descriptor, values)
