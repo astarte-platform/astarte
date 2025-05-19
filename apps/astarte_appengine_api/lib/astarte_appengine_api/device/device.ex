@@ -189,13 +189,14 @@ defmodule Astarte.AppEngine.API.Device do
     end
   end
 
-  defp update_individual_interface_values(
-         realm_name,
-         device_id,
-         interface_descriptor,
-         path,
-         raw_value
-       ) do
+  @doc false
+  def update_individual_interface_values(
+        realm_name,
+        device_id,
+        interface_descriptor,
+        path,
+        raw_value
+      ) do
     with {:ok, [endpoint_id]} <- get_endpoint_ids(interface_descriptor.automaton, path),
          mapping =
            Queries.retrieve_mapping(realm_name, interface_descriptor.interface_id, endpoint_id),
@@ -361,13 +362,14 @@ defmodule Astarte.AppEngine.API.Device do
     end
   end
 
-  defp update_object_interface_values(
-         realm_name,
-         device_id,
-         interface_descriptor,
-         path,
-         raw_value
-       ) do
+  @doc false
+  def update_object_interface_values(
+        realm_name,
+        device_id,
+        interface_descriptor,
+        path,
+        raw_value
+      ) do
     now = DateTime.utc_now()
 
     with {:ok, mappings} <-

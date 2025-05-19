@@ -16,12 +16,15 @@
 # limitations under the License.
 
 defmodule Astarte.Helpers.Device do
+  alias Astarte.AppEngine.API.Device, as: Core
   alias Astarte.AppEngine.API.Device.InterfaceValue
   alias Astarte.AppEngine.API.Repo
   alias Astarte.DataAccess.Devices.Device
   alias Astarte.DataAccess.Realms.Interface
   alias Astarte.DataAccess.Realms.Realm
   alias Astarte.RealmManagement.Engine, as: RealmManagement
+  alias Astarte.Common.Generators.Timestamp, as: TimestampGenerator
+
   import ExUnit.CaptureLog
   import StreamData
 
@@ -65,6 +68,44 @@ defmodule Astarte.Helpers.Device do
     device_db = struct(Device, Map.merge(device, device_db_params))
     Repo.delete(device_db, prefix: keyspace)
     Repo.insert!(device_db, prefix: keyspace)
+  end
+
+  def insert_value(realm_name, device_id, interface_descriptor, mapping_update) do
+    insert_values(realm_name, device_id, interface_descriptor, [mapping_update])
+  end
+
+  def insert_values(realm_name, device_id, interface_descriptor, mapping_updates) do
+    # Run in another process to avoid leaking mox stubs to the test processes
+    Task.async(fn ->
+      Mox.stub(Astarte.AppEngine.API.RPC.VMQPlugin.ClientMock, :publish, fn _ ->
+        {:ok, %{local_matches: 1, remote_matches: 0}}
+      end)
+
+      initial_time = TimestampGenerator.timestamp() |> Enum.at(0) |> DateTime.from_unix!()
+
+      update_function =
+        case interface_descriptor.aggregation do
+          :individual -> &Core.update_individual_interface_values/5
+          :object -> &Core.update_object_interface_values/5
+        end
+
+      for mapping_update <- mapping_updates, reduce: initial_time do
+        time ->
+          Mimic.expect(DateTime, :utc_now, fn -> time end)
+
+          update_function.(
+            realm_name,
+            device_id,
+            interface_descriptor,
+            mapping_update.path,
+            mapping_update.value
+          )
+
+          seconds_increment = :rand.uniform(60) + 5
+          DateTime.add(time, seconds_increment, :second)
+      end
+    end)
+    |> Task.await()
   end
 
   def publish_result_ok(interface, mapping_update, validation_function) do
