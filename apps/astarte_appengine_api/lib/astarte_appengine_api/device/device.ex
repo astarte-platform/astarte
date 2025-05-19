@@ -1249,12 +1249,14 @@ defmodule Astarte.AppEngine.API.Device do
     timestamp_column = timestamp_column(explicit_timestamp)
     avg_bucket_size = max(1, (count - 2) / (downsampled_size - 2))
 
-    sample_to_x_fun = fn sample ->
-      sample |> Map.fetch!(timestamp_column) |> DateTime.to_unix(:millisecond)
-    end
-
+    sample_to_x_fun = fn sample -> Map.fetch!(sample, timestamp_column) end
     sample_to_y_fun = fn sample -> Map.fetch!(sample, downsample_key) end
-    xy_to_sample_fun = fn x, y -> [{timestamp_column, x}, {downsample_key, y}] end
+    xy_to_sample_fun = fn x, y -> %{timestamp_column => x, downsample_key => y} end
+
+    values =
+      Enum.map(values, fn value ->
+        Map.update!(value, timestamp_column, &DateTime.to_unix(&1, :millisecond))
+      end)
 
     ExLTTB.Stream.downsample(
       values,
@@ -1263,6 +1265,7 @@ defmodule Astarte.AppEngine.API.Device do
       sample_to_y_fun: sample_to_y_fun,
       xy_to_sample_fun: xy_to_sample_fun
     )
+    |> Enum.to_list()
   end
 
   defp maybe_downsample_to(values, count, :individual, value_column, %InterfaceValuesOptions{

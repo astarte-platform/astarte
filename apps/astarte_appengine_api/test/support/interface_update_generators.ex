@@ -87,6 +87,27 @@ defmodule Astarte.InterfaceUpdateGenerators do
     end
   end
 
+  def valid_complete_mapping_update_for(interface) when interface.aggregation == :individual,
+    do: valid_mapping_update_for(interface)
+
+  def valid_complete_mapping_update_for(interface) when interface.aggregation == :object do
+    endpoint = object_interface_endpoint(interface)
+    value_types = object_interface_value_types(interface)
+    reliability = object_interface_reliability(interface)
+
+    gen all value_type <- fixed_map(value_types),
+            path <- path_from_endpoint(endpoint),
+            value <- valid_update_value_for(value_type) do
+      %{
+        path: path,
+        aggregation: :object,
+        reliability: reliability,
+        value: value,
+        value_type: value_type
+      }
+    end
+  end
+
   def valid_mapping_update_for(interface) when interface.aggregation == :object do
     endpoint = object_interface_endpoint(interface)
     value_types = object_interface_value_types(interface)
