@@ -217,6 +217,124 @@ defmodule Astarte.AppEngine.APIWeb.InterfaceControllerTest do
                )
       end
     end
+
+    test "accepts and understands `keep_milliseconds` optional parameter", context do
+      %{realm_name: realm_name, interfaces: interfaces, device: device, auth_conn: conn} = context
+
+      interface =
+        interfaces
+        |> Enum.filter(fn interface ->
+          interface.ownership == :server && Enum.all?(interface.mappings, & &1.explicit_timestamp)
+        end)
+        |> Enum.random()
+
+      mapping_update = valid_mapping_update_for(interface) |> Enum.at(0)
+      path = path_tokens(mapping_update.path)
+
+      request_path =
+        interface_values_path(
+          conn,
+          :update,
+          realm_name,
+          device.encoded_id,
+          interface.name,
+          path
+        )
+
+      publish_result_ok(interface, mapping_update, fn _ -> :ok end)
+
+      expected_time = DateTime.utc_now()
+
+      DateTime
+      |> allow(conn.owner, self())
+      |> stub(:utc_now, fn -> expected_time end)
+
+      conn = post(conn, request_path, %{"data" => mapping_update.value})
+
+      request_path =
+        interface_values_path(
+          conn,
+          :show,
+          realm_name,
+          device.encoded_id,
+          interface.name,
+          path,
+          %{"keep_milliseconds" => true}
+        )
+
+      conn = get(conn, request_path)
+
+      response = json_response(conn, 200)
+
+      assert %{"data" => [%{"timestamp" => timestamp}]} = response
+
+      assert DateTime.to_unix(expected_time, :millisecond) == timestamp
+    end
+
+    test "does not retrieve millisecond timestamp if `keep_milliseconds` is not set", context do
+      %{realm_name: realm_name, interfaces: interfaces, device: device, auth_conn: conn} = context
+
+      interface =
+        interfaces
+        |> Enum.filter(fn interface ->
+          interface.ownership == :server && Enum.all?(interface.mappings, & &1.explicit_timestamp)
+        end)
+        |> Enum.random()
+
+      mapping_update =
+        interface
+        |> valid_mapping_update_for()
+        |> Enum.at(0)
+
+      path = path_tokens(mapping_update.path)
+
+      request_path =
+        interface_values_path(
+          conn,
+          :update,
+          realm_name,
+          device.encoded_id,
+          interface.name,
+          path
+        )
+
+      publish_result_ok(interface, mapping_update, fn _ -> :ok end)
+
+      expected_time = DateTime.utc_now()
+
+      DateTime
+      |> allow(conn.owner, self())
+      |> stub(:utc_now, fn -> expected_time end)
+
+      conn = post(conn, request_path, %{"data" => mapping_update.value})
+
+      request_path =
+        interface_values_path(
+          conn,
+          :show,
+          realm_name,
+          device.encoded_id,
+          interface.name,
+          path,
+          %{"keep_milliseconds" => false}
+        )
+
+      conn = get(conn, request_path)
+
+      %{"data" => data} = json_response(conn, 200)
+
+      assert valid_timestamps?(data, expected_time)
+    end
+  end
+
+  defp valid_timestamps?(values, expected_time) do
+    Enum.all?(values, fn %{"timestamp" => timestamp} ->
+      truncated_expected = DateTime.truncate(expected_time, :second)
+      {:ok, timestamp, _} = DateTime.from_iso8601(timestamp)
+      timestamp = DateTime.truncate(timestamp, :second)
+
+      DateTime.compare(timestamp, truncated_expected) == :eq
+    end)
   end
 
   defp path_tokens(path) do
