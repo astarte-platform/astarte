@@ -66,19 +66,24 @@ defmodule Astarte.Housekeeping.Mock do
             datastream_maximum_storage_retention: ds_max_retention
           }}
        ) do
-    Astarte.Housekeeping.Mock.DB.put_realm(%Realm{
-      realm_name: realm,
-      jwt_public_key_pem: pem,
-      replication_factor: rep,
-      replication_class: class,
-      datacenter_replication_factors: dc_repl,
-      device_registration_limit: dev_reg_limit,
-      datastream_maximum_storage_retention: ds_max_retention
-    })
+    case Astarte.Housekeeping.Mock.DB.put_realm(%Realm{
+           realm_name: realm,
+           jwt_public_key_pem: pem,
+           replication_factor: rep,
+           replication_class: class,
+           datacenter_replication_factors: dc_repl,
+           device_registration_limit: dev_reg_limit,
+           datastream_maximum_storage_retention: ds_max_retention
+         }) do
+      :ok ->
+        %GenericOkReply{async_operation: async}
+        |> encode_reply(:generic_ok_reply)
+        |> ok_wrap
 
-    %GenericOkReply{async_operation: async}
-    |> encode_reply(:generic_ok_reply)
-    |> ok_wrap
+      {:error, reason} ->
+        generic_error(reason)
+        |> ok_wrap
+    end
   end
 
   defp execute_rpc(
@@ -144,11 +149,16 @@ defmodule Astarte.Housekeeping.Mock do
   end
 
   defp execute_rpc({:delete_realm, %DeleteRealm{realm: realm, async_operation: async}}) do
-    Astarte.Housekeeping.Mock.DB.delete_realm(realm)
+    case Astarte.Housekeeping.Mock.DB.delete_realm(realm) do
+      :ok ->
+        %GenericOkReply{async_operation: async}
+        |> encode_reply(:generic_ok_reply)
+        |> ok_wrap
 
-    %GenericOkReply{async_operation: async}
-    |> encode_reply(:generic_ok_reply)
-    |> ok_wrap
+      {:error, reason} ->
+        generic_error(reason)
+        |> ok_wrap
+    end
   end
 
   defp execute_rpc({:get_realms_list, %GetRealmsList{}}) do

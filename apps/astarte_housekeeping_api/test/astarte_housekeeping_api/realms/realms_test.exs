@@ -88,51 +88,62 @@ defmodule Astarte.Housekeeping.API.RealmsTest do
   @non_existing "non_existing_realm"
 
   describe "property based tests" do
-    property "get_realm/1 returns the realm with given realm name" do
+    property "realm lifecycle operations work as expected" do
       check all(name <- GeneratorsRealm.realm_name()) do
+        # Test realm creation
         realm = realm_fixture(%{realm_name: name})
+
+        # Test fetching the created realm
         assert {:ok, realm} == Realms.get_realm(name)
-      end
-    end
-
-    property "create_realm/1 with valid data creates a realm" do
-      check all(name <- GeneratorsRealm.realm_name()) do
-        realm =
-          realm_fixture(%{
-            realm_name: name,
-            device_registration_limit: 42,
-            datastream_maximum_storage_retention: 42
-          })
-
         assert realm.realm_name == name
-      end
-    end
 
-    property "delete_realm/1 deletes created realm" do
-      check all(name <- GeneratorsRealm.realm_name()) do
-        realm =
-          realm_fixture(%{
-            realm_name: name
-          })
-
-        assert {:ok, ^realm} = Realms.get_realm(name)
+        # Test deleting the realm
         assert :ok = Realms.delete_realm(name)
         assert {:error, :realm_not_found} == Realms.get_realm(name)
       end
     end
   end
 
-  describe "example based tests" do
+  describe "realms fetching" do
     test "list_realms/0 returns all realms" do
       %Realm{realm_name: realm_name} = realm_fixture()
       assert Realms.list_realms() == [%Realm{realm_name: realm_name}]
     end
 
+    test "list_realms/0 returns an empty list when no realms exist" do
+      assert Realms.list_realms() == []
+    end
+
     test "get_realm/1 returns :realm_not_found with unexisting realm" do
       assert Realms.get_realm(@non_existing) == {:error, :realm_not_found}
     end
+  end
 
-    test "create_realm/1 with invalid data returns error changeset" do
+  describe "realms creation" do
+    test "succeeds using a synchronous call" do
+      attrs = %{
+        realm_name: "mytestrealm2",
+        jwt_public_key_pem: pubkey(),
+        device_registration_limit: 42,
+        datastream_maximum_storage_retention: 42
+      }
+
+      assert {:ok, %Realm{} = _realm} = Realms.create_realm(attrs, async_operation: false)
+    end
+
+    test "fails to create a realm with duplicate name" do
+      attrs = %{
+        realm_name: "mytestrealm2",
+        jwt_public_key_pem: pubkey(),
+        device_registration_limit: 42,
+        datastream_maximum_storage_retention: 42
+      }
+
+      assert {:ok, %Realm{} = _realm} = Realms.create_realm(attrs)
+      assert {:error, %Ecto.Changeset{}} = Realms.create_realm(attrs)
+    end
+
+    test "with invalid data returns error changeset" do
       assert {:error, %Ecto.Changeset{}} = Realms.create_realm(@invalid_name_attrs)
       assert {:error, %Ecto.Changeset{}} = Realms.create_realm(@invalid_pubkey_attrs)
       assert {:error, %Ecto.Changeset{}} = Realms.create_realm(@malformed_pubkey_attrs)
@@ -155,12 +166,14 @@ defmodule Astarte.Housekeeping.API.RealmsTest do
                Realms.create_realm(@invalid_network_replication_class_with_no_datacenter_attrs)
     end
 
-    test "create_realm/1 with empty required data returns error changeset" do
+    test "with empty required data returns error changeset" do
       assert {:error, %Ecto.Changeset{}} = Realms.create_realm(@empty_name_attrs)
       assert {:error, %Ecto.Changeset{}} = Realms.create_realm(@empty_pubkey_attrs)
     end
+  end
 
-    test "update_realm/2 with valid data updates the realm" do
+  describe "realms update" do
+    test "with valid data updates the realm" do
       %Realm{realm_name: realm_name} = realm_fixture()
 
       assert {:ok,
@@ -170,7 +183,7 @@ defmodule Astarte.Housekeeping.API.RealmsTest do
               }} = Realms.update_realm(realm_name, @update_attrs)
     end
 
-    test "update_realm/2 with valid data and device registration limit set to a valid value updates the realm" do
+    test "with valid data and device registration limit set to a valid value updates the realm" do
       limit = 10
       update_attrs = Map.put(@update_attrs, :device_registration_limit, limit)
 
@@ -184,7 +197,7 @@ defmodule Astarte.Housekeeping.API.RealmsTest do
               }} = Realms.update_realm(realm_name, update_attrs)
     end
 
-    test "update_realm/2 with device registration limit set to :unset removes the limit" do
+    test "with device registration limit set to :unset removes the limit" do
       %Realm{realm_name: realm_name, device_registration_limit: device_registration_limit} =
         realm_fixture()
 
@@ -199,7 +212,7 @@ defmodule Astarte.Housekeeping.API.RealmsTest do
               }} = Realms.update_realm(realm_name, update_attrs)
     end
 
-    test "update_realm/2 with device registration limit set to an invalid value fails" do
+    test "with device registration limit set to an invalid value fails" do
       update_attrs = Map.put(@update_attrs, :device_registration_limit, -10)
 
       %Realm{realm_name: realm_name} = realm_fixture()
@@ -207,7 +220,7 @@ defmodule Astarte.Housekeeping.API.RealmsTest do
       assert {:error, %Ecto.Changeset{}} = Realms.update_realm(realm_name, update_attrs)
     end
 
-    test "update_realm/2 with valid data and datastream maximum storage retention set to a valid value updates the realm" do
+    test "with valid data and datastream maximum storage retention set to a valid value updates the realm" do
       retention = 10
       update_attrs = Map.put(@update_attrs, :datastream_maximum_storage_retention, retention)
 
@@ -221,7 +234,7 @@ defmodule Astarte.Housekeeping.API.RealmsTest do
               }} = Realms.update_realm(realm_name, update_attrs)
     end
 
-    test "update_realm/2 with datastream maximum storage retention set to :unset removes the limit" do
+    test "with datastream maximum storage retention set to :unset removes the limit" do
       %Realm{realm_name: realm_name, datastream_maximum_storage_retention: retention} =
         realm_fixture()
 
@@ -237,15 +250,37 @@ defmodule Astarte.Housekeeping.API.RealmsTest do
               }} = Realms.update_realm(realm_name, update_attrs)
     end
 
-    test "update_realm/2 with datastream maximum storage retention set to an invalid value fails" do
+    test "with datastream maximum storage retention set to an invalid value fails" do
       %Realm{realm_name: realm_name} = realm_fixture()
       update_attrs = Map.put(@update_attrs, :datastream_maximum_storage_retention, -10)
       assert {:error, %Ecto.Changeset{}} = Realms.update_realm(realm_name, update_attrs)
     end
 
-    test "update_realm/2 with invalid data returns error changeset" do
+    test "with invalid data returns error changeset" do
       %Realm{realm_name: realm_name} = realm_fixture()
       assert {:error, %Ecto.Changeset{}} = Realms.update_realm(realm_name, @invalid_update_attrs)
+    end
+  end
+
+  describe "realm deletion" do
+    test "succeeds using a synchronous call" do
+      %Realm{realm_name: realm_name} = realm_fixture()
+
+      assert :ok = Realms.delete_realm(realm_name, async_operation: false)
+      assert {:error, :realm_not_found} = Realms.get_realm(realm_name)
+    end
+
+    test "returns error when trying to delete a non-existing realm" do
+      assert {:error, :realm_not_found} = Realms.delete_realm("non_existing_realm")
+    end
+
+    test "returns error when trying to delete a realm while deletion is disabled" do
+      Astarte.Housekeeping.Mock.DB.set_realm_deletion_status(false)
+
+      %Realm{realm_name: realm_name} = realm_fixture()
+
+      assert {:error, :realm_deletion_disabled} = Realms.delete_realm(realm_name)
+      assert {:ok, %Realm{realm_name: ^realm_name}} = Realms.get_realm(realm_name)
     end
   end
 end

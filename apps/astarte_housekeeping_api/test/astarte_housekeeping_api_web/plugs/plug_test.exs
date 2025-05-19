@@ -16,7 +16,7 @@
 # limitations under the License.
 #
 
-defmodule Astarte.Housekeeping.APIWeb.HealthPlugTest do
+defmodule Astarte.Housekeeping.APIWeb.PlugTest do
   use Astarte.Housekeeping.APIWeb.ConnCase, async: true
 
   alias Astarte.Housekeeping.Mock.DB
@@ -30,11 +30,7 @@ defmodule Astarte.Housekeeping.APIWeb.HealthPlugTest do
     test "returns 200 OK when status is :ready", %{conn: conn} do
       DB.set_health_status(:READY)
 
-      conn =
-        conn
-        |> Map.put(:request_path, "/health")
-        |> Map.put(:method, "GET")
-        |> HealthPlug.call(nil)
+      conn = get(conn, "/health")
 
       assert conn.status == 200
       assert conn.halted
@@ -43,11 +39,7 @@ defmodule Astarte.Housekeeping.APIWeb.HealthPlugTest do
     test "returns 200 OK when status is :degraded", %{conn: conn} do
       DB.set_health_status(:DEGRADED)
 
-      conn =
-        conn
-        |> Map.put(:request_path, "/health")
-        |> Map.put(:method, "GET")
-        |> HealthPlug.call(nil)
+      conn = get(conn, "/health")
 
       assert conn.status == 200
       assert conn.halted
@@ -56,38 +48,27 @@ defmodule Astarte.Housekeeping.APIWeb.HealthPlugTest do
     test "returns 503 when status is :bad", %{conn: conn} do
       DB.set_health_status(:BAD)
 
-      conn =
-        conn
-        |> Map.put(:request_path, "/health")
-        |> Map.put(:method, "GET")
-        |> HealthPlug.call(nil)
+      conn = get(conn, "/health")
 
       assert conn.status == 503
       assert conn.halted
     end
 
-    test "returns 503 when DB returns invalid status", %{conn: conn} do
-      DB.set_health_status(:SOMETHING_ELSE)
+    test "returns 503 when status is :error", %{conn: conn} do
+      DB.set_health_status(:ERORR)
 
-      conn =
-        conn
-        |> Map.put(:request_path, "/health")
-        |> Map.put(:method, "GET")
-        |> HealthPlug.call(nil)
+      conn = get(conn, "/health")
 
       assert conn.status == 503
       assert conn.halted
     end
 
-    test "ignores non-/health routes", %{conn: conn} do
-      conn =
-        conn
-        |> Map.put(:request_path, "/not-health")
-        |> Map.put(:method, "GET")
-        |> HealthPlug.call(nil)
+    test "/metrics return prometheus metrics", %{conn: conn} do
+      conn = get(conn, "/metrics")
+      resp_headers = Map.new(conn.resp_headers)
 
-      refute conn.halted
-      assert conn.status == nil
+      assert conn.status == 200
+      assert resp_headers["content-type"] =~ "text/plain"
     end
   end
 end
