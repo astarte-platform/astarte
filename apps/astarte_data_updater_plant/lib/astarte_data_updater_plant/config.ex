@@ -24,6 +24,8 @@ defmodule Astarte.DataUpdaterPlant.Config do
   alias Astarte.DataAccess.Config, as: DataAccessConfig
   use Skogsra
 
+  @paths_cache_size 32
+
   @type ssl_option ::
           {:cacertfile, String.t()}
           | {:verify, :verify_peer}
@@ -513,6 +515,8 @@ defmodule Astarte.DataUpdaterPlant.Config do
         ]
     end
   end
+
+  def paths_cache_size!, do: @paths_cache_size
 
   @doc """
   Returns Cassandra nodes formatted in the Xandra format.
