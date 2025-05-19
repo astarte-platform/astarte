@@ -34,20 +34,36 @@ defmodule Astarte.Cases.Device do
   end
 
   setup_all %{realm_name: realm_name} do
-    interfaces = interfaces_for_update()
-    device = DeviceGenerator.device(interfaces: interfaces) |> Enum.at(0)
+    interfaces_data = interfaces_for_update()
+    device = DeviceGenerator.device(interfaces: interfaces_data.interfaces) |> Enum.at(0)
 
-    insert_device_cleanly(realm_name, device, interfaces)
-    Enum.each(interfaces, &insert_interface_cleanly(realm_name, &1))
+    insert_device_cleanly(realm_name, device, interfaces_data.interfaces)
+    Enum.each(interfaces_data.interfaces, &insert_interface_cleanly(realm_name, &1))
 
-    %{interfaces: interfaces, device: device}
+    Map.put(interfaces_data, :device, device)
   end
 
   def populate_interfaces(context) do
-    %{realm_name: realm_name, interfaces: interfaces, device: device} = context
+    %{
+      realm_name: realm_name,
+      interfaces: interfaces,
+      device: device,
+      downsampable_individual_interfaces: individual_downsampable,
+      downsampable_object_interfaces: object_downsampable
+    } = context
+
+    downsampable_individual_interface = Enum.random(individual_downsampable)
+    downsampable_object_interface = Enum.random(object_downsampable)
+
+    taken_interfaces = [
+      downsampable_individual_interface,
+      downsampable_object_interface
+    ]
 
     random_interfaces =
-      Enum.group_by(interfaces, fn interface ->
+      interfaces
+      |> Enum.reject(&(&1 in taken_interfaces))
+      |> Enum.group_by(fn interface ->
         {interface.type, interface.ownership, interface.aggregation}
       end)
       |> Map.new(fn {key, values} -> {key, Enum.random(values)} end)
@@ -74,7 +90,9 @@ defmodule Astarte.Cases.Device do
         object_datastream_device,
         object_datastream_server,
         individual_properties_device,
-        individual_properties_server
+        individual_properties_server,
+        downsampable_individual_interface,
+        downsampable_object_interface
       ]
 
     registered_paths =
@@ -93,7 +111,9 @@ defmodule Astarte.Cases.Device do
       object_datastream_device_interface: object_datastream_device,
       object_datastream_server_interface: object_datastream_server,
       individual_properties_device_interface: individual_properties_device,
-      individual_properties_server_interface: individual_properties_server
+      individual_properties_server_interface: individual_properties_server,
+      downsampable_individual_interface: downsampable_individual_interface,
+      downsampable_object_interface: downsampable_object_interface
     }
   end
 
@@ -124,24 +144,50 @@ defmodule Astarte.Cases.Device do
     properties_device = list_of(properties(:device), min_length: 1) |> Enum.at(0)
     properties_server = list_of(properties(:server), min_length: 1) |> Enum.at(0)
     fallible_interfaces = list_of(fallible(:server), min_length: 1) |> Enum.at(0)
+    individual_downsampable = list_of(individual_downsampable(), min_length: 1) |> Enum.at(0)
+    object_downsampable = list_of(object_downsampable(), min_length: 1) |> Enum.at(0)
 
-    [
-      individual_datastream_device,
-      individual_datastream_server,
-      object_datastream_device,
-      object_datastream_server,
-      other_interfaces,
-      properties_device,
-      properties_server,
-      fallible_interfaces
-    ]
-    |> Enum.concat()
+    all_interfaces =
+      [
+        individual_datastream_device,
+        individual_datastream_server,
+        object_datastream_device,
+        object_datastream_server,
+        other_interfaces,
+        properties_device,
+        properties_server,
+        fallible_interfaces,
+        individual_downsampable,
+        object_downsampable
+      ]
+      |> Enum.concat()
+
+    %{
+      interfaces: all_interfaces,
+      downsampable_individual_interfaces: individual_downsampable,
+      downsampable_object_interfaces: object_downsampable
+    }
   end
 
   defp fallible(ownership) do
     InterfaceGenerator.interface(
       ownership: ownership,
       value_type: member_of(fallible_value_types())
+    )
+  end
+
+  defp individual_downsampable do
+    InterfaceGenerator.interface(
+      aggregation: :individual,
+      value_type: member_of(downsampable_value_types())
+    )
+  end
+
+  defp object_downsampable do
+    InterfaceGenerator.interface(
+      type: :datastream,
+      aggregation: :object,
+      value_type: member_of(downsampable_value_types())
     )
   end
 

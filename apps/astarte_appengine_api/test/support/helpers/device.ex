@@ -24,6 +24,9 @@ defmodule Astarte.Helpers.Device do
   alias Astarte.DataAccess.Realms.Realm
   alias Astarte.RealmManagement.Engine, as: RealmManagement
   alias Astarte.Common.Generators.Timestamp, as: TimestampGenerator
+  alias Astarte.Core.Mapping.EndpointsAutomaton
+  alias Astarte.DataAccess.Interface, as: InterfaceQueries
+  alias Astarte.DataAccess.Mappings, as: MappingsQueries
 
   import ExUnit.CaptureLog
   import StreamData
@@ -42,12 +45,19 @@ defmodule Astarte.Helpers.Device do
     :datetimearray
   ]
 
+  @downsampable_value_type [
+    :integer,
+    :longinteger,
+    :double
+  ]
+
   def insert_interface_cleanly(realm_name, interface) do
     keyspace = Realm.keyspace_name(realm_name)
     interface_db = %Interface{name: interface.name, major_version: interface.major_version}
     interface_json = Jason.encode!(interface)
 
     Repo.delete(interface_db, prefix: keyspace)
+
     capture_log(fn -> RealmManagement.install_interface(realm_name, interface_json) end)
   end
 
@@ -129,6 +139,42 @@ defmodule Astarte.Helpers.Device do
 
   def fallible_value_types do
     @fallible_value_type
+  end
+
+  def downsampable?(interface) do
+    interface.mappings
+    |> Enum.any?(&(&1.value_type in @downsampable_value_type))
+  end
+
+  def downsampable_value_types do
+    @downsampable_value_type
+  end
+
+  def downsampable_paths(_realm_name, interface, registered_paths)
+      when interface.aggregation == :object do
+    registered_paths[{interface.name, interface.major_version}]
+  end
+
+  def downsampable_paths(realm_name, interface, registered_paths)
+      when interface.aggregation == :individual do
+    {:ok, interface_descriptor} =
+      InterfaceQueries.fetch_interface_descriptor(
+        realm_name,
+        interface.name,
+        interface.major_version
+      )
+
+    {:ok, mappings_map} =
+      MappingsQueries.fetch_interface_mappings_map(realm_name, interface_descriptor.interface_id)
+
+    registered_paths[{interface.name, interface.major_version}]
+    |> Enum.filter(fn path ->
+      {:ok, endpoint_id} =
+        EndpointsAutomaton.resolve_path(path, interface_descriptor.automaton)
+
+      mapping = mappings_map[endpoint_id]
+      mapping.value_type in @downsampable_value_type
+    end)
   end
 
   def valid_result?(result, interface, value)
