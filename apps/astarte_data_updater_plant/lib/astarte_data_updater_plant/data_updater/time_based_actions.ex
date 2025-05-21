@@ -17,10 +17,12 @@
 #
 
 defmodule Astarte.DataUpdaterPlant.TimeBasedActions do
+  alias Astarte.Core.Triggers.SimpleTriggersProtobuf.Utils, as: SimpleTriggersProtobufUtils
   alias Astarte.DataUpdaterPlant.DataUpdater.Core
   alias Astarte.DataUpdaterPlant.DataUpdater.Queries
 
   @groups_lifespan_decimicroseconds 60 * 10 * 1000 * 10000
+  @device_triggers_lifespan_decimicroseconds 60 * 10 * 1000 * 10000
 
   def reload_groups_on_expiry(state, timestamp) do
     if state.last_groups_refresh + @groups_lifespan_decimicroseconds <= timestamp do
@@ -49,5 +51,60 @@ defmodule Astarte.DataUpdaterPlant.TimeBasedActions do
     state
     |> Core.Interface.forget_interfaces(interfaces_to_drop_list)
     |> Map.put(:interfaces_by_expiry, new_interfaces_by_expiry)
+  end
+
+  def reload_device_triggers_on_expiry(state, timestamp) do
+    if state.last_device_triggers_refresh + @device_triggers_lifespan_decimicroseconds <=
+         timestamp do
+      any_device_id = SimpleTriggersProtobufUtils.any_device_object_id()
+
+      any_interface_id = SimpleTriggersProtobufUtils.any_interface_object_id()
+
+      device_and_any_interface_object_id =
+        SimpleTriggersProtobufUtils.get_device_and_any_interface_object_id(state.device_id)
+
+      # TODO when introspection triggers are supported, we should also forget any_interface
+      # introspection triggers here, or handle them separately
+
+      state
+      |> Map.put(:last_device_triggers_refresh, timestamp)
+      |> Map.put(:device_triggers, %{})
+      |> forget_any_interface_data_triggers()
+      |> Core.Trigger.populate_triggers_for_object!(any_device_id, :any_device)
+      |> Core.Trigger.populate_triggers_for_object!(state.device_id, :device)
+      |> Core.Trigger.populate_triggers_for_object!(any_interface_id, :any_interface)
+      |> Core.Trigger.populate_triggers_for_object!(
+        device_and_any_interface_object_id,
+        :device_and_any_interface
+      )
+      |> populate_group_device_triggers!()
+      |> populate_group_and_any_interface_triggers!()
+    else
+      state
+    end
+  end
+
+  defp forget_any_interface_data_triggers(state) do
+    updated_data_triggers =
+      for {{_type, iface_id, _endpoint} = key, value} <- state.data_triggers,
+          iface_id != :any_interface,
+          into: %{} do
+        {key, value}
+      end
+
+    %{state | data_triggers: updated_data_triggers}
+  end
+
+  defp populate_group_device_triggers!(state) do
+    Enum.map(state.groups, &SimpleTriggersProtobufUtils.get_group_object_id/1)
+    |> Enum.reduce(state, &Core.Trigger.populate_triggers_for_object!(&2, &1, :group))
+  end
+
+  defp populate_group_and_any_interface_triggers!(state) do
+    Enum.map(state.groups, &SimpleTriggersProtobufUtils.get_group_and_any_interface_object_id/1)
+    |> Enum.reduce(
+      state,
+      &Core.Trigger.populate_triggers_for_object!(&2, &1, :group_and_any_interface)
+    )
   end
 end

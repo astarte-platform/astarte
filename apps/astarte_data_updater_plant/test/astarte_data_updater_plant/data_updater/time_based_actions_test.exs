@@ -20,6 +20,12 @@ defmodule Astarte.DataUpdaterPlant.TimeBasedActionsTest do
   use ExUnit.Case, async: true
 
   alias Astarte.Core.Device
+  alias Astarte.Core.Triggers.SimpleTriggersProtobuf.AMQPTriggerTarget
+  alias Astarte.Core.Triggers.SimpleTriggersProtobuf.DataTrigger
+  alias Astarte.Core.Triggers.SimpleTriggersProtobuf.DeviceTrigger
+  alias Astarte.Core.Triggers.SimpleTriggersProtobuf.SimpleTriggerContainer
+  alias Astarte.Core.Triggers.SimpleTriggersProtobuf.TriggerTargetContainer
+  alias Astarte.DataUpdaterPlant.AMQPTestHelper
   alias Astarte.DataUpdaterPlant.DataUpdater
   alias Astarte.DataUpdaterPlant.TimeBasedActions
   alias Astarte.Helpers.Database
@@ -293,6 +299,301 @@ defmodule Astarte.DataUpdaterPlant.TimeBasedActionsTest do
     end
   end
 
+  describe "reload_device_triggers_on_expiry/2" do
+    test "refreshes device triggers when expired and triggers are unchanged", %{
+      realm: realm,
+      encoded_device_id: encoded_device_id,
+      device_id: device_id
+    } do
+      # Insert initial device state
+      state =
+        setup_device_triggers_state(
+          realm,
+          encoded_device_id,
+          device_id,
+          :device_trigger,
+          @timestamp_us_x_10
+        )
+
+      assert [
+               {
+                 {^device_id, 1},
+                 {
+                   {:device_trigger, %DeviceTrigger{device_event_type: :DEVICE_CONNECTED}},
+                   %AMQPTriggerTarget{routing_key: routing_key}
+                 }
+               }
+             ] = state.volatile_triggers
+
+      assert routing_key == AMQPTestHelper.events_routing_key()
+
+      # Simulate expiration and refresh
+      new_state = TimeBasedActions.reload_device_triggers_on_expiry(state, @timestamp2_us_x_10)
+
+      assert new_state.last_device_triggers_refresh == @timestamp2_us_x_10
+      assert new_state.volatile_triggers == state.volatile_triggers
+    end
+
+    test "refreshes data triggers when expired and triggers are unchanged", %{
+      realm: realm,
+      encoded_device_id: encoded_device_id,
+      device_id: device_id
+    } do
+      # Insert initial device state
+      state =
+        setup_device_triggers_state(
+          realm,
+          encoded_device_id,
+          device_id,
+          :data_trigger,
+          @timestamp_us_x_10
+        )
+
+      assert [
+               {
+                 {^device_id, 2},
+                 {
+                   {:data_trigger,
+                    %DataTrigger{
+                      interface_name: "com.test.SimpleStreamTest",
+                      interface_major: 1,
+                      data_trigger_type: :INCOMING_DATA,
+                      match_path: "/0/value",
+                      value_match_operator: :LESS_THAN,
+                      known_value: _,
+                      device_id: nil,
+                      group_name: nil,
+                      version: _,
+                      __unknown_fields__: _
+                    }},
+                   %AMQPTriggerTarget{routing_key: routing_key}
+                 }
+               }
+             ] = state.volatile_triggers
+
+      assert routing_key == AMQPTestHelper.events_routing_key()
+
+      # Simulate expiration and refresh
+      new_state = TimeBasedActions.reload_device_triggers_on_expiry(state, @timestamp2_us_x_10)
+
+      assert new_state.last_device_triggers_refresh == @timestamp2_us_x_10
+      assert new_state.volatile_triggers == state.volatile_triggers
+    end
+
+    test "does not refresh device triggers when not expired", %{
+      realm: realm,
+      encoded_device_id: encoded_device_id,
+      device_id: device_id
+    } do
+      # Insert initial device state
+      state =
+        setup_device_triggers_state(
+          realm,
+          encoded_device_id,
+          device_id,
+          :device_trigger,
+          @timestamp_us_x_10
+        )
+
+      # Simulate no expiration
+      timestamp2_us_x_10 = Database.make_timestamp("2025-05-14T14:05:32+00:00")
+
+      new_state = TimeBasedActions.reload_device_triggers_on_expiry(state, timestamp2_us_x_10)
+
+      assert new_state.last_device_triggers_refresh == state.last_device_triggers_refresh
+      assert new_state.volatile_triggers == state.volatile_triggers
+    end
+
+    test "does not refresh device triggers when timestamp equals last refresh", %{
+      realm: realm,
+      encoded_device_id: encoded_device_id,
+      device_id: device_id
+    } do
+      state =
+        setup_device_triggers_state(
+          realm,
+          encoded_device_id,
+          device_id,
+          :device_trigger,
+          @timestamp_us_x_10
+        )
+
+      # Use the same timestamp, should not refresh
+      new_state = TimeBasedActions.reload_device_triggers_on_expiry(state, @timestamp_us_x_10)
+
+      assert new_state.last_device_triggers_refresh == state.last_device_triggers_refresh
+      assert new_state.volatile_triggers == state.volatile_triggers
+    end
+
+    test "refreshes device triggers to empty when no triggers are present in database", %{
+      realm: realm,
+      encoded_device_id: encoded_device_id,
+      device_id: device_id
+    } do
+      # Insert initial device state
+      Database.insert_device(device_id, realm)
+
+      # No triggers installed
+      DataUpdater.handle_connection(
+        realm,
+        encoded_device_id,
+        "10.0.0.1",
+        Database.gen_tracking_id(),
+        @timestamp_us_x_10
+      )
+
+      state = DataUpdater.dump_state(realm, encoded_device_id)
+
+      assert state.last_device_triggers_refresh == @timestamp_us_x_10
+      assert state.volatile_triggers == []
+
+      # Simulate expiration and refresh
+      new_state = TimeBasedActions.reload_device_triggers_on_expiry(state, @timestamp2_us_x_10)
+
+      assert new_state.last_device_triggers_refresh == @timestamp2_us_x_10
+      assert new_state.volatile_triggers == []
+    end
+
+    test "adds new volatile triggers and keeps all after refresh", %{
+      realm: realm,
+      encoded_device_id: encoded_device_id,
+      device_id: device_id
+    } do
+      # Insert initial device state
+      state =
+        setup_device_triggers_state(
+          realm,
+          encoded_device_id,
+          device_id,
+          :device_trigger,
+          @timestamp_us_x_10
+        )
+
+      # Install additional data_trigger
+      data_trigger_data =
+        %SimpleTriggerContainer{
+          simple_trigger: {
+            :data_trigger,
+            %DataTrigger{
+              interface_name: "com.test.SimpleStreamTest",
+              interface_major: 1,
+              data_trigger_type: :INCOMING_DATA,
+              match_path: "/0/value",
+              value_match_operator: :LESS_THAN,
+              known_value: Cyanide.encode!(%{v: 50})
+            }
+          }
+        }
+        |> SimpleTriggerContainer.encode()
+
+      trigger_target_data =
+        %TriggerTargetContainer{
+          trigger_target: {
+            :amqp_trigger_target,
+            %AMQPTriggerTarget{
+              routing_key: AMQPTestHelper.events_routing_key()
+            }
+          }
+        }
+        |> TriggerTargetContainer.encode()
+
+      volatile_trigger_parent_id = :crypto.strong_rand_bytes(16)
+      volatile_trigger_id = :crypto.strong_rand_bytes(16)
+
+      assert :ok ==
+               DataUpdater.handle_install_volatile_trigger(
+                 realm,
+                 encoded_device_id,
+                 device_id,
+                 2,
+                 volatile_trigger_parent_id,
+                 volatile_trigger_id,
+                 data_trigger_data,
+                 trigger_target_data
+               )
+
+      new_state = DataUpdater.dump_state(realm, encoded_device_id)
+
+      assert Enum.count(new_state.volatile_triggers) == 2
+
+      # Refresh device triggers
+      refreshed_state =
+        TimeBasedActions.reload_device_triggers_on_expiry(new_state, @timestamp2_us_x_10)
+
+      assert Enum.count(refreshed_state.volatile_triggers) == 2
+      assert refreshed_state.last_device_triggers_refresh > state.last_device_triggers_refresh
+    end
+
+    test "removes deleted volatile triggers after refresh", %{
+      realm: realm,
+      encoded_device_id: encoded_device_id,
+      device_id: device_id
+    } do
+      Database.insert_device(device_id, realm)
+
+      simple_trigger_data =
+        %SimpleTriggerContainer{
+          simple_trigger: {
+            :device_trigger,
+            %DeviceTrigger{
+              device_event_type: :DEVICE_CONNECTED
+            }
+          }
+        }
+        |> SimpleTriggerContainer.encode()
+
+      trigger_target_data =
+        %TriggerTargetContainer{
+          trigger_target: {
+            :amqp_trigger_target,
+            %AMQPTriggerTarget{
+              routing_key: AMQPTestHelper.events_routing_key()
+            }
+          }
+        }
+        |> TriggerTargetContainer.encode()
+
+      volatile_trigger_parent_id = :crypto.strong_rand_bytes(16)
+      volatile_trigger_id = :crypto.strong_rand_bytes(16)
+
+      assert DataUpdater.handle_install_volatile_trigger(
+               realm,
+               encoded_device_id,
+               device_id,
+               1,
+               volatile_trigger_parent_id,
+               volatile_trigger_id,
+               simple_trigger_data,
+               trigger_target_data
+             ) == :ok
+
+      assert DataUpdater.handle_delete_volatile_trigger(
+               realm,
+               encoded_device_id,
+               volatile_trigger_id
+             ) == :ok
+
+      DataUpdater.handle_connection(
+        realm,
+        encoded_device_id,
+        "10.0.0.1",
+        Database.gen_tracking_id(),
+        @timestamp_us_x_10
+      )
+
+      state = DataUpdater.dump_state(realm, encoded_device_id)
+
+      new_state =
+        TimeBasedActions.reload_device_triggers_on_expiry(
+          state,
+          @timestamp2_us_x_10
+        )
+
+      assert new_state.last_device_triggers_refresh == @timestamp2_us_x_10
+      assert new_state.volatile_triggers == state.volatile_triggers
+    end
+  end
+
   defp setup_device_state(
          realm,
          device_id,
@@ -334,6 +635,83 @@ defmodule Astarte.DataUpdaterPlant.TimeBasedActionsTest do
         ts || timestamp
       )
     end)
+
+    DataUpdater.dump_state(realm, encoded_device_id)
+  end
+
+  defp setup_device_triggers_state(
+         realm,
+         encoded_device_id,
+         device_id,
+         trigger_type,
+         timestamp,
+         trigger_opts \\ []
+       ) do
+    trigger_data =
+      case trigger_type do
+        :device_trigger ->
+          %SimpleTriggerContainer{
+            simple_trigger: {
+              :device_trigger,
+              %DeviceTrigger{
+                device_event_type: trigger_opts[:device_event_type] || :DEVICE_CONNECTED
+              }
+            }
+          }
+
+        :data_trigger ->
+          %SimpleTriggerContainer{
+            simple_trigger: {
+              :data_trigger,
+              %DataTrigger{
+                interface_name: trigger_opts[:interface_name] || "com.test.SimpleStreamTest",
+                interface_major: trigger_opts[:interface_major] || 1,
+                data_trigger_type: trigger_opts[:data_trigger_type] || :INCOMING_DATA,
+                match_path: trigger_opts[:match_path] || "/0/value",
+                value_match_operator: trigger_opts[:value_match_operator] || :LESS_THAN,
+                known_value: trigger_opts[:known_value] || Cyanide.encode!(%{v: 100})
+              }
+            }
+          }
+      end
+      |> SimpleTriggerContainer.encode()
+
+    trigger_target_data =
+      %TriggerTargetContainer{
+        trigger_target: {
+          :amqp_trigger_target,
+          %AMQPTriggerTarget{
+            routing_key: AMQPTestHelper.events_routing_key()
+          }
+        }
+      }
+      |> TriggerTargetContainer.encode()
+
+    volatile_trigger_parent_id = :crypto.strong_rand_bytes(16)
+    volatile_trigger_id = :crypto.strong_rand_bytes(16)
+    ref = if trigger_type == :data_trigger, do: 2, else: 1
+
+    Database.insert_device(device_id, realm)
+
+    :ok =
+      DataUpdater.handle_install_volatile_trigger(
+        realm,
+        encoded_device_id,
+        device_id,
+        ref,
+        volatile_trigger_parent_id,
+        volatile_trigger_id,
+        trigger_data,
+        trigger_target_data
+      )
+
+    DataUpdater.handle_connection(
+      realm,
+      encoded_device_id,
+      "10.0.0.1",
+      Database.gen_tracking_id(),
+      timestamp
+    )
 
     DataUpdater.dump_state(realm, encoded_device_id)
   end
