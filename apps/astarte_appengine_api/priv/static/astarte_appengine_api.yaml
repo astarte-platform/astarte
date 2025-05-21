@@ -609,6 +609,8 @@ paths:
                       detail: Endpoint not found
         '405':
           description: Invalid object
+        '422':
+          description: Tried to unset a property with `allow_unset` false
     post:
       tags:
         - device
@@ -731,6 +733,8 @@ paths:
                       detail: Path not found
         '405':
           description: Invalid object
+        '422':
+          description: Tried to unset a property with `allow_unset` false
   '/{realm_name}/groups':
     get:
       tags:
