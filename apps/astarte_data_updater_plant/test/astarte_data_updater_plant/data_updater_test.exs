@@ -17,8 +17,9 @@
 #
 
 defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
-  use ExUnit.Case
+  use ExUnit.Case, async: true
   import Mox
+
   import Ecto.Query
 
   alias Astarte.Core.Device
@@ -52,20 +53,26 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
 
   setup :verify_on_exit!
 
-  setup_all do
-    DatabaseTestHelper.destroy_local_test_keyspace()
-    {:ok, _keyspace_name} = DatabaseTestHelper.create_test_keyspace()
-    {:ok, _pid} = AMQPTestHelper.start_link()
+  setup do
+    realm = "autotestrealm#{System.unique_integer([:positive])}"
+    DatabaseTestHelper.destroy_local_test_keyspace(realm)
+    {:ok, _keyspace_name} = DatabaseTestHelper.create_test_keyspace(realm)
 
     on_exit(fn ->
-      DatabaseTestHelper.destroy_local_test_keyspace()
+      DatabaseTestHelper.destroy_local_test_keyspace(realm)
     end)
+
+    %{realm: realm}
   end
 
-  test "simple flow" do
+  setup_all do
+    {:ok, _pid} = AMQPTestHelper.start_link()
+    :ok
+  end
+
+  test "simple flow", %{realm: realm} do
     AMQPTestHelper.clean_queue()
 
-    realm = "autotestrealm"
     keyspace_name = Realm.keyspace_name(realm)
     encoded_device_id = "f0VMRgIBAQAAAAAAAAAAAA"
     {:ok, device_id} = Device.decode_device_id(encoded_device_id)
@@ -87,7 +94,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
       groups: ["group1"]
     ]
 
-    DatabaseTestHelper.insert_device(device_id, insert_opts)
+    DatabaseTestHelper.insert_device(realm, device_id, insert_opts)
 
     # Install a volatile device test trigger
     simple_trigger_data =
@@ -1087,7 +1094,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
 
     objects_query =
       from o in "com_example_testobject_v1",
-        prefix: "autotestrealm",
+        prefix: ^realm,
         where: o.device_id == ^device_id and o.path == "/",
         select: [
           device_id: o.device_id,
@@ -1180,7 +1187,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
     {remove_event, remove_headers, _meta} = AMQPTestHelper.wait_and_get_message()
     assert remove_headers["x_astarte_event_type"] == "path_removed_event"
     assert remove_headers["x_astarte_device_id"] == encoded_device_id
-    assert remove_headers["x_astarte_realm"] == "autotestrealm"
+    assert remove_headers["x_astarte_realm"] == realm
 
     assert :uuid.string_to_uuid(remove_headers["x_astarte_parent_trigger_id"]) ==
              DatabaseTestHelper.fake_parent_trigger_id()
@@ -1195,7 +1202,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
                 %PathRemovedEvent{interface: "com.test.LCDMonitor", path: "/time/from"}},
              timestamp: timestamp_ms,
              parent_trigger_id: DatabaseTestHelper.fake_parent_trigger_id(),
-             realm: "autotestrealm",
+             realm: realm,
              simple_trigger_id: DatabaseTestHelper.path_removed_trigger_id()
            }
 
@@ -1337,10 +1344,9 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
     assert AMQPTestHelper.awaiting_messages_count() == 0
   end
 
-  test "empty introspection is updated correctly" do
+  test "empty introspection is updated correctly", %{realm: realm} do
     AMQPTestHelper.clean_queue()
 
-    realm = "autotestrealm"
     keyspace_name = Realm.keyspace_name(realm)
 
     encoded_device_id =
@@ -1351,7 +1357,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
     new_introspection_map = %{"com.test.LCDMonitor" => 1, "com.test.SimpleStreamTest" => 1}
     new_introspection_string = "com.test.LCDMonitor:1:0;com.test.SimpleStreamTest:1:0"
 
-    DatabaseTestHelper.insert_device(device_id, groups: ["group2"])
+    DatabaseTestHelper.insert_device(realm, device_id, groups: ["group2"])
 
     timestamp_us_x_10 = make_timestamp("2017-12-09T14:00:32+00:00")
     timestamp_ms = div(timestamp_us_x_10, 10_000)
@@ -1420,10 +1426,8 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
     assert AMQPTestHelper.awaiting_messages_count() == 0
   end
 
-  test "test introspection with interface update" do
+  test "test introspection with interface update", %{realm: realm} do
     AMQPTestHelper.clean_queue()
-
-    realm = "autotestrealm"
 
     encoded_device_id =
       :crypto.strong_rand_bytes(16)
@@ -1431,7 +1435,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
 
     {:ok, device_id} = Device.decode_device_id(encoded_device_id)
 
-    DatabaseTestHelper.insert_device(device_id)
+    DatabaseTestHelper.insert_device(realm, device_id)
 
     DataUpdater.handle_connection(
       realm,
@@ -1452,7 +1456,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
     )
 
     DataUpdater.dump_state(realm, encoded_device_id)
-    assert DatabaseTestHelper.fetch_old_introspection(device_id) == {:ok, %{}}
+    assert DatabaseTestHelper.fetch_old_introspection(realm, device_id) == {:ok, %{}}
 
     new_introspection_string = "com.test.LCDMonitor:2:0;com.test.SimpleStreamTest:1:0"
 
@@ -1465,9 +1469,9 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
     )
 
     DataUpdater.dump_state(realm, encoded_device_id)
-    DatabaseTestHelper.fetch_old_introspection(device_id)
+    DatabaseTestHelper.fetch_old_introspection(realm, device_id)
 
-    assert DatabaseTestHelper.fetch_old_introspection(device_id) ==
+    assert DatabaseTestHelper.fetch_old_introspection(realm, device_id) ==
              {:ok, %{{"com.test.LCDMonitor", 1} => 0}}
 
     new_introspection_string = "com.test.LCDMonitor:2:0"
@@ -1482,14 +1486,12 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
 
     DataUpdater.dump_state(realm, encoded_device_id)
 
-    assert DatabaseTestHelper.fetch_old_introspection(device_id) ==
+    assert DatabaseTestHelper.fetch_old_introspection(realm, device_id) ==
              {:ok, %{{"com.test.LCDMonitor", 1} => 0, {"com.test.SimpleStreamTest", 1} => 0}}
   end
 
-  test "fails to install volatile trigger on missing device" do
+  test "fails to install volatile trigger on missing device", %{realm: realm} do
     AMQPTestHelper.clean_queue()
-
-    realm = "autotestrealm"
 
     # Install a volatile device test trigger
     simple_trigger_data =
@@ -1532,9 +1534,9 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
            ) == {:error, :device_does_not_exist}
   end
 
-  test "fails to delete volatile trigger on missing device" do
+  test "fails to delete volatile trigger on missing device", %{realm: realm} do
     AMQPTestHelper.clean_queue()
-    realm = "autotestrealm"
+
     volatile_trigger_id = :crypto.strong_rand_bytes(16)
 
     fail_encoded_device_id = "f0VMRgIBAQBBBBBBBBBBBB"
@@ -1547,12 +1549,10 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
            ) == {:error, :device_does_not_exist}
   end
 
-  test "heartbeat message of type internal is correctly handled" do
+  test "heartbeat message of type internal is correctly handled", %{realm: realm} do
     alias Astarte.DataUpdaterPlant.DataUpdater.State
 
     AMQPTestHelper.clean_queue()
-
-    realm = "autotestrealm"
 
     encoded_device_id =
       :crypto.strong_rand_bytes(16)
@@ -1560,7 +1560,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
 
     {:ok, device_id} = Device.decode_device_id(encoded_device_id)
 
-    DatabaseTestHelper.insert_device(device_id)
+    DatabaseTestHelper.insert_device(realm, device_id)
 
     timestamp_us_x_10 = make_timestamp("2017-12-09T14:00:32+00:00")
 
@@ -1589,12 +1589,10 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
   end
 
   # TODO remove this when all heartbeats will be moved to internal
-  test "heartbeat message of type heartbeat is correctly handled" do
+  test "heartbeat message of type heartbeat is correctly handled", %{realm: realm} do
     alias Astarte.DataUpdaterPlant.DataUpdater.State
 
     AMQPTestHelper.clean_queue()
-
-    realm = "autotestrealm"
 
     encoded_device_id =
       :crypto.strong_rand_bytes(16)
@@ -1602,7 +1600,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
 
     {:ok, device_id} = Device.decode_device_id(encoded_device_id)
 
-    DatabaseTestHelper.insert_device(device_id)
+    DatabaseTestHelper.insert_device(realm, device_id)
 
     timestamp_us_x_10 = make_timestamp("2017-12-09T14:00:32+00:00")
 
@@ -1780,7 +1778,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
 
     {:ok, device_id} = Device.decode_device_id(encoded_device_id)
 
-    DatabaseTestHelper.insert_device(device_id)
+    DatabaseTestHelper.insert_device(realm, device_id)
 
     timestamp_us_x_10 = make_timestamp("2017-12-09T14:00:32+00:00")
     timestamp_ms = div(timestamp_us_x_10, 10_000)

@@ -37,14 +37,14 @@ defmodule Astarte.DataUpdaterPlant.DatabaseTestHelper do
   @test_realm "autotestrealm"
 
   @create_autotestrealm """
-    CREATE KEYSPACE #{Realm.keyspace_name(@test_realm)}
+    CREATE KEYSPACE :keyspace
       WITH
         replication = {'class': 'SimpleStrategy', 'replication_factor': '1'} AND
         durable_writes = true;
   """
 
   @create_devices_table """
-      CREATE TABLE #{Realm.keyspace_name(@test_realm)}.devices (
+      CREATE TABLE :keyspace.devices (
         device_id uuid,
         aliases map<ascii, varchar>,
         introspection map<ascii, int>,
@@ -75,7 +75,7 @@ defmodule Astarte.DataUpdaterPlant.DatabaseTestHelper do
   """
 
   @create_interfaces_table """
-      CREATE TABLE #{Realm.keyspace_name(@test_realm)}.interfaces (
+      CREATE TABLE :keyspace.interfaces (
         interface_id uuid,
         name ascii,
         major_version int,
@@ -95,7 +95,7 @@ defmodule Astarte.DataUpdaterPlant.DatabaseTestHelper do
   """
 
   @create_endpoints_table """
-      CREATE TABLE #{Realm.keyspace_name(@test_realm)}.endpoints (
+      CREATE TABLE :keyspace.endpoints (
         interface_id uuid,
         endpoint_id uuid,
         interface_name ascii,
@@ -119,7 +119,7 @@ defmodule Astarte.DataUpdaterPlant.DatabaseTestHelper do
   """
 
   @create_simple_triggers_table """
-      CREATE TABLE #{Realm.keyspace_name(@test_realm)}.simple_triggers (
+      CREATE TABLE :keyspace.simple_triggers (
         object_id uuid,
         object_type int,
         parent_trigger_id uuid,
@@ -132,7 +132,7 @@ defmodule Astarte.DataUpdaterPlant.DatabaseTestHelper do
   """
 
   @create_kv_store_table """
-      CREATE TABLE #{Realm.keyspace_name(@test_realm)}.kv_store (
+      CREATE TABLE :keyspace.kv_store (
         group varchar,
         key varchar,
         value blob,
@@ -143,57 +143,57 @@ defmodule Astarte.DataUpdaterPlant.DatabaseTestHelper do
 
   @insert_endpoints [
     """
-      INSERT INTO #{Realm.keyspace_name(@test_realm)}.endpoints (interface_id, endpoint_id, allow_unset, endpoint, expiry, interface_major_version, interface_minor_version, interface_name, interface_type, reliability, retention, value_type) VALUES
+      INSERT INTO :keyspace.endpoints (interface_id, endpoint_id, allow_unset, endpoint, expiry, interface_major_version, interface_minor_version, interface_name, interface_type, reliability, retention, value_type) VALUES
         (798b93a5-842e-bbad-2e4d-d20306838051, e6f73631-effc-1d7e-ad52-d3f3a3bae50b, False, '/time/from', 0, 0, 3, 'com.test.LCDMonitor', 1, 1, 1, 5);
     """,
     """
-      INSERT INTO #{Realm.keyspace_name(@test_realm)}.endpoints (interface_id, endpoint_id, allow_unset, endpoint, expiry, interface_major_version, interface_minor_version, interface_name, interface_type, reliability, retention, value_type) VALUES
+      INSERT INTO :keyspace.endpoints (interface_id, endpoint_id, allow_unset, endpoint, expiry, interface_major_version, interface_minor_version, interface_name, interface_type, reliability, retention, value_type) VALUES
         (798b93a5-842e-bbad-2e4d-d20306838051, 2b2c63dd-bbd9-5735-6d4a-8e56f504edda, False, '/time/to', 0, 0, 3, 'com.test.LCDMonitor', 1, 1, 1, 5);
     """,
     """
-      INSERT INTO #{Realm.keyspace_name(@test_realm)}.endpoints (interface_id, endpoint_id, allow_unset, endpoint, expiry, interface_major_version, interface_minor_version, interface_name, interface_type, reliability, retention, value_type) VALUES
-        (798b93a5-842e-bbad-2e4d-d20306838051, 801e1035-5fdf-7069-8e6e-3fd2792699ab, True, '/weekSchedule/%{day}/start', 0, 0, 3, 'com.test.LCDMonitor', 1, 1, 1, 5);
+      INSERT INTO :keyspace.endpoints (interface_id, endpoint_id, allow_unset, endpoint, expiry, interface_major_version, interface_minor_version, interface_name, interface_type, reliability, retention, value_type) VALUES
+      (798b93a5-842e-bbad-2e4d-d20306838051, 801e1035-5fdf-7069-8e6e-3fd2792699ab, True, '/weekSchedule/%{day}/start', 0, 0, 3, 'com.test.LCDMonitor', 1, 1, 1, 5);
     """,
     """
-      INSERT INTO #{Realm.keyspace_name(@test_realm)}.endpoints (interface_id, endpoint_id, allow_unset, endpoint, expiry, interface_major_version, interface_minor_version, interface_name, interface_type, reliability, retention, value_type) VALUES
+      INSERT INTO :keyspace.endpoints (interface_id, endpoint_id, allow_unset, endpoint, expiry, interface_major_version, interface_minor_version, interface_name, interface_type, reliability, retention, value_type) VALUES
         (798b93a5-842e-bbad-2e4d-d20306838051, 4fe5034a-3d9b-99ec-7ec3-b23716303d33, False, '/lcdCommand', 0, 0, 3, 'com.test.LCDMonitor', 1, 1, 1, 7);
     """,
     """
-      INSERT INTO #{Realm.keyspace_name(@test_realm)}.endpoints (interface_id, endpoint_id, allow_unset, endpoint, expiry, interface_major_version, interface_minor_version, interface_name, interface_type, reliability, retention, value_type) VALUES
+      INSERT INTO :keyspace.endpoints (interface_id, endpoint_id, allow_unset, endpoint, expiry, interface_major_version, interface_minor_version, interface_name, interface_type, reliability, retention, value_type) VALUES
         (798b93a5-842e-bbad-2e4d-d20306838051, 8ebb62b3-60c1-4ba2-4172-9ddedd809c9f, False, '/weekSchedule/%{day}/stop', 0, 0, 3, 'com.test.LCDMonitor', 1, 1, 1, 5);
     """,
     """
-      INSERT INTO #{Realm.keyspace_name(@test_realm)}.endpoints (interface_id, endpoint_id, allow_unset, endpoint, expiry, interface_major_version, interface_minor_version, interface_name, interface_type, reliability, retention, value_type) VALUES
+      INSERT INTO :keyspace.endpoints (interface_id, endpoint_id, allow_unset, endpoint, expiry, interface_major_version, interface_minor_version, interface_name, interface_type, reliability, retention, value_type) VALUES
         (0a0da77d-85b5-93d9-d4d2-bd26dd18c9af, 75010e1b-199e-eefc-dd35-d254b0e20924, False, '/%{itemIndex}/value', 0, 1, 0, 'com.test.SimpleStreamTest', 2, 3, 1, 3);
     """,
     """
-    INSERT INTO #{Realm.keyspace_name(@test_realm)}.endpoints (interface_id, endpoint_id, allow_unset, endpoint, expiry, interface_major_version, interface_minor_version, interface_name, interface_type, reliability, retention, value_type) VALUES
+    INSERT INTO :keyspace.endpoints (interface_id, endpoint_id, allow_unset, endpoint, expiry, interface_major_version, interface_minor_version, interface_name, interface_type, reliability, retention, value_type) VALUES
         (0a0da77d-85b5-93d9-d4d2-bd26dd18c9af, 3907d41d-5bca-329d-9e51-4cea2a54a99a, False, '/foo/%{param}/stringValue', 0, 1, 0, 'com.test.SimpleStreamTest', 2, 3, 1, 7);
     """,
     """
-    INSERT INTO #{Realm.keyspace_name(@test_realm)}.endpoints (interface_id, endpoint_id, allow_unset, endpoint, expiry, interface_major_version, interface_minor_version, interface_name, interface_type, reliability, retention, value_type) VALUES
+    INSERT INTO :keyspace.endpoints (interface_id, endpoint_id, allow_unset, endpoint, expiry, interface_major_version, interface_minor_version, interface_name, interface_type, reliability, retention, value_type) VALUES
         (0a0da77d-85b5-93d9-d4d2-bd26dd18c9af, 7aa44c11-2273-47d9-e624-4ae029dedeaa, False, '/foo/%{param}/blobValue', 0, 1, 0, 'com.test.SimpleStreamTest', 2, 3, 1, 11);
     """,
     """
-    INSERT INTO #{Realm.keyspace_name(@test_realm)}.endpoints (interface_id, endpoint_id, allow_unset, endpoint, expiry, interface_major_version, interface_minor_version, interface_name, interface_type, reliability, retention, value_type) VALUES
+    INSERT INTO :keyspace.endpoints (interface_id, endpoint_id, allow_unset, endpoint, expiry, interface_major_version, interface_minor_version, interface_name, interface_type, reliability, retention, value_type) VALUES
         (0a0da77d-85b5-93d9-d4d2-bd26dd18c9af, eff957cf-03df-deed-9784-a8708e3d8cb9, False, '/foo/%{param}/longValue', 0, 1, 0, 'com.test.SimpleStreamTest', 2, 3, 1, 5);
     """,
     """
-    INSERT INTO #{Realm.keyspace_name(@test_realm)}.endpoints (interface_id, endpoint_id, allow_unset, endpoint, expiry, interface_major_version, interface_minor_version, interface_name, interface_type, reliability, retention, value_type) VALUES
+    INSERT INTO :keyspace.endpoints (interface_id, endpoint_id, allow_unset, endpoint, expiry, interface_major_version, interface_minor_version, interface_name, interface_type, reliability, retention, value_type) VALUES
         (0a0da77d-85b5-93d9-d4d2-bd26dd18c9af, 346c80e4-ca99-6274-81f6-7b1c1be59521, False, '/foo/%{param}/timestampValue', 0, 1, 0, 'com.test.SimpleStreamTest', 2, 3, 1, 13);
     """,
     """
-    INSERT INTO #{Realm.keyspace_name(@test_realm)}.endpoints (interface_id, endpoint_id, allow_unset, endpoint, expiry, interface_major_version, interface_minor_version, interface_name, interface_type, reliability, retention, value_type) VALUES
+    INSERT INTO :keyspace.endpoints (interface_id, endpoint_id, allow_unset, endpoint, expiry, interface_major_version, interface_minor_version, interface_name, interface_type, reliability, retention, value_type) VALUES
         (db576345-80b1-5358-f305-d77ec39b3d84, 7c9f14e8-4f2f-977f-c126-d5e1bb9876e7, False, '/string', 0, 1, 5, 'com.example.TestObject', 2, 2, 3, 7);
     """,
     """
-    INSERT INTO #{Realm.keyspace_name(@test_realm)}.endpoints (interface_id, endpoint_id, allow_unset, endpoint, expiry, interface_major_version, interface_minor_version, interface_name, interface_type, reliability, retention, value_type) VALUES
+    INSERT INTO :keyspace.endpoints (interface_id, endpoint_id, allow_unset, endpoint, expiry, interface_major_version, interface_minor_version, interface_name, interface_type, reliability, retention, value_type) VALUES
         (db576345-80b1-5358-f305-d77ec39b3d84, 3b39fd3a-e261-26ff-e523-4c2dd150b864, False, '/value', 0, 1, 5, 'com.example.TestObject', 2, 2, 3, 1);
     """
   ]
 
   @create_individual_properties_table """
-    CREATE TABLE IF NOT EXISTS #{Realm.keyspace_name(@test_realm)}.individual_properties (
+    CREATE TABLE IF NOT EXISTS :keyspace.individual_properties (
       device_id uuid,
       interface_id uuid,
       endpoint_id uuid,
@@ -220,7 +220,7 @@ defmodule Astarte.DataUpdaterPlant.DatabaseTestHelper do
   """
 
   @create_individual_datastreams_table """
-    CREATE TABLE IF NOT EXISTS #{Realm.keyspace_name(@test_realm)}.individual_datastreams (
+    CREATE TABLE IF NOT EXISTS :keyspace.individual_datastreams (
       device_id uuid,
       interface_id uuid,
       endpoint_id uuid,
@@ -248,7 +248,7 @@ defmodule Astarte.DataUpdaterPlant.DatabaseTestHelper do
   """
 
   @create_test_object_table """
-    CREATE TABLE #{Realm.keyspace_name(@test_realm)}.com_example_testobject_v1 (
+    CREATE TABLE :keyspace.com_example_testobject_v1 (
       device_id uuid,
       path varchar,
       reception_timestamp timestamp,
@@ -262,81 +262,81 @@ defmodule Astarte.DataUpdaterPlant.DatabaseTestHelper do
 
   @insert_values [
     """
-      INSERT INTO #{Realm.keyspace_name(@test_realm)}.individual_properties (device_id, interface_id, endpoint_id, path, longinteger_value) VALUES
+      INSERT INTO :keyspace.individual_properties (device_id, interface_id, endpoint_id, path, longinteger_value) VALUES
         (7f454c46-0201-0100-0000-000000000000, 798b93a5-842e-bbad-2e4d-d20306838051, e6f73631-effc-1d7e-ad52-d3f3a3bae50b, '/time/from', 8);
     """,
     """
-      INSERT INTO #{Realm.keyspace_name(@test_realm)}.individual_properties (device_id, interface_id, endpoint_id, path, longinteger_value) VALUES
+      INSERT INTO :keyspace.individual_properties (device_id, interface_id, endpoint_id, path, longinteger_value) VALUES
         (7f454c46-0201-0100-0000-000000000000, 798b93a5-842e-bbad-2e4d-d20306838051, 2b2c63dd-bbd9-5735-6d4a-8e56f504edda, '/time/to', 20);
     """,
     """
-      INSERT INTO #{Realm.keyspace_name(@test_realm)}.individual_properties (device_id, interface_id, endpoint_id, path, longinteger_value) VALUES
+      INSERT INTO :keyspace.individual_properties (device_id, interface_id, endpoint_id, path, longinteger_value) VALUES
         (7f454c46-0201-0100-0000-000000000000, 798b93a5-842e-bbad-2e4d-d20306838051, 801e1035-5fdf-7069-8e6e-3fd2792699ab, '/weekSchedule/2/start', 12);
     """,
     """
-      INSERT INTO #{Realm.keyspace_name(@test_realm)}.individual_properties (device_id, interface_id, endpoint_id, path, longinteger_value) VALUES
+      INSERT INTO :keyspace.individual_properties (device_id, interface_id, endpoint_id, path, longinteger_value) VALUES
         (7f454c46-0201-0100-0000-000000000000, 798b93a5-842e-bbad-2e4d-d20306838051, 801e1035-5fdf-7069-8e6e-3fd2792699ab, '/weekSchedule/3/start', 15);
     """,
     """
-      INSERT INTO #{Realm.keyspace_name(@test_realm)}.individual_properties (device_id, interface_id, endpoint_id, path, longinteger_value) VALUES
+      INSERT INTO :keyspace.individual_properties (device_id, interface_id, endpoint_id, path, longinteger_value) VALUES
         (7f454c46-0201-0100-0000-000000000000, 798b93a5-842e-bbad-2e4d-d20306838051, 801e1035-5fdf-7069-8e6e-3fd2792699ab, '/weekSchedule/4/start', 16);
     """,
     """
-      INSERT INTO #{Realm.keyspace_name(@test_realm)}.individual_properties (device_id, interface_id, endpoint_id, path, longinteger_value) VALUES
+      INSERT INTO :keyspace.individual_properties (device_id, interface_id, endpoint_id, path, longinteger_value) VALUES
         (7f454c46-0201-0100-0000-000000000000, 798b93a5-842e-bbad-2e4d-d20306838051, 801e1035-5fdf-7069-8e6e-3fd2792699ab, '/weekSchedule/10/start', 42);
     """,
     """
-      INSERT INTO #{Realm.keyspace_name(@test_realm)}.individual_properties (device_id, interface_id, endpoint_id, path, longinteger_value) VALUES
+      INSERT INTO :keyspace.individual_properties (device_id, interface_id, endpoint_id, path, longinteger_value) VALUES
         (7f454c46-0201-0100-0000-000000000000, 798b93a5-842e-bbad-2e4d-d20306838051, 8ebb62b3-60c1-4ba2-4172-9ddedd809c9f, '/weekSchedule/2/stop', 15);
     """,
     """
-      INSERT INTO #{Realm.keyspace_name(@test_realm)}.individual_properties (device_id, interface_id, endpoint_id, path, longinteger_value) VALUES
+      INSERT INTO :keyspace.individual_properties (device_id, interface_id, endpoint_id, path, longinteger_value) VALUES
         (7f454c46-0201-0100-0000-000000000000, 798b93a5-842e-bbad-2e4d-d20306838051, 8ebb62b3-60c1-4ba2-4172-9ddedd809c9f, '/weekSchedule/3/stop', 16);
     """,
     """
-      INSERT INTO #{Realm.keyspace_name(@test_realm)}.individual_properties (device_id, interface_id, endpoint_id, path, longinteger_value) VALUES
+      INSERT INTO :keyspace.individual_properties (device_id, interface_id, endpoint_id, path, longinteger_value) VALUES
         (7f454c46-0201-0100-0000-000000000000, 798b93a5-842e-bbad-2e4d-d20306838051, 8ebb62b3-60c1-4ba2-4172-9ddedd809c9f, '/weekSchedule/4/stop', 18);
     """,
     """
-      INSERT INTO #{Realm.keyspace_name(@test_realm)}.individual_properties (device_id, interface_id, endpoint_id, path, string_value) VALUES
+      INSERT INTO :keyspace.individual_properties (device_id, interface_id, endpoint_id, path, string_value) VALUES
        (7f454c46-0201-0100-0000-000000000000, 798b93a5-842e-bbad-2e4d-d20306838051, 4fe5034a-3d9b-99ec-7ec3-b23716303d33, '/lcdCommand', 'SWITCH_ON');
     """,
     """
-      INSERT INTO #{Realm.keyspace_name(@test_realm)}.individual_datastreams (device_id, interface_id, endpoint_id, path, value_timestamp, reception_timestamp, reception_timestamp_submillis, integer_value) VALUES
+      INSERT INTO :keyspace.individual_datastreams (device_id, interface_id, endpoint_id, path, value_timestamp, reception_timestamp, reception_timestamp_submillis, integer_value) VALUES
         (7f454c46-0201-0100-0000-000000000000, 0a0da77d-85b5-93d9-d4d2-bd26dd18c9af, 75010e1b-199e-eefc-dd35-d254b0e20924, '/0/value', '2017-09-28 04:05+0000', '2017-09-28 05:05+0000', 0, 0);
     """,
     """
-      INSERT INTO #{Realm.keyspace_name(@test_realm)}.individual_datastreams (device_id, interface_id, endpoint_id, path, value_timestamp, reception_timestamp, reception_timestamp_submillis, integer_value) VALUES
+      INSERT INTO :keyspace.individual_datastreams (device_id, interface_id, endpoint_id, path, value_timestamp, reception_timestamp, reception_timestamp_submillis, integer_value) VALUES
         (7f454c46-0201-0100-0000-000000000000, 0a0da77d-85b5-93d9-d4d2-bd26dd18c9af, 75010e1b-199e-eefc-dd35-d254b0e20924, '/0/value', '2017-09-28 04:06+0000', '2017-09-28 05:06+0000', 0, 1);
     """,
     """
-      INSERT INTO #{Realm.keyspace_name(@test_realm)}.individual_datastreams (device_id, interface_id, endpoint_id, path, value_timestamp, reception_timestamp, reception_timestamp_submillis, integer_value) VALUES
+      INSERT INTO :keyspace.individual_datastreams (device_id, interface_id, endpoint_id, path, value_timestamp, reception_timestamp, reception_timestamp_submillis, integer_value) VALUES
         (7f454c46-0201-0100-0000-000000000000, 0a0da77d-85b5-93d9-d4d2-bd26dd18c9af, 75010e1b-199e-eefc-dd35-d254b0e20924, '/0/value', '2017-09-28 04:07+0000', '2017-09-28 05:07+0000', 0, 2);
     """,
     """
-      INSERT INTO #{Realm.keyspace_name(@test_realm)}.individual_datastreams (device_id, interface_id, endpoint_id, path, value_timestamp, reception_timestamp, reception_timestamp_submillis, integer_value) VALUES
+      INSERT INTO :keyspace.individual_datastreams (device_id, interface_id, endpoint_id, path, value_timestamp, reception_timestamp, reception_timestamp_submillis, integer_value) VALUES
         (7f454c46-0201-0100-0000-000000000000, 0a0da77d-85b5-93d9-d4d2-bd26dd18c9af, 75010e1b-199e-eefc-dd35-d254b0e20924, '/0/value', '2017-09-29 05:07+0000', '2017-09-29 06:07+0000', 0, 3);
     """,
     """
-      INSERT INTO #{Realm.keyspace_name(@test_realm)}.individual_datastreams (device_id, interface_id, endpoint_id, path, value_timestamp, reception_timestamp, reception_timestamp_submillis, integer_value) VALUES
+      INSERT INTO :keyspace.individual_datastreams (device_id, interface_id, endpoint_id, path, value_timestamp, reception_timestamp, reception_timestamp_submillis, integer_value) VALUES
         (7f454c46-0201-0100-0000-000000000000, 0a0da77d-85b5-93d9-d4d2-bd26dd18c9af, 75010e1b-199e-eefc-dd35-d254b0e20924, '/0/value', '2017-09-30 07:10+0000', '2017-09-30 08:10+0000', 0, 4);
     """,
     """
-      INSERT INTO #{Realm.keyspace_name(@test_realm)}.com_example_testobject_v1 (device_id, path, reception_timestamp, reception_timestamp_submillis, v_value, v_string) VALUES
+      INSERT INTO :keyspace.com_example_testobject_v1 (device_id, path, reception_timestamp, reception_timestamp_submillis, v_value, v_string) VALUES
         (7f454c46-0201-0100-0000-000000000000, '/', '2017-09-30 07:10+0000', 0, 1.1, 'aaa');
     """,
     """
-      INSERT INTO #{Realm.keyspace_name(@test_realm)}.com_example_testobject_v1 (device_id, path, reception_timestamp, reception_timestamp_submillis, v_value, v_string) VALUES
+      INSERT INTO :keyspace.com_example_testobject_v1 (device_id, path, reception_timestamp, reception_timestamp_submillis, v_value, v_string) VALUES
         (7f454c46-0201-0100-0000-000000000000, '/', '2017-09-30 07:12+0000', 0, 2.2, 'bbb');
     """,
     """
-      INSERT INTO #{Realm.keyspace_name(@test_realm)}.com_example_testobject_v1 (device_id, path, reception_timestamp, reception_timestamp_submillis, v_value, v_string) VALUES
+      INSERT INTO :keyspace.com_example_testobject_v1 (device_id, path, reception_timestamp, reception_timestamp_submillis, v_value, v_string) VALUES
         (7f454c46-0201-0100-0000-000000000000, '/', '2017-09-30 07:13+0000', 0, 3.3, 'ccc');
     """
   ]
 
   @create_deletion_in_progress_table """
-    CREATE TABLE #{Realm.keyspace_name(@test_realm)}.deletion_in_progress (
+    CREATE TABLE :keyspace.deletion_in_progress (
       device_id uuid,
       vmq_ack boolean,
       dup_start_ack boolean,
@@ -347,28 +347,33 @@ defmodule Astarte.DataUpdaterPlant.DatabaseTestHelper do
   """
 
   def create_test_keyspace do
-    keyspace_name = Realm.keyspace_name(@test_realm)
+    # for compatibily reasons only
+    create_test_keyspace(@realm_name)
+  end
 
-    case Repo.query(@create_autotestrealm) do
+  def create_test_keyspace(realm_name) do
+    keyspace_name = Realm.keyspace_name(realm_name)
+
+    case execute(keyspace_name, @create_autotestrealm) do
       {:ok, _} ->
-        Repo.query!(@create_devices_table)
-        Repo.query!(@create_endpoints_table)
+        execute!(keyspace_name, @create_devices_table)
+        execute!(keyspace_name, @create_endpoints_table)
 
         Enum.each(@insert_endpoints, fn query ->
-          Repo.query!(query)
+          execute!(keyspace_name, query)
         end)
 
-        Repo.query!(@create_simple_triggers_table)
-        Repo.query!(@create_individual_properties_table)
-        Repo.query!(@create_individual_datastreams_table)
-        Repo.query!(@create_test_object_table)
+        execute!(keyspace_name, @create_simple_triggers_table)
+        execute!(keyspace_name, @create_individual_properties_table)
+        execute!(keyspace_name, @create_individual_datastreams_table)
+        execute!(keyspace_name, @create_test_object_table)
 
         Enum.each(@insert_values, fn query ->
-          Repo.query!(query)
+          execute!(keyspace_name, query)
         end)
 
-        Repo.query!(@create_interfaces_table)
-        Repo.query!(@create_kv_store_table)
+        execute!(keyspace_name, @create_interfaces_table)
+        execute!(keyspace_name, @create_kv_store_table)
 
         %Interface{}
         |> Ecto.Changeset.change(%{
@@ -713,7 +718,7 @@ defmodule Astarte.DataUpdaterPlant.DatabaseTestHelper do
         })
         |> Repo.insert!(prefix: keyspace_name)
 
-        Repo.query!(@create_deletion_in_progress_table)
+        execute!(keyspace_name, @create_deletion_in_progress_table)
 
         {:ok, keyspace_name}
 
@@ -723,8 +728,12 @@ defmodule Astarte.DataUpdaterPlant.DatabaseTestHelper do
   end
 
   def destroy_local_test_keyspace do
+    destroy_local_test_keyspace(@test_realm)
+  end
+
+  def destroy_local_test_keyspace(realm) do
     delete_query = """
-      DROP KEYSPACE #{Realm.keyspace_name(@test_realm)};
+      DROP KEYSPACE IF EXISTS #{Realm.keyspace_name(realm)};
     """
 
     Repo.query(delete_query)
@@ -732,8 +741,8 @@ defmodule Astarte.DataUpdaterPlant.DatabaseTestHelper do
     :ok
   end
 
-  def insert_device(device_id, opts \\ []) do
-    keyspace_name = Realm.keyspace_name(@test_realm)
+  def insert_device(realm, device_id, opts \\ []) do
+    keyspace_name = Realm.keyspace_name(realm)
 
     last_connection = Keyword.get(opts, :last_connection)
     last_disconnection = Keyword.get(opts, :last_disconnection)
@@ -765,8 +774,8 @@ defmodule Astarte.DataUpdaterPlant.DatabaseTestHelper do
     |> Repo.insert(prefix: keyspace_name)
   end
 
-  def fetch_old_introspection(device_id) do
-    keyspace_name = Realm.keyspace_name(@test_realm)
+  def fetch_old_introspection(realm, device_id) do
+    keyspace_name = Realm.keyspace_name(realm)
 
     old_introspection_query =
       from d in DeviceSchema,
@@ -817,5 +826,15 @@ defmodule Astarte.DataUpdaterPlant.DatabaseTestHelper do
 
   def equal_to_group_incoming_trigger_id() do
     <<140, 143, 242, 83, 113, 178, 249, 23, 213, 224, 46, 58, 138, 34, 20, 45>>
+  end
+
+  defp execute(keyspace, query, params \\ [], opts \\ []) do
+    String.replace(query, ":keyspace", keyspace)
+    |> Repo.query(params, opts)
+  end
+
+  defp execute!(keyspace, query, params \\ [], opts \\ []) do
+    String.replace(query, ":keyspace", keyspace)
+    |> Repo.query!(params, opts)
   end
 end

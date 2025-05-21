@@ -17,7 +17,7 @@
 #
 
 defmodule Astarte.DataUpdaterPlant.TriggersHandlerTest do
-  use ExUnit.Case
+  use ExUnit.Case, async: true
 
   alias Astarte.Core.Triggers.SimpleEvents.{
     DeviceConnectedEvent,
