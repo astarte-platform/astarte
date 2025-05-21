@@ -107,7 +107,7 @@ defmodule Astarte.DataUpdaterPlant.DeviceDeleteTest do
       :ok
     end)
 
-    DataUpdater.start_device_deletion(realm, encoded_device_id, timestamp_ms) |> dbg()
+    DataUpdater.start_device_deletion(realm, encoded_device_id, timestamp_ms)
 
     # Check DUP start ack in deleted_devices table
     dup_start_ack_statement = """

@@ -30,17 +30,27 @@ defmodule Astarte.Cases.Data do
   use Mimic
   import Astarte.Helpers.Database
 
-  using do
+  using opts do
+    astarte_instance_id =
+      Keyword.get_lazy(opts, :astarte_instance_id, fn ->
+        "test#{System.unique_integer([:positive])}"
+      end)
+
+    realm_name =
+      Keyword.get_lazy(opts, :realm_name, fn ->
+        "realm#{System.unique_integer([:positive])}"
+      end)
+
     quote do
       import Astarte.Cases.Data
       import Astarte.Helpers.Database
+
+      @moduletag astarte_instance_id: unquote(astarte_instance_id)
+      @moduletag realm_name: unquote(realm_name)
     end
   end
 
-  setup do
-    realm = "autotestrealm#{System.unique_integer([:positive])}"
-    astarte_instance_id = "test#{System.unique_integer([:positive])}"
-
+  setup_all %{realm_name: realm, astarte_instance_id: astarte_instance_id} do
     setup_database_access(astarte_instance_id)
     setup!(realm)
     insert_public_key!(realm)
@@ -51,5 +61,11 @@ defmodule Astarte.Cases.Data do
     end)
 
     %{realm: realm, astarte_instance_id: astarte_instance_id}
+  end
+
+  setup %{astarte_instance_id: astarte_instance_id} do
+    setup_database_access(astarte_instance_id)
+
+    :ok
   end
 end
