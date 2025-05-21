@@ -778,6 +778,108 @@ defmodule Astarte.DataUpdaterPlant.TimeBasedActionsTest do
     end
   end
 
+  describe "reload_datastream_maximum_storage_retention_on_expiry/2" do
+    setup do
+      realm = "autotestrealm#{System.unique_integer([:positive])}"
+      Database.setup_realm_keyspace!(realm)
+
+      on_exit(fn ->
+        Database.teardown_realm_keyspace!(realm)
+      end)
+
+      {:ok, realm: realm}
+    end
+
+    test "refreshes datastream_maximum_storage_retention when expired and value is unchanged", %{
+      realm: realm,
+      encoded_device_id: encoded_device_id,
+      device_id: device_id
+    } do
+      # Insert initial device state
+      state = setup_device_state(realm, device_id, encoded_device_id, [])
+
+      assert state.datastream_maximum_storage_retention == nil
+      assert state.last_datastream_maximum_retention_refresh == @timestamp_us_x_10
+
+      # Simulate expiration and refresh
+      new_state =
+        TimeBasedActions.reload_datastream_maximum_storage_retention_on_expiry(
+          state,
+          @timestamp2_us_x_10
+        )
+
+      assert new_state.datastream_maximum_storage_retention == nil
+      assert new_state.last_datastream_maximum_retention_refresh == @timestamp2_us_x_10
+    end
+
+    test "refreshes datastream_maximum_storage_retention when expired and value is updated", %{
+      realm: realm,
+      device_id: device_id,
+      encoded_device_id: encoded_device_id
+    } do
+      # Insert initial device state
+      state = setup_device_state(realm, device_id, encoded_device_id, [])
+
+      assert state.datastream_maximum_storage_retention == nil
+      assert state.last_datastream_maximum_retention_refresh == @timestamp_us_x_10
+
+      # Update value in the database, simulate expiration and refresh
+      Database.insert_datastream_maximum_storage_retention!(realm, 60)
+
+      new_state =
+        TimeBasedActions.reload_datastream_maximum_storage_retention_on_expiry(
+          state,
+          @timestamp2_us_x_10
+        )
+
+      assert new_state.datastream_maximum_storage_retention == 60
+      assert new_state.last_datastream_maximum_retention_refresh == @timestamp2_us_x_10
+    end
+
+    test "does not refresh datastream_maximum_storage_retention when not expired", %{
+      realm: realm,
+      device_id: device_id,
+      encoded_device_id: encoded_device_id
+    } do
+      # Insert initial device state
+      state = setup_device_state(realm, device_id, encoded_device_id, [])
+
+      Database.insert_datastream_maximum_storage_retention!(realm, 120)
+
+      timestamp2_us_x_10 = Database.make_timestamp("2025-05-14T14:05:32+00:00")
+
+      new_state =
+        TimeBasedActions.reload_datastream_maximum_storage_retention_on_expiry(
+          state,
+          timestamp2_us_x_10
+        )
+
+      assert new_state.datastream_maximum_storage_retention == nil
+      assert new_state.last_datastream_maximum_retention_refresh == @timestamp_us_x_10
+    end
+
+    test "does not refresh datastream_maximum_storage_retention when timestamp equals last refresh",
+         %{
+           realm: realm,
+           device_id: device_id,
+           encoded_device_id: encoded_device_id
+         } do
+      # Insert initial device state
+      state = setup_device_state(realm, device_id, encoded_device_id, [])
+
+      Database.insert_datastream_maximum_storage_retention!(realm, 180)
+
+      new_state =
+        TimeBasedActions.reload_datastream_maximum_storage_retention_on_expiry(
+          state,
+          @timestamp_us_x_10
+        )
+
+      assert new_state.datastream_maximum_storage_retention == nil
+      assert new_state.last_datastream_maximum_retention_refresh == @timestamp_us_x_10
+    end
+  end
+
   defp setup_device_state(
          realm,
          device_id,

@@ -32,6 +32,7 @@ defmodule Astarte.DataUpdaterPlant.TimeBasedActions do
   @groups_lifespan_decimicroseconds 60 * 10 * 1000 * 10000
   @device_triggers_lifespan_decimicroseconds 60 * 10 * 1000 * 10000
   @deletion_refresh_lifespan_decimicroseconds 60 * 10 * 1000 * 10000
+  @datastream_maximum_retention_refresh_lifespan_decimicroseconds 60 * 10 * 1000 * 10000
 
   def reload_groups_on_expiry(state, timestamp) do
     if state.last_groups_refresh + @groups_lifespan_decimicroseconds <= timestamp do
@@ -186,6 +187,32 @@ defmodule Astarte.DataUpdaterPlant.TimeBasedActions do
       # Some other error, return it
       {:error, reason} ->
         {:error, reason}
+    end
+  end
+
+  def reload_datastream_maximum_storage_retention_on_expiry(state, timestamp) do
+    if state.last_datastream_maximum_retention_refresh +
+         @datastream_maximum_retention_refresh_lifespan_decimicroseconds <=
+         timestamp do
+      # TODO this could be a bang!
+      case Queries.fetch_datastream_maximum_storage_retention(state.realm) do
+        {:ok, ttl} ->
+          %State{
+            state
+            | datastream_maximum_storage_retention: ttl,
+              last_datastream_maximum_retention_refresh: timestamp
+          }
+
+        {:error, _reason} ->
+          Logger.warning(
+            "Failed to load last_datastream_maximum_retention_refresh, keeping old one",
+            tag: "last_datastream_maximum_retention_refresh_fail"
+          )
+
+          state
+      end
+    else
+      state
     end
   end
 end

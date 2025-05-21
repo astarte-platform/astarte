@@ -42,8 +42,6 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
   alias Astarte.DataUpdaterPlant.TimeBasedActions
   require Logger
 
-  @datastream_maximum_retention_refresh_lifespan_decimicroseconds 60 * 10 * 1000 * 10000
-
   def init_state(realm, device_id, message_tracker) do
     MessageTracker.register_data_updater(message_tracker)
     Process.monitor(message_tracker)
@@ -1662,34 +1660,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
     |> TimeBasedActions.purge_expired_interfaces(timestamp)
     |> TimeBasedActions.reload_device_triggers_on_expiry(timestamp)
     |> TimeBasedActions.reload_device_deletion_status_on_expiry(timestamp)
-    |> reload_datastream_maximum_storage_retention_on_expiry(timestamp)
-  end
-
-  defp reload_datastream_maximum_storage_retention_on_expiry(state, timestamp) do
-    if state.last_datastream_maximum_retention_refresh +
-         @datastream_maximum_retention_refresh_lifespan_decimicroseconds <=
-         timestamp do
-      # TODO this could be a bang!
-      case Queries.fetch_datastream_maximum_storage_retention(state.realm) do
-        {:ok, ttl} ->
-          %State{
-            state
-            | datastream_maximum_storage_retention: ttl,
-              last_datastream_maximum_retention_refresh: timestamp
-          }
-
-        {:error, _reason} ->
-          _ =
-            Logger.warning(
-              "Failed to load last_datastream_maximum_retention_refresh, keeping old one",
-              tag: "last_datastream_maximum_retention_refresh_fail"
-            )
-
-          state
-      end
-    else
-      state
-    end
+    |> TimeBasedActions.reload_datastream_maximum_storage_retention_on_expiry(timestamp)
   end
 
   defp prune_device_properties(state, decoded_payload, timestamp) do
