@@ -97,7 +97,7 @@ jobs:
     - uses: actions/checkout@v2
     - uses: actions/cache@v4
       with:
-        path: apps/${{ inputs.app }}/deps
+        path: apps/${{ inputs.app }}/deps
         key: ${{ runner.os }}-apps-mix-${{ env.otp_version }}-${{ env.elixir_version }}-${{ inputs.app }}-${{ hashFiles(format('{0}{1}{2}{3}', github.workspace, '/apps/', inputs.app, '/mix.lock')) }}
         restore-keys: |
           ${{ runner.os }}-apps-mix-${{ env.otp_version }}-${{ env.elixir_version }}-${{ inputs.app }}-
@@ -136,11 +136,13 @@ jobs:
         CFSSL_API_URL: http://localhost:${{ job.services.cfssl.ports[8080] }}
     - name: Upload Coverage Results to CodeCov
       # Don't upload more than once per component
-      if: matrix.database == 'scylladb/scylla:5.2.2'
+      if: |
+          matrix.database == 'scylladb/scylla:5.2.2' &&
+          ${{ github.repository }} == astarte-platform/astarte
       uses: codecov/codecov-action@v4
       with:
-        fail_ci_if_error: true #default = false
+        fail_ci_if_error: true
         token: ${{ secrets.CODECOV_TOKEN }}
-        verbose: true #default = false
-        working-directory: ./apps/${{ inputs.app }}
-        directory: ./coverage_results
+        verbose: true
+        directory: ./apps/${{ inputs.app }}/coverage_results
+        flags: ${{ inputs.app }}

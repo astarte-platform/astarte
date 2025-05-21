@@ -1,0 +1,72 @@
+coverage:
+  range: 60..100
+  round: down
+  precision: 1
+  status:
+    patch: off
+    project:
+      default:
+        threshold: 1%
+        branches:
+          - "!master"
+
+ignore:
+  - "apps/*/test"
+
+comment:
+  layout: "header, diff, files, components"
+  require_changes: yes
+
+component_management:
+  default_rules:
+    statuses:
+      - type: project
+        target: auto
+        branches:
+          - "!master"
+  individual_components:
+    - component_id:  astarte_appengine_api
+      name: AppEngine API
+      paths:
+        - apps/astarte_appengine_api/**
+        - apps/astarte_appengine_api/*
+    - component_id:  astarte_data_updater_plant
+      name: Data Updater Plant
+      paths:
+        - apps/astarte_data_updater_plant/**
+        - apps/astarte_data_updater_plant/*
+    - component_id: astarte_housekeeping
+      name: Housekeeping
+      paths:
+        - apps/astarte_housekeeping/**
+        - apps/astarte_housekeeping/*
+    - component_id: astarte_housekeeping_api
+      name: Housekeeping API
+      paths:
+        - apps/astarte_housekeeping_api/**
+        - apps/astarte_housekeeping_api/*
+    - component_id: astarte_pairing
+      name: Pairing
+      paths:
+        - apps/astarte_pairing/**
+        - apps/astarte_pairing/*
+    - component_id: astarte_pairing_api
+      name: Pairing API
+      paths:
+        - apps/astarte_pairing_api/**
+        - apps/astarte_pairing_api/*
+    - component_id: astarte_realm_management
+      name: Realm Management
+      paths:
+        - apps/astarte_realm_management/**
+        - apps/astarte_realm_management/*
+    - component_id: astarte_realm_management_api
+      name: Realm Management API
+      paths:
+        - apps/astarte_realm_management_api/**
+        - apps/astarte_realm_management_api/*
+    - component_id: astarte_trigger_engine
+      name: Trigger Engine
+      paths:
+        - apps/astarte_trigger_engine/**
+        - apps/astarte_trigger_engine/
