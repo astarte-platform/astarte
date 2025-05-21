@@ -10,7 +10,7 @@ defmodule Astarte.InterfaceValuesRetrievealGenerators do
     params gen all since <- nil,
                    since_after <- nil,
                    to <- nil,
-                   limit <- optional(integer(0..1000)),
+                   limit <- optional(integer(1..1000)),
                    downsample_key <- nil,
                    downsample_to <- downsample_to(interface, downsample_key),
                    retrieve_metadata <- optional(boolean()),
