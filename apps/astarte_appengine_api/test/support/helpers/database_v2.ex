@@ -18,7 +18,6 @@
 
 defmodule Astarte.Helpers.DatabaseV2 do
   alias Astarte.Core.Realm
-  alias Astarte.DataAccess.KvStore
   alias Astarte.DataAccess.Repo
   alias Astarte.DataAccess.Realms.Realm
 

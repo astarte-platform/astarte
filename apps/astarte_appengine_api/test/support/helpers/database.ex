@@ -143,11 +143,6 @@ defmodule Astarte.Helpers.Database do
   );
   """
 
-  @insert_pubkey_pem """
-    INSERT INTO #{Realm.keyspace_name(@test_realm)}.kv_store (group, key, value)
-    VALUES ('auth', 'jwt_public_key_pem', varcharAsBlob(:pem));
-  """
-
   @create_interfaces_table """
       CREATE TABLE #{Realm.keyspace_name(@test_realm)}.interfaces (
         name ascii,
