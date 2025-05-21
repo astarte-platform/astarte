@@ -1,0 +1,35 @@
+name: Build and Test Astarte Trigger Engine
+
+on:
+  # Run when pushing to stable branches
+  push:
+    paths:
+    - 'apps/astarte_trigger_engine/**'
+    - '.github/workflows/astarte-apps-build-workflow.yaml'
+    - '.github/workflows/astarte-trigger-engine-workflow.yaml'
+    branches:
+    - 'master'
+    - 'release-*'
+  # Run on branch/tag creation
+  create:
+  # Run on pull requests for astarte_trigger_engine
+  pull_request:
+    paths:
+    - 'apps/astarte_trigger_engine/**'
+    - '.github/workflows/astarte-apps-build-workflow.yaml'
+    - '.github/workflows/astarte-trigger-engine-workflow.yaml'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  astarte_trigger_engine:
+    uses: ./.github/workflows/astarte-apps-build-workflow.yaml
+    with:
+      app: "astarte_trigger_engine"
+    secrets: inherit
