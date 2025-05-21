@@ -24,28 +24,21 @@ defmodule Astarte.AppEngine.APIWeb.DeviceStatusByGroupController do
   alias Astarte.AppEngine.API.Groups
   alias Astarte.AppEngine.APIWeb.DeviceStatusView
 
-  plug Astarte.AppEngine.APIWeb.Plug.LogGroupName
-  plug Astarte.AppEngine.APIWeb.Plug.LogDeviceId
-
   action_fallback Astarte.AppEngine.APIWeb.FallbackController
 
   def index(
         conn,
         %{"realm_name" => realm_name, "group_name" => group_name, "details" => "true"} = params
       ) do
-    decoded_group_name = URI.decode(group_name)
-
     with {:ok, %DevicesList{} = devices_list} <-
-           Groups.list_detailed_devices(realm_name, decoded_group_name, params) do
+           Groups.list_detailed_devices(realm_name, group_name, params) do
       render(conn, "detailed_index.json", devices_list: devices_list, request: params)
     end
   end
 
   def index(conn, %{"realm_name" => realm_name, "group_name" => group_name} = params) do
-    decoded_group_name = URI.decode(group_name)
-
     with {:ok, %DevicesList{} = devices_list} <-
-           Groups.list_devices(realm_name, decoded_group_name, params) do
+           Groups.list_devices(realm_name, group_name, params) do
       render(conn, "index.json", devices_list: devices_list, request: params)
     end
   end

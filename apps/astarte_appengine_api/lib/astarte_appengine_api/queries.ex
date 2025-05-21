@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2017 Ispirata Srl
+# Copyright 2017 - 2025 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -16,71 +16,80 @@
 # limitations under the License.
 
 defmodule Astarte.AppEngine.API.Queries do
-  alias CQEx.Query, as: DatabaseQuery
-  alias CQEx.Result, as: DatabaseResult
+  alias Astarte.DataAccess.KvStore
+  alias Astarte.DataAccess.Realms.Realm
+  alias Astarte.AppEngine.API.Repo
+  alias Astarte.DataAccess.Consistency
 
   require Logger
+  import Ecto.Query
+  @keyspace_does_not_exist_regex ~r/Keyspace (.*) does not exist/
 
-  def fetch_public_key(client) do
-    query =
-      DatabaseQuery.new()
-      |> DatabaseQuery.statement(
-        "SELECT blobAsVarchar(value) FROM kv_store WHERE group='auth' AND key='jwt_public_key_pem'"
-      )
+  def fetch_public_key(realm_name) do
+    keyspace_name = Realm.keyspace_name(realm_name)
 
-    result =
-      DatabaseQuery.call!(client, query)
-      |> DatabaseResult.head()
+    schema_query =
+      from r in KvStore,
+        prefix: ^keyspace_name,
+        select: fragment("blobAsVarchar(?)", r.value),
+        where: r.group == "auth" and r.key == "jwt_public_key_pem"
 
-    case result do
-      ["system.blobasvarchar(value)": public_key] ->
-        {:ok, public_key}
+    opts = [uuid_format: :binary, consistency: Consistency.domain_model(:read)]
 
-      :empty_dataset ->
+    case safe_query(schema_query, opts) do
+      {:ok, %{rows: [[pem]]}} ->
+        {:ok, pem}
+
+      {:ok, %{num_rows: 0}} ->
         {:error, :public_key_not_found}
+
+      {:error, :database_connection_error} ->
+        {:error, :database_connection_error}
+
+      {:error, error} ->
+        {:error, error}
     end
   end
 
-  def check_astarte_health(client, consistency) do
-    schema_statement = """
-      SELECT count(value)
-      FROM astarte.kv_store
-      WHERE group='astarte' AND key='schema_version'
-    """
+  defp handle_xandra_error(error) do
+    %Xandra.Error{message: message} = error
 
-    # no-op, just to check if nodes respond
-    # no realm name can contain '_', '^'
-    realms_statement = """
-      SELECT *
-      FROM astarte.realms
-      WHERE realm_name='_invalid^name_'
-    """
+    case Regex.run(@keyspace_does_not_exist_regex, message) do
+      [_message, keyspace] ->
+        Logger.warning("Keyspace #{keyspace} does not exist.",
+          tag: "realm_not_found"
+        )
 
-    schema_query =
-      DatabaseQuery.new()
-      |> DatabaseQuery.statement(schema_statement)
-      |> DatabaseQuery.consistency(consistency)
+        {:error, :not_existing_realm}
 
-    realms_query =
-      DatabaseQuery.new()
-      |> DatabaseQuery.statement(realms_statement)
-      |> DatabaseQuery.consistency(consistency)
-
-    with {:ok, result} <- DatabaseQuery.call(client, schema_query),
-         ["system.count(value)": _count] <- DatabaseResult.head(result),
-         {:ok, _result} <- DatabaseQuery.call(client, realms_query) do
-      :ok
-    else
-      %{acc: _, msg: err_msg} ->
-        _ = Logger.warn("Health is not good: #{err_msg}.", tag: "db_health_check_bad")
-
-        {:error, :health_check_bad}
-
-      {:error, err} ->
+      nil ->
         _ =
-          Logger.warn("Health is not good, reason: #{inspect(err)}.", tag: "db_health_check_bad")
+          Logger.warning(
+            "Database error, cannot get realm public key: #{Exception.message(error)}.",
+            tag: "database_error"
+          )
 
-        {:error, :health_check_bad}
+        {:error, :database_error}
+    end
+  end
+
+  defp safe_query(ecto_query, opts) do
+    {sql, params} = Repo.to_sql(:all, ecto_query)
+
+    # Equivalent to a `Repo.all`, but does not raise if we get a Xandra Error.
+    case Repo.query(sql, params, opts) do
+      {:ok, result} ->
+        {:ok, result}
+
+      {:error, %Xandra.ConnectionError{} = error} ->
+        Logger.warning("Database connection error #{Exception.message(error)}.",
+          tag: "database_connection_error"
+        )
+
+        {:error, :database_connection_error}
+
+      {:error, %Xandra.Error{} = error} ->
+        handle_xandra_error(error)
     end
   end
 end

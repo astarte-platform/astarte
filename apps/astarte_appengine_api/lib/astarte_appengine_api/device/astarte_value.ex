@@ -50,11 +50,19 @@ defmodule Astarte.AppEngine.API.Device.AstarteValue do
     Base.encode64(value)
   end
 
-  def to_json_friendly(value, :datetime, opts) do
+  def to_json_friendly(value, :datetime, opts) when is_integer(value) do
     if opts[:keep_milliseconds] do
       value
     else
       DateTime.from_unix!(value, :millisecond)
+    end
+  end
+
+  def to_json_friendly(value, :datetime, opts) when is_struct(value, DateTime) do
+    if opts[:keep_milliseconds] do
+      DateTime.to_unix(value, :millisecond)
+    else
+      value
     end
   end
 

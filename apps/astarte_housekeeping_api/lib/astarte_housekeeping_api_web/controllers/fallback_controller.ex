@@ -62,6 +62,20 @@ defmodule Astarte.Housekeeping.APIWeb.FallbackController do
     |> render(:"404")
   end
 
+  def call(conn, {:error, :delete_datastream_maximum_storage_retention_fail}) do
+    conn
+    |> put_status(:service_unavailable)
+    |> put_view(ErrorView)
+    |> render(:"503")
+  end
+
+  def call(conn, {:error, :set_datastream_maximum_storage_retention_fail}) do
+    conn
+    |> put_status(:service_unavailable)
+    |> put_view(ErrorView)
+    |> render(:"503")
+  end
+
   def call(conn, {:error, :unauthorized}) do
     conn
     |> put_status(:unauthorized)

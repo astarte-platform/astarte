@@ -31,8 +31,8 @@ jobs:
         path: docs
     - uses: erlef/setup-beam@v1.15
       with:
-        elixir-version: "1.14.5"
-        otp-version: "25.3.2"
+        elixir-version: "1.15.7"
+        otp-version: "26.1"
     - name: Install Dependencies
       working-directory: ./astarte/doc
       run: mix deps.get
@@ -41,7 +41,7 @@ jobs:
       run: mix docs
     - name: Copy Docs, preserving Device SDK docs
       run: |
-        export DOCS_DIRNAME="astarte/$(echo ${{ github.ref }} | sed 's,refs/heads/,,' | sed 's/master/snapshot/g' | sed 's/release-//g')"
+        export DOCS_DIRNAME="astarte/$(echo ${{ github.ref }} | sed 's,refs/heads/,,' | sed 's/master/snapshot/g' | sed 's/release-//g')"
         rm -rf docs/$DOCS_DIRNAME
         mkdir docs/$DOCS_DIRNAME
         cp -r astarte/doc/doc/* docs/$DOCS_DIRNAME/
@@ -53,7 +53,7 @@ jobs:
         ref: 'v4.9.1'
     - name: Copy all Swagger UI files
       run: |
-        export DOCS_DIRNAME="astarte/$(echo ${{ github.ref }} | sed 's,refs/heads/,,' | sed 's/master/snapshot/g' | sed 's/release-//g')"
+        export DOCS_DIRNAME="astarte/$(echo ${{ github.ref }} | sed 's,refs/heads/,,' | sed 's/master/snapshot/g' | sed 's/release-//g')"
         mkdir docs/$DOCS_DIRNAME/api
         cp swagger-ui/dist/* docs/$DOCS_DIRNAME/api
         rm docs/$DOCS_DIRNAME/api/index.html

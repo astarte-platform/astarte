@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2018-2020 Ispirata Srl
+# Copyright 2018 - 2025 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -22,9 +22,10 @@ defmodule Astarte.RealmManagement.API.Triggers do
   """
 
   import Ecto.Query, warn: false
-  alias Astarte.RealmManagement.API.RPC.RealmManagement
 
+  alias Astarte.RealmManagement.API.RPC.RealmManagement
   alias Astarte.Core.Triggers.SimpleTriggerConfig
+  alias Astarte.RealmManagement.API.Triggers.Action
   alias Astarte.RealmManagement.API.Triggers.Trigger
   alias Ecto.Changeset
 
@@ -61,14 +62,16 @@ defmodule Astarte.RealmManagement.API.Triggers do
             tagged_simple_triggers: tagged_simple_triggers,
             policy: policy
           }} <- RealmManagement.get_trigger(realm_name, trigger_name),
-         {:ok, action_map} <- Jason.decode(action) do
+         {:ok, action_map} <- Jason.decode(action, keys: :atoms!) do
       simple_triggers_configs =
         Enum.map(tagged_simple_triggers, &SimpleTriggerConfig.from_tagged_simple_trigger/1)
+
+      action_struct = struct(Action, action_map)
 
       {:ok,
        %Trigger{
          name: name,
-         action: action_map,
+         action: action_struct,
          simple_triggers: simple_triggers_configs,
          policy: policy
        }}
@@ -112,27 +115,6 @@ defmodule Astarte.RealmManagement.API.Triggers do
   end
 
   @doc """
-  Updates a trigger.
-
-  ## Examples
-
-      iex> update_trigger(trigger, %{field: new_value})
-      {:ok, %Trigger{}}
-
-      iex> update_trigger(trigger, %{field: bad_value})
-      {:error, %Ecto.Changeset{}}
-
-  """
-  def update_trigger(realm_name, %Trigger{} = trigger, attrs) do
-    _ = Logger.debug("Update: #{inspect(trigger)}.")
-
-    trigger
-    |> Trigger.changeset(attrs, realm_name: realm_name)
-
-    {:ok, %Trigger{name: "mock_trigger_4"}}
-  end
-
-  @doc """
   Deletes a Trigger.
 
   ## Examples
@@ -148,18 +130,5 @@ defmodule Astarte.RealmManagement.API.Triggers do
     with :ok <- RealmManagement.delete_trigger(realm_name, trigger.name) do
       {:ok, trigger}
     end
-  end
-
-  @doc """
-  Returns an `%Ecto.Changeset{}` for tracking trigger changes.
-
-  ## Examples
-
-      iex> change_trigger(trigger)
-      %Ecto.Changeset{source: %Trigger{}}
-
-  """
-  def change_trigger(realm_name, %Trigger{} = trigger) do
-    Trigger.changeset(trigger, %{}, realm_name: realm_name)
   end
 end

@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2020 Ispirata Srl
+# Copyright 2020 - 2025 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -17,8 +17,12 @@
 #
 
 defmodule Astarte.RealmManagement.API.Triggers.HttpActionTest do
-  use ExUnit.Case
+  use ExUnit.Case, async: true
+
+  @moduletag :trigger_actions
+
   alias Astarte.RealmManagement.API.Triggers.HttpAction
+  alias Astarte.RealmManagement.API.Triggers.Trigger
   alias Ecto.Changeset
 
   test "HttpAction is invalid when both http_post_url and http_url are set" do
@@ -226,5 +230,41 @@ defmodule Astarte.RealmManagement.API.Triggers.HttpActionTest do
               http_method: "get",
               ignore_ssl_errors: true
             }} = out
+  end
+
+  test "headers over the max size are rejected" do
+    value = String.duplicate("a", 2048)
+    headers = Enum.into(1..40, %{}, &{Integer.to_string(&1), value})
+
+    input = %{
+      "http_url" => "http://example.com/",
+      "http_method" => "put",
+      "http_static_headers" => headers
+    }
+
+    changeset = HttpAction.changeset(%HttpAction{}, input)
+
+    refute changeset.valid?
+
+    assert {"headers total size must be lower than 8192", _} =
+             Keyword.get(changeset.errors, :http_static_headers)
+  end
+
+  test "recognizes atom keys for HTTP POST action" do
+    action = %{http_post_url: "https://example.com"}
+    input = %{name: "test", policy: "ok", action: action}
+
+    updated = Trigger.move_action(input)
+    assert Map.has_key?(updated, :http_action)
+    assert updated[:http_action] == action
+  end
+
+  test "recognizes atom keys for HTTP action" do
+    action = %{http_url: "https://example.com"}
+    input = %{name: "test", policy: "ok", action: action}
+
+    updated = Trigger.move_action(input)
+    assert Map.has_key?(updated, :http_action)
+    assert updated[:http_action] == action
   end
 end

@@ -27,7 +27,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Cache do
         Map.has_key?(map, key) ->
           map
 
-        Map.size(map) + 1 > size ->
+        map_size(map) + 1 > size ->
           {key, _value} = Enum.random(map)
           Map.delete(map, key)
 

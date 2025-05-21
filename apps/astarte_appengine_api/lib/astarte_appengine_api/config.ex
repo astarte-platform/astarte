@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2017 Ispirata Srl
+# Copyright 2017-2025 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -128,6 +128,38 @@ defmodule Astarte.AppEngine.API.Config do
     type: :module,
     default: Astarte.RPC.AMQP.Client
 
+  @envdoc "The Erlang cluster strategy to use. One of `none`, `kubernetes`. Defaults to `none`."
+  app_env :clustering_strategy,
+          :astarte_appengine_api,
+          :clustering_strategy,
+          os_env: "CLUSTERING_STRATEGY",
+          type: Astarte.AppEngine.API.Config.ClusteringStrategy,
+          default: "none"
+
+  @envdoc "The Endpoint label to use to query Kubernetes to find data updater plant instances. Defaults to `app=astarte-data-updater-plant`."
+  app_env :dup_clustering_kubernetes_selector,
+          :astarte_appengine_api,
+          :dup_clustering_kubernetes_selector,
+          os_env: "DATA_UPDATER_PLANT_CLUSTERING_KUBERNETES_SELECTOR",
+          type: :binary,
+          default: "app=astarte-data-updater-plant"
+
+  @envdoc "The Endpoint label to use to query Kubernetes to find vernemq instances. Defaults to `app=astarte-vernemq`."
+  app_env :vernemq_clustering_kubernetes_selector,
+          :astarte_appengine_api,
+          :vernemq_clustering_kubernetes_selector,
+          os_env: "VERNEMQ_CLUSTERING_KUBERNETES_SELECTOR",
+          type: :binary,
+          default: "app=astarte-vernemq"
+
+  @envdoc "The Kubernetes namespace to use when `kubernetes` Erlang clustering strategy is used. Defaults to `astarte`."
+  app_env :clustering_kubernetes_namespace,
+          :astarte_appengine_api,
+          :clustering_kubernetes_namespace,
+          os_env: "CLUSTERING_KUBERNETES_NAMESPACE",
+          type: :binary,
+          default: "astarte"
+
   @doc """
   Returns the routing key used for Rooms AMQP events consumer. A constant for now.
   """
@@ -152,6 +184,8 @@ defmodule Astarte.AppEngine.API.Config do
           | {:server_name_indication, :disable | charlist()}
           | {:depth, integer()}
   @type ssl_options :: :none | [ssl_option]
+
+  @type auth_options :: {module(), [{String.t(), String.t()}]}
 
   @type options ::
           {:username, String.t()}
@@ -200,6 +234,59 @@ defmodule Astarte.AppEngine.API.Config do
     end
   end
 
+  def cluster_topologies!() do
+    case clustering_strategy!() do
+      "none" ->
+        []
+
+      "kubernetes" ->
+        [
+          data_updater_plant_k8s: [
+            strategy: Elixir.Cluster.Strategy.Kubernetes,
+            config: [
+              mode: :ip,
+              kubernetes_node_basename: "astarte_data_updater_plant",
+              kubernetes_selector: dup_clustering_kubernetes_selector!(),
+              kubernetes_namespace: clustering_kubernetes_namespace!(),
+              polling_interval: 10_000
+            ]
+          ],
+          vernemq_k8s: [
+            strategy: Elixir.Cluster.Strategy.Kubernetes,
+            config: [
+              mode: :hostname,
+              kubernetes_service_name: "astarte-vernemq",
+              kubernetes_node_basename: "VerneMQ",
+              kubernetes_ip_lookup_mode: :pods,
+              kubernetes_selector: vernemq_clustering_kubernetes_selector!(),
+              kubernetes_namespace: clustering_kubernetes_namespace!(),
+              polling_interval: 10_000
+            ]
+          ]
+        ]
+
+      "docker-compose" ->
+        [
+          data_updater_plant: [
+            strategy: Elixir.Cluster.Strategy.DNSPoll,
+            config: [
+              polling_interval: 5_000,
+              query: "astarte-data-updater-plant",
+              node_basename: "astarte_data_updater_plant"
+            ]
+          ],
+          vernemq: [
+            strategy: Elixir.Cluster.Strategy.DNSPoll,
+            config: [
+              polling_interval: 5_000,
+              query: "vernemq",
+              node_basename: "VerneMQ"
+            ]
+          ]
+        ]
+    end
+  end
+
   @doc """
   Returns cassandra nodes formatted in the Xandra format
   """
@@ -209,8 +296,8 @@ defmodule Astarte.AppEngine.API.Config do
   @doc """
   Returns cassandra nodes formatted in the CQEx format
   """
-  defdelegate cqex_nodes, to: DataAccessConfig
-  defdelegate cqex_nodes!, to: DataAccessConfig
-
   defdelegate xandra_options!, to: DataAccessConfig
+
+  defdelegate astarte_instance_id!, to: DataAccessConfig
+  defdelegate astarte_instance_id, to: DataAccessConfig
 end

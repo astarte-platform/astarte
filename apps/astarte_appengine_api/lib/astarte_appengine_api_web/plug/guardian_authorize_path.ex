@@ -27,7 +27,7 @@ defmodule Astarte.AppEngine.APIWeb.Plug.GuardianAuthorizePath do
     else
       {:error, :invalid_auth_path} ->
         _ =
-          Logger.warn(
+          Logger.warning(
             "Can't build auth_path with path_params: #{inspect(conn.path_params)} " <>
               "path_info: #{inspect(conn.path_info)} query_params: #{inspect(conn.query_params)}",
             tag: "invalid_request"
@@ -70,8 +70,8 @@ defmodule Astarte.AppEngine.APIWeb.Plug.GuardianAuthorizePath do
           {:ok, {method_regex, path_regex}} ->
             _ =
               Logger.debug(
-                "Checking #{method} against #{inspect(method_regex)} and " <>
-                  "#{auth_path} against #{inspect(path_regex)}."
+                "Checking #{inspect(method)} against #{inspect(method_regex)} and " <>
+                  "#{inspect(auth_path)} against #{inspect(path_regex)}."
               )
 
             Regex.match?(method_regex, method) and Regex.match?(path_regex, auth_path)

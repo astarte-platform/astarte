@@ -40,6 +40,7 @@ defmodule Astarte.AppEngine.API.Device.DeviceStatus do
     field :total_received_bytes, :integer
     field :previous_interfaces, {:array, :map}
     field :groups, {:array, :string}
+    field :deletion_in_progress, :boolean, default: false
   end
 
   @doc false
@@ -50,25 +51,25 @@ defmodule Astarte.AppEngine.API.Device.DeviceStatus do
 
   def from_db_row(row) when is_map(row) do
     %{
-      "device_id" => device_id,
-      "aliases" => aliases,
-      "introspection" => introspection_major,
-      "introspection_minor" => introspection_minor,
-      "connected" => connected,
-      "last_connection" => last_connection,
-      "last_disconnection" => last_disconnection,
-      "first_registration" => first_registration,
-      "first_credentials_request" => first_credentials_request,
-      "last_credentials_request_ip" => last_credentials_request_ip,
-      "last_seen_ip" => last_seen_ip,
-      "attributes" => attributes,
-      "inhibit_credentials_request" => credentials_inhibited,
-      "total_received_msgs" => total_received_msgs,
-      "total_received_bytes" => total_received_bytes,
-      "groups" => groups_map,
-      "exchanged_msgs_by_interface" => exchanged_msgs_by_interface,
-      "exchanged_bytes_by_interface" => exchanged_bytes_by_interface,
-      "old_introspection" => old_introspection
+      device_id: device_id,
+      aliases: aliases,
+      introspection: introspection_major,
+      introspection_minor: introspection_minor,
+      connected: connected,
+      last_connection: last_connection,
+      last_disconnection: last_disconnection,
+      first_registration: first_registration,
+      first_credentials_request: first_credentials_request,
+      last_credentials_request_ip: last_credentials_request_ip,
+      last_seen_ip: last_seen_ip,
+      attributes: attributes,
+      inhibit_credentials_request: credentials_inhibited,
+      total_received_msgs: total_received_msgs,
+      total_received_bytes: total_received_bytes,
+      groups: groups_map,
+      exchanged_msgs_by_interface: exchanged_msgs_by_interface,
+      exchanged_bytes_by_interface: exchanged_bytes_by_interface,
+      old_introspection: old_introspection
     } = row
 
     introspection =
@@ -111,6 +112,10 @@ defmodule Astarte.AppEngine.API.Device.DeviceStatus do
 
     # groups_map could be nil, default to empty map
     groups = Map.keys(groups_map || %{})
+    last_connection = truncate_datetime(last_connection)
+    last_disconnection = truncate_datetime(last_disconnection)
+    first_registration = truncate_datetime(first_registration)
+    first_credentials_request = truncate_datetime(first_credentials_request)
 
     %DeviceStatus{
       id: Device.encode_device_id(device_id),
@@ -131,6 +136,9 @@ defmodule Astarte.AppEngine.API.Device.DeviceStatus do
       groups: groups
     }
   end
+
+  defp truncate_datetime(nil), do: nil
+  defp truncate_datetime(datetime), do: datetime |> DateTime.truncate(:millisecond)
 
   defp ip_string(nil) do
     nil
