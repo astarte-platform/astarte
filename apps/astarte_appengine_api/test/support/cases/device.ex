@@ -167,6 +167,12 @@ defmodule Astarte.Cases.Device do
     individual_downsampable = list_of(individual_downsampable(), min_length: 1) |> Enum.at(0)
     object_downsampable = list_of(object_downsampable(), min_length: 1) |> Enum.at(0)
 
+    explicit_timestamps =
+      [ownership: :server, type: :datastream, explicit_timestamp: true]
+      |> InterfaceGenerator.interface()
+      |> list_of(min_length: 1)
+      |> Enum.at(0)
+
     all_interfaces =
       [
         individual_datastream_device,
@@ -179,14 +185,16 @@ defmodule Astarte.Cases.Device do
         fallible_interfaces,
         individual_downsampable,
         object_downsampable,
-        properties_server_allow_unset
+        properties_server_allow_unset,
+        explicit_timestamps
       ]
       |> Enum.concat()
 
     %{
       interfaces: all_interfaces,
       downsampable_individual_interfaces: individual_downsampable,
-      downsampable_object_interfaces: object_downsampable
+      downsampable_object_interfaces: object_downsampable,
+      explicit_timestamp_interfaces: explicit_timestamps
     }
   end
 
