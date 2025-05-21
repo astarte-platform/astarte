@@ -26,6 +26,7 @@ defmodule Astarte.DataUpdaterPlant.TimeBasedActionsTest do
 
   @timestamp_us_x_10 Database.make_timestamp("2025-05-14T14:00:32+00:00")
   @timestamp2_us_x_10 Database.make_timestamp("2025-05-14T14:10:32+00:00")
+  @interface_lifespan_decimicroseconds 60 * 10 * 1000 * 10000
 
   setup_all do
     realm = "autotestrealm#{System.unique_integer([:positive])}"
@@ -157,6 +158,141 @@ defmodule Astarte.DataUpdaterPlant.TimeBasedActionsTest do
     end
   end
 
+  describe "purge_expired_interfaces/2" do
+    test "removes all interfaces when all are expired", %{
+      realm: realm,
+      device_id: device_id,
+      encoded_device_id: encoded_device_id
+    } do
+      # Insert initial device state
+      state =
+        setup_device_interfaces_state(
+          %{"com.test.LCDMonitor" => 1},
+          [{"com.test.LCDMonitor", "/weekSchedule/3/start", 1, @timestamp_us_x_10}],
+          realm,
+          device_id,
+          encoded_device_id
+        )
+
+      assert Map.has_key?(state.interfaces, "com.test.LCDMonitor")
+      assert Map.values(state.interface_ids_to_name) == ["com.test.LCDMonitor"]
+
+      assert state.interfaces_by_expiry == [
+               {@timestamp_us_x_10 + @interface_lifespan_decimicroseconds, "com.test.LCDMonitor"}
+             ]
+
+      # Simulate expiration and refresh
+      new_state = TimeBasedActions.purge_expired_interfaces(state, @timestamp2_us_x_10)
+
+      assert new_state.interfaces == %{}
+      assert new_state.interface_ids_to_name == %{}
+      assert new_state.interfaces_by_expiry == []
+      assert new_state.mappings == %{}
+    end
+
+    test "removes only expired interfaces and keeps non-expired ones", %{
+      realm: realm,
+      device_id: device_id,
+      encoded_device_id: encoded_device_id
+    } do
+      timestamp = Database.make_timestamp("2025-05-14T14:05:32+00:00")
+
+      # Insert initial device state
+      state =
+        setup_device_interfaces_state(
+          %{"com.test.LCDMonitor" => 1, "com.test.SimpleStreamTest" => 1},
+          [
+            {"com.test.LCDMonitor", "/weekSchedule/3/start", 1, @timestamp_us_x_10},
+            {"com.test.SimpleStreamTest", "/0/value", 5, timestamp}
+          ],
+          realm,
+          device_id,
+          encoded_device_id
+        )
+
+      assert Map.keys(state.interfaces) |> Enum.sort() == [
+               "com.test.LCDMonitor",
+               "com.test.SimpleStreamTest"
+             ]
+
+      assert Map.values(state.interface_ids_to_name) |> Enum.sort() == [
+               "com.test.LCDMonitor",
+               "com.test.SimpleStreamTest"
+             ]
+
+      assert state.interfaces_by_expiry == [
+               {@timestamp_us_x_10 + @interface_lifespan_decimicroseconds, "com.test.LCDMonitor"},
+               {timestamp + @interface_lifespan_decimicroseconds, "com.test.SimpleStreamTest"}
+             ]
+
+      # Simulate expiration and refresh
+      new_state = TimeBasedActions.purge_expired_interfaces(state, @timestamp2_us_x_10)
+
+      assert Map.keys(new_state.interfaces) == ["com.test.SimpleStreamTest"]
+      assert Map.values(new_state.interface_ids_to_name) == ["com.test.SimpleStreamTest"]
+
+      assert new_state.interfaces_by_expiry == [
+               {timestamp + @interface_lifespan_decimicroseconds, "com.test.SimpleStreamTest"}
+             ]
+    end
+
+    test "does not remove interfaces if none are expired", %{
+      realm: realm,
+      device_id: device_id,
+      encoded_device_id: encoded_device_id
+    } do
+      state =
+        setup_device_interfaces_state(
+          %{"com.test.LCDMonitor" => 1},
+          [{"com.test.LCDMonitor", "/weekSchedule/3/start", 1, @timestamp_us_x_10}],
+          realm,
+          device_id,
+          encoded_device_id
+        )
+
+      assert Map.has_key?(state.interfaces, "com.test.LCDMonitor")
+      assert Map.values(state.interface_ids_to_name) == ["com.test.LCDMonitor"]
+
+      assert state.interfaces_by_expiry == [
+               {@timestamp_us_x_10 + @interface_lifespan_decimicroseconds, "com.test.LCDMonitor"}
+             ]
+
+      # Simulate not expired
+      timestamp2_us_x_10 = Database.make_timestamp("2025-05-14T14:05:32+00:00")
+
+      new_state = TimeBasedActions.purge_expired_interfaces(state, timestamp2_us_x_10)
+
+      assert new_state.interfaces == state.interfaces
+      assert new_state.interface_ids_to_name == state.interface_ids_to_name
+      assert new_state.interfaces_by_expiry == state.interfaces_by_expiry
+      assert new_state.mappings == state.mappings
+    end
+
+    test "handles empty interfaces state without errors", %{
+      realm: realm,
+      device_id: device_id,
+      encoded_device_id: encoded_device_id
+    } do
+      # Insert initial device state
+      Database.insert_device(device_id, realm, introspection: %{})
+
+      state = DataUpdater.dump_state(realm, encoded_device_id)
+
+      assert state.interfaces == %{}
+      assert state.interface_ids_to_name == %{}
+      assert state.interfaces_by_expiry == []
+      assert state.mappings == %{}
+
+      # Simulate expiration and refresh
+      new_state = TimeBasedActions.purge_expired_interfaces(state, @timestamp_us_x_10)
+
+      assert new_state.interfaces == state.interfaces
+      assert new_state.interface_ids_to_name == state.interface_ids_to_name
+      assert new_state.interfaces_by_expiry == state.interfaces_by_expiry
+      assert new_state.mappings == state.mappings
+    end
+  end
+
   defp setup_device_state(
          realm,
          device_id,
@@ -173,6 +309,31 @@ defmodule Astarte.DataUpdaterPlant.TimeBasedActionsTest do
       Database.gen_tracking_id(),
       timestamp
     )
+
+    DataUpdater.dump_state(realm, encoded_device_id)
+  end
+
+  defp setup_device_interfaces_state(
+         introspection_map,
+         interface_data,
+         realm,
+         device_id,
+         encoded_device_id,
+         timestamp \\ @timestamp_us_x_10
+       ) do
+    Database.insert_device(device_id, realm, introspection: introspection_map)
+
+    Enum.each(interface_data, fn {interface, path, value, ts} ->
+      DataUpdater.handle_data(
+        realm,
+        encoded_device_id,
+        interface,
+        path,
+        Cyanide.encode!(%{"v" => value}),
+        Database.gen_tracking_id(),
+        ts || timestamp
+      )
+    end)
 
     DataUpdater.dump_state(realm, encoded_device_id)
   end

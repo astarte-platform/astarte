@@ -17,6 +17,7 @@
 #
 
 defmodule Astarte.DataUpdaterPlant.TimeBasedActions do
+  alias Astarte.DataUpdaterPlant.DataUpdater.Core
   alias Astarte.DataUpdaterPlant.DataUpdater.Queries
 
   @groups_lifespan_decimicroseconds 60 * 10 * 1000 * 10000
@@ -30,5 +31,23 @@ defmodule Astarte.DataUpdaterPlant.TimeBasedActions do
     else
       state
     end
+  end
+
+  def purge_expired_interfaces(state, timestamp) do
+    expired =
+      Enum.take_while(state.interfaces_by_expiry, fn {expiry, _interface} ->
+        expiry <= timestamp
+      end)
+
+    new_interfaces_by_expiry = Enum.drop(state.interfaces_by_expiry, length(expired))
+
+    interfaces_to_drop_list =
+      for {_exp, iface} <- expired do
+        iface
+      end
+
+    state
+    |> Core.Interface.forget_interfaces(interfaces_to_drop_list)
+    |> Map.put(:interfaces_by_expiry, new_interfaces_by_expiry)
   end
 end

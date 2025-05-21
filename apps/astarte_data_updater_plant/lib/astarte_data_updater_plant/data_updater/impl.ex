@@ -1705,7 +1705,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
     state
     |> Map.put(:last_seen_message, timestamp)
     |> TimeBasedActions.reload_groups_on_expiry(timestamp)
-    |> Core.Interface.purge_expired_interfaces(timestamp)
+    |> TimeBasedActions.purge_expired_interfaces(timestamp)
     |> reload_device_triggers_on_expiry(timestamp)
     |> reload_device_deletion_status_on_expiry(timestamp)
     |> reload_datastream_maximum_storage_retention_on_expiry(timestamp)
