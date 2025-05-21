@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2017 Ispirata Srl
+# Copyright 2017 - 2023 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -39,6 +39,30 @@ defmodule Astarte.RealmManagement.APIWeb.ErrorView do
     %{errors: %{detail: "Forbidden"}}
   end
 
+  def render("missing_token.json", _assigns) do
+    %{errors: %{detail: "Missing authorization token"}}
+  end
+
+  def render("invalid_token.json", _assigns) do
+    %{errors: %{detail: "Invalid JWT token"}}
+  end
+
+  def render("invalid_auth_path.json", _assigns) do
+    %{
+      errors: %{
+        detail: "Authorization failed due to an invalid path"
+      }
+    }
+  end
+
+  def render("authorization_path_not_matched.json", %{method: method, path: path}) do
+    %{
+      errors: %{
+        detail: "Unauthorized access to #{method} #{path}. Please verify your permissions"
+      }
+    }
+  end
+
   def render("interface_not_found.json", _assigns) do
     %{errors: %{detail: "Interface not found"}}
   end
@@ -65,6 +89,18 @@ defmodule Astarte.RealmManagement.APIWeb.ErrorView do
 
   def render("overlapping_mappings.json", _assigns) do
     %{errors: %{detail: "Overlapping endpoints in interface mappings"}}
+  end
+
+  def render("maximum_database_retention_exceeded.json", _assigns) do
+    %{errors: %{detail: "database_retention_ttl exceeds the maximum storage retention"}}
+  end
+
+  def render("invalid_device_id.json", _assigns) do
+    %{errors: %{detail: "The provided id is not a valid device id"}}
+  end
+
+  def render("device_not_found.json", _assigns) do
+    %{errors: %{detail: "Device not found"}}
   end
 
   # In case no render clause matches or no

@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2017,2018 Ispirata Srl
+# Copyright 2017 - 2023 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -20,11 +20,14 @@ defmodule Astarte.RealmManagement.EngineTest do
   use ExUnit.Case
   require Logger
   alias Astarte.Core.CQLUtils
+  alias Astarte.RealmManagement.Config
   alias Astarte.DataAccess.Database
   alias Astarte.RealmManagement.DatabaseTestHelper
+  alias Astarte.RealmManagement.DatabaseFixtures
   alias Astarte.RealmManagement.Engine
   alias Astarte.Core.Triggers.SimpleTriggerConfig
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.TaggedSimpleTrigger
+  alias Astarte.Core.Device
 
   @test_interface_a_0 """
   {
@@ -585,6 +588,27 @@ defmodule Astarte.RealmManagement.EngineTest do
   }
   """
 
+  @test_interface_h_0 """
+  {
+    "interface_name": "com.astarte.SomeInterface",
+    "version_major": 0,
+    "version_minor": 1,
+    "type": "datastream",
+    "ownership": "device",
+    "description": "Interface description.",
+    "doc": "Interface documentation.",
+    "mappings": [
+        {
+            "endpoint": "/aaa/a",
+            "type": "double",
+            "database_retention_policy": "use_ttl",
+            "database_retention_ttl": 60,
+            "explicit_timestamp": true
+        }
+    ]
+  }
+  """
+
   @test_trigger_policy_1 """
     {
       "name": "aname",
@@ -829,6 +853,47 @@ defmodule Astarte.RealmManagement.EngineTest do
              {:ok, [[major_version: 0, minor_version: 3]]}
 
     assert Engine.delete_interface("autotestrealm", "com.ObjectAggregation", 0) == :ok
+  end
+
+  @tag pr: 913
+  test "success to install interface when datastream_maximum_storage_retention equal to 0" do
+    DatabaseTestHelper.seed_realm_test_data!(
+      realm_name: "autotestrealm",
+      datastream_maximum_storage_retention: 0
+    )
+
+    assert Engine.install_interface("autotestrealm", @test_interface_h_0) == :ok
+  end
+
+  @tag pr: 913
+  test "success to install interface when database_retention_ttl lower than the maximum" do
+    DatabaseTestHelper.seed_realm_test_data!(
+      realm_name: "autotestrealm",
+      datastream_maximum_storage_retention: 70
+    )
+
+    assert Engine.install_interface("autotestrealm", @test_interface_h_0) == :ok
+  end
+
+  @tag pr: 913
+  test "success to install interface when database_retention_ttl equal the maximum" do
+    DatabaseTestHelper.seed_realm_test_data!(
+      realm_name: "autotestrealm",
+      datastream_maximum_storage_retention: 60
+    )
+
+    assert Engine.install_interface("autotestrealm", @test_interface_h_0) == :ok
+  end
+
+  @tag pr: 913
+  test "fail to install interface when database_retention_ttl is higher than the maximum" do
+    DatabaseTestHelper.seed_realm_test_data!(
+      realm_name: "autotestrealm",
+      datastream_maximum_storage_retention: 10
+    )
+
+    assert Engine.install_interface("autotestrealm", @test_interface_h_0) ==
+             {:error, :maximum_database_retention_exceeded}
   end
 
   test "delete datastream interface" do
@@ -1452,6 +1517,64 @@ defmodule Astarte.RealmManagement.EngineTest do
              trigger.action,
              trigger.simple_triggers
            ) == :ok
+  end
+
+  test "begin deletion of an existing device" do
+    device_id = Device.random_device_id()
+    encoded_device_id = Device.encode_device_id(device_id)
+    DatabaseTestHelper.seed_devices_test_data!(realm_name: "autotestrealm", device_id: device_id)
+
+    assert :ok = Engine.delete_device(@test_realm_name, encoded_device_id)
+
+    statement = """
+    SELECT * FROM #{CQLUtils.realm_name_to_keyspace_name(@test_realm_name, Config.astarte_instance_id!())}.deletion_in_progress
+    """
+
+    assert [%{device_id: ^device_id}] =
+             Xandra.Cluster.execute!(:xandra, statement, %{}, uuid_format: :binary)
+             |> Enum.to_list()
+  end
+
+  test "do not begin deletion of a missing device" do
+    missing_device_id = Device.random_device_id() |> Device.encode_device_id()
+
+    assert {:error, :device_not_found} = Engine.delete_device(@test_realm_name, missing_device_id)
+  end
+
+  test "retrieve device registration limit for an existing realm" do
+    limit = 10
+    realm_name = "autotestrealm"
+
+    DatabaseTestHelper.seed_realm_test_data!(
+      realm_name: realm_name,
+      device_registration_limit: limit
+    )
+
+    assert {:ok, ^limit} = Engine.get_device_registration_limit(realm_name)
+  end
+
+  test "fail to retrieve device registration limit if realm does not exist" do
+    realm_name = "realm#{System.unique_integer([:positive])}"
+    assert {:error, :realm_not_found} = Engine.get_device_registration_limit(realm_name)
+  end
+
+  test "retrieve datastream_maximum_storage_retention for an existing realm" do
+    retention = 10
+    realm_name = "autotestrealm"
+
+    DatabaseTestHelper.seed_realm_test_data!(
+      realm_name: realm_name,
+      datastream_maximum_storage_retention: retention
+    )
+
+    assert {:ok, ^retention} = Engine.get_datastream_maximum_storage_retention(realm_name)
+  end
+
+  test "fail to retrieve datastream_maximum_storage_retention if realm does not exist" do
+    realm_name = "realm#{System.unique_integer([:positive])}"
+
+    assert {:error, _} =
+             Engine.get_datastream_maximum_storage_retention(realm_name)
   end
 
   defp unpack_source({:ok, source}) when is_binary(source) do

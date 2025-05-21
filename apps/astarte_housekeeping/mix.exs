@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2017-2021 Ispirata Srl
+# Copyright 2017-2023 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -22,12 +22,12 @@ defmodule Astarte.Housekeeping.Mixfile do
   def project do
     [
       app: :astarte_housekeeping,
-      version: "1.1.1",
+      version: "1.3.0-dev",
       build_path: "_build",
       config_path: "config/config.exs",
       deps_path: "deps",
       lockfile: "mix.lock",
-      elixir: "~> 1.14",
+      elixir: "~> 1.15",
       elixirc_paths: elixirc_paths(Mix.env()),
       build_embedded: Mix.env() == :prod,
       start_permanent: Mix.env() == :prod,
@@ -45,7 +45,7 @@ defmodule Astarte.Housekeeping.Mixfile do
 
   def application do
     [
-      extra_applications: [:lager, :logger],
+      extra_applications: [:logger],
       mod: {Astarte.Housekeeping, []}
     ]
   end
@@ -71,15 +71,15 @@ defmodule Astarte.Housekeeping.Mixfile do
 
   defp astarte_required_modules(_) do
     [
-      {:astarte_core, "~> 1.1.1"},
-      {:astarte_data_access, "~> 1.1.1"},
-      {:astarte_rpc, "~> 1.1.1"}
+      {:astarte_core, github: "astarte-platform/astarte_core"},
+      {:astarte_data_access, github: "astarte-platform/astarte_data_access"},
+      {:astarte_rpc, github: "astarte-platform/astarte_rpc"}
     ]
   end
 
   defp deps do
     [
-      {:xandra, "~> 0.13"},
+      {:xandra, "~> 0.19"},
       {:excoveralls, "~> 0.15", only: :test},
       {:dialyxir, "~> 1.0", only: [:dev, :ci], runtime: false},
       {:plug_cowboy, "~> 2.1"},
@@ -88,7 +88,12 @@ defmodule Astarte.Housekeeping.Mixfile do
       {:telemetry_metrics_prometheus_core, "~> 0.4"},
       {:telemetry_metrics, "~> 0.4"},
       {:telemetry_poller, "~> 0.4"},
-      {:observer_cli, "~> 1.5"}
+      {:observer_cli, "~> 1.5"},
+      # Fix: re2 1.9.8 to build on arm64
+      {:re2, "~> 1.9.8", override: true},
+      # Workaround for Elixir 1.15 / ssl_verify_fun issue
+      # See also: https://github.com/deadtrickster/ssl_verify_fun.erl/pull/27
+      {:ssl_verify_fun, "~> 1.1.0", manager: :rebar3, override: true}
     ]
   end
 end

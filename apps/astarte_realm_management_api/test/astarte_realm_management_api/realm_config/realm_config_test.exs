@@ -72,5 +72,19 @@ defmodule Astarte.RealmManagement.API.RealmConfigTest do
       assert RealmConfig.get_auth_config(@realm) ==
                {:ok, %AuthConfig{jwt_public_key_pem: @pubkey}}
     end
+
+    test "get_device_registration_limit/1 returns the limit for an existing realm" do
+      limit = 10
+      DB.put_device_registration_limit(@realm, limit)
+
+      assert {:ok, ^limit} = RealmConfig.get_device_registration_limit(@realm)
+    end
+
+    test "get_datastream_maximum_storage_retention/1 returns the retention for an existing realm" do
+      retention = 10
+      DB.put_datastream_maximum_storage_retention(@realm, retention)
+
+      assert {:ok, ^retention} = RealmConfig.get_datastream_maximum_storage_retention(@realm)
+    end
   end
 end

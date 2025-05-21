@@ -47,7 +47,7 @@ defmodule Astarte.Pairing.APIWeb.Plug.GuardianAuthorizePath do
         authorize_path_info = Map.get(conn.assigns, :original_path_info, conn.path_info)
 
         _ =
-          Logger.warn(
+          Logger.warning(
             "Can't build auth_path with path_params: #{inspect(conn.path_params)} " <>
               "path_info: #{inspect(authorize_path_info)} " <>
               "query_params: #{inspect(conn.query_params)}.",

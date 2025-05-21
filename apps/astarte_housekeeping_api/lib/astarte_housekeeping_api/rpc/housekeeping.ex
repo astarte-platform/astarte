@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2017-2018 Ispirata Srl
+# Copyright 2017-2023 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -31,7 +31,10 @@ defmodule Astarte.Housekeeping.API.RPC.Housekeeping do
     GetRealmReply,
     GetRealmsList,
     GetRealmsListReply,
-    Reply
+    RemoveLimit,
+    Reply,
+    SetLimit,
+    UpdateRealm
   }
 
   alias Astarte.Housekeeping.API.Config
@@ -45,7 +48,9 @@ defmodule Astarte.Housekeeping.API.RPC.Housekeeping do
           realm_name: realm_name,
           jwt_public_key_pem: pem,
           replication_class: "SimpleStrategy",
-          replication_factor: replication_factor
+          replication_factor: replication_factor,
+          device_registration_limit: device_registration_limit,
+          datastream_maximum_storage_retention: datastream_maximum_storage_retention
         },
         opts
       ) do
@@ -54,10 +59,12 @@ defmodule Astarte.Housekeeping.API.RPC.Housekeeping do
       async_operation: Keyword.get(opts, :async_operation, true),
       jwt_public_key_pem: pem,
       replication_class: :SIMPLE_STRATEGY,
-      replication_factor: replication_factor
+      replication_factor: replication_factor,
+      device_registration_limit: device_registration_limit,
+      datastream_maximum_storage_retention: datastream_maximum_storage_retention
     }
     |> encode_call(:create_realm)
-    |> @rpc_client.rpc_call(@destination)
+    |> @rpc_client.rpc_call(@destination, Config.rpc_timeout!())
     |> decode_reply()
     |> extract_reply()
   end
@@ -67,7 +74,9 @@ defmodule Astarte.Housekeeping.API.RPC.Housekeeping do
           realm_name: realm_name,
           jwt_public_key_pem: pem,
           replication_class: "NetworkTopologyStrategy",
-          datacenter_replication_factors: replication_factors_map
+          datacenter_replication_factors: replication_factors_map,
+          device_registration_limit: device_registration_limit,
+          datastream_maximum_storage_retention: datastream_maximum_storage_retention
         },
         opts
       ) do
@@ -76,7 +85,9 @@ defmodule Astarte.Housekeeping.API.RPC.Housekeeping do
       async_operation: Keyword.get(opts, :async_operation, true),
       jwt_public_key_pem: pem,
       replication_class: :NETWORK_TOPOLOGY_STRATEGY,
-      datacenter_replication_factors: Enum.to_list(replication_factors_map)
+      datacenter_replication_factors: Enum.to_list(replication_factors_map),
+      device_registration_limit: device_registration_limit,
+      datastream_maximum_storage_retention: datastream_maximum_storage_retention
     }
     |> encode_call(:create_realm)
     |> @rpc_client.rpc_call(@destination)
@@ -84,10 +95,35 @@ defmodule Astarte.Housekeeping.API.RPC.Housekeeping do
     |> extract_reply()
   end
 
+  def update_realm(%Realm{
+        realm_name: realm_name,
+        jwt_public_key_pem: pem,
+        replication_class: replication_class,
+        replication_factor: replication_factor,
+        datacenter_replication_factors: replication_factors_map,
+        device_registration_limit: limit,
+        datastream_maximum_storage_retention: max_retention
+      }) do
+    %UpdateRealm{
+      realm: realm_name,
+      jwt_public_key_pem: pem,
+      replication_class: replication_class_to_atom(replication_class),
+      replication_factor: replication_factor,
+      datacenter_replication_factors: replication_factors_map,
+      device_registration_limit: device_registration_limit_to_proto(limit),
+      datastream_maximum_storage_retention:
+        datastream_maximum_storage_retention_to_proto(max_retention)
+    }
+    |> encode_call(:update_realm)
+    |> @rpc_client.rpc_call(@destination, Config.rpc_timeout!())
+    |> decode_reply()
+    |> extract_reply()
+  end
+
   def list_realms do
     %GetRealmsList{}
     |> encode_call(:get_realms_list)
-    |> @rpc_client.rpc_call(@destination)
+    |> @rpc_client.rpc_call(@destination, Config.rpc_timeout!())
     |> decode_reply()
     |> extract_reply()
   end
@@ -97,7 +133,7 @@ defmodule Astarte.Housekeeping.API.RPC.Housekeeping do
 
     %DeleteRealm{realm: realm_name, async_operation: async_operation}
     |> encode_call(:delete_realm)
-    |> @rpc_client.rpc_call(@destination)
+    |> @rpc_client.rpc_call(@destination, Config.rpc_timeout!())
     |> decode_reply()
     |> extract_reply()
   end
@@ -105,7 +141,7 @@ defmodule Astarte.Housekeeping.API.RPC.Housekeeping do
   def get_health do
     %GetHealth{}
     |> encode_call(:get_health)
-    |> @rpc_client.rpc_call(@destination)
+    |> @rpc_client.rpc_call(@destination, Config.rpc_timeout!())
     |> decode_reply()
     |> extract_reply()
   end
@@ -113,7 +149,7 @@ defmodule Astarte.Housekeeping.API.RPC.Housekeeping do
   def get_realm(realm_name) do
     %GetRealm{realm_name: realm_name}
     |> encode_call(:get_realm)
-    |> @rpc_client.rpc_call(@destination)
+    |> @rpc_client.rpc_call(@destination, Config.rpc_timeout!())
     |> decode_reply()
     |> extract_reply()
   end
@@ -121,7 +157,7 @@ defmodule Astarte.Housekeeping.API.RPC.Housekeeping do
   def realm_exists?(realm_name) do
     %DoesRealmExist{realm: realm_name}
     |> encode_call(:does_realm_exist)
-    |> @rpc_client.rpc_call(@destination)
+    |> @rpc_client.rpc_call(@destination, Config.rpc_timeout!())
     |> decode_reply()
     |> extract_reply()
   end
@@ -162,7 +198,9 @@ defmodule Astarte.Housekeeping.API.RPC.Housekeeping do
             realm_name: realm_name,
             jwt_public_key_pem: pem,
             replication_class: :SIMPLE_STRATEGY,
-            replication_factor: replication_factor
+            replication_factor: replication_factor,
+            device_registration_limit: device_registration_limit,
+            datastream_maximum_storage_retention: max_retention
           }}
        ) do
     {:ok,
@@ -170,7 +208,10 @@ defmodule Astarte.Housekeeping.API.RPC.Housekeeping do
        realm_name: realm_name,
        jwt_public_key_pem: pem,
        replication_class: "SimpleStrategy",
-       replication_factor: replication_factor
+       replication_factor: replication_factor,
+       device_registration_limit: device_registration_limit,
+       datastream_maximum_storage_retention:
+         datastream_maximum_storage_retention_from_proto(max_retention)
      }}
   end
 
@@ -180,7 +221,9 @@ defmodule Astarte.Housekeeping.API.RPC.Housekeeping do
             realm_name: realm_name,
             jwt_public_key_pem: pem,
             replication_class: :NETWORK_TOPOLOGY_STRATEGY,
-            datacenter_replication_factors: datacenter_replication_factors
+            datacenter_replication_factors: datacenter_replication_factors,
+            device_registration_limit: device_registration_limit,
+            datastream_maximum_storage_retention: max_retention
           }}
        ) do
     {:ok,
@@ -188,7 +231,10 @@ defmodule Astarte.Housekeeping.API.RPC.Housekeeping do
        realm_name: realm_name,
        jwt_public_key_pem: pem,
        replication_class: "NetworkTopologyStrategy",
-       datacenter_replication_factors: Enum.into(datacenter_replication_factors, %{})
+       datacenter_replication_factors: Enum.into(datacenter_replication_factors, %{}),
+       device_registration_limit: device_registration_limit,
+       datastream_maximum_storage_retention:
+         datastream_maximum_storage_retention_from_proto(max_retention)
      }}
   end
 
@@ -206,6 +252,20 @@ defmodule Astarte.Housekeeping.API.RPC.Housekeeping do
          {:generic_error_reply, %GenericErrorReply{error_name: "connected_devices_present"}}
        ) do
     {:error, :connected_devices_present}
+  end
+
+  defp extract_reply(
+         {:generic_error_reply,
+          %GenericErrorReply{error_name: "delete_datastream_maximum_storage_retention_fail"}}
+       ) do
+    {:error, :delete_datastream_maximum_storage_retention_fail}
+  end
+
+  defp extract_reply(
+         {:generic_error_reply,
+          %GenericErrorReply{error_name: "set_datastream_maximum_storage_retention_fail"}}
+       ) do
+    {:error, :set_datastream_maximum_storage_retention_fail}
   end
 
   defp extract_reply({:generic_error_reply, error_struct = %GenericErrorReply{}}) do
@@ -233,4 +293,21 @@ defmodule Astarte.Housekeeping.API.RPC.Housekeeping do
       :ok
     end
   end
+
+  defp replication_class_to_atom("NetworkTopologyStrategy"), do: :NETWORK_TOPOLOGY_STRATEGY
+  defp replication_class_to_atom("SimpleStrategy"), do: :SIMPLE_STRATEGY
+  defp replication_class_to_atom(nil), do: nil
+
+  defp device_registration_limit_to_proto(:unset), do: {:remove_limit, %RemoveLimit{}}
+  defp device_registration_limit_to_proto(nil), do: nil
+
+  defp device_registration_limit_to_proto(n) when is_integer(n) do
+    {:set_limit, %SetLimit{value: n}}
+  end
+
+  defp datastream_maximum_storage_retention_to_proto(:unset), do: 0
+  defp datastream_maximum_storage_retention_to_proto(nil), do: nil
+  defp datastream_maximum_storage_retention_to_proto(n) when is_integer(n), do: n
+  defp datastream_maximum_storage_retention_from_proto(0), do: nil
+  defp datastream_maximum_storage_retention_from_proto(n) when is_integer(n), do: n
 end

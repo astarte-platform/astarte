@@ -47,6 +47,14 @@ defmodule Astarte.Housekeeping.API.Config do
     type: :unsafe_module,
     default: Astarte.RPC.AMQP.Client
 
+  @envdoc """
+  Timeout for RPC calls to Housekeeping backend, in milliseconds.
+  """
+  app_env :rpc_timeout, :astarte_housekeeping_api, :rpc_timeout,
+    os_env: "HOUSEKEEPING_API_RPC_TIMEOUT",
+    type: :integer,
+    default: 5000
+
   @doc """
   Returns true if the authentication is disabled.
   """

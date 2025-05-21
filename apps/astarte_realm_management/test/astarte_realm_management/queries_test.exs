@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2017,2018 Ispirata Srl
+# Copyright 2017 - 2023 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -19,12 +19,14 @@
 defmodule Astarte.RealmManagement.QueriesTest do
   use ExUnit.Case
   require Logger
+  alias Astarte.RealmManagement.DatabaseFixtures
   alias CQEx.Query, as: DatabaseQuery
   alias Astarte.Core.Interface, as: InterfaceDocument
   alias Astarte.Core.InterfaceDescriptor
   alias Astarte.RealmManagement.DatabaseTestHelper
   alias Astarte.RealmManagement.Queries
   alias Astarte.RealmManagement.Config
+  alias Astarte.Core.CQLUtils
 
   @object_datastream_interface_json """
   {
@@ -93,23 +95,23 @@ defmodule Astarte.RealmManagement.QueriesTest do
   """
 
   @count_log_entries_for_device_a """
-    SELECT COUNT(*) FROM autotestrealm.com_ispirata_hemera_devicelog_v1 WHERE device_id=536be249-aaaa-4e02-9583-5a4833cbfe49 AND path='/';
+    SELECT COUNT(*) FROM #{CQLUtils.realm_name_to_keyspace_name("autotestrealm", Config.astarte_instance_id!())}.com_ispirata_hemera_devicelog_v1 WHERE device_id=536be249-aaaa-4e02-9583-5a4833cbfe49 AND path='/';
   """
 
   @count_log_entries_for_device_b """
-    SELECT COUNT(*) FROM autotestrealm.com_ispirata_hemera_devicelog_v1 WHERE device_id=536be249-bbbb-4e02-9583-5a4833cbfe49 AND path='/';
+    SELECT COUNT(*) FROM #{CQLUtils.realm_name_to_keyspace_name("autotestrealm", Config.astarte_instance_id!())}.com_ispirata_hemera_devicelog_v1 WHERE device_id=536be249-bbbb-4e02-9583-5a4833cbfe49 AND path='/';
   """
 
   @count_log_entries_for_device_c """
-    SELECT COUNT(*) FROM autotestrealm.com_ispirata_hemera_devicelog_v1 WHERE device_id=536be249-cccc-4e02-9583-5a4833cbfe49 AND path='/';
+    SELECT COUNT(*) FROM #{CQLUtils.realm_name_to_keyspace_name("autotestrealm", Config.astarte_instance_id!())}.com_ispirata_hemera_devicelog_v1 WHERE device_id=536be249-cccc-4e02-9583-5a4833cbfe49 AND path='/';
   """
 
   @a_log_entry_for_device_a """
-    SELECT * FROM autotestrealm.com_ispirata_hemera_devicelog_v1 WHERE device_id=536be249-aaaa-4e02-9583-5a4833cbfe49 AND path='/' AND reception_timestamp > '2011-02-03 04:05+0000';
+    SELECT * FROM #{CQLUtils.realm_name_to_keyspace_name("autotestrealm", Config.astarte_instance_id!())}.com_ispirata_hemera_devicelog_v1 WHERE device_id=536be249-aaaa-4e02-9583-5a4833cbfe49 AND path='/' AND reception_timestamp > '2011-02-03 04:05+0000';
   """
 
   @an_older_log_entry_for_device_a """
-    SELECT * FROM autotestrealm.com_ispirata_hemera_devicelog_v1 WHERE device_id=536be249-aaaa-4e02-9583-5a4833cbfe49 AND path='/' AND reception_timestamp <= '2011-02-03 04:05+0000';
+    SELECT * FROM #{CQLUtils.realm_name_to_keyspace_name("autotestrealm", Config.astarte_instance_id!())}.com_ispirata_hemera_devicelog_v1 WHERE device_id=536be249-aaaa-4e02-9583-5a4833cbfe49 AND path='/' AND reception_timestamp <= '2011-02-03 04:05+0000';
   """
 
   @individual_property_device_owned_interface """
@@ -188,6 +190,8 @@ defmodule Astarte.RealmManagement.QueriesTest do
     SELECT value_timestamp FROM individual_datastreams WHERE device_id=536be249-aaaa-4e02-9583-5a4833cbfe49 AND interface_id=:interface_id AND endpoint_id=:endpoint_id AND path='/test/:ind/v';
   """
 
+  @realm_name "autotestrealm"
+
   setup do
     with {:ok, client} <- DatabaseTestHelper.connect_to_test_database() do
       DatabaseTestHelper.seed_test_data(client)
@@ -209,7 +213,10 @@ defmodule Astarte.RealmManagement.QueriesTest do
   def connect_to_test_realm(realm) do
     cqex_options =
       Config.cqex_options!()
-      |> Keyword.put(:keyspace, realm)
+      |> Keyword.put(
+        :keyspace,
+        CQLUtils.realm_name_to_keyspace_name(realm, Config.astarte_instance_id!())
+      )
 
     CQEx.Client.new!(Config.cassandra_node!(), cqex_options)
   end
@@ -249,6 +256,54 @@ defmodule Astarte.RealmManagement.QueriesTest do
     |> Enum.find(fn row ->
       row[:endpoint] == endpoint
     end)
+  end
+
+  test "get_interfaces_details/1 returns interface with mappings" do
+    {:ok, _} = DatabaseTestHelper.connect_to_test_database()
+    client = connect_to_test_realm("autotestrealm")
+
+    interface_doc = %InterfaceDocument{
+      name: "org.astarte-platform.genericsensors.Values",
+      major_version: 1,
+      minor_version: 0,
+      interface_id: <<194, 56, 178, 68, 185, 15, 76, 109, 242, 118, 37, 118, 139, 246, 171, 172>>,
+      type: :datastream,
+      ownership: :device,
+      aggregation: :individual,
+      mappings: [
+        %Astarte.Core.Mapping{
+          allow_unset: false,
+          database_retention_policy: :no_ttl,
+          database_retention_ttl: nil,
+          description: "Sampled real value.",
+          doc: "Datastream of sampled real values.",
+          endpoint: "/%{sensor_id}/value",
+          endpoint_id: <<51, 117, 20, 18, 62, 119, 173, 31, 173, 87, 40, 12, 201, 250, 213, 129>>,
+          expiry: 0,
+          explicit_timestamp: true,
+          interface_id:
+            <<194, 56, 178, 68, 185, 15, 76, 109, 242, 118, 37, 118, 139, 246, 171, 172>>,
+          path: nil,
+          reliability: :unreliable,
+          retention: :discard,
+          type: nil,
+          value_type: :double
+        }
+      ]
+    }
+
+    {:ok, automaton} = Astarte.Core.Mapping.EndpointsAutomaton.build(interface_doc.mappings)
+
+    Queries.install_new_interface(client, interface_doc, automaton)
+
+    {:ok, interface_list} = Queries.get_detailed_interfaces_list(client)
+    {:ok, interface_list_decoded} = Jason.decode(List.first(interface_list))
+
+    interface_from_db = InterfaceDocument.changeset(%InterfaceDocument{}, interface_list_decoded)
+
+    {:ok, interface_doc_from_db} = Ecto.Changeset.apply_action(interface_from_db, :insert)
+
+    assert interface_doc_from_db == interface_doc
   end
 
   test "object interface install" do
@@ -576,5 +631,298 @@ defmodule Astarte.RealmManagement.QueriesTest do
 
     assert Queries.get_jwt_public_key_pem(client) ==
              {:ok, DatabaseTestHelper.jwt_public_key_pem_fixture()}
+  end
+
+  test "retrieve and delete individual datastreams for a device" do
+    device_id = :crypto.strong_rand_bytes(16)
+    interface_name = "com.an.individual.datastream.Interface"
+    interface_major = 0
+    endpoint = "/%{sensorId}/value"
+    path = "/0/value"
+
+    DatabaseTestHelper.seed_individual_datastream_test_data!(
+      realm_name: @realm_name,
+      device_id: device_id,
+      interface_name: interface_name,
+      interface_major: interface_major,
+      endpoint: endpoint,
+      path: path
+    )
+
+    assert [
+             %{
+               device_id: ^device_id,
+               interface_id: interface_id,
+               endpoint_id: endpoint_id,
+               path: ^path
+             }
+           ] =
+             Queries.retrieve_individual_datastreams_keys!(
+               @realm_name,
+               device_id
+             )
+
+    assert ^interface_id = CQLUtils.interface_id(interface_name, interface_major)
+
+    assert ^endpoint_id = CQLUtils.endpoint_id(interface_name, interface_major, endpoint)
+
+    assert %Xandra.Void{} =
+             Queries.delete_individual_datastream_values!(
+               @realm_name,
+               device_id,
+               interface_id,
+               endpoint_id,
+               path
+             )
+
+    assert [] =
+             Queries.retrieve_individual_datastreams_keys!(
+               @realm_name,
+               device_id
+             )
+  end
+
+  test "retrieve and delete individual properties for a device" do
+    device_id = :crypto.strong_rand_bytes(16)
+    interface_name = "com.an.individual.property.Interface"
+    interface_major = 0
+
+    DatabaseTestHelper.seed_individual_properties_test_data!(
+      realm_name: @realm_name,
+      device_id: device_id,
+      interface_name: interface_name,
+      interface_major: interface_major
+    )
+
+    assert [
+             %{
+               device_id: ^device_id,
+               interface_id: interface_id
+             }
+           ] =
+             Queries.retrieve_individual_properties_keys!(
+               @realm_name,
+               device_id
+             )
+
+    assert ^interface_id = CQLUtils.interface_id(interface_name, interface_major)
+
+    assert %Xandra.Void{} =
+             Queries.delete_individual_properties_values!(
+               @realm_name,
+               device_id,
+               interface_id
+             )
+
+    assert [] =
+             Queries.retrieve_individual_properties_keys!(
+               @realm_name,
+               device_id
+             )
+  end
+
+  test "retrieve and delete object datastreams for a device" do
+    interface_name = "com.object.datastream.Interface"
+    interface_major = 0
+    device_id = :crypto.strong_rand_bytes(16)
+    path = "/0/value"
+
+    table_name = CQLUtils.interface_name_to_table_name(interface_name, interface_major)
+    DatabaseTestHelper.create_object_datastream_table!(table_name)
+
+    DatabaseTestHelper.seed_object_datastream_test_data!(
+      realm_name: @realm_name,
+      device_id: device_id,
+      interface_name: interface_name,
+      interface_major: interface_major,
+      path: path
+    )
+
+    assert [
+             %{
+               device_id: ^device_id,
+               path: ^path
+             }
+           ] =
+             Queries.retrieve_object_datastream_keys!(
+               @realm_name,
+               device_id,
+               table_name
+             )
+
+    assert %Xandra.Void{} =
+             Queries.delete_object_datastream_values!(
+               @realm_name,
+               device_id,
+               path,
+               table_name
+             )
+
+    assert [] =
+             Queries.retrieve_object_datastream_keys!(
+               @realm_name,
+               device_id,
+               table_name
+             )
+  end
+
+  test "retrieve device introspection" do
+    device_id = :crypto.strong_rand_bytes(16)
+    interface_name = "com.an.object.datastream.Interface"
+    interface_major = 0
+
+    DatabaseTestHelper.add_interface_to_introspection!(
+      realm_name: @realm_name,
+      device_id: device_id,
+      interface_name: interface_name,
+      interface_major: interface_major
+    )
+
+    assert %{^interface_name => ^interface_major} =
+             Queries.retrieve_device_introspection_map!(
+               @realm_name,
+               device_id
+             )
+  end
+
+  test "retrieve interface from introspection" do
+    interface_name = "com.an.object.datastream.Interface"
+    interface_major = 0
+
+    DatabaseTestHelper.seed_interfaces_table_object_test_data!(
+      realm_name: @realm_name,
+      interface_name: interface_name,
+      interface_major: interface_major
+    )
+
+    assert %Astarte.Core.InterfaceDescriptor{
+             name: ^interface_name,
+             major_version: ^interface_major
+           } =
+             Queries.retrieve_interface_descriptor!(
+               @realm_name,
+               interface_name,
+               interface_major
+             )
+  end
+
+  test "retrieve and delete aliases" do
+    device_id = :crypto.strong_rand_bytes(16)
+    device_alias = "a boring device alias"
+
+    DatabaseTestHelper.seed_aliases_test_data!(
+      realm_name: @realm_name,
+      device_id: device_id,
+      device_alias: device_alias
+    )
+
+    assert [
+             %{
+               object_name: ^device_alias
+             }
+           ] = Queries.retrieve_aliases!(@realm_name, device_id)
+
+    assert %Xandra.Void{} =
+             Queries.delete_alias_values!(
+               @realm_name,
+               device_alias
+             )
+
+    assert [] = Queries.retrieve_aliases!(@realm_name, device_id)
+  end
+
+  test "retrieve and delete groups" do
+    device_id = :crypto.strong_rand_bytes(16)
+    {insertion_uuid, _state} = :uuid.get_v1(:uuid.new(self()))
+    group = "group"
+
+    DatabaseTestHelper.seed_groups_test_data!(
+      realm_name: @realm_name,
+      group_name: group,
+      insertion_uuid: insertion_uuid,
+      device_id: device_id
+    )
+
+    assert [
+             %{
+               device_id: ^device_id,
+               insertion_uuid: ^insertion_uuid,
+               group_name: ^group
+             }
+           ] = Queries.retrieve_groups_keys!(@realm_name, device_id)
+
+    assert %Xandra.Void{} =
+             Queries.delete_group_values!(
+               @realm_name,
+               device_id,
+               group,
+               insertion_uuid
+             )
+
+    assert [] = Queries.retrieve_groups_keys!(@realm_name, device_id)
+  end
+
+  test "retrieve and delete kv_store entries" do
+    interface_name = "com.an.individual.datastream.Interface"
+    group = "devices-with-data-on-interface-#{interface_name}-v0"
+
+    device_id = :crypto.strong_rand_bytes(16)
+    encoded_device_id = Astarte.Core.Device.encode_device_id(device_id)
+
+    DatabaseTestHelper.seed_kv_store_test_data!(
+      realm_name: @realm_name,
+      group: group,
+      key: encoded_device_id
+    )
+
+    assert [
+             %{
+               group: ^group,
+               key: ^encoded_device_id
+             }
+           ] = Queries.retrieve_kv_store_entries!(@realm_name, encoded_device_id)
+
+    assert %Xandra.Void{} =
+             Queries.delete_kv_store_entry!(
+               @realm_name,
+               group,
+               encoded_device_id
+             )
+
+    assert [] = Queries.retrieve_kv_store_entries!(@realm_name, encoded_device_id)
+  end
+
+  test "retrieve device registration limit for an existing realm" do
+    limit = 10
+
+    DatabaseTestHelper.seed_realm_test_data!(
+      realm_name: @realm_name,
+      device_registration_limit: limit
+    )
+
+    assert {:ok, ^limit} = Queries.get_device_registration_limit(@realm_name)
+  end
+
+  test "fail to retrieve device registration limit if realm does not exist" do
+    realm_name = "realm#{System.unique_integer([:positive])}"
+    assert {:error, :realm_not_found} = Queries.get_device_registration_limit(realm_name)
+  end
+
+  test "retrieve datastream_maximum_storage_retention for an existing realm" do
+    retention = 10
+
+    DatabaseTestHelper.seed_realm_test_data!(
+      realm_name: @realm_name,
+      datastream_maximum_storage_retention: retention
+    )
+
+    assert {:ok, ^retention} = Queries.get_datastream_maximum_storage_retention(@realm_name)
+  end
+
+  test "fail to retrieve datastream_maximum_storage_retention if realm does not exist" do
+    realm_name = "realm#{System.unique_integer([:positive])}"
+
+    assert {:error, _} =
+             Queries.get_datastream_maximum_storage_retention(realm_name)
   end
 end

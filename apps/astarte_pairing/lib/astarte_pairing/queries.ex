@@ -23,7 +23,8 @@ defmodule Astarte.Pairing.Queries do
 
   alias CQEx.Query
   alias CQEx.Result
-
+  alias Astarte.Core.CQLUtils
+  alias Astarte.Pairing.Config
   require Logger
 
   @protocol_revision 1
@@ -48,7 +49,7 @@ defmodule Astarte.Pairing.Queries do
         {:error, :public_key_not_found}
 
       error ->
-        Logger.warn("DB error: #{inspect(error)}")
+        Logger.warning("DB error: #{inspect(error)}")
         {:error, :database_error}
     end
   end
@@ -88,32 +89,63 @@ defmodule Astarte.Pairing.Queries do
           )
 
         [first_credentials_request: _timestamp, first_registration: _registration_timestamp] ->
-          Logger.warn("register request for existing confirmed device: #{inspect(extended_id)}")
+          Logger.warning(
+            "register request for existing confirmed device: #{inspect(extended_id)}"
+          )
+
           {:error, :already_registered}
       end
     else
       error ->
-        Logger.warn("DB error: #{inspect(error)}")
+        Logger.warning("DB error: #{inspect(error)}")
         {:error, :database_error}
     end
   end
 
   def unregister_device(client, device_id) do
-    with :ok <- check_already_registered_device(client, device_id),
+    with :ok <- verify_already_registered_device(client, device_id),
          :ok <- do_unregister_device(client, device_id) do
       :ok
     else
       %{acc: _acc, msg: msg} ->
-        Logger.warn("DB error: #{inspect(msg)}")
+        Logger.warning("DB error: #{inspect(msg)}")
         {:error, :database_error}
 
       {:error, reason} ->
-        Logger.warn("Unregister error: #{inspect(reason)}")
+        Logger.warning("Unregister error: #{inspect(reason)}")
         {:error, reason}
     end
   end
 
-  defp check_already_registered_device(client, device_id) do
+  def check_already_registered_device(realm_name, device_id) do
+    keyspace_name =
+      CQLUtils.realm_name_to_keyspace_name(realm_name, Config.astarte_instance_id!())
+
+    Xandra.Cluster.run(:xandra, fn conn ->
+      query = """
+      SELECT device_id
+      FROM #{keyspace_name}.devices
+      WHERE device_id=:device_id
+      """
+
+      with {:ok, prepared} <- Xandra.prepare(conn, query),
+           {:ok, page} <-
+             Xandra.execute(conn, prepared, %{"device_id" => device_id},
+               uuid_format: :binary,
+               consistency: :quorum
+             ) do
+        case Enum.to_list(page) do
+          [%{"device_id" => _device_id}] ->
+            {:ok, true}
+
+          [] ->
+            {:ok, false}
+        end
+      end
+    end)
+  end
+
+  defp verify_already_registered_device(client, device_id) do
     statement = """
     SELECT device_id
     FROM devices
@@ -231,9 +263,17 @@ defmodule Astarte.Pairing.Queries do
         :ok
 
       error ->
-        Logger.warn("DB error: #{inspect(error)}")
+        Logger.warning("DB error: #{inspect(error)}")
         {:error, :database_error}
     end
+  end
+
+  def fetch_device_registration_limit(realm_name) do
+    Xandra.Cluster.run(:xandra, &do_fetch_device_registration_limit(&1, realm_name))
+  end
+
+  def fetch_registered_devices_count(realm_name) do
+    Xandra.Cluster.run(:xandra, &do_fetch_registered_devices_count(&1, realm_name))
   end
 
   defp do_select_device(client, device_id, select_statement) do
@@ -251,7 +291,7 @@ defmodule Astarte.Pairing.Queries do
         {:error, :device_not_found}
 
       error ->
-        Logger.warn("DB error: #{inspect(error)}")
+        Logger.warning("DB error: #{inspect(error)}")
         {:error, :database_error}
     end
   end
@@ -292,7 +332,7 @@ defmodule Astarte.Pairing.Queries do
         :ok
 
       error ->
-        Logger.warn("DB error: #{inspect(error)}")
+        Logger.warning("DB error: #{inspect(error)}")
         {:error, :database_error}
     end
   end
@@ -339,7 +379,7 @@ defmodule Astarte.Pairing.Queries do
         :ok
 
       error ->
-        Logger.warn("DB error: #{inspect(error)}")
+        Logger.warning("DB error: #{inspect(error)}")
         {:error, :database_error}
     end
   end
@@ -359,7 +399,7 @@ defmodule Astarte.Pairing.Queries do
   def check_astarte_health(consistency) do
     query = """
     SELECT COUNT(*)
-    FROM astarte.realms
+    FROM #{CQLUtils.realm_name_to_keyspace_name("astarte", Config.astarte_instance_id!())}.realms
     """
 
     with {:ok, %Xandra.Page{} = page} <-
@@ -369,7 +409,7 @@ defmodule Astarte.Pairing.Queries do
     else
       :error ->
         _ =
-          Logger.warn("Cannot retrieve count for astarte.realms table.",
+          Logger.warning("Cannot retrieve count for astarte.realms table.",
             tag: "health_check_error"
           )
 
@@ -377,7 +417,7 @@ defmodule Astarte.Pairing.Queries do
 
       {:error, %Xandra.Error{} = err} ->
         _ =
-          Logger.warn("Database error, health is not good: #{inspect(err)}.",
+          Logger.warning("Database error, health is not good: #{inspect(err)}.",
             tag: "health_check_database_error"
           )
 
@@ -385,11 +425,87 @@ defmodule Astarte.Pairing.Queries do
 
       {:error, %Xandra.ConnectionError{} = err} ->
         _ =
-          Logger.warn("Database error, health is not good: #{inspect(err)}.",
+          Logger.warning("Database error, health is not good: #{inspect(err)}.",
             tag: "health_check_database_connection_error"
           )
 
         {:error, :database_connection_error}
+    end
+  end
+
+  defp do_fetch_device_registration_limit(conn, realm_name) do
+    query = """
+    SELECT device_registration_limit
+    FROM #{CQLUtils.realm_name_to_keyspace_name("astarte", Config.astarte_instance_id!())}.realms
+    WHERE realm_name = :realm_name
+    """
+
+    with {:ok, prepared} <- Xandra.prepare(conn, query),
+         {:ok, page} <-
+           Xandra.execute(conn, prepared, %{"realm_name" => realm_name}, consistency: :one) do
+      case Enum.to_list(page) do
+        [%{"device_registration_limit" => value}] ->
+          {:ok, value}
+
+        [] ->
+          _ =
+            Logger.warning(
+              "cannot fetch device registration limit: realm #{realm_name} not found",
+              tag: "realm_not_found"
+            )
+
+          {:error, :realm_not_found}
+      end
+    else
+      {:error, %Xandra.ConnectionError{} = err} ->
+        _ =
+          Logger.warning("Database connection error: #{Exception.message(err)}.",
+            tag: "database_connection_error"
+          )
+
+        {:error, :database_connection_error}
+
+      {:error, %Xandra.Error{} = err} ->
+        _ =
+          Logger.warning("Database error: #{Exception.message(err)}.",
+            tag: "database_error"
+          )
+
+        {:error, :database_error}
+    end
+  end
+
+  defp do_fetch_registered_devices_count(conn, realm_name) do
+    # TODO move away from interpolation like this once NoaccOS' PR is merged
+    keyspace_name =
+      CQLUtils.realm_name_to_keyspace_name(realm_name, Config.astarte_instance_id!())
+
+    query = """
+    SELECT COUNT(*)
+    FROM #{keyspace_name}.devices
+    """
+
+    with {:ok, prepared} <- Xandra.prepare(conn, query),
+         {:ok, page} <-
+           Xandra.execute(conn, prepared, %{}, consistency: :one) do
+      [%{"count" => value}] = Enum.to_list(page)
+      {:ok, value}
+    else
+      {:error, %Xandra.ConnectionError{} = err} ->
+        _ =
+          Logger.warning("Database connection error: #{Exception.message(err)}.",
+            tag: "database_connection_error"
+          )
+
+        {:error, :database_connection_error}
+
+      {:error, %Xandra.Error{} = err} ->
+        _ =
+          Logger.warning("Database error: #{Exception.message(err)}.",
+            tag: "database_error"
+          )
+
+        {:error, :database_error}
     end
   end
 end

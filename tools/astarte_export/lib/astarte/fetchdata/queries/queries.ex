@@ -1,6 +1,9 @@
 defmodule Astarte.Export.FetchData.Queries do
+  require IEx
   alias Astarte.Core.InterfaceDescriptor
   alias Astarte.Core.Mapping
+  alias Astarte.Core.Device
+
   require Logger
 
   def get_connection() do
@@ -13,7 +16,9 @@ defmodule Astarte.Export.FetchData.Queries do
       {:ok, xandra_conn}
     else
       {:error, reason} ->
-        Logger.error("DB connection setup failed: #{inspect(reason)}", tag: "db_connection_failed")
+        Logger.error("DB connection setup failed: #{inspect(reason)}",
+          tag: "db_connection_failed"
+        )
     end
   end
 
@@ -55,12 +60,27 @@ defmodule Astarte.Export.FetchData.Queries do
     end
   end
 
-  def stream_devices(conn, realm, options) do
-    devices_statement = """
-    SELECT * from #{realm}.devices
-    """
+  def stream_devices(conn, realm, options, device_options \\ []) do
+    device_id = device_id_to_uuid(device_options[:device_id])
 
-    params = []
+    {devices_statement, params} =
+      case device_id do
+        nil ->
+          {
+            """
+            SELECT * from #{realm}.devices
+            """,
+            []
+          }
+
+        device_uuid ->
+          {
+            """
+            SELECT * from #{realm}.devices WHERE device_id=?
+            """,
+            [{"uuid", device_id}]
+          }
+      end
 
     options = options ++ [uuid_format: :binary, timestamp_format: :datetime]
 
@@ -124,8 +144,8 @@ defmodule Astarte.Export.FetchData.Queries do
         options
       ) do
     properties_statement = """
-    SELECT  #{data_type}, reception_timestamp from #{realm}.individual_properties 
-      where device_id=? AND interface_id=? AND endpoint_id=? AND path=? 
+    SELECT  #{data_type}, reception_timestamp from #{realm}.individual_properties
+      where device_id=? AND interface_id=? AND endpoint_id=? AND path=?
     """
 
     params = [{"uuid", device_id}, {"uuid", interface_id}, {"uuid", endpoint_id}, {"text", path}]
@@ -226,5 +246,72 @@ defmodule Astarte.Export.FetchData.Queries do
 
         {:error, :database_connection_error}
     end
+  end
+
+  def retrieve_all_endpoint_paths(conn, realm, interface_id, device_id, endpoint_id, aggregation) do
+    {all_paths_statement, params} =
+      case aggregation do
+        :object ->
+          {
+            """
+            SELECT path
+            FROM #{realm}.individual_properties
+            WHERE device_id=? AND interface_id=?
+            """,
+            [{"uuid", device_id}, {"uuid", interface_id}]
+          }
+
+        :individual ->
+          {
+            """
+            SELECT path
+            FROM #{realm}.individual_properties
+            WHERE device_id=? AND interface_id=? AND endpoint_id=?
+            """,
+            [{"uuid", device_id}, {"uuid", interface_id}, {"uuid", endpoint_id}]
+          }
+      end
+
+    with {:ok, result} <-
+           Xandra.execute(conn, all_paths_statement, params) do
+      rows = Enum.map(result, fn row -> row[:path] end)
+
+      if rows == [] do
+        Logger.info("No paths found for interface_id: #{inspect(interface_id)}",
+          tag: "no_paths_found"
+        )
+      else
+        {:ok, rows}
+      end
+
+      {:ok, rows}
+    else
+      {:error, %Xandra.Error{message: message}} ->
+        Logger.error("database error: #{inspect(message)}.",
+          realm: realm,
+          device_id: device_id,
+          tag: "database_error"
+        )
+
+        {:error, :database_error}
+
+      {:error, %Xandra.ConnectionError{} = err} ->
+        Logger.error("database connection error: #{inspect(err)}.",
+          realm: realm,
+          device_id: device_id,
+          tag: "database_connection_error"
+        )
+
+        {:error, :database_connection_error}
+    end
+  end
+
+  defp device_id_to_uuid(device_id) when is_nil(device_id) do
+    nil
+  end
+
+  defp device_id_to_uuid(device_id) do
+    {:ok, device_uuid, _} = Device.decode_extended_device_id(device_id)
+    device_uuid
   end
 end

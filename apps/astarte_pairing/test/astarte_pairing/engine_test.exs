@@ -21,6 +21,7 @@ defmodule Astarte.Pairing.EngineTest do
 
   alias Astarte.Core.Device
   alias Astarte.Pairing.Config
+  alias Astarte.Core.CQLUtils
   alias Astarte.Pairing.CredentialsSecret
   alias Astarte.Pairing.DatabaseTestHelper
   alias Astarte.Pairing.Engine
@@ -160,6 +161,18 @@ defmodule Astarte.Pairing.EngineTest do
       assert Enum.member?(introspection_minor, {"org.astarteplatform.OtherValues", 2})
     end
 
+    test "fails when device_registration_limit is reached" do
+      on_exit(fn -> DatabaseTestHelper.set_device_registration_limit(@test_realm, nil) end)
+
+      DatabaseTestHelper.set_device_registration_limit(@test_realm, 0)
+      hw_id = DatabaseTestHelper.unregistered_128_bit_hw_id()
+
+      assert DatabaseTestHelper.get_first_registration(hw_id) == nil
+
+      assert {:error, :device_registration_limit_reached} =
+               Engine.register_device(@test_realm, hw_id)
+    end
+
     test "does not reset received message count with registered and not confirmed device" do
       total_received_msgs = System.unique_integer([:positive])
       total_received_bytes = System.unique_integer([:positive])
@@ -181,6 +194,18 @@ defmodule Astarte.Pairing.EngineTest do
                  "total_received_bytes" => ^total_received_bytes
                }
              ] = DatabaseTestHelper.get_message_count_for_device(hw_id)
+    end
+
+    test "succeeds when re-registering an existing device after device_registration_limit is reached" do
+      on_exit(fn -> DatabaseTestHelper.set_device_registration_limit(@test_realm, nil) end)
+
+      # We've registered 4 devices until now
+      DatabaseTestHelper.set_device_registration_limit(@test_realm, 5)
+      device_id = DatabaseTestHelper.unregistered_128_bit_hw_id()
+      {:ok, _credentials_secret} = Engine.register_device(@test_realm, device_id)
+      :ok = Engine.unregister_device(@test_realm, device_id)
+
+      assert {:ok, _credentials_secret} = Engine.register_device(@test_realm, device_id)
     end
   end
 
@@ -384,7 +409,10 @@ defmodule Astarte.Pairing.EngineTest do
 
       db_client =
         Config.cassandra_node!()
-        |> CQEx.Client.new!(keyspace: @test_realm)
+        |> CQEx.Client.new!(
+          keyspace:
+            CQLUtils.realm_name_to_keyspace_name(@test_realm, Config.astarte_instance_id!())
+        )
 
       {:ok, device} = Queries.select_device_for_credentials_request(db_client, device_id)
 
@@ -400,7 +428,10 @@ defmodule Astarte.Pairing.EngineTest do
 
       db_client =
         Config.cassandra_node!()
-        |> CQEx.Client.new!(keyspace: @test_realm)
+        |> CQEx.Client.new!(
+          keyspace:
+            CQLUtils.realm_name_to_keyspace_name(@test_realm, Config.astarte_instance_id!())
+        )
 
       {:ok, no_credentials_requested_device} =
         Queries.select_device_for_credentials_request(db_client, device_id)
@@ -447,6 +478,7 @@ defmodule Astarte.Pairing.EngineTest do
     :ok = DatabaseTestHelper.seed_devices()
 
     on_exit(fn ->
+      DatabaseTestHelper.set_device_registration_limit(@test_realm, nil)
       :ok = DatabaseTestHelper.clean_devices()
     end)
   end

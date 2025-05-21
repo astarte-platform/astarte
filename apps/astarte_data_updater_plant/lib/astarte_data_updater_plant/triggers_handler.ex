@@ -17,7 +17,8 @@
 #
 
 defmodule Astarte.DataUpdaterPlant.TriggersHandler do
-  use Bitwise, only_operators: true
+  # https://hexdocs.pm/elixir/1.13.4/Bitwise.html
+  import Bitwise
   require Logger
   alias Astarte.DataUpdaterPlant.Config
 
@@ -38,6 +39,7 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandler do
     InterfaceAddedEvent,
     InterfaceMinorUpdatedEvent,
     InterfaceRemovedEvent,
+    InterfaceVersion,
     PathCreatedEvent,
     PathRemovedEvent,
     SimpleEvent,
@@ -166,11 +168,19 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandler do
         target,
         realm,
         device_id,
-        introspection,
+        introspection_string,
         timestamp,
         policy
       ) do
-    %IncomingIntrospectionEvent{introspection: introspection}
+    incoming_introspection_event =
+      unless Config.generate_legacy_incoming_introspection_events!() do
+        introspection_map = introspection_string_to_introspection_proto_map!(introspection_string)
+        %IncomingIntrospectionEvent{introspection_map: introspection_map}
+      else
+        %IncomingIntrospectionEvent{introspection: introspection_string}
+      end
+
+    incoming_introspection_event
     |> make_simple_event(
       :incoming_introspection_event,
       target.simple_trigger_id,
@@ -502,6 +512,23 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandler do
     }
   end
 
+  defp introspection_string_to_introspection_proto_map!(introspection_string) do
+    # The string format is defined in Astarte MQTTv1,
+    # so we want to crash here if something goes wrong
+    introspection_string_entries = String.split(introspection_string, ";")
+
+    Enum.reduce(introspection_string_entries, %{}, fn entry, acc ->
+      [name, major, minor] = String.split(entry, ":")
+      {major_value, ""} = Integer.parse(major)
+      {minor_value, ""} = Integer.parse(minor)
+
+      Map.put_new(acc, name, %InterfaceVersion{
+        major: major_value,
+        minor: minor_value
+      })
+    end)
+  end
+
   defp execute_all_ok(items, fun) do
     if Enum.all?(items, fun) do
       :ok
@@ -515,7 +542,7 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandler do
   end
 
   defp wait_backoff_and_publish({:error, reason}, retry, exchange, routing_key, payload, opts) do
-    Logger.warn(
+    Logger.warning(
       "Failed publish on events exchange with #{routing_key}. Reason: #{inspect(reason)}"
     )
 

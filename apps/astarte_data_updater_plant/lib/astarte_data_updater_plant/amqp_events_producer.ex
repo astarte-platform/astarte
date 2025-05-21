@@ -72,7 +72,7 @@ defmodule Astarte.DataUpdaterPlant.AMQPEventsProducer do
 
   @impl true
   def handle_info({:DOWN, _, :process, _pid, reason}, _state) do
-    Logger.warn("RabbitMQ connection lost: #{inspect(reason)}. Trying to reconnect...",
+    Logger.warning("RabbitMQ connection lost: #{inspect(reason)}. Trying to reconnect...",
       tag: "events_producer_conn_lost"
     )
 
@@ -87,7 +87,7 @@ defmodule Astarte.DataUpdaterPlant.AMQPEventsProducer do
   end
 
   defp init_producer() do
-    conn = ExRabbitPool.get_connection_worker(:events_producer_pool)
+    conn = ExRabbitPool.get_connection_worker(:dup_events_producer_pool)
 
     with {:ok, channel} <- checkout_channel(conn),
          :ok <- declare_default_events_exchange(channel, conn) do
@@ -106,7 +106,7 @@ defmodule Astarte.DataUpdaterPlant.AMQPEventsProducer do
   defp checkout_channel(conn) do
     with {:error, reason} <- ExRabbitPool.checkout_channel(conn) do
       _ =
-        Logger.warn(
+        Logger.warning(
           "Failed to check out channel for producer: #{inspect(reason)}",
           tag: "event_producer_channel_checkout_fail"
         )
@@ -121,7 +121,7 @@ defmodule Astarte.DataUpdaterPlant.AMQPEventsProducer do
              type: :direct,
              durable: true
            ) do
-      Logger.warn(
+      Logger.warning(
         "Error declaring AMQPEventsProducer default events exchange: #{inspect(reason)}",
         tag: "event_producer_init_fail"
       )
@@ -133,7 +133,7 @@ defmodule Astarte.DataUpdaterPlant.AMQPEventsProducer do
   end
 
   defp schedule_connect() do
-    _ = Logger.warn("Retrying connection in #{@connection_backoff} ms")
+    _ = Logger.warning("Retrying connection in #{@connection_backoff} ms")
     Process.send_after(@connection_backoff, self(), :init)
   end
 end

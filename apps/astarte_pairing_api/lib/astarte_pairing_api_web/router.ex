@@ -19,25 +19,44 @@
 defmodule Astarte.Pairing.APIWeb.Router do
   use Astarte.Pairing.APIWeb, :router
 
-  pipeline :api do
+  pipeline :realm_api do
     plug :accepts, ["json"]
     plug Astarte.Pairing.APIWeb.Plug.LogRealm
   end
 
+  pipeline :agent_api do
+    plug Astarte.Pairing.APIWeb.Plug.AuthorizePath
+  end
+
+  pipeline :devices_api do
+    plug Astarte.Pairing.APIWeb.Plug.LogHwId
+  end
+
   scope "/v1/:realm_name", Astarte.Pairing.APIWeb do
-    pipe_through :api
+    pipe_through :realm_api
 
     get "/version", VersionController, :show
 
-    post "/agent/devices", AgentController, :create
-    delete "/agent/devices/:device_id", AgentController, :delete
+    scope "/agent" do
+      pipe_through :agent_api
 
-    get "/devices/:hw_id", DeviceController, :show_info
+      post "/devices", AgentController, :create
+      delete "/devices/:device_id", AgentController, :delete
+    end
 
-    post "/devices/:hw_id/protocols/:protocol/credentials", DeviceController, :create_credentials
+    scope "/devices" do
+      pipe_through :devices_api
 
-    post "/devices/:hw_id/protocols/:protocol/credentials/verify",
-         DeviceController,
-         :verify_credentials
+      get "/:hw_id", DeviceController, :show_info
+      post "/:hw_id/protocols/:protocol/credentials", DeviceController, :create_credentials
+
+      post "/:hw_id/protocols/:protocol/credentials/verify",
+           DeviceController,
+           :verify_credentials
+    end
+  end
+
+  scope "/version", Astarte.Pairing.APIWeb do
+    get "/", VersionController, :show
   end
 end

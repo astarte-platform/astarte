@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2017-2021 Ispirata Srl
+# Copyright 2017 - 2023 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -22,8 +22,9 @@ defmodule Astarte.RealmManagement.Mixfile do
   def project do
     [
       app: :astarte_realm_management,
-      elixir: "~> 1.14",
-      version: "1.1.1",
+      elixir: "~> 1.15",
+      version: "1.3.0-dev",
+      elixirc_paths: elixirc_paths(Mix.env()),
       build_embedded: Mix.env() == :prod,
       start_permanent: Mix.env() == :prod,
       test_coverage: [tool: ExCoveralls],
@@ -40,10 +41,13 @@ defmodule Astarte.RealmManagement.Mixfile do
 
   def application do
     [
-      extra_applications: [:lager, :logger],
+      extra_applications: [:logger],
       mod: {Astarte.RealmManagement, []}
     ]
   end
+
+  defp elixirc_paths(:test), do: ["test/support", "lib"]
+  defp elixirc_paths(_), do: ["lib"]
 
   defp dialyzer_cache_directory(:ci) do
     "dialyzer_cache"
@@ -63,9 +67,9 @@ defmodule Astarte.RealmManagement.Mixfile do
 
   defp astarte_required_modules(_) do
     [
-      {:astarte_core, "~> 1.1.1"},
-      {:astarte_data_access, "~> 1.1.1"},
-      {:astarte_rpc, "~> 1.1.1"}
+      {:astarte_core, github: "astarte-platform/astarte_core"},
+      {:astarte_data_access, github: "astarte-platform/astarte_data_access"},
+      {:astarte_rpc, github: "astarte-platform/astarte_rpc"}
     ]
   end
 
@@ -81,7 +85,12 @@ defmodule Astarte.RealmManagement.Mixfile do
       {:telemetry_poller, "~> 0.4"},
       {:xandra, "~> 0.13"},
       {:observer_cli, "~> 1.5"},
-      {:dialyxir, "~> 1.0", only: [:dev, :ci], runtime: false}
+      # Fix: re2 1.9.8 to build on arm64
+      {:re2, "~> 1.9.8", override: true},
+      {:dialyxir, "~> 1.0", only: [:dev, :ci], runtime: false},
+      # Workaround for Elixir 1.15 / ssl_verify_fun issue
+      # See also: https://github.com/deadtrickster/ssl_verify_fun.erl/pull/27
+      {:ssl_verify_fun, "~> 1.1.0", manager: :rebar3, override: true}
     ]
   end
 end

@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2017-2018 Ispirata Srl
+# Copyright 2017-2023 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -31,7 +31,8 @@ defmodule Astarte.Housekeeping.RPC.HandlerTest do
     GetRealmReply,
     GetRealmsList,
     GetRealmsListReply,
-    Reply
+    Reply,
+    UpdateRealm
   }
 
   alias Astarte.Housekeeping.RPC.Handler
@@ -45,6 +46,8 @@ defmodule Astarte.Housekeeping.RPC.HandlerTest do
   @replication_factor 1
 
   @public_key_pem "this_is_not_a_pem_but_it_will_do_for_tests"
+  @device_limit 1
+  @datastream_maximum_storage_retention 1
 
   setup_all do
     :ok = DatabaseTestHelper.wait_and_initialize()
@@ -139,6 +142,42 @@ defmodule Astarte.Housekeeping.RPC.HandlerTest do
           {:create_realm,
            CreateRealm.new(realm: @test_realm, jwt_public_key_pem: @public_key_pem)}
       )
+      |> Call.encode()
+
+    {:ok, create_reply} = Handler.handle_rpc(encoded)
+
+    assert Reply.decode(create_reply) == generic_ok()
+
+    encoded =
+      %Call{call: {:does_realm_exist, %DoesRealmExist{realm: @test_realm}}}
+      |> Call.encode()
+
+    expected = %Reply{
+      error: false,
+      reply: {:does_realm_exist_reply, %DoesRealmExistReply{exists: true}},
+      version: 0
+    }
+
+    {:ok, exists_reply} = Handler.handle_rpc(encoded)
+
+    assert Reply.decode(exists_reply) == expected
+  end
+
+  test "Realm creation succeeds when device_registration_limit is not set" do
+    on_exit(fn ->
+      DatabaseTestHelper.realm_cleanup(@test_realm)
+    end)
+
+    encoded =
+      %Call{
+        call:
+          {:create_realm,
+           %CreateRealm{
+             realm: @test_realm,
+             jwt_public_key_pem: @public_key_pem,
+             device_registration_limit: nil
+           }}
+      }
       |> Call.encode()
 
     {:ok, create_reply} = Handler.handle_rpc(encoded)
@@ -376,7 +415,13 @@ defmodule Astarte.Housekeeping.RPC.HandlerTest do
   end
 
   test "DeleteRealm successful call" do
-    Engine.create_realm(@test_realm, @public_key_pem, @replication_factor)
+    Engine.create_realm(
+      @test_realm,
+      @public_key_pem,
+      @replication_factor,
+      @device_limit,
+      @datastream_maximum_storage_retention
+    )
 
     encoded =
       %Call{call: {:delete_realm, %DeleteRealm{realm: @test_realm}}}
@@ -413,7 +458,13 @@ defmodule Astarte.Housekeeping.RPC.HandlerTest do
       Config.reload_enable_realm_deletion()
     end)
 
-    Engine.create_realm(@test_realm, @public_key_pem, @replication_factor)
+    Engine.create_realm(
+      @test_realm,
+      @public_key_pem,
+      @replication_factor,
+      @device_limit,
+      @datastream_maximum_storage_retention
+    )
 
     Config.put_enable_realm_deletion(false)
 
@@ -424,5 +475,97 @@ defmodule Astarte.Housekeeping.RPC.HandlerTest do
     {:ok, reply} = Handler.handle_rpc(encoded)
 
     assert Reply.decode(reply) == generic_error("realm_deletion_disabled")
+  end
+
+  describe "UpdateRealm" do
+    setup do
+      alias Astarte.Housekeeping.Queries
+
+      :ok =
+        Queries.create_realm(
+          @test_realm,
+          "test1publickey",
+          @replication_factor,
+          @device_limit,
+          @datastream_maximum_storage_retention,
+          []
+        )
+
+      on_exit(fn ->
+        DatabaseTestHelper.realm_cleanup(@test_realm)
+      end)
+    end
+
+    test "succeeds when realm exists and update values are valid" do
+      encoded =
+        %Call{
+          call:
+            {:update_realm, %UpdateRealm{realm: @test_realm, jwt_public_key_pem: @public_key_pem}}
+        }
+        |> Call.encode()
+
+      {:ok, update_reply} = Handler.handle_rpc(encoded)
+
+      expected = %Reply{
+        version: 0,
+        error: false,
+        reply:
+          {:get_realm_reply,
+           %GetRealmReply{
+             realm_name: @test_realm,
+             jwt_public_key_pem: @public_key_pem,
+             replication_class: :SIMPLE_STRATEGY,
+             replication_factor: @replication_factor,
+             device_registration_limit: @device_limit,
+             datastream_maximum_storage_retention: @datastream_maximum_storage_retention
+           }}
+      }
+
+      assert Reply.decode(update_reply) == expected
+    end
+
+    test "fails with error when realm does not exist" do
+      encoded =
+        %Call{
+          call:
+            {:update_realm,
+             %UpdateRealm{realm: "i_dont_exist", jwt_public_key_pem: @public_key_pem}}
+        }
+        |> Call.encode()
+
+      {:ok, update_reply} = Handler.handle_rpc(encoded)
+
+      expected = %Reply{
+        version: 0,
+        error: true,
+        reply:
+          {:generic_error_reply,
+           %GenericErrorReply{
+             error_name: "realm_not_found"
+           }}
+      }
+
+      assert Reply.decode(update_reply) == expected
+    end
+
+    test "fails with error when update parameters are invalid" do
+      encoded =
+        %Call{call: {:update_realm, %UpdateRealm{realm: @test_realm, replication_factor: 10}}}
+        |> Call.encode()
+
+      {:ok, update_reply} = Handler.handle_rpc(encoded)
+
+      expected = %Reply{
+        version: 0,
+        error: true,
+        reply:
+          {:generic_error_reply,
+           %GenericErrorReply{
+             error_name: "invalid_update_parameters"
+           }}
+      }
+
+      assert Reply.decode(update_reply) == expected
+    end
   end
 end

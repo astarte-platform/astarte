@@ -4,6 +4,73 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## [1.3.0] - Unreleased
+### Added
+- [astarte_realm_management_api] Allow to list all interfaces definitions using 
+  the `detailed=true` parameter
+- [astarte_import] Added support for data types: `doublearray`, `integerarray`,
+  `booleanarray`, `longintegerarray`, `stringarray`, `datetimearray`, `binaryblobarray`.
+- [astarte_export] Added a new command for exporting by device_id. 
+  `mix astarte.export $REALM $FILE_XML $DEVICE_ID`
+
+## [1.2.1] - Unreleased
+### Changed
+- Update the docker-compose configuration to allow both physical and virtual devices
+  to connect to Astarte, provided that the devices and the host are on the same LAN.
+
+## [1.2.0] - 2024-07-02
+### Fixed
+- Forward port changes from release-1.1 (connection failure when delivering
+  triggers is handled as an error).
+
+## [1.2.0-rc.0] 11-06-2024
+### Added
+- [astarte_trigger_engine] Add `trigger_name` to envent payload
+  and mustache template
+- Add support for limiting the number of registered devices in a realm.
+  Existing realms are not affected by this change.
+- [astarte_realm_management_api] Allow to read realm's device registration limit
+  using the `/config/device_registration_limit` endpoint.
+- [astarte_housekeeping_api] Allow to read and set a realm's device registration
+  limit using the realm fetch and update API, respectively.
+- [astarte_appengine_api] Show deletion status in device details.
+- [astarte_appengine_api] Add /version endpoint which returns the microservice
+  application version.
+- [astarte_appengine_api] Added group name decoder plug
+- [astarte_realm_management_api] Add /version endpoint which returns
+  the microservice application version.
+- [astarte_pairing_api] Add /version endpoint which returns the microservice
+  application version.
+- [astarte_housekeeping_api] Add /version endpoint which returns
+  the microservice application version.
+- [astarte_housekeeping_api] Allow to customize the RPC call timeout with
+  `HOUSEKEEPING_API_RPC_TIMEOUT` (default: 5 seconds).
+- Add API usage metrics.
+- Add support for setting the maximum datastream storage retention period in a
+  realm (in seconds). Existing realms are not affected by this change.
+- [astarte_housekeeping_api] Allow to read and set a realm's maximum datastream
+  storage retention period using the realm fetch and update API, respectively.
+- [astarte_realm_management_api] Allow to read realm's maximum datastream
+  storage retention period with the `/config/datastream_maximum_storage_retention`
+  endpoint.
+
+### Changed
+- Forward port changes from release 1.1.
+- [astarte_housekeeping_api] Introduce a PATCH-based API for realm update.
+  The old POST-based one is deprecated.
+- [astarte_housekeeping] Support the new PATCH-based API for realm update.
+- Update Elixir to 1.15.7.
+- Update Erlang/OTP to 26.1.
+- Update container base image to Debian `Bookworm`.
+- Container user has changed from `root` to `nobody`.
+- BREAKING: incoming_introspection events display introspection as a map rather
+  than a plaintext string. Revert to the old behaviour by setting
+  `DATA_UPDATER_PLANT_GENERATE_LEGACY_INCOMING_INTROSPECTION_EVENTS` to `true`.
+  See https://github.com/astarte-platform/astarte_core/pull/77.
+- BREAKING: [astarte_realm_management] do not allow installation of interfaces
+  where database_retention_ttl exceeds the realm's maximum datastream storage
+  retention period, if set.
+
 ## [1.1.2] - Unreleased
 ### Added
 - [astarte_data_updater_plant] customize the number of consumer connections

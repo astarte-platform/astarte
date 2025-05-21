@@ -28,6 +28,7 @@ defmodule Astarte.Pairing.Engine do
   alias Astarte.Pairing.CredentialsSecret
   alias Astarte.Pairing.Queries
   alias CQEx.Client
+  alias Astarte.Core.CQLUtils
 
   require Logger
 
@@ -56,9 +57,11 @@ defmodule Astarte.Pairing.Engine do
   end
 
   def get_agent_public_key_pems(realm) do
+    keyspace = CQLUtils.realm_name_to_keyspace_name(realm, Config.astarte_instance_id!())
+
     cqex_options =
       Config.cqex_options!()
-      |> Keyword.put(:keyspace, realm)
+      |> Keyword.put(:keyspace, keyspace)
 
     with {:ok, client} <-
            Client.new(
@@ -89,10 +92,11 @@ defmodule Astarte.Pairing.Engine do
     )
 
     :telemetry.execute([:astarte, :pairing, :get_credentials], %{}, %{realm: realm})
+    keyspace_name = CQLUtils.realm_name_to_keyspace_name(realm, Config.astarte_instance_id!())
 
     cqex_options =
       Config.cqex_options!()
-      |> Keyword.put(:keyspace, realm)
+      |> Keyword.put(:keyspace, keyspace_name)
 
     with {:ok, device_id} <- Device.decode_device_id(hardware_id, allow_extended_id: true),
          {:ok, ip_tuple} <- parse_ip(device_ip),
@@ -143,7 +147,7 @@ defmodule Astarte.Pairing.Engine do
         _credentials_secret,
         _device_ip
       ) do
-    Logger.warn(
+    Logger.warning(
       "get_credentials: unknown protocol #{inspect(protocol)} with params #{inspect(credentials_params)}"
     )
 
@@ -152,10 +156,11 @@ defmodule Astarte.Pairing.Engine do
 
   def get_info(realm, hardware_id, credentials_secret) do
     Logger.debug("get_info request for device #{inspect(hardware_id)} in realm #{inspect(realm)}")
+    keyspace_name = CQLUtils.realm_name_to_keyspace_name(realm, Config.astarte_instance_id!())
 
     cqex_options =
       Config.cqex_options!()
-      |> Keyword.put(:keyspace, realm)
+      |> Keyword.put(:keyspace, keyspace_name)
 
     with {:ok, device_id} <- Device.decode_device_id(hardware_id, allow_extended_id: true),
          {:ok, client} <-
@@ -192,12 +197,14 @@ defmodule Astarte.Pairing.Engine do
     )
 
     :telemetry.execute([:astarte, :pairing, :register_new_device], %{}, %{realm: realm})
+    keyspace_name = CQLUtils.realm_name_to_keyspace_name(realm, Config.astarte_instance_id!())
 
     cqex_options =
       Config.cqex_options!()
-      |> Keyword.put(:keyspace, realm)
+      |> Keyword.put(:keyspace, keyspace_name)
 
     with {:ok, device_id} <- Device.decode_device_id(hardware_id, allow_extended_id: true),
+         :ok <- verify_can_register_device(realm, device_id),
          {:ok, client} <-
            Client.new(
              Config.cassandra_node!(),
@@ -216,15 +223,55 @@ defmodule Astarte.Pairing.Engine do
     end
   end
 
+  defp verify_can_register_device(realm_name, device_id) do
+    # An already existing device should always be able to retrieve a new credentials secret
+    case Queries.check_already_registered_device(realm_name, device_id) do
+      {:ok, true} ->
+        :ok
+
+      {:ok, false} ->
+        verify_can_register_new_device(realm_name)
+
+      {:error, reason} ->
+        # Consider a failing database as a negative answer
+        _ =
+          Logger.warning(
+            "Failed to verify if unconfirmed device #{Device.encode_device_id(device_id)} exists, reason: #{inspect(reason)}",
+            realm_name: realm_name
+          )
+
+        verify_can_register_new_device(realm_name)
+    end
+  end
+
+  defp verify_can_register_new_device(realm_name) do
+    with {:ok, registration_limit} <- Queries.fetch_device_registration_limit(realm_name),
+         {:ok, registered_devices_count} <- Queries.fetch_registered_devices_count(realm_name) do
+      if registration_limit != nil and registered_devices_count >= registration_limit do
+        _ =
+          Logger.warning("Cannot register device: reached device registration limit",
+            realm_name: realm_name,
+            tag: "device_registration_limit_reached"
+          )
+
+        {:error, :device_registration_limit_reached}
+      else
+        :ok
+      end
+    end
+  end
+
   def unregister_device(realm, encoded_device_id) do
     Logger.debug(
       "unregister_device request for device #{inspect(encoded_device_id)} " <>
         "in realm #{inspect(realm)}"
     )
 
+    keyspace_name = CQLUtils.realm_name_to_keyspace_name(realm, Config.astarte_instance_id!())
+
     cqex_options =
       Config.cqex_options!()
-      |> Keyword.put(:keyspace, realm)
+      |> Keyword.put(:keyspace, keyspace_name)
 
     with {:ok, device_id} <- Device.decode_device_id(encoded_device_id),
          {:ok, client} <-
@@ -248,9 +295,11 @@ defmodule Astarte.Pairing.Engine do
       "verify_credentials request for device #{inspect(hardware_id)} in realm #{inspect(realm)}"
     )
 
+    keyspace_name = CQLUtils.realm_name_to_keyspace_name(realm, Config.astarte_instance_id!())
+
     cqex_options =
       Config.cqex_options!()
-      |> Keyword.put(:keyspace, realm)
+      |> Keyword.put(:keyspace, keyspace_name)
 
     with {:ok, device_id} <- Device.decode_device_id(hardware_id, allow_extended_id: true),
          {:ok, client} <-
@@ -278,7 +327,7 @@ defmodule Astarte.Pairing.Engine do
   end
 
   def verify_credentials(protocol, credentials_map, _realm, _hw_id, _secret) do
-    Logger.warn(
+    Logger.warning(
       "verify_credentials: unknown protocol #{inspect(protocol)} with params #{inspect(credentials_map)}"
     )
 

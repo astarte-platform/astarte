@@ -1,0 +1,23 @@
+{
+	"name": "astarte-housekeeping",
+	"dockerComposeFile": [
+		"../../../docker-compose.yml",
+		"../../../docker-compose.dev.yml",
+		"docker-compose.override.yml"
+	],
+	"service": "astarte-housekeeping",
+	"overrideCommand": true,
+	"mounts": [
+		"source=${localWorkspaceFolder}/../../,target=/workspace/astarte,type=bind"
+	],
+	"workspaceFolder": "/workspace/astarte/apps/astarte_housekeeping",
+	"customizations": {
+		"vscode": {
+			"extensions": [
+				"JakeBecker.elixir-ls",
+				"animus-coop.vscode-elixir-mix-formatter",
+				"ms-azuretools.vscode-docker"
+			]
+		}
+	}
+}

@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2021 Ispirata Srl
+# Copyright 2021-2024 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -22,8 +22,8 @@ defmodule AstarteDeviceFleetSimulator.MixProject do
   def project do
     [
       app: :astarte_device_fleet_simulator,
-      version: "0.1.0",
-      elixir: "~> 1.14",
+      version: "1.3.0-dev",
+      elixir: "~> 1.15",
       start_permanent: Mix.env() == :prod,
       deps: deps()
     ]
@@ -44,7 +44,8 @@ defmodule AstarteDeviceFleetSimulator.MixProject do
       {:skogsra, "~> 2.3"},
       {:logfmt, "~> 3.3"},
       {:pretty_log, "~> 0.1"},
-      {:elixir_uuid, "~> 1.2"}
+      {:elixir_uuid, "~> 1.2"},
+      {:csv, "~> 3.2"}
     ]
   end
 end

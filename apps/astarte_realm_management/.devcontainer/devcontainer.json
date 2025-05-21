@@ -1,0 +1,23 @@
+{
+	"name": "astarte-realm-management",
+	"dockerComposeFile": [
+		"../../../docker-compose.yml",
+		"../../../docker-compose.dev.yml",
+		"docker-compose.override.yml"
+	],
+	"service": "astarte-realm-management",
+	"overrideCommand": true,
+	"mounts": [
+		"source=${localWorkspaceFolder}/../../,target=/workspace/astarte,type=bind"
+	],
+	"workspaceFolder": "/workspace/astarte/apps/astarte_realm_management",
+	"customizations": {
+		"vscode": {
+			"extensions": [
+				"JakeBecker.elixir-ls",
+				"animus-coop.vscode-elixir-mix-formatter",
+				"ms-azuretools.vscode-docker"
+			]
+		}
+	}
+}

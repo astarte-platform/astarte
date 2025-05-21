@@ -35,7 +35,6 @@ defmodule Astarte.AppEngine.API.Rooms.Room do
   alias Astarte.Core.Device
   alias Astarte.DataAccess.Database
   alias Astarte.AppEngine.API.Rooms.Queries
-
   require Logger
 
   # API
@@ -162,7 +161,7 @@ defmodule Astarte.AppEngine.API.Rooms.Room do
 
       {:error, reason} ->
         _ =
-          Logger.warn("Volatile trigger delete failed, reason: #{inspect(reason)}.",
+          Logger.warning("Volatile trigger delete failed, reason: #{inspect(reason)}.",
             tag: "delete_volatile_trigger_failed"
           )
 
@@ -243,7 +242,7 @@ defmodule Astarte.AppEngine.API.Rooms.Room do
     else
       {:error, reason} ->
         _ =
-          Logger.warn("Volatile trigger install failed, reason: #{inspect(reason)}.",
+          Logger.warning("Volatile trigger install failed, reason: #{inspect(reason)}.",
             tag: "install_volatile_trigger_failed"
           )
 
@@ -280,7 +279,7 @@ defmodule Astarte.AppEngine.API.Rooms.Room do
     else
       {:error, %{error_name: reason}} ->
         _ =
-          Logger.warn("Volatile trigger install failed, reason: #{inspect(reason)}.",
+          Logger.warning("Volatile trigger install failed, reason: #{inspect(reason)}.",
             tag: "install_volatile_trigger_failed"
           )
 
@@ -288,7 +287,7 @@ defmodule Astarte.AppEngine.API.Rooms.Room do
 
       {:error, reason} ->
         _ =
-          Logger.warn("Volatile trigger install failed, reason: #{inspect(reason)}.",
+          Logger.warning("Volatile trigger install failed, reason: #{inspect(reason)}.",
             tag: "install_volatile_trigger_failed"
           )
 
@@ -304,7 +303,7 @@ defmodule Astarte.AppEngine.API.Rooms.Room do
         :ok
       else
         _ =
-          Logger.warn(
+          Logger.warning(
             "Device #{encoded_device_id} in realm #{realm_name} does not exist.",
             tag: "device_does_not_exist"
           )

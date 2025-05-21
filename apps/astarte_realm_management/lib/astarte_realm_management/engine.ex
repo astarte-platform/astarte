@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2017-2020 Ispirata Srl
+# Copyright 2017 - 2023 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -31,6 +31,7 @@ defmodule Astarte.RealmManagement.Engine do
   alias Astarte.Core.Triggers.Trigger
   alias Astarte.Core.Triggers.Policy
   alias Astarte.Core.Triggers.PolicyProtobuf.Policy, as: PolicyProto
+  alias Astarte.Core.Device
   alias Astarte.DataAccess.Database
   alias Astarte.DataAccess.Interface
   alias Astarte.DataAccess.Mappings
@@ -71,6 +72,7 @@ defmodule Astarte.RealmManagement.Engine do
          {:ok, json_obj} <- Jason.decode(interface_json),
          interface_changeset <- InterfaceDocument.changeset(%InterfaceDocument{}, json_obj),
          {:ok, interface_doc} <- Ecto.Changeset.apply_action(interface_changeset, :insert),
+         :ok <- verify_mappings_max_storage_retention(realm_name, interface_doc),
          interface_descriptor <- InterfaceDescriptor.from_interface(interface_doc),
          %InterfaceDescriptor{name: name, major_version: major} <- interface_descriptor,
          {:interface_avail, {:ok, false}} <-
@@ -95,7 +97,7 @@ defmodule Astarte.RealmManagement.Engine do
     else
       {:error, {:invalid, _invalid_str, _invalid_pos}} ->
         _ =
-          Logger.warn("Received invalid interface JSON: #{inspect(interface_json)}.",
+          Logger.warning("Received invalid interface JSON: #{inspect(interface_json)}.",
             tag: "invalid_json"
           )
 
@@ -103,7 +105,7 @@ defmodule Astarte.RealmManagement.Engine do
 
       {:error, %Ecto.Changeset{} = changeset} ->
         _ =
-          Logger.warn("Received invalid interface: #{inspect(changeset)}.",
+          Logger.warning("Received invalid interface: #{inspect(changeset)}.",
             tag: "invalid_interface_document"
           )
 
@@ -117,6 +119,9 @@ defmodule Astarte.RealmManagement.Engine do
 
       {:interface_avail, {:ok, true}} ->
         {:error, :already_installed_interface}
+
+      {:error, :maximum_database_retention_exceeded} ->
+        {:error, :maximum_database_retention_exceeded}
 
       {:error, :interface_name_collision} ->
         {:error, :interface_name_collision}
@@ -174,7 +179,7 @@ defmodule Astarte.RealmManagement.Engine do
     else
       {:error, {:invalid, _invalid_str, _invalid_pos}} ->
         _ =
-          Logger.warn("Received invalid interface JSON: #{inspect(interface_json)}.",
+          Logger.warning("Received invalid interface JSON: #{inspect(interface_json)}.",
             tag: "invalid_json"
           )
 
@@ -182,7 +187,7 @@ defmodule Astarte.RealmManagement.Engine do
 
       {:error, %Ecto.Changeset{} = changeset} ->
         _ =
-          Logger.warn("Received invalid interface: #{inspect(changeset)}.",
+          Logger.warning("Received invalid interface: #{inspect(changeset)}.",
             tag: "invalid_interface_document"
           )
 
@@ -410,8 +415,7 @@ defmodule Astarte.RealmManagement.Engine do
   end
 
   def execute_interface_deletion(client, realm_name, name, major) do
-    with {:ok, interface_row} <-
-           Interface.retrieve_interface_row(realm_name, name, major),
+    with {:ok, interface_row} <- Interface.retrieve_interface_row(realm_name, name, major),
          {:ok, descriptor} <- InterfaceDescriptor.from_db_result(interface_row),
          :ok <- Queries.delete_interface_storage(client, descriptor),
          :ok <- Queries.delete_devices_with_data_on_interface(client, name) do
@@ -467,12 +471,23 @@ defmodule Astarte.RealmManagement.Engine do
     end
   end
 
+  def get_detailed_interfaces_list(realm_name) do
+    _ = Logger.debug("Get detailed interfaces list.")
+
+    with {:ok, client} <- Database.connect(realm: realm_name) do
+      Queries.get_detailed_interfaces_list(client)
+    end
+  end
+
   def get_jwt_public_key_pem(realm_name) do
     _ = Logger.debug("Get JWT public key PEM.")
 
+    keyspace_name =
+      CQLUtils.realm_name_to_keyspace_name(realm_name, Config.astarte_instance_id!())
+
     cqex_options =
       Config.cqex_options!()
-      |> Keyword.put(:keyspace, realm_name)
+      |> Keyword.put(:keyspace, keyspace_name)
 
     with {:ok, client} <-
            DatabaseClient.new(
@@ -487,9 +502,12 @@ defmodule Astarte.RealmManagement.Engine do
   end
 
   def update_jwt_public_key_pem(realm_name, jwt_public_key_pem) do
+    keyspace_name =
+      CQLUtils.realm_name_to_keyspace_name(realm_name, Config.astarte_instance_id!())
+
     cqex_options =
       Config.cqex_options!()
-      |> Keyword.put(:keyspace, realm_name)
+      |> Keyword.put(:keyspace, keyspace_name)
 
     with {:ok, client} <-
            DatabaseClient.new(
@@ -769,7 +787,7 @@ defmodule Astarte.RealmManagement.Engine do
           }
         }
       else
-        Logger.warn("Failed to get trigger.",
+        Logger.warning("Failed to get trigger.",
           trigger_name: trigger_name,
           tag: "get_trigger_fail"
         )
@@ -793,7 +811,10 @@ defmodule Astarte.RealmManagement.Engine do
     with {:ok, client} <- get_database_client(realm_name),
          {:ok, trigger} <- Queries.retrieve_trigger(client, trigger_name) do
       _ =
-        Logger.info("Deleting trigger.", trigger_name: trigger_name, tag: "delete_trigger_started")
+        Logger.info("Deleting trigger.",
+          trigger_name: trigger_name,
+          tag: "delete_trigger_started"
+        )
 
       delete_all_simple_triggers_succeeded =
         Enum.all?(trigger.simple_triggers_uuids, fn simple_trigger_uuid ->
@@ -806,7 +827,7 @@ defmodule Astarte.RealmManagement.Engine do
       if delete_all_simple_triggers_succeeded and delete_policy_link_succeeded do
         Queries.delete_trigger(client, trigger_name)
       else
-        Logger.warn("Failed to delete trigger.",
+        Logger.warning("Failed to delete trigger.",
           trigger_name: trigger_name,
           tag: "delete_trigger_fail"
         )
@@ -817,9 +838,12 @@ defmodule Astarte.RealmManagement.Engine do
   end
 
   defp get_database_client(realm_name) do
+    keyspace_name =
+      CQLUtils.realm_name_to_keyspace_name(realm_name, Config.astarte_instance_id!())
+
     cqex_options =
       Config.cqex_options!()
-      |> Keyword.put(:keyspace, realm_name)
+      |> Keyword.put(:keyspace, keyspace_name)
 
     DatabaseClient.new(
       Config.cassandra_node!(),
@@ -860,7 +884,7 @@ defmodule Astarte.RealmManagement.Engine do
     with {:error, %Ecto.Changeset{} = changeset} <-
            Ecto.Changeset.apply_action(policy_changeset, :insert) do
       _ =
-        Logger.warn("Received invalid trigger policy: #{inspect(changeset)}.",
+        Logger.warning("Received invalid trigger policy: #{inspect(changeset)}.",
           tag: "invalid_trigger_policy"
         )
 
@@ -871,7 +895,7 @@ defmodule Astarte.RealmManagement.Engine do
   defp decode_policy(policy_json) do
     with {:error, {:invalid, _invalid_str, _invalid_pos}} <- Jason.decode(policy_json) do
       _ =
-        Logger.warn("Received invalid trigger policy JSON: #{inspect(policy_json)}.",
+        Logger.warning("Received invalid trigger policy JSON: #{inspect(policy_json)}.",
           tag: "invalid_trigger_policy_json"
         )
 
@@ -905,7 +929,7 @@ defmodule Astarte.RealmManagement.Engine do
 
   defp fetch_trigger_policy(client, policy_name) do
     with {:error, :policy_not_found} <- Queries.fetch_trigger_policy(client, policy_name) do
-      Logger.warn("Trigger policy not found",
+      Logger.warning("Trigger policy not found",
         tag: "trigger_policy_not_found",
         policy_name: policy_name
       )
@@ -934,12 +958,30 @@ defmodule Astarte.RealmManagement.Engine do
     end
   end
 
+  defp verify_mappings_max_storage_retention(realm_name, interface) do
+    with {:ok, max_retention} <- get_datastream_maximum_storage_retention(realm_name) do
+      if mappings_retention_valid?(interface.mappings, max_retention) do
+        :ok
+      else
+        {:error, :maximum_database_retention_exceeded}
+      end
+    end
+  end
+
+  defp mappings_retention_valid?(_mappings, 0), do: true
+
+  defp mappings_retention_valid?(mappings, max_retention) do
+    Enum.all?(mappings, fn %Mapping{database_retention_ttl: retention} ->
+      retention <= max_retention
+    end)
+  end
+
   defp verify_trigger_policy_not_exists(client, policy_name) do
     with {:ok, exists?} <- Queries.check_trigger_policy_already_present(client, policy_name) do
       if not exists? do
         :ok
       else
-        Logger.warn("Trigger policy #{policy_name} already present",
+        Logger.warning("Trigger policy #{policy_name} already present",
           tag: "trigger_policy_already_present"
         )
 
@@ -953,7 +995,7 @@ defmodule Astarte.RealmManagement.Engine do
       if exists? do
         :ok
       else
-        Logger.warn("Trigger policy #{policy_name} not found",
+        Logger.warning("Trigger policy #{policy_name} not found",
           tag: "trigger_policy_not_found"
         )
 
@@ -964,7 +1006,7 @@ defmodule Astarte.RealmManagement.Engine do
 
   defp check_trigger_policy_has_triggers(client, policy_name) do
     with {:ok, true} <- Queries.check_policy_has_triggers(client, policy_name) do
-      Logger.warn("Trigger policy #{policy_name} is currently being used by triggers",
+      Logger.warning("Trigger policy #{policy_name} is currently being used by triggers",
         tag: "cannot_delete_currently_used_trigger_policy"
       )
 
@@ -984,11 +1026,113 @@ defmodule Astarte.RealmManagement.Engine do
 
   defp connect_to_db_with_realm(realm_name) do
     with {:error, :database_connection_error} <- Database.connect(realm: realm_name) do
-      Logger.warn("Could not connect to database, realm #{realm_name}",
+      Logger.warning("Could not connect to database, realm #{realm_name}",
         tag: "database_connection_error"
       )
 
       {:error, :database_connection_error}
+    end
+  end
+
+  @doc """
+  Starts the deletion of a device. Deletion is carried out asynchronously.
+  The device removal scheduler will take care of eventually deleting the device.
+  See Astarte.RealmManagement.DeviceRemoval.Scheduler.
+  Returns `:ok` or `{:error, reason}`.
+  """
+  @spec delete_device(binary(), Device.encoded_device_id()) :: :ok | {:error, any()}
+  def delete_device(realm_name, device_id) do
+    # TODO check that realm exists, too
+    with {:ok, decoded_device_id} <-
+           Astarte.Core.Device.decode_device_id(device_id, allow_extended_id: true),
+         {:ok, true} <- check_device_exists(realm_name, decoded_device_id),
+         {:ok, %Xandra.Void{}} <-
+           insert_device_into_deletion_in_progress(realm_name, decoded_device_id) do
+      _ = Logger.info("Added device #{device_id} to deletion in progress")
+      :ok
+    end
+  end
+
+  defp check_device_exists(realm_name, device_id) do
+    case Queries.check_device_exists(realm_name, device_id) do
+      {:ok, true} ->
+        {:ok, true}
+
+      {:ok, false} ->
+        _ =
+          Logger.warning(
+            "Device #{inspect(device_id)} does not exist",
+            tag: "device_not_found"
+          )
+
+        {:error, :device_not_found}
+
+      {:error, reason} ->
+        Logger.warning(
+          "Cannot check if device #{inspect(device_id)} exists, reason #{inspect(reason)}",
+          tag: "device_exists_fail"
+        )
+
+        {:error, reason}
+    end
+  end
+
+  defp insert_device_into_deletion_in_progress(realm_name, device_id) do
+    with {:error, reason} <-
+           Queries.insert_device_into_deletion_in_progress(realm_name, device_id) do
+      _ =
+        Logger.warning(
+          "Cannot start deletion of device #{inspect(device_id)}, reason #{inspect(reason)}",
+          tag: "insert_device_into_deleted_fail"
+        )
+
+      {:error, reason}
+    end
+  end
+
+  @doc """
+  Retrieves the device registration limit of a realm.
+  Returns either `{:ok, limit}` or `{:error, reason}`.
+  The limit is an integer (if set) or `nil` (if unset).
+  """
+  @spec get_device_registration_limit(String.t()) ::
+          {:ok, integer()} | {:ok, nil} | {:error, atom()}
+  def get_device_registration_limit(realm_name) do
+    case Queries.get_device_registration_limit(realm_name) do
+      {:ok, value} ->
+        {:ok, value}
+
+      {:error, reason} ->
+        _ =
+          Logger.warning(
+            "Cannot get device registration limit for realm #{realm_name}",
+            tag: "get_device_registration_limit_fail"
+          )
+
+        {:error, reason}
+    end
+  end
+
+  @doc """
+  Retrieves the maximum datastream storage retention of a realm.
+  Returns either `{:ok, limit}` or `{:error, reason}`.
+  The limit is a strictly positive integer (if set), 0 if unset.
+  """
+  @spec get_datastream_maximum_storage_retention(String.t()) ::
+          {:ok, non_neg_integer()} | {:error, atom()}
+  def get_datastream_maximum_storage_retention(realm_name) do
+    case Queries.get_datastream_maximum_storage_retention(realm_name) do
+      {:ok, value} ->
+        {:ok, value}
+
+      {:error, reason} ->
+        _ =
+          Logger.warning(
+            "Cannot get maximum datastream storage retention for realm #{realm_name}",
+            tag: "get_datastream_maximum_storage_retention_fail"
+          )
+
+        {:error, reason}
     end
   end
 end

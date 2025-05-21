@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2017-2021 Ispirata Srl
+# Copyright 2017-2023 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -22,10 +22,9 @@ defmodule Astarte.Housekeeping.API.Mixfile do
   def project do
     [
       app: :astarte_housekeeping_api,
-      version: "1.1.1",
-      elixir: "~> 1.14",
+      version: "1.3.0-dev",
+      elixir: "~> 1.15",
       elixirc_paths: elixirc_paths(Mix.env()),
-      compilers: [:phoenix, :gettext] ++ Mix.compilers(),
       start_permanent: Mix.env() == :prod,
       test_coverage: [tool: ExCoveralls],
       preferred_cli_env: [
@@ -45,7 +44,7 @@ defmodule Astarte.Housekeeping.API.Mixfile do
   def application do
     [
       mod: {Astarte.Housekeeping.API.Application, []},
-      extra_applications: [:lager, :logger, :runtime_tools]
+      extra_applications: [:logger, :runtime_tools]
     ]
   end
 
@@ -69,7 +68,7 @@ defmodule Astarte.Housekeeping.API.Mixfile do
 
   defp astarte_required_modules(_) do
     [
-      {:astarte_rpc, "~> 1.1.1"}
+      {:astarte_rpc, "~> 1.2"}
     ]
   end
 
@@ -82,10 +81,10 @@ defmodule Astarte.Housekeeping.API.Mixfile do
       {:phoenix, "~> 1.7"},
       {:phoenix_ecto, "~> 4.0"},
       {:phoenix_view, "~> 2.0"},
-      {:gettext, "~> 0.11"},
+      {:gettext, "~> 0.24"},
       {:cors_plug, "~> 2.0"},
       {:plug_cowboy, "~> 2.1"},
-      {:guardian, "~> 2.1"},
+      {:guardian, "~> 2.3.2"},
       {:excoveralls, "~> 0.15", only: :test},
       {:pretty_log, "~> 0.1"},
       {:skogsra, "~> 2.2"},
@@ -94,7 +93,10 @@ defmodule Astarte.Housekeeping.API.Mixfile do
       {:telemetry_metrics, "~> 0.4"},
       {:telemetry_poller, "~> 0.4"},
       {:telemetry_metrics_prometheus_core, "~> 0.4"},
-      {:dialyxir, "~> 1.0", only: [:dev, :ci], runtime: false}
+      {:dialyxir, "~> 1.0", only: [:dev, :ci], runtime: false},
+      # Workaround for Elixir 1.15 / ssl_verify_fun issue
+      # See also: https://github.com/deadtrickster/ssl_verify_fun.erl/pull/27
+      {:ssl_verify_fun, "~> 1.1.0", manager: :rebar3, override: true}
     ]
   end
 end

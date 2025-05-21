@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2020 Ispirata Srl
+# Copyright 2020 - 2023 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -67,7 +67,7 @@ defmodule CSystem do
     with {:ok, res} <- Xandra.execute(conn, query, %{}, consistency: :one) do
       schema_versions =
         res
-        |> Stream.map(&Map.fetch!(&1, "schema_version"))
+        |> Stream.map(&Map.fetch!(&1, :schema_version))
         |> Stream.uniq()
         |> Enum.to_list()
 
@@ -83,7 +83,7 @@ defmodule CSystem do
         res
         |> Enum.take(1)
         |> List.first()
-        |> Map.fetch!("schema_version")
+        |> Map.fetch!(:schema_version)
 
       {:ok, schema_version}
     end

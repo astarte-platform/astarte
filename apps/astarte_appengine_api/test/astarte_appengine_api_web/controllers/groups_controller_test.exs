@@ -17,6 +17,7 @@
 #
 
 defmodule Astarte.AppEngine.APIWeb.GroupsControllerTest do
+  use ExUnitProperties
   use Astarte.AppEngine.APIWeb.ConnCase
 
   alias Astarte.AppEngine.API.DatabaseTestHelper
@@ -25,6 +26,7 @@ defmodule Astarte.AppEngine.APIWeb.GroupsControllerTest do
   alias Astarte.AppEngine.API.Device.DevicesList
   alias Astarte.AppEngine.API.Device.DeviceStatus
   alias Astarte.AppEngine.API.Groups
+  alias Astarte.AppEngine.API.GroupTestGenerator
 
   @realm "autotestrealm"
   @group_name "mygroup"
@@ -59,7 +61,7 @@ defmodule Astarte.AppEngine.APIWeb.GroupsControllerTest do
     test "returns 403 on unexisting realm", %{conn: conn} do
       conn = get(conn, groups_path(conn, :index, "unexisting"))
 
-      assert json_response(conn, 403)["errors"] == %{"detail" => "Forbidden"}
+      assert json_response(conn, 401)["errors"] == %{"detail" => "Invalid JWT token"}
     end
 
     test "returns an empty list on empty realm", %{conn: conn} do
@@ -171,22 +173,24 @@ defmodule Astarte.AppEngine.APIWeb.GroupsControllerTest do
       assert json_response(create_again_conn, 409)["errors"] != nil
     end
 
-    test "creates the group with / in group name", %{conn: conn} do
-      group_name = "world/europe/italy"
-      encoded_group_name = "world%2Feurope%2Fitaly"
+    @tag issue: 904
+    property "creates the group with / in group name", %{conn: conn} do
+      check all group_name <- GroupTestGenerator.group_name() do
+        params = %{
+          "group_name" => group_name,
+          "devices" => @group_devices
+        }
 
-      params = %{
-        "group_name" => group_name,
-        "devices" => @group_devices
-      }
+        create_conn = post(conn, groups_path(conn, :create, @realm), data: params)
 
-      create_conn = post(conn, groups_path(conn, :create, @realm), data: params)
+        assert json_response(create_conn, 201)["data"] == params,
+               "Failed to create group #{group_name}"
 
-      assert json_response(create_conn, 201)["data"] == params
+        show_conn = get(conn, groups_path(conn, :show, @realm, group_name))
 
-      show_conn = get(conn, groups_path(conn, :show, @realm, encoded_group_name))
-
-      assert json_response(show_conn, 200)["data"]["group_name"] == group_name
+        assert json_response(show_conn, 200)["data"]["group_name"] == group_name,
+               "Failed post/get same group_name #{group_name}"
+      end
     end
   end
 

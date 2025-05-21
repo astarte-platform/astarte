@@ -146,9 +146,8 @@ disconnected if they try to publish on the deleted interface.*
 
 ## Manual deletion of a device
 
-Currently, the Astarte API allows for the unregistration and the inhibition of a specific device. If
-you want to entirely delete a device from your realm along with its data, a manual procedure is
-required.
+Starting from Astarte 1.2, a device can be deleted using Realm Management API (see [here](user/050-query_device.html#deleting-a-device)).
+The following manual procedure remains for historical reasons.
 
 This section assumes:
 - that `cqlsh` is connected to the Cassandra/ScyllaDB instance that your Astarte is using;

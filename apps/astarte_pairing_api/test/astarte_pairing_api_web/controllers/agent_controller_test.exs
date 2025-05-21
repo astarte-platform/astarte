@@ -199,7 +199,7 @@ defmodule Astarte.Pairing.APIWeb.AgentControllerTest do
         |> delete_req_header("authorization")
         |> post(agent_path(conn, :create, @realm), data: @create_attrs)
 
-      assert json_response(conn, 401)["errors"] == %{"detail" => "Unauthorized"}
+      assert json_response(conn, 401)["errors"] == %{"detail" => "Missing authorization token"}
     end
   end
 
@@ -258,7 +258,7 @@ defmodule Astarte.Pairing.APIWeb.AgentControllerTest do
         |> delete_req_header("authorization")
         |> delete(agent_path(conn, :delete, @realm, @device_id))
 
-      assert json_response(conn, 401)["errors"] == %{"detail" => "Unauthorized"}
+      assert json_response(conn, 401)["errors"] == %{"detail" => "Missing authorization token"}
     end
   end
 

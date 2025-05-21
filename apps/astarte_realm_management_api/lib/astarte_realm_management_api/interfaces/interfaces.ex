@@ -20,8 +20,12 @@ defmodule Astarte.RealmManagement.API.Interfaces do
   alias Astarte.Core.Interface
   alias Astarte.RealmManagement.API.RPC.RealmManagement
 
-  def list_interfaces(realm_name) do
-    RealmManagement.get_interfaces_list(realm_name)
+  def list_interfaces(realm_name, params \\ %{}) do
+    if params["detailed"] do
+      RealmManagement.get_detailed_interfaces_list(realm_name)
+    else
+      RealmManagement.get_interfaces_list(realm_name)
+    end
   end
 
   def list_interface_major_versions(realm_name, id) do

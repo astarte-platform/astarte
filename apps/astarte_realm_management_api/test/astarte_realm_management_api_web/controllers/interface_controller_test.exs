@@ -71,12 +71,26 @@ defmodule Astarte.RealmManagement.APIWeb.InterfaceControllerTest do
       assert json_response(conn, 200)["data"] == []
     end
 
+    test "lists empty interfaces with details", %{conn: conn} do
+      conn = get(conn, interface_path(conn, :index, @realm), detailed: true)
+      assert json_response(conn, 200)["data"] == []
+    end
+
     test "lists interface after installing it", %{conn: conn} do
       post_conn = post(conn, interface_path(conn, :create, @realm), data: @valid_attrs)
       assert response(post_conn, 201) == ""
 
       list_conn = get(conn, interface_path(conn, :index, @realm))
       assert json_response(list_conn, 200)["data"] == [@interface_name]
+    end
+
+    test "lists interface definitions after installing it", %{conn: conn} do
+      post_conn = post(conn, interface_path(conn, :create, @realm), data: @valid_attrs)
+      assert response(post_conn, 201) == ""
+
+      list_conn = get(conn, interface_path(conn, :index, @realm), detailed: true)
+
+      assert json_response(list_conn, 200)["data"] == [@valid_attrs]
     end
   end
 
@@ -121,6 +135,30 @@ defmodule Astarte.RealmManagement.APIWeb.InterfaceControllerTest do
 
       post2_conn = post(conn, interface_path(conn, :create, @realm), data: @valid_attrs)
       assert json_response(post2_conn, 409)["errors"] != %{}
+    end
+
+    test "renders error on mapping with higher database_retention_ttl than the maximum", %{
+      conn: conn
+    } do
+      alias Astarte.RealmManagement.Mock.DB
+      DB.put_datastream_maximum_storage_retention(@realm, 1)
+      on_exit(fn -> DB.put_datastream_maximum_storage_retention(@realm, 0) end)
+
+      iface_with_invalid_mappings = %{
+        @valid_attrs
+        | "mappings" => [
+            %{
+              "endpoint" => "/test",
+              "type" => "integer",
+              "database_retention_policy" => "use_ttl",
+              "database_retention_ttl" => 60
+            }
+          ],
+          "type" => "datastream"
+      }
+
+      conn = post(conn, interface_path(conn, :create, @realm), data: iface_with_invalid_mappings)
+      assert json_response(conn, 422)["errors"] != %{}
     end
   end
 

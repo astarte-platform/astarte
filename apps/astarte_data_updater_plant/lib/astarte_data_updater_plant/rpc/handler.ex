@@ -19,8 +19,6 @@
 defmodule Astarte.DataUpdaterPlant.RPC.Handler do
   @behaviour Astarte.RPC.Handler
 
-  alias Astarte.DataUpdaterPlant.DataUpdater
-
   alias Astarte.RPC.Protocol.DataUpdaterPlant.{
     Call,
     DeleteVolatileTrigger,
@@ -29,6 +27,8 @@ defmodule Astarte.DataUpdaterPlant.RPC.Handler do
     InstallVolatileTrigger,
     Reply
   }
+
+  alias Astarte.DataUpdaterPlant.VolatileTriggerHandler
 
   require Logger
 
@@ -39,7 +39,7 @@ defmodule Astarte.DataUpdaterPlant.RPC.Handler do
   end
 
   defp extract_call_tuple(%Call{call: nil}) do
-    Logger.warn("Received empty call")
+    Logger.warning("Received empty call")
     {:error, :empty_call}
   end
 
@@ -47,56 +47,28 @@ defmodule Astarte.DataUpdaterPlant.RPC.Handler do
     {:ok, call_tuple}
   end
 
-  defp call_rpc(
-         {:install_volatile_trigger,
-          %InstallVolatileTrigger{
-            realm_name: realm_name,
-            device_id: device_id,
-            object_id: object_id,
-            object_type: object_type,
-            parent_id: parent_id,
-            simple_trigger_id: simple_trigger_id,
-            simple_trigger: simple_trigger,
-            trigger_target: trigger_target
-          }}
-       ) do
-    with :ok <-
-           DataUpdater.handle_install_volatile_trigger(
-             realm_name,
-             device_id,
-             object_id,
-             object_type,
-             parent_id,
-             simple_trigger_id,
-             simple_trigger,
-             trigger_target
-           ) do
-      %GenericOkReply{}
-      |> encode_reply()
-      |> ok_wrap()
-    else
+  defp call_rpc({:install_volatile_trigger, %InstallVolatileTrigger{} = trigger}) do
+    case VolatileTriggerHandler.install_volatile_trigger(trigger) do
+      :ok ->
+        %GenericOkReply{}
+        |> encode_reply()
+        |> ok_wrap()
+
       {:error, reason} ->
         generic_error(reason)
     end
   end
 
-  defp call_rpc(
-         {:delete_volatile_trigger,
-          %DeleteVolatileTrigger{
-            realm_name: realm_name,
-            device_id: device_id,
-            trigger_id: trigger_id
-          }}
-       ) do
-    DataUpdater.handle_delete_volatile_trigger(
-      realm_name,
-      device_id,
-      trigger_id
-    )
+  defp call_rpc({:delete_volatile_trigger, %DeleteVolatileTrigger{} = trigger}) do
+    case VolatileTriggerHandler.delete_volatile_trigger(trigger) do
+      :ok ->
+        %GenericOkReply{}
+        |> encode_reply()
+        |> ok_wrap()
 
-    %GenericOkReply{}
-    |> encode_reply()
-    |> ok_wrap()
+      {:error, reason} ->
+        generic_error(reason)
+    end
   end
 
   defp generic_error(

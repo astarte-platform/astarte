@@ -16,7 +16,7 @@ Astarte automatically takes care of keyspaces, tables creation and intra-version
 
 Astarte needs an `astarte` keyspace to store its own data.
 
-`astarte` keyspace and tables are created with following [CQL](https://docs.datastax.com/en/cql/3.3/index.html) statements:
+`astarte` keyspace and tables are created by Housekeeping on the first run with the following [CQL](https://docs.datastax.com/en/cql/3.3/index.html) statements:
 
 ```sql
 CREATE KEYSPACE astarte
@@ -24,13 +24,18 @@ CREATE KEYSPACE astarte
     durable_writes = true;
 ```
 
+The table containing all existing realms with their relative limits:
+
 ```sql
 CREATE TABLE astarte.realms (
   realm_name varchar,
+  device_registration_limit bigint,
 
   PRIMARY KEY (realm_name)
 );
 ```
+
+A table acting as a generic key-value store for multiple purposes:
 
 ```sql
 CREATE TABLE astarte.kv_store (
@@ -39,6 +44,14 @@ CREATE TABLE astarte.kv_store (
     value blob,
     PRIMARY KEY (group, key)
 )
+```
+
+For instance, the key-value store is used to persist the current Astarte schema version, used to manage database migrations:
+
+```sql
+INSERT INTO astarte.kv_store
+    (group, key, value)
+    VALUES ('astarte', 'schema_version', bigintAsBlob(<latest Astarte schema version>));
 ```
 
 ### Realm Creation
@@ -53,13 +66,19 @@ Realm tables can be grouped in the following functionalities:
 * Triggers storage
 * Data storage
 
-Some data storage tables might be created when required, whereas all other tables are created when a keyspace is created, using the following statements:
+Some data storage tables might be created when required, whereas all other tables are created when a keyspace is created, using the following statements.
+
+The realm's keyspace that segregates all tables and data relative to a specific realm and specifies how data should be replicated and managed:
 
 ```sql
 CREATE KEYSPACE <realm name>
   WITH replication = {'class': 'SimpleStrategy', 'replication_factor': :replication_factor} AND
     durable_writes = true;
 ```
+
+Replication can also be configured with a NetworkTopologyStrategy class, especially for production environments.
+
+A table acting as a generic key-value store is also created for each realm:
 
 ```sql
 CREATE TABLE <realm name>.kv_store (
@@ -71,6 +90,9 @@ CREATE TABLE <realm name>.kv_store (
 );
 ```
 
+The `names` table is used to create optional names for resources that would be otherwise identified only by their UUID.
+Currently, only device objects are optionally given a name.
+
 ```sql
 CREATE TABLE <realm name>.names (
   object_name varchar,
@@ -80,6 +102,8 @@ CREATE TABLE <realm name>.names (
   PRIMARY KEY ((object_name), object_type)
 );
 ```
+
+The `devices` table is used to populate a registry of the existing devices in the realm:
 
 ```sql
 CREATE TABLE <realm_name>.devices (
@@ -113,6 +137,9 @@ CREATE TABLE <realm_name>.devices (
 );
 ```
 
+Each device has a `groups` field indicating which groups it belongs to.
+The `grouped_devices` table is needed to perform the reverse query and know which devices belong to certain group.
+
 ```sql
 CREATE TABLE <realm name>.grouped_devices (
   group_name varchar,
@@ -121,6 +148,9 @@ CREATE TABLE <realm name>.grouped_devices (
   PRIMARY KEY ((group_name), insertion_uuid, device_id)
 );
 ```
+
+The `endpoints` table is dedicated to store information about the endpoints of the existing Astarte interfaces, where each endpoint is accompanied by information about how device data for the endpoint should be handled.
+Each endpoint references an Astarte interface installed in the realm.
 
 ```sql
 CREATE TABLE <realm name>.endpoints (
@@ -145,6 +175,8 @@ CREATE TABLE <realm name>.endpoints (
   PRIMARY KEY ((interface_id), endpoint_id)
 );
 ```
+
+The `interfaces` table declares which interfaces are installed in the realm.
 
 ```sql
 CREATE TABLE <realm name>.interfaces (
@@ -232,8 +264,18 @@ CREATE TABLE <realm name>.individual_properties (
 
   PRIMARY KEY((device_id, interface_id), endpoint_id, path)
 );
-
 ```
+
+```sql
+CREATE TABLE <realm name>.deletion_in_progress (
+  device_id uuid,
+  vmq_ack boolean,
+  dup_start_ack boolean,
+  dup_end_ack boolean,
+  PRIMARY KEY (device_id)
+);
+```
+
 The following table is generated upon datastream interface creation for keeping all data sent to Astarte through the interface.
 
 The table name is derived from lower case interface name where `.` and `-` have been replaced by `_` and `""` (empty string), then the major version is appended with a `_v` prefix. 
@@ -253,6 +295,37 @@ CREATE TABLE <interpolated interface name>_v<major_version> (
     PRIMARY KEY ((device_id, path), reception_timestamp, reception_timestamp_submillis)
 ) 
 
+```
+
+Then some initial values are inserted into the following tables to initialize the realm.
+
+The realm's public key:
+
+```sql
+INSERT INTO <realm name>.kv_store (group, key, value)
+    VALUES ('auth', 'jwt_public_key_pem', varcharAsBlob(<public key PEM>));
+```
+
+The version of the realm schema, used for database migrations:
+
+```sql
+INSERT INTO <realm name>.kv_store
+  (group, key, value)
+  VALUES ('astarte', 'schema_version', bigintAsBlob(<latest realm schema version>));
+```
+
+The maximum storage retention for datastreams:
+
+```sql
+INSERT INTO <realm name>.kv_store (group, key, value)
+  VALUES ('realm_config', 'datastream_maximum_storage_retention', intAsBlob(<max retention>));
+```
+
+Finally, the realm is created in the realms table with a specific device registration limit, if any:
+
+```sql
+INSERT INTO astarte.realms (realm_name, device_registration_limit)
+  VALUES (<realm name>, <device registration limit>);
 ```
 
 ## Tables
