@@ -99,17 +99,21 @@ defmodule Astarte.Cases.Device do
         downsampable_object_interface
       ]
 
-    registered_paths =
+    interface_data =
       for interface <- interfaces_with_data, into: %{} do
         flags = Map.get(flags, interface, [])
-        inserted_paths = populate(realm_name, device.device_id, interface, flags)
+        interface_data = populate(realm_name, device.device_id, interface, flags)
         interface_key = {interface.name, interface.major_version}
 
-        {interface_key, inserted_paths}
+        {interface_key, interface_data}
       end
+
+    registered_paths = Map.new(interface_data, fn {key, data} -> {key, data.paths} end)
+    registered_timings = Map.new(interface_data, fn {key, data} -> {key, data.timings} end)
 
     %{
       registered_paths: registered_paths,
+      registered_timings: registered_timings,
       interfaces_with_data: interfaces_with_data,
       individual_datastream_device_interface: individual_datastream_device,
       individual_datastream_server_interface: individual_datastream_server,
@@ -136,9 +140,10 @@ defmodule Astarte.Cases.Device do
       list_of(mapping_update, length: 100..10_000)
       |> Enum.at(0)
 
-    insert_values(realm_name, device_id, descriptor, values)
+    timings = insert_values(realm_name, device_id, descriptor, values)
+    paths = MapSet.new(values, & &1.path)
 
-    MapSet.new(values, & &1.path)
+    %{paths: paths, timings: timings}
   end
 
   defp interfaces_for_update do

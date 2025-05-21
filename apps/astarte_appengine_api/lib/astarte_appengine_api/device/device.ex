@@ -1421,6 +1421,11 @@ defmodule Astarte.AppEngine.API.Device do
      }}
   end
 
+  defp pack_result([] = _values, :object, :datastream, _column_metadata, %{
+         format: "disjoint_tables"
+       }),
+       do: {:ok, %InterfaceValues{data: %{}}}
+
   defp pack_result(
          values,
          :object,
@@ -1452,8 +1457,6 @@ defmodule Astarte.AppEngine.API.Device do
     data = object_datastream_pack(values, column_metadata, opts)
     {:ok, %InterfaceValues{data: data}}
   end
-
-  defp object_datastream_multilist([] = _values, _, _), do: []
 
   defp object_datastream_multilist(values, column_metadata, opts) do
     timestamp_column = timestamp_column(opts.explicit_timestamp)

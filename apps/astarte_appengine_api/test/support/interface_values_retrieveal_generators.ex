@@ -7,8 +7,11 @@ defmodule Astarte.InterfaceValuesRetrievealGenerators do
   """
   def interface_values_options(params \\ []) do
     # TODO: generate valid since, since_after, to values
-    params gen all limit <- optional(integer(0..1000)),
-                   downsample_to <- optional(integer(0..1000)),
+    params gen all since <- nil,
+                   since_after <- nil,
+                   to <- nil,
+                   limit <- optional(integer(0..1000)),
+                   downsample_to <- nil,
                    downsample_key <- nil,
                    retrieve_metadata <- optional(boolean()),
                    allow_bigintegers <- optional(boolean()),
@@ -18,9 +21,9 @@ defmodule Astarte.InterfaceValuesRetrievealGenerators do
                    format <- format(),
                    params: params do
       %{
-        since: nil,
-        since_after: nil,
-        to: nil,
+        since: since,
+        since_after: since_after,
+        to: to,
         limit: limit,
         downsample_to: downsample_to,
         downsample_key: downsample_key,

@@ -99,21 +99,25 @@ defmodule Astarte.Helpers.Device do
           :object -> &Core.update_object_interface_values/5
         end
 
-      for mapping_update <- mapping_updates, reduce: initial_time do
-        time ->
-          Mimic.expect(DateTime, :utc_now, fn -> time end)
+      {last_time, _} =
+        for mapping_update <- mapping_updates, reduce: {nil, initial_time} do
+          {_prev, time} ->
+            Mimic.expect(DateTime, :utc_now, fn -> time end)
 
-          update_function.(
-            realm_name,
-            device_id,
-            interface_descriptor,
-            mapping_update.path,
-            mapping_update.value
-          )
+            update_function.(
+              realm_name,
+              device_id,
+              interface_descriptor,
+              mapping_update.path,
+              mapping_update.value
+            )
 
-          seconds_increment = :rand.uniform(60) + 5
-          DateTime.add(time, seconds_increment, :second)
-      end
+            seconds_increment = :rand.uniform(60) + 5
+            next = DateTime.add(time, seconds_increment, :second)
+            {time, next}
+        end
+
+      %{initial_time: initial_time, last_time: last_time}
     end)
     |> Task.await()
   end
