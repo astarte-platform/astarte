@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2017 - 2023 SECO Mind Srl
+# Copyright 2017 - 2025 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -39,10 +39,10 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
   alias Astarte.DataUpdaterPlant.MessageTracker
   alias Astarte.DataUpdaterPlant.RPC.VMQPlugin
   alias Astarte.DataUpdaterPlant.TriggersHandler
+  alias Astarte.DataUpdaterPlant.TimeBasedActions
   require Logger
 
   @device_triggers_lifespan_decimicroseconds 60 * 10 * 1000 * 10000
-  @groups_lifespan_decimicroseconds 60 * 10 * 1000 * 10000
   @deletion_refresh_lifespan_decimicroseconds 60 * 10 * 1000 * 10000
   @datastream_maximum_retention_refresh_lifespan_decimicroseconds 60 * 10 * 1000 * 10000
 
@@ -1648,17 +1648,6 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
     {:ok, %{state | device_triggers: updated_device_triggers}}
   end
 
-  defp reload_groups_on_expiry(state, timestamp) do
-    if state.last_groups_refresh + @groups_lifespan_decimicroseconds <= timestamp do
-      # TODO this could be a bang!
-      {:ok, groups} = Queries.get_device_groups(state.realm, state.device_id)
-
-      %{state | last_groups_refresh: timestamp, groups: groups}
-    else
-      state
-    end
-  end
-
   defp reload_device_triggers_on_expiry(state, timestamp) do
     if state.last_device_triggers_refresh + @device_triggers_lifespan_decimicroseconds <=
          timestamp do
@@ -1715,7 +1704,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
 
     state
     |> Map.put(:last_seen_message, timestamp)
-    |> reload_groups_on_expiry(timestamp)
+    |> TimeBasedActions.reload_groups_on_expiry(timestamp)
     |> Core.Interface.purge_expired_interfaces(timestamp)
     |> reload_device_triggers_on_expiry(timestamp)
     |> reload_device_deletion_status_on_expiry(timestamp)

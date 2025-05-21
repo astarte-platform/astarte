@@ -17,9 +17,10 @@
 #
 
 defmodule Astarte.Helpers.Database do
-  alias Astarte.Core.Realm
-  alias Astarte.DataAccess.Repo
+  alias Astarte.DataAccess.Devices.Device, as: DeviceSchema
+  alias Astarte.DataAccess.Realms.Interface
   alias Astarte.DataAccess.Realms.Realm
+  alias Astarte.DataAccess.Repo
 
   @create_keyspace """
   CREATE KEYSPACE :keyspace
@@ -228,6 +229,16 @@ defmodule Astarte.Helpers.Database do
     VALUES ('auth', 'jwt_public_key_pem', varcharAsBlob(:pem));
   """
 
+  @insert_datastream_maximum_storage_retention """
+    INSERT INTO :keyspace.kv_store (group, key, value)
+    VALUES ('realm_config', 'datastream_maximum_storage_retention', intAsBlob(:max_retention));
+  """
+
+  @deletion_in_progress_statement """
+    INSERT INTO :keyspace.deletion_in_progress (device_id)
+    VALUES (:device_id)
+  """
+
   @jwt_public_key_pem """
   -----BEGIN PUBLIC KEY-----
   MFYwEAYHKoZIzj0CAQYFK4EEAAoDQgAE7u5hHn9oE9uy5JoUjwNU6rSEgRlAFh5e
@@ -235,7 +246,48 @@ defmodule Astarte.Helpers.Database do
   -----END PUBLIC KEY-----
   """
 
+  @insert_endpoints [
+    """
+      INSERT INTO :keyspace.endpoints (interface_id, endpoint_id, allow_unset, endpoint, expiry, interface_major_version, interface_minor_version, interface_name, interface_type, reliability, retention, value_type) VALUES
+        (798b93a5-842e-bbad-2e4d-d20306838051, e6f73631-effc-1d7e-ad52-d3f3a3bae50b, False, '/time/from', 0, 0, 3, 'com.test.LCDMonitor', 1, 1, 1, 5);
+    """,
+    """
+      INSERT INTO :keyspace.endpoints (interface_id, endpoint_id, allow_unset, endpoint, expiry, interface_major_version, interface_minor_version, interface_name, interface_type, reliability, retention, value_type) VALUES
+        (798b93a5-842e-bbad-2e4d-d20306838051, 2b2c63dd-bbd9-5735-6d4a-8e56f504edda, False, '/time/to', 0, 0, 3, 'com.test.LCDMonitor', 1, 1, 1, 5);
+    """,
+    """
+      INSERT INTO :keyspace.endpoints (interface_id, endpoint_id, allow_unset, endpoint, expiry, interface_major_version, interface_minor_version, interface_name, interface_type, reliability, retention, value_type) VALUES
+        (798b93a5-842e-bbad-2e4d-d20306838051, 801e1035-5fdf-7069-8e6e-3fd2792699ab, False, '/weekSchedule/%{day}/start', 0, 0, 3, 'com.test.LCDMonitor', 1, 1, 1, 5);
+    """,
+    """
+      INSERT INTO :keyspace.endpoints (interface_id, endpoint_id, allow_unset, endpoint, expiry, interface_major_version, interface_minor_version, interface_name, interface_type, reliability, retention, value_type) VALUES
+        (798b93a5-842e-bbad-2e4d-d20306838051, 4fe5034a-3d9b-99ec-7ec3-b23716303d33, False, '/lcdCommand', 0, 0, 3, 'com.test.LCDMonitor', 1, 1, 1, 7);
+    """,
+    """
+      INSERT INTO :keyspace.endpoints (interface_id, endpoint_id, allow_unset, endpoint, expiry, interface_major_version, interface_minor_version, interface_name, interface_type, reliability, retention, value_type) VALUES
+        (798b93a5-842e-bbad-2e4d-d20306838051, 8ebb62b3-60c1-4ba2-4172-9ddedd809c9f, False, '/weekSchedule/%{day}/stop', 0, 0, 3, 'com.test.LCDMonitor', 1, 1, 1, 5);
+    """,
+    """
+      INSERT INTO :keyspace.endpoints (interface_id, endpoint_id, allow_unset, endpoint, expiry, interface_major_version, interface_minor_version, interface_name, interface_type, reliability, retention, value_type) VALUES
+        (0a0da77d-85b5-93d9-d4d2-bd26dd18c9af, 75010e1b-199e-eefc-dd35-d254b0e20924, False, '/%{itemIndex}/value', 0, 1, 0, 'com.test.SimpleStreamTest', 2, 3, 1, 3);
+    """
+  ]
+
   def setup!(realm_name) do
+    setup_realm_keyspace!(realm_name)
+
+    astarte_keyspace = Realm.astarte_keyspace_name()
+    execute!(astarte_keyspace, @create_keyspace)
+    execute!(astarte_keyspace, @create_kv_store)
+    execute!(astarte_keyspace, @create_realms_table)
+
+    %Realm{realm_name: realm_name}
+    |> Repo.insert!(prefix: astarte_keyspace)
+
+    :ok
+  end
+
+  def setup_realm_keyspace!(realm_name) do
     realm_keyspace = Realm.keyspace_name(realm_name)
     execute!(realm_keyspace, @create_keyspace)
     execute!(realm_keyspace, @create_devices_table)
@@ -249,31 +301,180 @@ defmodule Astarte.Helpers.Database do
     execute!(realm_keyspace, @create_interfaces_table)
     execute!(realm_keyspace, @create_deletion_in_progress_table)
 
-    astarte_keyspace = Realm.astarte_keyspace_name()
-    execute!(astarte_keyspace, @create_keyspace)
-    execute!(astarte_keyspace, @create_kv_store)
-    execute!(astarte_keyspace, @create_realms_table)
+    Enum.each(@insert_endpoints, fn query ->
+      execute!(realm_keyspace, query)
+    end)
 
-    %Realm{realm_name: realm_name}
-    |> Repo.insert!(prefix: astarte_keyspace)
+    %Interface{}
+    |> Ecto.Changeset.change(%{
+      name: "com.test.LCDMonitor",
+      major_version: 1,
+      automaton_accepting_states:
+        Base.decode64!(
+          "g3QAAAAFYQNtAAAAEIAeEDVf33Bpjm4/0nkmmathBG0AAAAQjrtis2DBS6JBcp3e3YCcn2EFbQAAABBP5QNKPZuZ7H7DsjcWMD0zYQdtAAAAEOb3NjHv/B1+rVLT86O65QthCG0AAAAQKyxj3bvZVzVtSo5W9QTt2g=="
+        ),
+      automaton_transitions:
+        Base.decode64!(
+          "g3QAAAAIaAJhAG0AAAAKbGNkQ29tbWFuZGEFaAJhAG0AAAAEdGltZWEGaAJhAG0AAAAMd2Vla1NjaGVkdWxlYQFoAmEBbQAAAABhAmgCYQJtAAAABXN0YXJ0YQNoAmECbQAAAARzdG9wYQRoAmEGbQAAAARmcm9tYQdoAmEGbQAAAAJ0b2EI"
+        ),
+      aggregation: :individual,
+      interface_id: "798b93a5-842e-bbad-2e4d-d20306838051",
+      minor_version: 3,
+      ownership: :device,
+      storage: "individual_properties",
+      storage_type: :multi_interface_individual_properties_dbtable,
+      type: :properties
+    })
+    |> Repo.insert!(prefix: realm_keyspace)
+
+    %Interface{}
+    |> Ecto.Changeset.change(%{
+      name: "com.test.SimpleStreamTest",
+      major_version: 1,
+      automaton_accepting_states:
+        Base.decode64!(
+          "g3QAAAAFYQJtAAAAEHUBDhsZnu783TXSVLDiCSRhBW0AAAAQOQfUHVvKMp2eUUzqKlSpmmEGbQAAABB6pEwRInNH2eYkSuAp3t6qYQdtAAAAEO/5V88D397tl4SocI49jLlhCG0AAAAQNGyA5MqZYnSB9nscG+WVIQ=="
+        ),
+      automaton_transitions:
+        Base.decode64!(
+          "g3QAAAAIaAJhAG0AAAAAYQFoAmEAbQAAAANmb29hA2gCYQFtAAAABXZhbHVlYQJoAmEDbQAAAABhBGgCYQRtAAAACWJsb2JWYWx1ZWEGaAJhBG0AAAAJbG9uZ1ZhbHVlYQdoAmEEbQAAAAtzdHJpbmdWYWx1ZWEFaAJhBG0AAAAOdGltZXN0YW1wVmFsdWVhCA=="
+        ),
+      aggregation: :individual,
+      interface_id: "0a0da77d-85b5-93d9-d4d2-bd26dd18c9af",
+      minor_version: 0,
+      ownership: :device,
+      storage: "individual_datastreams",
+      storage_type: :multi_interface_individual_datastream_dbtable,
+      type: :datastream
+    })
+    |> Repo.insert!(prefix: realm_keyspace)
 
     :ok
   end
 
   def teardown!(realm_name) do
-    realm_keyspace = Realm.keyspace_name(realm_name)
+    teardown_realm_keyspace!(realm_name)
     astarte_keyspace = Realm.astarte_keyspace_name()
-
-    execute!(realm_keyspace, @drop_keyspace)
     execute!(astarte_keyspace, @drop_keyspace)
-
     :ok
+  end
+
+  def teardown_realm_keyspace!(realm_name) do
+    realm_keyspace = Realm.keyspace_name(realm_name)
+    execute!(realm_keyspace, @drop_keyspace)
+    :ok
+  end
+
+  def insert_device(device_id, realm_name, opts \\ []) do
+    keyspace_name = Realm.keyspace_name(realm_name)
+
+    last_connection = Keyword.get(opts, :last_connection)
+    last_disconnection = Keyword.get(opts, :last_disconnection)
+
+    first_registration =
+      Keyword.get(opts, :first_registration, DateTime.utc_now() |> DateTime.to_unix(:millisecond))
+
+    last_seen_ip = Keyword.get(opts, :last_seen_ip)
+    last_credentials_request_ip = Keyword.get(opts, :last_credentials_request_ip)
+    total_received_msgs = Keyword.get(opts, :total_received_msgs, 0)
+    total_received_bytes = Keyword.get(opts, :total_received_bytes, 0)
+    introspection = Keyword.get(opts, :introspection, %{})
+    groups = Keyword.get(opts, :groups, [])
+    groups_map = for group <- groups, do: {group, UUID.uuid1()}
+
+    %DeviceSchema{}
+    |> Ecto.Changeset.change(%{
+      device_id: device_id,
+      last_connection: last_connection,
+      last_disconnection: last_disconnection,
+      first_registration: first_registration,
+      last_seen_ip: last_seen_ip,
+      last_credentials_request_ip: last_credentials_request_ip,
+      total_received_msgs: total_received_msgs,
+      total_received_bytes: total_received_bytes,
+      introspection: introspection,
+      groups: groups_map
+    })
+    |> Repo.insert(prefix: keyspace_name)
+  end
+
+  def update_device(device_id, realm_name, opts \\ []) do
+    keyspace_name = Realm.keyspace_name(realm_name)
+
+    last_connection = Keyword.get(opts, :last_connection)
+    last_disconnection = Keyword.get(opts, :last_disconnection)
+
+    first_registration =
+      Keyword.get(opts, :first_registration, DateTime.utc_now() |> DateTime.to_unix(:millisecond))
+
+    last_seen_ip = Keyword.get(opts, :last_seen_ip)
+    last_credentials_request_ip = Keyword.get(opts, :last_credentials_request_ip)
+    total_received_msgs = Keyword.get(opts, :total_received_msgs, 0)
+    total_received_bytes = Keyword.get(opts, :total_received_bytes, 0)
+    introspection = Keyword.get(opts, :introspection, %{})
+    groups = Keyword.get(opts, :groups, [])
+    groups_map = for group <- groups, do: {group, UUID.uuid1()}
+
+    DeviceSchema
+    |> Repo.get(device_id, prefix: keyspace_name)
+    |> case do
+      nil ->
+        {:error, :not_found}
+
+      device ->
+        device
+        |> Ecto.Changeset.change(%{
+          last_connection: last_connection,
+          last_disconnection: last_disconnection,
+          first_registration: first_registration,
+          last_seen_ip: last_seen_ip,
+          last_credentials_request_ip: last_credentials_request_ip,
+          total_received_msgs: total_received_msgs,
+          total_received_bytes: total_received_bytes,
+          introspection: introspection,
+          groups: groups_map
+        })
+        |> Repo.update(prefix: keyspace_name)
+    end
+  end
+
+  def insert_deletion_in_progress(device_id, realm_name) do
+    realm_keyspace = Realm.keyspace_name(realm_name)
+
+    execute!(realm_keyspace, @deletion_in_progress_statement, %{
+      "device_id" => device_id
+    })
   end
 
   def insert_public_key!(realm_name) do
     realm_keyspace = Realm.keyspace_name(realm_name)
 
     execute!(realm_keyspace, @insert_public_key, %{"pem" => @jwt_public_key_pem})
+  end
+
+  def insert_datastream_maximum_storage_retention!(realm_name, max_retention) do
+    realm_keyspace = Realm.keyspace_name(realm_name)
+
+    execute!(realm_keyspace, @insert_datastream_maximum_storage_retention, %{
+      "max_retention" => max_retention
+    })
+  end
+
+  def make_timestamp(timestamp_string) do
+    {:ok, date_time, _} = DateTime.from_iso8601(timestamp_string)
+    DateTime.to_unix(date_time, :millisecond) * 10000
+  end
+
+  def gen_tracking_id() do
+    message_id = :erlang.unique_integer([:monotonic]) |> Integer.to_string()
+    delivery_tag = {:injected_msg, make_ref()}
+    {message_id, delivery_tag}
+  end
+
+  def random_device_id() do
+    seq = :crypto.strong_rand_bytes(16)
+    <<u0::48, _::4, u1::12, _::2, u2::62>> = seq
+    <<u0::48, 4::4, u1::12, 2::2, u2::62>>
   end
 
   defp execute!(keyspace, query, params \\ [], opts \\ []) do
