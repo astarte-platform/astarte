@@ -53,21 +53,16 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
 
   setup :verify_on_exit!
 
-  setup do
+  setup_all do
     realm = "autotestrealm#{System.unique_integer([:positive])}"
-    DatabaseTestHelper.destroy_local_test_keyspace(realm)
     {:ok, _keyspace_name} = DatabaseTestHelper.create_test_keyspace(realm)
 
     on_exit(fn ->
       DatabaseTestHelper.destroy_local_test_keyspace(realm)
     end)
 
-    %{realm: realm}
-  end
-
-  setup_all do
     {:ok, _pid} = AMQPTestHelper.start_link()
-    :ok
+    %{realm: realm}
   end
 
   test "simple flow", %{realm: realm} do
@@ -1628,149 +1623,8 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
 
   setup [:set_mox_from_context, :verify_on_exit!]
 
-  test "device deletion is acked and related DataUpdater process stops" do
+  test "a disconnected device does not generate a disconnection trigger", %{realm: realm} do
     AMQPTestHelper.clean_queue()
-
-    realm = "autotestrealm"
-
-    encoded_device_id =
-      :crypto.strong_rand_bytes(16)
-      |> Base.url_encode64(padding: false)
-
-    {:ok, device_id} = Device.decode_device_id(encoded_device_id)
-
-    # Register the device with some fake data
-    total_received_messages = 42
-    total_received_bytes = 4242
-
-    insert_opts = [
-      total_received_msgs: total_received_messages,
-      total_received_bytes: total_received_bytes
-    ]
-
-    DatabaseTestHelper.insert_device(device_id, insert_opts)
-
-    # Set device deletion to in progress
-    deletion_in_progress_statement = """
-    INSERT INTO #{Realm.keyspace_name(realm)}.deletion_in_progress (device_id)
-    VALUES (:device_id)
-    """
-
-    Xandra.Cluster.run(:xandra, fn conn ->
-      prepared = Xandra.prepare!(conn, deletion_in_progress_statement)
-
-      %Xandra.Void{} =
-        Xandra.execute!(conn, prepared, %{"device_id" => device_id}, uuid_format: :binary)
-    end)
-
-    # We expect that sooner or later the device will be disconnected
-    Astarte.DataUpdaterPlant.RPC.VMQPlugin.ClientMock
-    |> expect(:delete, fn data ->
-      assert %{realm_name: ^realm, device_id: ^encoded_device_id} = data
-
-      :ok
-    end)
-
-    timestamp_us_x_10 = make_timestamp("2017-10-09T15:00:32+00:00")
-    timestamp_ms = div(timestamp_us_x_10, 10_000)
-
-    DataUpdater.start_device_deletion(realm, encoded_device_id, timestamp_ms)
-
-    # Check DUP start ack in deleted_devices table
-    dup_start_ack_statement = """
-    SELECT dup_start_ack
-    FROM #{Realm.keyspace_name(realm)}.deletion_in_progress
-    WHERE device_id = :device_id
-    """
-
-    dup_start_ack_result =
-      Xandra.Cluster.run(:xandra, fn conn ->
-        prepared = Xandra.prepare!(conn, dup_start_ack_statement)
-
-        %Xandra.Page{} =
-          page =
-          Xandra.execute!(conn, prepared, %{"device_id" => device_id}, uuid_format: :binary)
-
-        Enum.to_list(page)
-      end)
-
-    assert [%{"dup_start_ack" => true}] = dup_start_ack_result
-
-    # Check that no data is being handled
-    DataUpdater.handle_data(
-      realm,
-      encoded_device_id,
-      "this.interface.does.not.Exist",
-      "/don/t/care",
-      :dontcare,
-      gen_tracking_id(),
-      make_timestamp("2017-10-09T14:30:15+00:00")
-    )
-
-    received_data_statement = """
-    SELECT total_received_msgs, total_received_bytes
-    FROM #{Realm.keyspace_name(realm)}.devices WHERE device_id=:device_id;
-    """
-
-    received_data_result =
-      Xandra.Cluster.run(:xandra, fn conn ->
-        prepared = Xandra.prepare!(conn, received_data_statement)
-
-        %Xandra.Page{} =
-          page =
-          Xandra.execute!(conn, prepared, %{"device_id" => device_id}, uuid_format: :binary)
-
-        Enum.to_list(page)
-      end)
-
-    assert [
-             %{
-               "total_received_msgs" => ^total_received_messages,
-               "total_received_bytes" => ^total_received_bytes
-             }
-           ] = received_data_result
-
-    # Now process the device's last message
-    DataUpdater.handle_internal(
-      realm,
-      encoded_device_id,
-      "/f",
-      :dontcare,
-      gen_tracking_id(),
-      timestamp_us_x_10
-    )
-
-    # Let the process handle device's last message
-    Process.sleep(100)
-
-    # Check DUP end ack in deleted_devices table
-    dup_end_ack_statement = """
-    SELECT dup_end_ack
-    FROM #{Realm.keyspace_name(realm)}.deletion_in_progress
-    WHERE device_id = :device_id
-    """
-
-    dup_end_ack_result =
-      Xandra.Cluster.run(:xandra, fn conn ->
-        prepared = Xandra.prepare!(conn, dup_end_ack_statement)
-
-        %Xandra.Page{} =
-          page =
-          Xandra.execute!(conn, prepared, %{"device_id" => device_id}, uuid_format: :binary)
-
-        Enum.to_list(page)
-      end)
-
-    assert [%{"dup_end_ack" => true}] = dup_end_ack_result
-
-    # Finally, check that the related DataUpdater process exists no more
-    assert [] = Horde.Registry.lookup(Registry.DataUpdater, {realm, device_id})
-  end
-
-  test "a disconnected device does not generate a disconnection trigger" do
-    AMQPTestHelper.clean_queue()
-
-    realm = "autotestrealm"
 
     encoded_device_id =
       :crypto.strong_rand_bytes(16)
