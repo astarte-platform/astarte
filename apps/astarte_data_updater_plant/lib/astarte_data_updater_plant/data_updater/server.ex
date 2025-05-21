@@ -24,7 +24,13 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Server do
 
   require Logger
 
-  def start_link({realm, device_id, _message_tracker} = args) do
+  def start_link({realm, device_id, _message_tracker} = args),
+    do: start_link(realm, device_id, args)
+
+  def start_link({realm, device_id, _message_tracker, :wait_start} = args),
+    do: start_link(realm, device_id, args)
+
+  defp start_link(realm, device_id, args) do
     name = {:via, Horde.Registry, {Registry.DataUpdater, {realm, device_id}}}
     GenServer.start_link(__MODULE__, args, name: name)
   end
@@ -34,7 +40,16 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Server do
     timeout = Config.data_updater_deactivation_interval_ms!()
 
     Process.flag(:trap_exit, true)
+
     {:ok, Impl.init_state(realm, device_id, message_tracker), timeout}
+  end
+
+  @impl GenServer
+  def init({realm, device_id, message_tracker, :wait_start}) do
+    timeout = Config.data_updater_deactivation_interval_ms!()
+
+    Process.flag(:trap_exit, true)
+    {:ok, {realm, device_id, message_tracker}, timeout}
   end
 
   @impl GenServer
@@ -151,6 +166,13 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Server do
       )
 
     {:reply, return_value, new_state, timeout}
+  end
+
+  def handle_call(:start, _from, {realm, device_id, message_tracker}) do
+    timeout = Config.data_updater_deactivation_interval_ms!()
+    state = Impl.init_state(realm, device_id, message_tracker)
+
+    {:reply, :ok, state, timeout}
   end
 
   @impl GenServer

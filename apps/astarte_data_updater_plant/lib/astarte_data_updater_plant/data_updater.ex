@@ -190,15 +190,20 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater do
     end
   end
 
-  def fetch_data_updater_process(realm, encoded_device_id, message_tracker) do
+  def fetch_data_updater_process(realm, encoded_device_id, message_tracker, wait_start \\ false) do
     with {:ok, device_id} <- Device.decode_device_id(encoded_device_id) do
       sharding_key = {realm, device_id}
+
+      args =
+        if wait_start,
+          do: {realm, device_id, message_tracker, :wait_start},
+          else: {realm, device_id, message_tracker}
 
       case Horde.Registry.lookup(Registry.DataUpdater, {realm, device_id}) do
         [] ->
           case Horde.DynamicSupervisor.start_child(
                  Supervisor.DataUpdater,
-                 {DataUpdater.Server, {realm, device_id, message_tracker}}
+                 {DataUpdater.Server, args}
                ) do
             {:ok, pid} ->
               {:ok, pid}
