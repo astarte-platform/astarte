@@ -18,6 +18,7 @@
 
 defmodule Astarte.DataUpdaterPlant.TimeBasedActionsTest do
   use ExUnit.Case, async: true
+  import Mox
 
   alias Astarte.Core.Device
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.AMQPTriggerTarget
@@ -591,6 +592,189 @@ defmodule Astarte.DataUpdaterPlant.TimeBasedActionsTest do
 
       assert new_state.last_device_triggers_refresh == @timestamp2_us_x_10
       assert new_state.volatile_triggers == state.volatile_triggers
+    end
+  end
+
+  describe "reload_device_deletion_status_on_expiry/2" do
+    test "refreshes deletion status when expired and device is not being deleted", %{
+      realm: realm,
+      encoded_device_id: encoded_device_id,
+      device_id: device_id
+    } do
+      # Insert initial device state
+      state = setup_device_state(realm, device_id, encoded_device_id, [])
+
+      assert state.last_deletion_in_progress_refresh == @timestamp_us_x_10
+      assert state.discard_messages == false
+
+      # Simulate expiration and refresh
+      new_state =
+        TimeBasedActions.reload_device_deletion_status_on_expiry(state, @timestamp2_us_x_10)
+
+      assert new_state.last_deletion_in_progress_refresh == @timestamp2_us_x_10
+      assert new_state.discard_messages == false
+    end
+
+    test "does not refresh deletion status if not expired", %{
+      realm: realm,
+      device_id: device_id,
+      encoded_device_id: encoded_device_id
+    } do
+      # Insert initial device state
+      state = setup_device_state(realm, device_id, encoded_device_id, [])
+
+      assert state.last_deletion_in_progress_refresh == @timestamp_us_x_10
+      assert state.discard_messages == false
+
+      timestamp2_us_x_10 = Database.make_timestamp("2025-05-14T14:05:32+00:00")
+
+      new_state =
+        TimeBasedActions.reload_device_deletion_status_on_expiry(state, timestamp2_us_x_10)
+
+      assert new_state.last_deletion_in_progress_refresh == @timestamp_us_x_10
+      assert new_state.discard_messages == false
+    end
+
+    test "does not stop DataUpdater process if deletion is in progress but not acked and not expired",
+         %{
+           realm: realm,
+           encoded_device_id: encoded_device_id,
+           device_id: device_id
+         } do
+      # Insert initial device state
+      state = setup_device_state(realm, device_id, encoded_device_id, [])
+
+      assert state.last_deletion_in_progress_refresh == @timestamp_us_x_10
+      assert state.discard_messages == false
+
+      Database.insert_deletion_in_progress(device_id, realm)
+
+      timestamp2_us_x_10 = Database.make_timestamp("2025-05-14T14:05:32+00:00")
+
+      new_state =
+        TimeBasedActions.reload_device_deletion_status_on_expiry(state, timestamp2_us_x_10)
+
+      assert new_state.last_deletion_in_progress_refresh == @timestamp_us_x_10
+      assert new_state.discard_messages == false
+      assert new_state.connected == true
+    end
+
+    test "disconnects and discards messages when deletion is acked and expired", %{
+      realm: realm,
+      encoded_device_id: encoded_device_id,
+      device_id: device_id
+    } do
+      # Insert initial device state
+      state = setup_device_state(realm, device_id, encoded_device_id, [])
+
+      assert state.last_deletion_in_progress_refresh == @timestamp_us_x_10
+      assert state.discard_messages == false
+
+      Database.insert_deletion_in_progress(device_id, realm)
+
+      Astarte.DataUpdaterPlant.RPC.VMQPlugin.ClientMock
+      |> expect(:delete, fn data ->
+        assert %{realm_name: ^realm, device_id: ^encoded_device_id} = data
+
+        :ok
+      end)
+
+      new_state =
+        TimeBasedActions.reload_device_deletion_status_on_expiry(
+          state,
+          @timestamp2_us_x_10
+        )
+
+      assert new_state.last_deletion_in_progress_refresh == @timestamp2_us_x_10
+      assert new_state.discard_messages == true
+      assert new_state.connected == false
+    end
+
+    test "disconnects and discards messages when deletion is acked, expired, and device is already disconnected",
+         %{
+           realm: realm,
+           encoded_device_id: encoded_device_id,
+           device_id: device_id
+         } do
+      # Insert initial device state
+      state = setup_device_state(realm, device_id, encoded_device_id, [])
+
+      assert state.last_deletion_in_progress_refresh == @timestamp_us_x_10
+      assert state.discard_messages == false
+
+      Database.insert_deletion_in_progress(device_id, realm)
+
+      # Not found means it was already disconnected, succeed anyway
+      Astarte.DataUpdaterPlant.RPC.VMQPlugin.ClientMock
+      |> expect(:delete, fn data ->
+        assert %{realm_name: ^realm, device_id: ^encoded_device_id} = data
+
+        {:error, :not_found}
+      end)
+
+      new_state =
+        TimeBasedActions.reload_device_deletion_status_on_expiry(
+          state,
+          @timestamp2_us_x_10
+        )
+
+      assert new_state.last_deletion_in_progress_refresh == @timestamp2_us_x_10
+      assert new_state.discard_messages == true
+      assert new_state.connected == false
+    end
+
+    test "raises MatchError if deletion returns error", %{
+      realm: realm,
+      encoded_device_id: encoded_device_id,
+      device_id: device_id
+    } do
+      # Insert initial device state
+      state = setup_device_state(realm, device_id, encoded_device_id, [])
+
+      assert state.last_deletion_in_progress_refresh == @timestamp_us_x_10
+      assert state.discard_messages == false
+      assert state.connected == true
+
+      Database.insert_deletion_in_progress(device_id, realm)
+
+      # Simulate VMQPlugin.delete returning an error
+      Astarte.DataUpdaterPlant.RPC.VMQPlugin.ClientMock
+      |> expect(:delete, fn data ->
+        assert %{realm_name: ^realm, device_id: ^encoded_device_id} = data
+        {:error, :bad_request}
+      end)
+
+      assert_raise MatchError, fn ->
+        TimeBasedActions.reload_device_deletion_status_on_expiry(
+          state,
+          @timestamp2_us_x_10
+        )
+      end
+    end
+
+    test "does not start device deletion if check_device_deletion_in_progress returns error", %{
+      realm: realm,
+      device_id: device_id,
+      encoded_device_id: encoded_device_id
+    } do
+      # Insert initial device state
+      state = setup_device_state(realm, device_id, encoded_device_id, [])
+
+      # Simulate error scenario: update the state to use the nonexistent realm
+      nonexistent_realm = "nonexistent_realm_#{System.unique_integer([:positive])}"
+      state = %{state | realm: nonexistent_realm}
+
+      # Verify state behavior: only timestamp is updated, no deletion triggered
+      new_state =
+        TimeBasedActions.reload_device_deletion_status_on_expiry(
+          state,
+          @timestamp2_us_x_10
+        )
+
+      # State should only have updated last_deletion_in_progress_refresh
+      assert new_state.last_deletion_in_progress_refresh == @timestamp2_us_x_10
+      assert new_state.discard_messages == false
+      assert new_state.connected == true
     end
   end
 

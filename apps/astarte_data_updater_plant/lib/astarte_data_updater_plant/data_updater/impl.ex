@@ -42,7 +42,6 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
   alias Astarte.DataUpdaterPlant.TimeBasedActions
   require Logger
 
-  @deletion_refresh_lifespan_decimicroseconds 60 * 10 * 1000 * 10000
   @datastream_maximum_retention_refresh_lifespan_decimicroseconds 60 * 10 * 1000 * 10000
 
   def init_state(realm, device_id, message_tracker) do
@@ -1662,18 +1661,8 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
     |> TimeBasedActions.reload_groups_on_expiry(timestamp)
     |> TimeBasedActions.purge_expired_interfaces(timestamp)
     |> TimeBasedActions.reload_device_triggers_on_expiry(timestamp)
-    |> reload_device_deletion_status_on_expiry(timestamp)
+    |> TimeBasedActions.reload_device_deletion_status_on_expiry(timestamp)
     |> reload_datastream_maximum_storage_retention_on_expiry(timestamp)
-  end
-
-  defp reload_device_deletion_status_on_expiry(state, timestamp) do
-    if state.last_deletion_in_progress_refresh + @deletion_refresh_lifespan_decimicroseconds <=
-         timestamp do
-      new_state = maybe_start_device_deletion(state, timestamp)
-      %State{new_state | last_deletion_in_progress_refresh: timestamp}
-    else
-      state
-    end
   end
 
   defp reload_datastream_maximum_storage_retention_on_expiry(state, timestamp) do
@@ -1703,52 +1692,6 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
     end
   end
 
-  defp maybe_start_device_deletion(state, timestamp) do
-    %State{realm: realm, device_id: device_id} = state
-
-    if should_start_device_deletion?(realm, device_id) do
-      encoded_device_id = Device.encode_device_id(device_id)
-
-      :ok = force_device_deletion_from_broker(realm, encoded_device_id)
-      new_state = set_device_disconnected(state, timestamp)
-
-      _ =
-        Logger.info("Stop handling data from device in deletion, device_id #{encoded_device_id}")
-
-      # It's ok to repeat that, as we always write ⊤
-      keyspace_name =
-        CQLUtils.realm_name_to_keyspace_name(realm, Config.astarte_instance_id!())
-
-      Queries.ack_start_device_deletion(keyspace_name, device_id)
-
-      %State{new_state | discard_messages: true}
-    else
-      state
-    end
-  end
-
-  defp should_start_device_deletion?(realm_name, device_id) do
-    keyspace_name =
-      CQLUtils.realm_name_to_keyspace_name(realm_name, Config.astarte_instance_id!())
-
-    case Queries.check_device_deletion_in_progress(keyspace_name, device_id) do
-      {:ok, true} ->
-        true
-
-      {:ok, false} ->
-        false
-
-      {:error, reason} ->
-        _ =
-          Logger.warning(
-            "Cannot check device deletion status for #{inspect(device_id)}, reason #{inspect(reason)}",
-            tag: "should_start_device_deletion_fail"
-          )
-
-        false
-    end
-  end
-
   defp prune_device_properties(state, decoded_payload, timestamp) do
     {:ok, paths_set} =
       PayloadsDecoder.parse_device_properties_payload(decoded_payload, state.introspection)
@@ -1761,7 +1704,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
     :ok
   end
 
-  defp set_device_disconnected(state, timestamp) do
+  def set_device_disconnected(state, timestamp) do
     timestamp_ms = div(timestamp, 10_000)
 
     Queries.set_device_disconnected!(
@@ -1835,24 +1778,6 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
 
   defp force_disconnection(realm, encoded_device_id) do
     case VMQPlugin.disconnect("#{realm}/#{encoded_device_id}", true) do
-      # Successfully disconnected
-      :ok ->
-        :ok
-
-      # Not found means it was already disconnected, succeed anyway
-      {:error, :not_found} ->
-        :ok
-
-      # Some other error, return it
-      {:error, reason} ->
-        {:error, reason}
-    end
-  end
-
-  defp force_device_deletion_from_broker(realm, encoded_device_id) do
-    _ = Logger.info("Disconnecting device to be deleted, device_id #{encoded_device_id}")
-
-    case VMQPlugin.delete(realm, encoded_device_id) do
       # Successfully disconnected
       :ok ->
         :ok
