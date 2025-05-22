@@ -101,7 +101,7 @@ defmodule AstarteE2E.ServiceNotifier do
     |> Email.service_down_email(event_id, mail_subject)
     |> deliver()
 
-    Logger.warn(
+    Logger.warning(
       "Service down. The user has been notified. Reason: #{reason}.",
       tag: "service_down_notified",
       failure_id: event_id
@@ -180,7 +180,7 @@ defmodule AstarteE2E.ServiceNotifier do
     |> Email.service_down_email(event_id, mail_subject)
     |> deliver()
 
-    Logger.warn(
+    Logger.warning(
       "Service down. The user has been notified. Reason: #{reason}.",
       tag: "service_down_notified",
       failure_id: event_id
@@ -206,7 +206,7 @@ defmodule AstarteE2E.ServiceNotifier do
     |> Email.service_down_email(event_id, mail_subject)
     |> deliver()
 
-    Logger.warn(
+    Logger.warning(
       "Service down. The user has been notified. Reason: #{reason}.",
       tag: "service_down_notified",
       failure_id: event_id

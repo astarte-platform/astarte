@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2018-2020 Ispirata Srl
+# Copyright 2018 - 2025 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -43,7 +43,12 @@ defmodule Astarte.RealmManagement.API.Triggers.Trigger do
     |> validate_required([:name])
     |> validate_length(:policy, max: 128)
     |> validate_format(:policy, policy_name_regex())
-    |> cast_embed(:amqp_action, required: false, with: {AMQPAction, :changeset, [opts]})
+    |> cast_embed(:amqp_action,
+      required: false,
+      with: fn amqp_action, params ->
+        AMQPAction.changeset(amqp_action, params, opts)
+      end
+    )
     |> cast_embed(:http_action, required: false)
     |> cast_embed(:simple_triggers, required: true)
     |> normalize()

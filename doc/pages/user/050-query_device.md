@@ -208,3 +208,21 @@ When [using Astarte Channels](052-using_channels.md) the REST API should be used
 ### Exporting Devices Data with astartectl
 
 The previous feature makes `astartectl` extremely useful when it comes to export or dump data. Moreover, `get-samples` features a `--output` option, which allows to print the results in different formats, such as `json` or `CSV`. This way, exporting values becomes extremely easy, as `get-samples` can easily tap into an Interface's entire data set and print it into a CSV file.
+
+## Deleting a Device
+
+If you want to entirely remove a device from your realm along with its data, it is possible to do so with the
+device deletion API.
+Note that the Astarte API also allows for the unregistration and the inhibition of a specific device, which
+should be enough in most use cases and do not cause any data loss.
+
+> [!IMPORTANT]
+> Once the deletion of a device is started, all data related to the device will be lost.
+
+### Device deletion using Realm Management API
+
+Let's assume our Device has `f0VMRgIBAQAAAAAAAAAAAA` as its id.
+To delete it, use the following API. The deletion operation is asynchronous and can take up to 15 minutes.
+During the process, you device status will appear as "In deletion".
+
+`DELETE api.<your astarte domain>/realmmanagement/v1/test/devices/f0VMRgIBAQAAAAAAAAAAAA`

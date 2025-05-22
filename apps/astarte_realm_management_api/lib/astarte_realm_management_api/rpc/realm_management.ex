@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2017-2018 Ispirata Srl
+# Copyright 2017 - 2023 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -23,6 +23,10 @@ defmodule Astarte.RealmManagement.API.RPC.RealmManagement do
     DeleteTrigger,
     GenericErrorReply,
     GenericOkReply,
+    GetDatastreamMaximumStorageRetention,
+    GetDatastreamMaximumStorageRetentionReply,
+    GetDeviceRegistrationLimit,
+    GetDeviceRegistrationLimitReply,
     GetHealth,
     GetHealthReply,
     GetInterfacesList,
@@ -48,7 +52,8 @@ defmodule Astarte.RealmManagement.API.RPC.RealmManagement do
     GetTriggerPoliciesListReply,
     GetTriggerPolicySource,
     GetTriggerPolicySourceReply,
-    DeleteTriggerPolicy
+    DeleteTriggerPolicy,
+    DeleteDevice
   }
 
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.TaggedSimpleTrigger
@@ -135,6 +140,26 @@ defmodule Astarte.RealmManagement.API.RPC.RealmManagement do
       realm_name: realm_name
     }
     |> encode_call(:get_jwt_public_key_pem)
+    |> @rpc_client.rpc_call(@destination)
+    |> decode_reply()
+    |> extract_reply()
+  end
+
+  def get_device_registration_limit(realm_name) do
+    %GetDeviceRegistrationLimit{
+      realm_name: realm_name
+    }
+    |> encode_call(:get_device_registration_limit)
+    |> @rpc_client.rpc_call(@destination)
+    |> decode_reply()
+    |> extract_reply()
+  end
+
+  def get_datastream_maximum_storage_retention(realm_name) do
+    %GetDatastreamMaximumStorageRetention{
+      realm_name: realm_name
+    }
+    |> encode_call(:get_datastream_maximum_storage_retention)
     |> @rpc_client.rpc_call(@destination)
     |> decode_reply()
     |> extract_reply()
@@ -253,6 +278,17 @@ defmodule Astarte.RealmManagement.API.RPC.RealmManagement do
     |> extract_reply()
   end
 
+  def delete_device(realm_name, device_id) do
+    %DeleteDevice{
+      realm_name: realm_name,
+      device_id: device_id
+    }
+    |> encode_call(:delete_device)
+    |> @rpc_client.rpc_call(@destination)
+    |> decode_reply()
+    |> extract_reply()
+  end
+
   defp encode_call(call, callname) do
     %Call{call: {callname, call}}
     |> Call.encode()
@@ -293,7 +329,7 @@ defmodule Astarte.RealmManagement.API.RPC.RealmManagement do
       {:error, reason}
     rescue
       ArgumentError ->
-        _ = Logger.warn("Received unknown error: #{inspect(name)}.", tag: "amqp_generic_error")
+        _ = Logger.warning("Received unknown error: #{inspect(name)}.", tag: "amqp_generic_error")
         {:error, :unknown}
     end
   end
@@ -372,6 +408,29 @@ defmodule Astarte.RealmManagement.API.RPC.RealmManagement do
          {:get_trigger_policy_source_reply, %GetTriggerPolicySourceReply{source: source}}
        ) do
     {:ok, source}
+  end
+
+  defp extract_reply(
+         {:get_device_registration_limit_reply,
+          %GetDeviceRegistrationLimitReply{device_registration_limit: limit}}
+       ) do
+    {:ok, limit}
+  end
+
+  defp extract_reply(
+         {:get_datastream_maximum_storage_retention_reply,
+          %GetDatastreamMaximumStorageRetentionReply{
+            datastream_maximum_storage_retention: 0
+          }}
+       ) do
+    {:ok, nil}
+  end
+
+  defp extract_reply(
+         {:get_datastream_maximum_storage_retention_reply,
+          %GetDatastreamMaximumStorageRetentionReply{} = reply}
+       ) do
+    {:ok, reply.datastream_maximum_storage_retention}
   end
 
   defp extract_reply({:error, :rpc_error}) do

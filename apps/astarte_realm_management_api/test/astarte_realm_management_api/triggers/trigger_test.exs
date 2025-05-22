@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2020 Ispirata Srl
+# Copyright 2020 - 2025 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -17,11 +17,12 @@
 #
 
 defmodule Astarte.RealmManagement.API.Triggers.TriggerTest do
-  use ExUnit.Case
+  use ExUnit.Case, async: true
+
+  @moduletag :trigger_actions
+
   alias Astarte.Core.Triggers.SimpleTriggerConfig
   alias Astarte.RealmManagement.API.Triggers.Trigger
-  alias Astarte.RealmManagement.API.Triggers.AMQPAction
-  alias Astarte.RealmManagement.API.Triggers.HttpAction
   alias Astarte.RealmManagement.API.Triggers.Action
   alias Ecto.Changeset
 

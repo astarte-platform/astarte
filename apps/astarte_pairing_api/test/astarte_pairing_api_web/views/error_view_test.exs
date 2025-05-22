@@ -22,6 +22,11 @@ defmodule Astarte.Pairing.APIWeb.ErrorViewTest do
   # Bring render/3 and render_to_string/3 for testing custom views
   import Phoenix.View
 
+  test "renders 400.json" do
+    assert render(Astarte.Pairing.APIWeb.ErrorView, "400.json", []) ==
+             %{errors: %{detail: "Bad request"}}
+  end
+
   test "renders 404.json" do
     assert render(Astarte.Pairing.APIWeb.ErrorView, "404.json", []) ==
              %{errors: %{detail: "Page not found"}}

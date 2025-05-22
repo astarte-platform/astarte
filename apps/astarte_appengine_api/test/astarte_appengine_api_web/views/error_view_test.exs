@@ -16,7 +16,7 @@
 # limitations under the License.
 
 defmodule Astarte.AppEngine.APIWeb.ErrorViewTest do
-  use Astarte.AppEngine.APIWeb.ConnCase, async: true
+  use Astarte.Cases.Conn, async: true
 
   # Bring render/3 and render_to_string/3 for testing custom views
   import Phoenix.View

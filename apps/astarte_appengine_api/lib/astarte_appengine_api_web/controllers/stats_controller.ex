@@ -20,13 +20,11 @@ defmodule Astarte.AppEngine.APIWeb.StatsController do
   use Astarte.AppEngine.APIWeb, :controller
 
   alias Astarte.AppEngine.API.Stats
-  alias Astarte.AppEngine.API.Stats.DevicesStats
 
   action_fallback Astarte.AppEngine.APIWeb.FallbackController
 
   def show_devices_stats(conn, %{"realm_name" => realm_name}) do
-    with {:ok, %DevicesStats{} = devices_stats} <- Stats.get_devices_stats(realm_name) do
-      render(conn, "show_devices_stats.json", %{devices_stats: devices_stats})
-    end
+    devices_stats = Stats.get_devices_stats(realm_name)
+    render(conn, "show_devices_stats.json", %{devices_stats: devices_stats})
   end
 end

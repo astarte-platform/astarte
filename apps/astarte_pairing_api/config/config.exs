@@ -38,12 +38,6 @@ config :logger, :console,
   format: "$time $metadata[$level] $message\n",
   metadata: [:request_id]
 
-# lager is used by rabbit_common.
-# Silent it by setting the higher loglevel.
-config :lager,
-  error_logger_redirect: false,
-  handlers: [level: :critical]
-
 config :astarte_pairing_api, Astarte.Pairing.APIWeb.AuthGuardian,
   allowed_algos: ["ES256", "ES384", "ES512", "PS256", "PS384", "PS512", "RS256", "RS384", "RS512"]
 

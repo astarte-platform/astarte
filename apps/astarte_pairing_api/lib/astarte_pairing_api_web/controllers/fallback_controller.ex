@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2017 Ispirata Srl
+# Copyright 2017 - 2025 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -42,7 +42,8 @@ defmodule Astarte.Pairing.APIWeb.FallbackController do
   def call(conn, {:error, :device_not_found}) do
     conn
     |> put_status(:not_found)
-    |> render(Astarte.Pairing.APIWeb.ErrorView, :"404_device_not_found")
+    |> put_view(Astarte.Pairing.APIWeb.ErrorView)
+    |> render(:"404_device_not_found")
   end
 
   def call(conn, {:error, :unauthorized}) do

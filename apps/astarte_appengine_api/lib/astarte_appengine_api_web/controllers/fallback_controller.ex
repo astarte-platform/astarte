@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2017-2023 SECO Mind Srl
+# Copyright 2017-2025 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -159,7 +159,8 @@ defmodule Astarte.AppEngine.APIWeb.FallbackController do
   def call(conn, {:error, :alias_already_in_use}) do
     conn
     |> put_status(:conflict)
-    |> render(Astarte.AppEngine.APIWeb.ErrorView, :"409_alias_already_in_use")
+    |> put_view(Astarte.AppEngine.APIWeb.ErrorView)
+    |> render(:"409_alias_already_in_use")
   end
 
   def call(conn, {:error, :attribute_key_not_found}) do
@@ -202,6 +203,13 @@ defmodule Astarte.AppEngine.APIWeb.FallbackController do
     |> put_status(:bad_request)
     |> put_view(Astarte.AppEngine.APIWeb.ErrorView)
     |> render(:"422_unexpected_object_key")
+  end
+
+  def call(conn, {:error, :unset_not_allowed}) do
+    conn
+    |> put_status(:unprocessable_entity)
+    |> put_view(Astarte.AppEngine.APIWeb.ErrorView)
+    |> render(:"422_unset_not_allowed")
   end
 
   # This is called when no JWT token is present

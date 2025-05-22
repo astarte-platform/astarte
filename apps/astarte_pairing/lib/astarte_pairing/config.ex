@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2017-2018 Ispirata Srl
+# Copyright 2017-2025 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -25,6 +25,7 @@ defmodule Astarte.Pairing.Config do
 
   alias Astarte.Pairing.CFSSLCredentials
   alias Astarte.DataAccess.Config, as: DataAccessConfig
+  alias Astarte.Pairing.Config.CQExNodes
 
   @envdoc "The port where Pairing metrics will be exposed."
   app_env :port, :astarte_pairing, :port,
@@ -48,6 +49,12 @@ defmodule Astarte.Pairing.Config do
   app_env :ca_cert, :astarte_pairing, :ca_cert,
     os_env: "PAIRING_CA_CERT",
     type: :binary
+
+  @envdoc "A list of {host, port} values of accessible Cassandra nodes in a cqex compliant format"
+  app_env :cqex_nodes, :astarte_pairing, :cqex_nodes,
+    os_env: "CASSANDRA_NODES",
+    type: CQExNodes,
+    default: [{"localhost", 9042}]
 
   def init! do
     if {:ok, nil} == ca_cert() do
@@ -73,9 +80,8 @@ defmodule Astarte.Pairing.Config do
   defdelegate xandra_nodes, to: DataAccessConfig
   defdelegate xandra_nodes!, to: DataAccessConfig
 
-  defdelegate cqex_nodes, to: DataAccessConfig
-  defdelegate cqex_nodes!, to: DataAccessConfig
-
   defdelegate xandra_options!, to: DataAccessConfig
-  defdelegate cqex_options!, to: DataAccessConfig
+
+  defdelegate astarte_instance_id!, to: DataAccessConfig
+  defdelegate astarte_instance_id, to: DataAccessConfig
 end

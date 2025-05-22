@@ -1,4 +1,4 @@
-FROM hexpm/elixir:1.14.5-erlang-25.3.2-debian-bullseye-20230522-slim as builder
+FROM hexpm/elixir:1.15.7-erlang-25.3.2.7-debian-bullseye-20231009-slim as builder
 
 # install build dependencies
 # --allow-releaseinfo-change allows to pull from 'oldstable'

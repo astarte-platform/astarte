@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2017 Ispirata Srl
+# Copyright 2017 - 2025 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -40,13 +40,14 @@ defmodule Astarte.TriggerEngine.Application do
     Config.validate!()
     DataAccessConfig.validate!()
 
-    xandra_options =
-      Config.xandra_options!()
-      |> Keyword.put(:name, :xandra)
+    xandra_options = Config.xandra_options!()
+    xandra_cluster_options = Keyword.put(xandra_options, :name, :xandra)
+    data_access_opts = [xandra_options: xandra_options]
 
     children = [
       Astarte.TriggerEngineWeb.Telemetry,
-      {Xandra.Cluster, xandra_options},
+      {Xandra.Cluster, xandra_cluster_options},
+      {Astarte.DataAccess, data_access_opts},
       DeliverySupervisor
     ]
 

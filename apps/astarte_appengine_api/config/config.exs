@@ -5,12 +5,10 @@
 # is restricted to this project.
 import Config
 
-# lager is used by rabbit_common.
-# Silent it by setting the higher loglevel.
-config :lager, handlers: [level: :critical]
-
 # General application configuration
 config :astarte_appengine_api, namespace: Astarte.AppEngine.API
+
+config :astarte_appengine_api, ecto_repos: [Astarte.AppEngine.API.Repo]
 
 # Configures the endpoint
 config :astarte_appengine_api, Astarte.AppEngine.APIWeb.Endpoint,

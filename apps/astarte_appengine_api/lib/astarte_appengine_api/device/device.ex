@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2017-2023 Ispirata Srl
+# Copyright 2017 - 2025 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -20,6 +20,8 @@ defmodule Astarte.AppEngine.API.Device do
   The Device context.
   """
   alias Astarte.AppEngine.API.DataTransmitter
+  alias Astarte.AppEngine.API.Device.Aliases
+  alias Astarte.AppEngine.API.Device.Attributes
   alias Astarte.AppEngine.API.Device.AstarteValue
   alias Astarte.AppEngine.API.Device.DevicesListOptions
   alias Astarte.AppEngine.API.Device.DeviceStatus
@@ -31,24 +33,29 @@ defmodule Astarte.AppEngine.API.Device do
   alias Astarte.Core.CQLUtils
   alias Astarte.Core.Device
   alias Astarte.Core.InterfaceDescriptor
-  alias Astarte.Core.Interface.Aggregation
-  alias Astarte.Core.Interface.Type
   alias Astarte.Core.Mapping
   alias Astarte.Core.Mapping.EndpointsAutomaton
   alias Astarte.Core.Mapping.ValueType
-  alias Astarte.DataAccess.Database
   alias Astarte.DataAccess.Mappings
   alias Astarte.DataAccess.Device, as: DeviceQueries
   alias Astarte.DataAccess.Interface, as: InterfaceQueries
   alias Ecto.Changeset
+
   require Logger
 
   def list_devices!(realm_name, params) do
     changeset = DevicesListOptions.changeset(%DevicesListOptions{}, params)
 
-    with {:ok, options} <- Changeset.apply_action(changeset, :insert),
-         {:ok, client} <- Database.connect(realm: realm_name) do
-      Queries.retrieve_devices_list(client, options.limit, options.details, options.from_token)
+    with {:ok, options} <- Changeset.apply_action(changeset, :insert) do
+      devices_list =
+        Queries.retrieve_devices_list(
+          realm_name,
+          options.limit,
+          options.details,
+          options.from_token
+        )
+
+      {:ok, devices_list}
     end
   end
 
@@ -57,109 +64,74 @@ defmodule Astarte.AppEngine.API.Device do
   Device status returns information such as connected, last_connection and last_disconnection.
   """
   def get_device_status!(realm_name, encoded_device_id) do
-    with {:ok, client} <- Database.connect(realm: realm_name),
-         {:ok, device_id} <- Device.decode_device_id(encoded_device_id) do
-      Queries.retrieve_device_status(client, device_id)
+    with {:ok, device_id} <- Device.decode_device_id(encoded_device_id) do
+      Queries.retrieve_device_status(realm_name, device_id)
     end
   end
 
   def merge_device_status(realm_name, encoded_device_id, device_status_merge) do
-    with {:ok, client} <- Database.connect(realm: realm_name),
-         {:ok, device_id} <- Device.decode_device_id(encoded_device_id),
-         {:ok, device_status} <- Queries.retrieve_device_status(client, device_id),
-         changeset = DeviceStatus.changeset(device_status, device_status_merge),
-         {:ok, updated_device_status} <- Ecto.Changeset.apply_action(changeset, :update),
-         credentials_inhibited_change = Map.get(changeset.changes, :credentials_inhibited),
-         :ok <- change_credentials_inhibited(client, device_id, credentials_inhibited_change),
-         aliases_change = Map.get(changeset.changes, :aliases, %{}),
-         attributes_change = Map.get(changeset.changes, :attributes, %{}),
-         :ok <- update_aliases(client, device_id, aliases_change),
-         :ok <- update_attributes(client, device_id, attributes_change) do
-      # Manually merge aliases since changesets don't perform maps deep merge
-      merged_aliases = merge_data(device_status.aliases, updated_device_status.aliases)
-      merged_attributes = merge_data(device_status.attributes, updated_device_status.attributes)
+    aliases = device_status_merge["aliases"]
+    attributes = device_status_merge["attributes"]
 
-      updated_map =
-        updated_device_status
-        |> Map.put(:aliases, merged_aliases)
-        |> Map.put(:attributes, merged_attributes)
-
-      {:ok, updated_map}
+    with {:ok, device_id} <- Device.decode_device_id(encoded_device_id),
+         {:ok, device} <- Queries.retrieve_device_for_status(realm_name, device_id),
+         {:ok, aliases} <- Aliases.validate(aliases, realm_name, device),
+         {:ok, attributes} <- Attributes.validate(attributes) do
+      do_merge_device_status(realm_name, device_status_merge, device, aliases, attributes)
     end
   end
 
-  defp update_attributes(client, device_id, attributes) do
-    Enum.reduce_while(attributes, :ok, fn
-      {"", _attribute_value}, _acc ->
-        Logger.warn("Attribute key cannot be an empty string.", tag: :invalid_attribute_empty_key)
-        {:halt, {:error, :invalid_attributes}}
+  defp do_merge_device_status(realm_name, device_status_merge, device, aliases, attributes) do
+    params =
+      case Map.fetch(device_status_merge, "credentials_inhibited") do
+        {:ok, credentials_inhibited} -> %{credentials_inhibited: credentials_inhibited}
+        :error -> %{}
+      end
 
-      {attribute_key, nil}, _acc ->
-        case Queries.delete_attribute(client, device_id, attribute_key) do
-          :ok ->
-            {:cont, :ok}
+    changeset =
+      DeviceStatus.from_db_row(device)
+      |> Changeset.cast(params, [:credentials_inhibited])
+      |> Aliases.apply(aliases)
+      |> Attributes.apply(attributes)
 
-          {:error, reason} ->
-            {:halt, {:error, reason}}
+    case Changeset.apply_action(changeset, :update) do
+      {:ok, status} ->
+        %Aliases{to_delete: alias_tags_to_delete, to_update: aliases_to_update} = aliases
+
+        merge_device_status_result =
+          Queries.merge_device_status(
+            realm_name,
+            device,
+            changeset.changes,
+            alias_tags_to_delete,
+            aliases_to_update
+          )
+
+        with :ok <- merge_device_status_result do
+          deletion_in_progress? = Queries.deletion_in_progress?(realm_name, device.device_id)
+          {:ok, %{status | deletion_in_progress: deletion_in_progress?}}
         end
 
-      {attribute_key, attribute_value}, _acc ->
-        case Queries.insert_attribute(client, device_id, attribute_key, attribute_value) do
-          :ok ->
-            {:cont, :ok}
+      {:error, changeset} ->
+        {:error, sanitize_error(changeset)}
+    end
+  end
 
-          {:error, reason} ->
-            {:halt, {:error, reason}}
-        end
+  defp sanitize_error(changeset) do
+    # if there is a custom error, return it: it was created by Aliases.apply or Attributes.apply
+    Enum.find_value(changeset.errors, changeset, fn
+      {:aliases, {"", [reason: reason]}} -> reason
+      {:attributes, {"", [reason: reason]}} -> reason
+      _ -> false
     end)
-  end
-
-  defp update_aliases(client, device_id, aliases) do
-    Enum.reduce_while(aliases, :ok, fn
-      {_alias_key, ""}, _acc ->
-        Logger.warn("Alias value cannot be an empty string.", tag: :invalid_alias_empty_value)
-        {:halt, {:error, :invalid_alias}}
-
-      {"", _alias_value}, _acc ->
-        Logger.warn("Alias key cannot be an empty string.", tag: :invalid_alias_empty_key)
-        {:halt, {:error, :invalid_alias}}
-
-      {alias_key, nil}, _acc ->
-        case Queries.delete_alias(client, device_id, alias_key) do
-          :ok -> {:cont, :ok}
-          {:error, reason} -> {:halt, {:error, reason}}
-        end
-
-      {alias_key, alias_value}, _acc ->
-        case Queries.insert_alias(client, device_id, alias_key, alias_value) do
-          :ok -> {:cont, :ok}
-          {:error, reason} -> {:halt, {:error, reason}}
-        end
-    end)
-  end
-
-  defp merge_data(old_data, new_data) when is_map(old_data) and is_map(new_data) do
-    Map.merge(old_data, new_data)
-    |> Enum.reject(fn {_, v} -> v == nil end)
-    |> Enum.into(%{})
-  end
-
-  defp change_credentials_inhibited(_client, _device_id, nil) do
-    :ok
-  end
-
-  defp change_credentials_inhibited(client, device_id, credentials_inhibited)
-       when is_boolean(credentials_inhibited) do
-    Queries.set_inhibit_credentials_request(client, device_id, credentials_inhibited)
   end
 
   @doc """
   Returns the list of interfaces.
   """
   def list_interfaces(realm_name, encoded_device_id) do
-    with {:ok, client} <- Database.connect(realm: realm_name),
-         {:ok, device_id} <- Device.decode_device_id(encoded_device_id) do
-      Queries.retrieve_interfaces_list(client, device_id)
+    with {:ok, device_id} <- Device.decode_device_id(encoded_device_id) do
+      Queries.retrieve_interfaces_list(realm_name, device_id)
     end
   end
 
@@ -171,16 +143,15 @@ defmodule Astarte.AppEngine.API.Device do
     changeset = InterfaceValuesOptions.changeset(%InterfaceValuesOptions{}, params)
 
     with {:ok, options} <- Changeset.apply_action(changeset, :insert),
-         {:ok, client} <- Database.connect(realm: realm_name),
          {:ok, device_id} <- Device.decode_device_id(encoded_device_id),
          {:ok, major_version} <-
            DeviceQueries.interface_version(realm_name, device_id, interface),
          {:ok, interface_row} <-
            InterfaceQueries.retrieve_interface_row(realm_name, interface, major_version) do
       do_get_interface_values!(
-        client,
+        realm_name,
         device_id,
-        Aggregation.from_int(interface_row[:aggregation]),
+        interface_row.aggregation,
         interface_row,
         options
       )
@@ -196,7 +167,6 @@ defmodule Astarte.AppEngine.API.Device do
     changeset = InterfaceValuesOptions.changeset(%InterfaceValuesOptions{}, params)
 
     with {:ok, options} <- Changeset.apply_action(changeset, :insert),
-         {:ok, client} <- Database.connect(realm: realm_name),
          {:ok, device_id} <- Device.decode_device_id(encoded_device_id),
          {:ok, major_version} <-
            DeviceQueries.interface_version(realm_name, device_id, interface),
@@ -206,33 +176,30 @@ defmodule Astarte.AppEngine.API.Device do
          {:ok, interface_descriptor} <- InterfaceDescriptor.from_db_result(interface_row),
          {:ok, endpoint_ids} <-
            get_endpoint_ids(interface_descriptor.automaton, path, allow_guess: true) do
-      endpoint_query = Queries.prepare_value_type_query(interface_row[:interface_id])
-
       do_get_interface_values!(
-        client,
+        realm_name,
         device_id,
-        Aggregation.from_int(interface_row[:aggregation]),
-        Type.from_int(interface_row[:type]),
+        interface_row.aggregation,
+        interface_row.type,
         interface_row,
         endpoint_ids,
-        endpoint_query,
         path,
         options
       )
     end
   end
 
-  defp update_individual_interface_values(
-         client,
-         realm_name,
-         device_id,
-         interface_descriptor,
-         path,
-         raw_value
-       ) do
+  @doc false
+  def update_individual_interface_values(
+        realm_name,
+        device_id,
+        interface_descriptor,
+        path,
+        raw_value
+      ) do
     with {:ok, [endpoint_id]} <- get_endpoint_ids(interface_descriptor.automaton, path),
-         mapping <-
-           Queries.retrieve_mapping(client, interface_descriptor.interface_id, endpoint_id),
+         mapping =
+           Queries.retrieve_mapping(realm_name, interface_descriptor.interface_id, endpoint_id),
          {:ok, value} <- InterfaceValue.cast_value(mapping.value_type, raw_value),
          :ok <- validate_value_type(mapping.value_type, value),
          wrapped_value = wrap_to_bson_struct(mapping.value_type, value),
@@ -248,12 +215,10 @@ defmodule Astarte.AppEngine.API.Device do
              path,
              wrapped_value,
              publish_opts
-           ),
-         {:ok, realm_max_ttl} <-
-           Queries.fetch_datastream_maximum_storage_retention(client) do
-      timestamp_micro =
-        DateTime.utc_now()
-        |> DateTime.to_unix(:microsecond)
+           ) do
+      realm_max_ttl = Queries.fetch_datastream_maximum_storage_retention(realm_name)
+
+      now = DateTime.utc_now()
 
       db_max_ttl =
         if mapping.database_retention_policy == :use_ttl do
@@ -271,46 +236,47 @@ defmodule Astarte.AppEngine.API.Device do
             [ttl: db_max_ttl]
         end
 
-      Queries.insert_value_into_db(
-        client,
-        device_id,
-        interface_descriptor,
-        endpoint_id,
-        mapping,
-        path,
-        value,
-        timestamp_micro,
-        opts
-      )
+      with :ok <-
+             Queries.insert_value_into_db(
+               realm_name,
+               device_id,
+               interface_descriptor,
+               endpoint_id,
+               mapping,
+               path,
+               value,
+               now,
+               opts
+             ) do
+        if interface_descriptor.type == :datastream do
+          Queries.insert_path_into_db(
+            realm_name,
+            device_id,
+            interface_descriptor,
+            endpoint_id,
+            path,
+            now,
+            now,
+            opts
+          )
+        end
 
-      if interface_descriptor.type == :datastream do
-        Queries.insert_path_into_db(
-          client,
-          device_id,
-          interface_descriptor,
-          endpoint_id,
-          path,
-          timestamp_micro,
-          div(timestamp_micro, 1000),
-          opts
-        )
+        {:ok,
+         %InterfaceValues{
+           data: raw_value
+         }}
       end
-
-      {:ok,
-       %InterfaceValues{
-         data: raw_value
-       }}
     else
       {:error, :endpoint_guess_not_allowed} ->
-        _ = Logger.warn("Incomplete path not allowed.", tag: "endpoint_guess_not_allowed")
+        _ = Logger.warning("Incomplete path not allowed.", tag: "endpoint_guess_not_allowed")
         {:error, :read_only_resource}
 
       {:error, :unexpected_value_type, expected: value_type} ->
-        _ = Logger.warn("Unexpected value type.", tag: "unexpected_value_type")
+        _ = Logger.warning("Unexpected value type.", tag: "unexpected_value_type")
         {:error, :unexpected_value_type, expected: value_type}
 
       {:error, reason} ->
-        _ = Logger.warn("Error while writing to interface.", tag: "write_to_device_error")
+        _ = Logger.warning("Error while writing to interface.", tag: "write_to_device_error")
         {:error, reason}
     end
   end
@@ -344,7 +310,7 @@ defmodule Astarte.AppEngine.API.Device do
     else
       {:ok, _endpoint_id} ->
         # This is invalid here, publish doesn't happen on endpoints in object aggregated interfaces
-        Logger.warn(
+        Logger.warning(
           "Tried to publish on endpoint #{inspect(path)} for object aggregated " <>
             "interface #{inspect(interface_descriptor.name)}. You should publish on " <>
             "the common prefix",
@@ -354,7 +320,7 @@ defmodule Astarte.AppEngine.API.Device do
         {:error, :mapping_not_found}
 
       {:error, :not_found} ->
-        Logger.warn(
+        Logger.warning(
           "Tried to publish on invalid path #{inspect(path)} for object aggregated " <>
             "interface #{inspect(interface_descriptor.name)}",
           tag: "invalid_path"
@@ -363,7 +329,7 @@ defmodule Astarte.AppEngine.API.Device do
         {:error, :mapping_not_found}
 
       {:error, :invalid_object_aggregation_path} ->
-        Logger.warn(
+        Logger.warning(
           "Tried to publish on invalid path #{inspect(path)} for object aggregated " <>
             "interface #{inspect(interface_descriptor.name)}",
           tag: "invalid_path"
@@ -397,20 +363,21 @@ defmodule Astarte.AppEngine.API.Device do
     end
   end
 
-  defp update_object_interface_values(
-         client,
-         realm_name,
-         device_id,
-         interface_descriptor,
-         path,
-         raw_value
-       ) do
-    timestamp_micro =
-      DateTime.utc_now()
-      |> DateTime.to_unix(:microsecond)
+  @doc false
+  def update_object_interface_values(
+        realm_name,
+        device_id,
+        interface_descriptor,
+        path,
+        raw_value
+      ) do
+    now = DateTime.utc_now()
 
     with {:ok, mappings} <-
-           Mappings.fetch_interface_mappings(realm_name, interface_descriptor.interface_id),
+           Mappings.fetch_interface_mappings(
+             realm_name,
+             interface_descriptor.interface_id
+           ),
          {:ok, endpoint} <-
            resolve_object_aggregation_path(path, interface_descriptor, mappings),
          endpoint_id <- endpoint.endpoint_id,
@@ -430,9 +397,8 @@ defmodule Astarte.AppEngine.API.Device do
              path,
              wrapped_value,
              publish_opts
-           ),
-         {:ok, realm_max_ttl} <-
-           Queries.fetch_datastream_maximum_storage_retention(client) do
+           ) do
+      realm_max_ttl = Queries.fetch_datastream_maximum_storage_retention(realm_name)
       db_max_ttl = min(realm_max_ttl, object_retention(mappings))
 
       opts =
@@ -444,40 +410,41 @@ defmodule Astarte.AppEngine.API.Device do
             [ttl: db_max_ttl]
         end
 
-      Queries.insert_value_into_db(
-        client,
-        device_id,
-        interface_descriptor,
-        nil,
-        nil,
-        path,
-        value,
-        timestamp_micro,
-        opts
-      )
+      with :ok <-
+             Queries.insert_value_into_db(
+               realm_name,
+               device_id,
+               interface_descriptor,
+               nil,
+               nil,
+               path,
+               value,
+               now,
+               opts
+             ) do
+        Queries.insert_path_into_db(
+          realm_name,
+          device_id,
+          interface_descriptor,
+          endpoint_id,
+          path,
+          now,
+          now,
+          opts
+        )
 
-      Queries.insert_path_into_db(
-        client,
-        device_id,
-        interface_descriptor,
-        endpoint_id,
-        path,
-        timestamp_micro,
-        div(timestamp_micro, 1000),
-        opts
-      )
-
-      {:ok,
-       %InterfaceValues{
-         data: raw_value
-       }}
+        {:ok,
+         %InterfaceValues{
+           data: raw_value
+         }}
+      end
     else
       {:error, :unexpected_value_type, expected: value_type} ->
-        Logger.warn("Unexpected value type.", tag: "unexpected_value_type")
+        Logger.warning("Unexpected value type.", tag: "unexpected_value_type")
         {:error, :unexpected_value_type, expected: value_type}
 
       {:error, :invalid_object_aggregation_path} ->
-        Logger.warn("Error while trying to publish on path for object aggregated interface.",
+        Logger.warning("Error while trying to publish on path for object aggregated interface.",
           tag: "invalid_object_aggregation_path"
         )
 
@@ -487,11 +454,13 @@ defmodule Astarte.AppEngine.API.Device do
         {:error, :mapping_not_found}
 
       {:error, :database_error} ->
-        Logger.warn("Error while trying to retrieve ttl.", tag: "database_error")
+        Logger.warning("Error while trying to retrieve ttl.", tag: "database_error")
         {:error, :database_error}
 
       {:error, reason} ->
-        Logger.warn("Unhandled error while updating object interface values: #{inspect(reason)}.")
+        Logger.warning(
+          "Unhandled error while updating object interface values: #{inspect(reason)}."
+        )
 
         {:error, reason}
     end
@@ -505,8 +474,7 @@ defmodule Astarte.AppEngine.API.Device do
         raw_value,
         _params
       ) do
-    with {:ok, client} <- Database.connect(realm: realm_name),
-         {:ok, device_id} <- Device.decode_device_id(encoded_device_id),
+    with {:ok, device_id} <- Device.decode_device_id(encoded_device_id),
          {:ok, major_version} <-
            DeviceQueries.interface_version(realm_name, device_id, interface),
          {:ok, interface_row} <-
@@ -516,7 +484,6 @@ defmodule Astarte.AppEngine.API.Device do
          path <- "/" <> no_prefix_path do
       if interface_descriptor.aggregation == :individual do
         update_individual_interface_values(
-          client,
           realm_name,
           device_id,
           interface_descriptor,
@@ -525,7 +492,6 @@ defmodule Astarte.AppEngine.API.Device do
         )
       else
         update_object_interface_values(
-          client,
           realm_name,
           device_id,
           interface_descriptor,
@@ -535,11 +501,11 @@ defmodule Astarte.AppEngine.API.Device do
       end
     else
       {:ownership, :device} ->
-        _ = Logger.warn("Invalid write (device owned).", tag: "cannot_write_to_device_owned")
+        _ = Logger.warning("Invalid write (device owned).", tag: "cannot_write_to_device_owned")
         {:error, :cannot_write_to_device_owned}
 
       {:error, reason} ->
-        _ = Logger.warn("Error while writing to interface.", tag: "write_to_device_error")
+        _ = Logger.warning("Error while writing to interface.", tag: "write_to_device_error")
         {:error, reason}
     end
   end
@@ -613,7 +579,7 @@ defmodule Astarte.AppEngine.API.Device do
   # Multiple matches, we print a warning but we consider it ok
   defp ensure_publish_reliability(local_matches, remote_matches, _opts)
        when local_matches + remote_matches > 1 do
-    Logger.warn(
+    Logger.warning(
       "Multiple matches while publishing to device, " <>
         "local_matches: #{local_matches}, remote_matches: #{remote_matches}",
       tag: "publish_multiple_matches"
@@ -663,6 +629,9 @@ defmodule Astarte.AppEngine.API.Device do
         {:error, reason, expected} ->
           {:halt, {:error, reason, expected}}
 
+        {:error, reason} ->
+          {:halt, {:error, reason}}
+
         :error ->
           {:halt, {:error, :unexpected_object_key}}
       end
@@ -707,8 +676,7 @@ defmodule Astarte.AppEngine.API.Device do
   # TODO: we should probably allow delete for every path regardless of the interface type
   # just for maintenance reasons
   def delete_interface_values(realm_name, encoded_device_id, interface, no_prefix_path) do
-    with {:ok, client} <- Database.connect(realm: realm_name),
-         {:ok, device_id} <- Device.decode_device_id(encoded_device_id),
+    with {:ok, device_id} <- Device.decode_device_id(encoded_device_id),
          {:ok, major_version} <-
            DeviceQueries.interface_version(realm_name, device_id, interface),
          {:ok, interface_row} <-
@@ -717,26 +685,28 @@ defmodule Astarte.AppEngine.API.Device do
          {:ownership, :server} <- {:ownership, interface_descriptor.ownership},
          path <- "/" <> no_prefix_path,
          {:ok, [endpoint_id]} <- get_endpoint_ids(interface_descriptor.automaton, path) do
-      mapping = Queries.retrieve_mapping(client, interface_descriptor.interface_id, endpoint_id)
+      mapping =
+        Queries.retrieve_mapping(realm_name, interface_descriptor.interface_id, endpoint_id)
 
-      Queries.insert_value_into_db(
-        client,
-        device_id,
-        interface_descriptor,
-        endpoint_id,
-        mapping,
-        path,
-        nil,
-        nil,
-        []
-      )
+      with :ok <-
+             Queries.insert_value_into_db(
+               realm_name,
+               device_id,
+               interface_descriptor,
+               endpoint_id,
+               mapping,
+               path,
+               nil,
+               nil,
+               []
+             ) do
+        case interface_descriptor.type do
+          :properties ->
+            unset_property(realm_name, device_id, interface, path)
 
-      case interface_descriptor.type do
-        :properties ->
-          unset_property(realm_name, device_id, interface, path)
-
-        :datastream ->
-          :ok
+          :datastream ->
+            :ok
+        end
       end
     else
       {:ownership, :device} ->
@@ -759,21 +729,21 @@ defmodule Astarte.AppEngine.API.Device do
     end
   end
 
-  defp do_get_interface_values!(client, device_id, :individual, interface_row, opts) do
+  defp do_get_interface_values!(realm_name, device_id, :individual, interface_row, opts) do
     endpoint_rows =
-      Queries.retrieve_all_endpoint_ids_for_interface!(client, interface_row[:interface_id])
+      Queries.retrieve_all_endpoint_ids_for_interface!(realm_name, interface_row.interface_id)
 
     values_map =
       Enum.reduce(endpoint_rows, %{}, fn endpoint_row, values ->
         # TODO: we can do this by using just one query without any filter on the endpoint
         value =
           retrieve_endpoint_values(
-            client,
+            realm_name,
             device_id,
-            Aggregation.from_int(interface_row[:aggregation]),
-            Type.from_int(interface_row[:type]),
+            interface_row.aggregation,
+            interface_row.type,
             interface_row,
-            endpoint_row[:endpoint_id],
+            endpoint_row.endpoint_id,
             endpoint_row,
             "/",
             opts
@@ -785,47 +755,40 @@ defmodule Astarte.AppEngine.API.Device do
     {:ok, %InterfaceValues{data: MapTree.inflate_tree(values_map)}}
   end
 
-  defp do_get_interface_values!(client, device_id, :object, interface_row, opts) do
-    # We need to know if mappings have explicit_timestamp set, so we retrieve it from the
-    # first one.
-    endpoint =
-      Queries.retrieve_all_endpoint_ids_for_interface!(client, interface_row[:interface_id])
-      |> CQEx.Result.head()
-
-    mapping =
-      Queries.retrieve_mapping(client, interface_row[:interface_id], endpoint[:endpoint_id])
+  defp do_get_interface_values!(realm_name, device_id, :object, interface_row, opts) do
+    explicit_timestamp =
+      Queries.interface_has_explicit_timestamp?(realm_name, interface_row.interface_id)
 
     do_get_interface_values!(
-      client,
+      realm_name,
       device_id,
-      Aggregation.from_int(interface_row[:aggregation]),
-      Type.from_int(interface_row[:type]),
+      interface_row.aggregation,
+      interface_row.type,
       interface_row,
       nil,
-      nil,
       "/",
-      %{opts | explicit_timestamp: mapping.explicit_timestamp}
+      %{opts | explicit_timestamp: explicit_timestamp}
     )
   end
 
   defp do_get_interface_values!(
-         client,
+         realm_name,
          device_id,
          :individual,
          :properties,
          interface_row,
          endpoint_ids,
-         endpoint_query,
          path,
          opts
        ) do
     result =
       List.foldl(endpoint_ids, %{}, fn endpoint_id, values ->
-        endpoint_row = Queries.execute_value_type_query(client, endpoint_query, endpoint_id)
+        endpoint_row =
+          Queries.value_type_query(realm_name, interface_row.interface_id, endpoint_id)
 
         value =
           retrieve_endpoint_values(
-            client,
+            realm_name,
             device_id,
             :individual,
             :properties,
@@ -852,22 +815,20 @@ defmodule Astarte.AppEngine.API.Device do
   end
 
   defp do_get_interface_values!(
-         client,
+         realm_name,
          device_id,
          :individual,
          :datastream,
          interface_row,
          endpoint_ids,
-         endpoint_query,
          path,
          opts
        ) do
     [endpoint_id] = endpoint_ids
-
-    endpoint_row = Queries.execute_value_type_query(client, endpoint_query, endpoint_id)
+    endpoint_row = Queries.value_type_query(realm_name, interface_row.interface_id, endpoint_id)
 
     retrieve_endpoint_values(
-      client,
+      realm_name,
       device_id,
       :individual,
       :datastream,
@@ -880,31 +841,24 @@ defmodule Astarte.AppEngine.API.Device do
   end
 
   defp do_get_interface_values!(
-         client,
+         realm_name,
          device_id,
          :object,
          :datastream,
          interface_row,
          _endpoint_ids,
-         _endpoint_query,
          path,
          opts
        ) do
-    # We need to know if mappings have explicit_timestamp set, so we retrieve it from the
-    # first one.
-    endpoint =
-      Queries.retrieve_all_endpoint_ids_for_interface!(client, interface_row[:interface_id])
-      |> CQEx.Result.head()
-
-    mapping =
-      Queries.retrieve_mapping(client, interface_row[:interface_id], endpoint[:endpoint_id])
+    explicit_timestamp =
+      Queries.interface_has_explicit_timestamp?(realm_name, interface_row.interface_id)
 
     endpoint_rows =
-      Queries.retrieve_all_endpoints_for_interface!(client, interface_row[:interface_id])
+      Queries.retrieve_all_endpoints_for_interface!(realm_name, interface_row.interface_id)
 
     interface_values =
       retrieve_endpoint_values(
-        client,
+        realm_name,
         device_id,
         :object,
         :datastream,
@@ -912,7 +866,7 @@ defmodule Astarte.AppEngine.API.Device do
         nil,
         endpoint_rows,
         path,
-        %{opts | explicit_timestamp: mapping.explicit_timestamp}
+        %{opts | explicit_timestamp: explicit_timestamp}
       )
 
     cond do
@@ -955,14 +909,8 @@ defmodule Astarte.AppEngine.API.Device do
     end
   end
 
-  defp column_pretty_name(endpoint) do
-    endpoint
-    |> String.split("/")
-    |> List.last()
-  end
-
   defp retrieve_endpoint_values(
-         client,
+         realm_name,
          device_id,
          :individual,
          :datastream,
@@ -973,63 +921,56 @@ defmodule Astarte.AppEngine.API.Device do
          opts
        ) do
     path = "/"
+    interface_id = interface_row.interface_id
 
-    interface_id = interface_row[:interface_id]
+    value_column =
+      CQLUtils.type_to_db_column_name(endpoint_row.value_type) |> String.to_atom()
 
     values =
-      Queries.retrieve_all_endpoint_paths!(client, device_id, interface_id, endpoint_id)
+      Queries.retrieve_all_endpoint_paths!(realm_name, device_id, interface_id, endpoint_id)
+      |> Enum.filter(fn endpoint -> endpoint[:path] |> String.starts_with?(path) end)
       |> Enum.reduce(%{}, fn row, values_map ->
-        if String.starts_with?(row[:path], path) do
-          [{:path, row_path}] = row
+        last_value =
+          Queries.last_datastream_value!(
+            realm_name,
+            device_id,
+            interface_row,
+            endpoint_row,
+            endpoint_id,
+            row.path,
+            opts
+          )
 
-          last_value =
-            Queries.last_datastream_value!(
-              client,
-              device_id,
-              interface_row,
-              endpoint_row,
-              endpoint_id,
-              row_path,
-              opts
-            )
+        case last_value do
+          {:ok, value} ->
+            %{^value_column => v, value_timestamp: tstamp, reception_timestamp: reception} = value
+            simplified_path = simplify_path(path, row.path)
 
-          case last_value do
-            :empty_dataset ->
-              %{}
+            nice_value =
+              AstarteValue.to_json_friendly(
+                v,
+                endpoint_row.value_type,
+                fetch_biginteger_opts_or_default(opts)
+              )
 
-            [
-              {:value_timestamp, tstamp},
-              {:reception_timestamp, reception},
-              _,
-              {_, v}
-            ] ->
-              simplified_path = simplify_path(path, row_path)
-
-              nice_value =
+            Map.put(values_map, simplified_path, %{
+              "value" => nice_value,
+              "timestamp" =>
                 AstarteValue.to_json_friendly(
-                  v,
-                  ValueType.from_int(endpoint_row[:value_type]),
-                  fetch_biginteger_opts_or_default(opts)
+                  tstamp,
+                  :datetime,
+                  keep_milliseconds: opts.keep_milliseconds
+                ),
+              "reception_timestamp" =>
+                AstarteValue.to_json_friendly(
+                  reception,
+                  :datetime,
+                  keep_milliseconds: opts.keep_milliseconds
                 )
+            })
 
-              Map.put(values_map, simplified_path, %{
-                "value" => nice_value,
-                "timestamp" =>
-                  AstarteValue.to_json_friendly(
-                    tstamp,
-                    :datetime,
-                    keep_milliseconds: opts.keep_milliseconds
-                  ),
-                "reception_timestamp" =>
-                  AstarteValue.to_json_friendly(
-                    reception,
-                    :datetime,
-                    keep_milliseconds: opts.keep_milliseconds
-                  )
-              })
-          end
-        else
-          values_map
+          {:error, _reason} ->
+            %{}
         end
       end)
 
@@ -1037,7 +978,7 @@ defmodule Astarte.AppEngine.API.Device do
   end
 
   defp retrieve_endpoint_values(
-         client,
+         realm_name,
          device_id,
          :object,
          :datastream,
@@ -1049,17 +990,15 @@ defmodule Astarte.AppEngine.API.Device do
        ) do
     path = "/"
 
-    interface_id = interface_row[:interface_id]
+    interface_id = interface_row.interface_id
 
-    endpoint_id = CQLUtils.endpoint_id(interface_row[:name], interface_row[:major_version], "")
+    endpoint_id = CQLUtils.endpoint_id(interface_row.name, interface_row.major_version, "")
 
     {count, paths} =
-      Queries.retrieve_all_endpoint_paths!(client, device_id, interface_id, endpoint_id)
+      Queries.retrieve_all_endpoint_paths!(realm_name, device_id, interface_id, endpoint_id)
       |> Enum.reduce({0, []}, fn row, {count, all_paths} ->
-        if String.starts_with?(row[:path], path) do
-          [{:path, row_path}] = row
-
-          {count + 1, [row_path | all_paths]}
+        if String.starts_with?(row.path, path) do
+          {count + 1, [row.path | all_paths]}
         else
           {count, all_paths}
         end
@@ -1075,7 +1014,7 @@ defmodule Astarte.AppEngine.API.Device do
         with {:ok,
               %Astarte.AppEngine.API.Device.InterfaceValues{data: values, metadata: metadata}} <-
                retrieve_endpoint_values(
-                 client,
+                 realm_name,
                  device_id,
                  :object,
                  :datastream,
@@ -1090,7 +1029,7 @@ defmodule Astarte.AppEngine.API.Device do
           {:ok, interface_values}
         else
           err ->
-            Logger.warn("An error occurred while retrieving endpoint values: #{inspect(err)}",
+            Logger.warning("An error occurred while retrieving endpoint values: #{inspect(err)}",
               tag: "retrieve_endpoint_values_error"
             )
 
@@ -1102,7 +1041,7 @@ defmodule Astarte.AppEngine.API.Device do
           Enum.reduce(paths, %{}, fn a_path, values_map ->
             {:ok, %Astarte.AppEngine.API.Device.InterfaceValues{data: values}} =
               retrieve_endpoint_values(
-                client,
+                realm_name,
                 device_id,
                 :object,
                 :datastream,
@@ -1130,7 +1069,7 @@ defmodule Astarte.AppEngine.API.Device do
   end
 
   defp retrieve_endpoint_values(
-         client,
+         realm_name,
          device_id,
          :object,
          :datastream,
@@ -1142,49 +1081,49 @@ defmodule Astarte.AppEngine.API.Device do
        ) do
     # FIXME: reading result wastes atoms: new atoms are allocated every time a new table is seen
     # See cqerl_protocol.erl:330 (binary_to_atom), strings should be used when dealing with large schemas
-    {columns, column_metadata, downsample_column_atom} =
-      Enum.reduce(endpoint_rows, {"", %{}, nil}, fn endpoint,
-                                                    {query_acc, atoms_map,
-                                                     prev_downsample_column_atom} ->
-        endpoint_name = endpoint[:endpoint]
-        column_name = CQLUtils.endpoint_to_db_column_name(endpoint_name)
+    # https://github.com/elixir-ecto/ecto/pull/4384
+    endpoints =
+      endpoint_rows
+      |> Enum.map(
+        &%{
+          column: &1.endpoint |> CQLUtils.endpoint_to_db_column_name() |> String.to_atom(),
+          pretty_name: &1.endpoint |> String.split("/") |> List.last(),
+          value_type: &1.value_type
+        }
+      )
 
-        value_type = endpoint[:value_type] |> ValueType.from_int()
+    metadata = fn endpoint -> Map.take(endpoint, [:pretty_name, :value_type]) end
+    columns = endpoints |> Enum.map(& &1.column)
+    endpoint_metadata = endpoints |> Map.new(&{&1.column, metadata.(&1)})
 
-        next_query_acc = "#{query_acc} #{column_name}, "
-        column_atom = String.to_atom(column_name)
-        pretty_name = column_pretty_name(endpoint_name)
+    # The old implementation used the latest element it found for the downsample column.
+    # Could we just drop the reverse and consider the first instead?
+    downsample_column =
+      endpoints
+      |> Enum.reverse()
+      |> Enum.find_value(&(&1.pretty_name == opts.downsample_key && &1.column))
 
-        metadata = %{pretty_name: pretty_name, value_type: value_type}
-        next_atom_map = Map.put(atoms_map, column_atom, metadata)
-
-        if opts.downsample_key == pretty_name do
-          {next_query_acc, next_atom_map, column_atom}
-        else
-          {next_query_acc, next_atom_map, prev_downsample_column_atom}
-        end
-      end)
-
-    {:ok, count, values} =
+    {count, values} =
       Queries.retrieve_object_datastream_values(
-        client,
+        realm_name,
         device_id,
         interface_row,
+        endpoint_rows,
         path,
         columns,
         opts
       )
 
     values
-    |> maybe_downsample_to(count, :object, %InterfaceValuesOptions{
+    |> maybe_downsample_to(count, :object, nil, %InterfaceValuesOptions{
       opts
-      | downsample_key: downsample_column_atom
+      | downsample_key: downsample_column
     })
-    |> pack_result(:object, :datastream, column_metadata, opts)
+    |> pack_result(:object, :datastream, endpoint_metadata, opts)
   end
 
   defp retrieve_endpoint_values(
-         client,
+         realm_name,
          device_id,
          :individual,
          :datastream,
@@ -1194,9 +1133,9 @@ defmodule Astarte.AppEngine.API.Device do
          path,
          opts
        ) do
-    {:ok, count, values} =
+    {count, values} =
       Queries.retrieve_datastream_values(
-        client,
+        realm_name,
         device_id,
         interface_row,
         endpoint_row,
@@ -1205,13 +1144,16 @@ defmodule Astarte.AppEngine.API.Device do
         opts
       )
 
+    value_column =
+      CQLUtils.type_to_db_column_name(endpoint_row.value_type) |> String.to_atom()
+
     values
-    |> maybe_downsample_to(count, :individual, opts)
+    |> maybe_downsample_to(count, :individual, value_column, opts)
     |> pack_result(:individual, :datastream, endpoint_row, path, opts)
   end
 
   defp retrieve_endpoint_values(
-         client,
+         realm_name,
          device_id,
          :individual,
          :properties,
@@ -1221,31 +1163,31 @@ defmodule Astarte.AppEngine.API.Device do
          path,
          opts
        ) do
+    value_column =
+      CQLUtils.type_to_db_column_name(endpoint_row.value_type) |> String.to_atom()
+
     values =
       Queries.all_properties_for_endpoint!(
-        client,
+        realm_name,
         device_id,
         interface_row,
         endpoint_row,
         endpoint_id
       )
+      |> Enum.filter(&String.starts_with?(&1.path, path))
       |> Enum.reduce(%{}, fn row, values_map ->
-        if String.starts_with?(row[:path], path) do
-          [{:path, row_path}, {_, row_value}] = row
+        %{^value_column => value, path: row_path} = row
 
-          simplified_path = simplify_path(path, row_path)
+        simplified_path = simplify_path(path, row_path)
 
-          nice_value =
-            AstarteValue.to_json_friendly(
-              row_value,
-              ValueType.from_int(endpoint_row[:value_type]),
-              fetch_biginteger_opts_or_default(opts)
-            )
+        nice_value =
+          AstarteValue.to_json_friendly(
+            value,
+            endpoint_row.value_type,
+            fetch_biginteger_opts_or_default(opts)
+          )
 
-          Map.put(values_map, simplified_path, nice_value)
-        else
-          values_map
-        end
+        Map.put(values_map, simplified_path, nice_value)
       end)
 
     values
@@ -1275,48 +1217,49 @@ defmodule Astarte.AppEngine.API.Device do
     {:ok, %InterfaceValues{data: values, metadata: metadata}}
   end
 
-  defp maybe_downsample_to(values, _count, _aggregation, %InterfaceValuesOptions{
+  defp maybe_downsample_to(values, _count, _aggregation, _value_column, %InterfaceValuesOptions{
          downsample_to: nil
        }) do
     values
   end
 
-  defp maybe_downsample_to(values, nil, _aggregation, _opts) do
+  defp maybe_downsample_to(values, nil, _aggregation, _value_column, _opts) do
     # TODO: we can't downsample an object without a valid count, propagate an error changeset
     # when we start using changeset consistently here
-    _ = Logger.warn("No valid count in maybe_downsample_to.", tag: "downsample_invalid_count")
+    _ = Logger.warning("No valid count in maybe_downsample_to.", tag: "downsample_invalid_count")
     values
   end
 
-  defp maybe_downsample_to(values, _count, :object, %InterfaceValuesOptions{downsample_key: nil}) do
+  defp maybe_downsample_to(values, _count, :object, _value_column, %InterfaceValuesOptions{
+         downsample_key: nil
+       }) do
     # TODO: we can't downsample an object without downsample_key, propagate an error changeset
     # when we start using changeset consistently here
     _ =
-      Logger.warn("No valid downsample_key found in maybe_downsample_to.",
+      Logger.warning("No valid downsample_key found in maybe_downsample_to.",
         tag: "downsample_invalid_key"
       )
 
     values
   end
 
-  defp maybe_downsample_to(values, count, :object, %InterfaceValuesOptions{
+  defp maybe_downsample_to(values, count, :object, _value_column, %InterfaceValuesOptions{
          downsample_to: downsampled_size,
          downsample_key: downsample_key,
          explicit_timestamp: explicit_timestamp
        })
        when downsampled_size > 2 do
-    timestamp_column =
-      if explicit_timestamp do
-        :value_timestamp
-      else
-        :reception_timestamp
-      end
-
+    timestamp_column = timestamp_column(explicit_timestamp)
     avg_bucket_size = max(1, (count - 2) / (downsampled_size - 2))
 
-    sample_to_x_fun = fn sample -> Keyword.get(sample, timestamp_column) end
-    sample_to_y_fun = fn sample -> Keyword.get(sample, downsample_key) end
-    xy_to_sample_fun = fn x, y -> [{timestamp_column, x}, {downsample_key, y}] end
+    sample_to_x_fun = fn sample -> Map.fetch!(sample, timestamp_column) end
+    sample_to_y_fun = fn sample -> Map.fetch!(sample, downsample_key) end
+    xy_to_sample_fun = fn x, y -> %{timestamp_column => x, downsample_key => y} end
+
+    values =
+      Enum.map(values, fn value ->
+        Map.update!(value, timestamp_column, &DateTime.to_unix(&1, :millisecond))
+      end)
 
     ExLTTB.Stream.downsample(
       values,
@@ -1325,23 +1268,24 @@ defmodule Astarte.AppEngine.API.Device do
       sample_to_y_fun: sample_to_y_fun,
       xy_to_sample_fun: xy_to_sample_fun
     )
+    |> Enum.to_list()
   end
 
-  defp maybe_downsample_to(values, count, :individual, %InterfaceValuesOptions{
+  defp maybe_downsample_to(values, count, :individual, value_column, %InterfaceValuesOptions{
          downsample_to: downsampled_size
        })
        when downsampled_size > 2 do
     avg_bucket_size = max(1, (count - 2) / (downsampled_size - 2))
 
-    sample_to_x_fun = fn sample -> Keyword.get(sample, :value_timestamp) end
+    sample_to_x_fun = fn sample -> sample.value_timestamp end
+    sample_to_y_fun = fn sample -> Map.fetch!(sample, value_column) end
 
-    sample_to_y_fun = fn sample ->
-      timestamp_keys = [:value_timestamp, :reception_timestamp, :reception_timestamp_submillis]
-      [{_key, value}] = Keyword.drop(sample, timestamp_keys)
-      value
-    end
+    xy_to_sample_fun = fn x, y -> %{value_column => y, value_timestamp: x} end
 
-    xy_to_sample_fun = fn x, y -> [{:value_timestamp, x}, {:generic_key, y}] end
+    values =
+      Enum.map(values, fn value ->
+        Map.update!(value, :value_timestamp, &DateTime.to_unix(&1, :millisecond))
+      end)
 
     ExLTTB.Stream.downsample(
       values,
@@ -1351,6 +1295,9 @@ defmodule Astarte.AppEngine.API.Device do
       xy_to_sample_fun: xy_to_sample_fun
     )
   end
+
+  defp pack_result([] = _values, :individual, :datastream, _endpoint_row, _path, _opts),
+    do: {:error, :path_not_found}
 
   defp pack_result(
          values,
@@ -1360,9 +1307,11 @@ defmodule Astarte.AppEngine.API.Device do
          _path,
          %{format: "structured"} = opts
        ) do
+    value_key = CQLUtils.type_to_db_column_name(endpoint_row.value_type) |> String.to_atom()
+
     values_array =
       for value <- values do
-        [{:value_timestamp, tstamp}, _, _, {_, v}] = value
+        %{^value_key => v, value_timestamp: tstamp} = value
 
         %{
           "timestamp" =>
@@ -1371,19 +1320,14 @@ defmodule Astarte.AppEngine.API.Device do
               :datetime,
               keep_milliseconds: opts.keep_milliseconds
             ),
-          "value" =>
-            AstarteValue.to_json_friendly(v, ValueType.from_int(endpoint_row[:value_type]), [])
+          "value" => AstarteValue.to_json_friendly(v, endpoint_row.value_type, [])
         }
       end
 
-    if values_array != [] do
-      {:ok,
-       %InterfaceValues{
-         data: values_array
-       }}
-    else
-      {:error, :path_not_found}
-    end
+    {:ok,
+     %InterfaceValues{
+       data: values_array
+     }}
   end
 
   defp pack_result(
@@ -1399,32 +1343,28 @@ defmodule Astarte.AppEngine.API.Device do
       |> String.split("/")
       |> List.last()
 
+    value_key = CQLUtils.type_to_db_column_name(endpoint_row.value_type) |> String.to_atom()
+
     values_array =
       for value <- values do
-        [{:value_timestamp, tstamp}, _, _, {_, v}] = value
+        %{^value_key => v, value_timestamp: tstamp} = value
 
         [
           AstarteValue.to_json_friendly(tstamp, :datetime, []),
-          AstarteValue.to_json_friendly(
-            v,
-            ValueType.from_int(endpoint_row[:value_type]),
+          AstarteValue.to_json_friendly(v, endpoint_row.value_type,
             keep_milliseconds: opts.keep_milliseconds
           )
         ]
       end
 
-    if values_array != [] do
-      {:ok,
-       %InterfaceValues{
-         metadata: %{
-           "columns" => %{"timestamp" => 0, value_name => 1},
-           "table_header" => ["timestamp", value_name]
-         },
-         data: values_array
-       }}
-    else
-      {:error, :path_not_found}
-    end
+    {:ok,
+     %InterfaceValues{
+       metadata: %{
+         "columns" => %{"timestamp" => 0, value_name => 1},
+         "table_header" => ["timestamp", value_name]
+       },
+       data: values_array
+     }}
   end
 
   defp pack_result(
@@ -1435,12 +1375,14 @@ defmodule Astarte.AppEngine.API.Device do
          _path,
          %{format: "disjoint_tables"} = opts
        ) do
+    value_key = CQLUtils.type_to_db_column_name(endpoint_row.value_type) |> String.to_atom()
+
     values_array =
       for value <- values do
-        [{:value_timestamp, tstamp}, _, _, {_, v}] = value
+        %{^value_key => v, value_timestamp: tstamp} = value
 
         [
-          AstarteValue.to_json_friendly(v, ValueType.from_int(endpoint_row[:value_type]), []),
+          AstarteValue.to_json_friendly(v, endpoint_row.value_type, []),
           AstarteValue.to_json_friendly(
             tstamp,
             :datetime,
@@ -1449,14 +1391,10 @@ defmodule Astarte.AppEngine.API.Device do
         ]
       end
 
-    if values_array != [] do
-      {:ok,
-       %InterfaceValues{
-         data: %{"value" => values_array}
-       }}
-    else
-      {:error, :path_not_found}
-    end
+    {:ok,
+     %InterfaceValues{
+       data: %{"value" => values_array}
+     }}
   end
 
   defp pack_result(
@@ -1466,55 +1404,18 @@ defmodule Astarte.AppEngine.API.Device do
          column_metadata,
          %{format: "table"} = opts
        ) do
-    timestamp_column =
-      if opts.explicit_timestamp do
-        :value_timestamp
-      else
-        :reception_timestamp
+    data = object_datastream_pack(values, column_metadata, opts)
+
+    table_header =
+      case data do
+        [] -> []
+        [first | _] -> first |> Map.keys()
       end
 
-    {_cols_count, columns, reverse_table_header} =
-      Queries.first_result_row(values)
-      |> List.foldl({1, %{"timestamp" => 0}, ["timestamp"]}, fn {column, _column_value},
-                                                                {next_index, acc, list_acc} ->
-        pretty_name = column_metadata[column][:pretty_name]
+    table_header_count = table_header |> Enum.count()
+    columns = table_header |> Enum.zip(0..table_header_count) |> Map.new()
 
-        if pretty_name != nil and pretty_name != "timestamp" do
-          {next_index + 1, Map.put(acc, pretty_name, next_index), [pretty_name | list_acc]}
-        else
-          {next_index, acc, list_acc}
-        end
-      end)
-
-    table_header = Enum.reverse(reverse_table_header)
-
-    values_array =
-      for value <- values do
-        base_array_entry = [
-          AstarteValue.to_json_friendly(
-            value[timestamp_column],
-            :datetime,
-            keep_milliseconds: opts.keep_milliseconds
-          )
-        ]
-
-        List.foldl(value, base_array_entry, fn {column, column_value}, acc ->
-          case Map.fetch(column_metadata, column) do
-            {:ok, metadata} ->
-              %{
-                value_type: value_type
-              } = metadata
-
-              json_friendly_value = AstarteValue.to_json_friendly(column_value, value_type, [])
-
-              [json_friendly_value | acc]
-
-            :error ->
-              acc
-          end
-        end)
-        |> Enum.reverse()
-      end
+    values_array = data |> Enum.map(&Map.values/1)
 
     {:ok,
      %InterfaceValues{
@@ -1523,6 +1424,11 @@ defmodule Astarte.AppEngine.API.Device do
      }}
   end
 
+  defp pack_result([] = _values, :object, :datastream, _column_metadata, %{
+         format: "disjoint_tables"
+       }),
+       do: {:ok, %InterfaceValues{data: %{}}}
+
   defp pack_result(
          values,
          :object,
@@ -1530,54 +1436,18 @@ defmodule Astarte.AppEngine.API.Device do
          column_metadata,
          %{format: "disjoint_tables"} = opts
        ) do
-    timestamp_column =
-      if opts.explicit_timestamp do
-        :value_timestamp
-      else
-        :reception_timestamp
-      end
-
-    reversed_columns_map =
-      Enum.reduce(values, %{}, fn value, columns_acc ->
-        List.foldl(value, columns_acc, fn {column, column_value}, acc ->
-          case Map.fetch(column_metadata, column) do
-            {:ok, metadata} ->
-              %{
-                pretty_name: pretty_name,
-                value_type: value_type
-              } = metadata
-
-              json_friendly_value = AstarteValue.to_json_friendly(column_value, value_type, [])
-
-              column_list = [
-                [
-                  json_friendly_value,
-                  AstarteValue.to_json_friendly(
-                    value[timestamp_column],
-                    :datetime,
-                    keep_milliseconds: opts.keep_milliseconds
-                  )
-                ]
-                | Map.get(columns_acc, pretty_name, [])
-              ]
-
-              Map.put(acc, pretty_name, column_list)
-
-            :error ->
-              acc
-          end
-        end)
-      end)
+    data = object_datastream_multilist(values, column_metadata, opts)
+    {timestamps, data} = data |> Map.pop!("timestamp")
 
     columns =
-      Enum.reduce(reversed_columns_map, %{}, fn {column_name, column_values}, acc ->
-        Map.put(acc, column_name, Enum.reverse(column_values))
-      end)
+      for {column, values} <- data, into: %{} do
+        values_with_timestamp =
+          Enum.zip_with(values, timestamps, fn value, timestamp -> [value, timestamp] end)
 
-    {:ok,
-     %InterfaceValues{
-       data: columns
-     }}
+        {column, values_with_timestamp}
+      end
+
+    {:ok, %InterfaceValues{data: columns}}
   end
 
   defp pack_result(
@@ -1587,52 +1457,58 @@ defmodule Astarte.AppEngine.API.Device do
          column_metadata,
          %{format: "structured"} = opts
        ) do
-    timestamp_column =
-      if opts.explicit_timestamp do
-        :value_timestamp
-      else
-        :reception_timestamp
-      end
-
-    values_list =
-      for value <- values do
-        base_array_entry = %{
-          "timestamp" =>
-            AstarteValue.to_json_friendly(
-              value[timestamp_column],
-              :datetime,
-              keep_milliseconds: opts.keep_milliseconds
-            )
-        }
-
-        List.foldl(value, base_array_entry, fn {column, column_value}, acc ->
-          case Map.fetch(column_metadata, column) do
-            {:ok, metadata} ->
-              %{
-                pretty_name: pretty_name,
-                value_type: value_type
-              } = metadata
-
-              json_friendly_value = AstarteValue.to_json_friendly(column_value, value_type, [])
-
-              Map.put(acc, pretty_name, json_friendly_value)
-
-            :error ->
-              acc
-          end
-        end)
-      end
-
-    {:ok, %InterfaceValues{data: values_list}}
+    data = object_datastream_pack(values, column_metadata, opts)
+    {:ok, %InterfaceValues{data: data}}
   end
 
-  def device_alias_to_device_id(realm_name, device_alias) do
-    with {:ok, client} <- Database.connect(realm: realm_name) do
-      Queries.device_alias_to_device_id(client, device_alias)
-    else
-      not_ok ->
-        _ = Logger.warn("Database error: #{inspect(not_ok)}.", tag: "db_error")
-        {:error, :database_error}
+  defp object_datastream_multilist(values, column_metadata, opts) do
+    timestamp_column = timestamp_column(opts.explicit_timestamp)
+    keep_milliseconds? = opts.keep_milliseconds
+
+    headers = values |> hd() |> Map.keys()
+    headers_without_timestamp = headers |> List.delete(timestamp_column)
+
+    timestamp_data =
+      for value <- values do
+        value
+        |> Map.get(timestamp_column)
+        |> AstarteValue.to_json_friendly(:datetime, keep_milliseconds: keep_milliseconds?)
+      end
+
+    for header <- headers_without_timestamp, into: %{"timestamp" => timestamp_data} do
+      %{pretty_name: name, value_type: type} = column_metadata |> Map.fetch!(header)
+
+      values =
+        for value <- values do
+          value
+          |> Map.fetch!(header)
+          |> AstarteValue.to_json_friendly(type, [])
+        end
+
+      {name, values}
+    end
+  end
+
+  defp object_datastream_pack(values, column_metadata, opts) do
+    timestamp_column = timestamp_column(opts.explicit_timestamp)
+    keep_milliseconds? = opts.keep_milliseconds
+
+    for value <- values do
+      timestamp_value =
+        value
+        |> Map.get(timestamp_column)
+        |> AstarteValue.to_json_friendly(:datetime, keep_milliseconds: keep_milliseconds?)
+
+      value
+      |> Map.delete(timestamp_column)
+      |> Map.take(column_metadata |> Map.keys())
+      |> Map.new(fn {column, value} ->
+        %{pretty_name: name, value_type: type} = column_metadata |> Map.fetch!(column)
+        value = AstarteValue.to_json_friendly(value, type, [])
+
+        {name, value}
+      end)
+      |> Map.put("timestamp", timestamp_value)
     end
   end
 
@@ -1651,5 +1527,16 @@ defmodule Astarte.AppEngine.API.Device do
       true ->
         [allow_bigintegers: true]
     end
+  end
+
+  defp timestamp_column(explicit_timestamp?) do
+    case explicit_timestamp? do
+      false -> :reception_timestamp
+      true -> :value_timestamp
+    end
+  end
+
+  def device_alias_to_device_id(realm_name, device_alias) do
+    Queries.device_alias_to_device_id(realm_name, device_alias)
   end
 end

@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2022 SECO Mind Srl
+# Copyright 2022 - 2025 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -27,10 +27,6 @@ defmodule Astarte.RealmManagement.APIWeb.TriggerPolicyView do
 
   def render("show.json", %{policy: policy}) do
     %{data: render_one(policy, TriggerPolicyView, "policy.json")}
-  end
-
-  def render("already_installed_policy.json", _assigns) do
-    %{errors: %{detail: "Policy already exists"}}
   end
 
   def render("policy.json", %{trigger_policy: policy}) do

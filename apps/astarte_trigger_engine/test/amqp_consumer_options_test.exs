@@ -18,7 +18,7 @@
 
 defmodule Astarte.TriggerEngine.AMQPConsumerOptionsTest do
   alias Astarte.TriggerEngine.Config
-  use ExUnit.Case
+  use ExUnit.Case, async: true
 
   describe "amqp_consumer_options when ssl is enabled" do
     test "no ca_cert is set" do

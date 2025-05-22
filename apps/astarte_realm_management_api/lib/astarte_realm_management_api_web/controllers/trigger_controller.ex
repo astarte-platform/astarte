@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2018 Ispirata Srl
+# Copyright 2018 - 2025 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -23,9 +23,6 @@ defmodule Astarte.RealmManagement.APIWeb.TriggerController do
   alias Astarte.RealmManagement.API.Triggers.Trigger
 
   action_fallback Astarte.RealmManagement.APIWeb.FallbackController
-
-  plug Astarte.RealmManagement.APIWeb.Plug.LogRealm
-  plug Astarte.RealmManagement.APIWeb.Plug.AuthorizePath
 
   def index(conn, %{"realm_name" => realm_name}) do
     triggers = Triggers.list_triggers(realm_name)
@@ -73,18 +70,10 @@ defmodule Astarte.RealmManagement.APIWeb.TriggerController do
         conn
         |> put_status(:internal_server_error)
         |> render("cannot_retrieve_simple_trigger.json")
-    end
-  end
 
-  def update(conn, %{"realm_name" => realm_name, "id" => id, "data" => trigger_params}) do
-    with {:ok, trigger} <- Triggers.get_trigger(realm_name, id),
-         {:ok, %Trigger{} = updated_trigger} <-
-           Triggers.update_trigger(
-             realm_name,
-             trigger,
-             trigger_params
-           ) do
-      render(conn, "show.json", trigger: updated_trigger)
+      # To FallbackController
+      {:error, other} ->
+        {:error, other}
     end
   end
 
@@ -97,6 +86,10 @@ defmodule Astarte.RealmManagement.APIWeb.TriggerController do
         conn
         |> put_status(:internal_server_error)
         |> render("cannot_delete_simple_trigger.json")
+
+      # To FallbackController
+      {:error, other} ->
+        {:error, other}
     end
   end
 end

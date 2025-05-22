@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2017-2018 Ispirata Srl
+# Copyright 2017 - 2025 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -17,7 +17,7 @@
 #
 
 defmodule Astarte.Pairing.API.AgentTest do
-  use Astarte.Pairing.API.DataCase
+  use Astarte.Pairing.API.DataCase, async: true
 
   alias Astarte.Pairing.API.Agent
 
@@ -125,6 +125,24 @@ defmodule Astarte.Pairing.API.AgentTest do
                Agent.register_device(@test_realm, @invalid_hw_id_attrs)
     end
 
+    test "returns error changeset for negative major version in introspection" do
+      initial_introspection = %{
+        "org.astarteplatform.Values" => %{"major" => -1, "minor" => 0}
+      }
+
+      attrs = Map.put(@valid_attrs, "initial_introspection", initial_introspection)
+      assert {:error, _changeset} = Agent.register_device(@test_realm, attrs)
+    end
+
+    test "returns error changeset for negative minor version in introspection" do
+      initial_introspection = %{
+        "org.astarteplatform.OtherValues" => %{"major" => 1, "minor" => -2}
+      }
+
+      attrs = Map.put(@valid_attrs, "initial_introspection", initial_introspection)
+      assert {:error, _changeset} = Agent.register_device(@test_realm, attrs)
+    end
+
     test "returns error if RPC returns error" do
       MockRPCClient
       |> expect(:rpc_call, fn serialized_call, @rpc_destination, @timeout ->
@@ -150,21 +168,19 @@ defmodule Astarte.Pairing.API.AgentTest do
 
     @test_realm "testrealm"
     @test_device_id "PDL3KNj7RVifHZD-1w_6wA"
-    @already_registered_hw_id "PY3wK1OKQ3qKyQMBxi6S5w"
 
-    @credentials_secret "7wfs9MIBysBGG/v6apqNVBXXQii6Bris6CeU7FdCgWU="
     @encoded_unregister_response %Reply{
                                    reply: {:generic_ok_reply, %GenericOkReply{}}
                                  }
                                  |> Reply.encode()
-    @encoded_device_not_registered_response %Reply{
-                                              reply:
-                                                {:generic_error_reply,
-                                                 %GenericErrorReply{
-                                                   error_name: "device_not_registered"
-                                                 }}
-                                            }
-                                            |> Reply.encode()
+    @encoded_device_not_found_response %Reply{
+                                         reply:
+                                           {:generic_error_reply,
+                                            %GenericErrorReply{
+                                              error_name: "device_not_found"
+                                            }}
+                                       }
+                                       |> Reply.encode()
     @encoded_realm_not_found_response %Reply{
                                         reply:
                                           {:generic_error_reply,
@@ -205,7 +221,7 @@ defmodule Astarte.Pairing.API.AgentTest do
                  device_id: @test_device_id
                } = unregister_call
 
-        {:ok, @encoded_device_not_registered_response}
+        {:ok, @encoded_device_not_found_response}
       end)
 
       assert {:error, :device_not_found} = Agent.unregister_device(@test_realm, @test_device_id)

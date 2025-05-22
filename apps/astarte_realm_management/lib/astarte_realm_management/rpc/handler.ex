@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2017-2018 Ispirata Srl
+# Copyright 2017 - 2025 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -19,12 +19,18 @@
 defmodule Astarte.RealmManagement.RPC.Handler do
   @behaviour Astarte.RPC.Handler
 
+  alias Astarte.DataAccess.Health.Health
+
   alias Astarte.RPC.Protocol.RealmManagement.{
     Call,
     DeleteInterface,
     DeleteTrigger,
     GenericErrorReply,
     GenericOkReply,
+    GetDatastreamMaximumStorageRetention,
+    GetDatastreamMaximumStorageRetentionReply,
+    GetDeviceRegistrationLimit,
+    GetDeviceRegistrationLimitReply,
     GetHealth,
     GetHealthReply,
     GetInterfacesList,
@@ -50,7 +56,8 @@ defmodule Astarte.RealmManagement.RPC.Handler do
     GetTriggerPoliciesListReply,
     GetTriggerPolicySource,
     GetTriggerPolicySourceReply,
-    DeleteTriggerPolicy
+    DeleteTriggerPolicy,
+    DeleteDevice
   }
 
   alias Astarte.Core.Triggers.Trigger
@@ -72,6 +79,26 @@ defmodule Astarte.RealmManagement.RPC.Handler do
     }
 
     {:ok, Reply.encode(%Reply{error: false, reply: {:get_health_reply, msg}})}
+  end
+
+  def encode_reply(:get_device_registration_limit_reply, {:ok, limit}) do
+    msg = %GetDeviceRegistrationLimitReply{
+      device_registration_limit: limit
+    }
+
+    {:ok, Reply.encode(%Reply{error: false, reply: {:get_device_registration_limit_reply, msg}})}
+  end
+
+  def encode_reply(:get_datastream_maximum_storage_retention_reply, {:ok, retention}) do
+    msg = %GetDatastreamMaximumStorageRetentionReply{
+      datastream_maximum_storage_retention: retention
+    }
+
+    {:ok,
+     Reply.encode(%Reply{
+       error: false,
+       reply: {:get_datastream_maximum_storage_retention_reply, msg}
+     })}
   end
 
   def encode_reply(:get_interface_source, {:ok, reply}) do
@@ -166,6 +193,10 @@ defmodule Astarte.RealmManagement.RPC.Handler do
     {:ok, Reply.encode(%Reply{error: false, reply: {:generic_ok_reply, %GenericOkReply{}}})}
   end
 
+  def encode_reply(:delete_device, :ok) do
+    {:ok, Reply.encode(%Reply{error: false, reply: {:generic_ok_reply, %GenericOkReply{}}})}
+  end
+
   def encode_reply(_call_atom, {:ok, :started}) do
     msg = %GenericOkReply{
       async_operation: true
@@ -208,7 +239,24 @@ defmodule Astarte.RealmManagement.RPC.Handler do
         %Call{call: call_tuple} when call_tuple != nil ->
           case call_tuple do
             {:get_health, %GetHealth{}} ->
-              encode_reply(:get_health, Engine.get_health())
+              encode_reply(:get_health, Health.get_health())
+
+            {:get_device_registration_limit, %GetDeviceRegistrationLimit{realm_name: realm_name}} ->
+              _ = Logger.metadata(realm: realm_name)
+
+              encode_reply(
+                :get_device_registration_limit_reply,
+                Engine.get_device_registration_limit(realm_name)
+              )
+
+            {:get_datastream_maximum_storage_retention,
+             %GetDatastreamMaximumStorageRetention{realm_name: realm_name}} ->
+              _ = Logger.metadata(realm: realm_name)
+
+              encode_reply(
+                :get_datastream_maximum_storage_retention_reply,
+                Engine.get_datastream_maximum_storage_retention(realm_name)
+              )
 
             {:install_interface,
              %InstallInterface{
@@ -377,13 +425,28 @@ defmodule Astarte.RealmManagement.RPC.Handler do
                 )
               )
 
+            {:delete_device,
+             %DeleteDevice{
+               realm_name: realm_name,
+               device_id: device_id
+             }} ->
+              _ = Logger.metadata(realm: realm_name)
+
+              encode_reply(
+                :delete_device,
+                Engine.delete_device(
+                  realm_name,
+                  device_id
+                )
+              )
+
             invalid_call ->
-              _ = Logger.warn("Received unexpected call: #{inspect(invalid_call)}.")
+              _ = Logger.warning("Received unexpected call: #{inspect(invalid_call)}.")
               {:error, :unexpected_call}
           end
 
         invalid_message ->
-          _ = Logger.warn("Received unexpected message: #{inspect(invalid_message)}.")
+          _ = Logger.warning("Received unexpected message: #{inspect(invalid_message)}.")
           {:error, :unexpected_message}
       end
 

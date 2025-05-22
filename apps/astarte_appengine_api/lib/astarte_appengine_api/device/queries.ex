@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2017-2018 Ispirata Srl
+# Copyright 2017 - 2025 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -17,242 +17,137 @@
 #
 
 defmodule Astarte.AppEngine.API.Device.Queries do
+  import Ecto.Query
+
   alias Astarte.AppEngine.API.Config
+  alias Astarte.AppEngine.API.DateTime, as: DateTimeMs
+  alias Astarte.DataAccess.Device.DeletionInProgress
   alias Astarte.AppEngine.API.Device.DeviceStatus
   alias Astarte.AppEngine.API.Device.DevicesList
-  alias Astarte.AppEngine.API.Device.InterfaceValuesOptions
   alias Astarte.AppEngine.API.Device.InterfaceInfo
+  alias Astarte.DataAccess.Realms.IndividualProperty
+  alias Astarte.DataAccess.KvStore
+  alias Astarte.DataAccess.Realms.Name
+  alias Astarte.AppEngine.API.Repo
   alias Astarte.Core.CQLUtils
   alias Astarte.Core.Device
-  alias Astarte.Core.InterfaceDescriptor
   alias Astarte.Core.Mapping
-  alias Astarte.Core.Mapping.ValueType
-  alias Astarte.Core.StorageType
-  alias CQEx.Query, as: DatabaseQuery
-  alias CQEx.Result, as: DatabaseResult
-  require CQEx
+  alias Astarte.Core.InterfaceDescriptor
+  alias Astarte.DataAccess.Realms.Realm
+  alias Astarte.DataAccess.Realms.Endpoint
+  alias Astarte.DataAccess.Devices.Device, as: DatabaseDevice
+  alias Astarte.DataAccess.Consistency
+
   require Logger
 
-  def first_result_row(values) do
-    DatabaseResult.head(values)
-  end
+  def retrieve_interfaces_list(realm_name, device_id) do
+    keyspace = Realm.keyspace_name(realm_name)
 
-  @spec retrieve_interfaces_list(:cqerl.client(), binary) ::
-          {:ok, list(String.t())} | {:error, atom}
-  def retrieve_interfaces_list(client, device_id) do
-    device_introspection_statement = """
-    SELECT introspection
-    FROM devices
-    WHERE device_id=:device_id
-    """
+    query =
+      from d in DatabaseDevice,
+        prefix: ^keyspace,
+        select: d.introspection
 
-    device_introspection_query =
-      DatabaseQuery.new()
-      |> DatabaseQuery.statement(device_introspection_statement)
-      |> DatabaseQuery.put(:device_id, device_id)
+    opts = [consistency: Consistency.device_info(:read), error: :device_not_found]
 
-    with {:ok, result} <- DatabaseQuery.call(client, device_introspection_query),
-         [introspection: introspection_or_nil] <- DatabaseResult.head(result) do
-      introspection = introspection_or_nil || []
-
-      interfaces_list =
-        for {interface_name, _interface_major} <- introspection do
-          interface_name
-        end
-
+    with {:ok, introspection} <- Repo.fetch(query, device_id, opts) do
+      interfaces_list = introspection |> Map.keys()
       {:ok, interfaces_list}
-    else
-      :empty_dataset ->
-        {:error, :device_not_found}
-
-      {:error, reason} ->
-        _ = Logger.warn("Database error: #{inspect(reason)}.", tag: "db_error")
-        {:error, :database_error}
     end
   end
 
-  def retrieve_all_endpoint_ids_for_interface!(client, interface_id) do
-    endpoints_with_type_statement = """
-    SELECT value_type, endpoint_id
-    FROM endpoints
-    WHERE interface_id=:interface_id
-    """
-
-    endpoint_query =
-      DatabaseQuery.new()
-      |> DatabaseQuery.statement(endpoints_with_type_statement)
-      |> DatabaseQuery.put(:interface_id, interface_id)
-
-    DatabaseQuery.call!(client, endpoint_query)
-  end
-
-  def retrieve_all_endpoints_for_interface!(client, interface_id) do
-    endpoints_with_type_statement = """
-    SELECT value_type, endpoint
-    FROM endpoints
-    WHERE interface_id=:interface_id
-    """
-
-    endpoint_query =
-      DatabaseQuery.new()
-      |> DatabaseQuery.statement(endpoints_with_type_statement)
-      |> DatabaseQuery.put(:interface_id, interface_id)
-
-    DatabaseQuery.call!(client, endpoint_query)
-  end
-
-  def retrieve_mapping(db_client, interface_id, endpoint_id) do
-    mapping_statement = """
-    SELECT endpoint, value_type, reliability, retention, database_retention_policy,
-           database_retention_ttl, expiry, allow_unset, endpoint_id, interface_id,
-           explicit_timestamp
-    FROM endpoints
-    WHERE interface_id=:interface_id AND endpoint_id=:endpoint_id
-    """
-
-    mapping_query =
-      DatabaseQuery.new()
-      |> DatabaseQuery.statement(mapping_statement)
-      |> DatabaseQuery.put(:interface_id, interface_id)
-      |> DatabaseQuery.put(:endpoint_id, endpoint_id)
-
-    DatabaseQuery.call!(db_client, mapping_query)
-    |> DatabaseResult.head()
-    |> Mapping.from_db_result!()
-  end
-
-  def prepare_get_property_statement(
-        value_type,
-        metadata,
-        table_name,
-        :multi_interface_individual_properties_dbtable
-      ) do
-    metadata_column =
-      if metadata do
-        ",metadata"
-      else
-        ""
-      end
-
-    # TODO: should we filter on path for performance reason?
-    # TODO: probably we should sanitize also table_name: right now it is stored on database
-    "SELECT path, #{Astarte.Core.CQLUtils.type_to_db_column_name(value_type)} #{metadata_column} FROM #{table_name}" <>
-      " WHERE device_id=:device_id AND interface_id=:interface_id AND endpoint_id=:endpoint_id;"
-  end
-
-  def prepare_get_individual_datastream_statement(
-        value_type,
-        metadata,
-        table_name,
-        :multi_interface_individual_datastream_dbtable,
-        opts
-      ) do
-    metadata_column =
-      if metadata do
-        ",metadata"
-      else
-        ""
-      end
-
-    {since_statement, since_value} =
-      cond do
-        opts.since != nil ->
-          {"AND value_timestamp >= :since", opts.since}
-
-        opts.since_after != nil ->
-          {"AND value_timestamp > :since", opts.since_after}
-
-        opts.since == nil and opts.since_after == nil ->
-          {"", nil}
-      end
-
-    {to_statement, to_value} =
-      if opts.to != nil do
-        {"AND value_timestamp < :to_timestamp", opts.to}
-      else
-        {"", nil}
-      end
-
-    query_limit = min(opts.limit, Config.max_results_limit!())
-
-    {limit_statement, limit_value} =
-      cond do
-        # Check the explicit user defined limit to know if we have to reorder data
-        opts.limit != nil and since_value == nil ->
-          {"ORDER BY value_timestamp DESC, reception_timestamp DESC, reception_timestamp_submillis DESC LIMIT :limit_nrows",
-           query_limit}
-
-        query_limit != nil ->
-          {"LIMIT :limit_nrows", query_limit}
-
-        true ->
-          {"", nil}
-      end
+  def retrieve_all_endpoint_ids_for_interface!(realm_name, interface_id, opts \\ []) do
+    keyspace = Realm.keyspace_name(realm_name)
 
     query =
-      if since_statement != "" do
-        %{since: DateTime.to_unix(since_value, :millisecond)}
-      else
-        %{}
-      end
+      from Endpoint,
+        prefix: ^keyspace,
+        where: [interface_id: ^interface_id],
+        select: [:value_type, :endpoint_id]
 
     query =
-      if to_statement != "" do
-        query
-        |> Map.put(:to_timestamp, DateTime.to_unix(to_value, :millisecond))
-      else
-        query
+      case opts[:limit] do
+        nil -> query
+        limit -> query |> limit(^limit)
       end
 
-    query =
-      if limit_statement != "" do
-        query
-        |> Map.put(:limit_nrows, limit_value)
-      else
-        query
-      end
-
-    where_clause =
-      " WHERE device_id=:device_id AND interface_id=:interface_id AND endpoint_id=:endpoint_id AND path=:path #{since_statement} #{to_statement} #{limit_statement}"
-
-    {
-      "SELECT value_timestamp, reception_timestamp, reception_timestamp_submillis, #{CQLUtils.type_to_db_column_name(value_type)} #{metadata_column} FROM #{table_name} #{where_clause}",
-      "SELECT count(value_timestamp) FROM #{table_name} #{where_clause}",
-      query
-    }
+    Repo.all(query, consistency: Consistency.domain_model(:read))
   end
 
-  def fetch_datastream_maximum_storage_retention(client) do
-    maximum_storage_retention_statement = """
-    SELECT blobAsInt(value)
-    FROM kv_store
-    WHERE group='realm_config' AND key='datastream_maximum_storage_retention'
-    """
+  def retrieve_all_endpoints_for_interface!(realm_name, interface_id) do
+    keyspace = Realm.keyspace_name(realm_name)
 
     query =
-      DatabaseQuery.new()
-      |> DatabaseQuery.statement(maximum_storage_retention_statement)
-      |> DatabaseQuery.consistency(:quorum)
+      from Endpoint,
+        prefix: ^keyspace,
+        where: [interface_id: ^interface_id],
+        select: [:value_type, :endpoint]
 
-    with {:ok, res} <- DatabaseQuery.call(client, query),
-         ["system.blobasint(value)": maximum_storage_retention] <- DatabaseResult.head(res) do
-      {:ok, maximum_storage_retention}
-    else
-      :empty_dataset ->
-        {:ok, nil}
+    Repo.all(query, consistency: Consistency.domain_model(:read))
+  end
 
-      %{acc: _, msg: error_message} ->
-        Logger.warn("Database error: #{error_message}.")
-        {:error, :database_error}
+  def retrieve_mapping(realm_name, interface_id, endpoint_id) do
+    keyspace = Realm.keyspace_name(realm_name)
 
-      {:error, reason} ->
-        Logger.warn("Failed with reason: #{inspect(reason)}.")
-        {:error, :database_error}
+    query =
+      from Endpoint,
+        select: [
+          :endpoint,
+          :value_type,
+          :reliability,
+          :retention,
+          :database_retention_policy,
+          :database_retention_ttl,
+          :expiry,
+          :allow_unset,
+          :endpoint_id,
+          :interface_id,
+          :explicit_timestamp
+        ]
+
+    opts = [
+      prefix: keyspace,
+      consistency: Consistency.domain_model(:read)
+    ]
+
+    Repo.get_by!(query, [interface_id: interface_id, endpoint_id: endpoint_id], opts)
+  end
+
+  def interface_has_explicit_timestamp?(realm_name, interface_id) do
+    keyspace = Realm.keyspace_name(realm_name)
+    do_interface_has_explicit_timestamp?(keyspace, interface_id)
+  end
+
+  def do_interface_has_explicit_timestamp?(keyspace, interface_id) do
+    interface_explicit_timestamp =
+      from(d in Endpoint,
+        where: [interface_id: ^interface_id],
+        select: d.explicit_timestamp,
+        limit: 1
+      )
+      |> Repo.one!(prefix: keyspace, consistency: Consistency.domain_model(:read))
+
+    # ensure boolean value
+    with nil <- interface_explicit_timestamp do
+      false
+    end
+  end
+
+  def fetch_datastream_maximum_storage_retention(realm_name) do
+    keyspace = Realm.keyspace_name(realm_name)
+    group = "realm_config"
+    key = "datastream_maximum_storage_retention"
+
+    opts = [prefix: keyspace, consistency: Consistency.domain_model(:read)]
+
+    case KvStore.fetch_value(group, key, :integer, opts) do
+      {:ok, value} -> value
+      {:error, _} -> nil
     end
   end
 
   def last_datastream_value!(
-        client,
+        realm_name,
         device_id,
         interface_row,
         endpoint_row,
@@ -260,56 +155,26 @@ defmodule Astarte.AppEngine.API.Device.Queries do
         path,
         opts
       ) do
-    {values_query_statement, _count_query_statement, q_params} =
-      prepare_get_individual_datastream_statement(
-        ValueType.from_int(endpoint_row[:value_type]),
-        false,
-        interface_row[:storage],
-        StorageType.from_int(interface_row[:storage_type]),
-        %{opts | limit: 1}
-      )
+    columns = default_endpoint_column_selection(endpoint_row)
+    keyspace = Realm.keyspace_name(realm_name)
 
-    values_query =
-      DatabaseQuery.new()
-      |> DatabaseQuery.statement(values_query_statement)
-      |> DatabaseQuery.put(:device_id, device_id)
-      |> DatabaseQuery.put(:interface_id, interface_row[:interface_id])
-      |> DatabaseQuery.put(:endpoint_id, endpoint_id)
-      |> DatabaseQuery.put(:path, path)
-      |> DatabaseQuery.merge(q_params)
+    opts = %{opts | limit: 1}
 
-    DatabaseQuery.call!(client, values_query)
-    |> DatabaseResult.head()
+    do_get_datastream_values(keyspace, device_id, interface_row, endpoint_id, path, opts)
+    |> select(^columns)
+    |> Repo.fetch_one(consistency: Consistency.time_series(:read, endpoint_row))
   end
 
-  def retrieve_all_endpoint_paths!(client, device_id, interface_id, endpoint_id) do
-    all_paths_statement = """
-      SELECT path
-      FROM individual_properties
-      WHERE device_id=:device_id AND interface_id=:interface_id AND endpoint_id=:endpoint_id
-    """
+  def retrieve_all_endpoint_paths!(realm_name, device_id, interface_id, endpoint_id) do
+    keyspace = Realm.keyspace_name(realm_name)
 
-    all_paths_query =
-      DatabaseQuery.new()
-      |> DatabaseQuery.statement(all_paths_statement)
-      |> DatabaseQuery.put(:device_id, device_id)
-      |> DatabaseQuery.put(:interface_id, interface_id)
-      |> DatabaseQuery.put(:endpoint_id, endpoint_id)
-
-    DatabaseQuery.call!(client, all_paths_query)
-  end
-
-  defp get_ttl_string(opts) do
-    with {:ok, value} when is_integer(value) <- Keyword.fetch(opts, :ttl) do
-      "USING TTL #{to_string(value)}"
-    else
-      _any_error ->
-        ""
-    end
+    find_endpoints(keyspace, "individual_properties", device_id, interface_id, endpoint_id)
+    |> select([:path])
+    |> Repo.all(consistency: Consistency.device_info(:read))
   end
 
   def insert_path_into_db(
-        db_client,
+        realm_name,
         device_id,
         %InterfaceDescriptor{storage_type: storage_type} = interface_descriptor,
         endpoint_id,
@@ -325,71 +190,90 @@ defmodule Astarte.AppEngine.API.Device.Queries do
     # TODO: use received value_timestamp when needed
     # TODO: :reception_timestamp_submillis is just a place holder right now
 
-    ttl_string = get_ttl_string(opts)
+    keyspace = Realm.keyspace_name(realm_name)
 
-    insert_statement = """
-    INSERT INTO individual_properties
-        (device_id, interface_id, endpoint_id, path,
-        reception_timestamp, reception_timestamp_submillis, datetime_value)
-    VALUES (:device_id, :interface_id, :endpoint_id, :path, :reception_timestamp,
-        :reception_timestamp_submillis, :datetime_value) #{ttl_string};
-    """
+    value =
+      %IndividualProperty{
+        device_id: device_id,
+        interface_id: interface_descriptor.interface_id,
+        endpoint_id: endpoint_id,
+        path: path,
+        reception: reception_timestamp,
+        datetime_value: value_timestamp
+      }
 
-    insert_query =
-      DatabaseQuery.new()
-      |> DatabaseQuery.statement(insert_statement)
-      |> DatabaseQuery.put(:device_id, device_id)
-      |> DatabaseQuery.put(:interface_id, interface_descriptor.interface_id)
-      |> DatabaseQuery.put(:endpoint_id, endpoint_id)
-      |> DatabaseQuery.put(:path, path)
-      |> DatabaseQuery.put(:reception_timestamp, div(reception_timestamp, 1000))
-      |> DatabaseQuery.put(:reception_timestamp_submillis, rem(reception_timestamp, 100))
-      |> DatabaseQuery.put(:datetime_value, value_timestamp)
+    value = value |> IndividualProperty.prepare_for_db()
 
-    DatabaseQuery.call!(db_client, insert_query)
+    ttl = opts[:ttl]
+
+    opts = [prefix: keyspace, ttl: ttl, consistency: Consistency.device_info(:write)]
+
+    Repo.insert!(value, opts)
 
     :ok
   end
 
   # TODO Copy&pasted from data updater plant, make it a library
   def insert_value_into_db(
-        db_client,
+        realm_name,
         device_id,
         %InterfaceDescriptor{storage_type: :multi_interface_individual_properties_dbtable} =
           interface_descriptor,
-        _endpoint_id,
-        endpoint,
+        endpoint_id,
+        %Endpoint{allow_unset: true},
         path,
         nil,
         _timestamp,
         _opts
       ) do
-    if endpoint.allow_unset == false do
-      _ =
-        Logger.warn("Tried to unset value on allow_unset=false mapping.", tag: "unset_not_allowed")
-
-      # TODO: should we handle this situation?
-    end
-
     # TODO: :reception_timestamp_submillis is just a place holder right now
-    unset_query =
-      DatabaseQuery.new()
-      |> DatabaseQuery.statement(
-        "DELETE FROM #{interface_descriptor.storage} WHERE device_id=:device_id AND interface_id=:interface_id AND endpoint_id=:endpoint_id AND path=:path"
-      )
-      |> DatabaseQuery.put(:device_id, device_id)
-      |> DatabaseQuery.put(:interface_id, interface_descriptor.interface_id)
-      |> DatabaseQuery.put(:endpoint_id, endpoint.endpoint_id)
-      |> DatabaseQuery.put(:path, path)
+    %InterfaceDescriptor{interface_id: interface_id, storage: storage} = interface_descriptor
+    keyspace_name = Realm.keyspace_name(realm_name)
 
-    DatabaseQuery.call!(db_client, unset_query)
+    delete_match =
+      from v in storage,
+        prefix: ^keyspace_name,
+        where:
+          v.device_id == ^device_id and v.interface_id == ^interface_id and
+            v.endpoint_id == ^endpoint_id and v.path == ^path
+
+    {c, _} = Repo.delete_all(delete_match, consistency: Consistency.device_info(:write))
+
+    if c == 0 do
+      _ =
+        Logger.warning(
+          "Could not unset value for #{Device.encode_device_id(device_id)} in #{storage} or there was no data",
+          realm: "realm",
+          tag: "cant_unset"
+        )
+    end
 
     :ok
   end
 
+  def insert_value_into_db(
+        _realm_name,
+        _device_id,
+        %InterfaceDescriptor{storage_type: :multi_interface_individual_properties_dbtable} =
+          _interface_descriptor,
+        _endpoint_id,
+        _endpoint,
+        _path,
+        nil,
+        _timestamp,
+        _opts
+      ) do
+    _ =
+      Logger.warning("Tried to unset value on allow_unset=false mapping.",
+        tag: "unset_not_allowed"
+      )
+
+    {:error, :unset_not_allowed}
+  end
+
   # TODO Copy&pasted from data updater plant, make it a library
   def insert_value_into_db(
-        db_client,
+        realm_name,
         device_id,
         %InterfaceDescriptor{storage_type: :multi_interface_individual_properties_dbtable} =
           interface_descriptor,
@@ -400,165 +284,170 @@ defmodule Astarte.AppEngine.API.Device.Queries do
         timestamp,
         opts
       ) do
-    ttl_string = get_ttl_string(opts)
+    value_column = CQLUtils.type_to_db_column_name(endpoint.value_type)
+    keyspace = Realm.keyspace_name(realm_name)
+
+    {timestamp_ms, timestamp_submillis} = DateTimeMs.split_submillis(timestamp)
 
     # TODO: :reception_timestamp_submillis is just a place holder right now
-    insert_query =
-      DatabaseQuery.new()
-      |> DatabaseQuery.statement("""
-      INSERT INTO #{interface_descriptor.storage}
-        (device_id, interface_id, endpoint_id, path, reception_timestamp,
-          #{CQLUtils.type_to_db_column_name(endpoint.value_type)})
-        VALUES (:device_id, :interface_id, :endpoint_id, :path, :reception_timestamp,
-          :value) #{ttl_string};
-      """)
-      |> DatabaseQuery.put(:device_id, device_id)
-      |> DatabaseQuery.put(:interface_id, interface_descriptor.interface_id)
-      |> DatabaseQuery.put(:endpoint_id, endpoint_id)
-      |> DatabaseQuery.put(:path, path)
-      |> DatabaseQuery.put(:reception_timestamp, div(timestamp, 1000))
-      |> DatabaseQuery.put(:reception_timestamp_submillis, div(timestamp, 100))
-      |> DatabaseQuery.put(:value, to_db_friendly_type(value))
+    interface_storage_attributes = %{
+      value_column => to_db_friendly_type(value),
+      device_id: device_id,
+      interface_id: interface_descriptor.interface_id,
+      endpoint_id: endpoint_id,
+      path: path,
+      reception_timestamp: timestamp_ms,
+      reception_timestamp_submillis: timestamp_submillis
+    }
 
-    DatabaseQuery.call!(db_client, insert_query)
+    opts = [
+      prefix: keyspace,
+      ttl: opts[:ttl],
+      consistency: Consistency.device_info(:write)
+    ]
+
+    {1, _} =
+      Repo.insert_all(interface_descriptor.storage, [interface_storage_attributes], opts)
 
     :ok
   end
 
   # TODO Copy&pasted from data updater plant, make it a library
   def insert_value_into_db(
-        db_client,
+        realm_name,
         device_id,
         %InterfaceDescriptor{storage_type: :multi_interface_individual_datastream_dbtable} =
           interface_descriptor,
-        endpoint_id,
+        _endpoint_id,
         endpoint,
         path,
         value,
         timestamp,
         opts
       ) do
-    ttl_string = get_ttl_string(opts)
+    value_column = CQLUtils.type_to_db_column_name(endpoint.value_type)
+    keyspace = Realm.keyspace_name(realm_name)
+    {timestamp_ms, timestamp_submillis} = DateTimeMs.split_submillis(timestamp)
 
-    insert_query =
-      DatabaseQuery.new()
-      |> DatabaseQuery.statement("""
-      INSERT INTO #{interface_descriptor.storage}
-        (device_id, interface_id, endpoint_id, path, value_timestamp, reception_timestamp, reception_timestamp_submillis,
-          #{CQLUtils.type_to_db_column_name(endpoint.value_type)})
-        VALUES (:device_id, :interface_id, :endpoint_id, :path, :value_timestamp, :reception_timestamp,
-          :reception_timestamp_submillis, :value) #{ttl_string};
-      """)
-      |> DatabaseQuery.put(:device_id, device_id)
-      |> DatabaseQuery.put(:interface_id, interface_descriptor.interface_id)
-      |> DatabaseQuery.put(:endpoint_id, endpoint.endpoint_id)
-      |> DatabaseQuery.put(:path, path)
-      |> DatabaseQuery.put(:value_timestamp, div(timestamp, 1000))
-      |> DatabaseQuery.put(:reception_timestamp, div(timestamp, 1000))
-      |> DatabaseQuery.put(:reception_timestamp_submillis, rem(timestamp, 100))
-      |> DatabaseQuery.put(:value, to_db_friendly_type(value))
+    attributes = %{
+      value_column => to_db_friendly_type(value),
+      device_id: device_id,
+      interface_id: interface_descriptor.interface_id,
+      endpoint_id: endpoint.endpoint_id,
+      path: path,
+      value_timestamp: timestamp_ms,
+      reception_timestamp: timestamp_ms,
+      reception_timestamp_submillis: timestamp_submillis
+    }
 
-    # TODO: |> DatabaseQuery.consistency(insert_consistency(interface_descriptor, endpoint))
+    opts = [
+      prefix: keyspace,
+      ttl: opts[:ttl],
+      consistency: Consistency.time_series(:write, endpoint)
+    ]
 
-    DatabaseQuery.call!(db_client, insert_query)
+    {1, _} = Repo.insert_all(interface_descriptor.storage, [attributes], opts)
 
     :ok
   end
 
   # TODO Copy&pasted from data updater plant, make it a library
   def insert_value_into_db(
-        db_client,
+        realm_name,
         device_id,
         %InterfaceDescriptor{storage_type: :one_object_datastream_dbtable} = interface_descriptor,
         _endpoint_id,
-        _mapping,
+        mapping,
         path,
         value,
         timestamp,
         opts
       ) do
-    ttl_string = get_ttl_string(opts)
+    keyspace = Realm.keyspace_name(realm_name)
+    interface_id = interface_descriptor.interface_id
 
-    endpoint_query =
-      DatabaseQuery.new()
-      |> DatabaseQuery.statement(
-        "SELECT endpoint, value_type FROM endpoints WHERE interface_id=:interface_id;"
+    endpoint_rows =
+      from(Endpoint,
+        where: [interface_id: ^interface_id],
+        select: [:endpoint, :value_type]
       )
-      |> DatabaseQuery.put(:interface_id, interface_descriptor.interface_id)
+      |> Repo.all(prefix: keyspace, consistency: Consistency.domain_model(:read))
 
-    endpoint_rows = DatabaseQuery.call!(db_client, endpoint_query)
+    explicit_timestamp? = do_interface_has_explicit_timestamp?(keyspace, interface_id)
 
-    explicit_timestamp_query =
-      DatabaseQuery.new()
-      |> DatabaseQuery.statement(
-        "SELECT explicit_timestamp FROM endpoints WHERE interface_id=:interface_id LIMIT 1;"
-      )
-      |> DatabaseQuery.put(:interface_id, interface_descriptor.interface_id)
-
-    [explicit_timestamp: explicit_timestamp] =
-      DatabaseQuery.call!(db_client, explicit_timestamp_query)
-      |> DatabaseResult.head()
-
-    # FIXME: new atoms are created here, we should avoid this. We need to replace CQEx.
-    column_atoms =
-      Enum.reduce(endpoint_rows, %{}, fn endpoint, column_atoms_acc ->
-        endpoint_name =
-          endpoint[:endpoint]
-          |> String.split("/")
-          |> List.last()
-
+    column_meta =
+      endpoint_rows
+      |> Map.new(fn endpoint ->
+        endpoint_name = endpoint.endpoint |> String.split("/") |> List.last()
         column_name = CQLUtils.endpoint_to_db_column_name(endpoint_name)
-
-        Map.put(column_atoms_acc, endpoint_name, String.to_atom(column_name))
+        {endpoint_name, %{name: column_name, type: endpoint.value_type}}
       end)
 
-    {query_values, placeholders, query_columns} =
-      Enum.reduce(value, {%{}, "", ""}, fn {obj_key, obj_value},
-                                           {query_values_acc, placeholders_acc, query_acc} ->
-        if column_atoms[obj_key] != nil do
-          column_name = CQLUtils.endpoint_to_db_column_name(obj_key)
+    base_attributes = %{
+      device_id: device_id,
+      path: path
+    }
 
-          db_value = to_db_friendly_type(obj_value)
-          next_query_values_acc = Map.put(query_values_acc, column_atoms[obj_key], db_value)
-          next_placeholders_acc = "#{placeholders_acc} :#{to_string(column_atoms[obj_key])},"
-          next_query_acc = "#{query_acc} #{column_name}, "
+    timestamp_attributes = timestamp_attributes(explicit_timestamp?, timestamp)
+    value_attributes = value_attributes(column_meta, value)
 
-          {next_query_values_acc, next_placeholders_acc, next_query_acc}
-        else
-          Logger.warn(
-            "Unexpected object key #{inspect(obj_key)} with value #{inspect(obj_value)}."
-          )
+    object_datastream =
+      base_attributes
+      |> Map.merge(timestamp_attributes)
+      |> Map.merge(value_attributes)
 
-          query_values_acc
+    ttl = Keyword.get(opts, :ttl)
+
+    opts = [
+      prefix: keyspace,
+      ttl: ttl,
+      returning: false,
+      consistency: Consistency.time_series(:write, mapping)
+    ]
+
+    Repo.insert_all(interface_descriptor.storage, [object_datastream], opts)
+
+    :ok
+  end
+
+  defp timestamp_attributes(true = _explicit_timestamp?, timestamp) do
+    {timestamp, submillis} =
+      Astarte.AppEngine.API.DateTime.split_submillis(timestamp)
+
+    %{
+      value_timestamp: timestamp,
+      reception_timestamp: timestamp,
+      reception_timestamp_submillis: submillis
+    }
+  end
+
+  defp timestamp_attributes(_nil_or_false_explicit_timestamp?, timestamp) do
+    {timestamp, submillis} =
+      Astarte.AppEngine.API.DateTime.split_submillis(timestamp)
+
+    %{reception_timestamp: timestamp, reception_timestamp_submillis: submillis}
+  end
+
+  defp value_attributes(column_meta, value) do
+    value =
+      value
+      |> Enum.flat_map(fn {key, value} ->
+        # filter map
+        case Map.fetch(column_meta, key) do
+          {:ok, meta} ->
+            %{name: name, type: type} = meta
+            data = %{type: type, value: value}
+            [{name, data}]
+
+          :error ->
+            Logger.warning("Unexpected object key #{inspect(key)} with value #{inspect(value)}.")
+
+            []
         end
       end)
 
-    {query_columns, placeholders} =
-      if explicit_timestamp do
-        {"value_timestamp, #{query_columns}", ":value_timestamp, #{placeholders}"}
-      else
-        {query_columns, placeholders}
-      end
-
-    # TODO: :reception_timestamp_submillis is just a place holder right now
-    insert_query =
-      DatabaseQuery.new()
-      |> DatabaseQuery.statement("""
-      INSERT INTO #{interface_descriptor.storage} (device_id, path, #{query_columns} reception_timestamp, reception_timestamp_submillis)
-        VALUES (:device_id, :path, #{placeholders} :reception_timestamp, :reception_timestamp_submillis) #{ttl_string};
-      """)
-      |> DatabaseQuery.put(:device_id, device_id)
-      |> DatabaseQuery.put(:path, path)
-      |> DatabaseQuery.put(:value_timestamp, div(timestamp, 1000))
-      |> DatabaseQuery.put(:reception_timestamp, div(timestamp, 1000))
-      |> DatabaseQuery.put(:reception_timestamp_submillis, rem(timestamp, 100))
-      |> DatabaseQuery.merge(query_values)
-
-    # TODO: |> DatabaseQuery.consistency(insert_consistency(interface_descriptor, endpoint))
-
-    DatabaseQuery.call!(db_client, insert_query)
-
-    :ok
+    value
+    |> Map.new(fn {column, data} -> {column, data.value} end)
   end
 
   # TODO Copy&pasted from data updater plant, make it a library
@@ -575,33 +464,654 @@ defmodule Astarte.AppEngine.API.Device.Queries do
     value
   end
 
-  @device_status_columns_without_device_id """
-    , aliases
-    , introspection
-    , introspection_minor
-    , connected
-    , last_connection
-    , last_disconnection
-    , first_registration
-    , first_credentials_request
-    , last_credentials_request_ip
-    , last_seen_ip
-    , attributes
-    , total_received_msgs
-    , total_received_bytes
-    , exchanged_msgs_by_interface
-    , exchanged_bytes_by_interface
-    , groups
-    , old_introspection
-    , inhibit_credentials_request
-  """
+  @device_status_columns_without_device_id [
+    :aliases,
+    :introspection,
+    :introspection_minor,
+    :connected,
+    :last_connection,
+    :last_disconnection,
+    :first_registration,
+    :first_credentials_request,
+    :last_credentials_request_ip,
+    :last_seen_ip,
+    :attributes,
+    :total_received_msgs,
+    :total_received_bytes,
+    :exchanged_msgs_by_interface,
+    :exchanged_bytes_by_interface,
+    :groups,
+    :old_introspection,
+    :inhibit_credentials_request
+  ]
 
-  defp device_status_row_to_device_status(row) do
+  defp truncate_datetime(nil), do: nil
+  defp truncate_datetime(datetime), do: datetime |> DateTime.truncate(:millisecond)
+
+  defp ip_or_null_to_string(nil) do
+    nil
+  end
+
+  defp ip_or_null_to_string(ip) do
+    ip
+    |> :inet_parse.ntoa()
+    |> to_string()
+  end
+
+  def retrieve_device_for_status(realm_name, device_id) do
+    keyspace = Realm.keyspace_name(realm_name)
+    do_retrieve_device_for_status(keyspace, device_id)
+  end
+
+  def retrieve_device_status(realm_name, device_id) do
+    keyspace = Realm.keyspace_name(realm_name)
+
+    with {:ok, device} <- do_retrieve_device_for_status(keyspace, device_id) do
+      {:ok, build_device_status(keyspace, device)}
+    end
+  end
+
+  defp do_retrieve_device_for_status(keyspace, device_id) do
+    fields = [:device_id | @device_status_columns_without_device_id]
+
+    query =
+      from DatabaseDevice,
+        prefix: ^keyspace,
+        select: ^fields
+
+    opts = [consistency: Consistency.device_info(:read), error: :device_not_found]
+
+    Repo.fetch(query, device_id, opts)
+  end
+
+  def deletion_in_progress?(realm_name, device_id) do
+    keyspace = Realm.keyspace_name(realm_name)
+    do_deletion_in_progress?(keyspace, device_id)
+  end
+
+  defp do_deletion_in_progress?(keyspace, device_id) do
+    opts = [prefix: keyspace, consistency: Consistency.device_info(:read)]
+
+    case Repo.fetch(DeletionInProgress, device_id, opts) do
+      {:ok, _} -> true
+      {:error, _} -> false
+    end
+  end
+
+  def retrieve_devices_list(realm_name, limit, retrieve_details?, previous_token) do
+    keyspace = Realm.keyspace_name(realm_name)
+
+    field_selection =
+      if retrieve_details? do
+        [:device_id | @device_status_columns_without_device_id]
+      else
+        [:device_id]
+      end
+
+    token_filter =
+      case previous_token do
+        nil ->
+          true
+
+        first ->
+          min_token = first + 1
+          dynamic([d], fragment("TOKEN(?)", d.device_id) >= ^min_token)
+      end
+
+    devices =
+      from(d in DatabaseDevice,
+        prefix: ^keyspace,
+        select: merge(map(d, ^field_selection), %{"token" => fragment("TOKEN(?)", d.device_id)}),
+        where: ^token_filter,
+        limit: ^limit
+      )
+      |> Repo.all(consistency: Consistency.device_info(:read))
+
+    devices_info =
+      if retrieve_details? do
+        devices |> Enum.map(fn device -> build_device_status(keyspace, device) end)
+      else
+        devices
+        |> Enum.map(fn device ->
+          Device.encode_device_id(device.device_id)
+        end)
+      end
+
+    if Enum.count(devices) < limit || Enum.count(devices) == 0 do
+      %DevicesList{devices: devices_info}
+    else
+      token = devices |> List.last() |> Map.fetch!("token")
+      %DevicesList{devices: devices_info, last_token: token}
+    end
+  end
+
+  def device_alias_to_device_id(realm_name, device_alias) do
+    keyspace = Realm.keyspace_name(realm_name)
+    do_device_alias_to_device_id(keyspace, device_alias)
+  end
+
+  defp do_device_alias_to_device_id(keyspace, device_alias) do
+    query =
+      from d in Name,
+        prefix: ^keyspace,
+        select: d.object_uuid,
+        where: d.object_type == 1 and d.object_name == ^device_alias
+
+    opts = [consistency: Consistency.device_info(:read), error: :device_not_found]
+
+    Repo.fetch_one(query, opts)
+  end
+
+  def find_all_aliases(realm_name, alias_list) do
+    keyspace = Realm.keyspace_name(realm_name)
+
+    # Queries are chunked to avoid hitting scylla's `max_clustering_key_restrictions_per_query`
+    alias_list
+    |> Enum.chunk_every(99)
+    |> Enum.map(&from(n in Name, where: n.object_type == 1 and n.object_name in ^&1))
+    |> Enum.map(&Repo.all(&1, prefix: keyspace, consistency: Consistency.device_info(:read)))
+    |> List.flatten()
+  end
+
+  def merge_device_status(_, _, device_status_changes, _, _)
+      when map_size(device_status_changes) == 0,
+      do: :ok
+
+  def merge_device_status(realm_name, device, changes, alias_tags_to_delete, aliases_to_update) do
+    keyspace = Realm.keyspace_name(realm_name)
+
+    device_query = merge_device_status_device_query(keyspace, device.device_id, changes)
+
+    aliases_queries =
+      merge_device_status_aliases_queries(
+        keyspace,
+        device,
+        alias_tags_to_delete,
+        aliases_to_update
+      )
+
+    queries = [device_query | aliases_queries]
+
+    consistency = Consistency.device_info(:write)
+
+    case Exandra.execute_batch(Repo, %Exandra.Batch{queries: queries}, consistency: consistency) do
+      :ok ->
+        :ok
+
+      {:error, reason} ->
+        Logger.warning("Database error, reason: #{inspect(reason)}", tag: "db_error")
+        {:error, :database_error}
+    end
+  end
+
+  defp merge_device_status_device_query(keyspace, device_id, changes) do
+    changes =
+      case Map.fetch(changes, :credentials_inhibited) do
+        {:ok, inhibit_credentials_request} ->
+          changes
+          |> Map.delete(:credentials_inhibited)
+          |> Map.put(:inhibit_credentials_request, inhibit_credentials_request)
+
+        :error ->
+          changes
+      end
+      |> Keyword.new()
+
+    device_query =
+      from DatabaseDevice,
+        prefix: ^keyspace,
+        where: [device_id: ^device_id],
+        update: [set: ^changes]
+
+    Repo.to_sql(:update_all, device_query)
+  end
+
+  defp merge_device_status_aliases_queries(
+         keyspace,
+         device,
+         alias_tags_to_delete,
+         aliases_to_update
+       ) do
+    {update_tags, update_values} = Enum.unzip(aliases_to_update)
+
+    all_tags = alias_tags_to_delete ++ update_tags
+
+    tags_to_delete =
+      device.aliases
+      |> Enum.filter(fn {tag, _value} -> tag in all_tags end)
+
+    # We delete both aliases we mean to delete, and also existing aliases we want to update
+    # as the name is part of the primary key for the names table.
+    # Queries are chunked to avoid hitting scylla's `max_clustering_key_restrictions_per_query`
+    delete_queries =
+      tags_to_delete
+      |> Enum.map(fn {_tag, value} -> value end)
+      |> Enum.chunk_every(99)
+      |> Enum.map(fn alias_chunk ->
+        query =
+          from n in Name,
+            prefix: ^keyspace,
+            where: n.object_type == 1 and n.object_name in ^alias_chunk
+
+        Repo.to_sql(:delete_all, query)
+      end)
+
+    insert_queries =
+      update_values
+      |> Enum.map(
+        &%Name{
+          object_name: &1,
+          object_type: 1,
+          object_uuid: device.device_id
+        }
+      )
+      |> Enum.map(&Repo.insert_to_sql(&1, prefix: keyspace))
+
+    delete_queries ++ insert_queries
+  end
+
+  def insert_attribute(realm_name, device_id, attribute_key, attribute_value) do
+    keyspace = Realm.keyspace_name(realm_name)
+    new_attribute = %{attribute_key => attribute_value}
+
+    query =
+      from d in DatabaseDevice,
+        prefix: ^keyspace,
+        where: d.device_id == ^device_id,
+        update: [set: [attributes: fragment("attributes + ?", ^new_attribute)]]
+
+    consistency = Consistency.device_info(:write)
+
+    Repo.update_all(query, [], consistency: consistency)
+
+    :ok
+  end
+
+  def delete_attribute(realm_name, device_id, attribute_key) do
+    keyspace = Realm.keyspace_name(realm_name)
+
+    query =
+      from d in DatabaseDevice,
+        select: d.attributes
+
+    opts = [prefix: keyspace, consistency: :quorum]
+
+    with {:ok, attributes} <- Repo.fetch(query, device_id, opts),
+         {:ok, _} <- get_value(attributes, attribute_key, :attribute_key_not_found) do
+      map_new_attribute = MapSet.new([attribute_key])
+
+      query_delete_attributes =
+        from DatabaseDevice,
+          prefix: ^keyspace,
+          where: [device_id: ^device_id],
+          update: [set: [attributes: fragment("attributes - ?", ^map_new_attribute)]]
+
+      consistency = Consistency.device_info(:write)
+
+      with {0, _} <- Repo.update_all(query_delete_attributes, [], consistency: consistency) do
+        Logger.warning(
+          "Could not unset attribute #{attribute_key} for  #{Device.encode_device_id(device_id)} }",
+          realm: "#{realm_name}",
+          tag: "cant_unset_attribute"
+        )
+      end
+
+      :ok
+    end
+  end
+
+  def insert_alias(realm_name, device_id, alias_tag, alias_value) do
+    keyspace = Realm.keyspace_name(realm_name)
+
+    name = %Name{
+      object_name: alias_value,
+      object_type: 1,
+      object_uuid: device_id
+    }
+
+    insert_alias_to_names_query = Repo.insert_to_sql(name, prefix: keyspace)
+
+    new_alias = %{alias_tag => alias_value}
+
+    insert_alias_to_device =
+      from DatabaseDevice,
+        prefix: ^keyspace,
+        where: [device_id: ^device_id],
+        update: [set: [aliases: fragment("aliases + ?", ^new_alias)]]
+
+    insert_alias_to_device_query = Repo.to_sql(:update_all, insert_alias_to_device)
+
+    insert_batch =
+      %Exandra.Batch{queries: [insert_alias_to_names_query, insert_alias_to_device_query]}
+
+    consistency = Consistency.device_info(:write)
+
+    with {:existing, {:error, :device_not_found}} <-
+           {:existing, device_alias_to_device_id(realm_name, alias_value)},
+         :ok <- try_delete_alias(realm_name, device_id, alias_tag),
+         :ok <- Exandra.execute_batch(Repo, insert_batch, consistency: consistency) do
+      :ok
+    else
+      {:existing, {:ok, _device_uuid}} ->
+        {:error, :alias_already_in_use}
+
+      {:existing, {:error, reason}} ->
+        {:error, reason}
+
+      {:error, :device_not_found} ->
+        {:error, :device_not_found}
+    end
+  end
+
+  def delete_alias(realm_name, device_id, alias_tag) do
+    keyspace = Realm.keyspace_name(realm_name)
+
+    query =
+      from d in DatabaseDevice,
+        select: d.aliases
+
+    fetch_opts = [
+      prefix: keyspace,
+      consistency: Consistency.device_info(:read),
+      error: :device_not_found
+    ]
+
+    with {:ok, result} <- Repo.fetch(query, device_id, fetch_opts),
+         {:ok, alias_value} <- get_value(result, alias_tag, :alias_tag_not_found),
+         :ok <- check_alias_ownership(keyspace, device_id, alias_tag, alias_value) do
+      map_new_alias = MapSet.new([alias_tag])
+
+      query_delete_alias =
+        from DatabaseDevice,
+          prefix: ^keyspace,
+          where: [device_id: ^device_id],
+          update: [set: [aliases: fragment("aliases - ?", ^map_new_alias)]]
+
+      sql_query_delete_alias = Repo.to_sql(:update_all, query_delete_alias)
+
+      query_delete_in_name =
+        from d in Name,
+          prefix: ^keyspace,
+          where: [object_name: ^alias_value, object_type: 1]
+
+      sql_query_delete_in_name = Repo.to_sql(:delete_all, query_delete_in_name)
+
+      update_and_delete_batch =
+        %Exandra.Batch{queries: [sql_query_delete_alias, sql_query_delete_in_name]}
+
+      Exandra.execute_batch(Repo, update_and_delete_batch,
+        consistency: Consistency.device_info(:write)
+      )
+    end
+  end
+
+  defp try_delete_alias(realm_name, device_id, alias_tag) do
+    case delete_alias(realm_name, device_id, alias_tag) do
+      :ok ->
+        :ok
+
+      {:error, :alias_tag_not_found} ->
+        :ok
+
+      not_ok ->
+        not_ok
+    end
+  end
+
+  def set_inhibit_credentials_request(realm_name, device_id, inhibit_credentials_request) do
+    keyspace = Realm.keyspace_name(realm_name)
+
+    query =
+      from DatabaseDevice,
+        prefix: ^keyspace,
+        update: [set: [inhibit_credentials_request: ^inhibit_credentials_request]],
+        where: [device_id: ^device_id]
+
+    Repo.update_all(query, [], consistency: Consistency.device_info(:write))
+
+    :ok
+  end
+
+  def retrieve_object_datastream_values(
+        _realm_name,
+        _device_id,
+        _interface_row,
+        [],
+        _path,
+        _columns,
+        _opts
+      ) do
+    # No endpoint rows means no datastream values, we can just return
+    {0, []}
+  end
+
+  def retrieve_object_datastream_values(
+        realm_name,
+        device_id,
+        interface_row,
+        endpoint_rows,
+        path,
+        columns,
+        opts
+      ) do
+    keyspace = Realm.keyspace_name(realm_name)
+
+    query_limit = query_limit(opts)
+    timestamp_column = timestamp_column(opts.explicit_timestamp)
+    columns = [timestamp_column | columns]
+
+    # Check the explicit user defined limit to know if we have to reorder data
+    data_ordering = if explicit_limit?(opts), do: [desc: timestamp_column], else: []
+
+    query =
+      from(interface_row.storage, prefix: ^keyspace)
+      |> where(device_id: ^device_id, path: ^path)
+      |> filter_timestamp_range(timestamp_column, opts)
+      |> order_by(^data_ordering)
+      |> limit(^query_limit)
+
+    # It is a datastream object: all endpoints have the same reliability
+    mapping =
+      endpoint_rows
+      |> List.first()
+      |> Mapping.from_db_result!()
+
+    consistency = Consistency.time_series(:read, mapping)
+
+    values =
+      query
+      |> select(^columns)
+      |> Repo.all(consistency: consistency)
+
+    count =
+      query
+      |> select([d], count(field(d, ^timestamp_column)))
+      |> Repo.one(consistency: consistency)
+
+    {count, values}
+  end
+
+  def all_properties_for_endpoint!(
+        realm_name,
+        device_id,
+        interface_row,
+        endpoint_row,
+        endpoint_id
+      ) do
+    value_column = CQLUtils.type_to_db_column_name(endpoint_row.value_type) |> String.to_atom()
+    columns = [:path, value_column]
+    keyspace = Realm.keyspace_name(realm_name)
+
+    find_endpoints(
+      keyspace,
+      interface_row.storage,
+      device_id,
+      interface_row.interface_id,
+      endpoint_id
+    )
+    |> select(^columns)
+    |> Repo.all(consistency: Consistency.device_info(:read))
+  end
+
+  def retrieve_datastream_values(
+        realm_name,
+        device_id,
+        interface_row,
+        endpoint_row,
+        endpoint_id,
+        path,
+        opts
+      ) do
+    columns = default_endpoint_column_selection(endpoint_row)
+    keyspace = Realm.keyspace_name(realm_name)
+
+    query =
+      do_get_datastream_values(keyspace, device_id, interface_row, endpoint_id, path, opts)
+
+    mapping = Mapping.from_db_result!(endpoint_row)
+
+    consistency = Consistency.time_series(:read, mapping)
+
+    values =
+      query
+      |> select(^columns)
+      |> Repo.all(consistency: consistency)
+
+    count =
+      query
+      |> select([d], count(d.value_timestamp))
+      |> Repo.one!(consistency: consistency)
+
+    {count, values}
+  end
+
+  def value_type_query(realm_name, interface_id, endpoint_id) do
+    keyspace = Realm.keyspace_name(realm_name)
+    query = from Endpoint, select: [:value_type]
+
+    opts = [prefix: keyspace, consistency: Consistency.domain_model(:read)]
+
+    Repo.get_by!(query, [interface_id: interface_id, endpoint_id: endpoint_id], opts)
+  end
+
+  defp do_get_datastream_values(
+         keyspace,
+         device_id,
+         interface_row,
+         endpoint_id,
+         path,
+         opts
+       ) do
+    query_limit = query_limit(opts)
+
+    # Check the explicit user defined limit to know if we have to reorder data
+    data_ordering =
+      if explicit_limit?(opts),
+        do: [
+          desc: :value_timestamp,
+          desc: :reception_timestamp,
+          desc: :reception_timestamp_submillis
+        ],
+        else: []
+
+    storage_id = [
+      device_id: device_id,
+      interface_id: interface_row.interface_id,
+      endpoint_id: endpoint_id,
+      path: path
+    ]
+
+    from(interface_row.storage, prefix: ^keyspace)
+    |> where(^storage_id)
+    |> filter_timestamp_range(:value_timestamp, opts)
+    |> order_by(^data_ordering)
+    |> limit(^query_limit)
+  end
+
+  defp query_limit(opts), do: min(opts.limit, Config.max_results_limit!())
+
+  defp explicit_limit?(opts) do
+    user_defined_limit? = opts.limit != nil
+    no_lower_timestamp_limit? = is_nil(opts.since) and is_nil(opts.since_after)
+
+    user_defined_limit? and no_lower_timestamp_limit?
+  end
+
+  defp filter_timestamp_range(query, timestamp_column, query_opts) do
+    filter_since =
+      case {query_opts.since, query_opts.since_after} do
+        {nil, nil} -> true
+        {nil, since_after} -> dynamic([o], field(o, ^timestamp_column) > ^since_after)
+        {since, _} -> dynamic([o], field(o, ^timestamp_column) >= ^since)
+      end
+
+    filter_to =
+      case query_opts.to do
+        nil -> true
+        to -> dynamic([o], field(o, ^timestamp_column) < ^to)
+      end
+
+    query
+    |> where(^filter_since)
+    |> where(^filter_to)
+  end
+
+  defp find_endpoints(keyspace, table_name, device_id, interface_id, endpoint_id) do
+    from(table_name, prefix: ^keyspace)
+    |> where(device_id: ^device_id, interface_id: ^interface_id, endpoint_id: ^endpoint_id)
+  end
+
+  defp default_endpoint_column_selection do
     [
+      :value_timestamp,
+      :reception_timestamp,
+      :reception_timestamp_submillis
+    ]
+  end
+
+  defp default_endpoint_column_selection(endpoint_row) do
+    value_column = CQLUtils.type_to_db_column_name(endpoint_row.value_type) |> String.to_atom()
+    [value_column | default_endpoint_column_selection()]
+  end
+
+  defp timestamp_column(explicit_timestamp?) do
+    case explicit_timestamp? do
+      nil -> :reception_timestamp
+      false -> :reception_timestamp
+      true -> :value_timestamp
+    end
+  end
+
+  defp clean_device_introspection(device) do
+    introspection_major = device.introspection || %{}
+    introspection_minor = device.introspection_minor || %{}
+
+    major_keys = introspection_major |> Map.keys() |> MapSet.new()
+    minor_keys = introspection_minor |> Map.keys() |> MapSet.new()
+
+    corrupted = MapSet.symmetric_difference(major_keys, minor_keys) |> MapSet.to_list()
+
+    for interface <- corrupted do
+      device_id = Device.encode_device_id(device.device_id)
+
+      Logger.error("Introspection has either major or minor, but not both. Corrupted entry?",
+        interface: interface,
+        device_id: device_id
+      )
+    end
+
+    introspection_major = introspection_major |> Map.drop(corrupted)
+    introspection_minor = introspection_minor |> Map.drop(corrupted)
+
+    {introspection_major, introspection_minor}
+  end
+
+  defp build_device_status(keyspace, device) do
+    {introspection_major, introspection_minor} = clean_device_introspection(device)
+
+    %{
       device_id: device_id,
       aliases: aliases,
-      introspection: introspection_major,
-      introspection_minor: introspection_minor,
       connected: connected,
       last_connection: last_connection,
       last_disconnection: last_disconnection,
@@ -614,84 +1124,70 @@ defmodule Astarte.AppEngine.API.Device.Queries do
       total_received_bytes: total_received_bytes,
       exchanged_msgs_by_interface: exchanged_msgs_by_interface,
       exchanged_bytes_by_interface: exchanged_bytes_by_interface,
-      groups: groups_proplist,
+      groups: groups,
       old_introspection: old_introspection,
       inhibit_credentials_request: credentials_inhibited
-    ] = row
-
-    interface_msgs_map =
-      exchanged_msgs_by_interface
-      |> convert_map_result()
-      |> convert_tuple_keys()
-
-    interface_bytes_map =
-      exchanged_bytes_by_interface
-      |> convert_map_result()
-      |> convert_tuple_keys()
-
-    only_major_introspection =
-      Enum.reduce(introspection_major || %{}, %{}, fn {interface, major}, acc ->
-        Map.put(acc, interface, %InterfaceInfo{major: major})
-      end)
+    } = device
 
     introspection =
-      Enum.reduce(introspection_minor || %{}, %{}, fn {interface, minor}, acc ->
-        with {:ok, major_item} <- Map.fetch(only_major_introspection, interface) do
-          msgs = Map.get(interface_msgs_map, {interface, major_item.major}, 0)
-          bytes = Map.get(interface_bytes_map, {interface, major_item.major}, 0)
+      Map.merge(introspection_major, introspection_minor, fn interface, major, minor ->
+        interface_key = {interface, major}
+        messages = exchanged_msgs_by_interface |> Map.get(interface_key, 0)
+        bytes = exchanged_bytes_by_interface |> Map.get(interface_key, 0)
 
-          Map.put(acc, interface, %{
-            major_item
-            | minor: minor,
-              exchanged_msgs: msgs,
-              exchanged_bytes: bytes
-          })
-        else
-          :error ->
-            device = Device.encode_device_id(device_id)
-
-            _ =
-              Logger.error("Introspection has no minor version for interface. Corrupted entry?",
-                interface: interface,
-                device_id: device
-              )
-
-            acc
-        end
+        %InterfaceInfo{
+          major: major,
+          minor: minor,
+          exchanged_msgs: messages,
+          exchanged_bytes: bytes
+        }
       end)
 
     previous_interfaces =
-      old_introspection
-      |> convert_map_result()
-      |> convert_tuple_keys()
-      |> Enum.map(fn {{interface_name, major}, minor} ->
-        msgs = Map.get(interface_msgs_map, {interface_name, major}, 0)
-        bytes = Map.get(interface_bytes_map, {interface_name, major}, 0)
+      for {{interface, major}, minor} <- old_introspection do
+        interface_key = {interface, major}
+        msgs = exchanged_msgs_by_interface |> Map.get(interface_key, 0)
+        bytes = exchanged_bytes_by_interface |> Map.get(interface_key, 0)
 
         %InterfaceInfo{
-          name: interface_name,
+          name: interface,
           major: major,
           minor: minor,
           exchanged_msgs: msgs,
           exchanged_bytes: bytes
         }
-      end)
+      end
 
-    # groups_proplist could be nil, default to empty keyword list
-    groups = :proplists.get_keys(groups_proplist || [])
+    groups =
+      case groups do
+        nil -> []
+        groups -> groups |> Map.keys()
+      end
+
+    deletion_in_progress? = do_deletion_in_progress?(keyspace, device_id)
+
+    device_id = Device.encode_device_id(device_id)
+    connected = connected || false
+    last_credentials_request_ip = ip_or_null_to_string(last_credentials_request_ip)
+    last_seen_ip = ip_or_null_to_string(last_seen_ip)
+    last_connection = truncate_datetime(last_connection)
+    last_disconnection = truncate_datetime(last_disconnection)
+    first_registration = truncate_datetime(first_registration)
+    first_credentials_request = truncate_datetime(first_credentials_request)
 
     %DeviceStatus{
-      id: Base.url_encode64(device_id, padding: false),
-      aliases: Enum.into(aliases || [], %{}),
+      id: device_id,
+      aliases: aliases,
       introspection: introspection,
-      connected: connected || false,
-      last_connection: millis_or_null_to_datetime!(last_connection),
-      last_disconnection: millis_or_null_to_datetime!(last_disconnection),
-      first_registration: millis_or_null_to_datetime!(first_registration),
-      first_credentials_request: millis_or_null_to_datetime!(first_credentials_request),
-      last_credentials_request_ip: ip_or_null_to_string(last_credentials_request_ip),
-      last_seen_ip: ip_or_null_to_string(last_seen_ip),
-      attributes: Enum.into(attributes || [], %{}),
+      connected: connected,
+      deletion_in_progress: deletion_in_progress?,
+      last_connection: last_connection,
+      last_disconnection: last_disconnection,
+      first_registration: first_registration,
+      first_credentials_request: first_credentials_request,
+      last_credentials_request_ip: last_credentials_request_ip,
+      last_seen_ip: last_seen_ip,
+      attributes: attributes,
       credentials_inhibited: credentials_inhibited,
       total_received_msgs: total_received_msgs,
       total_received_bytes: total_received_bytes,
@@ -700,619 +1196,27 @@ defmodule Astarte.AppEngine.API.Device.Queries do
     }
   end
 
-  defp convert_map_result(nil), do: %{}
-  defp convert_map_result(result) when is_list(result), do: Enum.into(result, %{})
-  defp convert_map_result(result) when is_map(result), do: result
+  defp get_value(nil = _collection, _key, error), do: {:error, error}
 
-  # CQEx returns tuple keys as lists, convert them to tuples
-  defp convert_tuple_keys(map) when is_map(map) do
-    for {key, value} <- map, into: %{} do
-      {List.to_tuple(key), value}
+  defp get_value(collection, key, error) do
+    case Map.fetch(collection, key) do
+      {:ok, value} -> {:ok, value}
+      :error -> {:error, error}
     end
   end
 
-  # TODO: copy&pasted from Device
-  defp millis_or_null_to_datetime!(nil) do
-    nil
-  end
+  defp check_alias_ownership(keyspace, expected_device_id, alias_tag, alias_value) do
+    case do_device_alias_to_device_id(keyspace, alias_value) do
+      {:ok, ^expected_device_id} ->
+        :ok
 
-  # TODO: copy&pasted from Device
-  defp millis_or_null_to_datetime!(millis) do
-    DateTime.from_unix!(millis, :millisecond)
-  end
-
-  defp ip_or_null_to_string(nil) do
-    nil
-  end
-
-  defp ip_or_null_to_string(ip) do
-    ip
-    |> :inet_parse.ntoa()
-    |> to_string()
-  end
-
-  def retrieve_device_status(client, device_id) do
-    device_statement = """
-    SELECT device_id #{@device_status_columns_without_device_id}
-    FROM devices
-    WHERE device_id=:device_id
-    """
-
-    device_query =
-      DatabaseQuery.new()
-      |> DatabaseQuery.statement(device_statement)
-      |> DatabaseQuery.put(:device_id, device_id)
-
-    with {:ok, result} <- DatabaseQuery.call(client, device_query),
-         device_row when is_list(device_row) <- DatabaseResult.head(result) do
-      {:ok, device_status_row_to_device_status(device_row)}
-    else
-      :empty_dataset ->
-        {:error, :device_not_found}
-
-      %{acc: _, msg: error_message} ->
-        _ = Logger.warn("Database error: #{error_message}.", tag: "db_error")
-        {:error, :database_error}
-
-      {:error, reason} ->
-        _ = Logger.warn("Database error, reason: #{inspect(reason)}.", tag: "db_error")
-        {:error, :database_error}
-    end
-  end
-
-  defp execute_devices_list_query(client, limit, retrieve_details, previous_token) do
-    retrieve_details_string =
-      if retrieve_details do
-        @device_status_columns_without_device_id
-      else
-        ""
-      end
-
-    previous_token =
-      case previous_token do
-        nil ->
-          # This is -2^63, that is the lowest 64 bit integer
-          -9_223_372_036_854_775_808
-
-        first ->
-          first + 1
-      end
-
-    devices_list_statement = """
-    SELECT TOKEN(device_id), device_id #{retrieve_details_string}
-    FROM devices
-    WHERE TOKEN(device_id) >= :previous_token LIMIT #{Integer.to_string(limit)};
-    """
-
-    devices_list_query =
-      DatabaseQuery.new()
-      |> DatabaseQuery.statement(devices_list_statement)
-      |> DatabaseQuery.put(:previous_token, previous_token)
-
-    DatabaseQuery.call(client, devices_list_query)
-  end
-
-  def retrieve_devices_list(client, limit, retrieve_details, previous_token) do
-    with {:ok, result} <-
-           execute_devices_list_query(client, limit, retrieve_details, previous_token) do
-      {devices_list, count, last_token} =
-        Enum.reduce(result, {[], 0, nil}, fn row, {devices_acc, count, _last_seen_token} ->
-          {device, token} =
-            if retrieve_details do
-              [{:"system.token(device_id)", token} | device_status_row] = row
-              {device_status_row_to_device_status(device_status_row), token}
-            else
-              ["system.token(device_id)": token, device_id: device_id] = row
-              {Base.url_encode64(device_id, padding: false), token}
-            end
-
-          {[device | devices_acc], count + 1, token}
-        end)
-
-      if count < limit do
-        {:ok, %DevicesList{devices: Enum.reverse(devices_list)}}
-      else
-        {:ok, %DevicesList{devices: Enum.reverse(devices_list), last_token: last_token}}
-      end
-    else
-      %{acc: _, msg: error_message} ->
-        _ = Logger.warn("Database error: #{error_message}.", tag: "db_error")
-        {:error, :database_error}
-
-      {:error, reason} ->
-        _ = Logger.warn("Database error, reason: #{inspect(reason)}.", tag: "db_error")
-        {:error, :database_error}
-    end
-  end
-
-  def device_alias_to_device_id(client, device_alias) do
-    device_id_statement = """
-    SELECT object_uuid
-    FROM names
-    WHERE object_name = :device_alias AND object_type = 1
-    """
-
-    device_id_query =
-      DatabaseQuery.new()
-      |> DatabaseQuery.statement(device_id_statement)
-      |> DatabaseQuery.put(:device_alias, device_alias)
-      |> DatabaseQuery.consistency(:quorum)
-
-    with {:ok, result} <- DatabaseQuery.call(client, device_id_query),
-         [object_uuid: device_id] <- DatabaseResult.head(result) do
-      {:ok, device_id}
-    else
-      :empty_dataset ->
-        {:error, :device_not_found}
-
-      not_ok ->
-        _ = Logger.warn("Database error: #{inspect(not_ok)}.", tag: "db_error")
-        {:error, :database_error}
-    end
-  end
-
-  def insert_attribute(client, device_id, attribute_key, attribute_value) do
-    insert_attribute_statement = """
-    UPDATE devices
-    SET attributes[:attribute_key] = :attribute_value
-    WHERE device_id = :device_id
-    """
-
-    query =
-      DatabaseQuery.new()
-      |> DatabaseQuery.statement(insert_attribute_statement)
-      |> DatabaseQuery.put(:attribute_key, attribute_key)
-      |> DatabaseQuery.put(:attribute_value, attribute_value)
-      |> DatabaseQuery.put(:device_id, device_id)
-      |> DatabaseQuery.consistency(:each_quorum)
-
-    with {:ok, _result} <- DatabaseQuery.call(client, query) do
-      :ok
-    else
-      %{acc: _, msg: error_message} ->
-        _ = Logger.warn("Database error: #{error_message}.", tag: "db_error")
-        {:error, :database_error}
-
-      {:error, reason} ->
-        _ = Logger.warn("Database error, reason: #{inspect(reason)}.", tag: "db_error")
-        {:error, :database_error}
-    end
-  end
-
-  def delete_attribute(client, device_id, attribute_key) do
-    retrieve_attribute_statement = """
-    SELECT attributes FROM devices WHERE device_id = :device_id
-    """
-
-    retrieve_attribute_query =
-      DatabaseQuery.new()
-      |> DatabaseQuery.statement(retrieve_attribute_statement)
-      |> DatabaseQuery.put(:device_id, device_id)
-      |> DatabaseQuery.consistency(:quorum)
-
-    with {:ok, result} <- DatabaseQuery.call(client, retrieve_attribute_query),
-         [attributes: attributes] <- DatabaseResult.head(result),
-         {^attribute_key, _attribute_value} <-
-           Enum.find(attributes || [], fn m -> match?({^attribute_key, _}, m) end) do
-      delete_attribute_statement = """
-        DELETE attributes[:attribute_key]
-        FROM devices
-        WHERE device_id = :device_id
-      """
-
-      delete_attribute_query =
-        DatabaseQuery.new()
-        |> DatabaseQuery.statement(delete_attribute_statement)
-        |> DatabaseQuery.put(:attribute_key, attribute_key)
-        |> DatabaseQuery.put(:device_id, device_id)
-        |> DatabaseQuery.consistency(:each_quorum)
-
-      case DatabaseQuery.call(client, delete_attribute_query) do
-        {:ok, _result} ->
-          :ok
-
-        %{acc: _, msg: error_message} ->
-          _ = Logger.warn("Database error: #{error_message}.", tag: "db_error")
-          {:error, :database_error}
-
-        {:error, reason} ->
-          _ = Logger.warn("Database error, reason: #{inspect(reason)}.", tag: "db_error")
-          {:error, :database_error}
-      end
-    else
-      nil ->
-        {:error, :attribute_key_not_found}
-
-      %{acc: _, msg: error_message} ->
-        _ = Logger.warn("Database error: #{error_message}.", tag: "db_error")
-        {:error, :database_error}
-
-      {:error, reason} ->
-        _ = Logger.warn("Database error, reason: #{inspect(reason)}.", tag: "db_error")
-        {:error, :database_error}
-    end
-  end
-
-  def insert_alias(client, device_id, alias_tag, alias_value) do
-    insert_alias_to_names_statement = """
-    INSERT INTO names
-    (object_name, object_type, object_uuid)
-    VALUES (:alias, 1, :device_id)
-    """
-
-    insert_alias_to_names_query =
-      DatabaseQuery.new()
-      |> DatabaseQuery.statement(insert_alias_to_names_statement)
-      |> DatabaseQuery.put(:alias, alias_value)
-      |> DatabaseQuery.put(:device_id, device_id)
-      |> DatabaseQuery.consistency(:each_quorum)
-      |> DatabaseQuery.convert()
-
-    insert_alias_to_device_statement = """
-    UPDATE devices
-    SET aliases[:alias_tag] = :alias
-    WHERE device_id = :device_id
-    """
-
-    insert_alias_to_device_query =
-      DatabaseQuery.new()
-      |> DatabaseQuery.statement(insert_alias_to_device_statement)
-      |> DatabaseQuery.put(:alias_tag, alias_tag)
-      |> DatabaseQuery.put(:alias, alias_value)
-      |> DatabaseQuery.put(:device_id, device_id)
-      |> DatabaseQuery.consistency(:each_quorum)
-      |> DatabaseQuery.convert()
-
-    insert_batch =
-      CQEx.cql_query_batch(
-        consistency: :each_quorum,
-        mode: :logged,
-        queries: [insert_alias_to_names_query, insert_alias_to_device_query]
-      )
-
-    with {:existing, {:error, :device_not_found}} <-
-           {:existing, device_alias_to_device_id(client, alias_value)},
-         :ok <- try_delete_alias(client, device_id, alias_tag),
-         {:ok, _result} <- DatabaseQuery.call(client, insert_batch) do
-      :ok
-    else
-      {:existing, {:ok, _device_uuid}} ->
-        {:error, :alias_already_in_use}
-
-      {:existing, {:error, reason}} ->
-        {:error, reason}
-
-      {:error, :device_not_found} ->
-        {:error, :device_not_found}
-
-      %{acc: _, msg: error_message} ->
-        _ = Logger.warn("Database error: #{error_message}.", tag: "db_error")
-        {:error, :database_error}
-
-      {:error, reason} ->
-        _ = Logger.warn("Database error, reason: #{inspect(reason)}.", tag: "db_error")
-        {:error, :database_error}
-    end
-  end
-
-  def delete_alias(client, device_id, alias_tag) do
-    retrieve_aliases_statement = """
-    SELECT aliases
-    FROM devices
-    WHERE device_id = :device_id
-    """
-
-    retrieve_aliases_query =
-      DatabaseQuery.new()
-      |> DatabaseQuery.statement(retrieve_aliases_statement)
-      |> DatabaseQuery.put(:device_id, device_id)
-      |> DatabaseQuery.consistency(:quorum)
-
-    with {:ok, result} <- DatabaseQuery.call(client, retrieve_aliases_query),
-         [aliases: aliases] <- DatabaseResult.head(result),
-         {^alias_tag, alias_value} <-
-           Enum.find(aliases || [], fn a -> match?({^alias_tag, _}, a) end),
-         {:check, {:ok, ^device_id}} <- {:check, device_alias_to_device_id(client, alias_value)} do
-      delete_alias_from_device_statement = """
-      DELETE aliases[:alias_tag]
-      FROM devices
-      WHERE device_id = :device_id
-      """
-
-      delete_alias_from_device_query =
-        DatabaseQuery.new()
-        |> DatabaseQuery.statement(delete_alias_from_device_statement)
-        |> DatabaseQuery.put(:alias_tag, alias_tag)
-        |> DatabaseQuery.put(:device_id, device_id)
-        |> DatabaseQuery.consistency(:each_quorum)
-        |> DatabaseQuery.convert()
-
-      delete_alias_from_names_statement = """
-      DELETE FROM names
-      WHERE object_name = :alias AND object_type = 1
-      """
-
-      delete_alias_from_names_query =
-        DatabaseQuery.new()
-        |> DatabaseQuery.statement(delete_alias_from_names_statement)
-        |> DatabaseQuery.put(:alias, alias_value)
-        |> DatabaseQuery.put(:device_id, device_id)
-        |> DatabaseQuery.consistency(:each_quorum)
-        |> DatabaseQuery.convert()
-
-      delete_batch =
-        CQEx.cql_query_batch(
-          consistency: :each_quorum,
-          mode: :logged,
-          queries: [delete_alias_from_device_query, delete_alias_from_names_query]
+      _ ->
+        Logger.error("Inconsistent alias for #{alias_tag}.",
+          device_id: expected_device_id,
+          tag: "inconsistent_alias"
         )
 
-      with {:ok, _result} <- DatabaseQuery.call(client, delete_batch) do
-        :ok
-      else
-        %{acc: _, msg: error_message} ->
-          _ = Logger.warn("Database error: #{error_message}.", tag: "db_error")
-          {:error, :database_error}
-
-        {:error, reason} ->
-          _ = Logger.warn("Database error, reason: #{inspect(reason)}.", tag: "db_error")
-          {:error, :database_error}
-      end
-    else
-      {:check, _} ->
-        _ =
-          Logger.error("Inconsistent alias for #{alias_tag}.",
-            device_id: device_id,
-            tag: "inconsistent_alias"
-          )
-
-        {:error, :database_error}
-
-      :empty_dataset ->
-        {:error, :device_not_found}
-
-      nil ->
-        {:error, :alias_tag_not_found}
-
-      %{acc: _, msg: error_message} ->
-        _ = Logger.warn("Database error: #{error_message}.", tag: "db_error")
-        {:error, :database_error}
-
-      {:error, reason} ->
-        _ = Logger.warn("Database error, reason: #{inspect(reason)}.", tag: "db_error")
         {:error, :database_error}
     end
-  end
-
-  defp try_delete_alias(client, device_id, alias_tag) do
-    case delete_alias(client, device_id, alias_tag) do
-      :ok ->
-        :ok
-
-      {:error, :alias_tag_not_found} ->
-        :ok
-
-      not_ok ->
-        not_ok
-    end
-  end
-
-  def set_inhibit_credentials_request(client, device_id, inhibit_credentials_request) do
-    statement = """
-    UPDATE devices
-    SET inhibit_credentials_request = :inhibit_credentials_request
-    WHERE device_id = :device_id
-    """
-
-    query =
-      DatabaseQuery.new()
-      |> DatabaseQuery.statement(statement)
-      |> DatabaseQuery.put(:inhibit_credentials_request, inhibit_credentials_request)
-      |> DatabaseQuery.put(:device_id, device_id)
-      |> DatabaseQuery.consistency(:each_quorum)
-
-    with {:ok, _result} <- DatabaseQuery.call(client, query) do
-      :ok
-    else
-      %{acc: _, msg: error_message} ->
-        _ = Logger.warn("Database error: #{error_message}.", tag: "db_error")
-        {:error, :database_error}
-
-      {:error, reason} ->
-        _ = Logger.warn("Update failed, reason: #{inspect(reason)}.", tag: "db_error")
-        {:error, :database_error}
-    end
-  end
-
-  def retrieve_object_datastream_values(client, device_id, interface_row, path, columns, opts) do
-    timestamp_column =
-      if opts.explicit_timestamp do
-        "value_timestamp"
-      else
-        "reception_timestamp"
-      end
-
-    {since_statement, since_value} =
-      cond do
-        opts.since != nil ->
-          {"AND #{timestamp_column} >= :since", opts.since}
-
-        opts.since_after != nil ->
-          {"AND #{timestamp_column} > :since", opts.since_after}
-
-        opts.since == nil and opts.since_after == nil ->
-          {"", nil}
-      end
-
-    {to_statement, to_value} =
-      if opts.to != nil do
-        {"AND #{timestamp_column} < :to_timestamp", opts.to}
-      else
-        {"", nil}
-      end
-
-    query_limit = min(opts.limit, Config.max_results_limit!())
-
-    {limit_statement, limit_value} =
-      cond do
-        # Check the explicit user defined limit to know if we have to reorder data
-        opts.limit != nil and since_value == nil ->
-          {"ORDER BY #{timestamp_column} DESC LIMIT :limit_nrows", query_limit}
-
-        query_limit != nil ->
-          {"LIMIT :limit_nrows", query_limit}
-
-        true ->
-          {"", nil}
-      end
-
-    where_clause =
-      "WHERE device_id=:device_id #{since_statement} AND path=:path #{to_statement} #{limit_statement} ;"
-
-    values_query_statement =
-      "SELECT #{columns} #{timestamp_column} FROM #{interface_row[:storage]} #{where_clause};"
-
-    values_query =
-      DatabaseQuery.new()
-      |> DatabaseQuery.statement(values_query_statement)
-      |> DatabaseQuery.put(:device_id, device_id)
-      |> DatabaseQuery.put(:path, path)
-
-    values_query =
-      if since_statement != "" do
-        values_query
-        |> DatabaseQuery.put(:since, DateTime.to_unix(since_value, :millisecond))
-      else
-        values_query
-      end
-
-    values_query =
-      if to_statement != "" do
-        values_query
-        |> DatabaseQuery.put(:to_timestamp, DateTime.to_unix(to_value, :millisecond))
-      else
-        values_query
-      end
-
-    values_query =
-      if limit_statement != "" do
-        values_query
-        |> DatabaseQuery.put(:limit_nrows, limit_value)
-      else
-        values_query
-      end
-
-    values = DatabaseQuery.call!(client, values_query)
-
-    count_query_statement =
-      "SELECT count(#{timestamp_column}) FROM #{interface_row[:storage]} #{where_clause} ;"
-
-    count_query =
-      values_query
-      |> DatabaseQuery.statement(count_query_statement)
-
-    count = get_results_count(client, count_query, opts)
-
-    {:ok, count, values}
-  end
-
-  def get_results_count(_client, _count_query, %InterfaceValuesOptions{downsample_to: nil}) do
-    # Count will be ignored since there's no downsample_to
-    nil
-  end
-
-  def get_results_count(client, count_query, opts) do
-    with {:ok, result} <- DatabaseQuery.call(client, count_query),
-         [{_count_key, count}] <- DatabaseResult.head(result) do
-      limit = opts.limit || Config.max_results_limit!()
-
-      min(count, limit)
-    else
-      error ->
-        _ =
-          Logger.warn("Can't retrieve count for #{inspect(count_query)}: #{inspect(error)}.",
-            tag: "db_error"
-          )
-
-        nil
-    end
-  end
-
-  def all_properties_for_endpoint!(client, device_id, interface_row, endpoint_row, endpoint_id) do
-    query_statement =
-      prepare_get_property_statement(
-        ValueType.from_int(endpoint_row[:value_type]),
-        false,
-        interface_row[:storage],
-        StorageType.from_int(interface_row[:storage_type])
-      )
-
-    query =
-      DatabaseQuery.new()
-      |> DatabaseQuery.statement(query_statement)
-      |> DatabaseQuery.put(:device_id, device_id)
-      |> DatabaseQuery.put(:interface_id, interface_row[:interface_id])
-      |> DatabaseQuery.put(:endpoint_id, endpoint_id)
-
-    DatabaseQuery.call!(client, query)
-  end
-
-  def retrieve_datastream_values(
-        client,
-        device_id,
-        interface_row,
-        endpoint_row,
-        endpoint_id,
-        path,
-        opts
-      ) do
-    {values_query_statement, count_query_statement, q_params} =
-      prepare_get_individual_datastream_statement(
-        ValueType.from_int(endpoint_row[:value_type]),
-        false,
-        interface_row[:storage],
-        StorageType.from_int(interface_row[:storage_type]),
-        opts
-      )
-
-    values_query =
-      DatabaseQuery.new()
-      |> DatabaseQuery.statement(values_query_statement)
-      |> DatabaseQuery.put(:device_id, device_id)
-      |> DatabaseQuery.put(:interface_id, interface_row[:interface_id])
-      |> DatabaseQuery.put(:endpoint_id, endpoint_id)
-      |> DatabaseQuery.put(:path, path)
-      |> DatabaseQuery.merge(q_params)
-
-    values = DatabaseQuery.call!(client, values_query)
-
-    count_query =
-      values_query
-      |> DatabaseQuery.statement(count_query_statement)
-
-    count = get_results_count(client, count_query, opts)
-
-    {:ok, count, values}
-  end
-
-  def prepare_value_type_query(interface_id) do
-    value_type_statement = """
-    SELECT value_type
-    FROM endpoints
-    WHERE interface_id=:interface_id AND endpoint_id=:endpoint_id
-    """
-
-    DatabaseQuery.new()
-    |> DatabaseQuery.statement(value_type_statement)
-    |> DatabaseQuery.put(:interface_id, interface_id)
-  end
-
-  def execute_value_type_query(client, value_type_query, endpoint_id) do
-    value_type_query =
-      value_type_query
-      |> DatabaseQuery.put(:endpoint_id, endpoint_id)
-
-    DatabaseQuery.call!(client, value_type_query)
-    |> DatabaseResult.head()
   end
 end

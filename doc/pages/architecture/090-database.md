@@ -27,6 +27,7 @@ CREATE KEYSPACE astarte
 ```sql
 CREATE TABLE astarte.realms (
   realm_name varchar,
+  device_registration_limit bigint,
 
   PRIMARY KEY (realm_name)
 );
@@ -232,8 +233,18 @@ CREATE TABLE <realm name>.individual_properties (
 
   PRIMARY KEY((device_id, interface_id), endpoint_id, path)
 );
-
 ```
+
+```sql
+CREATE TABLE <realm name>.deletion_in_progress (
+  device_id uuid,
+  vmq_ack boolean,
+  dup_start_ack boolean,
+  dup_end_ack boolean,
+  PRIMARY KEY (device_id)
+);
+```
+
 The following table is generated upon datastream interface creation for keeping all data sent to Astarte through the interface.
 
 The table name is derived from lower case interface name where `.` and `-` have been replaced by `_` and `""` (empty string), then the major version is appended with a `_v` prefix. 

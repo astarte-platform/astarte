@@ -1,0 +1,8 @@
+ignore:
+  - "test"
+  - "deps"
+  - "_build"
+  # Ignoring since they do not contain much logic, the acual logic is separated
+  # and tested individually
+  - "lib/astarte_realm_management/device_removal/scheduler.ex"
+  - "lib/astarte_realm_management/device_removal/device_remover.ex"

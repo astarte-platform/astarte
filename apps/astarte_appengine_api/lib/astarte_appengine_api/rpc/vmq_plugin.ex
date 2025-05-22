@@ -22,38 +22,22 @@ defmodule Astarte.AppEngine.API.RPC.VMQPlugin do
   """
   require Logger
 
-  alias Astarte.RPC.Protocol.VMQ.Plugin, as: Protocol
-
-  alias Astarte.RPC.Protocol.VMQ.Plugin.{
-    Call,
-    GenericErrorReply,
-    GenericOkReply,
-    Publish,
-    PublishReply,
-    Reply
-  }
-
-  alias Astarte.AppEngine.API.Config
-
-  require Logger
-
-  @rpc_client Config.rpc_client!()
-  @destination Protocol.amqp_queue()
+  @rpc_behaviour Application.compile_env(
+                   :astarte_appengine_api,
+                   :vernemq_plugin_rpc_client,
+                   Astarte.AppEngine.API.RPC.VMQPlugin.Client
+                 )
 
   def publish(topic, payload, qos)
       when is_binary(topic) and is_binary(payload) and is_integer(qos) and qos >= 0 and qos <= 2 do
     with {:ok, tokens} <- split_topic(topic) do
-      _ = Logger.debug("Going to publish value on MQTT.")
-
-      %Publish{
+      data = %{
         topic_tokens: tokens,
         payload: payload,
         qos: qos
       }
-      |> encode_call(:publish)
-      |> @rpc_client.rpc_call(@destination)
-      |> decode_reply()
-      |> extract_reply()
+
+      @rpc_behaviour.publish(data)
     end
   end
 
@@ -62,47 +46,5 @@ defmodule Astarte.AppEngine.API.RPC.VMQPlugin do
       [] -> {:error, :empty_topic}
       tokens -> {:ok, tokens}
     end
-  end
-
-  defp encode_call(call, callname) do
-    %Call{call: {callname, call}}
-    |> Call.encode()
-  end
-
-  defp decode_reply({:ok, encoded_reply}) when is_binary(encoded_reply) do
-    %Reply{reply: reply} = Reply.decode(encoded_reply)
-
-    _ = Logger.debug("Got reply from VWQ: #{inspect(reply)}.")
-
-    reply
-  end
-
-  defp decode_reply({:error, reason}) do
-    _ = Logger.warn("RPC error: #{inspect(reason)}.", tag: "rpc_remote_exception")
-    {:error, reason}
-  end
-
-  defp extract_reply({:publish_reply, %PublishReply{} = reply}) do
-    _ = Logger.debug("Got publish reply from VMQ.")
-
-    {:ok, %{local_matches: reply.local_matches, remote_matches: reply.remote_matches}}
-  end
-
-  defp extract_reply({:generic_ok_reply, %GenericOkReply{}}) do
-    _ = Logger.debug("Got ok reply from VMQ.")
-
-    :ok
-  end
-
-  defp extract_reply({:generic_error_reply, %GenericErrorReply{error_name: "session_not_found"}}) do
-    {:error, :session_not_found}
-  end
-
-  defp extract_reply({:generic_error_reply, error_struct = %GenericErrorReply{}}) do
-    error_map = Map.from_struct(error_struct)
-
-    _ = Logger.error("Error while publishing value on MQTT.", tag: "vmq_publish_error")
-
-    {:error, error_map}
   end
 end
