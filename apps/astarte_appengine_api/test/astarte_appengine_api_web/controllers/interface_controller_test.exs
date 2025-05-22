@@ -219,16 +219,22 @@ defmodule Astarte.AppEngine.APIWeb.InterfaceControllerTest do
     end
 
     test "accepts and understands `keep_milliseconds` optional parameter", context do
-      %{realm_name: realm_name, interfaces: interfaces, device: device, auth_conn: conn} = context
+      %{
+        realm_name: realm_name,
+        explicit_timestamp_interfaces: interfaces,
+        device: device,
+        auth_conn: conn
+      } = context
 
       interface =
         interfaces
-        |> Enum.filter(fn interface ->
-          interface.ownership == :server && Enum.all?(interface.mappings, & &1.explicit_timestamp)
-        end)
         |> Enum.random()
 
-      mapping_update = valid_mapping_update_for(interface) |> Enum.at(0)
+      mapping_update =
+        interface
+        |> valid_mapping_update_for()
+        |> Enum.at(0)
+
       path = path_tokens(mapping_update.path)
 
       request_path =
@@ -243,7 +249,7 @@ defmodule Astarte.AppEngine.APIWeb.InterfaceControllerTest do
 
       publish_result_ok(interface, mapping_update, fn _ -> :ok end)
 
-      expected_time = DateTime.utc_now()
+      expected_time = DateTime.utc_now(:millisecond)
 
       DateTime
       |> allow(conn.owner, self())
@@ -266,19 +272,24 @@ defmodule Astarte.AppEngine.APIWeb.InterfaceControllerTest do
 
       response = json_response(conn, 200)
 
-      assert %{"data" => [%{"timestamp" => timestamp}]} = response
+      %{"data" => data} = response
+      timestamps = extract_timestamps(data)
 
-      assert DateTime.to_unix(expected_time, :millisecond) == timestamp
+      expected_time = DateTime.to_unix(expected_time, :millisecond)
+
+      assert expected_time in timestamps
     end
 
     test "does not retrieve millisecond timestamp if `keep_milliseconds` is not set", context do
-      %{realm_name: realm_name, interfaces: interfaces, device: device, auth_conn: conn} = context
+      %{
+        realm_name: realm_name,
+        explicit_timestamp_interfaces: interfaces,
+        device: device,
+        auth_conn: conn
+      } = context
 
       interface =
         interfaces
-        |> Enum.filter(fn interface ->
-          interface.ownership == :server && Enum.all?(interface.mappings, & &1.explicit_timestamp)
-        end)
         |> Enum.random()
 
       mapping_update =
@@ -322,20 +333,19 @@ defmodule Astarte.AppEngine.APIWeb.InterfaceControllerTest do
       conn = get(conn, request_path)
 
       %{"data" => data} = json_response(conn, 200)
+      timestamps = extract_timestamps(data)
 
-      assert valid_timestamps?(data, expected_time)
+      expected_time =
+        expected_time
+        |> DateTime.truncate(:millisecond)
+        |> DateTime.to_iso8601()
+
+      assert expected_time in timestamps
     end
   end
 
-  defp valid_timestamps?(values, expected_time) do
-    Enum.all?(values, fn %{"timestamp" => timestamp} ->
-      truncated_expected = DateTime.truncate(expected_time, :second)
-      {:ok, timestamp, _} = DateTime.from_iso8601(timestamp)
-      timestamp = DateTime.truncate(timestamp, :second)
-
-      DateTime.compare(timestamp, truncated_expected) == :eq
-    end)
-  end
+  def extract_timestamps(data),
+    do: Enum.map(data, &Map.fetch!(&1, "timestamp"))
 
   property "deletes data if `allow_unset` is true", context do
     %{realm_name: realm_name, interfaces: interfaces, device: device, auth_conn: conn} = context
