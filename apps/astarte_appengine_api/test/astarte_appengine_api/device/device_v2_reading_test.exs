@@ -125,7 +125,7 @@ defmodule Astarte.AppEngine.API.Device.DeviceV2ReadingTest do
               lower_limit <- optional(timestamp_at_least(timings.initial_time)),
               to <- optional(timestamp_at_most(timings.last_time)),
               params = [{since_or_after, lower_limit}, to: to],
-              opts <- interface_values_options(params) do
+              opts <- interface_values_options(params, interface) do
       result =
         Device.get_interface_values!(
           realm_name,
