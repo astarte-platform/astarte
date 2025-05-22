@@ -1,0 +1,87 @@
+# GitHub recommends pinning actions to a commit SHA.
+# To get a newer version, you will need to update the SHA.
+# You can also reference a tag or branch, but the action may change without warning.
+
+name: Publish snapshot Docker images
+
+on:
+  push:
+    paths:
+    - 'apps/**'
+    - '.github/workflows/publish-snapshot-to-dockerhub-workflow.yaml'
+    - 'Dockerfile'
+    branches:
+    - 'master'
+    - 'release-*'
+
+jobs:
+  container_tests:
+    uses: ./.github/workflows/astarte-apps-build-workflow.yaml
+    secrets: inherit
+
+  e2e_tests:
+    uses: ./.github/workflows/astarte-end-to-end-test-workflow.yaml
+
+  push_snapshot_to_registry:
+    name: Push Docker images to Docker Hub
+    runs-on: ubuntu-22.04
+    permissions:
+      packages: write
+      contents: read
+      attestations: write
+      id-token: write
+    needs:
+    - container_tests
+    - e2e_tests
+    strategy:
+      fail-fast: true
+      matrix:
+        app:
+        - astarte_appengine_api
+        - astarte_data_updater_plant
+        - astarte_housekeeping
+        - astarte_housekeeping_api
+        - astarte_pairing
+        - astarte_pairing_api
+        - astarte_realm_management
+        - astarte_realm_management_api
+        - astarte_trigger_engine
+    steps:
+      - name: Check out the repo
+        uses: actions/checkout@v4
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@f4ef78c080cd8ba55a85445d5b36e214a81df20a
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Compute tag name for snapshot images
+        id: compute-tag
+        run: |
+          export TAG="$(echo ${{ github.ref }} | sed 's,refs/heads/,,' | sed 's/master/snapshot/g' | sed 's/release-\(.*\)/\1-snapshot/g' )"
+          echo "TAG=$TAG" >> "$GITHUB_OUTPUT"
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Extract metadata (tags, labels) for Docker
+        id: meta
+        uses: docker/metadata-action@9ec57ed1fcdbf14dcef7dfbe97b2010124a938b7
+        with:
+          images: |
+            astarte/${{ matrix.app }}
+          tags: |
+            # TODO we probably want something smarter, but the 'pattern' type runs only on tags at the moment
+            type=raw,value=${{ steps.compute-tag.outputs.TAG }}
+
+      - name: Build and push tagged Docker image
+        id: push
+        uses: docker/build-push-action@3b5e8027fcad23fda98b2e3ac259d8d67585f671
+        with:
+          context: apps/${{ matrix.app }}
+          file: Dockerfile
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          platforms: linux/amd64,linux/arm64

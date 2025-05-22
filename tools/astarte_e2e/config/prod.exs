@@ -16,7 +16,7 @@
 # limitations under the License.
 #
 
-use Mix.Config
+import Config
 
 config :logger,
   compile_time_purge_matching: [

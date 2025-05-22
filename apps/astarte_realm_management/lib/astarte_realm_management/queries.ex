@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2017 Ispirata Srl
+# Copyright 2017 - 2023 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -21,6 +21,7 @@ defmodule Astarte.RealmManagement.Queries do
   require Logger
   alias Astarte.Core.AstarteReference
   alias Astarte.Core.CQLUtils
+  alias Astarte.RealmManagement.Config
   alias Astarte.Core.Device
   alias Astarte.Core.Interface, as: InterfaceDocument
   alias Astarte.Core.InterfaceDescriptor
@@ -37,7 +38,6 @@ defmodule Astarte.RealmManagement.Queries do
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.TaggedSimpleTrigger
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.TriggerTargetContainer
   alias Astarte.Core.Triggers.Trigger
-  alias Astarte.Core.Triggers.PolicyProtobuf.PolicyProto
   alias CQEx.Query, as: DatabaseQuery
   alias CQEx.Result, as: DatabaseResult
   alias CQEx.Result.SchemaChanged
@@ -167,12 +167,16 @@ defmodule Astarte.RealmManagement.Queries do
       :ok
     else
       %{acc: _, msg: error_message} ->
-        _ = Logger.warn("Failed batch due to database error: #{error_message}.", tag: "db_error")
+        _ =
+          Logger.warning("Failed batch due to database error: #{error_message}.", tag: "db_error")
+
         {:error, :database_error}
 
       {:error, reason} ->
         _ =
-          Logger.warn("Failed batch due to database error: #{inspect(reason)}.", tag: "db_error")
+          Logger.warning("Failed batch due to database error: #{inspect(reason)}.",
+            tag: "db_error"
+          )
 
         {:error, :database_error}
     end
@@ -190,7 +194,7 @@ defmodule Astarte.RealmManagement.Queries do
       else
         %{acc: _, msg: err_msg} ->
           _ =
-            Logger.warn(
+            Logger.warning(
               "Failed due to database error: #{err_msg}. Changes will not be undone!",
               tag: "db_error"
             )
@@ -199,7 +203,7 @@ defmodule Astarte.RealmManagement.Queries do
 
         {:error, err} ->
           _ =
-            Logger.warn(
+            Logger.warning(
               "Failed due to database error: #{inspect(err)}. Changes will not be undone!",
               tag: "db_error"
             )
@@ -212,7 +216,7 @@ defmodule Astarte.RealmManagement.Queries do
   def check_astarte_health(client, consistency) do
     schema_statement = """
       SELECT count(value)
-      FROM astarte.kv_store
+      FROM #{CQLUtils.realm_name_to_keyspace_name("astarte", Config.astarte_instance_id!())}.kv_store
       WHERE group='astarte' AND key='schema_version'
     """
 
@@ -220,7 +224,7 @@ defmodule Astarte.RealmManagement.Queries do
     # no realm name can contain '_', '^'
     realms_statement = """
     SELECT *
-    FROM astarte.realms
+    FROM #{CQLUtils.realm_name_to_keyspace_name("astarte", Config.astarte_instance_id!())}.realms
     WHERE realm_name='_invalid^name_'
     """
 
@@ -240,12 +244,13 @@ defmodule Astarte.RealmManagement.Queries do
       :ok
     else
       %{acc: _, msg: err_msg} ->
-        _ = Logger.warn("Health is not good: #{err_msg}.", tag: "health_check_bad")
+        _ = Logger.warning("Health is not good: #{err_msg}.", tag: "health_check_bad")
 
         {:error, :health_check_bad}
 
       {:error, err} ->
-        _ = Logger.warn("Health is not good, reason: #{inspect(err)}.", tag: "health_check_bad")
+        _ =
+          Logger.warning("Health is not good, reason: #{inspect(err)}.", tag: "health_check_bad")
 
         {:error, :health_check_bad}
     end
@@ -460,11 +465,11 @@ defmodule Astarte.RealmManagement.Queries do
       :ok
     else
       %{acc: _, msg: error_message} ->
-        _ = Logger.warn("Database error: #{error_message}.", tag: "db_error")
+        _ = Logger.warning("Database error: #{error_message}.", tag: "db_error")
         {:error, :database_error}
 
       {:error, reason} ->
-        _ = Logger.warn("Database error: #{inspect(reason)}.", tag: "db_error")
+        _ = Logger.warning("Database error: #{inspect(reason)}.", tag: "db_error")
         {:error, :database_error}
     end
   end
@@ -531,7 +536,7 @@ defmodule Astarte.RealmManagement.Queries do
       :ok
     else
       {:error, reason} ->
-        _ = Logger.warn("Database error: #{inspect(reason)}.", tag: "db_error")
+        _ = Logger.warning("Database error: #{inspect(reason)}.", tag: "db_error")
         {:error, :database_error}
     end
   end
@@ -567,7 +572,7 @@ defmodule Astarte.RealmManagement.Queries do
         {:ok, false}
 
       {:error, reason} ->
-        _ = Logger.warn("Database error: #{inspect(reason)}.", tag: "db_error")
+        _ = Logger.warning("Database error: #{inspect(reason)}.", tag: "db_error")
         {:error, :database_error}
     end
   end
@@ -597,7 +602,7 @@ defmodule Astarte.RealmManagement.Queries do
       :ok
     else
       {:error, reason} ->
-        _ = Logger.warn("Database error: #{inspect(reason)}.", tag: "db_error")
+        _ = Logger.warning("Database error: #{inspect(reason)}.", tag: "db_error")
         {:error, :database_error}
     end
   end
@@ -629,7 +634,7 @@ defmodule Astarte.RealmManagement.Queries do
     else
       {:error, reason} ->
         _ =
-          Logger.warn("Database error: cannot delete values. Reason: #{inspect(reason)}.",
+          Logger.warning("Database error: cannot delete values. Reason: #{inspect(reason)}.",
             tag: "db_error"
           )
 
@@ -694,7 +699,7 @@ defmodule Astarte.RealmManagement.Queries do
     else
       {:error, reason} ->
         _ =
-          Logger.warn("Database error: cannot delete path values. Reason: #{inspect(reason)}.",
+          Logger.warning("Database error: cannot delete path values. Reason: #{inspect(reason)}.",
             tag: "db_error"
           )
 
@@ -752,7 +757,7 @@ defmodule Astarte.RealmManagement.Queries do
     else
       {:error, reason} ->
         _ =
-          Logger.warn("Database error while deleting all paths: #{inspect(reason)}.",
+          Logger.warning("Database error while deleting all paths: #{inspect(reason)}.",
             tag: "db_error"
           )
 
@@ -781,11 +786,11 @@ defmodule Astarte.RealmManagement.Queries do
         {:error, :interface_not_found}
 
       %{acc: _, msg: error_message} ->
-        _ = Logger.warn("Database error: #{error_message}.", tag: "db_error")
+        _ = Logger.warning("Database error: #{error_message}.", tag: "db_error")
         {:error, :database_error}
 
       {:error, reason} ->
-        _ = Logger.warn("Database error: #{inspect(reason)}.", tag: "db_error")
+        _ = Logger.warning("Database error: #{inspect(reason)}.", tag: "db_error")
         {:error, :database_error}
     end
   end
@@ -809,11 +814,11 @@ defmodule Astarte.RealmManagement.Queries do
       {:ok, count != 0}
     else
       %{acc: _, msg: error_message} ->
-        _ = Logger.warn("Database error: #{error_message}.", tag: "db_error")
+        _ = Logger.warning("Database error: #{error_message}.", tag: "db_error")
         {:error, :database_error}
 
       {:error, reason} ->
-        _ = Logger.warn("Database error: #{inspect(reason)}.", tag: "db_error")
+        _ = Logger.warning("Database error: #{inspect(reason)}.", tag: "db_error")
         {:error, :database_error}
     end
   end
@@ -826,7 +831,7 @@ defmodule Astarte.RealmManagement.Queries do
   def check_astarte_health(consistency) do
     schema_statement = """
       SELECT count(value)
-      FROM astarte.kv_store
+      FROM #{CQLUtils.realm_name_to_keyspace_name("astarte", Config.astarte_instance_id!())}.kv_store
       WHERE group='astarte' AND key='schema_version'
     """
 
@@ -834,7 +839,7 @@ defmodule Astarte.RealmManagement.Queries do
     # no realm name can contain '_', '^'
     realms_statement = """
     SELECT *
-    FROM astarte.realms
+    FROM #{CQLUtils.realm_name_to_keyspace_name("astarte", Config.astarte_instance_id!())}.realms
     WHERE realm_name='_invalid^name_'
     """
 
@@ -847,7 +852,7 @@ defmodule Astarte.RealmManagement.Queries do
     else
       :error ->
         _ =
-          Logger.warn("Cannot retrieve health query data.",
+          Logger.warning("Cannot retrieve health query data.",
             tag: "health_check_error"
           )
 
@@ -855,7 +860,7 @@ defmodule Astarte.RealmManagement.Queries do
 
       {:error, %Xandra.Error{} = err} ->
         _ =
-          Logger.warn("Database error, health is not good: #{inspect(err)}.",
+          Logger.warning("Database error, health is not good: #{inspect(err)}.",
             tag: "health_check_database_error"
           )
 
@@ -863,7 +868,7 @@ defmodule Astarte.RealmManagement.Queries do
 
       {:error, %Xandra.ConnectionError{} = err} ->
         _ =
-          Logger.warn("Database error, health is not good: #{inspect(err)}.",
+          Logger.warning("Database error, health is not good: #{inspect(err)}.",
             tag: "health_check_database_connection_error"
           )
 
@@ -885,7 +890,7 @@ defmodule Astarte.RealmManagement.Queries do
       |> DatabaseQuery.consistency(:quorum)
 
     with {:ok, result} <- DatabaseQuery.call(client, all_names_query) do
-      Enum.reduce_while(result, :ok, fn row, acc ->
+      Enum.reduce_while(result, :ok, fn row, _acc ->
         if normalize_interface_name(row[:name]) == normalized_interface do
           if row[:name] == interface_name do
             # If there is already an interface with the same name, we know it's possible to install it.
@@ -900,11 +905,11 @@ defmodule Astarte.RealmManagement.Queries do
       end)
     else
       %{acc: _, msg: error_message} ->
-        _ = Logger.warn("Database error: #{error_message}.", tag: "db_error")
+        _ = Logger.warning("Database error: #{error_message}.", tag: "db_error")
         {:error, :database_error}
 
       {:error, reason} ->
-        Logger.warn("Database error: #{inspect(reason)}.", tag: "db_error")
+        Logger.warning("Database error: #{inspect(reason)}.", tag: "db_error")
         {:error, :database_error}
     end
   end
@@ -1006,11 +1011,11 @@ defmodule Astarte.RealmManagement.Queries do
         {:error, :interface_not_found}
 
       %{acc: _, msg: error_message} ->
-        _ = Logger.warn("Database error: #{error_message}.", tag: "db_error")
+        _ = Logger.warning("Database error: #{error_message}.", tag: "db_error")
         {:error, :database_error}
 
       {:error, reason} ->
-        _ = Logger.warn("Failed, reason: #{inspect(reason)}.", tag: "db_error")
+        _ = Logger.warning("Failed, reason: #{inspect(reason)}.", tag: "db_error")
         {:error, :database_error}
     end
   end
@@ -1018,7 +1023,95 @@ defmodule Astarte.RealmManagement.Queries do
   defp database_retention_policy_from_maybe_int(database_retention_policy) do
     case database_retention_policy do
       nil -> :no_ttl
-      any_int -> DatabaseRetentionPolicy.from_int(database_retention_policy)
+      _any_int -> DatabaseRetentionPolicy.from_int(database_retention_policy)
+    end
+  end
+
+  def get_detailed_interfaces_list(client) do
+    with {:ok, interfaces} <- fetch_interfaces_without_mappings(client),
+         {:ok, mappings} <- fetch_mappings(client) do
+      # Convert list to a map grouped by interface_id
+      mappings_map = Enum.group_by(mappings, & &1.interface_id)
+
+      # Merge mappings into parent interfaces
+      interfaces_details =
+        Enum.map(interfaces, fn interface ->
+          interface_mappings = Map.get(mappings_map, interface.interface_id, [])
+          Map.put(interface, :mappings, interface_mappings)
+        end)
+
+      # Encode interfaces to JSON
+      interfaces_jsons =
+        Enum.map(interfaces_details, fn interface ->
+          %InterfaceDocument{
+            name: interface.name,
+            major_version: interface.major_version,
+            minor_version: interface.minor_version,
+            interface_id: interface.interface_id,
+            type: interface.type,
+            ownership: interface.ownership,
+            aggregation: interface.aggregation,
+            mappings: interface.mappings
+          }
+          |> Jason.encode!()
+        end)
+
+      {:ok, interfaces_jsons}
+    end
+  end
+
+  defp fetch_interfaces_without_mappings(client) do
+    interfaces_details_query = """
+    SELECT * FROM interfaces
+    """
+
+    query =
+      DatabaseQuery.new()
+      |> DatabaseQuery.statement(interfaces_details_query)
+      |> DatabaseQuery.consistency(:quorum)
+
+    with {:ok, interfaces_result} <- DatabaseQuery.call(client, query) do
+      interfaces = Enum.map(interfaces_result, &InterfaceDescriptor.from_db_result!/1)
+      {:ok, interfaces}
+    else
+      %{acc: _, msg: error_message} ->
+        _ = Logger.warning("Database error: #{error_message}.", tag: "db_error")
+        {:error, :database_error}
+
+      {:error, reason} ->
+        _ =
+          Logger.warning("Database error: failed with reason: #{inspect(reason)}.",
+            tag: "db_error"
+          )
+
+        {:error, :database_error}
+    end
+  end
+
+  defp fetch_mappings(client) do
+    all_endpoints_cols_statement = """
+    SELECT *
+    FROM endpoints
+    """
+
+    endpoints_query =
+      DatabaseQuery.new()
+      |> DatabaseQuery.statement(all_endpoints_cols_statement)
+      |> DatabaseQuery.consistency(:quorum)
+
+    with {:ok, endpoints_result} <- DatabaseQuery.call(client, endpoints_query) do
+      {:ok, Enum.map(endpoints_result, &Mapping.from_db_result!/1)}
+    else
+      :empty_dataset ->
+        {:error, :interface_not_found}
+
+      %{acc: _, msg: error_message} ->
+        _ = Logger.warning("Database error: #{error_message}.", tag: "db_error")
+        {:error, :database_error}
+
+      {:error, reason} ->
+        _ = Logger.warning("Failed, reason: #{inspect(reason)}.", tag: "db_error")
+        {:error, :database_error}
     end
   end
 
@@ -1041,12 +1134,14 @@ defmodule Astarte.RealmManagement.Queries do
       {:ok, list}
     else
       %{acc: _, msg: error_message} ->
-        _ = Logger.warn("Database error: #{error_message}.", tag: "db_error")
+        _ = Logger.warning("Database error: #{error_message}.", tag: "db_error")
         {:error, :database_error}
 
       {:error, reason} ->
         _ =
-          Logger.warn("Database error: failed with reason: #{inspect(reason)}.", tag: "db_error")
+          Logger.warning("Database error: failed with reason: #{inspect(reason)}.",
+            tag: "db_error"
+          )
 
         {:error, :database_error}
     end
@@ -1075,11 +1170,11 @@ defmodule Astarte.RealmManagement.Queries do
       end
     else
       %{acc: _, msg: error_message} ->
-        _ = Logger.warn("Database error: #{error_message}.", tag: "db_error")
+        _ = Logger.warning("Database error: #{error_message}.", tag: "db_error")
         {:error, :database_error}
 
       {:error, reason} ->
-        _ = Logger.warn("Failed with reason: #{inspect(reason)}.", tag: "db_error")
+        _ = Logger.warning("Failed with reason: #{inspect(reason)}.", tag: "db_error")
         {:error, :database_error}
     end
   end
@@ -1140,7 +1235,7 @@ defmodule Astarte.RealmManagement.Queries do
       :ok
     else
       not_ok ->
-        _ = Logger.warn("Database error: #{inspect(not_ok)}.", tag: "db_error")
+        _ = Logger.warning("Database error: #{inspect(not_ok)}.", tag: "db_error")
         {:error, :cannot_install_trigger}
     end
   end
@@ -1189,7 +1284,7 @@ defmodule Astarte.RealmManagement.Queries do
       :ok
     else
       not_ok ->
-        _ = Logger.warn("Database error: #{inspect(not_ok)}.", tag: "db_error")
+        _ = Logger.warning("Database error: #{inspect(not_ok)}.", tag: "db_error")
         {:error, :cannot_install_simple_trigger}
     end
   end
@@ -1223,7 +1318,7 @@ defmodule Astarte.RealmManagement.Queries do
       :ok
     else
       not_ok ->
-        _ = Logger.warn("Database error: #{inspect(not_ok)}.", tag: "db_error")
+        _ = Logger.warning("Database error: #{inspect(not_ok)}.", tag: "db_error")
         {:error, :cannot_install_trigger_policy_link}
     end
   end
@@ -1251,7 +1346,7 @@ defmodule Astarte.RealmManagement.Queries do
         {:error, :trigger_not_found}
 
       not_ok ->
-        _ = Logger.warn("Database error: #{inspect(not_ok)}.", tag: "db_error")
+        _ = Logger.warning("Database error: #{inspect(not_ok)}.", tag: "db_error")
         {:error, :cannot_retrieve_trigger_uuid}
     end
   end
@@ -1283,7 +1378,7 @@ defmodule Astarte.RealmManagement.Queries do
       :ok
     else
       not_ok ->
-        _ = Logger.warn("Database error: #{inspect(not_ok)}.", tag: "db_error")
+        _ = Logger.warning("Database error: #{inspect(not_ok)}.", tag: "db_error")
         {:error, :cannot_delete_trigger_policy_link}
     end
   end
@@ -1311,7 +1406,7 @@ defmodule Astarte.RealmManagement.Queries do
         :ok
       else
         not_ok ->
-          _ = Logger.warn("Database error: #{inspect(not_ok)}.", tag: "db_error")
+          _ = Logger.warning("Database error: #{inspect(not_ok)}.", tag: "db_error")
           {:error, :cannot_delete_trigger}
       end
     end
@@ -1328,7 +1423,7 @@ defmodule Astarte.RealmManagement.Queries do
         end
       else
         not_ok ->
-          _ = Logger.warn("Database error: #{inspect(not_ok)}.", tag: "db_error")
+          _ = Logger.warning("Database error: #{inspect(not_ok)}.", tag: "db_error")
           {:error, :cannot_list_triggers}
       end
 
@@ -1353,7 +1448,7 @@ defmodule Astarte.RealmManagement.Queries do
           {:error, :trigger_not_found}
 
         not_ok ->
-          _ = Logger.warn("Database error: #{inspect(not_ok)}.", tag: "db_error")
+          _ = Logger.warning("Database error: #{inspect(not_ok)}.", tag: "db_error")
           {:error, :cannot_retrieve_trigger}
       end
     end
@@ -1392,7 +1487,7 @@ defmodule Astarte.RealmManagement.Queries do
       else
         not_ok ->
           _ =
-            Logger.warn("Possible inconsistency found: database error: #{inspect(not_ok)}.",
+            Logger.warning("Possible inconsistency found: database error: #{inspect(not_ok)}.",
               tag: "db_error"
             )
 
@@ -1403,7 +1498,7 @@ defmodule Astarte.RealmManagement.Queries do
         {:error, :simple_trigger_not_found}
 
       not_ok ->
-        _ = Logger.warn("Database error: #{inspect(not_ok)}.", tag: "db_error")
+        _ = Logger.warning("Database error: #{inspect(not_ok)}.", tag: "db_error")
         {:error, :cannot_retrieve_simple_trigger}
     end
   end
@@ -1438,7 +1533,7 @@ defmodule Astarte.RealmManagement.Queries do
         :ok
       else
         not_ok ->
-          _ = Logger.warn("Database error: #{inspect(not_ok)}.", tag: "db_error")
+          _ = Logger.warning("Database error: #{inspect(not_ok)}.", tag: "db_error")
           {:error, :cannot_delete_simple_trigger}
       end
     end
@@ -1461,7 +1556,7 @@ defmodule Astarte.RealmManagement.Queries do
         {:error, :trigger_not_found}
 
       not_ok ->
-        _ = Logger.warn("Database error: #{inspect(not_ok)}.", tag: "db_error")
+        _ = Logger.warning("Database error: #{inspect(not_ok)}.", tag: "db_error")
 
         {:error, :cannot_retrieve_simple_trigger}
     end
@@ -1481,7 +1576,7 @@ defmodule Astarte.RealmManagement.Queries do
       :ok
     else
       not_ok ->
-        _ = Logger.warn("Database error: #{inspect(not_ok)}.", tag: "db_error")
+        _ = Logger.warning("Database error: #{inspect(not_ok)}.", tag: "db_error")
         {:error, :cannot_install_trigger_policy}
     end
   end
@@ -1506,12 +1601,14 @@ defmodule Astarte.RealmManagement.Queries do
       {:ok, list}
     else
       %{acc: _, msg: error_message} ->
-        _ = Logger.warn("Database error: #{error_message}.", tag: "db_error")
+        _ = Logger.warning("Database error: #{error_message}.", tag: "db_error")
         {:error, :database_error}
 
       {:error, reason} ->
         _ =
-          Logger.warn("Database error: failed with reason: #{inspect(reason)}.", tag: "db_error")
+          Logger.warning("Database error: failed with reason: #{inspect(reason)}.",
+            tag: "db_error"
+          )
 
         {:error, :database_error}
     end
@@ -1540,11 +1637,11 @@ defmodule Astarte.RealmManagement.Queries do
         {:error, :policy_not_found}
 
       %{acc: _, msg: error_message} ->
-        _ = Logger.warn("Database error: #{error_message}.", tag: "db_error")
+        _ = Logger.warning("Database error: #{error_message}.", tag: "db_error")
         {:error, :database_error}
 
       {:error, reason} ->
-        _ = Logger.warn("Failed, reason: #{inspect(reason)}.", tag: "db_error")
+        _ = Logger.warning("Failed, reason: #{inspect(reason)}.", tag: "db_error")
         {:error, :database_error}
     end
   end
@@ -1647,12 +1744,749 @@ defmodule Astarte.RealmManagement.Queries do
         {:ok, true}
 
       %{acc: _, msg: error_message} ->
-        _ = Logger.warn("Database error: #{error_message}.", tag: "db_error")
+        _ = Logger.warning("Database error: #{error_message}.", tag: "db_error")
         {:error, :database_error}
 
       {:error, reason} ->
-        _ = Logger.warn("Database error: #{inspect(reason)}.", tag: "db_error")
+        _ = Logger.warning("Database error: #{inspect(reason)}.", tag: "db_error")
         {:error, :database_error}
+    end
+  end
+
+  def check_device_exists(realm_name, device_id) do
+    Xandra.Cluster.run(
+      :xandra_device_deletion,
+      &do_check_device_exists(&1, realm_name, device_id)
+    )
+  end
+
+  defp do_check_device_exists(conn, realm_name, device_id) do
+    keyspace = CQLUtils.realm_name_to_keyspace_name(realm_name, Config.astarte_instance_id!())
+
+    # TODO: validate realm name
+    statement = """
+    SELECT COUNT (*)
+    FROM #{keyspace}.devices
+    WHERE device_id = :device_id
+    """
+
+    params = %{device_id: device_id}
+
+    with {:ok, prepared} <- Xandra.prepare(conn, statement),
+         {:ok, [result]} <-
+           execute_device_exists_query(conn, prepared, params,
+             consistency: :quorum,
+             uuid_format: :binary
+           ) do
+      {:ok, device_exists_result_to_boolean(result)}
+    end
+  end
+
+  defp device_exists_result_to_boolean(%{count: 1}), do: true
+  defp device_exists_result_to_boolean(_), do: false
+
+  defp execute_device_exists_query(conn, prepared, params, opts) do
+    case Xandra.execute(conn, prepared, params, opts) do
+      {:ok, %Xandra.Page{} = page} ->
+        {:ok, Enum.to_list(page)}
+
+      {:error, %Xandra.ConnectionError{}} ->
+        _ =
+          Logger.warning(
+            "Cannot check if device exists, connection error",
+            tag: "check_device_exists_connection_error"
+          )
+
+        {:error, :database_connection_error}
+
+      {:error, %Xandra.Error{} = error} ->
+        _ =
+          Logger.warning(
+            "Cannot check if device exists, reason #{error.message}",
+            tag: "check_device_exists_error"
+          )
+
+        {:error, error.reason}
+    end
+  end
+
+  def table_exist?(realm_name, table_name) do
+    Xandra.Cluster.run(
+      :xandra_device_deletion,
+      fn conn ->
+        statement = """
+        SELECT COUNT(*)
+        FROM system_schema.tables
+        WHERE keyspace_name = :keyspace_name
+        AND table_name = :table_name
+        """
+
+        keyspace_name =
+          CQLUtils.realm_name_to_keyspace_name(realm_name, Config.astarte_instance_id!())
+
+        params = %{keyspace_name: keyspace_name, table_name: table_name}
+
+        prepared = Xandra.prepare!(conn, statement)
+        page = Xandra.execute!(conn, prepared, params)
+        [%{count: table_count}] = Enum.to_list(page)
+        table_count != 0
+      end
+    )
+  end
+
+  def insert_device_into_deletion_in_progress(realm_name, device_id) do
+    Xandra.Cluster.run(
+      :xandra_device_deletion,
+      &do_insert_device_into_deletion_in_progress(&1, realm_name, device_id)
+    )
+  end
+
+  defp do_insert_device_into_deletion_in_progress(conn, realm_name, device_id) do
+    keyspace_name =
+      CQLUtils.realm_name_to_keyspace_name(realm_name, Config.astarte_instance_id!())
+
+    # TODO: validate realm name
+    statement = """
+    INSERT INTO #{keyspace_name}.deletion_in_progress
+    (device_id, vmq_ack, dup_start_ack, dup_end_ack)
+    VALUES (:device_id, false, false, false)
+    """
+
+    params = %{device_id: device_id}
+
+    with {:ok, prepared} <- Xandra.prepare(conn, statement) do
+      case Xandra.execute(conn, prepared, params,
+             consistency: :quorum,
+             uuid_format: :binary
+           ) do
+        {:ok, result} ->
+          {:ok, result}
+
+        {:error, %Xandra.ConnectionError{}} ->
+          _ =
+            Logger.warning(
+              "Cannot insert device #{inspect(device_id)} into deleted, connection error",
+              tag: "insert_device_into_deleted_connection_error"
+            )
+
+          {:error, :database_connection_error}
+
+        {:error, %Xandra.Error{} = error} ->
+          _ =
+            Logger.warning(
+              "Cannot insert device #{inspect(device_id)} into deleted, reason #{error.message}",
+              tag: "insert_device_into_deleted_error"
+            )
+
+          {:error, error.reason}
+      end
+    end
+  end
+
+  # TODO maybe move to AstarteDataAccess
+  def retrieve_device_introspection_map!(realm_name, device_id) do
+    Xandra.Cluster.run(
+      :xandra_device_deletion,
+      &do_retrieve_introspection_map!(&1, realm_name, device_id)
+    )
+  end
+
+  defp do_retrieve_introspection_map!(conn, realm_name, device_id) do
+    keyspace_name =
+      CQLUtils.realm_name_to_keyspace_name(realm_name, Config.astarte_instance_id!())
+
+    # TODO: validate realm name
+    statement = """
+    SELECT introspection
+    FROM #{keyspace_name}.devices
+    WHERE device_id=:device_id
+    """
+
+    params = %{device_id: device_id}
+    prepared = Xandra.prepare!(conn, statement)
+
+    [%{introspection: introspection_map}] =
+      Xandra.execute!(conn, prepared, params, consistency: :quorum, uuid_format: :binary)
+      |> Enum.to_list()
+
+    # Introspection might be still empty: handle the nil case
+    introspection_map || %{}
+  end
+
+  def retrieve_interface_descriptor!(
+        realm_name,
+        interface_name,
+        interface_major
+      ) do
+    Xandra.Cluster.run(
+      :xandra_device_deletion,
+      &do_retrieve_interface_descriptor!(
+        &1,
+        realm_name,
+        interface_name,
+        interface_major
+      )
+    )
+  end
+
+  defp do_retrieve_interface_descriptor!(
+         conn,
+         realm_name,
+         interface_name,
+         interface_major
+       ) do
+    # TODO: validate realm name
+    keyspace_name =
+      CQLUtils.realm_name_to_keyspace_name(realm_name, Config.astarte_instance_id!())
+
+    statement = """
+    SELECT *
+    FROM #{keyspace_name}.interfaces
+    WHERE name=:name AND major_version=:major_version
+    """
+
+    params = %{name: interface_name, major_version: interface_major}
+
+    prepared = Xandra.prepare!(conn, statement)
+
+    Xandra.execute!(conn, prepared, params, consistency: :quorum)
+    |> Enum.to_list()
+    # If we're looking for a descriptor of an interface of known name and major, we're fairly sure the result is unique
+    |> hd()
+    |> Astarte.Core.InterfaceDescriptor.from_db_result!()
+  end
+
+  def retrieve_individual_datastreams_keys!(realm_name, device_id) do
+    Xandra.Cluster.run(
+      :xandra_device_deletion,
+      &do_retrieve_individual_datastreams_keys!(&1, realm_name, device_id)
+    )
+  end
+
+  defp do_retrieve_individual_datastreams_keys!(conn, realm_name, device_id) do
+    keyspace_name =
+      CQLUtils.realm_name_to_keyspace_name(realm_name, Config.astarte_instance_id!())
+
+    # TODO: validate realm name
+    statement = """
+    SELECT DISTINCT device_id, interface_id, endpoint_id, path
+    FROM #{keyspace_name}.individual_datastreams
+    WHERE device_id=:device_id ALLOW FILTERING
+    """
+
+    params = %{device_id: device_id}
+
+    prepared = Xandra.prepare!(conn, statement)
+    Xandra.execute!(conn, prepared, params, uuid_format: :binary) |> Enum.to_list()
+  end
+
+  def delete_individual_datastream_values!(
+        realm_name,
+        device_id,
+        interface_id,
+        endpoint_id,
+        path
+      ) do
+    Xandra.Cluster.run(
+      :xandra_device_deletion,
+      &do_delete_individual_datastream_values!(
+        &1,
+        realm_name,
+        device_id,
+        interface_id,
+        endpoint_id,
+        path
+      )
+    )
+  end
+
+  defp do_delete_individual_datastream_values!(
+         conn,
+         realm_name,
+         device_id,
+         interface_id,
+         endpoint_id,
+         path
+       ) do
+    # TODO: validate realm name
+    keyspace_name =
+      CQLUtils.realm_name_to_keyspace_name(realm_name, Config.astarte_instance_id!())
+
+    statement = """
+    DELETE FROM #{keyspace_name}.individual_datastreams
+    WHERE device_id=:device_id AND interface_id=:interface_id
+    AND endpoint_id=:endpoint_id AND path=:path
+    """
+
+    params = %{
+      device_id: device_id,
+      interface_id: interface_id,
+      endpoint_id: endpoint_id,
+      path: path
+    }
+
+    prepared = Xandra.prepare!(conn, statement)
+
+    Xandra.execute!(conn, prepared, params,
+      consistency: :local_quorum,
+      uuid_format: :binary
+    )
+  end
+
+  def retrieve_individual_properties_keys!(realm_name, device_id) do
+    Xandra.Cluster.run(
+      :xandra_device_deletion,
+      &do_retrieve_individual_properties_keys!(&1, realm_name, device_id)
+    )
+  end
+
+  defp do_retrieve_individual_properties_keys!(conn, realm_name, device_id) do
+    keyspace_name =
+      CQLUtils.realm_name_to_keyspace_name(realm_name, Config.astarte_instance_id!())
+
+    # TODO: validate realm name
+    statement = """
+    SELECT DISTINCT device_id, interface_id
+    FROM #{keyspace_name}.individual_properties
+    WHERE device_id=:device_id ALLOW FILTERING
+    """
+
+    params = %{device_id: device_id}
+
+    prepared = Xandra.prepare!(conn, statement)
+    Xandra.execute!(conn, prepared, params, uuid_format: :binary) |> Enum.to_list()
+  end
+
+  def delete_individual_properties_values!(realm_name, device_id, interface_id) do
+    Xandra.Cluster.run(
+      :xandra_device_deletion,
+      &do_delete_individual_properties_values!(&1, realm_name, device_id, interface_id)
+    )
+  end
+
+  defp do_delete_individual_properties_values!(
+         conn,
+         realm_name,
+         device_id,
+         interface_id
+       ) do
+    # TODO: validate realm name
+    keyspace_name =
+      CQLUtils.realm_name_to_keyspace_name(realm_name, Config.astarte_instance_id!())
+
+    statement = """
+    DELETE FROM #{keyspace_name}.individual_properties
+    WHERE device_id=:device_id AND interface_id=:interface_id
+    """
+
+    params = %{
+      device_id: device_id,
+      interface_id: interface_id
+    }
+
+    prepared = Xandra.prepare!(conn, statement)
+
+    Xandra.execute!(conn, prepared, params,
+      consistency: :local_quorum,
+      uuid_format: :binary
+    )
+  end
+
+  def retrieve_object_datastream_keys!(realm_name, device_id, table_name) do
+    Xandra.Cluster.run(
+      :xandra_device_deletion,
+      &do_retrieve_object_datastream_keys!(&1, realm_name, device_id, table_name)
+    )
+  end
+
+  defp do_retrieve_object_datastream_keys!(
+         conn,
+         realm_name,
+         device_id,
+         table_name
+       ) do
+    # TODO: validate realm name
+    keyspace_name =
+      CQLUtils.realm_name_to_keyspace_name(realm_name, Config.astarte_instance_id!())
+
+    statement = """
+    SELECT DISTINCT device_id, path
+    FROM #{keyspace_name}.#{table_name}
+    WHERE device_id=:device_id ALLOW FILTERING
+    """
+
+    params = %{device_id: device_id}
+
+    prepared = Xandra.prepare!(conn, statement)
+    Xandra.execute!(conn, prepared, params, uuid_format: :binary) |> Enum.to_list()
+  end
+
+  def delete_object_datastream_values!(realm_name, device_id, path, table_name) do
+    Xandra.Cluster.run(
+      :xandra_device_deletion,
+      &do_delete_object_datastream_values!(&1, realm_name, device_id, path, table_name)
+    )
+  end
+
+  defp do_delete_object_datastream_values!(
+         conn,
+         realm_name,
+         device_id,
+         path,
+         table_name
+       ) do
+    # TODO: validate realm name
+    keyspace_name =
+      CQLUtils.realm_name_to_keyspace_name(realm_name, Config.astarte_instance_id!())
+
+    statement = """
+    DELETE FROM #{keyspace_name}.#{table_name}
+    WHERE device_id=:device_id AND path=:path
+    """
+
+    params = %{
+      device_id: device_id,
+      path: path
+    }
+
+    prepared = Xandra.prepare!(conn, statement)
+
+    Xandra.execute!(conn, prepared, params,
+      consistency: :local_quorum,
+      uuid_format: :binary
+    )
+  end
+
+  def retrieve_aliases!(realm_name, device_id) do
+    Xandra.Cluster.run(
+      :xandra_device_deletion,
+      &do_retrieve_aliases!(&1, realm_name, device_id)
+    )
+  end
+
+  defp do_retrieve_aliases!(conn, realm_name, device_id) do
+    # TODO: validate realm name
+    keyspace_name =
+      CQLUtils.realm_name_to_keyspace_name(realm_name, Config.astarte_instance_id!())
+
+    statement = """
+    SELECT object_name
+    FROM #{keyspace_name}.names
+    WHERE object_uuid =:device_id ALLOW FILTERING
+    """
+
+    params = %{device_id: device_id}
+
+    prepared = Xandra.prepare!(conn, statement)
+    Xandra.execute!(conn, prepared, params, uuid_format: :binary) |> Enum.to_list()
+  end
+
+  def delete_alias_values!(realm_name, device_alias) do
+    Xandra.Cluster.run(
+      :xandra_device_deletion,
+      &do_delete_alias_values!(&1, realm_name, device_alias)
+    )
+  end
+
+  defp do_delete_alias_values!(conn, realm_name, device_alias) do
+    # TODO: validate realm name
+    keyspace_name =
+      CQLUtils.realm_name_to_keyspace_name(realm_name, Config.astarte_instance_id!())
+
+    statement = """
+    DELETE FROM #{keyspace_name}.names
+    WHERE object_name = :device_alias
+    """
+
+    params = %{device_alias: device_alias}
+
+    prepared = Xandra.prepare!(conn, statement)
+
+    Xandra.execute!(conn, prepared, params,
+      consistency: :local_quorum,
+      uuid_format: :binary
+    )
+  end
+
+  def retrieve_groups_keys!(realm_name, device_id) do
+    Xandra.Cluster.run(
+      :xandra_device_deletion,
+      &do_retrieve_groups_keys!(&1, realm_name, device_id)
+    )
+  end
+
+  defp do_retrieve_groups_keys!(conn, realm_name, device_id) do
+    # TODO: validate realm name
+    keyspace_name =
+      CQLUtils.realm_name_to_keyspace_name(realm_name, Config.astarte_instance_id!())
+
+    statement = """
+    SELECT group_name, insertion_uuid, device_id
+    FROM #{keyspace_name}.grouped_devices
+    WHERE device_id=:device_id ALLOW FILTERING
+    """
+
+    params = %{device_id: device_id}
+
+    prepared = Xandra.prepare!(conn, statement)
+
+    Xandra.execute!(conn, prepared, params, uuid_format: :binary, timeuuid_format: :binary)
+    |> Enum.to_list()
+  end
+
+  def delete_group_values!(realm_name, device_id, group_name, insertion_uuid) do
+    Xandra.Cluster.run(
+      :xandra_device_deletion,
+      &do_delete_group_values!(&1, realm_name, device_id, group_name, insertion_uuid)
+    )
+  end
+
+  defp do_delete_group_values!(
+         conn,
+         realm_name,
+         device_id,
+         group_name,
+         insertion_uuid
+       ) do
+    # TODO: validate realm name
+    keyspace_name =
+      CQLUtils.realm_name_to_keyspace_name(realm_name, Config.astarte_instance_id!())
+
+    statement = """
+    DELETE FROM #{keyspace_name}.grouped_devices
+    WHERE group_name = :group_name AND insertion_uuid = :insertion_uuid AND device_id = :device_id
+    """
+
+    params = %{
+      group_name: group_name,
+      insertion_uuid: insertion_uuid,
+      device_id: device_id
+    }
+
+    prepared = Xandra.prepare!(conn, statement)
+
+    Xandra.execute!(conn, prepared, params,
+      consistency: :local_quorum,
+      uuid_format: :binary,
+      timeuuid_format: :binary
+    )
+  end
+
+  def retrieve_kv_store_entries!(realm_name, device_id) do
+    Xandra.Cluster.run(
+      :xandra_device_deletion,
+      &do_retrieve_kv_store_entries!(&1, realm_name, device_id)
+    )
+  end
+
+  defp do_retrieve_kv_store_entries!(conn, realm_name, encoded_device_id) do
+    # TODO: validate realm name
+    keyspace_name =
+      CQLUtils.realm_name_to_keyspace_name(realm_name, Config.astarte_instance_id!())
+
+    statement = """
+    SELECT group, key
+    FROM #{keyspace_name}.kv_store
+    WHERE key=:key ALLOW FILTERING
+    """
+
+    params = %{key: encoded_device_id}
+
+    prepared = Xandra.prepare!(conn, statement)
+    Xandra.execute!(conn, prepared, params, uuid_format: :binary) |> Enum.to_list()
+  end
+
+  def delete_kv_store_entry!(realm_name, group, key) do
+    Xandra.Cluster.run(
+      :xandra_device_deletion,
+      &do_delete_kv_store_entry!(&1, realm_name, group, key)
+    )
+  end
+
+  defp do_delete_kv_store_entry!(conn, realm_name, group, key) do
+    # TODO: validate realm name
+    keyspace_name =
+      CQLUtils.realm_name_to_keyspace_name(realm_name, Config.astarte_instance_id!())
+
+    statement = """
+    DELETE FROM #{keyspace_name}.kv_store
+    WHERE group = :group AND key = :key
+    """
+
+    params = %{group: group, key: key}
+
+    prepared = Xandra.prepare!(conn, statement)
+
+    Xandra.execute!(conn, prepared, params,
+      consistency: :local_quorum,
+      uuid_format: :binary
+    )
+  end
+
+  def delete_device!(realm_name, device_id) do
+    Xandra.Cluster.run(
+      :xandra_device_deletion,
+      &do_delete_device!(&1, realm_name, device_id)
+    )
+  end
+
+  defp do_delete_device!(conn, realm_name, device_id) do
+    # TODO: validate realm name
+    keyspace_name =
+      CQLUtils.realm_name_to_keyspace_name(realm_name, Config.astarte_instance_id!())
+
+    statement = """
+    DELETE FROM #{keyspace_name}.devices
+    WHERE device_id = :device_id
+    """
+
+    params = %{device_id: device_id}
+
+    prepared = Xandra.prepare!(conn, statement)
+
+    Xandra.execute!(conn, prepared, params,
+      consistency: :local_quorum,
+      uuid_format: :binary
+    )
+  end
+
+  def remove_device_from_deletion_in_progress!(realm_name, device_id) do
+    Xandra.Cluster.run(
+      :xandra_device_deletion,
+      &do_remove_device_from_deletion_in_progress!(&1, realm_name, device_id)
+    )
+  end
+
+  defp do_remove_device_from_deletion_in_progress!(conn, realm_name, device_id) do
+    # TODO: validate realm name
+    keyspace_name =
+      CQLUtils.realm_name_to_keyspace_name(realm_name, Config.astarte_instance_id!())
+
+    statement = """
+    DELETE FROM #{keyspace_name}.deletion_in_progress
+    WHERE device_id = :device_id
+    """
+
+    params = %{device_id: device_id}
+
+    prepared = Xandra.prepare!(conn, statement)
+
+    Xandra.execute!(conn, prepared, params,
+      consistency: :local_quorum,
+      uuid_format: :binary
+    )
+  end
+
+  def retrieve_realms!() do
+    statement = """
+    SELECT *
+    FROM #{CQLUtils.realm_name_to_keyspace_name("astarte", Config.astarte_instance_id!())}.realms
+    """
+
+    realms =
+      Xandra.Cluster.run(
+        :xandra,
+        &Xandra.execute!(&1, statement, %{}, consistency: :local_quorum)
+      )
+
+    Enum.to_list(realms)
+  end
+
+  def retrieve_devices_to_delete!(realm_name) do
+    Xandra.Cluster.run(:xandra_device_deletion, &do_retrieve_devices_to_delete!(&1, realm_name))
+  end
+
+  defp do_retrieve_devices_to_delete!(conn, realm_name) do
+    # TODO: validate realm name
+    keyspace_name =
+      CQLUtils.realm_name_to_keyspace_name(realm_name, Config.astarte_instance_id!())
+
+    statement = """
+    SELECT *
+    FROM #{keyspace_name}.deletion_in_progress
+    """
+
+    Xandra.execute!(conn, statement, %{},
+      consistency: :local_quorum,
+      uuid_format: :binary
+    )
+    |> Enum.to_list()
+    |> Enum.filter(fn %{vmq_ack: vmq_ack, dup_start_ack: dup_start_ack, dup_end_ack: dup_end_ack} ->
+      vmq_ack and dup_start_ack and dup_end_ack
+    end)
+  end
+
+  def get_device_registration_limit(realm_name) do
+    Xandra.Cluster.run(:xandra, &do_get_device_registration_limit(&1, realm_name))
+  end
+
+  defp do_get_device_registration_limit(conn, realm_name) do
+    query = """
+    SELECT device_registration_limit
+    FROM #{CQLUtils.realm_name_to_keyspace_name("astarte", Config.astarte_instance_id!())}.realms
+    WHERE realm_name = :realm_name
+    """
+
+    with {:ok, prepared} <- Xandra.prepare(conn, query),
+         {:ok, page} <-
+           Xandra.execute(conn, prepared, %{realm_name: realm_name}, consistency: :one) do
+      case Enum.to_list(page) do
+        [%{device_registration_limit: value}] -> {:ok, value}
+        [] -> {:error, :realm_not_found}
+      end
+    else
+      {:error, %Xandra.ConnectionError{} = error} ->
+        _ =
+          Logger.warning(
+            "Database connection error: #{Exception.message(error)}",
+            tag: "database_connection_error"
+          )
+
+        {:error, :database_connection_error}
+
+      {:error, %Xandra.Error{} = error} ->
+        _ =
+          Logger.warning(
+            "Database error: #{Exception.message(error)}",
+            tag: "database_error"
+          )
+
+        {:error, :database_error}
+    end
+  end
+
+  def get_datastream_maximum_storage_retention(realm_name) do
+    Xandra.Cluster.run(:xandra, &do_get_datastream_maximum_storage_retention(&1, realm_name))
+  end
+
+  defp do_get_datastream_maximum_storage_retention(conn, realm_name) do
+    query = """
+    SELECT blobAsInt(value)
+    FROM #{CQLUtils.realm_name_to_keyspace_name(realm_name, Config.astarte_instance_id!())}.kv_store
+    WHERE group='realm_config' AND key='datastream_maximum_storage_retention'
+    """
+
+    with {:ok, prepared} <- Xandra.prepare(conn, query),
+         {:ok, %Xandra.Page{} = page} <- Xandra.execute(conn, prepared) do
+      case Enum.fetch(page, 0) do
+        {:ok, %{"system.blobasint(value)": value}} ->
+          {:ok, value}
+
+        _ ->
+          {:ok, 0}
+      end
+    else
+      {:error, %Xandra.Error{} = err} ->
+        _ = Logger.warning("Database error: #{inspect(err)}.", tag: "database_error")
+        {:error, :database_error}
+
+      {:error, %Xandra.ConnectionError{} = err} ->
+        _ =
+          Logger.warning("Database connection error: #{inspect(err)}.",
+            tag: "database_connection_error"
+          )
+
+        {:error, :database_connection_error}
     end
   end
 end

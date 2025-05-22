@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2017-2018 Ispirata Srl
+# Copyright 2017 - 2023 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -41,20 +41,33 @@ defmodule Astarte.RealmManagement do
     DataAccessConfig.validate!()
     RPCConfig.validate!()
 
-    xandra_options = Config.xandra_options!()
+    xandra_opts = Config.xandra_options!()
 
-    data_access_opts = [xandra_options: xandra_options]
-
-    rm_xandra_opts = Keyword.put(xandra_options, :name, :xandra)
+    data_access_opts = [xandra_options: xandra_opts]
 
     children = [
       Astarte.RealmManagementWeb.Telemetry,
-      {Xandra.Cluster, rm_xandra_opts},
+      xandra_cluster_child_spec(xandra_opts: xandra_opts, name: :xandra),
+      xandra_cluster_child_spec(xandra_opts: xandra_opts, name: :xandra_device_deletion),
       {Astarte.DataAccess, data_access_opts},
-      {Astarte.RPC.AMQP.Server, [amqp_queue: Protocol.amqp_queue(), handler: Handler]}
+      {Astarte.RPC.AMQP.Server, [amqp_queue: Protocol.amqp_queue(), handler: Handler]},
+      {Task.Supervisor, name: Astarte.RealmManagement.DeviceRemoverSupervisor},
+      Astarte.RealmManagement.DeviceRemoval.Scheduler
     ]
 
     opts = [strategy: :one_for_one, name: Astarte.RealmManagement.Supervisor]
     Supervisor.start_link(children, opts)
+  end
+
+  def xandra_cluster_child_spec(opts) do
+    name = Keyword.fetch!(opts, :name)
+
+    xandra_opts =
+      Keyword.fetch!(opts, :xandra_opts)
+      |> Keyword.put(:name, name)
+      # TODO move to string keys
+      |> Keyword.put(:atom_keys, true)
+
+    Supervisor.child_spec({Xandra.Cluster, xandra_opts}, id: name)
   end
 end

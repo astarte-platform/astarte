@@ -2,6 +2,8 @@
 
 <img align="right" src="assets/mascot_developer.svg" style="border:20px solid transparent" alt="Join Puppy Lion and have some fun with Astarte!" width="40%" />
 
+**This documentation page describes a development version, for production systems please use the [stable version](https://docs.astarte-platform.org/latest) instead.**
+
 Astarte is an Open Source IoT platform focused on Data management. It takes care of everything from collecting data from devices to delivering data to end-user applications. To achieve such a thing, it uses a mixture of mechanisms and paradigm to store organized data, perform live queries.
 
 This guide focuses on daily operations for Astarte users and integrators. It goes through fundamental operations such as setting up triggers, querying APIs, integrating 3rd party applications and more.

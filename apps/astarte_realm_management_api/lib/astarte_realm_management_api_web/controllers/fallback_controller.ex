@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2017-2018 Ispirata Srl
+# Copyright 2017 - 2023 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -87,6 +87,13 @@ defmodule Astarte.RealmManagement.APIWeb.FallbackController do
     |> render(:overlapping_mappings)
   end
 
+  def call(conn, {:error, :maximum_database_retention_exceeded}) do
+    conn
+    |> put_status(:unprocessable_entity)
+    |> put_view(Astarte.RealmManagement.APIWeb.ErrorView)
+    |> render(:maximum_database_retention_exceeded)
+  end
+
   def call(conn, {:error, :trigger_policy_not_found}) do
     conn
     |> put_status(:not_found)
@@ -108,7 +115,52 @@ defmodule Astarte.RealmManagement.APIWeb.FallbackController do
     |> render(:cannot_delete_currently_used_trigger_policy)
   end
 
+  def call(conn, {:error, :invalid_device_id}) do
+    conn
+    |> put_status(:bad_request)
+    |> put_view(Astarte.RealmManagement.APIWeb.ErrorView)
+    |> render(:invalid_device_id)
+  end
+
+  def call(conn, {:error, :device_not_found}) do
+    conn
+    |> put_status(:not_found)
+    |> put_view(Astarte.RealmManagement.APIWeb.ErrorView)
+    |> render(:device_not_found)
+  end
+
+  # Invalid authorized path
+  def call(conn, {:error, :invalid_auth_path}) do
+    conn
+    |> put_status(:unauthorized)
+    |> put_view(Astarte.RealmManagement.APIWeb.ErrorView)
+    |> render(:invalid_auth_path)
+  end
+
   # This is called when no JWT token is present
+  def auth_error(conn, {:unauthenticated, :unauthenticated}, _opts) do
+    conn
+    |> put_status(:unauthorized)
+    |> put_view(Astarte.RealmManagement.APIWeb.ErrorView)
+    |> render(:missing_token)
+  end
+
+  # Invalid JWT token
+  def auth_error(conn, {:invalid_token, :invalid_token}, _opts) do
+    conn
+    |> put_status(:unauthorized)
+    |> put_view(Astarte.RealmManagement.APIWeb.ErrorView)
+    |> render(:invalid_token)
+  end
+
+  # Path not authorized
+  def auth_error(conn, {:unauthorized, :authorization_path_not_matched}, _opts) do
+    conn
+    |> put_status(:forbidden)
+    |> put_view(Astarte.RealmManagement.APIWeb.ErrorView)
+    |> render(:authorization_path_not_matched, %{method: conn.method, path: conn.request_path})
+  end
+
   def auth_error(conn, {:unauthenticated, _reason}, _opts) do
     conn
     |> put_status(:unauthorized)

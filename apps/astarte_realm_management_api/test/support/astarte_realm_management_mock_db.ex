@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2021 Ispirata Srl
+# Copyright 2021 - 2023 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -18,10 +18,13 @@
 
 defmodule Astarte.RealmManagement.Mock.DB do
   alias Astarte.Core.Interface
+  alias Astarte.Core.Mapping
   alias Astarte.Core.Triggers.Policy
 
   def start_link do
-    Agent.start_link(fn -> %{interfaces: %{}, trigger_policies: %{}} end, name: __MODULE__)
+    Agent.start_link(fn -> %{interfaces: %{}, trigger_policies: %{}, devices: %{}} end,
+      name: __MODULE__
+    )
   end
 
   def drop_interfaces() do
@@ -46,6 +49,17 @@ defmodule Astarte.RealmManagement.Mock.DB do
         name
       end
       |> Enum.uniq()
+    end)
+  end
+
+  def get_detailed_interfaces_list(_realm) do
+    Agent.get(__MODULE__, fn %{interfaces: interfaces} ->
+      keys = Map.keys(interfaces)
+
+      Enum.map(keys, fn key ->
+        {:ok, result} = Jason.encode(Map.get(interfaces, key))
+        result
+      end)
     end)
   end
 
@@ -83,13 +97,30 @@ defmodule Astarte.RealmManagement.Mock.DB do
     Agent.get(__MODULE__, &Map.get(&1, "jwt_public_key_pem_#{realm}"))
   end
 
+  def get_device_registration_limit(realm) do
+    Agent.get(__MODULE__, &Map.get(&1, "device_registration_limit_#{realm}"))
+  end
+
+  def get_datastream_maximum_storage_retention(realm) do
+    Agent.get(__MODULE__, &Map.get(&1, "datastream_maximum_storage_retention_#{realm}"))
+  end
+
   def install_interface(realm, %Interface{name: name, major_version: major} = interface) do
-    if get_interface(realm, name, major) != nil do
-      {:error, :already_installed_interface}
-    else
+    with {:already_installed_interface, nil} <-
+           {:already_installed_interface, get_interface(realm, name, major)},
+         max_retention = get_datastream_maximum_storage_retention(realm),
+         {:maximum_database_retention_exceeded, false} <-
+           {:maximum_database_retention_exceeded,
+            mappings_max_storage_retention_exceeded?(interface.mappings, max_retention)} do
       Agent.update(__MODULE__, fn %{interfaces: interfaces} = state ->
         %{state | interfaces: Map.put(interfaces, {realm, name, major}, interface)}
       end)
+    else
+      {:already_installed_interface, %Interface{} = _} ->
+        {:error, :already_installed_interface}
+
+      {:maximum_database_retention_exceeded, true} ->
+        {:error, :maximum_database_retention_exceeded}
     end
   end
 
@@ -118,6 +149,17 @@ defmodule Astarte.RealmManagement.Mock.DB do
 
   def put_jwt_public_key_pem(realm, jwt_public_key_pem) do
     Agent.update(__MODULE__, &Map.put(&1, "jwt_public_key_pem_#{realm}", jwt_public_key_pem))
+  end
+
+  def put_device_registration_limit(realm, limit) do
+    Agent.update(__MODULE__, &Map.put(&1, "device_registration_limit_#{realm}", limit))
+  end
+
+  def put_datastream_maximum_storage_retention(realm, retention) do
+    Agent.update(
+      __MODULE__,
+      &Map.put(&1, "datastream_maximum_storage_retention_#{realm}", retention)
+    )
   end
 
   def install_trigger_policy(realm, %Policy{name: name} = policy) do
@@ -163,5 +205,35 @@ defmodule Astarte.RealmManagement.Mock.DB do
     else
       nil
     end
+  end
+
+  def create_device(realm, device_id) do
+    Agent.update(__MODULE__, fn %{devices: devices} = state ->
+      %{state | devices: Map.put(devices, {realm, device_id}, {realm, device_id})}
+    end)
+  end
+
+  def get_device(realm, device_id) do
+    Agent.get(__MODULE__, fn %{devices: devices} ->
+      Map.get(devices, {realm, device_id})
+    end)
+  end
+
+  def delete_device(realm, device_id) do
+    if get_device(realm, device_id) == nil do
+      {:error, :device_not_found}
+    else
+      Agent.update(__MODULE__, fn %{devices: devices} = state ->
+        %{state | devices: Map.delete(devices, {realm, device_id})}
+      end)
+    end
+  end
+
+  defp mappings_max_storage_retention_exceeded?(_mappings, nil), do: false
+
+  defp mappings_max_storage_retention_exceeded?(mappings, max_retention) do
+    Enum.all?(mappings, fn %Mapping{database_retention_ttl: retention} ->
+      retention != nil and retention > max_retention
+    end)
   end
 end

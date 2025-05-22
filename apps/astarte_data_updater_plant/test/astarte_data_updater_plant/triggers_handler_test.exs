@@ -28,6 +28,7 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandlerTest do
     InterfaceAddedEvent,
     InterfaceMinorUpdatedEvent,
     InterfaceRemovedEvent,
+    InterfaceVersion,
     PathCreatedEvent,
     PathRemovedEvent,
     SimpleEvent,
@@ -44,6 +45,10 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandlerTest do
   alias Astarte.DataUpdaterPlant.TriggersHandler
 
   @introspection "com.My.Interface:1:0;com.Another.Interface:1:2"
+  @introspection_map %{
+    "com.My.Interface" => %InterfaceVersion{major: 1, minor: 0},
+    "com.Another.Interface" => %InterfaceVersion{major: 1, minor: 2}
+  }
   @queue_name "test_events_queue"
   @routing_key "test_routing_key"
   @realm "autotestrealm"
@@ -323,8 +328,56 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandlerTest do
              } = SimpleEvent.decode(payload)
 
       assert %IncomingIntrospectionEvent{
-               introspection: @introspection
+               introspection_map: @introspection_map
              } = incoming_introspection_event
+
+      headers_map = amqp_headers_to_map(meta.headers)
+
+      assert Map.get(headers_map, "x_astarte_realm") == @realm
+      assert Map.get(headers_map, "x_astarte_device_id") == @device_id
+      assert Map.get(headers_map, "x_astarte_event_type") == "incoming_introspection_event"
+      assert Map.get(headers_map, static_header_key) == static_header_value
+    end
+
+    test "incoming_introspection AMQPTarget handling with legacy event" do
+      Config.put_generate_legacy_incoming_introspection_events(true)
+      on_exit(fn -> Config.put_generate_legacy_incoming_introspection_events(false) end)
+      simple_trigger_id = :uuid.get_v4()
+      parent_trigger_id = :uuid.get_v4()
+      static_header_key = "important_metadata_incoming_introspection"
+      static_header_value = "test_meta_incoming_introspection"
+      static_headers = [{static_header_key, static_header_value}]
+      timestamp = get_timestamp()
+
+      target = %AMQPTriggerTarget{
+        simple_trigger_id: simple_trigger_id,
+        parent_trigger_id: parent_trigger_id,
+        static_headers: static_headers,
+        routing_key: @routing_key
+      }
+
+      TriggersHandler.incoming_introspection(
+        target,
+        @realm,
+        @device_id,
+        @introspection,
+        timestamp,
+        nil
+      )
+
+      assert_receive {:event, payload, meta}
+
+      assert %SimpleEvent{
+               device_id: @device_id,
+               parent_trigger_id: ^parent_trigger_id,
+               simple_trigger_id: ^simple_trigger_id,
+               realm: @realm,
+               timestamp: ^timestamp,
+               event: {:incoming_introspection_event, incoming_introspection_event}
+             } = SimpleEvent.decode(payload)
+
+      assert %IncomingIntrospectionEvent{introspection: @introspection} =
+               incoming_introspection_event
 
       headers_map = amqp_headers_to_map(meta.headers)
 

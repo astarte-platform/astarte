@@ -146,7 +146,8 @@ defmodule Astarte.AppEngine.API.DeviceTest do
     total_received_bytes: 4_500_000,
     total_received_msgs: 45000,
     previous_interfaces: @expected_previous_interfaces,
-    groups: []
+    groups: [],
+    deletion_in_progress: false
   }
 
   setup do
@@ -1463,12 +1464,12 @@ defmodule Astarte.AppEngine.API.DeviceTest do
                 data: %{
                   "my_new_path" => %{
                     "enable" => false,
-                    "samplingPeriod" => 100.0,
+                    "samplingPeriod" => 100,
                     "timestamp" => time1
                   },
                   "my_path" => %{
                     "enable" => true,
-                    "samplingPeriod" => 10.0,
+                    "samplingPeriod" => 10,
                     "timestamp" => time2
                   }
                 },
@@ -1617,12 +1618,12 @@ defmodule Astarte.AppEngine.API.DeviceTest do
                 data: %{
                   "my_new_path" => %{
                     "enable" => false,
-                    "samplingPeriod" => 100.0,
+                    "samplingPeriod" => 100,
                     "timestamp" => time1
                   },
                   "my_path" => %{
                     "enable" => true,
-                    "samplingPeriod" => 10.0,
+                    "samplingPeriod" => 10,
                     "timestamp" => time2
                   }
                 },
@@ -1817,6 +1818,9 @@ defmodule Astarte.AppEngine.API.DeviceTest do
              {:ok, <<12, 172, 90, 121, 159, 75, 205, 70, 75, 207, 181, 143, 77, 48, 4, 0>>}
 
     assert Device.device_alias_to_device_id("autotestrealm", "device_e") ==
+             {:ok, <<122, 19, 105, 108, 245, 109, 67, 96, 156, 116, 151, 73, 43, 116, 20, 148>>}
+
+    assert Device.device_alias_to_device_id("autotestrealm", "device_f") ==
              {:error, :device_not_found}
   end
 
@@ -2062,6 +2066,7 @@ defmodule Astarte.AppEngine.API.DeviceTest do
       "4UQbIokuRufdtbVZt9AsLg",
       "DKxaeZ9LzUZLz7WPTTAEAA",
       "aWag-VlVKC--1S-vfzZ9uQ",
+      "ehNpbPVtQ2CcdJdJK3QUlA",
       "f0VMRgIBAQAAAAAAAAAAAA",
       "olFkumNuZ_J0f_d6-8XCDg"
     ]
@@ -2086,10 +2091,13 @@ defmodule Astarte.AppEngine.API.DeviceTest do
 
         "olFkumNuZ_J0f_d6-8XCDg" ->
           assert device.total_received_bytes == 10
+
+        "ehNpbPVtQ2CcdJdJK3QUlA" ->
+          assert device.deletion_in_progress == true
       end
     end
 
-    assert length(devices_with_details) == 5
+    assert length(devices_with_details) == 6
   end
 
   defp retrieve_next_devices_list(
@@ -2123,6 +2131,18 @@ defmodule Astarte.AppEngine.API.DeviceTest do
   test "get_device_status!/2 returns the device_status with given id" do
     assert Device.get_device_status!("autotestrealm", @expected_device_status.id) ==
              {:ok, @expected_device_status}
+  end
+
+  test "get_device_status!/2 returns the device_status with correct deletion_in_progress value" do
+    deleted_device_id = "ehNpbPVtQ2CcdJdJK3QUlA"
+
+    assert {:ok, deleted_device_status} =
+             Device.get_device_status!("autotestrealm", deleted_device_id)
+
+    assert %{
+             id: ^deleted_device_id,
+             deletion_in_progress: true
+           } = deleted_device_status
   end
 
   defp unpack_interface_values({:ok, %InterfaceValues{data: values}}) do

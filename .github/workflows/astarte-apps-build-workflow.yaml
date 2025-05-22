@@ -15,8 +15,8 @@ on:
         required: true
 
 env:
-  elixir_version: "1.14.5"
-  otp_version: "25.3.2"
+  elixir_version: "1.15"
+  otp_version: "26.1"
 
 jobs:
   test-dialyzer:

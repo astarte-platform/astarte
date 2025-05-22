@@ -1,0 +1,23 @@
+{
+	"name": "astarte-data-updater-plant",
+	"dockerComposeFile": [
+		"../../../docker-compose.yml",
+		"../../../docker-compose.dev.yml",
+		"docker-compose.override.yml"
+	],
+	"service": "astarte-data-updater-plant",
+	"overrideCommand": true,
+	"mounts": [
+		"source=${localWorkspaceFolder}/../../,target=/workspace/astarte,type=bind"
+	],
+	"workspaceFolder": "/workspace/astarte/apps/astarte_data_updater_plant",
+	"customizations": {
+		"vscode": {
+			"extensions": [
+				"JakeBecker.elixir-ls",
+				"animus-coop.vscode-elixir-mix-formatter",
+				"ms-azuretools.vscode-docker"
+			]
+		}
+	}
+}

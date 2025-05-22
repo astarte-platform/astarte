@@ -35,7 +35,7 @@ info:
     an impact on devices and their data. Most Astarte applications would want to
     use this API to interact with devices, stream and receive data, and oversee
     their fleet.
-  version: "1.1.1"
+  version: 1.3.0-dev
   title: Astarte App Engine API
   contact:
     email: info@ispirata.com
@@ -136,11 +136,9 @@ paths:
                     - 8ZxuSGkU7pggwoomJeXo9g
                     - k-IFKDPoVzIXUcFkF7U80A
         '401':
-          description: Realm doesn't exist or operation not allowed.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/UnauthorizedError'
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/AuthorizationPathNotMatched'
   '/{realm_name}/devices/{device_id}':
     parameters:
       - name: realm_name
@@ -176,11 +174,9 @@ paths:
                   data:
                     $ref: '#/components/schemas/DeviceStatus'
         '401':
-          description: Realm doesn't exist or operation not allowed.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/UnauthorizedError'
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/AuthorizationPathNotMatched'
         '404':
           description: Device not found
           content:
@@ -221,11 +217,9 @@ paths:
         '400':
           description: Bad request
         '401':
-          description: Realm doesn't exist or operation not allowed.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/UnauthorizedError'
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/AuthorizationPathNotMatched'
         '404':
           description: Device not found.
           content:
@@ -272,11 +266,9 @@ paths:
                   data:
                     $ref: '#/components/schemas/DeviceStatus'
         '401':
-          description: Realm doesn't exist or operation not allowed.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/UnauthorizedError'
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/AuthorizationPathNotMatched'
         '404':
           description: Device not found
           content:
@@ -317,11 +309,9 @@ paths:
         '400':
           description: Bad request
         '401':
-          description: Realm doesn't exist or operation not allowed.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/UnauthorizedError'
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/AuthorizationPathNotMatched'
         '404':
           description: Device not found.
           content:
@@ -371,11 +361,9 @@ paths:
                       - com.test.foo
                       - com.test.bar
         '401':
-          description: Realm doesn't exist or operation not allowed.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/UnauthorizedError'
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/AuthorizationPathNotMatched'
         '404':
           description: Device not found.
           content:
@@ -423,11 +411,9 @@ paths:
         '200':
           description: Success
         '401':
-          description: Realm doesn't exist or operation not allowed.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/UnauthorizedError'
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/AuthorizationPathNotMatched'
         '404':
           description: Interface not found in introspection or device not found.
           content:
@@ -525,11 +511,9 @@ paths:
         '200':
           description: Success
         '401':
-          description: Realm doesn't exist or operation not allowed.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/UnauthorizedError'
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/AuthorizationPathNotMatched'
         '404':
           description: >-
             Path not found or interface not found in introspection or device not
@@ -588,11 +572,9 @@ paths:
         '400':
           description: Bad request
         '401':
-          description: Realm doesn't exist or operation not allowed.
-          content:
-            '*/*':
-              schema:
-                $ref: '#/components/schemas/UnauthorizedError'
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/AuthorizationPathNotMatched'
         '404':
           description: >-
             Endpoint not found or interface not found in introspection or device
@@ -650,11 +632,9 @@ paths:
         '400':
           description: Bad request
         '401':
-          description: Realm doesn't exist or operation not allowed.
-          content:
-            '*/*':
-              schema:
-                $ref: '#/components/schemas/UnauthorizedError'
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/AuthorizationPathNotMatched'
         '404':
           description: >-
             Endpoint not found or interface not found in introspection or device
@@ -710,11 +690,9 @@ paths:
         '204':
           description: Success
         '401':
-          description: Realm doesn't exist or operation not allowed.
-          content:
-            '*/*':
-              schema:
-                $ref: '#/components/schemas/UnauthorizedError'
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/AuthorizationPathNotMatched'
         '404':
           description: >-
             Path not found or interface not found in introspection or device not
@@ -748,6 +726,8 @@ paths:
           $ref: '#/components/responses/IndexGroups'
         '401':
           $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/AuthorizationPathNotMatched'
     post:
       tags:
         - groups
@@ -767,6 +747,8 @@ paths:
           $ref: '#/components/responses/GroupCreated'
         '401':
           $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/AuthorizationPathNotMatched'
         '422':
           $ref: '#/components/responses/InvalidGroupConfig'
   '/{realm_name}/groups/{group_name}':
@@ -788,6 +770,8 @@ paths:
           $ref: '#/components/responses/GetGroup'
         '401':
           $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/AuthorizationPathNotMatched'
         '404':
           $ref: '#/components/responses/GroupNotFound'
   '/{realm_name}/groups/{group_name}/devices':
@@ -808,6 +792,8 @@ paths:
           $ref: '#/components/responses/IndexGroupDevices'
         '401':
           $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/AuthorizationPathNotMatched'
         '404':
           $ref: '#/components/responses/GroupNotFound'
     post:
@@ -829,6 +815,8 @@ paths:
           description: Success
         '401':
           $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/AuthorizationPathNotMatched'
         '404':
           $ref: '#/components/responses/GroupNotFound'
         '422':
@@ -852,6 +840,8 @@ paths:
           description: Device removed
         '401':
           $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/AuthorizationPathNotMatched'
         '404':
           $ref: '#/components/responses/GroupOrDeviceNotFound'
   '/{realm_name}/stats/devices':
@@ -871,6 +861,8 @@ paths:
           $ref: '#/components/responses/GetDevicesStats'
         '401':
           $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/AuthorizationPathNotMatched'
 components:
   securitySchemes:
     JWT:
@@ -1000,11 +992,24 @@ components:
                   group_name:
                     - is invalid
     Unauthorized:
-      description: Realm doesn't exist or operation not allowed.
+      description: Token/Realm doesn't exist or operation not allowed.
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/UnauthorizedError'
+            oneOf:
+              - $ref: '#/components/schemas/MissingTokenError'
+              - $ref: '#/components/schemas/InvalidTokenError'
+              - $ref: '#/components/schemas/InvalidAuthPathError'
+              - $ref: '#/components/schemas/UnauthorizedError'
+    AuthorizationPathNotMatched:
+      description: Authorization path not matched.
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              data:
+                $ref: '#/components/schemas/AuthorizationPathNotMatchedError'
     GroupNotFound:
       description: Group not found
       content:
@@ -1154,6 +1159,9 @@ components:
                   The number of exchanged bytes of this interface. Note that exchanged bytes
                   are the same for all (interface, major) combinations, i.e. com.my.Interface v1.2
                   will have the same exchanged_bytes of com.my.Interface v1.x for every value of x
+        deletion_in_progress:
+          type: boolean
+          description: True if the device is currently being deleted, false otherwise.
       example:
         id: hm8AjtbN5P2mxo_gfXSfvQ
         aliases:
@@ -1191,6 +1199,7 @@ components:
             minor: 1
             exchanged_msgs: 5
             exchanged_bytes: 102
+        deletion_in_progress: false
     CreateGroupConfig:
       type: object
       required:
@@ -1248,3 +1257,54 @@ components:
       example:
         errors:
           detail: Unauthorized
+    MissingTokenError:
+      type: object
+      properties:
+        errors:
+          type: object
+          properties:
+            detail:
+              type: string
+              description: Short error description
+      example:
+        errors:
+          detail: Missing authorization token
+
+    InvalidTokenError:
+      type: object
+      properties:
+        errors:
+          type: object
+          properties:
+            detail:
+              type: string
+              description: Short error description
+      example:
+        errors:
+          detail: Invalid JWT token
+
+    InvalidAuthPathError:
+      type: object
+      properties:
+        errors:
+          type: object
+          properties:
+            detail:
+              type: string
+              description: Short error description
+      example:
+        errors:
+          detail: Authorization failed due to an invalid path
+
+    AuthorizationPathNotMatchedError:
+      type: object
+      properties:
+        errors:
+          type: object
+          properties:
+            detail:
+              type: string
+              description: Detailed error message including the method and path
+      example:
+        errors:
+          detail: Unauthorized access to GET /api/v1/some_path. Please verify your permissions

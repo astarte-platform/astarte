@@ -24,9 +24,6 @@ defmodule Astarte.RealmManagement.APIWeb.TriggerPolicyController do
 
   action_fallback(Astarte.RealmManagement.APIWeb.FallbackController)
 
-  plug(Astarte.RealmManagement.APIWeb.Plug.LogRealm)
-  plug(Astarte.RealmManagement.APIWeb.Plug.AuthorizePath)
-
   def index(conn, %{"realm_name" => realm_name}) do
     policies = Policies.list_trigger_policies(realm_name)
     render(conn, "index.json", policies: policies)

@@ -110,6 +110,30 @@ defmodule Astarte.AppEngine.APIWeb.ErrorView do
     %{errors: %{detail: "Forbidden"}}
   end
 
+  def render("missing_token.json", _assigns) do
+    %{errors: %{detail: "Missing authorization token"}}
+  end
+
+  def render("invalid_token.json", _assigns) do
+    %{errors: %{detail: "Invalid JWT token"}}
+  end
+
+  def render("invalid_auth_path.json", _assigns) do
+    %{
+      errors: %{
+        detail: "Authorization failed due to an invalid path"
+      }
+    }
+  end
+
+  def render("authorization_path_not_matched.json", %{method: method, path: path}) do
+    %{
+      errors: %{
+        detail: "Unauthorized access to #{method} #{path}. Please verify your permissions"
+      }
+    }
+  end
+
   def render("503_cannot_push_to_device.json", _assigns) do
     %{errors: %{detail: "Cannot push to device"}}
   end

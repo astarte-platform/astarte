@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2019 Ispirata Srl
+# Copyright 2019-2024 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -53,8 +53,6 @@ defmodule Astarte.Housekeeping.ReleaseTasks do
 
         raise "init_database failed"
     end
-
-    :ok = stop_services()
   end
 
   def migrate do
@@ -83,8 +81,6 @@ defmodule Astarte.Housekeeping.ReleaseTasks do
 
         raise "migrate failed"
     end
-
-    :ok = stop_services()
   end
 
   defp wait_connection_and_check_astarte_keyspace(retries \\ 60) do
@@ -109,7 +105,7 @@ defmodule Astarte.Housekeeping.ReleaseTasks do
     Enum.each(@start_apps, &Application.ensure_all_started/1)
 
     # Load astarte_data_access, without starting it. This makes the application env accessible.
-    :ok = Application.load(:astarte_data_access)
+    :ok = Application.ensure_loaded(:astarte_data_access)
 
     _ = Logger.info("Starting Xandra connection to #{inspect(Config.xandra_nodes!())}")
 
@@ -120,14 +116,5 @@ defmodule Astarte.Housekeeping.ReleaseTasks do
     {:ok, _pid} = Xandra.Cluster.start_link(xandra_options)
 
     :ok
-  end
-
-  defp stop_services do
-    _ =
-      Logger.info("Astarte database correctly initialized",
-        tag: "astarte_db_initialization_finished"
-      )
-
-    :init.stop()
   end
 end

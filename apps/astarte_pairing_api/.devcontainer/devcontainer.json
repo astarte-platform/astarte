@@ -1,0 +1,23 @@
+{
+	"name": "astarte-pairing-api",
+	"dockerComposeFile": [
+		"../../../docker-compose.yml",
+		"../../../docker-compose.dev.yml",
+		"docker-compose.override.yml"
+	],
+	"service": "astarte-pairing-api",
+	"overrideCommand": true,
+	"mounts": [
+		"source=${localWorkspaceFolder}/../../,target=/workspace/astarte,type=bind"
+	],
+	"workspaceFolder": "/workspace/astarte/apps/astarte_pairing_api",
+	"customizations": {
+		"vscode": {
+			"extensions": [
+				"JakeBecker.elixir-ls",
+				"animus-coop.vscode-elixir-mix-formatter",
+				"ms-azuretools.vscode-docker"
+			]
+		}
+	}
+}

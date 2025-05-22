@@ -1,0 +1,4 @@
+services:
+  astarte-appengine-api:
+    volumes:
+      - ../../../:/workspace/astarte

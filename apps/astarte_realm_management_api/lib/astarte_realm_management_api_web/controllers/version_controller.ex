@@ -21,9 +21,6 @@ defmodule Astarte.RealmManagement.APIWeb.VersionController do
 
   @version Mix.Project.config()[:version]
 
-  plug Astarte.RealmManagement.APIWeb.Plug.LogRealm
-  plug Astarte.RealmManagement.APIWeb.Plug.AuthorizePath
-
   def show(conn, _params) do
     render(conn, "show.json", %{version: @version})
   end

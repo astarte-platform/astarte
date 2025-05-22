@@ -18,11 +18,13 @@
 
 defmodule Astarte.DataUpdaterPlant.Health.Queries do
   require Logger
+  alias Astarte.DataUpdaterPlant.Config
+  alias Astarte.Core.CQLUtils
 
   def get_astarte_health(consistency) do
     query = """
     SELECT COUNT(*)
-    FROM astarte.realms
+    FROM  #{CQLUtils.realm_name_to_keyspace_name("astarte", Config.astarte_instance_id!())}.realms
     """
 
     with {:ok, %Xandra.Page{} = page} <-
@@ -32,7 +34,7 @@ defmodule Astarte.DataUpdaterPlant.Health.Queries do
     else
       :error ->
         _ =
-          Logger.warn("Cannot retrieve count for astarte.realms table.",
+          Logger.warning("Cannot retrieve count for astarte.realms table.",
             tag: "health_check_error"
           )
 
@@ -40,7 +42,7 @@ defmodule Astarte.DataUpdaterPlant.Health.Queries do
 
       {:error, %Xandra.Error{} = err} ->
         _ =
-          Logger.warn("Database error, health is not good: #{inspect(err)}.",
+          Logger.warning("Database error, health is not good: #{inspect(err)}.",
             tag: "health_check_database_error"
           )
 
@@ -48,7 +50,7 @@ defmodule Astarte.DataUpdaterPlant.Health.Queries do
 
       {:error, %Xandra.ConnectionError{} = err} ->
         _ =
-          Logger.warn("Database error, health is not good: #{inspect(err)}.",
+          Logger.warning("Database error, health is not good: #{inspect(err)}.",
             tag: "health_check_database_connection_error"
           )
 

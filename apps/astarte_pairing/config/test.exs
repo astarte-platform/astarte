@@ -26,6 +26,8 @@ config :astarte_pairing,
        :cfssl_url,
        System.get_env("CFSSL_API_URL") || "http://ispirata-docker-alpine-cfssl-autotest:8080"
 
+config :astarte_pairing, :astarte_instance_id, "test"
+
 config :bcrypt_elixir,
   log_rounds: 4
 

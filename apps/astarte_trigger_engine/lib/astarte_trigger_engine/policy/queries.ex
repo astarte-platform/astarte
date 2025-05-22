@@ -17,6 +17,8 @@
 #
 
 defmodule Astarte.TriggerEngine.Policy.Queries do
+  alias Astarte.Core.CQLUtils
+  alias Astarte.TriggerEngine.Config
   require Logger
 
   alias Astarte.Core.Realm
@@ -32,8 +34,11 @@ defmodule Astarte.TriggerEngine.Policy.Queries do
   end
 
   defp do_retrieve_policy_data(conn, realm_name, policy_name) do
+    keyspace_name =
+      CQLUtils.realm_name_to_keyspace_name(realm_name, Config.astarte_instance_id!())
+
     retrieve_statement =
-      "SELECT value FROM #{realm_name}.kv_store WHERE group='trigger_policy' AND key=:policy_name;"
+      "SELECT value FROM #{keyspace_name}.kv_store WHERE group='trigger_policy' AND key=:policy_name;"
 
     with {:ok, prepared} <-
            Xandra.prepare(conn, retrieve_statement),
@@ -43,12 +48,12 @@ defmodule Astarte.TriggerEngine.Policy.Queries do
       {:ok, policy}
     else
       {:error, %Xandra.Error{} = err} ->
-        _ = Logger.warn("Database error: #{inspect(err)}.", tag: "database_error")
+        _ = Logger.warning("Database error: #{inspect(err)}.", tag: "database_error")
         {:error, :database_error}
 
       {:error, %Xandra.ConnectionError{} = err} ->
         _ =
-          Logger.warn("Database connection error: #{inspect(err)}.",
+          Logger.warning("Database connection error: #{inspect(err)}.",
             tag: "database_connection_error"
           )
 
@@ -61,7 +66,7 @@ defmodule Astarte.TriggerEngine.Policy.Queries do
       :ok
     else
       _ =
-        Logger.warn("Invalid realm name.",
+        Logger.warning("Invalid realm name.",
           tag: "invalid_realm_name",
           realm: realm_name
         )

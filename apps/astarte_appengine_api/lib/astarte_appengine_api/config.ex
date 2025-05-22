@@ -213,4 +213,7 @@ defmodule Astarte.AppEngine.API.Config do
   defdelegate cqex_nodes!, to: DataAccessConfig
 
   defdelegate xandra_options!, to: DataAccessConfig
+
+  defdelegate astarte_instance_id!, to: DataAccessConfig
+  defdelegate astarte_instance_id, to: DataAccessConfig
 end

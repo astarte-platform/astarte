@@ -22,8 +22,8 @@ defmodule Astarte.TriggerEngine.Mixfile do
   def project do
     [
       app: :astarte_trigger_engine,
-      elixir: "~> 1.14",
-      version: "1.1.1",
+      elixir: "~> 1.15",
+      version: "1.3.0-dev",
       elixirc_paths: elixirc_paths(Mix.env()),
       build_embedded: Mix.env() == :prod,
       start_permanent: Mix.env() == :prod,
@@ -59,23 +59,23 @@ defmodule Astarte.TriggerEngine.Mixfile do
 
   defp astarte_required_modules(_) do
     [
-      {:astarte_core, "~> 1.1.1"},
-      {:astarte_data_access, "~> 1.1.1"}
+      {:astarte_core, github: "astarte-platform/astarte_core"},
+      {:astarte_data_access, github: "astarte-platform/astarte_data_access"}
     ]
   end
 
   def application do
     [
-      extra_applications: [:lager, :logger],
+      extra_applications: [:logger],
       mod: {Astarte.TriggerEngine.Application, []}
     ]
   end
 
   defp deps do
     [
-      {:amqp, "~> 2.1"},
+      {:amqp, "~> 3.3"},
       {:bbmustache, "~> 1.9"},
-      {:castore, "~> 0.1.0"},
+      {:castore, "~> 1.0.0"},
       {:cyanide, "~> 2.0"},
       {:httpoison, "~> 1.6"},
       {:jason, "~> 1.2"},
@@ -93,7 +93,12 @@ defmodule Astarte.TriggerEngine.Mixfile do
       {:xandra, "~> 0.13"},
       {:skogsra, "~> 2.2"},
       {:observer_cli, "~> 1.5"},
-      {:dialyxir, "~> 1.0", only: [:dev, :ci], runtime: false}
+      # Fix: re2 1.9.8 to build on arm64
+      {:re2, "~> 1.9.8", override: true},
+      {:dialyxir, "~> 1.0", only: [:dev, :ci], runtime: false},
+      # Workaround for Elixir 1.15 / ssl_verify_fun issue
+      # See also: https://github.com/deadtrickster/ssl_verify_fun.erl/pull/27
+      {:ssl_verify_fun, "~> 1.1.0", manager: :rebar3, override: true}
     ]
   end
 end

@@ -44,7 +44,7 @@ defmodule Astarte.Housekeeping.APIWeb.Plug.GuardianAuthorizePath do
       conn
     else
       {:error, :invalid_auth_path} ->
-        Logger.warn(
+        Logger.warning(
           "Can't build auth_path with path_params: #{inspect(conn.path_params)} path_info: #{inspect(conn.path_info)} query_params: #{inspect(conn.query_params)}"
         )
 

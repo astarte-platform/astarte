@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2017-2018 Ispirata Srl
+# Copyright 2017-2024 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -17,6 +17,8 @@
 #
 
 defmodule Astarte.TriggerEngine.EventsConsumer do
+  alias Astarte.Core.Triggers.SimpleEvents.IncomingIntrospectionEvent
+  alias Astarte.Core.Triggers.SimpleEvents.InterfaceVersion
   alias Astarte.Core.Triggers.SimpleEvents.SimpleEvent
   alias Astarte.Core.Triggers.Trigger
   alias Astarte.DataAccess.Database
@@ -62,23 +64,48 @@ defmodule Astarte.TriggerEngine.EventsConsumer do
 
   defp handle_simple_event(realm, device_id, headers_map, event_type, event, timestamp_ms) do
     with {:ok, trigger_id} <- Map.fetch(headers_map, "x_astarte_parent_trigger_id"),
-         {:ok, action} <- retrieve_trigger_configuration(realm, trigger_id),
+         {:ok, %{action: action, trigger_name: trigger_name}} <-
+           retrieve_trigger_configuration(realm, trigger_id),
          {:ok, payload} <-
-           event_to_payload(realm, device_id, event_type, event, action, timestamp_ms),
-         {:ok, headers} <- event_to_headers(realm, device_id, event_type, event, action),
-         :ok <- execute_action(payload, headers, action) do
-      :telemetry.execute(
-        [:astarte, :trigger_engine, :http_action_executed],
-        %{},
-        %{realm: realm, status: :ok}
-      )
-
-      :ok
+           event_to_payload(
+             realm,
+             device_id,
+             event_type,
+             event,
+             action,
+             trigger_name,
+             timestamp_ms
+           ),
+         {:ok, headers} <- event_to_headers(realm, device_id, event_type, event, action) do
+      send_simple_event(realm, payload, headers, action)
     else
+      error ->
+        Logger.warning("Error while processing event: #{inspect(error)}")
+
+        error
+    end
+  end
+
+  defp send_simple_event(realm, payload, headers, action) do
+    payload_size = :erlang.byte_size(payload)
+
+    case execute_action(payload, headers, action) do
+      :ok ->
+        :telemetry.execute(
+          [:astarte, :trigger_engine, :http_action_executed],
+          %{payload_bytes: payload_size},
+          %{
+            realm: realm,
+            status: :ok
+          }
+        )
+
+        :ok
+
       {:error, {:http_error, status_code}} ->
         :telemetry.execute(
           [:astarte, :trigger_engine, :http_action_executed],
-          %{},
+          %{payload_bytes: payload_size},
           %{realm: realm, status: status_code}
         )
 
@@ -87,23 +114,25 @@ defmodule Astarte.TriggerEngine.EventsConsumer do
       {:error, :connection_error} ->
         :telemetry.execute(
           [:astarte, :trigger_engine, :http_action_executed],
-          %{},
+          %{payload_bytes: payload_size},
           %{realm: realm, status: :connection_error}
         )
 
         {:error, :connection_error}
-
-      error ->
-        Logger.warn("Error while processing event: #{inspect(error)}")
-
-        error
     end
   end
 
-  defp build_values_map(realm, device_id, event_type, event) do
+  defp build_values_map(
+         realm,
+         device_id,
+         event_type,
+         event,
+         trigger_name
+       ) do
     base_values = %{
       "realm" => realm,
       "device_id" => device_id,
+      "trigger_name" => trigger_name,
       "event_type" => to_string(event_type)
     }
 
@@ -159,19 +188,32 @@ defmodule Astarte.TriggerEngine.EventsConsumer do
            "template" => template,
            "template_type" => "mustache"
          },
+         trigger_name,
          _timestamp_ms
        ) do
-    values = build_values_map(realm, device_id, event_type, event)
+    event = maybe_normalize_introspection_event(event)
+    values = build_values_map(realm, device_id, event_type, event, trigger_name)
 
     {:ok, :bbmustache.render(template, values, key_type: :binary)}
   end
 
-  defp event_to_payload(_realm, device_id, _event_type, event, _action, timestamp_ms) do
+  defp event_to_payload(
+         _realm,
+         device_id,
+         _event_type,
+         event,
+         _action,
+         trigger_name,
+         timestamp_ms
+       ) do
+    event = maybe_normalize_introspection_event(event)
+
     with {:ok, timestamp} <- DateTime.from_unix(timestamp_ms, :millisecond) do
       %{
         "timestamp" => timestamp,
         "device_id" => device_id,
-        "event" => event
+        "event" => event,
+        "trigger_name" => trigger_name
       }
       |> Jason.encode()
     end
@@ -184,6 +226,28 @@ defmodule Astarte.TriggerEngine.EventsConsumer do
   defp build_request_opts(_action) do
     []
   end
+
+  # If introspection = nil, it means we are using the introspection map format
+  # instead of the old one (pre-1.2) where introspection is a string
+  defp maybe_normalize_introspection_event(
+         %IncomingIntrospectionEvent{introspection: nil} = event
+       ) do
+    %IncomingIntrospectionEvent{introspection_map: introspection_map} = event
+
+    Enum.reduce(introspection_map, fn {interface_name, version}, acc ->
+      %InterfaceVersion{
+        major: version_major,
+        minor: version_minor
+      } = version
+
+      Map.put_new(acc, interface_name, %{
+        major: version_major,
+        minor: version_minor
+      })
+    end)
+  end
+
+  defp maybe_normalize_introspection_event(event), do: event
 
   defp execute_action(payload, headers, action) do
     with {:ok, method, url} <- fetch_method_and_url(action),
@@ -208,14 +272,14 @@ defmodule Astarte.TriggerEngine.EventsConsumer do
       end
     else
       {:error, reason} ->
-        Logger.warn(
+        Logger.warning(
           "Error while processing the request: #{inspect(reason)}. Payload: #{inspect(payload)}, headers: #{inspect(headers)}, action: #{inspect(action)}"
         )
 
         {:error, :connection_error}
 
       error ->
-        Logger.warn("Error while processing event: #{inspect(error)}")
+        Logger.warning("Error while processing event: #{inspect(error)}")
         error
     end
   end
@@ -260,14 +324,14 @@ defmodule Astarte.TriggerEngine.EventsConsumer do
          [value: trigger_data] <- DatabaseResult.head(result),
          trigger <- Trigger.decode(trigger_data),
          {:ok, action} <- Jason.decode(trigger.action) do
-      {:ok, action}
+      {:ok, %{action: action, trigger_name: trigger.name}}
     else
       {:error, :database_connection_error} ->
-        Logger.warn("Database connection error.")
+        Logger.warning("Database connection error.")
         {:error, :database_connection_error}
 
       error ->
-        Logger.warn("Error while processing event: #{inspect(error)}")
+        Logger.warning("Error while processing event: #{inspect(error)}")
         {:error, :trigger_not_found}
     end
   end

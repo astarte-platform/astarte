@@ -18,10 +18,12 @@ on:
     - 'apps/**'
     - 'tools/astarte_e2e/**'
     - '.github/workflows/astarte-end-to-end-test-workflow.yaml'
+  # Allow this workflow to be called  by others
+  workflow_call:
 
 env:
-  elixir_version: "1.14.5"
-  otp_version: "25.3.2"
+  elixir_version: "1.15"
+  otp_version: "26.1"
 
 jobs:
   end-to-end-test:
@@ -42,8 +44,8 @@ jobs:
         ./wait-for-astarte-docker-compose
     - name: Install astartectl
       run: |
-        wget https://github.com/astarte-platform/astartectl/releases/download/v22.11.02/astartectl_22.11.02_linux_x86_64.tar.gz
-        tar xf astartectl_22.11.02_linux_x86_64.tar.gz
+        wget https://github.com/astarte-platform/astartectl/releases/download/v23.5.1/astartectl_23.5.1_linux_x86_64.tar.gz
+        tar xf astartectl_23.5.1_linux_x86_64.tar.gz
         chmod +x astartectl
     - name: Create realm
       run: |
@@ -84,7 +86,7 @@ jobs:
       working-directory: tools/astarte_e2e
       run: |
         mix deps.get
-        mix compile
+        mix compile --warnings-as-errors --force
     - name: Run Astarte E2E
       working-directory: tools/astarte_e2e
       env:

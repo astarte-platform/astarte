@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2017 Ispirata Srl
+# Copyright 2017-2023 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -35,6 +35,12 @@ defmodule Astarte.Housekeeping.APIWeb.RealmControllerTest do
     +bxRibfFC0G6SugduGzqIACSdIiLEn4Nubx2jt4tHDpel0BIrYKlCw==
   -----END PUBLIC KEY-----
   """
+  @other_pubkey """
+  -----BEGIN PUBLIC KEY-----
+  MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEat8cZJ77myME8YQYfVkxOz39Wrq9
+  3FYHyYudzQKa11c55Z6ZZaw2H+nUkQl1/jqfHTrqMSiOP4TTf0oTYLWKfg==
+  -----END PUBLIC KEY-----
+  """
 
   @create_attrs %{"data" => %{"realm_name" => "testrealm", "jwt_public_key_pem" => @pubkey}}
   @explicit_replication_attrs %{
@@ -55,8 +61,8 @@ defmodule Astarte.Housekeeping.APIWeb.RealmControllerTest do
       }
     }
   }
-  @update_attrs %{"data" => %{}}
-  @invalid_attrs %{}
+  @update_attrs %{"data" => %{"jwt_public_key_pem" => @other_pubkey}}
+  @invalid_update_attrs %{"data" => %{"jwt_public_key_pem" => @malformed_pubkey}}
   @invalid_name_attrs %{"data" => %{"realm_name" => "0invalid", "jwt_public_key_pem" => @pubkey}}
   @invalid_replication_attrs %{
     "data" => %{
@@ -114,7 +120,9 @@ defmodule Astarte.Housekeeping.APIWeb.RealmControllerTest do
                "realm_name" => @create_attrs["data"]["realm_name"],
                "jwt_public_key_pem" => @create_attrs["data"]["jwt_public_key_pem"],
                "replication_class" => "SimpleStrategy",
-               "replication_factor" => 1
+               "replication_factor" => 1,
+               "device_registration_limit" => nil,
+               "datastream_maximum_storage_retention" => nil
              }
            }
   end
@@ -130,7 +138,9 @@ defmodule Astarte.Housekeeping.APIWeb.RealmControllerTest do
                "realm_name" => @explicit_replication_attrs["data"]["realm_name"],
                "jwt_public_key_pem" => @explicit_replication_attrs["data"]["jwt_public_key_pem"],
                "replication_class" => "SimpleStrategy",
-               "replication_factor" => @explicit_replication_attrs["data"]["replication_factor"]
+               "replication_factor" => @explicit_replication_attrs["data"]["replication_factor"],
+               "device_registration_limit" => nil,
+               "datastream_maximum_storage_retention" => nil
              }
            }
   end
@@ -147,7 +157,9 @@ defmodule Astarte.Housekeeping.APIWeb.RealmControllerTest do
                "jwt_public_key_pem" => @network_topology_attrs["data"]["jwt_public_key_pem"],
                "replication_class" => "NetworkTopologyStrategy",
                "datacenter_replication_factors" =>
-                 @network_topology_attrs["data"]["datacenter_replication_factors"]
+                 @network_topology_attrs["data"]["datacenter_replication_factors"],
+               "device_registration_limit" => nil,
+               "datastream_maximum_storage_retention" => nil
              }
            }
   end
@@ -185,20 +197,110 @@ defmodule Astarte.Housekeeping.APIWeb.RealmControllerTest do
     assert json_response(conn, 422)["errors"] != %{}
   end
 
-  @tag :wip
-  test "updates chosen realm and renders realm when data is valid", %{conn: conn} do
+  test "updates chosen realm when data is valid", %{conn: conn} do
     %Realm{realm_name: realm_name} = realm = fixture(:realm)
-    conn = put(conn, realm_path(conn, :update, realm), @update_attrs)
-    assert %{"realm_name" => ^realm_name} = json_response(conn, 200)
+    conn = patch(conn, realm_path(conn, :update, realm), @update_attrs)
+    assert %{"data" => updated_realm} = json_response(conn, 200)
 
-    conn = get(conn, realm_path(conn, :show, realm_name))
-    assert json_response(conn, 200) == %{"realm_name" => realm_name}
+    assert %{
+             "realm_name" => ^realm_name,
+             "jwt_public_key_pem" => @other_pubkey
+           } = updated_realm
   end
 
-  @tag :wip
+  test "updates chosen realm device registration limit", %{conn: conn} do
+    %Realm{realm_name: realm_name} = realm = fixture(:realm)
+    limit = 10
+
+    conn =
+      patch(conn, realm_path(conn, :update, realm), %{
+        "data" => %{"device_registration_limit" => limit}
+      })
+
+    assert %{"data" => updated_realm} = json_response(conn, 200)
+
+    assert %{
+             "realm_name" => ^realm_name,
+             "device_registration_limit" => ^limit
+           } = updated_realm
+  end
+
+  test "updates chosen realm maximum storage retention", %{conn: conn} do
+    %Realm{realm_name: realm_name} = realm = fixture(:realm)
+    limit = 10
+
+    conn =
+      patch(conn, realm_path(conn, :update, realm), %{
+        "data" => %{"datastream_maximum_storage_retention" => limit}
+      })
+
+    assert %{"data" => updated_realm} = json_response(conn, 200)
+
+    assert %{
+             "realm_name" => ^realm_name,
+             "datastream_maximum_storage_retention" => ^limit
+           } = updated_realm
+  end
+
+  test "removes chosen realm device registration limit", %{conn: conn} do
+    %Realm{realm_name: realm_name} = realm = fixture(:realm)
+
+    conn =
+      patch(conn, realm_path(conn, :update, realm), %{
+        "data" => %{"device_registration_limit" => 10}
+      })
+
+    assert %{"data" => updated_realm} = json_response(conn, 200)
+
+    assert %{
+             "realm_name" => ^realm_name,
+             "device_registration_limit" => 10
+           } = updated_realm
+
+    conn =
+      patch(conn, realm_path(conn, :update, realm), %{
+        "data" => %{"device_registration_limit" => nil}
+      })
+
+    assert %{"data" => updated_realm} = json_response(conn, 200)
+
+    assert %{
+             "realm_name" => ^realm_name,
+             "device_registration_limit" => nil
+           } = updated_realm
+  end
+
+  test "removes chosen realm maximum storage retention", %{conn: conn} do
+    %Realm{realm_name: realm_name} = realm = fixture(:realm)
+
+    conn =
+      patch(conn, realm_path(conn, :update, realm), %{
+        "data" => %{"datastream_maximum_storage_retention" => 10}
+      })
+
+    assert %{"data" => updated_realm} = json_response(conn, 200)
+
+    assert %{
+             "realm_name" => ^realm_name,
+             "datastream_maximum_storage_retention" => 10
+           } = updated_realm
+
+    conn =
+      patch(conn, realm_path(conn, :update, realm), %{
+        "data" => %{"datastream_maximum_storage_retention" => nil}
+      })
+
+    assert %{"data" => updated_realm} = json_response(conn, 200)
+
+    assert %{
+             "realm_name" => ^realm_name,
+             "datastream_maximum_storage_retention" => nil
+           } = updated_realm
+  end
+
   test "does not update chosen realm and renders errors when data is invalid", %{conn: conn} do
-    realm = fixture(:realm)
-    conn = put(conn, realm_path(conn, :update, realm), @invalid_attrs)
+    %Realm{realm_name: realm_name} = realm = fixture(:realm)
+    conn = patch(conn, realm_path(conn, :update, realm), @invalid_update_attrs)
     assert json_response(conn, 422)["errors"] != %{}
   end
 

@@ -1,0 +1,138 @@
+services:
+  astarte-housekeeping:
+    build:
+      dockerfile: ../../Dockerfile
+      context: apps/astarte_housekeeping
+      target: builder
+      args:
+        BUILD_ENV: dev
+    command:
+      - |
+        set -e
+        mix eval Elixir.Astarte.Housekeeping.ReleaseTasks.init_database
+        mix eval Elixir.Astarte.Housekeeping.ReleaseTasks.migrate
+        mix run --no-halt
+    develop:
+      watch:
+        - path: apps/astarte_housekeeping/lib
+          action: rebuild
+  astarte-housekeeping-api:
+    build:
+      dockerfile: ../../Dockerfile
+      context: apps/astarte_housekeeping_api
+      target: builder
+      args:
+        BUILD_ENV: dev
+    command:
+      - |
+        mix phx.server
+    develop:
+      watch:
+        - path: apps/astarte_housekeeping_api/lib
+          action: sync
+          target: /src/lib
+  astarte-realm-management:
+    build:
+      dockerfile: ../../Dockerfile
+      context: apps/astarte_realm_management
+      target: builder
+      args:
+        BUILD_ENV: dev
+    command:
+      - |
+        mix run --no-halt
+    develop:
+      watch:
+        - path: apps/astarte_realm_management/lib
+          action: rebuild
+  astarte-realm-management-api:
+    build:
+      dockerfile: ../../Dockerfile
+      context: apps/astarte_realm_management_api
+      target: builder
+      args:
+        BUILD_ENV: dev
+    command:
+      - |
+        mix phx.server
+    develop:
+      watch:
+        - path: apps/astarte_realm_management_api/lib
+          action: sync
+          target: /src/lib
+  astarte-pairing:
+    build:
+      dockerfile: ../../Dockerfile
+      context: apps/astarte_pairing
+      target: builder
+      args:
+        BUILD_ENV: dev
+    command:
+      - |
+        mix run --no-halt
+    develop:
+      watch:
+        - path: apps/astarte_pairing/lib
+          action: rebuild
+  astarte-pairing-api:
+    build:
+      dockerfile: ../../Dockerfile
+      context: apps/astarte_pairing_api
+      target: builder
+      args:
+        BUILD_ENV: dev
+    command:
+      - |
+        mix phx.server
+    develop:
+      watch:
+        - path: apps/astarte_pairing_api/lib
+          action: sync
+          target: /src/lib
+  astarte-appengine-api:
+    build:
+      dockerfile: ../../Dockerfile
+      context: apps/astarte_appengine_api
+      target: builder
+      args:
+        BUILD_ENV: dev
+    command:
+      - |
+        mix phx.server
+    develop:
+      watch:
+        - path: apps/astarte_appengine_api/lib
+          action: sync
+          target: /src/lib
+  astarte-data-updater-plant:
+    build:
+      dockerfile: ../../Dockerfile
+      context: apps/astarte_data_updater_plant
+      target: builder
+      args:
+        BUILD_ENV: dev
+    command:
+      - |
+        mix run --no-halt
+    develop:
+      watch:
+        - path: apps/astarte_data_updater_plant/lib
+          action: rebuild
+  astarte-trigger-engine:
+    build:
+      dockerfile: ../../Dockerfile
+      context: apps/astarte_trigger_engine
+      target: builder
+      args:
+        BUILD_ENV: dev
+    command:
+      - |
+        mix run --no-halt
+    develop:
+      watch:
+        - path: apps/astarte_trigger_engine/lib
+          action: rebuild
+  scylla:
+    command: --smp 1 --memory 750M
+    ports:
+      - 9042:9042

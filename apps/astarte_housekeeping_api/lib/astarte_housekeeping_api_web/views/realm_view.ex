@@ -39,7 +39,9 @@ defmodule Astarte.Housekeeping.APIWeb.RealmView do
         realm_name: realm.realm_name,
         jwt_public_key_pem: realm.jwt_public_key_pem,
         replication_class: "SimpleStrategy",
-        replication_factor: realm.replication_factor
+        replication_factor: realm.replication_factor,
+        device_registration_limit: realm.device_registration_limit,
+        datastream_maximum_storage_retention: realm.datastream_maximum_storage_retention
       }
     }
   end
@@ -50,7 +52,9 @@ defmodule Astarte.Housekeeping.APIWeb.RealmView do
         realm_name: realm.realm_name,
         jwt_public_key_pem: realm.jwt_public_key_pem,
         replication_class: "NetworkTopologyStrategy",
-        datacenter_replication_factors: realm.datacenter_replication_factors
+        datacenter_replication_factors: realm.datacenter_replication_factors,
+        device_registration_limit: realm.device_registration_limit,
+        datastream_maximum_storage_retention: realm.datastream_maximum_storage_retention
       }
     }
   end
