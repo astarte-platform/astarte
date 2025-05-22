@@ -7,6 +7,7 @@ on:
     - 'apps/astarte_appengine_api/**'
     - '.github/workflows/astarte-apps-build-workflow.yaml'
     - '.github/workflows/astarte-appengine-api-workflow.yaml'
+    - '.github/codecov.yml'
     branches:
     - 'master'
     - 'release-*'
@@ -18,6 +19,7 @@ on:
     - 'apps/astarte_appengine_api/**'
     - '.github/workflows/astarte-apps-build-workflow.yaml'
     - '.github/workflows/astarte-appengine-api-workflow.yaml'
+    - '.github/codecov.yml'
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
