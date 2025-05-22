@@ -3,7 +3,7 @@
 Astarte Export is an easy to use tool that allows to exporting all the devices and data from an existing Astarte realm to XML format.
 
 ```iex
-iex(astarte_export@127.0.0.1)6> Astarte.Export.export_realm_data("test", "test.xml")
+iex(astarte_export@127.0.0.1)6> Astarte.Export.export_realm_data("test", "test.xml", [{:device_id, "ogmcilZpRDe"}, {:db_host_and_port, "localhost:9042"}])
 level=info ts=2020-02-03T03:57:21.412+00:00 msg="Export started." module=Astarte.Export function=generate_xml/2 realm=test tag=export_started
 level=info ts=2020-02-03T03:57:21.413+00:00 msg="Connecting to \"172.23.0.3\":\"9042\" cassandra database." module=Astarte.Export.FetchData.Queries function=get_connection/0
 level=info ts=2020-02-03T03:57:21.414+00:00 msg="Connected to database." module=Astarte.Export.FetchData.Queries function=get_connection/0
@@ -40,12 +40,26 @@ To export data for all devices in a realm:
 To export data for a single device in a realm:
 
 ```bash
-mix astarte.export <REALM> <FILE_XML> <DEVICE_ID>
+mix astarte.export <REALM> <FILE_XML> --device_id <DEVICE_ID>
 ```
 
 - `<REALM>`: The name of the Astarte realm.
 - `<FILE_XML>`: The output file path where the exported data will be saved.
-- `<DEVICE_ID>`: The unique identifier of the device (e.g., "ogmcilZpRDeDWwuNfJr0yA").
+- `--device_id <DEVICE_ID>`(optional): The unique identifier of the device (e.g., "ogmcilZpRDeDWwuNfJr0yA").
+
+## Export Data for a Realm with a Custom Database Host and Port
+
+To export data from a specific Astarte realm with a custom database host and port:
+
+```bash
+mix astarte.export <REALM> <FILE_XML> --device_id <DEVICE_ID> --db_host_and_port <DB_HOST_AND_PORT>
+```
+
+- `<REALM>`: The name of the Astarte realm.
+- `<FILE_XML>`: The output file path where the exported data will be saved.
+- `--device_id  <DEVICE_ID>` (optional): The unique identifier of the device (e.g., "ogmcilZpRDeDWwuNfJr0yA").
+- `--db_host_and_port <DB_HOST_AND_PORT>` (optional): 
+  The host and port of the database in the format host:port (e.g., "localhost:9042"").
 
 ## Example Commands
 
