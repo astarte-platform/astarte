@@ -17,7 +17,7 @@
 #
 
 defmodule Astarte.DataUpdaterPlant.PayloadsDecoderTest do
-  use ExUnit.Case
+  use ExUnit.Case, async: true
   alias Astarte.DataUpdaterPlant.DataUpdater.PayloadsDecoder
 
   test "unset" do
