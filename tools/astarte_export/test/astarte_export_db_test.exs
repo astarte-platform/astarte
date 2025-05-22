@@ -3,8 +3,17 @@ defmodule Astarte.Export.FetchDataDBTest do
   alias Astarte.Export.FetchData
   alias Astarte.Export.FetchData.Queries
   alias Astarte.Core.Device
+  alias Astarte.DatabaseTestdata
 
-  @realm "test"
+  setup_all do
+    DatabaseTestdata.initialize_database()
+
+    on_exit(fn ->
+      DatabaseTestdata.drop_test_database()
+    end)
+  end
+
+  @realm "astarte_test"
   @device_id_expected "yKA3CMd07kWaDyj6aMP4Dg"
   @individual_datastream_interface "org.individualdatastreams.values"
   @major_version 0
