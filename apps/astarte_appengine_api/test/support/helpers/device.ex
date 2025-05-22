@@ -129,11 +129,15 @@ defmodule Astarte.Helpers.Device do
       valid_remote_matches(local_matches, interface.type, mapping_update.reliability)
       |> Enum.at(0)
 
-    Mox.expect(Astarte.AppEngine.API.RPC.VMQPlugin.ClientMock, :publish, fn args ->
-      validation_function.(args)
+    Mox.expect(
+      Astarte.AppEngine.API.RPC.VMQPlugin.ClientMock,
+      :publish,
+      fn args ->
+        validation_function.(args)
 
-      {:ok, %{local_matches: local_matches, remote_matches: remote_matches}}
-    end)
+        {:ok, %{local_matches: local_matches, remote_matches: remote_matches}}
+      end
+    )
   end
 
   def is_fallible?(interface) do
@@ -182,20 +186,34 @@ defmodule Astarte.Helpers.Device do
   end
 
   def valid_result?(result, interface, value)
-      when interface.aggregation == :individual do
+      when interface.aggregation == :individual and is_map(value) do
     similar?(result, value)
   end
 
-  def valid_result?(result, _interface, value) when is_map(result) do
+  def valid_result?(result, _interface, value) when is_map(result) and is_map(value) do
     Map.intersect(value, result)
     |> Enum.all?(fn {key, result_value} -> similar?(result_value, Map.fetch!(value, key)) end)
   end
 
   def valid_result?(result, interface, value) when is_list(result) do
-    Enum.any?(result, &valid_result?(&1, interface, value))
+    similar?(result, value) or Enum.any?(result, &valid_result?(&1, interface, value))
+  end
+
+  def valid_result?(result, _interface, value) do
+    similar?(result, value)
   end
 
   defp similar?(nil = _result, [] = _value), do: true
+  defp similar?(%{} = _result, nil = _value), do: true
+  defp similar?("" = _result, nil = _value), do: true
+  defp similar?(%{"" => nil}, nil), do: true
+  defp similar?(%{"" => nil}, []), do: true
+
+  defp similar?(%DateTime{} = datetime, timestamp)
+       when is_integer(timestamp),
+       do: DateTime.to_unix(datetime) == timestamp
+
+  defp similar?(%{"timestamp" => _, "value" => result}, value), do: similar?(result, value)
 
   defp similar?(result, value) when is_binary(result) and is_number(value),
     do: result == to_string(value)
