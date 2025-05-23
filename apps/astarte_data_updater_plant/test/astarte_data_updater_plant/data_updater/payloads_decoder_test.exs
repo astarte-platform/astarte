@@ -18,142 +18,53 @@
 
 defmodule Astarte.DataUpdaterPlant.PayloadsDecoderTest do
   use ExUnit.Case, async: true
+  use ExUnitProperties
   alias Astarte.DataUpdaterPlant.DataUpdater.PayloadsDecoder
+  alias Astarte.Common.Generators.Timestamp, as: TimestampGenerator
 
   test "unset" do
-    {:ok, date_time, 0} = DateTime.from_iso8601("2018-03-19T14:15:32+00:00")
-    timestamp = DateTime.to_unix(date_time, :millisecond) * 10000 + 123
+    timestamp = decimicrosecond_timestamp() |> Enum.at(0)
 
     assert PayloadsDecoder.decode_bson_payload(<<>>, timestamp) == {nil, nil, nil}
   end
 
   test "deprecated unset" do
-    {:ok, date_time, 0} = DateTime.from_iso8601("2018-03-19T14:15:32+00:00")
-    timestamp = DateTime.to_unix(date_time, :millisecond) * 10000 + 123
+    timestamp = decimicrosecond_timestamp() |> Enum.at(0)
 
-    unset_payload = Base.decode64!("DQAAAAV2AAAAAAAAAA==")
+    unset_payload = %{"v" => %Cyanide.Binary{data: <<>>, subtype: :generic}} |> Cyanide.encode!()
 
     assert PayloadsDecoder.decode_bson_payload(unset_payload, timestamp) == {nil, nil, nil}
   end
 
-  test "individual value payloads without metadata and without timestamp" do
-    {:ok, date_time, 0} = DateTime.from_iso8601("2018-03-19T14:15:32+00:00")
-    timestamp = DateTime.to_unix(date_time, :microsecond) * 10 + 123
-    expected_timestamp = DateTime.to_unix(date_time, :millisecond)
+  property "individual value payloads without metadata and without timestamp" do
+    timestamp = decimicrosecond_timestamp() |> Enum.at(0)
+    expected_timestamp = timestamp |> div(10_000)
 
-    string_payload = Base.decode64!("FAAAAAJ2AAgAAAAjRTVEOTAwAAA=")
+    check all payload <- decoded_payload() do
+      encoded_payload = Cyanide.encode!(payload)
+      value = Map.fetch!(payload, "v")
 
-    assert PayloadsDecoder.decode_bson_payload(string_payload, timestamp) ==
-             {"#E5D900", expected_timestamp, %{}}
+      expected_timestamp =
+        case Map.fetch(payload, "t") do
+          {:ok, explicit_timestamp} -> DateTime.to_unix(explicit_timestamp, :millisecond)
+          :error -> expected_timestamp
+        end
 
-    boolean_payload = Base.decode64!("CQAAAAh2AAAA")
+      expected_metadata = Map.get(payload, "m", %{})
 
-    assert PayloadsDecoder.decode_bson_payload(boolean_payload, timestamp) ==
-             {false, expected_timestamp, %{}}
-
-    double_payload = Base.decode64!("EAAAAAF2AKqjtujUUds/AA==")
-
-    assert PayloadsDecoder.decode_bson_payload(double_payload, timestamp) ==
-             {0.4268696091262948, expected_timestamp, %{}}
-  end
-
-  test "individual value payloads with timestamp and without metadata" do
-    {:ok, date_time, 0} = DateTime.from_iso8601("2018-02-19T14:15:32+00:00")
-    rec_timestamp = DateTime.to_unix(date_time, :microsecond) * 10 + 123
-    expected_timestamp = 1_521_464_570_595
-
-    double_payload = Base.decode64!("GwAAAAF2AGZRYzaGqOE/CXQA4/JaPmIBAAAA")
-
-    assert PayloadsDecoder.decode_bson_payload(double_payload, rec_timestamp) ==
-             {0.5518218099846706, expected_timestamp, %{}}
-  end
-
-  test "individual value payloads with metadata and without timestamp" do
-    {:ok, date_time, 0} = DateTime.from_iso8601("2018-02-19T14:15:32+00:00")
-    rec_timestamp = DateTime.to_unix(date_time, :microsecond) * 10 + 123
-    expected_timestamp = DateTime.to_unix(date_time, :millisecond)
-
-    double_payload =
-      Base.decode64!("MAAAAANtAB0AAAACbWV0YTEAAgAAAGEAEG1ldGEyAAIAAAAAAXYAZlFjNoao4T8A")
-
-    assert PayloadsDecoder.decode_bson_payload(double_payload, rec_timestamp) ==
-             {0.5518218099846706, expected_timestamp, %{"meta1" => "a", "meta2" => 2}}
+      assert PayloadsDecoder.decode_bson_payload(encoded_payload, timestamp) ==
+               {value, expected_timestamp, expected_metadata}
+    end
   end
 
   test "deprecated object aggregation" do
-    {:ok, date_time, 0} = DateTime.from_iso8601("2018-03-19T14:15:32+00:00")
-    timestamp = DateTime.to_unix(date_time, :microsecond) * 10 + 123
-    expected_timestamp = DateTime.to_unix(date_time, :millisecond)
+    timestamp = decimicrosecond_timestamp() |> Enum.at(0)
+    expected_timestamp = timestamp |> div(10_000)
 
-    object_payload =
-      "SwAAAAViaW4ABAAAAAAAAQIDCHRlc3QxAAECdGVzdDIACgAAAMSnZcWCxYLDuAABdGVzdDMAAAAAAAAAFEAJdG0AaGcvSGIBAAAA"
-      |> Base.decode64!()
+    object_payload = object_astarte_value() |> Enum.at(0)
 
-    assert PayloadsDecoder.decode_bson_payload(object_payload, timestamp) ==
-             {%{
-                "test1" => true,
-                "test2" => "ħełłø",
-                "test3" => 5.0,
-                "tm" => DateTime.from_unix!(1_521_629_489_000, :millisecond),
-                "bin" => %Cyanide.Binary{subtype: :generic, data: <<0, 1, 2, 3>>}
-              }, expected_timestamp, %{}}
-  end
-
-  test "object aggregation without timestamp and without metadata" do
-    {:ok, date_time, 0} = DateTime.from_iso8601("2018-03-19T14:15:32+00:00")
-    timestamp = DateTime.to_unix(date_time, :microsecond) * 10 + 123
-    expected_timestamp = DateTime.to_unix(date_time, :millisecond)
-
-    object_payload =
-      "UwAAAAN2AEsAAAAFYmluAAQAAAAAAAECAwh0ZXN0MQABAnRlc3QyAAoAAADEp2XFgsWCw7gAAXRlc3QzAAAAAAAAABRACXRtAGhnL0hiAQAAAAA="
-      |> Base.decode64!()
-
-    assert PayloadsDecoder.decode_bson_payload(object_payload, timestamp) ==
-             {%{
-                "test1" => true,
-                "test2" => "ħełłø",
-                "test3" => 5.0,
-                "tm" => DateTime.from_unix!(1_521_629_489_000, :millisecond),
-                "bin" => %Cyanide.Binary{subtype: :generic, data: <<0, 1, 2, 3>>}
-              }, expected_timestamp, %{}}
-  end
-
-  test "object aggregation with timestamp and without metadata" do
-    {:ok, date_time, 0} = DateTime.from_iso8601("2018-03-19T14:15:32+00:00")
-    timestamp = DateTime.to_unix(date_time, :microsecond) * 10 + 123
-    expected_timestamp = 1_521_464_570_595
-
-    object_payload =
-      "XgAAAAl0AOPyWj5iAQAAA3YASwAAAAViaW4ABAAAAAAAAQIDCHRlc3QxAAECdGVzdDIACgAAAMSnZcWCxYLDuAABdGVzdDMAAAAAAAAAFEAJdG0AaGcvSGIBAAAAAA=="
-      |> Base.decode64!()
-
-    assert PayloadsDecoder.decode_bson_payload(object_payload, timestamp) ==
-             {%{
-                "test1" => true,
-                "test2" => "ħełłø",
-                "test3" => 5.0,
-                "tm" => DateTime.from_unix!(1_521_629_489_000, :millisecond),
-                "bin" => %Cyanide.Binary{subtype: :generic, data: <<0, 1, 2, 3>>}
-              }, expected_timestamp, %{}}
-  end
-
-  test "object aggregation with timestamp and metadata" do
-    {:ok, date_time, 0} = DateTime.from_iso8601("2018-03-19T14:15:32+00:00")
-    timestamp = DateTime.to_unix(date_time, :microsecond) * 10 + 123
-    expected_timestamp = 1_521_464_570_595
-
-    object_payload =
-      "cAAAAANtAA8AAAAQbWV0YQACAAAAAAl0AOPyWj5iAQAAA3YASwAAAAViaW4ABAAAAAAAAQIDCHRlc3QxAAECdGVzdDIACgAAAMSnZcWCxYLDuAABdGVzdDMAAAAAAAAAFEAJdG0AaGcvSGIBAAAAAA=="
-      |> Base.decode64!()
-
-    assert PayloadsDecoder.decode_bson_payload(object_payload, timestamp) ==
-             {%{
-                "test1" => true,
-                "test2" => "ħełłø",
-                "test3" => 5.0,
-                "tm" => DateTime.from_unix!(1_521_629_489_000, :millisecond),
-                "bin" => %Cyanide.Binary{subtype: :generic, data: <<0, 1, 2, 3>>}
-              }, expected_timestamp, %{"meta" => 2}}
+    assert PayloadsDecoder.decode_bson_payload(Cyanide.encode!(object_payload), timestamp) ==
+             {object_payload, expected_timestamp, %{}}
   end
 
   test "zlib compressed payload inflate" do
@@ -277,5 +188,44 @@ defmodule Astarte.DataUpdaterPlant.PayloadsDecoderTest do
     :ok = :zlib.close(zstream)
 
     compressed
+  end
+
+  defp decimicrosecond_timestamp do
+    gen all timestamp_seconds <- TimestampGenerator.timestamp(),
+            decimicroseconds <- integer(0..9999) do
+      timestamp_seconds * 10_000 + decimicroseconds
+    end
+  end
+
+  defp individual_astarte_value do
+    base_types = [
+      float(),
+      integer(),
+      boolean(),
+      string(:utf8, min_length: 1),
+      binary(min_length: 1),
+      TimestampGenerator.timestamp()
+    ]
+
+    array_types = Enum.map(base_types, &list_of/1)
+    individual_types = Enum.concat(base_types, array_types)
+
+    one_of(individual_types)
+  end
+
+  defp object_astarte_value do
+    map_of(string(:alphanumeric), individual_astarte_value())
+  end
+
+  defp astarte_value do
+    one_of([individual_astarte_value(), object_astarte_value()])
+  end
+
+  defp decoded_payload() do
+    value = astarte_value()
+    timestamp = map(TimestampGenerator.timestamp(), &DateTime.from_unix!/1)
+    metadata = map_of(string(:utf8), string(:utf8))
+
+    optional_map(%{"v" => value, "t" => timestamp, "m" => metadata}, ["t", "m"])
   end
 end
