@@ -8,6 +8,7 @@ on:
     - 'apps/astarte_housekeeping_api/**'
     - '.github/workflows/astarte-apps-build-workflow.yaml'
     - '.github/workflows/astarte-housekeeping-api-workflow.yaml'
+    - '.github/codecov.yml'
     branches:
     - 'master'
     - 'release-*'
@@ -20,6 +21,7 @@ on:
     - 'apps/astarte_housekeeping_api/**'
     - '.github/workflows/astarte-apps-build-workflow.yaml'
     - '.github/workflows/astarte-housekeeping-api-workflow.yaml'
+    - '.github/codecov.yml'
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
