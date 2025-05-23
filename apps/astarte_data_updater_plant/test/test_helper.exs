@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2017 Ispirata Srl
+# Copyright 2017-2025 Ispirata Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -14,12 +14,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-#
 
 Mimic.copy(Astarte.DataAccess.Config)
-
-Code.require_file("support/database_test_helper.exs", __DIR__)
-Code.require_file("support/amqp_test_helper.exs", __DIR__)
-Code.require_file("support/amqp_events_consumer.exs", __DIR__)
 
 ExUnit.start(capture_log: true)

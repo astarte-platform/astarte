@@ -19,10 +19,11 @@
 defmodule Astarte.DataUpdaterPlant.AMQPTestHelper do
   use GenServer
   require Logger
+  alias Astarte.DataUpdaterPlant.AMQPTestEventsConsumer
 
   def start_link() do
     GenServer.start_link(__MODULE__, :ok, name: AMQPTestHelper)
-    {:ok, _pid} = Astarte.DataUpdaterPlant.AMQPTestEventsConsumer.start_link()
+    {:ok, _pid} = AMQPTestEventsConsumer.start_link()
   end
 
   def init(:ok) do
