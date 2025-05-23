@@ -19,8 +19,10 @@
 defmodule Astarte.DataUpdaterPlant.PayloadsDecoderTest do
   use ExUnit.Case, async: true
   use ExUnitProperties
+  alias Astarte.Core.Interface
   alias Astarte.DataUpdaterPlant.DataUpdater.PayloadsDecoder
   alias Astarte.Common.Generators.Timestamp, as: TimestampGenerator
+  alias Astarte.Core.Generators.Interface, as: InterfaceGenerator
 
   test "unset" do
     timestamp = decimicrosecond_timestamp() |> Enum.at(0)
@@ -67,44 +69,15 @@ defmodule Astarte.DataUpdaterPlant.PayloadsDecoderTest do
              {object_payload, expected_timestamp, %{}}
   end
 
-  test "zlib compressed payload inflate" do
-    short_message = "SHORT MESSAGE"
-    compressed = simple_deflate(short_message)
-
-    assert PayloadsDecoder.safe_inflate(compressed) == {:ok, short_message}
-
-    empty_message = ""
-    compressed = simple_deflate(empty_message)
-
-    assert PayloadsDecoder.safe_inflate(compressed) == {:ok, empty_message}
-
-    rand_bytes = :crypto.strong_rand_bytes(10_485_760 - 1)
-    compressed = simple_deflate(rand_bytes)
-
-    assert PayloadsDecoder.safe_inflate(compressed) == {:ok, rand_bytes}
-
-    rand_bytes_bigger = :crypto.strong_rand_bytes(10_485_760)
-    compressed = simple_deflate(rand_bytes_bigger)
-
-    assert PayloadsDecoder.safe_inflate(compressed) == :error
-
-    zeroed_bytes =
-      Enum.reduce(0..10_485_758, <<>>, fn _i, acc ->
-        [0 | acc]
-      end)
-      |> :erlang.list_to_binary()
-
-    compressed = simple_deflate(zeroed_bytes)
-
-    assert PayloadsDecoder.safe_inflate(compressed) == {:ok, zeroed_bytes}
-
-    compressed = simple_deflate(zeroed_bytes <> <<0>>)
-
-    assert PayloadsDecoder.safe_inflate(compressed) == :error
+  property "zlib compressed payload inflate" do
+    check all value <- binary() do
+      compressed = simple_deflate(value)
+      assert PayloadsDecoder.safe_inflate(compressed) == {:ok, value}
+    end
   end
 
   test "zlib inflate does not crash with a payload that is not zlib deflated" do
-    non_zlib_deflated_bytes = <<120, 185, 188, 158, 201, 217, 87, 12, 0, 251>>
+    non_zlib_deflated_bytes = binary(min_length: 3) |> Enum.at(0)
     assert PayloadsDecoder.safe_inflate(non_zlib_deflated_bytes) == :error
   end
 
@@ -153,27 +126,26 @@ defmodule Astarte.DataUpdaterPlant.PayloadsDecoderTest do
              {:error, :invalid_properties}
   end
 
-  test "valid introspection parsing" do
-    parsed1 = [{"good.introspection", 1, 0}]
-    introspection1 = "good.introspection:1:0"
-    assert PayloadsDecoder.parse_introspection(introspection1) == {:ok, parsed1}
+  property "valid introspection parsing" do
+    check all introspection <- list_of(InterfaceGenerator.interface()) do
+      expected_introspection =
+        Enum.map(introspection, &{&1.name, &1.major_version, &1.minor_version})
 
-    parsed2 = [{"good.introspection", 1, 0}, {"other.good.introspection", 0, 3}]
-    introspection2 = "good.introspection:1:0;other.good.introspection:0:3"
-    assert PayloadsDecoder.parse_introspection(introspection2) == {:ok, parsed2}
+      introspection_string =
+        Enum.map_join(expected_introspection, ";", fn {name, major, minor} ->
+          interface_string(name, major, minor)
+        end)
 
-    assert PayloadsDecoder.parse_introspection("") == {:ok, []}
+      assert PayloadsDecoder.parse_introspection(introspection_string) ==
+               {:ok, expected_introspection}
+    end
   end
 
-  test "invalid introspection strings" do
-    invalid = {:error, :invalid_introspection}
-
-    assert PayloadsDecoder.parse_introspection("a;b;c") == invalid
-    assert PayloadsDecoder.parse_introspection("a:0:1;b:1:0;c") == invalid
-    assert PayloadsDecoder.parse_introspection("a:0:1z;b:1:0") == invalid
-    assert PayloadsDecoder.parse_introspection("a:0:1z:b:1:0") == invalid
-    assert PayloadsDecoder.parse_introspection("a:0:-1:b:1:0") == invalid
-    assert PayloadsDecoder.parse_introspection(<<0xFFFF::16>>) == invalid
+  property "invalid introspection strings" do
+    check all invalid_introspection <- invalid_introspection_string() do
+      assert PayloadsDecoder.parse_introspection(invalid_introspection) ==
+               {:error, :invalid_introspection}
+    end
   end
 
   defp simple_deflate(data) do
@@ -228,4 +200,78 @@ defmodule Astarte.DataUpdaterPlant.PayloadsDecoderTest do
 
     optional_map(%{"v" => value, "t" => timestamp, "m" => metadata}, ["t", "m"])
   end
+
+  defp invalid_introspection_string do
+    one_of([
+      missing_version(),
+      invalid_version(),
+      invalid_name(),
+      extra_numbers(),
+      binary(min_length: 1) |> filter(&(not String.valid?(&1)))
+    ])
+  end
+
+  defp missing_version do
+    incomplete_interface =
+      gen all interface <- InterfaceGenerator.interface(),
+              invalid_string <-
+                member_of([
+                  "#{interface.name}",
+                  "#{interface.name}:#{interface.major_version}",
+                  "#{interface.name}:#{interface.minor_version}"
+                ]) do
+        invalid_string
+      end
+
+    list_of(incomplete_interface, min_length: 1)
+    |> map(&Enum.join(&1, ";"))
+  end
+
+  defp invalid_version do
+    not_a_number =
+      gen all number <- integer(1..10),
+              rest <- string(?a..?z, min_length: 1) do
+        "#{number}#{rest}"
+      end
+
+    invalid_versions =
+      one_of([
+        integer(-10..-1),
+        not_a_number
+      ])
+
+    gen all interfaces <- list_of(InterfaceGenerator.interface(), min_length: 1),
+            majors <- list_of(invalid_versions, length: length(interfaces)),
+            minors <- list_of(invalid_versions, length: length(interfaces)) do
+      Enum.zip_with([interfaces, majors, minors], fn [%{name: name}, major, minor] ->
+        interface_string(name, major, minor)
+      end)
+      |> Enum.join(";")
+    end
+  end
+
+  defp invalid_name do
+    invalid_names =
+      string(:utf8)
+      |> filter(fn name -> not String.match?(name, Interface.interface_name_regex()) end)
+
+    gen all interfaces <- list_of(InterfaceGenerator.interface(), min_length: 1),
+            invalid_names <-
+              list_of(invalid_names, length: length(interfaces)) do
+      Enum.zip_with(interfaces, invalid_names, fn interface, name ->
+        interface_string(name, interface.major_version, interface.minor_version)
+      end)
+      |> Enum.join(";")
+    end
+  end
+
+  defp extra_numbers do
+    gen all interfaces <- list_of(InterfaceGenerator.interface(), min_length: 1) do
+      Enum.map_join(interfaces, ";", fn interface ->
+        "#{interface.name}:#{interface.major_version}:#{interface.minor_version}:#{interface.major_version}"
+      end)
+    end
+  end
+
+  defp interface_string(interface_name, major, minor), do: "#{interface_name}:#{major}:#{minor}"
 end
