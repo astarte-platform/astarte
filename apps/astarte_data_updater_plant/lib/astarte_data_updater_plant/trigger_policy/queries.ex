@@ -22,7 +22,7 @@ defmodule Astarte.DataUpdaterPlant.TriggerPolicy.Queries do
   import Ecto.Query
 
   alias Astarte.DataAccess.Consistency
-  alias Astarte.DataUpdaterPlant.Repo
+  alias Astarte.DataAccess.Repo
   alias Astarte.DataAccess.KvStore
   alias Astarte.DataAccess.Realms.Realm
 
