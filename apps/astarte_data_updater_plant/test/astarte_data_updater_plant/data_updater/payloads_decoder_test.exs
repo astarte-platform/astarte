@@ -81,48 +81,35 @@ defmodule Astarte.DataUpdaterPlant.PayloadsDecoderTest do
     assert PayloadsDecoder.safe_inflate(non_zlib_deflated_bytes) == :error
   end
 
-  test "device properties paths payload decode" do
-    payload = "com.test.LCDMonitor/time/to;com.test.LCDMonitor/weekSchedule/10/start"
-    introspection = %{"com.test.LCDMonitor" => 1}
+  property "valid device properties paths payload decode" do
+    check all introspection <- introspection_map(),
+              other_interfaces <- introspection_map(),
+              other_interfaces = other_interfaces |> Map.drop(introspection |> Map.keys()),
+              introspection_paths <- introspection_paths(introspection),
+              other_paths <- introspection_paths(other_interfaces),
+              device_properties_string <-
+                device_properties_string(MapSet.union(introspection_paths, other_paths)),
+              max_runs: 10 do
+      assert PayloadsDecoder.parse_device_properties_payload(
+               device_properties_string,
+               introspection
+             ) == {:ok, introspection_paths}
+    end
+  end
 
-    keep_paths =
-      MapSet.new([
-        {"com.test.LCDMonitor", "/time/to"},
-        {"com.test.LCDMonitor", "/weekSchedule/10/start"}
-      ])
+  test "invalid device properties paths payload decode" do
+    interface = InterfaceGenerator.interface() |> resize(10) |> Enum.at(0)
+    invalid = "#{interface.name};#{interface.name}"
+    introspection = %{interface.name => interface.major_version}
 
-    assert PayloadsDecoder.parse_device_properties_payload(payload, introspection) ==
-             {:ok, keep_paths}
-
-    introspection2 = %{"com.test.LCDMonitor" => 1, "com.example.A" => 2}
-
-    assert PayloadsDecoder.parse_device_properties_payload(payload, introspection2) ==
-             {:ok, keep_paths}
-
-    payload2 = "com.test.LCDMonitor/time/to"
-
-    keep_paths2 =
-      MapSet.new([
-        {"com.test.LCDMonitor", "/time/to"}
-      ])
-
-    assert PayloadsDecoder.parse_device_properties_payload(payload2, introspection2) ==
-             {:ok, keep_paths2}
-
-    # TODO: probably here would be a good idea to fail
-    assert PayloadsDecoder.parse_device_properties_payload(payload, %{}) == {:ok, MapSet.new()}
-
-    assert PayloadsDecoder.parse_device_properties_payload("", introspection) ==
+    assert PayloadsDecoder.parse_device_properties_payload(invalid, introspection) ==
              {:ok, MapSet.new()}
 
-    assert PayloadsDecoder.parse_device_properties_payload("", %{}) == {:ok, MapSet.new()}
+    invalid_termination = <<0xFFFF::16>>
+    rest = binary(min_length: 1) |> Enum.at(0)
+    invalid_property = rest <> invalid_termination
 
-    invalid = "com.test.LCDMonitor;com.test.LCDMonitor"
-
-    assert PayloadsDecoder.parse_device_properties_payload(invalid, introspection2) ==
-             {:ok, MapSet.new()}
-
-    assert PayloadsDecoder.parse_device_properties_payload(<<0xFFFF::16>>, %{"something" => 1}) ==
+    assert PayloadsDecoder.parse_device_properties_payload(invalid_property, introspection) ==
              {:error, :invalid_properties}
   end
 
@@ -274,4 +261,35 @@ defmodule Astarte.DataUpdaterPlant.PayloadsDecoderTest do
   end
 
   defp interface_string(interface_name, major, minor), do: "#{interface_name}:#{major}:#{minor}"
+
+  defp introspection_map do
+    list_of(InterfaceGenerator.interface())
+    |> map(&Map.new(&1, fn %{name: name, major_version: major} -> {name, major} end))
+  end
+
+  defp introspection_paths(introspection_map) do
+    introspection_map
+    |> Map.new(fn {interface_name, _} -> {interface_name, list_of(path())} end)
+    |> fixed_map()
+    |> map(fn interface_path_map ->
+      interface_path_map
+      |> Enum.map(fn {interface_name, paths} -> Enum.map(paths, &{interface_name, &1}) end)
+      |> Enum.concat()
+      |> MapSet.new()
+    end)
+  end
+
+  defp device_properties_string(introspection_paths) do
+    introspection_paths
+    |> Enum.to_list()
+    |> shuffle()
+    |> map(&Enum.map(&1, fn {interface_name, path} -> interface_name <> path end))
+    |> map(&Enum.join(&1, ";"))
+  end
+
+  def path do
+    gen all tokens <- list_of(string(:alphanumeric, min_length: 1), min_length: 1) do
+      "/" <> Enum.join(tokens, "/")
+    end
+  end
 end
