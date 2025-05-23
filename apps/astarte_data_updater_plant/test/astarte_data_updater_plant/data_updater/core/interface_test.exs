@@ -27,7 +27,6 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.InterfaceTest do
   alias Astarte.DataAccess.Realms.Realm
   alias Astarte.Core.InterfaceDescriptor
   alias Astarte.DataUpdaterPlant.DataUpdater.Core
-  alias Astarte.Helpers.Database
 
   use Astarte.Cases.Data
   use Astarte.Cases.Device
