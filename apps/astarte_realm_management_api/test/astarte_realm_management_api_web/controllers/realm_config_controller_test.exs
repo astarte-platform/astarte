@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2018 Ispirata Srl
+# Copyright 2018 - 2025 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -17,11 +17,11 @@
 #
 
 defmodule Astarte.RealmManagement.APIWeb.RealmControllerTest do
-  use Astarte.RealmManagement.APIWeb.ConnCase
+  use Astarte.RealmManagement.APIWeb.ConnCase, async: true
 
   alias Astarte.RealmManagement.API.Config
-  alias Astarte.RealmManagement.API.JWTTestHelper
-  alias Astarte.RealmManagement.Mock.DB
+  alias Astarte.RealmManagement.API.Helpers.JWTTestHelper
+  alias Astarte.RealmManagement.API.Helpers.RPCMock.DB
 
   @new_pubkey """
   -----BEGIN PUBLIC KEY-----
@@ -42,7 +42,6 @@ defmodule Astarte.RealmManagement.APIWeb.RealmControllerTest do
   -----END PUBLIC KEY-----
   """
 
-  @realm "config_test_realm"
   @update_attrs %{"jwt_public_key_pem" => @new_pubkey}
   @invalid_pubkey_attrs %{"jwt_public_key_pem" => "invalid"}
   @malformed_pubkey_attrs %{"jwt_public_key_pem" => @malformed_pubkey}
@@ -57,51 +56,74 @@ defmodule Astarte.RealmManagement.APIWeb.RealmControllerTest do
     end)
   end
 
-  setup %{conn: conn} do
-    DB.put_jwt_public_key_pem(@realm, JWTTestHelper.public_key_pem())
+  setup %{conn: conn, realm: realm} do
+    DB.put_jwt_public_key_pem(realm, JWTTestHelper.public_key_pem())
     {:ok, conn: put_req_header(conn, "accept", "application/json")}
   end
 
-  test "returns the auth config on show", %{conn: conn} do
-    conn = get(conn, realm_config_path(conn, :show, @realm, "auth"))
+  test "returns the auth config on show", %{conn: conn, realm: realm} do
+    conn = get(conn, realm_config_path(conn, :show, realm, "auth"))
 
     assert json_response(conn, 200)["data"]["jwt_public_key_pem"] ==
              JWTTestHelper.public_key_pem()
   end
 
   test "does not update auth config and renders errors when no public key is provided", %{
-    conn: conn
+    conn: conn,
+    realm: realm
   } do
-    conn = put(conn, realm_config_path(conn, :update, @realm, "auth"), data: %{})
+    conn = put(conn, realm_config_path(conn, :update, realm, "auth"), data: %{})
     assert json_response(conn, 422)["errors"] != %{}
   end
 
-  test "does not update auth config and renders errors when public key is invalid", %{conn: conn} do
+  test "does not update auth config and renders errors when public key is invalid", %{
+    conn: conn,
+    realm: realm
+  } do
     conn =
-      put(conn, realm_config_path(conn, :update, @realm, "auth"), data: @invalid_pubkey_attrs)
+      put(conn, realm_config_path(conn, :update, realm, "auth"), data: @invalid_pubkey_attrs)
 
     assert json_response(conn, 422)["errors"] != %{}
   end
 
   test "does not update auth config and renders errors when public key is malformed", %{
-    conn: conn
+    conn: conn,
+    realm: realm
   } do
     conn =
-      put(conn, realm_config_path(conn, :update, @realm, "auth"), data: @malformed_pubkey_attrs)
+      put(conn, realm_config_path(conn, :update, realm, "auth"), data: @malformed_pubkey_attrs)
 
     assert json_response(conn, 422)["errors"] != %{}
   end
 
-  test "updates and renders auth config when data is valid", %{conn: conn} do
-    conn = get(conn, realm_config_path(conn, :show, @realm, "auth"))
+  test "updates and renders auth config when data is valid", %{conn: conn, realm: realm} do
+    conn = get(conn, realm_config_path(conn, :show, realm, "auth"))
 
     assert json_response(conn, 200)["data"]["jwt_public_key_pem"] ==
              JWTTestHelper.public_key_pem()
 
-    conn = put(conn, realm_config_path(conn, :update, @realm, "auth"), data: @update_attrs)
+    conn = put(conn, realm_config_path(conn, :update, realm, "auth"), data: @update_attrs)
     assert response(conn, 204)
 
-    conn = get(conn, realm_config_path(conn, :show, @realm, "auth"))
+    conn = get(conn, realm_config_path(conn, :show, realm, "auth"))
     assert json_response(conn, 200)["data"]["jwt_public_key_pem"] == @new_pubkey
+  end
+
+  test "returns the device registration limit on show", %{conn: conn, realm: realm} do
+    limit = 10
+    DB.put_device_registration_limit(realm, limit)
+    conn = get(conn, realm_config_path(conn, :show, realm, "device_registration_limit"))
+
+    assert json_response(conn, 200)["data"] == limit
+  end
+
+  test "returns the datastream_maximum_storage_retention on show", %{conn: conn, realm: realm} do
+    retention = 10
+    DB.put_datastream_maximum_storage_retention(realm, retention)
+
+    conn =
+      get(conn, realm_config_path(conn, :show, realm, "datastream_maximum_storage_retention"))
+
+    assert json_response(conn, 200)["data"] == retention
   end
 end

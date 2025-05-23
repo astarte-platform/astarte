@@ -16,7 +16,7 @@
 # limitations under the License.
 #
 
-use Mix.Config
+import Config
 
 config :logger, :console,
   format: {PrettyLog.LogfmtFormatter, :format},

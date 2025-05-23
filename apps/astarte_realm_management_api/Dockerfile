@@ -1,4 +1,4 @@
-FROM hexpm/elixir:1.14.5-erlang-25.3.2-debian-bullseye-20230522-slim as builder
+FROM hexpm/elixir:1.15.7-erlang-26.1-debian-bookworm-20230612-slim AS builder
 
 # install build dependencies
 # --allow-releaseinfo-change allows to pull from 'oldstable'
@@ -28,21 +28,26 @@ ADD . .
 RUN mix do compile, release
 
 # Note: it is important to keep Debian versions in sync, or incompatibilities between libcrypto will happen
-FROM debian:bullseye-slim
+FROM debian:bookworm-slim
 
 WORKDIR /app
+
+RUN chown -R nobody /app
 
 RUN apt-get -qq update
 
 # Set the locale
-ENV LANG C.UTF-8
+ENV LANG=C.UTF-8
 
 # We need SSL
-RUN apt-get -qq install libssl1.1
+RUN apt-get -qq install openssl ca-certificates
 
 # We have to redefine this here since it goes out of scope for each build stage
 ARG BUILD_ENV=prod
 
 COPY --from=builder /app/_build/$BUILD_ENV/rel/astarte_realm_management_api .
+
+# Change to non-root user
+USER nobody
 
 CMD ["./bin/astarte_realm_management_api", "start"]

@@ -29,6 +29,17 @@ config :astarte_rpc, :amqp_connection, host: System.get_env("RABBITMQ_HOST") || 
 config :astarte_appengine_api, :rpc_client, MockRPCClient
 
 config :astarte_appengine_api,
+       :data_updater_plant_rpc_client,
+       Astarte.AppEngine.API.RPC.DataUpdaterPlant.ClientMock
+
+config :astarte_appengine_api,
+       :vernemq_plugin_rpc_client,
+       Astarte.AppEngine.API.RPC.VMQPlugin.ClientMock
+
+config :stream_data,
+  max_runs: 50
+
+config :astarte_appengine_api,
        :test_priv_key,
        {%{kty: :jose_jwk_kty_rsa},
         %{

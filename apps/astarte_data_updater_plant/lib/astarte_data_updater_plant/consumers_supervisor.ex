@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2019 Ispirata Srl
+# Copyright 2019 - 2023 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -22,6 +22,7 @@ defmodule Astarte.DataUpdaterPlant.ConsumersSupervisor do
 
   alias Astarte.DataUpdaterPlant.AMQPDataConsumer
   alias Astarte.DataUpdaterPlant.Config
+  alias Astarte.DataUpdater.DeletionScheduler
 
   def start_link(init_arg) do
     Supervisor.start_link(__MODULE__, init_arg, name: __MODULE__)
@@ -32,11 +33,11 @@ defmodule Astarte.DataUpdaterPlant.ConsumersSupervisor do
     Logger.info("AMQPDataConsumer supervisor init.", tag: "data_consumer_sup_init")
 
     children = [
-      {Registry, [keys: :unique, name: Registry.AMQPDataConsumer]},
       {ExRabbitPool.PoolSupervisor,
        rabbitmq_config: Config.amqp_consumer_options!(),
        connection_pools: [Config.amqp_consumer_pool_config!()]},
-      AMQPDataConsumer.Supervisor
+      AMQPDataConsumer.Supervisor,
+      DeletionScheduler
     ]
 
     opts = [strategy: :rest_for_one, name: __MODULE__]

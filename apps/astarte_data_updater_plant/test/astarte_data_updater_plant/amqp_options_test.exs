@@ -17,7 +17,7 @@
 #
 
 defmodule Astarte.DataUpdaterPlant.AMQPOptionsTest do
-  use ExUnit.Case
+  use ExUnit.Case, async: true
   alias Astarte.DataUpdaterPlant.Config
 
   defp reset_to_defaults do

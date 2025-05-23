@@ -42,7 +42,10 @@ defmodule AstarteE2E.Application do
       Supervisor.start_link(children, opts)
     else
       {:error, reason} ->
-        Logger.warn("Configuration incomplete. Unable to start process with reason: #{reason}.")
+        Logger.warning(
+          "Configuration incomplete. Unable to start process with reason: #{reason}."
+        )
+
         {:shutdown, reason}
     end
   end

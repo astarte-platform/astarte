@@ -20,16 +20,13 @@ defmodule Astarte.AppEngine.APIWeb.GroupsController do
   use Astarte.AppEngine.APIWeb, :controller
 
   alias Astarte.AppEngine.API.Groups
-  alias Astarte.AppEngine.API.Groups.Group
-
-  plug Astarte.AppEngine.APIWeb.Plug.LogGroupName
+  alias Astarte.DataAccess.Groups.Group
 
   action_fallback Astarte.AppEngine.APIWeb.FallbackController
 
   def index(conn, %{"realm_name" => realm_name}) do
-    with {:ok, groups} <- Groups.list_groups(realm_name) do
-      render(conn, "index.json", groups: groups)
-    end
+    groups = Groups.list_groups(realm_name)
+    render(conn, "index.json", groups: groups)
   end
 
   def create(conn, %{"realm_name" => realm_name, "data" => params}) do
@@ -41,19 +38,13 @@ defmodule Astarte.AppEngine.APIWeb.GroupsController do
   end
 
   def show(conn, %{"realm_name" => realm_name, "group_name" => group_name}) do
-    # group_name is urlencoded to allow characters like / to be used in the
-    # group name
-    decoded_group_name = URI.decode(group_name)
-
-    with {:ok, group} <- Groups.get_group(realm_name, decoded_group_name) do
+    with {:ok, group} <- Groups.get_group(realm_name, group_name) do
       render(conn, "show.json", group: group)
     end
   end
 
   def add_device(conn, %{"realm_name" => realm_name, "group_name" => group_name, "data" => params}) do
-    decoded_group_name = URI.decode(group_name)
-
-    with :ok <- Groups.add_device(realm_name, decoded_group_name, params) do
+    with :ok <- Groups.add_device(realm_name, group_name, params) do
       send_resp(conn, :created, "")
     end
   end
@@ -63,9 +54,7 @@ defmodule Astarte.AppEngine.APIWeb.GroupsController do
         "group_name" => group_name,
         "device_id" => device_id
       }) do
-    decoded_group_name = URI.decode(group_name)
-
-    with :ok <- Groups.remove_device(realm_name, decoded_group_name, device_id) do
+    with :ok <- Groups.remove_device(realm_name, group_name, device_id) do
       send_resp(conn, :no_content, "")
     end
   end

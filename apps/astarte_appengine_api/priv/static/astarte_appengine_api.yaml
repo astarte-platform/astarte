@@ -35,7 +35,7 @@ info:
     an impact on devices and their data. Most Astarte applications would want to
     use this API to interact with devices, stream and receive data, and oversee
     their fleet.
-  version: "1.1.1"
+  version: 1.2.0
   title: Astarte App Engine API
   contact:
     email: info@ispirata.com
@@ -1154,6 +1154,9 @@ components:
                   The number of exchanged bytes of this interface. Note that exchanged bytes
                   are the same for all (interface, major) combinations, i.e. com.my.Interface v1.2
                   will have the same exchanged_bytes of com.my.Interface v1.x for every value of x
+        deletion_in_progress:
+          type: boolean
+          description: True if the device is currently being deleted, false otherwise.
       example:
         id: hm8AjtbN5P2mxo_gfXSfvQ
         aliases:
@@ -1191,6 +1194,7 @@ components:
             minor: 1
             exchanged_msgs: 5
             exchanged_bytes: 102
+        deletion_in_progress: false
     CreateGroupConfig:
       type: object
       required:

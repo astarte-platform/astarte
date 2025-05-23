@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2017 Ispirata Srl
+# Copyright 2017 - 2025 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -23,6 +23,8 @@ defmodule Astarte.DataUpdaterPlant.Config do
 
   alias Astarte.DataAccess.Config, as: DataAccessConfig
   use Skogsra
+
+  @paths_cache_size 32
 
   @type ssl_option ::
           {:cacertfile, String.t()}
@@ -221,6 +223,14 @@ defmodule Astarte.DataUpdaterPlant.Config do
           type: :integer,
           default: 60 * 60 * 1_000
 
+  @envdoc "Generate incoming_introspection events in the old (pre-1.2) string-based format. Defaults to false."
+  app_env :generate_legacy_incoming_introspection_events,
+          :astarte_data_updater_plant,
+          :generate_legacy_introspection_events,
+          os_env: "DATA_UPDATER_PLANT_GENERATE_LEGACY_INCOMING_INTROSPECTION_EVENTS",
+          type: :boolean,
+          default: false
+
   @envdoc "The number of connections to RabbitMQ used to consume data"
   app_env :amqp_consumer_connection_number,
           :astarte_data_updater_plant,
@@ -228,6 +238,38 @@ defmodule Astarte.DataUpdaterPlant.Config do
           os_env: "DATA_UPDATER_PLANT_AMQP_CONSUMER_CONNECTION_NUMBER",
           type: :integer,
           default: 10
+
+  @envdoc "The Erlang cluster strategy to use. One of `none`, `kubernetes`. Defaults to `none`."
+  app_env :clustering_strategy,
+          :astarte_data_updater_plant,
+          :clustering_strategy,
+          os_env: "CLUSTERING_STRATEGY",
+          type: Astarte.DataUpdaterPlant.Config.ClusteringStrategy,
+          default: "none"
+
+  @envdoc "The endpoint label to query to get other data updater plant instances. Defaults to `app=astarte-data-updater-plant`."
+  app_env :dup_clustering_kubernetes_selector,
+          :astarte_data_updater_plant,
+          :dup_clustering_kubernetes_selector,
+          os_env: "DATA_UPDATER_PLANT_CLUSTERING_KUBERNETES_SELECTOR",
+          type: :binary,
+          default: "app=astarte-data-updater-plant"
+
+  @envdoc "The Endpoint label to use to query Kubernetes to find vernemq instances. Defaults to `app=astarte-vernemq`."
+  app_env :vernemq_clustering_kubernetes_selector,
+          :astarte_data_updater_plant,
+          :vernemq_clustering_kubernetes_selector,
+          os_env: "VERNEMQ_CLUSTERING_KUBERNETES_SELECTOR",
+          type: :binary,
+          default: "app=astarte-vernemq"
+
+  @envdoc "The Kubernetes namespace to use when `kubernetes` Erlang clustering strategy is used. Defaults to `astarte`."
+  app_env :clustering_kubernetes_namespace,
+          :astarte_data_updater_plant,
+          :clustering_kubernetes_namespace,
+          os_env: "CLUSTERING_KUBERNETES_NAMESPACE",
+          type: :binary,
+          default: "astarte"
 
   # Since we have one channel per queue, this is not configurable
   def amqp_consumer_channels_per_connection_number!() do
@@ -421,18 +463,69 @@ defmodule Astarte.DataUpdaterPlant.Config do
     Application.get_env(:astarte_data_updater_plant, :amqp_adapter)
   end
 
+  def cluster_topologies!() do
+    case clustering_strategy!() do
+      "none" ->
+        []
+
+      "kubernetes" ->
+        [
+          data_updater_plant_k8s: [
+            strategy: Elixir.Cluster.Strategy.Kubernetes,
+            config: [
+              mode: :ip,
+              kubernetes_node_basename: "astarte_data_updater_plant",
+              kubernetes_selector: dup_clustering_kubernetes_selector!(),
+              kubernetes_namespace: clustering_kubernetes_namespace!(),
+              polling_interval: 10_000
+            ]
+          ],
+          vernemq_k8s: [
+            strategy: Elixir.Cluster.Strategy.Kubernetes,
+            config: [
+              mode: :hostname,
+              kubernetes_service_name: "astarte-vernemq",
+              kubernetes_node_basename: "VerneMQ",
+              kubernetes_ip_lookup_mode: :pods,
+              kubernetes_selector: vernemq_clustering_kubernetes_selector!(),
+              kubernetes_namespace: clustering_kubernetes_namespace!(),
+              polling_interval: 10_000
+            ]
+          ]
+        ]
+
+      "docker-compose" ->
+        [
+          data_updater_plant: [
+            strategy: Elixir.Cluster.Strategy.DNSPoll,
+            config: [
+              polling_interval: 5_000,
+              query: "astarte-data-updater-plant",
+              node_basename: "astarte_data_updater_plant"
+            ]
+          ],
+          vernemq: [
+            strategy: Elixir.Cluster.Strategy.DNSPoll,
+            config: [
+              polling_interval: 5_000,
+              query: "vernemq",
+              node_basename: "VerneMQ"
+            ]
+          ]
+        ]
+    end
+  end
+
+  def paths_cache_size!, do: @paths_cache_size
+
   @doc """
   Returns Cassandra nodes formatted in the Xandra format.
   """
   defdelegate xandra_nodes, to: DataAccessConfig
   defdelegate xandra_nodes!, to: DataAccessConfig
 
-  @doc """
-  Returns Cassandra nodes formatted in the CQEx format.
-  """
-  defdelegate cqex_nodes, to: DataAccessConfig
-  defdelegate cqex_nodes!, to: DataAccessConfig
-
   defdelegate xandra_options!, to: DataAccessConfig
-  defdelegate cqex_options!, to: DataAccessConfig
+
+  defdelegate astarte_instance_id!, to: DataAccessConfig
+  defdelegate astarte_instance_id, to: DataAccessConfig
 end

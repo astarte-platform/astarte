@@ -16,10 +16,8 @@
 # limitations under the License.
 #
 
-ExUnit.start()
+Mimic.copy(Astarte.DataAccess.Config)
+Mimic.copy(Astarte.RealmManagement.DeviceRemoval.Core)
+Mimic.copy(Task.Supervisor)
 
-{:ok, files} = File.ls("./test/support")
-
-Enum.each(files, fn file ->
-  Code.require_file("support/#{file}", __DIR__)
-end)
+ExUnit.start(capture_log: true)

@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2018 Ispirata Srl
+# Copyright 2018 - 2023 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -21,48 +21,42 @@ defmodule Astarte.DataUpdaterPlant.RPC.VMQPlugin do
   This module sends RPC to VMQPlugin
   """
 
-  alias Astarte.RPC.Protocol.VMQ.Plugin, as: Protocol
-
-  alias Astarte.RPC.Protocol.VMQ.Plugin.{
-    Call,
-    Disconnect,
-    GenericErrorReply,
-    GenericOkReply,
-    Publish,
-    PublishReply,
-    Reply
-  }
-
-  alias Astarte.DataUpdaterPlant.Config
-
-  @rpc_client Config.rpc_client!()
-  @destination Protocol.amqp_queue()
+  @rpc_client Application.compile_env(
+                :astarte_data_updater_plant,
+                :vernemq_plugin_rpc_client,
+                Astarte.DataUpdaterPlant.RPC.VMQPlugin.Client
+              )
 
   def publish(topic, payload, qos)
       when is_binary(topic) and is_binary(payload) and is_integer(qos) and qos >= 0 and qos <= 2 do
     with {:ok, tokens} <- split_topic(topic) do
-      %Publish{
+      data = %{
         topic_tokens: tokens,
         payload: payload,
         qos: qos
       }
-      |> encode_call(:publish)
-      |> @rpc_client.rpc_call(@destination)
-      |> decode_reply()
-      |> extract_reply()
+
+      @rpc_client.publish(data)
     end
+  end
+
+  def delete(realm_name, device_id) do
+    data = %{
+      realm_name: realm_name,
+      device_id: device_id
+    }
+
+    @rpc_client.delete(data)
   end
 
   def disconnect(client_id, discard_state)
       when is_binary(client_id) and is_boolean(discard_state) do
-    %Disconnect{
+    data = %{
       client_id: client_id,
       discard_state: discard_state
     }
-    |> encode_call(:disconnect)
-    |> @rpc_client.rpc_call(@destination)
-    |> decode_reply()
-    |> extract_reply()
+
+    @rpc_client.disconnect(data)
   end
 
   defp split_topic(topic) do
@@ -70,41 +64,5 @@ defmodule Astarte.DataUpdaterPlant.RPC.VMQPlugin do
       [] -> {:error, :empty_topic}
       tokens -> {:ok, tokens}
     end
-  end
-
-  defp encode_call(call, callname) do
-    %Call{call: {callname, call}}
-    |> Call.encode()
-  end
-
-  defp decode_reply({:ok, encoded_reply}) when is_binary(encoded_reply) do
-    %Reply{reply: reply} = Reply.decode(encoded_reply)
-    reply
-  end
-
-  defp decode_reply({:error, "exception"}) do
-    {:error, :vmq_plugin_rpc_exception}
-  end
-
-  defp extract_reply({:generic_ok_reply, %GenericOkReply{}}) do
-    :ok
-  end
-
-  defp extract_reply({:publish_reply, %PublishReply{} = reply}) do
-    {:ok, %{local_matches: reply.local_matches, remote_matches: reply.remote_matches}}
-  end
-
-  defp extract_reply({:generic_error_reply, %GenericErrorReply{error_name: "not_found"}}) do
-    {:error, :not_found}
-  end
-
-  defp extract_reply({:generic_error_reply, error_struct = %GenericErrorReply{}}) do
-    error_map = Map.from_struct(error_struct)
-
-    {:error, error_map}
-  end
-
-  defp extract_reply({:error, :vmq_plugin_rpc_exception} = error) do
-    error
   end
 end

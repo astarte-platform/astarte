@@ -48,7 +48,7 @@ defmodule Astarte.Housekeeping.APIWeb.Plug.VerifyHeader do
       jwk
     else
       {:error, reason} ->
-        Logger.warn("Couldn't get JWT public key PEM: #{inspect(reason)}")
+        Logger.warning("Couldn't get JWT public key PEM: #{inspect(reason)}")
         nil
     end
   end

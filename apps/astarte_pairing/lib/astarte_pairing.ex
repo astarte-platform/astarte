@@ -2,6 +2,7 @@
 # This file is part of Astarte.
 #
 # Copyright 2017-2018 Ispirata Srl
+# Copyright 2025 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -43,15 +44,19 @@ defmodule Astarte.Pairing do
     Config.validate!()
     Config.init!()
 
-    xandra_options =
-      Config.xandra_options!()
-      |> Keyword.put(:name, :xandra)
+    xandra_options = repo_opts = Config.xandra_options!()
+
+    data_access_opts = [xandra_options: xandra_options]
+
+    pairing_xandra_opts = Keyword.put(xandra_options, :name, :xandra)
 
     children = [
       Astarte.PairingWeb.Telemetry,
-      {Xandra.Cluster, xandra_options},
+      {Xandra.Cluster, pairing_xandra_opts},
       {Astarte.RPC.AMQP.Server, [amqp_queue: Protocol.amqp_queue(), handler: Handler]},
-      {Astarte.Pairing.CredentialsSecret.Cache, []}
+      {Astarte.Pairing.CredentialsSecret.Cache, []},
+      {Astarte.DataAccess, data_access_opts},
+      {Astarte.Pairing.Repo, repo_opts}
     ]
 
     Supervisor.start_link(children, strategy: :one_for_one)

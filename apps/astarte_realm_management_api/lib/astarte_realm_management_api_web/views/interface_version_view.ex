@@ -22,8 +22,4 @@ defmodule Astarte.RealmManagement.APIWeb.InterfaceVersionView do
   def render("index.json", %{interfaces: interfaces}) do
     %{data: interfaces}
   end
-
-  def render("show.json", %{interface: interface}) do
-    %{data: interface}
-  end
 end

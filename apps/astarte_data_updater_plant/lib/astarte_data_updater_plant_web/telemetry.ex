@@ -97,6 +97,9 @@ defmodule Astarte.DataUpdaterPlantWeb.Telemetry do
       last_value("astarte.data_updater_plant.service.health",
         tags: [:status],
         description: "Service state: 1 if good, 0 if not."
+      ),
+      sum("astarte.data_updater_plant.service.connected_devices.duration",
+        tags: [:realm]
       )
     ]
   end

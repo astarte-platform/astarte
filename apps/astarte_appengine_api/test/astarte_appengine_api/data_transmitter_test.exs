@@ -17,7 +17,7 @@
 #
 
 defmodule Astarte.AppEngine.APIWeb.DataTransmitterTest do
-  use Astarte.AppEngine.APIWeb.ChannelCase
+  use Astarte.Cases.Conn
 
   alias Astarte.RPC.Protocol.VMQ.Plugin, as: Protocol
 
@@ -44,49 +44,45 @@ defmodule Astarte.AppEngine.APIWeb.DataTransmitterTest do
   @timestamp DateTime.utc_now()
   @metadata %{some: "metadata"}
 
-  @encoded_generic_ok_reply %Reply{
-                              reply: {:generic_ok_reply, %GenericOkReply{}}
-                            }
-                            |> Reply.encode()
-
   test "datastream push with no opts" do
-    MockRPCClient
-    |> expect(:rpc_call, fn serialized_call, @vmq_plugin_destination ->
-      assert %Call{call: {:publish, %Publish{} = publish_call}} = Call.decode(serialized_call)
+    answer = {:ok, %{local_matches: 0, remote_matches: 0}}
 
+    Astarte.AppEngine.API.RPC.VMQPlugin.ClientMock
+    |> expect(:publish, fn data ->
       encoded_payload = Cyanide.encode!(%{v: @payload})
 
-      assert %Publish{
+      assert %{
                topic_tokens: [@realm, @encoded_device_id, @interface | @path_tokens],
                payload: ^encoded_payload,
                qos: 0
-             } = publish_call
+             } = data
 
-      {:ok, @encoded_generic_ok_reply}
+      answer
     end)
 
-    assert :ok = DataTransmitter.push_datastream(@realm, @device_id, @interface, @path, @payload)
+    assert ^answer =
+             DataTransmitter.push_datastream(@realm, @device_id, @interface, @path, @payload)
   end
 
   test "datastream push with opts" do
-    MockRPCClient
-    |> expect(:rpc_call, fn serialized_call, @vmq_plugin_destination ->
-      assert %Call{call: {:publish, %Publish{} = publish_call}} = Call.decode(serialized_call)
+    answer = {:ok, %{local_matches: 0, remote_matches: 0}}
 
+    Astarte.AppEngine.API.RPC.VMQPlugin.ClientMock
+    |> expect(:publish, fn data ->
       encoded_payload = Cyanide.encode!(%{v: @payload, m: @metadata, t: @timestamp})
 
-      assert %Publish{
+      assert %{
                topic_tokens: [@realm, @encoded_device_id, @interface | @path_tokens],
                payload: ^encoded_payload,
                qos: 1
-             } = publish_call
+             } = data
 
-      {:ok, @encoded_generic_ok_reply}
+      answer
     end)
 
     opts = [metadata: @metadata, timestamp: @timestamp, qos: 1]
 
-    assert :ok =
+    assert ^answer =
              DataTransmitter.push_datastream(
                @realm,
                @device_id,
@@ -98,43 +94,43 @@ defmodule Astarte.AppEngine.APIWeb.DataTransmitterTest do
   end
 
   test "set property with no opts" do
-    MockRPCClient
-    |> expect(:rpc_call, fn serialized_call, @vmq_plugin_destination ->
-      assert %Call{call: {:publish, %Publish{} = publish_call}} = Call.decode(serialized_call)
+    answer = {:ok, %{local_matches: 0, remote_matches: 0}}
 
+    Astarte.AppEngine.API.RPC.VMQPlugin.ClientMock
+    |> expect(:publish, fn data ->
       encoded_payload = Cyanide.encode!(%{v: @payload})
 
-      assert %Publish{
+      assert %{
                topic_tokens: [@realm, @encoded_device_id, @interface | @path_tokens],
                payload: ^encoded_payload,
                qos: 2
-             } = publish_call
+             } = data
 
-      {:ok, @encoded_generic_ok_reply}
+      answer
     end)
 
-    assert :ok = DataTransmitter.set_property(@realm, @device_id, @interface, @path, @payload)
+    assert ^answer = DataTransmitter.set_property(@realm, @device_id, @interface, @path, @payload)
   end
 
   test "set property with opts" do
-    MockRPCClient
-    |> expect(:rpc_call, fn serialized_call, @vmq_plugin_destination ->
-      assert %Call{call: {:publish, %Publish{} = publish_call}} = Call.decode(serialized_call)
+    answer = {:ok, %{local_matches: 0, remote_matches: 0}}
 
+    Astarte.AppEngine.API.RPC.VMQPlugin.ClientMock
+    |> expect(:publish, fn data ->
       encoded_payload = Cyanide.encode!(%{v: @payload, m: @metadata, t: @timestamp})
 
-      assert %Publish{
-               topic_tokens: [@realm, @encoded_device_id, @interface | @path_tokens],
-               payload: ^encoded_payload,
-               qos: 2
-             } = publish_call
+      %{
+        topic_tokens: [@realm, @encoded_device_id, @interface | @path_tokens],
+        payload: ^encoded_payload,
+        qos: 2
+      } = data
 
-      {:ok, @encoded_generic_ok_reply}
+      answer
     end)
 
     opts = [metadata: @metadata, timestamp: @timestamp]
 
-    assert :ok =
+    assert ^answer =
              DataTransmitter.set_property(
                @realm,
                @device_id,
@@ -146,19 +142,19 @@ defmodule Astarte.AppEngine.APIWeb.DataTransmitterTest do
   end
 
   test "unset property" do
-    MockRPCClient
-    |> expect(:rpc_call, fn serialized_call, @vmq_plugin_destination ->
-      assert %Call{call: {:publish, %Publish{} = publish_call}} = Call.decode(serialized_call)
+    answer = {:ok, %{local_matches: 0, remote_matches: 0}}
 
-      assert %Publish{
-               topic_tokens: [@realm, @encoded_device_id, @interface | @path_tokens],
-               payload: <<>>,
-               qos: 2
-             } = publish_call
+    Astarte.AppEngine.API.RPC.VMQPlugin.ClientMock
+    |> expect(:publish, fn data ->
+      %{
+        topic_tokens: [@realm, @encoded_device_id, @interface | @path_tokens],
+        payload: <<>>,
+        qos: 2
+      } = data
 
-      {:ok, @encoded_generic_ok_reply}
+      answer
     end)
 
-    assert :ok = DataTransmitter.unset_property(@realm, @device_id, @interface, @path)
+    assert ^answer = DataTransmitter.unset_property(@realm, @device_id, @interface, @path)
   end
 end

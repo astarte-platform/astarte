@@ -1,3 +1,5 @@
-ExUnit.start()
+Mimic.copy(Astarte.DataAccess.Config)
+Mimic.copy(Astarte.AppEngine.API.Device)
+Mimic.copy(DateTime)
 
-Code.require_file("support/database_test_helper.exs", __DIR__)
+ExUnit.start(capture_log: true)

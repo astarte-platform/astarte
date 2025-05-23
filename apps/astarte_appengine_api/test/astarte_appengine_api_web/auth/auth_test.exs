@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2017 Ispirata Srl
+# Copyright 2017 - 2025 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -16,10 +16,10 @@
 # limitations under the License.
 
 defmodule Astarte.AppEngine.APIWeb.AuthTest do
-  use Astarte.AppEngine.APIWeb.ConnCase
+  use Astarte.Cases.Conn
 
-  alias Astarte.AppEngine.API.DatabaseTestHelper
-  alias Astarte.AppEngine.API.JWTTestHelper
+  alias Astarte.Helpers.Database, as: DatabaseTestHelper
+  alias Astarte.Helpers.JWT, as: JWTTestHelper
 
   @realm "autotestrealm"
   @device_id "f0VMRgIBAQAAAAAAAAAAAA"
@@ -41,7 +41,7 @@ defmodule Astarte.AppEngine.APIWeb.AuthTest do
   end
 
   setup_all do
-    {:ok, _client} = DatabaseTestHelper.create_test_keyspace()
+    DatabaseTestHelper.create_test_keyspace()
 
     on_exit(fn ->
       DatabaseTestHelper.destroy_local_test_keyspace()

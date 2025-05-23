@@ -47,6 +47,13 @@ defmodule Astarte.TriggerEngine.AMQPConsumer.AMQPConsumerTracker do
 
   @impl true
   def handle_info(:update_consumers, state) do
+    update_consumers()
+    schedule_update()
+
+    {:noreply, state}
+  end
+
+  def update_consumers do
     registered_consumers =
       Registry.select(Registry.AMQPConsumerRegistry, [{{:"$1", :_, :_}, [], [:"$1"]}])
 
@@ -67,9 +74,7 @@ defmodule Astarte.TriggerEngine.AMQPConsumer.AMQPConsumerTracker do
 
     Enum.each(outdated_consumers, &remove_outdated_consumer/1)
 
-    schedule_update()
-
-    {:noreply, state}
+    :ok
   end
 
   defp schedule_update() do

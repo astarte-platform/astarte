@@ -20,8 +20,8 @@ on:
     - '.github/workflows/astarte-end-to-end-test-workflow.yaml'
 
 env:
-  elixir_version: "1.14.5"
-  otp_version: "25.3.2"
+  elixir_version: "1.15"
+  otp_version: "26.1"
 
 jobs:
   end-to-end-test:
@@ -84,7 +84,7 @@ jobs:
       working-directory: tools/astarte_e2e
       run: |
         mix deps.get
-        mix compile
+        mix compile --warnings-as-errors --force
     - name: Run Astarte E2E
       working-directory: tools/astarte_e2e
       env:

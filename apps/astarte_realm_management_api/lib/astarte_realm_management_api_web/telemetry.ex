@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2020 Ispirata Srl
+# Copyright 2020-2024 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -20,12 +20,17 @@ defmodule Astarte.RealmManagement.APIWeb.Telemetry do
   use Supervisor
   import Telemetry.Metrics
 
+  alias Astarte.RealmManagement.APIWeb.Telemetry.APIUsage
+
   def start_link(arg) do
     Supervisor.start_link(__MODULE__, arg, name: __MODULE__)
   end
 
   def init(_arg) do
+    attach_handlers()
+
     children = [
+      {Task.Supervisor, name: Astarte.RealmManagement.APIWeb.TelemetryTaskSupervisor},
       {:telemetry_poller, measurements: periodic_measurements(), period: 10_000},
       {TelemetryMetricsPrometheus.Core, metrics: metrics()}
     ]
@@ -97,6 +102,15 @@ defmodule Astarte.RealmManagement.APIWeb.Telemetry do
       last_value(
         "astarte.realm_management.service.health",
         description: "Service state: 1 if good, 0 if not."
+      ),
+      counter("astarte.realm_management.api.request.count",
+        tags: [:realm]
+      ),
+      sum("astarte.realm_management.api.request.request_body_bytes",
+        tags: [:realm]
+      ),
+      sum("astarte.realm_management.api.request.response_body_bytes",
+        tags: [:realm]
       )
     ]
   end
@@ -107,6 +121,10 @@ defmodule Astarte.RealmManagement.APIWeb.Telemetry do
       # This function must call :telemetry.execute/3 and a metric must be added above.
       # {MyApp, :count_users, []}
     ]
+  end
+
+  defp attach_handlers do
+    :telemetry.attach(APIUsage, [:cowboy, :request, :stop], &APIUsage.handle_event/4, nil)
   end
 
   defp extract_phoenix_buckets_metadata(%{

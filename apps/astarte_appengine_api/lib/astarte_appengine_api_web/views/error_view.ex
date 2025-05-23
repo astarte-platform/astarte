@@ -82,6 +82,10 @@ defmodule Astarte.AppEngine.APIWeb.ErrorView do
     %{errors: %{detail: "Alias already in use"}}
   end
 
+  def render("422_unset_not_allowed.json", _assigns) do
+    %{errors: %{detail: "Unset not allowed"}}
+  end
+
   def render("422_alias_tag_not_found.json", _assigns) do
     %{errors: %{detail: "Alias tag not found"}}
   end
@@ -96,6 +100,14 @@ defmodule Astarte.AppEngine.APIWeb.ErrorView do
 
   def render("422_unexpected_object_key.json", _assigns) do
     %{errors: %{detail: "Unexpected object key"}}
+  end
+
+  def render("500.json", %{conn: %{assigns: %{reason: %Xandra.ConnectionError{}}}}) do
+    %{errors: %{detail: "Database connection error"}}
+  end
+
+  def render("500.json", %{conn: %{assigns: %{reason: %Xandra.Error{message: message}}}}) do
+    %{errors: %{detail: "Database error: #{message}"}}
   end
 
   def render("500.json", _assigns) do

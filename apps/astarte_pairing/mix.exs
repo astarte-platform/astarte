@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2017-2021 Ispirata Srl
+# Copyright 2017-2025 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -22,8 +22,8 @@ defmodule Astarte.Pairing.Mixfile do
   def project do
     [
       app: :astarte_pairing,
-      version: "1.1.1",
-      elixir: "~> 1.14",
+      version: "1.2.1-alpha.0",
+      elixir: "~> 1.15",
       elixirc_paths: elixirc_paths(Mix.env()),
       start_permanent: Mix.env() == :prod,
       test_coverage: [tool: ExCoveralls],
@@ -42,7 +42,7 @@ defmodule Astarte.Pairing.Mixfile do
   def application do
     [
       mod: {Astarte.Pairing, []},
-      extra_applications: [:lager, :logger]
+      extra_applications: [:logger]
     ]
   end
 
@@ -67,9 +67,10 @@ defmodule Astarte.Pairing.Mixfile do
 
   defp astarte_required_modules(_) do
     [
-      {:astarte_core, "~> 1.1.1"},
-      {:astarte_data_access, "~> 1.1.1"},
-      {:astarte_rpc, "~> 1.1.1"}
+      {:astarte_core, github: "astarte-platform/astarte_core", branch: "release-1.2"},
+      {:astarte_data_access,
+       github: "astarte-platform/astarte_data_access", branch: "release-1.2"},
+      {:astarte_rpc, "~> 1.2"}
     ]
   end
 
@@ -83,12 +84,23 @@ defmodule Astarte.Pairing.Mixfile do
       {:telemetry_metrics_prometheus_core, "~> 0.4"},
       {:telemetry_metrics, "~> 0.4"},
       {:telemetry_poller, "~> 0.4"},
-      {:xandra, "~> 0.13"},
+      {:xandra, "~> 0.19"},
       {:pretty_log, "~> 0.1"},
       {:skogsra, "~> 2.2"},
       {:telemetry, "~> 0.4"},
       {:observer_cli, "~> 1.5"},
-      {:dialyxir, "~> 1.0", only: [:dev, :ci], runtime: false}
+      {:dialyxir, "~> 1.0", only: [:dev, :ci], runtime: false},
+      # Workaround for Elixir 1.15 / ssl_verify_fun issue
+      # See also: https://github.com/deadtrickster/ssl_verify_fun.erl/pull/27
+      {:ssl_verify_fun, "~> 1.1.0", manager: :rebar3, override: true},
+      # Fix: could not compile dependency due to an old snappy version (1.2.8).
+      # Delete when updating/removing cqerl from astarte_data_access.
+      {:snappyer, "~> 1.2.10", override: true},
+      {:ecto, "~> 3.12"},
+      {:exandra, "~> 0.13"},
+      {:typed_ecto_schema, "~> 0.4"},
+      {:cqex, "~> 1.0", only: :test},
+      {:cqerl, "~> 2.1", override: true, only: :test}
     ]
   end
 end
