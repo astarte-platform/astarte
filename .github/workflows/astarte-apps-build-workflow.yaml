@@ -152,4 +152,3 @@ jobs:
         token: ${{ secrets.CODECOV_TOKEN }}
         verbose: true
         directory: ./apps/${{ inputs.app }}/coverage_results
-        flags: ${{ inputs.app }}
