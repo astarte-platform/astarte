@@ -16,11 +16,11 @@ defmodule Astarte.ExportTest do
   <credentials inhibit_request="false" cert_serial="324725654494785828109237459525026742139358888604" cert_aki="a8eaf08a797f0b10bb9e7b5dca027ec2571c5ea6" first_credentials_request="2019-05-30T13:49:57.355Z" last_credentials_request_ip="198.51.100.1"/>
   <stats total_received_msgs="64" total_received_bytes="3960" last_connection="2019-05-30T13:49:57.561Z" last_disconnection="2019-05-30T13:51:00.038Z" last_seen_ip="198.51.100.89"/>
   <interfaces>
-  <interface interface_name="properties.org" major_version="0" minor_version="1" active="true">
+  <interface name="properties.org" major_version="0" minor_version="1" active="true">
   <property reception_timestamp="2020-01-30T03:26:23.184Z" path="/properties1">42.0</property>
   <property reception_timestamp="2020-01-30T03:26:23.185Z" path="/properties2">This is property string</property>
   </interface>
-  <interface interface_name="org.individualdatastreams.values" major_version="0" minor_version="1" active="true">
+  <interface name="org.individualdatastreams.values" major_version="0" minor_version="1" active="true">
   <datastream path="/testinstall1">
   <value reception_timestamp="2019-05-31T09:12:42.789Z">0.1</value>
   <value reception_timestamp="2019-05-31T09:13:29.144Z">0.2</value>
@@ -45,7 +45,7 @@ defmodule Astarte.ExportTest do
   <value reception_timestamp="2019-05-31T09:13:29.144Z">4885959589</value>
   </datastream>
   </interface>
-  <interface interface_name="objectdatastreams.org" major_version="0" minor_version="1" active="true">
+  <interface name="objectdatastreams.org" major_version="0" minor_version="1" active="true">
   <datastream path="/objectendpoint1">
   <object reception_timestamp="2019-06-11T13:24:03.200Z">
   <item name="/y">2</item>
@@ -104,7 +104,6 @@ defmodule Astarte.ExportTest do
 
     {:ok, state} = XMLGenerate.xml_write_start_tag(:standard_error, {"device", attributes}, state)
     assert ["device", "devices", "astarte"] == state
-    IO.inspect(state)
 
     {:ok, state} = Export.construct_device_xml_tags(mapped_device_data, :standard_error, state)
     assert ["device", "devices", "astarte"] == state

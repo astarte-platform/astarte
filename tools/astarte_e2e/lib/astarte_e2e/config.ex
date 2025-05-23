@@ -272,7 +272,7 @@ defmodule AstarteE2E.Config do
       }
     else
       _ ->
-        Logger.warn("Incomplete mail configuration. The Local Adapter will be used.",
+        Logger.warning("Incomplete mail configuration. The Local Adapter will be used.",
           tag: "local_adapter_fallback"
         )
 
@@ -295,7 +295,7 @@ defmodule AstarteE2E.Config do
       }
     else
       _ ->
-        Logger.warn("Incomplete mail configuration. The Local Adapter will be used.",
+        Logger.warning("Incomplete mail configuration. The Local Adapter will be used.",
           tag: "local_adapter_fallback"
         )
 

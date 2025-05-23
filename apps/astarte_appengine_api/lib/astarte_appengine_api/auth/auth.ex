@@ -28,7 +28,7 @@ defmodule Astarte.AppEngine.API.Auth do
       {:ok, public_key}
     else
       {:error, :public_key_not_found} ->
-        _ = Logger.warn("No public key found in realm #{realm}.", tag: "no_public_key_found")
+        _ = Logger.warning("No public key found in realm #{realm}.", tag: "no_public_key_found")
         {:error, :public_key_not_found}
 
       {:error, :database_connection_error} ->

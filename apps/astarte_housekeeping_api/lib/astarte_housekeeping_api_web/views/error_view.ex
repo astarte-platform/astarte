@@ -43,12 +43,44 @@ defmodule Astarte.Housekeeping.APIWeb.ErrorView do
     %{errors: %{detail: "Forbidden"}}
   end
 
+  def render("missing_token.json", _assigns) do
+    %{errors: %{detail: "Missing authorization token"}}
+  end
+
+  def render("invalid_token.json", _assigns) do
+    %{errors: %{detail: "Invalid JWT token"}}
+  end
+
+  def render("invalid_auth_path.json", _assigns) do
+    %{
+      errors: %{
+        detail: "Authorization failed due to an invalid path"
+      }
+    }
+  end
+
+  def render("authorization_path_not_matched.json", %{method: method, path: path}) do
+    %{
+      errors: %{
+        detail: "Unauthorized access to #{method} #{path}. Please verify your permissions"
+      }
+    }
+  end
+
   def render("realm_deletion_disabled.json", _assigns) do
     %{errors: %{detail: "Realm deletion disabled"}}
   end
 
   def render("connected_devices_present.json", _assigns) do
     %{errors: %{detail: "Realm still contains connected devices"}}
+  end
+
+  def render("set_datastream_maximum_storage_retention_fail.json", _assigns) do
+    %{errors: %{detail: "Failed to set datastream_maximum_storage_retention"}}
+  end
+
+  def render("delete_datastream_maximum_storage_retention_fail.json", _assigns) do
+    %{errors: %{detail: "Failed to delete datastream_maximum_storage_retention"}}
   end
 
   # In case no render clause matches or no

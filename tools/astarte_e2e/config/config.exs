@@ -21,7 +21,7 @@
 #
 # This configuration file is loaded before any dependency and
 # is restricted to this project.
-use Mix.Config
+import Config
 
 config :astarte_e2e, AstarteE2E.ServiceNotifier.Mailer,
   adapter: Bamboo.ConfigAdapter,

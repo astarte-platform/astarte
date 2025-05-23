@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2018 Ispirata Srl
+# Copyright 2018 - 2023 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -25,6 +25,7 @@ defmodule Astarte.DataUpdaterPlant.RPC.VMQPlugin do
 
   alias Astarte.RPC.Protocol.VMQ.Plugin.{
     Call,
+    Delete,
     Disconnect,
     GenericErrorReply,
     GenericOkReply,
@@ -51,6 +52,17 @@ defmodule Astarte.DataUpdaterPlant.RPC.VMQPlugin do
       |> decode_reply()
       |> extract_reply()
     end
+  end
+
+  def delete(realm_name, device_id) do
+    %Delete{
+      realm_name: realm_name,
+      device_id: device_id
+    }
+    |> encode_call(:delete)
+    |> @rpc_client.rpc_call(@destination)
+    |> decode_reply()
+    |> extract_reply()
   end
 
   def disconnect(client_id, discard_state)

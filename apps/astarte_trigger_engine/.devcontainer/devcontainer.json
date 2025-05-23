@@ -1,0 +1,23 @@
+{
+	"name": "astarte-trigger-engine",
+	"dockerComposeFile": [
+		"../../../docker-compose.yml",
+		"../../../docker-compose.dev.yml",
+		"docker-compose.override.yml"
+	],
+	"service": "astarte-trigger-engine",
+	"overrideCommand": true,
+	"mounts": [
+		"source=${localWorkspaceFolder}/../../,target=/workspace/astarte,type=bind"
+	],
+	"workspaceFolder": "/workspace/astarte/apps/astarte_trigger_engine",
+	"customizations": {
+		"vscode": {
+			"extensions": [
+				"JakeBecker.elixir-ls",
+				"animus-coop.vscode-elixir-mix-formatter",
+				"ms-azuretools.vscode-docker"
+			]
+		}
+	}
+}

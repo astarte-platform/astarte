@@ -18,9 +18,10 @@
 
 defmodule Astarte.Housekeeping.Migrator do
   require Logger
+  alias Astarte.Core.CQLUtils
+  alias Astarte.Housekeeping.Config
 
   alias Astarte.Housekeeping.Queries
-
   @query_timeout 60_000
 
   def run_astarte_keyspace_migrations do
@@ -78,7 +79,7 @@ defmodule Astarte.Housekeeping.Migrator do
     query = """
     SELECT table_name
     FROM system_schema.tables
-    WHERE keyspace_name='astarte' AND table_name='kv_store'
+    WHERE keyspace_name='#{CQLUtils.realm_name_to_keyspace_name("astarte", Config.astarte_instance_id!())}' AND table_name='kv_store'
     """
 
     with {:ok, %Xandra.Page{} = page} <-
@@ -90,12 +91,12 @@ defmodule Astarte.Housekeeping.Migrator do
       end
     else
       {:error, %Xandra.Error{} = err} ->
-        _ = Logger.warn("Database error: #{inspect(err)}.", tag: "database_error")
+        _ = Logger.warning("Database error: #{inspect(err)}.", tag: "database_error")
         {:error, :database_error}
 
       {:error, %Xandra.ConnectionError{} = err} ->
         _ =
-          Logger.warn("Database connection error: #{inspect(err)}.",
+          Logger.warning("Database connection error: #{inspect(err)}.",
             tag: "database_connection_error"
           )
 
@@ -105,7 +106,7 @@ defmodule Astarte.Housekeeping.Migrator do
 
   defp create_astarte_kv_store do
     query = """
-    CREATE TABLE astarte.kv_store (
+    CREATE TABLE #{CQLUtils.realm_name_to_keyspace_name("astarte", Config.astarte_instance_id!())}.kv_store (
       group varchar,
       key varchar,
       value blob,
@@ -122,12 +123,12 @@ defmodule Astarte.Housekeeping.Migrator do
         :ok
 
       {:error, %Xandra.Error{} = err} ->
-        _ = Logger.warn("Database error: #{inspect(err)}.", tag: "database_error")
+        _ = Logger.warning("Database error: #{inspect(err)}.", tag: "database_error")
         {:error, :database_error}
 
       {:error, %Xandra.ConnectionError{} = err} ->
         _ =
-          Logger.warn("Database connection error: #{inspect(err)}.",
+          Logger.warning("Database connection error: #{inspect(err)}.",
             tag: "database_connection_error"
           )
 
@@ -137,7 +138,11 @@ defmodule Astarte.Housekeeping.Migrator do
 
   defp get_astarte_schema_version do
     Xandra.Cluster.run(:xandra, fn conn ->
-      with :ok <- use_keyspace(conn, "astarte") do
+      with :ok <-
+             use_keyspace(
+               conn,
+               "#{CQLUtils.realm_name_to_keyspace_name("astarte", Config.astarte_instance_id!())}"
+             ) do
         get_keyspace_astarte_schema_version(conn)
       end
     end)
@@ -145,7 +150,11 @@ defmodule Astarte.Housekeeping.Migrator do
 
   defp get_realm_astarte_schema_version(realm_name) do
     Xandra.Cluster.run(:xandra, fn conn ->
-      with :ok <- use_keyspace(conn, realm_name) do
+      with :ok <-
+             use_keyspace(
+               conn,
+               CQLUtils.realm_name_to_keyspace_name(realm_name, Config.astarte_instance_id!())
+             ) do
         get_keyspace_astarte_schema_version(conn)
       end
     end)
@@ -157,12 +166,12 @@ defmodule Astarte.Housekeeping.Migrator do
         :ok
 
       {:error, %Xandra.Error{} = err} ->
-        _ = Logger.warn("Database error: #{inspect(err)}.", tag: "database_error")
+        _ = Logger.warning("Database error: #{inspect(err)}.", tag: "database_error")
         {:error, :database_error}
 
       {:error, %Xandra.ConnectionError{} = err} ->
         _ =
-          Logger.warn("Database connection error: #{inspect(err)}.",
+          Logger.warning("Database connection error: #{inspect(err)}.",
             tag: "database_connection_error"
           )
 
@@ -189,12 +198,12 @@ defmodule Astarte.Housekeeping.Migrator do
       end
     else
       {:error, %Xandra.Error{} = err} ->
-        _ = Logger.warn("Database error: #{inspect(err)}.", tag: "database_error")
+        _ = Logger.warning("Database error: #{inspect(err)}.", tag: "database_error")
         {:error, :database_error}
 
       {:error, %Xandra.ConnectionError{} = err} ->
         _ =
-          Logger.warn("Database connection error: #{inspect(err)}.",
+          Logger.warning("Database connection error: #{inspect(err)}.",
             tag: "database_connection_error"
           )
 
@@ -211,7 +220,11 @@ defmodule Astarte.Housekeeping.Migrator do
       |> filter_migrations(current_schema_version)
 
     Xandra.Cluster.run(:xandra, [timeout: :infinity], fn conn ->
-      with :ok <- use_keyspace(conn, "astarte"),
+      with :ok <-
+             use_keyspace(
+               conn,
+               "#{CQLUtils.realm_name_to_keyspace_name("astarte", Config.astarte_instance_id!())}"
+             ),
            :ok <- execute_migrations(conn, migrations) do
         _ = Logger.info("Finished migrating Astarte keyspace.", tag: "astarte_migration_finished")
 
@@ -229,7 +242,11 @@ defmodule Astarte.Housekeeping.Migrator do
       |> filter_migrations(current_schema_version)
 
     Xandra.Cluster.run(:xandra, [timeout: :infinity], fn conn ->
-      with :ok <- use_keyspace(conn, realm_name),
+      with :ok <-
+             use_keyspace(
+               conn,
+               CQLUtils.realm_name_to_keyspace_name(realm_name, Config.astarte_instance_id!())
+             ),
            :ok <- execute_migrations(conn, migrations) do
         _ =
           Logger.info("Finished migrating realm.",
@@ -296,12 +313,12 @@ defmodule Astarte.Housekeeping.Migrator do
       execute_migrations(keyspace_conn, tail)
     else
       {:error, %Xandra.Error{} = err} ->
-        _ = Logger.warn("Database error: #{inspect(err)}.", tag: "database_error")
+        _ = Logger.warning("Database error: #{inspect(err)}.", tag: "database_error")
         {:error, :database_error}
 
       {:error, %Xandra.ConnectionError{} = err} ->
         _ =
-          Logger.warn("Database connection error: #{inspect(err)}.",
+          Logger.warning("Database connection error: #{inspect(err)}.",
             tag: "database_connection_error"
           )
 
@@ -332,12 +349,12 @@ defmodule Astarte.Housekeeping.Migrator do
       :ok
     else
       {:error, %Xandra.Error{} = err} ->
-        _ = Logger.warn("Database error: #{inspect(err)}.", tag: "database_error")
+        _ = Logger.warning("Database error: #{inspect(err)}.", tag: "database_error")
         {:error, :database_error}
 
       {:error, %Xandra.ConnectionError{} = err} ->
         _ =
-          Logger.warn("Database connection error: #{inspect(err)}.",
+          Logger.warning("Database connection error: #{inspect(err)}.",
             tag: "database_connection_error"
           )
 

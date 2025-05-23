@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2017 Ispirata Srl
+# Copyright 2017 - 2023 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -21,22 +21,30 @@ defmodule Astarte.RealmManagement.APIWeb.Router do
 
   pipeline :api do
     plug :accepts, ["json"]
+    plug Astarte.RealmManagement.APIWeb.Plug.LogRealm
+    plug Astarte.RealmManagement.APIWeb.Plug.AuthorizePath
   end
 
-  scope "/v1", Astarte.RealmManagement.APIWeb do
+  scope "/v1/:realm_name", Astarte.RealmManagement.APIWeb do
     pipe_through :api
 
-    get "/:realm_name/version", VersionController, :show
+    get "/version", VersionController, :show
 
-    get "/:realm_name/interfaces/:id", InterfaceVersionController, :index
-    resources "/:realm_name/interfaces", InterfaceController, only: [:index, :create]
-    get "/:realm_name/interfaces/:id/:major_version", InterfaceController, :show
-    put "/:realm_name/interfaces/:id/:major_version", InterfaceController, :update
-    delete "/:realm_name/interfaces/:id/:major_version", InterfaceController, :delete
-    get "/:realm_name/config/:group", RealmConfigController, :show
-    put "/:realm_name/config/:group", RealmConfigController, :update
+    get "/interfaces/:id", InterfaceVersionController, :index
+    resources "/interfaces", InterfaceController, only: [:index, :create]
+    get "/interfaces/:id/:major_version", InterfaceController, :show
+    put "/interfaces/:id/:major_version", InterfaceController, :update
+    delete "/interfaces/:id/:major_version", InterfaceController, :delete
+    get "/config/:group", RealmConfigController, :show
+    put "/config/:group", RealmConfigController, :update
 
-    resources "/:realm_name/triggers", TriggerController, except: [:new, :edit]
-    resources "/:realm_name/policies", TriggerPolicyController, except: [:new, :edit]
+    resources "/triggers", TriggerController, except: [:new, :edit]
+    resources "/policies", TriggerPolicyController, except: [:new, :edit]
+
+    delete "/devices/:device_id", DeviceController, :delete
+  end
+
+  scope "/version", Astarte.RealmManagement.APIWeb do
+    get "/", VersionController, :show
   end
 end

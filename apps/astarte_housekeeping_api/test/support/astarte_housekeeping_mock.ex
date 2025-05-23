@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2017-2018 Ispirata Srl
+# Copyright 2017-2023 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -29,12 +29,19 @@ defmodule Astarte.Housekeeping.Mock do
     GetRealmReply,
     GetRealmsList,
     GetRealmsListReply,
-    Reply
+    RemoveLimit,
+    Reply,
+    SetLimit,
+    UpdateRealm
   }
 
   alias Astarte.Housekeeping.API.Realms.Realm
 
   def rpc_call(payload, _destination) do
+    handle_rpc(payload)
+  end
+
+  def rpc_call(payload, _destination, _timeout) do
     handle_rpc(payload)
   end
 
@@ -55,7 +62,9 @@ defmodule Astarte.Housekeeping.Mock do
             jwt_public_key_pem: pem,
             replication_factor: rep,
             replication_class: class,
-            datacenter_replication_factors: dc_repl
+            datacenter_replication_factors: dc_repl,
+            device_registration_limit: dev_reg_limit,
+            datastream_maximum_storage_retention: ds_max_retention
           }}
        ) do
     Astarte.Housekeeping.Mock.DB.put_realm(%Realm{
@@ -63,11 +72,75 @@ defmodule Astarte.Housekeeping.Mock do
       jwt_public_key_pem: pem,
       replication_factor: rep,
       replication_class: class,
-      datacenter_replication_factors: dc_repl
+      datacenter_replication_factors: dc_repl,
+      device_registration_limit: dev_reg_limit,
+      datastream_maximum_storage_retention: ds_max_retention
     })
 
     %GenericOkReply{async_operation: async}
     |> encode_reply(:generic_ok_reply)
+    |> ok_wrap
+  end
+
+  defp execute_rpc(
+         {:update_realm,
+          %UpdateRealm{
+            realm: realm_name,
+            jwt_public_key_pem: pem,
+            replication_factor: rep,
+            replication_class: class,
+            datacenter_replication_factors: dc_repl,
+            device_registration_limit: dev_reg_limit,
+            datastream_maximum_storage_retention: ds_max_retention
+          }}
+       ) do
+    # This is backend logic
+    limit =
+      case dev_reg_limit do
+        nil ->
+          %Realm{} = realm = Astarte.Housekeeping.Mock.DB.get_realm(realm_name)
+          realm.device_registration_limit
+
+        {:set_limit, %SetLimit{value: n}} ->
+          n
+
+        {:remove_limit, %RemoveLimit{}} ->
+          nil
+      end
+
+    retention =
+      case ds_max_retention do
+        nil ->
+          %Realm{} = realm = Astarte.Housekeeping.Mock.DB.get_realm(realm_name)
+          realm.datastream_maximum_storage_retention
+
+        0 ->
+          nil
+
+        n when is_integer(n) ->
+          n
+      end
+
+    Astarte.Housekeeping.Mock.DB.put_realm(%Realm{
+      realm_name: realm_name,
+      jwt_public_key_pem: pem,
+      replication_factor: rep,
+      replication_class: class,
+      datacenter_replication_factors: dc_repl,
+      device_registration_limit: limit,
+      datastream_maximum_storage_retention: retention
+    })
+
+    %GetRealmReply{
+      realm_name: realm_name,
+      jwt_public_key_pem: pem,
+      replication_factor: rep,
+      replication_class: class,
+      datacenter_replication_factors: dc_repl,
+      device_registration_limit: limit,
+      datastream_maximum_storage_retention: retention
+    }
+    |> encode_reply(:get_realm_reply)
     |> ok_wrap
   end
 
@@ -105,14 +178,18 @@ defmodule Astarte.Housekeeping.Mock do
         jwt_public_key_pem: pem,
         replication_factor: rep,
         replication_class: class,
-        datacenter_replication_factors: dc_repl
+        datacenter_replication_factors: dc_repl,
+        device_registration_limit: dev_reg_limit,
+        datastream_maximum_storage_retention: ds_max_retention
       } ->
         %GetRealmReply{
           realm_name: realm_name,
           jwt_public_key_pem: pem,
           replication_factor: rep,
           replication_class: class,
-          datacenter_replication_factors: dc_repl
+          datacenter_replication_factors: dc_repl,
+          device_registration_limit: dev_reg_limit,
+          datastream_maximum_storage_retention: ds_max_retention
         }
         |> encode_reply(:get_realm_reply)
     end

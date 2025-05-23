@@ -22,7 +22,6 @@ defmodule Astarte.Import.PopulateDB do
   alias Astarte.Core.InterfaceDescriptor
   alias Astarte.Core.Mapping
   alias Astarte.Core.Mapping.EndpointsAutomaton
-  alias Astarte.DataAccess.Database
   alias Astarte.DataAccess.Interface
   alias Astarte.DataAccess.Mappings
   alias Astarte.Import
@@ -48,11 +47,8 @@ defmodule Astarte.Import.PopulateDB do
     nodes = Application.get_env(:cqerl, :cassandra_nodes)
     {host, port} = Enum.random(nodes)
     Logger.info("Connecting to #{host}:#{port} cassandra database.", realm: realm)
-    opts = [cassandra_nodes: nodes, realm: realm]
-    {:ok, conn} = Database.connect(opts)
-    {:ok, xandra_conn} = Xandra.start_link(nodes: ["#{host}:#{port}"])
 
-    Logger.info("Connected to database.", realm: realm)
+    {:ok, xandra_conn} = Xandra.start_link(nodes: ["#{host}:#{port}"])
 
     got_interface_fun = fn %Import.State{data: data} = state, interface_name, major, minor ->
       Logger.info("Importing data for #{interface_name} v#{major}.#{minor}.",
@@ -60,8 +56,8 @@ defmodule Astarte.Import.PopulateDB do
         device_id: state.device_id
       )
 
-      {:ok, interface_desc} = Interface.fetch_interface_descriptor(conn, interface_name, major)
-      {:ok, mappings} = Mappings.fetch_interface_mappings(conn, interface_desc.interface_id)
+      {:ok, interface_desc} = Interface.fetch_interface_descriptor(realm, interface_name, major)
+      {:ok, mappings} = Mappings.fetch_interface_mappings(realm, interface_desc.interface_id)
 
       %Import.State{
         state
@@ -334,14 +330,16 @@ defmodule Astarte.Import.PopulateDB do
     got_end_of_object_fun = fn state, object ->
       %Import.State{
         reception_timestamp: reception_timestamp,
-        data: %State{
-          mappings: mappings,
-          prepared_params: prepared_params,
-          prepared_query: prepared_query,
-          value_columns: value_columns,
-          value_type: expected_types
-        }
+        data: data
       } = state
+
+      %State{
+        mappings: mappings,
+        prepared_params: prepared_params,
+        prepared_query: prepared_query,
+        value_columns: value_columns,
+        value_type: expected_types
+      } = data
 
       reception_submillis = rem(DateTime.to_unix(reception_timestamp, :microsecond), 100)
       {:ok, native_value} = to_native_type(object, expected_types)
@@ -364,7 +362,10 @@ defmodule Astarte.Import.PopulateDB do
 
       {:ok, %Xandra.Void{}} = Xandra.execute(xandra_conn, prepared_query, params)
 
-      state
+      %Import.State{
+        state
+        | data: %State{data | last_seen_reception_timestamp: reception_timestamp}
+      }
     end
 
     got_end_of_property_fun = fn state, chars ->
@@ -489,6 +490,76 @@ defmodule Astarte.Import.PopulateDB do
       _any ->
         {:error, :invalid_value}
     end
+  end
+
+  defp to_native_type(value_chars, :doublearray) do
+    value =
+      Enum.map(value_chars, fn element ->
+        {:ok, value} = to_native_type(element, :double)
+        value
+      end)
+
+    {:ok, value}
+  end
+
+  defp to_native_type(value_chars, :integerarray) do
+    value =
+      Enum.map(value_chars, fn element ->
+        {:ok, value} = to_native_type(element, :integer)
+        value
+      end)
+
+    {:ok, value}
+  end
+
+  defp to_native_type(value_chars, :booleanarray) do
+    value =
+      Enum.map(value_chars, fn element ->
+        {:ok, value} = to_native_type(element, :boolean)
+        value
+      end)
+
+    {:ok, value}
+  end
+
+  defp to_native_type(value_chars, :longintegerarray) do
+    value =
+      Enum.map(value_chars, fn element ->
+        {:ok, value} = to_native_type(element, :longinteger)
+        value
+      end)
+
+    {:ok, value}
+  end
+
+  defp to_native_type(value_chars, :stringarray) do
+    value =
+      Enum.map(value_chars, fn element ->
+        {:ok, value} = to_native_type(element, :string)
+        value
+      end)
+
+    {:ok, value}
+  end
+
+  defp to_native_type(value_chars, :datetimearray) do
+    value =
+      Enum.map(value_chars, fn element ->
+        {:ok, value} = to_native_type(element, :datetime)
+        value
+      end)
+
+    {:ok, value}
+  end
+
+  defp to_native_type(value_chars, :binaryblobarray) do
+    value =
+      Enum.map(value_chars, fn element ->
+        {:ok, value} = to_native_type(element, :binaryblob)
+        value
+      end)
+
+    {:ok, value}
   end
 
   defp to_native_type(values, expected_types) when is_map(values) and is_map(expected_types) do

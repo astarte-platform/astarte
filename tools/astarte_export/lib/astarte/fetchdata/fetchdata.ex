@@ -3,6 +3,16 @@ defmodule Astarte.Export.FetchData do
   alias Astarte.Core.CQLUtils
   alias Astarte.Export.FetchData.Queries
 
+  @base_types %{
+    binaryblobarray: :binaryblob,
+    datetimearray: :datetime,
+    stringarray: :string,
+    integerarray: :integer,
+    longintegerarray: :longinteger,
+    doublearray: :double,
+    booleanarray: :boolean
+  }
+
   def db_connection_identifier() do
     with {:ok, conn_ref} <- Queries.get_connection() do
       {:ok, conn_ref}
@@ -11,14 +21,20 @@ defmodule Astarte.Export.FetchData do
     end
   end
 
-  def fetch_device_data(conn, realm, opts) do
-    with {:ok, result} <- Queries.stream_devices(conn, realm, opts),
-         [_device_data | _] = result_list <- Enum.to_list(result) do
-      updated_options = Keyword.put(opts, :paging_state, result.paging_state)
-      {:more_data, result_list, updated_options}
-    else
-      [] -> {:ok, :completed}
-      {:error, reason} -> {:error, reason}
+  def fetch_device_data(conn, realm, options, device_options \\ []) do
+    case Queries.stream_devices(conn, realm, options, device_options) do
+      {:ok, result} ->
+        result_list = Enum.to_list(result)
+
+        if result_list == [] do
+          {:ok, :completed}
+        else
+          updated_options = Keyword.put(options, :paging_state, result.paging_state)
+          {:more_data, result_list, updated_options}
+        end
+
+      {:error, reason} ->
+        {:error, reason}
     end
   end
 
@@ -33,35 +49,71 @@ defmodule Astarte.Export.FetchData do
 
     secret_bcrypt_hash = device_data.credentials_secret
 
-    first_registration = DateTime.to_iso8601(device_data.first_registration)
+    first_registration =
+      case device_data.first_registration do
+        nil -> ""
+        datetime -> DateTime.to_iso8601(datetime)
+      end
 
     inhibit_request =
-      device_data.inhibit_credentials_request
-      |> to_string
-      |> String.downcase()
+      case device_data.inhibit_credentials_request do
+        nil -> ""
+        value -> value |> to_string() |> String.downcase()
+      end
 
-    cert_serial = device_data.cert_serial
-    cert_aki = device_data.cert_aki
+    cert_serial =
+      case device_data.cert_serial do
+        nil -> ""
+        serial -> serial
+      end
 
-    first_credentials_request = DateTime.to_iso8601(device_data.first_credentials_request)
+    cert_aki =
+      case device_data.cert_aki do
+        nil -> ""
+        serial -> serial
+      end
+
+    first_credentials_request =
+      case device_data.first_credentials_request do
+        nil -> ""
+        datetime -> DateTime.to_iso8601(datetime)
+      end
 
     last_credentials_request_ip =
-      device_data.last_credentials_request_ip
-      |> :inet_parse.ntoa()
-      |> to_string()
+      case device_data.last_credentials_request_ip do
+        nil -> ""
+        ip -> ip |> :inet_parse.ntoa() |> to_string()
+      end
 
-    total_received_msgs = to_string(device_data.total_received_msgs)
+    total_received_msgs =
+      case device_data.total_received_msgs do
+        nil -> "0"
+        msgs -> to_string(msgs)
+      end
 
-    total_received_bytes = to_string(device_data.total_received_bytes)
+    total_received_bytes =
+      case device_data.total_received_bytes do
+        nil -> "0"
+        bytes -> to_string(bytes)
+      end
 
-    last_connection = DateTime.to_iso8601(device_data.last_connection)
+    last_connection =
+      case device_data.last_connection do
+        nil -> ""
+        datetime -> DateTime.to_iso8601(datetime)
+      end
 
-    last_disconnection = DateTime.to_iso8601(device_data.last_disconnection)
+    last_disconnection =
+      case device_data.last_disconnection do
+        nil -> ""
+        datetime -> DateTime.to_iso8601(datetime)
+      end
 
     last_seen_ip =
-      device_data.last_seen_ip
-      |> :inet_parse.ntoa()
-      |> to_string()
+      case device_data.last_seen_ip do
+        nil -> ""
+        ip -> ip |> :inet_parse.ntoa() |> to_string()
+      end
 
     device_attributes = [device_id: device_id]
 
@@ -101,6 +153,8 @@ defmodule Astarte.Export.FetchData do
     device_id = device_data.device_id
     introspection = device_data.introspection
 
+    introspection = if introspection == nil, do: [], else: introspection
+
     mapped_interfaces =
       Enum.reduce(introspection, [], fn {interface_name, major_version}, acc ->
         {:ok, interface_description} =
@@ -114,8 +168,23 @@ defmodule Astarte.Export.FetchData do
         {:ok, mappings} = Queries.fetch_interface_mappings(conn, realm, interface_id, [])
         mappings = Enum.sort_by(mappings, fn mapping -> mapping.endpoint end)
 
+        mappings =
+          Enum.map(mappings, fn mapping ->
+            path =
+              fetch_all_endpoint_paths(
+                conn,
+                realm,
+                interface_id,
+                device_id,
+                mapping.endpoint_id,
+                aggregation
+              )
+
+            Map.put(mapping, :path, path |> Enum.at(0) || mapping.endpoint)
+          end)
+
         interface_attributes = [
-          interface_name: interface_name,
+          name: interface_name,
           major_version: to_string(major_version),
           minor_version: to_string(minor_version),
           active: "true"
@@ -149,6 +218,20 @@ defmodule Astarte.Export.FetchData do
     {:ok, mapped_interfaces}
   end
 
+  defp fetch_all_endpoint_paths(conn, realm, interface_id, device_id, endpoint_id, aggregation) do
+    with {:ok, result} <-
+           Queries.retrieve_all_endpoint_paths(
+             conn,
+             realm,
+             interface_id,
+             device_id,
+             endpoint_id,
+             aggregation
+           ) do
+      result
+    end
+  end
+
   def fetch_individual_datastreams(conn, realm, mapping, interface_info, options) do
     %{
       device_id: device_id,
@@ -156,7 +239,7 @@ defmodule Astarte.Export.FetchData do
     } = interface_info
 
     endpoint_id = mapping.endpoint_id
-    path = mapping.endpoint
+    path = mapping.path
     data_type = mapping.value_type
     data_field = CQLUtils.type_to_db_column_name(data_type)
 
@@ -246,7 +329,7 @@ defmodule Astarte.Export.FetchData do
       interface_id: interface_id
     } = interface_info
 
-    path = mapping.endpoint
+    path = mapping.path
     endpoint_id = mapping.endpoint_id
     data_type = mapping.value_type
     data_field = CQLUtils.type_to_db_column_name(data_type)
@@ -285,16 +368,12 @@ defmodule Astarte.Export.FetchData do
     end
   end
 
-  defp from_native_type(value, :binaryblob) do
-    {:ok, binary_blob} = Base.encode64(value)
-    binary_blob
+  defp from_native_type(value, native_type) when is_list(value) do
+    type = Map.get(@base_types, native_type, native_type)
+    Enum.map(value, &from_native_type(&1, type))
   end
 
-  defp from_native_type(value, :datetime) do
-    DateTime.to_iso8601(value)
-  end
-
-  defp from_native_type(value, _any_type) do
-    to_string(value)
-  end
+  defp from_native_type(value, :binaryblob), do: Base.encode64(value)
+  defp from_native_type(value, :datetime), do: DateTime.to_iso8601(value)
+  defp from_native_type(value, _any_type), do: to_string(value)
 end

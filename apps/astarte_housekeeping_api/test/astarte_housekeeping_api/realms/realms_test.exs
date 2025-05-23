@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2017 Ispirata Srl
+# Copyright 2017-2023 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -36,8 +36,26 @@ defmodule Astarte.Housekeeping.API.RealmsTest do
       +bxRibfFC0G6SugduGzqIACSdIiLEn4Nubx2jt4tHDpel0BIrYKlCw==
     -----END PUBLIC KEY-----
     """
-    @valid_attrs %{realm_name: "mytestrealm", jwt_public_key_pem: @pubkey}
+    @update_pubkey """
+    -----BEGIN PUBLIC KEY-----
+    MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEat8cZJ77myME8YQYfVkxOz39Wrq9
+    3FYHyYudzQKa11c55Z6ZZaw2H+nUkQl1/jqfHTrqMSiOP4TTf0oTYLWKfg==
+    -----END PUBLIC KEY-----
+    """
+
+    @valid_attrs %{
+      realm_name: "mytestrealm",
+      jwt_public_key_pem: @pubkey,
+      device_registration_limit: 42,
+      datastream_maximum_storage_retention: 42
+    }
+    @device_registration_limit_attrs %{
+      realm_name: "mytestrealm",
+      jwt_public_key_pem: @pubkey,
+      device_registration_limit: 10
+    }
     @invalid_attrs %{}
+    @invalid_update_attrs %{jwt_public_key_pem: @malformed_pubkey}
     @explicit_replication_attrs %{
       realm_name: "mytestrealm",
       jwt_public_key_pem: @pubkey,
@@ -49,7 +67,7 @@ defmodule Astarte.Housekeeping.API.RealmsTest do
       replication_class: "NetworkTopologyStrategy",
       datacenter_replication_factors: %{"dc1" => 2, "dc2" => 1}
     }
-    @update_attrs %{}
+    @update_attrs %{jwt_public_key_pem: @update_pubkey}
     @invalid_name_attrs %{realm_name: "0invalid", jwt_public_key_pem: @pubkey}
     @invalid_pubkey_attrs %{realm_name: "valid", jwt_public_key_pem: "invalid"}
     @invalid_replication_attrs %{
@@ -153,18 +171,88 @@ defmodule Astarte.Housekeeping.API.RealmsTest do
       assert {:error, %Ecto.Changeset{}} = Realms.create_realm(@empty_pubkey_attrs)
     end
 
-    @tag :wip
     test "update_realm/2 with valid data updates the realm" do
-      realm = realm_fixture()
-      assert {:ok, realm} = Realms.update_realm(realm, @update_attrs)
-      assert %Realm{} = realm
+      %Realm{realm_name: realm_name} = realm = realm_fixture()
+
+      assert {:ok, realm} = Realms.update_realm(realm_name, @update_attrs)
+
+      assert %Realm{
+               realm_name: "mytestrealm",
+               jwt_public_key_pem: @update_pubkey
+             } = realm
     end
 
-    @tag :wip
+    test "update_realm/2 with valid data and device registration limit set to a valid value updates the realm" do
+      %Realm{realm_name: realm_name} = realm = realm_fixture()
+      limit = 10
+      update_attrs = Map.put(@update_attrs, :device_registration_limit, limit)
+      assert {:ok, realm} = Realms.update_realm(realm_name, update_attrs)
+
+      assert %Realm{
+               realm_name: "mytestrealm",
+               jwt_public_key_pem: @update_pubkey,
+               device_registration_limit: ^limit
+             } = realm
+    end
+
+    test "update_realm/2 with device registration limit set to :unset removes the limit" do
+      %Realm{realm_name: realm_name, device_registration_limit: device_registration_limit} =
+        realm = realm_fixture()
+
+      assert device_registration_limit != nil
+      update_attrs = Map.put(@update_attrs, :device_registration_limit, :unset)
+      assert {:ok, realm} = Realms.update_realm(realm_name, update_attrs)
+
+      assert %Realm{
+               realm_name: "mytestrealm",
+               jwt_public_key_pem: @update_pubkey,
+               device_registration_limit: nil
+             } = realm
+    end
+
+    test "update_realm/2 with device registration limit set to an invalid value fails" do
+      %Realm{realm_name: realm_name} = realm = realm_fixture()
+      update_attrs = Map.put(@update_attrs, :device_registration_limit, -10)
+      assert {:error, %Ecto.Changeset{}} = Realms.update_realm(realm_name, update_attrs)
+    end
+
+    test "update_realm/2 with valid data and datastream maximum storage retention set to a valid value updates the realm" do
+      %Realm{realm_name: realm_name} = realm_fixture()
+      retention = 10
+      update_attrs = Map.put(@update_attrs, :datastream_maximum_storage_retention, retention)
+      assert {:ok, realm} = Realms.update_realm(realm_name, update_attrs)
+
+      assert %Realm{
+               realm_name: "mytestrealm",
+               jwt_public_key_pem: @update_pubkey,
+               datastream_maximum_storage_retention: ^retention
+             } = realm
+    end
+
+    test "update_realm/2 with datastream maximum storage retention set to :unset removes the limit" do
+      %Realm{realm_name: realm_name, datastream_maximum_storage_retention: retention} =
+        realm_fixture()
+
+      assert retention != nil
+      update_attrs = Map.put(@update_attrs, :datastream_maximum_storage_retention, :unset)
+      assert {:ok, realm} = Realms.update_realm(realm_name, update_attrs)
+
+      assert %Realm{
+               realm_name: "mytestrealm",
+               jwt_public_key_pem: @update_pubkey,
+               datastream_maximum_storage_retention: nil
+             } = realm
+    end
+
+    test "update_realm/2 with datastream maximum storage retention set to an invalid value fails" do
+      %Realm{realm_name: realm_name} = realm_fixture()
+      update_attrs = Map.put(@update_attrs, :datastream_maximum_storage_retention, -10)
+      assert {:error, %Ecto.Changeset{}} = Realms.update_realm(realm_name, update_attrs)
+    end
+
     test "update_realm/2 with invalid data returns error changeset" do
-      realm = realm_fixture()
-      assert {:error, %Ecto.Changeset{}} = Realms.update_realm(realm, @invalid_attrs)
-      assert realm == Realms.get_realm!(realm.id)
+      %Realm{realm_name: realm_name} = realm = realm_fixture()
+      assert {:error, %Ecto.Changeset{}} = Realms.update_realm(realm_name, @invalid_update_attrs)
     end
 
     @tag :wip

@@ -19,7 +19,8 @@
 defmodule Astarte.AppEngine.API.Stats.Queries do
   alias Astarte.Core.Realm
   alias Astarte.AppEngine.API.Stats.DevicesStats
-
+  alias Astarte.Core.CQLUtils
+  alias Astarte.AppEngine.API.Config
   require Logger
 
   def get_devices_stats(realm) do
@@ -34,7 +35,7 @@ defmodule Astarte.AppEngine.API.Stats.Queries do
         {:ok, stats}
       else
         {:error, reason} ->
-          _ = Logger.warn("Database error: #{inspect(reason)}.", tag: "db_error")
+          _ = Logger.warning("Database error: #{inspect(reason)}.", tag: "db_error")
           {:error, :database_error}
       end
     end)
@@ -43,7 +44,7 @@ defmodule Astarte.AppEngine.API.Stats.Queries do
   defp get_total_devices_count(conn, realm) do
     query = """
     SELECT count(device_id)
-    FROM :realm.devices
+    FROM :keyspace.devices
     """
 
     with {:ok, prepared} <- prepare_with_realm(conn, realm, query),
@@ -58,7 +59,7 @@ defmodule Astarte.AppEngine.API.Stats.Queries do
     # TODO: we should do this via DataUpdaterPlant instead of using ALLOW FILTERING
     query = """
     SELECT count(device_id)
-    FROM :realm.devices
+    FROM :keyspace.devices
     WHERE connected=true
     ALLOW FILTERING
     """
@@ -74,16 +75,19 @@ defmodule Astarte.AppEngine.API.Stats.Queries do
   # TODO: copypasted from Groups.Queries, this is going to be moved to Astarte.DataAccess
   # when we move everything to Xandra
   defp prepare_with_realm(conn, realm_name, query) do
+    keyspace_name =
+      CQLUtils.realm_name_to_keyspace_name(realm_name, Config.astarte_instance_id!())
+
     with {:valid, true} <- {:valid, Realm.valid_name?(realm_name)},
-         query_with_realm = String.replace(query, ":realm", realm_name),
-         {:ok, prepared} <- Xandra.prepare(conn, query_with_realm) do
+         query_with_keyspace = String.replace(query, ":keyspace", keyspace_name),
+         {:ok, prepared} <- Xandra.prepare(conn, query_with_keyspace) do
       {:ok, prepared}
     else
       {:valid, false} ->
         {:error, :not_found}
 
       {:error, reason} ->
-        _ = Logger.warn("Database error: #{inspect(reason)}.", tag: "db_error")
+        _ = Logger.warning("Database error: #{inspect(reason)}.", tag: "db_error")
         {:error, :database_error}
     end
   end

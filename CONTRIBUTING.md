@@ -1,21 +1,21 @@
 <!---
-  Copyright 2022 SECO Mind Srl
+  Copyright 2022-2024 SECO Mind Srl
 
   SPDX-License-Identifier: CC0-1.0
 -->
 
-# Contributing
+# Contributing to Astarte
 
-Astarte is open to any contribution.
+Thank you for your interest in contributing to Astarte!
 
-[Pull requests](https://github.com/astarte-platform/astarte/pulls),
-[bug reports and feature requests](https://github.com/astarte-platform/astarte/issues) are welcome.
+## Development Guide
 
-However before contributing, please read carefully our [Code of Conduct](CODE_OF_CONDUCT.md) and
-the following contribution guidelines.
+For detailed information on setting up your development environment, testing your changes,
+and more, please refer to our [Astarte Development Guide](https://docs.astarte-platform.org/astarte/snapshot/001-dev_guide.html).
 
-Please, also make sure to understand the [Apache 2.0 license](LICENSE) and the
-[Developer Certificate of Origin](https://developercertificate.org/).
+## Getting Help
 
-Last but not least, **do not use GitHub issues for vulnerability reports**, read instead the
-[security policy](SECURITY.md) for instructions.
+If you need help or have questions, feel free to reach out to us on:
+- our [discord](https://discord.gg/EzpBKcMN8g) server
+
+We truly appreciate your contributions and look forward to collaborating with you!

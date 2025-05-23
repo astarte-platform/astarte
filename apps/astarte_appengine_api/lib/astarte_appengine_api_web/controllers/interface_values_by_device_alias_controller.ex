@@ -23,11 +23,6 @@ defmodule Astarte.AppEngine.APIWeb.InterfaceValuesByDeviceAliasController do
   alias Astarte.AppEngine.API.Device.InterfaceValues
   alias Astarte.AppEngine.APIWeb.InterfaceValuesView
 
-  plug Astarte.AppEngine.APIWeb.Plug.JoinPath
-  plug Astarte.AppEngine.APIWeb.Plug.LogDeviceAlias
-  plug Astarte.AppEngine.APIWeb.Plug.LogInterface
-  plug Astarte.AppEngine.APIWeb.Plug.LogPath
-
   action_fallback Astarte.AppEngine.APIWeb.FallbackController
 
   def index(conn, %{"realm_name" => realm_name, "device_alias" => device_alias}) do

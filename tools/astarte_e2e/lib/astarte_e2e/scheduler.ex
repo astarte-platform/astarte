@@ -67,7 +67,7 @@ defmodule AstarteE2E.Scheduler do
           {:noreply, state}
 
         e ->
-          Logger.warn("Unhandled condition #{inspect(e)}. Pretending everything is ok.")
+          Logger.warning("Unhandled condition #{inspect(e)}. Pretending everything is ok.")
           {:noreply, state}
       end
 
@@ -89,14 +89,15 @@ defmodule AstarteE2E.Scheduler do
   defp handle_timed_out_job(state) do
     case state.check_repetitions do
       :infinity ->
-        Logger.warn("Request timed out. This event affects the service metrics.",
+        Logger.warning("Request timed out. This event affects the service metrics.",
           tag: "request_timeout"
         )
 
         {:noreply, state}
 
       _ ->
-        Logger.warn("Request timed out. This is a critical event. Terminating the application.",
+        Logger.warning(
+          "Request timed out. This is a critical event. Terminating the application.",
           tag: "critical_request_timeout"
         )
 

@@ -19,10 +19,29 @@ defmodule Astarte.AppEngine.APIWeb.Router do
   use Astarte.AppEngine.APIWeb, :router
   alias Astarte.AppEngine.APIWeb.Plug.LogRealm
 
-  pipeline :api do
+  pipeline :realm_api do
     plug :accepts, ["json"]
     plug LogRealm
     plug Astarte.AppEngine.APIWeb.Plug.AuthorizePath
+  end
+
+  pipeline :device_api do
+    plug Astarte.AppEngine.APIWeb.Plug.LogDeviceId
+  end
+
+  pipeline :device_group_api do
+    plug Astarte.AppEngine.APIWeb.Plug.GroupNameDecoder
+    plug Astarte.AppEngine.APIWeb.Plug.LogGroupName
+  end
+
+  pipeline :device_alias_api do
+    plug Astarte.AppEngine.APIWeb.Plug.LogDeviceAlias
+  end
+
+  pipeline :interface_value_api do
+    plug Astarte.AppEngine.APIWeb.Plug.JoinPath
+    plug Astarte.AppEngine.APIWeb.Plug.LogInterface
+    plug Astarte.AppEngine.APIWeb.Plug.LogPath
   end
 
   pipeline :swagger do
@@ -30,7 +49,7 @@ defmodule Astarte.AppEngine.APIWeb.Router do
   end
 
   scope "/v1/:realm_name", Astarte.AppEngine.APIWeb do
-    pipe_through :api
+    pipe_through :realm_api
 
     get "/version", VersionController, :show
 
@@ -38,87 +57,117 @@ defmodule Astarte.AppEngine.APIWeb.Router do
       get "/devices", StatsController, :show_devices_stats
     end
 
-    resources "/devices", DeviceStatusController,
-      only: [:index, :show, :update],
-      param: "device_id"
+    scope "/devices" do
+      pipe_through :device_api
 
-    resources "/devices-by-alias", DeviceStatusByAliasController,
-      only: [:index, :show, :update],
-      param: "device_alias"
+      resources "/", DeviceStatusController,
+        only: [:index, :show, :update],
+        param: "device_id"
 
-    resources "/devices/:device_id/interfaces", InterfaceValuesController,
-      only: [:index, :show],
-      param: "interface"
+      scope "/:device_id/interfaces" do
+        pipe_through :interface_value_api
 
-    get "/devices/:device_id/interfaces/:interface/*path_tokens", InterfaceValuesController, :show
+        resources "/", InterfaceValuesController,
+          only: [:index, :show],
+          param: "interface"
 
-    put "/devices/:device_id/interfaces/:interface/*path_tokens",
-        InterfaceValuesController,
-        :update
+        get "/:interface/*path_tokens", InterfaceValuesController, :show
 
-    post "/devices/:device_id/interfaces/:interface/*path_tokens",
-         InterfaceValuesController,
-         :update
+        put "/:interface/*path_tokens",
+            InterfaceValuesController,
+            :update
 
-    delete "/devices/:device_id/interfaces/:interface/*path_tokens",
-           InterfaceValuesController,
-           :delete
+        post "/:interface/*path_tokens",
+             InterfaceValuesController,
+             :update
 
-    resources "/devices-by-alias/:device_alias/interfaces",
-              InterfaceValuesByDeviceAliasController,
-              only: [:index, :show],
-              param: "interface"
+        delete "/:interface/*path_tokens",
+               InterfaceValuesController,
+               :delete
+      end
+    end
 
-    get "/devices-by-alias/:device_alias/interfaces/:interface/*path_tokens",
-        InterfaceValuesByDeviceAliasController,
-        :show
+    scope "/devices-by-alias" do
+      pipe_through :device_alias_api
 
-    put "/devices-by-alias/:device_alias/interfaces/:interface/*path_tokens",
-        InterfaceValuesByDeviceAliasController,
-        :update
+      resources "/", DeviceStatusByAliasController,
+        only: [:index, :show, :update],
+        param: "device_alias"
 
-    post "/devices-by-alias/:device_alias/interfaces/:interface/*path_tokens",
-         InterfaceValuesByDeviceAliasController,
-         :update
+      scope "/:device_alias/interfaces" do
+        pipe_through :interface_value_api
 
-    delete "/devices-by-alias/:device_alias/interfaces/:interface/*path_tokens",
-           InterfaceValuesByDeviceAliasController,
-           :delete
+        resources "/",
+                  InterfaceValuesByDeviceAliasController,
+                  only: [:index, :show],
+                  param: "interface"
 
-    get "/groups", GroupsController, :index
-    post "/groups", GroupsController, :create
-    get "/groups/:group_name", GroupsController, :show
-    post "/groups/:group_name/devices", GroupsController, :add_device
-    delete "/groups/:group_name/devices/:device_id", GroupsController, :remove_device
+        get "/:interface/*path_tokens",
+            InterfaceValuesByDeviceAliasController,
+            :show
 
-    get "/groups/:group_name/devices", DeviceStatusByGroupController, :index
-    get "/groups/:group_name/devices/:device_id", DeviceStatusByGroupController, :show
+        put "/:interface/*path_tokens",
+            InterfaceValuesByDeviceAliasController,
+            :update
 
-    patch "/groups/:group_name/devices/:device_id", DeviceStatusByGroupController, :update
+        post "/:interface/*path_tokens",
+             InterfaceValuesByDeviceAliasController,
+             :update
 
-    get "/groups/:group_name/devices/:device_id/interfaces",
-        InterfaceValuesByGroupController,
-        :index
+        delete "/:interface/*path_tokens",
+               InterfaceValuesByDeviceAliasController,
+               :delete
+      end
+    end
 
-    get "/groups/:group_name/devices/:device_id/interfaces/:interface",
-        InterfaceValuesByGroupController,
-        :show
+    scope "/groups" do
+      pipe_through :device_group_api
 
-    get "/groups/:group_name/devices/:device_id/interfaces/:interface/*path_tokens",
-        InterfaceValuesByGroupController,
-        :show
+      get "/", GroupsController, :index
+      post "/", GroupsController, :create
 
-    put "/groups/:group_name/devices/:device_id/interfaces/:interface/*path_tokens",
-        InterfaceValuesByGroupController,
-        :update
+      scope "/:group_name" do
+        get "/", GroupsController, :show
+        get "/devices", DeviceStatusByGroupController, :index
+        post "/devices", GroupsController, :add_device
 
-    post "/groups/:group_name/devices/:device_id/interfaces/:interface/*path_tokens",
-         InterfaceValuesByGroupController,
-         :update
+        scope "/devices/:device_id" do
+          pipe_through :device_api
 
-    delete "/groups/:group_name/devices/:device_id/interfaces/:interface/*path_tokens",
-           InterfaceValuesByGroupController,
-           :delete
+          get "/", DeviceStatusByGroupController, :show
+          patch "/", DeviceStatusByGroupController, :update
+          delete "/", GroupsController, :remove_device
+
+          scope "/interfaces" do
+            pipe_through :interface_value_api
+
+            get "/",
+                InterfaceValuesByGroupController,
+                :index
+
+            get "/:interface",
+                InterfaceValuesByGroupController,
+                :show
+
+            get "/:interface/*path_tokens",
+                InterfaceValuesByGroupController,
+                :show
+
+            put "/:interface/*path_tokens",
+                InterfaceValuesByGroupController,
+                :update
+
+            post "/:interface/*path_tokens",
+                 InterfaceValuesByGroupController,
+                 :update
+
+            delete "/:interface/*path_tokens",
+                   InterfaceValuesByGroupController,
+                   :delete
+          end
+        end
+      end
+    end
   end
 
   scope "/swagger" do
@@ -128,6 +177,10 @@ defmodule Astarte.AppEngine.APIWeb.Router do
       otp_app: :astarte_appengine_api,
       swagger_file: "astarte_appengine_api.yaml",
       disable_validator: true
+  end
+
+  scope "/version", Astarte.AppEngine.APIWeb do
+    get "/", VersionController, :show
   end
 
   defp maybe_halt_swagger(conn, _opts) do

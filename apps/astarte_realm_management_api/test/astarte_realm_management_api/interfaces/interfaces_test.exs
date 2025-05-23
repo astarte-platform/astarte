@@ -105,6 +105,28 @@ defmodule Astarte.RealmManagement.API.InterfacesTest do
 
       assert {:ok, [@interface_name]} = Interfaces.list_interfaces(@realm)
     end
+
+    test "fails when a mapping higher database_retention_ttl than the maximum" do
+      alias Astarte.RealmManagement.Mock.DB
+      DB.put_datastream_maximum_storage_retention(@realm, 1)
+      on_exit(fn -> DB.put_datastream_maximum_storage_retention(@realm, 0) end)
+
+      iface_with_invalid_mappings = %{
+        @valid_attrs
+        | "mappings" => [
+            %{
+              "endpoint" => "/test",
+              "type" => "integer",
+              "database_retention_policy" => "use_ttl",
+              "database_retention_ttl" => 60
+            }
+          ],
+          "type" => "datastream"
+      }
+
+      assert {:error, :maximum_database_retention_exceeded} =
+               Interfaces.create_interface(@realm, iface_with_invalid_mappings)
+    end
   end
 
   describe "interface update" do

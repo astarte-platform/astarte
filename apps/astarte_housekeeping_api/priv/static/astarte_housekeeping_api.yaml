@@ -16,7 +16,7 @@ info:
     configuration. This API is usually accessible only to system administrators,
     and is not meant for the average user of Astarte, which should refer to
     Realm Management API instead.
-  version: "1.1.1"
+  version: 1.3.0-dev
   title: Astarte Housekeeping API
   contact:
     email: info@ispirata.com
@@ -49,6 +49,17 @@ paths:
                   data:
                     - arealm
                     - anotherrealm
+        '401':
+          description: Token doesn't exist or operation not allowed.
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: '#/components/schemas/MissingTokenError'
+                  - $ref: '#/components/schemas/InvalidTokenError'
+                  - $ref: '#/components/schemas/InvalidAuthPathError'
+        '403':
+          $ref: '#/components/responses/AuthorizationPathNotMatched'
     post:
       tags:
         - realm
@@ -81,6 +92,17 @@ paths:
                 properties:
                   data:
                     $ref: '#/components/schemas/Realm'
+        '401':
+          description: Token doesn't exist or operation not allowed.
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: '#/components/schemas/MissingTokenError'
+                  - $ref: '#/components/schemas/InvalidTokenError'
+                  - $ref: '#/components/schemas/InvalidAuthPathError'
+        '403':
+          $ref: '#/components/responses/AuthorizationPathNotMatched'
       requestBody:
         $ref: '#/components/requestBodies/createRealmBody'
   '/realms/{realm_name}':
@@ -108,11 +130,15 @@ paths:
                 properties:
                   data:
                     $ref: '#/components/schemas/Realm'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/AuthorizationPathNotMatched'
     put:
       tags:
         - realm
-      summary: Update a realm
-      description: Updates a realm's configuration.
+      summary: "DEPRECATED: Update a realm"
+      description: Updates a realm's configuration. This API has been deprecated in favor of PATCH.
       operationId: updateRealm
       security:
         - JWT: []
@@ -126,6 +152,10 @@ paths:
       responses:
         '200':
           description: Success
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/AuthorizationPathNotMatched'
       requestBody:
         $ref: '#/components/requestBodies/createRealmBody'
     delete:
@@ -162,10 +192,55 @@ paths:
       responses:
         '204':
           description: Success
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/AuthorizationPathNotMatched'
         '405':
           description: Realm deletion disabled
         '422':
           description: Connected devices present
+    patch:
+      tags:
+        - realm
+      summary: Update a realm
+      description: >-
+        Updates a realm's configuration.
+      security:
+        - JWT: []
+      parameters:
+        - name: realm_name
+          in: path
+          description: Realm name
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Realm'
+        '400':
+          description: Bad request
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/AuthorizationPathNotMatched'
+        '404':
+          description: Realm not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericError'
+              example:
+                errors:
+                  detail: Not found
+      requestBody:
+        $ref: '#/components/requestBodies/updateRealmBody'
 components:
   securitySchemes:
     JWT:
@@ -190,6 +265,36 @@ components:
                 $ref: '#/components/schemas/Realm'
       description: Realm JSON configuration object.
       required: true
+    updateRealmBody:
+      content:
+        application/merge-patch+json:
+          schema:
+            type: object
+            properties:
+              data:
+                $ref: '#/components/schemas/RealmPatch'
+      description: >-
+        A JSON Merge Patch containing the property changes that should be applied to the realm. Explicitly set a property to null to remove it.
+      required: true
+  responses:
+    Unauthorized:
+      description: Token/Realm doesn't exist or operation not allowed.
+      content:
+        application/json:
+          schema:
+            oneOf:
+              - $ref: '#/components/schemas/MissingTokenError'
+              - $ref: '#/components/schemas/InvalidTokenError'
+              - $ref: '#/components/schemas/InvalidAuthPathError'
+    AuthorizationPathNotMatched:
+      description: Authorization path not matched.
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              data:
+                $ref: '#/components/schemas/AuthorizationPathNotMatchedError'
   schemas:
     Realm:
       type: object
@@ -212,6 +317,150 @@ components:
             f9jgaxW4oQV85enS/OJrrC9jU11agRc4bDv1h4s2t+ETWb4llTVk3HMIHbC3EvKJ
             VwIDAQAB
             -----END PUBLIC KEY-----
+          description: "PEM-encoded public key of the realm."
+        replication_class:
+          type: string
+          example: "SimpleStrategy"
+          description: "Replication Class of the keyspace that holds the realm's data."
         replication_factor:
           type: integer
           example: 2
+          description: "Replication factor of the keyspace that holds the realm's data (only if replication_class is \"SimpleStrategy\")."
+        datacenter_replication_factor:
+          type: object
+          example:
+            datacenter_1: 1
+            datacenter_2: 3
+          description: "Datacenter replication factor of the keyspace that holds the realm's data (only if replication_class is \"NetworkTopologyStrategy\")."
+        device_registration_limit:
+          type: integer
+          minimum: 0
+          example: 100
+          description: "Optional upper bound to the number of devices that can be registered in the realm."
+        datastream_maximum_storage_retention:
+          type: integer
+          minimum: 1
+          example: 100
+          description: "Optional upper bound to the retention period of all datastreams in the realm, in seconds."
+      example:
+        realm_name: myrealm
+        jwt_public_key_pem: |
+            -----BEGIN PUBLIC KEY-----
+            MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAsj7/Ci5Nx+ApLNW7+DyE
+            eTzQ68KEJT/gPW73Kpa2uyvxDwY669z/rP4hMj16wv4Ku3bI6C1ZIqT5SVuF8pDo
+            1Y1SF0GRIeslupm9KV1aFqIu1/srLz18LQHucQYUSa99PStFUJY2V83wneaeAArY
+            4VKDuQYtRZOd2VeD5Cbn602ksLLWCQc9HfL3VUHXTw6DuthnMMJARcVem8RAMScm
+            htGi6YRPFzvHtkb1WQCNGjw5gAmHX5/37ouwbBdnXOa9deiFv+1UIdcCVwMTyP/4
+            f9jgaxW4oQV85enS/OJrrC9jU11agRc4bDv1h4s2t+ETWb4llTVk3HMIHbC3EvKJ
+            VwIDAQAB
+            -----END PUBLIC KEY-----
+        replication_class: "SimpleStrategy"
+        replication_factor: 2
+    RealmPatch:
+      type: object
+      properties:
+        jwt_public_key_pem:
+          type: string
+          example: |
+            -----BEGIN PUBLIC KEY-----
+            MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAsj7/Ci5Nx+ApLNW7+DyE
+            eTzQ68KEJT/gPW73Kpa2uyvxDwY669z/rP4hMj16wv4Ku3bI6C1ZIqT5SVuF8pDo
+            1Y1SF0GRIeslupm9KV1aFqIu1/srLz18LQHucQYUSa99PStFUJY2V83wneaeAArY
+            4VKDuQYtRZOd2VeD5Cbn602ksLLWCQc9HfL3VUHXTw6DuthnMMJARcVem8RAMScm
+            htGi6YRPFzvHtkb1WQCNGjw5gAmHX5/37ouwbBdnXOa9deiFv+1UIdcCVwMTyP/4
+            f9jgaxW4oQV85enS/OJrrC9jU11agRc4bDv1h4s2t+ETWb4llTVk3HMIHbC3EvKJ
+            VwIDAQAB
+            -----END PUBLIC KEY-----
+          description: "PEM-encoded public key of the realm."
+        replication_class:
+          type: string
+          example: "\"SimpleStrategy\""
+          description: "Replication Class of the keyspace that holds the realm's data."
+        replication_factor:
+          type: integer
+          example: 2
+          description: "Replication factor of the keyspace that holds the realm's data (only if replication_class is \"SimpleStrategy\")."
+        datacenter_replication_factor:
+          type: object
+          example:
+            datacenter_1: 1
+            datacenter_2: 3
+          description: "Datacenter replication factor of the keyspace that holds the realm's data (only if replication_class is \"NetworkTopologyStrategy\")."
+        device_registration_limit:
+          type: integer
+          minimum: 0
+          example: 100
+          description: "Optional upper bound to the number of devices that can be registered in the realm."
+        datastream_maximum_storage_retention:
+          type: integer
+          minimum: 1
+          example: 100
+          description: "Optional upper bound to the retention period of all datastreams in the realm, in seconds."
+      example:
+        jwt_public_key_pem: |
+            -----BEGIN PUBLIC KEY-----
+            MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAsj7/Ci5Nx+ApLNW7+DyE
+            eTzQ68KEJT/gPW73Kpa2uyvxDwY669z/rP4hMj16wv4Ku3bI6C1ZIqT5SVuF8pDo
+            1Y1SF0GRIeslupm9KV1aFqIu1/srLz18LQHucQYUSa99PStFUJY2V83wneaeAArY
+            4VKDuQYtRZOd2VeD5Cbn602ksLLWCQc9HfL3VUHXTw6DuthnMMJARcVem8RAMScm
+            htGi6YRPFzvHtkb1WQCNGjw5gAmHX5/37ouwbBdnXOa9deiFv+1UIdcCVwMTyP/4
+            f9jgaxW4oQV85enS/OJrrC9jU11agRc4bDv1h4s2t+ETWb4llTVk3HMIHbC3EvKJ
+            VwIDAQAB
+            -----END PUBLIC KEY-----
+    GenericError:
+      type: object
+      required:
+        - errors
+      properties:
+        errors:
+          type: object
+          properties:
+            detail:
+              type: string
+    MissingTokenError:
+      type: object
+      properties:
+        errors:
+          type: object
+          properties:
+            detail:
+              type: string
+      example:
+        errors:
+          detail: Missing authorization token
+
+    InvalidTokenError:
+      type: object
+      properties:
+        errors:
+          type: object
+          properties:
+            detail:
+              type: string
+      example:
+        errors:
+          detail: Invalid JWT token
+
+    InvalidAuthPathError:
+      type: object
+      properties:
+        errors:
+          type: object
+          properties:
+            detail:
+              type: string
+      example:
+        errors:
+          detail: Authorization failed due to an invalid path
+
+    AuthorizationPathNotMatchedError:
+      type: object
+      properties:
+        errors:
+          type: object
+          properties:
+            detail:
+              type: string
+      example:
+        errors:
+          detail: Unauthorized access to GET /api/v1/some_path. Please verify your permissions

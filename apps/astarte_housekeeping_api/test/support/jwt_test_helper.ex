@@ -36,6 +36,16 @@ defmodule Astarte.Housekeeping.API.JWTTestHelper do
     jwt
   end
 
+  def gen_jwt_token_with_wrong_signature(authorization_paths) do
+    valid_token = gen_jwt_token(authorization_paths)
+
+    [header, payload, _signature] = String.split(valid_token, ".")
+
+    fake_signature = "fake_signature"
+
+    "#{header}.#{payload}.#{fake_signature}"
+  end
+
   def gen_jwt_all_access_token do
     gen_jwt_token([".*::.*"])
   end

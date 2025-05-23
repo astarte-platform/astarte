@@ -221,6 +221,14 @@ defmodule Astarte.DataUpdaterPlant.Config do
           type: :integer,
           default: 60 * 60 * 1_000
 
+  @envdoc "Generate incoming_introspection events in the old (pre-1.2) string-based format. Defaults to false."
+  app_env :generate_legacy_incoming_introspection_events,
+          :astarte_data_updater_plant,
+          :generate_legacy_introspection_events,
+          os_env: "DATA_UPDATER_PLANT_GENERATE_LEGACY_INCOMING_INTROSPECTION_EVENTS",
+          type: :boolean,
+          default: false
+
   @envdoc "The number of connections to RabbitMQ used to consume data"
   app_env :amqp_consumer_connection_number,
           :astarte_data_updater_plant,
@@ -406,7 +414,7 @@ defmodule Astarte.DataUpdaterPlant.Config do
 
   def events_producer_pool_config!() do
     [
-      name: {:local, :events_producer_pool},
+      name: {:local, :dup_events_producer_pool},
       worker_module: ExRabbitPool.Worker.RabbitConnection,
       size: events_producer_connection_number!(),
       max_overflow: 0
@@ -435,4 +443,7 @@ defmodule Astarte.DataUpdaterPlant.Config do
 
   defdelegate xandra_options!, to: DataAccessConfig
   defdelegate cqex_options!, to: DataAccessConfig
+
+  defdelegate astarte_instance_id!, to: DataAccessConfig
+  defdelegate astarte_instance_id, to: DataAccessConfig
 end

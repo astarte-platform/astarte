@@ -18,19 +18,24 @@
 
 defmodule Astarte.DataUpdaterPlant.TriggerPolicy.Queries do
   require Logger
+  alias Astarte.Core.CQLUtils
+  alias Astarte.DataUpdaterPlant.Config
 
-  def retrieve_policy_name(realm_id, trigger_id) do
+  def retrieve_policy_name(realm_name, trigger_id) do
     trigger_id =
       trigger_id
       |> :uuid.uuid_to_string()
       |> to_string()
 
-    Xandra.Cluster.run(:xandra, &do_retrieve_policy_name(&1, realm_id, trigger_id))
+    keyspace_name =
+      CQLUtils.realm_name_to_keyspace_name(realm_name, Config.astarte_instance_id!())
+
+    Xandra.Cluster.run(:xandra, &do_retrieve_policy_name(&1, keyspace_name, trigger_id))
   end
 
-  defp do_retrieve_policy_name(conn, realm_name, trigger_id) do
+  defp do_retrieve_policy_name(conn, keyspace_name, trigger_id) do
     retrieve_statement =
-      "SELECT value FROM #{realm_name}.kv_store WHERE group='trigger_to_policy' AND key=:trigger_id;"
+      "SELECT value FROM #{keyspace_name}.kv_store WHERE group='trigger_to_policy' AND key=:trigger_id;"
 
     with {:ok, prepared} <- Xandra.prepare(conn, retrieve_statement),
          {:ok, %Xandra.Page{} = page} <-
@@ -41,7 +46,7 @@ defmodule Astarte.DataUpdaterPlant.TriggerPolicy.Queries do
       end
     else
       {:error, error} ->
-        Logger.warn("Database error #{inspect(error)}", tag: "retrieve_policy_name_db_error")
+        Logger.warning("Database error #{inspect(error)}", tag: "retrieve_policy_name_db_error")
         {:error, error}
     end
   end

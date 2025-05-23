@@ -18,6 +18,7 @@
 
 defmodule Astarte.Pairing.DatabaseTestHelper do
   alias Astarte.Core.Device
+  alias Astarte.Core.CQLUtils
   alias Astarte.Pairing.Config
   alias Astarte.Pairing.TestHelper
   alias Astarte.Pairing.CredentialsSecret
@@ -26,15 +27,22 @@ defmodule Astarte.Pairing.DatabaseTestHelper do
   alias CQEx.Client
   alias CQEx.Result
 
+  @create_astarte_keyspace """
+  CREATE KEYSPACE #{CQLUtils.realm_name_to_keyspace_name("astarte", Config.astarte_instance_id!())}
+    WITH
+    replication = {'class': 'SimpleStrategy', 'replication_factor': '1'} AND
+    durable_writes = true;
+  """
+
   @create_autotestrealm """
-  CREATE KEYSPACE autotestrealm
+  CREATE KEYSPACE #{CQLUtils.realm_name_to_keyspace_name("autotestrealm", Config.astarte_instance_id!())}
     WITH
     replication = {'class': 'SimpleStrategy', 'replication_factor': '1'} AND
     durable_writes = true;
   """
 
   @create_devices_table """
-  CREATE TABLE autotestrealm.devices (
+  CREATE TABLE #{CQLUtils.realm_name_to_keyspace_name("autotestrealm", Config.astarte_instance_id!())}.devices (
     device_id uuid,
     introspection map<ascii, int>,
     introspection_minor map<ascii, int>,
@@ -60,12 +68,20 @@ defmodule Astarte.Pairing.DatabaseTestHelper do
   """
 
   @create_kv_store_table """
-  CREATE TABLE autotestrealm.kv_store (
+  CREATE TABLE #{CQLUtils.realm_name_to_keyspace_name("autotestrealm", Config.astarte_instance_id!())}.kv_store (
     group varchar,
     key varchar,
     value blob,
 
     PRIMARY KEY ((group), key)
+  );
+  """
+
+  @create_realms_table """
+  CREATE TABLE #{CQLUtils.realm_name_to_keyspace_name("astarte", Config.astarte_instance_id!())}.realms (
+    realm_name varchar,
+    device_registration_limit bigint,
+    PRIMARY KEY (realm_name)
   );
   """
 
@@ -77,12 +93,21 @@ defmodule Astarte.Pairing.DatabaseTestHelper do
   """
 
   @insert_jwt_public_key_pem """
-  INSERT INTO autotestrealm.kv_store (group, key, value)
+  INSERT INTO #{CQLUtils.realm_name_to_keyspace_name("autotestrealm", Config.astarte_instance_id!())}.kv_store (group, key, value)
   VALUES ('auth', 'jwt_public_key_pem', varcharAsBlob('#{@jwt_public_key_pem}'))
   """
 
+  @insert_autotestrealm_into_realms """
+  INSERT INTO #{CQLUtils.realm_name_to_keyspace_name("astarte", Config.astarte_instance_id!())}.realms (realm_name)
+  VALUES ('autotestrealm');
+  """
+
   @drop_autotestrealm """
-  DROP KEYSPACE autotestrealm;
+  DROP KEYSPACE #{CQLUtils.realm_name_to_keyspace_name("autotestrealm", Config.astarte_instance_id!())};
+  """
+
+  @drop_astarte_keyspace """
+  DROP KEYSPACE #{CQLUtils.realm_name_to_keyspace_name("astarte", Config.astarte_instance_id!())};
   """
 
   @test_realm "autotestrealm"
@@ -143,7 +168,10 @@ defmodule Astarte.Pairing.DatabaseTestHelper do
       Config.cassandra_node!()
       |> Client.new!()
 
-    with {:ok, _} <- Query.call(client, @create_autotestrealm),
+    with {:ok, _} <- Query.call(client, @create_astarte_keyspace),
+         {:ok, _} <- Query.call(client, @create_realms_table),
+         {:ok, _} <- Query.call(client, @insert_autotestrealm_into_realms),
+         {:ok, _} <- Query.call(client, @create_autotestrealm),
          {:ok, _} <- Query.call(client, @create_devices_table),
          {:ok, _} <- Query.call(client, @create_kv_store_table),
          {:ok, _} <- Query.call(client, @insert_jwt_public_key_pem) do
@@ -159,7 +187,9 @@ defmodule Astarte.Pairing.DatabaseTestHelper do
   def seed_devices do
     client =
       Config.cassandra_node!()
-      |> Client.new!(keyspace: @test_realm)
+      |> Client.new!(
+        keyspace: CQLUtils.realm_name_to_keyspace_name(@test_realm, Config.astarte_instance_id!())
+      )
 
     {:ok, registered_not_confirmed_device_id} =
       Device.decode_device_id(@registered_not_confirmed_hw_id, allow_extended_id: true)
@@ -249,7 +279,9 @@ defmodule Astarte.Pairing.DatabaseTestHelper do
   def get_first_registration(hardware_id) do
     client =
       Config.cassandra_node!()
-      |> Client.new!(keyspace: @test_realm)
+      |> Client.new!(
+        keyspace: CQLUtils.realm_name_to_keyspace_name(@test_realm, Config.astarte_instance_id!())
+      )
 
     {:ok, device_id} = Device.decode_device_id(hardware_id, allow_extended_id: true)
 
@@ -276,7 +308,9 @@ defmodule Astarte.Pairing.DatabaseTestHelper do
   def get_introspection(hardware_id) do
     client =
       Config.cassandra_node!()
-      |> Client.new!(keyspace: @test_realm)
+      |> Client.new!(
+        keyspace: CQLUtils.realm_name_to_keyspace_name(@test_realm, Config.astarte_instance_id!())
+      )
 
     {:ok, device_id} = Device.decode_device_id(hardware_id, allow_extended_id: true)
 
@@ -300,7 +334,9 @@ defmodule Astarte.Pairing.DatabaseTestHelper do
   def get_introspection_minor(hardware_id) do
     client =
       Config.cassandra_node!()
-      |> Client.new!(keyspace: @test_realm)
+      |> Client.new!(
+        keyspace: CQLUtils.realm_name_to_keyspace_name(@test_realm, Config.astarte_instance_id!())
+      )
 
     {:ok, device_id} = Device.decode_device_id(hardware_id, allow_extended_id: true)
 
@@ -324,13 +360,28 @@ defmodule Astarte.Pairing.DatabaseTestHelper do
   def clean_devices do
     client =
       Config.cassandra_node!()
-      |> Client.new!(keyspace: @test_realm)
+      |> Client.new!(
+        keyspace: CQLUtils.realm_name_to_keyspace_name(@test_realm, Config.astarte_instance_id!())
+      )
 
     Query.call!(client, "TRUNCATE devices")
     # Also clean the cache
     Cache.flush()
 
     :ok
+  end
+
+  def set_device_registration_limit(realm_name, limit) do
+    query = """
+    UPDATE #{CQLUtils.realm_name_to_keyspace_name("astarte", Config.astarte_instance_id!())}.realms
+    SET device_registration_limit = :the_limit
+    WHERE realm_name = :realm_name
+    """
+
+    Xandra.Cluster.execute!(:xandra, query, %{
+      "realm_name" => {"varchar", realm_name},
+      "the_limit" => {"bigint", limit}
+    })
   end
 
   def get_message_count_for_device(device_id) do
@@ -383,7 +434,9 @@ defmodule Astarte.Pairing.DatabaseTestHelper do
       Config.cassandra_node!()
       |> Client.new!()
 
-    Query.call(client, @drop_autotestrealm)
+    Query.call!(client, @drop_autotestrealm)
+    Query.call!(client, @drop_astarte_keyspace)
+
     # Also clean the cache
     Cache.flush()
   end
