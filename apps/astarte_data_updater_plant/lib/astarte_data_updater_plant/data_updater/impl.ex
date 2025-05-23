@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2017 - 2023 SECO Mind Srl
+# Copyright 2017 - 2025 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -39,12 +39,8 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
   alias Astarte.DataUpdaterPlant.MessageTracker
   alias Astarte.DataUpdaterPlant.RPC.VMQPlugin
   alias Astarte.DataUpdaterPlant.TriggersHandler
+  alias Astarte.DataUpdaterPlant.TimeBasedActions
   require Logger
-
-  @device_triggers_lifespan_decimicroseconds 60 * 10 * 1000 * 10000
-  @groups_lifespan_decimicroseconds 60 * 10 * 1000 * 10000
-  @deletion_refresh_lifespan_decimicroseconds 60 * 10 * 1000 * 10000
-  @datastream_maximum_retention_refresh_lifespan_decimicroseconds 60 * 10 * 1000 * 10000
 
   def init_state(realm, device_id, message_tracker) do
     MessageTracker.register_data_updater(message_tracker)
@@ -1648,61 +1644,6 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
     {:ok, %{state | device_triggers: updated_device_triggers}}
   end
 
-  defp reload_groups_on_expiry(state, timestamp) do
-    if state.last_groups_refresh + @groups_lifespan_decimicroseconds <= timestamp do
-      # TODO this could be a bang!
-      {:ok, groups} = Queries.get_device_groups(state.realm, state.device_id)
-
-      %{state | last_groups_refresh: timestamp, groups: groups}
-    else
-      state
-    end
-  end
-
-  defp reload_device_triggers_on_expiry(state, timestamp) do
-    if state.last_device_triggers_refresh + @device_triggers_lifespan_decimicroseconds <=
-         timestamp do
-      any_device_id = SimpleTriggersProtobufUtils.any_device_object_id()
-
-      any_interface_id = SimpleTriggersProtobufUtils.any_interface_object_id()
-
-      device_and_any_interface_object_id =
-        SimpleTriggersProtobufUtils.get_device_and_any_interface_object_id(state.device_id)
-
-      # TODO when introspection triggers are supported, we should also forget any_interface
-      # introspection triggers here, or handle them separately
-
-      state
-      |> Map.put(:last_device_triggers_refresh, timestamp)
-      |> Map.put(:device_triggers, %{})
-      |> forget_any_interface_data_triggers()
-      |> Core.Trigger.populate_triggers_for_object!(any_device_id, :any_device)
-      |> Core.Trigger.populate_triggers_for_object!(state.device_id, :device)
-      |> Core.Trigger.populate_triggers_for_object!(any_interface_id, :any_interface)
-      |> Core.Trigger.populate_triggers_for_object!(
-        device_and_any_interface_object_id,
-        :device_and_any_interface
-      )
-      |> populate_group_device_triggers!()
-      |> populate_group_and_any_interface_triggers!()
-    else
-      state
-    end
-  end
-
-  defp populate_group_device_triggers!(state) do
-    Enum.map(state.groups, &SimpleTriggersProtobufUtils.get_group_object_id/1)
-    |> Enum.reduce(state, &Core.Trigger.populate_triggers_for_object!(&2, &1, :group))
-  end
-
-  defp populate_group_and_any_interface_triggers!(state) do
-    Enum.map(state.groups, &SimpleTriggersProtobufUtils.get_group_and_any_interface_object_id/1)
-    |> Enum.reduce(
-      state,
-      &Core.Trigger.populate_triggers_for_object!(&2, &1, :group_and_any_interface)
-    )
-  end
-
   def execute_time_based_actions(state, timestamp) do
     if state.connected && state.last_seen_message > 0 do
       # timestamps are handled as microseconds*10, so we need to divide by 10 when saving as a metric for a coherent data
@@ -1715,105 +1656,11 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
 
     state
     |> Map.put(:last_seen_message, timestamp)
-    |> reload_groups_on_expiry(timestamp)
-    |> Core.Interface.purge_expired_interfaces(timestamp)
-    |> reload_device_triggers_on_expiry(timestamp)
-    |> reload_device_deletion_status_on_expiry(timestamp)
-    |> reload_datastream_maximum_storage_retention_on_expiry(timestamp)
-  end
-
-  defp reload_device_deletion_status_on_expiry(state, timestamp) do
-    if state.last_deletion_in_progress_refresh + @deletion_refresh_lifespan_decimicroseconds <=
-         timestamp do
-      new_state = maybe_start_device_deletion(state, timestamp)
-      %State{new_state | last_deletion_in_progress_refresh: timestamp}
-    else
-      state
-    end
-  end
-
-  defp reload_datastream_maximum_storage_retention_on_expiry(state, timestamp) do
-    if state.last_datastream_maximum_retention_refresh +
-         @datastream_maximum_retention_refresh_lifespan_decimicroseconds <=
-         timestamp do
-      # TODO this could be a bang!
-      case Queries.fetch_datastream_maximum_storage_retention(state.realm) do
-        {:ok, ttl} ->
-          %State{
-            state
-            | datastream_maximum_storage_retention: ttl,
-              last_datastream_maximum_retention_refresh: timestamp
-          }
-
-        {:error, _reason} ->
-          _ =
-            Logger.warning(
-              "Failed to load last_datastream_maximum_retention_refresh, keeping old one",
-              tag: "last_datastream_maximum_retention_refresh_fail"
-            )
-
-          state
-      end
-    else
-      state
-    end
-  end
-
-  defp maybe_start_device_deletion(state, timestamp) do
-    %State{realm: realm, device_id: device_id} = state
-
-    if should_start_device_deletion?(realm, device_id) do
-      encoded_device_id = Device.encode_device_id(device_id)
-
-      :ok = force_device_deletion_from_broker(realm, encoded_device_id)
-      new_state = set_device_disconnected(state, timestamp)
-
-      _ =
-        Logger.info("Stop handling data from device in deletion, device_id #{encoded_device_id}")
-
-      # It's ok to repeat that, as we always write ⊤
-      keyspace_name =
-        CQLUtils.realm_name_to_keyspace_name(realm, Config.astarte_instance_id!())
-
-      Queries.ack_start_device_deletion(keyspace_name, device_id)
-
-      %State{new_state | discard_messages: true}
-    else
-      state
-    end
-  end
-
-  defp should_start_device_deletion?(realm_name, device_id) do
-    keyspace_name =
-      CQLUtils.realm_name_to_keyspace_name(realm_name, Config.astarte_instance_id!())
-
-    case Queries.check_device_deletion_in_progress(keyspace_name, device_id) do
-      {:ok, true} ->
-        true
-
-      {:ok, false} ->
-        false
-
-      {:error, reason} ->
-        _ =
-          Logger.warning(
-            "Cannot check device deletion status for #{inspect(device_id)}, reason #{inspect(reason)}",
-            tag: "should_start_device_deletion_fail"
-          )
-
-        false
-    end
-  end
-
-  defp forget_any_interface_data_triggers(state) do
-    updated_data_triggers =
-      for {{_type, iface_id, _endpoint} = key, value} <- state.data_triggers,
-          iface_id != :any_interface,
-          into: %{} do
-        {key, value}
-      end
-
-    %{state | data_triggers: updated_data_triggers}
+    |> TimeBasedActions.reload_groups_on_expiry(timestamp)
+    |> TimeBasedActions.purge_expired_interfaces(timestamp)
+    |> TimeBasedActions.reload_device_triggers_on_expiry(timestamp)
+    |> TimeBasedActions.reload_device_deletion_status_on_expiry(timestamp)
+    |> TimeBasedActions.reload_datastream_maximum_storage_retention_on_expiry(timestamp)
   end
 
   defp prune_device_properties(state, decoded_payload, timestamp) do
@@ -1828,7 +1675,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
     :ok
   end
 
-  defp set_device_disconnected(state, timestamp) do
+  def set_device_disconnected(state, timestamp) do
     timestamp_ms = div(timestamp, 10_000)
 
     Queries.set_device_disconnected!(
@@ -1902,24 +1749,6 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
 
   defp force_disconnection(realm, encoded_device_id) do
     case VMQPlugin.disconnect("#{realm}/#{encoded_device_id}", true) do
-      # Successfully disconnected
-      :ok ->
-        :ok
-
-      # Not found means it was already disconnected, succeed anyway
-      {:error, :not_found} ->
-        :ok
-
-      # Some other error, return it
-      {:error, reason} ->
-        {:error, reason}
-    end
-  end
-
-  defp force_device_deletion_from_broker(realm, encoded_device_id) do
-    _ = Logger.info("Disconnecting device to be deleted, device_id #{encoded_device_id}")
-
-    case VMQPlugin.delete(realm, encoded_device_id) do
       # Successfully disconnected
       :ok ->
         :ok
