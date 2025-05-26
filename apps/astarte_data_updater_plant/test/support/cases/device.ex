@@ -17,6 +17,9 @@
 #
 
 defmodule Astarte.Cases.Device do
+  alias Astarte.DataAccess.Repo
+  alias Astarte.DataAccess.Realms.Realm
+  alias Astarte.DataAccess.Realms.Interface
   alias Astarte.Core.Generators.Device, as: DeviceGenerator
   alias Astarte.Core.Generators.Interface, as: InterfaceGenerator
 
@@ -24,6 +27,7 @@ defmodule Astarte.Cases.Device do
   use ExUnitProperties
 
   import Astarte.Helpers.Device
+  import Ecto.Query
 
   using do
     quote do
@@ -35,10 +39,49 @@ defmodule Astarte.Cases.Device do
     interfaces_data = interfaces()
     device = DeviceGenerator.device(interfaces: interfaces_data.interfaces) |> Enum.at(0)
 
-    insert_device_cleanly(realm_name, device, interfaces_data.interfaces)
     Enum.each(interfaces_data.interfaces, &insert_interface_cleanly(realm_name, &1))
 
-    Map.put(interfaces_data, :device, device)
+    updated_interfaces = update_interfaces_id(realm_name, interfaces_data.interfaces)
+
+    insert_device_cleanly(realm_name, device, updated_interfaces)
+
+    interfaces_data
+    |> Map.put(:interfaces, updated_interfaces)
+    |> Map.put(:device, device)
+  end
+
+  defp update_interfaces_id(realm_name, interfaces) do
+    keyspace = Realm.keyspace_name(realm_name)
+    chunks = interfaces |> Enum.chunk_every(10)
+
+    interface_ids =
+      for chunk <- chunks do
+        {names, major_versions} =
+          chunk
+          |> Enum.map(&{&1.name, &1.major_version})
+          |> Enum.unzip()
+
+        query =
+          from i in Interface,
+            where: i.name in ^names and i.major_version in ^major_versions,
+            select: [:interface_id, :name, :major_version]
+
+        Repo.all(query, prefix: keyspace)
+      end
+      |> Enum.concat()
+
+    Enum.map(interfaces, fn interface ->
+      db_interface =
+        Enum.find(interface_ids, interface.interface_id, fn db_interface ->
+          db_interface.name == interface.name and
+            db_interface.major_version == interface.major_version
+        end)
+
+      if db_interface == nil, do: raise("Interface not found!")
+
+      interface
+      |> Map.put(:interface_id, db_interface.interface_id)
+    end)
   end
 
   defp interfaces do
