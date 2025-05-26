@@ -37,7 +37,14 @@ defmodule Astarte.Export do
     - options   -> options to export the realm data.
   """
 
-  @spec export_realm_data(String.t(), String.t(), keyword()) ::
+  @spec export_realm_data(
+          String.t(),
+          String.t(),
+          [{:db_host_and_port, String.t()} | {:device_id, String.t()}] | []
+        ) ::
+          :ok | {:error, :invalid_parameters} | {:error, any()}
+
+  @spec export_realm_data(String.t(), String.t()) ::
           :ok | {:error, :invalid_parameters} | {:error, any()}
 
   def export_realm_data(realm, file, opts \\ []) do
@@ -54,7 +61,7 @@ defmodule Astarte.Export do
     with {:ok, state} <- XMLGenerate.xml_write_default_header(fd),
          {:ok, state} <- XMLGenerate.xml_write_start_tag(fd, {"astarte", []}, state),
          {:ok, state} <- XMLGenerate.xml_write_start_tag(fd, {"devices", []}, state),
-         {:ok, conn} <- FetchData.db_connection_identifier(),
+         {:ok, conn} <- FetchData.db_connection_identifier(opts),
          {:ok, state} <- process_devices(conn, realm, fd, state, opts),
          {:ok, state} <- XMLGenerate.xml_write_end_tag(fd, state),
          {:ok, _state} <- XMLGenerate.xml_write_end_tag(fd, state),
