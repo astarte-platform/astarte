@@ -28,7 +28,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.InterfaceTest do
   alias Astarte.Core.InterfaceDescriptor
   alias Astarte.DataUpdaterPlant.DataUpdater.Core
 
-  use Astarte.Cases.Data
+  use Astarte.Cases.Data, async: true
   use Astarte.Cases.Device
   use ExUnitProperties
 
@@ -36,18 +36,37 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.InterfaceTest do
 
   @interface_lifespan_decimicroseconds 60 * 10 * 1000 * 10000
 
+  setup_all %{realm_name: realm_name, device: device} do
+    {:ok, message_tracker} = DataUpdater.fetch_message_tracker(realm_name, device.encoded_id)
+
+    {:ok, data_updater} =
+      DataUpdater.fetch_data_updater_process(
+        realm_name,
+        device.encoded_id,
+        message_tracker,
+        true
+      )
+
+    Astarte.DataAccess.Config
+    |> allow(self(), data_updater)
+
+    :ok = GenServer.call(data_updater, :start)
+
+    state = DataUpdater.dump_state(realm_name, device.encoded_id)
+
+    %{state: state, data_updater: data_updater, messagte_tracker: message_tracker}
+  end
+
   describe "Interface" do
     test "maybe_handle_cache_miss/3 updates device state on miss", context do
       %{
         realm_name: realm_name,
-        astarte_instance_id: astarte_instance_id,
-        interfaces: interfaces,
-        device: device
+        state: state,
+        interfaces: interfaces
       } = context
 
       keyspace = Realm.keyspace_name(realm_name)
 
-      state = setup_state(realm_name, astarte_instance_id, device)
       %{last_seen_message: last_seen_message} = state
 
       interface = Enum.random(interfaces)
@@ -88,22 +107,6 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.InterfaceTest do
              |> Map.delete(nil)
              |> Map.equal?(mappings_map)
     end
-  end
-
-  def setup_state(realm, astarte_instance_id, device) do
-    {:ok, message_tracker} = DataUpdater.fetch_message_tracker(realm, device.encoded_id)
-
-    {:ok, data_updater} =
-      DataUpdater.fetch_data_updater_process(realm, device.encoded_id, message_tracker, true)
-
-    Astarte.DataAccess.Config
-    |> Mimic.allow(self(), data_updater)
-    |> Mimic.stub(:astarte_instance_id, fn -> {:ok, astarte_instance_id} end)
-    |> Mimic.stub(:astarte_instance_id!, fn -> astarte_instance_id end)
-
-    :ok = GenServer.call(data_updater, :start)
-
-    DataUpdater.dump_state(realm, device.encoded_id)
   end
 
   def path_from_endpoint(prefix) do
