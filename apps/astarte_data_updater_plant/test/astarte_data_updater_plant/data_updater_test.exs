@@ -49,7 +49,6 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
   alias Astarte.DataUpdaterPlant.DataUpdater
   alias Astarte.DataUpdaterPlant.Repo
   alias Astarte.Core.CQLUtils
-  alias Astarte.RPC.Protocol.VMQ.Plugin, as: Protocol
 
   setup :verify_on_exit!
 

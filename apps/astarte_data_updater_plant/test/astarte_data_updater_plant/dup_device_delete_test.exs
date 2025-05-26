@@ -20,36 +20,11 @@ defmodule Astarte.DataUpdaterPlant.DeviceDeleteTest do
   use ExUnit.Case
   import Mox
 
-  import Ecto.Query
-
   alias Astarte.Core.Device
-  alias Astarte.Core.Triggers.SimpleEvents.DeviceConnectedEvent
-  alias Astarte.Core.Triggers.SimpleEvents.DeviceDisconnectedEvent
-  alias Astarte.Core.Triggers.SimpleEvents.IncomingDataEvent
-  alias Astarte.Core.Triggers.SimpleEvents.PathRemovedEvent
-  alias Astarte.Core.Triggers.SimpleEvents.SimpleEvent
-  alias Astarte.Core.Triggers.SimpleEvents.ValueChangeAppliedEvent
-  alias Astarte.Core.Triggers.SimpleEvents.IncomingIntrospectionEvent
-  alias Astarte.Core.Triggers.SimpleEvents.InterfaceAddedEvent
-  alias Astarte.Core.Triggers.SimpleEvents.InterfaceRemovedEvent
-  alias Astarte.Core.Triggers.SimpleEvents.InterfaceMinorUpdatedEvent
-  alias Astarte.Core.Triggers.SimpleEvents.InterfaceVersion
-  alias Astarte.Core.Triggers.SimpleTriggersProtobuf.AMQPTriggerTarget
-  alias Astarte.Core.Triggers.SimpleTriggersProtobuf.DataTrigger
-  alias Astarte.Core.Triggers.SimpleTriggersProtobuf.DeviceTrigger
-  alias Astarte.Core.Triggers.SimpleTriggersProtobuf.SimpleTriggerContainer
-  alias Astarte.Core.Triggers.SimpleTriggersProtobuf.TriggerTargetContainer
-  alias Astarte.DataAccess.Devices.Device, as: DeviceSchema
   alias Astarte.DataAccess.Realms.Realm
-  alias Astarte.DataAccess.Realms.IndividualDatastream
-  alias Astarte.DataAccess.Realms.IndividualProperty
-  alias Astarte.DataAccess.Realms.Interface
   alias Astarte.DataUpdaterPlant.AMQPTestHelper
   alias Astarte.DataUpdaterPlant.DatabaseTestHelper
   alias Astarte.DataUpdaterPlant.DataUpdater
-  alias Astarte.DataUpdaterPlant.Repo
-  alias Astarte.Core.CQLUtils
-  alias Astarte.RPC.Protocol.VMQ.Plugin, as: Protocol
 
   setup :verify_on_exit!
   setup :set_mox_global
@@ -198,53 +173,6 @@ defmodule Astarte.DataUpdaterPlant.DeviceDeleteTest do
 
     # Finally, check that the related DataUpdater process exists no more
     assert [] = Horde.Registry.lookup(Registry.DataUpdater, {realm, device_id})
-  end
-
-  defp generate_disconnection_trigger_data() do
-    %SimpleTriggerContainer{
-      simple_trigger: {
-        :device_trigger,
-        %DeviceTrigger{
-          device_event_type: :DEVICE_DISCONNECTED
-        }
-      }
-    }
-    |> SimpleTriggerContainer.encode()
-  end
-
-  defp generate_trigger_target() do
-    %TriggerTargetContainer{
-      trigger_target: {
-        :amqp_trigger_target,
-        %AMQPTriggerTarget{
-          routing_key: AMQPTestHelper.events_routing_key()
-        }
-      }
-    }
-    |> TriggerTargetContainer.encode()
-  end
-
-  defp retrieve_endpoint_id(realm_name, interface_name, interface_major, path) do
-    keyspace_name = Realm.keyspace_name(realm_name)
-
-    query =
-      from i in Interface,
-        prefix: ^keyspace_name,
-        where: i.name == ^interface_name and i.major_version == ^interface_major,
-        select: %{
-          automaton_transitions: i.automaton_transitions,
-          automaton_accepting_states: i.automaton_accepting_states
-        }
-
-    interface_row = Repo.one!(query)
-
-    automaton =
-      {:erlang.binary_to_term(interface_row[:automaton_transitions]),
-       :erlang.binary_to_term(interface_row[:automaton_accepting_states])}
-
-    {:ok, endpoint_id} = Astarte.Core.Mapping.EndpointsAutomaton.resolve_path(path, automaton)
-
-    endpoint_id
   end
 
   defp make_timestamp(timestamp_string) do
