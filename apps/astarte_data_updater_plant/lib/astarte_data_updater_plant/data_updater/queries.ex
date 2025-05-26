@@ -776,7 +776,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
     consistency = Consistency.domain_model(:read)
 
     with {:ok, n} when is_number(n) or is_nil(n) <-
-           Repo.fetch_one(query, consistency: consistency) |> dbg() do
+           Repo.fetch_one(query, consistency: consistency) do
       n
     end
   end

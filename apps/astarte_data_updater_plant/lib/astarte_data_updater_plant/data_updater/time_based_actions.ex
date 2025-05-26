@@ -196,13 +196,6 @@ defmodule Astarte.DataUpdaterPlant.TimeBasedActions do
          timestamp do
       # TODO this could be a bang!
       case Queries.fetch_datastream_maximum_storage_retention(state.realm) do
-        {:ok, ttl} ->
-          %State{
-            state
-            | datastream_maximum_storage_retention: ttl,
-              last_datastream_maximum_retention_refresh: timestamp
-          }
-
         {:error, _reason} ->
           Logger.warning(
             "Failed to load last_datastream_maximum_retention_refresh, keeping old one",
@@ -210,6 +203,13 @@ defmodule Astarte.DataUpdaterPlant.TimeBasedActions do
           )
 
           state
+
+        ttl ->
+          %State{
+            state
+            | datastream_maximum_storage_retention: ttl,
+              last_datastream_maximum_retention_refresh: timestamp
+          }
       end
     else
       state
