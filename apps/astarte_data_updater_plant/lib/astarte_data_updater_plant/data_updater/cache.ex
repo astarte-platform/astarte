@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2018 Ispirata Srl
+# Copyright 2018 - 2025 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -58,24 +58,22 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Cache do
 
   def fetch({_size, map}, key) do
     with {:ok, {value, expiry}} <- Map.fetch(map, key) do
-      if is_expired?(expiry) do
-        {:ok, value}
-      else
+      if expired?(expiry) do
         :error
+      else
+        {:ok, value}
       end
     end
   end
 
   def has_key?({_size, map}, key) do
-    with {:ok, {_value, expiry}} <- Map.fetch(map, key) do
-      not is_expired?(expiry)
-    else
-      :error ->
-        false
+    case Map.fetch(map, key) do
+      {:ok, {_value, expiry}} -> not expired?(expiry)
+      :error -> false
     end
   end
 
-  defp is_expired?(expiry) do
-    expiry == nil or expiry > System.system_time(:second)
+  defp expired?(expiry) do
+    expiry != nil and expiry <= System.system_time(:second)
   end
 end
