@@ -19,6 +19,7 @@
 #
 
 defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.InterfaceTest do
+  alias Astarte.Helpers
   alias Astarte.DataUpdaterPlant.DataUpdater
   alias Astarte.DataAccess.Realms.Interface, as: InterfaceData
   alias Astarte.DataAccess.Mappings
@@ -33,6 +34,8 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.InterfaceTest do
   use ExUnitProperties
 
   import Ecto.Query
+  import Mimic
+  import Astarte.InterfaceUpdateGenerators
 
   @interface_lifespan_decimicroseconds 60 * 10 * 1000 * 10000
 
@@ -107,24 +110,44 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.InterfaceTest do
              |> Map.delete(nil)
              |> Map.equal?(mappings_map)
     end
-  end
 
-  def path_from_endpoint(prefix) do
-    prefix
-    |> String.split("/")
-    |> Enum.map(fn token ->
-      case Astarte.Core.Mapping.is_placeholder?(token) do
-        true -> string(:alphanumeric, min_length: 1)
-        false -> constant(token)
+    property "prune_interface/4 removes properties of device owned interfaces", context do
+      %{
+        state: state,
+        interfaces: interfaces,
+        realm_name: realm_name,
+        device: device
+      } = context
+
+      valid_interfaces =
+        interfaces |> Enum.filter(&(&1.type == :properties and &1.ownership == :device))
+
+      check all interface <- member_of(valid_interfaces),
+                mapping_update <- valid_mapping_update_for(interface) do
+        Helpers.Database.insert_values(realm_name, device, interface, mapping_update)
+
+        keyspace = Realm.keyspace_name(realm_name)
+
+        assert {:ok, _new_state} =
+                 Core.Interface.prune_interface(
+                   state,
+                   interface.name,
+                   MapSet.new(),
+                   DateTime.utc_now()
+                 )
+
+        properties =
+          from("individual_properties", select: [:path, :device_id, :interface_id])
+          |> Repo.all(prefix: keyspace)
+
+        expected_property = %{
+          path: mapping_update.path,
+          device_id: device.device_id,
+          interface_id: interface.interface_id
+        }
+
+        assert expected_property not in properties
       end
-    end)
-    |> fixed_list()
-    |> map(&Enum.join(&1, "/"))
-  end
-
-  def gen_tracking_id() do
-    message_id = :erlang.unique_integer([:monotonic]) |> Integer.to_string()
-    delivery_tag = {:injected_msg, make_ref()}
-    {message_id, delivery_tag}
+    end
   end
 end
