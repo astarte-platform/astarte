@@ -17,10 +17,14 @@
 #
 
 defmodule Astarte.Helpers.Database do
+  alias Astarte.DataAccess.Realms.Endpoint
+  alias Astarte.Core.CQLUtils
   alias Astarte.DataAccess.Devices.Device, as: DeviceSchema
   alias Astarte.DataAccess.Realms.Interface
   alias Astarte.DataAccess.Realms.Realm
   alias Astarte.DataAccess.Repo
+
+  import Ecto.Query
 
   @create_keyspace """
   CREATE KEYSPACE :keyspace
@@ -486,5 +490,40 @@ defmodule Astarte.Helpers.Database do
     Astarte.DataAccess.Config
     |> Mimic.stub(:astarte_instance_id, fn -> {:ok, astarte_instance_id} end)
     |> Mimic.stub(:astarte_instance_id!, fn -> astarte_instance_id end)
+  end
+
+  def insert_values(realm_name, device, interface, mapping_update) do
+    timestamp = DateTime.utc_now() |> DateTime.to_unix()
+    reception_timestamp_submillis = StreamData.integer() |> Enum.at(0)
+    keyspace = Realm.keyspace_name(realm_name)
+    column_name = CQLUtils.type_to_db_column_name(mapping_update.value_type)
+    db_value = mapping_update.value
+
+    endpoint_id = get_endpoint_id(realm_name, interface)
+
+    insert_value = %{
+      "device_id" => device.device_id,
+      "interface_id" => interface.interface_id,
+      "endpoint_id" => endpoint_id,
+      "path" => mapping_update.path,
+      "reception_timestamp" => timestamp,
+      "reception_timestamp_submillis" => reception_timestamp_submillis,
+      column_name => db_value
+    }
+
+    insert_opts = [
+      prefix: keyspace
+    ]
+
+    _ = Repo.insert_all("individual_properties", [insert_value], insert_opts)
+  end
+
+  defp get_endpoint_id(realm_name, interface) do
+    keyspace = Realm.keyspace_name(realm_name)
+
+    query =
+      from e in Endpoint, where: [interface_id: ^interface.interface_id], select: e.endpoint_id
+
+    Repo.one(query, prefix: keyspace)
   end
 end
