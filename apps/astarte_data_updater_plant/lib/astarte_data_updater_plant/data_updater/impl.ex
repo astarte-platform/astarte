@@ -171,10 +171,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
   end
 
   def handle_internal(%State{discard_messages: true} = state, "/f", _, message_id, _) do
-    keyspace_name =
-      CQLUtils.realm_name_to_keyspace_name(state.realm, Config.astarte_instance_id!())
-
-    :ok = Queries.ack_end_device_deletion(keyspace_name, state.device_id)
+    :ok = Queries.ack_end_device_deletion(state.realm, state.device_id)
     _ = Logger.info("End device deletion acked.", tag: "device_delete_ack")
     MessageTracker.ack_delivery(state.message_tracker, message_id)
     {:stop, state}

@@ -17,10 +17,8 @@
 #
 
 defmodule Astarte.DataUpdaterPlant.TimeBasedActions do
-  alias Astarte.Core.CQLUtils
   alias Astarte.Core.Device
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.Utils, as: SimpleTriggersProtobufUtils
-  alias Astarte.DataUpdaterPlant.Config
   alias Astarte.DataUpdaterPlant.DataUpdater.Core
   alias Astarte.DataUpdaterPlant.DataUpdater.Impl
   alias Astarte.DataUpdaterPlant.DataUpdater.State
@@ -140,10 +138,7 @@ defmodule Astarte.DataUpdaterPlant.TimeBasedActions do
       Logger.info("Stop handling data from device in deletion, device_id #{encoded_device_id}")
 
       # It's ok to repeat that, as we always write ⊤
-      keyspace_name =
-        CQLUtils.realm_name_to_keyspace_name(realm, Config.astarte_instance_id!())
-
-      Queries.ack_start_device_deletion(keyspace_name, device_id)
+      Queries.ack_start_device_deletion(realm, device_id)
 
       %State{new_state | discard_messages: true}
     else
@@ -152,10 +147,7 @@ defmodule Astarte.DataUpdaterPlant.TimeBasedActions do
   end
 
   defp should_start_device_deletion?(realm_name, device_id) do
-    keyspace_name =
-      CQLUtils.realm_name_to_keyspace_name(realm_name, Config.astarte_instance_id!())
-
-    case Queries.check_device_deletion_in_progress(keyspace_name, device_id) do
+    case Queries.check_device_deletion_in_progress(realm_name, device_id) do
       {:ok, true} ->
         true
 
