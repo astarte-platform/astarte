@@ -29,7 +29,6 @@ defmodule Astarte.DataUpdater.DeletionScheduler do
   alias Astarte.DataUpdaterPlant.DataUpdater
   alias Astarte.DataUpdaterPlant.Config
   alias Astarte.Core.Device
-  alias Astarte.Core.CQLUtils
 
   require Logger
 
@@ -70,10 +69,8 @@ defmodule Astarte.DataUpdater.DeletionScheduler do
     realms = Queries.retrieve_realms!()
 
     for %{"realm_name" => realm_name} <- realms,
-        keyspace_name =
-          CQLUtils.realm_name_to_keyspace_name(realm_name, Config.astarte_instance_id!()),
         %{"device_id" => device_id} <-
-          Queries.retrieve_devices_waiting_to_start_deletion!(keyspace_name),
+          Queries.retrieve_devices_waiting_to_start_deletion!(realm_name),
         encoded_device_id = Device.encode_device_id(device_id),
         should_handle_data_from_device?(realm_name, encoded_device_id) do
       _ =

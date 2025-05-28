@@ -867,9 +867,11 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
   end
 
   def check_device_deletion_in_progress(realm_name, device_id) do
+    keyspace_name = Realm.keyspace_name(realm_name)
+
     Xandra.Cluster.run(
       :xandra,
-      &do_check_device_deletion_in_progress(&1, realm_name, device_id)
+      &do_check_device_deletion_in_progress(&1, keyspace_name, device_id)
     )
   end
 
@@ -925,9 +927,11 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
   end
 
   def retrieve_devices_waiting_to_start_deletion!(realm_name) do
+    keyspace_name = Realm.keyspace_name(realm_name)
+
     Xandra.Cluster.run(
       :xandra,
-      &do_retrieve_devices_waiting_to_start_deletion!(&1, realm_name)
+      &do_retrieve_devices_waiting_to_start_deletion!(&1, keyspace_name)
     )
   end
 

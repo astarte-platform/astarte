@@ -761,7 +761,7 @@ defmodule Astarte.DataUpdaterPlant.TimeBasedActionsTest do
       state = setup_device_state(realm, device_id, encoded_device_id, [])
 
       # Simulate error scenario: update the state to use the nonexistent realm
-      nonexistent_realm = "nonexistent_realm_#{System.unique_integer([:positive])}"
+      nonexistent_realm = "nonexistentrealm#{System.unique_integer([:positive])}"
       state = %{state | realm: nonexistent_realm}
 
       # Verify state behavior: only timestamp is updated, no deletion triggered
