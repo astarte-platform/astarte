@@ -220,6 +220,36 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.InterfaceTest do
         assert valid_type?(mapping, expected_type, interface.aggregation)
       end
     end
+
+    property "forget_interfaces/2 removes interfaces from state cache", context do
+      %{
+        interfaces: interfaces,
+        state: state
+      } = context
+
+      check all interfaces_to_drop <- list_of(member_of(interfaces)) do
+        interfaces_to_drop_names = interfaces_to_drop |> Enum.map(& &1.name)
+        new_state = Core.Interface.forget_interfaces(state, interfaces_to_drop_names)
+
+        interface_names = new_state.interfaces |> Map.keys()
+        interface_ids = new_state.interface_ids_to_name |> Map.keys()
+        endpoint_ids = new_state.mappings |> Map.keys()
+
+        assert Enum.all?(interfaces_to_drop, fn interface ->
+                 interface.name not in interface_names
+               end)
+
+        assert Enum.all?(interfaces_to_drop, fn interface ->
+                 interface.interface_id not in interface_ids
+               end)
+
+        assert Enum.all?(interfaces_to_drop, fn interface ->
+                 Enum.all?(interface.mappings, fn mapping ->
+                   mapping.endpoint_id not in endpoint_ids
+                 end)
+               end)
+      end
+    end
   end
 
   defp valid_type?(mapping, expected_type, :individual), do: mapping.value_type == expected_type
