@@ -19,6 +19,7 @@
 #
 
 defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.InterfaceTest do
+  alias Astarte.Helpers
   alias Astarte.DataUpdaterPlant.DataUpdater
   alias Astarte.DataAccess.Realms.Interface, as: InterfaceData
   alias Astarte.DataAccess.Mappings
@@ -28,26 +29,47 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.InterfaceTest do
   alias Astarte.Core.InterfaceDescriptor
   alias Astarte.DataUpdaterPlant.DataUpdater.Core
 
-  use Astarte.Cases.Data
+  use Astarte.Cases.Data, async: true
   use Astarte.Cases.Device
   use ExUnitProperties
 
   import Ecto.Query
+  import Mimic
+  import Astarte.InterfaceUpdateGenerators
 
   @interface_lifespan_decimicroseconds 60 * 10 * 1000 * 10000
+
+  setup_all %{realm_name: realm_name, device: device} do
+    {:ok, message_tracker} = DataUpdater.fetch_message_tracker(realm_name, device.encoded_id)
+
+    {:ok, data_updater} =
+      DataUpdater.fetch_data_updater_process(
+        realm_name,
+        device.encoded_id,
+        message_tracker,
+        true
+      )
+
+    Astarte.DataAccess.Config
+    |> allow(self(), data_updater)
+
+    :ok = GenServer.call(data_updater, :start)
+
+    state = DataUpdater.dump_state(realm_name, device.encoded_id)
+
+    %{state: state, data_updater: data_updater, messagte_tracker: message_tracker}
+  end
 
   describe "Interface" do
     test "maybe_handle_cache_miss/3 updates device state on miss", context do
       %{
         realm_name: realm_name,
-        astarte_instance_id: astarte_instance_id,
-        interfaces: interfaces,
-        device: device
+        state: state,
+        interfaces: interfaces
       } = context
 
       keyspace = Realm.keyspace_name(realm_name)
 
-      state = setup_state(realm_name, astarte_instance_id, device)
       %{last_seen_message: last_seen_message} = state
 
       interface = Enum.random(interfaces)
@@ -88,40 +110,44 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.InterfaceTest do
              |> Map.delete(nil)
              |> Map.equal?(mappings_map)
     end
-  end
 
-  def setup_state(realm, astarte_instance_id, device) do
-    {:ok, message_tracker} = DataUpdater.fetch_message_tracker(realm, device.encoded_id)
+    property "prune_interface/4 removes properties of device owned interfaces", context do
+      %{
+        state: state,
+        interfaces: interfaces,
+        realm_name: realm_name,
+        device: device
+      } = context
 
-    {:ok, data_updater} =
-      DataUpdater.fetch_data_updater_process(realm, device.encoded_id, message_tracker, true)
+      valid_interfaces =
+        interfaces |> Enum.filter(&(&1.type == :properties and &1.ownership == :device))
 
-    Astarte.DataAccess.Config
-    |> Mimic.allow(self(), data_updater)
-    |> Mimic.stub(:astarte_instance_id, fn -> {:ok, astarte_instance_id} end)
-    |> Mimic.stub(:astarte_instance_id!, fn -> astarte_instance_id end)
+      check all interface <- member_of(valid_interfaces),
+                mapping_update <- valid_mapping_update_for(interface) do
+        Helpers.Database.insert_values(realm_name, device, interface, mapping_update)
 
-    :ok = GenServer.call(data_updater, :start)
+        keyspace = Realm.keyspace_name(realm_name)
 
-    DataUpdater.dump_state(realm, device.encoded_id)
-  end
+        assert {:ok, _new_state} =
+                 Core.Interface.prune_interface(
+                   state,
+                   interface.name,
+                   MapSet.new(),
+                   DateTime.utc_now()
+                 )
 
-  def path_from_endpoint(prefix) do
-    prefix
-    |> String.split("/")
-    |> Enum.map(fn token ->
-      case Astarte.Core.Mapping.is_placeholder?(token) do
-        true -> string(:alphanumeric, min_length: 1)
-        false -> constant(token)
+        properties =
+          from("individual_properties", select: [:path, :device_id, :interface_id])
+          |> Repo.all(prefix: keyspace)
+
+        expected_property = %{
+          path: mapping_update.path,
+          device_id: device.device_id,
+          interface_id: interface.interface_id
+        }
+
+        assert expected_property not in properties
       end
-    end)
-    |> fixed_list()
-    |> map(&Enum.join(&1, "/"))
-  end
-
-  def gen_tracking_id() do
-    message_id = :erlang.unique_integer([:monotonic]) |> Integer.to_string()
-    delivery_tag = {:injected_msg, make_ref()}
-    {message_id, delivery_tag}
+    end
   end
 end
