@@ -60,8 +60,8 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.InterfaceTest do
     %{state: state, data_updater: data_updater, messagte_tracker: message_tracker}
   end
 
-  describe "Interface" do
-    test "maybe_handle_cache_miss/3 updates device state on miss", context do
+  describe "maybe_handle_cache_miss/3" do
+    test "updates device state on miss", context do
       %{
         realm_name: realm_name,
         state: state,
@@ -110,6 +110,24 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.InterfaceTest do
              |> Map.delete(nil)
              |> Map.equal?(mappings_map)
     end
+  end
+
+  describe "Interfaces" do
+    setup %{interfaces: interfaces, state: state} do
+      new_state =
+        Enum.reduce(interfaces, state, fn interface, state ->
+          {:ok, _descriptor, new_state} =
+            Core.Interface.maybe_handle_cache_miss(
+              Map.get(state.interfaces, interface.name),
+              interface.name,
+              state
+            )
+
+          new_state
+        end)
+
+      %{state: new_state}
+    end
 
     property "prune_interface/4 removes properties of device owned interfaces", context do
       %{
@@ -149,5 +167,43 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.InterfaceTest do
         assert expected_property not in properties
       end
     end
+
+    property "resolve_path/3 finds endpoint from interface descriptor and mappings",
+             context do
+      %{
+        interfaces: interfaces,
+        state: state
+      } = context
+
+      check all interface <- member_of(interfaces),
+                mapping_update <- valid_mapping_update_for(interface) do
+        descriptor = state.interfaces[interface.name]
+
+        {:ok, endpoint} =
+          Core.Interface.resolve_path(mapping_update.path, descriptor, state.mappings)
+
+        assert matches?(endpoint.endpoint, mapping_update.path, interface.aggregation)
+      end
+    end
+  end
+
+  defp matches?(endpoint, path, aggregation) do
+    endpoint_tokens = endpoint_tokens(endpoint, aggregation)
+    path_tokens = String.split(path, "/", trim: true)
+
+    length(endpoint_tokens) == length(path_tokens) and
+      Enum.zip(endpoint_tokens, path_tokens)
+      |> Enum.all?(&token_match?/1)
+  end
+
+  defp endpoint_tokens(string, :object),
+    do:
+      String.split(string, "/", trim: true)
+      |> List.delete_at(-1)
+
+  defp endpoint_tokens(string, :individual), do: String.split(string, "/", trim: true)
+
+  defp token_match?({endpoint_token, path_token}) do
+    Astarte.Core.Mapping.is_placeholder?(endpoint_token) or endpoint_token == path_token
   end
 end
