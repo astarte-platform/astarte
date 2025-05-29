@@ -24,6 +24,7 @@ defmodule Astarte.DataUpdaterPlant.RPC.Server do
   calls to the appropriate dup services to handle the calls.
   """
 
+  alias Astarte.DataUpdaterPlant.RPC.Server.Core
   alias Astarte.DataUpdaterPlant.DataUpdater
 
   use GenServer, restart: :transient
@@ -43,38 +44,14 @@ defmodule Astarte.DataUpdaterPlant.RPC.Server do
   end
 
   @impl GenServer
-  def handle_call({:install_volatile_trigger, volatile_trigger}, from, state) do
-    %{
-      realm_name: realm,
-      device_id: device_id,
-      object_id: object_id,
-      object_type: object_type,
-      parent_id: parent_id,
-      simple_trigger_id: trigger_id,
-      simple_trigger: simple_trigger,
-      trigger_target: trigger_target
-    } = volatile_trigger
+  def handle_call({:install_volatile_trigger, volatile_trigger}, _from, state) do
+    reply = Core.install_volatile_trigger(volatile_trigger)
 
-    with :ok <- DataUpdater.verify_device_exists(realm, device_id),
-         {:ok, message_tracker} <- DataUpdater.fetch_message_tracker(realm, device_id),
-         {:ok, dup} <- DataUpdater.fetch_data_updater_process(realm, device_id, message_tracker) do
-      reply =
-        GenServer.call(
-          dup,
-          {:handle_install_volatile_trigger, object_id, object_type, parent_id, trigger_id,
-           simple_trigger, trigger_target}
-        )
-
-      {:reply, reply, state}
-    else
-      {:error, error} ->
-        _ =
-          Logger.error(
-            "Error #{inspect(error)} while handling an `install_volatile_trigger` request, returning the error to the caller: #{inspect(from)}"
-          )
-
-        {:reply, {:error, error}, state}
+    with {:error, error} <- reply do
+      _ = Logger.warning("Error while intalling a new volatile trigger: #{inspect(error)}")
     end
+
+    {:reply, reply, state}
   end
 
   @impl GenServer
