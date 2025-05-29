@@ -26,10 +26,14 @@ defmodule Astarte.AppEngine.API.Stats.Queries do
   def get_devices_stats(realm) do
     Xandra.Cluster.run(:xandra, fn conn ->
       with {:ok, total_devices_count} <- get_total_devices_count(conn, realm),
-           {:ok, connected_devices_count} <- get_connected_devices_count(conn, realm) do
+           {:ok, connected_devices_count} <- get_connected_devices_count(conn, realm),
+           {:ok, disconnected_devices_count} <- get_disconnected_devices_count(conn, realm),
+           {:ok, never_connected_devices_count} <- get_never_connected_devices_count(conn, realm) do
         stats = %DevicesStats{
           total_devices: total_devices_count,
-          connected_devices: connected_devices_count
+          connected_devices: connected_devices_count,
+          disconnected_devices: disconnected_devices_count,
+          never_connected_devices: never_connected_devices_count
         }
 
         {:ok, stats}
@@ -69,6 +73,40 @@ defmodule Astarte.AppEngine.API.Stats.Queries do
       [%{"system.count(device_id)" => count}] = Enum.to_list(page)
 
       {:ok, count}
+    end
+  end
+
+
+  defp get_disconnected_devices_count(conn, realm) do
+    query = """
+    SELECT count(device_id)
+    FROM :realm.devices
+    WHERE connected=false
+    ALLOW FILTERING
+    """
+
+    with {:ok, prepared} <- prepare_with_realm(conn, realm, query),
+         {:ok, %Xandra.Page{} = page} <- Xandra.execute(conn, prepared, %{}) do
+      [%{"system.count(device_id)" => count}] = Enum.to_list(page)
+
+      {:ok, count}
+    end
+  end
+
+  defp get_never_connected_devices_count(conn, realm) do
+    query = """
+    SELECT device_id, last_connection
+    FROM :realm.devices
+    """
+
+    with {:ok, prepared} <- prepare_with_realm(conn, realm, query),
+         {:ok, %Xandra.Page{} = page} <- Xandra.execute(conn, prepared, %{}) do
+      devices = Enum.to_list(page)
+      never_connected_count = devices
+      |> Enum.filter(fn %{"last_connection" => nil} -> true; _ -> false end)
+      |> length()
+
+      {:ok, never_connected_count}
     end
   end
 
