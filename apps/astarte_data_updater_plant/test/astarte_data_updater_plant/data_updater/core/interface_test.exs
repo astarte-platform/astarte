@@ -19,6 +19,7 @@
 #
 
 defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.InterfaceTest do
+  alias Astarte.DataAccess.Realms.Endpoint
   alias Astarte.Helpers
   alias Astarte.DataUpdaterPlant.DataUpdater
   alias Astarte.DataAccess.Realms.Interface, as: InterfaceData
@@ -185,6 +186,79 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.InterfaceTest do
         assert matches?(endpoint.endpoint, mapping_update.path, interface.aggregation)
       end
     end
+
+    property "extract_expected_types/3 extracts types from endpoint", context do
+      %{
+        interfaces: interfaces,
+        state: state,
+        realm_name: realm_name
+      } = context
+
+      check all interface <- member_of(interfaces),
+                mapping <- member_of(interface.mappings),
+                path <- path_from_endpoint(mapping.endpoint) do
+        descriptor = state.interfaces[interface.name]
+
+        keyspace = Realm.keyspace_name(realm_name)
+
+        query =
+          from i in Endpoint,
+            hints: ["ALLOW FILTERING"],
+            where: [interface_id: ^interface.interface_id, endpoint: ^mapping.endpoint],
+            select: [:value_type]
+
+        endpoint = Repo.one(query, prefix: keyspace)
+
+        expected_type =
+          Core.Interface.extract_expected_types(
+            path,
+            descriptor,
+            endpoint,
+            state.mappings
+          )
+
+        assert valid_type?(mapping, expected_type, interface.aggregation)
+      end
+    end
+
+    property "forget_interfaces/2 removes interfaces from state cache", context do
+      %{
+        interfaces: interfaces,
+        state: state
+      } = context
+
+      check all interfaces_to_drop <- list_of(member_of(interfaces)) do
+        interfaces_to_drop_names = interfaces_to_drop |> Enum.map(& &1.name)
+        new_state = Core.Interface.forget_interfaces(state, interfaces_to_drop_names)
+
+        interface_names = new_state.interfaces |> Map.keys()
+        interface_ids = new_state.interface_ids_to_name |> Map.keys()
+        endpoint_ids = new_state.mappings |> Map.keys()
+
+        assert Enum.all?(interfaces_to_drop, fn interface ->
+                 interface.name not in interface_names
+               end)
+
+        assert Enum.all?(interfaces_to_drop, fn interface ->
+                 interface.interface_id not in interface_ids
+               end)
+
+        assert Enum.all?(interfaces_to_drop, fn interface ->
+                 Enum.all?(interface.mappings, fn mapping ->
+                   mapping.endpoint_id not in endpoint_ids
+                 end)
+               end)
+      end
+    end
+  end
+
+  defp valid_type?(mapping, expected_type, :individual), do: mapping.value_type == expected_type
+
+  defp valid_type?(mapping, expected_type, :object) do
+    key = mapping.endpoint |> String.split("/") |> List.last()
+    value = mapping.value_type
+
+    %{key => value} == expected_type
   end
 
   defp matches?(endpoint, path, aggregation) do
