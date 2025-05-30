@@ -28,6 +28,8 @@ defmodule Astarte.Cases.Device do
   use ExUnitProperties
 
   import Astarte.Helpers.Device
+  import Astarte.Helpers.Database
+  import Astarte.InterfaceUpdateGenerators
   import Ecto.Query
 
   using do
@@ -50,6 +52,82 @@ defmodule Astarte.Cases.Device do
     interfaces_data
     |> Map.put(:interfaces, interfaces)
     |> Map.put(:device, device)
+  end
+
+  def populate_interfaces(context) do
+    %{
+      realm_name: realm_name,
+      interfaces: interfaces,
+      device: device
+    } = context
+
+    random_interfaces =
+      interfaces
+      |> Enum.group_by(fn interface ->
+        {interface.type, interface.ownership, interface.aggregation}
+      end)
+      |> Map.new(fn {key, values} -> {key, Enum.random(values)} end)
+
+    individual_datastream_device =
+      Map.fetch!(random_interfaces, {:datastream, :device, :individual})
+
+    individual_datastream_server =
+      Map.fetch!(random_interfaces, {:datastream, :server, :individual})
+
+    object_datastream_device = Map.fetch!(random_interfaces, {:datastream, :device, :object})
+    object_datastream_server = Map.fetch!(random_interfaces, {:datastream, :server, :object})
+
+    individual_properties_device =
+      Map.fetch!(random_interfaces, {:properties, :device, :individual})
+
+    individual_properties_server =
+      Map.fetch!(random_interfaces, {:properties, :server, :individual})
+
+    interfaces_with_data =
+      [
+        individual_datastream_device,
+        individual_datastream_server,
+        object_datastream_device,
+        object_datastream_server,
+        individual_properties_device,
+        individual_properties_server
+      ]
+
+    interface_data =
+      for interface <- interfaces_with_data, into: %{} do
+        interface_data = populate(realm_name, device, interface)
+        interface_key = {interface.name, interface.major_version}
+
+        {interface_key, interface_data}
+      end
+
+    registered_paths = Map.new(interface_data, fn {key, data} -> {key, data.paths} end)
+    registered_timings = Map.new(interface_data, fn {key, data} -> {key, data.timings} end)
+
+    %{
+      registered_paths: registered_paths,
+      registered_timings: registered_timings,
+      interfaces_with_data: interfaces_with_data,
+      individual_datastream_device_interface: individual_datastream_device,
+      individual_datastream_server_interface: individual_datastream_server,
+      object_datastream_device_interface: object_datastream_device,
+      object_datastream_server_interface: object_datastream_server,
+      individual_properties_device_interface: individual_properties_device,
+      individual_properties_server_interface: individual_properties_server
+    }
+  end
+
+  defp populate(realm_name, device, interface) do
+    mapping_update = valid_mapping_update_for(interface)
+
+    values =
+      list_of(mapping_update, length: 100..10_000)
+      |> Enum.at(0)
+
+    timings = insert_values(realm_name, device, interface, values)
+    paths = MapSet.new(values, & &1.path)
+
+    %{paths: paths, timings: timings}
   end
 
   defp update_interfaces_id(realm_name, interfaces) do
