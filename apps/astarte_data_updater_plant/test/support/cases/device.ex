@@ -20,6 +20,7 @@ defmodule Astarte.Cases.Device do
   alias Astarte.DataAccess.Repo
   alias Astarte.DataAccess.Realms.Realm
   alias Astarte.DataAccess.Realms.Interface
+  alias Astarte.DataAccess.Realms.Endpoint
   alias Astarte.Core.Generators.Device, as: DeviceGenerator
   alias Astarte.Core.Generators.Interface, as: InterfaceGenerator
 
@@ -41,12 +42,13 @@ defmodule Astarte.Cases.Device do
 
     Enum.each(interfaces_data.interfaces, &insert_interface_cleanly(realm_name, &1))
 
-    updated_interfaces = update_interfaces_id(realm_name, interfaces_data.interfaces)
+    interfaces = update_interfaces_id(realm_name, interfaces_data.interfaces)
+    interfaces = update_endpoints_ids(realm_name, interfaces)
 
-    insert_device_cleanly(realm_name, device, updated_interfaces)
+    insert_device_cleanly(realm_name, device, interfaces)
 
     interfaces_data
-    |> Map.put(:interfaces, updated_interfaces)
+    |> Map.put(:interfaces, interfaces)
     |> Map.put(:device, device)
   end
 
@@ -82,6 +84,30 @@ defmodule Astarte.Cases.Device do
       interface
       |> Map.put(:interface_id, db_interface.interface_id)
     end)
+  end
+
+  defp update_endpoints_ids(realm_name, interfaces) do
+    interface_ids = Enum.map(interfaces, & &1.interface_id)
+
+    endpoint_by_interface =
+      Repo.all(Endpoint, prefix: Realm.keyspace_name(realm_name))
+      |> Enum.group_by(& &1.interface_id)
+      |> Map.take(interface_ids)
+
+    for interface <- interfaces do
+      interface_endpoints_by_path =
+        Map.fetch!(endpoint_by_interface, interface.interface_id)
+        |> Map.new(&{&1.endpoint, &1})
+
+      mappings =
+        interface.mappings
+        |> Enum.map(fn mapping ->
+          endpoint = interface_endpoints_by_path[mapping.endpoint] || flunk("Endpoint not found")
+          %{mapping | interface_id: interface.interface_id, endpoint_id: endpoint.endpoint_id}
+        end)
+
+      %{interface | mappings: mappings}
+    end
   end
 
   defp interfaces do
