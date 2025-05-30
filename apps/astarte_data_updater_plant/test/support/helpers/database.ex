@@ -17,14 +17,13 @@
 #
 
 defmodule Astarte.Helpers.Database do
-  alias Astarte.DataAccess.Realms.Endpoint
-  alias Astarte.Core.CQLUtils
   alias Astarte.DataAccess.Devices.Device, as: DeviceSchema
-  alias Astarte.DataAccess.Realms.Interface
+  alias Astarte.DataAccess.Realms.Interface, as: InterfaceSchema
+  alias Astarte.DataAccess.Interface
   alias Astarte.DataAccess.Realms.Realm
   alias Astarte.DataAccess.Repo
-
-  import Ecto.Query
+  alias Astarte.DataUpdaterPlant.DataUpdater.Core
+  alias Astarte.DataUpdaterPlant.DataUpdater.Queries
 
   @create_keyspace """
   CREATE KEYSPACE :keyspace
@@ -312,7 +311,7 @@ defmodule Astarte.Helpers.Database do
       execute!(realm_keyspace, query)
     end)
 
-    %Interface{}
+    %InterfaceSchema{}
     |> Ecto.Changeset.change(%{
       name: "com.test.LCDMonitor",
       major_version: 1,
@@ -334,7 +333,7 @@ defmodule Astarte.Helpers.Database do
     })
     |> Repo.insert!(prefix: realm_keyspace)
 
-    %Interface{}
+    %InterfaceSchema{}
     |> Ecto.Changeset.change(%{
       name: "com.test.SimpleStreamTest",
       major_version: 1,
@@ -494,38 +493,51 @@ defmodule Astarte.Helpers.Database do
     |> Mimic.stub(:astarte_instance_id!, fn -> astarte_instance_id end)
   end
 
-  def insert_values(realm_name, device, interface, mapping_update) do
-    timestamp = DateTime.utc_now() |> DateTime.to_unix()
-    reception_timestamp_submillis = StreamData.integer() |> Enum.at(0)
-    keyspace = Realm.keyspace_name(realm_name)
-    column_name = CQLUtils.type_to_db_column_name(mapping_update.value_type)
-    db_value = mapping_update.value
+  def insert_values(realm_name, device, interface, mapping_updates) do
+    mappings_map = interface.mappings |> Map.new(&{&1.endpoint_id, &1})
 
-    endpoint_id = get_endpoint_id(realm_name, interface)
+    {:ok, interface_descriptor} =
+      Interface.fetch_interface_descriptor(realm_name, interface.name, interface.major_version)
 
-    insert_value = %{
-      "device_id" => device.device_id,
-      "interface_id" => interface.interface_id,
-      "endpoint_id" => endpoint_id,
-      "path" => mapping_update.path,
-      "reception_timestamp" => timestamp,
-      "reception_timestamp_submillis" => reception_timestamp_submillis,
-      column_name => db_value
-    }
+    mapping_updates
+    |> Enum.scan(initial_timestamp(), fn mapping_update, old_timestamp ->
+      timestamp = old_timestamp + random_interval()
 
-    insert_opts = [
-      prefix: keyspace
-    ]
+      {:ok, mapping} =
+        Core.Interface.resolve_path(mapping_update.path, interface_descriptor, mappings_map)
 
-    _ = Repo.insert_all("individual_properties", [insert_value], insert_opts)
+      :ok =
+        Queries.insert_value_into_db(
+          realm_name,
+          device.device_id,
+          interface_descriptor,
+          mapping,
+          mapping_update.path,
+          mapping_update.value,
+          timestamp,
+          timestamp,
+          []
+        )
+
+      timestamp
+    end)
   end
 
-  defp get_endpoint_id(realm_name, interface) do
-    keyspace = Realm.keyspace_name(realm_name)
+  defp initial_timestamp do
+    # Start of January 2020 in decimicrosecond
+    minimum = 157_783_680_000_000
+    # End of December 2025 in decimicrosecond
+    maximum = 176_722_559_999_999
 
-    query =
-      from e in Endpoint, where: [interface_id: ^interface.interface_id], select: e.endpoint_id
+    :rand.uniform(maximum - minimum) + minimum
+  end
 
-    Repo.one(query, prefix: keyspace)
+  defp random_interval do
+    # 1 second in decimicrosecond
+    minimum = 10_000_000
+    # 10 seconds in decimicrosecond
+    maximum = 100_000_000
+
+    :rand.uniform(maximum - minimum) + minimum
   end
 end

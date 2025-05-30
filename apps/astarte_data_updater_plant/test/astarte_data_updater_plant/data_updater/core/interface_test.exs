@@ -129,7 +129,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.InterfaceTest do
 
       check all interface <- member_of(valid_interfaces),
                 mapping_update <- valid_mapping_update_for(interface) do
-        Helpers.Database.insert_values(realm_name, device, interface, mapping_update)
+        Helpers.Database.insert_values(realm_name, device, interface, [mapping_update])
 
         keyspace = Realm.keyspace_name(realm_name)
 
