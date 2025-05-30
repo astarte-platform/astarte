@@ -20,6 +20,7 @@ Mimic.copy(Astarte.DataAccess.Config)
 Mimic.copy(Astarte.DataUpdaterPlant.DataUpdater.Server)
 Mimic.copy(Astarte.DataUpdaterPlant.RPC.Server.Core)
 Mimic.copy(System)
+Mimic.copy(Xandra)
 Mimic.copy(Astarte.DataAccess.Health.Health)
 
 ExUnit.start(capture_log: true)

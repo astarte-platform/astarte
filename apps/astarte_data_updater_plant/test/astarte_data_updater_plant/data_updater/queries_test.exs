@@ -20,12 +20,79 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.QueriesTest do
   use Astarte.Cases.Data, async: true
   use Astarte.Cases.Device
   use ExUnitProperties
+  use Mimic
+
   alias Astarte.Core.Generators.Realm, as: RealmGenerator
   alias Astarte.Core.Generators.Device, as: DeviceGenerator
   alias Astarte.DataAccess.Realms.Realm
+  alias Astarte.DataAccess.Devices.Device, as: DatabaseDevice
+  alias Astarte.Core.Device
   alias Astarte.DataAccess.Device.DeletionInProgress
   alias Astarte.DataAccess.Repo
   alias Astarte.DataUpdaterPlant.DataUpdater.Queries
+
+  import ExUnit.CaptureLog
+
+  describe "set_pending_empty_cache/3" do
+    setup %{realm_name: realm_name, astarte_instance_id: astarte_instance_id} do
+      device_id = Device.random_device_id()
+
+      on_exit(fn ->
+        setup_database_access(astarte_instance_id)
+        remove_device(device_id, realm_name)
+      end)
+
+      insert_device(device_id, realm_name)
+
+      %{device_id: device_id}
+    end
+
+    test "sets the pending empty cache to the given value", context do
+      %{realm_name: realm_name, device_id: device_id} = context
+      pending_empty_cache = boolean() |> Enum.at(0)
+
+      assert Queries.set_pending_empty_cache(realm_name, device_id, pending_empty_cache) == :ok
+      assert read_device_empty_cache(realm_name, device_id) == pending_empty_cache
+    end
+
+    @tag skip: "broken_safe"
+    test "logs in case of Xandra.Error", context do
+      %{realm_name: realm_name, device_id: device_id} = context
+      pending_empty_cache = boolean() |> Enum.at(0)
+
+      Xandra
+      |> expect(:execute, fn _conn, _query, _params, _opts ->
+        {:error, %Xandra.Error{message: "xandra error", reason: :error_reason}}
+      end)
+
+      {result, log} =
+        with_log(fn ->
+          Queries.set_pending_empty_cache(realm_name, device_id, pending_empty_cache)
+        end)
+
+      assert log =~ "Cannot set pending empty cache"
+      assert {:error, %Xandra.Error{}} = result
+    end
+
+    @tag skip: "broken_safe"
+    test "logs in case of Xandra.ConnectionError", context do
+      %{realm_name: realm_name, device_id: device_id} = context
+      pending_empty_cache = boolean() |> Enum.at(0)
+
+      Xandra
+      |> expect(:execute, fn _conn, _query, _params, _opts ->
+        {:error, %Xandra.ConnectionError{action: "connection error", reason: :error_reason}}
+      end)
+
+      {result, log} =
+        with_log(fn ->
+          Queries.set_pending_empty_cache(realm_name, device_id, pending_empty_cache)
+        end)
+
+      assert log =~ "Cannot set pending empty cache"
+      assert {:error, %Xandra.ConnectionError{}} = result
+    end
+  end
 
   describe "retrieve_realms!/0" do
     setup do
@@ -110,5 +177,10 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.QueriesTest do
         dup_end_ack: dup_end_ack
       }
     end
+  end
+
+  defp read_device_empty_cache(realm_name, device_id) do
+    Repo.get!(DatabaseDevice, device_id, prefix: Realm.keyspace_name(realm_name))
+    |> Map.fetch!(:pending_empty_cache)
   end
 end

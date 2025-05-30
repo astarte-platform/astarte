@@ -443,6 +443,15 @@ defmodule Astarte.Helpers.Database do
     end
   end
 
+  def remove_device(device_id, realm_name) do
+    keyspace = Realm.keyspace_name(realm_name)
+
+    %DeviceSchema{device_id: device_id}
+    |> Repo.delete(prefix: keyspace)
+
+    :ok
+  end
+
   def insert_deletion_in_progress(device_id, realm_name) do
     realm_keyspace = Realm.keyspace_name(realm_name)
 
