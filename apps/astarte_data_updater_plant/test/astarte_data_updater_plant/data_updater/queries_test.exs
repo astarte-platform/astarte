@@ -21,6 +21,10 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.QueriesTest do
   use Astarte.Cases.Device
   use ExUnitProperties
   alias Astarte.Core.Generators.Realm, as: RealmGenerator
+  alias Astarte.Core.Generators.Device, as: DeviceGenerator
+  alias Astarte.DataAccess.Realms.Realm
+  alias Astarte.DataAccess.Device.DeletionInProgress
+  alias Astarte.DataAccess.Repo
   alias Astarte.DataUpdaterPlant.DataUpdater.Queries
 
   describe "retrieve_realms!/0" do
@@ -42,6 +46,69 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.QueriesTest do
     test "returns the list of realms", %{realm_names: expected_realms} do
       realms = Queries.retrieve_realms!() |> Enum.map(& &1["realm_name"]) |> Enum.sort()
       assert realms == expected_realms
+    end
+  end
+
+  describe "retrieve_devices_waiting_to_start_deletion!/1" do
+    setup %{realm_name: realm_name} do
+      result = populate_deletion_in_progress(realm_name)
+
+      %{deletion_in_progress: result}
+    end
+
+    test "returns the status of the devices awaiting deletion", context do
+      %{deletion_in_progress: expected_result, realm_name: realm_name} = context
+
+      for entry <- Queries.retrieve_devices_waiting_to_start_deletion!(realm_name) do
+        assert %{
+                 "device_id" => device_id,
+                 "vmq_ack" => vmq_ack,
+                 "dup_start_ack" => dup_start_ack,
+                 "dup_end_ack" => dup_end_ack
+               } = entry
+
+        %{
+          device_id: ^device_id,
+          vmq_ack: expected_vmq_ack,
+          dup_start_ack: expected_dup_start_ack,
+          dup_end_ack: expected_dup_end_ack
+        } =
+          Enum.find(expected_result, &(&1.device_id == device_id)) ||
+            flunk("device not found: #{inspect(device_id)}")
+
+        assert vmq_ack == expected_vmq_ack
+        assert dup_start_ack == expected_dup_start_ack
+        assert dup_end_ack == expected_dup_end_ack
+      end
+    end
+  end
+
+  defp populate_deletion_in_progress(realm_name) do
+    keyspace = Realm.keyspace_name(realm_name)
+
+    deletion_in_progress_entries =
+      list_of(deletion_in_progress_entry(), min_length: 5)
+      |> resize(5)
+      |> Enum.at(0)
+      |> Enum.sort()
+      |> Enum.uniq_by(& &1.device_id)
+
+    for entry <- deletion_in_progress_entries, do: Repo.insert!(entry, prefix: keyspace)
+
+    deletion_in_progress_entries
+  end
+
+  defp deletion_in_progress_entry do
+    gen all device_id <- DeviceGenerator.id(),
+            vmq_ack <- boolean(),
+            dup_start_ack <- boolean(),
+            dup_end_ack <- if(dup_start_ack, do: boolean(), else: false) do
+      %DeletionInProgress{
+        device_id: device_id,
+        vmq_ack: vmq_ack,
+        dup_start_ack: dup_start_ack,
+        dup_end_ack: dup_end_ack
+      }
     end
   end
 end
