@@ -277,13 +277,16 @@ defmodule Astarte.Helpers.Database do
     """
   ]
 
-  def setup!(realm_name) do
-    setup_realm_keyspace!(realm_name)
-
+  def setup_astarte_keyspace do
     astarte_keyspace = Realm.astarte_keyspace_name()
     execute!(astarte_keyspace, @create_keyspace)
     execute!(astarte_keyspace, @create_kv_store)
     execute!(astarte_keyspace, @create_realms_table)
+  end
+
+  def setup!(realm_name) do
+    setup_realm_keyspace!(realm_name)
+    astarte_keyspace = Realm.astarte_keyspace_name()
 
     %Realm{realm_name: realm_name}
     |> Repo.insert!(prefix: astarte_keyspace)
@@ -356,8 +359,7 @@ defmodule Astarte.Helpers.Database do
     :ok
   end
 
-  def teardown!(realm_name) do
-    teardown_realm_keyspace!(realm_name)
+  def teardown_astarte_keyspace do
     astarte_keyspace = Realm.astarte_keyspace_name()
     execute!(astarte_keyspace, @drop_keyspace)
     :ok

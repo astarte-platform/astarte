@@ -31,15 +31,8 @@ defmodule Astarte.Cases.Data do
   import Astarte.Helpers.Database
 
   using opts do
-    astarte_instance_id =
-      Keyword.get_lazy(opts, :astarte_instance_id, fn ->
-        "test#{System.unique_integer([:positive])}"
-      end)
-
-    realm_name =
-      Keyword.get_lazy(opts, :realm_name, fn ->
-        "realm#{System.unique_integer([:positive])}"
-      end)
+    astarte_instance_id = Keyword.get_lazy(opts, :astarte_instance_id, &astarte_instance_id/0)
+    realm_name = Keyword.get_lazy(opts, :realm_name, &realm_name/0)
 
     quote do
       import Astarte.Cases.Data
@@ -51,14 +44,7 @@ defmodule Astarte.Cases.Data do
   end
 
   setup_all %{realm_name: realm, astarte_instance_id: astarte_instance_id} do
-    setup_database_access(astarte_instance_id)
-    setup!(realm)
-    insert_public_key!(realm)
-
-    on_exit(fn ->
-      setup_database_access(astarte_instance_id)
-      teardown!(realm)
-    end)
+    setup_instance(astarte_instance_id, [realm])
 
     %{realm: realm, astarte_instance_id: astarte_instance_id}
   end
@@ -68,4 +54,31 @@ defmodule Astarte.Cases.Data do
 
     :ok
   end
+
+  def setup_instance(astarte_instance_id \\ nil, realm_names \\ nil) do
+    astarte_instance_id = astarte_instance_id || astarte_instance_id()
+    realm_names = realm_names || [realm_name()]
+
+    setup_database_access(astarte_instance_id)
+    setup_astarte_keyspace()
+
+    for realm_name <- realm_names do
+      setup!(realm_name)
+      insert_public_key!(realm_name)
+    end
+
+    on_exit(fn ->
+      setup_database_access(astarte_instance_id)
+      teardown_astarte_keyspace()
+
+      for realm_name <- realm_names do
+        teardown_realm_keyspace!(realm_name)
+      end
+    end)
+
+    %{astarte_instance_id: astarte_instance_id, realm_names: realm_names}
+  end
+
+  defp astarte_instance_id, do: "test#{System.unique_integer([:positive])}"
+  defp realm_name, do: "realm#{System.unique_integer([:positive])}"
 end
