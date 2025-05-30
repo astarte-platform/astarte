@@ -49,4 +49,23 @@ defmodule Astarte.DataUpdaterPlant.RPC.Server.Core do
       end
     )
   end
+
+  def delete_volatile_trigger(delete_request) do
+    %{
+      realm_name: realm,
+      device_id: device_id,
+      trigger_id: trigger_id
+    } = delete_request
+
+    DataUpdater.with_dup_and_message_tracker(
+      realm,
+      device_id,
+      fn dup, _message_tracker ->
+        GenServer.call(
+          dup,
+          {:handle_delete_volatile_trigger, trigger_id}
+        )
+      end
+    )
+  end
 end

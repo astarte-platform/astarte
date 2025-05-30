@@ -25,7 +25,6 @@ defmodule Astarte.DataUpdaterPlant.RPC.Server do
   """
 
   alias Astarte.DataUpdaterPlant.RPC.Server.Core
-  alias Astarte.DataUpdaterPlant.DataUpdater
 
   use GenServer, restart: :transient
   require Logger
@@ -55,28 +54,14 @@ defmodule Astarte.DataUpdaterPlant.RPC.Server do
   end
 
   @impl GenServer
-  def handle_call({:delete_volatile_trigger, delete_request}, from, state) do
-    %{
-      realm_name: realm,
-      device_id: device_id,
-      trigger_id: trigger_id
-    } = delete_request
+  def handle_call({:delete_volatile_trigger, delete_request}, _from, state) do
+    reply = Core.delete_volatile_trigger(delete_request)
 
-    with :ok <- DataUpdater.verify_device_exists(realm, device_id),
-         {:ok, message_tracker} <- DataUpdater.fetch_message_tracker(realm, device_id),
-         {:ok, dup} <- DataUpdater.fetch_data_updater_process(realm, device_id, message_tracker) do
-      reply = GenServer.call(dup, {:handle_delete_volatile_trigger, trigger_id})
-
-      {:reply, reply, state}
-    else
-      {:error, error} ->
-        _ =
-          Logger.error(
-            "Error #{inspect(error)} while handling an `delete_volatile_trigger` request, returning the error to the caller: #{inspect(from)}"
-          )
-
-        {:reply, {:error, error}, state}
+    with {:error, error} <- reply do
+      _ = Logger.warning("Error while deleting a volatile trigger: #{inspect(error)}")
     end
+
+    {:reply, reply, state}
   end
 
   @impl GenServer
