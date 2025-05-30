@@ -28,6 +28,7 @@ comment:
   layout: "header, diff, files, flags"
   require_changes: yes
 
+
 flag_management:
   default_rules:
     carryforward: true
@@ -42,29 +43,38 @@ flag_management:
 
 flags:
   astarte_appengine_api:
+    carryforward: true
     paths:
       - apps/astarte_appengine_api
   astarte_data_updater_plant:
+    carryforward: true
     paths:
       - apps/astarte_data_updater_plant
   astarte_housekeeping:
+    carryforward: true
     paths:
       - apps/astarte_housekeeping
   astarte_housekeeping_api:
+    carryforward: true
     paths:
       - apps/astarte_housekeeping_api
   astarte_pairing:
+    carryforward: true
     paths:
       - apps/astarte_pairing
   astarte_pairing_api:
+    carryforward: true
     paths:
       - apps/astarte_pairing_api
   astarte_realm_management:
+    carryforward: true
     paths:
       - apps/astarte_realm_management
   astarte_realm_management_api:
+    carryforward: true
     paths:
       - apps/astarte_realm_management_api
   astarte_trigger_engine:
+    carryforward: true
     paths:
       - apps/astarte_trigger_engine
