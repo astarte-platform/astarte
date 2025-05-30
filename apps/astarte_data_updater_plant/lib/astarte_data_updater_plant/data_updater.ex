@@ -306,4 +306,20 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater do
       end
     end
   end
+
+  @doc """
+  Runs a `funciton` that needs a `dup` and `message_tracker` reference.
+
+  Returns the function return value or `{:error, reason}` if one of these happen
+  - The device could not be found (`device_id` in `realm`)
+  - the `message_tracker` could not be found or started
+  - the `data_updater` could not be found or started
+  """
+  def with_dup_and_message_tracker(realm, device_id, function) do
+    with :ok <- verify_device_exists(realm, device_id),
+         {:ok, message_tracker} <- fetch_message_tracker(realm, device_id),
+         {:ok, dup} <- fetch_data_updater_process(realm, device_id, message_tracker) do
+      function.(dup, message_tracker)
+    end
+  end
 end
