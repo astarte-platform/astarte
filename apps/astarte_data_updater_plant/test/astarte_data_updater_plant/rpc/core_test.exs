@@ -29,7 +29,7 @@ defmodule Astarte.DataUpdaterPlant.RPC.CoreTest do
 
   use Mimic
 
-  setup %{realm_name: realm_name, device: device} do
+  setup_all %{realm_name: realm_name, device: device} do
     {:ok, message_tracker} = DataUpdater.fetch_message_tracker(realm_name, device.encoded_id)
 
     {:ok, dup} =
@@ -62,6 +62,30 @@ defmodule Astarte.DataUpdaterPlant.RPC.CoreTest do
       end)
 
       assert {:ok, _} = Core.install_volatile_trigger(volatile_trigger)
+    end
+  end
+
+  property "delete_volatile_trigger/1 calls the `data_updater` server", context do
+    %{realm_name: realm_name, device: device, data_updater: data_updater} = context
+
+    check all trigger_id <- binary() do
+      expected_request =
+        {:handle_delete_volatile_trigger, trigger_id}
+
+      expected_pid = self()
+
+      DataUpdater.Server
+      |> allow(self(), data_updater)
+      |> expect(:handle_call, fn ^expected_request, {^expected_pid, _}, state ->
+        {:reply, {:ok, true}, state}
+      end)
+
+      assert {:ok, _} =
+               Core.delete_volatile_trigger(%{
+                 realm_name: realm_name,
+                 device_id: device.encoded_id,
+                 trigger_id: trigger_id
+               })
     end
   end
 
