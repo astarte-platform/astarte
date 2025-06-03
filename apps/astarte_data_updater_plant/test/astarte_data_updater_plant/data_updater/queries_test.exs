@@ -29,6 +29,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.QueriesTest do
   alias Astarte.Core.InterfaceDescriptor
   alias Astarte.DataAccess.Device.DeletionInProgress
   alias Astarte.DataAccess.Devices.Device, as: DatabaseDevice
+  alias Astarte.DataAccess.KvStore
   alias Astarte.DataAccess.Realms.Interface, as: DatabaseInterface
   alias Astarte.DataAccess.Realms.Realm
   alias Astarte.DataAccess.Repo
@@ -96,6 +97,70 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.QueriesTest do
         end)
 
       assert log =~ "Cannot set pending empty cache"
+      assert {:error, %Xandra.ConnectionError{}} = result
+    end
+  end
+
+  describe "register_device_with_interface/4" do
+    setup :select_interface_for_device_with_interface
+
+    test "registers the device in the database", context do
+      %{realm_name: realm_name, interface: interface, device: device} = context
+
+      assert Queries.register_device_with_interface(
+               realm_name,
+               device.device_id,
+               interface.name,
+               interface.major_version
+             ) == :ok
+
+      assert registered_by_interface?(realm_name, device, interface)
+      assert registered_on_interface?(realm_name, device, interface)
+    end
+
+    @tag skip: "broken_safe"
+    test "logs in case of Xandra.Error", context do
+      %{realm_name: realm_name, interface: interface, device: device} = context
+
+      Xandra
+      |> expect(:execute, fn _conn, _query, _params, _opts ->
+        {:error, %Xandra.Error{message: "xandra error", reason: :error_reason}}
+      end)
+
+      {result, log} =
+        with_log(fn ->
+          Queries.register_device_with_interface(
+            realm_name,
+            device.device_id,
+            interface.name,
+            interface.major_version
+          )
+        end)
+
+      assert log =~ "cannot register device-interface pair"
+      assert {:error, %Xandra.Error{}} = result
+    end
+
+    @tag skip: "broken_safe"
+    test "logs in case of Xandra.ConnectionError", context do
+      %{realm_name: realm_name, interface: interface, device: device} = context
+
+      Xandra
+      |> expect(:execute, fn _conn, _query, _params, _opts ->
+        {:error, %Xandra.ConnectionError{action: "connection error", reason: :error_reason}}
+      end)
+
+      {result, log} =
+        with_log(fn ->
+          Queries.register_device_with_interface(
+            realm_name,
+            device.device_id,
+            interface.name,
+            interface.major_version
+          )
+        end)
+
+      assert log =~ "cannot register device-interface pair"
       assert {:error, %Xandra.ConnectionError{}} = result
     end
   end
@@ -244,5 +309,56 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.QueriesTest do
 
       {interface, descriptor}
     end)
+  end
+
+  defp select_interface_for_device_with_interface(context) do
+    %{
+      realm_name: realm_name,
+      astarte_instance_id: astarte_instance_id,
+      device: device,
+      interfaces: interfaces
+    } = context
+
+    interface = member_of(interfaces) |> Enum.at(0)
+
+    on_exit(fn ->
+      setup_database_access(astarte_instance_id)
+      keyspace = Realm.keyspace_name(realm_name)
+
+      by_interface = %KvStore{
+        group: "devices-by-interface-#{interface.name}-v#{interface.major_version}",
+        key: device.encoded_id
+      }
+
+      on_interface = %KvStore{
+        group: "devices-with-data-on-interface-#{interface.name}-v#{interface.major_version}",
+        key: device.encoded_id
+      }
+
+      Repo.delete(by_interface, prefix: keyspace)
+      Repo.delete(on_interface, prefix: keyspace)
+    end)
+
+    %{interface: interface}
+  end
+
+  defp registered_by_interface?(realm_name, device, interface) do
+    group = "devices-by-interface-#{interface.name}-v#{interface.major_version}"
+    key = device.encoded_id
+
+    case KvStore.fetch_value(group, key, :binary, prefix: Realm.keyspace_name(realm_name)) do
+      {:ok, _} -> true
+      {:error, _} -> false
+    end
+  end
+
+  defp registered_on_interface?(realm_name, device, interface) do
+    group = "devices-with-data-on-interface-#{interface.name}-v#{interface.major_version}"
+    key = device.encoded_id
+
+    case KvStore.fetch_value(group, key, :binary, prefix: Realm.keyspace_name(realm_name)) do
+      {:ok, _} -> true
+      {:error, _} -> false
+    end
   end
 end
