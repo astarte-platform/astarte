@@ -18,6 +18,7 @@
 
 Mimic.copy(Astarte.DataAccess.Config)
 Mimic.copy(Astarte.DataUpdaterPlant.DataUpdater.Server)
+Mimic.copy(Astarte.DataUpdaterPlant.RPC.Server.Core)
 Mimic.copy(System)
 
 ExUnit.start(capture_log: true)
