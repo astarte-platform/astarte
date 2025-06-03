@@ -165,6 +165,81 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.QueriesTest do
     end
   end
 
+  describe "unregister_device_with_interface/4" do
+    setup :select_interface_for_device_with_interface
+
+    setup context do
+      %{realm_name: realm_name, device: device, interface: interface} = context
+
+      :ok =
+        Queries.register_device_with_interface(
+          realm_name,
+          device.device_id,
+          interface.name,
+          interface.major_version
+        )
+    end
+
+    test "removes the device from the devices-by-interface group", context do
+      %{realm_name: realm_name, interface: interface, device: device} = context
+
+      assert Queries.unregister_device_with_interface(
+               realm_name,
+               device.device_id,
+               interface.name,
+               interface.major_version
+             ) == :ok
+
+      refute registered_by_interface?(realm_name, device, interface)
+    end
+
+    @tag skip: "broken_safe"
+    test "logs in case of Xandra.Error", context do
+      %{realm_name: realm_name, interface: interface, device: device} = context
+
+      Xandra
+      |> expect(:execute, fn _conn, _query, _params, _opts ->
+        {:error, %Xandra.Error{message: "xandra error", reason: :error_reason}}
+      end)
+
+      {result, log} =
+        with_log(fn ->
+          Queries.unregister_device_with_interface(
+            realm_name,
+            device.device_id,
+            interface.name,
+            interface.major_version
+          )
+        end)
+
+      assert log =~ "cannot unregister device-interface pair"
+      assert {:error, %Xandra.Error{}} = result
+    end
+
+    @tag skip: "broken_safe"
+    test "logs in case of Xandra.ConnectionError", context do
+      %{realm_name: realm_name, interface: interface, device: device} = context
+
+      Xandra
+      |> expect(:execute, fn _conn, _query, _params, _opts ->
+        {:error, %Xandra.ConnectionError{action: "connection error", reason: :error_reason}}
+      end)
+
+      {result, log} =
+        with_log(fn ->
+          Queries.unregister_device_with_interface(
+            realm_name,
+            device.device_id,
+            interface.name,
+            interface.major_version
+          )
+        end)
+
+      assert log =~ "cannot unregister device-interface pair"
+      assert {:error, %Xandra.ConnectionError{}} = result
+    end
+  end
+
   describe "retrieve_property_values/4" do
     property "returns the saved properties for the selected mapping", context do
       %{interfaces_with_data: interfaces, device: device, realm_name: realm_name} = context
