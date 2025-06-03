@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2017-2021 Ispirata Srl
+# Copyright 2017 - 2025 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -22,8 +22,8 @@ defmodule Astarte.TriggerEngine.Mixfile do
   def project do
     [
       app: :astarte_trigger_engine,
-      elixir: "~> 1.14",
-      version: "1.1.1",
+      elixir: "~> 1.15",
+      version: "1.2.1-alpha.0",
       elixirc_paths: elixirc_paths(Mix.env()),
       build_embedded: Mix.env() == :prod,
       start_permanent: Mix.env() == :prod,
@@ -53,47 +53,58 @@ defmodule Astarte.TriggerEngine.Mixfile do
   defp astarte_required_modules("true") do
     [
       {:astarte_core, in_umbrella: true},
-      {:astarte_data_access, in_umbrella: true}
+      {:astarte_data_access, in_umbrella: true},
+      {:astarte_generators, in_umbrella: true}
     ]
   end
 
   defp astarte_required_modules(_) do
     [
-      {:astarte_core, "~> 1.1.1"},
-      {:astarte_data_access, "~> 1.1.1"}
+      {:astarte_core, github: "astarte-platform/astarte_core", branch: "release-1.2"},
+      {:astarte_data_access,
+       github: "astarte-platform/astarte_data_access", branch: "release-1.2"},
+      {:astarte_generators, github: "astarte-platform/astarte_generators", only: [:dev, :test]}
     ]
   end
 
   def application do
     [
-      extra_applications: [:lager, :logger],
+      extra_applications: [:logger],
       mod: {Astarte.TriggerEngine.Application, []}
     ]
   end
 
   defp deps do
     [
-      {:amqp, "~> 2.1"},
+      {:amqp, "~> 3.3"},
       {:bbmustache, "~> 1.9"},
-      {:castore, "~> 0.1.0"},
+      {:castore, "~> 1.0.0"},
       {:cyanide, "~> 2.0"},
       {:httpoison, "~> 1.6"},
       {:jason, "~> 1.2"},
-      {:excoveralls, "~> 0.15", only: :test},
-      # hex.pm package and esl/ex_rabbit_pool do not support amqp version 2.1.
-      # This fork is supporting amqp ~> 2.0 and also ~> 3.0.
-      {:ex_rabbit_pool, github: "leductam/ex_rabbit_pool"},
       {:plug_cowboy, "~> 2.1"},
       {:telemetry_metrics_prometheus_core, "~> 0.4"},
       {:telemetry_metrics, "~> 0.4"},
       {:telemetry_poller, "~> 0.4"},
-      {:mox, "~> 0.5", only: :test},
+      {:typed_ecto_schema, "~> 0.4"},
+      {:typedstruct, "~> 0.5"},
+      {:ecto, "~> 3.12"},
       {:pretty_log, "~> 0.1"},
       {:telemetry, "~> 0.4"},
-      {:xandra, "~> 0.13"},
+      {:xandra, "~> 0.19"},
+      {:exandra, "~> 0.13"},
       {:skogsra, "~> 2.2"},
       {:observer_cli, "~> 1.5"},
-      {:dialyxir, "~> 1.0", only: [:dev, :ci], runtime: false}
+      # hex.pm package and esl/ex_rabbit_pool do not support amqp version 2.1.
+      # This fork is supporting amqp ~> 2.0 and also ~> 3.0.
+      {:ex_rabbit_pool, github: "leductam/ex_rabbit_pool"},
+      {:dialyxir, "~> 1.0", only: [:dev, :ci], runtime: false},
+      {:excoveralls, "~> 0.15", only: :test},
+      {:mox, "~> 0.5", only: :test},
+      {:mimic, "~> 1.11", only: :test},
+      # Workaround for Elixir 1.15 / ssl_verify_fun issue
+      # See also: https://github.com/deadtrickster/ssl_verify_fun.erl/pull/27
+      {:ssl_verify_fun, "~> 1.1.0", manager: :rebar3, override: true}
     ]
   end
 end

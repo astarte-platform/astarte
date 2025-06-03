@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2017-2018 Ispirata Srl
+# Copyright 2017 - 2025 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -17,16 +17,14 @@
 #
 
 defmodule Astarte.Pairing.APIWeb.AgentControllerTest do
-  use Astarte.Pairing.APIWeb.ConnCase
+  use Astarte.Pairing.APIWeb.ConnCase, async: true
 
-  alias Astarte.Pairing.APIWeb.JWTTestHelper
+  alias Astarte.Pairing.APIWeb.Helpers.JWTTestHelper
 
   alias Astarte.RPC.Protocol.Pairing.{
-    Call,
     GenericErrorReply,
     GenericOkReply,
     GetAgentPublicKeyPEMsReply,
-    IntrospectionEntry,
     RegisterDeviceReply,
     Reply
   }
@@ -212,14 +210,14 @@ defmodule Astarte.Pairing.APIWeb.AgentControllerTest do
                                    reply: {:generic_ok_reply, %GenericOkReply{}}
                                  }
                                  |> Reply.encode()
-    @encoded_device_not_registered_response %Reply{
-                                              reply:
-                                                {:generic_error_reply,
-                                                 %GenericErrorReply{
-                                                   error_name: "device_not_registered"
-                                                 }}
-                                            }
-                                            |> Reply.encode()
+    @encoded_device_not_found_response %Reply{
+                                         reply:
+                                           {:generic_error_reply,
+                                            %GenericErrorReply{
+                                              error_name: "device_not_found"
+                                            }}
+                                       }
+                                       |> Reply.encode()
 
     test "successful call", %{conn: conn} do
       MockRPCClient
@@ -234,13 +232,13 @@ defmodule Astarte.Pairing.APIWeb.AgentControllerTest do
       assert response(conn, 204) == ""
     end
 
-    test "renders errors when device is not registered", %{conn: conn} do
+    test "renders errors when device does not exist", %{conn: conn} do
       MockRPCClient
       |> expect(:rpc_call, fn _serialized_call, @rpc_destination, @timeout ->
         {:ok, @encoded_pubkey_response}
       end)
       |> expect(:rpc_call, fn _serialized_call, @rpc_destination, @timeout ->
-        {:ok, @encoded_device_not_registered_response}
+        {:ok, @encoded_device_not_found_response}
       end)
 
       conn = delete(conn, agent_path(conn, :delete, @realm, @device_id))

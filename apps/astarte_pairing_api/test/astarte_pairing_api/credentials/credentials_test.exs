@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2017-2018 Ispirata Srl
+# Copyright 2017 - 2025 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -17,7 +17,7 @@
 #
 
 defmodule Astarte.Pairing.API.CredentialsTest do
-  use Astarte.Pairing.API.DataCase
+  use Astarte.Pairing.API.DataCase, async: true
 
   alias Astarte.Pairing.API.Credentials
 
@@ -189,13 +189,13 @@ defmodule Astarte.Pairing.API.CredentialsTest do
                )
     end
 
-    test "returns forbidden with device not found" do
+    test "returns device_not_found with device not found" do
       MockRPCClient
       |> expect(:rpc_call, fn _serialized_call, @rpc_destination, @timeout ->
         {:ok, @encoded_device_not_found_response}
       end)
 
-      assert {:error, :forbidden} =
+      assert {:error, :device_not_found} =
                Credentials.get_astarte_mqtt_v1(
                  @realm,
                  @unexisting_hw_id,
@@ -245,6 +245,22 @@ defmodule Astarte.Pairing.API.CredentialsTest do
                                             }}
                                        }
                                        |> Reply.encode()
+
+    @encoded_empty_details_response %Reply{
+                                      reply:
+                                        {:verify_credentials_reply,
+                                         %VerifyCredentialsReply{
+                                           credentials_status:
+                                             {:astarte_mqtt_v1,
+                                              %AstarteMQTTV1CredentialsStatus{
+                                                valid: false,
+                                                timestamp: @now,
+                                                cause: :INVALID_ISSUER,
+                                                details: ""
+                                              }}
+                                         }}
+                                    }
+                                    |> Reply.encode()
 
     test "valid call returns CredentialsStatus" do
       MockRPCClient
@@ -306,6 +322,23 @@ defmodule Astarte.Pairing.API.CredentialsTest do
                Credentials.verify_astarte_mqtt_v1(@realm, @hw_id, @secret, @self_signed_crt_attrs)
     end
 
+    test "returns invalid CertificateStatus for empty-details branch" do
+      MockRPCClient
+      |> expect(:rpc_call, fn _serialized_call, @rpc_destination, @timeout ->
+        {:ok, @encoded_empty_details_response}
+      end)
+
+      assert {:ok,
+              %CredentialsStatus{
+                valid: false,
+                timestamp: @now,
+                cause: :INVALID_ISSUER,
+                details: nil,
+                until: nil
+              }} =
+               Credentials.verify_astarte_mqtt_v1(@realm, @hw_id, @secret, @self_signed_crt_attrs)
+    end
+
     test "returns forbidden with invalid secret" do
       MockRPCClient
       |> expect(:rpc_call, fn _serialized_call, @rpc_destination, @timeout ->
@@ -336,13 +369,13 @@ defmodule Astarte.Pairing.API.CredentialsTest do
                )
     end
 
-    test "returns forbidden with device not found" do
+    test "returns device_not_found with device not found" do
       MockRPCClient
       |> expect(:rpc_call, fn _serialized_call, @rpc_destination, @timeout ->
         {:ok, @encoded_device_not_found_response}
       end)
 
-      assert {:error, :forbidden} =
+      assert {:error, :device_not_found} =
                Credentials.verify_astarte_mqtt_v1(
                  @realm,
                  @unexisting_hw_id,

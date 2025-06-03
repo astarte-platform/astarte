@@ -16,12 +16,12 @@
 # limitations under the License.
 
 defmodule Astarte.AppEngine.APIWeb.DeviceStatusControllerTest do
-  use Astarte.AppEngine.APIWeb.ConnCase
+  use Astarte.Cases.Conn
 
-  alias Astarte.AppEngine.API.DatabaseTestHelper
+  alias Astarte.Helpers.Database, as: DatabaseTestHelper
+  alias Astarte.Helpers.JWT, as: JWTTestHelper
   alias Astarte.AppEngine.API.Device
   alias Astarte.AppEngine.API.Device.DeviceStatus
-  alias Astarte.AppEngine.API.JWTTestHelper
 
   @expected_introspection %{
     "com.example.PixelsConfiguration" => %{
@@ -83,11 +83,12 @@ defmodule Astarte.AppEngine.APIWeb.DeviceStatusControllerTest do
     "total_received_bytes" => 4_500_000,
     "total_received_msgs" => 45000,
     "previous_interfaces" => @expected_previous_interfaces,
-    "groups" => []
+    "groups" => [],
+    "deletion_in_progress" => false
   }
 
   setup_all do
-    {:ok, _client} = DatabaseTestHelper.create_test_keyspace()
+    DatabaseTestHelper.create_test_keyspace()
 
     on_exit(fn ->
       DatabaseTestHelper.destroy_local_test_keyspace()
@@ -253,6 +254,7 @@ defmodule Astarte.AppEngine.APIWeb.DeviceStatusControllerTest do
           "4UQbIokuRufdtbVZt9AsLg",
           "DKxaeZ9LzUZLz7WPTTAEAA",
           "aWag-VlVKC--1S-vfzZ9uQ",
+          "ehNpbPVtQ2CcdJdJK3QUlA",
           "f0VMRgIBAQAAAAAAAAAAAA",
           "olFkumNuZ_J0f_d6-8XCDg"
         ],

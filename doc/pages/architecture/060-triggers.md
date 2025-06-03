@@ -241,6 +241,7 @@ a JSON document with this format:
 {
   "timestamp": "<timestamp>",
   "device_id": "<device_id>",
+  "trigger_name": "<trigger_name>",
   "event": <event>
 }
 ```
@@ -249,6 +250,8 @@ a JSON document with this format:
 `"2019-10-16T08:56:08.534377Z"`) representing when the event happened.
 
 `device_id` identifies the device that triggered the event.
+
+`trigger_name` identifies the trigger that fired the event.
 
 `event` is a JSON object that has a specific structure depending on the type of the `simple_trigger`
 that generated it. Event objects are detailed below.
@@ -431,6 +434,7 @@ The basic keys that can be use to populate the template are:
 
 - `{{ realm }}`: the realm the trigger belongs to.
 - `{{ device_id }}`: the device that originated the trigger.
+- `{{ trigger_name }}`: the trigger name.
 - `{{ event_type }}`: the type of the received event.
 
 The `ignore_ssl_errors` key is optional and defaults to `false`. If set to `true`, any SSL error

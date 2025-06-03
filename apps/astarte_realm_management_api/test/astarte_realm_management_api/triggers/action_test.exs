@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2023 SECO Mind Srl
+# Copyright 2023 - 2025 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -17,8 +17,12 @@
 #
 
 defmodule Astarte.RealmManagement.API.Triggers.ActionTest do
-  use ExUnit.Case
+  use ExUnit.Case, async: true
+
+  @moduletag :trigger_actions
+
   alias Astarte.RealmManagement.API.Triggers.Action
+  alias Astarte.RealmManagement.API.Triggers.Trigger
 
   describe "well-formed HTTP action is correctly encoded" do
     test "when headers are set" do
@@ -117,5 +121,14 @@ defmodule Astarte.RealmManagement.API.Triggers.ActionTest do
                }
              }
     end
+  end
+
+  test "does nothing with unknown action fields" do
+    action = %{foo: "bar"}
+    input = %{name: "test", policy: "ok", action: action}
+
+    updated = Trigger.move_action(input)
+    refute Map.has_key?(updated, :amqp_action)
+    refute Map.has_key?(updated, :http_action)
   end
 end

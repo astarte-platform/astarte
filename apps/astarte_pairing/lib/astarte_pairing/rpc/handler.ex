@@ -21,6 +21,7 @@ defmodule Astarte.Pairing.RPC.Handler do
 
   @behaviour Astarte.RPC.Handler
 
+  alias Astarte.DataAccess.Health.Health
   alias Astarte.Pairing.Engine
 
   alias Astarte.RPC.Protocol.Pairing.{
@@ -39,7 +40,6 @@ defmodule Astarte.Pairing.RPC.Handler do
     GetHealthReply,
     GetInfo,
     GetInfoReply,
-    IntrospectionEntry,
     ProtocolStatus,
     RegisterDevice,
     RegisterDeviceReply,
@@ -58,7 +58,7 @@ defmodule Astarte.Pairing.RPC.Handler do
   end
 
   defp extract_call_tuple(%Call{call: nil}) do
-    Logger.warn("Received empty call")
+    Logger.warning("Received empty call")
     {:error, :empty_call}
   end
 
@@ -147,7 +147,7 @@ defmodule Astarte.Pairing.RPC.Handler do
   end
 
   defp call_rpc({:get_health, %GetHealth{}}) do
-    {:ok, %{status: status}} = Engine.get_health()
+    {:ok, %{status: status}} = Health.get_health()
 
     status_enum =
       case status do
@@ -250,7 +250,7 @@ defmodule Astarte.Pairing.RPC.Handler do
       else
         err ->
           # We skip it and keep going since if we crash we block all pairing
-          Logger.warn(
+          Logger.warning(
             "Error while building protocol status: #{inspect(err)} with protocol_map #{inspect(protocol_map)}"
           )
 

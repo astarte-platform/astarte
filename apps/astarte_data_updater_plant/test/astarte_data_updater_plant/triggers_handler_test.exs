@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2017 Ispirata Srl
+# Copyright 2017 - 2025 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -17,7 +17,7 @@
 #
 
 defmodule Astarte.DataUpdaterPlant.TriggersHandlerTest do
-  use ExUnit.Case
+  use ExUnit.Case, async: true
 
   alias Astarte.Core.Triggers.SimpleEvents.{
     DeviceConnectedEvent,
@@ -28,12 +28,12 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandlerTest do
     InterfaceAddedEvent,
     InterfaceMinorUpdatedEvent,
     InterfaceRemovedEvent,
+    InterfaceVersion,
     PathCreatedEvent,
     PathRemovedEvent,
     SimpleEvent,
     ValueChangeAppliedEvent,
-    ValueChangeEvent,
-    ValueStoredEvent
+    ValueChangeEvent
   }
 
   alias AMQP.Channel
@@ -44,6 +44,10 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandlerTest do
   alias Astarte.DataUpdaterPlant.TriggersHandler
 
   @introspection "com.My.Interface:1:0;com.Another.Interface:1:2"
+  @introspection_map %{
+    "com.My.Interface" => %InterfaceVersion{major: 1, minor: 0},
+    "com.Another.Interface" => %InterfaceVersion{major: 1, minor: 2}
+  }
   @queue_name "test_events_queue"
   @routing_key "test_routing_key"
   @realm "autotestrealm"
@@ -323,8 +327,56 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandlerTest do
              } = SimpleEvent.decode(payload)
 
       assert %IncomingIntrospectionEvent{
-               introspection: @introspection
+               introspection_map: @introspection_map
              } = incoming_introspection_event
+
+      headers_map = amqp_headers_to_map(meta.headers)
+
+      assert Map.get(headers_map, "x_astarte_realm") == @realm
+      assert Map.get(headers_map, "x_astarte_device_id") == @device_id
+      assert Map.get(headers_map, "x_astarte_event_type") == "incoming_introspection_event"
+      assert Map.get(headers_map, static_header_key) == static_header_value
+    end
+
+    test "incoming_introspection AMQPTarget handling with legacy event" do
+      Config.put_generate_legacy_incoming_introspection_events(true)
+      on_exit(fn -> Config.put_generate_legacy_incoming_introspection_events(false) end)
+      simple_trigger_id = :uuid.get_v4()
+      parent_trigger_id = :uuid.get_v4()
+      static_header_key = "important_metadata_incoming_introspection"
+      static_header_value = "test_meta_incoming_introspection"
+      static_headers = [{static_header_key, static_header_value}]
+      timestamp = get_timestamp()
+
+      target = %AMQPTriggerTarget{
+        simple_trigger_id: simple_trigger_id,
+        parent_trigger_id: parent_trigger_id,
+        static_headers: static_headers,
+        routing_key: @routing_key
+      }
+
+      TriggersHandler.incoming_introspection(
+        target,
+        @realm,
+        @device_id,
+        @introspection,
+        timestamp,
+        nil
+      )
+
+      assert_receive {:event, payload, meta}
+
+      assert %SimpleEvent{
+               device_id: @device_id,
+               parent_trigger_id: ^parent_trigger_id,
+               simple_trigger_id: ^simple_trigger_id,
+               realm: @realm,
+               timestamp: ^timestamp,
+               event: {:incoming_introspection_event, incoming_introspection_event}
+             } = SimpleEvent.decode(payload)
+
+      assert %IncomingIntrospectionEvent{introspection: @introspection} =
+               incoming_introspection_event
 
       headers_map = amqp_headers_to_map(meta.headers)
 
@@ -734,7 +786,7 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandlerTest do
       end)
     end
 
-    test "HTTP trigger with no policy defaults to default one", %{chan: chan} do
+    test "HTTP trigger with no policy defaults to default one" do
       simple_trigger_id = :uuid.get_v4()
       parent_trigger_id = :uuid.get_v4()
       static_header_key = "important_metadata_value_change_applied"
@@ -797,7 +849,7 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandlerTest do
       assert Map.get(headers_map, static_header_key) == static_header_value
     end
 
-    test "HTTP trigger with explicit trigger policy is correctly routed", %{chan: chan} do
+    test "HTTP trigger with explicit trigger policy is correctly routed" do
       simple_trigger_id = :uuid.get_v4()
       parent_trigger_id = :uuid.get_v4()
       static_header_key = "important_metadata_value_change_applied"
@@ -860,7 +912,7 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandlerTest do
       assert Map.get(headers_map, static_header_key) == static_header_value
     end
 
-    test "AMQP trigger has no trigger policy", %{chan: chan} do
+    test "AMQP trigger has no trigger policy" do
       simple_trigger_id = :uuid.get_v4()
       parent_trigger_id = :uuid.get_v4()
       static_header_key = "important_metadata_value_change_applied"

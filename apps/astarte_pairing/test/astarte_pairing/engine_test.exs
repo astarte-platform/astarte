@@ -20,7 +20,6 @@ defmodule Astarte.Pairing.EngineTest do
   use ExUnit.Case
 
   alias Astarte.Core.Device
-  alias Astarte.Pairing.Config
   alias Astarte.Pairing.CredentialsSecret
   alias Astarte.Pairing.DatabaseTestHelper
   alias Astarte.Pairing.Engine
@@ -64,7 +63,9 @@ defmodule Astarte.Pairing.EngineTest do
 
   describe "get_agent_public_key_pem" do
     test "fails with non-existing realm" do
-      assert {:error, :realm_not_found} = Engine.get_agent_public_key_pems("nonexisting")
+      assert_raise Xandra.Error, "Keyspace nonexisting does not exist", fn ->
+        Engine.get_agent_public_key_pems("nonexisting")
+      end
     end
 
     test "successful call" do
@@ -160,6 +161,18 @@ defmodule Astarte.Pairing.EngineTest do
       assert Enum.member?(introspection_minor, {"org.astarteplatform.OtherValues", 2})
     end
 
+    test "fails when device_registration_limit is reached" do
+      on_exit(fn -> DatabaseTestHelper.set_device_registration_limit(@test_realm, nil) end)
+
+      DatabaseTestHelper.set_device_registration_limit(@test_realm, 0)
+      hw_id = DatabaseTestHelper.unregistered_128_bit_hw_id()
+
+      assert DatabaseTestHelper.get_first_registration(hw_id) == nil
+
+      assert {:error, :device_registration_limit_reached} =
+               Engine.register_device(@test_realm, hw_id)
+    end
+
     test "does not reset received message count with registered and not confirmed device" do
       total_received_msgs = System.unique_integer([:positive])
       total_received_bytes = System.unique_integer([:positive])
@@ -182,6 +195,18 @@ defmodule Astarte.Pairing.EngineTest do
                }
              ] = DatabaseTestHelper.get_message_count_for_device(hw_id)
     end
+
+    test "succeeds when re-registering an existing device after device_registration_limit is reached" do
+      on_exit(fn -> DatabaseTestHelper.set_device_registration_limit(@test_realm, nil) end)
+
+      # We've registered 4 devices until now
+      DatabaseTestHelper.set_device_registration_limit(@test_realm, 5)
+      device_id = DatabaseTestHelper.unregistered_128_bit_hw_id()
+      {:ok, _credentials_secret} = Engine.register_device(@test_realm, device_id)
+      :ok = Engine.unregister_device(@test_realm, device_id)
+
+      assert {:ok, _credentials_secret} = Engine.register_device(@test_realm, device_id)
+    end
   end
 
   describe "unregister device" do
@@ -191,7 +216,9 @@ defmodule Astarte.Pairing.EngineTest do
       realm = "nonexisting"
       device_id = TestHelper.random_128_bit_hw_id()
 
-      assert {:error, :realm_not_found} = Engine.unregister_device(realm, device_id)
+      assert_raise Xandra.Error, "Keyspace nonexisting does not exist", fn ->
+        Engine.unregister_device(realm, device_id)
+      end
     end
 
     test "fails with invalid device_id" do
@@ -201,7 +228,7 @@ defmodule Astarte.Pairing.EngineTest do
     test "fails with never registered device_id" do
       device_id = DatabaseTestHelper.unregistered_128_bit_hw_id()
 
-      assert {:error, :device_not_registered} = Engine.unregister_device(@test_realm, device_id)
+      assert {:error, :device_not_found} = Engine.unregister_device(@test_realm, device_id)
     end
 
     test "succeeds with registered and confirmed device_id, and makes it possible to register it again" do
@@ -269,15 +296,16 @@ defmodule Astarte.Pairing.EngineTest do
     test "fails with unexisting realm", %{hw_id: hw_id, secret: secret} do
       realm = "unexisting"
 
-      assert {:error, :realm_not_found} =
-               Engine.get_credentials(
-                 @astarte_protocol,
-                 @astarte_credentials_params,
-                 realm,
-                 hw_id,
-                 secret,
-                 @valid_ip
-               )
+      assert_raise Xandra.Error, "Keyspace unexisting does not exist", fn ->
+        Engine.get_credentials(
+          @astarte_protocol,
+          @astarte_credentials_params,
+          realm,
+          hw_id,
+          secret,
+          @valid_ip
+        )
+      end
     end
 
     test "fails with not registered device" do
@@ -382,14 +410,10 @@ defmodule Astarte.Pairing.EngineTest do
 
       {:ok, device_id} = Device.decode_device_id(hw_id, allow_extended_id: true)
 
-      db_client =
-        Config.cassandra_node!()
-        |> CQEx.Client.new!(keyspace: @test_realm)
+      {:ok, device} = Queries.fetch_device(@test_realm, device_id)
 
-      {:ok, device} = Queries.select_device_for_credentials_request(db_client, device_id)
-
-      assert device[:cert_aki] == second_aki
-      assert device[:cert_serial] == second_serial
+      assert device.cert_aki == second_aki
+      assert device.cert_serial == second_serial
     end
 
     test "retains first_credentials_request timestamp" do
@@ -398,14 +422,9 @@ defmodule Astarte.Pairing.EngineTest do
 
       {:ok, device_id} = Device.decode_device_id(hw_id, allow_extended_id: true)
 
-      db_client =
-        Config.cassandra_node!()
-        |> CQEx.Client.new!(keyspace: @test_realm)
+      {:ok, no_credentials_requested_device} = Queries.fetch_device(@test_realm, device_id)
 
-      {:ok, no_credentials_requested_device} =
-        Queries.select_device_for_credentials_request(db_client, device_id)
-
-      assert no_credentials_requested_device[:first_credentials_request] == nil
+      assert no_credentials_requested_device.first_credentials_request == nil
 
       assert {:ok, %{client_crt: _first_certificate}} =
                Engine.get_credentials(
@@ -417,11 +436,10 @@ defmodule Astarte.Pairing.EngineTest do
                  @valid_ip
                )
 
-      {:ok, credentials_requested_device} =
-        Queries.select_device_for_credentials_request(db_client, device_id)
+      {:ok, credentials_requested_device} = Queries.fetch_device(@test_realm, device_id)
 
       first_credentials_request_timestamp =
-        credentials_requested_device[:first_credentials_request]
+        credentials_requested_device.first_credentials_request
 
       assert first_credentials_request_timestamp != nil
 
@@ -435,11 +453,10 @@ defmodule Astarte.Pairing.EngineTest do
                  @valid_ip
                )
 
-      {:ok, credentials_requested_again_device} =
-        Queries.select_device_for_credentials_request(db_client, device_id)
+      {:ok, credentials_requested_again_device} = Queries.fetch_device(@test_realm, device_id)
 
       assert first_credentials_request_timestamp ==
-               credentials_requested_again_device[:first_credentials_request]
+               credentials_requested_again_device.first_credentials_request
     end
   end
 
@@ -447,6 +464,7 @@ defmodule Astarte.Pairing.EngineTest do
     :ok = DatabaseTestHelper.seed_devices()
 
     on_exit(fn ->
+      DatabaseTestHelper.set_device_registration_limit(@test_realm, nil)
       :ok = DatabaseTestHelper.clean_devices()
     end)
   end

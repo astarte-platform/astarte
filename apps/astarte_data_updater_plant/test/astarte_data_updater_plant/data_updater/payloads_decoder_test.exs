@@ -17,252 +17,122 @@
 #
 
 defmodule Astarte.DataUpdaterPlant.PayloadsDecoderTest do
-  use ExUnit.Case
+  use ExUnit.Case, async: true
+  use ExUnitProperties
+  alias Astarte.Core.Interface
   alias Astarte.DataUpdaterPlant.DataUpdater.PayloadsDecoder
+  alias Astarte.Common.Generators.Timestamp, as: TimestampGenerator
+  alias Astarte.Core.Generators.Interface, as: InterfaceGenerator
 
   test "unset" do
-    {:ok, date_time, 0} = DateTime.from_iso8601("2018-03-19T14:15:32+00:00")
-    timestamp = DateTime.to_unix(date_time, :millisecond) * 10000 + 123
+    timestamp = decimicrosecond_timestamp() |> Enum.at(0)
 
     assert PayloadsDecoder.decode_bson_payload(<<>>, timestamp) == {nil, nil, nil}
   end
 
   test "deprecated unset" do
-    {:ok, date_time, 0} = DateTime.from_iso8601("2018-03-19T14:15:32+00:00")
-    timestamp = DateTime.to_unix(date_time, :millisecond) * 10000 + 123
+    timestamp = decimicrosecond_timestamp() |> Enum.at(0)
 
-    unset_payload = Base.decode64!("DQAAAAV2AAAAAAAAAA==")
+    unset_payload = %{"v" => %Cyanide.Binary{data: <<>>, subtype: :generic}} |> Cyanide.encode!()
 
     assert PayloadsDecoder.decode_bson_payload(unset_payload, timestamp) == {nil, nil, nil}
   end
 
-  test "individual value payloads without metadata and without timestamp" do
-    {:ok, date_time, 0} = DateTime.from_iso8601("2018-03-19T14:15:32+00:00")
-    timestamp = DateTime.to_unix(date_time, :microsecond) * 10 + 123
-    expected_timestamp = DateTime.to_unix(date_time, :millisecond)
+  property "individual value payloads without metadata and without timestamp" do
+    timestamp = decimicrosecond_timestamp() |> Enum.at(0)
+    expected_timestamp = timestamp |> div(10_000)
 
-    string_payload = Base.decode64!("FAAAAAJ2AAgAAAAjRTVEOTAwAAA=")
+    check all payload <- decoded_payload() do
+      encoded_payload = Cyanide.encode!(payload)
+      value = Map.fetch!(payload, "v")
 
-    assert PayloadsDecoder.decode_bson_payload(string_payload, timestamp) ==
-             {"#E5D900", expected_timestamp, %{}}
+      expected_timestamp =
+        case Map.fetch(payload, "t") do
+          {:ok, explicit_timestamp} -> DateTime.to_unix(explicit_timestamp, :millisecond)
+          :error -> expected_timestamp
+        end
 
-    boolean_payload = Base.decode64!("CQAAAAh2AAAA")
+      expected_metadata = Map.get(payload, "m", %{})
 
-    assert PayloadsDecoder.decode_bson_payload(boolean_payload, timestamp) ==
-             {false, expected_timestamp, %{}}
-
-    double_payload = Base.decode64!("EAAAAAF2AKqjtujUUds/AA==")
-
-    assert PayloadsDecoder.decode_bson_payload(double_payload, timestamp) ==
-             {0.4268696091262948, expected_timestamp, %{}}
-  end
-
-  test "individual value payloads with timestamp and without metadata" do
-    {:ok, date_time, 0} = DateTime.from_iso8601("2018-02-19T14:15:32+00:00")
-    rec_timestamp = DateTime.to_unix(date_time, :microsecond) * 10 + 123
-    expected_timestamp = 1_521_464_570_595
-
-    double_payload = Base.decode64!("GwAAAAF2AGZRYzaGqOE/CXQA4/JaPmIBAAAA")
-
-    assert PayloadsDecoder.decode_bson_payload(double_payload, rec_timestamp) ==
-             {0.5518218099846706, expected_timestamp, %{}}
-  end
-
-  test "individual value payloads with metadata and without timestamp" do
-    {:ok, date_time, 0} = DateTime.from_iso8601("2018-02-19T14:15:32+00:00")
-    rec_timestamp = DateTime.to_unix(date_time, :microsecond) * 10 + 123
-    expected_timestamp = DateTime.to_unix(date_time, :millisecond)
-
-    double_payload =
-      Base.decode64!("MAAAAANtAB0AAAACbWV0YTEAAgAAAGEAEG1ldGEyAAIAAAAAAXYAZlFjNoao4T8A")
-
-    assert PayloadsDecoder.decode_bson_payload(double_payload, rec_timestamp) ==
-             {0.5518218099846706, expected_timestamp, %{"meta1" => "a", "meta2" => 2}}
+      assert PayloadsDecoder.decode_bson_payload(encoded_payload, timestamp) ==
+               {value, expected_timestamp, expected_metadata}
+    end
   end
 
   test "deprecated object aggregation" do
-    {:ok, date_time, 0} = DateTime.from_iso8601("2018-03-19T14:15:32+00:00")
-    timestamp = DateTime.to_unix(date_time, :microsecond) * 10 + 123
-    expected_timestamp = DateTime.to_unix(date_time, :millisecond)
+    timestamp = decimicrosecond_timestamp() |> Enum.at(0)
+    expected_timestamp = timestamp |> div(10_000)
 
-    object_payload =
-      "SwAAAAViaW4ABAAAAAAAAQIDCHRlc3QxAAECdGVzdDIACgAAAMSnZcWCxYLDuAABdGVzdDMAAAAAAAAAFEAJdG0AaGcvSGIBAAAA"
-      |> Base.decode64!()
+    object_payload = object_astarte_value() |> Enum.at(0)
 
-    assert PayloadsDecoder.decode_bson_payload(object_payload, timestamp) ==
-             {%{
-                "test1" => true,
-                "test2" => "ħełłø",
-                "test3" => 5.0,
-                "tm" => DateTime.from_unix!(1_521_629_489_000, :millisecond),
-                "bin" => %Cyanide.Binary{subtype: :generic, data: <<0, 1, 2, 3>>}
-              }, expected_timestamp, %{}}
+    assert PayloadsDecoder.decode_bson_payload(Cyanide.encode!(object_payload), timestamp) ==
+             {object_payload, expected_timestamp, %{}}
   end
 
-  test "object aggregation without timestamp and without metadata" do
-    {:ok, date_time, 0} = DateTime.from_iso8601("2018-03-19T14:15:32+00:00")
-    timestamp = DateTime.to_unix(date_time, :microsecond) * 10 + 123
-    expected_timestamp = DateTime.to_unix(date_time, :millisecond)
-
-    object_payload =
-      "UwAAAAN2AEsAAAAFYmluAAQAAAAAAAECAwh0ZXN0MQABAnRlc3QyAAoAAADEp2XFgsWCw7gAAXRlc3QzAAAAAAAAABRACXRtAGhnL0hiAQAAAAA="
-      |> Base.decode64!()
-
-    assert PayloadsDecoder.decode_bson_payload(object_payload, timestamp) ==
-             {%{
-                "test1" => true,
-                "test2" => "ħełłø",
-                "test3" => 5.0,
-                "tm" => DateTime.from_unix!(1_521_629_489_000, :millisecond),
-                "bin" => %Cyanide.Binary{subtype: :generic, data: <<0, 1, 2, 3>>}
-              }, expected_timestamp, %{}}
-  end
-
-  test "object aggregation with timestamp and without metadata" do
-    {:ok, date_time, 0} = DateTime.from_iso8601("2018-03-19T14:15:32+00:00")
-    timestamp = DateTime.to_unix(date_time, :microsecond) * 10 + 123
-    expected_timestamp = 1_521_464_570_595
-
-    object_payload =
-      "XgAAAAl0AOPyWj5iAQAAA3YASwAAAAViaW4ABAAAAAAAAQIDCHRlc3QxAAECdGVzdDIACgAAAMSnZcWCxYLDuAABdGVzdDMAAAAAAAAAFEAJdG0AaGcvSGIBAAAAAA=="
-      |> Base.decode64!()
-
-    assert PayloadsDecoder.decode_bson_payload(object_payload, timestamp) ==
-             {%{
-                "test1" => true,
-                "test2" => "ħełłø",
-                "test3" => 5.0,
-                "tm" => DateTime.from_unix!(1_521_629_489_000, :millisecond),
-                "bin" => %Cyanide.Binary{subtype: :generic, data: <<0, 1, 2, 3>>}
-              }, expected_timestamp, %{}}
-  end
-
-  test "object aggregation with timestamp and metadata" do
-    {:ok, date_time, 0} = DateTime.from_iso8601("2018-03-19T14:15:32+00:00")
-    timestamp = DateTime.to_unix(date_time, :microsecond) * 10 + 123
-    expected_timestamp = 1_521_464_570_595
-
-    object_payload =
-      "cAAAAANtAA8AAAAQbWV0YQACAAAAAAl0AOPyWj5iAQAAA3YASwAAAAViaW4ABAAAAAAAAQIDCHRlc3QxAAECdGVzdDIACgAAAMSnZcWCxYLDuAABdGVzdDMAAAAAAAAAFEAJdG0AaGcvSGIBAAAAAA=="
-      |> Base.decode64!()
-
-    assert PayloadsDecoder.decode_bson_payload(object_payload, timestamp) ==
-             {%{
-                "test1" => true,
-                "test2" => "ħełłø",
-                "test3" => 5.0,
-                "tm" => DateTime.from_unix!(1_521_629_489_000, :millisecond),
-                "bin" => %Cyanide.Binary{subtype: :generic, data: <<0, 1, 2, 3>>}
-              }, expected_timestamp, %{"meta" => 2}}
-  end
-
-  test "zlib compressed payload inflate" do
-    short_message = "SHORT MESSAGE"
-    compressed = simple_deflate(short_message)
-
-    assert PayloadsDecoder.safe_inflate(compressed) == {:ok, short_message}
-
-    empty_message = ""
-    compressed = simple_deflate(empty_message)
-
-    assert PayloadsDecoder.safe_inflate(compressed) == {:ok, empty_message}
-
-    rand_bytes = :crypto.strong_rand_bytes(10_485_760 - 1)
-    compressed = simple_deflate(rand_bytes)
-
-    assert PayloadsDecoder.safe_inflate(compressed) == {:ok, rand_bytes}
-
-    rand_bytes_bigger = :crypto.strong_rand_bytes(10_485_760)
-    compressed = simple_deflate(rand_bytes_bigger)
-
-    assert PayloadsDecoder.safe_inflate(compressed) == :error
-
-    zeroed_bytes =
-      Enum.reduce(0..10_485_758, <<>>, fn _i, acc ->
-        [0 | acc]
-      end)
-      |> :erlang.list_to_binary()
-
-    compressed = simple_deflate(zeroed_bytes)
-
-    assert PayloadsDecoder.safe_inflate(compressed) == {:ok, zeroed_bytes}
-
-    compressed = simple_deflate(zeroed_bytes <> <<0>>)
-
-    assert PayloadsDecoder.safe_inflate(compressed) == :error
+  property "zlib compressed payload inflate" do
+    check all value <- binary() do
+      compressed = simple_deflate(value)
+      assert PayloadsDecoder.safe_inflate(compressed) == {:ok, value}
+    end
   end
 
   test "zlib inflate does not crash with a payload that is not zlib deflated" do
-    non_zlib_deflated_bytes = <<120, 185, 188, 158, 201, 217, 87, 12, 0, 251>>
+    non_zlib_deflated_bytes = binary(min_length: 3) |> Enum.at(0)
     assert PayloadsDecoder.safe_inflate(non_zlib_deflated_bytes) == :error
   end
 
-  test "device properties paths payload decode" do
-    payload = "com.test.LCDMonitor/time/to;com.test.LCDMonitor/weekSchedule/10/start"
-    introspection = %{"com.test.LCDMonitor" => 1}
+  property "valid device properties paths payload decode" do
+    check all introspection <- introspection_map(),
+              other_interfaces <- introspection_map(),
+              other_interfaces = other_interfaces |> Map.drop(introspection |> Map.keys()),
+              introspection_paths <- introspection_paths(introspection),
+              other_paths <- introspection_paths(other_interfaces),
+              device_properties_string <-
+                device_properties_string(MapSet.union(introspection_paths, other_paths)),
+              max_runs: 10 do
+      assert PayloadsDecoder.parse_device_properties_payload(
+               device_properties_string,
+               introspection
+             ) == {:ok, introspection_paths}
+    end
+  end
 
-    keep_paths =
-      MapSet.new([
-        {"com.test.LCDMonitor", "/time/to"},
-        {"com.test.LCDMonitor", "/weekSchedule/10/start"}
-      ])
+  test "invalid device properties paths payload decode" do
+    interface = InterfaceGenerator.interface() |> resize(10) |> Enum.at(0)
+    invalid = "#{interface.name};#{interface.name}"
+    introspection = %{interface.name => interface.major_version}
 
-    assert PayloadsDecoder.parse_device_properties_payload(payload, introspection) ==
-             {:ok, keep_paths}
-
-    introspection2 = %{"com.test.LCDMonitor" => 1, "com.example.A" => 2}
-
-    assert PayloadsDecoder.parse_device_properties_payload(payload, introspection2) ==
-             {:ok, keep_paths}
-
-    payload2 = "com.test.LCDMonitor/time/to"
-
-    keep_paths2 =
-      MapSet.new([
-        {"com.test.LCDMonitor", "/time/to"}
-      ])
-
-    assert PayloadsDecoder.parse_device_properties_payload(payload2, introspection2) ==
-             {:ok, keep_paths2}
-
-    # TODO: probably here would be a good idea to fail
-    assert PayloadsDecoder.parse_device_properties_payload(payload, %{}) == {:ok, MapSet.new()}
-
-    assert PayloadsDecoder.parse_device_properties_payload("", introspection) ==
+    assert PayloadsDecoder.parse_device_properties_payload(invalid, introspection) ==
              {:ok, MapSet.new()}
 
-    assert PayloadsDecoder.parse_device_properties_payload("", %{}) == {:ok, MapSet.new()}
+    invalid_termination = <<0xFFFF::16>>
+    rest = binary(min_length: 1) |> Enum.at(0)
+    invalid_property = rest <> invalid_termination
 
-    invalid = "com.test.LCDMonitor;com.test.LCDMonitor"
-
-    assert PayloadsDecoder.parse_device_properties_payload(invalid, introspection2) ==
-             {:ok, MapSet.new()}
-
-    assert PayloadsDecoder.parse_device_properties_payload(<<0xFFFF::16>>, %{"something" => 1}) ==
+    assert PayloadsDecoder.parse_device_properties_payload(invalid_property, introspection) ==
              {:error, :invalid_properties}
   end
 
-  test "valid introspection parsing" do
-    parsed1 = [{"good.introspection", 1, 0}]
-    introspection1 = "good.introspection:1:0"
-    assert PayloadsDecoder.parse_introspection(introspection1) == {:ok, parsed1}
+  property "valid introspection parsing" do
+    check all introspection <- list_of(InterfaceGenerator.interface()) do
+      expected_introspection =
+        Enum.map(introspection, &{&1.name, &1.major_version, &1.minor_version})
 
-    parsed2 = [{"good.introspection", 1, 0}, {"other.good.introspection", 0, 3}]
-    introspection2 = "good.introspection:1:0;other.good.introspection:0:3"
-    assert PayloadsDecoder.parse_introspection(introspection2) == {:ok, parsed2}
+      introspection_string =
+        Enum.map_join(expected_introspection, ";", fn {name, major, minor} ->
+          interface_string(name, major, minor)
+        end)
 
-    assert PayloadsDecoder.parse_introspection("") == {:ok, []}
+      assert PayloadsDecoder.parse_introspection(introspection_string) ==
+               {:ok, expected_introspection}
+    end
   end
 
-  test "invalid introspection strings" do
-    invalid = {:error, :invalid_introspection}
-
-    assert PayloadsDecoder.parse_introspection("a;b;c") == invalid
-    assert PayloadsDecoder.parse_introspection("a:0:1;b:1:0;c") == invalid
-    assert PayloadsDecoder.parse_introspection("a:0:1z;b:1:0") == invalid
-    assert PayloadsDecoder.parse_introspection("a:0:1z:b:1:0") == invalid
-    assert PayloadsDecoder.parse_introspection("a:0:-1:b:1:0") == invalid
-    assert PayloadsDecoder.parse_introspection(<<0xFFFF::16>>) == invalid
+  property "invalid introspection strings" do
+    check all invalid_introspection <- invalid_introspection_string() do
+      assert PayloadsDecoder.parse_introspection(invalid_introspection) ==
+               {:error, :invalid_introspection}
+    end
   end
 
   defp simple_deflate(data) do
@@ -277,5 +147,149 @@ defmodule Astarte.DataUpdaterPlant.PayloadsDecoderTest do
     :ok = :zlib.close(zstream)
 
     compressed
+  end
+
+  defp decimicrosecond_timestamp do
+    gen all timestamp_seconds <- TimestampGenerator.timestamp(),
+            decimicroseconds <- integer(0..9999) do
+      timestamp_seconds * 10_000 + decimicroseconds
+    end
+  end
+
+  defp individual_astarte_value do
+    base_types = [
+      float(),
+      integer(),
+      boolean(),
+      string(:utf8, min_length: 1),
+      binary(min_length: 1),
+      TimestampGenerator.timestamp()
+    ]
+
+    array_types = Enum.map(base_types, &list_of/1)
+    individual_types = Enum.concat(base_types, array_types)
+
+    one_of(individual_types)
+  end
+
+  defp object_astarte_value do
+    map_of(string(:alphanumeric), individual_astarte_value())
+  end
+
+  defp astarte_value do
+    one_of([individual_astarte_value(), object_astarte_value()])
+  end
+
+  defp decoded_payload() do
+    value = astarte_value()
+    timestamp = map(TimestampGenerator.timestamp(), &DateTime.from_unix!/1)
+    metadata = map_of(string(:utf8), string(:utf8))
+
+    optional_map(%{"v" => value, "t" => timestamp, "m" => metadata}, ["t", "m"])
+  end
+
+  defp invalid_introspection_string do
+    one_of([
+      missing_version(),
+      invalid_version(),
+      invalid_name(),
+      extra_numbers(),
+      binary(min_length: 1) |> filter(&(not String.valid?(&1)))
+    ])
+  end
+
+  defp missing_version do
+    incomplete_interface =
+      gen all interface <- InterfaceGenerator.interface(),
+              invalid_string <-
+                member_of([
+                  "#{interface.name}",
+                  "#{interface.name}:#{interface.major_version}",
+                  "#{interface.name}:#{interface.minor_version}"
+                ]) do
+        invalid_string
+      end
+
+    list_of(incomplete_interface, min_length: 1)
+    |> map(&Enum.join(&1, ";"))
+  end
+
+  defp invalid_version do
+    not_a_number =
+      gen all number <- integer(1..10),
+              rest <- string(?a..?z, min_length: 1) do
+        "#{number}#{rest}"
+      end
+
+    invalid_versions =
+      one_of([
+        integer(-10..-1),
+        not_a_number
+      ])
+
+    gen all interfaces <- list_of(InterfaceGenerator.interface(), min_length: 1),
+            majors <- list_of(invalid_versions, length: length(interfaces)),
+            minors <- list_of(invalid_versions, length: length(interfaces)) do
+      Enum.zip_with([interfaces, majors, minors], fn [%{name: name}, major, minor] ->
+        interface_string(name, major, minor)
+      end)
+      |> Enum.join(";")
+    end
+  end
+
+  defp invalid_name do
+    invalid_names =
+      string(:utf8)
+      |> filter(fn name -> not String.match?(name, Interface.interface_name_regex()) end)
+
+    gen all interfaces <- list_of(InterfaceGenerator.interface(), min_length: 1),
+            invalid_names <-
+              list_of(invalid_names, length: length(interfaces)) do
+      Enum.zip_with(interfaces, invalid_names, fn interface, name ->
+        interface_string(name, interface.major_version, interface.minor_version)
+      end)
+      |> Enum.join(";")
+    end
+  end
+
+  defp extra_numbers do
+    gen all interfaces <- list_of(InterfaceGenerator.interface(), min_length: 1) do
+      Enum.map_join(interfaces, ";", fn interface ->
+        "#{interface.name}:#{interface.major_version}:#{interface.minor_version}:#{interface.major_version}"
+      end)
+    end
+  end
+
+  defp interface_string(interface_name, major, minor), do: "#{interface_name}:#{major}:#{minor}"
+
+  defp introspection_map do
+    list_of(InterfaceGenerator.interface())
+    |> map(&Map.new(&1, fn %{name: name, major_version: major} -> {name, major} end))
+  end
+
+  defp introspection_paths(introspection_map) do
+    introspection_map
+    |> Map.new(fn {interface_name, _} -> {interface_name, list_of(path())} end)
+    |> fixed_map()
+    |> map(fn interface_path_map ->
+      interface_path_map
+      |> Enum.map(fn {interface_name, paths} -> Enum.map(paths, &{interface_name, &1}) end)
+      |> Enum.concat()
+      |> MapSet.new()
+    end)
+  end
+
+  defp device_properties_string(introspection_paths) do
+    introspection_paths
+    |> Enum.to_list()
+    |> shuffle()
+    |> map(&Enum.map(&1, fn {interface_name, path} -> interface_name <> path end))
+    |> map(&Enum.join(&1, ";"))
+  end
+
+  def path do
+    gen all tokens <- list_of(string(:alphanumeric, min_length: 1), min_length: 1) do
+      "/" <> Enum.join(tokens, "/")
+    end
   end
 end

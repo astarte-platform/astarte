@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2017-2018 Ispirata Srl
+# Copyright 2017 - 2025 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -17,12 +17,16 @@
 #
 
 defmodule Astarte.TriggerEngine.EventsConsumer do
+  require Logger
+
+  import Ecto.Query
+
   alias Astarte.Core.Triggers.SimpleEvents.SimpleEvent
   alias Astarte.Core.Triggers.Trigger
-  alias Astarte.DataAccess.Database
-  alias CQEx.Query, as: DatabaseQuery
-  alias CQEx.Result, as: DatabaseResult
-  require Logger
+  alias Astarte.DataAccess.Repo
+  alias Astarte.DataAccess.Consistency
+  alias Astarte.DataAccess.KvStore
+  alias Astarte.DataAccess.Realms.Realm
 
   defmodule Behaviour do
     @callback consume(payload :: binary, headers :: map) :: :ok | {:error, reason :: atom}
@@ -50,7 +54,7 @@ defmodule Astarte.TriggerEngine.EventsConsumer do
       case decoded_payload.timestamp do
         nil ->
           DateTime.utc_now()
-          |> DateTime.from_unix(:millisecond)
+          |> DateTime.to_unix(:millisecond)
 
         timestamp when is_integer(timestamp) ->
           timestamp
@@ -62,23 +66,48 @@ defmodule Astarte.TriggerEngine.EventsConsumer do
 
   defp handle_simple_event(realm, device_id, headers_map, event_type, event, timestamp_ms) do
     with {:ok, trigger_id} <- Map.fetch(headers_map, "x_astarte_parent_trigger_id"),
-         {:ok, action} <- retrieve_trigger_configuration(realm, trigger_id),
+         {:ok, %{action: action, trigger_name: trigger_name}} <-
+           retrieve_trigger_configuration(realm, trigger_id),
          {:ok, payload} <-
-           event_to_payload(realm, device_id, event_type, event, action, timestamp_ms),
-         {:ok, headers} <- event_to_headers(realm, device_id, event_type, event, action),
-         :ok <- execute_action(payload, headers, action) do
-      :telemetry.execute(
-        [:astarte, :trigger_engine, :http_action_executed],
-        %{},
-        %{realm: realm, status: :ok}
-      )
-
-      :ok
+           event_to_payload(
+             realm,
+             device_id,
+             event_type,
+             event,
+             action,
+             trigger_name,
+             timestamp_ms
+           ),
+         {:ok, headers} <- event_to_headers(realm, device_id, event_type, event, action) do
+      send_simple_event(realm, payload, headers, action)
     else
+      error ->
+        Logger.warning("Error while processing event: #{inspect(error)}")
+
+        error
+    end
+  end
+
+  defp send_simple_event(realm, payload, headers, action) do
+    payload_size = :erlang.byte_size(payload)
+
+    case execute_action(payload, headers, action) do
+      :ok ->
+        :telemetry.execute(
+          [:astarte, :trigger_engine, :http_action_executed],
+          %{payload_bytes: payload_size},
+          %{
+            realm: realm,
+            status: :ok
+          }
+        )
+
+        :ok
+
       {:error, {:http_error, status_code}} ->
         :telemetry.execute(
           [:astarte, :trigger_engine, :http_action_executed],
-          %{},
+          %{payload_bytes: payload_size},
           %{realm: realm, status: status_code}
         )
 
@@ -87,28 +116,31 @@ defmodule Astarte.TriggerEngine.EventsConsumer do
       {:error, :connection_error} ->
         :telemetry.execute(
           [:astarte, :trigger_engine, :http_action_executed],
-          %{},
+          %{payload_bytes: payload_size},
           %{realm: realm, status: :connection_error}
         )
 
         {:error, :connection_error}
-
-      error ->
-        Logger.warn("Error while processing event: #{inspect(error)}")
-
-        error
     end
   end
 
-  defp build_values_map(realm, device_id, event_type, event) do
+  defp build_values_map(
+         realm,
+         device_id,
+         event_type,
+         event,
+         trigger_name
+       ) do
     base_values = %{
       "realm" => realm,
       "device_id" => device_id,
+      "trigger_name" => trigger_name,
       "event_type" => to_string(event_type)
     }
 
     # TODO: check this with object aggregations
     Map.from_struct(event)
+    |> Map.delete(:__unknown_fields__)
     |> Enum.reduce(base_values, fn {item_key, item_value}, acc ->
       case item_key do
         :bson_value ->
@@ -159,19 +191,29 @@ defmodule Astarte.TriggerEngine.EventsConsumer do
            "template" => template,
            "template_type" => "mustache"
          },
+         trigger_name,
          _timestamp_ms
        ) do
-    values = build_values_map(realm, device_id, event_type, event)
+    values = build_values_map(realm, device_id, event_type, event, trigger_name)
 
     {:ok, :bbmustache.render(template, values, key_type: :binary)}
   end
 
-  defp event_to_payload(_realm, device_id, _event_type, event, _action, timestamp_ms) do
+  defp event_to_payload(
+         _realm,
+         device_id,
+         _event_type,
+         event,
+         _action,
+         trigger_name,
+         timestamp_ms
+       ) do
     with {:ok, timestamp} <- DateTime.from_unix(timestamp_ms, :millisecond) do
       %{
         "timestamp" => timestamp,
         "device_id" => device_id,
-        "event" => event
+        "event" => event,
+        "trigger_name" => trigger_name
       }
       |> Jason.encode()
     end
@@ -208,14 +250,14 @@ defmodule Astarte.TriggerEngine.EventsConsumer do
       end
     else
       {:error, reason} ->
-        Logger.warn(
+        Logger.warning(
           "Error while processing the request: #{inspect(reason)}. Payload: #{inspect(payload)}, headers: #{inspect(headers)}, action: #{inspect(action)}"
         )
 
         {:error, :connection_error}
 
       error ->
-        Logger.warn("Error while processing event: #{inspect(error)}")
+        Logger.warning("Error while processing event: #{inspect(error)}")
         error
     end
   end
@@ -248,27 +290,28 @@ defmodule Astarte.TriggerEngine.EventsConsumer do
   end
 
   defp retrieve_trigger_configuration(realm_name, trigger_id) do
+    keyspace_name = Realm.keyspace_name(realm_name)
+
     query =
-      DatabaseQuery.new()
-      |> DatabaseQuery.statement(
-        "SELECT value FROM kv_store WHERE group='triggers' AND key=:trigger_id;"
-      )
-      |> DatabaseQuery.put(:trigger_id, trigger_id)
+      from kvstore in KvStore,
+        prefix: ^keyspace_name,
+        where: kvstore.group == "triggers" and kvstore.key == ^trigger_id,
+        select: kvstore.value
 
-    with {:ok, client} <- Database.connect(realm: realm_name),
-         {:ok, result} <- DatabaseQuery.call(client, query),
-         [value: trigger_data] <- DatabaseResult.head(result),
-         trigger <- Trigger.decode(trigger_data),
+    opts = [consistency: Consistency.domain_model(:read)]
+
+    with encoded_trigger when encoded_trigger != nil <- Repo.one(query, opts),
+         trigger <- Trigger.decode(encoded_trigger),
          {:ok, action} <- Jason.decode(trigger.action) do
-      {:ok, action}
+      {:ok, %{action: action, trigger_name: trigger.name}}
     else
-      {:error, :database_connection_error} ->
-        Logger.warn("Database connection error.")
-        {:error, :database_connection_error}
-
-      error ->
-        Logger.warn("Error while processing event: #{inspect(error)}")
+      nil ->
+        Logger.warning("Trigger not found: #{inspect(trigger_id)}")
         {:error, :trigger_not_found}
+
+      _ ->
+        Logger.warning("Error while decoding trigger: #{inspect(trigger_id)}")
+        {:error, :trigger_decoding_error}
     end
   end
 end

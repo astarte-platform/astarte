@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2020 Ispirata Srl
+# Copyright 2020 - 2025 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -18,7 +18,8 @@
 
 defmodule Astarte.DataUpdaterPlantWeb.HealthPlug do
   import Plug.Conn
-  alias Astarte.DataUpdaterPlant.Health
+
+  alias Astarte.DataAccess.Health.Health
 
   def init(_args), do: nil
 

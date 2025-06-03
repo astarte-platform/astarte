@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2017-2018 Ispirata Srl
+# Copyright 2017 - 2025 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -17,7 +17,7 @@
 #
 
 defmodule Astarte.Pairing.API.InfoTest do
-  use Astarte.Pairing.API.DataCase
+  use Astarte.Pairing.API.DataCase, async: true
 
   alias Astarte.Pairing.API.Info.DeviceInfo
   alias Astarte.Pairing.API.Info

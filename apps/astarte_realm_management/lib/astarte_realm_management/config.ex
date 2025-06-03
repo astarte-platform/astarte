@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2020 Ispirata Srl
+# Copyright 2017-2025 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -24,26 +24,23 @@ defmodule Astarte.RealmManagement.Config do
   use Skogsra
   alias Astarte.DataAccess.Config, as: DataAccessConfig
 
+  @envdoc """
+  Specifies the certificates of the root Certificate Authorities to be trusted.
+  When not specified, the bundled cURL certificate bundle will be used.
+  """
+  app_env :ssl_ca_file, :astarte_data_access, :ssl_ca_file,
+    os_env: "CASSANDRA_SSL_CA_FILE",
+    type: :binary,
+    default: CAStore.file_path()
+
   @envdoc "The port where Realm Management metrics will be exposed."
   app_env :port, :astarte_realm_management, :port,
     os_env: "REALM_MANAGEMENT_PORT",
     type: :integer,
     default: 4000
 
-  def cassandra_node!, do: Enum.random(cqex_nodes!())
-
   @doc """
   Returns Cassandra nodes formatted in the Xandra format.
   """
-  defdelegate xandra_nodes, to: DataAccessConfig
-  defdelegate xandra_nodes!, to: DataAccessConfig
-
-  @doc """
-  Returns Cassandra nodes formatted in the CQEx format.
-  """
-  defdelegate cqex_nodes, to: DataAccessConfig
-  defdelegate cqex_nodes!, to: DataAccessConfig
-
   defdelegate xandra_options!, to: DataAccessConfig
-  defdelegate cqex_options!, to: DataAccessConfig
 end

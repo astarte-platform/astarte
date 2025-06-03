@@ -47,6 +47,9 @@ defmodule Astarte.Pairing.API.Credentials do
       {:error, :forbidden} ->
         {:error, :forbidden}
 
+      {:error, :device_not_found} ->
+        {:error, :device_not_found}
+
       {:error, _other} ->
         {:error, :rpc_error}
     end
@@ -75,6 +78,9 @@ defmodule Astarte.Pairing.API.Credentials do
 
       {:error, :forbidden} ->
         {:error, :forbidden}
+
+      {:error, :device_not_found} ->
+        {:error, :device_not_found}
 
       {:error, _reason} ->
         {:error, :rpc_error}

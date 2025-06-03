@@ -48,14 +48,18 @@ defmodule Astarte.AppEngine.API.Application do
 
     # Define workers and child supervisors to be supervised
     children = [
+      {Cluster.Supervisor,
+       [Config.cluster_topologies!(), [name: Astarte.AppEngine.API.ClusterSupervisor]]},
+      {Horde.Registry, [keys: :unique, name: Registry.DataUpdaterRPC, members: :auto]},
+      {Horde.Registry, [keys: :unique, name: Registry.VMQPluginRPC, members: :auto]},
       Astarte.AppEngine.APIWeb.Telemetry,
       {Phoenix.PubSub, name: Astarte.AppEngine.API.PubSub},
-      Astarte.RPC.AMQP.Client,
       Astarte.AppEngine.API.Rooms.MasterSupervisor,
       Astarte.AppEngine.API.Rooms.AMQPClient,
       Astarte.AppEngine.APIWeb.Endpoint,
       {Xandra.Cluster, ae_xandra_opts},
-      {Astarte.DataAccess, data_access_opts}
+      {Astarte.DataAccess, data_access_opts},
+      {Astarte.AppEngine.API.Repo, xandra_options}
     ]
 
     # See https://hexdocs.pm/elixir/Supervisor.html

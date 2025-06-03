@@ -15,7 +15,7 @@ info:
     Astarte's Realm Management API is the main mechanism to configure a Realm.
     It allows installing and managing Interfaces, Triggers and any configuration
     of the Realm itself.
-  version: "1.1.1"
+  version: 1.2.0
   title: Astarte Realm Management API
   contact:
     email: info@ispirata.com
@@ -77,6 +77,46 @@ paths:
           $ref: '#/components/responses/ConfigValidationError'
       requestBody:
         $ref: '#/components/requestBodies/PutAuthConfig'
+  '/{realm_name}/config/device_registration_limit':
+    parameters:
+      - $ref: '#/components/parameters/Realm'
+    get:
+      tags:
+        - config
+      summary: Get device registration limit
+      description: Get the maximum number of devices that can be registered in the realm.
+      operationId: getDeviceRegistrationLimit
+      security:
+        - JWT: []
+      responses:
+        '200':
+          $ref: '#/components/responses/GetDeviceRegistrationLimit'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  '/{realm_name}/config/datastream_maximum_storage_retention':
+    parameters:
+      - $ref: '#/components/parameters/Realm'
+    get:
+      tags:
+        - config
+      summary: Get datastream maximum storage retention
+      description: Get the maximum storage retention for datastreams belonging to the realm, in seconds.
+      operationId: getDatastreamMaximumStorageRetention
+      security:
+        - JWT: []
+      responses:
+        '200':
+          $ref: '#/components/responses/GetDatastreamMaximumStorageRetention'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
   '/{realm_name}/interfaces':
     parameters:
       - $ref: '#/components/parameters/Realm'
@@ -444,6 +484,34 @@ paths:
           $ref: '#/components/responses/TriggerDeliveryPolicyCurrentlyUsedError'
         '500':
           description: Internal Server Error.
+  '/{realm_name}/devices/{device_id}':
+    parameters:
+      - $ref: '#/components/parameters/Realm'
+      - $ref: '#/components/parameters/DeviceID'
+    delete:
+      tags:
+        - device
+      summary: Delete device
+      description: >-
+        Deletes an existing device with a given `device_id`.
+        Device deletion happens asynchronously, and receiving a 204 response
+        doesn't guarantee immediate deletion of the device.
+      operationId: deleteDevice
+      security:
+        - JWT: []
+      responses:
+        '204':
+          description: Success
+        '400':
+          description: Bad request
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          description: Internal Server Error.
 components:
   responses:
     ConfigValidationError:
@@ -478,6 +546,28 @@ components:
             properties:
               data:
                 $ref: '#/components/schemas/AuthConfig'
+    GetDeviceRegistrationLimit:
+      description: Success
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - data
+            properties:
+              data:
+                $ref: '#/components/schemas/DeviceRegistrationLimit'
+    GetDatastreamMaximumStorageRetention:
+      description: Success
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - data
+            properties:
+              data:
+                $ref: '#/components/schemas/DatastreamMaximumStorageRetention'
     GetInterface:
       description: Success
       content:
@@ -830,6 +920,13 @@ components:
       required: true
       schema:
         type: string
+    DeviceID:
+      name: device_id
+      in: path
+      description: Device ID
+      required: true
+      schema:
+        type: string
     InterfaceName:
       name: interface_name
       in: path
@@ -874,6 +971,14 @@ components:
             f9jgaxW4oQV85enS/OJrrC9jU11agRc4bDv1h4s2t+ETWb4llTVk3HMIHbC3EvKJ
             VwIDAQAB
             -----END PUBLIC KEY-----
+    DeviceRegistrationLimit:
+      type: integer
+      minimum: 0
+      example: 100
+    DatastreamMaximumStorageRetention:
+      type: integer
+      minimum: 1
+      example: 100
     Interface:
       type: object
       properties:

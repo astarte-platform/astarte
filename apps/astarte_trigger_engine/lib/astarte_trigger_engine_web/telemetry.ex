@@ -60,6 +60,10 @@ defmodule Astarte.TriggerEngineWeb.Telemetry do
         tags: [:realm, :status],
         description: "TriggerEngine total http executed actions."
       ),
+      sum("astarte.trigger_engine.http_action_executed.payload_bytes",
+        tags: [:realm, :status],
+        description: "TriggerEngine total http executed actions payload size, in bytes."
+      ),
       counter("astarte.trigger_engine.consumed_event.count",
         tags: [:realm],
         description: "TriggerEngine consumed events."
