@@ -12,6 +12,13 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
   `booleanarray`, `longintegerarray`, `stringarray`, `datetimearray`, `binaryblobarray`.
 - [astarte_export] Added a new command for exporting by device_id. 
   `mix astarte.export $REALM $FILE_XML $DEVICE_ID`
+- [astarte_data_updater_plant] Automatically shard queues between DUP instances,
+  allowing to autoscale the service. This is done via Erlang clustering, so
+  the `DATA_UPDATER_PLANT_CLUSTERING_STRATEGY` env var (default `none`) has
+  been introduced to set clustering strategy.
+- [astarte_data_updater_plant] allow to configure Erlang clustering when using
+  the `kubernetes` option via `DATA_UPDATER_PLANT_CLUSTERING_KUBERNETES_SELECTOR`
+  and `DATA_UPDATER_PLANT_CLUSTERING_KUBERNETES_NAMESPACE`.
 
 ## [1.2.1] - Unreleased
 ### Changed
