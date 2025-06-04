@@ -35,30 +35,16 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.InterfaceTest do
   use ExUnitProperties
 
   import Ecto.Query
-  import Mimic
   import Astarte.InterfaceUpdateGenerators
+  import Astarte.Helpers.DataUpdater
 
   @interface_lifespan_decimicroseconds 60 * 10 * 1000 * 10000
 
   setup_all %{realm_name: realm_name, device: device} do
-    {:ok, message_tracker} = DataUpdater.fetch_message_tracker(realm_name, device.encoded_id)
-
-    {:ok, data_updater} =
-      DataUpdater.fetch_data_updater_process(
-        realm_name,
-        device.encoded_id,
-        message_tracker,
-        true
-      )
-
-    Astarte.DataAccess.Config
-    |> allow(self(), data_updater)
-
-    :ok = GenServer.call(data_updater, :start)
-
+    setup_data_updater(realm_name, device.encoded_id)
     state = DataUpdater.dump_state(realm_name, device.encoded_id)
 
-    %{state: state, data_updater: data_updater, messagte_tracker: message_tracker}
+    %{state: state}
   end
 
   describe "maybe_handle_cache_miss/3" do
@@ -143,7 +129,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.InterfaceTest do
 
       check all interface <- member_of(valid_interfaces),
                 mapping_update <- valid_mapping_update_for(interface) do
-        Helpers.Database.insert_values(realm_name, device, interface, mapping_update)
+        Helpers.Database.insert_values(realm_name, device, interface, [mapping_update])
 
         keyspace = Realm.keyspace_name(realm_name)
 

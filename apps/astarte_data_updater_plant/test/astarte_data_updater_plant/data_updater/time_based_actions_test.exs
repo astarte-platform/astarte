@@ -17,8 +17,9 @@
 #
 
 defmodule Astarte.DataUpdaterPlant.TimeBasedActionsTest do
-  use ExUnit.Case, async: true
+  use Astarte.Cases.Data, async: true
   import Mox
+  import Astarte.Helpers.DataUpdater
 
   alias Astarte.Core.Device
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.AMQPTriggerTarget
@@ -35,22 +36,15 @@ defmodule Astarte.DataUpdaterPlant.TimeBasedActionsTest do
   @timestamp2_us_x_10 Database.make_timestamp("2025-05-14T14:10:32+00:00")
   @interface_lifespan_decimicroseconds 60 * 10 * 1000 * 10000
 
-  setup_all do
-    realm = "autotestrealm#{System.unique_integer([:positive])}"
-    Database.setup!(realm)
-    on_exit(fn -> Database.teardown!(realm) end)
-    {:ok, realm: realm}
-  end
-
-  setup %{realm: realm} do
+  setup do
     device_id = Database.random_device_id()
     encoded_device_id = Device.encode_device_id(device_id)
-    {:ok, device_id: device_id, encoded_device_id: encoded_device_id, realm: realm}
+    {:ok, device_id: device_id, encoded_device_id: encoded_device_id}
   end
 
   describe "reload_groups_on_expiry/2" do
     test "refreshes groups when expired but groups are unchanged", %{
-      realm: realm,
+      realm_name: realm,
       device_id: device_id,
       encoded_device_id: encoded_device_id
     } do
@@ -69,7 +63,7 @@ defmodule Astarte.DataUpdaterPlant.TimeBasedActionsTest do
     end
 
     test "refreshes groups when expired and database groups have changed", %{
-      realm: realm,
+      realm_name: realm,
       device_id: device_id,
       encoded_device_id: encoded_device_id
     } do
@@ -89,7 +83,7 @@ defmodule Astarte.DataUpdaterPlant.TimeBasedActionsTest do
     end
 
     test "refreshes groups with multiple updates in database", %{
-      realm: realm,
+      realm_name: realm,
       device_id: device_id,
       encoded_device_id: encoded_device_id
     } do
@@ -109,7 +103,7 @@ defmodule Astarte.DataUpdaterPlant.TimeBasedActionsTest do
     end
 
     test "refreshes groups to empty when database groups are removed", %{
-      realm: realm,
+      realm_name: realm,
       device_id: device_id,
       encoded_device_id: encoded_device_id
     } do
@@ -129,7 +123,7 @@ defmodule Astarte.DataUpdaterPlant.TimeBasedActionsTest do
     end
 
     test "does not refresh groups when not expired", %{
-      realm: realm,
+      realm_name: realm,
       device_id: device_id,
       encoded_device_id: encoded_device_id
     } do
@@ -149,7 +143,7 @@ defmodule Astarte.DataUpdaterPlant.TimeBasedActionsTest do
     end
 
     test "does not refresh groups when timestamp equals last refresh", %{
-      realm: realm,
+      realm_name: realm,
       device_id: device_id,
       encoded_device_id: encoded_device_id
     } do
@@ -167,7 +161,7 @@ defmodule Astarte.DataUpdaterPlant.TimeBasedActionsTest do
 
   describe "purge_expired_interfaces/2" do
     test "removes all interfaces when all are expired", %{
-      realm: realm,
+      realm_name: realm,
       device_id: device_id,
       encoded_device_id: encoded_device_id
     } do
@@ -198,7 +192,7 @@ defmodule Astarte.DataUpdaterPlant.TimeBasedActionsTest do
     end
 
     test "removes only expired interfaces and keeps non-expired ones", %{
-      realm: realm,
+      realm_name: realm,
       device_id: device_id,
       encoded_device_id: encoded_device_id
     } do
@@ -244,7 +238,7 @@ defmodule Astarte.DataUpdaterPlant.TimeBasedActionsTest do
     end
 
     test "does not remove interfaces if none are expired", %{
-      realm: realm,
+      realm_name: realm,
       device_id: device_id,
       encoded_device_id: encoded_device_id
     } do
@@ -276,12 +270,12 @@ defmodule Astarte.DataUpdaterPlant.TimeBasedActionsTest do
     end
 
     test "handles empty interfaces state without errors", %{
-      realm: realm,
+      realm_name: realm,
       device_id: device_id,
       encoded_device_id: encoded_device_id
     } do
       # Insert initial device state
-      Database.insert_device(device_id, realm, introspection: %{})
+      insert_device_and_start_data_updater(realm, device_id, introspection: %{})
 
       state = DataUpdater.dump_state(realm, encoded_device_id)
 
@@ -302,7 +296,7 @@ defmodule Astarte.DataUpdaterPlant.TimeBasedActionsTest do
 
   describe "reload_device_triggers_on_expiry/2" do
     test "refreshes device triggers when expired and triggers are unchanged", %{
-      realm: realm,
+      realm_name: realm,
       encoded_device_id: encoded_device_id,
       device_id: device_id
     } do
@@ -336,7 +330,7 @@ defmodule Astarte.DataUpdaterPlant.TimeBasedActionsTest do
     end
 
     test "refreshes data triggers when expired and triggers are unchanged", %{
-      realm: realm,
+      realm_name: realm,
       encoded_device_id: encoded_device_id,
       device_id: device_id
     } do
@@ -382,7 +376,7 @@ defmodule Astarte.DataUpdaterPlant.TimeBasedActionsTest do
     end
 
     test "does not refresh device triggers when not expired", %{
-      realm: realm,
+      realm_name: realm,
       encoded_device_id: encoded_device_id,
       device_id: device_id
     } do
@@ -406,7 +400,7 @@ defmodule Astarte.DataUpdaterPlant.TimeBasedActionsTest do
     end
 
     test "does not refresh device triggers when timestamp equals last refresh", %{
-      realm: realm,
+      realm_name: realm,
       encoded_device_id: encoded_device_id,
       device_id: device_id
     } do
@@ -427,12 +421,12 @@ defmodule Astarte.DataUpdaterPlant.TimeBasedActionsTest do
     end
 
     test "refreshes device triggers to empty when no triggers are present in database", %{
-      realm: realm,
+      realm_name: realm,
       encoded_device_id: encoded_device_id,
       device_id: device_id
     } do
       # Insert initial device state
-      Database.insert_device(device_id, realm)
+      insert_device_and_start_data_updater(realm, device_id)
 
       # No triggers installed
       DataUpdater.handle_connection(
@@ -456,7 +450,7 @@ defmodule Astarte.DataUpdaterPlant.TimeBasedActionsTest do
     end
 
     test "adds new volatile triggers and keeps all after refresh", %{
-      realm: realm,
+      realm_name: realm,
       encoded_device_id: encoded_device_id,
       device_id: device_id
     } do
@@ -526,11 +520,11 @@ defmodule Astarte.DataUpdaterPlant.TimeBasedActionsTest do
     end
 
     test "removes deleted volatile triggers after refresh", %{
-      realm: realm,
+      realm_name: realm,
       encoded_device_id: encoded_device_id,
       device_id: device_id
     } do
-      Database.insert_device(device_id, realm)
+      insert_device_and_start_data_updater(realm, device_id)
 
       simple_trigger_data =
         %SimpleTriggerContainer{
@@ -597,7 +591,7 @@ defmodule Astarte.DataUpdaterPlant.TimeBasedActionsTest do
 
   describe "reload_device_deletion_status_on_expiry/2" do
     test "refreshes deletion status when expired and device is not being deleted", %{
-      realm: realm,
+      realm_name: realm,
       encoded_device_id: encoded_device_id,
       device_id: device_id
     } do
@@ -616,7 +610,7 @@ defmodule Astarte.DataUpdaterPlant.TimeBasedActionsTest do
     end
 
     test "does not refresh deletion status if not expired", %{
-      realm: realm,
+      realm_name: realm,
       device_id: device_id,
       encoded_device_id: encoded_device_id
     } do
@@ -637,7 +631,7 @@ defmodule Astarte.DataUpdaterPlant.TimeBasedActionsTest do
 
     test "does not stop DataUpdater process if deletion is in progress but not acked and not expired",
          %{
-           realm: realm,
+           realm_name: realm,
            encoded_device_id: encoded_device_id,
            device_id: device_id
          } do
@@ -660,7 +654,7 @@ defmodule Astarte.DataUpdaterPlant.TimeBasedActionsTest do
     end
 
     test "disconnects and discards messages when deletion is acked and expired", %{
-      realm: realm,
+      realm_name: realm,
       encoded_device_id: encoded_device_id,
       device_id: device_id
     } do
@@ -692,7 +686,7 @@ defmodule Astarte.DataUpdaterPlant.TimeBasedActionsTest do
 
     test "disconnects and discards messages when deletion is acked, expired, and device is already disconnected",
          %{
-           realm: realm,
+           realm_name: realm,
            encoded_device_id: encoded_device_id,
            device_id: device_id
          } do
@@ -724,7 +718,7 @@ defmodule Astarte.DataUpdaterPlant.TimeBasedActionsTest do
     end
 
     test "raises MatchError if deletion returns error", %{
-      realm: realm,
+      realm_name: realm,
       encoded_device_id: encoded_device_id,
       device_id: device_id
     } do
@@ -753,7 +747,7 @@ defmodule Astarte.DataUpdaterPlant.TimeBasedActionsTest do
     end
 
     test "does not start device deletion if check_device_deletion_in_progress returns error", %{
-      realm: realm,
+      realm_name: realm,
       device_id: device_id,
       encoded_device_id: encoded_device_id
     } do
@@ -780,18 +774,13 @@ defmodule Astarte.DataUpdaterPlant.TimeBasedActionsTest do
 
   describe "reload_datastream_maximum_storage_retention_on_expiry/2" do
     setup do
-      realm = "autotestrealm#{System.unique_integer([:positive])}"
-      Database.setup_realm_keyspace!(realm)
+      %{realm_names: [realm_name]} = setup_instance()
 
-      on_exit(fn ->
-        Database.teardown_realm_keyspace!(realm)
-      end)
-
-      {:ok, realm: realm}
+      {:ok, realm_name: realm_name}
     end
 
     test "refreshes datastream_maximum_storage_retention when expired and value is unchanged", %{
-      realm: realm,
+      realm_name: realm,
       encoded_device_id: encoded_device_id,
       device_id: device_id
     } do
@@ -813,7 +802,7 @@ defmodule Astarte.DataUpdaterPlant.TimeBasedActionsTest do
     end
 
     test "refreshes datastream_maximum_storage_retention when expired and value is updated", %{
-      realm: realm,
+      realm_name: realm,
       device_id: device_id,
       encoded_device_id: encoded_device_id
     } do
@@ -837,7 +826,7 @@ defmodule Astarte.DataUpdaterPlant.TimeBasedActionsTest do
     end
 
     test "does not refresh datastream_maximum_storage_retention when not expired", %{
-      realm: realm,
+      realm_name: realm,
       device_id: device_id,
       encoded_device_id: encoded_device_id
     } do
@@ -860,7 +849,7 @@ defmodule Astarte.DataUpdaterPlant.TimeBasedActionsTest do
 
     test "does not refresh datastream_maximum_storage_retention when timestamp equals last refresh",
          %{
-           realm: realm,
+           realm_name: realm,
            device_id: device_id,
            encoded_device_id: encoded_device_id
          } do
@@ -887,7 +876,7 @@ defmodule Astarte.DataUpdaterPlant.TimeBasedActionsTest do
          insert_opts,
          timestamp \\ @timestamp_us_x_10
        ) do
-    Database.insert_device(device_id, realm, insert_opts)
+    insert_device_and_start_data_updater(realm, device_id, insert_opts)
 
     DataUpdater.handle_connection(
       realm,
@@ -908,7 +897,7 @@ defmodule Astarte.DataUpdaterPlant.TimeBasedActionsTest do
          encoded_device_id,
          timestamp \\ @timestamp_us_x_10
        ) do
-    Database.insert_device(device_id, realm, introspection: introspection_map)
+    insert_device_and_start_data_updater(realm, device_id, introspection: introspection_map)
 
     Enum.each(interface_data, fn {interface, path, value, ts} ->
       DataUpdater.handle_data(
@@ -977,7 +966,7 @@ defmodule Astarte.DataUpdaterPlant.TimeBasedActionsTest do
     volatile_trigger_id = :crypto.strong_rand_bytes(16)
     ref = if trigger_type == :data_trigger, do: 2, else: 1
 
-    Database.insert_device(device_id, realm)
+    insert_device_and_start_data_updater(realm, device_id)
 
     :ok =
       DataUpdater.handle_install_volatile_trigger(
@@ -1000,5 +989,13 @@ defmodule Astarte.DataUpdaterPlant.TimeBasedActionsTest do
     )
 
     DataUpdater.dump_state(realm, encoded_device_id)
+  end
+
+  defp insert_device_and_start_data_updater(realm_name, device_id, params \\ []) do
+    encoded_device_id = Astarte.Core.Device.encode_device_id(device_id)
+    Database.insert_device(device_id, realm_name, params)
+
+    setup_data_updater(realm_name, encoded_device_id)
+    :ok
   end
 end
