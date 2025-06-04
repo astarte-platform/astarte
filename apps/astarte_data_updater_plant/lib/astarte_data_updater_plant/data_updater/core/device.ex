@@ -24,6 +24,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.Device do
 
   This module contains functions and utilities to process devices.
   """
+  alias Astarte.DataUpdaterPlant.TimeBasedActions
   alias Astarte.DataUpdaterPlant.Config
   alias Astarte.DataUpdaterPlant.MessageTracker
   alias Astarte.DataUpdaterPlant.DataUpdater.Cache
@@ -32,12 +33,11 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.Device do
   alias Astarte.DataUpdaterPlant.DataUpdater.Queries
   alias Astarte.DataUpdaterPlant.TriggersHandler
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf
-  alias Astarte.DataUpdaterPlant.DataUpdater.Impl
 
   require Logger
 
   def process_introspection(state, new_introspection_list, payload, message_id, timestamp) do
-    new_state = Impl.execute_time_based_actions(state, timestamp)
+    new_state = TimeBasedActions.execute_time_based_actions(state, timestamp)
 
     timestamp_ms = div(timestamp, 10_000)
 

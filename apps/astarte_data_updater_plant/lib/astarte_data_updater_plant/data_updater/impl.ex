@@ -97,7 +97,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
   end
 
   def handle_connection(state, ip_address_string, message_id, timestamp) do
-    new_state = execute_time_based_actions(state, timestamp)
+    new_state = TimeBasedActions.execute_time_based_actions(state, timestamp)
 
     timestamp_ms = div(timestamp, 10_000)
 
@@ -156,7 +156,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
 
   # TODO make this private when all heartbeats will be moved to internal
   def handle_heartbeat(state, message_id, timestamp) do
-    new_state = execute_time_based_actions(state, timestamp)
+    new_state = TimeBasedActions.execute_time_based_actions(state, timestamp)
 
     Queries.maybe_refresh_device_connected!(new_state.realm, new_state.device_id)
 
@@ -212,7 +212,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
 
   def start_device_deletion(state, timestamp) do
     # Device deletion is among time-based actions
-    new_state = execute_time_based_actions(state, timestamp)
+    new_state = TimeBasedActions.execute_time_based_actions(state, timestamp)
 
     {:ok, new_state}
   end
@@ -220,7 +220,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
   def handle_disconnection(state, message_id, timestamp) do
     new_state =
       state
-      |> execute_time_based_actions(timestamp)
+      |> TimeBasedActions.execute_time_based_actions(timestamp)
       |> set_device_disconnected(timestamp)
 
     MessageTracker.ack_delivery(new_state.message_tracker, message_id)
@@ -501,7 +501,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
   end
 
   def handle_data(state, interface, path, payload, message_id, timestamp) do
-    new_state = execute_time_based_actions(state, timestamp)
+    new_state = TimeBasedActions.execute_time_based_actions(state, timestamp)
 
     with :ok <- validate_interface(interface),
          :ok <- validate_path(path),
@@ -1263,7 +1263,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
   end
 
   def handle_control(state, "/producer/properties", <<0, 0, 0, 0>>, message_id, timestamp) do
-    new_state = execute_time_based_actions(state, timestamp)
+    new_state = TimeBasedActions.execute_time_based_actions(state, timestamp)
 
     timestamp_ms = div(timestamp, 10_000)
 
@@ -1281,7 +1281,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
   end
 
   def handle_control(state, "/producer/properties", payload, message_id, timestamp) do
-    new_state = execute_time_based_actions(state, timestamp)
+    new_state = TimeBasedActions.execute_time_based_actions(state, timestamp)
 
     timestamp_ms = div(timestamp, 10_000)
 
@@ -1319,7 +1319,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
   end
 
   def handle_control(state, "/emptyCache", _payload, message_id, timestamp) do
-    new_state = execute_time_based_actions(state, timestamp)
+    new_state = TimeBasedActions.execute_time_based_actions(state, timestamp)
 
     with :ok <- send_control_consumer_properties(state),
          {:ok, new_state} <- resend_all_properties(state),
@@ -1639,25 +1639,6 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
     updated_device_triggers = Map.put(device_triggers, event_type, updated_targets_list)
 
     {:ok, %{state | device_triggers: updated_device_triggers}}
-  end
-
-  def execute_time_based_actions(state, timestamp) do
-    if state.connected && state.last_seen_message > 0 do
-      # timestamps are handled as microseconds*10, so we need to divide by 10 when saving as a metric for a coherent data
-      :telemetry.execute(
-        [:astarte, :data_updater_plant, :service, :connected_devices],
-        %{duration: Integer.floor_div(timestamp - state.last_seen_message, 10)},
-        %{realm: state.realm, status: :ok}
-      )
-    end
-
-    state
-    |> Map.put(:last_seen_message, timestamp)
-    |> TimeBasedActions.reload_groups_on_expiry(timestamp)
-    |> TimeBasedActions.purge_expired_interfaces(timestamp)
-    |> TimeBasedActions.reload_device_triggers_on_expiry(timestamp)
-    |> TimeBasedActions.reload_device_deletion_status_on_expiry(timestamp)
-    |> TimeBasedActions.reload_datastream_maximum_storage_retention_on_expiry(timestamp)
   end
 
   defp prune_device_properties(state, decoded_payload, timestamp) do
