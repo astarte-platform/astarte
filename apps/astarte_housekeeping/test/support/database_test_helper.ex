@@ -17,6 +17,7 @@
 #
 
 defmodule Astarte.Housekeeping.DatabaseTestHelper do
+  alias Astarte.DataAccess.Realm
   alias Astarte.Housekeeping.Queries
   alias Astarte.Housekeeping.Config
   alias Astarte.Core.CQLUtils
@@ -49,6 +50,6 @@ defmodule Astarte.Housekeeping.DatabaseTestHelper do
   end
 
   def realm_cleanup(realm) do
-    Queries.delete_realm(realm)
+    Realm.delete_realm(realm)
   end
 end

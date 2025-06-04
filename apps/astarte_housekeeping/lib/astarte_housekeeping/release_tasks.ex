@@ -22,6 +22,7 @@ defmodule Astarte.Housekeeping.ReleaseTasks do
   alias Astarte.Housekeeping.Config
   alias Astarte.Housekeeping.Migrator
   alias Astarte.Housekeeping.Queries
+  alias Astarte.DataAccess.Keyspace
 
   @start_apps [
     :logger,
@@ -84,7 +85,7 @@ defmodule Astarte.Housekeeping.ReleaseTasks do
   end
 
   defp wait_connection_and_check_astarte_keyspace(retries \\ 60) do
-    case Queries.is_astarte_keyspace_existing() do
+    case Keyspace.keyspace_existing?("astarte") do
       {:ok, exists?} ->
         {:ok, exists?}
 
@@ -109,11 +110,17 @@ defmodule Astarte.Housekeeping.ReleaseTasks do
 
     _ = Logger.info("Starting Xandra connection to #{inspect(Config.xandra_nodes!())}")
 
-    xandra_options =
-      Config.xandra_options!()
-      |> Keyword.put(:name, :xandra)
+    xandra_options = Config.xandra_options!()
 
-    {:ok, _pid} = Xandra.Cluster.start_link(xandra_options)
+    # Xandra housekeeping configuration section
+    {:ok, _pid} = xandra_options |> Keyword.put(:name, :xandra) |> Xandra.Cluster.start_link()
+
+    # Xandra astarte_dataaccess configuration section
+    {:ok, _pid} =
+      xandra_options
+      |> Keyword.put(:name, :astarte_data_access_xandra)
+      |> Keyword.put(:atom_keys, true)
+      |> Xandra.Cluster.start_link()
 
     :ok
   end
