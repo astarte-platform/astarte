@@ -51,6 +51,7 @@ jobs:
     - name: Run dialyzer
       # FIXME: This should be set to fail when dialyzer issues are fixed
       run: mix dialyzer || exit 0
+
   test-coverage:
     name: Build and Test
     runs-on: ubuntu-22.04
@@ -96,7 +97,12 @@ jobs:
       run: mix format --check-formatted
     - name: Compile
       run: mix do compile
+    - name: Wait for Cassandra
+      run: |
+        npm install -g wait-for-cassandra
+        wait-for-cassandra -T 120000 -h ${CASSANDRA_DB_HOST:-cassandra}:${CASSANDRA_DB_PORT:-9042}
     - name: Test and Coverage
       run: mix coveralls.json  --exclude wip -o coverage_results
     - name: Upload coverage report
       uses: codecov/codecov-action@v1
+
