@@ -133,6 +133,15 @@ defmodule Astarte.DataAccess.Repo do
     end
   end
 
+  def safe_fetch_one(queryable, opts \\ []) do
+    try do
+      fetch_one(queryable, opts)
+    rescue
+      error ->
+        handle_xandra_error(error)
+    end
+  end
+
   def safe_insert_all(source, entries, opts \\ []) do
     try do
       {:ok, insert_all(source, entries, opts)}
@@ -167,6 +176,16 @@ defmodule Astarte.DataAccess.Repo do
       )
 
     {:error, :database_connection_error}
+  end
+
+  defp handle_xandra_error(%Ecto.MultipleResultsError{} = error) do
+    _ =
+      Logger.warning(
+        "Database error: #{Exception.message(error)}.",
+        tag: "database_error"
+      )
+
+    {:error, :ecto_multiple_results_error}
   end
 
   defp handle_xandra_error(%Xandra.Error{} = error) do
