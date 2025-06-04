@@ -22,7 +22,7 @@ defmodule Astarte.Import.CLI do
 
   @chunk_size 4096
 
-  def main([realm, file_name]) do
+  def main(realm, file_name, opts \\ []) do
     with {:started, {:ok, _}} <- {:started, Application.ensure_all_started(:astarte_import)},
          true <- String.valid?(realm),
          true <- String.valid?(file_name),
@@ -38,7 +38,7 @@ defmodule Astarte.Import.CLI do
       end
 
       # Call the populate function with the necessary arguments
-      PopulateDB.populate(realm, data, more_data)
+      PopulateDB.populate(realm, data, more_data, opts)
     else
       error ->
         Logger.error("Failed to start import: #{inspect(error)}")
