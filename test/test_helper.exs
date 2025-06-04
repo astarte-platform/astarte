@@ -1,3 +1,4 @@
+Mimic.copy(Xandra)
 ExUnit.start()
 
 children = [
