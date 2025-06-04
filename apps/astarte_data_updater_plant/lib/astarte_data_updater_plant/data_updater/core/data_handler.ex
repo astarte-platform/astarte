@@ -36,34 +36,34 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DataHandler do
   def handle_data(state, interface, path, payload, message_id, timestamp) do
     with :ok <- validate_interface(interface),
          :ok <- validate_path(path),
-         maybe_descriptor <- Map.get(state.interfaces, interface),
          {:ok, interface_descriptor, state} <-
-           Core.Interface.maybe_handle_cache_miss(maybe_descriptor, interface, state),
+           state.interfaces
+           |> Map.get(interface)
+           |> Core.Interface.maybe_handle_cache_miss(interface, state),
          :ok <- can_write_on_interface?(interface_descriptor.ownership),
-         interface_id <- interface_descriptor.interface_id,
          {:ok, mapping} <-
            Core.Interface.resolve_path(path, interface_descriptor, state.mappings),
-         endpoint_id = mapping.endpoint_id,
-         db_retention_policy = mapping.database_retention_policy,
-         db_ttl = mapping.database_retention_ttl,
          {value, value_timestamp, _metadata} <-
            PayloadsDecoder.decode_bson_payload(payload, timestamp),
-         expected_types <-
+         :ok <-
            Core.Interface.extract_expected_types(
              path,
              interface_descriptor,
              mapping,
              state.mappings
-           ),
-         :ok <- validate_value_type(expected_types, value) do
+           )
+           |> validate_value_type(value) do
+      interface_id = interface_descriptor.interface_id
+
+      endpoint_id = mapping.endpoint_id
+      db_retention_policy = mapping.database_retention_policy
+      db_ttl = mapping.database_retention_ttl
       device_id_string = Device.encode_device_id(state.device_id)
 
       maybe_explicit_value_timestamp =
-        if mapping.explicit_timestamp do
-          value_timestamp
-        else
-          div(timestamp, 10000)
-        end
+        if mapping.explicit_timestamp,
+          do: value_timestamp,
+          else: div(timestamp, 10000)
 
       Impl.execute_incoming_data_triggers(
         state,
