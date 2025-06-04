@@ -17,13 +17,26 @@
 #
 
 defmodule Astarte.DataAccess.DatabaseTestHelper do
+  @create_astarte_keyspace """
+  CREATE KEYSPACE astarte
+    WITH
+    replication = {'class': 'SimpleStrategy', 'replication_factor': '1'} AND
+    durable_writes = true;
+  """
+
   @create_autotestrealm """
     CREATE KEYSPACE autotestrealm
       WITH
         replication = {'class': 'SimpleStrategy', 'replication_factor': '1'} AND
         durable_writes = true;
   """
-
+  @create_realms_table """
+  CREATE TABLE astarte.realms (
+    realm_name varchar,
+    device_registration_limit bigint,
+    PRIMARY KEY (realm_name)
+  );
+  """
   @create_kv_store """
     CREATE TABLE autotestrealm.kv_store (
       group varchar,
@@ -398,6 +411,21 @@ defmodule Astarte.DataAccess.DatabaseTestHelper do
         Xandra.execute!(conn, @create_individual_datastreams_table)
         Xandra.execute!(conn, @create_test_object_table)
         Xandra.execute!(conn, @create_interfaces_table)
+        :ok
+
+      {:error, msg} ->
+        {:error, msg}
+    end
+  end
+
+  def create_astarte_keyspace(conn) do
+    Xandra.execute!(conn, @create_astarte_keyspace)
+    Xandra.execute!(conn, @create_realms_table)
+  end
+
+  def destroy_astarte_keyspace(conn) do
+    case Xandra.execute(conn, "DROP KEYSPACE astarte;") do
+      {:ok, _} ->
         :ok
 
       {:error, msg} ->
