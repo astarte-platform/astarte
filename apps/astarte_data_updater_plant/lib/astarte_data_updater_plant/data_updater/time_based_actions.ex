@@ -187,7 +187,7 @@ defmodule Astarte.DataUpdaterPlant.TimeBasedActions do
          @datastream_maximum_retention_refresh_lifespan_decimicroseconds <=
          timestamp do
       # TODO this could be a bang!
-      case Queries.fetch_datastream_maximum_storage_retention(state.realm) do
+      case Queries.get_datastream_maximum_storage_retention(state.realm) do
         {:ok, ttl} ->
           %State{
             state

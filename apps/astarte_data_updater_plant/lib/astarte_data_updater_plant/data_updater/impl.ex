@@ -79,7 +79,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
       Queries.retrieve_device_stats_and_introspection!(new_state.realm, device_id)
 
     # TODO this could be a bang!
-    {:ok, ttl} = Queries.fetch_datastream_maximum_storage_retention(new_state.realm)
+    {:ok, ttl} = Queries.get_datastream_maximum_storage_retention(new_state.realm)
 
     Map.merge(new_state, stats_and_introspection)
     |> Map.put(:datastream_maximum_storage_retention, ttl)

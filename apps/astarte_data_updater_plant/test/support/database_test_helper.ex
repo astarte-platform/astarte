@@ -32,7 +32,7 @@ defmodule Astarte.DataUpdaterPlant.DatabaseTestHelper do
   alias Astarte.DataAccess.Realms.Realm
   alias Astarte.DataAccess.Realms.SimpleTrigger
   alias Astarte.DataUpdaterPlant.AMQPTestHelper
-  alias Astarte.DataUpdaterPlant.Repo
+  alias Astarte.DataAccess.Repo
 
   @test_realm "autotestrealm"
 

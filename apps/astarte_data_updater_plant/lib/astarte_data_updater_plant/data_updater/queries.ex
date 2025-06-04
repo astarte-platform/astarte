@@ -30,7 +30,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
   alias Astarte.DataAccess.Realms.IndividualProperty
   alias Astarte.DataAccess.KvStore
   alias Astarte.DataAccess.Realms.Realm
-  alias Astarte.DataUpdaterPlant.Repo
+  alias Astarte.DataAccess.Repo
   import Ecto.Query
   require Logger
 
@@ -511,10 +511,10 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
       |> put_query_prefix(keyspace_name)
 
     case Repo.fetch_one(query, consistency: Consistency.device_info(:read)) do
-      n when is_number(n) ->
+      {:ok, n} ->
         {:ok, n}
 
-      nil ->
+      {:error, :not_found} ->
         {:error, :device_not_found}
 
       {:error, reason} ->
@@ -568,7 +568,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
 
     consistency = Consistency.device_info(:read)
 
-    with minors when is_map(minors) <- Repo.fetch_one(query, consistency: consistency) do
+    with {:ok, minors} <- Repo.fetch_one(query, consistency: consistency) do
       {:ok, minors}
     end
   end
@@ -584,7 +584,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
 
     consistency = Consistency.device_info(:read)
 
-    with groups when is_map(groups) <- Repo.fetch_one(query, consistency: consistency) do
+    with {:ok, groups} <- Repo.fetch_one(query, consistency: consistency) do
       {:ok, Map.keys(groups)}
     end
   end
@@ -722,8 +722,8 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
       |> put_query_prefix(keyspace_name)
 
     case Repo.fetch_one(query, consistency: Consistency.device_info(:read)) do
-      device_id when is_binary(device_id) -> {:ok, true}
-      nil -> {:ok, false}
+      {:ok, _} -> {:ok, true}
+      {:error, :not_found} -> {:ok, false}
       {:error, reason} -> {:error, reason}
     end
   end
@@ -765,7 +765,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
     |> Repo.all(consistency: Consistency.device_info(:read))
   end
 
-  def fetch_datastream_maximum_storage_retention(realm) do
+  def get_datastream_maximum_storage_retention(realm) do
     keyspace_name = Realm.keyspace_name(realm)
 
     query =
@@ -776,8 +776,10 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
 
     consistency = Consistency.domain_model(:read)
 
-    with n when is_number(n) or is_nil(n) <- Repo.fetch_one(query, consistency: consistency) do
-      {:ok, n}
+    case Repo.safe_fetch_one(query, consistency: consistency) do
+      {:ok, n} -> {:ok, n}
+      {:error, :not_found} -> {:ok, nil}
+      {:error, reason} -> {:error, reason}
     end
   end
 
@@ -802,13 +804,13 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
     consistency = Consistency.device_info(:read)
 
     case Repo.fetch_all(q, consistency: consistency) do
-      [] ->
+      {:ok, []} ->
         {:error, :property_not_set}
 
-      [nil] ->
+      {:ok, [nil]} ->
         {:ok, :no_expiry}
 
-      [ttl] when is_integer(ttl) ->
+      {:ok, [ttl]} when is_integer(ttl) ->
         expiry_datetime =
           DateTime.utc_now()
           |> DateTime.to_unix()
