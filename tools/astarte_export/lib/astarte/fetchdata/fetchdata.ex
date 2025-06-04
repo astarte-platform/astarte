@@ -13,8 +13,8 @@ defmodule Astarte.Export.FetchData do
     booleanarray: :boolean
   }
 
-  def db_connection_identifier() do
-    with {:ok, conn_ref} <- Queries.get_connection() do
+  def db_connection_identifier(opts \\ []) do
+    with {:ok, conn_ref} <- Queries.get_connection(opts) do
       {:ok, conn_ref}
     else
       _ -> {:error, :connection_setup_failed}

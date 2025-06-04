@@ -6,12 +6,22 @@ defmodule Astarte.Export.FetchData.Queries do
 
   require Logger
 
-  def get_connection() do
-    host = System.get_env("CASSANDRA_DB_HOST")
-    port = System.get_env("CASSANDRA_DB_PORT")
-    Logger.info("Connecting to #{inspect(host)}:#{inspect(port)} cassandra database.")
+  def get_connection(opts \\ []) do
+    db_host_and_port = Keyword.get(opts, :db_host_and_port)
 
-    with {:ok, xandra_conn} <- Xandra.start_link(nodes: ["#{host}:#{port}"], atom_keys: true) do
+    [db_host, db_port] =
+      case db_host_and_port do
+        nil ->
+          [System.get_env("CASSANDRA_DB_HOST"), System.get_env("CASSANDRA_DB_PORT")]
+
+        _ ->
+          String.split(db_host_and_port, ":")
+      end
+
+    Logger.info("Connecting to #{inspect(db_host)}:#{inspect(db_port)} cassandra database.")
+
+    with {:ok, xandra_conn} <-
+           Xandra.start_link(nodes: ["#{db_host}:#{db_port}"], atom_keys: true) do
       Logger.info("Connected to database.")
       {:ok, xandra_conn}
     else
