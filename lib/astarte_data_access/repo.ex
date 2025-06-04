@@ -117,7 +117,7 @@ defmodule Astarte.DataAccess.Repo do
   def fetch_all(queryable, opts \\ []) do
     try do
       {:ok, all(queryable, opts)}
-    catch
+    rescue
       error ->
         handle_database_error(error)
     end
@@ -145,7 +145,7 @@ defmodule Astarte.DataAccess.Repo do
   def safe_insert_all(source, entries, opts \\ []) do
     try do
       {:ok, insert_all(source, entries, opts)}
-    catch
+    rescue
       error ->
         handle_database_error(error)
     end
@@ -154,7 +154,7 @@ defmodule Astarte.DataAccess.Repo do
   def safe_update_all(queryable, updates, opts \\ []) do
     try do
       {:ok, update_all(queryable, updates, opts)}
-    catch
+    rescue
       error ->
         handle_database_error(error)
     end
@@ -163,7 +163,7 @@ defmodule Astarte.DataAccess.Repo do
   def safe_delete_all(queryable, opts \\ []) do
     try do
       {:ok, delete_all(queryable, opts)}
-    catch
+    rescue
       error ->
         handle_database_error(error)
     end
