@@ -4,63 +4,77 @@ codecov:
 coverage:
   range: 60..80
   round: down
-  precision: 1
   status:
-    patch: off
     project:
       default:
         threshold: 1%
         branches:
           - "!master"
+        flags:
+          - astarte_appengine_api
+          - astarte_data_updater_plant
+          - astarte_housekeeping
+          - astarte_housekeeping_api
+          - astarte_pairing
+          - astarte_pairing_api
+          - astarte_realm_management
+          - astarte_realm_management_api
+          - astarte_trigger_engine
 
 ignore:
   - "apps/*/test"
 
 comment:
-  layout: "header, diff, files, components"
+  layout: "header, diff, files, flags"
   require_changes: yes
 
-component_management:
+
+flag_management:
   default_rules:
+    carryforward: true
     statuses:
       - type: project
         target: auto
+        threshold: 1%
         branches:
           - "!master"
-  individual_components:
-    - component_id:  astarte_appengine_api
-      name: AppEngine API
-      paths:
-        - apps/astarte_appengine_api
-    - component_id:  astarte_data_updater_plant
-      name: Data Updater Plant
-      paths:
-        - apps/astarte_data_updater_plant
-    - component_id: astarte_housekeeping
-      name: Housekeeping
-      paths:
-        - apps/astarte_housekeeping
-    - component_id: astarte_housekeeping_api
-      name: Housekeeping API
-      paths:
-        - apps/astarte_housekeeping_api
-    - component_id: astarte_pairing
-      name: Pairing
-      paths:
-        - apps/astarte_pairing
-    - component_id: astarte_pairing_api
-      name: Pairing API
-      paths:
-        - apps/astarte_pairing_api
-    - component_id: astarte_realm_management
-      name: Realm Management
-      paths:
-        - apps/astarte_realm_management
-    - component_id: astarte_realm_management_api
-      name: Realm Management API
-      paths:
-        - apps/astarte_realm_management_api
-    - component_id: astarte_trigger_engine
-      name: Trigger Engine
-      paths:
-        - apps/astarte_trigger_engine
+      - type: patch
+        target: 90%
+
+flags:
+  astarte_appengine_api:
+    carryforward: true
+    paths:
+      - apps/astarte_appengine_api
+  astarte_data_updater_plant:
+    carryforward: true
+    paths:
+      - apps/astarte_data_updater_plant
+  astarte_housekeeping:
+    carryforward: true
+    paths:
+      - apps/astarte_housekeeping
+  astarte_housekeeping_api:
+    carryforward: true
+    paths:
+      - apps/astarte_housekeeping_api
+  astarte_pairing:
+    carryforward: true
+    paths:
+      - apps/astarte_pairing
+  astarte_pairing_api:
+    carryforward: true
+    paths:
+      - apps/astarte_pairing_api
+  astarte_realm_management:
+    carryforward: true
+    paths:
+      - apps/astarte_realm_management
+  astarte_realm_management_api:
+    carryforward: true
+    paths:
+      - apps/astarte_realm_management_api
+  astarte_trigger_engine:
+    carryforward: true
+    paths:
+      - apps/astarte_trigger_engine
