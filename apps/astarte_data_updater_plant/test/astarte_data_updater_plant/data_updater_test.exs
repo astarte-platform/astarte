@@ -47,7 +47,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
   alias Astarte.DataUpdaterPlant.AMQPTestHelper
   alias Astarte.DataUpdaterPlant.DatabaseTestHelper
   alias Astarte.DataUpdaterPlant.DataUpdater
-  alias Astarte.DataUpdaterPlant.Repo
+  alias Astarte.DataAccess.Repo
   alias Astarte.Core.CQLUtils
 
   setup :verify_on_exit!
