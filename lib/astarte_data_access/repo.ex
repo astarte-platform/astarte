@@ -119,7 +119,7 @@ defmodule Astarte.DataAccess.Repo do
       {:ok, all(queryable, opts)}
     catch
       error ->
-        handle_xandra_error(error)
+        handle_database_error(error)
     end
   end
 
@@ -133,12 +133,21 @@ defmodule Astarte.DataAccess.Repo do
     end
   end
 
+  def safe_fetch_one(queryable, opts \\ []) do
+    try do
+      fetch_one(queryable, opts)
+    rescue
+      error ->
+        handle_database_error(error)
+    end
+  end
+
   def safe_insert_all(source, entries, opts \\ []) do
     try do
       {:ok, insert_all(source, entries, opts)}
     catch
       error ->
-        handle_xandra_error(error)
+        handle_database_error(error)
     end
   end
 
@@ -147,7 +156,7 @@ defmodule Astarte.DataAccess.Repo do
       {:ok, update_all(queryable, updates, opts)}
     catch
       error ->
-        handle_xandra_error(error)
+        handle_database_error(error)
     end
   end
 
@@ -156,11 +165,11 @@ defmodule Astarte.DataAccess.Repo do
       {:ok, delete_all(queryable, opts)}
     catch
       error ->
-        handle_xandra_error(error)
+        handle_database_error(error)
     end
   end
 
-  defp handle_xandra_error(%Xandra.ConnectionError{} = error) do
+  defp handle_database_error(%Xandra.ConnectionError{} = error) do
     _ =
       Logger.warning("Database connection error #{Exception.message(error)}.",
         tag: "database_connection_error"
@@ -169,7 +178,17 @@ defmodule Astarte.DataAccess.Repo do
     {:error, :database_connection_error}
   end
 
-  defp handle_xandra_error(%Xandra.Error{} = error) do
+  defp handle_database_error(%Ecto.MultipleResultsError{} = error) do
+    _ =
+      Logger.warning(
+        "Database query error: #{Exception.message(error)}.",
+        tag: "multiple_results_error"
+      )
+
+    {:error, :multiple_results}
+  end
+
+  defp handle_database_error(%Xandra.Error{} = error) do
     %Xandra.Error{message: message} = error
 
     case Regex.run(~r/Keyspace (.*) does not exist/, message) do

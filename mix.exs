@@ -77,7 +77,8 @@ defmodule Astarte.DataAccess.Mixfile do
       {:excoveralls, "~> 0.15", only: :test},
       {:castore, "~> 1.0.0"},
       {:ex_doc, ">= 0.0.0", only: :dev, runtime: false},
-      {:dialyxir, "~> 1.4", only: [:dev, :ci], runtime: false}
+      {:dialyxir, "~> 1.4", only: [:dev, :ci], runtime: false},
+      {:mimic, "~> 1.7.4", only: :test}
     ]
   end
 
