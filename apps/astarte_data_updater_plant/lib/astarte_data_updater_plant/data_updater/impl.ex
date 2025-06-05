@@ -197,14 +197,14 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
     }
 
     # TODO maybe we don't want triggers on unexpected internal messages?
-    execute_device_error_triggers(
+    Core.Trigger.execute_device_error_triggers(
       new_state,
       "unexpected_internal_message",
       error_metadata,
       timestamp
     )
 
-    {:continue, update_stats(new_state, "", nil, path, payload)}
+    {:continue, Core.DataHandler.update_stats(new_state, "", nil, path, payload)}
   end
 
   def start_device_deletion(state, timestamp) do
@@ -226,272 +226,6 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
     %{new_state | last_seen_message: timestamp}
   end
 
-  def execute_incoming_data_triggers(
-        state,
-        device,
-        interface,
-        interface_id,
-        path,
-        endpoint_id,
-        payload,
-        value,
-        timestamp
-      ) do
-    realm = state.realm
-
-    # any interface triggers
-    Core.Interface.get_on_data_triggers(state, :on_incoming_data, :any_interface, :any_endpoint)
-    |> Enum.each(fn trigger ->
-      target_with_policy_list = get_target_with_policy_list(state, trigger)
-
-      TriggersHandler.incoming_data(
-        target_with_policy_list,
-        realm,
-        device,
-        interface,
-        path,
-        payload,
-        timestamp
-      )
-    end)
-
-    # any endpoint triggers
-    Core.Interface.get_on_data_triggers(state, :on_incoming_data, interface_id, :any_endpoint)
-    |> Enum.each(fn trigger ->
-      target_with_policy_list = get_target_with_policy_list(state, trigger)
-
-      TriggersHandler.incoming_data(
-        target_with_policy_list,
-        realm,
-        device,
-        interface,
-        path,
-        payload,
-        timestamp
-      )
-    end)
-
-    # incoming data triggers
-    Core.Interface.get_on_data_triggers(
-      state,
-      :on_incoming_data,
-      interface_id,
-      endpoint_id,
-      path,
-      value
-    )
-    |> Enum.each(fn trigger ->
-      target_with_policy_list = get_target_with_policy_list(state, trigger)
-
-      TriggersHandler.incoming_data(
-        target_with_policy_list,
-        realm,
-        device,
-        interface,
-        path,
-        payload,
-        timestamp
-      )
-    end)
-
-    :ok
-  end
-
-  defp get_target_with_policy_list(state, trigger) do
-    trigger.trigger_targets
-    |> Enum.map(fn target ->
-      {target, Map.get(state.trigger_id_to_policy_name, target.parent_trigger_id)}
-    end)
-  end
-
-  def get_value_change_triggers(state, interface_id, endpoint_id, path, value) do
-    value_change_triggers =
-      Core.Interface.get_on_data_triggers(
-        state,
-        :on_value_change,
-        interface_id,
-        endpoint_id,
-        path,
-        value
-      )
-
-    value_change_applied_triggers =
-      Core.Interface.get_on_data_triggers(
-        state,
-        :on_value_change_applied,
-        interface_id,
-        endpoint_id,
-        path,
-        value
-      )
-
-    path_created_triggers =
-      Core.Interface.get_on_data_triggers(
-        state,
-        :on_path_created,
-        interface_id,
-        endpoint_id,
-        path,
-        value
-      )
-
-    path_removed_triggers =
-      Core.Interface.get_on_data_triggers(
-        state,
-        :on_path_removed,
-        interface_id,
-        endpoint_id,
-        path
-      )
-
-    if value_change_triggers != [] or value_change_applied_triggers != [] or
-         path_created_triggers != [] do
-      {:ok,
-       {value_change_triggers, value_change_applied_triggers, path_created_triggers,
-        path_removed_triggers}}
-    else
-      {:no_value_change_triggers, nil}
-    end
-  end
-
-  def execute_pre_change_triggers(
-        {value_change_triggers, _, _, _},
-        realm,
-        device_id_string,
-        interface_name,
-        path,
-        previous_value,
-        value,
-        timestamp,
-        trigger_id_to_policy_name_map
-      ) do
-    old_bson_value = Cyanide.encode!(%{v: previous_value})
-    payload = Cyanide.encode!(%{v: value})
-
-    if previous_value != value do
-      Enum.each(value_change_triggers, fn trigger ->
-        trigger_target_with_policy_list =
-          trigger.trigger_targets
-          |> Enum.map(fn target ->
-            {target, Map.get(trigger_id_to_policy_name_map, target.parent_trigger_id)}
-          end)
-
-        TriggersHandler.value_change(
-          trigger_target_with_policy_list,
-          realm,
-          device_id_string,
-          interface_name,
-          path,
-          old_bson_value,
-          payload,
-          timestamp
-        )
-      end)
-    end
-
-    :ok
-  end
-
-  def execute_post_change_triggers(
-        {_, value_change_applied_triggers, path_created_triggers, path_removed_triggers},
-        realm,
-        device,
-        interface,
-        path,
-        previous_value,
-        value,
-        timestamp,
-        trigger_id_to_policy_name_map
-      ) do
-    old_bson_value = Cyanide.encode!(%{v: previous_value})
-    payload = Cyanide.encode!(%{v: value})
-
-    if previous_value == nil and value != nil do
-      Enum.each(path_created_triggers, fn trigger ->
-        target_with_policy_list =
-          trigger.trigger_targets
-          |> Enum.map(fn target ->
-            {target, Map.get(trigger_id_to_policy_name_map, target.parent_trigger_id)}
-          end)
-
-        TriggersHandler.path_created(
-          target_with_policy_list,
-          realm,
-          device,
-          interface,
-          path,
-          payload,
-          timestamp
-        )
-      end)
-    end
-
-    if previous_value != nil and value == nil do
-      Enum.each(path_removed_triggers, fn trigger ->
-        target_with_policy_list =
-          trigger.trigger_targets
-          |> Enum.map(fn target ->
-            {target, Map.get(trigger_id_to_policy_name_map, target.parent_trigger_id)}
-          end)
-
-        TriggersHandler.path_removed(
-          target_with_policy_list,
-          realm,
-          device,
-          interface,
-          path,
-          timestamp
-        )
-      end)
-    end
-
-    if previous_value != value do
-      Enum.each(value_change_applied_triggers, fn trigger ->
-        target_with_policy_list =
-          trigger.trigger_targets
-          |> Enum.map(fn target ->
-            {target, Map.get(trigger_id_to_policy_name_map, target.parent_trigger_id)}
-          end)
-
-        TriggersHandler.value_change_applied(
-          target_with_policy_list,
-          realm,
-          device,
-          interface,
-          path,
-          old_bson_value,
-          payload,
-          timestamp
-        )
-      end)
-    end
-
-    :ok
-  end
-
-  def execute_device_error_triggers(state, error_name, error_metadata \\ %{}, timestamp) do
-    timestamp_ms = div(timestamp, 10_000)
-
-    trigger_target_with_policy_list =
-      Map.get(state.device_triggers, :on_device_error, [])
-      |> Enum.map(fn target ->
-        {target, Map.get(state.trigger_id_to_policy_name, target.parent_trigger_id)}
-      end)
-
-    device_id_string = Device.encode_device_id(state.device_id)
-
-    TriggersHandler.device_error(
-      trigger_target_with_policy_list,
-      state.realm,
-      device_id_string,
-      error_name,
-      error_metadata,
-      timestamp_ms
-    )
-
-    :ok
-  end
-
   def handle_data(%State{discard_messages: true} = state, _, _, _, message_id, _) do
     MessageTracker.discard(state.message_tracker, message_id)
     state
@@ -500,66 +234,6 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
   def handle_data(state, interface, path, payload, message_id, timestamp) do
     TimeBasedActions.execute_time_based_actions(state, timestamp)
     |> Core.DataHandler.handle_data(interface, path, payload, message_id, timestamp)
-  end
-
-  defp update_stats(state, interface, major, path, payload) do
-    exchanged_bytes = byte_size(payload) + byte_size(interface) + byte_size(path)
-
-    :telemetry.execute(
-      [:astarte, :data_updater_plant, :data_updater, :exchanged_bytes],
-      %{bytes: exchanged_bytes},
-      %{realm: state.realm}
-    )
-
-    %{
-      state
-      | total_received_msgs: state.total_received_msgs + 1,
-        total_received_bytes: state.total_received_bytes + exchanged_bytes
-    }
-    |> update_interface_stats(interface, major, path, payload)
-  end
-
-  defp update_interface_stats(state, interface, major, _path, _payload)
-       when interface == "" or major == nil do
-    # Skip when we can't identify a specific major or interface is empty (e.g. control messages)
-    # TODO: restructure code to access major version even in the else branch of handle_data
-    state
-  end
-
-  defp update_interface_stats(state, interface, major, path, payload) do
-    %State{
-      initial_interface_exchanged_bytes: initial_interface_exchanged_bytes,
-      initial_interface_exchanged_msgs: initial_interface_exchanged_msgs,
-      interface_exchanged_bytes: interface_exchanged_bytes,
-      interface_exchanged_msgs: interface_exchanged_msgs
-    } = state
-
-    bytes = byte_size(payload) + byte_size(interface) + byte_size(path)
-
-    # If present, get exchanged bytes from live count, otherwise fallback to initial
-    # count and in case nothing is there too, fallback to 0
-    exchanged_bytes =
-      Map.get_lazy(interface_exchanged_bytes, {interface, major}, fn ->
-        Map.get(initial_interface_exchanged_bytes, {interface, major}, 0)
-      end)
-
-    # As above but with msgs
-    exchanged_msgs =
-      Map.get_lazy(interface_exchanged_msgs, {interface, major}, fn ->
-        Map.get(initial_interface_exchanged_msgs, {interface, major}, 0)
-      end)
-
-    updated_interface_exchanged_bytes =
-      Map.put(interface_exchanged_bytes, {interface, major}, exchanged_bytes + bytes)
-
-    updated_interface_exchanged_msgs =
-      Map.put(interface_exchanged_msgs, {interface, major}, exchanged_msgs + 1)
-
-    %{
-      state
-      | interface_exchanged_bytes: updated_interface_exchanged_bytes,
-        interface_exchanged_msgs: updated_interface_exchanged_msgs
-    }
   end
 
   def handle_introspection(%State{discard_messages: true} = state, _, message_id, _) do
@@ -597,14 +271,14 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
           "base64_payload" => base64_payload
         }
 
-        execute_device_error_triggers(
+        Core.Trigger.execute_device_error_triggers(
           new_state,
           "invalid_introspection",
           error_metadata,
           timestamp
         )
 
-        update_stats(new_state, "", nil, "", payload)
+        Core.DataHandler.update_stats(new_state, "", nil, "", payload)
     end
   end
 
@@ -697,7 +371,11 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
           %{realm: new_state.realm}
         )
 
-        execute_device_error_triggers(new_state, "device_session_not_found", timestamp)
+        Core.Trigger.execute_device_error_triggers(
+          new_state,
+          "device_session_not_found",
+          timestamp
+        )
 
         new_state
 
@@ -715,7 +393,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
           %{realm: new_state.realm}
         )
 
-        execute_device_error_triggers(
+        Core.Trigger.execute_device_error_triggers(
           new_state,
           "resend_interface_properties_failed",
           timestamp
@@ -739,7 +417,12 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
 
         error_metadata = %{"reason" => inspect(reason)}
 
-        execute_device_error_triggers(new_state, "empty_cache_error", error_metadata, timestamp)
+        Core.Trigger.execute_device_error_triggers(
+          new_state,
+          "empty_cache_error",
+          error_metadata,
+          timestamp
+        )
 
         new_state
     end
@@ -767,14 +450,14 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
       "base64_payload" => base64_payload
     }
 
-    execute_device_error_triggers(
+    Core.Trigger.execute_device_error_triggers(
       new_state,
       "unexpected_control_message",
       error_metadata,
       timestamp
     )
 
-    update_stats(new_state, "", nil, path, payload)
+    Core.DataHandler.update_stats(new_state, "", nil, path, payload)
   end
 
   def handle_install_volatile_trigger(

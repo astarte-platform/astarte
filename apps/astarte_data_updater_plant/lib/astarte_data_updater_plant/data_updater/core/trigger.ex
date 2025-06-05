@@ -24,6 +24,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.Trigger do
 
   This module contains functions and utilities to process triggers.
   """
+  alias Astarte.Core.Device
   alias Astarte.DataUpdaterPlant.DataUpdater.Core
   alias Astarte.DataUpdaterPlant.DataUpdater.State
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.AMQPTriggerTarget
@@ -158,6 +159,144 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.Trigger do
       state,
       &populate_triggers_for_object!(&2, &1, :group_and_interface)
     )
+  end
+
+  def execute_pre_change_triggers(
+        {value_change_triggers, _, _, _},
+        realm,
+        device_id_string,
+        interface_name,
+        path,
+        previous_value,
+        value,
+        timestamp,
+        trigger_id_to_policy_name_map
+      ) do
+    old_bson_value = Cyanide.encode!(%{v: previous_value})
+    payload = Cyanide.encode!(%{v: value})
+
+    if previous_value != value do
+      Enum.each(value_change_triggers, fn trigger ->
+        trigger_target_with_policy_list =
+          trigger.trigger_targets
+          |> Enum.map(fn target ->
+            {target, Map.get(trigger_id_to_policy_name_map, target.parent_trigger_id)}
+          end)
+
+        TriggersHandler.value_change(
+          trigger_target_with_policy_list,
+          realm,
+          device_id_string,
+          interface_name,
+          path,
+          old_bson_value,
+          payload,
+          timestamp
+        )
+      end)
+    end
+
+    :ok
+  end
+
+  def execute_post_change_triggers(
+        {_, value_change_applied_triggers, path_created_triggers, path_removed_triggers},
+        realm,
+        device,
+        interface,
+        path,
+        previous_value,
+        value,
+        timestamp,
+        trigger_id_to_policy_name_map
+      ) do
+    old_bson_value = Cyanide.encode!(%{v: previous_value})
+    payload = Cyanide.encode!(%{v: value})
+
+    if previous_value == nil and value != nil do
+      Enum.each(path_created_triggers, fn trigger ->
+        target_with_policy_list =
+          trigger.trigger_targets
+          |> Enum.map(fn target ->
+            {target, Map.get(trigger_id_to_policy_name_map, target.parent_trigger_id)}
+          end)
+
+        TriggersHandler.path_created(
+          target_with_policy_list,
+          realm,
+          device,
+          interface,
+          path,
+          payload,
+          timestamp
+        )
+      end)
+    end
+
+    if previous_value != nil and value == nil do
+      Enum.each(path_removed_triggers, fn trigger ->
+        target_with_policy_list =
+          trigger.trigger_targets
+          |> Enum.map(fn target ->
+            {target, Map.get(trigger_id_to_policy_name_map, target.parent_trigger_id)}
+          end)
+
+        TriggersHandler.path_removed(
+          target_with_policy_list,
+          realm,
+          device,
+          interface,
+          path,
+          timestamp
+        )
+      end)
+    end
+
+    if previous_value != value do
+      Enum.each(value_change_applied_triggers, fn trigger ->
+        target_with_policy_list =
+          trigger.trigger_targets
+          |> Enum.map(fn target ->
+            {target, Map.get(trigger_id_to_policy_name_map, target.parent_trigger_id)}
+          end)
+
+        TriggersHandler.value_change_applied(
+          target_with_policy_list,
+          realm,
+          device,
+          interface,
+          path,
+          old_bson_value,
+          payload,
+          timestamp
+        )
+      end)
+    end
+
+    :ok
+  end
+
+  def execute_device_error_triggers(state, error_name, error_metadata \\ %{}, timestamp) do
+    timestamp_ms = div(timestamp, 10_000)
+
+    trigger_target_with_policy_list =
+      Map.get(state.device_triggers, :on_device_error, [])
+      |> Enum.map(fn target ->
+        {target, Map.get(state.trigger_id_to_policy_name, target.parent_trigger_id)}
+      end)
+
+    device_id_string = Device.encode_device_id(state.device_id)
+
+    TriggersHandler.device_error(
+      trigger_target_with_policy_list,
+      state.realm,
+      device_id_string,
+      error_name,
+      error_metadata,
+      timestamp_ms
+    )
+
+    :ok
   end
 
   defp device_trigger_to_key(event_type, proto_buf_device_trigger) do
