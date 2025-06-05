@@ -79,8 +79,10 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DataHandler do
       {has_change_triggers, change_triggers} =
         Core.Interface.get_value_change_triggers(state, interface_id, endpoint_id, path, value)
 
+      has_change_triggers = has_change_triggers == :ok
+
       previous_value =
-        with {:has_change_triggers, :ok} <- {:has_change_triggers, has_change_triggers},
+        with true <- has_change_triggers,
              {:ok, property_value} <-
                Data.fetch_property(
                  state.realm,
@@ -90,15 +92,9 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DataHandler do
                  path
                ) do
           property_value
-        else
-          {:has_change_triggers, _not_ok} ->
-            nil
-
-          {:error, :property_not_set} ->
-            nil
         end
 
-      if has_change_triggers == :ok do
+      with true <- has_change_triggers do
         :ok =
           Core.Trigger.execute_pre_change_triggers(
             change_triggers,
@@ -115,20 +111,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DataHandler do
 
       realm_max_ttl = state.datastream_maximum_storage_retention
 
-      db_max_ttl =
-        cond do
-          db_retention_policy == :use_ttl and is_integer(realm_max_ttl) ->
-            min(db_ttl, realm_max_ttl)
-
-          db_retention_policy == :use_ttl ->
-            db_ttl
-
-          is_integer(realm_max_ttl) ->
-            realm_max_ttl
-
-          true ->
-            nil
-        end
+      db_max_ttl = max_ttl(db_retention_policy, realm_max_ttl, db_ttl)
 
       cond do
         interface_descriptor.type == :datastream and value != nil ->
@@ -238,7 +221,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DataHandler do
           )
 
         :ok ->
-          if has_change_triggers == :ok do
+          with true <- has_change_triggers do
             :ok =
               Core.Trigger.execute_post_change_triggers(
                 change_triggers,
@@ -684,7 +667,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DataHandler do
     end
   end
 
-  defp update_stats(state, interface, major, path, payload) do
+  def update_stats(state, interface, major, path, payload) do
     exchanged_bytes = byte_size(payload) + byte_size(interface) + byte_size(path)
 
     :telemetry.execute(
@@ -743,4 +726,14 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DataHandler do
         interface_exchanged_msgs: updated_interface_exchanged_msgs
     }
   end
+
+  defp max_ttl(:use_ttl, realm_max_ttl, db_ttl) when is_integer(realm_max_ttl),
+    do: min(db_ttl, realm_max_ttl)
+
+  defp max_ttl(:use_ttl, _, db_ttl), do: db_ttl
+
+  defp max_ttl(_db_retention_policy, realm_max_ttl, _db_ttl) when is_integer(realm_max_ttl),
+    do: realm_max_ttl
+
+  defp max_ttl(_, _, _), do: nil
 end
