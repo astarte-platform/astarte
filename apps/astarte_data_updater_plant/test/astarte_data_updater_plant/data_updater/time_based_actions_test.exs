@@ -867,6 +867,33 @@ defmodule Astarte.DataUpdaterPlant.TimeBasedActionsTest do
       assert new_state.datastream_maximum_storage_retention == nil
       assert new_state.last_datastream_maximum_retention_refresh == @timestamp_us_x_10
     end
+
+    test "does not update datastream_maximum_storage_retention if fetch returns :error",
+         %{
+           realm_name: realm,
+           device_id: device_id,
+           encoded_device_id: encoded_device_id
+         } do
+      # Insert initial device state
+      state = setup_device_state(realm, device_id, encoded_device_id, [])
+
+      # Simulate error scenario: update the state to use a nonexistent realm
+      nonexistent_realm = "nonexistentrealm#{System.unique_integer([:positive])}"
+      state = %{state | realm: nonexistent_realm}
+
+      new_state =
+        TimeBasedActions.reload_datastream_maximum_storage_retention_on_expiry(
+          state,
+          @timestamp2_us_x_10
+        )
+
+      # State should remain unchanged
+      assert new_state.last_datastream_maximum_retention_refresh ==
+               state.last_datastream_maximum_retention_refresh
+
+      assert new_state.datastream_maximum_storage_retention ==
+               state.datastream_maximum_storage_retention
+    end
   end
 
   defp setup_device_state(
