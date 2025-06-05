@@ -40,6 +40,8 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.InterfaceTest do
 
   @interface_lifespan_decimicroseconds 60 * 10 * 1000 * 10000
 
+  setup_all :populate_interfaces
+
   setup_all %{realm_name: realm_name, device: device} do
     setup_data_updater(realm_name, device.encoded_id)
     state = DataUpdater.dump_state(realm_name, device.encoded_id)
@@ -234,6 +236,65 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.InterfaceTest do
                    mapping.endpoint_id not in endpoint_ids
                  end)
                end)
+      end
+    end
+
+    property "gather_interface_property_paths/2 gets properties paths of server owned interfaces, progressively inserted",
+             context do
+      %{
+        state: state,
+        interfaces_with_data: interfaces,
+        registered_paths: registered_paths,
+        individual_properties_server_interface: individual_properties_server_interface
+      } = context
+
+      valid_interfaces =
+        interfaces |> Enum.filter(&(&1.type == :properties and &1.ownership == :server))
+
+      check all interface <- member_of(valid_interfaces) do
+        descriptor = state.interfaces[interface.name]
+
+        retrieved_paths =
+          Core.Interface.gather_interface_property_paths(
+            state,
+            descriptor
+          )
+          |> Enum.sort()
+
+        path_to_check_with =
+          registered_paths[
+            {individual_properties_server_interface.name,
+             individual_properties_server_interface.major_version}
+          ]
+          |> Enum.map(fn x -> individual_properties_server_interface.name <> x end)
+          |> Enum.sort()
+
+        assert is_list(retrieved_paths)
+        assert ^path_to_check_with = retrieved_paths
+      end
+    end
+
+    property "gather_interface_property_paths/2 returns always empty list, for device owned interfaces",
+             context do
+      %{
+        state: state,
+        interfaces_with_data: interfaces
+      } = context
+
+      valid_interfaces =
+        interfaces |> Enum.reject(&(&1.type == :properties and &1.ownership == :server))
+
+      check all interface <- member_of(valid_interfaces) do
+        descriptor = state.interfaces[interface.name]
+
+        retrieved_paths =
+          Core.Interface.gather_interface_property_paths(
+            state,
+            descriptor
+          )
+
+        assert is_list(retrieved_paths)
+        assert [] = retrieved_paths
       end
     end
   end
