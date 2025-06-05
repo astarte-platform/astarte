@@ -218,7 +218,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
     new_state =
       state
       |> TimeBasedActions.execute_time_based_actions(timestamp)
-      |> set_device_disconnected(timestamp)
+      |> Core.Device.set_device_disconnected(timestamp)
 
     MessageTracker.ack_delivery(new_state.message_tracker, message_id)
     Logger.info("Device disconnected.", tag: "device_disconnected")
@@ -685,51 +685,6 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
     end)
 
     :ok
-  end
-
-  def set_device_disconnected(state, timestamp) do
-    timestamp_ms = div(timestamp, 10_000)
-
-    Queries.set_device_disconnected!(
-      state.realm,
-      state.device_id,
-      DateTime.from_unix!(timestamp_ms, :millisecond),
-      state.total_received_msgs,
-      state.total_received_bytes,
-      state.interface_exchanged_msgs,
-      state.interface_exchanged_bytes
-    )
-
-    maybe_execute_device_disconnected_trigger(state, timestamp_ms)
-
-    %{state | connected: false}
-  end
-
-  defp maybe_execute_device_disconnected_trigger(%State{connected: false}, _) do
-    :ok
-  end
-
-  defp maybe_execute_device_disconnected_trigger(state, timestamp_ms) do
-    trigger_target_with_policy_list =
-      Map.get(state.device_triggers, :on_device_disconnection, [])
-      |> Enum.map(fn target ->
-        {target, Map.get(state.trigger_id_to_policy_name, target.parent_trigger_id)}
-      end)
-
-    device_id_string = Device.encode_device_id(state.device_id)
-
-    TriggersHandler.device_disconnected(
-      trigger_target_with_policy_list,
-      state.realm,
-      device_id_string,
-      timestamp_ms
-    )
-
-    :telemetry.execute(
-      [:astarte, :data_updater_plant, :data_updater, :device_disconnection],
-      %{},
-      %{realm: state.realm}
-    )
   end
 
   defp send_control_consumer_properties(state) do

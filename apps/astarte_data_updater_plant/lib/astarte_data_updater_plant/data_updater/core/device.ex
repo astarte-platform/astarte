@@ -30,7 +30,6 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.Device do
   alias Astarte.DataUpdaterPlant.MessageTracker
   alias Astarte.DataUpdaterPlant.DataUpdater.Cache
   alias Astarte.DataUpdaterPlant.DataUpdater.Core
-  alias Astarte.DataUpdaterPlant.DataUpdater.Impl
   alias Astarte.DataUpdaterPlant.DataUpdater.State
   alias Astarte.DataUpdaterPlant.RPC.VMQPlugin
   alias Astarte.Core.CQLUtils
@@ -274,7 +273,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.Device do
 
     with :ok <- Queries.set_pending_empty_cache(realm, device_id, true),
          :ok <- force_disconnection(realm, encoded_device_id) do
-      new_state = Impl.set_device_disconnected(state, timestamp)
+      new_state = set_device_disconnected(state, timestamp)
 
       Logger.info("Successfully forced device disconnection.", tag: "forced_device_disconnection")
 
@@ -291,6 +290,53 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.Device do
         # TODO: die gracefully here
         {:error, :clean_session_failed}
     end
+  end
+
+  @doc """
+  Sets a device as disconnected, this does not foce device disconnection, but
+  rather informs other astarte components that a device has been disconnected.
+  """
+  def set_device_disconnected(state, timestamp) do
+    timestamp_ms = div(timestamp, 10_000)
+
+    Queries.set_device_disconnected!(
+      state.realm,
+      state.device_id,
+      DateTime.from_unix!(timestamp_ms, :millisecond),
+      state.total_received_msgs,
+      state.total_received_bytes,
+      state.interface_exchanged_msgs,
+      state.interface_exchanged_bytes
+    )
+
+    maybe_execute_device_disconnected_trigger(state, timestamp_ms)
+
+    %{state | connected: false}
+  end
+
+  defp maybe_execute_device_disconnected_trigger(%State{connected: false}, _), do: :ok
+
+  defp maybe_execute_device_disconnected_trigger(state, timestamp_ms) do
+    trigger_target_with_policy_list =
+      Map.get(state.device_triggers, :on_device_disconnection, [])
+      |> Enum.map(fn target ->
+        {target, Map.get(state.trigger_id_to_policy_name, target.parent_trigger_id)}
+      end)
+
+    device_id_string = Device.encode_device_id(state.device_id)
+
+    TriggersHandler.device_disconnected(
+      trigger_target_with_policy_list,
+      state.realm,
+      device_id_string,
+      timestamp_ms
+    )
+
+    :telemetry.execute(
+      [:astarte, :data_updater_plant, :data_updater, :device_disconnection],
+      %{},
+      %{realm: state.realm}
+    )
   end
 
   defp force_disconnection(realm, encoded_device_id) do
