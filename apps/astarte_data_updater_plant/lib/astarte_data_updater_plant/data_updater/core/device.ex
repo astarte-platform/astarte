@@ -24,11 +24,15 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.Device do
 
   This module contains functions and utilities to process devices.
   """
+  alias Astarte.Core.Device
   alias Astarte.DataUpdaterPlant.TimeBasedActions
   alias Astarte.DataUpdaterPlant.Config
   alias Astarte.DataUpdaterPlant.MessageTracker
   alias Astarte.DataUpdaterPlant.DataUpdater.Cache
   alias Astarte.DataUpdaterPlant.DataUpdater.Core
+  alias Astarte.DataUpdaterPlant.DataUpdater.Impl
+  alias Astarte.DataUpdaterPlant.DataUpdater.State
+  alias Astarte.DataUpdaterPlant.RPC.VMQPlugin
   alias Astarte.Core.CQLUtils
   alias Astarte.DataUpdaterPlant.DataUpdater.Queries
   alias Astarte.DataUpdaterPlant.TriggersHandler
@@ -260,5 +264,48 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.Device do
         total_received_msgs: new_state.total_received_msgs + 1,
         total_received_bytes: new_state.total_received_bytes + byte_size(payload)
     }
+  end
+
+  def ask_clean_session(state, timestamp) do
+    Logger.warning("Disconnecting client and asking clean session.")
+    %State{realm: realm, device_id: device_id} = state
+
+    encoded_device_id = Device.encode_device_id(device_id)
+
+    with :ok <- Queries.set_pending_empty_cache(realm, device_id, true),
+         :ok <- force_disconnection(realm, encoded_device_id) do
+      new_state = Impl.set_device_disconnected(state, timestamp)
+
+      Logger.info("Successfully forced device disconnection.", tag: "forced_device_disconnection")
+
+      :telemetry.execute(
+        [:astarte, :data_updater_plant, :data_updater, :clean_session_request],
+        %{},
+        %{realm: new_state.realm}
+      )
+
+      {:ok, new_state}
+    else
+      {:error, reason} ->
+        Logger.warning("Disconnect failed due to error: #{inspect(reason)}")
+        # TODO: die gracefully here
+        {:error, :clean_session_failed}
+    end
+  end
+
+  defp force_disconnection(realm, encoded_device_id) do
+    case VMQPlugin.disconnect("#{realm}/#{encoded_device_id}", true) do
+      # Successfully disconnected
+      :ok ->
+        :ok
+
+      # Not found means it was already disconnected, succeed anyway
+      {:error, :not_found} ->
+        :ok
+
+      # Some other error, return it
+      {:error, reason} ->
+        {:error, reason}
+    end
   end
 end

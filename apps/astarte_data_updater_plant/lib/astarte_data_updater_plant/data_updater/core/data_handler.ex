@@ -279,7 +279,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DataHandler do
           tag: "write_on_server_owned_interface"
         )
 
-        {:ok, state} = Impl.ask_clean_session(state, timestamp)
+        {:ok, state} = Core.Device.ask_clean_session(state, timestamp)
         MessageTracker.discard(state.message_tracker, message_id)
 
         :telemetry.execute(
@@ -310,7 +310,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DataHandler do
           tag: "invalid_interface"
         )
 
-        {:ok, state} = Impl.ask_clean_session(state, timestamp)
+        {:ok, state} = Core.Device.ask_clean_session(state, timestamp)
         MessageTracker.discard(state.message_tracker, message_id)
 
         :telemetry.execute(
@@ -339,7 +339,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DataHandler do
 
       {:error, :invalid_path} ->
         Logger.warning("Received invalid path: #{inspect(path)}.", tag: "invalid_path")
-        {:ok, state} = Impl.ask_clean_session(state, timestamp)
+        {:ok, state} = Core.Device.ask_clean_session(state, timestamp)
         MessageTracker.discard(state.message_tracker, message_id)
 
         :telemetry.execute(
@@ -365,7 +365,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DataHandler do
           tag: "mapping_not_found"
         )
 
-        {:ok, state} = Impl.ask_clean_session(state, timestamp)
+        {:ok, state} = Core.Device.ask_clean_session(state, timestamp)
         MessageTracker.discard(state.message_tracker, message_id)
 
         :telemetry.execute(
@@ -390,7 +390,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DataHandler do
         Logger.warning("Cannot load interface: #{interface}.", tag: "interface_loading_failed")
         # TODO: think about additional actions since the problem
         # could be a missing interface in the DB
-        {:ok, state} = Impl.ask_clean_session(state, timestamp)
+        {:ok, state} = Core.Device.ask_clean_session(state, timestamp)
         MessageTracker.discard(state.message_tracker, message_id)
 
         :telemetry.execute(
@@ -421,7 +421,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DataHandler do
           tag: "ambiguous_path"
         )
 
-        {:ok, state} = Impl.ask_clean_session(state, timestamp)
+        {:ok, state} = Core.Device.ask_clean_session(state, timestamp)
         MessageTracker.discard(state.message_tracker, message_id)
 
         :telemetry.execute(
@@ -453,7 +453,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DataHandler do
           tag: "undecodable_bson_payload"
         )
 
-        {:ok, state} = Impl.ask_clean_session(state, timestamp)
+        {:ok, state} = Core.Device.ask_clean_session(state, timestamp)
         MessageTracker.discard(state.message_tracker, message_id)
 
         :telemetry.execute(
@@ -485,7 +485,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DataHandler do
           tag: "unexpected_value_type"
         )
 
-        {:ok, state} = Impl.ask_clean_session(state, timestamp)
+        {:ok, state} = Core.Device.ask_clean_session(state, timestamp)
         MessageTracker.discard(state.message_tracker, message_id)
 
         :telemetry.execute(
@@ -517,7 +517,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DataHandler do
           tag: "value_size_exceeded"
         )
 
-        {:ok, state} = Impl.ask_clean_session(state, timestamp)
+        {:ok, state} = Core.Device.ask_clean_session(state, timestamp)
         MessageTracker.discard(state.message_tracker, message_id)
 
         :telemetry.execute(
@@ -551,7 +551,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DataHandler do
           tag: "unexpected_object_key"
         )
 
-        {:ok, state} = Impl.ask_clean_session(state, timestamp)
+        {:ok, state} = Core.Device.ask_clean_session(state, timestamp)
         MessageTracker.discard(state.message_tracker, message_id)
 
         :telemetry.execute(
