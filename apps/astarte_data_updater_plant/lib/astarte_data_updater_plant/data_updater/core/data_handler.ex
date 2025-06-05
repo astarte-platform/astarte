@@ -33,31 +33,29 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DataHandler do
   require Logger
 
   def handle_data(state, interface, path, payload, message_id, timestamp) do
-    with :ok <- validate_interface(interface),
-         :ok <- validate_path(path),
-         {:ok, interface_descriptor, state} <-
-           state.interfaces
-           |> Map.get(interface)
-           |> Core.Interface.maybe_handle_cache_miss(interface, state),
-         :ok <- can_write_on_interface?(interface_descriptor.ownership),
-         {:ok, mapping} <-
-           Core.Interface.resolve_path(path, interface_descriptor, state.mappings),
-         {value, value_timestamp, _metadata} <-
-           PayloadsDecoder.decode_bson_payload(payload, timestamp),
-         :ok <-
-           Core.Interface.extract_expected_types(
-             path,
-             interface_descriptor,
-             mapping,
-             state.mappings
-           )
-           |> validate_value_type(value) do
+    context = %{
+      state: state,
+      interface: interface,
+      path: path,
+      payload: payload,
+      message_id: message_id,
+      timestamp: timestamp
+    }
+
+    with :ok <- validate_interface(context),
+         :ok <- validate_path(context),
+         {:ok, interface_descriptor, context} <- maybe_handle_cache_miss(context),
+         :ok <- can_write_on_interface?(context, interface_descriptor.ownership),
+         {:ok, mapping} <- resolve_path(context, interface_descriptor),
+         {value, value_timestamp, _metadata} <- decode_bson_payload(context),
+         :ok <- validate_value_type(context, interface_descriptor, mapping, value) do
       interface_id = interface_descriptor.interface_id
 
       endpoint_id = mapping.endpoint_id
       db_retention_policy = mapping.database_retention_policy
       db_ttl = mapping.database_retention_ttl
       device_id_string = Device.encode_device_id(state.device_id)
+      state = context.state
 
       maybe_explicit_value_timestamp =
         if mapping.explicit_timestamp,
@@ -270,319 +268,74 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DataHandler do
 
           update_stats(state, interface, interface_descriptor.major_version, path, payload)
       end
-    else
-      {:error, :cannot_write_on_server_owned_interface} ->
-        Logger.warning(
-          "Tried to write on server owned interface: #{interface} on " <>
-            "path: #{path}, base64-encoded payload: #{inspect(Base.encode64(payload))}, timestamp: #{inspect(timestamp)}.",
-          tag: "write_on_server_owned_interface"
-        )
+    end
+  end
 
-        {:ok, state} = Core.Device.ask_clean_session(state, timestamp)
-        MessageTracker.discard(state.message_tracker, message_id)
+  defp maybe_handle_cache_miss(context) do
+    %{interface: interface, state: state} = context
 
-        :telemetry.execute(
-          [:astarte, :data_updater_plant, :data_updater, :discarded_message],
-          %{},
-          %{realm: state.realm}
-        )
+    cache_miss =
+      state.interfaces
+      |> Map.get(interface)
+      |> Core.Interface.maybe_handle_cache_miss(interface, state)
 
-        base64_payload = Base.encode64(payload)
-
-        error_metadata = %{
-          "interface" => inspect(interface),
-          "path" => inspect(path),
-          "base64_payload" => base64_payload
-        }
-
-        Core.Trigger.execute_device_error_triggers(
-          state,
-          "write_on_server_owned_interface",
-          error_metadata,
-          timestamp
-        )
-
-        update_stats(state, interface, nil, path, payload)
-
-      {:error, :invalid_interface} ->
-        Logger.warning("Received invalid interface: #{inspect(interface)}.",
-          tag: "invalid_interface"
-        )
-
-        {:ok, state} = Core.Device.ask_clean_session(state, timestamp)
-        MessageTracker.discard(state.message_tracker, message_id)
-
-        :telemetry.execute(
-          [:astarte, :data_updater_plant, :data_updater, :discarded_message],
-          %{},
-          %{realm: state.realm}
-        )
-
-        base64_payload = Base.encode64(payload)
-
-        error_metadata = %{
-          "interface" => inspect(interface),
-          "path" => inspect(path),
-          "base64_payload" => base64_payload
-        }
-
-        Core.Trigger.execute_device_error_triggers(
-          state,
-          "invalid_interface",
-          error_metadata,
-          timestamp
-        )
-
-        # We dont't update stats on an invalid interface
-        state
-
-      {:error, :invalid_path} ->
-        Logger.warning("Received invalid path: #{inspect(path)}.", tag: "invalid_path")
-        {:ok, state} = Core.Device.ask_clean_session(state, timestamp)
-        MessageTracker.discard(state.message_tracker, message_id)
-
-        :telemetry.execute(
-          [:astarte, :data_updater_plant, :data_updater, :discarded_message],
-          %{},
-          %{realm: state.realm}
-        )
-
-        base64_payload = Base.encode64(payload)
-
-        error_metadata = %{
-          "interface" => inspect(interface),
-          "path" => inspect(path),
-          "base64_payload" => base64_payload
-        }
-
-        Core.Trigger.execute_device_error_triggers(
-          state,
-          "invalid_path",
-          error_metadata,
-          timestamp
-        )
-
-        update_stats(state, interface, nil, path, payload)
-
-      {:error, :mapping_not_found} ->
-        Logger.warning("Mapping not found for #{interface}#{path}. Maybe outdated introspection?",
-          tag: "mapping_not_found"
-        )
-
-        {:ok, state} = Core.Device.ask_clean_session(state, timestamp)
-        MessageTracker.discard(state.message_tracker, message_id)
-
-        :telemetry.execute(
-          [:astarte, :data_updater_plant, :data_updater, :discarded_message],
-          %{},
-          %{realm: state.realm}
-        )
-
-        base64_payload = Base.encode64(payload)
-
-        error_metadata = %{
-          "interface" => inspect(interface),
-          "path" => inspect(path),
-          "base64_payload" => base64_payload
-        }
-
-        Core.Trigger.execute_device_error_triggers(
-          state,
-          "mapping_not_found",
-          error_metadata,
-          timestamp
-        )
-
-        update_stats(state, interface, nil, path, payload)
-
+    case cache_miss do
       {:error, :interface_loading_failed} ->
-        Logger.warning("Cannot load interface: #{interface}.", tag: "interface_loading_failed")
-        # TODO: think about additional actions since the problem
-        # could be a missing interface in the DB
-        {:ok, state} = Core.Device.ask_clean_session(state, timestamp)
-        MessageTracker.discard(state.message_tracker, message_id)
-
-        :telemetry.execute(
-          [:astarte, :data_updater_plant, :data_updater, :discarded_message],
-          %{},
-          %{realm: state.realm}
-        )
-
-        base64_payload = Base.encode64(payload)
-
-        error_metadata = %{
-          "interface" => inspect(interface),
-          "path" => inspect(path),
-          "base64_payload" => base64_payload
+        error = %{
+          message: "Cannot load interface: #{interface}.",
+          logger_metadata: [tag: "interface_loading_failed"],
+          error_name: "interface_loading_failed"
         }
 
-        Core.Trigger.execute_device_error_triggers(
-          state,
-          "interface_loading_failed",
-          error_metadata,
-          timestamp
-        )
+        Core.Error.handle_error(context, error)
 
-        update_stats(state, interface, nil, path, payload)
+      {:ok, descriptor, state} ->
+        new_context = Map.put(context, :state, state)
+        {:ok, descriptor, new_context}
+    end
+  end
+
+  defp resolve_path(context, interface_descriptor) do
+    %{interface: interface, path: path, state: state} = context
+    mappings = Core.Interface.resolve_path(path, interface_descriptor, state.mappings)
+
+    case mappings do
+      {:error, :mapping_not_found} ->
+        error = %{
+          message: "Mapping not found for #{interface}#{path}. Maybe outdated introspection?",
+          logger_metadata: [tag: "mapping_not_found"],
+          error_name: "mapping_not_found"
+        }
+
+        Core.Error.handle_error(context, error)
 
       {:guessed, _guessed_endpoints} ->
-        Logger.warning("Mapping guessed for #{interface}#{path}. Maybe outdated introspection?",
-          tag: "ambiguous_path"
-        )
-
-        {:ok, state} = Core.Device.ask_clean_session(state, timestamp)
-        MessageTracker.discard(state.message_tracker, message_id)
-
-        :telemetry.execute(
-          [:astarte, :data_updater_plant, :data_updater, :discarded_message],
-          %{},
-          %{realm: state.realm}
-        )
-
-        base64_payload = Base.encode64(payload)
-
-        error_metadata = %{
-          "interface" => inspect(interface),
-          "path" => inspect(path),
-          "base64_payload" => base64_payload
+        error = %{
+          message: "Mapping guessed for #{interface}#{path}. Maybe outdated introspection?",
+          logger_metadata: [tag: "ambiguous_path"],
+          error_name: "ambiguous_path"
         }
 
-        Core.Trigger.execute_device_error_triggers(
-          state,
-          "ambiguous_path",
-          error_metadata,
-          timestamp
-        )
+        Core.Error.handle_error(context, error)
 
-        update_stats(state, interface, nil, path, payload)
+      ok ->
+        ok
+    end
+  end
 
-      {:error, :undecodable_bson_payload} ->
-        Logger.warning(
+  defp decode_bson_payload(context) do
+    %{payload: payload, timestamp: timestamp, interface: interface, path: path} = context
+    decoding = PayloadsDecoder.decode_bson_payload(payload, timestamp)
+
+    with {:error, :undecodable_bson_payload} <- decoding do
+      error = %{
+        message:
           "Invalid BSON base64-encoded payload: #{inspect(Base.encode64(payload))} sent to #{interface}#{path}.",
-          tag: "undecodable_bson_payload"
-        )
+        logger_metadata: [tag: "undecodable_bson_payload"],
+        error_name: "undecodable_bson_payload"
+      }
 
-        {:ok, state} = Core.Device.ask_clean_session(state, timestamp)
-        MessageTracker.discard(state.message_tracker, message_id)
-
-        :telemetry.execute(
-          [:astarte, :data_updater_plant, :data_updater, :discarded_message],
-          %{},
-          %{realm: state.realm}
-        )
-
-        base64_payload = Base.encode64(payload)
-
-        error_metadata = %{
-          "interface" => inspect(interface),
-          "path" => inspect(path),
-          "base64_payload" => base64_payload
-        }
-
-        Core.Trigger.execute_device_error_triggers(
-          state,
-          "undecodable_bson_payload",
-          error_metadata,
-          timestamp
-        )
-
-        update_stats(state, interface, nil, path, payload)
-
-      {:error, :unexpected_value_type} ->
-        Logger.warning(
-          "Received invalid value: #{inspect(Base.encode64(payload))} sent to #{interface}#{path}.",
-          tag: "unexpected_value_type"
-        )
-
-        {:ok, state} = Core.Device.ask_clean_session(state, timestamp)
-        MessageTracker.discard(state.message_tracker, message_id)
-
-        :telemetry.execute(
-          [:astarte, :data_updater_plant, :data_updater, :discarded_message],
-          %{},
-          %{realm: state.realm}
-        )
-
-        base64_payload = Base.encode64(payload)
-
-        error_metadata = %{
-          "interface" => inspect(interface),
-          "path" => inspect(path),
-          "base64_payload" => base64_payload
-        }
-
-        Core.Trigger.execute_device_error_triggers(
-          state,
-          "unexpected_value_type",
-          error_metadata,
-          timestamp
-        )
-
-        update_stats(state, interface, nil, path, payload)
-
-      {:error, :value_size_exceeded} ->
-        Logger.warning(
-          "Received huge base64-encoded payload: #{inspect(Base.encode64(payload))} sent to #{interface}#{path}.",
-          tag: "value_size_exceeded"
-        )
-
-        {:ok, state} = Core.Device.ask_clean_session(state, timestamp)
-        MessageTracker.discard(state.message_tracker, message_id)
-
-        :telemetry.execute(
-          [:astarte, :data_updater_plant, :data_updater, :discarded_message],
-          %{},
-          %{realm: state.realm}
-        )
-
-        base64_payload = Base.encode64(payload)
-
-        error_metadata = %{
-          "interface" => inspect(interface),
-          "path" => inspect(path),
-          "base64_payload" => base64_payload
-        }
-
-        Core.Trigger.execute_device_error_triggers(
-          state,
-          "value_size_exceeded",
-          error_metadata,
-          timestamp
-        )
-
-        update_stats(state, interface, nil, path, payload)
-
-      {:error, :unexpected_object_key} ->
-        base64_payload = Base.encode64(payload)
-
-        Logger.warning(
-          "Received object with unexpected key, object base64 is: #{base64_payload} sent to #{interface}#{path}.",
-          tag: "unexpected_object_key"
-        )
-
-        {:ok, state} = Core.Device.ask_clean_session(state, timestamp)
-        MessageTracker.discard(state.message_tracker, message_id)
-
-        :telemetry.execute(
-          [:astarte, :data_updater_plant, :data_updater, :discarded_message],
-          %{},
-          %{realm: state.realm}
-        )
-
-        error_metadata = %{
-          "interface" => inspect(interface),
-          "path" => inspect(path),
-          "base64_payload" => base64_payload
-        }
-
-        Core.Trigger.execute_device_error_triggers(
-          state,
-          "unexpected_object_key",
-          error_metadata,
-          timestamp
-        )
-
-        update_stats(state, interface, nil, path, payload)
+      Core.Error.handle_error(context, error)
     end
   end
 
@@ -605,29 +358,108 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DataHandler do
     now_secs + ttl + 3600 < expiry_secs
   end
 
-  defp validate_interface(interface) do
-    if String.valid?(interface),
-      do: :ok,
-      else: {:error, :invalid_interface}
-  end
-
-  defp validate_path(path) do
-    cond do
-      # Make sure the path is a valid unicode string
-      not String.valid?(path) ->
-        {:error, :invalid_path}
-
-      # TODO: this is a temporary fix to work around a bug in EndpointsAutomaton.resolve_path/2
-      String.contains?(path, "//") ->
-        {:error, :invalid_path}
-
-      true ->
-        :ok
+  defp validate_interface(%{interface: interface} = context) do
+    case String.valid?(interface) do
+      true -> :ok
+      false -> invalid_interface_error(context)
     end
   end
 
-  defp can_write_on_interface?(:device), do: :ok
-  defp can_write_on_interface?(:server), do: {:error, :cannot_write_on_server_owned_interface}
+  defp invalid_interface_error(%{interface: interface} = context) do
+    error = %{
+      message: "Received invalid interface: #{inspect(interface)}.",
+      logger_metadata: [tag: "invalid_interface"],
+      error_name: "invalid_interface"
+    }
+
+    Core.Error.handle_error(context, error, update_stats: false)
+  end
+
+  defp validate_path(%{path: path} = context),
+    do: valid_path_or_error(context, String.valid?(path), String.contains?(path, "//"))
+
+  defp valid_path_or_error(_context, true, false), do: :ok
+
+  defp valid_path_or_error(%{path: path} = context, _, _) do
+    error = %{
+      message: "Received invalid path: #{inspect(path)}.",
+      logger_metadata: [tag: "invalid_path"],
+      error_name: "invalid_path"
+    }
+
+    Core.Error.handle_error(context, error)
+  end
+
+  defp can_write_on_interface?(_context, :device), do: :ok
+
+  defp can_write_on_interface?(context, :server) do
+    %{interface: interface, path: path, payload: payload, timestamp: timestamp} = context
+
+    message =
+      "Tried to write on server owned interface: #{interface} on " <>
+        "path: #{path}, base64-encoded payload: #{inspect(Base.encode64(payload))}, timestamp: #{inspect(timestamp)}."
+
+    tag = "write_on_server_owned_interface"
+
+    error_name = "write_on_server_owned_interface"
+
+    error = %{
+      message: message,
+      logger_metadata: [tag: tag],
+      error_name: error_name
+    }
+
+    Core.Error.handle_error(context, error)
+  end
+
+  defp validate_value_type(context, interface_descriptor, mapping, value) do
+    %{interface: interface, path: path, payload: payload, state: state} = context
+
+    expected_types =
+      Core.Interface.extract_expected_types(
+        path,
+        interface_descriptor,
+        mapping,
+        state.mappings
+      )
+
+    validation = validate_value_type(expected_types, value)
+
+    case validation do
+      {:error, :unexpected_value_type} ->
+        error = %{
+          message:
+            "Received invalid value: #{inspect(Base.encode64(payload))} sent to #{interface}#{path}.",
+          logger_metadata: [tag: "unexpected_value_type"],
+          error_name: "unexpected_value_type"
+        }
+
+        Core.Error.handle_error(context, error)
+
+      {:error, :unexpected_object_key} ->
+        error = %{
+          message:
+            "Received object with unexpected key, object base64 is: #{inspect(Base.encode64(payload))} sent to #{interface}#{path}.",
+          logger_metadata: [tag: "unexpected_value_type"],
+          error_name: "unexpected_value_type"
+        }
+
+        Core.Error.handle_error(context, error)
+
+      {:error, :value_size_exceeded} ->
+        error = %{
+          message:
+            "Received huge base64-encoded payload: #{inspect(Base.encode64(payload))} sent to #{interface}#{path}.",
+          logger_metadata: [tag: "value_size_exceeded"],
+          error_name: "value_size_exceeded"
+        }
+
+        Core.Error.handle_error(context, error)
+
+      ok ->
+        ok
+    end
+  end
 
   # TODO: We need tests for this function
   def validate_value_type(expected_type, %DateTime{} = value) do
