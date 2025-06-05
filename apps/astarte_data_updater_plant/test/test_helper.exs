@@ -22,5 +22,6 @@ Mimic.copy(Astarte.DataUpdaterPlant.RPC.Server.Core)
 Mimic.copy(System)
 Mimic.copy(Xandra)
 Mimic.copy(Astarte.DataAccess.Health.Health)
+Mimic.copy(Astarte.DataUpdaterPlant.RPC.VMQPlugin)
 
 ExUnit.start(capture_log: true)

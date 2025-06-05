@@ -180,7 +180,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
       tag: "unexpected_internal_message"
     )
 
-    {:ok, new_state} = ask_clean_session(state, timestamp)
+    {:ok, new_state} = Core.Device.ask_clean_session(state, timestamp)
     MessageTracker.discard(new_state.message_tracker, message_id)
 
     :telemetry.execute(
@@ -218,7 +218,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
     new_state =
       state
       |> TimeBasedActions.execute_time_based_actions(timestamp)
-      |> set_device_disconnected(timestamp)
+      |> Core.Device.set_device_disconnected(timestamp)
 
     MessageTracker.ack_delivery(new_state.message_tracker, message_id)
     Logger.info("Device disconnected.", tag: "device_disconnected")
@@ -316,7 +316,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
           tag: "invalid_introspection"
         )
 
-        {:ok, new_state} = ask_clean_session(state, timestamp)
+        {:ok, new_state} = Core.Device.ask_clean_session(state, timestamp)
         MessageTracker.discard(new_state.message_tracker, message_id)
 
         :telemetry.execute(
@@ -390,7 +390,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
       :error ->
         Logger.warning("Invalid purge_properties payload", tag: "purge_properties_error")
 
-        {:ok, new_state} = ask_clean_session(new_state, timestamp)
+        {:ok, new_state} = Core.Device.ask_clean_session(new_state, timestamp)
         MessageTracker.discard(new_state.message_tracker, message_id)
 
         :telemetry.execute(
@@ -422,7 +422,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
       {:error, :session_not_found} ->
         Logger.warning("Cannot push data to device.", tag: "device_session_not_found")
 
-        {:ok, new_state} = ask_clean_session(new_state, timestamp)
+        {:ok, new_state} = Core.Device.ask_clean_session(new_state, timestamp)
         MessageTracker.discard(new_state.message_tracker, message_id)
 
         :telemetry.execute(
@@ -444,7 +444,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
           tag: "resend_interface_properties_failed"
         )
 
-        {:ok, new_state} = ask_clean_session(new_state, timestamp)
+        {:ok, new_state} = Core.Device.ask_clean_session(new_state, timestamp)
         MessageTracker.discard(new_state.message_tracker, message_id)
 
         :telemetry.execute(
@@ -466,7 +466,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
           tag: "empty_cache_error"
         )
 
-        {:ok, new_state} = ask_clean_session(new_state, timestamp)
+        {:ok, new_state} = Core.Device.ask_clean_session(new_state, timestamp)
         MessageTracker.discard(new_state.message_tracker, message_id)
 
         :telemetry.execute(
@@ -494,7 +494,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
       tag: "unexpected_control_message"
     )
 
-    {:ok, new_state} = ask_clean_session(state, timestamp)
+    {:ok, new_state} = Core.Device.ask_clean_session(state, timestamp)
     MessageTracker.discard(new_state.message_tracker, message_id)
 
     :telemetry.execute(
@@ -745,94 +745,6 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
     end)
 
     :ok
-  end
-
-  def set_device_disconnected(state, timestamp) do
-    timestamp_ms = div(timestamp, 10_000)
-
-    Queries.set_device_disconnected!(
-      state.realm,
-      state.device_id,
-      DateTime.from_unix!(timestamp_ms, :millisecond),
-      state.total_received_msgs,
-      state.total_received_bytes,
-      state.interface_exchanged_msgs,
-      state.interface_exchanged_bytes
-    )
-
-    maybe_execute_device_disconnected_trigger(state, timestamp_ms)
-
-    %{state | connected: false}
-  end
-
-  defp maybe_execute_device_disconnected_trigger(%State{connected: false}, _) do
-    :ok
-  end
-
-  defp maybe_execute_device_disconnected_trigger(state, timestamp_ms) do
-    trigger_target_with_policy_list =
-      Map.get(state.device_triggers, :on_device_disconnection, [])
-      |> Enum.map(fn target ->
-        {target, Map.get(state.trigger_id_to_policy_name, target.parent_trigger_id)}
-      end)
-
-    device_id_string = Device.encode_device_id(state.device_id)
-
-    TriggersHandler.device_disconnected(
-      trigger_target_with_policy_list,
-      state.realm,
-      device_id_string,
-      timestamp_ms
-    )
-
-    :telemetry.execute(
-      [:astarte, :data_updater_plant, :data_updater, :device_disconnection],
-      %{},
-      %{realm: state.realm}
-    )
-  end
-
-  def ask_clean_session(state, timestamp) do
-    Logger.warning("Disconnecting client and asking clean session.")
-    %State{realm: realm, device_id: device_id} = state
-
-    encoded_device_id = Device.encode_device_id(device_id)
-
-    with :ok <- Queries.set_pending_empty_cache(realm, device_id, true),
-         :ok <- force_disconnection(realm, encoded_device_id) do
-      new_state = set_device_disconnected(state, timestamp)
-
-      Logger.info("Successfully forced device disconnection.", tag: "forced_device_disconnection")
-
-      :telemetry.execute(
-        [:astarte, :data_updater_plant, :data_updater, :clean_session_request],
-        %{},
-        %{realm: new_state.realm}
-      )
-
-      {:ok, new_state}
-    else
-      {:error, reason} ->
-        Logger.warning("Disconnect failed due to error: #{inspect(reason)}")
-        # TODO: die gracefully here
-        {:error, :clean_session_failed}
-    end
-  end
-
-  defp force_disconnection(realm, encoded_device_id) do
-    case VMQPlugin.disconnect("#{realm}/#{encoded_device_id}", true) do
-      # Successfully disconnected
-      :ok ->
-        :ok
-
-      # Not found means it was already disconnected, succeed anyway
-      {:error, :not_found} ->
-        :ok
-
-      # Some other error, return it
-      {:error, reason} ->
-        {:error, reason}
-    end
   end
 
   defp send_control_consumer_properties(state) do
