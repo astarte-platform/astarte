@@ -183,7 +183,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
       tag: "unexpected_internal_message"
     )
 
-    {:ok, new_state} = ask_clean_session(state, timestamp)
+    {:ok, new_state} = Core.Device.ask_clean_session(state, timestamp)
     MessageTracker.discard(new_state.message_tracker, message_id)
 
     :telemetry.execute(
@@ -748,7 +748,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
           tag: "write_on_server_owned_interface"
         )
 
-        {:ok, new_state} = ask_clean_session(new_state, timestamp)
+        {:ok, new_state} = Core.Device.ask_clean_session(new_state, timestamp)
         MessageTracker.discard(new_state.message_tracker, message_id)
 
         :telemetry.execute(
@@ -779,7 +779,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
           tag: "invalid_interface"
         )
 
-        {:ok, new_state} = ask_clean_session(new_state, timestamp)
+        {:ok, new_state} = Core.Device.ask_clean_session(new_state, timestamp)
         MessageTracker.discard(new_state.message_tracker, message_id)
 
         :telemetry.execute(
@@ -808,7 +808,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
 
       {:error, :invalid_path} ->
         Logger.warning("Received invalid path: #{inspect(path)}.", tag: "invalid_path")
-        {:ok, new_state} = ask_clean_session(new_state, timestamp)
+        {:ok, new_state} = Core.Device.ask_clean_session(new_state, timestamp)
         MessageTracker.discard(new_state.message_tracker, message_id)
 
         :telemetry.execute(
@@ -834,7 +834,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
           tag: "mapping_not_found"
         )
 
-        {:ok, new_state} = ask_clean_session(new_state, timestamp)
+        {:ok, new_state} = Core.Device.ask_clean_session(new_state, timestamp)
         MessageTracker.discard(new_state.message_tracker, message_id)
 
         :telemetry.execute(
@@ -859,7 +859,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
         Logger.warning("Cannot load interface: #{interface}.", tag: "interface_loading_failed")
         # TODO: think about additional actions since the problem
         # could be a missing interface in the DB
-        {:ok, new_state} = ask_clean_session(new_state, timestamp)
+        {:ok, new_state} = Core.Device.ask_clean_session(new_state, timestamp)
         MessageTracker.discard(new_state.message_tracker, message_id)
 
         :telemetry.execute(
@@ -890,7 +890,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
           tag: "ambiguous_path"
         )
 
-        {:ok, new_state} = ask_clean_session(new_state, timestamp)
+        {:ok, new_state} = Core.Device.ask_clean_session(new_state, timestamp)
         MessageTracker.discard(new_state.message_tracker, message_id)
 
         :telemetry.execute(
@@ -922,7 +922,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
           tag: "undecodable_bson_payload"
         )
 
-        {:ok, new_state} = ask_clean_session(new_state, timestamp)
+        {:ok, new_state} = Core.Device.ask_clean_session(new_state, timestamp)
         MessageTracker.discard(new_state.message_tracker, message_id)
 
         :telemetry.execute(
@@ -954,7 +954,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
           tag: "unexpected_value_type"
         )
 
-        {:ok, new_state} = ask_clean_session(new_state, timestamp)
+        {:ok, new_state} = Core.Device.ask_clean_session(new_state, timestamp)
         MessageTracker.discard(new_state.message_tracker, message_id)
 
         :telemetry.execute(
@@ -986,7 +986,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
           tag: "value_size_exceeded"
         )
 
-        {:ok, new_state} = ask_clean_session(new_state, timestamp)
+        {:ok, new_state} = Core.Device.ask_clean_session(new_state, timestamp)
         MessageTracker.discard(new_state.message_tracker, message_id)
 
         :telemetry.execute(
@@ -1015,7 +1015,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
           tag: "unexpected_object_key"
         )
 
-        {:ok, new_state} = ask_clean_session(new_state, timestamp)
+        {:ok, new_state} = Core.Device.ask_clean_session(new_state, timestamp)
         MessageTracker.discard(new_state.message_tracker, message_id)
 
         :telemetry.execute(
@@ -1231,7 +1231,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
           tag: "invalid_introspection"
         )
 
-        {:ok, new_state} = ask_clean_session(state, timestamp)
+        {:ok, new_state} = Core.Device.ask_clean_session(state, timestamp)
         MessageTracker.discard(new_state.message_tracker, message_id)
 
         :telemetry.execute(
@@ -1305,7 +1305,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
       :error ->
         Logger.warning("Invalid purge_properties payload", tag: "purge_properties_error")
 
-        {:ok, new_state} = ask_clean_session(new_state, timestamp)
+        {:ok, new_state} = Core.Device.ask_clean_session(new_state, timestamp)
         MessageTracker.discard(new_state.message_tracker, message_id)
 
         :telemetry.execute(
@@ -1337,7 +1337,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
       {:error, :session_not_found} ->
         Logger.warning("Cannot push data to device.", tag: "device_session_not_found")
 
-        {:ok, new_state} = ask_clean_session(new_state, timestamp)
+        {:ok, new_state} = Core.Device.ask_clean_session(new_state, timestamp)
         MessageTracker.discard(new_state.message_tracker, message_id)
 
         :telemetry.execute(
@@ -1355,7 +1355,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
           tag: "resend_interface_properties_failed"
         )
 
-        {:ok, new_state} = ask_clean_session(new_state, timestamp)
+        {:ok, new_state} = Core.Device.ask_clean_session(new_state, timestamp)
         MessageTracker.discard(new_state.message_tracker, message_id)
 
         :telemetry.execute(
@@ -1377,7 +1377,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
           tag: "empty_cache_error"
         )
 
-        {:ok, new_state} = ask_clean_session(new_state, timestamp)
+        {:ok, new_state} = Core.Device.ask_clean_session(new_state, timestamp)
         MessageTracker.discard(new_state.message_tracker, message_id)
 
         :telemetry.execute(
@@ -1400,7 +1400,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
       tag: "unexpected_control_message"
     )
 
-    {:ok, new_state} = ask_clean_session(state, timestamp)
+    {:ok, new_state} = Core.Device.ask_clean_session(state, timestamp)
     MessageTracker.discard(new_state.message_tracker, message_id)
 
     :telemetry.execute(
@@ -1715,49 +1715,6 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
       %{},
       %{realm: state.realm}
     )
-  end
-
-  defp ask_clean_session(state, timestamp) do
-    Logger.warning("Disconnecting client and asking clean session.")
-    %State{realm: realm, device_id: device_id} = state
-
-    encoded_device_id = Device.encode_device_id(device_id)
-
-    with :ok <- Queries.set_pending_empty_cache(realm, device_id, true),
-         :ok <- force_disconnection(realm, encoded_device_id) do
-      new_state = set_device_disconnected(state, timestamp)
-
-      Logger.info("Successfully forced device disconnection.", tag: "forced_device_disconnection")
-
-      :telemetry.execute(
-        [:astarte, :data_updater_plant, :data_updater, :clean_session_request],
-        %{},
-        %{realm: new_state.realm}
-      )
-
-      {:ok, new_state}
-    else
-      {:error, reason} ->
-        Logger.warning("Disconnect failed due to error: #{inspect(reason)}")
-        # TODO: die gracefully here
-        {:error, :clean_session_failed}
-    end
-  end
-
-  defp force_disconnection(realm, encoded_device_id) do
-    case VMQPlugin.disconnect("#{realm}/#{encoded_device_id}", true) do
-      # Successfully disconnected
-      :ok ->
-        :ok
-
-      # Not found means it was already disconnected, succeed anyway
-      {:error, :not_found} ->
-        :ok
-
-      # Some other error, return it
-      {:error, reason} ->
-        {:error, reason}
-    end
   end
 
   defp can_write_on_interface?(interface_descriptor) do
