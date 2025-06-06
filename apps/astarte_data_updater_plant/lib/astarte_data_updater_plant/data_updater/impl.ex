@@ -18,6 +18,7 @@
 
 defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
   alias Astarte.DataUpdaterPlant.DataUpdater.Core
+  alias Astarte.DataUpdaterPlant.DataUpdater.Core.TriggerExecutor
   alias Astarte.Core.CQLUtils
   alias Astarte.DataUpdaterPlant.Config
   alias Astarte.Core.Device
@@ -200,7 +201,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
     }
 
     # TODO maybe we don't want triggers on unexpected internal messages?
-    execute_device_error_triggers(
+    TriggerExecutor.execute_device_error_triggers(
       new_state,
       "unexpected_internal_message",
       error_metadata,
@@ -534,7 +535,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
           div(timestamp, 10000)
         end
 
-      execute_incoming_data_triggers(
+      TriggerExecutor.execute_incoming_data_triggers(
         new_state,
         device_id_string,
         interface_descriptor.name,
@@ -570,7 +571,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
 
       if has_change_triggers == :ok do
         :ok =
-          execute_pre_change_triggers(
+          TriggerExecutor.execute_pre_change_triggers(
             change_triggers,
             new_state.realm,
             device_id_string,
@@ -651,7 +652,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
             "base64_payload" => base64_payload
           }
 
-          execute_device_error_triggers(
+          TriggerExecutor.execute_device_error_triggers(
             new_state,
             "unset_on_datastream",
             error_metadata,
@@ -700,7 +701,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
             "base64_payload" => base64_payload
           }
 
-          execute_device_error_triggers(
+          TriggerExecutor.execute_device_error_triggers(
             new_state,
             "unset_not_allowed",
             error_metadata,
@@ -710,7 +711,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
         :ok ->
           if has_change_triggers == :ok do
             :ok =
-              execute_post_change_triggers(
+              TriggerExecutor.execute_post_change_triggers(
                 change_triggers,
                 new_state.realm,
                 device_id_string,
@@ -765,7 +766,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
           "base64_payload" => base64_payload
         }
 
-        execute_device_error_triggers(
+        TriggerExecutor.execute_device_error_triggers(
           new_state,
           "write_on_server_owned_interface",
           error_metadata,
@@ -796,7 +797,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
           "base64_payload" => base64_payload
         }
 
-        execute_device_error_triggers(
+        TriggerExecutor.execute_device_error_triggers(
           new_state,
           "invalid_interface",
           error_metadata,
@@ -825,7 +826,12 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
           "base64_payload" => base64_payload
         }
 
-        execute_device_error_triggers(new_state, "invalid_path", error_metadata, timestamp)
+        TriggerExecutor.execute_device_error_triggers(
+          new_state,
+          "invalid_path",
+          error_metadata,
+          timestamp
+        )
 
         update_stats(new_state, interface, nil, path, payload)
 
@@ -851,7 +857,12 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
           "base64_payload" => base64_payload
         }
 
-        execute_device_error_triggers(new_state, "mapping_not_found", error_metadata, timestamp)
+        TriggerExecutor.execute_device_error_triggers(
+          new_state,
+          "mapping_not_found",
+          error_metadata,
+          timestamp
+        )
 
         update_stats(new_state, interface, nil, path, payload)
 
@@ -876,7 +887,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
           "base64_payload" => base64_payload
         }
 
-        execute_device_error_triggers(
+        TriggerExecutor.execute_device_error_triggers(
           new_state,
           "interface_loading_failed",
           error_metadata,
@@ -907,7 +918,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
           "base64_payload" => base64_payload
         }
 
-        execute_device_error_triggers(
+        TriggerExecutor.execute_device_error_triggers(
           new_state,
           "ambiguous_path",
           error_metadata,
@@ -939,7 +950,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
           "base64_payload" => base64_payload
         }
 
-        execute_device_error_triggers(
+        TriggerExecutor.execute_device_error_triggers(
           new_state,
           "undecodable_bson_payload",
           error_metadata,
@@ -971,7 +982,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
           "base64_payload" => base64_payload
         }
 
-        execute_device_error_triggers(
+        TriggerExecutor.execute_device_error_triggers(
           new_state,
           "unexpected_value_type",
           error_metadata,
@@ -1003,7 +1014,12 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
           "base64_payload" => base64_payload
         }
 
-        execute_device_error_triggers(new_state, "value_size_exceeded", error_metadata, timestamp)
+        TriggerExecutor.execute_device_error_triggers(
+          new_state,
+          "value_size_exceeded",
+          error_metadata,
+          timestamp
+        )
 
         update_stats(new_state, interface, nil, path, payload)
 
@@ -1030,7 +1046,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
           "base64_payload" => base64_payload
         }
 
-        execute_device_error_triggers(
+        TriggerExecutor.execute_device_error_triggers(
           new_state,
           "unexpected_object_key",
           error_metadata,
@@ -1246,7 +1262,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
           "base64_payload" => base64_payload
         }
 
-        execute_device_error_triggers(
+        TriggerExecutor.execute_device_error_triggers(
           new_state,
           "invalid_introspection",
           error_metadata,
@@ -1346,7 +1362,11 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
           %{realm: new_state.realm}
         )
 
-        execute_device_error_triggers(new_state, "device_session_not_found", timestamp)
+        TriggerExecutor.execute_device_error_triggers(
+          new_state,
+          "device_session_not_found",
+          timestamp
+        )
 
         new_state
 
@@ -1364,7 +1384,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
           %{realm: new_state.realm}
         )
 
-        execute_device_error_triggers(
+        TriggerExecutor.execute_device_error_triggers(
           new_state,
           "resend_interface_properties_failed",
           timestamp
@@ -1388,7 +1408,12 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
 
         error_metadata = %{"reason" => inspect(reason)}
 
-        execute_device_error_triggers(new_state, "empty_cache_error", error_metadata, timestamp)
+        TriggerExecutor.execute_device_error_triggers(
+          new_state,
+          "empty_cache_error",
+          error_metadata,
+          timestamp
+        )
 
         new_state
     end
@@ -1416,7 +1441,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
       "base64_payload" => base64_payload
     }
 
-    execute_device_error_triggers(
+    TriggerExecutor.execute_device_error_triggers(
       new_state,
       "unexpected_control_message",
       error_metadata,
