@@ -19,6 +19,7 @@
 #
 
 defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DataHandler do
+  alias Astarte.Core.InterfaceDescriptor
   alias Astarte.Core.Mapping.ValueType
   alias Astarte.DataUpdaterPlant.DataUpdater.State
   alias Astarte.DataUpdaterPlant.DataUpdater.CachedPath
@@ -48,227 +49,265 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DataHandler do
          :ok <- can_write_on_interface?(context, interface_descriptor.ownership),
          {:ok, mapping} <- resolve_path(context, interface_descriptor),
          {value, value_timestamp, _metadata} <- decode_bson_payload(context),
-         :ok <- validate_value_type(context, interface_descriptor, mapping, value) do
-      interface_id = interface_descriptor.interface_id
-
-      endpoint_id = mapping.endpoint_id
-      db_retention_policy = mapping.database_retention_policy
-      db_ttl = mapping.database_retention_ttl
-      device_id_string = Device.encode_device_id(state.device_id)
-      state = context.state
+         :ok <- validate_value_type(context, interface_descriptor, mapping, value),
+         :ok <- can_set_to_value(context, interface_descriptor, mapping, value, value_timestamp) do
+      execute_incoming_data_triggers(
+        context,
+        interface_descriptor,
+        mapping,
+        value,
+        value_timestamp
+      )
 
       maybe_explicit_value_timestamp =
         if mapping.explicit_timestamp,
           do: value_timestamp,
           else: div(timestamp, 10000)
 
-      Core.DataTrigger.execute_incoming_data_triggers(
-        state,
-        device_id_string,
-        interface_descriptor.name,
-        interface_id,
-        path,
-        endpoint_id,
-        payload,
-        value,
-        maybe_explicit_value_timestamp
-      )
+      context = Map.put(context, :explicit_value_timestamp, maybe_explicit_value_timestamp)
 
-      {has_change_triggers, change_triggers} =
-        Core.Interface.get_value_change_triggers(state, interface_id, endpoint_id, path, value)
-
-      previous_value =
-        with {:has_change_triggers, :ok} <- {:has_change_triggers, has_change_triggers},
-             {:ok, property_value} <-
-               Data.fetch_property(
-                 state.realm,
-                 state.device_id,
-                 interface_descriptor,
-                 mapping,
-                 path
-               ) do
-          property_value
-        else
-          {:has_change_triggers, _not_ok} ->
-            nil
-
-          {:error, :property_not_set} ->
-            nil
-        end
-
-      if has_change_triggers == :ok do
-        :ok =
-          Core.Trigger.execute_pre_change_triggers(
-            change_triggers,
-            state.realm,
-            device_id_string,
-            interface_descriptor.name,
-            path,
-            previous_value,
-            value,
-            maybe_explicit_value_timestamp,
-            state.trigger_id_to_policy_name
-          )
-      end
-
-      realm_max_ttl = state.datastream_maximum_storage_retention
-
-      db_max_ttl =
-        cond do
-          db_retention_policy == :use_ttl and is_integer(realm_max_ttl) ->
-            min(db_ttl, realm_max_ttl)
-
-          db_retention_policy == :use_ttl ->
-            db_ttl
-
-          is_integer(realm_max_ttl) ->
-            realm_max_ttl
-
-          true ->
-            nil
-        end
-
-      cond do
-        interface_descriptor.type == :datastream and value != nil ->
-          :ok =
-            cond do
-              Cache.has_key?(state.paths_cache, {interface, path}) ->
-                :ok
-
-              is_still_valid?(
-                # TODO this is now a bang!
-                Queries.fetch_path_expiry(
-                  state.realm,
-                  state.device_id,
-                  interface_descriptor,
-                  mapping,
-                  path
-                ),
-                db_max_ttl
-              ) ->
-                :ok
-
-              true ->
-                Queries.insert_path_into_db(
-                  state.realm,
-                  state.device_id,
-                  interface_descriptor,
-                  mapping,
-                  path,
-                  maybe_explicit_value_timestamp,
-                  timestamp,
-                  ttl: path_ttl(db_max_ttl)
-                )
-            end
-
-        interface_descriptor.type == :datastream ->
-          Logger.warning("Tried to unset a datastream.", tag: "unset_on_datastream")
-          MessageTracker.discard(state.message_tracker, message_id)
-
-          :telemetry.execute(
-            [:astarte, :data_updater_plant, :data_updater, :discarded_message],
-            %{},
-            %{realm: state.realm}
-          )
-
-          base64_payload = Base.encode64(payload)
-
-          error_metadata = %{
-            "interface" => inspect(interface),
-            "path" => inspect(path),
-            "base64_payload" => base64_payload
-          }
-
-          Core.Trigger.execute_device_error_triggers(
-            state,
-            "unset_on_datastream",
-            error_metadata,
-            timestamp
-          )
-
-          raise "Unsupported"
-
-        true ->
-          :ok
-      end
-
-      # TODO: handle insert failures here
-      insert_result =
-        Queries.insert_value_into_db(
-          state.realm,
-          state.device_id,
-          interface_descriptor,
-          mapping,
+      maybe_change_triggers =
+        Core.Interface.get_value_change_triggers(
+          context.state,
+          interface_descriptor.interface_id,
+          mapping.endpoint_id,
           path,
-          value,
-          maybe_explicit_value_timestamp,
-          timestamp,
-          ttl: db_max_ttl
+          value
         )
 
-      case insert_result do
-        {:error, :unset_not_allowed} ->
-          Logger.warning("Tried to unset a property with `allow_unset`=false.",
-            tag: "unset_not_allowed"
-          )
+      previous_value =
+        get_previous_value(context, interface_descriptor, mapping, maybe_change_triggers)
 
-          MessageTracker.discard(state.message_tracker, message_id)
+      context = Map.put(context, :previous_value, previous_value)
 
-          :telemetry.execute(
-            [:astarte, :data_updater_plant, :data_updater, :discarded_message],
-            %{},
-            %{realm: state.realm}
-          )
+      :ok =
+        maybe_execute_pre_change_triggers(
+          context,
+          interface_descriptor,
+          value,
+          maybe_change_triggers
+        )
 
-          base64_payload = Base.encode64(payload)
+      realm_max_ttl = context.state.datastream_maximum_storage_retention
 
-          error_metadata = %{
-            "interface" => inspect(interface),
-            "path" => inspect(path),
-            "base64_payload" => base64_payload
-          }
+      db_max_ttl =
+        max_ttl(mapping.database_retention_policy, realm_max_ttl, mapping.database_retention_ttl)
 
-          Core.Trigger.execute_device_error_triggers(
-            state,
-            "unset_not_allowed",
-            error_metadata,
-            timestamp
-          )
+      context = Map.put(context, :db_max_ttl, db_max_ttl)
 
-        :ok ->
-          if has_change_triggers == :ok do
-            :ok =
-              Core.Trigger.execute_post_change_triggers(
-                change_triggers,
-                state.realm,
-                device_id_string,
-                interface_descriptor.name,
-                path,
-                previous_value,
-                value,
-                maybe_explicit_value_timestamp,
-                state.trigger_id_to_policy_name
-              )
-          end
+      # Here value cannot be nil, otherwise `can_set_to_value/5` would have not
+      # been :ok
+      if interface_descriptor.type == :datastream,
+        do: maybe_insert_path(context, interface_descriptor, mapping)
 
-          ttl = db_max_ttl
-          paths_cache = Cache.put(state.paths_cache, {interface, path}, %CachedPath{}, ttl)
-          state = %{state | paths_cache: paths_cache}
-
-          MessageTracker.ack_delivery(state.message_tracker, message_id)
-
-          :telemetry.execute(
-            [:astarte, :data_updater_plant, :data_updater, :processed_message],
-            %{},
-            %{
-              realm: state.realm,
-              interface_type: interface_descriptor.type
-            }
-          )
-
-          update_stats(state, interface, interface_descriptor.major_version, path, payload)
-      end
+      Queries.insert_value_into_db(
+        context.state.realm,
+        context.state.device_id,
+        interface_descriptor,
+        mapping,
+        path,
+        value,
+        maybe_explicit_value_timestamp,
+        timestamp,
+        ttl: db_max_ttl
+      )
+      |> handle_result(context, maybe_change_triggers, interface_descriptor, value)
     end
+  end
+
+  defp maybe_execute_pre_change_triggers(
+         context,
+         interface_descriptor,
+         value,
+         {:ok, change_triggers}
+       ) do
+    %{
+      state: state,
+      path: path,
+      previous_value: previous_value,
+      explicit_value_timestamp: explicit_value_timestamp
+    } = context
+
+    Core.Trigger.execute_pre_change_triggers(
+      change_triggers,
+      state.realm,
+      Device.encode_device_id(state.device_id),
+      interface_descriptor.name,
+      path,
+      previous_value,
+      value,
+      explicit_value_timestamp,
+      state.trigger_id_to_policy_name
+    )
+  end
+
+  defp maybe_execute_pre_change_triggers(_, _, _, _), do: :ok
+
+  defp maybe_execute_post_change_triggers(
+         context,
+         interface_descriptor,
+         value,
+         {:ok, change_triggers}
+       ) do
+    %{
+      state: state,
+      path: path,
+      previous_value: previous_value,
+      explicit_value_timestamp: explicit_value_timestamp
+    } = context
+
+    Core.Trigger.execute_post_change_triggers(
+      change_triggers,
+      state.realm,
+      Device.encode_device_id(state.device_id),
+      interface_descriptor.name,
+      path,
+      previous_value,
+      value,
+      explicit_value_timestamp,
+      state.trigger_id_to_policy_name
+    )
+  end
+
+  defp maybe_execute_post_change_triggers(_, _, _, _), do: :ok
+
+  defp get_previous_value(context, interface_descriptor, mapping, {:ok, _change_triggers}) do
+    %{state: state, path: path} = context
+
+    case Data.fetch_property(state.realm, state.device_id, interface_descriptor, mapping, path) do
+      {:ok, property_value} -> property_value
+      _ -> nil
+    end
+  end
+
+  defp get_previous_value(_, _, _, _), do: nil
+
+  defp handle_result({:error, :unset_not_allowed}, context, _, _, _) do
+    error = %{
+      message: "Tried to unset a property with `allow_unset`=false.",
+      tag: "unset_not_allowed",
+      error_name: "unset_not_allowed",
+      update_stats: false
+    }
+
+    # with `unset_not_allowed` we do not want to update the stats
+    Core.Error.handle_error(context, error)
+  end
+
+  defp handle_result(:ok, context, maybe_change_triggers, interface_descriptor, value) do
+    %{
+      state: state,
+      path: path,
+      payload: payload,
+      interface: interface,
+      message_id: message_id,
+      db_max_ttl: db_max_ttl
+    } = context
+
+    maybe_execute_post_change_triggers(
+      context,
+      interface_descriptor,
+      value,
+      maybe_change_triggers
+    )
+
+    paths_cache = Cache.put(state.paths_cache, {interface, path}, %CachedPath{}, db_max_ttl)
+    state = %{state | paths_cache: paths_cache}
+
+    MessageTracker.ack_delivery(state.message_tracker, message_id)
+
+    :telemetry.execute(
+      [:astarte, :data_updater_plant, :data_updater, :processed_message],
+      %{},
+      %{
+        realm: state.realm,
+        interface_type: interface_descriptor.type
+      }
+    )
+
+    update_stats(state, interface, interface_descriptor.major_version, path, payload)
+  end
+
+  defp maybe_insert_path(context, interface_descriptor, mapping) do
+    %{
+      state: state,
+      interface: interface,
+      path: path,
+      timestamp: timestamp,
+      explicit_value_timestamp: explicit_value_timestamp,
+      db_max_ttl: db_max_ttl
+    } = context
+
+    with false <- Cache.has_key?(state.paths_cache, {interface, path}),
+         false <-
+           Queries.fetch_path_expiry(
+             state.realm,
+             state.device_id,
+             interface_descriptor,
+             mapping,
+             path
+           )
+           |> is_still_valid?(db_max_ttl) do
+      Queries.insert_path_into_db(
+        state.realm,
+        state.device_id,
+        interface_descriptor,
+        mapping,
+        path,
+        explicit_value_timestamp,
+        timestamp,
+        ttl: path_ttl(db_max_ttl)
+      )
+    end
+  end
+
+  defp can_set_to_value(
+         context,
+         %InterfaceDescriptor{type: :datastream} = interface_descriptor,
+         mapping,
+         nil,
+         value_timestamp
+       ) do
+    # We still want to execute incoming data triggers
+    execute_incoming_data_triggers(context, interface_descriptor, mapping, nil, value_timestamp)
+
+    error = %{
+      message: "Tried to unset a datastream.",
+      tag: "unset_on_datastream",
+      error_name: "unset_on_datastream"
+    }
+
+    Core.Error.handle_error(context, error, ask_clean_session: false, update_stats: false)
+  end
+
+  defp can_set_to_value(_context, _descriptor, _mapping, _value, _value_timestamp), do: :ok
+
+  defp execute_incoming_data_triggers(
+         context,
+         interface_descriptor,
+         mapping,
+         value,
+         value_timestamp
+       ) do
+    %{state: state, path: path, payload: payload} = context
+    interface_id = interface_descriptor.interface_id
+
+    maybe_explicit_value_timestamp =
+      if mapping.explicit_timestamp,
+        do: value_timestamp,
+        else: div(context.timestamp, 10000)
+
+    Core.DataTrigger.execute_incoming_data_triggers(
+      state,
+      Device.encode_device_id(state.device_id),
+      interface_descriptor.name,
+      interface_id,
+      path,
+      mapping.endpoint_id,
+      payload,
+      value,
+      maybe_explicit_value_timestamp
+    )
   end
 
   defp maybe_handle_cache_miss(context) do
@@ -366,11 +405,12 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DataHandler do
   end
 
   defp invalid_interface_error(%{interface: interface} = context) do
-    error = %{
-      message: "Received invalid interface: #{inspect(interface)}.",
-      logger_metadata: [tag: "invalid_interface"],
-      error_name: "invalid_interface"
-    }
+    error =
+      %{
+        message: "Received invalid interface: #{inspect(interface)}.",
+        logger_metadata: [tag: "invalid_interface"],
+        error_name: "invalid_interface"
+      }
 
     Core.Error.handle_error(context, error, update_stats: false)
   end
@@ -575,4 +615,14 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DataHandler do
         interface_exchanged_msgs: updated_interface_exchanged_msgs
     }
   end
+
+  defp max_ttl(:use_ttl, realm_max_ttl, db_ttl) when is_integer(realm_max_ttl),
+    do: min(db_ttl, realm_max_ttl)
+
+  defp max_ttl(:use_ttl, _, db_ttl), do: db_ttl
+
+  defp max_ttl(_db_retention_policy, realm_max_ttl, _db_ttl) when is_integer(realm_max_ttl),
+    do: realm_max_ttl
+
+  defp max_ttl(_, _, _), do: nil
 end
