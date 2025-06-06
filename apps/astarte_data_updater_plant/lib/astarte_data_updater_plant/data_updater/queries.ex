@@ -510,7 +510,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
       |> select([device], fragment("TTL(?)", device.connected))
       |> put_query_prefix(keyspace_name)
 
-    case Repo.fetch_one(query, consistency: Consistency.device_info(:read)) do
+    case Repo.safe_fetch_one(query, consistency: Consistency.device_info(:read)) do
       {:ok, n} ->
         {:ok, n}
 
@@ -568,7 +568,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
 
     consistency = Consistency.device_info(:read)
 
-    with {:ok, minors} <- Repo.fetch_one(query, consistency: consistency) do
+    with {:ok, minors} <- Repo.safe_fetch_one(query, consistency: consistency) do
       {:ok, minors}
     end
   end
@@ -584,7 +584,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
 
     consistency = Consistency.device_info(:read)
 
-    with {:ok, groups} <- Repo.fetch_one(query, consistency: consistency) do
+    with {:ok, groups} <- Repo.safe_fetch_one(query, consistency: consistency) do
       {:ok, Map.keys(groups)}
     end
   end
@@ -721,7 +721,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
       |> where(device_id: ^device_id)
       |> put_query_prefix(keyspace_name)
 
-    case Repo.fetch_one(query, consistency: Consistency.device_info(:read)) do
+    case Repo.safe_fetch_one(query, consistency: Consistency.device_info(:read)) do
       {:ok, _} -> {:ok, true}
       {:error, :not_found} -> {:ok, false}
       {:error, reason} -> {:error, reason}
