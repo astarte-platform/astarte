@@ -19,7 +19,7 @@
 defmodule Astarte.Cases.Device do
   alias Astarte.DataAccess.Repo
   alias Astarte.DataAccess.Realms.Realm
-  alias Astarte.DataAccess.Realms.Interface
+  alias Astarte.DataAccess.Interface, as: InterfaceQueries
   alias Astarte.DataAccess.Realms.Endpoint
   alias Astarte.Core.Generators.Device, as: DeviceGenerator
   alias Astarte.Core.Generators.Interface, as: InterfaceGenerator
@@ -30,7 +30,6 @@ defmodule Astarte.Cases.Device do
   import Astarte.Helpers.Device
   import Astarte.Helpers.Database
   import Astarte.InterfaceUpdateGenerators
-  import Ecto.Query
 
   using do
     quote do
@@ -44,14 +43,21 @@ defmodule Astarte.Cases.Device do
 
     Enum.each(interfaces_data.interfaces, &insert_interface_cleanly(realm_name, &1))
 
-    interfaces = update_interfaces_id(realm_name, interfaces_data.interfaces)
-    interfaces = update_endpoints_ids(realm_name, interfaces)
+    interface_descriptors = get_interface_descriptors(realm_name, interfaces_data.interfaces)
+    endpoints = get_endpoints_by_interface_id(realm_name, interface_descriptors)
+
+    interfaces =
+      interfaces_data.interfaces
+      |> update_interfaces_id(interface_descriptors)
+      |> update_endpoints_ids(endpoints)
 
     insert_device_cleanly(realm_name, device, interfaces)
 
     interfaces_data
     |> Map.put(:interfaces, interfaces)
     |> Map.put(:device, device)
+    |> Map.put(:interface_descriptors, interface_descriptors)
+    |> Map.put(:endpoints, endpoints)
   end
 
   def populate_interfaces(context) do
@@ -130,51 +136,25 @@ defmodule Astarte.Cases.Device do
     %{paths: paths, timings: timings}
   end
 
-  defp update_interfaces_id(realm_name, interfaces) do
-    keyspace = Realm.keyspace_name(realm_name)
-    chunks = interfaces |> Enum.chunk_every(10)
-
-    interface_ids =
-      for chunk <- chunks do
-        {names, major_versions} =
-          chunk
-          |> Enum.map(&{&1.name, &1.major_version})
-          |> Enum.unzip()
-
-        query =
-          from i in Interface,
-            where: i.name in ^names and i.major_version in ^major_versions,
-            select: [:interface_id, :name, :major_version]
-
-        Repo.all(query, prefix: keyspace)
-      end
-      |> Enum.concat()
+  defp update_interfaces_id(interfaces, interface_descriptors) do
+    descriptors_by_key =
+      Map.new(interface_descriptors, fn descriptor ->
+        {{descriptor.name, descriptor.major_version}, descriptor}
+      end)
 
     Enum.map(interfaces, fn interface ->
-      db_interface =
-        Enum.find(interface_ids, interface.interface_id, fn db_interface ->
-          db_interface.name == interface.name and
-            db_interface.major_version == interface.major_version
-        end)
-
-      if db_interface == nil, do: raise("Interface not found!")
+      interface_key = {interface.name, interface.major_version}
+      interface_descriptor = Map.fetch!(descriptors_by_key, interface_key)
 
       interface
-      |> Map.put(:interface_id, db_interface.interface_id)
+      |> Map.put(:interface_id, interface_descriptor.interface_id)
     end)
   end
 
-  defp update_endpoints_ids(realm_name, interfaces) do
-    interface_ids = Enum.map(interfaces, & &1.interface_id)
-
-    endpoint_by_interface =
-      Repo.all(Endpoint, prefix: Realm.keyspace_name(realm_name))
-      |> Enum.group_by(& &1.interface_id)
-      |> Map.take(interface_ids)
-
+  defp update_endpoints_ids(interfaces, endpoints) do
     for interface <- interfaces do
       interface_endpoints_by_path =
-        Map.fetch!(endpoint_by_interface, interface.interface_id)
+        Map.fetch!(endpoints, interface.interface_id)
         |> Map.new(&{&1.endpoint, &1})
 
       mappings =
@@ -234,5 +214,26 @@ defmodule Astarte.Cases.Device do
 
   defp properties(ownership) do
     InterfaceGenerator.interface(ownership: ownership, type: :properties)
+  end
+
+  defp get_interface_descriptors(realm_name, interfaces) do
+    for interface <- interfaces do
+      {:ok, interface_descriptor} =
+        InterfaceQueries.fetch_interface_descriptor(
+          realm_name,
+          interface.name,
+          interface.major_version
+        )
+
+      interface_descriptor
+    end
+  end
+
+  defp get_endpoints_by_interface_id(realm_name, interface_descriptors) do
+    interface_ids = interface_descriptors |> Enum.map(& &1.interface_id)
+
+    Repo.all(Endpoint, prefix: Realm.keyspace_name(realm_name))
+    |> Enum.group_by(& &1.interface_id)
+    |> Map.take(interface_ids)
   end
 end
