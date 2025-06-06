@@ -18,6 +18,10 @@
 
 Mimic.copy(Astarte.DataAccess.Config)
 Mimic.copy(Astarte.DataUpdaterPlant.DataUpdater.Server)
+Mimic.copy(Astarte.DataUpdaterPlant.DataUpdater.Core.Device)
+Mimic.copy(Astarte.DataUpdaterPlant.DataUpdater.Core.Trigger)
+Mimic.copy(Astarte.DataUpdaterPlant.DataUpdater.Core.DataHandler)
+Mimic.copy(Astarte.DataUpdaterPlant.MessageTracker)
 Mimic.copy(Astarte.DataUpdaterPlant.RPC.Server.Core)
 Mimic.copy(Astarte.DataUpdaterPlant.RPC.VMQPlugin)
 Mimic.copy(System)
