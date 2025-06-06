@@ -456,8 +456,8 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DataHandler do
 
         Core.Error.handle_error(context, error)
 
-      ok ->
-        ok
+      :ok ->
+        :ok
     end
   end
 
