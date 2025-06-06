@@ -20,7 +20,6 @@ defmodule Astarte.DataUpdaterPlant.TimeBasedActions do
   alias Astarte.Core.Device
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.Utils, as: SimpleTriggersProtobufUtils
   alias Astarte.DataUpdaterPlant.DataUpdater.Core
-  alias Astarte.DataUpdaterPlant.DataUpdater.Impl
   alias Astarte.DataUpdaterPlant.DataUpdater.State
   alias Astarte.DataUpdaterPlant.DataUpdater.Queries
   alias Astarte.DataUpdaterPlant.RPC.VMQPlugin
@@ -152,7 +151,7 @@ defmodule Astarte.DataUpdaterPlant.TimeBasedActions do
       encoded_device_id = Device.encode_device_id(device_id)
 
       :ok = force_device_deletion_from_broker(realm, encoded_device_id)
-      new_state = Impl.set_device_disconnected(state, timestamp)
+      new_state = Core.Device.set_device_disconnected(state, timestamp)
 
       Logger.info("Stop handling data from device in deletion, device_id #{encoded_device_id}")
 

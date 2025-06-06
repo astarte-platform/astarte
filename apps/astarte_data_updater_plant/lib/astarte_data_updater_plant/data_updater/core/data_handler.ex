@@ -19,8 +19,9 @@
 #
 
 defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DataHandler do
+  alias Astarte.DataUpdaterPlant.DataUpdater.Core.Error
+  alias Astarte.Core.InterfaceDescriptor
   alias Astarte.Core.Mapping.ValueType
-  alias Astarte.DataUpdaterPlant.DataUpdater.Impl
   alias Astarte.DataUpdaterPlant.DataUpdater.State
   alias Astarte.DataUpdaterPlant.DataUpdater.CachedPath
   alias Astarte.DataUpdaterPlant.DataUpdater.Cache
@@ -34,546 +35,347 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DataHandler do
   require Logger
 
   def handle_data(state, interface, path, payload, message_id, timestamp) do
-    with :ok <- validate_interface(interface),
-         :ok <- validate_path(path),
-         maybe_descriptor <- Map.get(state.interfaces, interface),
-         {:ok, interface_descriptor, state} <-
-           Core.Interface.maybe_handle_cache_miss(maybe_descriptor, interface, state),
-         :ok <- can_write_on_interface?(interface_descriptor.ownership),
-         interface_id <- interface_descriptor.interface_id,
-         {:ok, mapping} <-
-           Core.Interface.resolve_path(path, interface_descriptor, state.mappings),
-         endpoint_id = mapping.endpoint_id,
-         db_retention_policy = mapping.database_retention_policy,
-         db_ttl = mapping.database_retention_ttl,
-         {value, value_timestamp, _metadata} <-
-           PayloadsDecoder.decode_bson_payload(payload, timestamp),
-         expected_types <-
-           Core.Interface.extract_expected_types(
-             path,
-             interface_descriptor,
-             mapping,
-             state.mappings
-           ),
-         :ok <- validate_value_type(expected_types, value) do
-      device_id_string = Device.encode_device_id(state.device_id)
+    context = %{
+      state: state,
+      interface: interface,
+      path: path,
+      payload: payload,
+      message_id: message_id,
+      timestamp: timestamp
+    }
 
-      maybe_explicit_value_timestamp =
-        if mapping.explicit_timestamp do
-          value_timestamp
-        else
-          div(timestamp, 10000)
-        end
-
-      Impl.execute_incoming_data_triggers(
-        state,
-        device_id_string,
-        interface_descriptor.name,
-        interface_id,
-        path,
-        endpoint_id,
-        payload,
+    with :ok <- validate_interface(context),
+         :ok <- validate_path(context),
+         {:ok, interface_descriptor, state, context} <- maybe_handle_cache_miss(context),
+         :ok <- can_write_on_interface?(context, interface_descriptor.ownership),
+         {:ok, mapping} <- resolve_path(context, interface_descriptor),
+         {value, value_timestamp, _metadata} <- decode_bson_payload(context),
+         :ok <- maybe_validate_value_type(context, interface_descriptor, mapping, value),
+         :ok <- can_set_to_value(context, interface_descriptor, mapping, value, value_timestamp) do
+      execute_incoming_data_triggers(
+        context,
+        interface_descriptor,
+        mapping,
         value,
-        maybe_explicit_value_timestamp
+        value_timestamp
       )
 
-      {has_change_triggers, change_triggers} =
-        Impl.get_value_change_triggers(state, interface_id, endpoint_id, path, value)
+      maybe_explicit_value_timestamp =
+        if mapping.explicit_timestamp,
+          do: value_timestamp,
+          else: div(timestamp, 10000)
+
+      context = Map.put(context, :explicit_value_timestamp, maybe_explicit_value_timestamp)
+
+      maybe_change_triggers =
+        Core.Interface.get_value_change_triggers(
+          state,
+          interface_descriptor.interface_id,
+          mapping.endpoint_id,
+          path,
+          value
+        )
 
       previous_value =
-        with {:has_change_triggers, :ok} <- {:has_change_triggers, has_change_triggers},
-             {:ok, property_value} <-
-               Data.fetch_property(
-                 state.realm,
-                 state.device_id,
-                 interface_descriptor,
-                 mapping,
-                 path
-               ) do
-          property_value
-        else
-          {:has_change_triggers, _not_ok} ->
-            nil
+        get_previous_value(context, interface_descriptor, mapping, maybe_change_triggers)
 
-          {:error, :property_not_set} ->
-            nil
-        end
+      context = Map.put(context, :previous_value, previous_value)
 
-      if has_change_triggers == :ok do
-        :ok =
-          Impl.execute_pre_change_triggers(
-            change_triggers,
-            state.realm,
-            device_id_string,
-            interface_descriptor.name,
-            path,
-            previous_value,
-            value,
-            maybe_explicit_value_timestamp,
-            state.trigger_id_to_policy_name
-          )
-      end
+      :ok =
+        maybe_execute_pre_change_triggers(
+          context,
+          interface_descriptor,
+          value,
+          maybe_change_triggers
+        )
 
       realm_max_ttl = state.datastream_maximum_storage_retention
 
       db_max_ttl =
-        cond do
-          db_retention_policy == :use_ttl and is_integer(realm_max_ttl) ->
-            min(db_ttl, realm_max_ttl)
+        max_ttl(mapping.database_retention_policy, realm_max_ttl, mapping.database_retention_ttl)
 
-          db_retention_policy == :use_ttl ->
-            db_ttl
+      context = Map.put(context, :db_max_ttl, db_max_ttl)
 
-          is_integer(realm_max_ttl) ->
-            realm_max_ttl
+      # Here value cannot be nil, otherwise `can_set_to_value/5` would have not
+      # been :ok
+      if interface_descriptor.type == :datastream,
+        do: maybe_insert_path(context, interface_descriptor, mapping)
 
-          true ->
-            nil
-        end
+      Queries.insert_value_into_db(
+        state.realm,
+        state.device_id,
+        interface_descriptor,
+        mapping,
+        path,
+        value,
+        maybe_explicit_value_timestamp,
+        timestamp,
+        ttl: db_max_ttl
+      )
+      |> handle_result(context, maybe_change_triggers, interface_descriptor, value)
+    end
+  end
 
-      cond do
-        interface_descriptor.type == :datastream and value != nil ->
-          :ok =
-            cond do
-              Cache.has_key?(state.paths_cache, {interface, path}) ->
-                :ok
+  defp maybe_execute_pre_change_triggers(
+         context,
+         interface_descriptor,
+         value,
+         {:ok, change_triggers}
+       ) do
+    %{
+      state: state,
+      path: path,
+      previous_value: previous_value,
+      explicit_value_timestamp: explicit_value_timestamp
+    } = context
 
-              is_still_valid?(
-                # TODO this is now a bang!
-                Queries.fetch_path_expiry(
-                  state.realm,
-                  state.device_id,
-                  interface_descriptor,
-                  mapping,
-                  path
-                ),
-                db_max_ttl
-              ) ->
-                :ok
+    Core.Trigger.execute_pre_change_triggers(
+      change_triggers,
+      state.realm,
+      Device.encode_device_id(state.device_id),
+      interface_descriptor.name,
+      path,
+      previous_value,
+      value,
+      explicit_value_timestamp,
+      state.trigger_id_to_policy_name
+    )
+  end
 
-              true ->
-                Queries.insert_path_into_db(
-                  state.realm,
-                  state.device_id,
-                  interface_descriptor,
-                  mapping,
-                  path,
-                  maybe_explicit_value_timestamp,
-                  timestamp,
-                  ttl: path_ttl(db_max_ttl)
-                )
-            end
+  defp maybe_execute_pre_change_triggers(_, _, _, _), do: :ok
 
-        interface_descriptor.type == :datastream ->
-          Logger.warning("Tried to unset a datastream.", tag: "unset_on_datastream")
-          MessageTracker.discard(state.message_tracker, message_id)
+  defp maybe_execute_post_change_triggers(
+         context,
+         interface_descriptor,
+         value,
+         {:ok, change_triggers}
+       ) do
+    %{
+      state: state,
+      path: path,
+      previous_value: previous_value,
+      explicit_value_timestamp: explicit_value_timestamp
+    } = context
 
-          :telemetry.execute(
-            [:astarte, :data_updater_plant, :data_updater, :discarded_message],
-            %{},
-            %{realm: state.realm}
-          )
+    Core.Trigger.execute_post_change_triggers(
+      change_triggers,
+      state.realm,
+      Device.encode_device_id(state.device_id),
+      interface_descriptor.name,
+      path,
+      previous_value,
+      value,
+      explicit_value_timestamp,
+      state.trigger_id_to_policy_name
+    )
+  end
 
-          base64_payload = Base.encode64(payload)
+  defp maybe_execute_post_change_triggers(_, _, _, _), do: :ok
 
-          error_metadata = %{
-            "interface" => inspect(interface),
-            "path" => inspect(path),
-            "base64_payload" => base64_payload
-          }
+  defp get_previous_value(context, interface_descriptor, mapping, {:ok, _change_triggers}) do
+    %{state: state, path: path} = context
 
-          Impl.execute_device_error_triggers(
-            state,
-            "unset_on_datastream",
-            error_metadata,
-            timestamp
-          )
+    case Data.fetch_property(state.realm, state.device_id, interface_descriptor, mapping, path) do
+      {:ok, property_value} -> property_value
+      _ -> nil
+    end
+  end
 
-          raise "Unsupported"
+  defp get_previous_value(_, _, _, _), do: nil
 
-        true ->
-          :ok
-      end
+  defp handle_result({:error, :unset_not_allowed}, context, _, _, _) do
+    error = %{
+      message: "Tried to unset a property with `allow_unset`=false.",
+      tag: "unset_not_allowed",
+      error_name: "unset_not_allowed",
+      update_stats: false
+    }
 
-      # TODO: handle insert failures here
-      insert_result =
-        Queries.insert_value_into_db(
-          state.realm,
-          state.device_id,
-          interface_descriptor,
-          mapping,
-          path,
-          value,
-          maybe_explicit_value_timestamp,
-          timestamp,
-          ttl: db_max_ttl
-        )
+    # with `unset_not_allowed` we do not want to update the stats
+    Error.handle_error(context, error)
+  end
 
-      case insert_result do
-        {:error, :unset_not_allowed} ->
-          Logger.warning("Tried to unset a property with `allow_unset`=false.",
-            tag: "unset_not_allowed"
-          )
+  defp handle_result(:ok, context, maybe_change_triggers, interface_descriptor, value) do
+    %{
+      state: state,
+      path: path,
+      payload: payload,
+      interface: interface,
+      message_id: message_id,
+      db_max_ttl: db_max_ttl
+    } = context
 
-          MessageTracker.discard(state.message_tracker, message_id)
+    maybe_execute_post_change_triggers(
+      context,
+      interface_descriptor,
+      value,
+      maybe_change_triggers
+    )
 
-          :telemetry.execute(
-            [:astarte, :data_updater_plant, :data_updater, :discarded_message],
-            %{},
-            %{realm: state.realm}
-          )
+    paths_cache = Cache.put(state.paths_cache, {interface, path}, %CachedPath{}, db_max_ttl)
+    state = %{state | paths_cache: paths_cache}
 
-          base64_payload = Base.encode64(payload)
+    MessageTracker.ack_delivery(state.message_tracker, message_id)
 
-          error_metadata = %{
-            "interface" => inspect(interface),
-            "path" => inspect(path),
-            "base64_payload" => base64_payload
-          }
+    :telemetry.execute(
+      [:astarte, :data_updater_plant, :data_updater, :processed_message],
+      %{},
+      %{
+        realm: state.realm,
+        interface_type: interface_descriptor.type
+      }
+    )
 
-          Impl.execute_device_error_triggers(
-            state,
-            "unset_not_allowed",
-            error_metadata,
-            timestamp
-          )
+    update_stats(state, interface, interface_descriptor.major_version, path, payload)
+  end
 
-        :ok ->
-          if has_change_triggers == :ok do
-            :ok =
-              Impl.execute_post_change_triggers(
-                change_triggers,
-                state.realm,
-                device_id_string,
-                interface_descriptor.name,
-                path,
-                previous_value,
-                value,
-                maybe_explicit_value_timestamp,
-                state.trigger_id_to_policy_name
-              )
-          end
+  defp maybe_insert_path(context, interface_descriptor, mapping) do
+    %{
+      state: state,
+      interface: interface,
+      path: path,
+      timestamp: timestamp,
+      explicit_value_timestamp: explicit_value_timestamp,
+      db_max_ttl: db_max_ttl
+    } = context
 
-          ttl = db_max_ttl
-          paths_cache = Cache.put(state.paths_cache, {interface, path}, %CachedPath{}, ttl)
-          state = %{state | paths_cache: paths_cache}
+    with false <- Cache.has_key?(state.paths_cache, {interface, path}),
+         false <-
+           Queries.fetch_path_expiry(
+             state.realm,
+             state.device_id,
+             interface_descriptor,
+             mapping,
+             path
+           )
+           |> is_still_valid?(db_max_ttl) do
+      Queries.insert_path_into_db(
+        state.realm,
+        state.device_id,
+        interface_descriptor,
+        mapping,
+        path,
+        explicit_value_timestamp,
+        timestamp,
+        ttl: path_ttl(db_max_ttl)
+      )
+    end
+  end
 
-          MessageTracker.ack_delivery(state.message_tracker, message_id)
+  defp can_set_to_value(
+         context,
+         %InterfaceDescriptor{type: :datastream} = interface_descriptor,
+         mapping,
+         nil,
+         value_timestamp
+       ) do
+    # We still want to execute incoming data triggers
+    execute_incoming_data_triggers(context, interface_descriptor, mapping, nil, value_timestamp)
 
-          :telemetry.execute(
-            [:astarte, :data_updater_plant, :data_updater, :processed_message],
-            %{},
-            %{
-              realm: state.realm,
-              interface_type: interface_descriptor.type
-            }
-          )
+    error = %{
+      message: "Tried to unset a datastream.",
+      tag: "unset_on_datastream",
+      error_name: "unset_on_datastream"
+    }
 
-          update_stats(state, interface, interface_descriptor.major_version, path, payload)
-      end
-    else
-      {:error, :cannot_write_on_server_owned_interface} ->
-        Logger.warning(
-          "Tried to write on server owned interface: #{interface} on " <>
-            "path: #{path}, base64-encoded payload: #{inspect(Base.encode64(payload))}, timestamp: #{inspect(timestamp)}.",
-          tag: "write_on_server_owned_interface"
-        )
+    Error.handle_error(context, error)
+  end
 
-        {:ok, state} = Impl.ask_clean_session(state, timestamp)
-        MessageTracker.discard(state.message_tracker, message_id)
+  defp can_set_to_value(_context, _descriptor, _mapping, _value, _value_timestamp), do: :ok
 
-        :telemetry.execute(
-          [:astarte, :data_updater_plant, :data_updater, :discarded_message],
-          %{},
-          %{realm: state.realm}
-        )
+  defp execute_incoming_data_triggers(
+         context,
+         interface_descriptor,
+         mapping,
+         value,
+         value_timestamp
+       ) do
+    %{state: state, path: path, payload: payload} = context
+    interface_id = interface_descriptor.interface_id
 
-        base64_payload = Base.encode64(payload)
+    maybe_explicit_value_timestamp =
+      if mapping.explicit_timestamp,
+        do: value_timestamp,
+        else: div(context.timestamp, 10000)
 
-        error_metadata = %{
-          "interface" => inspect(interface),
-          "path" => inspect(path),
-          "base64_payload" => base64_payload
-        }
+    Core.DataTrigger.execute_incoming_data_triggers(
+      state,
+      Device.encode_device_id(state.device_id),
+      interface_descriptor.name,
+      interface_id,
+      path,
+      mapping.endpoint_id,
+      payload,
+      value,
+      maybe_explicit_value_timestamp
+    )
+  end
 
-        Impl.execute_device_error_triggers(
-          state,
-          "write_on_server_owned_interface",
-          error_metadata,
-          timestamp
-        )
+  defp maybe_handle_cache_miss(context) do
+    %{interface: interface, state: state} = context
 
-        update_stats(state, interface, nil, path, payload)
+    cache_miss =
+      state.interfaces
+      |> Map.get(interface)
+      |> Core.Interface.maybe_handle_cache_miss(interface, state)
 
-      {:error, :invalid_interface} ->
-        Logger.warning("Received invalid interface: #{inspect(interface)}.",
-          tag: "invalid_interface"
-        )
-
-        {:ok, state} = Impl.ask_clean_session(state, timestamp)
-        MessageTracker.discard(state.message_tracker, message_id)
-
-        :telemetry.execute(
-          [:astarte, :data_updater_plant, :data_updater, :discarded_message],
-          %{},
-          %{realm: state.realm}
-        )
-
-        base64_payload = Base.encode64(payload)
-
-        error_metadata = %{
-          "interface" => inspect(interface),
-          "path" => inspect(path),
-          "base64_payload" => base64_payload
-        }
-
-        Impl.execute_device_error_triggers(
-          state,
-          "invalid_interface",
-          error_metadata,
-          timestamp
-        )
-
-        # We dont't update stats on an invalid interface
-        state
-
-      {:error, :invalid_path} ->
-        Logger.warning("Received invalid path: #{inspect(path)}.", tag: "invalid_path")
-        {:ok, state} = Impl.ask_clean_session(state, timestamp)
-        MessageTracker.discard(state.message_tracker, message_id)
-
-        :telemetry.execute(
-          [:astarte, :data_updater_plant, :data_updater, :discarded_message],
-          %{},
-          %{realm: state.realm}
-        )
-
-        base64_payload = Base.encode64(payload)
-
-        error_metadata = %{
-          "interface" => inspect(interface),
-          "path" => inspect(path),
-          "base64_payload" => base64_payload
-        }
-
-        Impl.execute_device_error_triggers(state, "invalid_path", error_metadata, timestamp)
-
-        update_stats(state, interface, nil, path, payload)
-
-      {:error, :mapping_not_found} ->
-        Logger.warning("Mapping not found for #{interface}#{path}. Maybe outdated introspection?",
-          tag: "mapping_not_found"
-        )
-
-        {:ok, state} = Impl.ask_clean_session(state, timestamp)
-        MessageTracker.discard(state.message_tracker, message_id)
-
-        :telemetry.execute(
-          [:astarte, :data_updater_plant, :data_updater, :discarded_message],
-          %{},
-          %{realm: state.realm}
-        )
-
-        base64_payload = Base.encode64(payload)
-
-        error_metadata = %{
-          "interface" => inspect(interface),
-          "path" => inspect(path),
-          "base64_payload" => base64_payload
-        }
-
-        Impl.execute_device_error_triggers(state, "mapping_not_found", error_metadata, timestamp)
-
-        update_stats(state, interface, nil, path, payload)
-
+    case cache_miss do
       {:error, :interface_loading_failed} ->
-        Logger.warning("Cannot load interface: #{interface}.", tag: "interface_loading_failed")
-        # TODO: think about additional actions since the problem
-        # could be a missing interface in the DB
-        {:ok, state} = Impl.ask_clean_session(state, timestamp)
-        MessageTracker.discard(state.message_tracker, message_id)
-
-        :telemetry.execute(
-          [:astarte, :data_updater_plant, :data_updater, :discarded_message],
-          %{},
-          %{realm: state.realm}
-        )
-
-        base64_payload = Base.encode64(payload)
-
-        error_metadata = %{
-          "interface" => inspect(interface),
-          "path" => inspect(path),
-          "base64_payload" => base64_payload
+        error = %{
+          message: "Cannot load interface: #{interface}.",
+          tag: "interface_loading_failed",
+          error_name: "interface_loading_failed"
         }
 
-        Impl.execute_device_error_triggers(
-          state,
-          "interface_loading_failed",
-          error_metadata,
-          timestamp
-        )
+        Core.Error.handle_error(context, error)
 
-        update_stats(state, interface, nil, path, payload)
+      {:ok, descriptor, state} ->
+        new_context = Map.put(context, :state, state)
+        {:ok, descriptor, state, new_context}
+    end
+  end
+
+  defp resolve_path(context, interface_descriptor) do
+    %{interface: interface, path: path, state: state} = context
+    mappings = Core.Interface.resolve_path(path, interface_descriptor, state.mappings)
+
+    case mappings do
+      {:error, :mapping_not_found} ->
+        error = %{
+          message: "Mapping not found for #{interface}#{path}. Maybe outdated introspection?",
+          tag: "mapping_not_found",
+          error_name: "mapping_not_found"
+        }
+
+        Core.Error.handle_error(context, error)
 
       {:guessed, _guessed_endpoints} ->
-        Logger.warning("Mapping guessed for #{interface}#{path}. Maybe outdated introspection?",
-          tag: "ambiguous_path"
-        )
-
-        {:ok, state} = Impl.ask_clean_session(state, timestamp)
-        MessageTracker.discard(state.message_tracker, message_id)
-
-        :telemetry.execute(
-          [:astarte, :data_updater_plant, :data_updater, :discarded_message],
-          %{},
-          %{realm: state.realm}
-        )
-
-        base64_payload = Base.encode64(payload)
-
-        error_metadata = %{
-          "interface" => inspect(interface),
-          "path" => inspect(path),
-          "base64_payload" => base64_payload
+        error = %{
+          message: "Mapping guessed for #{interface}#{path}. Maybe outdated introspection?",
+          tag: "ambiguous_path",
+          error_name: "ambiguous_path"
         }
 
-        Impl.execute_device_error_triggers(
-          state,
-          "ambiguous_path",
-          error_metadata,
-          timestamp
-        )
+        Core.Error.handle_error(context, error)
 
-        update_stats(state, interface, nil, path, payload)
+      ok ->
+        ok
+    end
+  end
 
-      {:error, :undecodable_bson_payload} ->
-        Logger.warning(
+  defp decode_bson_payload(context) do
+    %{payload: payload, timestamp: timestamp, interface: interface, path: path} = context
+    decoding = PayloadsDecoder.decode_bson_payload(payload, timestamp)
+
+    with {:error, :undecodable_bson_payload} <- decoding do
+      error = %{
+        message:
           "Invalid BSON base64-encoded payload: #{inspect(Base.encode64(payload))} sent to #{interface}#{path}.",
-          tag: "undecodable_bson_payload"
-        )
+        tag: "undecodable_bson_payload",
+        error_name: "undecodable_bson_payload"
+      }
 
-        {:ok, state} = Impl.ask_clean_session(state, timestamp)
-        MessageTracker.discard(state.message_tracker, message_id)
-
-        :telemetry.execute(
-          [:astarte, :data_updater_plant, :data_updater, :discarded_message],
-          %{},
-          %{realm: state.realm}
-        )
-
-        base64_payload = Base.encode64(payload)
-
-        error_metadata = %{
-          "interface" => inspect(interface),
-          "path" => inspect(path),
-          "base64_payload" => base64_payload
-        }
-
-        Impl.execute_device_error_triggers(
-          state,
-          "undecodable_bson_payload",
-          error_metadata,
-          timestamp
-        )
-
-        update_stats(state, interface, nil, path, payload)
-
-      {:error, :unexpected_value_type} ->
-        Logger.warning(
-          "Received invalid value: #{inspect(Base.encode64(payload))} sent to #{interface}#{path}.",
-          tag: "unexpected_value_type"
-        )
-
-        {:ok, state} = Impl.ask_clean_session(state, timestamp)
-        MessageTracker.discard(state.message_tracker, message_id)
-
-        :telemetry.execute(
-          [:astarte, :data_updater_plant, :data_updater, :discarded_message],
-          %{},
-          %{realm: state.realm}
-        )
-
-        base64_payload = Base.encode64(payload)
-
-        error_metadata = %{
-          "interface" => inspect(interface),
-          "path" => inspect(path),
-          "base64_payload" => base64_payload
-        }
-
-        Impl.execute_device_error_triggers(
-          state,
-          "unexpected_value_type",
-          error_metadata,
-          timestamp
-        )
-
-        update_stats(state, interface, nil, path, payload)
-
-      {:error, :value_size_exceeded} ->
-        Logger.warning(
-          "Received huge base64-encoded payload: #{inspect(Base.encode64(payload))} sent to #{interface}#{path}.",
-          tag: "value_size_exceeded"
-        )
-
-        {:ok, state} = Impl.ask_clean_session(state, timestamp)
-        MessageTracker.discard(state.message_tracker, message_id)
-
-        :telemetry.execute(
-          [:astarte, :data_updater_plant, :data_updater, :discarded_message],
-          %{},
-          %{realm: state.realm}
-        )
-
-        base64_payload = Base.encode64(payload)
-
-        error_metadata = %{
-          "interface" => inspect(interface),
-          "path" => inspect(path),
-          "base64_payload" => base64_payload
-        }
-
-        Impl.execute_device_error_triggers(
-          state,
-          "value_size_exceeded",
-          error_metadata,
-          timestamp
-        )
-
-        update_stats(state, interface, nil, path, payload)
-
-      {:error, :unexpected_object_key} ->
-        base64_payload = Base.encode64(payload)
-
-        Logger.warning(
-          "Received object with unexpected key, object base64 is: #{base64_payload} sent to #{interface}#{path}.",
-          tag: "unexpected_object_key"
-        )
-
-        {:ok, state} = Impl.ask_clean_session(state, timestamp)
-        MessageTracker.discard(state.message_tracker, message_id)
-
-        :telemetry.execute(
-          [:astarte, :data_updater_plant, :data_updater, :discarded_message],
-          %{},
-          %{realm: state.realm}
-        )
-
-        error_metadata = %{
-          "interface" => inspect(interface),
-          "path" => inspect(path),
-          "base64_payload" => base64_payload
-        }
-
-        Impl.execute_device_error_triggers(
-          state,
-          "unexpected_object_key",
-          error_metadata,
-          timestamp
-        )
-
-        update_stats(state, interface, nil, path, payload)
+      Core.Error.handle_error(context, error)
     end
   end
 
@@ -596,29 +398,107 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DataHandler do
     now_secs + ttl + 3600 < expiry_secs
   end
 
-  defp validate_interface(interface) do
-    if String.valid?(interface),
-      do: :ok,
-      else: {:error, :invalid_interface}
+  defp validate_interface(%{interface: interface} = context),
+    do: valid_interface_or_error(context, String.valid?(interface))
+
+  defp valid_interface_or_error(_context, true), do: :ok
+
+  defp valid_interface_or_error(%{interface: interface} = context, false) do
+    error = %{
+      message: "Received invalid interface: #{inspect(interface)}.",
+      tag: "invalid_interface",
+      error_name: "invalid_interface",
+      update_stats: false
+    }
+
+    Core.Error.handle_error(context, error)
   end
 
-  defp validate_path(path) do
-    cond do
-      # Make sure the path is a valid unicode string
-      not String.valid?(path) ->
-        {:error, :invalid_path}
+  defp validate_path(%{path: path} = context),
+    do: valid_path_or_error(context, String.valid?(path), String.contains?(path, "//"))
 
-      # TODO: this is a temporary fix to work around a bug in EndpointsAutomaton.resolve_path/2
-      String.contains?(path, "//") ->
-        {:error, :invalid_path}
+  defp valid_path_or_error(_context, true, false), do: :ok
 
-      true ->
+  defp valid_path_or_error(%{path: path} = context, _, _) do
+    error = %{
+      message: "Received invalid path: #{inspect(path)}.",
+      tag: "invalid_path",
+      error_name: "invalid_path"
+    }
+
+    Core.Error.handle_error(context, error)
+  end
+
+  defp can_write_on_interface?(_context, :device), do: :ok
+
+  defp can_write_on_interface?(context, :server) do
+    %{interface: interface, path: path, payload: payload, timestamp: timestamp} = context
+
+    message =
+      "Tried to write on server owned interface: #{interface} on " <>
+        "path: #{path}, base64-encoded payload: #{inspect(Base.encode64(payload))}, timestamp: #{inspect(timestamp)}."
+
+    tag = "write_on_server_owned_interface"
+
+    error_name = "write_on_server_owned_interface"
+
+    error = %{
+      message: message,
+      tag: tag,
+      error_name: error_name
+    }
+
+    Core.Error.handle_error(context, error)
+  end
+
+  defp maybe_validate_value_type(context, interface_descriptor, mapping, value) do
+    %{interface: interface, path: path, payload: payload, state: state} = context
+
+    expected_types =
+      Core.Interface.extract_expected_types(
+        path,
+        interface_descriptor,
+        mapping,
+        state.mappings
+      )
+
+    validation = validate_value_type(expected_types, value)
+
+    case validation do
+      {:error, :unexpected_value_type} ->
+        error = %{
+          message:
+            "Received invalid value: #{inspect(Base.encode64(payload))} sent to #{interface}#{path}.",
+          tag: "unexpected_value_type",
+          error_name: "unexpected_value_type"
+        }
+
+        Core.Error.handle_error(context, error)
+
+      {:error, :unexpected_object_key} ->
+        error = %{
+          message:
+            "Received object with unexpected key, object base64 is: #{inspect(Base.encode64(payload))} sent to #{interface}#{path}.",
+          tag: "unexpected_value_type",
+          error_name: "unexpected_value_type"
+        }
+
+        Core.Error.handle_error(context, error)
+
+      {:error, :value_size_exceeded} ->
+        error = %{
+          message:
+            "Received huge base64-encoded payload: #{inspect(Base.encode64(payload))} sent to #{interface}#{path}.",
+          tag: "value_size_exceeded",
+          error_name: "value_size_exceeded"
+        }
+
+        Core.Error.handle_error(context, error)
+
+      :ok ->
         :ok
     end
   end
-
-  defp can_write_on_interface?(:device), do: :ok
-  defp can_write_on_interface?(:server), do: {:error, :cannot_write_on_server_owned_interface}
 
   # TODO: We need tests for this function
   def validate_value_type(expected_type, %DateTime{} = value) do
@@ -675,7 +555,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DataHandler do
     end
   end
 
-  defp update_stats(state, interface, major, path, payload) do
+  def update_stats(state, interface, major, path, payload) do
     exchanged_bytes = byte_size(payload) + byte_size(interface) + byte_size(path)
 
     :telemetry.execute(
@@ -734,4 +614,14 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DataHandler do
         interface_exchanged_msgs: updated_interface_exchanged_msgs
     }
   end
+
+  defp max_ttl(:use_ttl, realm_max_ttl, db_ttl) when is_integer(realm_max_ttl),
+    do: min(db_ttl, realm_max_ttl)
+
+  defp max_ttl(:use_ttl, _, db_ttl), do: db_ttl
+
+  defp max_ttl(_db_retention_policy, realm_max_ttl, _db_ttl) when is_integer(realm_max_ttl),
+    do: realm_max_ttl
+
+  defp max_ttl(_, _, _), do: nil
 end

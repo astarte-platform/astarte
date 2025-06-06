@@ -219,6 +219,42 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.Interface do
     end
   end
 
+  def get_value_change_triggers(state, interface_id, endpoint_id, path, value) do
+    value_change_triggers =
+      get_on_data_triggers(state, :on_value_change, interface_id, endpoint_id, path, value)
+
+    value_change_applied_triggers =
+      get_on_data_triggers(
+        state,
+        :on_value_change_applied,
+        interface_id,
+        endpoint_id,
+        path,
+        value
+      )
+
+    path_created_triggers =
+      get_on_data_triggers(state, :on_path_created, interface_id, endpoint_id, path, value)
+
+    path_removed_triggers =
+      get_on_data_triggers(state, :on_path_removed, interface_id, endpoint_id, path)
+
+    all_empty? =
+      [value_change_triggers, value_change_applied_triggers, path_created_triggers]
+      |> Enum.all?(&Enum.empty?/1)
+
+    triggers_tuple = {
+      value_change_triggers,
+      value_change_applied_triggers,
+      path_created_triggers,
+      path_removed_triggers
+    }
+
+    if all_empty?,
+      do: {:no_value_change_triggers, nil},
+      else: {:ok, triggers_tuple}
+  end
+
   defp path_matches?([], []) do
     true
   end
