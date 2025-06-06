@@ -406,4 +406,30 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.Interface do
         data_triggers: updated_triggers
     }
   end
+
+  def gather_interface_property_paths(
+        %State{device_id: device_id, mappings: mappings, realm: realm} = _state,
+        %InterfaceDescriptor{type: :properties, ownership: :server} = interface_descriptor
+      ) do
+    reduce_interface_mapping(mappings, interface_descriptor, [], fn mapping, i_acc ->
+      Queries.retrieve_property_values(realm, device_id, interface_descriptor, mapping)
+      |> Enum.reduce(i_acc, fn %{path: path}, acc ->
+        ["#{interface_descriptor.name}#{path}" | acc]
+      end)
+    end)
+  end
+
+  def gather_interface_property_paths(_state, %InterfaceDescriptor{} = _descriptor) do
+    []
+  end
+
+  defp reduce_interface_mapping(mappings, interface_descriptor, initial_acc, fun) do
+    Enum.reduce(mappings, initial_acc, fn {_endpoint_id, mapping}, acc ->
+      if mapping.interface_id == interface_descriptor.interface_id do
+        fun.(mapping, acc)
+      else
+        acc
+      end
+    end)
+  end
 end

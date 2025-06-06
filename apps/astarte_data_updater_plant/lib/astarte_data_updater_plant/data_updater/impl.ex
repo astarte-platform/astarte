@@ -1770,16 +1770,6 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
     end
   end
 
-  defp reduce_interface_mapping(mappings, interface_descriptor, initial_acc, fun) do
-    Enum.reduce(mappings, initial_acc, fn {_endpoint_id, mapping}, acc ->
-      if mapping.interface_id == interface_descriptor.interface_id do
-        fun.(mapping, acc)
-      else
-        acc
-      end
-    end)
-  end
-
   defp send_control_consumer_properties(state) do
     Logger.debug("Device introspection: #{inspect(state.introspection)}.")
 
@@ -1789,7 +1779,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
 
         case Core.Interface.maybe_handle_cache_miss(descriptor, interface, state) do
           {:ok, interface_descriptor, new_state} ->
-            gather_interface_property_paths(new_state.realm, interface_descriptor)
+            Core.Interface.gather_interface_property_paths(new_state.realm, interface_descriptor)
 
           {:error, :interface_loading_failed} ->
             Logger.warning("Failed #{interface} interface loading.")
@@ -1802,22 +1792,6 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
            send_consumer_properties_payload(state.realm, state.device_id, abs_paths_list) do
       :ok
     end
-  end
-
-  defp gather_interface_property_paths(
-         %State{device_id: device_id, mappings: mappings, realm: realm} = _state,
-         %InterfaceDescriptor{type: :properties, ownership: :server} = interface_descriptor
-       ) do
-    reduce_interface_mapping(mappings, interface_descriptor, [], fn mapping, i_acc ->
-      Queries.retrieve_property_values(realm, device_id, interface_descriptor, mapping)
-      |> Enum.reduce(i_acc, fn %{path: path}, acc ->
-        ["#{interface_descriptor.name}#{path}" | acc]
-      end)
-    end)
-  end
-
-  defp gather_interface_property_paths(_state, %InterfaceDescriptor{} = _descriptor) do
-    []
   end
 
   defp resend_all_properties(state) do
