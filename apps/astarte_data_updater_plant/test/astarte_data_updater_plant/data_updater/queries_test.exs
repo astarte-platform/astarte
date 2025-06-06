@@ -33,12 +33,142 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.QueriesTest do
   alias Astarte.DataAccess.Realms.Interface, as: DatabaseInterface
   alias Astarte.DataAccess.Realms.Realm
   alias Astarte.DataAccess.Repo
+  alias Astarte.DataUpdaterPlant.DataUpdater.Core
   alias Astarte.DataUpdaterPlant.DataUpdater.Queries
 
   import ExUnit.CaptureLog
   import Ecto.Query
+  import Astarte.InterfaceUpdateGenerators
 
   setup_all :populate_interfaces
+
+  describe "paths" do
+    test "are correctly inserted and read for individual datastreams", context do
+      %{
+        realm_name: realm_name,
+        device: device,
+        individual_datastream_device_interface: interface,
+        interface_descriptors: descriptors
+      } = context
+
+      interface_descriptor =
+        descriptors |> Enum.find(&(&1.interface_id == interface.interface_id))
+
+      mapping_update = valid_mapping_update_for(interface) |> Enum.at(0)
+      mappings = interface.mappings |> Map.new(&{&1.endpoint_id, &1})
+
+      {:ok, mapping} =
+        Core.Interface.resolve_path(mapping_update.path, interface_descriptor, mappings)
+
+      decimicro_timestamp = DateTime.utc_now() |> DateTime.to_unix(:microsecond) |> Kernel.*(10)
+
+      assert :ok =
+               Queries.insert_path_into_db(
+                 realm_name,
+                 device.device_id,
+                 interface_descriptor,
+                 mapping,
+                 mapping_update.path,
+                 decimicro_timestamp,
+                 decimicro_timestamp,
+                 []
+               )
+
+      assert {:ok, :no_expiry} =
+               Queries.fetch_path_expiry(
+                 realm_name,
+                 device.device_id,
+                 interface_descriptor,
+                 mapping,
+                 mapping_update.path
+               )
+    end
+
+    test "are correctly inserted and read for object datastreams", context do
+      %{
+        realm_name: realm_name,
+        device: device,
+        object_datastream_server_interface: interface,
+        interface_descriptors: descriptors
+      } = context
+
+      interface_descriptor =
+        descriptors |> Enum.find(&(&1.interface_id == interface.interface_id))
+
+      mapping_update = valid_mapping_update_for(interface) |> Enum.at(0)
+      mappings = interface.mappings |> Map.new(&{&1.endpoint_id, &1})
+
+      {:ok, mapping} =
+        Core.Interface.resolve_path(mapping_update.path, interface_descriptor, mappings)
+
+      decimicro_timestamp = DateTime.utc_now() |> DateTime.to_unix(:microsecond) |> Kernel.*(10)
+
+      assert :ok =
+               Queries.insert_path_into_db(
+                 realm_name,
+                 device.device_id,
+                 interface_descriptor,
+                 mapping,
+                 mapping_update.path,
+                 decimicro_timestamp,
+                 decimicro_timestamp,
+                 []
+               )
+
+      assert {:ok, :no_expiry} =
+               Queries.fetch_path_expiry(
+                 realm_name,
+                 device.device_id,
+                 interface_descriptor,
+                 mapping,
+                 mapping_update.path
+               )
+    end
+
+    test "can have an expiry", context do
+      %{
+        realm_name: realm_name,
+        device: device,
+        individual_datastream_device_interface: interface,
+        interface_descriptors: descriptors
+      } = context
+
+      interface_descriptor =
+        descriptors |> Enum.find(&(&1.interface_id == interface.interface_id))
+
+      mapping_update = valid_mapping_update_for(interface) |> Enum.at(0)
+      mappings = interface.mappings |> Map.new(&{&1.endpoint_id, &1})
+
+      {:ok, mapping} =
+        Core.Interface.resolve_path(mapping_update.path, interface_descriptor, mappings)
+
+      now = DateTime.utc_now()
+      decimicro_timestamp = now |> DateTime.to_unix(:microsecond) |> Kernel.*(10)
+
+      assert :ok =
+               Queries.insert_path_into_db(
+                 realm_name,
+                 device.device_id,
+                 interface_descriptor,
+                 mapping,
+                 mapping_update.path,
+                 decimicro_timestamp,
+                 decimicro_timestamp,
+                 ttl: 1000
+               )
+
+      assert {:ok, %DateTime{} = expiry} =
+               Queries.fetch_path_expiry(
+                 realm_name,
+                 device.device_id,
+                 interface_descriptor,
+                 mapping,
+                 mapping_update.path
+               )
+
+      assert DateTime.after?(expiry, now)
+    end
+  end
 
   describe "set_pending_empty_cache/3" do
     setup %{realm_name: realm_name, astarte_instance_id: astarte_instance_id} do
