@@ -62,7 +62,6 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.QueriesTest do
       assert read_device_empty_cache(realm_name, device_id) == pending_empty_cache
     end
 
-    @tag skip: "broken_safe"
     test "logs in case of Xandra.Error", context do
       %{realm_name: realm_name, device_id: device_id} = context
       pending_empty_cache = boolean() |> Enum.at(0)
@@ -78,10 +77,9 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.QueriesTest do
         end)
 
       assert log =~ "Cannot set pending empty cache"
-      assert {:error, %Xandra.Error{}} = result
+      assert {:error, :database_error} = result
     end
 
-    @tag skip: "broken_safe"
     test "logs in case of Xandra.ConnectionError", context do
       %{realm_name: realm_name, device_id: device_id} = context
       pending_empty_cache = boolean() |> Enum.at(0)
@@ -97,7 +95,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.QueriesTest do
         end)
 
       assert log =~ "Cannot set pending empty cache"
-      assert {:error, %Xandra.ConnectionError{}} = result
+      assert {:error, :database_connection_error} = result
     end
   end
 
@@ -118,7 +116,6 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.QueriesTest do
       assert registered_on_interface?(realm_name, device, interface)
     end
 
-    @tag skip: "broken_safe"
     test "logs in case of Xandra.Error", context do
       %{realm_name: realm_name, interface: interface, device: device} = context
 
@@ -138,10 +135,9 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.QueriesTest do
         end)
 
       assert log =~ "cannot register device-interface pair"
-      assert {:error, %Xandra.Error{}} = result
+      assert {:error, :database_error} = result
     end
 
-    @tag skip: "broken_safe"
     test "logs in case of Xandra.ConnectionError", context do
       %{realm_name: realm_name, interface: interface, device: device} = context
 
@@ -161,7 +157,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.QueriesTest do
         end)
 
       assert log =~ "cannot register device-interface pair"
-      assert {:error, %Xandra.ConnectionError{}} = result
+      assert {:error, :database_connection_error} = result
     end
   end
 
@@ -193,7 +189,6 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.QueriesTest do
       refute registered_by_interface?(realm_name, device, interface)
     end
 
-    @tag skip: "broken_safe"
     test "logs in case of Xandra.Error", context do
       %{realm_name: realm_name, interface: interface, device: device} = context
 
@@ -213,10 +208,9 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.QueriesTest do
         end)
 
       assert log =~ "cannot unregister device-interface pair"
-      assert {:error, %Xandra.Error{}} = result
+      assert {:error, :database_error} = result
     end
 
-    @tag skip: "broken_safe"
     test "logs in case of Xandra.ConnectionError", context do
       %{realm_name: realm_name, interface: interface, device: device} = context
 
@@ -236,7 +230,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.QueriesTest do
         end)
 
       assert log =~ "cannot unregister device-interface pair"
-      assert {:error, %Xandra.ConnectionError{}} = result
+      assert {:error, :database_connection_error} = result
     end
   end
 
