@@ -32,6 +32,25 @@ defmodule Astarte.DataUpdaterPlant.TimeBasedActions do
   @deletion_refresh_lifespan_decimicroseconds 60 * 10 * 1000 * 10000
   @datastream_maximum_retention_refresh_lifespan_decimicroseconds 60 * 10 * 1000 * 10000
 
+  def execute_time_based_actions(state, timestamp) do
+    if state.connected && state.last_seen_message > 0 do
+      # timestamps are handled as microseconds*10, so we need to divide by 10 when saving as a metric for a coherent data
+      :telemetry.execute(
+        [:astarte, :data_updater_plant, :service, :connected_devices],
+        %{duration: Integer.floor_div(timestamp - state.last_seen_message, 10)},
+        %{realm: state.realm, status: :ok}
+      )
+    end
+
+    state
+    |> Map.put(:last_seen_message, timestamp)
+    |> reload_groups_on_expiry(timestamp)
+    |> purge_expired_interfaces(timestamp)
+    |> reload_device_triggers_on_expiry(timestamp)
+    |> reload_device_deletion_status_on_expiry(timestamp)
+    |> reload_datastream_maximum_storage_retention_on_expiry(timestamp)
+  end
+
   def reload_groups_on_expiry(state, timestamp) do
     if state.last_groups_refresh + @groups_lifespan_decimicroseconds <= timestamp do
       # TODO this could be a bang!
