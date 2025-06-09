@@ -23,14 +23,11 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
   alias Astarte.Core.Device
   alias Astarte.Core.InterfaceDescriptor
   alias Astarte.Core.Mapping
-  alias Astarte.Core.Mapping.EndpointsAutomaton
+
   alias Astarte.DataUpdaterPlant.DataUpdater.State
-  alias Astarte.Core.Triggers.DataTrigger
-  alias Astarte.Core.Triggers.SimpleTriggersProtobuf.DataTrigger, as: ProtobufDataTrigger
-  alias Astarte.Core.Triggers.SimpleTriggersProtobuf.Utils, as: SimpleTriggersProtobufUtils
-  alias Astarte.DataAccess.Interface, as: InterfaceQueries
+
   alias Astarte.DataUpdaterPlant.DataUpdater.Cache
-  alias Astarte.DataUpdaterPlant.DataUpdater.EventTypeUtils
+
   alias Astarte.DataUpdaterPlant.DataUpdater.PayloadsDecoder
   alias Astarte.DataUpdaterPlant.DataUpdater.Queries
   alias Astarte.DataUpdaterPlant.MessageTracker
@@ -227,222 +224,131 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
 
   defdelegate handle_control(state, path, payload, message_id, timestamp), to: Core.ControlHandler
 
-  def handle_install_volatile_trigger(
-        %State{discard_messages: true} = state,
-        _,
-        message_id,
-        _
-      ) do
-    MessageTracker.ack_delivery(state.message_tracker, message_id)
-    state
+  defp prune_device_properties(state, decoded_payload, timestamp) do
+    {:ok, paths_set} =
+      PayloadsDecoder.parse_device_properties_payload(decoded_payload, state.introspection)
+
+    Enum.each(state.introspection, fn {interface, _} ->
+      # TODO: check result here
+      Core.Interface.prune_interface(state, interface, paths_set, timestamp)
+    end)
+
+    :ok
   end
 
-  def handle_install_volatile_trigger(
-        state,
-        object_id,
-        object_type,
-        parent_id,
-        trigger_id,
-        simple_trigger,
-        trigger_target
-      ) do
-    trigger = SimpleTriggersProtobufUtils.deserialize_simple_trigger(simple_trigger)
+  def set_device_disconnected(state, timestamp) do
+    timestamp_ms = div(timestamp, 10_000)
 
-    target =
-      SimpleTriggersProtobufUtils.deserialize_trigger_target(trigger_target)
-      |> Map.put(:simple_trigger_id, trigger_id)
-      |> Map.put(:parent_trigger_id, parent_id)
+    Queries.set_device_disconnected!(
+      state.realm,
+      state.device_id,
+      DateTime.from_unix!(timestamp_ms, :millisecond),
+      state.total_received_msgs,
+      state.total_received_bytes,
+      state.interface_exchanged_msgs,
+      state.interface_exchanged_bytes
+    )
 
-    volatile_triggers_list = [
-      {{object_id, object_type}, {trigger, target}} | state.volatile_triggers
-    ]
+    maybe_execute_device_disconnected_trigger(state, timestamp_ms)
 
-    new_state = Map.put(state, :volatile_triggers, volatile_triggers_list)
+    %{state | connected: false}
+  end
 
-    if Map.has_key?(new_state.interface_ids_to_name, object_id) do
-      interface_name = Map.get(new_state.interface_ids_to_name, object_id)
-      %InterfaceDescriptor{automaton: automaton} = new_state.interfaces[interface_name]
+  defp maybe_execute_device_disconnected_trigger(%State{connected: false}, _) do
+    :ok
+  end
 
-      case trigger do
-        {:data_trigger, %ProtobufDataTrigger{match_path: "/*"}} ->
-          {:ok, Core.Trigger.load_trigger(new_state, trigger, target)}
+  defp maybe_execute_device_disconnected_trigger(state, timestamp_ms) do
+    trigger_target_with_policy_list =
+      Map.get(state.device_triggers, :on_device_disconnection, [])
+      |> Enum.map(fn target ->
+        {target, Map.get(state.trigger_id_to_policy_name, target.parent_trigger_id)}
+      end)
 
-        {:data_trigger, %ProtobufDataTrigger{match_path: match_path}} ->
-          with {:ok, _endpoint_id} <- EndpointsAutomaton.resolve_path(match_path, automaton) do
-            {:ok, Core.Trigger.load_trigger(new_state, trigger, target)}
-          else
-            {:guessed, _} ->
-              # State rollback here
-              {{:error, :invalid_match_path}, state}
+    device_id_string = Device.encode_device_id(state.device_id)
 
-            {:error, :not_found} ->
-              # State rollback here
-              {{:error, :invalid_match_path}, state}
-          end
-      end
+    TriggersHandler.device_disconnected(
+      trigger_target_with_policy_list,
+      state.realm,
+      device_id_string,
+      timestamp_ms
+    )
+
+    :telemetry.execute(
+      [:astarte, :data_updater_plant, :data_updater, :device_disconnection],
+      %{},
+      %{realm: state.realm}
+    )
+  end
+
+  def ask_clean_session(state, timestamp) do
+    Logger.warning("Disconnecting client and asking clean session.")
+    %State{realm: realm, device_id: device_id} = state
+
+    encoded_device_id = Device.encode_device_id(device_id)
+
+    with :ok <- Queries.set_pending_empty_cache(realm, device_id, true),
+         :ok <- force_disconnection(realm, encoded_device_id) do
+      new_state = set_device_disconnected(state, timestamp)
+
+      Logger.info("Successfully forced device disconnection.", tag: "forced_device_disconnection")
+
+      :telemetry.execute(
+        [:astarte, :data_updater_plant, :data_updater, :clean_session_request],
+        %{},
+        %{realm: new_state.realm}
+      )
+
+      {:ok, new_state}
     else
-      case trigger do
-        {:data_trigger, %ProtobufDataTrigger{interface_name: "*"}} ->
-          {:ok, Core.Trigger.load_trigger(new_state, trigger, target)}
-
-        {:data_trigger,
-         %ProtobufDataTrigger{
-           interface_name: interface_name,
-           interface_major: major,
-           match_path: "/*"
-         }} ->
-          with :ok <-
-                 InterfaceQueries.check_if_interface_exists(state.realm, interface_name, major) do
-            {:ok, new_state}
-          else
-            {:error, reason} ->
-              # State rollback here
-              {{:error, reason}, state}
-          end
-
-        {:data_trigger,
-         %ProtobufDataTrigger{
-           interface_name: interface_name,
-           interface_major: major,
-           match_path: match_path
-         }} ->
-          with {:ok, %InterfaceDescriptor{automaton: automaton}} <-
-                 InterfaceQueries.fetch_interface_descriptor(state.realm, interface_name, major),
-               {:ok, _endpoint_id} <- EndpointsAutomaton.resolve_path(match_path, automaton) do
-            {:ok, new_state}
-          else
-            {:error, :not_found} ->
-              {{:error, :invalid_match_path}, state}
-
-            {:guessed, _} ->
-              {{:error, :invalid_match_path}, state}
-
-            {:error, reason} ->
-              # State rollback here
-              {{:error, reason}, state}
-          end
-
-        {:device_trigger, _} ->
-          {:ok, Core.Trigger.load_trigger(new_state, trigger, target)}
-      end
+      {:error, reason} ->
+        Logger.warning("Disconnect failed due to error: #{inspect(reason)}")
+        # TODO: die gracefully here
+        {:error, :clean_session_failed}
     end
   end
 
-  def handle_delete_volatile_trigger(%State{discard_messages: true} = state, _, message_id, _) do
-    MessageTracker.discard(state.message_tracker, message_id)
-    state
+  defp force_disconnection(realm, encoded_device_id) do
+    case VMQPlugin.disconnect("#{realm}/#{encoded_device_id}", true) do
+      # Successfully disconnected
+      :ok ->
+        :ok
+
+      # Not found means it was already disconnected, succeed anyway
+      {:error, :not_found} ->
+        :ok
+
+      # Some other error, return it
+      {:error, reason} ->
+        {:error, reason}
+    end
   end
 
-  def handle_delete_volatile_trigger(state, trigger_id) do
-    {new_volatile, maybe_trigger} =
-      Enum.reduce(state.volatile_triggers, {[], nil}, fn item, {acc, found} ->
-        {_, {_simple_trigger, trigger_target}} = item
+  defp send_control_consumer_properties(state) do
+    Logger.debug("Device introspection: #{inspect(state.introspection)}.")
 
-        if trigger_target.simple_trigger_id == trigger_id do
-          {acc, item}
-        else
-          {[item | acc], found}
+    abs_paths_list =
+      Enum.flat_map(state.introspection, fn {interface, _} ->
+        descriptor = Map.get(state.interfaces, interface)
+
+        case Core.Interface.maybe_handle_cache_miss(descriptor, interface, state) do
+          {:ok, interface_descriptor, new_state} ->
+            Core.Interface.gather_interface_property_paths(new_state.realm, interface_descriptor)
+
+          {:error, :interface_loading_failed} ->
+            Logger.warning("Failed #{interface} interface loading.")
+            []
         end
       end)
 
-    case maybe_trigger do
-      {{obj_id, obj_type}, {simple_trigger, trigger_target}} ->
-        %{state | volatile_triggers: new_volatile}
-        |> delete_volatile_trigger({obj_id, obj_type}, {simple_trigger, trigger_target})
-
-      nil ->
-        {:ok, state}
+    # TODO: use the returned byte count in stats
+    with {:ok, _bytes} <-
+           send_consumer_properties_payload(state.realm, state.device_id, abs_paths_list) do
+      :ok
     end
   end
 
-  defp delete_volatile_trigger(
-         state,
-         {obj_id, _obj_type},
-         {{:data_trigger, proto_buf_data_trigger}, trigger_target_to_be_deleted}
-       ) do
-    if Map.get(state.interface_ids_to_name, obj_id) do
-      data_trigger_to_be_deleted =
-        SimpleTriggersProtobufUtils.simple_trigger_to_data_trigger(proto_buf_data_trigger)
-
-      data_triggers = state.data_triggers
-
-      event_type =
-        EventTypeUtils.pretty_data_trigger_type(proto_buf_data_trigger.data_trigger_type)
-
-      data_trigger_key =
-        Core.DataTrigger.data_trigger_to_key(state, data_trigger_to_be_deleted, event_type)
-
-      existing_triggers_for_key = Map.get(data_triggers, data_trigger_key, [])
-
-      # Separate triggers for key between the trigger congruent with the one being deleted
-      # and all the other triggers
-      {congruent_data_trigger_for_key, other_data_triggers_for_key} =
-        Enum.reduce(existing_triggers_for_key, {nil, []}, fn
-          trigger, {congruent_data_trigger_for_key, other_data_triggers_for_key} ->
-            if DataTrigger.are_congruent?(trigger, data_trigger_to_be_deleted) do
-              {trigger, other_data_triggers_for_key}
-            else
-              {congruent_data_trigger_for_key, [trigger | other_data_triggers_for_key]}
-            end
-        end)
-
-      next_data_triggers_for_key =
-        case congruent_data_trigger_for_key do
-          nil ->
-            # Trying to delete an unexisting volatile trigger, just return old data triggers
-            existing_triggers_for_key
-
-          %DataTrigger{trigger_targets: [^trigger_target_to_be_deleted]} ->
-            # The target of the deleted trigger was the only target, just remove it
-            other_data_triggers_for_key
-
-          %DataTrigger{trigger_targets: targets} ->
-            # The trigger has other targets, drop the one that is being deleted and update
-            new_trigger_targets = Enum.reject(targets, &(&1 == trigger_target_to_be_deleted))
-
-            new_congruent_data_trigger_for_key = %{
-              congruent_data_trigger_for_key
-              | trigger_targets: new_trigger_targets
-            }
-
-            [new_congruent_data_trigger_for_key | other_data_triggers_for_key]
-        end
-
-      next_data_triggers =
-        if is_list(next_data_triggers_for_key) and length(next_data_triggers_for_key) > 0 do
-          Map.put(data_triggers, data_trigger_key, next_data_triggers_for_key)
-        else
-          Map.delete(data_triggers, data_trigger_key)
-        end
-
-      {:ok, %{state | data_triggers: next_data_triggers}}
-    else
-      {:ok, state}
-    end
-  end
-
-  defp delete_volatile_trigger(
-         state,
-         {_obj_id, _obj_type},
-         {{:device_trigger, proto_buf_device_trigger}, trigger_target}
-       ) do
-    event_type =
-      EventTypeUtils.pretty_device_event_type(proto_buf_device_trigger.device_event_type)
-
-    device_triggers = state.device_triggers
-
-    updated_targets_list =
-      Map.get(device_triggers, event_type, [])
-      |> Enum.reject(fn target ->
-        target == trigger_target
-      end)
-
-    updated_device_triggers = Map.put(device_triggers, event_type, updated_targets_list)
-
-    {:ok, %{state | device_triggers: updated_device_triggers}}
-  end
-
-  def resend_all_properties(state) do
+  defp resend_all_properties(state) do
     Logger.debug("Device introspection: #{inspect(state.introspection)}")
 
     Enum.reduce_while(state.introspection, {:ok, state}, fn {interface, _}, {:ok, state_acc} ->
