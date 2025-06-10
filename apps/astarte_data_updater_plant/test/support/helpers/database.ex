@@ -532,6 +532,27 @@ defmodule Astarte.Helpers.Database do
     end)
   end
 
+  def delete_values(realm_name, device, interface, mapping_updates) do
+    mappings_map = interface.mappings |> Map.new(&{&1.endpoint_id, &1})
+
+    {:ok, interface_descriptor} =
+      Interface.fetch_interface_descriptor(realm_name, interface.name, interface.major_version)
+
+    Enum.each(mapping_updates, fn mapping_update ->
+      {:ok, mapping} =
+        Core.Interface.resolve_path(mapping_update.path, interface_descriptor, mappings_map)
+
+      :ok =
+        Queries.delete_property_from_db(
+          realm_name,
+          device.device_id,
+          interface_descriptor,
+          mapping.endpoint_id,
+          mapping_update.path
+        )
+    end)
+  end
+
   defp initial_timestamp do
     # Start of January 2020 in decimicrosecond
     minimum = 157_783_680_000_000
