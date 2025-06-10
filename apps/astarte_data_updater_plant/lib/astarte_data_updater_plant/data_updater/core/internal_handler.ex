@@ -22,7 +22,6 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.InternalHandler do
   @moduledoc """
   The `internal` message type handler for Astarte Data Updater.
   """
-  alias Astarte.DataUpdaterPlant.DataUpdater.Impl
   alias Astarte.DataUpdaterPlant.MessageTracker
   alias Astarte.DataUpdaterPlant.DataUpdater.Core
   alias Astarte.DataUpdaterPlant.DataUpdater.Queries
@@ -31,7 +30,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.InternalHandler do
   require Logger
 
   def handle_internal(state, "/heartbeat", _payload, message_id, timestamp) do
-    {:continue, Impl.handle_heartbeat(state, message_id, timestamp)}
+    {:continue, Core.HeartbeatHandler.handle_heartbeat(state, message_id, timestamp)}
   end
 
   def handle_internal(%State{discard_messages: true} = state, "/f", _, message_id, _) do

@@ -146,23 +146,6 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
     %{new_state | connected: true, last_seen_message: timestamp}
   end
 
-  def handle_heartbeat(%State{discard_messages: true} = state, message_id, _) do
-    MessageTracker.discard(state.message_tracker, message_id)
-    state
-  end
-
-  # TODO make this private when all heartbeats will be moved to internal
-  def handle_heartbeat(state, message_id, timestamp) do
-    new_state = TimeBasedActions.execute_time_based_actions(state, timestamp)
-
-    Queries.maybe_refresh_device_connected!(new_state.realm, new_state.device_id)
-
-    MessageTracker.ack_delivery(new_state.message_tracker, message_id)
-    Logger.info("Device heartbeat.", tag: "device_heartbeat")
-
-    %{new_state | connected: true, last_seen_message: timestamp}
-  end
-
   def handle_internal(state, path, payload, message_id, timestamp) do
     Core.InternalHandler.handle_internal(state, path, payload, message_id, timestamp)
   end
