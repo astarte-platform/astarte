@@ -26,7 +26,6 @@ defmodule Astarte.Core.Generators.Triggers.Policy.ErrorRange do
 
   @doc """
   Generates a valid Astarte Triggers Policy ErrorRange from scratch
-  TODO: using `ecto_stream_factory` in the future
   """
   @spec error_range() :: StreamData.t(ErrorRange.t())
   def error_range do
