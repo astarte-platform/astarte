@@ -22,6 +22,7 @@ defmodule Astarte.Housekeeping.API.Application do
 
   alias Astarte.Housekeeping.API.Config
   alias Astarte.RPC.Config, as: RPCConfig
+  alias Astarte.DataAccess.Config, as: DataAccessConfig
 
   @app_version Mix.Project.config()[:version]
 
@@ -38,13 +39,14 @@ defmodule Astarte.Housekeeping.API.Application do
 
     Config.validate!()
     RPCConfig.validate!()
+    DataAccessConfig.validate!()
     Config.validate_jwt_public_key_pem!()
 
     # Define workers and child supervisors to be supervised
     children = [
       Astarte.Housekeeping.APIWeb.Telemetry,
       Astarte.Housekeeping.APIWeb.Endpoint,
-      Astarte.RPC.AMQP.Client
+      Astarte.Housekeeping.API.BackendSupervisor
     ]
 
     # See http://elixir-lang.org/docs/stable/elixir/Supervisor.html

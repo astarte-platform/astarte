@@ -24,6 +24,7 @@ services:
     depends_on:
       - "rabbitmq"
       - "traefik"
+      - "scylla"
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.astarte-housekeeping-api.rule=Host(`api.${DOCKER_COMPOSE_ASTARTE_BASE_DOMAIN}`)"
