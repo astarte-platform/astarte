@@ -35,6 +35,7 @@ defmodule Astarte.Core.Generators.Triggers.Policy do
   # @: 0x40
   @utf8_except_newline_and_atsign [0..9, 11..0x39, 0x41..0xD7FF, 0xE000..0x10FFFF]
   @utf8_except_newline [?@ | @utf8_except_newline_and_atsign]
+  @all_error_codes MapSet.new(400..599)
 
   @spec policy(keyword) :: StreamData.t(Policy.t())
   def policy(params \\ []) do
@@ -42,8 +43,8 @@ defmodule Astarte.Core.Generators.Triggers.Policy do
                    name <- policy_name(),
                    error_handlers <- policy_handlers(),
                    maximum_capacity <- integer(1..1_000_000),
-                   event_ttl <- optional(integer(1..86_400)),
-                   prefetch_count <- optional(integer(1..300)),
+                   event_ttl <- one_of([integer(1..86_400), nil]),
+                   prefetch_count <- one_of([integer(1..300), nil]),
                    params: params do
       retry_times =
         case Enum.all?(error_handlers, &Handler.discards?/1) do
@@ -63,8 +64,6 @@ defmodule Astarte.Core.Generators.Triggers.Policy do
       struct(Policy, fields)
     end
   end
-
-  defp optional(gen), do: one_of([nil, gen])
 
   defp policy_name do
     gen all first <- string(@utf8_except_newline_and_atsign, length: 1),
@@ -100,8 +99,6 @@ defmodule Astarte.Core.Generators.Triggers.Policy do
   end
 
   defp policy_handler_error_codes_from_used_keywords(keywords) do
-    all_error_codes = 400..599 |> MapSet.new()
-
     used_codes =
       keywords
       |> Enum.map(&%Handler{on: %ErrorKeyword{keyword: &1}})
@@ -109,7 +106,7 @@ defmodule Astarte.Core.Generators.Triggers.Policy do
       |> Enum.concat()
       |> MapSet.new()
 
-    allowed_codes = MapSet.difference(all_error_codes, used_codes)
+    allowed_codes = MapSet.difference(@all_error_codes, used_codes)
 
     case Enum.empty?(allowed_codes) do
       true ->
@@ -119,16 +116,16 @@ defmodule Astarte.Core.Generators.Triggers.Policy do
         gen all codes <- list_of(member_of(allowed_codes), min_length: 1) do
           # avoid uniq_list_of because of the small sample size
           codes = Enum.uniq(codes)
-          gen_policy_handler_error_codes(codes)
+          policy_handler_error_codes(codes)
         end
     end
   end
 
-  defp gen_policy_handler_error_codes([]), do: []
+  defp policy_handler_error_codes([]), do: []
 
-  defp gen_policy_handler_error_codes(l) do
+  defp policy_handler_error_codes(l) do
     chunk_length = :rand.uniform(length(l))
     {chunk, rest} = l |> Enum.shuffle() |> Enum.split(chunk_length)
-    [chunk | gen_policy_handler_error_codes(rest)]
+    [chunk | policy_handler_error_codes(rest)]
   end
 end

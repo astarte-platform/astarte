@@ -23,13 +23,26 @@ defmodule Astarte.Core.Generators.Triggers.Policy.ErrorKeyword do
   alias Astarte.Core.Triggers.Policy.ErrorKeyword
 
   use ExUnitProperties
+  use Astarte.Generators.Utilities.ParamsGen
+
+  @doc """
+  Returns the keyword representing "any_error" for the ErrorKeyword generator.
+  """
+  @spec any_error() :: String.t()
+  def any_error, do: "any_error"
+
+  @doc """
+  Returns the list of specific error keywords supported by the ErrorKeyword generator.
+  """
+  @spec other_errors() :: [String.t()]
+  def other_errors, do: ["client_error", "server_error"]
 
   @doc """
   Generates a valid Astarte Triggers Policy ErrorKeyword from scratch
   """
-  @spec error_keyword() :: StreamData.t(ErrorKeyword.t())
-  def error_keyword do
-    gen all keyword <- keyword() do
+  @spec error_keyword(params :: keyword()) :: StreamData.t(ErrorKeyword.t())
+  def error_keyword(params \\ []) do
+    params gen all keyword <- keyword(), params: params do
       %ErrorKeyword{
         keyword: keyword
       }
@@ -37,10 +50,6 @@ defmodule Astarte.Core.Generators.Triggers.Policy.ErrorKeyword do
   end
 
   defp keyword do
-    member_of([
-      "client_error",
-      "server_error",
-      "any_error"
-    ])
+    member_of([any_error() | other_errors()])
   end
 end

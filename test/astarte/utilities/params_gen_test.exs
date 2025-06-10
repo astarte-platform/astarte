@@ -25,9 +25,9 @@ defmodule Astarte.Generators.Utilities.ParamsGenTest do
   @moduletag :fans
 
   defp gen_helper do
-    params gen all a <- integer(0..0),
-                   b <- string(?a..?a, length: 1),
-                   c <- constant("friend") do
+    gen all a <- integer(0..0),
+            b <- string(?a..?a, length: 1),
+            c <- constant("friend") do
       {a, b, c}
     end
   end
