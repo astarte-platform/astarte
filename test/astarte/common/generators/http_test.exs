@@ -20,7 +20,7 @@ defmodule Astarte.Common.Generators.HTTPTest do
   use ExUnit.Case, async: true
   use ExUnitProperties
 
-  alias Astarte.Common.Generators.HTTP
+  alias Astarte.Common.Generators.HTTP, as: HTTPGenerator
 
   @moduletag :common
   @moduletag :http
@@ -37,20 +37,21 @@ defmodule Astarte.Common.Generators.HTTPTest do
     "connect"
   ]
 
-  describe "url generator" do
-    property "generates valid urls" do
-      check all url <- HTTP.url(), max_runs: 100 do
-        assert %URI{scheme: scheme, authority: authority} = URI.parse(url)
-
-        assert scheme != nil
-        assert authority != nil
+  describe "URI generator" do
+    @describetag :success
+    @describetag :ut
+    property "generate valid RFC3986 URI" do
+      check all url <- HTTPGenerator.url(), max_runs: 200 do
+        assert {:ok, _} = URI.new(url), "URL not valid RFC3986: #{url}"
       end
     end
   end
 
   describe "method generator" do
-    property "generates valid http methods" do
-      check all method <- HTTP.method() do
+    @describetag :success
+    @describetag :ut
+    property "generate valid HTTP methods" do
+      check all method <- HTTPGenerator.method() do
         assert method in @valid_http_methods
       end
     end

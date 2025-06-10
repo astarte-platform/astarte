@@ -1,11 +1,46 @@
+#
+# This file is part of Astarte.
+#
+# Copyright 2025 SECO Mind Srl
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
 defmodule Astarte.Common.Generators.HTTP do
   @moduledoc """
-    Generators for HTTP related utilities
+  Generators for HTTP related utilities
+  https://datatracker.ietf.org/doc/html/rfc3986#section-1.1.2
+
+  The scheme and path components are required, though the path may be
+  empty (no characters).  When authority is present, the path must
+  either be empty or begin with a slash ("/") character.  When
+  authority is not present, the path cannot begin with two slash
+  characters ("//").  These restrictions result in five different ABNF
+  rules for a path (Section 3.3), only one of which will match any
+  given URI reference.
+
+  foo://example.com:8042/over/there?name=ferret#nose
+    |           |            |            |        |
+  scheme     authority       path        query   fragment
+    |   _____________________|__
   """
 
   use ExUnitProperties
 
-  alias Astarte.Common.Generators.Ip
+  alias Astarte.Common.Generators.Ip, as: IpGenerator
+  alias Astarte.Generators.Utilities
+
+  @http_methods ~w(get head options trace put delete post patch connect)
 
   @hexdig [?a..?f, ?A..?F, ?0..?9]
   @unreserved [?a..?z, ?A..?Z, ?0..?9, ?-, ?_, ?., ?~]
@@ -13,42 +48,108 @@ defmodule Astarte.Common.Generators.HTTP do
 
   @userinfo_charset @unreserved ++ @sub_delims ++ [?:]
   @reg_name_charset @unreserved ++ @sub_delims
-  @query_charset @unreserved ++ @sub_delims ++ [?:, ?@, ??, ?/]
+
+  @pchar_charset @unreserved ++ @sub_delims ++ [?:, ?@]
+
+  @query_charset @pchar_charset ++ [??, ?/]
+  @fragment_charset @pchar_charset ++ [??, ?/]
+
   @path_charset @unreserved ++ @sub_delims ++ [?:, ?@]
 
   @doc """
-    Valid http or https url as per RFC 3986
+  Generator for a valid port
+  """
+  @spec valid_port() :: StreamData.t(integer())
+  def valid_port, do: integer(0..65_535)
+
+  @doc """
+  Generator for HTTP methods
+  """
+  @spec method() :: StreamData.t(String.t())
+  def method, do: member_of(@http_methods)
+
+  @doc """
+  Valid http or https url as per RFC 3986
   """
   @spec url() :: StreamData.t(String.t())
   def url do
-    gen all scheme <- member_of(["http", "https"]),
-            hier_part <- hier_part(),
-            query <- optional_string(query(), pre: "?") do
-      scheme <> "://" <> hier_part <> query
+    gen all schema <- schema(),
+            authority <- authority() do
+      schema <> ":" <> authority
     end
   end
 
-  @doc """
-    Generator for HTTP methods
-  """
-  @spec method() :: StreamData.t(String.t())
-  def method do
-    member_of([
-      "delete",
-      "get",
-      "head",
-      "options",
-      "patch",
-      "post",
-      "put"
+  defp schema, do: member_of(["http", "https"])
+
+  defp authority do
+    gen all user_info <- user_info(),
+            host <- host(),
+            port <- port(),
+            path <- path(),
+            query <- query(),
+            fragment <- fragment() do
+      "//" <> user_info <> host <> port <> path <> query <> fragment
+    end
+  end
+
+  defp user_info do
+    one_of([
+      mixed(@userinfo_charset, min_length: 1) |> Utilities.print(post: "@"),
+      constant("")
     ])
   end
 
-  defp hier_part do
-    gen all authority <- authority(),
-            path <- one_of([path_abempty(), path_absolute(), path_rootless(), path_empty()]) do
-      authority <> path
-    end
+  defp host do
+    one_of([
+      ipv4(),
+      # TODO `URI.new` does not yet implement ip_literal
+      # ip_literal(),
+      reg_name()
+    ])
+  end
+
+  defp port do
+    one_of([
+      valid_port() |> Utilities.print(pre: ":"),
+      constant("")
+    ])
+  end
+
+  defp ipv4 do
+    IpGenerator.ip(:ipv4) |> map(fn {a, b, c, d} -> "#{a}.#{b}.#{c}.#{d}" end)
+  end
+
+  # TODO section: `URL.new` does not yet implement ip_literal
+  # defp ip_literal do
+  #   one_of([
+  #     ipv6(),
+  #     ip_v_future()
+  #   ])
+  #   |> Utilities.print(pre: "[", post: "]")
+  # end
+
+  # defp ipv6 do
+  #   IpGenerator.ip(:ipv6) |> map(fn {a, b, c, d, e, f} -> "#{a}:#{b}:#{c}:#{d}:#{e}:#{f}" end)
+  # end
+
+  # defp ip_v_future do
+  #   gen all version <- string(@hexdig, min_length: 1),
+  #           address <- string(@userinfo_charset, min_length: 1) do
+  #     "v" <> version <> "." <> address
+  #   end
+  # end
+
+  defp reg_name do
+    mixed(@reg_name_charset)
+  end
+
+  defp path do
+    one_of([
+      path_abempty(),
+      path_absolute(),
+      path_rootless(),
+      path_empty()
+    ])
   end
 
   defp path_abempty do
@@ -66,104 +167,44 @@ defmodule Astarte.Common.Generators.HTTP do
   defp path_rootless do
     gen all first_segment <- segment_nz(),
             rest <- path_abempty() do
-      first_segment <> rest
+      "/" <> first_segment <> rest
     end
   end
 
   defp path_empty, do: constant("")
 
-  defp segment do
-    string_or_pct_encoded(@path_charset)
-  end
+  defp segment, do: mixed(@path_charset)
 
-  defp segment_nz do
-    nonempty_string_or_pct_encoded(@path_charset)
-  end
+  defp segment_nz, do: mixed(@path_charset, min_length: 1)
 
   defp query do
-    string_or_pct_encoded(@query_charset)
+    one_of([
+      mixed(@query_charset, min_length: 1) |> Utilities.print(pre: "?"),
+      constant("")
+    ])
   end
 
-  defp authority do
-    gen all userinfo <- optional_string(userinfo(), post: "@"),
-            host <- host(),
-            port <- optional_string(port(), pre: ":") do
-      userinfo <> host <> port
-    end
+  defp fragment do
+    one_of([
+      mixed(@fragment_charset, min_length: 1) |> Utilities.print(pre: "#"),
+      constant("")
+    ])
   end
 
-  defp userinfo do
-    string_or_pct_encoded(@userinfo_charset)
-  end
-
-  defp reg_name do
-    string_or_pct_encoded(@reg_name_charset)
-  end
-
-  defp host, do: one_of([ip_literal(), ipv4_address(), reg_name()])
-
-  defp ipv4_address do
-    Ip.ip(:ipv4)
-    |> map(fn {fst, snd, thd, fth} ->
-      "#{fst}.#{snd}.#{thd}.#{fth}"
-    end)
-  end
-
-  defp ip_literal do
-    formats = [
-      # TODO: uncomment when implemented
-      # Ip.ip(:ipv6),
-      ip_v_future()
-    ]
-
-    gen all address <- one_of(formats) do
-      "[" <> address <> "]"
-    end
-  end
-
-  defp ip_v_future do
-    gen all version <- string(@hexdig, min_length: 1),
-            address <- string(@userinfo_charset, min_length: 1) do
-      "v" <> version <> "." <> address
-    end
-  end
-
-  defp port do
-    string([?0..?9])
-  end
-
-  defp string_or_pct_encoded(kind_or_codepoints) do
-    [string(kind_or_codepoints), pct_encoded()]
-    |> one_of()
-    |> list_of()
-    |> map(&Enum.join/1)
-  end
-
-  defp nonempty_string_or_pct_encoded(kind_or_codepoints) do
-    [string(kind_or_codepoints, min_length: 1), pct_encoded()]
-    |> one_of()
-    |> list_of(min_length: 1)
-    |> map(&Enum.join/1)
-  end
-
+  #
+  # Utilities section
+  #
   defp pct_encoded do
-    string([?0..?9, ?a..?f, ?A..?F], length: 2)
+    string(@hexdig, length: 2)
     |> map(fn hex -> "%" <> hex end)
   end
 
-  defp optional_string(generator, opts) do
-    generator =
-      case Keyword.fetch(opts, :pre) do
-        {:ok, pre} -> map(generator, fn gen -> pre <> gen end)
-        :error -> generator
-      end
+  defp mixed(type, opts \\ []) do
+    min_length = Keyword.get(opts, :min_length, 0)
 
-    generator =
-      case Keyword.fetch(opts, :post) do
-        {:ok, post} -> map(generator, fn gen -> gen <> post end)
-        :error -> generator
-      end
-
-    one_of([generator, constant("")])
+    [string(type, min_length: 1, max_length: 16), pct_encoded()]
+    |> one_of()
+    |> list_of(min_length: min_length)
+    |> map(&Enum.join/1)
   end
 end

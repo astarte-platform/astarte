@@ -16,27 +16,21 @@
 # limitations under the License.
 #
 
-defmodule Astarte.Core.Generators.Triggers.Policy.ErrorRange do
+defmodule Astarte.Generators.Utilities do
   @moduledoc """
-  This module provides generators for Astarte Trigger Policy RangeError.
+  Provides a helper function `print/2` that wraps the output of a StreamData generator
+  with optional `:pre` and `:post` strings, producing a new generator of `String.t()`.
   """
-  alias Astarte.Core.Triggers.Policy.ErrorRange
-
   use ExUnitProperties
 
-  @doc """
-  Generates a valid Astarte Triggers Policy ErrorRange from scratch
-  """
-  @spec error_range() :: StreamData.t(ErrorRange.t())
-  def error_range do
-    gen all error_codes <- error_codes() do
-      %ErrorRange{
-        error_codes: error_codes
-      }
-    end
-  end
+  @spec print(StreamData.t(term()), Keyword.t()) :: StreamData.t(String.t())
+  @spec print(StreamData.t(term())) :: StreamData.t(String.t())
+  def print(generator, opts \\ []) do
+    pre = Keyword.get(opts, :pre, "")
+    post = Keyword.get(opts, :post, "")
 
-  defp error_codes do
-    list_of(integer(400..599), min_length: 1)
+    gen all data <- generator do
+      "#{pre}#{data}#{post}"
+    end
   end
 end
