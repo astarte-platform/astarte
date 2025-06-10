@@ -30,6 +30,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.Device do
   alias Astarte.DataUpdaterPlant.MessageTracker
   alias Astarte.DataUpdaterPlant.DataUpdater.Cache
   alias Astarte.DataUpdaterPlant.DataUpdater.Core
+  alias Astarte.DataUpdaterPlant.DataUpdater.PayloadsDecoder
   alias Astarte.DataUpdaterPlant.DataUpdater.State
   alias Astarte.DataUpdaterPlant.RPC.VMQPlugin
   alias Astarte.Core.CQLUtils
@@ -353,5 +354,17 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.Device do
       {:error, reason} ->
         {:error, reason}
     end
+  end
+
+  def prune_device_properties(state, decoded_payload, timestamp) do
+    {:ok, paths_set} =
+      PayloadsDecoder.parse_device_properties_payload(decoded_payload, state.introspection)
+
+    Enum.each(state.introspection, fn {interface, _} ->
+      # TODO: check result here
+      Core.Interface.prune_interface(state, interface, paths_set, timestamp)
+    end)
+
+    :ok
   end
 end

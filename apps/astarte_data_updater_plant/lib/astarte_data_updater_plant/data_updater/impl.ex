@@ -235,7 +235,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
 
     timestamp_ms = div(timestamp, 10_000)
 
-    :ok = prune_device_properties(new_state, "", timestamp_ms)
+    :ok = Core.Device.prune_device_properties(new_state, "", timestamp_ms)
 
     MessageTracker.ack_delivery(new_state.message_tracker, message_id)
 
@@ -259,7 +259,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
 
     case PayloadsDecoder.safe_inflate(zlib_payload) do
       {:ok, decoded_payload} ->
-        :ok = prune_device_properties(new_state, decoded_payload, timestamp_ms)
+        :ok = Core.Device.prune_device_properties(new_state, decoded_payload, timestamp_ms)
         MessageTracker.ack_delivery(new_state.message_tracker, message_id)
 
         %{
@@ -616,18 +616,6 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
     updated_device_triggers = Map.put(device_triggers, event_type, updated_targets_list)
 
     {:ok, %{state | device_triggers: updated_device_triggers}}
-  end
-
-  defp prune_device_properties(state, decoded_payload, timestamp) do
-    {:ok, paths_set} =
-      PayloadsDecoder.parse_device_properties_payload(decoded_payload, state.introspection)
-
-    Enum.each(state.introspection, fn {interface, _} ->
-      # TODO: check result here
-      Core.Interface.prune_interface(state, interface, paths_set, timestamp)
-    end)
-
-    :ok
   end
 
   defp send_control_consumer_properties(state) do
