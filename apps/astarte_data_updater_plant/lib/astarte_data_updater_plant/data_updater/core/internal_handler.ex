@@ -42,35 +42,25 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.InternalHandler do
   end
 
   def handle_internal(state, path, payload, message_id, timestamp) do
-    Logger.warning(
-      "Unexpected internal message on #{path}, base64-encoded payload: #{inspect(Base.encode64(payload))}",
-      tag: "unexpected_internal_message"
-    )
+    context = %{
+      state: state,
+      path: path,
+      payload: payload,
+      message_id: message_id,
+      timestamp: timestamp,
+      interface: ""
+    }
 
-    {:ok, new_state} = Core.Device.ask_clean_session(state, timestamp)
-    MessageTracker.discard(new_state.message_tracker, message_id)
-
-    :telemetry.execute(
-      [:astarte, :data_updater_plant, :data_updater, :discarded_internal_message],
-      %{},
-      %{realm: new_state.realm}
-    )
-
-    base64_payload = Base.encode64(payload)
-
-    error_metadata = %{
-      "path" => inspect(path),
-      "base64_payload" => base64_payload
+    error = %{
+      message:
+        "Unexpected internal message on #{path}, base64-encoded payload: #{inspect(Base.encode64(payload))}",
+      logger_metadata: [tag: "unexpected_internal_message"],
+      error_name: "unexpected_internal_message"
     }
 
     # TODO maybe we don't want triggers on unexpected internal messages?
-    Core.Trigger.execute_device_error_triggers(
-      new_state,
-      "unexpected_internal_message",
-      error_metadata,
-      timestamp
-    )
+    new_state = Core.Error.handle_error(context, error)
 
-    {:continue, Core.DataHandler.update_stats(new_state, "", nil, path, payload)}
+    {:continue, new_state}
   end
 end
