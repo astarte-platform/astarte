@@ -62,13 +62,16 @@ defmodule Astarte.Housekeeping.API.Mixfile do
 
   defp astarte_required_modules("true") do
     [
-      {:astarte_rpc, in_umbrella: true}
+      {:astarte_rpc, in_umbrella: true},
+      {:astarte_data_access, in_umbrella: true}
     ]
   end
 
   defp astarte_required_modules(_) do
     [
-      {:astarte_rpc, "~> 1.2"}
+      {:astarte_rpc, "~> 1.2"},
+      {:astarte_data_access,
+       github: "astarte-platform/astarte_data_access", branch: "release-1.2"}
     ]
   end
 
@@ -94,6 +97,7 @@ defmodule Astarte.Housekeeping.API.Mixfile do
       {:telemetry_poller, "~> 0.4"},
       {:telemetry_metrics_prometheus_core, "~> 0.4"},
       {:dialyxir, "~> 1.0", only: [:dev, :ci], runtime: false},
+      {:mimic, "~> 1.11", only: [:test, :dev]},
       # Workaround for Elixir 1.15 / ssl_verify_fun issue
       # See also: https://github.com/deadtrickster/ssl_verify_fun.erl/pull/27
       {:ssl_verify_fun, "~> 1.1.0", manager: :rebar3, override: true},
