@@ -28,7 +28,7 @@
       checks: [
         {Credo.Check.Readability.MaxLineLength, priority: :low, max_length: 100},
         {Credo.Check.Readability.Specs},
-        {Credo.Check.Design.TagTODO, exit_status: 0},
+        {Credo.Check.Design.TagTODO, false},
         {Credo.Check.Design.AliasUsage, priority: :low},
         {Credo.Check.Refactor.CyclomaticComplexity, max_complexity: 10},
         {Credo.Check.Refactor.FunctionArity, max_arity: 4},
