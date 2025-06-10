@@ -146,7 +146,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
     %{new_state | connected: true, last_seen_message: timestamp}
   end
 
-  def handle_heartbeat(%State{discard_messages: true} = state, _, message_id, _) do
+  def handle_heartbeat(%State{discard_messages: true} = state, message_id, _) do
     MessageTracker.discard(state.message_tracker, message_id)
     state
   end
