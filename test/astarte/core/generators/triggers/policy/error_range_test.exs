@@ -22,6 +22,7 @@ defmodule Astarte.Core.Generators.Triggers.Policy.ErrorRangeTest do
   """
   use ExUnit.Case, async: true
   use ExUnitProperties
+  use Astarte.Support.Cases.Validator
 
   alias Astarte.Core.Generators.Triggers.Policy.ErrorRange, as: ErrorRangeGenerator
   alias Astarte.Core.Triggers.Policy.ErrorRange
@@ -30,28 +31,20 @@ defmodule Astarte.Core.Generators.Triggers.Policy.ErrorRangeTest do
   @moduletag :trigger
   @moduletag :policy
   @moduletag :error_range
-
-  defp validation_helper(error_keyword) do
-    changes = Map.from_struct(error_keyword)
-
-    %ErrorRange{}
-    |> Changeset.change(changes)
-    |> ErrorRange.validate()
-  end
-
-  defp validation_fixture(_context), do: {:ok, validate: &validation_helper/1}
+  # Fixtures params
+  @moduletag validation_module: ErrorRange
 
   @doc false
   describe "triggers policy error_range generator" do
     @describetag :success
     @describetag :ut
 
-    setup :validation_fixture
-
-    property "validate triggers policy error_range using Changeset", %{validate: validate} do
+    property "validate triggers policy error_range using Changeset", %{
+      changeset_validate: changeset_validate
+    } do
       check all(
               error_range <- ErrorRangeGenerator.error_range(),
-              changeset = validate.(error_range)
+              changeset = changeset_validate.(error_range)
             ) do
         assert changeset.valid?, "Invalid error_range: #{inspect(changeset.errors)}"
       end

@@ -22,6 +22,7 @@ defmodule Astarte.Core.Generators.Triggers.Policy.ErrorKeywordTest do
   """
   use ExUnit.Case, async: true
   use ExUnitProperties
+  use Astarte.Support.Cases.Validator
 
   alias Astarte.Core.Generators.Triggers.Policy.ErrorKeyword, as: ErrorKeywordGenerator
   alias Astarte.Core.Triggers.Policy.ErrorKeyword
@@ -30,27 +31,19 @@ defmodule Astarte.Core.Generators.Triggers.Policy.ErrorKeywordTest do
   @moduletag :trigger
   @moduletag :policy
   @moduletag :error_keyword
-
-  defp validation_helper(error_keyword) do
-    changes = Map.from_struct(error_keyword)
-
-    %ErrorKeyword{}
-    |> Changeset.change(changes)
-    |> ErrorKeyword.validate()
-  end
-
-  defp validation_fixture(_context), do: {:ok, validate: &validation_helper/1}
+  # Fixtures params
+  @moduletag validation_module: ErrorKeyword
 
   @doc false
   describe "triggers policy error_keyword generator" do
     @describetag :success
     @describetag :ut
 
-    setup :validation_fixture
-
-    property "validate triggers policy error_keyword using Changeset", %{validate: validate} do
+    property "validate triggers policy error_keyword using Changeset", %{
+      changeset_validate: changeset_validate
+    } do
       check all error_keyword <- ErrorKeywordGenerator.error_keyword(),
-                changeset = validate.(error_keyword) do
+                changeset = changeset_validate.(error_keyword) do
         assert changeset.valid?, "Invalid error_keyword: #{inspect(changeset.errors)}"
       end
     end
