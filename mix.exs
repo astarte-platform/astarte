@@ -24,10 +24,11 @@ defmodule Astarte.Core.Generators.MixProject do
       app: :astarte_generators,
       version: "0.1.0",
       elixir: "~> 1.15.7",
+      elixirc_paths: elixirc_paths(Mix.env()),
       start_permanent: Mix.env() == :prod,
       deps: deps() ++ astarte_required_modules(),
       package: package(),
-      dialyzer: [plt_core_path: dialyzer_cache_directory(Mix.env())]
+      dialyzer: dialyzer()
     ]
   end
 
@@ -44,8 +45,19 @@ defmodule Astarte.Core.Generators.MixProject do
     ]
   end
 
+  defp dialyzer,
+    do: [
+      plt_core_path: dialyzer_cache_directory(Mix.env()),
+      plt_add_apps: [:ex_unit],
+      ignore_warnings: "dialyzer.ignore-warnings",
+      files: ["lib"]
+    ]
+
   defp dialyzer_cache_directory(:ci), do: "dialyzer_cache"
   defp dialyzer_cache_directory(_), do: nil
+
+  defp elixirc_paths(env) when env in [:test, :ci], do: ["test/support", "lib"]
+  defp elixirc_paths(_), do: ["lib"]
 
   # Run "mix help deps" to learn about dependencies.
   defp deps do
