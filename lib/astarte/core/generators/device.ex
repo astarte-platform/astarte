@@ -24,38 +24,48 @@ defmodule Astarte.Core.Generators.Device do
 
   """
   use ExUnitProperties
+
+  import Astarte.Generators.Utilities.ParamsGen
+
   alias Astarte.Common.Generators.Ip, as: IpGenerator
   alias Astarte.Common.Generators.Timestamp, as: TimestampGenerator
   alias Astarte.Core.Device
+  alias Astarte.Core.Generators.Interface, as: InterfaceGenerator
   alias Astarte.Core.Interface
 
   @doc """
   Generates a valid Astarte Device with pre-created interfaces_bytes
-  TODO: using `ecto_strea_factory` in the future
   """
-  @spec device(interfaces: [Interface.t()]) :: StreamData.t(map())
-  def device(interfaces: interfaces) do
-    gen all id <- id(),
-            last_seen_ip <- IpGenerator.ip(:ipv4),
-            last_credentials_request_ip <- IpGenerator.ip(:ipv4),
-            inhibit_credentials_request <- boolean(),
-            {
-              first_registration,
-              first_credentials_request,
-              last_connection,
-              last_disconnection
-            } <- dates(),
-            {
-              total_received_msgs,
-              total_received_bytes,
-              interfaces_msgs,
-              interfaces_bytes
-            } <-
-              interfaces
-              |> interfaces_data()
-              |> constant(),
-            aliases <- aliases(),
-            attributes <- attributes() do
+  @spec device() :: StreamData.t(map())
+  @spec device(keyword()) :: StreamData.t(map())
+  def device(params \\ []) do
+    now = DateTime.utc_now() |> DateTime.to_unix()
+
+    params gen all id <- id(),
+                   last_seen_ip <- IpGenerator.ip(:ipv4),
+                   last_credentials_request_ip <- IpGenerator.ip(:ipv4),
+                   inhibit_credentials_request <- boolean(),
+                   last_disconnection <-
+                     TimestampGenerator.timestamp(max: now),
+                   last_connection <-
+                     TimestampGenerator.timestamp(max: last_disconnection),
+                   first_credentials_request <-
+                     TimestampGenerator.timestamp(max: last_connection),
+                   first_registration <-
+                     TimestampGenerator.timestamp(max: first_credentials_request),
+                   interfaces <-
+                     InterfaceGenerator.interface()
+                     |> list_of(min_length: 0, max_length: 10),
+                   aliases <- aliases(),
+                   attributes <- attributes(),
+                   params: params do
+      {
+        total_received_msgs,
+        total_received_bytes,
+        interfaces_msgs,
+        interfaces_bytes
+      } = interfaces_data(interfaces)
+
       %{
         id: id,
         device_id: id,
@@ -147,25 +157,5 @@ defmodule Astarte.Core.Generators.Device do
       constant(nil)
     ]
     |> one_of()
-  end
-
-  defp dates do
-    now = "Etc/UTC" |> DateTime.now!() |> DateTime.to_unix()
-
-    gen all last_disconnection <-
-              TimestampGenerator.timestamp(max: now),
-            last_connection <-
-              TimestampGenerator.timestamp(max: last_disconnection),
-            first_credentials_request <-
-              TimestampGenerator.timestamp(max: last_connection),
-            first_registration <-
-              TimestampGenerator.timestamp(max: first_credentials_request) do
-      {
-        first_registration,
-        first_credentials_request,
-        last_connection,
-        last_disconnection
-      }
-    end
   end
 end
