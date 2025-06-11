@@ -18,6 +18,7 @@
 
 defmodule Astarte.DataUpdaterPlant.DataUpdater.Server do
   use GenServer
+  alias Astarte.DataUpdaterPlant.DataUpdater.Core
   alias Astarte.DataUpdaterPlant.Config
   alias Astarte.DataUpdaterPlant.DataUpdater.Impl
   alias Astarte.DataUpdaterPlant.MessageTracker
@@ -80,7 +81,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Server do
   @impl GenServer
   def handle_cast({:handle_heartbeat, message_id, timestamp}, state) do
     if MessageTracker.can_process_message(state.message_tracker, message_id) do
-      new_state = Impl.handle_heartbeat(state, message_id, timestamp)
+      new_state = Core.HeartbeatHandler.handle_heartbeat(state, message_id, timestamp)
       {:noreply, new_state}
     else
       {:noreply, state}
