@@ -324,30 +324,6 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
     end
   end
 
-  defp send_control_consumer_properties(state) do
-    Logger.debug("Device introspection: #{inspect(state.introspection)}.")
-
-    abs_paths_list =
-      Enum.flat_map(state.introspection, fn {interface, _} ->
-        descriptor = Map.get(state.interfaces, interface)
-
-        case Core.Interface.maybe_handle_cache_miss(descriptor, interface, state) do
-          {:ok, interface_descriptor, new_state} ->
-            Core.Interface.gather_interface_property_paths(new_state.realm, interface_descriptor)
-
-          {:error, :interface_loading_failed} ->
-            Logger.warning("Failed #{interface} interface loading.")
-            []
-        end
-      end)
-
-    # TODO: use the returned byte count in stats
-    with {:ok, _bytes} <-
-           send_consumer_properties_payload(state.realm, state.device_id, abs_paths_list) do
-      :ok
-    end
-  end
-
   defp resend_all_properties(state) do
     Logger.debug("Device introspection: #{inspect(state.introspection)}")
 

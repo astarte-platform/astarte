@@ -70,7 +70,6 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.TriggerHandlerTest do
                  simple_trigger,
                  trigger_target
                )
-               |> dbg()
     end
   end
 
@@ -117,7 +116,6 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.TriggerHandlerTest do
                  simple_trigger,
                  trigger_target
                )
-               |> dbg()
     end
   end
 
@@ -136,9 +134,9 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.TriggerHandlerTest do
         simple_trigger: {
           :data_trigger,
           %DataTrigger{
-            version: 1,
+            version: individual_properties_server_interface.version_major,
             interface_name: individual_properties_server_interface.name,
-            interface_major: 1,
+            interface_major: individual_properties_server_interface.version_major,
             data_trigger_type: :INCOMING_DATA,
             match_path: "/*",
             value_match_operator: :LESS_THAN,
@@ -170,7 +168,6 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.TriggerHandlerTest do
                  simple_trigger,
                  trigger_target
                )
-               |> dbg()
     end
   end
 
@@ -217,7 +214,6 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.TriggerHandlerTest do
                  simple_trigger,
                  trigger_target
                )
-               |> dbg()
     end
   end
 
