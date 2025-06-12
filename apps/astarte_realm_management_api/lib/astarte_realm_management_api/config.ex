@@ -23,6 +23,8 @@ defmodule Astarte.RealmManagement.API.Config do
 
   use Skogsra
 
+  alias Astarte.DataAccess.Config, as: DataAccessConfig
+
   @envdoc """
   "Disables the authentication. CHANGING IT TO TRUE IS GENERALLY A REALLY BAD IDEA IN A PRODUCTION ENVIRONMENT, IF YOU DON'T KNOW WHAT YOU ARE DOING.
   """
@@ -42,4 +44,9 @@ defmodule Astarte.RealmManagement.API.Config do
   Returns true if the authentication is disabled.
   """
   def authentication_disabled?, do: disable_authentication!()
+
+  @doc """
+  Returns Cassandra nodes formatted in the Xandra format.
+  """
+  defdelegate xandra_options!, to: DataAccessConfig
 end
