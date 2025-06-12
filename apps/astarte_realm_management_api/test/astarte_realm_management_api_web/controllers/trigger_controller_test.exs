@@ -99,7 +99,7 @@ defmodule Astarte.RealmManagement.APIWeb.TriggerControllerTest do
       post_conn =
         post(conn, trigger_path(conn, :create, realm), data: valid_trigger_attrs())
 
-      response = json_response(post_conn, 201)["data"]
+      assert json_response(post_conn, 201)
 
       delete_conn =
         delete(conn, trigger_path(conn, :delete, realm, valid_trigger_attrs()["name"]))
