@@ -67,6 +67,7 @@ defmodule Astarte.RealmManagement.API.Mixfile do
   defp astarte_required_modules("true") do
     [
       {:astarte_core, in_umbrella: true},
+      {:astarte_data_access, in_umbrella: true},
       {:astarte_rpc, in_umbrella: true}
     ]
   end
@@ -75,6 +76,9 @@ defmodule Astarte.RealmManagement.API.Mixfile do
     [
       {:astarte_core,
        github: "astarte-platform/astarte_core", branch: "release-1.2", override: true},
+      {:astarte_data_access,
+       github: "astarte-platform/astarte_data_access", branch: "release-1.2"},
+      {:astarte_generators, github: "astarte-platform/astarte_generators", only: [:dev, :test]},
       {:astarte_rpc, "~> 1.2"}
     ]
   end
@@ -98,10 +102,10 @@ defmodule Astarte.RealmManagement.API.Mixfile do
       {:telemetry_poller, "~> 0.4"},
       {:telemetry_metrics_prometheus_core, "~> 0.4"},
       {:dialyxir, "~> 1.0", only: [:dev, :ci], runtime: false},
+      {:mimic, "~> 1.11", only: :test},
       # Workaround for Elixir 1.15 / ssl_verify_fun issue
       # See also: https://github.com/deadtrickster/ssl_verify_fun.erl/pull/27
       {:ssl_verify_fun, "~> 1.1.0", manager: :rebar3, override: true},
-      {:astarte_generators, github: "astarte-platform/astarte_generators", only: [:dev, :test]},
       {:uuid, "~> 2.0", hex: :uuid_erl}
     ]
   end
