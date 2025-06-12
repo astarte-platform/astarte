@@ -481,12 +481,12 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DataHandlerErrorTest do
 
   defp gen_message_id, do: :erlang.unique_integer([:monotonic]) |> Integer.to_string()
 
-  defp valid_value?(%{} = payload_value, value) do
-    value in Map.values(payload_value)
-  end
-
   defp valid_value?(%DateTime{} = payload_value, %DateTime{} = value),
     do: DateTime.compare(payload_value, value) == :eq
+
+  defp valid_value?(%{} = payload_value, value) do
+    payload_value == value || payload_value |> Map.values() |> Enum.any?(&valid_value?(&1, value))
+  end
 
   defp valid_value?(payload_value, value), do: payload_value == value
 end
