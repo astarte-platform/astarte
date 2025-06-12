@@ -68,14 +68,6 @@ defmodule Astarte.Housekeeping.Mock.DB do
     Agent.get(current_agent(), &Map.keys(&1))
   end
 
-  def set_health_status(status) do
-    Agent.update(current_agent(), &Map.put(&1, :health_status, status))
-  end
-
-  def get_health_status do
-    Agent.get(current_agent(), &Map.get(&1, :health_status, :READY))
-  end
-
   def set_realm_deletion_status(status) when is_boolean(status) do
     Agent.update(current_agent(), &Map.put(&1, :realm_deletion_disabled, !status))
   end

@@ -23,8 +23,6 @@ defmodule Astarte.Housekeeping.API.RPC.Housekeeping do
     DeleteRealm,
     GenericErrorReply,
     GenericOkReply,
-    GetHealth,
-    GetHealthReply,
     GetRealm,
     GetRealmReply,
     GetRealmsList,
@@ -136,14 +134,6 @@ defmodule Astarte.Housekeeping.API.RPC.Housekeeping do
     |> extract_reply()
   end
 
-  def get_health do
-    %GetHealth{}
-    |> encode_call(:get_health)
-    |> @rpc_client.rpc_call(@destination, Config.rpc_timeout!())
-    |> decode_reply()
-    |> extract_reply()
-  end
-
   def get_realm(realm_name) do
     %GetRealm{realm_name: realm_name}
     |> encode_call(:get_realm)
@@ -164,18 +154,6 @@ defmodule Astarte.Housekeeping.API.RPC.Housekeeping do
 
   defp extract_reply({:get_realms_list_reply, %GetRealmsListReply{realms_names: realms_list}}) do
     Enum.map(realms_list, fn realm_name -> %Realm{realm_name: realm_name} end)
-  end
-
-  defp extract_reply({:get_health_reply, %GetHealthReply{status: status}}) do
-    lowercase_status =
-      case status do
-        :READY -> :ready
-        :DEGRADED -> :degraded
-        :BAD -> :bad
-        :ERROR -> :ERROR
-      end
-
-    {:ok, %{status: lowercase_status}}
   end
 
   defp extract_reply(
