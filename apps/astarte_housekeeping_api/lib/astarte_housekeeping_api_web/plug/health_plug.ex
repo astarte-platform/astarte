@@ -20,8 +20,7 @@ defmodule Astarte.Housekeeping.APIWeb.HealthPlug do
   @behaviour Plug
   import Plug.Conn
 
-  alias Astarte.Housekeeping.API.Health
-  alias Astarte.Housekeeping.API.Health.BackendHealth
+  alias Astarte.DataAccess.Health.Health
 
   def init(_opts) do
     nil
@@ -29,19 +28,27 @@ defmodule Astarte.Housekeeping.APIWeb.HealthPlug do
 
   def call(%{request_path: "/health", method: "GET"} = conn, _opts) do
     try do
-      with {:ok, %BackendHealth{status: status}} <- Health.get_backend_health() do
-        case status do
-          # When degraded, some Cassandra nodes are available so it's still ok
-          val when val in [:ready, :degraded] ->
-            conn
-            |> send_resp(:ok, "")
-            |> halt()
+      case Health.get_health() do
+        {:ok, %{status: status}} when status in [:ready, :degraded] ->
+          :telemetry.execute(
+            [:astarte, :housekeeping, :service],
+            %{health: 1},
+            %{status: status}
+          )
 
-          _ ->
-            conn
-            |> send_resp(:service_unavailable, "")
-            |> halt()
-        end
+          conn
+          |> send_resp(:ok, "")
+          |> halt()
+
+        _ ->
+          :telemetry.execute(
+            [:astarte, :housekeeping, :service],
+            %{health: 0}
+          )
+
+          conn
+          |> send_resp(:service_unavailable, "")
+          |> halt()
       end
     rescue
       _ ->
