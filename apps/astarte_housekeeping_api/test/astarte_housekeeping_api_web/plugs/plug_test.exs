@@ -18,8 +18,9 @@
 
 defmodule Astarte.Housekeeping.APIWeb.PlugTest do
   use Astarte.Housekeeping.APIWeb.ConnCase, async: true
+  use Mimic
 
-  alias Astarte.Housekeeping.Mock.DB
+  alias Astarte.DataAccess.Health.Health
   alias Astarte.Housekeeping.APIWeb.HealthPlug
 
   describe "GET /health" do
@@ -28,7 +29,7 @@ defmodule Astarte.Housekeeping.APIWeb.PlugTest do
     end
 
     test "returns 200 OK when status is :ready", %{conn: conn} do
-      DB.set_health_status(:READY)
+      Mimic.expect(Health, :get_health, fn -> {:ok, %{status: :ready}} end)
 
       conn = get(conn, "/health")
 
@@ -37,7 +38,7 @@ defmodule Astarte.Housekeeping.APIWeb.PlugTest do
     end
 
     test "returns 200 OK when status is :degraded", %{conn: conn} do
-      DB.set_health_status(:DEGRADED)
+      Mimic.expect(Health, :get_health, fn -> {:ok, %{status: :degraded}} end)
 
       conn = get(conn, "/health")
 
@@ -46,7 +47,7 @@ defmodule Astarte.Housekeeping.APIWeb.PlugTest do
     end
 
     test "returns 503 when status is :bad", %{conn: conn} do
-      DB.set_health_status(:BAD)
+      Mimic.expect(Health, :get_health, fn -> {:ok, %{status: :bad}} end)
 
       conn = get(conn, "/health")
 
@@ -55,8 +56,7 @@ defmodule Astarte.Housekeeping.APIWeb.PlugTest do
     end
 
     test "returns 503 when status is :error", %{conn: conn} do
-      DB.set_health_status(:ERORR)
-
+      Mimic.expect(Health, :get_health, fn -> {:error, :database_connection_error} end)
       conn = get(conn, "/health")
 
       assert conn.status == 503
