@@ -87,6 +87,12 @@ defmodule Astarte.Housekeeping.API.RealmsTest do
   @empty_pubkey_attrs %{realm_name: "valid", jwt_public_key_pem: nil}
   @non_existing "non_existing_realm"
 
+  setup %{astarte_instance_id: astarte_instance_id} do
+    realm_name = "realm#{System.unique_integer([:positive])}"
+
+    %{realm_name: realm_name}
+  end
+
   describe "property based tests" do
     property "realm lifecycle operations work as expected" do
       check all(name <- GeneratorsRealm.realm_name()) do
@@ -105,8 +111,8 @@ defmodule Astarte.Housekeeping.API.RealmsTest do
   end
 
   describe "realms fetching" do
-    test "list_realms/0 returns all realms" do
-      %Realm{realm_name: realm_name} = realm_fixture()
+    test "list_realms/0 returns all realms", %{realm_name: realm_name} do
+      realm_fixture(%{realm_name: realm_name})
       assert Realms.list_realms() == [%Realm{realm_name: realm_name}]
     end
 
@@ -120,9 +126,9 @@ defmodule Astarte.Housekeeping.API.RealmsTest do
   end
 
   describe "realms creation" do
-    test "succeeds using a synchronous call" do
+    test "succeeds using a synchronous call", %{realm_name: realm_name} do
       attrs = %{
-        realm_name: "mytestrealm2",
+        realm_name: realm_name,
         jwt_public_key_pem: pubkey(),
         device_registration_limit: 42,
         datastream_maximum_storage_retention: 42
@@ -131,9 +137,9 @@ defmodule Astarte.Housekeeping.API.RealmsTest do
       assert {:ok, %Realm{} = _realm} = Realms.create_realm(attrs, async_operation: false)
     end
 
-    test "fails to create a realm with duplicate name" do
+    test "fails to create a realm with duplicate name", %{realm_name: realm_name} do
       attrs = %{
-        realm_name: "mytestrealm2",
+        realm_name: realm_name,
         jwt_public_key_pem: pubkey(),
         device_registration_limit: 42,
         datastream_maximum_storage_retention: 42
@@ -178,7 +184,7 @@ defmodule Astarte.Housekeeping.API.RealmsTest do
 
       assert {:ok,
               %Realm{
-                realm_name: "mytestrealm",
+                realm_name: ^realm_name,
                 jwt_public_key_pem: @update_pubkey
               }} = Realms.update_realm(realm_name, @update_attrs)
     end
@@ -191,7 +197,7 @@ defmodule Astarte.Housekeeping.API.RealmsTest do
 
       assert {:ok,
               %Realm{
-                realm_name: "mytestrealm",
+                realm_name: ^realm_name,
                 jwt_public_key_pem: @update_pubkey,
                 device_registration_limit: ^limit
               }} = Realms.update_realm(realm_name, update_attrs)
@@ -206,7 +212,7 @@ defmodule Astarte.Housekeeping.API.RealmsTest do
 
       assert {:ok,
               %Realm{
-                realm_name: "mytestrealm",
+                realm_name: ^realm_name,
                 jwt_public_key_pem: @update_pubkey,
                 device_registration_limit: nil
               }} = Realms.update_realm(realm_name, update_attrs)
@@ -228,7 +234,7 @@ defmodule Astarte.Housekeeping.API.RealmsTest do
 
       assert {:ok,
               %Realm{
-                realm_name: "mytestrealm",
+                realm_name: ^realm_name,
                 jwt_public_key_pem: @update_pubkey,
                 datastream_maximum_storage_retention: ^retention
               }} = Realms.update_realm(realm_name, update_attrs)
@@ -244,7 +250,7 @@ defmodule Astarte.Housekeeping.API.RealmsTest do
 
       assert {:ok,
               %Realm{
-                realm_name: "mytestrealm",
+                realm_name: ^realm_name,
                 jwt_public_key_pem: @update_pubkey,
                 datastream_maximum_storage_retention: nil
               }} = Realms.update_realm(realm_name, update_attrs)

@@ -17,6 +17,7 @@
 #
 
 Mimic.copy(Astarte.DataAccess.Health.Health)
+Mimic.copy(Astarte.DataAccess.Config)
 Mimic.copy(Xandra)
 
 ExUnit.start(capture_log: true)
