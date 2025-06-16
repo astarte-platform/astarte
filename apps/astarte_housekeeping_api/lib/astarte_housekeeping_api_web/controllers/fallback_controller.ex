@@ -34,6 +34,20 @@ defmodule Astarte.Housekeeping.APIWeb.FallbackController do
     |> render("error.json", changeset: changeset)
   end
 
+  def call(conn, {:error, :database_connection_error}) do
+    conn
+    |> put_status(:service_unavailable)
+    |> put_view(ErrorView)
+    |> render(:"503")
+  end
+
+  def call(conn, {:error, :database_error}) do
+    conn
+    |> put_status(:service_unavailable)
+    |> put_view(ErrorView)
+    |> render(:"503")
+  end
+
   def call(conn, {:error, :realm_not_found}) do
     conn
     |> put_status(:not_found)
