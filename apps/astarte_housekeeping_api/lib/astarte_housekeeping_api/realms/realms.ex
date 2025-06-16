@@ -23,6 +23,7 @@ defmodule Astarte.Housekeeping.API.Realms do
 
   alias Astarte.Housekeeping.API.Realms.Realm
   alias Astarte.Housekeeping.API.RPC.Housekeeping
+  alias Astarte.Housekeeping.API.Realms.Queries
 
   @doc """
   Returns the list of realms.
@@ -47,7 +48,7 @@ defmodule Astarte.Housekeeping.API.Realms do
 
   """
   def get_realm(realm_name) do
-    Housekeeping.get_realm(realm_name)
+    Queries.get_realm(realm_name)
   end
 
   @doc """

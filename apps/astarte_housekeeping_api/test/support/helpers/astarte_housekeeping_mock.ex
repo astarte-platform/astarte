@@ -23,7 +23,6 @@ defmodule Astarte.Housekeeping.Mock do
     DeleteRealm,
     GenericErrorReply,
     GenericOkReply,
-    GetRealm,
     GetRealmReply,
     GetRealmsList,
     GetRealmsListReply,
@@ -165,34 +164,6 @@ defmodule Astarte.Housekeeping.Mock do
 
     %GetRealmsListReply{realms_names: list}
     |> encode_reply(:get_realms_list_reply)
-    |> ok_wrap
-  end
-
-  defp execute_rpc({:get_realm, %GetRealm{realm_name: realm_name}}) do
-    case Astarte.Housekeeping.Mock.DB.get_realm(realm_name) do
-      nil ->
-        generic_error(:realm_not_found)
-
-      %Realm{
-        realm_name: ^realm_name,
-        jwt_public_key_pem: pem,
-        replication_factor: rep,
-        replication_class: class,
-        datacenter_replication_factors: dc_repl,
-        device_registration_limit: dev_reg_limit,
-        datastream_maximum_storage_retention: ds_max_retention
-      } ->
-        %GetRealmReply{
-          realm_name: realm_name,
-          jwt_public_key_pem: pem,
-          replication_factor: rep,
-          replication_class: class,
-          datacenter_replication_factors: dc_repl,
-          device_registration_limit: dev_reg_limit,
-          datastream_maximum_storage_retention: ds_max_retention
-        }
-        |> encode_reply(:get_realm_reply)
-    end
     |> ok_wrap
   end
 
