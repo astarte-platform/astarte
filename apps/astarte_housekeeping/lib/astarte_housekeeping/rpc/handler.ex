@@ -27,7 +27,6 @@ defmodule Astarte.Housekeeping.RPC.Handler do
     DeleteRealm,
     GenericErrorReply,
     GenericOkReply,
-    GetRealm,
     GetRealmReply,
     GetRealmsList,
     GetRealmsListReply,
@@ -262,53 +261,6 @@ defmodule Astarte.Housekeeping.RPC.Handler do
       {:ok, list} ->
         %GetRealmsListReply{realms_names: list}
         |> encode_reply(:get_realms_list_reply)
-        |> ok_wrap
-
-      {:error, reason} ->
-        generic_error(reason)
-    end
-  end
-
-  defp call_rpc({:get_realm, %GetRealm{realm_name: realm_name}}) do
-    case Astarte.Housekeeping.Engine.get_realm(realm_name) do
-      %{
-        realm_name: realm_name_reply,
-        jwt_public_key_pem: public_key,
-        replication_class: "SimpleStrategy",
-        replication_factor: replication_factor,
-        device_registration_limit: device_registration_limit,
-        datastream_maximum_storage_retention: datastream_maximum_storage_retention
-      } ->
-        %GetRealmReply{
-          realm_name: realm_name_reply,
-          jwt_public_key_pem: public_key,
-          replication_class: :SIMPLE_STRATEGY,
-          replication_factor: replication_factor,
-          device_registration_limit: device_registration_limit,
-          datastream_maximum_storage_retention: datastream_maximum_storage_retention
-        }
-        |> encode_reply(:get_realm_reply)
-        |> ok_wrap
-
-      %{
-        realm_name: realm_name_reply,
-        jwt_public_key_pem: public_key,
-        replication_class: "NetworkTopologyStrategy",
-        datacenter_replication_factors: datacenter_replication_factors,
-        device_registration_limit: device_registration_limit,
-        datastream_maximum_storage_retention: datastream_maximum_storage_retention
-      } ->
-        datacenter_replication_factors_list = Enum.into(datacenter_replication_factors, [])
-
-        %GetRealmReply{
-          realm_name: realm_name_reply,
-          jwt_public_key_pem: public_key,
-          replication_class: :NETWORK_TOPOLOGY_STRATEGY,
-          datacenter_replication_factors: datacenter_replication_factors_list,
-          device_registration_limit: device_registration_limit,
-          datastream_maximum_storage_retention: datastream_maximum_storage_retention
-        }
-        |> encode_reply(:get_realm_reply)
         |> ok_wrap
 
       {:error, reason} ->

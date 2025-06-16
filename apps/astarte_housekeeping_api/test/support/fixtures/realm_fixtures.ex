@@ -17,6 +17,7 @@
 #
 defmodule Astarte.Housekeeping.API.Fixtures.Realm do
   alias Astarte.Housekeeping.API.Realms
+  alias Astarte.Housekeeping.Engine
 
   @pubkey """
   -----BEGIN PUBLIC KEY-----
@@ -41,6 +42,26 @@ defmodule Astarte.Housekeeping.API.Fixtures.Realm do
       |> Enum.into(@valid_attrs)
       |> Realms.create_realm()
 
+    # TODO: remove after the create_realm RPC removal
+    insert_realm!(realm)
+
     realm
+  end
+
+  # TODO: remove after the create_realm RPC removal
+  defp insert_realm!(realm) do
+    replication =
+      case realm.replication_class do
+        "SimpleStrategy" -> realm.replication_factor
+        "NetworkTopologyStrategy" -> realm.datacenter_replication_factors
+      end
+
+    Engine.create_realm(
+      realm.realm_name,
+      realm.jwt_public_key_pem,
+      replication,
+      realm.device_registration_limit,
+      realm.datastream_maximum_storage_retention
+    )
   end
 end

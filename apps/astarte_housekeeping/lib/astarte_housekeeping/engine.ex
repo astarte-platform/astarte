@@ -50,10 +50,6 @@ defmodule Astarte.Housekeeping.Engine do
     )
   end
 
-  def get_realm(realm) do
-    Queries.get_realm(realm)
-  end
-
   def delete_realm(realm, opts \\ []) do
     if Config.enable_realm_deletion!() do
       _ = Logger.info("Deleting realm", tag: "delete_realm", realm: realm)
