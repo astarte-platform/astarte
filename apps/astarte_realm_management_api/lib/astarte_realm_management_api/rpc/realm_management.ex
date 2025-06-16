@@ -27,8 +27,6 @@ defmodule Astarte.RealmManagement.API.RPC.RealmManagement do
     GetDatastreamMaximumStorageRetentionReply,
     GetDeviceRegistrationLimit,
     GetDeviceRegistrationLimitReply,
-    GetHealth,
-    GetHealthReply,
     GetInterfacesList,
     GetInterfacesListReply,
     GetInterfaceSource,
@@ -225,14 +223,6 @@ defmodule Astarte.RealmManagement.API.RPC.RealmManagement do
     |> extract_reply()
   end
 
-  def get_health do
-    %GetHealth{}
-    |> encode_call(:get_health)
-    |> @rpc_client.rpc_call(@destination)
-    |> decode_reply()
-    |> extract_reply()
-  end
-
   def get_trigger_policies_list(realm_name) do
     %GetTriggerPoliciesList{
       realm_name: realm_name
@@ -309,18 +299,6 @@ defmodule Astarte.RealmManagement.API.RPC.RealmManagement do
     else
       :ok
     end
-  end
-
-  defp extract_reply({:get_health_reply, %GetHealthReply{status: status}}) do
-    lowercase_status =
-      case status do
-        :READY -> :ready
-        :DEGRADED -> :degraded
-        :BAD -> :bad
-        :ERROR -> :error
-      end
-
-    {:ok, %{status: lowercase_status}}
   end
 
   defp extract_reply({:generic_error_reply, %GenericErrorReply{error_name: name}}) do
