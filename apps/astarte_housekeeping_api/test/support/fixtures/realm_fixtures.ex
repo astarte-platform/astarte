@@ -27,7 +27,6 @@ defmodule Astarte.Housekeeping.API.Fixtures.Realm do
   def pubkey, do: @pubkey
 
   @valid_attrs %{
-    realm_name: "mytestrealm",
     jwt_public_key_pem: @pubkey,
     device_registration_limit: 42,
     datastream_maximum_storage_retention: 42
@@ -36,6 +35,9 @@ defmodule Astarte.Housekeeping.API.Fixtures.Realm do
   def realm_fixture(attrs \\ %{}) do
     {:ok, realm} =
       attrs
+      |> Map.put_new_lazy(:realm_name, fn ->
+        "mytestrealm#{System.unique_integer([:positive])}"
+      end)
       |> Enum.into(@valid_attrs)
       |> Realms.create_realm()
 
