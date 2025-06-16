@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2018 Ispirata Srl
+# Copyright 2018 - 2025 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -17,9 +17,11 @@
 #
 
 defmodule Astarte.RealmManagement.API.Auth do
-  alias Astarte.RealmManagement.API.RPC.RealmManagement
+  alias Astarte.RealmManagement.API.RealmConfig.Queries
+
+  require Logger
 
   def fetch_public_key(realm) do
-    RealmManagement.get_jwt_public_key_pem(realm)
+    Queries.fetch_jwt_public_key_pem(realm)
   end
 end

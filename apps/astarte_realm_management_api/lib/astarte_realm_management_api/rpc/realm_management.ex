@@ -34,8 +34,6 @@ defmodule Astarte.RealmManagement.API.RPC.RealmManagement do
     GetInterfaceVersionsList,
     GetInterfaceVersionsListReply,
     GetInterfaceVersionsListReplyVersionTuple,
-    GetJWTPublicKeyPEM,
-    GetJWTPublicKeyPEMReply,
     GetTrigger,
     GetTriggerReply,
     GetTriggersList,
@@ -44,7 +42,6 @@ defmodule Astarte.RealmManagement.API.RPC.RealmManagement do
     InstallTrigger,
     Reply,
     UpdateInterface,
-    UpdateJWTPublicKeyPEM,
     InstallTriggerPolicy,
     GetTriggerPoliciesList,
     GetTriggerPoliciesListReply,
@@ -133,16 +130,6 @@ defmodule Astarte.RealmManagement.API.RPC.RealmManagement do
     |> extract_reply()
   end
 
-  def get_jwt_public_key_pem(realm_name) do
-    %GetJWTPublicKeyPEM{
-      realm_name: realm_name
-    }
-    |> encode_call(:get_jwt_public_key_pem)
-    |> @rpc_client.rpc_call(@destination)
-    |> decode_reply()
-    |> extract_reply()
-  end
-
   def get_device_registration_limit(realm_name) do
     %GetDeviceRegistrationLimit{
       realm_name: realm_name
@@ -158,17 +145,6 @@ defmodule Astarte.RealmManagement.API.RPC.RealmManagement do
       realm_name: realm_name
     }
     |> encode_call(:get_datastream_maximum_storage_retention)
-    |> @rpc_client.rpc_call(@destination)
-    |> decode_reply()
-    |> extract_reply()
-  end
-
-  def update_jwt_public_key_pem(realm_name, jwt_public_key_pem) do
-    %UpdateJWTPublicKeyPEM{
-      realm_name: realm_name,
-      jwt_public_key_pem: jwt_public_key_pem
-    }
-    |> encode_call(:update_jwt_public_key_pem)
     |> @rpc_client.rpc_call(@destination)
     |> decode_reply()
     |> extract_reply()
@@ -336,12 +312,6 @@ defmodule Astarte.RealmManagement.API.RPC.RealmManagement do
 
   defp extract_reply({:get_interface_source_reply, %GetInterfaceSourceReply{source: source}}) do
     {:ok, source}
-  end
-
-  defp extract_reply(
-         {:get_jwt_public_key_pem_reply, %GetJWTPublicKeyPEMReply{jwt_public_key_pem: pem}}
-       ) do
-    {:ok, pem}
   end
 
   defp extract_reply(
