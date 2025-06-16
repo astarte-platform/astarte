@@ -53,14 +53,6 @@ defmodule Astarte.RealmManagement.API.Helpers.RPCMock.DB do
     end)
   end
 
-  def set_health_status(status) do
-    Agent.update(current_agent(), &Map.put(&1, :health_status, status))
-  end
-
-  def get_health_status do
-    Agent.get(current_agent(), &Map.get(&1, :health_status, :READY))
-  end
-
   def delete_interface(realm, name, major) do
     cond do
       major != 0 ->
