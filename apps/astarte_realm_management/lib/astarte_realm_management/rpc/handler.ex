@@ -41,7 +41,6 @@ defmodule Astarte.RealmManagement.RPC.Handler do
     GetTriggersListReply,
     InstallInterface,
     Reply,
-    UpdateInterface,
     UpdateJWTPublicKeyPEM,
     InstallTriggerPolicy,
     GetTriggerPoliciesList,
@@ -228,19 +227,6 @@ defmodule Astarte.RealmManagement.RPC.Handler do
             {:get_interfaces_list, %GetInterfacesList{realm_name: realm_name}} ->
               _ = Logger.metadata(realm: realm_name)
               encode_reply(:get_interfaces_list, Engine.get_interfaces_list(realm_name))
-
-            {:update_interface,
-             %UpdateInterface{
-               realm_name: realm_name,
-               interface_json: interface_json,
-               async_operation: async_operation
-             }} ->
-              _ = Logger.metadata(realm: realm_name)
-
-              encode_reply(
-                :update_interface,
-                Engine.update_interface(realm_name, interface_json, async: async_operation)
-              )
 
             {:delete_interface,
              %DeleteInterface{

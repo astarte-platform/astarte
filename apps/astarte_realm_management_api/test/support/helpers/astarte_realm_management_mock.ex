@@ -35,7 +35,6 @@ defmodule Astarte.RealmManagement.API.Helpers.RPCMock do
     GetJWTPublicKeyPEMReply,
     InstallInterface,
     Reply,
-    UpdateInterface,
     UpdateJWTPublicKeyPEM,
     InstallTriggerPolicy,
     GetTriggerPoliciesList,
@@ -154,29 +153,6 @@ defmodule Astarte.RealmManagement.API.Helpers.RPCMock do
       Interface.changeset(%Interface{}, params) |> Ecto.Changeset.apply_action(:insert)
 
     with :ok <- DB.install_interface(realm_name, interface) do
-      generic_ok(async)
-      |> ok_wrap
-    else
-      {:error, reason} ->
-        generic_error(reason)
-        |> ok_wrap
-    end
-  end
-
-  defp execute_rpc(
-         {:update_interface,
-          %UpdateInterface{
-            realm_name: realm_name,
-            interface_json: interface_json,
-            async_operation: async
-          }}
-       ) do
-    {:ok, params} = Jason.decode(interface_json)
-
-    {:ok, interface} =
-      Interface.changeset(%Interface{}, params) |> Ecto.Changeset.apply_action(:insert)
-
-    with :ok <- DB.update_interface(realm_name, interface) do
       generic_ok(async)
       |> ok_wrap
     else
