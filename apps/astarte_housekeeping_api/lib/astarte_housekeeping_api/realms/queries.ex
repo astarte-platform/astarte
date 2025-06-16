@@ -20,10 +20,10 @@ defmodule Astarte.Housekeeping.API.Realms.Queries do
   import Ecto.Query
 
   alias Astarte.DataAccess.Consistency
+  alias Astarte.DataAccess.KvStore
   alias Astarte.DataAccess.Realms.Realm
   alias Astarte.DataAccess.Repo
   alias Astarte.Housekeeping.API.Realms.Realm, as: HKRealm
-  alias Astarte.Core.Realm, as: CoreRealm
 
   require Logger
 
@@ -65,203 +65,102 @@ defmodule Astarte.Housekeeping.API.Realms.Queries do
   end
 
   defp do_get_realm(realm_name, keyspace_name) do
-    Xandra.Cluster.run(:xandra, fn conn ->
-      with {:ok, true} <- is_realm_existing(realm_name),
-           {:ok, public_key} <- get_public_key(conn, keyspace_name),
-           {:ok, replication_map} <- get_realm_replication(conn, keyspace_name),
-           {:ok, device_registration_limit} <- get_device_registration_limit(conn, realm_name),
-           {:ok, max_retention} <-
-             get_datastream_maximum_storage_retention(conn, keyspace_name) do
-        case replication_map do
-          %{
-            "class" => "org.apache.cassandra.locator.SimpleStrategy",
-            "replication_factor" => replication_factor_string
-          } ->
-            {replication_factor, ""} = Integer.parse(replication_factor_string)
+    with :ok <- verify_realm_exists(realm_name),
+         {:ok, public_key} <- fetch_public_key(keyspace_name),
+         {:ok, replication_map} <- fetch_realm_replication(keyspace_name),
+         {:ok, device_registration_limit} <- fetch_device_registration_limit(realm_name) do
+      max_retention = get_datastream_maximum_storage_retention(keyspace_name)
 
-            {:ok,
-             %HKRealm{
-               realm_name: realm_name,
-               jwt_public_key_pem: public_key,
-               replication_class: "SimpleStrategy",
-               replication_factor: replication_factor,
-               device_registration_limit: device_registration_limit,
-               datastream_maximum_storage_retention: max_retention
-             }}
+      {replication_class, replication_factor, datacenter_replication_factors} =
+        replication_values(replication_map)
 
-          %{"class" => "org.apache.cassandra.locator.NetworkTopologyStrategy"} ->
-            datacenter_replication_factors =
-              Enum.reduce(replication_map, %{}, fn
-                {"class", _}, acc ->
-                  acc
+      realm = %HKRealm{
+        realm_name: realm_name,
+        jwt_public_key_pem: public_key,
+        replication_class: replication_class,
+        replication_factor: replication_factor,
+        datacenter_replication_factors: datacenter_replication_factors,
+        device_registration_limit: device_registration_limit,
+        datastream_maximum_storage_retention: max_retention
+      }
 
-                {datacenter, replication_factor_string}, acc ->
-                  {replication_factor, ""} = Integer.parse(replication_factor_string)
-                  Map.put(acc, datacenter, replication_factor)
-              end)
-
-            {:ok,
-             %HKRealm{
-               realm_name: realm_name,
-               jwt_public_key_pem: public_key,
-               replication_class: "NetworkTopologyStrategy",
-               datacenter_replication_factors: datacenter_replication_factors,
-               device_registration_limit: device_registration_limit,
-               datastream_maximum_storage_retention: max_retention
-             }}
-        end
-      else
-        # Returned by is_realm_existing
-        {:ok, false} ->
-          {:error, :realm_not_found}
-
-        {:error, %Xandra.Error{} = err} ->
-          _ = Logger.warning("Database error: #{inspect(err)}.", tag: "database_error")
-          {:error, :database_error}
-
-        {:error, %Xandra.ConnectionError{} = err} ->
-          _ =
-            Logger.warning("Database connection error: #{inspect(err)}.",
-              tag: "database_connection_error"
-            )
-
-          {:error, :database_connection_error}
-
-        {:error, reason} ->
-          _ =
-            Logger.warning("Error while getting realm: #{inspect(reason)}.",
-              tag: "get_realm_error",
-              realm: realm_name
-            )
-
-          {:error, reason}
-      end
-    end)
+      {:ok, realm}
+    end
   end
 
-  defp get_public_key(conn, realm_name) do
-    statement = """
-    SELECT blobAsVarchar(value)
-    FROM :realm_name.kv_store
-    WHERE group='auth' AND key='jwt_public_key_pem';
-    """
+  defp replication_values(
+         %{
+           "class" => "org.apache.cassandra.locator.SimpleStrategy",
+           "replication_factor" => replication_factor_string
+         } = _replication_map
+       ) do
+    {replication_factor, ""} = Integer.parse(replication_factor_string)
 
+    {"SimpleStrategy", replication_factor, nil}
+  end
+
+  defp replication_values(
+         %{"class" => "org.apache.cassandra.locator.NetworkTopologyStrategy"} = replication_map
+       ) do
+    datacenter_map =
+      replication_map
+      |> Map.delete("class")
+      |> Map.new(fn {datacenter, replication_factor_string} ->
+        {replication_factor, ""} = Integer.parse(replication_factor_string)
+        {datacenter, replication_factor}
+      end)
+
+    {"NetworkTopologyStrategy", nil, datacenter_map}
+  end
+
+  defp verify_realm_exists(realm_name) do
+    case is_realm_existing(realm_name) do
+      {:ok, true} -> :ok
+      {:ok, false} -> {:error, :realm_not_found}
+      {:error, reason} -> {:error, reason}
+    end
+  end
+
+  defp fetch_public_key(keyspace) do
     consistency = Consistency.domain_model(:read)
 
-    with :ok <- validate_realm_name(realm_name),
-         query = String.replace(statement, ":realm_name", realm_name),
-         {:ok, %Xandra.Page{} = page} <-
-           Xandra.execute(conn, query, %{}, consistency: consistency) do
-      case Enum.fetch(page, 0) do
-        {:ok, %{"system.blobasvarchar(value)" => public_key}} ->
-          {:ok, public_key}
-
-        :error ->
-          {:error, :public_key_not_found}
-      end
-    else
-      {:error, reason} ->
-        _ =
-          Logger.warning("Cannot get public key: #{inspect(reason)}.",
-            tag: "get_public_key_error",
-            realm: realm_name
-          )
-
-        {:error, reason}
-    end
+    KvStore.fetch_value("auth", "jwt_public_key_pem", :string,
+      error: :public_key_not_found,
+      consistency: consistency,
+      prefix: keyspace
+    )
   end
 
-  defp validate_realm_name(realm_name) do
-    if CoreRealm.valid_name?(realm_name) do
-      :ok
-    else
-      _ =
-        Logger.warning("Invalid realm name.",
-          tag: "invalid_realm_name",
-          realm: realm_name
-        )
+  defp fetch_realm_replication(keyspace) do
+    opts = [consistency: Consistency.domain_model(:read), error: :realm_replication_not_found]
 
-      {:error, :realm_not_allowed}
-    end
+    from(k in "keyspaces", prefix: "system_schema", select: k.replication, limit: 1)
+    |> Repo.fetch_by(%{keyspace_name: keyspace}, opts)
   end
 
-  defp get_realm_replication(conn, realm_name) do
-    query = """
-    SELECT replication
-    FROM system_schema.keyspaces
-    WHERE keyspace_name=:realm_name
-    """
+  defp fetch_device_registration_limit(realm_name) do
+    astarte_keyspace = Realm.astarte_keyspace_name()
 
-    opts = [consistency: Consistency.domain_model(:read)]
+    opts = [
+      consistency: Consistency.domain_model(:read),
+      error: :realm_device_registration_limit_not_found
+    ]
 
-    with {:ok, prepared} <- Xandra.prepare(conn, query),
-         {:ok, page} <- Xandra.execute(conn, prepared, %{"realm_name" => realm_name}, opts) do
-      case Enum.fetch(page, 0) do
-        {:ok, %{"replication" => replication_map}} ->
-          {:ok, replication_map}
-
-        :error ->
-          # Something really wrong here, but we still cover this
-          _ =
-            Logger.error("Cannot find realm replication.",
-              tag: "realm_replication_not_found",
-              realm: realm_name
-            )
-
-          {:error, :realm_replication_not_found}
-      end
-    end
+    from(r in Realm, prefix: ^astarte_keyspace, select: r.device_registration_limit)
+    |> Repo.fetch(realm_name, opts)
   end
 
-  defp get_device_registration_limit(conn, realm_name) do
-    query = """
-    SELECT device_registration_limit
-    FROM #{Realm.astarte_keyspace_name()}.realms
-    WHERE realm_name=:realm_name
-    """
+  defp get_datastream_maximum_storage_retention(keyspace) do
+    opts = [consistency: Consistency.domain_model(:read), prefix: keyspace]
 
-    opts = [consistency: Consistency.domain_model(:read)]
-
-    with {:ok, prepared} <- Xandra.prepare(conn, query),
-         {:ok, page} <- Xandra.execute(conn, prepared, %{"realm_name" => realm_name}, opts) do
-      case Enum.fetch(page, 0) do
-        {:ok, %{"device_registration_limit" => value}} ->
-          {:ok, value}
-
-        :error ->
-          # Something really wrong here, but we still cover this
-          _ =
-            Logger.error("Cannot find realm device_registration_limit.",
-              tag: "realm_device_registration_limit_not_found",
-              realm: realm_name
-            )
-
-          {:error, :realm_device_registration_limit_not_found}
-      end
-    end
-  end
-
-  defp get_datastream_maximum_storage_retention(conn, realm_name) do
-    statement = """
-    SELECT blobAsInt(value)
-    FROM :realm_name.kv_store
-    WHERE group='realm_config' AND key='datastream_maximum_storage_retention'
-    """
-
-    opts = [consistency: Consistency.domain_model(:read)]
-
-    # TODO change this once NoaccOS' PR is merged
-    with :ok <- validate_realm_name(realm_name),
-         query = String.replace(statement, ":realm_name", realm_name),
-         {:ok, prepared} <- Xandra.prepare(conn, query),
-         {:ok, page} <- Xandra.execute(conn, prepared, %{}, opts) do
-      case Enum.fetch(page, 0) do
-        {:ok, %{"system.blobasint(value)" => value}} ->
-          {:ok, value}
-
-        :error ->
-          {:ok, nil}
-      end
+    case KvStore.fetch_value(
+           "realm_config",
+           "datastream_maximum_storage_retention",
+           :integer,
+           opts
+         ) do
+      {:ok, value} -> value
+      {:error, :not_found} -> nil
     end
   end
 end
