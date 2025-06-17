@@ -64,6 +64,18 @@ config :astarte_pairing_api,
             "mb3tAXjpvnrRD0S4Ag6Xv5IBk4cExwWM-hpmK5ASc-fSmIZAG26VK-ctfYQ-q1JINx0u87bTKbxptjpxpIBIJxvZ6DsjXahAtYdMchUKp-x0R4Lw2QppsnS1ulUHUs7GrP2x_g5bURai4BVcEzfU4MmaWQZyfGC8I84-Ef3V3l0"
         }}
 
+config :astarte_pairing_api, :jwt_public_key_pem, """
+-----BEGIN PUBLIC KEY-----
+MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAvxc/7iTcAd5FprvGWQtl
+bhBJy2gv0QLk0GcXg6cK+XYne7bkXJ/2ada1cQDfQAiZ9XRN04sGyrVCY0IjAbRC
+hkMjJFhYF1WMWv7PiybTaRSn8KyJG9g/Zpje5hVTYjBvfGqym3yWf0f6rJpAbCdk
+gRJkWvBLA2NgCX6pzQZWJTsItnUp3aaCt0lOw3ZKc+ZMvuP6S1GahW0kSFV7jPJX
+JOYU76KvYgkkqrXdTe2nzyOEn0YLEboojtPp6ZylQWxxoTz3vFcjIrVf53g1AB5f
+4ua/ACmqSZyF7I6Cceyo93q4rpg2wCGFANxG1qgD3tXATQI8PJloz7eN+BjC+D3J
+OwIDAQAB
+-----END PUBLIC KEY-----
+"""
+
 config :astarte_pairing_api, :agent_public_key_pems, [
   """
   -----BEGIN PUBLIC KEY-----
