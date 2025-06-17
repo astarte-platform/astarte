@@ -25,8 +25,6 @@ defmodule Astarte.Housekeeping.RPC.Handler do
     Call,
     CreateRealm,
     DeleteRealm,
-    DoesRealmExist,
-    DoesRealmExistReply,
     GenericErrorReply,
     GenericOkReply,
     GetRealm,
@@ -253,18 +251,6 @@ defmodule Astarte.Housekeeping.RPC.Handler do
 
       {:error, {reason, details}} ->
         generic_error(reason, details)
-
-      {:error, reason} ->
-        generic_error(reason)
-    end
-  end
-
-  defp call_rpc({:does_realm_exist, %DoesRealmExist{realm: realm}}) do
-    case Astarte.Housekeeping.Engine.is_realm_existing(realm) do
-      {:ok, exists?} ->
-        %DoesRealmExistReply{exists: exists?}
-        |> encode_reply(:does_realm_exist_reply)
-        |> ok_wrap
 
       {:error, reason} ->
         generic_error(reason)
