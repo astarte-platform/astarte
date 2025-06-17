@@ -22,15 +22,16 @@ defmodule Astarte.Housekeeping.API.DataCase do
 
   setup_all do
     astarte_instance_id = "astarte#{System.unique_integer([:positive])}"
+    realm_name = "realm#{System.unique_integer([:positive])}"
     Database.setup_database_access(astarte_instance_id)
-    Database.setup_astarte_keyspace()
+    Database.setup(realm_name)
 
     on_exit(fn ->
       Database.setup_database_access(astarte_instance_id)
-      Database.teardown_astarte_keyspace()
+      Database.teardown(realm_name)
     end)
 
-    %{astarte_instance_id: astarte_instance_id}
+    %{astarte_instance_id: astarte_instance_id, realm_name: realm_name}
   end
 
   setup context do

@@ -88,6 +88,79 @@ defmodule Astarte.Housekeeping.API.Realms.Queries do
     end
   end
 
+  def set_device_registration_limit(realm_name, device_registration_limit) do
+    opts = [prefix: Realm.astarte_keyspace_name(), consistency: Consistency.domain_model(:write)]
+
+    from(Realm, where: [realm_name: ^realm_name])
+    |> Repo.update_all([set: [device_registration_limit: device_registration_limit]], opts)
+
+    :ok
+  end
+
+  def delete_device_registration_limit(realm_name) do
+    keyspace = Realm.astarte_keyspace_name()
+
+    query =
+      from Realm,
+        where: [realm_name: ^realm_name]
+
+    opts = [consistency: Consistency.domain_model(:write), prefix: keyspace]
+
+    # nil inserts a tombstone
+    # https://hexdocs.pm/xandra/Xandra.html#module-values
+    Repo.update_all(query, [set: [device_registration_limit: nil]], opts)
+
+    :ok
+  end
+
+  def set_datastream_maximum_storage_retention(realm_name, retention) do
+    opts = [
+      consistency: Consistency.domain_model(:write),
+      prefix: Realm.keyspace_name(realm_name)
+    ]
+
+    kv_store = %{
+      group: "realm_config",
+      key: "datastream_maximum_storage_retention",
+      value: retention,
+      value_type: :integer
+    }
+
+    with {:error, xandra_error} <- KvStore.insert(kv_store, opts) do
+      raise xandra_error
+    end
+  end
+
+  def delete_datastream_maximum_storage_retention(realm_name) do
+    opts = [
+      consistency: Consistency.domain_model(:write),
+      prefix: Realm.keyspace_name(realm_name)
+    ]
+
+    from(KvStore, where: [group: "realm_config", key: "datastream_maximum_storage_retention"])
+    |> Repo.delete_all(opts)
+
+    :ok
+  end
+
+  def update_public_key(realm_name, jwt_public_key_pem) do
+    opts = [
+      consistency: Consistency.domain_model(:write),
+      prefix: Realm.keyspace_name(realm_name)
+    ]
+
+    kv_store = %{
+      group: "auth",
+      key: "jwt_public_key_pem",
+      value: jwt_public_key_pem,
+      value_type: :string
+    }
+
+    with {:error, xandra_error} <- KvStore.insert(kv_store, opts) do
+      raise xandra_error
+    end
+  end
+
   defp replication_values(
          %{
            "class" => "org.apache.cassandra.locator.SimpleStrategy",

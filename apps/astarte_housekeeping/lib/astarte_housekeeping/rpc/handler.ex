@@ -27,12 +27,9 @@ defmodule Astarte.Housekeeping.RPC.Handler do
     DeleteRealm,
     GenericErrorReply,
     GenericOkReply,
-    GetRealmReply,
     GetRealmsList,
     GetRealmsListReply,
-    Reply,
-    SetLimit,
-    UpdateRealm
+    Reply
   }
 
   require Logger
@@ -172,57 +169,6 @@ defmodule Astarte.Housekeeping.RPC.Handler do
     end
   end
 
-  defp call_rpc({:update_realm, %UpdateRealm{} = call}) do
-    %UpdateRealm{realm: realm_name, device_registration_limit: device_registration_limit} = call
-    new_limit = extract_device_registration_limit(device_registration_limit)
-    attrs = %{call | device_registration_limit: new_limit}
-
-    with {:ok, realm} <- Astarte.Housekeeping.Engine.update_realm(realm_name, attrs) do
-      case realm do
-        %{
-          realm_name: realm_name_reply,
-          jwt_public_key_pem: public_key,
-          replication_class: "SimpleStrategy",
-          replication_factor: replication_factor,
-          device_registration_limit: limit,
-          datastream_maximum_storage_retention: retention
-        } ->
-          %GetRealmReply{
-            realm_name: realm_name_reply,
-            jwt_public_key_pem: public_key,
-            replication_class: :SIMPLE_STRATEGY,
-            replication_factor: replication_factor,
-            device_registration_limit: limit,
-            datastream_maximum_storage_retention: retention
-          }
-          |> encode_reply(:get_realm_reply)
-          |> ok_wrap
-
-        %{
-          realm_name: realm_name_reply,
-          jwt_public_key_pem: public_key,
-          replication_class: "NetworkTopologyStrategy",
-          datacenter_replication_factors: datacenter_replication_factors,
-          device_registration_limit: limit,
-          datastream_maximum_storage_retention: retention
-        } ->
-          %GetRealmReply{
-            realm_name: realm_name_reply,
-            jwt_public_key_pem: public_key,
-            replication_class: :NETWORK_TOPOLOGY_STRATEGY,
-            datacenter_replication_factors: datacenter_replication_factors,
-            device_registration_limit: limit,
-            datastream_maximum_storage_retention: retention
-          }
-          |> encode_reply(:get_realm_reply)
-          |> ok_wrap
-      end
-    else
-      {:error, reason} ->
-        generic_error(reason)
-    end
-  end
-
   # Here for retrocompatibility with old protos serialized with Exprotobuf
   defp call_rpc({:delete_realm, %DeleteRealm{realm: ""}}) do
     _ = Logger.warning("DeleteRealm with empty realm.", tag: "rpc_delete_empty_realm")
@@ -303,8 +249,4 @@ defmodule Astarte.Housekeeping.RPC.Handler do
   defp ok_wrap(result) do
     {:ok, result}
   end
-
-  defp extract_device_registration_limit(nil), do: nil
-  defp extract_device_registration_limit({:remove_limit, _}), do: :remove_limit
-  defp extract_device_registration_limit({:set_limit, %SetLimit{value: new_limit}}), do: new_limit
 end

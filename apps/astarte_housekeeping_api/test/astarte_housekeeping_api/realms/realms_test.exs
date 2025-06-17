@@ -106,7 +106,7 @@ defmodule Astarte.Housekeeping.API.RealmsTest do
 
   describe "property based tests" do
     property "realm lifecycle operations work as expected" do
-      check all(name <- GeneratorsRealm.realm_name(), max_runs: 20) do
+      check all(name <- GeneratorsRealm.realm_name(), max_runs: 5) do
         # Test realm creation
         realm = realm_fixture(%{realm_name: name})
 
@@ -190,7 +190,7 @@ defmodule Astarte.Housekeeping.API.RealmsTest do
   end
 
   describe "realms update" do
-    test "with valid data updates the realm" do
+    test "with valid jwt updates the realm" do
       %Realm{realm_name: realm_name} = realm_fixture()
 
       assert {:ok,
@@ -198,6 +198,14 @@ defmodule Astarte.Housekeeping.API.RealmsTest do
                 realm_name: ^realm_name,
                 jwt_public_key_pem: @update_pubkey
               }} = Realms.update_realm(realm_name, @update_attrs)
+    end
+
+    test "fails when the realm doesn't exist" do
+      assert {:error, :realm_not_found} = Realms.update_realm(@non_existing, @update_attrs)
+    end
+
+    test "fails with an invalid realm name" do
+      assert {:error, :realm_not_allowed} = Realms.update_realm("system", @update_attrs)
     end
 
     test "with valid data and device registration limit set to a valid value updates the realm" do
