@@ -239,6 +239,7 @@ defmodule Astarte.Housekeeping.API.Helpers.Database do
   def setup(realm_name) do
     setup_astarte_keyspace()
     setup_realm_keyspace(realm_name)
+    insert_public_key(realm_name)
 
     :ok
   end
@@ -302,7 +303,7 @@ defmodule Astarte.Housekeeping.API.Helpers.Database do
   def insert_public_key(realm_name) do
     realm_keyspace = Realm.keyspace_name(realm_name)
 
-    execute(realm_keyspace, @insert_public_key, %{pem: @jwt_public_key_pem})
+    execute(realm_keyspace, @insert_public_key, %{"pem" => @jwt_public_key_pem})
   end
 
   defp execute(keyspace, query, params \\ [], opts \\ []) do
