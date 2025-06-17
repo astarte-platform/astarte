@@ -73,7 +73,10 @@ defmodule Astarte.Pairing.API.Mixfile do
       {:astarte_core, github: "astarte-platform/astarte_core", branch: "release-1.2"},
       {:astarte_data_access,
        github: "astarte-platform/astarte_data_access", branch: "release-1.2"},
-      {:astarte_rpc, "~> 1.2"}
+      {:astarte_rpc, "~> 1.2"},
+      {:astarte_generators, github: "astarte-platform/astarte_generators", only: [:dev, :test]},
+      {:astarte_realm_management,
+       path: "../astarte_realm_management", only: [:dev, :test], runtime: false}
     ]
   end
 
@@ -115,7 +118,8 @@ defmodule Astarte.Pairing.API.Mixfile do
       {:exandra, "~> 0.13"},
       {:typed_ecto_schema, "~> 0.4"},
       {:cqex, "~> 1.0", only: :test},
-      {:cqerl, "~> 2.1", override: true, only: :test}
+      {:cqerl, "~> 2.1", override: true, only: :test},
+      {:mimic, "~> 1.11", only: :test}
     ]
   end
 end
