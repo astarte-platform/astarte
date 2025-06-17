@@ -22,6 +22,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Server do
   alias Astarte.DataUpdaterPlant.Config
   alias Astarte.DataUpdaterPlant.DataUpdater.Impl
   alias Astarte.DataUpdaterPlant.MessageTracker
+  alias Astarte.DataUpdaterPlant.DataUpdater.Core
 
   require Logger
 
@@ -156,7 +157,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Server do
     timeout = Config.data_updater_deactivation_interval_ms!()
 
     {return_value, new_state} =
-      Impl.handle_install_volatile_trigger(
+      Core.Trigger.handle_install_volatile_trigger(
         state,
         object_id,
         object_type,
@@ -180,7 +181,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Server do
   def handle_call({:handle_delete_volatile_trigger, trigger_id}, _from, state) do
     timeout = Config.data_updater_deactivation_interval_ms!()
 
-    {result, new_state} = Impl.handle_delete_volatile_trigger(state, trigger_id)
+    {result, new_state} = Core.Trigger.handle_delete_volatile_trigger(state, trigger_id)
 
     {:reply, result, new_state, timeout}
   end
