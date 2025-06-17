@@ -125,7 +125,7 @@ export default (): React.ReactElement => {
                       key={trigger}
                       name={trigger}
                       onClick={() => {
-                        navigate(`/triggers/${trigger}/edit`);
+                        navigate(`/triggers/${encodeURIComponent(trigger)}/edit`);
                       }}
                     />
                   ))}
