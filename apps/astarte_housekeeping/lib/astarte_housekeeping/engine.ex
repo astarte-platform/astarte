@@ -88,26 +88,13 @@ defmodule Astarte.Housekeeping.Engine do
           optional(any()) => any()
         }) ::
           {:ok, map()}
-          | {:error, :invalid_update_parameters}
           | {:error, :realm_not_found}
           | {:error, :update_public_key_fail}
           | {:error, :database_error}
           | {:error, :database_connection_error}
   def update_realm(realm_name, update_attrs) do
-    if is_realm_update_valid?(update_attrs) do
-      _ = Logger.info("Updating realm #{realm_name}", tag: "realm_update_start")
-      do_update_realm(realm_name, update_attrs)
-    else
-      _ =
-        Logger.warning("Rejecting update for realm #{realm_name}",
-          tag: "invalid_update_parameters"
-        )
+    _ = Logger.info("Updating realm #{realm_name}", tag: "realm_update_start")
 
-      {:error, :invalid_update_parameters}
-    end
-  end
-
-  defp do_update_realm(realm_name, update_attrs) do
     %{
       jwt_public_key_pem: new_jwt_public_key_pem,
       device_registration_limit: new_limit,
@@ -246,22 +233,6 @@ defmodule Astarte.Housekeeping.Engine do
 
         {:error, :set_datastream_maximum_storage_retention_fail}
     end
-  end
-
-  defp is_realm_update_valid?(update_attrs) do
-    # TODO from ScyllaDB >= 5.3, replication can be altered
-    update_valid? =
-      update_attrs.replication_factor == nil && update_attrs.replication_class == nil &&
-        update_attrs.datacenter_replication_factors == %{}
-
-    unless update_valid? do
-      _ =
-        Logger.warning("Trying to update replication values for realm",
-          tag: "invalid_replication_value_update"
-        )
-    end
-
-    update_valid?
   end
 
   # If device_registration_limit is nil, it means it was not present in the update
