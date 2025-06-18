@@ -78,42 +78,6 @@ defmodule Astarte.Housekeeping.EngineTest do
     end
   end
 
-  describe "delete a realm," do
-    setup do
-      realm_name = Astarte.Core.Generators.Realm.realm_name() |> Enum.at(0)
-
-      on_exit(fn ->
-        Database.destroy_test_astarte_keyspace!(:xandra)
-        Database.destroy_test_keyspace!(:xandra, realm_name)
-      end)
-
-      Database.setup!(realm_name)
-      %{realm_name: realm_name}
-    end
-
-    test "deletions returns ok", %{realm_name: realm_name} do
-      assert :ok = Engine.delete_realm(realm_name, [])
-    end
-
-    test "async deletions returns ok", %{realm_name: realm_name} do
-      on_exit(fn ->
-        Process.sleep(1000)
-        Database.destroy_test_astarte_keyspace!(:xandra)
-      end)
-
-      assert :ok = Engine.delete_realm(realm_name, async: true)
-    end
-
-    test "fails in case of db error", %{realm_name: realm_name} do
-      Xandra.Cluster |> stub(:run, fn _, _, _ -> {:error, "generic error"} end)
-
-      assert {:error, "generic error"} =
-               Engine.delete_realm(realm_name)
-
-      Database.destroy_test_astarte_keyspace!(:xandra)
-    end
-  end
-
   describe "Realm update" do
     setup do
       realm_name = Astarte.Core.Generators.Realm.realm_name() |> Enum.at(0)

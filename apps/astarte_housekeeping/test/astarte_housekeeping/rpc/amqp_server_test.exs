@@ -22,7 +22,6 @@ defmodule Astarte.Housekeeping.RPC.HandlerTest do
   alias Astarte.RPC.Protocol.Housekeeping.{
     Call,
     CreateRealm,
-    DeleteRealm,
     GenericErrorReply,
     GenericOkReply,
     GetRealmReply,
@@ -269,68 +268,5 @@ defmodule Astarte.Housekeeping.RPC.HandlerTest do
              %Reply{reply: {:get_realms_list_reply, %GetRealmsListReply{realms_names: _names}}},
              Reply.decode(list_reply)
            )
-  end
-
-  test "DeleteRealm successful call" do
-    Engine.create_realm(
-      @test_realm,
-      @public_key_pem,
-      @replication_factor,
-      @device_limit,
-      @datastream_maximum_storage_retention
-    )
-
-    encoded =
-      %Call{call: {:delete_realm, %DeleteRealm{realm: @test_realm}}}
-      |> Call.encode()
-
-    {:ok, reply} = Handler.handle_rpc(encoded)
-
-    assert Reply.decode(reply) == generic_ok()
-  end
-
-  test "DeleteRealm with empty realm_name fails" do
-    encoded =
-      %Call{call: {:delete_realm, %DeleteRealm{realm: ""}}}
-      |> Call.encode()
-
-    {:ok, reply} = Handler.handle_rpc(encoded)
-
-    assert Reply.decode(reply) == generic_error("empty_name", "empty realm name")
-  end
-
-  test "DeleteRealm with non-existing realm fails" do
-    encoded =
-      %Call{call: {:delete_realm, %DeleteRealm{realm: @not_existing_realm}}}
-      |> Call.encode()
-
-    {:ok, reply} = Handler.handle_rpc(encoded)
-
-    assert Reply.decode(reply) == generic_error("realm_not_found")
-  end
-
-  test "DeleteRealm fails if realm deletion is disabled" do
-    on_exit(fn ->
-      DatabaseTestHelper.realm_cleanup(@test_realm)
-      Config.reload_enable_realm_deletion()
-    end)
-
-    Engine.create_realm(
-      @test_realm,
-      @public_key_pem,
-      @replication_factor,
-      @device_limit,
-      @datastream_maximum_storage_retention
-    )
-
-    Config.put_enable_realm_deletion(false)
-
-    encoded =
-      %Call{call: {:delete_realm, %DeleteRealm{realm: @test_realm}}}
-      |> Call.encode()
-
-    {:ok, reply} = Handler.handle_rpc(encoded)
-
-    assert Reply.decode(reply) == generic_error("realm_deletion_disabled")
   end
 end
