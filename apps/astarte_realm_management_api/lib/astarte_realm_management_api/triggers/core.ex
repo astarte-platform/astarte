@@ -27,6 +27,35 @@ defmodule Astarte.RealmManagement.API.Triggers.Core do
 
   require Logger
 
+  def get_trigger(realm_name, trigger_name) do
+    with {:ok, trigger} <- Queries.retrieve_trigger(realm_name, trigger_name) do
+      %Trigger{
+        trigger_uuid: parent_uuid,
+        simple_triggers_uuids: simple_triggers_uuids
+      } = trigger
+
+      initial_acc = {:ok, %{trigger: trigger, tagged_simple_triggers: []}}
+
+      # TODO: use batch
+      Enum.reduce_while(simple_triggers_uuids, initial_acc, fn uuid, {:ok, acc} ->
+        case Queries.retrieve_tagged_simple_trigger(realm_name, parent_uuid, uuid) do
+          {:ok, %TaggedSimpleTrigger{} = result} ->
+            tagged_simple_triggers = [result | acc.tagged_simple_triggers]
+            acc = %{acc | tagged_simple_triggers: tagged_simple_triggers}
+            {:cont, {:ok, acc}}
+
+          _error ->
+            Logger.warning("Failed to get trigger.",
+              trigger_name: trigger_name,
+              tag: "get_trigger_fail"
+            )
+
+            {:halt, {:error, :cannot_retrieve_simple_trigger}}
+        end
+      end)
+    end
+  end
+
   def install_trigger(
         realm_name,
         trigger_name,

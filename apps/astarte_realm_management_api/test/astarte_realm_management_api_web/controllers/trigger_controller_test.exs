@@ -73,7 +73,7 @@ defmodule Astarte.RealmManagement.APIWeb.TriggerControllerTest do
     } do
       conn = post(conn, trigger_path(conn, :create, realm), data: trigger_attrs)
 
-      # TODO: remove once get trigger rpc is removed
+      # TODO: remove once get trigger list rpc is removed
       create_trigger(realm, trigger_attrs)
 
       conn = get(conn, trigger_path(conn, :index, realm))
@@ -91,8 +91,6 @@ defmodule Astarte.RealmManagement.APIWeb.TriggerControllerTest do
       conn = post(conn, trigger_path(conn, :create, realm), data: trigger_attrs)
       assert json_response(conn, 201)["data"]["name"] == trigger_name
 
-      # TODO: remove once get trigger rpc is removed
-      create_trigger(realm, trigger_attrs)
       conn = get(conn, trigger_path(conn, :show, realm, trigger_name))
 
       assert json_response(conn, 200)["data"] == %{

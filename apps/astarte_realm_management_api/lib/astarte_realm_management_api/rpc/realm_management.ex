@@ -34,8 +34,6 @@ defmodule Astarte.RealmManagement.API.RPC.RealmManagement do
     GetInterfaceVersionsList,
     GetInterfaceVersionsListReply,
     GetInterfaceVersionsListReplyVersionTuple,
-    GetTrigger,
-    GetTriggerReply,
     GetTriggersList,
     GetTriggersListReply,
     InstallInterface,
@@ -50,8 +48,6 @@ defmodule Astarte.RealmManagement.API.RPC.RealmManagement do
     DeleteDevice
   }
 
-  alias Astarte.Core.Triggers.SimpleTriggersProtobuf.TaggedSimpleTrigger
-  alias Astarte.Core.Triggers.Trigger
   alias Astarte.RealmManagement.API.Config
 
   require Logger
@@ -144,17 +140,6 @@ defmodule Astarte.RealmManagement.API.RPC.RealmManagement do
       realm_name: realm_name
     }
     |> encode_call(:get_datastream_maximum_storage_retention)
-    |> @rpc_client.rpc_call(@destination)
-    |> decode_reply()
-    |> extract_reply()
-  end
-
-  def get_trigger(realm_name, trigger_name) do
-    %GetTrigger{
-      realm_name: realm_name,
-      trigger_name: trigger_name
-    }
-    |> encode_call(:get_trigger)
     |> @rpc_client.rpc_call(@destination)
     |> decode_reply()
     |> extract_reply()
@@ -294,33 +279,6 @@ defmodule Astarte.RealmManagement.API.RPC.RealmManagement do
 
   defp extract_reply({:get_interface_source_reply, %GetInterfaceSourceReply{source: source}}) do
     {:ok, source}
-  end
-
-  defp extract_reply(
-         {:get_trigger_reply,
-          %GetTriggerReply{
-            trigger_data: trigger_data,
-            serialized_tagged_simple_triggers: serialized_tagged_simple_triggers
-          }}
-       ) do
-    %Trigger{
-      name: trigger_name,
-      action: trigger_action,
-      policy: policy
-    } = Trigger.decode(trigger_data)
-
-    tagged_simple_triggers =
-      for serialized_tagged_simple_trigger <- serialized_tagged_simple_triggers do
-        TaggedSimpleTrigger.decode(serialized_tagged_simple_trigger)
-      end
-
-    {:ok,
-     %{
-       trigger_name: trigger_name,
-       trigger_action: trigger_action,
-       tagged_simple_triggers: tagged_simple_triggers,
-       policy: policy
-     }}
   end
 
   defp extract_reply({:get_triggers_list_reply, %GetTriggersListReply{triggers_names: triggers}}) do
