@@ -26,8 +26,6 @@ defmodule Astarte.RealmManagement.RPC.Handler do
     DeleteInterface,
     GenericErrorReply,
     GenericOkReply,
-    GetDatastreamMaximumStorageRetention,
-    GetDatastreamMaximumStorageRetentionReply,
     GetDeviceRegistrationLimit,
     GetDeviceRegistrationLimitReply,
     GetHealth,
@@ -82,18 +80,6 @@ defmodule Astarte.RealmManagement.RPC.Handler do
     }
 
     {:ok, Reply.encode(%Reply{error: false, reply: {:get_device_registration_limit_reply, msg}})}
-  end
-
-  def encode_reply(:get_datastream_maximum_storage_retention_reply, {:ok, retention}) do
-    msg = %GetDatastreamMaximumStorageRetentionReply{
-      datastream_maximum_storage_retention: retention
-    }
-
-    {:ok,
-     Reply.encode(%Reply{
-       error: false,
-       reply: {:get_datastream_maximum_storage_retention_reply, msg}
-     })}
   end
 
   def encode_reply(:get_interface_source, {:ok, reply}) do
@@ -220,15 +206,6 @@ defmodule Astarte.RealmManagement.RPC.Handler do
               encode_reply(
                 :get_device_registration_limit_reply,
                 Engine.get_device_registration_limit(realm_name)
-              )
-
-            {:get_datastream_maximum_storage_retention,
-             %GetDatastreamMaximumStorageRetention{realm_name: realm_name}} ->
-              _ = Logger.metadata(realm: realm_name)
-
-              encode_reply(
-                :get_datastream_maximum_storage_retention_reply,
-                Engine.get_datastream_maximum_storage_retention(realm_name)
               )
 
             {:install_interface,
