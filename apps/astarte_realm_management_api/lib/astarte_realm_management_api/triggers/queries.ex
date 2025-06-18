@@ -46,7 +46,7 @@ defmodule Astarte.RealmManagement.API.Triggers.Queries do
 
     with {:ok, uuid} <-
            KvStore.fetch_value("triggers-by-name", trigger_name, :binary, opts) do
-      {:ok, :uuid.uuid_to_string(uuid)}
+      {:ok, UUID.binary_to_string!(uuid)}
     end
   end
 
@@ -308,5 +308,89 @@ defmodule Astarte.RealmManagement.API.Triggers.Queries do
         {:ok, interface_document}
       end
     end
+  end
+
+  def delete_trigger(realm_name, trigger_name) do
+    with {:ok, trigger_uuid} <- retrieve_trigger_uuid(realm_name, trigger_name) do
+      keyspace = Realm.keyspace_name(realm_name)
+
+      trigger_by_name_query =
+        KvStore
+        |> where(group: "triggers-by-name", key: ^trigger_name)
+        |> put_query_prefix(keyspace)
+
+      triggers_query =
+        KvStore
+        |> where(group: "triggers", key: ^trigger_uuid)
+        |> put_query_prefix(keyspace)
+
+      consistency = Consistency.domain_model(:write)
+
+      _ = Repo.delete_all(trigger_by_name_query, consistency: consistency)
+      _ = Repo.delete_all(triggers_query, consistency: consistency)
+
+      :ok
+    end
+  end
+
+  def delete_simple_trigger(realm_name, parent_trigger_uuid, simple_trigger_uuid) do
+    with %{object_uuid: object_id, object_type: object_type} <-
+           retrieve_simple_trigger_astarte_ref(realm_name, simple_trigger_uuid) do
+      keyspace = Realm.keyspace_name(realm_name)
+
+      delete_simple_trigger_query =
+        from SimpleTrigger,
+          prefix: ^keyspace,
+          where: [
+            object_id: ^object_id,
+            object_type: ^object_type,
+            parent_trigger_id: ^parent_trigger_uuid,
+            simple_trigger_id: ^simple_trigger_uuid
+          ]
+
+      simple_trigger_uuid =
+        simple_trigger_uuid
+        |> :uuid.uuid_to_string()
+        |> to_string()
+
+      delete_astarte_ref_query =
+        from KvStore,
+          prefix: ^keyspace,
+          where: [group: "simple-triggers-by-uuid", key: ^simple_trigger_uuid]
+
+      consistency = Consistency.domain_model(:write)
+
+      _ = Repo.delete_all(delete_astarte_ref_query, consistency: consistency)
+      _ = Repo.delete_all(delete_simple_trigger_query, consistency: consistency)
+
+      :ok
+    end
+  end
+
+  def delete_trigger_policy_link(_realm_name, _trigger_uuid, nil) do
+    :ok
+  end
+
+  def delete_trigger_policy_link(realm_name, trigger_uuid, trigger_policy) do
+    keyspace = Realm.keyspace_name(realm_name)
+    policy_group = "triggers-with-policy-#{trigger_policy}"
+    trigger_uuid = UUID.binary_to_string!(trigger_uuid)
+
+    triggers_with_policy =
+      from KvStore,
+        prefix: ^keyspace,
+        where: [group: ^policy_group, key: ^trigger_uuid]
+
+    trigger_to_policy =
+      from KvStore,
+        prefix: ^keyspace,
+        where: [group: "trigger_to_policy", key: ^trigger_uuid]
+
+    consistency = Consistency.domain_model(:write)
+
+    _ = Repo.delete_all(triggers_with_policy, consistency: consistency)
+    _ = Repo.delete_all(trigger_to_policy, consistency: consistency)
+
+    :ok
   end
 end

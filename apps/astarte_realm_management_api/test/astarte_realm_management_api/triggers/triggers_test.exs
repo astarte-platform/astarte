@@ -71,10 +71,10 @@ defmodule Astarte.RealmManagement.API.TriggersTest do
 
     test "create_trigger/1 fails if trigger already exists", context do
       %{realm: realm, trigger_attrs: trigger_attrs} = context
-      create_trigger(realm, trigger_attrs)
+      Triggers.create_trigger(realm, trigger_attrs)
 
       assert {:error, :already_installed_trigger} =
-               create_trigger(realm, trigger_attrs)
+               Triggers.create_trigger(realm, trigger_attrs)
     end
 
     test "list_triggers/0 returns all triggers", context do
@@ -99,7 +99,7 @@ defmodule Astarte.RealmManagement.API.TriggersTest do
       %{realm: realm, trigger_attrs: trigger_attrs} = context
 
       assert {:ok, %Trigger{} = installed_trigger} =
-               create_trigger(realm, trigger_attrs)
+               Triggers.create_trigger(realm, trigger_attrs)
 
       assert {:ok, %Trigger{}} = Triggers.delete_trigger(realm, installed_trigger)
     end
@@ -108,7 +108,7 @@ defmodule Astarte.RealmManagement.API.TriggersTest do
       %{realm: realm, trigger_attrs: trigger_attrs} = context
 
       assert {:ok, %Trigger{} = trigger} =
-               create_trigger(realm, trigger_attrs)
+               Triggers.create_trigger(realm, trigger_attrs)
 
       assert {:ok, %Trigger{}} = Triggers.delete_trigger(realm, trigger)
       assert {:error, :trigger_not_found} = Triggers.delete_trigger(realm, trigger)

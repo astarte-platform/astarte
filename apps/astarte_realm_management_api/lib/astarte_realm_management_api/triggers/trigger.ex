@@ -31,6 +31,8 @@ defmodule Astarte.RealmManagement.API.Triggers.Trigger do
     field :policy, :string
     embeds_one :amqp_action, AMQPAction
     embeds_one :http_action, HttpAction
+    field :trigger_uuid, Astarte.DataAccess.UUID
+    field :simple_triggers_uuids, {:array, Astarte.DataAccess.UUID}
     embeds_many :simple_triggers, SimpleTriggerConfig
   end
 

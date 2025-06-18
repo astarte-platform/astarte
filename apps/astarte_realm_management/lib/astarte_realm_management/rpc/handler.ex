@@ -24,7 +24,6 @@ defmodule Astarte.RealmManagement.RPC.Handler do
   alias Astarte.RPC.Protocol.RealmManagement.{
     Call,
     DeleteInterface,
-    DeleteTrigger,
     GenericErrorReply,
     GenericOkReply,
     GetDatastreamMaximumStorageRetention,
@@ -145,10 +144,6 @@ defmodule Astarte.RealmManagement.RPC.Handler do
     }
 
     {:ok, Reply.encode(%Reply{error: false, reply: {:get_triggers_list_reply, msg}})}
-  end
-
-  def encode_reply(:delete_trigger, :ok) do
-    {:ok, Reply.encode(%Reply{error: false, reply: {:generic_ok_reply, %GenericOkReply{}}})}
   end
 
   def encode_reply(:get_trigger_policies_list, {:ok, reply}) do
@@ -323,10 +318,6 @@ defmodule Astarte.RealmManagement.RPC.Handler do
             {:get_triggers_list, %GetTriggersList{realm_name: realm_name}} ->
               _ = Logger.metadata(realm: realm_name)
               encode_reply(:get_triggers_list, Engine.get_triggers_list(realm_name))
-
-            {:delete_trigger, %DeleteTrigger{realm_name: realm_name, trigger_name: trigger_name}} ->
-              _ = Logger.metadata(realm: realm_name)
-              encode_reply(:delete_trigger, Engine.delete_trigger(realm_name, trigger_name))
 
             {:install_trigger_policy,
              %InstallTriggerPolicy{
