@@ -23,9 +23,10 @@ defmodule Astarte.RealmManagement.API.Triggers do
 
   import Ecto.Query, warn: false
 
-  alias Astarte.RealmManagement.API.RPC.RealmManagement
   alias Astarte.Core.Triggers.SimpleTriggerConfig
+  alias Astarte.RealmManagement.API.RPC.RealmManagement
   alias Astarte.RealmManagement.API.Triggers.Action
+  alias Astarte.RealmManagement.API.Triggers.Core
   alias Astarte.RealmManagement.API.Triggers.Trigger
   alias Ecto.Changeset
 
@@ -97,13 +98,13 @@ defmodule Astarte.RealmManagement.API.Triggers do
 
     with {:ok, trigger_params} <- Changeset.apply_action(changeset, :insert),
          {:ok, encoded_action} <- Jason.encode(trigger_params.action),
-         tagged_simple_triggers <-
+         tagged_simple_triggers =
            Enum.map(
              trigger_params.simple_triggers,
              &SimpleTriggerConfig.to_tagged_simple_trigger/1
            ),
          :ok <-
-           RealmManagement.install_trigger(
+           Core.install_trigger(
              realm_name,
              trigger_params.name,
              trigger_params.policy,

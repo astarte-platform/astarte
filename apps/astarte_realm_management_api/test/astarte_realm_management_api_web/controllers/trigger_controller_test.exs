@@ -21,12 +21,31 @@ defmodule Astarte.RealmManagement.APIWeb.TriggerControllerTest do
 
   @moduletag :triggers
 
+  alias Astarte.Core.Triggers.SimpleTriggerConfig
+  alias Astarte.Helpers.Database
   alias Astarte.RealmManagement.API.Helpers.JWTTestHelper
   alias Astarte.RealmManagement.API.Helpers.RPCMock.DB
+  alias Astarte.RealmManagement.API.Triggers.Trigger
+  alias Astarte.RealmManagement.Engine
+  alias Ecto.Changeset
 
   import Astarte.RealmManagement.API.Fixtures.Trigger
 
   @trigger_name valid_trigger_attrs()["name"]
+
+  setup context do
+    %{realm: realm, astarte_instance_id: astarte_instance_id} = context
+    trigger_attrs = valid_trigger_attrs()
+    trigger_name = trigger_attrs["name"]
+
+    on_exit(fn ->
+      Database.setup_database_access(astarte_instance_id)
+      # TODO: use Triggers.delete_trigger once we remove the `delete_trigger rpc`
+      Engine.delete_trigger(realm, trigger_name)
+    end)
+
+    %{trigger_attrs: trigger_attrs, trigger_name: trigger_name}
+  end
 
   setup %{conn: conn, realm: realm} do
     DB.put_jwt_public_key_pem(realm, JWTTestHelper.public_key_pem())
@@ -46,19 +65,35 @@ defmodule Astarte.RealmManagement.APIWeb.TriggerControllerTest do
       assert json_response(conn, 200)["data"] == []
     end
 
-    test "lists all triggers after installing it", %{conn: conn, realm: realm} do
-      conn = post(conn, trigger_path(conn, :create, realm), data: valid_trigger_attrs())
+    test "lists all triggers after installing it", %{
+      conn: conn,
+      realm: realm,
+      trigger_attrs: trigger_attrs,
+      trigger_name: trigger_name
+    } do
+      conn = post(conn, trigger_path(conn, :create, realm), data: trigger_attrs)
+
+      # TODO: remove once get trigger rpc is removed
+      create_trigger(realm, trigger_attrs)
+
       conn = get(conn, trigger_path(conn, :index, realm))
-      assert json_response(conn, 200)["data"] == [@trigger_name]
+      assert json_response(conn, 200)["data"] == [trigger_name]
     end
   end
 
   describe "create trigger" do
-    test "renders trigger when data is valid", %{conn: conn, realm: realm} do
-      conn = post(conn, trigger_path(conn, :create, realm), data: valid_trigger_attrs())
-      assert json_response(conn, 201)["data"]["name"] == @trigger_name
+    test "renders trigger when data is valid", %{
+      conn: conn,
+      realm: realm,
+      trigger_attrs: trigger_attrs,
+      trigger_name: trigger_name
+    } do
+      conn = post(conn, trigger_path(conn, :create, realm), data: trigger_attrs)
+      assert json_response(conn, 201)["data"]["name"] == trigger_name
 
-      conn = get(conn, trigger_path(conn, :show, realm, @trigger_name))
+      # TODO: remove once get trigger rpc is removed
+      create_trigger(realm, trigger_attrs)
+      conn = get(conn, trigger_path(conn, :show, realm, trigger_name))
 
       assert json_response(conn, 200)["data"] == %{
                "name" => @trigger_name,
@@ -81,37 +116,82 @@ defmodule Astarte.RealmManagement.APIWeb.TriggerControllerTest do
              }
     end
 
-    test "renders errors when creating the same trigger twice", %{conn: conn, realm: realm} do
+    test "renders errors when creating the same trigger twice", %{
+      conn: conn,
+      realm: realm,
+      trigger_attrs: trigger_attrs,
+      trigger_name: trigger_name
+    } do
       post_conn =
-        post(conn, trigger_path(conn, :create, realm), data: valid_trigger_attrs())
+        post(conn, trigger_path(conn, :create, realm), data: trigger_attrs)
 
-      assert json_response(post_conn, 201)["data"]["name"] == @trigger_name
+      assert json_response(post_conn, 201)["data"]["name"] == trigger_name
 
       post_conn =
-        post(conn, trigger_path(conn, :create, realm), data: valid_trigger_attrs())
+        post(conn, trigger_path(conn, :create, realm), data: trigger_attrs)
 
       assert json_response(post_conn, 409)["errors"] == %{"detail" => "Trigger already exists"}
     end
   end
 
   describe "delete" do
-    test "deletes trigger", %{conn: conn, realm: realm} do
+    test "deletes trigger", %{
+      conn: conn,
+      realm: realm,
+      trigger_attrs: trigger_attrs,
+      trigger_name: trigger_name
+    } do
       post_conn =
-        post(conn, trigger_path(conn, :create, realm), data: valid_trigger_attrs())
+        post(conn, trigger_path(conn, :create, realm), data: trigger_attrs)
 
       assert json_response(post_conn, 201)
 
+      # TODO: remove once delete trigger rpc is removed
+      create_trigger(realm, trigger_attrs)
+
       delete_conn =
-        delete(conn, trigger_path(conn, :delete, realm, valid_trigger_attrs()["name"]))
+        delete(conn, trigger_path(conn, :delete, realm, trigger_name))
 
       assert response(delete_conn, 204)
     end
 
-    test "renders error when trigger doesn't exist", %{conn: conn, realm: realm} do
+    test "renders error when trigger doesn't exist", %{
+      conn: conn,
+      realm: realm,
+      trigger_name: trigger_name
+    } do
       delete_conn =
-        delete(conn, trigger_path(conn, :delete, realm, valid_trigger_attrs()["name"]))
+        delete(conn, trigger_path(conn, :delete, realm, trigger_name))
 
       assert json_response(delete_conn, 404)["errors"] == %{"detail" => "Trigger not found"}
     end
+  end
+
+  defp create_trigger(realm_name, trigger_attrs) do
+    {:ok, trigger_params} =
+      %Trigger{}
+      |> Trigger.changeset(trigger_attrs, realm_name: realm_name)
+      |> Changeset.apply_action(:insert)
+
+    %{name: trigger_name, policy: policy_name, action: action, simple_triggers: simple_triggers} =
+      trigger_params
+
+    encoded_action = Jason.encode!(action)
+
+    tagged_simple_triggers =
+      Enum.map(
+        simple_triggers,
+        &SimpleTriggerConfig.to_tagged_simple_trigger/1
+      )
+
+    DB.install_trigger(
+      realm_name,
+      trigger_name,
+      policy_name,
+      encoded_action,
+      tagged_simple_triggers
+    )
+
+    {:ok, trigger_params}
   end
 end

@@ -39,7 +39,6 @@ defmodule Astarte.RealmManagement.API.RPC.RealmManagement do
     GetTriggersList,
     GetTriggersListReply,
     InstallInterface,
-    InstallTrigger,
     Reply,
     UpdateInterface,
     InstallTriggerPolicy,
@@ -145,23 +144,6 @@ defmodule Astarte.RealmManagement.API.RPC.RealmManagement do
       realm_name: realm_name
     }
     |> encode_call(:get_datastream_maximum_storage_retention)
-    |> @rpc_client.rpc_call(@destination)
-    |> decode_reply()
-    |> extract_reply()
-  end
-
-  def install_trigger(realm_name, trigger_name, policy_name, action, tagged_simple_triggers) do
-    serialized_tagged_simple_triggers =
-      Enum.map(tagged_simple_triggers, &TaggedSimpleTrigger.encode/1)
-
-    %InstallTrigger{
-      realm_name: realm_name,
-      trigger_name: trigger_name,
-      action: action,
-      serialized_tagged_simple_triggers: serialized_tagged_simple_triggers,
-      trigger_policy: policy_name
-    }
-    |> encode_call(:install_trigger)
     |> @rpc_client.rpc_call(@destination)
     |> decode_reply()
     |> extract_reply()
