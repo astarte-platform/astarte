@@ -19,23 +19,36 @@
 defmodule Astarte.RealmManagement.API.DevicesTest do
   use Astarte.RealmManagement.API.DataCase, async: true
   use ExUnitProperties
+  use Astarte.Cases.Device
 
   alias Astarte.RealmManagement.API.Devices
-  alias Astarte.RealmManagement.API.Helpers.RPCMock.DB
   alias Astarte.Core.Generators.Device, as: DeviceGenerator
+  alias Astarte.DataAccess.Device.DeletionInProgress
+  alias Astarte.DataAccess.Repo
+  alias Astarte.DataAccess.Realms.Realm
+  alias Astarte.Core.Device
 
-  describe "property based device tests" do
+  describe "deletion in progress tests" do
     @describetag :devices
-    property "delete device succeeds when the device exists", %{realm: realm} do
-      check all(device_id <- DeviceGenerator.encoded_id()) do
-        DB.create_device(realm, device_id)
-        assert :ok = Devices.delete_device(realm, device_id)
-      end
+    test "device is inserted in deletion in progress on deletion request", %{
+      realm: realm,
+      device_id: device_id
+    } do
+      keyspace = Realm.keyspace_name(realm)
+      {:ok, decoded_id} = Device.decode_device_id(device_id)
+
+      assert :ok = Devices.delete_device(realm, device_id)
+
+      [deletion] = Repo.all(DeletionInProgress, prefix: keyspace)
+      _ = Repo.delete!(deletion)
+
+      assert decoded_id == deletion.device_id
+      refute DeletionInProgress.all_ack?(deletion)
     end
 
-    property "delete device fails on a non-existing device", %{realm: realm} do
-      check all(device_id <- DeviceGenerator.encoded_id()) do
-        assert {:error, :device_not_found} = Devices.delete_device(realm, device_id)
+    property "does not delete a non existing device", %{realm: realm} do
+      check all(encoded_device_id <- DeviceGenerator.encoded_id()) do
+        assert {:error, :device_not_found} = Devices.delete_device(realm, encoded_device_id)
       end
     end
   end
