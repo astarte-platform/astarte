@@ -17,6 +17,12 @@
 #
 
 defmodule Astarte.DataUpdaterPlant.DataUpdater.Cache do
+  @typep cache_size :: non_neg_integer()
+  @typep expiry :: integer() | nil
+
+  @type t() :: {cache_size(), %{term => {term(), expiry()}}}
+  @type t(key, value) :: {cache_size(), %{key => {value, expiry()}}}
+
   def new(size) do
     {size, %{}}
   end
