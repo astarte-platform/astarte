@@ -20,8 +20,12 @@ defmodule Astarte.Housekeeping.APIWeb.RealmControllerTest do
   use Astarte.Housekeeping.APIWeb.ConnCase, async: true
   use Astarte.Housekeeping.APIWeb.AuthCase
 
+  alias Astarte.DataAccess.Repo
   alias Astarte.Housekeeping.API.Realms.Realm
+  alias Astarte.Housekeeping.Engine
+
   import Astarte.Housekeeping.API.Fixtures.Realm
+  import Ecto.Query
 
   @malformed_pubkey """
   -----BEGIN PUBLIC KEY-----
@@ -35,13 +39,14 @@ defmodule Astarte.Housekeeping.APIWeb.RealmControllerTest do
   3FYHyYudzQKa11c55Z6ZZaw2H+nUkQl1/jqfHTrqMSiOP4TTf0oTYLWKfg==
   -----END PUBLIC KEY-----
   """
+  @local_datacenter from(l in "system.local", select: l.data_center) |> Repo.one!()
 
   @create_attrs %{"data" => %{"realm_name" => "testrealm", "jwt_public_key_pem" => pubkey()}}
   @explicit_replication_attrs %{
     "data" => %{
       "realm_name" => "testrealm2",
       "jwt_public_key_pem" => pubkey(),
-      "replication_factor" => 3
+      "replication_factor" => 1
     }
   }
   @network_topology_attrs %{
@@ -50,8 +55,7 @@ defmodule Astarte.Housekeeping.APIWeb.RealmControllerTest do
       "jwt_public_key_pem" => pubkey(),
       "replication_class" => "NetworkTopologyStrategy",
       "datacenter_replication_factors" => %{
-        "boston" => 2,
-        "san_francisco" => 1
+        @local_datacenter => 1
       }
     }
   }
@@ -75,6 +79,10 @@ defmodule Astarte.Housekeeping.APIWeb.RealmControllerTest do
   }
   @non_existing_realm_name "nonexistingrealm"
 
+  setup_all do
+    Astarte.Housekeeping.Config.put_enable_realm_deletion(true)
+  end
+
   describe "index" do
     test "lists all entries on index when no realms exist", %{conn: conn} do
       conn = get(conn, realm_path(conn, :index))
@@ -95,6 +103,9 @@ defmodule Astarte.Housekeeping.APIWeb.RealmControllerTest do
       conn = post(conn, realm_path(conn, :create), @create_attrs)
       assert response(conn, 201)
 
+      # TODO: remove after the create_realm RPC removal
+      insert_realm!(@create_attrs)
+
       conn = get(conn, realm_path(conn, :show, @create_attrs["data"]["realm_name"]))
 
       assert json_response(conn, 200) == %{
@@ -112,6 +123,9 @@ defmodule Astarte.Housekeeping.APIWeb.RealmControllerTest do
     test "renders realm with explicit replication_factor", %{conn: conn} do
       conn = post(conn, realm_path(conn, :create), @explicit_replication_attrs)
       assert response(conn, 201)
+
+      # TODO: remove after the create_realm RPC removal
+      insert_realm!(@explicit_replication_attrs)
 
       conn = get(conn, realm_path(conn, :show, @explicit_replication_attrs["data"]["realm_name"]))
 
@@ -132,6 +146,9 @@ defmodule Astarte.Housekeeping.APIWeb.RealmControllerTest do
     test "renders realm with network topology", %{conn: conn} do
       conn = post(conn, realm_path(conn, :create), @network_topology_attrs)
       assert response(conn, 201)
+
+      # TODO: remove after the create_realm RPC removal
+      insert_realm!(@network_topology_attrs)
 
       conn = get(conn, realm_path(conn, :show, @network_topology_attrs["data"]["realm_name"]))
 
@@ -310,6 +327,9 @@ defmodule Astarte.Housekeeping.APIWeb.RealmControllerTest do
       conn = delete(conn, realm_path(conn, :delete, realm))
       assert response(conn, 204)
 
+      # TODO: remove after the `delete_realm` RPC is removed
+      Engine.delete_realm(realm.realm_name)
+
       conn = get(conn, realm_path(conn, :show, realm))
       assert json_response(conn, 404)
     end
@@ -321,5 +341,29 @@ defmodule Astarte.Housekeeping.APIWeb.RealmControllerTest do
       conn = delete(conn, realm_path(conn, :delete, realm))
       assert response(conn, 405)
     end
+  end
+
+  # TODO: remove after the create_realm RPC removal
+  defp insert_realm!(realm_attrs) do
+    realm_attrs =
+      realm_attrs["data"] |> Map.new(fn {key, value} -> {String.to_atom(key), value} end)
+
+    {:ok, realm} =
+      %Realm{} |> Realm.changeset(realm_attrs) |> Ecto.Changeset.apply_action(:insert)
+
+    replication =
+      case realm.replication_class do
+        "SimpleStrategy" -> realm.replication_factor
+        "NetworkTopologyStrategy" -> realm.datacenter_replication_factors
+      end
+
+    Engine.create_realm(
+      realm.realm_name,
+      realm.jwt_public_key_pem,
+      replication,
+      realm.device_registration_limit,
+      realm.datastream_maximum_storage_retention,
+      check_replication?: false
+    )
   end
 end

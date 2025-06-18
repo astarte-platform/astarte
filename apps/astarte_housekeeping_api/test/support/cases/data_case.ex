@@ -18,8 +18,25 @@
 
 defmodule Astarte.Housekeeping.API.DataCase do
   use ExUnit.CaseTemplate
+  alias Astarte.Housekeeping.API.Helpers.Database
 
-  setup do
+  setup_all do
+    astarte_instance_id = "astarte#{System.unique_integer([:positive])}"
+    Database.setup_database_access(astarte_instance_id)
+    Database.setup_astarte_keyspace()
+
+    on_exit(fn ->
+      Database.setup_database_access(astarte_instance_id)
+      Database.teardown_astarte_keyspace()
+    end)
+
+    %{astarte_instance_id: astarte_instance_id}
+  end
+
+  setup context do
+    %{astarte_instance_id: astarte_instance_id} = context
+    Database.setup_database_access(astarte_instance_id)
+
     agent_name = :"test_agent_#{System.unique_integer([:positive])}"
 
     start_supervised!({Astarte.Housekeeping.Mock.DB, agent_name})
