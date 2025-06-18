@@ -307,6 +307,16 @@ defmodule Astarte.Helpers.Database do
     |> KvStore.insert(prefix: keyspace)
   end
 
+  def insert_device_registration_limit!(realm, limit) do
+    keyspace = Realm.astarte_keyspace_name()
+
+    %Realm{
+      realm_name: realm,
+      device_registration_limit: limit
+    }
+    |> Repo.insert!(prefix: keyspace)
+  end
+
   defp execute!(keyspace, query, params \\ [], opts \\ []) do
     String.replace(query, ":keyspace", keyspace)
     |> Repo.query!(params, opts)

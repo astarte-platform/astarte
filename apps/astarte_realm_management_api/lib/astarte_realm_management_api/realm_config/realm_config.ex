@@ -19,7 +19,6 @@
 defmodule Astarte.RealmManagement.API.RealmConfig do
   alias Astarte.RealmManagement.API.RealmConfig.Queries
   alias Astarte.RealmManagement.API.RealmConfig.AuthConfig
-  alias Astarte.RealmManagement.API.RPC.RealmManagement
 
   def get_auth_config(realm) do
     with {:ok, jwt_public_key_pem} <- Queries.fetch_jwt_public_key_pem(realm) do
@@ -27,8 +26,8 @@ defmodule Astarte.RealmManagement.API.RealmConfig do
     end
   end
 
-  def get_device_registration_limit(realm) do
-    RealmManagement.get_device_registration_limit(realm)
+  def get_device_registration_limit(realm_name) do
+    Queries.get_device_registration_limit(realm_name)
   end
 
   def get_datastream_maximum_storage_retention(realm_name) do

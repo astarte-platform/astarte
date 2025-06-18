@@ -22,7 +22,6 @@ defmodule Astarte.RealmManagement.APIWeb.RealmControllerTest do
   alias Astarte.Helpers
   alias Astarte.RealmManagement.API.Config
   alias Astarte.RealmManagement.API.Helpers.JWTTestHelper
-  alias Astarte.RealmManagement.API.Helpers.RPCMock.DB
 
   @new_pubkey """
   -----BEGIN PUBLIC KEY-----
@@ -111,7 +110,7 @@ defmodule Astarte.RealmManagement.APIWeb.RealmControllerTest do
 
   test "returns the device registration limit on show", %{conn: conn, realm: realm} do
     limit = 10
-    DB.put_device_registration_limit(realm, limit)
+    Helpers.Database.insert_device_registration_limit!(realm, limit)
     conn = get(conn, realm_config_path(conn, :show, realm, "device_registration_limit"))
 
     assert json_response(conn, 200)["data"] == limit
