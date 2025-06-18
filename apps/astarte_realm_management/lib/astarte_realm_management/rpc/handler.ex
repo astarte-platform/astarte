@@ -26,8 +26,6 @@ defmodule Astarte.RealmManagement.RPC.Handler do
     DeleteInterface,
     GenericErrorReply,
     GenericOkReply,
-    GetDeviceRegistrationLimit,
-    GetDeviceRegistrationLimitReply,
     GetHealth,
     GetHealthReply,
     GetInterfacesList,
@@ -72,14 +70,6 @@ defmodule Astarte.RealmManagement.RPC.Handler do
     }
 
     {:ok, Reply.encode(%Reply{error: false, reply: {:get_health_reply, msg}})}
-  end
-
-  def encode_reply(:get_device_registration_limit_reply, {:ok, limit}) do
-    msg = %GetDeviceRegistrationLimitReply{
-      device_registration_limit: limit
-    }
-
-    {:ok, Reply.encode(%Reply{error: false, reply: {:get_device_registration_limit_reply, msg}})}
   end
 
   def encode_reply(:get_interface_source, {:ok, reply}) do
@@ -199,14 +189,6 @@ defmodule Astarte.RealmManagement.RPC.Handler do
           case call_tuple do
             {:get_health, %GetHealth{}} ->
               encode_reply(:get_health, Health.get_health())
-
-            {:get_device_registration_limit, %GetDeviceRegistrationLimit{realm_name: realm_name}} ->
-              _ = Logger.metadata(realm: realm_name)
-
-              encode_reply(
-                :get_device_registration_limit_reply,
-                Engine.get_device_registration_limit(realm_name)
-              )
 
             {:install_interface,
              %InstallInterface{
