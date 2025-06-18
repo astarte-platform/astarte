@@ -41,28 +41,26 @@ defmodule Astarte.AppEngine.API.RPC.DataUpdaterPlant do
       serialized_trigger_target: serialized_trigger_target
     } = volatile_trigger
 
-    volatile_trigger =
-      %{
-        realm_name: realm_name,
-        device_id: device_id,
-        object_id: object_id,
-        object_type: object_type,
-        parent_id: parent_id,
-        simple_trigger: serialized_simple_trigger,
-        simple_trigger_id: simple_trigger_id,
-        trigger_target: serialized_trigger_target
-      }
+    volatile_trigger = %{
+      realm_name: realm_name,
+      device_id: device_id,
+      object_id: object_id,
+      object_type: object_type,
+      parent_id: parent_id,
+      simple_trigger: serialized_simple_trigger,
+      simple_trigger_id: simple_trigger_id,
+      trigger_target: serialized_trigger_target
+    }
 
     @rpc_behaviour.install_volatile_trigger(volatile_trigger)
   end
 
   def delete_volatile_trigger(realm_name, device_id, trigger_id) do
-    delete_trigger =
-      %{
-        realm_name: realm_name,
-        device_id: device_id,
-        trigger_id: trigger_id
-      }
+    delete_trigger = %{
+      realm_name: realm_name,
+      device_id: device_id,
+      trigger_id: trigger_id
+    }
 
     @rpc_behaviour.delete_volatile_trigger(delete_trigger)
   end

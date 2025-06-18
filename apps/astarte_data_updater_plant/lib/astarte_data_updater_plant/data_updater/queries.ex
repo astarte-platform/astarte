@@ -68,10 +68,11 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
     keyspace_name = Realm.keyspace_name(realm)
 
     device =
-      from d in Device,
+      from(d in Device,
         prefix: ^keyspace_name,
         where: [device_id: ^device_id],
         update: [set: [pending_empty_cache: ^pending_empty_cache]]
+      )
 
     case Repo.safe_update_all(device, [], consistency: Consistency.device_info(:write)) do
       {:ok, _} ->
@@ -84,6 +85,39 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
             realm: realm,
             tag: "set_pending_empty_cache_fail"
           )
+
+        {:error, reason}
+    end
+  end
+
+  def retrieve_connected_devices(realm) do
+    keyspace_name = Realm.keyspace_name(realm)
+
+    query =
+      Device
+      |> where([d], d.connected == true)
+      |> select([d], %{
+        device_id: d.device_id,
+        realm: ^realm,
+        groups: d.groups
+      })
+      |> put_query_prefix(keyspace_name)
+
+    consistency = Consistency.device_info(:read)
+
+    case Repo.all(query, consistency: consistency) do
+      [] ->
+        {:ok, []}
+
+      devices when is_list(devices) ->
+        {:ok, devices}
+
+      {:error, reason} ->
+        Logger.warning(
+          "Failed to fetch connected devices for realm #{realm}: #{inspect(reason)}",
+          realm: realm,
+          tag: "fetch_connected_devices_fail"
+        )
 
         {:error, reason}
     end
@@ -105,8 +139,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
     %Mapping{endpoint_id: endpoint_id} = mapping
     keyspace = Realm.keyspace_name(realm)
 
-    _ =
-      remove_property_row(keyspace, storage, device_id, interface_id, endpoint_id, path, opts)
+    _ = remove_property_row(keyspace, storage, device_id, interface_id, endpoint_id, path, opts)
 
     :ok
   end
@@ -247,11 +280,12 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
 
     # TODO: we should also cache explicit_timestamp
     explicit_timestamp_query =
-      from e in Endpoint,
+      from(e in Endpoint,
         prefix: ^keyspace_name,
         where: e.interface_id == ^interface_id,
         select: e.explicit_timestamp,
         limit: 1
+      )
 
     [explicit_timestamp?] =
       Repo.all(explicit_timestamp_query, consistency: Consistency.domain_model(:read))
@@ -296,7 +330,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
          opts \\ []
        ) do
     query =
-      from table,
+      from(table,
         prefix: ^keyspace,
         where: [
           device_id: ^device_id,
@@ -304,6 +338,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
           endpoint_id: ^endpoint_id,
           path: ^path
         ]
+      )
 
     opts = Keyword.merge(opts, consistency: Consistency.device_info(:write))
 
@@ -608,10 +643,11 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
     keyspace_name = Realm.keyspace_name(realm)
 
     device =
-      from d in Device,
+      from(d in Device,
         prefix: ^keyspace_name,
         where: d.device_id == ^device_id,
         update: [set: [old_introspection: fragment(" old_introspection + ?", ^old_interfaces)]]
+      )
 
     case Repo.safe_update_all(device, [], consistency: Consistency.device_info(:write)) do
       {:ok, _} ->
@@ -637,10 +673,11 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
     old_interfaces = MapSet.new(old_interfaces)
 
     device =
-      from d in Device,
+      from(d in Device,
         prefix: ^keyspace_name,
         where: d.device_id == ^device_id,
         update: [set: [old_introspection: fragment(" old_introspection - ?", ^old_interfaces)]]
+      )
 
     case Repo.safe_update_all(device, [], consistency: Consistency.device_info(:write)) do
       {:ok, _} ->

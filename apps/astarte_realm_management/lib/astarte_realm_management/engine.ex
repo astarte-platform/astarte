@@ -37,6 +37,8 @@ defmodule Astarte.RealmManagement.Engine do
   alias Astarte.RealmManagement.Engine
   alias Astarte.RealmManagement.Engine.MappingUpdates
   alias Astarte.RealmManagement.Queries
+  alias Astarte.RealmManagement.RPC.DataUpdaterPlant.Client
+  alias Astarte.Core.Triggers.SimpleTriggersProtobuf.Utils, as: SimpleTriggersProtobufUtils
 
   def install_interface(realm_name, interface_json, opts \\ []) do
     _ = Logger.info("Going to install a new interface.", tag: "install_interface")
@@ -457,18 +459,36 @@ defmodule Astarte.RealmManagement.Engine do
          trigger_target = target_from_action(action_map, trigger_uuid),
          t_container = build_trigger_target_container(trigger_target),
          :ok <- validate_simple_triggers(realm_name, simple_trigger_maps),
-         # TODO: these should be batched together
          :ok <-
            install_simple_triggers(realm_name, simple_trigger_maps, trigger_uuid, t_container),
-         :ok <-
-           install_trigger_policy_link(realm_name, trigger_uuid, trigger_policy_name) do
+         :ok <- install_trigger_policy_link(realm_name, trigger_uuid, trigger_policy_name),
+         result <- Queries.install_trigger(realm_name, trigger) do
       _ =
-        Logger.info("Installing trigger.",
+        Logger.info("Trigger installation completed successfully.",
           trigger_name: trigger_name,
-          tag: "install_trigger_started"
+          tag: "install_trigger_completed"
         )
 
-      Queries.install_trigger(realm_name, trigger)
+      extracted_simple_trigger = hd(Enum.map(simple_trigger_maps, & &1.simple_trigger))
+
+      simple_trigger_data = extracted_simple_trigger.simple_trigger
+
+      request_data = %{
+        object_id: hd(Enum.map(simple_trigger_maps, & &1.object_id)),
+        object_type: hd(Enum.map(simple_trigger_maps, & &1.object_type)),
+        parent_trigger_id: trigger_target.parent_trigger_id,
+        simple_trigger_id: hd(Enum.map(simple_trigger_maps, & &1.simple_trigger_uuid)),
+        simple_trigger: simple_trigger_data,
+        trigger_target: trigger_target
+      }
+
+      Logger.info(
+        "Sending trigger installation notification to DataUpdaterPlant for trigger #{inspect(request_data.simple_trigger)} ..."
+      )
+
+      Client.install_persistent_trigger(request_data)
+
+      result
     else
       {:exists?, _} ->
         {:error, :already_installed_trigger}

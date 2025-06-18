@@ -18,9 +18,11 @@
 
 defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
   alias Astarte.DataUpdaterPlant.DataUpdater.Core
+  alias Astarte.Core.CQLUtils
   alias Astarte.DataUpdaterPlant.Config
   alias Astarte.Core.Device
   alias Astarte.Core.InterfaceDescriptor
+  alias Astarte.Core.Mapping
   alias Astarte.Core.Mapping.EndpointsAutomaton
   alias Astarte.DataUpdaterPlant.DataUpdater.State
   alias Astarte.Core.Triggers.DataTrigger
@@ -29,8 +31,10 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
   alias Astarte.DataAccess.Interface, as: InterfaceQueries
   alias Astarte.DataUpdaterPlant.DataUpdater.Cache
   alias Astarte.DataUpdaterPlant.DataUpdater.EventTypeUtils
+  alias Astarte.DataUpdaterPlant.DataUpdater.PayloadsDecoder
   alias Astarte.DataUpdaterPlant.DataUpdater.Queries
   alias Astarte.DataUpdaterPlant.MessageTracker
+  alias Astarte.DataUpdaterPlant.RPC.VMQPlugin
   alias Astarte.DataUpdaterPlant.TriggersHandler
   alias Astarte.DataUpdaterPlant.TimeBasedActions
   require Logger
@@ -71,11 +75,123 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
     stats_and_introspection =
       Queries.retrieve_device_stats_and_introspection!(new_state.realm, device_id)
 
+    updated_state = Map.merge(new_state, stats_and_introspection)
+
+    add_device_to_rpc_handler_state(encoded_device_id, updated_state.realm, updated_state.groups)
+
     # TODO this could be a bang!
     {:ok, ttl} = Queries.get_datastream_maximum_storage_retention(new_state.realm)
 
-    Map.merge(new_state, stats_and_introspection)
-    |> Map.put(:datastream_maximum_storage_retention, ttl)
+    Map.put(updated_state, :datastream_maximum_storage_retention, ttl)
+  end
+
+  def add_device_to_rpc_handler_state(device_id, realm, groups) do
+    device = %Astarte.DataUpdaterPlant.RPC.Device{
+      device_id: device_id,
+      realm: realm,
+      groups: groups
+    }
+
+    Astarte.DataUpdaterPlant.RPC.DataUpdater.add_device(device)
+    Logger.info("Device added to dup_rpc_handler state: #{inspect(device_id)}")
+  end
+
+  def remove_device_from_rpc_handler_state(device_id) do
+    Astarte.DataUpdaterPlant.RPC.DataUpdater.remove_device(device_id)
+    Logger.info("Device removed from dup_rpc_handler state: #{inspect(device_id)}")
+  end
+
+  def handle_install_persistent_trigger(
+        %State{connected: false} = state,
+        _object_id,
+        _object_type,
+        _parent_id,
+        _trigger_id,
+        _trigger,
+        _target
+      ) do
+    Logger.info("Device is not connected. Skipping persistent trigger installation.")
+    {:ok, state}
+  end
+
+  def handle_install_persistent_trigger(
+        state,
+        object_id,
+        object_type,
+        parent_id,
+        trigger_id,
+        trigger,
+        target
+      ) do
+    Logger.info(
+      "Handling persistent trigger installation for device #{inspect(state.device_id)}",
+      realm: state.realm,
+      device_id: Device.encode_device_id(state.device_id)
+    )
+
+    if Map.has_key?(state.interface_ids_to_name, object_id) do
+      interface_name = Map.get(state.interface_ids_to_name, object_id)
+      %InterfaceDescriptor{automaton: automaton} = state.interfaces[interface_name]
+
+      case trigger do
+        {:data_trigger, %ProtobufDataTrigger{match_path: "/*"}} ->
+          {:ok, Core.Trigger.load_trigger(state, trigger, target)}
+
+        {:data_trigger, %ProtobufDataTrigger{match_path: match_path}} ->
+          with {:ok, _endpoint_id} <- EndpointsAutomaton.resolve_path(match_path, automaton) do
+            {:ok, Core.Trigger.load_trigger(state, trigger, target)}
+          else
+            {:guessed, _} ->
+              {{:error, :invalid_match_path}, state}
+
+            {:error, :not_found} ->
+              {{:error, :invalid_match_path}, state}
+          end
+      end
+    else
+      case trigger do
+        {:data_trigger, %ProtobufDataTrigger{interface_name: "*"}} ->
+          {:ok, Core.Trigger.load_trigger(state, trigger, target)}
+
+        {:data_trigger,
+         %ProtobufDataTrigger{
+           interface_name: interface_name,
+           interface_major: major,
+           match_path: "/*"
+         }} ->
+          with :ok <-
+                 InterfaceQueries.check_if_interface_exists(state.realm, interface_name, major) do
+            {:ok, state}
+          else
+            {:error, reason} ->
+              {{:error, reason}, state}
+          end
+
+        {:data_trigger,
+         %ProtobufDataTrigger{
+           interface_name: interface_name,
+           interface_major: major,
+           match_path: match_path
+         }} ->
+          with {:ok, %InterfaceDescriptor{automaton: automaton}} <-
+                 InterfaceQueries.fetch_interface_descriptor(state.realm, interface_name, major),
+               {:ok, _endpoint_id} <- EndpointsAutomaton.resolve_path(match_path, automaton) do
+            {:ok, state}
+          else
+            {:error, :not_found} ->
+              {{:error, :invalid_match_path}, state}
+
+            {:guessed, _} ->
+              {{:error, :invalid_match_path}, state}
+
+            {:error, reason} ->
+              {{:error, reason}, state}
+          end
+
+        {:device_trigger, _} ->
+          {:ok, Core.Trigger.load_trigger(state, trigger, target)}
+      end
+    end
   end
 
   def handle_deactivation(_state) do
@@ -160,6 +276,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
       |> Core.Device.set_device_disconnected(timestamp)
 
     MessageTracker.ack_delivery(new_state.message_tracker, message_id)
+    remove_device_from_rpc_handler_state(Device.encode_device_id(new_state.device_id))
     Logger.info("Device disconnected.", tag: "device_disconnected")
 
     %{new_state | last_seen_message: timestamp}
@@ -175,10 +292,53 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
     |> Core.DataHandler.handle_data(interface, path, payload, message_id, timestamp)
   end
 
-  defdelegate handle_control(state, path, payload, message_id, timestamp), to: Core.ControlHandler
+  def handle_introspection(%State{discard_messages: true} = state, _, message_id, _) do
+    MessageTracker.discard(state.message_tracker, message_id)
+    state
+  end
 
-  defdelegate handle_introspection(state, payload, message_id, timestamp),
-    to: Core.IntrospectionHandler
+  def handle_introspection(state, payload, message_id, timestamp) do
+    with {:ok, new_introspection_list} <- PayloadsDecoder.parse_introspection(payload) do
+      Core.Device.process_introspection(
+        state,
+        new_introspection_list,
+        payload,
+        message_id,
+        timestamp
+      )
+    else
+      {:error, :invalid_introspection} ->
+        Logger.warning("Discarding invalid introspection: #{inspect(Base.encode64(payload))}.",
+          tag: "invalid_introspection"
+        )
+
+        {:ok, new_state} = Core.Device.ask_clean_session(state, timestamp)
+        MessageTracker.discard(new_state.message_tracker, message_id)
+
+        :telemetry.execute(
+          [:astarte, :data_updater_plant, :data_updater, :discarded_introspection],
+          %{},
+          %{realm: new_state.realm}
+        )
+
+        base64_payload = Base.encode64(payload)
+
+        error_metadata = %{
+          "base64_payload" => base64_payload
+        }
+
+        Core.Trigger.execute_device_error_triggers(
+          new_state,
+          "invalid_introspection",
+          error_metadata,
+          timestamp
+        )
+
+        Core.DataHandler.update_stats(new_state, "", nil, "", payload)
+    end
+  end
+
+  defdelegate handle_control(state, path, payload, message_id, timestamp), to: Core.ControlHandler
 
   def handle_install_volatile_trigger(
         %State{discard_messages: true} = state,
@@ -393,5 +553,84 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
     updated_device_triggers = Map.put(device_triggers, event_type, updated_targets_list)
 
     {:ok, %{state | device_triggers: updated_device_triggers}}
+  end
+
+  def resend_all_properties(state) do
+    Logger.debug("Device introspection: #{inspect(state.introspection)}")
+
+    Enum.reduce_while(state.introspection, {:ok, state}, fn {interface, _}, {:ok, state_acc} ->
+      maybe_descriptor = Map.get(state_acc.interfaces, interface)
+
+      with {:ok, interface_descriptor, new_state} <-
+             Core.Interface.maybe_handle_cache_miss(maybe_descriptor, interface, state_acc),
+           :ok <- resend_all_interface_properties(new_state, interface_descriptor) do
+        {:cont, {:ok, new_state}}
+      else
+        {:error, :interface_loading_failed} ->
+          Logger.warning("Failed #{interface} interface loading.")
+          {:halt, {:error, :sending_properties_to_interface_failed}}
+
+        {:error, reason} ->
+          {:halt, {:error, reason}}
+      end
+    end)
+  end
+
+  defp resend_all_interface_properties(
+         %State{realm: realm, device_id: device_id, mappings: mappings} = _state,
+         %InterfaceDescriptor{type: :properties, ownership: :server} = interface_descriptor
+       ) do
+    encoded_device_id = Device.encode_device_id(device_id)
+
+    Core.Interface.each_interface_mapping(mappings, interface_descriptor, fn mapping ->
+      %Mapping{value_type: value_type} = mapping
+
+      column_name = CQLUtils.type_to_db_column_name(value_type) |> String.to_existing_atom()
+
+      Queries.retrieve_property_values(realm, device_id, interface_descriptor, mapping)
+      |> Enum.reduce_while(:ok, fn %{:path => path, ^column_name => value}, _acc ->
+        case send_value(realm, encoded_device_id, interface_descriptor.name, path, value) do
+          {:ok, _bytes} ->
+            # TODO: use the returned bytes count in stats
+            {:cont, :ok}
+
+          {:error, reason} ->
+            {:halt, {:error, reason}}
+        end
+      end)
+    end)
+  end
+
+  defp resend_all_interface_properties(_state, %InterfaceDescriptor{} = _descriptor) do
+    :ok
+  end
+
+  defp send_value(realm, device_id_string, interface_name, path, value) do
+    topic = "#{realm}/#{device_id_string}/#{interface_name}#{path}"
+    encapsulated_value = %{v: value}
+
+    bson_value = Cyanide.encode!(encapsulated_value)
+
+    Logger.debug("Going to publish #{inspect(encapsulated_value)} on #{topic}.")
+
+    case VMQPlugin.publish(topic, bson_value, 2) do
+      {:ok, %{local_matches: local, remote_matches: remote}} when local + remote == 1 ->
+        {:ok, byte_size(topic) + byte_size(bson_value)}
+
+      {:ok, %{local_matches: local, remote_matches: remote}} when local + remote > 1 ->
+        # This should not happen so we print a warning, but we consider it a succesful publish
+        Logger.warning(
+          "Multiple match while publishing #{inspect(encapsulated_value)} on #{topic}.",
+          tag: "publish_multiple_matches"
+        )
+
+        {:ok, byte_size(topic) + byte_size(bson_value)}
+
+      {:ok, %{local_matches: local, remote_matches: remote}} when local + remote == 0 ->
+        {:error, :session_not_found}
+
+      {:error, reason} ->
+        {:error, reason}
+    end
   end
 end

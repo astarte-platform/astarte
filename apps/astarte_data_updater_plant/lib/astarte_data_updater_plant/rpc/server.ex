@@ -24,7 +24,11 @@ defmodule Astarte.DataUpdaterPlant.RPC.Server do
   calls to the appropriate dup services to handle the calls.
   """
 
-  alias Astarte.DataUpdaterPlant.RPC.Server.Core
+  alias Astarte.DataUpdaterPlant.DataUpdater
+  alias Astarte.DataUpdaterPlant.KV
+  alias Astarte.DataUpdaterPlant.RPC.Impl
+  alias Astarte.DataUpdaterPlant.RPC.Device
+  alias Astarte.DataUpdaterPlant.RPC.State
 
   use GenServer, restart: :transient
   require Logger
@@ -39,29 +43,142 @@ defmodule Astarte.DataUpdaterPlant.RPC.Server do
   @impl GenServer
   def init(_args) do
     Process.flag(:trap_exit, true)
-    {:ok, []}
+
+    state = %State{
+      devices: %{}
+    }
+
+    {:ok, state}
   end
 
   @impl GenServer
-  def handle_call({:install_volatile_trigger, volatile_trigger}, _from, state) do
-    reply = Core.install_volatile_trigger(volatile_trigger)
-
-    with {:error, error} <- reply do
-      _ = Logger.warning("Error while intalling a new volatile trigger: #{inspect(error)}")
-    end
-
-    {:reply, reply, state}
+  def terminate(reason, state) do
+    Logger.error("GenServer is terminating. Reason: #{inspect(reason)}, State: #{inspect(state)}")
+    :ok
   end
 
   @impl GenServer
-  def handle_call({:delete_volatile_trigger, delete_request}, _from, state) do
-    reply = Core.delete_volatile_trigger(delete_request)
+  def handle_call({:install_volatile_trigger, volatile_trigger}, from, state) do
+    %{
+      realm_name: realm,
+      device_id: device_id,
+      object_id: object_id,
+      object_type: object_type,
+      parent_id: parent_id,
+      simple_trigger_id: trigger_id,
+      simple_trigger: simple_trigger,
+      trigger_target: trigger_target
+    } = volatile_trigger
 
-    with {:error, error} <- reply do
-      _ = Logger.warning("Error while deleting a volatile trigger: #{inspect(error)}")
+    with :ok <- DataUpdater.verify_device_exists(realm, device_id),
+         {:ok, message_tracker} <- DataUpdater.fetch_message_tracker(realm, device_id),
+         {:ok, dup} <- DataUpdater.fetch_data_updater_process(realm, device_id, message_tracker) do
+      reply =
+        GenServer.call(
+          dup,
+          {:handle_install_volatile_trigger, object_id, object_type, parent_id, trigger_id,
+           simple_trigger, trigger_target}
+        )
+
+      {:reply, reply, state}
+    else
+      {:error, error} ->
+        _ =
+          Logger.error(
+            "Error #{inspect(error)} while handling an `install_volatile_trigger` request, returning the error to the caller: #{inspect(from)}"
+          )
+
+        {:reply, {:error, error}, state}
     end
+  end
 
-    {:reply, reply, state}
+  @impl GenServer
+  def handle_call({:delete_volatile_trigger, delete_request}, from, state) do
+    %{
+      realm_name: realm,
+      device_id: device_id,
+      trigger_id: trigger_id
+    } = delete_request
+
+    with :ok <- DataUpdater.verify_device_exists(realm, device_id),
+         {:ok, message_tracker} <- DataUpdater.fetch_message_tracker(realm, device_id),
+         {:ok, dup} <- DataUpdater.fetch_data_updater_process(realm, device_id, message_tracker) do
+      reply = GenServer.call(dup, {:handle_delete_volatile_trigger, trigger_id})
+
+      {:reply, reply, state}
+    else
+      {:error, error} ->
+        _ =
+          Logger.error(
+            "Error #{inspect(error)} while handling an `delete_volatile_trigger` request, returning the error to the caller: #{inspect(from)}"
+          )
+
+        {:reply, {:error, error}, state}
+    end
+  end
+
+  @impl GenServer
+  def handle_call({:add_group, group}, from, state) do
+  end
+
+  @impl GenServer
+  def handle_call({:install_persistent_trigger, trigger}, from, state) do
+    Logger.info("Received `install_persistent_trigger` request from #{inspect(from)}.")
+
+    %{
+      object_id: object_id,
+      object_type: object_type,
+      parent_trigger_id: parent_id,
+      simple_trigger_id: trigger_id,
+      simple_trigger: simple_trigger,
+      trigger_target: trigger_target
+    } = trigger
+
+    Logger.info("Trigger details: #{inspect(trigger)}")
+
+    scope = Impl.get_trigger_installation_scope(simple_trigger)
+    Logger.info("Determined scope for trigger installation: #{inspect(scope)}")
+
+    devices_to_notify = Impl.get_devices_to_notify(state, scope)
+
+    Logger.info("Devices to notify for trigger installation: #{inspect(devices_to_notify)}")
+
+    results =
+      devices_to_notify
+      |> Task.async_stream(
+        fn {device_id, realm} ->
+          Logger.info("Processing device #{device_id} in realm #{realm}.")
+
+          with :ok <- DataUpdater.verify_device_exists(realm, device_id),
+               {:ok, message_tracker} <- DataUpdater.fetch_message_tracker(realm, device_id),
+               {:ok, dup} <-
+                 DataUpdater.fetch_data_updater_process(realm, device_id, message_tracker) do
+            Logger.info("Successfully fetched DataUpdaterProcess for device #{device_id}.")
+
+            reply =
+              GenServer.call(
+                dup,
+                {:handle_install_persistent_trigger, object_id, object_type, parent_id,
+                 trigger_id, simple_trigger, trigger_target}
+              )
+
+            Logger.info("Trigger installed successfully for device #{device_id}.")
+            {:reply, reply, state}
+          else
+            {:error, error} ->
+              Logger.error(
+                "Error #{inspect(error)} while processing device #{device_id} for `install_persistent_trigger`."
+              )
+
+              {:reply, {:error, error}, state}
+          end
+        end,
+        max_concurrency: 10,
+        timeout: :infinity
+      )
+      |> Enum.to_list()
+
+    {:reply, {:ok, results}, state}
   end
 
   @impl GenServer
@@ -87,5 +204,29 @@ defmodule Astarte.DataUpdaterPlant.RPC.Server do
       )
 
     {:stop, :shutdown, state}
+  end
+
+  @impl GenServer
+  def handle_call({:add_device, device}, _from, state) do
+    Logger.debug(
+      "handle_call :add_device called with state: #{inspect(state)}, device: #{inspect(device)}"
+    )
+
+    new_state = Impl.add_device(state, device)
+    Logger.debug("New state after adding device: #{inspect(new_state)}")
+
+    {:reply, :ok, new_state}
+  end
+
+  @impl GenServer
+  def handle_call({:remove_device, device_id}, _from, state) do
+    new_state = Impl.remove_device(state, device_id)
+    {:reply, :ok, new_state}
+  end
+
+  @impl GenServer
+  def handle_call({:update_device_groups, device_id, groups}, _from, state) do
+    new_state = Impl.update_device_groups(state, device_id, groups)
+    {:reply, :ok, new_state}
   end
 end

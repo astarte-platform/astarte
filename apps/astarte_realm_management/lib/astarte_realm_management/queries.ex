@@ -50,6 +50,7 @@ defmodule Astarte.RealmManagement.Queries do
   alias Astarte.Core.Triggers.Trigger
   alias Astarte.DataAccess.Consistency
   alias Astarte.RealmManagement.Migrations.CreateDatastreamIndividualMultiInterface
+  alias Astarte.RealmManagement.RPC.DataUpdaterPlant.Client
 
   import Ecto.Query
 
@@ -862,7 +863,12 @@ defmodule Astarte.RealmManagement.Queries do
          :ok <- KvStore.insert(kv_insert, opts) do
       :ok
     end
+
+    
+    
+
   end
+
 
   def install_trigger_policy_link(_client, _trigger_uuid, nil) do
     :ok
