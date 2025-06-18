@@ -25,9 +25,8 @@ defmodule Astarte.Housekeeping.APIWeb.RealmControllerTest do
   alias Astarte.Housekeeping.API.Config
   alias Astarte.Housekeeping.API.Realms.Realm
   alias Astarte.Housekeeping.API.Realms.Queries
-  alias Astarte.Housekeeping.Engine
   alias Astarte.Housekeeping.API.Realms
-
+  alias Astarte.Housekeeping.API.Helpers.Database
   import Astarte.Housekeeping.API.Fixtures.Realm
   import Ecto.Query
 
@@ -97,14 +96,12 @@ defmodule Astarte.Housekeeping.APIWeb.RealmControllerTest do
     test "lists all entries on index after creating a realm", %{conn: conn} do
       conn = post(conn, realm_path(conn, :create), @create_attrs)
       assert response(conn, 201)
-
-      # TODO: remove after the create_realm RPC removal
-      insert_realm!(@create_attrs)
-
       conn = get(conn, realm_path(conn, :index))
       %{"data" => realm_names} = json_response(conn, 200)
 
       assert "testrealm" in realm_names
+      # TODO create a setup block and merge all tests in this file
+      Database.teardown_realm_keyspace(@create_attrs["data"]["realm_name"])
     end
   end
 
@@ -112,10 +109,6 @@ defmodule Astarte.Housekeeping.APIWeb.RealmControllerTest do
     test "renders realm when data is valid", %{conn: conn} do
       conn = post(conn, realm_path(conn, :create), @create_attrs)
       assert response(conn, 201)
-
-      # TODO: remove after the create_realm RPC removal
-      insert_realm!(@create_attrs)
-
       conn = get(conn, realm_path(conn, :show, @create_attrs["data"]["realm_name"]))
 
       assert json_response(conn, 200) == %{
@@ -128,15 +121,13 @@ defmodule Astarte.Housekeeping.APIWeb.RealmControllerTest do
                  "datastream_maximum_storage_retention" => nil
                }
              }
+
+      Database.teardown_realm_keyspace(@create_attrs["data"]["realm_name"])
     end
 
     test "renders realm with explicit replication_factor", %{conn: conn} do
       conn = post(conn, realm_path(conn, :create), @explicit_replication_attrs)
       assert response(conn, 201)
-
-      # TODO: remove after the create_realm RPC removal
-      insert_realm!(@explicit_replication_attrs)
-
       conn = get(conn, realm_path(conn, :show, @explicit_replication_attrs["data"]["realm_name"]))
 
       assert json_response(conn, 200) == %{
@@ -151,14 +142,13 @@ defmodule Astarte.Housekeeping.APIWeb.RealmControllerTest do
                  "datastream_maximum_storage_retention" => nil
                }
              }
+
+      Database.teardown_realm_keyspace(@explicit_replication_attrs["data"]["realm_name"])
     end
 
     test "renders realm with network topology", %{conn: conn} do
       conn = post(conn, realm_path(conn, :create), @network_topology_attrs)
       assert response(conn, 201)
-
-      # TODO: remove after the create_realm RPC removal
-      insert_realm!(@network_topology_attrs)
 
       conn = get(conn, realm_path(conn, :show, @network_topology_attrs["data"]["realm_name"]))
 
@@ -173,6 +163,8 @@ defmodule Astarte.Housekeeping.APIWeb.RealmControllerTest do
                  "datastream_maximum_storage_retention" => nil
                }
              }
+
+      Database.teardown_realm_keyspace(@network_topology_attrs["data"]["realm_name"])
     end
 
     test "returns a 404 on show non-existing realm", %{conn: conn} do
@@ -356,29 +348,5 @@ defmodule Astarte.Housekeeping.APIWeb.RealmControllerTest do
       conn = delete(conn, realm_path(conn, :delete, realm))
       assert response(conn, 405)
     end
-  end
-
-  # TODO: remove after the create_realm RPC removal
-  defp insert_realm!(realm_attrs) do
-    realm_attrs =
-      realm_attrs["data"] |> Map.new(fn {key, value} -> {String.to_atom(key), value} end)
-
-    {:ok, realm} =
-      %Realm{} |> Realm.changeset(realm_attrs) |> Ecto.Changeset.apply_action(:insert)
-
-    replication =
-      case realm.replication_class do
-        "SimpleStrategy" -> realm.replication_factor
-        "NetworkTopologyStrategy" -> realm.datacenter_replication_factors
-      end
-
-    Engine.create_realm(
-      realm.realm_name,
-      realm.jwt_public_key_pem,
-      replication,
-      realm.device_registration_limit,
-      realm.datastream_maximum_storage_retention,
-      check_replication?: false
-    )
   end
 end

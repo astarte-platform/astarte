@@ -24,7 +24,6 @@ defmodule Astarte.Housekeeping.API.Realms do
   alias Astarte.Housekeeping.API.Realms.Core
   alias Astarte.Housekeeping.API.Realms.Queries
   alias Astarte.Housekeeping.API.Realms.Realm
-  alias Astarte.Housekeeping.API.RPC.Housekeeping
   alias Ecto.Changeset
 
   require Logger
@@ -74,7 +73,7 @@ defmodule Astarte.Housekeeping.API.Realms do
 
     with {:ok, %Realm{} = realm} <-
            Ecto.Changeset.apply_action(changeset, :insert) do
-      case Housekeeping.create_realm(realm, opts) do
+      case Core.create_realm(realm, opts) do
         :ok -> {:ok, realm}
         {:ok, :started} -> {:ok, realm}
         {:error, reason} -> {:error, reason}

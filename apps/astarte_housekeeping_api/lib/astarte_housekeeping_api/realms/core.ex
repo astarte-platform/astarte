@@ -18,6 +18,7 @@
 
 defmodule Astarte.Housekeeping.API.Realms.Core do
   alias Astarte.Housekeeping.API.Realms.Queries
+  alias Astarte.Housekeeping.API.Realms.Realm
 
   require Logger
 
@@ -69,5 +70,49 @@ defmodule Astarte.Housekeeping.API.Realms.Core do
     )
 
     Queries.set_datastream_maximum_storage_retention(realm.realm_name, retention)
+  end
+
+  def create_realm(
+        %Realm{
+          realm_name: realm_name,
+          jwt_public_key_pem: pem,
+          replication_class: "SimpleStrategy",
+          replication_factor: replication_factor,
+          device_registration_limit: device_registration_limit,
+          datastream_maximum_storage_retention: datastream_maximum_storage_retention
+        },
+        opts
+      ) do
+    Queries.create_realm(
+      realm_name,
+      pem,
+      replication_factor,
+      device_registration_limit,
+      datastream_maximum_storage_retention,
+      opts
+    )
+  end
+
+  def create_realm(
+        %Realm{
+          realm_name: realm_name,
+          jwt_public_key_pem: pem,
+          replication_class: "NetworkTopologyStrategy",
+          datacenter_replication_factors: replication_factors_map,
+          device_registration_limit: device_registration_limit,
+          datastream_maximum_storage_retention: datastream_maximum_storage_retention
+        },
+        opts
+      ) do
+    datacenter_replication_factors_map = Enum.to_list(replication_factors_map) |> Enum.into(%{})
+
+    Queries.create_realm(
+      realm_name,
+      pem,
+      datacenter_replication_factors_map,
+      device_registration_limit,
+      datastream_maximum_storage_retention,
+      opts
+    )
   end
 end
