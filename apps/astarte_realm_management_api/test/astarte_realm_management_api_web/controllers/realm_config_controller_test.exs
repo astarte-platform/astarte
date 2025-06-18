@@ -119,7 +119,7 @@ defmodule Astarte.RealmManagement.APIWeb.RealmControllerTest do
 
   test "returns the datastream_maximum_storage_retention on show", %{conn: conn, realm: realm} do
     retention = 10
-    DB.put_datastream_maximum_storage_retention(realm, retention)
+    Helpers.Database.set_datastream_maximum_storage_retention(realm, retention)
 
     conn =
       get(conn, realm_config_path(conn, :show, realm, "datastream_maximum_storage_retention"))

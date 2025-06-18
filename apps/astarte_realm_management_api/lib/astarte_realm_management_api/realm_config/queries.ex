@@ -26,6 +26,8 @@ defmodule Astarte.RealmManagement.API.RealmConfig.Queries do
   alias Astarte.DataAccess.Consistency
   alias Astarte.DataAccess.Realms.Realm
 
+  require Logger
+
   @doc """
   Gets the jwt public key pem for the realm with name `realm_name`. returns
   {:error, :public_key_not_found} if the realm could not be found.
@@ -57,5 +59,46 @@ defmodule Astarte.RealmManagement.API.RealmConfig.Queries do
       value_type: :string
     }
     |> KvStore.insert(prefix: keyspace, consistency: consistency)
+  end
+
+  @doc """
+  Retrieves the maximum datastream storage retention of a realm.
+  Returns either `{:ok, limit}` or `{:error, reason}`.
+  The limit is a strictly positive integer (if set), 0 if unset.
+  """
+  @spec get_datastream_maximum_storage_retention(String.t()) ::
+          {:ok, non_neg_integer()} | {:error, atom()}
+  def get_datastream_maximum_storage_retention(realm_name) do
+    keyspace = Realm.keyspace_name(realm_name)
+
+    consistency = Consistency.domain_model(:read)
+
+    opts = [
+      prefix: keyspace,
+      consistency: consistency,
+      error: :fetch_error
+    ]
+
+    case KvStore.fetch_value(
+           "realm_config",
+           "datastream_maximum_storage_retention",
+           :integer,
+           opts
+         ) do
+      {:ok, value} ->
+        {:ok, value}
+
+      # not found means default maximum storage retention of 0
+      {:error, :fetch_error} ->
+        {:ok, 0}
+
+      {:error, reason} ->
+        Logger.warning(
+          "Cannot get maximum datastream storage retention for realm #{realm_name}",
+          tag: "get_datastream_maximum_storage_retention_fail"
+        )
+
+        {:error, reason}
+    end
   end
 end

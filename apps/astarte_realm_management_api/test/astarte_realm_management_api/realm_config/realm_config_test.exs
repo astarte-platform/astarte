@@ -22,6 +22,7 @@ defmodule Astarte.RealmManagement.API.RealmConfig.RealmConfigTest do
   use Astarte.Cases.Data, async: true, jwt_public_key: "fake_pem"
   use ExUnitProperties
 
+  alias Astarte.DataAccess.KvStore
   alias Astarte.Helpers
   alias Astarte.RealmManagement.API.RealmConfig.AuthConfig
   alias Astarte.RealmManagement.API.RealmConfig
@@ -47,5 +48,23 @@ defmodule Astarte.RealmManagement.API.RealmConfig.RealmConfigTest do
 
     assert :ok = RealmConfig.update_auth_config(realm_name, new_config)
     assert {:ok, %AuthConfig{jwt_public_key_pem: ^key}} = RealmConfig.get_auth_config(realm_name)
+  end
+
+  test "datastream_maximum_storage_retention/1 defaults to 0", %{realm: realm} do
+    Mimic.stub(KvStore, :fetch_value, fn "realm_config",
+                                         "datastream_maximum_storage_retention",
+                                         :integer,
+                                         _opts ->
+      {:error, :fetch_error}
+    end)
+
+    assert {:ok, 0} = RealmConfig.get_datastream_maximum_storage_retention(realm)
+  end
+
+  property "retrieves datasteam_maximum_storage_retention correctly", %{realm: realm} do
+    check all(retention <- integer(1..256)) do
+      Helpers.Database.set_datastream_maximum_storage_retention(realm, retention)
+      assert {:ok, ^retention} = RealmConfig.get_datastream_maximum_storage_retention(realm)
+    end
   end
 end
