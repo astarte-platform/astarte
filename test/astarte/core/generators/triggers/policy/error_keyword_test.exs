@@ -26,7 +26,6 @@ defmodule Astarte.Core.Generators.Triggers.Policy.ErrorKeywordTest do
 
   alias Astarte.Core.Generators.Triggers.Policy.ErrorKeyword, as: ErrorKeywordGenerator
   alias Astarte.Core.Triggers.Policy.ErrorKeyword
-  alias Ecto.Changeset
 
   @moduletag :trigger
   @moduletag :policy

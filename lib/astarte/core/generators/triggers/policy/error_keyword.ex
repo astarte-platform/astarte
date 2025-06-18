@@ -20,22 +20,39 @@ defmodule Astarte.Core.Generators.Triggers.Policy.ErrorKeyword do
   @moduledoc """
   This module provides generators for Astarte Trigger Policy ErrorKeyword.
   """
+  alias Astarte.Core.Generators.Triggers.Policy.ErrorKeyword
   alias Astarte.Core.Triggers.Policy.ErrorKeyword
 
   use ExUnitProperties
   use Astarte.Generators.Utilities.ParamsGen
 
+  @any_error "any_error"
+  @client_error "client_error"
+  @server_error "server_error"
+
   @doc """
   Returns the keyword representing "any_error" for the ErrorKeyword generator.
   """
   @spec any_error() :: String.t()
-  def any_error, do: "any_error"
+  def any_error, do: @any_error
+
+  @doc """
+  Returns the keyword representing "client_error" for the ErrorKeyword generator.
+  """
+  @spec client_error() :: String.t()
+  def client_error, do: @client_error
+
+  @doc """
+  Returns the keyword representing "server_error" for the ErrorKeyword generator.
+  """
+  @spec server_error() :: String.t()
+  def server_error, do: @server_error
 
   @doc """
   Returns the list of specific error keywords supported by the ErrorKeyword generator.
   """
   @spec other_errors() :: [String.t()]
-  def other_errors, do: ["client_error", "server_error"]
+  def other_errors, do: [client_error(), server_error()]
 
   @doc """
   Generates a valid Astarte Triggers Policy ErrorKeyword from scratch
@@ -49,7 +66,17 @@ defmodule Astarte.Core.Generators.Triggers.Policy.ErrorKeyword do
     end
   end
 
-  defp keyword do
-    member_of([any_error() | other_errors()])
+  @doc """
+  Convert this struct stream to changes
+  """
+  @spec to_changes(StreamData.t(ErrorKeyword.t())) :: StreamData.t(map())
+  def to_changes(gen) do
+    gen all %ErrorKeyword{keyword: keyword} <- gen do
+      %{
+        "keyword" => keyword
+      }
+    end
   end
+
+  defp keyword, do: member_of([any_error() | other_errors()])
 end
