@@ -26,7 +26,6 @@ defmodule Astarte.Core.Generators.Triggers.Policy.ErrorRangeTest do
 
   alias Astarte.Core.Generators.Triggers.Policy.ErrorRange, as: ErrorRangeGenerator
   alias Astarte.Core.Triggers.Policy.ErrorRange
-  alias Ecto.Changeset
 
   @moduletag :trigger
   @moduletag :policy
