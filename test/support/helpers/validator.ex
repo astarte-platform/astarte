@@ -19,6 +19,11 @@
 defmodule Astarte.Support.Helpers.Validator do
   @moduledoc """
   Helpers functions for validating generators
+
+  # TODO
+  # In anticipation of an upcoming standardization in `astarte_core`,
+  # we need this workaround to validate both structs that define `validate/1`
+  # and those that define `changeset/2`
   """
   alias Ecto.Changeset
 
