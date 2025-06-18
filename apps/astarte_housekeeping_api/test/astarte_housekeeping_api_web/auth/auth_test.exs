@@ -30,6 +30,7 @@ defmodule Astarte.Housekeeping.APIWeb.AuthTest do
   @expected_data %{"data" => []}
 
   setup %{conn: conn} do
+    Mimic.stub(Astarte.Housekeeping.API.Realms, :list_realms, fn -> [] end)
     {:ok, conn: put_req_header(conn, "accept", "application/json")}
   end
 
