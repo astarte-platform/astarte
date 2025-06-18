@@ -47,19 +47,6 @@ defmodule Astarte.Housekeeping.Mock.DB do
     Agent.get(current_agent(), &Map.get(&1, realm_name))
   end
 
-  def delete_realm(realm_name) do
-    cond do
-      !realm_exists?(realm_name) ->
-        {:error, :realm_not_found}
-
-      realm_deletion_disabled?() ->
-        {:error, :realm_deletion_disabled}
-
-      true ->
-        Agent.update(current_agent(), &Map.delete(&1, realm_name))
-    end
-  end
-
   def realm_exists?(realm_name) do
     Agent.get(current_agent(), &Map.has_key?(&1, realm_name))
   end
@@ -70,10 +57,6 @@ defmodule Astarte.Housekeeping.Mock.DB do
 
   def set_realm_deletion_status(status) when is_boolean(status) do
     Agent.update(current_agent(), &Map.put(&1, :realm_deletion_disabled, !status))
-  end
-
-  defp realm_deletion_disabled? do
-    Agent.get(current_agent(), &Map.get(&1, :realm_deletion_disabled, false))
   end
 
   defp current_agent do

@@ -20,7 +20,6 @@ defmodule Astarte.Housekeeping.API.RPC.Housekeeping do
   alias Astarte.RPC.Protocol.Housekeeping.{
     Call,
     CreateRealm,
-    DeleteRealm,
     GenericErrorReply,
     GenericOkReply,
     GetRealmReply,
@@ -95,16 +94,6 @@ defmodule Astarte.Housekeeping.API.RPC.Housekeeping do
     |> extract_reply()
   end
 
-  def delete_realm(realm_name, opts) do
-    async_operation = Keyword.get(opts, :async_operation, true)
-
-    %DeleteRealm{realm: realm_name, async_operation: async_operation}
-    |> encode_call(:delete_realm)
-    |> @rpc_client.rpc_call(@destination, Config.rpc_timeout!())
-    |> decode_reply()
-    |> extract_reply()
-  end
-
   defp encode_call(call, callname) do
     %Call{call: {callname, call}}
     |> Call.encode()
@@ -167,18 +156,6 @@ defmodule Astarte.Housekeeping.API.RPC.Housekeeping do
 
   defp extract_reply({:generic_error_reply, %GenericErrorReply{error_name: "realm_not_found"}}) do
     {:error, :realm_not_found}
-  end
-
-  defp extract_reply(
-         {:generic_error_reply, %GenericErrorReply{error_name: "realm_deletion_disabled"}}
-       ) do
-    {:error, :realm_deletion_disabled}
-  end
-
-  defp extract_reply(
-         {:generic_error_reply, %GenericErrorReply{error_name: "connected_devices_present"}}
-       ) do
-    {:error, :connected_devices_present}
   end
 
   defp extract_reply(

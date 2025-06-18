@@ -20,9 +20,11 @@ defmodule Astarte.Housekeeping.API.Realms.Queries do
   import Ecto.Query
 
   alias Astarte.DataAccess.Consistency
+  alias Astarte.DataAccess.CSystem
   alias Astarte.DataAccess.KvStore
   alias Astarte.DataAccess.Realms.Realm
   alias Astarte.DataAccess.Repo
+  alias Astarte.Housekeeping.API.Config
   alias Astarte.Housekeeping.API.Realms.Realm, as: HKRealm
 
   require Logger
@@ -234,6 +236,140 @@ defmodule Astarte.Housekeeping.API.Realms.Queries do
          ) do
       {:ok, value} -> value
       {:error, :not_found} -> nil
+    end
+  end
+
+  def delete_realm(realm_name, opts \\ []) do
+    if Config.enable_realm_deletion!() do
+      Logger.info("Deleting realm", tag: "delete_realm", realm_name: realm_name)
+
+      keyspace_name = Realm.keyspace_name(realm_name)
+
+      if opts[:async] do
+        {:ok, _pid} = Task.start(fn -> do_delete_realm(realm_name, keyspace_name) end)
+
+        :ok
+      else
+        do_delete_realm(realm_name, keyspace_name)
+      end
+    else
+      Logger.info("HOUSEKEEPING_ENABLE_REALM_DELETION is disabled, realm will not be deleted.",
+        tag: "realm_deletion_disabled",
+        realm_name: realm_name
+      )
+
+      {:error, :realm_deletion_disabled}
+    end
+  end
+
+  defp do_delete_realm(realm_name, keyspace_name) do
+    Xandra.Cluster.run(:xandra, [timeout: 60_000], fn conn ->
+      with :ok <- verify_realm_deletion_preconditions(conn, keyspace_name),
+           :ok <- execute_realm_deletion(conn, realm_name, keyspace_name) do
+        :ok
+      else
+        {:error, %Xandra.Error{} = err} ->
+          _ = Logger.warning("Database error: #{inspect(err)}.", tag: "database_error")
+          {:error, :database_error}
+
+        {:error, %Xandra.ConnectionError{} = err} ->
+          _ =
+            Logger.warning("Database connection error: #{inspect(err)}.",
+              tag: "database_connection_error"
+            )
+
+          {:error, :database_connection_error}
+
+        {:error, reason} ->
+          _ =
+            Logger.warning("Cannot delete realm: #{inspect(reason)}.",
+              tag: "realm_deletion_failed",
+              realm: realm_name
+            )
+
+          {:error, reason}
+      end
+    end)
+  end
+
+  defp verify_realm_deletion_preconditions(conn, keyspace_name) do
+    with :ok <- check_no_connected_devices(conn, keyspace_name) do
+      :ok
+    else
+      {:error, reason} ->
+        _ =
+          Logger.warning("Realm deletion preconditions are not satisfied: #{inspect(reason)}.",
+            tag: "realm_deletion_preconditions_rejected",
+            realm: keyspace_name
+          )
+
+        {:error, reason}
+    end
+  end
+
+  defp execute_realm_deletion(conn, realm_name, keyspace_name) do
+    with :ok <- delete_realm_keyspace(conn, keyspace_name),
+         :ok <- remove_realm(conn, realm_name) do
+      :ok
+    else
+      {:error, reason} ->
+        _ =
+          Logger.warning("Cannot delete realm: #{inspect(reason)}.",
+            tag: "realm_deletion_failed",
+            realm: realm_name
+          )
+
+        {:error, reason}
+    end
+  end
+
+  defp check_no_connected_devices(conn, realm_name) do
+    query = """
+    SELECT * FROM #{realm_name}.devices WHERE connected = true LIMIT 1 ALLOW FILTERING;
+    """
+
+    consistency = Consistency.device_info(:read)
+
+    with {:ok, %Xandra.Page{} = page} <-
+           Xandra.execute(conn, query, %{}, consistency: consistency) do
+      if Enum.empty?(page) do
+        :ok
+      else
+        _ =
+          Logger.warning("Realm #{realm_name} still has connected devices.",
+            tag: "connected_devices_present"
+          )
+
+        {:error, :connected_devices_present}
+      end
+    end
+  end
+
+  defp delete_realm_keyspace(conn, realm_name) do
+    query = """
+    DROP KEYSPACE #{realm_name}
+    """
+
+    with {:ok, %Xandra.SchemaChange{}} <- CSystem.execute_schema_change(conn, query) do
+      :ok
+    end
+  end
+
+  defp remove_realm(conn, realm_name) do
+    # undecoded realm name
+    query = """
+    DELETE FROM #{Realm.astarte_keyspace_name()}.realms
+    WHERE realm_name = :realm_name;
+    """
+
+    params = %{"realm_name" => realm_name}
+
+    consistency = Consistency.domain_model(:write)
+
+    with {:ok, prepared} <- Xandra.prepare(conn, query),
+         {:ok, %Xandra.Void{}} <-
+           Xandra.execute(conn, prepared, params, consistency: consistency) do
+      :ok
     end
   end
 end

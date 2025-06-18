@@ -19,14 +19,16 @@
 defmodule Astarte.Housekeeping.API.RealmsTest do
   use Astarte.Housekeeping.API.DataCase, async: true
   use ExUnitProperties
-
-  alias Astarte.Housekeeping.API.Realms.Realm
-  alias Astarte.Housekeeping.API.Realms
+  use Mimic
 
   import Astarte.Housekeeping.API.Fixtures.Realm
+
   alias Astarte.Core.Generators.Realm, as: GeneratorsRealm
-  alias Astarte.Housekeeping.Engine
+  alias Astarte.Housekeeping.API.Config
   alias Astarte.Housekeeping.API.Helpers.Database
+  alias Astarte.Housekeeping.API.Realms
+  alias Astarte.Housekeeping.API.Realms.Realm
+  alias Astarte.Housekeeping.API.Realms.Queries
 
   @malformed_pubkey """
   -----BEGIN PUBLIC KEY-----
@@ -90,7 +92,7 @@ defmodule Astarte.Housekeeping.API.RealmsTest do
   @non_existing "nonexistingrealm"
 
   setup_all do
-    Astarte.Housekeeping.Config.put_enable_realm_deletion(true)
+    Config.put_enable_realm_deletion(true)
   end
 
   setup %{astarte_instance_id: astarte_instance_id} do
@@ -115,7 +117,7 @@ defmodule Astarte.Housekeeping.API.RealmsTest do
         assert realm.realm_name == name
 
         # Test deleting the realm
-        assert :ok = delete_realm(name)
+        assert :ok = Realms.delete_realm(name)
         assert {:error, :realm_not_found} == Realms.get_realm(name)
       end
     end
@@ -287,31 +289,37 @@ defmodule Astarte.Housekeeping.API.RealmsTest do
     end
   end
 
-  describe "realm deletion" do
-    test "succeeds using a synchronous call" do
-      %Realm{realm_name: realm_name} = realm_fixture()
-
-      assert :ok = delete_realm(realm_name, async_operation: false)
-      assert {:error, :realm_not_found} = Realms.get_realm(realm_name)
+  describe "delete_realm/2" do
+    setup %{realm_name: realm_name} do
+      Database.setup(realm_name)
     end
 
-    test "returns error when trying to delete a non-existing realm" do
-      assert {:error, :realm_not_found} = Realms.delete_realm("non_existing_realm")
+    test "succeeds using a synchronous call", %{realm_name: realm_name} do
+      assert :ok = Realms.delete_realm(realm_name, [])
     end
 
-    test "returns error when trying to delete a realm while deletion is disabled" do
-      Astarte.Housekeeping.Mock.DB.set_realm_deletion_status(false)
-
-      %Realm{realm_name: realm_name} = realm_fixture()
-
-      assert {:error, :realm_deletion_disabled} = Realms.delete_realm(realm_name)
-      assert {:ok, %Realm{realm_name: ^realm_name}} = Realms.get_realm(realm_name)
+    test "succeeds using a asynchronous call", %{realm_name: realm_name} do
+      assert :ok = Realms.delete_realm(realm_name, async: true)
     end
-  end
 
-  # TODO: remove after the `delete_realm` RPC is removed
-  defp delete_realm(realm_name, opts \\ []) do
-    Engine.delete_realm(realm_name, opts)
-    Realms.delete_realm(realm_name, opts)
+    test "returns error when trying to delete a realm while deletion is disabled", %{
+      realm_name: realm_name
+    } do
+      Mimic.stub(Config, :enable_realm_deletion!, fn -> false end)
+
+      assert {:error, :realm_deletion_disabled} = Realms.delete_realm(realm_name, [])
+    end
+
+    test "returns error when deleting a realm with connected devices", %{realm_name: realm_name} do
+      Mimic.stub(Queries, :delete_realm, fn _, _ -> {:error, :connected_devices_present} end)
+
+      assert {:error, :connected_devices_present} = Realms.delete_realm(realm_name, async: true)
+    end
+
+    test "deletions returns an error", %{realm_name: realm_name} do
+      Xandra.Cluster |> stub(:run, fn _, _, _ -> {:error, "generic error"} end)
+
+      assert {:error, "generic error"} = Realms.delete_realm(realm_name)
+    end
   end
 end

@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2017-2023 SECO Mind Srl
+# Copyright 2017 - 2025  SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -110,10 +110,6 @@ defmodule Astarte.Housekeeping.API.Realms do
 
   """
   def delete_realm(realm_name, opts \\ []) do
-    case Housekeeping.delete_realm(realm_name, opts) do
-      :ok -> :ok
-      {:ok, :started} -> :ok
-      {:error, reason} -> {:error, reason}
-    end
+    Queries.delete_realm(realm_name, opts)
   end
 end

@@ -19,9 +19,12 @@
 defmodule Astarte.Housekeeping.APIWeb.RealmControllerTest do
   use Astarte.Housekeeping.APIWeb.ConnCase, async: true
   use Astarte.Housekeeping.APIWeb.AuthCase
+  use Mimic
 
   alias Astarte.DataAccess.Repo
+  alias Astarte.Housekeeping.API.Config
   alias Astarte.Housekeeping.API.Realms.Realm
+  alias Astarte.Housekeeping.API.Realms.Queries
   alias Astarte.Housekeeping.Engine
 
   import Astarte.Housekeeping.API.Fixtures.Realm
@@ -80,7 +83,7 @@ defmodule Astarte.Housekeeping.APIWeb.RealmControllerTest do
   @non_existing_realm_name "nonexistingrealm"
 
   setup_all do
-    Astarte.Housekeeping.Config.put_enable_realm_deletion(true)
+    Config.put_enable_realm_deletion(true)
   end
 
   describe "index" do
@@ -327,15 +330,20 @@ defmodule Astarte.Housekeeping.APIWeb.RealmControllerTest do
       conn = delete(conn, realm_path(conn, :delete, realm))
       assert response(conn, 204)
 
-      # TODO: remove after the `delete_realm` RPC is removed
-      Engine.delete_realm(realm.realm_name)
-
       conn = get(conn, realm_path(conn, :show, realm))
       assert json_response(conn, 404)
     end
 
+    test "returns error when deleting a realm with connected devices", %{conn: conn} do
+      Mimic.stub(Queries, :delete_realm, fn _, _ -> {:error, :connected_devices_present} end)
+
+      realm = realm_fixture()
+      conn = delete(conn, realm_path(conn, :delete, realm))
+      assert response(conn, 422)
+    end
+
     test "returns error when trying to delete a realm while deletion is disabled", %{conn: conn} do
-      Astarte.Housekeeping.Mock.DB.set_realm_deletion_status(false)
+      Mimic.stub(Config, :enable_realm_deletion!, fn -> false end)
 
       realm = realm_fixture()
       conn = delete(conn, realm_path(conn, :delete, realm))
