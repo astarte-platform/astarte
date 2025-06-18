@@ -21,67 +21,20 @@ defmodule Astarte.Core.Generators.Triggers.PolicyTest do
 
   alias Astarte.Core.Generators.Triggers.Policy, as: PolicyGenerator
   alias Astarte.Core.Triggers.Policy
-  alias Astarte.Core.Triggers.Policy.ErrorKeyword
-  alias Astarte.Core.Triggers.Policy.ErrorRange
-  alias Astarte.Core.Triggers.Policy.Handler
 
-  defp error_handler_changes_from_struct(handler) do
-    %Handler{on: on, strategy: strategy} = handler
-
-    random_element = :rand.uniform(2)
-
-    on =
-      case {on, random_element} do
-        {%ErrorKeyword{keyword: keyword}, 1} -> keyword
-        {%ErrorKeyword{keyword: keyword}, 2} -> %{"keyword" => keyword}
-        {%ErrorRange{error_codes: error_codes}, 1} -> error_codes
-        {%ErrorRange{error_codes: error_codes}, 2} -> %{"error_codes" => error_codes}
-      end
-
-    %{on: on, strategy: strategy}
-  end
-
-  defp changes_from_struct(policy) do
-    %Policy{
-      name: name,
-      maximum_capacity: maximum_capacity,
-      retry_times: retry_times,
-      event_ttl: event_ttl,
-      prefetch_count: prefetch_count,
-      error_handlers: error_handlers
-    } = policy
-
-    error_handlers = Enum.map(error_handlers, &error_handler_changes_from_struct/1)
-
-    %{
-      name: name,
-      maximum_capacity: maximum_capacity,
-      retry_times: retry_times,
-      event_ttl: event_ttl,
-      prefetch_count: prefetch_count,
-      error_handlers: error_handlers
-    }
-  end
-
-  defp validation_helper(policy) do
-    changes = changes_from_struct(policy)
-
-    %Policy{}
-    |> Policy.changeset(changes)
-  end
-
-  defp validation_fixture(_context), do: {:ok, validate: &validation_helper/1}
+  @moduletag :trigger
+  @moduletag :policy
 
   @doc false
   describe "triggers policy generator" do
     @describetag :success
     @describetag :ut
 
-    setup :validation_fixture
+    property "generates valid policies" do
+      gen_policy_changes = PolicyGenerator.policy() |> PolicyGenerator.to_changes()
 
-    property "generates valid policies", %{validate: validate} do
-      check all error_range <- PolicyGenerator.policy(),
-                changeset = validate.(error_range) do
+      check all changes <- gen_policy_changes,
+                changeset = Policy.changeset(%Policy{}, changes) do
         assert changeset.valid?, "Invalid policy: #{inspect(changeset.errors)}"
       end
     end
