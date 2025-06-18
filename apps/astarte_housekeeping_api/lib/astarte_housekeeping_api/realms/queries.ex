@@ -21,6 +21,7 @@ defmodule Astarte.Housekeeping.API.Realms.Queries do
 
   alias Astarte.DataAccess.Consistency
   alias Astarte.DataAccess.CSystem
+  alias Astarte.DataAccess.Devices.Device
   alias Astarte.DataAccess.KvStore
   alias Astarte.DataAccess.Realms.Realm
   alias Astarte.DataAccess.Repo
@@ -264,44 +265,42 @@ defmodule Astarte.Housekeeping.API.Realms.Queries do
 
   defp do_delete_realm(realm_name, keyspace_name) do
     Xandra.Cluster.run(:xandra, [timeout: 60_000], fn conn ->
-      with :ok <- verify_realm_deletion_preconditions(conn, keyspace_name),
+      with :ok <- verify_realm_deletion_preconditions(keyspace_name),
            :ok <- execute_realm_deletion(conn, realm_name, keyspace_name) do
         :ok
       else
         {:error, %Xandra.Error{} = err} ->
-          _ = Logger.warning("Database error: #{inspect(err)}.", tag: "database_error")
+          Logger.warning("Database error: #{inspect(err)}.", tag: "database_error")
+
           {:error, :database_error}
 
         {:error, %Xandra.ConnectionError{} = err} ->
-          _ =
-            Logger.warning("Database connection error: #{inspect(err)}.",
-              tag: "database_connection_error"
-            )
+          Logger.warning("Database connection error: #{inspect(err)}.",
+            tag: "database_connection_error"
+          )
 
           {:error, :database_connection_error}
 
         {:error, reason} ->
-          _ =
-            Logger.warning("Cannot delete realm: #{inspect(reason)}.",
-              tag: "realm_deletion_failed",
-              realm: realm_name
-            )
+          Logger.warning("Cannot delete realm: #{inspect(reason)}.",
+            tag: "realm_deletion_failed",
+            realm: realm_name
+          )
 
           {:error, reason}
       end
     end)
   end
 
-  defp verify_realm_deletion_preconditions(conn, keyspace_name) do
-    with :ok <- check_no_connected_devices(conn, keyspace_name) do
+  defp verify_realm_deletion_preconditions(keyspace_name) do
+    with :ok <- check_no_connected_devices(keyspace_name) do
       :ok
     else
       {:error, reason} ->
-        _ =
-          Logger.warning("Realm deletion preconditions are not satisfied: #{inspect(reason)}.",
-            tag: "realm_deletion_preconditions_rejected",
-            realm: keyspace_name
-          )
+        Logger.warning("Realm deletion preconditions are not satisfied: #{inspect(reason)}.",
+          tag: "realm_deletion_preconditions_rejected",
+          realm: keyspace_name
+        )
 
         {:error, reason}
     end
@@ -309,39 +308,39 @@ defmodule Astarte.Housekeeping.API.Realms.Queries do
 
   defp execute_realm_deletion(conn, realm_name, keyspace_name) do
     with :ok <- delete_realm_keyspace(conn, keyspace_name),
-         :ok <- remove_realm(conn, realm_name) do
+         :ok <- remove_realm(realm_name) do
       :ok
     else
       {:error, reason} ->
-        _ =
-          Logger.warning("Cannot delete realm: #{inspect(reason)}.",
-            tag: "realm_deletion_failed",
-            realm: realm_name
-          )
+        Logger.warning("Cannot delete realm: #{inspect(reason)}.",
+          tag: "realm_deletion_failed",
+          realm: realm_name
+        )
 
         {:error, reason}
     end
   end
 
-  defp check_no_connected_devices(conn, realm_name) do
-    query = """
-    SELECT * FROM #{realm_name}.devices WHERE connected = true LIMIT 1 ALLOW FILTERING;
-    """
+  defp check_no_connected_devices(keyspace_name) do
+    query =
+      from d in Device,
+        hints: ["ALLOW FILTERING"],
+        prefix: ^keyspace_name,
+        where: d.connected == true,
+        limit: 1
 
     consistency = Consistency.device_info(:read)
 
-    with {:ok, %Xandra.Page{} = page} <-
-           Xandra.execute(conn, query, %{}, consistency: consistency) do
-      if Enum.empty?(page) do
+    case Repo.fetch_one(query, consistency: consistency) do
+      {:error, :not_found} ->
         :ok
-      else
-        _ =
-          Logger.warning("Realm #{realm_name} still has connected devices.",
-            tag: "connected_devices_present"
-          )
+
+      _ ->
+        Logger.warning("Realm #{keyspace_name} still has connected devices.",
+          tag: "connected_devices_present"
+        )
 
         {:error, :connected_devices_present}
-      end
     end
   end
 
@@ -355,21 +354,18 @@ defmodule Astarte.Housekeeping.API.Realms.Queries do
     end
   end
 
-  defp remove_realm(conn, realm_name) do
-    # undecoded realm name
-    query = """
-    DELETE FROM #{Realm.astarte_keyspace_name()}.realms
-    WHERE realm_name = :realm_name;
-    """
+  defp remove_realm(realm_name) do
+    keyspace_name = Realm.astarte_keyspace_name()
 
-    params = %{"realm_name" => realm_name}
+    query =
+      from r in Realm,
+        prefix: ^keyspace_name,
+        where: r.realm_name == ^realm_name
 
     consistency = Consistency.domain_model(:write)
 
-    with {:ok, prepared} <- Xandra.prepare(conn, query),
-         {:ok, %Xandra.Void{}} <-
-           Xandra.execute(conn, prepared, params, consistency: consistency) do
-      :ok
-    end
+    Repo.delete_all(query, consistency: consistency)
+
+    :ok
   end
 end
