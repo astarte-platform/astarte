@@ -18,6 +18,7 @@
 
 defmodule Astarte.Housekeeping.API.Config do
   alias Astarte.Housekeeping.API.Config.JWTPublicKeyPEMType
+  alias Astarte.DataAccess.Config, as: DataAccessConfig
 
   use Skogsra
 
@@ -79,4 +80,12 @@ defmodule Astarte.Housekeeping.API.Config do
       end
     end
   end
+
+  defdelegate astarte_instance_id!, to: DataAccessConfig
+  defdelegate astarte_instance_id, to: DataAccessConfig
+
+  defdelegate xandra_nodes, to: DataAccessConfig
+  defdelegate xandra_nodes!, to: DataAccessConfig
+
+  defdelegate xandra_options!, to: DataAccessConfig
 end
