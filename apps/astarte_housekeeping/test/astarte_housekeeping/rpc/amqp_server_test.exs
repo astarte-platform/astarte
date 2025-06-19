@@ -134,7 +134,7 @@ defmodule Astarte.Housekeeping.RPC.HandlerTest do
     assert Reply.decode(reply) == generic_error("realm_not_allowed")
   end
 
-  test "realm creation and DoesRealmExist successful call with implicit replication" do
+  test "realm creation successful call with implicit replication" do
     on_exit(fn ->
       DatabaseTestHelper.realm_cleanup(@test_realm)
     end)
@@ -150,20 +150,6 @@ defmodule Astarte.Housekeeping.RPC.HandlerTest do
     {:ok, create_reply} = Handler.handle_rpc(encoded)
 
     assert Reply.decode(create_reply) == generic_ok()
-
-    encoded =
-      %Call{call: {:does_realm_exist, %DoesRealmExist{realm: @test_realm}}}
-      |> Call.encode()
-
-    expected = %Reply{
-      error: false,
-      reply: {:does_realm_exist_reply, %DoesRealmExistReply{exists: true}},
-      version: 0
-    }
-
-    {:ok, exists_reply} = Handler.handle_rpc(encoded)
-
-    assert Reply.decode(exists_reply) == expected
   end
 
   test "Realm creation succeeds when device_registration_limit is not set" do
@@ -186,20 +172,6 @@ defmodule Astarte.Housekeeping.RPC.HandlerTest do
     {:ok, create_reply} = Handler.handle_rpc(encoded)
 
     assert Reply.decode(create_reply) == generic_ok()
-
-    encoded =
-      %Call{call: {:does_realm_exist, %DoesRealmExist{realm: @test_realm}}}
-      |> Call.encode()
-
-    expected = %Reply{
-      error: false,
-      reply: {:does_realm_exist_reply, %DoesRealmExistReply{exists: true}},
-      version: 0
-    }
-
-    {:ok, exists_reply} = Handler.handle_rpc(encoded)
-
-    assert Reply.decode(exists_reply) == expected
   end
 
   test "realm creation and GetRealm successful call with explicit SimpleStrategy replication" do
@@ -331,22 +303,6 @@ defmodule Astarte.Housekeeping.RPC.HandlerTest do
              error: true,
              reply: {:generic_error_reply, %GenericErrorReply{error_name: "invalid_replication"}}
            } = Reply.decode(create_reply)
-  end
-
-  test "DoesRealmExist non-existing realm" do
-    encoded =
-      %Call{call: {:does_realm_exist, %DoesRealmExist{realm: @not_existing_realm}}}
-      |> Call.encode()
-
-    expected = %Reply{
-      version: 0,
-      error: false,
-      reply: {:does_realm_exist_reply, %DoesRealmExistReply{exists: false}}
-    }
-
-    {:ok, enc_reply} = Handler.handle_rpc(encoded)
-
-    assert Reply.decode(enc_reply) == expected
   end
 
   test "GetRealmsList successful call" do
