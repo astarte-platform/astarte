@@ -25,14 +25,20 @@ defmodule Astarte.Housekeeping.API.Realms.Realm do
   @default_replication_factor 1
   @default_replication_class "SimpleStrategy"
 
-  @required_fields [:realm_name, :jwt_public_key_pem]
-  @allowed_fields [
+  @required_create_fields [:realm_name, :jwt_public_key_pem]
+  @allowed_create_fields [
     :replication_factor,
     :replication_class,
     :datacenter_replication_factors,
     :device_registration_limit,
     :datastream_maximum_storage_retention
-    | @required_fields
+    | @required_create_fields
+  ]
+
+  @allowed_update_fields [
+    :jwt_public_key_pem,
+    :device_registration_limit,
+    :datastream_maximum_storage_retention
   ]
 
   @primary_key false
@@ -50,11 +56,11 @@ defmodule Astarte.Housekeeping.API.Realms.Realm do
 
   def changeset(realm, params \\ %{}) do
     realm
-    |> cast(params, @allowed_fields)
-    |> validate_required(@required_fields)
+    |> cast(params, @allowed_create_fields)
+    |> validate_required(@required_create_fields)
     |> validate_format(:realm_name, ~r/^[a-z][a-z0-9]*$/)
     |> validate_number(:replication_factor, greater_than: 0)
-    |> validate_pem_public_key(:jwt_public_key_pem)
+    |> validate_change(:jwt_public_key_pem, &validate_pem_public_key/2)
     |> put_default_if_missing(:replication_class, @default_replication_class)
     |> validate_inclusion(:replication_class, [
       @default_replication_class,
@@ -66,23 +72,14 @@ defmodule Astarte.Housekeeping.API.Realms.Realm do
 
   def update_changeset(realm, params \\ %{}) do
     realm
-    |> cast(params, @allowed_fields)
-    |> validate_required(:realm_name)
-    |> validate_format(:realm_name, ~r/^[a-z][a-z0-9]*$/)
-    |> validate_number(:replication_factor, greater_than: 0)
-    # Realm update might not include a new jwt_public_key_pem
-    |> validate_pem_public_key_if_present(:jwt_public_key_pem)
-    |> validate_inclusion(:replication_class, [
-      @default_replication_class,
-      "NetworkTopologyStrategy"
-    ])
-    |> validate_replication()
+    |> cast(params, @allowed_update_fields)
+    |> validate_change(:jwt_public_key_pem, &validate_pem_public_key/2)
   end
 
   def error_changeset(realm, params \\ %{}) do
     changeset =
       realm
-      |> cast(params, @required_fields)
+      |> cast(params, @required_create_fields)
 
     %{changeset | valid?: false}
   end
@@ -135,34 +132,18 @@ defmodule Astarte.Housekeeping.API.Realms.Realm do
     end
   end
 
-  defp validate_pem_public_key_if_present(changeset, field) do
-    pem = get_field(changeset, field)
-
-    if pem != nil do
-      validate_pem_public_key(changeset, field)
-    else
-      changeset
-    end
-  end
-
-  defp validate_pem_public_key(%Ecto.Changeset{valid?: false} = changeset, _field), do: changeset
-
-  defp validate_pem_public_key(changeset, field) do
-    pem = get_field(changeset, field, "")
-
+  defp validate_pem_public_key(field, pem) do
     try do
       case :public_key.pem_decode(pem) do
         [{:SubjectPublicKeyInfo, _, _}] ->
-          changeset
+          []
 
         _ ->
-          changeset
-          |> add_error(field, "is not a valid PEM public key")
+          [{field, "is not a valid PEM public key"}]
       end
     rescue
       _ ->
-        changeset
-        |> add_error(field, "is not a valid PEM public key")
+        [{field, "is not a valid PEM public key"}]
     end
   end
 

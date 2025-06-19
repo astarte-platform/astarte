@@ -23,13 +23,9 @@ defmodule Astarte.Housekeeping.Mock do
     DeleteRealm,
     GenericErrorReply,
     GenericOkReply,
-    GetRealmReply,
     GetRealmsList,
     GetRealmsListReply,
-    RemoveLimit,
-    Reply,
-    SetLimit,
-    UpdateRealm
+    Reply
   }
 
   alias Astarte.Housekeeping.API.Realms.Realm
@@ -82,68 +78,6 @@ defmodule Astarte.Housekeeping.Mock do
         generic_error(reason)
         |> ok_wrap
     end
-  end
-
-  defp execute_rpc(
-         {:update_realm,
-          %UpdateRealm{
-            realm: realm_name,
-            jwt_public_key_pem: pem,
-            replication_factor: rep,
-            replication_class: class,
-            datacenter_replication_factors: dc_repl,
-            device_registration_limit: dev_reg_limit,
-            datastream_maximum_storage_retention: ds_max_retention
-          }}
-       ) do
-    # This is backend logic
-    limit =
-      case dev_reg_limit do
-        nil ->
-          %Realm{} = realm = Astarte.Housekeeping.Mock.DB.get_realm(realm_name)
-          realm.device_registration_limit
-
-        {:set_limit, %SetLimit{value: n}} ->
-          n
-
-        {:remove_limit, %RemoveLimit{}} ->
-          nil
-      end
-
-    retention =
-      case ds_max_retention do
-        nil ->
-          %Realm{} = realm = Astarte.Housekeeping.Mock.DB.get_realm(realm_name)
-          realm.datastream_maximum_storage_retention
-
-        0 ->
-          nil
-
-        n when is_integer(n) ->
-          n
-      end
-
-    Astarte.Housekeeping.Mock.DB.put_realm(%Realm{
-      realm_name: realm_name,
-      jwt_public_key_pem: pem,
-      replication_factor: rep,
-      replication_class: class,
-      datacenter_replication_factors: dc_repl,
-      device_registration_limit: limit,
-      datastream_maximum_storage_retention: retention
-    })
-
-    %GetRealmReply{
-      realm_name: realm_name,
-      jwt_public_key_pem: pem,
-      replication_factor: rep,
-      replication_class: class,
-      datacenter_replication_factors: dc_repl,
-      device_registration_limit: limit,
-      datastream_maximum_storage_retention: retention
-    }
-    |> encode_reply(:get_realm_reply)
-    |> ok_wrap
   end
 
   defp execute_rpc({:delete_realm, %DeleteRealm{realm: realm, async_operation: async}}) do

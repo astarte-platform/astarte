@@ -21,9 +21,13 @@ defmodule Astarte.Housekeeping.API.Realms do
   The boundary for the Realms system.
   """
 
+  alias Astarte.Housekeeping.API.Realms.Core
+  alias Astarte.Housekeeping.API.Realms.Queries
   alias Astarte.Housekeeping.API.Realms.Realm
   alias Astarte.Housekeeping.API.RPC.Housekeeping
-  alias Astarte.Housekeeping.API.Realms.Queries
+  alias Ecto.Changeset
+
+  require Logger
 
   @doc """
   Returns the list of realms.
@@ -81,15 +85,15 @@ defmodule Astarte.Housekeeping.API.Realms do
   @doc """
   Updates a realm with the provided list of attributes.
   Returns either {:ok, %Realm{}} or {:error, error}
-  where `error` is an Ecto.Changeset describing the error.
   """
-  @spec update_realm(binary(), map()) :: {:ok, Realm.t()} | {:error, Ecto.Changeset.t()}
+  @spec update_realm(binary(), map()) :: {:ok, Realm.t()} | {:error, any()}
   def update_realm(realm_name, attrs) do
     changeset = %Realm{realm_name: realm_name} |> Realm.update_changeset(attrs)
 
-    with {:ok, %Realm{} = realm_update} <-
-           Ecto.Changeset.apply_action(changeset, :update) do
-      Housekeeping.update_realm(realm_update)
+    with {:ok, _realm} <- Changeset.apply_action(changeset, :update),
+         {:ok, realm} <- Core.update_realm(realm_name, changeset.changes) do
+      Logger.info("Successful update of realm #{realm_name}", tag: "realm_update_success")
+      {:ok, realm}
     end
   end
 
