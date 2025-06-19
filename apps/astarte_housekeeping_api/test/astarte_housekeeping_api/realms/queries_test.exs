@@ -26,10 +26,10 @@ defmodule Astarte.Housekeeping.API.Realms.QueriesTest do
   describe "is_realm_existing/1" do
     setup do
       on_exit(fn ->
-        Database.teardown!("testrealm")
+        Database.teardown("testrealm")
       end)
 
-      Database.setup!("testrealm")
+      Database.setup("testrealm")
     end
 
     test "returns {:ok, true} when the realm exists" do

@@ -236,49 +236,77 @@ defmodule Astarte.Housekeeping.API.Helpers.Database do
     -----END PUBLIC KEY-----
   """
 
-  def setup!(realm_name) do
+  def setup(realm_name) do
+    setup_astarte_keyspace()
+    setup_realm_keyspace(realm_name)
+
+    :ok
+  end
+
+  def setup_database_access(astarte_instance_id) do
+    Astarte.DataAccess.Config
+    |> Mimic.stub(:astarte_instance_id, fn -> {:ok, astarte_instance_id} end)
+    |> Mimic.stub(:astarte_instance_id!, fn -> astarte_instance_id end)
+  end
+
+  def setup_realm_keyspace(realm_name) do
     realm_keyspace = Realm.keyspace_name(realm_name)
-    execute!(realm_keyspace, @create_keyspace)
-    execute!(realm_keyspace, @create_devices_table)
-    execute!(realm_keyspace, @create_groups_table)
-    execute!(realm_keyspace, @create_names_table)
-    execute!(realm_keyspace, @create_kv_store)
-    execute!(realm_keyspace, @create_endpoints_table)
-    execute!(realm_keyspace, @create_simple_triggers_table)
-    execute!(realm_keyspace, @create_individual_properties_table)
-    execute!(realm_keyspace, @create_individual_datastreams_table)
-    execute!(realm_keyspace, @create_interfaces_table)
-    execute!(realm_keyspace, @create_deletion_in_progress_table)
+    execute(realm_keyspace, @create_keyspace)
+    execute(realm_keyspace, @create_devices_table)
+    execute(realm_keyspace, @create_groups_table)
+    execute(realm_keyspace, @create_names_table)
+    execute(realm_keyspace, @create_kv_store)
+    execute(realm_keyspace, @create_endpoints_table)
+    execute(realm_keyspace, @create_simple_triggers_table)
+    execute(realm_keyspace, @create_individual_properties_table)
+    execute(realm_keyspace, @create_individual_datastreams_table)
+    execute(realm_keyspace, @create_interfaces_table)
+    execute(realm_keyspace, @create_deletion_in_progress_table)
 
     astarte_keyspace = Realm.astarte_keyspace_name()
-    execute!(astarte_keyspace, @create_keyspace)
-    execute!(astarte_keyspace, @create_kv_store)
-    execute!(astarte_keyspace, @create_realms_table)
 
     %Realm{realm_name: realm_name}
-    |> Repo.insert!(prefix: astarte_keyspace)
+    |> Repo.insert(prefix: astarte_keyspace)
 
     :ok
   end
 
-  def teardown!(realm_name) do
-    realm_keyspace = Realm.keyspace_name(realm_name)
+  def setup_astarte_keyspace do
     astarte_keyspace = Realm.astarte_keyspace_name()
-
-    execute!(realm_keyspace, @drop_keyspace)
-    execute!(astarte_keyspace, @drop_keyspace)
+    execute(astarte_keyspace, @create_keyspace)
+    execute(astarte_keyspace, @create_kv_store)
+    execute(astarte_keyspace, @create_realms_table)
 
     :ok
   end
 
-  def insert_public_key!(realm_name) do
-    realm_keyspace = Realm.keyspace_name(realm_name)
+  def teardown(realm_name) do
+    teardown_astarte_keyspace()
+    teardown_realm_keyspace(realm_name)
 
-    execute!(realm_keyspace, @insert_public_key, %{pem: @jwt_public_key_pem})
+    :ok
   end
 
-  defp execute!(keyspace, query, params \\ [], opts \\ []) do
+  def teardown_realm_keyspace(realm_name) do
+    realm_keyspace = Realm.keyspace_name(realm_name)
+    execute(realm_keyspace, @drop_keyspace)
+    :ok
+  end
+
+  def teardown_astarte_keyspace do
+    astarte_keyspace = Realm.astarte_keyspace_name()
+    execute(astarte_keyspace, @drop_keyspace)
+    :ok
+  end
+
+  def insert_public_key(realm_name) do
+    realm_keyspace = Realm.keyspace_name(realm_name)
+
+    execute(realm_keyspace, @insert_public_key, %{pem: @jwt_public_key_pem})
+  end
+
+  defp execute(keyspace, query, params \\ [], opts \\ []) do
     String.replace(query, ":keyspace", keyspace)
-    |> Repo.query!(params, opts)
+    |> Repo.query(params, opts)
   end
 end
