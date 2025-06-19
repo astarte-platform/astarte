@@ -25,6 +25,8 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.Device do
   This module contains functions and utilities to process devices.
   """
   alias Astarte.Core.Device
+  alias Astarte.Core.InterfaceDescriptor
+  alias Astarte.Core.Mapping
   alias Astarte.DataUpdaterPlant.TimeBasedActions
   alias Astarte.DataUpdaterPlant.Config
   alias Astarte.DataUpdaterPlant.MessageTracker
@@ -366,5 +368,85 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.Device do
     end)
 
     :ok
+  end
+
+  def resend_all_properties(state) do
+    Logger.debug("Device introspection: #{inspect(state.introspection)}")
+
+    Enum.reduce_while(state.introspection, {:ok, state}, fn {interface, _}, {:ok, state_acc} ->
+      maybe_descriptor = Map.get(state_acc.interfaces, interface)
+
+      with {:ok, interface_descriptor, new_state} <-
+             Core.Interface.maybe_handle_cache_miss(maybe_descriptor, interface, state_acc),
+           :ok <- resend_all_interface_properties(new_state, interface_descriptor) do
+        {:cont, {:ok, new_state}}
+      else
+        {:error, :interface_loading_failed} ->
+          Logger.warning("Failed #{interface} interface loading.")
+          {:halt, {:error, :sending_properties_to_interface_failed}}
+
+        {:error, reason} ->
+          {:halt, {:error, reason}}
+      end
+    end)
+  end
+
+  defp resend_all_interface_properties(
+         %State{realm: realm, device_id: device_id, mappings: mappings} = _state,
+         %InterfaceDescriptor{type: :properties, ownership: :server} = interface_descriptor
+       ) do
+    encoded_device_id = Device.encode_device_id(device_id)
+
+    Core.Interface.each_interface_mapping(mappings, interface_descriptor, fn mapping ->
+      %Mapping{value_type: value_type} = mapping
+
+      column_name =
+        CQLUtils.type_to_db_column_name(value_type) |> String.to_existing_atom()
+
+      Queries.retrieve_property_values(realm, device_id, interface_descriptor, mapping)
+      |> Enum.reduce_while(:ok, fn %{:path => path, ^column_name => value}, _acc ->
+        case send_value(realm, encoded_device_id, interface_descriptor.name, path, value) do
+          {:ok, _bytes} ->
+            # TODO: use the returned bytes count in stats
+            {:cont, :ok}
+
+          {:error, reason} ->
+            {:halt, {:error, reason}}
+        end
+      end)
+    end)
+  end
+
+  defp resend_all_interface_properties(_state, %InterfaceDescriptor{} = _descriptor) do
+    :ok
+  end
+
+  defp send_value(realm, device_id_string, interface_name, path, value) do
+    topic = "#{realm}/#{device_id_string}/#{interface_name}#{path}"
+    encapsulated_value = %{v: value}
+
+    bson_value = Cyanide.encode!(encapsulated_value)
+
+    Logger.debug("Going to publish #{inspect(encapsulated_value)} on #{topic}.")
+
+    case VMQPlugin.publish(topic, bson_value, 2) do
+      {:ok, %{local_matches: local, remote_matches: remote}} when local + remote == 1 ->
+        {:ok, byte_size(topic) + byte_size(bson_value)}
+
+      {:ok, %{local_matches: local, remote_matches: remote}} when local + remote > 1 ->
+        # This should not happen so we print a warning, but we consider it a succesful publish
+        Logger.warning(
+          "Multiple match while publishing #{inspect(encapsulated_value)} on #{topic}.",
+          tag: "publish_multiple_matches"
+        )
+
+        {:ok, byte_size(topic) + byte_size(bson_value)}
+
+      {:ok, %{local_matches: local, remote_matches: remote}} when local + remote == 0 ->
+        {:error, :session_not_found}
+
+      {:error, reason} ->
+        {:error, reason}
+    end
   end
 end

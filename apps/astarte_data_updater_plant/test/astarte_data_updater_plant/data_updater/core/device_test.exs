@@ -201,6 +201,20 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DeviceTest do
     end
   end
 
+  describe "resend_all_properties/1" do
+    test "returns error when interface cache miss occurs", %{state: state} do
+      # Simulate a cache miss
+      Mimic.expect(Core.Interface, :maybe_handle_cache_miss, fn _maybe_descriptor,
+                                                                _interface,
+                                                                _state_acc ->
+        {:error, :interface_loading_failed}
+      end)
+
+      assert {:error, :sending_properties_to_interface_failed} ==
+               Core.Device.resend_all_properties(state)
+    end
+  end
+
   defp read_device_empty_cache(realm_name, device_id) do
     Repo.get!(DatabaseDevice, device_id, prefix: Realm.keyspace_name(realm_name))
     |> Map.fetch!(:pending_empty_cache)
