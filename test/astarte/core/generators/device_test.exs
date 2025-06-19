@@ -25,7 +25,6 @@ defmodule Astarte.Core.Generators.DeviceTest do
 
   alias Astarte.Core.Device
   alias Astarte.Core.Generators.Device, as: DeviceGenerator
-  alias Astarte.Core.Generators.Interface, as: InterfaceGenerator
 
   @moduletag :device
 
@@ -65,9 +64,7 @@ defmodule Astarte.Core.Generators.DeviceTest do
     @tag :success
     property "success base device creation" do
       check all(
-              interfaces <-
-                InterfaceGenerator.interface() |> list_of(min_length: 0, max_length: 10),
-              device <- DeviceGenerator.device(interfaces: interfaces),
+              device <- DeviceGenerator.device(),
               max_runs: 100
             ) do
         refute device == nil
