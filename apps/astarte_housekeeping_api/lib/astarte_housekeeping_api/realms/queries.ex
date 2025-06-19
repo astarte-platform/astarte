@@ -20,9 +20,12 @@ defmodule Astarte.Housekeeping.API.Realms.Queries do
   import Ecto.Query
 
   alias Astarte.DataAccess.Consistency
+  alias Astarte.DataAccess.CSystem
+  alias Astarte.DataAccess.Devices.Device
   alias Astarte.DataAccess.KvStore
   alias Astarte.DataAccess.Realms.Realm
   alias Astarte.DataAccess.Repo
+  alias Astarte.Housekeeping.API.Config
   alias Astarte.Housekeeping.API.Realms.Realm, as: HKRealm
 
   require Logger
@@ -235,5 +238,134 @@ defmodule Astarte.Housekeeping.API.Realms.Queries do
       {:ok, value} -> value
       {:error, :not_found} -> nil
     end
+  end
+
+  def delete_realm(realm_name, opts \\ []) do
+    if Config.enable_realm_deletion!() do
+      Logger.info("Deleting realm", tag: "delete_realm", realm_name: realm_name)
+
+      keyspace_name = Realm.keyspace_name(realm_name)
+
+      if opts[:async] do
+        {:ok, _pid} = Task.start(fn -> do_delete_realm(realm_name, keyspace_name) end)
+
+        :ok
+      else
+        do_delete_realm(realm_name, keyspace_name)
+      end
+    else
+      Logger.info("HOUSEKEEPING_ENABLE_REALM_DELETION is disabled, realm will not be deleted.",
+        tag: "realm_deletion_disabled",
+        realm_name: realm_name
+      )
+
+      {:error, :realm_deletion_disabled}
+    end
+  end
+
+  defp do_delete_realm(realm_name, keyspace_name) do
+    Xandra.Cluster.run(:xandra, [timeout: 60_000], fn conn ->
+      with :ok <- verify_realm_deletion_preconditions(keyspace_name),
+           :ok <- execute_realm_deletion(conn, realm_name, keyspace_name) do
+        :ok
+      else
+        {:error, %Xandra.Error{} = err} ->
+          Logger.warning("Database error: #{inspect(err)}.", tag: "database_error")
+
+          {:error, :database_error}
+
+        {:error, %Xandra.ConnectionError{} = err} ->
+          Logger.warning("Database connection error: #{inspect(err)}.",
+            tag: "database_connection_error"
+          )
+
+          {:error, :database_connection_error}
+
+        {:error, reason} ->
+          Logger.warning("Cannot delete realm: #{inspect(reason)}.",
+            tag: "realm_deletion_failed",
+            realm: realm_name
+          )
+
+          {:error, reason}
+      end
+    end)
+  end
+
+  defp verify_realm_deletion_preconditions(keyspace_name) do
+    with :ok <- check_no_connected_devices(keyspace_name) do
+      :ok
+    else
+      {:error, reason} ->
+        Logger.warning("Realm deletion preconditions are not satisfied: #{inspect(reason)}.",
+          tag: "realm_deletion_preconditions_rejected",
+          realm: keyspace_name
+        )
+
+        {:error, reason}
+    end
+  end
+
+  defp execute_realm_deletion(conn, realm_name, keyspace_name) do
+    with :ok <- delete_realm_keyspace(conn, keyspace_name),
+         :ok <- remove_realm(realm_name) do
+      :ok
+    else
+      {:error, reason} ->
+        Logger.warning("Cannot delete realm: #{inspect(reason)}.",
+          tag: "realm_deletion_failed",
+          realm: realm_name
+        )
+
+        {:error, reason}
+    end
+  end
+
+  defp check_no_connected_devices(keyspace_name) do
+    query =
+      from d in Device,
+        hints: ["ALLOW FILTERING"],
+        prefix: ^keyspace_name,
+        where: d.connected == true,
+        limit: 1
+
+    consistency = Consistency.device_info(:read)
+
+    case Repo.fetch_one(query, consistency: consistency) do
+      {:error, :not_found} ->
+        :ok
+
+      _ ->
+        Logger.warning("Realm #{keyspace_name} still has connected devices.",
+          tag: "connected_devices_present"
+        )
+
+        {:error, :connected_devices_present}
+    end
+  end
+
+  defp delete_realm_keyspace(conn, realm_name) do
+    query = """
+    DROP KEYSPACE #{realm_name}
+    """
+
+    with {:ok, %Xandra.SchemaChange{}} <- CSystem.execute_schema_change(conn, query) do
+      :ok
+    end
+  end
+
+  defp remove_realm(realm_name) do
+    keyspace_name = Realm.astarte_keyspace_name()
+
+    query =
+      from r in Realm,
+        prefix: ^keyspace_name,
+        where: r.realm_name == ^realm_name
+
+    consistency = Consistency.domain_model(:write)
+
+    Repo.delete_all(query, consistency: consistency)
+
+    :ok
   end
 end

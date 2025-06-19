@@ -20,7 +20,6 @@ defmodule Astarte.Housekeeping.Mock do
   alias Astarte.RPC.Protocol.Housekeeping.{
     Call,
     CreateRealm,
-    DeleteRealm,
     GenericErrorReply,
     GenericOkReply,
     GetRealmsList,
@@ -69,19 +68,6 @@ defmodule Astarte.Housekeeping.Mock do
            device_registration_limit: dev_reg_limit,
            datastream_maximum_storage_retention: ds_max_retention
          }) do
-      :ok ->
-        %GenericOkReply{async_operation: async}
-        |> encode_reply(:generic_ok_reply)
-        |> ok_wrap
-
-      {:error, reason} ->
-        generic_error(reason)
-        |> ok_wrap
-    end
-  end
-
-  defp execute_rpc({:delete_realm, %DeleteRealm{realm: realm, async_operation: async}}) do
-    case Astarte.Housekeeping.Mock.DB.delete_realm(realm) do
       :ok ->
         %GenericOkReply{async_operation: async}
         |> encode_reply(:generic_ok_reply)
