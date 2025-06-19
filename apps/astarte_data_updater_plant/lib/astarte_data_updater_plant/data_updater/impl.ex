@@ -29,7 +29,6 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
   alias Astarte.DataAccess.Interface, as: InterfaceQueries
   alias Astarte.DataUpdaterPlant.DataUpdater.Cache
   alias Astarte.DataUpdaterPlant.DataUpdater.EventTypeUtils
-  alias Astarte.DataUpdaterPlant.DataUpdater.PayloadsDecoder
   alias Astarte.DataUpdaterPlant.DataUpdater.Queries
   alias Astarte.DataUpdaterPlant.MessageTracker
   alias Astarte.DataUpdaterPlant.TriggersHandler
@@ -176,53 +175,10 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
     |> Core.DataHandler.handle_data(interface, path, payload, message_id, timestamp)
   end
 
-  def handle_introspection(%State{discard_messages: true} = state, _, message_id, _) do
-    MessageTracker.discard(state.message_tracker, message_id)
-    state
-  end
-
-  def handle_introspection(state, payload, message_id, timestamp) do
-    with {:ok, new_introspection_list} <- PayloadsDecoder.parse_introspection(payload) do
-      Core.Device.process_introspection(
-        state,
-        new_introspection_list,
-        payload,
-        message_id,
-        timestamp
-      )
-    else
-      {:error, :invalid_introspection} ->
-        Logger.warning("Discarding invalid introspection: #{inspect(Base.encode64(payload))}.",
-          tag: "invalid_introspection"
-        )
-
-        {:ok, new_state} = Core.Device.ask_clean_session(state, timestamp)
-        MessageTracker.discard(new_state.message_tracker, message_id)
-
-        :telemetry.execute(
-          [:astarte, :data_updater_plant, :data_updater, :discarded_introspection],
-          %{},
-          %{realm: new_state.realm}
-        )
-
-        base64_payload = Base.encode64(payload)
-
-        error_metadata = %{
-          "base64_payload" => base64_payload
-        }
-
-        Core.Trigger.execute_device_error_triggers(
-          new_state,
-          "invalid_introspection",
-          error_metadata,
-          timestamp
-        )
-
-        Core.DataHandler.update_stats(new_state, "", nil, "", payload)
-    end
-  end
-
   defdelegate handle_control(state, path, payload, message_id, timestamp), to: Core.ControlHandler
+
+  defdelegate handle_introspection(state, payload, message_id, timestamp),
+    to: Core.IntrospectionHandler
 
   def handle_install_volatile_trigger(
         %State{discard_messages: true} = state,
