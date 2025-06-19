@@ -19,6 +19,9 @@
 defmodule Astarte.RealmManagement.API.Application do
   use Application
 
+  alias Astarte.RPC
+  alias Astarte.DataAccess.Config, as: DataAccessConfig
+
   require Logger
 
   @app_version Mix.Project.config()[:version]
@@ -33,11 +36,24 @@ defmodule Astarte.RealmManagement.API.Application do
     )
 
     Logger.info("Starting application v#{@app_version}.", tag: "realm_management_api_start")
+    Astarte.RealmManagement.API.Config.validate!()
+    DataAccessConfig.validate!()
+    RPC.Config.validate!()
+
+    xandra_opts =
+      Astarte.RealmManagement.API.Config.xandra_options!()
+      |> Keyword.put(:atom_keys, true)
+
+    rm_xandra_opts = Keyword.put(xandra_opts, :name, :xandra)
+
+    data_access_opts = [xandra_options: xandra_opts]
 
     children = [
       Astarte.RealmManagement.APIWeb.Telemetry,
       Astarte.RealmManagement.APIWeb.Endpoint,
-      Astarte.RPC.AMQP.Client
+      Astarte.RPC.AMQP.Client,
+      {Xandra.Cluster, rm_xandra_opts},
+      {Astarte.DataAccess, data_access_opts}
     ]
 
     # See http://elixir-lang.org/docs/stable/elixir/Supervisor.html
