@@ -29,5 +29,9 @@ config :logger, :console,
     :realm,
     :module,
     :function,
+    :method,
+    :request_path,
+    :status_code,
+    :request_id,
     :tag
   ]
