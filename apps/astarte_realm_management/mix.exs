@@ -95,16 +95,22 @@ defmodule Astarte.RealmManagement.Mixfile do
       {:pretty_log, "~> 0.1"},
       {:plug_logger_with_meta, "~> 0.1"},
       {:skogsra, "~> 2.2"},
-      {:observer_cli, "~> 1.5"},
       {:telemetry_metrics, "~> 0.4"},
-      {:telemetry_poller, "~> 0.4"},
       {:telemetry_metrics_prometheus_core, "~> 0.4"},
-      {:dialyxir, "~> 1.0", only: [:dev, :ci], runtime: false},
+      {:telemetry_poller, "~> 0.5.1"},
+      {:xandra, "~> 0.13"},
+      {:exandra, "~> 0.13"},
+      {:typed_ecto_schema, "~> 0.4"},
+      {:observer_cli, "~> 1.5"},
       {:mimic, "~> 1.11", only: :test},
+      {:dialyxir, "~> 1.0", only: [:dev, :ci], runtime: false},
       # Workaround for Elixir 1.15 / ssl_verify_fun issue
       # See also: https://github.com/deadtrickster/ssl_verify_fun.erl/pull/27
       {:ssl_verify_fun, "~> 1.1.0", manager: :rebar3, override: true},
-      {:uuid, "~> 2.0", hex: :uuid_erl}
+      {:uuid, "~> 2.0", hex: :uuid_erl},
+      {:libcluster, "~> 3.3"},
+      {:horde, "~> 0.9"}
+    
     ]
   end
 end

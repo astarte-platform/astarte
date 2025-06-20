@@ -45,6 +45,9 @@ defmodule Astarte.RealmManagement.Application do
     data_access_opts = [xandra_options: xandra_opts]
 
     children = [
+      {Cluster.Supervisor,
+       [Astarte.RealmManagement.Config.cluster_topologies!(), [name: Astarte.RealmManagement.ClusterSupervisor]]},
+      {Horde.Registry, [keys: :unique, name: Registry.DataUpdaterRPC, members: :auto]},
       Astarte.RealmManagementWeb.Telemetry,
       Astarte.RealmManagementWeb.Endpoint,
       {Xandra.Cluster, rm_xandra_opts},
