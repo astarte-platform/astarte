@@ -39,7 +39,7 @@ defmodule Astarte.Housekeeping.API.Realms do
 
   """
   def list_realms do
-    Housekeeping.list_realms()
+    Queries.list_realms()
   end
 
   @doc """

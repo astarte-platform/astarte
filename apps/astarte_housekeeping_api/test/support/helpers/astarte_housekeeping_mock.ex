@@ -22,8 +22,6 @@ defmodule Astarte.Housekeeping.Mock do
     CreateRealm,
     GenericErrorReply,
     GenericOkReply,
-    GetRealmsList,
-    GetRealmsListReply,
     Reply
   }
 
@@ -77,14 +75,6 @@ defmodule Astarte.Housekeeping.Mock do
         generic_error(reason)
         |> ok_wrap
     end
-  end
-
-  defp execute_rpc({:get_realms_list, %GetRealmsList{}}) do
-    list = Astarte.Housekeeping.Mock.DB.realms_list()
-
-    %GetRealmsListReply{realms_names: list}
-    |> encode_reply(:get_realms_list_reply)
-    |> ok_wrap
   end
 
   defp generic_error(error_name) do

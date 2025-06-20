@@ -52,8 +52,4 @@ defmodule Astarte.Housekeeping.Engine do
   def is_realm_existing(realm) do
     Queries.is_realm_existing(realm)
   end
-
-  def list_realms do
-    Queries.list_realms()
-  end
 end

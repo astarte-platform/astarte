@@ -256,17 +256,4 @@ defmodule Astarte.Housekeeping.RPC.HandlerTest do
              reply: {:generic_error_reply, %GenericErrorReply{error_name: "invalid_replication"}}
            } = Reply.decode(create_reply)
   end
-
-  test "GetRealmsList successful call" do
-    encoded =
-      %Call{call: {:get_realms_list, %GetRealmsList{}}}
-      |> Call.encode()
-
-    {:ok, list_reply} = Handler.handle_rpc(encoded)
-
-    assert match?(
-             %Reply{reply: {:get_realms_list_reply, %GetRealmsListReply{realms_names: _names}}},
-             Reply.decode(list_reply)
-           )
-  end
 end

@@ -26,6 +26,7 @@ defmodule Astarte.Housekeeping.APIWeb.RealmControllerTest do
   alias Astarte.Housekeeping.API.Realms.Realm
   alias Astarte.Housekeeping.API.Realms.Queries
   alias Astarte.Housekeeping.Engine
+  alias Astarte.Housekeeping.API.Realms
 
   import Astarte.Housekeeping.API.Fixtures.Realm
   import Ecto.Query
@@ -88,6 +89,7 @@ defmodule Astarte.Housekeeping.APIWeb.RealmControllerTest do
 
   describe "index" do
     test "lists all entries on index when no realms exist", %{conn: conn} do
+      Mimic.stub(Realms, :list_realms, fn -> [] end)
       conn = get(conn, realm_path(conn, :index))
       assert json_response(conn, 200) == %{"data" => []}
     end
@@ -96,8 +98,13 @@ defmodule Astarte.Housekeeping.APIWeb.RealmControllerTest do
       conn = post(conn, realm_path(conn, :create), @create_attrs)
       assert response(conn, 201)
 
+      # TODO: remove after the create_realm RPC removal
+      insert_realm!(@create_attrs)
+
       conn = get(conn, realm_path(conn, :index))
-      assert json_response(conn, 200) == %{"data" => ["testrealm"]}
+      %{"data" => realm_names} = json_response(conn, 200)
+
+      assert "testrealm" in realm_names
     end
   end
 

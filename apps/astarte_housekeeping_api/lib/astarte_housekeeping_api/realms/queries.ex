@@ -240,6 +240,31 @@ defmodule Astarte.Housekeeping.API.Realms.Queries do
     end
   end
 
+  def list_realms do
+    keyspace_name = Realm.astarte_keyspace_name()
+
+    query =
+      from r in Realm,
+        prefix: ^keyspace_name,
+        select: r.realm_name
+
+    consistency = Consistency.domain_model(:read)
+
+    case Repo.fetch_all(query, consistency: consistency) do
+      {:ok, realm_names} ->
+        Enum.map(realm_names, fn realm_name ->
+          %HKRealm{realm_name: realm_name}
+        end)
+
+      {:error, reason} ->
+        Logger.warning("Failed to list realms: #{inspect(reason)}.",
+          tag: "list_realms_error"
+        )
+
+        {:error, reason}
+    end
+  end
+
   def delete_realm(realm_name, opts \\ []) do
     if Config.enable_realm_deletion!() do
       Logger.info("Deleting realm", tag: "delete_realm", realm_name: realm_name)

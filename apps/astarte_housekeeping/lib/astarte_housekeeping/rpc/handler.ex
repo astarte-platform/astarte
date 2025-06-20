@@ -26,8 +26,6 @@ defmodule Astarte.Housekeeping.RPC.Handler do
     CreateRealm,
     GenericErrorReply,
     GenericOkReply,
-    GetRealmsList,
-    GetRealmsListReply,
     Reply
   }
 
@@ -162,18 +160,6 @@ defmodule Astarte.Housekeeping.RPC.Handler do
 
       {:error, {reason, details}} ->
         generic_error(reason, details)
-
-      {:error, reason} ->
-        generic_error(reason)
-    end
-  end
-
-  defp call_rpc({:get_realms_list, %GetRealmsList{}}) do
-    case Astarte.Housekeeping.Engine.list_realms() do
-      {:ok, list} ->
-        %GetRealmsListReply{realms_names: list}
-        |> encode_reply(:get_realms_list_reply)
-        |> ok_wrap
 
       {:error, reason} ->
         generic_error(reason)
