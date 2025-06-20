@@ -22,7 +22,10 @@ defmodule Doc.MixProject do
   end
 
   defp deps do
-    [{:ex_doc, "~> 0.29", only: :dev}]
+    [
+      {:ex_doc, "~> 0.29", only: :dev},
+      {:makeup_json, "~> 1.0", only: :dev, runtime: false},
+    ]
   end
 
   # Add here additional documentation files
