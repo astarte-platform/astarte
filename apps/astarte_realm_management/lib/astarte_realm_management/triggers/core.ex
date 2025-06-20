@@ -26,6 +26,8 @@ defmodule Astarte.RealmManagement.Triggers.Core do
   alias Astarte.Core.Triggers.Trigger, as: CoreTrigger
   alias Astarte.RealmManagement.Triggers.Trigger
   alias Astarte.RealmManagement.Triggers.Queries
+  alias Astarte.RealmManagement.RPC.DataUpdaterPlant.Client
+  alias Astarte.Core.Triggers.SimpleTriggersProtobuf.Utils, as: SimpleTriggersProtobufUtils
 
   require Logger
 
@@ -89,6 +91,24 @@ defmodule Astarte.RealmManagement.Triggers.Core do
            tag: "install_trigger_started"
          ),
          :ok <- Queries.install_trigger(realm_name, trigger) do
+         request_data = %{
+        realm: realm_name,
+        triggers:
+          Enum.map(simple_trigger_maps, fn simple_trigger_map ->
+            %{
+              object_id: simple_trigger_map.object_id,
+              # trigger_map->simple_trigger_container->simple_trigger
+              simple_trigger: simple_trigger_map.simple_trigger.simple_trigger
+            }
+          end),
+        trigger_target: trigger_target
+      }
+
+      Logger.debug(
+        "Sending trigger installation notification to DataUpdaterPlant for all triggers: #{inspect(request_data)} ..."
+      )
+
+      Client.install_persistent_triggers(request_data)
       {:ok, trigger}
     end
   end
