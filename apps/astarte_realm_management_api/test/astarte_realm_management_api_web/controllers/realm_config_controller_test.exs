@@ -17,7 +17,8 @@
 #
 
 defmodule Astarte.RealmManagement.APIWeb.RealmControllerTest do
-  use Astarte.RealmManagement.APIWeb.ConnCase, async: true
+  use Astarte.RealmManagement.API.DataCase, async: true
+  use Astarte.RealmManagement.APIWeb.ConnCase
 
   alias Astarte.Helpers
   alias Astarte.RealmManagement.API.Config

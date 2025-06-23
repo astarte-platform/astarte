@@ -17,9 +17,9 @@
 #
 
 defmodule Astarte.RealmManagement.APIWeb.AuthTest do
+  use Astarte.RealmManagement.API.DataCase
   use Astarte.RealmManagement.APIWeb.ConnCase
 
-  alias Astarte.Helpers
   alias Astarte.RealmManagement.API.Helpers.JWTTestHelper
 
   @valid_auth_path "^interfaces$"
@@ -31,8 +31,7 @@ defmodule Astarte.RealmManagement.APIWeb.AuthTest do
 
   require Logger
 
-  setup %{conn: conn, realm_name: realm_name, jwt_public_key: key} do
-    Helpers.Database.insert_public_key!(realm_name, key)
+  setup %{conn: conn} do
     {:ok, conn: put_req_header(conn, "accept", "application/json")}
   end
 

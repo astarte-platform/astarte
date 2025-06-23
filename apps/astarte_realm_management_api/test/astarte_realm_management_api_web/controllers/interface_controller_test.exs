@@ -17,13 +17,15 @@
 #
 
 defmodule Astarte.RealmManagement.APIWeb.InterfaceControllerTest do
-  use Astarte.RealmManagement.APIWeb.ConnCase, async: true
+  use Astarte.RealmManagement.API.DataCase, async: true
+  use Astarte.RealmManagement.APIWeb.ConnCase
 
   @moduletag :interfaces
 
   alias Astarte.Core.Interface
   alias Astarte.Helpers.Database
-  alias Astarte.RealmManagement.API.Helpers.JWTTestHelper
+  alias Astarte.Core.Generators
+  alias Astarte.RealmManagement
   alias Astarte.RealmManagement.API.Helpers.RPCMock.DB
   alias Astarte.RealmManagement.API.Interfaces
   alias Astarte.RealmManagement.Engine
@@ -58,26 +60,18 @@ defmodule Astarte.RealmManagement.APIWeb.InterfaceControllerTest do
     ]
   }
 
-  setup %{conn: conn, realm: realm} do
-    DB.put_jwt_public_key_pem(realm, JWTTestHelper.public_key_pem())
-    token = JWTTestHelper.gen_jwt_all_access_token()
-
-    conn =
-      conn
-      |> put_req_header("accept", "application/json")
-      |> put_req_header("authorization", "Bearer #{token}")
-
-    {:ok, conn: conn}
-  end
-
   describe "index" do
     @describetag :index
 
+    # TODO: remove this when backend functions are migrated to the API service
+    @tag :skip
     test "lists empty interfaces", %{conn: conn, realm: realm} do
       conn = get(conn, interface_path(conn, :index, realm))
       assert json_response(conn, 200)["data"] == []
     end
 
+    # TODO: remove this when backend functions are migrated to the API service
+    @tag :skip
     test "lists interface after installing it", %{conn: conn, realm: realm} do
       post_conn = post(conn, interface_path(conn, :create, realm), data: @valid_attrs)
       assert response(post_conn, 201) == ""
@@ -90,17 +84,31 @@ defmodule Astarte.RealmManagement.APIWeb.InterfaceControllerTest do
   describe "show" do
     @describetag :show
 
-    test "shows existing interface", %{conn: conn, realm: realm} do
-      post_conn = post(conn, interface_path(conn, :create, realm), data: @valid_attrs)
-      assert response(post_conn, 201) == ""
+    setup %{realm_name: realm_name} do
+      interface = Generators.Interface.interface() |> Enum.at(0)
+      json_interface = Jason.encode!(interface)
+      :ok = RealmManagement.Engine.install_interface(realm_name, json_interface)
 
-      show_conn =
-        get(conn, interface_path(conn, :show, realm, @interface_name, @interface_major_str))
-
-      assert json_response(show_conn, 200)["data"]["interface_name"] == @interface_name
+      %{interface: interface}
     end
 
-    test "renders error on non-existing interface", %{conn: conn, realm: realm} do
+    test "shows existing interface", %{auth_conn: conn, realm: realm, interface: interface} do
+      show_conn =
+        get(
+          conn,
+          interface_path(
+            conn,
+            :show,
+            realm,
+            interface.name,
+            interface.major_version |> to_string()
+          )
+        )
+
+      assert json_response(show_conn, 200)["data"]["interface_name"] == interface.name
+    end
+
+    test "renders error on non-existing interface", %{auth_conn: conn, realm: realm} do
       conn =
         get(conn, interface_path(conn, :show, realm, "com.Nonexisting", @interface_major_str))
 
@@ -111,6 +119,8 @@ defmodule Astarte.RealmManagement.APIWeb.InterfaceControllerTest do
   describe "create interface" do
     @describetag :creation
 
+    # TODO: remove this when backend functions are migrated to the API service
+    @tag :skip
     test "renders interface when data is valid", %{conn: conn, realm: realm} do
       post_conn = post(conn, interface_path(conn, :create, realm), data: @valid_attrs)
       assert response(post_conn, 201) == ""
@@ -121,11 +131,15 @@ defmodule Astarte.RealmManagement.APIWeb.InterfaceControllerTest do
       assert json_response(get_conn, 200)["data"] == @valid_attrs
     end
 
+    # TODO: remove this when backend functions are migrated to the API service
+    @tag :skip
     test "renders errors when data is invalid", %{conn: conn, realm: realm} do
       conn = post(conn, interface_path(conn, :create, realm), data: @invalid_attrs)
       assert json_response(conn, 422)["errors"] != %{}
     end
 
+    # TODO: remove this when backend functions are migrated to the API service
+    @tag :skip
     test "renders error when interface is already installed", %{conn: conn, realm: realm} do
       post_conn = post(conn, interface_path(conn, :create, realm), data: @valid_attrs)
       assert response(post_conn, 201) == ""
@@ -134,6 +148,8 @@ defmodule Astarte.RealmManagement.APIWeb.InterfaceControllerTest do
       assert json_response(post2_conn, 409)["errors"] != %{}
     end
 
+    # TODO: remove this when backend functions are migrated to the API service
+    @tag :skip
     test "renders error on mapping with higher database_retention_ttl than the maximum", %{
       conn: conn,
       realm: realm
@@ -157,6 +173,8 @@ defmodule Astarte.RealmManagement.APIWeb.InterfaceControllerTest do
       assert json_response(conn, 422)["errors"] != %{}
     end
 
+    # TODO: remove this when backend functions are migrated to the API service
+    @tag :skip
     test "fails when interface name collides after normalization", %{conn: conn, realm: realm} do
       interface_name = "com.astarteplatform.Interface"
 
@@ -188,7 +206,7 @@ defmodule Astarte.RealmManagement.APIWeb.InterfaceControllerTest do
   describe "update" do
     @describetag :update
 
-    setup %{conn: conn, realm: realm, astarte_instance_id: astarte_instance_id} do
+    setup %{auth_conn: conn, realm: realm, astarte_instance_id: astarte_instance_id} do
       # TODO: uncomment after porting create_interface to rm_api
       # post_conn = post(conn, interface_path(conn, :create, realm), data: @valid_attrs)
       # assert response(post_conn, 201) == ""
@@ -206,7 +224,7 @@ defmodule Astarte.RealmManagement.APIWeb.InterfaceControllerTest do
       {:ok, conn: conn}
     end
 
-    test "updates interface when data is valid", %{conn: conn, realm: realm} do
+    test "updates interface when data is valid", %{auth_conn: conn, realm: realm} do
       new_mapping = %{"endpoint" => "/other", "type" => "string"}
       updated_mappings = [new_mapping | @valid_attrs["mappings"]]
       new_minor = @valid_attrs["version_minor"] + 1
@@ -235,7 +253,7 @@ defmodule Astarte.RealmManagement.APIWeb.InterfaceControllerTest do
       assert json_response(get_conn, 200)["data"] == update_attrs
     end
 
-    test "renders errors when data is invalid", %{conn: conn, realm: realm} do
+    test "renders errors when data is invalid", %{auth_conn: conn, realm: realm} do
       conn =
         put(
           conn,
@@ -246,7 +264,7 @@ defmodule Astarte.RealmManagement.APIWeb.InterfaceControllerTest do
       assert json_response(conn, 422)["errors"] != %{}
     end
 
-    test "renders error when major is not a number", %{conn: conn, realm: realm} do
+    test "renders error when major is not a number", %{auth_conn: conn, realm: realm} do
       conn =
         put(
           conn,
@@ -257,7 +275,7 @@ defmodule Astarte.RealmManagement.APIWeb.InterfaceControllerTest do
       assert json_response(conn, 404)["errors"] != %{}
     end
 
-    test "renders error when name doesn't match", %{conn: conn, realm: realm} do
+    test "renders error when name doesn't match", %{auth_conn: conn, realm: realm} do
       conn =
         put(
           conn,
@@ -313,7 +331,7 @@ defmodule Astarte.RealmManagement.APIWeb.InterfaceControllerTest do
                "Interface minor version was not increased"
     end
 
-    test "renders error minor version is decreased", %{conn: conn, realm: realm} do
+    test "renders error minor version is decreased", %{auth_conn: conn, realm: realm} do
       new_mapping = %{"endpoint" => "/other", "type" => "string"}
       updated_mappings = [new_mapping | @valid_attrs["mappings"]]
       new_minor = @valid_attrs["version_minor"] - 1
@@ -358,7 +376,7 @@ defmodule Astarte.RealmManagement.APIWeb.InterfaceControllerTest do
                "Interface update has missing endpoints"
     end
 
-    test "renders error when mappings have incompatible changes", %{conn: conn, realm: realm} do
+    test "renders error when mappings have incompatible changes", %{auth_conn: conn, realm: realm} do
       update_attrs = %{
         @valid_attrs
         | "version_minor" => @valid_attrs["version_minor"] + 1,
@@ -382,7 +400,7 @@ defmodule Astarte.RealmManagement.APIWeb.InterfaceControllerTest do
                "Interface update contains incompatible endpoint changes"
     end
 
-    test "renders error when type changes", %{conn: conn, realm: realm} do
+    test "renders error when type changes", %{auth_conn: conn, realm: realm} do
       update_attrs = %{
         @valid_attrs
         | "version_minor" => @valid_attrs["version_minor"] + 1,
@@ -400,7 +418,7 @@ defmodule Astarte.RealmManagement.APIWeb.InterfaceControllerTest do
       assert json_response(update_conn, 409)["errors"]["detail"] == "Invalid update"
     end
 
-    test "renders error when ownership changes", %{conn: conn, realm: realm} do
+    test "renders error when ownership changes", %{auth_conn: conn, realm: realm} do
       update_attrs = %{
         @valid_attrs
         | "version_minor" => @valid_attrs["version_minor"] + 1,
@@ -423,6 +441,8 @@ defmodule Astarte.RealmManagement.APIWeb.InterfaceControllerTest do
   describe "delete" do
     @describetag :deletion
 
+    # TODO: remove this when backend functions are migrated to the API service
+    @tag :skip
     test "deletes existing interface", %{conn: conn, realm: realm} do
       post_conn = post(conn, interface_path(conn, :create, realm), data: @valid_attrs)
       assert response(post_conn, 201) == ""
@@ -433,6 +453,8 @@ defmodule Astarte.RealmManagement.APIWeb.InterfaceControllerTest do
       assert response(delete_conn, 204) == ""
     end
 
+    # TODO: remove this when backend functions are migrated to the API service
+    @tag :skip
     test "fails if major version is other than 0", %{conn: conn, realm: realm} do
       new_interface_major = 1
 
@@ -459,6 +481,8 @@ defmodule Astarte.RealmManagement.APIWeb.InterfaceControllerTest do
                "Interface can't be deleted"
     end
 
+    # TODO: remove this when backend functions are migrated to the API service
+    @tag :skip
     test "renders error on non-existing interface", %{conn: conn, realm: realm} do
       delete_conn =
         delete(

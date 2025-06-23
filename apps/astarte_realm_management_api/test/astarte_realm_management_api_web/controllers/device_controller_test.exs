@@ -17,7 +17,8 @@
 #
 
 defmodule Astarte.RealmManagement.APIWeb.DeviceControllerTest do
-  use Astarte.RealmManagement.APIWeb.ConnCase, async: true
+  use Astarte.RealmManagement.API.DataCase, async: true
+  use Astarte.RealmManagement.APIWeb.ConnCase
   use Astarte.Cases.Device
 
   alias Astarte.RealmManagement.API.Helpers.JWTTestHelper

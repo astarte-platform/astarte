@@ -17,6 +17,7 @@
 #
 
 defmodule Astarte.RealmManagement.API.Interfaces do
+  alias Astarte.RealmManagement.API.Interfaces.Queries
   alias Astarte.Core.Interface
   alias Astarte.Core.Mapping.EndpointsAutomaton
   alias Astarte.Core.Mapping
@@ -41,9 +42,8 @@ defmodule Astarte.RealmManagement.API.Interfaces do
     end
   end
 
-  def get_interface(realm_name, interface_name, interface_major_version) do
-    RealmManagement.get_interface(realm_name, interface_name, interface_major_version)
-  end
+  @doc delegate_to: {Queries, :fetch_interface, 3}
+  defdelegate fetch_interface(realm, interface, major), to: Queries
 
   def create_interface(realm_name, params, opts \\ []) do
     changeset = Interface.changeset(%Interface{}, params)

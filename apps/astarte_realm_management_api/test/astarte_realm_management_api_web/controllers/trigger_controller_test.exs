@@ -17,7 +17,8 @@
 #
 
 defmodule Astarte.RealmManagement.APIWeb.TriggerControllerTest do
-  use Astarte.RealmManagement.APIWeb.ConnCase, async: true
+  use Astarte.RealmManagement.API.DataCase, async: true
+  use Astarte.RealmManagement.APIWeb.ConnCase
 
   @moduletag :triggers
 
