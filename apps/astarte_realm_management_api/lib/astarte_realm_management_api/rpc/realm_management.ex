@@ -22,8 +22,6 @@ defmodule Astarte.RealmManagement.API.RPC.RealmManagement do
     DeleteInterface,
     GenericErrorReply,
     GenericOkReply,
-    GetDatastreamMaximumStorageRetention,
-    GetDatastreamMaximumStorageRetentionReply,
     GetDeviceRegistrationLimit,
     GetDeviceRegistrationLimitReply,
     GetInterfacesList,
@@ -129,16 +127,6 @@ defmodule Astarte.RealmManagement.API.RPC.RealmManagement do
       realm_name: realm_name
     }
     |> encode_call(:get_device_registration_limit)
-    |> @rpc_client.rpc_call(@destination)
-    |> decode_reply()
-    |> extract_reply()
-  end
-
-  def get_datastream_maximum_storage_retention(realm_name) do
-    %GetDatastreamMaximumStorageRetention{
-      realm_name: realm_name
-    }
-    |> encode_call(:get_datastream_maximum_storage_retention)
     |> @rpc_client.rpc_call(@destination)
     |> decode_reply()
     |> extract_reply()
@@ -291,22 +279,6 @@ defmodule Astarte.RealmManagement.API.RPC.RealmManagement do
           %GetDeviceRegistrationLimitReply{device_registration_limit: limit}}
        ) do
     {:ok, limit}
-  end
-
-  defp extract_reply(
-         {:get_datastream_maximum_storage_retention_reply,
-          %GetDatastreamMaximumStorageRetentionReply{
-            datastream_maximum_storage_retention: 0
-          }}
-       ) do
-    {:ok, nil}
-  end
-
-  defp extract_reply(
-         {:get_datastream_maximum_storage_retention_reply,
-          %GetDatastreamMaximumStorageRetentionReply{} = reply}
-       ) do
-    {:ok, reply.datastream_maximum_storage_retention}
   end
 
   defp extract_reply({:error, :rpc_error}) do

@@ -17,6 +17,7 @@
 #
 
 defmodule Astarte.Helpers.Database do
+  alias Astarte.DataAccess.KvStore
   alias Astarte.DataAccess.Realms.Realm
   alias Astarte.DataAccess.Repo
 
@@ -292,6 +293,18 @@ defmodule Astarte.Helpers.Database do
     execute!(realm_keyspace, @insert_datastream_maximum_storage_retention, %{
       "max_retention" => max_retention
     })
+  end
+
+  def set_datastream_maximum_storage_retention(realm, value) do
+    keyspace = Realm.keyspace_name(realm)
+
+    %{
+      group: "realm_config",
+      key: "datastream_maximum_storage_retention",
+      value: value,
+      value_type: :integer
+    }
+    |> KvStore.insert(prefix: keyspace)
   end
 
   defp execute!(keyspace, query, params \\ [], opts \\ []) do

@@ -1,4 +1,5 @@
 Mimic.copy(Astarte.DataAccess.Health.Health)
+Mimic.copy(Astarte.DataAccess.KvStore)
 Mimic.copy(Astarte.RealmManagement.API.RealmConfig.Queries)
 Mimic.copy(Astarte.DataAccess.Config)
 ExUnit.start(capture_log: true)

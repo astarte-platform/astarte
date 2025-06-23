@@ -31,8 +31,8 @@ defmodule Astarte.RealmManagement.API.RealmConfig do
     RealmManagement.get_device_registration_limit(realm)
   end
 
-  def get_datastream_maximum_storage_retention(realm) do
-    RealmManagement.get_datastream_maximum_storage_retention(realm)
+  def get_datastream_maximum_storage_retention(realm_name) do
+    Queries.get_datastream_maximum_storage_retention(realm_name)
   end
 
   def update_auth_config(realm, new_config_params) do
