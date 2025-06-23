@@ -47,7 +47,6 @@ defmodule Astarte.RealmManagement.RPC.Handler do
     GetTriggersList,
     GetTriggersListReply,
     InstallInterface,
-    InstallTrigger,
     Reply,
     UpdateInterface,
     UpdateJWTPublicKeyPEM,
@@ -140,10 +139,6 @@ defmodule Astarte.RealmManagement.RPC.Handler do
   end
 
   def encode_reply(:update_jwt_public_key_pem, :ok) do
-    {:ok, Reply.encode(%Reply{error: false, reply: {:generic_ok_reply, %GenericOkReply{}}})}
-  end
-
-  def encode_reply(:install_trigger, :ok) do
     {:ok, Reply.encode(%Reply{error: false, reply: {:generic_ok_reply, %GenericOkReply{}}})}
   end
 
@@ -340,27 +335,6 @@ defmodule Astarte.RealmManagement.RPC.Handler do
               encode_reply(
                 :update_jwt_public_key_pem,
                 Engine.update_jwt_public_key_pem(realm_name, pem)
-              )
-
-            {:install_trigger,
-             %InstallTrigger{
-               realm_name: realm_name,
-               trigger_name: trigger_name,
-               action: action,
-               serialized_tagged_simple_triggers: serialized_tagged_simple_triggers,
-               trigger_policy: trigger_policy
-             }} ->
-              _ = Logger.metadata(realm: realm_name)
-
-              encode_reply(
-                :install_trigger,
-                Engine.install_trigger(
-                  realm_name,
-                  trigger_name,
-                  trigger_policy,
-                  action,
-                  serialized_tagged_simple_triggers
-                )
               )
 
             {:get_trigger, %GetTrigger{realm_name: realm_name, trigger_name: trigger_name}} ->

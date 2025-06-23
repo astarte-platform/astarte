@@ -20,7 +20,6 @@ defmodule Astarte.RealmManagement.API.Helpers.RPCMock.DB do
   alias Astarte.Core.Interface
   alias Astarte.Core.Mapping
   alias Astarte.Core.Triggers.Policy
-  alias Astarte.Core.Triggers.SimpleTriggersProtobuf.TaggedSimpleTrigger
 
   def start_link(agent_name \\ __MODULE__) do
     Agent.start_link(
@@ -333,14 +332,11 @@ defmodule Astarte.RealmManagement.API.Helpers.RPCMock.DB do
         trigger_name,
         policy_name,
         action,
-        serialized_tagged_simple_triggers
+        tagged_simple_triggers
       ) do
     if get_trigger(realm_name, trigger_name) do
       {:error, :already_installed_trigger}
     else
-      tagged_simple_triggers =
-        Enum.map(serialized_tagged_simple_triggers, &TaggedSimpleTrigger.decode/1)
-
       trigger = %{
         trigger_name: trigger_name,
         policy: policy_name,

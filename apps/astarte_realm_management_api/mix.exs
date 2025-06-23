@@ -85,6 +85,8 @@ defmodule Astarte.RealmManagement.API.Mixfile do
 
   defp deps do
     [
+      {:astarte_realm_management,
+       path: "../astarte_realm_management", only: [:dev, :test], runtime: false},
       {:phoenix, "~> 1.7"},
       {:plug_cowboy, "~> 2.1"},
       {:gettext, "~> 0.24"},

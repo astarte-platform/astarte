@@ -46,7 +46,6 @@ defmodule Astarte.RealmManagement.API.Helpers.RPCMock do
     DeleteDevice,
     GetDeviceRegistrationLimit,
     GetDeviceRegistrationLimitReply,
-    InstallTrigger,
     GetTriggerReply,
     GetTrigger,
     GetTriggersListReply,
@@ -310,33 +309,6 @@ defmodule Astarte.RealmManagement.API.Helpers.RPCMock do
     %GetDatastreamMaximumStorageRetentionReply{datastream_maximum_storage_retention: value}
     |> encode_reply(:get_datastream_maximum_storage_retention_reply)
     |> ok_wrap
-  end
-
-  defp execute_rpc(
-         {:install_trigger,
-          %InstallTrigger{
-            realm_name: realm_name,
-            trigger_name: trigger_name,
-            action: action,
-            serialized_tagged_simple_triggers: serialized_tagged_simple_triggers,
-            trigger_policy: policy_name
-          }}
-       ) do
-    with :ok <-
-           DB.install_trigger(
-             realm_name,
-             trigger_name,
-             policy_name,
-             action,
-             serialized_tagged_simple_triggers
-           ) do
-      generic_ok()
-      |> ok_wrap
-    else
-      {:error, reason} ->
-        generic_error(reason)
-        |> ok_wrap
-    end
   end
 
   defp execute_rpc({:get_triggers_list, %GetTriggersList{realm_name: realm_name}}) do
