@@ -25,8 +25,8 @@ defmodule Astarte.RealmManagement.APIWeb.TriggerControllerTest do
   alias Astarte.Helpers.Database
   alias Astarte.RealmManagement.API.Helpers.JWTTestHelper
   alias Astarte.RealmManagement.API.Helpers.RPCMock.DB
+  alias Astarte.RealmManagement.API.Triggers
   alias Astarte.RealmManagement.API.Triggers.Trigger
-  alias Astarte.RealmManagement.Engine
   alias Ecto.Changeset
 
   import Astarte.RealmManagement.API.Fixtures.Trigger
@@ -40,8 +40,10 @@ defmodule Astarte.RealmManagement.APIWeb.TriggerControllerTest do
 
     on_exit(fn ->
       Database.setup_database_access(astarte_instance_id)
-      # TODO: use Triggers.delete_trigger once we remove the `delete_trigger rpc`
-      Engine.delete_trigger(realm, trigger_name)
+
+      with {:ok, trigger} <- Triggers.get_trigger(realm, trigger_name) do
+        Triggers.delete_trigger(realm, trigger)
+      end
     end)
 
     %{trigger_attrs: trigger_attrs, trigger_name: trigger_name}
@@ -143,9 +145,6 @@ defmodule Astarte.RealmManagement.APIWeb.TriggerControllerTest do
         post(conn, trigger_path(conn, :create, realm), data: trigger_attrs)
 
       assert json_response(post_conn, 201)
-
-      # TODO: remove once delete trigger rpc is removed
-      create_trigger(realm, trigger_attrs)
 
       delete_conn =
         delete(conn, trigger_path(conn, :delete, realm, trigger_name))

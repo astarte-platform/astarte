@@ -47,8 +47,7 @@ defmodule Astarte.RealmManagement.API.Helpers.RPCMock do
     GetDeviceRegistrationLimit,
     GetDeviceRegistrationLimitReply,
     GetTriggersListReply,
-    GetTriggersList,
-    DeleteTrigger
+    GetTriggersList
   }
 
   alias Astarte.Core.Interface
@@ -313,24 +312,6 @@ defmodule Astarte.RealmManagement.API.Helpers.RPCMock do
     %GetTriggersListReply{triggers_names: list}
     |> encode_reply(:get_triggers_list_reply)
     |> ok_wrap
-  end
-
-  defp execute_rpc(
-         {:delete_trigger,
-          %DeleteTrigger{
-            realm_name: realm_name,
-            trigger_name: trigger_name
-          }}
-       ) do
-    with :ok <- DB.delete_trigger(realm_name, trigger_name) do
-      %GenericOkReply{}
-      |> encode_reply(:generic_ok_reply)
-      |> ok_wrap
-    else
-      {:error, reason} ->
-        generic_error(reason)
-        |> ok_wrap
-    end
   end
 
   defp generic_ok(async_operation \\ false) do

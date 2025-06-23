@@ -69,6 +69,8 @@ defmodule Astarte.RealmManagement.API.Triggers do
          name: trigger.name,
          action: action_struct,
          simple_triggers: simple_triggers_configs,
+         simple_triggers_uuids: trigger.simple_triggers_uuids,
+         trigger_uuid: trigger.trigger_uuid,
          policy: trigger.policy
        }}
     end
@@ -98,7 +100,7 @@ defmodule Astarte.RealmManagement.API.Triggers do
              trigger_params.simple_triggers,
              &SimpleTriggerConfig.to_tagged_simple_trigger/1
            ),
-         :ok <-
+         {:ok, core_trigger} <-
            Core.install_trigger(
              realm_name,
              trigger_params.name,
@@ -106,7 +108,13 @@ defmodule Astarte.RealmManagement.API.Triggers do
              encoded_action,
              tagged_simple_triggers
            ) do
-      {:ok, trigger_params}
+      trigger = %{
+        trigger_params
+        | trigger_uuid: core_trigger.trigger_uuid,
+          simple_triggers_uuids: core_trigger.simple_triggers_uuids
+      }
+
+      {:ok, trigger}
     end
   end
 
@@ -119,12 +127,23 @@ defmodule Astarte.RealmManagement.API.Triggers do
       {:ok, %Trigger{}}
 
       iex> delete_trigger(trigger)
-      {:error, %Ecto.Changeset{}}
+      {:error, :cannot_delete_simple_trigger}
 
   """
   def delete_trigger(realm_name, %Trigger{} = trigger) do
-    with :ok <- RealmManagement.delete_trigger(realm_name, trigger.name) do
-      {:ok, trigger}
+    Logger.info("Deleting trigger.", trigger_name: trigger.name, tag: "delete_trigger_started")
+
+    case Core.delete_trigger(realm_name, trigger) do
+      :ok ->
+        {:ok, trigger}
+
+      {:error, :trigger_not_found} ->
+        Logger.warning("Failed to delete trigger.",
+          trigger_name: trigger.name,
+          tag: "delete_trigger_fail"
+        )
+
+        {:error, :trigger_not_found}
     end
   end
 end

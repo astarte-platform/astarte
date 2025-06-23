@@ -22,14 +22,15 @@ defmodule Astarte.RealmManagement.API.Triggers.Core do
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.SimpleTriggerContainer
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.TaggedSimpleTrigger
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.TriggerTargetContainer
-  alias Astarte.Core.Triggers.Trigger
+  alias Astarte.Core.Triggers.Trigger, as: CoreTrigger
+  alias Astarte.RealmManagement.API.Triggers.Trigger
   alias Astarte.RealmManagement.API.Triggers.Queries
 
   require Logger
 
   def get_trigger(realm_name, trigger_name) do
     with {:ok, trigger} <- Queries.retrieve_trigger(realm_name, trigger_name) do
-      %Trigger{
+      %CoreTrigger{
         trigger_uuid: parent_uuid,
         simple_triggers_uuids: simple_triggers_uuids
       } = trigger
@@ -72,7 +73,7 @@ defmodule Astarte.RealmManagement.API.Triggers.Core do
     with :ok <- check_trigger_does_not_exitst(realm_name, trigger_name),
          simple_trigger_maps = build_simple_trigger_maps(tagged_simple_triggers),
          trigger = build_trigger(trigger_name, trigger_policy_name, simple_trigger_maps, action),
-         %Trigger{trigger_uuid: trigger_uuid} = trigger,
+         %CoreTrigger{trigger_uuid: trigger_uuid} = trigger,
          {:ok, action_map} <- Jason.decode(action),
          trigger_target = target_from_action(action_map, trigger_uuid),
          t_container = build_trigger_target_container(trigger_target),
@@ -81,15 +82,32 @@ defmodule Astarte.RealmManagement.API.Triggers.Core do
          :ok <-
            install_simple_triggers(realm_name, simple_trigger_maps, trigger_uuid, t_container),
          :ok <-
-           install_trigger_policy_link(realm_name, trigger_uuid, trigger_policy_name) do
-      _ =
-        Logger.info("Installing trigger.",
-          trigger_name: trigger_name,
-          tag: "install_trigger_started"
-        )
-
-      Queries.install_trigger(realm_name, trigger)
+           install_trigger_policy_link(realm_name, trigger_uuid, trigger_policy_name),
+         Logger.info("Installing trigger.",
+           trigger_name: trigger_name,
+           tag: "install_trigger_started"
+         ),
+         :ok <- Queries.install_trigger(realm_name, trigger) do
+      {:ok, trigger}
     end
+  end
+
+  @spec delete_trigger(String.t(), Trigger.t()) :: :ok | {:error, :trigger_not_found}
+  def delete_trigger(realm_name, trigger) do
+    with :ok <- delete_all_simple_triggers(realm_name, trigger) do
+      :ok = Queries.delete_trigger_policy_link(realm_name, trigger.trigger_uuid, trigger.policy)
+
+      Queries.delete_trigger(realm_name, trigger.name)
+    end
+  end
+
+  defp delete_all_simple_triggers(realm_name, trigger) do
+    Enum.reduce_while(trigger.simple_triggers_uuids, :ok, fn simple_trigger_uuid, :ok ->
+      case Queries.delete_simple_trigger(realm_name, trigger.trigger_uuid, simple_trigger_uuid) do
+        :ok -> {:cont, :ok}
+        error -> {:halt, error}
+      end
+    end)
   end
 
   defp check_trigger_does_not_exitst(realm_name, trigger_name) do
@@ -155,7 +173,7 @@ defmodule Astarte.RealmManagement.API.Triggers.Core do
         policy
       end
 
-    %Trigger{
+    %CoreTrigger{
       trigger_uuid: :uuid.get_v4(),
       simple_triggers_uuids: simple_trigger_uuids,
       action: action,

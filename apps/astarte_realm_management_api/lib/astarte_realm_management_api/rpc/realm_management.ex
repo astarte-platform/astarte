@@ -20,7 +20,6 @@ defmodule Astarte.RealmManagement.API.RPC.RealmManagement do
   alias Astarte.RPC.Protocol.RealmManagement.{
     Call,
     DeleteInterface,
-    DeleteTrigger,
     GenericErrorReply,
     GenericOkReply,
     GetDatastreamMaximumStorageRetention,
@@ -150,17 +149,6 @@ defmodule Astarte.RealmManagement.API.RPC.RealmManagement do
       realm_name: realm_name
     }
     |> encode_call(:get_triggers_list)
-    |> @rpc_client.rpc_call(@destination)
-    |> decode_reply()
-    |> extract_reply()
-  end
-
-  def delete_trigger(realm_name, trigger_name) do
-    %DeleteTrigger{
-      realm_name: realm_name,
-      trigger_name: trigger_name
-    }
-    |> encode_call(:delete_trigger)
     |> @rpc_client.rpc_call(@destination)
     |> decode_reply()
     |> extract_reply()
