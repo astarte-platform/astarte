@@ -21,17 +21,16 @@ defmodule Astarte.RealmManagement.API.InterfacesTest do
   use ExUnitProperties
 
   @moduletag :interfaces
-  # TODO: This module is only being kept for reference. Remove it altogether
-  # when the interfaces functions have been migrated to the API service.
-  @moduletag :skip
 
+  alias Astarte.Helpers
+  alias Astarte.RealmManagement
   alias Astarte.Core.Interface
   alias Astarte.Core.Mapping
   alias Astarte.Helpers.Database
   alias Astarte.RealmManagement.API.Interfaces
-  alias Astarte.RealmManagement.Engine
-  alias Astarte.RealmManagement.Queries
   alias Astarte.RealmManagement.API.Helpers.RPCMock.DB
+
+  import ExUnit.CaptureLog
 
   @interface_name "com.Some.Interface"
   @interface_major 0
@@ -65,8 +64,18 @@ defmodule Astarte.RealmManagement.API.InterfacesTest do
   describe "interface creation" do
     @describetag :creation
 
+    setup %{realm: realm, astarte_instance_id: astarte_instance_id} do
+      on_exit(fn ->
+        Database.setup_database_access(astarte_instance_id)
+
+        capture_log(fn ->
+          RealmManagement.Queries.delete_interface(realm, @interface_name, @interface_major)
+        end)
+      end)
+    end
+
     test "succeeds with valid attrs", %{realm: realm} do
-      assert {:ok, %Interface{} = interface} = Interfaces.create_interface(realm, @valid_attrs)
+      assert {:ok, %Interface{} = interface} = Interfaces.install_interface(realm, @valid_attrs)
 
       assert %Interface{
                name: @interface_name,
@@ -82,39 +91,50 @@ defmodule Astarte.RealmManagement.API.InterfacesTest do
                value_type: :integer
              } = mapping
 
-      assert {:ok, [@interface_name]} = Interfaces.list_interfaces(realm)
+      # TODO: uncomment when `list_interfaces` will be moved to API service
+      # assert {:ok, [@interface_name]} = Interfaces.list_interfaces(realm)
     end
 
     test "fails with already installed interface", %{realm: realm} do
-      assert {:ok, %Interface{} = _interface} = Interfaces.create_interface(realm, @valid_attrs)
+      assert {:ok, %Interface{} = _interface} = Interfaces.install_interface(realm, @valid_attrs)
 
       assert {:error, :already_installed_interface} =
-               Interfaces.create_interface(realm, @valid_attrs)
+               Interfaces.install_interface(realm, @valid_attrs)
     end
 
     test "fails when interface name collides after normalization", %{realm: realm} do
+      new_name = "com.astarteplatform.Interface"
+
       normalized_attrs =
         @valid_attrs
-        |> Map.put("interface_name", "com.astarteplatform.Interface")
+        |> Map.put("interface_name", new_name)
 
-      {:ok, %Interface{}} = Interfaces.create_interface(realm, normalized_attrs)
+      {:ok, %Interface{}} = Interfaces.install_interface(realm, normalized_attrs)
 
       colliding_normalized_attrs =
         @valid_attrs
         |> Map.put("interface_name", "com.astarte-platform.Interface")
 
       assert {:error, :interface_name_collision} =
-               Interfaces.create_interface(realm, colliding_normalized_attrs)
+               Interfaces.install_interface(realm, colliding_normalized_attrs)
+
+      capture_log(fn ->
+        RealmManagement.Queries.delete_interface(
+          realm,
+          new_name,
+          @interface_major
+        )
+      end)
     end
 
     test "fails with invalid attrs", %{realm: realm} do
-      assert {:error, %Ecto.Changeset{errors: [type: _]}} =
-               Interfaces.create_interface(realm, @invalid_attrs)
+      assert {:error, :invalid_interface_document} =
+               Interfaces.install_interface(realm, @invalid_attrs)
     end
 
     test "succeeds using a synchronous call", %{realm: realm} do
       assert {:ok, %Interface{} = interface} =
-               Interfaces.create_interface(realm, @valid_attrs, async_operation: false)
+               Interfaces.install_interface(realm, @valid_attrs, async: false)
 
       assert %Interface{
                name: @interface_name,
@@ -130,12 +150,12 @@ defmodule Astarte.RealmManagement.API.InterfacesTest do
                value_type: :integer
              } = mapping
 
-      assert {:ok, [@interface_name]} = Interfaces.list_interfaces(realm)
+      # TODO: uncomment when `list_interfaces` will be moved to API service
+      # assert {:ok, [@interface_name]} = Interfaces.list_interfaces(realm)
     end
 
     test "fails when a mapping higher database_retention_ttl than the maximum", %{realm: realm} do
-      alias Astarte.RealmManagement.API.Helpers.RPCMock.DB
-      DB.put_datastream_maximum_storage_retention(realm, 1)
+      insert_datastream_maximum_storage_retention!(realm, 1)
 
       iface_with_invalid_mappings = %{
         @valid_attrs
@@ -151,7 +171,12 @@ defmodule Astarte.RealmManagement.API.InterfacesTest do
       }
 
       assert {:error, :maximum_database_retention_exceeded} =
-               Interfaces.create_interface(realm, iface_with_invalid_mappings)
+               Interfaces.install_interface(realm, iface_with_invalid_mappings)
+
+      keyspace = Realm.keyspace_name(realm)
+
+      %{group: "realm_config", key: "datastream_maximum_storage_retention", value: nil}
+      |> KvStore.insert(prefix: keyspace)
     end
   end
 
@@ -164,8 +189,9 @@ defmodule Astarte.RealmManagement.API.InterfacesTest do
       on_exit(fn ->
         Database.setup_database_access(astarte_instance_id)
 
-        # Use queries to avoid checks on the major version
-        Queries.delete_interface(realm, interface.name, interface.major_version)
+        capture_log(fn ->
+          RealmManagement.Queries.delete_interface(realm, interface.name, interface.major_version)
+        end)
       end)
 
       :ok
@@ -190,13 +216,8 @@ defmodule Astarte.RealmManagement.API.InterfacesTest do
       # TODO: remove after get_interface is removed
       update_interface(realm, @interface_name, @interface_major)
 
-      assert {:ok, interface_source} =
-               Interfaces.fetch_interface(realm, @interface_name, @interface_major)
-
-      assert {:ok, map} = Jason.decode(interface_source)
-
       assert {:ok, interface} =
-               Interface.changeset(%Interface{}, map) |> Ecto.Changeset.apply_action(:insert)
+               Interfaces.fetch_interface(realm, @interface_name, @interface_major)
 
       assert %Interface{
                name: "com.Some.Interface",
@@ -213,7 +234,8 @@ defmodule Astarte.RealmManagement.API.InterfacesTest do
                value_type: :integer
              } = mapping
 
-      assert {:ok, ["com.Some.Interface"]} = Interfaces.list_interfaces(realm)
+      # TODO: uncomment after `list_interfaces` rpc is moved to RealmManagement API
+      # assert {:ok, ["com.Some.Interface"]} = Interfaces.list_interfaces(realm)
     end
 
     test "fails with not installed interface", %{realm: realm} do
@@ -305,8 +327,8 @@ defmodule Astarte.RealmManagement.API.InterfacesTest do
     end
 
     test "fails with invalid attrs", %{realm: realm} do
-      assert {:error, %Ecto.Changeset{errors: [type: _]}} =
-               Interfaces.create_interface(realm, @invalid_attrs)
+      assert {:error, :invalid_interface_document} =
+               Interfaces.install_interface(realm, @invalid_attrs)
     end
 
     test "succeeds with valid attrs using a synchronous call", %{realm: realm} do
@@ -329,13 +351,8 @@ defmodule Astarte.RealmManagement.API.InterfacesTest do
       # TODO: remove after `get_interface_source` rpc is removed
       update_interface(realm, @interface_name, @interface_major)
 
-      assert {:ok, interface_source} =
-               Interfaces.fetch_interface(realm, @interface_name, @interface_major)
-
-      assert {:ok, map} = Jason.decode(interface_source)
-
       assert {:ok, interface} =
-               Interface.changeset(%Interface{}, map) |> Ecto.Changeset.apply_action(:insert)
+               Interfaces.fetch_interface(realm, @interface_name, @interface_major)
 
       assert %Interface{
                name: "com.Some.Interface",
@@ -352,7 +369,8 @@ defmodule Astarte.RealmManagement.API.InterfacesTest do
                value_type: :integer
              } = mapping
 
-      assert {:ok, ["com.Some.Interface"]} = Interfaces.list_interfaces(realm)
+      # TODO: uncomment when `list_interfaces` will be moved to API service
+      # assert {:ok, ["com.Some.Interface"]} = Interfaces.list_interfaces(realm)
     end
   end
 
@@ -373,13 +391,10 @@ defmodule Astarte.RealmManagement.API.InterfacesTest do
                     interface_id: interface.interface_id,
                     mappings: interface.mappings
                   ) do
-        json_interface = Jason.encode!(interface)
-
         updated_interface_params =
           valid_update_interface |> Jason.encode!() |> Jason.decode!(keys: :atoms)
 
-        # TODO: change after removal of `install_interface` rpc
-        :ok = Engine.install_interface(realm, json_interface)
+        {:ok, interface} = Interfaces.install_interface(realm, to_input_map(interface))
 
         assert :ok =
                  Interfaces.update_interface(
@@ -389,16 +404,8 @@ defmodule Astarte.RealmManagement.API.InterfacesTest do
                    updated_interface_params
                  )
 
-        # TODO: change after removal of `get_interface_source` rpc
-        {:ok, interface_json} =
-          Engine.interface_source(realm, interface.name, interface.major_version)
-
-        interface_params =
-          Jason.decode!(interface_json, keys: :atoms)
-
-        interface =
-          Interface.changeset(%Interface{}, interface_params)
-          |> Ecto.Changeset.apply_action!(:insert)
+        {:ok, interface} =
+          Interfaces.fetch_interface(realm, interface.name, interface.major_version)
 
         %{
           name: name,
@@ -414,7 +421,9 @@ defmodule Astarte.RealmManagement.API.InterfacesTest do
 
         # TODO: change after removal of `delete_interface` rpc
         # Use queries to avoid checks on the major version
-        Queries.delete_interface(realm, interface.name, interface.major_version)
+        capture_log(fn ->
+          RealmManagement.Queries.delete_interface(realm, interface.name, interface.major_version)
+        end)
       end
     end
 
@@ -428,12 +437,10 @@ defmodule Astarte.RealmManagement.API.InterfacesTest do
                   major_version: interface.major_version + 1
                 )
             ) do
-        json_interface = Jason.encode!(interface)
-
         interface_update =
           updated_interface |> Jason.encode!() |> Jason.decode!(keys: :atoms)
 
-        _ = Engine.install_interface(realm, json_interface)
+        {:ok, interface} = Interfaces.install_interface(realm, to_input_map(interface))
 
         assert {:error, :major_version_not_matching} =
                  Interfaces.update_interface(
@@ -445,7 +452,9 @@ defmodule Astarte.RealmManagement.API.InterfacesTest do
 
         # TODO: change after removal of `delete_interface` rpc
         # Use queries to avoid checks on the major version
-        Queries.delete_interface(realm, interface.name, interface.major_version)
+        capture_log(fn ->
+          RealmManagement.Queries.delete_interface(realm, interface.name, interface.major_version)
+        end)
       end
     end
 
@@ -465,12 +474,10 @@ defmodule Astarte.RealmManagement.API.InterfacesTest do
                   mappings: interface.mappings
                 )
             ) do
-        json_interface = Jason.encode!(interface)
-
         interface_update =
           updated_interface |> Jason.encode!() |> Jason.decode!(keys: :atoms)
 
-        _ = Engine.install_interface(realm, json_interface)
+        {:ok, interface} = Interfaces.install_interface(realm, to_input_map(interface))
 
         {:error, :downgrade_not_allowed} =
           Interfaces.update_interface(
@@ -482,7 +489,9 @@ defmodule Astarte.RealmManagement.API.InterfacesTest do
 
         # TODO: change after removal of `delete_interface` rpc
         # Use queries to avoid checks on the major version
-        Queries.delete_interface(realm, interface.name, interface.major_version)
+        capture_log(fn ->
+          RealmManagement.Queries.delete_interface(realm, interface.name, interface.major_version)
+        end)
       end
     end
   end
@@ -490,11 +499,23 @@ defmodule Astarte.RealmManagement.API.InterfacesTest do
   describe "interface deletion" do
     @describetag :deletion
 
-    setup %{realm: realm} do
-      {:ok, %Interface{}} = Interfaces.create_interface(realm, @valid_attrs)
+    setup %{realm: realm, astarte_instance_id: astarte_instance_id} do
+      {:ok, %Interface{} = interface} = Interfaces.install_interface(realm, @valid_attrs)
+      DB.install_interface(realm, interface)
+
+      on_exit(fn ->
+        Helpers.Database.setup_database_access(astarte_instance_id)
+        # Use queries to avoid checks on the major version
+        capture_log(fn ->
+          RealmManagement.Queries.delete_interface(realm, interface.name, interface.major_version)
+        end)
+      end)
+
       :ok
     end
 
+    # TODO: remove once deletion is moved to API service
+    @tag :skip
     test "succeeds with valid interface", %{realm: realm} do
       assert :ok = Interfaces.delete_interface(realm, @interface_name, @interface_major)
 
@@ -502,29 +523,38 @@ defmodule Astarte.RealmManagement.API.InterfacesTest do
                Interfaces.fetch_interface(realm, @interface_name, @interface_major)
     end
 
+    # TODO: remove once deletion is moved to API service
+    @tag :skip
     test "fails if major version is other than 0", %{realm: realm} do
       new_interface_major = 1
+      new_name = "com.Some.Interface1"
 
       major_attrs =
         @valid_attrs
         |> Map.put("version_major", new_interface_major)
 
-      assert {:ok, %Interface{}} = Interfaces.create_interface(realm, major_attrs)
+      assert {:ok, %Interface{}} = Interfaces.install_interface(realm, major_attrs)
 
       assert {:error, :forbidden} =
-               Interfaces.delete_interface(realm, @interface_name, new_interface_major)
+               Interfaces.delete_interface(realm, new_name, new_interface_major)
     end
 
+    # TODO: remove once deletion is moved to API service
+    @tag :skip
     test "fails with not installed interface", %{realm: realm} do
       assert {:error, :interface_not_found} =
                Interfaces.delete_interface(realm, "com.NotExisting", @interface_major)
     end
 
+    # TODO: remove once deletion is moved to API service
+    @tag :skip
     test "returns error for invalid realm" do
       assert {:error, :interface_not_found} =
                Interfaces.delete_interface("invalidrealm", @interface_name, @interface_major)
     end
 
+    # TODO: remove once deletion is moved to API service
+    @tag :skip
     test "succeeds using a synchronous call", %{realm: realm} do
       assert :ok =
                Interfaces.delete_interface(
@@ -540,23 +570,11 @@ defmodule Astarte.RealmManagement.API.InterfacesTest do
   end
 
   defp create_interface(realm_name, params) do
-    with {:ok, interface} <- Interfaces.create_interface(realm_name, params) do
-      interface_json = Jason.encode!(interface)
-      Engine.install_interface(realm_name, interface_json)
-      {:ok, interface}
-    end
+    Interfaces.install_interface(realm_name, params)
   end
 
   defp update_interface(realm_name, interface_name, major_version) do
-    with {:ok, interface_json} <-
-           Engine.interface_source(realm_name, interface_name, major_version) do
-      interface_params = Jason.decode!(interface_json, keys: :atoms)
-
-      interface =
-        %Interface{}
-        |> Interface.changeset(interface_params)
-        |> Ecto.Changeset.apply_action!(:insert)
-
+    with {:ok, interface} <- Interfaces.fetch_interface(realm_name, interface_name, major_version) do
       DB.update_interface(realm_name, interface)
     end
   end

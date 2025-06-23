@@ -39,9 +39,7 @@ defmodule Astarte.RealmManagement.APIWeb.InterfaceController do
       end
 
     with {:ok, %Interface{} = interface} <-
-           Interfaces.create_interface(realm_name, interface_params,
-             async_operation: async_operation
-           ) do
+           Interfaces.install_interface(realm_name, interface_params, async: async_operation) do
       location =
         interface_path(
           conn,

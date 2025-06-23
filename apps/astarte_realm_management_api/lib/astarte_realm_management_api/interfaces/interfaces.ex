@@ -17,6 +17,9 @@
 #
 
 defmodule Astarte.RealmManagement.API.Interfaces do
+  alias Astarte.Core.Mapping.EndpointsAutomaton
+  alias Astarte.Core.Mapping
+  alias Astarte.Core.InterfaceDescriptor
   alias Astarte.RealmManagement.API.Interfaces.Queries
   alias Astarte.Core.Interface
   alias Astarte.Core.Mapping.EndpointsAutomaton
@@ -27,6 +30,8 @@ defmodule Astarte.RealmManagement.API.Interfaces do
   alias Astarte.DataAccess.Mappings
   alias Astarte.RealmManagement.API.RPC.RealmManagement
   alias Astarte.DataAccess.Interface, as: DataAccessInterface
+
+  require Logger
 
   require Logger
 
@@ -45,17 +50,78 @@ defmodule Astarte.RealmManagement.API.Interfaces do
   @doc delegate_to: {Queries, :fetch_interface, 3}
   defdelegate fetch_interface(realm, interface, major), to: Queries
 
-  def create_interface(realm_name, params, opts \\ []) do
-    changeset = Interface.changeset(%Interface{}, params)
+  def install_interface(realm_name, params, opts \\ []) do
+    _ = Logger.info("Going to install a new interface.", tag: "install_interface")
 
-    with {:ok, %Interface{} = interface} <- Ecto.Changeset.apply_action(changeset, :insert),
-         {:ok, interface_source} <- Jason.encode(interface) do
-      case RealmManagement.install_interface(realm_name, interface_source, opts) do
-        :ok -> {:ok, interface}
-        {:ok, :started} -> {:ok, interface}
-        {:error, reason} -> {:error, reason}
+    with interface_changeset <- Interface.changeset(%Interface{}, params),
+         {:ok, interface_doc} <- Ecto.Changeset.apply_action(interface_changeset, :insert),
+         :ok <- verify_mappings_max_storage_retention(realm_name, interface_doc),
+         interface_descriptor <- InterfaceDescriptor.from_interface(interface_doc),
+         %InterfaceDescriptor{name: name, major_version: major} <- interface_descriptor,
+         {:interface_avail, {:ok, false}} <-
+           {:interface_avail, Queries.is_interface_major_available?(realm_name, name, major)},
+         :ok <- Queries.check_interface_name_collision(realm_name, name),
+         {:ok, automaton} <- EndpointsAutomaton.build(interface_doc.mappings) do
+      _ =
+        Logger.info("Installing interface.",
+          interface: name,
+          interface_major: major,
+          tag: "install_interface_started"
+        )
+
+      if opts[:async] do
+        # TODO: add _ = Logger.metadata(realm: realm_name)
+        Task.start(Queries, :install_interface, [realm_name, interface_doc, automaton])
+
+        {:ok, interface_doc}
+      else
+        Queries.install_interface(realm_name, interface_doc, automaton)
+      end
+    else
+      {:error, %Ecto.Changeset{} = changeset} ->
+        _ =
+          Logger.warning("Received invalid interface: #{inspect(changeset)}.",
+            tag: "invalid_interface_document"
+          )
+
+        {:error, :invalid_interface_document}
+
+      {:error, :database_connection_error} ->
+        {:error, :realm_not_found}
+
+      {:error, :database_error} ->
+        {:error, :database_error}
+
+      {:interface_avail, {:ok, true}} ->
+        {:error, :already_installed_interface}
+
+      {:error, :maximum_database_retention_exceeded} ->
+        {:error, :maximum_database_retention_exceeded}
+
+      {:error, :interface_name_collision} ->
+        {:error, :interface_name_collision}
+
+      {:error, :overlapping_mappings} ->
+        {:error, :overlapping_mappings}
+    end
+  end
+
+  defp verify_mappings_max_storage_retention(realm_name, interface) do
+    with {:ok, max_retention} <- Queries.get_datastream_maximum_storage_retention(realm_name) do
+      if mappings_retention_valid?(interface.mappings, max_retention) do
+        :ok
+      else
+        {:error, :maximum_database_retention_exceeded}
       end
     end
+  end
+
+  defp mappings_retention_valid?(_mappings, 0), do: true
+
+  defp mappings_retention_valid?(mappings, max_retention) do
+    Enum.all?(mappings, fn %Mapping{database_retention_ttl: retention} ->
+      retention <= max_retention
+    end)
   end
 
   def update_interface(realm_name, interface_name, major_version, params, opts \\ []) do

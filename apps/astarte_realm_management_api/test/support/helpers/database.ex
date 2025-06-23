@@ -327,4 +327,31 @@ defmodule Astarte.Helpers.Database do
     |> Mimic.stub(:astarte_instance_id, fn -> {:ok, astarte_instance_id} end)
     |> Mimic.stub(:astarte_instance_id!, fn -> astarte_instance_id end)
   end
+
+  def to_input_map(interface) do
+    %{
+      interface_name: interface.name,
+      version_major: interface.major_version,
+      version_minor: interface.minor_version,
+      type: interface.type,
+      ownership: interface.ownership,
+      aggregation: interface.aggregation,
+      description: interface.description,
+      mappings: Enum.map(interface.mappings, &to_mapping_map/1)
+    }
+  end
+
+  def to_mapping_map(mapping) do
+    %{
+      endpoint: mapping.endpoint,
+      reliability: mapping.reliability,
+      type: mapping.value_type,
+      allow_unset: mapping.allow_unset,
+      retention: mapping.retention,
+      expiry: mapping.expiry,
+      database_retention_policy: mapping.database_retention_policy,
+      database_retention_ttl: mapping.database_retention_ttl,
+      explicit_timestamp: mapping.explicit_timestamp
+    }
+  end
 end
