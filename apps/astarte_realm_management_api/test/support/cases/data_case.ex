@@ -19,14 +19,19 @@
 defmodule Astarte.RealmManagement.API.DataCase do
   use ExUnit.CaseTemplate
 
+  using do
+    quote do
+      use Astarte.Cases.Data
+    end
+  end
+
   setup do
-    realm = "autotestrealm#{System.unique_integer([:positive])}"
     agent_name = :"test_agent_#{System.unique_integer([:positive])}"
 
     start_supervised!({Astarte.RealmManagement.API.Helpers.RPCMock.DB, agent_name})
 
     Process.put(:current_agent, agent_name)
 
-    %{realm: realm}
+    :ok
   end
 end

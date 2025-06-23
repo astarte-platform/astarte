@@ -40,9 +40,7 @@ defmodule Astarte.RealmManagement.API.Application do
     DataAccessConfig.validate!()
     RPC.Config.validate!()
 
-    xandra_opts =
-      Astarte.RealmManagement.API.Config.xandra_options!()
-      |> Keyword.put(:atom_keys, true)
+    xandra_opts = Astarte.RealmManagement.API.Config.xandra_options!()
 
     rm_xandra_opts = Keyword.put(xandra_opts, :name, :xandra)
 

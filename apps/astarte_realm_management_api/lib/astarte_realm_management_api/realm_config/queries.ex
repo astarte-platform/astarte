@@ -1,0 +1,61 @@
+#
+# This file is part of Astarte.
+#
+# Copyright 2025 SECO Mind Srl
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+# SPDX-License-Identifier: Apache-2.0
+#
+
+defmodule Astarte.RealmManagement.API.RealmConfig.Queries do
+  @moduledoc """
+  Queries to handle JWT public keys retrieval and update.
+  """
+  alias Astarte.DataAccess.KvStore
+  alias Astarte.DataAccess.Consistency
+  alias Astarte.DataAccess.Realms.Realm
+
+  @doc """
+  Gets the jwt public key pem for the realm with name `realm_name`. returns
+  {:error, :public_key_not_found} if the realm could not be found.
+  """
+  def fetch_jwt_public_key_pem(realm_name) do
+    keyspace = Realm.keyspace_name(realm_name)
+
+    consistency = Consistency.domain_model(:read)
+
+    KvStore.fetch_value("auth", "jwt_public_key_pem", :string,
+      prefix: keyspace,
+      consistency: consistency,
+      error: :public_key_not_found
+    )
+  end
+
+  @doc """
+  Updates the `realm_name` `jwt_public_key_pem` with the provided one.
+  """
+  def update_jwt_public_key_pem(realm_name, jwt_public_key_pem) do
+    keyspace = Realm.keyspace_name(realm_name)
+
+    consistency = Consistency.domain_model(:write)
+
+    %{
+      group: "auth",
+      key: "jwt_public_key_pem",
+      value: jwt_public_key_pem,
+      value_type: :string
+    }
+    |> KvStore.insert(prefix: keyspace, consistency: consistency)
+  end
+end

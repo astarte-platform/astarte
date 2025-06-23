@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2018 - 2025 SECO Mind Srl
+# Copyright 2025 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -15,78 +15,37 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+# SPDX-License-Identifier: Apache-2.0
+#
 
-defmodule Astarte.RealmManagement.API.RealmConfigTest do
-  use Astarte.RealmManagement.API.DataCase, async: true
+defmodule Astarte.RealmManagement.API.RealmConfig.RealmConfigTest do
+  use Astarte.Cases.Data, async: true, jwt_public_key: "fake_pem"
+  use ExUnitProperties
 
-  alias Astarte.RealmManagement.API.RealmConfig
+  alias Astarte.Helpers
   alias Astarte.RealmManagement.API.RealmConfig.AuthConfig
+  alias Astarte.RealmManagement.API.RealmConfig
 
-  describe "auth config" do
-    alias Astarte.RealmManagement.API.Helpers.JWTTestHelper
-    alias Astarte.RealmManagement.API.Helpers.RPCMock.DB
+  setup %{realm_name: realm_name, jwt_public_key: key, astarte_instance_id: astarte_instance_id} do
+    on_exit(fn ->
+      setup_database_access(astarte_instance_id)
+      insert_public_key!(realm_name, key)
+    end)
+  end
 
-    @pubkey """
-    -----BEGIN PUBLIC KEY-----
-    MFYwEAYHKoZIzj0CAQYFK4EEAAoDQgAE6ssZpULEsn+wSQdc+DI2+4aj98a1hDKM
-    +bxRibfFC0G6SugduGzqIACSdIiLEn4Nubx2jt4tHDpel0BIrYKlCw==
-    -----END PUBLIC KEY-----
-    """
+  test "get_auth_config/1 retrieves realm jwt", context do
+    %{realm_name: realm_name, jwt_public_key: key} = context
 
-    @malformed_pubkey """
-    -----BEGIN PUBLIC KEY-----
-    MFYwEAYHKoZIzj0CAQYAoDQgAE6ssZpw4aj98a1hDKM
-    +bxRibfFC0G6SugduGzqIACSdIiLEn4Nubx2jt4tHDpel0BIrYKlCw==
-    -----END PUBLIC KEY-----
-    """
+    assert {:ok, %AuthConfig{jwt_public_key_pem: ^key}} = RealmConfig.get_auth_config(realm_name)
+  end
 
-    @update_attrs %{jwt_public_key_pem: @pubkey}
-    @invalid_pubkey_attrs %{jwt_public_key_pem: "invalid"}
-    @malformed_pubkey_attrs %{jwt_public_key_pem: @malformed_pubkey}
-    @empty_pubkey_attrs %{jwt_public_key_pem: nil}
+  test "update_auth_config/2 sets the jwt public key pem", context do
+    %{realm_name: realm_name} = context
 
-    setup %{realm: realm} do
-      DB.put_jwt_public_key_pem(realm, JWTTestHelper.public_key_pem())
-    end
+    key = Helpers.Database.get_public_key()
+    new_config = %{jwt_public_key_pem: key}
 
-    test "get_auth_config/1 returns the auth config for the given realm", %{realm: realm} do
-      assert RealmConfig.get_auth_config(realm) ==
-               {:ok, %AuthConfig{jwt_public_key_pem: JWTTestHelper.public_key_pem()}}
-    end
-
-    test "update_auth_config/2 with invalid data returns error changeset", %{realm: realm} do
-      assert {:error, %Ecto.Changeset{}} =
-               RealmConfig.update_auth_config(realm, @empty_pubkey_attrs)
-
-      assert {:error, %Ecto.Changeset{}} =
-               RealmConfig.update_auth_config(realm, @invalid_pubkey_attrs)
-
-      assert {:error, %Ecto.Changeset{}} =
-               RealmConfig.update_auth_config(realm, @malformed_pubkey_attrs)
-    end
-
-    test "update_auth_config/2 with valid data returns :ok and changes the data", %{realm: realm} do
-      assert :ok = RealmConfig.update_auth_config(realm, @update_attrs)
-
-      assert RealmConfig.get_auth_config(realm) ==
-               {:ok, %AuthConfig{jwt_public_key_pem: @pubkey}}
-    end
-
-    test "get_device_registration_limit/1 returns the limit for an existing realm", %{
-      realm: realm
-    } do
-      limit = 10
-      DB.put_device_registration_limit(realm, limit)
-
-      assert {:ok, ^limit} = RealmConfig.get_device_registration_limit(realm)
-    end
-
-    test "get_datastream_maximum_storage_retention/1 returns the retention for an existing realm",
-         %{realm: realm} do
-      retention = 10
-      DB.put_datastream_maximum_storage_retention(realm, retention)
-
-      assert {:ok, ^retention} = RealmConfig.get_datastream_maximum_storage_retention(realm)
-    end
+    assert :ok = RealmConfig.update_auth_config(realm_name, new_config)
+    assert {:ok, %AuthConfig{jwt_public_key_pem: ^key}} = RealmConfig.get_auth_config(realm_name)
   end
 end

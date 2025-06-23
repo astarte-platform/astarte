@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2018 Ispirata Srl
+# Copyright 2018 - 2025 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -17,11 +17,12 @@
 #
 
 defmodule Astarte.RealmManagement.API.RealmConfig do
+  alias Astarte.RealmManagement.API.RealmConfig.Queries
   alias Astarte.RealmManagement.API.RealmConfig.AuthConfig
   alias Astarte.RealmManagement.API.RPC.RealmManagement
 
   def get_auth_config(realm) do
-    with {:ok, jwt_public_key_pem} <- RealmManagement.get_jwt_public_key_pem(realm) do
+    with {:ok, jwt_public_key_pem} <- Queries.fetch_jwt_public_key_pem(realm) do
       {:ok, %AuthConfig{jwt_public_key_pem: jwt_public_key_pem}}
     end
   end
@@ -37,9 +38,8 @@ defmodule Astarte.RealmManagement.API.RealmConfig do
   def update_auth_config(realm, new_config_params) do
     with %Ecto.Changeset{valid?: true} = changeset <-
            AuthConfig.changeset(%AuthConfig{}, new_config_params),
-         %AuthConfig{jwt_public_key_pem: pem} <- Ecto.Changeset.apply_changes(changeset),
-         :ok <- RealmManagement.update_jwt_public_key_pem(realm, pem) do
-      :ok
+         %AuthConfig{jwt_public_key_pem: pem} <- Ecto.Changeset.apply_changes(changeset) do
+      Queries.update_jwt_public_key_pem(realm, pem)
     else
       %Ecto.Changeset{valid?: false} = changeset ->
         {:error, %{changeset | action: :update}}

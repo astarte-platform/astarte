@@ -36,7 +36,7 @@ defmodule Astarte.RealmManagement.API.Config do
   @envdoc "The RPC client."
   app_env :rpc_client, :astarte_realm_management_api, :rpc_client,
     os_env: "REALM_MANAGEMENT_API_RPC_CLIENT",
-    type: :module,
+    type: :unsafe_module,
     binding_skip: [:system],
     default: Astarte.RPC.AMQP.Client
 

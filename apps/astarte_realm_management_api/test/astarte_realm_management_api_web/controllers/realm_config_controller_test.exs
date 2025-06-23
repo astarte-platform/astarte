@@ -19,6 +19,7 @@
 defmodule Astarte.RealmManagement.APIWeb.RealmControllerTest do
   use Astarte.RealmManagement.APIWeb.ConnCase, async: true
 
+  alias Astarte.Helpers
   alias Astarte.RealmManagement.API.Config
   alias Astarte.RealmManagement.API.Helpers.JWTTestHelper
   alias Astarte.RealmManagement.API.Helpers.RPCMock.DB
@@ -56,16 +57,15 @@ defmodule Astarte.RealmManagement.APIWeb.RealmControllerTest do
     end)
   end
 
-  setup %{conn: conn, realm: realm} do
-    DB.put_jwt_public_key_pem(realm, JWTTestHelper.public_key_pem())
+  setup %{conn: conn, realm: realm, jwt_public_key: key} do
+    Helpers.Database.insert_public_key!(realm, key)
     {:ok, conn: put_req_header(conn, "accept", "application/json")}
   end
 
-  test "returns the auth config on show", %{conn: conn, realm: realm} do
+  test "returns the auth config on show", %{conn: conn, realm: realm, jwt_public_key: key} do
     conn = get(conn, realm_config_path(conn, :show, realm, "auth"))
 
-    assert json_response(conn, 200)["data"]["jwt_public_key_pem"] ==
-             JWTTestHelper.public_key_pem()
+    assert json_response(conn, 200)["data"]["jwt_public_key_pem"] == key
   end
 
   test "does not update auth config and renders errors when no public key is provided", %{

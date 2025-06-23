@@ -19,11 +19,9 @@
 defmodule Astarte.RealmManagement.APIWeb.AuthTest do
   use Astarte.RealmManagement.APIWeb.ConnCase
 
+  alias Astarte.Helpers
   alias Astarte.RealmManagement.API.Helpers.JWTTestHelper
-  alias Astarte.RealmManagement.API.Helpers.RPCMock.DB
 
-  @realm "testrealm"
-  @request_path "/v1/#{@realm}/interfaces"
   @valid_auth_path "^interfaces$"
   @valid_auth_path_no_delim "interfaces"
   @non_exact_match_valid_auth_path "^interf.*$"
@@ -33,121 +31,146 @@ defmodule Astarte.RealmManagement.APIWeb.AuthTest do
 
   require Logger
 
-  setup %{conn: conn} do
-    DB.put_jwt_public_key_pem(@realm, JWTTestHelper.public_key_pem())
+  setup %{conn: conn, realm_name: realm_name, jwt_public_key: key} do
+    Helpers.Database.insert_public_key!(realm_name, key)
     {:ok, conn: put_req_header(conn, "accept", "application/json")}
   end
 
   describe "JWT" do
-    test "no token returns 401", %{conn: conn} do
-      conn = get(conn, @request_path)
+    test "no token returns 401", %{conn: conn, realm_name: realm_name} do
+      request_path = "/v1/#{realm_name}/interfaces"
+      conn = get(conn, request_path)
       assert json_response(conn, 401)["errors"]["detail"] == "Unauthorized"
     end
 
-    test "all access token returns the data", %{conn: conn} do
+    test "all access token returns the data", %{conn: conn, realm_name: realm_name} do
+      request_path = "/v1/#{realm_name}/interfaces"
+
       conn =
         put_req_header(
           conn,
           "authorization",
           "bearer #{JWTTestHelper.gen_jwt_all_access_token()}"
         )
-        |> get(@request_path)
+        |> get(request_path)
 
       assert json_response(conn, 200)["data"] == @expected_data
     end
 
-    test "valid token returns the data", %{conn: conn} do
+    test "valid token returns the data", %{conn: conn, realm_name: realm_name} do
+      request_path = "/v1/#{realm_name}/interfaces"
+
       conn =
         put_req_header(
           conn,
           "authorization",
           "bearer #{JWTTestHelper.gen_jwt_token(["^GET$::#{@valid_auth_path}"])}"
         )
-        |> get(@request_path)
+        |> get(request_path)
 
       assert json_response(conn, 200)["data"] == @expected_data
     end
 
-    test "valid token without delimiters returns the data", %{conn: conn} do
+    test "valid token without delimiters returns the data", %{conn: conn, realm_name: realm_name} do
+      request_path = "/v1/#{realm_name}/interfaces"
+
       conn =
         put_req_header(
           conn,
           "authorization",
           "bearer #{JWTTestHelper.gen_jwt_token(["GET::#{@valid_auth_path_no_delim}"])}"
         )
-        |> get(@request_path)
+        |> get(request_path)
 
       assert json_response(conn, 200)["data"] == @expected_data
     end
 
-    test "valid token for prefix returns 403", %{conn: conn} do
+    test "valid token for prefix returns 403", %{conn: conn, realm_name: realm_name} do
+      request_path = "/v1/#{realm_name}/interfaces"
+
       conn =
         put_req_header(
           conn,
           "authorization",
           "bearer #{JWTTestHelper.gen_jwt_token(["GET::#{@valid_auth_path_no_delim}"])}"
         )
-        |> get("#{@request_path}/suffix")
+        |> get("#{request_path}/suffix")
 
       assert json_response(conn, 403)["errors"]["detail"] == "Forbidden"
     end
 
-    test "token for another path returns 403", %{conn: conn} do
+    test "token for another path returns 403", %{conn: conn, realm_name: realm_name} do
+      request_path = "/v1/#{realm_name}/interfaces"
+
       conn =
         put_req_header(
           conn,
           "authorization",
           "bearer #{JWTTestHelper.gen_jwt_token(["^GET$::#{@non_matching_auth_path}"])}"
         )
-        |> get(@request_path)
+        |> get(request_path)
 
       assert json_response(conn, 403)["errors"]["detail"] == "Forbidden"
     end
 
-    test "token for both paths returns the data", %{conn: conn} do
+    test "token for both paths returns the data", %{
+      conn: conn,
+      realm_name: realm_name
+    } do
+      request_path = "/v1/#{realm_name}/interfaces"
+
       conn =
         put_req_header(
           conn,
           "authorization",
           "bearer #{JWTTestHelper.gen_jwt_token(["^GET$::#{@non_matching_auth_path}", "^GET$::#{@valid_auth_path}"])}"
         )
-        |> get(@request_path)
+        |> get(request_path)
 
       assert json_response(conn, 200)["data"] == @expected_data
     end
 
-    test "token for another method returns 403", %{conn: conn} do
+    test "token for another method returns 403", %{conn: conn, realm_name: realm_name} do
+      request_path = "/v1/#{realm_name}/interfaces"
+
       conn =
         put_req_header(
           conn,
           "authorization",
           "bearer #{JWTTestHelper.gen_jwt_token(["^POST$::#{@valid_auth_path}"])}"
         )
-        |> get(@request_path)
+        |> get(request_path)
 
       assert json_response(conn, 403)["errors"]["detail"] == "Forbidden"
     end
 
-    test "token for both methods returns the data", %{conn: conn} do
+    test "token for both methods returns the data", %{conn: conn, realm_name: realm_name} do
+      request_path = "/v1/#{realm_name}/interfaces"
+
       conn =
         put_req_header(
           conn,
           "authorization",
           "bearer #{JWTTestHelper.gen_jwt_token(["^POST$::#{@valid_auth_path}", "^GET$::#{@valid_auth_path}"])}"
         )
-        |> get(@request_path)
+        |> get(request_path)
 
       assert json_response(conn, 200)["data"] == @expected_data
     end
 
-    test "token with generic matching regexp returns the data", %{conn: conn} do
+    test "token with generic matching regexp returns the data", %{
+      conn: conn,
+      realm_name: realm_name
+    } do
+      request_path = "/v1/#{realm_name}/interfaces"
+
       conn =
         put_req_header(
           conn,
           "authorization",
           "bearer #{JWTTestHelper.gen_jwt_token(["^.*$::#{@non_exact_match_valid_auth_path}"])}"
         )
-        |> get(@request_path)
+        |> get(request_path)
 
       assert json_response(conn, 200)["data"] == @expected_data
     end
