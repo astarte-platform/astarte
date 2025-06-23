@@ -69,6 +69,20 @@ defmodule Astarte.RealmManagement.API.RealmConfig.RealmConfigTest do
     end
   end
 
+  test "get_datastream_maximum_storage_retention/1 returns error on fetch failure", %{
+    realm: realm
+  } do
+    Mimic.stub(KvStore, :fetch_value, fn "realm_config",
+                                         "datastream_maximum_storage_retention",
+                                         :integer,
+                                         _opts ->
+      {:error, :realm_not_found}
+    end)
+
+    assert {:error, :realm_not_found} =
+             RealmConfig.get_datastream_maximum_storage_retention(realm)
+  end
+
   property "Fetches device_registration limit correctly", %{realm: realm} do
     check all(limit <- integer(1..256)) do
       Helpers.Database.insert_device_registration_limit!(realm, limit)
