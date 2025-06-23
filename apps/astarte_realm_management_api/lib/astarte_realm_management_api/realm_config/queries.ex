@@ -25,6 +25,9 @@ defmodule Astarte.RealmManagement.API.RealmConfig.Queries do
   alias Astarte.DataAccess.KvStore
   alias Astarte.DataAccess.Consistency
   alias Astarte.DataAccess.Realms.Realm
+  alias Astarte.DataAccess.Repo
+
+  import Ecto.Query
 
   require Logger
 
@@ -96,6 +99,43 @@ defmodule Astarte.RealmManagement.API.RealmConfig.Queries do
         Logger.warning(
           "Cannot get maximum datastream storage retention for realm #{realm_name}",
           tag: "get_datastream_maximum_storage_retention_fail"
+        )
+
+        {:error, reason}
+    end
+  end
+
+  @doc """
+  Retrieves the device registration limit of a realm.
+  Returns either `{:ok, limit}` or `{:error, reason}`.
+  The limit is an integer (if set) or `nil` (if unset).
+  """
+  @spec get_device_registration_limit(String.t()) ::
+          {:ok, integer()} | {:ok, nil} | {:error, atom()}
+  def get_device_registration_limit(realm_name) do
+    keyspace = Realm.astarte_keyspace_name()
+
+    consistency = Consistency.domain_model(:read)
+
+    query =
+      from realm in Realm,
+        select: realm.device_registration_limit,
+        where: [realm_name: ^realm_name]
+
+    opts = [
+      prefix: keyspace,
+      consistency: consistency,
+      error: :realm_not_found
+    ]
+
+    case Repo.fetch_one(query, opts) do
+      {:ok, value} ->
+        {:ok, value}
+
+      {:error, reason} ->
+        Logger.warning(
+          "Cannot get device registration limit for realm #{realm_name}",
+          tag: "get_device_registration_limit_fail"
         )
 
         {:error, reason}
