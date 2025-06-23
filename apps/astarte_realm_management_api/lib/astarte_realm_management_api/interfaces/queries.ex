@@ -215,15 +215,13 @@ defmodule Astarte.RealmManagement.API.Interfaces.Queries do
 
     consistency = Consistency.domain_model(:write)
 
-    with :ok <-
-           Exandra.execute_batch(
-             Repo,
-             %Exandra.Batch{
-               queries: [interface_query | endpoints_queries]
-             },
-             consistency: consistency
-           ),
-         do: {:ok, interface_document}
+    Exandra.execute_batch(
+      Repo,
+      %Exandra.Batch{
+        queries: [interface_query | endpoints_queries]
+      },
+      consistency: consistency
+    )
   end
 
   defp insert_mapping_query(
@@ -283,23 +281,17 @@ defmodule Astarte.RealmManagement.API.Interfaces.Queries do
   end
 
   @doc """
-  Checks if an interface name collides with existing interfaces in a given realm.
-  This function normalizes the interface name by removing dashes and converting it to lowercase.
-  If an interface with the same normalized name exists, it checks if the name is exactly the same.
+    Fetches all interface names in a specified realm.
+    This function retrieves all unique interface names from the database for a given realm.
 
-  If it is, it returns `:ok`, indicating that the interface can be installed.
-  If a different interface with the same normalized name exists, it returns `{:error, :interface_name_collision}`.
+    ## Parameters
+    - `realm_name`: The name of the realm from which to fetch the interface names.
 
-  ## Parameters
-  - `realm_name`: The name of the realm where the interface is being checked.
-  - `interface_name`: The name of the interface to check for collisions.
-
-  ## Returns
-  - `:ok`: If the interface name is available for installation.
-  - `{:error, :interface_name_collision}`: If there is a collision with an existing interface name.
+    ## Returns
+    - `{:ok, interface_names}`: A tuple containing `:ok` and a list of unique interface names.
+    - `{:error, reason}`: If there was an error during the fetch operation.
   """
-  def check_interface_name_collision(realm_name, interface_name) do
-    normalized_interface = normalize_interface_name(interface_name)
+  def fetch_all_interface_names(realm_name) do
     keyspace = Realm.keyspace_name(realm_name)
 
     all_names_query =
@@ -308,28 +300,7 @@ defmodule Astarte.RealmManagement.API.Interfaces.Queries do
         select: i.name
 
     consistency = Consistency.domain_model(:read)
-
-    with {:ok, names} <-
-           Repo.fetch_all(all_names_query, prefix: keyspace, consistency: consistency) do
-      Enum.reduce_while(names, :ok, fn name, _acc ->
-        if normalize_interface_name(name) == normalized_interface do
-          if name == interface_name do
-            # If there is already an interface with the same name, we know it's possible to install it.
-            # Version conflicts will be checked in another function.
-            {:halt, :ok}
-          else
-            {:halt, {:error, :interface_name_collision}}
-          end
-        else
-          {:cont, :ok}
-        end
-      end)
-    end
-  end
-
-  defp normalize_interface_name(interface_name) do
-    String.replace(interface_name, "-", "")
-    |> String.downcase()
+    Repo.fetch_all(all_names_query, prefix: keyspace, consistency: consistency)
   end
 
   @doc """
@@ -344,8 +315,9 @@ defmodule Astarte.RealmManagement.API.Interfaces.Queries do
   - `interface_major`: The major version of the interface to check.
 
   ## Returns
-  - `true`: If the interface major version is already installed.
-  - `false`: If the interface major version is available for installation.
+  - `{:ok, true}`: If the interface major version is already installed.
+  - `{:ok, false}`: If the interface major version is available for installation.
+  - `{:error, reason}`: If there was an error during the check.
   """
   def is_interface_major_available?(realm_name, interface_name, interface_major) do
     keyspace = Realm.keyspace_name(realm_name)
