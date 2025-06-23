@@ -42,8 +42,6 @@ defmodule Astarte.RealmManagement.RPC.Handler do
     GetInterfaceVersionsListReplyVersionTuple,
     GetJWTPublicKeyPEM,
     GetJWTPublicKeyPEMReply,
-    GetTrigger,
-    GetTriggerReply,
     GetTriggersList,
     GetTriggersListReply,
     InstallInterface,
@@ -59,7 +57,6 @@ defmodule Astarte.RealmManagement.RPC.Handler do
     DeleteDevice
   }
 
-  alias Astarte.Core.Triggers.Trigger
   alias Astarte.RealmManagement.Engine
 
   require Logger
@@ -140,20 +137,6 @@ defmodule Astarte.RealmManagement.RPC.Handler do
 
   def encode_reply(:update_jwt_public_key_pem, :ok) do
     {:ok, Reply.encode(%Reply{error: false, reply: {:generic_ok_reply, %GenericOkReply{}}})}
-  end
-
-  def encode_reply(:get_trigger, {:ok, reply}) do
-    %{
-      trigger: trigger,
-      serialized_tagged_simple_triggers: serialized_tagged_simple_triggers
-    } = reply
-
-    msg = %GetTriggerReply{
-      trigger_data: Trigger.encode(trigger),
-      serialized_tagged_simple_triggers: serialized_tagged_simple_triggers
-    }
-
-    {:ok, Reply.encode(%Reply{error: false, reply: {:get_trigger_reply, msg}})}
   end
 
   def encode_reply(:get_triggers_list, {:ok, reply}) do
@@ -336,10 +319,6 @@ defmodule Astarte.RealmManagement.RPC.Handler do
                 :update_jwt_public_key_pem,
                 Engine.update_jwt_public_key_pem(realm_name, pem)
               )
-
-            {:get_trigger, %GetTrigger{realm_name: realm_name, trigger_name: trigger_name}} ->
-              _ = Logger.metadata(realm: realm_name)
-              encode_reply(:get_trigger, Engine.get_trigger(realm_name, trigger_name))
 
             {:get_triggers_list, %GetTriggersList{realm_name: realm_name}} ->
               _ = Logger.metadata(realm: realm_name)

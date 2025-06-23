@@ -22,6 +22,7 @@ defmodule Astarte.RealmManagement.API.Triggers.Queries do
   alias Astarte.Core.Mapping
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.SimpleTriggerContainer
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.TriggerTargetContainer
+  alias Astarte.Core.Triggers.SimpleTriggersProtobuf.TaggedSimpleTrigger
   alias Astarte.Core.Triggers.Trigger
   alias Astarte.DataAccess.Consistency
   alias Astarte.DataAccess.KvStore
@@ -46,6 +47,86 @@ defmodule Astarte.RealmManagement.API.Triggers.Queries do
     with {:ok, uuid} <-
            KvStore.fetch_value("triggers-by-name", trigger_name, :binary, opts) do
       {:ok, :uuid.uuid_to_string(uuid)}
+    end
+  end
+
+  def retrieve_trigger(realm_name, trigger_name) do
+    with {:ok, trigger_uuid} <- retrieve_trigger_uuid(realm_name, trigger_name) do
+      keyspace = Realm.keyspace_name(realm_name)
+
+      trigger_uuid = to_string(trigger_uuid)
+
+      query =
+        from store in KvStore,
+          select: store.value,
+          where: [group: "triggers", key: ^trigger_uuid]
+
+      opts = [
+        prefix: keyspace,
+        consistency: Consistency.domain_model(:read),
+        error: :trigger_not_found
+      ]
+
+      with {:ok, result} <- Repo.fetch_one(query, opts) do
+        {:ok, Trigger.decode(result)}
+      end
+    end
+  end
+
+  # TODO: simple_trigger_uuid is required due how we made the compound key
+  # should we move simple_trigger_uuid to the first part of the key?
+  def retrieve_tagged_simple_trigger(realm_name, parent_trigger_uuid, simple_trigger_uuid) do
+    keyspace = Realm.keyspace_name(realm_name)
+
+    with %{object_uuid: object_id, object_type: object_type} <-
+           retrieve_simple_trigger_astarte_ref(realm_name, simple_trigger_uuid) do
+      query =
+        from trigger in SimpleTrigger,
+          select: trigger.trigger_data,
+          where: [
+            object_id: ^object_id,
+            object_type: ^object_type,
+            parent_trigger_id: ^parent_trigger_uuid,
+            simple_trigger_id: ^simple_trigger_uuid
+          ]
+
+      opts = [
+        prefix: keyspace,
+        consistency: Consistency.domain_model(:read),
+        error: :simple_trigger_not_found
+      ]
+
+      with {:ok, trigger_data} <- Repo.fetch_one(query, opts) do
+        {
+          :ok,
+          %TaggedSimpleTrigger{
+            object_id: object_id,
+            object_type: object_type,
+            simple_trigger_container: SimpleTriggerContainer.decode(trigger_data)
+          }
+        }
+      end
+    end
+  end
+
+  defp retrieve_simple_trigger_astarte_ref(realm_name, simple_trigger_uuid) do
+    keyspace = Realm.keyspace_name(realm_name)
+
+    simple_trigger_uuid = :uuid.uuid_to_string(simple_trigger_uuid, :binary_standard)
+
+    query =
+      from store in KvStore,
+        select: store.value,
+        where: [group: "simple-triggers-by-uuid", key: ^simple_trigger_uuid]
+
+    opts = [
+      prefix: keyspace,
+      consistency: Consistency.domain_model(:read),
+      error: :trigger_not_found
+    ]
+
+    with {:ok, result} <- Repo.fetch_one(query, opts) do
+      AstarteReference.decode(result)
     end
   end
 

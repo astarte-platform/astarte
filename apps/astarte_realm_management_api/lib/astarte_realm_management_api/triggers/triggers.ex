@@ -56,14 +56,9 @@ defmodule Astarte.RealmManagement.API.Triggers do
 
   """
   def get_trigger(realm_name, trigger_name) do
-    with {:ok,
-          %{
-            trigger_name: name,
-            trigger_action: action,
-            tagged_simple_triggers: tagged_simple_triggers,
-            policy: policy
-          }} <- RealmManagement.get_trigger(realm_name, trigger_name),
-         {:ok, action_map} <- Jason.decode(action, keys: :atoms!) do
+    with {:ok, %{trigger: trigger, tagged_simple_triggers: tagged_simple_triggers}} <-
+           Core.get_trigger(realm_name, trigger_name),
+         {:ok, action_map} <- Jason.decode(trigger.action, keys: :atoms!) do
       simple_triggers_configs =
         Enum.map(tagged_simple_triggers, &SimpleTriggerConfig.from_tagged_simple_trigger/1)
 
@@ -71,10 +66,10 @@ defmodule Astarte.RealmManagement.API.Triggers do
 
       {:ok,
        %Trigger{
-         name: name,
+         name: trigger.name,
          action: action_struct,
          simple_triggers: simple_triggers_configs,
-         policy: policy
+         policy: trigger.policy
        }}
     end
   end
