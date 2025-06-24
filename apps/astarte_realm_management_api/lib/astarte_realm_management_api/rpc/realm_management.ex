@@ -29,8 +29,6 @@ defmodule Astarte.RealmManagement.API.RPC.RealmManagement do
     GetInterfaceVersionsList,
     GetInterfaceVersionsListReply,
     GetInterfaceVersionsListReplyVersionTuple,
-    GetTriggersList,
-    GetTriggersListReply,
     InstallInterface,
     Reply,
     UpdateInterface,
@@ -115,16 +113,6 @@ defmodule Astarte.RealmManagement.API.RPC.RealmManagement do
       async_operation: Keyword.get(opts, :async_operation, true)
     }
     |> encode_call(:delete_interface)
-    |> @rpc_client.rpc_call(@destination)
-    |> decode_reply()
-    |> extract_reply()
-  end
-
-  def get_triggers_list(realm_name) do
-    %GetTriggersList{
-      realm_name: realm_name
-    }
-    |> encode_call(:get_triggers_list)
     |> @rpc_client.rpc_call(@destination)
     |> decode_reply()
     |> extract_reply()
@@ -243,10 +231,6 @@ defmodule Astarte.RealmManagement.API.RPC.RealmManagement do
 
   defp extract_reply({:get_interface_source_reply, %GetInterfaceSourceReply{source: source}}) do
     {:ok, source}
-  end
-
-  defp extract_reply({:get_triggers_list_reply, %GetTriggersListReply{triggers_names: triggers}}) do
-    {:ok, triggers}
   end
 
   defp extract_reply(

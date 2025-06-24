@@ -24,11 +24,11 @@ defmodule Astarte.RealmManagement.API.Triggers do
   import Ecto.Query, warn: false
 
   alias Astarte.Core.Triggers.SimpleTriggerConfig
-  alias Astarte.RealmManagement.API.RPC.RealmManagement
   alias Astarte.RealmManagement.API.Triggers.Action
   alias Astarte.RealmManagement.API.Triggers.Core
   alias Astarte.RealmManagement.API.Triggers.Trigger
   alias Ecto.Changeset
+  alias Astarte.RealmManagement.API.Triggers.Queries
 
   require Logger
 
@@ -36,7 +36,7 @@ defmodule Astarte.RealmManagement.API.Triggers do
   Returns the list of triggers.
   """
   def list_triggers(realm_name) do
-    with {:ok, triggers_list} <- RealmManagement.get_triggers_list(realm_name) do
+    with {:ok, triggers_list} <- Queries.get_triggers_list(realm_name) do
       triggers_list
     end
   end

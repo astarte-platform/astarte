@@ -113,6 +113,15 @@ defmodule Astarte.RealmManagement.API.TriggersTest do
       assert {:ok, %Trigger{}} = Triggers.delete_trigger(realm, trigger)
       assert {:error, :trigger_not_found} = Triggers.delete_trigger(realm, trigger)
     end
+
+    test "get_triggers_list/1 returns all triggers", context do
+      %{realm: realm, trigger_attrs: trigger_attrs} = context
+
+      assert {:ok, %Trigger{} = installed_trigger} =
+               create_trigger(realm, trigger_attrs)
+
+      assert Triggers.list_triggers(realm) == [installed_trigger.name]
+    end
   end
 
   defp simple_triggers_to_map(simple_triggers) do

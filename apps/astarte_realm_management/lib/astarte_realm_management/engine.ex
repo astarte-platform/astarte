@@ -711,12 +711,6 @@ defmodule Astarte.RealmManagement.Engine do
     end
   end
 
-  def get_triggers_list(realm_name) do
-    _ = Logger.debug("Get triggers list.")
-
-    Queries.get_triggers_list(realm_name)
-  end
-
   def delete_trigger(realm_name, trigger_name) do
     _ = Logger.info("Going to delete trigger.", trigger_name: trigger_name, tag: "delete_trigger")
 
