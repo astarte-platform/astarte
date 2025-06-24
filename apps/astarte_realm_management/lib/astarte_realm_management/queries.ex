@@ -969,19 +969,6 @@ defmodule Astarte.RealmManagement.Queries do
     end
   end
 
-  def get_triggers_list(realm_name) do
-    keyspace = Realm.keyspace_name(realm_name)
-
-    query =
-      from store in KvStore,
-        select: store.key,
-        where: [group: "triggers-by-name"]
-
-    opts = [prefix: keyspace, consistency: Consistency.domain_model(:read)]
-
-    Repo.fetch_all(query, opts)
-  end
-
   def retrieve_trigger(realm_name, trigger_name) do
     with {:ok, trigger_uuid} <- retrieve_trigger_uuid(realm_name, trigger_name) do
       keyspace = Realm.keyspace_name(realm_name)
