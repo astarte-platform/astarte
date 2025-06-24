@@ -22,6 +22,8 @@ defmodule Astarte.RealmManagement.API.InterfacesTest do
 
   @moduletag :interfaces
 
+  alias Astarte.DataAccess.Realms.Realm
+  alias Astarte.DataAccess.KvStore
   alias Astarte.Helpers
   alias Astarte.RealmManagement
   alias Astarte.Core.Interface
