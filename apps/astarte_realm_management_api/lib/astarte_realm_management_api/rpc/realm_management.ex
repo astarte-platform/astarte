@@ -36,8 +36,7 @@ defmodule Astarte.RealmManagement.API.RPC.RealmManagement do
     GetTriggerPoliciesListReply,
     GetTriggerPolicySource,
     GetTriggerPolicySourceReply,
-    DeleteTriggerPolicy,
-    DeleteDevice
+    DeleteTriggerPolicy
   }
 
   alias Astarte.RealmManagement.API.Config
@@ -145,17 +144,6 @@ defmodule Astarte.RealmManagement.API.RPC.RealmManagement do
       async_operation: true
     }
     |> encode_call(:delete_trigger_policy)
-    |> @rpc_client.rpc_call(@destination)
-    |> decode_reply()
-    |> extract_reply()
-  end
-
-  def delete_device(realm_name, device_id) do
-    %DeleteDevice{
-      realm_name: realm_name,
-      device_id: device_id
-    }
-    |> encode_call(:delete_device)
     |> @rpc_client.rpc_call(@destination)
     |> decode_reply()
     |> extract_reply()

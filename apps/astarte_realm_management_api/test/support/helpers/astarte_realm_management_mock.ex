@@ -42,7 +42,6 @@ defmodule Astarte.RealmManagement.API.Helpers.RPCMock do
     DeleteTriggerPolicy,
     GetTriggerPolicySource,
     GetTriggerPolicySourceReply,
-    DeleteDevice,
     GetDeviceRegistrationLimit,
     GetDeviceRegistrationLimitReply
   }
@@ -233,24 +232,6 @@ defmodule Astarte.RealmManagement.API.Helpers.RPCMock do
     else
       generic_error(:trigger_policy_not_found)
       |> ok_wrap
-    end
-  end
-
-  defp execute_rpc(
-         {:delete_device,
-          %DeleteDevice{
-            realm_name: realm_name,
-            device_id: device_id
-          }}
-       ) do
-    with :ok <- DB.delete_device(realm_name, device_id) do
-      %GenericOkReply{}
-      |> encode_reply(:generic_ok_reply)
-      |> ok_wrap
-    else
-      {:error, reason} ->
-        generic_error(reason)
-        |> ok_wrap
     end
   end
 
