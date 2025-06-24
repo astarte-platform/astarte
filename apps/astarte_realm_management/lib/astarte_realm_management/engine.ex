@@ -560,32 +560,6 @@ defmodule Astarte.RealmManagement.Engine do
     end
   end
 
-  def trigger_policy_source(realm_name, policy_name) do
-    _ =
-      Logger.debug("Get trigger policy source.",
-        tag: "trigger_policy_source",
-        policy_name: policy_name
-      )
-
-    with {:ok, policy_proto} <- fetch_trigger_policy(realm_name, policy_name) do
-      policy_proto
-      |> PolicyProto.decode()
-      |> Policy.from_policy_proto!()
-      |> Jason.encode()
-    end
-  end
-
-  defp fetch_trigger_policy(realm_name, policy_name) do
-    with {:error, :policy_not_found} <- Queries.fetch_trigger_policy(realm_name, policy_name) do
-      Logger.warning("Trigger policy not found",
-        tag: "trigger_policy_not_found",
-        policy_name: policy_name
-      )
-
-      {:error, :trigger_policy_not_found}
-    end
-  end
-
   def delete_trigger_policy(realm_name, policy_name, opts \\ []) do
     _ =
       Logger.info("Going to delete trigger policy #{policy_name}",
