@@ -68,10 +68,10 @@ services:
       - "traefik.http.middlewares.astarte-realm-management-api.stripprefix.forceSlash=false"
       - "traefik.http.services.astarte-realm-management-api.loadbalancer.server.port=4000"
 
-  astarte-pairing:
-    image: astarte/astarte_pairing:1.2-snapshot
+  astarte-pairing-api:
+    image: astarte/astarte_pairing_api:1.2-snapshot
     build:
-      context: apps/astarte_pairing
+      context: apps/astarte_pairing_api
     env_file:
       - ./.env
     environment:
@@ -80,16 +80,6 @@ services:
     depends_on:
       - "rabbitmq"
       - "scylla"
-
-  astarte-pairing-api:
-    image: astarte/astarte_pairing_api:1.2-snapshot
-    build:
-      context: apps/astarte_pairing_api
-    env_file:
-      - ./.env
-    restart: on-failure
-    depends_on:
-      - "rabbitmq"
       - "traefik"
     labels:
       - "traefik.enable=true"
