@@ -21,14 +21,6 @@ defmodule Astarte.Housekeeping.Config do
   alias Astarte.RPC.Config, as: RPCConfig
   use Skogsra
 
-  @envdoc "Replication factor for the astarte keyspace, defaults to 1"
-  app_env :astarte_keyspace_replication_factor,
-          :astarte_housekeeping,
-          :astarte_keyspace_replication_factor,
-          os_env: "HOUSEKEEPING_ASTARTE_KEYSPACE_REPLICATION_FACTOR",
-          type: :integer,
-          default: 1
-
   @envdoc "The port where the housekeeping metrics endpoint will be exposed."
   app_env :port, :astarte_housekeeping, :port,
     os_env: "HOUSEKEEPING_PORT",

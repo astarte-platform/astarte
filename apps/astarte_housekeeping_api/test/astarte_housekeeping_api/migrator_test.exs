@@ -20,22 +20,106 @@ defmodule Astarte.Housekeeping.API.MigratorTest do
   use ExUnit.Case
 
   alias Astarte.Housekeeping.API.Migrator
+  alias Astarte.Housekeeping.API.Realms.Queries
   alias Astarte.Housekeeping.API.Helpers.Database
+  alias Astarte.Housekeeping.API.Realms
   use Mimic
+
+  describe "run migrations, " do
+    setup do
+      on_exit(fn ->
+        Database.teardown_astarte_keyspace()
+      end)
+
+      Queries.initialize_database()
+      Database.edit_with_outdated_column_for_astarte_realms_table!()
+      :ok
+    end
+
+    test "returns ok with complete db" do
+      assert :ok = Migrator.run_astarte_keyspace_migrations()
+    end
+
+    test "returns ok with incomplete db (missing kv_store table)" do
+      Database.destroy_astarte_kv_store_table!()
+
+      assert :ok = Migrator.run_astarte_keyspace_migrations()
+    end
+
+    test "returns error due do xandra problem" do
+      Xandra |> stub(:execute, fn _, _, _, _ -> {:error, %Xandra.Error{message: ""}} end)
+
+      assert {:error, :database_error} = Migrator.run_astarte_keyspace_migrations()
+    end
+
+    test "returns error due do xandra connection problem" do
+      Xandra |> stub(:execute, fn _, _, _, _ -> {:error, %Xandra.ConnectionError{}} end)
+
+      assert {:error, :database_connection_error} = Migrator.run_astarte_keyspace_migrations()
+    end
+  end
 
   describe "run realms migrations, " do
     setup do
-      astarte_instance_id = "astarte#{System.unique_integer([:positive])}"
       realm_name = "realm#{System.unique_integer([:positive])}"
-      Database.setup_database_access(astarte_instance_id)
-      Database.setup(realm_name)
+
+      realm_params = %{
+        realm_name: realm_name,
+        jwt_public_key_pem: "test1publickey",
+        replication_factor: 1,
+        device_registration_limit: 1,
+        datastream_maximum_storage_retention: 1
+      }
 
       on_exit(fn ->
-        Database.setup_database_access(astarte_instance_id)
         Database.teardown(realm_name)
       end)
 
-      %{astarte_instance_id: astarte_instance_id, realm_name: realm_name}
+      Queries.initialize_database()
+      Realms.create_realm(realm_params)
+      Database.edit_with_outdated_column_for_astarte_realms_table!()
+      :ok
+    end
+
+    test "returns ok with complete db" do
+      assert :ok = Migrator.run_realms_migrations()
+    end
+
+    test "returns ok with incomplete db (missing kv_store table)" do
+      Database.destroy_astarte_kv_store_table!()
+
+      assert :ok = Migrator.run_realms_migrations()
+    end
+
+    test "returns error due do xandra problem" do
+      Xandra |> stub(:execute, fn _, _, _, _ -> {:error, %Xandra.Error{message: ""}} end)
+
+      assert {:error, :database_error} = Migrator.run_realms_migrations()
+    end
+
+    test "returns error due do xandra connection problem" do
+      Xandra |> stub(:execute, fn _, _, _, _ -> {:error, %Xandra.ConnectionError{}} end)
+
+      assert {:error, :database_connection_error} = Migrator.run_realms_migrations()
+    end
+  end
+
+  describe "latest schema version is consistent with migrations, " do
+    # This test ensures that we're not skipping versions when creating a new astarte migration
+    test "for astarte" do
+      astarte_migrations_path =
+        Application.app_dir(
+          :astarte_housekeeping_api,
+          Path.join(["priv", "migrations", "astarte"])
+        )
+
+      # We don't specify the .sql extension so we also check if there are migrations with the wrong extension
+      astarte_migrations_count =
+        Path.join([astarte_migrations_path, "*"])
+        |> Path.wildcard()
+        |> Enum.count()
+
+      assert Migrator.latest_astarte_schema_version() == astarte_migrations_count
     end
 
     # This test ensures that we're not skipping versions when creating a new realm migration

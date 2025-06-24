@@ -16,14 +16,16 @@
 # limitations under the License.
 #
 
-defmodule Astarte.Housekeeping.ReleaseTasks do
+defmodule Astarte.Housekeeping.API.ReleaseTasks do
   require Logger
 
-  alias Astarte.Housekeeping.Config
-  alias Astarte.Housekeeping.Migrator
-  alias Astarte.Housekeeping.Queries
+  alias Astarte.DataAccess
+  alias Astarte.Housekeeping.API.Config
+  alias Astarte.Housekeeping.API.Migrator
+  alias Astarte.Housekeeping.API.Realms.Queries
 
   @start_apps [
+    :ecto,
     :logger,
     :crypto,
     :ssl,
@@ -106,6 +108,7 @@ defmodule Astarte.Housekeeping.ReleaseTasks do
   end
 
   defp start_services do
+    DataAccess.Config.validate!()
     Enum.each(@start_apps, &Application.ensure_all_started/1)
 
     # Load astarte_data_access, without starting it. This makes the application env accessible.
@@ -113,11 +116,11 @@ defmodule Astarte.Housekeeping.ReleaseTasks do
 
     _ = Logger.info("Starting Xandra connection to #{inspect(Config.xandra_nodes!())}")
 
-    xandra_options =
-      Config.xandra_options!()
-      |> Keyword.put(:name, :xandra)
+    xandra_options = Config.xandra_options!()
+    hk_xandra_opts = Keyword.put(xandra_options, :name, :xandra)
 
-    {:ok, _pid} = Xandra.Cluster.start_link(xandra_options)
+    {:ok, _pid} = DataAccess.start_link(xandra_options: xandra_options)
+    {:ok, _pid} = Xandra.Cluster.start_link(hk_xandra_opts)
 
     :ok
   end
