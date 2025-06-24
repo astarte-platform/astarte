@@ -217,9 +217,6 @@ defmodule Astarte.RealmManagement.API.InterfacesTest do
                  update_attrs
                )
 
-      # TODO: remove after get_interface is removed
-      update_interface(realm, @interface_name, @interface_major)
-
       assert {:ok, interface} =
                Interfaces.fetch_interface(realm, @interface_name, @interface_major)
 
@@ -346,9 +343,6 @@ defmodule Astarte.RealmManagement.API.InterfacesTest do
                  update_attrs,
                  async_operation: false
                )
-
-      # TODO: remove after `get_interface_source` rpc is removed
-      update_interface(realm, @interface_name, @interface_major)
 
       assert {:ok, interface} =
                Interfaces.fetch_interface(realm, @interface_name, @interface_major)
@@ -570,11 +564,5 @@ defmodule Astarte.RealmManagement.API.InterfacesTest do
 
   defp create_interface(realm_name, params) do
     Interfaces.install_interface(realm_name, params)
-  end
-
-  defp update_interface(realm_name, interface_name, major_version) do
-    with {:ok, interface} <- Interfaces.fetch_interface(realm_name, interface_name, major_version) do
-      DB.update_interface(realm_name, interface)
-    end
   end
 end
