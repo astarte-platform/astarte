@@ -1,0 +1,58 @@
+#
+# This file is part of Astarte.
+#
+# Copyright 2025 SECO Mind Srl
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
+defmodule Astarte.RealmManagement.API.Triggers.Policies.Queries do
+  alias Astarte.DataAccess.Consistency
+  alias Astarte.DataAccess.KvStore
+  alias Astarte.DataAccess.Realms.Realm
+  alias Astarte.DataAccess.Repo
+
+  import Ecto.Query
+
+  @doc """
+  Fetches the list of trigger policy names for a given realm.
+
+  ## Parameters
+    - `realm_name` (`String.t`): The name of the realm from which to fetch the trigger policies.
+
+  ## Returns
+    - `{:ok, policies_list}`: A tuple containing `:ok` and a list of policies.
+    - `{:error, reason}`: If there was an error fetching the policies.
+
+  ## Example
+
+      iex> get_trigger_policies_list("my_realm")
+      {:ok, ["policy_1", "policy_2", "policy_3"]}
+  """
+  def get_trigger_policies_list(realm_name) do
+    keyspace = Realm.keyspace_name(realm_name)
+
+    query =
+      from(store in KvStore,
+        select: store.key,
+        where: [group: "trigger_policy"]
+      )
+
+    opts = [
+      prefix: keyspace,
+      consistency: Consistency.domain_model(:read)
+    ]
+
+    Repo.fetch_all(query, opts)
+  end
+end

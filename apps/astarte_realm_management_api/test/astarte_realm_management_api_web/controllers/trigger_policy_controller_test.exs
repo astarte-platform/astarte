@@ -20,9 +20,11 @@ defmodule Astarte.RealmManagement.APIWeb.TriggerPolicyControllerTest do
   use Astarte.RealmManagement.APIWeb.ConnCase, async: true
   @moduletag :trigger_policy
 
+  alias Astarte.Core.Generators.Triggers.Policy, as: PolicyGenerator
+  alias Astarte.RealmManagement
+  alias Astarte.Helpers.Database
   alias Astarte.RealmManagement.API.Helpers.JWTTestHelper
   alias Astarte.RealmManagement.API.Helpers.RPCMock.DB
-
   @policy_name "somepolicy"
   @valid_attrs %{
     "name" => @policy_name,
@@ -55,17 +57,24 @@ defmodule Astarte.RealmManagement.APIWeb.TriggerPolicyControllerTest do
   describe "index" do
     @describetag :index
 
-    test "lists empty policies", %{conn: conn, realm: realm} do
-      conn = get(conn, trigger_policy_path(conn, :index, realm))
-      assert json_response(conn, 200)["data"] == []
+    setup %{realm: realm, astarte_instance_id: astarte_instance_id} do
+      policy = PolicyGenerator.policy() |> Enum.at(0)
+      policy_json = Jason.encode!(policy)
+      # TODO: Replace when the trigger policy installation is moved to the API
+      :ok = RealmManagement.Engine.install_trigger_policy(realm, policy_json)
+
+      on_exit(fn ->
+        Database.setup_database_access(astarte_instance_id)
+        # TODO: change after removal of `delete_trigger_policy` rpc
+        RealmManagement.Engine.delete_trigger_policy(realm, policy.name)
+      end)
+
+      %{policy: policy}
     end
 
-    test "lists policy after installing it", %{conn: conn, realm: realm} do
-      post_conn = post(conn, trigger_policy_path(conn, :create, realm), data: @valid_attrs)
-      assert json_response(post_conn, 201)["data"]["name"] == @policy_name
-
-      list_conn = get(conn, trigger_policy_path(conn, :index, realm))
-      assert json_response(list_conn, 200)["data"] == [@policy_name]
+    test "list existing policies", %{conn: conn, realm: realm, policy: policy} do
+      conn = get(conn, trigger_policy_path(conn, :index, realm))
+      assert json_response(conn, 200)["data"] == [policy.name]
     end
   end
 

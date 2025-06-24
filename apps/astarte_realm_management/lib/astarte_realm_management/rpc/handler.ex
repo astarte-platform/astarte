@@ -41,8 +41,6 @@ defmodule Astarte.RealmManagement.RPC.Handler do
     Reply,
     UpdateJWTPublicKeyPEM,
     InstallTriggerPolicy,
-    GetTriggerPoliciesList,
-    GetTriggerPoliciesListReply,
     GetTriggerPolicySource,
     GetTriggerPolicySourceReply,
     DeleteTriggerPolicy,
@@ -109,14 +107,6 @@ defmodule Astarte.RealmManagement.RPC.Handler do
 
   def encode_reply(:update_jwt_public_key_pem, :ok) do
     {:ok, Reply.encode(%Reply{error: false, reply: {:generic_ok_reply, %GenericOkReply{}}})}
-  end
-
-  def encode_reply(:get_trigger_policies_list, {:ok, reply}) do
-    msg = %GetTriggerPoliciesListReply{
-      trigger_policies_names: reply
-    }
-
-    {:ok, Reply.encode(%Reply{error: false, reply: {:get_trigger_policies_list_reply, msg}})}
   end
 
   def encode_reply(:get_trigger_policy_source, {:ok, reply}) do
@@ -261,14 +251,6 @@ defmodule Astarte.RealmManagement.RPC.Handler do
               encode_reply(
                 :install_policy,
                 Engine.install_trigger_policy(realm_name, policy_json, async: async_operation)
-              )
-
-            {:get_trigger_policies_list, %GetTriggerPoliciesList{realm_name: realm_name}} ->
-              _ = Logger.metadata(realm: realm_name)
-
-              encode_reply(
-                :get_trigger_policies_list,
-                Engine.get_trigger_policies_list(realm_name)
               )
 
             {:get_trigger_policy_source,

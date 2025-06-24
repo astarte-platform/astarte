@@ -32,8 +32,6 @@ defmodule Astarte.RealmManagement.API.RPC.RealmManagement do
     InstallInterface,
     Reply,
     InstallTriggerPolicy,
-    GetTriggerPoliciesList,
-    GetTriggerPoliciesListReply,
     GetTriggerPolicySource,
     GetTriggerPolicySourceReply,
     DeleteTriggerPolicy,
@@ -100,16 +98,6 @@ defmodule Astarte.RealmManagement.API.RPC.RealmManagement do
       async_operation: Keyword.get(opts, :async_operation, true)
     }
     |> encode_call(:delete_interface)
-    |> @rpc_client.rpc_call(@destination)
-    |> decode_reply()
-    |> extract_reply()
-  end
-
-  def get_trigger_policies_list(realm_name) do
-    %GetTriggerPoliciesList{
-      realm_name: realm_name
-    }
-    |> encode_call(:get_trigger_policies_list)
     |> @rpc_client.rpc_call(@destination)
     |> decode_reply()
     |> extract_reply()
@@ -218,13 +206,6 @@ defmodule Astarte.RealmManagement.API.RPC.RealmManagement do
 
   defp extract_reply({:get_interface_source_reply, %GetInterfaceSourceReply{source: source}}) do
     {:ok, source}
-  end
-
-  defp extract_reply(
-         {:get_trigger_policies_list_reply,
-          %GetTriggerPoliciesListReply{trigger_policies_names: list}}
-       ) do
-    {:ok, list}
   end
 
   defp extract_reply(
