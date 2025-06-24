@@ -38,12 +38,6 @@ defmodule Astarte.Housekeeping.API.DataCase do
     %{astarte_instance_id: astarte_instance_id} = context
     Database.setup_database_access(astarte_instance_id)
 
-    agent_name = :"test_agent_#{System.unique_integer([:positive])}"
-
-    start_supervised!({Astarte.Housekeeping.Mock.DB, agent_name})
-
-    Process.put(:current_agent, agent_name)
-
     :ok
   end
 end
