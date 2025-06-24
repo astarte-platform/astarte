@@ -17,6 +17,7 @@
 #
 
 defmodule Astarte.RealmManagement.API.Interfaces.Core do
+  alias Astarte.DataAccess.Interface, as: InterfaceQueries
   alias Astarte.RealmManagement.API.Interfaces.MappingUpdates
   alias Astarte.RealmManagement.API.Interfaces.Queries
 
@@ -63,6 +64,22 @@ defmodule Astarte.RealmManagement.API.Interfaces.Core do
         descr,
         doc
       )
+    end
+  end
+
+  def delete_interface(realm_name, name, major) do
+    with {:ok, descriptor} <-
+           InterfaceQueries.fetch_interface_descriptor(realm_name, name, major),
+         :ok <- Queries.delete_interface_storage(realm_name, descriptor),
+         :ok <- Queries.delete_devices_with_data_on_interface(realm_name, name) do
+      _ =
+        Logger.info("Interface deletion started.",
+          interface: name,
+          interface_major: major,
+          tag: "delete_interface_started"
+        )
+
+      Queries.delete_interface(realm_name, name, major)
     end
   end
 end

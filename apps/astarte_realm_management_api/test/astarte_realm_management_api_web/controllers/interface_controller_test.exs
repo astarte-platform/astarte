@@ -22,13 +22,13 @@ defmodule Astarte.RealmManagement.APIWeb.InterfaceControllerTest do
 
   @moduletag :interfaces
 
-  alias Astarte.DataAccess.KvStore
-  alias Astarte.DataAccess.Realms.Realm
-  alias Astarte.RealmManagement.Queries
-  alias Astarte.Helpers.Database
-
   import Astarte.Helpers.Database
   import ExUnit.CaptureLog
+
+  alias Astarte.DataAccess.KvStore
+  alias Astarte.DataAccess.Realms.Realm
+  alias Astarte.Helpers.Database
+  alias Astarte.RealmManagement.API.Interfaces.Core
 
   @interface_name "com.Some.Interface"
   @interface_major 0
@@ -63,7 +63,7 @@ defmodule Astarte.RealmManagement.APIWeb.InterfaceControllerTest do
   setup %{realm: realm, astarte_instance_id: astarte_instance_id} do
     on_exit(fn ->
       Database.setup_database_access(astarte_instance_id)
-      capture_log(fn -> Queries.delete_interface(realm, @interface_name, @interface_major) end)
+      capture_log(fn -> Core.delete_interface(realm, @interface_name, @interface_major) end)
     end)
 
     :ok
@@ -455,9 +455,7 @@ defmodule Astarte.RealmManagement.APIWeb.InterfaceControllerTest do
   describe "delete" do
     @describetag :deletion
 
-    # TODO: remove this when backend functions are migrated to the API service
-    @tag :skip
-    test "deletes existing interface", %{conn: conn, realm: realm} do
+    test "deletes existing interface", %{auth_conn: conn, realm: realm} do
       post_conn = post(conn, interface_path(conn, :create, realm), data: @valid_attrs)
       assert response(post_conn, 201) == ""
 
@@ -493,8 +491,6 @@ defmodule Astarte.RealmManagement.APIWeb.InterfaceControllerTest do
                "Interface can't be deleted"
     end
 
-    # TODO: remove this when backend functions are migrated to the API service
-    @tag :skip
     test "renders error on non-existing interface", %{auth_conn: conn, realm: realm} do
       delete_conn =
         delete(

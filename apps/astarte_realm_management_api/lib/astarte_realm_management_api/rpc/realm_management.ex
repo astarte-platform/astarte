@@ -19,7 +19,6 @@
 defmodule Astarte.RealmManagement.API.RPC.RealmManagement do
   alias Astarte.RPC.Protocol.RealmManagement.{
     Call,
-    DeleteInterface,
     GenericErrorReply,
     GenericOkReply,
     GetInterfacesList,
@@ -55,19 +54,6 @@ defmodule Astarte.RealmManagement.API.RPC.RealmManagement do
       realm_name: realm_name
     }
     |> encode_call(:get_interfaces_list)
-    |> @rpc_client.rpc_call(@destination)
-    |> decode_reply()
-    |> extract_reply()
-  end
-
-  def delete_interface(realm_name, interface_name, interface_major_version, opts) do
-    %DeleteInterface{
-      realm_name: realm_name,
-      interface_name: interface_name,
-      interface_major_version: interface_major_version,
-      async_operation: Keyword.get(opts, :async_operation, true)
-    }
-    |> encode_call(:delete_interface)
     |> @rpc_client.rpc_call(@destination)
     |> decode_reply()
     |> extract_reply()

@@ -18,7 +18,6 @@
 
 defmodule Astarte.RealmManagement.Engine do
   require Logger
-  alias Astarte.Core.CQLUtils
   alias Astarte.Core.Interface, as: InterfaceDocument
   alias Astarte.Core.InterfaceDescriptor
   alias Astarte.Core.Mapping
@@ -32,7 +31,6 @@ defmodule Astarte.RealmManagement.Engine do
   alias Astarte.Core.Triggers.Policy
   alias Astarte.Core.Triggers.PolicyProtobuf.Policy, as: PolicyProto
   alias Astarte.Core.Device
-  alias Astarte.DataAccess.Interface
   alias Astarte.RealmManagement.Engine
   alias Astarte.RealmManagement.Queries
 
@@ -98,67 +96,6 @@ defmodule Astarte.RealmManagement.Engine do
 
       {:error, :overlapping_mappings} ->
         {:error, :overlapping_mappings}
-    end
-  end
-
-  def delete_interface(realm_name, name, major, opts \\ []) do
-    _ =
-      Logger.info("Going to delete interface.",
-        tag: "delete_interface",
-        interface: name,
-        interface_major: major
-      )
-
-    with {:major, 0} <- {:major, major},
-         {:major_is_avail, {:ok, true}} <-
-           {:major_is_avail, Queries.is_interface_major_available?(realm_name, name, 0)},
-         {:devices, {:ok, false}} <-
-           {:devices, Queries.is_any_device_using_interface?(realm_name, name)},
-         interface_id = CQLUtils.interface_id(name, major),
-         {:triggers, {:ok, false}} <-
-           {:triggers, Queries.has_interface_simple_triggers?(realm_name, interface_id)} do
-      if opts[:async] do
-        # TODO: add _ = Logger.metadata(realm: realm_name)
-        Task.start_link(Engine, :execute_interface_deletion, [realm_name, name, major])
-
-        {:ok, :started}
-      else
-        Engine.execute_interface_deletion(realm_name, name, major)
-      end
-    else
-      {:major, _} ->
-        {:error, :forbidden}
-
-      {:major_is_avail, {:ok, false}} ->
-        {:error, :interface_major_version_does_not_exist}
-
-      {:devices, {:ok, true}} ->
-        {:error, :cannot_delete_currently_used_interface}
-
-      {:triggers, {:ok, true}} ->
-        {:error, :cannot_delete_currently_used_interface}
-
-      {_, {:error, reason}} ->
-        {:error, reason}
-
-      {:error, reason} ->
-        {:error, reason}
-    end
-  end
-
-  def execute_interface_deletion(realm_name, name, major) do
-    with {:ok, interface_row} <- Interface.retrieve_interface_row(realm_name, name, major),
-         {:ok, descriptor} <- InterfaceDescriptor.from_db_result(interface_row),
-         :ok <- Queries.delete_interface_storage(realm_name, descriptor),
-         :ok <- Queries.delete_devices_with_data_on_interface(realm_name, name) do
-      _ =
-        Logger.info("Interface deletion started.",
-          interface: name,
-          interface_major: major,
-          tag: "delete_interface_started"
-        )
-
-      Queries.delete_interface(realm_name, name, major)
     end
   end
 

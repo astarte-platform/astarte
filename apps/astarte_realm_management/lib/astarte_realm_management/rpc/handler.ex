@@ -23,7 +23,6 @@ defmodule Astarte.RealmManagement.RPC.Handler do
 
   alias Astarte.RPC.Protocol.RealmManagement.{
     Call,
-    DeleteInterface,
     GenericErrorReply,
     GenericOkReply,
     GetHealth,
@@ -192,25 +191,6 @@ defmodule Astarte.RealmManagement.RPC.Handler do
             {:get_interfaces_list, %GetInterfacesList{realm_name: realm_name}} ->
               _ = Logger.metadata(realm: realm_name)
               encode_reply(:get_interfaces_list, Engine.get_interfaces_list(realm_name))
-
-            {:delete_interface,
-             %DeleteInterface{
-               realm_name: realm_name,
-               interface_name: interface_name,
-               interface_major_version: interface_major_version,
-               async_operation: async_operation
-             }} ->
-              _ = Logger.metadata(realm: realm_name)
-
-              encode_reply(
-                :delete_interface,
-                Engine.delete_interface(
-                  realm_name,
-                  interface_name,
-                  interface_major_version,
-                  async: async_operation
-                )
-              )
 
             {:get_jwt_public_key_pem, %GetJWTPublicKeyPEM{realm_name: realm_name}} ->
               _ = Logger.metadata(realm: realm_name)

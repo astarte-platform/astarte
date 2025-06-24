@@ -32,7 +32,6 @@ defmodule Astarte.RealmManagement.Queries do
   alias Astarte.DataAccess.KvStore
   alias Astarte.Core.AstarteReference
   alias Astarte.Core.CQLUtils
-  alias Astarte.Core.Device
   alias Astarte.Core.Interface, as: InterfaceDocument
   alias Astarte.Core.InterfaceDescriptor
   alias Astarte.Core.Interface.Aggregation
@@ -308,65 +307,6 @@ defmodule Astarte.RealmManagement.Queries do
     )
   end
 
-  def delete_interface_storage(
-        realm_name,
-        %InterfaceDescriptor{
-          storage_type: :one_object_datastream_dbtable,
-          storage: table_name
-        } = _interface_descriptor
-      ) do
-    keyspace = Realm.keyspace_name(realm_name)
-    delete_statement = "DROP TABLE IF EXISTS #{keyspace}.#{table_name}"
-    consistency = Consistency.domain_model(:write)
-
-    _ = Repo.query!(delete_statement, [], consistency: consistency)
-    _ = Logger.info("Deleted #{table_name} table.", tag: "db_delete_interface_table")
-    :ok
-  end
-
-  def delete_interface_storage(realm_name, %InterfaceDescriptor{} = interface_descriptor) do
-    with {:ok, result} <- devices_with_data_on_interface(realm_name, interface_descriptor.name) do
-      Enum.reduce_while(result, :ok, fn encoded_device_id, _acc ->
-        with {:ok, device_id} <- Device.decode_device_id(encoded_device_id),
-             :ok <- delete_values(realm_name, device_id, interface_descriptor) do
-          {:cont, :ok}
-        else
-          {:error, reason} ->
-            {:halt, {:error, reason}}
-        end
-      end)
-    end
-  end
-
-  def is_any_device_using_interface?(realm_name, interface_name) do
-    group_name = "devices-by-interface-#{interface_name}-v0"
-    keyspace = Realm.keyspace_name(realm_name)
-
-    devices_query =
-      from map in KvStore,
-        select: map.key,
-        where: [group: ^group_name],
-        limit: 1
-
-    consistency = Consistency.domain_model(:read)
-
-    Repo.some?(devices_query, prefix: keyspace, consistency: consistency)
-  end
-
-  def devices_with_data_on_interface(realm_name, interface_name) do
-    group_name = "devices-with-data-on-interface-#{interface_name}-v0"
-    keyspace = Realm.keyspace_name(realm_name)
-
-    query =
-      from map in KvStore,
-        select: map.key,
-        where: [group: ^group_name]
-
-    consistency = Consistency.domain_model(:read)
-
-    Repo.fetch_all(query, prefix: keyspace, consistency: consistency)
-  end
-
   def delete_devices_with_data_on_interface(realm_name, interface_name) do
     keyspace = Realm.keyspace_name(realm_name)
     group_name = "devices-with-data-on-interface-#{interface_name}-v0"
@@ -376,131 +316,6 @@ defmodule Astarte.RealmManagement.Queries do
     consistency = Consistency.domain_model(:write)
 
     _ = Repo.delete_all(query, prefix: keyspace, consistency: consistency)
-
-    :ok
-  end
-
-  def delete_values(
-        realm_name,
-        device_id,
-        %InterfaceDescriptor{
-          interface_id: interface_id,
-          storage_type: :multi_interface_individual_properties_dbtable,
-          storage: table_name
-        } = _interface_descriptor
-      ) do
-    keyspace = Realm.keyspace_name(realm_name)
-
-    query =
-      from table_name,
-        where: [device_id: ^device_id, interface_id: ^interface_id]
-
-    consistency = Consistency.device_info(:write)
-
-    _ = Repo.delete_all(query, prefix: keyspace, consistency: consistency)
-
-    :ok
-  end
-
-  def delete_values(
-        realm_name,
-        device_id,
-        %InterfaceDescriptor{
-          storage_type: :multi_interface_individual_datastream_dbtable
-        } = interface_descriptor
-      ) do
-    with {:ok, result} <-
-           fetch_all_paths_and_endpoint_ids(realm_name, device_id, interface_descriptor),
-         :ok <- delete_all_paths_values(realm_name, device_id, interface_descriptor, result) do
-      delete_all_paths(realm_name, device_id, interface_descriptor)
-    end
-  end
-
-  defp delete_all_paths_values(realm_name, device_id, interface_descriptor, all_paths) do
-    Enum.reduce_while(all_paths, :ok, fn [endpoint_id: endpoint_id, path: path], _acc ->
-      with :ok <-
-             delete_path_values(realm_name, device_id, interface_descriptor, endpoint_id, path) do
-        {:cont, :ok}
-      else
-        {:error, reason} ->
-          {:halt, {:error, reason}}
-      end
-    end)
-  end
-
-  def delete_path_values(
-        realm_name,
-        device_id,
-        %InterfaceDescriptor{
-          interface_id: interface_id,
-          storage_type: :multi_interface_individual_datastream_dbtable,
-          storage: table_name
-        } = _interface_descriptor,
-        endpoint_id,
-        path
-      ) do
-    keyspace = Realm.keyspace_name(realm_name)
-
-    query =
-      from table_name,
-        where: [
-          device_id: ^device_id,
-          interface_id: ^interface_id,
-          endpoint_id: ^endpoint_id,
-          path: ^path
-        ]
-
-    consistency = Consistency.device_info(:write)
-
-    _ = Repo.delete_all(query, prefix: keyspace, consistency: consistency)
-
-    :ok
-  end
-
-  defp fetch_all_paths_and_endpoint_ids(
-         realm_name,
-         device_id,
-         %InterfaceDescriptor{
-           interface_id: interface_id,
-           storage_type: :multi_interface_individual_datastream_dbtable
-         } = _interface_descriptor
-       ) do
-    keyspace = Realm.keyspace_name(realm_name)
-
-    query =
-      from IndividualProperty,
-        select: [:endpoint_id, :path],
-        where: [device_id: ^device_id, interface_id: ^interface_id]
-
-    consistency = Consistency.device_info(:read)
-
-    with {:ok, properties} <- Repo.fetch_all(query, prefix: keyspace, consistency: consistency) do
-      properties =
-        Enum.map(properties, fn property ->
-          [endpoint_id: property.endpoint_id, path: property.path]
-        end)
-
-      {:ok, properties}
-    end
-  end
-
-  defp delete_all_paths(
-         realm_name,
-         device_id,
-         %InterfaceDescriptor{
-           interface_id: interface_id,
-           storage_type: :multi_interface_individual_datastream_dbtable
-         } = _interface_descriptor
-       ) do
-    keyspace = Realm.keyspace_name(realm_name)
-
-    query =
-      from IndividualProperty,
-        where: [device_id: ^device_id, interface_id: ^interface_id]
-
-    consistency = Consistency.device_info(:write)
-
-    _ = Repo.delete_all(query, consistency: consistency, prefix: keyspace)
 
     :ok
   end
@@ -639,18 +454,6 @@ defmodule Astarte.RealmManagement.Queries do
     consistency = Consistency.domain_model(:read)
 
     Repo.fetch_all(query, prefix: keyspace, consistency: consistency)
-  end
-
-  def has_interface_simple_triggers?(realm_name, object_id) do
-    keyspace = Realm.keyspace_name(realm_name)
-
-    simple_triggers_query =
-      from SimpleTrigger,
-        where: [object_id: ^object_id, object_type: 2]
-
-    consistency = Consistency.domain_model(:read)
-
-    Repo.some?(simple_triggers_query, prefix: keyspace, consistency: consistency)
   end
 
   def get_jwt_public_key_pem(realm_name) do

@@ -20,15 +20,17 @@ defmodule Astarte.RealmManagement.API.Interfaces do
   alias Astarte.Core.Mapping.EndpointsAutomaton
   alias Astarte.Core.Mapping
   alias Astarte.RealmManagement.API.Interfaces.Queries
+  alias Astarte.Core.CQLUtils
   alias Astarte.Core.Interface
-  alias Astarte.Core.Mapping.EndpointsAutomaton
-  alias Astarte.Core.Mapping
-  alias Astarte.RealmManagement.API.Interfaces.MappingUpdates
   alias Astarte.Core.InterfaceDescriptor
-  alias Astarte.RealmManagement.API.Interfaces.Core
-  alias Astarte.DataAccess.Mappings
-  alias Astarte.RealmManagement.API.RPC.RealmManagement
+  alias Astarte.Core.Mapping
+  alias Astarte.Core.Mapping.EndpointsAutomaton
   alias Astarte.DataAccess.Interface, as: DataAccessInterface
+  alias Astarte.DataAccess.Mappings
+  alias Astarte.RealmManagement.API.Interfaces.Core
+  alias Astarte.RealmManagement.API.Interfaces.MappingUpdates
+  alias Astarte.RealmManagement.API.Interfaces.Queries
+  alias Astarte.RealmManagement.API.RPC.RealmManagement
 
   require Logger
 
@@ -317,15 +319,70 @@ defmodule Astarte.RealmManagement.API.Interfaces do
         interface_major_version,
         opts \\ []
       ) do
-    case RealmManagement.delete_interface(
+    _ =
+      Logger.info("Going to delete interface.",
+        tag: "delete_interface",
+        interface: interface_name,
+        interface_major: interface_major_version
+      )
+
+    with :ok <- check_interface_major_is_zero(interface_major_version),
+         :ok <- check_interface_major_available_with_realm_check(realm_name, interface_name, 0),
+         :ok <- check_interface_not_in_use_by_devices(realm_name, interface_name),
+         :ok <- check_interface_not_in_use_by_triggers(realm_name, interface_name, 0) do
+      interface_delete = fn ->
+        Core.delete_interface(realm_name, interface_name, interface_major_version)
+      end
+
+      case Core.maybe_run_async(interface_delete, opts) do
+        :ok -> :ok
+        {:ok, :started} -> :ok
+        {:error, reason} -> {:error, reason}
+      end
+    end
+  end
+
+  defp check_interface_major_is_zero(0 = _major), do: :ok
+  defp check_interface_major_is_zero(_major), do: {:error, :forbidden}
+
+  defp check_interface_major_available_with_realm_check(
+         realm_name,
+         interface_name,
+         interface_major_version
+       ) do
+    try do
+      check_interface_major_available(realm_name, interface_name, interface_major_version)
+    rescue
+      Xandra.Error ->
+        # realm does not exist
+        {:error, :interface_not_found}
+    end
+  end
+
+  defp check_interface_major_available(realm_name, interface_name, interface_major_version) do
+    case Queries.is_interface_major_available?(
            realm_name,
            interface_name,
-           interface_major_version,
-           opts
+           interface_major_version
          ) do
-      :ok -> :ok
-      {:ok, :started} -> :ok
-      {:error, reason} -> {:error, reason}
+      {:ok, true} -> :ok
+      {:ok, false} -> {:error, :interface_not_found}
+    end
+  end
+
+  defp check_interface_not_in_use_by_devices(realm_name, interface_name) do
+    case Queries.is_any_device_using_interface?(realm_name, interface_name) do
+      false -> :ok
+      true -> {:error, :cannot_delete_currently_used_interface}
+    end
+  end
+
+  defp check_interface_not_in_use_by_triggers(realm_name, interface_name, interface_major_version) do
+    interface_id = CQLUtils.interface_id(interface_name, interface_major_version)
+
+    case Queries.has_interface_simple_triggers?(realm_name, interface_id) do
+      false -> :ok
+      true -> {:error, :cannot_delete_currently_used_interface}
     end
   end
 end
