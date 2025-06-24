@@ -34,7 +34,7 @@ defmodule Astarte.Housekeeping.API.Helpers.Database do
   @create_realms_table """
   CREATE TABLE :keyspace.realms (
     realm_name varchar,
-    device_registration_limit int,
+    device_registration_limit bigint,
 
     PRIMARY KEY (realm_name)
   )
