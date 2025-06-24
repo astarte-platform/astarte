@@ -28,7 +28,7 @@ defmodule Astarte.Housekeeping.API.Helpers.Database do
   """
 
   @drop_keyspace """
-    DROP KEYSPACE :keyspace
+    DROP KEYSPACE IF EXISTS :keyspace
   """
 
   @create_realms_table """
@@ -236,6 +236,18 @@ defmodule Astarte.Housekeeping.API.Helpers.Database do
     -----END PUBLIC KEY-----
   """
 
+  @add_replication_factor_column_for_realms_table """
+  ALTER TABLE :keyspace.realms ADD replication_factor varchar;
+  """
+
+  @drop_device_registration_limit_column_for_realms_table """
+  ALTER TABLE :keyspace.realms DROP device_registration_limit;
+  """
+
+  @drop_kv_store """
+  DROP TABLE if exists :keyspace.kv_store
+  """
+
   def setup(realm_name) do
     setup_astarte_keyspace()
     setup_realm_keyspace(realm_name)
@@ -304,6 +316,27 @@ defmodule Astarte.Housekeeping.API.Helpers.Database do
     realm_keyspace = Realm.keyspace_name(realm_name)
 
     execute(realm_keyspace, @insert_public_key, %{"pem" => @jwt_public_key_pem})
+  end
+
+  def edit_with_outdated_column_for_realms_table!(realm_name) do
+    keyspace = Realm.keyspace_name(realm_name)
+
+    execute(keyspace, @add_replication_factor_column_for_realms_table)
+    execute(keyspace, @drop_device_registration_limit_column_for_realms_table)
+    :ok
+  end
+
+  def edit_with_outdated_column_for_astarte_realms_table! do
+    keyspace = Realm.astarte_keyspace_name()
+
+    execute(keyspace, @add_replication_factor_column_for_realms_table)
+    execute(keyspace, @drop_device_registration_limit_column_for_realms_table)
+    :ok
+  end
+
+  def destroy_astarte_kv_store_table! do
+    Realm.astarte_keyspace_name()
+    |> execute(@drop_kv_store)
   end
 
   defp execute(keyspace, query, params \\ [], opts \\ []) do

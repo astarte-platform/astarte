@@ -22,6 +22,7 @@ defmodule Astarte.Housekeeping.API.Realms.QueriesTest do
   alias Astarte.Housekeeping.API.Helpers.Database
   alias Astarte.Housekeeping.API.Realms.Queries
   alias Astarte.Housekeeping.API.Realms
+  alias Astarte.Housekeeping.API.Realms.Realm, as: HKRealm
 
   @public_key_pem """
   -----BEGIN PUBLIC KEY-----
@@ -35,16 +36,213 @@ defmodule Astarte.Housekeeping.API.Realms.QueriesTest do
   -----END PUBLIC KEY-----
   """
   @replication_factor 1
-  setup %{astarte_instance_id: astarte_instance_id, realm_name: realm_name} do
-    on_exit(fn ->
+  describe "database inizialization" do
+    setup do
+      astarte_instance_id = "another#{System.unique_integer([:positive])}"
       Database.setup_database_access(astarte_instance_id)
-      Queries.set_datastream_maximum_storage_retention(realm_name, 50)
-      Queries.set_device_registration_limit(realm_name, 500)
-      Database.insert_public_key(realm_name)
-    end)
 
-    other_realm_name = "realm#{System.unique_integer([:positive])}"
-    %{other_realm_name: other_realm_name}
+      on_exit(fn ->
+        Database.setup_database_access(astarte_instance_id)
+        Database.teardown_astarte_keyspace()
+      end)
+    end
+
+    test "returns ok" do
+      assert :ok = Queries.initialize_database()
+    end
+
+    test "returns database error" do
+      Xandra |> stub(:execute, fn _, _, _, _ -> {:error, %Xandra.Error{}} end)
+      assert {:error, :database_error} = Queries.initialize_database()
+    end
+
+    test "returns connection error" do
+      Xandra |> stub(:execute, fn _, _, _, _ -> {:error, %Xandra.ConnectionError{}} end)
+      assert {:error, :database_connection_error} = Queries.initialize_database()
+    end
+
+    test "returns another error" do
+      Xandra |> stub(:execute, fn _, _, _, _ -> {:error, "generic error"} end)
+      assert {:error, _} = Queries.initialize_database()
+    end
+  end
+
+  describe "astarte keyspace exists," do
+    setup do
+      astarte_instance_id = "another#{System.unique_integer([:positive])}"
+      Database.setup_database_access(astarte_instance_id)
+
+      on_exit(fn ->
+        Database.setup_database_access(astarte_instance_id)
+        Database.teardown_astarte_keyspace()
+      end)
+
+      %{astarte_instance_id: astarte_instance_id}
+    end
+
+    test "true" do
+      assert :ok = Queries.initialize_database()
+      assert {:ok, true} = Queries.is_astarte_keyspace_existing()
+    end
+
+    test "false" do
+      assert {:ok, false} = Queries.is_astarte_keyspace_existing()
+    end
+
+    test "fails due to db error" do
+      Xandra |> stub(:execute, fn _, _, _, _ -> {:error, %Xandra.Error{}} end)
+      assert {:error, :database_error} = Queries.is_astarte_keyspace_existing()
+    end
+
+    test "fails due to db connection error" do
+      Xandra |> stub(:execute, fn _, _, _, _ -> {:error, %Xandra.ConnectionError{}} end)
+
+      assert {:error, :database_connection_error} = Queries.is_astarte_keyspace_existing()
+    end
+
+    test "raise due to generic error" do
+      Xandra |> stub(:execute, fn _, _, _, _ -> {:error, "another error"} end)
+
+      assert_raise CaseClauseError, fn -> Queries.is_astarte_keyspace_existing() end
+    end
+  end
+
+  describe "create a realm," do
+    setup %{astarte_instance_id: astarte_instance_id} do
+      realm_name = "another#{System.unique_integer([:positive])}"
+
+      on_exit(fn ->
+        Database.setup_database_access(astarte_instance_id)
+        Database.teardown_realm_keyspace(realm_name)
+      end)
+
+      %{realm_name: realm_name}
+    end
+
+    test "creations returns ok", %{realm_name: realm_name} do
+      assert :ok = Queries.create_realm(realm_name, "test1publickey", 1, 1, 1, [])
+    end
+
+    test "creations returns ok with nil replication factor", %{realm_name: realm_name} do
+      assert :ok = Queries.create_realm(realm_name, "test1publickey", nil, 1, 1, [])
+    end
+
+    test "creations returns ok with 0 max retentions factor", %{realm_name: realm_name} do
+      assert :ok = Queries.create_realm(realm_name, "test1publickey", 1, 1, 0, [])
+    end
+
+    test "creations returns error with bigger than nodes replication factor", %{
+      realm_name: realm_name
+    } do
+      assert {:error,
+              {:invalid_replication,
+               "replication_factor 10 is >= 1 nodes in datacenter datacenter1"}} =
+               Queries.create_realm(realm_name, "test1publickey", 10, 1, 1, [])
+    end
+
+    test "async creations returns ok", %{realm_name: realm_name} do
+      assert :ok = Queries.create_realm(realm_name, "test1publickey", 1, 1, 1, async: true)
+      Process.sleep(1000)
+    end
+
+    test "creations returns an error", %{realm_name: realm_name} do
+      Xandra.Cluster |> stub(:run, fn _, _, _ -> {:error, "generic error"} end)
+
+      assert {:error, "generic error"} =
+               Queries.create_realm(realm_name, "test1publickey", 1, 1, 1, [])
+    end
+  end
+
+  describe "list/get realm(s)," do
+    setup %{astarte_instance_id: astarte_instance_id} do
+      on_exit(fn ->
+        Database.setup_database_access(astarte_instance_id)
+        Database.teardown_realm_keyspace("testrealm")
+        Database.teardown_realm_keyspace("anotherrealm")
+      end)
+
+      Database.setup_realm_keyspace("testrealm")
+      :ok
+    end
+
+    test "list returns the existing realm" do
+      assert {:ok, realms} = Queries.list_realms()
+      assert %HKRealm{realm_name: "testrealm"} in realms
+    end
+
+    test "list respects new realm creations" do
+      assert :ok = Queries.create_realm("anotherrealm", "test2publickey", 1, 1, 1, [])
+
+      assert {:ok, realms} = Queries.list_realms()
+      assert %HKRealm{realm_name: "testrealm"} in realms
+      assert %HKRealm{realm_name: "anotherrealm"} in realms
+    end
+
+    test "get returns the realm data just inserted" do
+      assert :ok = Queries.create_realm("anotherrealm", "test2publickey", 1, 1, 1, [])
+
+      assert {:ok,
+              %{
+                replication_factor: 1,
+                datastream_maximum_storage_retention: 1,
+                device_registration_limit: 1,
+                jwt_public_key_pem: "test2publickey",
+                realm_name: "anotherrealm",
+                replication_class: "SimpleStrategy"
+              }} = Queries.get_realm("anotherrealm")
+    end
+
+    test "get returns error due to get_public_key error" do
+      assert :ok = Queries.create_realm("anotherrealm", "test2publickey", 1, 1, 1, [])
+      Xandra |> stub(:execute, fn _, _, _, _ -> {:error, %Xandra.ConnectionError{}} end)
+
+      assert {:error, :database_connection_error} =
+               Queries.get_realm("anotherrealm")
+    end
+
+    test "get returns the realm data just inserted, with a different replication class" do
+      assert :ok =
+               Queries.create_realm(
+                 "anotherrealm",
+                 "test2publickey",
+                 %{"datacenter1" => 1},
+                 1,
+                 1,
+                 []
+               )
+
+      assert {:ok,
+              %{
+                datastream_maximum_storage_retention: 1,
+                device_registration_limit: 1,
+                jwt_public_key_pem: "test2publickey",
+                realm_name: "anotherrealm",
+                replication_class: "NetworkTopologyStrategy",
+                datacenter_replication_factors: %{"datacenter1" => 1}
+              }} = Queries.get_realm("anotherrealm")
+    end
+
+    test "get returns error due to inconsistent db data" do
+      # testrealm does not have a public key saved
+
+      assert {:error, :public_key_not_found} = Queries.get_realm("testrealm")
+    end
+
+    test "get returns error due to not existent db data" do
+      # testrealm does not have a public key saved
+
+      assert {:error, :realm_not_found} = Queries.get_realm("fakerealm")
+    end
+
+    test "returns database error" do
+      Xandra |> stub(:execute, fn _, _, _, _ -> {:error, %Xandra.Error{message: ""}} end)
+      assert {:error, :database_error} = Queries.list_realms()
+    end
+
+    test "returns connection error" do
+      Xandra |> stub(:execute, fn _, _, _, _ -> {:error, %Xandra.ConnectionError{}} end)
+      assert {:error, :database_connection_error} = Queries.list_realms()
+    end
   end
 
   describe "is_realm_existing/1" do
@@ -65,6 +263,18 @@ defmodule Astarte.Housekeeping.API.Realms.QueriesTest do
   end
 
   describe "set device registration limit" do
+    setup %{astarte_instance_id: astarte_instance_id, realm_name: realm_name} do
+      on_exit(fn ->
+        Database.setup_database_access(astarte_instance_id)
+        Queries.set_datastream_maximum_storage_retention(realm_name, 50)
+        Queries.set_device_registration_limit(realm_name, 500)
+        Database.insert_public_key(realm_name)
+      end)
+
+      other_realm_name = "realm#{System.unique_integer([:positive])}"
+      %{other_realm_name: other_realm_name}
+    end
+
     test "set limit returns ok ", %{realm_name: realm_name} do
       assert :ok = Queries.set_device_registration_limit(realm_name, 10)
 
@@ -87,6 +297,18 @@ defmodule Astarte.Housekeeping.API.Realms.QueriesTest do
   end
 
   describe "delete device registration limit" do
+    setup %{astarte_instance_id: astarte_instance_id, realm_name: realm_name} do
+      on_exit(fn ->
+        Database.setup_database_access(astarte_instance_id)
+        Queries.set_datastream_maximum_storage_retention(realm_name, 50)
+        Queries.set_device_registration_limit(realm_name, 500)
+        Database.insert_public_key(realm_name)
+      end)
+
+      other_realm_name = "realm#{System.unique_integer([:positive])}"
+      %{other_realm_name: other_realm_name}
+    end
+
     setup %{realm_name: realm_name} do
       Queries.set_device_registration_limit(realm_name, 10)
       :ok
@@ -117,6 +339,18 @@ defmodule Astarte.Housekeeping.API.Realms.QueriesTest do
   end
 
   describe "set storage retention" do
+    setup %{astarte_instance_id: astarte_instance_id, realm_name: realm_name} do
+      on_exit(fn ->
+        Database.setup_database_access(astarte_instance_id)
+        Queries.set_datastream_maximum_storage_retention(realm_name, 50)
+        Queries.set_device_registration_limit(realm_name, 500)
+        Database.insert_public_key(realm_name)
+      end)
+
+      other_realm_name = "realm#{System.unique_integer([:positive])}"
+      %{other_realm_name: other_realm_name}
+    end
+
     test "returns ok ", %{realm_name: realm_name} do
       assert :ok = Queries.set_datastream_maximum_storage_retention(realm_name, 10)
 
@@ -155,6 +389,18 @@ defmodule Astarte.Housekeeping.API.Realms.QueriesTest do
   end
 
   describe "delete storage retention" do
+    setup %{astarte_instance_id: astarte_instance_id, realm_name: realm_name} do
+      on_exit(fn ->
+        Database.setup_database_access(astarte_instance_id)
+        Queries.set_datastream_maximum_storage_retention(realm_name, 50)
+        Queries.set_device_registration_limit(realm_name, 500)
+        Database.insert_public_key(realm_name)
+      end)
+
+      other_realm_name = "realm#{System.unique_integer([:positive])}"
+      %{other_realm_name: other_realm_name}
+    end
+
     setup %{realm_name: realm_name} do
       Queries.set_datastream_maximum_storage_retention(realm_name, 10)
       :ok
@@ -188,6 +434,18 @@ defmodule Astarte.Housekeeping.API.Realms.QueriesTest do
   end
 
   describe "update public key" do
+    setup %{astarte_instance_id: astarte_instance_id, realm_name: realm_name} do
+      on_exit(fn ->
+        Database.setup_database_access(astarte_instance_id)
+        Queries.set_datastream_maximum_storage_retention(realm_name, 50)
+        Queries.set_device_registration_limit(realm_name, 500)
+        Database.insert_public_key(realm_name)
+      end)
+
+      other_realm_name = "realm#{System.unique_integer([:positive])}"
+      %{other_realm_name: other_realm_name}
+    end
+
     test "returns ok ", %{realm_name: realm_name} do
       assert :ok = Queries.update_public_key(realm_name, "newPublicKey")
 
@@ -215,90 +473,105 @@ defmodule Astarte.Housekeeping.API.Realms.QueriesTest do
     end
   end
 
-  test "CreateRealm with nil realm" do
-    assert {:error, %Ecto.Changeset{}} =
-             Realms.create_realm(%{realm_name: nil, jwt_public_key_pem: @public_key_pem})
-  end
+  describe "realm creation" do
+    setup %{astarte_instance_id: astarte_instance_id, realm_name: realm_name} do
+      on_exit(fn ->
+        Database.setup_database_access(astarte_instance_id)
+        Queries.set_datastream_maximum_storage_retention(realm_name, 50)
+        Queries.set_device_registration_limit(realm_name, 500)
+        Database.insert_public_key(realm_name)
+      end)
 
-  test "CreateRealm success", %{other_realm_name: realm_name} do
-    assert {:ok, _} =
-             Realms.create_realm(%{realm_name: realm_name, jwt_public_key_pem: @public_key_pem})
-  end
+      other_realm_name = "realm#{System.unique_integer([:positive])}"
+      %{other_realm_name: other_realm_name}
+    end
 
-  test "CreateRealm with nil public key" do
-    assert {:error, %Ecto.Changeset{}} =
-             Realms.create_realm(%{realm_name: nil, jwt_public_key_pem: nil})
-  end
+    test "CreateRealm with nil realm" do
+      assert {:error, %Ecto.Changeset{}} =
+               Realms.create_realm(%{realm_name: nil, jwt_public_key_pem: @public_key_pem})
+    end
 
-  test "CreateRealm with invalid realm_name" do
-    assert {:error, %Ecto.Changeset{}} =
-             Realms.create_realm(%{realm_name: "realm_not_allowed", jwt_public_key_pem: nil})
-  end
+    test "CreateRealm success", %{other_realm_name: realm_name} do
+      assert {:ok, _} =
+               Realms.create_realm(%{realm_name: realm_name, jwt_public_key_pem: @public_key_pem})
+    end
 
-  test "realm creation successful with nil replication", %{other_realm_name: realm_name} do
-    assert {:ok, _} =
-             Realms.create_realm(%{
-               realm_name: realm_name,
-               jwt_public_key_pem: @public_key_pem,
-               replication_factor: nil
-             })
-  end
+    test "CreateRealm with nil public key" do
+      assert {:error, %Ecto.Changeset{}} =
+               Realms.create_realm(%{realm_name: nil, jwt_public_key_pem: nil})
+    end
 
-  test "Realm creation succeeds when device_registration_limit is nil", %{
-    other_realm_name: realm_name
-  } do
-    assert {:ok, _} =
-             Realms.create_realm(%{
-               realm_name: realm_name,
-               jwt_public_key_pem: @public_key_pem,
-               device_registration_limit: nil
-             })
-  end
+    test "CreateRealm with invalid realm_name" do
+      assert {:error, %Ecto.Changeset{}} =
+               Realms.create_realm(%{realm_name: "realm_not_allowed", jwt_public_key_pem: nil})
+    end
 
-  test "Realm creation successful with explicit SimpleStrategy replication", %{
-    other_realm_name: realm_name
-  } do
-    assert {:ok, _} =
-             Realms.create_realm(%{
-               realm_name: realm_name,
-               jwt_public_key_pem: @public_key_pem,
-               replication_factor: @replication_factor
-             })
-  end
+    test "realm creation successful with nil replication", %{other_realm_name: realm_name} do
+      assert {:ok, _} =
+               Realms.create_realm(%{
+                 realm_name: realm_name,
+                 jwt_public_key_pem: @public_key_pem,
+                 replication_factor: nil
+               })
+    end
 
-  test "realm creation successful with explicit NetworkTopologyStrategy replication", %{
-    other_realm_name: realm_name
-  } do
-    assert {:ok, _} =
-             Realms.create_realm(%{
-               realm_name: realm_name,
-               jwt_public_key_pem: @public_key_pem,
-               replication_class: "NetworkTopologyStrategy",
-               datacenter_replication_factors: %{"datacenter1" => 1}
-             })
-  end
+    test "Realm creation succeeds when device_registration_limit is nil", %{
+      other_realm_name: realm_name
+    } do
+      assert {:ok, _} =
+               Realms.create_realm(%{
+                 realm_name: realm_name,
+                 jwt_public_key_pem: @public_key_pem,
+                 device_registration_limit: nil
+               })
+    end
 
-  test "realm creation fails with invalid SimpleStrategy replication", %{
-    other_realm_name: realm_name
-  } do
-    assert {:error,
-            {:invalid_replication, "replication_factor 9 is >= 1 nodes in datacenter datacenter1"}} =
-             Realms.create_realm(%{
-               realm_name: realm_name,
-               jwt_public_key_pem: @public_key_pem,
-               replication_factor: 9
-             })
-  end
+    test "Realm creation successful with explicit SimpleStrategy replication", %{
+      other_realm_name: realm_name
+    } do
+      assert {:ok, _} =
+               Realms.create_realm(%{
+                 realm_name: realm_name,
+                 jwt_public_key_pem: @public_key_pem,
+                 replication_factor: @replication_factor
+               })
+    end
 
-  test "realm creation fails with invalid NetworkTopologyStrategy replication", %{
-    other_realm_name: realm_name
-  } do
-    assert {:error, %Ecto.Changeset{}} =
-             Realms.create_realm(%{
-               realm_name: realm_name,
-               jwt_public_key_pem: @public_key_pem,
-               replication_class: "NetworkTopologyStrategy",
-               datacenter_replication_factors: [{"imaginarydatacenter", 3}]
-             })
+    test "realm creation successful with explicit NetworkTopologyStrategy replication", %{
+      other_realm_name: realm_name
+    } do
+      assert {:ok, _} =
+               Realms.create_realm(%{
+                 realm_name: realm_name,
+                 jwt_public_key_pem: @public_key_pem,
+                 replication_class: "NetworkTopologyStrategy",
+                 datacenter_replication_factors: %{"datacenter1" => 1}
+               })
+    end
+
+    test "realm creation fails with invalid SimpleStrategy replication", %{
+      other_realm_name: realm_name
+    } do
+      assert {:error,
+              {:invalid_replication,
+               "replication_factor 9 is >= 1 nodes in datacenter datacenter1"}} =
+               Realms.create_realm(%{
+                 realm_name: realm_name,
+                 jwt_public_key_pem: @public_key_pem,
+                 replication_factor: 9
+               })
+    end
+
+    test "realm creation fails with invalid NetworkTopologyStrategy replication", %{
+      other_realm_name: realm_name
+    } do
+      assert {:error, %Ecto.Changeset{}} =
+               Realms.create_realm(%{
+                 realm_name: realm_name,
+                 jwt_public_key_pem: @public_key_pem,
+                 replication_class: "NetworkTopologyStrategy",
+                 datacenter_replication_factors: [{"imaginarydatacenter", 3}]
+               })
+    end
   end
 end
