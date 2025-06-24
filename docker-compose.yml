@@ -5,17 +5,6 @@ services:
       context: apps/astarte_housekeeping
     env_file:
       - ./.env
-    restart: on-failure
-    depends_on:
-      - "rabbitmq"
-      - "scylla"
-
-  astarte-housekeeping-api:
-    image: astarte/astarte_housekeeping_api:1.2-snapshot
-    build:
-      context: apps/astarte_housekeeping_api
-    env_file:
-      - ./.env
     environment:
       HOUSEKEEPING_API_JWT_PUBLIC_KEY_PATH: "/keys/housekeeping_public.pem"
     volumes:
@@ -27,14 +16,14 @@ services:
       - "scylla"
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.astarte-housekeeping-api.rule=Host(`api.${DOCKER_COMPOSE_ASTARTE_BASE_DOMAIN}`)"
-      - "traefik.http.routers.astarte-housekeeping-api.rule=PathPrefix(`/housekeeping`)"
-      - "traefik.http.routers.astarte-housekeeping-api.entrypoints=web"
-      - "traefik.http.routers.astarte-housekeeping-api.middlewares=astarte-housekeeping-api"
-      - "traefik.http.routers.astarte-housekeeping-api.service=astarte-housekeeping-api"
-      - "traefik.http.middlewares.astarte-housekeeping-api.stripprefix.prefixes=/housekeeping"
-      - "traefik.http.middlewares.astarte-housekeeping-api.stripprefix.forceSlash=false"
-      - "traefik.http.services.astarte-housekeeping-api.loadbalancer.server.port=4001"
+      - "traefik.http.routers.astarte-housekeeping.rule=Host(`api.${DOCKER_COMPOSE_ASTARTE_BASE_DOMAIN}`)"
+      - "traefik.http.routers.astarte-housekeeping.rule=PathPrefix(`/housekeeping`)"
+      - "traefik.http.routers.astarte-housekeeping.entrypoints=web"
+      - "traefik.http.routers.astarte-housekeeping.middlewares=astarte-housekeeping"
+      - "traefik.http.routers.astarte-housekeeping.service=astarte-housekeeping"
+      - "traefik.http.middlewares.astarte-housekeeping.stripprefix.prefixes=/housekeeping"
+      - "traefik.http.middlewares.astarte-housekeeping.stripprefix.forceSlash=false"
+      - "traefik.http.services.astarte-housekeeping.loadbalancer.server.port=4001"
 
   astarte-realm-management:
     image: astarte/astarte_realm_management:1.2-snapshot

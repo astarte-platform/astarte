@@ -1,0 +1,357 @@
+openapi: 3.0.0
+servers:
+  - url: '{base_url}/v1'
+    variables:
+      base_url:
+        default: http://localhost:4001
+        description: >-
+          The base URL you're serving Astarte from. This should point to the base
+          path from which Housekeeping is served. In case you are running a local
+          installation, this is likely `http://localhost:4001`. In case you have a
+          standard Astarte installation, it is most likely
+          `https://<your host>/housekeeping`.
+info:
+  description: >-
+    APIs for Administration activities such as Realm creation and Astarte
+    configuration. This API is usually accessible only to system administrators,
+    and is not meant for the average user of Astarte, which should refer to
+    Realm Management API instead.
+  version: 1.2.0
+  title: Astarte Housekeeping
+  contact:
+    email: info@ispirata.com
+tags:
+  - name: realm
+    description: APIs for managing Realms.
+paths:
+  /realms:
+    get:
+      tags:
+        - realm
+      summary: Get all realms
+      description: Returns a list of all existing realms.
+      operationId: getRealms
+      security:
+        - JWT: []
+      responses:
+        '201':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      type: string
+                example:
+                  data:
+                    - arealm
+                    - anotherrealm
+    post:
+      tags:
+        - realm
+      summary: Create a realm
+      description: >-
+        Creates a new realm, based on the provided realm configuration.
+        Realm creation will be executed asynchronously by default - it is not
+        guaranteed that the requested realm will be available as soon as the
+        API call returns, but it is guaranteed that it will be eventually created
+        if no errors are returned and Astarte is operating normally.
+        You can perform the call synchronously by setting the async_operation query
+        param to false.
+      operationId: createRealm
+      security:
+        - JWT: []
+      parameters:
+        - name: async_operation
+          in: query
+          description: Whether the operation should be carried out asynchronously.
+          required: false
+          schema:
+            type: boolean
+            default: true
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Realm'
+      requestBody:
+        $ref: '#/components/requestBodies/createRealmBody'
+  '/realms/{realm_name}':
+    get:
+      tags:
+        - realm
+      summary: Get realm configuration
+      description: Retrieves a realm's configuration.
+      operationId: getRealmConfiguration
+      security:
+        - JWT: []
+      parameters:
+        - name: realm_name
+          in: path
+          description: Realm name
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Realm'
+    put:
+      tags:
+        - realm
+      summary: "DEPRECATED: Update a realm"
+      description: Updates a realm's configuration. This API has been deprecated in favor of PATCH.
+      operationId: updateRealm
+      security:
+        - JWT: []
+      parameters:
+        - name: realm_name
+          in: path
+          description: Realm name
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Success
+      requestBody:
+        $ref: '#/components/requestBodies/createRealmBody'
+    delete:
+      tags:
+        - realm
+      summary: Delete realm
+      description: >
+        Deletes a realm from Astarte. This feature must be explicitly enabled
+        in the cluster, if it's disabled a 405 status code will be returned.
+        If there are connected devices present in the realm, a 422 status
+        code will be returned. Realm deletion will be executed asynchronously
+        by default - it is not guaranteed that the realm will be deleted as
+        soon as the API call returns, but it is guaranteed that it will be
+        eventually removed if no errors are returned and Astarte is
+        operating normally. You can perform the call synchronously by setting
+        the async_operation parameter to false.
+      operationId: deleteRealm
+      security:
+        - JWT: []
+      parameters:
+        - name: realm_name
+          in: path
+          description: Realm name
+          required: true
+          schema:
+            type: string
+        - name: async_operation
+          in: query
+          description: Whether the operation should be carried out asynchronously.
+          required: false
+          schema:
+            type: boolean
+            default: true
+      responses:
+        '204':
+          description: Success
+        '405':
+          description: Realm deletion disabled
+        '422':
+          description: Connected devices present
+    patch:
+      tags:
+        - realm
+      summary: Update a realm
+      description: >-
+        Updates a realm's configuration.
+      security:
+        - JWT: []
+      parameters:
+        - name: realm_name
+          in: path
+          description: Realm name
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                properties:
+                  data:
+                    $ref: '#/components/schemas/Realm'
+        '400':
+          description: Bad request
+        '401':
+          description: Authorization information is missing or invalid.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericError'
+              example:
+                errors:
+                  detail: Unauthorized
+        '404':
+          description: Realm not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericError'
+              example:
+                errors:
+                  detail: Not found
+      requestBody:
+        $ref: '#/components/requestBodies/updateRealmBody'
+components:
+  securitySchemes:
+    JWT:
+      type: apiKey
+      name: Authorization
+      in: header
+      description: >
+        To access APIs a valid JWT token must be passed in all requests
+        in the `Authorization` header. This token should be signed with
+        the private key provided upon Housekeeping installation.
+
+
+        The following syntax must be used in the `Authorization` header :
+          `Bearer xxxxxx.yyyyyyy.zzzzzz`
+  requestBodies:
+    createRealmBody:
+      content:
+        application/json:
+          schema:
+            properties:
+              data:
+                $ref: '#/components/schemas/Realm'
+      description: Realm JSON configuration object.
+      required: true
+    updateRealmBody:
+      content:
+        application/merge-patch+json:
+          schema:
+            type: object
+            properties:
+              data:
+                $ref: '#/components/schemas/RealmPatch'
+      description: >-
+        A JSON Merge Patch containing the property changes that should be applied to the realm. Explicitly set a property to null to remove it.
+      required: true
+  schemas:
+    Realm:
+      type: object
+      required:
+        - realm_name
+        - jwt_public_key_pem
+      properties:
+        realm_name:
+          type: string
+          example: myrealm
+        jwt_public_key_pem:
+          type: string
+          example: |
+            -----BEGIN PUBLIC KEY-----
+            MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAsj7/Ci5Nx+ApLNW7+DyE
+            eTzQ68KEJT/gPW73Kpa2uyvxDwY669z/rP4hMj16wv4Ku3bI6C1ZIqT5SVuF8pDo
+            1Y1SF0GRIeslupm9KV1aFqIu1/srLz18LQHucQYUSa99PStFUJY2V83wneaeAArY
+            4VKDuQYtRZOd2VeD5Cbn602ksLLWCQc9HfL3VUHXTw6DuthnMMJARcVem8RAMScm
+            htGi6YRPFzvHtkb1WQCNGjw5gAmHX5/37ouwbBdnXOa9deiFv+1UIdcCVwMTyP/4
+            f9jgaxW4oQV85enS/OJrrC9jU11agRc4bDv1h4s2t+ETWb4llTVk3HMIHbC3EvKJ
+            VwIDAQAB
+            -----END PUBLIC KEY-----
+          description: "PEM-encoded public key of the realm."
+        replication_class:
+          type: string
+          example: "SimpleStrategy"
+          description: "Replication Class of the keyspace that holds the realm's data."
+        replication_factor:
+          type: integer
+          example: 2
+          description: "Replication factor of the keyspace that holds the realm's data (only if replication_class is \"SimpleStrategy\")."
+        datacenter_replication_factor:
+          type: object
+          example:
+            datacenter_1: 1
+            datacenter_2: 3
+          description: "Datacenter replication factor of the keyspace that holds the realm's data (only if replication_class is \"NetworkTopologyStrategy\")."
+        device_registration_limit:
+          type: integer
+          minimum: 0
+          example: 100
+          description: "Optional upper bound to the number of devices that can be registered in the realm."
+        datastream_maximum_storage_retention:
+          type: integer
+          minimum: 1
+          example: 100
+          description: "Optional upper bound to the retention period of all datastreams in the realm, in seconds."
+      example:
+        realm_name: myrealm
+        jwt_public_key_pem: |
+            -----BEGIN PUBLIC KEY-----
+            MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAsj7/Ci5Nx+ApLNW7+DyE
+            eTzQ68KEJT/gPW73Kpa2uyvxDwY669z/rP4hMj16wv4Ku3bI6C1ZIqT5SVuF8pDo
+            1Y1SF0GRIeslupm9KV1aFqIu1/srLz18LQHucQYUSa99PStFUJY2V83wneaeAArY
+            4VKDuQYtRZOd2VeD5Cbn602ksLLWCQc9HfL3VUHXTw6DuthnMMJARcVem8RAMScm
+            htGi6YRPFzvHtkb1WQCNGjw5gAmHX5/37ouwbBdnXOa9deiFv+1UIdcCVwMTyP/4
+            f9jgaxW4oQV85enS/OJrrC9jU11agRc4bDv1h4s2t+ETWb4llTVk3HMIHbC3EvKJ
+            VwIDAQAB
+            -----END PUBLIC KEY-----
+        replication_class: "SimpleStrategy"
+        replication_factor: 2
+    RealmPatch:
+      type: object
+      properties:
+        jwt_public_key_pem:
+          type: string
+          example: |
+            -----BEGIN PUBLIC KEY-----
+            MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAsj7/Ci5Nx+ApLNW7+DyE
+            eTzQ68KEJT/gPW73Kpa2uyvxDwY669z/rP4hMj16wv4Ku3bI6C1ZIqT5SVuF8pDo
+            1Y1SF0GRIeslupm9KV1aFqIu1/srLz18LQHucQYUSa99PStFUJY2V83wneaeAArY
+            4VKDuQYtRZOd2VeD5Cbn602ksLLWCQc9HfL3VUHXTw6DuthnMMJARcVem8RAMScm
+            htGi6YRPFzvHtkb1WQCNGjw5gAmHX5/37ouwbBdnXOa9deiFv+1UIdcCVwMTyP/4
+            f9jgaxW4oQV85enS/OJrrC9jU11agRc4bDv1h4s2t+ETWb4llTVk3HMIHbC3EvKJ
+            VwIDAQAB
+            -----END PUBLIC KEY-----
+          description: "PEM-encoded public key of the realm."
+        device_registration_limit:
+          type: integer
+          minimum: 0
+          example: 100
+          description: "Optional upper bound to the number of devices that can be registered in the realm."
+        datastream_maximum_storage_retention:
+          type: integer
+          minimum: 1
+          example: 100
+          description: "Optional upper bound to the retention period of all datastreams in the realm, in seconds."
+      example:
+        jwt_public_key_pem: |
+            -----BEGIN PUBLIC KEY-----
+            MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAsj7/Ci5Nx+ApLNW7+DyE
+            eTzQ68KEJT/gPW73Kpa2uyvxDwY669z/rP4hMj16wv4Ku3bI6C1ZIqT5SVuF8pDo
+            1Y1SF0GRIeslupm9KV1aFqIu1/srLz18LQHucQYUSa99PStFUJY2V83wneaeAArY
+            4VKDuQYtRZOd2VeD5Cbn602ksLLWCQc9HfL3VUHXTw6DuthnMMJARcVem8RAMScm
+            htGi6YRPFzvHtkb1WQCNGjw5gAmHX5/37ouwbBdnXOa9deiFv+1UIdcCVwMTyP/4
+            f9jgaxW4oQV85enS/OJrrC9jU11agRc4bDv1h4s2t+ETWb4llTVk3HMIHbC3EvKJ
+            VwIDAQAB
+            -----END PUBLIC KEY-----
+    GenericError:
+      type: object
+      required:
+        - errors
+      properties:
+        errors:
+          type: object
+          properties:
+            detail:
+              type: string
