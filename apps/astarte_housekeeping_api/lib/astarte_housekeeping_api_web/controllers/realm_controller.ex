@@ -25,8 +25,9 @@ defmodule Astarte.Housekeeping.APIWeb.RealmController do
   action_fallback Astarte.Housekeeping.APIWeb.FallbackController
 
   def index(conn, _params) do
-    realms = Realms.list_realms()
-    render(conn, "index.json", realms: realms)
+    with {:ok, realms} <- Realms.list_realms() do
+      render(conn, "index.json", realms: realms)
+    end
   end
 
   def create(conn, %{"data" => realm_params} = params) do

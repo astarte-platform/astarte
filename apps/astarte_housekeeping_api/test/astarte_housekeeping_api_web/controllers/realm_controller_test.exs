@@ -88,7 +88,7 @@ defmodule Astarte.Housekeeping.APIWeb.RealmControllerTest do
 
   describe "index" do
     test "lists all entries on index when no realms exist", %{conn: conn} do
-      Mimic.stub(Realms, :list_realms, fn -> [] end)
+      Mimic.stub(Realms, :list_realms, fn -> {:ok, []} end)
       conn = get(conn, realm_path(conn, :index))
       assert json_response(conn, 200) == %{"data" => []}
     end

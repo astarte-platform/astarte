@@ -878,9 +878,12 @@ defmodule Astarte.Housekeeping.API.Realms.Queries do
 
     case Repo.fetch_all(query, consistency: consistency) do
       {:ok, realm_names} ->
-        Enum.map(realm_names, fn realm_name ->
-          %HKRealm{realm_name: realm_name}
-        end)
+        realms =
+          Enum.map(realm_names, fn realm_name ->
+            %HKRealm{realm_name: realm_name}
+          end)
+
+        {:ok, realms}
 
       {:error, reason} ->
         Logger.warning("Failed to list realms: #{inspect(reason)}.",
