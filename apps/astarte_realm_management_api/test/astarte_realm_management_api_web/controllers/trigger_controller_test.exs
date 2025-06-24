@@ -28,6 +28,7 @@ defmodule Astarte.RealmManagement.APIWeb.TriggerControllerTest do
   alias Astarte.RealmManagement.API.Triggers
   alias Astarte.RealmManagement.API.Triggers.Trigger
   alias Ecto.Changeset
+  alias Astarte.Helpers.Database
 
   import Astarte.RealmManagement.API.Fixtures.Trigger
 
@@ -145,6 +146,9 @@ defmodule Astarte.RealmManagement.APIWeb.TriggerControllerTest do
         post(conn, trigger_path(conn, :create, realm), data: trigger_attrs)
 
       assert json_response(post_conn, 201)
+
+      # TODO: remove once delete trigger rpc is removed
+      create_trigger(realm, trigger_attrs)
 
       delete_conn =
         delete(conn, trigger_path(conn, :delete, realm, trigger_name))
