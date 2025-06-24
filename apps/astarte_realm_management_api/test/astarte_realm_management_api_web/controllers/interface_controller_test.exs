@@ -21,8 +21,12 @@ defmodule Astarte.RealmManagement.APIWeb.InterfaceControllerTest do
 
   @moduletag :interfaces
 
+  alias Astarte.Core.Interface
+  alias Astarte.Helpers.Database
   alias Astarte.RealmManagement.API.Helpers.JWTTestHelper
   alias Astarte.RealmManagement.API.Helpers.RPCMock.DB
+  alias Astarte.RealmManagement.API.Interfaces
+  alias Astarte.RealmManagement.Engine
 
   @interface_name "com.Some.Interface"
   @interface_major 0
@@ -184,9 +188,21 @@ defmodule Astarte.RealmManagement.APIWeb.InterfaceControllerTest do
   describe "update" do
     @describetag :update
 
-    setup %{conn: conn, realm: realm} do
-      post_conn = post(conn, interface_path(conn, :create, realm), data: @valid_attrs)
-      assert response(post_conn, 201) == ""
+    setup %{conn: conn, realm: realm, astarte_instance_id: astarte_instance_id} do
+      # TODO: uncomment after porting create_interface to rm_api
+      # post_conn = post(conn, interface_path(conn, :create, realm), data: @valid_attrs)
+      # assert response(post_conn, 201) == ""
+
+      # TODO: remove after porting create_interface to rm_api
+      {:ok, interface} = Interfaces.create_interface(realm, @valid_attrs)
+      interface_json = Jason.encode!(interface)
+      Engine.install_interface(realm, interface_json)
+
+      on_exit(fn ->
+        Database.setup_database_access(astarte_instance_id)
+        Engine.delete_interface(realm, interface.name, interface.major_version)
+      end)
+
       {:ok, conn: conn}
     end
 
@@ -209,6 +225,9 @@ defmodule Astarte.RealmManagement.APIWeb.InterfaceControllerTest do
         )
 
       assert response(update_conn, 204)
+
+      # TODO: remove after removing get_interface RPC
+      update_interface(realm, @interface_name, @interface_major_str)
 
       get_conn =
         get(conn, interface_path(conn, :show, realm, @interface_name, @interface_major_str))
@@ -448,6 +467,20 @@ defmodule Astarte.RealmManagement.APIWeb.InterfaceControllerTest do
         )
 
       assert json_response(delete_conn, 404)["errors"] != %{}
+    end
+  end
+
+  defp update_interface(realm_name, interface_name, major_version) do
+    with {:ok, interface_json} <-
+           Engine.interface_source(realm_name, interface_name, major_version) do
+      interface_params = Jason.decode!(interface_json, keys: :atoms)
+
+      interface =
+        %Interface{}
+        |> Interface.changeset(interface_params)
+        |> Ecto.Changeset.apply_action!(:insert)
+
+      DB.update_interface(realm_name, interface)
     end
   end
 end

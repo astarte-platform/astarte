@@ -31,7 +31,6 @@ defmodule Astarte.RealmManagement.API.RPC.RealmManagement do
     GetInterfaceVersionsListReplyVersionTuple,
     InstallInterface,
     Reply,
-    UpdateInterface,
     InstallTriggerPolicy,
     GetTriggerPoliciesList,
     GetTriggerPoliciesListReply,
@@ -88,18 +87,6 @@ defmodule Astarte.RealmManagement.API.RPC.RealmManagement do
       async_operation: Keyword.get(opts, :async_operation, true)
     }
     |> encode_call(:install_interface)
-    |> @rpc_client.rpc_call(@destination)
-    |> decode_reply()
-    |> extract_reply()
-  end
-
-  def update_interface(realm_name, interface_json, opts) do
-    %UpdateInterface{
-      realm_name: realm_name,
-      interface_json: interface_json,
-      async_operation: Keyword.get(opts, :async_operation, true)
-    }
-    |> encode_call(:update_interface)
     |> @rpc_client.rpc_call(@destination)
     |> decode_reply()
     |> extract_reply()
