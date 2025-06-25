@@ -37,7 +37,6 @@ defmodule Astarte.Housekeeping.BackendSupervisor do
     hk_xandra_opts = Keyword.put(xandra_options, :name, :xandra)
 
     children = [
-      Astarte.RPC.AMQP.Client,
       {Xandra.Cluster, hk_xandra_opts},
       {Astarte.DataAccess, data_access_opts}
     ]

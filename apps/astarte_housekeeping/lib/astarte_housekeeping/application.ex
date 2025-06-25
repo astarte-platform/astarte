@@ -21,7 +21,6 @@ defmodule Astarte.Housekeeping.Application do
   require Logger
 
   alias Astarte.Housekeeping.Config
-  alias Astarte.RPC.Config, as: RPCConfig
   alias Astarte.DataAccess.Config, as: DataAccessConfig
 
   @app_version Mix.Project.config()[:version]
@@ -38,7 +37,6 @@ defmodule Astarte.Housekeeping.Application do
     Logger.info("Starting application v#{@app_version}.", tag: "housekeeping_api_start")
 
     Config.validate!()
-    RPCConfig.validate!()
     DataAccessConfig.validate!()
     Config.validate_jwt_public_key_pem!()
 

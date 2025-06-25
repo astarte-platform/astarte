@@ -41,21 +41,6 @@ defmodule Astarte.Housekeeping.Config do
     os_env: "HOUSEKEEPING_API_JWT_PUBLIC_KEY_PATH",
     type: JWTPublicKeyPEMType
 
-  @doc "The RPC client module."
-  app_env :rpc_client, :astarte_housekeeping, :rpc_client,
-    os_env: "HOUSEKEEPING_API_RPC_CLIENT",
-    binding_skip: [:system],
-    type: :unsafe_module,
-    default: Astarte.RPC.AMQP.Client
-
-  @envdoc """
-  Timeout for RPC calls to Housekeeping backend, in milliseconds.
-  """
-  app_env :rpc_timeout, :astarte_housekeeping, :rpc_timeout,
-    os_env: "HOUSEKEEPING_API_RPC_TIMEOUT",
-    type: :integer,
-    default: 5000
-
   @envdoc """
   By default Astarte Housekeeping doesn't support realm deletion. Set this variable to true to
   enable this feature. WARNING: this feature can cause permanent data loss when deleting a realm.

@@ -6,8 +6,6 @@ config :astarte_housekeeping, Astarte.HousekeepingWeb.Endpoint,
   http: [port: 4001],
   server: false
 
-config :astarte_rpc, :amqp_connection, host: System.get_env("RABBITMQ_HOST") || "rabbitmq"
-
 # Print only warnings and errors during test
 config :logger, :console,
   format: {PrettyLog.UserFriendlyFormatter, :format},
@@ -46,5 +44,3 @@ JOYU76KvYgkkqrXdTe2nzyOEn0YLEboojtPp6ZylQWxxoTz3vFcjIrVf53g1AB5f
 OwIDAQAB
 -----END PUBLIC KEY-----
 """
-
-config :astarte_housekeeping, :rpc_client, Astarte.Housekeeping.Mock
