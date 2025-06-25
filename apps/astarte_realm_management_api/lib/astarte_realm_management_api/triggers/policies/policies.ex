@@ -20,6 +20,9 @@ defmodule Astarte.RealmManagement.API.Triggers.Policies do
   alias Astarte.Core.Triggers.Policy
   alias Astarte.RealmManagement.API.RPC.RealmManagement
   alias Astarte.RealmManagement.API.Triggers.Policies.Queries
+  alias Astarte.RealmManagement.API.Triggers.Queries, as: TriggerQueries
+  alias Astarte.Core.Triggers.Policy
+  alias Astarte.Core.Triggers.PolicyProtobuf.Policy, as: PolicyProto
 
   @doc """
   Returns the list of trigger policies. Returns either `{:ok, list}` or an `{:error, reason}` tuple.
@@ -43,7 +46,12 @@ defmodule Astarte.RealmManagement.API.Triggers.Policies do
 
   """
   def get_trigger_policy_source(realm_name, policy_name) do
-    RealmManagement.get_trigger_policy_source(realm_name, policy_name)
+    with {:ok, policy_proto} <- TriggerQueries.fetch_trigger_policy(realm_name, policy_name) do
+      policy_proto
+      |> PolicyProto.decode()
+      |> Policy.from_policy_proto!()
+      |> Jason.encode()
+    end
   end
 
   @doc """

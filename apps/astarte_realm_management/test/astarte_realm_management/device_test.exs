@@ -27,7 +27,6 @@ defmodule Astarte.RealmManagement.DeviceTest do
   alias Astarte.DataAccess.Realms.Realm
   alias Astarte.DataAccess.Repo
   alias Astarte.DataAccess.Device.DeletionInProgress
-  alias Astarte.RealmManagement.DatabaseTestHelper
   alias Astarte.DataAccess.Devices.Device
 
   use Astarte.RealmManagement.DataCase, async: true

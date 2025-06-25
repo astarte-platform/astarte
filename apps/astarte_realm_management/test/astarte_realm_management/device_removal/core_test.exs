@@ -21,8 +21,6 @@
 defmodule Astarte.RealmManagement.DeviceRemover.CoreTest do
   alias Astarte.DataAccess.Device.DeletionInProgress
   alias Astarte.DataAccess.KvStore
-  alias Astarte.DataAccess.Groups.GroupedDevice
-  alias Astarte.DataAccess.Realms.Name
   alias Astarte.DataAccess.Devices.Device
   alias Astarte.Core.CQLUtils
   alias Astarte.RealmManagement.Engine

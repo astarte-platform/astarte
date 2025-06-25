@@ -29,6 +29,8 @@ defmodule Astarte.RealmManagement.API.Triggers.Policies.PolicyTest do
   alias Astarte.Core.Triggers.Policy.Handler
   alias Astarte.Core.Triggers.Policy.ErrorKeyword
   alias Astarte.Core.Triggers.Policy.ErrorRange
+  alias Astarte.RealmManagement.Engine
+  alias Astarte.RealmManagement.API.Helpers.RPCMock.DB
 
   @policy_name "policy_name"
   @valid_attrs %{
@@ -55,6 +57,8 @@ defmodule Astarte.RealmManagement.API.Triggers.Policies.PolicyTest do
         name = policy_map.name
 
         assert {:ok, %Policy{name: ^name}} = Policies.create_trigger_policy(realm, policy_map)
+
+        RealmManagement.Engine.delete_trigger_policy(realm, name)
       end
     end
 
@@ -68,6 +72,8 @@ defmodule Astarte.RealmManagement.API.Triggers.Policies.PolicyTest do
 
       assert {:error, :trigger_policy_already_present} =
                Policies.create_trigger_policy(realm, @valid_attrs)
+
+      RealmManagement.Engine.delete_trigger_policy(realm, @policy_name)
     end
   end
 
@@ -98,9 +104,10 @@ defmodule Astarte.RealmManagement.API.Triggers.Policies.PolicyTest do
 
     test "retrieves source for installed policy", %{realm: realm} do
       assert {:ok, %Policy{}} = Policies.create_trigger_policy(realm, @valid_attrs)
-
+      install_trigger_policy(realm, @valid_attrs)
       assert {:ok, json} = Policies.get_trigger_policy_source(realm, @policy_name)
       assert {:ok, %{name: @policy_name}} = Jason.decode(json, keys: :atoms)
+      RealmManagement.Engine.delete_trigger_policy(realm, @policy_name)
     end
 
     test "fails when policy is not installed", %{realm: realm} do
@@ -120,6 +127,8 @@ defmodule Astarte.RealmManagement.API.Triggers.Policies.PolicyTest do
 
         assert {:ok, %Policy{name: ^name}} = Policies.create_trigger_policy(realm, policy_map)
         assert {:ok, :started} = Policies.delete_trigger_policy(realm, name)
+        # todo delete once migration is completed
+        Engine.delete_trigger_policy(realm, name)
 
         assert {:error, :trigger_policy_not_found} =
                  Policies.get_trigger_policy_source(realm, name)
@@ -147,5 +156,11 @@ defmodule Astarte.RealmManagement.API.Triggers.Policies.PolicyTest do
         Map.put(on_map, :strategy, strategy)
       end)
     end)
+  end
+
+  defp install_trigger_policy(realm, params) do
+    {:ok, policy} = Policy.changeset(%Policy{}, params) |> Ecto.Changeset.apply_action(:insert)
+
+    DB.install_trigger_policy(realm, policy)
   end
 end

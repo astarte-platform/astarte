@@ -20,6 +20,7 @@ defmodule Astarte.RealmManagement.API.Helpers.RPCMock.DB do
   alias Astarte.Core.Interface
   alias Astarte.Core.Mapping
   alias Astarte.Core.Triggers.Policy
+  alias Astarte.RealmManagement.Engine
 
   def start_link(agent_name \\ __MODULE__) do
     Agent.start_link(
@@ -248,6 +249,8 @@ defmodule Astarte.RealmManagement.API.Helpers.RPCMock.DB do
     if get_trigger_policy(realm, name) != nil do
       {:error, :trigger_policy_already_present}
     else
+      Engine.install_trigger_policy(realm, Jason.encode!(policy))
+
       Agent.update(current_agent(), fn %{trigger_policies: trigger_policies} = state ->
         %{state | trigger_policies: Map.put(trigger_policies, {realm, name}, policy)}
       end)

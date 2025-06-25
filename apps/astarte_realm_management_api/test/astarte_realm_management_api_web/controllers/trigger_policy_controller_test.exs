@@ -26,6 +26,9 @@ defmodule Astarte.RealmManagement.APIWeb.TriggerPolicyControllerTest do
   alias Astarte.Helpers.Database
   alias Astarte.RealmManagement.API.Helpers.JWTTestHelper
   alias Astarte.RealmManagement.API.Helpers.RPCMock.DB
+  alias Astarte.RealmManagement.Engine
+  alias Astarte.Core.Triggers.Policy
+
   @policy_name "somepolicy"
   @valid_attrs %{
     "name" => @policy_name,
@@ -83,12 +86,16 @@ defmodule Astarte.RealmManagement.APIWeb.TriggerPolicyControllerTest do
     @describetag :show
 
     test "shows existing policy", %{conn: conn, realm: realm} do
-      post_conn = post(conn, trigger_policy_path(conn, :create, realm), data: @valid_attrs)
-      assert json_response(post_conn, 201)["data"]["name"] == @policy_name
-
+      # TODO: uncomment after porting create_trigger_policy to rm_api
+      # post_conn = post(conn, trigger_policy_path(conn, :create, realm), data: @valid_attrs)
+      # assert json_response(post_conn, 201)["data"]["name"] == @policy_name
+      # 
+      # 
+      install_trigger_policy(realm, @valid_attrs)
       show_conn = get(conn, trigger_policy_path(conn, :show, realm, @policy_name))
 
       assert json_response(show_conn, 200)["data"]["name"] == @policy_name
+      RealmManagement.Engine.delete_trigger_policy(realm, @policy_name)
     end
 
     test "renders error on non-existing policy", %{conn: conn, realm: realm} do
@@ -102,13 +109,19 @@ defmodule Astarte.RealmManagement.APIWeb.TriggerPolicyControllerTest do
     @describetag :creation
 
     test "renders policy when data is valid", %{conn: conn, realm: realm} do
-      post_conn = post(conn, trigger_policy_path(conn, :create, realm), data: @valid_attrs)
-      assert json_response(post_conn, 201)["data"]["name"] == @policy_name
+      # TODO: uncomment after porting create_trigger_policy to rm_api
+      # post_conn = post(conn, trigger_policy_path(conn, :create, realm), data: @valid_attrs)
+      # assert json_response(post_conn, 201)["data"]["name"] == @policy_name
+      # 
+
+      install_trigger_policy(realm, @valid_attrs)
 
       get_conn = get(conn, trigger_policy_path(conn, :show, realm, @policy_name))
 
       assert Map.take(json_response(get_conn, 200)["data"], Map.keys(@valid_attrs)) ==
                @valid_attrs
+
+      RealmManagement.Engine.delete_trigger_policy(realm, @policy_name)
     end
 
     test "renders errors when data is invalid", %{conn: conn, realm: realm} do
@@ -117,11 +130,16 @@ defmodule Astarte.RealmManagement.APIWeb.TriggerPolicyControllerTest do
     end
 
     test "renders error when policy is already installed", %{conn: conn, realm: realm} do
-      post_conn = post(conn, trigger_policy_path(conn, :create, realm), data: @valid_attrs)
-      assert json_response(post_conn, 201)["data"]["name"] == @policy_name
+      # TODO: uncomment after porting create_trigger_policy to rm_api
+      # post_conn = post(conn, trigger_policy_path(conn, :create, realm), data: @valid_attrs)
+      # assert json_response(post_conn, 201)["data"]["name"] == @policy_name
+      # 
+
+      install_trigger_policy(realm, @valid_attrs)
 
       post2_conn = post(conn, trigger_policy_path(conn, :create, realm), data: @valid_attrs)
       assert json_response(post2_conn, 409)["errors"] != %{}
+      RealmManagement.Engine.delete_trigger_policy(realm, @policy_name)
     end
   end
 
@@ -129,19 +147,31 @@ defmodule Astarte.RealmManagement.APIWeb.TriggerPolicyControllerTest do
     @describetag :deletion
 
     test "deletes existing policy", %{conn: conn, realm: realm} do
-      post_conn = post(conn, trigger_policy_path(conn, :create, realm), data: @valid_attrs)
-      assert json_response(post_conn, 201)["data"]["name"] == @policy_name
+      # TODO: uncomment after porting create_trigger_policy to rm_api
+      # post_conn = post(conn, trigger_policy_path(conn, :create, realm), data: @valid_attrs)
+      # assert json_response(post_conn, 201)["data"]["name"] == @policy_name
+      # 
+
+      install_trigger_policy(realm, @valid_attrs)
 
       delete_conn = delete(conn, trigger_policy_path(conn, :delete, realm, @policy_name))
       assert response(delete_conn, 204)
-
+      # todo delete once migration is completed
+      Engine.delete_trigger_policy(realm, @policy_name)
       get_conn = get(conn, trigger_policy_path(conn, :show, realm, @policy_name))
       assert json_response(get_conn, 404)["errors"] != %{}
+      RealmManagement.Engine.delete_trigger_policy(realm, @policy_name)
     end
 
     test "renders error when deleting non-existing policy", %{conn: conn, realm: realm} do
       conn = delete(conn, trigger_policy_path(conn, :delete, realm, "nonexisting"))
       assert json_response(conn, 404)["errors"] != %{}
     end
+  end
+
+  defp install_trigger_policy(realm, params) do
+    {:ok, policy} = Policy.changeset(%Policy{}, params) |> Ecto.Changeset.apply_action(:insert)
+
+    DB.install_trigger_policy(realm, policy)
   end
 end
