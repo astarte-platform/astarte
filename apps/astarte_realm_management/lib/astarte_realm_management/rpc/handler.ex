@@ -36,7 +36,6 @@ defmodule Astarte.RealmManagement.RPC.Handler do
     InstallInterface,
     Reply,
     UpdateJWTPublicKeyPEM,
-    InstallTriggerPolicy,
     DeleteTriggerPolicy
   }
 
@@ -177,19 +176,6 @@ defmodule Astarte.RealmManagement.RPC.Handler do
               encode_reply(
                 :update_jwt_public_key_pem,
                 Engine.update_jwt_public_key_pem(realm_name, pem)
-              )
-
-            {:install_trigger_policy,
-             %InstallTriggerPolicy{
-               realm_name: realm_name,
-               trigger_policy_json: policy_json,
-               async_operation: async_operation
-             }} ->
-              _ = Logger.metadata(realm: realm_name)
-
-              encode_reply(
-                :install_policy,
-                Engine.install_trigger_policy(realm_name, policy_json, async: async_operation)
               )
 
             {:delete_trigger_policy,

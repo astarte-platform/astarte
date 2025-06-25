@@ -23,6 +23,9 @@ defmodule Astarte.RealmManagement.API.Triggers.Policies do
   alias Astarte.RealmManagement.API.Triggers.Queries, as: TriggerQueries
   alias Astarte.Core.Triggers.Policy
   alias Astarte.Core.Triggers.PolicyProtobuf.Policy, as: PolicyProto
+  alias Astarte.RealmManagement.API.Triggers.Policies.Core
+
+  require Logger
 
   @doc """
   Returns the list of trigger policies. Returns either `{:ok, list}` or an `{:error, reason}` tuple.
@@ -67,11 +70,24 @@ defmodule Astarte.RealmManagement.API.Triggers.Policies do
 
   """
   def create_trigger_policy(realm_name, params) do
-    changeset = Policy.changeset(%Policy{}, params)
+    _ = Logger.info("Going to install a new trigger policy.", tag: "install_trigger_policy")
 
-    with {:ok, %Policy{} = policy} <- Ecto.Changeset.apply_action(changeset, :insert),
-         {:ok, policy_source} <- Jason.encode(policy),
-         {:ok, :started} <- RealmManagement.install_trigger_policy(realm_name, policy_source) do
+    with policy_changeset <- Policy.changeset(%Policy{}, params),
+         {:ok, %Policy{name: policy_name} = policy} <-
+           Core.validate_trigger_policy(policy_changeset),
+         :ok <- Core.verify_trigger_policy_not_exists(realm_name, policy_name) do
+      _ =
+        Logger.info("Installing trigger policy",
+          tag: "install_policy_started",
+          policy_name: policy_name
+        )
+
+      policy_proto =
+        policy
+        |> Policy.to_policy_proto()
+        |> PolicyProto.encode()
+
+      Queries.install_trigger_policy(realm_name, policy_name, policy_proto)
       {:ok, policy}
     end
   end
