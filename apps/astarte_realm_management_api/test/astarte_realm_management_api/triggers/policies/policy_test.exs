@@ -57,6 +57,8 @@ defmodule Astarte.RealmManagement.API.Triggers.Policies.PolicyTest do
         name = policy_map.name
 
         assert {:ok, %Policy{name: ^name}} = Policies.create_trigger_policy(realm, policy_map)
+
+        RealmManagement.Engine.delete_trigger_policy(realm, name)
       end
     end
 
@@ -105,6 +107,7 @@ defmodule Astarte.RealmManagement.API.Triggers.Policies.PolicyTest do
       install_trigger_policy(realm, @valid_attrs)
       assert {:ok, json} = Policies.get_trigger_policy_source(realm, @policy_name)
       assert {:ok, %{name: @policy_name}} = Jason.decode(json, keys: :atoms)
+      RealmManagement.Engine.delete_trigger_policy(realm, @policy_name)
     end
 
     test "fails when policy is not installed", %{realm: realm} do
