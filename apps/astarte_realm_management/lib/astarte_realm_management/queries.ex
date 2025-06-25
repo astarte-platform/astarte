@@ -995,22 +995,6 @@ defmodule Astarte.RealmManagement.Queries do
     KvStore.insert(params, opts)
   end
 
-  def get_trigger_policies_list(realm_name) do
-    keyspace = Realm.keyspace_name(realm_name)
-
-    query =
-      from store in KvStore,
-        select: store.key,
-        where: [group: "trigger_policy"]
-
-    opts = [
-      prefix: keyspace,
-      consistency: Consistency.domain_model(:read)
-    ]
-
-    Repo.fetch_all(query, opts)
-  end
-
   def fetch_trigger_policy(realm_name, policy_name) do
     keyspace = Realm.keyspace_name(realm_name)
 

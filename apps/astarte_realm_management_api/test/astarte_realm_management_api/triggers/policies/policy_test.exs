@@ -21,7 +21,8 @@ defmodule Astarte.RealmManagement.API.Triggers.Policies.PolicyTest do
   use ExUnitProperties
 
   @moduletag :trigger_policy
-
+  alias Astarte.Helpers.Database
+  alias Astarte.RealmManagement
   alias Astarte.RealmManagement.API.Triggers.Policies
   alias Astarte.Core.Generators.Triggers.Policy, as: PolicyGenerator
   alias Astarte.Core.Triggers.Policy
@@ -72,11 +73,23 @@ defmodule Astarte.RealmManagement.API.Triggers.Policies.PolicyTest do
 
   describe "Policy listing" do
     @describetag :policy_listing
+    setup %{realm: realm, astarte_instance_id: astarte_instance_id} do
+      policy = PolicyGenerator.policy() |> Enum.at(0)
+      policy_json = Jason.encode!(policy)
+      # TODO: Replace when the trigger policy installation is moved to the API
+      :ok = RealmManagement.Engine.install_trigger_policy(realm, policy_json)
 
-    test "lists installed policies", %{realm: realm} do
-      assert {:ok, %Policy{}} = Policies.create_trigger_policy(realm, @valid_attrs)
+      on_exit(fn ->
+        Database.setup_database_access(astarte_instance_id)
+        # TODO: change after removal of `delete_trigger_policy` rpc
+        RealmManagement.Engine.delete_trigger_policy(realm, policy.name)
+      end)
 
-      assert [@policy_name] = Policies.list_trigger_policies(realm)
+      %{policy: policy}
+    end
+
+    test "lists installed policies", %{realm: realm, policy: policy} do
+      assert [policy.name] == Policies.list_trigger_policies(realm)
     end
   end
 
