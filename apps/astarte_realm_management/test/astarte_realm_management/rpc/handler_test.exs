@@ -23,8 +23,6 @@ defmodule Astarte.RealmManagement.RPC.HandlerTest do
     GenericErrorReply,
     GetInterfacesListReply,
     GetInterfaceSourceReply,
-    GetInterfaceVersionsListReply,
-    GetInterfaceVersionsListReplyVersionTuple,
     Reply
   }
 
@@ -72,33 +70,6 @@ defmodule Astarte.RealmManagement.RPC.HandlerTest do
     }
 
     {:ok, buf} = Handler.encode_reply(:get_interface_source, {:ok, "this_is_the_source"})
-    assert Reply.decode(buf) == expectedReply
-
-    expectedReply = %Reply{
-      version: 0,
-      error: false,
-      reply:
-        {:get_interface_versions_list_reply,
-         %GetInterfaceVersionsListReply{
-           versions: [
-             %GetInterfaceVersionsListReplyVersionTuple{
-               major_version: 1,
-               minor_version: 2
-             },
-             %GetInterfaceVersionsListReplyVersionTuple{
-               major_version: 2,
-               minor_version: 0
-             }
-           ]
-         }}
-    }
-
-    {:ok, buf} =
-      Handler.encode_reply(
-        :get_interface_versions_list,
-        {:ok, [[major_version: 1, minor_version: 2], [major_version: 2, minor_version: 0]]}
-      )
-
     assert Reply.decode(buf) == expectedReply
 
     expectedReply = %Reply{

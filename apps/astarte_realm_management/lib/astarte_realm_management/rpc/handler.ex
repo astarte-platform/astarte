@@ -31,9 +31,6 @@ defmodule Astarte.RealmManagement.RPC.Handler do
     GetInterfacesListReply,
     GetInterfaceSource,
     GetInterfaceSourceReply,
-    GetInterfaceVersionsList,
-    GetInterfaceVersionsListReply,
-    GetInterfaceVersionsListReplyVersionTuple,
     GetJWTPublicKeyPEM,
     GetJWTPublicKeyPEMReply,
     InstallInterface,
@@ -69,20 +66,6 @@ defmodule Astarte.RealmManagement.RPC.Handler do
     }
 
     {:ok, Reply.encode(%Reply{error: false, reply: {:get_interface_source_reply, msg}})}
-  end
-
-  def encode_reply(:get_interface_versions_list, {:ok, reply}) do
-    msg = %GetInterfaceVersionsListReply{
-      versions:
-        for version <- reply do
-          %GetInterfaceVersionsListReplyVersionTuple{
-            major_version: version[:major_version],
-            minor_version: version[:minor_version]
-          }
-        end
-    }
-
-    {:ok, Reply.encode(%Reply{error: false, reply: {:get_interface_versions_list_reply, msg}})}
   end
 
   def encode_reply(:get_interfaces_list, {:ok, reply}) do
@@ -177,15 +160,6 @@ defmodule Astarte.RealmManagement.RPC.Handler do
               encode_reply(
                 :get_interface_source,
                 Engine.interface_source(realm_name, interface_name, interface_major_version)
-              )
-
-            {:get_interface_versions_list,
-             %GetInterfaceVersionsList{realm_name: realm_name, interface_name: interface_name}} ->
-              _ = Logger.metadata(realm: realm_name)
-
-              encode_reply(
-                :get_interface_versions_list,
-                Engine.list_interface_versions(realm_name, interface_name)
               )
 
             {:get_interfaces_list, %GetInterfacesList{realm_name: realm_name}} ->

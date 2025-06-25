@@ -111,12 +111,6 @@ defmodule Astarte.RealmManagement.Engine do
     end
   end
 
-  def list_interface_versions(realm_name, interface_name) do
-    _ = Logger.debug("List interface versions.", interface: interface_name)
-
-    Queries.interface_available_versions(realm_name, interface_name)
-  end
-
   def get_interfaces_list(realm_name) do
     _ = Logger.debug("Get interfaces list.")
 

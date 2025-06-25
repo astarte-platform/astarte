@@ -320,33 +320,6 @@ defmodule Astarte.RealmManagement.Queries do
     :ok
   end
 
-  def interface_available_versions(realm_name, interface_name) do
-    keyspace = Realm.keyspace_name(realm_name)
-
-    interface_versions_query =
-      from Interface,
-        select: [:major_version, :minor_version],
-        where: [name: ^interface_name]
-
-    consistency = Consistency.domain_model(:read)
-
-    with {:ok, interface_versions} <-
-           Repo.fetch_all(interface_versions_query, prefix: keyspace, consistency: consistency) do
-      case interface_versions do
-        [] ->
-          {:error, :interface_not_found}
-
-        interfaces ->
-          major_minor_mapping =
-            Enum.map(interfaces, fn interface ->
-              [major_version: interface.major_version, minor_version: interface.minor_version]
-            end)
-
-          {:ok, major_minor_mapping}
-      end
-    end
-  end
-
   def is_interface_major_available?(realm_name, interface_name, interface_major) do
     keyspace = Realm.keyspace_name(realm_name)
 
