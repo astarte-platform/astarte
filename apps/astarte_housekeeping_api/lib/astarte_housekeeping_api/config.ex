@@ -65,6 +65,14 @@ defmodule Astarte.Housekeeping.API.Config do
     type: :boolean,
     default: false
 
+  @envdoc "Replication factor for the astarte keyspace, defaults to 1"
+  app_env :astarte_keyspace_replication_factor,
+          :astarte_housekeeping_api,
+          :astarte_keyspace_replication_factor,
+          os_env: "HOUSEKEEPING_ASTARTE_KEYSPACE_REPLICATION_FACTOR",
+          type: :integer,
+          default: 1
+
   @doc """
   Returns true if the authentication is disabled.
   """

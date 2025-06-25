@@ -34,7 +34,7 @@ defmodule Astarte.Housekeeping.API.Realms do
   ## Examples
 
       iex> list_realms()
-      [%Realm{}, ...]
+      {:ok, [%Realm{}, ...]}
 
   """
   def list_realms do

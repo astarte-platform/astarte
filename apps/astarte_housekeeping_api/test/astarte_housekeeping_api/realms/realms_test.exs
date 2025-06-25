@@ -126,11 +126,13 @@ defmodule Astarte.Housekeeping.API.RealmsTest do
   describe "realms fetching" do
     test "list_realms/0 contains added realm", %{realm_name: realm_name} do
       realm_fixture(%{realm_name: realm_name})
-      assert %Realm{realm_name: realm_name} in Realms.list_realms()
+      {:ok, realms} = Realms.list_realms()
+      assert %Realm{realm_name: realm_name} in realms
     end
 
     test "list_realms/0 doesn't contain nonexisting realm" do
-      refute %Realm{realm_name: @non_existing} in Realms.list_realms()
+      {:ok, realms} = Realms.list_realms()
+      refute %Realm{realm_name: @non_existing} in realms
     end
 
     test "get_realm/1 returns :realm_not_found with unexisting realm" do

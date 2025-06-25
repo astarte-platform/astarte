@@ -359,12 +359,6 @@ defmodule Astarte.Housekeeping.Helpers.Database do
     PRIMARY KEY (realm_name)
   );
   """
-  @add_replication_factor_column_for_realms_table """
-  ALTER TABLE :keyspace.realms ADD replication_factor varchar;
-  """
-  @drop_device_registration_limit_column_for_realms_table """
-  ALTER TABLE :keyspace.realms DROP device_registration_limit;
-  """
 
   @create_kv_store """
   CREATE TABLE :keyspace.kv_store (
@@ -375,10 +369,6 @@ defmodule Astarte.Housekeeping.Helpers.Database do
     PRIMARY KEY ((group), key)
   )
   """
-  @drop_kv_store """
-  DROP TABLE if exists :keyspace.kv_store
-  """
-
   @create_names_table """
   CREATE TABLE :keyspace.names (
     object_name varchar,
@@ -582,52 +572,6 @@ defmodule Astarte.Housekeeping.Helpers.Database do
   def destroy_test_astarte_keyspace!(cluster) do
     keyspace = Realm.astarte_keyspace_name()
     Xandra.Cluster.execute!(cluster, String.replace(@drop_keyspace, ":keyspace", keyspace))
-  end
-
-  def destroy_kv_store_table!(cluster, keyspace) do
-    keyspace = Realm.keyspace_name(keyspace)
-    Xandra.Cluster.execute!(cluster, String.replace(@drop_keyspace, ":keyspace", keyspace))
-  end
-
-  def destroy_astarte_kv_store_table!(cluster) do
-    keyspace = Realm.astarte_keyspace_name()
-    Xandra.Cluster.execute!(cluster, String.replace(@drop_kv_store, ":keyspace", keyspace))
-  end
-
-  def edit_with_outdated_column_for_realms_table!(cluster, keyspace) do
-    keyspace = Realm.keyspace_name(keyspace)
-
-    Xandra.Cluster.execute!(
-      cluster,
-      String.replace(@add_replication_factor_column_for_realms_table, ":keyspace", keyspace)
-    )
-
-    Xandra.Cluster.execute!(
-      cluster,
-      String.replace(
-        @drop_device_registration_limit_column_for_realms_table,
-        ":keyspace",
-        keyspace
-      )
-    )
-  end
-
-  def edit_with_outdated_column_for_astarte_realms_table!(cluster) do
-    keyspace = Realm.astarte_keyspace_name()
-
-    Xandra.Cluster.execute!(
-      cluster,
-      String.replace(@add_replication_factor_column_for_realms_table, ":keyspace", keyspace)
-    )
-
-    Xandra.Cluster.execute!(
-      cluster,
-      String.replace(
-        @drop_device_registration_limit_column_for_realms_table,
-        ":keyspace",
-        keyspace
-      )
-    )
   end
 
   ###
@@ -908,6 +852,16 @@ defmodule Astarte.Housekeeping.Helpers.Database do
   end
 
   def setup!(realm_name) do
+    astarte_keyspace = Realm.astarte_keyspace_name()
+    execute!(astarte_keyspace, @create_keyspace)
+    execute!(astarte_keyspace, @create_kv_store)
+    execute!(astarte_keyspace, @create_realms_table)
+
+    setup_realm!(realm_name)
+  end
+
+  def setup_realm!(realm_name) do
+    astarte_keyspace = Realm.astarte_keyspace_name()
     realm_keyspace = Realm.keyspace_name(realm_name)
     execute!(realm_keyspace, @create_keyspace)
     execute!(realm_keyspace, @create_devices_table)
@@ -919,11 +873,6 @@ defmodule Astarte.Housekeeping.Helpers.Database do
     execute!(realm_keyspace, @create_individual_properties_table)
     execute!(realm_keyspace, @create_individual_datastreams_table)
     execute!(realm_keyspace, @create_interfaces_table)
-
-    astarte_keyspace = Realm.astarte_keyspace_name()
-    execute!(astarte_keyspace, @create_keyspace)
-    execute!(astarte_keyspace, @create_kv_store)
-    execute!(astarte_keyspace, @create_realms_table)
 
     %Realm{realm_name: realm_name}
     |> Repo.insert!(prefix: astarte_keyspace)

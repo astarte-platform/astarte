@@ -878,9 +878,12 @@ defmodule Astarte.Housekeeping.API.Realms.Queries do
 
     case Repo.fetch_all(query, consistency: consistency) do
       {:ok, realm_names} ->
-        Enum.map(realm_names, fn realm_name ->
-          %HKRealm{realm_name: realm_name}
-        end)
+        realms =
+          Enum.map(realm_names, fn realm_name ->
+            %HKRealm{realm_name: realm_name}
+          end)
+
+        {:ok, realms}
 
       {:error, reason} ->
         Logger.warning("Failed to list realms: #{inspect(reason)}.",
@@ -1018,5 +1021,152 @@ defmodule Astarte.Housekeeping.API.Realms.Queries do
     Repo.delete_all(query, consistency: consistency)
 
     :ok
+  end
+
+  def initialize_database do
+    Xandra.Cluster.run(:xandra, [timeout: 60_000], fn conn ->
+      with :ok <- create_astarte_keyspace(conn),
+           :ok <- create_realms_table(conn),
+           :ok <- create_astarte_kv_store(conn),
+           :ok <- insert_astarte_schema_version(conn) do
+        :ok
+      else
+        {:error, %Xandra.Error{} = err} ->
+          _ =
+            Logger.error(
+              "Database error while initializing database: #{inspect(err)}. ASTARTE WILL NOT WORK.",
+              tag: "init_database_error"
+            )
+
+          {:error, :database_error}
+
+        {:error, %Xandra.ConnectionError{} = err} ->
+          _ =
+            Logger.error(
+              "Database connection error while initializing database: #{inspect(err)}. ASTARTE WILL NOT WORK.",
+              tag: "init_database_connection_error"
+            )
+
+          {:error, :database_connection_error}
+
+        {:error, reason} ->
+          _ =
+            Logger.error(
+              "Error while initializing database: #{inspect(reason)}. ASTARTE WILL NOT WORK.",
+              tag: "init_error"
+            )
+
+          {:error, reason}
+      end
+    end)
+  end
+
+  defp create_astarte_keyspace(conn) do
+    # TODO: add support for creating the astarte keyspace with NetworkTopologyStrategy,
+    # right now the replication factor is an integer so SimpleStrategy is always used
+    astarte_keyspace_replication = Config.astarte_keyspace_replication_factor!()
+
+    consistency = Consistency.domain_model(:write)
+
+    with {:ok, replication_map_str} <- build_replication_map_str(astarte_keyspace_replication),
+         query = """
+         CREATE KEYSPACE #{Realm.astarte_keyspace_name()}
+         WITH replication = #{replication_map_str}
+         AND durable_writes = true;
+         """,
+         :ok <- check_replication(conn, astarte_keyspace_replication),
+         {:ok, %Xandra.SchemaChange{}} <-
+           Xandra.execute(conn, query, %{}, consistency: consistency) do
+      :ok
+    else
+      {:error, reason} ->
+        _ =
+          Logger.warning("Cannot create Astarte Keyspace: #{inspect(reason)}.",
+            tag: "astarte_keyspace_creation_failed"
+          )
+
+        {:error, reason}
+    end
+  end
+
+  defp create_realms_table(conn) do
+    query = """
+    CREATE TABLE #{Realm.astarte_keyspace_name()}.realms (
+      realm_name varchar,
+      device_registration_limit bigint,
+      PRIMARY KEY (realm_name)
+    );
+    """
+
+    consistency = Consistency.domain_model(:write)
+
+    with {:ok, %Xandra.SchemaChange{}} <-
+           Xandra.execute(conn, query, %{}, consistency: consistency) do
+      :ok
+    end
+  end
+
+  defp create_astarte_kv_store(conn) do
+    query = """
+    CREATE TABLE #{Realm.astarte_keyspace_name()}.kv_store (
+      group varchar,
+      key varchar,
+      value blob,
+
+      PRIMARY KEY ((group), key)
+    );
+    """
+
+    consistency = Consistency.domain_model(:write)
+
+    with {:ok, %Xandra.SchemaChange{}} <-
+           Xandra.execute(conn, query, %{}, consistency: consistency) do
+      :ok
+    end
+  end
+
+  defp insert_astarte_schema_version(conn) do
+    query = """
+    INSERT INTO #{Realm.astarte_keyspace_name()}.kv_store
+    (group, key, value)
+    VALUES ('astarte', 'schema_version', bigintAsBlob(#{Migrator.latest_astarte_schema_version()}));
+    """
+
+    consistency = Consistency.domain_model(:write)
+
+    with {:ok, %Xandra.Void{}} <- Xandra.execute(conn, query, %{}, consistency: consistency) do
+      :ok
+    end
+  end
+
+  def is_astarte_keyspace_existing do
+    query = """
+    SELECT keyspace_name
+    FROM system_schema.keyspaces
+    WHERE keyspace_name='#{Realm.astarte_keyspace_name()}'
+    """
+
+    consistency = Consistency.domain_model(:read)
+
+    case Xandra.Cluster.execute(:xandra, query, %{}, consistency: consistency) do
+      {:ok, %Xandra.Page{} = page} ->
+        if Enum.count(page) > 0 do
+          {:ok, true}
+        else
+          {:ok, false}
+        end
+
+      {:error, %Xandra.Error{} = err} ->
+        _ = Logger.warning("Database error: #{inspect(err)}.", tag: "database_error")
+        {:error, :database_error}
+
+      {:error, %Xandra.ConnectionError{} = err} ->
+        _ =
+          Logger.warning("Database connection error: #{inspect(err)}.",
+            tag: "database_connection_error"
+          )
+
+        {:error, :database_connection_error}
+    end
   end
 end
