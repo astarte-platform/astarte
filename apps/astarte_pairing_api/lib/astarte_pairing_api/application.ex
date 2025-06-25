@@ -40,7 +40,7 @@ defmodule Astarte.Pairing.API.Application do
     Config.validate!()
     Config.init!()
 
-    xandra_options = repo_opts = Config.xandra_options!()
+    xandra_options = Config.xandra_options!()
 
     data_access_opts = [xandra_options: xandra_options]
 
@@ -52,7 +52,6 @@ defmodule Astarte.Pairing.API.Application do
       {Xandra.Cluster, pairing_xandra_opts},
       {Astarte.Pairing.API.CredentialsSecret.Cache, []},
       {Astarte.DataAccess, data_access_opts},
-      {Astarte.Pairing.API.Repo, repo_opts},
       Astarte.Pairing.APIWeb.Endpoint
     ]
 

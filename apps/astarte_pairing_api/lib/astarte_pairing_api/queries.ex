@@ -25,7 +25,7 @@ defmodule Astarte.Pairing.API.Queries do
   alias Astarte.DataAccess.Realms.Realm
   alias Astarte.DataAccess.Devices.Device
   alias Astarte.DataAccess.KvStore
-  alias Astarte.Pairing.API.Repo
+  alias Astarte.DataAccess.Repo
   require Logger
   import Ecto.Query
 

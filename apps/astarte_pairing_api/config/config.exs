@@ -46,10 +46,6 @@ config :phoenix, :json_library, Jason
 # Disable phoenix logger since we're using PlugLoggerWithMeta
 config :phoenix, :logger, false
 
-config :astarte_pairing_api, ecto_repos: [Astarte.Pairing.API.Repo]
-
-config :astarte_pairing_api, Astarte.Pairing.API.Repo, []
-
 # Import environment specific config. This must remain at the bottom
 # of this file so it overrides the configuration defined above.
 import_config "#{config_env()}.exs"
