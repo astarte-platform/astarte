@@ -104,7 +104,7 @@ defmodule Astarte.RealmManagement.API.Interfaces do
           tag: "invalid_interface_document"
         )
 
-      {:error, :invalid_interface_document}
+      {:error, changeset}
     end
   end
 

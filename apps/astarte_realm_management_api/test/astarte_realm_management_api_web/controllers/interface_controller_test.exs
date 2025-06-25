@@ -17,15 +17,15 @@
 #
 
 defmodule Astarte.RealmManagement.APIWeb.InterfaceControllerTest do
-  use Astarte.RealmManagement.API.DataCase, async: true
+  use Astarte.Cases.Data, async: true
   use Astarte.RealmManagement.APIWeb.ConnCase
 
   @moduletag :interfaces
 
+  alias Astarte.DataAccess.KvStore
+  alias Astarte.DataAccess.Realms.Realm
   alias Astarte.RealmManagement.Queries
   alias Astarte.Helpers.Database
-  alias Astarte.Core.Generators
-  alias Astarte.RealmManagement.API.Helpers.RPCMock.DB
 
   import Astarte.Helpers.Database
   import ExUnit.CaptureLog
@@ -117,50 +117,58 @@ defmodule Astarte.RealmManagement.APIWeb.InterfaceControllerTest do
   describe "create interface" do
     @describetag :creation
 
-    # TODO: remove this when backend functions are migrated to the API service
-    @tag :skip
-    test "renders interface when data is valid", %{conn: conn, realm: realm} do
-      interface = Generators.Interface.interface() |> Enum.at(0) |> to_input_map()
-      post_conn = post(conn, interface_path(conn, :create, realm), data: interface)
+    test "renders interface when data is valid", %{auth_conn: conn, realm: realm} do
+      post_conn =
+        post(conn, interface_path(conn, :create, realm),
+          data: @valid_attrs,
+          async_operation: "false"
+        )
+
       assert response(post_conn, 201) == ""
 
       get_conn =
-        get(
-          conn,
-          interface_path(conn, :show, realm, interface.interface_name, interface.version_major)
-        )
+        get(conn, interface_path(conn, :show, realm, @interface_name, @interface_major_str))
 
-      interface_name = interface.interface_name
-      version_major = interface.version_major
-
-      assert %{"name" => ^interface_name, "version_major" => ^version_major} =
+      assert %{"interface_name" => @interface_name, "version_major" => @interface_major} =
                json_response(get_conn, 200)["data"]
+
+      capture_log(fn ->
+        Queries.delete_interface(realm, @interface_name, @interface_major)
+      end)
     end
 
-    # TODO: remove this when backend functions are migrated to the API service
-    @tag :skip
-    test "renders errors when data is invalid", %{conn: conn, realm: realm} do
-      conn = post(conn, interface_path(conn, :create, realm), data: @invalid_attrs)
+    test "renders errors when data is invalid", %{auth_conn: conn, realm: realm} do
+      conn =
+        post(conn, interface_path(conn, :create, realm),
+          data: @invalid_attrs,
+          async_operation: "false"
+        )
+
       assert json_response(conn, 422)["errors"] != %{}
     end
 
-    # TODO: remove this when backend functions are migrated to the API service
-    @tag :skip
-    test "renders error when interface is already installed", %{conn: conn, realm: realm} do
-      post_conn = post(conn, interface_path(conn, :create, realm), data: @valid_attrs)
+    test "renders error when interface is already installed", %{auth_conn: conn, realm: realm} do
+      post_conn =
+        post(conn, interface_path(conn, :create, realm),
+          data: @valid_attrs,
+          async_operation: "false"
+        )
+
       assert response(post_conn, 201) == ""
 
       post2_conn = post(conn, interface_path(conn, :create, realm), data: @valid_attrs)
       assert json_response(post2_conn, 409)["errors"] != %{}
+
+      capture_log(fn ->
+        Queries.delete_interface(realm, @interface_name, @interface_major)
+      end)
     end
 
-    # TODO: remove this when backend functions are migrated to the API service
-    @tag :skip
     test "renders error on mapping with higher database_retention_ttl than the maximum", %{
-      conn: conn,
+      auth_conn: conn,
       realm: realm
     } do
-      DB.put_datastream_maximum_storage_retention(realm, 1)
+      insert_datastream_maximum_storage_retention!(realm, 1)
 
       iface_with_invalid_mappings = %{
         @valid_attrs
@@ -177,18 +185,29 @@ defmodule Astarte.RealmManagement.APIWeb.InterfaceControllerTest do
 
       conn = post(conn, interface_path(conn, :create, realm), data: iface_with_invalid_mappings)
       assert json_response(conn, 422)["errors"] != %{}
+
+      keyspace = Realm.keyspace_name(realm)
+
+      %{group: "realm_config", key: "datastream_maximum_storage_retention", value: nil}
+      |> KvStore.insert(prefix: keyspace)
     end
 
-    # TODO: remove this when backend functions are migrated to the API service
-    @tag :skip
-    test "fails when interface name collides after normalization", %{conn: conn, realm: realm} do
+    test "fails when interface name collides after normalization", %{
+      auth_conn: conn,
+      realm: realm
+    } do
       interface_name = "com.astarteplatform.Interface"
 
       first_attrs =
         @valid_attrs
         |> Map.put("interface_name", interface_name)
 
-      post_conn = post(conn, interface_path(conn, :create, realm), data: first_attrs)
+      post_conn =
+        post(conn, interface_path(conn, :create, realm),
+          data: first_attrs,
+          async_operation: "false"
+        )
+
       assert response(post_conn, 201) == ""
 
       get_conn =
@@ -206,6 +225,10 @@ defmodule Astarte.RealmManagement.APIWeb.InterfaceControllerTest do
 
       assert json_response(post_conn, 409)["errors"]["detail"] ==
                "Interface name collision detected. Make sure that the difference between two interface names is not limited to the casing or the presence of hyphens."
+
+      capture_log(fn ->
+        Queries.delete_interface(realm, interface_name, @interface_major)
+      end)
     end
   end
 

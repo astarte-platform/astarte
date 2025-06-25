@@ -130,8 +130,10 @@ defmodule Astarte.RealmManagement.API.InterfacesTest do
     end
 
     test "fails with invalid attrs", %{realm: realm} do
-      assert {:error, :invalid_interface_document} =
+      assert {:error, changeset} =
                Interfaces.install_interface(realm, @invalid_attrs)
+
+      assert [type: {"is invalid", _}] = changeset.errors
     end
 
     test "succeeds using a synchronous call", %{realm: realm} do
@@ -326,11 +328,6 @@ defmodule Astarte.RealmManagement.API.InterfacesTest do
                  @interface_major,
                  update_attrs
                )
-    end
-
-    test "fails with invalid attrs", %{realm: realm} do
-      assert {:error, :invalid_interface_document} =
-               Interfaces.install_interface(realm, @invalid_attrs)
     end
 
     test "succeeds with valid attrs using a synchronous call", %{realm: realm} do
