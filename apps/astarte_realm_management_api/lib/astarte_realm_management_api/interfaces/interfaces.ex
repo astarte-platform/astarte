@@ -30,14 +30,11 @@ defmodule Astarte.RealmManagement.API.Interfaces do
   alias Astarte.RealmManagement.API.Interfaces.Core
   alias Astarte.RealmManagement.API.Interfaces.MappingUpdates
   alias Astarte.RealmManagement.API.Interfaces.Queries
-  alias Astarte.RealmManagement.API.RPC.RealmManagement
-
-  require Logger
 
   require Logger
 
   def list_interfaces(realm_name) do
-    RealmManagement.get_interfaces_list(realm_name)
+    Queries.get_interfaces_list(realm_name)
   end
 
   def list_interface_major_versions(realm_name, id) do

@@ -24,7 +24,6 @@ defmodule Astarte.RealmManagement.API.InterfacesTest do
 
   alias Astarte.DataAccess.Realms.Realm
   alias Astarte.DataAccess.KvStore
-  alias Astarte.RealmManagement
   alias Astarte.Core.Interface
   alias Astarte.Core.Mapping
   alias Astarte.Core.Generators.Interface, as: InterfaceGenerators
@@ -123,8 +122,7 @@ defmodule Astarte.RealmManagement.API.InterfacesTest do
                value_type: :integer
              } = mapping
 
-      # TODO: uncomment when `list_interfaces` will be moved to API service
-      # assert {:ok, [@interface_name]} = Interfaces.list_interfaces(realm)
+      assert {:ok, [@interface_name]} = Interfaces.list_interfaces(realm)
     end
 
     test "fails with already installed interface", %{realm: realm} do
@@ -151,7 +149,7 @@ defmodule Astarte.RealmManagement.API.InterfacesTest do
                Interfaces.install_interface(realm, colliding_normalized_attrs)
 
       capture_log(fn ->
-        RealmManagement.Queries.delete_interface(
+        Core.delete_interface(
           realm,
           new_name,
           @interface_major
@@ -184,8 +182,7 @@ defmodule Astarte.RealmManagement.API.InterfacesTest do
                value_type: :integer
              } = mapping
 
-      # TODO: uncomment when `list_interfaces` will be moved to API service
-      # assert {:ok, [@interface_name]} = Interfaces.list_interfaces(realm)
+      assert {:ok, [@interface_name]} = Interfaces.list_interfaces(realm)
     end
 
     test "fails when a mapping higher database_retention_ttl than the maximum", %{realm: realm} do
@@ -265,8 +262,7 @@ defmodule Astarte.RealmManagement.API.InterfacesTest do
                value_type: :integer
              } = mapping
 
-      # TODO: uncomment after `list_interfaces` rpc is moved to RealmManagement API
-      # assert {:ok, ["com.Some.Interface"]} = Interfaces.list_interfaces(realm)
+      assert {:ok, ["com.Some.Interface"]} = Interfaces.list_interfaces(realm)
     end
 
     test "fails with not installed interface", %{realm: realm} do
@@ -392,8 +388,7 @@ defmodule Astarte.RealmManagement.API.InterfacesTest do
                value_type: :integer
              } = mapping
 
-      # TODO: uncomment when `list_interfaces` will be moved to API service
-      # assert {:ok, ["com.Some.Interface"]} = Interfaces.list_interfaces(realm)
+      assert {:ok, ["com.Some.Interface"]} = Interfaces.list_interfaces(realm)
     end
   end
 

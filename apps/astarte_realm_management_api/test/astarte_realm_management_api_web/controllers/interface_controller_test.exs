@@ -72,21 +72,23 @@ defmodule Astarte.RealmManagement.APIWeb.InterfaceControllerTest do
   describe "index" do
     @describetag :index
 
-    # TODO: remove this when backend functions are migrated to the API service
-    @tag :skip
     test "lists empty interfaces", %{auth_conn: conn, realm: realm} do
       conn = get(conn, interface_path(conn, :index, realm))
       assert json_response(conn, 200)["data"] == []
     end
 
-    # TODO: remove this when backend functions are migrated to the API service
-    @tag :skip
     test "lists interface after installing it", %{auth_conn: conn, realm: realm} do
-      post_conn = post(conn, interface_path(conn, :create, realm), data: @valid_attrs)
+      post_conn =
+        post(conn, interface_path(conn, :create, realm),
+          data: @valid_attrs,
+          async_operation: "false"
+        )
+
       assert response(post_conn, 201) == ""
 
       list_conn = get(conn, interface_path(conn, :index, realm))
       assert json_response(list_conn, 200)["data"] == [@interface_name]
+      Core.delete_interface(realm, @interface_name, @interface_major)
     end
   end
 
@@ -181,7 +183,12 @@ defmodule Astarte.RealmManagement.APIWeb.InterfaceControllerTest do
           "type" => "datastream"
       }
 
-      conn = post(conn, interface_path(conn, :create, realm), data: iface_with_invalid_mappings)
+      conn =
+        post(conn, interface_path(conn, :create, realm),
+          data: iface_with_invalid_mappings,
+          async_operation: "false"
+        )
+
       assert json_response(conn, 422)["errors"] != %{}
 
       keyspace = Realm.keyspace_name(realm)
@@ -219,10 +226,16 @@ defmodule Astarte.RealmManagement.APIWeb.InterfaceControllerTest do
         @valid_attrs
         |> Map.put("interface_name", colliding_name)
 
-      post_conn = post(conn, interface_path(conn, :create, realm), data: colliding_attrs)
+      post_conn =
+        post(conn, interface_path(conn, :create, realm),
+          data: colliding_attrs,
+          async_operation: "false"
+        )
 
       assert json_response(post_conn, 409)["errors"]["detail"] ==
                "Interface name collision detected. Make sure that the difference between two interface names is not limited to the casing or the presence of hyphens."
+
+      Core.delete_interface(realm, interface_name, @interface_major)
     end
   end
 
@@ -456,7 +469,12 @@ defmodule Astarte.RealmManagement.APIWeb.InterfaceControllerTest do
     @describetag :deletion
 
     test "deletes existing interface", %{auth_conn: conn, realm: realm} do
-      post_conn = post(conn, interface_path(conn, :create, realm), data: @valid_attrs)
+      post_conn =
+        post(conn, interface_path(conn, :create, realm),
+          data: @valid_attrs,
+          async_operation: "false"
+        )
+
       assert response(post_conn, 201) == ""
 
       delete_conn =
@@ -472,7 +490,12 @@ defmodule Astarte.RealmManagement.APIWeb.InterfaceControllerTest do
         @valid_attrs
         |> Map.put("version_major", new_interface_major)
 
-      post_conn = post(conn, interface_path(conn, :create, realm), data: major_attrs)
+      post_conn =
+        post(conn, interface_path(conn, :create, realm),
+          data: major_attrs,
+          async_operation: "false"
+        )
+
       assert response(post_conn, 201) == ""
 
       delete_conn =
