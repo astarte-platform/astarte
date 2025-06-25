@@ -16,7 +16,7 @@
 # limitations under the License.
 #
 
-defmodule Astarte.RealmManagement.DeviceRemoval.DeviceRemover do
+defmodule Astarte.RealmManagement.API.DeviceRemoval.DeviceRemover do
   @moduledoc """
   This module handles data deletion for a device using a Task.
   The Task may fail at any time, notably if the database is not
@@ -27,7 +27,7 @@ defmodule Astarte.RealmManagement.DeviceRemoval.DeviceRemover do
   use Task
   require Logger
   alias Astarte.Core.Device
-  alias Astarte.RealmManagement.DeviceRemoval.Core
+  alias Astarte.RealmManagement.API.DeviceRemoval.Core
 
   @spec run(%{:device_id => <<_::128>>, :realm_name => binary()}) :: :ok | no_return()
   def run(%{realm_name: realm_name, device_id: device_id}) do

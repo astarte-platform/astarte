@@ -18,19 +18,20 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
-defmodule Astarte.RealmManagement.DeviceRemover.CoreTest do
+defmodule Astarte.RealmManagement.API.DeviceRemover.CoreTest do
   alias Astarte.DataAccess.Device.DeletionInProgress
   alias Astarte.DataAccess.KvStore
   alias Astarte.DataAccess.Devices.Device
   alias Astarte.Core.CQLUtils
-  alias Astarte.RealmManagement.Engine
-  alias Astarte.RealmManagement.Migrations.CreateDatastreamIndividualMultiInterface
-  alias Astarte.RealmManagement.Queries
+  alias Astarte.RealmManagement.API.Interfaces
+  alias Astarte.RealmManagement.API.CreateDatastreamIndividualMultiInterface
+  alias Astarte.RealmManagement.API.DeviceRemoval.Queries
   alias Astarte.DataAccess.Realms.Realm
   alias Astarte.DataAccess.Repo
-  alias Astarte.RealmManagement.DeviceRemoval.Core
+  alias Astarte.RealmManagement.API.DeviceRemoval.Core
+  alias Astarte.Core.Interface
 
-  use Astarte.RealmManagement.DataCase, async: true
+  use Astarte.Cases.Data, async: true
   use ExUnitProperties
 
   describe "Device remover Core" do
@@ -49,7 +50,7 @@ defmodule Astarte.RealmManagement.DeviceRemover.CoreTest do
               device_id <- Astarte.Core.Generators.Device.id(),
               individual_datastreams <-
                 list_of(
-                  Astarte.RealmManagement.Generators.IndividualDatastream.individual_datastream(
+                  Astarte.RealmManagement.API.Generators.IndividualDatastream.individual_datastream(
                     device_id: device_id
                   )
                 )
@@ -71,7 +72,7 @@ defmodule Astarte.RealmManagement.DeviceRemover.CoreTest do
               device_id <- Astarte.Core.Generators.Device.id(),
               individual_properties <-
                 list_of(
-                  Astarte.RealmManagement.Generators.IndividualProperty.individual_property(
+                  Astarte.RealmManagement.API.Generators.IndividualProperty.individual_property(
                     device_id: device_id
                   )
                 )
@@ -114,6 +115,8 @@ defmodule Astarte.RealmManagement.DeviceRemover.CoreTest do
         Core.delete_object_datastream!(realm, device_id)
 
         assert Queries.retrieve_object_datastream_keys!(realm, device_id, table_name) == []
+
+        Core.delete_device!(realm, device_id)
       end
     end
 
@@ -125,7 +128,7 @@ defmodule Astarte.RealmManagement.DeviceRemover.CoreTest do
       check all(
               device_id <- Astarte.Core.Generators.Device.id(),
               aliases <-
-                list_of(Astarte.RealmManagement.Generators.Name.name(device_id: device_id))
+                list_of(Astarte.RealmManagement.API.Generators.Name.name(device_id: device_id))
             ) do
         Enum.each(aliases, &Repo.insert!(&1, prefix: keyspace))
 
@@ -144,7 +147,7 @@ defmodule Astarte.RealmManagement.DeviceRemover.CoreTest do
               device_id <- Astarte.Core.Generators.Device.id(),
               grouped_devices <-
                 list_of(
-                  Astarte.RealmManagement.Generators.GroupedDevice.grouped_devide(
+                  Astarte.RealmManagement.API.Generators.GroupedDevice.grouped_devide(
                     device_id: device_id
                   )
                 )
@@ -210,7 +213,9 @@ defmodule Astarte.RealmManagement.DeviceRemover.CoreTest do
        ) do
     keyspace = Realm.keyspace_name(realm)
     interface_json = Jason.encode!(interface)
-    _ = Engine.install_interface(realm, interface_json)
+
+    {:ok, %Interface{} = interface} =
+      Interfaces.install_interface(realm, Jason.decode!(interface_json))
 
     table_name =
       CQLUtils.interface_name_to_table_name(interface.name, interface.major_version)

@@ -15,7 +15,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-defmodule Astarte.RealmManagement.DeviceRemoval.Scheduler do
+defmodule Astarte.RealmManagement.API.DeviceRemoval.Scheduler do
   @moduledoc """
   This module is used to start Astarte.RealmManagement.DeviceRemoval.DeviceRemover tasks.
   Starting a DeviceRemover may happen either at startup,
@@ -27,8 +27,8 @@ defmodule Astarte.RealmManagement.DeviceRemoval.Scheduler do
 
   use GenServer
 
-  alias Astarte.RealmManagement.Queries
-  alias Astarte.RealmManagement.DeviceRemoval.DeviceRemover
+  alias Astarte.RealmManagement.API.DeviceRemoval.Queries
+  alias Astarte.RealmManagement.API.DeviceRemoval.DeviceRemover
 
   require Logger
 
@@ -66,7 +66,7 @@ defmodule Astarte.RealmManagement.DeviceRemoval.Scheduler do
 
   defp start_device_deletion(args) do
     Task.Supervisor.start_child(
-      Astarte.RealmManagement.DeviceRemoverSupervisor,
+      Astarte.RealmManagement.API.DeviceRemoverSupervisor,
       DeviceRemover,
       :run,
       [args],

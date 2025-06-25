@@ -18,7 +18,7 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
-defmodule Astarte.RealmManagement.Generators.GroupedDevice do
+defmodule Astarte.RealmManagement.API.Generators.GroupedDevice do
   @moduledoc """
   Generator for `Astarte.DataAccess.Groups.GroupedDevice` structure
   """

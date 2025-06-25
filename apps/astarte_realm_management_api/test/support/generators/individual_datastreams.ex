@@ -18,7 +18,7 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
-defmodule Astarte.RealmManagement.Generators.IndividualDatastream do
+defmodule Astarte.RealmManagement.API.Generators.IndividualDatastream do
   @moduledoc """
   Generator of `IndividualDatastream`s.
   """
