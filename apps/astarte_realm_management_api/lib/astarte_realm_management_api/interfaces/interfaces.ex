@@ -17,6 +17,8 @@
 #
 
 defmodule Astarte.RealmManagement.API.Interfaces do
+  alias Astarte.Core.Mapping.EndpointsAutomaton
+  alias Astarte.Core.Mapping
   alias Astarte.RealmManagement.API.Interfaces.Queries
   alias Astarte.Core.Interface
   alias Astarte.Core.Mapping.EndpointsAutomaton
@@ -27,6 +29,8 @@ defmodule Astarte.RealmManagement.API.Interfaces do
   alias Astarte.DataAccess.Mappings
   alias Astarte.RealmManagement.API.RPC.RealmManagement
   alias Astarte.DataAccess.Interface, as: DataAccessInterface
+
+  require Logger
 
   require Logger
 
@@ -45,17 +49,122 @@ defmodule Astarte.RealmManagement.API.Interfaces do
   @doc delegate_to: {Queries, :fetch_interface, 3}
   defdelegate fetch_interface(realm, interface, major), to: Queries
 
-  def create_interface(realm_name, params, opts \\ []) do
-    changeset = Interface.changeset(%Interface{}, params)
+  @doc """
+  Installs a new interface in the specified realm.
+  It performs several checks before proceeding with the installation:
+  - Verifies that the mappings do not exceed the maximum storage retention allowed for the realm.
+  - Checks if the interface can be installed (i.e., no existing interface with the same name and major version).
+  - Checks for name collisions (i.e., no existing interface with the same normalized name
+  - Verifies and builds the automaton for the mappings.
 
-    with {:ok, %Interface{} = interface} <- Ecto.Changeset.apply_action(changeset, :insert),
-         {:ok, interface_source} <- Jason.encode(interface) do
-      case RealmManagement.install_interface(realm_name, interface_source, opts) do
-        :ok -> {:ok, interface}
-        {:ok, :started} -> {:ok, interface}
-        {:error, reason} -> {:error, reason}
+  If the `async` option is set to `true`, the installation will be performed asynchronously.
+
+  ## Parameters
+  - `realm_name`: The name of the realm where the interface will be installed.
+  - `params`: A map containing the interface parameters, including name, major version, and mappings.
+  - `opts`: Optional parameters. For now, it only supports `async` to determine if the installation should be performed asynchronously.
+
+  ## Returns
+  - `{:ok, interface}`: If the interface was successfully created and installed.
+  - `{:error, reason}`: If there was an error during the creation or installation process.
+  """
+  def install_interface(realm_name, params, opts \\ []) do
+    _ = Logger.info("Going to install a new interface.", tag: "install_interface")
+
+    with {:ok, interface} <- build_interface(params),
+         :ok <- verify_mappings_max_storage_retention(realm_name, interface),
+         :ok <- can_install_interface?(realm_name, interface),
+         {:ok, automaton} <- EndpointsAutomaton.build(interface.mappings) do
+      _ =
+        Logger.info("Installing interface.",
+          interface: interface.name,
+          interface_major: interface.major_version,
+          tag: "install_interface_started"
+        )
+
+      if opts[:async],
+        # TODO: add _ = Logger.metadata(realm: realm_name)
+        do: Task.start(Queries, :install_interface, [realm_name, interface, automaton]),
+        else: Queries.install_interface(realm_name, interface, automaton)
+
+      {:ok, interface}
+    end
+  end
+
+  defp build_interface(params) do
+    interface =
+      %Interface{}
+      |> Interface.changeset(params)
+      |> Ecto.Changeset.apply_action(:insert)
+
+    with {:error, changeset} <- interface do
+      _ =
+        Logger.error("Invalid interface document.",
+          reason: changeset.errors,
+          tag: "invalid_interface_document"
+        )
+
+      {:error, :invalid_interface_document}
+    end
+  end
+
+  defp can_install_interface?(realm_name, interface) do
+    with :ok <- check_major_version(realm_name, interface),
+         :ok <- check_name_collision(realm_name, interface) do
+      :ok
+    end
+  end
+
+  defp check_name_collision(realm_name, interface) do
+    normalized_interface_name = normalize_interface_name(interface.name)
+
+    with {:ok, names} <- Queries.fetch_all_interface_names(realm_name) do
+      normalized_names = Enum.map(names, &normalize_interface_name/1)
+
+      new_name? = Enum.all?(names, fn name -> name != interface.name end)
+
+      collision? =
+        Enum.any?(normalized_names, fn name -> name == normalized_interface_name end)
+
+      case new_name? and collision? do
+        true -> {:error, :interface_name_collision}
+        false -> :ok
       end
     end
+  end
+
+  defp normalize_interface_name(interface_name) do
+    String.replace(interface_name, "-", "")
+    |> String.downcase()
+  end
+
+  defp check_major_version(realm_name, interface) do
+    case Queries.is_interface_major_available?(
+           realm_name,
+           interface.name,
+           interface.major_version
+         ) do
+      {:ok, true} -> {:error, :already_installed_interface}
+      {:ok, false} -> :ok
+    end
+  end
+
+  defp verify_mappings_max_storage_retention(realm_name, interface) do
+    with {:ok, max_retention} <- Queries.get_datastream_maximum_storage_retention(realm_name) do
+      if mappings_retention_valid?(interface.mappings, max_retention) do
+        :ok
+      else
+        {:error, :maximum_database_retention_exceeded}
+      end
+    end
+  end
+
+  defp mappings_retention_valid?(_mappings, 0), do: true
+
+  defp mappings_retention_valid?(mappings, max_retention) do
+    Enum.all?(mappings, fn %Mapping{database_retention_ttl: retention} ->
+      retention <= max_retention
+    end)
   end
 
   def update_interface(realm_name, interface_name, major_version, params, opts \\ []) do

@@ -20,9 +20,14 @@ defmodule Astarte.RealmManagement.API.Interfaces.Queries do
   @moduledoc """
   Astarte.Realm Management API Interfaces Queries module.
   """
-
+  alias Astarte.Core.StorageType
+  alias Astarte.Core.Interface.Ownership
+  alias Astarte.Core.Interface.Aggregation
   alias Astarte.Core.CQLUtils
+  alias Astarte.DataAccess.CSystem
+  alias Astarte.RealmManagement.API.CreateDatastreamIndividualMultiInterface
   alias Astarte.Core.InterfaceDescriptor
+  alias Astarte.DataAccess.KvStore
   alias Astarte.Core.Interface, as: InterfaceDocument
   alias Astarte.Core.Interface.Type, as: InterfaceType
   alias Astarte.Core.Mapping
@@ -47,6 +52,318 @@ defmodule Astarte.RealmManagement.API.Interfaces.Queries do
       "#{column_name} #{cql_type}"
     end
     |> Enum.join(~s(,\n))
+  end
+
+  defp create_interface_table(
+         _keyspace,
+         :individual,
+         :multi,
+         %InterfaceDescriptor{type: :properties},
+         _mappings
+       ) do
+    {:multi_interface_individual_properties_dbtable, "individual_properties"}
+  end
+
+  defp create_interface_table(
+         keyspace,
+         :individual,
+         :multi,
+         %InterfaceDescriptor{type: :datastream},
+         _mappings
+       ) do
+    _ = Logger.info("Creating new interface table.", tag: "create_interface_table")
+
+    # TODO: remove `:deprecated` when the first argument of
+    # `CSystem.run_with_schema_agreement/2` is not needed anymore in
+    # Astarte.DataAccess
+    CSystem.run_with_schema_agreement(:deprecated, fn ->
+      _ =
+        Ecto.Migrator.run(Repo, [{0, CreateDatastreamIndividualMultiInterface}], :up,
+          prefix: keyspace,
+          all: true
+        )
+    end)
+
+    {:multi_interface_individual_datastream_dbtable, "individual_datastreams"}
+  end
+
+  defp create_interface_table(keyspace, :object, :one, interface_descriptor, mappings) do
+    table_name =
+      CQLUtils.interface_name_to_table_name(
+        interface_descriptor.name,
+        interface_descriptor.major_version
+      )
+
+    columns = create_one_object_columns_for_mappings(mappings)
+
+    [%Mapping{explicit_timestamp: explicit_timestamp} | _tail] = mappings
+
+    {value_timestamp, key_timestamp} =
+      if explicit_timestamp,
+        do: {"value_timestamp timestamp,", "value_timestamp,"},
+        else: {"", ""}
+
+    create_interface_table_with_object_aggregation = """
+      CREATE TABLE #{keyspace}.#{table_name} (
+        device_id uuid,
+        path varchar,
+
+        #{value_timestamp},
+        reception_timestamp timestamp,
+        reception_timestamp_submillis smallint,
+        #{columns},
+
+        PRIMARY KEY((device_id, path), #{key_timestamp} reception_timestamp, reception_timestamp_submillis)
+      )
+    """
+
+    _ = Logger.info("Creating new interface table.", tag: "create_interface_table")
+
+    # TODO: remove `:deprecated` when the first argument of
+    # `CSystem.run_with_schema_agreement/2` is not needed anymore in
+    # Astarte.DataAccess
+    CSystem.run_with_schema_agreement(:deprecated, fn ->
+      _ = Repo.query(create_interface_table_with_object_aggregation)
+    end)
+
+    {:one_object_datastream_dbtable, table_name}
+  end
+
+  @doc """
+    Installs an interface in the specified realm.
+    This function creates the necessary tables and inserts the interface metadata into the database.
+    It handles both individual and object aggregation types, and it also manages the automaton transitions and accepting states.
+
+    ## Parameters
+    - `realm_name`: The name of the realm where the interface will be installed.
+    - `interface_document`: The interface document containing the interface metadata and mappings.
+    - `automaton`: A tuple containing the automaton transitions and accepting states.
+
+    ## Returns
+    - `:ok`: If the interface was successfully installed.
+    - `{:error, reason}`: If there was an error during the installation process.
+  """
+  def install_interface(realm_name, interface_document, automaton) do
+    keyspace = Realm.keyspace_name(realm_name)
+
+    table_type =
+      if interface_document.aggregation == :individual,
+        do: :multi,
+        else: :one
+
+    {storage_type, table_name} =
+      create_interface_table(
+        keyspace,
+        interface_document.aggregation,
+        table_type,
+        InterfaceDescriptor.from_interface(interface_document),
+        interface_document.mappings
+      )
+
+    {transitions, accepting_states_no_ids} = automaton
+
+    transitions_bin = :erlang.term_to_binary(transitions)
+
+    accepting_states_bin =
+      accepting_states_no_ids
+      |> replace_automaton_acceptings_with_ids(
+        interface_document.name,
+        interface_document.major_version
+      )
+      |> :erlang.term_to_binary()
+
+    # Here order matters, must be the same as the `?` in `insert_interface_statement`
+    params =
+      [
+        interface_document.name,
+        interface_document.major_version,
+        interface_document.minor_version,
+        interface_document.interface_id,
+        StorageType.to_int(storage_type),
+        table_name,
+        InterfaceType.to_int(interface_document.type),
+        Ownership.to_int(interface_document.ownership),
+        Aggregation.to_int(interface_document.aggregation),
+        transitions_bin,
+        accepting_states_bin,
+        interface_document.description,
+        interface_document.doc
+      ]
+
+    interface_table = Interface.__schema__(:source)
+
+    insert_interface_statement = """
+      INSERT INTO #{keyspace}.#{interface_table}
+        (name, major_version, minor_version, interface_id, storage_type, storage, type, ownership, aggregation, automaton_transitions, automaton_accepting_states, description, doc)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    """
+
+    interface_query = {insert_interface_statement, params}
+
+    endpoints_queries =
+      for mapping <- interface_document.mappings do
+        insert_mapping_query(
+          keyspace,
+          interface_document.interface_id,
+          interface_document.name,
+          interface_document.major_version,
+          interface_document.minor_version,
+          interface_document.type,
+          mapping
+        )
+      end
+
+    consistency = Consistency.domain_model(:write)
+
+    Exandra.execute_batch(
+      Repo,
+      %Exandra.Batch{
+        queries: [interface_query | endpoints_queries]
+      },
+      consistency: consistency
+    )
+  end
+
+  defp insert_mapping_query(
+         keyspace,
+         interface_id,
+         interface_name,
+         major,
+         minor,
+         interface_type,
+         mapping
+       ) do
+    table_name = Endpoint.__schema__(:source)
+
+    insert_mapping_statement = """
+    INSERT INTO #{keyspace}.#{table_name}
+    (
+      interface_id, endpoint_id, interface_name, interface_major_version, interface_minor_version,
+      interface_type, endpoint, value_type, reliability, retention, database_retention_policy,
+      database_retention_ttl, expiry, allow_unset, explicit_timestamp, description, doc
+    )
+    VALUES (
+      ?, ?, ?, ?, ?,
+      ?, ?, ?, ?, ?, ?,
+      ?, ?, ?, ?, ?, ?
+    )
+    """
+
+    params = [
+      interface_id,
+      mapping.endpoint_id,
+      interface_name,
+      major,
+      minor,
+      InterfaceType.to_int(interface_type),
+      mapping.endpoint,
+      ValueType.to_int(mapping.value_type),
+      Reliability.to_int(mapping.reliability),
+      Retention.to_int(mapping.retention),
+      DatabaseRetentionPolicy.to_int(mapping.database_retention_policy),
+      mapping.database_retention_ttl,
+      mapping.expiry,
+      mapping.allow_unset,
+      mapping.explicit_timestamp,
+      mapping.description,
+      mapping.doc
+    ]
+
+    {insert_mapping_statement, params}
+  end
+
+  defp replace_automaton_acceptings_with_ids(accepting_states, interface_name, major) do
+    Enum.reduce(accepting_states, %{}, fn state, new_states ->
+      {state_index, endpoint} = state
+
+      Map.put(new_states, state_index, CQLUtils.endpoint_id(interface_name, major, endpoint))
+    end)
+  end
+
+  @doc """
+    Fetches all interface names in a specified realm.
+    This function retrieves all unique interface names from the database for a given realm.
+
+    ## Parameters
+    - `realm_name`: The name of the realm from which to fetch the interface names.
+
+    ## Returns
+    - `{:ok, interface_names}`: A tuple containing `:ok` and a list of unique interface names.
+    - `{:error, reason}`: If there was an error during the fetch operation.
+  """
+  def fetch_all_interface_names(realm_name) do
+    keyspace = Realm.keyspace_name(realm_name)
+
+    all_names_query =
+      from i in Interface,
+        distinct: true,
+        select: i.name
+
+    consistency = Consistency.domain_model(:read)
+    Repo.fetch_all(all_names_query, prefix: keyspace, consistency: consistency)
+  end
+
+  @doc """
+  Checks if an interface major version is available in a given realm.
+  This function checks if an interface with the specified name and major version exists in the realm.
+  If it exists, it returns `true`, indicating that the interface major version is already installed.
+  If it does not exist, it returns `false`, indicating that the interface major version is available for installation.
+
+  ## Parameters
+  - `realm_name`: The name of the realm where the interface is being checked.
+  - `interface_name`: The name of the interface to check.
+  - `interface_major`: The major version of the interface to check.
+
+  ## Returns
+  - `{:ok, true}`: If the interface major version is already installed.
+  - `{:ok, false}`: If the interface major version is available for installation.
+  - `{:error, reason}`: If there was an error during the check.
+  """
+  def is_interface_major_available?(realm_name, interface_name, interface_major) do
+    keyspace = Realm.keyspace_name(realm_name)
+
+    query =
+      from i in Interface,
+        where: i.name == ^interface_name,
+        where: i.major_version == ^interface_major
+
+    consistency = Consistency.domain_model(:read)
+
+    Repo.some?(query, prefix: keyspace, consistency: consistency)
+  end
+
+  @doc """
+  Fetches the maximum storage retention for datastreams in a specified realm.
+  This function retrieves the maximum storage retention for datastreams from the key-value store.
+  If the value is not found, it defaults to 0, indicating no retention limit.
+
+  ## Parameters
+  - `realm_name`: The name of the realm for which to fetch the maximum storage retention.
+
+  ## Returns
+  - `{:ok, value}`: A tuple containing `:ok` and the maximum storage retention value as an integer.
+  - `{:error, :fetch_error}`: If there was an error fetching the value from the key-value store.
+  """
+  def get_datastream_maximum_storage_retention(realm_name) do
+    keyspace = Realm.keyspace_name(realm_name)
+
+    opts = [
+      prefix: keyspace,
+      consistency: Consistency.domain_model(:read),
+      error: :fetch_error
+    ]
+
+    case KvStore.fetch_value(
+           "realm_config",
+           "datastream_maximum_storage_retention",
+           :integer,
+           opts
+         ) do
+      {:ok, value} -> {:ok, value}
+      # not found means default maximum storage retention of 0
+      {:error, :fetch_error} -> {:ok, 0}
+      error -> error
+    end
   end
 
   def update_interface_storage(_realm_name, _interface_descriptor, []) do
@@ -152,65 +469,6 @@ defmodule Astarte.RealmManagement.API.Interfaces.Queries do
       },
       consistency: consistency
     )
-  end
-
-  # TODO: this was needed when Cassandra used to generate endpoint IDs
-  # it might be a good idea to drop this and generate those IDs in A.C.Mapping.EndpointsAutomaton
-  defp replace_automaton_acceptings_with_ids(accepting_states, interface_name, major) do
-    Map.new(accepting_states, fn state ->
-      {state_index, endpoint} = state
-      endpoint_id = CQLUtils.endpoint_id(interface_name, major, endpoint)
-
-      {state_index, endpoint_id}
-    end)
-  end
-
-  defp insert_mapping_query(
-         keyspace,
-         interface_id,
-         interface_name,
-         major,
-         minor,
-         interface_type,
-         mapping
-       ) do
-    table_name = Endpoint.__schema__(:source)
-
-    insert_mapping_statement = """
-    INSERT INTO #{keyspace}.#{table_name}
-    (
-      interface_id, endpoint_id, interface_name, interface_major_version, interface_minor_version,
-      interface_type, endpoint, value_type, reliability, retention, database_retention_policy,
-      database_retention_ttl, expiry, allow_unset, explicit_timestamp, description, doc
-    )
-    VALUES (
-      ?, ?, ?, ?, ?,
-      ?, ?, ?, ?, ?, ?,
-      ?, ?, ?, ?, ?, ?
-    )
-    """
-
-    params = [
-      interface_id,
-      mapping.endpoint_id,
-      interface_name,
-      major,
-      minor,
-      InterfaceType.to_int(interface_type),
-      mapping.endpoint,
-      ValueType.to_int(mapping.value_type),
-      Reliability.to_int(mapping.reliability),
-      Retention.to_int(mapping.retention),
-      DatabaseRetentionPolicy.to_int(mapping.database_retention_policy),
-      mapping.database_retention_ttl,
-      mapping.expiry,
-      mapping.allow_unset,
-      mapping.explicit_timestamp,
-      mapping.description,
-      mapping.doc
-    ]
-
-    {insert_mapping_statement, params}
   end
 
   @doc """

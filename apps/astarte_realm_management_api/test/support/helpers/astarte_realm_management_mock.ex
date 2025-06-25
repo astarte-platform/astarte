@@ -31,7 +31,6 @@ defmodule Astarte.RealmManagement.API.Helpers.RPCMock do
     GetInterfaceVersionsListReplyVersionTuple,
     GetJWTPublicKeyPEM,
     GetJWTPublicKeyPEMReply,
-    InstallInterface,
     Reply,
     UpdateJWTPublicKeyPEM,
     InstallTriggerPolicy,
@@ -42,7 +41,6 @@ defmodule Astarte.RealmManagement.API.Helpers.RPCMock do
     GetDeviceRegistrationLimitReply
   }
 
-  alias Astarte.Core.Interface
   alias Astarte.Core.Triggers.Policy
   alias Astarte.RealmManagement.API.Helpers.RPCMock.DB
 
@@ -112,29 +110,6 @@ defmodule Astarte.RealmManagement.API.Helpers.RPCMock do
     %GetJWTPublicKeyPEMReply{jwt_public_key_pem: pem}
     |> encode_reply(:get_jwt_public_key_pem_reply)
     |> ok_wrap
-  end
-
-  defp execute_rpc(
-         {:install_interface,
-          %InstallInterface{
-            realm_name: realm_name,
-            interface_json: interface_json,
-            async_operation: async
-          }}
-       ) do
-    {:ok, params} = Jason.decode(interface_json)
-
-    {:ok, interface} =
-      Interface.changeset(%Interface{}, params) |> Ecto.Changeset.apply_action(:insert)
-
-    with :ok <- DB.install_interface(realm_name, interface) do
-      generic_ok(async)
-      |> ok_wrap
-    else
-      {:error, reason} ->
-        generic_error(reason)
-        |> ok_wrap
-    end
   end
 
   defp execute_rpc(

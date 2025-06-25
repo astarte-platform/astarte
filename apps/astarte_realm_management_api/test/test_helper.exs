@@ -21,5 +21,6 @@ Mimic.copy(Astarte.DataAccess.Health.Health)
 Mimic.copy(Astarte.DataAccess.KvStore)
 Mimic.copy(Astarte.DataAccess.Repo)
 Mimic.copy(Astarte.RealmManagement.API.RealmConfig.Queries)
-
+Mimic.copy(Astarte.DataAccess.Config)
+Mimic.copy(Task)
 ExUnit.start(capture_log: true)

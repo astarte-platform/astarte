@@ -22,13 +22,13 @@ defmodule Astarte.RealmManagement.APIWeb.InterfaceControllerTest do
 
   @moduletag :interfaces
 
-  alias Astarte.Core.Interface
+  alias Astarte.RealmManagement.Queries
   alias Astarte.Helpers.Database
   alias Astarte.Core.Generators
-  alias Astarte.RealmManagement
   alias Astarte.RealmManagement.API.Helpers.RPCMock.DB
-  alias Astarte.RealmManagement.API.Interfaces
-  alias Astarte.RealmManagement.Engine
+
+  import Astarte.Helpers.Database
+  import ExUnit.CaptureLog
 
   @interface_name "com.Some.Interface"
   @interface_major 0
@@ -84,28 +84,26 @@ defmodule Astarte.RealmManagement.APIWeb.InterfaceControllerTest do
   describe "show" do
     @describetag :show
 
-    setup %{realm_name: realm_name} do
-      interface = Generators.Interface.interface() |> Enum.at(0)
-      json_interface = Jason.encode!(interface)
-      :ok = RealmManagement.Engine.install_interface(realm_name, json_interface)
-
-      %{interface: interface}
-    end
-
-    test "shows existing interface", %{auth_conn: conn, realm: realm, interface: interface} do
-      show_conn =
-        get(
-          conn,
-          interface_path(
-            conn,
-            :show,
-            realm,
-            interface.name,
-            interface.major_version |> to_string()
-          )
+    setup %{auth_conn: conn, realm: realm, astarte_instance_id: astarte_instance_id} do
+      post_conn =
+        post(conn, interface_path(conn, :create, realm),
+          data: @valid_attrs,
+          async_operation: "false"
         )
 
-      assert json_response(show_conn, 200)["data"]["interface_name"] == interface.name
+      assert response(post_conn, 201) == ""
+
+      on_exit(fn ->
+        Database.setup_database_access(astarte_instance_id)
+        capture_log(fn -> Queries.delete_interface(realm, @interface_name, @interface_major) end)
+      end)
+    end
+
+    test "existing interface", %{auth_conn: conn, realm: realm} do
+      show_conn =
+        get(conn, interface_path(conn, :show, realm, @interface_name, @interface_major_str))
+
+      assert json_response(show_conn, 200)["data"]["interface_name"] == @interface_name
     end
 
     test "renders error on non-existing interface", %{auth_conn: conn, realm: realm} do
@@ -122,13 +120,21 @@ defmodule Astarte.RealmManagement.APIWeb.InterfaceControllerTest do
     # TODO: remove this when backend functions are migrated to the API service
     @tag :skip
     test "renders interface when data is valid", %{conn: conn, realm: realm} do
-      post_conn = post(conn, interface_path(conn, :create, realm), data: @valid_attrs)
+      interface = Generators.Interface.interface() |> Enum.at(0) |> to_input_map()
+      post_conn = post(conn, interface_path(conn, :create, realm), data: interface)
       assert response(post_conn, 201) == ""
 
       get_conn =
-        get(conn, interface_path(conn, :show, realm, @interface_name, @interface_major_str))
+        get(
+          conn,
+          interface_path(conn, :show, realm, interface.interface_name, interface.version_major)
+        )
 
-      assert json_response(get_conn, 200)["data"] == @valid_attrs
+      interface_name = interface.interface_name
+      version_major = interface.version_major
+
+      assert %{"name" => ^interface_name, "version_major" => ^version_major} =
+               json_response(get_conn, 200)["data"]
     end
 
     # TODO: remove this when backend functions are migrated to the API service
@@ -207,18 +213,17 @@ defmodule Astarte.RealmManagement.APIWeb.InterfaceControllerTest do
     @describetag :update
 
     setup %{auth_conn: conn, realm: realm, astarte_instance_id: astarte_instance_id} do
-      # TODO: uncomment after porting create_interface to rm_api
-      # post_conn = post(conn, interface_path(conn, :create, realm), data: @valid_attrs)
-      # assert response(post_conn, 201) == ""
+      post_conn =
+        post(conn, interface_path(conn, :create, realm),
+          data: @valid_attrs,
+          async_operation: "false"
+        )
 
-      # TODO: remove after porting create_interface to rm_api
-      {:ok, interface} = Interfaces.create_interface(realm, @valid_attrs)
-      interface_json = Jason.encode!(interface)
-      Engine.install_interface(realm, interface_json)
+      assert response(post_conn, 201) == ""
 
       on_exit(fn ->
         Database.setup_database_access(astarte_instance_id)
-        Engine.delete_interface(realm, interface.name, interface.major_version)
+        capture_log(fn -> Queries.delete_interface(realm, @interface_name, @interface_major) end)
       end)
 
       {:ok, conn: conn}
@@ -243,9 +248,6 @@ defmodule Astarte.RealmManagement.APIWeb.InterfaceControllerTest do
         )
 
       assert response(update_conn, 204)
-
-      # TODO: remove after removing get_interface RPC
-      update_interface(realm, @interface_name, @interface_major_str)
 
       get_conn =
         get(conn, interface_path(conn, :show, realm, @interface_name, @interface_major_str))
@@ -491,20 +493,6 @@ defmodule Astarte.RealmManagement.APIWeb.InterfaceControllerTest do
         )
 
       assert json_response(delete_conn, 404)["errors"] != %{}
-    end
-  end
-
-  defp update_interface(realm_name, interface_name, major_version) do
-    with {:ok, interface_json} <-
-           Engine.interface_source(realm_name, interface_name, major_version) do
-      interface_params = Jason.decode!(interface_json, keys: :atoms)
-
-      interface =
-        %Interface{}
-        |> Interface.changeset(interface_params)
-        |> Ecto.Changeset.apply_action!(:insert)
-
-      DB.update_interface(realm_name, interface)
     end
   end
 end
