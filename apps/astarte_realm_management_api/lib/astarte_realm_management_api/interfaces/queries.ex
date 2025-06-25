@@ -536,6 +536,44 @@ defmodule Astarte.RealmManagement.API.Interfaces.Queries do
     end
   end
 
+  @doc """
+  Retrieves all available versions (major and minor) of a given interface within a specified realm.
+
+  ## Parameters
+  - `realm_name` (string): The name of the realm to query.
+  - `interface_name` (string): The name of the interface whose versions are to be retrieved.
+
+  ## Returns
+  - `{:ok, versions}`: On success, returns a list of maps with `:major_version` and `:minor_version` keys for each available version.
+  - `{:error, :interface_not_found}`: If the interface does not exist in the specified realm.
+  """
+  def fetch_interface_versions_list(realm_name, interface_name) do
+    keyspace = Realm.keyspace_name(realm_name)
+
+    consistency = Consistency.domain_model(:read)
+
+    interface_versions_query =
+      from Interface,
+        select: [:major_version, :minor_version],
+        where: [name: ^interface_name]
+
+    with {:ok, interface_versions} <-
+           Repo.fetch_all(interface_versions_query, prefix: keyspace, consistency: consistency) do
+      case interface_versions do
+        [] ->
+          {:error, :interface_not_found}
+
+        interfaces ->
+          major_minor_mapping =
+            Enum.map(interfaces, fn interface ->
+              [major_version: interface.major_version, minor_version: interface.minor_version]
+            end)
+
+          {:ok, major_minor_mapping}
+      end
+    end
+  end
+
   def delete_interface(realm_name, interface_name, interface_major_version) do
     _ =
       Logger.info("Delete interface.",

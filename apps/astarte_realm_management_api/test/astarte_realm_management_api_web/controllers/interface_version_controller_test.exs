@@ -20,71 +20,74 @@ defmodule Astarte.RealmManagement.APIWeb.InterfaceVersionControllerTest do
   use Astarte.RealmManagement.API.DataCase, async: true
   use Astarte.RealmManagement.APIWeb.ConnCase
 
-  alias Astarte.RealmManagement.Queries
-  alias Astarte.RealmManagement.API.Helpers.RPCMock.DB
-  alias Astarte.Core.Generators
+  alias Astarte.Core.Generators.Interface, as: InterfaceGenerators
+  alias Astarte.Helpers.Database
+  alias Astarte.RealmManagement.API.Interfaces
+  alias Astarte.RealmManagement.API.Interfaces.Core
 
   import ExUnit.CaptureLog
 
   describe "index" do
-    test "lists empty interface versions", %{auth_conn: conn, realm: realm} do
-      interface = Generators.Interface.interface() |> Enum.at(0)
-      conn = get(conn, interface_version_path(conn, :index, realm, interface.name))
-      assert json_response(conn, 200)["data"] == []
-    end
+    setup %{realm_name: realm_name, astarte_instance_id: astarte_instance_id} do
+      interface = InterfaceGenerators.interface() |> Enum.at(0)
+      interface_params = interface |> to_input_map()
 
-    test "lists interface after installing it", %{auth_conn: conn, realm: realm} do
-      interface = Generators.Interface.interface() |> Enum.at(0)
-      _ = install_interface(conn, realm, interface)
+      {:ok, installed_interface} = Interfaces.install_interface(realm_name, interface_params)
 
-      list_conn = get(conn, interface_version_path(conn, :index, realm, interface.interface_name))
-      assert json_response(list_conn, 200)["data"] == [interface.version_major]
+      on_exit(fn ->
+        Database.setup_database_access(astarte_instance_id)
 
-      # Cleanup
-      capture_log(fn ->
-        Queries.delete_interface(realm, interface.name, interface.major_version)
+        capture_log(fn ->
+          Core.delete_interface(realm_name, interface.name, interface.major_version)
+        end)
       end)
+
+      %{interface: installed_interface}
     end
 
-    test "lists multiple major versions", %{auth_conn: conn, realm: realm} do
-      major = StreamData.integer(0..8) |> Enum.at(0)
+    test "returns 404 when requesting versions for a non-existent interface", %{
+      auth_conn: auth_conn,
+      realm: realm
+    } do
+      conn =
+        get(auth_conn, interface_version_path(auth_conn, :index, realm, "com.Some.Interface"))
 
-      interface =
-        Generators.Interface.interface(major_version: major) |> Enum.at(0)
+      assert json_response(conn, 404)["errors"]["detail"] == "Interface not found"
+    end
 
-      post_conn_1 = install_interface(conn, realm, interface)
+    test "returns the major version after installing a single interface", %{
+      auth_conn: auth_conn,
+      realm_name: realm_name,
+      interface: interface
+    } do
+      list_conn =
+        get(auth_conn, interface_version_path(auth_conn, :index, realm_name, interface.name))
 
-      next_interface = Map.update!(interface, :major_version, &(&1 + 1))
+      assert json_response(list_conn, 200)["data"] == [interface.major_version]
+    end
 
-      post_conn_2 = install_interface(post_conn_1, realm, next_interface)
+    test "returns all major versions after installing multiple versions of the same interface", %{
+      auth_conn: auth_conn,
+      realm_name: realm_name,
+      interface: interface
+    } do
+      interface2 = %{interface | :major_version => interface.major_version + 1}
+      interface_params = interface2 |> to_input_map()
+
+      {:ok, interface2} = Interfaces.install_interface(realm_name, interface_params)
 
       list_conn =
-        get(conn, interface_version_path(post_conn_2, :index, realm, interface.interface_name))
+        get(auth_conn, interface_version_path(auth_conn, :index, realm_name, interface.name))
 
-      assert json_response(list_conn, 200)["data"] == [major, major + 1]
+      assert json_response(list_conn, 200)["data"] == [
+               interface.major_version,
+               interface2.major_version
+             ]
 
       # Cleanup
       capture_log(fn ->
-        Queries.delete_interface(realm, interface.name, interface.major_version)
-
-        Queries.delete_interface(
-          realm,
-          next_interface.name,
-          next_interface.major_version
-        )
+        Core.delete_interface(realm_name, interface2.name, interface2.major_version)
       end)
     end
-  end
-
-  defp install_interface(conn, realm, interface) do
-    interface_data = interface |> to_input_map()
-    post_conn = post(conn, interface_path(conn, :create, realm), data: interface_data)
-    assert response(post_conn, 201) == ""
-
-    # TODO: remove when all interface functions are migrated to
-    # Astarte.RealmManagement.API
-    DB.install_interface(realm, interface)
-
-    post_conn
   end
 end

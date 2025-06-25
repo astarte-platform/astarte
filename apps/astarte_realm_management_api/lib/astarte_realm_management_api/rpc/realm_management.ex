@@ -23,9 +23,6 @@ defmodule Astarte.RealmManagement.API.RPC.RealmManagement do
     GenericOkReply,
     GetInterfacesList,
     GetInterfacesListReply,
-    GetInterfaceVersionsList,
-    GetInterfaceVersionsListReply,
-    GetInterfaceVersionsListReplyVersionTuple,
     Reply,
     InstallTriggerPolicy,
     DeleteTriggerPolicy
@@ -37,17 +34,6 @@ defmodule Astarte.RealmManagement.API.RPC.RealmManagement do
 
   @rpc_client Config.rpc_client!()
   @destination Astarte.RPC.Protocol.RealmManagement.amqp_queue()
-
-  def get_interface_versions_list(realm_name, interface_name) do
-    %GetInterfaceVersionsList{
-      realm_name: realm_name,
-      interface_name: interface_name
-    }
-    |> encode_call(:get_interface_versions_list)
-    |> @rpc_client.rpc_call(@destination)
-    |> decode_reply()
-    |> extract_reply()
-  end
 
   def get_interfaces_list(realm_name) do
     %GetInterfacesList{
@@ -114,22 +100,6 @@ defmodule Astarte.RealmManagement.API.RPC.RealmManagement do
         _ = Logger.warning("Received unknown error: #{inspect(name)}.", tag: "amqp_generic_error")
         {:error, :unknown}
     end
-  end
-
-  defp extract_reply(
-         {:get_interface_versions_list_reply, %GetInterfaceVersionsListReply{versions: versions}}
-       ) do
-    result =
-      for version <- versions do
-        %GetInterfaceVersionsListReplyVersionTuple{
-          major_version: major_version,
-          minor_version: minor_version
-        } = version
-
-        [major_version: major_version, minor_version: minor_version]
-      end
-
-    {:ok, result}
   end
 
   defp extract_reply(
