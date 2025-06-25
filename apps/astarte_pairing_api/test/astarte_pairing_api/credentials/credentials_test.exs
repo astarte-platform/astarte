@@ -188,8 +188,7 @@ defmodule Astarte.Pairing.API.CredentialsTest do
                )
     end
 
-    test "returns forbidden with realm not found", ctx do
-      # TODO: This should not raise an error, but return an error tuple
+    test "raises with realm not found", ctx do
       assert_raise Xandra.Error, ~r"Keyspace .*#{@unexisting_realm} does not exist", fn ->
         Credentials.get_astarte_mqtt_v1(
           @unexisting_realm,
@@ -318,7 +317,6 @@ defmodule Astarte.Pairing.API.CredentialsTest do
     end
 
     test "raises with realm not found", ctx do
-      # TODO: This should not raise an error, but return an error tuple
       assert_raise Xandra.Error, ~r"Keyspace .*#{@unexisting_realm} does not exist", fn ->
         Credentials.verify_astarte_mqtt_v1(
           @unexisting_realm,

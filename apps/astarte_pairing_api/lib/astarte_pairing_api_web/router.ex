@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2017 Ispirata Srl
+# Copyright 2017-2025 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -22,6 +22,7 @@ defmodule Astarte.Pairing.APIWeb.Router do
   pipeline :realm_api do
     plug :accepts, ["json"]
     plug Astarte.Pairing.APIWeb.Plug.LogRealm
+    plug Astarte.Pairing.APIWeb.Plug.VerifyRealmExists
   end
 
   pipeline :agent_api do

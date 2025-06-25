@@ -149,7 +149,6 @@ defmodule Astarte.Pairing.API.AgentTest do
     end
 
     test "realm not found", %{device: device} do
-      # TODO: This should not raise an error, but return an error tuple
       assert_raise Xandra.Error, ~r"Keyspace .*nonexistingrealm does not exist", fn ->
         Agent.unregister_device("nonexistingrealm", device.encoded_id)
       end

@@ -29,6 +29,31 @@ defmodule Astarte.Pairing.API.Queries do
   require Logger
   import Ecto.Query
 
+  def is_realm_existing(realm_name) do
+    keyspace_name = Realm.astarte_keyspace_name()
+
+    query =
+      from r in Realm,
+        prefix: ^keyspace_name,
+        where: r.realm_name == ^realm_name,
+        select: count()
+
+    consistency = Consistency.domain_model(:read)
+
+    case Repo.safe_fetch_one(query, consistency: consistency) do
+      {:ok, count} ->
+        {:ok, count > 0}
+
+      {:error, reason} ->
+        Logger.warning("Cannot check if realm exists: #{inspect(reason)}.",
+          tag: "is_realm_existing_error",
+          realm: realm_name
+        )
+
+        {:error, reason}
+    end
+  end
+
   def get_agent_public_key_pems(realm_name) do
     keyspace = Realm.keyspace_name(realm_name)
 

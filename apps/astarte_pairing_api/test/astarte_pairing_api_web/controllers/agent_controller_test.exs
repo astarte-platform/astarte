@@ -135,6 +135,16 @@ defmodule Astarte.Pairing.APIWeb.AgentControllerTest do
 
       assert json_response(conn, 401)["errors"] == %{"detail" => "Unauthorized"}
     end
+
+    test "renders forbidden error when realm does not exist", ctx do
+      %{conn: conn} = ctx
+
+      realm_name = "unknown"
+
+      conn = post(conn, agent_path(conn, :create, realm_name), data: @create_attrs)
+
+      assert json_response(conn, 403)["errors"] == %{"detail" => "Forbidden"}
+    end
   end
 
   describe "unregister device" do
@@ -162,6 +172,16 @@ defmodule Astarte.Pairing.APIWeb.AgentControllerTest do
         |> delete(agent_path(conn, :delete, realm_name, device.encoded_id))
 
       assert json_response(conn, 401)["errors"] == %{"detail" => "Unauthorized"}
+    end
+
+    test "renders forbidden error when realm does not exist", ctx do
+      %{conn: conn, device: device} = ctx
+
+      realm_name = "unknown"
+
+      conn = delete(conn, agent_path(conn, :delete, realm_name, device.encoded_id))
+
+      assert json_response(conn, 403)["errors"] == %{"detail" => "Forbidden"}
     end
   end
 

@@ -186,6 +186,27 @@ defmodule Astarte.Pairing.APIWeb.DeviceControllerTest do
 
       assert json_response(conn, 401)["errors"] == %{"detail" => "Unauthorized"}
     end
+
+    test "renders forbidden error when realm does not exist", ctx do
+      %{conn: conn, device: device} = ctx
+
+      realm_name = "unknown"
+
+      conn =
+        post(
+          conn,
+          device_path(
+            conn,
+            :create_credentials,
+            realm_name,
+            device.encoded_id,
+            "astarte_mqtt_v1"
+          ),
+          data: @create_attrs
+        )
+
+      assert json_response(conn, 403)["errors"] == %{"detail" => "Forbidden"}
+    end
   end
 
   describe "verify Astarte MQTT V1 credentials" do
@@ -271,6 +292,27 @@ defmodule Astarte.Pairing.APIWeb.DeviceControllerTest do
                "details" => nil
              } = json_response(conn, 200)["data"]
     end
+
+    test "renders forbidden error when realm does not exist", ctx do
+      %{conn: conn, device: device} = ctx
+
+      realm_name = "unknown"
+
+      conn =
+        post(
+          conn,
+          device_path(
+            conn,
+            :verify_credentials,
+            realm_name,
+            device.encoded_id,
+            "astarte_mqtt_v1"
+          ),
+          data: @verify_attrs
+        )
+
+      assert json_response(conn, 403)["errors"] == %{"detail" => "Forbidden"}
+    end
   end
 
   describe "get device info" do
@@ -347,6 +389,16 @@ defmodule Astarte.Pairing.APIWeb.DeviceControllerTest do
       conn = put_req_header(conn, "authorization", "BEARER invalidsecret")
 
       conn = get(conn, device_path(conn, :show_info, realm_name, device.encoded_id))
+      assert json_response(conn, 403)["errors"] == %{"detail" => "Forbidden"}
+    end
+
+    test "renders forbidden error when realm does not exist", ctx do
+      %{conn: conn, device: device} = ctx
+
+      realm_name = "unknown"
+
+      conn = get(conn, device_path(conn, :show_info, realm_name, device.encoded_id))
+
       assert json_response(conn, 403)["errors"] == %{"detail" => "Forbidden"}
     end
   end
