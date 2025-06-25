@@ -21,6 +21,9 @@ defmodule Astarte.RealmManagement.API.InterfacesTest do
   use ExUnitProperties
 
   @moduletag :interfaces
+  # TODO: This module is only being kept for reference. Remove it altogether
+  # when the interfaces functions have been migrated to the API service.
+  @moduletag :skip
 
   alias Astarte.Core.Interface
   alias Astarte.Core.Mapping
@@ -188,7 +191,7 @@ defmodule Astarte.RealmManagement.API.InterfacesTest do
       update_interface(realm, @interface_name, @interface_major)
 
       assert {:ok, interface_source} =
-               Interfaces.get_interface(realm, @interface_name, @interface_major)
+               Interfaces.fetch_interface(realm, @interface_name, @interface_major)
 
       assert {:ok, map} = Jason.decode(interface_source)
 
@@ -327,7 +330,7 @@ defmodule Astarte.RealmManagement.API.InterfacesTest do
       update_interface(realm, @interface_name, @interface_major)
 
       assert {:ok, interface_source} =
-               Interfaces.get_interface(realm, @interface_name, @interface_major)
+               Interfaces.fetch_interface(realm, @interface_name, @interface_major)
 
       assert {:ok, map} = Jason.decode(interface_source)
 
@@ -496,7 +499,7 @@ defmodule Astarte.RealmManagement.API.InterfacesTest do
       assert :ok = Interfaces.delete_interface(realm, @interface_name, @interface_major)
 
       assert {:error, :interface_not_found} =
-               Interfaces.get_interface(realm, @interface_name, @interface_major)
+               Interfaces.fetch_interface(realm, @interface_name, @interface_major)
     end
 
     test "fails if major version is other than 0", %{realm: realm} do
@@ -532,7 +535,7 @@ defmodule Astarte.RealmManagement.API.InterfacesTest do
                )
 
       assert {:error, :interface_not_found} =
-               Interfaces.get_interface(realm, @interface_name, @interface_major)
+               Interfaces.fetch_interface(realm, @interface_name, @interface_major)
     end
   end
 

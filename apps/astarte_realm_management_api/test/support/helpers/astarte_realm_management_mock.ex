@@ -24,8 +24,6 @@ defmodule Astarte.RealmManagement.API.Helpers.RPCMock do
     GetDatastreamMaximumStorageRetentionReply,
     GenericErrorReply,
     GenericOkReply,
-    GetInterfaceSource,
-    GetInterfaceSourceReply,
     GetInterfacesList,
     GetInterfacesListReply,
     GetInterfaceVersionsList,
@@ -116,24 +114,6 @@ defmodule Astarte.RealmManagement.API.Helpers.RPCMock do
     %GetJWTPublicKeyPEMReply{jwt_public_key_pem: pem}
     |> encode_reply(:get_jwt_public_key_pem_reply)
     |> ok_wrap
-  end
-
-  defp execute_rpc(
-         {:get_interface_source,
-          %GetInterfaceSource{
-            realm_name: realm_name,
-            interface_name: name,
-            interface_major_version: major
-          }}
-       ) do
-    if source = DB.get_interface_source(realm_name, name, major) do
-      %GetInterfaceSourceReply{source: source}
-      |> encode_reply(:get_interface_source_reply)
-      |> ok_wrap
-    else
-      generic_error(:interface_not_found)
-      |> ok_wrap
-    end
   end
 
   defp execute_rpc(

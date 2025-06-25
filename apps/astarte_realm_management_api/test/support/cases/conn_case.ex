@@ -30,8 +30,11 @@ defmodule Astarte.RealmManagement.APIWeb.ConnCase do
   inside a transaction which is reset at the beginning
   of the test unless the test case is marked as async.
   """
-
   use ExUnit.CaseTemplate
+
+  alias Astarte.RealmManagement.API.Helpers.JWTTestHelper
+
+  import Plug.Conn
 
   using do
     quote do
@@ -39,13 +42,20 @@ defmodule Astarte.RealmManagement.APIWeb.ConnCase do
       import Plug.Conn
       import Phoenix.ConnTest
       import Astarte.RealmManagement.APIWeb.Router.Helpers
-      use Astarte.RealmManagement.API.DataCase
       # The default endpoint for testing
       @endpoint Astarte.RealmManagement.APIWeb.Endpoint
     end
   end
 
-  setup do
-    {:ok, conn: Phoenix.ConnTest.build_conn()}
+  setup_all do
+    token = JWTTestHelper.gen_jwt_all_access_token()
+    conn = Phoenix.ConnTest.build_conn()
+
+    auth_conn =
+      conn
+      |> put_req_header("accept", "application/json")
+      |> put_req_header("authorization", "Bearer #{token}")
+
+    %{conn: conn, auth_conn: auth_conn}
   end
 end

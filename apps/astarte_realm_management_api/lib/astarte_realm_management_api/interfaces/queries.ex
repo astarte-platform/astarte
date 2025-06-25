@@ -17,8 +17,13 @@
 #
 
 defmodule Astarte.RealmManagement.API.Interfaces.Queries do
+  @moduledoc """
+  Astarte.Realm Management API Interfaces Queries module.
+  """
+
   alias Astarte.Core.CQLUtils
   alias Astarte.Core.InterfaceDescriptor
+  alias Astarte.Core.Interface, as: InterfaceDocument
   alias Astarte.Core.Interface.Type, as: InterfaceType
   alias Astarte.Core.Mapping
   alias Astarte.Core.Mapping.DatabaseRetentionPolicy
@@ -206,5 +211,66 @@ defmodule Astarte.RealmManagement.API.Interfaces.Queries do
     ]
 
     {insert_mapping_statement, params}
+  end
+
+  @doc """
+  Fetches an `Astarte.Core.Interface` by its name and major version in a specified realm.
+
+  ## Parameters
+  - `realm`: The name of the realm from which to fetch the interface major versions.
+  - `interface_versions_list`: A list of interface versions, each containing a `:major_version` key.
+
+  ## Returns
+  - `{:ok, interface_majors}`: A tuple containing `:ok` and a list of major versions.
+  - `{:error, :interface_not_found}`: If the interface is not found in the specified realm.
+  - `{:error, reason}`: If an error occurs during the fetch operation.
+  """
+  def fetch_interface(realm_name, interface_name, interface_major) do
+    keyspace = Realm.keyspace_name(realm_name)
+
+    consistency = Consistency.domain_model(:read)
+
+    with {:ok, interface} <-
+           Repo.fetch_by(
+             Interface,
+             [name: interface_name, major_version: interface_major],
+             prefix: keyspace,
+             consistency: consistency,
+             error: :interface_not_found
+           ) do
+      endpoints_query = from Endpoint, where: [interface_id: ^interface.interface_id]
+
+      with {:ok, endpoints} <-
+             Repo.fetch_all(endpoints_query, prefix: keyspace, consistency: consistency) do
+        mappings =
+          Enum.map(endpoints, fn endpoint ->
+            %Mapping{}
+            |> Mapping.changeset(Map.from_struct(endpoint),
+              interface_name: interface.name,
+              interface_id: interface.interface_id,
+              interface_major: interface.major_version,
+              interface_type: interface.type
+            )
+            |> Ecto.Changeset.apply_changes()
+            |> Map.from_struct()
+            |> Map.put(:type, endpoint.value_type)
+          end)
+
+        interface =
+          interface
+          |> Map.from_struct()
+          |> Map.put(:mappings, mappings)
+          |> Map.put(:version_major, interface.major_version)
+          |> Map.put(:version_minor, interface.minor_version)
+          |> Map.put(:interface_name, interface.name)
+
+        interface_document =
+          %InterfaceDocument{}
+          |> InterfaceDocument.changeset(interface)
+          |> Ecto.Changeset.apply_changes()
+
+        {:ok, interface_document}
+      end
+    end
   end
 end

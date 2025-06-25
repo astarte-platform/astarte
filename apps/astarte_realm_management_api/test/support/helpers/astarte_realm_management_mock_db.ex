@@ -94,14 +94,6 @@ defmodule Astarte.RealmManagement.API.Helpers.RPCMock.DB do
     end)
   end
 
-  def get_interface_source(realm, name, major) do
-    if interface = get_interface(realm, name, major) do
-      Jason.encode!(interface)
-    else
-      nil
-    end
-  end
-
   def get_interface(realm, name, major) do
     Agent.get(current_agent(), fn %{interfaces: interfaces} ->
       Map.get(interfaces, {realm, name, major})

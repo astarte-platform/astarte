@@ -24,8 +24,6 @@ defmodule Astarte.RealmManagement.API.RPC.RealmManagement do
     GenericOkReply,
     GetInterfacesList,
     GetInterfacesListReply,
-    GetInterfaceSource,
-    GetInterfaceSourceReply,
     GetInterfaceVersionsList,
     GetInterfaceVersionsListReply,
     GetInterfaceVersionsListReplyVersionTuple,
@@ -62,18 +60,6 @@ defmodule Astarte.RealmManagement.API.RPC.RealmManagement do
       realm_name: realm_name
     }
     |> encode_call(:get_interfaces_list)
-    |> @rpc_client.rpc_call(@destination)
-    |> decode_reply()
-    |> extract_reply()
-  end
-
-  def get_interface(realm_name, interface_name, interface_major_version) do
-    %GetInterfaceSource{
-      realm_name: realm_name,
-      interface_name: interface_name,
-      interface_major_version: interface_major_version
-    }
-    |> encode_call(:get_interface_source)
     |> @rpc_client.rpc_call(@destination)
     |> decode_reply()
     |> extract_reply()
@@ -202,10 +188,6 @@ defmodule Astarte.RealmManagement.API.RPC.RealmManagement do
          {:get_interfaces_list_reply, %GetInterfacesListReply{interfaces_names: list}}
        ) do
     {:ok, list}
-  end
-
-  defp extract_reply({:get_interface_source_reply, %GetInterfaceSourceReply{source: source}}) do
-    {:ok, source}
   end
 
   defp extract_reply(
