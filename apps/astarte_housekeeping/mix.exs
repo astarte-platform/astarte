@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2017 - 2025 SECO Mind Srl
+# Copyright 2017-2025 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -23,13 +23,8 @@ defmodule Astarte.Housekeeping.Mixfile do
     [
       app: :astarte_housekeeping,
       version: "1.2.1-alpha.0",
-      build_path: "_build",
-      config_path: "config/config.exs",
-      deps_path: "deps",
-      lockfile: "mix.lock",
       elixir: "~> 1.15",
       elixirc_paths: elixirc_paths(Mix.env()),
-      build_embedded: Mix.env() == :prod,
       start_permanent: Mix.env() == :prod,
       test_coverage: [tool: ExCoveralls],
       preferred_cli_env: [
@@ -43,14 +38,18 @@ defmodule Astarte.Housekeeping.Mixfile do
     ]
   end
 
+  # Configuration for the OTP application.
+  #
+  # Type `mix help compile.app` for more information.
   def application do
     [
-      extra_applications: [:logger],
-      mod: {Astarte.Housekeeping, []}
+      mod: {Astarte.Housekeeping.Application, []},
+      extra_applications: [:logger, :runtime_tools]
     ]
   end
 
-  defp elixirc_paths(:test), do: ["test/support", "test/helpers", "lib"]
+  # Specifies which paths to compile per environment.
+  defp elixirc_paths(:test), do: ["test/support", "lib"]
   defp elixirc_paths(_), do: ["lib"]
 
   defp dialyzer_cache_directory(:ci) do
@@ -63,41 +62,46 @@ defmodule Astarte.Housekeeping.Mixfile do
 
   defp astarte_required_modules("true") do
     [
-      {:astarte_core, in_umbrella: true},
       {:astarte_data_access, in_umbrella: true},
-      {:astarte_rpc, in_umbrella: true},
-      {:astarte_generators, in_umbrella: true}
+      {:astarte_core, in_umbrella: true}
     ]
   end
 
   defp astarte_required_modules(_) do
     [
-      {:astarte_core, github: "astarte-platform/astarte_core", branch: "release-1.2"},
       {:astarte_data_access,
        github: "astarte-platform/astarte_data_access", branch: "release-1.2"},
-      {:astarte_rpc, "~> 1.2"},
-      {:astarte_generators, github: "astarte-platform/astarte_generators", only: [:dev, :test]}
+      {:astarte_core, github: "astarte-platform/astarte_core", branch: "release-1.2"}
     ]
   end
 
+  # Specifies your project dependencies.
+  #
+  # Type `mix help deps` for examples and options.
   defp deps do
     [
-      {:xandra, "~> 0.13"},
-      {:excoveralls, "~> 0.15", only: :test},
-      {:dialyxir, "~> 1.0", only: [:dev, :ci], runtime: false},
+      {:jason, "~> 1.2"},
+      {:phoenix, "~> 1.7"},
+      {:phoenix_ecto, "~> 4.0"},
+      {:phoenix_view, "~> 2.0"},
+      {:gettext, "~> 0.24"},
+      {:cors_plug, "~> 2.0"},
       {:plug_cowboy, "~> 2.1"},
-      {:skogsra, "~> 2.2"},
+      {:guardian, "~> 2.3.2"},
+      {:excoveralls, "~> 0.15", only: :test},
       {:pretty_log, "~> 0.1"},
-      {:telemetry_metrics_prometheus_core, "~> 0.4"},
+      {:skogsra, "~> 2.2"},
+      {:observer_cli, "~> 1.5"},
+      {:telemetry, "~> 0.4"},
       {:telemetry_metrics, "~> 0.4"},
       {:telemetry_poller, "~> 0.4"},
-      {:observer_cli, "~> 1.5"},
-      {:exandra, "~> 0.14"},
-      {:mox, "~> 0.5", only: :test},
-      {:mimic, "~> 1.7.4", only: :test},
+      {:telemetry_metrics_prometheus_core, "~> 0.4"},
+      {:dialyxir, "~> 1.0", only: [:dev, :ci], runtime: false},
+      {:mimic, "~> 1.11", only: [:test, :dev]},
       # Workaround for Elixir 1.15 / ssl_verify_fun issue
       # See also: https://github.com/deadtrickster/ssl_verify_fun.erl/pull/27
-      {:ssl_verify_fun, "~> 1.1.0", manager: :rebar3, override: true}
+      {:ssl_verify_fun, "~> 1.1.0", manager: :rebar3, override: true},
+      {:astarte_generators, github: "astarte-platform/astarte_generators", only: [:dev, :test]}
     ]
   end
 end

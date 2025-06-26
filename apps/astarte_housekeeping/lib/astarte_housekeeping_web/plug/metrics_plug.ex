@@ -17,9 +17,12 @@
 #
 
 defmodule Astarte.HousekeepingWeb.MetricsPlug do
+  @behaviour Plug
   import Plug.Conn
 
-  def init(_args), do: nil
+  def init(_opts) do
+    nil
+  end
 
   def call(%{request_path: "/metrics", method: "GET"} = conn, _opts) do
     metrics = TelemetryMetricsPrometheus.Core.scrape()
@@ -30,5 +33,7 @@ defmodule Astarte.HousekeepingWeb.MetricsPlug do
     |> halt()
   end
 
-  def call(conn, _opts), do: conn
+  def call(conn, _opts) do
+    conn
+  end
 end

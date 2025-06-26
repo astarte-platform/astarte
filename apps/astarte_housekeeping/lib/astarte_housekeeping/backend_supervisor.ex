@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2020 - 2025 SECO Mind Srl
+# Copyright 2025 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -15,20 +15,20 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+# SPDX-License-Identifier: Apache-2.0
+#
 
 defmodule Astarte.Housekeeping.BackendSupervisor do
   use Supervisor
   require Logger
 
-  alias Astarte.RPC.Protocol.Housekeeping, as: Protocol
   alias Astarte.Housekeeping.Config
-  alias Astarte.Housekeeping.RPC.Handler
 
   def start_link(init_arg) do
     Supervisor.start_link(__MODULE__, init_arg, name: __MODULE__)
   end
 
-  @impl true
+  @impl Supervisor
   def init(_init_arg) do
     Logger.info("BackendSupervisor init", tag: "housekeeping_backend_sup_init")
 
@@ -37,7 +37,6 @@ defmodule Astarte.Housekeeping.BackendSupervisor do
     hk_xandra_opts = Keyword.put(xandra_options, :name, :xandra)
 
     children = [
-      {Astarte.RPC.AMQP.Server, [amqp_queue: Protocol.amqp_queue(), handler: Handler]},
       {Xandra.Cluster, hk_xandra_opts},
       {Astarte.DataAccess, data_access_opts}
     ]

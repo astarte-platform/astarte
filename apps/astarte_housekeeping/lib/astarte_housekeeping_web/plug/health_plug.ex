@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2020 - 2025 SECO Mind Srl
+# Copyright 2020 Ispirata Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -17,11 +17,14 @@
 #
 
 defmodule Astarte.HousekeepingWeb.HealthPlug do
+  @behaviour Plug
   import Plug.Conn
 
   alias Astarte.DataAccess.Health.Health
 
-  def init(_args), do: nil
+  def init(_opts) do
+    nil
+  end
 
   def call(%{request_path: "/health", method: "GET"} = conn, _opts) do
     try do
@@ -60,5 +63,7 @@ defmodule Astarte.HousekeepingWeb.HealthPlug do
     end
   end
 
-  def call(conn, _opts), do: conn
+  def call(conn, _opts) do
+    conn
+  end
 end

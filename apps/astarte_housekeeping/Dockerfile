@@ -46,8 +46,10 @@ RUN apt-get -qq install openssl ca-certificates
 ARG BUILD_ENV=prod
 
 COPY --from=builder /app/_build/$BUILD_ENV/rel/astarte_housekeeping .
+COPY --from=builder /app/entrypoint.sh .
 
 # Change to non-root user
 USER nobody
 
-CMD ["./bin/astarte_housekeeping", "start"]
+ENTRYPOINT ["/bin/bash", "entrypoint.sh"]
+CMD ["start"]
