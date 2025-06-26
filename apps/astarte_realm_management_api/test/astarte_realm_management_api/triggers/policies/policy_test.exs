@@ -21,13 +21,13 @@ defmodule Astarte.RealmManagement.API.Triggers.Policies.PolicyTest do
   use ExUnitProperties
 
   @moduletag :trigger_policy
-  alias Astarte.Helpers.Database
-  alias Astarte.RealmManagement
+
   alias Astarte.RealmManagement.API.Triggers.Policies
   alias Astarte.Core.Generators.Triggers.Policy, as: PolicyGenerator
   alias Astarte.Core.Triggers.Policy
-  alias Astarte.RealmManagement.Engine
   alias Astarte.Helpers.Policy, as: PolicyHelper
+
+  import ExUnit.CaptureLog
 
   @policy_name "policy_name"
   @valid_attrs %{
@@ -46,6 +46,7 @@ defmodule Astarte.RealmManagement.API.Triggers.Policies.PolicyTest do
 
   describe "Policy creation" do
     @describetag :creation
+
     property "successfully creates and retrieves valid policies", %{realm: realm} do
       check all(policy_struct <- PolicyGenerator.policy()) do
         policy_map = PolicyHelper.policy_struct_to_map(policy_struct)
@@ -54,7 +55,9 @@ defmodule Astarte.RealmManagement.API.Triggers.Policies.PolicyTest do
 
         assert {:ok, %Policy{name: ^name}} = Policies.create_trigger_policy(realm, policy_map)
 
-        RealmManagement.Engine.delete_trigger_policy(realm, name)
+        capture_log(fn ->
+          Policies.delete_trigger_policy(realm, name)
+        end)
       end
     end
 
@@ -69,29 +72,25 @@ defmodule Astarte.RealmManagement.API.Triggers.Policies.PolicyTest do
       assert {:error, :trigger_policy_already_present} =
                Policies.create_trigger_policy(realm, @valid_attrs)
 
-      RealmManagement.Engine.delete_trigger_policy(realm, @policy_name)
+      capture_log(fn ->
+        Policies.delete_trigger_policy(realm, @policy_name)
+      end)
     end
   end
 
   describe "Policy listing" do
     @describetag :policy_listing
-    setup %{realm: realm, astarte_instance_id: astarte_instance_id} do
+
+    test "lists installed policies", %{realm: realm} do
       policy = PolicyGenerator.policy() |> Enum.at(0)
       policy_map = PolicyHelper.policy_struct_to_map(policy)
 
       {:ok, _created_policy} = Policies.create_trigger_policy(realm, policy_map)
+      assert policy.name in Policies.list_trigger_policies(realm)
 
-      on_exit(fn ->
-        Database.setup_database_access(astarte_instance_id)
-        # TODO: change after removal of `delete_trigger_policy` rpc
-        RealmManagement.Engine.delete_trigger_policy(realm, policy.name)
+      capture_log(fn ->
+        Policies.delete_trigger_policy(realm, policy.name)
       end)
-
-      %{policy: policy}
-    end
-
-    test "lists installed policies", %{realm: realm, policy: policy} do
-      assert [policy.name] == Policies.list_trigger_policies(realm)
     end
   end
 
@@ -99,11 +98,17 @@ defmodule Astarte.RealmManagement.API.Triggers.Policies.PolicyTest do
     @describetag :policy_source
 
     test "retrieves source for installed policy", %{realm: realm} do
-      assert {:ok, %Policy{}} = Policies.create_trigger_policy(realm, @valid_attrs)
+      policy = PolicyGenerator.policy() |> Enum.at(0)
+      policy_map = PolicyHelper.policy_struct_to_map(policy)
+      name = policy.name
+      assert {:ok, %Policy{}} = Policies.create_trigger_policy(realm, policy_map)
 
-      assert {:ok, json} = Policies.get_trigger_policy_source(realm, @policy_name)
-      assert {:ok, %{name: @policy_name}} = Jason.decode(json, keys: :atoms)
-      Engine.delete_trigger_policy(realm, @policy_name)
+      assert {:ok, json} = Policies.get_trigger_policy_source(realm, policy.name)
+      assert {:ok, %{name: ^name}} = Jason.decode(json, keys: :atoms)
+
+      capture_log(fn ->
+        Policies.delete_trigger_policy(realm, policy.name)
+      end)
     end
 
     test "fails when policy is not installed", %{realm: realm} do
@@ -114,20 +119,20 @@ defmodule Astarte.RealmManagement.API.Triggers.Policies.PolicyTest do
 
   describe "Policy deletion" do
     @describetag :deletion
+    setup %{realm: realm} do
+      policy = PolicyGenerator.policy() |> Enum.at(0)
+      policy_map = PolicyHelper.policy_struct_to_map(policy)
 
-    property "successfully deletes installed policies", %{realm: realm} do
-      check all(policy_struct <- PolicyGenerator.policy()) do
-        policy_map = PolicyHelper.policy_struct_to_map(policy_struct)
+      {:ok, created_policy} = Policies.create_trigger_policy(realm, policy_map)
 
-        name = policy_map.name
+      %{policy: created_policy}
+    end
 
-        assert {:ok, %Policy{name: ^name}} = Policies.create_trigger_policy(realm, policy_map)
-        # todo delete once migration is completed
-        Engine.delete_trigger_policy(realm, name)
+    test "successfully deletes installed policy", %{realm: realm, policy: policy} do
+      assert :ok = Policies.delete_trigger_policy(realm, policy.name)
 
-        assert {:error, :trigger_policy_not_found} =
-                 Policies.get_trigger_policy_source(realm, name)
-      end
+      assert {:error, :trigger_policy_not_found} =
+               Policies.get_trigger_policy_source(realm, policy.name)
     end
 
     test "fails when policy is not installed", %{realm: realm} do

@@ -305,7 +305,7 @@ defmodule Astarte.RealmManagement.API.Triggers.Core do
     end
   end
 
-  defp verify_trigger_policy_exists(client, policy_name) do
+  def verify_trigger_policy_exists(client, policy_name) do
     with {:ok, exists?} <- Queries.check_trigger_policy_already_present(client, policy_name) do
       if exists? do
         :ok
