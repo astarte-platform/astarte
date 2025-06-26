@@ -1,3 +1,4 @@
+#
 # This file is part of Astarte.
 #
 # Copyright 2025 SECO Mind Srl
@@ -15,27 +16,33 @@
 # limitations under the License.
 #
 
-defmodule Astarte.Core.Generators.Triggers.PolicyTest do
+defmodule Astarte.Core.Generators.Triggers.Policy.ErrorTypeTest do
+  @moduledoc """
+  Tests for Astarte Triggers Policy ErrorType generator.
+  """
   use ExUnit.Case, async: true
   use ExUnitProperties
 
-  alias Astarte.Core.Generators.Triggers.Policy, as: PolicyGenerator
-  alias Astarte.Core.Triggers.Policy
+  alias Astarte.Core.Generators.Triggers.Policy.ErrorType, as: ErrorTypeGenerator
+  alias Astarte.Core.Triggers.Policy.ErrorKeyword
+  alias Astarte.Core.Triggers.Policy.ErrorRange
 
   @moduletag :trigger
   @moduletag :policy
+  @moduletag :error_type
+
+  defp valid_error_type?(%ErrorKeyword{} = _error_type), do: true
+  defp valid_error_type?(%ErrorRange{} = _error_type), do: true
+  defp valid_error_type?(_error_type), do: false
 
   @doc false
-  describe "triggers policy generator" do
+  describe "triggers policy error_type generator" do
     @describetag :success
     @describetag :ut
 
-    property "generates valid policies" do
-      gen_policy_changes = PolicyGenerator.policy() |> PolicyGenerator.to_changes()
-
-      check all changes <- gen_policy_changes,
-                changeset = Policy.changeset(%Policy{}, changes) do
-        assert changeset.valid?, "Invalid policy: #{inspect(changeset.errors)}"
+    property "validate triggers policy error_type" do
+      check all error_type <- ErrorTypeGenerator.error_type() do
+        assert valid_error_type?(error_type)
       end
     end
   end

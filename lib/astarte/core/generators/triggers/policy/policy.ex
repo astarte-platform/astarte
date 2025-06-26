@@ -31,32 +31,31 @@ defmodule Astarte.Core.Generators.Triggers.Policy do
   alias Astarte.Core.Triggers.Policy.ErrorRange
   alias Astarte.Core.Triggers.Policy.Handler
 
+  alias Astarte.Core.Generators.Triggers.Policy.ErrorKeyword, as: ErrorKeywordGenerator
+  alias Astarte.Core.Generators.Triggers.Policy.Handler, as: HandlerGenerator
+
   # \n: 10
   # @: 0x40
   @utf8_except_newline_and_atsign [0..9, 11..0x39, 0x41..0xD7FF, 0xE000..0x10FFFF]
   @utf8_except_newline [?@ | @utf8_except_newline_and_atsign]
-  @all_error_codes MapSet.new(400..599)
 
-  @spec policy(keyword) :: StreamData.t(Policy.t())
+  @any_error ErrorKeywordGenerator.any_error()
+
+  @spec policy() :: StreamData.t(Policy.t())
+  @spec policy(keyword :: keyword()) :: StreamData.t(Policy.t())
   def policy(params \\ []) do
-    params gen all retry_times <- integer(1..100),
-                   name <- policy_name(),
-                   error_handlers <- policy_handlers(),
-                   maximum_capacity <- integer(1..1_000_000),
-                   event_ttl <- one_of([integer(1..86_400), nil]),
-                   prefetch_count <- one_of([integer(1..300), nil]),
+    params gen all name <- name(),
+                   maximum_capacity <- maximum_capacity(),
+                   error_handlers <- error_handlers(),
+                   retry_times <- retry_times(error_handlers),
+                   event_ttl <- event_ttl(),
+                   prefetch_count <- prefetch_count(),
                    params: params do
-      retry_times =
-        case Enum.all?(error_handlers, &Handler.discards?/1) do
-          true -> nil
-          false -> retry_times
-        end
-
       fields = %{
-        retry_times: retry_times,
         name: name,
-        error_handlers: error_handlers,
         maximum_capacity: maximum_capacity,
+        error_handlers: error_handlers,
+        retry_times: retry_times,
         event_ttl: event_ttl,
         prefetch_count: prefetch_count
       }
@@ -65,67 +64,123 @@ defmodule Astarte.Core.Generators.Triggers.Policy do
     end
   end
 
-  defp policy_name do
+  @doc """
+  Convert this struct stream to changes
+  """
+  @spec to_changes(StreamData.t(Policy.t())) :: StreamData.t(map())
+  def to_changes(gen) do
+    gen all %Policy{
+              name: name,
+              maximum_capacity: maximum_capacity,
+              error_handlers: error_handlers,
+              retry_times: retry_times,
+              event_ttl: event_ttl,
+              prefetch_count: prefetch_count
+            } <-
+              gen,
+            error_handlers <-
+              error_handlers
+              |> Enum.map(&HandlerGenerator.to_changes(constant(&1)))
+              |> fixed_list() do
+      %{
+        name: name,
+        maximum_capacity: maximum_capacity,
+        error_handlers: error_handlers,
+        retry_times: retry_times,
+        event_ttl: event_ttl,
+        prefetch_count: prefetch_count
+      }
+    end
+  end
+
+  defp name do
     gen all first <- string(@utf8_except_newline_and_atsign, length: 1),
             rest <- string(@utf8_except_newline, max_length: 127) do
       first <> rest
     end
   end
 
-  defp policy_handlers do
-    gen all keywords <-
-              one_of([
-                constant(["any_error"]),
-                list_of(member_of(["client_error", "server_error"]), max_length: 2)
-              ]),
-            keywords = Enum.dedup(keywords),
-            error_codes <- policy_handler_error_codes_from_used_keywords(keywords) do
-      total_handlers = length(keywords) + length(error_codes)
-      strategies = member_of(["discard", "retry"]) |> Enum.take(total_handlers)
+  defp maximum_capacity, do: integer(1..1_000_000)
 
-      keywords =
-        keywords
-        |> Enum.map(&%ErrorKeyword{keyword: &1})
+  defp event_ttl, do: one_of([integer(1..86_400), nil])
 
-      ranges = error_codes |> Enum.map(&%ErrorRange{error_codes: &1})
+  defp prefetch_count, do: one_of([integer(1..300), nil])
 
-      Enum.concat(keywords, ranges)
-      |> Enum.shuffle()
-      |> Enum.zip(strategies)
-      |> Enum.map(fn {error_type, strategy} ->
-        %Handler{on: error_type, strategy: strategy}
-      end)
+  defp error_handlers do
+    # TODO try to use
+    # https://hexdocs.pm/elixir/Stream.html#scan/3
+    gen all handlers <- list_of(HandlerGenerator.handler(), min_length: 1) do
+      handlers |> Enum.sort(&sort_handlers/2) |> filter_handle([], MapSet.new())
     end
   end
 
-  defp policy_handler_error_codes_from_used_keywords(keywords) do
-    used_codes =
-      keywords
-      |> Enum.map(&%Handler{on: %ErrorKeyword{keyword: &1}})
-      |> Enum.map(&Handler.error_set/1)
-      |> Enum.concat()
-      |> MapSet.new()
-
-    allowed_codes = MapSet.difference(@all_error_codes, used_codes)
-
-    case Enum.empty?(allowed_codes) do
-      true ->
-        constant([])
-
-      false ->
-        gen all codes <- list_of(member_of(allowed_codes), min_length: 1) do
-          # avoid uniq_list_of because of the small sample size
-          codes = Enum.uniq(codes)
-          policy_handler_error_codes(codes)
-        end
+  defp retry_times(error_handlers) do
+    case Enum.all?(error_handlers, &Handler.discards?/1) do
+      true -> constant(nil)
+      false -> integer(1..100)
     end
   end
 
-  defp policy_handler_error_codes([]), do: []
+  #
+  # Utilities
+  defp sort_handlers(
+         %Handler{on: %ErrorKeyword{}},
+         %Handler{on: %ErrorRange{}}
+       ),
+       do: true
 
-  defp policy_handler_error_codes(l) do
-    chunk_length = :rand.uniform(length(l))
-    {chunk, rest} = l |> Enum.shuffle() |> Enum.split(chunk_length)
-    [chunk | policy_handler_error_codes(rest)]
+  defp sort_handlers(
+         %Handler{on: %ErrorRange{}},
+         %Handler{on: %ErrorKeyword{}}
+       ),
+       do: false
+
+  defp sort_handlers(_, _), do: true
+
+  defp filter_handle([], acc, _used_codes), do: acc
+
+  @empty_mapset MapSet.new([])
+  defp filter_handle(
+         [%Handler{on: %ErrorKeyword{keyword: @any_error}} = handler | _handlers],
+         acc,
+         used_codes
+       )
+       when used_codes == @empty_mapset,
+       do: [handler | acc]
+
+  defp filter_handle(
+         [%Handler{on: %ErrorKeyword{keyword: keyword}} = handler | handlers],
+         acc,
+         used_codes
+       ) do
+    codes = error_set(keyword)
+
+    case MapSet.disjoint?(codes, used_codes) do
+      true -> filter_handle(handlers, [handler | acc], MapSet.union(codes, used_codes))
+      false -> filter_handle(handlers, acc, used_codes)
+    end
+  end
+
+  defp filter_handle(
+         [%Handler{on: %ErrorRange{error_codes: error_codes}} = handler | handlers],
+         acc,
+         used_codes
+       ) do
+    available_error_codes = MapSet.difference(MapSet.new(error_codes), used_codes)
+    available_error_codes_list = available_error_codes |> MapSet.to_list()
+
+    case available_error_codes_list do
+      [] ->
+        filter_handle(handlers, acc, used_codes)
+
+      _other ->
+        handler = %Handler{handler | on: %ErrorRange{error_codes: available_error_codes_list}}
+        filter_handle(handlers, [handler | acc], MapSet.union(available_error_codes, used_codes))
+    end
+  end
+
+  defp error_set(keyword) do
+    %Handler{on: %ErrorKeyword{keyword: keyword}}
+    |> Handler.error_set()
   end
 end

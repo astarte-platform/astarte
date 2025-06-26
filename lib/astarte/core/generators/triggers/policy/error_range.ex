@@ -20,7 +20,10 @@ defmodule Astarte.Core.Generators.Triggers.Policy.ErrorRange do
   @moduledoc """
   This module provides generators for Astarte Trigger Policy RangeError.
   """
+  alias Astarte.Core.Generators.Triggers.Policy.ErrorRange
   alias Astarte.Core.Triggers.Policy.ErrorRange
+
+  import Astarte.Generators.Utilities.ParamsGen
 
   use ExUnitProperties
 
@@ -28,15 +31,30 @@ defmodule Astarte.Core.Generators.Triggers.Policy.ErrorRange do
   Generates a valid Astarte Triggers Policy ErrorRange from scratch
   """
   @spec error_range() :: StreamData.t(ErrorRange.t())
-  def error_range do
-    gen all error_codes <- error_codes() do
+  @spec error_range(params :: keyword()) :: StreamData.t(ErrorRange.t())
+  def error_range(params \\ []) do
+    params gen all error_codes <- error_codes(), params: params do
       %ErrorRange{
         error_codes: error_codes
       }
     end
   end
 
+  @doc """
+  Convert this struct stream to changes
+  """
+  @spec to_changes(StreamData.t(ErrorRange.t())) :: StreamData.t(map())
+  def to_changes(gen) do
+    gen all %ErrorRange{error_codes: error_codes} <- gen do
+      %{
+        "error_codes" => error_codes
+      }
+    end
+  end
+
   defp error_codes do
-    list_of(integer(400..599), min_length: 1)
+    integer(400..599)
+    |> list_of(min_length: 1)
+    |> map(&Enum.uniq/1)
   end
 end
