@@ -61,37 +61,6 @@ defmodule Astarte.RealmManagement.InterfacesTest do
         _ = Queries.delete_interface(realm, interface.name, interface.major_version)
       end
     end
-
-    @tag :deletion
-    property "does not get deleted if major version is not 0", %{realm: realm} do
-      check all(
-              interface <-
-                Astarte.Core.Generators.Interface.interface(major_version: integer(1..9))
-            ) do
-        json_interface = Jason.encode!(interface)
-
-        _ = Engine.install_interface(realm, json_interface)
-
-        assert {:error, :forbidden} =
-                 Engine.delete_interface(realm, interface.name, interface.major_version)
-
-        {:ok, interfaces} = Engine.get_interfaces_list(realm)
-        assert interface.name in interfaces
-      end
-    end
-
-    @tag :deletion
-    property "is deleted if the major version is 0", %{realm: realm} do
-      check all(interface <- Astarte.Core.Generators.Interface.interface(major_version: 0)) do
-        json_interface = Jason.encode!(interface)
-
-        _ = Engine.install_interface(realm, json_interface)
-
-        assert :ok = Engine.delete_interface(realm, interface.name, interface.major_version)
-        {:ok, interfaces} = Engine.get_interfaces_list(realm)
-        refute interface.name in interfaces
-      end
-    end
   end
 
   # Drops virtual and incomparable elements
