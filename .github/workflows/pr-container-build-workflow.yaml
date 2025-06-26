@@ -18,7 +18,7 @@ jobs:
         - astarte_appengine_api
         - astarte_data_updater_plant
         - astarte_housekeeping
-        - astarte_pairing_api
+        - astarte_pairing
         - astarte_realm_management
         - astarte_realm_management_api
         - astarte_trigger_engine

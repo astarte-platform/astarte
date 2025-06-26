@@ -57,10 +57,10 @@ services:
       - "traefik.http.middlewares.astarte-realm-management-api.stripprefix.forceSlash=false"
       - "traefik.http.services.astarte-realm-management-api.loadbalancer.server.port=4000"
 
-  astarte-pairing-api:
-    image: astarte/astarte_pairing_api:1.2-snapshot
+  astarte-pairing:
+    image: astarte/astarte_pairing:1.2-snapshot
     build:
-      context: apps/astarte_pairing_api
+      context: apps/astarte_pairing
     env_file:
       - ./.env
     environment:
@@ -72,14 +72,14 @@ services:
       - "traefik"
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.astarte-pairing-api.rule=Host(`api.${DOCKER_COMPOSE_ASTARTE_BASE_DOMAIN}`)"
-      - "traefik.http.routers.astarte-pairing-api.rule=PathPrefix(`/pairing`)"
-      - "traefik.http.routers.astarte-pairing-api.entrypoints=web"
-      - "traefik.http.routers.astarte-pairing-api.middlewares=astarte-pairing-api"
-      - "traefik.http.routers.astarte-pairing-api.service=astarte-pairing-api"
-      - "traefik.http.middlewares.astarte-pairing-api.stripprefix.prefixes=/pairing"
-      - "traefik.http.middlewares.astarte-pairing-api.stripprefix.forceSlash=false"
-      - "traefik.http.services.astarte-pairing-api.loadbalancer.server.port=4003"
+      - "traefik.http.routers.astarte-pairing.rule=Host(`api.${DOCKER_COMPOSE_ASTARTE_BASE_DOMAIN}`)"
+      - "traefik.http.routers.astarte-pairing.rule=PathPrefix(`/pairing`)"
+      - "traefik.http.routers.astarte-pairing.entrypoints=web"
+      - "traefik.http.routers.astarte-pairing.middlewares=astarte-pairing"
+      - "traefik.http.routers.astarte-pairing.service=astarte-pairing"
+      - "traefik.http.middlewares.astarte-pairing.stripprefix.prefixes=/pairing"
+      - "traefik.http.middlewares.astarte-pairing.stripprefix.forceSlash=false"
+      - "traefik.http.services.astarte-pairing.loadbalancer.server.port=4003"
 
   astarte-appengine-api:
     image: astarte/astarte_appengine_api:1.2-snapshot

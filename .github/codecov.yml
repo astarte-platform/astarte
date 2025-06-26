@@ -14,7 +14,7 @@ coverage:
           - astarte_appengine_api
           - astarte_data_updater_plant
           - astarte_housekeeping
-          - astarte_pairing_api
+          - astarte_pairing
           - astarte_realm_management
           - astarte_realm_management_api
           - astarte_trigger_engine
@@ -52,10 +52,10 @@ flags:
     carryforward: true
     paths:
       - apps/astarte_housekeeping
-  astarte_pairing_api:
+  astarte_pairing:
     carryforward: true
     paths:
-      - apps/astarte_pairing_api
+      - apps/astarte_pairing
   astarte_realm_management:
     carryforward: true
     paths:
