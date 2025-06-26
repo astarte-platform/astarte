@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2018 Ispirata Srl
+# Copyright 2018-2025 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -16,7 +16,7 @@
 # limitations under the License.
 #
 
-defmodule Astarte.Pairing.CredentialsSecret.Cache do
+defmodule Astarte.Pairing.API.CredentialsSecret.Cache do
   @moduledoc """
   This module caches an association between the sha256 of a
   credentials_secret and its stored bcrypt hash to save some

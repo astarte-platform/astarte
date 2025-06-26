@@ -16,7 +16,7 @@
 # limitations under the License.
 #
 
-defmodule Astarte.Pairing.Queries do
+defmodule Astarte.Pairing.API.Queries do
   @moduledoc """
   This module is responsible for the interaction with the database.
   """
@@ -25,9 +25,34 @@ defmodule Astarte.Pairing.Queries do
   alias Astarte.DataAccess.Realms.Realm
   alias Astarte.DataAccess.Devices.Device
   alias Astarte.DataAccess.KvStore
-  alias Astarte.Pairing.Repo
+  alias Astarte.DataAccess.Repo
   require Logger
   import Ecto.Query
+
+  def is_realm_existing(realm_name) do
+    keyspace_name = Realm.astarte_keyspace_name()
+
+    query =
+      from r in Realm,
+        prefix: ^keyspace_name,
+        where: r.realm_name == ^realm_name,
+        select: count()
+
+    consistency = Consistency.domain_model(:read)
+
+    case Repo.safe_fetch_one(query, consistency: consistency) do
+      {:ok, count} ->
+        {:ok, count > 0}
+
+      {:error, reason} ->
+        Logger.warning("Cannot check if realm exists: #{inspect(reason)}.",
+          tag: "is_realm_existing_error",
+          realm: realm_name
+        )
+
+        {:error, reason}
+    end
+  end
 
   def get_agent_public_key_pems(realm_name) do
     keyspace = Realm.keyspace_name(realm_name)
@@ -72,7 +97,7 @@ defmodule Astarte.Pairing.Queries do
             "register request for existing confirmed device: #{inspect(extended_id)}"
           )
 
-          {:error, :already_registered}
+          {:error, :device_already_registered}
         end
 
       {:error, reason} ->

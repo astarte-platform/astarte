@@ -17,27 +17,16 @@
 #
 
 defmodule Astarte.Pairing.APIWeb.AuthTest do
+  use Astarte.Cases.Data, async: true
   use Astarte.Pairing.APIWeb.ConnCase, async: true
 
   alias Astarte.Pairing.APIWeb.Helpers.JWTTestHelper
 
-  alias Astarte.RPC.Protocol.Pairing.{
-    GetAgentPublicKeyPEMsReply,
-    RegisterDeviceReply,
-    Reply
-  }
-
-  import Mox
-
-  @realm "testrealm"
   @hw_id "2imLILqtRP2vq0ZVy-TGRQ"
   @create_attrs %{"hw_id" => @hw_id}
-  @credentials_secret "supersecret"
 
   describe "JWT auth" do
     setup %{conn: conn} do
-      setup_mock_rpc()
-
       conn =
         conn
         |> put_req_header("accept", "application/json")
@@ -45,57 +34,63 @@ defmodule Astarte.Pairing.APIWeb.AuthTest do
       {:ok, conn: conn}
     end
 
-    test "succeeds with specific authorizations", %{conn: conn} do
+    test "succeeds with specific authorizations", %{conn: conn, realm_name: realm_name} do
       register_authorizations = ["POST::agent/devices"]
 
       conn =
         conn
         |> authorize_conn(register_authorizations)
-        |> post(agent_path(conn, :create, @realm), data: @create_attrs)
+        |> post(agent_path(conn, :create, realm_name), data: @create_attrs)
 
-      assert %{"credentials_secret" => @credentials_secret} = json_response(conn, 201)["data"]
+      assert %{"credentials_secret" => credentials_secret} = json_response(conn, 201)["data"]
+      assert is_binary(credentials_secret)
     end
 
-    test "succeeds with all access authorizations", %{conn: conn} do
+    test "succeeds with all access authorizations", %{conn: conn, realm_name: realm_name} do
       register_authorizations = [".*::.*"]
 
       conn =
         conn
         |> authorize_conn(register_authorizations)
-        |> post(agent_path(conn, :create, @realm), data: @create_attrs)
+        |> post(agent_path(conn, :create, realm_name), data: @create_attrs)
 
-      assert %{"credentials_secret" => @credentials_secret} = json_response(conn, 201)["data"]
+      assert %{"credentials_secret" => credentials_secret} = json_response(conn, 201)["data"]
+      assert is_binary(credentials_secret)
     end
 
-    test "succeeds with explicitly terminated authorization regex", %{conn: conn} do
+    test "succeeds with explicitly terminated authorization regex", %{
+      conn: conn,
+      realm_name: realm_name
+    } do
       register_authorizations = ["^POST$::^agent/devices$"]
 
       conn =
         conn
         |> authorize_conn(register_authorizations)
-        |> post(agent_path(conn, :create, @realm), data: @create_attrs)
+        |> post(agent_path(conn, :create, realm_name), data: @create_attrs)
 
-      assert %{"credentials_secret" => @credentials_secret} = json_response(conn, 201)["data"]
+      assert %{"credentials_secret" => credentials_secret} = json_response(conn, 201)["data"]
+      assert is_binary(credentials_secret)
     end
 
-    test "fails with authorization for path prefix", %{conn: conn} do
+    test "fails with authorization for path prefix", %{conn: conn, realm_name: realm_name} do
       register_authorizations = ["POST::agent/dev"]
 
       conn =
         conn
         |> authorize_conn(register_authorizations)
-        |> post(agent_path(conn, :create, @realm), data: @create_attrs)
+        |> post(agent_path(conn, :create, realm_name), data: @create_attrs)
 
       assert json_response(conn, 403)["errors"]["detail"] == "Forbidden"
     end
 
-    test "fails with authorization for different method", %{conn: conn} do
+    test "fails with authorization for different method", %{conn: conn, realm_name: realm_name} do
       register_authorizations = ["GET::agent/dev"]
 
       conn =
         conn
         |> authorize_conn(register_authorizations)
-        |> post(agent_path(conn, :create, @realm), data: @create_attrs)
+        |> post(agent_path(conn, :create, realm_name), data: @create_attrs)
 
       assert json_response(conn, 403)["errors"]["detail"] == "Forbidden"
     end
@@ -104,37 +99,5 @@ defmodule Astarte.Pairing.APIWeb.AuthTest do
   defp authorize_conn(conn, authorizations) when is_list(authorizations) do
     token = JWTTestHelper.gen_jwt_token(authorizations)
     put_req_header(conn, "authorization", "bearer #{token}")
-  end
-
-  defp setup_mock_rpc do
-    rpc_destination = Astarte.RPC.Protocol.Pairing.amqp_queue()
-    timeout = 30_000
-
-    agent_public_key_pems = JWTTestHelper.agent_public_key_pems()
-
-    encoded_pubkey_response =
-      %Reply{
-        reply:
-          {:get_agent_public_key_pems_reply,
-           %GetAgentPublicKeyPEMsReply{
-             agent_public_key_pems: agent_public_key_pems
-           }}
-      }
-      |> Reply.encode()
-
-    pubkey_fun = fn _call, ^rpc_destination, ^timeout -> {:ok, encoded_pubkey_response} end
-
-    encoded_register_response =
-      %Reply{
-        reply:
-          {:register_device_reply, %RegisterDeviceReply{credentials_secret: @credentials_secret}}
-      }
-      |> Reply.encode()
-
-    register_fun = fn _call, ^rpc_destination, ^timeout -> {:ok, encoded_register_response} end
-
-    MockRPCClient
-    |> expect(:rpc_call, pubkey_fun)
-    |> expect(:rpc_call, register_fun)
   end
 end

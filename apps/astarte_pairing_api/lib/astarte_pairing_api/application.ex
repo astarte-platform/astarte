@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2017 Ispirata Srl
+# Copyright 2017-2025 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -20,8 +20,8 @@ defmodule Astarte.Pairing.API.Application do
   use Application
 
   require Logger
+  alias Astarte.DataAccess.Config, as: DataAccessConfig
   alias Astarte.Pairing.API.Config
-  alias Astarte.RPC.Config, as: RPCConfig
 
   @app_version Mix.Project.config()[:version]
 
@@ -36,14 +36,23 @@ defmodule Astarte.Pairing.API.Application do
 
     Logger.info("Starting application v#{@app_version}.", tag: "pairing_api_start")
 
+    DataAccessConfig.validate!()
     Config.validate!()
-    RPCConfig.validate()
+    Config.init!()
+
+    xandra_options = Config.xandra_options!()
+
+    data_access_opts = [xandra_options: xandra_options]
+
+    pairing_xandra_opts = Keyword.put(xandra_options, :name, :xandra)
 
     # Define workers and child supervisors to be supervised
     children = [
       Astarte.Pairing.APIWeb.Telemetry,
-      Astarte.Pairing.APIWeb.Endpoint,
-      Astarte.RPC.AMQP.Client
+      {Xandra.Cluster, pairing_xandra_opts},
+      {Astarte.Pairing.API.CredentialsSecret.Cache, []},
+      {Astarte.DataAccess, data_access_opts},
+      Astarte.Pairing.APIWeb.Endpoint
     ]
 
     # See https://hexdocs.pm/elixir/Supervisor.html

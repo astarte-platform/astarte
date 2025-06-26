@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2018 Ispirata Srl
+# Copyright 2018-2025 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -16,12 +16,12 @@
 # limitations under the License.
 #
 
-defmodule Astarte.Pairing.CredentialsSecret do
+defmodule Astarte.Pairing.API.CredentialsSecret do
   @moduledoc """
   This module is responsible for generating and verifying the credential secrets
   """
 
-  alias Astarte.Pairing.CredentialsSecret.Cache
+  alias Astarte.Pairing.API.CredentialsSecret.Cache
 
   @secret_bytes_length 32
 

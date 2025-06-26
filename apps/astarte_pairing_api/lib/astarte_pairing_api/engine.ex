@@ -16,17 +16,17 @@
 # limitations under the License.
 #
 
-defmodule Astarte.Pairing.Engine do
+defmodule Astarte.Pairing.API.Engine do
   @moduledoc """
   This module performs the pairing operations requested via RPC.
   """
 
   alias Astarte.Core.Device
-  alias Astarte.Pairing.CertVerifier
-  alias Astarte.Pairing.CFSSLCredentials
-  alias Astarte.Pairing.Config
-  alias Astarte.Pairing.CredentialsSecret
-  alias Astarte.Pairing.Queries
+  alias Astarte.Pairing.API.CertVerifier
+  alias Astarte.Pairing.API.CFSSLCredentials
+  alias Astarte.Pairing.API.Config
+  alias Astarte.Pairing.API.CredentialsSecret
+  alias Astarte.Pairing.API.Queries
 
   require Logger
 

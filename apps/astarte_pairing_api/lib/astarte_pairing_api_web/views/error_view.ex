@@ -39,6 +39,10 @@ defmodule Astarte.Pairing.APIWeb.ErrorView do
     %{errors: %{detail: "Device not found"}}
   end
 
+  def render("422_device_already_registered.json", _assigns) do
+    %{errors: %{detail: "Device already registered"}}
+  end
+
   def render("500.json", _assigns) do
     %{errors: %{detail: "Internal server error"}}
   end

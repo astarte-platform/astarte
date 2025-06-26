@@ -17,9 +17,9 @@
 #
 
 defmodule Astarte.Pairing.API.Auth do
-  alias Astarte.Pairing.API.RPC.Pairing
+  alias Astarte.Pairing.API.Engine
 
   def get_public_keys(realm) do
-    Pairing.get_agent_public_key_pems(realm)
+    Engine.get_agent_public_key_pems(realm)
   end
 end

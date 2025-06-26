@@ -16,7 +16,7 @@
 # limitations under the License.
 #
 
-defmodule Astarte.Pairing.Config.CQExNodes do
+defmodule Astarte.Pairing.API.Config.CQExNodes do
   use Skogsra.Type
 
   @default_port 9042

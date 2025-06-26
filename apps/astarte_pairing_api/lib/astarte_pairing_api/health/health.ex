@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2020 Ispirata Srl
+# Copyright 2020-2025 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -21,14 +21,14 @@ defmodule Astarte.Pairing.API.Health do
   Performs health checks of the Pairing service
   """
 
+  alias Astarte.DataAccess.Health.Health
   alias Astarte.Pairing.API.Health.BackendHealth
-  alias Astarte.Pairing.API.RPC.Pairing
 
   @doc """
   Gets the backend health. Returns `{:ok, %BackendHealth{}`
   """
   def get_backend_health do
-    with {:ok, %{status: status}} <- Pairing.get_health() do
+    with {:ok, %{status: status}} <- Health.get_health() do
       :telemetry.execute(
         [:astarte, :pairing, :service],
         %{health: 1}

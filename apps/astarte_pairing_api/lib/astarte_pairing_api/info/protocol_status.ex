@@ -1,7 +1,6 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2017-2018 Ispirata Srl
 # Copyright 2025 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -17,12 +16,7 @@
 # limitations under the License.
 #
 
-# This file is responsible for configuring your application
-# and its dependencies with the aid of the Mix.Config module.
-import Config
-
-config :astarte_pairing, ecto_repos: [Astarte.Pairing.Repo]
-
-config :astarte_pairing, Astarte.Pairing.Repo, []
-
-import_config "#{config_env()}.exs"
+defmodule Astarte.Pairing.API.Info.ProtocolStatus do
+  @enforce_keys [:astarte_mqtt_v1]
+  defstruct [:astarte_mqtt_v1]
+end

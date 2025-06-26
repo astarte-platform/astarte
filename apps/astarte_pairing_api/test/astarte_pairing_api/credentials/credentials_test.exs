@@ -17,28 +17,35 @@
 #
 
 defmodule Astarte.Pairing.API.CredentialsTest do
-  use Astarte.Pairing.API.DataCase, async: true
+  use Astarte.Cases.Data, async: true
+  use Astarte.Cases.Device
 
   alias Astarte.Pairing.API.Credentials
 
-  alias Astarte.RPC.Protocol.Pairing.{
-    AstarteMQTTV1Credentials,
-    AstarteMQTTV1CredentialsParameters,
-    AstarteMQTTV1CredentialsStatus,
-    Call,
-    GenericErrorReply,
-    GetCredentials,
-    GetCredentialsReply,
-    Reply,
-    VerifyCredentials,
-    VerifyCredentialsReply
-  }
+  import Astarte.Helpers.Device
 
-  import Mox
-
-  @realm "test_realm"
-  @hw_id "ykwVk4uTT_SQMe-4Opn-qg"
   @device_ip "2.3.4.5"
+  @secret "valid"
+  @invalid_secret "invalid"
+  @unexisting_realm "unexisting"
+  @unexisting_hw_id "G5rDPSk1SOKuErbBnk2rhw"
+
+  @ca_cert """
+  -----BEGIN CERTIFICATE-----
+  MIICNTCCAdqgAwIBAgIUIOSSE9sxXZWckOs+jtq+wBiGCiIwCgYIKoZIzj0EAwIw
+  dzELMAkGA1UEBhMCVVMxDzANBgNVBAgTBk5ldmFkYTESMBAGA1UEBxMJTGFzIFZl
+  Z2FzMRgwFgYDVQQKEw9FeGFtcGxlIENvbXBhbnkxFDASBgNVBAsTC0NBIFNlcnZp
+  Y2VzMRMwEQYDVQQDEwpNeSBSb290IENBMCAXDTI1MDYyNDA3MTgwMFoYDzIwNTUw
+  NjE3MDcxODAwWjB3MQswCQYDVQQGEwJVUzEPMA0GA1UECBMGTmV2YWRhMRIwEAYD
+  VQQHEwlMYXMgVmVnYXMxGDAWBgNVBAoTD0V4YW1wbGUgQ29tcGFueTEUMBIGA1UE
+  CxMLQ0EgU2VydmljZXMxEzARBgNVBAMTCk15IFJvb3QgQ0EwWTATBgcqhkjOPQIB
+  BggqhkjOPQMBBwNCAARdrgh5v5PtcHlVD+0j4rQnDPHLsyx3PI9SRIfoO5X2r69X
+  Fj4ZPCoMaavhUjcjmeh62KFdtPdzwDucNPpo60Zxo0IwQDAOBgNVHQ8BAf8EBAMC
+  AQYwDwYDVR0TAQH/BAUwAwEB/zAdBgNVHQ4EFgQUshI4rsI0qYhfHVALQb4TeItb
+  78YwCgYIKoZIzj0EAwIDSQAwRgIhAID+zw34Tkz0O5UCrSlxM9+ud+P9/mpjbePn
+  aqkyw+ahAiEA1u/5NagV9BX2PbMQzkjywdby+z42udBTEzUgZrOWpLQ=
+  -----END CERTIFICATE-----
+  """
   @csr """
   -----BEGIN CERTIFICATE REQUEST-----
   MIICwTCCAakCAQAwfDELMAkGA1UEBhMCQVUxEzARBgNVBAgMClNvbWUtU3RhdGUx
@@ -58,39 +65,65 @@ defmodule Astarte.Pairing.API.CredentialsTest do
   nBWYJpUTEDTAbDYx4F9YwSfuXrA9jCABgZw92ggqnh2dzRQWSw==
   -----END CERTIFICATE REQUEST-----
   """
-  @secret "valid"
+  @csr_valid_until 1_755_940_320_000
   @client_crt """
-  THIS IS NOT A REAL CERTIFICATE
+  -----BEGIN CERTIFICATE-----
+  MIIDSTCCAvCgAwIBAgIUZ0Rnyy9sfanGRUzF8nOf8iG8nvswCgYIKoZIzj0EAwIw
+  dzELMAkGA1UEBhMCVVMxDzANBgNVBAgTBk5ldmFkYTESMBAGA1UEBxMJTGFzIFZl
+  Z2FzMRgwFgYDVQQKEw9FeGFtcGxlIENvbXBhbnkxFDASBgNVBAsTC0NBIFNlcnZp
+  Y2VzMRMwEQYDVQQDEwpNeSBSb290IENBMB4XDTI1MDYyNDA5MTIwMFoXDTI1MDgy
+  MzA5MTIwMFowgZAxCzAJBgNVBAYTAkFVMRMwEQYDVQQIEwpTb21lLVN0YXRlMQ0w
+  CwYDVQQHEwRjaXR5MSEwHwYDVQQKExhJbnRlcm5ldCBXaWRnaXRzIFB0eSBMdGQx
+  EDAOBgNVBAsTB3NlY3Rpb24xKDAmBgNVBAMTH3JlYWxtMTMxL1gxOEVwV2lmUk9t
+  RnFMazVwWDlZZkEwggEiMA0GCSqGSIb3DQEBAQUAA4IBDwAwggEKAoIBAQC1neUX
+  JSjPdfUDVNRDMDGapwnRqsfOFbEMcm1+q4yav5OxbdHRrFjeKheJyUeoIySdzs4g
+  ncZEAaLWqXoxN4xNiH5EYUJWBDV/SYJSpXFlSdDcidOZ4fUKCRU5NIoGAQEfU9wF
+  Pr6V7Q5c/U5GB4PG12i5i4i79gyNn0SdFezIkSxPdpzi0Wn+icBvH/9JKJ+IWi2y
+  V7EI6/tUy9xnC46ejpeD267xYhCwV4rjX5Xs3dirhipxVYbCa1QE+VY3B8yCTKui
+  YUTySJQt2VFj7zQe4Y26EzSP4AoVi1sSNbL8bs8KCWSblMJpjctRclRx/c1zwy61
+  BW7oYuujf2R5v561AgMBAAGjdTBzMA4GA1UdDwEB/wQEAwIFoDATBgNVHSUEDDAK
+  BggrBgEFBQcDAjAMBgNVHRMBAf8EAjAAMB0GA1UdDgQWBBR1XskiVL9asyf6ceUr
+  yteHWMkxEDAfBgNVHSMEGDAWgBSyEjiuwjSpiF8dUAtBvhN4i1vvxjAKBggqhkjO
+  PQQDAgNHADBEAiAC+24qHLC/b+xnuXO/pYCXFnA8GsdfHI3zBQbMvgzlRQIgAoEX
+  3JUIkrX38f7JqgQ6BX3YXfH79iiPvhx9uhYrlTc=
+  -----END CERTIFICATE-----
+  """
+  @self_signed_crt """
+  -----BEGIN CERTIFICATE-----
+  MIIDCTCCAfGgAwIBAgIUCvQSmpjHOp9gqVs5r3C+3Mqf+cAwDQYJKoZIhvcNAQEL
+  BQAwFDESMBAGA1UEAwwJbG9jYWxob3N0MB4XDTI1MDYyMzE1NTk0MFoXDTI2MDYy
+  MzE1NTk0MFowFDESMBAGA1UEAwwJbG9jYWxob3N0MIIBIjANBgkqhkiG9w0BAQEF
+  AAOCAQ8AMIIBCgKCAQEAsIUOltZQbKfFHQQYNRXoECMHBXS3AhQg7sRV1dxZJGag
+  BRS0Whj8yj/wJ5lX+eb44YnSOk4nShzWsk74wKK+eeVeKPRvDhY+cotXXKNNk7Gj
+  ofOYcaULd29WPHJN2trCSeuOQm2IYNjwp2ityjsi+ZUwQzxbvcMFiF6Mfde3K/7n
+  ql6rBhavKPkUZexbbW+fla5XgaIMXRWuTVIxZU+hg1WYyFCzpD/jjJe/5Fmy4XNY
+  FeJsBJy8cU75FlSFxT+iqHx6HqyliQ7WyTSGY9fQAxA9HIUO2msx7+sxBIHRUvvy
+  G7gbMtCrDy2Wtgwv213AKMpnODHkxJ8+oBv8H4GyAQIDAQABo1MwUTAdBgNVHQ4E
+  FgQULGyzs0yVMCBUbvCNYcBLjngrErEwHwYDVR0jBBgwFoAULGyzs0yVMCBUbvCN
+  YcBLjngrErEwDwYDVR0TAQH/BAUwAwEB/zANBgkqhkiG9w0BAQsFAAOCAQEAXp35
+  ahNY2sRbR1JYednnN+hj8r4IhrDMKB6ZWP03M1OWTJ1Z/6NXkmBQkGxAGxP5cpyJ
+  IeMVb0oNdahUbILCPBAkMyP8ZbFnyLaUjbFT1yH1tzaFmmsx72IJZ4fo2ONBZgxL
+  +2B25D7o237wVBcrik8Gm2X64GZzx58JJnSI7JrS4jC6iTJn/s88M+losXpzSSHM
+  ZvcUXC5itRNckAeiMiyx4F+dOnhvAsfbq/rj5SLjtXgEFDLRg9yRpaIAnFKPTPqH
+  nVi/3xx9CJUmQLgi87mvZct/5gCchtWYD+aYgOSPhyXxW1eNT7tHUgKFgj0jRdOw
+  HGLVqURVzFzEHx1vgQ==
+  -----END CERTIFICATE-----
   """
 
-  @unexisting_realm "unexisting"
-  @unexisting_hw_id "G5rDPSk1SOKuErbBnk2rhw"
-  @invalid_secret "invalid"
-  @self_signed_crt "self signed crt"
+  setup [:set_credentials_secret, :set_ca_cert]
 
-  @encoded_forbidden_response %Reply{
-                                reply:
-                                  {:generic_error_reply,
-                                   %GenericErrorReply{error_name: "forbidden"}}
-                              }
-                              |> Reply.encode()
+  def set_credentials_secret(ctx) do
+    update_device!(ctx.realm_name, ctx.device.id, inhibit_credentials_request: false)
+    update_credentials_secret!(ctx.realm_name, ctx.device.id, @secret)
 
-  @encoded_realm_not_found_response %Reply{
-                                      reply:
-                                        {:generic_error_reply,
-                                         %GenericErrorReply{error_name: "realm_not_found"}}
-                                    }
-                                    |> Reply.encode()
+    :ok
+  end
 
-  @encoded_device_not_found_response %Reply{
-                                       reply:
-                                         {:generic_error_reply,
-                                          %GenericErrorReply{error_name: "device_not_found"}}
-                                     }
-                                     |> Reply.encode()
+  defp set_ca_cert(_ctx) do
+    Mimic.stub(Astarte.Pairing.API.Config, :ca_cert!, fn -> @ca_cert end)
 
-  @rpc_destination Astarte.RPC.Protocol.Pairing.amqp_queue()
-  @timeout 30_000
+    :ok
+  end
 
   describe "get_astarte_mqtt_v1" do
     alias Astarte.Pairing.API.Credentials.AstarteMQTTV1.Credentials, as: AstarteCredentials
@@ -99,49 +132,31 @@ defmodule Astarte.Pairing.API.CredentialsTest do
     @no_csr_attrs %{}
     @invalid_csr_attrs %{"csr" => "invalidcsr"}
 
-    @encoded_credentials_response %Reply{
-                                    reply:
-                                      {:get_credentials_reply,
-                                       %GetCredentialsReply{
-                                         credentials:
-                                           {:astarte_mqtt_v1,
-                                            %AstarteMQTTV1Credentials{client_crt: @client_crt}}
-                                       }}
-                                  }
-                                  |> Reply.encode()
+    test "returns Credentials with valid data", ctx do
+      %{
+        realm_name: realm_name,
+        device: device
+      } = ctx
 
-    test "returns Credentials with valid data" do
-      MockRPCClient
-      |> expect(:rpc_call, fn serialized_call, @rpc_destination, @timeout ->
-        assert %Call{call: {:get_credentials, %GetCredentials{} = credentials_call}} =
-                 Call.decode(serialized_call)
-
-        assert %GetCredentials{
-                 realm: @realm,
-                 hw_id: @hw_id,
-                 secret: @secret,
-                 credentials_parameters:
-                   {:astarte_mqtt_v1, %AstarteMQTTV1CredentialsParameters{csr: @csr}}
-               } = credentials_call
-
-        {:ok, @encoded_credentials_response}
-      end)
-
-      assert {:ok, %AstarteCredentials{client_crt: @client_crt}} =
+      assert {:ok, %AstarteCredentials{client_crt: client_crt}} =
                Credentials.get_astarte_mqtt_v1(
-                 @realm,
-                 @hw_id,
+                 realm_name,
+                 device.encoded_id,
                  @secret,
                  @device_ip,
                  @valid_attrs
                )
+
+      assert client_crt =~ "-----BEGIN CERTIFICATE-----"
     end
 
-    test "returns error changeset with malformed data" do
+    test "returns error changeset with malformed data", ctx do
+      %{realm_name: realm_name, device: device} = ctx
+
       assert {:error, %Ecto.Changeset{}} =
                Credentials.get_astarte_mqtt_v1(
-                 @realm,
-                 @hw_id,
+                 realm_name,
+                 device.encoded_id,
                  @secret,
                  @device_ip,
                  @no_csr_attrs
@@ -149,55 +164,50 @@ defmodule Astarte.Pairing.API.CredentialsTest do
 
       assert {:error, %Ecto.Changeset{}} =
                Credentials.get_astarte_mqtt_v1(
-                 @realm,
-                 @hw_id,
+                 realm_name,
+                 device.encoded_id,
                  @secret,
                  @device_ip,
                  @invalid_csr_attrs
                )
     end
 
-    test "returns forbidden with invalid secret" do
-      MockRPCClient
-      |> expect(:rpc_call, fn _serialized_call, @rpc_destination, @timeout ->
-        {:ok, @encoded_forbidden_response}
-      end)
+    test "returns forbidden with invalid secret", ctx do
+      %{
+        realm_name: realm_name,
+        device: device
+      } = ctx
 
       assert {:error, :forbidden} =
                Credentials.get_astarte_mqtt_v1(
-                 @realm,
-                 @hw_id,
+                 realm_name,
+                 device.encoded_id,
                  @invalid_secret,
                  @device_ip,
                  @valid_attrs
                )
     end
 
-    test "returns forbidden with realm not found" do
-      MockRPCClient
-      |> expect(:rpc_call, fn _serialized_call, @rpc_destination, @timeout ->
-        {:ok, @encoded_realm_not_found_response}
-      end)
-
-      assert {:error, :forbidden} =
-               Credentials.get_astarte_mqtt_v1(
-                 @unexisting_realm,
-                 @hw_id,
-                 @secret,
-                 @device_ip,
-                 @valid_attrs
-               )
+    test "raises with realm not found", ctx do
+      assert_raise Xandra.Error, ~r"Keyspace .*#{@unexisting_realm} does not exist", fn ->
+        Credentials.get_astarte_mqtt_v1(
+          @unexisting_realm,
+          ctx.device.encoded_id,
+          @secret,
+          @device_ip,
+          @valid_attrs
+        )
+      end
     end
 
-    test "returns device_not_found with device not found" do
-      MockRPCClient
-      |> expect(:rpc_call, fn _serialized_call, @rpc_destination, @timeout ->
-        {:ok, @encoded_device_not_found_response}
-      end)
+    test "returns device_not_found with device not found", ctx do
+      %{
+        realm_name: realm_name
+      } = ctx
 
       assert {:error, :device_not_found} =
                Credentials.get_astarte_mqtt_v1(
-                 @realm,
+                 realm_name,
                  @unexisting_hw_id,
                  @secret,
                  @device_ip,
@@ -213,171 +223,114 @@ defmodule Astarte.Pairing.API.CredentialsTest do
     @no_certificate_attrs %{}
     @self_signed_crt_attrs %{client_crt: @self_signed_crt}
 
-    @now DateTime.utc_now() |> DateTime.to_unix(:millisecond)
-    @one_month_from_now 2_678_400_000 + @now
-
-    @encoded_verify_valid_response %Reply{
-                                     reply:
-                                       {:verify_credentials_reply,
-                                        %VerifyCredentialsReply{
-                                          credentials_status:
-                                            {:astarte_mqtt_v1,
-                                             %AstarteMQTTV1CredentialsStatus{
-                                               valid: true,
-                                               timestamp: @now,
-                                               until: @one_month_from_now
-                                             }}
-                                        }}
-                                   }
-                                   |> Reply.encode()
-
-    @encoded_verify_not_valid_response %Reply{
-                                         reply:
-                                           {:verify_credentials_reply,
-                                            %VerifyCredentialsReply{
-                                              credentials_status:
-                                                {:astarte_mqtt_v1,
-                                                 %AstarteMQTTV1CredentialsStatus{
-                                                   valid: false,
-                                                   timestamp: @now,
-                                                   cause: :INVALID_ISSUER
-                                                 }}
-                                            }}
-                                       }
-                                       |> Reply.encode()
-
-    @encoded_empty_details_response %Reply{
-                                      reply:
-                                        {:verify_credentials_reply,
-                                         %VerifyCredentialsReply{
-                                           credentials_status:
-                                             {:astarte_mqtt_v1,
-                                              %AstarteMQTTV1CredentialsStatus{
-                                                valid: false,
-                                                timestamp: @now,
-                                                cause: :INVALID_ISSUER,
-                                                details: ""
-                                              }}
-                                         }}
-                                    }
-                                    |> Reply.encode()
-
-    test "valid call returns CredentialsStatus" do
-      MockRPCClient
-      |> expect(:rpc_call, fn serialized_call, @rpc_destination, @timeout ->
-        assert %Call{call: {:verify_credentials, %VerifyCredentials{} = verify_credentials_call}} =
-                 Call.decode(serialized_call)
-
-        assert %VerifyCredentials{
-                 realm: @realm,
-                 hw_id: @hw_id,
-                 secret: @secret,
-                 credentials:
-                   {:astarte_mqtt_v1, %AstarteMQTTV1Credentials{client_crt: @client_crt}}
-               } = verify_credentials_call
-
-        {:ok, @encoded_verify_valid_response}
-      end)
+    test "valid call returns CredentialsStatus", ctx do
+      %{
+        realm_name: realm_name,
+        device: device
+      } = ctx
 
       assert {:ok,
               %CredentialsStatus{
                 valid: true,
-                until: @one_month_from_now,
-                timestamp: @now,
+                until: one_month_from_now,
+                timestamp: _now,
                 cause: nil,
                 details: nil
-              }} = Credentials.verify_astarte_mqtt_v1(@realm, @hw_id, @secret, @valid_attrs)
+              }} =
+               Credentials.verify_astarte_mqtt_v1(
+                 realm_name,
+                 device.encoded_id,
+                 @secret,
+                 @valid_attrs
+               )
+
+      assert one_month_from_now == @csr_valid_until
     end
 
-    test "returns an error changeset with invalid attrs" do
+    test "returns an error changeset with invalid attrs", ctx do
+      %{
+        realm_name: realm_name,
+        device: device
+      } = ctx
+
       assert {:error, %Ecto.Changeset{}} =
-               Credentials.verify_astarte_mqtt_v1(@realm, @hw_id, @secret, @no_certificate_attrs)
+               Credentials.verify_astarte_mqtt_v1(
+                 realm_name,
+                 device.encoded_id,
+                 @secret,
+                 @no_certificate_attrs
+               )
     end
 
-    test "returns invalid CertificateStatus" do
-      MockRPCClient
-      |> expect(:rpc_call, fn serialized_call, @rpc_destination, @timeout ->
-        assert %Call{call: {:verify_credentials, %VerifyCredentials{} = verify_credentials_call}} =
-                 Call.decode(serialized_call)
-
-        assert %VerifyCredentials{
-                 realm: @realm,
-                 hw_id: @hw_id,
-                 secret: @secret,
-                 credentials:
-                   {:astarte_mqtt_v1, %AstarteMQTTV1Credentials{client_crt: @self_signed_crt}}
-               } = verify_credentials_call
-
-        {:ok, @encoded_verify_not_valid_response}
-      end)
+    test "returns invalid CertificateStatus", ctx do
+      %{
+        realm_name: realm_name,
+        device: device
+      } = ctx
 
       assert {:ok,
               %CredentialsStatus{
                 valid: false,
-                timestamp: @now,
+                timestamp: _timestamp,
                 cause: :INVALID_ISSUER,
                 until: nil,
                 details: nil
               }} =
-               Credentials.verify_astarte_mqtt_v1(@realm, @hw_id, @secret, @self_signed_crt_attrs)
+               Credentials.verify_astarte_mqtt_v1(
+                 realm_name,
+                 device.encoded_id,
+                 @secret,
+                 @self_signed_crt_attrs
+               )
     end
 
-    test "returns invalid CertificateStatus for empty-details branch" do
-      MockRPCClient
-      |> expect(:rpc_call, fn _serialized_call, @rpc_destination, @timeout ->
-        {:ok, @encoded_empty_details_response}
-      end)
+    test "returns invalid CertificateStatus for empty-details branch", ctx do
+      %{
+        realm_name: realm_name,
+        device: device
+      } = ctx
 
       assert {:ok,
               %CredentialsStatus{
                 valid: false,
-                timestamp: @now,
+                timestamp: _timestamp,
                 cause: :INVALID_ISSUER,
                 details: nil,
                 until: nil
               }} =
-               Credentials.verify_astarte_mqtt_v1(@realm, @hw_id, @secret, @self_signed_crt_attrs)
+               Credentials.verify_astarte_mqtt_v1(
+                 realm_name,
+                 device.encoded_id,
+                 @secret,
+                 @self_signed_crt_attrs
+               )
     end
 
-    test "returns forbidden with invalid secret" do
-      MockRPCClient
-      |> expect(:rpc_call, fn _serialized_call, @rpc_destination, @timeout ->
-        {:ok, @encoded_forbidden_response}
-      end)
-
+    test "returns forbidden with invalid secret", %{realm_name: realm_name, device: device} do
       assert {:error, :forbidden} =
                Credentials.verify_astarte_mqtt_v1(
-                 @realm,
-                 @hw_id,
+                 realm_name,
+                 device.encoded_id,
                  @invalid_secret,
                  @valid_attrs
                )
     end
 
-    test "returns forbidden with realm not found" do
-      MockRPCClient
-      |> expect(:rpc_call, fn _serialized_call, @rpc_destination, @timeout ->
-        {:ok, @encoded_realm_not_found_response}
-      end)
-
-      assert {:error, :forbidden} =
-               Credentials.verify_astarte_mqtt_v1(
-                 @unexisting_realm,
-                 @hw_id,
-                 @secret,
-                 @valid_attrs
-               )
+    test "raises with realm not found", ctx do
+      assert_raise Xandra.Error, ~r"Keyspace .*#{@unexisting_realm} does not exist", fn ->
+        Credentials.verify_astarte_mqtt_v1(
+          @unexisting_realm,
+          ctx.device.encoded_id,
+          @secret,
+          @valid_attrs
+        )
+      end
     end
 
-    test "returns device_not_found with device not found" do
-      MockRPCClient
-      |> expect(:rpc_call, fn _serialized_call, @rpc_destination, @timeout ->
-        {:ok, @encoded_device_not_found_response}
-      end)
-
+    test "returns device_not_found with device not found", %{realm_name: realm_name} do
       assert {:error, :device_not_found} =
                Credentials.verify_astarte_mqtt_v1(
-                 @realm,
+                 realm_name,
                  @unexisting_hw_id,
                  @secret,
                  @valid_attrs

@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2017 Ispirata Srl
+# Copyright 2017-2025 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -65,3 +65,7 @@ config :logger, :console,
 # Set a higher stacktrace during development. Avoid configuring such
 # in production as building large stacktraces may be expensive.
 config :phoenix, :stacktrace_depth, 20
+
+config :astarte_pairing_api, :broker_url, "mqtts://broker.beta.astarte.cloud:8883/"
+
+config :astarte_pairing_api, :cfssl_url, "http://localhost:8888"

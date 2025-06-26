@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2017-2018 Ispirata Srl
+# Copyright 2017-2025 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -16,12 +16,12 @@
 # limitations under the License.
 #
 
-defmodule Astarte.Pairing.CFSSLCredentials do
+defmodule Astarte.Pairing.API.CFSSLCredentials do
   @moduledoc """
   Module implementing pairing using CFSSL
   """
 
-  alias Astarte.Pairing.Config
+  alias Astarte.Pairing.API.Config
   alias CFXXL.CertUtils
   alias CFXXL.Client
   alias CFXXL.Subject

@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2017 Ispirata Srl
+# Copyright 2025 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -16,13 +16,7 @@
 # limitations under the License.
 #
 
-import Config
-
-config :logger,
-  compile_time_purge_matching: [
-    [level_lower_than: :info]
-  ]
-
-config :logger, :console,
-  format: {PrettyLog.LogfmtFormatter, :format},
-  metadata: [:module, :function, :tag]
+defmodule Astarte.Pairing.API.Info.AstarteMQTTV1Status do
+  @enforce_keys [:broker_url]
+  defstruct [:broker_url]
+end

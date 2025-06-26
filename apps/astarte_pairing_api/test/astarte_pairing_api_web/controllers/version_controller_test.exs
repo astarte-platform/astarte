@@ -17,11 +17,11 @@
 #
 
 defmodule Astarte.Pairing.APIWeb.VersionControllerTest do
+  use Astarte.Cases.Data, async: true
   use Astarte.Pairing.APIWeb.ConnCase, async: true
 
   alias Astarte.Pairing.APIWeb.Helpers.JWTTestHelper
 
-  @realm "testrealm"
   @expected_version Mix.Project.config()[:version]
 
   setup %{conn: conn} do
@@ -43,9 +43,15 @@ defmodule Astarte.Pairing.APIWeb.VersionControllerTest do
   end
 
   describe "GET /v1/:realm_name/version" do
-    test "returns the app version with realm", %{conn: conn} do
-      conn = get(conn, "/v1/#{@realm}/version")
+    test "returns the app version with realm", %{conn: conn, realm_name: realm_name} do
+      conn = get(conn, "/v1/#{realm_name}/version")
       assert json_response(conn, 200) == %{"data" => @expected_version}
+    end
+
+    test "returns forbidden error when realm does not exist", %{conn: conn} do
+      realm_name = "unknown"
+      conn = get(conn, "/v1/#{realm_name}/version")
+      assert json_response(conn, 403) == %{"errors" => %{"detail" => "Forbidden"}}
     end
   end
 end

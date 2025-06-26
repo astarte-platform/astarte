@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2017 Ispirata Srl
+# Copyright 2017-2025 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -38,8 +38,6 @@ config :logger, :console,
     :tag
   ]
 
-config :astarte_rpc, :amqp_connection, host: System.get_env("RABBITMQ_HOST") || "rabbitmq"
-
 config :astarte_pairing_api, :rpc_client, MockRPCClient
 
 config :astarte_pairing_api,
@@ -64,6 +62,18 @@ config :astarte_pairing_api,
             "mb3tAXjpvnrRD0S4Ag6Xv5IBk4cExwWM-hpmK5ASc-fSmIZAG26VK-ctfYQ-q1JINx0u87bTKbxptjpxpIBIJxvZ6DsjXahAtYdMchUKp-x0R4Lw2QppsnS1ulUHUs7GrP2x_g5bURai4BVcEzfU4MmaWQZyfGC8I84-Ef3V3l0"
         }}
 
+config :astarte_pairing_api, :jwt_public_key_pem, """
+-----BEGIN PUBLIC KEY-----
+MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAvxc/7iTcAd5FprvGWQtl
+bhBJy2gv0QLk0GcXg6cK+XYne7bkXJ/2ada1cQDfQAiZ9XRN04sGyrVCY0IjAbRC
+hkMjJFhYF1WMWv7PiybTaRSn8KyJG9g/Zpje5hVTYjBvfGqym3yWf0f6rJpAbCdk
+gRJkWvBLA2NgCX6pzQZWJTsItnUp3aaCt0lOw3ZKc+ZMvuP6S1GahW0kSFV7jPJX
+JOYU76KvYgkkqrXdTe2nzyOEn0YLEboojtPp6ZylQWxxoTz3vFcjIrVf53g1AB5f
+4ua/ACmqSZyF7I6Cceyo93q4rpg2wCGFANxG1qgD3tXATQI8PJloz7eN+BjC+D3J
+OwIDAQAB
+-----END PUBLIC KEY-----
+"""
+
 config :astarte_pairing_api, :agent_public_key_pems, [
   """
   -----BEGIN PUBLIC KEY-----
@@ -77,3 +87,14 @@ config :astarte_pairing_api, :agent_public_key_pems, [
   -----END PUBLIC KEY-----
   """
 ]
+
+config :astarte_pairing_api, :broker_url, "mqtts://broker.beta.astarte.cloud:8883/"
+
+config :astarte_pairing_api,
+       :cfssl_url,
+       System.get_env("CFSSL_API_URL") || "http://ispirata-docker-alpine-cfssl-autotest:8080"
+
+config :astarte_pairing_api, :astarte_instance_id, "test"
+
+config :bcrypt_elixir,
+  log_rounds: 4

@@ -10,9 +10,6 @@ app:housekeeping:
 app:housekeeping_api:
   - apps/astarte_housekeeping_api/**
 
-app:pairing:
-  - apps/astarte_pairing/**
-
 app:pairing_api:
   - apps/astarte_pairing_api/**
 

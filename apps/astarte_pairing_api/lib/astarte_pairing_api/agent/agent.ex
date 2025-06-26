@@ -24,8 +24,7 @@ defmodule Astarte.Pairing.API.Agent do
   alias Astarte.Core.Device
   alias Astarte.Pairing.API.Agent.DeviceRegistrationRequest
   alias Astarte.Pairing.API.Agent.DeviceRegistrationResponse
-  alias Astarte.Pairing.API.RPC.Pairing
-  alias Astarte.Pairing.API.Utils
+  alias Astarte.Pairing.API.Engine
 
   def register_device(realm, attrs \\ %{}) do
     changeset =
@@ -35,24 +34,24 @@ defmodule Astarte.Pairing.API.Agent do
     with {:ok,
           %DeviceRegistrationRequest{hw_id: hw_id, initial_introspection: initial_introspection}} <-
            Ecto.Changeset.apply_action(changeset, :insert),
-         {:ok, %{credentials_secret: secret}} <-
-           Pairing.register_device(realm, hw_id, initial_introspection) do
-      {:ok, %DeviceRegistrationResponse{credentials_secret: secret}}
-    else
-      {:error, %Ecto.Changeset{} = changeset} ->
-        {:error, changeset}
-
-      {:error, %{} = error_map} ->
-        {:error, Utils.error_map_into_changeset(changeset, error_map)}
-
-      {:error, _other} ->
-        {:error, :rpc_error}
+         initial_introspection =
+           Enum.map(initial_introspection, fn {interface_name,
+                                               %{"major" => major, "minor" => minor}} ->
+             %{
+               interface_name: interface_name,
+               major_version: major,
+               minor_version: minor
+             }
+           end),
+         {:ok, credentials_secret} <-
+           Engine.register_device(realm, hw_id, initial_introspection: initial_introspection) do
+      {:ok, %DeviceRegistrationResponse{credentials_secret: credentials_secret}}
     end
   end
 
   def unregister_device(realm, device_id) do
     with {:ok, _} <- Device.decode_device_id(device_id),
-         :ok <- Pairing.unregister_device(realm, device_id) do
+         :ok <- Engine.unregister_device(realm, device_id) do
       :ok
     end
   end
