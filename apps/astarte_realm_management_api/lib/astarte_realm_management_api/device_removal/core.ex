@@ -18,12 +18,12 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
-defmodule Astarte.RealmManagement.DeviceRemoval.Core do
+defmodule Astarte.RealmManagement.API.DeviceRemoval.Core do
   @moduledoc """
   This module contains all the funcitons needed by the `DeviceRemover` Task.
   """
   alias Astarte.Core.CQLUtils
-  alias Astarte.RealmManagement.Queries
+  alias Astarte.RealmManagement.API.DeviceRemoval.Queries
   alias Astarte.Core.InterfaceDescriptor
 
   @doc """

@@ -51,7 +51,9 @@ defmodule Astarte.RealmManagement.API.Application do
       Astarte.RealmManagement.APIWeb.Endpoint,
       Astarte.RPC.AMQP.Client,
       {Xandra.Cluster, rm_xandra_opts},
-      {Astarte.DataAccess, data_access_opts}
+      {Astarte.DataAccess, data_access_opts},
+      {Task.Supervisor, name: Astarte.RealmManagement.API.DeviceRemoverSupervisor},
+      Astarte.RealmManagement.API.DeviceRemoval.Scheduler
     ]
 
     # See http://elixir-lang.org/docs/stable/elixir/Supervisor.html
