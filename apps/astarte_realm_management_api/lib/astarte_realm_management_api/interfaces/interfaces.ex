@@ -42,7 +42,7 @@ defmodule Astarte.RealmManagement.API.Interfaces do
 
   def list_interface_major_versions(realm_name, id) do
     with {:ok, interface_versions_list} <-
-           RealmManagement.get_interface_versions_list(realm_name, id),
+           Queries.fetch_interface_versions_list(realm_name, id),
          interface_majors <- Enum.map(interface_versions_list, fn el -> el[:major_version] end) do
       {:ok, interface_majors}
     end

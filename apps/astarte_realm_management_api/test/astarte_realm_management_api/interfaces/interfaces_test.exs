@@ -27,6 +27,7 @@ defmodule Astarte.RealmManagement.API.InterfacesTest do
   alias Astarte.RealmManagement
   alias Astarte.Core.Interface
   alias Astarte.Core.Mapping
+  alias Astarte.Core.Generators.Interface, as: InterfaceGenerators
   alias Astarte.Helpers.Database
   alias Astarte.RealmManagement.API.Interfaces
   alias Astarte.RealmManagement.API.Interfaces.Core
@@ -61,6 +62,39 @@ defmodule Astarte.RealmManagement.API.InterfacesTest do
       }
     ]
   }
+
+  describe "list_interface_major_versions/2" do
+    setup %{realm_name: realm_name, astarte_instance_id: astarte_instance_id} do
+      interface = InterfaceGenerators.interface() |> Enum.at(0)
+
+      interface_params = interface |> to_input_map()
+
+      {:ok, installed_interface} = Interfaces.install_interface(realm_name, interface_params)
+
+      on_exit(fn ->
+        Database.setup_database_access(astarte_instance_id)
+
+        capture_log(fn ->
+          Core.delete_interface(realm_name, interface.name, interface.major_version)
+        end)
+      end)
+
+      %{interface: installed_interface}
+    end
+
+    test "returns installed major versions for an existing interface", %{
+      realm_name: realm_name,
+      interface: interface
+    } do
+      assert {:ok, [interface.major_version]} ==
+               Interfaces.list_interface_major_versions(realm_name, interface.name)
+    end
+
+    test "returns error when interface does not exist", %{realm_name: realm_name} do
+      assert {:error, :interface_not_found} ==
+               Interfaces.list_interface_major_versions(realm_name, "com.some.RandomInterface")
+    end
+  end
 
   describe "interface creation" do
     @describetag :creation
