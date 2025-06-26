@@ -41,6 +41,19 @@ defmodule Astarte.Generators.Utilities.ParamsGenTest do
     end
   end
 
+  defp param_gen_eq_helper(params) do
+    params gen all a <- integer(0..0),
+                   {:ok, 0} = {:ok, a},
+                   a1 = a,
+                   b <- string(?a..?a, length: 1),
+                   b1 = b,
+                   c <- constant("friend"),
+                   c1 = c,
+                   params: params do
+      {a1, b1, c1}
+    end
+  end
+
   defp gen_params do
     gen all a <- integer(), b <- string(:ascii) do
       [a: a, b: b]
@@ -56,6 +69,7 @@ defmodule Astarte.Generators.Utilities.ParamsGenTest do
       :ok,
       gen: &gen_helper/0,
       param_gen: &param_gen_helper/1,
+      param_gen_eq: &param_gen_eq_helper/1,
       gen_params: &gen_params/0,
       function_params: &function_params/1
     }
@@ -75,6 +89,21 @@ defmodule Astarte.Generators.Utilities.ParamsGenTest do
              } do
       check all {a1, b1, c1} <- gen.(),
                 {a2, b2, c2} <- param_gen.([]),
+                max_runs: 1 do
+        assert a1 == a2
+        assert b1 == b2
+        assert c1 == c2
+      end
+    end
+
+    @tag :issue
+    property "param gen all does not crash using = op",
+             %{
+               gen: gen,
+               param_gen_eq: param_gen_eq
+             } do
+      check all {a1, b1, c1} <- gen.(),
+                {a2, b2, c2} <- param_gen_eq.([]),
                 max_runs: 1 do
         assert a1 == a2
         assert b1 == b2

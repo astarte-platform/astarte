@@ -47,7 +47,7 @@ defmodule Astarte.Generators.Utilities.ParamsGen do
     def parametric_generators(params \\ [a: { 2, 3, 4}])
     params gen all a <- integer(),
                    b <- list_of(string(:ascii)),
-                   c <- constant({:amicizia, "dottore"}),
+                   c <- constant({:atom, "string"}),
                    params: params do
         {a, b, c}
       end
@@ -99,9 +99,7 @@ defmodule Astarte.Generators.Utilities.ParamsGen do
   defp stream_data?({%StreamData{}, %StreamData{}} = _term), do: true
   defp stream_data?(_), do: false
 
-  @doc """
-  Function called from the macro, to wrap generators
-  """
+  @doc false
   @type stream() :: StreamData.t(term())
   @spec gen_param(stream(), atom(), keyword()) :: stream()
   def gen_param(default_gen, param_name, params) do
@@ -134,7 +132,9 @@ defmodule Astarte.Generators.Utilities.ParamsGen do
     compile_clauses(tail, params, [clause | acc])
   end
 
-  defp compile_clauses(clauses, params), do: compile_clauses(clauses, params, [])
+  defp compile_clauses([{:=, _, _} = clause | tail], params, acc) do
+    compile_clauses(tail, params, [clause | acc])
+  end
 
   defp split_clauses_and_params(clauses_and_params) do
     case Enum.split_while(clauses_and_params, &(not Keyword.keyword?(&1))) do
@@ -147,7 +147,7 @@ defmodule Astarte.Generators.Utilities.ParamsGen do
     {clauses, params} = split_clauses_and_params(clauses_and_params)
 
     clauses =
-      compile_clauses(clauses, params)
+      compile_clauses(clauses, params, [])
       |> Enum.reverse()
 
     quote do
