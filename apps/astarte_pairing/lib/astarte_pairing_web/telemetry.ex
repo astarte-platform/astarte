@@ -111,6 +111,14 @@ defmodule Astarte.PairingWeb.Telemetry do
       ),
       sum("astarte.pairing.request.response_body_bytes",
         tags: [:realm]
+      ),
+      counter("astarte.pairing.register_new_device.count",
+        tags: [:realm],
+        description: "Pairing requests total count"
+      ),
+      counter("astarte.pairing.get_credentials.count",
+        tags: [:realm],
+        description: "Get credentials requests total count"
       )
     ]
   end
