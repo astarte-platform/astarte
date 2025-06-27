@@ -49,32 +49,32 @@ Valid values and variables are listed in the [Interface Schema](040-interface_sc
 ### Name limitations
 
 A valid interface name consists of a Reverse Domain Name containing alphanumeric characters, hyphens
-and dots. By design, both the top level domain and last domain component can not contain hyphens,
+and dots. By design, both the top level domain and last domain component cannot contain hyphens,
 although hypens are allowed in other parts of the interface name (e.g.: `org.astarte-platform.Values`
 is a valid interface name).
 
 Interface names have to be fully-defined Reverse Domain Names. `Values` will not be accepted as an
 Astarte interface name, whereas `org.astarte-platform.Values` is a valid one.
 
-Interface's uniqueness is case insensitive - this means you cannot install two interfaces with the
+Interface's uniqueness is also case insensitive. This means you cannot install two interfaces with the
 same name and different casing (e.g.: `org.astarte-platform.MyValues` and `org.astarte-platform.Myvalues`).
-This also applies to Major versioning: interfaces sharing the same name with a different major
-version cannot have different casing.
+This also applies to Major versioning: interfaces sharing the same name, even with a different major
+version, cannot have different casing.
 
 Although not enforced, naming conventions for Astarte Interfaces require lowercasing for anything but
 the last part of the Interface name, which should be CamelCase.
 
-Valid examples are:
+Examples of names following conventions are:
 
-* `org.astarte-platform.conventions.ValidInterfaceName`
 * `org.astarte-platform.ValidInterfaceName`
 * `org.astarte-platform.conventions.satisfied.ValidInterfaceName`
+* `org.astarte-platform.conventions-satisfied.ValidInterfaceName`
 
-Non-valid examples are:
+While examples of names not following conventions are:
 
-* `org.astarte-platform.Conventions.ValidInterfaceName`
 * `org.astarte-platform.validInterfaceName`
-* `org.astarte-platform.Conventions.satisfied.ValidInterfaceName`
+* `org.astarte-platform.Conventions.NotSatisfied.ValidInterfaceName`
+* `org.astarte-platform.Conventions.not-satisfied.ValidInterfaceName`
 
 ## Interface Type
 
@@ -87,7 +87,7 @@ Interfaces have a well-known, predefined type, which can be either `property` or
 persistent state or synchronization. As a rule of thumb, `datastream` interfaces should be used when
 dealing with values such as sensor samples, commands and events. `datastream` are stored as time
 series in the database, making them suitable for time span filtering and any other common time
-series operation, and they are not idempotent in the REST API semantics.
+series operation, but they are *not* idempotent in the REST API semantics.
 
 Due to their nature, `datastream` interfaces have a number of [additional
 properties](#datastream-specific-features) which fine tune their behavior.
