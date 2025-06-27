@@ -209,7 +209,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.Device do
     :ok = Queries.remove_old_interfaces(realm, new_state.device_id, readded_introspection)
 
     maybe_deliver_interface_minor_updated_triggers(
-      state,
+      new_state,
       db_introspection_map,
       db_introspection_minor_map,
       device_triggers,
@@ -259,30 +259,50 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.Device do
          old_minors,
          timestamp_ms
        ) do
-    # Deliver interface_minor_updated triggers if needed
-    for {interface_name, old_minor} <- old_minors,
-        interface_major = Map.fetch!(state.introspection, interface_name),
-        Map.get(db_introspection_map, interface_name) == interface_major,
-        new_minor = Map.get(db_introspection_minor_map, interface_name),
-        new_minor != old_minor do
-      interface_id = CQLUtils.interface_id(interface_name, interface_major)
+    for {interface_name, old_minor} <- old_minors do
+      with {:ok, interface_major} <-
+             major_in_introspection?(state, db_introspection_map, interface_name),
+           {:ok, new_minor} <-
+             new_minor_different?(db_introspection_minor_map, interface_name, old_minor) do
+        interface_id = CQLUtils.interface_id(interface_name, interface_major)
 
-      interface_minor_updated_target_with_policy_list =
-        Map.get(device_triggers, {:on_interface_minor_updated, interface_id}, [])
-        |> Enum.map(fn target ->
-          {target, Map.get(state.trigger_id_to_policy_name, target.parent_trigger_id)}
-        end)
+        interface_minor_updated_target_with_policy_list =
+          Map.get(device_triggers, {:on_interface_minor_updated, interface_id}, [])
+          |> Enum.map(fn target ->
+            {target, Map.get(state.trigger_id_to_policy_name, target.parent_trigger_id)}
+          end)
 
-      TriggersHandler.interface_minor_updated(
-        interface_minor_updated_target_with_policy_list,
-        state.realm,
-        Astarte.Core.Device.encode_device_id(state.device_id),
-        interface_name,
-        interface_major,
-        old_minor,
-        new_minor,
-        timestamp_ms
-      )
+        TriggersHandler.interface_minor_updated(
+          interface_minor_updated_target_with_policy_list,
+          state.realm,
+          Astarte.Core.Device.encode_device_id(state.device_id),
+          interface_name,
+          interface_major,
+          old_minor,
+          new_minor,
+          timestamp_ms
+        )
+      end
+    end
+  end
+
+  defp major_in_introspection?(
+         %State{introspection: introspection},
+         db_introspection_map,
+         interface_name
+       ) do
+    with {:ok, interface_major} <- Map.fetch(introspection, interface_name) do
+      if Map.get(db_introspection_map, interface_name) == interface_major,
+        do: {:ok, interface_major},
+        else: {:error, :major_not_in_introspection}
+    end
+  end
+
+  defp new_minor_different?(db_introspection_minor_map, interface_name, old_minor) do
+    with {:ok, new_minor} <- Map.fetch(db_introspection_minor_map, interface_name) do
+      if new_minor != old_minor,
+        do: {:ok, new_minor},
+        else: {:error, :minor_did_not_change}
     end
   end
 
