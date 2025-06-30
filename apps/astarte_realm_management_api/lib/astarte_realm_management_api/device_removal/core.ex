@@ -35,10 +35,9 @@ defmodule Astarte.RealmManagement.API.DeviceRemoval.Core do
   end
 
   defp retrieve_individual_datastreams_keys!(realm_name, device_id) do
-    if Queries.table_exist?(realm_name, "individual_datastreams") do
-      Queries.retrieve_individual_datastreams_keys!(realm_name, device_id)
-    else
-      []
+    case Queries.table_exist?(realm_name, "individual_datastreams") do
+      {:ok, true} -> Queries.retrieve_individual_datastreams_keys!(realm_name, device_id)
+      {:ok, false} -> []
     end
   end
 
