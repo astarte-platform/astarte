@@ -17,6 +17,7 @@
 #
 
 defmodule Astarte.RealmManagement.API.Triggers.Core do
+  alias Astarte.RealmManagement.API.Interfaces
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.AMQPTriggerTarget
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.DataTrigger
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.SimpleTriggerContainer
@@ -222,7 +223,7 @@ defmodule Astarte.RealmManagement.API.Triggers.Core do
 
     # This should fail with {:error, :interface_not_found} if the interface does not exist
     with {:ok, interface} <-
-           Queries.fetch_interface(realm_name, interface_name, interface_major) do
+           Interfaces.fetch_interface(realm_name, interface_name, interface_major) do
       case interface.aggregation do
         :individual ->
           cond do
