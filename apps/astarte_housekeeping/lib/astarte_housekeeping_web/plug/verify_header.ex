@@ -43,10 +43,10 @@ defmodule Astarte.HousekeepingWeb.Plug.VerifyHeader do
   end
 
   defp get_secret do
-    with {:ok, public_key_pem} <- Auth.fetch_public_key(),
-         %JWK{} = jwk <- JWK.from_pem(public_key_pem) do
-      jwk
-    else
+    case Auth.fetch_public_key() do
+      {:ok, public_key_pem} ->
+        JWK.from_pem(public_key_pem)
+
       {:error, reason} ->
         Logger.warning("Couldn't get JWT public key PEM: #{inspect(reason)}")
         nil

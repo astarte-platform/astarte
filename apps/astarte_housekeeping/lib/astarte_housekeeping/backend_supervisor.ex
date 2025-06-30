@@ -41,7 +41,6 @@ defmodule Astarte.Housekeeping.BackendSupervisor do
       {Astarte.DataAccess, data_access_opts}
     ]
 
-    opts = [strategy: :rest_for_one, name: __MODULE__]
-    Supervisor.init(children, opts)
+    Supervisor.init(children, strategy: :rest_for_one)
   end
 end
