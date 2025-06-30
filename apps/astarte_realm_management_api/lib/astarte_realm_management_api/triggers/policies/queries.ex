@@ -55,4 +55,36 @@ defmodule Astarte.RealmManagement.API.Triggers.Policies.Queries do
 
     Repo.fetch_all(query, opts)
   end
+
+  def install_trigger_policy(realm_name, policy_name, policy_proto) do
+    keyspace = Realm.keyspace_name(realm_name)
+
+    params = %{
+      group: "trigger_policy",
+      key: policy_name,
+      value: policy_proto
+    }
+
+    opts = [
+      prefix: keyspace,
+      consistency: Consistency.domain_model(:write)
+    ]
+
+    KvStore.insert(params, opts)
+  end
+
+  def check_trigger_policy_already_present(realm_name, policy_name) do
+    keyspace = Realm.keyspace_name(realm_name)
+
+    query =
+      from store in KvStore,
+        where: [group: "trigger_policy", key: ^policy_name]
+
+    opts = [
+      prefix: keyspace,
+      consistency: Consistency.domain_model(:read)
+    ]
+
+    Repo.some?(query, opts)
+  end
 end

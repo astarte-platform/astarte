@@ -108,6 +108,12 @@ defmodule Astarte.RealmManagement.APIWeb.FallbackController do
     |> render(:trigger_policy_already_present)
   end
 
+  def call(conn, {:error, :invalid_trigger_policy}) do
+    conn
+    |> put_status(:unprocessable_entity)
+    |> json(%{errors: %{detail: "Invalid trigger policy"}})
+  end
+
   def call(conn, {:error, :cannot_delete_currently_used_trigger_policy}) do
     conn
     |> put_status(:conflict)

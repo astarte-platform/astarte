@@ -24,7 +24,6 @@ defmodule Astarte.RealmManagement.API.RPC.RealmManagement do
     GetInterfacesList,
     GetInterfacesListReply,
     Reply,
-    InstallTriggerPolicy,
     DeleteTriggerPolicy
   }
 
@@ -40,18 +39,6 @@ defmodule Astarte.RealmManagement.API.RPC.RealmManagement do
       realm_name: realm_name
     }
     |> encode_call(:get_interfaces_list)
-    |> @rpc_client.rpc_call(@destination)
-    |> decode_reply()
-    |> extract_reply()
-  end
-
-  def install_trigger_policy(realm_name, trigger_policy_json) do
-    %InstallTriggerPolicy{
-      realm_name: realm_name,
-      trigger_policy_json: trigger_policy_json,
-      async_operation: true
-    }
-    |> encode_call(:install_trigger_policy)
     |> @rpc_client.rpc_call(@destination)
     |> decode_reply()
     |> extract_reply()
