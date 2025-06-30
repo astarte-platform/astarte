@@ -824,4 +824,17 @@ defmodule Astarte.RealmManagement.API.Interfaces.Queries do
     {:ok, result} = Repo.some?(devices_query, prefix: keyspace, consistency: consistency)
     result
   end
+
+  def get_interfaces_list(realm_name) do
+    keyspace = Realm.keyspace_name(realm_name)
+
+    query =
+      from i in Interface,
+        distinct: true,
+        select: i.name
+
+    consistency = Consistency.domain_model(:read)
+
+    Repo.fetch_all(query, prefix: keyspace, consistency: consistency)
+  end
 end

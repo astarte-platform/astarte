@@ -27,8 +27,6 @@ defmodule Astarte.RealmManagement.RPC.Handler do
     GenericOkReply,
     GetHealth,
     GetHealthReply,
-    GetInterfacesList,
-    GetInterfacesListReply,
     GetInterfaceSource,
     GetInterfaceSourceReply,
     GetJWTPublicKeyPEM,
@@ -64,14 +62,6 @@ defmodule Astarte.RealmManagement.RPC.Handler do
     }
 
     {:ok, Reply.encode(%Reply{error: false, reply: {:get_interface_source_reply, msg}})}
-  end
-
-  def encode_reply(:get_interfaces_list, {:ok, reply}) do
-    msg = %GetInterfacesListReply{
-      interfaces_names: reply
-    }
-
-    {:ok, Reply.encode(%Reply{error: false, reply: {:get_interfaces_list_reply, msg}})}
   end
 
   def encode_reply(:get_jwt_public_key_pem, {:ok, reply}) do
@@ -155,10 +145,6 @@ defmodule Astarte.RealmManagement.RPC.Handler do
                 :get_interface_source,
                 Engine.interface_source(realm_name, interface_name, interface_major_version)
               )
-
-            {:get_interfaces_list, %GetInterfacesList{realm_name: realm_name}} ->
-              _ = Logger.metadata(realm: realm_name)
-              encode_reply(:get_interfaces_list, Engine.get_interfaces_list(realm_name))
 
             {:get_jwt_public_key_pem, %GetJWTPublicKeyPEM{realm_name: realm_name}} ->
               _ = Logger.metadata(realm: realm_name)

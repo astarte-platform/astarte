@@ -21,8 +21,6 @@ defmodule Astarte.RealmManagement.API.RPC.RealmManagement do
     Call,
     GenericErrorReply,
     GenericOkReply,
-    GetInterfacesList,
-    GetInterfacesListReply,
     Reply
   }
 
@@ -32,16 +30,6 @@ defmodule Astarte.RealmManagement.API.RPC.RealmManagement do
 
   @rpc_client Config.rpc_client!()
   @destination Astarte.RPC.Protocol.RealmManagement.amqp_queue()
-
-  def get_interfaces_list(realm_name) do
-    %GetInterfacesList{
-      realm_name: realm_name
-    }
-    |> encode_call(:get_interfaces_list)
-    |> @rpc_client.rpc_call(@destination)
-    |> decode_reply()
-    |> extract_reply()
-  end
 
   defp encode_call(call, callname) do
     %Call{call: {callname, call}}
@@ -74,12 +62,6 @@ defmodule Astarte.RealmManagement.API.RPC.RealmManagement do
         _ = Logger.warning("Received unknown error: #{inspect(name)}.", tag: "amqp_generic_error")
         {:error, :unknown}
     end
-  end
-
-  defp extract_reply(
-         {:get_interfaces_list_reply, %GetInterfacesListReply{interfaces_names: list}}
-       ) do
-    {:ok, list}
   end
 
   defp extract_reply({:error, :rpc_error}) do

@@ -22,8 +22,6 @@ defmodule Astarte.RealmManagement.API.Helpers.RPCMock do
     GetDatastreamMaximumStorageRetention,
     GetDatastreamMaximumStorageRetentionReply,
     GenericOkReply,
-    GetInterfacesList,
-    GetInterfacesListReply,
     GetInterfaceVersionsList,
     GetInterfaceVersionsListReply,
     GetInterfaceVersionsListReplyVersionTuple,
@@ -48,14 +46,6 @@ defmodule Astarte.RealmManagement.API.Helpers.RPCMock do
 
   defp extract_call_tuple(%Call{call: call_tuple}) do
     call_tuple
-  end
-
-  defp execute_rpc({:get_interfaces_list, %GetInterfacesList{realm_name: realm_name}}) do
-    list = DB.get_interfaces_list(realm_name)
-
-    %GetInterfacesListReply{interfaces_names: list}
-    |> encode_reply(:get_interfaces_list_reply)
-    |> ok_wrap
   end
 
   defp execute_rpc(
