@@ -21,7 +21,6 @@ defmodule Astarte.RealmManagement.API.Helpers.RPCMock do
     Call,
     GetDatastreamMaximumStorageRetention,
     GetDatastreamMaximumStorageRetentionReply,
-    GenericErrorReply,
     GenericOkReply,
     GetInterfacesList,
     GetInterfacesListReply,
@@ -32,15 +31,10 @@ defmodule Astarte.RealmManagement.API.Helpers.RPCMock do
     GetJWTPublicKeyPEMReply,
     Reply,
     UpdateJWTPublicKeyPEM,
-    InstallTriggerPolicy,
-    DeleteTriggerPolicy,
-    GetTriggerPolicySource,
-    GetTriggerPolicySourceReply,
     GetDeviceRegistrationLimit,
     GetDeviceRegistrationLimitReply
   }
 
-  alias Astarte.Core.Triggers.Policy
   alias Astarte.RealmManagement.API.Helpers.RPCMock.DB
 
   def rpc_call(payload, _destination) do
@@ -102,59 +96,6 @@ defmodule Astarte.RealmManagement.API.Helpers.RPCMock do
   end
 
   defp execute_rpc(
-         {:install_trigger_policy,
-          %InstallTriggerPolicy{realm_name: realm_name, trigger_policy_json: trigger_policy_json}}
-       ) do
-    {:ok, params} = Jason.decode(trigger_policy_json)
-
-    {:ok, policy} = Policy.changeset(%Policy{}, params) |> Ecto.Changeset.apply_action(:insert)
-
-    with :ok <- DB.install_trigger_policy(realm_name, policy) do
-      generic_ok(true)
-      |> ok_wrap
-    else
-      {:error, reason} ->
-        generic_error(reason)
-        |> ok_wrap
-    end
-  end
-
-  defp execute_rpc(
-         {:delete_trigger_policy,
-          %DeleteTriggerPolicy{
-            realm_name: realm_name,
-            trigger_policy_name: name
-          }}
-       ) do
-    case DB.delete_trigger_policy(realm_name, name) do
-      :ok ->
-        generic_ok(true)
-        |> ok_wrap()
-
-      {:error, reason} ->
-        generic_error(reason)
-        |> ok_wrap()
-    end
-  end
-
-  defp execute_rpc(
-         {:get_trigger_policy_source,
-          %GetTriggerPolicySource{
-            realm_name: realm_name,
-            trigger_policy_name: name
-          }}
-       ) do
-    if source = DB.get_trigger_policy_source(realm_name, name) do
-      %GetTriggerPolicySourceReply{source: source}
-      |> encode_reply(:get_trigger_policy_source_reply)
-      |> ok_wrap
-    else
-      generic_error(:trigger_policy_not_found)
-      |> ok_wrap
-    end
-  end
-
-  defp execute_rpc(
          {:get_device_registration_limit,
           %GetDeviceRegistrationLimit{
             realm_name: realm_name
@@ -183,11 +124,6 @@ defmodule Astarte.RealmManagement.API.Helpers.RPCMock do
   defp generic_ok(async_operation \\ false) do
     %GenericOkReply{async_operation: async_operation}
     |> encode_reply(:generic_ok_reply)
-  end
-
-  defp generic_error(error_name) do
-    %GenericErrorReply{error_name: to_string(error_name)}
-    |> encode_reply(:generic_error_reply, error: true)
   end
 
   defp encode_reply(reply, reply_type, opts \\ []) do

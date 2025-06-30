@@ -17,6 +17,7 @@
 #
 
 defmodule Astarte.RealmManagement.API.Triggers.Policies.Queries do
+  require Logger
   alias Astarte.DataAccess.Consistency
   alias Astarte.DataAccess.KvStore
   alias Astarte.DataAccess.Realms.Realm
@@ -73,12 +74,16 @@ defmodule Astarte.RealmManagement.API.Triggers.Policies.Queries do
     KvStore.insert(params, opts)
   end
 
-  def check_trigger_policy_already_present(realm_name, policy_name) do
+  def check_policy_has_triggers(realm_name, policy_name) do
     keyspace = Realm.keyspace_name(realm_name)
+    group_name = "triggers-with-policy-#{policy_name}"
 
     query =
-      from store in KvStore,
-        where: [group: "trigger_policy", key: ^policy_name]
+      from(store in KvStore,
+        select: store.key,
+        where: [group: ^group_name],
+        limit: 1
+      )
 
     opts = [
       prefix: keyspace,
@@ -86,5 +91,43 @@ defmodule Astarte.RealmManagement.API.Triggers.Policies.Queries do
     ]
 
     Repo.some?(query, opts)
+  end
+
+  def delete_trigger_policy(realm_name, policy_name) do
+    _ =
+      Logger.info("Delete trigger policy.",
+        policy_name: policy_name,
+        tag: "db_delete_trigger_policy"
+      )
+
+    keyspace = Realm.keyspace_name(realm_name)
+
+    delete_policy_query =
+      from(KvStore,
+        prefix: ^keyspace,
+        where: [group: "trigger_policy", key: ^policy_name]
+      )
+
+    group_name = "triggers-with-policy-#{policy_name}"
+
+    delete_triggers_with_policy_group_query =
+      from(KvStore,
+        prefix: ^keyspace,
+        where: [group: ^group_name]
+      )
+
+    delete_trigger_to_policy_query =
+      from(KvStore,
+        prefix: ^keyspace,
+        where: [group: "trigger_to_policy"]
+      )
+
+    consistency = Consistency.domain_model(:write)
+
+    _ = Repo.delete_all(delete_policy_query, consistency: consistency)
+    _ = Repo.delete_all(delete_triggers_with_policy_group_query, consistency: consistency)
+    _ = Repo.delete_all(delete_trigger_to_policy_query, consistency: consistency)
+
+    :ok
   end
 end

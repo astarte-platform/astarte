@@ -55,9 +55,16 @@ defmodule Astarte.RealmManagement.APIWeb.TriggerPolicyController do
     end
   end
 
-  def delete(conn, %{"realm_name" => realm_name, "id" => id}) do
+  def delete(conn, %{"realm_name" => realm_name, "id" => id} = params) do
+    async_operation =
+      if Map.get(params, "async_operation") == "false" do
+        false
+      else
+        true
+      end
+
     with {:ok, _policy_source} <- Policies.get_trigger_policy_source(realm_name, id),
-         {:ok, _status} <- Policies.delete_trigger_policy(realm_name, id) do
+         :ok <- Policies.delete_trigger_policy(realm_name, id, async: async_operation) do
       send_resp(conn, :no_content, "")
     end
   end

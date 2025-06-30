@@ -18,10 +18,8 @@
 
 defmodule Astarte.RealmManagement.API.Triggers.Policies do
   alias Astarte.Core.Triggers.Policy
-  alias Astarte.RealmManagement.API.RPC.RealmManagement
   alias Astarte.RealmManagement.API.Triggers.Policies.Queries
   alias Astarte.RealmManagement.API.Triggers.Queries, as: TriggerQueries
-  alias Astarte.Core.Triggers.Policy
   alias Astarte.Core.Triggers.PolicyProtobuf.Policy, as: PolicyProto
   alias Astarte.RealmManagement.API.Triggers.Policies.Core
 
@@ -104,7 +102,7 @@ defmodule Astarte.RealmManagement.API.Triggers.Policies do
       {:error, :trigger_policy_not_found}
 
   """
-  def delete_trigger_policy(realm_name, policy_name, _attrs \\ %{}) do
-    RealmManagement.delete_trigger_policy(realm_name, policy_name)
+  def delete_trigger_policy(realm_name, policy_name, opts \\ []) do
+    Core.delete_trigger_policy(realm_name, policy_name, opts)
   end
 end

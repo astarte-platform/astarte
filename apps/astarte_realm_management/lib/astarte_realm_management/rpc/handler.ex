@@ -35,8 +35,7 @@ defmodule Astarte.RealmManagement.RPC.Handler do
     GetJWTPublicKeyPEMReply,
     InstallInterface,
     Reply,
-    UpdateJWTPublicKeyPEM,
-    DeleteTriggerPolicy
+    UpdateJWTPublicKeyPEM
   }
 
   alias Astarte.RealmManagement.Engine
@@ -84,10 +83,6 @@ defmodule Astarte.RealmManagement.RPC.Handler do
   end
 
   def encode_reply(:update_jwt_public_key_pem, :ok) do
-    {:ok, Reply.encode(%Reply{error: false, reply: {:generic_ok_reply, %GenericOkReply{}}})}
-  end
-
-  def encode_reply(:delete_trigger_policy, :ok) do
     {:ok, Reply.encode(%Reply{error: false, reply: {:generic_ok_reply, %GenericOkReply{}}})}
   end
 
@@ -176,23 +171,6 @@ defmodule Astarte.RealmManagement.RPC.Handler do
               encode_reply(
                 :update_jwt_public_key_pem,
                 Engine.update_jwt_public_key_pem(realm_name, pem)
-              )
-
-            {:delete_trigger_policy,
-             %DeleteTriggerPolicy{
-               realm_name: realm_name,
-               trigger_policy_name: trigger_policy_name,
-               async_operation: async_operation
-             }} ->
-              _ = Logger.metadata(realm: realm_name)
-
-              encode_reply(
-                :delete_trigger_policy,
-                Engine.delete_trigger_policy(
-                  realm_name,
-                  trigger_policy_name,
-                  async: async_operation
-                )
               )
 
             invalid_call ->

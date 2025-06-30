@@ -23,8 +23,7 @@ defmodule Astarte.RealmManagement.API.RPC.RealmManagement do
     GenericOkReply,
     GetInterfacesList,
     GetInterfacesListReply,
-    Reply,
-    DeleteTriggerPolicy
+    Reply
   }
 
   alias Astarte.RealmManagement.API.Config
@@ -39,18 +38,6 @@ defmodule Astarte.RealmManagement.API.RPC.RealmManagement do
       realm_name: realm_name
     }
     |> encode_call(:get_interfaces_list)
-    |> @rpc_client.rpc_call(@destination)
-    |> decode_reply()
-    |> extract_reply()
-  end
-
-  def delete_trigger_policy(realm_name, trigger_policy_name) do
-    %DeleteTriggerPolicy{
-      realm_name: realm_name,
-      trigger_policy_name: trigger_policy_name,
-      async_operation: true
-    }
-    |> encode_call(:delete_trigger_policy)
     |> @rpc_client.rpc_call(@destination)
     |> decode_reply()
     |> extract_reply()

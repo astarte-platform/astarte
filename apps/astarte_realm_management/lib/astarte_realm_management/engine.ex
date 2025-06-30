@@ -31,7 +31,6 @@ defmodule Astarte.RealmManagement.Engine do
   alias Astarte.Core.Triggers.Policy
   alias Astarte.Core.Triggers.PolicyProtobuf.Policy, as: PolicyProto
   alias Astarte.Core.Device
-  alias Astarte.RealmManagement.Engine
   alias Astarte.RealmManagement.Queries
 
   def install_interface(realm_name, interface_json, opts \\ []) do
@@ -491,25 +490,6 @@ defmodule Astarte.RealmManagement.Engine do
     end
   end
 
-  def delete_trigger_policy(realm_name, policy_name, opts \\ []) do
-    _ =
-      Logger.info("Going to delete trigger policy #{policy_name}",
-        tag: "delete_trigger_policy",
-        policy_name: policy_name
-      )
-
-    with :ok <- verify_trigger_policy_exists(realm_name, policy_name),
-         {:ok, false} <- check_trigger_policy_has_triggers(realm_name, policy_name) do
-      if opts[:async] do
-        Task.start_link(Engine, :execute_trigger_policy_deletion, [realm_name, policy_name])
-
-        {:ok, :started}
-      else
-        Engine.execute_trigger_policy_deletion(realm_name, policy_name)
-      end
-    end
-  end
-
   defp verify_mappings_max_storage_retention(realm_name, interface) do
     with {:ok, max_retention} <- get_datastream_maximum_storage_retention(realm_name) do
       if mappings_retention_valid?(interface.mappings, max_retention) do
@@ -554,26 +534,6 @@ defmodule Astarte.RealmManagement.Engine do
         {:error, :trigger_policy_not_found}
       end
     end
-  end
-
-  defp check_trigger_policy_has_triggers(realm_name, policy_name) do
-    with {:ok, true} <- Queries.check_policy_has_triggers(realm_name, policy_name) do
-      Logger.warning("Trigger policy #{policy_name} is currently being used by triggers",
-        tag: "cannot_delete_currently_used_trigger_policy"
-      )
-
-      {:error, :cannot_delete_currently_used_trigger_policy}
-    end
-  end
-
-  def execute_trigger_policy_deletion(realm_name, policy_name) do
-    _ =
-      Logger.info("Trigger policy deletion started.",
-        policy_name: policy_name,
-        tag: "delete_trigger_policy_started"
-      )
-
-    Queries.delete_trigger_policy(realm_name, policy_name)
   end
 
   @doc """
