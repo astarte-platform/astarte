@@ -17,14 +17,14 @@
 #
 
 defmodule Astarte.RealmManagement.API.Triggers.AMQPAction do
-  use Ecto.Schema
+  use TypedEctoSchema
   import Ecto.Changeset
   alias Astarte.RealmManagement.API.Triggers.AMQPAction
 
   @max_headers_size 64 * 1024
 
   @primary_key false
-  embedded_schema do
+  typed_embedded_schema do
     field :amqp_exchange, :string
     field :amqp_routing_key, :string
     field :amqp_static_headers, {:map, :string}
