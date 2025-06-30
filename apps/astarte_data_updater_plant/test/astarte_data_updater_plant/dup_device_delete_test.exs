@@ -18,10 +18,14 @@
 
 defmodule Astarte.DataUpdaterPlant.DeviceDeleteTest do
   use ExUnit.Case
+  import Ecto.Query
   import Mox
 
   alias Astarte.Core.Device
   alias Astarte.DataAccess.Realms.Realm
+  alias Astarte.DataAccess.Device.DeletionInProgress
+  alias Astarte.DataAccess.Devices.Device, as: DeviceSchema
+  alias Astarte.DataAccess.Repo
   alias Astarte.DataUpdaterPlant.AMQPTestHelper
   alias Astarte.DataUpdaterPlant.DatabaseTestHelper
   alias Astarte.DataUpdaterPlant.DataUpdater
@@ -61,18 +65,10 @@ defmodule Astarte.DataUpdaterPlant.DeviceDeleteTest do
 
     DatabaseTestHelper.insert_device(realm, device_id, insert_opts)
 
-    # Set device deletion to in progress
-    deletion_in_progress_statement = """
-    INSERT INTO #{Realm.keyspace_name(realm)}.deletion_in_progress (device_id)
-    VALUES (:device_id)
-    """
+    keyspace_name = Realm.keyspace_name(realm)
 
-    Xandra.Cluster.run(:xandra, fn conn ->
-      prepared = Xandra.prepare!(conn, deletion_in_progress_statement)
-
-      %Xandra.Void{} =
-        Xandra.execute!(conn, prepared, %{"device_id" => device_id}, uuid_format: :binary)
-    end)
+    %DeletionInProgress{device_id: device_id}
+    |> Repo.insert(prefix: keyspace_name)
 
     timestamp_us_x_10 = make_timestamp("2017-10-09T15:00:32+00:00")
     timestamp_ms = div(timestamp_us_x_10, 10_000)
@@ -85,24 +81,15 @@ defmodule Astarte.DataUpdaterPlant.DeviceDeleteTest do
     DataUpdater.start_device_deletion(realm, encoded_device_id, timestamp_ms)
 
     # Check DUP start ack in deleted_devices table
-    dup_start_ack_statement = """
-    SELECT dup_start_ack
-    FROM #{Realm.keyspace_name(realm)}.deletion_in_progress
-    WHERE device_id = :device_id
-    """
+    dup_start_ack_query =
+      from d in DeletionInProgress,
+        prefix: ^keyspace_name,
+        where: d.device_id == ^device_id,
+        select: d.dup_start_ack
 
-    dup_start_ack_result =
-      Xandra.Cluster.run(:xandra, fn conn ->
-        prepared = Xandra.prepare!(conn, dup_start_ack_statement)
+    dup_start_ack_result = Repo.all(dup_start_ack_query)
 
-        %Xandra.Page{} =
-          page =
-          Xandra.execute!(conn, prepared, %{"device_id" => device_id}, uuid_format: :binary)
-
-        Enum.to_list(page)
-      end)
-
-    assert [%{"dup_start_ack" => true}] = dup_start_ack_result
+    assert [true] = dup_start_ack_result
 
     # Check that no data is being handled
     DataUpdater.handle_data(
@@ -115,21 +102,16 @@ defmodule Astarte.DataUpdaterPlant.DeviceDeleteTest do
       make_timestamp("2017-10-09T14:30:15+00:00")
     )
 
-    received_data_statement = """
-    SELECT total_received_msgs, total_received_bytes
-    FROM #{Realm.keyspace_name(realm)}.devices WHERE device_id=:device_id;
-    """
+    received_data_query =
+      from d in DeviceSchema,
+        prefix: ^keyspace_name,
+        where: d.device_id == ^device_id,
+        select: %{
+          "total_received_msgs" => d.total_received_msgs,
+          "total_received_bytes" => d.total_received_bytes
+        }
 
-    received_data_result =
-      Xandra.Cluster.run(:xandra, fn conn ->
-        prepared = Xandra.prepare!(conn, received_data_statement)
-
-        %Xandra.Page{} =
-          page =
-          Xandra.execute!(conn, prepared, %{"device_id" => device_id}, uuid_format: :binary)
-
-        Enum.to_list(page)
-      end)
+    {:ok, received_data_result} = Repo.fetch_all(received_data_query)
 
     assert [
              %{
@@ -152,24 +134,15 @@ defmodule Astarte.DataUpdaterPlant.DeviceDeleteTest do
     Process.sleep(100)
 
     # Check DUP end ack in deleted_devices table
-    dup_end_ack_statement = """
-    SELECT dup_end_ack
-    FROM #{Realm.keyspace_name(realm)}.deletion_in_progress
-    WHERE device_id = :device_id
-    """
+    dup_end_ack_query =
+      from d in DeletionInProgress,
+        prefix: ^keyspace_name,
+        where: d.device_id == ^device_id,
+        select: d.dup_end_ack
 
-    dup_end_ack_result =
-      Xandra.Cluster.run(:xandra, fn conn ->
-        prepared = Xandra.prepare!(conn, dup_end_ack_statement)
+    dup_end_ack_result = Repo.all(dup_end_ack_query)
 
-        %Xandra.Page{} =
-          page =
-          Xandra.execute!(conn, prepared, %{"device_id" => device_id}, uuid_format: :binary)
-
-        Enum.to_list(page)
-      end)
-
-    assert [%{"dup_end_ack" => true}] = dup_end_ack_result
+    assert [true] = dup_end_ack_result
 
     # Finally, check that the related DataUpdater process exists no more
     assert [] = Horde.Registry.lookup(Registry.DataUpdater, {realm, device_id})
