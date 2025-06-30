@@ -18,15 +18,12 @@
 
 defmodule Astarte.RealmManagement.API.Triggers.Queries do
   alias Astarte.Core.AstarteReference
-  alias Astarte.Core.Interface, as: InterfaceDocument
-  alias Astarte.Core.Mapping
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.SimpleTriggerContainer
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.TriggerTargetContainer
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.TaggedSimpleTrigger
   alias Astarte.Core.Triggers.Trigger
   alias Astarte.DataAccess.Consistency
   alias Astarte.DataAccess.KvStore
-  alias Astarte.DataAccess.Realms.Endpoint
   alias Astarte.DataAccess.Realms.Realm
   alias Astarte.DataAccess.Realms.SimpleTrigger
   alias Astarte.DataAccess.Repo
@@ -258,56 +255,6 @@ defmodule Astarte.RealmManagement.API.Triggers.Queries do
     ]
 
     Repo.some?(query, opts)
-  end
-
-  def fetch_interface(realm_name, interface_name, interface_major) do
-    keyspace = Realm.keyspace_name(realm_name)
-
-    consistency = Consistency.domain_model(:read)
-
-    with {:ok, interface} <-
-           Repo.fetch_by(
-             Interface,
-             [name: interface_name, major_version: interface_major],
-             prefix: keyspace,
-             consistency: consistency,
-             error: :interface_not_found
-           ) do
-      interface_id = interface.interface_id
-      endpoints_query = from(Endpoint, where: [interface_id: ^interface_id])
-
-      with {:ok, endpoints} <-
-             Repo.fetch_all(endpoints_query, prefix: keyspace, consistency: consistency) do
-        mappings =
-          Enum.map(endpoints, fn endpoint ->
-            %Mapping{}
-            |> Mapping.changeset(Map.from_struct(endpoint),
-              interface_name: interface.name,
-              interface_id: interface.interface_id,
-              interface_major: interface.major_version,
-              interface_type: interface.type
-            )
-            |> Ecto.Changeset.apply_changes()
-            |> Map.from_struct()
-            |> Map.put(:type, endpoint.value_type)
-          end)
-
-        interface =
-          interface
-          |> Map.from_struct()
-          |> Map.put(:mappings, mappings)
-          |> Map.put(:version_major, interface.major_version)
-          |> Map.put(:version_minor, interface.minor_version)
-          |> Map.put(:interface_name, interface.name)
-
-        interface_document =
-          %InterfaceDocument{}
-          |> InterfaceDocument.changeset(interface)
-          |> Ecto.Changeset.apply_changes()
-
-        {:ok, interface_document}
-      end
-    end
   end
 
   def delete_trigger(realm_name, trigger_name) do
