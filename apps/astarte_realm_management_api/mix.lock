@@ -1,7 +1,7 @@
 %{
   "astarte_core": {:git, "https://github.com/astarte-platform/astarte_core.git", "710afe5f03c05e2ba36fba1cf9cea05f616475ba", [branch: "release-1.2"]},
   "astarte_data_access": {:git, "https://github.com/astarte-platform/astarte_data_access.git", "991f8d99b31cccd626b434251b577b5001259ced", [branch: "release-1.2"]},
-  "astarte_generators": {:git, "https://github.com/astarte-platform/astarte_generators.git", "6c1848d0b4d2f313d7edd232ac804ef36959e74e", []},
+  "astarte_generators": {:git, "https://github.com/astarte-platform/astarte_generators.git", "8f3a5a518695185c2bb628d0920ba9b6e555e7b4", []},
   "castore": {:hex, :castore, "1.0.7", "b651241514e5f6956028147fe6637f7ac13802537e895a724f90bf3e36ddd1dd", [:mix], [], "hexpm", "da7785a4b0d2a021cd1292a60875a784b6caef71e76bf4917bdee1f390455cf5"},
   "certifi": {:hex, :certifi, "2.9.0", "6f2a475689dd47f19fb74334859d460a2dc4e3252a3324bd2111b8f0429e7e21", [:rebar3], [], "hexpm", "266da46bdb06d6c6d35fde799bcb28d36d985d424ad7c08b5bb48f5b5cdd4641"},
   "cors_plug": {:hex, :cors_plug, "2.0.3", "316f806d10316e6d10f09473f19052d20ba0a0ce2a1d910ddf57d663dac402ae", [:mix], [{:plug, "~> 1.8", [hex: :plug, repo: "hexpm", optional: false]}], "hexpm", "ee4ae1418e6ce117fc42c2ba3e6cbdca4e95ecd2fe59a05ec6884ca16d469aea"},
