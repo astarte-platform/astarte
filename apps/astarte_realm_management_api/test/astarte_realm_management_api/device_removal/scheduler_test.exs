@@ -28,7 +28,7 @@ defmodule Astarte.RealmManagement.DeviceRemoval.SchedulerTest do
   alias Astarte.DataAccess.Device.DeletionInProgress
   alias Astarte.RealmManagement.API.Generators.DeletionInProgress, as: DeletionGenerator
 
-  use Astarte.RealmManagement.API.DataCase, async: true
+  use Astarte.Cases.Data, async: true
   use ExUnitProperties
 
   # We only test this as is the only important logic happening inside of the

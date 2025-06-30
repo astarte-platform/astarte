@@ -17,13 +17,11 @@
 #
 
 defmodule Astarte.RealmManagement.APIWeb.TriggerPolicyControllerTest do
-  use Astarte.RealmManagement.API.DataCase, async: true
+  use Astarte.Cases.Data, async: true
   use Astarte.RealmManagement.APIWeb.ConnCase
   @moduletag :trigger_policy
 
   alias Astarte.Core.Generators.Triggers.Policy, as: PolicyGenerator
-  alias Astarte.RealmManagement.API.Helpers.JWTTestHelper
-  alias Astarte.RealmManagement.API.Helpers.RPCMock.DB
   alias Astarte.RealmManagement.API.Triggers.Policies
   alias Astarte.Helpers.Policy, as: PolicyHelper
 
@@ -37,27 +35,15 @@ defmodule Astarte.RealmManagement.APIWeb.TriggerPolicyControllerTest do
     ]
   }
 
-  setup %{conn: conn, realm: realm} do
-    DB.put_jwt_public_key_pem(realm, JWTTestHelper.public_key_pem())
-    token = JWTTestHelper.gen_jwt_all_access_token()
-
-    conn =
-      conn
-      |> put_req_header("accept", "application/json")
-      |> put_req_header("authorization", "Bearer #{token}")
-
-    {:ok, conn: conn}
-  end
-
   describe "index" do
     @describetag :index
 
-    test "returns empty list", %{conn: conn, realm: realm} do
+    test "returns empty list", %{auth_conn: conn, realm: realm} do
       conn = get(conn, trigger_policy_path(conn, :index, realm))
       assert json_response(conn, 200)["data"] == []
     end
 
-    test "list existing policies", %{conn: conn, realm: realm} do
+    test "list existing policies", %{auth_conn: conn, realm: realm} do
       policy = PolicyGenerator.policy() |> Enum.at(0)
       policy_map = PolicyHelper.policy_struct_to_map(policy)
 
@@ -76,7 +62,7 @@ defmodule Astarte.RealmManagement.APIWeb.TriggerPolicyControllerTest do
   describe "show" do
     @describetag :show
 
-    test "shows existing policy", %{conn: conn, realm: realm} do
+    test "shows existing policy", %{auth_conn: conn, realm: realm} do
       policy = PolicyGenerator.policy() |> Enum.at(0)
       policy_map = PolicyHelper.policy_struct_to_map(policy)
 
@@ -92,7 +78,7 @@ defmodule Astarte.RealmManagement.APIWeb.TriggerPolicyControllerTest do
       end)
     end
 
-    test "renders error on non-existing policy", %{conn: conn, realm: realm} do
+    test "renders error on non-existing policy", %{auth_conn: conn, realm: realm} do
       conn = get(conn, trigger_policy_path(conn, :show, realm, "nonexisting"))
 
       assert json_response(conn, 404)["errors"] != %{}
@@ -102,7 +88,7 @@ defmodule Astarte.RealmManagement.APIWeb.TriggerPolicyControllerTest do
   describe "create policy" do
     @describetag :creation
 
-    test "renders policy when data is valid", %{conn: conn, realm: realm} do
+    test "renders policy when data is valid", %{auth_conn: conn, realm: realm} do
       policy = PolicyGenerator.policy() |> Enum.at(0)
       policy_map = PolicyHelper.policy_struct_to_map(policy)
 
@@ -118,12 +104,12 @@ defmodule Astarte.RealmManagement.APIWeb.TriggerPolicyControllerTest do
       end)
     end
 
-    test "renders errors when data is invalid", %{conn: conn, realm: realm} do
+    test "renders errors when data is invalid", %{auth_conn: conn, realm: realm} do
       conn = post(conn, trigger_policy_path(conn, :create, realm), data: @invalid_attrs)
       assert json_response(conn, 422)["errors"] != %{}
     end
 
-    test "renders error when policy is already installed", %{conn: conn, realm: realm} do
+    test "renders error when policy is already installed", %{auth_conn: conn, realm: realm} do
       policy = PolicyGenerator.policy() |> Enum.at(0)
       policy_map = PolicyHelper.policy_struct_to_map(policy)
 
@@ -142,7 +128,7 @@ defmodule Astarte.RealmManagement.APIWeb.TriggerPolicyControllerTest do
   describe "delete policy" do
     @describetag :deletion
 
-    test "deletes existing policy", %{conn: conn, realm: realm} do
+    test "deletes existing policy", %{auth_conn: conn, realm: realm} do
       policy = PolicyGenerator.policy() |> Enum.at(0)
       policy_map = PolicyHelper.policy_struct_to_map(policy)
 
@@ -160,7 +146,7 @@ defmodule Astarte.RealmManagement.APIWeb.TriggerPolicyControllerTest do
       assert json_response(get_conn, 404)["errors"] != %{}
     end
 
-    test "renders error when deleting non-existing policy", %{conn: conn, realm: realm} do
+    test "renders error when deleting non-existing policy", %{auth_conn: conn, realm: realm} do
       conn = delete(conn, trigger_policy_path(conn, :delete, realm, "nonexisting"))
       assert json_response(conn, 404)["errors"] != %{}
     end

@@ -6,8 +6,6 @@ config :astarte_realm_management_api, Astarte.RealmManagement.APIWeb.Endpoint,
   http: [port: 4001],
   server: false
 
-config :astarte_rpc, :amqp_connection, host: System.get_env("RABBITMQ_HOST") || "rabbitmq"
-
 config :logger, :console,
   format: {PrettyLog.UserFriendlyFormatter, :format},
   metadata: [
@@ -20,8 +18,6 @@ config :logger, :console,
     :request_id,
     :tag
   ]
-
-config :astarte_realm_management_api, :rpc_client, Astarte.RealmManagement.API.Helpers.RPCMock
 
 config :astarte_realm_management_api,
        :test_priv_key,

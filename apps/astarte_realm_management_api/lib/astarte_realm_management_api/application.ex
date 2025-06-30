@@ -19,7 +19,6 @@
 defmodule Astarte.RealmManagement.API.Application do
   use Application
 
-  alias Astarte.RPC
   alias Astarte.DataAccess.Config, as: DataAccessConfig
 
   require Logger
@@ -38,7 +37,6 @@ defmodule Astarte.RealmManagement.API.Application do
     Logger.info("Starting application v#{@app_version}.", tag: "realm_management_api_start")
     Astarte.RealmManagement.API.Config.validate!()
     DataAccessConfig.validate!()
-    RPC.Config.validate!()
 
     xandra_opts = Astarte.RealmManagement.API.Config.xandra_options!()
 
@@ -49,7 +47,6 @@ defmodule Astarte.RealmManagement.API.Application do
     children = [
       Astarte.RealmManagement.APIWeb.Telemetry,
       Astarte.RealmManagement.APIWeb.Endpoint,
-      Astarte.RPC.AMQP.Client,
       {Xandra.Cluster, rm_xandra_opts},
       {Astarte.DataAccess, data_access_opts},
       {Task.Supervisor, name: Astarte.RealmManagement.API.DeviceRemoverSupervisor},

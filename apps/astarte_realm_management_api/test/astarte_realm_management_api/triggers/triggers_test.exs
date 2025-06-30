@@ -17,17 +17,15 @@
 #
 
 defmodule Astarte.RealmManagement.API.TriggersTest do
-  use Astarte.RealmManagement.API.DataCase, async: true
+  use Astarte.Cases.Data, async: true
 
   @moduletag :triggers
 
-  alias Astarte.Core.Triggers.SimpleTriggerConfig
   alias Astarte.Helpers.Database
   alias Astarte.RealmManagement.API.Fixtures.Trigger, as: TriggerFixture
-  alias Astarte.RealmManagement.API.Helpers.RPCMock.DB
   alias Astarte.RealmManagement.API.Triggers
+  alias Astarte.RealmManagement.API.Triggers.Core
   alias Astarte.RealmManagement.API.Triggers.Trigger
-  alias Astarte.RealmManagement.Engine
 
   setup context do
     %{realm: realm, astarte_instance_id: astarte_instance_id} = context
@@ -36,8 +34,10 @@ defmodule Astarte.RealmManagement.API.TriggersTest do
 
     on_exit(fn ->
       Database.setup_database_access(astarte_instance_id)
-      # TODO: use Triggers.delete_trigger once we remove the `delete_trigger rpc`
-      Engine.delete_trigger(realm, trigger_name)
+
+      with {:ok, trigger} <- Triggers.get_trigger(realm, trigger_name) do
+        Core.delete_trigger(realm, trigger)
+      end
     end)
 
     %{trigger_attrs: trigger_attrs}
@@ -81,7 +81,7 @@ defmodule Astarte.RealmManagement.API.TriggersTest do
       %{realm: realm, trigger_attrs: trigger_attrs} = context
 
       assert {:ok, %Trigger{} = installed_trigger} =
-               create_trigger(realm, trigger_attrs)
+               Triggers.create_trigger(realm, trigger_attrs)
 
       assert Triggers.list_triggers(realm) == [installed_trigger.name]
     end
@@ -118,7 +118,7 @@ defmodule Astarte.RealmManagement.API.TriggersTest do
       %{realm: realm, trigger_attrs: trigger_attrs} = context
 
       assert {:ok, %Trigger{} = installed_trigger} =
-               create_trigger(realm, trigger_attrs)
+               Triggers.create_trigger(realm, trigger_attrs)
 
       assert Triggers.list_triggers(realm) == [installed_trigger.name]
     end
@@ -133,31 +133,5 @@ defmodule Astarte.RealmManagement.API.TriggersTest do
         "interface_major" => st.interface_major
       }
     end)
-  end
-
-  # TODO: remove once all other trigger rpcs have been moved
-  defp create_trigger(realm_name, trigger_attrs) do
-    with {:ok, trigger_params} <- Triggers.create_trigger(realm_name, trigger_attrs) do
-      %{name: trigger_name, policy: policy_name, action: action, simple_triggers: simple_triggers} =
-        trigger_params
-
-      encoded_action = Jason.encode!(action)
-
-      tagged_simple_triggers =
-        Enum.map(
-          simple_triggers,
-          &SimpleTriggerConfig.to_tagged_simple_trigger/1
-        )
-
-      DB.install_trigger(
-        realm_name,
-        trigger_name,
-        policy_name,
-        encoded_action,
-        tagged_simple_triggers
-      )
-
-      {:ok, trigger_params}
-    end
   end
 end
