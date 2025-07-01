@@ -155,7 +155,7 @@ defmodule Astarte.RealmManagement.API.Triggers.Core do
       %{
         object_id: object_id,
         object_type: object_type,
-        simple_trigger_uuid: :uuid.get_v4(),
+        simple_trigger_uuid: Ecto.UUID.bingenerate(),
         simple_trigger: simple_trigger_container
       }
     end
@@ -175,7 +175,7 @@ defmodule Astarte.RealmManagement.API.Triggers.Core do
       end
 
     %CoreTrigger{
-      trigger_uuid: :uuid.get_v4(),
+      trigger_uuid: Ecto.UUID.bingenerate(),
       simple_triggers_uuids: simple_trigger_uuids,
       action: action,
       name: trigger_name,

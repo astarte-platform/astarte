@@ -109,7 +109,7 @@ defmodule Astarte.RealmManagement.API.Triggers.Queries do
   defp retrieve_simple_trigger_astarte_ref(realm_name, simple_trigger_uuid) do
     keyspace = Realm.keyspace_name(realm_name)
 
-    simple_trigger_uuid = :uuid.uuid_to_string(simple_trigger_uuid, :binary_standard)
+    simple_trigger_uuid = UUID.binary_to_string!(simple_trigger_uuid)
 
     query =
       from store in KvStore,
@@ -137,10 +137,7 @@ defmodule Astarte.RealmManagement.API.Triggers.Queries do
       value_type: :uuid
     }
 
-    uuid_string =
-      trigger.trigger_uuid
-      |> :uuid.uuid_to_string()
-      |> to_string()
+    uuid_string = UUID.binary_to_string!(trigger.trigger_uuid)
 
     insert = %{
       group: "triggers",
@@ -187,10 +184,7 @@ defmodule Astarte.RealmManagement.API.Triggers.Queries do
       }
       |> AstarteReference.encode()
 
-    simple_trigger_id =
-      simple_trigger_id
-      |> :uuid.uuid_to_string()
-      |> to_string()
+    simple_trigger_id = UUID.binary_to_string!(simple_trigger_id)
 
     kv_insert =
       %{
@@ -214,10 +208,7 @@ defmodule Astarte.RealmManagement.API.Triggers.Queries do
   def install_trigger_policy_link(realm_name, trigger_uuid, trigger_policy) do
     keyspace = Realm.keyspace_name(realm_name)
 
-    trigger_uuid =
-      trigger_uuid
-      |> :uuid.uuid_to_string()
-      |> to_string()
+    trigger_uuid = UUID.binary_to_string!(trigger_uuid)
 
     triggers_with_policy =
       %{
@@ -295,10 +286,7 @@ defmodule Astarte.RealmManagement.API.Triggers.Queries do
             simple_trigger_id: ^simple_trigger_uuid
           ]
 
-      simple_trigger_uuid =
-        simple_trigger_uuid
-        |> :uuid.uuid_to_string()
-        |> to_string()
+      simple_trigger_uuid = UUID.binary_to_string!(simple_trigger_uuid)
 
       delete_astarte_ref_query =
         from KvStore,
