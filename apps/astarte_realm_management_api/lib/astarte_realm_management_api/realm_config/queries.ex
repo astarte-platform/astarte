@@ -35,6 +35,8 @@ defmodule Astarte.RealmManagement.API.RealmConfig.Queries do
   Gets the jwt public key pem for the realm with name `realm_name`. returns
   {:error, :public_key_not_found} if the realm could not be found.
   """
+  @spec fetch_jwt_public_key_pem(String.t()) ::
+          {:ok, String.t()} | {:error, :public_key_not_found}
   def fetch_jwt_public_key_pem(realm_name) do
     keyspace = Realm.keyspace_name(realm_name)
 
