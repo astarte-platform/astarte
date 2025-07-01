@@ -39,7 +39,7 @@ defmodule Astarte.RealmManagement.APIWeb do
       use Phoenix.Controller, namespace: Astarte.RealmManagement.APIWeb
       import Plug.Conn
       import Astarte.RealmManagement.APIWeb.Router.Helpers
-      import Astarte.RealmManagement.APIWeb.Gettext
+      use Gettext, backend: Astarte.RealmManagement.APIWeb.Gettext
     end
   end
 
@@ -54,7 +54,7 @@ defmodule Astarte.RealmManagement.APIWeb do
 
       import Astarte.RealmManagement.APIWeb.Router.Helpers
       import Astarte.RealmManagement.APIWeb.ErrorHelpers
-      import Astarte.RealmManagement.APIWeb.Gettext
+      use Gettext, backend: Astarte.RealmManagement.APIWeb.Gettext
     end
   end
 
@@ -69,7 +69,7 @@ defmodule Astarte.RealmManagement.APIWeb do
   def channel do
     quote do
       use Phoenix.Channel
-      import Astarte.RealmManagement.APIWeb.Gettext
+      use Gettext, backend: Astarte.RealmManagement.APIWeb.Gettext
     end
   end
 
