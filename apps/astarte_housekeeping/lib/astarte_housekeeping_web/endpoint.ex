@@ -38,7 +38,6 @@ defmodule Astarte.HousekeepingWeb.Endpoint do
   end
 
   plug Plug.RequestId
-  plug Plug.Logger
   plug CORSPlug
   plug Astarte.HousekeepingWeb.HealthPlug
   plug Astarte.HousekeepingWeb.MetricsPlug
