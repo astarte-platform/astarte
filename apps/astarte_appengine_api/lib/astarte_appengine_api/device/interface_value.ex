@@ -156,7 +156,7 @@ defmodule Astarte.AppEngine.API.Device.InterfaceValue do
     end
   end
 
-  defp map_while_ok(not_list_values, _fun) do
+  defp map_while_ok(_not_list_values, _fun) do
     {:error, :values_is_not_a_list}
   end
 end
