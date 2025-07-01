@@ -82,11 +82,11 @@ defmodule Astarte.Pairing.API.RPC.Pairing do
   def register_device(realm, hw_id, initial_introspection \\ %{}) do
     initial_introspection_entries =
       Enum.map(initial_introspection, fn {interface_name, %{"major" => major, "minor" => minor}} ->
-        IntrospectionEntry.new(
+        %IntrospectionEntry{
           interface_name: interface_name,
           major_version: major,
           minor_version: minor
-        )
+        }
       end)
 
     %RegisterDevice{
