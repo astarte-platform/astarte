@@ -26,7 +26,9 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.PayloadsDecoder do
   Decode a BSON payload a returns a tuple containing the decoded value, the timestamp and metadata.
   reception_timestamp is used if no timestamp has been sent with the payload.
   """
-  @spec decode_bson_payload(binary, integer) :: {map, integer, map}
+  @spec decode_bson_payload(binary, integer) ::
+          {map, integer, map} | {:error, :undecodable_bson_payload} | {nil, nil, nil}
+
   def decode_bson_payload(payload, reception_timestamp) do
     if byte_size(payload) != 0 do
       case Cyanide.decode(payload) do
@@ -52,9 +54,6 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.PayloadsDecoder do
           {bson_value, div(reception_timestamp, 10000), %{}}
 
         {:error, _reason} ->
-          {:error, :undecodable_bson_payload}
-
-        _ ->
           {:error, :undecodable_bson_payload}
       end
     else
