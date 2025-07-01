@@ -67,8 +67,7 @@ defmodule Astarte.RealmManagement.API.Mixfile do
   defp astarte_required_modules("true") do
     [
       {:astarte_core, in_umbrella: true},
-      {:astarte_data_access, in_umbrella: true},
-      {:astarte_rpc, in_umbrella: true}
+      {:astarte_data_access, in_umbrella: true}
     ]
   end
 
@@ -78,15 +77,12 @@ defmodule Astarte.RealmManagement.API.Mixfile do
        github: "astarte-platform/astarte_core", branch: "release-1.2", override: true},
       {:astarte_data_access,
        github: "astarte-platform/astarte_data_access", branch: "release-1.2"},
-      {:astarte_generators, github: "astarte-platform/astarte_generators", only: [:dev, :test]},
-      {:astarte_rpc, "~> 1.2"}
+      {:astarte_generators, github: "astarte-platform/astarte_generators", only: [:dev, :test]}
     ]
   end
 
   defp deps do
     [
-      {:astarte_realm_management,
-       path: "../astarte_realm_management", only: [:dev, :test], runtime: false},
       {:phoenix, "~> 1.7"},
       {:plug_cowboy, "~> 2.1"},
       {:gettext, "~> 0.24"},

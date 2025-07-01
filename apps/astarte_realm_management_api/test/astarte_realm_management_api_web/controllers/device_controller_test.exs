@@ -17,30 +17,15 @@
 #
 
 defmodule Astarte.RealmManagement.APIWeb.DeviceControllerTest do
-  use Astarte.RealmManagement.API.DataCase, async: true
+  use Astarte.Cases.Data, async: true
   use Astarte.RealmManagement.APIWeb.ConnCase
   use Astarte.Cases.Device
 
-  alias Astarte.RealmManagement.API.Helpers.JWTTestHelper
-  alias Astarte.RealmManagement.API.Helpers.RPCMock.DB
-
   @nonexisting_device_id :crypto.strong_rand_bytes(16) |> Base.url_encode64(padding: false)
-
-  setup %{conn: conn, realm: realm} do
-    DB.put_jwt_public_key_pem(realm, JWTTestHelper.public_key_pem())
-    token = JWTTestHelper.gen_jwt_all_access_token()
-
-    conn =
-      conn
-      |> put_req_header("accept", "application/json")
-      |> put_req_header("authorization", "Bearer #{token}")
-
-    {:ok, conn: conn}
-  end
 
   describe "delete" do
     test "device is inserted in deletion in progress", %{
-      conn: conn,
+      auth_conn: conn,
       realm: realm,
       device_id: device_id
     } do
@@ -49,7 +34,7 @@ defmodule Astarte.RealmManagement.APIWeb.DeviceControllerTest do
       assert response(delete_conn, 204)
     end
 
-    test "renders error on non-existing device", %{conn: conn, realm: realm} do
+    test "renders error on non-existing device", %{auth_conn: conn, realm: realm} do
       delete_conn = delete(conn, device_path(conn, :delete, realm, @nonexisting_device_id))
 
       assert json_response(delete_conn, 404)["errors"] == %{"detail" => "Device not found"}

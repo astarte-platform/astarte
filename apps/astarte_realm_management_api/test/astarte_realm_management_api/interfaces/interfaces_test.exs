@@ -17,7 +17,7 @@
 #
 
 defmodule Astarte.RealmManagement.API.InterfacesTest do
-  use Astarte.RealmManagement.API.DataCase, async: true
+  use Astarte.Cases.Data, async: true
   use ExUnitProperties
 
   @moduletag :interfaces

@@ -33,13 +33,6 @@ defmodule Astarte.RealmManagement.API.Config do
     type: :boolean,
     default: false
 
-  @envdoc "The RPC client."
-  app_env :rpc_client, :astarte_realm_management_api, :rpc_client,
-    os_env: "REALM_MANAGEMENT_API_RPC_CLIENT",
-    type: :unsafe_module,
-    binding_skip: [:system],
-    default: Astarte.RPC.AMQP.Client
-
   @doc """
   Returns true if the authentication is disabled.
   """

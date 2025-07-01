@@ -17,18 +17,13 @@
 #
 
 defmodule Astarte.RealmManagement.APIWeb.TriggerControllerTest do
-  use Astarte.RealmManagement.API.DataCase, async: true
+  use Astarte.Cases.Data, async: true
   use Astarte.RealmManagement.APIWeb.ConnCase
 
   @moduletag :triggers
 
-  alias Astarte.Core.Triggers.SimpleTriggerConfig
   alias Astarte.Helpers.Database
-  alias Astarte.RealmManagement.API.Helpers.JWTTestHelper
-  alias Astarte.RealmManagement.API.Helpers.RPCMock.DB
   alias Astarte.RealmManagement.API.Triggers
-  alias Astarte.RealmManagement.API.Triggers.Trigger
-  alias Ecto.Changeset
   alias Astarte.Helpers.Database
 
   import Astarte.RealmManagement.API.Fixtures.Trigger
@@ -51,34 +46,19 @@ defmodule Astarte.RealmManagement.APIWeb.TriggerControllerTest do
     %{trigger_attrs: trigger_attrs, trigger_name: trigger_name}
   end
 
-  setup %{conn: conn, realm: realm} do
-    DB.put_jwt_public_key_pem(realm, JWTTestHelper.public_key_pem())
-    token = JWTTestHelper.gen_jwt_all_access_token()
-
-    conn =
-      conn
-      |> put_req_header("accept", "application/json")
-      |> put_req_header("authorization", "Bearer #{token}")
-
-    {:ok, conn: conn}
-  end
-
   describe "index" do
-    test "lists all triggers", %{conn: conn, realm: realm} do
+    test "lists all triggers", %{auth_conn: conn, realm: realm} do
       conn = get(conn, trigger_path(conn, :index, realm))
       assert json_response(conn, 200)["data"] == []
     end
 
     test "lists all triggers after installing it", %{
-      conn: conn,
+      auth_conn: conn,
       realm: realm,
       trigger_attrs: trigger_attrs,
       trigger_name: trigger_name
     } do
       conn = post(conn, trigger_path(conn, :create, realm), data: trigger_attrs)
-
-      # TODO: remove once get trigger list rpc is removed
-      create_trigger(realm, trigger_attrs)
 
       conn = get(conn, trigger_path(conn, :index, realm))
       assert json_response(conn, 200)["data"] == [trigger_name]
@@ -87,7 +67,7 @@ defmodule Astarte.RealmManagement.APIWeb.TriggerControllerTest do
 
   describe "create trigger" do
     test "renders trigger when data is valid", %{
-      conn: conn,
+      auth_conn: conn,
       realm: realm,
       trigger_attrs: trigger_attrs,
       trigger_name: trigger_name
@@ -110,7 +90,7 @@ defmodule Astarte.RealmManagement.APIWeb.TriggerControllerTest do
              }
     end
 
-    test "renders errors when http method in action is invalid", %{conn: conn, realm: realm} do
+    test "renders errors when http method in action is invalid", %{auth_conn: conn, realm: realm} do
       conn = post(conn, trigger_path(conn, :create, realm), data: invalid_http_method())
 
       assert json_response(conn, 422)["errors"]["action"] == %{
@@ -119,7 +99,7 @@ defmodule Astarte.RealmManagement.APIWeb.TriggerControllerTest do
     end
 
     test "renders errors when creating the same trigger twice", %{
-      conn: conn,
+      auth_conn: conn,
       realm: realm,
       trigger_attrs: trigger_attrs,
       trigger_name: trigger_name
@@ -138,7 +118,7 @@ defmodule Astarte.RealmManagement.APIWeb.TriggerControllerTest do
 
   describe "delete" do
     test "deletes trigger", %{
-      conn: conn,
+      auth_conn: conn,
       realm: realm,
       trigger_attrs: trigger_attrs,
       trigger_name: trigger_name
@@ -148,9 +128,6 @@ defmodule Astarte.RealmManagement.APIWeb.TriggerControllerTest do
 
       assert json_response(post_conn, 201)
 
-      # TODO: remove once delete trigger rpc is removed
-      create_trigger(realm, trigger_attrs)
-
       delete_conn =
         delete(conn, trigger_path(conn, :delete, realm, trigger_name))
 
@@ -158,7 +135,7 @@ defmodule Astarte.RealmManagement.APIWeb.TriggerControllerTest do
     end
 
     test "renders error when trigger doesn't exist", %{
-      conn: conn,
+      auth_conn: conn,
       realm: realm,
       trigger_name: trigger_name
     } do
@@ -167,33 +144,5 @@ defmodule Astarte.RealmManagement.APIWeb.TriggerControllerTest do
 
       assert json_response(delete_conn, 404)["errors"] == %{"detail" => "Trigger not found"}
     end
-  end
-
-  defp create_trigger(realm_name, trigger_attrs) do
-    {:ok, trigger_params} =
-      %Trigger{}
-      |> Trigger.changeset(trigger_attrs, realm_name: realm_name)
-      |> Changeset.apply_action(:insert)
-
-    %{name: trigger_name, policy: policy_name, action: action, simple_triggers: simple_triggers} =
-      trigger_params
-
-    encoded_action = Jason.encode!(action)
-
-    tagged_simple_triggers =
-      Enum.map(
-        simple_triggers,
-        &SimpleTriggerConfig.to_tagged_simple_trigger/1
-      )
-
-    DB.install_trigger(
-      realm_name,
-      trigger_name,
-      policy_name,
-      encoded_action,
-      tagged_simple_triggers
-    )
-
-    {:ok, trigger_params}
   end
 end
