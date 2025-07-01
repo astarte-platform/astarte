@@ -17,9 +17,9 @@
 #
 
 defmodule Astarte.RealmManagement.API.DevicesTest do
-  use Astarte.RealmManagement.API.DataCase, async: true
-  use ExUnitProperties
+  use Astarte.Cases.Data, async: true
   use Astarte.Cases.Device
+  use ExUnitProperties
 
   alias Astarte.RealmManagement.API.Devices
   alias Astarte.Core.Generators.Device, as: DeviceGenerator

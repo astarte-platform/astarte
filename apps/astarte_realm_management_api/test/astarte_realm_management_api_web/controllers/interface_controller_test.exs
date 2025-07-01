@@ -88,7 +88,6 @@ defmodule Astarte.RealmManagement.APIWeb.InterfaceControllerTest do
 
       list_conn = get(conn, interface_path(conn, :index, realm))
       assert json_response(list_conn, 200)["data"] == [@interface_name]
-      Core.delete_interface(realm, @interface_name, @interface_major)
     end
   end
 

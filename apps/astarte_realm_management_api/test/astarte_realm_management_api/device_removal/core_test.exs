@@ -34,6 +34,8 @@ defmodule Astarte.RealmManagement.API.DeviceRemover.CoreTest do
   use Astarte.Cases.Data, async: true
   use ExUnitProperties
 
+  import ExUnit.CaptureLog
+
   describe "Device remover Core" do
     @describetag :device_remover
 
@@ -240,7 +242,9 @@ defmodule Astarte.RealmManagement.API.DeviceRemover.CoreTest do
     |> Repo.insert!(prefix: keyspace)
 
     on_exit(fn ->
-      _ = Queries.delete_interface(realm, interface.name, interface.major_version)
+      capture_log(fn ->
+        Queries.delete_interface(realm, interface.name, interface.major_version)
+      end)
     end)
   end
 end

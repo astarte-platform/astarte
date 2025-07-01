@@ -17,7 +17,7 @@
 #
 
 defmodule Astarte.RealmManagement.APIWeb.InterfaceVersionControllerTest do
-  use Astarte.RealmManagement.API.DataCase, async: true
+  use Astarte.Cases.Data, async: true
   use Astarte.RealmManagement.APIWeb.ConnCase
 
   alias Astarte.Core.Generators.Interface, as: InterfaceGenerators

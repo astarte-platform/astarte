@@ -17,35 +17,20 @@
 #
 
 defmodule Astarte.RealmManagement.APIWeb.VersionControllerTest do
-  use Astarte.RealmManagement.API.DataCase, async: true
+  use Astarte.Cases.Data, async: true
   use Astarte.RealmManagement.APIWeb.ConnCase
-
-  alias Astarte.RealmManagement.API.Helpers.JWTTestHelper
-  alias Astarte.RealmManagement.API.Helpers.RPCMock.DB
 
   @expected_version Mix.Project.config()[:version]
 
-  setup %{conn: conn, realm: realm} do
-    DB.put_jwt_public_key_pem(realm, JWTTestHelper.public_key_pem())
-    token = JWTTestHelper.gen_jwt_all_access_token()
-
-    conn =
-      conn
-      |> put_req_header("accept", "application/json")
-      |> put_req_header("authorization", "Bearer #{token}")
-
-    {:ok, conn: conn}
-  end
-
   describe "GET /version" do
-    test "returns the app version", %{conn: conn} do
+    test "returns the app version", %{auth_conn: conn} do
       conn = get(conn, version_path(conn, :show))
       assert json_response(conn, 200) == %{"data" => @expected_version}
     end
   end
 
   describe "GET /v1/:realm_name/version" do
-    test "returns the app version with realm", %{conn: conn, realm: realm} do
+    test "returns the app version with realm", %{auth_conn: conn, realm: realm} do
       conn = get(conn, "/v1/#{realm}/version")
       assert json_response(conn, 200) == %{"data" => @expected_version}
     end
