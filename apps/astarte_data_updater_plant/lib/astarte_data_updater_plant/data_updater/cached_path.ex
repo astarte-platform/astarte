@@ -18,4 +18,6 @@
 
 defmodule Astarte.DataUpdaterPlant.DataUpdater.CachedPath do
   defstruct []
+
+  @type t :: %__MODULE__{}
 end
