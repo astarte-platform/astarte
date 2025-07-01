@@ -37,7 +37,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Cache do
           {key, _value} = Enum.random(map)
           Map.delete(map, key)
 
-        is_map(map) ->
+        true ->
           map
       end
       |> Map.put(key, {value, expiry_timestamp(ttl)})
