@@ -62,11 +62,28 @@ defmodule Astarte.RealmManagement.API.Triggers do
             tagged_simple_triggers: tagged_simple_triggers,
             policy: policy
           }} <- RealmManagement.get_trigger(realm_name, trigger_name),
-         {:ok, action_map} <- Jason.decode(action, keys: :atoms!) do
+         {:ok, action_map} <- Jason.decode(action) do
       simple_triggers_configs =
         Enum.map(tagged_simple_triggers, &SimpleTriggerConfig.from_tagged_simple_trigger/1)
 
-      action_struct = struct(Action, action_map)
+      action_struct =
+        %Action{}
+        |> Changeset.cast(action_map, [
+          :http_url,
+          :http_method,
+          :http_static_headers,
+          :template,
+          :template_type,
+          :http_post_url,
+          :ignore_ssl_errors,
+          :amqp_exchange,
+          :amqp_routing_key,
+          :amqp_static_headers,
+          :amqp_message_expiration_ms,
+          :amqp_message_priority,
+          :amqp_message_persistent
+        ])
+        |> Changeset.apply_changes()
 
       {:ok,
        %Trigger{
