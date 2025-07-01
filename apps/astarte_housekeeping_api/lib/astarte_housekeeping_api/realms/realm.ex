@@ -65,7 +65,7 @@ defmodule Astarte.Housekeeping.API.Realms.Realm do
   end
 
   defp datacenter_map_validator(field, datacenter_map) do
-    Enum.reduce(datacenter_map, [], fn {datacenter_name, replication_factor}, errors_acc ->
+    Enum.reduce(datacenter_map, [], fn {_datacenter_name, replication_factor}, errors_acc ->
       if is_number(replication_factor) and replication_factor > 0 do
         errors_acc
       else

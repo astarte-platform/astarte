@@ -18,8 +18,6 @@
 defmodule Astarte.Housekeeping.APIWeb.VersionView do
   use Astarte.Housekeeping.APIWeb, :view
 
-  alias Astarte.Housekeeping.APIWeb.VersionView
-
   def render("show.json", %{version: version}) do
     %{data: version}
   end
