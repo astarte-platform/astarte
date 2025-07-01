@@ -22,7 +22,7 @@ defmodule Astarte.DataAccess.KvStore do
 
   import Ecto.Query
 
-  @type value_type :: :binary | :integer | :big_integer | :string
+  @type value_type :: :binary | :integer | :big_integer | :string | :uuid
   @source "kv_store"
 
   @primary_key false
@@ -85,6 +85,7 @@ defmodule Astarte.DataAccess.KvStore do
         :integer -> dynamic([kv], fragment("blobAsInt(?)", kv.value))
         :big_integer -> dynamic([kv], fragment("blobAsBigint(?)", kv.value))
         :string -> dynamic([kv], fragment("blobAsVarChar(?)", kv.value))
+        :uuid -> dynamic([kv], fragment("blobAsUuid(?)", kv.value))
       end
 
     query = from(__MODULE__, select: ^value_expr)
