@@ -185,13 +185,12 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DataHandler do
   defp handle_result({:error, :unset_not_allowed}, context, _, _, _) do
     error = %{
       message: "Tried to unset a property with `allow_unset`=false.",
-      tag: "unset_not_allowed",
-      error_name: "unset_not_allowed",
-      update_stats: false
+      logger_metadata: [tag: "unset_not_allowed"],
+      error_name: "unset_not_allowed"
     }
 
     # with `unset_not_allowed` we do not want to update the stats
-    Core.Error.handle_error(context, error)
+    Core.Error.handle_error(context, error, update_stats: false)
   end
 
   defp handle_result(:ok, context, maybe_change_triggers, interface_descriptor, value) do

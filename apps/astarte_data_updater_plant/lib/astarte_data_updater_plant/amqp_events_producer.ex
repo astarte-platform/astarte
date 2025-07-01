@@ -134,6 +134,6 @@ defmodule Astarte.DataUpdaterPlant.AMQPEventsProducer do
 
   defp schedule_connect() do
     _ = Logger.warning("Retrying connection in #{@connection_backoff} ms")
-    Process.send_after(@connection_backoff, self(), :init)
+    Process.send_after(self(), :init, @connection_backoff)
   end
 end
