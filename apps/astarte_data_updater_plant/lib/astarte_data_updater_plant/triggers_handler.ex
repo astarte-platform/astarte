@@ -17,7 +17,7 @@
 #
 
 defmodule Astarte.DataUpdaterPlant.TriggersHandler do
-  use Bitwise, only_operators: true
+  import Bitwise
   require Logger
   alias Astarte.DataUpdaterPlant.Config
 
