@@ -417,7 +417,7 @@ defmodule Astarte.DataUpdaterPlant.Config do
 
   defp producer_ssl_sni_disabled? do
     case amqp_producer_ssl_disable_sni() do
-      {:ok, nil} ->
+      {:ok, false} ->
         amqp_consumer_ssl_disable_sni!()
 
       {:ok, value} ->
