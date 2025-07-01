@@ -88,7 +88,6 @@ defmodule Astarte.RealmManagement.APIWeb.InterfaceControllerTest do
 
       list_conn = get(conn, interface_path(conn, :index, realm))
       assert json_response(list_conn, 200)["data"] == [@interface_name]
-      Core.delete_interface(realm, @interface_name, @interface_major)
     end
   end
 
@@ -198,10 +197,16 @@ defmodule Astarte.RealmManagement.APIWeb.InterfaceControllerTest do
     end
 
     test "fails when interface name collides after normalization", %{
+      astarte_instance_id: astarte_instance_id,
       auth_conn: conn,
       realm: realm
     } do
       interface_name = "com.astarteplatform.Interface"
+
+      on_exit(fn ->
+        Database.setup_database_access(astarte_instance_id)
+        capture_log(fn -> Core.delete_interface(realm, interface_name, @interface_major) end)
+      end)
 
       first_attrs =
         @valid_attrs
@@ -234,8 +239,6 @@ defmodule Astarte.RealmManagement.APIWeb.InterfaceControllerTest do
 
       assert json_response(post_conn, 409)["errors"]["detail"] ==
                "Interface name collision detected. Make sure that the difference between two interface names is not limited to the casing or the presence of hyphens."
-
-      Core.delete_interface(realm, interface_name, @interface_major)
     end
   end
 
@@ -483,8 +486,17 @@ defmodule Astarte.RealmManagement.APIWeb.InterfaceControllerTest do
       assert response(delete_conn, 204) == ""
     end
 
-    test "fails if major version is other than 0", %{auth_conn: conn, realm: realm} do
+    test "fails if major version is other than 0", %{
+      auth_conn: conn,
+      realm: realm,
+      astarte_instance_id: astarte_instance_id
+    } do
       new_interface_major = 1
+
+      on_exit(fn ->
+        Database.setup_database_access(astarte_instance_id)
+        capture_log(fn -> Core.delete_interface(realm, @interface_name, new_interface_major) end)
+      end)
 
       major_attrs =
         @valid_attrs
