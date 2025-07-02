@@ -1028,7 +1028,7 @@ defmodule Astarte.Housekeeping.Realms.Queries do
   def initialize_database do
     Xandra.Cluster.run(:xandra, [timeout: 60_000], fn conn ->
       with :ok <- create_astarte_keyspace(conn),
-           :ok <- create_realms_table(conn),
+           :ok <- create_realms_table(),
            :ok <- create_astarte_kv_store(),
            :ok <- insert_astarte_schema_version(conn) do
         :ok
@@ -1091,7 +1091,7 @@ defmodule Astarte.Housekeeping.Realms.Queries do
     end
   end
 
-  defp create_realms_table(conn) do
+  defp create_realms_table do
     query = """
     CREATE TABLE #{Realm.astarte_keyspace_name()}.realms (
       realm_name varchar,
@@ -1102,8 +1102,8 @@ defmodule Astarte.Housekeeping.Realms.Queries do
 
     consistency = Consistency.domain_model(:write)
 
-    with {:ok, %Xandra.SchemaChange{}} <-
-           Xandra.execute(conn, query, %{}, consistency: consistency) do
+    with {:ok, %{rows: nil, num_rows: 1}} <-
+           Repo.query(query, [], consistency: consistency) do
       :ok
     end
   end
