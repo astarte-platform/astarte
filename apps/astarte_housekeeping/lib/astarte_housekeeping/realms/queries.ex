@@ -293,14 +293,14 @@ defmodule Astarte.Housekeeping.Realms.Queries do
   # Check that the replication factor is <= the number of nodes in the same datacenter
   defp check_replication(conn, replication_factor)
        when is_integer(replication_factor) and replication_factor > 1 do
-    with {:ok, local_datacenter} <- get_local_datacenter(conn) do
+    with {:ok, local_datacenter} <- get_local_datacenter() do
       check_replication_for_datacenter(conn, local_datacenter, replication_factor, local: true)
     end
   end
 
   defp check_replication(conn, datacenter_replication_factors)
        when is_map(datacenter_replication_factors) do
-    with {:ok, local_datacenter} <- get_local_datacenter(conn) do
+    with {:ok, local_datacenter} <- get_local_datacenter() do
       Enum.reduce_while(datacenter_replication_factors, :ok, fn
         {datacenter, replication_factor}, _acc ->
           opts =
@@ -453,40 +453,31 @@ defmodule Astarte.Housekeeping.Realms.Queries do
     |> KvStore.insert(opts)
   end
 
-  defp get_local_datacenter(conn) do
-    query = """
-    SELECT data_center
-    FROM system.local;
-    """
+  defp get_local_datacenter do
+    query =
+      from sl in "system.local",
+        select: sl.data_center
 
     opts = [consistency: Consistency.domain_model(:read)]
 
-    with {:ok, %Xandra.Page{} = page} <- Xandra.execute(conn, query, %{}, opts) do
-      case Enum.fetch(page, 0) do
-        {:ok, %{"data_center" => datacenter}} ->
-          {:ok, datacenter}
+    case Repo.safe_fetch_one(query, opts) do
+      {:ok, datacenter} ->
+        {:ok, datacenter}
 
-        :error ->
-          _ =
-            Logger.error(
-              "Empty dataset while getting local datacenter, something is really wrong.",
-              tag: "get_local_datacenter_error"
-            )
+      {:error, :not_found} ->
+        Logger.error(
+          "Empty dataset while getting local datacenter, something is really wrong.",
+          tag: "get_local_datacenter_error"
+        )
 
-          {:error, :local_datacenter_not_found}
-      end
-    else
-      {:error, %Xandra.Error{} = err} ->
-        _ = Logger.warning("Database error: #{inspect(err)}.", tag: "database_error")
-        {:error, :database_error}
+        {:error, :local_datacenter_not_found}
 
-      {:error, %Xandra.ConnectionError{} = err} ->
-        _ =
-          Logger.warning("Database connection error: #{inspect(err)}.",
-            tag: "database_connection_error"
-          )
+      {:error, error} ->
+        Logger.error("Error while getting local datacenter: #{inspect(error)}.",
+          tag: "get_local_datacenter_error"
+        )
 
-        {:error, :database_connection_error}
+        {:error, error}
     end
   end
 
