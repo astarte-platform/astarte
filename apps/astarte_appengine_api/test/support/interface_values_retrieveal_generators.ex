@@ -3,15 +3,15 @@ defmodule Astarte.InterfaceValuesRetrievealGenerators do
 
   @doc """
   Generate valid Astarte.AppEngine.API.Device.InterfaceValuesOptions.
-  For the nature of 
+  For the nature of
   """
   def interface_values_options(params \\ [], interface \\ nil) do
     # TODO: generate valid since, since_after, to values
-    params gen all since <- nil,
-                   since_after <- nil,
-                   to <- nil,
+    params gen all since <- constant(nil),
+                   since_after <- constant(nil),
+                   to <- constant(nil),
                    limit <- optional(integer(1..1000)),
-                   downsample_key <- nil,
+                   downsample_key <- constant(nil),
                    downsample_to <- downsample_to(interface, downsample_key),
                    retrieve_metadata <- optional(boolean()),
                    allow_bigintegers <- optional(boolean()),
