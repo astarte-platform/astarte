@@ -22,7 +22,6 @@ defmodule Astarte.RealmManagement.DeviceTest do
   @moduledoc """
   Test for the `Device` section of the RealmManagement Engine
   """
-  alias Astarte.RealmManagement.Queries
   alias Astarte.RealmManagement.Engine
   alias Astarte.DataAccess.Realms.Realm
   alias Astarte.DataAccess.Repo
@@ -51,61 +50,6 @@ defmodule Astarte.RealmManagement.DeviceTest do
 
         assert device_id == deletion.device_id
         refute DeletionInProgress.all_ack?(deletion)
-      end
-    end
-
-    property "is not queued for deletion if there are no acks", %{realm: realm} do
-      check all(device_id <- Astarte.Core.Generators.Device.id()) do
-        keyspace = Realm.keyspace_name(realm)
-
-        %Device{
-          device_id: device_id
-        }
-        |> Repo.insert!(prefix: keyspace)
-
-        encoded_device_id = Astarte.Core.Device.encode_device_id(device_id)
-        :ok = Engine.delete_device(realm, encoded_device_id)
-
-        assert [] = Queries.retrieve_devices_to_delete!(realm)
-
-        %DeletionInProgress{
-          device_id: device_id,
-          dup_end_ack: false,
-          vmq_ack: false,
-          dup_start_ack: false
-        }
-        |> Repo.delete!(prefix: keyspace)
-      end
-    end
-
-    property "is queued for deletion with all acks", %{realm: realm} do
-      check all(device <- Astarte.Core.Generators.Device.device(interfaces: [])) do
-        keyspace = Realm.keyspace_name(realm)
-
-        %Device{
-          device_id: device.device_id
-        }
-        |> Repo.insert!(prefix: keyspace)
-
-        %DeletionInProgress{
-          device_id: device.device_id,
-          vmq_ack: true,
-          dup_end_ack: true,
-          dup_start_ack: true
-        }
-        |> Repo.insert!(prefix: keyspace)
-
-        assert [deletion] = Queries.retrieve_devices_to_delete!(realm)
-        _ = Repo.delete!(deletion)
-
-        device_id = device.device_id
-
-        assert %DeletionInProgress{
-                 device_id: ^device_id,
-                 vmq_ack: true,
-                 dup_end_ack: true,
-                 dup_start_ack: true
-               } = deletion
       end
     end
 

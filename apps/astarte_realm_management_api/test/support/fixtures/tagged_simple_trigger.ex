@@ -18,52 +18,49 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
-defmodule Astarte.Fixtures.SimpleTriggerConfig do
+defmodule Astarte.RealmManagement.API.Fixtures.SimpleTriggerConfig do
   @moduledoc """
   fixtures for Astarte.Core.Triggers.SimpleTriggerConfig module.
   """
   alias Astarte.Core.Device
   alias Astarte.Core.Triggers.SimpleTriggerConfig
 
-  def simple_trigger_configs(interface_name, interface_major, device_id) do
+  def simple_trigger_configs(device_id) do
     device_id = Device.encode_device_id(device_id)
-    device_triggers(device_id) ++ data_triggers(interface_name, interface_major, device_id)
+    data_triggers(device_id)
   end
 
   def device_triggers(device_id) do
     trigger1 = %SimpleTriggerConfig{
       type: "device_trigger",
       on: "device_connected",
-      group_name: "simple_group",
       device_id: device_id
     }
 
     trigger2 = %SimpleTriggerConfig{
       type: "device_trigger",
       on: "device_disconnected",
-      group_name: "simple_group",
-      device_id: device_id
+      group_name: "simple_group"
     }
 
     trigger3 = %SimpleTriggerConfig{
       type: "device_trigger",
       on: "device_error",
-      group_name: "simple_group",
-      device_id: device_id
+      group_name: "simple_group"
     }
 
     [trigger1, trigger2, trigger3]
   end
 
-  def data_triggers(interface_name, interface_major, device_id) do
+  def data_triggers(device_id) do
     [
       %SimpleTriggerConfig{
-        type: "device_trigger",
-        on: "device_connected",
-        group_name: "simple_group",
+        type: "data_trigger",
+        on: "incoming_data",
+        match_path: "/*",
+        value_match_operator: "*",
         device_id: device_id,
-        interface_name: interface_name,
-        interface_major: interface_major
+        interface_name: "*"
       }
     ]
   end

@@ -52,7 +52,7 @@ defmodule Astarte.RealmManagement.API.Triggers do
       {:ok, %Trigger{}}
 
       iex> get_trigger(45)
-      {:error, :not_found}
+      {:error, :trigger_not_found}
 
   """
   def get_trigger(realm_name, trigger_name) do

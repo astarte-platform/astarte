@@ -18,14 +18,20 @@
 
 defmodule Astarte.RealmManagement.API.TriggersTest do
   use Astarte.Cases.Data, async: true
+  use ExUnitProperties
 
   @moduletag :triggers
 
   alias Astarte.Helpers.Database
+  alias Astarte.RealmManagement.API.Fixtures.SimpleTriggerConfig, as: SimpleTriggerConfigFixture
   alias Astarte.RealmManagement.API.Fixtures.Trigger, as: TriggerFixture
   alias Astarte.RealmManagement.API.Triggers
   alias Astarte.RealmManagement.API.Triggers.Core
   alias Astarte.RealmManagement.API.Triggers.Trigger
+  alias Astarte.RealmManagement.API.Triggers.HttpAction
+  alias Astarte.RealmManagement.API.Triggers.Action
+  alias Astarte.RealmManagement.API.Triggers.Policies
+  alias Astarte.Core.Generators.Triggers.Policy, as: PolicyGenerator
 
   setup context do
     %{realm: realm, astarte_instance_id: astarte_instance_id} = context
@@ -58,7 +64,11 @@ defmodule Astarte.RealmManagement.API.TriggersTest do
       assert installed_trigger.action.http_url == expected_action["http_url"]
       assert installed_trigger.action.ignore_ssl_errors == expected_action["ignore_ssl_errors"]
 
-      assert simple_triggers_to_map(installed_trigger.simple_triggers) ==
+      expected_simple_triggers =
+        simple_triggers_to_map(installed_trigger.simple_triggers)
+        |> Enum.map(&Map.reject(&1, fn {_key, value} -> value == nil end))
+
+      assert expected_simple_triggers ==
                trigger_attrs["simple_triggers"]
     end
 
@@ -124,14 +134,97 @@ defmodule Astarte.RealmManagement.API.TriggersTest do
     end
   end
 
+  describe "Test triggers" do
+    @describetag :triggers
+
+    @tag :creation
+    property "are installed correctly", %{realm: realm} do
+      check all device <- Astarte.Core.Generators.Device.device(),
+                trigger <- trigger(string(:utf8, min_length: 1)),
+                policy <- PolicyGenerator.policy() |> PolicyGenerator.to_changes(),
+                simple_trigger <- simple_trigger_config(device.device_id) do
+        {:ok, policy} = Policies.create_trigger_policy(realm, policy)
+
+        _ = Jason.decode!(trigger.action, keys: :atoms)
+
+        expected_action =
+          %HttpAction{}
+          |> HttpAction.changeset(Jason.decode!(trigger.action))
+          |> Ecto.Changeset.apply_changes()
+          |> Map.from_struct()
+          |> Map.reject(fn {_key, value} -> value == nil end)
+
+        expected_action =
+          %Action{}
+          |> Ecto.Changeset.change(expected_action)
+          |> Ecto.Changeset.apply_changes()
+
+        attrs = %{
+          "name" => trigger.name,
+          "policy" => policy.name,
+          "action" => Jason.decode!(trigger.action),
+          "simple_triggers" => simple_triggers_to_map([simple_trigger])
+        }
+
+        {:ok, rm_trigger} = Triggers.create_trigger(realm, attrs)
+
+        {:ok, fetched_trigger} = Triggers.get_trigger(realm, trigger.name)
+
+        assert expected_action == fetched_trigger.action
+        assert trigger.name == fetched_trigger.name
+        assert policy.name == fetched_trigger.policy
+
+        simple_trigger =
+          unless simple_trigger.interface_major,
+            do: Map.put(simple_trigger, :interface_major, 0),
+            else: simple_trigger
+
+        assert fetched_trigger.simple_triggers == [simple_trigger]
+
+        Triggers.delete_trigger(realm, rm_trigger)
+        Policies.delete_trigger_policy(realm, policy.name)
+      end
+    end
+
+    @tag :deletion
+    property "are deleted correctly", %{realm: realm} do
+      check all device <- Astarte.Core.Generators.Device.device(),
+                trigger <- trigger(string(:utf8, min_length: 1)),
+                simple_trigger <- simple_trigger_config(device.device_id) do
+        attrs = %{
+          name: trigger.name,
+          policy: nil,
+          action: trigger.action,
+          simple_triggers: simple_triggers_to_map([simple_trigger])
+        }
+
+        {:ok, trigger} = Triggers.create_trigger(realm, attrs)
+
+        assert {:ok, ^trigger} = Triggers.delete_trigger(realm, trigger)
+        assert {:error, :trigger_not_found} = Triggers.get_trigger(realm, trigger.name)
+      end
+    end
+  end
+
   defp simple_triggers_to_map(simple_triggers) do
     Enum.map(simple_triggers, fn st ->
       %{
         "type" => st.type,
         "device_id" => st.device_id,
+        "group_name" => st.group_name,
         "on" => st.on,
+        "match_path" => st.match_path,
+        "value_match_operator" => st.value_match_operator,
+        "interface_name" => st.interface_name,
         "interface_major" => st.interface_major
       }
     end)
   end
+
+  # Custom generators
+  # TODO remove once `astarte_generators` implements generators for triggers
+  defp trigger(name_gen), do: member_of(TriggerFixture.triggers(name_gen))
+
+  defp simple_trigger_config(device_id),
+    do: member_of(SimpleTriggerConfigFixture.simple_trigger_configs(device_id))
 end
