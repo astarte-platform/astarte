@@ -246,7 +246,7 @@ defmodule Astarte.Housekeeping.Realms.Queries do
            :ok <- create_deletion_in_progress_table(keyspace_conn),
            :ok <- insert_realm_public_key(keyspace_conn, public_key_pem),
            :ok <- insert_realm_astarte_schema_version(keyspace_conn),
-           :ok <- insert_realm(conn, realm_name, device_limit),
+           :ok <- insert_realm(realm_name, device_limit),
            :ok <- insert_datastream_max_retention(realm_name, max_retention) do
         :ok
       else
@@ -413,25 +413,26 @@ defmodule Astarte.Housekeeping.Realms.Queries do
     |> KvStore.insert(opts)
   end
 
-  defp insert_realm(conn, realm_name, device_limit) do
-    query = """
-    INSERT INTO #{CQLUtils.realm_name_to_keyspace_name("astarte", Config.astarte_instance_id!())}.realms (realm_name, device_registration_limit)
-    VALUES (:realm_name, :device_registration_limit);
-    """
+  defp insert_realm(realm_name, device_limit) do
+    keyspace_name = Realm.astarte_keyspace_name()
 
     device_registration_limit = if device_limit == 0, do: nil, else: device_limit
 
-    params = %{
-      "realm_name" => realm_name,
-      "device_registration_limit" => device_registration_limit
+    realm_attrs = %Realm{
+      realm_name: realm_name,
+      device_registration_limit: device_registration_limit
     }
 
     consistency = Consistency.domain_model(:write)
 
-    with {:ok, prepared} <- Xandra.prepare(conn, query),
-         {:ok, %Xandra.Void{}} <-
-           Xandra.execute(conn, prepared, params, consistency: consistency) do
-      :ok
+    opts = [
+      consistency: consistency,
+      prefix: keyspace_name
+    ]
+
+    case Repo.insert(realm_attrs, opts) do
+      {:ok, _realm} -> :ok
+      {:error, reason} -> {:error, reason}
     end
   end
 
