@@ -466,7 +466,7 @@ defmodule Astarte.AppEngine.APIWeb.RoomsChannelTest do
       Astarte.AppEngine.API.RPC.DataUpdaterPlant.ClientMock
       |> allow(self(), room_process)
       |> expect(:install_volatile_trigger, fn _ -> :ok end)
-      |> expect(:delete_volatile_trigger, fn delete_trigger -> :ok end)
+      |> expect(:delete_volatile_trigger, fn _ -> :ok end)
 
       watch_payload = %{
         "device_id" => @device_id,
