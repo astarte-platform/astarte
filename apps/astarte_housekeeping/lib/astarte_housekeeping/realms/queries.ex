@@ -247,7 +247,7 @@ defmodule Astarte.Housekeeping.Realms.Queries do
            :ok <- insert_realm_public_key(keyspace_conn, public_key_pem),
            :ok <- insert_realm_astarte_schema_version(keyspace_conn),
            :ok <- insert_realm(conn, realm_name, device_limit),
-           :ok <- insert_datastream_max_retention(keyspace_conn, max_retention) do
+           :ok <- insert_datastream_max_retention(realm_name, max_retention) do
         :ok
       else
         {:error, %Xandra.Error{} = err} ->
@@ -394,26 +394,23 @@ defmodule Astarte.Housekeeping.Realms.Queries do
     :ok
   end
 
-  defp insert_datastream_max_retention({conn, keyspace_name}, max_retention) do
-    statement = """
-    INSERT INTO :keyspace_name.kv_store (group, key, value)
-    VALUES ('realm_config', 'datastream_maximum_storage_retention', intAsBlob(:max_retention));
-    """
-
-    params = %{
-      "max_retention" => max_retention
-    }
-
-    # This is safe since we checked the realm name in the caller
-    query = String.replace(statement, ":keyspace_name", keyspace_name)
+  defp insert_datastream_max_retention(realm_name, max_retention) do
+    keyspace_name = Realm.keyspace_name(realm_name)
 
     consistency = Consistency.domain_model(:write)
 
-    with {:ok, prepared} <- Xandra.prepare(conn, query),
-         {:ok, %Xandra.Void{}} <-
-           Xandra.execute(conn, prepared, params, consistency: consistency) do
-      :ok
-    end
+    opts = [
+      consistency: consistency,
+      prefix: keyspace_name
+    ]
+
+    %{
+      group: "realm_config",
+      key: "datastream_maximum_storage_retention",
+      value: max_retention,
+      value_type: :integer
+    }
+    |> KvStore.insert(opts)
   end
 
   defp insert_realm(conn, realm_name, device_limit) do
