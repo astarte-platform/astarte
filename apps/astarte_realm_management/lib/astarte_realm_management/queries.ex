@@ -37,7 +37,6 @@ defmodule Astarte.RealmManagement.Queries do
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.TaggedSimpleTrigger
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.TriggerTargetContainer
   alias Astarte.Core.Triggers.Trigger
-  alias Astarte.Core.Triggers.PolicyProtobuf.PolicyProto
   alias CQEx.Query, as: DatabaseQuery
   alias CQEx.Result, as: DatabaseResult
   alias CQEx.Result.SchemaChanged
@@ -885,7 +884,7 @@ defmodule Astarte.RealmManagement.Queries do
       |> DatabaseQuery.consistency(:quorum)
 
     with {:ok, result} <- DatabaseQuery.call(client, all_names_query) do
-      Enum.reduce_while(result, :ok, fn row, acc ->
+      Enum.reduce_while(result, :ok, fn row, _acc ->
         if normalize_interface_name(row[:name]) == normalized_interface do
           if row[:name] == interface_name do
             # If there is already an interface with the same name, we know it's possible to install it.
@@ -1018,7 +1017,7 @@ defmodule Astarte.RealmManagement.Queries do
   defp database_retention_policy_from_maybe_int(database_retention_policy) do
     case database_retention_policy do
       nil -> :no_ttl
-      any_int -> DatabaseRetentionPolicy.from_int(database_retention_policy)
+      _any_int -> DatabaseRetentionPolicy.from_int(database_retention_policy)
     end
   end
 

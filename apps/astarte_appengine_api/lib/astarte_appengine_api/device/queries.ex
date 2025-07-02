@@ -431,7 +431,7 @@ defmodule Astarte.AppEngine.API.Device.Queries do
         device_id,
         %InterfaceDescriptor{storage_type: :multi_interface_individual_datastream_dbtable} =
           interface_descriptor,
-        endpoint_id,
+        _endpoint_id,
         endpoint,
         path,
         value,

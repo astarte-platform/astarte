@@ -128,7 +128,7 @@ jobs:
         rm rabbitmqadmin
     - name: Compile
       working-directory: ./apps/${{ inputs.app }}
-      run: mix compile --warning-as-errors --force
+      run: mix compile --warnings-as-errors --force
     - uses: actions/setup-node@v1
       with:
         node-version: '10.x'

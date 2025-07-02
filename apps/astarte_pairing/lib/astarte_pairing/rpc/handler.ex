@@ -39,7 +39,6 @@ defmodule Astarte.Pairing.RPC.Handler do
     GetHealthReply,
     GetInfo,
     GetInfoReply,
-    IntrospectionEntry,
     ProtocolStatus,
     RegisterDevice,
     RegisterDeviceReply,

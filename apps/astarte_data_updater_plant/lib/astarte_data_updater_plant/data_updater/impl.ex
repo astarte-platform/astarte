@@ -1638,8 +1638,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
            interface_major: major,
            match_path: "/*"
          }} ->
-          with {:ok, db_client} <- Database.connect(realm: state.realm),
-               :ok <-
+          with :ok <-
                  InterfaceQueries.check_if_interface_exists(state.realm, interface_name, major) do
             {:ok, new_state}
           else
@@ -1654,8 +1653,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
            interface_major: major,
            match_path: match_path
          }} ->
-          with {:ok, db_client} <- Database.connect(realm: state.realm),
-               {:ok, %InterfaceDescriptor{automaton: automaton}} <-
+          with {:ok, %InterfaceDescriptor{automaton: automaton}} <-
                  InterfaceQueries.fetch_interface_descriptor(state.realm, interface_name, major),
                {:ok, _endpoint_id} <- EndpointsAutomaton.resolve_path(match_path, automaton) do
             {:ok, new_state}
