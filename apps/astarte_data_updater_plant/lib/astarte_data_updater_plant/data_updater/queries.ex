@@ -869,84 +869,33 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
   end
 
   def check_device_deletion_in_progress(realm_name, device_id) do
-    keyspace_name = Realm.keyspace_name(realm_name)
+    keyspace = Realm.keyspace_name(realm_name)
 
-    Xandra.Cluster.run(
-      :xandra,
-      &do_check_device_deletion_in_progress(&1, keyspace_name, device_id)
-    )
-  end
+    query =
+      from d in DeletionInProgress,
+        prefix: ^keyspace,
+        where: d.device_id == ^device_id
 
-  defp do_check_device_deletion_in_progress(conn, realm_name, device_id) do
-    statement = """
-    SELECT *
-    FROM #{realm_name}.deletion_in_progress
-    WHERE device_id = :device_id
-    """
+    consistency = Consistency.device_info(:read)
 
-    opts = [
-      consistency: Consistency.device_info(:read),
-      uuid_format: :binary
-    ]
-
-    with {:ok, prepared} <- Xandra.prepare(conn, statement),
-         {:ok, %Xandra.Page{} = page} <-
-           Xandra.execute(conn, prepared, %{"device_id" => device_id}, opts) do
-      result_not_empty? = not Enum.empty?(page)
-      {:ok, result_not_empty?}
-    else
-      {:error, %Xandra.Error{} = error} ->
-        _ =
-          Logger.warning(
-            "Database error while checking device deletion in progress: #{Exception.message(error)}"
-          )
-
-        {:error, :database_error}
-
-      {:error, %Xandra.ConnectionError{} = error} ->
-        _ =
-          Logger.warning(
-            "Database connection error while checking device deletion in progress: #{Exception.message(error)}"
-          )
-
-        {:error, :database_connection_error}
+    case Repo.safe_fetch_one(query, consistency: consistency) do
+      {:ok, _item} -> {:ok, true}
+      {:error, :not_found} -> {:ok, false}
+      {:error, error} -> {:error, error}
     end
   end
 
   def retrieve_realms! do
-    statement = """
-    SELECT *
-    FROM #{CQLUtils.realm_name_to_keyspace_name("astarte", Config.astarte_instance_id!())}.realms
-    """
+    keyspace_name = Realm.astarte_keyspace_name()
+    consistency = Consistency.domain_model(:read)
 
-    realms =
-      Xandra.Cluster.run(
-        :xandra,
-        &Xandra.execute!(&1, statement, %{}, consistency: Consistency.domain_model(:read))
-      )
-
-    Enum.to_list(realms)
+    Repo.all(Realm, prefix: keyspace_name, consistency: consistency)
   end
 
   def retrieve_devices_waiting_to_start_deletion!(realm_name) do
     keyspace_name = Realm.keyspace_name(realm_name)
+    consistency = Consistency.domain_model(:read)
 
-    Xandra.Cluster.run(
-      :xandra,
-      &do_retrieve_devices_waiting_to_start_deletion!(&1, keyspace_name)
-    )
-  end
-
-  defp do_retrieve_devices_waiting_to_start_deletion!(conn, realm_name) do
-    statement = """
-    SELECT *
-    FROM #{realm_name}.deletion_in_progress
-    """
-
-    Xandra.execute!(conn, statement, %{},
-      consistency: Consistency.device_info(:read),
-      uuid_format: :binary
-    )
-    |> Enum.to_list()
+    Repo.all(DeletionInProgress, prefix: keyspace_name, consistency: consistency)
   end
 end

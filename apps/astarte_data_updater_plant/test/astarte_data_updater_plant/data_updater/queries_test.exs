@@ -407,7 +407,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.QueriesTest do
     end
 
     test "returns the list of realms", %{realm_names: expected_realms} do
-      realms = Queries.retrieve_realms!() |> Enum.map(& &1["realm_name"]) |> Enum.sort()
+      realms = Queries.retrieve_realms!() |> Enum.map(& &1.realm_name) |> Enum.sort()
       assert realms == expected_realms
     end
   end
@@ -423,11 +423,11 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.QueriesTest do
       %{deletion_in_progress: expected_result, realm_name: realm_name} = context
 
       for entry <- Queries.retrieve_devices_waiting_to_start_deletion!(realm_name) do
-        assert %{
-                 "device_id" => device_id,
-                 "vmq_ack" => vmq_ack,
-                 "dup_start_ack" => dup_start_ack,
-                 "dup_end_ack" => dup_end_ack
+        assert %DeletionInProgress{
+                 device_id: device_id,
+                 vmq_ack: vmq_ack,
+                 dup_start_ack: dup_start_ack,
+                 dup_end_ack: dup_end_ack
                } = entry
 
         %{
