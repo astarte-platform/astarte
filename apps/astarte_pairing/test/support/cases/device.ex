@@ -23,6 +23,7 @@ defmodule Astarte.Cases.Device do
   alias Astarte.DataAccess.Realms.Endpoint
   alias Astarte.Core.Generators.Device, as: DeviceGenerator
   alias Astarte.Core.Generators.Interface, as: InterfaceGenerator
+  alias Astarte.Pairing.CredentialsSecret
 
   use ExUnit.CaseTemplate
   use ExUnitProperties
@@ -37,7 +38,55 @@ defmodule Astarte.Cases.Device do
 
   setup_all %{realm_name: realm_name} do
     interfaces_data = interfaces()
-    device = DeviceGenerator.device(interfaces: interfaces_data.interfaces) |> Enum.at(0)
+    credentials_secret = CredentialsSecret.generate()
+    inhibited_credentials_secret = CredentialsSecret.generate()
+    confirmed_credentials_secret = CredentialsSecret.generate()
+    unconfirmed_credentials_secret = CredentialsSecret.generate()
+    unconfirmed_credentials_secret2 = CredentialsSecret.generate()
+    unregistered_credentials_secret = CredentialsSecret.generate()
+
+    device =
+      DeviceGenerator.device(interfaces: interfaces_data.interfaces)
+      |> resize(10)
+      |> Enum.at(0)
+      |> Map.put(:credentials_secret, credentials_secret)
+
+    unregistered_device =
+      DeviceGenerator.device(interfaces: interfaces_data.interfaces)
+      |> resize(10)
+      |> Enum.at(0)
+      |> Map.put(:credentials_secret, unregistered_credentials_secret)
+
+    inhibited_device =
+      DeviceGenerator.device(interfaces: interfaces_data.interfaces)
+      |> resize(10)
+      |> Enum.at(0)
+      |> Map.put(:inhibit_credentials_request, true)
+      |> Map.put(:credentials_secret, inhibited_credentials_secret)
+
+    unconfirmed_device =
+      DeviceGenerator.device(interfaces: interfaces_data.interfaces)
+      |> resize(10)
+      |> Enum.at(0)
+      |> Map.put(:first_credentials_request, nil)
+      |> Map.put(:inhibit_credentials_request, false)
+      |> Map.put(:credentials_secret, unconfirmed_credentials_secret)
+
+    unconfirmed_device2 =
+      DeviceGenerator.device(interfaces: interfaces_data.interfaces)
+      |> resize(10)
+      |> Enum.at(0)
+      |> Map.put(:first_credentials_request, nil)
+      |> Map.put(:inhibit_credentials_request, false)
+      |> Map.put(:credentials_secret, unconfirmed_credentials_secret2)
+
+    confirmed_device =
+      DeviceGenerator.device(interfaces: interfaces_data.interfaces)
+      |> resize(10)
+      |> Enum.at(0)
+      |> Map.put(:first_credentials_request, DateTime.now!("Etc/UTC"))
+      |> Map.put(:inhibit_credentials_request, false)
+      |> Map.put(:credentials_secret, confirmed_credentials_secret)
 
     Enum.each(interfaces_data.interfaces, &insert_interface_cleanly(realm_name, &1))
 
@@ -49,11 +98,53 @@ defmodule Astarte.Cases.Device do
       |> update_interfaces_id(interface_descriptors)
       |> update_endpoints_ids(endpoints)
 
-    insert_device_cleanly(realm_name, device, interfaces)
+    insert_device_cleanly(realm_name, device, interfaces, credentials_secret)
+
+    insert_device_cleanly(
+      realm_name,
+      unconfirmed_device,
+      interfaces,
+      unconfirmed_credentials_secret
+    )
+
+    insert_device_cleanly(
+      realm_name,
+      unconfirmed_device2,
+      interfaces,
+      unconfirmed_credentials_secret
+    )
+
+    insert_device_cleanly(realm_name, confirmed_device, interfaces, confirmed_credentials_secret)
+    insert_device_cleanly(realm_name, inhibited_device, interfaces, inhibited_credentials_secret)
+
+    inhibited_device =
+      inhibited_device
+      |> Map.put(:credentials_secret, inhibited_credentials_secret)
+
+    device =
+      device
+      |> Map.put(:credentials_secret, credentials_secret)
+
+    confirmed_device =
+      confirmed_device
+      |> Map.put(:credentials_secret, confirmed_credentials_secret)
+
+    unconfirmed_device =
+      unconfirmed_device
+      |> Map.put(:credentials_secret, unconfirmed_credentials_secret)
+
+    unconfirmed_device2 =
+      unconfirmed_device2
+      |> Map.put(:credentials_secret, unconfirmed_credentials_secret2)
 
     interfaces_data
     |> Map.put(:interfaces, interfaces)
     |> Map.put(:device, device)
+    |> Map.put(:unconfirmed_device, unconfirmed_device)
+    |> Map.put(:unconfirmed_device2, unconfirmed_device2)
+    |> Map.put(:confirmed_device, confirmed_device)
+    |> Map.put(:inhibited_device, inhibited_device)
+    |> Map.put(:unregistered_device, unregistered_device)
     |> Map.put(:interface_descriptors, interface_descriptors)
     |> Map.put(:endpoints, endpoints)
   end

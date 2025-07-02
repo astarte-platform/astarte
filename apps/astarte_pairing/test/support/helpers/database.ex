@@ -20,6 +20,11 @@ defmodule Astarte.Helpers.Database do
   alias Astarte.DataAccess.Devices.Device, as: DeviceSchema
   alias Astarte.DataAccess.Realms.Realm
   alias Astarte.DataAccess.Repo
+  alias Astarte.Pairing.CredentialsSecret
+  alias Astarte.Pairing.Queries
+  alias Astarte.Core.Device
+  alias Astarte.DataAccess.Consistency
+  import Ecto.Query
 
   @create_keyspace """
   CREATE KEYSPACE :keyspace
@@ -238,6 +243,16 @@ defmodule Astarte.Helpers.Database do
     VALUES (:device_id)
   """
 
+  @registered_not_confirmed_credentials_secret CredentialsSecret.generate()
+
+  @registered_and_confirmed_256_credentials_secret CredentialsSecret.generate()
+
+  def registered_not_confirmed_credentials_secret(),
+    do: @registered_not_confirmed_credentials_secret
+
+  def registered_and_confirmed_256_credentials_secret(),
+    do: @registered_and_confirmed_256_credentials_secret
+
   def setup_astarte_keyspace do
     astarte_keyspace = Realm.astarte_keyspace_name()
     execute!(astarte_keyspace, @create_keyspace)
@@ -420,5 +435,82 @@ defmodule Astarte.Helpers.Database do
     Astarte.DataAccess.Config
     |> Mimic.stub(:astarte_instance_id, fn -> {:ok, astarte_instance_id} end)
     |> Mimic.stub(:astarte_instance_id!, fn -> astarte_instance_id end)
+  end
+
+  def get_first_registration(realm, hardware_id) do
+    {:ok, device_id} = Device.decode_device_id(hardware_id, allow_extended_id: true)
+
+    {:ok, device} = Queries.fetch_device(realm, device_id)
+    device.first_registration
+  end
+
+  def get_introspection(realm, hardware_id) do
+    {:ok, device_id} = Device.decode_device_id(hardware_id, allow_extended_id: true)
+
+    {:ok, device} = Queries.fetch_device(realm, device_id)
+    device.introspection
+  end
+
+  def get_introspection_minor(realm, hardware_id) do
+    {:ok, device_id} = Device.decode_device_id(hardware_id, allow_extended_id: true)
+    {:ok, device} = Queries.fetch_device(realm, device_id)
+    device.introspection_minor
+  end
+
+  def get_message_count_for_device(realm, hardware_id) do
+    {:ok, device_id} = Device.decode_device_id(hardware_id, allow_extended_id: true)
+
+    {:ok, device} = Queries.fetch_device(realm, device_id)
+
+    [
+      %{
+        total_received_msgs: device.total_received_msgs,
+        total_received_bytes: device.total_received_bytes
+      }
+    ]
+  end
+
+  def set_device_registration_limit(realm_name, limit) do
+    opts = [prefix: Realm.astarte_keyspace_name(), consistency: Consistency.domain_model(:write)]
+
+    from(Realm, where: [realm_name: ^realm_name])
+    |> Repo.update_all([set: [device_registration_limit: limit]], opts)
+
+    :ok
+  end
+
+  def set_received_message_count_for_device(
+        realm_name,
+        device_id,
+        total_received_msgs,
+        total_received_bytes
+      ) do
+    realm_keyspace = Realm.keyspace_name(realm_name)
+
+    {:ok, device_id} = Device.decode_device_id(device_id, allow_extended_id: true)
+
+    opts = [prefix: realm_keyspace, consistency: Consistency.domain_model(:write)]
+
+    from(DeviceSchema, where: [device_id: ^device_id])
+    |> Repo.update_all(
+      [
+        set: [
+          total_received_msgs: total_received_msgs,
+          total_received_bytes: total_received_bytes
+        ]
+      ],
+      opts
+    )
+
+    :ok
+  end
+
+  def random_128_bit_hw_id do
+    :crypto.strong_rand_bytes(16) |> Base.url_encode64(padding: false)
+  end
+
+  def now_millis do
+    DateTime.utc_now()
+    |> DateTime.to_unix(:millisecond)
   end
 end

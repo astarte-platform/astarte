@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2017 Ispirata Srl
+# Copyright 2025 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -16,9 +16,13 @@
 # limitations under the License.
 #
 
-Mimic.copy(Astarte.DataAccess.Config)
-Mimic.copy(Astarte.Pairing.Config)
-Mimic.copy(DateTime)
-Mimic.copy(Astarte.DataAccess.Health.Health)
+defmodule Astarte.Pairing.CFSSLCredentialsTest do
+  use ExUnit.Case, async: true
 
-ExUnit.start(capture_log: true)
+  alias Astarte.Pairing.CFSSLCredentials
+
+  test "revoke should never fail" do
+    assert CFSSLCredentials.revoke("invalidserial", "invalidaki") == :ok
+    assert CFSSLCredentials.revoke(nil, nil) == :ok
+  end
+end
