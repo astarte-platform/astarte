@@ -67,7 +67,7 @@ defmodule Astarte.Pairing.Config do
   """
   app_env :disable_authentication, :astarte_pairing, :disable_authentication,
     os_env: "PAIRING_API_DISABLE_AUTHENTICATION",
-    type: :binary,
+    type: :boolean,
     default: false
 
   @doc """
