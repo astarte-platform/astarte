@@ -1,9 +1,3 @@
 {
-    "skip_files": [
-        "test",
-        "deps",
-        "_build",
-        "lib/astarte_realm_management/device_removal/scheduler.ex",
-        "lib/astarte_realm_management/device_removal/device_remover.ex"
-    ]
+    "skip_files": ["test", "deps"]
 }

@@ -34,28 +34,18 @@ services:
     restart: on-failure
     depends_on:
       - "rabbitmq"
-      - "scylla"
-
-  astarte-realm-management-api:
-    image: astarte/astarte_realm_management_api:1.2-snapshot
-    build:
-      context: apps/astarte_realm_management_api
-    env_file:
-      - ./.env
-    restart: on-failure
-    depends_on:
-      - "rabbitmq"
       - "traefik"
+      - "scylla"
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.astarte-realm-management-api.rule=Host(`api.${DOCKER_COMPOSE_ASTARTE_BASE_DOMAIN}`)"
-      - "traefik.http.routers.astarte-realm-management-api.rule=PathPrefix(`/realmmanagement`)"
-      - "traefik.http.routers.astarte-realm-management-api.entrypoints=web"
-      - "traefik.http.routers.astarte-realm-management-api.middlewares=astarte-realm-management-api"
-      - "traefik.http.routers.astarte-realm-management-api.service=astarte-realm-management-api"
-      - "traefik.http.middlewares.astarte-realm-management-api.stripprefix.prefixes=/realmmanagement"
-      - "traefik.http.middlewares.astarte-realm-management-api.stripprefix.forceSlash=false"
-      - "traefik.http.services.astarte-realm-management-api.loadbalancer.server.port=4000"
+      - "traefik.http.routers.astarte-realm-management.rule=Host(`api.${DOCKER_COMPOSE_ASTARTE_BASE_DOMAIN}`)"
+      - "traefik.http.routers.astarte-realm-management.rule=PathPrefix(`/realmmanagement`)"
+      - "traefik.http.routers.astarte-realm-management.entrypoints=web"
+      - "traefik.http.routers.astarte-realm-management.middlewares=astarte-realm-management"
+      - "traefik.http.routers.astarte-realm-management.service=astarte-realm-management"
+      - "traefik.http.middlewares.astarte-realm-management.stripprefix.prefixes=/realmmanagement"
+      - "traefik.http.middlewares.astarte-realm-management.stripprefix.forceSlash=false"
+      - "traefik.http.services.astarte-realm-management.loadbalancer.server.port=4000"
 
   astarte-pairing:
     image: astarte/astarte_pairing:1.2-snapshot
@@ -141,7 +131,7 @@ services:
     volumes:
       - ./compose/astarte-dashboard/config.json:/usr/share/nginx/html/user-config/config.json:z
     depends_on:
-      - "astarte-realm-management-api"
+      - "astarte-realm-management"
       - "astarte-appengine-api"
       - "traefik"
     labels:

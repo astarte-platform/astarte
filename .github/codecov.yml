@@ -60,10 +60,6 @@ flags:
     carryforward: true
     paths:
       - apps/astarte_realm_management
-  astarte_realm_management_api:
-    carryforward: true
-    paths:
-      - apps/astarte_realm_management_api
   astarte_trigger_engine:
     carryforward: true
     paths:
