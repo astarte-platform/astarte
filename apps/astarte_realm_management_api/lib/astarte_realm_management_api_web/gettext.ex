@@ -23,7 +23,7 @@ defmodule Astarte.RealmManagement.APIWeb.Gettext do
   By using [Gettext](https://hexdocs.pm/gettext),
   your module gains a set of macros for translations, for example:
 
-      import Astarte.RealmManagement.APIWeb.Gettext
+      use Gettext, backend: Astarte.RealmManagement.APIWeb.Gettext
 
       # Simple translation
       gettext "Here is the string to translate"
@@ -38,5 +38,5 @@ defmodule Astarte.RealmManagement.APIWeb.Gettext do
 
   See the [Gettext Docs](https://hexdocs.pm/gettext) for detailed usage.
   """
-  use Gettext, otp_app: :astarte_realm_management_api
+  use Gettext.Backend, otp_app: :astarte_realm_management_api
 end

@@ -22,7 +22,7 @@ defmodule Astarte.AppEngine.APIWeb.Gettext do
   By using [Gettext](https://hexdocs.pm/gettext),
   your module gains a set of macros for translations, for example:
 
-      import Astarte.AppEngine.APIWeb.Gettext
+      use Gettext, backend: Astarte.AppEngine.APIWeb.Gettext
 
       # Simple translation
       gettext "Here is the string to translate"

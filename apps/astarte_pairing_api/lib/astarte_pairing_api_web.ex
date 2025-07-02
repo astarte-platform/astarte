@@ -40,7 +40,7 @@ defmodule Astarte.Pairing.APIWeb do
       use Phoenix.Controller, namespace: Astarte.Pairing.APIWeb
       import Plug.Conn
       import Astarte.Pairing.APIWeb.Router.Helpers
-      import Astarte.Pairing.APIWeb.Gettext
+      use Gettext, backend: Astarte.Pairing.APIWeb.Gettext
     end
   end
 
@@ -55,7 +55,7 @@ defmodule Astarte.Pairing.APIWeb do
 
       import Astarte.Pairing.APIWeb.Router.Helpers
       import Astarte.Pairing.APIWeb.ErrorHelpers
-      import Astarte.Pairing.APIWeb.Gettext
+      use Gettext, backend: Astarte.Pairing.APIWeb.Gettext
     end
   end
 
@@ -70,7 +70,7 @@ defmodule Astarte.Pairing.APIWeb do
   def channel do
     quote do
       use Phoenix.Channel
-      import Astarte.Pairing.APIWeb.Gettext
+      use Gettext, backend: Astarte.Pairing.APIWeb.Gettext
     end
   end
 
