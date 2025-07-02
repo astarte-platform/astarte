@@ -33,7 +33,11 @@ defmodule Astarte.RealmManagement.APIWeb.Plug.VerifyHeader do
   end
 
   def call(conn, opts) do
-    secret = get_secret(conn)
+    secret =
+      case fetch_secret(conn) do
+        {:ok, secret} -> secret
+        {:error, _reason} -> nil
+      end
 
     merged_opts =
       opts
@@ -42,19 +46,10 @@ defmodule Astarte.RealmManagement.APIWeb.Plug.VerifyHeader do
     GuardianVerifyHeader.call(conn, merged_opts)
   end
 
-  defp get_secret(conn) do
+  defp fetch_secret(conn) do
     with %{"realm_name" => realm} <- conn.path_params,
-         {:ok, public_key_pem} <- Auth.fetch_public_key(realm),
-         %JWK{} = jwk <- JWK.from_pem(public_key_pem) do
-      jwk
-    else
-      {:error, reason} ->
-        _ =
-          Logger.error("Couldn't get JWT public key PEM: #{inspect(reason)}.",
-            tag: "get_jwt_secret_error"
-          )
-
-        nil
+         {:ok, public_key_pem} <- Auth.fetch_public_key(realm) do
+      {:ok, JWK.from_pem(public_key_pem)}
     end
   end
 end

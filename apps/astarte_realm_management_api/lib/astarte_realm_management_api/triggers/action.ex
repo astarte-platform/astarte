@@ -23,11 +23,11 @@ defmodule Astarte.RealmManagement.API.Triggers.Action do
   or in an Astarte.RealmManagement.API.Triggers.HttpAction struct.
   Validation is performed in the related modules.
   """
-  use Ecto.Schema
+  use TypedEctoSchema
   alias Astarte.RealmManagement.API.Triggers.Action
 
   @primary_key false
-  embedded_schema do
+  typed_embedded_schema do
     field :http_url, :string
     field :http_method, :string
     field :http_static_headers, {:map, :string}

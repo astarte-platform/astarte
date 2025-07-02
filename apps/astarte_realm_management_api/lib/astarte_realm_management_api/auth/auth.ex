@@ -21,6 +21,7 @@ defmodule Astarte.RealmManagement.API.Auth do
 
   require Logger
 
+  @spec fetch_public_key(String.t()) :: {:ok, String.t()} | {:error, :public_key_not_found}
   def fetch_public_key(realm) do
     Queries.fetch_jwt_public_key_pem(realm)
   end
