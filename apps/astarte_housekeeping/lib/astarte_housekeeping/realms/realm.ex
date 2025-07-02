@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2017-2023 SECO Mind Srl
+# Copyright 2017 - 2025 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -17,7 +17,8 @@
 #
 
 defmodule Astarte.Housekeeping.Realms.Realm do
-  use Ecto.Schema
+  use TypedEctoSchema
+
   import Ecto.Changeset
 
   alias Astarte.Housekeeping.Realms.NonNegativeIntegerOrUnsetType
@@ -44,9 +45,9 @@ defmodule Astarte.Housekeeping.Realms.Realm do
   @primary_key false
   @derive {Phoenix.Param, key: :realm_name}
 
-  embedded_schema do
-    field :realm_name
-    field :jwt_public_key_pem
+  typed_embedded_schema do
+    field :realm_name, :string
+    field :jwt_public_key_pem, :string
     field :replication_factor, :integer
     field :replication_class, :string
     field :datacenter_replication_factors, {:map, :integer}

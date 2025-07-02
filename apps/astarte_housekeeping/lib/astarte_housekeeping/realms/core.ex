@@ -26,13 +26,15 @@ defmodule Astarte.Housekeeping.Realms.Core do
     Logger.info("Updating realm #{realm_name}", tag: "realm_update_start")
 
     with {:ok, realm} <- Queries.get_realm(realm_name) do
-      Enum.reduce_while(changes, {:ok, realm}, fn {field, changed_value}, {:ok, realm} ->
-        case update_realm_field(realm, field, changed_value) do
-          :ok -> {:cont, {:ok, %{realm | field => changed_value}}}
-          {:ok, realm} -> {:cont, {:ok, realm}}
-          error -> {:halt, error}
-        end
-      end)
+      updated_realm =
+        Enum.reduce(changes, realm, fn {field, changed_value}, acc_realm ->
+          case update_realm_field(acc_realm, field, changed_value) do
+            :ok -> %{acc_realm | field => changed_value}
+            {:ok, realm} -> realm
+          end
+        end)
+
+      {:ok, updated_realm}
     end
   end
 
