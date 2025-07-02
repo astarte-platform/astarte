@@ -245,7 +245,7 @@ defmodule Astarte.Housekeeping.Realms.Queries do
            :ok <- create_grouped_devices_table(keyspace_conn),
            :ok <- create_deletion_in_progress_table(keyspace_conn),
            :ok <- insert_realm_public_key(keyspace_conn, public_key_pem),
-           :ok <- insert_realm_astarte_schema_version(keyspace_conn),
+           :ok <- insert_realm_astarte_schema_version(realm_name),
            :ok <- insert_realm(realm_name, device_limit),
            :ok <- insert_datastream_max_retention(realm_name, max_retention) do
         :ok
@@ -436,19 +436,22 @@ defmodule Astarte.Housekeeping.Realms.Queries do
     end
   end
 
-  defp insert_realm_astarte_schema_version({conn, realm}) do
-    query = """
-    INSERT INTO #{realm}.kv_store
-    (group, key, value)
-    VALUES ('astarte', 'schema_version', bigintAsBlob(#{Migrator.latest_realm_schema_version()}));
-    """
-
+  defp insert_realm_astarte_schema_version(realm_name) do
+    keyspace_name = Realm.keyspace_name(realm_name)
     consistency = Consistency.domain_model(:write)
 
-    with {:ok, %Xandra.Void{}} <-
-           Xandra.execute(conn, query, %{}, consistency: consistency) do
-      :ok
-    end
+    opts = [
+      consistency: consistency,
+      prefix: keyspace_name
+    ]
+
+    %{
+      group: "astarte",
+      key: "schema_version",
+      value: Migrator.latest_realm_schema_version(),
+      value_type: :big_integer
+    }
+    |> KvStore.insert(opts)
   end
 
   defp insert_realm_public_key({conn, realm}, public_key_pem) do
