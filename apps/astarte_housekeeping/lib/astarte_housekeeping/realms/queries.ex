@@ -244,7 +244,7 @@ defmodule Astarte.Housekeeping.Realms.Queries do
            :ok <- create_simple_triggers_table(keyspace_conn),
            :ok <- create_grouped_devices_table(keyspace_conn),
            :ok <- create_deletion_in_progress_table(keyspace_conn),
-           :ok <- insert_realm_public_key(keyspace_conn, public_key_pem),
+           :ok <- insert_realm_public_key(realm_name, public_key_pem),
            :ok <- insert_realm_astarte_schema_version(realm_name),
            :ok <- insert_realm(realm_name, device_limit),
            :ok <- insert_datastream_max_retention(realm_name, max_retention) do
@@ -454,21 +454,22 @@ defmodule Astarte.Housekeeping.Realms.Queries do
     |> KvStore.insert(opts)
   end
 
-  defp insert_realm_public_key({conn, realm}, public_key_pem) do
-    query = """
-    INSERT INTO #{realm}.kv_store (group, key, value)
-    VALUES ('auth', 'jwt_public_key_pem', varcharAsBlob(:public_key_pem));
-    """
-
-    params = %{"public_key_pem" => public_key_pem}
-
+  defp insert_realm_public_key(realm_name, public_key_pem) do
+    keyspace_name = Realm.keyspace_name(realm_name)
     consistency = Consistency.domain_model(:write)
 
-    with {:ok, prepared} <- Xandra.prepare(conn, query),
-         {:ok, %Xandra.Void{}} <-
-           Xandra.execute(conn, prepared, params, consistency: consistency) do
-      :ok
-    end
+    opts = [
+      consistency: consistency,
+      prefix: keyspace_name
+    ]
+
+    %{
+      group: "auth",
+      key: "jwt_public_key_pem",
+      value: public_key_pem,
+      value_type: :string
+    }
+    |> KvStore.insert(opts)
   end
 
   defp get_local_datacenter(conn) do
