@@ -18,7 +18,7 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
-defmodule Astarte.RealmManagement.API.Fixtures.SimpleTriggerConfig do
+defmodule Astarte.RealmManagement.Fixtures.SimpleTriggerConfig do
   @moduledoc """
   fixtures for Astarte.Core.Triggers.SimpleTriggerConfig module.
   """

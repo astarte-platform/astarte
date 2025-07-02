@@ -18,17 +18,17 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
-defmodule Astarte.RealmManagement.API.DeviceRemover.CoreTest do
+defmodule Astarte.RealmManagement.DeviceRemover.CoreTest do
   alias Astarte.DataAccess.Device.DeletionInProgress
   alias Astarte.DataAccess.KvStore
   alias Astarte.DataAccess.Devices.Device
   alias Astarte.Core.CQLUtils
-  alias Astarte.RealmManagement.API.Interfaces
-  alias Astarte.RealmManagement.API.CreateDatastreamIndividualMultiInterface
-  alias Astarte.RealmManagement.API.DeviceRemoval.Queries
+  alias Astarte.RealmManagement.Interfaces
+  alias Astarte.RealmManagement.CreateDatastreamIndividualMultiInterface
+  alias Astarte.RealmManagement.DeviceRemoval.Queries
   alias Astarte.DataAccess.Realms.Realm
   alias Astarte.DataAccess.Repo
-  alias Astarte.RealmManagement.API.DeviceRemoval.Core
+  alias Astarte.RealmManagement.DeviceRemoval.Core
   alias Astarte.Core.Interface
 
   use Astarte.Cases.Data, async: true
@@ -50,7 +50,7 @@ defmodule Astarte.RealmManagement.API.DeviceRemover.CoreTest do
               device_id <- Astarte.Core.Generators.Device.id(),
               individual_datastreams <-
                 list_of(
-                  Astarte.RealmManagement.API.Generators.IndividualDatastream.individual_datastream(
+                  Astarte.RealmManagement.Generators.IndividualDatastream.individual_datastream(
                     device_id: device_id
                   )
                 )
@@ -72,7 +72,7 @@ defmodule Astarte.RealmManagement.API.DeviceRemover.CoreTest do
               device_id <- Astarte.Core.Generators.Device.id(),
               individual_properties <-
                 list_of(
-                  Astarte.RealmManagement.API.Generators.IndividualProperty.individual_property(
+                  Astarte.RealmManagement.Generators.IndividualProperty.individual_property(
                     device_id: device_id
                   )
                 )
@@ -128,7 +128,7 @@ defmodule Astarte.RealmManagement.API.DeviceRemover.CoreTest do
       check all(
               device_id <- Astarte.Core.Generators.Device.id(),
               aliases <-
-                list_of(Astarte.RealmManagement.API.Generators.Name.name(device_id: device_id))
+                list_of(Astarte.RealmManagement.Generators.Name.name(device_id: device_id))
             ) do
         Enum.each(aliases, &Repo.insert!(&1, prefix: keyspace))
 
@@ -147,7 +147,7 @@ defmodule Astarte.RealmManagement.API.DeviceRemover.CoreTest do
               device_id <- Astarte.Core.Generators.Device.id(),
               grouped_devices <-
                 list_of(
-                  Astarte.RealmManagement.API.Generators.GroupedDevice.grouped_devide(
+                  Astarte.RealmManagement.Generators.GroupedDevice.grouped_devide(
                     device_id: device_id
                   )
                 )

@@ -20,4 +20,4 @@ import Config
 
 port = System.get_env("REALM_MANAGEMENT_API_PORT", "4000") |> String.to_integer()
 
-config :astarte_realm_management_api, Astarte.RealmManagement.APIWeb.Endpoint, http: [port: port]
+config :astarte_realm_management, Astarte.RealmManagementWeb.Endpoint, http: [port: port]

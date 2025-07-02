@@ -16,9 +16,9 @@
 # limitations under the License.
 #
 
-defmodule Astarte.RealmManagement.APIWeb.VersionControllerTest do
+defmodule Astarte.RealmManagementWeb.VersionControllerTest do
   use Astarte.Cases.Data, async: true
-  use Astarte.RealmManagement.APIWeb.ConnCase
+  use Astarte.RealmManagementWeb.ConnCase
 
   @expected_version Mix.Project.config()[:version]
 

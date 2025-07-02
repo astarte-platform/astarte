@@ -16,14 +16,14 @@
 # limitations under the License.
 #
 
-defmodule Astarte.RealmManagement.API.Triggers.TriggerTest do
+defmodule Astarte.RealmManagement.Triggers.TriggerTest do
   use ExUnit.Case, async: true
 
   @moduletag :trigger_actions
 
   alias Astarte.Core.Triggers.SimpleTriggerConfig
-  alias Astarte.RealmManagement.API.Triggers.Trigger
-  alias Astarte.RealmManagement.API.Triggers.Action
+  alias Astarte.RealmManagement.Triggers.Trigger
+  alias Astarte.RealmManagement.Triggers.Action
   alias Ecto.Changeset
 
   test "valid triggers with http action are accepted" do

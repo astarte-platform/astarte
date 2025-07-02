@@ -18,15 +18,15 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
-defmodule Astarte.RealmManagement.API.RealmConfig.RealmConfigTest do
+defmodule Astarte.RealmManagement.RealmConfig.RealmConfigTest do
   use Astarte.Cases.Data, async: true, jwt_public_key: "fake_pem"
   use ExUnitProperties
 
   alias Astarte.DataAccess.KvStore
   alias Astarte.DataAccess.Repo
   alias Astarte.Helpers
-  alias Astarte.RealmManagement.API.RealmConfig.AuthConfig
-  alias Astarte.RealmManagement.API.RealmConfig
+  alias Astarte.RealmManagement.RealmConfig.AuthConfig
+  alias Astarte.RealmManagement.RealmConfig
 
   setup %{realm_name: realm_name, jwt_public_key: key, astarte_instance_id: astarte_instance_id} do
     on_exit(fn ->

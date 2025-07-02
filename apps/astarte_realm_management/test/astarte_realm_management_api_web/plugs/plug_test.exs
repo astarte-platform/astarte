@@ -16,8 +16,8 @@
 # limitations under the License.
 #
 
-defmodule Astarte.RealmManagement.APIWeb.PlugTest do
-  use Astarte.RealmManagement.APIWeb.ConnCase, async: true
+defmodule Astarte.RealmManagementWeb.PlugTest do
+  use Astarte.RealmManagementWeb.ConnCase, async: true
   use Mimic
 
   alias Astarte.DataAccess.Health.Health

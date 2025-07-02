@@ -16,13 +16,13 @@
 # limitations under the License.
 #
 
-defmodule Astarte.RealmManagement.API.Triggers.ActionTest do
+defmodule Astarte.RealmManagement.Triggers.ActionTest do
   use ExUnit.Case, async: true
 
   @moduletag :trigger_actions
 
-  alias Astarte.RealmManagement.API.Triggers.Action
-  alias Astarte.RealmManagement.API.Triggers.Trigger
+  alias Astarte.RealmManagement.Triggers.Action
+  alias Astarte.RealmManagement.Triggers.Trigger
 
   describe "well-formed HTTP action is correctly encoded" do
     test "when headers are set" do

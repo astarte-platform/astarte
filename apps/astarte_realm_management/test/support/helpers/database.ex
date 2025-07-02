@@ -285,7 +285,7 @@ defmodule Astarte.Helpers.Database do
     execute!(realm_keyspace, @insert_public_key, %{"pem" => key})
   end
 
-  def get_public_key, do: Application.get_env(:astarte_realm_management_api, :test_pub_key_pem)
+  def get_public_key, do: Application.get_env(:astarte_realm_management, :test_pub_key_pem)
 
   def insert_datastream_maximum_storage_retention!(realm_name, max_retention) do
     realm_keyspace = Realm.keyspace_name(realm_name)

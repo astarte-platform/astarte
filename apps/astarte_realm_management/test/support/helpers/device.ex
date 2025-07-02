@@ -17,7 +17,7 @@
 
 defmodule Astarte.Helpers.Device do
   alias Astarte.Helpers
-  alias Astarte.RealmManagement.API.Interfaces
+  alias Astarte.RealmManagement.Interfaces
   alias Astarte.DataAccess.Repo
   alias Astarte.DataAccess.Devices.Device
   alias Astarte.DataAccess.Realms.Interface

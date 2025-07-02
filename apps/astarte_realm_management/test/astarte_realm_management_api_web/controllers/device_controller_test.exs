@@ -16,9 +16,9 @@
 # limitations under the License.
 #
 
-defmodule Astarte.RealmManagement.APIWeb.DeviceControllerTest do
+defmodule Astarte.RealmManagementWeb.DeviceControllerTest do
   use Astarte.Cases.Data, async: true
-  use Astarte.RealmManagement.APIWeb.ConnCase
+  use Astarte.RealmManagementWeb.ConnCase
   use Astarte.Cases.Device
 
   @nonexisting_device_id :crypto.strong_rand_bytes(16) |> Base.url_encode64(padding: false)

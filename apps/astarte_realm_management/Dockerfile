@@ -45,9 +45,9 @@ RUN apt-get -qq install openssl ca-certificates
 # We have to redefine this here since it goes out of scope for each build stage
 ARG BUILD_ENV=prod
 
-COPY --from=builder /app/_build/$BUILD_ENV/rel/astarte_realm_management_api .
+COPY --from=builder /app/_build/$BUILD_ENV/rel/astarte_realm_management .
 
 # Change to non-root user
 USER nobody
 
-CMD ["./bin/astarte_realm_management_api", "start"]
+CMD ["./bin/astarte_realm_management", "start"]

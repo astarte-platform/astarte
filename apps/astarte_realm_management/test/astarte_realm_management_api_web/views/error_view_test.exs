@@ -16,29 +16,29 @@
 # limitations under the License.
 #
 
-defmodule Astarte.RealmManagement.APIWeb.ErrorViewTest do
-  use Astarte.RealmManagement.APIWeb.ConnCase, async: true
+defmodule Astarte.RealmManagementWeb.ErrorViewTest do
+  use Astarte.RealmManagementWeb.ConnCase, async: true
 
   # Bring render/3 and render_to_string/3 for testing custom views
   import Phoenix.View
 
   test "renders 400.json" do
-    assert render(Astarte.RealmManagement.APIWeb.ErrorView, "400.json", []) ==
+    assert render(Astarte.RealmManagementWeb.ErrorView, "400.json", []) ==
              %{errors: %{detail: "Bad request"}}
   end
 
   test "renders 404.json" do
-    assert render(Astarte.RealmManagement.APIWeb.ErrorView, "404.json", []) ==
+    assert render(Astarte.RealmManagementWeb.ErrorView, "404.json", []) ==
              %{errors: %{detail: "Not found"}}
   end
 
   test "render 500.json" do
-    assert render(Astarte.RealmManagement.APIWeb.ErrorView, "500.json", []) ==
+    assert render(Astarte.RealmManagementWeb.ErrorView, "500.json", []) ==
              %{errors: %{detail: "Internal server error"}}
   end
 
   test "render any other" do
-    assert render(Astarte.RealmManagement.APIWeb.ErrorView, "505.json", []) ==
+    assert render(Astarte.RealmManagementWeb.ErrorView, "505.json", []) ==
              %{errors: %{detail: "Internal server error"}}
   end
 end

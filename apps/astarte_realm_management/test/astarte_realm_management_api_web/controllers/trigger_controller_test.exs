@@ -16,17 +16,17 @@
 # limitations under the License.
 #
 
-defmodule Astarte.RealmManagement.APIWeb.TriggerControllerTest do
+defmodule Astarte.RealmManagementWeb.TriggerControllerTest do
   use Astarte.Cases.Data, async: true
-  use Astarte.RealmManagement.APIWeb.ConnCase
+  use Astarte.RealmManagementWeb.ConnCase
 
   @moduletag :triggers
 
   alias Astarte.Helpers.Database
-  alias Astarte.RealmManagement.API.Triggers
+  alias Astarte.RealmManagement.Triggers
   alias Astarte.Helpers.Database
 
-  import Astarte.RealmManagement.API.Fixtures.Trigger
+  import Astarte.RealmManagement.Fixtures.Trigger
 
   @trigger_name valid_trigger_attrs()["name"]
 

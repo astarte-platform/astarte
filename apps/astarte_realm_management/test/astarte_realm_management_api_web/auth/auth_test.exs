@@ -16,11 +16,11 @@
 # limitations under the License.
 #
 
-defmodule Astarte.RealmManagement.APIWeb.AuthTest do
+defmodule Astarte.RealmManagementWeb.AuthTest do
   use Astarte.Cases.Data
-  use Astarte.RealmManagement.APIWeb.ConnCase
+  use Astarte.RealmManagementWeb.ConnCase
 
-  alias Astarte.RealmManagement.API.Helpers.JWTTestHelper
+  alias Astarte.RealmManagement.Helpers.JWTTestHelper
 
   @valid_auth_path "^interfaces$"
   @valid_auth_path_no_delim "interfaces"

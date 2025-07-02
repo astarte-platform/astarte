@@ -2,7 +2,7 @@ import Config
 
 # We don't run a server during test. If one is required,
 # you can enable the server option below.
-config :astarte_realm_management_api, Astarte.RealmManagement.APIWeb.Endpoint,
+config :astarte_realm_management, Astarte.RealmManagementWeb.Endpoint,
   http: [port: 4001],
   server: false
 
@@ -19,7 +19,7 @@ config :logger, :console,
     :tag
   ]
 
-config :astarte_realm_management_api,
+config :astarte_realm_management,
        :test_priv_key,
        {%{kty: :jose_jwk_kty_rsa},
         %{
@@ -41,7 +41,7 @@ config :astarte_realm_management_api,
             "mb3tAXjpvnrRD0S4Ag6Xv5IBk4cExwWM-hpmK5ASc-fSmIZAG26VK-ctfYQ-q1JINx0u87bTKbxptjpxpIBIJxvZ6DsjXahAtYdMchUKp-x0R4Lw2QppsnS1ulUHUs7GrP2x_g5bURai4BVcEzfU4MmaWQZyfGC8I84-Ef3V3l0"
         }}
 
-config :astarte_realm_management_api, :test_pub_key_pem, """
+config :astarte_realm_management, :test_pub_key_pem, """
 -----BEGIN PUBLIC KEY-----
 MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAvxc/7iTcAd5FprvGWQtl
 bhBJy2gv0QLk0GcXg6cK+XYne7bkXJ/2ada1cQDfQAiZ9XRN04sGyrVCY0IjAbRC

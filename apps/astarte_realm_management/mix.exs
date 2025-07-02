@@ -16,12 +16,12 @@
 # limitations under the License.
 #
 
-defmodule Astarte.RealmManagement.API.Mixfile do
+defmodule Astarte.RealmManagement.Mixfile do
   use Mix.Project
 
   def project do
     [
-      app: :astarte_realm_management_api,
+      app: :astarte_realm_management,
       version: "1.2.1-alpha.0",
       build_path: "_build",
       config_path: "config/config.exs",
@@ -47,7 +47,7 @@ defmodule Astarte.RealmManagement.API.Mixfile do
   # Type `mix help compile.app` for more information.
   def application do
     [
-      mod: {Astarte.RealmManagement.API.Application, []},
+      mod: {Astarte.RealmManagement.Application, []},
       extra_applications: [:logger, :runtime_tools]
     ]
   end

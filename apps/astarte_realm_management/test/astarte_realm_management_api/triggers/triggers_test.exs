@@ -16,21 +16,21 @@
 # limitations under the License.
 #
 
-defmodule Astarte.RealmManagement.API.TriggersTest do
+defmodule Astarte.RealmManagement.TriggersTest do
   use Astarte.Cases.Data, async: true
   use ExUnitProperties
 
   @moduletag :triggers
 
   alias Astarte.Helpers.Database
-  alias Astarte.RealmManagement.API.Fixtures.SimpleTriggerConfig, as: SimpleTriggerConfigFixture
-  alias Astarte.RealmManagement.API.Fixtures.Trigger, as: TriggerFixture
-  alias Astarte.RealmManagement.API.Triggers
-  alias Astarte.RealmManagement.API.Triggers.Core
-  alias Astarte.RealmManagement.API.Triggers.Trigger
-  alias Astarte.RealmManagement.API.Triggers.HttpAction
-  alias Astarte.RealmManagement.API.Triggers.Action
-  alias Astarte.RealmManagement.API.Triggers.Policies
+  alias Astarte.RealmManagement.Fixtures.SimpleTriggerConfig, as: SimpleTriggerConfigFixture
+  alias Astarte.RealmManagement.Fixtures.Trigger, as: TriggerFixture
+  alias Astarte.RealmManagement.Triggers
+  alias Astarte.RealmManagement.Triggers.Core
+  alias Astarte.RealmManagement.Triggers.Trigger
+  alias Astarte.RealmManagement.Triggers.HttpAction
+  alias Astarte.RealmManagement.Triggers.Action
+  alias Astarte.RealmManagement.Triggers.Policies
   alias Astarte.Core.Generators.Triggers.Policy, as: PolicyGenerator
 
   setup context do

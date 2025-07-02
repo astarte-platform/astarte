@@ -38,8 +38,8 @@ end
 # when running `mix release`, the first release in the file
 # will be used by default
 
-release :astarte_realm_management_api do
-  set version: current_version(:astarte_realm_management_api)
+release :astarte_realm_management do
+  set version: current_version(:astarte_realm_management)
   set applications: [
     :runtime_tools
   ]

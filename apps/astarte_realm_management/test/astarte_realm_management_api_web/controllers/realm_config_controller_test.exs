@@ -16,13 +16,13 @@
 # limitations under the License.
 #
 
-defmodule Astarte.RealmManagement.APIWeb.RealmControllerTest do
+defmodule Astarte.RealmManagementWeb.RealmControllerTest do
   use Astarte.Cases.Data, async: true
-  use Astarte.RealmManagement.APIWeb.ConnCase
+  use Astarte.RealmManagementWeb.ConnCase
 
   alias Astarte.Helpers
-  alias Astarte.RealmManagement.API.Config
-  alias Astarte.RealmManagement.API.Helpers.JWTTestHelper
+  alias Astarte.RealmManagement.Config
+  alias Astarte.RealmManagement.Helpers.JWTTestHelper
 
   @new_pubkey """
   -----BEGIN PUBLIC KEY-----

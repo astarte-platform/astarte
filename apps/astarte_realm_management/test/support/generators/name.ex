@@ -18,7 +18,7 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
-defmodule Astarte.RealmManagement.API.Generators.Name do
+defmodule Astarte.RealmManagement.Generators.Name do
   @moduledoc """
   Generator for `Astarte.DataAccess.Realms.Name` structures
   """

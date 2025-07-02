@@ -22,11 +22,11 @@ defmodule Astarte.RealmManagement.DeviceRemoval.SchedulerTest do
   @moduledoc """
   Tests for the device remover scheduler.
   """
-  alias Astarte.RealmManagement.API.DeviceRemoval.Queries
+  alias Astarte.RealmManagement.DeviceRemoval.Queries
   alias Astarte.DataAccess.Repo
   alias Astarte.DataAccess.Realms.Realm
   alias Astarte.DataAccess.Device.DeletionInProgress
-  alias Astarte.RealmManagement.API.Generators.DeletionInProgress, as: DeletionGenerator
+  alias Astarte.RealmManagement.Generators.DeletionInProgress, as: DeletionGenerator
 
   use Astarte.Cases.Data, async: true
   use ExUnitProperties

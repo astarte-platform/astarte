@@ -16,9 +16,9 @@
 # limitations under the License.
 #
 
-defmodule Astarte.RealmManagement.APIWeb.InterfaceControllerTest do
+defmodule Astarte.RealmManagementWeb.InterfaceControllerTest do
   use Astarte.Cases.Data, async: true
-  use Astarte.RealmManagement.APIWeb.ConnCase
+  use Astarte.RealmManagementWeb.ConnCase
 
   @moduletag :interfaces
 
@@ -28,7 +28,7 @@ defmodule Astarte.RealmManagement.APIWeb.InterfaceControllerTest do
   alias Astarte.DataAccess.KvStore
   alias Astarte.DataAccess.Realms.Realm
   alias Astarte.Helpers.Database
-  alias Astarte.RealmManagement.API.Interfaces.Core
+  alias Astarte.RealmManagement.Interfaces.Core
 
   @interface_name "com.Some.Interface"
   @interface_major 0

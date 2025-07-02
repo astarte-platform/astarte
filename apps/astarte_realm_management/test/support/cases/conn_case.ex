@@ -16,7 +16,7 @@
 # limitations under the License.
 #
 
-defmodule Astarte.RealmManagement.APIWeb.ConnCase do
+defmodule Astarte.RealmManagementWeb.ConnCase do
   @moduledoc """
   This module defines the test case to be used by
   tests that require setting up a connection.
@@ -32,7 +32,7 @@ defmodule Astarte.RealmManagement.APIWeb.ConnCase do
   """
   use ExUnit.CaseTemplate
 
-  alias Astarte.RealmManagement.API.Helpers.JWTTestHelper
+  alias Astarte.RealmManagement.Helpers.JWTTestHelper
 
   import Plug.Conn
 
@@ -41,9 +41,9 @@ defmodule Astarte.RealmManagement.APIWeb.ConnCase do
       # Import conveniences for testing with connections
       import Plug.Conn
       import Phoenix.ConnTest
-      import Astarte.RealmManagement.APIWeb.Router.Helpers
+      import Astarte.RealmManagementWeb.Router.Helpers
       # The default endpoint for testing
-      @endpoint Astarte.RealmManagement.APIWeb.Endpoint
+      @endpoint Astarte.RealmManagementWeb.Endpoint
     end
   end
 

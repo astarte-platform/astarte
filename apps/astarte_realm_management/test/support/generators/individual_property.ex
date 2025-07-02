@@ -18,7 +18,7 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
-defmodule Astarte.RealmManagement.API.Generators.IndividualProperty do
+defmodule Astarte.RealmManagement.Generators.IndividualProperty do
   @moduledoc """
   Generators of `IndividualProperty`es
   """

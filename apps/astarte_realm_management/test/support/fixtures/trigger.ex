@@ -16,7 +16,7 @@
 # limitations under the License.
 #
 
-defmodule Astarte.RealmManagement.API.Fixtures.Trigger do
+defmodule Astarte.RealmManagement.Fixtures.Trigger do
   alias Astarte.Core.Triggers.Trigger
 
   @valid_attrs %{

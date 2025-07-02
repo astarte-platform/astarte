@@ -16,13 +16,13 @@
 # limitations under the License.
 #
 
-defmodule Astarte.RealmManagement.API.Triggers.HttpActionTest do
+defmodule Astarte.RealmManagement.Triggers.HttpActionTest do
   use ExUnit.Case, async: true
 
   @moduletag :trigger_actions
 
-  alias Astarte.RealmManagement.API.Triggers.HttpAction
-  alias Astarte.RealmManagement.API.Triggers.Trigger
+  alias Astarte.RealmManagement.Triggers.HttpAction
+  alias Astarte.RealmManagement.Triggers.Trigger
   alias Ecto.Changeset
 
   test "HttpAction is invalid when both http_post_url and http_url are set" do

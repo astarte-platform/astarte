@@ -16,13 +16,13 @@
 # limitations under the License.
 #
 
-defmodule Astarte.RealmManagement.API.Triggers.AMQPActionTest do
+defmodule Astarte.RealmManagement.Triggers.AMQPActionTest do
   use ExUnit.Case, async: true
 
   @moduletag :trigger_actions
 
-  alias Astarte.RealmManagement.API.Triggers.AMQPAction
-  alias Astarte.RealmManagement.API.Triggers.Trigger
+  alias Astarte.RealmManagement.Triggers.AMQPAction
+  alias Astarte.RealmManagement.Triggers.Trigger
   alias Ecto.Changeset
 
   test "a valid AMQP action is accepted" do

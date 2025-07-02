@@ -16,13 +16,13 @@
 # limitations under the License.
 #
 
-defmodule Astarte.RealmManagement.APIWeb.TriggerPolicyControllerTest do
+defmodule Astarte.RealmManagementWeb.TriggerPolicyControllerTest do
   use Astarte.Cases.Data, async: true
-  use Astarte.RealmManagement.APIWeb.ConnCase
+  use Astarte.RealmManagementWeb.ConnCase
   @moduletag :trigger_policy
 
   alias Astarte.Core.Generators.Triggers.Policy, as: PolicyGenerator
-  alias Astarte.RealmManagement.API.Triggers.Policies
+  alias Astarte.RealmManagement.Triggers.Policies
   alias Astarte.Helpers.Policy, as: PolicyHelper
 
   import ExUnit.CaptureLog

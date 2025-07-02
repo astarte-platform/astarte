@@ -16,19 +16,19 @@
 # limitations under the License.
 #
 
-defmodule Astarte.RealmManagement.API.DevicesTest do
+defmodule Astarte.RealmManagement.DevicesTest do
   use Astarte.Cases.Data, async: true
   use ExUnitProperties
   use Astarte.Cases.Device
 
-  alias Astarte.RealmManagement.API.Devices
+  alias Astarte.RealmManagement.Devices
   alias Astarte.Core.Generators.Device, as: DeviceGenerator
   alias Astarte.DataAccess.Device.DeletionInProgress
   alias Astarte.DataAccess.Repo
   alias Astarte.DataAccess.Devices.Device
   alias Astarte.DataAccess.Realms.Realm
   alias Astarte.Core.Device, as: DeviceCore
-  alias Astarte.RealmManagement.API.DeviceRemoval.Queries
+  alias Astarte.RealmManagement.DeviceRemoval.Queries
 
   describe "deletion in progress tests" do
     @describetag :devices

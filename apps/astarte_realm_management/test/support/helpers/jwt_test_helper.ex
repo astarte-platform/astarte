@@ -16,17 +16,17 @@
 # limitations under the License.
 #
 
-defmodule Astarte.RealmManagement.API.Helpers.JWTTestHelper do
-  alias Astarte.RealmManagement.API.Auth.User
-  alias Astarte.RealmManagement.APIWeb.AuthGuardian
+defmodule Astarte.RealmManagement.Helpers.JWTTestHelper do
+  alias Astarte.RealmManagement.Auth.User
+  alias Astarte.RealmManagementWeb.AuthGuardian
 
   def public_key_pem do
-    Application.get_env(:astarte_realm_management_api, :test_pub_key_pem)
+    Application.get_env(:astarte_realm_management, :test_pub_key_pem)
   end
 
   def gen_jwt_token(authorization_paths) do
     jwk =
-      Application.get_env(:astarte_realm_management_api, :test_priv_key)
+      Application.get_env(:astarte_realm_management, :test_priv_key)
       |> JOSE.JWK.from_map()
 
     {:ok, jwt, _claims} =
