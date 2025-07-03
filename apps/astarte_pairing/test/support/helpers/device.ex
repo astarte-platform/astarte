@@ -21,6 +21,7 @@ defmodule Astarte.Helpers.Device do
   alias Astarte.DataAccess.Realms.Realm
   alias Astarte.DataAccess.Repo
   alias Astarte.RealmManagement.Interfaces, as: RMInterfaces
+  alias Astarte.Pairing.CredentialsSecret
 
   import ExUnit.CaptureLog
 
@@ -48,18 +49,20 @@ defmodule Astarte.Helpers.Device do
     capture_log(fn -> RMInterfaces.install_interface(realm_name, interface_params) end)
   end
 
-  def insert_device_cleanly(realm_name, device, interfaces) do
+  def insert_device_cleanly(realm_name, device, interfaces, secret) do
     keyspace = Realm.keyspace_name(realm_name)
     introspection = interfaces |> Map.new(&{&1.name, &1.major_version})
     introspection_minor = interfaces |> Map.new(&{&1.name, &1.minor_version})
     interfaces_bytes = Map.fetch!(device, :interfaces_bytes)
     interfaces_msgs = Map.fetch!(device, :interfaces_msgs)
+    secret = CredentialsSecret.hash(secret)
 
     device_db_params = %{
       introspection: introspection,
       introspection_minor: introspection_minor,
       exchanged_bytes_by_interface: interfaces_bytes,
-      exchanged_msgs_by_interface: interfaces_msgs
+      exchanged_msgs_by_interface: interfaces_msgs,
+      credentials_secret: secret
     }
 
     device_db = struct(Device, Map.merge(device, device_db_params))
