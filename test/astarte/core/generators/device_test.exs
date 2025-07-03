@@ -67,7 +67,27 @@ defmodule Astarte.Core.Generators.DeviceTest do
               device <- DeviceGenerator.device(),
               max_runs: 100
             ) do
-        refute device == nil
+        refute is_nil(device)
+      end
+    end
+
+    @tag :success
+    @tag issue: 42
+    property "device nillable fields" do
+      check all device <-
+                  DeviceGenerator.device(
+                    last_seen_ip: nil,
+                    last_credentials_request_ip: nil,
+                    inhibit_credentials_request: nil,
+                    last_disconnection: nil,
+                    last_connection: nil,
+                    first_credentials_request: nil,
+                    first_registration: nil,
+                    aliases: nil,
+                    attributes: nil
+                  ),
+                max_runs: 100 do
+        refute is_nil(device)
       end
     end
   end

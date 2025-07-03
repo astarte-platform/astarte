@@ -21,7 +21,6 @@ defmodule Astarte.Core.Generators.Device do
   This module provides generators for Astarte Device.
 
   See https://hexdocs.pm/astarte_core/Astarte.Core.Device.html
-
   """
   use ExUnitProperties
 
@@ -37,25 +36,20 @@ defmodule Astarte.Core.Generators.Device do
   Generates a valid Astarte Device with pre-created interfaces_bytes
   """
   @spec device() :: StreamData.t(map())
-  @spec device(keyword()) :: StreamData.t(map())
+  @spec device(params :: keyword()) :: StreamData.t(map())
   def device(params \\ []) do
     now = DateTime.utc_now() |> DateTime.to_unix()
 
     params gen all id <- id(),
-                   last_seen_ip <- IpGenerator.ip(:ipv4),
-                   last_credentials_request_ip <- IpGenerator.ip(:ipv4),
-                   inhibit_credentials_request <- boolean(),
-                   last_disconnection <-
-                     TimestampGenerator.timestamp(max: now),
-                   last_connection <-
-                     TimestampGenerator.timestamp(max: last_disconnection),
-                   first_credentials_request <-
-                     TimestampGenerator.timestamp(max: last_connection),
-                   first_registration <-
-                     TimestampGenerator.timestamp(max: first_credentials_request),
+                   last_seen_ip <- last_seen_ip(),
+                   last_credentials_request_ip <- last_credentials_request_ip(),
+                   inhibit_credentials_request <- inhibit_credentials_request(),
+                   last_disconnection <- last_disconnection(now),
+                   last_connection <- last_connection(last_disconnection),
+                   first_credentials_request <- first_credentials_request(last_connection),
+                   first_registration <- first_registration(first_credentials_request),
                    interfaces <-
-                     InterfaceGenerator.interface()
-                     |> list_of(min_length: 0, max_length: 10),
+                     InterfaceGenerator.interface() |> list_of(min_length: 0, max_length: 10),
                    aliases <- aliases(),
                    attributes <- attributes(),
                    params: params do
@@ -105,11 +99,39 @@ defmodule Astarte.Core.Generators.Device do
   Generates a valid Astarte encoded Device id
   """
   @spec encoded_id() :: StreamData.t(String.t())
-  def encoded_id do
-    gen all id <- id() do
-      Base.url_encode64(id, padding: false)
-    end
-  end
+  def encoded_id, do: id() |> map(&Base.url_encode64(&1, padding: false))
+
+  defp last_seen_ip, do: one_of([nil, IpGenerator.ip(:ipv4)])
+  defp last_credentials_request_ip, do: one_of([nil, IpGenerator.ip(:ipv4)])
+  defp inhibit_credentials_request, do: boolean()
+  # NOTE: dialyzer does not know about the `params gen all` feature which allows
+  # to override parameters, so it assumes it is never called with `nil`.
+  @dialyzer {:nowarn_function, last_disconnection: 1}
+  defp last_disconnection(nil), do: constant(nil)
+  defp last_disconnection(max), do: TimestampGenerator.timestamp(max: max)
+  defp last_connection(nil), do: constant(nil)
+  defp last_connection(max), do: TimestampGenerator.timestamp(max: max)
+  defp first_credentials_request(nil), do: constant(nil)
+  defp first_credentials_request(max), do: TimestampGenerator.timestamp(max: max)
+  defp first_registration(nil), do: constant(nil)
+  defp first_registration(max), do: TimestampGenerator.timestamp(max: max)
+
+  defp aliases,
+    do:
+      one_of([
+        nil,
+        map_of(string(:alphanumeric, min_length: 1), string(:alphanumeric, min_length: 1))
+      ])
+
+  defp attributes,
+    do:
+      one_of([
+        nil,
+        map_of(
+          string(:alphanumeric, min_length: 1),
+          string(:alphanumeric, min_length: 1)
+        )
+      ])
 
   # Interface utility functions
   defp interface_row(%Interface{name: name}), do: {name, 0..1 |> Enum.random()}
@@ -138,24 +160,5 @@ defmodule Astarte.Core.Generators.Device do
     |> Stream.map(&interface_row/1)
     |> Enum.uniq_by(fn {n, _} -> n end)
     |> interface_map({0, 0, %{}, %{}})
-  end
-
-  defp aliases do
-    [
-      map_of(string(:alphanumeric, min_length: 1), string(:alphanumeric, min_length: 1)),
-      constant(nil)
-    ]
-    |> one_of()
-  end
-
-  defp attributes do
-    [
-      map_of(
-        string(:alphanumeric, min_length: 1),
-        string(:alphanumeric, min_length: 1)
-      ),
-      constant(nil)
-    ]
-    |> one_of()
   end
 end
