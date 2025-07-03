@@ -32,7 +32,7 @@ defmodule Astarte.Housekeeping.BackendSupervisor do
   def init(_init_arg) do
     Logger.info("BackendSupervisor init", tag: "housekeeping_backend_sup_init")
 
-    xandra_options = repo_opts = Config.xandra_options!()
+    xandra_options = Config.xandra_options!()
     data_access_opts = [xandra_options: xandra_options]
     hk_xandra_opts = Keyword.put(xandra_options, :name, :xandra)
 

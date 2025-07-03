@@ -23,7 +23,7 @@ defmodule Astarte.Pairing.APIWeb.Gettext do
   By using [Gettext](https://hexdocs.pm/gettext),
   your module gains a set of macros for translations, for example:
 
-      import Astarte.Pairing.APIWeb.Gettext
+      use Gettext, backend: Astarte.Pairing.APIWeb.Gettext
 
       # Simple translation
       gettext "Here is the string to translate"
@@ -38,5 +38,5 @@ defmodule Astarte.Pairing.APIWeb.Gettext do
 
   See the [Gettext Docs](https://hexdocs.pm/gettext) for detailed usage.
   """
-  use Gettext, otp_app: :astarte_pairing_api
+  use Gettext.Backend, otp_app: :astarte_pairing_api
 end
