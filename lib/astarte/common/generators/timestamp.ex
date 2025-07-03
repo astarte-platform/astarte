@@ -17,25 +17,44 @@
 #
 
 defmodule Astarte.Common.Generators.Timestamp do
-  use ExUnitProperties
-
   @moduledoc """
   Unix timestamp generator
   """
+  use ExUnitProperties
+
+  import Astarte.Generators.Utilities.ParamsGen
+
   @min_default 0
   @max_default 2_556_143_999
 
   @doc """
   Generates a random timestamp between min and max, defaulting to 0 and 2_556_143_999.
   """
-  @type timestamp_opts :: {:min, integer()} | {:max, integer()}
-  @spec timestamp([timestamp_opts]) :: StreamData.t(integer())
-  def timestamp(opts \\ []) do
-    # Cannot use pattern matching, cause it could be in inverse order
-    opts = Keyword.validate!(opts, min: @min_default, max: @max_default)
-    min = Keyword.fetch!(opts, :min)
-    max = Keyword.fetch!(opts, :max)
-    timestamp(min, max)
+  @spec timestamp() :: StreamData.t(integer())
+  @spec timestamp(params :: keyword()) :: StreamData.t(integer())
+  def timestamp(params \\ []) do
+    config =
+      params gen all min <- constant(@min_default),
+                     max <- constant(@max_default),
+                     params: params do
+        {min, max}
+      end
+
+    gen all {min, max} <- config,
+            timestamp <- timestamp(min, max) do
+      timestamp
+    end
+  end
+
+  @doc """
+  Helper to generate datetime from timestamp
+  """
+  @spec to_datetime(StreamData.t(integer())) :: StreamData.t(DateTime.t())
+  @spec to_datetime(StreamData.t(integer()), unit :: atom()) :: StreamData.t(DateTime.t())
+  def to_datetime(gen, unit \\ :second) do
+    gen all ts <- gen do
+      ts |> DateTime.from_unix!(unit)
+    end
   end
 
   defp timestamp(min, max) when min < @max_default and max > @min_default and min < max,
