@@ -445,8 +445,8 @@ defmodule Astarte.Helpers.Database do
 
         :ok
 
-      %{msg: msg} ->
-        {:error, msg}
+      {:error, error} ->
+        {:error, error}
     end
   end
 

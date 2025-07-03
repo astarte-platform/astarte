@@ -26,13 +26,6 @@ defmodule Astarte.AppEngine.API.DeviceTest do
   alias Astarte.AppEngine.API.Repo
   alias Astarte.DataAccess.Realms.Realm
 
-  alias Astarte.RPC.Protocol.VMQ.Plugin.{
-    Call,
-    Publish,
-    PublishReply,
-    Reply
-  }
-
   import Mox
 
   @expected_introspection %{
@@ -2082,10 +2075,5 @@ defmodule Astarte.AppEngine.API.DeviceTest do
 
   defp unpack_interface_values({:ok, %InterfaceValues{data: values}}) do
     values
-  end
-
-  defp tagged_publish_reply(local_matches, remote_matches \\ 0) do
-    reply = %PublishReply{local_matches: local_matches, remote_matches: remote_matches}
-    {:publish_reply, reply}
   end
 end
