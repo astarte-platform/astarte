@@ -16,11 +16,11 @@
 # limitations under the License.
 
 defmodule Astarte.Helpers.Device do
-  alias Astarte.DataAccess.Repo
   alias Astarte.DataAccess.Devices.Device
   alias Astarte.DataAccess.Realms.Interface
   alias Astarte.DataAccess.Realms.Realm
-  alias Astarte.RealmManagement.Engine, as: RealmManagement
+  alias Astarte.DataAccess.Repo
+  alias Astarte.RealmManagement.Interfaces, as: RMInterfaces
 
   import ExUnit.CaptureLog
 
@@ -41,11 +41,11 @@ defmodule Astarte.Helpers.Device do
   def insert_interface_cleanly(realm_name, interface) do
     keyspace = Realm.keyspace_name(realm_name)
     interface_db = %Interface{name: interface.name, major_version: interface.major_version}
-    interface_json = Jason.encode!(interface)
+    interface_params = interface |> Jason.encode!() |> Jason.decode!()
 
     Repo.delete(interface_db, prefix: keyspace)
 
-    capture_log(fn -> RealmManagement.install_interface(realm_name, interface_json) end)
+    capture_log(fn -> RMInterfaces.install_interface(realm_name, interface_params) end)
   end
 
   def insert_device_cleanly(realm_name, device, interfaces) do

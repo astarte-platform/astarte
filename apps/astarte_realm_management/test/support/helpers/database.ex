@@ -16,11 +16,10 @@
 # limitations under the License.
 #
 
-defmodule Astarte.Test.Helpers.Database do
-  alias Astarte.Core.Realm
+defmodule Astarte.Helpers.Database do
   alias Astarte.DataAccess.KvStore
-  alias Astarte.DataAccess.Repo
   alias Astarte.DataAccess.Realms.Realm
+  alias Astarte.DataAccess.Repo
 
   @create_keyspace """
   CREATE KEYSPACE :keyspace
@@ -229,14 +228,29 @@ defmodule Astarte.Test.Helpers.Database do
     VALUES ('auth', 'jwt_public_key_pem', varcharAsBlob(:pem));
   """
 
-  @jwt_public_key_pem """
-  -----BEGIN PUBLIC KEY-----
-  MFYwEAYHKoZIzj0CAQYFK4EEAAoDQgAE7u5hHn9oE9uy5JoUjwNU6rSEgRlAFh5e
-  u9/f1dNImWDuIPeLu8nEiuHlCMy02+YDu0wN2U1psPC7w6AFjv4uTg==
-  -----END PUBLIC KEY-----
+  @insert_datastream_maximum_storage_retention """
+    INSERT INTO :keyspace.kv_store (group, key, value)
+    VALUES ('realm_config', 'datastream_maximum_storage_retention', intAsBlob(:max_retention));
   """
 
+  def setup_astarte_keyspace do
+    astarte_keyspace = Realm.astarte_keyspace_name()
+    execute!(astarte_keyspace, @create_keyspace)
+    execute!(astarte_keyspace, @create_kv_store)
+    execute!(astarte_keyspace, @create_realms_table)
+  end
+
   def setup!(realm_name) do
+    setup_realm_keyspace!(realm_name)
+    astarte_keyspace = Realm.astarte_keyspace_name()
+
+    %Realm{realm_name: realm_name}
+    |> Repo.insert!(prefix: astarte_keyspace)
+
+    :ok
+  end
+
+  def setup_realm_keyspace!(realm_name) do
     realm_keyspace = Realm.keyspace_name(realm_name)
     execute!(realm_keyspace, @create_keyspace)
     execute!(realm_keyspace, @create_devices_table)
@@ -250,35 +264,35 @@ defmodule Astarte.Test.Helpers.Database do
     execute!(realm_keyspace, @create_interfaces_table)
     execute!(realm_keyspace, @create_deletion_in_progress_table)
 
-    astarte_keyspace = Realm.astarte_keyspace_name()
-    execute!(astarte_keyspace, @create_keyspace)
-    execute!(astarte_keyspace, @create_kv_store)
-    execute!(astarte_keyspace, @create_realms_table)
-
-    %Realm{realm_name: realm_name}
-    |> Repo.insert!(prefix: astarte_keyspace)
-
     :ok
   end
 
-  def teardown!(realm_name) do
-    realm_keyspace = Realm.keyspace_name(realm_name)
+  def teardown_astarte_keyspace do
     astarte_keyspace = Realm.astarte_keyspace_name()
-
-    execute!(realm_keyspace, @drop_keyspace)
     execute!(astarte_keyspace, @drop_keyspace)
-
     :ok
   end
 
-  def insert_device_registration_limit!(realm, limit) do
-    keyspace = Realm.astarte_keyspace_name()
+  def teardown_realm_keyspace!(realm_name) do
+    realm_keyspace = Realm.keyspace_name(realm_name)
+    execute!(realm_keyspace, @drop_keyspace)
+    :ok
+  end
 
-    %Realm{
-      realm_name: realm,
-      device_registration_limit: limit
-    }
-    |> Repo.insert!(prefix: keyspace)
+  def insert_public_key!(realm_name, key) do
+    realm_keyspace = Realm.keyspace_name(realm_name)
+
+    execute!(realm_keyspace, @insert_public_key, %{"pem" => key})
+  end
+
+  def get_public_key, do: Application.get_env(:astarte_realm_management, :test_pub_key_pem)
+
+  def insert_datastream_maximum_storage_retention!(realm_name, max_retention) do
+    realm_keyspace = Realm.keyspace_name(realm_name)
+
+    execute!(realm_keyspace, @insert_datastream_maximum_storage_retention, %{
+      "max_retention" => max_retention
+    })
   end
 
   def set_datastream_maximum_storage_retention(realm, value) do
@@ -293,14 +307,51 @@ defmodule Astarte.Test.Helpers.Database do
     |> KvStore.insert(prefix: keyspace)
   end
 
-  def insert_public_key!(realm_name) do
-    realm_keyspace = Realm.keyspace_name(realm_name)
+  def insert_device_registration_limit!(realm, limit) do
+    keyspace = Realm.astarte_keyspace_name()
 
-    execute!(realm_keyspace, @insert_public_key, %{pem: @jwt_public_key_pem})
+    %Realm{
+      realm_name: realm,
+      device_registration_limit: limit
+    }
+    |> Repo.insert!(prefix: keyspace)
   end
 
   defp execute!(keyspace, query, params \\ [], opts \\ []) do
     String.replace(query, ":keyspace", keyspace)
     |> Repo.query!(params, opts)
+  end
+
+  def setup_database_access(astarte_instance_id) do
+    Astarte.DataAccess.Config
+    |> Mimic.stub(:astarte_instance_id, fn -> {:ok, astarte_instance_id} end)
+    |> Mimic.stub(:astarte_instance_id!, fn -> astarte_instance_id end)
+  end
+
+  def to_input_map(interface) do
+    %{
+      interface_name: interface.name,
+      version_major: interface.major_version,
+      version_minor: interface.minor_version,
+      type: interface.type,
+      ownership: interface.ownership,
+      aggregation: interface.aggregation,
+      description: interface.description,
+      mappings: Enum.map(interface.mappings, &to_mapping_map/1)
+    }
+  end
+
+  def to_mapping_map(mapping) do
+    %{
+      endpoint: mapping.endpoint,
+      reliability: mapping.reliability,
+      type: mapping.value_type,
+      allow_unset: mapping.allow_unset,
+      retention: mapping.retention,
+      expiry: mapping.expiry,
+      database_retention_policy: mapping.database_retention_policy,
+      database_retention_ttl: mapping.database_retention_ttl,
+      explicit_timestamp: mapping.explicit_timestamp
+    }
   end
 end

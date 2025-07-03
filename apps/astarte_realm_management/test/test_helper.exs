@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2017 Ispirata Srl
+# Copyright 2017 - 2025 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -17,6 +17,10 @@
 #
 
 Mimic.copy(Astarte.DataAccess.Config)
-Mimic.copy(Task.Supervisor)
-
+Mimic.copy(Astarte.DataAccess.Health.Health)
+Mimic.copy(Astarte.DataAccess.KvStore)
+Mimic.copy(Astarte.DataAccess.Repo)
+Mimic.copy(Astarte.RealmManagement.RealmConfig.Queries)
+Mimic.copy(Astarte.DataAccess.Config)
+Mimic.copy(Task)
 ExUnit.start(capture_log: true)

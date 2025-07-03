@@ -1,5 +1,4 @@
-RealmManagement
-===============
+Astarte Realm Management
+============================
 
-RealmManagment runs realm administration tasks such as installing new interfaces.
-RealmManagement can be used using its RPC.
+Astarte Realm Management serves a [REST API](priv/static/astarte_realm_management.yaml) that allows administration panels and applications to manage a certain realm, for tasks such as installing new interfaces.
