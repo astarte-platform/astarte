@@ -67,14 +67,7 @@ defmodule Astarte.DataAccess.Data do
 
     consistency = Consistency.device_info(:read)
 
-    property =
-      Repo.fetch_by(query, fetch_clause, consistency: consistency, error: :property_not_set)
-
-    case property do
-      nil -> {:error, :property_not_set}
-      {:error, err} -> {:error, err}
-      {:ok, value} -> {:ok, value}
-    end
+    Repo.fetch_by(query, fetch_clause, consistency: consistency, error: :property_not_set)
   end
 
   @spec path_exists?(

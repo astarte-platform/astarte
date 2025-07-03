@@ -32,7 +32,7 @@ defmodule Astarte.DataAccess do
       {Astarte.DataAccess.Repo, xandra_options}
     ]
 
-    opts = [strategy: :one_for_one, name: Astarte.DataAccess.Supervisor]
+    opts = [strategy: :one_for_one]
     Supervisor.init(children, opts)
   end
 end
