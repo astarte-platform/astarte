@@ -22,50 +22,96 @@ defmodule Astarte.Core.Generators.Mapping do
 
   See https://docs.astarte-platform.org/astarte/latest/040-interface_schema.html#mapping
   """
-  use ExUnitProperties
   use Astarte.Generators.Utilities.ParamsGen
 
+  alias Astarte.Core.Generators.Interface, as: InterfaceGenerator
   alias Astarte.Core.Mapping
+
+  @unix_prefix_path_chars [?a..?z, ?A..?Z, ?_]
+  @unix_path_chars @unix_prefix_path_chars ++ [?0..?9]
 
   @doc """
   Generates a Mapping struct.
   See https://docs.astarte-platform.org/astarte/latest/040-interface_schema.html#mapping
   """
-  @spec mapping(
-          :datastream | :properties,
-          %{
-            :aggregation => :individual | :object,
-            :allow_unset => boolean(),
-            :expiry => non_neg_integer(),
-            :explicit_timestamp => boolean(),
-            :prefix => String.t(),
-            :reliability => :unreliable | :guaranteed | :unique,
-            optional(:retention) => :discard | :volatile | :stored
-          },
-          Keyword.t()
-        ) :: StreamData.t(Mapping.t())
-  def mapping(interface_type \\ :datastream, config, params \\ []) do
-    gen all(
-          required <- required_fields(config, params),
-          database_retention <- database_retention_fields(interface_type, params),
-          optional <- optional_fields(config, params)
-        ) do
-      fields = Enum.reduce([required, database_retention, optional], &Map.merge/2)
+  @spec mapping() :: StreamData.t(Mapping.t())
+  @spec mapping(params :: keyword()) :: StreamData.t(Mapping.t())
+  def mapping(params \\ []) do
+    params gen all interface_type <- InterfaceGenerator.type(),
+                   endpoint <- endpoint(),
+                   type <- type(),
+                   reliability <- reliability(interface_type),
+                   explicit_timestamp <- explicit_timestamp(interface_type),
+                   retention <- retention(interface_type),
+                   expiry <- expiry(interface_type),
+                   allow_unset <- allow_unset(interface_type),
+                   database_retention_policy <- database_retention_policy(interface_type),
+                   database_retention_ttl <-
+                     database_retention_ttl(interface_type, database_retention_policy),
+                   description <- description(),
+                   doc <- doc(),
+                   params: params do
+      fields = %{
+        endpoint: endpoint,
+        type: type,
+        reliability: reliability,
+        explicit_timestamp: explicit_timestamp,
+        retention: retention,
+        expiry: expiry,
+        database_retention_policy: database_retention_policy,
+        allow_unset: allow_unset,
+        database_retention_ttl: database_retention_ttl,
+        description: description,
+        doc: doc
+      }
+
       struct(Mapping, fields)
     end
   end
 
-  defp endpoint(aggregation, prefix) do
-    generator =
-      case aggregation do
-        :individual -> repeatedly(fn -> "/individual_#{System.unique_integer([:positive])}" end)
-        :object -> repeatedly(fn -> "/object_#{System.unique_integer([:positive])}" end)
-      end
-
-    gen all(postfix <- generator) do
-      prefix <> postfix
+  @doc """
+  Convert this struct stream to changes
+  """
+  @spec to_changes(StreamData.t(Mapping.t())) :: StreamData.t(map())
+  def to_changes(gen) do
+    gen all mapping <- gen do
+      mapping |> Map.from_struct() |> Map.reject(fn {_k, v} -> is_nil(v) end)
     end
   end
+
+  @doc """
+  Generates a mapping endpoint.
+  """
+  @spec endpoint() :: StreamData.t(String.t())
+  def endpoint do
+    gen all prefix <- endpoint_segment(),
+            segments <-
+              frequency([
+                {3, endpoint_segment()},
+                {1, endpoint_segment_param()}
+              ])
+              |> list_of(min_length: 1, max_length: 5) do
+      "/" <> prefix <> "/" <> Enum.join(segments, "/")
+    end
+  end
+
+  @doc """
+  Generates a generic endpoint segment.
+  """
+  @spec endpoint_segment() :: StreamData.t(StreamData.t(String.t()))
+  def endpoint_segment do
+    gen all prefix <- string(@unix_prefix_path_chars, min_length: 1, max_length: 10),
+            rest <- string(@unix_path_chars, min_length: 1, max_length: 10) do
+      prefix <> rest
+    end
+  end
+
+  @doc """
+  Generates a parametrized endpoint segment.
+  """
+  @spec endpoint_segment_param() :: StreamData.t(StreamData.t(String.t()))
+  def endpoint_segment_param,
+    do: endpoint_segment() |> map(fn segment -> "%{" <> segment <> "}" end)
 
   defp type do
     member_of([
@@ -86,84 +132,44 @@ defmodule Astarte.Core.Generators.Mapping do
     ])
   end
 
-  @spec reliability() :: StreamData.t(:unreliable | :guaranteed | :unique)
-  def reliability, do: member_of([:unreliable, :guaranteed, :unique])
+  @doc false
+  @spec reliability(:datastream | :properties) ::
+          StreamData.t(:unreliable | :guaranteed | :unique)
+  def reliability(:datastream), do: member_of([:unreliable, :guaranteed, :unique])
+  def reliability(_), do: constant(nil)
 
-  @spec explicit_timestamp() :: StreamData.t(boolean())
-  def explicit_timestamp, do: boolean()
+  @doc false
+  @spec explicit_timestamp(:datastream | :properties) :: StreamData.t(nil | boolean())
+  def explicit_timestamp(:datastream), do: boolean()
+  def explicit_timestamp(_), do: constant(false)
 
-  @spec retention() :: StreamData.t(:discard | :volatile | :stored)
-  def retention, do: member_of([:discard, :volatile, :stored])
+  @doc false
+  @spec retention(:datastream | :properties) :: StreamData.t(:discard | :volatile | :stored)
+  def retention(:datastream), do: member_of([:discard, :volatile, :stored])
+  def retention(_), do: constant(:discard)
 
-  @spec expiry() :: StreamData.t(0 | pos_integer())
-  def expiry, do: one_of([constant(0), integer(1..10_000)])
+  @doc false
+  @spec expiry(:datastream | :properties) :: StreamData.t(0 | pos_integer())
+  def expiry(:datastream), do: one_of([constant(0), integer(1..10_000)])
+  def expiry(_), do: constant(0)
 
-  @spec database_retention_policy() :: StreamData.t(:no_ttl | :use_ttl)
-  def database_retention_policy, do: member_of([:no_ttl, :use_ttl])
+  @doc false
+  @spec database_retention_policy(:datastream | :properties) :: StreamData.t(:no_ttl | :use_ttl)
+  def database_retention_policy(:datastream), do: member_of([:no_ttl, :use_ttl])
+  def database_retention_policy(_), do: constant(nil)
 
-  @spec database_retention_ttl() :: StreamData.t(non_neg_integer())
-  def database_retention_ttl, do: integer(60..1_048_576)
+  @doc false
+  @spec database_retention_ttl(:datastream | :properties, :use_ttl | :no_ttl) ::
+          StreamData.t(nil | non_neg_integer())
+  def database_retention_ttl(:datastream, :use_ttl), do: integer(60..1_048_576)
+  def database_retention_ttl(_, _), do: constant(nil)
 
-  @spec allow_unset() :: StreamData.t(boolean())
-  def allow_unset, do: boolean()
+  @doc false
+  @spec allow_unset(:datastream | :properties) :: StreamData.t(boolean())
+  def allow_unset(:properties), do: boolean()
+  def allow_unset(_), do: constant(false)
 
-  defp description, do: string(:ascii, min_length: 1, max_length: 1000)
+  defp description, do: one_of([nil, string(:ascii, min_length: 1, max_length: 1000)])
 
-  defp doc, do: string(:ascii, min_length: 1, max_length: 100_000)
-
-  defp required_fields(
-         %{
-           aggregation: aggregation,
-           prefix: prefix,
-           retention: retention,
-           reliability: reliability,
-           explicit_timestamp: explicit_timestamp,
-           allow_unset: allow_unset,
-           expiry: expiry
-         },
-         params
-       ) do
-    params gen all endpoint <- endpoint(aggregation, prefix),
-                   value_type <- type(),
-                   retention <- constant(retention),
-                   reliability <- constant(reliability),
-                   explicit_timestamp <- constant(explicit_timestamp),
-                   allow_unset <- constant(allow_unset),
-                   expiry <- constant(expiry),
-                   params: params do
-      %{
-        endpoint: endpoint,
-        value_type: value_type,
-        retention: retention,
-        reliability: reliability,
-        explicit_timestamp: explicit_timestamp,
-        allow_unset: allow_unset,
-        expiry: expiry
-      }
-    end
-  end
-
-  defp optional_fields(_config, params) do
-    params gen all description <- optional(description()),
-                   doc <- optional(doc()),
-                   params: params do
-      %{description: description, doc: doc}
-    end
-  end
-
-  defp optional(generator), do: one_of([generator, nil])
-
-  defp database_retention_fields(:properties, _params), do: constant(%{})
-
-  defp database_retention_fields(:datastream, params) do
-    params gen all database_retention_policy <- database_retention_policy(),
-                   database_retention_ttl <-
-                     if(database_retention_policy == :use_ttl, do: database_retention_ttl()),
-                   params: params do
-      %{
-        database_retention_policy: database_retention_policy,
-        database_retention_ttl: database_retention_ttl
-      }
-    end
-  end
+  defp doc, do: one_of([nil, string(:ascii, min_length: 1, max_length: 100_000)])
 end
