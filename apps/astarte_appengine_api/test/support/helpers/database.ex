@@ -666,18 +666,12 @@ defmodule Astarte.Helpers.Database do
   def fake_connect_device(encoded_device_id, connected) when is_boolean(connected) do
     {:ok, device_id} = Astarte.Core.Device.decode_device_id(encoded_device_id)
 
-    Xandra.Cluster.run(:xandra, fn conn ->
-      query = """
-      INSERT INTO #{Realm.keyspace_name(@test_realm)}.devices
-      (device_id, connected) VALUES (:device_id, :connected)
-      """
-
-      params = %{"device_id" => device_id, "connected" => connected}
-      prepared = Xandra.prepare!(conn, query)
-      %Xandra.Void{} = Xandra.execute!(conn, prepared, params)
-    end)
-
-    :ok
+    %DeviceSchema{}
+    |> Ecto.Changeset.change(%{
+      device_id: device_id,
+      connected: connected
+    })
+    |> Repo.insert!(prefix: Realm.keyspace_name(@test_realm))
   end
 
   def create_datastream_receiving_device do

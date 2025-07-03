@@ -44,8 +44,6 @@ defmodule Astarte.AppEngine.API.Application do
 
     data_access_opts = [xandra_options: xandra_options]
 
-    ae_xandra_opts = Keyword.put(xandra_options, :name, :xandra)
-
     # Define workers and child supervisors to be supervised
     children = [
       {Cluster.Supervisor,
@@ -57,7 +55,6 @@ defmodule Astarte.AppEngine.API.Application do
       Astarte.AppEngine.API.Rooms.MasterSupervisor,
       Astarte.AppEngine.API.Rooms.AMQPClient,
       Astarte.AppEngine.APIWeb.Endpoint,
-      {Xandra.Cluster, ae_xandra_opts},
       {Astarte.DataAccess, data_access_opts},
       {Astarte.AppEngine.API.Repo, xandra_options}
     ]
