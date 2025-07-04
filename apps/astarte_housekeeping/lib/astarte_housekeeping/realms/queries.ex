@@ -234,7 +234,6 @@ defmodule Astarte.Housekeeping.Realms.Queries do
     Xandra.Cluster.run(:xandra, [timeout: 60_000], fn conn ->
       with :ok <- validate_realm_name(realm_name),
            :ok <- create_realm_keyspace(conn, keyspace_name, replication_map_str),
-           {:ok, keyspace_conn} <- build_keyspace_conn(conn, keyspace_name),
            :ok <- create_realm_kv_store(keyspace_name),
            :ok <- create_names_table(keyspace_name),
            :ok <- create_devices_table(keyspace_name),
@@ -243,7 +242,7 @@ defmodule Astarte.Housekeeping.Realms.Queries do
            :ok <- create_individual_properties_table(keyspace_name),
            :ok <- create_simple_triggers_table(keyspace_name),
            :ok <- create_grouped_devices_table(keyspace_name),
-           :ok <- create_deletion_in_progress_table(keyspace_conn),
+           :ok <- create_deletion_in_progress_table(keyspace_name),
            :ok <- insert_realm_public_key(realm_name, public_key_pem),
            :ok <- insert_realm_astarte_schema_version(realm_name),
            :ok <- insert_realm(realm_name, device_limit),
@@ -360,22 +359,6 @@ defmodule Astarte.Housekeeping.Realms.Queries do
         _ =
           Logger.warning("Cannot create keyspace: #{inspect(reason)}.",
             tag: "build_keyspace_error",
-            realm: realm_name
-          )
-
-        {:error, reason}
-    end
-  end
-
-  defp build_keyspace_conn(conn, realm_name) do
-    case validate_realm_name(realm_name) do
-      :ok ->
-        {:ok, {conn, realm_name}}
-
-      {:error, reason} ->
-        _ =
-          Logger.warning("Cannot build realm conn: #{inspect(reason)}.",
-            tag: "build_keyspace_conn_error",
             realm: realm_name
           )
 
@@ -573,18 +556,19 @@ defmodule Astarte.Housekeeping.Realms.Queries do
     end
   end
 
-  defp create_deletion_in_progress_table({conn, realm}) do
+  defp create_deletion_in_progress_table(keyspace_name) do
     query = """
-    CREATE TABLE #{realm}.deletion_in_progress (
+    CREATE TABLE #{keyspace_name}.deletion_in_progress (
       device_id uuid,
       vmq_ack boolean,
       dup_start_ack boolean,
       dup_end_ack boolean,
+
       PRIMARY KEY (device_id)
     );
     """
 
-    with {:ok, %Xandra.SchemaChange{}} <- CSystem.execute_schema_change(conn, query) do
+    with {:ok, %{rows: nil, num_rows: 1}} <- CSystem.execute_schema_change(query) do
       :ok
     end
   end
