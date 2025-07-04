@@ -242,7 +242,7 @@ defmodule Astarte.Housekeeping.Realms.Queries do
            :ok <- create_interfaces_table(keyspace_name),
            :ok <- create_individual_properties_table(keyspace_name),
            :ok <- create_simple_triggers_table(keyspace_name),
-           :ok <- create_grouped_devices_table(keyspace_conn),
+           :ok <- create_grouped_devices_table(keyspace_name),
            :ok <- create_deletion_in_progress_table(keyspace_conn),
            :ok <- insert_realm_public_key(realm_name, public_key_pem),
            :ok <- insert_realm_astarte_schema_version(realm_name),
@@ -589,9 +589,9 @@ defmodule Astarte.Housekeeping.Realms.Queries do
     end
   end
 
-  defp create_grouped_devices_table({conn, realm}) do
+  defp create_grouped_devices_table(keyspace_name) do
     query = """
-    CREATE TABLE #{realm}.grouped_devices (
+    CREATE TABLE #{keyspace_name}.grouped_devices (
       group_name varchar,
       insertion_uuid timeuuid,
       device_id uuid,
@@ -600,7 +600,7 @@ defmodule Astarte.Housekeeping.Realms.Queries do
     );
     """
 
-    with {:ok, %Xandra.SchemaChange{}} <- CSystem.execute_schema_change(conn, query) do
+    with {:ok, %{rows: nil, num_rows: 1}} <- CSystem.execute_schema_change(query) do
       :ok
     end
   end
