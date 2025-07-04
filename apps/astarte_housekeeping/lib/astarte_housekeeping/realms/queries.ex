@@ -231,46 +231,44 @@ defmodule Astarte.Housekeeping.Realms.Queries do
          device_limit,
          max_retention
        ) do
-    Xandra.Cluster.run(:xandra, [timeout: 60_000], fn conn ->
-      with :ok <- validate_realm_name(realm_name),
-           :ok <- create_realm_keyspace(conn, keyspace_name, replication_map_str),
-           :ok <- create_realm_kv_store(keyspace_name),
-           :ok <- create_names_table(keyspace_name),
-           :ok <- create_devices_table(keyspace_name),
-           :ok <- create_endpoints_table(keyspace_name),
-           :ok <- create_interfaces_table(keyspace_name),
-           :ok <- create_individual_properties_table(keyspace_name),
-           :ok <- create_simple_triggers_table(keyspace_name),
-           :ok <- create_grouped_devices_table(keyspace_name),
-           :ok <- create_deletion_in_progress_table(keyspace_name),
-           :ok <- insert_realm_public_key(realm_name, public_key_pem),
-           :ok <- insert_realm_astarte_schema_version(realm_name),
-           :ok <- insert_realm(realm_name, device_limit),
-           :ok <- insert_datastream_max_retention(realm_name, max_retention) do
-        :ok
-      else
-        {:error, %Xandra.Error{} = err} ->
-          _ = Logger.warning("Database error: #{inspect(err)}.", tag: "database_error")
-          {:error, :database_error}
+    with :ok <- validate_realm_name(realm_name),
+         :ok <- create_realm_keyspace(keyspace_name, replication_map_str),
+         :ok <- create_realm_kv_store(keyspace_name),
+         :ok <- create_names_table(keyspace_name),
+         :ok <- create_devices_table(keyspace_name),
+         :ok <- create_endpoints_table(keyspace_name),
+         :ok <- create_interfaces_table(keyspace_name),
+         :ok <- create_individual_properties_table(keyspace_name),
+         :ok <- create_simple_triggers_table(keyspace_name),
+         :ok <- create_grouped_devices_table(keyspace_name),
+         :ok <- create_deletion_in_progress_table(keyspace_name),
+         :ok <- insert_realm_public_key(realm_name, public_key_pem),
+         :ok <- insert_realm_astarte_schema_version(realm_name),
+         :ok <- insert_realm(realm_name, device_limit),
+         :ok <- insert_datastream_max_retention(realm_name, max_retention) do
+      :ok
+    else
+      {:error, %Xandra.Error{} = err} ->
+        _ = Logger.warning("Database error: #{inspect(err)}.", tag: "database_error")
+        {:error, :database_error}
 
-        {:error, %Xandra.ConnectionError{} = err} ->
-          _ =
-            Logger.warning("Database connection error: #{inspect(err)}.",
-              tag: "database_connection_error"
-            )
+      {:error, %Xandra.ConnectionError{} = err} ->
+        _ =
+          Logger.warning("Database connection error: #{inspect(err)}.",
+            tag: "database_connection_error"
+          )
 
-          {:error, :database_connection_error}
+        {:error, :database_connection_error}
 
-        {:error, reason} ->
-          _ =
-            Logger.warning("Cannot create realm: #{inspect(reason)}.",
-              tag: "realm_creation_failed",
-              realm: realm_name
-            )
+      {:error, reason} ->
+        _ =
+          Logger.warning("Cannot create realm: #{inspect(reason)}.",
+            tag: "realm_creation_failed",
+            realm: realm_name
+          )
 
-          {:error, reason}
-      end
-    end)
+        {:error, reason}
+    end
   end
 
   defp validate_realm_name(realm_name) do
@@ -345,21 +343,21 @@ defmodule Astarte.Housekeeping.Realms.Queries do
     {:error, :invalid_replication}
   end
 
-  defp create_realm_keyspace(conn, realm_name, replication_map_str) do
+  defp create_realm_keyspace(keyspace_name, replication_map_str) do
     query = """
-    CREATE KEYSPACE #{realm_name}
+    CREATE KEYSPACE #{keyspace_name}
     WITH replication = #{replication_map_str}
     AND durable_writes = true;
     """
 
-    with {:ok, %Xandra.SchemaChange{}} <- CSystem.execute_schema_change(conn, query) do
+    with {:ok, %{rows: nil, num_rows: 1}} <- CSystem.execute_schema_change(query) do
       :ok
     else
       {:error, reason} ->
         _ =
           Logger.warning("Cannot create keyspace: #{inspect(reason)}.",
             tag: "build_keyspace_error",
-            realm: realm_name
+            realm: keyspace_name
           )
 
         {:error, reason}
