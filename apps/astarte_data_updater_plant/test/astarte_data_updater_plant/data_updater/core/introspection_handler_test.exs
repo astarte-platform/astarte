@@ -22,7 +22,9 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.IntrospectionHandlerTest do
   use Astarte.Cases.Data, async: true
   use Astarte.Cases.Device
   use Mimic
+  use ExUnitProperties
 
+  import StreamData
   import Astarte.Helpers.DataUpdater
 
   alias Astarte.DataUpdaterPlant.DataUpdater.PayloadsDecoder
@@ -133,5 +135,54 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.IntrospectionHandlerTest do
 
       IntrospectionHandler.handle_introspection(state, payload, message_id, timestamp)
     end
+  end
+
+  describe "Introspection integration test" do
+    property "processes introspection correctly", test_context do
+      %{device: device, interfaces: interfaces, realm_name: realm_name} =
+        test_context
+
+      check all interfaces <- random_interfaces(interfaces),
+                introspection <- gen_introspection(interfaces),
+                time <- Astarte.Common.Generators.Timestamp.timestamp() do
+        DataUpdater.handle_introspection(
+          realm_name,
+          device.encoded_id,
+          introspection,
+          gen_tracking_id(),
+          time
+        )
+
+        # WARNING: This test assumes that the introspection is processed immediately.
+        # Which does not hold true but it seems to be working anyway.
+        # This may lead to race conditions
+        state = DataUpdater.dump_state(realm_name, device.encoded_id)
+
+        assert interfaces_to_introspection(interfaces) == state.introspection
+      end
+    end
+  end
+
+  defp gen_introspection(interfaces) do
+    repeatedly(fn ->
+      interfaces
+      |> Enum.map(fn interface ->
+        "#{interface.name}:#{interface.major_version}:#{interface.minor_version}"
+      end)
+      |> Enum.join(";")
+    end)
+  end
+
+  defp random_interfaces(interfaces) do
+    repeatedly(fn ->
+      n = 1..length(interfaces) |> Enum.random()
+
+      interfaces
+      |> Enum.take_random(n)
+    end)
+  end
+
+  defp interfaces_to_introspection(interfaces) do
+    Map.new(interfaces, &{&1.name, &1.major_version})
   end
 end
