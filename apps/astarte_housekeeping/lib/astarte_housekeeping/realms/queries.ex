@@ -900,32 +900,30 @@ defmodule Astarte.Housekeeping.Realms.Queries do
   end
 
   defp do_delete_realm(realm_name, keyspace_name) do
-    Xandra.Cluster.run(:xandra, [timeout: 60_000], fn conn ->
-      with :ok <- verify_realm_deletion_preconditions(keyspace_name),
-           :ok <- execute_realm_deletion(conn, realm_name, keyspace_name) do
-        :ok
-      else
-        {:error, %Xandra.Error{} = err} ->
-          Logger.warning("Database error: #{inspect(err)}.", tag: "database_error")
+    with :ok <- verify_realm_deletion_preconditions(keyspace_name),
+         :ok <- execute_realm_deletion(realm_name, keyspace_name) do
+      :ok
+    else
+      {:error, %Xandra.Error{} = err} ->
+        Logger.warning("Database error: #{inspect(err)}.", tag: "database_error")
 
-          {:error, :database_error}
+        {:error, :database_error}
 
-        {:error, %Xandra.ConnectionError{} = err} ->
-          Logger.warning("Database connection error: #{inspect(err)}.",
-            tag: "database_connection_error"
-          )
+      {:error, %Xandra.ConnectionError{} = err} ->
+        Logger.warning("Database connection error: #{inspect(err)}.",
+          tag: "database_connection_error"
+        )
 
-          {:error, :database_connection_error}
+        {:error, :database_connection_error}
 
-        {:error, reason} ->
-          Logger.warning("Cannot delete realm: #{inspect(reason)}.",
-            tag: "realm_deletion_failed",
-            realm: realm_name
-          )
+      {:error, reason} ->
+        Logger.warning("Cannot delete realm: #{inspect(reason)}.",
+          tag: "realm_deletion_failed",
+          realm: realm_name
+        )
 
-          {:error, reason}
-      end
-    end)
+        {:error, reason}
+    end
   end
 
   defp verify_realm_deletion_preconditions(keyspace_name) do
@@ -942,8 +940,8 @@ defmodule Astarte.Housekeeping.Realms.Queries do
     end
   end
 
-  defp execute_realm_deletion(conn, realm_name, keyspace_name) do
-    with :ok <- delete_realm_keyspace(conn, keyspace_name),
+  defp execute_realm_deletion(realm_name, keyspace_name) do
+    with :ok <- delete_realm_keyspace(keyspace_name),
          :ok <- remove_realm(realm_name) do
       :ok
     else
@@ -980,12 +978,12 @@ defmodule Astarte.Housekeeping.Realms.Queries do
     end
   end
 
-  defp delete_realm_keyspace(conn, realm_name) do
+  defp delete_realm_keyspace(keyspace_name) do
     query = """
-    DROP KEYSPACE #{realm_name}
+    DROP KEYSPACE #{keyspace_name}
     """
 
-    with {:ok, %Xandra.SchemaChange{}} <- CSystem.execute_schema_change(conn, query) do
+    with {:ok, %{rows: nil, num_rows: 1}} <- CSystem.execute_schema_change(query) do
       :ok
     end
   end
