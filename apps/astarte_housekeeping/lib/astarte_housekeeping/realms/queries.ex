@@ -240,7 +240,7 @@ defmodule Astarte.Housekeeping.Realms.Queries do
            :ok <- create_devices_table(keyspace_name),
            :ok <- create_endpoints_table(keyspace_name),
            :ok <- create_interfaces_table(keyspace_name),
-           :ok <- create_individual_properties_table(keyspace_conn),
+           :ok <- create_individual_properties_table(keyspace_name),
            :ok <- create_simple_triggers_table(keyspace_conn),
            :ok <- create_grouped_devices_table(keyspace_conn),
            :ok <- create_deletion_in_progress_table(keyspace_conn),
@@ -605,16 +605,15 @@ defmodule Astarte.Housekeeping.Realms.Queries do
     end
   end
 
-  defp create_individual_properties_table({conn, realm}) do
+  defp create_individual_properties_table(keyspace_name) do
     query = """
-    CREATE TABLE #{realm}.individual_properties (
+    CREATE TABLE #{keyspace_name}.individual_properties (
       device_id uuid,
       interface_id uuid,
       endpoint_id uuid,
       path varchar,
       reception_timestamp timestamp,
       reception_timestamp_submillis smallint,
-
       double_value double,
       integer_value int,
       boolean_value boolean,
@@ -634,7 +633,7 @@ defmodule Astarte.Housekeeping.Realms.Queries do
     )
     """
 
-    with {:ok, %Xandra.SchemaChange{}} <- CSystem.execute_schema_change(conn, query) do
+    with {:ok, %{rows: nil, num_rows: 1}} <- CSystem.execute_schema_change(query) do
       :ok
     end
   end
