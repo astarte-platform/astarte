@@ -27,6 +27,7 @@ defmodule Astarte.Common.Generators.TimestampTest do
 
   @moduletag :common
   @moduletag :timestamp
+  @moduletag :datetime
 
   @min_epoch 0
   @max_epoch 2_556_143_999
@@ -57,6 +58,21 @@ defmodule Astarte.Common.Generators.TimestampTest do
               from_ts <- TimestampGenerator.timestamp(max: to_ts)
             ) do
         assert to_ts > from_ts
+      end
+    end
+
+    property "valid DateTime with precision" do
+      gen_precisions =
+        member_of([
+          {:second, 0},
+          {:millisecond, 3},
+          {:microsecond, 6}
+        ])
+
+      check all {precision, digits} <- gen_precisions,
+                datetime <-
+                  TimestampGenerator.timestamp() |> TimestampGenerator.to_datetime(precision) do
+        assert %DateTime{microsecond: {_, ^digits}} = datetime
       end
     end
   end
