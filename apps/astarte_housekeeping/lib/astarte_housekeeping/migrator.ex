@@ -315,7 +315,7 @@ defmodule Astarte.Housekeeping.Migrator do
 
     with {:ok, query} <- File.read(file),
          _ = Logger.info("Migration query:\n#{query}"),
-         {:ok, _result} <- CSystem.execute_schema_change(keyspace_conn, query),
+         {:ok, _result} <- CSystem.execute_schema_change(query),
          :ok <- set_schema_version(keyspace_conn, version) do
       execute_migrations(keyspace_conn, tail)
     else
