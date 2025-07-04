@@ -236,7 +236,7 @@ defmodule Astarte.Housekeeping.Realms.Queries do
            :ok <- create_realm_keyspace(conn, keyspace_name, replication_map_str),
            {:ok, keyspace_conn} <- build_keyspace_conn(conn, keyspace_name),
            :ok <- create_realm_kv_store(keyspace_name),
-           :ok <- create_names_table(keyspace_conn),
+           :ok <- create_names_table(keyspace_name),
            :ok <- create_devices_table(keyspace_conn),
            :ok <- create_endpoints_table(keyspace_conn),
            :ok <- create_interfaces_table(keyspace_conn),
@@ -658,17 +658,18 @@ defmodule Astarte.Housekeeping.Realms.Queries do
     end
   end
 
-  defp create_names_table({conn, realm}) do
+  defp create_names_table(keyspace_name) do
     query = """
-    CREATE TABLE #{realm}.names (
+    CREATE TABLE #{keyspace_name}.names (
       object_name varchar,
       object_type int,
       object_uuid uuid,
+
       PRIMARY KEY ((object_name), object_type)
     );
     """
 
-    with {:ok, %Xandra.SchemaChange{}} <- CSystem.execute_schema_change(conn, query) do
+    with {:ok, %{rows: nil, num_rows: 1}} <- CSystem.execute_schema_change(query) do
       :ok
     end
   end
