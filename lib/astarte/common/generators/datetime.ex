@@ -16,44 +16,42 @@
 # limitations under the License.
 #
 
-defmodule Astarte.Common.Generators.Timestamp do
+defmodule Astarte.Common.Generators.DateTime do
   @moduledoc """
-  Unix timestamp generator
+  DateTime generator
   """
   use ExUnitProperties
 
   import Astarte.Generators.Utilities.ParamsGen
 
-  @min_default 0
-  @max_default 2_556_143_999_999_999
+  alias Astarte.Common.Generators.Timestamp, as: TimestampGenerator
 
   @doc false
-  @spec min_default() :: integer()
-  def min_default, do: @min_default
+  @spec min_default :: DateTime.t()
+  def min_default, do: TimestampGenerator.min_default() |> DateTime.from_unix!(:microsecond)
 
   @doc false
-  @spec max_default() :: integer()
-  def max_default, do: @max_default
+  @spec max_default :: DateTime.t()
+  def max_default, do: TimestampGenerator.max_default() |> DateTime.from_unix!(:microsecond)
 
   @doc """
-  Generates a random timestamp between min and max, defaulting to 0 and 2_556_143_999_999_999 (µs).
+  Generates a random DateTime from min to max (see Timestamp generator)
   """
-  @spec timestamp() :: StreamData.t(integer())
-  @spec timestamp(params :: keyword()) :: StreamData.t(integer())
-  def timestamp(params \\ []) do
+  @spec date_time() :: StreamData.t(DateTime.t())
+  @spec date_time(params :: keyword()) :: StreamData.t(DateTime.t())
+  def date_time(params \\ []) do
     config =
       params gen all min <- constant(min_default()),
                      max <- constant(max_default()),
                      params: params do
-        {min, max}
+        {DateTime.to_unix(min, :microsecond), DateTime.to_unix(max, :microsecond)}
       end
 
     gen all {min, max} <- config,
-            timestamp <- timestamp(min, max) do
-      timestamp
+            date_time <-
+              TimestampGenerator.timestamp(min: min, max: max)
+              |> map(&DateTime.from_unix!(&1, :microsecond)) do
+      date_time
     end
   end
-
-  defp timestamp(min, max) when min < @max_default and max > @min_default and min < max,
-    do: integer(min..max)
 end

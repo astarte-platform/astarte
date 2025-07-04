@@ -27,52 +27,30 @@ defmodule Astarte.Common.Generators.TimestampTest do
 
   @moduletag :common
   @moduletag :timestamp
-  @moduletag :datetime
 
-  @min_epoch 0
-  @max_epoch 2_556_143_999
-
-  @doc """
-  Property test for the Timestamp generator. It checks that the generated timestamp is within the
-  specified range. The default range is 0..2_556_143_999.
-  """
+  @doc false
   describe "timestamp generator" do
     property "valid generic timestamp" do
-      check all(timestamp <- TimestampGenerator.timestamp()) do
-        assert {:ok, _} = DateTime.from_unix(timestamp)
+      check all timestamp <- TimestampGenerator.timestamp() do
+        assert {:ok, _} = DateTime.from_unix(timestamp, :microsecond)
       end
     end
 
     property "valid timestamp using min" do
-      check all(
-              from_ts <- TimestampGenerator.timestamp() |> filter(&(&1 > @min_epoch)),
-              to_ts <- TimestampGenerator.timestamp(min: from_ts)
-            ) do
+      check all from_ts <-
+                  TimestampGenerator.timestamp()
+                  |> filter(&(&1 > TimestampGenerator.min_default())),
+                to_ts <- TimestampGenerator.timestamp(min: from_ts) do
         assert to_ts > from_ts
       end
     end
 
     property "valid timestamp using max" do
-      check all(
-              to_ts <- TimestampGenerator.timestamp() |> filter(&(&1 < @max_epoch)),
-              from_ts <- TimestampGenerator.timestamp(max: to_ts)
-            ) do
+      check all to_ts <-
+                  TimestampGenerator.timestamp()
+                  |> filter(&(&1 < TimestampGenerator.max_default())),
+                from_ts <- TimestampGenerator.timestamp(max: to_ts) do
         assert to_ts > from_ts
-      end
-    end
-
-    property "valid DateTime with precision" do
-      gen_precisions =
-        member_of([
-          {:second, 0},
-          {:millisecond, 3},
-          {:microsecond, 6}
-        ])
-
-      check all {precision, digits} <- gen_precisions,
-                datetime <-
-                  TimestampGenerator.timestamp() |> TimestampGenerator.to_datetime(precision) do
-        assert %DateTime{microsecond: {_, ^digits}} = datetime
       end
     end
   end
