@@ -235,7 +235,7 @@ defmodule Astarte.Housekeeping.Realms.Queries do
       with :ok <- validate_realm_name(realm_name),
            :ok <- create_realm_keyspace(conn, keyspace_name, replication_map_str),
            {:ok, keyspace_conn} <- build_keyspace_conn(conn, keyspace_name),
-           :ok <- create_realm_kv_store(keyspace_conn),
+           :ok <- create_realm_kv_store(keyspace_name),
            :ok <- create_names_table(keyspace_conn),
            :ok <- create_devices_table(keyspace_conn),
            :ok <- create_endpoints_table(keyspace_conn),
@@ -741,9 +741,9 @@ defmodule Astarte.Housekeeping.Realms.Queries do
     end
   end
 
-  defp create_realm_kv_store({conn, realm}) do
+  defp create_realm_kv_store(keyspace_name) do
     query = """
-    CREATE TABLE #{realm}.kv_store (
+    CREATE TABLE #{keyspace_name}.kv_store (
       group varchar,
       key varchar,
       value blob,
@@ -752,15 +752,14 @@ defmodule Astarte.Housekeeping.Realms.Queries do
     );
     """
 
-    with {:ok, %Xandra.SchemaChange{}} <- CSystem.execute_schema_change(conn, query) do
+    with {:ok, %{rows: nil, num_rows: 1}} <- CSystem.execute_schema_change(query) do
       :ok
     else
       {:error, reason} ->
-        _ =
-          Logger.warning("Cannot create kv_store: #{inspect(reason)}.",
-            tag: "build_kv_store_error",
-            realm: realm
-          )
+        Logger.warning("Cannot create kv_store: #{inspect(reason)}.",
+          tag: "build_kv_store_error",
+          realm: keyspace_name
+        )
 
         {:error, reason}
     end
