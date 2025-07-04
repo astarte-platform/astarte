@@ -239,7 +239,7 @@ defmodule Astarte.Housekeeping.Realms.Queries do
            :ok <- create_names_table(keyspace_name),
            :ok <- create_devices_table(keyspace_name),
            :ok <- create_endpoints_table(keyspace_name),
-           :ok <- create_interfaces_table(keyspace_conn),
+           :ok <- create_interfaces_table(keyspace_name),
            :ok <- create_individual_properties_table(keyspace_conn),
            :ok <- create_simple_triggers_table(keyspace_conn),
            :ok <- create_grouped_devices_table(keyspace_conn),
@@ -765,9 +765,9 @@ defmodule Astarte.Housekeeping.Realms.Queries do
     end
   end
 
-  defp create_interfaces_table({conn, realm}) do
+  defp create_interfaces_table(keyspace_name) do
     query = """
-    CREATE TABLE #{realm}.interfaces (
+    CREATE TABLE #{keyspace_name}.interfaces (
       name ascii,
       major_version int,
       minor_version int,
@@ -786,7 +786,7 @@ defmodule Astarte.Housekeeping.Realms.Queries do
     );
     """
 
-    with {:ok, %Xandra.SchemaChange{}} <- CSystem.execute_schema_change(conn, query) do
+    with {:ok, %{rows: nil, num_rows: 1}} <- CSystem.execute_schema_change(query) do
       :ok
     end
   end
