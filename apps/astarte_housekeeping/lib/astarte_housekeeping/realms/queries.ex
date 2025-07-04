@@ -237,7 +237,7 @@ defmodule Astarte.Housekeeping.Realms.Queries do
            {:ok, keyspace_conn} <- build_keyspace_conn(conn, keyspace_name),
            :ok <- create_realm_kv_store(keyspace_name),
            :ok <- create_names_table(keyspace_name),
-           :ok <- create_devices_table(keyspace_conn),
+           :ok <- create_devices_table(keyspace_name),
            :ok <- create_endpoints_table(keyspace_conn),
            :ok <- create_interfaces_table(keyspace_conn),
            :ok <- create_individual_properties_table(keyspace_conn),
@@ -674,9 +674,9 @@ defmodule Astarte.Housekeeping.Realms.Queries do
     end
   end
 
-  defp create_devices_table({conn, realm}) do
+  defp create_devices_table(keyspace_name) do
     query = """
-    CREATE TABLE #{realm}.devices (
+    CREATE TABLE #{keyspace_name}.devices (
       device_id uuid,
       aliases map<ascii, varchar>,
       introspection map<ascii, int>,
@@ -700,14 +700,13 @@ defmodule Astarte.Housekeeping.Realms.Queries do
       last_credentials_request_ip inet,
       last_seen_ip inet,
       attributes map<varchar, varchar>,
-
-      groups map<text, timeuuid>,
+      groups map<varchar, timeuuid>,
 
       PRIMARY KEY (device_id)
     );
     """
 
-    with {:ok, %Xandra.SchemaChange{}} <- CSystem.execute_schema_change(conn, query) do
+    with {:ok, %{rows: nil, num_rows: 1}} <- CSystem.execute_schema_change(query) do
       :ok
     end
   end
