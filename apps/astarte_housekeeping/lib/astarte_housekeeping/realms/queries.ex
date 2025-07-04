@@ -241,7 +241,7 @@ defmodule Astarte.Housekeeping.Realms.Queries do
            :ok <- create_endpoints_table(keyspace_name),
            :ok <- create_interfaces_table(keyspace_name),
            :ok <- create_individual_properties_table(keyspace_name),
-           :ok <- create_simple_triggers_table(keyspace_conn),
+           :ok <- create_simple_triggers_table(keyspace_name),
            :ok <- create_grouped_devices_table(keyspace_conn),
            :ok <- create_deletion_in_progress_table(keyspace_conn),
            :ok <- insert_realm_public_key(realm_name, public_key_pem),
@@ -638,9 +638,9 @@ defmodule Astarte.Housekeeping.Realms.Queries do
     end
   end
 
-  defp create_simple_triggers_table({conn, realm}) do
+  defp create_simple_triggers_table(keyspace_name) do
     query = """
-    CREATE TABLE #{realm}.simple_triggers (
+    CREATE TABLE #{keyspace_name}.simple_triggers (
       object_id uuid,
       object_type int,
       parent_trigger_id uuid,
@@ -652,7 +652,7 @@ defmodule Astarte.Housekeeping.Realms.Queries do
     );
     """
 
-    with {:ok, %Xandra.SchemaChange{}} <- CSystem.execute_schema_change(conn, query) do
+    with {:ok, %{rows: nil, num_rows: 1}} <- CSystem.execute_schema_change(query) do
       :ok
     end
   end
