@@ -40,7 +40,7 @@ defmodule Astarte.AppEngine.APIWeb do
       use Phoenix.Controller, namespace: Astarte.AppEngine.APIWeb
       import Plug.Conn
       import Astarte.AppEngine.APIWeb.Router.Helpers
-      import Astarte.AppEngine.APIWeb.Gettext
+      use Gettext, backend: Astarte.AppEngine.APIWeb.Gettext
     end
   end
 
@@ -55,7 +55,7 @@ defmodule Astarte.AppEngine.APIWeb do
 
       import Astarte.AppEngine.APIWeb.Router.Helpers
       import Astarte.AppEngine.APIWeb.ErrorHelpers
-      import Astarte.AppEngine.APIWeb.Gettext
+      use Gettext, backend: Astarte.AppEngine.APIWeb.Gettext
     end
   end
 
@@ -70,7 +70,7 @@ defmodule Astarte.AppEngine.APIWeb do
   def channel do
     quote do
       use Phoenix.Channel
-      import Astarte.AppEngine.APIWeb.Gettext
+      use Gettext, backend: Astarte.AppEngine.APIWeb.Gettext
     end
   end
 
