@@ -238,7 +238,7 @@ defmodule Astarte.Housekeeping.Realms.Queries do
            :ok <- create_realm_kv_store(keyspace_name),
            :ok <- create_names_table(keyspace_name),
            :ok <- create_devices_table(keyspace_name),
-           :ok <- create_endpoints_table(keyspace_conn),
+           :ok <- create_endpoints_table(keyspace_name),
            :ok <- create_interfaces_table(keyspace_conn),
            :ok <- create_individual_properties_table(keyspace_conn),
            :ok <- create_simple_triggers_table(keyspace_conn),
@@ -711,9 +711,9 @@ defmodule Astarte.Housekeeping.Realms.Queries do
     end
   end
 
-  defp create_endpoints_table({conn, realm}) do
+  defp create_endpoints_table(keyspace_name) do
     query = """
-    CREATE TABLE #{realm}.endpoints (
+    CREATE TABLE #{keyspace_name}.endpoints (
       interface_id uuid,
       endpoint_id uuid,
       interface_name ascii,
@@ -736,7 +736,7 @@ defmodule Astarte.Housekeeping.Realms.Queries do
     );
     """
 
-    with {:ok, %Xandra.SchemaChange{}} <- CSystem.execute_schema_change(conn, query) do
+    with {:ok, %{rows: nil, num_rows: 1}} <- CSystem.execute_schema_change(query) do
       :ok
     end
   end
