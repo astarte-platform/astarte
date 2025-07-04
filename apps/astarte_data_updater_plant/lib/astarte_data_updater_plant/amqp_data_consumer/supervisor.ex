@@ -33,9 +33,7 @@ defmodule Astarte.DataUpdaterPlant.AMQPDataConsumer.Supervisor do
 
     children = amqp_data_consumers_childspecs(queue_range_start, queue_range_end)
 
-    opts = [strategy: :one_for_one, name: __MODULE__]
-
-    Supervisor.init(children, opts)
+    Supervisor.init(children, strategy: :one_for_one)
   end
 
   defp amqp_data_consumers_childspecs(queue_range_start, queue_range_end) do

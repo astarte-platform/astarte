@@ -321,6 +321,14 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.Interface do
 
           {:ok, %{first_mapping | endpoint_id: endpoint_id}}
         else
+          :error ->
+            # Map.fetch failed
+            Logger.warning(
+              "endpoint_id for path #{inspect(path)} not found in mappings #{inspect(mappings)}."
+            )
+
+            {:error, :mapping_not_found}
+
           {:ok, _endpoint_id} ->
             # This is invalid here, publish doesn't happen on endpoints in object aggregated interfaces
             Logger.warning(

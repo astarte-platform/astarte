@@ -40,8 +40,6 @@ defmodule Astarte.DataUpdaterPlant.ConsumersSupervisor do
       DeletionScheduler
     ]
 
-    opts = [strategy: :rest_for_one, name: __MODULE__]
-
-    Supervisor.init(children, opts)
+    Supervisor.init(children, strategy: :rest_for_one)
   end
 end
