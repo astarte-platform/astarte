@@ -37,9 +37,9 @@ defmodule Astarte.HousekeepingWeb do
   def controller do
     quote do
       use Phoenix.Controller, namespace: Astarte.HousekeepingWeb
+      use Gettext, backend: Astarte.HousekeepingWeb.Gettext
       import Plug.Conn
       import Astarte.HousekeepingWeb.Router.Helpers
-      import Astarte.HousekeepingWeb.Gettext
     end
   end
 
@@ -49,12 +49,13 @@ defmodule Astarte.HousekeepingWeb do
         root: "lib/astarte_housekeeping/web/templates",
         namespace: Astarte.HousekeepingWeb
 
+      use Gettext, backend: Astarte.HousekeepingWeb.Gettext
+
       # Import convenience functions from controllers
       import Phoenix.Controller, only: [get_csrf_token: 0, get_flash: 2, view_module: 1]
 
       import Astarte.HousekeepingWeb.Router.Helpers
       import Astarte.HousekeepingWeb.ErrorHelpers
-      import Astarte.HousekeepingWeb.Gettext
     end
   end
 
@@ -69,7 +70,7 @@ defmodule Astarte.HousekeepingWeb do
   def channel do
     quote do
       use Phoenix.Channel
-      import Astarte.HousekeepingWeb.Gettext
+      use Gettext, backend: Astarte.HousekeepingWeb.Gettext
     end
   end
 

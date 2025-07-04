@@ -272,8 +272,8 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DataHandler do
 
     error = %{
       message: "Tried to unset a datastream.",
-      tag: "unset_on_datastream",
-      error_name: "unset_on_datastream"
+      error_name: "unset_on_datastream",
+      logger_metadata: [tag: "unset_on_datastream"]
     }
 
     Core.Error.handle_error(context, error, ask_clean_session: false, update_stats: false)

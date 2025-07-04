@@ -38,9 +38,9 @@ defmodule Astarte.PairingWeb do
   def controller do
     quote do
       use Phoenix.Controller, namespace: Astarte.PairingWeb
+      use Gettext, backend: Astarte.PairingWeb.Gettext
       import Plug.Conn
       import Astarte.PairingWeb.Router.Helpers
-      import Astarte.PairingWeb.Gettext
     end
   end
 
@@ -50,12 +50,13 @@ defmodule Astarte.PairingWeb do
         root: "lib/astarte_pairing_web/templates",
         namespace: Astarte.PairingWeb
 
+      use Gettext, backend: Astarte.PairingWeb.Gettext
+
       # Import convenience functions from controllers
       import Phoenix.Controller, only: [get_flash: 2, view_module: 1]
 
       import Astarte.PairingWeb.Router.Helpers
       import Astarte.PairingWeb.ErrorHelpers
-      import Astarte.PairingWeb.Gettext
     end
   end
 
@@ -70,7 +71,7 @@ defmodule Astarte.PairingWeb do
   def channel do
     quote do
       use Phoenix.Channel
-      import Astarte.PairingWeb.Gettext
+      use Gettext, backend: Astarte.PairingWeb.Gettext
     end
   end
 
