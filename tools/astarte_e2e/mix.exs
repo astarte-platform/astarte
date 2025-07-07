@@ -50,6 +50,9 @@ defmodule AstarteE2E.MixProject do
   defp deps do
     [
       {:astarte_device, github: "astarte-platform/astarte-device-sdk-elixir"},
+      {:astarte_core,
+       github: "astarte-platform/astarte_core", branch: "release-1.2", override: true},
+      {:astarte_generators, github: "astarte-platform/astarte_generators"},
       {:phoenix_gen_socket_client, "~> 4.0"},
       {:websocket_client, "~> 1.5"},
       {:jason, "~> 1.0"},
@@ -64,6 +67,7 @@ defmodule AstarteE2E.MixProject do
       {:observer_cli, "~> 1.5"},
       {:bamboo, "~> 1.6"},
       {:bamboo_config_adapter, "~> 1.0"},
+      {:httpoison, "~> 2.0"},
       {:hukai, "~> 0.3"},
       {:dialyzex, github: "Comcast/dialyzex", only: [:dev, :ci]},
       # Workaround for Elixir 1.15 / ssl_verify_fun issue
