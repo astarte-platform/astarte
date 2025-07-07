@@ -76,8 +76,7 @@ defmodule Astarte.Core.Generators.Triggers.Policy do
               retry_times: retry_times,
               event_ttl: event_ttl,
               prefetch_count: prefetch_count
-            } <-
-              gen,
+            } <- gen,
             error_handlers <-
               error_handlers
               |> Enum.map(&HandlerGenerator.to_changes(constant(&1)))
