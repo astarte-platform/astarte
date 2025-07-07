@@ -37,9 +37,9 @@ defmodule Astarte.RealmManagementWeb do
   def controller do
     quote do
       use Phoenix.Controller, namespace: Astarte.RealmManagementWeb
+      use Gettext, backend: Astarte.RealmManagementWeb.Gettext
       import Plug.Conn
       import Astarte.RealmManagementWeb.Router.Helpers
-      import Astarte.RealmManagementWeb.Gettext
     end
   end
 
@@ -49,12 +49,13 @@ defmodule Astarte.RealmManagementWeb do
         root: "lib/astarte_realm_management/web/templates",
         namespace: Astarte.RealmManagementWeb
 
+      use Gettext, backend: Astarte.RealmManagementWeb.Gettext
+
       # Import convenience functions from controllers
       import Phoenix.Controller, only: [get_csrf_token: 0, get_flash: 2, view_module: 1]
 
       import Astarte.RealmManagementWeb.Router.Helpers
       import Astarte.RealmManagementWeb.ErrorHelpers
-      import Astarte.RealmManagementWeb.Gettext
     end
   end
 
@@ -69,7 +70,7 @@ defmodule Astarte.RealmManagementWeb do
   def channel do
     quote do
       use Phoenix.Channel
-      import Astarte.RealmManagementWeb.Gettext
+      use Gettext, backend: Astarte.RealmManagementWeb.Gettext
     end
   end
 

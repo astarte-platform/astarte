@@ -17,8 +17,7 @@
 #
 
 defmodule Astarte.DataUpdaterPlant.TriggersHandler do
-  # https://hexdocs.pm/elixir/1.13.4/Bitwise.html
-  import Bitwise
+  import Bitwise, only: [<<<: 2]
   require Logger
   alias Astarte.DataUpdaterPlant.Config
 
