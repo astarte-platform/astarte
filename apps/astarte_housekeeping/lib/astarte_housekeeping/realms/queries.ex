@@ -244,10 +244,10 @@ defmodule Astarte.Housekeeping.Realms.Queries do
            :ok <- create_simple_triggers_table(keyspace_conn),
            :ok <- create_grouped_devices_table(keyspace_conn),
            :ok <- create_deletion_in_progress_table(keyspace_conn),
-           :ok <- insert_realm_public_key(keyspace_conn, public_key_pem),
-           :ok <- insert_realm_astarte_schema_version(keyspace_conn),
-           :ok <- insert_realm(conn, realm_name, device_limit),
-           :ok <- insert_datastream_max_retention(keyspace_conn, max_retention) do
+           :ok <- insert_realm_public_key(realm_name, public_key_pem),
+           :ok <- insert_realm_astarte_schema_version(realm_name),
+           :ok <- insert_realm(realm_name, device_limit),
+           :ok <- insert_datastream_max_retention(realm_name, max_retention) do
         :ok
       else
         {:error, %Xandra.Error{} = err} ->
@@ -394,80 +394,82 @@ defmodule Astarte.Housekeeping.Realms.Queries do
     :ok
   end
 
-  defp insert_datastream_max_retention({conn, keyspace_name}, max_retention) do
-    statement = """
-    INSERT INTO :keyspace_name.kv_store (group, key, value)
-    VALUES ('realm_config', 'datastream_maximum_storage_retention', intAsBlob(:max_retention));
-    """
-
-    params = %{
-      "max_retention" => max_retention
-    }
-
-    # This is safe since we checked the realm name in the caller
-    query = String.replace(statement, ":keyspace_name", keyspace_name)
+  defp insert_datastream_max_retention(realm_name, max_retention) do
+    keyspace_name = Realm.keyspace_name(realm_name)
 
     consistency = Consistency.domain_model(:write)
 
-    with {:ok, prepared} <- Xandra.prepare(conn, query),
-         {:ok, %Xandra.Void{}} <-
-           Xandra.execute(conn, prepared, params, consistency: consistency) do
-      :ok
-    end
+    opts = [
+      consistency: consistency,
+      prefix: keyspace_name
+    ]
+
+    %{
+      group: "realm_config",
+      key: "datastream_maximum_storage_retention",
+      value: max_retention,
+      value_type: :integer
+    }
+    |> KvStore.insert(opts)
   end
 
-  defp insert_realm(conn, realm_name, device_limit) do
-    query = """
-    INSERT INTO #{CQLUtils.realm_name_to_keyspace_name("astarte", Config.astarte_instance_id!())}.realms (realm_name, device_registration_limit)
-    VALUES (:realm_name, :device_registration_limit);
-    """
+  defp insert_realm(realm_name, device_limit) do
+    keyspace_name = Realm.astarte_keyspace_name()
 
     device_registration_limit = if device_limit == 0, do: nil, else: device_limit
 
-    params = %{
-      "realm_name" => realm_name,
-      "device_registration_limit" => device_registration_limit
+    realm_attrs = %Realm{
+      realm_name: realm_name,
+      device_registration_limit: device_registration_limit
     }
 
     consistency = Consistency.domain_model(:write)
 
-    with {:ok, prepared} <- Xandra.prepare(conn, query),
-         {:ok, %Xandra.Void{}} <-
-           Xandra.execute(conn, prepared, params, consistency: consistency) do
-      :ok
+    opts = [
+      consistency: consistency,
+      prefix: keyspace_name
+    ]
+
+    case Repo.insert(realm_attrs, opts) do
+      {:ok, _realm} -> :ok
+      {:error, reason} -> {:error, reason}
     end
   end
 
-  defp insert_realm_astarte_schema_version({conn, realm}) do
-    query = """
-    INSERT INTO #{realm}.kv_store
-    (group, key, value)
-    VALUES ('astarte', 'schema_version', bigintAsBlob(#{Migrator.latest_realm_schema_version()}));
-    """
-
+  defp insert_realm_astarte_schema_version(realm_name) do
+    keyspace_name = Realm.keyspace_name(realm_name)
     consistency = Consistency.domain_model(:write)
 
-    with {:ok, %Xandra.Void{}} <-
-           Xandra.execute(conn, query, %{}, consistency: consistency) do
-      :ok
-    end
+    opts = [
+      consistency: consistency,
+      prefix: keyspace_name
+    ]
+
+    %{
+      group: "astarte",
+      key: "schema_version",
+      value: Migrator.latest_realm_schema_version(),
+      value_type: :big_integer
+    }
+    |> KvStore.insert(opts)
   end
 
-  defp insert_realm_public_key({conn, realm}, public_key_pem) do
-    query = """
-    INSERT INTO #{realm}.kv_store (group, key, value)
-    VALUES ('auth', 'jwt_public_key_pem', varcharAsBlob(:public_key_pem));
-    """
-
-    params = %{"public_key_pem" => public_key_pem}
-
+  defp insert_realm_public_key(realm_name, public_key_pem) do
+    keyspace_name = Realm.keyspace_name(realm_name)
     consistency = Consistency.domain_model(:write)
 
-    with {:ok, prepared} <- Xandra.prepare(conn, query),
-         {:ok, %Xandra.Void{}} <-
-           Xandra.execute(conn, prepared, params, consistency: consistency) do
-      :ok
-    end
+    opts = [
+      consistency: consistency,
+      prefix: keyspace_name
+    ]
+
+    %{
+      group: "auth",
+      key: "jwt_public_key_pem",
+      value: public_key_pem,
+      value_type: :string
+    }
+    |> KvStore.insert(opts)
   end
 
   defp get_local_datacenter(conn) do
@@ -1026,8 +1028,8 @@ defmodule Astarte.Housekeeping.Realms.Queries do
   def initialize_database do
     Xandra.Cluster.run(:xandra, [timeout: 60_000], fn conn ->
       with :ok <- create_astarte_keyspace(conn),
-           :ok <- create_realms_table(conn),
-           :ok <- create_astarte_kv_store(conn),
+           :ok <- create_realms_table(),
+           :ok <- create_astarte_kv_store(),
            :ok <- insert_astarte_schema_version(conn) do
         :ok
       else
@@ -1089,7 +1091,7 @@ defmodule Astarte.Housekeeping.Realms.Queries do
     end
   end
 
-  defp create_realms_table(conn) do
+  defp create_realms_table do
     query = """
     CREATE TABLE #{Realm.astarte_keyspace_name()}.realms (
       realm_name varchar,
@@ -1100,13 +1102,13 @@ defmodule Astarte.Housekeeping.Realms.Queries do
 
     consistency = Consistency.domain_model(:write)
 
-    with {:ok, %Xandra.SchemaChange{}} <-
-           Xandra.execute(conn, query, %{}, consistency: consistency) do
+    with {:ok, %{rows: nil, num_rows: 1}} <-
+           Repo.query(query, [], consistency: consistency) do
       :ok
     end
   end
 
-  defp create_astarte_kv_store(conn) do
+  defp create_astarte_kv_store do
     query = """
     CREATE TABLE #{Realm.astarte_keyspace_name()}.kv_store (
       group varchar,
@@ -1119,8 +1121,8 @@ defmodule Astarte.Housekeeping.Realms.Queries do
 
     consistency = Consistency.domain_model(:write)
 
-    with {:ok, %Xandra.SchemaChange{}} <-
-           Xandra.execute(conn, query, %{}, consistency: consistency) do
+    with {:ok, %{rows: nil, num_rows: 1}} <-
+           Repo.query(query, [], consistency: consistency) do
       :ok
     end
   end
