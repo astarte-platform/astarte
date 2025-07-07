@@ -36,8 +36,16 @@ defmodule AstarteE2E.Scheduler do
       |> Utils.to_ms()
 
     check_repetitions = Keyword.fetch!(opts, :check_repetitions)
+    device_id = Keyword.fetch!(opts, :device_id)
+    realm = Keyword.fetch!(opts, :realm)
 
-    state = %{check_repetitions: check_repetitions, check_interval_ms: check_interval_ms}
+    state = %{
+      check_repetitions: check_repetitions,
+      check_interval_ms: check_interval_ms,
+      realm: realm,
+      device_id: device_id
+    }
+
     Process.send_after(self(), :do_perform_check, check_interval_ms)
 
     {:ok, state}
@@ -56,7 +64,7 @@ defmodule AstarteE2E.Scheduler do
   @impl true
   def handle_info(:do_perform_check, state) do
     return_val =
-      case AstarteE2E.perform_check() do
+      case AstarteE2E.perform_check(state.realm, state.device_id) do
         :ok ->
           handle_successful_job(state)
 
