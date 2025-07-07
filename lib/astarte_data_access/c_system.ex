@@ -25,9 +25,7 @@ defmodule Astarte.DataAccess.CSystem do
 
   @agreement_sleep_millis 200
 
-  # TODO: `conn` is no longer used, since it was ported to Exandra
-  # mainteined for compatibility
-  def run_with_schema_agreement(_conn, opts \\ [], fun) when is_function(fun) do
+  def run_with_schema_agreement(opts \\ [], fun) when is_function(fun) do
     timeout = Keyword.get(opts, :timeout, 30000)
     expect_change = Keyword.get(opts, :expect_change, false)
 
@@ -88,12 +86,17 @@ defmodule Astarte.DataAccess.CSystem do
     Repo.one!(query, consistency: Consistency.domain_model(:read))
   end
 
-  def execute_schema_change(conn, query) do
+  def execute_schema_change(query) do
     consistency = Consistency.domain_model(:write)
 
+    opts = [
+      consistency: consistency,
+      timeout: 60_000
+    ]
+
     result =
-      CSystem.run_with_schema_agreement(conn, fn ->
-        Xandra.execute(conn, query, %{}, consistency: consistency, timeout: 60_000)
+      CSystem.run_with_schema_agreement(fn ->
+        Repo.query(query, [], opts)
       end)
 
     case result do
