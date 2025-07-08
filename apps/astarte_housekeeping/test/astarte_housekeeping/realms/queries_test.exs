@@ -19,6 +19,8 @@
 defmodule Astarte.Housekeeping.Realms.QueriesTest do
   use Astarte.Housekeeping.DataCase, async: true
   use Mimic
+
+  alias Astarte.DataAccess.Repo
   alias Astarte.Housekeeping.Helpers.Database
   alias Astarte.Housekeeping.Realms.Queries
   alias Astarte.Housekeeping.Realms
@@ -146,7 +148,7 @@ defmodule Astarte.Housekeeping.Realms.QueriesTest do
     end
 
     test "creations returns an error", %{realm_name: realm_name} do
-      Xandra.Cluster |> stub(:run, fn _, _, _ -> {:error, "generic error"} end)
+      Repo |> stub(:query, fn _, _, _ -> {:error, "generic error"} end)
 
       assert {:error, "generic error"} =
                Queries.create_realm(realm_name, "test1publickey", 1, 1, 1, [])

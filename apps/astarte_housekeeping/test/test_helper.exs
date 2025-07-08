@@ -18,6 +18,7 @@
 
 Mimic.copy(Astarte.DataAccess.Health.Health)
 Mimic.copy(Astarte.DataAccess.Config)
+Mimic.copy(Astarte.DataAccess.Repo)
 Mimic.copy(Astarte.Housekeeping.Realms)
 Mimic.copy(Astarte.Housekeeping.Config)
 Mimic.copy(Astarte.Housekeeping.Realms.Queries)

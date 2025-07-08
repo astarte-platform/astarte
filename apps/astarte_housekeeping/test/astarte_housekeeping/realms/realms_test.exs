@@ -24,6 +24,7 @@ defmodule Astarte.Housekeeping.RealmsTest do
   import Astarte.Housekeeping.Fixtures.Realm
 
   alias Astarte.Core.Generators.Realm, as: GeneratorsRealm
+  alias Astarte.DataAccess.Repo
   alias Astarte.Housekeeping.Config
   alias Astarte.Housekeeping.Helpers.Database
   alias Astarte.Housekeeping.Realms
@@ -319,7 +320,7 @@ defmodule Astarte.Housekeeping.RealmsTest do
     end
 
     test "deletions returns an error", %{realm_name: realm_name} do
-      Xandra.Cluster |> stub(:run, fn _, _, _ -> {:error, "generic error"} end)
+      Repo |> stub(:query, fn _, _, _ -> {:error, "generic error"} end)
 
       assert {:error, "generic error"} = Realms.delete_realm(realm_name)
     end

@@ -231,47 +231,44 @@ defmodule Astarte.Housekeeping.Realms.Queries do
          device_limit,
          max_retention
        ) do
-    Xandra.Cluster.run(:xandra, [timeout: 60_000], fn conn ->
-      with :ok <- validate_realm_name(realm_name),
-           :ok <- create_realm_keyspace(conn, keyspace_name, replication_map_str),
-           {:ok, keyspace_conn} <- build_keyspace_conn(conn, keyspace_name),
-           :ok <- create_realm_kv_store(keyspace_conn),
-           :ok <- create_names_table(keyspace_conn),
-           :ok <- create_devices_table(keyspace_conn),
-           :ok <- create_endpoints_table(keyspace_conn),
-           :ok <- create_interfaces_table(keyspace_conn),
-           :ok <- create_individual_properties_table(keyspace_conn),
-           :ok <- create_simple_triggers_table(keyspace_conn),
-           :ok <- create_grouped_devices_table(keyspace_conn),
-           :ok <- create_deletion_in_progress_table(keyspace_conn),
-           :ok <- insert_realm_public_key(realm_name, public_key_pem),
-           :ok <- insert_realm_astarte_schema_version(realm_name),
-           :ok <- insert_realm(realm_name, device_limit),
-           :ok <- insert_datastream_max_retention(realm_name, max_retention) do
-        :ok
-      else
-        {:error, %Xandra.Error{} = err} ->
-          _ = Logger.warning("Database error: #{inspect(err)}.", tag: "database_error")
-          {:error, :database_error}
+    with :ok <- validate_realm_name(realm_name),
+         :ok <- create_realm_keyspace(keyspace_name, replication_map_str),
+         :ok <- create_realm_kv_store(keyspace_name),
+         :ok <- create_names_table(keyspace_name),
+         :ok <- create_devices_table(keyspace_name),
+         :ok <- create_endpoints_table(keyspace_name),
+         :ok <- create_interfaces_table(keyspace_name),
+         :ok <- create_individual_properties_table(keyspace_name),
+         :ok <- create_simple_triggers_table(keyspace_name),
+         :ok <- create_grouped_devices_table(keyspace_name),
+         :ok <- create_deletion_in_progress_table(keyspace_name),
+         :ok <- insert_realm_public_key(realm_name, public_key_pem),
+         :ok <- insert_realm_astarte_schema_version(realm_name),
+         :ok <- insert_realm(realm_name, device_limit),
+         :ok <- insert_datastream_max_retention(realm_name, max_retention) do
+      :ok
+    else
+      {:error, %Xandra.Error{} = err} ->
+        _ = Logger.warning("Database error: #{inspect(err)}.", tag: "database_error")
+        {:error, :database_error}
 
-        {:error, %Xandra.ConnectionError{} = err} ->
-          _ =
-            Logger.warning("Database connection error: #{inspect(err)}.",
-              tag: "database_connection_error"
-            )
+      {:error, %Xandra.ConnectionError{} = err} ->
+        _ =
+          Logger.warning("Database connection error: #{inspect(err)}.",
+            tag: "database_connection_error"
+          )
 
-          {:error, :database_connection_error}
+        {:error, :database_connection_error}
 
-        {:error, reason} ->
-          _ =
-            Logger.warning("Cannot create realm: #{inspect(reason)}.",
-              tag: "realm_creation_failed",
-              realm: realm_name
-            )
+      {:error, reason} ->
+        _ =
+          Logger.warning("Cannot create realm: #{inspect(reason)}.",
+            tag: "realm_creation_failed",
+            realm: realm_name
+          )
 
-          {:error, reason}
-      end
-    end)
+        {:error, reason}
+    end
   end
 
   defp validate_realm_name(realm_name) do
@@ -346,37 +343,21 @@ defmodule Astarte.Housekeeping.Realms.Queries do
     {:error, :invalid_replication}
   end
 
-  defp create_realm_keyspace(conn, realm_name, replication_map_str) do
+  defp create_realm_keyspace(keyspace_name, replication_map_str) do
     query = """
-    CREATE KEYSPACE #{realm_name}
+    CREATE KEYSPACE #{keyspace_name}
     WITH replication = #{replication_map_str}
     AND durable_writes = true;
     """
 
-    with {:ok, %Xandra.SchemaChange{}} <- CSystem.execute_schema_change(conn, query) do
+    with {:ok, %{rows: nil, num_rows: 1}} <- CSystem.execute_schema_change(query) do
       :ok
     else
       {:error, reason} ->
         _ =
           Logger.warning("Cannot create keyspace: #{inspect(reason)}.",
             tag: "build_keyspace_error",
-            realm: realm_name
-          )
-
-        {:error, reason}
-    end
-  end
-
-  defp build_keyspace_conn(conn, realm_name) do
-    case validate_realm_name(realm_name) do
-      :ok ->
-        {:ok, {conn, realm_name}}
-
-      {:error, reason} ->
-        _ =
-          Logger.warning("Cannot build realm conn: #{inspect(reason)}.",
-            tag: "build_keyspace_conn_error",
-            realm: realm_name
+            realm: keyspace_name
           )
 
         {:error, reason}
@@ -573,25 +554,26 @@ defmodule Astarte.Housekeeping.Realms.Queries do
     end
   end
 
-  defp create_deletion_in_progress_table({conn, realm}) do
+  defp create_deletion_in_progress_table(keyspace_name) do
     query = """
-    CREATE TABLE #{realm}.deletion_in_progress (
+    CREATE TABLE #{keyspace_name}.deletion_in_progress (
       device_id uuid,
       vmq_ack boolean,
       dup_start_ack boolean,
       dup_end_ack boolean,
+
       PRIMARY KEY (device_id)
     );
     """
 
-    with {:ok, %Xandra.SchemaChange{}} <- CSystem.execute_schema_change(conn, query) do
+    with {:ok, %{rows: nil, num_rows: 1}} <- CSystem.execute_schema_change(query) do
       :ok
     end
   end
 
-  defp create_grouped_devices_table({conn, realm}) do
+  defp create_grouped_devices_table(keyspace_name) do
     query = """
-    CREATE TABLE #{realm}.grouped_devices (
+    CREATE TABLE #{keyspace_name}.grouped_devices (
       group_name varchar,
       insertion_uuid timeuuid,
       device_id uuid,
@@ -600,21 +582,20 @@ defmodule Astarte.Housekeeping.Realms.Queries do
     );
     """
 
-    with {:ok, %Xandra.SchemaChange{}} <- CSystem.execute_schema_change(conn, query) do
+    with {:ok, %{rows: nil, num_rows: 1}} <- CSystem.execute_schema_change(query) do
       :ok
     end
   end
 
-  defp create_individual_properties_table({conn, realm}) do
+  defp create_individual_properties_table(keyspace_name) do
     query = """
-    CREATE TABLE #{realm}.individual_properties (
+    CREATE TABLE #{keyspace_name}.individual_properties (
       device_id uuid,
       interface_id uuid,
       endpoint_id uuid,
       path varchar,
       reception_timestamp timestamp,
       reception_timestamp_submillis smallint,
-
       double_value double,
       integer_value int,
       boolean_value boolean,
@@ -634,14 +615,14 @@ defmodule Astarte.Housekeeping.Realms.Queries do
     )
     """
 
-    with {:ok, %Xandra.SchemaChange{}} <- CSystem.execute_schema_change(conn, query) do
+    with {:ok, %{rows: nil, num_rows: 1}} <- CSystem.execute_schema_change(query) do
       :ok
     end
   end
 
-  defp create_simple_triggers_table({conn, realm}) do
+  defp create_simple_triggers_table(keyspace_name) do
     query = """
-    CREATE TABLE #{realm}.simple_triggers (
+    CREATE TABLE #{keyspace_name}.simple_triggers (
       object_id uuid,
       object_type int,
       parent_trigger_id uuid,
@@ -653,29 +634,30 @@ defmodule Astarte.Housekeeping.Realms.Queries do
     );
     """
 
-    with {:ok, %Xandra.SchemaChange{}} <- CSystem.execute_schema_change(conn, query) do
+    with {:ok, %{rows: nil, num_rows: 1}} <- CSystem.execute_schema_change(query) do
       :ok
     end
   end
 
-  defp create_names_table({conn, realm}) do
+  defp create_names_table(keyspace_name) do
     query = """
-    CREATE TABLE #{realm}.names (
+    CREATE TABLE #{keyspace_name}.names (
       object_name varchar,
       object_type int,
       object_uuid uuid,
+
       PRIMARY KEY ((object_name), object_type)
     );
     """
 
-    with {:ok, %Xandra.SchemaChange{}} <- CSystem.execute_schema_change(conn, query) do
+    with {:ok, %{rows: nil, num_rows: 1}} <- CSystem.execute_schema_change(query) do
       :ok
     end
   end
 
-  defp create_devices_table({conn, realm}) do
+  defp create_devices_table(keyspace_name) do
     query = """
-    CREATE TABLE #{realm}.devices (
+    CREATE TABLE #{keyspace_name}.devices (
       device_id uuid,
       aliases map<ascii, varchar>,
       introspection map<ascii, int>,
@@ -699,21 +681,20 @@ defmodule Astarte.Housekeeping.Realms.Queries do
       last_credentials_request_ip inet,
       last_seen_ip inet,
       attributes map<varchar, varchar>,
-
-      groups map<text, timeuuid>,
+      groups map<varchar, timeuuid>,
 
       PRIMARY KEY (device_id)
     );
     """
 
-    with {:ok, %Xandra.SchemaChange{}} <- CSystem.execute_schema_change(conn, query) do
+    with {:ok, %{rows: nil, num_rows: 1}} <- CSystem.execute_schema_change(query) do
       :ok
     end
   end
 
-  defp create_endpoints_table({conn, realm}) do
+  defp create_endpoints_table(keyspace_name) do
     query = """
-    CREATE TABLE #{realm}.endpoints (
+    CREATE TABLE #{keyspace_name}.endpoints (
       interface_id uuid,
       endpoint_id uuid,
       interface_name ascii,
@@ -736,14 +717,14 @@ defmodule Astarte.Housekeeping.Realms.Queries do
     );
     """
 
-    with {:ok, %Xandra.SchemaChange{}} <- CSystem.execute_schema_change(conn, query) do
+    with {:ok, %{rows: nil, num_rows: 1}} <- CSystem.execute_schema_change(query) do
       :ok
     end
   end
 
-  defp create_realm_kv_store({conn, realm}) do
+  defp create_realm_kv_store(keyspace_name) do
     query = """
-    CREATE TABLE #{realm}.kv_store (
+    CREATE TABLE #{keyspace_name}.kv_store (
       group varchar,
       key varchar,
       value blob,
@@ -752,23 +733,22 @@ defmodule Astarte.Housekeeping.Realms.Queries do
     );
     """
 
-    with {:ok, %Xandra.SchemaChange{}} <- CSystem.execute_schema_change(conn, query) do
+    with {:ok, %{rows: nil, num_rows: 1}} <- CSystem.execute_schema_change(query) do
       :ok
     else
       {:error, reason} ->
-        _ =
-          Logger.warning("Cannot create kv_store: #{inspect(reason)}.",
-            tag: "build_kv_store_error",
-            realm: realm
-          )
+        Logger.warning("Cannot create kv_store: #{inspect(reason)}.",
+          tag: "build_kv_store_error",
+          realm: keyspace_name
+        )
 
         {:error, reason}
     end
   end
 
-  defp create_interfaces_table({conn, realm}) do
+  defp create_interfaces_table(keyspace_name) do
     query = """
-    CREATE TABLE #{realm}.interfaces (
+    CREATE TABLE #{keyspace_name}.interfaces (
       name ascii,
       major_version int,
       minor_version int,
@@ -787,7 +767,7 @@ defmodule Astarte.Housekeeping.Realms.Queries do
     );
     """
 
-    with {:ok, %Xandra.SchemaChange{}} <- CSystem.execute_schema_change(conn, query) do
+    with {:ok, %{rows: nil, num_rows: 1}} <- CSystem.execute_schema_change(query) do
       :ok
     end
   end
@@ -920,32 +900,30 @@ defmodule Astarte.Housekeeping.Realms.Queries do
   end
 
   defp do_delete_realm(realm_name, keyspace_name) do
-    Xandra.Cluster.run(:xandra, [timeout: 60_000], fn conn ->
-      with :ok <- verify_realm_deletion_preconditions(keyspace_name),
-           :ok <- execute_realm_deletion(conn, realm_name, keyspace_name) do
-        :ok
-      else
-        {:error, %Xandra.Error{} = err} ->
-          Logger.warning("Database error: #{inspect(err)}.", tag: "database_error")
+    with :ok <- verify_realm_deletion_preconditions(keyspace_name),
+         :ok <- execute_realm_deletion(realm_name, keyspace_name) do
+      :ok
+    else
+      {:error, %Xandra.Error{} = err} ->
+        Logger.warning("Database error: #{inspect(err)}.", tag: "database_error")
 
-          {:error, :database_error}
+        {:error, :database_error}
 
-        {:error, %Xandra.ConnectionError{} = err} ->
-          Logger.warning("Database connection error: #{inspect(err)}.",
-            tag: "database_connection_error"
-          )
+      {:error, %Xandra.ConnectionError{} = err} ->
+        Logger.warning("Database connection error: #{inspect(err)}.",
+          tag: "database_connection_error"
+        )
 
-          {:error, :database_connection_error}
+        {:error, :database_connection_error}
 
-        {:error, reason} ->
-          Logger.warning("Cannot delete realm: #{inspect(reason)}.",
-            tag: "realm_deletion_failed",
-            realm: realm_name
-          )
+      {:error, reason} ->
+        Logger.warning("Cannot delete realm: #{inspect(reason)}.",
+          tag: "realm_deletion_failed",
+          realm: realm_name
+        )
 
-          {:error, reason}
-      end
-    end)
+        {:error, reason}
+    end
   end
 
   defp verify_realm_deletion_preconditions(keyspace_name) do
@@ -962,8 +940,8 @@ defmodule Astarte.Housekeeping.Realms.Queries do
     end
   end
 
-  defp execute_realm_deletion(conn, realm_name, keyspace_name) do
-    with :ok <- delete_realm_keyspace(conn, keyspace_name),
+  defp execute_realm_deletion(realm_name, keyspace_name) do
+    with :ok <- delete_realm_keyspace(keyspace_name),
          :ok <- remove_realm(realm_name) do
       :ok
     else
@@ -1000,12 +978,12 @@ defmodule Astarte.Housekeeping.Realms.Queries do
     end
   end
 
-  defp delete_realm_keyspace(conn, realm_name) do
+  defp delete_realm_keyspace(keyspace_name) do
     query = """
-    DROP KEYSPACE #{realm_name}
+    DROP KEYSPACE #{keyspace_name}
     """
 
-    with {:ok, %Xandra.SchemaChange{}} <- CSystem.execute_schema_change(conn, query) do
+    with {:ok, %{rows: nil, num_rows: 1}} <- CSystem.execute_schema_change(query) do
       :ok
     end
   end

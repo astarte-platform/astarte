@@ -40,10 +40,10 @@ defmodule Astarte.Housekeeping.MigratorTest do
       assert :ok = Migrator.run_astarte_keyspace_migrations()
     end
 
-    test "returns ok with incomplete db (missing kv_store table)" do
+    test "returns error with incomplete db (missing kv_store table)" do
       Database.destroy_astarte_kv_store_table!()
 
-      assert :ok = Migrator.run_astarte_keyspace_migrations()
+      assert {:error, :database_error} = Migrator.run_astarte_keyspace_migrations()
     end
 
     test "returns error due do xandra problem" do
