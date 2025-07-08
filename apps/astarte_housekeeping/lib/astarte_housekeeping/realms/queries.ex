@@ -999,7 +999,7 @@ defmodule Astarte.Housekeeping.Realms.Queries do
       with :ok <- create_astarte_keyspace(conn),
            :ok <- create_realms_table(),
            :ok <- create_astarte_kv_store(),
-           :ok <- insert_astarte_schema_version(conn) do
+           :ok <- insert_astarte_schema_version() do
         :ok
       else
         {:error, %Xandra.Error{} = err} ->
@@ -1096,18 +1096,23 @@ defmodule Astarte.Housekeeping.Realms.Queries do
     end
   end
 
-  defp insert_astarte_schema_version(conn) do
-    query = """
-    INSERT INTO #{Realm.astarte_keyspace_name()}.kv_store
-    (group, key, value)
-    VALUES ('astarte', 'schema_version', bigintAsBlob(#{Migrator.latest_astarte_schema_version()}));
-    """
+  defp insert_astarte_schema_version do
+    keyspace_name = Realm.astarte_keyspace_name()
 
     consistency = Consistency.domain_model(:write)
 
-    with {:ok, %Xandra.Void{}} <- Xandra.execute(conn, query, %{}, consistency: consistency) do
-      :ok
-    end
+    opts = [
+      consistency: consistency,
+      prefix: keyspace_name
+    ]
+
+    %{
+      group: "astarte",
+      key: "schema_version",
+      value: Migrator.latest_realm_schema_version(),
+      value_type: :big_integer
+    }
+    |> KvStore.insert(opts)
   end
 
   def is_astarte_keyspace_existing do
