@@ -19,6 +19,7 @@
 defmodule Astarte.Housekeeping.Realms.Queries do
   import Ecto.Query
 
+  alias Astarte.Core.Realm, as: CoreRealm
   alias Astarte.DataAccess.Consistency
   alias Astarte.DataAccess.CSystem
   alias Astarte.DataAccess.Devices.Device
@@ -26,16 +27,11 @@ defmodule Astarte.Housekeeping.Realms.Queries do
   alias Astarte.DataAccess.Realms.Realm
   alias Astarte.DataAccess.Repo
   alias Astarte.Housekeeping.Config
+  alias Astarte.Housekeeping.Migrator
   alias Astarte.Housekeeping.Realms.Realm, as: HKRealm
 
-  alias Astarte.Core.Realm, as: CoreRealm
-  alias Astarte.Core.CQLUtils
-  alias Astarte.DataAccess.CSystem
-  alias Astarte.Housekeeping.Migrator
-  alias Astarte.Housekeeping.Config
-  alias Astarte.Housekeeping.Realms.Realm, as: HKRealm
-  alias Astarte.DataAccess.KvStore
   require Logger
+
   @default_replication_factor 1
 
   def is_realm_existing(realm_name) do
@@ -192,8 +188,7 @@ defmodule Astarte.Housekeeping.Realms.Queries do
 
   def create_realm(realm_name, public_key_pem, replication, device_limit, max_retention, opts) do
     with :ok <- validate_realm_name(realm_name),
-         keyspace_name =
-           CQLUtils.realm_name_to_keyspace_name(realm_name, Config.astarte_instance_id!()),
+         keyspace_name = Realm.keyspace_name(realm_name),
          :ok <- check_replication(replication),
          {:ok, replication_map_str} <- build_replication_map_str(replication) do
       if opts[:async] do
@@ -242,10 +237,10 @@ defmodule Astarte.Housekeeping.Realms.Queries do
          :ok <- create_simple_triggers_table(keyspace_name),
          :ok <- create_grouped_devices_table(keyspace_name),
          :ok <- create_deletion_in_progress_table(keyspace_name),
-         :ok <- insert_realm_public_key(realm_name, public_key_pem),
-         :ok <- insert_realm_astarte_schema_version(realm_name),
+         :ok <- insert_realm_public_key(keyspace_name, public_key_pem),
+         :ok <- insert_realm_astarte_schema_version(keyspace_name),
          :ok <- insert_realm(realm_name, device_limit),
-         :ok <- insert_datastream_max_retention(realm_name, max_retention) do
+         :ok <- insert_datastream_max_retention(keyspace_name, max_retention) do
       :ok
     else
       {:error, %Xandra.Error{} = err} ->
@@ -366,18 +361,16 @@ defmodule Astarte.Housekeeping.Realms.Queries do
 
   # ScyllaDB considers TTL=0 as unset, see
   # https://opensource.docs.scylladb.com/stable/cql/time-to-live.html#notes
-  defp insert_datastream_max_retention(_conn_realm, 0) do
+  defp insert_datastream_max_retention(_keyspace_name, 0) do
     :ok
   end
 
   # apparently, before when the field was nil, it was encoded as zero (not optional on protobuff), so treat it the same as zero
-  defp insert_datastream_max_retention(_conn_realm, nil) do
+  defp insert_datastream_max_retention(_keyspace_name, nil) do
     :ok
   end
 
-  defp insert_datastream_max_retention(realm_name, max_retention) do
-    keyspace_name = Realm.keyspace_name(realm_name)
-
+  defp insert_datastream_max_retention(keyspace_name, max_retention) do
     consistency = Consistency.domain_model(:write)
 
     opts = [
@@ -417,8 +410,7 @@ defmodule Astarte.Housekeeping.Realms.Queries do
     end
   end
 
-  defp insert_realm_astarte_schema_version(realm_name) do
-    keyspace_name = Realm.keyspace_name(realm_name)
+  defp insert_realm_astarte_schema_version(keyspace_name) do
     consistency = Consistency.domain_model(:write)
 
     opts = [
@@ -435,8 +427,7 @@ defmodule Astarte.Housekeeping.Realms.Queries do
     |> KvStore.insert(opts)
   end
 
-  defp insert_realm_public_key(realm_name, public_key_pem) do
-    keyspace_name = Realm.keyspace_name(realm_name)
+  defp insert_realm_public_key(keyspace_name, public_key_pem) do
     consistency = Consistency.domain_model(:write)
 
     opts = [
