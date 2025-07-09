@@ -58,8 +58,7 @@ jobs:
       run: mkdir -p dialyzer_cache && mix dialyzer --plt
     - name: Run dialyzer
       working-directory: ./apps/${{ inputs.app }}
-      # FIXME: This should be set to fail when dialyzer issues are fixed
-      run: mix dialyzer || exit 0
+      run: mix dialyzer
 
   test-coverage:
     name: Build and Test
