@@ -111,7 +111,7 @@ defmodule Astarte.Housekeeping.Migrator do
 
   defp create_astarte_kv_store do
     query = """
-    CREATE TABLE #{CQLUtils.realm_name_to_keyspace_name("astarte", Config.astarte_instance_id!())}.kv_store (
+    CREATE TABLE #{Realm.astarte_keyspace_name()}.kv_store (
       group varchar,
       key varchar,
       value blob,
@@ -120,24 +120,8 @@ defmodule Astarte.Housekeeping.Migrator do
     );
     """
 
-    case Xandra.Cluster.execute(:xandra, query, %{},
-           consistency: Consistency.domain_model(:write),
-           timeout: @query_timeout
-         ) do
-      {:ok, %Xandra.SchemaChange{}} ->
-        :ok
-
-      {:error, %Xandra.Error{} = err} ->
-        _ = Logger.warning("Database error: #{inspect(err)}.", tag: "database_error")
-        {:error, :database_error}
-
-      {:error, %Xandra.ConnectionError{} = err} ->
-        _ =
-          Logger.warning("Database connection error: #{inspect(err)}.",
-            tag: "database_connection_error"
-          )
-
-        {:error, :database_connection_error}
+    with {:ok, %{rows: nil, num_rows: 1}} <- CSystem.execute_schema_change(query) do
+      :ok
     end
   end
 
