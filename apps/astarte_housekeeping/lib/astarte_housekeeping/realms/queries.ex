@@ -194,7 +194,7 @@ defmodule Astarte.Housekeeping.Realms.Queries do
     with :ok <- validate_realm_name(realm_name),
          keyspace_name =
            CQLUtils.realm_name_to_keyspace_name(realm_name, Config.astarte_instance_id!()),
-         :ok <- Xandra.Cluster.run(:xandra, &check_replication(&1, replication)),
+         :ok <- check_replication(replication),
          {:ok, replication_map_str} <- build_replication_map_str(replication) do
       if opts[:async] do
         {:ok, _pid} =
@@ -285,20 +285,20 @@ defmodule Astarte.Housekeeping.Realms.Queries do
     end
   end
 
-  defp check_replication(_conn, 1) do
+  defp check_replication(1) do
     :ok
   end
 
   # If replication factor is an integer, we're using SimpleStrategy
   # Check that the replication factor is <= the number of nodes in the same datacenter
-  defp check_replication(conn, replication_factor)
+  defp check_replication(replication_factor)
        when is_integer(replication_factor) and replication_factor > 1 do
     with {:ok, local_datacenter} <- get_local_datacenter() do
-      check_replication_for_datacenter(conn, local_datacenter, replication_factor, local: true)
+      check_replication_for_datacenter(local_datacenter, replication_factor, local: true)
     end
   end
 
-  defp check_replication(conn, datacenter_replication_factors)
+  defp check_replication(datacenter_replication_factors)
        when is_map(datacenter_replication_factors) do
     with {:ok, local_datacenter} <- get_local_datacenter() do
       Enum.reduce_while(datacenter_replication_factors, :ok, fn
@@ -310,7 +310,7 @@ defmodule Astarte.Housekeeping.Realms.Queries do
               []
             end
 
-          case check_replication_for_datacenter(conn, datacenter, replication_factor, opts) do
+          case check_replication_for_datacenter(datacenter, replication_factor, opts) do
             :ok -> {:cont, :ok}
             {:error, reason} -> {:halt, {:error, reason}}
           end
@@ -481,67 +481,57 @@ defmodule Astarte.Housekeeping.Realms.Queries do
     end
   end
 
-  defp check_replication_for_datacenter(conn, datacenter, replication_factor, opts) do
-    query = """
-    SELECT COUNT(*)
-    FROM system.peers
-    WHERE data_center=:data_center
-    ALLOW FILTERING;
-    """
+  defp check_replication_for_datacenter(datacenter, replication_factor, opts) do
+    query =
+      from sp in "system.peers",
+        hints: ["ALLOW FILTERING"],
+        where: sp.data_center == ^datacenter,
+        select: count()
 
-    with {:ok, prepared} <- Xandra.prepare(conn, query),
-         {:ok, %Xandra.Page{} = page} <-
-           Xandra.execute(conn, prepared, %{"data_center" => datacenter}, opts) do
-      case Enum.fetch(page, 0) do
-        :error ->
-          _ =
-            Logger.warning("Cannot retrieve node count for datacenter #{datacenter}.",
-              tag: "datacenter_not_found",
-              datacenter: datacenter
-            )
-
-          {:error, :datacenter_not_found}
-
-        {:ok, %{"count" => dc_node_count}} ->
-          # If we're querying the datacenter of the local node, add 1 (itself) to the count
-          actual_node_count =
-            if opts[:local] do
-              dc_node_count + 1
-            else
-              dc_node_count
-            end
-
-          if replication_factor <= actual_node_count do
-            :ok
+    case Repo.safe_fetch_one(query, opts) do
+      {:ok, dc_node_count} ->
+        # If we're querying the datacenter of the local node, add 1 (itself) to the count
+        actual_node_count =
+          if opts[:local] do
+            dc_node_count + 1
           else
-            _ =
-              Logger.warning(
-                "Trying to set replication_factor #{replication_factor} " <>
-                  "in datacenter #{datacenter} that has #{actual_node_count} nodes.",
-                tag: "invalid_replication_factor",
-                datacenter: datacenter,
-                replication_factor: replication_factor
-              )
-
-            error_message =
-              "replication_factor #{replication_factor} is >= #{actual_node_count} nodes " <>
-                "in datacenter #{datacenter}"
-
-            {:error, {:invalid_replication, error_message}}
+            dc_node_count
           end
-      end
-    else
-      {:error, %Xandra.Error{} = err} ->
-        _ = Logger.warning("Database error: #{inspect(err)}.", tag: "database_error")
-        {:error, :database_error}
 
-      {:error, %Xandra.ConnectionError{} = err} ->
-        _ =
-          Logger.warning("Database connection error: #{inspect(err)}.",
-            tag: "database_connection_error"
+        if replication_factor <= actual_node_count do
+          :ok
+        else
+          Logger.warning(
+            "Trying to set replication_factor #{replication_factor} " <>
+              "in datacenter #{datacenter} that has #{actual_node_count} nodes.",
+            tag: "invalid_replication_factor",
+            datacenter: datacenter,
+            replication_factor: replication_factor
           )
 
-        {:error, :database_connection_error}
+          error_message =
+            "replication_factor #{replication_factor} is >= #{actual_node_count} nodes " <>
+              "in datacenter #{datacenter}"
+
+          {:error, {:invalid_replication, error_message}}
+        end
+
+      {:error, :not_found} ->
+        Logger.warning("Cannot retrieve node count for datacenter #{datacenter}.",
+          tag: "datacenter_not_found",
+          datacenter: datacenter
+        )
+
+        {:error, :datacenter_not_found}
+
+      {:error, reason} ->
+        Logger.warning(
+          "Database error while checking replication for datacenter #{datacenter}: #{inspect(reason)}.",
+          tag: "database_error",
+          datacenter: datacenter
+        )
+
+        {:error, reason}
     end
   end
 
@@ -1045,7 +1035,7 @@ defmodule Astarte.Housekeeping.Realms.Queries do
          WITH replication = #{replication_map_str}
          AND durable_writes = true;
          """,
-         :ok <- check_replication(conn, astarte_keyspace_replication),
+         :ok <- check_replication(astarte_keyspace_replication),
          {:ok, %Xandra.SchemaChange{}} <-
            Xandra.execute(conn, query, %{}, consistency: consistency) do
       :ok
