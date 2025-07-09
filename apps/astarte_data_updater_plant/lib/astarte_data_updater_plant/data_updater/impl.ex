@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2017 - 2023 SECO Mind Srl
+# Copyright 2017 - 2025 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -22,6 +22,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
   alias Astarte.Core.CQLUtils
   alias Astarte.DataUpdaterPlant.Config
   alias Astarte.Core.Device
+  alias Astarte.Core.Device.Capabilities
   alias Astarte.Core.InterfaceDescriptor
   alias Astarte.Core.Mapping
   alias Astarte.Core.Mapping.EndpointsAutomaton
@@ -69,6 +70,10 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
     # TODO change this, we want extended device IDs to fall in the same process
     {realm, device_id} = sharding_key
 
+    capabilities = %Capabilities{
+      purge_properties_compression_format: :zlib
+    }
+
     state = %State{
       realm: realm,
       device_id: device_id,
@@ -90,7 +95,8 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
       trigger_id_to_policy_name: %{},
       discard_messages: false,
       last_deletion_in_progress_refresh: 0,
-      last_datastream_maximum_retention_refresh: 0
+      last_datastream_maximum_retention_refresh: 0,
+      capabilities: capabilities
     }
 
     encoded_device_id = Device.encode_device_id(device_id)
@@ -104,9 +110,12 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
 
     {:ok, ttl} = Queries.fetch_datastream_maximum_storage_retention(db_client)
 
+    {:ok, capabilities} = Queries.fetch_device_capabilities(realm, device_id)
+
     new_state =
       Map.merge(state, stats_and_introspection)
       |> Map.put(:datastream_maximum_storage_retention, ttl)
+      |> Map.put(:capabilities, capabilities)
 
     {:ok, new_state}
   end
@@ -140,6 +149,9 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
       "control" ->
         %{@control_path_header => control_path} = headers
         handle_control(state, control_path, payload, timestamp)
+
+      "capabilities" ->
+        handle_capabilities(state, payload, timestamp)
 
       _ ->
         # Ack all messages for now
@@ -1188,6 +1200,30 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
     {:ok, new_state}
   end
 
+  @impl true
+  def handle_continue({:malformed_capabilities_message, payload, timestamp}, state) do
+    :telemetry.execute(
+      [:astarte, :data_updater_plant, :data_updater, :discarded_capabilities_message],
+      %{},
+      %{realm: state.realm}
+    )
+
+    base64_payload = Base.encode64(payload)
+
+    error_metadata = %{
+      "base64_payload" => base64_payload
+    }
+
+    execute_device_error_triggers(
+      state,
+      "malformed_capabilities_message",
+      error_metadata,
+      timestamp
+    )
+
+    {:ok, state}
+  end
+
   defp path_ttl(nil) do
     nil
   end
@@ -1608,6 +1644,42 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
     {:ack, :ok, final_state}
   end
 
+  def handle_capabilities(state, payload, timestamp) do
+    %{device_id: device_id, realm: realm} = state
+
+    Logger.debug("Handling capability trough payload: #{inspect(Base.encode64(payload))}",
+      tag: "handling_capabilities"
+    )
+
+    with {:ok, bson_payload} <- Cyanide.decode(payload),
+         changeset = Capabilities.changeset(state.capabilities, bson_payload),
+         {:ok, capabilities} <- Ecto.Changeset.apply_action(changeset, :update) do
+      Queries.set_device_capabilities(realm, device_id, capabilities)
+
+      new_state = %State{state | capabilities: capabilities}
+
+      Logger.debug(
+        "Successfully handled capability. New device capabilities: #{inspect(capabilities)}",
+        tag: "handling_capabilities"
+      )
+
+      {:ack, :ok, new_state}
+    else
+      error -> malformed_capabilities_message(error, payload, state, timestamp)
+    end
+  end
+
+  defp malformed_capabilities_message(error, payload, state, timestamp) do
+    Logger.warning(
+      "Unexpected error while processing payload #{inspect(Base.encode64(payload))}: #{error}",
+      tag: "malformed_capabilities_message"
+    )
+
+    {:ok, new_state} = ask_clean_session(state, timestamp)
+    continue_arg = {:malformed_capabilities_message, payload, timestamp}
+    {:discard, :malformed_capabilities_message, new_state, {:continue, continue_arg}}
+  end
+
   def handle_control(%State{discard_messages: true} = state, _, _, _) do
     {:ack, :discard_messages, state}
   end
@@ -1641,9 +1713,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
 
     # TODO: check payload size, to avoid anoying crashes
 
-    <<_size_header::size(32), zlib_payload::binary>> = payload
-
-    case PayloadsDecoder.safe_inflate(zlib_payload) do
+    case decode_payload(state, payload) do
       {:ok, decoded_payload} ->
         :ok = prune_device_properties(new_state, decoded_payload, timestamp_ms)
 
@@ -1725,6 +1795,17 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
     {:ok, new_state} = ask_clean_session(state, timestamp)
     continue_arg = {:unexpected_control_message, path, payload, timestamp}
     {:discard, :unexpected_control_message, new_state, {:continue, continue_arg}}
+  end
+
+  defp decode_payload(%State{capabilities: capabilities} = _state, payload) do
+    case Map.get(capabilities, :purge_properties_compression_format) do
+      :zlib ->
+        <<_size_header::size(32), zlib_payload::binary>> = payload
+        PayloadsDecoder.safe_inflate(zlib_payload)
+
+      :plaintext ->
+        {:ok, payload}
+    end
   end
 
   defp delete_volatile_trigger(
@@ -2671,9 +2752,16 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
         end
       end)
 
+    purge_properties_compression_format = state.capabilities.purge_properties_compression_format
+
     # TODO: use the returned byte count in stats
     with {:ok, _bytes} <-
-           send_consumer_properties_payload(state.realm, state.device_id, abs_paths_list) do
+           send_consumer_properties_payload(
+             state.realm,
+             state.device_id,
+             abs_paths_list,
+             purge_properties_compression_format
+           ) do
       :ok
     end
   end
@@ -2742,15 +2830,21 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
     :ok
   end
 
-  defp send_consumer_properties_payload(realm, device_id, abs_paths_list) do
+  defp send_consumer_properties_payload(realm, device_id, abs_paths_list, compression_format) do
     topic = "#{realm}/#{Device.encode_device_id(device_id)}/control/consumer/properties"
 
     uncompressed_payload = Enum.join(abs_paths_list, ";")
 
-    payload_size = byte_size(uncompressed_payload)
-    compressed_payload = :zlib.compress(uncompressed_payload)
+    payload =
+      case compression_format do
+        :zlib ->
+          payload_size = byte_size(uncompressed_payload)
+          compressed_payload = :zlib.compress(uncompressed_payload)
+          <<payload_size::unsigned-big-integer-size(32), compressed_payload::binary>>
 
-    payload = <<payload_size::unsigned-big-integer-size(32), compressed_payload::binary>>
+        :plaintext ->
+          uncompressed_payload
+      end
 
     case VMQPlugin.publish(topic, payload, 2) do
       {:ok, %{local_matches: local, remote_matches: remote}} when local + remote == 1 ->

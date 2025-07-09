@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2017 - 2023 SECO Mind Srl
+# Copyright 2017 - 2025 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -79,6 +79,7 @@ defmodule Astarte.DataUpdaterPlant.Mixfile do
       {:amqp, "~> 3.3"},
       {:castore, "~> 1.0.0"},
       {:cyanide, "~> 2.0"},
+      {:ecto_sql, "~> 3.12"},
       {:excoveralls, "~> 0.15", only: :test},
       {:mississippi, github: "secomind/mississippi"},
       {:mox, "~> 1.0", only: :test},
