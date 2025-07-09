@@ -19,6 +19,7 @@
 defmodule Astarte.Housekeeping.Realms.Queries do
   import Ecto.Query
 
+  alias Astarte.Core.Realm, as: CoreRealm
   alias Astarte.DataAccess.Consistency
   alias Astarte.DataAccess.CSystem
   alias Astarte.DataAccess.Devices.Device
@@ -26,16 +27,11 @@ defmodule Astarte.Housekeeping.Realms.Queries do
   alias Astarte.DataAccess.Realms.Realm
   alias Astarte.DataAccess.Repo
   alias Astarte.Housekeeping.Config
+  alias Astarte.Housekeeping.Migrator
   alias Astarte.Housekeeping.Realms.Realm, as: HKRealm
 
-  alias Astarte.Core.Realm, as: CoreRealm
-  alias Astarte.Core.CQLUtils
-  alias Astarte.DataAccess.CSystem
-  alias Astarte.Housekeeping.Migrator
-  alias Astarte.Housekeeping.Config
-  alias Astarte.Housekeeping.Realms.Realm, as: HKRealm
-  alias Astarte.DataAccess.KvStore
   require Logger
+
   @default_replication_factor 1
 
   def is_realm_existing(realm_name) do
@@ -192,9 +188,8 @@ defmodule Astarte.Housekeeping.Realms.Queries do
 
   def create_realm(realm_name, public_key_pem, replication, device_limit, max_retention, opts) do
     with :ok <- validate_realm_name(realm_name),
-         keyspace_name =
-           CQLUtils.realm_name_to_keyspace_name(realm_name, Config.astarte_instance_id!()),
-         :ok <- Xandra.Cluster.run(:xandra, &check_replication(&1, replication)),
+         keyspace_name = Realm.keyspace_name(realm_name),
+         :ok <- check_replication(replication),
          {:ok, replication_map_str} <- build_replication_map_str(replication) do
       if opts[:async] do
         {:ok, _pid} =
@@ -242,10 +237,10 @@ defmodule Astarte.Housekeeping.Realms.Queries do
          :ok <- create_simple_triggers_table(keyspace_name),
          :ok <- create_grouped_devices_table(keyspace_name),
          :ok <- create_deletion_in_progress_table(keyspace_name),
-         :ok <- insert_realm_public_key(realm_name, public_key_pem),
-         :ok <- insert_realm_astarte_schema_version(realm_name),
+         :ok <- insert_realm_public_key(keyspace_name, public_key_pem),
+         :ok <- insert_realm_astarte_schema_version(keyspace_name),
          :ok <- insert_realm(realm_name, device_limit),
-         :ok <- insert_datastream_max_retention(realm_name, max_retention) do
+         :ok <- insert_datastream_max_retention(keyspace_name, max_retention) do
       :ok
     else
       {:error, %Xandra.Error{} = err} ->
@@ -285,22 +280,22 @@ defmodule Astarte.Housekeeping.Realms.Queries do
     end
   end
 
-  defp check_replication(_conn, 1) do
+  defp check_replication(1) do
     :ok
   end
 
   # If replication factor is an integer, we're using SimpleStrategy
   # Check that the replication factor is <= the number of nodes in the same datacenter
-  defp check_replication(conn, replication_factor)
+  defp check_replication(replication_factor)
        when is_integer(replication_factor) and replication_factor > 1 do
-    with {:ok, local_datacenter} <- get_local_datacenter(conn) do
-      check_replication_for_datacenter(conn, local_datacenter, replication_factor, local: true)
+    with {:ok, local_datacenter} <- get_local_datacenter() do
+      check_replication_for_datacenter(local_datacenter, replication_factor, local: true)
     end
   end
 
-  defp check_replication(conn, datacenter_replication_factors)
+  defp check_replication(datacenter_replication_factors)
        when is_map(datacenter_replication_factors) do
-    with {:ok, local_datacenter} <- get_local_datacenter(conn) do
+    with {:ok, local_datacenter} <- get_local_datacenter() do
       Enum.reduce_while(datacenter_replication_factors, :ok, fn
         {datacenter, replication_factor}, _acc ->
           opts =
@@ -310,7 +305,7 @@ defmodule Astarte.Housekeeping.Realms.Queries do
               []
             end
 
-          case check_replication_for_datacenter(conn, datacenter, replication_factor, opts) do
+          case check_replication_for_datacenter(datacenter, replication_factor, opts) do
             :ok -> {:cont, :ok}
             {:error, reason} -> {:halt, {:error, reason}}
           end
@@ -366,18 +361,16 @@ defmodule Astarte.Housekeeping.Realms.Queries do
 
   # ScyllaDB considers TTL=0 as unset, see
   # https://opensource.docs.scylladb.com/stable/cql/time-to-live.html#notes
-  defp insert_datastream_max_retention(_conn_realm, 0) do
+  defp insert_datastream_max_retention(_keyspace_name, 0) do
     :ok
   end
 
   # apparently, before when the field was nil, it was encoded as zero (not optional on protobuff), so treat it the same as zero
-  defp insert_datastream_max_retention(_conn_realm, nil) do
+  defp insert_datastream_max_retention(_keyspace_name, nil) do
     :ok
   end
 
-  defp insert_datastream_max_retention(realm_name, max_retention) do
-    keyspace_name = Realm.keyspace_name(realm_name)
-
+  defp insert_datastream_max_retention(keyspace_name, max_retention) do
     consistency = Consistency.domain_model(:write)
 
     opts = [
@@ -417,8 +410,7 @@ defmodule Astarte.Housekeeping.Realms.Queries do
     end
   end
 
-  defp insert_realm_astarte_schema_version(realm_name) do
-    keyspace_name = Realm.keyspace_name(realm_name)
+  defp insert_realm_astarte_schema_version(keyspace_name) do
     consistency = Consistency.domain_model(:write)
 
     opts = [
@@ -435,8 +427,7 @@ defmodule Astarte.Housekeeping.Realms.Queries do
     |> KvStore.insert(opts)
   end
 
-  defp insert_realm_public_key(realm_name, public_key_pem) do
-    keyspace_name = Realm.keyspace_name(realm_name)
+  defp insert_realm_public_key(keyspace_name, public_key_pem) do
     consistency = Consistency.domain_model(:write)
 
     opts = [
@@ -453,104 +444,85 @@ defmodule Astarte.Housekeeping.Realms.Queries do
     |> KvStore.insert(opts)
   end
 
-  defp get_local_datacenter(conn) do
-    query = """
-    SELECT data_center
-    FROM system.local;
-    """
+  defp get_local_datacenter do
+    query =
+      from sl in "system.local",
+        select: sl.data_center
 
     opts = [consistency: Consistency.domain_model(:read)]
 
-    with {:ok, %Xandra.Page{} = page} <- Xandra.execute(conn, query, %{}, opts) do
-      case Enum.fetch(page, 0) do
-        {:ok, %{"data_center" => datacenter}} ->
-          {:ok, datacenter}
+    case Repo.safe_fetch_one(query, opts) do
+      {:ok, datacenter} ->
+        {:ok, datacenter}
 
-        :error ->
-          _ =
-            Logger.error(
-              "Empty dataset while getting local datacenter, something is really wrong.",
-              tag: "get_local_datacenter_error"
-            )
+      {:error, :not_found} ->
+        Logger.error(
+          "Empty dataset while getting local datacenter, something is really wrong.",
+          tag: "get_local_datacenter_error"
+        )
 
-          {:error, :local_datacenter_not_found}
-      end
-    else
-      {:error, %Xandra.Error{} = err} ->
-        _ = Logger.warning("Database error: #{inspect(err)}.", tag: "database_error")
-        {:error, :database_error}
+        {:error, :local_datacenter_not_found}
 
-      {:error, %Xandra.ConnectionError{} = err} ->
-        _ =
-          Logger.warning("Database connection error: #{inspect(err)}.",
-            tag: "database_connection_error"
-          )
+      {:error, error} ->
+        Logger.error("Error while getting local datacenter: #{inspect(error)}.",
+          tag: "get_local_datacenter_error"
+        )
 
-        {:error, :database_connection_error}
+        {:error, error}
     end
   end
 
-  defp check_replication_for_datacenter(conn, datacenter, replication_factor, opts) do
-    query = """
-    SELECT COUNT(*)
-    FROM system.peers
-    WHERE data_center=:data_center
-    ALLOW FILTERING;
-    """
+  defp check_replication_for_datacenter(datacenter, replication_factor, opts) do
+    query =
+      from sp in "system.peers",
+        hints: ["ALLOW FILTERING"],
+        where: sp.data_center == ^datacenter,
+        select: count()
 
-    with {:ok, prepared} <- Xandra.prepare(conn, query),
-         {:ok, %Xandra.Page{} = page} <-
-           Xandra.execute(conn, prepared, %{"data_center" => datacenter}, opts) do
-      case Enum.fetch(page, 0) do
-        :error ->
-          _ =
-            Logger.warning("Cannot retrieve node count for datacenter #{datacenter}.",
-              tag: "datacenter_not_found",
-              datacenter: datacenter
-            )
-
-          {:error, :datacenter_not_found}
-
-        {:ok, %{"count" => dc_node_count}} ->
-          # If we're querying the datacenter of the local node, add 1 (itself) to the count
-          actual_node_count =
-            if opts[:local] do
-              dc_node_count + 1
-            else
-              dc_node_count
-            end
-
-          if replication_factor <= actual_node_count do
-            :ok
+    case Repo.safe_fetch_one(query, opts) do
+      {:ok, dc_node_count} ->
+        # If we're querying the datacenter of the local node, add 1 (itself) to the count
+        actual_node_count =
+          if opts[:local] do
+            dc_node_count + 1
           else
-            _ =
-              Logger.warning(
-                "Trying to set replication_factor #{replication_factor} " <>
-                  "in datacenter #{datacenter} that has #{actual_node_count} nodes.",
-                tag: "invalid_replication_factor",
-                datacenter: datacenter,
-                replication_factor: replication_factor
-              )
-
-            error_message =
-              "replication_factor #{replication_factor} is >= #{actual_node_count} nodes " <>
-                "in datacenter #{datacenter}"
-
-            {:error, {:invalid_replication, error_message}}
+            dc_node_count
           end
-      end
-    else
-      {:error, %Xandra.Error{} = err} ->
-        _ = Logger.warning("Database error: #{inspect(err)}.", tag: "database_error")
-        {:error, :database_error}
 
-      {:error, %Xandra.ConnectionError{} = err} ->
-        _ =
-          Logger.warning("Database connection error: #{inspect(err)}.",
-            tag: "database_connection_error"
+        if replication_factor <= actual_node_count do
+          :ok
+        else
+          Logger.warning(
+            "Trying to set replication_factor #{replication_factor} " <>
+              "in datacenter #{datacenter} that has #{actual_node_count} nodes.",
+            tag: "invalid_replication_factor",
+            datacenter: datacenter,
+            replication_factor: replication_factor
           )
 
-        {:error, :database_connection_error}
+          error_message =
+            "replication_factor #{replication_factor} is >= #{actual_node_count} nodes " <>
+              "in datacenter #{datacenter}"
+
+          {:error, {:invalid_replication, error_message}}
+        end
+
+      {:error, :not_found} ->
+        Logger.warning("Cannot retrieve node count for datacenter #{datacenter}.",
+          tag: "datacenter_not_found",
+          datacenter: datacenter
+        )
+
+        {:error, :datacenter_not_found}
+
+      {:error, reason} ->
+        Logger.warning(
+          "Database error while checking replication for datacenter #{datacenter}: #{inspect(reason)}.",
+          tag: "database_error",
+          datacenter: datacenter
+        )
+
+        {:error, reason}
     end
   end
 
@@ -1004,44 +976,39 @@ defmodule Astarte.Housekeeping.Realms.Queries do
   end
 
   def initialize_database do
-    Xandra.Cluster.run(:xandra, [timeout: 60_000], fn conn ->
-      with :ok <- create_astarte_keyspace(conn),
-           :ok <- create_realms_table(),
-           :ok <- create_astarte_kv_store(),
-           :ok <- insert_astarte_schema_version(conn) do
-        :ok
-      else
-        {:error, %Xandra.Error{} = err} ->
-          _ =
-            Logger.error(
-              "Database error while initializing database: #{inspect(err)}. ASTARTE WILL NOT WORK.",
-              tag: "init_database_error"
-            )
+    with :ok <- create_astarte_keyspace(),
+         :ok <- create_realms_table(),
+         :ok <- create_astarte_kv_store(),
+         :ok <- insert_astarte_schema_version() do
+      :ok
+    else
+      {:error, %Xandra.Error{} = err} ->
+        Logger.error(
+          "Database error while initializing database: #{inspect(err)}. ASTARTE WILL NOT WORK.",
+          tag: "init_database_error"
+        )
 
-          {:error, :database_error}
+        {:error, :database_error}
 
-        {:error, %Xandra.ConnectionError{} = err} ->
-          _ =
-            Logger.error(
-              "Database connection error while initializing database: #{inspect(err)}. ASTARTE WILL NOT WORK.",
-              tag: "init_database_connection_error"
-            )
+      {:error, %Xandra.ConnectionError{} = err} ->
+        Logger.error(
+          "Database connection error while initializing database: #{inspect(err)}. ASTARTE WILL NOT WORK.",
+          tag: "init_database_connection_error"
+        )
 
-          {:error, :database_connection_error}
+        {:error, :database_connection_error}
 
-        {:error, reason} ->
-          _ =
-            Logger.error(
-              "Error while initializing database: #{inspect(reason)}. ASTARTE WILL NOT WORK.",
-              tag: "init_error"
-            )
+      {:error, reason} ->
+        Logger.error(
+          "Error while initializing database: #{inspect(reason)}. ASTARTE WILL NOT WORK.",
+          tag: "init_error"
+        )
 
-          {:error, reason}
-      end
-    end)
+        {:error, reason}
+    end
   end
 
-  defp create_astarte_keyspace(conn) do
+  defp create_astarte_keyspace do
     # TODO: add support for creating the astarte keyspace with NetworkTopologyStrategy,
     # right now the replication factor is an integer so SimpleStrategy is always used
     astarte_keyspace_replication = Config.astarte_keyspace_replication_factor!()
@@ -1054,16 +1021,15 @@ defmodule Astarte.Housekeeping.Realms.Queries do
          WITH replication = #{replication_map_str}
          AND durable_writes = true;
          """,
-         :ok <- check_replication(conn, astarte_keyspace_replication),
-         {:ok, %Xandra.SchemaChange{}} <-
-           Xandra.execute(conn, query, %{}, consistency: consistency) do
+         :ok <- check_replication(astarte_keyspace_replication),
+         {:ok, %{rows: nil, num_rows: 1}} <-
+           Repo.query(query, [], consistency: consistency) do
       :ok
     else
       {:error, reason} ->
-        _ =
-          Logger.warning("Cannot create Astarte Keyspace: #{inspect(reason)}.",
-            tag: "astarte_keyspace_creation_failed"
-          )
+        Logger.warning("Cannot create Astarte Keyspace: #{inspect(reason)}.",
+          tag: "astarte_keyspace_creation_failed"
+        )
 
         {:error, reason}
     end
@@ -1105,46 +1071,48 @@ defmodule Astarte.Housekeeping.Realms.Queries do
     end
   end
 
-  defp insert_astarte_schema_version(conn) do
-    query = """
-    INSERT INTO #{Realm.astarte_keyspace_name()}.kv_store
-    (group, key, value)
-    VALUES ('astarte', 'schema_version', bigintAsBlob(#{Migrator.latest_astarte_schema_version()}));
-    """
+  defp insert_astarte_schema_version do
+    keyspace_name = Realm.astarte_keyspace_name()
 
     consistency = Consistency.domain_model(:write)
 
-    with {:ok, %Xandra.Void{}} <- Xandra.execute(conn, query, %{}, consistency: consistency) do
-      :ok
-    end
+    opts = [
+      consistency: consistency,
+      prefix: keyspace_name
+    ]
+
+    %{
+      group: "astarte",
+      key: "schema_version",
+      value: Migrator.latest_realm_schema_version(),
+      value_type: :big_integer
+    }
+    |> KvStore.insert(opts)
   end
 
   def is_astarte_keyspace_existing do
-    query = """
-    SELECT keyspace_name
-    FROM system_schema.keyspaces
-    WHERE keyspace_name='#{Realm.astarte_keyspace_name()}'
-    """
+    keyspace_name = Realm.astarte_keyspace_name()
+
+    query =
+      from k in "system_schema.keyspaces",
+        where: k.keyspace_name == ^keyspace_name,
+        select: count()
 
     consistency = Consistency.domain_model(:read)
 
-    case Xandra.Cluster.execute(:xandra, query, %{}, consistency: consistency) do
-      {:ok, %Xandra.Page{} = page} ->
-        if Enum.count(page) > 0 do
-          {:ok, true}
-        else
-          {:ok, false}
-        end
+    case Repo.safe_fetch_one(query, consistency: consistency) do
+      {:ok, count} ->
+        {:ok, count > 0}
 
-      {:error, %Xandra.Error{} = err} ->
-        _ = Logger.warning("Database error: #{inspect(err)}.", tag: "database_error")
+      {:error, %Xandra.Error{} = reason} ->
+        Logger.warning("Database error: #{inspect(reason)}.", tag: "database_error")
+
         {:error, :database_error}
 
-      {:error, %Xandra.ConnectionError{} = err} ->
-        _ =
-          Logger.warning("Database connection error: #{inspect(err)}.",
-            tag: "database_connection_error"
-          )
+      {:error, %Xandra.ConnectionError{} = reason} ->
+        Logger.warning("Database connection error: #{inspect(reason)}.",
+          tag: "database_connection_error"
+        )
 
         {:error, :database_connection_error}
     end
