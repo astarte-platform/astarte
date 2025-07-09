@@ -1100,31 +1100,28 @@ defmodule Astarte.Housekeeping.Realms.Queries do
   end
 
   def is_astarte_keyspace_existing do
-    query = """
-    SELECT keyspace_name
-    FROM system_schema.keyspaces
-    WHERE keyspace_name='#{Realm.astarte_keyspace_name()}'
-    """
+    keyspace_name = Realm.astarte_keyspace_name()
+
+    query =
+      from k in "system_schema.keyspaces",
+        where: k.keyspace_name == ^keyspace_name,
+        select: count()
 
     consistency = Consistency.domain_model(:read)
 
-    case Xandra.Cluster.execute(:xandra, query, %{}, consistency: consistency) do
-      {:ok, %Xandra.Page{} = page} ->
-        if Enum.count(page) > 0 do
-          {:ok, true}
-        else
-          {:ok, false}
-        end
+    case Repo.safe_fetch_one(query, consistency: consistency) do
+      {:ok, count} ->
+        {:ok, count > 0}
 
-      {:error, %Xandra.Error{} = err} ->
-        _ = Logger.warning("Database error: #{inspect(err)}.", tag: "database_error")
+      {:error, %Xandra.Error{} = reason} ->
+        Logger.warning("Database error: #{inspect(reason)}.", tag: "database_error")
+
         {:error, :database_error}
 
-      {:error, %Xandra.ConnectionError{} = err} ->
-        _ =
-          Logger.warning("Database connection error: #{inspect(err)}.",
-            tag: "database_connection_error"
-          )
+      {:error, %Xandra.ConnectionError{} = reason} ->
+        Logger.warning("Database connection error: #{inspect(reason)}.",
+          tag: "database_connection_error"
+        )
 
         {:error, :database_connection_error}
     end

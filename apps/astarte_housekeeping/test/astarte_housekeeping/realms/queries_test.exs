@@ -92,18 +92,19 @@ defmodule Astarte.Housekeeping.Realms.QueriesTest do
     end
 
     test "fails due to db error" do
-      Xandra |> stub(:execute, fn _, _, _, _ -> {:error, %Xandra.Error{}} end)
+      Repo |> stub(:safe_fetch_one, fn _, _ -> {:error, %Xandra.Error{}} end)
+
       assert {:error, :database_error} = Queries.is_astarte_keyspace_existing()
     end
 
     test "fails due to db connection error" do
-      Xandra |> stub(:execute, fn _, _, _, _ -> {:error, %Xandra.ConnectionError{}} end)
+      Repo |> stub(:safe_fetch_one, fn _, _ -> {:error, %Xandra.ConnectionError{}} end)
 
       assert {:error, :database_connection_error} = Queries.is_astarte_keyspace_existing()
     end
 
     test "raise due to generic error" do
-      Xandra |> stub(:execute, fn _, _, _, _ -> {:error, "another error"} end)
+      Repo |> stub(:safe_fetch_one, fn _, _ -> {:error, "another error"} end)
 
       assert_raise CaseClauseError, fn -> Queries.is_astarte_keyspace_existing() end
     end
