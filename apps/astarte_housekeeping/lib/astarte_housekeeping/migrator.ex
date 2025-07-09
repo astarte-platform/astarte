@@ -17,9 +17,13 @@
 #
 
 defmodule Astarte.Housekeeping.Migrator do
+  import Ecto.Query
+
   alias Astarte.Core.CQLUtils
   alias Astarte.DataAccess.Consistency
   alias Astarte.DataAccess.CSystem
+  alias Astarte.DataAccess.Realms.Realm
+  alias Astarte.DataAccess.Repo
   alias Astarte.Housekeeping.Config
   alias Astarte.Housekeeping.Realms.Queries
 
@@ -79,33 +83,29 @@ defmodule Astarte.Housekeeping.Migrator do
   end
 
   defp ensure_astarte_kv_store do
-    query = """
-    SELECT table_name
-    FROM system_schema.tables
-    WHERE keyspace_name='#{CQLUtils.realm_name_to_keyspace_name("astarte", Config.astarte_instance_id!())}' AND table_name='kv_store'
-    """
+    keyspace_name = Realm.astarte_keyspace_name()
+
+    query =
+      from t in "system_schema.tables",
+        where:
+          t.keyspace_name == ^keyspace_name and
+            t.table_name == "kv_store",
+        select: t.table_name
 
     consistency = Consistency.domain_model(:read)
 
-    with {:ok, %Xandra.Page{} = page} <-
-           Xandra.Cluster.execute(:xandra, query, %{}, consistency: consistency) do
-      if Enum.count(page) == 1 do
-        :ok
-      else
-        create_astarte_kv_store()
-      end
+    with {:ok, _item} <- Repo.safe_fetch_one(query, consistency: consistency) do
+      :ok
     else
-      {:error, %Xandra.Error{} = err} ->
-        _ = Logger.warning("Database error: #{inspect(err)}.", tag: "database_error")
-        {:error, :database_error}
+      {:error, :not_found} ->
+        create_astarte_kv_store()
 
-      {:error, %Xandra.ConnectionError{} = err} ->
-        _ =
-          Logger.warning("Database connection error: #{inspect(err)}.",
-            tag: "database_connection_error"
-          )
+      {:error, reason} ->
+        Logger.warning("Error checking Astarte kv_store existence: #{inspect(reason)}.",
+          tag: "database_error"
+        )
 
-        {:error, :database_connection_error}
+        {:error, reason}
     end
   end
 
