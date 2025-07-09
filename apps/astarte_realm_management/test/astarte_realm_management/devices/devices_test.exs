@@ -51,11 +51,9 @@ defmodule Astarte.RealmManagement.DevicesTest do
     property "is not queued for deletion if there are no acks", %{realm: realm} do
       check all(device_id <- Astarte.Core.Generators.Device.id()) do
         keyspace = Realm.keyspace_name(realm)
+        device = %Device{device_id: device_id}
 
-        %Device{
-          device_id: device_id
-        }
-        |> Repo.insert!(prefix: keyspace)
+        Repo.insert!(device, prefix: keyspace)
 
         encoded_device_id = DeviceCore.encode_device_id(device_id)
         :ok = Devices.delete_device(realm, encoded_device_id)
@@ -69,20 +67,21 @@ defmodule Astarte.RealmManagement.DevicesTest do
           dup_start_ack: false
         }
         |> Repo.delete!(prefix: keyspace)
+
+        Repo.delete!(device, prefix: keyspace)
       end
     end
 
     property "is queued for deletion with all acks", %{realm: realm} do
       check all(device <- Astarte.Core.Generators.Device.device(interfaces: [])) do
         keyspace = Realm.keyspace_name(realm)
+        device_id = device.device_id
+        device = %Device{device_id: device_id}
 
-        %Device{
-          device_id: device.device_id
-        }
-        |> Repo.insert!(prefix: keyspace)
+        Repo.insert!(device, prefix: keyspace)
 
         %DeletionInProgress{
-          device_id: device.device_id,
+          device_id: device_id,
           vmq_ack: true,
           dup_end_ack: true,
           dup_start_ack: true
@@ -90,9 +89,7 @@ defmodule Astarte.RealmManagement.DevicesTest do
         |> Repo.insert!(prefix: keyspace)
 
         assert [deletion] = Queries.retrieve_devices_to_delete!(realm)
-        _ = Repo.delete!(deletion)
-
-        device_id = device.device_id
+        _ = Repo.delete!(deletion, prefix: keyspace)
 
         assert %DeletionInProgress{
                  device_id: ^device_id,
@@ -100,6 +97,8 @@ defmodule Astarte.RealmManagement.DevicesTest do
                  dup_end_ack: true,
                  dup_start_ack: true
                } = deletion
+
+        Repo.delete!(device, prefix: keyspace)
       end
     end
 
