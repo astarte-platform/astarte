@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2019 Ispirata Srl
+# Copyright 2019 - 2025 Ispirata Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -28,8 +28,7 @@ defmodule Astarte.Housekeeping.ReleaseTasks do
     :ecto,
     :logger,
     :crypto,
-    :ssl,
-    :xandra
+    :ssl
   ]
 
   def init_database do
@@ -62,31 +61,31 @@ defmodule Astarte.Housekeeping.ReleaseTasks do
   def migrate do
     :ok = start_services()
 
-    _ = Logger.info("Starting to migrate the database", tag: "astarte_db_migration_started")
+    Logger.info("Starting to migrate the database", tag: "astarte_db_migration_started")
 
-    with {:ok, true} <- wait_connection_and_check_astarte_keyspace(),
-         :ok <- Migrator.run_astarte_keyspace_migrations(),
-         :ok <- Migrator.run_realms_migrations() do
-      :ok
-    else
+    case wait_connection_and_check_astarte_keyspace() do
+      {:ok, true} ->
+        with :ok <- Migrator.run_astarte_keyspace_migrations(),
+             :ok <- Migrator.run_realms_migrations() do
+          :ok
+        else
+          {:error, reason} ->
+            Logger.error("Cannot migrate the database: #{inspect(reason)}",
+              tag: "astarte_db_migration_failed"
+            )
+
+            raise "migrate failed"
+        end
+
+        :ok = stop_services()
+
       {:ok, false} ->
-        _ =
-          Logger.error("Cannot migrate the database, Astarte keyspace does not exist",
-            tag: "astarte_db_migration_failed"
-          )
-
-        raise "migrate failed"
-
-      {:error, reason} ->
-        _ =
-          Logger.error("Cannot migrate the database: #{inspect(reason)}",
-            tag: "astarte_db_migration_failed"
-          )
+        Logger.error("Cannot migrate the database, Astarte keyspace does not exist",
+          tag: "astarte_db_migration_failed"
+        )
 
         raise "migrate failed"
     end
-
-    :ok = stop_services()
   end
 
   defp wait_connection_and_check_astarte_keyspace(retries \\ 60) do
@@ -117,10 +116,8 @@ defmodule Astarte.Housekeeping.ReleaseTasks do
     _ = Logger.info("Starting Xandra connection to #{inspect(Config.xandra_nodes!())}")
 
     xandra_options = Config.xandra_options!()
-    hk_xandra_opts = Keyword.put(xandra_options, :name, :xandra)
 
     {:ok, _pid} = DataAccess.start_link(xandra_options: xandra_options)
-    {:ok, _pid} = Xandra.Cluster.start_link(hk_xandra_opts)
 
     :ok
   end
