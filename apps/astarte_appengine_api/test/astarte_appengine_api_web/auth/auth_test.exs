@@ -92,7 +92,7 @@ defmodule Astarte.AppEngine.APIWeb.AuthTest do
       assert json_response(conn, 404)["data"] == nil
     end
 
-    test "token returns the data also with explicity regex delimiters", %{conn: conn} do
+    test "token returns the data also with explicitly regex delimiters", %{conn: conn} do
       conn =
         put_req_header(
           conn,
