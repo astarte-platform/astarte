@@ -19,35 +19,35 @@
 defmodule Astarte.Housekeeping.Engine do
   require Logger
 
-  alias Astarte.Housekeeping.Config
   alias Astarte.Housekeeping.Queries
+  alias Astarte.Housekeeping.Config
+  alias Astarte.Housekeeping.Migrator
+  alias Astarte.DataAccess.Realm
 
-  def create_realm(
-        realm,
-        public_key_pem,
-        replication_factor,
-        device_registration_limit,
-        max_retention,
-        opts \\ []
-      ) do
+  def create_realm(realm_name, public_key_pem, replication, device_limit, max_retention, opts) do
     _ =
       Logger.info(
         "Creating new realm.",
         tag: "create_realm",
-        realm: realm,
-        replication_factor: replication_factor,
-        device_registration_limit: device_registration_limit,
+        realm: realm_name,
+        replication_factor: replication,
+        device_registration_limit: device_limit,
         datastream_maximum_storage_retention: max_retention
       )
 
-    Queries.create_realm(
-      realm,
-      public_key_pem,
-      replication_factor,
-      device_registration_limit,
-      max_retention,
-      opts
-    )
+    fun =
+      fn ->
+        Realm.create_realm(
+          realm_name,
+          replication,
+          max_retention,
+          public_key_pem,
+          device_limit,
+          Migrator.latest_realm_schema_version()
+        )
+      end
+
+    if opts[:async], do: {:ok, _pid} = Task.start(fun), else: :ok = fun.()
   end
 
   def get_health do
@@ -73,14 +73,16 @@ defmodule Astarte.Housekeeping.Engine do
   end
 
   def get_realm(realm) do
-    Queries.get_realm(realm)
+    Realm.get_realm(realm)
   end
 
   def delete_realm(realm, opts \\ []) do
     if Config.enable_realm_deletion!() do
       _ = Logger.info("Deleting realm", tag: "delete_realm", realm: realm)
 
-      Queries.delete_realm(realm, opts)
+      fun = fn -> Realm.delete_realm(realm) end
+
+      if opts[:async], do: {:ok, _pid} = Task.start(fun), else: :ok = fun.()
     else
       _ =
         Logger.info("HOUSEKEEPING_ENABLE_REALM_DELETION is disabled, realm will not be deleted.",
@@ -93,11 +95,11 @@ defmodule Astarte.Housekeeping.Engine do
   end
 
   def is_realm_existing(realm) do
-    Queries.is_realm_existing(realm)
+    Realm.is_realm_existing(realm)
   end
 
   def list_realms do
-    Queries.list_realms()
+    Realm.list_realms()
   end
 
   @doc """
@@ -140,7 +142,7 @@ defmodule Astarte.Housekeeping.Engine do
       datastream_maximum_storage_retention: new_retention
     } = update_attrs
 
-    with realm when is_map(realm) <- Queries.get_realm(realm_name),
+    with realm when is_map(realm) <- Realm.get_realm(realm_name),
          :ok <- update_jwt_public_key_pem(realm_name, new_jwt_public_key_pem),
          :ok <- update_device_registration_limit(realm_name, new_limit),
          :ok <- update_datastream_maximum_storage_retention(realm_name, new_retention) do
@@ -155,7 +157,7 @@ defmodule Astarte.Housekeeping.Engine do
   defp update_jwt_public_key_pem(_realm_name, nil), do: :ok
 
   defp update_jwt_public_key_pem(realm_name, new_jwt_public_key_pem) do
-    case Queries.update_public_key(realm_name, new_jwt_public_key_pem) do
+    case Realm.update_public_key(realm_name, new_jwt_public_key_pem) do
       {:ok, %Xandra.Void{}} ->
         :ok
 
