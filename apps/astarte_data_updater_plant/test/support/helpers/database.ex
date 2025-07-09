@@ -227,6 +227,14 @@ defmodule Astarte.Helpers.Database do
     )
   """
 
+  @create_capabilities_table """
+  CREATE TABLE :keyspace.capabilities (
+      device_id uuid,
+      purge_properties_compression_format int,
+      PRIMARY KEY ((device_id))
+    )
+  """
+
   @insert_public_key """
     INSERT INTO :keyspace.kv_store (group, key, value)
     VALUES ('auth', 'jwt_public_key_pem', varcharAsBlob(:pem));
@@ -306,6 +314,7 @@ defmodule Astarte.Helpers.Database do
     execute!(realm_keyspace, @create_individual_datastreams_table)
     execute!(realm_keyspace, @create_interfaces_table)
     execute!(realm_keyspace, @create_deletion_in_progress_table)
+    execute!(realm_keyspace, @create_capabilities_table)
 
     Enum.each(@insert_endpoints, fn query ->
       execute!(realm_keyspace, query)

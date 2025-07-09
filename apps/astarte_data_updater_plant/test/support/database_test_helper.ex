@@ -260,6 +260,14 @@ defmodule Astarte.DataUpdaterPlant.DatabaseTestHelper do
     );
   """
 
+  @create_capabilities_table """
+  CREATE TABLE :keyspace.capabilities (
+      device_id uuid,
+      purge_properties_compression_format int,
+      PRIMARY KEY ((device_id))
+    )
+  """
+
   @insert_values [
     """
       INSERT INTO :keyspace.individual_properties (device_id, interface_id, endpoint_id, path, longinteger_value) VALUES
@@ -367,6 +375,7 @@ defmodule Astarte.DataUpdaterPlant.DatabaseTestHelper do
         execute!(keyspace_name, @create_individual_properties_table)
         execute!(keyspace_name, @create_individual_datastreams_table)
         execute!(keyspace_name, @create_test_object_table)
+        execute!(keyspace_name, @create_capabilities_table)
 
         Enum.each(@insert_values, fn query ->
           execute!(keyspace_name, query)

@@ -25,6 +25,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
   alias Astarte.DataUpdaterPlant.Config
   alias Astarte.DataAccess.Realms.SimpleTrigger
   alias Astarte.DataAccess.Device.DeletionInProgress
+  alias Astarte.DataAccess.Device.Capabilities
   alias Astarte.DataAccess.Devices.Device
   alias Astarte.DataAccess.Realms.Endpoint
   alias Astarte.DataAccess.Realms.IndividualProperty
@@ -726,6 +727,44 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
       {:error, :not_found} -> {:ok, false}
       {:error, reason} -> {:error, reason}
     end
+  end
+
+  def set_device_capabilities(realm_name, device_id, capabilities) do
+    keyspace_name = Realm.keyspace_name(realm_name)
+
+    changes =
+      %Capabilities{}
+      |> Ecto.Changeset.change(Map.from_struct(capabilities))
+      |> Ecto.Changeset.put_change(:device_id, device_id)
+      |> Ecto.Changeset.apply_action(:insert)
+
+    with {:ok, capabilities} <- changes do
+      opts = [prefix: keyspace_name, consistency: Consistency.device_info(:write)]
+
+      Repo.insert(capabilities, opts)
+    end
+  end
+
+  @spec fetch_device_capabilities(String.t(), binary()) ::
+          {:ok, Capabilities.t()} | {:error, term()}
+  def fetch_device_capabilities(realm_name, device_id) do
+    keyspace_name = Realm.keyspace_name(realm_name)
+
+    query =
+      from c in Capabilities,
+        where: c.device_id == ^device_id
+
+    opts = [consistency: Consistency.device_info(:read), prefix: keyspace_name]
+
+    changes =
+      case Repo.fetch_one(query, opts) do
+        {:error, :not_found} -> %{}
+        {:ok, capabilities} -> Map.from_struct(capabilities)
+      end
+
+    %Astarte.Core.Device.Capabilities{}
+    |> Astarte.Core.Device.Capabilities.changeset(changes)
+    |> Ecto.Changeset.apply_action(:insert)
   end
 
   defp to_db_friendly_type(array) when is_list(array) do

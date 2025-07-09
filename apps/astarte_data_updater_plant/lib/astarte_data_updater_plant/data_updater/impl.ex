@@ -32,6 +32,8 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
     MessageTracker.register_data_updater(message_tracker)
     Process.monitor(message_tracker)
 
+    {:ok, capabilities} = Queries.fetch_device_capabilities(realm, device_id)
+
     new_state = %State{
       realm: realm,
       device_id: device_id,
@@ -54,7 +56,8 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
       trigger_id_to_policy_name: %{},
       discard_messages: false,
       last_deletion_in_progress_refresh: 0,
-      last_datastream_maximum_retention_refresh: 0
+      last_datastream_maximum_retention_refresh: 0,
+      capabilities: capabilities
     }
 
     encoded_device_id = Device.encode_device_id(device_id)
@@ -167,6 +170,9 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
     TimeBasedActions.execute_time_based_actions(state, timestamp)
     |> Core.DataHandler.handle_data(interface, path, payload, message_id, timestamp)
   end
+
+  defdelegate handle_capabilities(state, capabilities, message_id, timestamp),
+    to: Core.CapabilitiesHandler
 
   defdelegate handle_control(state, path, payload, message_id, timestamp), to: Core.ControlHandler
 

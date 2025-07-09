@@ -65,18 +65,16 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandler do
 
     # TODO: check payload size, to avoid annoying crashes
 
-    <<_size_header::size(32), zlib_payload::binary>> = payload
-
     decompression_start = System.monotonic_time()
 
-    case PayloadsDecoder.safe_inflate(zlib_payload) do
+    case decode_payload(state, payload) do
       {:ok, decoded_payload} ->
         # Track successful decompression
         :telemetry.execute(
           [:astarte, :data_updater_plant, :control_handler, :payload_decompression],
           %{
             duration: System.monotonic_time() - decompression_start,
-            compressed_size: byte_size(zlib_payload),
+            compressed_size: byte_size(payload),
             uncompressed_size: byte_size(decoded_payload)
           },
           %{realm: new_state.realm, result: "success"}
@@ -109,7 +107,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandler do
           [:astarte, :data_updater_plant, :control_handler, :payload_decompression],
           %{
             duration: System.monotonic_time() - decompression_start,
-            compressed_size: byte_size(zlib_payload),
+            compressed_size: byte_size(payload),
             uncompressed_size: 0
           },
           %{realm: new_state.realm, result: "failed"}
@@ -187,6 +185,17 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandler do
     Core.DataHandler.update_stats(new_state, "", nil, path, payload)
   end
 
+  defp decode_payload(%State{capabilities: capabilities} = _state, payload) do
+    case Map.get(capabilities, :purge_properties_compression_format) do
+      :zlib ->
+        <<_size_header::size(32), zlib_payload::binary>> = payload
+        PayloadsDecoder.safe_inflate(zlib_payload)
+
+      :plaintext ->
+        {:ok, payload}
+    end
+  end
+
   defp send_control_consumer_properties(state, message_id, timestamp) do
     Logger.debug("Device introspection: #{inspect(state.introspection)}.")
 
@@ -218,23 +227,36 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandler do
         end
       end)
 
+    compression_format = state.capabilities.purge_properties_compression_format
+
     # TODO: use the returned byte count in stats
-    case send_consumer_properties_payload(state.realm, state.device_id, abs_paths_list) do
+    case send_consumer_properties_payload(
+           state.realm,
+           state.device_id,
+           abs_paths_list,
+           compression_format
+         ) do
       {:ok, _bytes} -> :ok
       {:error, :session_not_found} -> session_not_found_error(state, message_id, timestamp)
       {:error, reason} -> generic_error(state, message_id, timestamp, reason)
     end
   end
 
-  defp send_consumer_properties_payload(realm, device_id, abs_paths_list) do
+  defp send_consumer_properties_payload(realm, device_id, abs_paths_list, compression_format) do
     topic = "#{realm}/#{Device.encode_device_id(device_id)}/control/consumer/properties"
 
     uncompressed_payload = Enum.join(abs_paths_list, ";")
 
-    payload_size = byte_size(uncompressed_payload)
-    compressed_payload = :zlib.compress(uncompressed_payload)
+    payload =
+      case compression_format do
+        :zlib ->
+          payload_size = byte_size(uncompressed_payload)
+          compressed_payload = :zlib.compress(uncompressed_payload)
+          <<payload_size::unsigned-big-integer-size(32), compressed_payload::binary>>
 
-    payload = <<payload_size::unsigned-big-integer-size(32), compressed_payload::binary>>
+        :plaintext ->
+          uncompressed_payload
+      end
 
     publish_start = System.monotonic_time()
 

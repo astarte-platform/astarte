@@ -108,5 +108,6 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.State do
     field :discard_messages, boolean()
     field :last_deletion_in_progress_refresh, non_neg_integer()
     field :last_datastream_maximum_retention_refresh, non_neg_integer()
+    field :capabilities, Astarte.Core.Device.Capabilities.t()
   end
 end
