@@ -87,7 +87,7 @@ defmodule AstarteE2E.VolatileTriggerRoundtrip.Scheduler do
         {:noreply, state}
 
       1 ->
-        updated_state = update_in(state.check_repetitions, & &1 - 1)
+        updated_state = update_in(state.check_repetitions, &(&1 - 1))
         {:stop, :normal, updated_state}
 
       _ ->
