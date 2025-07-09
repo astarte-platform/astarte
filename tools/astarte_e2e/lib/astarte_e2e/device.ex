@@ -25,6 +25,7 @@ defmodule AstarteE2E.Device do
   alias AstarteE2E.Client
   alias AstarteE2E.Config
   alias AstarteE2E.Scheduler
+  alias AstarteE2E.DataTrigger
 
   def start_link(opts) do
     realm_result = Keyword.fetch(opts, :realm)
@@ -74,7 +75,8 @@ defmodule AstarteE2E.Device do
     [
       {Astarte.Device, device_opts},
       {Client, client_opts},
-      {Scheduler, scheduler_opts}
+      {Scheduler, scheduler_opts},
+      {DataTrigger, device_id: device.encoded_id}
     ]
     |> Supervisor.start_link(strategy: :one_for_one)
   end
