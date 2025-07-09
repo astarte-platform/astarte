@@ -73,16 +73,16 @@ defmodule Astarte.AppEngine.API.Queries do
          {:ok, _result} <- DatabaseQuery.call(client, realms_query) do
       :ok
     else
-      %{acc: _, msg: err_msg} ->
-        _ = Logger.warning("Health is not good: #{err_msg}.", tag: "db_health_check_bad")
+      {:error, reason} ->
+        error_message =
+          case reason do
+            %{acc: _, msg: error_msg} -> error_msg
+            _ -> inspect(reason)
+          end
 
-        {:error, :health_check_bad}
-
-      {:error, err} ->
-        _ =
-          Logger.warning("Health is not good, reason: #{inspect(err)}.",
-            tag: "db_health_check_bad"
-          )
+        Logger.warning("Health is not good, reason: #{error_message}.",
+          tag: "db_health_check_bad"
+        )
 
         {:error, :health_check_bad}
     end

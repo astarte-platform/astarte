@@ -330,6 +330,16 @@ defmodule Astarte.TriggerEngine.EventsConsumer do
         Logger.warning("Database connection error.")
         {:error, :database_connection_error}
 
+      {:error, reason} ->
+        error_message =
+          case reason do
+            %{acc: _, msg: error_msg} -> error_msg
+            _ -> inspect(reason)
+          end
+
+        _ = Logger.warning("Database error: #{error_message}.", tag: "db_error")
+        {:error, :database_connection_error}
+
       error ->
         Logger.warning("Error while processing event: #{inspect(error)}")
         {:error, :trigger_not_found}

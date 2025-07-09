@@ -66,7 +66,13 @@ defmodule Astarte.AppEngine.API.Device.Queries do
         {:error, :device_not_found}
 
       {:error, reason} ->
-        _ = Logger.warning("Database error: #{inspect(reason)}.", tag: "db_error")
+        error_message =
+          case reason do
+            %{acc: _, msg: error_msg} -> error_msg
+            _ -> inspect(reason)
+          end
+
+        _ = Logger.warning("Database error: #{error_message}.", tag: "db_error")
         {:error, :database_error}
     end
   end
@@ -241,12 +247,14 @@ defmodule Astarte.AppEngine.API.Device.Queries do
       :empty_dataset ->
         {:ok, nil}
 
-      %{acc: _, msg: error_message} ->
-        Logger.warning("Database error: #{error_message}.")
-        {:error, :database_error}
-
       {:error, reason} ->
-        Logger.warning("Failed with reason: #{inspect(reason)}.")
+        error_message =
+          case reason do
+            %{acc: _, msg: error_msg} -> error_msg
+            _ -> inspect(reason)
+          end
+
+        Logger.warning("Database error: #{error_message}.", tag: "db_error")
         {:error, :database_error}
     end
   end
@@ -754,12 +762,14 @@ defmodule Astarte.AppEngine.API.Device.Queries do
       :empty_dataset ->
         {:error, :device_not_found}
 
-      %{acc: _, msg: error_message} ->
-        _ = Logger.warning("Database error: #{error_message}.", tag: "db_error")
-        {:error, :database_error}
-
       {:error, reason} ->
-        _ = Logger.warning("Database error, reason: #{inspect(reason)}.", tag: "db_error")
+        error_message =
+          case reason do
+            %{acc: _, msg: error_msg} -> error_msg
+            _ -> inspect(reason)
+          end
+
+        Logger.warning("Database error: #{error_message}.", tag: "db_error")
         {:error, :database_error}
     end
   end
@@ -784,12 +794,14 @@ defmodule Astarte.AppEngine.API.Device.Queries do
       :empty_dataset ->
         false
 
-      %{acc: _, msg: error_message} ->
-        _ = Logger.warning("Database error: #{error_message}.", tag: "db_error")
-        false
-
       {:error, reason} ->
-        _ = Logger.warning("Database error, reason: #{inspect(reason)}.", tag: "db_error")
+        error_message =
+          case reason do
+            %{acc: _, msg: error_msg} -> error_msg
+            _ -> inspect(reason)
+          end
+
+        Logger.warning("Database error: #{error_message}.", tag: "db_error")
         false
     end
   end
@@ -859,12 +871,14 @@ defmodule Astarte.AppEngine.API.Device.Queries do
         {:ok, %DevicesList{devices: Enum.reverse(devices_list), last_token: last_token}}
       end
     else
-      %{acc: _, msg: error_message} ->
-        _ = Logger.warning("Database error: #{error_message}.", tag: "db_error")
-        {:error, :database_error}
-
       {:error, reason} ->
-        _ = Logger.warning("Database error, reason: #{inspect(reason)}.", tag: "db_error")
+        error_message =
+          case reason do
+            %{acc: _, msg: error_msg} -> error_msg
+            _ -> inspect(reason)
+          end
+
+        Logger.warning("Database error: #{error_message}.", tag: "db_error")
         {:error, :database_error}
     end
   end
@@ -888,6 +902,16 @@ defmodule Astarte.AppEngine.API.Device.Queries do
     else
       :empty_dataset ->
         {:error, :device_not_found}
+
+      {:error, reason} ->
+        error_message =
+          case reason do
+            %{acc: _, msg: error_msg} -> error_msg
+            _ -> inspect(reason)
+          end
+
+        Logger.warning("Database error: #{error_message}.", tag: "db_error")
+        {:error, :database_error}
 
       not_ok ->
         _ = Logger.warning("Database error: #{inspect(not_ok)}.", tag: "db_error")
@@ -913,12 +937,14 @@ defmodule Astarte.AppEngine.API.Device.Queries do
     with {:ok, _result} <- DatabaseQuery.call(client, query) do
       :ok
     else
-      %{acc: _, msg: error_message} ->
-        _ = Logger.warning("Database error: #{error_message}.", tag: "db_error")
-        {:error, :database_error}
-
       {:error, reason} ->
-        _ = Logger.warning("Database error, reason: #{inspect(reason)}.", tag: "db_error")
+        error_message =
+          case reason do
+            %{acc: _, msg: error_msg} -> error_msg
+            _ -> inspect(reason)
+          end
+
+        Logger.warning("Database error: #{error_message}.", tag: "db_error")
         {:error, :database_error}
     end
   end
@@ -955,24 +981,28 @@ defmodule Astarte.AppEngine.API.Device.Queries do
         {:ok, _result} ->
           :ok
 
-        %{acc: _, msg: error_message} ->
-          _ = Logger.warning("Database error: #{error_message}.", tag: "db_error")
-          {:error, :database_error}
-
         {:error, reason} ->
-          _ = Logger.warning("Database error, reason: #{inspect(reason)}.", tag: "db_error")
+          error_message =
+            case reason do
+              %{acc: _, msg: error_msg} -> error_msg
+              _ -> inspect(reason)
+            end
+
+          Logger.warning("Database error: #{error_message}.", tag: "db_error")
           {:error, :database_error}
       end
     else
       nil ->
         {:error, :attribute_key_not_found}
 
-      %{acc: _, msg: error_message} ->
-        _ = Logger.warning("Database error: #{error_message}.", tag: "db_error")
-        {:error, :database_error}
-
       {:error, reason} ->
-        _ = Logger.warning("Database error, reason: #{inspect(reason)}.", tag: "db_error")
+        error_message =
+          case reason do
+            %{acc: _, msg: error_msg} -> error_msg
+            _ -> inspect(reason)
+          end
+
+        Logger.warning("Database error: #{error_message}.", tag: "db_error")
         {:error, :database_error}
     end
   end
@@ -1029,12 +1059,14 @@ defmodule Astarte.AppEngine.API.Device.Queries do
       {:error, :device_not_found} ->
         {:error, :device_not_found}
 
-      %{acc: _, msg: error_message} ->
-        _ = Logger.warning("Database error: #{error_message}.", tag: "db_error")
-        {:error, :database_error}
-
       {:error, reason} ->
-        _ = Logger.warning("Database error, reason: #{inspect(reason)}.", tag: "db_error")
+        error_message =
+          case reason do
+            %{acc: _, msg: error_msg} -> error_msg
+            _ -> inspect(reason)
+          end
+
+        Logger.warning("Database error: #{error_message}.", tag: "db_error")
         {:error, :database_error}
     end
   end
@@ -1094,12 +1126,14 @@ defmodule Astarte.AppEngine.API.Device.Queries do
       with {:ok, _result} <- DatabaseQuery.call(client, delete_batch) do
         :ok
       else
-        %{acc: _, msg: error_message} ->
-          _ = Logger.warning("Database error: #{error_message}.", tag: "db_error")
-          {:error, :database_error}
-
         {:error, reason} ->
-          _ = Logger.warning("Database error, reason: #{inspect(reason)}.", tag: "db_error")
+          error_message =
+            case reason do
+              %{acc: _, msg: error_msg} -> error_msg
+              _ -> inspect(reason)
+            end
+
+          Logger.warning("Database error: #{error_message}.", tag: "db_error")
           {:error, :database_error}
       end
     else
@@ -1118,12 +1152,14 @@ defmodule Astarte.AppEngine.API.Device.Queries do
       nil ->
         {:error, :alias_tag_not_found}
 
-      %{acc: _, msg: error_message} ->
-        _ = Logger.warning("Database error: #{error_message}.", tag: "db_error")
-        {:error, :database_error}
-
       {:error, reason} ->
-        _ = Logger.warning("Database error, reason: #{inspect(reason)}.", tag: "db_error")
+        error_message =
+          case reason do
+            %{acc: _, msg: error_msg} -> error_msg
+            _ -> inspect(reason)
+          end
+
+        Logger.warning("Database error: #{error_message}.", tag: "db_error")
         {:error, :database_error}
     end
   end
@@ -1158,12 +1194,14 @@ defmodule Astarte.AppEngine.API.Device.Queries do
     with {:ok, _result} <- DatabaseQuery.call(client, query) do
       :ok
     else
-      %{acc: _, msg: error_message} ->
-        _ = Logger.warning("Database error: #{error_message}.", tag: "db_error")
-        {:error, :database_error}
-
       {:error, reason} ->
-        _ = Logger.warning("Update failed, reason: #{inspect(reason)}.", tag: "db_error")
+        error_message =
+          case reason do
+            %{acc: _, msg: error_msg} -> error_msg
+            _ -> inspect(reason)
+          end
+
+        Logger.warning("Update failed, reason: #{error_message}.", tag: "db_error")
         {:error, :database_error}
     end
   end
@@ -1272,6 +1310,19 @@ defmodule Astarte.AppEngine.API.Device.Queries do
 
       min(count, limit)
     else
+      {:error, reason} ->
+        error_message =
+          case reason do
+            %{acc: _, msg: error_msg} -> error_msg
+            _ -> inspect(reason)
+          end
+
+        Logger.warning("Can't retrieve count for #{inspect(count_query)}: #{error_message}.",
+          tag: "db_error"
+        )
+
+        nil
+
       error ->
         _ =
           Logger.warning("Can't retrieve count for #{inspect(count_query)}: #{inspect(error)}.",
