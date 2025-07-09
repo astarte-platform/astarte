@@ -985,44 +985,39 @@ defmodule Astarte.Housekeeping.Realms.Queries do
   end
 
   def initialize_database do
-    Xandra.Cluster.run(:xandra, [timeout: 60_000], fn conn ->
-      with :ok <- create_astarte_keyspace(conn),
-           :ok <- create_realms_table(),
-           :ok <- create_astarte_kv_store(),
-           :ok <- insert_astarte_schema_version() do
-        :ok
-      else
-        {:error, %Xandra.Error{} = err} ->
-          _ =
-            Logger.error(
-              "Database error while initializing database: #{inspect(err)}. ASTARTE WILL NOT WORK.",
-              tag: "init_database_error"
-            )
+    with :ok <- create_astarte_keyspace(),
+         :ok <- create_realms_table(),
+         :ok <- create_astarte_kv_store(),
+         :ok <- insert_astarte_schema_version() do
+      :ok
+    else
+      {:error, %Xandra.Error{} = err} ->
+        Logger.error(
+          "Database error while initializing database: #{inspect(err)}. ASTARTE WILL NOT WORK.",
+          tag: "init_database_error"
+        )
 
-          {:error, :database_error}
+        {:error, :database_error}
 
-        {:error, %Xandra.ConnectionError{} = err} ->
-          _ =
-            Logger.error(
-              "Database connection error while initializing database: #{inspect(err)}. ASTARTE WILL NOT WORK.",
-              tag: "init_database_connection_error"
-            )
+      {:error, %Xandra.ConnectionError{} = err} ->
+        Logger.error(
+          "Database connection error while initializing database: #{inspect(err)}. ASTARTE WILL NOT WORK.",
+          tag: "init_database_connection_error"
+        )
 
-          {:error, :database_connection_error}
+        {:error, :database_connection_error}
 
-        {:error, reason} ->
-          _ =
-            Logger.error(
-              "Error while initializing database: #{inspect(reason)}. ASTARTE WILL NOT WORK.",
-              tag: "init_error"
-            )
+      {:error, reason} ->
+        Logger.error(
+          "Error while initializing database: #{inspect(reason)}. ASTARTE WILL NOT WORK.",
+          tag: "init_error"
+        )
 
-          {:error, reason}
-      end
-    end)
+        {:error, reason}
+    end
   end
 
-  defp create_astarte_keyspace(conn) do
+  defp create_astarte_keyspace do
     # TODO: add support for creating the astarte keyspace with NetworkTopologyStrategy,
     # right now the replication factor is an integer so SimpleStrategy is always used
     astarte_keyspace_replication = Config.astarte_keyspace_replication_factor!()
@@ -1036,15 +1031,14 @@ defmodule Astarte.Housekeeping.Realms.Queries do
          AND durable_writes = true;
          """,
          :ok <- check_replication(astarte_keyspace_replication),
-         {:ok, %Xandra.SchemaChange{}} <-
-           Xandra.execute(conn, query, %{}, consistency: consistency) do
+         {:ok, %{rows: nil, num_rows: 1}} <-
+           Repo.query(query, [], consistency: consistency) do
       :ok
     else
       {:error, reason} ->
-        _ =
-          Logger.warning("Cannot create Astarte Keyspace: #{inspect(reason)}.",
-            tag: "astarte_keyspace_creation_failed"
-          )
+        Logger.warning("Cannot create Astarte Keyspace: #{inspect(reason)}.",
+          tag: "astarte_keyspace_creation_failed"
+        )
 
         {:error, reason}
     end
