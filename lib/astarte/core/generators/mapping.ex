@@ -54,6 +54,7 @@ defmodule Astarte.Core.Generators.Mapping do
       fields = %{
         endpoint: endpoint,
         type: type,
+        value_type: type,
         reliability: reliability,
         explicit_timestamp: explicit_timestamp,
         retention: retention,

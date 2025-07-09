@@ -42,5 +42,21 @@ defmodule Astarte.Core.Generators.InterfaceTest do
         assert changeset.valid?, "Invalid interface: #{inspect(changeset.errors)}"
       end
     end
+
+    @tag issue: 45
+    property "custom interface creation" do
+      gen_interface_changes =
+        InterfaceGenerator.interface(
+          type: :datastream,
+          aggregation: :object,
+          explicit_timestamp: true
+        )
+        |> InterfaceGenerator.to_changes()
+
+      check all changes <- gen_interface_changes do
+        changeset = Interface.changeset(%Interface{}, changes)
+        assert changeset.valid?, "Invalid interface: #{inspect(changeset.errors)}"
+      end
+    end
   end
 end

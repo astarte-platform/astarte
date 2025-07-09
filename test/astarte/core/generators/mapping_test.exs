@@ -55,5 +55,22 @@ defmodule Astarte.Core.Generators.MappingTest do
         assert changeset.valid?, "Invalid mapping: #{inspect(changeset, structs: false)}"
       end
     end
+
+    @tag issue: 45
+    property "type or value_type cannot be blank" do
+      check all mapping <- MappingGenerator.mapping(interface_type: :datastream) do
+        %Mapping{value_type: value_type, type: type} = mapping
+        refute is_nil(value_type) or is_nil(type)
+      end
+    end
+
+    @tag issue: 45
+    property "json serialization/de does not make type null" do
+      check all mapping <- MappingGenerator.mapping(),
+                mapping_fields = mapping |> Jason.encode!() |> Jason.decode!(),
+                %{"type" => type} = mapping_fields do
+        refute is_nil(type)
+      end
+    end
   end
 end
