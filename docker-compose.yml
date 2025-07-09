@@ -1,6 +1,6 @@
 services:
   astarte-housekeeping:
-    image: astarte/astarte_housekeeping:1.2-snapshot
+    image: astarte/astarte_housekeeping:1.3-snapshot
     build:
       context: apps/astarte_housekeeping
     env_file:
@@ -26,7 +26,7 @@ services:
       - "traefik.http.services.astarte-housekeeping.loadbalancer.server.port=4001"
 
   astarte-realm-management:
-    image: astarte/astarte_realm_management:1.2-snapshot
+    image: astarte/astarte_realm_management:1.3-snapshot
     build:
       context: apps/astarte_realm_management
     env_file:
@@ -48,7 +48,7 @@ services:
       - "traefik.http.services.astarte-realm-management.loadbalancer.server.port=4000"
 
   astarte-pairing:
-    image: astarte/astarte_pairing:1.2-snapshot
+    image: astarte/astarte_pairing:1.3-snapshot
     build:
       context: apps/astarte_pairing
     env_file:
@@ -72,7 +72,7 @@ services:
       - "traefik.http.services.astarte-pairing.loadbalancer.server.port=4003"
 
   astarte-appengine-api:
-    image: astarte/astarte_appengine_api:1.2-snapshot
+    image: astarte/astarte_appengine_api:1.3-snapshot
     build:
       context: apps/astarte_appengine_api
     env_file:
@@ -96,7 +96,7 @@ services:
       - "traefik.http.services.astarte-appengine-api.loadbalancer.server.port=4002"
 
   astarte-data-updater-plant:
-    image: astarte/astarte_data_updater_plant:1.2-snapshot
+    image: astarte/astarte_data_updater_plant:1.3-snapshot
     build:
       context: apps/astarte_data_updater_plant
     env_file:
@@ -114,7 +114,7 @@ services:
       - "scylla"
 
   astarte-trigger-engine:
-    image: astarte/astarte_trigger_engine:1.2-snapshot
+    image: astarte/astarte_trigger_engine:1.3-snapshot
     build:
       context: apps/astarte_trigger_engine
     env_file:
