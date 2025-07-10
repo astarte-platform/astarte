@@ -27,6 +27,8 @@ defmodule Astarte.Core.Generators.Mapping do
   alias Astarte.Core.Generators.Interface, as: InterfaceGenerator
   alias Astarte.Core.Mapping
 
+  alias Astarte.Utilities.Map, as: MapUtilities
+
   @unix_prefix_path_chars [?a..?z, ?A..?Z, ?_]
   @unix_path_chars @unix_prefix_path_chars ++ [?0..?9]
 
@@ -51,20 +53,21 @@ defmodule Astarte.Core.Generators.Mapping do
                    description <- description(),
                    doc <- doc(),
                    params: params do
-      fields = %{
-        endpoint: endpoint,
-        type: type,
-        value_type: type,
-        reliability: reliability,
-        explicit_timestamp: explicit_timestamp,
-        retention: retention,
-        expiry: expiry,
-        database_retention_policy: database_retention_policy,
-        allow_unset: allow_unset,
-        database_retention_ttl: database_retention_ttl,
-        description: description,
-        doc: doc
-      }
+      fields =
+        MapUtilities.clean(%{
+          endpoint: endpoint,
+          type: type,
+          value_type: type,
+          reliability: reliability,
+          explicit_timestamp: explicit_timestamp,
+          retention: retention,
+          expiry: expiry,
+          database_retention_policy: database_retention_policy,
+          allow_unset: allow_unset,
+          database_retention_ttl: database_retention_ttl,
+          description: description,
+          doc: doc
+        })
 
       struct(Mapping, fields)
     end
@@ -76,7 +79,7 @@ defmodule Astarte.Core.Generators.Mapping do
   @spec to_changes(StreamData.t(Mapping.t())) :: StreamData.t(map())
   def to_changes(gen) do
     gen all mapping <- gen do
-      mapping |> Map.from_struct() |> Map.reject(fn {_k, v} -> is_nil(v) end)
+      mapping |> Map.from_struct() |> MapUtilities.clean()
     end
   end
 

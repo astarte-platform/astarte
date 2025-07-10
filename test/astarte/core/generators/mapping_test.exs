@@ -72,5 +72,12 @@ defmodule Astarte.Core.Generators.MappingTest do
         refute is_nil(type)
       end
     end
+
+    @tag issue: 49
+    property "reliability is nil on Mapping" do
+      check all %Mapping{reliability: reliability} <- MappingGenerator.mapping() do
+        refute is_nil(reliability)
+      end
+    end
   end
 end
