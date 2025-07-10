@@ -63,6 +63,12 @@ defmodule AstarteE2E.Config do
     type: :binary,
     required: true
 
+  @envdoc "Astarte Realm Management URL (e.g. https://api.astarte.example.com/realm_management)."
+  app_env :realm_management_url, :astarte_e2e, :realm_management_url,
+    os_env: "E2E_REALM_MANAGEMENT_URL",
+    type: :binary,
+    required: true
+
   @envdoc "Realm name."
   app_env :realm, :astarte_e2e, :realm,
     os_env: "E2E_REALM",

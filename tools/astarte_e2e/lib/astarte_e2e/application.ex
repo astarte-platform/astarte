@@ -21,6 +21,7 @@ defmodule AstarteE2E.Application do
 
   alias AstarteE2E.Config
   alias AstarteE2E.Device
+  alias AstarteE2E.DeviceTrigger
   alias AstarteE2E.ServiceNotifier
 
   require Logger
@@ -39,7 +40,8 @@ defmodule AstarteE2E.Application do
         {Registry, keys: :unique, name: Registry.AstarteE2E},
         AstarteE2EWeb.Telemetry,
         {ServiceNotifier, Config.notifier_opts()},
-        {Device, device_opts}
+        {Device, device_opts},
+        DeviceTrigger,
       ]
 
       opts = [strategy: :one_for_one, name: __MODULE__]
