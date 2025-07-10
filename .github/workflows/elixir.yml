@@ -106,5 +106,5 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: build
-      - name: Run Tests
-        run: mix test
+      - name: Run Unit Tests & Coverage
+        run: mix test --cover
