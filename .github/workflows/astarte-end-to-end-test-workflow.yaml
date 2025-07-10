@@ -18,6 +18,8 @@ on:
     - 'apps/**'
     - 'tools/astarte_e2e/**'
     - '.github/workflows/astarte-end-to-end-test-workflow.yaml'
+  # Allow this workflow to be called  by others
+  workflow_call:
 
 env:
   elixir_version: "1.15"
