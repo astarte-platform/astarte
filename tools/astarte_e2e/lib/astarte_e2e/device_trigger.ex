@@ -16,7 +16,7 @@
 # limitations under the License.
 #
 
-defmodule AstarteE2E.Trigger do
+defmodule AstarteE2E.DeviceTrigger do
   use Task, restart: :transient
 
   require Logger
