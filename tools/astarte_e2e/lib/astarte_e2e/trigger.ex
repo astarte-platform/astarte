@@ -30,7 +30,7 @@ defmodule AstarteE2E.Trigger do
     case realm_result do
       {:ok, realm} -> Task.start_link(__MODULE__, :install_triggers!, realm)
       _ ->
-        Logger.warning("Trying to create a trigger without realm or name")
+        Logger.warning("Trying to create a device trigger without realm")
         {:error, :invalid_args}
     end
   end
@@ -62,7 +62,12 @@ defmodule AstarteE2E.Trigger do
       end
     end)
 
-    installation_result
+    case installation_result do
+      :ok -> :shutdown
+      errored_response ->
+        Logger.warning("Failed to install a device triggers")
+        {:error, errored_response}
+    end
   end
 
   defp generate_triggers() do
