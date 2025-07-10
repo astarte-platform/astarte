@@ -1,0 +1,37 @@
+name: e2e builder
+description: build e2e from source
+runs:
+  using: "composite"
+  steps:
+    - uses: actions/checkout@v4
+    - uses: actions/cache@v4
+      with:
+        path: tools/astarte_e2e/deps
+        key: deps-${{ env.otp_version }}-${{ env.elixir_version }}-${{ hashFiles(format('{0}{1}{2}', github.workspace, '/tools/astarte_e2e', '/mix.lock')) }}
+    - uses: actions/cache@v4
+      with:
+        path: tools/astarte_e2e/_build
+        key: build-${{ env.otp_version }}-${{ env.elixir_version }}
+    - uses: erlef/setup-beam@v1.15
+      with:
+        otp-version: ${{ env.otp_version }}
+        elixir-version: ${{ env.elixir_version }}
+    - name: Build Astarte E2E
+      shell: bash
+      working-directory: tools/astarte_e2e
+      run: |
+        mix deps.get
+        mix compile --warnings-as-errors --force
+    - name: Run Astarte E2E
+      shell: bash
+      working-directory: tools/astarte_e2e
+      env:
+        E2E_PAIRING_URL: http://api.astarte.localhost/pairing
+        E2E_APPENGINE_URL: http://api.astarte.localhost/appengine
+        E2E_IGNORE_SSL_ERRORS: true
+        E2E_CHECK_INTERVAL_SECONDS: 5
+        E2E_CHECK_REPETITIONS: 5
+        E2E_MAILER_TO_ADDRESS: mail@example.com
+        E2E_MAIL_SUBJECT: "Subj: Astarte Notification"
+      run: |
+        mix run --no-halt

@@ -1,0 +1,24 @@
+name: Astarte builder
+description: build astarte containers from source
+runs:
+  using: "composite"
+  steps:
+    - uses: actions/checkout@v4
+    - name: Initialize docker compose files
+      shell: bash
+      run: docker run -v $(pwd)/compose:/compose astarte/docker-compose-initializer
+    - name: set permissions
+      shell: bash
+      run: sudo chmod -R 777 compose/vernemq-certs/
+    - name: Build Astarte containers
+      shell: bash
+      run: docker compose build --parallel
+    - name: Start all Astarte services
+      shell: bash
+      run: docker compose up -d
+    - name: Wait for Astarte to come up
+      shell: bash
+      run: |
+        wget https://github.com/astarte-platform/wait-for-astarte-docker-compose/releases/download/v1.1.0/wait-for-astarte-docker-compose_1.1.0_linux_amd64.tar.gz
+        tar xf wait-for-astarte-docker-compose_1.1.0_linux_amd64.tar.gz
+        ./wait-for-astarte-docker-compose
