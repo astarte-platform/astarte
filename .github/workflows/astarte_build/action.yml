@@ -4,12 +4,19 @@ runs:
   using: "composite"
   steps:
     - uses: actions/checkout@v4
+    - uses: actions/cache@v4
+      with:
+        path: |
+          **/_build
+          **/deps
+        key: build-${{ env.otp_version }}-${{ env.elixir_version }}-${{ hashFiles(format('{0}{1}{2}', github.workspace, '/tools/astarte_e2e', '/mix.lock')) }}
     - name: Initialize docker compose files
       shell: bash
       run: docker run -v $(pwd)/compose:/compose astarte/docker-compose-initializer
     - name: set permissions
       shell: bash
       run: sudo chmod -R 777 compose/vernemq-certs/
+
     - name: Build Astarte containers
       shell: bash
       run: docker compose build --parallel
