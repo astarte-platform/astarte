@@ -22,22 +22,17 @@ defmodule Astarte.DataAccess.Health.Health do
   def get_health do
     case Queries.check_astarte_health(:quorum) do
       :ok ->
-        {:ok, %{status: :ready}}
+        :ready
 
       {:error, :health_check_bad} ->
         case Queries.check_astarte_health(:one) do
-          :ok ->
-            {:ok, %{status: :degraded}}
-
-          {:error, :health_check_bad} ->
-            {:ok, %{status: :bad}}
-
-          {:error, :database_connection_error} ->
-            {:ok, %{status: :error}}
+          :ok -> :degraded
+          {:error, :health_check_bad} -> :bad
+          {:error, :database_connection_error} -> :error
         end
 
       {:error, :database_connection_error} ->
-        {:ok, %{status: :error}}
+        :error
     end
   end
 end
