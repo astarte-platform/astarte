@@ -34,10 +34,8 @@ defmodule Astarte.Housekeeping.BackendSupervisor do
 
     xandra_options = Config.xandra_options!()
     data_access_opts = [xandra_options: xandra_options]
-    hk_xandra_opts = Keyword.put(xandra_options, :name, :xandra)
 
     children = [
-      {Xandra.Cluster, hk_xandra_opts},
       {Astarte.DataAccess, data_access_opts}
     ]
 
