@@ -58,15 +58,9 @@ jobs:
           ./astartectl realm-management interfaces install tools/astarte_e2e/priv/interfaces/$i --astarte-url http://api.astarte.localhost -k test_private.pem -r $E2E_REALM
           sleep 2
         done
-    - name: Register device
-      run: |
-        DEVICE_ID=$(./astartectl utils device-id generate-random)
-        echo "E2E_DEVICE_ID=$DEVICE_ID" >> $GITHUB_ENV
-        CREDENTIALS_SECRET=$(./astartectl pairing agent register $DEVICE_ID --astarte-url http://api.astarte.localhost -k test_private.pem -r $E2E_REALM | grep "Credentials Secret is" | cut -d '"' -f 2)
-        echo "E2E_CREDENTIALS_SECRET=$CREDENTIALS_SECRET" >> $GITHUB_ENV
     - name: Generate AppEngine JWT
       run: |
-        JWT=$(./astartectl utils gen-jwt appengine channels -k test_private.pem)
+        JWT=$(./astartectl utils gen-jwt appengine channels pairing -k test_private.pem)
         echo "E2E_JWT=$JWT" >> $GITHUB_ENV
     - uses: actions/cache@v4
       with:
