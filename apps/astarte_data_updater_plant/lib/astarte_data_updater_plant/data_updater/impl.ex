@@ -20,6 +20,8 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
   alias Astarte.DataUpdaterPlant.DataUpdater.Core
   alias Astarte.DataUpdaterPlant.Config
   alias Astarte.Core.Device
+  alias Astarte.Core.InterfaceDescriptor
+  alias Astarte.Core.Mapping.EndpointsAutomaton
   alias Astarte.DataUpdaterPlant.DataUpdater.State
   alias Astarte.DataUpdaterPlant.DataUpdater.Cache
   alias Astarte.DataUpdaterPlant.DataUpdater.Queries
@@ -64,11 +66,12 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
     stats_and_introspection =
       Queries.retrieve_device_stats_and_introspection!(new_state.realm, device_id)
 
+    updated_state = Map.merge(new_state, stats_and_introspection)
+
     # TODO this could be a bang!
     {:ok, ttl} = Queries.get_datastream_maximum_storage_retention(new_state.realm)
 
-    Map.merge(new_state, stats_and_introspection)
-    |> Map.put(:datastream_maximum_storage_retention, ttl)
+    Map.put(updated_state, :datastream_maximum_storage_retention, ttl)
   end
 
   def handle_deactivation(_state) do
@@ -153,6 +156,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
       |> Core.Device.set_device_disconnected(timestamp)
 
     MessageTracker.ack_delivery(new_state.message_tracker, message_id)
+
     Logger.info("Device disconnected.", tag: "device_disconnected")
 
     %{new_state | last_seen_message: timestamp}
@@ -166,6 +170,11 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
   def handle_data(state, interface, path, payload, message_id, timestamp) do
     TimeBasedActions.execute_time_based_actions(state, timestamp)
     |> Core.DataHandler.handle_data(interface, path, payload, message_id, timestamp)
+  end
+
+  def handle_introspection(%State{discard_messages: true} = state, _, message_id, _) do
+    MessageTracker.discard(state.message_tracker, message_id)
+    state
   end
 
   defdelegate handle_control(state, path, payload, message_id, timestamp), to: Core.ControlHandler
