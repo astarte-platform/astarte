@@ -25,6 +25,7 @@ defmodule Astarte.Housekeeping.Migrator do
   alias Astarte.DataAccess.Repo
   alias Astarte.DataAccess.KvStore
   alias Astarte.Housekeeping.Realms.Queries
+  alias Astarte.Housekeeping.Realms.Realm, as: HKRealm
 
   require Logger
 
@@ -73,10 +74,15 @@ defmodule Astarte.Housekeeping.Migrator do
   end
 
   defp migrate_realms([realm | tail]) do
-    _ = Logger.info("Starting to migrate realm.", tag: "realm_migration_started", realm: realm)
+    %HKRealm{realm_name: realm_name} = realm
 
-    with {:ok, realm_astarte_schema_version} <- get_realm_astarte_schema_version(realm),
-         :ok <- migrate_realm_from_version(realm, realm_astarte_schema_version) do
+    Logger.info("Starting to migrate realm.",
+      tag: "realm_migration_started",
+      realm_name: realm_name
+    )
+
+    with {:ok, realm_astarte_schema_version} <- get_realm_astarte_schema_version(realm_name),
+         :ok <- migrate_realm_from_version(realm_name, realm_astarte_schema_version) do
       migrate_realms(tail)
     end
   end
