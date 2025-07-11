@@ -21,37 +21,21 @@ defmodule Astarte.PairingWeb.HealthPlug do
   import Plug.Conn
 
   alias Astarte.Pairing.Health
-  alias Astarte.Pairing.Health.BackendHealth
 
   def init(_opts) do
     nil
   end
 
   def call(%{request_path: "/health", method: "GET"} = conn, _opts) do
-    try do
-      with {:ok, %BackendHealth{status: status}} <- Health.get_backend_health() do
-        case status do
-          # When degraded, some Cassandra nodes are available so it's still ok
-          val when val in [:ready, :degraded] ->
-            conn
-            |> send_resp(:ok, "")
-            |> halt()
-
-          val when val in [:bad, :error] ->
-            conn
-            |> send_resp(:service_unavailable, "")
-            |> halt()
-        end
-      end
-    rescue
-      _ ->
-        :telemetry.execute(
-          [:astarte, :pairing, :service],
-          %{health: 0}
-        )
-
+    case Health.get_health() do
+      :ready ->
         conn
-        |> send_resp(:internal_server_error, "")
+        |> send_resp(:ok, "")
+        |> halt()
+
+      :bad ->
+        conn
+        |> send_resp(:service_unavailable, "")
         |> halt()
     end
   end

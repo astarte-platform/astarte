@@ -21,28 +21,39 @@ defmodule Astarte.Pairing.Health do
   Performs health checks of the Pairing service
   """
 
-  alias Astarte.DataAccess.Health.Health
-  alias Astarte.Pairing.Health.BackendHealth
+  alias Astarte.DataAccess.Health.Health, as: DatabaseHealth
+
+  @type health :: :ready | :bad
 
   @doc """
-  Gets the backend health. Returns `{:ok, %BackendHealth{}`
+  Gets the backend health.
   """
-  def get_backend_health do
-    with {:ok, %{status: status}} <- Health.get_health() do
-      :telemetry.execute(
-        [:astarte, :pairing, :service],
-        %{health: 1}
-      )
+  @spec get_health() :: health()
+  def get_health do
+    database_status = DatabaseHealth.get_health() |> from_database_health()
 
-      {:ok, %BackendHealth{status: status}}
-    else
-      _ ->
-        :telemetry.execute(
-          [:astarte, :pairing, :service],
-          %{health: 0}
-        )
+    :telemetry.execute(
+      [:astarte, :pairing, :service],
+      %{health: telemetry_health(database_status)}
+    )
 
-        {:ok, %BackendHealth{status: :error}}
+    database_status
+  end
+
+  @spec from_database_health({:ok, %{status: :ready | :degraded | :bad | :error}}) :: health()
+  defp from_database_health(database_health) do
+    # TODO: remove after data access update
+    {:ok, %{status: database_health}} = database_health
+
+    # When degraded, some Scylla nodes are available so it's still ok
+    case database_health do
+      :ready -> :ready
+      :degraded -> :ready
+      :bad -> :bad
+      :error -> :bad
     end
   end
+
+  defp telemetry_health(:ready), do: 1
+  defp telemetry_health(:bad), do: 0
 end
