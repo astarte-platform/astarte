@@ -34,6 +34,8 @@ defmodule Astarte.Core.Generators.Triggers.Policy do
   alias Astarte.Core.Generators.Triggers.Policy.ErrorKeyword, as: ErrorKeywordGenerator
   alias Astarte.Core.Generators.Triggers.Policy.Handler, as: HandlerGenerator
 
+  alias Astarte.Utilities.Map, as: MapUtilities
+
   # \n: 10
   # @: 0x40
   @utf8_except_newline_and_atsign [0..9, 11..0x39, 0x41..0xD7FF, 0xE000..0x10FFFF]
@@ -51,14 +53,15 @@ defmodule Astarte.Core.Generators.Triggers.Policy do
                    event_ttl <- event_ttl(),
                    prefetch_count <- prefetch_count(),
                    params: params do
-      fields = %{
-        name: name,
-        maximum_capacity: maximum_capacity,
-        error_handlers: error_handlers,
-        retry_times: retry_times,
-        event_ttl: event_ttl,
-        prefetch_count: prefetch_count
-      }
+      fields =
+        MapUtilities.clean(%{
+          name: name,
+          maximum_capacity: maximum_capacity,
+          error_handlers: error_handlers,
+          retry_times: retry_times,
+          event_ttl: event_ttl,
+          prefetch_count: prefetch_count
+        })
 
       struct(Policy, fields)
     end
@@ -81,14 +84,14 @@ defmodule Astarte.Core.Generators.Triggers.Policy do
               error_handlers
               |> Enum.map(&HandlerGenerator.to_changes(constant(&1)))
               |> fixed_list() do
-      %{
+      MapUtilities.clean(%{
         name: name,
         maximum_capacity: maximum_capacity,
         error_handlers: error_handlers,
         retry_times: retry_times,
         event_ttl: event_ttl,
         prefetch_count: prefetch_count
-      }
+      })
     end
   end
 

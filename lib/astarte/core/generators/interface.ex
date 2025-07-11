@@ -27,6 +27,8 @@ defmodule Astarte.Core.Generators.Interface do
 
   alias Astarte.Core.Generators.Mapping, as: MappingGenerator
   alias Astarte.Core.Interface
+  alias Astarte.Utilities.Map, as: MapUtilities
+
   alias Ecto.UUID
 
   @doc """
@@ -48,19 +50,20 @@ defmodule Astarte.Core.Generators.Interface do
                    description <- description(),
                    doc <- doc(),
                    params: params do
-      fields = %{
-        interface_id: id,
-        name: name,
-        major_version: major_version,
-        minor_version: minor_version,
-        type: type,
-        ownership: ownership,
-        prefix: prefix,
-        aggregation: aggregation,
-        mappings: mappings,
-        description: description,
-        doc: doc
-      }
+      fields =
+        MapUtilities.clean(%{
+          interface_id: id,
+          name: name,
+          major_version: major_version,
+          minor_version: minor_version,
+          type: type,
+          ownership: ownership,
+          prefix: prefix,
+          aggregation: aggregation,
+          mappings: mappings,
+          description: description,
+          doc: doc
+        })
 
       struct(Interface, fields)
     end
@@ -88,7 +91,7 @@ defmodule Astarte.Core.Generators.Interface do
               mappings
               |> Enum.map(&MappingGenerator.to_changes(constant(&1)))
               |> fixed_list() do
-      %{
+      MapUtilities.clean(%{
         interface_id: interface_id,
         name: name,
         major_version: major_version,
@@ -103,7 +106,7 @@ defmodule Astarte.Core.Generators.Interface do
         interface_name: name,
         version_major: major_version,
         version_minor: minor_version
-      }
+      })
     end
   end
 
