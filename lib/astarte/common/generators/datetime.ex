@@ -26,13 +26,15 @@ defmodule Astarte.Common.Generators.DateTime do
 
   alias Astarte.Common.Generators.Timestamp, as: TimestampGenerator
 
+  @ref_unit :microsecond
+
   @doc false
   @spec min_default :: DateTime.t()
-  def min_default, do: TimestampGenerator.min_default() |> DateTime.from_unix!(:microsecond)
+  def min_default, do: TimestampGenerator.min_default() |> DateTime.from_unix!(@ref_unit)
 
   @doc false
   @spec max_default :: DateTime.t()
-  def max_default, do: TimestampGenerator.max_default() |> DateTime.from_unix!(:microsecond)
+  def max_default, do: TimestampGenerator.max_default() |> DateTime.from_unix!(@ref_unit)
 
   @doc """
   Generates a random DateTime from min to max (see Timestamp generator)
@@ -44,13 +46,13 @@ defmodule Astarte.Common.Generators.DateTime do
       params gen all min <- constant(min_default()),
                      max <- constant(max_default()),
                      params: params do
-        {DateTime.to_unix(min, :microsecond), DateTime.to_unix(max, :microsecond)}
+        {DateTime.to_unix(min, @ref_unit), DateTime.to_unix(max, @ref_unit)}
       end
 
     gen all {min, max} <- config,
             date_time <-
-              TimestampGenerator.timestamp(min: min, max: max)
-              |> map(&DateTime.from_unix!(&1, :microsecond)) do
+              TimestampGenerator.timestamp(min: min, max: max, unit: @ref_unit)
+              |> map(&DateTime.from_unix!(&1, @ref_unit)) do
       date_time
     end
   end

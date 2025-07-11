@@ -32,7 +32,7 @@ defmodule Astarte.Common.Generators.TimestampTest do
   describe "timestamp generator" do
     property "valid generic timestamp" do
       check all timestamp <- TimestampGenerator.timestamp() do
-        assert {:ok, _} = DateTime.from_unix(timestamp, :microsecond)
+        assert {:ok, _} = DateTime.from_unix(timestamp)
       end
     end
 

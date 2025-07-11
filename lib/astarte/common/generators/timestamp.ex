@@ -27,13 +27,20 @@ defmodule Astarte.Common.Generators.Timestamp do
   @min_default 0
   @max_default 2_556_143_999_999_999
 
+  @ref_unit :microsecond
+  @default_unit :second
+
   @doc false
   @spec min_default() :: integer()
-  def min_default, do: @min_default
+  @spec min_default(unit :: atom()) :: integer()
+  def min_default(unit \\ @default_unit),
+    do: @min_default |> System.convert_time_unit(@ref_unit, unit)
 
   @doc false
   @spec max_default() :: integer()
-  def max_default, do: @max_default
+  @spec max_default(unit :: atom()) :: integer()
+  def max_default(unit \\ @default_unit),
+    do: @max_default |> System.convert_time_unit(@ref_unit, unit)
 
   @doc """
   Generates a random timestamp between min and max, defaulting to 0 and 2_556_143_999_999_999 (µs).
@@ -42,8 +49,9 @@ defmodule Astarte.Common.Generators.Timestamp do
   @spec timestamp(params :: keyword()) :: StreamData.t(integer())
   def timestamp(params \\ []) do
     config =
-      params gen all min <- constant(min_default()),
-                     max <- constant(max_default()),
+      params gen all unit <- constant(@default_unit),
+                     min <- constant(min_default(unit)),
+                     max <- constant(max_default(unit)),
                      params: params do
         {min, max}
       end
