@@ -23,8 +23,9 @@ defmodule Astarte.Pairing.HealthTest do
   alias Astarte.DataAccess.Health.Health, as: DataAccessHealth
 
   describe "health" do
-    test "returns :ready when the database status is ready" do
+    test "returns :ready when the database status is ready and cfssl is available" do
       Mimic.stub(DataAccessHealth, :get_health, fn -> {:ok, %{status: :ready}} end)
+      Mimic.expect(HTTPoison, :get, fn _ -> {:ok, %HTTPoison.Response{status_code: 200}} end)
 
       assert :ready = Health.get_health()
     end
@@ -37,12 +38,20 @@ defmodule Astarte.Pairing.HealthTest do
 
     test "returns :ready when the database status is degraded" do
       Mimic.stub(DataAccessHealth, :get_health, fn -> {:ok, %{status: :degraded}} end)
+      Mimic.expect(HTTPoison, :get, fn _ -> {:ok, %HTTPoison.Response{status_code: 200}} end)
 
       assert :ready = Health.get_health()
     end
 
     test "returns :bad when the database returns an error" do
       Mimic.stub(DataAccessHealth, :get_health, fn -> {:ok, %{status: :error}} end)
+
+      assert :bad = Health.get_health()
+    end
+
+    test "returns :bad when cfssl returns an error" do
+      Mimic.stub(DataAccessHealth, :get_health, fn -> {:ok, %{status: :degraded}} end)
+      Mimic.expect(HTTPoison, :get, fn _ -> {:ok, %HTTPoison.Response{status_code: 500}} end)
 
       assert :bad = Health.get_health()
     end

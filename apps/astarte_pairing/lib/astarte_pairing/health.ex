@@ -22,6 +22,7 @@ defmodule Astarte.Pairing.Health do
   """
 
   alias Astarte.DataAccess.Health.Health, as: DatabaseHealth
+  alias Astarte.Pairing.Config
 
   @type health :: :ready | :bad
 
@@ -30,14 +31,10 @@ defmodule Astarte.Pairing.Health do
   """
   @spec get_health() :: health()
   def get_health do
-    database_status = DatabaseHealth.get_health() |> from_database_health()
-
-    :telemetry.execute(
-      [:astarte, :pairing, :service],
-      %{health: telemetry_health(database_status)}
-    )
-
-    database_status
+    DatabaseHealth.get_health()
+    |> from_database_health()
+    |> cast_health_check(&cfssl_health/0)
+    |> tap(&emit_telemetry/1)
   end
 
   @spec from_database_health({:ok, %{status: :ready | :degraded | :bad | :error}}) :: health()
@@ -54,6 +51,33 @@ defmodule Astarte.Pairing.Health do
     end
   end
 
+  defp cfssl_health do
+    health_check_url = Path.join(Config.cfssl_url!(), "api/v1/cfssl/health")
+
+    HTTPoison.get(health_check_url)
+    |> case do
+      {:ok, %HTTPoison.Response{status_code: 200}} ->
+        :ready
+
+      {:ok, %HTTPoison.Response{status_code: 404}} ->
+        # old (pre-2019) cfssl version may not have the health endpoint
+        :ready
+
+      _ ->
+        :bad
+    end
+  end
+
   defp telemetry_health(:ready), do: 1
   defp telemetry_health(:bad), do: 0
+
+  defp emit_telemetry(health) do
+    :telemetry.execute(
+      [:astarte, :pairing, :service],
+      %{health: telemetry_health(health)}
+    )
+  end
+
+  defp cast_health_check(:bad, _), do: :bad
+  defp cast_health_check(:ready, next_health_check), do: next_health_check.()
 end
