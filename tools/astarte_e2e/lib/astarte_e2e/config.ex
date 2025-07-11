@@ -20,9 +20,7 @@ defmodule AstarteE2E.Config do
   use Skogsra
   require Logger
 
-  alias Astarte.Core.Device
   alias AstarteE2E.Config.PositiveIntegerOrInfinity
-  alias AstarteE2E.Config.AstarteDeviceID
   alias AstarteE2E.Config.ListOfStrings
   alias AstarteE2E.Config.BambooMailAdapter
   alias AstarteE2E.Config.NormalizedMailAddress
@@ -31,7 +29,6 @@ defmodule AstarteE2E.Config do
           {:url, String.t()}
           | {:realm, String.t()}
           | {:jwt, String.t()}
-          | {:device_id, Device.encoded_device_id()}
           | {:ignore_ssl_errors, boolean()}
           | {:check_repetitions, integer() | :infinity}
 
@@ -39,7 +36,6 @@ defmodule AstarteE2E.Config do
           {:check_interval_s, integer()}
           | {:check_repetitions, integer() | :infinity}
           | {:realm, String.t()}
-          | {:device_id, Device.encoded_device_id()}
 
   @type notifier_option ::
           {:mail_subject, String.t()}
@@ -52,18 +48,6 @@ defmodule AstarteE2E.Config do
   @envdoc "Astarte Pairing URL (e.g. https://api.astarte.example.com/pairing)."
   app_env :pairing_url, :astarte_e2e, :pairing_url,
     os_env: "E2E_PAIRING_URL",
-    type: :binary,
-    required: true
-
-  @envdoc "An Astarte device ID, which is a valid UUID encoded with standard Astarte device_id encoding (Base64 url encoding, no padding)."
-  app_env :device_id, :astarte_e2e, :device_id,
-    os_env: "E2E_DEVICE_ID",
-    type: AstarteDeviceID,
-    required: true
-
-  @envdoc "Credentials secret."
-  app_env :credentials_secret, :astarte_e2e, :credentials_secret,
-    os_env: "E2E_CREDENTIALS_SECRET",
     type: :binary,
     required: true
 
@@ -208,9 +192,6 @@ defmodule AstarteE2E.Config do
     [
       pairing_url: pairing_url!(),
       realm: realm!(),
-      device_id: device_id!(),
-      credentials_secret: credentials_secret!(),
-      interface_provider: standard_interface_provider!(),
       ignore_ssl_errors: ignore_ssl_errors!()
     ]
   end
@@ -221,7 +202,6 @@ defmodule AstarteE2E.Config do
       url: websocket_url!(),
       realm: realm!(),
       jwt: jwt!(),
-      device_id: device_id!(),
       check_repetitions: check_repetitions!(),
       ignore_ssl_errors: ignore_ssl_errors!()
     ]
@@ -233,7 +213,6 @@ defmodule AstarteE2E.Config do
       check_interval_s: check_interval_s!(),
       check_repetitions: check_repetitions!(),
       realm: realm!(),
-      device_id: device_id!()
     ]
   end
 
