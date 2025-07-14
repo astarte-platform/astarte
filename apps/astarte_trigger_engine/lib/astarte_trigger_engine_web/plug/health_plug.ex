@@ -18,43 +18,20 @@
 
 defmodule Astarte.TriggerEngineWeb.HealthPlug do
   import Plug.Conn
-  alias Astarte.DataAccess.Health.Health
+  alias Astarte.TriggerEngine.Health
 
   def init(_args), do: nil
 
   def call(%{request_path: "/health", method: "GET"} = conn, _opts) do
-    try do
-      case Health.get_health() do
-        {:ok, %{status: status}} when status in [:ready, :degraded] ->
-          :telemetry.execute(
-            [:astarte, :trigger_engine, :service],
-            %{health: 1},
-            %{status: status}
-          )
-
-          conn
-          |> send_resp(:ok, "")
-          |> halt()
-
-        _ ->
-          :telemetry.execute(
-            [:astarte, :trigger_engine, :service],
-            %{health: 0}
-          )
-
-          conn
-          |> send_resp(:service_unavailable, "")
-          |> halt()
-      end
-    rescue
-      _ ->
-        :telemetry.execute(
-          [:astarte, :trigger_engine, :service],
-          %{health: 0}
-        )
-
+    case Health.get_health() do
+      :ready ->
         conn
-        |> send_resp(:internal_server_error, "")
+        |> send_resp(:ok, "")
+        |> halt()
+
+      :bad ->
+        conn
+        |> send_resp(:service_unavailable, "")
         |> halt()
     end
   end
