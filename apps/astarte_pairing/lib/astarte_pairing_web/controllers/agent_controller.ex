@@ -33,6 +33,8 @@ defmodule Astarte.PairingWeb.AgentController do
   end
 
   def delete(conn, %{"realm_name" => realm, "device_id" => device_id}) do
+    :telemetry.execute([:astarte, :pairing, :unregister_device], %{}, %{realm: realm})
+
     with :ok <- Agent.unregister_device(realm, device_id) do
       conn
       |> resp(:no_content, "")

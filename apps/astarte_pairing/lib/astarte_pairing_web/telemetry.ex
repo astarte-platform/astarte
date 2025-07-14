@@ -119,6 +119,14 @@ defmodule Astarte.PairingWeb.Telemetry do
       counter("astarte.pairing.get_credentials.count",
         tags: [:realm],
         description: "Get credentials requests total count"
+      ),
+      counter("astarte.pairing.verify_credentials.count",
+        tags: [:realm],
+        description: "Get verify credentials requests total count"
+      ),
+      counter("astarte.pairing.unregister_device.count",
+        tags: [:realm],
+        description: "Get unregister device requests total count"
       )
     ]
   end

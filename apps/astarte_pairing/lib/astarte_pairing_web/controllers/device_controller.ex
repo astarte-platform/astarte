@@ -67,6 +67,8 @@ defmodule Astarte.PairingWeb.DeviceController do
       }) do
     alias AstarteMQTTV1.CredentialsStatus, as: CredentialsStatus
 
+    :telemetry.execute([:astarte, :pairing, :verify_credentials], %{}, %{realm: realm})
+
     with {:ok, secret} <- get_secret(conn),
          {:ok, %CredentialsStatus{} = status} <-
            Credentials.verify_astarte_mqtt_v1(realm, hw_id, secret, params) do
