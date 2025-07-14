@@ -29,7 +29,7 @@ defmodule Astarte.HousekeepingWeb.PlugTest do
     end
 
     test "returns 200 OK when status is :ready", %{conn: conn} do
-      Mimic.expect(Health, :get_health, fn -> {:ok, %{status: :ready}} end)
+      Mimic.expect(Health, :get_health, fn -> :ready end)
 
       conn = get(conn, "/health")
 
@@ -38,7 +38,7 @@ defmodule Astarte.HousekeepingWeb.PlugTest do
     end
 
     test "returns 200 OK when status is :degraded", %{conn: conn} do
-      Mimic.expect(Health, :get_health, fn -> {:ok, %{status: :degraded}} end)
+      Mimic.expect(Health, :get_health, fn -> :degraded end)
 
       conn = get(conn, "/health")
 
@@ -47,7 +47,7 @@ defmodule Astarte.HousekeepingWeb.PlugTest do
     end
 
     test "returns 503 when status is :bad", %{conn: conn} do
-      Mimic.expect(Health, :get_health, fn -> {:ok, %{status: :bad}} end)
+      Mimic.expect(Health, :get_health, fn -> :bad end)
 
       conn = get(conn, "/health")
 
@@ -56,7 +56,7 @@ defmodule Astarte.HousekeepingWeb.PlugTest do
     end
 
     test "returns 503 when status is :error", %{conn: conn} do
-      Mimic.expect(Health, :get_health, fn -> {:error, :database_connection_error} end)
+      Mimic.expect(Health, :get_health, fn -> :error end)
       conn = get(conn, "/health")
 
       assert conn.status == 503
