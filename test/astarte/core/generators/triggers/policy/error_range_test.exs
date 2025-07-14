@@ -48,5 +48,13 @@ defmodule Astarte.Core.Generators.Triggers.Policy.ErrorRangeTest do
         assert changeset.valid?, "Invalid error_range: #{inspect(changeset.errors)}"
       end
     end
+
+    property "valid use of to_change" do
+      gen_change = ErrorRangeGenerator.error_range() |> ErrorRangeGenerator.to_changes()
+
+      check all %{"error_codes" => error_codes} <- gen_change do
+        assert Enum.all?(error_codes, &is_integer/1)
+      end
+    end
   end
 end

@@ -78,6 +78,41 @@ defmodule Astarte.Generators.Utilities.ParamsGenTest do
   setup_all :gen_fixtures
 
   @doc false
+  describe "gen_param unit tests" do
+    @describetag :success
+    @describetag :ut
+
+    property "gen_param does not intervene", %{gen: gen} do
+      check all {a, b, c} <- gen_param(gen.(), :value, other_value: "a") do
+        assert a == 0
+        assert b == "a"
+        assert c == "friend"
+      end
+    end
+
+    property "gen_param constant override", %{gen: gen} do
+      check all value <- gen_param(gen.(), :value, value: "a") do
+        assert value == "a"
+      end
+    end
+
+    property "gen_param function override", %{gen: gen, function_params: function_params} do
+      check all value <- gen_param(gen.(), :value, value: function_params.("a")) do
+        assert [a: 10, b: "a"] == value
+      end
+    end
+
+    property "gen_param generator override", %{gen: gen, gen_params: gen_params} do
+      check all [
+                  a: int_value,
+                  b: string_value
+                ] <- gen_param(gen.(), :value, value: gen_params.()) do
+        assert is_integer(int_value) and is_binary(string_value)
+      end
+    end
+  end
+
+  @doc false
   describe "param gen all unit tests" do
     @describetag :success
     @describetag :ut
@@ -138,6 +173,13 @@ defmodule Astarte.Generators.Utilities.ParamsGenTest do
                 {a, b, _} <- param_gen.(function_params.(s)) do
         assert a == 10
         assert b == s
+      end
+    end
+
+    property "param gen all overridden by static value for c", %{param_gen: param_gen} do
+      check all string_value <- string(:utf8),
+                {_, _, c} <- param_gen.(c: string_value) do
+        assert c == string_value
       end
     end
   end
