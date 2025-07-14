@@ -19,9 +19,8 @@
 defmodule Astarte.DataUpdaterPlant.DataPipelineSupervisor do
   use Supervisor
 
+  alias Astarte.DataUpdaterPlant.ProducersSupervisor
   alias Astarte.DataUpdaterPlant.ConsumersSupervisor
-  alias Astarte.DataUpdaterPlant.AMQPEventsProducer
-  alias Astarte.DataUpdaterPlant.Config
 
   def start_link(init_arg) do
     Supervisor.start_link(__MODULE__, init_arg, name: __MODULE__)
@@ -51,10 +50,7 @@ defmodule Astarte.DataUpdaterPlant.DataPipelineSupervisor do
          members: :auto,
          distribution_strategy: Horde.UniformDistribution
        ]},
-      {ExRabbitPool.PoolSupervisor,
-       rabbitmq_config: Config.amqp_producer_options!(),
-       connection_pools: [Config.events_producer_pool_config!()]},
-      AMQPEventsProducer,
+      ProducersSupervisor,
       ConsumersSupervisor,
       Astarte.DataUpdaterPlant.RPC.Supervisor
     ]
