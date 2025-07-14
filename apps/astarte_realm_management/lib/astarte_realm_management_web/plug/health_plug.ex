@@ -28,30 +28,36 @@ defmodule Astarte.RealmManagementWeb.HealthPlug do
 
   def call(%{request_path: "/health", method: "GET"} = conn, _opts) do
     case Health.get_health() do
-      {:ok, %{status: status}} when status in [:ready, :degraded] ->
-        :telemetry.execute(
-          [:astarte, :realm_management, :service],
-          %{health: 1},
-          %{status: status}
-        )
-
-        conn
-        |> send_resp(:ok, "")
-        |> halt()
-
-      _ ->
-        :telemetry.execute(
-          [:astarte, :realm_management, :service],
-          %{health: 0}
-        )
-
-        conn
-        |> send_resp(:service_unavailable, "")
-        |> halt()
+      :ready -> good_state(conn, :ready)
+      :degraded -> good_state(conn, :degraded)
+      status -> bad_state(conn, status)
     end
   end
 
   def call(conn, _opts) do
     conn
+  end
+
+  defp good_state(conn, status) do
+    :telemetry.execute(
+      [:astarte, :realm_management, :service],
+      %{health: 1},
+      %{status: status}
+    )
+
+    conn
+    |> send_resp(:ok, "")
+    |> halt()
+  end
+
+  defp bad_state(conn, _status) do
+    :telemetry.execute(
+      [:astarte, :realm_management, :service],
+      %{health: 0}
+    )
+
+    conn
+    |> send_resp(:service_unavailable, "")
+    |> halt()
   end
 end

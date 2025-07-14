@@ -37,11 +37,8 @@ defmodule Astarte.Pairing.Health do
     |> tap(&emit_telemetry/1)
   end
 
-  @spec from_database_health({:ok, %{status: :ready | :degraded | :bad | :error}}) :: health()
+  @spec from_database_health(:ready | :degraded | :bad | :error) :: health()
   defp from_database_health(database_health) do
-    # TODO: remove after data access update
-    {:ok, %{status: database_health}} = database_health
-
     # When degraded, some Scylla nodes are available so it's still ok
     case database_health do
       :ready -> :ready

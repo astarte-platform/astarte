@@ -77,10 +77,7 @@ defmodule Astarte.RealmManagement.Interfaces.Queries do
        ) do
     _ = Logger.info("Creating new interface table.", tag: "create_interface_table")
 
-    # TODO: remove `:deprecated` when the first argument of
-    # `CSystem.run_with_schema_agreement/2` is not needed anymore in
-    # Astarte.DataAccess
-    CSystem.run_with_schema_agreement(:deprecated, fn ->
+    CSystem.run_with_schema_agreement(fn ->
       _ =
         Ecto.Migrator.run(Repo, [{0, CreateDatastreamIndividualMultiInterface}], :up,
           prefix: keyspace,
@@ -123,10 +120,7 @@ defmodule Astarte.RealmManagement.Interfaces.Queries do
 
     _ = Logger.info("Creating new interface table.", tag: "create_interface_table")
 
-    # TODO: remove `:deprecated` when the first argument of
-    # `CSystem.run_with_schema_agreement/2` is not needed anymore in
-    # Astarte.DataAccess
-    CSystem.run_with_schema_agreement(:deprecated, fn ->
+    CSystem.run_with_schema_agreement(fn ->
       _ = Repo.query(create_interface_table_with_object_aggregation)
     end)
 
