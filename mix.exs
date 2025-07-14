@@ -1,4 +1,3 @@
-#
 # This file is part of Astarte.
 #
 # Copyright 2025 SECO Mind Srl
@@ -28,7 +27,8 @@ defmodule Astarte.Core.Generators.MixProject do
       start_permanent: Mix.env() == :prod,
       deps: deps() ++ astarte_required_modules(),
       package: package(),
-      dialyzer: dialyzer()
+      dialyzer: dialyzer(),
+      test_coverage: [tool: ExCoveralls]
     ]
   end
 
@@ -66,7 +66,7 @@ defmodule Astarte.Core.Generators.MixProject do
       # Test section
       {:dialyxir, "~> 1.4", only: [:dev, :ci], runtime: false},
       {:credo, "~> 1.7", only: [:dev, :test, :ci], runtime: false},
-      {:excoveralls, "~> 0.15", only: :test},
+      {:excoveralls, "~> 0.15", only: [:test, :ci]},
       {:mox, "~> 0.5", only: :test}
     ]
   end
