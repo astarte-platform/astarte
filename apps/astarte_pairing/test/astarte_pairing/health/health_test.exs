@@ -21,31 +21,39 @@ defmodule Astarte.Pairing.HealthTest do
 
   alias Astarte.Pairing.Health
   alias Astarte.DataAccess.Health.Health, as: DataAccessHealth
-  alias Astarte.Pairing.Health.BackendHealth
 
   describe "health" do
-    test "returns :ready when get_health replies with ready status" do
+    test "returns :ready when the database status is ready and cfssl is available" do
       Mimic.stub(DataAccessHealth, :get_health, fn -> {:ok, %{status: :ready}} end)
+      Mimic.expect(HTTPoison, :get, fn _ -> {:ok, %HTTPoison.Response{status_code: 200}} end)
 
-      assert {:ok, %BackendHealth{status: :ready}} = Health.get_backend_health()
+      assert :ready = Health.get_health()
     end
 
-    test "returns :bad when get_health replies with bad status" do
+    test "returns :bad when the database status is bad" do
       Mimic.stub(DataAccessHealth, :get_health, fn -> {:ok, %{status: :bad}} end)
 
-      assert {:ok, %BackendHealth{status: :bad}} = Health.get_backend_health()
+      assert :bad = Health.get_health()
     end
 
-    test "returns :degraded when get_health replies with degraded status" do
+    test "returns :ready when the database status is degraded" do
       Mimic.stub(DataAccessHealth, :get_health, fn -> {:ok, %{status: :degraded}} end)
+      Mimic.expect(HTTPoison, :get, fn _ -> {:ok, %HTTPoison.Response{status_code: 200}} end)
 
-      assert {:ok, %BackendHealth{status: :degraded}} = Health.get_backend_health()
+      assert :ready = Health.get_health()
     end
 
-    test "returns :error when get_health returns an unexpected status" do
+    test "returns :bad when the database returns an error" do
       Mimic.stub(DataAccessHealth, :get_health, fn -> {:ok, %{status: :error}} end)
 
-      assert {:ok, %BackendHealth{status: :error}} = Health.get_backend_health()
+      assert :bad = Health.get_health()
+    end
+
+    test "returns :bad when cfssl returns an error" do
+      Mimic.stub(DataAccessHealth, :get_health, fn -> {:ok, %{status: :degraded}} end)
+      Mimic.expect(HTTPoison, :get, fn _ -> {:ok, %HTTPoison.Response{status_code: 500}} end)
+
+      assert :bad = Health.get_health()
     end
   end
 end
