@@ -62,7 +62,18 @@ defmodule Astarte.TriggerEngine.Policy.Impl do
 
     handle_start_map =
       Map.put_new_lazy(state.handle_start_map, message_id, fn ->
-        System.monotonic_time()
+        start = System.monotonic_time()
+
+        :telemetry.execute(
+          [:astarte, :trigger_engine, :handle_event],
+          %{start: start},
+          %{
+            realm: state.realm,
+            message_id: message_id
+          }
+        )
+
+        start
       end)
 
     verify_event_consumed = @consumer.consume(payload, headers_map)

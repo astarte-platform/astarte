@@ -71,6 +71,10 @@ defmodule Astarte.TriggerEngineWeb.Telemetry do
       last_value("astarte.trigger_engine.service.health",
         description: "Service state: 1 if good, 0 if not."
       ),
+      last_value("astarte.trigger_engine.handle_event.start",
+        tags: [:realm],
+        unit: {:native, :millisecond}
+      ),
       last_value("astarte.trigger_engine.handle_event.duration",
         tags: [:realm],
         unit: {:native, :millisecond}
