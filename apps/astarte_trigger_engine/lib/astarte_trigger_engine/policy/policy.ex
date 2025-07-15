@@ -45,7 +45,9 @@ defmodule Astarte.TriggerEngine.Policy do
 
   def init(args) do
     policy = Keyword.get(args, :policy)
-    state = %State{policy: policy}
+    realm = Keyword.get(args, :realm_name)
+    state = %State{policy: policy, realm: realm}
+
     {:ok, state}
   end
 

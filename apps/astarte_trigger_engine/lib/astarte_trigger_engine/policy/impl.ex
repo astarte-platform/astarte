@@ -58,9 +58,17 @@ defmodule Astarte.TriggerEngine.Policy.Impl do
     {headers, _other_meta} = Map.pop(meta, :headers, [])
     headers_map = amqp_headers_to_map(headers)
 
+    message_id = meta.message_id
+
+    handle_start_map =
+      Map.put_new_lazy(state.handle_start_map, message_id, fn ->
+        System.monotonic_time()
+      end)
+
     verify_event_consumed = @consumer.consume(payload, headers_map)
-    retry_map = Map.update(state.retry_map, meta.message_id, 1, fn value -> value + 1 end)
-    new_state = %{state | retry_map: retry_map}
+    retry_map = Map.update(state.retry_map, message_id, 1, fn value -> value + 1 end)
+
+    new_state = %{state | retry_map: retry_map, handle_start_map: handle_start_map}
 
     _ =
       Logger.debug(
@@ -71,8 +79,20 @@ defmodule Astarte.TriggerEngine.Policy.Impl do
       # All was ok
       :ok ->
         Basic.ack(channel, meta.delivery_tag)
-        retry_map = Map.delete(retry_map, meta.message_id)
-        %{state | retry_map: retry_map}
+        {start, handle_start_map} = Map.pop!(handle_start_map, message_id)
+        finish = System.monotonic_time()
+        retry_map = Map.delete(retry_map, message_id)
+
+        :telemetry.execute(
+          [:astarte, :trigger_engine, :handle_event],
+          %{duration: finish - start},
+          %{
+            realm: state.realm,
+            message_id: message_id
+          }
+        )
+
+        %{state | retry_map: retry_map, handle_start_map: handle_start_map}
 
       {:http_error, status_code} ->
         maybe_requeue_message(channel, meta, status_code, new_state)
