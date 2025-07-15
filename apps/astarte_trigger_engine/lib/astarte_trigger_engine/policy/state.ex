@@ -25,7 +25,7 @@ defmodule Astarte.TriggerEngine.Policy.State do
   @type retry_map() :: %{message_id() => pos_integer()}
 
   typedstruct do
-    field :retry_map, retry_map()
+    field :retry_map, retry_map(), default: %{}
     field :policy, Policy.t()
   end
 end

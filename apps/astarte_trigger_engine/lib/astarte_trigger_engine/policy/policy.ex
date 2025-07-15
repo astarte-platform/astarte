@@ -45,15 +45,12 @@ defmodule Astarte.TriggerEngine.Policy do
 
   def init(args) do
     policy = Keyword.get(args, :policy)
-    state = %State{policy: policy, retry_map: %{}}
+    state = %State{policy: policy}
     {:ok, state}
   end
 
-  def handle_cast(
-        {:handle_event, chan, payload, meta},
-        %State{policy: policy, retry_map: retry_map} = _state
-      ) do
-    new_state = Impl.handle_event(policy, retry_map, chan, payload, meta)
+  def handle_cast({:handle_event, chan, payload, meta}, state) do
+    new_state = Impl.handle_event(state, chan, payload, meta)
     {:noreply, new_state}
   end
 
