@@ -722,8 +722,8 @@ defmodule Astarte.DataUpdaterPlant.DatabaseTestHelper do
 
         {:ok, keyspace_name}
 
-      %{msg: msg} ->
-        {:error, msg}
+      {:error, error} ->
+        {:error, error}
     end
   end
 

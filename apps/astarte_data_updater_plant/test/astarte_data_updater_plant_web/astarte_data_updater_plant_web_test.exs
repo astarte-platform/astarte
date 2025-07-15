@@ -18,8 +18,9 @@
 
 defmodule Astarte.DataUpdaterPlantWeb.AstarteDataUpdaterPlantWebTest do
   use ExUnit.Case, async: true
-  use Plug.Test
   use Mimic
+
+  import Plug.Test
 
   alias Astarte.DataUpdaterPlantWeb.Router
   alias Astarte.DataAccess.Health.Health

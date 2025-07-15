@@ -125,9 +125,9 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.TriggerHandlerTest do
         simple_trigger: {
           :data_trigger,
           %DataTrigger{
-            version: individual_properties_server_interface.version_major,
+            version: individual_properties_server_interface.major_version,
             interface_name: individual_properties_server_interface.name,
-            interface_major: individual_properties_server_interface.version_major,
+            interface_major: individual_properties_server_interface.major_version,
             data_trigger_type: :INCOMING_DATA,
             match_path: "/*",
             value_match_operator: :LESS_THAN,
