@@ -98,6 +98,7 @@ defmodule Astarte.AppEngine.API.Mixfile do
       {:uuid, "~> 2.0", hex: :uuid_erl},
       # Required by :phoenix_swagger, otherwise it fails finding ex_json_schema.app
       {:ex_json_schema, "~> 0.7"},
+      {:ex_rabbit_pool, github: "leductam/ex_rabbit_pool"},
       {:phoenix_swagger, "~> 0.8"},
       {:xandra, "~> 0.13"},
       {:exandra, "~> 0.13"},

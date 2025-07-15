@@ -20,7 +20,7 @@ defmodule Astarte.AppEngine.APIWeb.HealthPlug do
   @behaviour Plug
   import Plug.Conn
 
-  alias Astarte.DataAccess.Health.Health
+  alias Astarte.AppEngine.API.Health
 
   def init(_opts) do
     nil
@@ -28,57 +28,42 @@ defmodule Astarte.AppEngine.APIWeb.HealthPlug do
 
   def call(%{request_path: "/health", method: "GET"} = conn, _opts) do
     try do
-      status =
-        case {:ok, %{status: Health.get_health()}} do
-          {:ok, %{status: :ready}} ->
-            :telemetry.execute(
-              [:astarte, :appengine, :service],
-              %{health: 1},
-              %{consistency_level: :quorum}
-            )
+      status = Health.get_health()
 
-            :telemetry.execute(
-              [:astarte, :appengine, :service],
-              %{health: 1},
-              %{consistency_level: :one}
-            )
+      with true <- Enum.member?([:ready, :degraded], status) do
+        :telemetry.execute(
+          [:astarte, :appengine, :service],
+          %{health: 1},
+          %{consistency_level: :quorum}
+        )
 
-            :ok
+        :telemetry.execute(
+          [:astarte, :appengine, :service],
+          %{health: 1},
+          %{consistency_level: :one}
+        )
 
-          {:ok, %{status: :degraded}} ->
-            :telemetry.execute(
-              [:astarte, :appengine, :service],
-              %{health: 0},
-              %{consistency_level: :quorum}
-            )
+        conn
+        |> send_resp(:ok, "")
+        |> halt()
+      else
+        _ ->
+          :telemetry.execute(
+            [:astarte, :appengine, :service],
+            %{health: 0},
+            %{consistency_level: :quorum}
+          )
 
-            :telemetry.execute(
-              [:astarte, :appengine, :service],
-              %{health: 1},
-              %{consistency_level: :one}
-            )
+          :telemetry.execute(
+            [:astarte, :appengine, :service],
+            %{health: 0},
+            %{consistency_level: :one}
+          )
 
-            :ok
-
-          _ ->
-            :telemetry.execute(
-              [:astarte, :appengine, :service],
-              %{health: 0},
-              %{consistency_level: :quorum}
-            )
-
-            :telemetry.execute(
-              [:astarte, :appengine, :service],
-              %{health: 0},
-              %{consistency_level: :one}
-            )
-
-            :service_unavailable
-        end
-
-      conn
-      |> send_resp(status, "")
-      |> halt()
+          conn
+          |> send_resp(:service_unavailable, "")
+          |> halt()
+      end
     rescue
       _ ->
         :telemetry.execute(
