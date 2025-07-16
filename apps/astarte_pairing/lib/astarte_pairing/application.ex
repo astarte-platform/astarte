@@ -44,12 +44,9 @@ defmodule Astarte.Pairing.Application do
 
     data_access_opts = [xandra_options: xandra_options]
 
-    pairing_xandra_opts = Keyword.put(xandra_options, :name, :xandra)
-
     # Define workers and child supervisors to be supervised
     children = [
       Astarte.PairingWeb.Telemetry,
-      {Xandra.Cluster, pairing_xandra_opts},
       {Astarte.Pairing.CredentialsSecret.Cache, []},
       {Astarte.DataAccess, data_access_opts},
       Astarte.PairingWeb.Endpoint
