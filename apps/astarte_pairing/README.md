@@ -36,10 +36,11 @@ docker run --rm -d -p 9042:9042 --name scylla scylladb/scylla
 docker run --rn -d --net=host -p 8080/tcp ispirata/docker-alpine-cfssl-autotest:astarte
 ```
 
-by default, `CASSANDRA_NODES` environment variable maps to `localhost`, so that
+
+by default `CASSANDRA_NODES` and `CFSSL_API_URL` environment variables map to localhost, so that
 
 ``` shell
-CFSSL_API_URL=http://localhost:8080 mix test
+mix test
 ```
 
 just works. In more complex scenarios you might need to tell to astarte where
