@@ -119,6 +119,31 @@ defmodule Astarte.RealmManagement.DeviceRemover.CoreTest do
       end
     end
 
+    @tag :regression
+    test "delete_object_datastream/2 ignores invalid interfaces", %{realm: realm} do
+      keyspace = Realm.keyspace_name(realm)
+
+      %{name: name, major_version: major} =
+        Astarte.Core.Generators.Interface.interface(
+          type: :datastream,
+          aggregation: :object
+        )
+        |> Enum.at(0)
+
+      device_id = Astarte.Core.Generators.Device.id() |> Enum.at(0)
+
+      # the introspection reports an interface which is not installed
+      device = %Device{
+        device_id: device_id,
+        introspection: %{name => major}
+      }
+
+      on_exit(fn -> Repo.delete(device, prefix: keyspace) end)
+      Repo.insert!(device, prefix: keyspace)
+
+      assert Core.delete_object_datastream!(realm, device_id)
+    end
+
     property "delete_aliases/2 removes all aliases of a valid device", %{
       realm: realm
     } do
