@@ -33,8 +33,8 @@ defmodule Astarte.TriggerEngine.Health do
     |> tap(&emit_telemetry/1)
   end
 
-  @spec from_database_health({:ok, %{status: :ready | :degraded | :bad | :error}}) :: health()
-  defp from_database_health({:ok, %{status: status}}) do
+  @spec from_database_health(:ready | :degraded | :bad | :error) :: health()
+  defp from_database_health(status) do
     case status do
       :ready -> :ready
       :degraded -> :ready
