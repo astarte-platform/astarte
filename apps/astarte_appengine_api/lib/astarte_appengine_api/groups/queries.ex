@@ -129,7 +129,7 @@ defmodule Astarte.AppEngine.API.Groups.Queries do
   end
 
   defp fetch_device_groups(keyspace, encoded_device_id) do
-    query = from d in DataBaseDevice, prefix: ^keyspace, select: d.groups
+    query = from(d in DataBaseDevice, prefix: ^keyspace, select: d.groups)
 
     consistency = Consistency.device_info(:read)
 
@@ -157,7 +157,7 @@ defmodule Astarte.AppEngine.API.Groups.Queries do
 
     # TODO: this needs to be done with ALLOW FILTERING, so it's not particularly efficient
     query =
-      from d in DataBaseDevice,
+      from(d in DataBaseDevice,
         prefix: ^keyspace,
         hints: ["ALLOW FILTERING"],
         select: %{
@@ -184,6 +184,7 @@ defmodule Astarte.AppEngine.API.Groups.Queries do
         },
         where: ^from_previous_token,
         where: fragment("? CONTAINS KEY ?", d.groups, ^group_name)
+      )
 
     case Keyword.fetch(opts, :limit) do
       {:ok, limit} -> query |> limit(^limit)
@@ -200,11 +201,12 @@ defmodule Astarte.AppEngine.API.Groups.Queries do
         else: true
 
     query =
-      from GroupedDevice,
+      from(GroupedDevice,
         prefix: ^keyspace,
         select: [:insertion_uuid, :device_id],
         where: [group_name: ^group_name],
         where: ^from_previous_token
+      )
 
     case Keyword.fetch(opts, :limit) do
       {:ok, limit} -> query |> limit(^limit)
@@ -287,11 +289,12 @@ defmodule Astarte.AppEngine.API.Groups.Queries do
 
   defp group_exists?(keyspace, group_name) do
     query =
-      from d in GroupedDevice,
+      from(d in GroupedDevice,
         prefix: ^keyspace,
         where: d.group_name == ^group_name,
         select: d.group_name,
         limit: 1
+      )
 
     case Repo.fetch_one(query, consistency: Consistency.device_info(:read)) do
       {:ok, _} -> true
@@ -312,17 +315,19 @@ defmodule Astarte.AppEngine.API.Groups.Queries do
       delete_group = MapSet.new([group_name])
 
       device_query =
-        from DataBaseDevice,
+        from(DataBaseDevice,
           prefix: ^keyspace,
           where: [device_id: ^device_id],
           update: [set: [groups: fragment("groups - ?", ^delete_group)]]
+        )
 
       device_query = Repo.to_sql(:update_all, device_query)
 
       grouped_device_query =
-        from GroupedDevice,
+        from(GroupedDevice,
           prefix: ^keyspace,
           where: [group_name: ^group_name, insertion_uuid: ^insertion_uuid, device_id: ^device_id]
+        )
 
       grouped_device_query = Repo.to_sql(:delete_all, grouped_device_query)
 
@@ -345,10 +350,11 @@ defmodule Astarte.AppEngine.API.Groups.Queries do
         group_map = %{group_name => insertion_uuid}
 
         device_query =
-          from d in DataBaseDevice,
+          from(d in DataBaseDevice,
             prefix: ^keyspace,
             where: d.device_id == ^device_id,
             update: [set: [groups: fragment("groups + ?", ^group_map)]]
+          )
 
         device_query = Repo.to_sql(:update_all, device_query)
 
@@ -430,15 +436,13 @@ defmodule Astarte.AppEngine.API.Groups.Queries do
           from(DataBaseDevice, prefix: ^keyspace, where: [device_id: ^device_id])
           |> update([d], set: [groups: fragment("groups + ?", ^group)])
 
-        update_device_groups =
-          Repo.to_sql(:update_all, query)
+        update_device_groups = Repo.to_sql(:update_all, query)
 
-        grouped_device =
-          %GroupedDevice{
-            group_name: group_name,
-            insertion_uuid: insertion_uuid,
-            device_id: device_id
-          }
+        grouped_device = %GroupedDevice{
+          group_name: group_name,
+          insertion_uuid: insertion_uuid,
+          device_id: device_id
+        }
 
         insert_grouped_device = Repo.insert_to_sql(grouped_device, prefix: keyspace)
 
@@ -459,7 +463,7 @@ defmodule Astarte.AppEngine.API.Groups.Queries do
 
   def get_group(realm_name, group_name) do
     keyspace = Realm.keyspace_name(realm_name)
-    group_query = from g in GroupedDevice, select: g.group_name, limit: 1
+    group_query = from(g in GroupedDevice, select: g.group_name, limit: 1)
     fetch_clause = [group_name: group_name]
 
     opts = [
