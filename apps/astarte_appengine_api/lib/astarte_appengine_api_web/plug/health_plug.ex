@@ -29,7 +29,7 @@ defmodule Astarte.AppEngine.APIWeb.HealthPlug do
   def call(%{request_path: "/health", method: "GET"} = conn, _opts) do
     try do
       status =
-        case Health.get_health() do
+        case {:ok, %{status: Health.get_health()}} do
           {:ok, %{status: :ready}} ->
             :telemetry.execute(
               [:astarte, :appengine, :service],

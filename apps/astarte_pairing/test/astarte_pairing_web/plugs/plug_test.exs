@@ -24,7 +24,7 @@ defmodule Astarte.PairingWeb.PlugTest do
 
   describe "GET /health" do
     test "returns 200 OK when status is :ready", %{conn: conn} do
-      Mimic.stub(Health, :get_health, fn -> {:ok, %{status: :ready}} end)
+      Mimic.stub(Health, :get_health, fn -> :ready end)
 
       conn = get(conn, "/health")
 
@@ -33,7 +33,7 @@ defmodule Astarte.PairingWeb.PlugTest do
     end
 
     test "returns 200 OK when status is :degraded", %{conn: conn} do
-      Mimic.stub(Health, :get_health, fn -> {:ok, %{status: :degraded}} end)
+      Mimic.stub(Health, :get_health, fn -> :degraded end)
 
       conn = get(conn, "/health")
 
@@ -42,7 +42,7 @@ defmodule Astarte.PairingWeb.PlugTest do
     end
 
     test "returns 503 when status is :bad", %{conn: conn} do
-      Mimic.stub(Health, :get_health, fn -> {:ok, %{status: :bad}} end)
+      Mimic.stub(Health, :get_health, fn -> :bad end)
 
       conn = get(conn, "/health")
 
@@ -51,7 +51,7 @@ defmodule Astarte.PairingWeb.PlugTest do
     end
 
     test "returns 503 when status is :error", %{conn: conn} do
-      Mimic.stub(Health, :get_health, fn -> {:ok, %{status: :error}} end)
+      Mimic.stub(Health, :get_health, fn -> :error end)
 
       conn = get(conn, "/health")
 
