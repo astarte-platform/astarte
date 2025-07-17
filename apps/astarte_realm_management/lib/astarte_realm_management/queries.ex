@@ -1295,7 +1295,6 @@ defmodule Astarte.RealmManagement.Queries do
         endpoint_id,
         path
       ) do
-    # TODO: validate realm name
     keyspace_name = Realm.keyspace_name(realm_name)
 
     query =
@@ -1336,7 +1335,6 @@ defmodule Astarte.RealmManagement.Queries do
   end
 
   def delete_individual_properties_values!(realm_name, device_id, interface_id) do
-    # TODO: validate realm name
     keyspace_name = Realm.keyspace_name(realm_name)
 
     query =
@@ -1372,7 +1370,6 @@ defmodule Astarte.RealmManagement.Queries do
   end
 
   def delete_object_datastream_values!(realm_name, device_id, path, table_name) do
-    # TODO: validate realm name
     keyspace_name = Realm.keyspace_name(realm_name)
 
     query =
@@ -1407,7 +1404,6 @@ defmodule Astarte.RealmManagement.Queries do
   end
 
   def delete_alias_values!(realm_name, device_alias) do
-    # TODO: validate realm name
     keyspace_name = Realm.keyspace_name(realm_name)
 
     query =
@@ -1476,7 +1472,6 @@ defmodule Astarte.RealmManagement.Queries do
   end
 
   def delete_kv_store_entry!(realm_name, group, key) do
-    # TODO: validate realm name
     keyspace_name = Realm.keyspace_name(realm_name)
 
     query =
@@ -1494,7 +1489,6 @@ defmodule Astarte.RealmManagement.Queries do
   end
 
   def delete_device!(realm_name, device_id) do
-    # TODO: validate realm name
     keyspace_name = Realm.keyspace_name(realm_name)
 
     query =
@@ -1513,7 +1507,6 @@ defmodule Astarte.RealmManagement.Queries do
   end
 
   def remove_device_from_deletion_in_progress!(realm_name, device_id) do
-    # TODO: validate realm name
     keyspace_name = Realm.keyspace_name(realm_name)
 
     query =
