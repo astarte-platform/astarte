@@ -18,7 +18,7 @@
 defmodule Astarte.AppEngine.API.Queries do
   alias Astarte.DataAccess.KvStore
   alias Astarte.DataAccess.Realms.Realm
-  alias Astarte.AppEngine.API.Repo
+  alias Astarte.DataAccess.Repo
   alias Astarte.DataAccess.Consistency
 
   require Logger

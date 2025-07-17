@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2017 Ispirata Srl
+# Copyright 2017 - 2025 Seco Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -55,8 +55,7 @@ defmodule Astarte.AppEngine.API.Application do
       Astarte.AppEngine.API.Rooms.MasterSupervisor,
       Astarte.AppEngine.API.Rooms.AMQPClient,
       Astarte.AppEngine.APIWeb.Endpoint,
-      {Astarte.DataAccess, data_access_opts},
-      {Astarte.AppEngine.API.Repo, xandra_options}
+      {Astarte.DataAccess, data_access_opts}
     ]
 
     # See https://hexdocs.pm/elixir/Supervisor.html

@@ -24,7 +24,7 @@ defmodule Astarte.Helpers.Database do
   alias Astarte.DataAccess.Realms.Realm
   alias Astarte.DataAccess.Devices.Device, as: DeviceSchema
   alias Astarte.DataAccess.KvStore
-  alias Astarte.AppEngine.API.Repo
+  alias Astarte.DataAccess.Repo
   alias Astarte.DataAccess.Device.DeletionInProgress
   alias Astarte.DataAccess.Realms.Interface
   alias Astarte.DataAccess.Realms.Endpoint, as: EndpointSchema
