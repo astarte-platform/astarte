@@ -33,6 +33,16 @@ defmodule Astarte.RealmManagement.Config do
     type: :boolean,
     default: false
 
+  @envdoc """
+  "The handling method for database events. The default is `expose`, which means that the events are exposed trough telemetry. The other possible value, `log`, means that the events are logged instead."
+  """
+  app_env :database_events_handling_method,
+          :astarte_realm_management,
+          :database_events_handling_method,
+          os_env: "DATABASE_EVENTS_HANDLING_METHOD",
+          type: Astarte.RealmManagement.Config.TelemetryType,
+          default: :expose
+
   @doc """
   Returns true if the authentication is disabled.
   """
