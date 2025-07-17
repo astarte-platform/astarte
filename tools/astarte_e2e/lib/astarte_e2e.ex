@@ -27,7 +27,7 @@ defmodule AstarteE2E do
   alias AstarteE2E.{Client, Config, Utils}
 
   def perform_check do
-    realm = Config.realm!()
+    realm = Config.realm_opts()[:realm_name]
     device_id = Config.device_id!()
 
     with {:ok, device_pid} <- fetch_device_pid(realm, device_id),
