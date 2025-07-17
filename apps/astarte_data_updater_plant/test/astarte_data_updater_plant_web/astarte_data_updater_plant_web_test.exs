@@ -18,11 +18,12 @@
 
 defmodule Astarte.DataUpdaterPlantWeb.AstarteDataUpdaterPlantWebTest do
   use ExUnit.Case, async: true
-  use Plug.Test
   use Mimic
 
+  import Plug.Test
+
   alias Astarte.DataUpdaterPlantWeb.Router
-  alias Astarte.DataAccess.Health.Health
+  alias Astarte.DataAccess.Health.Health, as: DatabaseHealth
 
   @opts Router.init([])
 
@@ -51,8 +52,12 @@ defmodule Astarte.DataUpdaterPlantWeb.AstarteDataUpdaterPlantWebTest do
   end
 
   describe "/health" do
-    test "returns 200 OK when health is :ready" do
-      Mimic.expect(Health, :get_health, fn -> {:ok, %{status: :ready}} end)
+    test "returns 200 OK when both database and VerneMQ are :ready" do
+      Mimic.expect(DatabaseHealth, :get_health, fn -> :ready end)
+
+      Mimic.expect(Horde.Registry, :lookup, fn Registry.VMQPluginRPC, :server ->
+        [{self(), nil}]
+      end)
 
       conn = conn(:get, "/health") |> Router.call(@opts)
 
@@ -61,8 +66,12 @@ defmodule Astarte.DataUpdaterPlantWeb.AstarteDataUpdaterPlantWebTest do
       assert conn.halted
     end
 
-    test "returns 200 OK when health is :degraded" do
-      Mimic.expect(Health, :get_health, fn -> {:ok, %{status: :degraded}} end)
+    test "returns 200 OK when database is :degraded but VerneMQ is :ready" do
+      Mimic.expect(DatabaseHealth, :get_health, fn -> :degraded end)
+
+      Mimic.expect(Horde.Registry, :lookup, fn Registry.VMQPluginRPC, :server ->
+        [{self(), nil}]
+      end)
 
       conn = conn(:get, "/health") |> Router.call(@opts)
 
@@ -71,8 +80,9 @@ defmodule Astarte.DataUpdaterPlantWeb.AstarteDataUpdaterPlantWebTest do
       assert conn.halted
     end
 
-    test "returns 503 Service Unavailable when health is :bad" do
-      Mimic.expect(Health, :get_health, fn -> {:ok, %{status: :bad}} end)
+    test "returns 503 Service Unavailable when database is :ready but VerneMQ is :bad" do
+      Mimic.expect(DatabaseHealth, :get_health, fn -> :ready end)
+      Mimic.expect(Horde.Registry, :lookup, fn Registry.VMQPluginRPC, :server -> [] end)
 
       conn = conn(:get, "/health") |> Router.call(@opts)
       assert conn.status == 503
@@ -80,11 +90,29 @@ defmodule Astarte.DataUpdaterPlantWeb.AstarteDataUpdaterPlantWebTest do
       assert conn.halted
     end
 
-    test "returns 503 Service Unavailable when health is :error" do
-      Mimic.expect(Health, :get_health, fn -> {:ok, %{status: :error}} end)
+    test "returns 503 Service Unavailable when database is :degraded and VerneMQ is :bad" do
+      Mimic.expect(DatabaseHealth, :get_health, fn -> :degraded end)
+      Mimic.expect(Horde.Registry, :lookup, fn Registry.VMQPluginRPC, :server -> [] end)
 
       conn = conn(:get, "/health") |> Router.call(@opts)
+      assert conn.status == 503
+      assert conn.resp_body == ""
+      assert conn.halted
+    end
 
+    test "returns 503 Service Unavailable when database is :bad regardless of VerneMQ status" do
+      Mimic.expect(DatabaseHealth, :get_health, fn -> :bad end)
+
+      conn = conn(:get, "/health") |> Router.call(@opts)
+      assert conn.status == 503
+      assert conn.resp_body == ""
+      assert conn.halted
+    end
+
+    test "returns 503 Service Unavailable when database has :error regardless of VerneMQ status" do
+      Mimic.expect(DatabaseHealth, :get_health, fn -> :error end)
+
+      conn = conn(:get, "/health") |> Router.call(@opts)
       assert conn.status == 503
       assert conn.resp_body == ""
       assert conn.halted
