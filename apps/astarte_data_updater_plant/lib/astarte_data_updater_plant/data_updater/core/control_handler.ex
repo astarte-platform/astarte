@@ -57,6 +57,8 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandler do
   end
 
   def handle_control(state, "/producer/properties", payload, message_id, timestamp) do
+    start_time = System.monotonic_time()
+
     new_state = TimeBasedActions.execute_time_based_actions(state, timestamp)
 
     timestamp_ms = div(timestamp, 10_000)
@@ -65,10 +67,33 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandler do
 
     <<_size_header::size(32), zlib_payload::binary>> = payload
 
+    decompression_start = System.monotonic_time()
+
     case PayloadsDecoder.safe_inflate(zlib_payload) do
       {:ok, decoded_payload} ->
+        # Track successful decompression
+        :telemetry.execute(
+          [:astarte, :data_updater_plant, :control_handler, :payload_decompression],
+          %{
+            duration: System.monotonic_time() - decompression_start,
+            compressed_size: byte_size(zlib_payload),
+            uncompressed_size: byte_size(decoded_payload)
+          },
+          %{realm: new_state.realm, result: "success"}
+        )
+
         :ok = Core.Device.prune_device_properties(new_state, decoded_payload, timestamp_ms)
         MessageTracker.ack_delivery(new_state.message_tracker, message_id)
+
+        # Track properties prune with payload
+        :telemetry.execute(
+          [:astarte, :data_updater_plant, :control_handler, :properties_prune],
+          %{
+            duration: System.monotonic_time() - start_time,
+            payload_size: byte_size(payload)
+          },
+          %{realm: new_state.realm, prune_type: "with_payload"}
+        )
 
         %{
           new_state
@@ -79,6 +104,17 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandler do
         }
 
       :error ->
+        # Track failed decompression
+        :telemetry.execute(
+          [:astarte, :data_updater_plant, :control_handler, :payload_decompression],
+          %{
+            duration: System.monotonic_time() - decompression_start,
+            compressed_size: byte_size(zlib_payload),
+            uncompressed_size: 0
+          },
+          %{realm: new_state.realm, result: "failed"}
+        )
+
         Logger.warning("Invalid purge_properties payload", tag: "purge_properties_error")
 
         {:ok, new_state} = Core.Device.ask_clean_session(new_state, timestamp)
@@ -113,6 +149,13 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandler do
   end
 
   def handle_control(state, path, payload, message_id, timestamp) do
+    # Track unexpected control messages
+    :telemetry.execute(
+      [:astarte, :data_updater_plant, :control_handler, :unexpected_control],
+      %{payload_size: byte_size(payload)},
+      %{realm: state.realm, control_path: path}
+    )
+
     Logger.warning(
       "Unexpected control on #{path}, base64-encoded payload: #{inspect(Base.encode64(payload))}",
       tag: "unexpected_control_message"
@@ -153,9 +196,23 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandler do
 
         case Core.Interface.maybe_handle_cache_miss(descriptor, interface, state) do
           {:ok, interface_descriptor, new_state} ->
+            # Track successful interface loading
+            :telemetry.execute(
+              [:astarte, :data_updater_plant, :control_handler, :interface_loading],
+              %{},
+              %{realm: state.realm, interface: interface, result: "success"}
+            )
+
             Core.Interface.gather_interface_property_paths(new_state.realm, interface_descriptor)
 
           {:error, :interface_loading_failed} ->
+            # Track failed interface loading
+            :telemetry.execute(
+              [:astarte, :data_updater_plant, :control_handler, :interface_loading],
+              %{},
+              %{realm: state.realm, interface: interface, result: "failed"}
+            )
+
             Logger.warning("Failed #{interface} interface loading.")
             []
         end
@@ -179,11 +236,33 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandler do
 
     payload = <<payload_size::unsigned-big-integer-size(32), compressed_payload::binary>>
 
+    publish_start = System.monotonic_time()
+
     case VMQPlugin.publish(topic, payload, 2) do
       {:ok, %{local_matches: local, remote_matches: remote}} when local + remote == 1 ->
+        # Track successful publish
+        :telemetry.execute(
+          [:astarte, :data_updater_plant, :control_handler, :vmq_publish],
+          %{
+            duration: System.monotonic_time() - publish_start,
+            payload_size: byte_size(payload)
+          },
+          %{realm: realm, result: "success", matches: "single"}
+        )
+
         {:ok, byte_size(topic) + byte_size(payload)}
 
       {:ok, %{local_matches: local, remote_matches: remote}} when local + remote > 1 ->
+        # Track multiple matches (unusual but successful)
+        :telemetry.execute(
+          [:astarte, :data_updater_plant, :control_handler, :vmq_publish],
+          %{
+            duration: System.monotonic_time() - publish_start,
+            payload_size: byte_size(payload)
+          },
+          %{realm: realm, result: "success", matches: "multiple"}
+        )
+
         # This should not happen so we print a warning, but we consider it a successful publish
         Logger.warning(
           "Multiple match while publishing #{inspect(Base.encode64(payload))} on #{topic}.",
@@ -193,9 +272,29 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandler do
         {:ok, byte_size(topic) + byte_size(payload)}
 
       {:ok, %{local_matches: local, remote_matches: remote}} when local + remote == 0 ->
+        # Track no matches (session not found)
+        :telemetry.execute(
+          [:astarte, :data_updater_plant, :control_handler, :vmq_publish],
+          %{
+            duration: System.monotonic_time() - publish_start,
+            payload_size: byte_size(payload)
+          },
+          %{realm: realm, result: "no_matches", matches: "none"}
+        )
+
         {:error, :session_not_found}
 
       {:error, reason} ->
+        # Track publish errors
+        :telemetry.execute(
+          [:astarte, :data_updater_plant, :control_handler, :vmq_publish],
+          %{
+            duration: System.monotonic_time() - publish_start,
+            payload_size: byte_size(payload)
+          },
+          %{realm: realm, result: "error", matches: "unknown"}
+        )
+
         {:error, reason}
     end
   end
@@ -208,14 +307,37 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandler do
   end
 
   defp resend_all_properties(state, message_id, timestamp) do
+    resend_start = System.monotonic_time()
+
     case Core.Device.resend_all_properties(state) do
       {:ok, new_state} ->
+        # Track successful properties resend
+        :telemetry.execute(
+          [:astarte, :data_updater_plant, :control_handler, :properties_resend],
+          %{duration: System.monotonic_time() - resend_start},
+          %{realm: state.realm, result: "success"}
+        )
+
         {:ok, new_state}
 
       {:error, :sending_properties_to_interface_failed} ->
+        # Track interface send failure
+        :telemetry.execute(
+          [:astarte, :data_updater_plant, :control_handler, :properties_resend],
+          %{duration: System.monotonic_time() - resend_start},
+          %{realm: state.realm, result: "interface_failed"}
+        )
+
         sending_properties_error(state, message_id, timestamp)
 
       {:error, reason} ->
+        # Track other resend failures
+        :telemetry.execute(
+          [:astarte, :data_updater_plant, :control_handler, :properties_resend],
+          %{duration: System.monotonic_time() - resend_start},
+          %{realm: state.realm, result: "error"}
+        )
+
         generic_error(state, message_id, timestamp, reason)
     end
   end

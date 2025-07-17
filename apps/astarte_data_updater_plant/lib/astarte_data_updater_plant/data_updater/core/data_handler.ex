@@ -237,7 +237,16 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DataHandler do
       db_max_ttl: db_max_ttl
     } = context
 
-    with false <- Cache.has_key?(state.paths_cache, {interface, path}),
+    cache_hit = Cache.has_key?(state.paths_cache, {interface, path})
+
+    # Track path cache performance
+    :telemetry.execute(
+      [:astarte, :data_updater_plant, :data_handler, :path_cache],
+      %{},
+      %{realm: state.realm, result: if(cache_hit, do: "hit", else: "miss")}
+    )
+
+    with false <- cache_hit,
          false <-
            Queries.fetch_path_expiry(
              state.realm,
@@ -319,6 +328,13 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DataHandler do
 
     case cache_miss do
       {:error, :interface_loading_failed} ->
+        # Track interface cache miss
+        :telemetry.execute(
+          [:astarte, :data_updater_plant, :data_handler, :interface_cache_miss],
+          %{},
+          %{realm: state.realm, interface: interface, result: "failed"}
+        )
+
         error = %{
           message: "Cannot load interface: #{interface}.",
           logger_metadata: [tag: "interface_loading_failed"],
@@ -328,6 +344,16 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DataHandler do
         Core.Error.handle_error(context, error)
 
       {:ok, descriptor, state} ->
+        # Track successful interface cache hit or successful load
+        cache_result =
+          if Map.has_key?(state.interfaces, interface), do: "hit", else: "miss_resolved"
+
+        :telemetry.execute(
+          [:astarte, :data_updater_plant, :data_handler, :interface_cache],
+          %{},
+          %{realm: state.realm, interface: interface, result: cache_result}
+        )
+
         new_context = Map.put(context, :state, state)
         {:ok, descriptor, new_context}
     end
