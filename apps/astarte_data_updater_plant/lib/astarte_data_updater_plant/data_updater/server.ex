@@ -178,6 +178,24 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Server do
   end
 
   @impl GenServer
+  def handle_call(
+        {:handle_install_persistent_triggers, triggers, trigger_target},
+        _from,
+        state
+      ) do
+    timeout = Config.data_updater_deactivation_interval_ms!()
+
+    return_value =
+      Core.Trigger.handle_install_persistent_triggers(
+        state,
+        triggers,
+        trigger_target
+      )
+
+    {:reply, return_value, state, timeout}
+  end
+
+  @impl GenServer
   def handle_call({:handle_delete_volatile_trigger, trigger_id}, _from, state) do
     timeout = Config.data_updater_deactivation_interval_ms!()
 

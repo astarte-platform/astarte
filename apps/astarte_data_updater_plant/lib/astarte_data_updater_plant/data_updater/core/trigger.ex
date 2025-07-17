@@ -42,6 +42,8 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.Trigger do
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.Utils, as: SimpleTriggersProtobufUtils
   alias Astarte.DataUpdaterPlant.MessageTracker
 
+  require Logger
+
   def populate_triggers_for_object!(state, object_id, object_type) do
     %{realm: realm} = state
 
@@ -74,6 +76,10 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.Trigger do
   end
 
   def load_trigger(state, {:data_trigger, proto_buf_data_trigger}, trigger_target) do
+    device_id_string = Device.encode_device_id(state.device_id)
+
+    Logger.debug("Loading data trigger for device #{inspect(device_id_string)} ...")
+
     new_data_trigger =
       SimpleTriggersProtobuf.Utils.simple_trigger_to_data_trigger(proto_buf_data_trigger)
 
@@ -112,6 +118,9 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.Trigger do
 
   # TODO: implement on_empty_cache_received
   def load_trigger(state, {:device_trigger, proto_buf_device_trigger}, trigger_target) do
+    device_id_string = Device.encode_device_id(state.device_id)
+
+    Logger.debug("Loading device trigger for device #{inspect(device_id_string)} ...")
     device_triggers = state.device_triggers
 
     # device event type is one of
@@ -542,5 +551,102 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.Trigger do
     updated_device_triggers = Map.put(device_triggers, event_type, updated_targets_list)
 
     {:ok, %{state | device_triggers: updated_device_triggers}}
+  end
+
+  def handle_install_persistent_triggers(
+        %State{discard_messages: true} = state,
+        _triggers,
+        _target
+      ) do
+    Logger.debug("The device is being deleted. Skipping persistent trigger installation.")
+    {:ok, state}
+  end
+
+  def handle_install_persistent_triggers(
+        state,
+        triggers,
+        target
+      ) do
+    Logger.debug("Handling persistent trigger installation... ",
+      realm: state.realm,
+      device_id: Device.encode_device_id(state.device_id)
+    )
+
+    results =
+      Enum.map(triggers, fn %{object_id: object_id, simple_trigger: trigger} ->
+        if Map.has_key?(state.interface_ids_to_name, object_id) do
+          interface_name = Map.get(state.interface_ids_to_name, object_id)
+          %InterfaceDescriptor{automaton: automaton} = state.interfaces[interface_name]
+
+          case trigger do
+            {:data_trigger, %ProtobufDataTrigger{match_path: "/*"}} ->
+              {:ok, Core.Trigger.load_trigger(state, trigger, target)}
+
+            {:data_trigger, %ProtobufDataTrigger{match_path: match_path}} ->
+              with {:ok, _endpoint_id} <- EndpointsAutomaton.resolve_path(match_path, automaton) do
+                {:ok, Core.Trigger.load_trigger(state, trigger, target)}
+              else
+                {:guessed, _} ->
+                  {:error, :invalid_match_path}
+
+                {:error, :not_found} ->
+                  {:error, :invalid_match_path}
+              end
+          end
+        else
+          case trigger do
+            {:data_trigger, %ProtobufDataTrigger{interface_name: "*"}} ->
+              {:ok, Core.Trigger.load_trigger(state, trigger, target)}
+
+            {:data_trigger,
+             %ProtobufDataTrigger{
+               interface_name: interface_name,
+               interface_major: major,
+               match_path: "/*"
+             }} ->
+              with :ok <-
+                     InterfaceQueries.check_if_interface_exists(
+                       state.realm,
+                       interface_name,
+                       major
+                     ) do
+                {:ok, state}
+              else
+                {:error, reason} ->
+                  {:error, reason}
+              end
+
+            {:data_trigger,
+             %ProtobufDataTrigger{
+               interface_name: interface_name,
+               interface_major: major,
+               match_path: match_path
+             }} ->
+              with {:ok, %InterfaceDescriptor{automaton: automaton}} <-
+                     InterfaceQueries.fetch_interface_descriptor(
+                       state.realm,
+                       interface_name,
+                       major
+                     ),
+                   {:ok, _endpoint_id} <- EndpointsAutomaton.resolve_path(match_path, automaton) do
+                {:ok, state}
+              else
+                {:error, :not_found} ->
+                  {:error, :invalid_match_path}
+
+                {:guessed, _} ->
+                  {:error, :invalid_match_path}
+
+                {:error, reason} ->
+                  {:error, reason}
+              end
+
+            {:device_trigger, _} ->
+              {:ok, Core.Trigger.load_trigger(state, trigger, target)}
+          end
+        end
+      end)
+
+    {:ok, results, state}
   end
 end
