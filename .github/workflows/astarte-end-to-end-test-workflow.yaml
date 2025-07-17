@@ -63,15 +63,11 @@ jobs:
         wget https://github.com/astarte-platform/astartectl/releases/download/v22.11.02/astartectl_22.11.02_linux_x86_64.tar.gz
         tar xf astartectl_22.11.02_linux_x86_64.tar.gz
         chmod +x astartectl
-    - name: Create realm
+    - name: Generate realm keypair and JWT
       run: |
         ./astartectl utils gen-keypair test
-        ./astartectl housekeeping realms create test --astarte-url http://api.astarte.localhost --realm-public-key test_public.pem -k compose/astarte-keys/housekeeping_private.pem -y
-        echo "E2E_REALM=test" >> $GITHUB_ENV
-        sleep 5
-    - name: Ensure Trigger Engine started the consumer
-      # TODO: use a proper way to do this
-      run: sleep 30
+        E2E_HOUSEKEEPING_API_JWT=$(./astartectl utils gen-jwt housekeeping -k compose/astarte-keys/housekeeping_private.pem)
+        echo "E2E_HOUSEKEEPING_API_JWT=$E2E_HOUSEKEEPING_API_JWT" >> $GITHUB_ENV
     - name: Generate JWT
       run: |
         JWT=$(./astartectl utils gen-jwt appengine channels pairing realm-management -k test_private.pem)
@@ -82,6 +78,7 @@ jobs:
         E2E_HOST: "astarte-e2e"
         E2E_PAIRING_URL: http://api.astarte.localhost/pairing
         E2E_APPENGINE_URL: http://api.astarte.localhost/appengine
+        E2E_HOUSEKEEPING_URL: http://api.astarte.localhost/housekeeping
         E2E_REALM_MANAGEMENT_URL: http://api.astarte.localhost/realmmanagement
         E2E_AMQP_CONSUMER_HOST: rabbitmq
         E2E_IGNORE_SSL_ERRORS: true
@@ -89,7 +86,13 @@ jobs:
         E2E_CHECK_REPETITIONS: 5
         E2E_MAILER_TO_ADDRESS: mail@example.com
         E2E_MAIL_SUBJECT: "Subj: Astarte Notification"
-      run: docker run --env-file=<(env | grep '^E2E_') --network astarte --hostname "$E2E_HOST" astarte-e2e
+      run: |
+       docker run \
+        -e E2E_REALM_PUBLIC_KEY_PEM="$(cat ../../test_public.pem)" \
+        --env-file=<(env | grep '^E2E_' | grep -v '^E2E_REALM_PUBLIC_KEY_PEM=') \
+        --network astarte \
+        --hostname "$E2E_HOST" \
+        astarte-e2e
     - name: Check Docker
       if: ${{ failure() }}
       run: docker compose logs

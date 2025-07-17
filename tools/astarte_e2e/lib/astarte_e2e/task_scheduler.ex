@@ -35,6 +35,7 @@ defmodule AstarteE2E.TaskScheduler do
   @impl GenServer
   def init(_init_arg) do
     Process.flag(:trap_exit, true)
+
     interfaces = Interface.generate_interfaces!()
     :ok = Interface.install_interfaces!(interfaces)
 

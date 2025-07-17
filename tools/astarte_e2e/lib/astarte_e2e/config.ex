@@ -24,6 +24,7 @@ defmodule AstarteE2E.Config do
   alias AstarteE2E.Config.ListOfStrings
   alias AstarteE2E.Config.BambooMailAdapter
   alias AstarteE2E.Config.NormalizedMailAddress
+  alias AstarteE2E.Config.JWTPublicKeyPEMType
 
   @type client_option ::
           {:url, String.t()}
@@ -51,6 +52,12 @@ defmodule AstarteE2E.Config do
     type: :binary,
     required: true
 
+  @envdoc "Astarte Housekeeping URL (e.g. https://api.astarte.example.com/housekeeping)."
+  app_env :housekeeping_url, :astarte_e2e, :housekeeping_url,
+    os_env: "E2E_HOUSEKEEPING_URL",
+    type: :binary,
+    required: true
+
   @envdoc "Ignore SSL errors. Defaults to false. Changing the value to true is not advised for production environments unless you're aware of what you're doing."
   app_env :ignore_ssl_errors, :astarte_e2e, :ignore_ssl_errors,
     os_env: "E2E_IGNORE_SSL_ERRORS",
@@ -73,7 +80,8 @@ defmodule AstarteE2E.Config do
   app_env :realm, :astarte_e2e, :realm,
     os_env: "E2E_REALM",
     type: :binary,
-    required: true
+    default: "test",
+    required: false
 
   @envdoc "The Astarte JWT employed to access Astarte APIs. The token can be generated with: `$ astartectl utils gen-jwt <service> -k <your-private-key>.pem`."
   app_env :jwt, :astarte_e2e, :jwt,
@@ -176,6 +184,18 @@ defmodule AstarteE2E.Config do
   app_env :mail_service, :astarte_e2e, :mail_service,
     os_env: "E2E_MAIL_SERVICE",
     type: BambooMailAdapter
+
+  @envdoc "The JWT public key."
+  app_env :jwt_public_key_pem, :astarte_e2e, :jwt_public_key_pem,
+    os_env: "E2E_REALM_PUBLIC_KEY_PEM",
+    required: true,
+    type: JWTPublicKeyPEMType
+
+  @envdoc "JWT for housekeeping authentication."
+  app_env :housekeeping_jwt, :astarte_e2e, :housekeeping_jwt,
+    os_env: "E2E_HOUSEKEEPING_API_JWT",
+    type: :binary,
+    required: true
 
   @envdoc "Host for the AMQP consumer connection"
   app_env :amqp_consumer_host, :astarte_e2e, :amqp_consumer_host,

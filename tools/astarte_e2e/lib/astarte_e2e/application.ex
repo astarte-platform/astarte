@@ -20,15 +20,22 @@ defmodule AstarteE2E.Application do
   use Application
 
   alias AstarteE2E.Config
+  alias AstarteE2E.Realm
   alias AstarteE2E.ServiceNotifier
 
   require Logger
+
+  @trigger_engine_consumer_tracker_cycle_duration :timer.seconds(30)
 
   @impl true
   def start(_type, _args) do
     Logger.info("Starting AstarteE2E application.", tag: "application_start")
 
-    with :ok <- Config.validate() do
+    with :ok <- Config.validate(),
+         :ok <- Realm.create_realm!() do
+      # ensure trigger engine started the consumer for the new realm
+      :timer.sleep(@trigger_engine_consumer_tracker_cycle_duration)
+
       children = [
         {Registry, keys: :unique, name: Registry.AstarteE2E},
         AstarteE2EWeb.Telemetry,
