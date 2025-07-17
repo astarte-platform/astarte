@@ -271,6 +271,76 @@ defmodule Astarte.DataUpdaterPlant.Config do
           type: :binary,
           default: "astarte"
 
+  @envdoc """
+  The host for the AMQP triggers_producer connection. If no AMQP triggers_producer options are set, the AMQP consumer options will be used.
+  """
+  app_env :amqp_triggers_producer_host, :astarte_data_updater_plant, :amqp_triggers_producer_host,
+    os_env: "DATA_UPDATER_PLANT_AMQP_TRIGGERS_PRODUCER_HOST",
+    type: :binary
+
+  @envdoc """
+  The username for the AMQP triggers_producer connection. If no AMQP triggers_producer options are set, the AMQP consumer options will be used.
+  """
+  app_env :amqp_triggers_producer_username,
+          :astarte_data_updater_plant,
+          :amqp_triggers_producer_username,
+          os_env: "DATA_UPDATER_PLANT_AMQP_TRIGGERS_PRODUCER_USERNAME",
+          type: :binary
+
+  @envdoc """
+  The password for the AMQP triggers_producer connection. If no AMQP triggers_producer options are set, the AMQP consumer options will be used.
+  """
+  app_env :amqp_triggers_producer_password,
+          :astarte_data_updater_plant,
+          :amqp_triggers_producer_password,
+          os_env: "DATA_UPDATER_PLANT_AMQP_TRIGGERS_PRODUCER_PASSWORD",
+          type: :binary
+
+  @envdoc "The virtual_host for the AMQP producer of triggers connection."
+  app_env :amqp_triggers_producer_virtual_host,
+          :astarte_data_updater_plant,
+          :amqp_triggers_producer_virtual_host,
+          os_env: "DATA_UPDATER_PLANT_AMQP_TRIGGERS_PRODUCER_VIRTUAL_HOST",
+          type: :binary
+
+  @envdoc """
+  The port for the AMQP triggers_producer connection. If no AMQP triggers_producer options are set, the AMQP consumer options will be used.
+  """
+  app_env :amqp_triggers_producer_port, :astarte_data_updater_plant, :amqp_triggers_producer_port,
+    os_env: "DATA_UPDATER_PLANT_AMQP_TRIGGERS_PRODUCER_PORT",
+    type: :integer
+
+  @envdoc "Enable SSL for the AMQP triggers_producer connection. If not specified, the consumer's setting will be used."
+  app_env :amqp_triggers_producer_ssl_enabled,
+          :astarte_data_updater_plant,
+          :amqp_triggers_producer_ssl_enabled,
+          os_env: "DATA_UPDATER_PLANT_AMQP_TRIGGERS_PRODUCER_SSL_ENABLED",
+          type: :boolean
+
+  @envdoc """
+  Specifies the certificates of the root Certificate Authorities to be trusted for the AMQP triggers_producer connection. When not specified, either the consumer's ca_cert is used (if set), or the bundled cURL certificate bundle will be used.
+  """
+  app_env :amqp_triggers_producer_ssl_ca_file,
+          :astarte_data_updater_plant,
+          :amqp_triggers_producer_ssl_ca_file,
+          os_env: "DATA_UPDATER_PLANT_AMQP_TRIGGERS_PRODUCER_SSL_CA_FILE",
+          type: :binary
+
+  @envdoc "Disable Server Name Indication. Defaults to false."
+  app_env :amqp_triggers_producer_ssl_disable_sni,
+          :astarte_data_updater_plant,
+          :amqp_triggers_producer_ssl_disable_sni,
+          os_env: "DATA_UPDATER_PLANT_AMQP_TRIGGERS_PRODUCER_SSL_DISABLE_SNI",
+          type: :boolean,
+          default: false
+
+  @envdoc "Specify the hostname to be used in TLS Server Name Indication extension. If not specified, the amqp consumer host will be used. This value is used only if Server Name Indication is enabled."
+  app_env :amqp_triggers_producer_ssl_custom_sni,
+          :astarte_data_updater_plant,
+          :amqp_triggers_producer_ssl_custom_sni,
+          os_env: "DATA_UPDATER_PLANT_AMQP_TRIGGERS_PRODUCER_SSL_CUSTOM_SNI",
+          type: :binary
+
   # Since we have one channel per queue, this is not configurable
   def amqp_consumer_channels_per_connection_number!() do
     ceil(data_queue_total_count!() / amqp_consumer_connection_number!())
@@ -278,6 +348,9 @@ defmodule Astarte.DataUpdaterPlant.Config do
 
   # Since we have only one producer, this is not configurable
   def events_producer_connection_number!(), do: 1
+
+  # Since we have only one producer, this is not configurable
+  def triggers_producer_connection_number!(), do: 1
 
   # Since we have one channel per queue, this is not configurable
   def events_producer_channels_per_connection_number!(), do: 1
@@ -396,6 +469,59 @@ defmodule Astarte.DataUpdaterPlant.Config do
     |> populate_producer_ssl_options()
   end
 
+  @doc """
+  Returns the AMQP trigger producer connection options
+  """
+  @spec amqp_triggers_producer_options!() :: [amqp_options]
+  def amqp_triggers_producer_options! do
+    producer_options = amqp_producer_options!()
+
+    amqp_producer_host = Keyword.fetch!(producer_options, :host)
+    amqp_producer_username = Keyword.fetch!(producer_options, :username)
+    amqp_producer_password = Keyword.fetch!(producer_options, :password)
+    amqp_producer_virtual_host = Keyword.fetch!(producer_options, :virtual_host)
+    amqp_producer_port = Keyword.fetch!(producer_options, :port)
+
+    amqp_triggers_producer_host =
+      case amqp_triggers_producer_host() do
+        {:ok, nil} -> amqp_producer_host
+        {:ok, host} -> host
+      end
+
+    amqp_triggers_producer_username =
+      case amqp_triggers_producer_username() do
+        {:ok, nil} -> amqp_producer_username
+        {:ok, username} -> username
+      end
+
+    amqp_triggers_producer_password =
+      case amqp_triggers_producer_password() do
+        {:ok, nil} -> amqp_producer_password
+        {:ok, password} -> password
+      end
+
+    amqp_triggers_producer_virtual_host =
+      case amqp_triggers_producer_virtual_host() do
+        {:ok, nil} -> amqp_producer_virtual_host
+        {:ok, virtual_host} -> virtual_host
+      end
+
+    amqp_triggers_producer_port =
+      case amqp_triggers_producer_port() do
+        {:ok, nil} -> amqp_producer_port
+        {:ok, port} -> port
+      end
+
+    [
+      host: amqp_triggers_producer_host,
+      username: amqp_triggers_producer_username,
+      password: amqp_triggers_producer_password,
+      virtual_host: amqp_triggers_producer_virtual_host,
+      port: amqp_triggers_producer_port
+    ]
+    |> populate_triggers_producer_ssl_options()
+  end
+
   def amqp_producer_ssl_enabled? do
     case amqp_producer_ssl_enabled() do
       {:ok, nil} ->
@@ -406,9 +532,25 @@ defmodule Astarte.DataUpdaterPlant.Config do
     end
   end
 
+  def amqp_triggers_producer_ssl_enabled? do
+    case amqp_triggers_producer_ssl_enabled() do
+      {:ok, nil} -> amqp_producer_ssl_enabled?()
+      {:ok, ssl_enabled} -> ssl_enabled
+    end
+  end
+
   defp populate_producer_ssl_options(options) do
     if amqp_producer_ssl_enabled?() do
       ssl_options = build_producer_ssl_options()
+      Keyword.put(options, :ssl_options, ssl_options)
+    else
+      options
+    end
+  end
+
+  defp populate_triggers_producer_ssl_options(options) do
+    if amqp_triggers_producer_ssl_enabled?() do
+      ssl_options = build_triggers_producer_ssl_options()
       Keyword.put(options, :ssl_options, ssl_options)
     else
       options
@@ -425,6 +567,29 @@ defmodule Astarte.DataUpdaterPlant.Config do
     end
   end
 
+  defp triggers_producer_ssl_sni_disabled? do
+    case amqp_triggers_producer_ssl_disable_sni() do
+      {:ok, false} ->
+        producer_ssl_sni_disabled?()
+
+      {:ok, value} ->
+        value
+    end
+  end
+
+  defp build_triggers_producer_ssl_options do
+    [
+      cacertfile:
+        amqp_triggers_producer_ssl_ca_file!() ||
+          amqp_producer_ssl_ca_file!() ||
+          amqp_consumer_ssl_ca_file!() ||
+          CAStore.file_path(),
+      verify: :verify_peer,
+      depth: 10
+    ]
+    |> populate_triggers_producer_sni()
+  end
+
   defp build_producer_ssl_options do
     [
       cacertfile:
@@ -433,6 +598,20 @@ defmodule Astarte.DataUpdaterPlant.Config do
       depth: 10
     ]
     |> populate_producer_sni()
+  end
+
+  defp populate_triggers_producer_sni(ssl_options) do
+    if triggers_producer_ssl_sni_disabled?() do
+      Keyword.put(ssl_options, :server_name_indication, :disable)
+    else
+      server_name =
+        amqp_triggers_producer_ssl_custom_sni!() ||
+          amqp_producer_ssl_custom_sni!() ||
+          amqp_producer_host!() ||
+          amqp_consumer_host!()
+
+      Keyword.put(ssl_options, :server_name_indication, to_charlist(server_name))
+    end
   end
 
   defp populate_producer_sni(ssl_options) do
@@ -444,6 +623,15 @@ defmodule Astarte.DataUpdaterPlant.Config do
 
       Keyword.put(ssl_options, :server_name_indication, to_charlist(server_name))
     end
+  end
+
+  def triggers_producer_pool_config!() do
+    [
+      name: {:local, :triggers_producer_pool},
+      worker_module: ExRabbitPool.Worker.RabbitConnection,
+      size: triggers_producer_connection_number!(),
+      max_overflow: 0
+    ]
   end
 
   def events_producer_pool_config!() do
