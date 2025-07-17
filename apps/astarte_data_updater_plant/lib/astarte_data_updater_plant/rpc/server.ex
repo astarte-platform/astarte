@@ -88,4 +88,10 @@ defmodule Astarte.DataUpdaterPlant.RPC.Server do
 
     {:stop, :shutdown, state}
   end
+
+  @impl GenServer
+  def handle_call({:install_persistent_triggers, triggers}, _from, state) do
+    result = Core.install_persistent_triggers(triggers)
+    {:reply, result, state}
+  end
 end
