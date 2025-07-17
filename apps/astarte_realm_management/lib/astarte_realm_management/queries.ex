@@ -1270,38 +1270,6 @@ defmodule Astarte.RealmManagement.Queries do
     Repo.one(query, opts)
   end
 
-  def retrieve_interface_descriptor!(
-        realm_name,
-        interface_name,
-        interface_major
-      ) do
-    keyspace = Realm.keyspace_name(realm_name)
-
-    opts = [
-      prefix: keyspace,
-      consistency: Consistency.domain_model(:read)
-    ]
-
-    interface =
-      Repo.get_by!(Interface, [name: interface_name, major_version: interface_major], opts)
-
-    %InterfaceDescriptor{
-      name: interface.name,
-      major_version: interface.major_version,
-      minor_version: interface.minor_version,
-      type: interface.type,
-      ownership: interface.ownership,
-      aggregation: interface.aggregation,
-      interface_id: interface.interface_id,
-      automaton: {
-        :erlang.binary_to_term(interface.automaton_transitions),
-        :erlang.binary_to_term(interface.automaton_accepting_states)
-      },
-      storage: interface.storage,
-      storage_type: interface.storage_type
-    }
-  end
-
   def retrieve_individual_datastreams_keys!(realm_name, device_id) do
     keyspace = Realm.keyspace_name(realm_name)
 
