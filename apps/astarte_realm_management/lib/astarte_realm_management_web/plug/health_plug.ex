@@ -27,18 +27,19 @@ defmodule Astarte.RealmManagementWeb.HealthPlug do
   end
 
   def call(%{request_path: "/health", method: "GET"} = conn, _opts) do
-    case Health.get_health() do
-      {:ok, %{status: status}} when status in [:ready, :degraded] ->
-        :telemetry.execute(
-          [:astarte, :realm_management, :service],
-          %{health: 1},
-          %{status: status}
-        )
+    status = Health.get_health()
 
-        conn
-        |> send_resp(:ok, "")
-        |> halt()
+    with true <- Enum.member?([:ready, :degraded], status) do
+      :telemetry.execute(
+        [:astarte, :realm_management, :service],
+        %{health: 1},
+        %{status: status}
+      )
 
+      conn
+      |> send_resp(:ok, "")
+      |> halt()
+    else
       _ ->
         :telemetry.execute(
           [:astarte, :realm_management, :service],

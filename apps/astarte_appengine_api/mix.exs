@@ -69,9 +69,10 @@ defmodule Astarte.AppEngine.API.Mixfile do
 
   defp astarte_required_modules(_) do
     [
-      {:astarte_core, github: "astarte-platform/astarte_core", branch: "release-1.2"},
+      {:astarte_core,
+       github: "astarte-platform/astarte_core", branch: "release-1.3", override: true},
       {:astarte_data_access,
-       github: "astarte-platform/astarte_data_access", branch: "release-1.2"},
+       github: "astarte-platform/astarte_data_access", branch: "release-1.3"},
       {:astarte_generators, github: "astarte-platform/astarte_generators", only: [:dev, :test]},
       {:astarte_realm_management,
        path: "../astarte_realm_management", only: [:dev, :test], runtime: false},
@@ -97,6 +98,7 @@ defmodule Astarte.AppEngine.API.Mixfile do
       {:uuid, "~> 2.0", hex: :uuid_erl},
       # Required by :phoenix_swagger, otherwise it fails finding ex_json_schema.app
       {:ex_json_schema, "~> 0.7"},
+      {:ex_rabbit_pool, github: "leductam/ex_rabbit_pool"},
       {:phoenix_swagger, "~> 0.8"},
       {:xandra, "~> 0.13"},
       {:exandra, "~> 0.13"},
