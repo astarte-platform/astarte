@@ -17,9 +17,7 @@
 #
 
 defmodule Astarte.AppEngine.API.Auth do
-  alias Astarte.AppEngine.API.Queries
-
-  require Logger
+  alias Astarte.AppEngine.API.Auth.Queries
 
   def fetch_public_key(realm) do
     Queries.fetch_public_key(realm)
