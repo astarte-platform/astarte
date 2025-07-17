@@ -29,7 +29,7 @@ defmodule Astarte.HousekeepingWeb.HealthPlug do
   def call(%{request_path: "/health", method: "GET"} = conn, _opts) do
     try do
       case Health.get_health() do
-        {:ok, %{status: status}} when status in [:ready, :degraded] ->
+        status when status in [:ready, :degraded] ->
           :telemetry.execute(
             [:astarte, :housekeeping, :service],
             %{health: 1},
