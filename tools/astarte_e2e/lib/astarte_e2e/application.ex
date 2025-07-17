@@ -18,8 +18,10 @@
 
 defmodule AstarteE2E.Application do
   use Application
-  alias AstarteE2E.{Client, Config, Scheduler, ServiceNotifier}
-  alias Astarte.Device
+
+  alias AstarteE2E.Config
+  alias AstarteE2E.Device
+  alias AstarteE2E.ServiceNotifier
 
   require Logger
 
@@ -27,14 +29,13 @@ defmodule AstarteE2E.Application do
   def start(_type, _args) do
     Logger.info("Starting AstarteE2E application.", tag: "application_start")
 
-    with :ok <- Config.validate() do
+    with :ok <- Config.validate(),
+         {:ok, interfaces} <- default_interfaces() do
       children = [
         {Registry, keys: :unique, name: Registry.AstarteE2E},
         AstarteE2EWeb.Telemetry,
         {ServiceNotifier, Config.notifier_opts()},
-        {Device, Config.device_opts()},
-        {Client, Config.client_opts()},
-        {Scheduler, Config.scheduler_opts()}
+        {Device, interfaces: interfaces}
       ]
 
       opts = [strategy: :one_for_one, name: __MODULE__]
@@ -48,5 +49,23 @@ defmodule AstarteE2E.Application do
 
         {:shutdown, reason}
     end
+  end
+
+  defp default_interfaces() do
+    with {:ok, standard_interface_provider} <- Config.standard_interface_provider(),
+         {:ok, interface_files} <- File.ls(standard_interface_provider) do
+      read_interface_files(interface_files)
+    end
+  end
+
+  defp read_interface_files(interface_files) do
+    Enum.reduce_while(interface_files, {:ok, []}, fn interface_file, {:ok, interfaces} ->
+      with {:ok, interface_json} <- File.read(interface_file),
+           {:ok, interface} <- Jason.decode(interface_json) do
+        {:cont, {:ok, [interface | interfaces]}}
+      else
+        error -> {:halt, error}
+      end
+    end)
   end
 end

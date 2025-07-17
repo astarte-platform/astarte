@@ -26,10 +26,7 @@ defmodule AstarteE2E do
   alias Astarte.Device
   alias AstarteE2E.{Client, Config, Utils}
 
-  def perform_check do
-    realm = Config.realm!()
-    device_id = Config.device_id!()
-
+  def perform_check(realm, device_id) do
     with {:ok, device_pid} <- fetch_device_pid(realm, device_id),
          {:ok, interface_names} <- fetch_interface_names(),
          :ok <- Device.wait_for_connection(device_pid),
