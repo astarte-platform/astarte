@@ -18,7 +18,7 @@
 defmodule Astarte.Helpers.Device do
   alias Astarte.AppEngine.API.Device, as: Core
   alias Astarte.AppEngine.API.Device.InterfaceValue
-  alias Astarte.AppEngine.API.Repo
+  alias Astarte.DataAccess.Repo
   alias Astarte.Common.Generators.Timestamp, as: TimestampGenerator
   alias Astarte.Core.Mapping.EndpointsAutomaton
   alias Astarte.Core.Mapping.EndpointsAutomaton
