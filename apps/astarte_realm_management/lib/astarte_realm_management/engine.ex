@@ -935,7 +935,22 @@ defmodule Astarte.RealmManagement.Engine do
          {:ok, true} <- check_device_exists(realm_name, decoded_device_id),
          :ok <- insert_device_into_deletion_in_progress(realm_name, decoded_device_id) do
       _ = Logger.info("Added device #{device_id} to deletion in progress")
+      ensure_device_still_exists(realm_name, decoded_device_id)
       :ok
+    end
+  end
+
+  defp ensure_device_still_exists(realm_name, device_id) do
+    case Queries.check_device_exists(realm_name, device_id) do
+      {:ok, true} ->
+        :ok
+
+      {:ok, false} ->
+        # Don't leave dangling entries. This should only ever run if the request was made for
+        # a device already being deleted,the device check was made before
+        # DeviceRemoval.Core.delete_device! started and the insert_device_into_deletion_in_progress
+        # call was made after DeviceRemoval.Core.delete_device! ended
+        Queries.remove_device_from_deletion_in_progress!(realm_name, device_id)
     end
   end
 
