@@ -132,6 +132,12 @@ defmodule Astarte.AppEngine.API.Rooms.Room do
       watch_name_to_id: watch_name_to_id
     } = state
 
+    :telemetry.execute(
+      [:astarte, :appengine, :channels, :watch_request],
+      %{},
+      %{realm: state.realm}
+    )
+
     with {:duplicate, false} <- {:duplicate, Map.has_key?(watch_name_to_id, watch_request.name)},
          {:ok, new_state} <- do_watch(watch_request, state) do
       {:reply, :ok, new_state}
@@ -149,6 +155,12 @@ defmodule Astarte.AppEngine.API.Rooms.Room do
       watch_id_to_request: watch_id_to_request,
       watch_name_to_id: watch_name_to_id
     } = state
+
+    :telemetry.execute(
+      [:astarte, :appengine, :channels, :unwatch_request],
+      %{},
+      %{realm: state.realm}
+    )
 
     with {:ok, trigger_id} <- Map.fetch(watch_name_to_id, watch_name),
          {:ok, %WatchRequest{} = watch_request} <- Map.fetch(watch_id_to_request, trigger_id),
