@@ -130,7 +130,7 @@ defmodule Astarte.DataAccess.Repo do
   end
 
   def safe_fetch_one(queryable, opts \\ []) do
-    safe_wrap(fn -> fetch_one(queryable, opts) end)
+    safe(fn -> fetch_one(queryable, opts) end)
   end
 
   def safe_insert_all(source, entries, opts \\ []) do
@@ -138,7 +138,7 @@ defmodule Astarte.DataAccess.Repo do
   end
 
   def safe_update(changeset, opts \\ []) do
-    safe_wrap(fn -> update(changeset, opts) end)
+    safe(fn -> update(changeset, opts) end)
   end
 
   def safe_update_all(queryable, updates, opts \\ []) do
@@ -250,6 +250,15 @@ defmodule Astarte.DataAccess.Repo do
   defp safe_wrap(f) do
     try do
       {:ok, f.()}
+    rescue
+      error ->
+        handle_database_error(error)
+    end
+  end
+
+  defp safe(f) do
+    try do
+      f.()
     rescue
       error ->
         handle_database_error(error)
