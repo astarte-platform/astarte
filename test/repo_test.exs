@@ -53,6 +53,20 @@ defmodule Astarte.DataAccess.RepoTest do
 
       assert {:error, :multiple_results} = Repo.safe_fetch_one(query)
     end
+
+    test "returns realm not found for queries on non-existing realms" do
+      query = from k in "non_existing_realm.keyspaces", select: k.keyspace_name, limit: 1
+
+      assert {:error, :realm_not_found} = Repo.safe_fetch_one(query)
+    end
+
+    test "returns error when the astarte keyspace does not exist" do
+      Realm |> stub(:astarte_keyspace_name, fn -> "non_existing_realm" end)
+
+      query = from k in "non_existing_realm.keyspaces", select: k.keyspace_name, limit: 1
+
+      assert {:error, :database_error} = Repo.safe_fetch_one(query)
+    end
   end
 
   describe "fetch_all" do
