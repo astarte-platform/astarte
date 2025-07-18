@@ -47,8 +47,12 @@ defmodule Astarte.Core.Generators.Triggers.Policy.ErrorType do
   end
 
   @doc """
-  Convert this struct stream to changes
+  Convert this struct/stream to changes
   """
+  @spec to_changes(ErrorType.t()) :: StreamData.t(map())
+  def to_changes(data) when not is_struct(data, StreamData),
+    do: data |> constant() |> to_changes()
+
   @spec to_changes(StreamData.t(ErrorType.t())) ::
           StreamData.t(map() | binary() | list(integer()))
   def to_changes(gen) do
