@@ -19,6 +19,8 @@
 defmodule Astarte.DataUpdaterPlant.TriggersHandler do
   import Bitwise, only: [<<<: 2]
   require Logger
+  alias Astarte.DataUpdaterPlant.AMQPEventsProducer
+  alias Astarte.DataUpdaterPlant.AMQPTriggersProducer
   alias Astarte.DataUpdaterPlant.Config
 
   @moduledoc """
@@ -47,7 +49,6 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandler do
   }
 
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.AMQPTriggerTarget
-  alias Astarte.DataUpdaterPlant.AMQPEventsProducer
 
   def register_target(%AMQPTriggerTarget{exchange: nil} = _target) do
     # Default exchange, no need to declare it
@@ -55,7 +56,7 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandler do
   end
 
   def register_target(%AMQPTriggerTarget{exchange: exchange} = _target) do
-    AMQPEventsProducer.declare_exchange(exchange)
+    AMQPTriggersProducer.declare_exchange(exchange)
   end
 
   def device_connected(targets, realm, device_id, ip_address, timestamp) when is_list(targets) do
@@ -556,13 +557,22 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandler do
         retry
       end
 
-    AMQPEventsProducer.publish(exchange, routing_key, payload, opts)
+    publish(exchange, routing_key, payload, opts)
     |> wait_backoff_and_publish(next_retry, exchange, routing_key, payload, opts)
   end
 
   defp wait_ok_publish(exchange, routing_key, payload, opts) do
-    AMQPEventsProducer.publish(exchange, routing_key, payload, opts)
-    |> wait_backoff_and_publish(1, exchange, routing_key, payload, opts)
+    publish(exchange, routing_key, payload, opts)
+    |> wait_backoff_and_publish(1, nil, routing_key, payload, opts)
+  end
+
+  defp publish(nil, routing_key, payload, opts) do
+    Config.events_exchange_name!()
+    |> AMQPEventsProducer.publish(routing_key, payload, opts)
+  end
+
+  defp publish(exchange, routing_key, payload, opts) do
+    AMQPTriggersProducer.publish(exchange, routing_key, payload, opts)
   end
 
   defp dispatch_event(
@@ -578,8 +588,6 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandler do
          policy_name
        ) do
     {event_type, _event_struct} = simple_event.event
-
-    exchange = target_exchange || Config.events_exchange_name!()
 
     simple_trigger_id_str =
       simple_event.simple_trigger_id
@@ -620,7 +628,7 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandler do
 
     payload = SimpleEvent.encode(simple_event)
 
-    result = wait_ok_publish(exchange, routing_key, payload, [{:headers, headers} | opts])
+    result = wait_ok_publish(target_exchange, routing_key, payload, [{:headers, headers} | opts])
 
     Logger.debug("headers: #{inspect(headers)}, routing key: #{inspect(routing_key)}")
 
