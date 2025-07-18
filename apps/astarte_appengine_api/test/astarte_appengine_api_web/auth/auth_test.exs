@@ -30,6 +30,7 @@ defmodule Astarte.AppEngine.APIWeb.AuthTest do
   @valid_auth_path "devices/#{@device_id}/interfaces/#{@escaped_interface}#{@path}"
   @fake_valid_auth_path "devices/c0VMRgIBAQAAAAAAAAAAAA/interfaces/#{@escaped_interface}#{@path}"
   @fake_request_path "/v1/#{@realm}/devices/c0VMRgIBAQAAAAAAAAAAAA/interfaces/#{@interface}#{@path}"
+  @invalid_realm_request_path "/v1/noneexistant/devices/#{@device_id}/interfaces/#{@interface}#{@path}"
   @other_device_id "OTHERDEVICEAAAAAAAAAAAIAPgABAAAAsCVAAAAAAABAAAAAAAAAADDEAAAAAAAAAAAAAEAAOAAJ"
   @other_device_auth_path "devices/#{@other_device_id}/interfaces/#{@escaped_interface}#{@path}"
 
@@ -53,6 +54,18 @@ defmodule Astarte.AppEngine.APIWeb.AuthTest do
   describe "JWT" do
     test "no token returns 401", %{conn: conn} do
       conn = get(conn, @request_path)
+      assert json_response(conn, 401)["errors"]["detail"] == "Unauthorized"
+    end
+
+    test "invalid realm returns 401", %{conn: conn} do
+      conn =
+        put_req_header(
+          conn,
+          "authorization",
+          "bearer #{JWTTestHelper.gen_jwt_all_access_token()}"
+        )
+        |> get(@invalid_realm_request_path)
+
       assert json_response(conn, 401)["errors"]["detail"] == "Unauthorized"
     end
 

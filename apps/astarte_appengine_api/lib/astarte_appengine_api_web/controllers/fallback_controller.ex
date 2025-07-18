@@ -25,6 +25,8 @@ defmodule Astarte.AppEngine.APIWeb.FallbackController do
   """
   use Astarte.AppEngine.APIWeb, :controller
 
+  alias Astarte.AppEngine.API.Auth
+
   def call(conn, {:error, %Ecto.Changeset{} = changeset}) do
     conn
     |> put_status(:unprocessable_entity)
@@ -212,10 +214,16 @@ defmodule Astarte.AppEngine.APIWeb.FallbackController do
     |> render(:"422_unset_not_allowed")
   end
 
+  def call(conn, {:error, :realm_not_found}) do
+    conn
+    |> put_status(:unauthorized)
+    |> put_view(Astarte.AppEngine.APIWeb.ErrorView)
+    |> render(:"401")
+  end
+
   # This is called when no JWT token is present
   def auth_error(conn, {:unauthenticated, reason}, _opts) do
-    _ =
-      Logger.info("Refusing unauthenticated request: #{inspect(reason)}.", tag: "unauthenticated")
+    Logger.info("Refusing unauthenticated request: #{inspect(reason)}.", tag: "unauthenticated")
 
     conn
     |> put_status(:unauthorized)
@@ -223,11 +231,35 @@ defmodule Astarte.AppEngine.APIWeb.FallbackController do
     |> render(:"401")
   end
 
-  # In all other cases, we reply with 403
-  def auth_error(conn, _reason, _opts) do
-    conn
-    |> put_status(:forbidden)
-    |> put_view(Astarte.AppEngine.APIWeb.ErrorView)
-    |> render(:"403")
+  # This is called when the JWT token is present but the user is not authorized
+  def auth_error(conn, reason, _opts) do
+    # Check if this is due to a non-existing realm and respond with 401
+    if is_non_existing_realm_error?(conn) do
+      Logger.info("Refusing request due to non-existing realm: #{inspect(reason)}.",
+        tag: "realm_not_found"
+      )
+
+      conn
+      |> put_status(:unauthorized)
+      |> put_view(Astarte.AppEngine.APIWeb.ErrorView)
+      |> render(:"401")
+    else
+      # In all other cases, we reply with 403
+      Logger.info("Refusing request with reason: #{inspect(reason)}.", tag: "auth_error_fallback")
+
+      conn
+      |> put_status(:forbidden)
+      |> put_view(Astarte.AppEngine.APIWeb.ErrorView)
+      |> render(:"403")
+    end
+  end
+
+  defp is_non_existing_realm_error?(conn) do
+    with %{"realm_name" => realm} when is_binary(realm) <- conn.path_params,
+         {:error, :realm_not_found} <- Auth.fetch_public_key(realm) do
+      true
+    else
+      _ -> false
+    end
   end
 end
