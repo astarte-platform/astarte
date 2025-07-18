@@ -136,6 +136,18 @@ defmodule Astarte.AppEngine.APIWeb.Telemetry do
       ),
       sum("astarte.appengine.api.request.response_body_bytes",
         tags: [:realm]
+      ),
+      counter("astarte.appengine.channels.watch_request.count",
+        tags: [:realm],
+        description: "Trigger installation requests count"
+      ),
+      counter("astarte.appengine.channels.unwatch_request.count",
+        tags: [:realm],
+        description: "Trigger deinstallation requests count"
+      ),
+      sum("astarte.appengine.interface.data_retrieved.bytes",
+        tags: [:realm, :interface],
+        description: "Total bytes retrieved per interface"
       )
     ]
   end

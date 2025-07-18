@@ -148,13 +148,26 @@ defmodule Astarte.AppEngine.API.Device do
            DeviceQueries.interface_version(realm_name, device_id, interface),
          {:ok, interface_row} <-
            InterfaceQueries.retrieve_interface_row(realm_name, interface, major_version) do
-      do_get_interface_values!(
-        realm_name,
-        device_id,
-        interface_row.aggregation,
-        interface_row,
-        options
+      result =
+        do_get_interface_values!(
+          realm_name,
+          device_id,
+          interface_row.aggregation,
+          interface_row,
+          options
+        )
+
+      bytes =
+        :erlang.term_to_binary(result)
+        |> byte_size()
+
+      :telemetry.execute(
+        [:astarte, :appengine, :interface, :data_retrieved],
+        %{bytes: bytes},
+        %{interface: interface, realm: realm_name}
       )
+
+      result
     end
   end
 
@@ -176,16 +189,29 @@ defmodule Astarte.AppEngine.API.Device do
          {:ok, interface_descriptor} <- InterfaceDescriptor.from_db_result(interface_row),
          {:ok, endpoint_ids} <-
            get_endpoint_ids(interface_descriptor.automaton, path, allow_guess: true) do
-      do_get_interface_values!(
-        realm_name,
-        device_id,
-        interface_row.aggregation,
-        interface_row.type,
-        interface_row,
-        endpoint_ids,
-        path,
-        options
+      result =
+        do_get_interface_values!(
+          realm_name,
+          device_id,
+          interface_row.aggregation,
+          interface_row.type,
+          interface_row,
+          endpoint_ids,
+          path,
+          options
+        )
+
+      bytes =
+        :erlang.term_to_binary(result)
+        |> byte_size()
+
+      :telemetry.execute(
+        [:astarte, :appengine, :interface, :data_retrieved],
+        %{bytes: bytes},
+        %{interface: interface, realm: realm_name}
       )
+
+      result
     end
   end
 
