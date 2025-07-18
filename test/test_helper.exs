@@ -1,5 +1,6 @@
 Mimic.copy(Xandra)
-ExUnit.start()
+Mimic.copy(Astarte.DataAccess.Realms.Realm)
+ExUnit.start(capture_log: true)
 
 children = [
   {Astarte.DataAccess, xandra_options: Astarte.DataAccess.Config.xandra_options!()}
