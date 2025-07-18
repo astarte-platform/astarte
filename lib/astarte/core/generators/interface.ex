@@ -25,6 +25,7 @@ defmodule Astarte.Core.Generators.Interface do
 
   import Astarte.Generators.Utilities.ParamsGen
 
+  alias Astarte.Core.Generators.Interface
   alias Astarte.Core.Generators.Mapping, as: MappingGenerator
   alias Astarte.Core.Interface
   alias Astarte.Utilities.Map, as: MapUtilities
@@ -70,8 +71,12 @@ defmodule Astarte.Core.Generators.Interface do
   end
 
   @doc """
-  Convert this struct stream to changes
+  Convert this struct/stream to changes
   """
+  @spec to_changes(Interface.t()) :: StreamData.t(map())
+  def to_changes(data) when not is_struct(data, StreamData),
+    do: data |> constant() |> to_changes()
+
   @spec to_changes(StreamData.t(Interface.t())) :: StreamData.t(map())
   def to_changes(gen) do
     gen all %Interface{
