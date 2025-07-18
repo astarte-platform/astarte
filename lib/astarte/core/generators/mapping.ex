@@ -74,8 +74,12 @@ defmodule Astarte.Core.Generators.Mapping do
   end
 
   @doc """
-  Convert this struct stream to changes
+  Convert this struct/stream to changes
   """
+  @spec to_changes(Mapping.t()) :: StreamData.t(map())
+  def to_changes(data) when not is_struct(data, StreamData),
+    do: data |> constant() |> to_changes()
+
   @spec to_changes(StreamData.t(Mapping.t())) :: StreamData.t(map())
   def to_changes(gen) do
     gen all mapping <- gen do
