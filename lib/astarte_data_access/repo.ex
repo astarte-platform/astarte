@@ -22,6 +22,7 @@ defmodule Astarte.DataAccess.Repo do
   @moduledoc false
   use Ecto.Repo, otp_app: :astarte_data_access, adapter: Exandra
   alias Astarte.DataAccess.Config
+  alias Astarte.DataAccess.Realms.Realm
   require Ecto.Query
   require Logger
 
@@ -115,12 +116,7 @@ defmodule Astarte.DataAccess.Repo do
   end
 
   def fetch_all(queryable, opts \\ []) do
-    try do
-      {:ok, all(queryable, opts)}
-    rescue
-      error ->
-        handle_database_error(error)
-    end
+    safe_wrap(fn -> all(queryable, opts) end)
   end
 
   def fetch_one(queryable, opts \\ []) do
@@ -134,39 +130,23 @@ defmodule Astarte.DataAccess.Repo do
   end
 
   def safe_fetch_one(queryable, opts \\ []) do
-    try do
-      fetch_one(queryable, opts)
-    rescue
-      error ->
-        handle_database_error(error)
-    end
+    safe_wrap(fn -> fetch_one(queryable, opts) end)
   end
 
   def safe_insert_all(source, entries, opts \\ []) do
-    try do
-      {:ok, insert_all(source, entries, opts)}
-    rescue
-      error ->
-        handle_database_error(error)
-    end
+    safe_wrap(fn -> insert_all(source, entries, opts) end)
+  end
+
+  def safe_update(changeset, opts \\ []) do
+    safe_wrap(fn -> update(changeset, opts) end)
   end
 
   def safe_update_all(queryable, updates, opts \\ []) do
-    try do
-      {:ok, update_all(queryable, updates, opts)}
-    rescue
-      error ->
-        handle_database_error(error)
-    end
+    safe_wrap(fn -> update_all(queryable, updates, opts) end)
   end
 
   def safe_delete_all(queryable, opts \\ []) do
-    try do
-      {:ok, delete_all(queryable, opts)}
-    rescue
-      error ->
-        handle_database_error(error)
-    end
+    safe_wrap(fn -> delete_all(queryable, opts) end)
   end
 
   defp handle_database_error(%Xandra.ConnectionError{} = error) do
@@ -189,9 +169,14 @@ defmodule Astarte.DataAccess.Repo do
   end
 
   defp handle_database_error(%Xandra.Error{} = error) do
+    astarte_keyspace = Realm.astarte_keyspace_name()
     %Xandra.Error{message: message} = error
 
     case Regex.run(~r/Keyspace (.*) does not exist/, message) do
+      [_message, ^astarte_keyspace] ->
+        Logger.warning("Database error: astarte keyspace does not exist", tag: "database_error")
+        {:error, :database_error}
+
       [_message, keyspace] ->
         Logger.warning("Keyspace #{keyspace} does not exist.",
           tag: "realm_not_found"
@@ -209,6 +194,8 @@ defmodule Astarte.DataAccess.Repo do
         {:error, :database_error}
     end
   end
+
+  defp handle_database_error(error), do: {:error, error}
 
   @doc """
   Reimplementation of `exists?` from Ecto, without using `select(1)` as scylla does not support it.
@@ -258,5 +245,14 @@ defmodule Astarte.DataAccess.Repo do
     raise Ecto.QueryError,
       query: query,
       message: "expected a from expression with a schema"
+  end
+
+  defp safe_wrap(f) do
+    try do
+      {:ok, f.()}
+    rescue
+      error ->
+        handle_database_error(error)
+    end
   end
 end
