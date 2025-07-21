@@ -23,7 +23,7 @@ defmodule Astarte.AppEngine.API.DeviceTest do
   alias Astarte.AppEngine.API.Device.DevicesList
   alias Astarte.AppEngine.API.Device.InterfaceInfo
   alias Astarte.AppEngine.API.Device.InterfaceValues
-  alias Astarte.AppEngine.API.Repo
+  alias Astarte.DataAccess.Repo
   alias Astarte.DataAccess.Realms.Realm
 
   import Mox

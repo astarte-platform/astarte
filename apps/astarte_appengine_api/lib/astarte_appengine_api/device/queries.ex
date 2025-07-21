@@ -28,7 +28,7 @@ defmodule Astarte.AppEngine.API.Device.Queries do
   alias Astarte.DataAccess.Realms.IndividualProperty
   alias Astarte.DataAccess.KvStore
   alias Astarte.DataAccess.Realms.Name
-  alias Astarte.AppEngine.API.Repo
+  alias Astarte.DataAccess.Repo
   alias Astarte.Core.CQLUtils
   alias Astarte.Core.Device
   alias Astarte.Core.Mapping
