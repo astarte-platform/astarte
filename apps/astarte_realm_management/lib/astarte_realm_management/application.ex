@@ -40,14 +40,11 @@ defmodule Astarte.RealmManagement.Application do
 
     xandra_opts = Astarte.RealmManagement.Config.xandra_options!()
 
-    rm_xandra_opts = Keyword.put(xandra_opts, :name, :xandra)
-
     data_access_opts = [xandra_options: xandra_opts]
 
     children = [
       Astarte.RealmManagementWeb.Telemetry,
       Astarte.RealmManagementWeb.Endpoint,
-      {Xandra.Cluster, rm_xandra_opts},
       {Astarte.DataAccess, data_access_opts},
       {Task.Supervisor, name: Astarte.RealmManagement.DeviceRemoverSupervisor},
       Astarte.RealmManagement.DeviceRemoval.Scheduler
