@@ -212,6 +212,13 @@ defmodule Astarte.AppEngine.APIWeb.FallbackController do
     |> render(:"422_unset_not_allowed")
   end
 
+  def call(conn, {:error, :realm_not_found}) do
+    conn
+    |> put_status(:unauthorized)
+    |> put_view(Astarte.AppEngine.APIWeb.ErrorView)
+    |> render(:"401")
+  end
+
   # This is called when no JWT token is present
   def auth_error(conn, {:unauthenticated, reason}, _opts) do
     _ =
