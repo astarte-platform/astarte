@@ -72,6 +72,13 @@ defmodule Astarte.DataUpdaterPlant.AMQPEventsProducer do
 
   @impl true
   def handle_info({:DOWN, _, :process, _pid, reason}, _state) do
+    # Track channel crash
+    :telemetry.execute(
+      [:astarte, :data_updater_plant, :amqp_events_producer, :channel_crash],
+      %{},
+      %{reason: inspect(reason)}
+    )
+
     Logger.warning("RabbitMQ connection lost: #{inspect(reason)}. Trying to reconnect...",
       tag: "events_producer_conn_lost"
     )

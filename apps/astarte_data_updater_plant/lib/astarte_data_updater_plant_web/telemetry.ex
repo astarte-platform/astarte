@@ -87,7 +87,7 @@ defmodule Astarte.DataUpdaterPlantWeb.Telemetry do
         tags: [:realm]
       ),
       counter("astarte.data_updater_plant.triggers_handler.published_event.count",
-        tags: [:realm]
+        tags: [:realm, :event_type]
       ),
       counter("astarte.data_updater_plant.data_updater.detected_crash.count"),
       last_value("astarte.data_updater_plant.data_updater.handle_data.duration",
@@ -100,6 +100,81 @@ defmodule Astarte.DataUpdaterPlantWeb.Telemetry do
       ),
       sum("astarte.data_updater_plant.service.connected_devices.duration",
         tags: [:realm]
+      ),
+
+      # ControlHandler specific metrics
+      last_value("astarte.data_updater_plant.control_handler.properties_prune.duration",
+        tags: [:realm, :prune_type],
+        unit: {:native, :millisecond},
+        description: "Time taken to purge device properties"
+      ),
+      sum("astarte.data_updater_plant.control_handler.properties_prune.payload_size",
+        tags: [:realm, :prune_type],
+        description: "Size of properties purge payloads"
+      ),
+      last_value("astarte.data_updater_plant.control_handler.payload_decompression.duration",
+        tags: [:realm, :result],
+        unit: {:native, :microsecond},
+        description: "Time taken to decompress control payloads"
+      ),
+      sum("astarte.data_updater_plant.control_handler.payload_decompression.compressed_size",
+        tags: [:realm, :result],
+        description: "Size of compressed payloads"
+      ),
+      sum("astarte.data_updater_plant.control_handler.payload_decompression.uncompressed_size",
+        tags: [:realm, :result],
+        description: "Size of uncompressed payloads"
+      ),
+      counter("astarte.data_updater_plant.control_handler.unexpected_control.count",
+        tags: [:realm, :control_path],
+        description: "Unexpected control messages received"
+      ),
+      sum("astarte.data_updater_plant.control_handler.unexpected_control.payload_size",
+        tags: [:realm, :control_path],
+        description: "Size of unexpected control message payloads"
+      ),
+      counter("astarte.data_updater_plant.control_handler.interface_loading.count",
+        tags: [:realm, :interface, :result],
+        description: "Interface loading attempts during control processing"
+      ),
+      last_value("astarte.data_updater_plant.control_handler.vmq_publish.duration",
+        tags: [:realm, :result, :matches],
+        unit: {:native, :microsecond},
+        description: "Time taken to publish messages via VMQ"
+      ),
+      sum("astarte.data_updater_plant.control_handler.vmq_publish.payload_size",
+        tags: [:realm, :result, :matches],
+        description: "Size of payloads published via VMQ"
+      ),
+      last_value("astarte.data_updater_plant.control_handler.properties_resend.duration",
+        tags: [:realm, :result],
+        unit: {:native, :millisecond},
+        description: "Time taken to resend device properties"
+      ),
+
+      # DataHandler specific metrics
+      counter("astarte.data_updater_plant.data_handler.interface_cache.count",
+        tags: [:realm, :interface, :result],
+        description: "Interface cache hit/miss/failed lookups"
+      ),
+      counter("astarte.data_updater_plant.data_handler.path_cache.count",
+        tags: [:realm, :result],
+        description: "Path cache hit/miss lookups"
+      ),
+      counter("astarte.data_updater_plant.data_handler.value_change_check.count",
+        tags: [:realm, :has_previous],
+        description: "Value change detection attempts"
+      ),
+
+      # AMQPDataConsumer specific metrics
+      counter("astarte.data_updater_plant.amqp_consumer.channel_crash.count",
+        tags: [:queue_name, :reason],
+        description: "AMQP channel crashes by queue and reason"
+      ),
+      # AMQPEventsProducer specific metrics
+      counter("astarte.data_updater_plant.amqp_events_producer.channel_crash.count",
+        tags: [:reason],
+        description: "AMQP events producer channel crashes by reason"
       )
     ]
   end

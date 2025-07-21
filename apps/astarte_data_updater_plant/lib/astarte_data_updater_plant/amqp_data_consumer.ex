@@ -100,6 +100,13 @@ defmodule Astarte.DataUpdaterPlant.AMQPDataConsumer do
         {:DOWN, monitor, :process, chan_pid, reason},
         %{monitor: monitor, channel: %{pid: chan_pid}} = state
       ) do
+    # Track channel crash
+    :telemetry.execute(
+      [:astarte, :data_updater_plant, :amqp_consumer, :channel_crash],
+      %{},
+      %{queue_name: state.queue_name, reason: inspect(reason)}
+    )
+
     # Channel went down, stop the process
     Logger.warning("AMQP data consumer crashed, reason: #{inspect(reason)}",
       tag: "data_consumer_chan_crash"
