@@ -36,7 +36,8 @@ defmodule AstarteE2E.TaskScheduler do
     Process.flag(:trap_exit, true)
 
     checks = [
-      AstarteE2E.VolatileTriggerRoundtrip.Executor
+      AstarteE2E.VolatileTriggerRoundtrip.Executor,
+      AstarteE2E.DeviceDeletion
     ]
 
     state =
