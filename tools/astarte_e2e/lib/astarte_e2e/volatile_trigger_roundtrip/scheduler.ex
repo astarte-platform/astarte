@@ -16,7 +16,7 @@
 # limitations under the License.
 #
 
-defmodule AstarteE2E.Scheduler do
+defmodule AstarteE2E.VolatileTriggerRoundtrip.Scheduler do
   alias AstarteE2E.Utils
   require Logger
 
@@ -53,11 +53,6 @@ defmodule AstarteE2E.Scheduler do
 
   @impl true
   def handle_info(:do_perform_check, %{check_repetitions: 0} = state) do
-    Logger.info("Terminating application successfully.",
-      tag: "termination_success"
-    )
-
-    System.stop(0)
     {:stop, :normal, state}
   end
 
@@ -109,7 +104,6 @@ defmodule AstarteE2E.Scheduler do
           tag: "critical_request_timeout"
         )
 
-        System.stop(1)
         {:stop, :timeout, state}
     end
   end
