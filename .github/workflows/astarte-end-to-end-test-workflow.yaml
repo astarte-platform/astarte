@@ -60,7 +60,7 @@ jobs:
         done
     - name: Generate AppEngine JWT
       run: |
-        JWT=$(./astartectl utils gen-jwt appengine channels pairing -k test_private.pem)
+        JWT=$(./astartectl utils gen-jwt appengine channels pairing realm-management -k test_private.pem)
         echo "E2E_JWT=$JWT" >> $GITHUB_ENV
     - uses: actions/cache@v4
       with:
@@ -84,6 +84,7 @@ jobs:
       env:
         E2E_PAIRING_URL: http://api.astarte.localhost/pairing
         E2E_APPENGINE_URL: http://api.astarte.localhost/appengine
+        E2E_REALM_MANAGEMENT_URL: http://api.astarte.localhost/realmmanagement
         E2E_IGNORE_SSL_ERRORS: true
         E2E_CHECK_INTERVAL_SECONDS: 5
         E2E_CHECK_REPETITIONS: 5
