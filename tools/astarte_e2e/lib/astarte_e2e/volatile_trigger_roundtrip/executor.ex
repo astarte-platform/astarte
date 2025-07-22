@@ -32,11 +32,10 @@ defmodule AstarteE2E.VolatileTriggerRoundtrip.Executor do
   end
 
   @impl GenServer
-  def init(_init_arg) do
+  def init(device_id) do
     with {:ok, realm} <- Config.realm(),
          {:ok, interfaces} <- default_interfaces() do
       Process.flag(:trap_exit, true)
-      device_id = Astarte.Core.Device.random_device_id()
       device_opts = [realm: realm, device_id: device_id, interfaces: interfaces]
       encoded_id = Astarte.Core.Device.encode_device_id(device_id)
 

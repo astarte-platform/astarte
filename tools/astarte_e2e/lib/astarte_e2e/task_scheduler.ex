@@ -34,15 +34,17 @@ defmodule AstarteE2E.TaskScheduler do
   @impl GenServer
   def init(_init_arg) do
     Process.flag(:trap_exit, true)
+    device_id = Astarte.Core.Device.random_device_id()
 
     checks = [
-      AstarteE2E.VolatileTriggerRoundtrip.Executor,
-      AstarteE2E.DeviceDeletion
+      {AstarteE2E.VolatileTriggerRoundtrip.Executor, device_id},
+      {AstarteE2E.DeviceDeletion, []},
+      {AstarteE2E.AmqpDataTrigger, device_id}
     ]
 
     state =
-      for check <- checks, into: %{} do
-        {:ok, pid} = check.start_link([])
+      for {check, args} <- checks, into: %{} do
+        {:ok, pid} = check.start_link(args)
         Logger.debug("Starting check #{inspect(check)} with pid #{inspect(pid)}")
 
         {pid, check}
