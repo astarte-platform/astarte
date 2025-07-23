@@ -552,7 +552,11 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
         exchanged_msgs_by_interface: interface_exchanged_msgs
       )
 
-    opts = [prefix: keyspace_name, consistency: Consistency.device_info(:write)]
+    opts = [
+      prefix: keyspace_name,
+      consistency: Consistency.device_info(:write),
+      allow_insert: false
+    ]
 
     Repo.update!(changeset, opts)
   end
@@ -854,16 +858,17 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
   def ack_start_device_deletion(realm_name, device_id) do
     keyspace_name = Realm.keyspace_name(realm_name)
 
-    query =
-      from(d in DeletionInProgress,
-        prefix: ^keyspace_name,
-        where: d.device_id == ^device_id,
-        update: [set: [dup_start_ack: true]]
-      )
+    deletion_in_progress =
+      %DeletionInProgress{device_id: device_id}
+      |> Ecto.Changeset.change(%{dup_start_ack: true})
 
-    consistency = Consistency.device_info(:write)
+    opts = [
+      prefix: keyspace_name,
+      consistency: Consistency.device_info(:write),
+      allow_insert: false
+    ]
 
-    with {:ok, _} <- Repo.safe_update_all(query, [], consistency: consistency) do
+    with {:ok, _} <- Repo.safe_update(deletion_in_progress, opts) do
       :ok
     end
   end

@@ -37,6 +37,7 @@ defmodule Astarte.RealmManagement.Devices.Queries do
 
     opts = [
       prefix: keyspace,
+      overwrite: false,
       consistency: Consistency.device_info(:write)
     ]
 
