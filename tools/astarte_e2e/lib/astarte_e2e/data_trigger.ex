@@ -22,11 +22,10 @@ defmodule AstarteE2E.DataTrigger do
   alias Astarte.Core.Device, as: CoreDevice
   alias AstarteE2E.Config
   alias AstarteE2E.Device
+  alias AstarteE2E.Utils
 
   require Logger
 
-  @datastream_interface "org.astarte-platform.e2etest.SimpleDatastream"
-  @properties_interface "org.astarte-platform.e2etest.SimpleProperties"
   @datastream_trigger "valuetrigger-datastream"
   @properties_trigger "valuetrigger-properties"
 
@@ -47,15 +46,39 @@ defmodule AstarteE2E.DataTrigger do
   @impl GenServer
   def init(opts) do
     realm = Keyword.fetch!(opts, :realm)
-    device_id = Keyword.fetch!(opts, :device_id)
+    device_id = Keyword.fetch!(opts, :device_id) 
+    encoded_id = Astarte.Core.Device.encode_device_id(device_id)
 
-    with {:ok, interfaces} <- default_interfaces(),
-         opts = [realm: realm, device_id: device_id, interfaces: interfaces],
-         {:ok, device_supervisor_pid} <- Device.start_link(opts),
+    interfaces = Keyword.fetch!(opts, :interfaces)
+
+    datastream_interface =
+      Enum.find(interfaces, &(&1[:type] == :datastream)) ||
+        raise "no datastream interface present"
+
+    properties_interface =
+      Enum.find(interfaces, &(&1[:type] == :properties)) ||
+        raise "no properties interface present"
+
+    opts = [
+      realm: realm,
+      device_id: device_id,
+      interfaces: interfaces,
+      datastream_interface: datastream_interface,
+      properties_interface: properties_interface
+    ]
+
+    with {:ok, device_supervisor_pid} <- Device.start_link(opts),
          device_pid = Device.astarte_device_pid(device_supervisor_pid),
          :ok <- Astarte.Device.wait_for_connection(device_pid),
          :ok <- install_data_trigger(opts) do
-      state = %{realm: realm, device_id: device_id, device_pid: device_pid, messages: []}
+      state = %{
+        realm: realm,
+        device_id: encoded_id,
+        device_pid: device_pid,
+        messages: [],
+        datastream_interface: datastream_interface,
+        properties_interface: properties_interface
+      }
 
       {:ok, state, {:continue, :publish_data}}
     end
@@ -63,13 +86,27 @@ defmodule AstarteE2E.DataTrigger do
 
   @impl true
   def handle_continue(:publish_data, state) do
-    %{device_pid: device_pid} = state
+    %{
+      device_pid: device_pid,
+      datastream_interface: datastream_interface,
+      properties_interface: properties_interface
+    } = state
+
+    datastream_name = datastream_interface.name
+    properties_name = properties_interface.name
+
     datastreams = Enum.map(1..5, fn _ -> AstarteE2E.Utils.random_string() end)
     property = AstarteE2E.Utils.random_string()
-    path = "/correlationId"
 
-    with :ok <- publish_datastreams(device_pid, @datastream_interface, path, datastreams),
-         :ok <- Astarte.Device.set_property(device_pid, @properties_interface, path, property) do
+    datastream_path =
+      datastream_interface.mappings |> hd() |> Map.fetch!(:endpoint) |> path_from_endpoint()
+
+    properties_path =
+      properties_interface.mappings |> hd() |> Map.fetch!(:endpoint) |> path_from_endpoint()
+
+    with :ok <- publish_datastreams(device_pid, datastream_name, datastream_path, datastreams),
+         :ok <-
+           Astarte.Device.set_property(device_pid, properties_name, properties_path, property) do
       Logger.debug("Data Trigger: all messages sent")
       datastreams = Enum.map(datastreams, &{@datastream_trigger, &1})
       property = {@properties_trigger, property}
@@ -111,6 +148,9 @@ defmodule AstarteE2E.DataTrigger do
     realm = Config.realm!()
     astarte_jwt = Config.jwt!()
 
+    datastream_interface = Keyword.fetch!(opts, :datastream_interface)
+    properties_interface = Keyword.fetch!(opts, :properties_interface)
+
     url = Path.join([base_url, "v1", realm, "triggers"])
 
     headers = [
@@ -129,8 +169,8 @@ defmodule AstarteE2E.DataTrigger do
             device_id: encoded_id,
             type: "data_trigger",
             on: "incoming_data",
-            interface_name: @datastream_interface,
-            interface_major: 1,
+            interface_name: datastream_interface.interface_name,
+            interface_major: datastream_interface.version_major,
             match_path: "/*",
             value_match_operator: "*"
           }
@@ -146,8 +186,8 @@ defmodule AstarteE2E.DataTrigger do
             device_id: encoded_id,
             type: "data_trigger",
             on: "incoming_data",
-            interface_name: @properties_interface,
-            interface_major: 1,
+            interface_name: properties_interface.interface_name,
+            interface_major: properties_interface.version_major,
             match_path: "/*",
             value_match_operator: "*"
           }
@@ -195,24 +235,16 @@ defmodule AstarteE2E.DataTrigger do
     end
   end
 
-  defp default_interfaces() do
-    with {:ok, standard_interface_provider} <- Config.standard_interface_provider(),
-         {:ok, interface_files} <- File.ls(standard_interface_provider) do
-      interface_files = interface_files |> Enum.map(&Path.join(standard_interface_provider, &1))
-      read_interface_files(interface_files)
-    end
-  end
-
-  defp read_interface_files(interface_files) do
-    Enum.reduce_while(interface_files, {:ok, []}, fn interface_file, {:ok, interfaces} ->
-      with {:ok, interface_json} <- File.read(interface_file),
-           {:ok, interface} <- Jason.decode(interface_json) do
-        {:cont, {:ok, [interface | interfaces]}}
+  defp path_from_endpoint(endpoint) do
+    endpoint
+    |> String.split("/")
+    |> Enum.map(fn token ->
+      if Astarte.Core.Mapping.is_placeholder?(token) do
+        Utils.random_string()
       else
-        error ->
-          Logger.error("Error reading interface: #{interface_file}")
-          {:halt, error}
+        token
       end
     end)
+    |> Enum.join("/")
   end
 end

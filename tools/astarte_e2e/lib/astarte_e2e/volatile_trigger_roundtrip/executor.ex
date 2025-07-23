@@ -32,17 +32,20 @@ defmodule AstarteE2E.VolatileTriggerRoundtrip.Executor do
   end
 
   @impl GenServer
-  def init(_init_args) do
-    with {:ok, realm} <- Config.realm(),
-         {:ok, interfaces} <- default_interfaces() do
-      Process.flag(:trap_exit, true)
+  def init(opts) do
+    Process.flag(:trap_exit, true)
+
+    with {:ok, realm} <- Config.realm() do
+      interfaces = Keyword.get(opts, :interfaces)
       device_id = Astarte.Core.Device.random_device_id()
+
       device_opts = [realm: realm, device_id: device_id, interfaces: interfaces]
       encoded_id = Astarte.Core.Device.encode_device_id(device_id)
 
       scheduler_opts =
         Config.scheduler_opts()
         |> Keyword.put(:device_id, encoded_id)
+        |> Keyword.put(:interfaces, interfaces)
 
       {:ok, device} = Device.start_link(device_opts)
       {:ok, scheduler} = Scheduler.start_link(scheduler_opts)
@@ -56,26 +59,5 @@ defmodule AstarteE2E.VolatileTriggerRoundtrip.Executor do
   @impl GenServer
   def handle_info({:EXIT, _pid, reason}, state) do
     {:stop, reason, state}
-  end
-
-  defp default_interfaces() do
-    with {:ok, standard_interface_provider} <- Config.standard_interface_provider(),
-         {:ok, interface_files} <- File.ls(standard_interface_provider) do
-      interface_files = interface_files |> Enum.map(&Path.join(standard_interface_provider, &1))
-      read_interface_files(interface_files)
-    end
-  end
-
-  defp read_interface_files(interface_files) do
-    Enum.reduce_while(interface_files, {:ok, []}, fn interface_file, {:ok, interfaces} ->
-      with {:ok, interface_json} <- File.read(interface_file),
-           {:ok, interface} <- Jason.decode(interface_json) do
-        {:cont, {:ok, [interface | interfaces]}}
-      else
-        error ->
-          Logger.error("Error reading interface: #{interface_file}")
-          {:halt, error}
-      end
-    end)
   end
 end

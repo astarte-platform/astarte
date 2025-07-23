@@ -38,12 +38,14 @@ defmodule AstarteE2E.VolatileTriggerRoundtrip.Scheduler do
     check_repetitions = Keyword.fetch!(opts, :check_repetitions)
     device_id = Keyword.fetch!(opts, :device_id)
     realm = Keyword.fetch!(opts, :realm)
+    interfaces = Keyword.fetch!(opts, :interfaces)
 
     state = %{
       check_repetitions: check_repetitions,
       check_interval_ms: check_interval_ms,
       realm: realm,
-      device_id: device_id
+      device_id: device_id,
+      interfaces: interfaces
     }
 
     {:ok, state, {:continue, :do_perform_check}}
@@ -62,7 +64,7 @@ defmodule AstarteE2E.VolatileTriggerRoundtrip.Scheduler do
   @impl true
   def handle_info(:do_perform_check, state) do
     return_val =
-      case AstarteE2E.perform_check(state.realm, state.device_id) do
+      case AstarteE2E.perform_check(state.realm, state.device_id, state.interfaces) do
         :ok ->
           handle_successful_job(state)
 

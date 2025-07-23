@@ -30,14 +30,27 @@ defmodule AstarteE2E.AmqpDataTrigger do
   end
 
   @impl true
-  def init(_init_arg) do
+  def init(opts) do
     with {:ok, realm} <- Config.realm() do
       device_id = Astarte.Core.Device.random_device_id()
-      device_opts = [realm: realm, device_id: device_id]
+      interfaces = Keyword.fetch!(opts, :interfaces)
+      device_opts = [realm: realm, device_id: device_id, interfaces: interfaces]
+
+      datastream_interface =
+        Enum.find(interfaces, &(&1[:type] == :datastream)) ||
+          raise "no datastream interface present"
+
+      properties_interface =
+        Enum.find(interfaces, &(&1[:type] == :properties)) ||
+          raise "no properties interface present"
 
       case Device.start_link(device_opts) do
         {:ok, _device_pid} ->
-          send(self(), {:install_triggers, realm, device_id})
+          send(
+            self(),
+            {:install_triggers, realm, device_id, properties_interface, datastream_interface}
+          )
+
           {:ok, %{}}
 
         {:error, reason} ->
@@ -52,8 +65,11 @@ defmodule AstarteE2E.AmqpDataTrigger do
   end
 
   @impl true
-  def handle_info({:install_triggers, realm, device_id}, state) do
-    case install_triggers(realm, device_id) do
+  def handle_info(
+        {:install_triggers, realm, device_id, properties_interface, datastream_interface},
+        state
+      ) do
+    case install_triggers(realm, device_id, properties_interface, datastream_interface) do
       :ok ->
         Logger.info("Amqp Data Triggers installed successfully.")
         {:stop, :normal, state}
@@ -64,8 +80,8 @@ defmodule AstarteE2E.AmqpDataTrigger do
     end
   end
 
-  def install_triggers(realm, device_id) do
-    triggers = generate_triggers(realm, device_id)
+  def install_triggers(realm, device_id, properties_interface, datastream_interface) do
+    triggers = generate_triggers(realm, device_id, properties_interface, datastream_interface)
 
     base_url = Config.realm_management_url!()
     astarte_jwt = Config.jwt!()
@@ -100,7 +116,7 @@ defmodule AstarteE2E.AmqpDataTrigger do
     end)
   end
 
-  defp generate_triggers(realm, device_id) do
+  defp generate_triggers(realm, device_id, properties_interface, datastream_interface) do
     encoded_device_id = Astarte.Core.Device.encode_device_id(device_id)
 
     [
@@ -116,8 +132,8 @@ defmodule AstarteE2E.AmqpDataTrigger do
           %{
             "type" => "data_trigger",
             "on" => "incoming_data",
-            "interface_name" => "org.astarte-platform.e2etest.SimpleProperties",
-            "interface_major" => 1,
+            "interface_name" => properties_interface.interface_name,
+            "interface_major" => properties_interface.version_major,
             "match_path" => "/*",
             "value_match_operator" => "*"
           }
@@ -136,8 +152,8 @@ defmodule AstarteE2E.AmqpDataTrigger do
             "type" => "data_trigger",
             "on" => "incoming_data",
             "device_id" => encoded_device_id,
-            "interface_name" => "org.astarte-platform.e2etest.SimpleDatastream",
-            "interface_major" => 1,
+            "interface_name" => datastream_interface.interface_name,
+            "interface_major" => datastream_interface.version_major,
             "match_path" => "/*",
             "value_match_operator" => "*"
           }
