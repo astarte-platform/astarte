@@ -22,8 +22,8 @@ defmodule Astarte.Housekeeping.Realms.QueriesTest do
 
   alias Astarte.DataAccess.Repo
   alias Astarte.Housekeeping.Helpers.Database
-  alias Astarte.Housekeeping.Realms.Queries
   alias Astarte.Housekeeping.Realms
+  alias Astarte.Housekeeping.Realms.Queries
   alias Astarte.Housekeeping.Realms.Realm, as: HKRealm
 
   @public_key_pem """

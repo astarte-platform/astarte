@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2018 Ispirata Srl
+# Copyright 2018 - 2025 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -17,10 +17,11 @@
 #
 
 defmodule Astarte.Housekeeping.Config do
-  alias Astarte.Housekeeping.Config.JWTPublicKeyPEMType
-  alias Astarte.DataAccess.Config, as: DataAccessConfig
-
+  @moduledoc false
   use Skogsra
+
+  alias Astarte.DataAccess.Config, as: DataAccessConfig
+  alias Astarte.Housekeeping.Config.JWTPublicKeyPEMType
 
   @envdoc "The bind address for the Phoenix server."
   app_env :bind_address, :astarte_housekeeping, :bind_address,

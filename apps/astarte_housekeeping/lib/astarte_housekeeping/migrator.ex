@@ -17,13 +17,14 @@
 #
 
 defmodule Astarte.Housekeeping.Migrator do
+  @moduledoc false
   import Ecto.Query
 
   alias Astarte.DataAccess.Consistency
   alias Astarte.DataAccess.CSystem
+  alias Astarte.DataAccess.KvStore
   alias Astarte.DataAccess.Realms.Realm
   alias Astarte.DataAccess.Repo
-  alias Astarte.DataAccess.KvStore
   alias Astarte.Housekeeping.Realms.Queries
   alias Astarte.Housekeeping.Realms.Realm, as: HKRealm
 

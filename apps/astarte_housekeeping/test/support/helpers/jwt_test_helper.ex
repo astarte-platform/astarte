@@ -17,6 +17,7 @@
 #
 
 defmodule Astarte.Helpers.JWTTestHelper do
+  @moduledoc false
   alias Astarte.Housekeeping.Auth.User
   alias Astarte.HousekeepingWeb.AuthGuardian
 

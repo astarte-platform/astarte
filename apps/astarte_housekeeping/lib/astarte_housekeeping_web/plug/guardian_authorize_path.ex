@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2018 Ispirata Srl
+# Copyright 2018 - 2025 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -17,15 +17,16 @@
 #
 
 defmodule Astarte.HousekeepingWeb.Plug.GuardianAuthorizePath do
+  @moduledoc false
   use Plug.Builder
 
   import Plug.Conn
 
-  require Logger
-
   alias Astarte.Housekeeping.Auth.User
   alias Astarte.HousekeepingWeb.AuthGuardian
   alias Astarte.HousekeepingWeb.FallbackController
+
+  require Logger
 
   plug Guardian.Plug.Pipeline,
     otp_app: :astarte_housekeeping,

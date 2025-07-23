@@ -17,6 +17,7 @@
 #
 
 defmodule Astarte.Housekeeping.Realms.Queries do
+  @moduledoc false
   import Ecto.Query
 
   alias Astarte.Core.Realm, as: CoreRealm

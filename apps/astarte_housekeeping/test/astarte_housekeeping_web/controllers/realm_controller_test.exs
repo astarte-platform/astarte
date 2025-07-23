@@ -21,14 +21,15 @@ defmodule Astarte.HousekeepingWeb.RealmControllerTest do
   use Astarte.HousekeepingWeb.AuthCase
   use Mimic
 
-  alias Astarte.DataAccess.Repo
-  alias Astarte.Housekeeping.Config
-  alias Astarte.Housekeeping.Realms.Realm
-  alias Astarte.Housekeeping.Realms.Queries
-  alias Astarte.Housekeeping.Realms
-  alias Astarte.Housekeeping.Helpers.Database
   import Astarte.Housekeeping.Fixtures.Realm
   import Ecto.Query
+
+  alias Astarte.DataAccess.Repo
+  alias Astarte.Housekeeping.Config
+  alias Astarte.Housekeeping.Helpers.Database
+  alias Astarte.Housekeeping.Realms
+  alias Astarte.Housekeeping.Realms.Queries
+  alias Astarte.Housekeeping.Realms.Realm
 
   @malformed_pubkey """
   -----BEGIN PUBLIC KEY-----

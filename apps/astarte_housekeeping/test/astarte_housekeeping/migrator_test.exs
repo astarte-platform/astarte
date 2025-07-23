@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2019 Ispirata Srl
+# Copyright 2019 - 2025 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -18,12 +18,12 @@
 
 defmodule Astarte.Housekeeping.MigratorTest do
   use ExUnit.Case
-
-  alias Astarte.Housekeeping.Migrator
-  alias Astarte.Housekeeping.Realms.Queries
-  alias Astarte.Housekeeping.Helpers.Database
-  alias Astarte.Housekeeping.Realms
   use Mimic
+
+  alias Astarte.Housekeeping.Helpers.Database
+  alias Astarte.Housekeeping.Migrator
+  alias Astarte.Housekeeping.Realms
+  alias Astarte.Housekeeping.Realms.Queries
 
   describe "run migrations, " do
     setup do

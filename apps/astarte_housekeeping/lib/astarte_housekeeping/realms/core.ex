@@ -17,6 +17,7 @@
 #
 
 defmodule Astarte.Housekeeping.Realms.Core do
+  @moduledoc false
   alias Astarte.Housekeeping.Realms.Queries
   alias Astarte.Housekeeping.Realms.Realm
 
