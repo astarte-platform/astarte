@@ -16,7 +16,7 @@
 # limitations under the License.
 #
 
-defmodule AstarteE2E.Scheduler do
+defmodule AstarteE2E.VolatileTriggerRoundtrip.Scheduler do
   alias AstarteE2E.Utils
   require Logger
 
@@ -36,27 +36,33 @@ defmodule AstarteE2E.Scheduler do
       |> Utils.to_ms()
 
     check_repetitions = Keyword.fetch!(opts, :check_repetitions)
+    device_id = Keyword.fetch!(opts, :device_id)
+    realm = Keyword.fetch!(opts, :realm)
 
-    state = %{check_repetitions: check_repetitions, check_interval_ms: check_interval_ms}
-    Process.send_after(self(), :do_perform_check, check_interval_ms)
+    state = %{
+      check_repetitions: check_repetitions,
+      check_interval_ms: check_interval_ms,
+      realm: realm,
+      device_id: device_id
+    }
 
-    {:ok, state}
+    {:ok, state, {:continue, :do_perform_check}}
+  end
+
+  @impl true
+  def handle_continue(:do_perform_check, state) do
+    handle_info(:do_perform_check, state)
   end
 
   @impl true
   def handle_info(:do_perform_check, %{check_repetitions: 0} = state) do
-    Logger.info("Terminating application successfully.",
-      tag: "termination_success"
-    )
-
-    System.stop(0)
     {:stop, :normal, state}
   end
 
   @impl true
   def handle_info(:do_perform_check, state) do
     return_val =
-      case AstarteE2E.perform_check() do
+      case AstarteE2E.perform_check(state.realm, state.device_id) do
         :ok ->
           handle_successful_job(state)
 
@@ -80,6 +86,10 @@ defmodule AstarteE2E.Scheduler do
       :infinity ->
         {:noreply, state}
 
+      1 ->
+        updated_state = update_in(state.check_repetitions, &(&1 - 1))
+        {:stop, :normal, updated_state}
+
       _ ->
         updated_count = state.check_repetitions - 1
         {:noreply, %{state | check_repetitions: updated_count}}
@@ -101,7 +111,6 @@ defmodule AstarteE2E.Scheduler do
           tag: "critical_request_timeout"
         )
 
-        System.stop(1)
         {:stop, :timeout, state}
     end
   end
