@@ -46,9 +46,12 @@ defmodule AstarteE2E.VolatileTriggerRoundtrip.Scheduler do
       device_id: device_id
     }
 
-    Process.send_after(self(), :do_perform_check, check_interval_ms)
+    {:ok, state, {:continue, :do_perform_check}}
+  end
 
-    {:ok, state}
+  @impl true
+  def handle_continue(:do_perform_check, state) do
+    handle_info(:do_perform_check, state)
   end
 
   @impl true
@@ -82,6 +85,10 @@ defmodule AstarteE2E.VolatileTriggerRoundtrip.Scheduler do
     case state.check_repetitions do
       :infinity ->
         {:noreply, state}
+
+      1 ->
+        updated_state = update_in(state.check_repetitions, & &1 - 1)
+        {:stop, :normal, updated_state}
 
       _ ->
         updated_count = state.check_repetitions - 1
