@@ -99,8 +99,11 @@ defmodule Astarte.Housekeeping.Realms.Queries do
   def set_device_registration_limit(realm_name, device_registration_limit) do
     opts = [prefix: Realm.astarte_keyspace_name(), consistency: Consistency.domain_model(:write)]
 
-    from(Realm, where: [realm_name: ^realm_name])
-    |> Repo.update_all([set: [device_registration_limit: device_registration_limit]], opts)
+    query =
+      from Realm,
+        where: [realm_name: ^realm_name]
+
+    Repo.update_all(query, [set: [device_registration_limit: device_registration_limit]], opts)
 
     :ok
   end
@@ -145,8 +148,11 @@ defmodule Astarte.Housekeeping.Realms.Queries do
       prefix: Realm.keyspace_name(realm_name)
     ]
 
-    from(KvStore, where: [group: "realm_config", key: "datastream_maximum_storage_retention"])
-    |> Repo.delete_all(opts)
+    query =
+      from KvStore,
+        where: [group: "realm_config", key: "datastream_maximum_storage_retention"]
+
+    Repo.delete_all(query, opts)
 
     :ok
   end
@@ -325,10 +331,9 @@ defmodule Astarte.Housekeeping.Realms.Queries do
   defp build_replication_map_str(datacenter_replication_factors)
        when is_map(datacenter_replication_factors) do
     datacenter_replications_str =
-      Enum.map(datacenter_replication_factors, fn {datacenter, replication_factor} ->
+      Enum.map_join(datacenter_replication_factors, ",", fn {datacenter, replication_factor} ->
         "'#{datacenter}': #{replication_factor}"
       end)
-      |> Enum.join(",")
 
     replication_map_str = "{'class': 'NetworkTopologyStrategy', #{datacenter_replications_str}}"
 
@@ -379,13 +384,14 @@ defmodule Astarte.Housekeeping.Realms.Queries do
       prefix: keyspace_name
     ]
 
-    %{
+    kv_store_map = %{
       group: "realm_config",
       key: "datastream_maximum_storage_retention",
       value: max_retention,
       value_type: :integer
     }
-    |> KvStore.insert(opts)
+
+    KvStore.insert(kv_store_map, opts)
   end
 
   defp insert_realm(realm_name, device_limit) do
@@ -419,13 +425,14 @@ defmodule Astarte.Housekeeping.Realms.Queries do
       prefix: keyspace_name
     ]
 
-    %{
+    kv_store_map = %{
       group: "astarte",
       key: "schema_version",
       value: Migrator.latest_realm_schema_version(),
       value_type: :big_integer
     }
-    |> KvStore.insert(opts)
+
+    KvStore.insert(kv_store_map, opts)
   end
 
   defp insert_realm_public_key(keyspace_name, public_key_pem) do
@@ -436,13 +443,14 @@ defmodule Astarte.Housekeeping.Realms.Queries do
       prefix: keyspace_name
     ]
 
-    %{
+    kv_store_map = %{
       group: "auth",
       key: "jwt_public_key_pem",
       value: public_key_pem,
       value_type: :string
     }
-    |> KvStore.insert(opts)
+
+    KvStore.insert(kv_store_map, opts)
   end
 
   defp get_local_datacenter do
@@ -791,8 +799,13 @@ defmodule Astarte.Housekeeping.Realms.Queries do
   defp fetch_realm_replication(keyspace) do
     opts = [consistency: Consistency.domain_model(:read), error: :realm_replication_not_found]
 
-    from(k in "keyspaces", prefix: "system_schema", select: k.replication, limit: 1)
-    |> Repo.fetch_by(%{keyspace_name: keyspace}, opts)
+    query =
+      from k in "keyspaces",
+        prefix: "system_schema",
+        select: k.replication,
+        limit: 1
+
+    Repo.fetch_by(query, %{keyspace_name: keyspace}, opts)
   end
 
   defp fetch_device_registration_limit(realm_name) do
@@ -803,8 +816,12 @@ defmodule Astarte.Housekeeping.Realms.Queries do
       error: :realm_device_registration_limit_not_found
     ]
 
-    from(r in Realm, prefix: ^astarte_keyspace, select: r.device_registration_limit)
-    |> Repo.fetch(realm_name, opts)
+    query =
+      from r in Realm,
+        prefix: ^astarte_keyspace,
+        select: r.device_registration_limit
+
+    Repo.fetch(query, realm_name, opts)
   end
 
   defp get_datastream_maximum_storage_retention(keyspace) do
@@ -1082,13 +1099,14 @@ defmodule Astarte.Housekeeping.Realms.Queries do
       prefix: keyspace_name
     ]
 
-    %{
+    kv_store_map = %{
       group: "astarte",
       key: "schema_version",
       value: Migrator.latest_realm_schema_version(),
       value_type: :big_integer
     }
-    |> KvStore.insert(opts)
+
+    KvStore.insert(kv_store_map, opts)
   end
 
   def is_astarte_keyspace_existing do

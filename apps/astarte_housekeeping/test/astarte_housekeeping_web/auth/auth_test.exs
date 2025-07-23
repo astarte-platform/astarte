@@ -42,8 +42,8 @@ defmodule Astarte.HousekeepingWeb.AuthTest do
 
     test "all access token returns the data", %{conn: conn} do
       conn =
-        put_req_header(
-          conn,
+        conn
+        |> put_req_header(
           "authorization",
           "bearer #{JWTTestHelper.gen_jwt_all_access_token()}"
         )
@@ -54,8 +54,8 @@ defmodule Astarte.HousekeepingWeb.AuthTest do
 
     test "valid token returns the data", %{conn: conn} do
       conn =
-        put_req_header(
-          conn,
+        conn
+        |> put_req_header(
           "authorization",
           "bearer #{JWTTestHelper.gen_jwt_token(["^GET$::#{@valid_auth_path}"])}"
         )
@@ -66,8 +66,8 @@ defmodule Astarte.HousekeepingWeb.AuthTest do
 
     test "valid token without delimiters returns the data", %{conn: conn} do
       conn =
-        put_req_header(
-          conn,
+        conn
+        |> put_req_header(
           "authorization",
           "bearer #{JWTTestHelper.gen_jwt_token(["GET::#{@valid_auth_path_no_delim}"])}"
         )
@@ -78,8 +78,8 @@ defmodule Astarte.HousekeepingWeb.AuthTest do
 
     test "token matching only prefix returns 403", %{conn: conn} do
       conn =
-        put_req_header(
-          conn,
+        conn
+        |> put_req_header(
           "authorization",
           "bearer #{JWTTestHelper.gen_jwt_token(["^GET$::#{@valid_auth_path}"])}"
         )
@@ -90,8 +90,8 @@ defmodule Astarte.HousekeepingWeb.AuthTest do
 
     test "token for another path returns 403", %{conn: conn} do
       conn =
-        put_req_header(
-          conn,
+        conn
+        |> put_req_header(
           "authorization",
           "bearer #{JWTTestHelper.gen_jwt_token(["^GET$::#{@non_matching_auth_path}"])}"
         )
@@ -102,8 +102,8 @@ defmodule Astarte.HousekeepingWeb.AuthTest do
 
     test "token for both paths returns the data", %{conn: conn} do
       conn =
-        put_req_header(
-          conn,
+        conn
+        |> put_req_header(
           "authorization",
           "bearer #{JWTTestHelper.gen_jwt_token(["^GET$::#{@non_matching_auth_path}", "^GET$::#{@valid_auth_path}"])}"
         )
@@ -114,8 +114,8 @@ defmodule Astarte.HousekeepingWeb.AuthTest do
 
     test "token for another method returns 403", %{conn: conn} do
       conn =
-        put_req_header(
-          conn,
+        conn
+        |> put_req_header(
           "authorization",
           "bearer #{JWTTestHelper.gen_jwt_token(["^POST$::#{@valid_auth_path}"])}"
         )
@@ -126,8 +126,8 @@ defmodule Astarte.HousekeepingWeb.AuthTest do
 
     test "token for both methods returns the data", %{conn: conn} do
       conn =
-        put_req_header(
-          conn,
+        conn
+        |> put_req_header(
           "authorization",
           "bearer #{JWTTestHelper.gen_jwt_token(["^POST$::#{@valid_auth_path}", "^GET$::#{@valid_auth_path}"])}"
         )
@@ -138,8 +138,8 @@ defmodule Astarte.HousekeepingWeb.AuthTest do
 
     test "token with generic matching regexp returns the data", %{conn: conn} do
       conn =
-        put_req_header(
-          conn,
+        conn
+        |> put_req_header(
           "authorization",
           "bearer #{JWTTestHelper.gen_jwt_token(["^.*$::#{@non_exact_match_valid_auth_path}"])}"
         )

@@ -43,7 +43,7 @@ defmodule Astarte.HousekeepingWeb.RealmControllerTest do
   3FYHyYudzQKa11c55Z6ZZaw2H+nUkQl1/jqfHTrqMSiOP4TTf0oTYLWKfg==
   -----END PUBLIC KEY-----
   """
-  @local_datacenter from(l in "system.local", select: l.data_center) |> Repo.one!()
+  @local_datacenter Repo.one!(from(l in "system.local", select: l.data_center))
 
   @create_attrs %{"data" => %{"realm_name" => "testrealm", "jwt_public_key_pem" => pubkey()}}
   @explicit_replication_attrs %{

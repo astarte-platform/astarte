@@ -207,7 +207,8 @@ defmodule Astarte.Housekeeping.Migrator do
           fn a, b -> a >= b end
       end
 
-    Path.join([migrations_path, "*.sql"])
+    [migrations_path, "*.sql"]
+    |> Path.join()
     |> Path.wildcard()
     |> Enum.map(&extract_migration_info/1)
     |> Enum.filter(&(&1 != nil))
@@ -269,12 +270,13 @@ defmodule Astarte.Housekeeping.Migrator do
       timeout: @query_timeout
     ]
 
-    %{
+    kv_store_map = %{
       group: "astarte",
       key: "schema_version",
       value: schema_version,
       value_type: :big_integer
     }
-    |> KvStore.insert(opts)
+
+    KvStore.insert(kv_store_map, opts)
   end
 end

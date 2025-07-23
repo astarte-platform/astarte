@@ -107,7 +107,7 @@ defmodule Astarte.Housekeeping.Realms.Core do
         },
         opts
       ) do
-    datacenter_replication_factors_map = Enum.to_list(replication_factors_map) |> Enum.into(%{})
+    datacenter_replication_factors_map = Enum.into(Enum.to_list(replication_factors_map), %{})
 
     Queries.create_realm(
       realm_name,

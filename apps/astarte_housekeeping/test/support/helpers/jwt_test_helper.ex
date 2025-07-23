@@ -22,13 +22,11 @@ defmodule Astarte.Helpers.JWTTestHelper do
   alias Astarte.HousekeepingWeb.AuthGuardian
 
   def gen_jwt_token(authorization_paths) do
-    jwk =
-      Application.get_env(:astarte_housekeeping, :test_priv_key)
-      |> JOSE.JWK.from_map()
+    jwk = JOSE.JWK.from_map(Application.get_env(:astarte_housekeeping, :test_priv_key))
 
     {:ok, jwt, _claims} =
-      %User{id: "testuser"}
-      |> AuthGuardian.encode_and_sign(
+      AuthGuardian.encode_and_sign(
+        %User{id: "testuser"},
         %{a_ha: authorization_paths},
         secret: jwk,
         allowed_algos: ["RS256"]

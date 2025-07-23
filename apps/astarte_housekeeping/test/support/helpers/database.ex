@@ -279,9 +279,7 @@ defmodule Astarte.Housekeeping.Helpers.Database do
 
     astarte_keyspace = Realm.astarte_keyspace_name()
 
-    %Realm{realm_name: realm_name}
-    |> Repo.insert(prefix: astarte_keyspace)
-
+    Repo.insert(%Realm{realm_name: realm_name}, prefix: astarte_keyspace)
     :ok
   end
 
@@ -336,12 +334,10 @@ defmodule Astarte.Housekeeping.Helpers.Database do
   end
 
   def destroy_astarte_kv_store_table! do
-    Realm.astarte_keyspace_name()
-    |> execute(@drop_kv_store)
+    execute(Realm.astarte_keyspace_name(), @drop_kv_store)
   end
 
   defp execute(keyspace, query, params \\ [], opts \\ []) do
-    String.replace(query, ":keyspace", keyspace)
-    |> Repo.query(params, opts)
+    Repo.query(String.replace(query, ":keyspace", keyspace), params, opts)
   end
 end

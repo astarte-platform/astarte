@@ -54,17 +54,17 @@ defmodule Astarte.Housekeeping.Realms.QueriesTest do
     end
 
     test "returns database error" do
-      Xandra |> stub(:execute, fn _, _, _, _ -> {:error, %Xandra.Error{}} end)
+      Mimic.stub(Xandra, :execute, fn _, _, _, _ -> {:error, %Xandra.Error{}} end)
       assert {:error, :database_error} = Queries.initialize_database()
     end
 
     test "returns connection error" do
-      Xandra |> stub(:execute, fn _, _, _, _ -> {:error, %Xandra.ConnectionError{}} end)
+      Mimic.stub(Xandra, :execute, fn _, _, _, _ -> {:error, %Xandra.ConnectionError{}} end)
       assert {:error, :database_connection_error} = Queries.initialize_database()
     end
 
     test "returns another error" do
-      Xandra |> stub(:execute, fn _, _, _, _ -> {:error, "generic error"} end)
+      Mimic.stub(Xandra, :execute, fn _, _, _, _ -> {:error, "generic error"} end)
       assert {:error, _} = Queries.initialize_database()
     end
   end
@@ -92,19 +92,19 @@ defmodule Astarte.Housekeeping.Realms.QueriesTest do
     end
 
     test "fails due to db error" do
-      Repo |> stub(:safe_fetch_one, fn _, _ -> {:error, %Xandra.Error{}} end)
+      Mimic.stub(Repo, :safe_fetch_one, fn _, _ -> {:error, %Xandra.Error{}} end)
 
       assert {:error, :database_error} = Queries.is_astarte_keyspace_existing()
     end
 
     test "fails due to db connection error" do
-      Repo |> stub(:safe_fetch_one, fn _, _ -> {:error, %Xandra.ConnectionError{}} end)
+      Mimic.stub(Repo, :safe_fetch_one, fn _, _ -> {:error, %Xandra.ConnectionError{}} end)
 
       assert {:error, :database_connection_error} = Queries.is_astarte_keyspace_existing()
     end
 
     test "raise due to generic error" do
-      Repo |> stub(:safe_fetch_one, fn _, _ -> {:error, "another error"} end)
+      Mimic.stub(Repo, :safe_fetch_one, fn _, _ -> {:error, "another error"} end)
 
       assert_raise CaseClauseError, fn -> Queries.is_astarte_keyspace_existing() end
     end
@@ -149,7 +149,7 @@ defmodule Astarte.Housekeeping.Realms.QueriesTest do
     end
 
     test "creations returns an error", %{realm_name: realm_name} do
-      Repo |> stub(:query, fn _, _, _ -> {:error, "generic error"} end)
+      Mimic.stub(Repo, :query, fn _, _, _ -> {:error, "generic error"} end)
 
       assert {:error, "generic error"} =
                Queries.create_realm(realm_name, "test1publickey", 1, 1, 1, [])
@@ -197,7 +197,7 @@ defmodule Astarte.Housekeeping.Realms.QueriesTest do
 
     test "get returns error due to get_public_key error" do
       assert :ok = Queries.create_realm("anotherrealm", "test2publickey", 1, 1, 1, [])
-      Xandra |> stub(:execute, fn _, _, _, _ -> {:error, %Xandra.ConnectionError{}} end)
+      Mimic.stub(Xandra, :execute, fn _, _, _, _ -> {:error, %Xandra.ConnectionError{}} end)
 
       assert {:error, :database_connection_error} =
                Queries.get_realm("anotherrealm")
@@ -238,12 +238,12 @@ defmodule Astarte.Housekeeping.Realms.QueriesTest do
     end
 
     test "returns database error" do
-      Xandra |> stub(:execute, fn _, _, _, _ -> {:error, %Xandra.Error{message: ""}} end)
+      Mimic.stub(Xandra, :execute, fn _, _, _, _ -> {:error, %Xandra.Error{message: ""}} end)
       assert {:error, :database_error} = Queries.list_realms()
     end
 
     test "returns connection error" do
-      Xandra |> stub(:execute, fn _, _, _, _ -> {:error, %Xandra.ConnectionError{}} end)
+      Mimic.stub(Xandra, :execute, fn _, _, _, _ -> {:error, %Xandra.ConnectionError{}} end)
       assert {:error, :database_connection_error} = Queries.list_realms()
     end
   end
@@ -260,7 +260,7 @@ defmodule Astarte.Housekeeping.Realms.QueriesTest do
     test "returns {:error, _} when there is a database connection error", %{
       realm_name: realm_name
     } do
-      Xandra |> stub(:execute, fn _, _, _, _ -> {:error, %Xandra.ConnectionError{}} end)
+      Mimic.stub(Xandra, :execute, fn _, _, _, _ -> {:error, %Xandra.ConnectionError{}} end)
       assert {:error, _} = Queries.is_realm_existing(realm_name)
     end
   end
@@ -286,12 +286,12 @@ defmodule Astarte.Housekeeping.Realms.QueriesTest do
     end
 
     test "set limit fails due to db error", %{realm_name: realm_name} do
-      Xandra |> stub(:execute, fn _, _, _, _ -> {:error, %Xandra.Error{}} end)
+      Mimic.stub(Xandra, :execute, fn _, _, _, _ -> {:error, %Xandra.Error{}} end)
       assert_raise Xandra.Error, fn -> Queries.set_device_registration_limit(realm_name, 10) end
     end
 
     test "set limit fails due to db connection error", %{realm_name: realm_name} do
-      Xandra |> stub(:execute, fn _, _, _, _ -> {:error, %Xandra.ConnectionError{}} end)
+      Mimic.stub(Xandra, :execute, fn _, _, _, _ -> {:error, %Xandra.ConnectionError{}} end)
 
       assert_raise Xandra.ConnectionError, fn ->
         Queries.set_device_registration_limit(realm_name, 10)
@@ -328,12 +328,12 @@ defmodule Astarte.Housekeeping.Realms.QueriesTest do
     end
 
     test "fails due to db error", %{realm_name: realm_name} do
-      Xandra |> stub(:execute, fn _, _, _, _ -> {:error, %Xandra.Error{}} end)
+      Mimic.stub(Xandra, :execute, fn _, _, _, _ -> {:error, %Xandra.Error{}} end)
       assert_raise Xandra.Error, fn -> Queries.delete_device_registration_limit(realm_name) end
     end
 
     test "fails due to db connection error", %{realm_name: realm_name} do
-      Xandra |> stub(:execute, fn _, _, _, _ -> {:error, %Xandra.ConnectionError{}} end)
+      Mimic.stub(Xandra, :execute, fn _, _, _, _ -> {:error, %Xandra.ConnectionError{}} end)
 
       assert_raise Xandra.ConnectionError, fn ->
         Queries.delete_device_registration_limit(realm_name)
@@ -375,7 +375,7 @@ defmodule Astarte.Housekeeping.Realms.QueriesTest do
     end
 
     test "fails due to db error", %{realm_name: realm_name} do
-      Xandra |> stub(:execute, fn _, _, _, _ -> {:error, %Xandra.Error{}} end)
+      Mimic.stub(Xandra, :execute, fn _, _, _, _ -> {:error, %Xandra.Error{}} end)
 
       assert_raise Xandra.Error, fn ->
         Queries.set_datastream_maximum_storage_retention(realm_name, 10)
@@ -383,7 +383,7 @@ defmodule Astarte.Housekeeping.Realms.QueriesTest do
     end
 
     test "fails due to db connection error", %{realm_name: realm_name} do
-      Xandra |> stub(:execute, fn _, _, _, _ -> {:error, %Xandra.ConnectionError{}} end)
+      Mimic.stub(Xandra, :execute, fn _, _, _, _ -> {:error, %Xandra.ConnectionError{}} end)
 
       assert_raise Xandra.ConnectionError, fn ->
         Queries.set_datastream_maximum_storage_retention(realm_name, 10)
@@ -420,7 +420,7 @@ defmodule Astarte.Housekeeping.Realms.QueriesTest do
     end
 
     test "fails due to db error", %{realm_name: realm_name} do
-      Xandra |> stub(:execute, fn _, _, _, _ -> {:error, %Xandra.Error{}} end)
+      Mimic.stub(Xandra, :execute, fn _, _, _, _ -> {:error, %Xandra.Error{}} end)
 
       assert_raise Xandra.Error, fn ->
         Queries.delete_datastream_maximum_storage_retention(realm_name)
@@ -428,7 +428,7 @@ defmodule Astarte.Housekeeping.Realms.QueriesTest do
     end
 
     test "fails due to db connection error", %{realm_name: realm_name} do
-      Xandra |> stub(:execute, fn _, _, _, _ -> {:error, %Xandra.ConnectionError{}} end)
+      Mimic.stub(Xandra, :execute, fn _, _, _, _ -> {:error, %Xandra.ConnectionError{}} end)
 
       assert_raise Xandra.ConnectionError, fn ->
         Queries.delete_datastream_maximum_storage_retention(realm_name)
@@ -460,7 +460,7 @@ defmodule Astarte.Housekeeping.Realms.QueriesTest do
     end
 
     test "fails due to db error", %{realm_name: realm_name} do
-      Xandra |> stub(:execute, fn _, _, _, _ -> {:error, %Xandra.Error{}} end)
+      Mimic.stub(Xandra, :execute, fn _, _, _, _ -> {:error, %Xandra.Error{}} end)
 
       assert_raise Xandra.Error, fn ->
         Queries.update_public_key(realm_name, "newPublicKey")
@@ -468,7 +468,7 @@ defmodule Astarte.Housekeeping.Realms.QueriesTest do
     end
 
     test "fails due to db connection error", %{realm_name: realm_name} do
-      Xandra |> stub(:execute, fn _, _, _, _ -> {:error, %Xandra.ConnectionError{}} end)
+      Mimic.stub(Xandra, :execute, fn _, _, _, _ -> {:error, %Xandra.ConnectionError{}} end)
 
       assert_raise Xandra.ConnectionError, fn ->
         Queries.update_public_key(realm_name, "newPublicKey")

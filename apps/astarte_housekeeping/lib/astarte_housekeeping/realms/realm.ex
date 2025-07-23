@@ -79,9 +79,7 @@ defmodule Astarte.Housekeeping.Realms.Realm do
   end
 
   def error_changeset(realm, params \\ %{}) do
-    changeset =
-      realm
-      |> cast(params, @required_create_fields)
+    changeset = cast(realm, params, @required_create_fields)
 
     %{changeset | valid?: false}
   end
@@ -113,8 +111,8 @@ defmodule Astarte.Housekeeping.Realms.Realm do
 
       # Here we're implicitly not in NetworkTopologyStrategy
       get_field(changeset, :datacenter_replication_factors) ->
-        changeset
-        |> add_error(
+        add_error(
+          changeset,
           :datacenter_replication_factors,
           "must be used with replication_class NetworkTopologyStrategy"
         )
