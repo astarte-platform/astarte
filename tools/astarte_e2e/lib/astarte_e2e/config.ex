@@ -26,6 +26,7 @@ defmodule AstarteE2E.Config do
   alias AstarteE2E.Config.ListOfStrings
   alias AstarteE2E.Config.BambooMailAdapter
   alias AstarteE2E.Config.NormalizedMailAddress
+  alias AstarteE2E.Config.JWTPublicKeyPEMType
 
   @type client_option ::
           {:url, String.t()}
@@ -55,6 +56,12 @@ defmodule AstarteE2E.Config do
     type: :binary,
     required: true
 
+  @envdoc "Astarte Housekeeping URL (e.g. https://api.astarte.example.com/housekeeping)."
+  app_env :housekeeping_url, :astarte_e2e, :housekeeping_url,
+    os_env: "E2E_HOUSEKEEPING_URL",
+    type: :binary,
+    required: true
+
   @envdoc "An Astarte device ID, which is a valid UUID encoded with standard Astarte device_id encoding (Base64 url encoding, no padding)."
   app_env :device_id, :astarte_e2e, :device_id,
     os_env: "E2E_DEVICE_ID",
@@ -76,12 +83,6 @@ defmodule AstarteE2E.Config do
   @envdoc "Astarte AppEngine URL (e.g. https://api.astarte.example.com/appengine)."
   app_env :appengine_url, :astarte_e2e, :appengine_url,
     os_env: "E2E_APPENGINE_URL",
-    type: :binary,
-    required: true
-
-  @envdoc "Realm name."
-  app_env :realm, :astarte_e2e, :realm,
-    os_env: "E2E_REALM",
     type: :binary,
     required: true
 
@@ -175,6 +176,11 @@ defmodule AstarteE2E.Config do
     os_env: "E2E_MAIL_SERVICE",
     type: BambooMailAdapter
 
+  @envdoc "The JWT public key."
+  app_env :jwt_public_key_pem, :astarte_housekeeping, :jwt_public_key_pem,
+    os_env: "HOUSEKEEPING_API_JWT_PUBLIC_KEY_PATH",
+    type: JWTPublicKeyPEMType
+
   @spec websocket_url() :: {:ok, String.t()}
   def websocket_url do
     {:ok, websocket_url!()}
@@ -207,7 +213,7 @@ defmodule AstarteE2E.Config do
   def device_opts do
     [
       pairing_url: pairing_url!(),
-      realm: realm!(),
+      realm: realm_opts()[:realm_name],
       device_id: device_id!(),
       credentials_secret: credentials_secret!(),
       interface_provider: standard_interface_provider!(),
@@ -219,7 +225,7 @@ defmodule AstarteE2E.Config do
   def client_opts do
     [
       url: websocket_url!(),
-      realm: realm!(),
+      realm: realm_opts()[:realm_name],
       jwt: jwt!(),
       device_id: device_id!(),
       check_repetitions: check_repetitions!(),
@@ -232,8 +238,15 @@ defmodule AstarteE2E.Config do
     [
       check_interval_s: check_interval_s!(),
       check_repetitions: check_repetitions!(),
-      realm: realm!(),
+      realm: realm_opts()[:realm_name],
       device_id: device_id!()
+    ]
+  end
+
+  def realm_opts do
+    [
+      realm_name: "test",
+      jwt_public_key_pem: jwt_public_key_pem!()
     ]
   end
 
