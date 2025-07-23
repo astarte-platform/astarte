@@ -370,7 +370,8 @@ defmodule Astarte.Housekeeping.Realms.Queries do
     :ok
   end
 
-  # apparently, before when the field was nil, it was encoded as zero (not optional on protobuff), so treat it the same as zero
+  # Apparently, before when the field was nil, it was encoded as zero (not optional on protobuff),
+  # so treat it the same as zero
   defp insert_datastream_max_retention(_keyspace_name, nil) do
     :ok
   end
@@ -869,16 +870,7 @@ defmodule Astarte.Housekeeping.Realms.Queries do
   def delete_realm(realm_name, opts \\ []) do
     if Config.enable_realm_deletion!() do
       Logger.info("Deleting realm", tag: "delete_realm", realm_name: realm_name)
-
-      keyspace_name = Realm.keyspace_name(realm_name)
-
-      if opts[:async] do
-        {:ok, _pid} = Task.start(fn -> do_delete_realm(realm_name, keyspace_name) end)
-
-        :ok
-      else
-        do_delete_realm(realm_name, keyspace_name)
-      end
+      do_delete_realm_with_options(realm_name, opts)
     else
       Logger.info("HOUSEKEEPING_ENABLE_REALM_DELETION is disabled, realm will not be deleted.",
         tag: "realm_deletion_disabled",
@@ -886,6 +878,17 @@ defmodule Astarte.Housekeeping.Realms.Queries do
       )
 
       {:error, :realm_deletion_disabled}
+    end
+  end
+
+  defp do_delete_realm_with_options(realm_name, opts) do
+    keyspace_name = Realm.keyspace_name(realm_name)
+
+    if opts[:async] do
+      {:ok, _pid} = Task.start(fn -> do_delete_realm(realm_name, keyspace_name) end)
+      :ok
+    else
+      do_delete_realm(realm_name, keyspace_name)
     end
   end
 
