@@ -41,7 +41,7 @@ defmodule Astarte.HousekeepingWeb.Plug.GuardianAuthorizePath do
   defp authorize(conn, opts) do
     with %User{authorizations: authorizations} <- AuthGuardian.Plug.current_resource(conn),
          {:ok, auth_path} <- build_auth_path(conn),
-         :ok <- is_path_authorized?(conn.method, auth_path, authorizations) do
+         :ok <- path_authorized?(conn.method, auth_path, authorizations) do
       conn
     else
       {:error, :invalid_auth_path} ->
@@ -74,7 +74,7 @@ defmodule Astarte.HousekeepingWeb.Plug.GuardianAuthorizePath do
     end
   end
 
-  defp is_path_authorized?(method, auth_path, authorizations) when is_list(authorizations) do
+  defp path_authorized?(method, auth_path, authorizations) when is_list(authorizations) do
     authorized =
       Enum.any?(authorizations, fn auth_string ->
         case get_auth_regex(auth_string) do
@@ -93,7 +93,7 @@ defmodule Astarte.HousekeepingWeb.Plug.GuardianAuthorizePath do
     end
   end
 
-  defp is_path_authorized?(method, auth_path, authorizations),
+  defp path_authorized?(method, auth_path, authorizations),
     do: {:error, {:unauthorized, method, auth_path, authorizations}}
 
   defp get_auth_regex(authorization_string) do

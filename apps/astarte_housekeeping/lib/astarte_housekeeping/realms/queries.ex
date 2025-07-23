@@ -35,7 +35,7 @@ defmodule Astarte.Housekeeping.Realms.Queries do
 
   @default_replication_factor 1
 
-  def is_realm_existing(realm_name) do
+  def realm_existing?(realm_name) do
     keyspace_name = Realm.astarte_keyspace_name()
 
     query =
@@ -52,7 +52,7 @@ defmodule Astarte.Housekeeping.Realms.Queries do
 
       {:error, reason} ->
         Logger.warning("Cannot check if realm exists: #{inspect(reason)}.",
-          tag: "is_realm_existing_error",
+          tag: "realm_existing_error",
           realm: realm_name
         )
 
@@ -61,15 +61,13 @@ defmodule Astarte.Housekeeping.Realms.Queries do
   end
 
   def get_realm(realm_name) do
-    try do
-      keyspace_name = Realm.keyspace_name(realm_name)
-      do_get_realm(realm_name, keyspace_name)
-    rescue
-      ArgumentError ->
-        _ = Logger.warning("Invalid realm name.", tag: "invalid_realm_name", realm: realm_name)
+    keyspace_name = Realm.keyspace_name(realm_name)
+    do_get_realm(realm_name, keyspace_name)
+  rescue
+    ArgumentError ->
+      _ = Logger.warning("Invalid realm name.", tag: "invalid_realm_name", realm: realm_name)
 
-        {:error, :realm_not_allowed}
-    end
+      {:error, :realm_not_allowed}
   end
 
   defp do_get_realm(realm_name, keyspace_name) do
@@ -781,7 +779,7 @@ defmodule Astarte.Housekeeping.Realms.Queries do
   end
 
   defp verify_realm_exists(realm_name) do
-    case is_realm_existing(realm_name) do
+    case realm_existing?(realm_name) do
       {:ok, true} -> :ok
       {:ok, false} -> {:error, :realm_not_found}
       {:error, reason} -> {:error, reason}
@@ -1112,7 +1110,7 @@ defmodule Astarte.Housekeeping.Realms.Queries do
     KvStore.insert(kv_store_map, opts)
   end
 
-  def is_astarte_keyspace_existing do
+  def astarte_keyspace_existing? do
     keyspace_name = Realm.astarte_keyspace_name()
 
     query =

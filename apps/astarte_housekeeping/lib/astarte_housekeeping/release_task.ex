@@ -91,7 +91,7 @@ defmodule Astarte.Housekeeping.ReleaseTasks do
   end
 
   defp wait_connection_and_check_astarte_keyspace(retries \\ 60) do
-    case Queries.is_astarte_keyspace_existing() do
+    case Queries.astarte_keyspace_existing?() do
       {:ok, exists?} ->
         {:ok, exists?}
 

@@ -133,18 +133,16 @@ defmodule Astarte.Housekeeping.Realms.Realm do
   end
 
   defp validate_pem_public_key(field, pem) do
-    try do
-      case :public_key.pem_decode(pem) do
-        [{:SubjectPublicKeyInfo, _, _}] ->
-          []
+    case :public_key.pem_decode(pem) do
+      [{:SubjectPublicKeyInfo, _, _}] ->
+        []
 
-        _ ->
-          [{field, "is not a valid PEM public key"}]
-      end
-    rescue
       _ ->
         [{field, "is not a valid PEM public key"}]
     end
+  rescue
+    _ ->
+      [{field, "is not a valid PEM public key"}]
   end
 
   defp put_default_if_missing(changeset, field, default) do

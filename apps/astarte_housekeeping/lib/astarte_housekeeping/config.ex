@@ -70,7 +70,7 @@ defmodule Astarte.Housekeeping.Config do
   @doc """
   Returns :ok if the JWT key is valid, otherwise raise an exception.
   """
-  def validate_jwt_public_key_pem!() do
+  def validate_jwt_public_key_pem! do
     if authentication_disabled?() do
       :ok
     else
