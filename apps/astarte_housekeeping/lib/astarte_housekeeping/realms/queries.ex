@@ -351,9 +351,10 @@ defmodule Astarte.Housekeeping.Realms.Queries do
     AND durable_writes = true;
     """
 
-    with {:ok, %{rows: nil, num_rows: 1}} <- CSystem.execute_schema_change(query) do
-      :ok
-    else
+    case CSystem.execute_schema_change(query) do
+      {:ok, %{rows: nil, num_rows: 1}} ->
+        :ok
+
       {:error, reason} ->
         _ =
           Logger.warning("Cannot create keyspace: #{inspect(reason)}.",
@@ -714,9 +715,10 @@ defmodule Astarte.Housekeeping.Realms.Queries do
     );
     """
 
-    with {:ok, %{rows: nil, num_rows: 1}} <- CSystem.execute_schema_change(query) do
-      :ok
-    else
+    case CSystem.execute_schema_change(query) do
+      {:ok, %{rows: nil, num_rows: 1}} ->
+        :ok
+
       {:error, reason} ->
         Logger.warning("Cannot create kv_store: #{inspect(reason)}.",
           tag: "build_kv_store_error",
@@ -917,9 +919,10 @@ defmodule Astarte.Housekeeping.Realms.Queries do
   end
 
   defp verify_realm_deletion_preconditions(keyspace_name) do
-    with :ok <- check_no_connected_devices(keyspace_name) do
-      :ok
-    else
+    case check_no_connected_devices(keyspace_name) do
+      :ok ->
+        :ok
+
       {:error, reason} ->
         Logger.warning("Realm deletion preconditions are not satisfied: #{inspect(reason)}.",
           tag: "realm_deletion_preconditions_rejected",

@@ -65,9 +65,10 @@ defmodule Astarte.HousekeepingWeb.Plug.GuardianAuthorizePath do
   end
 
   defp build_auth_path(conn) do
-    with [_api_version | rest] <- conn.path_info do
-      {:ok, Enum.join(rest, "/")}
-    else
+    case conn.path_info do
+      [_api_version | rest] ->
+        {:ok, Enum.join(rest, "/")}
+
       _ ->
         {:error, :invalid_auth_path}
     end

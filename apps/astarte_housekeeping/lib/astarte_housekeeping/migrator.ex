@@ -36,18 +36,16 @@ defmodule Astarte.Housekeeping.Migrator do
     _ = Logger.info("Starting to migrate Astarte keyspace.", tag: "astarte_migration_started")
 
     with :ok <- ensure_astarte_kv_store(),
-         {:ok, astarte_schema_version} <- get_astarte_schema_version(),
-         :ok <- migrate_astarte_keyspace_from_version(astarte_schema_version) do
-      :ok
+         {:ok, astarte_schema_version} <- get_astarte_schema_version() do
+      migrate_astarte_keyspace_from_version(astarte_schema_version)
     end
   end
 
   def run_realms_migrations do
     _ = Logger.info("Starting to migrate Realms.", tag: "realms_migration_started")
 
-    with {:ok, realms} <- Queries.list_realms(),
-         :ok <- migrate_realms(realms) do
-      :ok
+    with {:ok, realms} <- Queries.list_realms() do
+      migrate_realms(realms)
     end
   end
 
@@ -100,9 +98,10 @@ defmodule Astarte.Housekeeping.Migrator do
 
     consistency = Consistency.domain_model(:read)
 
-    with {:ok, _item} <- Repo.safe_fetch_one(query, consistency: consistency) do
-      :ok
-    else
+    case Repo.safe_fetch_one(query, consistency: consistency) do
+      {:ok, _item} ->
+        :ok
+
       {:error, :not_found} ->
         create_astarte_kv_store()
 
