@@ -25,7 +25,6 @@ defmodule AstarteE2E.Device do
   alias Astarte.Core.Interface
   alias AstarteE2E.Client
   alias AstarteE2E.Config
-  alias AstarteE2E.Scheduler
 
   def start_link(opts) do
     realm_result = Keyword.fetch(opts, :realm)
@@ -45,7 +44,7 @@ defmodule AstarteE2E.Device do
   def init(opts) do
     realm = Keyword.fetch!(opts, :realm)
     device_id = Keyword.fetch!(opts, :device_id)
-    interface_maps = Keyword.fetch!(opts, :interfaces)
+    interface_maps = Keyword.get(opts, :interfaces, [])
 
     interfaces =
       for interface_params <- interface_maps do
@@ -79,14 +78,9 @@ defmodule AstarteE2E.Device do
       Config.client_opts()
       |> Keyword.put(:device_id, device.encoded_id)
 
-    scheduler_opts =
-      Config.scheduler_opts()
-      |> Keyword.put(:device_id, device.encoded_id)
-
     [
       {Astarte.Device, device_opts},
-      {Client, client_opts},
-      {Scheduler, scheduler_opts}
+      {Client, client_opts}
     ]
     |> Supervisor.init(strategy: :one_for_one)
   end
