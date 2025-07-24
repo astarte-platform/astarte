@@ -62,9 +62,10 @@ defmodule Astarte.Pairing.CredentialsSecret do
   def verify(provided_secret, stored_hash) do
     sha_hash = :crypto.hash(:sha256, provided_secret)
 
-    with {:ok, bcrypt_hash} <- Cache.fetch(sha_hash) do
-      bcrypt_hash == stored_hash
-    else
+    case Cache.fetch(sha_hash) do
+      {:ok, bcrypt_hash} ->
+        bcrypt_hash == stored_hash
+
       :error ->
         if Bcrypt.verify_pass(provided_secret, stored_hash) do
           Cache.put(sha_hash, stored_hash)

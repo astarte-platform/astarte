@@ -188,9 +188,8 @@ defmodule Astarte.Pairing.Engine do
         "in realm #{inspect(realm)}"
     )
 
-    with {:ok, device_id} <- Device.decode_device_id(encoded_device_id),
-         :ok <- Queries.unregister_device(realm, device_id) do
-      :ok
+    with {:ok, device_id} <- Device.decode_device_id(encoded_device_id) do
+      Queries.unregister_device(realm, device_id)
     end
   end
 

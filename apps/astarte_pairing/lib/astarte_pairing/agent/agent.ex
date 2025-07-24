@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2017-2018 Ispirata Srl
+# Copyright 2017 - 2025 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -50,9 +50,8 @@ defmodule Astarte.Pairing.Agent do
   end
 
   def unregister_device(realm, device_id) do
-    with {:ok, _} <- Device.decode_device_id(device_id),
-         :ok <- Engine.unregister_device(realm, device_id) do
-      :ok
+    with {:ok, _} <- Device.decode_device_id(device_id) do
+      Engine.unregister_device(realm, device_id)
     end
   end
 end
