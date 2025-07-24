@@ -555,10 +555,13 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
     opts = [
       prefix: keyspace_name,
       consistency: Consistency.device_info(:write),
-      allow_insert: false
+      allow_insert: false,
+      allow_stale: true
     ]
 
     Repo.update!(changeset, opts)
+
+    :ok
   end
 
   def fetch_device_introspection_minors(realm, device_id) do
@@ -865,7 +868,8 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
     opts = [
       prefix: keyspace_name,
       consistency: Consistency.device_info(:write),
-      allow_insert: false
+      allow_insert: false,
+      allow_stale: true
     ]
 
     with {:ok, _} <- Repo.safe_update(deletion_in_progress, opts) do
