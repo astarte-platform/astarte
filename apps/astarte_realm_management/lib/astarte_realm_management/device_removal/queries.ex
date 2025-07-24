@@ -10,7 +10,6 @@ defmodule Astarte.RealmManagement.DeviceRemoval.Queries do
   alias Astarte.DataAccess.Repo
   alias Astarte.DataAccess.Realms.Realm
   alias Astarte.DataAccess.KvStore
-  alias Astarte.Core.InterfaceDescriptor
   alias Astarte.DataAccess.Consistency
   alias Astarte.Core.CQLUtils
   alias Astarte.DataAccess.Realms.Endpoint
@@ -53,7 +52,6 @@ defmodule Astarte.RealmManagement.DeviceRemoval.Queries do
         endpoint_id,
         path
       ) do
-    # TODO: validate realm name
     keyspace_name = Realm.keyspace_name(realm_name)
 
     query =
@@ -94,7 +92,6 @@ defmodule Astarte.RealmManagement.DeviceRemoval.Queries do
   end
 
   def delete_individual_properties_values!(realm_name, device_id, interface_id) do
-    # TODO: validate realm name
     keyspace_name = Realm.keyspace_name(realm_name)
 
     query =
@@ -130,7 +127,6 @@ defmodule Astarte.RealmManagement.DeviceRemoval.Queries do
   end
 
   def delete_object_datastream_values!(realm_name, device_id, path, table_name) do
-    # TODO: validate realm name
     keyspace_name = Realm.keyspace_name(realm_name)
 
     query =
@@ -164,40 +160,7 @@ defmodule Astarte.RealmManagement.DeviceRemoval.Queries do
     Repo.one(query, opts)
   end
 
-  def retrieve_interface_descriptor!(
-        realm_name,
-        interface_name,
-        interface_major
-      ) do
-    keyspace = Realm.keyspace_name(realm_name)
-
-    opts = [
-      prefix: keyspace,
-      consistency: Consistency.domain_model(:read)
-    ]
-
-    interface =
-      Repo.get_by!(Interface, [name: interface_name, major_version: interface_major], opts)
-
-    %InterfaceDescriptor{
-      name: interface.name,
-      major_version: interface.major_version,
-      minor_version: interface.minor_version,
-      type: interface.type,
-      ownership: interface.ownership,
-      aggregation: interface.aggregation,
-      interface_id: interface.interface_id,
-      automaton: {
-        :erlang.binary_to_term(interface.automaton_transitions),
-        :erlang.binary_to_term(interface.automaton_accepting_states)
-      },
-      storage: interface.storage,
-      storage_type: interface.storage_type
-    }
-  end
-
   def delete_alias_values!(realm_name, device_alias) do
-    # TODO: validate realm name
     keyspace_name = Realm.keyspace_name(realm_name)
 
     query =
@@ -245,7 +208,6 @@ defmodule Astarte.RealmManagement.DeviceRemoval.Queries do
   end
 
   def delete_kv_store_entry!(realm_name, group, key) do
-    # TODO: validate realm name
     keyspace_name = Realm.keyspace_name(realm_name)
 
     query =
@@ -297,7 +259,6 @@ defmodule Astarte.RealmManagement.DeviceRemoval.Queries do
   end
 
   def remove_device_from_deletion_in_progress!(realm_name, device_id) do
-    # TODO: validate realm name
     keyspace_name = Realm.keyspace_name(realm_name)
 
     query =
@@ -343,7 +304,6 @@ defmodule Astarte.RealmManagement.DeviceRemoval.Queries do
   end
 
   def delete_device!(realm_name, device_id) do
-    # TODO: validate realm name
     keyspace_name = Realm.keyspace_name(realm_name)
 
     query =

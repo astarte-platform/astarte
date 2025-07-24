@@ -33,7 +33,9 @@ defmodule Astarte.DataUpdaterPlant.RPC.Server do
     name = {:via, Horde.Registry, {Registry.DataUpdaterRPC, :server}}
     opts = Keyword.put(opts, :name, name)
 
-    GenServer.start_link(__MODULE__, args, opts)
+    with {:error, {:already_started, pid}} <- GenServer.start_link(__MODULE__, args, opts) do
+      {:ok, pid}
+    end
   end
 
   @impl GenServer
@@ -47,7 +49,7 @@ defmodule Astarte.DataUpdaterPlant.RPC.Server do
     reply = Core.install_volatile_trigger(volatile_trigger)
 
     with {:error, error} <- reply do
-      _ = Logger.warning("Error while intalling a new volatile trigger: #{inspect(error)}")
+      _ = Logger.warning("Error while installing a new volatile trigger: #{inspect(error)}")
     end
 
     {:reply, reply, state}
@@ -71,7 +73,7 @@ defmodule Astarte.DataUpdaterPlant.RPC.Server do
       ) do
     _ =
       Logger.warning(
-        "Received a :name_confict signal from the outer space, maybe a netsplit occurred? Gracefully shutting down.",
+        "Received a :name_conflict signal from the outer space, maybe a netsplit occurred? Gracefully shutting down.",
         tag: "RPC exit"
       )
 

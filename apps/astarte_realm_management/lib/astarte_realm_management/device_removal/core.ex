@@ -20,11 +20,12 @@
 
 defmodule Astarte.RealmManagement.DeviceRemoval.Core do
   @moduledoc """
-  This module contains all the funcitons needed by the `DeviceRemover` Task.
+  This module contains all the functions needed by the `DeviceRemover` Task.
   """
   alias Astarte.Core.CQLUtils
-  alias Astarte.RealmManagement.DeviceRemoval.Queries
   alias Astarte.Core.InterfaceDescriptor
+  alias Astarte.DataAccess.Interface
+  alias Astarte.RealmManagement.DeviceRemoval.Queries
 
   @doc """
   Deletes individual datastreams for a device in a realm.
@@ -98,8 +99,8 @@ defmodule Astarte.RealmManagement.DeviceRemoval.Core do
   end
 
   defp check_interface_has_object_aggregation!(realm_name, {interface_name, interface_major}) do
-    case Queries.retrieve_interface_descriptor!(realm_name, interface_name, interface_major) do
-      %InterfaceDescriptor{aggregation: :object} -> true
+    case Interface.fetch_interface_descriptor(realm_name, interface_name, interface_major) do
+      {:ok, %InterfaceDescriptor{aggregation: :object}} -> true
       _ -> false
     end
   end
