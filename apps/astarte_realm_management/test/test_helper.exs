@@ -18,6 +18,7 @@
 
 Mimic.copy(Astarte.DataAccess.Config)
 Mimic.copy(Astarte.RealmManagement.DeviceRemoval.Core)
+Mimic.copy(Astarte.RealmManagement.Queries)
 Mimic.copy(Task.Supervisor)
 
 ExUnit.start(capture_log: true)

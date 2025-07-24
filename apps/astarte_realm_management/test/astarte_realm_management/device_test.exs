@@ -27,11 +27,11 @@ defmodule Astarte.RealmManagement.DeviceTest do
   alias Astarte.DataAccess.Realms.Realm
   alias Astarte.DataAccess.Repo
   alias Astarte.DataAccess.Device.DeletionInProgress
-  alias Astarte.RealmManagement.DatabaseTestHelper
   alias Astarte.DataAccess.Devices.Device
 
   use Astarte.RealmManagement.DataCase, async: true
   use ExUnitProperties
+  use Mimic
 
   describe "Test device" do
     @describetag :devices
@@ -115,5 +115,50 @@ defmodule Astarte.RealmManagement.DeviceTest do
         assert {:error, :device_not_found} = Engine.delete_device(realm, encoded_device_id)
       end
     end
+  end
+
+  @tag :regression
+  test "device deletion does not overwrite existing entries", %{realm: realm} do
+    keyspace = Realm.keyspace_name(realm)
+    device_id = Astarte.Core.Generators.Device.id() |> Enum.at(0)
+    encoded_id = Astarte.Core.Device.encode_device_id(device_id)
+
+    device =
+      %Device{
+        device_id: device_id
+      }
+
+    entry =
+      %DeletionInProgress{
+        device_id: device_id,
+        dup_end_ack: false,
+        dup_start_ack: true,
+        vmq_ack: true
+      }
+
+    on_exit(fn -> Repo.delete(device, prefix: keyspace) end)
+    Repo.insert!(device, prefix: keyspace)
+
+    on_exit(fn -> Repo.delete(entry, prefix: keyspace) end)
+    Repo.insert!(entry, prefix: keyspace)
+
+    assert :ok = Engine.delete_device(realm, encoded_id)
+    assert {:ok, fetched} = Repo.fetch(DeletionInProgress, device_id, prefix: keyspace)
+    assert Map.delete(fetched, :__meta__) == Map.delete(entry, :__meta__)
+  end
+
+  @tag :regression
+  test "status is cleaned in case of race conditions with device existence check", context do
+    %{realm: realm} = context
+    keyspace = Realm.keyspace_name(realm)
+    device_id = Astarte.Core.Generators.Device.id() |> Enum.at(0)
+    encoded_id = Astarte.Core.Device.encode_device_id(device_id)
+
+    Queries
+    |> expect(:check_device_exists, fn ^realm, ^device_id -> {:ok, true} end)
+    |> expect(:check_device_exists, fn ^realm, ^device_id -> {:ok, false} end)
+
+    assert :ok = Engine.delete_device(realm, encoded_id)
+    assert {:error, :not_found} = Repo.fetch(DeletionInProgress, device_id, prefix: keyspace)
   end
 end
