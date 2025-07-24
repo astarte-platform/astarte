@@ -17,6 +17,7 @@
 #
 
 defmodule Astarte.Housekeeping.Realms.Realm do
+  @moduledoc false
   use TypedEctoSchema
 
   import Ecto.Changeset
@@ -78,9 +79,7 @@ defmodule Astarte.Housekeeping.Realms.Realm do
   end
 
   def error_changeset(realm, params \\ %{}) do
-    changeset =
-      realm
-      |> cast(params, @required_create_fields)
+    changeset = cast(realm, params, @required_create_fields)
 
     %{changeset | valid?: false}
   end
@@ -112,8 +111,8 @@ defmodule Astarte.Housekeeping.Realms.Realm do
 
       # Here we're implicitly not in NetworkTopologyStrategy
       get_field(changeset, :datacenter_replication_factors) ->
-        changeset
-        |> add_error(
+        add_error(
+          changeset,
           :datacenter_replication_factors,
           "must be used with replication_class NetworkTopologyStrategy"
         )
@@ -134,18 +133,16 @@ defmodule Astarte.Housekeeping.Realms.Realm do
   end
 
   defp validate_pem_public_key(field, pem) do
-    try do
-      case :public_key.pem_decode(pem) do
-        [{:SubjectPublicKeyInfo, _, _}] ->
-          []
+    case :public_key.pem_decode(pem) do
+      [{:SubjectPublicKeyInfo, _, _}] ->
+        []
 
-        _ ->
-          [{field, "is not a valid PEM public key"}]
-      end
-    rescue
       _ ->
         [{field, "is not a valid PEM public key"}]
     end
+  rescue
+    _ ->
+      [{field, "is not a valid PEM public key"}]
   end
 
   defp put_default_if_missing(changeset, field, default) do

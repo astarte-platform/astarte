@@ -16,6 +16,7 @@
 # limitations under the License.
 #
 defmodule Astarte.Housekeeping.Fixtures.Realm do
+  @moduledoc false
   alias Astarte.Housekeeping.Realms
 
   @pubkey """

@@ -17,6 +17,7 @@
 #
 
 defmodule Astarte.Housekeeping.Realms.Queries do
+  @moduledoc false
   import Ecto.Query
 
   alias Astarte.Core.Realm, as: CoreRealm
@@ -34,7 +35,7 @@ defmodule Astarte.Housekeeping.Realms.Queries do
 
   @default_replication_factor 1
 
-  def is_realm_existing(realm_name) do
+  def realm_existing?(realm_name) do
     keyspace_name = Realm.astarte_keyspace_name()
 
     query =
@@ -51,7 +52,7 @@ defmodule Astarte.Housekeeping.Realms.Queries do
 
       {:error, reason} ->
         Logger.warning("Cannot check if realm exists: #{inspect(reason)}.",
-          tag: "is_realm_existing_error",
+          tag: "realm_existing_error",
           realm: realm_name
         )
 
@@ -60,15 +61,13 @@ defmodule Astarte.Housekeeping.Realms.Queries do
   end
 
   def get_realm(realm_name) do
-    try do
-      keyspace_name = Realm.keyspace_name(realm_name)
-      do_get_realm(realm_name, keyspace_name)
-    rescue
-      ArgumentError ->
-        _ = Logger.warning("Invalid realm name.", tag: "invalid_realm_name", realm: realm_name)
+    keyspace_name = Realm.keyspace_name(realm_name)
+    do_get_realm(realm_name, keyspace_name)
+  rescue
+    ArgumentError ->
+      _ = Logger.warning("Invalid realm name.", tag: "invalid_realm_name", realm: realm_name)
 
-        {:error, :realm_not_allowed}
-    end
+      {:error, :realm_not_allowed}
   end
 
   defp do_get_realm(realm_name, keyspace_name) do
@@ -98,8 +97,11 @@ defmodule Astarte.Housekeeping.Realms.Queries do
   def set_device_registration_limit(realm_name, device_registration_limit) do
     opts = [prefix: Realm.astarte_keyspace_name(), consistency: Consistency.domain_model(:write)]
 
-    from(Realm, where: [realm_name: ^realm_name])
-    |> Repo.update_all([set: [device_registration_limit: device_registration_limit]], opts)
+    query =
+      from Realm,
+        where: [realm_name: ^realm_name]
+
+    Repo.update_all(query, [set: [device_registration_limit: device_registration_limit]], opts)
 
     :ok
   end
@@ -144,8 +146,11 @@ defmodule Astarte.Housekeeping.Realms.Queries do
       prefix: Realm.keyspace_name(realm_name)
     ]
 
-    from(KvStore, where: [group: "realm_config", key: "datastream_maximum_storage_retention"])
-    |> Repo.delete_all(opts)
+    query =
+      from KvStore,
+        where: [group: "realm_config", key: "datastream_maximum_storage_retention"]
+
+    Repo.delete_all(query, opts)
 
     :ok
   end
@@ -324,10 +329,9 @@ defmodule Astarte.Housekeeping.Realms.Queries do
   defp build_replication_map_str(datacenter_replication_factors)
        when is_map(datacenter_replication_factors) do
     datacenter_replications_str =
-      Enum.map(datacenter_replication_factors, fn {datacenter, replication_factor} ->
+      Enum.map_join(datacenter_replication_factors, ",", fn {datacenter, replication_factor} ->
         "'#{datacenter}': #{replication_factor}"
       end)
-      |> Enum.join(",")
 
     replication_map_str = "{'class': 'NetworkTopologyStrategy', #{datacenter_replications_str}}"
 
@@ -345,9 +349,10 @@ defmodule Astarte.Housekeeping.Realms.Queries do
     AND durable_writes = true;
     """
 
-    with {:ok, %{rows: nil, num_rows: 1}} <- CSystem.execute_schema_change(query) do
-      :ok
-    else
+    case CSystem.execute_schema_change(query) do
+      {:ok, %{rows: nil, num_rows: 1}} ->
+        :ok
+
       {:error, reason} ->
         _ =
           Logger.warning("Cannot create keyspace: #{inspect(reason)}.",
@@ -365,7 +370,8 @@ defmodule Astarte.Housekeeping.Realms.Queries do
     :ok
   end
 
-  # apparently, before when the field was nil, it was encoded as zero (not optional on protobuff), so treat it the same as zero
+  # Apparently, before when the field was nil, it was encoded as zero (not optional on protobuff),
+  # so treat it the same as zero
   defp insert_datastream_max_retention(_keyspace_name, nil) do
     :ok
   end
@@ -378,13 +384,14 @@ defmodule Astarte.Housekeeping.Realms.Queries do
       prefix: keyspace_name
     ]
 
-    %{
+    kv_store_map = %{
       group: "realm_config",
       key: "datastream_maximum_storage_retention",
       value: max_retention,
       value_type: :integer
     }
-    |> KvStore.insert(opts)
+
+    KvStore.insert(kv_store_map, opts)
   end
 
   defp insert_realm(realm_name, device_limit) do
@@ -418,13 +425,14 @@ defmodule Astarte.Housekeeping.Realms.Queries do
       prefix: keyspace_name
     ]
 
-    %{
+    kv_store_map = %{
       group: "astarte",
       key: "schema_version",
       value: Migrator.latest_realm_schema_version(),
       value_type: :big_integer
     }
-    |> KvStore.insert(opts)
+
+    KvStore.insert(kv_store_map, opts)
   end
 
   defp insert_realm_public_key(keyspace_name, public_key_pem) do
@@ -435,13 +443,14 @@ defmodule Astarte.Housekeeping.Realms.Queries do
       prefix: keyspace_name
     ]
 
-    %{
+    kv_store_map = %{
       group: "auth",
       key: "jwt_public_key_pem",
       value: public_key_pem,
       value_type: :string
     }
-    |> KvStore.insert(opts)
+
+    KvStore.insert(kv_store_map, opts)
   end
 
   defp get_local_datacenter do
@@ -705,9 +714,10 @@ defmodule Astarte.Housekeeping.Realms.Queries do
     );
     """
 
-    with {:ok, %{rows: nil, num_rows: 1}} <- CSystem.execute_schema_change(query) do
-      :ok
-    else
+    case CSystem.execute_schema_change(query) do
+      {:ok, %{rows: nil, num_rows: 1}} ->
+        :ok
+
       {:error, reason} ->
         Logger.warning("Cannot create kv_store: #{inspect(reason)}.",
           tag: "build_kv_store_error",
@@ -770,7 +780,7 @@ defmodule Astarte.Housekeeping.Realms.Queries do
   end
 
   defp verify_realm_exists(realm_name) do
-    case is_realm_existing(realm_name) do
+    case realm_existing?(realm_name) do
       {:ok, true} -> :ok
       {:ok, false} -> {:error, :realm_not_found}
       {:error, reason} -> {:error, reason}
@@ -790,8 +800,13 @@ defmodule Astarte.Housekeeping.Realms.Queries do
   defp fetch_realm_replication(keyspace) do
     opts = [consistency: Consistency.domain_model(:read), error: :realm_replication_not_found]
 
-    from(k in "keyspaces", prefix: "system_schema", select: k.replication, limit: 1)
-    |> Repo.fetch_by(%{keyspace_name: keyspace}, opts)
+    query =
+      from k in "keyspaces",
+        prefix: "system_schema",
+        select: k.replication,
+        limit: 1
+
+    Repo.fetch_by(query, %{keyspace_name: keyspace}, opts)
   end
 
   defp fetch_device_registration_limit(realm_name) do
@@ -802,8 +817,12 @@ defmodule Astarte.Housekeeping.Realms.Queries do
       error: :realm_device_registration_limit_not_found
     ]
 
-    from(r in Realm, prefix: ^astarte_keyspace, select: r.device_registration_limit)
-    |> Repo.fetch(realm_name, opts)
+    query =
+      from r in Realm,
+        prefix: ^astarte_keyspace,
+        select: r.device_registration_limit
+
+    Repo.fetch(query, realm_name, opts)
   end
 
   defp get_datastream_maximum_storage_retention(keyspace) do
@@ -851,16 +870,7 @@ defmodule Astarte.Housekeeping.Realms.Queries do
   def delete_realm(realm_name, opts \\ []) do
     if Config.enable_realm_deletion!() do
       Logger.info("Deleting realm", tag: "delete_realm", realm_name: realm_name)
-
-      keyspace_name = Realm.keyspace_name(realm_name)
-
-      if opts[:async] do
-        {:ok, _pid} = Task.start(fn -> do_delete_realm(realm_name, keyspace_name) end)
-
-        :ok
-      else
-        do_delete_realm(realm_name, keyspace_name)
-      end
+      do_delete_realm_with_options(realm_name, opts)
     else
       Logger.info("HOUSEKEEPING_ENABLE_REALM_DELETION is disabled, realm will not be deleted.",
         tag: "realm_deletion_disabled",
@@ -868,6 +878,17 @@ defmodule Astarte.Housekeeping.Realms.Queries do
       )
 
       {:error, :realm_deletion_disabled}
+    end
+  end
+
+  defp do_delete_realm_with_options(realm_name, opts) do
+    keyspace_name = Realm.keyspace_name(realm_name)
+
+    if opts[:async] do
+      {:ok, _pid} = Task.start(fn -> do_delete_realm(realm_name, keyspace_name) end)
+      :ok
+    else
+      do_delete_realm(realm_name, keyspace_name)
     end
   end
 
@@ -899,9 +920,10 @@ defmodule Astarte.Housekeeping.Realms.Queries do
   end
 
   defp verify_realm_deletion_preconditions(keyspace_name) do
-    with :ok <- check_no_connected_devices(keyspace_name) do
-      :ok
-    else
+    case check_no_connected_devices(keyspace_name) do
+      :ok ->
+        :ok
+
       {:error, reason} ->
         Logger.warning("Realm deletion preconditions are not satisfied: #{inspect(reason)}.",
           tag: "realm_deletion_preconditions_rejected",
@@ -1081,16 +1103,17 @@ defmodule Astarte.Housekeeping.Realms.Queries do
       prefix: keyspace_name
     ]
 
-    %{
+    kv_store_map = %{
       group: "astarte",
       key: "schema_version",
       value: Migrator.latest_realm_schema_version(),
       value_type: :big_integer
     }
-    |> KvStore.insert(opts)
+
+    KvStore.insert(kv_store_map, opts)
   end
 
-  def is_astarte_keyspace_existing do
+  def astarte_keyspace_existing? do
     keyspace_name = Realm.astarte_keyspace_name()
 
     query =

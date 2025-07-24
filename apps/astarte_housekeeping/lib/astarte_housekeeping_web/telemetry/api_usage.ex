@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2024 SECO Mind Srl
+# Copyright 2024 - 2025 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -16,6 +16,7 @@
 # limitations under the License.
 
 defmodule Astarte.HousekeepingWeb.Telemetry.APIUsage do
+  @moduledoc false
   alias Astarte.HousekeepingWeb.TelemetryTaskSupervisor
 
   @api_prefix "v1"

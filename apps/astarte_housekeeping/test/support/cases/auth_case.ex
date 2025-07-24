@@ -17,7 +17,9 @@
 #
 
 defmodule Astarte.HousekeepingWeb.AuthCase do
+  @moduledoc false
   use ExUnit.CaseTemplate
+
   import Plug.Conn
 
   alias Astarte.Helpers.JWTTestHelper

@@ -21,14 +21,15 @@ defmodule Astarte.HousekeepingWeb.RealmControllerTest do
   use Astarte.HousekeepingWeb.AuthCase
   use Mimic
 
-  alias Astarte.DataAccess.Repo
-  alias Astarte.Housekeeping.Config
-  alias Astarte.Housekeeping.Realms.Realm
-  alias Astarte.Housekeeping.Realms.Queries
-  alias Astarte.Housekeeping.Realms
-  alias Astarte.Housekeeping.Helpers.Database
   import Astarte.Housekeeping.Fixtures.Realm
   import Ecto.Query
+
+  alias Astarte.DataAccess.Repo
+  alias Astarte.Housekeeping.Config
+  alias Astarte.Housekeeping.Helpers.Database
+  alias Astarte.Housekeeping.Realms
+  alias Astarte.Housekeeping.Realms.Queries
+  alias Astarte.Housekeeping.Realms.Realm
 
   @malformed_pubkey """
   -----BEGIN PUBLIC KEY-----
@@ -42,7 +43,7 @@ defmodule Astarte.HousekeepingWeb.RealmControllerTest do
   3FYHyYudzQKa11c55Z6ZZaw2H+nUkQl1/jqfHTrqMSiOP4TTf0oTYLWKfg==
   -----END PUBLIC KEY-----
   """
-  @local_datacenter from(l in "system.local", select: l.data_center) |> Repo.one!()
+  @local_datacenter Repo.one!(from(l in "system.local", select: l.data_center))
 
   @create_attrs %{"data" => %{"realm_name" => "testrealm", "jwt_public_key_pem" => pubkey()}}
   @explicit_replication_attrs %{

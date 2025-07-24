@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2019 Ispirata Srl
+# Copyright 2019 - 2025 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -18,12 +18,12 @@
 
 defmodule Astarte.Housekeeping.MigratorTest do
   use ExUnit.Case
-
-  alias Astarte.Housekeeping.Migrator
-  alias Astarte.Housekeeping.Realms.Queries
-  alias Astarte.Housekeeping.Helpers.Database
-  alias Astarte.Housekeeping.Realms
   use Mimic
+
+  alias Astarte.Housekeeping.Helpers.Database
+  alias Astarte.Housekeeping.Migrator
+  alias Astarte.Housekeeping.Realms
+  alias Astarte.Housekeeping.Realms.Queries
 
   describe "run migrations, " do
     setup do
@@ -47,14 +47,12 @@ defmodule Astarte.Housekeeping.MigratorTest do
     end
 
     test "returns error due do xandra problem" do
-      Xandra |> stub(:execute, fn _, _, _, _ -> {:error, %Xandra.Error{message: ""}} end)
-
+      Mimic.stub(Xandra, :execute, fn _, _, _, _ -> {:error, %Xandra.Error{message: ""}} end)
       assert {:error, :database_error} = Migrator.run_astarte_keyspace_migrations()
     end
 
     test "returns error due do xandra connection problem" do
-      Xandra |> stub(:execute, fn _, _, _, _ -> {:error, %Xandra.ConnectionError{}} end)
-
+      Mimic.stub(Xandra, :execute, fn _, _, _, _ -> {:error, %Xandra.ConnectionError{}} end)
       assert {:error, :database_connection_error} = Migrator.run_astarte_keyspace_migrations()
     end
   end
@@ -92,14 +90,12 @@ defmodule Astarte.Housekeeping.MigratorTest do
     end
 
     test "returns error due do xandra problem" do
-      Xandra |> stub(:execute, fn _, _, _, _ -> {:error, %Xandra.Error{message: ""}} end)
-
+      Mimic.stub(Xandra, :execute, fn _, _, _, _ -> {:error, %Xandra.Error{message: ""}} end)
       assert {:error, :database_error} = Migrator.run_realms_migrations()
     end
 
     test "returns error due do xandra connection problem" do
-      Xandra |> stub(:execute, fn _, _, _, _ -> {:error, %Xandra.ConnectionError{}} end)
-
+      Mimic.stub(Xandra, :execute, fn _, _, _, _ -> {:error, %Xandra.ConnectionError{}} end)
       assert {:error, :database_connection_error} = Migrator.run_realms_migrations()
     end
   end
@@ -115,7 +111,8 @@ defmodule Astarte.Housekeeping.MigratorTest do
 
       # We don't specify the .sql extension so we also check if there are migrations with the wrong extension
       astarte_migrations_count =
-        Path.join([astarte_migrations_path, "*"])
+        [astarte_migrations_path, "*"]
+        |> Path.join()
         |> Path.wildcard()
         |> Enum.count()
 
@@ -129,7 +126,8 @@ defmodule Astarte.Housekeeping.MigratorTest do
 
       # We don't specify the .sql extension so we also check if there are migrations with the wrong extension
       realm_migrations_count =
-        Path.join([realm_migrations_path, "*.sql"])
+        [realm_migrations_path, "*.sql"]
+        |> Path.join()
         |> Path.wildcard()
         |> Enum.count()
 

@@ -28,8 +28,8 @@ defmodule Astarte.Housekeeping.RealmsTest do
   alias Astarte.Housekeeping.Config
   alias Astarte.Housekeeping.Helpers.Database
   alias Astarte.Housekeeping.Realms
-  alias Astarte.Housekeeping.Realms.Realm
   alias Astarte.Housekeeping.Realms.Queries
+  alias Astarte.Housekeeping.Realms.Realm
 
   @malformed_pubkey """
   -----BEGIN PUBLIC KEY-----
@@ -320,8 +320,7 @@ defmodule Astarte.Housekeeping.RealmsTest do
     end
 
     test "deletions returns an error", %{realm_name: realm_name} do
-      Repo |> stub(:query, fn _, _, _ -> {:error, "generic error"} end)
-
+      Mimic.stub(Repo, :query, fn _, _, _ -> {:error, "generic error"} end)
       assert {:error, "generic error"} = Realms.delete_realm(realm_name)
     end
   end
