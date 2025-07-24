@@ -247,10 +247,10 @@ defmodule Astarte.Helpers.Database do
 
   @registered_and_confirmed_256_credentials_secret CredentialsSecret.generate()
 
-  def registered_not_confirmed_credentials_secret(),
+  def registered_not_confirmed_credentials_secret,
     do: @registered_not_confirmed_credentials_secret
 
-  def registered_and_confirmed_256_credentials_secret(),
+  def registered_and_confirmed_256_credentials_secret,
     do: @registered_and_confirmed_256_credentials_secret
 
   def setup_astarte_keyspace do

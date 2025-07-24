@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2017-2018 Ispirata Srl
+# Copyright 2017 - 2025 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -38,7 +38,7 @@ defmodule Astarte.Pairing.Credentials.AstarteMQTTV1.CredentialsRequest do
 
   defp validate_pem_csr(%Ecto.Changeset{} = changeset, field) do
     with {:ok, pem} <- fetch_change(changeset, field),
-         {:valid_csr?, true} <- {:valid_csr?, is_valid_pem_csr?(pem)} do
+         {:valid_csr?, true} <- {:valid_csr?, valid_pem_csr?(pem)} do
       changeset
     else
       _ ->
@@ -46,18 +46,16 @@ defmodule Astarte.Pairing.Credentials.AstarteMQTTV1.CredentialsRequest do
     end
   end
 
-  defp is_valid_pem_csr?(pem) do
-    try do
-      case :public_key.pem_decode(pem) do
-        [{:CertificationRequest, _, _}] ->
-          true
+  defp valid_pem_csr?(pem) do
+    case :public_key.pem_decode(pem) do
+      [{:CertificationRequest, _, _}] ->
+        true
 
-        _ ->
-          false
-      end
-    rescue
       _ ->
         false
     end
+  rescue
+    _ ->
+      false
   end
 end

@@ -29,7 +29,7 @@ defmodule Astarte.Pairing.Queries do
   require Logger
   import Ecto.Query
 
-  def is_realm_existing(realm_name) do
+  def realm_existing?(realm_name) do
     keyspace_name = Realm.astarte_keyspace_name()
 
     query =
@@ -46,7 +46,7 @@ defmodule Astarte.Pairing.Queries do
 
       {:error, reason} ->
         Logger.warning("Cannot check if realm exists: #{inspect(reason)}.",
-          tag: "is_realm_existing_error",
+          tag: "realm_existing_error",
           realm: realm_name
         )
 
