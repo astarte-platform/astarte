@@ -17,6 +17,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
   message-passing instead of AMQP queues:
   [#1197](https://github.com/astarte-platform/astarte/pull/1197).
 
+### Fixed
+- [astarte_data_updater_plant] Fix DataUpdater GenServer timeout handling that prevented inactive processes to shut down automatically.
+
 ## [1.2.1-alpha.0] - 2025-04-10
 ### Changed
 - Update the docker-compose configuration to allow both physical and virtual devices
