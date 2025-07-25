@@ -173,6 +173,17 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater do
     end
   end
 
+  @doc delegate_to:
+         {Astarte.DataUpdaterPlant.DataUpdater.Core.CapabilitiesHandler, :handle_capabilities, 4}
+  def handle_capabilities(realm, encoded_device_id, payload, tracking_id, timestamp) do
+    {message_id, delivery_tag} = tracking_id
+
+    with_dup_and_message_tracker(realm, encoded_device_id, fn dup, message_tracker ->
+      MessageTracker.track_delivery(message_tracker, message_id, delivery_tag)
+      GenServer.cast(dup, {:handle_capabilities, payload, tracking_id, timestamp})
+    end)
+  end
+
   def dump_state(realm, encoded_device_id) do
     with {:ok, message_tracker} <- fetch_message_tracker(realm, encoded_device_id),
          {:ok, data_updater} <-

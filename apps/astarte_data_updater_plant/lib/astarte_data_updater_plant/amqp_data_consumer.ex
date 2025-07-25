@@ -339,6 +339,19 @@ defmodule Astarte.DataUpdaterPlant.AMQPDataConsumer do
     end
   end
 
+  defp handle_consume("capabilities", payload, headers, timestamp, meta) do
+    with %{
+           @realm_header => realm,
+           @device_id_header => device_id
+         } <- headers,
+         {:ok, tracking_id} <- get_tracking_id(meta) do
+      # Following call might spawn processes and implicitly monitor them
+      DataUpdater.handle_capabilities(realm, device_id, payload, tracking_id, timestamp)
+    else
+      _ -> handle_invalid_msg(payload, headers, timestamp, meta)
+    end
+  end
+
   defp handle_consume(_msg_type, payload, headers, timestamp, meta) do
     handle_invalid_msg(payload, headers, timestamp, meta)
   end
