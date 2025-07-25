@@ -77,7 +77,7 @@ defmodule Astarte.Housekeeping.Migrator do
 
     Logger.info("Starting to migrate realm.",
       tag: "realm_migration_started",
-      realm_name: realm_name
+      realm: realm_name
     )
 
     with {:ok, realm_astarte_schema_version} <- get_realm_astarte_schema_version(realm_name),

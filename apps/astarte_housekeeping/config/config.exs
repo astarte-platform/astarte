@@ -16,9 +16,9 @@ config :astarte_housekeeping, Astarte.HousekeepingWeb.Endpoint,
   render_errors: [view: Astarte.HousekeepingWeb.ErrorView, accepts: ~w(json)]
 
 # Configures Elixir's Logger
-config :logger, :console,
+config :logger, :default_formatter,
   format: "$time $metadata[$level] $message\n",
-  metadata: [:request_id]
+  metadata: [:module, :function, :request_id, :tag, :realm, :datacenter, :replication_factor]
 
 config :astarte_housekeeping, Astarte.HousekeepingWeb.AuthGuardian,
   allowed_algos: ["ES256", "ES384", "ES512", "PS256", "PS384", "PS512", "RS256", "RS384", "RS512"]

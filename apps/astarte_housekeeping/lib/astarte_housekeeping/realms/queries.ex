@@ -869,12 +869,12 @@ defmodule Astarte.Housekeeping.Realms.Queries do
 
   def delete_realm(realm_name, opts \\ []) do
     if Config.enable_realm_deletion!() do
-      Logger.info("Deleting realm", tag: "delete_realm", realm_name: realm_name)
+      Logger.info("Deleting realm", tag: "delete_realm", realm: realm_name)
       do_delete_realm_with_options(realm_name, opts)
     else
       Logger.info("HOUSEKEEPING_ENABLE_REALM_DELETION is disabled, realm will not be deleted.",
         tag: "realm_deletion_disabled",
-        realm_name: realm_name
+        realm: realm_name
       )
 
       {:error, :realm_deletion_disabled}
