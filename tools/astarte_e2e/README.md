@@ -38,6 +38,7 @@ be found at [https://hexdocs.pm/astarte_e2e](https://hexdocs.pm/astarte_e2e).
 |E2E_CREDENTIALS_SECRET|&check;|None|Astarte Credentials Secret for the given device ID. You can generate one with `$ astartectl pairing agent register <device_id>.`|
 |E2E_IGNORE_SSL_ERRORS|&check;|false|Whether the e2e test should ignore SSL errors when connecting to Astarte.|
 |E2E_APPENGINE_URL|&check;|None|URL of the Astarte AppEngine service, e.g. https://api.astarte.example.com/appengine|
+|E2E_REALM_MANAGEMENT_URL|&check;|None|URL of the Astarte Realm Management service, e.g. https://api.astarte.example.com/realmmanagement|
 |E2E_REALM|&check;|None|Realm name.|
 |E2E_JWT|&check;|None|The Astarte JWT employed to access Astarte APIs. It should have at least claims for Pairing and AppEngine. The token can be generated with: `$ astartectl utils gen-jwt <service> -k <your-private-key>.pem`.|
 |E2E_CHECK_INTERVAL_SECONDS|&cross;|60|Time interval between consecutive checks (in seconds).|
