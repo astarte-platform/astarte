@@ -446,6 +446,17 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.QueriesTest do
     end
   end
 
+  describe "ack_start_device_deletion/2" do
+    @tag :regression
+    test "does not do anything when the deletion in progress entry does not exist", context do
+      %{realm_name: realm_name} = context
+      device_id = DeviceGenerator.id() |> Enum.at(0)
+
+      assert :ok = Queries.ack_start_device_deletion(realm_name, device_id)
+      assert {:ok, false} = Queries.check_device_deletion_in_progress(realm_name, device_id)
+    end
+  end
+
   defp populate_deletion_in_progress(realm_name) do
     keyspace = Realm.keyspace_name(realm_name)
 
