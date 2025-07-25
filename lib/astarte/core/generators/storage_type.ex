@@ -20,6 +20,7 @@ defmodule Astarte.Core.Generators.StorageType do
   @moduledoc """
   This module provides generators for StorageType.
   """
+  alias Astarte.Core.Interface
   alias Astarte.Core.StorageType
 
   use ExUnitProperties
@@ -27,15 +28,23 @@ defmodule Astarte.Core.Generators.StorageType do
   @doc """
   Generates a valid Astarte StorageType
   """
-  @spec storage_type() :: StreamData.t(StorageType.t())
-  def storage_type do
-    member_of([
-      :multi_interface_individual_properties_dbtable,
-      :multi_interface_individual_datastream_dbtable,
-      :one_individual_properties_dbtable,
-      :one_individual_datastream_dbtable,
-      :one_object_datastream_dbtable
-    ])
+  @spec storage_type(Interface.t()) :: StreamData.t(StorageType.t())
+  def storage_type(%Interface{} = interface) do
+    interface |> constant() |> storage_type()
+  end
+
+  @spec storage_type(StreamData.t(Interface.t())) :: StreamData.t(StorageType.t())
+  def storage_type(gen) do
+    gen all %Interface{
+              type: type,
+              aggregation: aggregation
+            } <- gen do
+      case {type, aggregation} do
+        {:properties, :individual} -> :multi_interface_individual_properties_dbtable
+        {:datastream, :individual} -> :multi_interface_individual_datastream_dbtable
+        {:datastream, :object} -> :one_object_datastream_dbtable
+      end
+    end
   end
 
   @doc """
