@@ -26,22 +26,23 @@ env:
   otp_version: "26.1"
 
 jobs:
+  e2e-build:
+    uses: ./.github/workflows/astarte-e2e-build-workflow.yaml
+  astarte-build:
+    uses: ./.github/workflows/astarte-build-workflow.yaml
+  
   end-to-end-test:
+    needs: [e2e-build, astarte-build]
     name: End-to-end Test
     runs-on: ubuntu-22.04
     steps:
     - uses: actions/checkout@v2
     - name: Initialize docker compose files
       run: docker run -v $(pwd)/compose:/compose astarte/docker-compose-initializer
-    - name: Setup Docker Buildx
-      uses: docker/setup-buildx-action@v3
-    - name: Build Astarte containers
-      uses: docker/bake-action@v6
+    - uses: erlef/setup-beam@v1.15
       with:
-        files: docker-compose.yml
-        set: |
-            *.cache-from=type=gha
-            *.cache-to=type=gha,mode=max
+        otp-version: ${{ env.otp_version }}
+        elixir-version: ${{ env.elixir_version }}
     - name: Start all Astarte services
       run: docker compose up -d
     - name: Wait for Astarte to come up
@@ -76,20 +77,6 @@ jobs:
       with:
         path: tools/astarte_e2e/deps
         key: e2e-deps-${{ env.otp_version }}-${{ env.elixir_version }}-${{ hashFiles(format('{0}{1}{2}', github.workspace, '/tools/astarte_e2e', '/mix.lock')) }}
-    - name: Cache Astarte E2E build
-      uses: actions/cache@v4
-      with:
-        path: tools/astarte_e2e/_build
-        key: e2e-build-${{ env.otp_version }}-${{ env.elixir_version }}
-    - uses: erlef/setup-beam@v1.15
-      with:
-        otp-version: ${{ env.otp_version }}
-        elixir-version: ${{ env.elixir_version }}
-    - name: Build Astarte E2E
-      working-directory: tools/astarte_e2e
-      run: |
-        mix deps.get
-        mix compile --warnings-as-errors --force
     - name: Run Astarte E2E
       working-directory: tools/astarte_e2e
       env:

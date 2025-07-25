@@ -1,0 +1,20 @@
+name: Astarte build
+
+on:
+  workflow_call:
+
+jobs:
+  astarte-build:
+    name: Astarte build
+    runs-on: ubuntu-22.04
+    steps:
+    - uses: actions/checkout@v2
+    - name: Setup Docker Buildx
+      uses: docker/setup-buildx-action@v3
+    - name: Build Astarte containers
+      uses: docker/bake-action@v6
+      with:
+        files: docker-compose.yml
+        set: |
+            *.cache-from=type=gha
+            *.cache-to=type=gha,mode=max
