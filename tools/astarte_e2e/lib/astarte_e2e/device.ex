@@ -22,7 +22,7 @@ defmodule AstarteE2E.Device do
   require Logger
 
   alias Astarte.Core.Generators.Device, as: DeviceGenerator
-  alias Astarte.Core.Interface
+
   alias AstarteE2E.Client
   alias AstarteE2E.Config
 
@@ -45,13 +45,17 @@ defmodule AstarteE2E.Device do
     realm = Keyword.fetch!(opts, :realm)
     device_id = Keyword.fetch!(opts, :device_id)
     interface_maps = Keyword.get(opts, :interfaces, [])
+    IO.inspect(interface_maps)
 
     interfaces =
       for interface_params <- interface_maps do
-        %Interface{}
-        |> Interface.changeset(interface_params)
+        %Astarte.Core.Interface{}
+        |> Astarte.Core.Interface.changeset(interface_params)
         |> Ecto.Changeset.apply_action!(:insert)
       end
+
+    IO.inspect("@@@@@@@@")
+    IO.inspect(interfaces)
 
     params =
       opts
