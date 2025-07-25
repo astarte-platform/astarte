@@ -26,8 +26,8 @@ env:
   otp_version: "26.1"
 
 jobs:
-  end-to-end-test:
-    name: End-to-end Test
+  end-to-end-docker-init:
+    name: Docker Initialization
     runs-on: ubuntu-22.04
     steps:
     - uses: actions/checkout@v2
@@ -37,6 +37,11 @@ jobs:
       run: docker compose build --parallel
     - name: Start all Astarte services
       run: docker compose up -d
+  end-to-end-astarte-init:
+    name: Astarte Initialization
+    runs-on: ubuntu-22.04
+    needs: end-to-end-docker-init
+    steps:
     - name: Wait for Astarte to come up
       run: |
         wget https://github.com/astarte-platform/wait-for-astarte-docker-compose/releases/download/v1.1.0/wait-for-astarte-docker-compose_1.1.0_linux_amd64.tar.gz
@@ -64,6 +69,11 @@ jobs:
       run: |
         JWT=$(./astartectl utils gen-jwt appengine channels pairing realm-management -k test_private.pem)
         echo "E2E_JWT=$JWT" >> $GITHUB_ENV
+  end-to-end-build:
+    name: Build End-to-End
+    runs-on: ubuntu-22.04
+    needs: end-to-end-astarte-init
+    steps:
     - uses: actions/cache@v4
       with:
         path: tools/astarte_e2e/deps
@@ -81,6 +91,11 @@ jobs:
       run: |
         mix deps.get
         mix compile --warnings-as-errors --force
+  end-to-end-test:
+    name: End-to-end Test
+    runs-on: ubuntu-22.04
+    needs: end-to-end-build
+    steps:
     - name: Run Astarte E2E
       working-directory: tools/astarte_e2e
       env:
