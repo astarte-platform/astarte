@@ -34,11 +34,19 @@ defmodule Astarte.Core.Generators.InterfaceTest do
     @describetag :success
     @describetag :ut
 
-    property "validate interface using Changeset" do
+    property "validate interface using Changeset and to_change (gen)" do
       gen_interface_changes = InterfaceGenerator.interface() |> InterfaceGenerator.to_changes()
 
-      check all changes <- gen_interface_changes do
-        changeset = Interface.changeset(%Interface{}, changes)
+      check all changes <- gen_interface_changes,
+                changeset = Interface.changeset(%Interface{}, changes) do
+        assert changeset.valid?, "Invalid interface: #{inspect(changeset.errors)}"
+      end
+    end
+
+    property "validate interface using Changeset and to_change (struct)" do
+      check all interface <- InterfaceGenerator.interface(),
+                changes <- InterfaceGenerator.to_changes(interface),
+                changeset = Interface.changeset(%Interface{}, changes) do
         assert changeset.valid?, "Invalid interface: #{inspect(changeset.errors)}"
       end
     end
@@ -53,8 +61,8 @@ defmodule Astarte.Core.Generators.InterfaceTest do
         )
         |> InterfaceGenerator.to_changes()
 
-      check all changes <- gen_interface_changes do
-        changeset = Interface.changeset(%Interface{}, changes)
+      check all changes <- gen_interface_changes,
+                changeset = Interface.changeset(%Interface{}, changes) do
         assert changeset.valid?, "Invalid interface: #{inspect(changeset.errors)}"
       end
     end

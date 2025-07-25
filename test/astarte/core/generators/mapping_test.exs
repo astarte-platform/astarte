@@ -27,30 +27,49 @@ defmodule Astarte.Core.Generators.MappingTest do
   @moduletag :core
   @moduletag :mapping
 
+  defp gen_changeset(gen_changes_f) do
+    gen all %Interface{
+              name: interface_name,
+              major_version: interface_major,
+              interface_id: interface_id,
+              type: interface_type
+            } <- InterfaceGenerator.interface(),
+            changes <- gen_changes_f.(interface_type),
+            opts = [
+              interface_name: interface_name,
+              interface_major: interface_major,
+              interface_id: interface_id,
+              interface_type: interface_type
+            ] do
+      {changes, opts}
+    end
+  end
+
+  defp gen_mapping_changes_gen(interface_type) do
+    MappingGenerator.mapping(interface_type: interface_type) |> MappingGenerator.to_changes()
+  end
+
+  defp gen_mapping_changes_struct(interface_type) do
+    gen all mapping <- MappingGenerator.mapping(interface_type: interface_type),
+            changes <- MappingGenerator.to_changes(mapping) do
+      changes
+    end
+  end
+
   @doc false
   describe "mapping generator" do
     @describetag :success
     @describetag :ut
 
-    defp gen_mapping_changes(interface_type),
-      do:
-        MappingGenerator.mapping(interface_type: interface_type)
-        |> MappingGenerator.to_changes()
+    property "validate Mapping using Changeset and to_change (gen)" do
+      check all {changes, opts} <- gen_changeset(&gen_mapping_changes_gen/1) do
+        changeset = Mapping.changeset(%Mapping{}, changes, opts)
+        assert changeset.valid?, "Invalid mapping: #{inspect(changeset, structs: false)}"
+      end
+    end
 
-    property "generates valid mapping" do
-      check all %Interface{
-                  name: interface_name,
-                  major_version: interface_major,
-                  interface_id: interface_id,
-                  type: interface_type
-                } <- InterfaceGenerator.interface(),
-                changes <- gen_mapping_changes(interface_type),
-                opts = [
-                  interface_name: interface_name,
-                  interface_major: interface_major,
-                  interface_id: interface_id,
-                  interface_type: interface_type
-                ] do
+    property "validate Mapping using Changeset and to_change (struct)" do
+      check all {changes, opts} <- gen_changeset(&gen_mapping_changes_struct/1) do
         changeset = Mapping.changeset(%Mapping{}, changes, opts)
         assert changeset.valid?, "Invalid mapping: #{inspect(changeset, structs: false)}"
       end

@@ -35,10 +35,18 @@ defmodule Astarte.Core.Generators.Triggers.Policy.HandlerTest do
     @describetag :success
     @describetag :ut
 
-    property "validate triggers policy handler" do
+    property "validate triggers policy handler using to_changes (gen)" do
       gen_handler_changes = HandlerGenerator.handler() |> HandlerGenerator.to_changes()
 
       check all changes <- gen_handler_changes,
+                changeset = Handler.changeset(%Handler{}, changes) do
+        assert changeset.valid?, "Invalid handler: #{inspect(changeset.errors)}"
+      end
+    end
+
+    property "validate triggers policy handler using to_changes (struct)" do
+      check all handler <- HandlerGenerator.handler(),
+                changes <- HandlerGenerator.to_changes(handler),
                 changeset = Handler.changeset(%Handler{}, changes) do
         assert changeset.valid?, "Invalid handler: #{inspect(changeset.errors)}"
       end

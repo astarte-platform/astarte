@@ -41,8 +41,12 @@ defmodule Astarte.Core.Generators.Triggers.Policy.ErrorRange do
   end
 
   @doc """
-  Convert this struct stream to changes
+  Convert this struct/stream to changes
   """
+  @spec to_changes(ErrorRange.t()) :: StreamData.t(map())
+  def to_changes(data) when not is_struct(data, StreamData),
+    do: data |> constant() |> to_changes()
+
   @spec to_changes(StreamData.t(ErrorRange.t())) :: StreamData.t(map())
   def to_changes(gen) do
     gen all %ErrorRange{error_codes: error_codes} <- gen do

@@ -49,10 +49,17 @@ defmodule Astarte.Core.Generators.Triggers.Policy.ErrorRangeTest do
       end
     end
 
-    property "valid use of to_change" do
+    property "validate using to_change (gen)" do
       gen_change = ErrorRangeGenerator.error_range() |> ErrorRangeGenerator.to_changes()
 
       check all %{"error_codes" => error_codes} <- gen_change do
+        assert Enum.all?(error_codes, &is_integer/1)
+      end
+    end
+
+    property "validate using to_change (struct)" do
+      check all error_range <- ErrorRangeGenerator.error_range(),
+                %{"error_codes" => error_codes} <- ErrorRangeGenerator.to_changes(error_range) do
         assert Enum.all?(error_codes, &is_integer/1)
       end
     end
