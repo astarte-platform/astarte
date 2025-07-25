@@ -25,6 +25,7 @@ defmodule Astarte.Core.Generators.StorageTypeTest do
 
   alias Astarte.Core.StorageType
 
+  alias Astarte.Core.Generators.Interface, as: InterfaceGenerator
   alias Astarte.Core.Generators.StorageType, as: StorageTypeGenerator
 
   @moduletag :core
@@ -35,15 +36,24 @@ defmodule Astarte.Core.Generators.StorageTypeTest do
     @describetag :success
     @describetag :ut
 
-    property "validate storage_type using atoms" do
-      check all changes <- StorageTypeGenerator.storage_type() do
+    property "validate storage_type using atoms and interface (generator)" do
+      check all changes <- InterfaceGenerator.interface() |> StorageTypeGenerator.storage_type() do
+        assert {:ok, _} = StorageType.cast(changes), "Invalid cast from #{changes}"
+      end
+    end
+
+    property "validate storage_type using atoms and interface (struct)" do
+      check all interface <- InterfaceGenerator.interface(),
+                changes <- StorageTypeGenerator.storage_type(interface) do
         assert {:ok, _} = StorageType.cast(changes), "Invalid cast from #{changes}"
       end
     end
 
     property "validate storage_type using integer" do
       gen_storage_type_changes =
-        StorageTypeGenerator.storage_type() |> StorageTypeGenerator.to_changes()
+        InterfaceGenerator.interface()
+        |> StorageTypeGenerator.storage_type()
+        |> StorageTypeGenerator.to_changes()
 
       check all changes <- gen_storage_type_changes do
         assert {:ok, _} = StorageType.cast(changes), "Invalid cast from #{changes}"
