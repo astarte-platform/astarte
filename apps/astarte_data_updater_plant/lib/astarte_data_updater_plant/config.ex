@@ -341,6 +341,16 @@ defmodule Astarte.DataUpdaterPlant.Config do
           os_env: "DATA_UPDATER_PLANT_AMQP_TRIGGERS_PRODUCER_SSL_CUSTOM_SNI",
           type: :binary
 
+  @envdoc """
+  "The handling method for database events. The default is `expose`, which means that the events are exposed trough telemetry. The other possible value, `log`, means that the events are logged instead."
+  """
+  app_env :database_events_handling_method,
+          :astarte_data_updater_plant,
+          :database_events_handling_method,
+          os_env: "DATABASE_EVENTS_HANDLING_METHOD",
+          type: Astarte.DataUpdaterPlant.Config.TelemetryType,
+          default: :expose
+
   # Since we have one channel per queue, this is not configurable
   def amqp_consumer_channels_per_connection_number!() do
     ceil(data_queue_total_count!() / amqp_consumer_connection_number!())
