@@ -1,4 +1,3 @@
-#
 # This file is part of Astarte.
 #
 # Copyright 2025 SECO Mind Srl
@@ -36,9 +35,10 @@ defmodule AstarteE2E.TaskScheduler do
     Process.flag(:trap_exit, true)
 
     checks = [
-      AstarteE2E.VolatileTriggerRoundtrip.Executor,
+      AstarteE2E.AmqpDataTrigger,
+      AstarteE2E.DataTrigger,
       AstarteE2E.DeviceDeletion,
-      AstarteE2E.AmqpDataTrigger
+      AstarteE2E.VolatileTriggerRoundtrip.Executor
     ]
 
     state =

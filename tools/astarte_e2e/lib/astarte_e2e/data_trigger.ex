@@ -17,18 +17,41 @@
 #
 
 defmodule AstarteE2E.DataTrigger do
-  require Logger
+  use GenServer, restart: :temporary
 
-  use Task
-
+  alias Astarte.Core.Device, as: CoreDevice
   alias AstarteE2E.Config
 
-  def start_link(opts) do
-    Task.start_link(__MODULE__, :install_data_trigger!, [opts])
+  require Logger
+
+  def name, do: "data trigger roundtrip"
+
+  def start_link(init_arg) do
+    GenServer.start_link(__MODULE__, init_arg)
   end
 
-  def install_data_trigger!(opts) do
+  @impl GenServer
+  def init(_init_arg) do
+    realm = Config.realm!()
+    device_id = CoreDevice.random_device_id()
+    opts = [realm: realm, device_id: device_id]
+
+    with :ok <- install_data_trigger(opts) do
+      state = %{realm: realm, device_id: device_id}
+
+      {:ok, state, {:continue, :triggers_installed}}
+    end
+  end
+
+  @impl true
+  def handle_continue(:triggers_installed, state) do
+    # We have successfully installed data triggers here
+    {:stop, :normal, state}
+  end
+
+  def install_data_trigger(opts) do
     device_id = Keyword.fetch!(opts, :device_id)
+    encoded_id = CoreDevice.encode_device_id(device_id)
     base_url = Config.realm_management_url!()
     realm = Config.realm!()
     astarte_jwt = Config.jwt!()
@@ -44,26 +67,36 @@ defmodule AstarteE2E.DataTrigger do
     triggers = [
       %{
         name: "valuetrigger-datastream",
-        device_id: device_id,
-        simple_trigger: %{
-          type: "data_trigger",
-          on: "incoming_data",
-          interface_name: "org.astarte-platform.e2etest.SimpleDatastream",
-          interface_major: 1,
-          match_path: "/*",
-          value_match_operator: "*"
+        simple_triggers: [
+          %{
+            device_id: encoded_id,
+            type: "data_trigger",
+            on: "incoming_data",
+            interface_name: "org.astarte-platform.e2etest.SimpleDatastream",
+            interface_major: 1,
+            match_path: "/*",
+            value_match_operator: "*"
+          }
+        ],
+        action: %{
+          http_post_url: "http://example.com/triggers"
         }
       },
       %{
         name: "valuetrigger-properties",
-        device_id: device_id,
-        simple_trigger: %{
-          type: "data_trigger",
-          on: "incoming_data",
-          interface_name: "org.astarte-platform.e2etest.SimpleProperties",
-          interface_major: 1,
-          match_path: "/*",
-          value_match_operator: "*"
+        simple_triggers: [
+          %{
+            device_id: encoded_id,
+            type: "data_trigger",
+            on: "incoming_data",
+            interface_name: "org.astarte-platform.e2etest.SimpleProperties",
+            interface_major: 1,
+            match_path: "/*",
+            value_match_operator: "*"
+          }
+        ],
+        action: %{
+          http_post_url: "http://example.com/triggers"
         }
       }
     ]
