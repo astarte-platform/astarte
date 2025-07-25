@@ -21,6 +21,7 @@ defmodule AstarteE2E.Application do
 
   alias AstarteE2E.Config
   alias AstarteE2E.ServiceNotifier
+  alias AstarteE2E.DataTrigger
 
   require Logger
 
@@ -29,10 +30,14 @@ defmodule AstarteE2E.Application do
     Logger.info("Starting AstarteE2E application.", tag: "application_start")
 
     with :ok <- Config.validate() do
+      device_id = Astarte.Core.Device.random_device_id()
+      encoded_id = Astarte.Core.Device.encode_device_id(device_id)
+
       children = [
         {Registry, keys: :unique, name: Registry.AstarteE2E},
         AstarteE2EWeb.Telemetry,
         {ServiceNotifier, Config.notifier_opts()},
+        {DataTrigger, [device_id: encoded_id]},
         AstarteE2E.TaskScheduler
       ]
 
