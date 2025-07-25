@@ -33,8 +33,15 @@ jobs:
     - uses: actions/checkout@v2
     - name: Initialize docker compose files
       run: docker run -v $(pwd)/compose:/compose astarte/docker-compose-initializer
+    - name: Setup Docker Buildx
+      uses: docker/setup-buildx-action@v3
     - name: Build Astarte containers
-      run: docker compose build --parallel
+      uses: docker/bake-action@v6
+      with:
+        files: docker-compose.yml
+        set: |
+            *.cache-from=type=gha
+            *.cache-to=type=gha,mode=max
     - name: Start all Astarte services
       run: docker compose up -d
     - name: Wait for Astarte to come up
@@ -64,14 +71,16 @@ jobs:
       run: |
         JWT=$(./astartectl utils gen-jwt appengine channels pairing realm-management -k test_private.pem)
         echo "E2E_JWT=$JWT" >> $GITHUB_ENV
-    - uses: actions/cache@v4
+    - name: Cache Astarte E2E deps
+      uses: actions/cache@v4
       with:
         path: tools/astarte_e2e/deps
-        key: deps-${{ env.otp_version }}-${{ env.elixir_version }}-${{ hashFiles(format('{0}{1}{2}', github.workspace, '/tools/astarte_e2e', '/mix.lock')) }}
-    - uses: actions/cache@v4
+        key: e2e-deps-${{ env.otp_version }}-${{ env.elixir_version }}-${{ hashFiles(format('{0}{1}{2}', github.workspace, '/tools/astarte_e2e', '/mix.lock')) }}
+    - name: Cache Astarte E2E build
+      uses: actions/cache@v4
       with:
         path: tools/astarte_e2e/_build
-        key: build-${{ env.otp_version }}-${{ env.elixir_version }}
+        key: e2e-build-${{ env.otp_version }}-${{ env.elixir_version }}
     - uses: erlef/setup-beam@v1.15
       with:
         otp-version: ${{ env.otp_version }}
@@ -92,11 +101,9 @@ jobs:
         E2E_CHECK_REPETITIONS: 5
         E2E_MAILER_TO_ADDRESS: mail@example.com
         E2E_MAIL_SUBJECT: "Subj: Astarte Notification"
-      run: |
-        mix run --no-halt
+      run: mix run --no-halt
     - name: Check Docker
       if: ${{ failure() }}
-      run: |
-        docker compose logs
+      run: docker compose logs
     - name: Bring down Astarte docker-compose
       run: docker compose down
