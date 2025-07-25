@@ -1,0 +1,28 @@
+name: Astarte build
+
+on:
+  workflow_call:
+
+
+env:
+  elixir_version: "1.15"
+  otp_version: "26.1"
+
+jobs:
+  astarte-build:
+    name: Astarte build
+    runs-on: ubuntu-22.04
+    steps:
+    - uses: actions/checkout@v2
+    - name: Initialize docker compose files
+      run: docker run -v $(pwd)/compose:/compose astarte/docker-compose-initializer
+    - name: Setup Docker Buildx
+      uses: docker/setup-buildx-action@v3
+    - name: Build Astarte containers
+      uses: docker/bake-action@v6
+      with:
+        files: docker-compose.yml
+        set: |
+            *.cache-from=type=gha
+            *.cache-to=type=gha,mode=max
+    

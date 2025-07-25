@@ -26,22 +26,24 @@ env:
   otp_version: "26.1"
 
 jobs:
+  e2e-build:
+    uses: ./.github/workflows/astarte-e2e-build-workflow.yaml
+  astarte-build:
+    uses: ./.github/workflows/astarte-build-workflow.yaml
+  
   end-to-end-test:
+    needs: [e2e-build, astarte-build]
     name: End-to-end Test
     runs-on: ubuntu-22.04
     steps:
     - uses: actions/checkout@v2
-    - name: Initialize docker compose files
-      run: docker run -v $(pwd)/compose:/compose astarte/docker-compose-initializer
-    - name: Build Astarte containers
-      run: docker compose build --parallel
     - name: Start all Astarte services
       run: docker compose up -d
     - name: Wait for Astarte to come up
       run: |
         wget https://github.com/astarte-platform/wait-for-astarte-docker-compose/releases/download/v1.1.0/wait-for-astarte-docker-compose_1.1.0_linux_amd64.tar.gz
         tar xf wait-for-astarte-docker-compose_1.1.0_linux_amd64.tar.gz
-        ./wait-for-astarte-docker-compose
+        ./wait-for-astarte-docker-compose -t 420
     - name: Install astartectl
       run: |
         wget https://github.com/astarte-platform/astartectl/releases/download/v22.11.02/astartectl_22.11.02_linux_x86_64.tar.gz
@@ -64,23 +66,7 @@ jobs:
       run: |
         JWT=$(./astartectl utils gen-jwt appengine channels pairing realm-management -k test_private.pem)
         echo "E2E_JWT=$JWT" >> $GITHUB_ENV
-    - uses: actions/cache@v4
-      with:
-        path: tools/astarte_e2e/deps
-        key: deps-${{ env.otp_version }}-${{ env.elixir_version }}-${{ hashFiles(format('{0}{1}{2}', github.workspace, '/tools/astarte_e2e', '/mix.lock')) }}
-    - uses: actions/cache@v4
-      with:
-        path: tools/astarte_e2e/_build
-        key: build-${{ env.otp_version }}-${{ env.elixir_version }}
-    - uses: erlef/setup-beam@v1.15
-      with:
-        otp-version: ${{ env.otp_version }}
-        elixir-version: ${{ env.elixir_version }}
-    - name: Build Astarte E2E
-      working-directory: tools/astarte_e2e
-      run: |
-        mix deps.get
-        mix compile --warnings-as-errors --force
+
     - name: Run Astarte E2E
       working-directory: tools/astarte_e2e
       env:
@@ -92,11 +78,9 @@ jobs:
         E2E_CHECK_REPETITIONS: 5
         E2E_MAILER_TO_ADDRESS: mail@example.com
         E2E_MAIL_SUBJECT: "Subj: Astarte Notification"
-      run: |
-        mix run --no-halt
+      run: mix run --no-halt
     - name: Check Docker
       if: ${{ failure() }}
-      run: |
-        docker compose logs
+      run: docker compose logs
     - name: Bring down Astarte docker-compose
       run: docker compose down
