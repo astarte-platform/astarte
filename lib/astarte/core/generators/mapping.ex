@@ -24,8 +24,10 @@ defmodule Astarte.Core.Generators.Mapping do
   """
   use Astarte.Generators.Utilities.ParamsGen
 
-  alias Astarte.Core.Generators.Interface, as: InterfaceGenerator
+  alias Astarte.Core.CQLUtils
   alias Astarte.Core.Mapping
+
+  alias Astarte.Core.Generators.Interface, as: InterfaceGenerator
 
   alias Astarte.Utilities.Map, as: MapUtilities
 
@@ -40,7 +42,10 @@ defmodule Astarte.Core.Generators.Mapping do
   @spec mapping(params :: keyword()) :: StreamData.t(Mapping.t())
   def mapping(params \\ []) do
     params gen all interface_type <- InterfaceGenerator.type(),
+                   interface_name <- InterfaceGenerator.name(),
+                   interface_major <- InterfaceGenerator.major_version(),
                    endpoint <- endpoint(),
+                   endpoint_id <- endpoint_id(interface_name, interface_major, endpoint),
                    type <- type(),
                    reliability <- reliability(interface_type),
                    explicit_timestamp <- explicit_timestamp(interface_type),
@@ -56,6 +61,7 @@ defmodule Astarte.Core.Generators.Mapping do
       fields =
         MapUtilities.clean(%{
           endpoint: endpoint,
+          endpoint_id: endpoint_id,
           type: type,
           value_type: type,
           reliability: reliability,
@@ -120,6 +126,9 @@ defmodule Astarte.Core.Generators.Mapping do
   @spec endpoint_segment_param() :: StreamData.t(StreamData.t(String.t()))
   def endpoint_segment_param,
     do: endpoint_segment() |> map(fn segment -> "%{" <> segment <> "}" end)
+
+  defp endpoint_id(interface_name, interface_major, endpoint),
+    do: constant(CQLUtils.endpoint_id(interface_name, interface_major, endpoint))
 
   defp type do
     member_of([

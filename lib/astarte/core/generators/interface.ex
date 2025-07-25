@@ -25,12 +25,12 @@ defmodule Astarte.Core.Generators.Interface do
 
   import Astarte.Generators.Utilities.ParamsGen
 
-  alias Astarte.Core.Generators.Interface
-  alias Astarte.Core.Generators.Mapping, as: MappingGenerator
+  alias Astarte.Core.CQLUtils
   alias Astarte.Core.Interface
-  alias Astarte.Utilities.Map, as: MapUtilities
 
-  alias Ecto.UUID
+  alias Astarte.Core.Generators.Mapping, as: MappingGenerator
+
+  alias Astarte.Utilities.Map, as: MapUtilities
 
   @doc """
   Generates a valid Astarte Interface.
@@ -39,15 +39,15 @@ defmodule Astarte.Core.Generators.Interface do
   """
   @spec interface(params :: keyword()) :: StreamData.t(Interface.t())
   def interface(params \\ []) do
-    params gen all id <- id(),
-                   name <- name(),
+    params gen all name <- name(),
                    major_version <- major_version(),
                    minor_version <- minor_version(major_version),
+                   id <- id(name, major_version),
                    type <- type(),
                    ownership <- ownership(),
                    aggregation <- aggregation(type),
                    prefix <- prefix(),
-                   mappings <- mappings(type, prefix),
+                   mappings <- mappings(type, name, major_version, prefix),
                    description <- description(),
                    doc <- doc(),
                    params: params do
@@ -97,7 +97,6 @@ defmodule Astarte.Core.Generators.Interface do
               |> Enum.map(&MappingGenerator.to_changes(constant(&1)))
               |> fixed_list() do
       MapUtilities.clean(%{
-        interface_id: interface_id,
         name: name,
         major_version: major_version,
         minor_version: minor_version,
@@ -109,6 +108,7 @@ defmodule Astarte.Core.Generators.Interface do
         doc: doc,
         # Different input naming
         interface_name: name,
+        interface_id: interface_id,
         version_major: major_version,
         version_minor: minor_version
       })
@@ -141,6 +141,10 @@ defmodule Astarte.Core.Generators.Interface do
   def aggregation(:properties), do: constant(:individual)
   def aggregation(_), do: member_of([:individual, :object])
 
+  @doc false
+  @spec major_version :: StreamData.t(integer())
+  def major_version, do: integer(0..9)
+
   defp name_optional do
     gen all first <- string([?a..?z, ?A..?Z], length: 1),
             rest <- string(:alphanumeric, max_length: 10),
@@ -168,9 +172,8 @@ defmodule Astarte.Core.Generators.Interface do
     end
   end
 
-  defp id, do: repeatedly(&UUID.bingenerate/0)
-
-  defp major_version, do: integer(0..9)
+  defp id(interface_name, major_version),
+    do: constant(CQLUtils.interface_id(interface_name, major_version))
 
   defp minor_version(major_version) do
     case major_version do
@@ -183,7 +186,7 @@ defmodule Astarte.Core.Generators.Interface do
 
   defp prefix, do: MappingGenerator.endpoint()
 
-  defp mappings(interface_type, prefix) do
+  defp mappings(interface_type, interface_name, interface_major, prefix) do
     gen all retention <- MappingGenerator.retention(interface_type),
             reliability <- MappingGenerator.reliability(interface_type),
             expiry <- MappingGenerator.expiry(interface_type),
@@ -197,6 +200,8 @@ defmodule Astarte.Core.Generators.Interface do
                 |> Enum.map(fn postfix ->
                   MappingGenerator.mapping(
                     interface_type: interface_type,
+                    interface_name: interface_name,
+                    interface_major: interface_major,
                     retention: retention,
                     reliability: reliability,
                     expiry: expiry,
