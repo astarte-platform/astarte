@@ -158,7 +158,7 @@ defmodule Astarte.Pairing.Engine do
         _ =
           Logger.warning(
             "Failed to verify if unconfirmed device #{Device.encode_device_id(device_id)} exists, reason: #{Exception.message(err)}",
-            realm_name: realm_name
+            realm: realm_name
           )
 
         verify_can_register_new_device(realm_name)
@@ -171,7 +171,7 @@ defmodule Astarte.Pairing.Engine do
       if registration_limit != nil and registered_devices_count >= registration_limit do
         _ =
           Logger.warning("Cannot register device: reached device registration limit",
-            realm_name: realm_name,
+            realm: realm_name,
             tag: "device_registration_limit_reached"
           )
 
