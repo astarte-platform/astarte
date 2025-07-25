@@ -17,15 +17,16 @@
 #
 
 defmodule Astarte.PairingWeb.Plug.GuardianAuthorizePath do
+  @moduledoc false
   use Plug.Builder
 
   import Plug.Conn
 
-  require Logger
-
   alias Astarte.Pairing.Auth.User
   alias Astarte.PairingWeb.AuthGuardian
   alias Astarte.PairingWeb.FallbackController
+
+  require Logger
 
   plug Guardian.Plug.Pipeline,
     otp_app: :astarte_pairing,

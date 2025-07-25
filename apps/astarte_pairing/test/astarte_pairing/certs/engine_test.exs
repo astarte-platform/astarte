@@ -18,13 +18,14 @@
 defmodule Astarte.Pairing.EngineTest do
   use Astarte.Cases.Data, async: true
   use Astarte.Cases.Device
+
   alias Astarte.Core.Device
-  alias Astarte.Pairing.CredentialsSecret
+  alias Astarte.DataAccess.Realms.Realm
   alias Astarte.Helpers.Database, as: DatabaseTestHelper
+  alias Astarte.Pairing.CredentialsSecret
   alias Astarte.Pairing.Engine
   alias Astarte.Pairing.Queries
   alias CFXXL.CertUtils
-  alias Astarte.DataAccess.Realms.Realm
 
   @test_csr """
   -----BEGIN CERTIFICATE REQUEST-----

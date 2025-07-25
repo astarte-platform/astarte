@@ -20,10 +20,10 @@ defmodule Astarte.Pairing.InfoTest do
   use Astarte.Cases.Data, async: true
   use Astarte.Cases.Device
 
-  alias Astarte.Pairing.Info.DeviceInfo
-  alias Astarte.Pairing.Info
-
   import Astarte.Helpers.Device
+
+  alias Astarte.Pairing.Info
+  alias Astarte.Pairing.Info.DeviceInfo
 
   @credentials_secret "7wfs9MIBysBGG/v6apqNVBXXQii6Bris6CeU7FdCgWU="
   @wrong_credentials_secret "8wfs9MIBysBGG/v6apqNVBXXQii6Bris6CeU7FdCgWU="

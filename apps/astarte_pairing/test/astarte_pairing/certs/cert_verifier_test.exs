@@ -19,9 +19,9 @@
 defmodule Astarte.Pairing.CertVerifierTest do
   use ExUnit.Case, async: true
 
+  alias Astarte.Helpers.Database
   alias Astarte.Pairing.CertVerifier
   alias Astarte.Pairing.Config
-  alias Astarte.Helpers.Database
   alias CFXXL.Client
   alias CFXXL.DName
 

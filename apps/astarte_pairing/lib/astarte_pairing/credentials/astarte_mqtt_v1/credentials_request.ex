@@ -17,8 +17,11 @@
 #
 
 defmodule Astarte.Pairing.Credentials.AstarteMQTTV1.CredentialsRequest do
+  @moduledoc false
   use Ecto.Schema
+
   import Ecto.Changeset
+
   alias Astarte.Pairing.Credentials.AstarteMQTTV1.CredentialsRequest
 
   @primary_key false

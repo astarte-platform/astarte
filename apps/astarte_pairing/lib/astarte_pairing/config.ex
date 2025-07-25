@@ -23,8 +23,8 @@ defmodule Astarte.Pairing.Config do
 
   use Skogsra
 
-  alias Astarte.Pairing.CFSSLCredentials
   alias Astarte.DataAccess.Config, as: DataAccessConfig
+  alias Astarte.Pairing.CFSSLCredentials
   alias Astarte.Pairing.Config.CQExNodes
 
   @envdoc "The external broker URL which should be used by devices."

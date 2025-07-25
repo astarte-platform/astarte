@@ -20,9 +20,9 @@ defmodule Astarte.Pairing.CredentialsTest do
   use Astarte.Cases.Data, async: true
   use Astarte.Cases.Device
 
-  alias Astarte.Pairing.Credentials
-
   import Astarte.Helpers.Device
+
+  alias Astarte.Pairing.Credentials
 
   @device_ip "2.3.4.5"
   @secret "valid"

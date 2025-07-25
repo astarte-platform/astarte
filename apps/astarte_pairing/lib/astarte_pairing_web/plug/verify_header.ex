@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2018 Ispirata Srl
+# Copyright 2018 - 2025 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -21,11 +21,11 @@ defmodule Astarte.PairingWeb.Plug.VerifyHeader do
   This is a wrapper around `Guardian.Plug.VerifyHeader` that allows to recover
   the JWT public key dynamically using informations contained in the connection
   """
-  require Logger
-
   alias Astarte.Pairing.Auth
   alias Guardian.Plug.VerifyHeader, as: GuardianVerifyHeader
   alias JOSE.JWK
+
+  require Logger
 
   def init(opts) do
     GuardianVerifyHeader.init(opts)

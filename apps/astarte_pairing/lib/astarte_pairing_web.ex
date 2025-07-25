@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2017-2018 Ispirata Srl
+# Copyright 2017 - 2025 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -39,8 +39,9 @@ defmodule Astarte.PairingWeb do
     quote do
       use Phoenix.Controller, namespace: Astarte.PairingWeb
       use Gettext, backend: Astarte.PairingWeb.Gettext
-      import Plug.Conn
+
       import Astarte.PairingWeb.Router.Helpers
+      import Plug.Conn
     end
   end
 
@@ -53,18 +54,18 @@ defmodule Astarte.PairingWeb do
       use Gettext, backend: Astarte.PairingWeb.Gettext
 
       # Import convenience functions from controllers
-      import Phoenix.Controller, only: [get_flash: 2, view_module: 1]
-
-      import Astarte.PairingWeb.Router.Helpers
       import Astarte.PairingWeb.ErrorHelpers
+      import Astarte.PairingWeb.Router.Helpers
+      import Phoenix.Controller, only: [get_flash: 2, view_module: 1]
     end
   end
 
   def router do
     quote do
       use Phoenix.Router
-      import Plug.Conn
+
       import Phoenix.Controller
+      import Plug.Conn
     end
   end
 

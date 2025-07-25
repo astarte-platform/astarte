@@ -17,6 +17,7 @@
 #
 
 defmodule Astarte.Pairing.Info.AstarteMQTTV1Status do
+  @moduledoc false
   @enforce_keys [:broker_url]
   defstruct [:broker_url]
 end

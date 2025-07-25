@@ -20,10 +20,10 @@ defmodule Astarte.Pairing.AgentTest do
   use Astarte.Cases.Data, async: true
   use Astarte.Cases.Device
 
+  import Mox
+
   alias Astarte.Helpers.Database
   alias Astarte.Pairing.Agent
-
-  import Mox
 
   describe "register_device" do
     alias Astarte.Pairing.Agent.DeviceRegistrationResponse

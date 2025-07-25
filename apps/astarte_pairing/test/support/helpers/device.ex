@@ -16,14 +16,15 @@
 # limitations under the License.
 
 defmodule Astarte.Helpers.Device do
+  @moduledoc false
+  import ExUnit.CaptureLog
+
   alias Astarte.DataAccess.Devices.Device
   alias Astarte.DataAccess.Realms.Interface
   alias Astarte.DataAccess.Realms.Realm
   alias Astarte.DataAccess.Repo
-  alias Astarte.RealmManagement.Interfaces, as: RMInterfaces
   alias Astarte.Pairing.CredentialsSecret
-
-  import ExUnit.CaptureLog
+  alias Astarte.RealmManagement.Interfaces, as: RMInterfaces
 
   @fallible_value_type [
     :integer,
@@ -77,7 +78,7 @@ defmodule Astarte.Helpers.Device do
   def update_credentials_secret!(realm_name, device_id, new_secret) do
     keyspace = Realm.keyspace_name(realm_name)
 
-    hashed_secret = Astarte.Pairing.CredentialsSecret.hash(new_secret)
+    hashed_secret = CredentialsSecret.hash(new_secret)
 
     Repo.get!(Device, device_id, prefix: keyspace)
     |> Ecto.Changeset.change(credentials_secret: hashed_secret)

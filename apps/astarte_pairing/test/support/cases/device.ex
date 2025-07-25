@@ -17,18 +17,19 @@
 #
 
 defmodule Astarte.Cases.Device do
-  alias Astarte.DataAccess.Repo
-  alias Astarte.DataAccess.Realms.Realm
-  alias Astarte.DataAccess.Interface, as: InterfaceQueries
-  alias Astarte.DataAccess.Realms.Endpoint
-  alias Astarte.Core.Generators.Device, as: DeviceGenerator
-  alias Astarte.Core.Generators.Interface, as: InterfaceGenerator
-  alias Astarte.Pairing.CredentialsSecret
-
+  @moduledoc false
   use ExUnit.CaseTemplate
   use ExUnitProperties
 
   import Astarte.Helpers.Device
+
+  alias Astarte.Core.Generators.Device, as: DeviceGenerator
+  alias Astarte.Core.Generators.Interface, as: InterfaceGenerator
+  alias Astarte.DataAccess.Interface, as: InterfaceQueries
+  alias Astarte.DataAccess.Realms.Endpoint
+  alias Astarte.DataAccess.Realms.Realm
+  alias Astarte.DataAccess.Repo
+  alias Astarte.Pairing.CredentialsSecret
 
   using do
     quote do

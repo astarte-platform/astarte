@@ -18,6 +18,7 @@
 
 defmodule Astarte.PairingWeb.CredentialsStatusView do
   use Astarte.PairingWeb, :view
+
   alias Astarte.PairingWeb.CredentialsStatusView
 
   def render("show_astarte_mqtt_v1.json", %{credentials_status: credentials_status}) do

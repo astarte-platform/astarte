@@ -19,8 +19,8 @@
 defmodule Astarte.Pairing.HealthTest do
   use Astarte.Pairing.DataCase, async: true
 
-  alias Astarte.Pairing.Health
   alias Astarte.DataAccess.Health.Health, as: DataAccessHealth
+  alias Astarte.Pairing.Health
 
   describe "health" do
     test "returns :ready when the database status is ready and cfssl is available" do

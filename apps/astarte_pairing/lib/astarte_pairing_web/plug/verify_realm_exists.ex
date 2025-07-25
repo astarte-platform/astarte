@@ -17,10 +17,11 @@
 #
 
 defmodule Astarte.PairingWeb.Plug.VerifyRealmExists do
+  @moduledoc false
   @behaviour Plug
 
-  import Plug.Conn
   import Phoenix.Controller
+  import Plug.Conn
 
   alias Astarte.Pairing.Queries
 

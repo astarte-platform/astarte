@@ -21,13 +21,15 @@ defmodule Astarte.Pairing.Queries do
   This module is responsible for the interaction with the database.
   """
 
+  import Ecto.Query
+
   alias Astarte.DataAccess.Consistency
-  alias Astarte.DataAccess.Realms.Realm
   alias Astarte.DataAccess.Devices.Device
   alias Astarte.DataAccess.KvStore
+  alias Astarte.DataAccess.Realms.Realm
   alias Astarte.DataAccess.Repo
+
   require Logger
-  import Ecto.Query
 
   def realm_existing?(realm_name) do
     keyspace_name = Realm.astarte_keyspace_name()

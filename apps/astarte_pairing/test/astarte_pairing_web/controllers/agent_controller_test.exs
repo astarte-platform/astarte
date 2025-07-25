@@ -21,6 +21,7 @@ defmodule Astarte.PairingWeb.AgentControllerTest do
   use Astarte.Cases.Device
   use ExUnitProperties
   use Astarte.PairingWeb.ConnCase, async: true
+
   alias Astarte.Pairing.CredentialsSecret
   alias Astarte.PairingWeb.Helpers.JWTTestHelper
 

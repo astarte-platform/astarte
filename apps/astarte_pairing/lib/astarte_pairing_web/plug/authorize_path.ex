@@ -17,6 +17,7 @@
 #
 
 defmodule Astarte.PairingWeb.Plug.AuthorizePath do
+  @moduledoc false
   alias Astarte.Pairing.Config
   alias Astarte.PairingWeb.Plug.GuardianAuthorizePath
 

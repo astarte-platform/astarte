@@ -28,6 +28,7 @@ defmodule Astarte.Cases.Data do
 
   use ExUnit.CaseTemplate
   use Mimic
+
   import Astarte.Helpers.Database
 
   using opts do

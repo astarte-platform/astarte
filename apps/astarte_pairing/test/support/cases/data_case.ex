@@ -17,5 +17,6 @@
 #
 
 defmodule Astarte.Pairing.DataCase do
+  @moduledoc false
   use ExUnit.CaseTemplate
 end

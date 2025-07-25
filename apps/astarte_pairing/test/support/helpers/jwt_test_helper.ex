@@ -17,6 +17,7 @@
 #
 
 defmodule Astarte.PairingWeb.Helpers.JWTTestHelper do
+  @moduledoc false
   alias Astarte.Pairing.Auth.User
   alias Astarte.PairingWeb.AuthGuardian
 
