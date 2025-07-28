@@ -20,8 +20,9 @@ defmodule AstarteE2E.Application do
   use Application
 
   alias AstarteE2E.Config
-  alias AstarteE2E.ServiceNotifier
   alias AstarteE2E.DataTrigger
+  alias AstarteE2E.DeviceTrigger
+  alias AstarteE2E.ServiceNotifier
 
   require Logger
 
@@ -38,6 +39,7 @@ defmodule AstarteE2E.Application do
         AstarteE2EWeb.Telemetry,
         {ServiceNotifier, Config.notifier_opts()},
         {DataTrigger, [device_id: encoded_id]},
+        DeviceTrigger,
         AstarteE2E.TaskScheduler
       ]
 
