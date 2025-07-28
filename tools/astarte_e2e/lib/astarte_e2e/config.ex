@@ -87,7 +87,7 @@ defmodule AstarteE2E.Config do
     type: :integer,
     default: 60
 
-  @envdoc "The port used to expose AstarteE2E's metrics. Defaults to 4010."
+  @envdoc "The port used to expose AstarteE2E's metrics and trigger endpoints. Defaults to 4010."
   app_env :port, :astarte_e2e, :port,
     os_env: "E2E_PORT",
     type: :integer,
@@ -134,6 +134,18 @@ defmodule AstarteE2E.Config do
     os_env: "E2E_MAIL_SUBJECT",
     type: :binary,
     required: true
+
+  @envdoc "The host for AstarteE2E trigger endpoints. Defaults to localhost."
+  app_env :host, :astarte_e2e, :host,
+    os_env: "E2E_HOST",
+    type: :binary,
+    default: "localhost"
+
+  @envdoc "The protocol used for AstarteE2E trigger endpoints. Defaults to http."
+  app_env :protocol, :astarte_e2e, :protocol,
+    os_env: "E2E_PROTOCOL",
+    type: :binary,
+    default: "http"
 
   @envdoc """
   The mail service's API key. This env var must be set and valid to use the mail
@@ -191,6 +203,10 @@ defmodule AstarteE2E.Config do
         ""
     end
     |> String.trim("/")
+  end
+
+  def base_url! do
+    "#{protocol!()}://#{host!()}:#{port!()}"
   end
 
   @spec device_opts() :: device_options()

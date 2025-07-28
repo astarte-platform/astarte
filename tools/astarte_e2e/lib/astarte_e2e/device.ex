@@ -85,6 +85,11 @@ defmodule AstarteE2E.Device do
     |> Supervisor.init(strategy: :one_for_one)
   end
 
+  def astarte_device_pid(server) do
+    Supervisor.which_children(server)
+    |> Enum.find_value(fn {id, pid, _, _} -> id == Astarte.Device && pid end)
+  end
+
   defp register_device!(realm, device, interfaces) do
     astarte_pairing_url = Config.pairing_url!()
     astarte_jwt = Config.jwt!()
