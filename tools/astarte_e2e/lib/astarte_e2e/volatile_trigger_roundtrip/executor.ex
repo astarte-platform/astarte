@@ -32,7 +32,7 @@ defmodule AstarteE2E.VolatileTriggerRoundtrip.Executor do
   end
 
   @impl GenServer
-  def init(_init_arg) do
+  def init(_init_args) do
     with {:ok, realm} <- Config.realm(),
          {:ok, interfaces} <- default_interfaces() do
       Process.flag(:trap_exit, true)

@@ -37,7 +37,8 @@ defmodule AstarteE2E.TaskScheduler do
 
     checks = [
       AstarteE2E.VolatileTriggerRoundtrip.Executor,
-      AstarteE2E.DeviceDeletion
+      AstarteE2E.DeviceDeletion,
+      AstarteE2E.AmqpDataTrigger
     ]
 
     state =
