@@ -22,6 +22,8 @@ defmodule Astarte.HousekeepingWeb.Telemetry do
 
   import Telemetry.Metrics
 
+  alias Astarte.Housekeeping.Config
+  alias Astarte.HousekeepingWeb.Telemetry.DatabaseEvents
   alias Astarte.HousekeepingWeb.Telemetry.APIUsage
 
   def start_link(arg) do
@@ -106,8 +108,55 @@ defmodule Astarte.HousekeepingWeb.Telemetry do
       ),
       counter("astarte.housekeeping.api.request.count"),
       sum("astarte.housekeeping.api.request.request_body_bytes"),
-      sum("astarte.housekeeping.api.request.response_body_bytes")
+      sum("astarte.housekeeping.api.request.response_body_bytes"),
+
+      # Database exception metrics
+      counter("astarte.housekeeping.database.execute_query.exception.count",
+        tags: [:query, :reason, :kind, :stacktrace],
+        tag_values: &to_valid_values/1,
+        unit: {:native, :second}
+      ),
+      counter("astarte.housekeeping.database.execute_query.stop.count",
+        tags: [:query, :reason],
+        tag_values: &to_valid_values/1,
+        unit: {:native, :second}
+      ),
+
+      # Database preparation metrics
+      counter("astarte.housekeeping.database.prepare_query.exception.count",
+        tags: [:query, :reason, :kind, :stacktrace],
+        tag_values: &to_valid_values/1,
+        unit: {:native, :second}
+      ),
+      counter("astarte.housekeeping.database.prepare_query.stop.count",
+        tags: [:query, :reason],
+        tag_values: &to_valid_values/1,
+        unit: {:native, :second}
+      ),
+
+      # Database connection metrics
+      counter(
+        "astarte.housekeeping.database.cluster.control_connection.failed_to_connect.count",
+        tag_values: &to_valid_values/1,
+        tags: [:cluster_name, :host, :reason]
+      ),
+      counter("astarte.housekeeping.database.failed_to_connect.conut",
+        tag_values: &to_valid_values/1,
+        tags: [:connection_name, :address, :port]
+      )
     ]
+  end
+
+  defp to_valid_values(%{query: query, reason: reason}) do
+    %{query: query.statement, reason: Xandra.Error.message(reason)}
+  end
+
+  defp to_valid_values(%{cluster_name: cluster_name, host: host, reason: reason}) do
+    %{cluster_name: cluster_name, host: inspect(host), reason: to_string(reason)}
+  end
+
+  defp to_valid_values(%{connection_name: connection_name, address: address, port: port}) do
+    %{connection_name: connection_name, address: inspect(address), port: inspect(port)}
   end
 
   defp periodic_measurements do
@@ -120,6 +169,36 @@ defmodule Astarte.HousekeepingWeb.Telemetry do
 
   defp attach_handlers do
     :telemetry.attach(APIUsage, [:cowboy, :request, :stop], &APIUsage.handle_event/4, nil)
+
+    :telemetry.attach_many(
+      DatabaseEvents,
+      xandra_events(),
+      &DatabaseEvents.handle_event/4,
+      Config.database_events_handling_method!()
+    )
+  end
+
+  defp xandra_events do
+    [
+      [:xandra, :connected],
+      [:xandra, :disconnected],
+      [:xandra, :failed_to_connect],
+      [:xandra, :prepared_cache, :hit],
+      [:xandra, :prepared_cache, :miss],
+      [:xandra, :prepare_query, :stop],
+      [:xandra, :execute_query, :stop],
+      [:xandra, :client_timeout],
+      [:xandra, :timed_out_response],
+      [:xandra, :server_warnings],
+      [:xandra, :cluster, :change_event],
+      [:xandra, :cluster, :control_connection, :connected],
+      [:xandra, :cluster, :control_connection, :disconnected],
+      [:xandra, :cluster, :control_connection, :failed_to_connect],
+      [:xandra, :cluster, :pool, :started],
+      [:xandra, :cluster, :pool, :restarted],
+      [:xandra, :cluster, :pool, :stopped],
+      [:xandra, :cluster, :discovered_peers]
+    ]
   end
 
   defp extract_phoenix_buckets_metadata(%{
