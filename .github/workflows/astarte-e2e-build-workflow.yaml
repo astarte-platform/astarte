@@ -1,0 +1,34 @@
+name: Astarte end-to-end build
+
+on:
+  workflow_call:
+
+env:
+  elixir_version: "1.15"
+  otp_version: "26.1"
+
+jobs:
+  end-to-end-build:
+    name: End-to-end build
+    runs-on: ubuntu-22.04
+    steps:
+    - uses: actions/checkout@v2
+    - name: Cache Astarte E2E deps
+      uses: actions/cache@v4
+      with:
+        path: tools/astarte_e2e/deps
+        key: e2e-deps-${{ env.otp_version }}-${{ env.elixir_version }}-${{ hashFiles(format('{0}{1}{2}', github.workspace, '/tools/astarte_e2e', '/mix.lock')) }}
+    - name: Cache Astarte E2E build
+      uses: actions/cache@v4
+      with:
+        path: tools/astarte_e2e/_build
+        key: e2e-build-${{ env.otp_version }}-${{ env.elixir_version }}
+    - uses: erlef/setup-beam@v1.15
+      with:
+        otp-version: ${{ env.otp_version }}
+        elixir-version: ${{ env.elixir_version }}
+    - name: Build Astarte E2E
+      working-directory: tools/astarte_e2e
+      run: |
+        mix deps.get
+        mix compile --warnings-as-errors --force
