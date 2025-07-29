@@ -24,6 +24,7 @@ defmodule Astarte.Housekeeping.Realms.QueriesTest do
   alias Astarte.Housekeeping.Helpers.Database
   alias Astarte.Housekeeping.Realms
   alias Astarte.Housekeeping.Realms.Queries
+  alias Astarte.Housekeeping.Config
   alias Astarte.Housekeeping.Realms.Realm, as: HKRealm
 
   @public_key_pem """
@@ -38,6 +39,7 @@ defmodule Astarte.Housekeeping.Realms.QueriesTest do
   -----END PUBLIC KEY-----
   """
   @replication_factor 1
+  @map_replication_factor %{"datacenter1" => 1}
   describe "database inizialization" do
     setup do
       astarte_instance_id = "another#{System.unique_integer([:positive])}"
@@ -50,6 +52,11 @@ defmodule Astarte.Housekeeping.Realms.QueriesTest do
     end
 
     test "returns ok" do
+      assert :ok = Queries.initialize_database()
+    end
+
+    test "returns ok with NetworkTopologyStrategy" do
+      Mimic.stub(Config, :astarte_keyspace_replication_factor!, fn -> @map_replication_factor end)
       assert :ok = Queries.initialize_database()
     end
 

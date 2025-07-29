@@ -51,13 +51,28 @@ defmodule Astarte.Housekeeping.Config do
     type: :boolean,
     default: false
 
-  @envdoc "Replication factor for the astarte keyspace, defaults to 1"
+  @envdoc "Replication strategy for the `astarte` keyspace, either `simple` or `network`. Defaults to `simple`"
+  app_env :astarte_keyspace_replication_strategy,
+          :astarte_housekeeping,
+          :astarte_keyspace_replication_strategy,
+          os_env: "HOUSEKEEPING_ASTARTE_KEYSPACE_REPLICATION_STRATEGY",
+          type: Astarte.Housekeeping.Config.ReplicationStrategy,
+          default: :simple
+
+  @envdoc "Replication factor for the astarte keyspace, used when simple strategy is used for the astarte keyspace. defaults to 1"
   app_env :astarte_keyspace_replication_factor,
           :astarte_housekeeping,
           :astarte_keyspace_replication_factor,
           os_env: "HOUSEKEEPING_ASTARTE_KEYSPACE_REPLICATION_FACTOR",
           type: :integer,
           default: 1
+
+  @envdoc "Replication map for the astarte keyspace, used when network topology strategy is used for the astarte keyspace."
+  app_env :astarte_keyspace_network_replication_map,
+          :astarte_housekeeping,
+          :astarte_keyspace_network_replication_map,
+          os_env: "HOUSEKEEPING_ASTARTE_KEYSPACE_NETWORK_REPLICATION_MAP",
+          type: Astarte.Housekeeping.Config.NetworkReplicationMap
 
   @envdoc """
   "The handling method for database events. The default is `expose`, which means that the events are exposed trough telemetry. The other possible value, `log`, means that the events are logged instead."
@@ -91,6 +106,37 @@ defmodule Astarte.Housekeeping.Config do
         {:ok, _key} ->
           :ok
       end
+    end
+  end
+
+  @doc """
+  Returns :ok if at least one of HOUSEKEEPING_ASTARTE_KEYSPACE_REPLICATION_FACTOR or HOUSEKEEPING_ASTARTE_KEYSPACE_NETWORK_REPLICATION_MAP is valid, based on HOUSEKEEPING_ASTARTE_KEYSPACE_REPLICATION_STRATEGY value.
+  """
+  def validate_astarte_replication! do
+    case astarte_keyspace_replication_strategy!() do
+      :simple -> validate_astarte_replication_factor!()
+      :network -> validate_astarte_replication_map!()
+      nil -> raise "Invalid replication strategy set for the astarte keyspace"
+    end
+  end
+
+  defp validate_astarte_replication_factor! do
+    case astarte_keyspace_replication_factor() do
+      {:ok, replication_factor} when replication_factor != nil ->
+        :ok
+
+      _ ->
+        raise "Invalid replication factor for the astarte keyspace with simple replication strategy. Check the values of HOUSEKEEPING_ASTARTE_KEYSPACE_REPLICATION_STRATEGY and HOUSEKEEPING_ASTARTE_KEYSPACE_REPLICATION_FACTOR"
+    end
+  end
+
+  defp validate_astarte_replication_map! do
+    case astarte_keyspace_network_replication_map() do
+      {:ok, replication_map} when replication_map != nil ->
+        :ok
+
+      _ ->
+        raise "Invalid or empty replication map for the astarte keyspace with network topology replication strategy. Check the values of HOUSEKEEPING_ASTARTE_KEYSPACE_REPLICATION_STRATEGY and HOUSEKEEPING_ASTARTE_KEYSPACE_NETWORK_REPLICATION_MAP"
     end
   end
 

@@ -41,6 +41,7 @@ defmodule Astarte.Housekeeping.Application do
     Config.validate!()
     DataAccessConfig.validate!()
     Config.validate_jwt_public_key_pem!()
+    Config.validate_astarte_replication!()
 
     # Define workers and child supervisors to be supervised
     children = [
