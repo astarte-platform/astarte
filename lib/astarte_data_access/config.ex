@@ -94,16 +94,6 @@ defmodule Astarte.DataAccess.Config do
     default: CAStore.file_path()
 
   @envdoc """
-  Discover nodes in the same cluster as specified in CASSANDRA_NODES. If your Cassandra
-  instance is outside of your network, enabling the autodiscovery leads to connection failures.
-  Defaults to false.
-  """
-  app_env :autodiscovery_enabled, :astarte_data_access, :autodiscovery_enabled,
-    os_env: "CASSANDRA_AUTODISCOVERY_ENABLED",
-    type: :boolean,
-    default: false
-
-  @envdoc """
   A string that uniquely identifies this Astarte instance.
   It will be used to generate Scylla keyspaces starting from Astarte realm names.
   Defaults to "".
