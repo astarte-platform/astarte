@@ -43,6 +43,13 @@ jobs:
       with:
         otp-version: ${{ env.otp_version }}
         elixir-version: ${{ env.elixir_version }}
+    - name: Restore astarte images
+      uses: actions/download-artifact@v4
+      with:
+        name: astarte-images
+        path: ${{ runner.temp }}
+    - name: Load astarte images
+      run: ls ${{ runner.temp }}/*.tar | xargs --max-args 1 docker load --input
     - name: Start all Astarte services
       run: docker compose up -d
     - name: Wait for Astarte to come up
