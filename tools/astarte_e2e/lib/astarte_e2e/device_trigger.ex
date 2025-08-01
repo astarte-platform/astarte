@@ -43,13 +43,34 @@ defmodule AstarteE2E.DeviceTrigger do
 
     with :ok <- install_device_triggers!(realm, encoded_id),
          {:ok, _} <- Device.start_link(opts) do
-      {:ok, %{}, {:continue, :shutdown}}
+      {:ok, %{device_id: encoded_id}}
     end
   end
 
+  def handle_trigger(realm, device_id, trigger, event) do
+    via_tuple(realm, device_id)
+    |> GenServer.call({:handle_trigger, trigger, event})
+  end
+
+  @impl GenServer
+  def handle_call(
+        {:handle_trigger, _trigger, %{"type" => "device_connected"} = _event},
+        _from,
+        state
+      ) do
+    {:stop, :normal, :ok, state}
+  end
+
   @impl true
-  def handle_continue(:shutdown, state) do
-    {:stop, :normal, state}
+  def handle_call(
+        {:handle_trigger, _trigger, event},
+        _from,
+        state
+      ) do
+    "Device Trigger: received unexpected trigger: #{inspect(event)}"
+    |> Logger.info(device_id: state.device_id)
+
+    {:reply, {:error, :unexpected_trigger}, state}
   end
 
   def install_device_triggers!(realm, device_id) do

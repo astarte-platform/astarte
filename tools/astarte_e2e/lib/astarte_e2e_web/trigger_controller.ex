@@ -21,6 +21,7 @@ defmodule AstarteE2EWeb.TriggerController do
 
   alias Astarte.Core.Device
   alias AstarteE2E.DataTrigger
+  alias AstarteE2E.DeviceTrigger
 
   require Logger
 
@@ -32,6 +33,22 @@ defmodule AstarteE2EWeb.TriggerController do
          {:ok, device_id} <- Device.decode_device_id(encoded_id),
          [realm | _] <- get_req_header(conn, "astarte-realm") do
       case DataTrigger.handle_trigger(realm, device_id, trigger, event) do
+        :ok -> send_resp(conn, 200, "")
+        _ -> send_resp(conn, 503, "")
+      end
+    else
+      _ -> send_resp(conn, 400, "")
+    end
+  end
+
+  def handle_device_trigger(conn) do
+    with {:ok, body, conn} <- read_body(conn),
+         {:ok, trigger_data} <- Jason.decode(body),
+         %{"device_id" => encoded_id, "event" => event, "trigger_name" => trigger} <-
+           trigger_data,
+         {:ok, device_id} <- Device.decode_device_id(encoded_id),
+         [realm | _] <- get_req_header(conn, "astarte-realm") do
+      case DeviceTrigger.handle_trigger(realm, device_id, trigger, event) do
         :ok -> send_resp(conn, 200, "")
         _ -> send_resp(conn, 503, "")
       end
