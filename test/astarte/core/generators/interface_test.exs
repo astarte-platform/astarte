@@ -67,4 +67,15 @@ defmodule Astarte.Core.Generators.InterfaceTest do
       end
     end
   end
+
+  describe "to_changes/1" do
+    @describetag :success
+    @describetag :ut
+    property "allows the resulting map to be json encoded" do
+      check all interface <- InterfaceGenerator.interface(),
+                changes <- InterfaceGenerator.to_changes(interface) do
+        assert {:ok, _json} = Jason.encode(changes)
+      end
+    end
+  end
 end

@@ -80,7 +80,6 @@ defmodule Astarte.Core.Generators.Interface do
   @spec to_changes(StreamData.t(Interface.t())) :: StreamData.t(map())
   def to_changes(gen) do
     gen all %Interface{
-              interface_id: interface_id,
               name: name,
               major_version: major_version,
               minor_version: minor_version,
@@ -108,7 +107,6 @@ defmodule Astarte.Core.Generators.Interface do
         doc: doc,
         # Different input naming
         interface_name: name,
-        interface_id: interface_id,
         version_major: major_version,
         version_minor: minor_version
       })

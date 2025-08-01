@@ -89,7 +89,10 @@ defmodule Astarte.Core.Generators.Mapping do
   @spec to_changes(StreamData.t(Mapping.t())) :: StreamData.t(map())
   def to_changes(gen) do
     gen all mapping <- gen do
-      mapping |> Map.from_struct() |> MapUtilities.clean()
+      mapping
+      |> Map.from_struct()
+      |> Map.drop([:interface_id, :endpoint_id])
+      |> MapUtilities.clean()
     end
   end
 
