@@ -178,7 +178,7 @@ defmodule Astarte.AppEngine.APIWeb.Telemetry do
         tag_values: &to_valid_values/1,
         tags: [:cluster_name, :host, :reason]
       ),
-      counter("astarte.appengine.database.failed_to_connect.conut",
+      counter("astarte.appengine.database.failed_to_connect.count",
         tag_values: &to_valid_values/1,
         tags: [:connection_name, :address, :port]
       )

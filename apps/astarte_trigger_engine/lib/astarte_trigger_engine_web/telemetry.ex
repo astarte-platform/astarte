@@ -114,7 +114,7 @@ defmodule Astarte.TriggerEngineWeb.Telemetry do
         tag_values: &to_valid_values/1,
         tags: [:cluster_name, :host, :reason]
       ),
-      counter("astarte.trigger_engine.database.failed_to_connect.conut",
+      counter("astarte.trigger_engine.database.failed_to_connect.count",
         tag_values: &to_valid_values/1,
         tags: [:connection_name, :address, :port]
       )

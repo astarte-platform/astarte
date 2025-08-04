@@ -145,7 +145,7 @@ defmodule Astarte.RealmManagementWeb.Telemetry do
         tag_values: &to_valid_values/1,
         tags: [:cluster_name, :host, :reason]
       ),
-      counter("astarte.realm_management.database.failed_to_connect.conut",
+      counter("astarte.realm_management.database.failed_to_connect.count",
         tag_values: &to_valid_values/1,
         tags: [:connection_name, :address, :port]
       )
