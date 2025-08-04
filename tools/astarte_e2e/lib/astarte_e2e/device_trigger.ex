@@ -25,6 +25,8 @@ defmodule AstarteE2E.DeviceTrigger do
   alias AstarteE2E.Device
   alias Astarte.Core.Device, as: CoreDevice
 
+  @trigger_name "device_connection"
+
   def name, do: "device trigger roundtrip"
 
   def start_link(init_arg) do
@@ -43,7 +45,7 @@ defmodule AstarteE2E.DeviceTrigger do
 
     with :ok <- install_device_triggers!(realm, encoded_id),
          {:ok, _} <- Device.start_link(opts) do
-      {:ok, %{device_id: encoded_id}}
+      {:ok, %{device_id: encoded_id, realm: realm}}
     end
   end
 
@@ -58,7 +60,7 @@ defmodule AstarteE2E.DeviceTrigger do
         _from,
         state
       ) do
-    {:stop, :normal, :ok, state}
+    {:reply, :ok, state, {:continue, :delete_triggers}}
   end
 
   @impl true
@@ -70,7 +72,46 @@ defmodule AstarteE2E.DeviceTrigger do
     "Device Trigger: received unexpected trigger: #{inspect(event)}"
     |> Logger.info(device_id: state.device_id)
 
-    {:reply, {:error, :unexpected_trigger}, state}
+    {:reply, {:error, :unexpected_trigger}, state, {:continue, :delete_triggers}}
+  end
+
+  @impl true
+  def handle_continue(:delete_triggers, state) do
+    base_url = Config.realm_management_url!()
+    realm = Config.realm!()
+    astarte_jwt = Config.jwt!() || raise "Missing JWT"
+
+    headers = [
+      {"Authorization", "Bearer #{astarte_jwt}"}
+    ]
+
+    triggers = [@trigger_name]
+
+    result =
+      Enum.reduce_while(triggers, :ok, fn trigger, :ok ->
+        url = Path.join([base_url, "v1", realm, "triggers", trigger])
+
+        case HTTPoison.delete(url, headers) do
+          {:ok, %HTTPoison.Response{status_code: code}} when code in [200, 202, 204] ->
+            {:cont, :ok}
+
+          {:ok, %HTTPoison.Response{status_code: code, body: body}} ->
+            {:halt, {:error, %{status: code, body: body}}}
+
+          {:error, %HTTPoison.Error{} = error} ->
+            {:halt, {:error, error}}
+        end
+      end)
+
+    case result do
+      :ok ->
+        Logger.info("Http Device Triggers deleted successfully")
+        {:stop, :normal, state}
+
+      {:error, error} ->
+        Logger.error("Failed to delete triggers: #{inspect(error)}")
+        {:stop, error, state}
+    end
   end
 
   def install_device_triggers!(realm, device_id) do
@@ -109,7 +150,7 @@ defmodule AstarteE2E.DeviceTrigger do
 
     [
       %{
-        name: "device_connection",
+        name: @trigger_name,
         action: %{
           http_post_url: trigger_url
         },

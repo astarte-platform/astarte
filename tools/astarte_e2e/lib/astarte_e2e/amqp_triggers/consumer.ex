@@ -78,7 +78,7 @@ defmodule AstarteE2E.AmqpTriggers.Consumer do
   def handle_info({:basic_deliver, payload, meta}, state) do
     case state.message_handler.(payload, meta) do
       :ok -> Basic.ack(state.channel, meta.delivery_tag)
-      :error  -> Basic.nack(state.channel, meta.delivery_tag)
+      :error -> Basic.nack(state.channel, meta.delivery_tag)
       {:error, _reason} -> Basic.nack(state.channel, meta.delivery_tag)
     end
 
