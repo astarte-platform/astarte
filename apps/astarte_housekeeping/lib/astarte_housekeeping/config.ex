@@ -57,7 +57,7 @@ defmodule Astarte.Housekeeping.Config do
           :astarte_keyspace_replication_strategy,
           os_env: "HOUSEKEEPING_ASTARTE_KEYSPACE_REPLICATION_STRATEGY",
           type: Astarte.Housekeeping.Config.ReplicationStrategy,
-          default: :simple
+          default: :simple_strategy
 
   @envdoc "Replication factor for the astarte keyspace, used when simple strategy is used for the astarte keyspace. defaults to 1"
   app_env :astarte_keyspace_replication_factor,
@@ -114,8 +114,8 @@ defmodule Astarte.Housekeeping.Config do
   """
   def validate_astarte_replication! do
     case astarte_keyspace_replication_strategy!() do
-      :simple -> validate_astarte_replication_factor!()
-      :network -> validate_astarte_replication_map!()
+      :simple_strategy -> validate_astarte_replication_factor!()
+      :network_topology_strategy -> validate_astarte_replication_map!()
       nil -> raise "Invalid replication strategy set for the astarte keyspace"
     end
   end

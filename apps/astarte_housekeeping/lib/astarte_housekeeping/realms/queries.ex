@@ -1038,8 +1038,8 @@ defmodule Astarte.Housekeeping.Realms.Queries do
 
     replication =
       case Config.astarte_keyspace_replication_strategy!() do
-        :simple -> Config.astarte_keyspace_replication_factor!()
-        :network -> Config.astarte_keyspace_network_replication_map!()
+        :simple_strategy -> Config.astarte_keyspace_replication_factor!()
+        :network_topology_strategy -> Config.astarte_keyspace_network_replication_map!()
       end
 
     with {:ok, replication_map_str} <- build_replication_map_str(replication),

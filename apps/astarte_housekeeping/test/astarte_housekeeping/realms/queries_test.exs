@@ -21,11 +21,14 @@ defmodule Astarte.Housekeeping.Realms.QueriesTest do
   use Mimic
 
   alias Astarte.DataAccess.Repo
+  alias Astarte.DataAccess.Realms.Realm
   alias Astarte.Housekeeping.Helpers.Database
   alias Astarte.Housekeeping.Realms
   alias Astarte.Housekeeping.Realms.Queries
   alias Astarte.Housekeeping.Config
   alias Astarte.Housekeeping.Realms.Realm, as: HKRealm
+
+  import Ecto.Query
 
   @public_key_pem """
   -----BEGIN PUBLIC KEY-----
@@ -39,7 +42,8 @@ defmodule Astarte.Housekeeping.Realms.QueriesTest do
   -----END PUBLIC KEY-----
   """
   @replication_factor 1
-  @map_replication_factor %{"datacenter1" => 1}
+  @datacenter "datacenter1"
+  @map_replication_factor %{@datacenter => 1}
   describe "database inizialization" do
     setup do
       astarte_instance_id = "another#{System.unique_integer([:positive])}"
@@ -56,8 +60,24 @@ defmodule Astarte.Housekeeping.Realms.QueriesTest do
     end
 
     test "returns ok with NetworkTopologyStrategy" do
-      Mimic.stub(Config, :astarte_keyspace_replication_factor!, fn -> @map_replication_factor end)
+      Config
+      |> expect(:astarte_keyspace_replication_strategy!, fn -> :network_topology_strategy end)
+      |> expect(:astarte_keyspace_network_replication_map!, fn -> @map_replication_factor end)
+      |> reject(:astarte_keyspace_replication_factor!, 0)
+
       assert :ok = Queries.initialize_database()
+
+      astarte_keyspace = Realm.astarte_keyspace_name()
+
+      replication =
+        from(k in "system_schema.keyspaces", select: k.replication)
+        |> Repo.get_by!(keyspace_name: astarte_keyspace)
+
+      replication_class = replication["class"]
+      {datacenter_replication, ""} = replication[@datacenter] |> Integer.parse()
+
+      assert replication_class == "org.apache.cassandra.locator.NetworkTopologyStrategy"
+      assert datacenter_replication == @map_replication_factor[@datacenter]
     end
 
     test "returns database error" do
