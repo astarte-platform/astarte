@@ -194,7 +194,6 @@ defmodule Astarte.Housekeeping.Realms.Queries do
   def create_realm(realm_name, public_key_pem, replication, device_limit, max_retention, opts) do
     with :ok <- validate_realm_name(realm_name),
          keyspace_name = Realm.keyspace_name(realm_name),
-         :ok <- check_replication(replication),
          {:ok, replication_map_str} <- build_replication_map_str(replication) do
       if opts[:async] do
         {:ok, _pid} =
@@ -320,22 +319,26 @@ defmodule Astarte.Housekeeping.Realms.Queries do
 
   defp build_replication_map_str(replication_factor)
        when is_integer(replication_factor) and replication_factor > 0 do
-    replication_map_str =
-      "{'class': 'SimpleStrategy', 'replication_factor': #{replication_factor}}"
+    with :ok <- check_replication(replication_factor) do
+      replication_map_str =
+        "{'class': 'SimpleStrategy', 'replication_factor': #{replication_factor}}"
 
-    {:ok, replication_map_str}
+      {:ok, replication_map_str}
+    end
   end
 
   defp build_replication_map_str(datacenter_replication_factors)
        when is_map(datacenter_replication_factors) do
-    datacenter_replications_str =
-      Enum.map_join(datacenter_replication_factors, ",", fn {datacenter, replication_factor} ->
-        "'#{datacenter}': #{replication_factor}"
-      end)
+    with :ok <- check_replication(datacenter_replication_factors) do
+      datacenter_replications_str =
+        Enum.map_join(datacenter_replication_factors, ",", fn {datacenter, replication_factor} ->
+          "'#{datacenter}': #{replication_factor}"
+        end)
 
-    replication_map_str = "{'class': 'NetworkTopologyStrategy', #{datacenter_replications_str}}"
+      replication_map_str = "{'class': 'NetworkTopologyStrategy', #{datacenter_replications_str}}"
 
-    {:ok, replication_map_str}
+      {:ok, replication_map_str}
+    end
   end
 
   defp build_replication_map_str(_invalid_replication) do
@@ -1031,19 +1034,20 @@ defmodule Astarte.Housekeeping.Realms.Queries do
   end
 
   defp create_astarte_keyspace do
-    # TODO: add support for creating the astarte keyspace with NetworkTopologyStrategy,
-    # right now the replication factor is an integer so SimpleStrategy is always used
-    astarte_keyspace_replication = Config.astarte_keyspace_replication_factor!()
-
     consistency = Consistency.domain_model(:write)
 
-    with {:ok, replication_map_str} <- build_replication_map_str(astarte_keyspace_replication),
+    replication =
+      case Config.astarte_keyspace_replication_strategy!() do
+        :simple -> Config.astarte_keyspace_replication_factor!()
+        :network -> Config.astarte_keyspace_network_replication_map!()
+      end
+
+    with {:ok, replication_map_str} <- build_replication_map_str(replication),
          query = """
          CREATE KEYSPACE #{Realm.astarte_keyspace_name()}
          WITH replication = #{replication_map_str}
          AND durable_writes = true;
          """,
-         :ok <- check_replication(astarte_keyspace_replication),
          {:ok, %{rows: nil, num_rows: 1}} <-
            Repo.query(query, [], consistency: consistency) do
       :ok
