@@ -24,15 +24,9 @@ defmodule Astarte.Housekeeping.Config.ReplicationStrategy do
   """
   use Skogsra.Type
 
-  @allowed_modes ~w(simple network)
-
   @impl Skogsra.Type
-  def cast(value) when value in @allowed_modes do
-    case value do
-      "simple" -> {:ok, :simple}
-      "network" -> {:ok, :network}
-    end
-  end
+  def cast("SimpleStrategy"), do: {:ok, :simple_strategy}
+  def cast("NetworkTopologyStrategy"), do: {:ok, :network_topology_strategy}
 
   @impl Skogsra.Type
   def cast(_) do
