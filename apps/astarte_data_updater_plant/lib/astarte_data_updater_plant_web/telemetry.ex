@@ -212,7 +212,7 @@ defmodule Astarte.DataUpdaterPlantWeb.Telemetry do
         tag_values: &to_valid_values/1,
         tags: [:cluster_name, :host, :reason]
       ),
-      counter("astarte.data_updater_plant.database.failed_to_connect.conut",
+      counter("astarte.data_updater_plant.database.failed_to_connect.count",
         tag_values: &to_valid_values/1,
         tags: [:connection_name, :address, :port]
       )
