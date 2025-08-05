@@ -1,7 +1,7 @@
 %{
   "astarte_core": {:git, "https://github.com/astarte-platform/astarte_core.git", "710afe5f03c05e2ba36fba1cf9cea05f616475ba", [branch: "release-1.2"]},
   "astarte_device": {:git, "https://github.com/astarte-platform/astarte-device-sdk-elixir.git", "bebd057e0c71d63a30780471157c1f8d5692119a", []},
-  "astarte_generators": {:git, "https://github.com/astarte-platform/astarte_generators.git", "a0411da2643247979bd380ff5cc7ccea31261d5e", []},
+  "astarte_generators": {:git, "https://github.com/astarte-platform/astarte_generators.git", "9e5d2d153b84ae63d1023bdbd943bcea5317050a", []},
   "bamboo": {:hex, :bamboo, "1.7.1", "7f0946e8c9081ce10d347cdba33c247c7c1c4f7dddc194ab0633603ef879bbdf", [:mix], [{:hackney, ">= 1.15.2", [hex: :hackney, repo: "hexpm", optional: false]}, {:jason, "~> 1.0", [hex: :jason, repo: "hexpm", optional: true]}, {:mime, "~> 1.4", [hex: :mime, repo: "hexpm", optional: false]}, {:phoenix, "~> 1.1", [hex: :phoenix, repo: "hexpm", optional: true]}, {:plug, "~> 1.0", [hex: :plug, repo: "hexpm", optional: false]}], "hexpm", "5fb34c3ab638fc409deec47c1e91f9d78ad95bf22ccb153588b434e1ff1aa730"},
   "bamboo_config_adapter": {:hex, :bamboo_config_adapter, "1.0.0", "52ff526b901087c0425189f4d3a37583b93d0bfca86c6840e6276b2456b7ce0c", [:mix], [{:bamboo, ">= 0.8.0 and < 2.0.0", [hex: :bamboo, repo: "hexpm", optional: false]}], "hexpm", "832e2bba7d8926dfabcdc781fa2b83659205abfbfcf5fd9b881c677d166fad27"},
   "certifi": {:hex, :certifi, "2.9.0", "6f2a475689dd47f19fb74334859d460a2dc4e3252a3324bd2111b8f0429e7e21", [:rebar3], [], "hexpm", "266da46bdb06d6c6d35fde799bcb28d36d985d424ad7c08b5bb48f5b5cdd4641"},

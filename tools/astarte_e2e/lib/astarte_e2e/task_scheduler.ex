@@ -24,6 +24,8 @@ defmodule AstarteE2E.TaskScheduler do
 
   require Logger
 
+  alias AstarteE2E.Interface
+
   @timeout :timer.minutes(15)
 
   def start_link(init_arg) do
@@ -33,6 +35,10 @@ defmodule AstarteE2E.TaskScheduler do
   @impl GenServer
   def init(_init_arg) do
     Process.flag(:trap_exit, true)
+    interfaces = Interface.generate_interfaces!()
+    :ok = Interface.install_interfaces!(interfaces)
+
+    opts = [interfaces: interfaces]
 
     checks = [
       AstarteE2E.AmqpDataTrigger,
@@ -43,7 +49,7 @@ defmodule AstarteE2E.TaskScheduler do
 
     state =
       for check <- checks, into: %{} do
-        {:ok, pid} = check.start_link([])
+        {:ok, pid} = check.start_link(opts)
         Logger.debug("Starting check #{inspect(check)} with pid #{inspect(pid)}")
 
         {pid, check}
