@@ -30,6 +30,8 @@ defmodule Astarte.Housekeeping.RealmsTest do
   alias Astarte.Housekeeping.Realms
   alias Astarte.Housekeeping.Realms.Queries
   alias Astarte.Housekeeping.Realms.Realm
+  alias Astarte.Housekeeping.AMQP.Vhost
+  alias Astarte.Housekeeping.AMQP
 
   @malformed_pubkey """
   -----BEGIN PUBLIC KEY-----
@@ -112,6 +114,11 @@ defmodule Astarte.Housekeeping.RealmsTest do
       check all(name <- GeneratorsRealm.realm_name(), max_runs: 5) do
         # Test realm creation
         realm = realm_fixture(%{realm_name: name})
+
+        assert {:ok, %HTTPoison.Response{status_code: status}} =
+                 AMQP.get("/api/vhosts/#{Vhost.vhost_name(name)}")
+
+        assert status in [200, 201, 204]
 
         # Test fetching the created realm
         assert {:ok, realm} == Realms.get_realm(name)

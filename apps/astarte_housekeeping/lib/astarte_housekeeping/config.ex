@@ -84,12 +84,44 @@ defmodule Astarte.Housekeeping.Config do
           type: Astarte.Housekeeping.Config.TelemetryType,
           default: :expose
 
+  @envdoc "The host for the AMQP connection."
+  app_env :amqp_host, :astarte_housekeeping, :amqp_host,
+    os_env: "HOUSEKEEPING_AMQP_HOST",
+    type: :binary,
+    env_overrides: [
+      prod: [required: true],
+      dev: [default: "localhost"],
+      test: [default: "localhost"]
+    ]
+
+  @envdoc "The port for the AMQP connection."
+  app_env :amqp_port, :astarte_housekeeping, :amqp_port,
+    os_env: "HOUSEKEEPING_AMQP_PORT",
+    type: :integer,
+    default: 15672
+
+  @envdoc "The username for the AMQP connection."
+  app_env :amqp_username, :astarte_housekeeping, :amqp_username,
+    os_env: "HOUSEKEEPING_AMQP_USERNAME",
+    type: :binary,
+    default: "guest"
+
+  @envdoc "The password for the AMQP connection."
+  app_env :amqp_password, :astarte_housekeeping, :amqp_password,
+    os_env: "HOUSEKEEPING_AMQP_PASSWORD",
+    type: :binary,
+    default: "guest"
+
   @doc """
   Returns true if the authentication is disabled.
   """
   @spec authentication_disabled?() :: boolean()
   def authentication_disabled? do
     disable_authentication!()
+  end
+
+  def amqp_base_url!() do
+    "http://#{amqp_host!()}:#{amqp_port!()}"
   end
 
   @doc """
