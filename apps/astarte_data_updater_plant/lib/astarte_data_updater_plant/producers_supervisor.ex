@@ -29,6 +29,7 @@ defmodule Astarte.DataUpdaterPlant.ProducersSupervisor do
   alias Astarte.DataUpdaterPlant.AMQPEventsProducer
   alias Astarte.DataUpdaterPlant.AMQPTriggersProducer
   alias Astarte.DataUpdaterPlant.Config
+  alias Astarte.DataUpdaterPlant.Vhosts
 
   def start_link(init_arg) do
     Supervisor.start_link(__MODULE__, init_arg, name: __MODULE__)
@@ -38,24 +39,30 @@ defmodule Astarte.DataUpdaterPlant.ProducersSupervisor do
   def init(_init_arg) do
     Logger.info("AMQPDataProducer supervisor init.", tag: "data_producer_sup_init")
 
-    events_pool =
-      Supervisor.child_spec(
-        {ExRabbitPool.PoolSupervisor,
-         rabbitmq_config: Config.amqp_producer_options!(),
-         connection_pools: [Config.events_producer_pool_config!()]},
-        id: :events_producer_pool
-      )
+    with {:ok, _} <- Vhosts.create_vhost(Config.amqp_triggers_vhost!()) do
+      try do
+        events_pool =
+          Supervisor.child_spec(
+            {ExRabbitPool.PoolSupervisor,
+             rabbitmq_config: Config.amqp_producer_options!(),
+             connection_pools: [Config.events_producer_pool_config!()]},
+            id: :events_producer_pool
+          )
 
-    triggers_pool =
-      Supervisor.child_spec(
-        {ExRabbitPool.PoolSupervisor,
-         rabbitmq_config: Config.amqp_triggers_producer_options!(),
-         connection_pools: [Config.triggers_producer_pool_config!()]},
-        id: :triggers_producer_pool
-      )
+        triggers_pool =
+          Supervisor.child_spec(
+            {ExRabbitPool.PoolSupervisor,
+             rabbitmq_config: Config.amqp_triggers_producer_options!(),
+             connection_pools: [Config.triggers_producer_pool_config!()]},
+            id: :triggers_producer_pool
+          )
 
-    children = [events_pool, triggers_pool, AMQPEventsProducer, AMQPTriggersProducer]
+        children = [events_pool, triggers_pool, AMQPEventsProducer, AMQPTriggersProducer]
 
-    Supervisor.init(children, strategy: :rest_for_one)
+        Supervisor.init(children, strategy: :rest_for_one)
+      rescue
+        _ -> Vhosts.delete_vhost(Config.amqp_triggers_vhost!())
+      end
+    end
   end
 end

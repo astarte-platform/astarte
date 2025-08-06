@@ -99,7 +99,7 @@ defmodule Astarte.DataUpdaterPlant.Mixfile do
       {:telemetry_poller, "~> 0.4"},
       {:typed_ecto_schema, "~> 0.4"},
       {:xandra, "~> 0.13"},
-      {:skogsra, "~> 2.2"},
+      {:skogsra, "~> 2.5"},
       {:telemetry, "~> 0.4"},
       {:observer_cli, "~> 1.5"},
       {:dialyxir, "~> 1.0", only: [:dev, :ci], runtime: false},
@@ -107,7 +107,8 @@ defmodule Astarte.DataUpdaterPlant.Mixfile do
       # See also: https://github.com/deadtrickster/ssl_verify_fun.erl/pull/27
       {:ssl_verify_fun, "~> 1.1.0", manager: :rebar3, override: true},
       {:uuid, "~> 2.0", hex: :uuid_erl},
-      {:typedstruct, "~> 0.5"}
+      {:typedstruct, "~> 0.5"},
+      {:ex_rabbitmq_admin, "~> 0.1.4"}
     ]
   end
 end

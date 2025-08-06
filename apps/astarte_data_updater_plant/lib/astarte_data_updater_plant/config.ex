@@ -72,7 +72,53 @@ defmodule Astarte.DataUpdaterPlant.Config do
     type: :integer,
     default: 5672
 
+  @envdoc "The username for the AMQP connection."
+
+  app_env :amqp_username, :astarte_data_updater_plant, :amqp_username,
+    os_env: "DATA_UPDATER_PLANT_AMQP_USERNAME",
+    type: :binary,
+    default: "guest"
+
+  @envdoc "The password for the AMQP connection."
+  app_env :amqp_password, :astarte_data_updater_plant, :amqp_password,
+    os_env: "DATA_UPDATER_PLANT_AMQP_PASSWORD",
+    type: :binary,
+    default: "guest"
+
+  @envdoc "The port for the AMQP connection."
+  app_env :amqp_port, :astarte_data_updater_plant, :amqp_port,
+    os_env: "DATA_UPDATER_PLANT_AMQP_PORT",
+    env_overrides: [
+      dev: [default: 15672],
+      test: [default: 15672]
+    ]
+
+  @envdoc "The protocol for the AMQP connection."
+  app_env :amqp_protocol, :astarte_data_updater_plant, [Astarte.DataAccess.Repo, :amqp_protocol],
+    os_env: "DATA_UPDATER_PLANT_AMQP_PROTOCOL",
+    type: :binary,
+    env_overrides: [
+      dev: [default: "http"],
+      test: [default: "http"]
+    ]
+
+  @envdoc "The host for the AMQP connection."
+  app_env :amqp_host, :astarte_data_updater_plant, [Astarte.DataAccess.Repo, :amqp_host],
+    os_env: "DATA_UPDATER_PLANT_AMQP_HOST",
+    type: :binary,
+    env_overrides: [
+      dev: [default: "localhost"],
+      test: [default: "localhost"]
+    ]
+
+  @envdoc "The port for the AMQP connection."
+  app_env :amqp_triggers_vhost, :astarte_data_updater_plant, :amqp_triggers_vhost,
+    os_env: "DATA_UPDATER_PLANT_AMQP_TRIGGERS_VHOST",
+    type: :binary,
+    default: "triggers"
+
   @envdoc "Enable SSL for the AMQP consumer connection. If not specified, SSL is disabled."
+
   app_env :amqp_consumer_ssl_enabled, :astarte_data_updater_plant, :amqp_consumer_ssl_enabled,
     os_env: "DATA_UPDATER_PLANT_AMQP_CONSUMER_SSL_ENABLED",
     type: :boolean,
@@ -350,6 +396,10 @@ defmodule Astarte.DataUpdaterPlant.Config do
           os_env: "DATABASE_EVENTS_HANDLING_METHOD",
           type: Astarte.DataUpdaterPlant.Config.TelemetryType,
           default: :expose
+
+  def amqp_base_url!() do
+    "#{amqp_protocol!()}://#{amqp_host!()}:#{amqp_port!()}"
+  end
 
   # Since we have one channel per queue, this is not configurable
   def amqp_consumer_channels_per_connection_number!() do
