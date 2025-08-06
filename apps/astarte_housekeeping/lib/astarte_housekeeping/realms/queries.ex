@@ -208,7 +208,7 @@ defmodule Astarte.Housekeeping.Realms.Queries do
             )
           end)
 
-        :ok
+        {:ok, :started}
       else
         do_create_realm(
           realm_name,

@@ -163,8 +163,8 @@ defmodule Astarte.Housekeeping.Realms.QueriesTest do
     end
 
     test "async creations returns ok", %{realm_name: realm_name} do
-      assert :ok = Queries.create_realm(realm_name, "test1publickey", 1, 1, 1, async: true)
-      Process.sleep(1000)
+      assert {:ok, :started} =
+               Queries.create_realm(realm_name, "test1publickey", 1, 1, 1, async: true)
     end
 
     test "creations returns an error", %{realm_name: realm_name} do
