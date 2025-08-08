@@ -30,11 +30,11 @@ defmodule Astarte.Common.Generators.DateTime do
 
   @doc false
   @spec min_default :: DateTime.t()
-  def min_default, do: TimestampGenerator.min_default() |> DateTime.from_unix!(@ref_unit)
+  def min_default, do: TimestampGenerator.min_default(@ref_unit) |> DateTime.from_unix!(@ref_unit)
 
   @doc false
   @spec max_default :: DateTime.t()
-  def max_default, do: TimestampGenerator.max_default() |> DateTime.from_unix!(@ref_unit)
+  def max_default, do: TimestampGenerator.max_default(@ref_unit) |> DateTime.from_unix!(@ref_unit)
 
   @doc """
   Generates a random DateTime from min to max (see Timestamp generator)

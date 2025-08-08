@@ -24,6 +24,7 @@ defmodule Astarte.Common.Generators.DateTimeTest do
   use ExUnitProperties
 
   alias Astarte.Common.Generators.DateTime, as: DateTimeGenerator
+  alias Astarte.Common.Generators.Timestamp, as: TimestampGenerator
 
   @moduletag :common
   @moduletag :datetime
@@ -52,6 +53,18 @@ defmodule Astarte.Common.Generators.DateTimeTest do
                 from <- DateTimeGenerator.date_time(max: to) do
         assert DateTime.after?(to, from)
       end
+    end
+
+    @tag :issue
+    test "min equals to Timestamp min" do
+      min = TimestampGenerator.min_default(:microsecond) |> DateTime.from_unix!(:microsecond)
+      assert min == DateTimeGenerator.min_default()
+    end
+
+    @tag :issue
+    test "max equals to Timestamp max" do
+      max = TimestampGenerator.max_default(:microsecond) |> DateTime.from_unix!(:microsecond)
+      assert max == DateTimeGenerator.max_default()
     end
   end
 end
