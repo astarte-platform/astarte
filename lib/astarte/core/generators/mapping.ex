@@ -117,8 +117,8 @@ defmodule Astarte.Core.Generators.Mapping do
   """
   @spec endpoint_segment() :: StreamData.t(StreamData.t(String.t()))
   def endpoint_segment do
-    gen all prefix <- string(@unix_prefix_path_chars, min_length: 1, max_length: 10),
-            rest <- string(@unix_path_chars, min_length: 1, max_length: 10) do
+    gen all prefix <- string(@unix_prefix_path_chars, length: 1),
+            rest <- string(@unix_path_chars, max_length: 19) do
       prefix <> rest
     end
   end
