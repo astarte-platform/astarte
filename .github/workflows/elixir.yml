@@ -28,9 +28,33 @@ permissions:
   contents: read
 
 jobs:
+  gate:
+    name: Block when forbidden label is present
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: read
+    steps:
+      - name: Skip on non-PR events
+        if: ${{ github.event_name != 'pull_request' }}
+        run: echo "Not a pull_request event; gate passes."
+
+      - name: Fail if 'You shall not pass!' label is present
+        if: ${{ github.event_name == 'pull_request' }}
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const BLOCK = 'You shall not pass!';
+            const labels = (context.payload.pull_request.labels || []).map(l => l.name.toLowerCase());
+            if (labels.includes(BLOCK.toLowerCase())) {
+              core.setFailed(`Blocked by label '${BLOCK}'. Remove it to merge.`);
+            } else {
+              core.info('OK: blocking label not present.');
+            }
+
   setup:
     name: Setup
     runs-on: ubuntu-22.04
+    needs: gate
     env:
       MIX_ENV: ci
     steps:
@@ -57,7 +81,7 @@ jobs:
   dializer:
     name: Run Dialyzer
     runs-on: ubuntu-22.04
-    needs: setup
+    needs: [gate, setup]
     env:
       MIX_ENV: ci
     steps:
@@ -85,7 +109,7 @@ jobs:
   test:
     name: Run Tests
     runs-on: ubuntu-22.04
-    needs: setup
+    needs: [gate, setup]
     env:
       MIX_ENV: ci
     steps:
