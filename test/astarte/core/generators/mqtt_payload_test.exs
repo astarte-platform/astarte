@@ -72,8 +72,7 @@ defmodule Astarte.Core.Generators.MQTTPayloadTest do
   property "generated payloads honor the mapping type" do
     check all %Mapping{type: type} = mapping <- MappingGenerator.mapping(),
               payload <- MQTTPayloadGenerator.payload(mapping: mapping),
-              %{"v" => value} = Cyanide.decode!(payload),
-              max_runs: 100 do
+              %{"v" => value} = Cyanide.decode!(payload) do
       assert value_matches_mapping?(type, value)
     end
   end

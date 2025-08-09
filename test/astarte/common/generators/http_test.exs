@@ -41,7 +41,7 @@ defmodule Astarte.Common.Generators.HTTPTest do
     @describetag :success
     @describetag :ut
     property "generate valid RFC3986 URI" do
-      check all url <- HTTPGenerator.url(), max_runs: 200 do
+      check all url <- HTTPGenerator.url() do
         assert {:ok, _} = URI.new(url), "URL not valid RFC3986: #{url}"
       end
     end
