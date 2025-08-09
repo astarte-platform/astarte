@@ -63,10 +63,7 @@ defmodule Astarte.Core.Generators.DeviceTest do
   describe "device generator struct" do
     @tag :success
     property "success base device creation" do
-      check all(
-              device <- DeviceGenerator.device(),
-              max_runs: 100
-            ) do
+      check all device <- DeviceGenerator.device() do
         refute is_nil(device)
       end
     end
@@ -85,8 +82,7 @@ defmodule Astarte.Core.Generators.DeviceTest do
                     first_registration: nil,
                     aliases: nil,
                     attributes: nil
-                  ),
-                max_runs: 100 do
+                  ) do
         refute is_nil(device)
       end
     end

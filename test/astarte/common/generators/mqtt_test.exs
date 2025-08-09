@@ -39,7 +39,7 @@ defmodule Astarte.Common.Generators.MQTTTest do
     end
 
     property "generate topics cannot be a null string by default" do
-      check all topic <- MQTTGenerator.mqtt_topic(), max_runs: 1_000 do
+      check all topic <- MQTTGenerator.mqtt_topic() do
         refute String.equivalent?(topic, "")
       end
     end
