@@ -19,6 +19,7 @@
 defmodule AstarteE2E.VolatileTriggerRoundtrip.Executor do
   use GenServer
 
+  alias AstarteE2E.Client
   alias AstarteE2E.Config
   alias AstarteE2E.Device
   alias AstarteE2E.VolatileTriggerRoundtrip.Scheduler
@@ -47,10 +48,17 @@ defmodule AstarteE2E.VolatileTriggerRoundtrip.Executor do
         |> Keyword.put(:device_id, encoded_id)
         |> Keyword.put(:interfaces, interfaces)
 
+      client_opts =
+        Config.client_opts()
+        |> Keyword.put(:device_id, encoded_id)
+
       {:ok, device} = Device.start_link(device_opts)
+      {:ok, client} = Client.start_link(client_opts)
+      Client.wait_for_connection(realm, encoded_id)
+
       {:ok, scheduler} = Scheduler.start_link(scheduler_opts)
 
-      {:ok, %{device: device, scheduler: scheduler}}
+      {:ok, %{device: device, scheduler: scheduler, client: client}}
     else
       error -> {:stop, error, nil}
     end

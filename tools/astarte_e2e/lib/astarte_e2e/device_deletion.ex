@@ -19,7 +19,7 @@ defmodule AstarteE2E.DeviceDeletion do
 
       {:ok, device_pid} = Device.start_link(device_opts)
 
-      Process.exit(device_pid, :normal)
+      Process.exit(device_pid, :shutdown)
 
       state = %{device_id: device_id, realm: realm, device_pid: device_pid}
 

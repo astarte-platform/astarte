@@ -67,9 +67,7 @@ defmodule AstarteE2E.DataTrigger do
       properties_interface: properties_interface
     ]
 
-    with {:ok, device_supervisor_pid} <- Device.start_link(opts),
-         device_pid = Device.astarte_device_pid(device_supervisor_pid),
-         :ok <- Astarte.Device.wait_for_connection(device_pid),
+    with {:ok, device_pid} <- Device.start_link(opts),
          :ok <- install_data_trigger(opts) do
       state = %{
         realm: realm,
