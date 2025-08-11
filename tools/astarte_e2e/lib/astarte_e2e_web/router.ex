@@ -37,10 +37,6 @@ defmodule AstarteE2EWeb.Router do
     TriggerController.handle_data_trigger(conn)
   end
 
-  post "/triggers/device" do
-    TriggerController.handle_device_trigger(conn)
-  end
-
   match _ do
     send_resp(conn, 404, "Not found")
   end

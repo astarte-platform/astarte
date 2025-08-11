@@ -46,7 +46,7 @@ defmodule AstarteE2E.DataTrigger do
   @impl GenServer
   def init(opts) do
     realm = Keyword.fetch!(opts, :realm)
-    device_id = Keyword.fetch!(opts, :device_id)
+    device_id = Keyword.fetch!(opts, :device_id) 
     encoded_id = Astarte.Core.Device.encode_device_id(device_id)
 
     interfaces = Keyword.fetch!(opts, :interfaces)
