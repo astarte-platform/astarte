@@ -192,7 +192,8 @@ defmodule Astarte.Core.Generators.Interface do
             explicit_timestamp <- MappingGenerator.explicit_timestamp(interface_type),
             mappings <-
               MappingGenerator.endpoint_segment()
-              |> uniq_list_of(min_length: 1, max_length: 10)
+              |> list_of(min_length: 1, max_length: 10)
+              |> map(&Enum.uniq_by(&1, fn endpoint -> String.downcase(endpoint) end))
               |> bind(fn list ->
                 list
                 |> Enum.map(fn postfix ->
