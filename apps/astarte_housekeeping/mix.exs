@@ -103,7 +103,8 @@ defmodule Astarte.Housekeeping.Mixfile do
       {:ssl_verify_fun, "~> 1.1.0", manager: :rebar3, override: true},
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
       {:astarte_generators, github: "astarte-platform/astarte_generators", only: [:dev, :test]},
-      {:httpoison, "~> 2.0"}
+      {:httpoison, "~> 2.0"},
+      {:castore, "~> 1.0.0"}
     ]
   end
 end

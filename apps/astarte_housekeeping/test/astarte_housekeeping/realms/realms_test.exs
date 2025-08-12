@@ -129,6 +129,18 @@ defmodule Astarte.Housekeeping.RealmsTest do
         assert {:error, :realm_not_found} == Realms.get_realm(name)
       end
     end
+
+    test "realm creation respects ssl options", %{realm_name: name} do
+      Mimic.stub(Config, :amqp_ssl_enabled!, fn -> true end)
+      # check if put options are the same inside config
+      Mimic.expect(HTTPoison.Base, :request, fn _, %{options: options}, _, _, _, _ ->
+        assert cacertfile: CAStore.file_path() in options[:ssl]
+        {:ok, %HTTPoison.Response{status_code: 201}}
+      end)
+
+      # Test realm creation
+      realm_fixture(%{realm_name: name})
+    end
   end
 
   describe "realms fetching" do

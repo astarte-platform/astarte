@@ -10,7 +10,10 @@ defmodule Astarte.Housekeeping.AMQP do
 
   @impl true
   def process_request_options(options) do
-    auth_opts = [hackney: [basic_auth: {Config.amqp_username!(), Config.amqp_password!()}]]
+    auth_opts = [
+      hackney: [basic_auth: {Config.amqp_username!(), Config.amqp_password!()}],
+      ssl: Config.ssl_options!()
+    ]
 
     Keyword.merge(auth_opts, options)
   end

@@ -23,5 +23,8 @@ Mimic.copy(Astarte.Housekeeping.Realms)
 Mimic.copy(Astarte.Housekeeping.Config)
 Mimic.copy(Astarte.Housekeeping.Realms.Queries)
 Mimic.copy(Xandra)
+Mimic.copy(Astarte.Housekeeping.AMQP)
+Mimic.copy(HTTPoison)
+Mimic.copy(HTTPoison.Base)
 
 ExUnit.start(capture_log: true)

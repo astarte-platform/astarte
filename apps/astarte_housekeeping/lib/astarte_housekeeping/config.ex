@@ -23,6 +23,35 @@ defmodule Astarte.Housekeeping.Config do
   alias Astarte.DataAccess.Config, as: DataAccessConfig
   alias Astarte.Housekeeping.Config.JWTPublicKeyPEMType
 
+  @envdoc "Enable SSL for the AMQP connection. If not specified, SSL is disabled."
+  app_env :amqp_ssl_enabled, :astarte_housekeeping, :amqp_ssl_enabled,
+    os_env: "HOUSEKEEPING_AMQP_SSL_ENABLED",
+    type: :boolean,
+    default: false
+
+  @envdoc """
+  Specifies the certificates of the root Certificate Authorities to be trusted for the AMQP connection. When not specified, the bundled cURL certificate bundle will be used.
+  """
+  app_env :amqp_ssl_ca_file, :astarte_housekeeping, :amqp_ssl_ca_file,
+    os_env: "HOUSEKEEPING_AMQP_SSL_CA_FILE",
+    type: :binary,
+    default: CAStore.file_path()
+
+  @envdoc "Disable Server Name Indication. Defaults to false."
+  app_env :amqp_ssl_disable_sni,
+          :astarte_housekeeping,
+          :amqp_ssl_disable_sni,
+          os_env: "HOUSEKEEPING_AMQP_SSL_DISABLE_SNI",
+          type: :boolean,
+          default: false
+
+  @envdoc "Specify the hostname to be used in TLS Server Name Indication extension. If not specified, the amqp consumer host will be used. This value is used only if Server Name Indication is enabled."
+  app_env :amqp_ssl_custom_sni,
+          :astarte_housekeeping,
+          :amqp_ssl_custom_sni,
+          os_env: "HOUSEKEEPING_AMQP_SSL_CUSTOM_SNI",
+          type: :binary
+
   @envdoc "The bind address for the Phoenix server."
   app_env :bind_address, :astarte_housekeeping, :bind_address,
     os_env: "HOUSEKEEPING_API_BIND_ADDRESS",
@@ -121,7 +150,37 @@ defmodule Astarte.Housekeeping.Config do
   end
 
   def amqp_base_url!() do
-    "http://#{amqp_host!()}:#{amqp_port!()}"
+    if amqp_ssl_enabled!() do
+      "https://#{amqp_host!()}:#{amqp_port!()}"
+    else
+      "http://#{amqp_host!()}:#{amqp_port!()}"
+    end
+  end
+
+  def ssl_options! do
+    if amqp_ssl_enabled!() do
+      build_ssl_options()
+    else
+      []
+    end
+  end
+
+  defp build_ssl_options() do
+    [
+      cacertfile: amqp_ssl_ca_file!(),
+      verify: :verify_peer,
+      depth: 10
+    ]
+    |> populate_sni()
+  end
+
+  defp populate_sni(ssl_options) do
+    if amqp_ssl_disable_sni!() do
+      Keyword.put(ssl_options, :server_name_indication, :disable)
+    else
+      server_name = amqp_ssl_custom_sni!() || amqp_host!()
+      Keyword.put(ssl_options, :server_name_indication, to_charlist(server_name))
+    end
   end
 
   @doc """
