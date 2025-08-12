@@ -1127,21 +1127,8 @@ defmodule Astarte.Housekeeping.Realms.Queries do
 
     consistency = Consistency.domain_model(:read)
 
-    case Repo.safe_fetch_one(query, consistency: consistency) do
-      {:ok, count} ->
-        {:ok, count > 0}
-
-      {:error, %Xandra.Error{} = reason} ->
-        Logger.warning("Database error: #{inspect(reason)}.", tag: "database_error")
-
-        {:error, :database_error}
-
-      {:error, %Xandra.ConnectionError{} = reason} ->
-        Logger.warning("Database connection error: #{inspect(reason)}.",
-          tag: "database_connection_error"
-        )
-
-        {:error, :database_connection_error}
+    with {:ok, count} <- Repo.safe_fetch_one(query, consistency: consistency) do
+      {:ok, count > 0}
     end
   end
 end

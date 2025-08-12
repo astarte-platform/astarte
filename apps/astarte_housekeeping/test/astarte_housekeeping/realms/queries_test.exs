@@ -119,18 +119,13 @@ defmodule Astarte.Housekeeping.Realms.QueriesTest do
     end
 
     test "fails due to db error" do
-      Mimic.stub(Repo, :safe_fetch_one, fn _, _ -> {:error, %Xandra.Error{}} end)
+      Mimic.expect(Xandra, :execute, fn _, _, _, _ -> {:error, %Xandra.Error{message: ""}} end)
       assert {:error, :database_error} = Queries.astarte_keyspace_existing?()
     end
 
     test "fails due to db connection error" do
-      Mimic.stub(Repo, :safe_fetch_one, fn _, _ -> {:error, %Xandra.ConnectionError{}} end)
+      Mimic.expect(Xandra, :execute, fn _, _, _, _ -> {:error, %Xandra.ConnectionError{}} end)
       assert {:error, :database_connection_error} = Queries.astarte_keyspace_existing?()
-    end
-
-    test "raise due to generic error" do
-      Mimic.stub(Repo, :safe_fetch_one, fn _, _ -> {:error, "another error"} end)
-      assert_raise CaseClauseError, fn -> Queries.astarte_keyspace_existing?() end
     end
   end
 
