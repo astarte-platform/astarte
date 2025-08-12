@@ -194,7 +194,8 @@ defmodule Astarte.Housekeeping.Realms.Queries do
   def create_realm(realm_name, public_key_pem, replication, device_limit, max_retention, opts) do
     with :ok <- validate_realm_name(realm_name),
          keyspace_name = Realm.keyspace_name(realm_name),
-         {:ok, replication_map_str} <- build_replication_map_str(replication) do
+         {:ok, replication_map_str} <- build_replication_map_str(replication),
+         :ok <- Astarte.Housekeeping.AMQP.Vhost.create_vhost(realm_name) do
       if opts[:async] do
         {:ok, _pid} =
           Task.start(fn ->
