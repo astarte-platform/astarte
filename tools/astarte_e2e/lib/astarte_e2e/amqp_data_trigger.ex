@@ -45,13 +45,16 @@ defmodule AstarteE2E.AmqpDataTrigger do
           raise "no properties interface present"
 
       case Device.start_link(device_opts) do
-        {:ok, _device_pid} ->
-          send(
-            self(),
-            {:install_triggers, realm, device_id, properties_interface, datastream_interface}
-          )
+        {:ok, device_pid} ->
+          state = %{
+            datastream_interface: datastream_interface,
+            properties_interface: properties_interface,
+            device_id: device_id,
+            realm: realm,
+            device_pid: device_pid
+          }
 
-          {:ok, %{}}
+          {:ok, state, {:continue, :install_triggers}}
 
         {:error, reason} ->
           Logger.error("Failed to start device: #{inspect(reason)}")
@@ -65,10 +68,14 @@ defmodule AstarteE2E.AmqpDataTrigger do
   end
 
   @impl true
-  def handle_info(
-        {:install_triggers, realm, device_id, properties_interface, datastream_interface},
-        state
-      ) do
+  def handle_continue(:install_triggers, state) do
+    %{
+      datastream_interface: datastream_interface,
+      properties_interface: properties_interface,
+      device_id: device_id,
+      realm: realm
+    } = state
+
     case install_triggers(realm, device_id, properties_interface, datastream_interface) do
       :ok ->
         Logger.info("Amqp Data Triggers installed successfully.")
