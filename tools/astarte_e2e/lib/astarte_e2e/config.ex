@@ -177,6 +177,89 @@ defmodule AstarteE2E.Config do
     os_env: "E2E_MAIL_SERVICE",
     type: BambooMailAdapter
 
+  @envdoc "Host for the AMQP consumer connection"
+  app_env :amqp_consumer_host, :astarte_e2e, :amqp_consumer_host,
+    os_env: "E2E_AMQP_CONSUMER_HOST",
+    type: :binary,
+    default: "localhost"
+
+  @envdoc "Port for the AMQP consumer connection"
+  app_env :amqp_consumer_port, :astarte_e2e, :amqp_consumer_port,
+    os_env: "E2E_AMQP_CONSUMER_PORT",
+    type: :integer,
+    default: 5672
+
+  @envdoc "Username for the AMQP consumer connection"
+  app_env :amqp_consumer_username, :astarte_e2e, :amqp_consumer_username,
+    os_env: "E2E_AMQP_CONSUMER_USERNAME",
+    type: :binary,
+    default: "guest"
+
+  @envdoc "Password for the AMQP consumer connection"
+  app_env :amqp_consumer_password, :astarte_e2e, :amqp_consumer_password,
+    os_env: "E2E_AMQP_CONSUMER_PASSWORD",
+    type: :binary,
+    default: "guest"
+
+  @envdoc "Virtual host for the AMQP consumer connection"
+  app_env :amqp_consumer_virtual_host, :astarte_e2e, :amqp_consumer_virtual_host,
+    os_env: "E2E_AMQP_CONSUMER_VIRTUAL_HOST",
+    type: :binary,
+    default: "/"
+
+  @envdoc "The name of the AMQP queue created by the events consumer"
+  app_env :events_queue_name, :astarte_e2e, :amqp_events_queue_name,
+    os_env: "E2E_AMQP_EVENTS_QUEUE_NAME",
+    type: :binary,
+    default: "astarte_events"
+
+  @envdoc "The AMQP consumer prefetch count."
+  app_env :amqp_consumer_prefetch_count, :astarte_e2e, :amqp_consumer_prefetch_count,
+    os_env: "E2E_AMQP_CONSUMER_PREFETCH_COUNT",
+    type: :integer,
+    default: 300
+
+  @envdoc "Enable SSL. If not specified, SSL is disabled."
+  app_env :amqp_consumer_ssl_enabled, :astarte_e2e, :amqp_consumer_ssl_enabled,
+    os_env: "E2E_AMQP_CONSUMER_SSL_ENABLED",
+    type: :boolean,
+    default: false
+
+  @envdoc "Specifies the certificates of the root Certificate Authorities to be trusted. When not specified, the bundled cURL certificate bundle will be used."
+  app_env :amqp_consumer_ssl_ca_file, :astarte_e2e, :amqp_consumer_ssl_ca_file,
+    os_env: "E2E_AMQP_CONSUMER_SSL_CA_FILE",
+    type: :binary
+
+  @envdoc "Disable Server Name Indication. Defaults to false."
+  app_env :amqp_consumer_ssl_disable_sni, :astarte_e2e, :amqp_consumer_ssl_disable_sni,
+    os_env: "E2E_AMQP_CONSUMER_SSL_DISABLE_SNI",
+    type: :boolean,
+    default: false
+
+  @envdoc "Specify the hostname to be used in TLS Server Name Indication extension. If not specified, the amqp host will be used. This value is used only if Server Name Indication is enabled."
+  app_env :amqp_consumer_ssl_custom_sni, :astarte_e2e, :amqp_consumer_ssl_custom_sni,
+    os_env: "E2E_AMQP_CONSUMER_SSL_CUSTOM_SNI",
+    type: :binary
+
+  @envdoc "The number of connections to RabbitMQ used to consume events"
+  app_env :events_consumer_connection_number,
+          :astarte_e2e,
+          :events_consumer_connection_number,
+          type: :integer,
+          default: 10
+
+  @envdoc "The number of channels per RabbitMQ connection used to consume events"
+  app_env :events_consumer_channels_per_connection_number,
+          :astarte_e2e,
+          :events_consumer_channels_per_connection_number,
+          type: :integer,
+          default: 10
+
+  app_env :amqp_trigger_exchange_suffix, :astarte_e2e, :amqp_trigger_exchange_suffix,
+    os_env: "E2E_AMQP_TRIGGER_EXCHANGE_SUFFIX",
+    type: :binary,
+    default: "e2e"
+
   @spec websocket_url() :: {:ok, String.t()}
   def websocket_url do
     {:ok, websocket_url!()}
@@ -306,6 +389,54 @@ defmodule AstarteE2E.Config do
 
   defp fallback_config do
     %{chained_adapter: Bamboo.LocalAdapter}
+  end
+
+  def amqp_consumer_options! do
+    [
+      host: amqp_consumer_host!(),
+      port: amqp_consumer_port!(),
+      username: amqp_consumer_username!(),
+      password: amqp_consumer_password!(),
+      virtual_host: amqp_consumer_virtual_host!(),
+      channel_max: events_consumer_channels_per_connection_number!()
+    ]
+    |> populate_ssl_options()
+  end
+
+  defp populate_ssl_options(options) do
+    if amqp_consumer_ssl_enabled!() do
+      ssl_options = build_ssl_options()
+      Keyword.put(options, :ssl_options, ssl_options)
+    else
+      options
+    end
+  end
+
+  defp build_ssl_options() do
+    [
+      cacertfile: amqp_consumer_ssl_ca_file!() || CAStore.file_path(),
+      verify: :verify_peer,
+      depth: 10
+    ]
+    |> populate_sni()
+  end
+
+  defp populate_sni(ssl_options) do
+    if amqp_consumer_ssl_disable_sni!() do
+      Keyword.put(ssl_options, :server_name_indication, :disable)
+    else
+      server_name = amqp_consumer_ssl_custom_sni!() || amqp_consumer_host!()
+      Keyword.put(ssl_options, :server_name_indication, to_charlist(server_name))
+    end
+  end
+
+  def events_consumer_pool_config!() do
+    [
+      name: {:local, :amqp_trigger_consumer_pool},
+      worker_module: ExRabbitPool.Worker.RabbitConnection,
+      size: events_consumer_connection_number!(),
+      max_overflow: 0
+    ]
   end
 
   @spec standard_interface_provider() :: {:ok, String.t()}
