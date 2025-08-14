@@ -22,7 +22,6 @@ defmodule AstarteE2E.DataTrigger do
   alias Astarte.Core.Device, as: CoreDevice
   alias AstarteE2E.Config
   alias AstarteE2E.Device
-  alias AstarteE2E.Utils
 
   require Logger
 
@@ -90,42 +89,20 @@ defmodule AstarteE2E.DataTrigger do
       properties_interface: properties_interface
     } = state
 
-    datastream_name = datastream_interface.name
-    properties_name = properties_interface.name
+    case AstarteE2E.publish_data(device_pid, datastream_interface, properties_interface) do
+      {:ok, %{datastreams: datastreams, property: property}} ->
+        Logger.debug("Data Trigger: all messages sent")
+        datastreams = Enum.map(datastreams, &{@datastream_trigger, &1})
+        property = {@properties_trigger, property}
+        messages = [property | datastreams]
+        new_state = %{state | messages: messages}
 
-    datastreams = Enum.map(1..5, fn _ -> AstarteE2E.Utils.random_string() end)
-    property = AstarteE2E.Utils.random_string()
+        {:noreply, new_state}
 
-    datastream_path =
-      datastream_interface.mappings |> hd() |> Map.fetch!(:endpoint) |> path_from_endpoint()
-
-    properties_path =
-      properties_interface.mappings |> hd() |> Map.fetch!(:endpoint) |> path_from_endpoint()
-
-    with :ok <- publish_datastreams(device_pid, datastream_name, datastream_path, datastreams),
-         :ok <-
-           Astarte.Device.set_property(device_pid, properties_name, properties_path, property) do
-      Logger.debug("Data Trigger: all messages sent")
-      datastreams = Enum.map(datastreams, &{@datastream_trigger, &1})
-      property = {@properties_trigger, property}
-      messages = [property | datastreams]
-      new_state = %{state | messages: messages}
-
-      {:noreply, new_state}
-    else
       error ->
         Logger.debug("Data Trigger: message failure #{inspect(error)}")
         {:stop, error, state}
     end
-  end
-
-  defp publish_datastreams(device_pid, datastream_interface, path, datastreams) do
-    Enum.reduce_while(datastreams, :ok, fn datastream, :ok ->
-      case Astarte.Device.send_datastream(device_pid, datastream_interface, path, datastream) do
-        :ok -> {:cont, :ok}
-        error -> {:halt, error}
-      end
-    end)
   end
 
   @impl GenServer
@@ -231,18 +208,5 @@ defmodule AstarteE2E.DataTrigger do
         Logger.debug("Data Trigger: unexpected message: #{inspect(value)} for trigger #{trigger}")
         {:error, :not_found}
     end
-  end
-
-  defp path_from_endpoint(endpoint) do
-    endpoint
-    |> String.split("/")
-    |> Enum.map(fn token ->
-      if Astarte.Core.Mapping.is_placeholder?(token) do
-        Utils.random_string()
-      else
-        token
-      end
-    end)
-    |> Enum.join("/")
   end
 end
