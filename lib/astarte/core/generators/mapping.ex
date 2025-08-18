@@ -157,7 +157,7 @@ defmodule Astarte.Core.Generators.Mapping do
   @spec reliability(:datastream | :properties) ::
           StreamData.t(:unreliable | :guaranteed | :unique | nil)
   def reliability(:datastream), do: member_of([:unreliable, :guaranteed, :unique])
-  def reliability(_), do: nil
+  def reliability(_), do: constant(nil)
 
   @doc false
   @spec explicit_timestamp(:datastream | :properties) :: StreamData.t(boolean())
@@ -170,7 +170,7 @@ defmodule Astarte.Core.Generators.Mapping do
   def retention(_), do: constant(:discard)
 
   @doc false
-  @spec expiry(:datastream | :properties) :: StreamData.t(0 | pos_integer())
+  @spec expiry(:datastream | :properties) :: StreamData.t(pos_integer() | 0)
   def expiry(:datastream), do: one_of([constant(0), integer(1..10_000)])
   def expiry(_), do: constant(0)
 
@@ -178,13 +178,13 @@ defmodule Astarte.Core.Generators.Mapping do
   @spec database_retention_policy(:datastream | :properties) ::
           StreamData.t(:no_ttl | :use_ttl | nil)
   def database_retention_policy(:datastream), do: member_of([:no_ttl, :use_ttl])
-  def database_retention_policy(_), do: nil
+  def database_retention_policy(_), do: constant(nil)
 
   @doc false
   @spec database_retention_ttl(:datastream | :properties, :use_ttl | :no_ttl) ::
           StreamData.t(non_neg_integer() | nil)
   def database_retention_ttl(:datastream, :use_ttl), do: integer(60..1_048_576)
-  def database_retention_ttl(_, _), do: nil
+  def database_retention_ttl(_, _), do: constant(nil)
 
   @doc false
   @spec allow_unset(:datastream | :properties) :: StreamData.t(boolean())
