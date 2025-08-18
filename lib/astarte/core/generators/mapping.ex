@@ -101,14 +101,13 @@ defmodule Astarte.Core.Generators.Mapping do
   """
   @spec endpoint() :: StreamData.t(String.t())
   def endpoint do
-    gen all prefix <- endpoint_segment(),
-            segments <-
+    gen all segments <-
               frequency([
                 {3, endpoint_segment()},
                 {1, endpoint_segment_param()}
               ])
               |> list_of(min_length: 1, max_length: 5) do
-      "/" <> prefix <> "/" <> Enum.join(segments, "/")
+      Enum.join(segments, "")
     end
   end
 
@@ -116,19 +115,21 @@ defmodule Astarte.Core.Generators.Mapping do
   Generates a generic endpoint segment.
   """
   @spec endpoint_segment() :: StreamData.t(StreamData.t(String.t()))
-  def endpoint_segment do
-    gen all prefix <- string(@unix_prefix_path_chars, length: 1),
-            rest <- string(@unix_path_chars, max_length: 19) do
-      prefix <> rest
-    end
-  end
+  def endpoint_segment, do: endpoint_segment_content() |> map(fn content -> "/" <> content end)
 
   @doc """
   Generates a parametrized endpoint segment.
   """
   @spec endpoint_segment_param() :: StreamData.t(StreamData.t(String.t()))
   def endpoint_segment_param,
-    do: endpoint_segment() |> map(fn segment -> "%{" <> segment <> "}" end)
+    do: endpoint_segment_content() |> map(fn content -> "/%{" <> content <> "}" end)
+
+  defp endpoint_segment_content do
+    gen all prefix <- string(@unix_prefix_path_chars, length: 1),
+            rest <- string(@unix_path_chars, max_length: 19) do
+      prefix <> rest
+    end
+  end
 
   defp endpoint_id(interface_name, interface_major, endpoint),
     do: constant(CQLUtils.endpoint_id(interface_name, interface_major, endpoint))
@@ -154,12 +155,12 @@ defmodule Astarte.Core.Generators.Mapping do
 
   @doc false
   @spec reliability(:datastream | :properties) ::
-          StreamData.t(:unreliable | :guaranteed | :unique)
+          StreamData.t(:unreliable | :guaranteed | :unique | nil)
   def reliability(:datastream), do: member_of([:unreliable, :guaranteed, :unique])
-  def reliability(_), do: constant(nil)
+  def reliability(_), do: nil
 
   @doc false
-  @spec explicit_timestamp(:datastream | :properties) :: StreamData.t(nil | boolean())
+  @spec explicit_timestamp(:datastream | :properties) :: StreamData.t(boolean())
   def explicit_timestamp(:datastream), do: boolean()
   def explicit_timestamp(_), do: constant(false)
 
@@ -174,15 +175,16 @@ defmodule Astarte.Core.Generators.Mapping do
   def expiry(_), do: constant(0)
 
   @doc false
-  @spec database_retention_policy(:datastream | :properties) :: StreamData.t(:no_ttl | :use_ttl)
+  @spec database_retention_policy(:datastream | :properties) ::
+          StreamData.t(:no_ttl | :use_ttl | nil)
   def database_retention_policy(:datastream), do: member_of([:no_ttl, :use_ttl])
-  def database_retention_policy(_), do: constant(nil)
+  def database_retention_policy(_), do: nil
 
   @doc false
   @spec database_retention_ttl(:datastream | :properties, :use_ttl | :no_ttl) ::
-          StreamData.t(nil | non_neg_integer())
+          StreamData.t(non_neg_integer() | nil)
   def database_retention_ttl(:datastream, :use_ttl), do: integer(60..1_048_576)
-  def database_retention_ttl(_, _), do: constant(nil)
+  def database_retention_ttl(_, _), do: nil
 
   @doc false
   @spec allow_unset(:datastream | :properties) :: StreamData.t(boolean())

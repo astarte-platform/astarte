@@ -27,10 +27,13 @@ defmodule Astarte.Core.Generators.Interface do
 
   alias Astarte.Core.CQLUtils
   alias Astarte.Core.Interface
+  alias Astarte.Core.Mapping
 
   alias Astarte.Core.Generators.Mapping, as: MappingGenerator
 
   alias Astarte.Utilities.Map, as: MapUtilities
+
+  @interface_max_mappings 10
 
   @doc """
   Generates a valid Astarte Interface.
@@ -46,8 +49,7 @@ defmodule Astarte.Core.Generators.Interface do
                    type <- type(),
                    ownership <- ownership(),
                    aggregation <- aggregation(type),
-                   prefix <- prefix(),
-                   mappings <- mappings(type, name, major_version, prefix),
+                   mappings <- mappings(aggregation, type, name, major_version),
                    description <- description(),
                    doc <- doc(),
                    params: params do
@@ -59,7 +61,6 @@ defmodule Astarte.Core.Generators.Interface do
           minor_version: minor_version,
           type: type,
           ownership: ownership,
-          prefix: prefix,
           aggregation: aggregation,
           mappings: mappings,
           description: description,
@@ -131,7 +132,7 @@ defmodule Astarte.Core.Generators.Interface do
 
   https://docs.astarte-platform.org/astarte/latest/030-interface.html#interface-type
   """
-  @spec type() :: StreamData.t(String.t())
+  @spec type() :: StreamData.t(:datastream | :properties)
   def type, do: member_of([:datastream, :properties])
 
   @doc false
@@ -182,35 +183,50 @@ defmodule Astarte.Core.Generators.Interface do
 
   defp ownership, do: member_of([:device, :server])
 
-  defp prefix, do: MappingGenerator.endpoint()
+  defp interface_mapping(params, endpoint),
+    do: MappingGenerator.mapping(params ++ [endpoint: endpoint])
 
-  defp mappings(interface_type, interface_name, interface_major, prefix) do
-    gen all retention <- MappingGenerator.retention(interface_type),
-            reliability <- MappingGenerator.reliability(interface_type),
-            expiry <- MappingGenerator.expiry(interface_type),
-            allow_unset <- MappingGenerator.allow_unset(interface_type),
-            explicit_timestamp <- MappingGenerator.explicit_timestamp(interface_type),
-            mappings <-
-              MappingGenerator.endpoint_segment()
-              |> list_of(min_length: 1, max_length: 10)
-              |> map(&Enum.uniq_by(&1, fn endpoint -> String.downcase(endpoint) end))
-              |> bind(fn list ->
-                list
-                |> Enum.map(fn postfix ->
-                  MappingGenerator.mapping(
-                    interface_type: interface_type,
-                    interface_name: interface_name,
-                    interface_major: interface_major,
-                    retention: retention,
-                    reliability: reliability,
-                    expiry: expiry,
-                    allow_unset: allow_unset,
-                    explicit_timestamp: explicit_timestamp,
-                    endpoint: prefix <> "/" <> postfix
-                  )
-                end)
-                |> fixed_list()
-              end) do
+  defp interface_mappings(:individual, params) do
+    MappingGenerator.endpoint()
+    |> bind(&interface_mapping(params, &1))
+    |> list_of(min_length: 1, max_length: @interface_max_mappings)
+    |> map(&uniq_endpoints/1)
+  end
+
+  defp interface_mappings(:object, params) do
+    MappingGenerator.endpoint()
+    |> bind(fn endpoint ->
+      MappingGenerator.endpoint_segment()
+      |> bind(&interface_mapping(params, endpoint <> &1))
+      |> list_of(min_length: 1, max_length: @interface_max_mappings)
+      |> map(&uniq_endpoints/1)
+    end)
+  end
+
+  defp mappings(aggregation, interface_type, interface_name, interface_major) do
+    common =
+      gen all retention <- MappingGenerator.retention(interface_type),
+              reliability <- MappingGenerator.reliability(interface_type),
+              expiry <- MappingGenerator.expiry(interface_type),
+              allow_unset <- MappingGenerator.allow_unset(interface_type),
+              explicit_timestamp <- MappingGenerator.explicit_timestamp(interface_type) do
+        [
+          retention: retention,
+          reliability: reliability,
+          expiry: expiry,
+          allow_unset: allow_unset,
+          explicit_timestamp: explicit_timestamp
+        ]
+      end
+
+    gen all common_params <- common,
+            other_params = [
+              interface_type: interface_type,
+              interface_name: interface_name,
+              interface_major: interface_major
+            ],
+            params = common_params ++ other_params,
+            mappings <- interface_mappings(aggregation, params) do
       mappings
     end
   end
@@ -218,4 +234,38 @@ defmodule Astarte.Core.Generators.Interface do
   defp description, do: one_of([nil, string(:ascii, min_length: 1, max_length: 1000)])
 
   defp doc, do: one_of([nil, string(:ascii, min_length: 1, max_length: 100_000)])
+
+  # Utilities
+
+  @normalized_param ""
+
+  @doc false
+  @spec uniq_endpoints(list(Mapping.t())) :: list(Mapping.t())
+  def uniq_endpoints([%Mapping{} | _] = mappings),
+    do: mappings |> uniq_endpoints(MapSet.new(), MapSet.new())
+
+  defp uniq_endpoints([], _endpoints, acc), do: MapSet.to_list(acc)
+
+  defp uniq_endpoints([%Mapping{endpoint: endpoint} = mapping | rest], prefixes, acc) do
+    prefix = endpoint |> uniform_param() |> tokenize_endpoint()
+
+    if conflict_exists?(prefixes, prefix) do
+      uniq_endpoints(rest, prefixes, acc)
+    else
+      uniq_endpoints(rest, MapSet.put(prefixes, prefix), MapSet.put(acc, mapping))
+    end
+  end
+
+  defp tokenize_endpoint(endpoint), do: endpoint |> String.split("/") |> Enum.drop(1)
+
+  defp conflict?([], _), do: true
+  defp conflict?(_, []), do: true
+  defp conflict?([@normalized_param | ta], [_ | tb]), do: conflict?(ta, tb)
+  defp conflict?([_ | ta], [@normalized_param | tb]), do: conflict?(ta, tb)
+  defp conflict?([h | ta], [h | tb]), do: conflict?(ta, tb)
+  defp conflict?(_, _), do: false
+
+  defp conflict_exists?(prefixes, test), do: Enum.any?(prefixes, &conflict?(&1, test))
+
+  defp uniform_param(endpoint), do: Mapping.normalize_endpoint(endpoint) |> String.downcase()
 end
