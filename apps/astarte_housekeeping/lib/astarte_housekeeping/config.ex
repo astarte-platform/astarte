@@ -124,8 +124,8 @@ defmodule Astarte.Housekeeping.Config do
     ]
 
   @envdoc "The port for the AMQP connection."
-  app_env :amqp_port, :astarte_housekeeping, :amqp_port,
-    os_env: "HOUSEKEEPING_AMQP_PORT",
+  app_env :amqp_management_port, :astarte_housekeeping, :amqp_management_port,
+    os_env: "HOUSEKEEPING_AMQP_MANAGEMENT_PORT",
     type: :integer,
     default: 15672
 
@@ -151,9 +151,9 @@ defmodule Astarte.Housekeeping.Config do
 
   def amqp_base_url!() do
     if amqp_ssl_enabled!() do
-      "https://#{amqp_host!()}:#{amqp_port!()}"
+      "https://#{amqp_host!()}:#{amqp_management_port!()}"
     else
-      "http://#{amqp_host!()}:#{amqp_port!()}"
+      "http://#{amqp_host!()}:#{amqp_management_port!()}"
     end
   end
 
