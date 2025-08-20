@@ -28,6 +28,34 @@ defmodule AstarteE2E do
   alias Astarte.Device
   alias AstarteE2E.{Client, Utils}
 
+  def publish_data(device_pid, datastream_interface, properties_interface) do
+    datastream_name = datastream_interface.name
+    properties_name = properties_interface.name
+
+    datastreams = Enum.map(1..5, fn _ -> Utils.random_string() end)
+    property = Utils.random_string()
+
+    datastream_path =
+      datastream_interface.mappings |> hd() |> Map.fetch!(:endpoint) |> path_from_endpoint()
+
+    properties_path =
+      properties_interface.mappings |> hd() |> Map.fetch!(:endpoint) |> path_from_endpoint()
+
+    with :ok <- publish_datastreams(device_pid, datastream_name, datastream_path, datastreams),
+         :ok <- Device.set_property(device_pid, properties_name, properties_path, property) do
+      {:ok, %{datastreams: datastreams, property: property}}
+    end
+  end
+
+  defp publish_datastreams(device_pid, datastream_interface, path, datastreams) do
+    Enum.reduce_while(datastreams, :ok, fn datastream, :ok ->
+      case Device.send_datastream(device_pid, datastream_interface, path, datastream) do
+        :ok -> {:cont, :ok}
+        error -> {:halt, error}
+      end
+    end)
+  end
+
   def perform_check(realm, device_id, interfaces) do
     with {:ok, device_pid} <- fetch_device_pid(realm, device_id),
          :ok <- Device.wait_for_connection(device_pid),

@@ -54,6 +54,7 @@ defmodule AstarteE2E.MixProject do
        github: "astarte-platform/astarte_core", branch: "release-1.2", override: true},
       {:astarte_generators, github: "astarte-platform/astarte_generators"},
       {:phoenix_gen_socket_client, "~> 4.0"},
+      {:amqp, "~> 4.0"},
       {:websocket_client, "~> 1.5"},
       {:jason, "~> 1.0"},
       {:plug_cowboy, "~> 2.0"},

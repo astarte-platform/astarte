@@ -20,6 +20,9 @@ defmodule AstarteE2E.AmqpDataTrigger do
   use GenServer
   require Logger
 
+  alias Astarte.Core.Triggers.SimpleEvents.IncomingDataEvent
+  alias Astarte.Core.Triggers.SimpleEvents.SimpleEvent
+  alias AstarteE2E.AmqpTriggers.Consumer
   alias AstarteE2E.Config
   alias AstarteE2E.Device
 
@@ -45,13 +48,17 @@ defmodule AstarteE2E.AmqpDataTrigger do
           raise "no properties interface present"
 
       case Device.start_link(device_opts) do
-        {:ok, _device_pid} ->
-          send(
-            self(),
-            {:install_triggers, realm, device_id, properties_interface, datastream_interface}
-          )
+        {:ok, device_pid} ->
+          state = %{
+            datastream_interface: datastream_interface,
+            properties_interface: properties_interface,
+            device_id: device_id,
+            realm: realm,
+            device_pid: device_pid,
+            messages: nil
+          }
 
-          {:ok, %{}}
+          {:ok, state, {:continue, :install_triggers}}
 
         {:error, reason} ->
           Logger.error("Failed to start device: #{inspect(reason)}")
@@ -65,18 +72,84 @@ defmodule AstarteE2E.AmqpDataTrigger do
   end
 
   @impl true
-  def handle_info(
-        {:install_triggers, realm, device_id, properties_interface, datastream_interface},
-        state
-      ) do
+  def handle_continue(:install_triggers, state) do
+    %{
+      datastream_interface: datastream_interface,
+      properties_interface: properties_interface,
+      device_id: device_id,
+      realm: realm
+    } = state
+
     case install_triggers(realm, device_id, properties_interface, datastream_interface) do
       :ok ->
         Logger.info("Amqp Data Triggers installed successfully.")
-        {:stop, :normal, state}
+        {:noreply, state, {:continue, :start_consumer}}
 
       {:error, reason} ->
         Logger.error("Failed to install amqp data triggers: #{inspect(reason)}")
         {:stop, {:failed_to_install_triggers, reason}, state}
+    end
+  end
+
+  @impl true
+  def handle_continue(:start_consumer, state) do
+    me = self()
+    message_handler = fn payload, meta -> GenServer.call(me, {:handle_message, payload, meta}) end
+
+    consumer_opts = [
+      realm_name: state.realm,
+      routing_key: "e2e_data_triggers",
+      message_handler: message_handler
+    ]
+
+    case Consumer.start_link(consumer_opts) do
+      {:ok, _} ->
+        Logger.info("Amqp Data Trigger: consumer started")
+        {:noreply, state, {:continue, :publish_data}}
+
+      {:error, reason} ->
+        "Amqp Data Trigger: stopping due to consumer startup error: #{inspect(reason)}"
+        |> Logger.error()
+
+        {:stop, {:failed_to_start_consumer, reason}, state}
+    end
+  end
+
+  def handle_continue(:publish_data, state) do
+    %{
+      datastream_interface: datastream_interface,
+      properties_interface: properties_interface,
+      device_pid: device_pid
+    } = state
+
+    case AstarteE2E.publish_data(device_pid, datastream_interface, properties_interface) do
+      {:ok, %{datastreams: datastreams, property: property}} ->
+        Logger.debug("AMQP Data Trigger: all messages sent")
+        datastreams = Enum.map(datastreams, &{datastream_interface.name, &1})
+        property = {properties_interface.name, property}
+        messages = [property | datastreams]
+        new_state = %{state | messages: messages}
+
+        {:noreply, new_state}
+
+      error ->
+        Logger.debug("AMQP Data Trigger: message failure #{inspect(error)}")
+        {:stop, error, state}
+    end
+  end
+
+  @impl true
+  def handle_call({:handle_message, payload, _meta}, _from, state) do
+    %SimpleEvent{event: {:incoming_data_event, event}} = SimpleEvent.decode(payload)
+    %IncomingDataEvent{interface: interface, bson_value: bson_value} = event
+    %{"v" => value} = Cyanide.decode!(bson_value)
+
+    Logger.info("AMQP Data Trigger: handling #{inspect({interface, value})}")
+
+    case pop_trigger(state.messages, interface, value) do
+      {:ok, []} -> {:stop, :normal, :ok, %{state | messages: []}}
+      {:ok, new_messages} -> {:reply, :ok, %{state | messages: new_messages}}
+      {:error, :not_found} -> {:reply, {:error, :not_founnd}, state}
     end
   end
 
@@ -118,13 +191,15 @@ defmodule AstarteE2E.AmqpDataTrigger do
 
   defp generate_triggers(realm, device_id, properties_interface, datastream_interface) do
     encoded_device_id = Astarte.Core.Device.encode_device_id(device_id)
+    exchange = "astarte_events_#{realm}_#{Config.amqp_trigger_exchange_suffix!()}"
+    routing_key = "e2e_data_triggers"
 
     [
       %{
-        "name" => "test_trigger_1",
+        "name" => "amqptrigger-properties",
         "action" => %{
-          "amqp_exchange" => "astarte_events_#{realm}_test_exchange",
-          "amqp_routing_key" => "my_routing_key",
+          "amqp_exchange" => exchange,
+          "amqp_routing_key" => routing_key,
           "amqp_message_expiration_ms" => 100_000,
           "amqp_message_persistent" => false
         },
@@ -140,10 +215,10 @@ defmodule AstarteE2E.AmqpDataTrigger do
         ]
       },
       %{
-        "name" => "test_trigger_2",
+        "name" => "amqptrigger-datastream",
         "action" => %{
-          "amqp_exchange" => "astarte_events_#{realm}_test_exchange",
-          "amqp_routing_key" => "my_routing_key",
+          "amqp_exchange" => exchange,
+          "amqp_routing_key" => routing_key,
           "amqp_message_expiration_ms" => 100_000,
           "amqp_message_persistent" => false
         },
@@ -160,5 +235,25 @@ defmodule AstarteE2E.AmqpDataTrigger do
         ]
       }
     ]
+  end
+
+  defp pop_trigger(messages, interface, value) do
+    entry = {interface, value}
+
+    case entry in messages do
+      true ->
+        Logger.debug("AMQP Data Trigger: received #{inspect(value)} for interface #{interface}")
+
+        # There may be duplicate entries, only delete the first one
+        first_trigger_value_index = messages |> Enum.find_index(&(&1 == entry))
+        {:ok, List.delete_at(messages, first_trigger_value_index)}
+
+      false ->
+        Logger.debug(
+          "AMQP Data Trigger: unexpected message: #{inspect(value)} for entry #{entry}"
+        )
+
+        {:error, :not_found}
+    end
   end
 end

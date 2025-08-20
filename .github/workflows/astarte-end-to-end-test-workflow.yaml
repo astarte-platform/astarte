@@ -83,6 +83,7 @@ jobs:
         E2E_PAIRING_URL: http://api.astarte.localhost/pairing
         E2E_APPENGINE_URL: http://api.astarte.localhost/appengine
         E2E_REALM_MANAGEMENT_URL: http://api.astarte.localhost/realmmanagement
+        E2E_AMQP_CONSUMER_HOST: rabbitmq
         E2E_IGNORE_SSL_ERRORS: true
         E2E_CHECK_INTERVAL_SECONDS: 5
         E2E_CHECK_REPETITIONS: 5
