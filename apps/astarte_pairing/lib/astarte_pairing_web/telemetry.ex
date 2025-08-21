@@ -135,7 +135,7 @@ defmodule Astarte.PairingWeb.Telemetry do
 
       # Database exception metrics
       counter("astarte.pairing.database.execute_query.exception.count",
-        tags: [:query, :reason, :kind, :stacktrace],
+        tags: [:query, :reason, :kind],
         tag_values: &to_valid_values/1,
         unit: {:native, :second}
       ),
@@ -147,7 +147,7 @@ defmodule Astarte.PairingWeb.Telemetry do
 
       # Database preparation metrics
       counter("astarte.pairing.database.prepare_query.exception.count",
-        tags: [:query, :reason, :kind, :stacktrace],
+        tags: [:query, :reason, :kind],
         tag_values: &to_valid_values/1,
         unit: {:native, :second}
       ),

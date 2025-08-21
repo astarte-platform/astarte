@@ -184,7 +184,7 @@ defmodule Astarte.DataUpdaterPlantWeb.Telemetry do
 
       # Database exception metrics
       counter("astarte.data_updater_plant.database.execute_query.exception.count",
-        tags: [:query, :reason, :kind, :stacktrace],
+        tags: [:query, :reason, :kind],
         tag_values: &to_valid_values/1,
         unit: {:native, :second}
       ),
@@ -196,7 +196,7 @@ defmodule Astarte.DataUpdaterPlantWeb.Telemetry do
 
       # Database preparation metrics
       counter("astarte.data_updater_plant.database.prepare_query.exception.count",
-        tags: [:query, :reason, :kind, :stacktrace],
+        tags: [:query, :reason, :kind],
         tag_values: &to_valid_values/1,
         unit: {:native, :second}
       ),

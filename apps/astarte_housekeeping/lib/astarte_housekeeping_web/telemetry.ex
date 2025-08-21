@@ -112,7 +112,7 @@ defmodule Astarte.HousekeepingWeb.Telemetry do
 
       # Database exception metrics
       counter("astarte.housekeeping.database.execute_query.exception.count",
-        tags: [:query, :reason, :kind, :stacktrace],
+        tags: [:query, :reason, :kind],
         tag_values: &to_valid_values/1,
         unit: {:native, :second}
       ),
@@ -124,7 +124,7 @@ defmodule Astarte.HousekeepingWeb.Telemetry do
 
       # Database preparation metrics
       counter("astarte.housekeeping.database.prepare_query.exception.count",
-        tags: [:query, :reason, :kind, :stacktrace],
+        tags: [:query, :reason, :kind],
         tag_values: &to_valid_values/1,
         unit: {:native, :second}
       ),

@@ -86,7 +86,7 @@ defmodule Astarte.TriggerEngineWeb.Telemetry do
 
       # Database exception metrics
       counter("astarte.trigger_engine.database.execute_query.exception.count",
-        tags: [:query, :reason, :kind, :stacktrace],
+        tags: [:query, :reason, :kind],
         tag_values: &to_valid_values/1,
         unit: {:native, :second}
       ),
@@ -98,7 +98,7 @@ defmodule Astarte.TriggerEngineWeb.Telemetry do
 
       # Database preparation metrics
       counter("astarte.trigger_engine.database.prepare_query.exception.count",
-        tags: [:query, :reason, :kind, :stacktrace],
+        tags: [:query, :reason, :kind],
         tag_values: &to_valid_values/1,
         unit: {:native, :second}
       ),
