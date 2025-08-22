@@ -5,6 +5,16 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
 ## [1.2.1] - Unreleased
+### Added
+- New environment variables to control how clustering work, needed on AppEngine and DUP.
+  - `CLUSTERING_STRATEGY`. Its possible values are:
+    - `none` (default): the service will not look for other nodes/services.
+    - `docker-compose`: this is meant to work in our docker-compose environment and no additional configuration is needed.
+    - `kubernetes`: other nodes/services are found thanks to kubernetes DNS, and the other variables below are relevant.
+  - `CLUSTERING_KUBERNETES_NAMESPACE`. It states under which namespace the Astarte instance has been deployed. Defaults to `astarte`.
+  - `DATA_UPDATER_PLANT_CLUSTERING_KUBERNETES_SELECTOR`. The Endpoint label to query to get other data updater plant instances. Defaults to `app=astarte-data-updater-plant`.
+  - `VERNEMQ_CLUSTERING_KUBERNETES_SELECTOR`. The Pod label to use to query Kubernetes to find VerneMQ instances. Defaults to `app=astarte-vernemq`.
+  - `VERNEMQ_CLUSTERING_KUBERNETES_SERVICE_NAME`. The Service name to use to query Kubernetes to find VerneMQ instances. Defaults to `astarte-vernemq`.
 ### Changed
 - Rework RPC between AppEngine and DUP using Erlang's native clustering and
   message-passing instead of AMQP queues:
