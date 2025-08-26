@@ -4,6 +4,40 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## [1.3.0] - Unreleased
+### Added
+- [astarte_data_updater_plant] Added separate AMQP triggers producer configuration (falls back to general AMQP producer settings if unset):
+  - `DATA_UPDATER_PLANT_AMQP_TRIGGERS_PRODUCER_HOST` - Host for triggers producer connection (no default, falls back to producer host)
+  - `DATA_UPDATER_PLANT_AMQP_TRIGGERS_PRODUCER_USERNAME` - Username for triggers producer (no default, falls back to producer username)
+  - `DATA_UPDATER_PLANT_AMQP_TRIGGERS_PRODUCER_PASSWORD` - Password for triggers producer (no default, falls back to producer password)
+  - `DATA_UPDATER_PLANT_AMQP_TRIGGERS_PRODUCER_VIRTUAL_HOST` - Virtual host for triggers producer (no default, falls back to producer virtual host)
+  - `DATA_UPDATER_PLANT_AMQP_TRIGGERS_PRODUCER_PORT` - Port for triggers producer (no default, falls back to producer port)
+  - `DATA_UPDATER_PLANT_AMQP_TRIGGERS_PRODUCER_SSL_ENABLED` - Enable SSL for triggers producer (no default, falls back to producer SSL setting)
+  - `DATA_UPDATER_PLANT_AMQP_TRIGGERS_PRODUCER_SSL_CA_FILE` - CA certificate file for triggers producer SSL (falls back to producer CA file or bundled cURL certificates)
+  - `DATA_UPDATER_PLANT_AMQP_TRIGGERS_PRODUCER_SSL_DISABLE_SNI` - Disable Server Name Indication for triggers producer (default: false)
+  - `DATA_UPDATER_PLANT_AMQP_TRIGGERS_PRODUCER_SSL_CUSTOM_SNI` - Custom SNI hostname for triggers producer (falls back to producer host if unset)
+- [astarte_housekeeping] Added Cassandra keyspace replication strategy configuration:
+  - `HOUSEKEEPING_ASTARTE_KEYSPACE_REPLICATION_STRATEGY` - Replication strategy for the `astarte` keyspace: "SimpleStrategy" or "NetworkTopologyStrategy" (default: "SimpleStrategy")
+  - `HOUSEKEEPING_ASTARTE_KEYSPACE_REPLICATION_FACTOR` - Replication factor when using SimpleStrategy (default: 1)
+  - `HOUSEKEEPING_ASTARTE_KEYSPACE_NETWORK_REPLICATION_MAP` - Datacenter replication map when using NetworkTopologyStrategy (no default, required when using network strategy)
+- Added database events handling configuration across all services:
+  - `DATABASE_EVENTS_HANDLING_METHOD` - Controls how database events are handled: "expose" (via telemetry) or "log" (to logs) (default: "expose")
+
+### Changed
+- BREAKING: Merged API services into main services, eliminating separate containers:
+  - `astarte-housekeeping-api` merged into `astarte-housekeeping`
+  - `astarte-pairing-api` merged into `astarte-pairing`
+  - `astarte-realm-management-api` merged into `astarte-realm-management`
+- BREAKING: [astarte_housekeeping] Housekeeping now creates an AMQP vhost for each created realm. Some required configuration was introduced:
+  - `HOUSEKEEPING_AMQP_HOST` - AMQP host for housekeeping operations (required in production, defaults to "localhost" in dev/test)
+  - `HOUSEKEEPING_AMQP_SSL_ENABLED` - Enable SSL for AMQP connections (default: false)
+  - `HOUSEKEEPING_AMQP_SSL_CA_FILE` - CA certificate file for AMQP SSL connections (default: bundled cURL certificate bundle)
+  - `HOUSEKEEPING_AMQP_SSL_DISABLE_SNI` - Disable Server Name Indication (default: false)
+  - `HOUSEKEEPING_AMQP_SSL_CUSTOM_SNI` - Custom SNI hostname (defaults to AMQP host if unset)
+  - `HOUSEKEEPING_AMQP_USERNAME` - AMQP username (default: guest)
+  - `HOUSEKEEPING_AMQP_PASSWORD` - AMQP password (default: guest)
+  - `HOUSEKEEPING_AMQP_MANAGEMENT_PORT` - AMQP management API port (default: 15672)
+
 ## [1.2.1] - Unreleased
 ### Changed
 - Rework RPC between AppEngine and DUP using Erlang's native clustering and

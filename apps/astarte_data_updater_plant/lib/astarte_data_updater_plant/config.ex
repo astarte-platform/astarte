@@ -272,14 +272,14 @@ defmodule Astarte.DataUpdaterPlant.Config do
           default: "astarte"
 
   @envdoc """
-  The host for the AMQP triggers_producer connection. If no AMQP triggers_producer options are set, the AMQP consumer options will be used.
+  The host for the AMQP triggers_producer connection. If no AMQP triggers_producer options are set, the AMQP producer options will be used.
   """
   app_env :amqp_triggers_producer_host, :astarte_data_updater_plant, :amqp_triggers_producer_host,
     os_env: "DATA_UPDATER_PLANT_AMQP_TRIGGERS_PRODUCER_HOST",
     type: :binary
 
   @envdoc """
-  The username for the AMQP triggers_producer connection. If no AMQP triggers_producer options are set, the AMQP consumer options will be used.
+  The username for the AMQP triggers_producer connection. If no AMQP triggers_producer options are set, the AMQP producer options will be used.
   """
   app_env :amqp_triggers_producer_username,
           :astarte_data_updater_plant,
@@ -288,7 +288,7 @@ defmodule Astarte.DataUpdaterPlant.Config do
           type: :binary
 
   @envdoc """
-  The password for the AMQP triggers_producer connection. If no AMQP triggers_producer options are set, the AMQP consumer options will be used.
+  The password for the AMQP triggers_producer connection. If no AMQP triggers_producer options are set, the AMQP producer options will be used.
   """
   app_env :amqp_triggers_producer_password,
           :astarte_data_updater_plant,
@@ -304,13 +304,13 @@ defmodule Astarte.DataUpdaterPlant.Config do
           type: :binary
 
   @envdoc """
-  The port for the AMQP triggers_producer connection. If no AMQP triggers_producer options are set, the AMQP consumer options will be used.
+  The port for the AMQP triggers_producer connection. If no AMQP triggers_producer options are set, the AMQP producer options will be used.
   """
   app_env :amqp_triggers_producer_port, :astarte_data_updater_plant, :amqp_triggers_producer_port,
     os_env: "DATA_UPDATER_PLANT_AMQP_TRIGGERS_PRODUCER_PORT",
     type: :integer
 
-  @envdoc "Enable SSL for the AMQP triggers_producer connection. If not specified, the consumer's setting will be used."
+  @envdoc "Enable SSL for the AMQP triggers_producer connection. If not specified, the AMQP producer's setting will be used."
   app_env :amqp_triggers_producer_ssl_enabled,
           :astarte_data_updater_plant,
           :amqp_triggers_producer_ssl_enabled,
@@ -318,7 +318,7 @@ defmodule Astarte.DataUpdaterPlant.Config do
           type: :boolean
 
   @envdoc """
-  Specifies the certificates of the root Certificate Authorities to be trusted for the AMQP triggers_producer connection. When not specified, either the consumer's ca_cert is used (if set), or the bundled cURL certificate bundle will be used.
+  Specifies the certificates of the root Certificate Authorities to be trusted for the AMQP triggers_producer connection. When not specified, either the AMQP producer's ca_cert is used (if set), or the bundled cURL certificate bundle will be used.
   """
   app_env :amqp_triggers_producer_ssl_ca_file,
           :astarte_data_updater_plant,
@@ -334,7 +334,7 @@ defmodule Astarte.DataUpdaterPlant.Config do
           type: :boolean,
           default: false
 
-  @envdoc "Specify the hostname to be used in TLS Server Name Indication extension. If not specified, the amqp consumer host will be used. This value is used only if Server Name Indication is enabled."
+  @envdoc "Specify the hostname to be used in TLS Server Name Indication extension. If not specified, the AMQP producer host will be used. This value is used only if Server Name Indication is enabled."
   app_env :amqp_triggers_producer_ssl_custom_sni,
           :astarte_data_updater_plant,
           :amqp_triggers_producer_ssl_custom_sni,
