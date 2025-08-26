@@ -206,15 +206,6 @@ defmodule Astarte.DataUpdaterPlant.Config do
     type: :integer,
     default: 4000
 
-  @envdoc """
-  The RPC client, defaulting to AMQP.Client. Used for Mox during testing.
-  """
-  app_env :rpc_client, :astarte_data_updater_plant, :rpc_client,
-    os_env: "DATA_UPDATER_PLANT_RPC_CLIENT",
-    binding_skip: [:system],
-    type: :module,
-    default: Astarte.RPC.AMQP.Client
-
   @envdoc "The interval between two heartbeats sent from the VernqMQ device process."
   app_env :device_heartbeat_interval_ms,
           :astarte_data_updater_plant,

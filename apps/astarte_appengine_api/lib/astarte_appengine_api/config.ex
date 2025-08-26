@@ -121,13 +121,6 @@ defmodule Astarte.AppEngine.API.Config do
           os_env: "APPENGINE_API_ROOMS_AMQP_CLIENT_SSL_CUSTOM_SNI",
           type: :binary
 
-  @envdoc "Returns the RPC client, defaulting to AMQP.Client. Used for Mox during testing."
-  app_env :rpc_client, :astarte_appengine_api, :rpc_client,
-    os_env: "APPENGINE_API_RPC_CLIENT",
-    binding_skip: [:system],
-    type: :module,
-    default: Astarte.RPC.AMQP.Client
-
   @envdoc "The Erlang cluster strategy to use. One of `none`, `kubernetes`. Defaults to `none`."
   app_env :clustering_strategy,
           :astarte_appengine_api,
