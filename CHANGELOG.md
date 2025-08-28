@@ -38,7 +38,17 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
   - `HOUSEKEEPING_AMQP_PASSWORD` - AMQP password (default: guest)
   - `HOUSEKEEPING_AMQP_MANAGEMENT_PORT` - AMQP management API port (default: 15672)
 
-## [1.2.1] - Unreleased
+## [1.2.1-rc.0] - 2025-08-26
+### Added
+- New environment variables to control how clustering work, needed on AppEngine and DUP.
+  - `CLUSTERING_STRATEGY`. Its possible values are:
+    - `none` (default): the service will not look for other nodes/services.
+    - `docker-compose`: this is meant to work in our docker-compose environment and no additional configuration is needed.
+    - `kubernetes`: other nodes/services are found thanks to kubernetes DNS, and the other variables below are relevant.
+  - `CLUSTERING_KUBERNETES_NAMESPACE`. It states under which namespace the Astarte instance has been deployed. Defaults to `astarte`.
+  - `DATA_UPDATER_PLANT_CLUSTERING_KUBERNETES_SELECTOR`. The Endpoint label to query to get other data updater plant instances. Defaults to `app=astarte-data-updater-plant`.
+  - `VERNEMQ_CLUSTERING_KUBERNETES_SELECTOR`. The Pod label to use to query Kubernetes to find VerneMQ instances. Defaults to `app=astarte-vernemq`.
+  - `VERNEMQ_CLUSTERING_KUBERNETES_SERVICE_NAME`. The Service name to use to query Kubernetes to find VerneMQ instances. Defaults to `astarte-vernemq`.
 ### Changed
 - Rework RPC between AppEngine and DUP using Erlang's native clustering and
   message-passing instead of AMQP queues:
@@ -50,6 +60,26 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Rework RPC between DUP and VerneMQ using Erlang's native clustering and
   message-passing instead of AMQP queues:
   [#1197](https://github.com/astarte-platform/astarte/pull/1197).
+- Changed the database driver from CQEx (unmantained) to (E)xandra
+- [astarte_trigger_engine] avoid exposing __unknown_fields__ in mustache templates
+- [astarte_trigger_engine] properly handle incoming introspection events
+
+### Fixed
+- avoid leaving dangling device deletion entries
+- [astarte_appengine_api] fix a crash on invalid object update values
+- [astarte_appengine_api] fix a crash with empty result and `disjoint_tables` format for object aggregates
+- [astarte_appengine_api] Create needed AMQP exchanges instead of crashing
+- [astarte_appengine_api] Handle unset of properties which don't allow being unset
+- [astarte_data_updater_plant] fix a crash when performing updates of deleted values
+- [astarte_data_updater_plant] Fix a crash while handling device introspection
+- [astarte_data_updater_plant] Fix DataUpdater GenServer timeout handling that prevented inactive processes to shut down automatically.
+- [astarte_data_updater_plant] Handle unset of properties which don't allow being unset
+- [astarte_data_updater_plant] properly discard heartbeat messages when discarding messages
+- [astarte_data_updater_plant] Properly reconnect to RabbitMQ in case of disconnection
+- [astarte_data_updater_plant] Some queries had the `astarte_instance_id` applied twice
+- [astarte_realm_management] avoid crashing on interface list
+- [astarte_realm_management] avoid crash when deleting devices with invalid introspection
+- [astarte_realm_management] ensure devices are cleaned up after being deleted
 
 ## [1.2.1-alpha.0] - 2025-04-10
 ### Changed

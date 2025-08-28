@@ -26,7 +26,6 @@ defmodule Astarte.AppEngine.API.Application do
   def start(_type, _args) do
     alias Astarte.AppEngine.API.Config
     alias Astarte.DataAccess.Config, as: DataAccessConfig
-    alias Astarte.RPC.Config, as: RPCConfig
 
     # make amqp supervisors logs less verbose
     :logger.add_primary_filter(
@@ -37,7 +36,6 @@ defmodule Astarte.AppEngine.API.Application do
     Logger.info("Starting application v#{@app_version}.", tag: "appengine_api_start")
 
     DataAccessConfig.validate!()
-    RPCConfig.validate!()
     Config.validate!()
 
     xandra_options = Config.xandra_options!()

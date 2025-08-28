@@ -61,8 +61,7 @@ defmodule Astarte.DataUpdaterPlant.Mixfile do
   defp astarte_required_modules("true") do
     [
       {:astarte_core, in_umbrella: true},
-      {:astarte_data_access, in_umbrella: true},
-      {:astarte_rpc, in_umbrella: true}
+      {:astarte_data_access, in_umbrella: true}
     ]
   end
 
@@ -73,8 +72,7 @@ defmodule Astarte.DataUpdaterPlant.Mixfile do
        github: "astarte-platform/astarte_data_access", branch: "release-1.3"},
       {:astarte_generators, github: "astarte-platform/astarte_generators", only: [:dev, :test]},
       {:astarte_realm_management,
-       path: "../astarte_realm_management", only: [:dev, :test], runtime: false},
-      {:astarte_rpc, "~> 1.2"}
+       path: "../astarte_realm_management", only: [:dev, :test], runtime: false}
     ]
   end
 

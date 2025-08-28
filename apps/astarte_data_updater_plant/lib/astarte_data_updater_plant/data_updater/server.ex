@@ -81,24 +81,28 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Server do
   # TODO remove this when all heartbeats will be moved to internal
   @impl GenServer
   def handle_cast({:handle_heartbeat, message_id, timestamp}, state) do
+    timeout = Config.data_updater_deactivation_interval_ms!()
+
     if MessageTracker.can_process_message(state.message_tracker, message_id) do
       new_state = Core.HeartbeatHandler.handle_heartbeat(state, message_id, timestamp)
-      {:noreply, new_state}
+      {:noreply, new_state, timeout}
     else
-      {:noreply, state}
+      {:noreply, state, timeout}
     end
   end
 
   @impl GenServer
   def handle_cast({:handle_internal, payload, path, message_id, timestamp}, state) do
+    timeout = Config.data_updater_deactivation_interval_ms!()
+
     if MessageTracker.can_process_message(state.message_tracker, message_id) do
       case Impl.handle_internal(state, payload, path, message_id, timestamp) do
-        {:continue, new_state} -> {:noreply, new_state}
-        # No more messages from this device, time out now in order to stop this process
-        {:stop, new_state} -> {:noreply, new_state, 0}
+        {:continue, new_state} -> {:noreply, new_state, timeout}
+        # No more messages from this device, we can stop this process
+        {:stop, new_state} -> shutdown(new_state)
       end
     else
-      {:noreply, state}
+      {:noreply, state, timeout}
     end
   end
 
@@ -141,7 +145,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Server do
 
     if MessageTracker.can_process_message(state.message_tracker, message_id) do
       new_state = Impl.handle_control(state, payload, path, message_id, timestamp)
-      {:noreply, new_state}
+      {:noreply, new_state, timeout}
     else
       {:noreply, state, timeout}
     end
@@ -195,14 +199,18 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Server do
 
   @impl GenServer
   def handle_call({:start_device_deletion, timestamp}, _from, state) do
+    timeout = Config.data_updater_deactivation_interval_ms!()
+
     {result, new_state} = Impl.start_device_deletion(state, timestamp)
-    {:reply, result, new_state}
+    {:reply, result, new_state, timeout}
   end
 
   @impl GenServer
   def handle_info({:DOWN, _, :process, pid, :normal}, %{message_tracker: pid} = state) do
+    timeout = Config.data_updater_deactivation_interval_ms!()
+
     # This is a MessageTracker normally terminating due to deactivation
-    {:noreply, state}
+    {:noreply, state, timeout}
   end
 
   @impl GenServer
@@ -231,6 +239,10 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Server do
 
   @impl GenServer
   def handle_info(:timeout, state) do
+    shutdown(state)
+  end
+
+  defp shutdown(state) do
     :ok = Impl.handle_deactivation(state)
     :ok = MessageTracker.deactivate(state.message_tracker)
 

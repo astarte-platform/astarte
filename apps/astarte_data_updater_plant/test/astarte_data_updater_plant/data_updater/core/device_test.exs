@@ -26,6 +26,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DeviceTest do
   import Astarte.InterfaceUpdateGenerators
   import Ecto.Query
 
+  alias Astarte.Core.Generators.Device, as: DeviceGenerator
   alias Astarte.DataUpdaterPlant.DataUpdater
   alias Astarte.DataUpdaterPlant.DataUpdater.Core
   alias Astarte.DataUpdaterPlant.DataUpdater.Queries
@@ -212,6 +213,21 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DeviceTest do
 
       assert {:error, :sending_properties_to_interface_failed} ==
                Core.Device.resend_all_properties(state)
+    end
+  end
+
+  describe "set_device_disconnected/2" do
+    @tag :regression
+    test "does not re-insert a deleted device", %{state: state} do
+      device_id = DeviceGenerator.id() |> Enum.at(0)
+
+      # Simulate a non-existing device by changing the id
+      state = %{state | device_id: device_id, connected: false}
+      timestamp = DateTime.utc_now() |> DateTime.to_unix(:microsecond) |> then(&(&1 * 10))
+
+      assert Core.Device.set_device_disconnected(state, timestamp)
+
+      assert {:ok, false} = Queries.check_device_exists(state.realm, device_id)
     end
   end
 
