@@ -110,9 +110,48 @@ defmodule AstarteE2E.DataTrigger do
     %{"value" => value} = event
 
     case pop_trigger(state.messages, trigger, value) do
-      {:ok, []} -> {:stop, :normal, :ok, %{state | messages: []}}
+      {:ok, []} -> {:reply, :ok, %{state | messages: []}, {:continue, :delete_triggers}}
       {:ok, new_messages} -> {:reply, :ok, %{state | messages: new_messages}}
-      {:error, :not_found} -> {:reply, {:error, :not_founnd}, state}
+      {:error, :not_found} -> {:reply, {:error, :not_found}, state}
+    end
+  end
+
+  @impl GenServer
+  def handle_continue(:delete_triggers, state) do
+    base_url = Config.realm_management_url!()
+    realm = Config.realm!()
+    astarte_jwt = Config.jwt!()
+
+    headers = [
+      {"Authorization", "Bearer #{astarte_jwt}"}
+    ]
+
+    triggers = [@properties_trigger, @datastream_trigger]
+
+    result =
+      Enum.reduce_while(triggers, :ok, fn trigger, :ok ->
+        url = Path.join([base_url, "v1", realm, "triggers", trigger])
+
+        case HTTPoison.delete(url, headers) do
+          {:ok, %HTTPoison.Response{status_code: code}} when code in [200, 202, 204] ->
+            {:cont, :ok}
+
+          {:ok, %HTTPoison.Response{status_code: code, body: body}} ->
+            {:halt, {:error, %{status: code, body: body}}}
+
+          {:error, %HTTPoison.Error{} = error} ->
+            {:halt, {:error, error}}
+        end
+      end)
+
+    case result do
+      :ok ->
+        Logger.info("Http Data Triggers deleted successfully")
+        {:stop, :normal, state}
+
+      {:error, error} ->
+        Logger.error("Failed to delete triggers: #{inspect(error)}")
+        {:stop, error, state}
     end
   end
 
