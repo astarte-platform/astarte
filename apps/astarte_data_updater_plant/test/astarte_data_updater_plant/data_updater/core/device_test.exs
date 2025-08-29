@@ -26,15 +26,17 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DeviceTest do
   import Astarte.InterfaceUpdateGenerators
   import Ecto.Query
 
+  alias Astarte.Core.Device
   alias Astarte.Core.Generators.Device, as: DeviceGenerator
-  alias Astarte.DataUpdaterPlant.DataUpdater
-  alias Astarte.DataUpdaterPlant.DataUpdater.Core
-  alias Astarte.DataUpdaterPlant.DataUpdater.Queries
-  alias Astarte.DataUpdaterPlant.RPC.VMQPlugin
+  alias Astarte.Core.Mapping.EndpointsAutomaton
   alias Astarte.DataAccess.Devices.Device, as: DatabaseDevice
   alias Astarte.DataAccess.Interface, as: InterfaceQueries
   alias Astarte.DataAccess.Realms.Realm
   alias Astarte.DataAccess.Repo
+  alias Astarte.DataUpdaterPlant.DataUpdater
+  alias Astarte.DataUpdaterPlant.DataUpdater.Core
+  alias Astarte.DataUpdaterPlant.DataUpdater.Queries
+  alias Astarte.DataUpdaterPlant.RPC.VMQPlugin
   alias Astarte.Helpers.Database
 
   @timestamp_us_x_10 Database.make_timestamp("2025-05-14T14:00:32+00:00")
@@ -214,6 +216,39 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DeviceTest do
       assert {:error, :sending_properties_to_interface_failed} ==
                Core.Device.resend_all_properties(state)
     end
+
+    @tag :regression
+    test "sends properties with the correct bson type", context do
+      %{state: state, realm_name: realm_name, server_property_with_all_endpoint_types: interface} =
+        context
+
+      # we only need this one interface for the test
+      state = put_in(state.introspection, %{interface.name => interface.major_version})
+      encoded_device_id = Device.encode_device_id(state.device_id)
+      {:ok, automaton} = EndpointsAutomaton.build(interface.mappings)
+
+      # one call for each mapping
+      calls = Enum.count(interface.mappings)
+      topic_prefix = "#{realm_name}/#{encoded_device_id}/#{interface.name}"
+
+      Mimic.expect(VMQPlugin, :publish, calls, fn topic, bson, qos ->
+        path = String.replace_prefix(topic, topic_prefix, "")
+        {:ok, endpoint} = EndpointsAutomaton.resolve_path(path, automaton)
+
+        mapping =
+          Enum.find(interface.mappings, &(&1.endpoint == endpoint)) || flunk("invalid endpoint")
+
+        value = bson |> Cyanide.decode!() |> Map.fetch!("v")
+
+        assert qos == 2
+        assert String.starts_with?(topic, topic_prefix)
+        assert valid_value_type?(mapping.value_type, value)
+
+        {:ok, %{local_matches: 1, remote_matches: 0}}
+      end)
+
+      Core.Device.resend_all_properties(state)
+    end
   end
 
   describe "set_device_disconnected/2" do
@@ -235,4 +270,16 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DeviceTest do
     Repo.get!(DatabaseDevice, device_id, prefix: Realm.keyspace_name(realm_name))
     |> Map.fetch!(:pending_empty_cache)
   end
+
+  defp valid_value_type?(:binaryblob, value), do: is_struct(value, Cyanide.Binary)
+  defp valid_value_type?(:datetime, value), do: is_struct(value, DateTime)
+
+  defp valid_value_type?(:binaryblobarray, value),
+    do: Enum.all?(value, &valid_value_type?(:binaryblob, &1))
+
+  defp valid_value_type?(:datetimearray, value),
+    do: Enum.all?(value, &valid_value_type?(:datetime, &1))
+
+  defp valid_value_type?(value_type, value),
+    do: Astarte.Core.Mapping.ValueType.validate_value(value_type, value) == :ok
 end
