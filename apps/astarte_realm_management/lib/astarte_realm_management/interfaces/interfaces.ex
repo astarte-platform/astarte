@@ -19,7 +19,6 @@
 defmodule Astarte.RealmManagement.Interfaces do
   alias Astarte.Core.Mapping.EndpointsAutomaton
   alias Astarte.Core.Mapping
-  alias Astarte.RealmManagement.Interfaces.Queries
   alias Astarte.Core.CQLUtils
   alias Astarte.Core.Interface
   alias Astarte.Core.InterfaceDescriptor
@@ -138,13 +137,14 @@ defmodule Astarte.RealmManagement.Interfaces do
   end
 
   defp check_major_version(realm_name, interface) do
-    case Queries.is_interface_major_available?(
-           realm_name,
-           interface.name,
-           interface.major_version
-         ) do
-      {:ok, true} -> {:error, :already_installed_interface}
-      {:ok, false} -> :ok
+    if Queries.is_interface_major_available?(
+         realm_name,
+         interface.name,
+         interface.major_version
+       ) do
+      {:error, :already_installed_interface}
+    else
+      :ok
     end
   end
 
@@ -357,13 +357,14 @@ defmodule Astarte.RealmManagement.Interfaces do
   end
 
   defp check_interface_major_available(realm_name, interface_name, interface_major_version) do
-    case Queries.is_interface_major_available?(
-           realm_name,
-           interface_name,
-           interface_major_version
-         ) do
-      {:ok, true} -> :ok
-      {:ok, false} -> {:error, :interface_not_found}
+    if Queries.is_interface_major_available?(
+         realm_name,
+         interface_name,
+         interface_major_version
+       ) do
+      :ok
+    else
+      {:error, :interface_not_found}
     end
   end
 

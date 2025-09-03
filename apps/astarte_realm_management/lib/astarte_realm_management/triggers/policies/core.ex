@@ -6,17 +6,14 @@ defmodule Astarte.RealmManagement.Triggers.Policies.Core do
   require Logger
 
   def verify_trigger_policy_not_exists(realm_name, policy_name) do
-    with {:ok, exists?} <-
-           TriggerQueries.check_trigger_policy_already_present(realm_name, policy_name) do
-      if not exists? do
-        :ok
-      else
-        Logger.warning("Trigger policy #{policy_name} already present",
-          tag: "trigger_policy_already_present"
-        )
+    if TriggerQueries.trigger_policy_exists?(realm_name, policy_name) do
+      Logger.warning("Trigger policy #{policy_name} already present",
+        tag: "trigger_policy_already_present"
+      )
 
-        {:error, :trigger_policy_already_present}
-      end
+      {:error, :trigger_policy_already_present}
+    else
+      :ok
     end
   end
 
@@ -40,7 +37,7 @@ defmodule Astarte.RealmManagement.Triggers.Policies.Core do
       )
 
     with :ok <- TriggersCore.verify_trigger_policy_exists(realm_name, policy_name),
-         {:ok, false} <- check_trigger_policy_has_triggers(realm_name, policy_name) do
+         :ok <- TriggersCore.verify_trigger_policy_has_no_triggers(realm_name, policy_name) do
       if opts[:async] do
         {:ok, _pid} =
           Task.start(fn -> execute_trigger_policy_deletion(realm_name, policy_name) end)
@@ -49,16 +46,6 @@ defmodule Astarte.RealmManagement.Triggers.Policies.Core do
       else
         execute_trigger_policy_deletion(realm_name, policy_name)
       end
-    end
-  end
-
-  defp check_trigger_policy_has_triggers(realm_name, policy_name) do
-    with {:ok, true} <- PolicyQueries.check_policy_has_triggers(realm_name, policy_name) do
-      Logger.warning("Trigger policy #{policy_name} is currently being used by triggers",
-        tag: "cannot_delete_currently_used_trigger_policy"
-      )
-
-      {:error, :cannot_delete_currently_used_trigger_policy}
     end
   end
 

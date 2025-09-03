@@ -307,16 +307,26 @@ defmodule Astarte.RealmManagement.Triggers.Core do
   end
 
   def verify_trigger_policy_exists(client, policy_name) do
-    with {:ok, exists?} <- Queries.check_trigger_policy_already_present(client, policy_name) do
-      if exists? do
-        :ok
-      else
-        Logger.warning("Trigger policy #{policy_name} not found",
-          tag: "trigger_policy_not_found"
-        )
+    if Queries.trigger_policy_exists?(client, policy_name) do
+      :ok
+    else
+      Logger.warning("Trigger policy #{policy_name} not found",
+        tag: "trigger_policy_not_found"
+      )
 
-        {:error, :trigger_policy_not_found}
-      end
+      {:error, :trigger_policy_not_found}
+    end
+  end
+
+  def verify_trigger_policy_has_no_triggers(realm_name, policy_name) do
+    if Queries.policy_has_triggers?(realm_name, policy_name) do
+      Logger.warning("Trigger policy #{policy_name} is currently being used by triggers",
+        tag: "cannot_delete_currently_used_trigger_policy"
+      )
+
+      {:error, :cannot_delete_currently_used_trigger_policy}
+    else
+      :ok
     end
   end
 end

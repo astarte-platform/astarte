@@ -24,7 +24,9 @@ defmodule Astarte.RealmManagement.DeviceRemoval.Queries do
         select: schema.table_name,
         where: [table_name: ^table_name, keyspace_name: ^keyspace]
 
-    Repo.some?(query, consistency: Consistency.domain_model(:read))
+    {:ok, some?} = Repo.some?(query, consistency: Consistency.domain_model(:read))
+
+    some?
   end
 
   def retrieve_individual_datastreams_keys!(realm_name, device_id) do

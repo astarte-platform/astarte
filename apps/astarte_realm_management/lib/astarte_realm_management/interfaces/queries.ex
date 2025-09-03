@@ -313,9 +313,8 @@ defmodule Astarte.RealmManagement.Interfaces.Queries do
   - `interface_major`: The major version of the interface to check.
 
   ## Returns
-  - `{:ok, true}`: If the interface major version is already installed.
-  - `{:ok, false}`: If the interface major version is available for installation.
-  - `{:error, reason}`: If there was an error during the check.
+  - `true`: If the interface major version is already installed.
+  - `false`: If the interface major version is available for installation.
   """
   def is_interface_major_available?(realm_name, interface_name, interface_major) do
     keyspace = Realm.keyspace_name(realm_name)
@@ -327,7 +326,9 @@ defmodule Astarte.RealmManagement.Interfaces.Queries do
 
     consistency = Consistency.domain_model(:read)
 
-    Repo.some?(query, prefix: keyspace, consistency: consistency)
+    {:ok, some?} = Repo.some?(query, prefix: keyspace, consistency: consistency)
+
+    some?
   end
 
   @doc """

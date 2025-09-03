@@ -24,7 +24,6 @@ defmodule Astarte.RealmManagement.DeviceRemover.CoreTest do
   alias Astarte.DataAccess.Devices.Device
   alias Astarte.Core.CQLUtils
   alias Astarte.RealmManagement.Interfaces
-  alias Astarte.RealmManagement.CreateDatastreamIndividualMultiInterface
   alias Astarte.RealmManagement.DeviceRemoval.Queries
   alias Astarte.DataAccess.Realms.Realm
   alias Astarte.DataAccess.Repo
@@ -36,17 +35,16 @@ defmodule Astarte.RealmManagement.DeviceRemover.CoreTest do
 
   import ExUnit.CaptureLog
 
+  setup %{realm_name: realm_name} do
+    setup_realm_keyspace!(realm_name)
+  end
+
   describe "Device remover Core" do
     @describetag :device_remover
 
     property "delete_individual_datastream/2 removes individual datastream data of a valid device",
              %{realm: realm} do
       keyspace = Realm.keyspace_name(realm)
-
-      Ecto.Migrator.run(Repo, [{0, CreateDatastreamIndividualMultiInterface}], :up,
-        prefix: keyspace,
-        all: true
-      )
 
       check all(
               device_id <- Astarte.Core.Generators.Device.id(),
@@ -63,6 +61,17 @@ defmodule Astarte.RealmManagement.DeviceRemover.CoreTest do
         Core.delete_individual_datastreams!(realm, device_id)
 
         assert Queries.retrieve_individual_datastreams_keys!(realm, device_id) == []
+      end
+    end
+
+    property "delete_individual_datastream/2 does not crash when individual datastream table is missing",
+             %{realm: realm} do
+      keyspace = Realm.keyspace_name(realm)
+
+      Repo.query!("DROP TABLE #{keyspace}.individual_datastreams;")
+
+      check all(device_id <- Astarte.Core.Generators.Device.id()) do
+        Core.delete_individual_datastreams!(realm, device_id)
       end
     end
 
@@ -84,6 +93,17 @@ defmodule Astarte.RealmManagement.DeviceRemover.CoreTest do
         Core.delete_individual_properties!(realm, device_id)
 
         assert Queries.retrieve_individual_properties_keys!(realm, device_id) == []
+      end
+    end
+
+    property "delete_individual_properties/2 does not crash when individual properties table is missing",
+             %{realm: realm} do
+      keyspace = Realm.keyspace_name(realm)
+
+      Repo.query!("DROP TABLE #{keyspace}.individual_properties;")
+
+      check all(device_id <- Astarte.Core.Generators.Device.id()) do
+        Core.delete_individual_properties!(realm, device_id)
       end
     end
 

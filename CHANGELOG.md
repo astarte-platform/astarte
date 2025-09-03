@@ -38,6 +38,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
   - `HOUSEKEEPING_AMQP_PASSWORD` - AMQP password (default: guest)
   - `HOUSEKEEPING_AMQP_MANAGEMENT_PORT` - AMQP management API port (default: 15672)
 
+## [1.2.1] - Unreleased
+### Fixed
+- [astarte_realm_management] Bug where devices got stuck in the "in deletion" status: [#1493](https://github.com/astarte-platform/astarte/issues/1493).
+
 ## [1.2.1-rc.0] - 2025-08-26
 ### Added
 - New environment variables to control how clustering work, needed on AppEngine and DUP.

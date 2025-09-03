@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2023 SECO Mind Srl
+# Copyright 2023-2025 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -33,9 +33,10 @@ defmodule Astarte.RealmManagement.DeviceRemoval.DeviceRemover do
 
   @spec run(%{:device_id => <<_::128>>, :realm_name => binary()}) :: :ok | no_return()
   def run(%{realm_name: realm_name, device_id: device_id} = args) do
-    case Devices.Queries.check_device_exists(realm_name, device_id) do
-      {:ok, true} -> do_run(args)
-      {:ok, false} -> cleanup(args)
+    if Devices.Queries.device_exists?(realm_name, device_id) do
+      do_run(args)
+    else
+      cleanup(args)
     end
   end
 

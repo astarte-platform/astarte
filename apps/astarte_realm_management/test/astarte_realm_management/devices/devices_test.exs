@@ -149,8 +149,8 @@ defmodule Astarte.RealmManagement.DevicesTest do
     encoded_id = Astarte.Core.Device.encode_device_id(device_id)
 
     DeviceQueries
-    |> expect(:check_device_exists, fn ^realm, ^device_id -> {:ok, true} end)
-    |> expect(:check_device_exists, fn ^realm, ^device_id -> {:ok, false} end)
+    |> expect(:device_exists?, fn ^realm, ^device_id -> true end)
+    |> expect(:device_exists?, fn ^realm, ^device_id -> false end)
 
     assert :ok = Devices.delete_device(realm, encoded_id)
     assert {:error, :not_found} = Repo.fetch(DeletionInProgress, device_id, prefix: keyspace)

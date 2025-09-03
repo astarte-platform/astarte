@@ -46,7 +46,7 @@ defmodule Astarte.RealmManagement.Devices.Queries do
     :ok
   end
 
-  def check_device_exists(realm_name, device_id) do
+  def device_exists?(realm_name, device_id) do
     keyspace = Realm.keyspace_name(realm_name)
 
     query =
@@ -59,6 +59,8 @@ defmodule Astarte.RealmManagement.Devices.Queries do
       consistency: Consistency.device_info(:read)
     ]
 
-    Repo.some?(query, opts)
+    {:ok, some?} = Repo.some?(query, opts)
+
+    some?
   end
 end
