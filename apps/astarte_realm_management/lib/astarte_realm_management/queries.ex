@@ -455,7 +455,9 @@ defmodule Astarte.RealmManagement.Queries do
 
     consistency = Consistency.domain_model(:read)
 
-    Repo.some?(devices_query, prefix: keyspace, consistency: consistency)
+    {:ok, some?} = Repo.some?(devices_query, prefix: keyspace, consistency: consistency)
+
+    some?
   end
 
   def devices_with_data_on_interface(realm_name, interface_name) do
@@ -647,7 +649,9 @@ defmodule Astarte.RealmManagement.Queries do
 
     consistency = Consistency.domain_model(:read)
 
-    Repo.some?(query, prefix: keyspace, consistency: consistency)
+    {:ok, some?} = Repo.some?(query, prefix: keyspace, consistency: consistency)
+
+    some?
   end
 
   defp normalize_interface_name(interface_name) do
@@ -755,7 +759,9 @@ defmodule Astarte.RealmManagement.Queries do
 
     consistency = Consistency.domain_model(:read)
 
-    Repo.some?(simple_triggers_query, prefix: keyspace, consistency: consistency)
+    {:ok, some?} = Repo.some?(simple_triggers_query, prefix: keyspace, consistency: consistency)
+
+    some?
   end
 
   def get_jwt_public_key_pem(realm_name) do
@@ -1139,7 +1145,7 @@ defmodule Astarte.RealmManagement.Queries do
     )
   end
 
-  def check_policy_has_triggers(realm_name, policy_name) do
+  def policy_has_triggers?(realm_name, policy_name) do
     keyspace = Realm.keyspace_name(realm_name)
     group_name = "triggers-with-policy-#{policy_name}"
 
@@ -1154,7 +1160,9 @@ defmodule Astarte.RealmManagement.Queries do
       consistency: Consistency.domain_model(:read)
     ]
 
-    Repo.some?(query, opts)
+    {:ok, some?} = Repo.some?(query, opts)
+
+    some?
   end
 
   def delete_trigger_policy(realm_name, policy_name) do
@@ -1207,7 +1215,7 @@ defmodule Astarte.RealmManagement.Queries do
     Repo.some?(query, opts)
   end
 
-  def check_device_exists(realm_name, device_id) do
+  def device_exists?(realm_name, device_id) do
     keyspace = Realm.keyspace_name(realm_name)
 
     query =
@@ -1220,7 +1228,9 @@ defmodule Astarte.RealmManagement.Queries do
       consistency: Consistency.device_info(:read)
     ]
 
-    Repo.some?(query, opts)
+    {:ok, some?} = Repo.some?(query, opts)
+
+    some?
   end
 
   def table_exist?(realm_name, table_name) do
@@ -1231,7 +1241,9 @@ defmodule Astarte.RealmManagement.Queries do
         select: schema.table_name,
         where: [table_name: ^table_name, keyspace_name: ^keyspace]
 
-    Repo.some?(query, consistency: Consistency.domain_model(:read))
+    {:ok, some?} = Repo.some?(query, consistency: Consistency.domain_model(:read))
+
+    some?
   end
 
   def insert_device_into_deletion_in_progress(realm_name, device_id) do

@@ -21,8 +21,6 @@
 defmodule Astarte.RealmManagement.DeviceRemover.CoreTest do
   alias Astarte.DataAccess.Device.DeletionInProgress
   alias Astarte.DataAccess.KvStore
-  alias Astarte.DataAccess.Groups.GroupedDevice
-  alias Astarte.DataAccess.Realms.Name
   alias Astarte.DataAccess.Devices.Device
   alias Astarte.Core.CQLUtils
   alias Astarte.RealmManagement.Engine
@@ -67,6 +65,22 @@ defmodule Astarte.RealmManagement.DeviceRemover.CoreTest do
       end
     end
 
+    property "delete_individual_datastream/2 does not crash when individual datastream table is missing",
+             %{realm: realm} do
+      keyspace = Realm.keyspace_name(realm)
+
+      Ecto.Migrator.run(Repo, [{0, CreateDatastreamIndividualMultiInterface}], :up,
+        prefix: keyspace,
+        all: true
+      )
+
+      Repo.query!("DROP TABLE #{keyspace}.individual_datastreams;")
+
+      check all(device_id <- Astarte.Core.Generators.Device.id()) do
+        Core.delete_individual_datastreams!(realm, device_id)
+      end
+    end
+
     property "delete_individual_properties/2 removes individual properties data of a valid device",
              %{realm: realm} do
       keyspace = Realm.keyspace_name(realm)
@@ -85,6 +99,17 @@ defmodule Astarte.RealmManagement.DeviceRemover.CoreTest do
         Core.delete_individual_properties!(realm, device_id)
 
         assert Queries.retrieve_individual_properties_keys!(realm, device_id) == []
+      end
+    end
+
+    property "delete_individual_properties/2 does not crash when individual properties table is missing",
+             %{realm: realm} do
+      keyspace = Realm.keyspace_name(realm)
+
+      Repo.query!("DROP TABLE #{keyspace}.individual_properties;")
+
+      check all(device_id <- Astarte.Core.Generators.Device.id()) do
+        Core.delete_individual_properties!(realm, device_id)
       end
     end
 

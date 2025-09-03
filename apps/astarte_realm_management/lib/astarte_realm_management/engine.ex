@@ -47,7 +47,7 @@ defmodule Astarte.RealmManagement.Engine do
          :ok <- verify_mappings_max_storage_retention(realm_name, interface_doc),
          interface_descriptor <- InterfaceDescriptor.from_interface(interface_doc),
          %InterfaceDescriptor{name: name, major_version: major} <- interface_descriptor,
-         {:interface_avail, {:ok, false}} <-
+         {:interface_avail, false} <-
            {:interface_avail, Queries.is_interface_major_available?(realm_name, name, major)},
          :ok <- Queries.check_interface_name_collision(realm_name, name),
          {:ok, automaton} <- EndpointsAutomaton.build(interface_doc.mappings) do
@@ -89,7 +89,7 @@ defmodule Astarte.RealmManagement.Engine do
       {:error, :database_error} ->
         {:error, :database_error}
 
-      {:interface_avail, {:ok, true}} ->
+      {:interface_avail, true} ->
         {:error, :already_installed_interface}
 
       {:error, :maximum_database_retention_exceeded} ->
@@ -112,7 +112,7 @@ defmodule Astarte.RealmManagement.Engine do
          %InterfaceDocument{description: description, doc: doc} <- interface_doc,
          interface_descriptor <- InterfaceDescriptor.from_interface(interface_doc),
          %InterfaceDescriptor{name: name, major_version: major} <- interface_descriptor,
-         {:interface_avail, {:ok, true}} <-
+         {:interface_avail, true} <-
            {:interface_avail, Queries.is_interface_major_available?(realm_name, name, major)},
          {:ok, installed_interface} <-
            Interface.fetch_interface_descriptor(realm_name, name, major),
@@ -170,7 +170,7 @@ defmodule Astarte.RealmManagement.Engine do
       {:error, :database_error} ->
         {:error, :database_error}
 
-      {:interface_avail, {:ok, false}} ->
+      {:interface_avail, false} ->
         {:error, :interface_major_version_does_not_exist}
 
       {:error, :same_version} ->
@@ -348,12 +348,12 @@ defmodule Astarte.RealmManagement.Engine do
       )
 
     with {:major, 0} <- {:major, major},
-         {:major_is_avail, {:ok, true}} <-
+         {:major_is_avail, true} <-
            {:major_is_avail, Queries.is_interface_major_available?(realm_name, name, 0)},
-         {:devices, {:ok, false}} <-
+         {:devices, false} <-
            {:devices, Queries.is_any_device_using_interface?(realm_name, name)},
          interface_id = CQLUtils.interface_id(name, major),
-         {:triggers, {:ok, false}} <-
+         {:triggers, false} <-
            {:triggers, Queries.has_interface_simple_triggers?(realm_name, interface_id)} do
       if opts[:async] do
         # TODO: add _ = Logger.metadata(realm: realm_name)
@@ -367,13 +367,13 @@ defmodule Astarte.RealmManagement.Engine do
       {:major, _} ->
         {:error, :forbidden}
 
-      {:major_is_avail, {:ok, false}} ->
+      {:major_is_avail, false} ->
         {:error, :interface_major_version_does_not_exist}
 
-      {:devices, {:ok, true}} ->
+      {:devices, true} ->
         {:error, :cannot_delete_currently_used_interface}
 
-      {:triggers, {:ok, true}} ->
+      {:triggers, true} ->
         {:error, :cannot_delete_currently_used_interface}
 
       {_, {:error, reason}} ->
@@ -844,7 +844,7 @@ defmodule Astarte.RealmManagement.Engine do
       )
 
     with :ok <- verify_trigger_policy_exists(realm_name, policy_name),
-         {:ok, false} <- check_trigger_policy_has_triggers(realm_name, policy_name) do
+         :ok <- verify_trigger_policy_has_no_triggers(realm_name, policy_name) do
       if opts[:async] do
         Task.start_link(Engine, :execute_trigger_policy_deletion, [realm_name, policy_name])
 
@@ -901,13 +901,15 @@ defmodule Astarte.RealmManagement.Engine do
     end
   end
 
-  defp check_trigger_policy_has_triggers(realm_name, policy_name) do
-    with {:ok, true} <- Queries.check_policy_has_triggers(realm_name, policy_name) do
+  defp verify_trigger_policy_has_no_triggers(realm_name, policy_name) do
+    if Queries.policy_has_triggers?(realm_name, policy_name) do
       Logger.warning("Trigger policy #{policy_name} is currently being used by triggers",
         tag: "cannot_delete_currently_used_trigger_policy"
       )
 
       {:error, :cannot_delete_currently_used_trigger_policy}
+    else
+      :ok
     end
   end
 
@@ -941,40 +943,28 @@ defmodule Astarte.RealmManagement.Engine do
   end
 
   defp ensure_device_still_exists(realm_name, device_id) do
-    case Queries.check_device_exists(realm_name, device_id) do
-      {:ok, true} ->
-        :ok
-
-      {:ok, false} ->
-        # Don't leave dangling entries. This should only ever run if the request was made for
-        # a device already being deleted,the device check was made before
-        # DeviceRemoval.Core.delete_device! started and the insert_device_into_deletion_in_progress
-        # call was made after DeviceRemoval.Core.delete_device! ended
-        Queries.remove_device_from_deletion_in_progress!(realm_name, device_id)
+    if Queries.device_exists?(realm_name, device_id) do
+      :ok
+    else
+      # Don't leave dangling entries. This should only ever run if the request was made for
+      # a device already being deleted,the device check was made before
+      # DeviceRemoval.Core.delete_device! started and the insert_device_into_deletion_in_progress
+      # call was made after DeviceRemoval.Core.delete_device! ended
+      Queries.remove_device_from_deletion_in_progress!(realm_name, device_id)
     end
   end
 
   defp check_device_exists(realm_name, device_id) do
-    case Queries.check_device_exists(realm_name, device_id) do
-      {:ok, true} ->
-        {:ok, true}
-
-      {:ok, false} ->
-        _ =
-          Logger.warning(
-            "Device #{inspect(device_id)} does not exist",
-            tag: "device_not_found"
-          )
-
-        {:error, :device_not_found}
-
-      {:error, reason} ->
+    if Queries.device_exists?(realm_name, device_id) do
+      {:ok, true}
+    else
+      _ =
         Logger.warning(
-          "Cannot check if device #{inspect(device_id)} exists, reason #{inspect(reason)}",
-          tag: "device_exists_fail"
+          "Device #{inspect(device_id)} does not exist",
+          tag: "device_not_found"
         )
 
-        {:error, reason}
+      {:error, :device_not_found}
     end
   end
 
