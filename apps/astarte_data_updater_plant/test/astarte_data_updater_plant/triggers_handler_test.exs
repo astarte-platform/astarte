@@ -42,6 +42,7 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandlerTest do
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.AMQPTriggerTarget
   alias Astarte.DataUpdaterPlant.Config
   alias Astarte.DataUpdaterPlant.TriggersHandler
+  alias Astarte.Housekeeping.AMQP.Vhost
 
   @introspection "com.My.Interface:1:0;com.Another.Interface:1:2"
   @introspection_map %{
@@ -67,6 +68,7 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandlerTest do
   @custom_policy_routing_key "#{@realm}_#{@custom_policy_name}"
 
   setup_all do
+    Vhost.create_vhost(@realm)
     {:ok, conn} = Connection.open(Config.amqp_producer_options!())
     {:ok, chan} = Channel.open(conn)
     {:ok, _queue} = Queue.declare(chan, @queue_name)

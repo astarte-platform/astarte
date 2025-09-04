@@ -33,6 +33,7 @@ defmodule Astarte.DataUpdaterPlant.DatabaseTestHelper do
   alias Astarte.DataAccess.Realms.SimpleTrigger
   alias Astarte.DataUpdaterPlant.AMQPTestHelper
   alias Astarte.DataAccess.Repo
+  alias Astarte.Housekeeping.AMQP.Vhost
 
   @test_realm "autotestrealm"
 
@@ -719,7 +720,7 @@ defmodule Astarte.DataUpdaterPlant.DatabaseTestHelper do
         |> Repo.insert!(prefix: keyspace_name)
 
         execute!(keyspace_name, @create_deletion_in_progress_table)
-
+        Vhost.create_vhost(realm_name)
         {:ok, keyspace_name}
 
       {:error, error} ->

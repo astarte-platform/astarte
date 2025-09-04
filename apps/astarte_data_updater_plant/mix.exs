@@ -72,7 +72,9 @@ defmodule Astarte.DataUpdaterPlant.Mixfile do
        github: "astarte-platform/astarte_data_access", branch: "release-1.3"},
       {:astarte_generators, github: "astarte-platform/astarte_generators", only: [:dev, :test]},
       {:astarte_realm_management,
-       path: "../astarte_realm_management", only: [:dev, :test], runtime: false}
+       path: "../astarte_realm_management", only: [:dev, :test], runtime: false},
+      {:astarte_housekeeping,
+       path: "../astarte_housekeeping", only: [:dev, :test], runtime: false}
     ]
   end
 
