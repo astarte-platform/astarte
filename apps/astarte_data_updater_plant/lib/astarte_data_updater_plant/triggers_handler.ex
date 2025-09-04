@@ -50,13 +50,15 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandler do
 
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.AMQPTriggerTarget
 
-  def register_target(%AMQPTriggerTarget{exchange: nil} = _target) do
+  def register_target(%AMQPTriggerTarget{exchange: nil} = _target, _realm_name) do
     # Default exchange, no need to declare it
     :ok
   end
 
-  def register_target(%AMQPTriggerTarget{exchange: exchange} = _target) do
-    AMQPTriggersProducer.declare_exchange(exchange)
+  def register_target(%AMQPTriggerTarget{exchange: exchange} = _target, realm_name) do
+    {:ok, server} = Astarte.DataUpdaterPlant.VHostSupervisor.for_realm(realm_name)
+
+    AMQPTriggersProducer.declare_exchange(server, exchange)
   end
 
   def device_connected(targets, realm, device_id, ip_address, timestamp) when is_list(targets) do
@@ -537,11 +539,27 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandler do
     end
   end
 
-  defp wait_backoff_and_publish(:ok, _retry, _exchange, _routing_key, _payload, _opts) do
+  defp wait_backoff_and_publish(
+         :ok,
+         _realm,
+         _retry,
+         _exchange,
+         _routing_key,
+         _payload,
+         _opts
+       ) do
     :ok
   end
 
-  defp wait_backoff_and_publish({:error, reason}, retry, exchange, routing_key, payload, opts) do
+  defp wait_backoff_and_publish(
+         {:error, reason},
+         realm,
+         retry,
+         exchange,
+         routing_key,
+         payload,
+         opts
+       ) do
     Logger.warning(
       "Failed publish on events exchange with #{routing_key}. Reason: #{inspect(reason)}"
     )
@@ -557,22 +575,23 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandler do
         retry
       end
 
-    publish(exchange, routing_key, payload, opts)
-    |> wait_backoff_and_publish(next_retry, exchange, routing_key, payload, opts)
+    publish(realm, exchange, routing_key, payload, opts)
+    |> wait_backoff_and_publish(realm, next_retry, exchange, routing_key, payload, opts)
   end
 
-  defp wait_ok_publish(exchange, routing_key, payload, opts) do
-    publish(exchange, routing_key, payload, opts)
-    |> wait_backoff_and_publish(1, nil, routing_key, payload, opts)
+  defp wait_ok_publish(realm, exchange, routing_key, payload, opts) do
+    publish(realm, exchange, routing_key, payload, opts)
+    |> wait_backoff_and_publish(realm, 1, nil, routing_key, payload, opts)
   end
 
-  defp publish(nil, routing_key, payload, opts) do
+  defp publish(_realm, nil, routing_key, payload, opts) do
     Config.events_exchange_name!()
     |> AMQPEventsProducer.publish(routing_key, payload, opts)
   end
 
-  defp publish(exchange, routing_key, payload, opts) do
-    AMQPTriggersProducer.publish(exchange, routing_key, payload, opts)
+  defp publish(realm, exchange, routing_key, payload, opts) do
+    {:ok, server} = Astarte.DataUpdaterPlant.VHostSupervisor.for_realm(realm)
+    AMQPTriggersProducer.publish(server, exchange, routing_key, payload, opts)
   end
 
   defp dispatch_event(
@@ -628,7 +647,14 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandler do
 
     payload = SimpleEvent.encode(simple_event)
 
-    result = wait_ok_publish(target_exchange, routing_key, payload, [{:headers, headers} | opts])
+    result =
+      wait_ok_publish(
+        simple_event.realm,
+        target_exchange,
+        routing_key,
+        payload,
+        [{:headers, headers} | opts]
+      )
 
     Logger.debug("headers: #{inspect(headers)}, routing key: #{inspect(routing_key)}")
 

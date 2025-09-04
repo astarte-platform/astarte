@@ -99,7 +99,11 @@ defmodule AstarteE2E.AmqpTriggers.Consumer do
     exchange_name = "astarte_events_#{realm_name}_#{exchange_suffix}"
     queue_name = exchange_name
 
-    with {:ok, connection} <- Connection.open(Config.amqp_consumer_options!()),
+    amqp_consumer_opts =
+      Config.amqp_consumer_options!()
+      |> Keyword.put(:virtual_host, vhost_name(realm_name))
+
+    with {:ok, connection} <- Connection.open(amqp_consumer_opts),
          {:ok, channel} <- Channel.open(connection),
          :ok <- Basic.qos(channel, prefetch_count: Config.amqp_consumer_prefetch_count!()),
          :ok <- Exchange.declare(channel, exchange_name, :direct, durable: true),
@@ -110,4 +114,6 @@ defmodule AstarteE2E.AmqpTriggers.Consumer do
       |> Logger.debug()
     end
   end
+
+  defp vhost_name(realm_name), do: "_#{realm_name}"
 end
