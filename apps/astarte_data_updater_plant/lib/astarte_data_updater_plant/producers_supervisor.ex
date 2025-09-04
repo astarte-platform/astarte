@@ -27,7 +27,6 @@ defmodule Astarte.DataUpdaterPlant.ProducersSupervisor do
   require Logger
 
   alias Astarte.DataUpdaterPlant.AMQPEventsProducer
-  alias Astarte.DataUpdaterPlant.AMQPTriggersProducer
   alias Astarte.DataUpdaterPlant.Config
 
   def start_link(init_arg) do
@@ -46,15 +45,12 @@ defmodule Astarte.DataUpdaterPlant.ProducersSupervisor do
         id: :events_producer_pool
       )
 
-    triggers_pool =
-      Supervisor.child_spec(
-        {ExRabbitPool.PoolSupervisor,
-         rabbitmq_config: Config.amqp_triggers_producer_options!(),
-         connection_pools: [Config.triggers_producer_pool_config!()]},
-        id: :triggers_producer_pool
-      )
-
-    children = [events_pool, triggers_pool, AMQPEventsProducer, AMQPTriggersProducer]
+    children = [
+      events_pool,
+      AMQPEventsProducer,
+      {Registry, keys: :unique, name: Astarte.DataUpdaterPlant.VhostRegistry},
+      Astarte.DataUpdaterPlant.VHostSupervisor
+    ]
 
     Supervisor.init(children, strategy: :rest_for_one)
   end
