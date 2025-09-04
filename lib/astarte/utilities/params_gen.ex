@@ -33,18 +33,19 @@ defmodule Astarte.Generators.Utilities.ParamsGen do
   - **Seamless Integration:** Built on top of ExUnitProperties, it integrates smoothly with your property-based tests.
   - **Flexible Customization:** Accepts a keyword list for generator overrides, ensuring that only the generators you specify are replaced while the rest remain untouched.
   - **Improved Test Clarity:** By explicitly defining custom generators, tests become easier to understand and maintain.
+  - **Labeled Clauses:** Bind overrides to a specific clause using labels to avoid conflicts and improve readability.
 
   ## Usage Examples
 
   ### Example
 
-  In this example, we override the default `a` integer generator with a tuple {2, 3, 4}.
+  In this example, we override the default `a` integer generator with a generator that picks from [2, 3, 4].
 
   defmodule MyGenerators do
     use Astarte.Generators.Utilities.ParamsGen
 
     # Override the default integer generator using params gen all
-    def parametric_generators(params \\ [a: { 2, 3, 4}])
+    def parametric_generators(params \\ [a: member_of([2, 3, 4])])
     params gen all a <- integer(),
                    b <- list_of(string(:ascii)),
                    c <- constant({:atom, "string"}),
@@ -53,12 +54,38 @@ defmodule Astarte.Generators.Utilities.ParamsGen do
       end
   end
 
+  ### Labeling a clause for overrides
+
+  Labels let you target a specific clause for overrides via `params:`. This is useful when the left side is a pattern (not a single variable), or when you want explicit names.
+
+  Supported form:
+
+  - Leading atom label:
+
+      params gen all :payload, var <- integer(), params: [payload: 42] do
+        v
+      end
+
+  With labels, the override uses the label name (e.g., `:payload`) instead of a variable name (e.g., `var`).
+
+  ### Destructuring with labels
+
+  `params gen all` supports destructuring on the left-hand side only in labeled clauses. Use the label as the hook name for the override.
+
+      params gen all :var,
+                     %{b: b} = var <- string(?a..?a, length: 1),
+                     params: [var: %{b: 10}] do
+        {b, var}
+      end
+
+  In the example above, the `:var` label is the hook, so `params: [var: %{b: 10}]` overrides the generator for that clause; `b` will be `10` and `var` will be `%{b: 10}`.
+
   ## Notes
 
   - **Integration with ExUnitProperties:** This macro leverages the existing functionality of ExUnitProperties,
     making it easy to adopt if you are already using property-based testing in your project.
   - **Macro Syntax:** The macro expects a keyword list under the `params:` key, where each key corresponds to
-    a generator name (e.g., `a`, `b`) and each value is the custom generator or fixed params to be used.
+    a generator name (e.g., `a`, `b`) or a clause label (e.g., `:payload`). For destructured clauses, a label is mandatory and is used as the hook name. Each value is the custom generator or fixed params to be used.
   - **Fallback Behavior:** For generators not specified in the override list, the macro will default to using
     the original generator from ExUnitProperties.
   - **Compile-Time Verification:** Misuse or incorrect configuration will be flagged at compile time, helping
@@ -79,24 +106,41 @@ defmodule Astarte.Generators.Utilities.ParamsGen do
     end
   end
 
-  @doc false
-  @spec params({:gen, any(), [{:all, any(), any()}]}) :: Macro.t()
-  defmacro params({:gen, _gen_meta, [{:all, _all_meta, clauses_with_body}]}) do
-    {clauses, [[do: body]]} = Enum.split(clauses_with_body, -1)
-    compile(clauses, body)
-  end
-
   @doc """
-  Defines a custom property-based test generator macro (`params gen all`) that supports overriding default generators.
-  It processes generator clauses and applies any custom overrides provided via the `:params` keyword.
+  Macro `params gen all` with targeted generator overrides.
+
+  Accepts a `params:` keyword list to override default generators or values, while keeping full
+  syntax parity with `gen all`.
+
+  - Hook: for simple clauses, the hook is the variable name on the left of `<-`.
+  - Destructuring: with patterns like `%{k: v} <- ...`, a label is mandatory; the label is the hook.
+  - Label: you can label a clause by placing a leading atom (e.g., `:payload`).
+  - Precedence: if both a variable and a `:label` are present, the label wins.
+
+  Examples
+
+      # Override by variable name
+      params gen all a <- integer(),
+                     params: [a: constant(10)] do
+        a
+      end
+  syntax parity with `gen all`.
+      # Destructuring: label is mandatory and acts as the hook
+      params gen all :var,
+  - Destructuring: with patterns like `%{k: v} <- ...`, a label is mandatory; the label is the hook.
+                     params: [var: %{b: 10}] do
+        {b, var}
+      end
+
   """
   @spec params({:gen, any(), [{:all, any(), list()}]}, [{:do, any()}]) :: Macro.t()
   defmacro params({:gen, _gen_meta, [{:all, _all_meta, clauses}]}, do: body) do
     compile(clauses, body)
   end
 
+  defp stream_data?(term) when is_atom(term), do: true
+  defp stream_data?(term) when is_tuple(term), do: true
   defp stream_data?(%StreamData{} = _term), do: true
-  defp stream_data?({%StreamData{}, %StreamData{}} = _term), do: true
   defp stream_data?(_), do: false
 
   @doc false
@@ -125,16 +169,52 @@ defmodule Astarte.Generators.Utilities.ParamsGen do
      ]}
   end
 
-  defp compile_clauses([], _, acc), do: acc
+  # Generic override that preserves any LHS (including destructuring)
+  defp override({:<-, meta, [lhs, default_gen]}, param, params) do
+    gen_param_quoted =
+      quote do
+        gen_param(unquote(default_gen), unquote(param), unquote(params))
+      end
 
-  defp compile_clauses([{:<-, _, [{param, _, _}, _]} = clause | tail], params, acc) do
+    {:<-, meta, [lhs, gen_param_quoted]}
+  end
+
+  defp edit_clause([clause | tail], param, params, acc) do
     clause = override(clause, param, params)
     compile_clauses(tail, params, [clause | acc])
   end
 
-  defp compile_clauses([{:=, _, _} = clause | tail], params, acc) do
-    compile_clauses(tail, params, [clause | acc])
+  defp compile_clauses([], _, acc), do: acc
+
+  defp compile_clauses(
+         [label, {:<-, _, [{:=, _, _}, _]} = clause | tail],
+         params,
+         acc
+       )
+       when is_atom(label),
+       do: edit_clause([clause | tail], label, params, acc)
+
+  defp compile_clauses([label, {:<-, _, [{_param, _, _}, _]} = clause | tail], params, acc)
+       when is_atom(label),
+       do: edit_clause([clause | tail], label, params, acc)
+
+  defp compile_clauses(
+         [{:<-, meta, [{:=, _, _}, _]} | _tail],
+         _params,
+         _acc
+       ) do
+    line = Keyword.get(meta, :line)
+
+    raise CompileError,
+      line: line,
+      description: "To use destructuring within `params gen all`, :label(s) are mandatory."
   end
+
+  defp compile_clauses([{:<-, _, [{param, _, _}, _]} = clause | tail], params, acc),
+    do: edit_clause([clause | tail], param, params, acc)
+
+  defp compile_clauses([{:=, _, _} = clause | tail], params, acc),
+    do: compile_clauses(tail, params, [clause | acc])
 
   defp split_clauses_and_params(clauses_and_params) do
     case Enum.split_while(clauses_and_params, &(not Keyword.keyword?(&1))) do
