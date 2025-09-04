@@ -99,17 +99,15 @@ defmodule Astarte.Core.Generators.Mapping.ValueTest do
     @describetag :success
     @describetag :ut
 
-    property "generates value based on interface (gen)" do
-      gen = InterfaceGenerator.interface() |> ValueGenerator.value()
-
-      check all value <- gen do
+    property "generates value" do
+      check all value <- ValueGenerator.value() do
         assert %{path: _path, value: _value} = value
       end
     end
 
-    property "generates value based on interface (struct)" do
+    property "generates value based on interface" do
       check all interface <- InterfaceGenerator.interface(),
-                value <- ValueGenerator.value(interface) do
+                value <- ValueGenerator.value(interface: interface) do
         assert %{path: _path, value: _value} = value
       end
     end
@@ -117,7 +115,7 @@ defmodule Astarte.Core.Generators.Mapping.ValueTest do
     property "generates value must have mapping path matches endpoint" do
       check all %Interface{mappings: mappings, aggregation: aggregation} = interface <-
                   InterfaceGenerator.interface(),
-                %{path: path, value: _value} <- ValueGenerator.value(interface) do
+                %{path: path, value: _value} <- ValueGenerator.value(interface: interface) do
         assert Enum.any?(mappings, fn %Mapping{endpoint: endpoint} ->
                  ValueGenerator.path_matches_endpoint?(aggregation, endpoint, path)
                end)
@@ -127,7 +125,7 @@ defmodule Astarte.Core.Generators.Mapping.ValueTest do
     property "generates value must be valid type" do
       check all %Interface{mappings: mappings, aggregation: aggregation} = interface <-
                   InterfaceGenerator.interface(),
-                %{path: path, value: value} <- ValueGenerator.value(interface) do
+                %{path: path, value: value} <- ValueGenerator.value(interface: interface) do
         value = value_to_check(aggregation, value)
 
         %Mapping{value_type: value_type} =

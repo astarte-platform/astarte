@@ -21,22 +21,27 @@ defmodule Astarte.Core.Generators.Mapping.Value do
   This module provides generators for Interface values.
   """
   use ExUnitProperties
+  use Astarte.Generators.Utilities.ParamsGen
 
   alias Astarte.Core.Interface
   alias Astarte.Core.Mapping
 
+  alias Astarte.Core.Generators.Interface, as: InterfaceGenerator
   alias Astarte.Core.Generators.Mapping.ValueType, as: ValueTypeGenerator
 
   @doc """
-  Generates a valid value based on interface
+  Generates a valid value based on interface passed or auto-created
   """
-  @spec value(Interface.t()) :: StreamData.t(map())
-  def value(%Interface{} = interface) when not is_struct(interface, StreamData) do
-    interface |> constant() |> value()
-  end
+  @spec value() :: StreamData.t(map())
+  @spec value(params :: keyword()) :: StreamData.t(map())
+  def value(params \\ []) do
+    gen_interface_base =
+      params gen all interface <- InterfaceGenerator.interface(), params: params do
+        interface
+      end
 
-  @spec value(StreamData.t(Interface.t())) :: StreamData.t(map())
-  def value(gen), do: gen |> bind(&build_package/1)
+    gen_interface_base |> bind(&build_package/1)
+  end
 
   defp build_package(%Interface{aggregation: :individual} = interface) do
     %Interface{mappings: mappings} = interface
