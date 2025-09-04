@@ -101,6 +101,12 @@ defmodule Astarte.Helpers.Database do
     );
   """
 
+  @create_capabilities_type """
+  CREATE TYPE #{Realm.keyspace_name(@test_realm)}.capabilities (
+    purge_properties_compression_format int
+  );
+  """
+
   @create_devices_table """
       CREATE TABLE #{Realm.keyspace_name(@test_realm)}.devices (
         device_id uuid,
@@ -127,6 +133,7 @@ defmodule Astarte.Helpers.Database do
         last_seen_ip inet,
         attributes map<varchar, varchar>,
         groups map<text, timeuuid>,
+        capabilities capabilities,
 
         PRIMARY KEY (device_id)
       );
@@ -423,6 +430,8 @@ defmodule Astarte.Helpers.Database do
 
     case Repo.query(@create_autotestrealm) do
       {:ok, _} ->
+        Repo.query!(@create_capabilities_type)
+
         Repo.query!(@create_devices_table)
 
         Repo.query!(@create_deletion_in_progress_table)

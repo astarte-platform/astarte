@@ -23,15 +23,12 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.CapabilitiesHandlerTest do
   use Astarte.Cases.Device
   use ExUnitProperties
 
-  alias Astarte.DataAccess.Repo
   alias Astarte.DataUpdaterPlant.DataUpdater
   alias Astarte.DataUpdaterPlant.DataUpdater.Queries
   alias Astarte.DataUpdaterPlant.DataUpdater.Core.CapabilitiesHandler
-  alias Astarte.DataAccess.Realms.Realm
   alias Astarte.Core.Device.Capabilities
 
   import Astarte.Helpers.DataUpdater
-  import Ecto.Query
 
   setup_all %{realm_name: realm_name, device: device} do
     setup_data_updater(realm_name, device.encoded_id)
@@ -61,16 +58,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.CapabilitiesHandlerTest do
             timestamp
           )
 
-        {:ok, db_capabilities} =
-          Queries.fetch_device_capabilities(realm_name, device.device_id)
-
-        keyspace = Realm.keyspace_name(realm_name)
-
-        q =
-          from c in Astarte.DataAccess.Device.Capabilities,
-            where: c.device_id == ^state.device_id
-
-        Repo.delete_all(q, prefix: keyspace)
+        %{capabilities: db_capabilities} = Queries.get_device_status(realm_name, device.device_id)
 
         assert db_capabilities == capabilities
         assert updated_state.capabilities == capabilities

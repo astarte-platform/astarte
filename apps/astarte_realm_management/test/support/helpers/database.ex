@@ -61,6 +61,12 @@ defmodule Astarte.Helpers.Database do
   )
   """
 
+  @create_capabilities_type """
+  CREATE TYPE IF NOT EXISTS :keyspace.capabilities (
+    purge_properties_compression_format int
+  );
+  """
+
   @create_devices_table """
   CREATE TABLE IF NOT EXISTS :keyspace.devices (
     device_id uuid,
@@ -86,6 +92,7 @@ defmodule Astarte.Helpers.Database do
     last_credentials_request_ip inet,
     last_seen_ip inet,
     attributes map<varchar, varchar>,
+    capabilities capabilities,
 
     groups map<text, timeuuid>,
 
@@ -253,6 +260,7 @@ defmodule Astarte.Helpers.Database do
   def setup_realm_keyspace!(realm_name) do
     realm_keyspace = Realm.keyspace_name(realm_name)
     execute!(realm_keyspace, @create_keyspace)
+    execute!(realm_keyspace, @create_capabilities_type)
     execute!(realm_keyspace, @create_devices_table)
     execute!(realm_keyspace, @create_groups_table)
     execute!(realm_keyspace, @create_names_table)

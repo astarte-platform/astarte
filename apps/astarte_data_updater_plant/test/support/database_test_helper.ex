@@ -44,6 +44,12 @@ defmodule Astarte.DataUpdaterPlant.DatabaseTestHelper do
         durable_writes = true;
   """
 
+  @create_capabilities_type """
+    CREATE TYPE :keyspace.capabilities (
+      purge_properties_compression_format int
+    );
+  """
+
   @create_devices_table """
       CREATE TABLE :keyspace.devices (
         device_id uuid,
@@ -70,6 +76,7 @@ defmodule Astarte.DataUpdaterPlant.DatabaseTestHelper do
         last_seen_ip inet,
         attributes map<varchar, varchar>,
         groups map<text, timeuuid>,
+        capabilities capabilities,
 
         PRIMARY KEY (device_id)
     );
@@ -261,14 +268,6 @@ defmodule Astarte.DataUpdaterPlant.DatabaseTestHelper do
     );
   """
 
-  @create_capabilities_table """
-  CREATE TABLE :keyspace.capabilities (
-      device_id uuid,
-      purge_properties_compression_format int,
-      PRIMARY KEY ((device_id))
-    )
-  """
-
   @insert_values [
     """
       INSERT INTO :keyspace.individual_properties (device_id, interface_id, endpoint_id, path, longinteger_value) VALUES
@@ -365,6 +364,7 @@ defmodule Astarte.DataUpdaterPlant.DatabaseTestHelper do
 
     case execute(keyspace_name, @create_autotestrealm) do
       {:ok, _} ->
+        execute!(keyspace_name, @create_capabilities_type)
         execute!(keyspace_name, @create_devices_table)
         execute!(keyspace_name, @create_endpoints_table)
 
@@ -376,7 +376,6 @@ defmodule Astarte.DataUpdaterPlant.DatabaseTestHelper do
         execute!(keyspace_name, @create_individual_properties_table)
         execute!(keyspace_name, @create_individual_datastreams_table)
         execute!(keyspace_name, @create_test_object_table)
-        execute!(keyspace_name, @create_capabilities_table)
 
         Enum.each(@insert_values, fn query ->
           execute!(keyspace_name, query)

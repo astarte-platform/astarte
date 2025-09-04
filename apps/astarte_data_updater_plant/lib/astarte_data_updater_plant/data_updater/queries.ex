@@ -19,13 +19,13 @@
 defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
   alias Astarte.Core.CQLUtils
   alias Astarte.Core.Device, as: CoreDevice
+  alias Astarte.Core.Device.Capabilities
   alias Astarte.Core.InterfaceDescriptor
   alias Astarte.Core.Mapping
   alias Astarte.DataAccess.Consistency
   alias Astarte.DataUpdaterPlant.Config
   alias Astarte.DataAccess.Realms.SimpleTrigger
   alias Astarte.DataAccess.Device.DeletionInProgress
-  alias Astarte.DataAccess.Device.Capabilities
   alias Astarte.DataAccess.Devices.Device
   alias Astarte.DataAccess.Realms.Endpoint
   alias Astarte.DataAccess.Realms.IndividualProperty
@@ -429,13 +429,14 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
     :ok
   end
 
-  def retrieve_device_stats_and_introspection!(realm, device_id) do
+  def get_device_status(realm, device_id) do
     keyspace_name = Realm.keyspace_name(realm)
 
     stats =
       Device
       |> where(device_id: ^device_id)
       |> select([
+        :capabilities,
         :total_received_msgs,
         :total_received_bytes,
         :introspection,
@@ -445,7 +446,13 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
       |> put_query_prefix(keyspace_name)
       |> Repo.one(consistency: Consistency.device_info(:read))
 
+    # When adding a new capability, it appears as `nil` when read from the db
+    # we normalize it to make sure we get back a capabilities struct with the default values
+    # for unset capabilities
+    capabilities = normalize_capabilities(stats.capabilities)
+
     %{
+      capabilities: capabilities,
       introspection: stats.introspection,
       total_received_msgs: stats.total_received_msgs,
       total_received_bytes: stats.total_received_bytes,
@@ -739,39 +746,15 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
   def set_device_capabilities(realm_name, device_id, capabilities) do
     keyspace_name = Realm.keyspace_name(realm_name)
 
-    changes =
-      %Capabilities{}
-      |> Ecto.Changeset.change(Map.from_struct(capabilities))
-      |> Ecto.Changeset.put_change(:device_id, device_id)
-      |> Ecto.Changeset.apply_action(:insert)
+    device =
+      %Device{device_id: device_id}
+      |> Ecto.Changeset.change(%{capabilities: capabilities})
 
-    with {:ok, capabilities} <- changes do
-      opts = [prefix: keyspace_name, consistency: Consistency.device_info(:write)]
+    opts = [prefix: keyspace_name, consistency: Consistency.device_info(:write)]
 
-      Repo.insert(capabilities, opts)
+    with {:ok, _device} <- Repo.update(device, opts) do
+      :ok
     end
-  end
-
-  @spec fetch_device_capabilities(String.t(), binary()) ::
-          {:ok, Capabilities.t()} | {:error, term()}
-  def fetch_device_capabilities(realm_name, device_id) do
-    keyspace_name = Realm.keyspace_name(realm_name)
-
-    query =
-      from c in Capabilities,
-        where: c.device_id == ^device_id
-
-    opts = [consistency: Consistency.device_info(:read), prefix: keyspace_name]
-
-    changes =
-      case Repo.fetch_one(query, opts) do
-        {:error, :not_found} -> %{}
-        {:ok, capabilities} -> Map.from_struct(capabilities)
-      end
-
-    %Astarte.Core.Device.Capabilities{}
-    |> Astarte.Core.Device.Capabilities.changeset(changes)
-    |> Ecto.Changeset.apply_action(:insert)
   end
 
   defp to_db_friendly_type(array) when is_list(array) do
@@ -945,5 +928,23 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
     consistency = Consistency.domain_model(:read)
 
     Repo.all(DeletionInProgress, prefix: keyspace_name, consistency: consistency)
+  end
+
+  @spec normalize_capabilities(nil | Capabilities.t()) :: Capabilities.t()
+  defp normalize_capabilities(nil), do: %Capabilities{}
+
+  defp normalize_capabilities(capabilities) do
+    nil_keys =
+      capabilities
+      |> Map.from_struct()
+      |> Enum.filter(fn {_key, value} -> value == nil end)
+      |> Enum.map(fn {key, nil} -> key end)
+
+    defaults =
+      %Capabilities{}
+      |> Map.from_struct()
+      |> Map.take(nil_keys)
+
+    Map.merge(capabilities, defaults)
   end
 end

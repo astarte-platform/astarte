@@ -32,8 +32,6 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
     MessageTracker.register_data_updater(message_tracker)
     Process.monitor(message_tracker)
 
-    {:ok, capabilities} = Queries.fetch_device_capabilities(realm, device_id)
-
     new_state = %State{
       realm: realm,
       device_id: device_id,
@@ -56,21 +54,19 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
       trigger_id_to_policy_name: %{},
       discard_messages: false,
       last_deletion_in_progress_refresh: 0,
-      last_datastream_maximum_retention_refresh: 0,
-      capabilities: capabilities
+      last_datastream_maximum_retention_refresh: 0
     }
 
     encoded_device_id = Device.encode_device_id(device_id)
     Logger.metadata(realm: realm, device_id: encoded_device_id)
     Logger.info("Created device process.", tag: "device_process_created")
 
-    stats_and_introspection =
-      Queries.retrieve_device_stats_and_introspection!(new_state.realm, device_id)
+    device_status = Queries.get_device_status(new_state.realm, device_id)
 
     # TODO this could be a bang!
     {:ok, ttl} = Queries.get_datastream_maximum_storage_retention(new_state.realm)
 
-    Map.merge(new_state, stats_and_introspection)
+    Map.merge(new_state, device_status)
     |> Map.put(:datastream_maximum_storage_retention, ttl)
   end
 

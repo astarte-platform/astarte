@@ -61,6 +61,12 @@ defmodule Astarte.Housekeeping.Helpers.Database do
   )
   """
 
+  @create_capabilities_type """
+  CREATE TYPE :keyspace.capabilities (
+    purge_properties_compression_format int
+  );
+  """
+
   @create_devices_table """
   CREATE TABLE :keyspace.devices (
     device_id uuid,
@@ -87,6 +93,7 @@ defmodule Astarte.Housekeeping.Helpers.Database do
     last_seen_ip inet,
     attributes map<varchar, varchar>,
     groups map<text, timeuuid>,
+    capabilities capabilities,
 
     PRIMARY KEY (device_id)
   )
@@ -245,6 +252,11 @@ defmodule Astarte.Housekeeping.Helpers.Database do
   ALTER TABLE :keyspace.realms DROP device_registration_limit;
   """
 
+  @drop_capabilities """
+  ALTER TABLE :keyspace.devices DROP capabilities;  
+  DROP TYPE :keyspace.capabilities;
+  """
+
   @drop_kv_store """
   DROP TABLE if exists :keyspace.kv_store
   """
@@ -266,6 +278,7 @@ defmodule Astarte.Housekeeping.Helpers.Database do
   def setup_realm_keyspace(realm_name) do
     realm_keyspace = Realm.keyspace_name(realm_name)
     execute(realm_keyspace, @create_keyspace)
+    execute(realm_keyspace, @create_capabilities_type)
     execute(realm_keyspace, @create_devices_table)
     execute(realm_keyspace, @create_groups_table)
     execute(realm_keyspace, @create_names_table)
@@ -330,6 +343,7 @@ defmodule Astarte.Housekeeping.Helpers.Database do
 
     execute(keyspace, @add_replication_factor_column_for_realms_table)
     execute(keyspace, @drop_device_registration_limit_column_for_realms_table)
+    execute(keyspace, @drop_capabilities)
     :ok
   end
 
