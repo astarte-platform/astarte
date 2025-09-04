@@ -19,10 +19,12 @@
 #
 
 defmodule Astarte.Housekeeping.BackendSupervisor do
+  @moduledoc false
   use Supervisor
-  require Logger
 
   alias Astarte.Housekeeping.Config
+
+  require Logger
 
   def start_link(init_arg) do
     Supervisor.start_link(__MODULE__, init_arg, name: __MODULE__)

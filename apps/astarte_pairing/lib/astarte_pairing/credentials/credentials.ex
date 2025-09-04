@@ -21,13 +21,12 @@ defmodule Astarte.Pairing.Credentials do
   The Credentials context.
   """
 
-  alias Astarte.Pairing.Credentials.AstarteMQTTV1
+  alias Astarte.Pairing.Credentials.AstarteMQTTV1.Credentials
+  alias Astarte.Pairing.Credentials.AstarteMQTTV1.CredentialsRequest
+  alias Astarte.Pairing.Credentials.AstarteMQTTV1.CredentialsStatus
   alias Astarte.Pairing.Engine
 
   def get_astarte_mqtt_v1(realm, hw_id, secret, device_ip, params) do
-    alias AstarteMQTTV1.CredentialsRequest, as: CredentialsRequest
-    alias AstarteMQTTV1.Credentials, as: Credentials
-
     changeset =
       %CredentialsRequest{}
       |> CredentialsRequest.changeset(params)
@@ -40,11 +39,8 @@ defmodule Astarte.Pairing.Credentials do
   end
 
   def verify_astarte_mqtt_v1(realm, hw_id, secret, params) do
-    alias AstarteMQTTV1.Credentials, as: Credentials
-
     changeset =
-      %Credentials{}
-      |> Credentials.changeset(params)
+      Credentials.changeset(%Credentials{}, params)
 
     with {:ok, %Credentials{client_crt: client_crt}} <-
            Ecto.Changeset.apply_action(changeset, :insert),
@@ -66,7 +62,7 @@ defmodule Astarte.Pairing.Credentials do
       until: until
     } = status_map
 
-    %AstarteMQTTV1.CredentialsStatus{
+    %CredentialsStatus{
       valid: true,
       timestamp: timestamp,
       until: until,
@@ -81,7 +77,7 @@ defmodule Astarte.Pairing.Credentials do
       reason: reason
     } = status_map
 
-    %AstarteMQTTV1.CredentialsStatus{
+    %CredentialsStatus{
       valid: false,
       timestamp: timestamp,
       cause: reason_to_certificate_validation_error(reason),

@@ -45,7 +45,7 @@ defmodule Astarte.Cases.Data do
 
   setup_all %{realm_name: realm, astarte_instance_id: astarte_instance_id} do
     setup_instance(astarte_instance_id, [realm])
-
+    Astarte.Housekeeping.AMQP.Vhost.create_vhost(realm)
     %{realm: realm, astarte_instance_id: astarte_instance_id}
   end
 

@@ -23,6 +23,7 @@ defmodule Astarte.PairingWeb.FallbackController do
   See `Phoenix.Controller.action_fallback/1` for more details.
   """
   use Astarte.PairingWeb, :controller
+
   require Logger
 
   def call(conn, {:error, %Ecto.Changeset{} = changeset}) do

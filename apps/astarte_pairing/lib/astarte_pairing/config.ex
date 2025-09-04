@@ -23,8 +23,8 @@ defmodule Astarte.Pairing.Config do
 
   use Skogsra
 
-  alias Astarte.Pairing.CFSSLCredentials
   alias Astarte.DataAccess.Config, as: DataAccessConfig
+  alias Astarte.Pairing.CFSSLCredentials
   alias Astarte.Pairing.Config.CQExNodes
 
   @envdoc "The external broker URL which should be used by devices."
@@ -69,6 +69,16 @@ defmodule Astarte.Pairing.Config do
     os_env: "PAIRING_API_DISABLE_AUTHENTICATION",
     type: :boolean,
     default: false
+
+  @envdoc """
+  "The handling method for database events. The default is `expose`, which means that the events are exposed trough telemetry. The other possible value, `log`, means that the events are logged instead."
+  """
+  app_env :database_events_handling_method,
+          :astarte_realm_management,
+          :database_events_handling_method,
+          os_env: "DATABASE_EVENTS_HANDLING_METHOD",
+          type: Astarte.Pairing.Config.TelemetryType,
+          default: :expose
 
   @doc """
   Returns the cassandra node configuration

@@ -25,12 +25,24 @@ defmodule Astarte.DataUpdaterPlant.RPC.Supervisor do
 
   use Horde.DynamicSupervisor
 
+  require Logger
+
   def start_link(init_arg, opts \\ []) do
     opts = [{:name, __MODULE__} | opts]
 
     with {:ok, pid} <- Horde.DynamicSupervisor.start_link(__MODULE__, init_arg, opts) do
-      with [] <- Horde.Registry.lookup(Registry.DataUpdaterRPC, :server) do
-        _ = Horde.DynamicSupervisor.start_child(pid, Astarte.DataUpdaterPlant.RPC.Server)
+      Horde.DynamicSupervisor.start_child(pid, Astarte.DataUpdaterPlant.RPC.Server)
+      |> case do
+        :ignore ->
+          "RPC server: start ignored"
+          |> Logger.warning(tag: "rpc_not_started")
+
+        {:error, reason} ->
+          "RPC server: error during startup: #{inspect(reason)}"
+          |> Logger.warning(tag: "rpc_not_started")
+
+        ok ->
+          ok
       end
 
       {:ok, pid}

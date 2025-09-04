@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2017-2018 Ispirata Srl
+# Copyright 2017 - 2025 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -23,8 +23,8 @@ defmodule Astarte.PairingWeb.DeviceController do
   alias Astarte.Pairing.Credentials.AstarteMQTTV1
   alias Astarte.Pairing.Info
   alias Astarte.Pairing.Info.DeviceInfo
-  alias Astarte.PairingWeb.CredentialsView
   alias Astarte.PairingWeb.CredentialsStatusView
+  alias Astarte.PairingWeb.CredentialsView
   alias Astarte.PairingWeb.DeviceInfoView
 
   @bearer_regex ~r/bearer\:?\s+(.*)$/i

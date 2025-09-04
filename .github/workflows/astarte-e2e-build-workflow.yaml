@@ -1,0 +1,30 @@
+name: Astarte end-to-end build
+
+on:
+  workflow_call:
+
+env:
+  elixir_version: "1.15"
+  otp_version: "26.1"
+
+jobs:
+  end-to-end-build:
+    name: End-to-end build
+    runs-on: ubuntu-22.04
+    steps:
+    - uses: actions/checkout@v2
+    - uses: docker/setup-buildx-action@v3
+    - name: Build Astarte E2E
+      uses: docker/build-push-action@v6
+      with:
+        context: tools/astarte_e2e
+        tags: astarte-e2e
+        outputs: type=docker,dest=${{ runner.temp }}/astarte-e2e.tar
+        build-args: BUILD_ENV=dev
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
+    - name: Upload artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: astarte-e2e-image
+        path: ${{ runner.temp }}/astarte-e2e.tar

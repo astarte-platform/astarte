@@ -7,6 +7,7 @@ services:
       - ./.env
     environment:
       HOUSEKEEPING_API_JWT_PUBLIC_KEY_PATH: "/keys/housekeeping_public.pem"
+      HOUSEKEEPING_AMQP_HOST: "rabbitmq"
     volumes:
       - ./compose/astarte-keys/housekeeping_public.pem:/keys/housekeeping_public.pem:z
     restart: on-failure

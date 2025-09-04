@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2019 - 2025 Ispirata Srl
+# Copyright 2019 - 2025 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -17,12 +17,13 @@
 #
 
 defmodule Astarte.Housekeeping.ReleaseTasks do
-  require Logger
-
+  @moduledoc false
   alias Astarte.DataAccess
   alias Astarte.Housekeeping.Config
   alias Astarte.Housekeeping.Migrator
   alias Astarte.Housekeeping.Realms.Queries
+
+  require Logger
 
   @start_apps [
     :ecto,
@@ -34,18 +35,19 @@ defmodule Astarte.Housekeeping.ReleaseTasks do
   def init_database do
     :ok = start_services()
 
-    with {:ok, exists?} <- wait_connection_and_check_astarte_keyspace() do
-      unless exists? do
-        _ =
-          Logger.info("Astarte keyspace not found, creating it",
-            tag: "astarte_db_initialization_started"
-          )
+    case wait_connection_and_check_astarte_keyspace() do
+      {:ok, exists?} ->
+        unless exists? do
+          _ =
+            Logger.info("Astarte keyspace not found, creating it",
+              tag: "astarte_db_initialization_started"
+            )
 
-        :ok = Queries.initialize_database()
-      else
+          :ok = Queries.initialize_database()
+        end
+
         :ok
-      end
-    else
+
       {:error, reason} ->
         _ =
           Logger.error("Can't check if Astarte keyspace exists: #{inspect(reason)}",
@@ -89,7 +91,7 @@ defmodule Astarte.Housekeeping.ReleaseTasks do
   end
 
   defp wait_connection_and_check_astarte_keyspace(retries \\ 60) do
-    case Queries.is_astarte_keyspace_existing() do
+    case Queries.astarte_keyspace_existing?() do
       {:ok, exists?} ->
         {:ok, exists?}
 

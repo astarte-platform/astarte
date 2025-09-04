@@ -22,18 +22,18 @@ defmodule Astarte.Helpers.Database do
   alias Astarte.DataAccess.Repo
 
   @create_keyspace """
-  CREATE KEYSPACE :keyspace
+  CREATE KEYSPACE IF NOT EXISTS :keyspace
     WITH
       replication = {'class': 'SimpleStrategy', 'replication_factor': '1'} AND
       durable_writes = true;
   """
 
   @drop_keyspace """
-  DROP KEYSPACE :keyspace
+  DROP KEYSPACE IF EXISTS :keyspace
   """
 
   @create_realms_table """
-  CREATE TABLE :keyspace.realms (
+  CREATE TABLE IF NOT EXISTS :keyspace.realms (
     realm_name varchar,
     device_registration_limit int,
 
@@ -42,7 +42,7 @@ defmodule Astarte.Helpers.Database do
   """
 
   @create_kv_store """
-  CREATE TABLE :keyspace.kv_store (
+  CREATE TABLE IF NOT EXISTS :keyspace.kv_store (
     group varchar,
     key varchar,
     value blob,
@@ -52,7 +52,7 @@ defmodule Astarte.Helpers.Database do
   """
 
   @create_names_table """
-  CREATE TABLE :keyspace.names (
+  CREATE TABLE IF NOT EXISTS :keyspace.names (
     object_name varchar,
     object_type int,
     object_uuid uuid,
@@ -62,7 +62,7 @@ defmodule Astarte.Helpers.Database do
   """
 
   @create_devices_table """
-  CREATE TABLE :keyspace.devices (
+  CREATE TABLE IF NOT EXISTS :keyspace.devices (
     device_id uuid,
     aliases map<ascii, varchar>,
     introspection map<ascii, int>,
@@ -94,7 +94,7 @@ defmodule Astarte.Helpers.Database do
   """
 
   @create_interfaces_table """
-  CREATE TABLE :keyspace.interfaces (
+  CREATE TABLE IF NOT EXISTS :keyspace.interfaces (
     name ascii,
     major_version int,
     minor_version int,
@@ -114,7 +114,7 @@ defmodule Astarte.Helpers.Database do
   """
 
   @create_endpoints_table """
-  CREATE TABLE :keyspace.endpoints (
+  CREATE TABLE IF NOT EXISTS :keyspace.endpoints (
     interface_id uuid,
     endpoint_id uuid,
     interface_name ascii,
@@ -138,7 +138,7 @@ defmodule Astarte.Helpers.Database do
   """
 
   @create_simple_triggers_table """
-  CREATE TABLE :keyspace.simple_triggers (
+  CREATE TABLE IF NOT EXISTS :keyspace.simple_triggers (
     object_id uuid,
     object_type int,
     parent_trigger_id uuid,
@@ -151,7 +151,7 @@ defmodule Astarte.Helpers.Database do
   """
 
   @create_individual_properties_table """
-  CREATE TABLE :keyspace.individual_properties (
+  CREATE TABLE IF NOT EXISTS :keyspace.individual_properties (
     device_id uuid,
     interface_id uuid,
     endpoint_id uuid,
@@ -178,7 +178,7 @@ defmodule Astarte.Helpers.Database do
   """
 
   @create_individual_datastreams_table """
-  CREATE TABLE :keyspace.individual_datastreams (
+  CREATE TABLE IF NOT EXISTS :keyspace.individual_datastreams (
       device_id uuid,
       interface_id uuid,
       endpoint_id uuid,
@@ -205,7 +205,7 @@ defmodule Astarte.Helpers.Database do
   """
 
   @create_groups_table """
-  CREATE TABLE :keyspace.grouped_devices (
+  CREATE TABLE IF NOT EXISTS :keyspace.grouped_devices (
     group_name varchar,
     insertion_uuid timeuuid,
     device_id uuid,
@@ -214,7 +214,7 @@ defmodule Astarte.Helpers.Database do
   """
 
   @create_deletion_in_progress_table """
-  CREATE TABLE :keyspace.deletion_in_progress (
+  CREATE TABLE IF NOT EXISTS :keyspace.deletion_in_progress (
       device_id uuid,
       vmq_ack boolean,
       dup_start_ack boolean,

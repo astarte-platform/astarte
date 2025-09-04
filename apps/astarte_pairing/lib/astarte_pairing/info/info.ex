@@ -21,8 +21,8 @@ defmodule Astarte.Pairing.Info do
   The Info context.
   """
 
-  alias Astarte.Pairing.Info.DeviceInfo
   alias Astarte.Pairing.Engine
+  alias Astarte.Pairing.Info.DeviceInfo
 
   require Logger
 

@@ -17,11 +17,13 @@
 #
 
 defmodule Astarte.Pairing.Application do
+  @moduledoc false
   use Application
 
-  require Logger
   alias Astarte.DataAccess.Config, as: DataAccessConfig
   alias Astarte.Pairing.Config
+
+  require Logger
 
   @app_version Mix.Project.config()[:version]
 

@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2018 Ispirata Srl
+# Copyright 2018 - 2025 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -17,8 +17,11 @@
 #
 
 defmodule Astarte.Pairing.Credentials.AstarteMQTTV1.Credentials do
+  @moduledoc false
   use Ecto.Schema
+
   import Ecto.Changeset
+
   alias Astarte.Pairing.Credentials.AstarteMQTTV1.Credentials
 
   @primary_key false

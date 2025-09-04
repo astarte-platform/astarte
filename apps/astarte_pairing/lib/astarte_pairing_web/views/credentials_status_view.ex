@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2017-2018 Ispirata Srl
+# Copyright 2017 - 2025 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -18,6 +18,7 @@
 
 defmodule Astarte.PairingWeb.CredentialsStatusView do
   use Astarte.PairingWeb, :view
+
   alias Astarte.PairingWeb.CredentialsStatusView
 
   def render("show_astarte_mqtt_v1.json", %{credentials_status: credentials_status}) do
@@ -53,9 +54,10 @@ defmodule Astarte.PairingWeb.CredentialsStatusView do
   end
 
   defp to_datetime_string(ms_epoch_timestamp) when is_integer(ms_epoch_timestamp) do
-    with {:ok, datetime} <- DateTime.from_unix(ms_epoch_timestamp, :millisecond) do
-      DateTime.to_string(datetime)
-    else
+    case DateTime.from_unix(ms_epoch_timestamp, :millisecond) do
+      {:ok, datetime} ->
+        DateTime.to_string(datetime)
+
       _ ->
         ""
     end

@@ -28,8 +28,10 @@ defmodule Astarte.Housekeeping.RealmsTest do
   alias Astarte.Housekeeping.Config
   alias Astarte.Housekeeping.Helpers.Database
   alias Astarte.Housekeeping.Realms
-  alias Astarte.Housekeeping.Realms.Realm
   alias Astarte.Housekeeping.Realms.Queries
+  alias Astarte.Housekeeping.Realms.Realm
+  alias Astarte.Housekeeping.AMQP.Vhost
+  alias Astarte.Housekeeping.AMQP
 
   @malformed_pubkey """
   -----BEGIN PUBLIC KEY-----
@@ -113,6 +115,11 @@ defmodule Astarte.Housekeeping.RealmsTest do
         # Test realm creation
         realm = realm_fixture(%{realm_name: name})
 
+        assert {:ok, %HTTPoison.Response{status_code: status}} =
+                 AMQP.get("/api/vhosts/#{Vhost.vhost_name(name)}")
+
+        assert status in [200, 201, 204]
+
         # Test fetching the created realm
         assert {:ok, realm} == Realms.get_realm(name)
         assert realm.realm_name == name
@@ -121,6 +128,18 @@ defmodule Astarte.Housekeeping.RealmsTest do
         assert :ok = Realms.delete_realm(name)
         assert {:error, :realm_not_found} == Realms.get_realm(name)
       end
+    end
+
+    test "realm creation respects ssl options", %{realm_name: name} do
+      Mimic.stub(Config, :amqp_ssl_enabled!, fn -> true end)
+      # check if put options are the same inside config
+      Mimic.expect(HTTPoison.Base, :request, fn _, %{options: options}, _, _, _, _ ->
+        assert cacertfile: CAStore.file_path() in options[:ssl]
+        {:ok, %HTTPoison.Response{status_code: 201}}
+      end)
+
+      # Test realm creation
+      realm_fixture(%{realm_name: name})
     end
   end
 
@@ -320,8 +339,7 @@ defmodule Astarte.Housekeeping.RealmsTest do
     end
 
     test "deletions returns an error", %{realm_name: realm_name} do
-      Repo |> stub(:query, fn _, _, _ -> {:error, "generic error"} end)
-
+      Mimic.stub(Repo, :query, fn _, _, _ -> {:error, "generic error"} end)
       assert {:error, "generic error"} = Realms.delete_realm(realm_name)
     end
   end

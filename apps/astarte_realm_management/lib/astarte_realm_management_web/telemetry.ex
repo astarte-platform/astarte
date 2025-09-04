@@ -117,7 +117,7 @@ defmodule Astarte.RealmManagementWeb.Telemetry do
 
       # Database exception metrics
       counter("astarte.realm_management.database.execute_query.exception.count",
-        tags: [:query, :reason, :kind, :stacktrace],
+        tags: [:query, :reason, :kind],
         tag_values: &to_valid_values/1,
         unit: {:native, :second}
       ),
@@ -129,7 +129,7 @@ defmodule Astarte.RealmManagementWeb.Telemetry do
 
       # Database preparation metrics
       counter("astarte.realm_management.database.prepare_query.exception.count",
-        tags: [:query, :reason, :kind, :stacktrace],
+        tags: [:query, :reason, :kind],
         tag_values: &to_valid_values/1,
         unit: {:native, :second}
       ),
@@ -145,7 +145,7 @@ defmodule Astarte.RealmManagementWeb.Telemetry do
         tag_values: &to_valid_values/1,
         tags: [:cluster_name, :host, :reason]
       ),
-      counter("astarte.realm_management.database.failed_to_connect.conut",
+      counter("astarte.realm_management.database.failed_to_connect.count",
         tag_values: &to_valid_values/1,
         tags: [:connection_name, :address, :port]
       )

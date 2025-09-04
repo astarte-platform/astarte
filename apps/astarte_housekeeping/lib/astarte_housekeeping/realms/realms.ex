@@ -67,9 +67,7 @@ defmodule Astarte.Housekeeping.Realms do
 
   """
   def create_realm(attrs \\ %{}, opts \\ []) do
-    changeset =
-      %Realm{}
-      |> Realm.changeset(attrs)
+    changeset = Realm.changeset(%Realm{}, attrs)
 
     with {:ok, %Realm{} = realm} <-
            Ecto.Changeset.apply_action(changeset, :insert) do
@@ -87,7 +85,7 @@ defmodule Astarte.Housekeeping.Realms do
   """
   @spec update_realm(binary(), map()) :: {:ok, Realm.t()} | {:error, any()}
   def update_realm(realm_name, attrs) do
-    changeset = %Realm{realm_name: realm_name} |> Realm.update_changeset(attrs)
+    changeset = Realm.update_changeset(%Realm{realm_name: realm_name}, attrs)
 
     with {:ok, _realm} <- Changeset.apply_action(changeset, :update),
          {:ok, realm} <- Core.update_realm(realm_name, changeset.changes) do

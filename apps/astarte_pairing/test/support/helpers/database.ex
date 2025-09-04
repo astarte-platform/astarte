@@ -17,14 +17,16 @@
 #
 
 defmodule Astarte.Helpers.Database do
+  @moduledoc false
+  import Ecto.Query
+
+  alias Astarte.Core.Device
+  alias Astarte.DataAccess.Consistency
   alias Astarte.DataAccess.Devices.Device, as: DeviceSchema
   alias Astarte.DataAccess.Realms.Realm
   alias Astarte.DataAccess.Repo
   alias Astarte.Pairing.CredentialsSecret
   alias Astarte.Pairing.Queries
-  alias Astarte.Core.Device
-  alias Astarte.DataAccess.Consistency
-  import Ecto.Query
 
   @create_keyspace """
   CREATE KEYSPACE :keyspace
@@ -247,10 +249,10 @@ defmodule Astarte.Helpers.Database do
 
   @registered_and_confirmed_256_credentials_secret CredentialsSecret.generate()
 
-  def registered_not_confirmed_credentials_secret(),
+  def registered_not_confirmed_credentials_secret,
     do: @registered_not_confirmed_credentials_secret
 
-  def registered_and_confirmed_256_credentials_secret(),
+  def registered_and_confirmed_256_credentials_secret,
     do: @registered_and_confirmed_256_credentials_secret
 
   def setup_astarte_keyspace do

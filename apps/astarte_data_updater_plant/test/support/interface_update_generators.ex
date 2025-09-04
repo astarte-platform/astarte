@@ -21,6 +21,7 @@ defmodule Astarte.InterfaceUpdateGenerators do
   # TODO: move all these generators to astarte_generators
 
   use ExUnitProperties
+  import Astarte.Generators.Utilities.ParamsGen
   import Astarte.Helpers.Device
   alias Astarte.Common.Generators.Timestamp, as: TimestampGenerator
 
@@ -148,9 +149,10 @@ defmodule Astarte.InterfaceUpdateGenerators do
         :properties -> fn _ -> :unique end
       end
 
-    gen all mapping <- member_of(interface.mappings),
-            path <- path_from_endpoint(mapping.endpoint),
-            value <- valid_update_value_for(mapping.value_type, params) do
+    params gen all mapping <- member_of(interface.mappings),
+                   path <- path_from_endpoint(mapping.endpoint),
+                   value <- valid_update_value_for(mapping.value_type, params),
+                   params: params do
       %{
         path: path,
         aggregation: :individual,

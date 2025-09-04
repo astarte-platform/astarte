@@ -74,25 +74,6 @@ defmodule Astarte.RealmManagement.Triggers.Policies.Queries do
     KvStore.insert(params, opts)
   end
 
-  def check_policy_has_triggers(realm_name, policy_name) do
-    keyspace = Realm.keyspace_name(realm_name)
-    group_name = "triggers-with-policy-#{policy_name}"
-
-    query =
-      from(store in KvStore,
-        select: store.key,
-        where: [group: ^group_name],
-        limit: 1
-      )
-
-    opts = [
-      prefix: keyspace,
-      consistency: Consistency.domain_model(:read)
-    ]
-
-    Repo.some?(query, opts)
-  end
-
   def delete_trigger_policy(realm_name, policy_name) do
     _ =
       Logger.info("Delete trigger policy.",

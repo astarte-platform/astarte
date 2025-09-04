@@ -19,6 +19,7 @@
 defmodule AstarteE2E.VolatileTriggerRoundtrip.Executor do
   use GenServer
 
+  alias AstarteE2E.Client
   alias AstarteE2E.Config
   alias AstarteE2E.Device
   alias AstarteE2E.VolatileTriggerRoundtrip.Scheduler
@@ -32,22 +33,32 @@ defmodule AstarteE2E.VolatileTriggerRoundtrip.Executor do
   end
 
   @impl GenServer
-  def init(_init_arg) do
-    with {:ok, realm} <- Config.realm(),
-         {:ok, interfaces} <- default_interfaces() do
-      Process.flag(:trap_exit, true)
+  def init(opts) do
+    Process.flag(:trap_exit, true)
+
+    with {:ok, realm} <- Config.realm() do
+      interfaces = Keyword.get(opts, :interfaces)
       device_id = Astarte.Core.Device.random_device_id()
+
       device_opts = [realm: realm, device_id: device_id, interfaces: interfaces]
       encoded_id = Astarte.Core.Device.encode_device_id(device_id)
 
       scheduler_opts =
         Config.scheduler_opts()
         |> Keyword.put(:device_id, encoded_id)
+        |> Keyword.put(:interfaces, interfaces)
+
+      client_opts =
+        Config.client_opts()
+        |> Keyword.put(:device_id, encoded_id)
 
       {:ok, device} = Device.start_link(device_opts)
+      {:ok, client} = Client.start_link(client_opts)
+      Client.wait_for_connection(realm, encoded_id)
+
       {:ok, scheduler} = Scheduler.start_link(scheduler_opts)
 
-      {:ok, %{device: device, scheduler: scheduler}}
+      {:ok, %{device: device, scheduler: scheduler, client: client}}
     else
       error -> {:stop, error, nil}
     end
@@ -56,26 +67,5 @@ defmodule AstarteE2E.VolatileTriggerRoundtrip.Executor do
   @impl GenServer
   def handle_info({:EXIT, _pid, reason}, state) do
     {:stop, reason, state}
-  end
-
-  defp default_interfaces() do
-    with {:ok, standard_interface_provider} <- Config.standard_interface_provider(),
-         {:ok, interface_files} <- File.ls(standard_interface_provider) do
-      interface_files = interface_files |> Enum.map(&Path.join(standard_interface_provider, &1))
-      read_interface_files(interface_files)
-    end
-  end
-
-  defp read_interface_files(interface_files) do
-    Enum.reduce_while(interface_files, {:ok, []}, fn interface_file, {:ok, interfaces} ->
-      with {:ok, interface_json} <- File.read(interface_file),
-           {:ok, interface} <- Jason.decode(interface_json) do
-        {:cont, {:ok, [interface | interfaces]}}
-      else
-        error ->
-          Logger.error("Error reading interface: #{interface_file}")
-          {:halt, error}
-      end
-    end)
   end
 end

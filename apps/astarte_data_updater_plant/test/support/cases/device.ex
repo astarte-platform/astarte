@@ -23,6 +23,7 @@ defmodule Astarte.Cases.Device do
   alias Astarte.DataAccess.Realms.Endpoint
   alias Astarte.Core.Generators.Device, as: DeviceGenerator
   alias Astarte.Core.Generators.Interface, as: InterfaceGenerator
+  alias Astarte.Core.Generators.Mapping, as: MappingGenerator
 
   use ExUnit.CaseTemplate
   use ExUnitProperties
@@ -64,11 +65,13 @@ defmodule Astarte.Cases.Device do
     %{
       realm_name: realm_name,
       interfaces: interfaces,
+      server_property_with_all_endpoint_types: server_property_with_all_endpoint_types,
       device: device
     } = context
 
     random_interfaces =
       interfaces
+      |> List.delete(server_property_with_all_endpoint_types)
       |> Enum.group_by(fn interface ->
         {interface.type, interface.ownership, interface.aggregation}
       end)
@@ -99,6 +102,13 @@ defmodule Astarte.Cases.Device do
         individual_properties_server
       ]
 
+    server_property_with_all_endpoint_types_data =
+      populate_all_mappings(realm_name, device, server_property_with_all_endpoint_types)
+
+    server_property_with_all_endpoint_types_key =
+      {server_property_with_all_endpoint_types.name,
+       server_property_with_all_endpoint_types.major_version}
+
     interface_data =
       for interface <- interfaces_with_data, into: %{} do
         interface_data = populate(realm_name, device, interface)
@@ -106,6 +116,13 @@ defmodule Astarte.Cases.Device do
 
         {interface_key, interface_data}
       end
+
+    interface_data =
+      interface_data
+      |> Map.put(
+        server_property_with_all_endpoint_types_key,
+        server_property_with_all_endpoint_types_data
+      )
 
     registered_paths = Map.new(interface_data, fn {key, data} -> {key, data.paths} end)
     registered_timings = Map.new(interface_data, fn {key, data} -> {key, data.timings} end)
@@ -132,6 +149,18 @@ defmodule Astarte.Cases.Device do
 
     timings = insert_values(realm_name, device, interface, values)
     paths = MapSet.new(values, & &1.path)
+
+    %{paths: paths, timings: timings}
+  end
+
+  defp populate_all_mappings(realm_name, device, interface) do
+    mapping_updates =
+      interface.mappings
+      |> Enum.map(&valid_mapping_update_for(interface, mapping: &1))
+      |> Enum.map(&Enum.at(&1, 0))
+
+    timings = insert_values(realm_name, device, interface, mapping_updates)
+    paths = MapSet.new(mapping_updates, & &1.path)
 
     %{paths: paths, timings: timings}
   end
@@ -181,6 +210,9 @@ defmodule Astarte.Cases.Device do
     properties_device = list_of(properties(:device), min_length: 1) |> Enum.at(0)
     properties_server = list_of(properties(:server), min_length: 1) |> Enum.at(0)
 
+    server_property_with_all_endpoint_types =
+      all_endpoint_types(:server, :properties) |> Enum.at(0)
+
     other_interfaces = list_of(InterfaceGenerator.interface(), min_length: 1) |> Enum.at(0)
 
     all_interfaces =
@@ -191,12 +223,14 @@ defmodule Astarte.Cases.Device do
         object_datastream_server,
         properties_device,
         properties_server,
+        [server_property_with_all_endpoint_types],
         other_interfaces
       ]
       |> Enum.concat()
 
     %{
-      interfaces: all_interfaces
+      interfaces: all_interfaces,
+      server_property_with_all_endpoint_types: server_property_with_all_endpoint_types
     }
   end
 
@@ -214,6 +248,87 @@ defmodule Astarte.Cases.Device do
 
   defp properties(ownership) do
     InterfaceGenerator.interface(ownership: ownership, type: :properties)
+  end
+
+  defp all_endpoint_types(ownership, type) do
+    gen all name <- InterfaceGenerator.name(),
+            major <- InterfaceGenerator.major_version(),
+            aggregation <- InterfaceGenerator.aggregation(type),
+            mappings <- all_endpoint_mappings(type, name, major, aggregation),
+            interface <-
+              InterfaceGenerator.interface(
+                name: name,
+                major_version: major,
+                ownership: ownership,
+                type: type,
+                aggregation: aggregation,
+                mappings: mappings
+              ) do
+      interface
+    end
+  end
+
+  defp all_endpoint_mappings(type, name, major, :individual) do
+    gen all retention <- MappingGenerator.retention(type),
+            reliability <- MappingGenerator.reliability(type),
+            expiry <- MappingGenerator.expiry(type),
+            allow_unset <- MappingGenerator.allow_unset(type),
+            explicit_timestamp <- MappingGenerator.explicit_timestamp(type),
+            params = [
+              interface_major: major,
+              interface_type: type,
+              interface_name: name,
+              retention: retention,
+              reliability: reliability,
+              expiry: expiry,
+              allow_unset: allow_unset,
+              explicit_timestamp: explicit_timestamp
+            ],
+            double_mappings <- mappings(:double, params),
+            integer_mappings <- mappings(:integer, params),
+            boolean_mappings <- mappings(:boolean, params),
+            longinteger_mappings <- mappings(:longinteger, params),
+            string_mappings <- mappings(:string, params),
+            binaryblob_mappings <- mappings(:binaryblob, params),
+            datetime_mappings <- mappings(:datetime, params),
+            doublearray_mappings <- mappings(:doublearray, params),
+            integerarray_mappings <- mappings(:integerarray, params),
+            booleanarray_mappings <- mappings(:booleanarray, params),
+            longintegerarray_mappings <- mappings(:longintegerarray, params),
+            stringarray_mappings <- mappings(:stringarray, params),
+            binaryblobarray_mappings <- mappings(:binaryblobarray, params),
+            datetimearray_mappings <- mappings(:datetimearray, params),
+            all_mappings =
+              Enum.concat([
+                double_mappings,
+                integer_mappings,
+                boolean_mappings,
+                longinteger_mappings,
+                string_mappings,
+                binaryblob_mappings,
+                datetime_mappings,
+                doublearray_mappings,
+                integerarray_mappings,
+                booleanarray_mappings,
+                longintegerarray_mappings,
+                stringarray_mappings,
+                binaryblobarray_mappings,
+                datetimearray_mappings
+              ]),
+            endpoints <- shuffle(all_mappings) do
+      endpoints
+    end
+  end
+
+  defp mappings(value_type, common_params) do
+    params = [
+      {:value_type, value_type},
+      {:endpoint, repeatedly(fn -> "/uniq/endpoint#{System.unique_integer([:positive])}" end)}
+      | common_params
+    ]
+
+    MappingGenerator.mapping(params)
+    |> list_of(min_length: 1)
   end
 
   defp get_interface_descriptors(realm_name, interfaces) do

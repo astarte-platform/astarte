@@ -118,7 +118,8 @@ defmodule Astarte.Pairing.Mixfile do
       {:typed_ecto_schema, "~> 0.4"},
       {:cqex, "~> 1.0", only: :test},
       {:cqerl, "~> 2.1", override: true, only: :test},
-      {:mimic, "~> 1.11", only: :test}
+      {:mimic, "~> 1.11", only: :test},
+      {:credo, "~> 1.7", only: [:dev, :test], runtime: false}
     ]
   end
 end

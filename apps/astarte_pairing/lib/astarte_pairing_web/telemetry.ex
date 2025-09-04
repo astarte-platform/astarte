@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2020-2024 SECO Mind Srl
+# Copyright 2020 - 2025 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -17,10 +17,14 @@
 #
 
 defmodule Astarte.PairingWeb.Telemetry do
+  @moduledoc false
   use Supervisor
+
   import Telemetry.Metrics
 
   alias Astarte.PairingWeb.Telemetry.APIUsage
+  alias Astarte.PairingWeb.Telemetry.DatabaseEvents
+  alias Astarte.Pairing.Config
 
   def start_link(arg) do
     Supervisor.start_link(__MODULE__, arg, name: __MODULE__)
@@ -127,8 +131,55 @@ defmodule Astarte.PairingWeb.Telemetry do
       counter("astarte.pairing.unregister_device.count",
         tags: [:realm],
         description: "Get unregister device requests total count"
+      ),
+
+      # Database exception metrics
+      counter("astarte.pairing.database.execute_query.exception.count",
+        tags: [:query, :reason, :kind],
+        tag_values: &to_valid_values/1,
+        unit: {:native, :second}
+      ),
+      counter("astarte.pairing.database.execute_query.stop.count",
+        tags: [:query, :reason],
+        tag_values: &to_valid_values/1,
+        unit: {:native, :second}
+      ),
+
+      # Database preparation metrics
+      counter("astarte.pairing.database.prepare_query.exception.count",
+        tags: [:query, :reason, :kind],
+        tag_values: &to_valid_values/1,
+        unit: {:native, :second}
+      ),
+      counter("astarte.pairing.database.prepare_query.stop.count",
+        tags: [:query, :reason],
+        tag_values: &to_valid_values/1,
+        unit: {:native, :second}
+      ),
+
+      # Database connection metrics
+      counter(
+        "astarte.pairing.database.cluster.control_connection.failed_to_connect.count",
+        tag_values: &to_valid_values/1,
+        tags: [:cluster_name, :host, :reason]
+      ),
+      counter("astarte.pairing.database.failed_to_connect.count",
+        tag_values: &to_valid_values/1,
+        tags: [:connection_name, :address, :port]
       )
     ]
+  end
+
+  defp to_valid_values(%{query: query, reason: reason}) do
+    %{query: query.statement, reason: Xandra.Error.message(reason)}
+  end
+
+  defp to_valid_values(%{cluster_name: cluster_name, host: host, reason: reason}) do
+    %{cluster_name: cluster_name, host: inspect(host), reason: to_string(reason)}
+  end
+
+  defp to_valid_values(%{connection_name: connection_name, address: address, port: port}) do
+    %{connection_name: connection_name, address: inspect(address), port: inspect(port)}
   end
 
   defp periodic_measurements do
@@ -141,6 +192,36 @@ defmodule Astarte.PairingWeb.Telemetry do
 
   defp attach_handlers do
     :telemetry.attach(APIUsage, [:cowboy, :request, :stop], &APIUsage.handle_event/4, nil)
+
+    :telemetry.attach_many(
+      DatabaseEvents,
+      xandra_events(),
+      &DatabaseEvents.handle_event/4,
+      Config.database_events_handling_method!()
+    )
+  end
+
+  defp xandra_events do
+    [
+      [:xandra, :connected],
+      [:xandra, :disconnected],
+      [:xandra, :failed_to_connect],
+      [:xandra, :prepared_cache, :hit],
+      [:xandra, :prepared_cache, :miss],
+      [:xandra, :prepare_query, :stop],
+      [:xandra, :execute_query, :stop],
+      [:xandra, :client_timeout],
+      [:xandra, :timed_out_response],
+      [:xandra, :server_warnings],
+      [:xandra, :cluster, :change_event],
+      [:xandra, :cluster, :control_connection, :connected],
+      [:xandra, :cluster, :control_connection, :disconnected],
+      [:xandra, :cluster, :control_connection, :failed_to_connect],
+      [:xandra, :cluster, :pool, :started],
+      [:xandra, :cluster, :pool, :restarted],
+      [:xandra, :cluster, :pool, :stopped],
+      [:xandra, :cluster, :discovered_peers]
+    ]
   end
 
   defp extract_phoenix_buckets_metadata(%{

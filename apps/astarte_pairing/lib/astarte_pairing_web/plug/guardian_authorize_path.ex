@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2018 Ispirata Srl
+# Copyright 2018 - 2025 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -17,15 +17,16 @@
 #
 
 defmodule Astarte.PairingWeb.Plug.GuardianAuthorizePath do
+  @moduledoc false
   use Plug.Builder
 
   import Plug.Conn
 
-  require Logger
-
   alias Astarte.Pairing.Auth.User
   alias Astarte.PairingWeb.AuthGuardian
   alias Astarte.PairingWeb.FallbackController
+
+  require Logger
 
   plug Guardian.Plug.Pipeline,
     otp_app: :astarte_pairing,
@@ -40,7 +41,7 @@ defmodule Astarte.PairingWeb.Plug.GuardianAuthorizePath do
   defp authorize(conn, opts) do
     with %User{authorizations: authorizations} <- AuthGuardian.Plug.current_resource(conn),
          {:ok, auth_path} <- build_auth_path(conn),
-         :ok <- is_path_authorized?(conn.method, auth_path, authorizations) do
+         :ok <- path_authorized?(conn.method, auth_path, authorizations) do
       conn
     else
       {:error, :invalid_auth_path} ->
@@ -83,7 +84,7 @@ defmodule Astarte.PairingWeb.Plug.GuardianAuthorizePath do
     end
   end
 
-  defp is_path_authorized?(method, auth_path, authorizations) when is_list(authorizations) do
+  defp path_authorized?(method, auth_path, authorizations) when is_list(authorizations) do
     authorized =
       Enum.any?(authorizations, fn auth_string ->
         case get_auth_regex(auth_string) do
@@ -108,7 +109,7 @@ defmodule Astarte.PairingWeb.Plug.GuardianAuthorizePath do
     end
   end
 
-  defp is_path_authorized?(method, auth_path, authorizations),
+  defp path_authorized?(method, auth_path, authorizations),
     do: {:error, {:unauthorized, method, auth_path, authorizations}}
 
   defp get_auth_regex(authorization_string) do

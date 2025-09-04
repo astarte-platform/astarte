@@ -443,7 +443,14 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.Device do
 
       Queries.retrieve_property_values(realm, device_id, interface_descriptor, mapping)
       |> Enum.reduce_while(:ok, fn %{:path => path, ^column_name => value}, _acc ->
-        case send_value(realm, encoded_device_id, interface_descriptor.name, path, value) do
+        case send_value(
+               realm,
+               encoded_device_id,
+               interface_descriptor.name,
+               path,
+               value_type,
+               value
+             ) do
           {:ok, _bytes} ->
             # TODO: use the returned bytes count in stats
             {:cont, :ok}
@@ -459,9 +466,9 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.Device do
     :ok
   end
 
-  defp send_value(realm, device_id_string, interface_name, path, value) do
+  defp send_value(realm, device_id_string, interface_name, path, value_type, value) do
     topic = "#{realm}/#{device_id_string}/#{interface_name}#{path}"
-    encapsulated_value = %{v: value}
+    encapsulated_value = %{v: cast_bson_value(value_type, value)}
 
     bson_value = Cyanide.encode!(encapsulated_value)
 
@@ -487,4 +494,11 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.Device do
         {:error, reason}
     end
   end
+
+  defp cast_bson_value(:binaryblob, value), do: %Cyanide.Binary{subtype: :generic, data: value}
+
+  defp cast_bson_value(:binaryblobarray, value),
+    do: Enum.map(value, &cast_bson_value(:binaryblob, &1))
+
+  defp cast_bson_value(_value_type, value), do: value
 end

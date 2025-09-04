@@ -21,15 +21,17 @@ defmodule Astarte.Pairing.Queries do
   This module is responsible for the interaction with the database.
   """
 
-  alias Astarte.DataAccess.Consistency
-  alias Astarte.DataAccess.Realms.Realm
-  alias Astarte.DataAccess.Devices.Device
-  alias Astarte.DataAccess.KvStore
-  alias Astarte.DataAccess.Repo
-  require Logger
   import Ecto.Query
 
-  def is_realm_existing(realm_name) do
+  alias Astarte.DataAccess.Consistency
+  alias Astarte.DataAccess.Devices.Device
+  alias Astarte.DataAccess.KvStore
+  alias Astarte.DataAccess.Realms.Realm
+  alias Astarte.DataAccess.Repo
+
+  require Logger
+
+  def realm_existing?(realm_name) do
     keyspace_name = Realm.astarte_keyspace_name()
 
     query =
@@ -46,7 +48,7 @@ defmodule Astarte.Pairing.Queries do
 
       {:error, reason} ->
         Logger.warning("Cannot check if realm exists: #{inspect(reason)}.",
-          tag: "is_realm_existing_error",
+          tag: "realm_existing_error",
           realm: realm_name
         )
 

@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2018 Ispirata Srl
+# Copyright 2018 - 2025 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -35,9 +35,7 @@ defmodule Astarte.HousekeepingWeb.Plug.VerifyHeader do
   def call(conn, opts) do
     secret = get_secret()
 
-    merged_opts =
-      opts
-      |> Keyword.merge(secret: secret)
+    merged_opts = Keyword.put(opts, :secret, secret)
 
     GuardianVerifyHeader.call(conn, merged_opts)
   end

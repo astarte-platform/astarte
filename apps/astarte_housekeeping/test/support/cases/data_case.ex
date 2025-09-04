@@ -17,7 +17,9 @@
 #
 
 defmodule Astarte.Housekeeping.DataCase do
+  @moduledoc false
   use ExUnit.CaseTemplate
+
   alias Astarte.Housekeeping.Helpers.Database
 
   setup_all do

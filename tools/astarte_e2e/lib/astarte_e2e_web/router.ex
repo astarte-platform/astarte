@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2020 Ispirata Srl
+# Copyright 2020 - 2025 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -21,6 +21,8 @@ defmodule AstarteE2EWeb.Router do
 
   use Plug.Router
 
+  alias AstarteE2EWeb.TriggerController
+
   if Mix.env() == :dev do
     forward "/sent_emails", to: Bamboo.SentEmailViewerPlug
   end
@@ -30,6 +32,14 @@ defmodule AstarteE2EWeb.Router do
 
   plug :match
   plug :dispatch
+
+  post "/triggers/data" do
+    TriggerController.handle_data_trigger(conn)
+  end
+
+  post "/triggers/device" do
+    TriggerController.handle_device_trigger(conn)
+  end
 
   match _ do
     send_resp(conn, 404, "Not found")

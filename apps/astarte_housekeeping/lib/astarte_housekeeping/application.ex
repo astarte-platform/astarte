@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2017 Ispirata Srl
+# Copyright 2017 - 2025 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -17,11 +17,13 @@
 #
 
 defmodule Astarte.Housekeeping.Application do
+  @moduledoc false
   use Application
-  require Logger
 
-  alias Astarte.Housekeeping.Config
   alias Astarte.DataAccess.Config, as: DataAccessConfig
+  alias Astarte.Housekeeping.Config
+
+  require Logger
 
   @app_version Mix.Project.config()[:version]
 
@@ -39,6 +41,7 @@ defmodule Astarte.Housekeeping.Application do
     Config.validate!()
     DataAccessConfig.validate!()
     Config.validate_jwt_public_key_pem!()
+    Config.validate_astarte_replication!()
 
     # Define workers and child supervisors to be supervised
     children = [

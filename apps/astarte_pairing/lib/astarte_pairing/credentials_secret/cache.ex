@@ -23,9 +23,9 @@ defmodule Astarte.Pairing.CredentialsSecret.Cache do
   computation time
   """
 
-  @max_keys 32768
-
   use Agent
+
+  @max_keys 32_768
 
   def start_link(_args) do
     Agent.start_link(fn -> %{} end, name: __MODULE__)

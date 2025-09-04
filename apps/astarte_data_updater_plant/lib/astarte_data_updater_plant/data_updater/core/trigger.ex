@@ -93,7 +93,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.Trigger do
     new_data_trigger_with_targets = %{new_data_trigger | trigger_targets: new_targets}
 
     # Register the new target
-    :ok = TriggersHandler.register_target(trigger_target)
+    :ok = TriggersHandler.register_target(trigger_target, state.realm)
 
     # Replace the (eventual) congruent existing trigger with the new one
     new_data_triggers_for_key = [
@@ -113,7 +113,6 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.Trigger do
   # TODO: implement on_empty_cache_received
   def load_trigger(state, {:device_trigger, proto_buf_device_trigger}, trigger_target) do
     device_triggers = state.device_triggers
-
     # device event type is one of
     # :on_device_connected, :on_device_disconnected, :on_device_empty_cache_received, :on_device_error,
     # :on_incoming_introspection, :on_interface_added, :on_interface_removed, :on_interface_minor_updated
@@ -128,7 +127,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.Trigger do
     new_targets = [trigger_target | existing_trigger_targets]
 
     # Register the new target
-    :ok = TriggersHandler.register_target(trigger_target)
+    :ok = TriggersHandler.register_target(trigger_target, state.realm)
 
     next_device_triggers = Map.put(device_triggers, trigger_key, new_targets)
     # Map.put(state, :introspection_triggers, next_introspection_triggers)

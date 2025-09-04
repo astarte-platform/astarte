@@ -121,13 +121,6 @@ defmodule Astarte.AppEngine.API.Config do
           os_env: "APPENGINE_API_ROOMS_AMQP_CLIENT_SSL_CUSTOM_SNI",
           type: :binary
 
-  @envdoc "Returns the RPC client, defaulting to AMQP.Client. Used for Mox during testing."
-  app_env :rpc_client, :astarte_appengine_api, :rpc_client,
-    os_env: "APPENGINE_API_RPC_CLIENT",
-    binding_skip: [:system],
-    type: :module,
-    default: Astarte.RPC.AMQP.Client
-
   @envdoc "The Erlang cluster strategy to use. One of `none`, `kubernetes`. Defaults to `none`."
   app_env :clustering_strategy,
           :astarte_appengine_api,
@@ -144,13 +137,21 @@ defmodule Astarte.AppEngine.API.Config do
           type: :binary,
           default: "app=astarte-data-updater-plant"
 
-  @envdoc "The Endpoint label to use to query Kubernetes to find vernemq instances. Defaults to `app=astarte-vernemq`."
+  @envdoc "The Pod label to use to query Kubernetes to find vernemq instances. Defaults to `app=astarte-vernemq`."
   app_env :vernemq_clustering_kubernetes_selector,
           :astarte_appengine_api,
           :vernemq_clustering_kubernetes_selector,
           os_env: "VERNEMQ_CLUSTERING_KUBERNETES_SELECTOR",
           type: :binary,
           default: "app=astarte-vernemq"
+
+  @envdoc "The name of the Kubernetes service to use to query Kubernetes to find vernemq instances. Defaults to `astarte-vernemq`."
+  app_env :vernemq_clustering_kubernetes_service_name,
+          :astarte_appengine_api,
+          :vernemq_clustering_kubernetes_service_name,
+          os_env: "VERNEMQ_CLUSTERING_KUBERNETES_SERVICE_NAME",
+          type: :binary,
+          default: "astarte-vernemq"
 
   @envdoc "The Kubernetes namespace to use when `kubernetes` Erlang clustering strategy is used. Defaults to `astarte`."
   app_env :clustering_kubernetes_namespace,
@@ -159,6 +160,16 @@ defmodule Astarte.AppEngine.API.Config do
           os_env: "CLUSTERING_KUBERNETES_NAMESPACE",
           type: :binary,
           default: "astarte"
+
+  @envdoc """
+  "The handling method for database events. The default is `expose`, which means that the events are exposed trough telemetry. The other possible value, `log`, means that the events are logged instead."
+  """
+  app_env :database_events_handling_method,
+          :astarte_appengine_api,
+          :database_events_handling_method,
+          os_env: "DATABASE_EVENTS_HANDLING_METHOD",
+          type: Astarte.AppEngine.API.Config.TelemetryType,
+          default: :expose
 
   @doc """
   Returns the routing key used for Rooms AMQP events consumer. A constant for now.
@@ -255,7 +266,7 @@ defmodule Astarte.AppEngine.API.Config do
             strategy: Elixir.Cluster.Strategy.Kubernetes,
             config: [
               mode: :hostname,
-              kubernetes_service_name: "astarte-vernemq",
+              kubernetes_service_name: vernemq_clustering_kubernetes_service_name!(),
               kubernetes_node_basename: "VerneMQ",
               kubernetes_ip_lookup_mode: :pods,
               kubernetes_selector: vernemq_clustering_kubernetes_selector!(),

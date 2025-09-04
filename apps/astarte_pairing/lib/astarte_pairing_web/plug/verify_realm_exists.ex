@@ -17,10 +17,11 @@
 #
 
 defmodule Astarte.PairingWeb.Plug.VerifyRealmExists do
+  @moduledoc false
   @behaviour Plug
 
-  import Plug.Conn
   import Phoenix.Controller
+  import Plug.Conn
 
   alias Astarte.Pairing.Queries
 
@@ -33,7 +34,7 @@ defmodule Astarte.PairingWeb.Plug.VerifyRealmExists do
   def call(conn, _opts) do
     realm_name = conn.path_params["realm_name"]
 
-    case Queries.is_realm_existing(realm_name) do
+    case Queries.realm_existing?(realm_name) do
       {:ok, true} ->
         Logger.metadata(realm: realm_name)
 

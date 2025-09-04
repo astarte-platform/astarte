@@ -206,15 +206,6 @@ defmodule Astarte.DataUpdaterPlant.Config do
     type: :integer,
     default: 4000
 
-  @envdoc """
-  The RPC client, defaulting to AMQP.Client. Used for Mox during testing.
-  """
-  app_env :rpc_client, :astarte_data_updater_plant, :rpc_client,
-    os_env: "DATA_UPDATER_PLANT_RPC_CLIENT",
-    binding_skip: [:system],
-    type: :module,
-    default: Astarte.RPC.AMQP.Client
-
   @envdoc "The interval between two heartbeats sent from the VernqMQ device process."
   app_env :device_heartbeat_interval_ms,
           :astarte_data_updater_plant,
@@ -255,13 +246,21 @@ defmodule Astarte.DataUpdaterPlant.Config do
           type: :binary,
           default: "app=astarte-data-updater-plant"
 
-  @envdoc "The Endpoint label to use to query Kubernetes to find vernemq instances. Defaults to `app=astarte-vernemq`."
+  @envdoc "The Pod label to use to query Kubernetes to find vernemq instances. Defaults to `app=astarte-vernemq`."
   app_env :vernemq_clustering_kubernetes_selector,
           :astarte_data_updater_plant,
           :vernemq_clustering_kubernetes_selector,
           os_env: "VERNEMQ_CLUSTERING_KUBERNETES_SELECTOR",
           type: :binary,
           default: "app=astarte-vernemq"
+
+  @envdoc "The name of the Kubernetes service to use to query Kubernetes to find vernemq instances. Defaults to `astarte-vernemq`."
+  app_env :vernemq_clustering_kubernetes_service_name,
+          :astarte_data_updater_plant,
+          :vernemq_clustering_kubernetes_service_name,
+          os_env: "VERNEMQ_CLUSTERING_KUBERNETES_SERVICE_NAME",
+          type: :binary,
+          default: "astarte-vernemq"
 
   @envdoc "The Kubernetes namespace to use when `kubernetes` Erlang clustering strategy is used. Defaults to `astarte`."
   app_env :clustering_kubernetes_namespace,
@@ -272,14 +271,14 @@ defmodule Astarte.DataUpdaterPlant.Config do
           default: "astarte"
 
   @envdoc """
-  The host for the AMQP triggers_producer connection. If no AMQP triggers_producer options are set, the AMQP consumer options will be used.
+  The host for the AMQP triggers_producer connection. If no AMQP triggers_producer options are set, the AMQP producer options will be used.
   """
   app_env :amqp_triggers_producer_host, :astarte_data_updater_plant, :amqp_triggers_producer_host,
     os_env: "DATA_UPDATER_PLANT_AMQP_TRIGGERS_PRODUCER_HOST",
     type: :binary
 
   @envdoc """
-  The username for the AMQP triggers_producer connection. If no AMQP triggers_producer options are set, the AMQP consumer options will be used.
+  The username for the AMQP triggers_producer connection. If no AMQP triggers_producer options are set, the AMQP producer options will be used.
   """
   app_env :amqp_triggers_producer_username,
           :astarte_data_updater_plant,
@@ -288,7 +287,7 @@ defmodule Astarte.DataUpdaterPlant.Config do
           type: :binary
 
   @envdoc """
-  The password for the AMQP triggers_producer connection. If no AMQP triggers_producer options are set, the AMQP consumer options will be used.
+  The password for the AMQP triggers_producer connection. If no AMQP triggers_producer options are set, the AMQP producer options will be used.
   """
   app_env :amqp_triggers_producer_password,
           :astarte_data_updater_plant,
@@ -304,13 +303,13 @@ defmodule Astarte.DataUpdaterPlant.Config do
           type: :binary
 
   @envdoc """
-  The port for the AMQP triggers_producer connection. If no AMQP triggers_producer options are set, the AMQP consumer options will be used.
+  The port for the AMQP triggers_producer connection. If no AMQP triggers_producer options are set, the AMQP producer options will be used.
   """
   app_env :amqp_triggers_producer_port, :astarte_data_updater_plant, :amqp_triggers_producer_port,
     os_env: "DATA_UPDATER_PLANT_AMQP_TRIGGERS_PRODUCER_PORT",
     type: :integer
 
-  @envdoc "Enable SSL for the AMQP triggers_producer connection. If not specified, the consumer's setting will be used."
+  @envdoc "Enable SSL for the AMQP triggers_producer connection. If not specified, the AMQP producer's setting will be used."
   app_env :amqp_triggers_producer_ssl_enabled,
           :astarte_data_updater_plant,
           :amqp_triggers_producer_ssl_enabled,
@@ -318,7 +317,7 @@ defmodule Astarte.DataUpdaterPlant.Config do
           type: :boolean
 
   @envdoc """
-  Specifies the certificates of the root Certificate Authorities to be trusted for the AMQP triggers_producer connection. When not specified, either the consumer's ca_cert is used (if set), or the bundled cURL certificate bundle will be used.
+  Specifies the certificates of the root Certificate Authorities to be trusted for the AMQP triggers_producer connection. When not specified, either the AMQP producer's ca_cert is used (if set), or the bundled cURL certificate bundle will be used.
   """
   app_env :amqp_triggers_producer_ssl_ca_file,
           :astarte_data_updater_plant,
@@ -334,12 +333,22 @@ defmodule Astarte.DataUpdaterPlant.Config do
           type: :boolean,
           default: false
 
-  @envdoc "Specify the hostname to be used in TLS Server Name Indication extension. If not specified, the amqp consumer host will be used. This value is used only if Server Name Indication is enabled."
+  @envdoc "Specify the hostname to be used in TLS Server Name Indication extension. If not specified, the AMQP producer host will be used. This value is used only if Server Name Indication is enabled."
   app_env :amqp_triggers_producer_ssl_custom_sni,
           :astarte_data_updater_plant,
           :amqp_triggers_producer_ssl_custom_sni,
           os_env: "DATA_UPDATER_PLANT_AMQP_TRIGGERS_PRODUCER_SSL_CUSTOM_SNI",
           type: :binary
+
+  @envdoc """
+  "The handling method for database events. The default is `expose`, which means that the events are exposed trough telemetry. The other possible value, `log`, means that the events are logged instead."
+  """
+  app_env :database_events_handling_method,
+          :astarte_data_updater_plant,
+          :database_events_handling_method,
+          os_env: "DATABASE_EVENTS_HANDLING_METHOD",
+          type: Astarte.DataUpdaterPlant.Config.TelemetryType,
+          default: :expose
 
   # Since we have one channel per queue, this is not configurable
   def amqp_consumer_channels_per_connection_number!() do
@@ -672,7 +681,7 @@ defmodule Astarte.DataUpdaterPlant.Config do
             strategy: Elixir.Cluster.Strategy.Kubernetes,
             config: [
               mode: :hostname,
-              kubernetes_service_name: "astarte-vernemq",
+              kubernetes_service_name: vernemq_clustering_kubernetes_service_name!(),
               kubernetes_node_basename: "VerneMQ",
               kubernetes_ip_lookup_mode: :pods,
               kubernetes_selector: vernemq_clustering_kubernetes_selector!(),

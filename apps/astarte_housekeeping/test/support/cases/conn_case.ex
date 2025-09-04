@@ -36,10 +36,11 @@ defmodule Astarte.HousekeepingWeb.ConnCase do
   using do
     quote do
       # Import conveniences for testing with connections
-      import Plug.Conn
-      import Phoenix.ConnTest
-      import Astarte.HousekeepingWeb.Router.Helpers
       use Astarte.Housekeeping.DataCase
+
+      import Astarte.HousekeepingWeb.Router.Helpers
+      import Phoenix.ConnTest
+      import Plug.Conn
 
       # The default endpoint for testing
       @endpoint Astarte.HousekeepingWeb.Endpoint

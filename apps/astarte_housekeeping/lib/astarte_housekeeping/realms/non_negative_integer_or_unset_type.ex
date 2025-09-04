@@ -17,6 +17,7 @@
 #
 
 defmodule Astarte.Housekeeping.Realms.NonNegativeIntegerOrUnsetType do
+  @moduledoc false
   use Ecto.Type
 
   @type t() :: non_neg_integer() | :unset

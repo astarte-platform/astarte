@@ -17,6 +17,7 @@
 #
 
 defmodule Astarte.Pairing.Info.ProtocolStatus do
+  @moduledoc false
   @enforce_keys [:astarte_mqtt_v1]
   defstruct [:astarte_mqtt_v1]
 end
