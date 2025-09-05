@@ -18,6 +18,8 @@
 
 defmodule Astarte.DataAccess.Devices.Device do
   use TypedEctoSchema
+
+  alias Astarte.Core.Device.Capabilities
   alias Astarte.DataAccess.UUID
   alias Astarte.DataAccess.DateTime, as: DateTimeMs
 
@@ -58,6 +60,7 @@ defmodule Astarte.DataAccess.Devices.Device do
           types: [:string, :integer],
           value: :integer
 
+    field :capabilities, Exandra.EmbeddedType, using: Capabilities
     field :pending_empty_cache, :boolean
     field :protocol_revision, :integer
     field :total_received_bytes, :integer
