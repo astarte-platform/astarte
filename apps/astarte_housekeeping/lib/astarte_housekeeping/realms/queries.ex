@@ -235,6 +235,7 @@ defmodule Astarte.Housekeeping.Realms.Queries do
          :ok <- create_realm_keyspace(keyspace_name, replication_map_str),
          :ok <- create_realm_kv_store(keyspace_name),
          :ok <- create_names_table(keyspace_name),
+         :ok <- create_capabilities_type(keyspace_name),
          :ok <- create_devices_table(keyspace_name),
          :ok <- create_endpoints_table(keyspace_name),
          :ok <- create_interfaces_table(keyspace_name),
@@ -640,6 +641,18 @@ defmodule Astarte.Housekeeping.Realms.Queries do
     end
   end
 
+  defp create_capabilities_type(keyspace_name) do
+    query = """
+    CREATE TYPE #{keyspace_name}.capabilities (
+      purge_properties_compression_format int
+    );
+    """
+
+    with {:ok, %{rows: nil, num_rows: 1}} <- CSystem.execute_schema_change(query) do
+      :ok
+    end
+  end
+
   defp create_devices_table(keyspace_name) do
     query = """
     CREATE TABLE #{keyspace_name}.devices (
@@ -667,6 +680,7 @@ defmodule Astarte.Housekeeping.Realms.Queries do
       last_seen_ip inet,
       attributes map<varchar, varchar>,
       groups map<varchar, timeuuid>,
+      capabilities capabilities,
 
       PRIMARY KEY (device_id)
     );

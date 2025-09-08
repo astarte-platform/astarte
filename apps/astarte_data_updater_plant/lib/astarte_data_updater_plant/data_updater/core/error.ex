@@ -35,9 +35,9 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.Error do
 
   %{
     state: DataUpdater.State.t(),
-    interface: Astarte.Core.Interface.t(),
+    interface: optional(Astarte.Core.Interface.t()),
+    path: optional(String.t()),
     message_id: binary(),
-    path: String.t(),
     timestamp: DateTime.t(),
     payload: binary()
   }
@@ -64,12 +64,13 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.Error do
   def handle_error(context, error, opts \\ []) do
     %{
       state: state,
-      interface: interface,
       message_id: message_id,
-      path: path,
       timestamp: timestamp,
       payload: payload
     } = context
+
+    interface = Map.get(context, :interface, "")
+    path = Map.get(context, :path, "")
 
     %{
       message: message,

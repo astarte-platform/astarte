@@ -19,6 +19,7 @@
 defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
   alias Astarte.Core.CQLUtils
   alias Astarte.Core.Device, as: CoreDevice
+  alias Astarte.Core.Device.Capabilities
   alias Astarte.Core.InterfaceDescriptor
   alias Astarte.Core.Mapping
   alias Astarte.DataAccess.Consistency
@@ -428,13 +429,14 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
     :ok
   end
 
-  def retrieve_device_stats_and_introspection!(realm, device_id) do
+  def get_device_status(realm, device_id) do
     keyspace_name = Realm.keyspace_name(realm)
 
     stats =
       Device
       |> where(device_id: ^device_id)
       |> select([
+        :capabilities,
         :total_received_msgs,
         :total_received_bytes,
         :introspection,
@@ -444,7 +446,13 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
       |> put_query_prefix(keyspace_name)
       |> Repo.one(consistency: Consistency.device_info(:read))
 
+    # When adding a new capability, it appears as `nil` when read from the db
+    # we normalize it to make sure we get back a capabilities struct with the default values
+    # for unset capabilities
+    capabilities = normalize_capabilities(stats.capabilities)
+
     %{
+      capabilities: capabilities,
       introspection: stats.introspection,
       total_received_msgs: stats.total_received_msgs,
       total_received_bytes: stats.total_received_bytes,
@@ -735,6 +743,20 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
     end
   end
 
+  def set_device_capabilities(realm_name, device_id, capabilities) do
+    keyspace_name = Realm.keyspace_name(realm_name)
+
+    device =
+      %Device{device_id: device_id}
+      |> Ecto.Changeset.change(%{capabilities: capabilities})
+
+    opts = [prefix: keyspace_name, consistency: Consistency.device_info(:write)]
+
+    with {:ok, _device} <- Repo.update(device, opts) do
+      :ok
+    end
+  end
+
   defp to_db_friendly_type(array) when is_list(array) do
     # If we have an array, we convert its elements to a db friendly type
     Enum.map(array, &to_db_friendly_type/1)
@@ -906,5 +928,23 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
     consistency = Consistency.domain_model(:read)
 
     Repo.all(DeletionInProgress, prefix: keyspace_name, consistency: consistency)
+  end
+
+  @spec normalize_capabilities(nil | Capabilities.t()) :: Capabilities.t()
+  defp normalize_capabilities(nil), do: %Capabilities{}
+
+  defp normalize_capabilities(capabilities) do
+    nil_keys =
+      capabilities
+      |> Map.from_struct()
+      |> Enum.filter(fn {_key, value} -> value == nil end)
+      |> Enum.map(fn {key, nil} -> key end)
+
+    defaults =
+      %Capabilities{}
+      |> Map.from_struct()
+      |> Map.take(nil_keys)
+
+    Map.merge(capabilities, defaults)
   end
 end
