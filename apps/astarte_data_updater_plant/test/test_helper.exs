@@ -35,6 +35,7 @@ Mimic.copy(Astarte.DataUpdaterPlant.RPC.VMQPlugin)
 Mimic.copy(Astarte.DataUpdaterPlant.TriggersHandler)
 Mimic.copy(System)
 Mimic.copy(Xandra)
+Mimic.copy(ExRabbitPool)
 Mimic.copy(Astarte.DataAccess.Health.Health)
 
 ExUnit.start(capture_log: true)
