@@ -74,7 +74,7 @@ defmodule Astarte.DataUpdaterPlant.Mixfile do
       {:astarte_realm_management,
        path: "../astarte_realm_management", only: [:dev, :test], runtime: false},
       {:astarte_housekeeping,
-       path: "../astarte_housekeeping", only: [:dev, :test], runtime: false}
+       path: "../astarte_housekeeping", only: [:dev, :test], env: :dev, runtime: false}
     ]
   end
 
@@ -85,7 +85,7 @@ defmodule Astarte.DataUpdaterPlant.Mixfile do
       {:cyanide, "~> 2.0"},
       {:excoveralls, "~> 0.15", only: :test},
       {:mox, "~> 1.0", only: :test},
-      {:mimic, "~> 1.11", only: :test},
+      {:mimic, "~> 1.11", only: [:dev, :test]},
       {:exandra, "~> 0.13"},
       # hex.pm package and esl/ex_rabbit_pool do not support amqp version 2.1.
       # This fork is supporting amqp ~> 2.0 and also ~> 3.0.
