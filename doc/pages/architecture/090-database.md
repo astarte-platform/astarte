@@ -63,6 +63,12 @@ CREATE KEYSPACE <realm name>
 ```
 
 ```sql
+CREATE TYPE <realm name>.capabilities (
+  purge_properties_compression_format int
+);
+```
+
+```sql
 CREATE TABLE <realm name>.kv_store (
   group varchar,
   key varchar,
@@ -109,6 +115,7 @@ CREATE TABLE <realm_name>.devices (
   attributes map<varchar, varchar>,
 
   groups map<varchar, timeuuid>,
+  capabilities capabilities,
 
   PRIMARY KEY (device_id)
 );
