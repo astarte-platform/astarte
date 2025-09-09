@@ -1,6 +1,6 @@
 %{
   "astarte_core": {:git, "https://github.com/astarte-platform/astarte_core.git", "a3c04771d9dd64a65e3b81e0b199c9d3ed3d55c4", [branch: "release-1.3"]},
-  "astarte_data_access": {:git, "https://github.com/astarte-platform/astarte_data_access.git", "7abbb7cff6af8f44857c39c25b92393565665eb9", [branch: "release-1.3"]},
+  "astarte_data_access": {:git, "https://github.com/astarte-platform/astarte_data_access.git", "5e13b3a1adb792142e4d5e4bd466e927f67810c5", [branch: "release-1.3"]},
   "astarte_generators": {:git, "https://github.com/astarte-platform/astarte_generators.git", "c81777d16959a4e30c465ff0ee0ff05bafa94dd6", []},
   "bunt": {:hex, :bunt, "1.0.0", "081c2c665f086849e6d57900292b3a161727ab40431219529f13c4ddcf3e7a44", [:mix], [], "hexpm", "dc5f86aa08a5f6fa6b8096f0735c4e76d54ae5c9fa2c143e5a1fc7c1cd9bb6b5"},
   "castore": {:hex, :castore, "1.0.15", "8aa930c890fe18b6fe0a0cff27b27d0d4d231867897bd23ea772dee561f032a3", [:mix], [], "hexpm", "96ce4c69d7d5d7a0761420ef743e2f4096253931a3ba69e5ff8ef1844fe446d3"},
