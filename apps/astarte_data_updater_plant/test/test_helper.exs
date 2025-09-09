@@ -37,5 +37,6 @@ Mimic.copy(Astarte.DataUpdaterPlant.TriggersHandler)
 Mimic.copy(Horde.Registry)
 Mimic.copy(System)
 Mimic.copy(Xandra)
-
+Mimic.copy(ExRabbitPool)
+Mimic.copy(Astarte.DataAccess.Health.Health)
 ExUnit.start(capture_log: true)
