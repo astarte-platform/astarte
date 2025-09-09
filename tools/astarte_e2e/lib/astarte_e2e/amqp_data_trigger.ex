@@ -82,7 +82,14 @@ defmodule AstarteE2E.AmqpDataTrigger do
 
     case install_triggers(realm, device_id, properties_interface, datastream_interface) do
       :ok ->
-        Logger.info("Amqp Data Triggers installed successfully.")
+        # "interface_name" => datastream_interface.interface_name,
+        # "interface_major" => datastream_interface.version_major,
+        properties = {properties_interface.interface_name, properties_interface.version_major}
+        datastream = {datastream_interface.interface_name, datastream_interface.version_major}
+
+        "Amqp Data Triggers installed successfully for interfaces #{inspect(properties)} and #{inspect(datastream)}."
+        |> Logger.info()
+
         {:noreply, state, {:continue, :start_consumer}}
 
       {:error, reason} ->
@@ -249,9 +256,8 @@ defmodule AstarteE2E.AmqpDataTrigger do
         {:ok, List.delete_at(messages, first_trigger_value_index)}
 
       false ->
-        Logger.debug(
-          "AMQP Data Trigger: unexpected message: #{inspect(value)} for entry #{entry}"
-        )
+        "AMQP Data Trigger: unexpected message: #{inspect(value)} for interface #{interface}"
+        |> Logger.debug()
 
         {:error, :not_found}
     end
