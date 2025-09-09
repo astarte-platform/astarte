@@ -94,6 +94,14 @@ defmodule Astarte.DataAccess.Config do
     default: CAStore.file_path()
 
   @envdoc """
+  Whether to enable the tcp keepalive option for the Cassandra connection. Defaults to true.
+  """
+  app_env :enable_keepalive, :astarte_data_access, :enable_keepalive,
+    os_env: "CASSANDRA_ENABLE_KEEPALIVE",
+    type: :boolean,
+    default: true
+
+  @envdoc """
   A string that uniquely identifies this Astarte instance.
   It will be used to generate Scylla keyspaces starting from Astarte realm names.
   Defaults to "".
@@ -155,12 +163,11 @@ defmodule Astarte.DataAccess.Config do
   app_env :time_series_write_consistency, :astarte_data_access, :time_series_write_consistency,
     type: :atom
 
-  defp populate_xandra_ssl_options(options) do
+  defp xandra_ssl_options do
     if ssl_enabled!() do
-      ssl_options = build_ssl_options()
-      Keyword.put(options, :transport_options, ssl_options)
+      build_ssl_options()
     else
-      options
+      []
     end
   end
 
@@ -183,13 +190,17 @@ defmodule Astarte.DataAccess.Config do
 
   @spec xandra_options!() :: [Xandra.start_option()]
   def xandra_options! do
+    transport_options =
+      xandra_ssl_options()
+      |> Keyword.put(:keepalive, enable_keepalive!())
+
     [
       nodes: xandra_nodes!(),
       authentication: xandra_authentication_options!(),
       pool_size: pool_size!(),
-      encryption: ssl_enabled!()
+      encryption: ssl_enabled!(),
+      transport_options: transport_options
     ]
-    |> populate_xandra_ssl_options()
   end
 
   def time_series_consistency(operation, mapping) do
