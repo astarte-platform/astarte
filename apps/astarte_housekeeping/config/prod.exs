@@ -15,7 +15,7 @@ import Config
 # which you typically run after static files are built.
 config :astarte_housekeeping, Astarte.HousekeepingWeb.Endpoint,
   server: true,
-  version: Application.spec(:astarte_realm_management_api, :vsn)
+  version: Application.spec(:astarte_housekeeping, :vsn)
 
 # Do not print debug messages in production
 config :logger,
