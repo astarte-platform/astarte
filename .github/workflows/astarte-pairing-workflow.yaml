@@ -1,4 +1,4 @@
-name: Build and Test Astarte Pairing API
+name: Build and Test Astarte Pairing
 
 on:
   # Run when pushing to stable branches
