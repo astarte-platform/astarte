@@ -202,7 +202,7 @@ defmodule Astarte.AppEngine.API.Device do
     now =
       case explicit_timestamp do
         false -> DateTime.utc_now()
-        timestamp -> timestamp
+        {:ok, timestamp} -> timestamp
       end
 
     with {:ok, [endpoint_id]} <- get_endpoint_ids(interface_descriptor.automaton, path),
@@ -382,7 +382,7 @@ defmodule Astarte.AppEngine.API.Device do
     now =
       case explicit_timestamp do
         false -> DateTime.utc_now()
-        timestamp -> timestamp
+        {:ok, timestamp} -> timestamp
       end
 
     with {:ok, mappings} <-
@@ -486,12 +486,7 @@ defmodule Astarte.AppEngine.API.Device do
         raw_value,
         params
       ) do
-    explicit_timestamp =
-      with true <-
-             Queries.interface_has_explicit_timestamp?(realm_name, interface.interface_id),
-           :error <- Map.fetch!(params, :explicit_timestamp) do
-        false
-      end
+
 
     with {:ok, device_id} <- Device.decode_device_id(encoded_device_id),
          {:ok, major_version} <-
@@ -501,6 +496,15 @@ defmodule Astarte.AppEngine.API.Device do
          {:ok, interface_descriptor} <- InterfaceDescriptor.from_db_result(interface_row),
          {:ownership, :server} <- {:ownership, interface_descriptor.ownership},
          path <- "/" <> no_prefix_path do
+
+          explicit_timestamp =
+            with true <-
+                   Queries.interface_has_explicit_timestamp?(realm_name, interface_row.interface_id),
+                 :error <- Map.fetch(params, :explicit_timestamp) do
+              false
+            end
+
+
       if interface_descriptor.aggregation == :individual do
         update_individual_interface_values(
           realm_name,
