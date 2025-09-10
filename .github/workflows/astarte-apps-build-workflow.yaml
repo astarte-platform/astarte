@@ -19,8 +19,8 @@ env:
   otp_version: "26.1"
 
 jobs:
-  test-dialyzer:
-    name: Check Dialyzer
+  lint:
+    name: Lint
     runs-on: ubuntu-22.04
     env:
       MIX_ENV: ci
@@ -52,6 +52,9 @@ jobs:
       - name: Install Dependencies
         working-directory: ./apps/${{ inputs.app }}
         run: mix deps.get
+      - name: Check formatting
+        working-directory: ./apps/${{ inputs.app }}
+        run: mix format --check-formatted
       - name: Create PLTs dir
         working-directory: ./apps/${{ inputs.app }}
         run: mkdir -p dialyzer_cache && mix dialyzer --plt
@@ -114,9 +117,6 @@ jobs:
       - name: Install Dependencies
         working-directory: ./apps/${{ inputs.app }}
         run: mix deps.get
-      - name: Check formatting
-        working-directory: ./apps/${{ inputs.app }}
-        run: mix format --check-formatted
       - name: Compile
         working-directory: ./apps/${{ inputs.app }}
         run: mix compile --warnings-as-errors --force
