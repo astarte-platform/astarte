@@ -12,6 +12,19 @@ Astarte is multi-tenant by design, with each tenant mapping to an Astarte Realm.
 
 Astarte automatically takes care of keyspaces, tables creation and intra-version migrations (those tasks are performed by `astarte_housekeeping` or `astarte_realm_management`, depending on the context). The following documentation is just a reference about Astarte's internal statements, and is related to the release series referenced by the documentation.
 
+
+### Astarte Instance ID
+The Astarte Instance ID is needed in order to run multiple Astarte instances on a shared database, 
+as it provides proper namespace isolation. It is configurable by setting the `ASTARTE_INSTANCE_ID` environment variable, and when set to an empty string (the default), maintains the same behavior 
+as previous installations. 
+The Astarte Instance ID is fully supported by the Astarte Operator.For the usage with the operator you can 
+refer to [the corresponding documentation](https://docs.astarte-platform.org/astarte-kubernetes-operator/24.5/001-intro_administrator.html) 
+
+#### Inner workings
+When the Astarte Instance ID is set, it is used as a prefix for the Cassandra keyspace name. 
+If the resulting keyspace name would exceed Cassandra’s length limits, suitable adjustments 
+are automatically applied to ensure compliance.
+
 ### Astarte Keyspace
 
 Astarte needs an `astarte` keyspace to store its own data.
