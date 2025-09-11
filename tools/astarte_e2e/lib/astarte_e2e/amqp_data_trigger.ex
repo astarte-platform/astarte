@@ -17,7 +17,7 @@
 #
 
 defmodule AstarteE2E.AmqpDataTrigger do
-  use GenServer
+  use GenServer, restart: :temporary
   require Logger
 
   alias Astarte.Core.Triggers.SimpleEvents.IncomingDataEvent
@@ -55,6 +55,7 @@ defmodule AstarteE2E.AmqpDataTrigger do
             device_id: device_id,
             realm: realm,
             device_pid: device_pid,
+            consumer_pid: nil,
             messages: nil
           }
 
@@ -110,9 +111,9 @@ defmodule AstarteE2E.AmqpDataTrigger do
     ]
 
     case Consumer.start_link(consumer_opts) do
-      {:ok, _} ->
+      {:ok, consumer_pid} ->
         Logger.info("Amqp Data Trigger: consumer started")
-        {:noreply, state, {:continue, :publish_data}}
+        {:noreply, %{state | consumer_pid: consumer_pid}, {:continue, :publish_data}}
 
       {:error, reason} ->
         "Amqp Data Trigger: stopping due to consumer startup error: #{inspect(reason)}"
@@ -146,6 +147,12 @@ defmodule AstarteE2E.AmqpDataTrigger do
   end
 
   @impl true
+  def handle_continue(:stop, state) do
+    Consumer.stop(state.consumer_pid)
+    {:stop, :normal, state}
+  end
+
+  @impl true
   def handle_call({:handle_message, payload, _meta}, _from, state) do
     %SimpleEvent{event: {:incoming_data_event, event}} = SimpleEvent.decode(payload)
     %IncomingDataEvent{interface: interface, bson_value: bson_value} = event
@@ -154,9 +161,15 @@ defmodule AstarteE2E.AmqpDataTrigger do
     Logger.info("AMQP Data Trigger: handling #{inspect({interface, value})}")
 
     case pop_trigger(state.messages, interface, value) do
-      {:ok, []} -> {:stop, :normal, :ok, %{state | messages: []}}
-      {:ok, new_messages} -> {:reply, :ok, %{state | messages: new_messages}}
-      {:error, :not_found} -> {:reply, {:error, :not_founnd}, state}
+      {:ok, []} ->
+        Logger.info("AMQP Data Trigger: all messages received")
+        {:reply, :ok, %{state | messages: []}, {:continue, :stop}}
+
+      {:ok, new_messages} ->
+        {:reply, :ok, %{state | messages: new_messages}}
+
+      {:error, :not_found} ->
+        {:reply, {:error, :not_founnd}, state}
     end
   end
 

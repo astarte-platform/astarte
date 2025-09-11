@@ -49,6 +49,17 @@ defmodule AstarteE2E.AmqpTriggers.Consumer do
     {:ok, state, {:continue, :connect}}
   end
 
+  def stop(server) do
+    GenServer.call(server, :stop)
+  end
+
+  @impl true
+  def handle_call(:stop, _from, state) do
+    Logger.info("Stopping consumer for routing key #{inspect(state.routing_key)}")
+    Channel.close(state.channel)
+    {:stop, :normal, :ok, state}
+  end
+
   @impl true
   def handle_continue(:connect, state), do: connect(state)
 
@@ -65,7 +76,11 @@ defmodule AstarteE2E.AmqpTriggers.Consumer do
   # Basic.publish or additional info set by the broker;
   @impl true
   def handle_info({:basic_deliver, payload, meta}, state) do
-    state.message_handler.(payload, meta)
+    case state.message_handler.(payload, meta) do
+      :ok -> Basic.ack(state.channel, meta.delivery_tag)
+      :error  -> Basic.nack(state.channel, meta.delivery_tag)
+      {:error, _reason} -> Basic.nack(state.channel, meta.delivery_tag)
+    end
 
     {:noreply, state}
   end
@@ -87,7 +102,7 @@ defmodule AstarteE2E.AmqpTriggers.Consumer do
   end
 
   defp connect(state) do
-    do_connect(state)
+    state = do_connect(state)
     {:noreply, state}
   end
 
@@ -112,6 +127,8 @@ defmodule AstarteE2E.AmqpTriggers.Consumer do
          {:ok, _} <- Basic.consume(channel, queue_name) do
       "Queue #{queue_name} on exchange #{exchange_name} declared, bound with routing key #{routing_key}"
       |> Logger.debug()
+
+      %{state | channel: channel}
     end
   end
 
