@@ -535,6 +535,22 @@ Some Astarte specific restrictions apply:
 
 For further details [RabbitMQ documentation](https://www.rabbitmq.com/amqp-0-9-1-reference.html) is suggested.
 
+Starting from version v1.3.0, AMQP exchanges for AMQP actions are declared inside a dedicated RabbitMQ vhost associated with the target realm. The vhost naming convention is:
+
+```
+/[astarte_instance_id]_[realm_name]
+```
+but under normal circumstances, astarte_instance_id is not set, so it becomes:
+
+```
+/_[realm_name]
+```
+
+As a result, the action will now refer to the exchange within the realm-specific vhost, rather than under the default `/` vhost as in the previous logic.
+
+For additional details regarding the Astarte Instance ID, you can refer to [its documentation](090-database.html#astarte-instance-id)
+
+
 ## Relationship with Channels
 
 Channels are part of AppEngine, and allow users to monitor device events through WebSockets, on top
