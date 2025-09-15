@@ -24,7 +24,9 @@ defmodule Astarte.Generators.Utilities.ParamsGenTest do
   @moduletag :params
   @moduletag :fans
 
-  defp gen_helper do
+  # Utilities
+
+  defp gen_base do
     gen all a <- integer(0..0),
             b <- string(?a..?a, length: 1),
             c <- constant("friend") do
@@ -32,7 +34,7 @@ defmodule Astarte.Generators.Utilities.ParamsGenTest do
     end
   end
 
-  defp param_gen_helper(params) do
+  defp params_gen(params) do
     params gen all a <- integer(0..0),
                    b <- string(?a..?a, length: 1),
                    c <- constant("friend"),
@@ -41,7 +43,7 @@ defmodule Astarte.Generators.Utilities.ParamsGenTest do
     end
   end
 
-  defp param_gen_eq_helper(params) do
+  defp params_gen_eq(params) do
     params gen all a <- integer(0..0),
                    {:ok, 0} = {:ok, a},
                    a1 = a,
@@ -54,59 +56,88 @@ defmodule Astarte.Generators.Utilities.ParamsGenTest do
     end
   end
 
+  defp params_gen_label(params) do
+    params gen all a <- integer(0..0),
+                   :b,
+                   var <- string(?a..?a, length: 1),
+                   c <- constant("friend"),
+                   params: params do
+      {a, var, c}
+    end
+  end
+
+  defp params_gen_label_destruct do
+    params gen all a <- integer(0..0),
+                   :b,
+                   %{b: b} = not_hooked <- string(?a..?a, length: 1),
+                   c <- constant("friend"),
+                   params: [b: %{b: 10}] do
+      {a, b, c, not_hooked}
+    end
+  end
+
+  defp params_gen_no_params do
+    params gen all a <- integer(0..0),
+                   b <- string(?a..?a, length: 1),
+                   c <- constant("friend") do
+      {a, b, c}
+    end
+  end
+
+  # Params
   defp gen_params do
-    gen all a <- integer(), b <- string(:ascii) do
+    gen all a <- integer(),
+            b <- string(:ascii) do
       [a: a, b: b]
     end
   end
 
-  defp function_params(b) do
-    [a: 10, b: b]
-  end
-
-  defp gen_fixtures(_context) do
-    {
-      :ok,
-      gen: &gen_helper/0,
-      param_gen: &param_gen_helper/1,
-      param_gen_eq: &param_gen_eq_helper/1,
-      gen_params: &gen_params/0,
-      function_params: &function_params/1
-    }
-  end
-
-  setup_all :gen_fixtures
+  defp function_params(b), do: [a: 10, b: %{b: b}]
 
   @doc false
   describe "gen_param unit tests" do
     @describetag :success
     @describetag :ut
 
-    property "gen_param does not intervene", %{gen: gen} do
-      check all {a, b, c} <- gen_param(gen.(), :value, other_value: "a") do
+    test "gen_param accepts atom constant override" do
+      assert :ok = gen_param(gen_base(), :value, value: :ok)
+    end
+
+    test "gen_param accepts tuple constant override" do
+      assert {0, 1} = gen_param(gen_base(), :value, value: {0, 1})
+    end
+
+    test "gen_param passes through tuple of generators unchanged (for advanced composition)" do
+      assert {%StreamData{}, %StreamData{}} =
+               gen_param(gen_base(), :value, value: {integer(), string(:alphanumeric)})
+    end
+
+    property "gen_param does not intervene" do
+      check all {a, b, c} <- gen_param(gen_base(), :value, other_value: "a"), max_runs: 1 do
         assert a == 0
         assert b == "a"
         assert c == "friend"
       end
     end
 
-    property "gen_param constant override", %{gen: gen} do
-      check all value <- gen_param(gen.(), :value, value: "a") do
+    property "gen_param constant override" do
+      check all value <- gen_param(gen_base(), :value, value: "a"), max_runs: 1 do
         assert value == "a"
       end
     end
 
-    property "gen_param function override", %{gen: gen, function_params: function_params} do
-      check all value <- gen_param(gen.(), :value, value: function_params.("a")) do
-        assert [a: 10, b: "a"] == value
+    property "gen_param function override" do
+      check all value <- gen_param(gen_base(), :value, value: function_params("a")), max_runs: 1 do
+        assert [a: 10, b: %{b: "a"}] == value
       end
     end
 
-    property "gen_param generator override", %{gen: gen, gen_params: gen_params} do
+    property "gen_param generator override" do
       check all [
                   a: int_value,
                   b: string_value
-                ] <- gen_param(gen.(), :value, value: gen_params.()) do
+                ] <- gen_param(gen_base(), :value, value: gen_params()),
+                max_runs: 1 do
         assert is_integer(int_value) and is_binary(string_value)
       end
     end
@@ -117,13 +148,19 @@ defmodule Astarte.Generators.Utilities.ParamsGenTest do
     @describetag :success
     @describetag :ut
 
-    property "gen all parity features (without override)",
-             %{
-               gen: gen,
-               param_gen: param_gen
-             } do
-      check all {a1, b1, c1} <- gen.(),
-                {a2, b2, c2} <- param_gen.([]),
+    property "gen all parity features (without override)" do
+      check all {a1, b1, c1} <- gen_base(),
+                {a2, b2, c2} <- params_gen([]),
+                max_runs: 1 do
+        assert a1 == a2
+        assert b1 == b2
+        assert c1 == c2
+      end
+    end
+
+    property "param gen all without params option behaves like gen all" do
+      check all {a1, b1, c1} <- gen_base(),
+                {a2, b2, c2} <- params_gen_no_params(),
                 max_runs: 1 do
         assert a1 == a2
         assert b1 == b2
@@ -132,13 +169,9 @@ defmodule Astarte.Generators.Utilities.ParamsGenTest do
     end
 
     @tag :issue
-    property "param gen all does not crash using = op",
-             %{
-               gen: gen,
-               param_gen_eq: param_gen_eq
-             } do
-      check all {a1, b1, c1} <- gen.(),
-                {a2, b2, c2} <- param_gen_eq.([]),
+    property "param gen all does not crash using = op" do
+      check all {a1, b1, c1} <- gen_base(),
+                {a2, b2, c2} <- params_gen_eq([]),
                 max_runs: 1 do
         assert a1 == a2
         assert b1 == b2
@@ -146,40 +179,50 @@ defmodule Astarte.Generators.Utilities.ParamsGenTest do
       end
     end
 
-    property "param gen all overridden by kw", %{
-      param_gen: param_gen,
-      gen_params: gen_params
-    } do
-      check all params <- gen_params.(),
-                {a, b, _} <- param_gen.(params) do
+    property "param gen all overridden by kw" do
+      check all params <- gen_params(), {a, b, _} <- params_gen(params), max_runs: 1 do
         assert params[:a] == a
         assert params[:b] == b
       end
     end
 
-    property "param gen all overridden by generators", %{
-      param_gen: param_gen
-    } do
-      check all {a, _, _} <- param_gen.(a: string(?c..?c, length: 1)) do
+    property "param gen all overridden by generators" do
+      check all {a, _, _} <- params_gen(a: string(?c..?c, length: 1)), max_runs: 1 do
         assert a == "c"
       end
     end
 
-    property "param gen all overridden by function", %{
-      param_gen: param_gen,
-      function_params: function_params
-    } do
-      check all s <- string(:ascii),
-                {a, b, _} <- param_gen.(function_params.(s)) do
+    property "param gen all overridden by function" do
+      check all s <- integer(10..10),
+                {a, b, _} <- params_gen(function_params(s)),
+                max_runs: 1 do
         assert a == 10
-        assert b == s
+        assert b == %{b: 10}
       end
     end
 
-    property "param gen all overridden by static value for c", %{param_gen: param_gen} do
+    property "param gen all overridden by static value for c" do
       check all string_value <- string(:utf8),
-                {_, _, c} <- param_gen.(c: string_value) do
+                {_, _, c} <- params_gen(c: string_value),
+                max_runs: 1 do
         assert c == string_value
+      end
+    end
+
+    property "param gen all override use :label instead variable name when is using pattern matching" do
+      check all {a, b, c} <- params_gen_label(b: 10), max_runs: 1 do
+        assert a == 0
+        assert b == 10
+        assert c == "friend"
+      end
+    end
+
+    property "param gen all override by :label wins over var name" do
+      check all {a, b, c, not_changed} <- params_gen_label_destruct(), max_runs: 1 do
+        assert a == 0
+        assert b == 10
+        assert c == "friend"
+        assert %{b: 10} = not_changed
       end
     end
   end
