@@ -42,6 +42,13 @@ defmodule Astarte.Pairing.CFSSLCredentials do
         cn = CertUtils.common_name!(cert)
 
         if cn == device_common_name do
+          Logger.info(
+            "Certificate issued successfully.",
+            realm: realm,
+            hw_id: encoded_device_id,
+            common_name: cn
+          )
+
           {:ok, %{cert: cert, aki: aki, serial: serial}}
         else
           {:error, :invalid_common_name}
