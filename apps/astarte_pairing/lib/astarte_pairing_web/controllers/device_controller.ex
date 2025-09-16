@@ -19,6 +19,8 @@
 defmodule Astarte.PairingWeb.DeviceController do
   use Astarte.PairingWeb, :controller
 
+  require Logger
+
   alias Astarte.Pairing.Credentials
   alias Astarte.Pairing.Credentials.AstarteMQTTV1
   alias Astarte.Pairing.Info
@@ -47,6 +49,14 @@ defmodule Astarte.PairingWeb.DeviceController do
       |> put_status(:created)
       |> put_view(CredentialsView)
       |> render("show_astarte_mqtt_v1.json", credentials: credentials)
+    else
+      error ->
+        Logger.info("Failed to create credentials.",
+          realm: realm,
+          hw_id: hw_id
+        )
+
+        error
     end
   end
 
