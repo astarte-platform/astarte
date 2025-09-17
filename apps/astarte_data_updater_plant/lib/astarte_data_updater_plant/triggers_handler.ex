@@ -20,7 +20,6 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandler do
   import Bitwise, only: [<<<: 2]
   require Logger
   alias Astarte.DataUpdaterPlant.AMQPEventsProducer
-  alias Astarte.DataUpdaterPlant.AMQPTriggersProducer
   alias Astarte.DataUpdaterPlant.Config
 
   @moduledoc """
@@ -56,9 +55,7 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandler do
   end
 
   def register_target(%AMQPTriggerTarget{exchange: exchange} = _target, realm_name) do
-    {:ok, server} = Astarte.DataUpdaterPlant.VHostSupervisor.for_realm(realm_name)
-
-    AMQPTriggersProducer.declare_exchange(server, exchange)
+    Astarte.Events.AMQPTriggers.declare_exchange(realm_name, exchange)
   end
 
   def device_connected(targets, realm, device_id, ip_address, timestamp) when is_list(targets) do
@@ -590,8 +587,7 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandler do
   end
 
   defp publish(realm, exchange, routing_key, payload, opts) do
-    {:ok, server} = Astarte.DataUpdaterPlant.VHostSupervisor.for_realm(realm)
-    AMQPTriggersProducer.publish(server, exchange, routing_key, payload, opts)
+    Astarte.Events.AMQPTriggers.publish(realm, exchange, routing_key, payload, opts)
   end
 
   defp dispatch_event(

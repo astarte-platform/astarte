@@ -16,19 +16,17 @@
 # limitations under the License.
 #
 
-defmodule Astarte.Events.Producer do
+defmodule Astarte.Events.AMQPTriggers.Producer do
   use GenServer, restart: :transient
   require Logger
 
   alias AMQP.{Channel, Connection}
   alias Astarte.Events.Config
-
-  @adapter Config.amqp_adapter!()
+  alias ExRabbitPool.RabbitMQ
 
   @connection_backoff 10_000
 
   def start_link(args) do
-    dbg(@adapter)
     realm_name = Keyword.fetch!(args, :realm)
     server = Keyword.fetch!(args, :server)
 
@@ -49,7 +47,6 @@ defmodule Astarte.Events.Producer do
 
   @impl true
   def init(opts) do
-    dbg(@adapter)
     realm_name = Keyword.fetch!(opts, :realm)
 
     Logger.info("AMQPTriggers producer init for realm #{realm_name}.",
@@ -64,15 +61,13 @@ defmodule Astarte.Events.Producer do
 
   @impl true
   def handle_call({:publish, exchange, routing_key, payload, opts}, _from, {conn, chan, realm}) do
-    dbg(@adapter)
-    reply = @adapter.publish(chan, exchange, routing_key, payload, opts)
+    reply = RabbitMQ.publish(chan, exchange, routing_key, payload, opts)
     {:reply, reply, {conn, chan, realm}, 60_000}
   end
 
   @impl true
   def handle_call({:declare_exchange, exchange}, _from, {conn, chan, realm}) do
-    dbg(@adapter)
-    reply = @adapter.declare_exchange(chan, exchange, type: :direct, durable: true)
+    reply = RabbitMQ.declare_exchange(chan, exchange, type: :direct, durable: true)
     {:reply, reply, {conn, chan, realm}, 60_000}
   end
 

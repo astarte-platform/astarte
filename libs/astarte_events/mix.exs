@@ -22,7 +22,7 @@ defmodule Astarte.Events.Mixfile do
     [
       app: :astarte_events,
       elixir: "~> 1.15",
-      version: "0.0.1",
+      version: "0.0.2",
       build_embedded: Mix.env() == :prod,
       start_permanent: Mix.env() == :prod,
       elixirc_paths: elixirc_paths(Mix.env()),
@@ -34,7 +34,7 @@ defmodule Astarte.Events.Mixfile do
         "coveralls.html": :test
       ],
       dialyzer: [plt_core_path: dialyzer_cache_directory(Mix.env())],
-      deps: deps() ++ astarte_required_modules(System.get_env("ASTARTE_IN_UMBRELLA"))
+      deps: deps()
     ]
   end
 
@@ -42,19 +42,6 @@ defmodule Astarte.Events.Mixfile do
     [
       extra_applications: [:logger],
       mod: {Astarte.Events.Application, []}
-    ]
-  end
-
-  defp astarte_required_modules("true") do
-    [
-      {:astarte_data_access, in_umbrella: true}
-    ]
-  end
-
-  defp astarte_required_modules(_) do
-    [
-      {:astarte_data_access,
-       github: "astarte-platform/astarte_data_access", branch: "release-1.3"}
     ]
   end
 
@@ -77,7 +64,9 @@ defmodule Astarte.Events.Mixfile do
       {:dialyxir, "~> 1.0", only: [:dev, :ci], runtime: false},
       # Workaround for Elixir 1.15 / ssl_verify_fun issue
       # See also: https://github.com/deadtrickster/ssl_verify_fun.erl/pull/27
-      {:ssl_verify_fun, "~> 1.1.0", manager: :rebar3, override: true}
+      {:ssl_verify_fun, "~> 1.1.0", manager: :rebar3, override: true},
+      {:astarte_data_access,
+       github: "astarte-platform/astarte_data_access", branch: "release-1.3"}
     ]
   end
 end

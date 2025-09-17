@@ -21,8 +21,8 @@ defmodule Astarte.Events.Application do
 
   def start(_type, _args) do
     children = [
-      {Registry, keys: :unique, name: Astarte.Events.Registry},
-      Astarte.Events.VHostSupervisor
+      {Registry, keys: :unique, name: Astarte.Events.AMQPTriggers.Registry},
+      Astarte.Events.AMQPTriggers.VHostSupervisor
     ]
 
     opts = [strategy: :rest_for_one, name: Astarte.Events.Supervisor]

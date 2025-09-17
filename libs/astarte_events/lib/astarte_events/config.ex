@@ -169,10 +169,6 @@ defmodule Astarte.Events.Config do
     end
   end
 
-  def amqp_adapter!() do
-    Application.get_env(:astarte_events, :amqp_adapter) || ExRabbitPool.RabbitMQ
-  end
-
   defdelegate astarte_instance_id!, to: DataAccessConfig
   defdelegate astarte_instance_id, to: DataAccessConfig
 end

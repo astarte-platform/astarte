@@ -16,10 +16,10 @@
 # limitations under the License.
 #
 
-defmodule Astarte.Events.VHostSupervisor do
+defmodule Astarte.Events.AMQPTriggers.VHostSupervisor do
   use DynamicSupervisor
   require Logger
-  alias Astarte.Events.Producer
+  alias Astarte.Events.AMQPTriggers.Producer
 
   def start_link(init_arg \\ []) do
     DynamicSupervisor.start_link(__MODULE__, init_arg, name: __MODULE__)
@@ -50,6 +50,6 @@ defmodule Astarte.Events.VHostSupervisor do
   end
 
   def server_from_realm(realm_name) do
-    {:via, Registry, {Astarte.Events.Registry, {:amqp_producer, realm_name}}}
+    {:via, Registry, {Astarte.Events.AMQPTriggers.Registry, {:amqp_producer, realm_name}}}
   end
 end

@@ -16,8 +16,8 @@
 # limitations under the License.
 #
 
-defmodule Astarte.Events do
-  alias Astarte.Events.{Producer, VHostSupervisor}
+defmodule Astarte.Events.AMQPTriggers do
+  alias Astarte.Events.AMQPTriggers.{Producer, VHostSupervisor}
 
   def declare_exchange(realm, exchange) do
     {:ok, server} = VHostSupervisor.for_realm(realm)
