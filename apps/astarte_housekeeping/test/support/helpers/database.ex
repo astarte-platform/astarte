@@ -20,6 +20,7 @@ defmodule Astarte.Housekeeping.Helpers.Database do
   @moduledoc false
   alias Astarte.DataAccess.Realms.Realm
   alias Astarte.DataAccess.Repo
+  alias Astarte.DataAccess.KvStore
 
   @create_keyspace """
   CREATE KEYSPACE :keyspace
@@ -99,6 +100,33 @@ defmodule Astarte.Housekeeping.Helpers.Database do
   )
   """
 
+  @create_simple_devices_table """
+  CREATE TABLE :keyspace.devices (
+    device_id uuid,
+    aliases map<ascii, varchar>,
+    introspection map<ascii, int>,
+    introspection_minor map<ascii, int>,
+    old_introspection map<frozen<tuple<ascii, int>>, int>,
+    protocol_revision int,
+    first_registration timestamp,
+    credentials_secret ascii,
+    inhibit_credentials_request boolean,
+    cert_serial ascii,
+    cert_aki ascii,
+    first_credentials_request timestamp,
+    last_connection timestamp,
+    last_disconnection timestamp,
+    connected boolean,
+    pending_empty_cache boolean,
+    total_received_msgs bigint,
+    total_received_bytes bigint,
+    last_credentials_request_ip inet,
+    last_seen_ip inet,
+
+    PRIMARY KEY (device_id)
+  )
+  """
+
   @create_interfaces_table """
   CREATE TABLE :keyspace.interfaces (
     name ascii,
@@ -134,6 +162,28 @@ defmodule Astarte.Housekeeping.Helpers.Database do
     expiry int,
     database_retention_ttl int,
     database_retention_policy int,
+    allow_unset boolean,
+    explicit_timestamp boolean,
+    description text,
+    doc text,
+
+    PRIMARY KEY ((interface_id), endpoint_id)
+  )
+  """
+
+  @create_simple_endpoints_table """
+  CREATE TABLE :keyspace.endpoints (
+    interface_id uuid,
+    endpoint_id uuid,
+    interface_name ascii,
+    interface_major_version int,
+    interface_minor_version int,
+    interface_type int,
+    endpoint ascii,
+    value_type int,
+    reliability int,
+    retention int,
+    expiry int,
     allow_unset boolean,
     explicit_timestamp boolean,
     description text,
@@ -252,13 +302,8 @@ defmodule Astarte.Housekeeping.Helpers.Database do
   ALTER TABLE :keyspace.realms DROP device_registration_limit;
   """
 
-  @drop_capabilities """
+  @drop_capabilities_from_devices """
   ALTER TABLE :keyspace.devices DROP capabilities;  
-  DROP TYPE :keyspace.capabilities;
-  """
-
-  @drop_kv_store """
-  DROP TABLE if exists :keyspace.kv_store
   """
 
   def setup(realm_name) do
@@ -324,6 +369,24 @@ defmodule Astarte.Housekeeping.Helpers.Database do
     :ok
   end
 
+  def create_simple_realm(realm_name) do
+    realm_keyspace = Realm.keyspace_name(realm_name)
+    execute(realm_keyspace, @create_keyspace)
+    execute(realm_keyspace, @create_simple_devices_table)
+    execute(realm_keyspace, @create_names_table)
+    execute(realm_keyspace, @create_kv_store)
+    execute(realm_keyspace, @create_simple_endpoints_table)
+    execute(realm_keyspace, @create_simple_triggers_table)
+    execute(realm_keyspace, @create_individual_properties_table)
+    execute(realm_keyspace, @create_individual_datastreams_table)
+    execute(realm_keyspace, @create_interfaces_table)
+
+    astarte_keyspace = Realm.astarte_keyspace_name()
+
+    Repo.insert(%Realm{realm_name: realm_name}, prefix: astarte_keyspace)
+    :ok
+  end
+
   def insert_public_key(realm_name) do
     realm_keyspace = Realm.keyspace_name(realm_name)
 
@@ -343,12 +406,25 @@ defmodule Astarte.Housekeeping.Helpers.Database do
 
     execute(keyspace, @add_replication_factor_column_for_realms_table)
     execute(keyspace, @drop_device_registration_limit_column_for_realms_table)
-    execute(keyspace, @drop_capabilities)
     :ok
   end
 
-  def destroy_astarte_kv_store_table! do
-    execute(Realm.astarte_keyspace_name(), @drop_kv_store)
+  def destroy_capabilities(realm_name) do
+    keyspace = Realm.keyspace_name(realm_name)
+    execute(keyspace, @drop_capabilities_from_devices)
+    put_schema_version(keyspace, 6)
+  end
+
+  defp put_schema_version(keyspace, version) do
+    KvStore.insert(
+      %{
+        value_type: :big_integer,
+        value: version,
+        group: "astarte",
+        key: "schema_version"
+      },
+      prefix: keyspace
+    )
   end
 
   defp execute(keyspace, query, params \\ [], opts \\ []) do

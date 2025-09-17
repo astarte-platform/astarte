@@ -237,6 +237,7 @@ defmodule Astarte.Housekeeping.Migrator do
     Logger.info("Executing migration #{version} #{name} using file #{file}")
 
     with {:ok, query} <- File.read(file),
+         query = String.replace(query, ":keyspace", keyspace_name),
          _ = Logger.info("Migration query:\n#{query}"),
          {:ok, _result} <- CSystem.execute_schema_change(query),
          :ok <- set_schema_version(keyspace_name, version) do
