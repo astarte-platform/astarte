@@ -44,10 +44,16 @@ defmodule Astarte.Pairing.CFSSLCredentials do
         if cn == device_common_name do
           {:ok, %{cert: cert, aki: aki, serial: serial}}
         else
+          "Failed to issue a certificate: Invalid common name"
+          |> Logger.info(realm: realm, hw_id: encoded_device_id)
+
           {:error, :invalid_common_name}
         end
 
       {:error, reason} ->
+        "Failed to issue a certificate: Couldn't sign the csr"
+        |> Logger.info(realm: realm, hw_id: encoded_device_id)
+
         {:error, reason}
     end
   end
