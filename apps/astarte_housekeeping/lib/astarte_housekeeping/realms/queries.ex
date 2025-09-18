@@ -1125,7 +1125,7 @@ defmodule Astarte.Housekeeping.Realms.Queries do
     kv_store_map = %{
       group: "astarte",
       key: "schema_version",
-      value: Migrator.latest_realm_schema_version(),
+      value: Migrator.latest_astarte_schema_version(),
       value_type: :big_integer
     }
 
