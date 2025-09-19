@@ -1,0 +1,17 @@
+{
+    "interface_name": "org.astarte-platform.genericevents.DeviceEvents",
+    "version_major": 0,
+    "version_minor": 1,
+    "type": "datastream",
+    "ownership": "device",
+    "description": "Generic device events interface.",
+    "doc": "This interface allows a device to send a string representing an event. This allows to build simple applications that notify Astarte when, e.g., a button is pressed on the device.",
+    "mappings": [
+        {
+            "endpoint": "/event",
+            "type": "string",
+            "explicit_timestamp": true,
+            "doc": "A string representing a device event."
+        }
+    ]
+}

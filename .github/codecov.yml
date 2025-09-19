@@ -1,0 +1,66 @@
+codecov:
+  branch: master
+
+coverage:
+  range: 60..80
+  round: down
+  status:
+    project:
+      default:
+        threshold: 1%
+        branches:
+          - "!master"
+        flags:
+          - astarte_appengine_api
+          - astarte_data_updater_plant
+          - astarte_housekeeping
+          - astarte_pairing
+          - astarte_realm_management
+          - astarte_realm_management_api
+          - astarte_trigger_engine
+
+ignore:
+  - "apps/*/test"
+
+comment:
+  layout: "header, diff, files, flags"
+  require_changes: yes
+
+
+flag_management:
+  default_rules:
+    carryforward: true
+    statuses:
+      - type: project
+        target: auto
+        threshold: 1%
+        branches:
+          - "!master"
+      - type: patch
+        target: 90%
+
+flags:
+  astarte_appengine_api:
+    carryforward: true
+    paths:
+      - apps/astarte_appengine_api
+  astarte_data_updater_plant:
+    carryforward: true
+    paths:
+      - apps/astarte_data_updater_plant
+  astarte_housekeeping:
+    carryforward: true
+    paths:
+      - apps/astarte_housekeeping
+  astarte_pairing:
+    carryforward: true
+    paths:
+      - apps/astarte_pairing
+  astarte_realm_management:
+    carryforward: true
+    paths:
+      - apps/astarte_realm_management
+  astarte_trigger_engine:
+    carryforward: true
+    paths:
+      - apps/astarte_trigger_engine

@@ -1,0 +1,929 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg
+   xmlns:xhtml="http://www.w3.org/1999/xhtml"
+   xmlns:dc="http://purl.org/dc/elements/1.1/"
+   xmlns:cc="http://creativecommons.org/ns#"
+   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+   xmlns:svg="http://www.w3.org/2000/svg"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   width="781px"
+   height="692px"
+   version="1.1"
+   content="&lt;mxfile userAgent=&quot;Mozilla/5.0 (Macintosh; Intel Mac OS X 10_13_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/69.0.3497.92 Safari/537.36&quot; version=&quot;9.1.5&quot; editor=&quot;www.draw.io&quot; type=&quot;google&quot;&gt;&lt;diagram id=&quot;fac2e3d5-9e94-5cda-8ee6-79f9bfda4ac2&quot; name=&quot;Page-1&quot;&gt;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&lt;/diagram&gt;&lt;/mxfile&gt;"
+   id="svg214"
+   sodipodi:docname="astarte_ssl_pairing_routine.svg"
+   inkscape:version="0.92.5 (2060ec1f9f, 2020-04-08)">
+  <metadata
+     id="metadata218">
+    <rdf:RDF>
+      <cc:Work
+         rdf:about="">
+        <dc:format>image/svg+xml</dc:format>
+        <dc:type
+           rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
+      </cc:Work>
+    </rdf:RDF>
+  </metadata>
+  <sodipodi:namedview
+     pagecolor="#ffffff"
+     bordercolor="#666666"
+     borderopacity="1"
+     objecttolerance="10"
+     gridtolerance="10"
+     guidetolerance="10"
+     inkscape:pageopacity="0"
+     inkscape:pageshadow="2"
+     inkscape:window-width="1920"
+     inkscape:window-height="1015"
+     id="namedview216"
+     showgrid="false"
+     inkscape:zoom="0.96460809"
+     inkscape:cx="504.11149"
+     inkscape:cy="402.19079"
+     inkscape:window-x="0"
+     inkscape:window-y="36"
+     inkscape:window-maximized="1"
+     inkscape:current-layer="svg214" />
+  <defs
+     id="defs2" />
+  <rect
+     style="fill:#ffffff;paint-order:fill markers stroke"
+     id="rect220"
+     width="785.81134"
+     height="698.72937"
+     x="-1.0366905"
+     y="-1.5459119" />
+  <g
+     transform="translate(0.5,0.5)"
+     id="g212">
+    <g
+       transform="translate(245.5,7.5)"
+       id="g8">
+      <switch
+         id="switch6">
+        <foreignObject
+           style="overflow:visible;"
+           pointer-events="all"
+           width="38"
+           height="14"
+           requiredFeatures="http://www.w3.org/TR/SVG11/feature#Extensibility">
+          <xhtml:div
+             style="display: inline-block; font-size: 14px; font-family: Helvetica; color: rgb(0, 0, 0); line-height: 1.2; vertical-align: top; width: 40px; white-space: nowrap; overflow-wrap: normal; font-weight: bold; text-align: center;">
+            <xhtml:div
+               style="display:inline-block;text-align:inherit;text-decoration:inherit;">Client</xhtml:div>
+          </xhtml:div>
+        </foreignObject>
+        <text
+           x="19"
+           y="14"
+           fill="#000000"
+           text-anchor="middle"
+           font-size="14px"
+           font-family="Helvetica"
+           font-weight="bold"
+           id="text4">Client</text>
+      </switch>
+    </g>
+    <g
+       transform="translate(3.5,-0.5)"
+       id="g14">
+      <switch
+         id="switch12">
+        <foreignObject
+           style="overflow:visible;"
+           pointer-events="all"
+           width="172"
+           height="30"
+           requiredFeatures="http://www.w3.org/TR/SVG11/feature#Extensibility">
+          <xhtml:div
+             style="display: inline-block; font-size: 14px; font-family: Helvetica; color: rgb(0, 0, 0); line-height: 1.2; vertical-align: top; width: 172px; white-space: nowrap; overflow-wrap: normal; font-weight: bold; text-align: center;">
+            <xhtml:div
+               style="display:inline-block;text-align:inherit;text-decoration:inherit;">Agent<xhtml:div>(Client if On Board Agent)</xhtml:div>
+</xhtml:div>
+          </xhtml:div>
+        </foreignObject>
+        <text
+           x="86"
+           y="22"
+           fill="#000000"
+           text-anchor="middle"
+           font-size="14px"
+           font-family="Helvetica"
+           font-weight="bold"
+           id="text10">Agent&lt;div&gt;(Client if On Board Agent)&lt;/div&gt;</text>
+      </switch>
+    </g>
+    <g
+       transform="translate(397.5,7.5)"
+       id="g20">
+      <switch
+         id="switch18">
+        <foreignObject
+           style="overflow:visible;"
+           pointer-events="all"
+           width="64"
+           height="14"
+           requiredFeatures="http://www.w3.org/TR/SVG11/feature#Extensibility">
+          <xhtml:div
+             style="display: inline-block; font-size: 14px; font-family: Helvetica; color: rgb(0, 0, 0); line-height: 1.2; vertical-align: top; width: 66px; white-space: nowrap; overflow-wrap: normal; font-weight: bold; text-align: center;">
+            <xhtml:div
+               style="display:inline-block;text-align:inherit;text-decoration:inherit;">Transport</xhtml:div>
+          </xhtml:div>
+        </foreignObject>
+        <text
+           x="32"
+           y="14"
+           fill="#000000"
+           text-anchor="middle"
+           font-size="14px"
+           font-family="Helvetica"
+           font-weight="bold"
+           id="text16">Transport</text>
+      </switch>
+    </g>
+    <g
+       transform="translate(570.5,7.5)"
+       id="g26">
+      <switch
+         id="switch24">
+        <foreignObject
+           style="overflow:visible;"
+           pointer-events="all"
+           width="48"
+           height="14"
+           requiredFeatures="http://www.w3.org/TR/SVG11/feature#Extensibility">
+          <xhtml:div
+             style="display: inline-block; font-size: 14px; font-family: Helvetica; color: rgb(0, 0, 0); line-height: 1.2; vertical-align: top; width: 48px; white-space: nowrap; overflow-wrap: normal; font-weight: bold; text-align: center;">
+            <xhtml:div
+               style="display:inline-block;text-align:inherit;text-decoration:inherit;">Pairing</xhtml:div>
+          </xhtml:div>
+        </foreignObject>
+        <text
+           x="24"
+           y="14"
+           fill="#000000"
+           text-anchor="middle"
+           font-size="14px"
+           font-family="Helvetica"
+           font-weight="bold"
+           id="text22">Pairing</text>
+      </switch>
+    </g>
+    <g
+       transform="translate(734.5,7.5)"
+       id="g32">
+      <switch
+         id="switch30">
+        <foreignObject
+           style="overflow:visible;"
+           pointer-events="all"
+           width="20"
+           height="14"
+           requiredFeatures="http://www.w3.org/TR/SVG11/feature#Extensibility">
+          <xhtml:div
+             style="display: inline-block; font-size: 14px; font-family: Helvetica; color: rgb(0, 0, 0); line-height: 1.2; vertical-align: top; width: 22px; white-space: nowrap; overflow-wrap: normal; font-weight: bold; text-align: center;">
+            <xhtml:div
+               style="display:inline-block;text-align:inherit;text-decoration:inherit;">CA</xhtml:div>
+          </xhtml:div>
+        </foreignObject>
+        <text
+           x="10"
+           y="14"
+           fill="#000000"
+           text-anchor="middle"
+           font-size="14px"
+           font-family="Helvetica"
+           font-weight="bold"
+           id="text28">CA</text>
+      </switch>
+    </g>
+    <path
+       d="M 95 690 L 95 50"
+       fill="none"
+       stroke="#000000"
+       stroke-miterlimit="10"
+       stroke-dasharray="1 4"
+       pointer-events="none"
+       id="path34" />
+    <path
+       d="M 265 690 L 265 50"
+       fill="none"
+       stroke="#000000"
+       stroke-miterlimit="10"
+       stroke-dasharray="1 4"
+       pointer-events="none"
+       id="path36" />
+    <path
+       d="M 430 690 L 430 50"
+       fill="none"
+       stroke="#000000"
+       stroke-miterlimit="10"
+       stroke-dasharray="1 4"
+       pointer-events="none"
+       id="path38" />
+    <path
+       d="M 595 690 L 595 50"
+       fill="none"
+       stroke="#000000"
+       stroke-miterlimit="10"
+       stroke-dasharray="1 4"
+       pointer-events="none"
+       id="path40" />
+    <path
+       d="M 745 690 L 745 50"
+       fill="none"
+       stroke="#000000"
+       stroke-miterlimit="10"
+       stroke-dasharray="1 4"
+       pointer-events="none"
+       id="path42" />
+    <path
+       d="M 95 80 L 253.63 80"
+       fill="none"
+       stroke="#000000"
+       stroke-miterlimit="10"
+       pointer-events="none"
+       id="path44" />
+    <path
+       d="M 258.88 80 L 251.88 83.5 L 253.63 80 L 251.88 76.5 Z"
+       fill="#000000"
+       stroke="#000000"
+       stroke-miterlimit="10"
+       pointer-events="none"
+       id="path46" />
+    <g
+       transform="translate(105.5,46.5)"
+       id="g52">
+      <switch
+         id="switch50">
+        <foreignObject
+           style="overflow:visible;"
+           pointer-events="all"
+           width="148"
+           height="26"
+           requiredFeatures="http://www.w3.org/TR/SVG11/feature#Extensibility">
+          <xhtml:div
+             style="display: inline-block; font-size: 12px; font-family: Helvetica; color: rgb(0, 0, 0); line-height: 1.2; vertical-align: top; width: 148px; white-space: normal; overflow-wrap: normal; text-align: center;">
+            <xhtml:div
+               style="display:inline-block;text-align:inherit;text-decoration:inherit;">Agent gets Device ID and other infos</xhtml:div>
+          </xhtml:div>
+        </foreignObject>
+        <text
+           x="74"
+           y="19"
+           fill="#000000"
+           text-anchor="middle"
+           font-size="12px"
+           font-family="Helvetica"
+           id="text48">Agent gets Device ID and other infos</text>
+      </switch>
+    </g>
+    <path
+       d="M 265 90 L 106.37 90"
+       fill="none"
+       stroke="#000000"
+       stroke-miterlimit="10"
+       pointer-events="none"
+       id="path54" />
+    <path
+       d="M 101.12 90 L 108.12 86.5 L 106.37 90 L 108.12 93.5 Z"
+       fill="#000000"
+       stroke="#000000"
+       stroke-miterlimit="10"
+       pointer-events="none"
+       id="path56" />
+    <path
+       d="M 95 130 L 583.63 130"
+       fill="none"
+       stroke="#000000"
+       stroke-miterlimit="10"
+       pointer-events="none"
+       id="path58" />
+    <path
+       d="M 588.88 130 L 581.88 133.5 L 583.63 130 L 581.88 126.5 Z"
+       fill="#000000"
+       stroke="#000000"
+       stroke-miterlimit="10"
+       pointer-events="none"
+       id="path60" />
+    <g
+       transform="translate(227.5,113.5)"
+       id="g66">
+      <switch
+         id="switch64">
+        <foreignObject
+           style="overflow:visible;"
+           pointer-events="all"
+           width="264"
+           height="12"
+           requiredFeatures="http://www.w3.org/TR/SVG11/feature#Extensibility">
+          <xhtml:div
+             style="display: inline-block; font-size: 12px; font-family: Helvetica; color: rgb(0, 0, 0); line-height: 1.2; vertical-align: top; width: 266px; white-space: nowrap; overflow-wrap: normal; text-align: center;">
+            <xhtml:div
+               style="display:inline-block;text-align:inherit;text-decoration:inherit;">Agent requests a <xhtml:span>Credentials Secret</xhtml:span>
+ for the Client</xhtml:div>
+          </xhtml:div>
+        </foreignObject>
+        <text
+           x="132"
+           y="12"
+           fill="#000000"
+           text-anchor="middle"
+           font-size="12px"
+           font-family="Helvetica"
+           id="text62">Agent requests a &lt;span&gt;Credentials Secret&lt;/span&gt; for the Client</text>
+      </switch>
+    </g>
+    <path
+       d="M 595 140 L 106.37 140"
+       fill="none"
+       stroke="#000000"
+       stroke-miterlimit="10"
+       pointer-events="none"
+       id="path68" />
+    <path
+       d="M 101.12 140 L 108.12 136.5 L 106.37 140 L 108.12 143.5 Z"
+       fill="#000000"
+       stroke="#000000"
+       stroke-miterlimit="10"
+       pointer-events="none"
+       id="path70" />
+    <path
+       d="M 95 190 L 253.63 190"
+       fill="none"
+       stroke="#000000"
+       stroke-miterlimit="10"
+       pointer-events="none"
+       id="path72" />
+    <path
+       d="M 258.88 190 L 251.88 193.5 L 253.63 190 L 251.88 186.5 Z"
+       fill="#000000"
+       stroke="#000000"
+       stroke-miterlimit="10"
+       pointer-events="none"
+       id="path74" />
+    <g
+       transform="translate(105.5,156.5)"
+       id="g80">
+      <switch
+         id="switch78">
+        <foreignObject
+           style="overflow:visible;"
+           pointer-events="all"
+           width="148"
+           height="26"
+           requiredFeatures="http://www.w3.org/TR/SVG11/feature#Extensibility">
+          <xhtml:div
+             style="display: inline-block; font-size: 12px; font-family: Helvetica; color: rgb(0, 0, 0); line-height: 1.2; vertical-align: top; width: 148px; white-space: normal; overflow-wrap: normal; text-align: center;">
+            <xhtml:div
+               style="display:inline-block;text-align:inherit;text-decoration:inherit;">Agent delivers <xhtml:span>Credentials Secret</xhtml:span>
+ to Device</xhtml:div>
+          </xhtml:div>
+        </foreignObject>
+        <text
+           x="74"
+           y="19"
+           fill="#000000"
+           text-anchor="middle"
+           font-size="12px"
+           font-family="Helvetica"
+           id="text76">[Not supported by viewer]</text>
+      </switch>
+    </g>
+    <g
+       transform="translate(104.5,200.5)"
+       id="g86">
+      <switch
+         id="switch84">
+        <foreignObject
+           style="overflow:visible;"
+           pointer-events="all"
+           width="150"
+           height="18"
+           requiredFeatures="http://www.w3.org/TR/SVG11/feature#Extensibility">
+          <xhtml:div
+             style="display: inline-block; font-size: 17px; font-family: Helvetica; color: rgb(0, 0, 0); line-height: 1.2; vertical-align: top; width: 152px; white-space: nowrap; overflow-wrap: normal; font-weight: bold; text-align: center;">
+            <xhtml:div
+               style="display:inline-block;text-align:inherit;text-decoration:inherit;">Agent Scope Ends</xhtml:div>
+          </xhtml:div>
+        </foreignObject>
+        <text
+           x="75"
+           y="18"
+           fill="#000000"
+           text-anchor="middle"
+           font-size="17px"
+           font-family="Helvetica"
+           font-weight="bold"
+           id="text82">Agent Scope Ends</text>
+      </switch>
+    </g>
+    <path
+       d="M 265 310 L 583.63 310"
+       fill="none"
+       stroke="#000000"
+       stroke-miterlimit="10"
+       pointer-events="none"
+       id="path88" />
+    <path
+       d="M 588.88 310 L 581.88 313.5 L 583.63 310 L 581.88 306.5 Z"
+       fill="#000000"
+       stroke="#000000"
+       stroke-miterlimit="10"
+       pointer-events="none"
+       id="path90" />
+    <g
+       transform="translate(290.5,279.5)"
+       id="g96">
+      <switch
+         id="switch94">
+        <foreignObject
+           style="overflow:visible;"
+           pointer-events="all"
+           width="278"
+           height="26"
+           requiredFeatures="http://www.w3.org/TR/SVG11/feature#Extensibility">
+          <xhtml:div
+             style="display: inline-block; font-size: 12px; font-family: Helvetica; color: rgb(0, 0, 0); line-height: 1.2; vertical-align: top; width: 278px; white-space: normal; overflow-wrap: normal; text-align: center;">
+            <xhtml:div
+               style="display:inline-block;text-align:inherit;text-decoration:inherit;">Client submits a <xhtml:span>Credentials</xhtml:span>
+ request containing a CSR, authenticated with its <xhtml:span>Credentials Secret</xhtml:span>
+</xhtml:div>
+          </xhtml:div>
+        </foreignObject>
+        <text
+           x="139"
+           y="19"
+           fill="#000000"
+           text-anchor="middle"
+           font-size="12px"
+           font-family="Helvetica"
+           id="text92">[Not supported by viewer]</text>
+      </switch>
+    </g>
+    <path
+       d="M 595 335 L 733.63 335"
+       fill="none"
+       stroke="#000000"
+       stroke-miterlimit="10"
+       pointer-events="none"
+       id="path98" />
+    <path
+       d="M 738.88 335 L 731.88 338.5 L 733.63 335 L 731.88 331.5 Z"
+       fill="#000000"
+       stroke="#000000"
+       stroke-miterlimit="10"
+       pointer-events="none"
+       id="path100" />
+    <g
+       transform="translate(605.5,287.5)"
+       id="g106">
+      <switch
+         id="switch104">
+        <foreignObject
+           style="overflow:visible;"
+           pointer-events="all"
+           width="128"
+           height="40"
+           requiredFeatures="http://www.w3.org/TR/SVG11/feature#Extensibility">
+          <xhtml:div
+             style="display: inline-block; font-size: 12px; font-family: Helvetica; color: rgb(0, 0, 0); line-height: 1.2; vertical-align: top; width: 128px; white-space: normal; overflow-wrap: normal; text-align: center;">
+            <xhtml:div
+               style="display:inline-block;text-align:inherit;text-decoration:inherit;">Pairing authenticates the request and asks the CA to sign the CSR</xhtml:div>
+          </xhtml:div>
+        </foreignObject>
+        <text
+           x="64"
+           y="26"
+           fill="#000000"
+           text-anchor="middle"
+           font-size="12px"
+           font-family="Helvetica"
+           id="text102">[Not supported by viewer]</text>
+      </switch>
+    </g>
+    <path
+       d="M 745 345 L 606.37 345"
+       fill="none"
+       stroke="#000000"
+       stroke-miterlimit="10"
+       pointer-events="none"
+       id="path108" />
+    <path
+       d="M 601.12 345 L 608.12 341.5 L 606.37 345 L 608.12 348.5 Z"
+       fill="#000000"
+       stroke="#000000"
+       stroke-miterlimit="10"
+       pointer-events="none"
+       id="path110" />
+    <path
+       d="M 595 385 L 276.37 385"
+       fill="none"
+       stroke="#000000"
+       stroke-miterlimit="10"
+       pointer-events="none"
+       id="path112" />
+    <path
+       d="M 271.12 385 L 278.12 381.5 L 276.37 385 L 278.12 388.5 Z"
+       fill="#000000"
+       stroke="#000000"
+       stroke-miterlimit="10"
+       pointer-events="none"
+       id="path114" />
+    <g
+       transform="translate(327.5,368.5)"
+       id="g120">
+      <switch
+         id="switch118">
+        <foreignObject
+           style="overflow:visible;"
+           pointer-events="all"
+           width="214"
+           height="12"
+           requiredFeatures="http://www.w3.org/TR/SVG11/feature#Extensibility">
+          <xhtml:div
+             style="display: inline-block; font-size: 12px; font-family: Helvetica; color: rgb(0, 0, 0); line-height: 1.2; vertical-align: top; width: 216px; white-space: nowrap; overflow-wrap: normal; text-align: center;">
+            <xhtml:div
+               style="display:inline-block;text-align:inherit;text-decoration:inherit;">Pairing replies with the signed certificate</xhtml:div>
+          </xhtml:div>
+        </foreignObject>
+        <text
+           x="107"
+           y="12"
+           fill="#000000"
+           text-anchor="middle"
+           font-size="12px"
+           font-family="Helvetica"
+           id="text116">Pairing replies with the signed certificate</text>
+      </switch>
+    </g>
+    <path
+       d="M 265 460 L 423.63 460"
+       fill="none"
+       stroke="#000000"
+       stroke-miterlimit="10"
+       pointer-events="none"
+       id="path122" />
+    <path
+       d="M 428.88 460 L 421.88 463.5 L 423.63 460 L 421.88 456.5 Z"
+       fill="#000000"
+       stroke="#000000"
+       stroke-miterlimit="10"
+       pointer-events="none"
+       id="path124" />
+    <g
+       transform="translate(275.5,412.5)"
+       id="g130">
+      <switch
+         id="switch128">
+        <foreignObject
+           style="overflow:visible;"
+           pointer-events="all"
+           width="148"
+           height="40"
+           requiredFeatures="http://www.w3.org/TR/SVG11/feature#Extensibility">
+          <xhtml:div
+             style="display: inline-block; font-size: 12px; font-family: Helvetica; color: rgb(0, 0, 0); line-height: 1.2; vertical-align: top; width: 148px; white-space: normal; overflow-wrap: normal; text-align: center;">
+            <xhtml:div
+               style="display:inline-block;text-align:inherit;text-decoration:inherit;">Client uses its Certificate to authenticate against the Transport</xhtml:div>
+          </xhtml:div>
+        </foreignObject>
+        <text
+           x="74"
+           y="26"
+           fill="#000000"
+           text-anchor="middle"
+           font-size="12px"
+           font-family="Helvetica"
+           id="text126">[Not supported by viewer]</text>
+      </switch>
+    </g>
+    <path
+       d="M 430 485 L 733.63 485"
+       fill="none"
+       stroke="#000000"
+       stroke-miterlimit="10"
+       pointer-events="none"
+       id="path132" />
+    <path
+       d="M 738.88 485 L 731.88 488.5 L 733.63 485 L 731.88 481.5 Z"
+       fill="#000000"
+       stroke="#000000"
+       stroke-miterlimit="10"
+       pointer-events="none"
+       id="path134" />
+    <g
+       transform="translate(460.5,449.5)"
+       id="g140">
+      <switch
+         id="switch138">
+        <foreignObject
+           style="overflow:visible;"
+           pointer-events="all"
+           width="268"
+           height="26"
+           requiredFeatures="http://www.w3.org/TR/SVG11/feature#Extensibility">
+          <xhtml:div
+             style="display: inline-block; font-size: 12px; font-family: Helvetica; color: rgb(0, 0, 0); line-height: 1.2; vertical-align: top; width: 268px; white-space: normal; overflow-wrap: normal; text-align: center;">
+            <xhtml:div
+               style="display:inline-block;text-align:inherit;text-decoration:inherit;">Transports verifies the certificate against the CA and checks for revocation information</xhtml:div>
+          </xhtml:div>
+        </foreignObject>
+        <text
+           x="134"
+           y="19"
+           fill="#000000"
+           text-anchor="middle"
+           font-size="12px"
+           font-family="Helvetica"
+           id="text136">Transports verifies the certificate against the CA and checks for revocation information</text>
+      </switch>
+    </g>
+    <path
+       d="M 745 495 L 441.37 495"
+       fill="none"
+       stroke="#000000"
+       stroke-miterlimit="10"
+       pointer-events="none"
+       id="path142" />
+    <path
+       d="M 436.12 495 L 443.12 491.5 L 441.37 495 L 443.12 498.5 Z"
+       fill="#000000"
+       stroke="#000000"
+       stroke-miterlimit="10"
+       pointer-events="none"
+       id="path144" />
+    <path
+       d="M 431 552 L 272.37 552"
+       fill="none"
+       stroke="#000000"
+       stroke-miterlimit="10"
+       pointer-events="none"
+       id="path146" />
+    <path
+       d="M 267.12 552 L 274.12 548.5 L 272.37 552 L 274.12 555.5 Z"
+       fill="#000000"
+       stroke="#000000"
+       stroke-miterlimit="10"
+       pointer-events="none"
+       id="path148" />
+    <g
+       transform="translate(276.5,511.5)"
+       id="g154">
+      <switch
+         id="switch152">
+        <foreignObject
+           style="overflow:visible;"
+           pointer-events="all"
+           width="148"
+           height="26"
+           requiredFeatures="http://www.w3.org/TR/SVG11/feature#Extensibility">
+          <xhtml:div
+             style="display: inline-block; font-size: 12px; font-family: Helvetica; color: rgb(0, 0, 0); line-height: 1.2; vertical-align: top; width: 148px; white-space: normal; overflow-wrap: normal; text-align: center;">
+            <xhtml:div
+               style="display:inline-block;text-align:inherit;text-decoration:inherit;">Transport authenticates and registers the Client</xhtml:div>
+          </xhtml:div>
+        </foreignObject>
+        <text
+           x="74"
+           y="19"
+           fill="#000000"
+           text-anchor="middle"
+           font-size="12px"
+           font-family="Helvetica"
+           id="text150">Transport authenticates and registers the Client</text>
+      </switch>
+    </g>
+    <path
+       d="M 265 665 Q 170 475 256.72 330.46"
+       fill="none"
+       stroke="#000000"
+       stroke-miterlimit="10"
+       stroke-dasharray="1 1"
+       pointer-events="none"
+       id="path156" />
+    <path
+       d="M 259.42 325.96 L 258.82 333.76 L 256.72 330.46 L 252.82 330.16 Z"
+       fill="#000000"
+       stroke="#000000"
+       stroke-miterlimit="10"
+       pointer-events="none"
+       id="path158" />
+    <g
+       transform="translate(275.5,651.5)"
+       id="g164">
+      <switch
+         id="switch162">
+        <foreignObject
+           style="overflow:visible;"
+           pointer-events="all"
+           width="148"
+           height="26"
+           requiredFeatures="http://www.w3.org/TR/SVG11/feature#Extensibility">
+          <xhtml:div
+             style="display: inline-block; font-size: 12px; font-family: Helvetica; color: rgb(0, 0, 0); line-height: 1.2; vertical-align: top; width: 148px; white-space: normal; overflow-wrap: normal; text-align: center;">
+            <xhtml:div
+               style="display:inline-block;text-align:inherit;text-decoration:inherit;">Certificate becomes invalid for any reason</xhtml:div>
+          </xhtml:div>
+        </foreignObject>
+        <text
+           x="74"
+           y="19"
+           fill="#000000"
+           text-anchor="middle"
+           font-size="12px"
+           font-family="Helvetica"
+           id="text160">Certificate becomes invalid for any reason</text>
+      </switch>
+    </g>
+    <g
+       transform="translate(275.5,591.5)"
+       id="g170">
+      <switch
+         id="switch168">
+        <foreignObject
+           style="overflow:visible;"
+           pointer-events="all"
+           width="148"
+           height="26"
+           requiredFeatures="http://www.w3.org/TR/SVG11/feature#Extensibility">
+          <xhtml:div
+             style="display: inline-block; font-size: 12px; font-family: Helvetica; color: rgb(0, 0, 0); line-height: 1.2; vertical-align: top; width: 148px; white-space: normal; overflow-wrap: normal; text-align: center;">
+            <xhtml:div
+               style="display:inline-block;text-align:inherit;text-decoration:inherit;">Client disconnects and should reconnect</xhtml:div>
+          </xhtml:div>
+        </foreignObject>
+        <text
+           x="74"
+           y="19"
+           fill="#000000"
+           text-anchor="middle"
+           font-size="12px"
+           font-family="Helvetica"
+           id="text166">Client disconnects and should reconnect</text>
+      </switch>
+    </g>
+    <path
+       d="M 265 605 Q 220 525 205 457.5 Q 190 390 257.15 255.7"
+       fill="none"
+       stroke="#000000"
+       stroke-miterlimit="10"
+       stroke-dasharray="1 1"
+       pointer-events="none"
+       id="path172" />
+    <path
+       d="M 259.5 251 L 259.5 258.83 L 257.15 255.7 L 253.24 255.7 Z"
+       fill="#000000"
+       stroke="#000000"
+       stroke-miterlimit="10"
+       pointer-events="none"
+       id="path174" />
+    <path
+       d="M 265 250 L 583.63 250"
+       fill="none"
+       stroke="#000000"
+       stroke-miterlimit="10"
+       pointer-events="none"
+       id="path176" />
+    <path
+       d="M 588.88 250 L 581.88 253.5 L 583.63 250 L 581.88 246.5 Z"
+       fill="#000000"
+       stroke="#000000"
+       stroke-miterlimit="10"
+       pointer-events="none"
+       id="path178" />
+    <g
+       transform="translate(270.5,220.5)"
+       id="g184">
+      <switch
+         id="switch182">
+        <foreignObject
+           style="overflow:visible;"
+           pointer-events="all"
+           width="318"
+           height="26"
+           requiredFeatures="http://www.w3.org/TR/SVG11/feature#Extensibility">
+          <xhtml:div
+             style="display: inline-block; font-size: 12px; font-family: Helvetica; color: rgb(0, 0, 0); line-height: 1.2; vertical-align: top; width: 318px; white-space: normal; overflow-wrap: normal; text-align: center;">
+            <xhtml:div
+               style="display:inline-block;text-align:inherit;text-decoration:inherit;">Client handshakes with Pairing to get information on the transport and verify whether its certificate is valid</xhtml:div>
+          </xhtml:div>
+        </foreignObject>
+        <text
+           x="159"
+           y="19"
+           fill="#000000"
+           text-anchor="middle"
+           font-size="12px"
+           font-family="Helvetica"
+           id="text180">Client handshakes with Pairing to get information on the transport and verify whether its certificate is valid</text>
+      </switch>
+    </g>
+    <path
+       d="M 595 261 L 276.37 261"
+       fill="none"
+       stroke="#000000"
+       stroke-miterlimit="10"
+       pointer-events="none"
+       id="path186" />
+    <path
+       d="M 271.12 261 L 278.12 257.5 L 276.37 261 L 278.12 264.5 Z"
+       fill="#000000"
+       stroke="#000000"
+       stroke-miterlimit="10"
+       pointer-events="none"
+       id="path188" />
+    <path
+       d="M 266 260 Q 130 360 254.95 456.12"
+       fill="none"
+       stroke="#000000"
+       stroke-miterlimit="10"
+       pointer-events="none"
+       id="path190" />
+    <path
+       d="M 259.11 459.32 L 251.43 457.82 L 254.95 456.12 L 255.7 452.28 Z"
+       fill="#000000"
+       stroke="#000000"
+       stroke-miterlimit="10"
+       pointer-events="none"
+       id="path192" />
+    <g
+       transform="translate(144.5,353.5)"
+       id="g198">
+      <switch
+         id="switch196">
+        <foreignObject
+           style="overflow:visible;"
+           pointer-events="all"
+           width="35"
+           height="12"
+           requiredFeatures="http://www.w3.org/TR/SVG11/feature#Extensibility">
+          <xhtml:div
+             style="display: inline-block; font-size: 12px; font-family: Helvetica; color: rgb(0, 0, 0); line-height: 1.2; vertical-align: top; width: 37px; white-space: nowrap; overflow-wrap: normal; text-align: center;">
+            <xhtml:div
+               style="display:inline-block;text-align:inherit;text-decoration:inherit;">If Valid</xhtml:div>
+          </xhtml:div>
+        </foreignObject>
+        <text
+           x="18"
+           y="12"
+           fill="#000000"
+           text-anchor="middle"
+           font-size="12px"
+           font-family="Helvetica"
+           id="text194">If Valid</text>
+      </switch>
+    </g>
+    <path
+       d="M 266 260 Q 110 280 253.76 308.75"
+       fill="none"
+       stroke="#000000"
+       stroke-miterlimit="10"
+       pointer-events="none"
+       id="path200" />
+    <path
+       d="M 258.9 309.78 L 251.35 311.84 L 253.76 308.75 L 252.73 304.98 Z"
+       fill="#000000"
+       stroke="#000000"
+       stroke-miterlimit="10"
+       pointer-events="none"
+       id="path202" />
+    <g
+       transform="translate(117.5,273.5)"
+       id="g208">
+      <switch
+         id="switch206">
+        <foreignObject
+           style="overflow:visible;"
+           pointer-events="all"
+           width="45"
+           height="12"
+           requiredFeatures="http://www.w3.org/TR/SVG11/feature#Extensibility">
+          <xhtml:div
+             style="display: inline-block; font-size: 12px; font-family: Helvetica; color: rgb(0, 0, 0); line-height: 1.2; vertical-align: top; width: 45px; white-space: nowrap; overflow-wrap: normal; text-align: center;">
+            <xhtml:div
+               style="display:inline-block;text-align:inherit;text-decoration:inherit;">If Invalid</xhtml:div>
+          </xhtml:div>
+        </foreignObject>
+        <text
+           x="23"
+           y="12"
+           fill="#000000"
+           text-anchor="middle"
+           font-size="12px"
+           font-family="Helvetica"
+           id="text204">If Invalid</text>
+      </switch>
+    </g>
+    <path
+       d="M 92 230 L 267 230"
+       fill="none"
+       stroke="#000000"
+       stroke-width="3"
+       stroke-miterlimit="10"
+       pointer-events="none"
+       id="path210" />
+  </g>
+</svg>

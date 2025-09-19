@@ -1,0 +1,146 @@
+name: Build and Test Astarte Apps
+
+on:
+  workflow_dispatch:
+    inputs:
+      app:
+        type: string
+        description: ""
+        required: true
+  workflow_call:
+    inputs:
+      app:
+        type: string
+        description: ""
+        required: true
+
+env:
+  elixir_version: "1.15"
+  otp_version: "26.1"
+
+jobs:
+  test-dialyzer:
+    name: Check Dialyzer
+    runs-on: ubuntu-22.04
+    env:
+      MIX_ENV: ci
+    steps:
+    - uses: actions/checkout@v2
+    - uses: actions/cache@v4
+      with:
+        path: apps/${{ inputs.app }}/deps
+        key: ${{ runner.os }}-dialyzer-mix-${{ env.otp_version }}-${{ env.elixir_version }}-${{ inputs.app }}-${{ hashFiles(format('{0}{1}{2}{3}', github.workspace, '/apps/', inputs.app, '/mix.lock')) }}
+        restore-keys: |
+          ${{ runner.os }}-dialyzer-mix-${{ env.otp_version }}-${{ env.elixir_version }}-${{ inputs.app }}-
+    - uses: actions/cache@v4
+      with:
+        path: apps/${{ inputs.app }}/_build
+        key: ${{ runner.os }}-dialyzer-_build-${{ env.otp_version }}-${{ env.elixir_version }}-${{ inputs.app }}-${{ github.sha }}
+        restore-keys: |
+          ${{ runner.os }}-dialyzer-_build-${{ env.otp_version }}-${{ env.elixir_version }}-${{ inputs.app }}-
+    - uses: actions/cache@v4
+      id: plt_cache
+      with:
+        path: apps/${{ inputs.app }}/dialyzer_cache
+        key: ${{ runner.os }}-dialyzer_cache-${{ env.otp_version }}-${{ env.elixir_version }}-${{ inputs.app }}-${{ github.sha }}
+        restore-keys: |
+          ${{ runner.os }}-dialyzer_cache-${{ env.otp_version }}-${{ env.elixir_version }}-${{ inputs.app }}-
+    - uses: erlef/setup-beam@v1.15
+      with:
+        otp-version: ${{ env.otp_version }}
+        elixir-version: ${{ env.elixir_version }}
+    - name: Install Dependencies
+      working-directory: ./apps/${{ inputs.app }}
+      run: mix deps.get
+    - name: Create PLTs dir
+      working-directory: ./apps/${{ inputs.app }}
+      run: mkdir -p dialyzer_cache && mix dialyzer --plt
+    - name: Run dialyzer
+      working-directory: ./apps/${{ inputs.app }}
+      run: mix dialyzer
+
+  test-coverage:
+    name: Build and Test
+    runs-on: ubuntu-22.04
+    # Wait for Dialyzer to give it a go before building
+    needs:
+      - test-dialyzer
+    strategy:
+      fail-fast: false
+      matrix:
+        database:
+        - "cassandra:3.11.15"
+        - "scylladb/scylla:5.2.2"
+        rabbitmq:
+        - "rabbitmq:3.12.0-management"
+    services:
+      rabbitmq:
+        image: ${{ matrix.rabbitmq }}
+        ports:
+        - 5672:5672
+        - 15672:15672
+      database:
+        image: ${{ matrix.database }}
+        ports:
+        - 9042:9042
+      cfssl:
+        image: ispirata/docker-alpine-cfssl-autotest:astarte
+        ports:
+        - 8080/tcp
+    env:
+      MIX_ENV: test
+      CASSANDRA_NODES: localhost
+      RABBITMQ_HOST: localhost
+    steps:
+    - uses: actions/checkout@v2
+    - uses: actions/cache@v4
+      with:
+        path: apps/${{ inputs.app }}/deps
+        key: ${{ runner.os }}-apps-mix-${{ env.otp_version }}-${{ env.elixir_version }}-${{ inputs.app }}-${{ hashFiles(format('{0}{1}{2}{3}', github.workspace, '/apps/', inputs.app, '/mix.lock')) }}
+        restore-keys: |
+          ${{ runner.os }}-apps-mix-${{ env.otp_version }}-${{ env.elixir_version }}-${{ inputs.app }}-
+    # Caching _build is causing tests to fail rather unexpectedly.
+    # TODO try to undestand why and restore the cache step.
+    # - uses: actions/cache@v1
+    #   with:
+    #     path: apps/${{ inputs.app }}/_build
+    #     key: ${{ runner.os }}-apps-_build-${{ env.otp_version }}-${{ env.elixir_version }}-${{ inputs.app }}-${{ github.sha }}
+    #     restore-keys: |
+    #       ${{ runner.os }}-apps-_build-${{ env.otp_version }}-${{ env.elixir_version }}-${{ inputs.app }}-
+    - uses: erlef/setup-beam@v1.15
+      with:
+        otp-version: ${{ env.otp_version }}
+        elixir-version: ${{ env.elixir_version }}
+    - name: Install Dependencies
+      working-directory: ./apps/${{ inputs.app }}
+      run: mix deps.get
+    - name: Check formatting
+      working-directory: ./apps/${{ inputs.app }}
+      run: mix format --check-formatted
+    - name: Compile
+      working-directory: ./apps/${{ inputs.app }}
+      run: mix compile --warnings-as-errors --force
+    - uses: actions/setup-node@v1
+      with:
+        node-version: '10.x'
+    - name: Wait for Cassandra
+      run: |
+        npm install -g wait-for-cassandra
+        wait-for-cassandra -T 120000 -h $CASSANDRA_NODES
+    - name: Test and Coverage
+      working-directory: ./apps/${{ inputs.app }}
+      run: mix coveralls.json  --exclude wip -o coverage_results
+      env:
+        CFSSL_API_URL: http://localhost:${{ job.services.cfssl.ports[8080] }}
+    - name: Upload Coverage Results to CodeCov
+      # Don't upload more than once per component
+      if: |
+          matrix.database == 'scylladb/scylla:5.2.2' &&
+          ${{ github.repository }} == astarte-platform/astarte
+      uses: codecov/codecov-action@v5
+      with:
+        fail_ci_if_error: true
+        token: ${{ secrets.CODECOV_TOKEN }}
+        verbose: true
+        directory: ./apps/${{ inputs.app }}/coverage_results
+        flags: ${{ inputs.app }}

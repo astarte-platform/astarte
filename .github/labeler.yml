@@ -1,0 +1,23 @@
+app:appengine_api:
+  - apps/astarte_appengine_api/**
+
+app:data_updater_plant:
+  - apps/astarte_data_updater_plant/**
+
+app:housekeeping:
+  - apps/astarte_housekeeping/**
+
+app:housekeeping_api:
+  - apps/astarte_housekeeping_api/**
+
+app:pairing:
+  - apps/astarte_pairing/**
+
+app:realm_management:
+  - apps/astarte_realm_management/**
+
+app:realm_management_api:
+  - apps/astarte_realm_management_api/**
+
+app:trigger_engine:
+  - apps/astarte_trigger_engine/**

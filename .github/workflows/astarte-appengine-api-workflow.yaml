@@ -1,0 +1,37 @@
+name: Build and Test Astarte Appengine API
+
+on:
+  # Run when pushing to stable branches
+  push:
+    paths:
+    - 'apps/astarte_appengine_api/**'
+    - '.github/workflows/astarte-apps-build-workflow.yaml'
+    - '.github/workflows/astarte-appengine-api-workflow.yaml'
+    - '.github/codecov.yml'
+    branches:
+    - 'master'
+    - 'release-*'
+  # Run on branch/tag creation
+  create:
+  # Run on pull requests for astarte_appengine_api
+  pull_request:
+    paths:
+    - 'apps/astarte_appengine_api/**'
+    - '.github/workflows/astarte-apps-build-workflow.yaml'
+    - '.github/workflows/astarte-appengine-api-workflow.yaml'
+    - '.github/codecov.yml'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  astarte_appengine_api:
+    uses: ./.github/workflows/astarte-apps-build-workflow.yaml
+    with:
+      app: "astarte_appengine_api"
+    secrets: inherit

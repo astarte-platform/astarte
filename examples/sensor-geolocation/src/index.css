@@ -1,0 +1,23 @@
+.bg-gray {
+  background: #f3f3f3;
+}
+
+.bg-sensor-theme {
+  background-color: #6aa8d8;
+  border-color: #6aa8d8;
+}
+
+.status-dot {
+  display: inline-block;
+  width: 0.7em;
+  height: 0.7em;
+  border-radius: 50%;
+}
+
+.status-dot.green {
+  background-color: #008000;
+}
+
+.status-dot.red {
+  background-color: #ff0000;
+}

@@ -1,0 +1,30 @@
+language: elixir
+dist: bionic
+services:
+  - docker
+elixir:
+  - 1.8.2
+otp_release:
+  - 21.3
+env:
+  global:
+    - CASSANDRA_DB_HOST=localhost MIX_ENV=test
+  jobs:
+    - CASSANDRA_IMAGE=cassandra:3.11.5
+    - CASSANDRA_IMAGE=scylladb/scylla:3.3.0
+cache:
+  directories:
+    - deps
+    - _build
+before_install:
+  - docker pull $CASSANDRA_IMAGE
+  - docker run -d -p 127.0.0.1:9042:9042 $CASSANDRA_IMAGE
+  # Install wait-for-cassandra and wait for it to start
+  - npm install -g wait-for-cassandra
+  - wait-for-cassandra -T 120000 -h $CASSANDRA_DB_HOST
+before_script:
+  # Needed or Elixir 1.6 will fail due to a non-updated index
+  - ~/.mix/rebar3 update
+script:
+  - mix format --check-formatted
+  - mix coveralls.travis

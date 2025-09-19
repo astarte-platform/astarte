@@ -1,0 +1,37 @@
+name: Astarte build
+
+on:
+  workflow_call:
+
+jobs:
+  astarte-build:
+    name: Astarte build
+    runs-on: ubuntu-22.04
+    steps:
+    - uses: actions/checkout@v2
+    - name: Setup Docker Buildx
+      uses: docker/setup-buildx-action@v3
+    - name: Build Astarte containers
+      uses: docker/bake-action@v6
+      with:
+        files: docker-compose.yml
+        set: |
+            *.cache-from=type=gha
+            *.cache-to=type=gha,mode=max
+            astarte-housekeeping.output=type=docker,dest=${{ runner.temp }}/astarte-housekeeping.tar
+            astarte-realm-management.output=type=docker,dest=${{ runner.temp }}/astarte-realm-management.tar
+            astarte-pairing.output=type=docker,dest=${{ runner.temp }}/astarte-pairing.tar
+            astarte-appengine-api.output=type=docker,dest=${{ runner.temp }}/astarte-appengine-api.tar
+            astarte-data-updater-plant.output=type=docker,dest=${{ runner.temp }}/astarte-data-updater-plant.tar
+            astarte-trigger-engine.output=type=docker,dest=${{ runner.temp }}/astarte-trigger-engine.tar
+    - name: Upload artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: astarte-images
+        path: |
+          ${{ runner.temp }}/astarte-housekeeping.tar
+          ${{ runner.temp }}/astarte-realm-management.tar
+          ${{ runner.temp }}/astarte-pairing.tar
+          ${{ runner.temp }}/astarte-appengine-api.tar
+          ${{ runner.temp }}/astarte-data-updater-plant.tar
+          ${{ runner.temp }}/astarte-trigger-engine.tar

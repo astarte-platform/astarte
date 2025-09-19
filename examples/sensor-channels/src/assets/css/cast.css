@@ -1,0 +1,53 @@
+body {
+  font-family: "Montserrat", sans-serif;
+}
+
+.sensor-id-search-div,
+.list-group-item {
+  background: #f3f3f3;
+}
+
+.btn.btn-primary,
+.main-row .input-group .form-control {
+  height: 2.5rem;
+}
+
+.btn.btn-primary:hover {
+  box-shadow: none;
+}
+
+.main-card.card .btn img {
+  height: 0.9375rem;
+}
+
+.btn.btn-primary,
+.main-row .input-group .form-control {
+  font-size: 0.875rem;
+}
+
+.main-card {
+  box-shadow: 0 0.0625rem 0.25rem 0 rgba(0, 0, 0, 0.09);
+}
+
+.list-div-main .list-group-item,
+.list-div-main .list-group-item:first-child {
+  border-radius: 0;
+}
+
+.device-status-div .status-tag {
+  width: 0.825rem;
+  height: 0.825rem;
+}
+
+.bg-sensor-theme {
+  background-color: #6aa8d8 !important;
+  border-color: #6aa8d8 !important;
+}
+
+.connected {
+  background-color: #008000;
+}
+
+.disconnected {
+  background-color: #ff0000;
+}
