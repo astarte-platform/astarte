@@ -52,14 +52,14 @@ defmodule Astarte.Pairing.CFSSLCredentials do
           {:ok, %{cert: cert, aki: aki, serial: serial}}
         else
           "Failed to issue a certificate: Invalid common name"
-          |> Logger.info(realm: realm, hw_id: encoded_device_id)
+          |> Logger.info(realm: realm, hw_id: encoded_device_id, common_name: cn)
 
           {:error, :invalid_common_name}
         end
 
       {:error, reason} ->
         "Failed to issue a certificate: Couldn't sign the csr"
-        |> Logger.info(realm: realm, hw_id: encoded_device_id)
+        |> Logger.info(realm: realm, hw_id: encoded_device_id, common_name: device_common_name)
 
         {:error, reason}
     end

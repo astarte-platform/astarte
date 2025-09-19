@@ -36,7 +36,7 @@ config :astarte_pairing, Astarte.PairingWeb.Endpoint,
 # Configures Elixir's Logger
 config :logger, :default_formatter,
   format: "$time $metadata[$level] $message\n",
-  metadata: [:request_id, :tag, :realm, :method, :hw_id]
+  metadata: [:request_id, :tag, :realm, :method, :hw_id, :common_name]
 
 config :astarte_pairing, Astarte.PairingWeb.AuthGuardian,
   allowed_algos: ["ES256", "ES384", "ES512", "PS256", "PS384", "PS512", "RS256", "RS384", "RS512"]
