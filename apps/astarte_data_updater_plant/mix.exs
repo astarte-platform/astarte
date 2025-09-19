@@ -74,7 +74,8 @@ defmodule Astarte.DataUpdaterPlant.Mixfile do
       {:astarte_realm_management,
        path: "../astarte_realm_management", only: [:dev, :test], runtime: false},
       {:astarte_housekeeping,
-       path: "../astarte_housekeeping", only: [:dev, :test], env: :dev, runtime: false}
+       path: "../astarte_housekeeping", only: [:dev, :test], env: :dev, runtime: false},
+      {:astarte_events, path: astarte_lib("astarte_events")}
     ]
   end
 
@@ -106,8 +107,15 @@ defmodule Astarte.DataUpdaterPlant.Mixfile do
       # Workaround for Elixir 1.15 / ssl_verify_fun issue
       # See also: https://github.com/deadtrickster/ssl_verify_fun.erl/pull/27
       {:ssl_verify_fun, "~> 1.1.0", manager: :rebar3, override: true},
+      # TODO: needed to run test because we cannot start the housekeeping application as is
+      {:httpoison, "~> 2.2", only: [:dev, :test]},
       {:uuid, "~> 2.0", hex: :uuid_erl},
       {:typedstruct, "~> 0.5"}
     ]
+  end
+
+  defp astarte_lib(library_name) do
+    base_directory = System.get_env("ASTARTE_LIBRARIES_PATH", "../../libs")
+    Path.join(base_directory, library_name)
   end
 end
