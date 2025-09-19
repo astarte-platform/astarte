@@ -19,6 +19,8 @@
 defmodule Astarte.PairingWeb.DeviceController do
   use Astarte.PairingWeb, :controller
 
+  require Logger
+
   alias Astarte.Pairing.Credentials
   alias Astarte.Pairing.Credentials.AstarteMQTTV1
   alias Astarte.Pairing.Info
@@ -55,6 +57,14 @@ defmodule Astarte.PairingWeb.DeviceController do
       |> Logger.info(realm: realm, hw_id: hw_id)
 
       resp
+    else
+      error ->
+        Logger.info("Failed to create credentials.",
+          realm: realm,
+          hw_id: hw_id
+        )
+
+        error
     end
   end
 
