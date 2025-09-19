@@ -35,7 +35,8 @@ config :logger, :console,
     :hw_id,
     :function,
     :request_id,
-    :tag
+    :tag,
+    :common_name
   ]
 
 config :astarte_pairing, :rpc_client, MockRPCClient

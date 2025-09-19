@@ -23,6 +23,9 @@ defmodule Astarte.Housekeeping.Realms.Realm do
   import Ecto.Changeset
 
   alias Astarte.Housekeeping.Realms.NonNegativeIntegerOrUnsetType
+  alias Astarte.Core.Realm, as: CoreRealm
+
+  require Logger
 
   @default_replication_factor 1
   @default_replication_class "SimpleStrategy"
@@ -60,7 +63,7 @@ defmodule Astarte.Housekeeping.Realms.Realm do
     realm
     |> cast(params, @allowed_create_fields)
     |> validate_required(@required_create_fields)
-    |> validate_format(:realm_name, ~r/^[a-z][a-z0-9]*$/)
+    |> validate_change(:realm_name, &validate_realm_name/2)
     |> validate_number(:replication_factor, greater_than: 0)
     |> validate_change(:jwt_public_key_pem, &validate_pem_public_key/2)
     |> put_default_if_missing(:replication_class, @default_replication_class)
@@ -129,6 +132,17 @@ defmodule Astarte.Housekeeping.Realms.Realm do
       put_default_if_missing(changeset, :replication_factor, @default_replication_factor)
     else
       changeset
+    end
+  end
+
+  def validate_realm_name(field, realm_name) do
+    case CoreRealm.valid_name?(realm_name) do
+      true ->
+        []
+
+      false ->
+        Logger.warning("Invalid realm name.", tag: "invalid_realm_name", realm: realm_name)
+        [{field, "has invalid format"}]
     end
   end
 

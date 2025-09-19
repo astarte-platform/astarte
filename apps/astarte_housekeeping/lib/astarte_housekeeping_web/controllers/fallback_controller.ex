@@ -48,6 +48,13 @@ defmodule Astarte.HousekeepingWeb.FallbackController do
     |> render(:"503")
   end
 
+  def call(conn, {:error, :vhost_creation_error}) do
+    conn
+    |> put_status(:service_unavailable)
+    |> put_view(ErrorView)
+    |> render(:vhost_creation_fail)
+  end
+
   def call(conn, {:error, :realm_not_found}) do
     conn
     |> put_status(:not_found)

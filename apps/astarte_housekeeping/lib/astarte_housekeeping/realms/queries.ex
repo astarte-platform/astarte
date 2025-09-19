@@ -20,7 +20,6 @@ defmodule Astarte.Housekeeping.Realms.Queries do
   @moduledoc false
   import Ecto.Query
 
-  alias Astarte.Core.Realm, as: CoreRealm
   alias Astarte.DataAccess.Consistency
   alias Astarte.DataAccess.CSystem
   alias Astarte.DataAccess.Devices.Device
@@ -192,10 +191,9 @@ defmodule Astarte.Housekeeping.Realms.Queries do
   end
 
   def create_realm(realm_name, public_key_pem, replication, device_limit, max_retention, opts) do
-    with :ok <- validate_realm_name(realm_name),
-         keyspace_name = Realm.keyspace_name(realm_name),
-         {:ok, replication_map_str} <- build_replication_map_str(replication),
-         :ok <- Astarte.Housekeeping.AMQP.Vhost.create_vhost(realm_name) do
+    keyspace_name = Realm.keyspace_name(realm_name)
+
+    with {:ok, replication_map_str} <- build_replication_map_str(replication) do
       if opts[:async] do
         {:ok, _pid} =
           Task.start(fn ->
@@ -231,8 +229,7 @@ defmodule Astarte.Housekeeping.Realms.Queries do
          device_limit,
          max_retention
        ) do
-    with :ok <- validate_realm_name(realm_name),
-         :ok <- create_realm_keyspace(keyspace_name, replication_map_str),
+    with :ok <- create_realm_keyspace(keyspace_name, replication_map_str),
          :ok <- create_realm_kv_store(keyspace_name),
          :ok <- create_names_table(keyspace_name),
          :ok <- create_capabilities_type(keyspace_name),
@@ -269,20 +266,6 @@ defmodule Astarte.Housekeeping.Realms.Queries do
           )
 
         {:error, reason}
-    end
-  end
-
-  defp validate_realm_name(realm_name) do
-    if CoreRealm.valid_name?(realm_name) do
-      :ok
-    else
-      _ =
-        Logger.warning("Invalid realm name.",
-          tag: "invalid_realm_name",
-          realm: realm_name
-        )
-
-      {:error, :realm_not_allowed}
     end
   end
 

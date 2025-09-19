@@ -43,6 +43,10 @@ defmodule Astarte.HousekeepingWeb.ErrorView do
     %{errors: %{detail: "Forbidden"}}
   end
 
+  def render("vhost_creation_fail.json", _assigns) do
+    %{errors: %{detail: "Failed to create realm vhost"}}
+  end
+
   def render("realm_deletion_disabled.json", _assigns) do
     %{errors: %{detail: "Realm deletion disabled"}}
   end

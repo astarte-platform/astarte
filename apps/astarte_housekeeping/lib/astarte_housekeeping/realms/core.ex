@@ -86,7 +86,7 @@ defmodule Astarte.Housekeeping.Realms.Core do
         },
         opts
       ) do
-    Queries.create_realm(
+    do_create_realm(
       realm_name,
       pem,
       replication_factor,
@@ -109,7 +109,7 @@ defmodule Astarte.Housekeeping.Realms.Core do
       ) do
     datacenter_replication_factors_map = Enum.into(Enum.to_list(replication_factors_map), %{})
 
-    Queries.create_realm(
+    do_create_realm(
       realm_name,
       pem,
       datacenter_replication_factors_map,
@@ -117,5 +117,32 @@ defmodule Astarte.Housekeeping.Realms.Core do
       datastream_maximum_storage_retention,
       opts
     )
+  end
+
+  defp do_create_realm(
+         realm_name,
+         pem,
+         replication,
+         device_registration_limit,
+         datastream_maximum_storage_retention,
+         opts
+       ) do
+    with :ok <- create_vhost(realm_name) do
+      Queries.create_realm(
+        realm_name,
+        pem,
+        replication,
+        device_registration_limit,
+        datastream_maximum_storage_retention,
+        opts
+      )
+    end
+  end
+
+  defp create_vhost(realm_name) do
+    case Astarte.Housekeeping.AMQP.Vhost.create_vhost(realm_name) do
+      :ok -> :ok
+      :error -> {:error, :vhost_creation_error}
+    end
   end
 end

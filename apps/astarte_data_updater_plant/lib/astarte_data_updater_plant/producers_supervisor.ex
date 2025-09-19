@@ -47,9 +47,7 @@ defmodule Astarte.DataUpdaterPlant.ProducersSupervisor do
 
     children = [
       events_pool,
-      AMQPEventsProducer,
-      {Registry, keys: :unique, name: Astarte.DataUpdaterPlant.VhostRegistry},
-      Astarte.DataUpdaterPlant.VHostSupervisor
+      AMQPEventsProducer
     ]
 
     Supervisor.init(children, strategy: :rest_for_one)

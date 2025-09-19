@@ -59,7 +59,8 @@ config :logger, :console,
     :module,
     :function,
     :request_id,
-    :tag
+    :tag,
+    :common_name
   ]
 
 # Set a higher stacktrace during development. Avoid configuring such

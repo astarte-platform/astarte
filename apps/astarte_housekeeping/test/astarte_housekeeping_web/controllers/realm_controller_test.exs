@@ -66,6 +66,7 @@ defmodule Astarte.HousekeepingWeb.RealmControllerTest do
   @update_attrs %{"data" => %{"jwt_public_key_pem" => @other_pubkey}}
   @invalid_update_attrs %{"data" => %{"jwt_public_key_pem" => @malformed_pubkey}}
   @invalid_name_attrs %{"data" => %{"realm_name" => "0invalid", "jwt_public_key_pem" => pubkey()}}
+  @reserved_name_attrs %{"data" => %{"realm_name" => "astarte", "jwt_public_key_pem" => pubkey()}}
   @invalid_replication_attrs %{
     "data" => %{
       "realm_name" => "testrealm",
@@ -176,6 +177,11 @@ defmodule Astarte.HousekeepingWeb.RealmControllerTest do
 
     test "renders errors when realm_name is invalid", %{conn: conn} do
       conn = post conn, realm_path(conn, :create), @invalid_name_attrs
+      assert json_response(conn, 422)["errors"] != %{}
+    end
+
+    test "renders errors when realm_name is reserved", %{conn: conn} do
+      conn = post conn, realm_path(conn, :create), @reserved_name_attrs
       assert json_response(conn, 422)["errors"] != %{}
     end
 

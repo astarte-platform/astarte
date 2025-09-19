@@ -29,6 +29,8 @@ defmodule Astarte.PairingWeb.DeviceController do
   alias Astarte.PairingWeb.CredentialsView
   alias Astarte.PairingWeb.DeviceInfoView
 
+  require Logger
+
   @bearer_regex ~r/bearer\:?\s+(.*)$/i
 
   action_fallback Astarte.PairingWeb.FallbackController
@@ -45,10 +47,16 @@ defmodule Astarte.PairingWeb.DeviceController do
          {:ok, secret} <- get_secret(conn),
          {:ok, %AstarteCredentials{} = credentials} <-
            Credentials.get_astarte_mqtt_v1(realm, hw_id, secret, device_ip, params) do
-      conn
-      |> put_status(:created)
-      |> put_view(CredentialsView)
-      |> render("show_astarte_mqtt_v1.json", credentials: credentials)
+      resp =
+        conn
+        |> put_status(:created)
+        |> put_view(CredentialsView)
+        |> render("show_astarte_mqtt_v1.json", credentials: credentials)
+
+      "New certificate sent to device"
+      |> Logger.info(realm: realm, hw_id: hw_id)
+
+      resp
     else
       error ->
         Logger.info("Failed to create credentials.",
