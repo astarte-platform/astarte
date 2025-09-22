@@ -25,6 +25,7 @@ defmodule Astarte.Core.Generators.Mapping.ValueTest do
   alias Astarte.Core.Mapping.ValueType
 
   alias Astarte.Core.Generators.Interface, as: InterfaceGenerator
+  alias Astarte.Core.Generators.Mapping, as: MappingGenerator
   alias Astarte.Core.Generators.Mapping.Value, as: ValueGenerator
   alias Astarte.Core.Generators.Mapping.ValueType, as: ValueTypeGenerator
 
@@ -99,9 +100,18 @@ defmodule Astarte.Core.Generators.Mapping.ValueTest do
   describe "test utilities" do
     @describetag :success
     @describetag :ut
+
     test "path_matches_endpoint?/3" do
       for {aggregation, endpoint, path, expected} <- @endpoints_path do
         assert expected == ValueGenerator.path_matches_endpoint?(aggregation, endpoint, path)
+      end
+    end
+
+    property "path_from_endpoint/1" do
+      check all endpoint <- MappingGenerator.endpoint(),
+                path <- ValueGenerator.path_from_endpoint(endpoint) do
+        # I must use :individual to prevent the last part of the endpoint from being truncated.
+        assert ValueGenerator.path_matches_endpoint?(:individual, endpoint, path)
       end
     end
 

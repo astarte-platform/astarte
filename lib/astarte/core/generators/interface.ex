@@ -144,6 +144,11 @@ defmodule Astarte.Core.Generators.Interface do
   @spec major_version :: StreamData.t(integer())
   def major_version, do: integer(0..9)
 
+  @doc false
+  @spec minor_version(major_version :: integer()) :: StreamData.t(integer())
+  def minor_version(0), do: integer(1..255)
+  def minor_version(_n), do: integer(0..255)
+
   defp name_optional do
     gen all first <- string([?a..?z, ?A..?Z], length: 1),
             rest <- string(:alphanumeric, max_length: 10),
@@ -173,13 +178,6 @@ defmodule Astarte.Core.Generators.Interface do
 
   defp id(interface_name, major_version),
     do: constant(CQLUtils.interface_id(interface_name, major_version))
-
-  defp minor_version(major_version) do
-    case major_version do
-      0 -> integer(1..255)
-      _n -> integer(0..255)
-    end
-  end
 
   defp ownership, do: member_of([:device, :server])
 
@@ -236,6 +234,13 @@ defmodule Astarte.Core.Generators.Interface do
   defp doc, do: one_of([nil, string(:ascii, min_length: 1, max_length: 100_000)])
 
   # Utilities
+
+  @doc false
+  @spec endpoint_by_aggregation(:individual | :object, String.t()) :: String.t()
+  def endpoint_by_aggregation(:individual, endpoint), do: endpoint
+
+  def endpoint_by_aggregation(:object, endpoint),
+    do: endpoint |> String.split("/") |> Enum.drop(-1) |> Enum.join("/")
 
   @normalized_param ""
 
