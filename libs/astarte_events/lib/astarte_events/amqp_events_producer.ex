@@ -16,17 +16,15 @@
 # limitations under the License.
 #
 
-defmodule Astarte.DataUpdaterPlant.AMQPEventsProducer do
+defmodule Astarte.Events.AMQPEventsProducer do
   require Logger
   use GenServer
 
-  alias Astarte.DataUpdaterPlant.Config
+  alias Astarte.Events.Config
   alias AMQP.Channel
 
-  @connection_backoff if Mix.env() == :test, do: 0, else: 10000
-  @adapter Config.amqp_adapter!()
-
-  # API
+  @connection_backoff Application.compile_env(:astarte_events, :connection_backoff, 10_000)
+  alias ExRabbitPool.RabbitMQ
 
   def start_link(args \\ []) do
     GenServer.start_link(__MODULE__, args, name: __MODULE__)
@@ -57,7 +55,7 @@ defmodule Astarte.DataUpdaterPlant.AMQPEventsProducer do
 
   @impl true
   def handle_call({:publish, exchange, routing_key, payload, opts}, _from, chan) do
-    reply = @adapter.publish(chan, exchange, routing_key, payload, opts)
+    reply = RabbitMQ.publish(chan, exchange, routing_key, payload, opts)
 
     {:reply, reply, chan}
   end
@@ -65,7 +63,7 @@ defmodule Astarte.DataUpdaterPlant.AMQPEventsProducer do
   def handle_call({:declare_exchange, exchange}, _from, chan) do
     # TODO: we need to decide who is responsible of deleting the exchange once it is
     # no longer needed
-    reply = @adapter.declare_exchange(chan, exchange, type: :direct, durable: true)
+    reply = RabbitMQ.declare_exchange(chan, exchange, type: :direct, durable: true)
 
     {:reply, reply, chan}
   end
@@ -74,7 +72,7 @@ defmodule Astarte.DataUpdaterPlant.AMQPEventsProducer do
   def handle_info({:DOWN, _, :process, _pid, reason}, _state) do
     # Track channel crash
     :telemetry.execute(
-      [:astarte, :data_updater_plant, :amqp_events_producer, :channel_crash],
+      [:astarte, :astarte_events, :amqp_events_producer, :channel_crash],
       %{},
       %{reason: inspect(reason)}
     )
@@ -139,7 +137,7 @@ defmodule Astarte.DataUpdaterPlant.AMQPEventsProducer do
 
   defp declare_default_events_exchange(channel, conn) do
     with {:error, reason} <-
-           @adapter.declare_exchange(channel, Config.events_exchange_name!(),
+           RabbitMQ.declare_exchange(channel, Config.amqp_events_exchange_name!(),
              type: :direct,
              durable: true
            ) do

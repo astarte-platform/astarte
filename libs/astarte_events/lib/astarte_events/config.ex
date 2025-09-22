@@ -117,9 +117,15 @@ defmodule Astarte.Events.Config do
 
   @envdoc "The total number of data queues in all the Astarte cluster."
   app_env :data_queue_total_count, :astarte_events, :amqp_data_queue_total_count,
-    os_env: "ASTARTE_EVENTS_AMQP_DATA_QUEUE_TOTAL_COUNT",
+    os_env: "ASTARTE_EVENTS_PRODUCER_AMQP_DATA_QUEUE_TOTAL_COUNT",
     type: :integer,
     default: 128
+
+  @envdoc "The exchange used by the AMQP producer to publish events."
+  app_env :amqp_events_exchange_name, :astarte_events, :amqp_events_exchange_name,
+    os_env: "ASTARTE_EVENTS_PRODUCER_AMQP_EVENTS_EXCHANGE_NAME",
+    type: :binary,
+    default: "astarte_events"
 
   # Since we have one channel per queue, this is not configurable
   def amqp_channels_per_connection_number!() do
@@ -167,6 +173,18 @@ defmodule Astarte.Events.Config do
       server_name = amqp_ssl_custom_sni!() || amqp_host!()
       Keyword.put(ssl_options, :server_name_indication, to_charlist(server_name))
     end
+  end
+
+  # Since we have only one producer, this is not configurable
+  def events_connection_number!(), do: 1
+
+  def events_pool_config!() do
+    [
+      name: {:local, :events_producer_pool},
+      worker_module: ExRabbitPool.Worker.RabbitConnection,
+      size: events_connection_number!(),
+      max_overflow: 0
+    ]
   end
 
   defdelegate astarte_instance_id!, to: DataAccessConfig

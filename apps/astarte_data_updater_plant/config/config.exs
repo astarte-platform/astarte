@@ -21,4 +21,6 @@ config :astarte_data_updater_plant, ecto_repos: [Astarte.DataAccess.Repo]
 
 config :astarte_data_updater_plant, Astarte.DataAccess.Repo, []
 
+config :astarte_events, :connection_backoff, 10_000
+
 import_config "#{config_env()}.exs"

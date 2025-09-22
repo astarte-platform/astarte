@@ -19,7 +19,7 @@
 defmodule Astarte.DataUpdaterPlant.TriggersHandler do
   import Bitwise, only: [<<<: 2]
   require Logger
-  alias Astarte.DataUpdaterPlant.AMQPEventsProducer
+  alias Astarte.Events.AMQPEventsProducer
   alias Astarte.DataUpdaterPlant.Config
 
   @moduledoc """
