@@ -62,8 +62,7 @@ defmodule Astarte.Pairing.Mixfile do
 
   defp astarte_required_modules("true") do
     [
-      {:astarte_core, in_umbrella: true},
-      {:astarte_data_access, in_umbrella: true}
+      {:astarte_core, in_umbrella: true}
     ]
   end
 
@@ -71,7 +70,6 @@ defmodule Astarte.Pairing.Mixfile do
     [
       {:astarte_core,
        github: "astarte-platform/astarte_core", branch: "release-1.3", override: true},
-      {:astarte_data_access, path: "../astarte_data_access", only: [:dev, :test], runtime: false},
       {:astarte_generators, github: "astarte-platform/astarte_generators", only: [:dev, :test]},
       {:astarte_realm_management,
        path: "../astarte_realm_management", only: [:dev, :test], runtime: false}
@@ -106,6 +104,7 @@ defmodule Astarte.Pairing.Mixfile do
       # See also: https://github.com/deadtrickster/ssl_verify_fun.erl/pull/27
       {:ssl_verify_fun, "~> 1.1.0", manager: :rebar3, override: true},
       {:cfxxl, github: "ispirata/cfxxl"},
+      {:astarte_data_access, path: astarte_lib("astarte_data_access")},
       {:bcrypt_elixir, "~> 2.2"},
       {:xandra, "~> 0.19"},
       {:telemetry, "~> 0.4"},
@@ -120,5 +119,10 @@ defmodule Astarte.Pairing.Mixfile do
       {:mimic, "~> 1.11", only: :test},
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false}
     ]
+  end
+
+  defp astarte_lib(library_name) do
+    base_directory = System.get_env("ASTARTE_LIBRARIES_PATH", "../../libs")
+    Path.join(base_directory, library_name)
   end
 end

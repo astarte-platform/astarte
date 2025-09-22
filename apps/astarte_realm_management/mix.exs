@@ -66,8 +66,7 @@ defmodule Astarte.RealmManagement.Mixfile do
 
   defp astarte_required_modules("true") do
     [
-      {:astarte_core, in_umbrella: true},
-      {:astarte_data_access, in_umbrella: true}
+      {:astarte_core, in_umbrella: true}
     ]
   end
 
@@ -75,7 +74,6 @@ defmodule Astarte.RealmManagement.Mixfile do
     [
       {:astarte_core,
        github: "astarte-platform/astarte_core", branch: "release-1.3", override: true},
-      {:astarte_data_access, path: "../astarte_data_access", only: [:dev, :test], runtime: false},
       {:astarte_generators, github: "astarte-platform/astarte_generators", only: [:dev, :test]}
     ]
   end
@@ -98,6 +96,7 @@ defmodule Astarte.RealmManagement.Mixfile do
       {:telemetry_metrics, "~> 0.4"},
       {:telemetry_poller, "~> 0.4"},
       {:telemetry_metrics_prometheus_core, "~> 0.4"},
+      {:astarte_data_access, path: astarte_lib("astarte_data_access")},
       {:dialyxir, "~> 1.0", only: [:dev, :ci], runtime: false},
       {:mimic, "~> 1.11", only: :test},
       # Workaround for Elixir 1.15 / ssl_verify_fun issue
@@ -105,5 +104,10 @@ defmodule Astarte.RealmManagement.Mixfile do
       {:ssl_verify_fun, "~> 1.1.0", manager: :rebar3, override: true},
       {:uuid, "~> 2.0", hex: :uuid_erl}
     ]
+  end
+
+  defp astarte_lib(library_name) do
+    base_directory = System.get_env("ASTARTE_LIBRARIES_PATH", "../../libs")
+    Path.join(base_directory, library_name)
   end
 end

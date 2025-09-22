@@ -16,13 +16,22 @@ mix hex.info
 ARG BUILD_ENV=prod
 
 ENV MIX_ENV=$BUILD_ENV
+ENV ASTARTE_LIBRARIES_PATH=libraries
+
+#copy data_access from library
+COPY ../../libs ./libraries
+COPY apps/astarte_realm_management . 
+
+ENV ASTARTE_LIBRARIES_PATH=libraries
 
 # Cache elixir deps
-ADD mix.exs mix.lock ./
+ADD apps/astarte_realm_management/mix.exs ./
+ADD apps/astarte_realm_management/mix.lock ./
+
 RUN mix do deps.get, deps.compile
 
 # Add all the rest
-ADD . .
+ADD apps/astarte_realm_management .
 
 # Build and release
 RUN mix do compile, release

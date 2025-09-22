@@ -61,14 +61,13 @@ defmodule Astarte.DataUpdaterPlant.Mixfile do
   defp astarte_required_modules("true") do
     [
       {:astarte_core, in_umbrella: true},
-      {:astarte_data_access, in_umbrella: true}
+      {:astarte_generators, in_umbrella: true, only: [:dev, :test]}
     ]
   end
 
   defp astarte_required_modules(_) do
     [
       {:astarte_core, github: "astarte-platform/astarte_core", branch: "release-1.3"},
-      {:astarte_data_access, path: "../astarte_data_access", only: [:dev, :test], runtime: false},
       {:astarte_generators, github: "astarte-platform/astarte_generators", only: [:dev, :test]},
       {:astarte_realm_management,
        path: "../astarte_realm_management", only: [:dev, :test], runtime: false},
@@ -99,6 +98,7 @@ defmodule Astarte.DataUpdaterPlant.Mixfile do
       {:telemetry_poller, "~> 0.4"},
       {:typed_ecto_schema, "~> 0.4"},
       {:xandra, "~> 0.13"},
+      {:astarte_data_access, path: astarte_lib("astarte_data_access"), override: true},
       {:skogsra, "~> 2.2"},
       {:telemetry, "~> 0.4"},
       {:observer_cli, "~> 1.5"},

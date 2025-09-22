@@ -35,8 +35,13 @@ defmodule AstarteExport.MixProject do
 
   defp deps do
     [
-      {:xandra, "~> 0.13"},
-      {:astarte_core, "~> 1.2"},
+      {:astarte_core,
+       [
+         git: "https://github.com/astarte-platform/astarte_core.git",
+         branch: "release-1.3"
+       ]},
+      {:xandra, "~> 0.19.4"},
+      {:exandra, "~>0.16.0"},
       {:distillery, "~> 2.1.1"},
       {:pretty_log, "~> 0.1.0"},
       {:xml_stream_writer, "~> 0.1"},
@@ -44,7 +49,8 @@ defmodule AstarteExport.MixProject do
       {:dialyzex, github: "Comcast/dialyzex", only: [:dev, :ci]},
       # Workaround for Elixir 1.15 / ssl_verify_fun issue
       # See also: https://github.com/deadtrickster/ssl_verify_fun.erl/pull/27
-      {:ssl_verify_fun, "~> 1.1.0", manager: :rebar3, override: true}
+      {:ssl_verify_fun, "~> 1.1.0", manager: :rebar3, override: true},
+      {:astarte_data_access, path: "../../libs/astarte_data_access"}
     ]
   end
 end

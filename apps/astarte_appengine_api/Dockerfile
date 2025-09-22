@@ -7,6 +7,9 @@ RUN apt-get update --allow-releaseinfo-change -y && apt-get install -y build-ess
 
 WORKDIR /app
 
+COPY ../../libs ./libraries
+COPY apps/astarte_appengine_api .  
+
 # Install hex
 RUN mix local.hex --force && \
     mix local.rebar --force && \
@@ -17,12 +20,16 @@ ARG BUILD_ENV=prod
 
 ENV MIX_ENV=$BUILD_ENV
 
+ENV ASTARTE_LIBRARIES_PATH=libraries
+
 # Cache elixir deps
-ADD mix.exs mix.lock ./
+ADD apps/astarte_appengine_api/mix.exs ./
+ADD apps/astarte_appengine_api/mix.lock ./
+
 RUN mix do deps.get, deps.compile
 
 # Add all the rest
-ADD . .
+ADD apps/astarte_appengine_api .
 
 # Build and release
 RUN mix do compile, release

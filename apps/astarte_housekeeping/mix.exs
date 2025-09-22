@@ -62,14 +62,12 @@ defmodule Astarte.Housekeeping.Mixfile do
 
   defp astarte_required_modules("true") do
     [
-      {:astarte_data_access, in_umbrella: true},
       {:astarte_core, in_umbrella: true}
     ]
   end
 
   defp astarte_required_modules(_) do
     [
-      {:astarte_data_access, path: "../astarte_data_access", only: [:dev, :test], runtime: false},
       {:astarte_core, github: "astarte-platform/astarte_core", branch: "release-1.3"}
     ]
   end
@@ -103,7 +101,13 @@ defmodule Astarte.Housekeeping.Mixfile do
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
       {:astarte_generators, github: "astarte-platform/astarte_generators", only: [:dev, :test]},
       {:httpoison, "~> 2.0"},
+      {:astarte_data_access, path: astarte_lib("astarte_data_access")},
       {:castore, "~> 1.0.0"}
     ]
+  end
+
+  defp astarte_lib(library_name) do
+    base_directory = System.get_env("ASTARTE_LIBRARIES_PATH", "../../libs")
+    Path.join(base_directory, library_name)
   end
 end

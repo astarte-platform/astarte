@@ -21,10 +21,13 @@ defmodule Astarte.Import.MixProject do
   # Run "mix help deps" to learn about dependencies.
   defp deps do
     [
-      {:xandra, "~> 0.13"},
+      {:xandra, "~> 0.19.4"},
+      {:exandra, "~>0.16.0"},
+      {:ecto, "~>3.13"},
       {:logfmt, "~> 3.3"},
-      {:astarte_core, "~> 1.2"},
-      {:astarte_data_access, "~> 1.2"},
+      {:astarte_core, github: "astarte-platform/astarte_core", branch: "release-1.3"},
+      {:astarte_data_access, path: "../../libs/astarte_data_access"},
+      {:jason, "~> 1.4"},
       {:distillery, "~> 2.0"},
       # Workaround for Elixir 1.15 / ssl_verify_fun issue
       # See also: https://github.com/deadtrickster/ssl_verify_fun.erl/pull/27

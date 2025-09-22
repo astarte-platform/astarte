@@ -53,7 +53,6 @@ defmodule Astarte.TriggerEngine.Mixfile do
   defp astarte_required_modules("true") do
     [
       {:astarte_core, in_umbrella: true},
-      {:astarte_data_access, in_umbrella: true},
       {:astarte_generators, in_umbrella: true}
     ]
   end
@@ -62,7 +61,6 @@ defmodule Astarte.TriggerEngine.Mixfile do
     [
       {:astarte_core,
        github: "astarte-platform/astarte_core", branch: "release-1.3", override: true},
-      {:astarte_data_access, path: "../astarte_data_access", only: [:dev, :test], runtime: false},
       {:astarte_generators, github: "astarte-platform/astarte_generators", only: [:dev, :test]}
     ]
   end
@@ -92,6 +90,7 @@ defmodule Astarte.TriggerEngine.Mixfile do
       {:pretty_log, "~> 0.1"},
       {:telemetry, "~> 0.4"},
       {:exandra, "~> 0.13"},
+      {:astarte_data_access, path: astarte_lib("astarte_data_access")},
       {:skogsra, "~> 2.2"},
       {:observer_cli, "~> 1.5"},
       # hex.pm package and esl/ex_rabbit_pool do not support amqp version 2.1.
@@ -105,5 +104,10 @@ defmodule Astarte.TriggerEngine.Mixfile do
       # See also: https://github.com/deadtrickster/ssl_verify_fun.erl/pull/27
       {:ssl_verify_fun, "~> 1.1.0", manager: :rebar3, override: true}
     ]
+  end
+
+  defp astarte_lib(library_name) do
+    base_directory = System.get_env("ASTARTE_LIBRARIES_PATH", "../../libs")
+    Path.join(base_directory, library_name)
   end
 end
