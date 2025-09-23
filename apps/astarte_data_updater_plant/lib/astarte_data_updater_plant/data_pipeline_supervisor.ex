@@ -19,7 +19,6 @@
 defmodule Astarte.DataUpdaterPlant.DataPipelineSupervisor do
   use Supervisor
 
-  alias Astarte.DataUpdaterPlant.ProducersSupervisor
   alias Astarte.DataUpdaterPlant.ConsumersSupervisor
 
   def start_link(init_arg) do
@@ -50,7 +49,6 @@ defmodule Astarte.DataUpdaterPlant.DataPipelineSupervisor do
          members: :auto,
          distribution_strategy: Horde.UniformDistribution
        ]},
-      ProducersSupervisor,
       ConsumersSupervisor,
       Astarte.DataUpdaterPlant.RPC.Supervisor
     ]

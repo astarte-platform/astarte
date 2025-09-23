@@ -22,7 +22,7 @@ defmodule Astarte.DataUpdaterPlant.AMQPEventsProducerTest do
   use Mimic
 
   alias AMQP.Channel
-  alias Astarte.DataUpdaterPlant.AMQPEventsProducer
+  alias Astarte.Events.AMQPEventsProducer
 
   @tag :regression
   test "events producer reconnects in case of error" do

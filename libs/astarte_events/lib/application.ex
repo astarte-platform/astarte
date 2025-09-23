@@ -18,11 +18,23 @@
 
 defmodule Astarte.Events.Application do
   use Application
+  alias Astarte.Events.AMQPEventsProducer
+  alias Astarte.Events.AMQPTriggers.VHostSupervisor
+  alias Astarte.Events.Config
 
   def start(_type, _args) do
+    events_pool =
+      Supervisor.child_spec(
+        {ExRabbitPool.PoolSupervisor,
+         rabbitmq_config: Config.amqp_options!(), connection_pools: [Config.events_pool_config!()]},
+        id: :events_producer_pool
+      )
+
     children = [
+      events_pool,
+      AMQPEventsProducer,
       {Registry, keys: :unique, name: Astarte.Events.AMQPTriggers.Registry},
-      Astarte.Events.AMQPTriggers.VHostSupervisor
+      VHostSupervisor
     ]
 
     opts = [strategy: :rest_for_one, name: Astarte.Events.Supervisor]
