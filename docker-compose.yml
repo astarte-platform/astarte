@@ -35,6 +35,8 @@ services:
     env_file:
       - ./.env
     restart: on-failure
+    environment:
+      ASTARTE_EVENTS_PRODUCER_AMQP_HOST: "rabbitmq"
     depends_on:
       - "rabbitmq"
       - "traefik"
