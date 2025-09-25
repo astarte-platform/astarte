@@ -25,6 +25,12 @@ defmodule Astarte.Events.Triggers.Core do
   alias Astarte.Events.TriggersHandler.Core
   alias Astarte.Events.Triggers.Queries
 
+  def register_targets(realm_name, simple_trigger_list) do
+    for {_trigger_key, target} <- simple_trigger_list do
+      Core.register_target(realm_name, target)
+    end
+  end
+
   def load_trigger(realm_name, {:data_trigger, proto_buf_data_trigger}, trigger_target, state) do
     new_data_trigger = Utils.simple_trigger_to_data_trigger(proto_buf_data_trigger)
 
@@ -202,7 +208,7 @@ defmodule Astarte.Events.Triggers.Core do
     end
   end
 
-  defp pretty_device_event_type(device_event_type) do
+  def pretty_device_event_type(device_event_type) do
     case device_event_type do
       :DEVICE_CONNECTED ->
         :on_device_connection
@@ -228,5 +234,14 @@ defmodule Astarte.Events.Triggers.Core do
       :INTERFACE_MINOR_UPDATED ->
         :on_interface_minor_updated
     end
+  end
+
+  def build_trigger_id_to_policy_name_map(realm_name, simple_triggers) do
+    trigger_ids =
+      simple_triggers
+      |> Enum.map(fn {_trigger, target} -> target.parent_trigger_id end)
+      |> Enum.uniq()
+
+    Queries.get_policy_name_map(realm_name, trigger_ids)
   end
 end
