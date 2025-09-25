@@ -20,12 +20,13 @@ defmodule Astarte.RealmManagement.Devices do
   alias Astarte.Core.Device
   alias Astarte.RealmManagement.DeviceRemoval
   alias Astarte.RealmManagement.Devices.Queries
+  alias Astarte.RealmManagement.TriggersHandler
 
   def delete_device(realm_name, device_id) do
     with {:ok, decoded_id} <- Device.decode_device_id(device_id),
          :ok <- ensure_device_exists(realm_name, decoded_id) do
       Queries.insert_device_into_deletion_in_progress(realm_name, decoded_id)
-      ensure_device_still_exists(realm_name, decoded_id)
+      ensure_device_still_exists_and_generate_trigger(realm_name, decoded_id)
       :ok
     end
   end
@@ -38,8 +39,9 @@ defmodule Astarte.RealmManagement.Devices do
     end
   end
 
-  defp ensure_device_still_exists(realm_name, device_id) do
+  defp ensure_device_still_exists_and_generate_trigger(realm_name, device_id) do
     if Queries.device_exists?(realm_name, device_id) do
+      TriggersHandler.device_deletion_started(realm_name, device_id)
       :ok
     else
       # Don't leave dangling entries. This should only ever run if the request was made for
