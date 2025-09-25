@@ -44,14 +44,7 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandler do
 
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.AMQPTriggerTarget
 
-  def register_target(%AMQPTriggerTarget{exchange: nil} = _target, _realm_name) do
-    # Default exchange, no need to declare it
-    :ok
-  end
-
-  def register_target(%AMQPTriggerTarget{exchange: exchange} = _target, realm_name) do
-    Astarte.Events.AMQPTriggers.declare_exchange(realm_name, exchange)
-  end
+  defdelegate register_target(realm_name, trigger_target), to: TriggersHandler
 
   def device_connected(targets, realm, device_id, ip_address, timestamp) when is_list(targets) do
     execute_all_ok(targets, fn {target, policy} ->

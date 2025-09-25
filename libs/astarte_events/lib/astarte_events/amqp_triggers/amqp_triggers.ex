@@ -19,11 +19,6 @@
 defmodule Astarte.Events.AMQPTriggers do
   alias Astarte.Events.AMQPTriggers.{Producer, VHostSupervisor}
 
-  def declare_exchange(realm, exchange) do
-    {:ok, server} = VHostSupervisor.for_realm(realm)
-    Producer.declare_exchange(server, exchange)
-  end
-
   def publish(realm, exchange, routing_key, payload, opts \\ []) do
     {:ok, server} = VHostSupervisor.for_realm(realm)
     Producer.publish(server, exchange, routing_key, payload, opts)

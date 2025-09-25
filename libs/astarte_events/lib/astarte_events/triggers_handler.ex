@@ -25,13 +25,24 @@ defmodule Astarte.Events.TriggersHandler do
   require Logger
   @max_backoff_exponent 8
   @max_rand trunc(:math.pow(2, 32) - 1)
-  alias Astarte.Events.Config
 
   alias Astarte.Core.Triggers.SimpleEvents.SimpleEvent
-
-  alias Astarte.Events.AMQPTriggers
-  alias Astarte.Events.AMQPEventsProducer
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.AMQPTriggerTarget
+  alias Astarte.Events.AMQPEventsProducer
+  alias Astarte.Events.AMQPTriggers
+  alias Astarte.Events.AMQPTriggers.Producer
+  alias Astarte.Events.AMQPTriggers.VHostSupervisor
+  alias Astarte.Events.Config
+
+  def register_target(_realm_name, %AMQPTriggerTarget{exchange: nil} = _target) do
+    # Default exchange, no need to declare it
+    :ok
+  end
+
+  def register_target(realm_name, %AMQPTriggerTarget{exchange: exchange} = _target) do
+    {:ok, server} = VHostSupervisor.for_realm(realm_name)
+    Producer.declare_exchange(server, exchange)
+  end
 
   def dispatch_event(event, event_type, target, realm, device_id, timestamp, policy) do
     %SimpleEvent{
