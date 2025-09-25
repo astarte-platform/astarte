@@ -54,7 +54,6 @@ jobs:
       run: mix deps.get
     - name: Create PLTs dir
       working-directory: ./apps/${{ inputs.app }}
-      if: ${{ steps.plt_cache.outputs.cache-hit != 'true' }}
       run: mkdir -p dialyzer_cache && mix dialyzer --plt
     - name: Run dialyzer
       working-directory: ./apps/${{ inputs.app }}
