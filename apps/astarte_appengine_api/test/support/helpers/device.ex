@@ -141,7 +141,7 @@ defmodule Astarte.Helpers.Device do
     )
   end
 
-  def is_fallible?(interface) do
+  def fallible?(interface) do
     interface.mappings
     |> Enum.any?(&(&1.value_type in @fallible_value_type))
   end

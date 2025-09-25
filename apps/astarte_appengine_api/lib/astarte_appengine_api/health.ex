@@ -30,9 +30,8 @@ defmodule Astarte.AppEngine.API.Health do
   """
   def get_health do
     with :ready <- database_health(),
-         :ready <- vernemq_health(),
-         :ready <- dup_health() do
-      :ready
+         :ready <- vernemq_health() do
+      dup_health()
     end
   end
 

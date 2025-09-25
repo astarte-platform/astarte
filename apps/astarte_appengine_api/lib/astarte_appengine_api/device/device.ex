@@ -537,9 +537,8 @@ defmodule Astarte.AppEngine.API.Device do
 
   defp ensure_publish(realm, device_id, interface, path, value, opts) do
     with {:ok, %{local_matches: local_matches, remote_matches: remote_matches}} <-
-           publish_data(realm, device_id, interface, path, value, opts),
-         :ok <- ensure_publish_reliability(local_matches, remote_matches, opts) do
-      :ok
+           publish_data(realm, device_id, interface, path, value, opts) do
+      ensure_publish_reliability(local_matches, remote_matches, opts)
     end
   end
 

@@ -272,9 +272,8 @@ defmodule Astarte.AppEngine.API.Groups.Queries do
   end
 
   defp check_valid_device_for_group(keyspace, group_name, device_id) do
-    with {:ok, groups} <- fetch_device_groups(keyspace, device_id),
-         :ok <- check_device_not_in_group(groups, group_name) do
-      :ok
+    with {:ok, groups} <- fetch_device_groups(keyspace, device_id) do
+      check_device_not_in_group(groups, group_name)
     end
   end
 

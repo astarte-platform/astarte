@@ -137,7 +137,7 @@ defmodule Astarte.AppEngine.API.DeviceTest do
     last_seen_ip: "198.51.100.81",
     credentials_inhibited: false,
     total_received_bytes: 4_500_000,
-    total_received_msgs: 45000,
+    total_received_msgs: 45_000,
     previous_interfaces: @expected_previous_interfaces,
     groups: [],
     deletion_in_progress: false

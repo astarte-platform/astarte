@@ -7,10 +7,10 @@ defmodule Astarte.AppEngine.APIWeb.Plug.AuthorizePath do
   end
 
   def call(conn, opts) do
-    unless Config.authentication_disabled?() do
-      GuardianAuthorizePath.call(conn, opts)
-    else
+    if Config.authentication_disabled?() do
       conn
+    else
+      GuardianAuthorizePath.call(conn, opts)
     end
   end
 end

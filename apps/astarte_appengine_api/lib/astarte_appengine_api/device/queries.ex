@@ -577,7 +577,7 @@ defmodule Astarte.AppEngine.API.Device.Queries do
         end)
       end
 
-    if Enum.count(devices) < limit || Enum.count(devices) == 0 do
+    if Enum.count(devices) < limit || Enum.empty?(devices) do
       %DevicesList{devices: devices_info}
     else
       token = devices |> List.last() |> Map.fetch!("token")

@@ -30,7 +30,7 @@ defmodule Astarte.AppEngine.API.Config do
   app_env :max_results_limit, :astarte_appengine_api, :max_results_limit,
     os_env: "APPENGINE_API_MAX_RESULTS_LIMIT",
     type: NonNegativeInteger,
-    default: 10000
+    default: 10_000
 
   @envdoc "The host for the AMQP consumer connection."
   app_env :rooms_amqp_client_host, :astarte_appengine_api, :rooms_amqp_client_host,

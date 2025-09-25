@@ -177,13 +177,13 @@ defmodule Astarte.InterfaceUpdateGenerators do
   def invalid_value(:string) do
     one_of([
       binary() |> filter(fn value -> not String.valid?(value) end),
-      integer(65537..120_000)
+      integer(65_537..120_000)
       |> map(&String.duplicate("a", &1))
     ])
   end
 
   def invalid_value(:binaryblob),
-    do: integer(65537..120_000) |> map(&String.duplicate("a", &1)) |> map(&Base.encode64/1)
+    do: integer(65_537..120_000) |> map(&String.duplicate("a", &1)) |> map(&Base.encode64/1)
 
   def invalid_value(:doublearray), do: too_large_array(float())
 
@@ -331,7 +331,7 @@ defmodule Astarte.InterfaceUpdateGenerators do
   defp random_value(value_type) do
     integer = integer(-0x7FFFFFFF..0x7FFFFFFF)
     longinteger = integer(-0x7FFFFFFFFFFFFFFF..0x7FFFFFFFFFFFFFFF)
-    str = string(:utf8, max_length: 65535)
+    str = string(:utf8, max_length: 65_535)
 
     datetime =
       one_of([
@@ -341,7 +341,7 @@ defmodule Astarte.InterfaceUpdateGenerators do
         |> map(&DateTime.to_iso8601/1)
       ])
 
-    binaryblob = map(binary(max_length: 65535), &Base.encode64/1)
+    binaryblob = map(binary(max_length: 65_535), &Base.encode64/1)
 
     case value_type do
       :double -> float()

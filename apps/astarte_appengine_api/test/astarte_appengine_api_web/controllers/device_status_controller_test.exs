@@ -81,7 +81,7 @@ defmodule Astarte.AppEngine.APIWeb.DeviceStatusControllerTest do
     "attributes" => %{"attribute_key" => "device_a_attribute"},
     "credentials_inhibited" => false,
     "total_received_bytes" => 4_500_000,
-    "total_received_msgs" => 45000,
+    "total_received_msgs" => 45_000,
     "previous_interfaces" => @expected_previous_interfaces,
     "groups" => [],
     "deletion_in_progress" => false

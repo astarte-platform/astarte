@@ -28,7 +28,7 @@ defmodule Astarte.AppEngine.API.Rooms.AMQPClient do
   alias Astarte.AppEngine.API.Config
   alias Astarte.AppEngine.API.Rooms.EventsDispatcher
 
-  @connection_backoff 10000
+  @connection_backoff 10_000
   @prefetch_count 300
 
   # API
@@ -158,9 +158,9 @@ defmodule Astarte.AppEngine.API.Rooms.AMQPClient do
              Config.events_exchange_name!(),
              routing_key: Config.rooms_events_routing_key!()
            ),
-         {:ok, _consumer_tag} <- Basic.consume(chan, Config.rooms_events_queue_name!()),
-         # Get notifications when the chan or the connection go down
-         Process.monitor(chan.pid) do
+         {:ok, _consumer_tag} <- Basic.consume(chan, Config.rooms_events_queue_name!()) do
+      # Get notifications when the chan or the connection go down
+      Process.monitor(chan.pid)
       {:ok, chan}
     end
   end

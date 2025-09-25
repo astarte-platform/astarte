@@ -136,7 +136,7 @@ defmodule Astarte.AppEngine.API.Device.DeviceV2Test do
     %{realm_name: realm_name, interfaces: interfaces, device: device} = args
 
     valid_interfaces_for_update =
-      interfaces |> Enum.filter(&is_fallible?/1) |> Enum.filter(&(&1.ownership == :server))
+      interfaces |> Enum.filter(&fallible?/1) |> Enum.filter(&(&1.ownership == :server))
 
     check all interface <- member_of(valid_interfaces_for_update),
               mapping_update <- valid_fallible_mapping_update_for(interface),

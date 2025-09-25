@@ -184,9 +184,7 @@ defmodule Astarte.AppEngine.API.Rooms.Room do
     %{room_name: room_name, watch_id_to_request: watch_id_to_request} = state
 
     reply =
-      if not Map.has_key?(watch_id_to_request, trigger_id) do
-        {:error, :trigger_not_found}
-      else
+      if Map.has_key?(watch_id_to_request, trigger_id) do
         payload = %{
           "device_id" => device_id,
           "timestamp" => timestamp,
@@ -200,6 +198,8 @@ defmodule Astarte.AppEngine.API.Rooms.Room do
         )
 
         Endpoint.broadcast("rooms:" <> room_name, "new_event", payload)
+      else
+        {:error, :trigger_not_found}
       end
 
     {:reply, reply, state}
