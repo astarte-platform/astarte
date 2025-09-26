@@ -22,6 +22,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
   alias Astarte.Core.Device.Capabilities
   alias Astarte.Core.InterfaceDescriptor
   alias Astarte.Core.Mapping
+  alias Astarte.DataAccess
   alias Astarte.DataAccess.Consistency
   alias Astarte.DataUpdaterPlant.Config
   alias Astarte.DataAccess.Realms.SimpleTrigger
@@ -35,6 +36,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
   import Ecto.Query
   require Logger
 
+  @spec query_simple_triggers!(String.t(), DataAccess.UUID.t(), integer()) :: [SimpleTrigger.t()]
   def query_simple_triggers!(realm, object_id, object_type_int) do
     keyspace_name = Realm.keyspace_name(realm)
 

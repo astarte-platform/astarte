@@ -42,8 +42,6 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandler do
     ValueChangeEvent
   }
 
-  alias Astarte.Core.Triggers.SimpleTriggersProtobuf.AMQPTriggerTarget
-
   defdelegate register_target(realm_name, trigger_target), to: TriggersHandler
 
   def device_connected(targets, realm, device_id, ip_address, timestamp) when is_list(targets) do

@@ -27,132 +27,42 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.Trigger do
   alias Astarte.Core.Device
   alias Astarte.DataUpdaterPlant.DataUpdater.Core
   alias Astarte.DataUpdaterPlant.DataUpdater.State
-  alias Astarte.Core.Triggers.SimpleTriggersProtobuf.AMQPTriggerTarget
   alias Astarte.DataUpdaterPlant.TriggersHandler
   alias Astarte.DataUpdaterPlant.DataUpdater.EventTypeUtils
   alias Astarte.DataUpdaterPlant.DataUpdater.Queries
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf
   alias Astarte.Core.Triggers.DataTrigger
-  alias Astarte.Core.InterfaceDescriptor
-  alias Astarte.Core.Mapping.EndpointsAutomaton
   alias Astarte.DataAccess.Interface, as: InterfaceQueries
-  alias Astarte.DataUpdaterPlant.TriggerPolicy.Queries, as: PolicyQueries
-  alias Astarte.Core.Triggers.SimpleTriggersProtobuf.DeviceTrigger, as: ProtobufDeviceTrigger
+  alias Astarte.DataAccess.Realms.SimpleTrigger
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.DataTrigger, as: ProtobufDataTrigger
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.Utils, as: SimpleTriggersProtobufUtils
   alias Astarte.DataUpdaterPlant.MessageTracker
+  alias Astarte.Events.Triggers
 
   def populate_triggers_for_object!(state, object_id, object_type) do
     %{realm: realm} = state
 
     object_type_int = SimpleTriggersProtobuf.Utils.object_type_to_int!(object_type)
 
-    simple_triggers = Queries.query_simple_triggers!(realm, object_id, object_type_int)
+    simple_triggers =
+      Queries.query_simple_triggers!(realm, object_id, object_type_int)
+      |> Enum.map(&Triggers.deserialize_simple_trigger/1)
 
-    new_state =
-      Enum.reduce(simple_triggers, state, fn simple_trigger, state_acc ->
-        trigger_data =
-          SimpleTriggersProtobuf.Utils.deserialize_simple_trigger(simple_trigger.trigger_data)
+    {:ok, new_data} =
+      Triggers.fetch_triggers(realm, simple_triggers, Map.from_struct(state))
 
-        trigger_target =
-          SimpleTriggersProtobuf.Utils.deserialize_trigger_target(simple_trigger.trigger_target)
-          |> Map.put(:simple_trigger_id, simple_trigger.simple_trigger_id)
-          |> Map.put(:parent_trigger_id, simple_trigger.parent_trigger_id)
+    new_state = Map.merge(state, new_data)
+    object_key = {object_id, object_type_int}
 
-        load_trigger(state_acc, trigger_data, trigger_target)
-      end)
+    volatile_triggers =
+      new_state.volatile_triggers
+      |> Enum.filter(fn {trigger_key, _} -> trigger_key == object_key end)
+      |> Enum.map(fn {_, simple_trigger} -> simple_trigger end)
 
-    Enum.reduce(new_state.volatile_triggers, new_state, fn {{obj_id, obj_type},
-                                                            {simple_trigger, trigger_target}},
-                                                           state_acc ->
-      if obj_id == object_id and obj_type == object_type_int do
-        load_trigger(state_acc, simple_trigger, trigger_target)
-      else
-        state_acc
-      end
-    end)
-  end
+    {:ok, new_data} =
+      Triggers.fetch_triggers(realm, volatile_triggers, Map.from_struct(new_state))
 
-  def load_trigger(state, {:data_trigger, proto_buf_data_trigger}, trigger_target) do
-    new_data_trigger =
-      SimpleTriggersProtobuf.Utils.simple_trigger_to_data_trigger(proto_buf_data_trigger)
-
-    data_triggers = state.data_triggers
-
-    event_type = EventTypeUtils.pretty_data_trigger_type(proto_buf_data_trigger.data_trigger_type)
-    data_trigger_key = Core.DataTrigger.data_trigger_to_key(state, new_data_trigger, event_type)
-    existing_triggers_for_key = Map.get(data_triggers, data_trigger_key, [])
-
-    # Extract all the targets belonging to the (eventual) existing congruent trigger
-    congruent_targets =
-      existing_triggers_for_key
-      |> Enum.filter(&DataTrigger.are_congruent?(&1, new_data_trigger))
-      |> Enum.flat_map(fn congruent_trigger -> congruent_trigger.trigger_targets end)
-
-    new_targets = [trigger_target | congruent_targets]
-    new_data_trigger_with_targets = %{new_data_trigger | trigger_targets: new_targets}
-
-    # Register the new target
-    :ok = TriggersHandler.register_target(state.realm, trigger_target)
-
-    # Replace the (eventual) congruent existing trigger with the new one
-    new_data_triggers_for_key = [
-      new_data_trigger_with_targets
-      | Enum.reject(
-          existing_triggers_for_key,
-          &DataTrigger.are_congruent?(&1, new_data_trigger_with_targets)
-        )
-    ]
-
-    next_data_triggers = Map.put(data_triggers, data_trigger_key, new_data_triggers_for_key)
-
-    Map.put(state, :data_triggers, next_data_triggers)
-    |> maybe_cache_trigger_policy(trigger_target)
-  end
-
-  # TODO: implement on_empty_cache_received
-  def load_trigger(state, {:device_trigger, proto_buf_device_trigger}, trigger_target) do
-    device_triggers = state.device_triggers
-    # device event type is one of
-    # :on_device_connected, :on_device_disconnected, :on_device_empty_cache_received, :on_device_error,
-    # :on_incoming_introspection, :on_interface_added, :on_interface_removed, :on_interface_minor_updated
-    event_type =
-      EventTypeUtils.pretty_device_event_type(proto_buf_device_trigger.device_event_type)
-
-    # introspection triggers have a pair as key, standard device ones do not
-    trigger_key = device_trigger_to_key(event_type, proto_buf_device_trigger)
-
-    existing_trigger_targets = Map.get(device_triggers, trigger_key, [])
-
-    new_targets = [trigger_target | existing_trigger_targets]
-
-    # Register the new target
-    :ok = TriggersHandler.register_target(state.realm, trigger_target)
-
-    next_device_triggers = Map.put(device_triggers, trigger_key, new_targets)
-    # Map.put(state, :introspection_triggers, next_introspection_triggers)
-    Map.put(state, :device_triggers, next_device_triggers)
-    |> maybe_cache_trigger_policy(trigger_target)
-  end
-
-  # TODO: consider what we should to with the cached policy if/when we allow updating a policy
-  def maybe_cache_trigger_policy(state, %AMQPTriggerTarget{parent_trigger_id: parent_trigger_id}) do
-    %State{realm: realm_name, trigger_id_to_policy_name: trigger_id_to_policy_name} = state
-
-    case PolicyQueries.retrieve_policy_name(
-           realm_name,
-           parent_trigger_id
-         ) do
-      {:ok, policy_name} ->
-        next_trigger_id_to_policy_name =
-          Map.put(trigger_id_to_policy_name, parent_trigger_id, policy_name)
-
-        %{state | trigger_id_to_policy_name: next_trigger_id_to_policy_name}
-
-      # @default policy is not installed, so here are triggers without policy
-      {:error, :policy_not_found} ->
-        state
-    end
+    Map.merge(new_state, new_data)
   end
 
   def populate_triggers_for_group_and_interface!(state, interface_id) do
@@ -304,30 +214,6 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.Trigger do
     :ok
   end
 
-  defp device_trigger_to_key(event_type, proto_buf_device_trigger) do
-    case event_type do
-      :on_interface_added ->
-        {event_type, introspection_trigger_interface(proto_buf_device_trigger)}
-
-      :on_interface_removed ->
-        {event_type, introspection_trigger_interface(proto_buf_device_trigger)}
-
-      :on_interface_minor_updated ->
-        {event_type, introspection_trigger_interface(proto_buf_device_trigger)}
-
-      # other device triggers do not care about interfaces
-      _ ->
-        event_type
-    end
-  end
-
-  defp introspection_trigger_interface(%ProtobufDeviceTrigger{
-         interface_name: interface_name,
-         interface_major: interface_major
-       }) do
-    SimpleTriggersProtobuf.Utils.get_interface_id_or_any(interface_name, interface_major)
-  end
-
   def handle_install_volatile_trigger(
         %State{discard_messages: true} = state,
         _,
@@ -347,85 +233,71 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.Trigger do
         simple_trigger,
         trigger_target
       ) do
-    trigger = SimpleTriggersProtobufUtils.deserialize_simple_trigger(simple_trigger)
+    trigger = %SimpleTrigger{
+      trigger_data: simple_trigger,
+      trigger_target: trigger_target,
+      simple_trigger_id: trigger_id,
+      parent_trigger_id: parent_id
+    }
 
-    target =
-      SimpleTriggersProtobufUtils.deserialize_trigger_target(trigger_target)
-      |> Map.put(:simple_trigger_id, trigger_id)
-      |> Map.put(:parent_trigger_id, parent_id)
+    deserialized_trigger = Triggers.deserialize_simple_trigger(trigger)
+    {trigger_data, _trigger_target} = deserialized_trigger
+    object_key = {object_id, object_type}
+    new_volatile_trigger = {object_key, deserialized_trigger}
+    new_state = Map.update!(state, :volatile_triggers, &[new_volatile_trigger | &1])
 
-    volatile_triggers_list = [
-      {{object_id, object_type}, {trigger, target}} | state.volatile_triggers
-    ]
+    case Triggers.fetch_triggers(
+           state.realm,
+           [deserialized_trigger],
+           Map.from_struct(new_state)
+         ) do
+      {:ok, data} ->
+        relevant_data =
+          Map.take(data, [:device_triggers, :data_triggers, :trigger_id_to_policy_name])
 
-    new_state = Map.put(state, :volatile_triggers, volatile_triggers_list)
+        new_state =
+          new_state
+          |> Map.merge(relevant_data)
 
-    if Map.has_key?(new_state.interface_ids_to_name, object_id) do
-      interface_name = Map.get(new_state.interface_ids_to_name, object_id)
-      %InterfaceDescriptor{automaton: automaton} = new_state.interfaces[interface_name]
+        {:ok, new_state}
 
-      case trigger do
-        {:data_trigger, %ProtobufDataTrigger{match_path: "/*"}} ->
-          {:ok, load_trigger(new_state, trigger, target)}
+      {:error, :interface_not_found} ->
+        with {:ok, temp_state} <- try_load_missing_interface(state, trigger_data),
+             {:ok, _data} <-
+               Triggers.fetch_triggers(
+                 state.realm,
+                 [deserialized_trigger],
+                 Map.from_struct(temp_state)
+               ) do
+          # We add the volatile trigger but don't load the triggers
+          {:ok, new_state}
+        else
+          error ->
+            {error, state}
+        end
 
-        {:data_trigger, %ProtobufDataTrigger{match_path: match_path}} ->
-          with {:ok, _endpoint_id} <- EndpointsAutomaton.resolve_path(match_path, automaton) do
-            {:ok, load_trigger(new_state, trigger, target)}
-          else
-            {:guessed, _} ->
-              # State rollback here
-              {{:error, :invalid_match_path}, state}
+      error ->
+        {error, state}
+    end
+  end
 
-            {:error, :not_found} ->
-              # State rollback here
-              {{:error, :invalid_match_path}, state}
-          end
-      end
-    else
-      case trigger do
-        {:data_trigger, %ProtobufDataTrigger{interface_name: "*"}} ->
-          {:ok, load_trigger(new_state, trigger, target)}
+  defp try_load_missing_interface(state, {:data_trigger, trigger}) do
+    %ProtobufDataTrigger{interface_name: name, interface_major: major} = trigger
 
-        {:data_trigger,
-         %ProtobufDataTrigger{
-           interface_name: interface_name,
-           interface_major: major,
-           match_path: "/*"
-         }} ->
-          with :ok <-
-                 InterfaceQueries.check_if_interface_exists(state.realm, interface_name, major) do
-            {:ok, new_state}
-          else
-            {:error, reason} ->
-              # State rollback here
-              {{:error, reason}, state}
-          end
+    case InterfaceQueries.fetch_interface_descriptor(state.realm, name, major) do
+      {:ok, descriptor} ->
+        temp_state =
+          state
+          |> Map.update!(:interfaces, &Map.put(&1, descriptor.name, descriptor))
+          |> Map.update!(
+            :interface_ids_to_name,
+            &Map.put(&1, descriptor.interface_id, descriptor.name)
+          )
 
-        {:data_trigger,
-         %ProtobufDataTrigger{
-           interface_name: interface_name,
-           interface_major: major,
-           match_path: match_path
-         }} ->
-          with {:ok, %InterfaceDescriptor{automaton: automaton}} <-
-                 InterfaceQueries.fetch_interface_descriptor(state.realm, interface_name, major),
-               {:ok, _endpoint_id} <- EndpointsAutomaton.resolve_path(match_path, automaton) do
-            {:ok, new_state}
-          else
-            {:error, :not_found} ->
-              {{:error, :invalid_match_path}, state}
+        {:ok, temp_state}
 
-            {:guessed, _} ->
-              {{:error, :invalid_match_path}, state}
-
-            {:error, reason} ->
-              # State rollback here
-              {{:error, reason}, state}
-          end
-
-        {:device_trigger, _} ->
-          {:ok, load_trigger(new_state, trigger, target)}
-      end
+      error ->
+        error
     end
   end
 

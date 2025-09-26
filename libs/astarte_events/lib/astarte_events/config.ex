@@ -189,4 +189,5 @@ defmodule Astarte.Events.Config do
 
   defdelegate astarte_instance_id!, to: DataAccessConfig
   defdelegate astarte_instance_id, to: DataAccessConfig
+  defdelegate xandra_options!, to: DataAccessConfig
 end
