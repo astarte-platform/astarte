@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2017-2025 SECO Mind Srl
+# Copyright 2025 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -16,16 +16,7 @@
 # limitations under the License.
 #
 
-defmodule Astarte.Events.TriggersHandler do
-  @moduledoc """
-  This module handles the triggers by generating the events requested
-  by the Trigger targets
-  """
-  import Bitwise, only: [<<<: 2]
-  require Logger
-  @max_backoff_exponent 8
-  @max_rand trunc(:math.pow(2, 32) - 1)
-
+defmodule Astarte.Events.TriggersHandler.Core do
   alias Astarte.Core.Triggers.SimpleEvents.SimpleEvent
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.AMQPTriggerTarget
   alias Astarte.Events.AMQPEventsProducer
@@ -33,6 +24,13 @@ defmodule Astarte.Events.TriggersHandler do
   alias Astarte.Events.AMQPTriggers.Producer
   alias Astarte.Events.AMQPTriggers.VHostSupervisor
   alias Astarte.Events.Config
+
+  import Bitwise, only: [<<<: 2]
+
+  require Logger
+
+  @max_backoff_exponent 8
+  @max_rand trunc(:math.pow(2, 32) - 1)
 
   def register_target(_realm_name, %AMQPTriggerTarget{exchange: nil} = _target) do
     # Default exchange, no need to declare it
@@ -44,30 +42,18 @@ defmodule Astarte.Events.TriggersHandler do
     Producer.declare_exchange(server, exchange)
   end
 
-  def dispatch_event(event, event_type, target, realm, device_id, timestamp, policy) do
-    %SimpleEvent{
-      simple_trigger_id: target.simple_trigger_id,
-      parent_trigger_id: target.parent_trigger_id,
-      realm: realm,
-      device_id: device_id,
-      timestamp: timestamp,
-      event: {event_type, event}
-    }
-    |> do_dispatch_event(target, policy)
-  end
-
-  defp do_dispatch_event(
-         simple_event = %SimpleEvent{},
-         %AMQPTriggerTarget{
-           exchange: target_exchange,
-           routing_key: routing_key,
-           static_headers: static_headers,
-           message_expiration_ms: message_expiration_ms,
-           message_priority: message_priority,
-           message_persistent: message_persistent
-         },
-         policy_name
-       ) do
+  def dispatch_event(
+        simple_event = %SimpleEvent{},
+        %AMQPTriggerTarget{
+          exchange: target_exchange,
+          routing_key: routing_key,
+          static_headers: static_headers,
+          message_expiration_ms: message_expiration_ms,
+          message_priority: message_priority,
+          message_persistent: message_persistent
+        },
+        policy_name
+      ) do
     {event_type, _event_struct} = simple_event.event
 
     simple_trigger_id_str =
