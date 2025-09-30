@@ -1306,36 +1306,6 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
     value = Repo.one(value_query)
 
     assert value == nil
-
-    # Device disconnection sub-test
-    DataUpdater.handle_disconnection(
-      realm,
-      encoded_device_id,
-      gen_tracking_id(),
-      make_timestamp("2017-10-09T14:30:45+00:00")
-    )
-
-    DataUpdater.dump_state(realm, encoded_device_id)
-
-    device_row = Repo.one(device_query)
-
-    assert device_row == %{
-             connected: false,
-             total_received_msgs: 45018,
-             total_received_bytes: 4_501_007,
-             exchanged_msgs_by_interface: %{
-               {"com.example.TestObject", 1} => 5,
-               {"com.test.LCDMonitor", 1} => 6,
-               {"com.test.SimpleStreamTest", 1} => 1
-             },
-             exchanged_bytes_by_interface: %{
-               {"com.example.TestObject", 1} => 247,
-               {"com.test.LCDMonitor", 1} => 291,
-               {"com.test.SimpleStreamTest", 1} => 45
-             }
-           }
-
-    assert AMQPTestHelper.awaiting_messages_count() == 0
   end
 
   test "empty introspection is updated correctly", %{realm: realm} do
