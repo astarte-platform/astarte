@@ -17,7 +17,6 @@
 #
 
 defmodule Astarte.DataUpdaterPlant.AMQPTestEventsConsumer do
-  require Logger
   use GenServer
 
   alias AMQP.Basic
@@ -31,8 +30,9 @@ defmodule Astarte.DataUpdaterPlant.AMQPTestEventsConsumer do
 
   # API
 
-  def start_link(args \\ []) do
-    GenServer.start_link(__MODULE__, args, name: __MODULE__)
+  def start_link(args) do
+    name = Keyword.fetch!(args, :name)
+    GenServer.start_link(__MODULE__, args, name: name)
   end
 
   def ack(delivery_tag) do
@@ -41,13 +41,25 @@ defmodule Astarte.DataUpdaterPlant.AMQPTestEventsConsumer do
 
   # Server callbacks
 
-  def init(_args) do
-    rabbitmq_connect(false)
+  def init(args) do
+    realm = Keyword.fetch!(args, :realm)
+    helper_name = Keyword.fetch!(args, :helper_name)
+    # initial_state = %{realm: realm, helper_name: helper_name}
+
+    initial_state = %{realm: realm, helper_name: helper_name, conn: nil, chan: nil}
+
+    {:ok, state} = rabbitmq_connect(initial_state, false)
+
+    {:ok, state}
   end
 
-  def terminate(_reason, %Channel{conn: conn} = chan) do
+  def terminate(_reason, %{conn: conn, chan: chan}) when not is_nil(conn) and not is_nil(chan) do
     Channel.close(chan)
     Connection.close(conn)
+  end
+
+  def terminate(_reason, _state) do
+    :ok
   end
 
   def handle_call({:ack, delivery_tag}, _from, chan) do
@@ -71,66 +83,72 @@ defmodule Astarte.DataUpdaterPlant.AMQPTestEventsConsumer do
   end
 
   # Message consumed
-  def handle_info({:basic_deliver, payload, meta}, chan) do
+
+  def handle_info({:basic_deliver, payload, meta}, state) do
     {headers, other_meta} = Map.pop(meta, :headers, [])
     headers_map = amqp_headers_to_map(headers)
 
-    AMQPTestHelper.notify_deliver(payload, headers_map, other_meta)
+    # Pass the realm to find the correct helper
+    AMQPTestHelper.notify_deliver(state.helper_name, payload, headers_map, other_meta)
 
-    # TODO: should we ack manually?
-    Basic.ack(chan, meta.delivery_tag)
+    Basic.ack(state.chan, meta.delivery_tag)
 
-    {:noreply, chan}
+    {:noreply, state}
   end
 
-  def handle_info({:try_to_connect}, _state) do
-    {:ok, new_state} = rabbitmq_connect()
+  def handle_info({:try_to_connect}, state) do
+    {:ok, new_state} = rabbitmq_connect(state)
     {:noreply, new_state}
   end
 
-  def handle_info({:DOWN, _, :process, _pid, reason}, _state) do
-    Logger.warning("RabbitMQ connection lost: #{inspect(reason)}. Trying to reconnect...")
-    {:ok, new_state} = rabbitmq_connect()
+  def handle_info({:DOWN, _, :process, _pid, _reason}, state) do
+    {:ok, new_state} = rabbitmq_connect(state)
     {:noreply, new_state}
   end
 
-  defp rabbitmq_connect(retry \\ true) do
+  defp rabbitmq_connect(state, retry \\ true) do
     with {:ok, conn} <- Connection.open(AMQPTestHelper.amqp_consumer_options()),
-         # Get notifications when the connection goes down
-         Process.monitor(conn.pid),
+         # Now we can monitor the connection pid since `conn` is established
+         _monitor_ref <- Process.monitor(conn.pid),
          {:ok, chan} <- Channel.open(conn),
-         :ok <-
-           Exchange.declare(chan, AMQPTestHelper.events_exchange_name(), :direct, durable: true),
+         :ok <- setup_amqp_resources(chan, state.realm) do
+      # On success, put the connection and channel into the state
+      {:ok, %{state | conn: conn, chan: chan}}
+    else
+      {:error, _reason} ->
+        maybe_retry(retry)
+
+      :error ->
+        maybe_retry(retry)
+    end
+  end
+
+  defp setup_amqp_resources(chan, realm) do
+    with :ok <-
+           Exchange.declare(chan, AMQPTestHelper.events_exchange_name(realm), :direct,
+             durable: true
+           ),
          {:ok, _queue} <-
            Queue.declare(
              chan,
-             AMQPTestHelper.events_queue_name(),
-             durable: false,
-             auto_delete: true
+             AMQPTestHelper.events_queue_name(realm),
+             durable: true,
+             auto_delete: false
            ),
          :ok <-
            Queue.bind(
              chan,
-             AMQPTestHelper.events_queue_name(),
-             AMQPTestHelper.events_exchange_name(),
-             routing_key: AMQPTestHelper.events_routing_key()
+             AMQPTestHelper.events_queue_name(realm),
+             AMQPTestHelper.events_exchange_name(realm),
+             routing_key: AMQPTestHelper.events_routing_key(realm)
            ),
-         {:ok, _consumer_tag} <- Basic.consume(chan, AMQPTestHelper.events_queue_name()) do
-      {:ok, chan}
-    else
-      {:error, reason} ->
-        Logger.warning("RabbitMQ Connection error: #{inspect(reason)}")
-        maybe_retry(retry)
-
-      :error ->
-        Logger.warning("Unknown RabbitMQ connection error")
-        maybe_retry(retry)
+         {:ok, _consumer_tag} <- Basic.consume(chan, AMQPTestHelper.events_queue_name(realm)) do
+      :ok
     end
   end
 
   defp maybe_retry(retry) do
     if retry do
-      Logger.warning("Retrying connection in #{@connection_backoff} ms")
       :erlang.send_after(@connection_backoff, :erlang.self(), {:try_to_connect})
       {:ok, :not_connected}
     else

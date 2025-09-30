@@ -30,19 +30,35 @@ defmodule Astarte.DataUpdaterPlant.DeviceDeleteTest do
   setup :set_mox_global
 
   setup do
-    realm = "autotestrealm#{System.unique_integer([:positive])}"
-    DatabaseTestHelper.destroy_local_test_keyspace(realm)
-    {:ok, _keyspace_name} = DatabaseTestHelper.create_test_keyspace(realm)
+    realm_string = "autotestrealm#{System.unique_integer([:positive])}"
+    {:ok, _keyspace_name} = DatabaseTestHelper.create_test_keyspace(realm_string)
+    realm = String.to_atom(realm_string)
 
     on_exit(fn ->
-      DatabaseTestHelper.destroy_local_test_keyspace(realm)
+      DatabaseTestHelper.destroy_local_test_keyspace(realm_string)
     end)
 
-    %{realm: realm}
+    helper_name = String.to_atom("helper_#{realm_string}")
+
+    consumer_name = String.to_atom("consumer_#{realm_string}")
+
+    {:ok, _pid} = AMQPTestHelper.start_link(name: helper_name, realm: realm_string)
+
+    {:ok, _consumer_pid} =
+      AMQPTestHelper.start_events_consumer(
+        name: consumer_name,
+        realm: realm_string,
+        helper_name: helper_name
+      )
+
+    {:ok, %{realm: realm_string, helper_name: helper_name}}
   end
 
-  test "device deletion is acked and related DataUpdater process stops", %{realm: realm} do
-    AMQPTestHelper.clean_queue()
+  test "device deletion is acked and related DataUpdater process stops", %{
+    realm: realm,
+    helper_name: helper_name
+  } do
+    AMQPTestHelper.clean_queue(helper_name)
 
     encoded_device_id =
       :crypto.strong_rand_bytes(16)

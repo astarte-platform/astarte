@@ -460,7 +460,8 @@ defmodule Astarte.DataUpdaterPlant.DatabaseTestHelper do
             trigger_target: {
               :amqp_trigger_target,
               %AMQPTriggerTarget{
-                routing_key: AMQPTestHelper.events_routing_key()
+                routing_key: AMQPTestHelper.events_routing_key(realm_name),
+                exchange: AMQPTestHelper.events_exchange_name(realm_name)
               }
             }
           }
@@ -493,7 +494,8 @@ defmodule Astarte.DataUpdaterPlant.DatabaseTestHelper do
             trigger_target: {
               :amqp_trigger_target,
               %AMQPTriggerTarget{
-                routing_key: AMQPTestHelper.events_routing_key()
+                routing_key: AMQPTestHelper.events_routing_key(realm_name),
+                exchange: AMQPTestHelper.events_exchange_name(realm_name)
               }
             }
           }
@@ -529,7 +531,8 @@ defmodule Astarte.DataUpdaterPlant.DatabaseTestHelper do
             trigger_target: {
               :amqp_trigger_target,
               %AMQPTriggerTarget{
-                routing_key: AMQPTestHelper.events_routing_key()
+                routing_key: AMQPTestHelper.events_routing_key(realm_name),
+                exchange: AMQPTestHelper.events_exchange_name(realm_name)
               }
             }
           }
@@ -564,7 +567,8 @@ defmodule Astarte.DataUpdaterPlant.DatabaseTestHelper do
             trigger_target: {
               :amqp_trigger_target,
               %AMQPTriggerTarget{
-                routing_key: AMQPTestHelper.events_routing_key()
+                routing_key: AMQPTestHelper.events_routing_key(realm_name),
+                exchange: AMQPTestHelper.events_exchange_name(realm_name)
               }
             }
           }
@@ -599,7 +603,8 @@ defmodule Astarte.DataUpdaterPlant.DatabaseTestHelper do
             trigger_target: {
               :amqp_trigger_target,
               %AMQPTriggerTarget{
-                routing_key: AMQPTestHelper.events_routing_key()
+                routing_key: AMQPTestHelper.events_routing_key(realm_name),
+                exchange: AMQPTestHelper.events_exchange_name(realm_name)
               }
             }
           }
@@ -641,7 +646,8 @@ defmodule Astarte.DataUpdaterPlant.DatabaseTestHelper do
             trigger_target: {
               :amqp_trigger_target,
               %AMQPTriggerTarget{
-                routing_key: AMQPTestHelper.events_routing_key()
+                routing_key: AMQPTestHelper.events_routing_key(realm_name),
+                exchange: AMQPTestHelper.events_exchange_name(realm_name)
               }
             }
           }
@@ -693,7 +699,8 @@ defmodule Astarte.DataUpdaterPlant.DatabaseTestHelper do
             trigger_target: {
               :amqp_trigger_target,
               %AMQPTriggerTarget{
-                routing_key: AMQPTestHelper.events_routing_key()
+                routing_key: AMQPTestHelper.events_routing_key(realm_name),
+                exchange: AMQPTestHelper.events_exchange_name(realm_name)
               }
             }
           }
