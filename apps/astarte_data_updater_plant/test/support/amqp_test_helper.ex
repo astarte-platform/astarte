@@ -20,46 +20,58 @@ defmodule Astarte.DataUpdaterPlant.AMQPTestHelper do
   use GenServer
   require Logger
 
-  def start_link() do
-    GenServer.start_link(__MODULE__, :ok, name: AMQPTestHelper)
-    {:ok, _pid} = Astarte.DataUpdaterPlant.AMQPTestEventsConsumer.start_link()
+  def start_link(args) do
+    GenServer.start_link(__MODULE__, args, name: Keyword.fetch!(args, :name))
   end
 
-  def init(:ok) do
-    {:ok, %{}}
+  def start_events_consumer(args) do
+    Astarte.DataUpdaterPlant.AMQPTestEventsConsumer.start_link(args)
+  end
+
+  def init(args) do
+    {:ok, %{realm: Keyword.get(args, :realm)}}
   end
 
   def amqp_consumer_options() do
     Application.get_env(:astarte_data_updater_plant, :amqp_consumer_options, [])
   end
 
-  def events_exchange_name() do
-    "astarte_events"
+  def events_exchange_name(realm) do
+    "astarte_events_#{realm}"
   end
 
-  def events_queue_name() do
-    ""
+  def events_queue_name(realm) do
+    "test_events_#{realm}"
+  end
+
+  def events_routing_key(realm) do
+    "test_events_#{realm}"
   end
 
   def events_routing_key() do
     "test_events"
   end
 
-  def notify_deliver(payload, headers_map, other_meta) do
+  # The 'name' argument is the unique atom for the GenServer process.
+  def notify_deliver(name, payload, headers_map, other_meta) do
     message = {payload, Enum.into(headers_map, %{}), other_meta}
-    GenServer.call(AMQPTestHelper, {:notify_deliver, message})
+    GenServer.call(name, {:notify_deliver, message})
+  end
+
+  def wait_and_get_message(name) do
+    GenServer.call(name, :wait_and_get_message)
   end
 
   def wait_and_get_message() do
     GenServer.call(AMQPTestHelper, :wait_and_get_message)
   end
 
-  def awaiting_messages_count() do
-    GenServer.call(AMQPTestHelper, :awaiting_messages_count)
+  def awaiting_messages_count(name) do
+    GenServer.call(name, :awaiting_messages_count)
   end
 
-  def clean_queue() do
-    GenServer.call(AMQPTestHelper, :clean_queue)
+  def clean_queue(name) do
+    GenServer.call(name, :clean_queue)
   end
 
   def handle_call(:wait_and_get_message, from, state) do

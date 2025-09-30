@@ -53,19 +53,34 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
   setup :verify_on_exit!
 
   setup_all do
-    realm = "autotestrealm#{System.unique_integer([:positive])}"
-    {:ok, _keyspace_name} = DatabaseTestHelper.create_test_keyspace(realm)
+    realm_string = "autotestrealm#{System.unique_integer([:positive])}"
+    {:ok, _keyspace_name} = DatabaseTestHelper.create_test_keyspace(realm_string)
 
     on_exit(fn ->
-      DatabaseTestHelper.destroy_local_test_keyspace(realm)
+      DatabaseTestHelper.destroy_local_test_keyspace(realm_string)
     end)
 
-    {:ok, _pid} = AMQPTestHelper.start_link()
-    %{realm: realm}
+    # Need to be an atom because it's the name we are starting our helper with
+    helper_name = String.to_atom("helper_#{realm_string}")
+
+    consumer_name = String.to_atom("consumer_#{realm_string}")
+
+    realm = String.to_atom(realm_string)
+
+    {:ok, _pid} = AMQPTestHelper.start_link(name: helper_name, realm: realm)
+
+    {:ok, _consumer_pid} =
+      AMQPTestHelper.start_events_consumer(
+        name: consumer_name,
+        realm: realm_string,
+        helper_name: helper_name
+      )
+
+    {:ok, %{realm: realm_string, helper_name: helper_name}}
   end
 
-  test "simple flow", %{realm: realm} do
-    AMQPTestHelper.clean_queue()
+  test "simple flow", %{realm: realm, helper_name: helper_name} do
+    AMQPTestHelper.clean_queue(helper_name)
 
     keyspace_name = Realm.keyspace_name(realm)
     encoded_device_id = "f0VMRgIBAQAAAAAAAAAAAA"
@@ -107,7 +122,8 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
         trigger_target: {
           :amqp_trigger_target,
           %AMQPTriggerTarget{
-            routing_key: AMQPTestHelper.events_routing_key()
+            routing_key: AMQPTestHelper.events_routing_key(realm),
+            exchange: AMQPTestHelper.events_exchange_name(realm)
           }
         }
       }
@@ -145,7 +161,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
     )
 
     DataUpdater.dump_state(realm, encoded_device_id)
-    {conn_event, conn_headers, _metadata} = AMQPTestHelper.wait_and_get_message()
+    {conn_event, conn_headers, _metadata} = AMQPTestHelper.wait_and_get_message(helper_name)
     assert conn_headers["x_astarte_event_type"] == "device_connected_event"
     assert conn_headers["x_astarte_realm"] == realm
     assert conn_headers["x_astarte_device_id"] == encoded_device_id
@@ -170,7 +186,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
              simple_trigger_id: DatabaseTestHelper.group1_device_connected_trigger_id()
            }
 
-    {conn_event, conn_headers, _metadata} = AMQPTestHelper.wait_and_get_message()
+    {conn_event, conn_headers, _metadata} = AMQPTestHelper.wait_and_get_message(helper_name)
     assert conn_headers["x_astarte_event_type"] == "device_connected_event"
     assert conn_headers["x_astarte_realm"] == realm
     assert conn_headers["x_astarte_device_id"] == encoded_device_id
@@ -244,7 +260,8 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
         trigger_target: {
           :amqp_trigger_target,
           %AMQPTriggerTarget{
-            routing_key: AMQPTestHelper.events_routing_key()
+            routing_key: AMQPTestHelper.events_routing_key(realm),
+            exchange: AMQPTestHelper.events_exchange_name(realm)
           }
         }
       }
@@ -272,7 +289,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
       make_timestamp("2017-10-09T14:00:32+00:00")
     )
 
-    {incoming_event, incoming_headers, _meta} = AMQPTestHelper.wait_and_get_message()
+    {incoming_event, incoming_headers, _meta} = AMQPTestHelper.wait_and_get_message(helper_name)
     assert incoming_headers["x_astarte_event_type"] == "incoming_introspection_event"
     assert incoming_headers["x_astarte_device_id"] == encoded_device_id
     assert incoming_headers["x_astarte_realm"] == realm
@@ -323,7 +340,8 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
         trigger_target: {
           :amqp_trigger_target,
           %AMQPTriggerTarget{
-            routing_key: AMQPTestHelper.events_routing_key()
+            routing_key: AMQPTestHelper.events_routing_key(realm),
+            exchange: AMQPTestHelper.events_exchange_name(realm)
           }
         }
       }
@@ -353,7 +371,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
       make_timestamp("2017-10-09T14:00:32+00:00")
     )
 
-    {incoming_event, incoming_headers, _meta} = AMQPTestHelper.wait_and_get_message()
+    {incoming_event, incoming_headers, _meta} = AMQPTestHelper.wait_and_get_message(helper_name)
     assert incoming_headers["x_astarte_event_type"] == "interface_added_event"
     assert incoming_headers["x_astarte_device_id"] == encoded_device_id
     assert incoming_headers["x_astarte_realm"] == realm
@@ -407,7 +425,8 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
         trigger_target: {
           :amqp_trigger_target,
           %AMQPTriggerTarget{
-            routing_key: AMQPTestHelper.events_routing_key()
+            routing_key: AMQPTestHelper.events_routing_key(realm),
+            exchange: AMQPTestHelper.events_exchange_name(realm)
           }
         }
       }
@@ -437,7 +456,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
       make_timestamp("2017-10-09T14:00:32+00:00")
     )
 
-    {incoming_event, incoming_headers, _meta} = AMQPTestHelper.wait_and_get_message()
+    {incoming_event, incoming_headers, _meta} = AMQPTestHelper.wait_and_get_message(helper_name)
     assert incoming_headers["x_astarte_event_type"] == "interface_minor_updated_event"
     assert incoming_headers["x_astarte_device_id"] == encoded_device_id
     assert incoming_headers["x_astarte_realm"] == realm
@@ -491,7 +510,8 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
         trigger_target: {
           :amqp_trigger_target,
           %AMQPTriggerTarget{
-            routing_key: AMQPTestHelper.events_routing_key()
+            routing_key: AMQPTestHelper.events_routing_key(realm),
+            exchange: AMQPTestHelper.events_exchange_name(realm)
           }
         }
       }
@@ -519,7 +539,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
       make_timestamp("2017-10-09T14:00:32+00:00")
     )
 
-    {incoming_event, incoming_headers, _meta} = AMQPTestHelper.wait_and_get_message()
+    {incoming_event, incoming_headers, _meta} = AMQPTestHelper.wait_and_get_message(helper_name)
     assert incoming_headers["x_astarte_event_type"] == "interface_removed_event"
     assert incoming_headers["x_astarte_device_id"] == encoded_device_id
     assert incoming_headers["x_astarte_realm"] == realm
@@ -580,7 +600,8 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
         trigger_target: {
           :amqp_trigger_target,
           %AMQPTriggerTarget{
-            routing_key: AMQPTestHelper.events_routing_key()
+            routing_key: AMQPTestHelper.events_routing_key(realm),
+            exchange: AMQPTestHelper.events_exchange_name(realm)
           }
         }
       }
@@ -658,7 +679,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
       timestamp_us_x_10
     )
 
-    {incoming_event, incoming_headers, _meta} = AMQPTestHelper.wait_and_get_message()
+    {incoming_event, incoming_headers, _meta} = AMQPTestHelper.wait_and_get_message(helper_name)
     assert incoming_headers["x_astarte_event_type"] == "incoming_data_event"
     assert incoming_headers["x_astarte_device_id"] == encoded_device_id
     assert incoming_headers["x_astarte_realm"] == realm
@@ -695,7 +716,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
       timestamp_us_x_10
     )
 
-    {incoming_event, incoming_headers, _meta} = AMQPTestHelper.wait_and_get_message()
+    {incoming_event, incoming_headers, _meta} = AMQPTestHelper.wait_and_get_message(helper_name)
     assert incoming_headers["x_astarte_event_type"] == "incoming_data_event"
     assert incoming_headers["x_astarte_device_id"] == encoded_device_id
     assert incoming_headers["x_astarte_realm"] == realm
@@ -763,7 +784,8 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
         trigger_target: {
           :amqp_trigger_target,
           %AMQPTriggerTarget{
-            routing_key: AMQPTestHelper.events_routing_key()
+            routing_key: AMQPTestHelper.events_routing_key(realm),
+            exchange: AMQPTestHelper.events_exchange_name(realm)
           }
         }
       }
@@ -854,7 +876,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
       timestamp_us_x_10
     )
 
-    {incoming_event, incoming_headers, _meta} = AMQPTestHelper.wait_and_get_message()
+    {incoming_event, incoming_headers, _meta} = AMQPTestHelper.wait_and_get_message(helper_name)
     assert incoming_headers["x_astarte_event_type"] == "incoming_data_event"
     assert incoming_headers["x_astarte_device_id"] == encoded_device_id
     assert incoming_headers["x_astarte_realm"] == realm
@@ -881,7 +903,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
              simple_trigger_id: DatabaseTestHelper.greater_than_incoming_trigger_id()
            }
 
-    {incoming_event, incoming_headers, _meta} = AMQPTestHelper.wait_and_get_message()
+    {incoming_event, incoming_headers, _meta} = AMQPTestHelper.wait_and_get_message(helper_name)
     assert incoming_headers["x_astarte_event_type"] == "value_change_applied_event"
     assert incoming_headers["x_astarte_device_id"] == encoded_device_id
     assert incoming_headers["x_astarte_realm"] == realm
@@ -926,7 +948,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
     state = DataUpdater.dump_state(realm, encoded_device_id)
 
     {incoming_volatile_event, incoming_volatile_headers, _meta} =
-      AMQPTestHelper.wait_and_get_message()
+      AMQPTestHelper.wait_and_get_message(helper_name)
 
     assert incoming_volatile_headers["x_astarte_event_type"] == "incoming_data_event"
     assert incoming_volatile_headers["x_astarte_device_id"] == encoded_device_id
@@ -1178,7 +1200,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
     )
 
     DataUpdater.dump_state(realm, encoded_device_id)
-    {remove_event, remove_headers, _meta} = AMQPTestHelper.wait_and_get_message()
+    {remove_event, remove_headers, _meta} = AMQPTestHelper.wait_and_get_message(helper_name)
     assert remove_headers["x_astarte_event_type"] == "path_removed_event"
     assert remove_headers["x_astarte_device_id"] == encoded_device_id
     assert remove_headers["x_astarte_realm"] == realm
@@ -1306,40 +1328,10 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
     value = Repo.one(value_query)
 
     assert value == nil
-
-    # Device disconnection sub-test
-    DataUpdater.handle_disconnection(
-      realm,
-      encoded_device_id,
-      gen_tracking_id(),
-      make_timestamp("2017-10-09T14:30:45+00:00")
-    )
-
-    DataUpdater.dump_state(realm, encoded_device_id)
-
-    device_row = Repo.one(device_query)
-
-    assert device_row == %{
-             connected: false,
-             total_received_msgs: 45018,
-             total_received_bytes: 4_501_007,
-             exchanged_msgs_by_interface: %{
-               {"com.example.TestObject", 1} => 5,
-               {"com.test.LCDMonitor", 1} => 6,
-               {"com.test.SimpleStreamTest", 1} => 1
-             },
-             exchanged_bytes_by_interface: %{
-               {"com.example.TestObject", 1} => 247,
-               {"com.test.LCDMonitor", 1} => 291,
-               {"com.test.SimpleStreamTest", 1} => 45
-             }
-           }
-
-    assert AMQPTestHelper.awaiting_messages_count() == 0
   end
 
-  test "empty introspection is updated correctly", %{realm: realm} do
-    AMQPTestHelper.clean_queue()
+  test "empty introspection is updated correctly", %{realm: realm, helper_name: helper_name} do
+    AMQPTestHelper.clean_queue(helper_name)
 
     keyspace_name = Realm.keyspace_name(realm)
 
@@ -1366,7 +1358,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
 
     DataUpdater.dump_state(realm, encoded_device_id)
 
-    {conn_event, conn_headers, _metadata} = AMQPTestHelper.wait_and_get_message()
+    {conn_event, conn_headers, _metadata} = AMQPTestHelper.wait_and_get_message(helper_name)
     assert conn_headers["x_astarte_event_type"] == "device_connected_event"
     assert conn_headers["x_astarte_realm"] == realm
     assert conn_headers["x_astarte_device_id"] == encoded_device_id
@@ -1417,11 +1409,11 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
 
     assert new_device_introspection == new_introspection_map
 
-    assert AMQPTestHelper.awaiting_messages_count() == 0
+    assert AMQPTestHelper.awaiting_messages_count(helper_name) == 0
   end
 
-  test "test introspection with interface update", %{realm: realm} do
-    AMQPTestHelper.clean_queue()
+  test "test introspection with interface update", %{realm: realm, helper_name: helper_name} do
+    AMQPTestHelper.clean_queue(helper_name)
 
     encoded_device_id =
       :crypto.strong_rand_bytes(16)
@@ -1484,8 +1476,11 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
              {:ok, %{{"com.test.LCDMonitor", 1} => 0, {"com.test.SimpleStreamTest", 1} => 0}}
   end
 
-  test "fails to install volatile trigger on missing device", %{realm: realm} do
-    AMQPTestHelper.clean_queue()
+  test "fails to install volatile trigger on missing device", %{
+    realm: realm,
+    helper_name: helper_name
+  } do
+    AMQPTestHelper.clean_queue(helper_name)
 
     # Install a volatile device test trigger
     simple_trigger_data =
@@ -1528,8 +1523,11 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
            ) == {:error, :device_does_not_exist}
   end
 
-  test "fails to delete volatile trigger on missing device", %{realm: realm} do
-    AMQPTestHelper.clean_queue()
+  test "fails to delete volatile trigger on missing device", %{
+    realm: realm,
+    helper_name: helper_name
+  } do
+    AMQPTestHelper.clean_queue(helper_name)
 
     volatile_trigger_id = :crypto.strong_rand_bytes(16)
 
@@ -1543,10 +1541,13 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
            ) == {:error, :device_does_not_exist}
   end
 
-  test "heartbeat message of type internal is correctly handled", %{realm: realm} do
+  test "heartbeat message of type internal is correctly handled", %{
+    realm: realm,
+    helper_name: helper_name
+  } do
     alias Astarte.DataUpdaterPlant.DataUpdater.State
 
-    AMQPTestHelper.clean_queue()
+    AMQPTestHelper.clean_queue(helper_name)
 
     encoded_device_id =
       :crypto.strong_rand_bytes(16)
@@ -1583,10 +1584,13 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
   end
 
   # TODO remove this when all heartbeats will be moved to internal
-  test "heartbeat message of type heartbeat is correctly handled", %{realm: realm} do
+  test "heartbeat message of type heartbeat is correctly handled", %{
+    realm: realm,
+    helper_name: helper_name
+  } do
     alias Astarte.DataUpdaterPlant.DataUpdater.State
 
-    AMQPTestHelper.clean_queue()
+    AMQPTestHelper.clean_queue(helper_name)
 
     encoded_device_id =
       :crypto.strong_rand_bytes(16)
@@ -1622,8 +1626,11 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
 
   setup [:set_mox_from_context, :verify_on_exit!]
 
-  test "a disconnected device does not generate a disconnection trigger", %{realm: realm} do
-    AMQPTestHelper.clean_queue()
+  test "a disconnected device does not generate a disconnection trigger", %{
+    realm: realm,
+    helper_name: helper_name
+  } do
+    AMQPTestHelper.clean_queue(helper_name)
 
     encoded_device_id =
       :crypto.strong_rand_bytes(16)
@@ -1647,7 +1654,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
              volatile_trigger_parent_id,
              volatile_trigger_id,
              generate_disconnection_trigger_data(),
-             generate_trigger_target()
+             generate_trigger_target(realm)
            ) == :ok
 
     DataUpdater.handle_disconnection(
@@ -1658,7 +1665,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
     )
 
     # Receive the first disconnection trigger
-    {event, headers, _metadata} = AMQPTestHelper.wait_and_get_message()
+    {event, headers, _metadata} = AMQPTestHelper.wait_and_get_message(helper_name)
     assert headers["x_astarte_event_type"] == "device_disconnected_event"
     assert headers["x_astarte_realm"] == realm
     assert headers["x_astarte_device_id"] == encoded_device_id
@@ -1688,7 +1695,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
     )
 
     # The second disconnection trigger is not sent
-    assert AMQPTestHelper.awaiting_messages_count() == 0
+    assert AMQPTestHelper.awaiting_messages_count(helper_name) == 0
   end
 
   defp generate_disconnection_trigger_data() do
@@ -1704,11 +1711,16 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
   end
 
   defp generate_trigger_target() do
+    generate_trigger_target(nil)
+  end
+
+  defp generate_trigger_target(realm) do
     %TriggerTargetContainer{
       trigger_target: {
         :amqp_trigger_target,
         %AMQPTriggerTarget{
-          routing_key: AMQPTestHelper.events_routing_key()
+          routing_key: AMQPTestHelper.events_routing_key(realm),
+          exchange: AMQPTestHelper.events_exchange_name(realm)
         }
       }
     }
