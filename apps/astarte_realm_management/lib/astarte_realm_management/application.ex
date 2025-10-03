@@ -38,14 +38,9 @@ defmodule Astarte.RealmManagement.Application do
     Astarte.RealmManagement.Config.validate!()
     DataAccessConfig.validate!()
 
-    xandra_opts = Astarte.RealmManagement.Config.xandra_options!()
-
-    data_access_opts = [xandra_options: xandra_opts]
-
     children = [
       Astarte.RealmManagementWeb.Telemetry,
       Astarte.RealmManagementWeb.Endpoint,
-      {Astarte.DataAccess, data_access_opts},
       {Task.Supervisor, name: Astarte.RealmManagement.DeviceRemoverSupervisor},
       Astarte.RealmManagement.DeviceRemoval.Scheduler
     ]

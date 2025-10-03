@@ -23,7 +23,6 @@ defmodule Astarte.Pairing.Config do
 
   use Skogsra
 
-  alias Astarte.DataAccess.Config, as: DataAccessConfig
   alias Astarte.Pairing.CFSSLCredentials
   alias Astarte.Pairing.Config.CQExNodes
 
@@ -85,17 +84,6 @@ defmodule Astarte.Pairing.Config do
   """
   @spec cassandra_node!() :: {String.t(), integer()}
   def cassandra_node!, do: Enum.random(cqex_nodes!())
-
-  @doc """
-  Returns Cassandra nodes formatted in the Xandra format.
-  """
-  defdelegate xandra_nodes, to: DataAccessConfig
-  defdelegate xandra_nodes!, to: DataAccessConfig
-
-  defdelegate xandra_options!, to: DataAccessConfig
-
-  defdelegate astarte_instance_id!, to: DataAccessConfig
-  defdelegate astarte_instance_id, to: DataAccessConfig
 
   @doc """
   Returns true if the authentication for the agent is disabled.

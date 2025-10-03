@@ -44,6 +44,7 @@ defmodule Astarte.DataAccess.Mixfile do
   # Run "mix help compile.app" to learn about applications.
   def application do
     [
+      mod: {Astarte.DataAccess, []},
       extra_applications: [:logger]
     ]
   end

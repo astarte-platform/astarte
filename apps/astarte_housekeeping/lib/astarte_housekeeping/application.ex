@@ -46,8 +46,7 @@ defmodule Astarte.Housekeeping.Application do
     # Define workers and child supervisors to be supervised
     children = [
       Astarte.HousekeepingWeb.Telemetry,
-      Astarte.HousekeepingWeb.Endpoint,
-      Astarte.Housekeeping.BackendSupervisor
+      Astarte.HousekeepingWeb.Endpoint
     ]
 
     # See http://elixir-lang.org/docs/stable/elixir/Supervisor.html

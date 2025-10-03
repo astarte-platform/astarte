@@ -19,7 +19,6 @@
 defmodule Astarte.Housekeeping.ReleaseTasks do
   @moduledoc false
   alias Astarte.DataAccess
-  alias Astarte.Housekeeping.Config
   alias Astarte.Housekeeping.Migrator
   alias Astarte.Housekeeping.Realms.Queries
 
@@ -113,13 +112,11 @@ defmodule Astarte.Housekeeping.ReleaseTasks do
     Enum.each(@start_apps, &Application.ensure_all_started/1)
 
     # Load astarte_data_access, without starting it. This makes the application env accessible.
-    :ok = Application.load(:astarte_data_access)
+    :ok = Application.ensure_loaded(:astarte_data_access)
 
-    _ = Logger.info("Starting Xandra connection to #{inspect(Config.xandra_nodes!())}")
+    _ = Logger.info("Starting Xandra connection to #{inspect(DataAccess.Config.xandra_nodes!())}")
 
-    xandra_options = Config.xandra_options!()
-
-    {:ok, _pid} = DataAccess.start_link(xandra_options: xandra_options)
+    {:ok, _} = Application.ensure_all_started(:astarte_data_access)
 
     :ok
   end

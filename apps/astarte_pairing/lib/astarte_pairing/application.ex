@@ -42,15 +42,10 @@ defmodule Astarte.Pairing.Application do
     Config.validate!()
     Config.init!()
 
-    xandra_options = Config.xandra_options!()
-
-    data_access_opts = [xandra_options: xandra_options]
-
     # Define workers and child supervisors to be supervised
     children = [
       Astarte.PairingWeb.Telemetry,
       {Astarte.Pairing.CredentialsSecret.Cache, []},
-      {Astarte.DataAccess, data_access_opts},
       Astarte.PairingWeb.Endpoint
     ]
 

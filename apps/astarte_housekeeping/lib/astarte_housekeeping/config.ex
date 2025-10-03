@@ -20,7 +20,6 @@ defmodule Astarte.Housekeeping.Config do
   @moduledoc false
   use Skogsra
 
-  alias Astarte.DataAccess.Config, as: DataAccessConfig
   alias Astarte.Housekeeping.Config.JWTPublicKeyPEMType
 
   @envdoc "Enable SSL for the AMQP connection. If not specified, SSL is disabled."
@@ -230,12 +229,4 @@ defmodule Astarte.Housekeeping.Config do
         raise "Invalid or empty replication map for the astarte keyspace with network topology replication strategy. Check the values of HOUSEKEEPING_ASTARTE_KEYSPACE_REPLICATION_STRATEGY and HOUSEKEEPING_ASTARTE_KEYSPACE_NETWORK_REPLICATION_MAP"
     end
   end
-
-  defdelegate astarte_instance_id!, to: DataAccessConfig
-  defdelegate astarte_instance_id, to: DataAccessConfig
-
-  defdelegate xandra_nodes, to: DataAccessConfig
-  defdelegate xandra_nodes!, to: DataAccessConfig
-
-  defdelegate xandra_options!, to: DataAccessConfig
 end

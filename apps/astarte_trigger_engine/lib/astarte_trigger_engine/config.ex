@@ -21,8 +21,6 @@ defmodule Astarte.TriggerEngine.Config do
   This module handles the configuration of TriggerEngine
   """
 
-  alias Astarte.DataAccess.Config, as: DataAccessConfig
-
   use Skogsra
 
   @envdoc "Host for the AMQP consumer connection"
@@ -205,13 +203,4 @@ defmodule Astarte.TriggerEngine.Config do
   def events_consumer!() do
     Application.get_env(:astarte_trigger_engine, :events_consumer)
   end
-
-  @doc "A list of host values of accessible Cassandra nodes formatted in the Xandra format"
-  defdelegate xandra_nodes, to: DataAccessConfig
-  defdelegate xandra_nodes!, to: DataAccessConfig
-
-  defdelegate xandra_options!, to: DataAccessConfig
-
-  defdelegate astarte_instance_id!, to: DataAccessConfig
-  defdelegate astarte_instance_id, to: DataAccessConfig
 end

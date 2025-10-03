@@ -38,10 +38,6 @@ defmodule Astarte.AppEngine.API.Application do
     DataAccessConfig.validate!()
     Config.validate!()
 
-    xandra_options = Config.xandra_options!()
-
-    data_access_opts = [xandra_options: xandra_options]
-
     # Define workers and child supervisors to be supervised
     children = [
       {Cluster.Supervisor,
@@ -52,8 +48,7 @@ defmodule Astarte.AppEngine.API.Application do
       {Phoenix.PubSub, name: Astarte.AppEngine.API.PubSub},
       Astarte.AppEngine.API.Rooms.MasterSupervisor,
       Astarte.AppEngine.API.Rooms.AMQPClient,
-      Astarte.AppEngine.APIWeb.Endpoint,
-      {Astarte.DataAccess, data_access_opts}
+      Astarte.AppEngine.APIWeb.Endpoint
     ]
 
     # See https://hexdocs.pm/elixir/Supervisor.html

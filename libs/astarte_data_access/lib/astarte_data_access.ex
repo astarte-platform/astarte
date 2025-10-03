@@ -17,22 +17,19 @@
 #
 
 defmodule Astarte.DataAccess do
-  # Automatically defines child_spec/1
-  use Supervisor
+  use Application
 
-  def start_link(init_arg) do
-    Supervisor.start_link(__MODULE__, init_arg, name: __MODULE__)
-  end
+  alias Astarte.DataAccess.Config
 
   @impl true
-  def init(init_arg) do
-    xandra_options = Keyword.fetch!(init_arg, :xandra_options)
+  def start(_type, _args) do
+    xandra_options = Config.xandra_options!()
 
     children = [
       {Astarte.DataAccess.Repo, xandra_options}
     ]
 
-    opts = [strategy: :one_for_one]
-    Supervisor.init(children, opts)
+    opts = [strategy: :one_for_one, name: __MODULE__]
+    Supervisor.start_link(children, opts)
   end
 end

@@ -40,12 +40,8 @@ defmodule Astarte.TriggerEngine.Application do
     Config.validate!()
     DataAccessConfig.validate!()
 
-    xandra_options = Config.xandra_options!()
-    data_access_opts = [xandra_options: xandra_options]
-
     children = [
       Astarte.TriggerEngineWeb.Telemetry,
-      {Astarte.DataAccess, data_access_opts},
       DeliverySupervisor
     ]
 

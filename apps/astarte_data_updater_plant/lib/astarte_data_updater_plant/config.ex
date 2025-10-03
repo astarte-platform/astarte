@@ -21,7 +21,6 @@ defmodule Astarte.DataUpdaterPlant.Config do
   This module handles the configuration of DataUpdaterPlant
   """
 
-  alias Astarte.DataAccess.Config, as: DataAccessConfig
   use Skogsra
 
   @paths_cache_size 32
@@ -714,15 +713,4 @@ defmodule Astarte.DataUpdaterPlant.Config do
   end
 
   def paths_cache_size!, do: @paths_cache_size
-
-  @doc """
-  Returns Cassandra nodes formatted in the Xandra format.
-  """
-  defdelegate xandra_nodes, to: DataAccessConfig
-  defdelegate xandra_nodes!, to: DataAccessConfig
-
-  defdelegate xandra_options!, to: DataAccessConfig
-
-  defdelegate astarte_instance_id!, to: DataAccessConfig
-  defdelegate astarte_instance_id, to: DataAccessConfig
 end

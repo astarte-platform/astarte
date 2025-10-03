@@ -41,15 +41,10 @@ defmodule Astarte.DataUpdaterPlant.Application do
     Config.validate!()
     DataAccessConfig.validate!()
 
-    xandra_options = Config.xandra_options!()
-
-    data_access_opts = [xandra_options: xandra_options]
-
     children = [
       {Cluster.Supervisor,
        [Config.cluster_topologies!(), [name: Astarte.DataUpdaterPlant.ClusterSupervisor]]},
       Astarte.DataUpdaterPlantWeb.Telemetry,
-      {Astarte.DataAccess, data_access_opts},
       Astarte.DataUpdaterPlant.DataPipelineSupervisor
     ]
 

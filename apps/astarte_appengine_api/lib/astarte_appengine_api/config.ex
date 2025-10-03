@@ -20,7 +20,6 @@ defmodule Astarte.AppEngine.API.Config do
   This module contains functions to access the configuration
   """
 
-  alias Astarte.DataAccess.Config, as: DataAccessConfig
   alias Astarte.AppEngine.API.Config.NonNegativeInteger
 
   use Skogsra
@@ -297,18 +296,4 @@ defmodule Astarte.AppEngine.API.Config do
         ]
     end
   end
-
-  @doc """
-  Returns cassandra nodes formatted in the Xandra format
-  """
-  defdelegate xandra_nodes, to: DataAccessConfig
-  defdelegate xandra_nodes!, to: DataAccessConfig
-
-  @doc """
-  Returns cassandra nodes formatted in the CQEx format
-  """
-  defdelegate xandra_options!, to: DataAccessConfig
-
-  defdelegate astarte_instance_id!, to: DataAccessConfig
-  defdelegate astarte_instance_id, to: DataAccessConfig
 end
