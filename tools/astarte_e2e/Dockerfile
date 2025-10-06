@@ -38,7 +38,7 @@ RUN apt-get -qq update
 ENV LANG C.UTF-8
 
 # We need SSL
-RUN apt-get -qq install libssl1.1
+RUN apt-get -qq install libssl1.1 ca-certificates
 
 # We have to redefine this here since it goes out of scope for each build stage
 ARG BUILD_ENV=prod
