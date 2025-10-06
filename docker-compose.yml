@@ -61,6 +61,7 @@ services:
       - ./.env
     environment:
       PAIRING_CFSSL_URL: "http://cfssl:8080"
+      ASTARTE_EVENTS_PRODUCER_AMQP_HOST: "rabbitmq"
     restart: on-failure
     depends_on:
       - "rabbitmq"

@@ -25,6 +25,12 @@ defmodule Astarte.Pairing.Agent do
   alias Astarte.Pairing.Agent.DeviceRegistrationRequest
   alias Astarte.Pairing.Agent.DeviceRegistrationResponse
   alias Astarte.Pairing.Engine
+  alias Astarte.Pairing.Config
+
+  alias Astarte.Core.Triggers.SimpleEvents.DeviceDeletionStartedEvent
+  alias Astarte.Events.Triggers
+  alias Astarte.Events.TriggersHandler
+  @cache_name Config.trigger_cache_name!()
 
   def register_device(realm, attrs \\ %{}) do
     changeset =
@@ -44,7 +50,10 @@ defmodule Astarte.Pairing.Agent do
              }
            end),
          {:ok, credentials_secret} <-
-           Engine.register_device(realm, hw_id, initial_introspection: initial_introspection) do
+           Engine.register_device(realm, hw_id, initial_introspection: initial_introspection),
+         {:ok, decoded_id} <- Device.decode_device_id(hw_id, allow_extended_id: true) do
+      dispatch_device_registration_trigger(realm, decoded_id)
+
       {:ok, %DeviceRegistrationResponse{credentials_secret: credentials_secret}}
     end
   end
@@ -53,5 +62,39 @@ defmodule Astarte.Pairing.Agent do
     with {:ok, _} <- Device.decode_device_id(device_id) do
       Engine.unregister_device(realm, device_id)
     end
+  end
+
+  defp dispatch_device_registration_trigger(realm_name, device_id) do
+    timestamp = DateTime.utc_now() |> DateTime.to_unix(:millisecond)
+    event_type = :on_device_registration
+
+    find_targets(realm_name, device_id, event_type)
+    |> dispatch_all(realm_name, device_id, timestamp, event_type, %DeviceDeletionStartedEvent{})
+  end
+
+  defp dispatch_all(targets, realm_name, device_id, timestamp, event_type, event) do
+    targets
+    |> Enum.map(fn {target, policy} ->
+      TriggersHandler.dispatch_event(
+        event,
+        event_type,
+        target,
+        realm_name,
+        device_id,
+        timestamp,
+        policy
+      )
+    end)
+  end
+
+  defp find_targets(realm_name, device_id, event_type) do
+    load_triggers(realm_name)
+    |> Triggers.find_trigger_targets_for_device(realm_name, device_id, event_type)
+  end
+
+  defp load_triggers(realm_name) do
+    ConCache.get_or_store(@cache_name, realm_name, fn ->
+      Triggers.fetch_realm_device_trigger(realm_name)
+    end)
   end
 end

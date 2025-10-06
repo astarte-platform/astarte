@@ -22,6 +22,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
   - `HOUSEKEEPING_ASTARTE_KEYSPACE_NETWORK_REPLICATION_MAP` - Datacenter replication map when using NetworkTopologyStrategy (no default, required when using network strategy)
 - Added database events handling configuration across all services:
   - `DATABASE_EVENTS_HANDLING_METHOD` - Controls how database events are handled: "expose" (via telemetry) or "log" (to logs) (default: "expose")
+- [astarte_pairing] Added device registration triggers
 
 ### Changed
 - BREAKING: Merged API services into main services, eliminating separate containers:
@@ -37,6 +38,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
   - `HOUSEKEEPING_AMQP_USERNAME` - AMQP username (default: guest)
   - `HOUSEKEEPING_AMQP_PASSWORD` - AMQP password (default: guest)
   - `HOUSEKEEPING_AMQP_MANAGEMENT_PORT` - AMQP management API port (default: 15672)
+- BREAKING: [astarte_pairing] AMQP Producer configuration is now mandatory using the `ASTARTE_EVENTS_PRODUCER_AMQP_*` environment variables
 
 ## [1.2.1] - Unreleased
 ### Fixed

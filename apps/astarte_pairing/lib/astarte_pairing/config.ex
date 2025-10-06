@@ -79,6 +79,13 @@ defmodule Astarte.Pairing.Config do
           type: Astarte.Pairing.Config.TelemetryType,
           default: :expose
 
+  @envdoc """
+  "set the name for the triggers cache, used for caching trigggers and avoid constant db access, defaults to 'trigger_cache'"
+  """
+  app_env :trigger_cache_name, :astarte_pairing, :trigger_cache_name,
+    type: :atom,
+    default: :trigger_cache
+
   @doc """
   Returns the cassandra node configuration
   """
