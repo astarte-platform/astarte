@@ -26,6 +26,7 @@ defmodule Astarte.Core.Generators.Mapping.ValueTest do
 
   alias Astarte.Core.Generators.Interface, as: InterfaceGenerator
   alias Astarte.Core.Generators.Mapping.Value, as: ValueGenerator
+  alias Astarte.Core.Generators.Mapping.ValueType, as: ValueTypeGenerator
 
   @moduletag :mapping
   @moduletag :value
@@ -82,14 +83,89 @@ defmodule Astarte.Core.Generators.Mapping.ValueTest do
     {:individual, "/Ping/Pong/%{Who}/Score/Final", "/Ping/Pong/Alice/ScoreFinal", false}
   ]
 
-  defp value_to_check(:individual, value), do: value
-  defp value_to_check(:object, value) when is_map(value), do: value |> Map.values() |> Enum.at(0)
+  defp unpack_first(%{type: type, value: value, path: base_path}) do
+    postfix = type |> Map.keys() |> Enum.at(0)
+
+    %{
+      path: base_path <> "/" <> postfix,
+      type: Map.get(type, postfix),
+      value: Map.get(value, postfix)
+    }
+  end
+
+  defp gen_object_type_t, do: map_of(string(:ascii), ValueTypeGenerator.value_type())
 
   @doc false
   describe "test utilities" do
+    @describetag :success
+    @describetag :ut
     test "path_matches_endpoint?/3" do
       for {aggregation, endpoint, path, expected} <- @endpoints_path do
         assert expected == ValueGenerator.path_matches_endpoint?(aggregation, endpoint, path)
+      end
+    end
+
+    property "type_value_from_path/3 aggregation :individual" do
+      check all %Interface{aggregation: aggregation} = interface <-
+                  InterfaceGenerator.interface(aggregation: :individual),
+                %{path: path, type: type_1, value: value_1} = package <-
+                  ValueGenerator.value(interface: interface),
+                max_runs: 10 do
+        %{type: type_2, value: value_2} =
+          ValueGenerator.type_value_from_path(aggregation, path, package)
+
+        assert type_1 == type_2 and value_1 == value_2
+      end
+    end
+
+    property "type_value_from_path/3 aggregation :object" do
+      check all %Interface{aggregation: aggregation} = interface <-
+                  InterfaceGenerator.interface(aggregation: :object),
+                package <-
+                  ValueGenerator.value(interface: interface)
+                  |> filter(fn %{type: type, value: value} ->
+                    map_size(type) > 0 and map_size(value) > 0
+                  end),
+                %{path: path, type: type_1, value: value_1} = unpack_first(package),
+                max_runs: 10 do
+        %{type: type_2, value: value_2} =
+          ValueGenerator.type_value_from_path(aggregation, path, package)
+
+        assert type_1 == type_2 and value_1 == value_2
+      end
+    end
+
+    @tag :failure
+    property "type_value_from_path/3 not found" do
+      check all %Interface{aggregation: aggregation} = interface <-
+                  InterfaceGenerator.interface(),
+                %{path: path} = package <- ValueGenerator.value(interface: interface),
+                max_runs: 10 do
+        not_exists_path = path <> "/not_exist"
+        assert :error = ValueGenerator.type_value_from_path(aggregation, not_exists_path, package)
+      end
+    end
+  end
+
+  @doc false
+  describe "object_value_from_type/1" do
+    @describetag :success
+    @describetag :ut
+
+    property "using gen" do
+      check all value <- gen_object_type_t() |> ValueGenerator.object_value_from_type() do
+        for {postfix, value} <- value do
+          assert is_binary(postfix) and not is_nil(value)
+        end
+      end
+    end
+
+    property "using struct" do
+      check all type <- gen_object_type_t(),
+                value <- ValueGenerator.object_value_from_type(type) do
+        for {postfix, type} <- type do
+          assert ValueType.validate_value(type, Map.fetch!(value, postfix))
+        end
       end
     end
   end
@@ -101,14 +177,14 @@ defmodule Astarte.Core.Generators.Mapping.ValueTest do
 
     property "generates value" do
       check all value <- ValueGenerator.value() do
-        assert %{path: _path, value: _value} = value
+        assert %{path: _path, value: _value, type: _type} = value
       end
     end
 
     property "generates value based on interface" do
       check all interface <- InterfaceGenerator.interface(),
                 value <- ValueGenerator.value(interface: interface) do
-        assert %{path: _path, value: _value} = value
+        assert %{path: _path, value: _value, type: _type} = value
       end
     end
 
@@ -122,18 +198,48 @@ defmodule Astarte.Core.Generators.Mapping.ValueTest do
       end
     end
 
-    property "generates value must be valid type" do
-      check all %Interface{mappings: mappings, aggregation: aggregation} = interface <-
-                  InterfaceGenerator.interface(),
-                %{path: path, value: value} <- ValueGenerator.value(interface: interface) do
-        value = value_to_check(aggregation, value)
+    property "generates :individual value must be valid type" do
+      check all %Interface{mappings: mappings} = interface <-
+                  InterfaceGenerator.interface(aggregation: :individual),
+                %{path: path} = package <-
+                  ValueGenerator.value(interface: interface) do
+        %Mapping{value_type: value_type} =
+          Enum.find(mappings, fn %Mapping{endpoint: endpoint} ->
+            ValueGenerator.path_matches_endpoint?(:individual, endpoint, path)
+          end)
+
+        %{type: generated_type, value: generated_value} =
+          ValueGenerator.type_value_from_path(:individual, path, package)
+
+        assert generated_type == value_type and
+                 ValueType.validate_value(value_type, generated_value)
+      end
+    end
+
+    property "generates :object value must be valid type" do
+      check all %Interface{mappings: mappings} = interface <-
+                  InterfaceGenerator.interface(aggregation: :object),
+                package <-
+                  ValueGenerator.value(interface: interface)
+                  |> filter(fn %{type: type, value: value} ->
+                    map_size(type) > 0 and map_size(value) > 0
+                  end),
+                %{path: path, type: field_type, value: field_value} = unpack_first(package) do
+        field_postfix = path |> String.split("/") |> List.last()
 
         %Mapping{value_type: value_type} =
           Enum.find(mappings, fn %Mapping{endpoint: endpoint} ->
-            ValueGenerator.path_matches_endpoint?(aggregation, endpoint, path)
+            ValueGenerator.path_matches_endpoint?(:object, endpoint, package.path) and
+              endpoint |> String.split("/") |> List.last() == field_postfix
           end)
 
-        assert ValueType.validate_value(value_type, value)
+        %{type: generated_type, value: generated_value} =
+          ValueGenerator.type_value_from_path(:object, path, package)
+
+        assert generated_type == value_type and
+                 generated_type == field_type and
+                 generated_value == field_value and
+                 ValueType.validate_value(value_type, generated_value)
       end
     end
   end

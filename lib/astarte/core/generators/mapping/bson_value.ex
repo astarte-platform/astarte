@@ -23,48 +23,71 @@ defmodule Astarte.Core.Generators.Mapping.BSONValue do
   use ExUnitProperties
 
   alias Astarte.Core.Generators.Mapping.Payload, as: PayloadGenerator
+  alias Astarte.Core.Generators.Mapping.Value, as: ValueGenerator
   alias Astarte.Core.Generators.Mapping.ValueType, as: ValueTypeGenerator
 
   @doc """
-  Generates a valid bson value based on passed simple value generator
+  Generates a valid bson value
   """
-  @spec bson_value(type :: ValueTypeGenerator.valid_t()) ::
-          StreamData.t(Cyanide.bson_type())
-  def bson_value(type),
-    do:
-      ValueTypeGenerator.value_from_type(type)
-      |> to_bson_value(type)
+  @spec bson_value() :: StreamData.t(Cyanide.bson_type())
+  @spec bson_value(params :: keyword()) :: StreamData.t(Cyanide.bson_type())
+  def bson_value(params \\ []), do: ValueGenerator.value(params) |> to_bson()
+
+  @spec bson_value_type(type :: ValueTypeGenerator.valid_t()) :: StreamData.t(Cyanide.bson_type())
+  def bson_value_type(type), do: ValueTypeGenerator.value_from_type(type) |> to_bson(type)
 
   @doc """
-  Convert a ValueType to a valid bson value type
+  Convert a Value or ValueType to a valid bson value type
   """
-  @spec to_bson_value(value :: any(), type :: ValueTypeGenerator.valid_t()) ::
-          StreamData.t(Cyanide.bson_type())
-  def to_bson_value(value, type) when not is_struct(value, StreamData),
-    do: value |> constant() |> to_bson_value(type)
+  @spec to_bson(package :: ValueGenerator.t()) :: StreamData.t(Cyanide.bson_type())
+  def to_bson(%{path: _path, type: _type, value: _value} = package),
+    do: package |> constant() |> to_bson()
 
-  @spec to_bson_value(gen :: StreamData.t(any()), type :: ValueTypeGenerator.valid_t()) ::
+  @spec to_bson(gen :: StreamData.t(ValueGenerator.t())) ::
           StreamData.t(Cyanide.bson_type())
-  def to_bson_value(gen, :binaryblob),
+  def to_bson(gen),
     do:
       gen
-      |> map(&wrap/1)
+      |> map(&bson_from_map/1)
       |> package_and_encode()
 
-  def to_bson_value(gen, :binaryblobarray),
+  @spec to_bson(value :: any(), type :: ValueTypeGenerator.valid_t()) ::
+          StreamData.t(Cyanide.bson_type())
+  def to_bson(value, type) when not is_struct(value, StreamData),
+    do: value |> constant() |> to_bson(type)
+
+  @spec to_bson(value :: StreamData.t(any()), type :: ValueTypeGenerator.valid_t()) ::
+          StreamData.t(Cyanide.bson_type())
+  def to_bson(gen, type),
     do:
       gen
-      |> map(fn values -> Enum.map(values, &wrap/1) end)
+      |> map(&preprocess_type(&1, type))
       |> package_and_encode()
-
-  def to_bson_value(gen, _), do: gen |> package_and_encode()
 
   # Utilities
+
+  defp bson_from_map(%{type: %{} = type, value: %{} = value}) do
+    type
+    |> Map.new(fn {postfix, type} ->
+      value = value |> Map.fetch!(postfix) |> preprocess_type(type)
+      {postfix, value}
+    end)
+  end
+
+  defp bson_from_map(%{type: type, value: value}), do: preprocess_type(value, type)
+
   defp package_and_encode(gen),
     do:
       gen
       |> bind(&PayloadGenerator.payload(v: &1))
       |> map(&encode/1)
+
+  defp preprocess_type(value, :binaryblob), do: wrap(value)
+
+  defp preprocess_type(values, :binaryblobarray),
+    do: Enum.map(values, &preprocess_type(&1, :binaryblob))
+
+  defp preprocess_type(value, _), do: value
 
   defp encode(value), do: Cyanide.encode!(value)
   defp wrap(value), do: %Cyanide.Binary{subtype: :generic, data: value}
