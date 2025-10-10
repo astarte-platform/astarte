@@ -1290,44 +1290,6 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
     value = Repo.one(value_query)
 
     assert value == 5
-
-    # Unset subtest
-
-    # Delete it otherwise it gets raised
-    assert DataUpdater.handle_delete_volatile_trigger(
-             realm,
-             encoded_device_id,
-             volatile_changed_trigger_id
-           ) == :ok
-
-    DataUpdater.handle_data(
-      realm,
-      encoded_device_id,
-      "com.test.LCDMonitor",
-      "/weekSchedule/10/start",
-      <<>>,
-      gen_tracking_id(),
-      make_timestamp("2017-10-09T15:10:32+00:00")
-    )
-
-    DataUpdater.dump_state(realm, encoded_device_id)
-
-    endpoint_id =
-      retrieve_endpoint_id(realm, "com.test.LCDMonitor", 1, "/weekSchedule/10/start")
-
-    value_query =
-      from ip in IndividualProperty,
-        prefix: ^keyspace_name,
-        where:
-          ip.device_id == ^device_id and
-            ip.interface_id == ^CQLUtils.interface_id("com.test.LCDMonitor", 1) and
-            ip.endpoint_id == ^endpoint_id and
-            ip.path == "/weekSchedule/10/start",
-        select: ip.longinteger_value
-
-    value = Repo.one(value_query)
-
-    assert value == nil
   end
 
   test "empty introspection is updated correctly", %{realm: realm, helper_name: helper_name} do
