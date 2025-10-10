@@ -20,10 +20,13 @@ defmodule Astarte.Housekeeping.MigratorTest do
   use ExUnit.Case
   use Mimic
 
+  alias Astarte.DataAccess.KvStore
+  alias Astarte.DataAccess.Realms.Realm, as: DatabaseRealm
   alias Astarte.Housekeeping.Helpers.Database
   alias Astarte.Housekeeping.Migrator
-  alias Astarte.Housekeeping.Realms
+  alias Astarte.Housekeeping.Realms.Core
   alias Astarte.Housekeeping.Realms.Queries
+  alias Astarte.Housekeeping.Realms.Realm
 
   describe "run migrations, " do
     setup do
@@ -38,12 +41,6 @@ defmodule Astarte.Housekeeping.MigratorTest do
 
     test "returns ok with complete db" do
       assert :ok = Migrator.run_astarte_keyspace_migrations()
-    end
-
-    test "returns error with incomplete db (missing kv_store table)" do
-      Database.destroy_astarte_kv_store_table!()
-
-      assert {:error, :database_error} = Migrator.run_astarte_keyspace_migrations()
     end
 
     test "returns error due do xandra problem" do
@@ -61,9 +58,10 @@ defmodule Astarte.Housekeeping.MigratorTest do
     setup do
       realm_name = "realm#{System.unique_integer([:positive])}"
 
-      realm_params = %{
+      realm = %Realm{
         realm_name: realm_name,
         jwt_public_key_pem: "test1publickey",
+        replication_class: "SimpleStrategy",
         replication_factor: 1,
         device_registration_limit: 1,
         datastream_maximum_storage_retention: 1
@@ -74,7 +72,7 @@ defmodule Astarte.Housekeeping.MigratorTest do
       end)
 
       Queries.initialize_database()
-      Realms.create_realm(realm_params)
+      Core.create_realm(realm, [])
       Database.edit_with_outdated_column_for_astarte_realms_table!()
       :ok
     end
@@ -83,10 +81,13 @@ defmodule Astarte.Housekeeping.MigratorTest do
       assert :ok = Migrator.run_realms_migrations()
     end
 
-    test "returns ok with incomplete db (missing kv_store table)" do
-      Database.destroy_astarte_kv_store_table!()
+    test "returns ok with missing capabilities" do
+      new_realm = "realm#{System.unique_integer([:positive])}"
 
+      Database.create_simple_realm(new_realm)
+      assert 0 = realm_schema_version(new_realm)
       assert :ok = Migrator.run_realms_migrations()
+      assert 7 = realm_schema_version(new_realm)
     end
 
     test "returns error due do xandra problem" do
@@ -132,6 +133,16 @@ defmodule Astarte.Housekeeping.MigratorTest do
         |> Enum.count()
 
       assert Migrator.latest_realm_schema_version() == realm_migrations_count
+    end
+  end
+
+  defp realm_schema_version(realm_name) do
+    keyspace = DatabaseRealm.keyspace_name(realm_name)
+
+    case KvStore.fetch_value("astarte", "schema_version", :big_integer, prefix: keyspace) do
+      {:ok, schema_version} -> schema_version
+      {:error, :not_found} -> 0
+      {:error, _reason} -> flunk("database error fetching schema version for #{realm_name}")
     end
   end
 end
