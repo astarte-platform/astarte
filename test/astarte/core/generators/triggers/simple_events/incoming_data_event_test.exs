@@ -20,10 +20,11 @@ defmodule Astarte.Core.Generators.Triggers.SimpleEvents.IncomingDataEventTest do
   use ExUnit.Case, async: true
   use ExUnitProperties
 
+  alias Astarte.Core.Interface
   alias Astarte.Core.Triggers.SimpleEvents.IncomingDataEvent
 
   alias Astarte.Core.Generators.Interface, as: InterfaceGenerator
-  alias Astarte.Core.Generators.Mapping.Value, as: ValueGenerator
+  alias Astarte.Core.Generators.Mapping.BSONValue, as: BSONValueGenerator
 
   alias Astarte.Core.Generators.Triggers.SimpleEvents.IncomingDataEvent,
     as: IncomingDataEventGenerator
@@ -50,13 +51,14 @@ defmodule Astarte.Core.Generators.Triggers.SimpleEvents.IncomingDataEventTest do
       end
     end
 
-    property "generates valid incoming_data_event using interface and value" do
-      check all interface <- InterfaceGenerator.interface(),
-                value <- ValueGenerator.value(interface: interface),
+    property "generates valid incoming_data_event using interface and bson_value" do
+      check all %Interface{interface_name: interface_name} = interface <-
+                  InterfaceGenerator.interface(),
+                bson_value <- BSONValueGenerator.bson_value(interface: interface),
                 incoming_data_event <-
                   IncomingDataEventGenerator.incoming_data_event(
-                    interface: interface,
-                    value: value
+                    interface: interface_name,
+                    bson_value: bson_value
                   ) do
         assert %IncomingDataEvent{} = incoming_data_event
       end

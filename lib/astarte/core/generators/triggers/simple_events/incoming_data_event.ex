@@ -24,35 +24,30 @@ defmodule Astarte.Core.Generators.Triggers.SimpleEvents.IncomingDataEvent do
 
   import Astarte.Generators.Utilities.ParamsGen
 
+  alias Astarte.Core.Interface
   alias Astarte.Core.Triggers.SimpleEvents.IncomingDataEvent
 
-  alias Astarte.Core.Interface
-
   alias Astarte.Core.Generators.Interface, as: InterfaceGenerator
+  alias Astarte.Core.Generators.Mapping.BSONValue, as: BSONValueGenerator
   alias Astarte.Core.Generators.Mapping.Value, as: ValueGenerator
 
   @spec incoming_data_event() :: StreamData.t(IncomingDataEvent.t())
   @spec incoming_data_event(keyword :: keyword()) :: StreamData.t(IncomingDataEvent.t())
   def incoming_data_event(params \\ []) do
-    gen_fields =
-      params gen all :interface,
-                     %Interface{name: interface_name} = interface <-
-                       InterfaceGenerator.interface(),
-                     value <- ValueGenerator.value(interface: interface),
-                     params: params do
-        %{
-          interface: interface_name,
-          path: value.path,
-          bson_value: value.value
-        }
-      end
-
-    gen_fields
-    |> bind(fn fields ->
-      fields
-      |> Map.new(fn {k, v} -> {k, constant(v)} end)
-      |> optional_map()
-    end)
-    |> map(&struct(IncomingDataEvent, &1))
+    params gen all :_,
+                   %Interface{name: name} = interface <- InterfaceGenerator.interface(),
+                   :_,
+                   %{path: path} = package <- ValueGenerator.value(interface: interface),
+                   :interface,
+                   interface_name <- constant(name),
+                   path <- constant(path),
+                   bson_value <- BSONValueGenerator.to_bson(%{package | path: path}),
+                   params: params do
+      %IncomingDataEvent{
+        interface: interface_name,
+        path: path,
+        bson_value: bson_value
+      }
+    end
   end
 end
