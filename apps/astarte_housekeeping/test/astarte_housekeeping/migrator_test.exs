@@ -84,10 +84,23 @@ defmodule Astarte.Housekeeping.MigratorTest do
     test "returns ok with missing capabilities" do
       new_realm = "realm#{System.unique_integer([:positive])}"
 
+      realm_migrations_path =
+        Application.app_dir(
+          :astarte_housekeeping,
+          Path.join(["priv", "migrations", "realm"])
+        )
+
+      # We don't specify the .sql extension so we also check if there are migrations with the wrong extension
+      realm_migrations_count =
+        [realm_migrations_path, "*"]
+        |> Path.join()
+        |> Path.wildcard()
+        |> Enum.count()
+
       Database.create_simple_realm(new_realm)
       assert 0 = realm_schema_version(new_realm)
       assert :ok = Migrator.run_realms_migrations()
-      assert 7 = realm_schema_version(new_realm)
+      assert realm_migrations_count == realm_schema_version(new_realm)
     end
 
     test "returns error due do xandra problem" do

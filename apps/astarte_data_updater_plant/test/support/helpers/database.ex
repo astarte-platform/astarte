@@ -230,6 +230,7 @@ defmodule Astarte.Helpers.Database do
       vmq_ack boolean,
       dup_start_ack boolean,
       dup_end_ack boolean,
+      groups set<text>,
       PRIMARY KEY ((device_id))
     )
   """

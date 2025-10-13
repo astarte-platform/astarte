@@ -26,6 +26,7 @@ defmodule Astarte.DataAccess.Device.DeletionInProgress do
     field :vmq_ack, :boolean
     field :dup_start_ack, :boolean
     field :dup_end_ack, :boolean
+    field :groups, Exandra.Set, type: :string, default: MapSet.new()
   end
 
   def all_ack?(%Data{} = deletion) do
