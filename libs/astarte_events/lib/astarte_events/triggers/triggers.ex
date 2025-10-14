@@ -97,6 +97,9 @@ defmodule Astarte.Events.Triggers do
           {nil, nil} ->
             :any_device
 
+          {"*", nil} ->
+            :any_device
+
           {nil, group} ->
             {:group, group}
 
