@@ -20,6 +20,7 @@ defmodule Astarte.DataUpdaterPlant.DeviceDeleteTest do
   use ExUnit.Case
   import Ecto.Query
   import Mox
+  import StreamData
 
   alias Astarte.Core.Device
   alias Astarte.DataAccess.Realms.Realm
@@ -33,8 +34,9 @@ defmodule Astarte.DataUpdaterPlant.DeviceDeleteTest do
   setup :verify_on_exit!
   setup :set_mox_global
 
-  setup do
+  setup_all do
     realm = "autotestrealm#{System.unique_integer([:positive])}"
+    AMQPTestHelper.start_link()
     DatabaseTestHelper.destroy_local_test_keyspace(realm)
     {:ok, _keyspace_name} = DatabaseTestHelper.create_test_keyspace(realm)
 
@@ -43,6 +45,50 @@ defmodule Astarte.DataUpdaterPlant.DeviceDeleteTest do
     end)
 
     %{realm: realm}
+  end
+
+  setup %{realm: realm} do
+    on_exit(fn ->
+      Repo.query("TRUNCATE #{realm}.devices")
+      Repo.query("TRUNCATE #{realm}.deletion_in_progress")
+    end)
+  end
+
+  test "device deletion replicates group information", %{realm: realm} do
+    AMQPTestHelper.clean_queue()
+    keyspace_name = Realm.keyspace_name(realm)
+
+    device_id = Device.random_device_id()
+    encoded_device_id = Device.encode_device_id(device_id)
+
+    groups = list_of(string(:alphanumeric, min_length: 3), length: 5..10) |> Enum.at(0)
+
+    {:ok, %{groups: groups_map}} =
+      DatabaseTestHelper.insert_device(realm, device_id, groups: groups)
+
+    groups = MapSet.new(groups)
+    expected_groups = groups_map |> Map.keys() |> MapSet.new()
+
+    %DeletionInProgress{device_id: device_id}
+    |> Repo.insert(prefix: keyspace_name)
+
+    initial_deletion_status = DeletionInProgress |> Repo.get!(device_id, prefix: keyspace_name)
+
+    timestamp_us_x_10 = make_timestamp("2017-10-09T15:00:32+00:00")
+    timestamp_ms = div(timestamp_us_x_10, 10_000)
+
+    Astarte.DataUpdaterPlant.RPC.VMQPlugin.ClientMock
+    |> expect(:delete, fn %{realm_name: ^realm, device_id: ^encoded_device_id} ->
+      :ok
+    end)
+
+    DataUpdater.start_device_deletion(realm, encoded_device_id, timestamp_ms)
+
+    deletion_status = DeletionInProgress |> Repo.get!(device_id, prefix: keyspace_name)
+
+    assert initial_deletion_status.groups == MapSet.new()
+    assert deletion_status.groups == groups
+    assert deletion_status.groups == expected_groups
   end
 
   test "device deletion is acked and related DataUpdater process stops", %{realm: realm} do

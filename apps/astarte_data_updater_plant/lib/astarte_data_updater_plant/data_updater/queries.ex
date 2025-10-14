@@ -918,6 +918,34 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
     end
   end
 
+  def ensure_replicated_group_information(realm_name, device_id) do
+    keyspace = Realm.keyspace_name(realm_name)
+
+    fetch_group_opts = [prefix: keyspace, consistency: Consistency.device_info(:read)]
+
+    store_group_opts = [
+      prefix: keyspace,
+      consistency: Consistency.device_info(:write),
+      allow_insert: false,
+      allow_stale: true
+    ]
+
+    groups =
+      Device
+      |> select([d], d.groups)
+      |> Repo.fetch(device_id, fetch_group_opts)
+      |> case do
+        {:ok, groups} -> groups |> Map.keys() |> MapSet.new()
+        {:error, :not_found} -> MapSet.new()
+      end
+
+    %DeletionInProgress{device_id: device_id}
+    |> Ecto.Changeset.change(groups: groups)
+    |> Repo.update(store_group_opts)
+
+    :ok
+  end
+
   def retrieve_realms! do
     keyspace_name = Realm.astarte_keyspace_name()
     consistency = Consistency.domain_model(:read)

@@ -766,7 +766,7 @@ defmodule Astarte.DataUpdaterPlant.DatabaseTestHelper do
     total_received_bytes = Keyword.get(opts, :total_received_bytes, 0)
     introspection = Keyword.get(opts, :introspection, %{})
     groups = Keyword.get(opts, :groups, [])
-    groups_map = for group <- groups, do: {group, UUID.uuid1()}
+    groups_map = for group <- groups, into: %{}, do: {group, UUID.uuid1(:raw)}
 
     %DeviceSchema{}
     |> Ecto.Changeset.change(%{

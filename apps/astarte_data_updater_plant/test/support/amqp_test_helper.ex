@@ -22,7 +22,12 @@ defmodule Astarte.DataUpdaterPlant.AMQPTestHelper do
 
   def start_link() do
     GenServer.start_link(__MODULE__, :ok, name: AMQPTestHelper)
-    {:ok, _pid} = Astarte.DataUpdaterPlant.AMQPTestEventsConsumer.start_link()
+
+    case Astarte.DataUpdaterPlant.AMQPTestEventsConsumer.start_link() do
+      {:ok, pid} -> {:ok, pid}
+      {:error, {:already_started, pid}} -> {:ok, pid}
+      error -> raise error
+    end
   end
 
   def init(:ok) do
