@@ -32,6 +32,8 @@ defmodule Astarte.RealmManagement.DevicesTest do
   alias Astarte.RealmManagement.DeviceRemoval.Queries
   alias Astarte.RealmManagement.Devices.Queries, as: DeviceQueries
 
+  import Astarte.Helpers.Triggers
+
   describe "deletion in progress tests" do
     @describetag :devices
     test "device is inserted in deletion in progress on deletion request", %{
@@ -104,6 +106,14 @@ defmodule Astarte.RealmManagement.DevicesTest do
       end
     end
 
+    test "generates deletion started triggers", %{realm: realm, device_id: device_id} do
+      ref = register_device_deletion_started_trigger(realm, device_id: device_id)
+      reset_cache(realm)
+      start_device_deletion(realm, device_id)
+
+      assert_receive ^ref
+    end
+
     property "does not delete a non existing device", %{realm: realm} do
       check all(encoded_device_id <- DeviceGenerator.encoded_id()) do
         assert {:error, :device_not_found} = Devices.delete_device(realm, encoded_device_id)
@@ -154,5 +164,17 @@ defmodule Astarte.RealmManagement.DevicesTest do
 
     assert :ok = Devices.delete_device(realm, encoded_id)
     assert {:error, :not_found} = Repo.fetch(DeletionInProgress, device_id, prefix: keyspace)
+  end
+
+  defp start_device_deletion(realm_name, device_id) do
+    keyspace = Realm.keyspace_name(realm_name)
+    {:ok, decoded_id} = DeviceCore.decode_device_id(device_id)
+
+    on_exit(fn ->
+      %DeletionInProgress{device_id: decoded_id}
+      |> Repo.delete(prefix: keyspace)
+    end)
+
+    Devices.delete_device(realm_name, device_id)
   end
 end

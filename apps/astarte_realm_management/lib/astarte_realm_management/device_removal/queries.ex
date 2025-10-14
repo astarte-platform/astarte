@@ -36,7 +36,7 @@ defmodule Astarte.RealmManagement.DeviceRemoval.Queries do
       prefix: keyspace,
       consistency: Consistency.device_info(:read)
     ]
-    
+
     DeletionInProgress
     |> select([d], d.groups)
     |> Repo.fetch(device_id, opts)

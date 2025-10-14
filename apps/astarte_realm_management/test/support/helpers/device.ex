@@ -16,14 +16,16 @@
 # limitations under the License.
 
 defmodule Astarte.Helpers.Device do
-  alias Astarte.Helpers
-  alias Astarte.RealmManagement.Interfaces
-  alias Astarte.DataAccess.Repo
   alias Astarte.DataAccess.Devices.Device
+  alias Astarte.DataAccess.Groups.GroupedDevice
   alias Astarte.DataAccess.Realms.Interface
   alias Astarte.DataAccess.Realms.Realm
+  alias Astarte.DataAccess.Repo
+  alias Astarte.Helpers
+  alias Astarte.RealmManagement.Interfaces
 
   import ExUnit.CaptureLog
+  import Ecto.Query
 
   @fallible_value_type [
     :integer,
@@ -48,14 +50,16 @@ defmodule Astarte.Helpers.Device do
     capture_log(fn -> Interfaces.install_interface(realm_name, params) end)
   end
 
-  def insert_device_cleanly(realm_name, device, interfaces) do
+  def insert_device_cleanly(realm_name, device, interfaces, grouped_devices) do
     keyspace = Realm.keyspace_name(realm_name)
     introspection = interfaces |> Map.new(&{&1.name, &1.major_version})
     introspection_minor = interfaces |> Map.new(&{&1.name, &1.minor_version})
     interfaces_bytes = Map.fetch!(device, :interfaces_bytes)
     interfaces_msgs = Map.fetch!(device, :interfaces_msgs)
+    groups = Map.new(grouped_devices, &{&1.group_name, &1.insertion_uuid})
 
     device_db_params = %{
+      groups: groups,
       introspection: introspection,
       introspection_minor: introspection_minor,
       exchanged_bytes_by_interface: interfaces_bytes,
@@ -65,6 +69,17 @@ defmodule Astarte.Helpers.Device do
     device_db = struct(Device, Map.merge(device, device_db_params))
     Repo.delete(device_db, prefix: keyspace)
     Repo.insert!(device_db, prefix: keyspace)
+  end
+
+  def insert_grouped_device_cleanly(realm_name, device_id, group_name) do
+    keyspace = Realm.keyspace_name(realm_name)
+
+    GroupedDevice
+    |> where([g], g.group_name == ^group_name)
+    |> Repo.delete_all(prefix: keyspace)
+
+    %GroupedDevice{group_name: group_name, device_id: device_id, insertion_uuid: UUID.uuid1(:raw)}
+    |> Repo.insert!(prefix: keyspace)
   end
 
   def fallible_value_types do
