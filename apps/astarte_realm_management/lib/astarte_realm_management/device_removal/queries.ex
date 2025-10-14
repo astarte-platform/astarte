@@ -159,7 +159,7 @@ defmodule Astarte.RealmManagement.DeviceRemoval.Queries do
       consistency: Consistency.device_info(:read)
     ]
 
-    Repo.one(query, opts)
+    Repo.one(query, opts) || %{}
   end
 
   def delete_alias_values!(realm_name, device_alias) do

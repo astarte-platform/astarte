@@ -28,20 +28,9 @@ defmodule Astarte.RealmManagement.DeviceRemoval.DeviceRemover do
   require Logger
   alias Astarte.Core.Device
   alias Astarte.RealmManagement.DeviceRemoval.Core
-  alias Astarte.RealmManagement.Devices
-  alias Astarte.RealmManagement.DeviceRemoval
 
   @spec run(%{:device_id => <<_::128>>, :realm_name => binary()}) :: :ok | no_return()
-  def run(%{realm_name: realm_name, device_id: device_id} = args) do
-    if Devices.Queries.device_exists?(realm_name, device_id) do
-      do_run(args)
-    else
-      cleanup(args)
-    end
-  end
-
-  @spec do_run(%{:device_id => <<_::128>>, :realm_name => binary()}) :: :ok | no_return()
-  defp do_run(%{realm_name: realm_name, device_id: device_id}) do
+  def run(%{realm_name: realm_name, device_id: device_id}) do
     encoded_device_id = Device.encode_device_id(device_id)
     _ = Logger.info("Starting to remove device #{encoded_device_id}", tag: "device_delete_start")
 
@@ -55,13 +44,5 @@ defmodule Astarte.RealmManagement.DeviceRemoval.DeviceRemover do
 
     _ = Logger.info("Successfully removed device #{encoded_device_id}", tag: "device_delete_ok")
     :ok
-  end
-
-  @spec cleanup(%{:device_id => <<_::128>>, :realm_name => binary()}) :: :ok
-  defp cleanup(%{realm_name: realm_name, device_id: device_id}) do
-    # As the device is guaranteed to be deleted at least once, it may happen that a crash happened
-    # between the device cancellation and the deletion in progress entry cancellation.
-    # If we're here, we just need to delete the deletion in progress entry
-    DeviceRemoval.Queries.remove_device_from_deletion_in_progress!(realm_name, device_id)
   end
 end
