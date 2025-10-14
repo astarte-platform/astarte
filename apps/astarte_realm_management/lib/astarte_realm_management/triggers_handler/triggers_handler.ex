@@ -18,6 +18,7 @@
 
 defmodule Astarte.RealmManagement.TriggersHandler do
   alias Astarte.Core.Device
+  alias Astarte.Core.Triggers.SimpleEvents.DeviceDeletionFinishedEvent
   alias Astarte.Core.Triggers.SimpleEvents.DeviceDeletionStartedEvent
   alias Astarte.Events.Triggers
   alias Astarte.Events.TriggersHandler
@@ -35,6 +36,16 @@ defmodule Astarte.RealmManagement.TriggersHandler do
 
     find_targets(realm_name, device_id, event_key)
     |> dispatch_all(realm_name, hw_id, timestamp, event_type, %DeviceDeletionStartedEvent{})
+  end
+
+  def device_deletion_finished(realm_name, device_id, groups) do
+    timestamp = DateTime.utc_now() |> DateTime.to_unix(:millisecond)
+    hw_id = Device.encode_device_id(device_id)
+    event_key = :on_device_deletion_finished
+    event_type = :device_deletion_finished_event
+
+    find_targets(realm_name, device_id, event_key, groups)
+    |> dispatch_all(realm_name, hw_id, timestamp, event_type, %DeviceDeletionFinishedEvent{})
   end
 
   defp dispatch_all(targets, realm_name, device_id, timestamp, event_type, event) do
@@ -57,9 +68,9 @@ defmodule Astarte.RealmManagement.TriggersHandler do
     end
   end
 
-  defp find_targets(realm_name, device_id, event_type) do
+  defp find_targets(realm_name, device_id, event_type, groups \\ nil) do
     load_triggers(realm_name)
-    |> Triggers.find_trigger_targets_for_device(realm_name, device_id, event_type)
+    |> Triggers.find_trigger_targets_for_device(realm_name, device_id, event_type, groups)
   end
 
   defp load_triggers(realm_name) do

@@ -41,6 +41,7 @@ defmodule Astarte.RealmManagement.DeviceRemoval.DeviceRemover do
     Core.delete_groups!(realm_name, device_id)
     Core.delete_kv_store_entries!(realm_name, encoded_device_id)
     Core.delete_device!(realm_name, device_id)
+    Core.complete_deletion(realm_name, device_id)
 
     _ = Logger.info("Successfully removed device #{encoded_device_id}", tag: "device_delete_ok")
     :ok
