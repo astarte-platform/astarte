@@ -65,6 +65,15 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.EventTypeUtils do
 
       :INTERFACE_MINOR_UPDATED ->
         :on_interface_minor_updated
+
+      :DEVICE_REGISTERED ->
+        :on_device_registered
+
+      :DEVICE_DELETION_STARTED ->
+        :on_device_deletion_started
+
+      :DEVICE_DELETION_FINISHED ->
+        :on_device_deletion_finished
     end
   end
 end
