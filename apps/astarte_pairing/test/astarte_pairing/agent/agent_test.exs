@@ -21,6 +21,7 @@ defmodule Astarte.Pairing.AgentTest do
   use Astarte.Cases.Device
 
   import Mox
+  import Astarte.Helpers.Triggers
 
   alias Astarte.Helpers.Database
   alias Astarte.Pairing.Agent
@@ -41,6 +42,20 @@ defmodule Astarte.Pairing.AgentTest do
       assert is_binary(credentials_secret)
     end
 
+    test "successful trigger emission on successful call", %{
+      realm_name: realm_name
+    } do
+      ref =
+        register_device_registration_trigger(realm_name, device_id: @test_hw_id)
+
+      reset_cache(realm_name)
+
+      assert {:ok, %DeviceRegistrationResponse{credentials_secret: credentials_secret}} =
+               Agent.register_device(realm_name, @valid_attrs)
+
+      assert_receive ^ref
+    end
+
     test "succesful call with initial_introspection", %{realm_name: realm_name} do
       initial_introspection = %{
         "org.astarteplatform.Values" => %{"major" => 0, "minor" => 4},
@@ -53,6 +68,27 @@ defmodule Astarte.Pairing.AgentTest do
                Agent.register_device(realm_name, attrs)
 
       assert is_binary(credentials_secret)
+    end
+
+    test "succesful trigger emission on successful call with initial_introspection", %{
+      realm_name: realm_name
+    } do
+      ref =
+        register_device_registration_trigger(realm_name, device_id: @test_hw_id)
+
+      reset_cache(realm_name)
+
+      initial_introspection = %{
+        "org.astarteplatform.Values" => %{"major" => 0, "minor" => 4},
+        "org.astarteplatform.OtherValues" => %{"major" => 1, "minor" => 0}
+      }
+
+      attrs = Map.put(@valid_attrs, "initial_introspection", initial_introspection)
+
+      assert {:ok, %DeviceRegistrationResponse{credentials_secret: credentials_secret}} =
+               Agent.register_device(realm_name, attrs)
+
+      assert_receive ^ref
     end
 
     test "returns error changeset with missing hardware ID", %{realm_name: realm_name} do
@@ -120,6 +156,22 @@ defmodule Astarte.Pairing.AgentTest do
                Agent.register_device(realm_name, %{"hw_id" => device.encoded_id})
 
       assert is_binary(credentials_secret)
+    end
+
+    test "successfully emit trigger when registering an existing unconfirmed device", %{
+      realm_name: realm_name,
+      device: device
+    } do
+      ref =
+        register_device_registration_trigger(realm_name, device_id: device.encoded_id)
+
+      reset_cache(realm_name)
+      {:ok, _} = Database.update_device(device.id, realm_name, first_credentials_request: nil)
+
+      assert {:ok, %DeviceRegistrationResponse{credentials_secret: credentials_secret}} =
+               Agent.register_device(realm_name, %{"hw_id" => device.encoded_id})
+
+      assert_receive ^ref
     end
 
     test "fails for an existing confirmed device", %{
