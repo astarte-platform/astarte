@@ -38,22 +38,5 @@ defmodule Astarte.Core.Generators.Triggers.SimpleEvents.DeviceErrorEventTest do
         assert %DeviceErrorEvent{} = device_error_event
       end
     end
-
-    property "generates valid changes using to_changes (gen)" do
-      gen_device_error_event_changes =
-        DeviceErrorEventGenerator.device_error_event()
-        |> DeviceErrorEventGenerator.to_changes()
-
-      check all changes <- gen_device_error_event_changes do
-        assert is_map(changes)
-      end
-    end
-
-    property "generates valid changes using to_changes (struct)" do
-      check all device_error_event <- DeviceErrorEventGenerator.device_error_event(),
-                changes <- DeviceErrorEventGenerator.to_changes(device_error_event) do
-        assert is_map(changes)
-      end
-    end
   end
 end

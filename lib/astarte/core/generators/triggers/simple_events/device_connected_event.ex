@@ -27,7 +27,6 @@ defmodule Astarte.Core.Generators.Triggers.SimpleEvents.DeviceConnectedEvent do
   alias Astarte.Core.Triggers.SimpleEvents.DeviceConnectedEvent
 
   alias Astarte.Common.Generators.Ip, as: IpGenerator
-  alias Astarte.Utilities.Map, as: MapUtilities
 
   @spec device_connected_event() :: StreamData.t(DeviceConnectedEvent.t())
   @spec device_connected_event(keyword :: keyword()) :: StreamData.t(DeviceConnectedEvent.t())
@@ -37,25 +36,6 @@ defmodule Astarte.Core.Generators.Triggers.SimpleEvents.DeviceConnectedEvent do
       %DeviceConnectedEvent{
         device_ip_address: device_ip_address
       }
-    end
-  end
-
-  @doc """
-  Convert this struct/stream to changes
-  """
-  @spec to_changes(DeviceConnectedEvent.t()) :: StreamData.t(map())
-  def to_changes(data) when not is_struct(data, StreamData),
-    do: data |> constant() |> to_changes()
-
-  @spec to_changes(StreamData.t(DeviceConnectedEvent.t())) :: StreamData.t(map())
-  def to_changes(gen) do
-    gen all %DeviceConnectedEvent{
-              device_ip_address: device_ip_address
-            } <- gen do
-      %{
-        device_ip_address: device_ip_address
-      }
-      |> MapUtilities.clean()
     end
   end
 

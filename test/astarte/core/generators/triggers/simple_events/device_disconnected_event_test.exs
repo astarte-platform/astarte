@@ -39,23 +39,5 @@ defmodule Astarte.Core.Generators.Triggers.SimpleEvents.DeviceDisconnectedEventT
         assert %DeviceDisconnectedEvent{} = device_disconnected_event
       end
     end
-
-    property "generates valid changes using to_changes (gen)" do
-      gen_device_disconnected_event_changes =
-        DeviceDisconnectedEventGenerator.device_disconnected_event()
-        |> DeviceDisconnectedEventGenerator.to_changes()
-
-      check all changes <- gen_device_disconnected_event_changes do
-        assert is_map(changes)
-      end
-    end
-
-    property "generates valid changes using to_changes (struct)" do
-      check all device_disconnected_event <-
-                  DeviceDisconnectedEventGenerator.device_disconnected_event(),
-                changes <- DeviceDisconnectedEventGenerator.to_changes(device_disconnected_event) do
-        assert is_map(changes)
-      end
-    end
   end
 end

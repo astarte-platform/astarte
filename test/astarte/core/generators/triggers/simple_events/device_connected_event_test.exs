@@ -47,22 +47,5 @@ defmodule Astarte.Core.Generators.Triggers.SimpleEvents.DeviceConnectedEventTest
         assert {:ok, _} = :inet.parse_ipv4_address(ipv4_address)
       end
     end
-
-    property "generates valid changes using to_changes (gen)" do
-      gen_device_connected_event_changes =
-        DeviceConnectedEventGenerator.device_connected_event()
-        |> DeviceConnectedEventGenerator.to_changes()
-
-      check all changes <- gen_device_connected_event_changes do
-        assert is_map(changes)
-      end
-    end
-
-    property "generates valid changes using to_changes (struct)" do
-      check all device_connected_event <- DeviceConnectedEventGenerator.device_connected_event(),
-                changes <- DeviceConnectedEventGenerator.to_changes(device_connected_event) do
-        assert is_map(changes)
-      end
-    end
   end
 end

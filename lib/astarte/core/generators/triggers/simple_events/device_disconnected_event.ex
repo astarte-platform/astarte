@@ -24,24 +24,6 @@ defmodule Astarte.Core.Generators.Triggers.SimpleEvents.DeviceDisconnectedEvent 
 
   alias Astarte.Core.Triggers.SimpleEvents.DeviceDisconnectedEvent
 
-  alias Astarte.Utilities.Map, as: MapUtilities
-
   @spec device_disconnected_event() :: StreamData.t(DeviceDisconnectedEvent.t())
   def device_disconnected_event, do: constant(%DeviceDisconnectedEvent{})
-
-  @doc """
-  Convert this struct/stream to changes
-  """
-  @spec to_changes(DeviceDisconnectedEvent.t()) :: StreamData.t(map())
-  def to_changes(data) when not is_struct(data, StreamData),
-    do: data |> constant() |> to_changes()
-
-  @spec to_changes(StreamData.t(DeviceDisconnectedEvent.t())) :: StreamData.t(map())
-  def to_changes(gen) do
-    gen all device_disconnected_event <- gen do
-      device_disconnected_event
-      |> Map.from_struct()
-      |> MapUtilities.clean()
-    end
-  end
 end
