@@ -17,6 +17,7 @@
 #
 
 defmodule Astarte.RealmManagement.TriggersHandler do
+  alias Astarte.Core.Device
   alias Astarte.Core.Triggers.SimpleEvents.DeviceDeletionStartedEvent
   alias Astarte.Events.Triggers
   alias Astarte.Events.TriggersHandler
@@ -28,10 +29,12 @@ defmodule Astarte.RealmManagement.TriggersHandler do
 
   def device_deletion_started(realm_name, device_id) do
     timestamp = DateTime.utc_now() |> DateTime.to_unix(:millisecond)
-    event_type = :on_device_deletion_started
+    hw_id = Device.encode_device_id(device_id)
+    event_key = :on_device_deletion_started
+    event_type = :device_deletion_started_event
 
-    find_targets(realm_name, device_id, event_type)
-    |> dispatch_all(realm_name, device_id, timestamp, event_type, %DeviceDeletionStartedEvent{})
+    find_targets(realm_name, device_id, event_key)
+    |> dispatch_all(realm_name, hw_id, timestamp, event_type, %DeviceDeletionStartedEvent{})
   end
 
   defp dispatch_all(targets, realm_name, device_id, timestamp, event_type, event) do
