@@ -27,7 +27,7 @@ defmodule Astarte.Pairing.Agent do
   alias Astarte.Pairing.Engine
   alias Astarte.Pairing.Config
 
-  alias Astarte.Core.Triggers.SimpleEvents.DeviceDeletionStartedEvent
+  alias Astarte.Core.Triggers.SimpleEvents.DeviceRegisteredEvent
   alias Astarte.Events.Triggers
   alias Astarte.Events.TriggersHandler
   @cache_name Config.trigger_cache_name!()
@@ -50,9 +50,8 @@ defmodule Astarte.Pairing.Agent do
              }
            end),
          {:ok, credentials_secret} <-
-           Engine.register_device(realm, hw_id, initial_introspection: initial_introspection),
-         {:ok, decoded_id} <- Device.decode_device_id(hw_id, allow_extended_id: true) do
-      dispatch_device_registration_trigger(realm, decoded_id)
+           Engine.register_device(realm, hw_id, initial_introspection: initial_introspection) do
+      dispatch_device_registration_trigger(realm, hw_id)
 
       {:ok, %DeviceRegistrationResponse{credentials_secret: credentials_secret}}
     end
@@ -64,12 +63,14 @@ defmodule Astarte.Pairing.Agent do
     end
   end
 
-  defp dispatch_device_registration_trigger(realm_name, device_id) do
+  defp dispatch_device_registration_trigger(realm_name, hw_id) do
     timestamp = DateTime.utc_now() |> DateTime.to_unix(:millisecond)
-    event_type = :on_device_registration
+    event_key = :on_device_registered
+    event_type = :device_registered_event
+    {:ok, device_id} = Device.decode_device_id(hw_id, allow_extended_id: true)
 
-    find_targets(realm_name, device_id, event_type)
-    |> dispatch_all(realm_name, device_id, timestamp, event_type, %DeviceDeletionStartedEvent{})
+    find_targets(realm_name, device_id, event_key)
+    |> dispatch_all(realm_name, hw_id, timestamp, event_type, %DeviceRegisteredEvent{})
   end
 
   defp dispatch_all(targets, realm_name, device_id, timestamp, event_type, event) do

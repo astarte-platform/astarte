@@ -21,5 +21,6 @@ Mimic.copy(Astarte.Pairing.Config)
 Mimic.copy(DateTime)
 Mimic.copy(Astarte.DataAccess.Health.Health)
 Mimic.copy(HTTPoison)
+Mimic.copy(Astarte.Events.TriggersHandler)
 
 ExUnit.start(capture_log: true)
