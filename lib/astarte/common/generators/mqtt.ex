@@ -56,20 +56,16 @@ defmodule Astarte.Common.Generators.MQTT do
   @spec mqtt_topic() :: StreamData.t(mqtt_topic())
   @spec mqtt_topic(params :: keyword()) :: StreamData.t(mqtt_topic())
   def mqtt_topic(params \\ []) do
-    config =
-      params gen all chars <- constant(valid_chars()),
-                     allow_empty <- constant(false),
-                     pre <- constant(""),
-                     params: params do
-        {chars, allow_empty, pre}
-      end
-
-    gen all {chars, allow_empty, pre} <- config,
-            topic <-
-              string(chars, min_length: 1, max_length: 20)
-              |> list_of(min_length: allow_empty_to_length(allow_empty), max_length: 10)
-              |> map(&Enum.join(&1, "/"))
-              |> Utilities.print(pre: pre) do
+    params gen all chars <- constant(valid_chars()),
+                   allow_empty <- constant(false),
+                   pre <- constant(""),
+                   :_,
+                   topic <-
+                     string(chars, min_length: 1, max_length: 20)
+                     |> list_of(min_length: allow_empty_to_length(allow_empty), max_length: 10)
+                     |> map(&Enum.join(&1, "/"))
+                     |> Utilities.print(pre: pre),
+                   params: params do
       topic
     end
   end

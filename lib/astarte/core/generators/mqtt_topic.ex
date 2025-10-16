@@ -39,19 +39,15 @@ defmodule Astarte.Core.Generators.MQTTTopic do
   """
   @spec control_topic(params :: keyword()) :: StreamData.t(MQTTGenerator.mqtt_topic())
   def control_topic(params \\ []) do
-    config =
-      params gen all realm_name <- RealmGenerarator.realm_name(),
-                     device_id <- DeviceGenerarator.id(),
-                     params: params do
-        {realm_name, device_id}
-      end
-
-    gen all {realm_name, device_id} <- config,
-            topic <-
-              MQTTGenerator.mqtt_topic(
-                chars: :alphanumeric,
-                pre: "#{realm_name}/#{device_id}/control/"
-              ) do
+    params gen all realm_name <- RealmGenerarator.realm_name(),
+                   device_id <- DeviceGenerarator.id(),
+                   :_,
+                   topic <-
+                     MQTTGenerator.mqtt_topic(
+                       chars: :alphanumeric,
+                       pre: "#{realm_name}/#{device_id}/control/"
+                     ),
+                   params: params do
       topic
     end
   end
@@ -68,20 +64,16 @@ defmodule Astarte.Core.Generators.MQTTTopic do
   """
   @spec data_topic(params :: keyword()) :: StreamData.t(MQTTGenerator.mqtt_topic())
   def data_topic(params \\ []) do
-    config =
-      params gen all realm_name <- RealmGenerarator.realm_name(),
-                     device_id <- DeviceGenerarator.id(),
-                     interface_name <- InterfaceGenerator.name(),
-                     params: params do
-        {realm_name, device_id, interface_name}
-      end
-
-    gen all {realm_name, device_id, interface_name} <- config,
-            topic <-
-              MQTTGenerator.mqtt_topic(
-                chars: :alphanumeric,
-                pre: "#{realm_name}/#{device_id}/#{interface_name}/"
-              ) do
+    params gen all realm_name <- RealmGenerarator.realm_name(),
+                   device_id <- DeviceGenerarator.id(),
+                   interface_name <- InterfaceGenerator.name(),
+                   :_,
+                   topic <-
+                     MQTTGenerator.mqtt_topic(
+                       chars: :alphanumeric,
+                       pre: "#{realm_name}/#{device_id}/#{interface_name}/"
+                     ),
+                   params: params do
       topic
     end
   end

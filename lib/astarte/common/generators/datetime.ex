@@ -42,17 +42,15 @@ defmodule Astarte.Common.Generators.DateTime do
   @spec date_time() :: StreamData.t(DateTime.t())
   @spec date_time(params :: keyword()) :: StreamData.t(DateTime.t())
   def date_time(params \\ []) do
-    config =
-      params gen all min <- constant(min_default()),
-                     max <- constant(max_default()),
-                     params: params do
-        {DateTime.to_unix(min, @ref_unit), DateTime.to_unix(max, @ref_unit)}
-      end
-
-    gen all {min, max} <- config,
-            date_time <-
-              TimestampGenerator.timestamp(min: min, max: max, unit: @ref_unit)
-              |> map(&DateTime.from_unix!(&1, @ref_unit)) do
+    params gen all min <- constant(min_default()),
+                   max <- constant(max_default()),
+                   min = DateTime.to_unix(min, @ref_unit),
+                   max = DateTime.to_unix(max, @ref_unit),
+                   :_,
+                   date_time <-
+                     TimestampGenerator.timestamp(min: min, max: max, unit: @ref_unit)
+                     |> map(&DateTime.from_unix!(&1, @ref_unit)),
+                   params: params do
       date_time
     end
   end
