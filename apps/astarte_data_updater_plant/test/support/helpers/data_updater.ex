@@ -17,7 +17,6 @@
 
 defmodule Astarte.Helpers.DataUpdater do
   alias Astarte.DataUpdaterPlant.DataUpdater
-  import Mimic
 
   def setup_data_updater(realm_name, encoded_device_id) do
     {:ok, message_tracker} = DataUpdater.fetch_message_tracker(realm_name, encoded_device_id)
@@ -31,7 +30,10 @@ defmodule Astarte.Helpers.DataUpdater do
       )
 
     Astarte.DataAccess.Config
-    |> allow(self(), data_updater)
+    |> Mimic.allow(self(), data_updater)
+
+    Astarte.DataUpdaterPlant.RPC.VMQPlugin.ClientMock
+    |> Mox.allow(self(), data_updater)
 
     :ok = GenServer.call(data_updater, :start)
   end

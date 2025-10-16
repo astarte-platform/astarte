@@ -21,7 +21,8 @@ defmodule Astarte.DataUpdaterPlant.AMQPTestHelper do
   require Logger
 
   def start_link(args) do
-    GenServer.start_link(__MODULE__, args, name: Keyword.fetch!(args, :name))
+    name = Keyword.get(args, :name)
+    GenServer.start_link(__MODULE__, args, name: name)
   end
 
   def start_events_consumer(args) do
@@ -36,23 +37,22 @@ defmodule Astarte.DataUpdaterPlant.AMQPTestHelper do
     Application.get_env(:astarte_data_updater_plant, :amqp_consumer_options, [])
   end
 
-  def events_exchange_name(realm) do
-    "astarte_events_#{realm}"
+  def events_exchange_name(id) do
+    "astarte_events_#{id}"
   end
 
-  def events_queue_name(realm) do
-    "test_events_#{realm}"
+  def events_queue_name(id) do
+    "test_events_#{id}"
   end
 
-  def events_routing_key(realm) do
-    "test_events_#{realm}"
+  def events_routing_key(id) do
+    "test_events_#{id}"
   end
 
   def events_routing_key() do
     "test_events"
   end
 
-  # The 'name' argument is the unique atom for the GenServer process.
   def notify_deliver(name, payload, headers_map, other_meta) do
     message = {payload, Enum.into(headers_map, %{}), other_meta}
     GenServer.call(name, {:notify_deliver, message})
@@ -72,6 +72,10 @@ defmodule Astarte.DataUpdaterPlant.AMQPTestHelper do
 
   def clean_queue(name) do
     GenServer.call(name, :clean_queue)
+  end
+
+  def clean_queue() do
+    GenServer.call(AMQPTestHelper, :clean_queue)
   end
 
   def handle_call(:wait_and_get_message, from, state) do

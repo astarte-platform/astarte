@@ -31,8 +31,7 @@ defmodule Astarte.DataUpdaterPlant.AMQPTestEventsConsumer do
   # API
 
   def start_link(args) do
-    name = Keyword.fetch!(args, :name)
-    GenServer.start_link(__MODULE__, args, name: name)
+    GenServer.start_link(__MODULE__, args)
   end
 
   def ack(delivery_tag) do
@@ -43,10 +42,16 @@ defmodule Astarte.DataUpdaterPlant.AMQPTestEventsConsumer do
 
   def init(args) do
     realm = Keyword.fetch!(args, :realm)
-    helper_name = Keyword.fetch!(args, :helper_name)
-    # initial_state = %{realm: realm, helper_name: helper_name}
+    consumer = Keyword.fetch!(args, :consumer)
+    test_id = Keyword.fetch!(args, :test_id)
 
-    initial_state = %{realm: realm, helper_name: helper_name, conn: nil, chan: nil}
+    initial_state = %{
+      realm: realm,
+      consumer: consumer,
+      conn: nil,
+      chan: nil,
+      test_id: test_id
+    }
 
     {:ok, state} = rabbitmq_connect(initial_state, false)
 
@@ -89,7 +94,7 @@ defmodule Astarte.DataUpdaterPlant.AMQPTestEventsConsumer do
     headers_map = amqp_headers_to_map(headers)
 
     # Pass the realm to find the correct helper
-    AMQPTestHelper.notify_deliver(state.helper_name, payload, headers_map, other_meta)
+    AMQPTestHelper.notify_deliver(state.consumer, payload, headers_map, other_meta)
 
     Basic.ack(state.chan, meta.delivery_tag)
 
@@ -111,7 +116,7 @@ defmodule Astarte.DataUpdaterPlant.AMQPTestEventsConsumer do
          # Now we can monitor the connection pid since `conn` is established
          _monitor_ref <- Process.monitor(conn.pid),
          {:ok, chan} <- Channel.open(conn),
-         :ok <- setup_amqp_resources(chan, state.realm) do
+         :ok <- setup_amqp_resources(chan, state.test_id) do
       # On success, put the connection and channel into the state
       {:ok, %{state | conn: conn, chan: chan}}
     else
@@ -123,26 +128,26 @@ defmodule Astarte.DataUpdaterPlant.AMQPTestEventsConsumer do
     end
   end
 
-  defp setup_amqp_resources(chan, realm) do
+  defp setup_amqp_resources(chan, test_id) do
     with :ok <-
-           Exchange.declare(chan, AMQPTestHelper.events_exchange_name(realm), :direct,
+           Exchange.declare(chan, AMQPTestHelper.events_exchange_name(test_id), :direct,
              durable: true
            ),
          {:ok, _queue} <-
            Queue.declare(
              chan,
-             AMQPTestHelper.events_queue_name(realm),
+             AMQPTestHelper.events_queue_name(test_id),
              durable: true,
              auto_delete: false
            ),
          :ok <-
            Queue.bind(
              chan,
-             AMQPTestHelper.events_queue_name(realm),
-             AMQPTestHelper.events_exchange_name(realm),
-             routing_key: AMQPTestHelper.events_routing_key(realm)
+             AMQPTestHelper.events_queue_name(test_id),
+             AMQPTestHelper.events_exchange_name(test_id),
+             routing_key: AMQPTestHelper.events_routing_key(test_id)
            ),
-         {:ok, _consumer_tag} <- Basic.consume(chan, AMQPTestHelper.events_queue_name(realm)) do
+         {:ok, _consumer_tag} <- Basic.consume(chan, AMQPTestHelper.events_queue_name(test_id)) do
       :ok
     end
   end
