@@ -22,20 +22,34 @@ defmodule Astarte.Events.TriggersHandler do
   by the Trigger targets
   """
 
+  alias Astarte.Core.Device
+  alias Astarte.Core.Triggers.SimpleTriggersProtobuf.AMQPTriggerTarget
   alias Astarte.Core.Triggers.SimpleEvents.SimpleEvent
   alias Astarte.Events.TriggersHandler.Core
 
+  @typedoc "event type as defined in simple event (eg `:device_connected_event`)"
+  @type event_type() :: atom()
+
   defdelegate register_target(realm_name, trigger_target), to: Core
 
-  def dispatch_event(event, event_type, target, realm, device_id, timestamp, policy) do
+  @spec dispatch_event(
+          struct(),
+          event_type(),
+          AMQPTriggerTarget.t(),
+          String.t(),
+          Device.encoded_device_id(),
+          integer(),
+          String.t()
+        ) :: :ok
+  def dispatch_event(event, event_type, target, realm, hw_id, timestamp, policy_name) do
     %SimpleEvent{
       simple_trigger_id: target.simple_trigger_id,
       parent_trigger_id: target.parent_trigger_id,
       realm: realm,
-      device_id: device_id,
+      device_id: hw_id,
       timestamp: timestamp,
       event: {event_type, event}
     }
-    |> Core.dispatch_event(target, policy)
+    |> Core.dispatch_event(target, policy_name)
   end
 end
