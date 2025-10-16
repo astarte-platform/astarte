@@ -29,6 +29,19 @@ defmodule Astarte.RealmManagement.DeviceRemoval.Queries do
     some?
   end
 
+  def fetch_device_groups(realm_name, device_id) do
+    keyspace = Realm.keyspace_name(realm_name)
+
+    opts = [
+      prefix: keyspace,
+      consistency: Consistency.device_info(:read)
+    ]
+
+    DeletionInProgress
+    |> select([d], d.groups)
+    |> Repo.fetch(device_id, opts)
+  end
+
   def retrieve_individual_datastreams_keys!(realm_name, device_id) do
     keyspace = Realm.keyspace_name(realm_name)
 
@@ -159,7 +172,7 @@ defmodule Astarte.RealmManagement.DeviceRemoval.Queries do
       consistency: Consistency.device_info(:read)
     ]
 
-    Repo.one(query, opts)
+    Repo.one(query, opts) || %{}
   end
 
   def delete_alias_values!(realm_name, device_alias) do

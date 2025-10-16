@@ -155,6 +155,8 @@ defmodule Astarte.DataUpdaterPlant.TimeBasedActions do
 
       Logger.info("Stop handling data from device in deletion, device_id #{encoded_device_id}")
 
+      Queries.ensure_replicated_group_information(realm, device_id)
+
       # It's ok to repeat that, as we always write ⊤
       Queries.ack_start_device_deletion(realm, device_id)
 

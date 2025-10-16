@@ -34,13 +34,22 @@ defmodule Astarte.Cases.Device do
 
   setup_all %{realm_name: realm_name} do
     interfaces = list_of(InterfaceGenerator.interface(), min_length: 1) |> Enum.at(0)
+    groups = list_of(string(:alphanumeric, min_length: 5), length: 1..3) |> Enum.at(0)
     device = DeviceGenerator.device(interfaces: interfaces) |> Enum.at(0)
 
     Enum.each(interfaces, &insert_interface_cleanly(realm_name, &1))
 
-    insert_device_cleanly(realm_name, device, interfaces)
+    grouped_devices =
+      Enum.map(groups, &insert_grouped_device_cleanly(realm_name, device.device_id, &1))
+
+    insert_device_cleanly(realm_name, device, interfaces, grouped_devices)
     encoded_device_id = Device.encode_device_id(device.device_id)
 
-    %{interfaces: interfaces, device_id: encoded_device_id}
+    %{
+      interfaces: interfaces,
+      device_id: encoded_device_id,
+      groups: groups,
+      decoded_device_id: device.device_id
+    }
   end
 end

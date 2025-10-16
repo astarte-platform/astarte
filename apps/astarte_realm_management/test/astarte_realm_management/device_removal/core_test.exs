@@ -237,16 +237,23 @@ defmodule Astarte.RealmManagement.DeviceRemover.CoreTest do
         }
         |> Repo.insert!(prefix: keyspace)
 
-        %DeletionInProgress{
-          device_id: device_id
-        }
-        |> Repo.insert!(prefix: keyspace)
-
         Core.delete_device!(realm, device_id)
 
         assert Repo.all(Device, prefix: keyspace) == []
-        assert Queries.retrieve_devices_to_delete!(realm) == []
       end
+    end
+
+    test "complete_deletion/2 removes deletion in progress entry", %{realm_name: realm_name} do
+      device_id = Astarte.Core.Device.random_device_id()
+      keyspace = Realm.keyspace_name(realm_name)
+
+      %DeletionInProgress{
+        device_id: device_id
+      }
+      |> Repo.insert!(prefix: keyspace)
+
+      Core.complete_deletion(realm_name, device_id)
+      assert Queries.retrieve_devices_to_delete!(realm_name) == []
     end
   end
 

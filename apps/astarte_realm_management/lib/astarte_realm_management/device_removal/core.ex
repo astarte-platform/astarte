@@ -26,6 +26,7 @@ defmodule Astarte.RealmManagement.DeviceRemoval.Core do
   alias Astarte.Core.InterfaceDescriptor
   alias Astarte.DataAccess.Interface
   alias Astarte.RealmManagement.DeviceRemoval.Queries, as: DeviceRemovalQueries
+  alias Astarte.RealmManagement.TriggersHandler
 
   @doc """
   Deletes individual datastreams for a device in a realm.
@@ -179,10 +180,20 @@ defmodule Astarte.RealmManagement.DeviceRemoval.Core do
   end
 
   @doc """
-  Removes a device from the databse and from the deletion_in_progress table.
+  Removes a device from the database.
   """
   def delete_device!(realm_name, device_id) do
     DeviceRemovalQueries.delete_device!(realm_name, device_id)
+  end
+
+  @doc """
+    Generate deletion finished triggers and remove deletion_in_progress entry
+  """
+  def complete_deletion(realm_name, device_id) do
+    with {:ok, groups} <- DeviceRemovalQueries.fetch_device_groups(realm_name, device_id) do
+      TriggersHandler.device_deletion_finished(realm_name, device_id, groups)
+    end
+
     DeviceRemovalQueries.remove_device_from_deletion_in_progress!(realm_name, device_id)
   end
 end
