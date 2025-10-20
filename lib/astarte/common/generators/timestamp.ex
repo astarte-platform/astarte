@@ -48,16 +48,12 @@ defmodule Astarte.Common.Generators.Timestamp do
   @spec timestamp() :: StreamData.t(integer())
   @spec timestamp(params :: keyword()) :: StreamData.t(integer())
   def timestamp(params \\ []) do
-    config =
-      params gen all unit <- constant(@default_unit),
-                     min <- constant(min_default(unit)),
-                     max <- constant(max_default(unit)),
-                     params: params do
-        {min, max}
-      end
-
-    gen all {min, max} <- config,
-            timestamp <- timestamp(min, max) do
+    params gen all unit <- constant(@default_unit),
+                   min <- constant(min_default(unit)),
+                   max <- constant(max_default(unit)),
+                   :_,
+                   timestamp <- timestamp(min, max),
+                   params: params do
       timestamp
     end
   end

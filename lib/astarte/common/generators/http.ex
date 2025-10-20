@@ -35,7 +35,7 @@ defmodule Astarte.Common.Generators.HTTP do
     |   _____________________|__
   """
 
-  use ExUnitProperties
+  use Astarte.Generators.Utilities.ParamsGen
 
   alias Astarte.Common.Generators.Ip, as: IpGenerator
   alias Astarte.Generators.Utilities
@@ -72,25 +72,21 @@ defmodule Astarte.Common.Generators.HTTP do
   Valid http or https url as per RFC 3986
   """
   @spec url() :: StreamData.t(String.t())
-  def url do
-    gen all schema <- schema(),
-            authority <- authority() do
-      schema <> ":" <> authority
+  @spec url(params :: keyword()) :: StreamData.t(String.t())
+  def url(params \\ []) do
+    params gen all schema <- schema(),
+                   user_info <- user_info(),
+                   host <- host(),
+                   port <- port(),
+                   path <- path(),
+                   query <- query(),
+                   fragment <- fragment(),
+                   params: params do
+      schema <> "://" <> user_info <> host <> port <> path <> query <> fragment
     end
   end
 
   defp schema, do: member_of(["http", "https"])
-
-  defp authority do
-    gen all user_info <- user_info(),
-            host <- host(),
-            port <- port(),
-            path <- path(),
-            query <- query(),
-            fragment <- fragment() do
-      "//" <> user_info <> host <> port <> path <> query <> fragment
-    end
-  end
 
   defp user_info do
     one_of([
