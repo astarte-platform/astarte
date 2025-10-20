@@ -93,6 +93,8 @@ defmodule Astarte.Generators.Utilities.ParamsGen do
 
   """
 
+  @ignore_token :_
+
   @doc """
   Injects the necessary imports to use ParamsGen functionalities.
   This macro brings in the current module, StreamData, and ExUnitProperties, which are required for property-based tests with custom generator overrides.
@@ -116,6 +118,7 @@ defmodule Astarte.Generators.Utilities.ParamsGen do
   - Destructuring: with patterns like `%{k: v} <- ...`, a label is mandatory; the label is the hook.
   - Label: you can label a clause by placing a leading atom (e.g., `:payload`).
   - Precedence: if both a variable and a `:label` are present, the label wins.
+  - Ignore override: label a clause with `:_` to explicitly opt-out from overrides for that clause.
 
   Examples
 
@@ -147,6 +150,10 @@ defmodule Astarte.Generators.Utilities.ParamsGen do
   @type stream() :: StreamData.t(term())
   @spec gen_param(stream(), atom(), keyword()) :: stream()
   def gen_param(default_gen, param_name, params) do
+    if param_ignore_token?(params) do
+      raise ArgumentError, "Cannot use :_ as key into the params keyword list."
+    end
+
     case Keyword.fetch(params, param_name) do
       {:ok, value} ->
         if(stream_data?(value), do: value, else: StreamData.constant(value))
@@ -167,16 +174,6 @@ defmodule Astarte.Generators.Utilities.ParamsGen do
        {var, var_meta, other},
        gen_param_quoted
      ]}
-  end
-
-  # Generic override that preserves any LHS (including destructuring)
-  defp override({:<-, meta, [lhs, default_gen]}, param, params) do
-    gen_param_quoted =
-      quote do
-        gen_param(unquote(default_gen), unquote(param), unquote(params))
-      end
-
-    {:<-, meta, [lhs, gen_param_quoted]}
   end
 
   defp edit_clause([clause | tail], param, params, acc) do
@@ -223,8 +220,19 @@ defmodule Astarte.Generators.Utilities.ParamsGen do
     end
   end
 
+  defp param_ignore_token?(params) when is_list(params),
+    do: Keyword.has_key?(params, @ignore_token)
+
+  defp param_ignore_token?(_), do: false
+
   defp compile(clauses_and_params, body) do
     {clauses, params} = split_clauses_and_params(clauses_and_params)
+
+    if param_ignore_token?(params),
+      do:
+        raise(CompileError,
+          description: "Cannot use :_ as key into the params keyword list."
+        )
 
     clauses =
       compile_clauses(clauses, params, [])

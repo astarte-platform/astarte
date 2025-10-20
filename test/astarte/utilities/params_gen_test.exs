@@ -76,6 +76,18 @@ defmodule Astarte.Generators.Utilities.ParamsGenTest do
     end
   end
 
+  defp params_gen_label_ignore do
+    params gen all :_,
+                   a <- integer(0..0),
+                   :_,
+                   b = b_1 = b_2 <- string(?a..?a, length: 1),
+                   :_,
+                   c <- constant("friend"),
+                   params: [a: "never", b: "never", c: "never"] do
+      {a, b, b_1, b_2, c}
+    end
+  end
+
   defp params_gen_no_params do
     params gen all a <- integer(0..0),
                    b <- string(?a..?a, length: 1),
@@ -110,6 +122,12 @@ defmodule Astarte.Generators.Utilities.ParamsGenTest do
     test "gen_param passes through tuple of generators unchanged (for advanced composition)" do
       assert {%StreamData{}, %StreamData{}} =
                gen_param(gen_base(), :value, value: {integer(), string(:alphanumeric)})
+    end
+
+    test "gen_param raises when runtime params include :_" do
+      assert_raise ArgumentError,
+                   "Cannot use :_ as key into the params keyword list.",
+                   fn -> gen_param(gen_base(), :_, _: constant("never")) end
     end
 
     property "gen_param does not intervene" do
@@ -223,6 +241,16 @@ defmodule Astarte.Generators.Utilities.ParamsGenTest do
         assert b == 10
         assert c == "friend"
         assert %{b: 10} = not_changed
+      end
+    end
+
+    property "param gen all override by 'ignore_token' (`:_`) does nothing" do
+      check all {a, b, b_1, b_2, c} <- params_gen_label_ignore(), max_runs: 1 do
+        assert a == 0
+        assert b == "a"
+        assert b_1 == "a"
+        assert b_2 == "a"
+        assert c == "friend"
       end
     end
   end
