@@ -38,9 +38,10 @@ defmodule Astarte.Events.Triggers do
             interface_ids_to_name: %{Astarte.DataAccess.UUID.t() => String.t()}
           }
 
-  @type event_type() :: atom()
+  @typedoc "event type in the pretty format (eg `:on_device_connected`)"
+  @type pretty_event_type() :: atom()
   @type event_condition() :: :any_device | {:device_id, binary()} | {:group_name, String.t()}
-  @type realm_device_trigger_key() :: {event_type(), event_condition()}
+  @type realm_device_trigger_key() :: {pretty_event_type(), event_condition()}
   @type policy_name() :: String.t() | nil
   @type target_and_policy() :: {AMQPTriggerTarget.t(), policy_name()}
   @type realm_device_trigger_map() :: %{realm_device_trigger_key() => [target_and_policy()]}
@@ -127,7 +128,7 @@ defmodule Astarte.Events.Triggers do
           realm_device_trigger_map(),
           String.t(),
           Astarte.DataAccess.UUID.t(),
-          event_type(),
+          pretty_event_type(),
           [String.t()] | nil
         ) :: [target_and_policy()]
   def find_trigger_targets_for_device(
