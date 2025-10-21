@@ -16,26 +16,27 @@
 # limitations under the License.
 #
 
-defmodule Astarte.Core.Generators.Triggers.SimpleEvents.DeviceErrorEventTest do
+defmodule Astarte.Core.Generators.Triggers.SimpleEvents.InterfaceRemovedEventTest do
   use ExUnit.Case, async: true
   use ExUnitProperties
 
-  alias Astarte.Core.Triggers.SimpleEvents.DeviceErrorEvent
+  alias Astarte.Core.Triggers.SimpleEvents.InterfaceRemovedEvent
 
-  alias Astarte.Core.Generators.Triggers.SimpleEvents.DeviceErrorEvent,
-    as: DeviceErrorEventGenerator
+  alias Astarte.Core.Generators.Triggers.SimpleEvents.InterfaceRemovedEvent,
+    as: InterfaceRemovedEventGenerator
 
   @moduletag :trigger
   @moduletag :simple_event
-  @moduletag :device_error_event
+  @moduletag :interface_removed_event
 
   @doc false
-  describe "triggers device_error_event generator" do
+  describe "triggers interface_removed_event generator" do
     @describetag :success
     @describetag :ut
-    property "generates valid device_error_event" do
-      check all device_error_event <- DeviceErrorEventGenerator.device_error_event() do
-        assert %DeviceErrorEvent{} = device_error_event
+    property "generates valid interface_removed_event" do
+      check all interface_removed_event <-
+                  InterfaceRemovedEventGenerator.interface_removed_event() do
+        assert %InterfaceRemovedEvent{} = interface_removed_event
       end
     end
   end

@@ -16,24 +16,24 @@
 # limitations under the License.
 #
 
-defmodule Astarte.Core.Generators.Triggers.SimpleEvents.IncomingDataEvent do
+defmodule Astarte.Core.Generators.Triggers.SimpleEvents.PathCreatedEvent do
   @moduledoc """
-  This module provides generators for Astarte Trigger Simple Event IncomingDataEvent struct.
+  This module provides generators for Astarte Trigger Simple Event PathCreatedEvent struct.
   """
   use ExUnitProperties
 
   import Astarte.Generators.Utilities.ParamsGen
 
   alias Astarte.Core.Interface
-  alias Astarte.Core.Triggers.SimpleEvents.IncomingDataEvent
+  alias Astarte.Core.Triggers.SimpleEvents.PathCreatedEvent
 
   alias Astarte.Core.Generators.Interface, as: InterfaceGenerator
   alias Astarte.Core.Generators.Mapping.BSONValue, as: BSONValueGenerator
   alias Astarte.Core.Generators.Mapping.Value, as: ValueGenerator
 
-  @spec incoming_data_event() :: StreamData.t(IncomingDataEvent.t())
-  @spec incoming_data_event(keyword :: keyword()) :: StreamData.t(IncomingDataEvent.t())
-  def incoming_data_event(params \\ []) do
+  @spec path_created_event() :: StreamData.t(PathCreatedEvent.t())
+  @spec path_created_event(keyword :: keyword()) :: StreamData.t(PathCreatedEvent.t())
+  def path_created_event(params \\ []) do
     params gen all :_,
                    %Interface{name: name} = interface <- InterfaceGenerator.interface(),
                    :_,
@@ -43,7 +43,7 @@ defmodule Astarte.Core.Generators.Triggers.SimpleEvents.IncomingDataEvent do
                    path <- constant(path),
                    bson_value <- BSONValueGenerator.to_bson(%{package | path: path}),
                    params: params do
-      %IncomingDataEvent{
+      %PathCreatedEvent{
         interface: interface_name,
         path: path,
         bson_value: bson_value

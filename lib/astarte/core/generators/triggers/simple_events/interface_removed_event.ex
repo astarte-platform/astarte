@@ -16,32 +16,28 @@
 # limitations under the License.
 #
 
-defmodule Astarte.Core.Generators.Triggers.SimpleEvents.DeviceConnectedEvent do
+defmodule Astarte.Core.Generators.Triggers.SimpleEvents.InterfaceRemovedEvent do
   @moduledoc """
-  This module provides generators for Astarte Trigger Simple Event DeviceConnectedEvent struct.
+  This module provides generators for Astarte Trigger Simple Event InterfaceRemovedEvent struct.
   """
   use ExUnitProperties
 
   import Astarte.Generators.Utilities.ParamsGen
 
-  alias Astarte.Core.Triggers.SimpleEvents.DeviceConnectedEvent
+  alias Astarte.Core.Triggers.SimpleEvents.InterfaceRemovedEvent
 
-  alias Astarte.Common.Generators.Ip, as: IpGenerator
+  alias Astarte.Core.Generators.Interface, as: InterfaceGenerator
 
-  @spec device_connected_event() :: StreamData.t(DeviceConnectedEvent.t())
-  @spec device_connected_event(keyword :: keyword()) :: StreamData.t(DeviceConnectedEvent.t())
-  def device_connected_event(params \\ []) do
-    params gen all device_ip_address <- device_ip_address(),
+  @spec interface_removed_event() :: StreamData.t(InterfaceRemovedEvent.t())
+  @spec interface_removed_event(keyword :: keyword()) :: StreamData.t(InterfaceRemovedEvent.t())
+  def interface_removed_event(params \\ []) do
+    params gen all interface <- InterfaceGenerator.name(),
+                   major_version <- InterfaceGenerator.major_version(),
                    params: params do
-      %DeviceConnectedEvent{
-        device_ip_address: device_ip_address
+      %InterfaceRemovedEvent{
+        interface: interface,
+        major_version: major_version
       }
     end
   end
-
-  defp device_ip_address,
-    do:
-      IpGenerator.ip(:ipv4)
-      |> map(&Tuple.to_list/1)
-      |> map(&Enum.join(&1, "."))
 end

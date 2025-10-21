@@ -16,26 +16,26 @@
 # limitations under the License.
 #
 
-defmodule Astarte.Core.Generators.Triggers.SimpleEvents.DeviceErrorEventTest do
+defmodule Astarte.Core.Generators.Triggers.SimpleEvents.ValueStoredEventTest do
   use ExUnit.Case, async: true
   use ExUnitProperties
 
-  alias Astarte.Core.Triggers.SimpleEvents.DeviceErrorEvent
+  alias Astarte.Core.Triggers.SimpleEvents.ValueStoredEvent
 
-  alias Astarte.Core.Generators.Triggers.SimpleEvents.DeviceErrorEvent,
-    as: DeviceErrorEventGenerator
+  alias Astarte.Core.Generators.Triggers.SimpleEvents.ValueStoredEvent,
+    as: ValueStoredEventGenerator
 
   @moduletag :trigger
   @moduletag :simple_event
-  @moduletag :device_error_event
+  @moduletag :value_stored_event
 
   @doc false
-  describe "triggers device_error_event generator" do
+  describe "triggers value_stored_event generator" do
     @describetag :success
     @describetag :ut
-    property "generates valid device_error_event" do
-      check all device_error_event <- DeviceErrorEventGenerator.device_error_event() do
-        assert %DeviceErrorEvent{} = device_error_event
+    property "generates valid value_stored_event" do
+      check all value_stored_event <- ValueStoredEventGenerator.value_stored_event() do
+        assert %ValueStoredEvent{} = value_stored_event
       end
     end
   end

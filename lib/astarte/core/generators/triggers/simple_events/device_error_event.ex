@@ -26,8 +26,6 @@ defmodule Astarte.Core.Generators.Triggers.SimpleEvents.DeviceErrorEvent do
 
   alias Astarte.Core.Triggers.SimpleEvents.DeviceErrorEvent
 
-  alias Astarte.Utilities.Map, as: MapUtilities
-
   @spec device_error_event() :: StreamData.t(DeviceErrorEvent.t())
   @spec device_error_event(keyword :: keyword()) :: StreamData.t(DeviceErrorEvent.t())
   def device_error_event(params \\ []) do
@@ -38,27 +36,6 @@ defmodule Astarte.Core.Generators.Triggers.SimpleEvents.DeviceErrorEvent do
         error_name: error_name,
         metadata: metadata
       }
-    end
-  end
-
-  @doc """
-  Convert this struct/stream to changes
-  """
-  @spec to_changes(DeviceErrorEvent.t()) :: StreamData.t(map())
-  def to_changes(data) when not is_struct(data, StreamData),
-    do: data |> constant() |> to_changes()
-
-  @spec to_changes(StreamData.t(DeviceErrorEvent.t())) :: StreamData.t(map())
-  def to_changes(gen) do
-    gen all %DeviceErrorEvent{
-              error_name: error_name,
-              metadata: metadata
-            } <- gen do
-      %{
-        error_name: error_name,
-        metadata: metadata
-      }
-      |> MapUtilities.clean()
     end
   end
 

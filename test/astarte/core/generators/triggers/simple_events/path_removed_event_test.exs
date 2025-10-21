@@ -16,26 +16,26 @@
 # limitations under the License.
 #
 
-defmodule Astarte.Core.Generators.Triggers.SimpleEvents.DeviceErrorEventTest do
+defmodule Astarte.Core.Generators.Triggers.SimpleEvents.PathRemovedEventTest do
   use ExUnit.Case, async: true
   use ExUnitProperties
 
-  alias Astarte.Core.Triggers.SimpleEvents.DeviceErrorEvent
+  alias Astarte.Core.Triggers.SimpleEvents.PathRemovedEvent
 
-  alias Astarte.Core.Generators.Triggers.SimpleEvents.DeviceErrorEvent,
-    as: DeviceErrorEventGenerator
+  alias Astarte.Core.Generators.Triggers.SimpleEvents.PathRemovedEvent,
+    as: PathRemovedEventGenerator
 
   @moduletag :trigger
   @moduletag :simple_event
-  @moduletag :device_error_event
+  @moduletag :path_removed_event
 
   @doc false
-  describe "triggers device_error_event generator" do
+  describe "triggers path_removed_event generator" do
     @describetag :success
     @describetag :ut
-    property "generates valid device_error_event" do
-      check all device_error_event <- DeviceErrorEventGenerator.device_error_event() do
-        assert %DeviceErrorEvent{} = device_error_event
+    property "generates valid path_removed_event" do
+      check all path_removed_event <- PathRemovedEventGenerator.path_removed_event() do
+        assert %PathRemovedEvent{} = path_removed_event
       end
     end
   end

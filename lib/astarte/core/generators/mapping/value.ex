@@ -49,7 +49,7 @@ defmodule Astarte.Core.Generators.Mapping.Value do
         interface
       end
 
-    gen_interface_base |> bind(&build_package/1)
+    gen_interface_base |> bind(fn interface -> build_package(interface, params) end)
   end
 
   @doc """
@@ -68,39 +68,35 @@ defmodule Astarte.Core.Generators.Mapping.Value do
           |> fixed_map())
       )
 
-  defp build_package(%Interface{aggregation: :individual} = interface) do
+  defp build_package(%Interface{aggregation: :individual = aggregation} = interface, params) do
     %Interface{mappings: mappings} = interface
 
-    gen all %Mapping{endpoint: endpoint, value_type: value_type} <- member_of(mappings),
-            path <- endpoint_path(endpoint),
-            value <- build_value(value_type) do
-      %{path: path, value: value, type: value_type}
-    end
-  end
-
-  defp build_package(%Interface{aggregation: :object} = interface) do
-    %Interface{mappings: [%Mapping{endpoint: endpoint} | _] = mappings} = interface
-
-    endpoint = endpoint |> String.split("/") |> Enum.drop(-1) |> Enum.join("/")
-
-    gen all path <- endpoint_path(endpoint),
-            type <-
-              mappings
-              |> Map.new(fn %Mapping{endpoint: endpoint, value_type: value_type} ->
-                {endpoint_postfix(endpoint), value_type}
-              end)
-              |> optional_map(),
-            value <- object_value_from_type(type) do
+    params gen all %Mapping{endpoint: endpoint, value_type: value_type} <- member_of(mappings),
+                   type <- constant(value_type),
+                   endpoint = InterfaceGenerator.endpoint_by_aggregation(aggregation, endpoint),
+                   path <- path_from_endpoint(endpoint),
+                   value <- build_value(type),
+                   params: params do
       %{path: path, value: value, type: type}
     end
   end
 
-  defp endpoint_path(endpoint) do
-    endpoint
-    |> String.split("/")
-    |> Enum.map(&convert_token/1)
-    |> fixed_list()
-    |> map(&Enum.join(&1, "/"))
+  defp build_package(%Interface{aggregation: :object = aggregation} = interface, params) do
+    %Interface{mappings: [%Mapping{endpoint: endpoint} | _] = mappings} = interface
+
+    endpoint = InterfaceGenerator.endpoint_by_aggregation(aggregation, endpoint)
+
+    params gen all path <- path_from_endpoint(endpoint),
+                   type <-
+                     mappings
+                     |> Map.new(fn %Mapping{endpoint: endpoint, value_type: value_type} ->
+                       {endpoint_postfix(endpoint), value_type}
+                     end)
+                     |> optional_map(),
+                   value <- object_value_from_type(type),
+                   params: params do
+      %{path: path, value: value, type: type}
+    end
   end
 
   defp endpoint_postfix(endpoint), do: Regex.replace(~r/.*\//, endpoint, "")
@@ -108,28 +104,17 @@ defmodule Astarte.Core.Generators.Mapping.Value do
   defp build_value(value_type), do: ValueTypeGenerator.value_from_type(value_type)
 
   # Utilities
-  defp convert_token(token) do
-    case(Mapping.is_placeholder?(token)) do
-      true -> string(:alphanumeric, min_length: 1)
-      false -> constant(token)
-    end
-  end
 
   @doc """
   Returns true if `path` matches `endpoint` according to the given `aggregation`.
   """
   @spec path_matches_endpoint?(:individual | :object, String.t(), String.t()) :: boolean()
-  def path_matches_endpoint?(:individual, endpoint, path),
+  def path_matches_endpoint?(aggregation, endpoint, path),
     do:
       path_matches_endpoint?(
-        endpoint |> Mapping.normalize_endpoint() |> String.split("/"),
-        path |> String.split("/")
-      )
-
-  def path_matches_endpoint?(:object, endpoint, path),
-    do:
-      path_matches_endpoint?(
-        endpoint |> Mapping.normalize_endpoint() |> String.split("/") |> Enum.drop(-1),
+        InterfaceGenerator.endpoint_by_aggregation(aggregation, endpoint)
+        |> Mapping.normalize_endpoint()
+        |> String.split("/"),
         path |> String.split("/")
       )
 
@@ -142,6 +127,16 @@ defmodule Astarte.Core.Generators.Mapping.Value do
     do: path_matches_endpoint?(endpoints, paths)
 
   defp path_matches_endpoint?(_, _), do: false
+
+  @doc false
+  @spec path_from_endpoint(endpoint :: String.t()) :: StreamData.t(String.t())
+  def path_from_endpoint(endpoint) do
+    endpoint
+    |> String.split("/")
+    |> Enum.map(&convert_token/1)
+    |> fixed_list()
+    |> map(&Enum.join(&1, "/"))
+  end
 
   @doc """
   Returns type and value once given the Value package and the full search path.
@@ -172,4 +167,11 @@ defmodule Astarte.Core.Generators.Mapping.Value do
     do: %{type: type, value: value}
 
   defp type_value_from_path(search_path, [_ | tail]), do: type_value_from_path(search_path, tail)
+
+  defp convert_token(token) do
+    case Mapping.is_placeholder?(token) do
+      true -> string(:alphanumeric, min_length: 1)
+      false -> constant(token)
+    end
+  end
 end

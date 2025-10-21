@@ -16,37 +16,41 @@
 # limitations under the License.
 #
 
-defmodule Astarte.Core.Generators.Triggers.SimpleEvents.IncomingDataEvent do
+defmodule Astarte.Core.Generators.Triggers.SimpleEvents.ValueChangeEvent do
   @moduledoc """
-  This module provides generators for Astarte Trigger Simple Event IncomingDataEvent struct.
+  This module provides generators for Astarte Trigger Simple Event ValueChangeEvent struct.
   """
   use ExUnitProperties
 
   import Astarte.Generators.Utilities.ParamsGen
 
   alias Astarte.Core.Interface
-  alias Astarte.Core.Triggers.SimpleEvents.IncomingDataEvent
+  alias Astarte.Core.Triggers.SimpleEvents.ValueChangeEvent
 
   alias Astarte.Core.Generators.Interface, as: InterfaceGenerator
   alias Astarte.Core.Generators.Mapping.BSONValue, as: BSONValueGenerator
   alias Astarte.Core.Generators.Mapping.Value, as: ValueGenerator
 
-  @spec incoming_data_event() :: StreamData.t(IncomingDataEvent.t())
-  @spec incoming_data_event(keyword :: keyword()) :: StreamData.t(IncomingDataEvent.t())
-  def incoming_data_event(params \\ []) do
+  @spec value_change_event() :: StreamData.t(ValueChangeEvent.t())
+  @spec value_change_event(keyword :: keyword()) :: StreamData.t(ValueChangeEvent.t())
+  def value_change_event(params \\ []) do
     params gen all :_,
                    %Interface{name: name} = interface <- InterfaceGenerator.interface(),
                    :_,
-                   %{path: path} = package <- ValueGenerator.value(interface: interface),
+                   %{path: path, type: type} = package <-
+                     ValueGenerator.value(interface: interface),
                    :interface,
                    interface_name <- constant(name),
                    path <- constant(path),
-                   bson_value <- BSONValueGenerator.to_bson(%{package | path: path}),
+                   old_bson_value <- BSONValueGenerator.to_bson(%{package | path: path}),
+                   new_bson_value <-
+                     BSONValueGenerator.bson_value(interface: interface, path: path, type: type),
                    params: params do
-      %IncomingDataEvent{
+      %ValueChangeEvent{
         interface: interface_name,
         path: path,
-        bson_value: bson_value
+        old_bson_value: old_bson_value,
+        new_bson_value: new_bson_value
       }
     end
   end
