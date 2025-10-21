@@ -24,11 +24,14 @@ defmodule Astarte.Events.Triggers.Core do
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.DataTrigger, as: ProtobufDataTrigger
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.DeviceTrigger, as: ProtobufDeviceTrigger
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.Utils
+  alias Astarte.DataAccess.Realms.SimpleTrigger
   alias Astarte.Events.TriggersHandler.Core
   alias Astarte.Events.Triggers.Queries
 
-  @type trigger_data ::
-          {:data_trigger, ProtobufDataTrigger.t()} | {:device_trigger, ProtobufDeviceTrigger.t()}
+  @type data_trigger :: %ProtobufDataTrigger{}
+  @type device_trigger :: %ProtobufDeviceTrigger{}
+  @type trigger_data :: {:data_trigger, data_trigger()} | {:device_trigger, device_trigger()}
+
   @type device_event_key ::
           :on_device_connection
           | :on_device_disconnection
@@ -56,6 +59,10 @@ defmodule Astarte.Events.Triggers.Core do
   @type event_key :: device_event_key() | data_event_key()
 
   @type deserialized_simple_trigger() :: {trigger_data(), AMQPTriggerTarget.t()}
+  @type deserialized_device_trigger() :: {ProtobufDeviceTrigger.t(), AMQPTriggerTarget.t()}
+
+  @type policy_name() :: String.t() | nil
+  @type target_and_policy() :: {AMQPTriggerTarget.t(), policy_name()}
 
   @type fetch_triggers_data() ::
           %{
@@ -71,6 +78,36 @@ defmodule Astarte.Events.Triggers.Core do
     for {_trigger_key, target} <- simple_trigger_list do
       Core.register_target(realm_name, target)
     end
+  end
+
+  @doc """
+    Fetches triggers associated with the given deserialized simple trigger list.
+    The return value is a map with `:data_triggers`, `:device_triggers`, and additional values loaded from the database.
+    Additional parameters are accepted, which can be used to initialize the return value for the cached item. In case of pre-existing 
+    In case of the possibility of interface-driven data triggers, `:interfaces` and `:interface_ids_to_name` must be set to appropriate values.
+  """
+  @spec fetch_triggers(String.t(), [deserialized_simple_trigger()], fetch_triggers_data()) ::
+          {:ok, fetch_triggers_data()} | {:error, term()}
+  def fetch_triggers(realm_name, deserialized_simple_triggers, data \\ %{}) do
+    initial_result =
+      %{
+        data_triggers: %{},
+        device_triggers: %{},
+        trigger_id_to_policy_name: %{},
+        interfaces: %{},
+        interface_ids_to_name: %{}
+      }
+      |> Map.merge(data)
+      |> cache_trigger_id_to_policy_names(realm_name, deserialized_simple_triggers)
+
+    deserialized_simple_triggers
+    |> Enum.reduce_while({:ok, initial_result}, fn {trigger_data, trigger_target},
+                                                   {:ok, result} ->
+      case load_trigger(realm_name, trigger_data, trigger_target, result) do
+        {:ok, _} = new_result -> {:cont, new_result}
+        error -> {:halt, error}
+      end
+    end)
   end
 
   def load_trigger(realm_name, {:data_trigger, proto_buf_data_trigger}, trigger_target, state) do
@@ -115,13 +152,8 @@ defmodule Astarte.Events.Triggers.Core do
   # TODO: implement on_empty_cache_received
   def load_trigger(realm_name, {:device_trigger, proto_buf_device_trigger}, trigger_target, state) do
     device_triggers = state.device_triggers
-    # device event type is one of
-    # :on_device_connected, :on_device_disconnected, :on_device_empty_cache_received, :on_device_error,
-    # :on_incoming_introspection, :on_interface_added, :on_interface_removed, :on_interface_minor_updated
-    event_type = pretty_device_event_type(proto_buf_device_trigger.device_event_type)
 
-    # introspection triggers have a pair as key, standard device ones do not
-    trigger_key = device_trigger_to_key(event_type, proto_buf_device_trigger)
+    trigger_key = device_trigger_to_key(proto_buf_device_trigger)
 
     existing_trigger_targets = Map.get(device_triggers, trigger_key, [])
 
@@ -178,7 +210,9 @@ defmodule Astarte.Events.Triggers.Core do
     end
   end
 
-  defp device_trigger_to_key(event_type, proto_buf_device_trigger) do
+  defp device_trigger_to_key(proto_buf_device_trigger) do
+    event_type = pretty_device_event_type(proto_buf_device_trigger.device_event_type)
+
     case event_type do
       :on_interface_added ->
         {event_type, introspection_trigger_interface(proto_buf_device_trigger)}
@@ -294,5 +328,18 @@ defmodule Astarte.Events.Triggers.Core do
       :trigger_id_to_policy_name,
       &Map.merge(&1, new_trigger_id_to_policy_name_cache)
     )
+  end
+
+  @spec deserialize_simple_trigger(SimpleTrigger.t()) :: deserialized_simple_trigger()
+  def deserialize_simple_trigger(simple_trigger) do
+    trigger_data =
+      Utils.deserialize_simple_trigger(simple_trigger.trigger_data)
+
+    trigger_target =
+      Utils.deserialize_trigger_target(simple_trigger.trigger_target)
+      |> Map.put(:simple_trigger_id, simple_trigger.simple_trigger_id)
+      |> Map.put(:parent_trigger_id, simple_trigger.parent_trigger_id)
+
+    {trigger_data, trigger_target}
   end
 end

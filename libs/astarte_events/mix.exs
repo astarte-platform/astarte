@@ -56,6 +56,7 @@ defmodule Astarte.Events.Mixfile do
     [
       {:amqp, "~> 3.3"},
       {:castore, "~> 1.0.0"},
+      {:con_cache, "~> 1.1"},
       {:excoveralls, "~> 0.15", only: :test},
       {:ex_rabbit_pool, github: "leductam/ex_rabbit_pool"},
       {:skogsra, "~> 2.2"},

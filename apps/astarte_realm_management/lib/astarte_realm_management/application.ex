@@ -25,8 +25,6 @@ defmodule Astarte.RealmManagement.Application do
   require Logger
 
   @app_version Mix.Project.config()[:version]
-  @trigger_lifetime_ttl :timer.seconds(60)
-  @trigger_cache_id Config.trigger_cache!()
 
   # See http://elixir-lang.org/docs/stable/elixir/Application.html
   # for more information on OTP Applications
@@ -41,12 +39,6 @@ defmodule Astarte.RealmManagement.Application do
     Astarte.RealmManagement.Config.validate!()
     DataAccessConfig.validate!()
 
-    trigger_cache_opts = [
-      name: @trigger_cache_id,
-      ttl_check_interval: :timer.seconds(1),
-      global_ttl: @trigger_lifetime_ttl
-    ]
-
     children =
       [
         {Cluster.Supervisor,
@@ -55,8 +47,7 @@ defmodule Astarte.RealmManagement.Application do
         Astarte.RealmManagementWeb.Endpoint,
         {Task.Supervisor, name: Astarte.RealmManagement.DeviceRemoverSupervisor},
         {Horde.Registry, [keys: :unique, name: Registry.DataUpdaterRPC, members: :auto]},
-        Astarte.RealmManagement.DeviceRemoval.Scheduler,
-        {ConCache, trigger_cache_opts}
+        Astarte.RealmManagement.DeviceRemoval.Scheduler
       ]
 
     # See http://elixir-lang.org/docs/stable/elixir/Supervisor.html

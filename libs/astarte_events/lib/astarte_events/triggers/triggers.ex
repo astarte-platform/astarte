@@ -17,149 +17,32 @@
 #
 
 defmodule Astarte.Events.Triggers do
-  alias Astarte.Core.Device
-  alias Astarte.Core.Triggers.SimpleTriggersProtobuf.AMQPTriggerTarget
-  alias Astarte.Core.Triggers.SimpleTriggersProtobuf.Utils
-  alias Astarte.DataAccess.Realms.SimpleTrigger
+  alias Astarte.Events.Triggers.Cache
   alias Astarte.Events.Triggers.Core
   alias Astarte.Events.Triggers.Queries
 
-  @typedoc "event type in the pretty format (eg `:on_device_connected`)"
-  @type pretty_event_type() :: atom()
-  @type event_condition() :: :any_device | {:device_id, binary()} | {:group_name, String.t()}
-  @type realm_device_trigger_key() :: {pretty_event_type(), event_condition()}
-  @type policy_name() :: String.t() | nil
-  @type target_and_policy() :: {AMQPTriggerTarget.t(), policy_name()}
-  @type realm_device_trigger_map() :: %{realm_device_trigger_key() => [target_and_policy()]}
+  defdelegate fetch_triggers(realm_name, deserialized_simple_triggers), to: Core
+  defdelegate fetch_triggers(realm_name, deserialized_simple_triggers, data), to: Core
 
   @doc """
-    Fetches triggers associated with the given deserialized simple trigger list.
-    The return value is a map with `:data_triggers`, `:device_triggers`, and additional values loaded from the database.
-    Additional parameters are accepted, which can be used to initialize the return value for the cached item. In case of pre-existing 
-    In case of the possibility of interface-driven data triggers, `:interfaces` and `:interface_ids_to_name` must be set to appropriate values.
+    Returns the list of targets for an event.
+    This operation is an optimization and should only be used for device events.
   """
-  @spec fetch_triggers(
-          String.t(),
-          [Core.deserialized_simple_trigger()],
-          Core.fetch_triggers_data()
-        ) ::
-          {:ok, Core.fetch_triggers_data()} | {:error, term()}
-  def fetch_triggers(realm_name, deserialized_simple_triggers, data \\ %{}) do
-    initial_result =
-      %{
-        data_triggers: %{},
-        device_triggers: %{},
-        trigger_id_to_policy_name: %{},
-        interfaces: %{},
-        interface_ids_to_name: %{}
-      }
-      |> Map.merge(data)
-      |> Core.cache_trigger_id_to_policy_names(realm_name, deserialized_simple_triggers)
-
-    deserialized_simple_triggers
-    |> Enum.reduce_while({:ok, initial_result}, fn {trigger_data, trigger_target},
-                                                   {:ok, result} ->
-      case Core.load_trigger(realm_name, trigger_data, trigger_target, result) do
-        {:ok, _} = new_result -> {:cont, new_result}
-        error -> {:halt, error}
-      end
-    end)
-  end
-
-  @doc """
-    Fetches all device triggers for a realm.
-    The returned value can be used by `find_trigger_targets_for_device/5` to selectively find all the targets for a given event.
-  """
-  @spec fetch_realm_device_trigger(String.t()) :: realm_device_trigger_map()
-  def fetch_realm_device_trigger(realm_name) do
-    device_simple_triggers =
-      Queries.get_realm_simple_triggers(realm_name)
-      |> Enum.map(&deserialize_simple_trigger/1)
-      |> Enum.filter(fn {{type, _trigger}, _target} -> type == :device_trigger end)
-
-    Core.register_targets(realm_name, device_simple_triggers)
-
-    trigger_id_to_policy_name =
-      Core.build_trigger_id_to_policy_name_map(realm_name, device_simple_triggers)
-
-    device_simple_triggers
-    |> Enum.map(fn {{:device_trigger, trigger}, target} ->
-      condition =
-        case {trigger.device_id, trigger.group_name} do
-          {nil, nil} ->
-            :any_device
-
-          {"*", nil} ->
-            :any_device
-
-          {nil, group} ->
-            {:group, group}
-
-          {device_id, _group} ->
-            {:ok, device_id} = Device.decode_device_id(device_id)
-            {:device_id, device_id}
-        end
-
-      event = Core.pretty_device_event_type(trigger.device_event_type)
-      policy = Map.get(trigger_id_to_policy_name, target.parent_trigger_id)
-
-      {event, condition, {target, policy}}
-    end)
-    |> Enum.group_by(
-      fn {event, condition, _target_and_policy} -> {event, condition} end,
-      fn {_event, _condition, target_and_policy} -> target_and_policy end
-    )
-  end
-
-  @doc """
-    Returns the list of targets for a given device and event.
-    The device trigger map can be built using `fetch_realm_device_trigger/1`
-  """
-  @spec find_trigger_targets_for_device(
-          realm_device_trigger_map(),
+  @spec find_device_trigger_targets(
           String.t(),
           Astarte.DataAccess.UUID.t(),
-          pretty_event_type(),
-          [String.t()] | nil
-        ) :: [target_and_policy()]
-  def find_trigger_targets_for_device(
-        realm_device_triggers,
+          [String.t()] | nil,
+          Core.event_key()
+        ) :: [Core.target_and_policy()]
+  def find_device_trigger_targets(
         realm_name,
         device_id,
-        event_type,
-        groups \\ nil
+        groups \\ nil,
+        event_key
       ) do
     device_groups = groups || Queries.get_device_groups(realm_name, device_id)
-
-    realm_device_triggers
-    |> Enum.flat_map(fn
-      {{^event_type, :any_device}, value} ->
-        value
-
-      {{^event_type, {:device_id, ^device_id}}, value} ->
-        value
-
-      {{^event_type, {:group, group_name}}, value} ->
-        case group_name in device_groups do
-          true -> value
-          false -> []
-        end
-
-      _ ->
-        []
-    end)
+    Cache.find_device_trigger_targets(realm_name, device_id, device_groups, event_key)
   end
 
-  @spec deserialize_simple_trigger(SimpleTrigger.t()) :: Core.deserialized_simple_trigger()
-  def deserialize_simple_trigger(simple_trigger) do
-    trigger_data =
-      Utils.deserialize_simple_trigger(simple_trigger.trigger_data)
-
-    trigger_target =
-      Utils.deserialize_trigger_target(simple_trigger.trigger_target)
-      |> Map.put(:simple_trigger_id, simple_trigger.simple_trigger_id)
-      |> Map.put(:parent_trigger_id, simple_trigger.parent_trigger_id)
-
-    {trigger_data, trigger_target}
-  end
+  defdelegate deserialize_simple_trigger(trigger), to: Core
 end

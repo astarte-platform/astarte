@@ -16,21 +16,20 @@
 # limitations under the License.
 #
 
-defmodule Astarte.Events.Application do
-  use Application
+defmodule Astarte.Events.Triggers.Supervisor do
+  use Supervisor
 
-  alias Astarte.Events.AMQPEvents
-  alias Astarte.Events.AMQPTriggers
-  alias Astarte.Events.Triggers
+  alias Astarte.Events.Triggers.Cache
 
-  def start(_type, _args) do
-    children = [
-      AMQPEvents.Supervisor,
-      AMQPTriggers.Supervisor,
-      Triggers.Supervisor
+  def start_link(opts) do
+    Supervisor.start_link(__MODULE__, opts)
+  end
+
+  @impl true
+  def init(_init_arg) do
+    [
+      Cache.event_targets_cache_spec()
     ]
-
-    opts = [strategy: :one_for_one, name: Astarte.Events.Supervisor]
-    Supervisor.start_link(children, opts)
+    |> Supervisor.init(strategy: :one_for_all)
   end
 end

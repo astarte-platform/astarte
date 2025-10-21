@@ -16,14 +16,12 @@
 # limitations under the License.
 
 defmodule Astarte.Helpers.Triggers do
-  alias Astarte.RealmManagement.Triggers
+  alias Astarte.Events.Triggers.Cache
   alias Astarte.Events.TriggersHandler
-  alias Astarte.RealmManagement.Config
-
-  @cache_id Config.trigger_cache!()
+  alias Astarte.RealmManagement.Triggers
 
   def reset_cache(realm_name) do
-    ConCache.delete(@cache_id, realm_name)
+    Cache.reset_realm_cache(realm_name)
   end
 
   def register_device_deletion_started_trigger(realm_name, conditions) do

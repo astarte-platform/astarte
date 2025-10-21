@@ -26,8 +26,6 @@ defmodule Astarte.Pairing.Application do
   require Logger
 
   @app_version Mix.Project.config()[:version]
-  @trigger_lifetime_ttl :timer.seconds(60)
-  @trigger_cache_name Config.trigger_cache_name!()
 
   # See https://hexdocs.pm/elixir/Application.html
   # for more information on OTP Applications
@@ -48,13 +46,7 @@ defmodule Astarte.Pairing.Application do
     children = [
       Astarte.PairingWeb.Telemetry,
       {Astarte.Pairing.CredentialsSecret.Cache, []},
-      Astarte.PairingWeb.Endpoint,
-      {ConCache,
-       [
-         name: @trigger_cache_name,
-         ttl_check_interval: :timer.seconds(1),
-         global_ttl: @trigger_lifetime_ttl
-       ]}
+      Astarte.PairingWeb.Endpoint
     ]
 
     # See https://hexdocs.pm/elixir/Supervisor.html

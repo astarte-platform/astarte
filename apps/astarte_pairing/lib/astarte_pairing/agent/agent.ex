@@ -25,12 +25,10 @@ defmodule Astarte.Pairing.Agent do
   alias Astarte.Pairing.Agent.DeviceRegistrationRequest
   alias Astarte.Pairing.Agent.DeviceRegistrationResponse
   alias Astarte.Pairing.Engine
-  alias Astarte.Pairing.Config
 
   alias Astarte.Core.Triggers.SimpleEvents.DeviceRegisteredEvent
   alias Astarte.Events.Triggers
   alias Astarte.Events.TriggersHandler
-  @cache_name Config.trigger_cache_name!()
 
   def register_device(realm, attrs \\ %{}) do
     changeset =
@@ -69,7 +67,7 @@ defmodule Astarte.Pairing.Agent do
     event_type = :device_registered_event
     {:ok, device_id} = Device.decode_device_id(hw_id, allow_extended_id: true)
 
-    find_targets(realm_name, device_id, event_key)
+    Triggers.find_device_trigger_targets(realm_name, device_id, event_key)
     |> dispatch_all(realm_name, hw_id, timestamp, event_type, %DeviceRegisteredEvent{})
   end
 
@@ -85,17 +83,6 @@ defmodule Astarte.Pairing.Agent do
         timestamp,
         policy
       )
-    end)
-  end
-
-  defp find_targets(realm_name, device_id, event_type) do
-    load_triggers(realm_name)
-    |> Triggers.find_trigger_targets_for_device(realm_name, device_id, event_type)
-  end
-
-  defp load_triggers(realm_name) do
-    ConCache.get_or_store(@cache_name, realm_name, fn ->
-      Triggers.fetch_realm_device_trigger(realm_name)
     end)
   end
 end

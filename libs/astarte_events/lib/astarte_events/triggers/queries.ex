@@ -71,14 +71,6 @@ defmodule Astarte.Events.Triggers.Queries do
     end)
   end
 
-  @spec get_realm_simple_triggers(String.t()) :: [SimpleTrigger.t()]
-  def get_realm_simple_triggers(realm_name) do
-    keyspace_name = Realm.keyspace_name(realm_name)
-    opts = [prefix: keyspace_name, consistency: Consistency.domain_model(:read)]
-
-    Repo.all(SimpleTrigger, opts)
-  end
-
   @spec get_device_groups(String.t(), Astarte.DataAccess.UUID.t()) :: [String.t()]
   def get_device_groups(realm_name, device_id) do
     keyspace_name = Realm.keyspace_name(realm_name)
@@ -96,5 +88,17 @@ defmodule Astarte.Events.Triggers.Queries do
       %{groups: nil} -> []
       %{groups: groups} -> Map.keys(groups)
     end
+  end
+
+  @spec query_simple_triggers!(String.t(), Astarte.DataAccess.UUID.t(), integer()) :: [SimpleTrigger.t()]
+  def query_simple_triggers!(realm, object_id, object_type_int) do
+    keyspace_name = Realm.keyspace_name(realm)
+
+    query =
+      SimpleTrigger
+      |> where(object_id: ^object_id, object_type: ^object_type_int)
+      |> put_query_prefix(keyspace_name)
+
+    Repo.all(query, consistency: Consistency.domain_model(:read))
   end
 end

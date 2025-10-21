@@ -41,10 +41,6 @@ defmodule Astarte.RealmManagement.Config do
           type: Astarte.RealmManagement.Config.TelemetryType,
           default: :expose
 
-  app_env :trigger_cache, :astarte_realm_management, :trigger_cache,
-    type: :atom,
-    default: :trigger_cache
-
   @envdoc "The Erlang cluster strategy to use. One of `none`, `kubernetes`. Defaults to `none`."
   app_env :clustering_strategy,
           :astarte_realm_management,
