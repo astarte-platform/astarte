@@ -19,11 +19,8 @@
 defmodule Astarte.Events.TriggersHandler.Core do
   alias Astarte.Core.Triggers.SimpleEvents.SimpleEvent
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.AMQPTriggerTarget
-  alias Astarte.Events.AMQPEventsProducer
+  alias Astarte.Events.AMQPEvents
   alias Astarte.Events.AMQPTriggers
-  alias Astarte.Events.AMQPTriggers.Producer
-  alias Astarte.Events.AMQPTriggers.VHostSupervisor
-  alias Astarte.Events.Config
 
   import Bitwise, only: [<<<: 2]
 
@@ -38,8 +35,7 @@ defmodule Astarte.Events.TriggersHandler.Core do
   end
 
   def register_target(realm_name, %AMQPTriggerTarget{exchange: exchange} = _target) do
-    {:ok, server} = VHostSupervisor.for_realm(realm_name)
-    Producer.declare_exchange(server, exchange)
+    AMQPTriggers.declare_exchange(realm_name, exchange)
   end
 
   def dispatch_event(
@@ -198,8 +194,7 @@ defmodule Astarte.Events.TriggersHandler.Core do
   end
 
   defp publish(_realm, nil, routing_key, payload, opts) do
-    Config.amqp_events_exchange_name!()
-    |> AMQPEventsProducer.publish(routing_key, payload, opts)
+    AMQPEvents.publish(routing_key, payload, opts)
   end
 
   defp publish(realm, exchange, routing_key, payload, opts) do

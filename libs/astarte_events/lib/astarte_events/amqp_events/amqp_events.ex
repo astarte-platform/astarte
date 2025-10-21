@@ -16,16 +16,13 @@
 # limitations under the License.
 #
 
-defmodule Astarte.Events.AMQPTriggers do
-  alias Astarte.Events.AMQPTriggers.{Producer, VHostSupervisor}
+defmodule Astarte.Events.AMQPEvents do
+  alias Astarte.Events.AMQPEvents.Producer
 
-  def declare_exchange(realm_name, exchange) do
-    {:ok, server} = VHostSupervisor.for_realm(realm_name)
-    Producer.declare_exchange(server, exchange)
-  end
+  alias Astarte.Events.Config
 
-  def publish(realm, exchange, routing_key, payload, opts \\ []) do
-    {:ok, server} = VHostSupervisor.for_realm(realm)
-    Producer.publish(server, exchange, routing_key, payload, opts)
+  def publish(routing_key, payload, opts) do
+    Config.amqp_events_exchange_name!()
+    |> Producer.publish(routing_key, payload, opts)
   end
 end

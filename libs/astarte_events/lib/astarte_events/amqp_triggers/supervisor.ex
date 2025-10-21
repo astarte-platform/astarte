@@ -16,16 +16,21 @@
 # limitations under the License.
 #
 
-defmodule Astarte.Events.AMQPTriggers do
-  alias Astarte.Events.AMQPTriggers.{Producer, VHostSupervisor}
+defmodule Astarte.Events.AMQPTriggers.Supervisor do
+  use Supervisor
 
-  def declare_exchange(realm_name, exchange) do
-    {:ok, server} = VHostSupervisor.for_realm(realm_name)
-    Producer.declare_exchange(server, exchange)
+  alias Astarte.Events.AMQPTriggers.VHostSupervisor
+
+  def start_link(opts) do
+    Supervisor.start_link(__MODULE__, opts)
   end
 
-  def publish(realm, exchange, routing_key, payload, opts \\ []) do
-    {:ok, server} = VHostSupervisor.for_realm(realm)
-    Producer.publish(server, exchange, routing_key, payload, opts)
+  @impl true
+  def init(_init_arg) do
+    [
+      {Registry, keys: :unique, name: Astarte.Events.AMQPTriggers.Registry},
+      VHostSupervisor
+    ]
+    |> Supervisor.init(strategy: :rest_for_one)
   end
 end

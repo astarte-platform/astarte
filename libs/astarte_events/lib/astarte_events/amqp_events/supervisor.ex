@@ -16,16 +16,29 @@
 # limitations under the License.
 #
 
-defmodule Astarte.Events.AMQPTriggers do
-  alias Astarte.Events.AMQPTriggers.{Producer, VHostSupervisor}
+defmodule Astarte.Events.AMQPEvents.Supervisor do
+  use Supervisor
 
-  def declare_exchange(realm_name, exchange) do
-    {:ok, server} = VHostSupervisor.for_realm(realm_name)
-    Producer.declare_exchange(server, exchange)
+  alias Astarte.Events.AMQPEvents.Producer
+  alias Astarte.Events.Config
+
+  def start_link(opts) do
+    Supervisor.start_link(__MODULE__, opts)
   end
 
-  def publish(realm, exchange, routing_key, payload, opts \\ []) do
-    {:ok, server} = VHostSupervisor.for_realm(realm)
-    Producer.publish(server, exchange, routing_key, payload, opts)
+  @impl true
+  def init(_init_arg) do
+    events_pool =
+      Supervisor.child_spec(
+        {ExRabbitPool.PoolSupervisor,
+         rabbitmq_config: Config.amqp_options!(), connection_pools: [Config.events_pool_config!()]},
+        id: :events_producer_pool
+      )
+
+    [
+      events_pool,
+      Producer
+    ]
+    |> Supervisor.init(strategy: :rest_for_one)
   end
 end

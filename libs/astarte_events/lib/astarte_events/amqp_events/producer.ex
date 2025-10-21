@@ -16,7 +16,7 @@
 # limitations under the License.
 #
 
-defmodule Astarte.Events.AMQPEventsProducer do
+defmodule Astarte.Events.AMQPEvents.Producer do
   require Logger
   use GenServer
 
@@ -142,7 +142,7 @@ defmodule Astarte.Events.AMQPEventsProducer do
              durable: true
            ) do
       Logger.warning(
-        "Error declaring AMQPEventsProducer default events exchange: #{inspect(reason)}",
+        "Error declaring AMQPEvents.Producer default events exchange: #{inspect(reason)}",
         tag: "event_producer_init_fail"
       )
 

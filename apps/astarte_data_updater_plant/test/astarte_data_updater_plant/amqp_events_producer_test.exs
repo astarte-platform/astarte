@@ -22,12 +22,12 @@ defmodule Astarte.DataUpdaterPlant.AMQPEventsProducerTest do
   use Mimic
 
   alias AMQP.Channel
-  alias Astarte.Events.AMQPEventsProducer
+  alias Astarte.Events.AMQPEvents.Producer
 
   @tag :regression
   test "events producer reconnects in case of error" do
     test_pid = self()
-    pid = GenServer.whereis(AMQPEventsProducer)
+    pid = GenServer.whereis(Producer)
     channel = :sys.get_state(pid)
     assert is_struct(channel, Channel)
 
