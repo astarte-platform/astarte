@@ -17,13 +17,55 @@
 #
 
 defmodule Astarte.Events.Triggers.Core do
+  alias Astarte.Core.InterfaceDescriptor
   alias Astarte.Core.Mapping.EndpointsAutomaton
   alias Astarte.Core.Triggers.DataTrigger
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.AMQPTriggerTarget
+  alias Astarte.Core.Triggers.SimpleTriggersProtobuf.DataTrigger, as: ProtobufDataTrigger
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.DeviceTrigger, as: ProtobufDeviceTrigger
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.Utils
   alias Astarte.Events.TriggersHandler.Core
   alias Astarte.Events.Triggers.Queries
+
+  @type trigger_data ::
+          {:data_trigger, ProtobufDataTrigger.t()} | {:device_trigger, ProtobufDeviceTrigger.t()}
+  @type device_event_key ::
+          :on_device_connection
+          | :on_device_disconnection
+          | :on_empty_cache_received
+          | :on_device_error
+          | :on_incoming_introspection
+          | {:on_interface_added, String.t()}
+          | {:on_interface_removed, String.t()}
+          | {:on_interface_minor_updated, String.t()}
+          | :on_device_registered
+          | :on_device_deletion_started
+          | :on_device_deletion_finished
+
+  @type data_trigger_event ::
+          :on_incoming_data
+          | :on_value_change
+          | :on_value_change_applied
+          | :on_path_created
+          | :on_path_removed
+          | :on_value_stored
+
+  @type endpoint :: Astarte.DataAccess.UUID.t() | :any_endpoint
+  @type interface :: Astarte.DataAccess.UUID.t() | :any_interface
+  @type data_event_key :: {data_trigger_event(), interface(), endpoint()}
+  @type event_key :: device_event_key() | data_event_key()
+
+  @type deserialized_simple_trigger() :: {trigger_data(), AMQPTriggerTarget.t()}
+
+  @type fetch_triggers_data() ::
+          %{
+            optional(term()) => term(),
+            data_triggers: %{data_event_key() => [AMQPTriggerTarget.t()]},
+            device_triggers: %{device_event_key() => [AMQPTriggerTarget.t()]},
+            trigger_id_to_policy_name: %{Astarte.DataAccess.UUID.t() => String.t()},
+            interfaces: %{String.t() => InterfaceDescriptor.t()},
+            interface_ids_to_name: %{Astarte.DataAccess.UUID.t() => String.t()}
+          }
 
   def register_targets(realm_name, simple_trigger_list) do
     for {_trigger_key, target} <- simple_trigger_list do
@@ -64,9 +106,7 @@ defmodule Astarte.Events.Triggers.Core do
 
       next_data_triggers = Map.put(data_triggers, data_trigger_key, new_data_triggers_for_key)
 
-      new_state =
-        Map.put(state, :data_triggers, next_data_triggers)
-        |> maybe_cache_trigger_policy(realm_name, trigger_target)
+      new_state = Map.put(state, :data_triggers, next_data_triggers)
 
       {:ok, new_state}
     end
@@ -92,9 +132,7 @@ defmodule Astarte.Events.Triggers.Core do
 
     next_device_triggers = Map.put(device_triggers, trigger_key, new_targets)
     # Map.put(state, :introspection_triggers, next_introspection_triggers)
-    new_state =
-      Map.put(state, :device_triggers, next_device_triggers)
-      |> maybe_cache_trigger_policy(realm_name, trigger_target)
+    new_state = Map.put(state, :device_triggers, next_device_triggers)
 
     {:ok, new_state}
   end
@@ -128,28 +166,6 @@ defmodule Astarte.Events.Triggers.Core do
 
   defp replace_empty_token(""), do: "%{}"
   defp replace_empty_token(non_empty), do: non_empty
-
-  # TODO: consider what we should to with the cached policy if/when we allow updating a policy
-  defp maybe_cache_trigger_policy(state, realm_name, %AMQPTriggerTarget{
-         parent_trigger_id: parent_trigger_id
-       }) do
-    %{trigger_id_to_policy_name: trigger_id_to_policy_name} = state
-
-    case Queries.retrieve_policy_name(
-           realm_name,
-           parent_trigger_id
-         ) do
-      {:ok, policy_name} ->
-        next_trigger_id_to_policy_name =
-          Map.put(trigger_id_to_policy_name, parent_trigger_id, policy_name)
-
-        %{state | trigger_id_to_policy_name: next_trigger_id_to_policy_name}
-
-      # @default policy is not installed, so here are triggers without policy
-      {:error, :policy_not_found} ->
-        state
-    end
-  end
 
   def data_trigger_to_key(state, data_trigger, event_type) do
     %DataTrigger{
@@ -252,5 +268,31 @@ defmodule Astarte.Events.Triggers.Core do
       |> Enum.uniq()
 
     Queries.get_policy_name_map(realm_name, trigger_ids)
+  end
+
+  @spec cache_trigger_id_to_policy_names(fetch_triggers_data(), String.t(), [
+          deserialized_simple_trigger()
+        ]) :: fetch_triggers_data()
+  def cache_trigger_id_to_policy_names(state, realm_name, deserialized_simple_triggers) do
+    existing_trigger_id_to_policy_names =
+      state.trigger_id_to_policy_name |> Map.keys() |> MapSet.new()
+
+    simple_trigger_parent_trigger_ids =
+      deserialized_simple_triggers
+      |> Enum.map(fn {_trigger, target} -> target.parent_trigger_id end)
+      |> MapSet.new()
+
+    potentially_missing_trigger_ids =
+      MapSet.difference(simple_trigger_parent_trigger_ids, existing_trigger_id_to_policy_names)
+      |> MapSet.to_list()
+
+    new_trigger_id_to_policy_name_cache =
+      Queries.get_policy_name_map(realm_name, potentially_missing_trigger_ids)
+
+    Map.update!(
+      state,
+      :trigger_id_to_policy_name,
+      &Map.merge(&1, new_trigger_id_to_policy_name_cache)
+    )
   end
 end

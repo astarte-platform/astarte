@@ -18,25 +18,11 @@
 
 defmodule Astarte.Events.Triggers do
   alias Astarte.Core.Device
-  alias Astarte.Core.InterfaceDescriptor
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.AMQPTriggerTarget
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.Utils
   alias Astarte.DataAccess.Realms.SimpleTrigger
   alias Astarte.Events.Triggers.Core
   alias Astarte.Events.Triggers.Queries
-
-  @type trigger_key() :: atom() | {atom(), Astarte.DataAccess.UUID.t() | :any_interface}
-  @type deserialized_simple_trigger() :: {term(), term()}
-
-  @type fetch_triggers_data() ::
-          %{
-            optional(term()) => term(),
-            data_triggers: %{trigger_key() => [AMQPTriggerTarget.t()]},
-            device_triggers: %{trigger_key() => [AMQPTriggerTarget.t()]},
-            trigger_id_to_policy_name: %{Astarte.DataAccess.UUID.t() => String.t()},
-            interfaces: %{String.t() => InterfaceDescriptor.t()},
-            interface_ids_to_name: %{Astarte.DataAccess.UUID.t() => String.t()}
-          }
 
   @typedoc "event type in the pretty format (eg `:on_device_connected`)"
   @type pretty_event_type() :: atom()
@@ -52,8 +38,12 @@ defmodule Astarte.Events.Triggers do
     Additional parameters are accepted, which can be used to initialize the return value for the cached item. In case of pre-existing 
     In case of the possibility of interface-driven data triggers, `:interfaces` and `:interface_ids_to_name` must be set to appropriate values.
   """
-  @spec fetch_triggers(String.t(), [deserialized_simple_trigger()], fetch_triggers_data()) ::
-          {:ok, fetch_triggers_data()} | {:error, term()}
+  @spec fetch_triggers(
+          String.t(),
+          [Core.deserialized_simple_trigger()],
+          Core.fetch_triggers_data()
+        ) ::
+          {:ok, Core.fetch_triggers_data()} | {:error, term()}
   def fetch_triggers(realm_name, deserialized_simple_triggers, data \\ %{}) do
     initial_result =
       %{
@@ -64,6 +54,7 @@ defmodule Astarte.Events.Triggers do
         interface_ids_to_name: %{}
       }
       |> Map.merge(data)
+      |> Core.cache_trigger_id_to_policy_names(realm_name, deserialized_simple_triggers)
 
     deserialized_simple_triggers
     |> Enum.reduce_while({:ok, initial_result}, fn {trigger_data, trigger_target},
@@ -159,7 +150,7 @@ defmodule Astarte.Events.Triggers do
     end)
   end
 
-  @spec deserialize_simple_trigger(SimpleTrigger.t()) :: deserialized_simple_trigger()
+  @spec deserialize_simple_trigger(SimpleTrigger.t()) :: Core.deserialized_simple_trigger()
   def deserialize_simple_trigger(simple_trigger) do
     trigger_data =
       Utils.deserialize_simple_trigger(simple_trigger.trigger_data)
