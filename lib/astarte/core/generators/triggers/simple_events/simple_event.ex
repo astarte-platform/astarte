@@ -38,11 +38,20 @@ defmodule Astarte.Core.Generators.Triggers.SimpleEvents.SimpleEvent do
   alias Astarte.Core.Generators.Triggers.SimpleEvents.DeviceConnectedEvent,
     as: DeviceConnectedEventGenerator
 
+  alias Astarte.Core.Generators.Triggers.SimpleEvents.DeviceDeletionFinishedEvent,
+    as: DeviceDeletionFinishedEventGenerator
+
+  alias Astarte.Core.Generators.Triggers.SimpleEvents.DeviceDeletionStartedEvent,
+    as: DeviceDeletionStartedEventGenerator
+
   alias Astarte.Core.Generators.Triggers.SimpleEvents.DeviceDisconnectedEvent,
     as: DeviceDisconnectedEventGenerator
 
   alias Astarte.Core.Generators.Triggers.SimpleEvents.DeviceErrorEvent,
     as: DeviceErrorEventGenerator
+
+  alias Astarte.Core.Generators.Triggers.SimpleEvents.DeviceRegisteredEvent,
+    as: DeviceRegisteredEventGenerator
 
   alias Astarte.Core.Generators.Triggers.SimpleEvents.IncomingDataEvent,
     as: IncomingDataEventGenerator
@@ -99,6 +108,11 @@ defmodule Astarte.Core.Generators.Triggers.SimpleEvents.SimpleEvent do
     [
       {:device_connected_event, DeviceConnectedEventGenerator.device_connected_event()},
       {:device_disconnected_event, DeviceDisconnectedEventGenerator.device_disconnected_event()},
+      {:device_deletion_started_event,
+       DeviceDeletionStartedEventGenerator.device_deletion_started_event()},
+      {:device_deletion_finished_event,
+       DeviceDeletionFinishedEventGenerator.device_deletion_finished_event()},
+      {:device_registered_event, DeviceRegisteredEventGenerator.device_registered_event()},
       {:incoming_data_event, IncomingDataEventGenerator.incoming_data_event()},
       {:value_change_event, ValueChangeEventGenerator.value_change_event()},
       {:value_change_applied_event,
