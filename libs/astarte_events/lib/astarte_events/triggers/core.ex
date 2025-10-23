@@ -111,35 +111,19 @@ defmodule Astarte.Events.Triggers.Core do
   end
 
   def load_trigger(realm_name, {:data_trigger, proto_buf_data_trigger}, trigger_target, state) do
-    new_data_trigger = Utils.simple_trigger_to_data_trigger(proto_buf_data_trigger)
-
     data_triggers = state.data_triggers
 
-    event_type = pretty_data_trigger_type(proto_buf_data_trigger.data_trigger_type)
-
-    with {:ok, data_trigger_key} <- data_trigger_to_key(state, new_data_trigger, event_type) do
+    with {:ok, data_trigger_key, new_data_trigger} <-
+           get_trigger_with_event_key(state, :data_trigger, proto_buf_data_trigger) do
       existing_triggers_for_key = Map.get(data_triggers, data_trigger_key, [])
 
-      # Extract all the targets belonging to the (eventual) existing congruent trigger
-      congruent_targets =
-        existing_triggers_for_key
-        |> Enum.filter(&DataTrigger.are_congruent?(&1, new_data_trigger))
-        |> Enum.flat_map(fn congruent_trigger -> congruent_trigger.trigger_targets end)
-
-      new_targets = [trigger_target | congruent_targets]
-      new_data_trigger_with_targets = %{new_data_trigger | trigger_targets: new_targets}
-
-      # Register the new target
-      :ok = Core.register_target(realm_name, trigger_target)
-
-      # Replace the (eventual) congruent existing trigger with the new one
-      new_data_triggers_for_key = [
-        new_data_trigger_with_targets
-        | Enum.reject(
-            existing_triggers_for_key,
-            &DataTrigger.are_congruent?(&1, new_data_trigger_with_targets)
-          )
-      ]
+      new_data_triggers_for_key =
+        load_data_trigger_targets(
+          realm_name,
+          existing_triggers_for_key,
+          trigger_target,
+          new_data_trigger
+        )
 
       next_data_triggers = Map.put(data_triggers, data_trigger_key, new_data_triggers_for_key)
 
@@ -157,16 +141,70 @@ defmodule Astarte.Events.Triggers.Core do
 
     existing_trigger_targets = Map.get(device_triggers, trigger_key, [])
 
-    new_targets = [trigger_target | existing_trigger_targets]
-
-    # Register the new target
-    :ok = Core.register_target(realm_name, trigger_target)
+    new_targets =
+      load_device_trigger_targets(realm_name, existing_trigger_targets, trigger_target)
 
     next_device_triggers = Map.put(device_triggers, trigger_key, new_targets)
     # Map.put(state, :introspection_triggers, next_introspection_triggers)
     new_state = Map.put(state, :device_triggers, next_device_triggers)
 
     {:ok, new_state}
+  end
+
+  @spec load_data_trigger_targets(
+          String.t(),
+          [DataTrigger.t()],
+          AMQPTriggerTarget.t(),
+          DataTrigger.t()
+        ) :: [DataTrigger.t()]
+  def load_data_trigger_targets(
+        realm_name,
+        existing_triggers_for_key,
+        trigger_target,
+        new_data_trigger
+      ) do
+    # Extract all the targets belonging to the (eventual) existing congruent trigger
+    congruent_targets =
+      existing_triggers_for_key
+      |> Enum.filter(&DataTrigger.are_congruent?(&1, new_data_trigger))
+      |> Enum.flat_map(fn congruent_trigger -> congruent_trigger.trigger_targets end)
+
+    new_targets = [trigger_target | congruent_targets]
+    new_data_trigger_with_targets = %{new_data_trigger | trigger_targets: new_targets}
+
+    # Register the new target
+    :ok = Core.register_target(realm_name, trigger_target)
+
+    # Replace the (eventual) congruent existing trigger with the new one
+    [
+      new_data_trigger_with_targets
+      | Enum.reject(
+          existing_triggers_for_key,
+          &DataTrigger.are_congruent?(&1, new_data_trigger_with_targets)
+        )
+    ]
+  end
+
+  @spec load_device_trigger_targets(String.t(), [AMQPTriggerTarget.t()], AMQPTriggerTarget.t()) ::
+          [AMQPTriggerTarget.t()]
+  def load_device_trigger_targets(realm_name, existing_trigger_targets, trigger_target) do
+    # Register the new target
+    :ok = Core.register_target(realm_name, trigger_target)
+    [trigger_target | existing_trigger_targets]
+  end
+
+  def get_trigger_with_event_key(_data, :device_trigger, trigger) do
+    trigger_key = device_trigger_to_key(trigger)
+    {:ok, trigger_key, trigger}
+  end
+
+  def get_trigger_with_event_key(data, :data_trigger, trigger) do
+    new_data_trigger = Utils.simple_trigger_to_data_trigger(trigger)
+    event_type = pretty_data_trigger_type(trigger.data_trigger_type)
+
+    with {:ok, key} <- data_trigger_to_key(data, new_data_trigger, event_type) do
+      {:ok, key, new_data_trigger}
+    end
   end
 
   @spec fetch_endpoint(map(), DataTrigger.path_match_tokens(), DataTrigger.interface_id()) ::
