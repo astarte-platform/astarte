@@ -47,13 +47,16 @@ defmodule Astarte.RealmManagement.Application do
       global_ttl: @trigger_lifetime_ttl
     ]
 
-    children = [
-      Astarte.RealmManagementWeb.Telemetry,
-      Astarte.RealmManagementWeb.Endpoint,
-      {ConCache, trigger_cache_opts},
-      {Task.Supervisor, name: Astarte.RealmManagement.DeviceRemoverSupervisor},
-      Astarte.RealmManagement.DeviceRemoval.Scheduler
-    ]
+    children =
+      [
+        {Cluster.Supervisor,
+         [Config.cluster_topologies!(), [name: Astarte.RealmManagement.ClusterSupervisor]]},
+        Astarte.RealmManagementWeb.Telemetry,
+        Astarte.RealmManagementWeb.Endpoint,
+        {Task.Supervisor, name: Astarte.RealmManagement.DeviceRemoverSupervisor},
+        Astarte.RealmManagement.DeviceRemoval.Scheduler,
+        {ConCache, trigger_cache_opts}
+      ]
 
     # See http://elixir-lang.org/docs/stable/elixir/Supervisor.html
     # for other strategies and supported options
