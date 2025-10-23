@@ -18,6 +18,7 @@
 
 defmodule Astarte.DataUpdaterPlant.TriggersHandlerTest do
   use ExUnit.Case, async: true
+  use Astarte.Cases.Trigger
 
   alias Astarte.Core.Triggers.SimpleEvents.{
     DeviceConnectedEvent,
@@ -39,9 +40,11 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandlerTest do
   alias AMQP.Channel
   alias AMQP.Connection
   alias AMQP.Queue
+  alias Astarte.Core.Device
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.AMQPTriggerTarget
   alias Astarte.DataUpdaterPlant.Config
   alias Astarte.DataUpdaterPlant.TriggersHandler
+  alias Astarte.Events.Triggers
   alias Astarte.Housekeeping.AMQP.Vhost
 
   @introspection "com.My.Interface:1:0;com.Another.Interface:1:2"
@@ -52,7 +55,8 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandlerTest do
   @queue_name "test_events_queue"
   @routing_key "test_routing_key"
   @realm "autotestrealm"
-  @device_id :crypto.strong_rand_bytes(16) |> Base.url_encode64(padding: false)
+  @decoded_device_id Device.random_device_id()
+  @device_id Device.encode_device_id(@decoded_device_id)
   @interface "com.Test.Interface"
   @major_version 1
   @minor_version 1
@@ -66,6 +70,9 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandlerTest do
   @custom_policy_name "such_a_nice_policy"
   @custom_policy_queue "#{@realm}_#{@custom_policy_name}_queue"
   @custom_policy_routing_key "#{@realm}_#{@custom_policy_name}"
+
+  # Needed for Astarte.Cases.Trigger
+  @moduletag realm_name: @realm
 
   setup_all do
     Vhost.create_vhost(@realm)
@@ -118,7 +125,14 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandlerTest do
         routing_key: @routing_key
       }
 
-      TriggersHandler.device_connected(target, @realm, @device_id, @ip_address, timestamp, nil)
+      Mimic.expect(Triggers, :find_device_trigger_targets, fn @realm,
+                                                              @decoded_device_id,
+                                                              _,
+                                                              :on_device_connection ->
+        [{target, nil}]
+      end)
+
+      TriggersHandler.device_connected(@realm, @decoded_device_id, [], @ip_address, timestamp)
 
       assert_receive {:event, payload, meta}
 

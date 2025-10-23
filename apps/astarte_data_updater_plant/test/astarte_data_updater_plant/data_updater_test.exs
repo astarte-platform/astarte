@@ -18,6 +18,7 @@
 
 defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
   use ExUnit.Case, async: true
+  use Astarte.Cases.Trigger
   import Mox
 
   import Ecto.Query
@@ -61,7 +62,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
     end)
 
     {:ok, _pid} = AMQPTestHelper.start_link()
-    %{realm: realm}
+    %{realm: realm, realm_name: realm}
   end
 
   test "simple flow", %{realm: realm} do
@@ -145,7 +146,35 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
     )
 
     DataUpdater.dump_state(realm, encoded_device_id)
-    {conn_event, conn_headers, _metadata} = AMQPTestHelper.wait_and_get_message()
+
+    # Receive both messages without making assumptions on the ordering
+    {conn_event_1, conn_headers_1, _metadata} = AMQPTestHelper.wait_and_get_message()
+    {conn_event_2, conn_headers_2, _metadata} = AMQPTestHelper.wait_and_get_message()
+
+    group_trigger_id =
+      DatabaseTestHelper.group1_device_connected_trigger_id() |> UUID.binary_to_string!()
+
+    device_trigger_id =
+      DatabaseTestHelper.device_connected_trigger_id() |> UUID.binary_to_string!()
+
+    {event_group, event_device} =
+      case {conn_headers_1["x_astarte_simple_trigger_id"],
+            conn_headers_2["x_astarte_simple_trigger_id"]} do
+        {^group_trigger_id, ^device_trigger_id} ->
+          {%{event: conn_event_1, headers: conn_headers_1},
+           %{event: conn_event_2, headers: conn_headers_2}}
+
+        {^device_trigger_id, ^group_trigger_id} ->
+          {%{event: conn_event_2, headers: conn_headers_2},
+           %{event: conn_event_1, headers: conn_headers_1}}
+
+        _ ->
+          flunk(
+            "unexpected events, expecting device connected events: #{inspect(SimpleEvent.decode(conn_event_1))}, #{inspect(SimpleEvent.decode(conn_event_2))}"
+          )
+      end
+
+    %{event: conn_event, headers: conn_headers} = event_group
     assert conn_headers["x_astarte_event_type"] == "device_connected_event"
     assert conn_headers["x_astarte_realm"] == realm
     assert conn_headers["x_astarte_device_id"] == encoded_device_id
@@ -170,7 +199,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
              simple_trigger_id: DatabaseTestHelper.group1_device_connected_trigger_id()
            }
 
-    {conn_event, conn_headers, _metadata} = AMQPTestHelper.wait_and_get_message()
+    %{event: conn_event, headers: conn_headers} = event_device
     assert conn_headers["x_astarte_event_type"] == "device_connected_event"
     assert conn_headers["x_astarte_realm"] == realm
     assert conn_headers["x_astarte_device_id"] == encoded_device_id

@@ -259,6 +259,12 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.Trigger do
           new_state
           |> Map.merge(relevant_data)
 
+        Triggers.install_volatile_trigger(
+          new_state.realm,
+          deserialized_trigger,
+          Map.from_struct(new_state)
+        )
+
         {:ok, new_state}
 
       {:error, :interface_not_found} ->
@@ -270,6 +276,12 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.Trigger do
                  Map.from_struct(temp_state)
                ) do
           # We add the volatile trigger but don't load the triggers
+          Triggers.install_volatile_trigger(
+            new_state.realm,
+            deserialized_trigger,
+            Map.from_struct(temp_state)
+          )
+
           {:ok, new_state}
         else
           error ->
@@ -307,6 +319,8 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.Trigger do
   end
 
   def handle_delete_volatile_trigger(state, trigger_id) do
+    Triggers.delete_volatile_trigger(state.realm, trigger_id)
+
     {new_volatile, maybe_trigger} =
       Enum.reduce(state.volatile_triggers, {[], nil}, fn item, {acc, found} ->
         {_, {_simple_trigger, trigger_target}} = item

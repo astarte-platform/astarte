@@ -38,29 +38,31 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandler do
     ValueChangeEvent
   }
 
+  alias Astarte.Core.Device
   alias Astarte.DataUpdaterPlant.Config
+  alias Astarte.Events.Triggers
   alias Astarte.Events.TriggersHandler
 
   require Logger
 
   defdelegate register_target(realm_name, trigger_target), to: TriggersHandler
 
-  def device_connected(targets, realm, device_id, ip_address, timestamp) when is_list(targets) do
-    execute_all_ok(targets, fn {target, policy} ->
-      device_connected(target, realm, device_id, ip_address, timestamp, policy) == :ok
-    end)
-  end
+  def device_connected(realm, device_id, groups, ip_address, timestamp) do
+    event = %DeviceConnectedEvent{device_ip_address: ip_address}
+    hw_id = Device.encode_device_id(device_id)
 
-  def device_connected(target, realm, device_id, ip_address, timestamp, policy) do
-    %DeviceConnectedEvent{device_ip_address: ip_address}
-    |> dispatch_event_with_telemetry(
-      :device_connected_event,
-      target,
-      realm,
-      device_id,
-      timestamp,
-      policy
-    )
+    Triggers.find_device_trigger_targets(realm, device_id, groups, :on_device_connection)
+    |> execute_all_ok(fn {target, policy} ->
+      dispatch_event_with_telemetry(
+        event,
+        :device_connected_event,
+        target,
+        realm,
+        hw_id,
+        timestamp,
+        policy
+      )
+    end)
   end
 
   def device_disconnected(targets, realm, device_id, timestamp) when is_list(targets) do

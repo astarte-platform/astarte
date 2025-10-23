@@ -18,6 +18,7 @@
 
 defmodule Astarte.DataUpdaterPlant.DeviceDeleteTest do
   use ExUnit.Case
+  use Astarte.Cases.Trigger
   import Ecto.Query
   import Mox
   import StreamData
@@ -44,17 +45,17 @@ defmodule Astarte.DataUpdaterPlant.DeviceDeleteTest do
       DatabaseTestHelper.destroy_local_test_keyspace(realm)
     end)
 
-    %{realm: realm}
+    %{realm_name: realm}
   end
 
-  setup %{realm: realm} do
+  setup %{realm_name: realm} do
     on_exit(fn ->
       Repo.query("TRUNCATE #{realm}.devices")
       Repo.query("TRUNCATE #{realm}.deletion_in_progress")
     end)
   end
 
-  test "device deletion replicates group information", %{realm: realm} do
+  test "device deletion replicates group information", %{realm_name: realm} do
     AMQPTestHelper.clean_queue()
     keyspace_name = Realm.keyspace_name(realm)
 
@@ -91,7 +92,7 @@ defmodule Astarte.DataUpdaterPlant.DeviceDeleteTest do
     assert deletion_status.groups == expected_groups
   end
 
-  test "device deletion is acked and related DataUpdater process stops", %{realm: realm} do
+  test "device deletion is acked and related DataUpdater process stops", %{realm_name: realm} do
     AMQPTestHelper.clean_queue()
 
     encoded_device_id =

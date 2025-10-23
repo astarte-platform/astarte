@@ -108,18 +108,10 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
       ip_address
     )
 
-    trigger_target_with_policy_list =
-      Map.get(new_state.device_triggers, :on_device_connection, [])
-      |> Enum.map(fn target ->
-        {target, Map.get(state.trigger_id_to_policy_name, target.parent_trigger_id)}
-      end)
-
-    device_id_string = Device.encode_device_id(new_state.device_id)
-
     TriggersHandler.device_connected(
-      trigger_target_with_policy_list,
       new_state.realm,
-      device_id_string,
+      new_state.device_id,
+      new_state.groups,
       ip_address_string,
       timestamp_ms
     )
