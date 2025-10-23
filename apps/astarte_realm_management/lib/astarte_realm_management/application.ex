@@ -54,6 +54,7 @@ defmodule Astarte.RealmManagement.Application do
         Astarte.RealmManagementWeb.Telemetry,
         Astarte.RealmManagementWeb.Endpoint,
         {Task.Supervisor, name: Astarte.RealmManagement.DeviceRemoverSupervisor},
+        {Horde.Registry, [keys: :unique, name: Registry.DataUpdaterRPC, members: :auto]},
         Astarte.RealmManagement.DeviceRemoval.Scheduler,
         {ConCache, trigger_cache_opts}
       ]

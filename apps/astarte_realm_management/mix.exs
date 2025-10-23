@@ -89,6 +89,7 @@ defmodule Astarte.RealmManagement.Mixfile do
       {:jason, "~> 1.2"},
       {:con_cache, "~> 1.1"},
       {:guardian, "~> 2.3"},
+      {:horde, "~> 0.9"},
       {:excoveralls, "~> 0.15", only: :test},
       {:pretty_log, "~> 0.1"},
       {:plug_logger_with_meta, "~> 0.1"},

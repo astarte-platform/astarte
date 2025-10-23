@@ -20,6 +20,8 @@ defmodule Astarte.RealmManagementWeb.DeviceControllerTest do
   use Astarte.Cases.Data, async: true
   use Astarte.RealmManagementWeb.ConnCase
   use Astarte.Cases.Device
+  alias Astarte.RealmManagement.RPC.DataUpdaterPlant.Client, as: DevicesRPC
+  use Mimic
 
   @nonexisting_device_id :crypto.strong_rand_bytes(16) |> Base.url_encode64(padding: false)
 
@@ -29,6 +31,9 @@ defmodule Astarte.RealmManagementWeb.DeviceControllerTest do
       realm: realm,
       device_id: device_id
     } do
+      DevicesRPC
+      |> expect(:start_device_deletion_rpc, fn _, _ -> :ok end)
+
       delete_conn = delete(conn, device_path(conn, :delete, realm, device_id))
 
       assert response(delete_conn, 204)

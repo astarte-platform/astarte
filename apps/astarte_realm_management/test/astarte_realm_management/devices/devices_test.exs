@@ -27,6 +27,7 @@ defmodule Astarte.RealmManagement.DevicesTest do
   alias Astarte.DataAccess.Device.DeletionInProgress
   alias Astarte.DataAccess.Repo
   alias Astarte.DataAccess.Devices.Device
+  alias Astarte.RealmManagement.RPC.DataUpdaterPlant.Client, as: DevicesRPC
   alias Astarte.DataAccess.Realms.Realm
   alias Astarte.Core.Device, as: DeviceCore
   alias Astarte.RealmManagement.DeviceRemoval.Queries
@@ -40,6 +41,9 @@ defmodule Astarte.RealmManagement.DevicesTest do
       realm: realm,
       device_id: device_id
     } do
+      DevicesRPC
+      |> expect(:start_device_deletion_rpc, fn _, _ -> :ok end)
+
       keyspace = Realm.keyspace_name(realm)
       {:ok, decoded_id} = DeviceCore.decode_device_id(device_id)
 
@@ -54,6 +58,9 @@ defmodule Astarte.RealmManagement.DevicesTest do
 
     property "is not queued for deletion if there are no acks", %{realm: realm} do
       check all(device_id <- Astarte.Core.Generators.Device.id()) do
+        DevicesRPC
+        |> expect(:start_device_deletion_rpc, fn _, _ -> :ok end)
+
         keyspace = Realm.keyspace_name(realm)
         device = %Device{device_id: device_id}
 
@@ -107,6 +114,9 @@ defmodule Astarte.RealmManagement.DevicesTest do
     end
 
     test "generates deletion started triggers", %{realm: realm, device_id: device_id} do
+      DevicesRPC
+      |> expect(:start_device_deletion_rpc, fn _, _ -> :ok end)
+
       ref = register_device_deletion_started_trigger(realm, device_id: device_id)
       reset_cache(realm)
       start_device_deletion(realm, device_id)
@@ -123,6 +133,9 @@ defmodule Astarte.RealmManagement.DevicesTest do
 
   @tag :regression
   test "device deletion does not overwrite existing entries", %{realm: realm} do
+    DevicesRPC
+    |> expect(:start_device_deletion_rpc, fn _, _ -> :ok end)
+
     keyspace = Realm.keyspace_name(realm)
     device_id = Astarte.Core.Generators.Device.id() |> Enum.at(0)
     encoded_id = Astarte.Core.Device.encode_device_id(device_id)
@@ -153,6 +166,8 @@ defmodule Astarte.RealmManagement.DevicesTest do
 
   @tag :regression
   test "status is cleaned in case of race conditions with device existence check", context do
+    Mimic.reject(&DevicesRPC.start_device_deletion_rpc/2)
+
     %{realm: realm} = context
     keyspace = Realm.keyspace_name(realm)
     device_id = Astarte.Core.Generators.Device.id() |> Enum.at(0)
