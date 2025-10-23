@@ -17,15 +17,11 @@
 #
 
 defmodule Astarte.DataUpdaterPlant.TriggersHandler do
-  require Logger
-  alias Astarte.Events.TriggersHandler
-
-  alias Astarte.DataUpdaterPlant.Config
-
   @moduledoc """
   This module handles the triggers by generating the events requested
   by the Trigger targets
   """
+
   alias Astarte.Core.Triggers.SimpleEvents.{
     DeviceConnectedEvent,
     DeviceDisconnectedEvent,
@@ -41,6 +37,11 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandler do
     ValueChangeAppliedEvent,
     ValueChangeEvent
   }
+
+  alias Astarte.DataUpdaterPlant.Config
+  alias Astarte.Events.TriggersHandler
+
+  require Logger
 
   defdelegate register_target(realm_name, trigger_target), to: TriggersHandler
 
