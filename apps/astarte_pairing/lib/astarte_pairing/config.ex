@@ -49,6 +49,12 @@ defmodule Astarte.Pairing.Config do
     type: CQExNodes,
     default: [{"localhost", 9042}]
 
+  @envdoc "URL to the local dockerized FDO rendezvous server."
+  app_env :fdo_rendezvous_url, :astarte_pairing, :fdo_rendezvous_url,
+    os_env: "PAIRING_FDO_RENDEZVOUS_URL",
+    type: :binary,
+    default: "http://rendezvous:8041"
+
   def init! do
     if {:ok, nil} == ca_cert() do
       case CFSSLCredentials.ca_cert() do
