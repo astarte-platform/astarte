@@ -1,0 +1,11 @@
+---
+storage_driver:
+  Directory:
+    path: /var/lib/fdo/rendezvous_registered
+session_store_driver:
+  Directory:
+    path: /var/lib/fdo/rendezvous_sessions
+trusted_manufacturer_keys_path: /etc/fdo/keys/manufacturer_cert.pem
+trusted_device_keys_path: /etc/fdo/keys/device_ca_cert.pem
+max_wait_seconds: 2592000
+bind: "0.0.0.0:8041"
