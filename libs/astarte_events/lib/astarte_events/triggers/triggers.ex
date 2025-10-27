@@ -24,6 +24,33 @@ defmodule Astarte.Events.Triggers do
   defdelegate fetch_triggers(realm_name, deserialized_simple_triggers), to: Core
   defdelegate fetch_triggers(realm_name, deserialized_simple_triggers, data), to: Core
 
+  @spec install_volatile_trigger(
+          String.t(),
+          Core.deserialized_simple_trigger(),
+          Core.fetch_triggers_data()
+        ) :: :ok
+  def install_volatile_trigger(realm_name, deserialized_volatile_trigger, data \\ %{}) do
+    {{trigger_type, trigger}, target} = deserialized_volatile_trigger
+
+    with {:ok, event_key, new_trigger} <-
+           Core.get_trigger_with_event_key(data, trigger_type, trigger),
+         {:ok, subject} <- Cache.trigger_subject(trigger.device_id, trigger.group_name) do
+      policy = Core.get_trigger_policy(realm_name, target)
+
+      Cache.install_volatile_trigger(
+        realm_name,
+        event_key,
+        subject,
+        trigger_type,
+        new_trigger,
+        target,
+        policy
+      )
+    end
+  end
+
+  defdelegate delete_volatile_trigger(realm_name, trigger_id), to: Cache
+
   @doc """
     Returns the list of targets for an event.
     This operation is an optimization and should only be used for device events.

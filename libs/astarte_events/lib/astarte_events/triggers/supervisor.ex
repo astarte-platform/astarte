@@ -28,7 +28,9 @@ defmodule Astarte.Events.Triggers.Supervisor do
   @impl true
   def init(_init_arg) do
     [
-      Cache.event_targets_cache_spec()
+      Cache.event_targets_cache_spec(),
+      Cache.event_volatile_targets_cache_spec(),
+      Cache.trigger_id_cache_spec()
     ]
     |> Supervisor.init(strategy: :one_for_all)
   end

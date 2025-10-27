@@ -25,6 +25,7 @@ defmodule Astarte.Events.Triggers.Core do
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.DeviceTrigger, as: ProtobufDeviceTrigger
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.Utils
   alias Astarte.DataAccess.Realms.SimpleTrigger
+  alias Astarte.Events.Triggers.DataTrigger, as: DataTriggerWithTargets
   alias Astarte.Events.TriggersHandler.Core
   alias Astarte.Events.Triggers.Queries
 
@@ -193,6 +194,59 @@ defmodule Astarte.Events.Triggers.Core do
     [trigger_target | existing_trigger_targets]
   end
 
+  @spec load_data_trigger_targets_with_policy(
+          String.t(),
+          [DataTriggerWithTargets.t()],
+          AMQPTriggerTarget.t(),
+          policy_name(),
+          DataTrigger.t()
+        ) :: [DataTriggerWithTargets.t()]
+  def load_data_trigger_targets_with_policy(
+        realm_name,
+        existing_triggers_for_key,
+        trigger_target,
+        policy,
+        new_data_trigger
+      ) do
+    # Extract all the targets belonging to the (eventual) existing congruent trigger
+    congruent_targets =
+      existing_triggers_for_key
+      |> Enum.filter(&DataTrigger.are_congruent?(&1, new_data_trigger))
+      |> Enum.flat_map(fn congruent_trigger -> congruent_trigger.trigger_targets end)
+
+    new_targets = [{trigger_target, policy} | congruent_targets]
+    new_data_trigger_with_targets = %{new_data_trigger | trigger_targets: new_targets}
+
+    # Register the new target
+    :ok = Core.register_target(realm_name, trigger_target)
+
+    # Replace the (eventual) congruent existing trigger with the new one
+    [
+      new_data_trigger_with_targets
+      | Enum.reject(
+          existing_triggers_for_key,
+          &DataTrigger.are_congruent?(&1, new_data_trigger_with_targets)
+        )
+    ]
+  end
+
+  @spec load_device_trigger_targets_with_policy(
+          String.t(),
+          [target_and_policy()],
+          AMQPTriggerTarget.t(),
+          policy_name()
+        ) :: [target_and_policy()]
+  def load_device_trigger_targets_with_policy(
+        realm_name,
+        existing_trigger_targets,
+        trigger_target,
+        policy
+      ) do
+    # Register the new target
+    :ok = Core.register_target(realm_name, trigger_target)
+    [{trigger_target, policy} | existing_trigger_targets]
+  end
+
   def get_trigger_with_event_key(_data, :device_trigger, trigger) do
     trigger_key = device_trigger_to_key(trigger)
     {:ok, trigger_key, trigger}
@@ -340,6 +394,10 @@ defmodule Astarte.Events.Triggers.Core do
       |> Enum.uniq()
 
     Queries.get_policy_name_map(realm_name, trigger_ids)
+  end
+
+  def get_trigger_policy(realm_name, trigger_target) do
+    Queries.get_policy_name(realm_name, trigger_target.parent_trigger_id)
   end
 
   @spec cache_trigger_id_to_policy_names(fetch_triggers_data(), String.t(), [
