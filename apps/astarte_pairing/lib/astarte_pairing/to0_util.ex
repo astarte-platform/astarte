@@ -19,38 +19,49 @@
 defmodule Astarte.Pairing.TO0Util do
   require Logger
 
-  # According to FDO spec 5.3.2: TO0.HelloAck = [NonceTO0Sign]
-  def getNonceFromHelloAck(body) do
+  def get_nonce_from_hello_ack(body) do
     case CBOR.decode(body) do
       {:ok, decoded, _rest} when is_list(decoded) and length(decoded) == 1 ->
         [nonce_to_sign] = decoded
-        {:ok, nonce_to_sign}
+        if is_binary(nonce_to_sign) do
+          {:ok, nonce_to_sign}
+        else
+          {:error, :invalid_nonce_type}
+        end
       {:error, reason} ->
         Logger.warning("Failed to decode TO0.HelloAck CBOR", reason: reason)
         {:error, {:cbor_decode_error, reason}}
+      other ->
+        {:error, {:unexpected_format, other}}
     end
   end
 
-  def decode_ownership_voucher() do
+  # TODO: real implementation using API call
+  def get_ownership_voucher() do
     path = Path.join([:code.priv_dir(:astarte_pairing), "ownership-voucher.pem"])
+    case File.read(path) do
+      {:ok, content} ->
+        {:ok, content}
 
-    with {:ok, content} <- File.read(path),
-         ov_data <-
-           content
-           |> String.replace("-----BEGIN OWNERSHIP VOUCHER-----", "")
-           |> String.replace("-----END OWNERSHIP VOUCHER-----", "")
-           |> String.replace(~r/\s/, ""),
+      {:error, reason} ->
+        {:error, reason}
+    end
+  end
+
+  def decode_ownership_voucher(ownership_voucher) do
+    with ov_data <- ownership_voucher
+                    |> String.replace(~r/-----BEGIN OWNERSHIP VOUCHER-----|-----END OWNERSHIP VOUCHER-----|\s/, ""),
          {:ok, cbor_data} <- Base.decode64(ov_data),
          {:ok, result, _rest} <- CBOR.decode(cbor_data) do
       {:ok, result}
     else
       {:error, reason} -> {:error, reason}
-      :error -> {:error, "Invalid base64 in PEM"}
-      other -> {:error, "PEM parsing failed: #{inspect(other)}"}
+      _ -> {:error, :invalid_ownership_voucher_format}
     end
   end
 
-  def getOwnerPrivateKey() do
+  # TODO: real implementation using API call
+  def get_owner_private_key() do
     path = Path.join([:code.priv_dir(:astarte_pairing), "owner-key.pem"])
 
     case File.read(path) do
@@ -62,9 +73,8 @@ defmodule Astarte.Pairing.TO0Util do
     end
   end
 
-  def sign_with_owner_key(data) do
-    with {:ok, pem_data} <- getOwnerPrivateKey(),
-         [{:ECPrivateKey, der_data, :not_encrypted}] <- :public_key.pem_decode(pem_data),
+  def sign_with_owner_key(data, owner_key) do
+    with [{:ECPrivateKey, der_data, :not_encrypted}] <- :public_key.pem_decode(owner_key),
          {:ok, ec_private_key} <- safe_der_decode(der_data),
          {:ok, raw_priv} <- extract_raw_private_key(ec_private_key),
          {:ok, signature} <- safe_sign(data, raw_priv) do
@@ -100,8 +110,7 @@ defmodule Astarte.Pairing.TO0Util do
     end
   end
 
-  defp build_rvto2addr_entry(ip, dns, port, protocol) do
-
+  defp build_rv_to2_addr_entry(ip, dns, port, protocol) do
     rv_entry = [
       ip,
       dns,
@@ -113,9 +122,9 @@ defmodule Astarte.Pairing.TO0Util do
     end
   end
 
-  defp buildto1dRV(entries) do
-    with to1dRV <- CBOR.encode([entries]) do
-      {:ok, to1dRV}
+  defp build_to1d_rv(entries) do
+    with to1d_rv <- CBOR.encode([entries]) do
+      {:ok, to1d_rv}
     end
   end
 
@@ -125,22 +134,25 @@ defmodule Astarte.Pairing.TO0Util do
     end
   end
 
-  defp buildto1dTo0dHash(to0d) do
+  defp tag_to0d(to0d) do
+    %CBOR.Tag{tag: :bytes, value: to0d} 
+  end
+
+  defp build_to1d_to0d_hash(to0d) do
     with to1d_to0d_hash_value <- :crypto.hash(:sha256, to0d),
          # 47 is the key for SHA-256
-         to1dTo0dHash <- CBOR.encode([47, to1d_to0d_hash_value]) do
-      {:ok, to1dTo0dHash}
+         to1d_to0d_hash <- CBOR.encode([47, to1d_to0d_hash_value]) do
+          {:ok, to1d_to0d_hash} 
     end
   end
 
-  defp buildto1dBlobPayload(to1dRV, to1dTo0dHash) do
-    with blob_payload <- CBOR.encode([to1dRV, to1dTo0dHash]) do
+  defp build_to1d_blob_payload(to1d_rv, to1d_to0d_hash) do
+    with blob_payload <- CBOR.encode([to1d_rv, to1d_to0d_hash]) do
       {:ok, blob_payload}
     end
   end
 
-  def build_cose_sign1(payload) do
-    try do
+  def build_cose_sign1(payload, owner_key) do
       # Protected header: ES256 algorithm (ECDSA with SHA-256)
       # -7 is ES256
       protected_header = %{1 => -7}
@@ -149,12 +161,12 @@ defmodule Astarte.Pairing.TO0Util do
       sig_structure = ["Signature1", protected_header_cbor, <<>>, payload]
       sig_structure_cbor = CBOR.encode(sig_structure)
 
-      with {:ok, raw_signature} <- sign_with_owner_key(sig_structure_cbor) do
+      with {:ok, raw_signature} <- sign_with_owner_key(sig_structure_cbor, owner_key) do
         cose_sign1_array = [
-          protected_header_cbor,
+          %CBOR.Tag{tag: :bytes, value: protected_header_cbor},
           %{},
-          payload,
-          raw_signature
+          %CBOR.Tag{tag: :bytes, value: payload},
+          %CBOR.Tag{tag: :bytes, value: raw_signature}
         ]
 
         # Tag 18 is associated with COSE_Sign1
@@ -163,23 +175,26 @@ defmodule Astarte.Pairing.TO0Util do
       else
         {:error, reason} -> {:error, {:signing_error, reason}}
       end
-    rescue
-      e ->
-        Logger.error("COSE_Sign1 build failed", error: inspect(e))
-        {:error, {:cose_build_error, e}}
+  end
+
+  # TODO: real implementation using API call
+  def get_astarte_rv_to2_addr_entries() do
+    with {:ok, rv_entry1} <- build_rv_to2_addr_entry(CBOR.encode([]), "pippo", 8080, 3),
+         {:ok, rv_entry2} <- build_rv_to2_addr_entry(CBOR.encode([]), "paperino", 8080, 3) do
+      {:ok, [rv_entry1, rv_entry2]}
+    else
+      {:error, reason} -> {:error, reason}
     end
   end
 
-  def buildOwnerSignMessage(nonce) do
-    with ov <- decode_ownership_voucher(),
-         {:ok, to0d} <- build_to0d(ov, 3600, nonce),
-         {:ok, to1dTo0dHash} <- buildto1dTo0dHash(to0d),
-         {:ok, rv_entry1} <- build_rvto2addr_entry(CBOR.encode([]), "pippo", 8080, 3),
-         {:ok, rv_entry2} <- build_rvto2addr_entry(CBOR.encode([]), "paperino", 8080, 3),
-         {:ok, to1dRV} <- buildto1dRV([rv_entry1, rv_entry2]),
-         {:ok, blob_payload} <- buildto1dBlobPayload(to1dRV, to1dTo0dHash),
-         {:ok, signature} <- build_cose_sign1(blob_payload),
-         to0_owner_sign_msg <- CBOR.encode([to0d, signature]) do
+  def build_owner_sign_message(ownership_voucher, owner_key, nonce, addr_entries) do
+    with {:ok, decoded_ownership_voucher} <- decode_ownership_voucher(ownership_voucher),
+         {:ok, to0d} <- build_to0d(decoded_ownership_voucher, 3600, nonce),
+         {:ok, to1d_to0d_hash} <- build_to1d_to0d_hash(to0d),
+         {:ok, to1d_rv} <- build_to1d_rv(addr_entries),
+         {:ok, blob_payload} <- build_to1d_blob_payload(to1d_rv, to1d_to0d_hash),
+         {:ok, signature} <- build_cose_sign1(blob_payload, owner_key),
+         {:ok, to0_owner_sign_msg} <- CBOR.encode([tag_to0d(to0d), signature]) do
       {:ok, to0_owner_sign_msg}
     else
       {:error, reason} ->

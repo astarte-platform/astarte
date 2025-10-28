@@ -27,7 +27,7 @@ defmodule Astarte.Pairing.FDOClient do
   Sends an empty array as per FDO specification section 5.3.1
   Returns decoded TO0.HelloAck (message 21) with rendezvous nonce
   """
-  def to0hello() do
+  def to0_hello() do
     url = "#{fdo_rendezvous_url!()}/fdo/101/msg/20"
     headers = [{"Content-Type", "application/cbor"}, {"Content-Length", "0"}]
     request_body = CBOR.encode([])
@@ -39,9 +39,9 @@ defmodule Astarte.Pairing.FDOClient do
         Logger.debug("TO0.Hello completed successfully")
         Logger.debug(inspect(headers))
 
-        case TO0Util.getNonceFromHelloAck(body) do
+        case TO0Util.get_nonce_from_hello_ack(body) do
           {:ok, nonce} ->
-            to0ownerSign(nonce, getAuthBearer(headers))
+            to0_owner_sign(nonce, get_auth_bearer(headers))
 
           {:error, reason} ->
             Logger.error("Failed to get nonce from TO0.HelloAck", reason: reason)
@@ -58,7 +58,7 @@ defmodule Astarte.Pairing.FDOClient do
     end
   end
 
-  defp getAuthBearer(headers) do
+  defp get_auth_bearer(headers) do
     Enum.find_value(headers, fn
       {"authorization", value} ->
         Logger.debug("Authorization Bearer retrieved: #{inspect(value)}")
@@ -72,35 +72,39 @@ defmodule Astarte.Pairing.FDOClient do
   Sends ownership voucher and wait response from rendezvous server
   Returns decoded TO0.AcceptOwner (message 23) with negotiated wait time
   """
-  def to0ownerSign(nonce, bearer) do
+  def to0_owner_sign(nonce, bearer) do
     Logger.debug("Sending TO0.OwnerSign...")
 
-    case TO0Util.buildOwnerSignMessage(nonce) do
-      {:ok, request_body} ->
-        Logger.debug(request_body: inspect(request_body))
-        url = "#{fdo_rendezvous_url!()}/fdo/101/msg/22"
+    with {:ok, owner_key} <- TO0Util.get_owner_private_key(),
+         {:ok, ownership_voucher} <- TO0Util.get_ownership_voucher(),
+         {:ok, addr_entries} <- TO0Util.get_astarte_rv_to2_addr_entries() do
+      case TO0Util.build_owner_sign_message(ownership_voucher, owner_key, nonce, addr_entries) do
+        {:ok, request_body} ->
+          Logger.debug(request_body: inspect(request_body))
+          url = "#{fdo_rendezvous_url!()}/fdo/101/msg/22"
 
-        headers = [
-          {"Content-Type", "application/cbor"},
-          {"Content-Length", byte_size(request_body)},
-          {"Authorization", bearer}
-        ]
+          headers = [
+            {"Content-Type", "application/cbor"},
+            {"Content-Length", byte_size(request_body)},
+            {"Authorization", bearer}
+          ]
 
-        Logger.debug("Sending TO0.OwnerSign", payload_size: byte_size(request_body))
+          Logger.debug("Sending TO0.OwnerSign", payload_size: byte_size(request_body))
 
-        case http_client().post(url, request_body, headers) do
-          {:ok, %{status_code: 200, body: _body}} ->
-            Logger.debug(" TO0.OwnerSign completed successfully!")
+          case http_client().post(url, request_body, headers) do
+            {:ok, %{status_code: 200, body: _body}} ->
+              Logger.debug("TO0.OwnerSign completed successfully!")
 
             {:ok, %{status_code: status_code, body: body}} ->
-            Logger.error(" TO0.OwnerSign failed with status #{status_code}, response: #{inspect(body)}")
+              Logger.error("TO0.OwnerSign failed with status #{status_code}, response: #{inspect(body)}")
 
-          {:error, reason} ->
-            Logger.error(" TO0.OwnerSign request failed", reason: reason)
-        end
+            {:error, reason} ->
+              Logger.error("TO0.OwnerSign request failed", reason: reason)
+          end
 
-      {:error, reason} ->
-        Logger.error("Failed to build TO0.OwnerSign message", reason: reason)
+        {:error, reason} ->
+          Logger.error("Failed to build TO0.OwnerSign message", reason: reason)
+      end
     end
   end
 
