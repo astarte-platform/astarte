@@ -19,20 +19,19 @@
 #
 
 defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DataTriggerTest do
-  use ExUnit.Case
-  use ExUnitProperties
-
-  alias Astarte.DataUpdaterPlant.DataUpdater
-  alias Astarte.DataUpdaterPlant.DataUpdater.Core
-  alias Astarte.Core.CQLUtils
-  alias Astarte.Core.Triggers.SimpleTriggersProtobuf.AMQPTriggerTarget
-  alias Astarte.Core.Triggers.SimpleTriggersProtobuf.DataTrigger
-  alias Astarte.DataUpdaterPlant.AMQPTestHelper
-  alias Astarte.DataUpdaterPlant.TriggersHandler
-
   use Astarte.Cases.Data, async: true
+  use Astarte.Cases.Trigger
   use Astarte.Cases.Device
   use ExUnitProperties
+
+  alias Astarte.Core.CQLUtils
+  alias Astarte.Core.InterfaceDescriptor
+  alias Astarte.Core.Mapping
+  alias Astarte.Core.Mapping.EndpointsAutomaton
+  alias Astarte.Core.Triggers.SimpleTriggersProtobuf.AMQPTriggerTarget
+  alias Astarte.Core.Triggers.SimpleTriggersProtobuf.DataTrigger
+  alias Astarte.DataUpdaterPlant.DataUpdater
+  alias Astarte.DataUpdaterPlant.TriggersHandler
 
   import Astarte.Helpers.DataUpdater
 
@@ -47,44 +46,90 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DataTriggerTest do
     %{state: state}
   end
 
-  defp mock_trigger_target do
+  defp mock_trigger_target(routing_key) do
     %AMQPTriggerTarget{
       parent_trigger_id: :uuid.get_v4(),
       simple_trigger_id: :uuid.get_v4(),
       static_headers: [],
-      routing_key: AMQPTestHelper.events_routing_key()
+      routing_key: routing_key
     }
   end
 
-  defp mock_data_trigger(state, %DataTrigger{} = simple_trigger) do
-    data_trigger =
-      Astarte.Core.Triggers.SimpleTriggersProtobuf.Utils.simple_trigger_to_data_trigger(
-        simple_trigger
+  defp install_volatile_trigger(state, data_trigger) do
+    id = System.unique_integer()
+    test_process = self()
+    ref = {:event_dispatched, id}
+    trigger_target = mock_trigger_target("target#{id}")
+    deserialized_simple_trigger = {{:data_trigger, data_trigger}, trigger_target}
+
+    Astarte.Events.TriggersHandler
+    |> Mimic.stub(:dispatch_event, fn _event,
+                                      _event_ype,
+                                      ^trigger_target,
+                                      _realm,
+                                      _hw_id,
+                                      _timestamp,
+                                      _policy ->
+      send(test_process, ref)
+    end)
+
+    Astarte.Events.Triggers.install_volatile_trigger(
+      state.realm,
+      deserialized_simple_trigger,
+      state
+    )
+
+    ref
+  end
+
+  def add_interface(state, interface_name, interface_major, path, value_type) do
+    interface_id = CQLUtils.interface_id(interface_name, interface_major)
+    endpoint_id = CQLUtils.endpoint_id(interface_name, interface_major, path)
+
+    mapping = %Mapping{
+      endpoint: path,
+      value_type: value_type,
+      endpoint_id: endpoint_id,
+      interface_id: interface_id
+    }
+
+    {:ok, automaton} = EndpointsAutomaton.build([mapping])
+    {transitions, accepting_states_with_endpoints} = automaton
+
+    accepting_states =
+      replace_automaton_acceptings_with_ids(
+        accepting_states_with_endpoints,
+        interface_name,
+        interface_major
       )
 
-    data_trigger = %{data_trigger | trigger_targets: [mock_trigger_target()]}
+    automaton = {transitions, accepting_states}
 
-    event_type =
-      Astarte.DataUpdaterPlant.DataUpdater.EventTypeUtils.pretty_data_trigger_type(
-        simple_trigger.data_trigger_type
-      )
+    descriptor = %InterfaceDescriptor{
+      name: interface_name,
+      major_version: interface_major,
+      minor_version: 1,
+      type: :datastream,
+      ownership: :device,
+      aggregation: :individual,
+      interface_id: interface_id,
+      storage: "individual_datastreams",
+      storage_type: :multi_interface_individual_datastream_dbtable,
+      automaton: automaton
+    }
 
-    interface_id = data_trigger.interface_id
+    state = put_in(state.interface_ids_to_name[interface_id], interface_name)
+    state = put_in(state.interfaces[interface_name], descriptor)
+    state = put_in(state.introspection[interface_name], interface_major)
 
-    endpoint_id =
-      if simple_trigger.match_path == "/*" do
-        :any_endpoint
-      else
-        CQLUtils.endpoint_id(
-          simple_trigger.interface_name,
-          simple_trigger.interface_major,
-          simple_trigger.match_path
-        )
-      end
+    state
+  end
 
-    key = {event_type, interface_id, endpoint_id}
-
-    %{state | data_triggers: %{key => [data_trigger]}}
+  defp replace_automaton_acceptings_with_ids(accepting_states, interface_name, major) do
+    Map.new(accepting_states, fn {state_index, endpoint} ->
+      endpoint_id = CQLUtils.endpoint_id(interface_name, major, endpoint)
+      {state_index, endpoint_id}
+    end)
   end
 
   describe "execute_incoming_data_triggers/9" do
@@ -93,30 +138,30 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DataTriggerTest do
         state: state
       } = context
 
-      Mimic.reject(&TriggersHandler.incoming_data/7)
+      Mimic.reject(&Astarte.Events.TriggersHandler.dispatch_event/7)
 
       assert :ok ==
-               Core.DataTrigger.execute_incoming_data_triggers(
-                 state,
-                 "encoded_device_id",
+               TriggersHandler.incoming_data(
+                 state.realm,
+                 state.device_id,
+                 state.groups,
                  "test.interface",
-                 1,
+                 _interface_id = <<>>,
+                 _endpoint_id = <<>>,
                  "/test/path",
-                 1,
-                 <<0, 1, 2, 3>>,
                  42,
-                 1_600_000_000
+                 <<0, 1, 2, 3>>,
+                 1_600_000_000,
+                 state
                )
     end
 
     test "executes global triggers for any interface/endpoint", context do
       %{
-        state: state,
-        device: device
+        state: state
       } = context
 
       realm = state.realm
-      device_id = device.encoded_id
       interface_name = "com.example.Sensors"
       interface_major = 1
       path = "/sensors/temperature"
@@ -126,8 +171,8 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DataTriggerTest do
       payload = Cyanide.encode!(%{"value" => value})
       timestamp = 1_600_000_000_000_000
 
-      state =
-        mock_data_trigger(state, %DataTrigger{
+      ref =
+        install_volatile_trigger(state, %DataTrigger{
           interface_name: "*",
           data_trigger_type: :INCOMING_DATA,
           match_path: "/*",
@@ -135,38 +180,29 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DataTriggerTest do
           known_value: Cyanide.encode!(%{v: 50})
         })
 
-      Mimic.expect(TriggersHandler, :incoming_data, fn _target_with_policy_list,
-                                                       ^realm,
-                                                       ^device_id,
-                                                       ^interface_name,
-                                                       ^path,
-                                                       ^payload,
-                                                       ^timestamp ->
-        :ok
-      end)
-
       assert :ok ==
-               Core.DataTrigger.execute_incoming_data_triggers(
-                 state,
-                 device.encoded_id,
+               TriggersHandler.incoming_data(
+                 realm,
+                 state.device_id,
+                 state.groups,
                  interface_name,
                  interface_id,
-                 path,
                  endpoint_id,
-                 payload,
+                 path,
                  value,
-                 timestamp
+                 payload,
+                 timestamp,
+                 state
                )
+
+      assert_receive ^ref
     end
 
     test "executes interface-specific triggers", context do
       %{
-        state: state,
-        device: device
+        state: state
       } = context
 
-      realm = state.realm
-      device_id = device.encoded_id
       interface_name = "com.example.Sensors"
       interface_major = 1
       path = "/sensors/temperature"
@@ -175,9 +211,10 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DataTriggerTest do
       value = 42
       payload = Cyanide.encode!(%{"value" => value})
       timestamp = 1_600_000_000_000_000
+      state = add_interface(state, interface_name, interface_major, path, :integer)
 
-      state =
-        mock_data_trigger(state, %DataTrigger{
+      ref =
+        install_volatile_trigger(state, %DataTrigger{
           interface_name: interface_name,
           interface_major: interface_major,
           data_trigger_type: :INCOMING_DATA,
@@ -186,28 +223,22 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DataTriggerTest do
           known_value: Cyanide.encode!(%{v: 50})
         })
 
-      Mimic.expect(TriggersHandler, :incoming_data, fn _target_with_policy_list,
-                                                       ^realm,
-                                                       ^device_id,
-                                                       ^interface_name,
-                                                       ^path,
-                                                       ^payload,
-                                                       ^timestamp ->
-        :ok
-      end)
-
       assert :ok ==
-               Core.DataTrigger.execute_incoming_data_triggers(
-                 state,
-                 device.encoded_id,
+               TriggersHandler.incoming_data(
+                 state.realm,
+                 state.device_id,
+                 state.groups,
                  interface_name,
                  interface_id,
-                 path,
                  endpoint_id,
-                 payload,
+                 path,
                  value,
-                 timestamp
+                 payload,
+                 timestamp,
+                 state
                )
+
+      assert_receive ^ref
     end
 
     test "executes endpoint-specific triggers", context do
@@ -216,8 +247,6 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DataTriggerTest do
         device: device
       } = context
 
-      realm = state.realm
-      device_id = device.encoded_id
       interface_name = "com.example.Sensors"
       interface_major = 1
       path = "/sensors/temperature"
@@ -226,9 +255,10 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DataTriggerTest do
       value = 42
       payload = Cyanide.encode!(%{"value" => value})
       timestamp = 1_600_000_000_000_000
+      state = add_interface(state, interface_name, interface_major, path, :integer)
 
-      state =
-        mock_data_trigger(state, %DataTrigger{
+      ref =
+        install_volatile_trigger(state, %DataTrigger{
           interface_name: interface_name,
           interface_major: interface_major,
           data_trigger_type: :INCOMING_DATA,
@@ -237,28 +267,22 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DataTriggerTest do
           known_value: Cyanide.encode!(%{v: 50})
         })
 
-      Mimic.expect(TriggersHandler, :incoming_data, fn _target_with_policy_list,
-                                                       ^realm,
-                                                       ^device_id,
-                                                       ^interface_name,
-                                                       ^path,
-                                                       ^payload,
-                                                       ^timestamp ->
-        :ok
-      end)
-
       assert :ok ==
-               Core.DataTrigger.execute_incoming_data_triggers(
-                 state,
-                 device.encoded_id,
+               TriggersHandler.incoming_data(
+                 state.realm,
+                 device.device_id,
+                 [],
                  interface_name,
                  interface_id,
-                 path,
                  endpoint_id,
-                 payload,
+                 path,
                  value,
-                 timestamp
+                 payload,
+                 timestamp,
+                 state
                )
+
+      assert_receive ^ref
     end
 
     test "does not execute triggers when value doesn't match condition", context do
@@ -276,29 +300,30 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DataTriggerTest do
       payload = Cyanide.encode!(%{"value" => value})
       timestamp = 1_600_000_000_000_000
 
-      state =
-        mock_data_trigger(state, %DataTrigger{
-          interface_name: interface_name,
-          interface_major: interface_major,
-          data_trigger_type: :INCOMING_DATA,
-          match_path: "/sensors/temperature",
-          value_match_operator: :LESS_THAN,
-          known_value: Cyanide.encode!(%{v: 50})
-        })
+      install_volatile_trigger(state, %DataTrigger{
+        interface_name: interface_name,
+        interface_major: interface_major,
+        data_trigger_type: :INCOMING_DATA,
+        match_path: "/sensors/temperature",
+        value_match_operator: :LESS_THAN,
+        known_value: Cyanide.encode!(%{v: 50})
+      })
 
-      Mimic.reject(&TriggersHandler.incoming_data/7)
+      Mimic.reject(&Astarte.Events.TriggersHandler.dispatch_event/7)
 
       assert :ok ==
-               Core.DataTrigger.execute_incoming_data_triggers(
-                 state,
-                 device.encoded_id,
+               TriggersHandler.incoming_data(
+                 state.realm,
+                 device.device_id,
+                 state.groups,
                  interface_name,
                  interface_id,
-                 path,
                  endpoint_id,
-                 payload,
+                 path,
                  value,
-                 timestamp
+                 payload,
+                 timestamp,
+                 state
                )
     end
   end
@@ -315,16 +340,18 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DataTriggerTest do
       } = context
 
       assert :ok ==
-               Core.DataTrigger.execute_incoming_data_triggers(
-                 state,
-                 device.encoded_id,
+               TriggersHandler.incoming_data(
+                 state.realm,
+                 device.device_id,
+                 state.groups,
                  "iface",
                  interface_id,
-                 "/path",
                  endpoint_id,
-                 payload,
+                 "/path",
                  value,
-                 timestamp
+                 payload,
+                 timestamp,
+                 state
                )
     end
   end

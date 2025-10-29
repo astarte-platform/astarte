@@ -30,6 +30,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DataHandler do
   alias Astarte.Core.Device
   alias Astarte.DataUpdaterPlant.DataUpdater.PayloadsDecoder
   alias Astarte.DataUpdaterPlant.DataUpdater.Core
+  alias Astarte.DataUpdaterPlant.TriggersHandler
 
   require Logger
 
@@ -305,16 +306,18 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DataHandler do
         do: value_timestamp,
         else: div(context.timestamp, 10000)
 
-    Core.DataTrigger.execute_incoming_data_triggers(
-      state,
-      Device.encode_device_id(state.device_id),
+    TriggersHandler.incoming_data(
+      state.realm,
+      state.device_id,
+      state.groups,
       interface_descriptor.name,
       interface_id,
-      path,
       mapping.endpoint_id,
-      payload,
+      path,
       value,
-      maybe_explicit_value_timestamp
+      payload,
+      maybe_explicit_value_timestamp,
+      state
     )
   end
 

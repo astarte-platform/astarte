@@ -112,33 +112,44 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandler do
     )
   end
 
-  def incoming_data(targets, realm, device_id, interface, path, bson_value, timestamp)
-      when is_list(targets) do
-    execute_all_ok(targets, fn {target, policy} ->
-      incoming_data(target, realm, device_id, interface, path, bson_value, timestamp, policy) ==
-        :ok
-    end)
-  end
-
   def incoming_data(
-        target,
         realm,
         device_id,
-        interface,
+        groups,
+        interface_name,
+        interface_id,
+        endpoint_id,
         path,
+        value,
         bson_value,
         timestamp,
-        policy
+        state
       ) do
-    %IncomingDataEvent{interface: interface, path: path, bson_value: bson_value}
-    |> dispatch_event_with_telemetry(
-      :incoming_data_event,
-      target,
+    event = %IncomingDataEvent{interface: interface_name, path: path, bson_value: bson_value}
+    hw_id = Device.encode_device_id(device_id)
+
+    Triggers.find_all_data_trigger_targets(
       realm,
       device_id,
-      timestamp,
-      policy
+      groups,
+      :on_incoming_data,
+      interface_id,
+      endpoint_id,
+      path,
+      value,
+      Map.from_struct(state)
     )
+    |> execute_all_ok(fn {target, policy} ->
+      dispatch_event_with_telemetry(
+        event,
+        :incoming_data_event,
+        target,
+        realm,
+        hw_id,
+        timestamp,
+        policy
+      )
+    end)
   end
 
   def incoming_introspection(targets, realm, device_id, introspection, timestamp)

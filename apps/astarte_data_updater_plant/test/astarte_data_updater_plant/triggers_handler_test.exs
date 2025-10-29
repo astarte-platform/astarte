@@ -43,6 +43,7 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandlerTest do
   alias Astarte.Core.Device
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.AMQPTriggerTarget
   alias Astarte.DataUpdaterPlant.Config
+  alias Astarte.DataUpdaterPlant.DataUpdater.State
   alias Astarte.DataUpdaterPlant.TriggersHandler
   alias Astarte.Events.Triggers
   alias Astarte.Housekeeping.AMQP.Vhost
@@ -264,15 +265,31 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandlerTest do
         routing_key: @routing_key
       }
 
-      TriggersHandler.incoming_data(
-        target,
+      Mimic.expect(Astarte.Events.Triggers, :find_all_data_trigger_targets, fn
         @realm,
-        @device_id,
-        @interface,
+        @decoded_device_id,
+        _groups,
+        :on_incoming_data,
+        _interface_id,
+        _endpoint_id,
         @path,
+        _value,
+        _state ->
+          [{target, nil}]
+      end)
+
+      TriggersHandler.incoming_data(
+        @realm,
+        @decoded_device_id,
+        _groups = [],
+        @interface,
+        _interface_id = <<>>,
+        _endpoint_id = <<>>,
+        @path,
+        _value = nil,
         @bson_value,
         timestamp,
-        nil
+        %State{}
       )
 
       assert_receive {:event, payload, meta}

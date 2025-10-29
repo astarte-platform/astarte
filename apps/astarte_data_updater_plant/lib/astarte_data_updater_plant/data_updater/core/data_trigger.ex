@@ -22,11 +22,9 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DataTrigger do
   @moduledoc """
 
   """
-  alias Astarte.DataUpdaterPlant.TriggersHandler
   alias Astarte.Core.Mapping.EndpointsAutomaton
   alias Astarte.Core.InterfaceDescriptor
   alias Astarte.Core.Triggers.DataTrigger
-  alias Astarte.DataUpdaterPlant.DataUpdater.Core
 
   def data_trigger_to_key(state, data_trigger, event_type) do
     %DataTrigger{
@@ -54,86 +52,6 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DataTrigger do
     {event_type, interface_id, endpoint}
   end
 
-  def execute_incoming_data_triggers(
-        state,
-        device,
-        interface,
-        interface_id,
-        path,
-        endpoint_id,
-        payload,
-        value,
-        timestamp
-      ) do
-    realm = state.realm
-
-    # any interface triggers
-    Core.Interface.get_on_data_triggers(state, :on_incoming_data, :any_interface, :any_endpoint)
-    |> Enum.each(fn trigger ->
-      target_with_policy_list = get_target_with_policy_list(state, trigger)
-
-      TriggersHandler.incoming_data(
-        target_with_policy_list,
-        realm,
-        device,
-        interface,
-        path,
-        payload,
-        timestamp
-      )
-    end)
-
-    # any endpoint triggers
-    Core.Interface.get_on_data_triggers(state, :on_incoming_data, interface_id, :any_endpoint)
-    |> Enum.each(fn trigger ->
-      target_with_policy_list = get_target_with_policy_list(state, trigger)
-
-      TriggersHandler.incoming_data(
-        target_with_policy_list,
-        realm,
-        device,
-        interface,
-        path,
-        payload,
-        timestamp
-      )
-    end)
-
-    # incoming data triggers
-    Core.Interface.get_on_data_triggers(
-      state,
-      :on_incoming_data,
-      interface_id,
-      endpoint_id,
-      path,
-      value
-    )
-    |> Enum.each(fn trigger ->
-      target_with_policy_list = get_target_with_policy_list(state, trigger)
-
-      TriggersHandler.incoming_data(
-        target_with_policy_list,
-        realm,
-        device,
-        interface,
-        path,
-        payload,
-        timestamp
-      )
-    end)
-
-    :ok
-  end
-
   defp replace_empty_token(""), do: "%{}"
   defp replace_empty_token(non_empty), do: non_empty
-
-  defp get_target_with_policy_list(state, trigger) do
-    trigger.trigger_targets
-    |> Enum.map(fn target ->
-      parent_target_id = Map.get(state.trigger_id_to_policy_name, target.parent_trigger_id)
-
-      {target, parent_target_id}
-    end)
-  end
 end
