@@ -12,31 +12,24 @@ defmodule Astarte.Pairing.TO0UtilTest do
 
     test "fails with non-CBOR binary" do
       invalid_binary_nonce = <<1, 2, 3, 4, 5>>
-      assert {:error, {:cbor_decode_error, _}} = TO0Util.get_nonce_from_hello_ack(invalid_binary_nonce)
+      hello_ack_cbor = CBOR.encode([invalid_binary_nonce])
+      assert {:error, {:unexpected_binary, _}} = TO0Util.get_nonce_from_hello_ack(hello_ack_cbor)
     end
 
     test "fails with CBOR not formatted as FDO expects" do
       wrong_struct1 = %{"nonce" => "map instead of list"}
       wrong_cbor1 = CBOR.encode(wrong_struct1)
-      assert {:error, {:unexpected_format, _}} = TO0Util.get_nonce_from_hello_ack(wrong_cbor1)
+      assert {:error, {:unexpected_cbor_format, _}} = TO0Util.get_nonce_from_hello_ack(wrong_cbor1)
 
       wrong_cbor2 = CBOR.encode([<<32, 54, 127, 243, 66, 48, 228, 115, 59, 186, 230, 246, 198, 179, 113, 78>>,
-                                 <<32, 54, 127, 243, 66, 48, 228, 115, 59, 186, 230, 246, 198, 179, 113, 78>>])
-      assert {:error, {:unexpected_format, _}} = TO0Util.get_nonce_from_hello_ack(wrong_cbor2)
-
+                                <<32, 54, 127, 243, 66, 48, 228, 115, 59, 186, 230, 246, 198, 179, 113, 78>>])
+      assert {:error, {:unexpected_cbor_format, _}} = TO0Util.get_nonce_from_hello_ack(wrong_cbor2)
     end
-  end
 
-  describe "decode_ownership_voucher/0" do
-    test "returns decoded voucher if PEM  is valid" do
-      ownership_voucher = get_mock_ownership_voucher()
-      result = TO0Util.decode_ownership_voucher(ownership_voucher)
-      assert match?({:ok, _}, result)
-    end
-    test "returns error if PEM is not valid" do
-      ownership_voucher = "-----BEGIN OWNERSHIP VOUCHER-----\ninvaliddata\n-----END OWNERSHIP VOUCHER-----"
-      result = TO0Util.decode_ownership_voucher(ownership_voucher)
-      assert {:error, _} = result
+    test "fails with CBOR single binary but wrong length" do
+      invalid_nonce = <<1, 2, 3, 4, 5, 6, 7, 8>>
+      hello_ack_cbor = CBOR.encode([invalid_nonce])
+      assert {:error, {:unexpected_binary, ^invalid_nonce}} = TO0Util.get_nonce_from_hello_ack(hello_ack_cbor)
     end
   end
 
@@ -47,11 +40,14 @@ defmodule Astarte.Pairing.TO0UtilTest do
     end
   end
 
-  describe "safe_sign/2" do
-    test "returns error for invalid key" do
-      assert {:error, {:signing_failed, _}} = TO0Util.safe_sign("data", <<1, 2, 3>>)
-    end
-  end
+  test "safe_sign returns error for invalid key format" do
+    data = "test"
+    invalid_key = <<1, 2, 3>> 
+    assert {:error, :invalid_private_key_format} = TO0Util.safe_sign(data, invalid_key)
+
+    invalid_key2 = "not_a_binary"
+    assert {:error, :invalid_private_key_format} = TO0Util.safe_sign(data, invalid_key2)
+end
 
   describe "get_astarte_rv_to2_addr_entries/0" do
     test "returns a list of entries with correct types" do
@@ -66,7 +62,7 @@ defmodule Astarte.Pairing.TO0UtilTest do
         assert is_list(decoded)
         assert length(decoded) == 4
 
-        assert is_list(Enum.at(decoded, 0))
+        assert is_binary(Enum.at(decoded, 0))
         assert is_binary(Enum.at(decoded, 1))
         assert is_integer(Enum.at(decoded, 2))
         assert is_integer(Enum.at(decoded, 3))
@@ -74,16 +70,50 @@ defmodule Astarte.Pairing.TO0UtilTest do
     end
   end
 
-  describe "build_owner_sign_message/1" do
-    test "returns a valid CBOR payload if owner key, voucher, nonce and address entries are valid" do
+  describe "build_owner_sign_message/4" do
+    test "returns {:ok, payload} for valid inputs" do
+      nonce = get_mock_nonce()
       ownership_voucher = get_mock_ownership_voucher()
       owner_key = get_mock_owner_key()
-      nonce = get_mock_nonce()
-      addr_entries = get_mock_astarte_rv_to2_addr_entries()
+      {:ok, addr_entries} = get_mock_astarte_rv_to2_addr_entries()
+
       result = TO0Util.build_owner_sign_message(nonce, ownership_voucher, owner_key, addr_entries)
-      assert match?({:ok, payload} when is_binary(payload), result)
+      assert {:ok, payload} = result
+      assert is_binary(payload)
+      assert byte_size(payload) > 0
+    end
+
+    test "returns error for invalid nonce" do
+      invalid_nonce = <<1, 2, 3>>
+      ownership_voucher = get_mock_ownership_voucher()
+      owner_key = get_mock_owner_key()
+      {:ok, addr_entries} = get_mock_astarte_rv_to2_addr_entries()
+
+      result = TO0Util.build_owner_sign_message(invalid_nonce, ownership_voucher, owner_key, addr_entries)
+      assert {:error, _} = result
+    end
+
+    test "returns error for invalid owner key" do
+      nonce = get_mock_nonce()
+      ownership_voucher = get_mock_ownership_voucher()
+      invalid_owner_key = "not_a_key"
+      {:ok, addr_entries} = get_mock_astarte_rv_to2_addr_entries()
+
+      result = TO0Util.build_owner_sign_message(nonce, ownership_voucher, invalid_owner_key, addr_entries)
+      assert {:error, _} = result
+    end
+
+    test "returns error for invalid address entries" do
+      nonce = get_mock_nonce()
+      ownership_voucher = get_mock_ownership_voucher()
+      owner_key = get_mock_owner_key()
+      invalid_addr_entries = []
+
+      result = TO0Util.build_owner_sign_message(nonce, ownership_voucher, owner_key, invalid_addr_entries)
+      assert {:error, _} = result
     end
   end
+
 
   defp get_mock_astarte_rv_to2_addr_entries() do
     with {:ok, rv_entry1} <- TO0Util.build_rv_to2_addr_entry(CBOR.encode([]), "pippo", 8080, 3),

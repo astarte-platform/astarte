@@ -21,21 +21,18 @@ defmodule Astarte.Pairing.TO0Util do
 
   def get_nonce_from_hello_ack(body) do
     case CBOR.decode(body) do
-      {:ok, decoded, _rest} when is_list(decoded) and length(decoded) == 1 ->
-        [nonce_to_sign] = decoded
-        if is_binary(nonce_to_sign) do
-          {:ok, nonce_to_sign}
-        else
-          {:error, :invalid_nonce_type}
-        end
+      {:ok, [nonce_to_sign], _rest} when is_binary(nonce_to_sign) and byte_size(nonce_to_sign) == 16 ->
+        {:ok, nonce_to_sign}
+      {:ok, [nonce_to_sign], _rest} when is_binary(nonce_to_sign) and byte_size(nonce_to_sign) != 16 ->
+        {:error, {:unexpected_binary, nonce_to_sign}}
+      {:ok, decoded, _rest} ->
+        {:error, {:unexpected_cbor_format, decoded}}
+     
       {:error, reason} ->
         Logger.warning("Failed to decode TO0.HelloAck CBOR", reason: reason)
         {:error, {:cbor_decode_error, reason}}
-      other ->
-        {:error, {:unexpected_format, other}}
     end
   end
-
   # TODO: real implementation using API call
   def get_ownership_voucher() do
     path = Path.join([:code.priv_dir(:astarte_pairing), "ownership-voucher.pem"])
@@ -86,7 +83,7 @@ defmodule Astarte.Pairing.TO0Util do
     end
   end
 
-  defp safe_der_decode(der_data) do
+  def safe_der_decode(der_data) do
     try do
       {:ok, :public_key.der_decode(:ECPrivateKey, der_data)}
     rescue
@@ -102,15 +99,20 @@ defmodule Astarte.Pairing.TO0Util do
     end
   end
 
-  defp safe_sign(data, priv_key) do
-    try do
-      {:ok, :crypto.sign(:ecdsa, :sha256, data, [priv_key, :secp256r1])}
-    rescue
-      e -> {:error, {:signing_failed, e}}
-    end
+  def safe_sign(data, priv_key) do
+    # ECDSA with SHA-256 requires a 32-byte private key secp256r1
+    if is_binary(priv_key) and byte_size(priv_key) == 32 do
+      try do
+        {:ok, :crypto.sign(:ecdsa, :sha256, data, [priv_key, :secp256r1])}
+      rescue
+        e -> {:error, {:signing_failed, e}}
+      end
+    else
+      {:error, :invalid_private_key_format}
   end
+end
 
-  defp build_rv_to2_addr_entry(ip, dns, port, protocol) do
+  def build_rv_to2_addr_entry(ip, dns, port, protocol) do
     rv_entry = [
       ip,
       dns,
