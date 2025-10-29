@@ -52,7 +52,7 @@ defmodule Astarte.Pairing.Config do
   @envdoc "The URL to access the FDO Rendezvous Server."
   app_env :fdo_rendezvous_url, :astarte_pairing, :fdo_rendezvous_url,
     os_env: "PAIRING_FDO_RENDEZVOUS_URL",
-    type: :binary,  
+    type: :binary,
     default: "http://rendezvous:8041"
 
   def init! do
