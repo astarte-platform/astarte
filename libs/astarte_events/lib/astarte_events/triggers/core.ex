@@ -27,6 +27,7 @@ defmodule Astarte.Events.Triggers.Core do
   alias Astarte.DataAccess.Realms.SimpleTrigger
   alias Astarte.Events.Triggers.DataTrigger, as: DataTriggerWithTargets
   alias Astarte.Events.TriggersHandler.Core
+  alias Astarte.Events.Triggers.ValueMatchOperators
   alias Astarte.Events.Triggers.Queries
 
   @type data_trigger :: %ProtobufDataTrigger{}
@@ -70,7 +71,7 @@ defmodule Astarte.Events.Triggers.Core do
             optional(term()) => term(),
             data_triggers: %{data_event_key() => [AMQPTriggerTarget.t()]},
             device_triggers: %{device_event_key() => [AMQPTriggerTarget.t()]},
-            trigger_id_to_policy_name: %{Astarte.DataAccess.UUID.t() => String.t()},
+            trigger_id_to_policy_name: DataTriggerWithTargets.trigger_id_to_policy_name(),
             interfaces: %{String.t() => InterfaceDescriptor.t()},
             interface_ids_to_name: %{Astarte.DataAccess.UUID.t() => String.t()}
           }
@@ -437,5 +438,23 @@ defmodule Astarte.Events.Triggers.Core do
       |> Map.put(:parent_trigger_id, simple_trigger.parent_trigger_id)
 
     {trigger_data, trigger_target}
+  end
+
+  @spec path_matches?([String.t()], DataTriggerWithTargets.path_match_tokens()) :: boolean()
+  defp path_matches?(_path_tokens, :any_endpoint), do: true
+
+  defp path_matches?(path_tokens, path_match_tokens) do
+    # SAFETY: Any endpoint configuration must not generate paths that are prefix of other paths
+
+    Enum.zip(path_tokens, path_match_tokens)
+    |> Enum.all?(fn {path_token, path_match_token} ->
+      path_token == path_match_token or path_match_token == ""
+    end)
+  end
+
+  @spec valid_trigger_for_value?(DataTriggerWithTargets.t(), [String.t()], term()) :: boolean()
+  def valid_trigger_for_value?(trigger, path_tokens, value) do
+    path_matches?(path_tokens, trigger.path_match_tokens) and
+      ValueMatchOperators.value_matches?(value, trigger.value_match_operator, trigger.known_value)
   end
 end

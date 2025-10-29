@@ -20,17 +20,45 @@ defmodule Astarte.Events.Triggers.DataTrigger do
   use TypedStruct
   alias Astarte.Core.Triggers.DataTrigger
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.AMQPTriggerTarget
+  alias __MODULE__, as: DataTriggerWithPolicy
 
   @type policy_name() :: String.t() | nil
   @type target_and_policy() :: {AMQPTriggerTarget.t(), policy_name()}
+  @type trigger_id_to_policy_name() :: %{Astarte.DataAccess.UUID.t() => String.t()}
+  @type path_match_tokens() :: :any_endpoint | [String.t()]
 
   typedstruct do
     field :interface_id, DataTrigger.interface_id()
-    field :path_match_tokens, DataTrigger.path_match_tokens()
+    field :path_match_tokens, path_match_tokens()
     field :value_match_operator, DataTrigger.value_match_operator()
     field :known_value, DataTrigger.known_value()
     field :trigger_targets, [target_and_policy()], enforce: true
   end
 
   defdelegate are_congruent?(trigger_a, trigger_b), to: DataTrigger
+
+  @spec from_core(DataTrigger.t(), trigger_id_to_policy_name) :: t()
+  def from_core(data_trigger, trigger_id_to_policy_name) do
+    %DataTrigger{
+      interface_id: interface_id,
+      path_match_tokens: path_match_tokens,
+      value_match_operator: value_match_operator,
+      known_value: known_value,
+      trigger_targets: trigger_targets
+    } = data_trigger
+
+    targets_with_policies =
+      for target <- trigger_targets do
+        policy = Map.get(trigger_id_to_policy_name, target.parent_trigger_id)
+        {target, policy}
+      end
+
+    %DataTriggerWithPolicy{
+      interface_id: interface_id,
+      path_match_tokens: path_match_tokens,
+      value_match_operator: value_match_operator,
+      known_value: known_value,
+      trigger_targets: targets_with_policies
+    }
+  end
 end

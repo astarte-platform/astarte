@@ -34,7 +34,7 @@ defmodule Astarte.Events.Triggers do
 
     with {:ok, event_key, new_trigger} <-
            Core.get_trigger_with_event_key(data, trigger_type, trigger),
-         {:ok, subject} <- Cache.trigger_subject(trigger.device_id, trigger.group_name) do
+         {:ok, subject} <- Cache.trigger_subject(trigger_type, trigger) do
       policy = Core.get_trigger_policy(realm_name, target)
 
       Cache.install_volatile_trigger(
@@ -52,14 +52,13 @@ defmodule Astarte.Events.Triggers do
   defdelegate delete_volatile_trigger(realm_name, trigger_id), to: Cache
 
   @doc """
-    Returns the list of targets for an event.
-    This operation is an optimization and should only be used for device events.
+    Returns the list of targets for a device event.
   """
   @spec find_device_trigger_targets(
           String.t(),
           Astarte.DataAccess.UUID.t(),
           [String.t()] | nil,
-          Core.event_key()
+          Core.device_event_key()
         ) :: [Core.target_and_policy()]
   def find_device_trigger_targets(
         realm_name,
@@ -69,6 +68,120 @@ defmodule Astarte.Events.Triggers do
       ) do
     device_groups = groups || Queries.get_device_groups(realm_name, device_id)
     Cache.find_device_trigger_targets(realm_name, device_id, device_groups, event_key)
+  end
+
+  @doc """
+    Returns the full list of targets for data events on an interface and endpoint.
+  """
+  @spec find_all_data_trigger_targets(
+          String.t(),
+          Astarte.DataAccess.UUID.t(),
+          [String.t()],
+          Core.data_trigger_event(),
+          Astarte.DataAccess.UUID.t(),
+          Astarte.DataAccess.UUID.t(),
+          Core.fetch_triggers_data()
+        ) :: [Core.target_and_policy()]
+  def find_all_data_trigger_targets(
+        realm_name,
+        device_id,
+        groups,
+        event,
+        interface_id,
+        endpoint_id,
+        data
+      ) do
+    [
+      {event, :any_interface, :any_endpoint},
+      {event, interface_id, :any_endpoint},
+      {event, interface_id, endpoint_id}
+    ]
+    |> Enum.map(fn event_key ->
+      Cache.find_data_trigger_targets(realm_name, device_id, groups, event_key, data)
+    end)
+    |> Enum.concat()
+  end
+
+  @doc """
+    Returns the full list of targets for data events on an interface and endpoint with a path and value.
+  """
+  @spec find_all_data_trigger_targets(
+          String.t(),
+          Astarte.DataAccess.UUID.t(),
+          [String.t()],
+          Core.data_trigger_event(),
+          Astarte.DataAccess.UUID.t(),
+          Astarte.DataAccess.UUID.t(),
+          String.t(),
+          term(),
+          Core.fetch_triggers_data()
+        ) :: [Core.target_and_policy()]
+  def find_all_data_trigger_targets(
+        realm_name,
+        device_id,
+        groups,
+        event,
+        interface_id,
+        endpoint_id,
+        path,
+        value \\ nil,
+        data
+      ) do
+    path_tokens = path |> String.split("/") |> Enum.drop(1)
+
+    [
+      {event, :any_interface, :any_endpoint},
+      {event, interface_id, :any_endpoint},
+      {event, interface_id, endpoint_id}
+    ]
+    |> Enum.map(fn event_key ->
+      Cache.find_data_trigger_targets(
+        realm_name,
+        device_id,
+        groups,
+        event_key,
+        path_tokens,
+        value,
+        data
+      )
+    end)
+    |> Enum.concat()
+  end
+
+  defdelegate find_data_trigger_targets(realm_name, device_id, groups, event_key, data), to: Cache
+
+  @doc """
+    Returns the list of targets for a data event with a path and value.
+  """
+  @spec find_data_trigger_targets(
+          String.t(),
+          Astarte.DataAccess.UUID.t(),
+          [String.t()],
+          Core.data_event_key(),
+          String.t(),
+          term(),
+          Core.fetch_triggers_data()
+        ) :: [Core.target_and_policy()]
+  def find_data_trigger_targets(
+        realm_name,
+        device_id,
+        groups,
+        event_key,
+        path,
+        value \\ nil,
+        data
+      ) do
+    path_tokens = path |> String.split("/") |> Enum.drop(1)
+
+    Cache.find_data_trigger_targets(
+      realm_name,
+      device_id,
+      groups,
+      event_key,
+      path_tokens,
+      value,
+      data
+    )
   end
 
   defdelegate deserialize_simple_trigger(trigger), to: Core
