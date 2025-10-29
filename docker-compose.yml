@@ -87,6 +87,7 @@ services:
       - ./.env
     environment:
       APPENGINE_API_ROOMS_AMQP_CLIENT_HOST: "rabbitmq"
+      PAIRING_FDO_RENDEZVOUS_URL: "http://rendezvous:8041"
     restart: on-failure
     depends_on:
       - "rabbitmq"
@@ -199,6 +200,24 @@ services:
           - dashboard.${DOCKER_COMPOSE_ASTARTE_BASE_DOMAIN}
           - grafana.${DOCKER_COMPOSE_ASTARTE_BASE_DOMAIN}
           - broker.${DOCKER_COMPOSE_ASTARTE_BASE_DOMAIN}
+  
+  rendezvous:
+    image: quay.io/fido-fdo/rendezvous-server:latest
+    restart: on-failure
+    ports:
+      - "8041:8041"
+    volumes:
+      - ./compose/fdo-config/rendezvous-server.yml:/etc/fdo/rendezvous-server.yml:z
+      - ./compose/fdo-keys:/etc/fdo/keys:z
+      - fdo-rendezvous-data:/var/lib/fdo
+    environment:
+      RENDEZVOUS_SERVER_CONF: "/etc/fdo/rendezvous-server.yml"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.fdo-rendezvous.rule=Host(`fdo.${DOCKER_COMPOSE_ASTARTE_BASE_DOMAIN}`)"
+      - "traefik.http.routers.fdo-rendezvous.entrypoints=web"
+      - "traefik.http.routers.fdo-rendezvous.service=fdo-rendezvous"
+      - "traefik.http.services.fdo-rendezvous.loadbalancer.server.port=8041"
 
   # RabbitMQ
   rabbitmq:
@@ -263,6 +282,7 @@ volumes:
   scylla-data:
   vernemq-data:
   cfssl-data:
+  fdo-rendezvous-data:
 
 networks:
   default:
