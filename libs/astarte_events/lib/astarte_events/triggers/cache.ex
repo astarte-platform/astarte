@@ -234,28 +234,28 @@ defmodule Astarte.Events.Triggers.Cache do
   end
 
   defp device_cache(realm_name, event_key, subject, object_id, object_type) do
-    triggers = fetch_device_event(realm_name, event_key, subject, object_id, object_type)
+    triggers = fetch_device_event(realm_name, event_key, object_id, object_type)
     volatile_triggers = fetch_volatile_event(realm_name, event_key, subject)
 
     Enum.concat(triggers, volatile_triggers)
   end
 
   defp data_cache(realm_name, event_key, subject, object_id, object_type, data) do
-    triggers = fetch_data_event(realm_name, event_key, subject, object_id, object_type, data)
+    triggers = fetch_data_event(realm_name, event_key, object_id, object_type, data)
     volatile_triggers = fetch_volatile_event(realm_name, event_key, subject)
 
     Enum.concat(triggers, volatile_triggers)
   end
 
-  defp fetch_device_event(realm_name, event_key, subject, object_id, object_type) do
-    ConCache.get_or_store(@event_targets, {realm_name, subject}, fn ->
+  defp fetch_device_event(realm_name, event_key, object_id, object_type) do
+    ConCache.get_or_store(@event_targets, {realm_name, object_id, object_type}, fn ->
       fetch_device_triggers(realm_name, object_id, object_type)
     end)
     |> Map.get(event_key, [])
   end
 
-  defp fetch_data_event(realm_name, event_key, subject, object_id, object_type, data) do
-    ConCache.get_or_store(@event_targets, {realm_name, subject}, fn ->
+  defp fetch_data_event(realm_name, event_key, object_id, object_type, data) do
+    ConCache.get_or_store(@event_targets, {realm_name, object_id, object_type}, fn ->
       fetch_data_triggers(realm_name, object_id, object_type, data)
     end)
     |> Map.get(event_key, [])
@@ -513,7 +513,7 @@ defmodule Astarte.Events.Triggers.Cache do
   """
   def reset_realm_cache(realm_name) do
     ConCache.ets(@event_targets)
-    |> :ets.select_delete([{{{realm_name, :"$1"}, :"$2"}, [], [true]}])
+    |> :ets.select_delete([{{{realm_name, :"$1", :"$2", :"$3"}, :"$4"}, [], [true]}])
 
     ConCache.ets(@event_volatile_targets)
     |> :ets.select_delete([{{{realm_name, :"$1", :"$2"}, :"$3"}, [], [true]}])

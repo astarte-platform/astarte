@@ -27,8 +27,8 @@ defmodule Astarte.Events.Triggers.Core do
   alias Astarte.DataAccess.Realms.SimpleTrigger
   alias Astarte.Events.Triggers.DataTrigger, as: DataTriggerWithTargets
   alias Astarte.Events.TriggersHandler.Core
-  alias Astarte.Events.Triggers.ValueMatchOperators
   alias Astarte.Events.Triggers.Queries
+  alias Astarte.Events.Triggers.ValueMatchOperators
 
   @type data_trigger :: %ProtobufDataTrigger{}
   @type device_trigger :: %ProtobufDeviceTrigger{}
