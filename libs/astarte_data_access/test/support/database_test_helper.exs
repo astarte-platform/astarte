@@ -57,6 +57,15 @@ defmodule Astarte.DataAccess.DatabaseTestHelper do
     );
   """
 
+  @create_ownership_vouchers_table """
+  CREATE TABLE :keyspace.ownership_vouchers (
+      private_key blob,
+      voucher_data blob,
+      device_id uuid,
+      PRIMARY KEY (device_id, voucher_data)
+   );
+  """
+
   @create_devices_table """
       CREATE TABLE autotestrealm.devices (
         device_id uuid,
@@ -403,6 +412,7 @@ defmodule Astarte.DataAccess.DatabaseTestHelper do
   def create_test_keyspace(conn) do
     case Xandra.execute(conn, @create_autotestrealm) do
       {:ok, _} ->
+        Xandra.execute!(conn, @create_ownership_vouchers_table)
         Xandra.execute!(conn, @create_devices_table)
         Xandra.execute!(conn, @create_names_table)
         Xandra.execute!(conn, @create_kv_store)
