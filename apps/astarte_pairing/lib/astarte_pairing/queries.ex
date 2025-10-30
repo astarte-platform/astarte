@@ -28,6 +28,7 @@ defmodule Astarte.Pairing.Queries do
   alias Astarte.DataAccess.KvStore
   alias Astarte.DataAccess.Realms.Realm
   alias Astarte.DataAccess.Repo
+  alias Astarte.DataAccess.FDO.OwnershipVoucher
 
   require Logger
 
@@ -221,6 +222,19 @@ defmodule Astarte.Pairing.Queries do
       |> Repo.one!(prefix: keyspace, consistency: consistency)
 
     {:ok, count}
+  end
+
+  def create_ownership_voucher(realm_name, device_id, voucher_blob, private_key, ttl) do
+    keyspace_name = Realm.keyspace_name(realm_name)
+
+    opts = [prefix: keyspace_name, consistency: Consistency.device_info(:write), ttl: ttl]
+
+    %OwnershipVoucher{
+      voucher_data: voucher_blob,
+      private_key: private_key,
+      device_id: device_id
+    }
+    |> Repo.insert(opts)
   end
 
   defp do_register_device(

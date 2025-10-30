@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2017 Ispirata Srl
+# Copyright 2025 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -16,12 +16,20 @@
 # limitations under the License.
 #
 
-Mimic.copy(Astarte.DataAccess.Config)
-Mimic.copy(Astarte.Pairing.Config)
-Mimic.copy(DateTime)
-Mimic.copy(Astarte.DataAccess.Health.Health)
-Mimic.copy(HTTPoison)
-Mimic.copy(Astarte.Events.TriggersHandler)
-Mimic.copy(Astarte.Pairing.Queries)
+defmodule Astarte.PairingWeb.OwnershipVoucherController do
+  use Astarte.PairingWeb, :controller
 
-ExUnit.start(capture_log: true)
+  alias Astarte.Pairing.FDO.OwnershipVoucher
+
+  action_fallback Astarte.PairingWeb.FallbackController
+
+  def create(conn, %{
+        "ownership_voucher" => voucher,
+        "private_key" => key,
+        "realm_name" => realm_name
+      }) do
+    with :ok <- OwnershipVoucher.save_voucher(realm_name, voucher, key) do
+      send_resp(conn, 200, "")
+    end
+  end
+end
