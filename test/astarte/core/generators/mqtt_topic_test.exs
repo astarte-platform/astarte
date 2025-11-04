@@ -23,6 +23,8 @@ defmodule Astarte.Core.Generators.MQTTTopicTest do
   use ExUnit.Case, async: true
   use ExUnitProperties
 
+  alias Astarte.Core.Interface
+
   alias Astarte.Core.Generators.Device, as: DeviceGenerator
   alias Astarte.Core.Generators.Interface, as: InterfaceGenerator
   alias Astarte.Core.Generators.MQTTTopic, as: MQTTTopicGenerator
@@ -48,30 +50,32 @@ defmodule Astarte.Core.Generators.MQTTTopicTest do
     end
   end
 
-  describe "generate astarte topics with correct prefixes" do
+  describe "generate astarte topics with params" do
     @describetag :success
     @describetag :ut
-    property "control_topic/2" do
+
+    property "passing device" do
       check all realm_name <- RealmGenerator.realm_name(),
-                device_id <- DeviceGenerator.id(),
+                %{id: device_id} = device <- DeviceGenerator.device(),
                 topic <-
                   MQTTTopicGenerator.control_topic(
                     realm_name: realm_name,
-                    device_id: device_id
+                    device: device
                   ) do
         assert String.starts_with?(topic, "#{realm_name}/#{device_id}/control/")
       end
     end
 
-    property "data_topic/3" do
+    property "passing device, device_id and interface" do
       check all realm_name <- RealmGenerator.realm_name(),
-                device_id <- DeviceGenerator.id(),
-                interface_name <- InterfaceGenerator.name(),
+                %{id: device_id} = device <- DeviceGenerator.device(),
+                %Interface{name: interface_name} = interface <- InterfaceGenerator.interface(),
                 topic <-
                   MQTTTopicGenerator.data_topic(
                     realm_name: realm_name,
+                    device: device,
                     device_id: device_id,
-                    interface_name: interface_name
+                    interface: interface
                   ) do
         assert String.starts_with?(topic, "#{realm_name}/#{device_id}/#{interface_name}/")
       end
