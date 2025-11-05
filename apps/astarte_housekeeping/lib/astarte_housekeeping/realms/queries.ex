@@ -341,6 +341,12 @@ defmodule Astarte.Housekeeping.Realms.Queries do
       {:ok, %{rows: nil, num_rows: 1}} ->
         :ok
 
+      {:error, %Xandra.Error{reason: :already_exists}} ->
+        "Tried to create already existing realm"
+        |> Logger.warning(realm: keyspace_name)
+
+        {:error, :conflicting_realm_name}
+
       {:error, reason} ->
         _ =
           Logger.warning("Cannot create keyspace: #{inspect(reason)}.",

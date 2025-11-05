@@ -48,6 +48,13 @@ defmodule Astarte.HousekeepingWeb.FallbackController do
     |> render(:"503")
   end
 
+  def call(conn, {:error, :conflicting_realm_name}) do
+    conn
+    |> put_status(:conflict)
+    |> put_view(ErrorView)
+    |> render(:conflicting_realm_name)
+  end
+
   def call(conn, {:error, :vhost_creation_error}) do
     conn
     |> put_status(:service_unavailable)

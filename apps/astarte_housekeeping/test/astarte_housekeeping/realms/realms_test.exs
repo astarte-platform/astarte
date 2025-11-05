@@ -181,7 +181,7 @@ defmodule Astarte.Housekeeping.RealmsTest do
       }
 
       assert {:ok, %Realm{} = _realm} = Realms.create_realm(attrs)
-      assert {:error, :database_error} = Realms.create_realm(attrs)
+      assert {:error, :conflicting_realm_name} = Realms.create_realm(attrs)
     end
 
     test "with invalid data returns error changeset" do

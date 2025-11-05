@@ -55,6 +55,10 @@ defmodule Astarte.HousekeepingWeb.ErrorView do
     %{errors: %{detail: "Realm still contains connected devices"}}
   end
 
+  def render("conflicting_realm_name.json", _assigns) do
+    %{errors: %{detail: "Realm already exists"}}
+  end
+
   def render("set_datastream_maximum_storage_retention_fail.json", _assigns) do
     %{errors: %{detail: "Failed to set datastream_maximum_storage_retention"}}
   end

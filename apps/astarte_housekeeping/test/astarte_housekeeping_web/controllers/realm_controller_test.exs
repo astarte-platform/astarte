@@ -194,12 +194,12 @@ defmodule Astarte.HousekeepingWeb.RealmControllerTest do
     end
 
     test "renders errors when realm_name is invalid", %{auth_conn: conn} do
-      conn = post conn, realm_path(conn, :create), @invalid_name_attrs
+      conn = post(conn, realm_path(conn, :create), @invalid_name_attrs)
       assert json_response(conn, 422)["errors"] != %{}
     end
 
     test "renders errors when realm_name is reserved", %{auth_conn: conn} do
-      conn = post conn, realm_path(conn, :create), @reserved_name_attrs
+      conn = post(conn, realm_path(conn, :create), @reserved_name_attrs)
       assert json_response(conn, 422)["errors"] != %{}
     end
 
@@ -223,6 +223,16 @@ defmodule Astarte.HousekeepingWeb.RealmControllerTest do
     } do
       conn = post(conn, realm_path(conn, :create), @invalid_replication_attrs)
       assert json_response(conn, 422)["errors"] != %{}
+    end
+
+    test "returns 409 for already existing realms", %{auth_conn: conn} do
+      # create the realm
+      conn |> post(realm_path(conn, :create), @create_attrs) |> response(201)
+
+      # try to create it again
+      response = conn |> post(realm_path(conn, :create), @create_attrs) |> json_response(409)
+      assert "Realm already exists" =~ response["errors"]["detail"]
+      Database.teardown_realm_keyspace(@create_attrs["data"]["realm_name"])
     end
   end
 
