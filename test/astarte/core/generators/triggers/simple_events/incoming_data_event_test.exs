@@ -44,16 +44,15 @@ defmodule Astarte.Core.Generators.Triggers.SimpleEvents.IncomingDataEventTest do
     end
 
     property "generates valid incoming_data_event using interface" do
-      check all %Interface{name: interface_name} <- InterfaceGenerator.interface(),
+      check all interface <- InterfaceGenerator.interface(),
                 incoming_data_event <-
-                  IncomingDataEventGenerator.incoming_data_event(interface_name: interface_name) do
+                  IncomingDataEventGenerator.incoming_data_event(interface: interface) do
         assert %IncomingDataEvent{} = incoming_data_event
       end
     end
 
-    property "generates valid incoming_data_event using interface and bson_value" do
-      check all %Interface{interface_name: interface_name} = interface <-
-                  InterfaceGenerator.interface(),
+    property "generates valid incoming_data_event using name and bson_value" do
+      check all %Interface{name: interface_name} = interface <- InterfaceGenerator.interface(),
                 bson_value <- BSONValueGenerator.bson_value(interface: interface),
                 incoming_data_event <-
                   IncomingDataEventGenerator.incoming_data_event(
