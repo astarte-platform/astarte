@@ -88,14 +88,32 @@ defmodule Astarte.HousekeepingWeb.RealmControllerTest do
     Config.put_enable_realm_deletion(true)
   end
 
+  test "does not allow unauthenticated connections", %{conn: conn} do
+    response = conn |> get(realm_path(conn, :index)) |> json_response(401)
+    assert response["errors"]["detail"] == "Unauthorized"
+  end
+
+  test "does not allow unauthorized connections", %{conn: conn} do
+    token = Astarte.Helpers.JWTTestHelper.gen_jwt_token([])
+
+    response =
+      conn
+      |> put_req_header("accept", "application/json")
+      |> put_req_header("authorization", "Bearer #{token}")
+      |> get(realm_path(conn, :index))
+      |> json_response(403)
+
+    assert response["errors"]["detail"] == "Forbidden"
+  end
+
   describe "index" do
-    test "lists all entries on index when no realms exist", %{conn: conn} do
+    test "lists all entries on index when no realms exist", %{auth_conn: conn} do
       Mimic.stub(Realms, :list_realms, fn -> {:ok, []} end)
       conn = get(conn, realm_path(conn, :index))
       assert json_response(conn, 200) == %{"data" => []}
     end
 
-    test "lists all entries on index after creating a realm", %{conn: conn} do
+    test "lists all entries on index after creating a realm", %{auth_conn: conn} do
       conn = post(conn, realm_path(conn, :create), @create_attrs)
       assert response(conn, 201)
       conn = get(conn, realm_path(conn, :index))
@@ -108,7 +126,7 @@ defmodule Astarte.HousekeepingWeb.RealmControllerTest do
   end
 
   describe "create realm" do
-    test "renders realm when data is valid", %{conn: conn} do
+    test "renders realm when data is valid", %{auth_conn: conn} do
       conn = post(conn, realm_path(conn, :create), @create_attrs)
       assert response(conn, 201)
       conn = get(conn, realm_path(conn, :show, @create_attrs["data"]["realm_name"]))
@@ -127,7 +145,7 @@ defmodule Astarte.HousekeepingWeb.RealmControllerTest do
       Database.teardown_realm_keyspace(@create_attrs["data"]["realm_name"])
     end
 
-    test "renders realm with explicit replication_factor", %{conn: conn} do
+    test "renders realm with explicit replication_factor", %{auth_conn: conn} do
       conn = post(conn, realm_path(conn, :create), @explicit_replication_attrs)
       assert response(conn, 201)
       conn = get(conn, realm_path(conn, :show, @explicit_replication_attrs["data"]["realm_name"]))
@@ -148,7 +166,7 @@ defmodule Astarte.HousekeepingWeb.RealmControllerTest do
       Database.teardown_realm_keyspace(@explicit_replication_attrs["data"]["realm_name"])
     end
 
-    test "renders realm with network topology", %{conn: conn} do
+    test "renders realm with network topology", %{auth_conn: conn} do
       conn = post(conn, realm_path(conn, :create), @network_topology_attrs)
       assert response(conn, 201)
 
@@ -169,39 +187,39 @@ defmodule Astarte.HousekeepingWeb.RealmControllerTest do
       Database.teardown_realm_keyspace(@network_topology_attrs["data"]["realm_name"])
     end
 
-    test "returns a 404 on show non-existing realm", %{conn: conn} do
+    test "returns a 404 on show non-existing realm", %{auth_conn: conn} do
       conn = get(conn, realm_path(conn, :show, @non_existing_realm_name))
 
       assert json_response(conn, 404)
     end
 
-    test "renders errors when realm_name is invalid", %{conn: conn} do
+    test "renders errors when realm_name is invalid", %{auth_conn: conn} do
       conn = post conn, realm_path(conn, :create), @invalid_name_attrs
       assert json_response(conn, 422)["errors"] != %{}
     end
 
-    test "renders errors when realm_name is reserved", %{conn: conn} do
+    test "renders errors when realm_name is reserved", %{auth_conn: conn} do
       conn = post conn, realm_path(conn, :create), @reserved_name_attrs
       assert json_response(conn, 422)["errors"] != %{}
     end
 
-    test "renders errors when no public key is provided", %{conn: conn} do
+    test "renders errors when no public key is provided", %{auth_conn: conn} do
       conn = post(conn, realm_path(conn, :create), @no_pubkey_attrs)
       assert json_response(conn, 422)["errors"] != %{}
     end
 
-    test "renders errors when public key is invalid", %{conn: conn} do
+    test "renders errors when public key is invalid", %{auth_conn: conn} do
       conn = post(conn, realm_path(conn, :create), @invalid_pubkey_attrs)
       assert json_response(conn, 422)["errors"] != %{}
     end
 
-    test "renders errors when public key is malformed", %{conn: conn} do
+    test "renders errors when public key is malformed", %{auth_conn: conn} do
       conn = post(conn, realm_path(conn, :create), @malformed_pubkey_attrs)
       assert json_response(conn, 422)["errors"] != %{}
     end
 
     test "renders errors when replication_factor is invalid", %{
-      conn: conn
+      auth_conn: conn
     } do
       conn = post(conn, realm_path(conn, :create), @invalid_replication_attrs)
       assert json_response(conn, 422)["errors"] != %{}
@@ -209,7 +227,7 @@ defmodule Astarte.HousekeepingWeb.RealmControllerTest do
   end
 
   describe "update" do
-    test "updates chosen realm when data is valid", %{conn: conn} do
+    test "updates chosen realm when data is valid", %{auth_conn: conn} do
       %Realm{realm_name: realm_name} = realm = realm_fixture()
       conn = patch(conn, realm_path(conn, :update, realm), @update_attrs)
       assert %{"data" => updated_realm} = json_response(conn, 200)
@@ -220,7 +238,7 @@ defmodule Astarte.HousekeepingWeb.RealmControllerTest do
              } = updated_realm
     end
 
-    test "updates chosen realm device registration limit", %{conn: conn} do
+    test "updates chosen realm device registration limit", %{auth_conn: conn} do
       %Realm{realm_name: realm_name} = realm = realm_fixture()
       limit = 10
 
@@ -237,7 +255,7 @@ defmodule Astarte.HousekeepingWeb.RealmControllerTest do
              } = updated_realm
     end
 
-    test "updates chosen realm maximum storage retention", %{conn: conn} do
+    test "updates chosen realm maximum storage retention", %{auth_conn: conn} do
       %Realm{realm_name: realm_name} = realm = realm_fixture()
       limit = 10
 
@@ -255,7 +273,7 @@ defmodule Astarte.HousekeepingWeb.RealmControllerTest do
     end
 
     test "renders errors when datastream maximum storage retention is invalid", %{
-      conn: conn
+      auth_conn: conn
     } do
       %Realm{} = realm = realm_fixture()
 
@@ -267,7 +285,7 @@ defmodule Astarte.HousekeepingWeb.RealmControllerTest do
       assert json_response(conn, 422)["errors"] != %{}
     end
 
-    test "removes chosen realm device registration limit", %{conn: conn} do
+    test "removes chosen realm device registration limit", %{auth_conn: conn} do
       %Realm{realm_name: realm_name} = realm = realm_fixture()
 
       conn =
@@ -295,7 +313,7 @@ defmodule Astarte.HousekeepingWeb.RealmControllerTest do
              } = updated_realm
     end
 
-    test "removes chosen realm maximum storage retention", %{conn: conn} do
+    test "removes chosen realm maximum storage retention", %{auth_conn: conn} do
       %Realm{realm_name: realm_name} = realm = realm_fixture()
 
       conn =
@@ -323,7 +341,7 @@ defmodule Astarte.HousekeepingWeb.RealmControllerTest do
              } = updated_realm
     end
 
-    test "renders errors when data is invalid", %{conn: conn} do
+    test "renders errors when data is invalid", %{auth_conn: conn} do
       realm = realm_fixture()
       conn = patch(conn, realm_path(conn, :update, realm), @invalid_update_attrs)
       assert json_response(conn, 422)["errors"] != %{}
@@ -331,7 +349,7 @@ defmodule Astarte.HousekeepingWeb.RealmControllerTest do
   end
 
   describe "delete" do
-    test "deletes chosen realm", %{conn: conn} do
+    test "deletes chosen realm", %{auth_conn: conn} do
       realm = realm_fixture()
       conn = delete(conn, realm_path(conn, :delete, realm))
       assert response(conn, 204)
@@ -340,7 +358,7 @@ defmodule Astarte.HousekeepingWeb.RealmControllerTest do
       assert json_response(conn, 404)
     end
 
-    test "returns error when deleting a realm with connected devices", %{conn: conn} do
+    test "returns error when deleting a realm with connected devices", %{auth_conn: conn} do
       Mimic.stub(Queries, :delete_realm, fn _, _ -> {:error, :connected_devices_present} end)
 
       realm = realm_fixture()
@@ -348,7 +366,9 @@ defmodule Astarte.HousekeepingWeb.RealmControllerTest do
       assert response(conn, 422)
     end
 
-    test "returns error when trying to delete a realm while deletion is disabled", %{conn: conn} do
+    test "returns error when trying to delete a realm while deletion is disabled", %{
+      auth_conn: conn
+    } do
       Mimic.stub(Config, :enable_realm_deletion!, fn -> false end)
 
       realm = realm_fixture()

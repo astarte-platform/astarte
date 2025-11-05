@@ -23,14 +23,14 @@ defmodule Astarte.HousekeepingWeb.VersionControllerTest do
   @expected_version Mix.Project.config()[:version]
 
   describe "GET /v1/version" do
-    test "returns the app version", %{conn: conn} do
+    test "returns the app version", %{auth_conn: conn} do
       conn = get(conn, version_path(conn, :show))
       assert json_response(conn, 200) == %{"data" => @expected_version}
     end
   end
 
   describe "GET /version" do
-    test "returns the app version with realm", %{conn: conn} do
+    test "returns the app version with realm", %{auth_conn: conn} do
       conn = get(conn, "/version")
       assert json_response(conn, 200) == %{"data" => @expected_version}
     end

@@ -32,6 +32,6 @@ defmodule Astarte.HousekeepingWeb.AuthCase do
       |> put_req_header("accept", "application/json")
       |> put_req_header("authorization", "Bearer #{token}")
 
-    {:ok, conn: conn}
+    {:ok, auth_conn: conn}
   end
 end
