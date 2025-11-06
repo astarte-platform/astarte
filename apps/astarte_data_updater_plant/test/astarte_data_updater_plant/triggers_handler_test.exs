@@ -45,7 +45,6 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandlerTest do
   alias Astarte.DataUpdaterPlant.Config
   alias Astarte.DataUpdaterPlant.DataUpdater.State
   alias Astarte.DataUpdaterPlant.TriggersHandler
-  alias Astarte.Events.Triggers
   alias Astarte.Housekeeping.AMQP.Vhost
 
   @introspection "com.My.Interface:1:0;com.Another.Interface:1:2"
@@ -127,12 +126,7 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandlerTest do
         routing_key: @routing_key
       }
 
-      Mimic.expect(Triggers, :find_device_trigger_targets, fn @realm,
-                                                              @decoded_device_id,
-                                                              _,
-                                                              :on_device_connection ->
-        [{target, nil}]
-      end)
+      register_target(:on_device_connection, target)
 
       TriggersHandler.device_connected(@realm, @decoded_device_id, [], @ip_address, timestamp)
 
@@ -266,18 +260,7 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandlerTest do
         routing_key: @routing_key
       }
 
-      Mimic.expect(Astarte.Events.Triggers, :find_all_data_trigger_targets, fn
-        @realm,
-        @decoded_device_id,
-        _groups,
-        :on_incoming_data,
-        _interface_id,
-        _endpoint_id,
-        @path,
-        _value,
-        _state ->
-          [{target, nil}]
-      end)
+      register_target(:on_incoming_data, target)
 
       TriggersHandler.incoming_data(
         @realm,
@@ -591,17 +574,7 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandlerTest do
         routing_key: @routing_key
       }
 
-      Mimic.expect(Astarte.Events.Triggers, :find_all_data_trigger_targets, fn _realm,
-                                                                               _device_id,
-                                                                               _groups,
-                                                                               :on_path_created,
-                                                                               _interface_id,
-                                                                               _endpoint_id,
-                                                                               _path,
-                                                                               _value,
-                                                                               _data ->
-        [{target, nil}]
-      end)
+      register_target(:on_path_created, target)
 
       TriggersHandler.path_created(
         @realm,
@@ -664,16 +637,7 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandlerTest do
         routing_key: @routing_key
       }
 
-      Mimic.expect(Astarte.Events.Triggers, :find_all_data_trigger_targets, fn _,
-                                                                               _,
-                                                                               _,
-                                                                               :on_path_removed,
-                                                                               _,
-                                                                               _,
-                                                                               _,
-                                                                               _ ->
-        [{target, nil}]
-      end)
+      register_target(:on_path_removed, target)
 
       TriggersHandler.path_removed(
         @realm,
@@ -797,16 +761,21 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandlerTest do
         routing_key: @routing_key
       }
 
+      register_target(:on_value_change_applied, target)
+
       TriggersHandler.value_change_applied(
-        target,
         @realm,
-        @device_id,
+        @decoded_device_id,
+        [],
+        _interface_id = <<>>,
+        _endpoint_id = <<>>,
         @interface,
         @path,
+        42,
         old_bson_value,
         new_bson_value,
         timestamp,
-        nil
+        %State{}
       )
 
       assert_receive {:event, payload, meta}
@@ -873,16 +842,21 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandlerTest do
         routing_key: "trigger_engine"
       }
 
+      register_target(:on_value_change_applied, target, nil)
+
       TriggersHandler.value_change_applied(
-        target,
         @realm,
-        @device_id,
+        @decoded_device_id,
+        [],
+        _interface_id = <<>>,
+        _endpoint_id = <<>>,
         @interface,
         @path,
+        42,
         old_bson_value,
         new_bson_value,
         timestamp,
-        nil
+        %State{}
       )
 
       assert_receive {:event, payload, meta}
@@ -936,16 +910,21 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandlerTest do
         routing_key: "trigger_engine"
       }
 
+      register_target(:on_value_change_applied, target, @custom_policy_name)
+
       TriggersHandler.value_change_applied(
-        target,
         @realm,
-        @device_id,
+        @decoded_device_id,
+        [],
+        _interface_id = <<>>,
+        _endpoint_id = <<>>,
         @interface,
         @path,
+        42,
         old_bson_value,
         new_bson_value,
         timestamp,
-        @custom_policy_name
+        %State{}
       )
 
       assert_receive {:event, payload, meta}
@@ -999,16 +978,21 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandlerTest do
         routing_key: @routing_key
       }
 
+      register_target(:on_value_change_applied, target)
+
       TriggersHandler.value_change_applied(
-        target,
         @realm,
-        @device_id,
+        @decoded_device_id,
+        [],
+        _interface_id = <<>>,
+        _endpoint_id = <<>>,
         @interface,
         @path,
+        42,
         old_bson_value,
         new_bson_value,
         timestamp,
-        nil
+        %State{}
       )
 
       assert_receive {:event, payload, meta}
@@ -1066,5 +1050,19 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandlerTest do
       end)
 
     consumer_tag
+  end
+
+  defp register_target(event, target, policy \\ nil) do
+    Astarte.Events.Triggers
+    |> Mimic.stub(:find_all_data_trigger_targets, fn _, _, _, ^event, _, _, _, _, _ ->
+      [{target, policy}]
+    end)
+    |> Mimic.stub(:find_all_data_trigger_targets, fn _, _, _, ^event, _, _, _, _ ->
+      [{target, policy}]
+    end)
+    |> Mimic.stub(:find_all_data_trigger_targets, fn _, _, _, ^event, _, _, _ ->
+      [{target, policy}]
+    end)
+    |> Mimic.stub(:find_device_trigger_targets, fn _, _, _, ^event -> [{target, policy}] end)
   end
 end

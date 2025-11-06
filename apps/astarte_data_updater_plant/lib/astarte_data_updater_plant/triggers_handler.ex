@@ -458,56 +458,50 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandler do
   end
 
   def value_change_applied(
-        targets,
         realm,
         device_id,
+        groups,
+        interface_id,
+        endpoint_id,
         interface,
         path,
-        old_bson_value,
-        new_bson_value,
-        timestamp
-      )
-      when is_list(targets) do
-    execute_all_ok(targets, fn {target, policy} ->
-      value_change_applied(
-        target,
-        realm,
-        device_id,
-        interface,
-        path,
+        new_value,
         old_bson_value,
         new_bson_value,
         timestamp,
-        policy
-      ) == :ok
-    end)
-  end
-
-  def value_change_applied(
-        target,
-        realm,
-        device_id,
-        interface,
-        path,
-        old_bson_value,
-        new_bson_value,
-        timestamp,
-        policy
+        state
       ) do
-    %ValueChangeAppliedEvent{
+    event = %ValueChangeAppliedEvent{
       interface: interface,
       path: path,
       old_bson_value: old_bson_value,
       new_bson_value: new_bson_value
     }
-    |> dispatch_event_with_telemetry(
-      :value_change_applied_event,
-      target,
+
+    hw_id = Device.encode_device_id(device_id)
+
+    Triggers.find_all_data_trigger_targets(
       realm,
       device_id,
-      timestamp,
-      policy
+      groups,
+      :on_value_change_applied,
+      interface_id,
+      endpoint_id,
+      path,
+      new_value,
+      Map.from_struct(state)
     )
+    |> execute_all_ok(fn {target, policy} ->
+      dispatch_event_with_telemetry(
+        event,
+        :value_change_applied_event,
+        target,
+        realm,
+        hw_id,
+        timestamp,
+        policy
+      )
+    end)
   end
 
   defp introspection_string_to_introspection_proto_map!(introspection_string) do

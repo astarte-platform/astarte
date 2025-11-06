@@ -76,8 +76,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DataHandler do
           value
         )
 
-      previous_value =
-        get_previous_value(context, interface_descriptor, mapping, maybe_change_triggers)
+      previous_value = get_previous_value(context, interface_descriptor, mapping)
 
       context = Map.put(context, :previous_value, previous_value)
 
@@ -112,7 +111,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DataHandler do
         timestamp,
         ttl: db_max_ttl
       )
-      |> handle_result(context, maybe_change_triggers, interface_descriptor, mapping, value)
+      |> handle_result(context, interface_descriptor, mapping, value)
     end
   end
 
@@ -144,35 +143,8 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DataHandler do
 
   defp maybe_execute_pre_change_triggers(_, _, _, _), do: :ok
 
-  defp maybe_execute_post_change_triggers(
-         context,
-         interface_descriptor,
-         mapping,
-         value,
-         {:ok, change_triggers}
-       ) do
-    %{
-      state: state,
-      path: path,
-      previous_value: previous_value,
-      explicit_value_timestamp: explicit_value_timestamp
-    } = context
-
-    Core.Trigger.execute_post_change_triggers(
-      state,
-      change_triggers,
-      interface_descriptor,
-      mapping,
-      path,
-      previous_value,
-      value,
-      explicit_value_timestamp
-    )
-  end
-
-  defp maybe_execute_post_change_triggers(_, _, _, _, _), do: :ok
-
-  defp get_previous_value(context, interface_descriptor, mapping, {:ok, _change_triggers}) do
+  defp get_previous_value(context, interface_descriptor, mapping)
+       when interface_descriptor.type == :properties do
     %{state: state, path: path} = context
 
     case Data.fetch_property(state.realm, state.device_id, interface_descriptor, mapping, path) do
@@ -181,9 +153,9 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DataHandler do
     end
   end
 
-  defp get_previous_value(_, _, _, _), do: nil
+  defp get_previous_value(_, _, _), do: nil
 
-  defp handle_result({:error, :unset_not_allowed}, context, _, _, _, _) do
+  defp handle_result({:error, :unset_not_allowed}, context, _, _, _) do
     error = %{
       message: "Tried to unset a property with `allow_unset`=false.",
       logger_metadata: [tag: "unset_not_allowed"],
@@ -194,23 +166,29 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DataHandler do
     Core.Error.handle_error(context, error, update_stats: false)
   end
 
-  defp handle_result(:ok, context, maybe_change_triggers, interface_descriptor, mapping, value) do
+  defp handle_result(:ok, context, interface_descriptor, mapping, value) do
     %{
       state: state,
       path: path,
       payload: payload,
       interface: interface,
       message_id: message_id,
-      db_max_ttl: db_max_ttl
+      db_max_ttl: db_max_ttl,
+      previous_value: previous_value,
+      explicit_value_timestamp: explicit_value_timestamp
     } = context
 
-    maybe_execute_post_change_triggers(
-      context,
-      interface_descriptor,
-      mapping,
-      value,
-      maybe_change_triggers
-    )
+    if interface_descriptor.type == :properties do
+      Core.Trigger.execute_post_change_triggers(
+        state,
+        interface_descriptor,
+        mapping,
+        path,
+        previous_value,
+        value,
+        explicit_value_timestamp
+      )
+    end
 
     paths_cache = Cache.put(state.paths_cache, {interface, path}, %CachedPath{}, db_max_ttl)
     state = %{state | paths_cache: paths_cache}

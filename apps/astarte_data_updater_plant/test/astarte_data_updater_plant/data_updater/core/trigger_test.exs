@@ -71,10 +71,10 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.TriggerTest do
       major_version: major,
       minor_version: 1,
       automaton: {[], []},
-      storage: "individual_datastreams",
-      storage_type: :multi_interface_individual_datastream_dbtable,
+      storage: "individual_properties",
+      storage_type: :multi_interface_individual_properties_dbtable,
       interface_id: interface_id,
-      type: :datastream,
+      type: :properties,
       ownership: :device,
       aggregation: :individual
     }
@@ -181,39 +181,9 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.TriggerTest do
   end
 
   describe "execute_post_change_triggers/9" do
-    test "executes triggers for post-change events with empty triggers", context do
-      triggers = {[], [], [], []}
-
-      %{
-        state: state
-      } = context
-
-      interface = "test.interface"
-      descriptor = interface_descriptor(interface, 1)
-      path = "/test/path"
-      mapping = mapping(descriptor, path, :string)
-
-      Mimic.reject(&TriggersHandler.path_created/11)
-      Mimic.reject(&TriggersHandler.path_removed/9)
-      Mimic.reject(&TriggersHandler.value_change_applied/8)
-
-      assert :ok ==
-               Trigger.execute_post_change_triggers(
-                 state,
-                 triggers,
-                 descriptor,
-                 mapping,
-                 "/test/path",
-                 "old_value",
-                 "new_value",
-                 1_600_000_000
-               )
-    end
-
     test "execute_post_change_triggers/9 executes path_created triggers when value changes from nil",
          context do
       state = context.state
-      triggers = {[], [], [], []}
       realm = state.realm
       interface = "test_interface"
       descriptor = interface_descriptor(interface, 1)
@@ -246,7 +216,6 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.TriggerTest do
       assert :ok =
                Trigger.execute_post_change_triggers(
                  state,
-                 triggers,
                  descriptor,
                  mapping,
                  path,
@@ -259,7 +228,6 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.TriggerTest do
     test "execute_post_change_triggers/9 executes path_removed triggers when value changes to nil",
          context do
       state = context.state
-      triggers = {[], [], [], []}
       realm = state.realm
       interface = "test_interface"
       descriptor = interface_descriptor(interface, 1)
@@ -289,7 +257,6 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.TriggerTest do
       assert :ok =
                Trigger.execute_post_change_triggers(
                  state,
-                 triggers,
                  descriptor,
                  mapping,
                  path,
@@ -302,34 +269,39 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.TriggerTest do
     test "execute_post_change_triggers/9 executes value_change_applied triggers when value changes",
          context do
       state = context.state
-      triggers = {[], [%{trigger_targets: [mock_trigger_target()]}], [], []}
       realm = state.realm
       interface = "test_interface"
       descriptor = interface_descriptor(interface, 1)
+      interface_id = descriptor.interface_id
       path = "/test/path"
       mapping = mapping(descriptor, path, :integer)
+      endpoint_id = mapping.endpoint_id
       previous_value = 42
       value = 43
       timestamp = DateTime.utc_now()
 
-      Mimic.expect(TriggersHandler, :value_change_applied, fn _target_with_policy_list,
-                                                              ^realm,
+      Mimic.expect(TriggersHandler, :value_change_applied, fn ^realm,
                                                               device,
+                                                              _groups,
+                                                              ^interface_id,
+                                                              ^endpoint_id,
                                                               interface,
                                                               path,
+                                                              new_value,
                                                               _old_bson_value,
                                                               _payload,
-                                                              ^timestamp ->
-        assert device == Astarte.Core.Device.encode_device_id(state.device_id)
+                                                              ^timestamp,
+                                                              _state ->
+        assert device == state.device_id
         assert interface == "test_interface"
         assert path == "/test/path"
+        assert new_value == value
         :ok
       end)
 
       assert :ok =
                Trigger.execute_post_change_triggers(
                  state,
-                 triggers,
                  descriptor,
                  mapping,
                  path,
