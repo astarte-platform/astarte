@@ -19,10 +19,11 @@
 defmodule Astarte.DataUpdaterPlant.DataUpdater.State do
   use TypedStruct
 
+  alias Astarte.Core.Device.Capabilities
   alias Astarte.Core.InterfaceDescriptor
+  alias Astarte.Core.Mapping
   alias Astarte.Core.Triggers.DataTrigger
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.AMQPTriggerTarget
-  alias Astarte.Core.Mapping
   alias Astarte.DataUpdaterPlant.DataUpdater.Cache
   alias Astarte.DataUpdaterPlant.DataUpdater.CachedPath
 
@@ -83,31 +84,30 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.State do
     field :device_id, binary()
     field :message_tracker, pid()
     field :introspection, %{interface_name => interface_major}
-    field :groups, [group_name]
-    field :interfaces, descriptors_by_name()
-    field :interface_ids_to_name, %{interface_id => interface_name}
-    field :interfaces_by_expiry, [{integer(), String.t()}]
-    field :mappings, mappings_map()
+    field :groups, [group_name], default: []
+    field :interfaces, descriptors_by_name(), default: %{}
+    field :interface_ids_to_name, %{interface_id => interface_name}, default: %{}
+    field :interfaces_by_expiry, [{integer(), String.t()}], default: []
+    field :mappings, mappings_map(), default: %{}
     field :paths_cache, paths_cache_type()
-    field :device_triggers, device_triggers_type()
-    field :data_triggers, data_triggers_type()
-    field :volatile_triggers, volatile_triggers_type()
-    field :introspection_triggers, map()
-    field :connected, boolean()
-    field :total_received_msgs, non_neg_integer()
-    field :total_received_bytes, non_neg_integer()
-    field :initial_interface_exchanged_bytes, map()
-    field :initial_interface_exchanged_msgs, map()
-    field :interface_exchanged_bytes, interface_exchanged_bytes_map()
-    field :interface_exchanged_msgs, interface_exchanged_msgs_map()
-    field :last_seen_message, non_neg_integer()
-    field :last_device_triggers_refresh, non_neg_integer()
-    field :last_groups_refresh, non_neg_integer()
+    field :device_triggers, device_triggers_type(), default: %{}
+    field :data_triggers, data_triggers_type(), default: %{}
+    field :volatile_triggers, volatile_triggers_type(), default: []
+    field :connected, boolean(), default: true
+    field :total_received_msgs, non_neg_integer(), default: 0
+    field :total_received_bytes, non_neg_integer(), default: 0
+    field :initial_interface_exchanged_bytes, map(), default: %{}
+    field :initial_interface_exchanged_msgs, map(), default: %{}
+    field :interface_exchanged_bytes, interface_exchanged_bytes_map(), default: %{}
+    field :interface_exchanged_msgs, interface_exchanged_msgs_map(), default: %{}
+    field :last_seen_message, non_neg_integer(), default: 0
+    field :last_device_triggers_refresh, non_neg_integer(), default: 0
+    field :last_groups_refresh, non_neg_integer(), default: 0
     field :datastream_maximum_storage_retention, integer() | nil
-    field :trigger_id_to_policy_name, %{trigger_id => policy_name}
-    field :discard_messages, boolean()
-    field :last_deletion_in_progress_refresh, non_neg_integer()
-    field :last_datastream_maximum_retention_refresh, non_neg_integer()
-    field :capabilities, Astarte.Core.Device.Capabilities.t()
+    field :trigger_id_to_policy_name, %{trigger_id => policy_name}, default: %{}
+    field :discard_messages, boolean(), default: false
+    field :last_deletion_in_progress_refresh, non_neg_integer(), default: 0
+    field :last_datastream_maximum_retention_refresh, non_neg_integer(), default: 0
+    field :capabilities, Capabilities.t(), default: %Capabilities{}
   end
 end

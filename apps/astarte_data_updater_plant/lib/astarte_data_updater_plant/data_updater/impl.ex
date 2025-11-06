@@ -36,25 +36,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
       realm: realm,
       device_id: device_id,
       message_tracker: message_tracker,
-      connected: true,
-      groups: [],
-      interfaces: %{},
-      interface_ids_to_name: %{},
-      interfaces_by_expiry: [],
-      mappings: %{},
       paths_cache: Cache.new(Config.paths_cache_size!()),
-      device_triggers: %{},
-      data_triggers: %{},
-      volatile_triggers: [],
-      interface_exchanged_bytes: %{},
-      interface_exchanged_msgs: %{},
-      last_seen_message: 0,
-      last_device_triggers_refresh: 0,
-      last_groups_refresh: 0,
-      trigger_id_to_policy_name: %{},
-      discard_messages: false,
-      last_deletion_in_progress_refresh: 0,
-      last_datastream_maximum_retention_refresh: 0
     }
 
     encoded_device_id = Device.encode_device_id(device_id)
