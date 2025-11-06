@@ -121,8 +121,7 @@ defmodule Astarte.Pairing.Mixfile do
       {:mimic, "~> 1.11", only: :test},
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
       {:con_cache, "~> 1.1"},
-      {:astarte_events, path: astarte_lib("astarte_events")},
-      {:cbor, "~> 1.0"}
+      {:astarte_events, path: astarte_lib("astarte_events")}
     ]
   end
 
