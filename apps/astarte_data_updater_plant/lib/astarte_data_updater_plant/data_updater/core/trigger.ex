@@ -115,16 +115,24 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.Trigger do
   end
 
   def execute_post_change_triggers(
-        {_, value_change_applied_triggers, path_created_triggers, path_removed_triggers},
-        realm,
-        device,
-        interface,
+        state,
+        {_, value_change_applied_triggers, path_created_triggers, _},
+        interface_descriptor,
+        mapping,
         path,
         previous_value,
         value,
-        timestamp,
-        trigger_id_to_policy_name_map
+        timestamp
       ) do
+    %{
+      realm: realm,
+      device_id: device_id,
+      groups: groups,
+      trigger_id_to_policy_name: trigger_id_to_policy_name_map
+    } = state
+
+    hw_id = Device.encode_device_id(device_id)
+    interface = interface_descriptor.name
     old_bson_value = Cyanide.encode!(%{v: previous_value})
     payload = Cyanide.encode!(%{v: value})
 
@@ -139,7 +147,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.Trigger do
         TriggersHandler.path_created(
           target_with_policy_list,
           realm,
-          device,
+          hw_id,
           interface,
           path,
           payload,
@@ -149,22 +157,17 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.Trigger do
     end
 
     if previous_value != nil and value == nil do
-      Enum.each(path_removed_triggers, fn trigger ->
-        target_with_policy_list =
-          trigger.trigger_targets
-          |> Enum.map(fn target ->
-            {target, Map.get(trigger_id_to_policy_name_map, target.parent_trigger_id)}
-          end)
-
-        TriggersHandler.path_removed(
-          target_with_policy_list,
-          realm,
-          device,
-          interface,
-          path,
-          timestamp
-        )
-      end)
+      TriggersHandler.path_removed(
+        realm,
+        device_id,
+        groups,
+        interface_descriptor.interface_id,
+        mapping.endpoint_id,
+        interface,
+        path,
+        timestamp,
+        state
+      )
     end
 
     if previous_value != value do
@@ -178,7 +181,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.Trigger do
         TriggersHandler.value_change_applied(
           target_with_policy_list,
           realm,
-          device,
+          hw_id,
           interface,
           path,
           old_bson_value,

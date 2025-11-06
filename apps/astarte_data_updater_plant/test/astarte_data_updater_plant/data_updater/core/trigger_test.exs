@@ -22,12 +22,15 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.TriggerTest do
   use ExUnit.Case
   use ExUnitProperties
 
+  alias Astarte.Core.CQLUtils
+  alias Astarte.Core.Generators.Device, as: DeviceGenerator
+  alias Astarte.Core.InterfaceDescriptor
+  alias Astarte.Core.Mapping
+  alias Astarte.Core.Triggers.SimpleTriggersProtobuf.AMQPTriggerTarget
+  alias Astarte.DataUpdaterPlant.AMQPTestHelper
   alias Astarte.DataUpdaterPlant.DataUpdater
   alias Astarte.DataUpdaterPlant.DataUpdater.Core.Trigger
   alias Astarte.DataUpdaterPlant.DataUpdater.State
-  alias Astarte.Core.Generators.Device, as: DeviceGenerator
-  alias Astarte.Core.Triggers.SimpleTriggersProtobuf.AMQPTriggerTarget
-  alias Astarte.DataUpdaterPlant.AMQPTestHelper
   alias Astarte.DataUpdaterPlant.TriggersHandler
 
   use Astarte.Cases.Data, async: true
@@ -58,6 +61,35 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.TriggerTest do
 
   defp mock_device_trigger(state, event_type) do
     %{state | device_triggers: %{event_type => [mock_trigger_target()]}}
+  end
+
+  defp interface_descriptor(interface, major) do
+    interface_id = CQLUtils.interface_id(interface, major)
+
+    %InterfaceDescriptor{
+      name: interface,
+      major_version: major,
+      minor_version: 1,
+      automaton: {[], []},
+      storage: "individual_datastreams",
+      storage_type: :multi_interface_individual_datastream_dbtable,
+      interface_id: interface_id,
+      type: :datastream,
+      ownership: :device,
+      aggregation: :individual
+    }
+  end
+
+  defp mapping(interface_descriptor, endpoint, value_type) do
+    %{name: name, major_version: major, interface_id: interface_id} = interface_descriptor
+    endpoint_id = CQLUtils.endpoint_id(name, major, endpoint)
+
+    %Mapping{
+      endpoint: endpoint,
+      value_type: value_type,
+      endpoint_id: endpoint_id,
+      interface_id: interface_id
+    }
   end
 
   describe "execute_pre_change_triggers/9" do
@@ -156,34 +188,40 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.TriggerTest do
         state: state
       } = context
 
+      interface = "test.interface"
+      descriptor = interface_descriptor(interface, 1)
+      path = "/test/path"
+      mapping = mapping(descriptor, path, :string)
+
       Mimic.reject(&TriggersHandler.path_created/7)
-      Mimic.reject(&TriggersHandler.path_removed/6)
+      Mimic.reject(&TriggersHandler.path_removed/9)
       Mimic.reject(&TriggersHandler.value_change_applied/8)
 
       assert :ok ==
                Trigger.execute_post_change_triggers(
+                 state,
                  triggers,
-                 state.realm,
-                 state.device_id,
-                 "test.interface",
+                 descriptor,
+                 mapping,
                  "/test/path",
                  "old_value",
                  "new_value",
-                 1_600_000_000,
-                 %{}
+                 1_600_000_000
                )
     end
 
-    test "execute_post_change_triggers/9 executes path_created triggers when value changes from nil" do
+    test "execute_post_change_triggers/9 executes path_created triggers when value changes from nil",
+         context do
+      state = context.state
       triggers = {[], [], [%{trigger_targets: [mock_trigger_target()]}], []}
-      realm = "test_realm"
-      device = "test_device"
+      realm = state.realm
       interface = "test_interface"
+      descriptor = interface_descriptor(interface, 1)
       path = "/test/path"
+      mapping = mapping(descriptor, path, :integer)
       previous_value = nil
       value = 42
       timestamp = DateTime.utc_now()
-      trigger_id_to_policy_name_map = %{1 => "test_policy"}
 
       Mimic.expect(TriggersHandler, :path_created, fn _target_with_policy_list,
                                                       ^realm,
@@ -192,7 +230,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.TriggerTest do
                                                       path,
                                                       _payload,
                                                       ^timestamp ->
-        assert device == "test_device"
+        assert device == Astarte.Core.Device.encode_device_id(state.device_id)
         assert interface == "test_interface"
         assert path == "/test/path"
         :ok
@@ -200,36 +238,42 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.TriggerTest do
 
       assert :ok =
                Trigger.execute_post_change_triggers(
+                 state,
                  triggers,
-                 realm,
-                 device,
-                 interface,
+                 descriptor,
+                 mapping,
                  path,
                  previous_value,
                  value,
-                 timestamp,
-                 trigger_id_to_policy_name_map
+                 timestamp
                )
     end
 
-    test "execute_post_change_triggers/9 executes path_removed triggers when value changes to nil" do
-      triggers = {[], [], [], [%{trigger_targets: [mock_trigger_target()]}]}
-      realm = "test_realm"
-      device = "test_device"
+    test "execute_post_change_triggers/9 executes path_removed triggers when value changes to nil",
+         context do
+      state = context.state
+      triggers = {[], [], [], []}
+      realm = state.realm
       interface = "test_interface"
+      descriptor = interface_descriptor(interface, 1)
+      interface_id = descriptor.interface_id
       path = "/test/path"
+      mapping = mapping(descriptor, path, :integer)
+      endpoint_id = mapping.endpoint_id
       previous_value = 42
       value = nil
       timestamp = DateTime.utc_now()
-      trigger_id_to_policy_name_map = %{1 => "test_policy"}
 
-      Mimic.expect(TriggersHandler, :path_removed, fn _target_with_policy_list,
-                                                      ^realm,
-                                                      device,
+      Mimic.expect(TriggersHandler, :path_removed, fn ^realm,
+                                                      device_id,
+                                                      _groups,
+                                                      ^interface_id,
+                                                      ^endpoint_id,
                                                       interface,
                                                       path,
-                                                      ^timestamp ->
-        assert device == "test_device"
+                                                      ^timestamp,
+                                                      _state ->
+        assert device_id == state.device_id
         assert interface == "test_interface"
         assert path == "/test/path"
         :ok
@@ -237,28 +281,29 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.TriggerTest do
 
       assert :ok =
                Trigger.execute_post_change_triggers(
+                 state,
                  triggers,
-                 realm,
-                 device,
-                 interface,
+                 descriptor,
+                 mapping,
                  path,
                  previous_value,
                  value,
-                 timestamp,
-                 trigger_id_to_policy_name_map
+                 timestamp
                )
     end
 
-    test "execute_post_change_triggers/9 executes value_change_applied triggers when value changes" do
+    test "execute_post_change_triggers/9 executes value_change_applied triggers when value changes",
+         context do
+      state = context.state
       triggers = {[], [%{trigger_targets: [mock_trigger_target()]}], [], []}
-      realm = "test_realm"
-      device = "test_device"
+      realm = state.realm
       interface = "test_interface"
+      descriptor = interface_descriptor(interface, 1)
       path = "/test/path"
+      mapping = mapping(descriptor, path, :integer)
       previous_value = 42
       value = 43
       timestamp = DateTime.utc_now()
-      trigger_id_to_policy_name_map = %{1 => "test_policy"}
 
       Mimic.expect(TriggersHandler, :value_change_applied, fn _target_with_policy_list,
                                                               ^realm,
@@ -268,7 +313,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.TriggerTest do
                                                               _old_bson_value,
                                                               _payload,
                                                               ^timestamp ->
-        assert device == "test_device"
+        assert device == Astarte.Core.Device.encode_device_id(state.device_id)
         assert interface == "test_interface"
         assert path == "/test/path"
         :ok
@@ -276,15 +321,14 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.TriggerTest do
 
       assert :ok =
                Trigger.execute_post_change_triggers(
+                 state,
                  triggers,
-                 realm,
-                 device,
-                 interface,
+                 descriptor,
+                 mapping,
                  path,
                  previous_value,
                  value,
-                 timestamp,
-                 trigger_id_to_policy_name_map
+                 timestamp
                )
     end
   end

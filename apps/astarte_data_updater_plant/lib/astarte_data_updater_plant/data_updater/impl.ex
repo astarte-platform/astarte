@@ -36,7 +36,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
       realm: realm,
       device_id: device_id,
       message_tracker: message_tracker,
-      paths_cache: Cache.new(Config.paths_cache_size!()),
+      paths_cache: Cache.new(Config.paths_cache_size!())
     }
 
     encoded_device_id = Device.encode_device_id(device_id)

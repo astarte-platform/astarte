@@ -150,8 +150,6 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.Interface do
       )
       |> Enum.each(fn path ->
         if not MapSet.member?(all_paths_set, {interface_descriptor.name, path}) do
-          device_id_string = Astarte.Core.Device.encode_device_id(state.device_id)
-
           Queries.delete_property_from_db(
             state.realm,
             state.device_id,
@@ -161,28 +159,19 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.Interface do
           )
 
           interface_id = interface_descriptor.interface_id
-
-          path_removed_triggers =
-            get_on_data_triggers(state, :on_path_removed, interface_id, endpoint_id, path)
-
           i_name = interface_descriptor.name
 
-          Enum.each(path_removed_triggers, fn trigger ->
-            target_with_policy_list =
-              trigger.trigger_targets
-              |> Enum.map(fn target ->
-                {target, Map.get(state.trigger_id_to_policy_name, target.parent_trigger_id)}
-              end)
-
-            TriggersHandler.path_removed(
-              target_with_policy_list,
-              state.realm,
-              device_id_string,
-              i_name,
-              path,
-              timestamp
-            )
-          end)
+          TriggersHandler.path_removed(
+            state.realm,
+            state.device_id,
+            state.groups,
+            interface_id,
+            endpoint_id,
+            i_name,
+            path,
+            timestamp,
+            state
+          )
         end
       end)
     end)

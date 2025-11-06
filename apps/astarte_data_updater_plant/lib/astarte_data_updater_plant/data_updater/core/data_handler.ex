@@ -112,7 +112,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DataHandler do
         timestamp,
         ttl: db_max_ttl
       )
-      |> handle_result(context, maybe_change_triggers, interface_descriptor, value)
+      |> handle_result(context, maybe_change_triggers, interface_descriptor, mapping, value)
     end
   end
 
@@ -147,6 +147,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DataHandler do
   defp maybe_execute_post_change_triggers(
          context,
          interface_descriptor,
+         mapping,
          value,
          {:ok, change_triggers}
        ) do
@@ -158,19 +159,18 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DataHandler do
     } = context
 
     Core.Trigger.execute_post_change_triggers(
+      state,
       change_triggers,
-      state.realm,
-      Device.encode_device_id(state.device_id),
-      interface_descriptor.name,
+      interface_descriptor,
+      mapping,
       path,
       previous_value,
       value,
-      explicit_value_timestamp,
-      state.trigger_id_to_policy_name
+      explicit_value_timestamp
     )
   end
 
-  defp maybe_execute_post_change_triggers(_, _, _, _), do: :ok
+  defp maybe_execute_post_change_triggers(_, _, _, _, _), do: :ok
 
   defp get_previous_value(context, interface_descriptor, mapping, {:ok, _change_triggers}) do
     %{state: state, path: path} = context
@@ -183,7 +183,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DataHandler do
 
   defp get_previous_value(_, _, _, _), do: nil
 
-  defp handle_result({:error, :unset_not_allowed}, context, _, _, _) do
+  defp handle_result({:error, :unset_not_allowed}, context, _, _, _, _) do
     error = %{
       message: "Tried to unset a property with `allow_unset`=false.",
       logger_metadata: [tag: "unset_not_allowed"],
@@ -194,7 +194,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DataHandler do
     Core.Error.handle_error(context, error, update_stats: false)
   end
 
-  defp handle_result(:ok, context, maybe_change_triggers, interface_descriptor, value) do
+  defp handle_result(:ok, context, maybe_change_triggers, interface_descriptor, mapping, value) do
     %{
       state: state,
       path: path,
@@ -207,6 +207,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DataHandler do
     maybe_execute_post_change_triggers(
       context,
       interface_descriptor,
+      mapping,
       value,
       maybe_change_triggers
     )

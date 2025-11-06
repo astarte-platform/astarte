@@ -648,7 +648,28 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandlerTest do
         routing_key: @routing_key
       }
 
-      TriggersHandler.path_removed(target, @realm, @device_id, @interface, @path, timestamp, nil)
+      Mimic.expect(Astarte.Events.Triggers, :find_all_data_trigger_targets, fn _,
+                                                                               _,
+                                                                               _,
+                                                                               :on_path_removed,
+                                                                               _,
+                                                                               _,
+                                                                               _,
+                                                                               _ ->
+        [{target, nil}]
+      end)
+
+      TriggersHandler.path_removed(
+        @realm,
+        @decoded_device_id,
+        [],
+        _interface_id = nil,
+        _endpoint_id = nil,
+        @interface,
+        @path,
+        timestamp,
+        %State{}
+      )
 
       assert_receive {:event, payload, meta}
 
