@@ -152,9 +152,6 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.Interface do
         if not MapSet.member?(all_paths_set, {interface_descriptor.name, path}) do
           device_id_string = Astarte.Core.Device.encode_device_id(state.device_id)
 
-          {:ok, endpoint_id} =
-            EndpointsAutomaton.resolve_path(path, interface_descriptor.automaton)
-
           Queries.delete_property_from_db(
             state.realm,
             state.device_id,
