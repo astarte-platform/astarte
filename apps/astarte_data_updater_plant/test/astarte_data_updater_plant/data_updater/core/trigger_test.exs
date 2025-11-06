@@ -193,7 +193,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.TriggerTest do
       path = "/test/path"
       mapping = mapping(descriptor, path, :string)
 
-      Mimic.reject(&TriggersHandler.path_created/7)
+      Mimic.reject(&TriggersHandler.path_created/11)
       Mimic.reject(&TriggersHandler.path_removed/9)
       Mimic.reject(&TriggersHandler.value_change_applied/8)
 
@@ -213,26 +213,33 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.TriggerTest do
     test "execute_post_change_triggers/9 executes path_created triggers when value changes from nil",
          context do
       state = context.state
-      triggers = {[], [], [%{trigger_targets: [mock_trigger_target()]}], []}
+      triggers = {[], [], [], []}
       realm = state.realm
       interface = "test_interface"
       descriptor = interface_descriptor(interface, 1)
+      interface_id = descriptor.interface_id
       path = "/test/path"
       mapping = mapping(descriptor, path, :integer)
+      endpoint_id = mapping.endpoint_id
       previous_value = nil
       value = 42
       timestamp = DateTime.utc_now()
 
-      Mimic.expect(TriggersHandler, :path_created, fn _target_with_policy_list,
-                                                      ^realm,
+      Mimic.expect(TriggersHandler, :path_created, fn ^realm,
                                                       device,
+                                                      _groups,
+                                                      ^interface_id,
+                                                      ^endpoint_id,
                                                       interface,
                                                       path,
+                                                      val,
                                                       _payload,
-                                                      ^timestamp ->
-        assert device == Astarte.Core.Device.encode_device_id(state.device_id)
+                                                      ^timestamp,
+                                                      _state ->
+        assert device == state.device_id
         assert interface == "test_interface"
         assert path == "/test/path"
+        assert val == value
         :ok
       end)
 

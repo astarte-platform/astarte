@@ -116,7 +116,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.Trigger do
 
   def execute_post_change_triggers(
         state,
-        {_, value_change_applied_triggers, path_created_triggers, _},
+        {_, value_change_applied_triggers, _, _},
         interface_descriptor,
         mapping,
         path,
@@ -133,27 +133,25 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.Trigger do
 
     hw_id = Device.encode_device_id(device_id)
     interface = interface_descriptor.name
+    interface_id = interface_descriptor.interface_id
+    endpoint_id = mapping.endpoint_id
     old_bson_value = Cyanide.encode!(%{v: previous_value})
     payload = Cyanide.encode!(%{v: value})
 
     if previous_value == nil and value != nil do
-      Enum.each(path_created_triggers, fn trigger ->
-        target_with_policy_list =
-          trigger.trigger_targets
-          |> Enum.map(fn target ->
-            {target, Map.get(trigger_id_to_policy_name_map, target.parent_trigger_id)}
-          end)
-
-        TriggersHandler.path_created(
-          target_with_policy_list,
-          realm,
-          hw_id,
-          interface,
-          path,
-          payload,
-          timestamp
-        )
-      end)
+      TriggersHandler.path_created(
+        realm,
+        device_id,
+        groups,
+        interface_id,
+        endpoint_id,
+        interface,
+        path,
+        value,
+        payload,
+        timestamp,
+        state
+      )
     end
 
     if previous_value != nil and value == nil do
@@ -161,8 +159,8 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.Trigger do
         realm,
         device_id,
         groups,
-        interface_descriptor.interface_id,
-        mapping.endpoint_id,
+        interface_id,
+        endpoint_id,
         interface,
         path,
         timestamp,

@@ -326,33 +326,44 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandler do
     )
   end
 
-  def path_created(targets, realm, device_id, interface, path, bson_value, timestamp)
-      when is_list(targets) do
-    execute_all_ok(targets, fn {target, policy} ->
-      path_created(target, realm, device_id, interface, path, bson_value, timestamp, policy) ==
-        :ok
-    end)
-  end
-
   def path_created(
-        target,
         realm,
         device_id,
+        groups,
+        interface_id,
+        endpoint_id,
         interface,
         path,
+        value,
         bson_value,
         timestamp,
-        policy
+        state
       ) do
-    %PathCreatedEvent{interface: interface, path: path, bson_value: bson_value}
-    |> dispatch_event_with_telemetry(
-      :path_created_event,
-      target,
+    event = %PathCreatedEvent{interface: interface, path: path, bson_value: bson_value}
+    hw_id = Device.encode_device_id(device_id)
+
+    Triggers.find_all_data_trigger_targets(
       realm,
       device_id,
-      timestamp,
-      policy
+      groups,
+      :on_path_created,
+      interface_id,
+      endpoint_id,
+      path,
+      value,
+      Map.from_struct(state)
     )
+    |> execute_all_ok(fn {target, policy} ->
+      dispatch_event_with_telemetry(
+        event,
+        :path_created_event,
+        target,
+        realm,
+        hw_id,
+        timestamp,
+        policy
+      )
+    end)
   end
 
   def path_removed(

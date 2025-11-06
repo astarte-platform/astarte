@@ -62,7 +62,8 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandlerTest do
   @major_version 1
   @minor_version 1
   @path "/some/path"
-  @bson_value %{v: "testvalue"} |> Cyanide.encode!()
+  @value "testvalue"
+  @bson_value %{v: @value} |> Cyanide.encode!()
   @ip_address "2.3.4.5"
 
   @default_policy_name "@default"
@@ -590,15 +591,30 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandlerTest do
         routing_key: @routing_key
       }
 
+      Mimic.expect(Astarte.Events.Triggers, :find_all_data_trigger_targets, fn _realm,
+                                                                               _device_id,
+                                                                               _groups,
+                                                                               :on_path_created,
+                                                                               _interface_id,
+                                                                               _endpoint_id,
+                                                                               _path,
+                                                                               _value,
+                                                                               _data ->
+        [{target, nil}]
+      end)
+
       TriggersHandler.path_created(
-        target,
         @realm,
-        @device_id,
+        @decoded_device_id,
+        _groups = [],
+        _interface_id = <<>>,
+        _endpoint_id = <<>>,
         @interface,
         @path,
+        @value,
         @bson_value,
         timestamp,
-        nil
+        %State{}
       )
 
       assert_receive {:event, payload, meta}
