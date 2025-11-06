@@ -21,9 +21,9 @@ defmodule Astarte.Pairing.FDO.OwnershipVoucher do
   require Logger
 
   @one_week 604_800
-
   def save_voucher(realm_name, voucher_blob, private_key) do
     with {:ok, device_guuid} <- extract_device_guuid_from_voucher_data(voucher_blob),
+         {:ok, _} <- validate_private_key(private_key),
          {:ok, _} <-
            Queries.create_ownership_voucher(
              realm_name,
@@ -69,5 +69,10 @@ defmodule Astarte.Pairing.FDO.OwnershipVoucher do
     decoded_header
     |> Enum.at(1)
     |> Map.fetch!(:value)
+  end
+
+  defp validate_private_key(private_key) do
+    # FIXME: private key controls are demanded to another PR
+    {:ok, private_key}
   end
 end

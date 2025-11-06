@@ -19,28 +19,29 @@
 defmodule Astarte.Pairing.TO0UtilTest do
   use ExUnit.Case, async: true
 
-  alias Astarte.Pairing.TO0Util
+  alias Astarte.Pairing.FDO.Rendezvous.Core
+  alias AstartePairing.Fdo.Cbor.Core, as: CBORCore
 
   describe "get_nonce_from_hello_ack/1" do
     test "returns nonce for actual FDO HelloAck CBOR payload (binary nonce)" do
       valid_nonce = <<32, 54, 127, 243, 66, 48, 228, 115, 59, 186, 230, 246, 198, 179, 113, 78>>
       hello_ack_cbor = CBOR.encode([%CBOR.Tag{tag: :bytes, value: valid_nonce}])
-      assert {:ok, ^valid_nonce} = TO0Util.get_nonce_from_hello_ack(hello_ack_cbor)
+      assert {:ok, ^valid_nonce} = Core.get_body_nonce(hello_ack_cbor)
     end
 
     test "fails with wrong length CBOR body" do
       invalid_nonce = <<1, 2, 3, 4, 5, 6, 7, 8>>
       hello_ack_cbor = CBOR.encode([%CBOR.Tag{tag: :bytes, value: invalid_nonce}])
 
-      assert {:error, {:wrong_cbor_size, ^invalid_nonce}} =
-               TO0Util.get_nonce_from_hello_ack(hello_ack_cbor)
+      assert {:error, :unexpected_nonce_size} =
+               Core.get_body_nonce(hello_ack_cbor)
     end
 
     test "fails with non-CBOR binary" do
       invalid_nonce = <<1, 2, 3, 4, 5, 6, 7, 8>>
 
-      assert {:error, {:unexpected_body_format, _}} =
-               TO0Util.get_nonce_from_hello_ack(invalid_nonce)
+      assert {:error, :unexpected_body_format} =
+               Core.get_body_nonce(invalid_nonce)
 
       wrong_cbor2 =
         CBOR.encode([
@@ -54,31 +55,19 @@ defmodule Astarte.Pairing.TO0UtilTest do
           }
         ])
 
-      assert {:error, {:unexpected_body_format, _}} =
-               TO0Util.get_nonce_from_hello_ack(wrong_cbor2)
+      assert {:error, :unexpected_body_format} = Core.get_body_nonce(wrong_cbor2)
     end
   end
 
   describe "safe_der_decode/1" do
     test "returns error for invalid DER data" do
-      assert {:error, {:der_decode_failed, _}} = TO0Util.safe_der_decode(<<0, 1, 2>>)
+      assert {:error, :der_decode_failed} = Core.safe_der_decode(<<0, 1, 2>>)
     end
   end
 
-  describe "safe_sign/2" do
-    test "returns error for invalid key format" do
-      data = "test"
-      invalid_key = <<1, 2, 3>>
-      assert {:error, :invalid_private_key_format} = TO0Util.safe_sign(data, invalid_key)
-
-      invalid_key2 = "not_a_binary"
-      assert {:error, :invalid_private_key_format} = TO0Util.safe_sign(data, invalid_key2)
-    end
-  end
-
-  describe "get_astarte_rv_to2_addr_entries/0" do
+  describe "get_rv_to2_addr_entries/0" do
     test "returns a list of entries with correct types" do
-      {:ok, entries} = TO0Util.get_astarte_rv_to2_addr_entries()
+      {:ok, entries} = Core.get_rv_to2_addr_entries("test1", "test2")
       assert is_list(entries)
       assert length(entries) >= 1
 
@@ -101,7 +90,7 @@ defmodule Astarte.Pairing.TO0UtilTest do
 
       {:ok, owner_key} = get_mock_owner_key()
 
-      result = TO0Util.build_cose_sign1(payload, owner_key)
+      result = Core.build_cose_sign1(payload, owner_key)
       assert {:ok, %CBOR.Tag{tag: 18, value: cose_sign1_array}} = result
       assert is_list(cose_sign1_array)
       assert length(cose_sign1_array) == 4
@@ -112,21 +101,12 @@ defmodule Astarte.Pairing.TO0UtilTest do
     test "returns TO0.OwnerSign message when given valid inputs" do
       with {:ok, owner_key} <- get_mock_owner_key(),
            {:ok, ownership_voucher} <- get_mock_ownership_voucher(),
-           {:ok, addr_entries} <- get_mock_astarte_rv_to2_addr_entries(),
+           {:ok, addr_entries} <- Core.get_rv_to2_addr_entries("test1", "test2"),
            {:ok, nonce} <- get_mock_nonce(),
            {:ok, to0_owner_sign_msg} <-
-             TO0Util.build_owner_sign_message(ownership_voucher, owner_key, nonce, addr_entries) do
+             Core.build_owner_sign_message(ownership_voucher, owner_key, nonce, addr_entries) do
         assert is_binary(to0_owner_sign_msg)
       end
-    end
-  end
-
-  defp get_mock_astarte_rv_to2_addr_entries() do
-    with {:ok, rv_entry1} <- TO0Util.build_rv_to2_addr_entry(CBOR.encode([]), "pippo", 8080, 3),
-         {:ok, rv_entry2} <- TO0Util.build_rv_to2_addr_entry(CBOR.encode([]), "paperino", 8080, 3) do
-      {:ok, [rv_entry1, rv_entry2]}
-    else
-      {:error, reason} -> {:error, reason}
     end
   end
 
