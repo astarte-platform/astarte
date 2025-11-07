@@ -51,9 +51,9 @@ defmodule Astarte.Common.Generators.Timestamp do
     params gen all unit <- constant(@default_unit),
                    min <- constant(min_default(unit)),
                    max <- constant(max_default(unit)),
-                   :_,
                    timestamp <- timestamp(min, max),
-                   params: params do
+                   params: params,
+                   exclude: [:timestamp] do
       timestamp
     end
   end

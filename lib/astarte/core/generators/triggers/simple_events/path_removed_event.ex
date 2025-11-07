@@ -33,14 +33,14 @@ defmodule Astarte.Core.Generators.Triggers.SimpleEvents.PathRemovedEvent do
   @spec path_removed_event() :: StreamData.t(PathRemovedEvent.t())
   @spec path_removed_event(keyword :: keyword()) :: StreamData.t(PathRemovedEvent.t())
   def path_removed_event(params \\ []) do
-    params gen all :_,
-                   %Interface{name: name} = interface <- InterfaceGenerator.interface(),
-                   :_,
-                   %{path: path} <- ValueGenerator.value(interface: interface),
-                   :interface,
+    params gen all interface <- InterfaceGenerator.interface(),
+                   %Interface{name: name} = interface,
+                   package <- ValueGenerator.value(interface: interface),
+                   %{path: path} = package,
                    interface_name <- constant(name),
                    path <- constant(path),
-                   params: params do
+                   params: params,
+                   exclude: [:interface, :package] do
       %PathRemovedEvent{
         interface: interface_name,
         path: path

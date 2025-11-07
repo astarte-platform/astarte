@@ -46,11 +46,11 @@ defmodule Astarte.Common.Generators.DateTime do
                    max <- constant(max_default()),
                    min = DateTime.to_unix(min, @ref_unit),
                    max = DateTime.to_unix(max, @ref_unit),
-                   :_,
                    date_time <-
                      TimestampGenerator.timestamp(min: min, max: max, unit: @ref_unit)
                      |> map(&DateTime.from_unix!(&1, @ref_unit)),
-                   params: params do
+                   params: params,
+                   exclude: [:date_time] do
       date_time
     end
   end
