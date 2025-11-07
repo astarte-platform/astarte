@@ -93,89 +93,71 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.TriggerTest do
   end
 
   describe "execute_pre_change_triggers/9" do
-    test "executes triggers for pre-change events with empty triggers", context do
-      triggers = {[], [], [], []}
-
-      %{
-        state: state
-      } = context
-
-      Mimic.reject(&TriggersHandler.value_change/8)
-
-      assert :ok ==
-               Trigger.execute_pre_change_triggers(
-                 triggers,
-                 state.realm,
-                 state.device_id,
-                 "test.interface",
-                 "/test/path",
-                 "old_value",
-                 "new_value",
-                 1_600_000_000,
-                 %{}
-               )
-    end
-
-    test "execute_pre_change_triggers/9 executes triggers when value changes" do
-      triggers = {[%{trigger_targets: [mock_trigger_target()]}], [], [], []}
-      realm = "test_realm"
-      device = "test_device"
+    test "execute_pre_change_triggers/9 executes triggers when value changes", context do
+      state = context.state
+      realm = state.realm
       interface = "test_interface"
+      interface_descriptor = interface_descriptor(interface, 1)
       path = "/test/path"
+      mapping = mapping(interface_descriptor, path, :integer)
       previous_value = nil
       value = 42
       timestamp = DateTime.utc_now()
-      trigger_id_to_policy_name_map = %{1 => "test_policy"}
 
-      Mimic.expect(TriggersHandler, :value_change, fn _target_with_policy_list,
-                                                      ^realm,
+      Mimic.expect(TriggersHandler, :value_change, fn ^realm,
                                                       device,
+                                                      _groups,
+                                                      interface_id,
+                                                      endpoint_id,
                                                       interface,
                                                       path,
+                                                      new_value,
                                                       _old_bson_value,
                                                       _payload,
-                                                      ^timestamp ->
-        assert device == "test_device"
+                                                      ^timestamp,
+                                                      _state ->
+        assert device == state.device_id
         assert interface == "test_interface"
         assert path == "/test/path"
+        assert interface_id == interface_descriptor.interface_id
+        assert endpoint_id == mapping.endpoint_id
+        assert new_value == value
         :ok
       end)
 
       assert :ok =
                Trigger.execute_pre_change_triggers(
-                 triggers,
-                 realm,
-                 device,
-                 interface,
+                 state,
+                 interface_descriptor,
+                 mapping,
                  path,
                  previous_value,
                  value,
-                 timestamp,
-                 trigger_id_to_policy_name_map
+                 timestamp
                )
     end
 
     test "does not execute triggers when value remains the same", context do
-      trigger_target = mock_trigger_target()
-      triggers = {[%{trigger_targets: [trigger_target]}], [], [], []}
-
       %{
         state: state
       } = context
 
-      Mimic.reject(&TriggersHandler.value_change/8)
+      interface = "test_interface"
+      interface_descriptor = interface_descriptor(interface, 1)
+      path = "/test/path"
+      mapping = mapping(interface_descriptor, path, :string)
+
+      Mimic.reject(&TriggersHandler.value_change/12)
 
       assert :ok ==
                Trigger.execute_pre_change_triggers(
-                 triggers,
-                 state.realm,
-                 state.device_id,
-                 "test.interface",
+                 state,
+                 interface_descriptor,
+                 mapping,
                  "/test/path",
                  "same_value",
                  "same_value",
-                 1_600_000_000,
-                 %{1 => "test_policy"}
+                 1_600_000_000
                )
     end
   end

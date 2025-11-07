@@ -26,7 +26,6 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.Interface do
   """
   alias Astarte.Core.Mapping
   alias Astarte.Core.CQLUtils
-  alias Astarte.DataUpdaterPlant.ValueMatchOperators
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf
   alias Astarte.Core.Mapping.EndpointsAutomaton
   alias Astarte.DataUpdaterPlant.DataUpdater.Core
@@ -175,82 +174,6 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.Interface do
         end
       end)
     end)
-  end
-
-  def get_on_data_triggers(state, event, interface_id, endpoint_id) do
-    key = {event, interface_id, endpoint_id}
-
-    Map.get(state.data_triggers, key, [])
-  end
-
-  def get_on_data_triggers(state, event, interface_id, endpoint_id, path, value \\ nil) do
-    key = {event, interface_id, endpoint_id}
-
-    candidate_triggers = Map.get(state.data_triggers, key, nil)
-
-    if candidate_triggers do
-      ["" | path_tokens] = String.split(path, "/")
-
-      for trigger <- candidate_triggers,
-          path_matches?(path_tokens, trigger.path_match_tokens) and
-            ValueMatchOperators.value_matches?(
-              value,
-              trigger.value_match_operator,
-              trigger.known_value
-            ) do
-        trigger
-      end
-    else
-      []
-    end
-  end
-
-  def get_value_change_triggers(state, interface_id, endpoint_id, path, value) do
-    value_change_triggers =
-      get_on_data_triggers(state, :on_value_change, interface_id, endpoint_id, path, value)
-
-    value_change_applied_triggers =
-      get_on_data_triggers(
-        state,
-        :on_value_change_applied,
-        interface_id,
-        endpoint_id,
-        path,
-        value
-      )
-
-    path_created_triggers =
-      get_on_data_triggers(state, :on_path_created, interface_id, endpoint_id, path, value)
-
-    path_removed_triggers =
-      get_on_data_triggers(state, :on_path_removed, interface_id, endpoint_id, path)
-
-    all_empty? =
-      [value_change_triggers, value_change_applied_triggers, path_created_triggers]
-      |> Enum.all?(&Enum.empty?/1)
-
-    triggers_tuple = {
-      value_change_triggers,
-      value_change_applied_triggers,
-      path_created_triggers,
-      path_removed_triggers
-    }
-
-    if all_empty?,
-      do: {:no_value_change_triggers, nil},
-      else: {:ok, triggers_tuple}
-  end
-
-  defp path_matches?([], []) do
-    true
-  end
-
-  defp path_matches?([path_token | path_tokens], [path_match_token | path_match_tokens]) do
-    if path_token == path_match_token or path_match_token == "" do
-      path_matches?(path_tokens, path_match_tokens)
-    else
-      false
-    end
   end
 
   def each_interface_mapping(mappings, interface_descriptor, fun) do

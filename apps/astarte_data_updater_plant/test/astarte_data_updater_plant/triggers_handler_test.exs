@@ -699,16 +699,21 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandlerTest do
         routing_key: @routing_key
       }
 
+      register_target(:on_value_change, target)
+
       TriggersHandler.value_change(
-        target,
         @realm,
-        @device_id,
+        @decoded_device_id,
+        [],
+        _interface_id = <<>>,
+        _endpoint_id = <<>>,
         @interface,
         @path,
+        42,
         old_bson_value,
         new_bson_value,
         timestamp,
-        nil
+        %State{}
       )
 
       assert_receive {:event, payload, meta}

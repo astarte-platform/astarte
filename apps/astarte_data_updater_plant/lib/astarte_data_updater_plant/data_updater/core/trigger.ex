@@ -77,38 +77,35 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.Trigger do
   end
 
   def execute_pre_change_triggers(
-        {value_change_triggers, _, _, _},
-        realm,
-        device_id_string,
-        interface_name,
+        state,
+        interface_descriptor,
+        mapping,
         path,
         previous_value,
         value,
-        timestamp,
-        trigger_id_to_policy_name_map
+        timestamp
       ) do
+    %{realm: realm, device_id: device_id, groups: groups} = state
+    %{interface_id: interface_id, name: interface_name} = interface_descriptor
+    endpoint_id = mapping.endpoint_id
     old_bson_value = Cyanide.encode!(%{v: previous_value})
     payload = Cyanide.encode!(%{v: value})
 
     if previous_value != value do
-      Enum.each(value_change_triggers, fn trigger ->
-        trigger_target_with_policy_list =
-          trigger.trigger_targets
-          |> Enum.map(fn target ->
-            {target, Map.get(trigger_id_to_policy_name_map, target.parent_trigger_id)}
-          end)
-
-        TriggersHandler.value_change(
-          trigger_target_with_policy_list,
-          realm,
-          device_id_string,
-          interface_name,
-          path,
-          old_bson_value,
-          payload,
-          timestamp
-        )
-      end)
+      TriggersHandler.value_change(
+        realm,
+        device_id,
+        groups,
+        interface_id,
+        endpoint_id,
+        interface_name,
+        path,
+        value,
+        old_bson_value,
+        payload,
+        timestamp,
+        state
+      )
     end
 
     :ok

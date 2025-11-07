@@ -27,7 +27,6 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DataHandler do
   alias Astarte.DataUpdaterPlant.DataUpdater.Queries
   alias Astarte.DataUpdaterPlant.MessageTracker
   alias Astarte.DataAccess.Data
-  alias Astarte.Core.Device
   alias Astarte.DataUpdaterPlant.DataUpdater.PayloadsDecoder
   alias Astarte.DataUpdaterPlant.DataUpdater.Core
   alias Astarte.DataUpdaterPlant.TriggersHandler
@@ -67,26 +66,22 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DataHandler do
 
       context = Map.put(context, :explicit_value_timestamp, maybe_explicit_value_timestamp)
 
-      maybe_change_triggers =
-        Core.Interface.get_value_change_triggers(
-          context.state,
-          interface_descriptor.interface_id,
-          mapping.endpoint_id,
-          path,
-          value
-        )
-
       previous_value = get_previous_value(context, interface_descriptor, mapping)
 
       context = Map.put(context, :previous_value, previous_value)
 
-      :ok =
-        maybe_execute_pre_change_triggers(
-          context,
-          interface_descriptor,
-          value,
-          maybe_change_triggers
-        )
+      if interface_descriptor.type == :properties do
+        :ok =
+          Core.Trigger.execute_pre_change_triggers(
+            state,
+            interface_descriptor,
+            mapping,
+            path,
+            previous_value,
+            value,
+            timestamp
+          )
+      end
 
       realm_max_ttl = context.state.datastream_maximum_storage_retention
 
@@ -114,34 +109,6 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DataHandler do
       |> handle_result(context, interface_descriptor, mapping, value)
     end
   end
-
-  defp maybe_execute_pre_change_triggers(
-         context,
-         interface_descriptor,
-         value,
-         {:ok, change_triggers}
-       ) do
-    %{
-      state: state,
-      path: path,
-      previous_value: previous_value,
-      explicit_value_timestamp: explicit_value_timestamp
-    } = context
-
-    Core.Trigger.execute_pre_change_triggers(
-      change_triggers,
-      state.realm,
-      Device.encode_device_id(state.device_id),
-      interface_descriptor.name,
-      path,
-      previous_value,
-      value,
-      explicit_value_timestamp,
-      state.trigger_id_to_policy_name
-    )
-  end
-
-  defp maybe_execute_pre_change_triggers(_, _, _, _), do: :ok
 
   defp get_previous_value(context, interface_descriptor, mapping)
        when interface_descriptor.type == :properties do
