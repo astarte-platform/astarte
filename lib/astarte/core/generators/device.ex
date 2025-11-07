@@ -38,9 +38,8 @@ defmodule Astarte.Core.Generators.Device do
   @spec device() :: StreamData.t(map())
   @spec device(params :: keyword()) :: StreamData.t(map())
   def device(params \\ []) do
-    now = DateTime.utc_now() |> DateTime.to_unix()
-
-    params gen all id <- id(),
+    params gen all now <- DateTime.utc_now() |> DateTime.to_unix() |> constant(),
+                   id <- id(),
                    last_seen_ip <- last_seen_ip(),
                    last_credentials_request_ip <- last_credentials_request_ip(),
                    inhibit_credentials_request <- inhibit_credentials_request(),
