@@ -56,35 +56,12 @@ defmodule Astarte.Generators.Utilities.ParamsGenTest do
     end
   end
 
-  defp params_gen_label(params) do
+  defp params_gen_destruct do
     params gen all a <- integer(0..0),
-                   :b,
-                   var <- string(?a..?a, length: 1),
-                   c <- constant("friend"),
-                   params: params do
-      {a, var, c}
-    end
-  end
-
-  defp params_gen_label_destruct do
-    params gen all a <- integer(0..0),
-                   :b,
-                   %{b: b} = not_hooked <- string(?a..?a, length: 1),
+                   %{b: b} <- constant(%{b: "a"}),
                    c <- constant("friend"),
                    params: [b: %{b: 10}] do
-      {a, b, c, not_hooked}
-    end
-  end
-
-  defp params_gen_label_ignore do
-    params gen all :_,
-                   a <- integer(0..0),
-                   :_,
-                   b = b_1 = b_2 <- string(?a..?a, length: 1),
-                   :_,
-                   c <- constant("friend"),
-                   params: [a: "never", b: "never", c: "never"] do
-      {a, b, b_1, b_2, c}
+      {a, b, c}
     end
   end
 
@@ -124,10 +101,10 @@ defmodule Astarte.Generators.Utilities.ParamsGenTest do
                gen_param(gen_base(), :value, value: {integer(), string(:alphanumeric)})
     end
 
-    test "gen_param raises when runtime params include :_" do
-      assert_raise ArgumentError,
-                   "Cannot use :_ as key into the params keyword list.",
-                   fn -> gen_param(gen_base(), :_, _: constant("never")) end
+    property "gen_param constant override" do
+      check all value <- gen_param(gen_base(), :value, value: "a"), max_runs: 1 do
+        assert value == "a"
+      end
     end
 
     property "gen_param does not intervene" do
@@ -135,12 +112,6 @@ defmodule Astarte.Generators.Utilities.ParamsGenTest do
         assert a == 0
         assert b == "a"
         assert c == "friend"
-      end
-    end
-
-    property "gen_param constant override" do
-      check all value <- gen_param(gen_base(), :value, value: "a"), max_runs: 1 do
-        assert value == "a"
       end
     end
 
@@ -159,10 +130,18 @@ defmodule Astarte.Generators.Utilities.ParamsGenTest do
         assert is_integer(int_value) and is_binary(string_value)
       end
     end
+
+    test "gen_param raises when params and exclude overlap" do
+      assert_raise RuntimeError,
+                   "Cannot override :never because it is listed under `exclude:`.",
+                   fn ->
+                     gen_param(gen_base(), :never, [never: constant("never")], [:never])
+                   end
+    end
   end
 
   @doc false
-  describe "param gen all unit tests" do
+  describe "params gen all unit tests" do
     @describetag :success
     @describetag :ut
 
@@ -176,7 +155,7 @@ defmodule Astarte.Generators.Utilities.ParamsGenTest do
       end
     end
 
-    property "param gen all without params option behaves like gen all" do
+    property "params gen all without params option behaves like gen all" do
       check all {a1, b1, c1} <- gen_base(),
                 {a2, b2, c2} <- params_gen_no_params(),
                 max_runs: 1 do
@@ -187,7 +166,7 @@ defmodule Astarte.Generators.Utilities.ParamsGenTest do
     end
 
     @tag :issue
-    property "param gen all does not crash using = op" do
+    property "params gen all does not crash using = op" do
       check all {a1, b1, c1} <- gen_base(),
                 {a2, b2, c2} <- params_gen_eq([]),
                 max_runs: 1 do
@@ -197,20 +176,20 @@ defmodule Astarte.Generators.Utilities.ParamsGenTest do
       end
     end
 
-    property "param gen all overridden by kw" do
+    property "params gen all overridden by kw" do
       check all params <- gen_params(), {a, b, _} <- params_gen(params), max_runs: 1 do
         assert params[:a] == a
         assert params[:b] == b
       end
     end
 
-    property "param gen all overridden by generators" do
+    property "params gen all overridden by generators" do
       check all {a, _, _} <- params_gen(a: string(?c..?c, length: 1)), max_runs: 1 do
         assert a == "c"
       end
     end
 
-    property "param gen all overridden by function" do
+    property "params gen all overridden by function" do
       check all s <- integer(10..10),
                 {a, b, _} <- params_gen(function_params(s)),
                 max_runs: 1 do
@@ -219,7 +198,7 @@ defmodule Astarte.Generators.Utilities.ParamsGenTest do
       end
     end
 
-    property "param gen all overridden by static value for c" do
+    property "params gen all overridden by static value for c" do
       check all string_value <- string(:utf8),
                 {_, _, c} <- params_gen(c: string_value),
                 max_runs: 1 do
@@ -227,30 +206,41 @@ defmodule Astarte.Generators.Utilities.ParamsGenTest do
       end
     end
 
-    property "param gen all override use :label instead variable name when is using pattern matching" do
-      check all {a, b, c} <- params_gen_label(b: 10), max_runs: 1 do
-        assert a == 0
-        assert b == 10
-        assert c == "friend"
-      end
-    end
-
-    property "param gen all override by :label wins over var name" do
-      check all {a, b, c, not_changed} <- params_gen_label_destruct(), max_runs: 1 do
-        assert a == 0
-        assert b == 10
-        assert c == "friend"
-        assert %{b: 10} = not_changed
-      end
-    end
-
-    property "param gen all override by 'ignore_token' (`:_`) does nothing" do
-      check all {a, b, b_1, b_2, c} <- params_gen_label_ignore(), max_runs: 1 do
+    property "params gen all with internal destruction cannot be overrided" do
+      check all {a, b, c} <- params_gen_destruct(), max_runs: 1 do
         assert a == 0
         assert b == "a"
-        assert b_1 == "a"
-        assert b_2 == "a"
         assert c == "friend"
+      end
+    end
+
+    test "params gen all rejects clause labels" do
+      quoted =
+        quote do
+          params gen all :payload,
+                         value <- integer(0..0),
+                         params: [payload: constant(:never)] do
+            value
+          end
+        end
+
+      assert_raise CompileError, fn ->
+        Code.eval_quoted(quoted, [], __ENV__)
+      end
+    end
+
+    test "params gen all rejects overlapping params and exclude" do
+      quoted =
+        quote do
+          params gen all a <- integer(0..0),
+                         params: [a: constant(10)],
+                         exclude: [:a] do
+            a
+          end
+        end
+
+      assert_raise CompileError, fn ->
+        Code.eval_quoted(quoted, [], __ENV__)
       end
     end
   end
