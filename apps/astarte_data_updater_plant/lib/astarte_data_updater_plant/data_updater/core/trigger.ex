@@ -76,110 +76,40 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.Trigger do
     )
   end
 
-  def execute_pre_change_triggers(
-        state,
-        interface_descriptor,
-        mapping,
-        path,
-        previous_value,
-        value,
-        timestamp
-      ) do
-    %{realm: realm, device_id: device_id, groups: groups} = state
-    %{interface_id: interface_id, name: interface_name} = interface_descriptor
-    endpoint_id = mapping.endpoint_id
+  def execute_pre_change_triggers(context) do
+    %{value: value, previous_value: previous_value} = context
     old_bson_value = Cyanide.encode!(%{v: previous_value})
     payload = Cyanide.encode!(%{v: value})
 
     if previous_value != value do
       TriggersHandler.value_change(
-        realm,
-        device_id,
-        groups,
-        interface_id,
-        endpoint_id,
-        interface_name,
-        path,
-        value,
+        context,
         old_bson_value,
-        payload,
-        timestamp,
-        state
+        payload
       )
     end
 
     :ok
   end
 
-  def execute_post_change_triggers(
-        state,
-        interface_descriptor,
-        mapping,
-        path,
-        previous_value,
-        value,
-        timestamp
-      ) do
-    %{
-      realm: realm,
-      device_id: device_id,
-      groups: groups
-    } = state
-
-    interface = interface_descriptor.name
-    interface_id = interface_descriptor.interface_id
-    endpoint_id = mapping.endpoint_id
+  def execute_post_change_triggers(context) do
+    %{value: value, previous_value: previous_value} = context
     old_bson_value = Cyanide.encode!(%{v: previous_value})
     payload = Cyanide.encode!(%{v: value})
 
-    if previous_value == nil and value != nil do
-      TriggersHandler.path_created(
-        realm,
-        device_id,
-        groups,
-        interface_id,
-        endpoint_id,
-        interface,
-        path,
-        value,
-        payload,
-        timestamp,
-        state
-      )
-    end
+    case {previous_value, value} do
+      {value, value} ->
+        :ok
 
-    if previous_value != nil and value == nil do
-      TriggersHandler.path_removed(
-        realm,
-        device_id,
-        groups,
-        interface_id,
-        endpoint_id,
-        interface,
-        path,
-        timestamp,
-        state
-      )
-    end
+      {nil, _value} ->
+        TriggersHandler.path_created(context, payload)
 
-    if previous_value != value do
-      TriggersHandler.value_change_applied(
-        realm,
-        device_id,
-        groups,
-        interface_id,
-        endpoint_id,
-        interface,
-        path,
-        value,
-        old_bson_value,
-        payload,
-        timestamp,
-        state
-      )
-    end
+      {_previous_value, nil} ->
+        TriggersHandler.path_removed(context)
 
-    :ok
+      {_previous_value, _value} ->
+        TriggersHandler.value_change_applied(context, old_bson_value, payload)
+    end
   end
 
   def execute_device_error_triggers(state, error_name, error_metadata \\ %{}, timestamp) do

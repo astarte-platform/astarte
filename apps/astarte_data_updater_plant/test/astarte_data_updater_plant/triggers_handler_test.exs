@@ -40,6 +40,7 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandlerTest do
   alias AMQP.Channel
   alias AMQP.Connection
   alias AMQP.Queue
+  alias Astarte.Core.CQLUtils
   alias Astarte.Core.Device
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.AMQPTriggerTarget
   alias Astarte.DataUpdaterPlant.Config
@@ -64,6 +65,21 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandlerTest do
   @value "testvalue"
   @bson_value %{v: @value} |> Cyanide.encode!()
   @ip_address "2.3.4.5"
+
+  @default_data_trigger_context %{
+    hardware_id: @device_id,
+    interface: @interface,
+    interface_id: CQLUtils.interface_id(@interface, @major_version),
+    endpoint_id: CQLUtils.endpoint_id(@interface, @major_version, @path),
+    path: @path,
+    value: @value,
+    payload: @bson_value,
+    value_timestamp: nil,
+    state: %State{
+      realm: @realm,
+      device_id: @decoded_device_id
+    }
+  }
 
   @default_policy_name "@default"
   @default_policy_queue "#{@realm}_#{@default_policy_name}_queue"
@@ -252,6 +268,7 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandlerTest do
       static_header_value = "test_meta"
       static_headers = [{static_header_key, static_header_value}]
       timestamp = get_timestamp()
+      context = %{default_context(timestamp) | value: nil}
 
       target = %AMQPTriggerTarget{
         simple_trigger_id: simple_trigger_id,
@@ -262,19 +279,7 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandlerTest do
 
       register_target(:on_incoming_data, target)
 
-      TriggersHandler.incoming_data(
-        @realm,
-        @decoded_device_id,
-        _groups = [],
-        @interface,
-        _interface_id = <<>>,
-        _endpoint_id = <<>>,
-        @path,
-        _value = nil,
-        @bson_value,
-        timestamp,
-        %State{}
-      )
+      TriggersHandler.incoming_data(context)
 
       assert_receive {:event, payload, meta}
 
@@ -566,6 +571,7 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandlerTest do
       static_header_value = "test_meta_path_created"
       static_headers = [{static_header_key, static_header_value}]
       timestamp = get_timestamp()
+      context = default_context(timestamp)
 
       target = %AMQPTriggerTarget{
         simple_trigger_id: simple_trigger_id,
@@ -577,17 +583,8 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandlerTest do
       register_target(:on_path_created, target)
 
       TriggersHandler.path_created(
-        @realm,
-        @decoded_device_id,
-        _groups = [],
-        _interface_id = <<>>,
-        _endpoint_id = <<>>,
-        @interface,
-        @path,
-        @value,
-        @bson_value,
-        timestamp,
-        %State{}
+        context,
+        @bson_value
       )
 
       assert_receive {:event, payload, meta}
@@ -629,6 +626,7 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandlerTest do
       static_header_value = "test_meta_path_removed"
       static_headers = [{static_header_key, static_header_value}]
       timestamp = get_timestamp()
+      context = default_context(timestamp)
 
       target = %AMQPTriggerTarget{
         simple_trigger_id: simple_trigger_id,
@@ -639,17 +637,7 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandlerTest do
 
       register_target(:on_path_removed, target)
 
-      TriggersHandler.path_removed(
-        @realm,
-        @decoded_device_id,
-        [],
-        _interface_id = nil,
-        _endpoint_id = nil,
-        @interface,
-        @path,
-        timestamp,
-        %State{}
-      )
+      TriggersHandler.path_removed(context)
 
       assert_receive {:event, payload, meta}
 
@@ -691,6 +679,7 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandlerTest do
       old_bson_value = %{v: 41} |> Cyanide.encode!()
       new_bson_value = %{v: 42} |> Cyanide.encode!()
       timestamp = get_timestamp()
+      context = %{default_context(timestamp) | value: 42}
 
       target = %AMQPTriggerTarget{
         simple_trigger_id: simple_trigger_id,
@@ -700,21 +689,7 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandlerTest do
       }
 
       register_target(:on_value_change, target)
-
-      TriggersHandler.value_change(
-        @realm,
-        @decoded_device_id,
-        [],
-        _interface_id = <<>>,
-        _endpoint_id = <<>>,
-        @interface,
-        @path,
-        42,
-        old_bson_value,
-        new_bson_value,
-        timestamp,
-        %State{}
-      )
+      TriggersHandler.value_change(context, old_bson_value, new_bson_value)
 
       assert_receive {:event, payload, meta}
 
@@ -758,6 +733,7 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandlerTest do
       old_bson_value = %{v: 41} |> Cyanide.encode!()
       new_bson_value = %{v: 42} |> Cyanide.encode!()
       timestamp = get_timestamp()
+      context = %{default_context(timestamp) | value: 42}
 
       target = %AMQPTriggerTarget{
         simple_trigger_id: simple_trigger_id,
@@ -767,21 +743,7 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandlerTest do
       }
 
       register_target(:on_value_change_applied, target)
-
-      TriggersHandler.value_change_applied(
-        @realm,
-        @decoded_device_id,
-        [],
-        _interface_id = <<>>,
-        _endpoint_id = <<>>,
-        @interface,
-        @path,
-        42,
-        old_bson_value,
-        new_bson_value,
-        timestamp,
-        %State{}
-      )
+      TriggersHandler.value_change_applied(context, old_bson_value, new_bson_value)
 
       assert_receive {:event, payload, meta}
 
@@ -839,6 +801,7 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandlerTest do
       old_bson_value = %{v: 41} |> Cyanide.encode!()
       new_bson_value = %{v: 42} |> Cyanide.encode!()
       timestamp = get_timestamp()
+      context = %{default_context(timestamp) | value: 42}
 
       target = %AMQPTriggerTarget{
         simple_trigger_id: simple_trigger_id,
@@ -848,21 +811,7 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandlerTest do
       }
 
       register_target(:on_value_change_applied, target, nil)
-
-      TriggersHandler.value_change_applied(
-        @realm,
-        @decoded_device_id,
-        [],
-        _interface_id = <<>>,
-        _endpoint_id = <<>>,
-        @interface,
-        @path,
-        42,
-        old_bson_value,
-        new_bson_value,
-        timestamp,
-        %State{}
-      )
+      TriggersHandler.value_change_applied(context, old_bson_value, new_bson_value)
 
       assert_receive {:event, payload, meta}
 
@@ -907,6 +856,7 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandlerTest do
       old_bson_value = %{v: 41} |> Cyanide.encode!()
       new_bson_value = %{v: 42} |> Cyanide.encode!()
       timestamp = get_timestamp()
+      context = %{default_context(timestamp) | value: 42}
 
       target = %AMQPTriggerTarget{
         simple_trigger_id: simple_trigger_id,
@@ -916,21 +866,7 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandlerTest do
       }
 
       register_target(:on_value_change_applied, target, @custom_policy_name)
-
-      TriggersHandler.value_change_applied(
-        @realm,
-        @decoded_device_id,
-        [],
-        _interface_id = <<>>,
-        _endpoint_id = <<>>,
-        @interface,
-        @path,
-        42,
-        old_bson_value,
-        new_bson_value,
-        timestamp,
-        %State{}
-      )
+      TriggersHandler.value_change_applied(context, old_bson_value, new_bson_value)
 
       assert_receive {:event, payload, meta}
 
@@ -975,6 +911,7 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandlerTest do
       old_bson_value = %{v: 41} |> Cyanide.encode!()
       new_bson_value = %{v: 42} |> Cyanide.encode!()
       timestamp = get_timestamp()
+      context = %{default_context(timestamp) | value: 42}
 
       target = %AMQPTriggerTarget{
         simple_trigger_id: simple_trigger_id,
@@ -984,21 +921,7 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandlerTest do
       }
 
       register_target(:on_value_change_applied, target)
-
-      TriggersHandler.value_change_applied(
-        @realm,
-        @decoded_device_id,
-        [],
-        _interface_id = <<>>,
-        _endpoint_id = <<>>,
-        @interface,
-        @path,
-        42,
-        old_bson_value,
-        new_bson_value,
-        timestamp,
-        %State{}
-      )
+      TriggersHandler.value_change_applied(context, old_bson_value, new_bson_value)
 
       assert_receive {:event, payload, meta}
 
@@ -1069,5 +992,9 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandlerTest do
       [{target, policy}]
     end)
     |> Mimic.stub(:find_device_trigger_targets, fn _, _, _, ^event -> [{target, policy}] end)
+  end
+
+  defp default_context(timestamp) do
+    %{@default_data_trigger_context | value_timestamp: timestamp}
   end
 end

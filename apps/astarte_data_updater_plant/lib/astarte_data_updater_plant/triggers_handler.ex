@@ -112,21 +112,22 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandler do
     )
   end
 
-  def incoming_data(
-        realm,
-        device_id,
-        groups,
-        interface_name,
-        interface_id,
-        endpoint_id,
-        path,
-        value,
-        bson_value,
-        timestamp,
-        state
-      ) do
+  def incoming_data(context) do
+    %{
+      hardware_id: hw_id,
+      interface_id: interface_id,
+      interface: interface_name,
+      endpoint_id: endpoint_id,
+      value_timestamp: timestamp,
+      state: state,
+      value: value,
+      payload: bson_value,
+      path: path
+    } = context
+
+    %{realm: realm, device_id: device_id, groups: groups} = state
+
     event = %IncomingDataEvent{interface: interface_name, path: path, bson_value: bson_value}
-    hw_id = Device.encode_device_id(device_id)
 
     Triggers.find_all_data_trigger_targets(
       realm,
@@ -326,21 +327,21 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandler do
     )
   end
 
-  def path_created(
-        realm,
-        device_id,
-        groups,
-        interface_id,
-        endpoint_id,
-        interface,
-        path,
-        value,
-        bson_value,
-        timestamp,
-        state
-      ) do
+  def path_created(context, bson_value) do
+    %{
+      hardware_id: hw_id,
+      interface: interface,
+      interface_id: interface_id,
+      endpoint_id: endpoint_id,
+      value_timestamp: timestamp,
+      state: state,
+      value: value,
+      path: path
+    } = context
+
+    %{realm: realm, device_id: device_id, groups: groups} = state
+
     event = %PathCreatedEvent{interface: interface, path: path, bson_value: bson_value}
-    hw_id = Device.encode_device_id(device_id)
 
     Triggers.find_all_data_trigger_targets(
       realm,
@@ -366,19 +367,20 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandler do
     end)
   end
 
-  def path_removed(
-        realm,
-        device_id,
-        groups,
-        interface_id,
-        endpoint_id,
-        interface,
-        path,
-        timestamp,
-        state
-      ) do
+  def path_removed(context) do
+    %{
+      hardware_id: hw_id,
+      interface: interface,
+      interface_id: interface_id,
+      endpoint_id: endpoint_id,
+      value_timestamp: timestamp,
+      state: state,
+      path: path
+    } = context
+
+    %{realm: realm, device_id: device_id, groups: groups} = state
+
     event = %PathRemovedEvent{interface: interface, path: path}
-    hw_id = Device.encode_device_id(device_id)
 
     Triggers.find_all_data_trigger_targets(
       realm,
@@ -404,20 +406,22 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandler do
   end
 
   def value_change(
-        realm,
-        device_id,
-        groups,
-        interface_id,
-        endpoint_id,
-        interface,
-        path,
-        new_value,
+        context,
         old_bson_value,
-        new_bson_value,
-        timestamp,
-        state
+        new_bson_value
       ) do
-    hw_id = Device.encode_device_id(device_id)
+    %{
+      hardware_id: hw_id,
+      interface: interface,
+      interface_id: interface_id,
+      endpoint_id: endpoint_id,
+      value_timestamp: timestamp,
+      state: state,
+      value: value,
+      path: path
+    } = context
+
+    %{realm: realm, device_id: device_id, groups: groups} = state
 
     event = %ValueChangeEvent{
       interface: interface,
@@ -434,7 +438,7 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandler do
       interface_id,
       endpoint_id,
       path,
-      new_value,
+      value,
       Map.from_struct(state)
     )
     |> execute_all_ok(fn {target, policy} ->
@@ -451,27 +455,29 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandler do
   end
 
   def value_change_applied(
-        realm,
-        device_id,
-        groups,
-        interface_id,
-        endpoint_id,
-        interface,
-        path,
-        new_value,
+        context,
         old_bson_value,
-        new_bson_value,
-        timestamp,
-        state
+        new_bson_value
       ) do
+    %{
+      hardware_id: hw_id,
+      interface: interface,
+      interface_id: interface_id,
+      endpoint_id: endpoint_id,
+      value_timestamp: timestamp,
+      state: state,
+      value: value,
+      path: path
+    } = context
+
+    %{realm: realm, device_id: device_id, groups: groups} = state
+
     event = %ValueChangeAppliedEvent{
       interface: interface,
       path: path,
       old_bson_value: old_bson_value,
       new_bson_value: new_bson_value
     }
-
-    hw_id = Device.encode_device_id(device_id)
 
     Triggers.find_all_data_trigger_targets(
       realm,
@@ -481,7 +487,7 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandler do
       interface_id,
       endpoint_id,
       path,
-      new_value,
+      value,
       Map.from_struct(state)
     )
     |> execute_all_ok(fn {target, policy} ->

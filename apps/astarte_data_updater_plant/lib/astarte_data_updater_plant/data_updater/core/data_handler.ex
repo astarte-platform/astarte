@@ -19,6 +19,7 @@
 #
 
 defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DataHandler do
+  alias Astarte.Core.Device
   alias Astarte.Core.InterfaceDescriptor
   alias Astarte.Core.Mapping.ValueType
   alias Astarte.DataUpdaterPlant.DataUpdater.State
@@ -34,13 +35,24 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DataHandler do
   require Logger
 
   def handle_data(state, interface, path, payload, message_id, timestamp) do
+    hw_id = Device.encode_device_id(state.device_id)
+
     context = %{
       state: state,
       interface: interface,
       path: path,
       payload: payload,
       message_id: message_id,
-      timestamp: timestamp
+      timestamp: timestamp,
+      hardware_id: hw_id,
+      value_timestamp: nil,
+      value: nil,
+      previous_value: nil,
+      db_max_ttl: nil,
+      interface_descriptor: nil,
+      interface_id: nil,
+      mapping: nil,
+      endpoint_id: nil
     }
 
     with :ok <- validate_interface(context),
@@ -49,64 +61,61 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DataHandler do
          :ok <- can_write_on_interface?(context, interface_descriptor.ownership),
          {:ok, mapping} <- resolve_path(context, interface_descriptor),
          {value, value_timestamp, _metadata} <- decode_bson_payload(context),
-         :ok <- validate_value_type(context, interface_descriptor, mapping, value),
-         :ok <- can_set_to_value(context, interface_descriptor, mapping, value, value_timestamp) do
-      execute_incoming_data_triggers(
-        context,
-        interface_descriptor,
-        mapping,
-        value,
-        value_timestamp
-      )
-
+         :ok <- validate_value_type(context, interface_descriptor, mapping, value) do
       maybe_explicit_value_timestamp =
         if mapping.explicit_timestamp,
           do: value_timestamp,
           else: div(timestamp, 10000)
 
-      context = Map.put(context, :explicit_value_timestamp, maybe_explicit_value_timestamp)
-
       previous_value = get_previous_value(context, interface_descriptor, mapping)
-
-      context = Map.put(context, :previous_value, previous_value)
-
-      if interface_descriptor.type == :properties do
-        :ok =
-          Core.Trigger.execute_pre_change_triggers(
-            state,
-            interface_descriptor,
-            mapping,
-            path,
-            previous_value,
-            value,
-            timestamp
-          )
-      end
 
       realm_max_ttl = context.state.datastream_maximum_storage_retention
 
       db_max_ttl =
-        max_ttl(mapping.database_retention_policy, realm_max_ttl, mapping.database_retention_ttl)
+        max_ttl(
+          mapping.database_retention_policy,
+          realm_max_ttl,
+          mapping.database_retention_ttl
+        )
 
-      context = Map.put(context, :db_max_ttl, db_max_ttl)
+      context = %{
+        context
+        | interface_descriptor: interface_descriptor,
+          interface_id: interface_descriptor.interface_id,
+          mapping: mapping,
+          endpoint_id: mapping.endpoint_id,
+          db_max_ttl: db_max_ttl,
+          value: value,
+          previous_value: previous_value,
+          value_timestamp: maybe_explicit_value_timestamp
+      }
 
-      # Here value cannot be nil, otherwise `can_set_to_value/5` would have not
-      # been :ok
-      if interface_descriptor.type == :datastream,
-        do: maybe_insert_path(context, interface_descriptor, mapping)
+      # We want to execute incoming data triggers even if we can't set to value
+      execute_incoming_data_triggers(context)
 
-      Queries.insert_value_into_db(
-        context.state.realm,
-        context.state.device_id,
-        interface_descriptor,
-        mapping,
-        path,
-        value,
-        maybe_explicit_value_timestamp,
-        timestamp,
-        ttl: db_max_ttl
-      )
-      |> handle_result(context, interface_descriptor, mapping, value)
+      with :ok <- can_set_to_value(context, interface_descriptor, value) do
+        if interface_descriptor.type == :properties do
+          :ok = Core.Trigger.execute_pre_change_triggers(context)
+        end
+
+        # Here value cannot be nil, otherwise `can_set_to_value/5` would have not
+        # been :ok
+        if interface_descriptor.type == :datastream,
+          do: maybe_insert_path(context, interface_descriptor, mapping)
+
+        Queries.insert_value_into_db(
+          context.state.realm,
+          context.state.device_id,
+          interface_descriptor,
+          mapping,
+          path,
+          value,
+          maybe_explicit_value_timestamp,
+          timestamp,
+          ttl: db_max_ttl
+        )
+        |> handle_result(context)
+      end
     end
   end
 
@@ -122,7 +131,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DataHandler do
 
   defp get_previous_value(_, _, _), do: nil
 
-  defp handle_result({:error, :unset_not_allowed}, context, _, _, _) do
+  defp handle_result({:error, :unset_not_allowed}, context) do
     error = %{
       message: "Tried to unset a property with `allow_unset`=false.",
       logger_metadata: [tag: "unset_not_allowed"],
@@ -133,28 +142,19 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DataHandler do
     Core.Error.handle_error(context, error, update_stats: false)
   end
 
-  defp handle_result(:ok, context, interface_descriptor, mapping, value) do
+  defp handle_result(:ok, context) do
     %{
       state: state,
       path: path,
       payload: payload,
       interface: interface,
       message_id: message_id,
-      db_max_ttl: db_max_ttl,
-      previous_value: previous_value,
-      explicit_value_timestamp: explicit_value_timestamp
+      interface_descriptor: interface_descriptor,
+      db_max_ttl: db_max_ttl
     } = context
 
     if interface_descriptor.type == :properties do
-      Core.Trigger.execute_post_change_triggers(
-        state,
-        interface_descriptor,
-        mapping,
-        path,
-        previous_value,
-        value,
-        explicit_value_timestamp
-      )
+      Core.Trigger.execute_post_change_triggers(context)
     end
 
     paths_cache = Cache.put(state.paths_cache, {interface, path}, %CachedPath{}, db_max_ttl)
@@ -180,7 +180,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DataHandler do
       interface: interface,
       path: path,
       timestamp: timestamp,
-      explicit_value_timestamp: explicit_value_timestamp,
+      value_timestamp: explicit_value_timestamp,
       db_max_ttl: db_max_ttl
     } = context
 
@@ -218,14 +218,9 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DataHandler do
 
   defp can_set_to_value(
          context,
-         %InterfaceDescriptor{type: :datastream} = interface_descriptor,
-         mapping,
-         nil,
-         value_timestamp
+         %InterfaceDescriptor{type: :datastream},
+         nil
        ) do
-    # We still want to execute incoming data triggers
-    execute_incoming_data_triggers(context, interface_descriptor, mapping, nil, value_timestamp)
-
     error = %{
       message: "Tried to unset a datastream.",
       error_name: "unset_on_datastream",
@@ -235,36 +230,10 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DataHandler do
     Core.Error.handle_error(context, error, ask_clean_session: false, update_stats: false)
   end
 
-  defp can_set_to_value(_context, _descriptor, _mapping, _value, _value_timestamp), do: :ok
+  defp can_set_to_value(_context, _descriptor, _value), do: :ok
 
-  defp execute_incoming_data_triggers(
-         context,
-         interface_descriptor,
-         mapping,
-         value,
-         value_timestamp
-       ) do
-    %{state: state, path: path, payload: payload} = context
-    interface_id = interface_descriptor.interface_id
-
-    maybe_explicit_value_timestamp =
-      if mapping.explicit_timestamp,
-        do: value_timestamp,
-        else: div(context.timestamp, 10000)
-
-    TriggersHandler.incoming_data(
-      state.realm,
-      state.device_id,
-      state.groups,
-      interface_descriptor.name,
-      interface_id,
-      mapping.endpoint_id,
-      path,
-      value,
-      payload,
-      maybe_explicit_value_timestamp,
-      state
-    )
+  defp execute_incoming_data_triggers(context) do
+    TriggersHandler.incoming_data(context)
   end
 
   defp maybe_handle_cache_miss(context) do

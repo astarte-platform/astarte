@@ -64,7 +64,8 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DataHandlerErrorTest do
         |> Enum.at(0)
         |> Map.put(:interface, invalid_name)
 
-      expect(Core.Error, :handle_error, fn ^context, _error, [update_stats: false] ->
+      expect(Core.Error, :handle_error, fn rec_context, _error, [update_stats: false] ->
+        assert similar_context?(context, rec_context)
         state
       end)
 
@@ -91,7 +92,10 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DataHandlerErrorTest do
         |> Enum.at(0)
         |> Map.put(:path, invalid_path)
 
-      expect(Core.Error, :handle_error, fn ^context, _error -> state end)
+      expect(Core.Error, :handle_error, fn rec_context, _error ->
+        assert similar_context?(context, rec_context)
+        state
+      end)
 
       assert ^state =
                DataHandler.handle_data(state, interface, path, payload, message_id, timestamp)
@@ -116,7 +120,10 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DataHandlerErrorTest do
         |> Enum.at(0)
         |> Map.put(:path, invalid_path)
 
-      expect(Core.Error, :handle_error, fn ^context, _error -> state end)
+      expect(Core.Error, :handle_error, fn rec_context, _error ->
+        assert similar_context?(context, rec_context)
+        state
+      end)
 
       assert ^state =
                DataHandler.handle_data(
@@ -144,7 +151,10 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DataHandlerErrorTest do
         gen_context(state, interfaces)
         |> Enum.at(0)
 
-      expect(Core.Error, :handle_error, fn ^context, _error -> state end)
+      expect(Core.Error, :handle_error, fn rec_context, _error ->
+        assert similar_context?(context, rec_context)
+        state
+      end)
 
       expect(Core.Interface, :maybe_handle_cache_miss, fn nil, ^interface, ^state ->
         {:error, :interface_loading_failed}
@@ -489,4 +499,9 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DataHandlerErrorTest do
   end
 
   defp valid_value?(payload_value, value), do: payload_value == value
+
+  defp similar_context?(base_context, rec_context) do
+    # checks if common keys are equal
+    Map.intersect(base_context, rec_context) == Map.intersect(rec_context, base_context)
+  end
 end

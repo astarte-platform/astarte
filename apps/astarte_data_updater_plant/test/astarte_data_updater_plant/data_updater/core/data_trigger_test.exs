@@ -25,6 +25,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DataTriggerTest do
   use ExUnitProperties
 
   alias Astarte.Core.CQLUtils
+  alias Astarte.Core.Device
   alias Astarte.Core.InterfaceDescriptor
   alias Astarte.Core.Mapping
   alias Astarte.Core.Mapping.EndpointsAutomaton
@@ -125,6 +126,25 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DataTriggerTest do
     state
   end
 
+  defp build_context(state, interface_name, interface_major, value_type, path, value) do
+    hw_id = Device.encode_device_id(state.device_id)
+    state = add_interface(state, interface_name, interface_major, path, value_type)
+
+    context = %{
+      hardware_id: hw_id,
+      interface: interface_name,
+      path: path,
+      interface_id: CQLUtils.interface_id(interface_name, interface_major),
+      endpoint_id: CQLUtils.endpoint_id(interface_name, interface_major, path),
+      payload: Cyanide.encode!(%{"value" => value}),
+      value: value,
+      value_timestamp: 1_600_000_000_000_000,
+      state: state
+    }
+
+    {state, context}
+  end
+
   defp replace_automaton_acceptings_with_ids(accepting_states, interface_name, major) do
     Map.new(accepting_states, fn {state_index, endpoint} ->
       endpoint_id = CQLUtils.endpoint_id(interface_name, major, endpoint)
@@ -134,42 +154,23 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DataTriggerTest do
 
   describe "execute_incoming_data_triggers/9" do
     test "doesn't execute triggers for incoming data events with empty triggers", context do
-      %{
-        state: state
-      } = context
+      %{state: state} = context
+      {_state, context} = build_context(state, "test.interface", 1, :integer, "/test/path", 42)
 
       Mimic.reject(&Astarte.Events.TriggersHandler.dispatch_event/7)
 
-      assert :ok ==
-               TriggersHandler.incoming_data(
-                 state.realm,
-                 state.device_id,
-                 state.groups,
-                 "test.interface",
-                 _interface_id = <<>>,
-                 _endpoint_id = <<>>,
-                 "/test/path",
-                 42,
-                 <<0, 1, 2, 3>>,
-                 1_600_000_000,
-                 state
-               )
+      assert :ok == TriggersHandler.incoming_data(context)
     end
 
     test "executes global triggers for any interface/endpoint", context do
-      %{
-        state: state
-      } = context
-
-      realm = state.realm
+      %{state: state} = context
       interface_name = "com.example.Sensors"
       interface_major = 1
       path = "/sensors/temperature"
-      interface_id = CQLUtils.interface_id(interface_name, interface_major)
-      endpoint_id = CQLUtils.endpoint_id(interface_name, interface_major, path)
       value = 42
-      payload = Cyanide.encode!(%{"value" => value})
-      timestamp = 1_600_000_000_000_000
+
+      {state, context} =
+        build_context(state, interface_name, interface_major, :integer, path, value)
 
       ref =
         install_volatile_trigger(state, %DataTrigger{
@@ -180,20 +181,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DataTriggerTest do
           known_value: Cyanide.encode!(%{v: 50})
         })
 
-      assert :ok ==
-               TriggersHandler.incoming_data(
-                 realm,
-                 state.device_id,
-                 state.groups,
-                 interface_name,
-                 interface_id,
-                 endpoint_id,
-                 path,
-                 value,
-                 payload,
-                 timestamp,
-                 state
-               )
+      assert :ok == TriggersHandler.incoming_data(context)
 
       assert_receive ^ref
     end
@@ -206,12 +194,10 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DataTriggerTest do
       interface_name = "com.example.Sensors"
       interface_major = 1
       path = "/sensors/temperature"
-      interface_id = CQLUtils.interface_id(interface_name, interface_major)
-      endpoint_id = CQLUtils.endpoint_id(interface_name, interface_major, path)
       value = 42
-      payload = Cyanide.encode!(%{"value" => value})
-      timestamp = 1_600_000_000_000_000
-      state = add_interface(state, interface_name, interface_major, path, :integer)
+
+      {state, context} =
+        build_context(state, interface_name, interface_major, :integer, path, value)
 
       ref =
         install_volatile_trigger(state, %DataTrigger{
@@ -223,39 +209,20 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DataTriggerTest do
           known_value: Cyanide.encode!(%{v: 50})
         })
 
-      assert :ok ==
-               TriggersHandler.incoming_data(
-                 state.realm,
-                 state.device_id,
-                 state.groups,
-                 interface_name,
-                 interface_id,
-                 endpoint_id,
-                 path,
-                 value,
-                 payload,
-                 timestamp,
-                 state
-               )
+      assert :ok == TriggersHandler.incoming_data(context)
 
       assert_receive ^ref
     end
 
     test "executes endpoint-specific triggers", context do
-      %{
-        state: state,
-        device: device
-      } = context
-
+      %{state: state} = context
       interface_name = "com.example.Sensors"
       interface_major = 1
       path = "/sensors/temperature"
-      interface_id = CQLUtils.interface_id(interface_name, interface_major)
-      endpoint_id = CQLUtils.endpoint_id(interface_name, interface_major, path)
       value = 42
-      payload = Cyanide.encode!(%{"value" => value})
-      timestamp = 1_600_000_000_000_000
-      state = add_interface(state, interface_name, interface_major, path, :integer)
+
+      {state, context} =
+        build_context(state, interface_name, interface_major, :integer, path, value)
 
       ref =
         install_volatile_trigger(state, %DataTrigger{
@@ -267,38 +234,21 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DataTriggerTest do
           known_value: Cyanide.encode!(%{v: 50})
         })
 
-      assert :ok ==
-               TriggersHandler.incoming_data(
-                 state.realm,
-                 device.device_id,
-                 [],
-                 interface_name,
-                 interface_id,
-                 endpoint_id,
-                 path,
-                 value,
-                 payload,
-                 timestamp,
-                 state
-               )
+      assert :ok == TriggersHandler.incoming_data(context)
 
       assert_receive ^ref
     end
 
     test "does not execute triggers when value doesn't match condition", context do
-      %{
-        state: state,
-        device: device
-      } = context
+      %{state: state} = context
 
       interface_name = "com.example.Sensors"
       interface_major = 1
       path = "/sensors/temperature"
-      interface_id = CQLUtils.interface_id(interface_name, interface_major)
-      endpoint_id = CQLUtils.endpoint_id(interface_name, interface_major, path)
       value = 60
-      payload = Cyanide.encode!(%{"value" => value})
-      timestamp = 1_600_000_000_000_000
+
+      {state, context} =
+        build_context(state, interface_name, interface_major, :integer, path, value)
 
       install_volatile_trigger(state, %DataTrigger{
         interface_name: interface_name,
@@ -311,20 +261,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DataTriggerTest do
 
       Mimic.reject(&Astarte.Events.TriggersHandler.dispatch_event/7)
 
-      assert :ok ==
-               TriggersHandler.incoming_data(
-                 state.realm,
-                 device.device_id,
-                 state.groups,
-                 interface_name,
-                 interface_id,
-                 endpoint_id,
-                 path,
-                 value,
-                 payload,
-                 timestamp,
-                 state
-               )
+      assert :ok == TriggersHandler.incoming_data(context)
     end
   end
 
@@ -339,20 +276,21 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DataTriggerTest do
         device: device
       } = context
 
-      assert :ok ==
-               TriggersHandler.incoming_data(
-                 state.realm,
-                 device.device_id,
-                 state.groups,
-                 "iface",
-                 interface_id,
-                 endpoint_id,
-                 "/path",
-                 value,
-                 payload,
-                 timestamp,
-                 state
-               )
+      hw_id = Device.encode_device_id(device.device_id)
+
+      context = %{
+        interface: "iface",
+        interface_id: interface_id,
+        endpoint_id: endpoint_id,
+        hardware_id: hw_id,
+        path: "/path",
+        value: value,
+        value_timestamp: timestamp,
+        payload: payload,
+        state: state
+      }
+
+      assert :ok == TriggersHandler.incoming_data(context)
     end
   end
 end

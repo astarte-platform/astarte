@@ -24,18 +24,19 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.Interface do
 
   This module contains functions and utilities to process interfaces.
   """
-  alias Astarte.Core.Mapping
   alias Astarte.Core.CQLUtils
-  alias Astarte.Core.Triggers.SimpleTriggersProtobuf
-  alias Astarte.Core.Mapping.EndpointsAutomaton
-  alias Astarte.DataUpdaterPlant.DataUpdater.Core
-  alias Astarte.DataUpdaterPlant.DataUpdater.State
+  alias Astarte.Core.Device, as: CoreDevice
   alias Astarte.Core.InterfaceDescriptor
-  alias Astarte.DataUpdaterPlant.DataUpdater.Queries
-  alias Astarte.DataUpdaterPlant.TriggersHandler
-  alias Astarte.DataAccess.Mappings
-  alias Astarte.DataAccess.Interface
+  alias Astarte.Core.Mapping
+  alias Astarte.Core.Mapping.EndpointsAutomaton
+  alias Astarte.Core.Triggers.SimpleTriggersProtobuf
   alias Astarte.DataAccess.Device
+  alias Astarte.DataAccess.Interface
+  alias Astarte.DataAccess.Mappings
+  alias Astarte.DataUpdaterPlant.DataUpdater.Core
+  alias Astarte.DataUpdaterPlant.DataUpdater.Queries
+  alias Astarte.DataUpdaterPlant.DataUpdater.State
+  alias Astarte.DataUpdaterPlant.TriggersHandler
 
   require Logger
 
@@ -138,6 +139,18 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.Interface do
   end
 
   defp do_prune(state, interface_descriptor, all_paths_set, timestamp) do
+    hw_id = CoreDevice.encode_device_id(state.device_id)
+
+    context = %{
+      state: state,
+      hardware_id: hw_id,
+      interface_id: interface_descriptor.interface_id,
+      interface: interface_descriptor.name,
+      value_timestamp: timestamp,
+      endpoint_id: nil,
+      path: nil
+    }
+
     each_interface_mapping(state.mappings, interface_descriptor, fn mapping ->
       endpoint_id = mapping.endpoint_id
 
@@ -157,20 +170,13 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.Interface do
             path
           )
 
-          interface_id = interface_descriptor.interface_id
-          i_name = interface_descriptor.name
+          context = %{
+            context
+            | endpoint_id: endpoint_id,
+              path: path
+          }
 
-          TriggersHandler.path_removed(
-            state.realm,
-            state.device_id,
-            state.groups,
-            interface_id,
-            endpoint_id,
-            i_name,
-            path,
-            timestamp,
-            state
-          )
+          TriggersHandler.path_removed(context)
         end
       end)
     end)

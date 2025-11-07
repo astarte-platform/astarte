@@ -23,6 +23,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.TriggerTest do
   use ExUnitProperties
 
   alias Astarte.Core.CQLUtils
+  alias Astarte.Core.Device
   alias Astarte.Core.Generators.Device, as: DeviceGenerator
   alias Astarte.Core.InterfaceDescriptor
   alias Astarte.Core.Mapping
@@ -92,49 +93,59 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.TriggerTest do
     }
   end
 
+  defp build_context(state, interface_name, interface_major, value_type, path, prev, value, ts) do
+    hw_id = Device.encode_device_id(state.device_id)
+    descriptor = interface_descriptor(interface_name, interface_major)
+    mapping = mapping(descriptor, path, value_type)
+
+    %{
+      hardware_id: hw_id,
+      interface: interface_name,
+      path: path,
+      interface_id: descriptor.interface_id,
+      endpoint_id: mapping.endpoint_id,
+      payload: Cyanide.encode!(%{"value" => value}),
+      value: value,
+      previous_value: prev,
+      value_timestamp: ts,
+      state: state
+    }
+  end
+
   describe "execute_pre_change_triggers/9" do
     test "execute_pre_change_triggers/9 executes triggers when value changes", context do
       state = context.state
       realm = state.realm
-      interface = "test_interface"
-      interface_descriptor = interface_descriptor(interface, 1)
-      path = "/test/path"
-      mapping = mapping(interface_descriptor, path, :integer)
-      previous_value = nil
       value = 42
       timestamp = DateTime.utc_now()
 
-      Mimic.expect(TriggersHandler, :value_change, fn ^realm,
-                                                      device,
-                                                      _groups,
-                                                      interface_id,
-                                                      endpoint_id,
-                                                      interface,
-                                                      path,
-                                                      new_value,
-                                                      _old_bson_value,
-                                                      _payload,
-                                                      ^timestamp,
-                                                      _state ->
+      context =
+        build_context(state, "test_interface", 1, :integer, "/test/path", nil, value, timestamp)
+
+      Mimic.expect(TriggersHandler, :value_change, fn rec_context, _old_bson_value, _payload ->
+        %{
+          interface: interface,
+          value_timestamp: ^timestamp,
+          path: path,
+          value: new_value,
+          interface_id: interface_id,
+          endpoint_id: endpoint_id,
+          state: %{
+            device_id: device,
+            realm: ^realm
+          }
+        } = rec_context
+
         assert device == state.device_id
         assert interface == "test_interface"
         assert path == "/test/path"
-        assert interface_id == interface_descriptor.interface_id
-        assert endpoint_id == mapping.endpoint_id
+        assert interface_id == context.interface_id
+        assert endpoint_id == context.endpoint_id
         assert new_value == value
         :ok
       end)
 
-      assert :ok =
-               Trigger.execute_pre_change_triggers(
-                 state,
-                 interface_descriptor,
-                 mapping,
-                 path,
-                 previous_value,
-                 value,
-                 timestamp
-               )
+      assert :ok = Trigger.execute_pre_change_triggers(context)
     end
 
     test "does not execute triggers when value remains the same", context do
@@ -142,155 +153,159 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.TriggerTest do
         state: state
       } = context
 
-      interface = "test_interface"
-      interface_descriptor = interface_descriptor(interface, 1)
-      path = "/test/path"
-      mapping = mapping(interface_descriptor, path, :string)
+      context =
+        build_context(
+          state,
+          "test_interface",
+          1,
+          :string,
+          "/test/path",
+          "same_value",
+          "same_value",
+          1_600_000_000
+        )
 
-      Mimic.reject(&TriggersHandler.value_change/12)
+      Mimic.reject(&TriggersHandler.value_change/3)
 
       assert :ok ==
-               Trigger.execute_pre_change_triggers(
-                 state,
-                 interface_descriptor,
-                 mapping,
-                 "/test/path",
-                 "same_value",
-                 "same_value",
-                 1_600_000_000
-               )
+               Trigger.execute_pre_change_triggers(context)
     end
   end
 
-  describe "execute_post_change_triggers/9" do
-    test "execute_post_change_triggers/9 executes path_created triggers when value changes from nil",
+  describe "execute_post_change_triggers/1" do
+    test "executes path_created triggers when value changes from nil",
          context do
       state = context.state
       realm = state.realm
-      interface = "test_interface"
-      descriptor = interface_descriptor(interface, 1)
-      interface_id = descriptor.interface_id
-      path = "/test/path"
-      mapping = mapping(descriptor, path, :integer)
-      endpoint_id = mapping.endpoint_id
-      previous_value = nil
       value = 42
       timestamp = DateTime.utc_now()
 
-      Mimic.expect(TriggersHandler, :path_created, fn ^realm,
-                                                      device,
-                                                      _groups,
-                                                      ^interface_id,
-                                                      ^endpoint_id,
-                                                      interface,
-                                                      path,
-                                                      val,
-                                                      _payload,
-                                                      ^timestamp,
-                                                      _state ->
+      context =
+        build_context(state, "test_interface", 1, :integer, "/test/path", nil, value, timestamp)
+
+      Mimic.expect(TriggersHandler, :path_created, fn rec_context, _payload ->
+        %{
+          interface: interface,
+          path: path,
+          interface_id: interface_id,
+          endpoint_id: endpoint_id,
+          value: val,
+          state: %{
+            realm: ^realm,
+            device_id: device
+          }
+        } = rec_context
+
         assert device == state.device_id
         assert interface == "test_interface"
         assert path == "/test/path"
         assert val == value
+        assert interface_id == context.interface_id
+        assert endpoint_id == context.endpoint_id
         :ok
       end)
 
-      assert :ok =
-               Trigger.execute_post_change_triggers(
-                 state,
-                 descriptor,
-                 mapping,
-                 path,
-                 previous_value,
-                 value,
-                 timestamp
-               )
+      assert :ok = Trigger.execute_post_change_triggers(context)
     end
 
-    test "execute_post_change_triggers/9 executes path_removed triggers when value changes to nil",
+    test "executes path_removed triggers when value changes to nil",
          context do
       state = context.state
       realm = state.realm
-      interface = "test_interface"
-      descriptor = interface_descriptor(interface, 1)
-      interface_id = descriptor.interface_id
-      path = "/test/path"
-      mapping = mapping(descriptor, path, :integer)
-      endpoint_id = mapping.endpoint_id
-      previous_value = 42
-      value = nil
       timestamp = DateTime.utc_now()
 
-      Mimic.expect(TriggersHandler, :path_removed, fn ^realm,
-                                                      device_id,
-                                                      _groups,
-                                                      ^interface_id,
-                                                      ^endpoint_id,
-                                                      interface,
-                                                      path,
-                                                      ^timestamp,
-                                                      _state ->
+      context =
+        build_context(state, "test_interface", 1, :integer, "/test/path", 42, nil, timestamp)
+
+      Mimic.expect(TriggersHandler, :path_removed, fn rec_context ->
+        %{
+          interface: interface,
+          path: path,
+          value_timestamp: ^timestamp,
+          interface_id: interface_id,
+          endpoint_id: endpoint_id,
+          state: %{
+            realm: ^realm,
+            device_id: device_id
+          }
+        } = rec_context
+
         assert device_id == state.device_id
         assert interface == "test_interface"
         assert path == "/test/path"
+        assert interface_id == context.interface_id
+        assert endpoint_id == context.endpoint_id
         :ok
       end)
 
-      assert :ok =
-               Trigger.execute_post_change_triggers(
-                 state,
-                 descriptor,
-                 mapping,
-                 path,
-                 previous_value,
-                 value,
-                 timestamp
-               )
+      assert :ok = Trigger.execute_post_change_triggers(context)
     end
 
-    test "execute_post_change_triggers/9 executes value_change_applied triggers when value changes",
-         context do
+    test "executes value_change_applied triggers when value changes", context do
       state = context.state
       realm = state.realm
-      interface = "test_interface"
-      descriptor = interface_descriptor(interface, 1)
-      interface_id = descriptor.interface_id
-      path = "/test/path"
-      mapping = mapping(descriptor, path, :integer)
-      endpoint_id = mapping.endpoint_id
-      previous_value = 42
       value = 43
       timestamp = DateTime.utc_now()
 
-      Mimic.expect(TriggersHandler, :value_change_applied, fn ^realm,
-                                                              device,
-                                                              _groups,
-                                                              ^interface_id,
-                                                              ^endpoint_id,
-                                                              interface,
-                                                              path,
-                                                              new_value,
+      context =
+        build_context(state, "test_interface", 1, :integer, "/test/path", 42, value, timestamp)
+
+      Mimic.expect(TriggersHandler, :value_change_applied, fn rec_context,
                                                               _old_bson_value,
-                                                              _payload,
-                                                              ^timestamp,
-                                                              _state ->
+                                                              _payload ->
+        %{
+          value: new_value,
+          value_timestamp: ^timestamp,
+          interface: interface,
+          path: path,
+          interface_id: interface_id,
+          endpoint_id: endpoint_id,
+          state: %{
+            realm: ^realm,
+            device_id: device
+          }
+        } = rec_context
+
         assert device == state.device_id
         assert interface == "test_interface"
         assert path == "/test/path"
         assert new_value == value
+        assert interface_id == context.interface_id
+        assert endpoint_id == context.endpoint_id
         :ok
       end)
 
-      assert :ok =
-               Trigger.execute_post_change_triggers(
-                 state,
-                 descriptor,
-                 mapping,
-                 path,
-                 previous_value,
-                 value,
-                 timestamp
-               )
+      assert :ok = Trigger.execute_post_change_triggers(context)
+    end
+
+    test "does nothing when the value stays the same", context do
+      state = context.state
+      value = 43
+      timestamp = DateTime.utc_now()
+
+      context =
+        build_context(state, "test_interface", 1, :integer, "/test/path", value, value, timestamp)
+
+      Mimic.reject(TriggersHandler, :path_removed, 1)
+      Mimic.reject(TriggersHandler, :path_created, 2)
+      Mimic.reject(TriggersHandler, :value_change_applied, 3)
+
+      assert :ok = Trigger.execute_post_change_triggers(context)
+    end
+
+    test "does nothing when called with two nils", context do
+      state = context.state
+      value = nil
+      timestamp = DateTime.utc_now()
+
+      context =
+        build_context(state, "test_interface", 1, :integer, "/test/path", value, value, timestamp)
+
+      Mimic.reject(TriggersHandler, :path_removed, 1)
+      Mimic.reject(TriggersHandler, :path_created, 2)
+      Mimic.reject(TriggersHandler, :value_change_applied, 3)
+
+      assert :ok = Trigger.execute_post_change_triggers(context)
     end
   end
 
