@@ -128,7 +128,7 @@ defmodule Astarte.Pairing.TO0Util do
   end
 
   defp build_to0d(ov, wait_seconds, nonce) do
-    to0d = CBOR.encode([ov, wait_seconds, nonce])
+    to0d = CBOR.encode([ov, wait_seconds, add_cbor_tag(nonce)])
     {:ok, to0d}
   end
 
