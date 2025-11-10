@@ -238,7 +238,9 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandlerTest do
         routing_key: @routing_key
       }
 
-      TriggersHandler.device_disconnected(target, @realm, @device_id, timestamp, nil)
+      register_target(:on_device_disconnection, target)
+
+      TriggersHandler.device_disconnected(@realm, @decoded_device_id, [], timestamp)
 
       assert_receive {:event, payload, meta}
 

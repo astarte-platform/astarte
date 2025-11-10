@@ -65,22 +65,22 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandler do
     end)
   end
 
-  def device_disconnected(targets, realm, device_id, timestamp) when is_list(targets) do
-    execute_all_ok(targets, fn {target, policy} ->
-      device_disconnected(target, realm, device_id, timestamp, policy) == :ok
-    end)
-  end
+  def device_disconnected(realm, device_id, groups, timestamp) do
+    event = %DeviceDisconnectedEvent{}
+    hw_id = Device.encode_device_id(device_id)
 
-  def device_disconnected(target, realm, device_id, timestamp, policy) do
-    %DeviceDisconnectedEvent{}
-    |> dispatch_event_with_telemetry(
-      :device_disconnected_event,
-      target,
-      realm,
-      device_id,
-      timestamp,
-      policy
-    )
+    Triggers.find_device_trigger_targets(realm, device_id, groups, :on_device_disconnection)
+    |> execute_all_ok(fn {target, policy} ->
+      dispatch_event_with_telemetry(
+        event,
+        :device_disconnected_event,
+        target,
+        realm,
+        hw_id,
+        timestamp,
+        policy
+      )
+    end)
   end
 
   def device_error(targets, realm, device_id, error_name, error_metadata, timestamp)

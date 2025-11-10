@@ -358,18 +358,10 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.Device do
   defp maybe_execute_device_disconnected_trigger(%State{connected: false}, _), do: :ok
 
   defp maybe_execute_device_disconnected_trigger(state, timestamp_ms) do
-    trigger_target_with_policy_list =
-      Map.get(state.device_triggers, :on_device_disconnection, [])
-      |> Enum.map(fn target ->
-        {target, Map.get(state.trigger_id_to_policy_name, target.parent_trigger_id)}
-      end)
-
-    device_id_string = Device.encode_device_id(state.device_id)
-
     TriggersHandler.device_disconnected(
-      trigger_target_with_policy_list,
       state.realm,
-      device_id_string,
+      state.device_id,
+      state.groups,
       timestamp_ms
     )
 
