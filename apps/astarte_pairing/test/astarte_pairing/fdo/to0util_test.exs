@@ -59,12 +59,6 @@ defmodule Astarte.Pairing.TO0UtilTest do
     end
   end
 
-  describe "safe_der_decode/1" do
-    test "returns error for invalid DER data" do
-      assert {:error, :der_decode_failed} = Core.safe_der_decode(<<0, 1, 2>>)
-    end
-  end
-
   describe "get_rv_to2_addr_entries/0" do
     test "returns a list of entries with correct types" do
       {:ok, entries} = Core.get_rv_to2_addr_entries("test1", "test2")
@@ -94,6 +88,14 @@ defmodule Astarte.Pairing.TO0UtilTest do
       assert {:ok, %CBOR.Tag{tag: 18, value: cose_sign1_array}} = result
       assert is_list(cose_sign1_array)
       assert length(cose_sign1_array) == 4
+    end
+
+    test "returns {:error, :signing_error} when passed invalid PEM key" do
+      payload = CBOR.encode(["test", 123])
+      invalid_key = "pippo"
+
+      result = Core.build_cose_sign1(payload, invalid_key)
+      assert {:error, :signing_error} = result
     end
   end
 

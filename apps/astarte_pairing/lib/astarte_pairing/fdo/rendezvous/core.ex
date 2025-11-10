@@ -71,43 +71,34 @@ defmodule Astarte.Pairing.FDO.Rendezvous.Core do
     end
   end
 
-  def sign_with_owner_key(data, owner_key) do
-    case :public_key.pem_decode(owner_key) do
-      [{:ECPrivateKey, der_data, :not_encrypted}] ->
-        with {:ok, ec_private_key} <- safe_der_decode(der_data),
-             {:ok, raw_priv} <- extract_raw_private_key(ec_private_key) do
-          safe_sign(data, raw_priv)
-        end
+  defp sign_with_owner_key(data, pem_key) do
+    case decode_owner_private_key(pem_key) do
+      {:ok, private_key} ->
+        signature = :public_key.sign(data, :sha256, private_key)
+        {:ok, signature}
 
-      _ ->
-        Logger.error("PEM decode failed for owner key")
-        {:error, :pem_decode_failed}
+      {:error, reason} ->
+        {:error, reason}
     end
   end
 
-  def safe_der_decode(der_data) do
+  defp decode_owner_private_key(key) do
+    case :public_key.pem_decode(key) do
+      [entry] ->
+        safe_decode_pem_entry(entry)
+
+      [] ->
+        {:error, :invalid_pem}
+    end
+  end
+
+  defp safe_decode_pem_entry(entry) do
     try do
-      {:ok, :public_key.der_decode(:ECPrivateKey, der_data)}
-    rescue
-      _ -> {:error, :der_decode_failed}
-    end
-  end
-
-  defp extract_raw_private_key({:ECPrivateKey, _version, bin, _params, _pub, _extra}) do
-    case byte_size(bin) do
-      32 -> {:ok, bin}
-      n when n < 32 -> {:ok, :binary.copy(<<0>>, 32 - n) <> bin}
-      _ -> {:error, :key_too_long}
-    end
-  end
-
-  def safe_sign(data, priv_key) do
-    try do
-      {:ok, :crypto.sign(:ecdsa, :sha256, data, [priv_key, :secp256r1])}
+      {:ok, :public_key.pem_entry_decode(entry)}
     rescue
       e ->
-        Logger.warning("ownership voucher signing failed: #{inspect(e)}")
-        {:error, :signing_failed}
+        Logger.warning("pem_entry_decode failed: #{inspect(e)}")
+        {:error, :pem_entry_decoding_failed}
     end
   end
 
