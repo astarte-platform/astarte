@@ -127,7 +127,7 @@ defmodule Astarte.Housekeeping.Config do
   app_env :amqp_management_port, :astarte_housekeeping, :amqp_management_port,
     os_env: "HOUSEKEEPING_AMQP_MANAGEMENT_PORT",
     type: :integer,
-    default: 15672
+    default: 15_672
 
   @envdoc "The username for the AMQP connection."
   app_env :amqp_username, :astarte_housekeeping, :amqp_username,
