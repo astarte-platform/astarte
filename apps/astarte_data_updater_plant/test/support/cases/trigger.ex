@@ -19,11 +19,59 @@
 defmodule Astarte.Cases.Trigger do
   use ExUnit.CaseTemplate
 
+  alias Astarte.Core.Triggers.SimpleTriggersProtobuf.AMQPTriggerTarget
+  alias Astarte.Core.Triggers.SimpleTriggersProtobuf.DataTrigger
+  alias Astarte.Core.Triggers.SimpleTriggersProtobuf.DeviceTrigger
   alias Astarte.Events.Triggers.Cache
+
+  using do
+    quote do
+      import Astarte.Cases.Trigger
+    end
+  end
 
   setup %{realm_name: realm_name} do
     Cache.reset_realm_cache(realm_name)
 
     :ok
+  end
+
+  defp mock_trigger_target(routing_key) do
+    %AMQPTriggerTarget{
+      parent_trigger_id: :uuid.get_v4(),
+      simple_trigger_id: :uuid.get_v4(),
+      static_headers: [],
+      routing_key: routing_key
+    }
+  end
+
+  def install_volatile_trigger(state, protobuf_trigger, validation_function \\ nil) do
+    id = System.unique_integer()
+    test_process = self()
+    ref = {:event_dispatched, id}
+    trigger_target = mock_trigger_target("target#{id}")
+
+    deserialized_simple_trigger =
+      case protobuf_trigger do
+        %DeviceTrigger{} -> {{:device_trigger, protobuf_trigger}, trigger_target}
+        %DataTrigger{} -> {{:data_trigger, protobuf_trigger}, trigger_target}
+      end
+
+    Astarte.Events.TriggersHandler
+    |> Mimic.stub(:dispatch_event, fn
+      event, event_type, ^trigger_target, realm, hw_id, timestamp, policy ->
+        validation_function &&
+          validation_function.(event, event_type, realm, hw_id, timestamp, policy)
+
+        send(test_process, ref)
+    end)
+
+    Astarte.Events.Triggers.install_volatile_trigger(
+      state.realm,
+      deserialized_simple_trigger,
+      state
+    )
+
+    ref
   end
 end

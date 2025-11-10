@@ -27,8 +27,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.TriggerTest do
   alias Astarte.Core.Generators.Device, as: DeviceGenerator
   alias Astarte.Core.InterfaceDescriptor
   alias Astarte.Core.Mapping
-  alias Astarte.Core.Triggers.SimpleTriggersProtobuf.AMQPTriggerTarget
-  alias Astarte.DataUpdaterPlant.AMQPTestHelper
+  alias Astarte.Core.Triggers.SimpleTriggersProtobuf.DeviceTrigger
   alias Astarte.DataUpdaterPlant.DataUpdater
   alias Astarte.DataUpdaterPlant.DataUpdater.Core.Trigger
   alias Astarte.DataUpdaterPlant.DataUpdater.State
@@ -36,6 +35,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.TriggerTest do
 
   use Astarte.Cases.Data, async: true
   use Astarte.Cases.Device
+  use Astarte.Cases.Trigger
   use ExUnitProperties
 
   import Astarte.Helpers.DataUpdater
@@ -49,19 +49,6 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.TriggerTest do
     state = DataUpdater.dump_state(realm_name, device.encoded_id)
 
     %{state: state}
-  end
-
-  defp mock_trigger_target do
-    %AMQPTriggerTarget{
-      parent_trigger_id: :uuid.get_v4(),
-      simple_trigger_id: :uuid.get_v4(),
-      static_headers: [],
-      routing_key: AMQPTestHelper.events_routing_key()
-    }
-  end
-
-  defp mock_device_trigger(state, event_type) do
-    %{state | device_triggers: %{event_type => [mock_trigger_target()]}}
   end
 
   defp interface_descriptor(interface, major) do
@@ -310,39 +297,6 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.TriggerTest do
   end
 
   describe "execute_device_error_triggers/4" do
-    test "executes triggers for device error events with empty triggers", context do
-      %{
-        state: state,
-        realm_name: realm,
-        device: device
-      } = context
-
-      device_id = device.encoded_id
-      error_name = "test_error"
-      error_metadata = %{"details" => "test details"}
-      timestamp = 1_600_000_000_000_000
-      timestamp_ms = 1_600_000_000_00
-
-      Mimic.expect(TriggersHandler, :device_error, fn targets,
-                                                      ^realm,
-                                                      ^device_id,
-                                                      ^error_name,
-                                                      ^error_metadata,
-                                                      ^timestamp_ms ->
-        assert Enum.empty?(targets)
-
-        :ok
-      end)
-
-      assert :ok ==
-               Trigger.execute_device_error_triggers(
-                 state,
-                 error_name,
-                 error_metadata,
-                 timestamp
-               )
-    end
-
     test "execute_device_error_triggers/4 executes triggers for device error events with configured triggers",
          context do
       %{
@@ -351,23 +305,17 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.TriggerTest do
         device: device
       } = context
 
-      state = mock_device_trigger(state, :on_device_error)
-
       device_id = device.encoded_id
       error_name = "test_error"
       error_metadata = %{"details" => "test details"}
       timestamp = 1_600_000_000_000_000
       timestamp_ms = 1_600_000_000_00
 
-      Mimic.expect(TriggersHandler, :device_error, fn targets,
-                                                      ^realm,
-                                                      ^device_id,
-                                                      ^error_name,
-                                                      ^error_metadata,
-                                                      ^timestamp_ms ->
-        refute Enum.empty?(targets)
-        :ok
-      end)
+      ref =
+        install_volatile_trigger(state, %DeviceTrigger{device_event_type: :DEVICE_ERROR}, fn
+          event, :device_error_event, ^realm, ^device_id, ^timestamp_ms, _policy ->
+            assert %{error_name: ^error_name, metadata: ^error_metadata} = event
+        end)
 
       assert :ok =
                Trigger.execute_device_error_triggers(
@@ -376,6 +324,8 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.TriggerTest do
                  error_metadata,
                  timestamp
                )
+
+      assert_receive ^ref
     end
 
     test "execute_device_error_triggers/4 handles device error with empty metadata", context do
@@ -385,22 +335,17 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.TriggerTest do
         device: device
       } = context
 
-      state = mock_device_trigger(state, :on_device_error)
-
       device_id = device.encoded_id
       error_name = "test_error"
       error_metadata = %{}
       timestamp = 1_600_000_000_000_000
       timestamp_ms = 1_600_000_000_00
 
-      Mimic.expect(TriggersHandler, :device_error, fn _target_with_policy_list,
-                                                      ^realm,
-                                                      ^device_id,
-                                                      ^error_name,
-                                                      ^error_metadata,
-                                                      ^timestamp_ms ->
-        :ok
-      end)
+      ref =
+        install_volatile_trigger(state, %DeviceTrigger{device_event_type: :DEVICE_ERROR}, fn
+          event, :device_error_event, ^realm, ^device_id, ^timestamp_ms, _policy ->
+            assert %{error_name: ^error_name, metadata: ^error_metadata} = event
+        end)
 
       assert :ok =
                Trigger.execute_device_error_triggers(
@@ -409,15 +354,17 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.TriggerTest do
                  error_metadata,
                  timestamp
                )
+
+      assert_receive ^ref
     end
 
-    property "does not crash for random error names and metadata" do
+    property "does not crash for random error names and metadata", %{realm_name: realm} do
       check all error_name <- string(:alphanumeric),
                 error_metadata <- map_of(string(:alphanumeric), string(:alphanumeric)),
                 timestamp <- integer(1_600_000_000_000_000..2_000_000_000_000_000),
                 device_id <- DeviceGenerator.id() do
         state = %State{
-          realm: "test_realm",
+          realm: realm,
           device_id: device_id,
           device_triggers: %{},
           data_triggers: %{},

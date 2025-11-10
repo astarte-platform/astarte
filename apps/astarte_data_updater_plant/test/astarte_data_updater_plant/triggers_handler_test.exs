@@ -184,16 +184,16 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandlerTest do
         routing_key: @routing_key
       }
 
+      register_target(:on_device_error, target)
       error_metadata = %{"base64_payload" => Base.encode64("aninvalidintrospection")}
 
       TriggersHandler.device_error(
-        target,
         @realm,
-        @device_id,
+        @decoded_device_id,
+        [],
         "invalid_introspection",
         error_metadata,
-        timestamp,
-        nil
+        timestamp
       )
 
       assert_receive {:event, payload, meta}

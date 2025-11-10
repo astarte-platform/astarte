@@ -24,7 +24,6 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.Trigger do
 
   This module contains functions and utilities to process triggers.
   """
-  alias Astarte.Core.Device
   alias Astarte.DataUpdaterPlant.DataUpdater.Core
   alias Astarte.DataUpdaterPlant.DataUpdater.State
   alias Astarte.DataUpdaterPlant.TriggersHandler
@@ -115,18 +114,10 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.Trigger do
   def execute_device_error_triggers(state, error_name, error_metadata \\ %{}, timestamp) do
     timestamp_ms = div(timestamp, 10_000)
 
-    trigger_target_with_policy_list =
-      Map.get(state.device_triggers, :on_device_error, [])
-      |> Enum.map(fn target ->
-        {target, Map.get(state.trigger_id_to_policy_name, target.parent_trigger_id)}
-      end)
-
-    device_id_string = Device.encode_device_id(state.device_id)
-
     TriggersHandler.device_error(
-      trigger_target_with_policy_list,
       state.realm,
-      device_id_string,
+      state.device_id,
+      state.groups,
       error_name,
       error_metadata,
       timestamp_ms

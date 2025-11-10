@@ -29,7 +29,6 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DataTriggerTest do
   alias Astarte.Core.InterfaceDescriptor
   alias Astarte.Core.Mapping
   alias Astarte.Core.Mapping.EndpointsAutomaton
-  alias Astarte.Core.Triggers.SimpleTriggersProtobuf.AMQPTriggerTarget
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.DataTrigger
   alias Astarte.DataUpdaterPlant.DataUpdater
   alias Astarte.DataUpdaterPlant.TriggersHandler
@@ -45,42 +44,6 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DataTriggerTest do
     state = DataUpdater.dump_state(realm_name, device.encoded_id)
 
     %{state: state}
-  end
-
-  defp mock_trigger_target(routing_key) do
-    %AMQPTriggerTarget{
-      parent_trigger_id: :uuid.get_v4(),
-      simple_trigger_id: :uuid.get_v4(),
-      static_headers: [],
-      routing_key: routing_key
-    }
-  end
-
-  defp install_volatile_trigger(state, data_trigger) do
-    id = System.unique_integer()
-    test_process = self()
-    ref = {:event_dispatched, id}
-    trigger_target = mock_trigger_target("target#{id}")
-    deserialized_simple_trigger = {{:data_trigger, data_trigger}, trigger_target}
-
-    Astarte.Events.TriggersHandler
-    |> Mimic.stub(:dispatch_event, fn _event,
-                                      _event_ype,
-                                      ^trigger_target,
-                                      _realm,
-                                      _hw_id,
-                                      _timestamp,
-                                      _policy ->
-      send(test_process, ref)
-    end)
-
-    Astarte.Events.Triggers.install_volatile_trigger(
-      state.realm,
-      deserialized_simple_trigger,
-      state
-    )
-
-    ref
   end
 
   def add_interface(state, interface_name, interface_major, path, value_type) do
