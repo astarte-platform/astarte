@@ -24,6 +24,7 @@ defmodule Astarte.Core.Generators.Triggers.SimpleEvents.InterfaceRemovedEvent do
 
   import Astarte.Generators.Utilities.ParamsGen
 
+  alias Astarte.Core.Interface
   alias Astarte.Core.Triggers.SimpleEvents.InterfaceRemovedEvent
 
   alias Astarte.Core.Generators.Interface, as: InterfaceGenerator
@@ -31,11 +32,13 @@ defmodule Astarte.Core.Generators.Triggers.SimpleEvents.InterfaceRemovedEvent do
   @spec interface_removed_event() :: StreamData.t(InterfaceRemovedEvent.t())
   @spec interface_removed_event(keyword :: keyword()) :: StreamData.t(InterfaceRemovedEvent.t())
   def interface_removed_event(params \\ []) do
-    params gen all interface <- InterfaceGenerator.name(),
-                   major_version <- InterfaceGenerator.major_version(),
+    params gen all interface <- InterfaceGenerator.interface(),
+                   %Interface{name: name, major_version: major_version} = interface,
+                   interface_name <- constant(name),
+                   major_version <- constant(major_version),
                    params: params do
       %InterfaceRemovedEvent{
-        interface: interface,
+        interface: interface_name,
         major_version: major_version
       }
     end

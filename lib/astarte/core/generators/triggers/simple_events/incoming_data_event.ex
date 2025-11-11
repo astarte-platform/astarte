@@ -36,13 +36,12 @@ defmodule Astarte.Core.Generators.Triggers.SimpleEvents.IncomingDataEvent do
   def incoming_data_event(params \\ []) do
     params gen all interface <- InterfaceGenerator.interface(),
                    %Interface{name: name} = interface,
-                   package <- ValueGenerator.value(interface: interface),
-                   %{path: path} = package,
+                   value <- ValueGenerator.value(interface: interface),
+                   %{path: path} = value,
                    interface_name <- constant(name),
                    path <- constant(path),
-                   bson_value <- BSONValueGenerator.to_bson(%{package | path: path}),
-                   params: params,
-                   exclude: [:interface, :package] do
+                   bson_value <- BSONValueGenerator.to_bson(%{value | path: path}),
+                   params: params do
       %IncomingDataEvent{
         interface: interface_name,
         path: path,

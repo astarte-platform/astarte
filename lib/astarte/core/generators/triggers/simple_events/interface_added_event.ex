@@ -24,6 +24,7 @@ defmodule Astarte.Core.Generators.Triggers.SimpleEvents.InterfaceAddedEvent do
 
   import Astarte.Generators.Utilities.ParamsGen
 
+  alias Astarte.Core.Interface
   alias Astarte.Core.Triggers.SimpleEvents.InterfaceAddedEvent
 
   alias Astarte.Core.Generators.Interface, as: InterfaceGenerator
@@ -31,12 +32,18 @@ defmodule Astarte.Core.Generators.Triggers.SimpleEvents.InterfaceAddedEvent do
   @spec interface_added_event() :: StreamData.t(InterfaceAddedEvent.t())
   @spec interface_added_event(keyword :: keyword()) :: StreamData.t(InterfaceAddedEvent.t())
   def interface_added_event(params \\ []) do
-    params gen all interface <- InterfaceGenerator.name(),
-                   major_version <- InterfaceGenerator.major_version(),
-                   minor_version <- InterfaceGenerator.minor_version(major_version),
+    params gen all interface <- InterfaceGenerator.interface(),
+                   %Interface{
+                     name: name,
+                     major_version: major_version,
+                     minor_version: minor_version
+                   } = interface,
+                   interface_name <- constant(name),
+                   major_version <- constant(major_version),
+                   minor_version <- constant(minor_version),
                    params: params do
       %InterfaceAddedEvent{
-        interface: interface,
+        interface: interface_name,
         major_version: major_version,
         minor_version: minor_version
       }

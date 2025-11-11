@@ -24,6 +24,7 @@ defmodule Astarte.Core.Generators.Triggers.SimpleEvents.InterfaceMinorUpdatedEve
 
   import Astarte.Generators.Utilities.ParamsGen
 
+  alias Astarte.Core.Interface
   alias Astarte.Core.Triggers.SimpleEvents.InterfaceMinorUpdatedEvent
 
   alias Astarte.Core.Generators.Interface, as: InterfaceGenerator
@@ -32,14 +33,23 @@ defmodule Astarte.Core.Generators.Triggers.SimpleEvents.InterfaceMinorUpdatedEve
   @spec interface_minor_updated_event(keyword :: keyword()) ::
           StreamData.t(InterfaceMinorUpdatedEvent.t())
   def interface_minor_updated_event(params \\ []) do
-    params gen all interface <- InterfaceGenerator.name(),
-                   major_version <- InterfaceGenerator.major_version(),
-                   old_minor_version <-
-                     InterfaceGenerator.minor_version(major_version) |> filter(&(&1 < 255)),
-                   new_minor_version <- integer((old_minor_version + 1)..255),
+    params gen all interface <-
+                     InterfaceGenerator.interface()
+                     |> filter(fn %Interface{minor_version: minor_version} ->
+                       minor_version < 255
+                     end),
+                   %Interface{
+                     name: name,
+                     major_version: major_version,
+                     minor_version: minor_version
+                   } = interface,
+                   interface_name <- constant(name),
+                   major_version <- constant(major_version),
+                   old_minor_version <- constant(minor_version),
+                   new_minor_version <- integer((minor_version + 1)..255),
                    params: params do
       %InterfaceMinorUpdatedEvent{
-        interface: interface,
+        interface: interface_name,
         major_version: major_version,
         old_minor_version: old_minor_version,
         new_minor_version: new_minor_version

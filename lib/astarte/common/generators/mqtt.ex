@@ -70,7 +70,6 @@ defmodule Astarte.Common.Generators.MQTT do
     end
   end
 
-  defp allow_empty_to_length(allow_empty) do
-    if allow_empty, do: 0, else: 1
-  end
+  defp allow_empty_to_length(true), do: 0
+  defp allow_empty_to_length(_), do: 1
 end

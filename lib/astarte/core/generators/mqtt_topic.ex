@@ -18,9 +18,13 @@
 
 defmodule Astarte.Core.Generators.MQTTTopic do
   @moduledoc """
-  A Generator for a Astarte MQTT topics.
+  StreamData helpers that emit valid Astarte MQTT topics for both control and data
+  paths, honouring the MQTT topic layout described in the public protocol
+  documentation.
   """
   use Astarte.Generators.Utilities.ParamsGen
+
+  alias Astarte.Core.Interface
 
   alias Astarte.Common.Generators.MQTT, as: MQTTGenerator
   alias Astarte.Core.Generators.Device, as: DeviceGenerarator
@@ -28,19 +32,24 @@ defmodule Astarte.Core.Generators.MQTTTopic do
   alias Astarte.Core.Generators.Realm, as: RealmGenerarator
 
   @doc """
-  Generates an Astarte control topic, given an Astarte Realm and Astarte Device ID.
+  Generates an Astarte control topic.
   The topic follows the guidelines outlined in
   https://docs.astarte-platform.org/astarte/latest/080-mqtt-v1-protocol.html#mqtt-topics-overview
 
   ## Examples
 
-    iex> AstarteTopicGenerator.control_topic("test", "AUCPtpHLRcaArHhKHvRBHg") |> Enum.take(2)
+    iex> AstarteTopicGenerator.control_topic() |> Enum.take(1)
+    ["a/GERcokEGASFg/control/w"]
+
+    iex> AstarteTopicGenerator.control_topic(realm_name: "test", device_id: "AUCPtpHLRcaArHhKHvRBHg") |> Enum.take(2)
     ["test/AUCPtpHLRcaArHhKHvRBHg/control/w", "test/AUCPtpHLRcaArHhKHvRBHg/control/F2/G"]
   """
   @spec control_topic(params :: keyword()) :: StreamData.t(MQTTGenerator.mqtt_topic())
   def control_topic(params \\ []) do
     params gen all realm_name <- RealmGenerarator.realm_name(),
-                   device_id <- DeviceGenerarator.id(),
+                   device <- DeviceGenerarator.device(),
+                   %{id: device_id} = device,
+                   device_id <- constant(device_id),
                    topic <-
                      MQTTGenerator.mqtt_topic(
                        chars: :alphanumeric,
@@ -53,20 +62,27 @@ defmodule Astarte.Core.Generators.MQTTTopic do
   end
 
   @doc """
-  Generates an Astarte data topic, given Astarte Realm, Astarte Device ID and Astarte Interface name.
+  Generates an Astarte data topic, given a realm, a device id and an interface name.
   The topic follows the guidelines outlined in
   https://docs.astarte-platform.org/astarte/latest/080-mqtt-v1-protocol.html#mqtt-topics-overview
 
   ## Examples
 
-    iex(50)> AstarteTopicGenerator.data_topic("test", "AUCPtpHLRcaArHhKHvRBHg", "com.my.Interface") |> Enum.take(2)
-    ["test/AUCPtpHLRcaArHhKHvRBHg/com.my.Interface/L", "test/AUCPtpHLRcaArHhKHvRBHg/com.my.Interface/q1U/3Id"]
+    iex(50)> AstarteTopicGenerator.data_topic(realm_name: "test", device: DeviceGenerator.device()) |> Enum.take(2)
+    ["test/AUCPtpHLRcaArHhKHvRBHg/com.my.Interface1/L", "test/AUCPtpHLRcaArHhKHvRBHg/com.my.Interface2/q1U/3Id"]
   """
   @spec data_topic(params :: keyword()) :: StreamData.t(MQTTGenerator.mqtt_topic())
   def data_topic(params \\ []) do
     params gen all realm_name <- RealmGenerarator.realm_name(),
-                   device_id <- DeviceGenerarator.id(),
-                   interface_name <- InterfaceGenerator.name(),
+                   interfaces <-
+                     InterfaceGenerator.interface()
+                     |> list_of(min_length: 1, max_length: 10),
+                   device <- DeviceGenerarator.device(interfaces: interfaces),
+                   %{id: device_id} = device,
+                   device_id <- constant(device_id),
+                   interface <- member_of(interfaces),
+                   %Interface{name: interface_name} = interface,
+                   interface_name <- constant(interface_name),
                    topic <-
                      MQTTGenerator.mqtt_topic(
                        chars: :alphanumeric,

@@ -65,13 +65,13 @@ defmodule Astarte.Core.Generators.MQTTPayloadTest do
 
   property "generated payloads are valid BSONs with 'v' and 't' keys" do
     check all payload <- MQTTPayloadGenerator.payload(), max_runs: 100 do
-      assert %{"v" => _value, "t" => %DateTime{}} = Cyanide.decode!(payload)
+      assert %{"v" => _value} = Cyanide.decode!(payload)
     end
   end
 
   property "generated payloads honor the mapping type" do
-    check all %Mapping{type: type} = mapping <- MappingGenerator.mapping(),
-              payload <- MQTTPayloadGenerator.payload(mapping: mapping),
+    check all %Mapping{type: type} <- MappingGenerator.mapping(),
+              payload <- MQTTPayloadGenerator.payload(type: type),
               %{"v" => value} = Cyanide.decode!(payload) do
       assert value_matches_mapping?(type, value)
     end

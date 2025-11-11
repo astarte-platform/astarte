@@ -30,9 +30,8 @@ defmodule Astarte.Core.Generators.Mapping.Payload do
   @spec payload() :: StreamData.t(map())
   @spec payload(params :: keyword()) :: StreamData.t(map())
   def payload(params \\ []) do
-    params gen all v <-
-                     ValueTypeGenerator.value_type()
-                     |> bind(&ValueTypeGenerator.value_from_type/1),
+    params gen all type <- ValueTypeGenerator.value_type(),
+                   v <- ValueTypeGenerator.value_from_type(type),
                    t <- timestamp(),
                    m <- metadata(),
                    params: params do

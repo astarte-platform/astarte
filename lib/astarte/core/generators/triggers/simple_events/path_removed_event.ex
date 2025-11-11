@@ -35,12 +35,11 @@ defmodule Astarte.Core.Generators.Triggers.SimpleEvents.PathRemovedEvent do
   def path_removed_event(params \\ []) do
     params gen all interface <- InterfaceGenerator.interface(),
                    %Interface{name: name} = interface,
-                   package <- ValueGenerator.value(interface: interface),
-                   %{path: path} = package,
+                   value <- ValueGenerator.value(interface: interface),
+                   %{path: path} = value,
                    interface_name <- constant(name),
                    path <- constant(path),
-                   params: params,
-                   exclude: [:interface, :package] do
+                   params: params do
       %PathRemovedEvent{
         interface: interface_name,
         path: path

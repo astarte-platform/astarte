@@ -37,19 +37,18 @@ defmodule Astarte.Core.Generators.Triggers.SimpleEvents.ValueChangeAppliedEvent 
   def value_change_applied_event(params \\ []) do
     params gen all interface <- InterfaceGenerator.interface(),
                    %Interface{name: name} = interface,
-                   package <- ValueGenerator.value(interface: interface),
-                   %{path: path, type: value_type} = package,
+                   value <- ValueGenerator.value(interface: interface),
+                   %{path: path, type: value_type} = value,
                    interface_name <- constant(name),
                    path <- constant(path),
-                   old_bson_value <- BSONValueGenerator.to_bson(%{package | path: path}),
+                   old_bson_value <- BSONValueGenerator.to_bson(%{value | path: path}),
                    new_bson_value <-
                      BSONValueGenerator.bson_value(
                        interface: interface,
                        path: path,
                        type: value_type
                      ),
-                   params: params,
-                   exclude: [:interface, :package] do
+                   params: params do
       %ValueChangeAppliedEvent{
         interface: interface_name,
         path: path,
