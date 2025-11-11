@@ -33,6 +33,8 @@ defmodule Astarte.Events.Triggers.Core do
   @type data_trigger :: %ProtobufDataTrigger{}
   @type device_trigger :: %ProtobufDeviceTrigger{}
   @type trigger_data :: {:data_trigger, data_trigger()} | {:device_trigger, device_trigger()}
+  @type endpoint :: Astarte.DataAccess.UUID.t() | :any_endpoint
+  @type interface :: Astarte.DataAccess.UUID.t() | :any_interface
 
   @type device_event_key ::
           :on_device_connection
@@ -40,9 +42,9 @@ defmodule Astarte.Events.Triggers.Core do
           | :on_empty_cache_received
           | :on_device_error
           | :on_incoming_introspection
-          | {:on_interface_added, String.t()}
-          | {:on_interface_removed, String.t()}
-          | {:on_interface_minor_updated, String.t()}
+          | {:on_interface_added, interface()}
+          | {:on_interface_removed, interface()}
+          | {:on_interface_minor_updated, interface()}
           | :on_device_registered
           | :on_device_deletion_started
           | :on_device_deletion_finished
@@ -55,8 +57,6 @@ defmodule Astarte.Events.Triggers.Core do
           | :on_path_removed
           | :on_value_stored
 
-  @type endpoint :: Astarte.DataAccess.UUID.t() | :any_endpoint
-  @type interface :: Astarte.DataAccess.UUID.t() | :any_interface
   @type data_event_key :: {data_trigger_event(), interface(), endpoint()}
   @type event_key :: device_event_key() | data_event_key()
 

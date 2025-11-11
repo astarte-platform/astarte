@@ -427,15 +427,16 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandlerTest do
         routing_key: @routing_key
       }
 
+      register_target(:on_interface_added, target)
+
       TriggersHandler.interface_added(
-        target,
         @realm,
-        @device_id,
+        @decoded_device_id,
+        [],
         @interface,
         @major_version,
         @minor_version,
-        timestamp,
-        nil
+        timestamp
       )
 
       assert_receive {:event, payload, meta}
@@ -996,6 +997,9 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandlerTest do
       [{target, policy}]
     end)
     |> Mimic.stub(:find_device_trigger_targets, fn _, _, _, ^event -> [{target, policy}] end)
+    |> Mimic.stub(:find_interface_event_device_trigger_targets, fn _, _, _, ^event, _ ->
+      [{target, policy}]
+    end)
   end
 
   defp default_context(timestamp) do

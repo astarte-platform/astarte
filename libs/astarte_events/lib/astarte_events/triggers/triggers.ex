@@ -71,6 +71,32 @@ defmodule Astarte.Events.Triggers do
   end
 
   @doc """
+    Returns the list of targets for an interface related device event
+  """
+  @spec find_interface_event_device_trigger_targets(
+          String.t(),
+          Astarte.DataAccess.UUID.t(),
+          [String.t()],
+          :on_interface_added | :on_interface_removed | :on_interface_minor_updated,
+          Astarte.DataAccess.UUID.t()
+        ) :: [Core.target_and_policy()]
+  def find_interface_event_device_trigger_targets(
+        realm_name,
+        device_id,
+        groups \\ nil,
+        event,
+        interface_id
+      ) do
+    device_groups = groups || Queries.get_device_groups(realm_name, device_id)
+
+    [{event, :any_interface}, {event, interface_id}]
+    |> Enum.map(fn event_key ->
+      Cache.find_device_trigger_targets(realm_name, device_id, device_groups, event_key)
+    end)
+    |> Enum.concat()
+  end
+
+  @doc """
     Returns the full list of targets for data events on an interface and endpoint.
   """
   @spec find_all_data_trigger_targets(

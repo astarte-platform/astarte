@@ -109,21 +109,10 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.Device do
 
             minor = Map.get(db_introspection_minor_map, interface_name)
 
-            interface_added_target_with_policy_list =
-              (Map.get(
-                 device_triggers,
-                 {:on_interface_added, CQLUtils.interface_id(interface_name, interface_major)},
-                 []
-               ) ++
-                 Map.get(device_triggers, {:on_interface_added, :any_interface}, []))
-              |> Enum.map(fn target ->
-                {target, Map.get(state.trigger_id_to_policy_name, target.parent_trigger_id)}
-              end)
-
             TriggersHandler.interface_added(
-              interface_added_target_with_policy_list,
               realm,
-              device_id_string,
+              device_id,
+              groups,
               interface_name,
               interface_major,
               minor,

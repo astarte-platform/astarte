@@ -39,6 +39,7 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandler do
   }
 
   alias Astarte.Core.Device
+  alias Astarte.Core.CQLUtils
   alias Astarte.DataUpdaterPlant.Config
   alias Astarte.Events.Triggers
   alias Astarte.Events.TriggersHandler
@@ -173,63 +174,52 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandler do
     end)
   end
 
+  @spec interface_added(
+          String.t(),
+          Astarte.DataAccess.UUID.t(),
+          [String.t()],
+          String.t(),
+          non_neg_integer(),
+          pos_integer(),
+          integer()
+        ) :: :ok
   def interface_added(
-        targets,
         realm,
         device_id,
+        groups,
         interface,
         major_version,
         minor_version,
         timestamp
-      )
-      when is_list(targets) do
-    execute_all_ok(targets, fn {target, policy} ->
-      interface_added(
-        target,
-        realm,
-        device_id,
-        interface,
-        major_version,
-        minor_version,
-        timestamp,
-        policy
-      ) == :ok
-    end)
-  end
-
-  @spec interface_added(
-          Astarte.Core.Triggers.SimpleTriggersProtobuf.AMQPTriggerTarget.t(),
-          any,
-          any,
-          any,
-          any,
-          any,
-          any,
-          any
-        ) :: :ok
-  def interface_added(
-        target,
-        realm,
-        device_id,
-        interface,
-        major_version,
-        minor_version,
-        timestamp,
-        policy
       ) do
-    %InterfaceAddedEvent{
-      interface: interface,
-      major_version: major_version,
-      minor_version: minor_version
-    }
-    |> dispatch_event_with_telemetry(
-      :interface_added_event,
-      target,
+    interface_id = CQLUtils.interface_id(interface, major_version)
+    hw_id = Device.encode_device_id(device_id)
+
+    event =
+      %InterfaceAddedEvent{
+        interface: interface,
+        major_version: major_version,
+        minor_version: minor_version
+      }
+
+    Triggers.find_interface_event_device_trigger_targets(
       realm,
       device_id,
-      timestamp,
-      policy
+      groups,
+      :on_interface_added,
+      interface_id
     )
+    |> execute_all_ok(fn {target, policy} ->
+      dispatch_event_with_telemetry(
+        event,
+        :interface_added_event,
+        target,
+        realm,
+        hw_id,
+        timestamp,
+        policy
+      )
+    end)
   end
 
   def interface_minor_updated(
