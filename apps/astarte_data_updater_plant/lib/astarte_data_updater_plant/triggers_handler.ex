@@ -149,38 +149,28 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandler do
     end)
   end
 
-  def incoming_introspection(targets, realm, device_id, introspection, timestamp)
-      when is_list(targets) do
-    execute_all_ok(targets, fn {target, policy} ->
-      incoming_introspection(target, realm, device_id, introspection, timestamp, policy) == :ok
-    end)
-  end
-
   def incoming_introspection(
-        target,
         realm,
         device_id,
+        groups,
         introspection_string,
+        timestamp
+      ) do
+    hw_id = Device.encode_device_id(device_id)
+    event = incoming_introspection_event(introspection_string)
+
+    Triggers.find_device_trigger_targets(realm, device_id, groups, :on_incoming_introspection)
+    |> execute_all_ok(fn {target, policy} ->
+      dispatch_event_with_telemetry(
+        event,
+        :incoming_introspection_event,
+        target,
+        realm,
+        hw_id,
         timestamp,
         policy
-      ) do
-    incoming_introspection_event =
-      unless Config.generate_legacy_incoming_introspection_events!() do
-        introspection_map = introspection_string_to_introspection_proto_map!(introspection_string)
-        %IncomingIntrospectionEvent{introspection_map: introspection_map}
-      else
-        %IncomingIntrospectionEvent{introspection: introspection_string}
-      end
-
-    incoming_introspection_event
-    |> dispatch_event_with_telemetry(
-      :incoming_introspection_event,
-      target,
-      realm,
-      device_id,
-      timestamp,
-      policy
-    )
+      )
+    end)
   end
 
   def interface_added(
@@ -497,6 +487,17 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandler do
         policy
       )
     end)
+  end
+
+  defp incoming_introspection_event(introspection_string) do
+    case Config.generate_legacy_incoming_introspection_events!() do
+      true ->
+        %IncomingIntrospectionEvent{introspection: introspection_string}
+
+      false ->
+        introspection_map = introspection_string_to_introspection_proto_map!(introspection_string)
+        %IncomingIntrospectionEvent{introspection_map: introspection_map}
+    end
   end
 
   defp introspection_string_to_introspection_proto_map!(introspection_string) do

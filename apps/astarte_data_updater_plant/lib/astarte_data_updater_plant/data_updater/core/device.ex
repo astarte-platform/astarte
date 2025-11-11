@@ -59,22 +59,18 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.Device do
 
     any_interface_id = SimpleTriggersProtobuf.Utils.any_interface_object_id()
     realm = new_state.realm
+    device_id = new_state.device_id
+    groups = new_state.groups
 
     %{device_triggers: device_triggers} =
       Core.Trigger.populate_triggers_for_object!(state, any_interface_id, :any_interface)
 
     device_id_string = Astarte.Core.Device.encode_device_id(new_state.device_id)
 
-    on_introspection_target_with_policy_list =
-      Map.get(device_triggers, :on_incoming_introspection, [])
-      |> Enum.map(fn target ->
-        {target, Map.get(state.trigger_id_to_policy_name, target.parent_trigger_id)}
-      end)
-
     TriggersHandler.incoming_introspection(
-      on_introspection_target_with_policy_list,
       realm,
-      device_id_string,
+      device_id,
+      groups,
       payload,
       timestamp_ms
     )

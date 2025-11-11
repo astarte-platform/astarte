@@ -330,13 +330,14 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandlerTest do
         routing_key: @routing_key
       }
 
+      register_target(:on_incoming_introspection, target)
+
       TriggersHandler.incoming_introspection(
-        target,
         @realm,
-        @device_id,
+        @decoded_device_id,
+        [],
         @introspection,
-        timestamp,
-        nil
+        timestamp
       )
 
       assert_receive {:event, payload, meta}
@@ -379,13 +380,14 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandlerTest do
         routing_key: @routing_key
       }
 
+      register_target(:on_incoming_introspection, target)
+
       TriggersHandler.incoming_introspection(
-        target,
         @realm,
-        @device_id,
+        @decoded_device_id,
+        [],
         @introspection,
-        timestamp,
-        nil
+        timestamp
       )
 
       assert_receive {:event, payload, meta}
