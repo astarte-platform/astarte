@@ -40,7 +40,6 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.Trigger do
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.DeviceTrigger, as: ProtobufDeviceTrigger
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.DataTrigger, as: ProtobufDataTrigger
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.Utils, as: SimpleTriggersProtobufUtils
-  alias Astarte.DataUpdaterPlant.MessageTracker
 
   def populate_triggers_for_object!(state, object_id, object_type) do
     %{realm: realm} = state
@@ -330,16 +329,6 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.Trigger do
   end
 
   def handle_install_volatile_trigger(
-        %State{discard_messages: true} = state,
-        _,
-        message_id,
-        _
-      ) do
-    MessageTracker.ack_delivery(state.message_tracker, message_id)
-    state
-  end
-
-  def handle_install_volatile_trigger(
         state,
         object_id,
         object_type,
@@ -428,11 +417,6 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.Trigger do
           {:ok, load_trigger(new_state, trigger, target)}
       end
     end
-  end
-
-  def handle_delete_volatile_trigger(%State{discard_messages: true} = state, _, message_id, _) do
-    MessageTracker.discard(state.message_tracker, message_id)
-    state
   end
 
   def handle_delete_volatile_trigger(state, trigger_id) do

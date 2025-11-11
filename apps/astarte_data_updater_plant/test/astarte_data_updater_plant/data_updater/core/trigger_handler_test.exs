@@ -8,8 +8,6 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.TriggerHandlerTest do
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.AMQPTriggerTarget
   alias Astarte.DataUpdaterPlant.AMQPTestHelper
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.TriggerTargetContainer
-  alias Astarte.DataUpdaterPlant.DataUpdater.State
-  alias Astarte.DataUpdaterPlant.MessageTracker
 
   use Astarte.Cases.Data, async: true
   use Astarte.Cases.Device
@@ -295,18 +293,6 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.TriggerHandlerTest do
     end
   end
 
-  test "`handle_install_volatile_trigger/4` skips on `discard_messages: true`", context do
-    %{realm_name: realm_name, device: device} = context
-    state = DataUpdater.dump_state(realm_name, device.encoded_id)
-    %State{message_tracker: message_tracker} = state
-    state = Map.put(state, :discard_messages, true)
-    message_id = gen_message_id()
-    expect(MessageTracker, :ack_delivery, fn ^message_tracker, ^message_id -> :ok end)
-
-    assert ^state =
-             Trigger.handle_install_volatile_trigger(state, :dontcare, message_id, :dontcare)
-  end
-
   defp volatile_trigger(realm_name, encoded_device_id) do
     gen all object_id <- uuid(),
             object_type <- integer(),
@@ -324,5 +310,4 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.TriggerHandlerTest do
   end
 
   defp uuid, do: repeatedly(&Ecto.UUID.bingenerate/0)
-  defp gen_message_id, do: :erlang.unique_integer([:monotonic]) |> Integer.to_string()
 end
