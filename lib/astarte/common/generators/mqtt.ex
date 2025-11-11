@@ -59,13 +59,13 @@ defmodule Astarte.Common.Generators.MQTT do
     params gen all chars <- constant(valid_chars()),
                    allow_empty <- constant(false),
                    pre <- constant(""),
-                   :_,
                    topic <-
                      string(chars, min_length: 1, max_length: 20)
                      |> list_of(min_length: allow_empty_to_length(allow_empty), max_length: 10)
                      |> map(&Enum.join(&1, "/"))
                      |> Utilities.print(pre: pre),
-                   params: params do
+                   params: params,
+                   exclude: [:topic] do
       topic
     end
   end

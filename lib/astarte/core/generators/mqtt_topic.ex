@@ -41,13 +41,13 @@ defmodule Astarte.Core.Generators.MQTTTopic do
   def control_topic(params \\ []) do
     params gen all realm_name <- RealmGenerarator.realm_name(),
                    device_id <- DeviceGenerarator.id(),
-                   :_,
                    topic <-
                      MQTTGenerator.mqtt_topic(
                        chars: :alphanumeric,
                        pre: "#{realm_name}/#{device_id}/control/"
                      ),
-                   params: params do
+                   params: params,
+                   exclude: [:topic] do
       topic
     end
   end
@@ -67,13 +67,13 @@ defmodule Astarte.Core.Generators.MQTTTopic do
     params gen all realm_name <- RealmGenerarator.realm_name(),
                    device_id <- DeviceGenerarator.id(),
                    interface_name <- InterfaceGenerator.name(),
-                   :_,
                    topic <-
                      MQTTGenerator.mqtt_topic(
                        chars: :alphanumeric,
                        pre: "#{realm_name}/#{device_id}/#{interface_name}/"
                      ),
-                   params: params do
+                   params: params,
+                   exclude: [:topic] do
       topic
     end
   end

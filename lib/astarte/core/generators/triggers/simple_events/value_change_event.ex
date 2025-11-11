@@ -34,18 +34,21 @@ defmodule Astarte.Core.Generators.Triggers.SimpleEvents.ValueChangeEvent do
   @spec value_change_event() :: StreamData.t(ValueChangeEvent.t())
   @spec value_change_event(keyword :: keyword()) :: StreamData.t(ValueChangeEvent.t())
   def value_change_event(params \\ []) do
-    params gen all :_,
-                   %Interface{name: name} = interface <- InterfaceGenerator.interface(),
-                   :_,
-                   %{path: path, type: type} = package <-
-                     ValueGenerator.value(interface: interface),
-                   :interface,
+    params gen all interface <- InterfaceGenerator.interface(),
+                   %Interface{name: name} = interface,
+                   package <- ValueGenerator.value(interface: interface),
+                   %{path: path, type: value_type} = package,
                    interface_name <- constant(name),
                    path <- constant(path),
                    old_bson_value <- BSONValueGenerator.to_bson(%{package | path: path}),
                    new_bson_value <-
-                     BSONValueGenerator.bson_value(interface: interface, path: path, type: type),
-                   params: params do
+                     BSONValueGenerator.bson_value(
+                       interface: interface,
+                       path: path,
+                       type: value_type
+                     ),
+                   params: params,
+                   exclude: [:interface, :package] do
       %ValueChangeEvent{
         interface: interface_name,
         path: path,

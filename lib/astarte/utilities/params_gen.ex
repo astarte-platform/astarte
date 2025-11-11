@@ -33,7 +33,7 @@ defmodule Astarte.Generators.Utilities.ParamsGen do
   - **Seamless Integration:** Built on top of ExUnitProperties, it integrates smoothly with your property-based tests.
   - **Flexible Customization:** Accepts a keyword list for generator overrides, ensuring that only the generators you specify are replaced while the rest remain untouched.
   - **Improved Test Clarity:** By explicitly defining custom generators, tests become easier to understand and maintain.
-  - **Labeled Clauses:** Bind overrides to a specific clause using labels to avoid conflicts and improve readability.
+  - **Targeted opt-out:** Use the `exclude` option to keep specific generators untouched even when overrides are provided.
 
   ## Usage Examples
 
@@ -54,47 +54,32 @@ defmodule Astarte.Generators.Utilities.ParamsGen do
       end
   end
 
-  ### Labeling a clause for overrides
+  ### Ignoring overrides with `exclude`
 
-  Labels let you target a specific clause for overrides via `params:`. This is useful when the left side is a pattern (not a single variable), or when you want explicit names.
+  When you need to prevent a clause from being overridden, add it to the `exclude` option.
 
-  Supported form:
-
-  - Leading atom label:
-
-      params gen all :payload, var <- integer(), params: [payload: 42] do
-        v
+      params gen all a <- integer(),
+                     topic <- string(:alphanumeric),
+                     params: [a: constant(5), topic: constant("foo")],
+                     exclude: [:topic] do
+        {a, topic}
       end
 
-  With labels, the override uses the label name (e.g., `:payload`) instead of a variable name (e.g., `var`).
-
-  ### Destructuring with labels
-
-  `params gen all` supports destructuring on the left-hand side only in labeled clauses. Use the label as the hook name for the override.
-
-      params gen all :var,
-                     %{b: b} = var <- string(?a..?a, length: 1),
-                     params: [var: %{b: 10}] do
-        {b, var}
-      end
-
-  In the example above, the `:var` label is the hook, so `params: [var: %{b: 10}]` overrides the generator for that clause; `b` will be `10` and `var` will be `%{b: 10}`.
+  In the example above, `a` is overridden, while `topic` uses the default generator despite being present in `params`.
 
   ## Notes
 
   - **Integration with ExUnitProperties:** This macro leverages the existing functionality of ExUnitProperties,
     making it easy to adopt if you are already using property-based testing in your project.
   - **Macro Syntax:** The macro expects a keyword list under the `params:` key, where each key corresponds to
-    a generator name (e.g., `a`, `b`) or a clause label (e.g., `:payload`). For destructured clauses, a label is mandatory and is used as the hook name. Each value is the custom generator or fixed params to be used.
+    a generator name (e.g., `a`, `b`). Each value is the custom generator or fixed params to be used.
   - **Fallback Behavior:** For generators not specified in the override list, the macro will default to using
     the original generator from ExUnitProperties.
   - **Compile-Time Verification:** Misuse or incorrect configuration will be flagged at compile time, helping
     you catch errors early in the development process.
+  - **Mutual Exclusivity:** The same hook cannot appear in both `params:` and `exclude:`—this configuration raises at compile-time (and at runtime if `gen_param/4` is called directly).
 
   """
-
-  @ignore_token :_
-
   @doc """
   Injects the necessary imports to use ParamsGen functionalities.
   This macro brings in the current module, StreamData, and ExUnitProperties, which are required for property-based tests with custom generator overrides.
@@ -115,10 +100,9 @@ defmodule Astarte.Generators.Utilities.ParamsGen do
   syntax parity with `gen all`.
 
   - Hook: for simple clauses, the hook is the variable name on the left of `<-`.
-  - Destructuring: with patterns like `%{k: v} <- ...`, a label is mandatory; the label is the hook.
-  - Label: you can label a clause by placing a leading atom (e.g., `:payload`).
-  - Precedence: if both a variable and a `:label` are present, the label wins.
-  - Ignore override: label a clause with `:_` to explicitly opt-out from overrides for that clause.
+  - Hooks are always the variable names on the left of `<-`.
+  - Destructuring patterns are treated as opaque and cannot be overridden directly.
+  - Use the `exclude` option to explicitly opt out from overrides for selected hooks.
 
   Examples
 
@@ -128,11 +112,12 @@ defmodule Astarte.Generators.Utilities.ParamsGen do
         a
       end
   syntax parity with `gen all`.
-      # Destructuring: label is mandatory and acts as the hook
-      params gen all :var,
-  - Destructuring: with patterns like `%{k: v} <- ...`, a label is mandatory; the label is the hook.
-                     params: [var: %{b: 10}] do
-        {b, var}
+
+      # Keep the default generator for :topic even if overrides are provided
+      params gen all topic <- string(:alphanumeric),
+                     params: [topic: constant("should not win")],
+                     exclude: [:topic] do
+        topic
       end
 
   """
@@ -146,27 +131,54 @@ defmodule Astarte.Generators.Utilities.ParamsGen do
   defp stream_data?(%StreamData{} = _term), do: true
   defp stream_data?(_), do: false
 
-  @doc false
-  @type stream() :: StreamData.t(term())
-  @spec gen_param(stream(), atom(), keyword()) :: stream()
-  def gen_param(default_gen, param_name, params) do
-    if param_ignore_token?(params) do
-      raise ArgumentError, "Cannot use :_ as key into the params keyword list."
-    end
+  defp overlapping_hooks(params, exclude) when is_list(params) and is_list(exclude) do
+    exclude_set = MapSet.new(exclude)
 
-    case Keyword.fetch(params, param_name) do
-      {:ok, value} ->
-        if(stream_data?(value), do: value, else: StreamData.constant(value))
+    params
+    |> Keyword.keys()
+    |> Enum.filter(&MapSet.member?(exclude_set, &1))
+  end
 
-      :error ->
-        default_gen
+  defp overlapping_hooks(_params, _exclude), do: []
+
+  defp compile_time_conflict!(params, exclude) do
+    case overlapping_hooks(params, exclude) do
+      [] ->
+        :ok
+
+      conflicts ->
+        formatted = conflicts |> Enum.map_join(", ", &inspect/1)
+
+        raise CompileError,
+          description:
+            "Cannot configure both `params:` and `exclude:` for the same hook(s): #{formatted}."
     end
   end
 
-  defp override({:<-, meta, [{var, var_meta, other}, default_gen]}, param, params) do
+  defp runtime_conflict!(param, params, exclude)
+       when is_list(params) and is_list(exclude) do
+    if Keyword.has_key?(params, param) and Enum.member?(exclude, param) do
+      raise RuntimeError,
+            "Cannot override #{inspect(param)} because it is listed under `exclude:`."
+    end
+  end
+
+  @doc false
+  @type stream() :: StreamData.t(term())
+  @spec gen_param(stream(), atom(), keyword(), [atom()]) :: stream()
+  def gen_param(default_gen, param_name, params, exclude \\ []) do
+    runtime_conflict!(param_name, params, exclude)
+
+    case Keyword.fetch(params, param_name) do
+      {:ok, value} -> if(stream_data?(value), do: value, else: StreamData.constant(value))
+      :error -> default_gen
+    end
+  end
+
+  defp override({{:<-, meta, [{var, var_meta, other}, default_gen]}, param, params, exclude}) do
     gen_param_quoted =
       quote do
-        gen_param(unquote(default_gen), unquote(param), unquote(params))
+        gen_param(unquote(default_gen), unquote(param), unquote(params), unquote(exclude))
       end
 
     {:<-, meta,
@@ -176,66 +188,59 @@ defmodule Astarte.Generators.Utilities.ParamsGen do
      ]}
   end
 
-  defp edit_clause([clause | tail], param, params, acc) do
-    clause = override(clause, param, params)
-    compile_clauses(tail, params, [clause | acc])
+  defp edit_clause({[clause | tail], param, params, exclude, acc}) do
+    clause = override({clause, param, params, exclude})
+    compile_clauses({tail, params, exclude, [clause | acc]})
   end
 
-  defp compile_clauses([], _, acc), do: acc
+  defp compile_clauses({[], _, _, acc}), do: acc
 
-  defp compile_clauses(
-         [label, {:<-, _, [{:=, _, _}, _]} = clause | tail],
-         params,
-         acc
-       )
-       when is_atom(label),
-       do: edit_clause([clause | tail], label, params, acc)
+  defp compile_clauses({[label | _], _params, _exclude, _acc}) when is_atom(label) do
+    raise CompileError,
+      description:
+        "`params gen all` no longer supports leading clause labels. Remove atoms such as #{inspect(label)} and rely on hooks or `exclude:`."
+  end
 
-  defp compile_clauses([label, {:<-, _, [{_param, _, _}, _]} = clause | tail], params, acc)
-       when is_atom(label),
-       do: edit_clause([clause | tail], label, params, acc)
-
-  defp compile_clauses(
-         [{:<-, meta, [{:=, _, _}, _]} | _tail],
-         _params,
-         _acc
-       ) do
+  defp compile_clauses({[{:<-, meta, [{:=, _, _}, _]} | _tail], _params, _exclude, _acc}) do
     line = Keyword.get(meta, :line)
 
     raise CompileError,
       line: line,
-      description: "To use destructuring within `params gen all`, :label(s) are mandatory."
+      description: "`params gen all` cannot handle assignments within a generation."
   end
 
-  defp compile_clauses([{:<-, _, [{param, _, _}, _]} = clause | tail], params, acc),
-    do: edit_clause([clause | tail], param, params, acc)
+  defp compile_clauses({[{:<-, _, [{param, _, _}, _]} = clause | tail], params, exclude, acc}),
+    do: edit_clause({[clause | tail], param, params, exclude, acc})
 
-  defp compile_clauses([{:=, _, _} = clause | tail], params, acc),
-    do: compile_clauses(tail, params, [clause | acc])
+  defp compile_clauses({[{:=, _, _} = clause | tail], params, exclude, acc}),
+    do: compile_clauses({tail, params, exclude, [clause | acc]})
 
-  defp split_clauses_and_params(clauses_and_params) do
-    case Enum.split_while(clauses_and_params, &(not Keyword.keyword?(&1))) do
-      {_clauses, []} = result -> result
-      {clauses, [params]} -> {clauses, Keyword.fetch!(params, :params)}
+  defp split_clauses_params_exclude(clauses_params_exclude) do
+    case Enum.split_while(clauses_params_exclude, &(not Keyword.keyword?(&1))) do
+      {clauses, []} ->
+        {clauses, [], []}
+
+      {clauses, [params_and_exclude]} ->
+        params = Keyword.fetch!(params_and_exclude, :params)
+
+        exclude =
+          if Keyword.has_key?(params_and_exclude, :exclude),
+            do: Keyword.fetch!(params_and_exclude, :exclude),
+            else: []
+
+        if Keyword.keyword?(params) do
+          compile_time_conflict!(params, exclude)
+        end
+
+        {clauses, params, exclude}
     end
   end
 
-  defp param_ignore_token?(params) when is_list(params),
-    do: Keyword.has_key?(params, @ignore_token)
-
-  defp param_ignore_token?(_), do: false
-
-  defp compile(clauses_and_params, body) do
-    {clauses, params} = split_clauses_and_params(clauses_and_params)
-
-    if param_ignore_token?(params),
-      do:
-        raise(CompileError,
-          description: "Cannot use :_ as key into the params keyword list."
-        )
+  defp compile(clauses_params_exclude, body) do
+    {clauses, params, exclude} = split_clauses_params_exclude(clauses_params_exclude)
 
     clauses =
-      compile_clauses(clauses, params, [])
+      compile_clauses({clauses, params, exclude, []})
       |> Enum.reverse()
 
     quote do
