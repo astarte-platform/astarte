@@ -535,14 +535,15 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandlerTest do
         routing_key: @routing_key
       }
 
+      register_target(:on_interface_removed, target)
+
       TriggersHandler.interface_removed(
-        target,
         @realm,
-        @device_id,
+        @decoded_device_id,
+        [],
         @interface,
         @major_version,
-        timestamp,
-        nil
+        timestamp
       )
 
       assert_receive {:event, payload, meta}

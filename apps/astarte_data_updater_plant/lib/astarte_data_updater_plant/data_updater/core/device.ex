@@ -65,8 +65,6 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.Device do
     %{device_triggers: device_triggers} =
       Core.Trigger.populate_triggers_for_object!(state, any_interface_id, :any_interface)
 
-    device_id_string = Astarte.Core.Device.encode_device_id(new_state.device_id)
-
     TriggersHandler.incoming_introspection(
       realm,
       device_id,
@@ -136,21 +134,10 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.Device do
                 :ok
               end
 
-            interface_removed_target_with_policy_list =
-              (Map.get(
-                 device_triggers,
-                 {:on_interface_removed, CQLUtils.interface_id(interface_name, interface_major)},
-                 []
-               ) ++
-                 Map.get(device_triggers, {:on_interface_removed, :any_interface}, []))
-              |> Enum.map(fn target ->
-                {target, Map.get(state.trigger_id_to_policy_name, target.parent_trigger_id)}
-              end)
-
             TriggersHandler.interface_removed(
-              interface_removed_target_with_policy_list,
               realm,
-              device_id_string,
+              device_id,
+              groups,
               interface_name,
               interface_major,
               timestamp_ms

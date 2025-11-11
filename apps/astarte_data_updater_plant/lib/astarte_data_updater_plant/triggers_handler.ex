@@ -275,32 +275,36 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandler do
     )
   end
 
-  def interface_removed(targets, realm, device_id, interface, major_version, timestamp)
-      when is_list(targets) do
-    execute_all_ok(targets, fn {target, policy} ->
-      interface_removed(target, realm, device_id, interface, major_version, timestamp, policy) ==
-        :ok
-    end)
-  end
-
   def interface_removed(
-        target,
         realm,
         device_id,
+        groups,
         interface,
         major_version,
-        timestamp,
-        policy
+        timestamp
       ) do
-    %InterfaceRemovedEvent{interface: interface, major_version: major_version}
-    |> dispatch_event_with_telemetry(
-      :interface_removed_event,
-      target,
+    event = %InterfaceRemovedEvent{interface: interface, major_version: major_version}
+    hw_id = Device.encode_device_id(device_id)
+    interface_id = CQLUtils.interface_id(interface, major_version)
+
+    Triggers.find_interface_event_device_trigger_targets(
       realm,
       device_id,
-      timestamp,
-      policy
+      groups,
+      :on_interface_removed,
+      interface_id
     )
+    |> execute_all_ok(fn {target, policy} ->
+      dispatch_event_with_telemetry(
+        event,
+        :interface_removed_event,
+        target,
+        realm,
+        hw_id,
+        timestamp,
+        policy
+      )
+    end)
   end
 
   def path_created(context, bson_value) do
