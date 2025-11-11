@@ -38,7 +38,6 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.Device do
   alias Astarte.Core.CQLUtils
   alias Astarte.DataUpdaterPlant.DataUpdater.Queries
   alias Astarte.DataUpdaterPlant.TriggersHandler
-  alias Astarte.Core.Triggers.SimpleTriggersProtobuf
 
   require Logger
 
@@ -57,13 +56,9 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.Device do
         {introspection_map, introspection_minor_map}
       end)
 
-    any_interface_id = SimpleTriggersProtobuf.Utils.any_interface_object_id()
     realm = new_state.realm
     device_id = new_state.device_id
     groups = new_state.groups
-
-    %{device_triggers: device_triggers} =
-      Core.Trigger.populate_triggers_for_object!(state, any_interface_id, :any_interface)
 
     TriggersHandler.incoming_introspection(
       realm,
@@ -184,7 +179,6 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.Device do
       new_state,
       db_introspection_map,
       db_introspection_minor_map,
-      device_triggers,
       old_minors,
       timestamp_ms
     )
@@ -227,7 +221,6 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.Device do
          state,
          db_introspection_map,
          db_introspection_minor_map,
-         device_triggers,
          old_minors,
          timestamp_ms
        ) do
@@ -236,18 +229,10 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.Device do
              major_in_introspection?(state, db_introspection_map, interface_name),
            {:ok, new_minor} <-
              new_minor_different?(db_introspection_minor_map, interface_name, old_minor) do
-        interface_id = CQLUtils.interface_id(interface_name, interface_major)
-
-        interface_minor_updated_target_with_policy_list =
-          Map.get(device_triggers, {:on_interface_minor_updated, interface_id}, [])
-          |> Enum.map(fn target ->
-            {target, Map.get(state.trigger_id_to_policy_name, target.parent_trigger_id)}
-          end)
-
         TriggersHandler.interface_minor_updated(
-          interface_minor_updated_target_with_policy_list,
           state.realm,
-          Astarte.Core.Device.encode_device_id(state.device_id),
+          state.device_id,
+          state.groups,
           interface_name,
           interface_major,
           old_minor,

@@ -479,19 +479,20 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandlerTest do
         routing_key: @routing_key
       }
 
+      register_target(:on_interface_minor_updated, target)
+
       old_minor_version = @minor_version
       new_minor_version = @minor_version + 2
 
       TriggersHandler.interface_minor_updated(
-        target,
         @realm,
-        @device_id,
+        @decoded_device_id,
+        [],
         @interface,
         @major_version,
         old_minor_version,
         new_minor_version,
-        timestamp,
-        nil
+        timestamp
       )
 
       assert_receive {:event, payload, meta}

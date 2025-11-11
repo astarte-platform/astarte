@@ -223,56 +223,43 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandler do
   end
 
   def interface_minor_updated(
-        targets,
         realm,
         device_id,
+        groups,
         interface,
         major_version,
         old_minor,
         new_minor,
         timestamp
-      )
-      when is_list(targets) do
-    execute_all_ok(targets, fn {target, policy} ->
-      interface_minor_updated(
-        target,
-        realm,
-        device_id,
-        interface,
-        major_version,
-        old_minor,
-        new_minor,
-        timestamp,
-        policy
-      ) == :ok
-    end)
-  end
-
-  def interface_minor_updated(
-        target,
-        realm,
-        device_id,
-        interface,
-        major_version,
-        old_minor,
-        new_minor,
-        timestamp,
-        policy
       ) do
-    %InterfaceMinorUpdatedEvent{
+    hw_id = Device.encode_device_id(device_id)
+    interface_id = CQLUtils.interface_id(interface, major_version)
+
+    event = %InterfaceMinorUpdatedEvent{
       interface: interface,
       major_version: major_version,
       old_minor_version: old_minor,
       new_minor_version: new_minor
     }
-    |> dispatch_event_with_telemetry(
-      :interface_minor_updated_event,
-      target,
+
+    Triggers.find_interface_event_device_trigger_targets(
       realm,
       device_id,
-      timestamp,
-      policy
+      groups,
+      :on_interface_minor_updated,
+      interface_id
     )
+    |> execute_all_ok(fn {target, policy} ->
+      dispatch_event_with_telemetry(
+        event,
+        :interface_minor_updated_event,
+        target,
+        realm,
+        hw_id,
+        timestamp,
+        policy
+      )
+    end)
   end
 
   def interface_removed(
