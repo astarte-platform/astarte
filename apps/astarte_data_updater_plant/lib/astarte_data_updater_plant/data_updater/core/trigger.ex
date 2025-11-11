@@ -35,7 +35,6 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.Trigger do
   alias Astarte.Core.Triggers.DataTrigger
   alias Astarte.Core.InterfaceDescriptor
   alias Astarte.Core.Mapping.EndpointsAutomaton
-  alias Astarte.DataAccess.Interface, as: InterfaceQueries
   alias Astarte.DataUpdaterPlant.TriggerPolicy.Queries, as: PolicyQueries
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.DeviceTrigger, as: ProtobufDeviceTrigger
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.DataTrigger, as: ProtobufDataTrigger
@@ -380,34 +379,13 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.Trigger do
          %ProtobufDataTrigger{
            interface_name: interface_name,
            interface_major: major,
-           match_path: "/*"
-         }} ->
-          with :ok <-
-                 InterfaceQueries.check_if_interface_exists(state.realm, interface_name, major) do
-            {:ok, new_state}
-          else
-            {:error, reason} ->
-              # State rollback here
-              {{:error, reason}, state}
-          end
-
-        {:data_trigger,
-         %ProtobufDataTrigger{
-           interface_name: interface_name,
-           interface_major: major,
            match_path: match_path
          }} ->
-          with {:ok, %InterfaceDescriptor{automaton: automaton}} <-
-                 InterfaceQueries.fetch_interface_descriptor(state.realm, interface_name, major),
-               {:ok, _endpoint_id} <- EndpointsAutomaton.resolve_path(match_path, automaton) do
-            {:ok, new_state}
+          with {:ok, descriptor, new_state} <- handle_cache_miss(new_state, interface_name),
+               :ok <- check_interface_major_version(descriptor, major),
+               :ok <- check_trigger_path(match_path, descriptor.automaton) do
+            {:ok, load_trigger(new_state, trigger, target)}
           else
-            {:error, :not_found} ->
-              {{:error, :invalid_match_path}, state}
-
-            {:guessed, _} ->
-              {{:error, :invalid_match_path}, state}
-
             {:error, reason} ->
               # State rollback here
               {{:error, reason}, state}
@@ -416,6 +394,32 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.Trigger do
         {:device_trigger, _} ->
           {:ok, load_trigger(new_state, trigger, target)}
       end
+    end
+  end
+
+  defp handle_cache_miss(state, interface_name) do
+    case Core.Interface.maybe_handle_cache_miss(nil, interface_name, state) do
+      {:ok, _interface_descriptor, _new_state} = ok -> ok
+      {:error, :interface_loading_failed} -> {:error, :interface_not_found}
+    end
+  end
+
+  defp check_trigger_path("/*", _automaton) do
+    :ok
+  end
+
+  defp check_trigger_path(path, automaton) do
+    case EndpointsAutomaton.resolve_path(path, automaton) do
+      {:ok, _endpoint_id} -> :ok
+      {:guessed, _} -> {:error, :invalid_match_path}
+      {:error, :not_found} -> {:error, :invalid_match_path}
+    end
+  end
+
+  defp check_interface_major_version(descriptor, major) do
+    case descriptor.major_version do
+      ^major -> :ok
+      _ -> {:error, :interface_major_version_mismatch}
     end
   end
 

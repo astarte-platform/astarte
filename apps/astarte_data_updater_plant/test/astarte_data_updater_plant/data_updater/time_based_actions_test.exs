@@ -949,6 +949,23 @@ defmodule Astarte.DataUpdaterPlant.TimeBasedActionsTest do
          timestamp,
          trigger_opts \\ []
        ) do
+    match_path = trigger_opts[:match_path] || "/0/value"
+
+    interface_params = %{
+      interface_name: trigger_opts[:interface_name] || "com.test.SimpleStreamTest",
+      version_major: trigger_opts[:interface_major] || 1,
+      version_minor: 1,
+      type: :datastream,
+      ownership: :device,
+      aggregation: :individual,
+      mappings: [
+        %{
+          endpoint: trigger_opts[:endpoint] || match_path,
+          value_type: :integer
+        }
+      ]
+    }
+
     trigger_data =
       case trigger_type do
         :device_trigger ->
@@ -966,10 +983,10 @@ defmodule Astarte.DataUpdaterPlant.TimeBasedActionsTest do
             simple_trigger: {
               :data_trigger,
               %DataTrigger{
-                interface_name: trigger_opts[:interface_name] || "com.test.SimpleStreamTest",
-                interface_major: trigger_opts[:interface_major] || 1,
+                interface_name: interface_params.interface_name,
+                interface_major: interface_params.version_major,
                 data_trigger_type: trigger_opts[:data_trigger_type] || :INCOMING_DATA,
-                match_path: trigger_opts[:match_path] || "/0/value",
+                match_path: match_path,
                 value_match_operator: trigger_opts[:value_match_operator] || :LESS_THAN,
                 known_value: trigger_opts[:known_value] || Cyanide.encode!(%{v: 100})
               }
@@ -993,7 +1010,11 @@ defmodule Astarte.DataUpdaterPlant.TimeBasedActionsTest do
     volatile_trigger_id = :crypto.strong_rand_bytes(16)
     ref = if trigger_type == :data_trigger, do: 2, else: 1
 
-    insert_device_and_start_data_updater(realm, device_id)
+    ensure_interface_exists(realm, interface_params)
+
+    insert_device_and_start_data_updater(realm, device_id,
+      introspection: %{interface_params.interface_name => interface_params.version_major}
+    )
 
     :ok =
       DataUpdater.handle_install_volatile_trigger(
@@ -1024,5 +1045,20 @@ defmodule Astarte.DataUpdaterPlant.TimeBasedActionsTest do
 
     setup_data_updater(realm_name, encoded_device_id)
     :ok
+  end
+
+  defp ensure_interface_exists(realm_name, interface) do
+    case Astarte.DataAccess.Interface.check_if_interface_exists(
+           realm_name,
+           interface.interface_name,
+           interface.version_major
+         ) do
+      :ok ->
+        :ok
+
+      {:error, :interface_not_found} ->
+        interface_json = Jason.encode!(interface)
+        Astarte.RealmManagement.Engine.install_interface(realm_name, interface_json)
+    end
   end
 end

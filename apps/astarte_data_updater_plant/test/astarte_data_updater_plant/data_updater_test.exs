@@ -1710,10 +1710,6 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
     |> SimpleTriggerContainer.encode()
   end
 
-  defp generate_trigger_target() do
-    generate_trigger_target(nil)
-  end
-
   defp generate_trigger_target(realm) do
     %TriggerTargetContainer{
       trigger_target: {

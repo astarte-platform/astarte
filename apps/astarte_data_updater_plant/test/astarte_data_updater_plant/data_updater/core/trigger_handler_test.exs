@@ -68,18 +68,24 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.TriggerHandlerTest do
   property "successfully install volatile data trigger for specific interface", %{
     state: state,
     realm_name: realm_name,
-    device: device
+    device: device,
+    individual_datastream_device_interface: interface,
+    registered_paths: registered_paths
   } do
+    path =
+      registered_paths[{interface.name, interface.major_version}]
+      |> Enum.random()
+
     simple_trigger =
       %SimpleTriggerContainer{
         simple_trigger: {
           :data_trigger,
           %DataTrigger{
             version: 1,
-            interface_name: "com.test.SimpleStreamTest",
-            interface_major: 1,
+            interface_name: interface.name,
+            interface_major: interface.major_version,
             data_trigger_type: :INCOMING_DATA,
-            match_path: "/0/value",
+            match_path: path,
             value_match_operator: :LESS_THAN,
             known_value: Cyanide.encode!(%{v: 100})
           }
