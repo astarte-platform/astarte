@@ -55,8 +55,6 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.TriggerHandlerTest do
       assert {:ok, _} =
                Trigger.handle_install_volatile_trigger(
                  state,
-                 volatile_trigger.object_id,
-                 volatile_trigger.object_type,
                  volatile_trigger.parent_id,
                  volatile_trigger.simple_trigger_id,
                  simple_trigger,
@@ -108,8 +106,6 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.TriggerHandlerTest do
       assert {:ok, _} =
                Trigger.handle_install_volatile_trigger(
                  state,
-                 volatile_trigger.object_id,
-                 volatile_trigger.object_type,
                  volatile_trigger.parent_id,
                  volatile_trigger.simple_trigger_id,
                  simple_trigger,
@@ -156,8 +152,6 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.TriggerHandlerTest do
       assert {:ok, _} =
                Trigger.handle_install_volatile_trigger(
                  state,
-                 volatile_trigger.object_id,
-                 volatile_trigger.object_type,
                  volatile_trigger.parent_id,
                  volatile_trigger.simple_trigger_id,
                  simple_trigger,
@@ -203,8 +197,6 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.TriggerHandlerTest do
       assert {:ok, _} =
                Trigger.handle_install_volatile_trigger(
                  state,
-                 volatile_trigger.object_id,
-                 volatile_trigger.object_type,
                  volatile_trigger.parent_id,
                  volatile_trigger.simple_trigger_id,
                  simple_trigger,
@@ -244,15 +236,13 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.TriggerHandlerTest do
       assert {:ok, _} =
                Trigger.handle_install_volatile_trigger(
                  state,
-                 volatile_trigger.object_id,
-                 volatile_trigger.object_type,
                  volatile_trigger.parent_id,
                  volatile_trigger.simple_trigger_id,
                  simple_trigger,
                  trigger_target
                )
 
-      assert {:ok, _} = Trigger.handle_delete_volatile_trigger(state, volatile_trigger.object_id)
+      assert :ok = Trigger.handle_delete_volatile_trigger(state, volatile_trigger.object_id)
     end
   end
 
@@ -287,15 +277,13 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.TriggerHandlerTest do
       assert {:ok, _} =
                Trigger.handle_install_volatile_trigger(
                  state,
-                 volatile_trigger.object_id,
-                 volatile_trigger.object_type,
                  volatile_trigger.parent_id,
                  volatile_trigger.simple_trigger_id,
                  simple_trigger,
                  trigger_target
                )
 
-      assert {:ok, _} = Trigger.handle_delete_volatile_trigger(state, :uuid.new(self()))
+      assert :ok = Trigger.handle_delete_volatile_trigger(state, :uuid.new(self()))
     end
   end
 

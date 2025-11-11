@@ -29,8 +29,6 @@ defmodule Astarte.DataUpdaterPlant.RPC.Server.Core do
     %{
       realm_name: realm,
       device_id: device_id,
-      object_id: object_id,
-      object_type: object_type,
       parent_id: parent_id,
       simple_trigger_id: trigger_id,
       simple_trigger: simple_trigger,
@@ -43,8 +41,8 @@ defmodule Astarte.DataUpdaterPlant.RPC.Server.Core do
       fn dup, _message_tracker ->
         GenServer.call(
           dup,
-          {:handle_install_volatile_trigger, object_id, object_type, parent_id, trigger_id,
-           simple_trigger, trigger_target}
+          {:handle_install_volatile_trigger, parent_id, trigger_id, simple_trigger,
+           trigger_target}
         )
       end
     )

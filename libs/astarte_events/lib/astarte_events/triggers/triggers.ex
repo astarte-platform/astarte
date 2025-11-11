@@ -28,7 +28,7 @@ defmodule Astarte.Events.Triggers do
           String.t(),
           Core.deserialized_simple_trigger(),
           Core.fetch_triggers_data()
-        ) :: :ok
+        ) :: :ok | {:error, :interface_not_found | :invalid_match_path | :invalid_device_id}
   def install_volatile_trigger(realm_name, deserialized_volatile_trigger, data \\ %{}) do
     {{trigger_type, trigger}, target} = deserialized_volatile_trigger
 

@@ -165,8 +165,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Server do
 
   @impl GenServer
   def handle_call(
-        {:handle_install_volatile_trigger, object_id, object_type, parent_id, trigger_id,
-         simple_trigger, trigger_target},
+        {:handle_install_volatile_trigger, parent_id, trigger_id, simple_trigger, trigger_target},
         _from,
         state
       ) do
@@ -175,8 +174,6 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Server do
     {return_value, new_state} =
       Core.Trigger.handle_install_volatile_trigger(
         state,
-        object_id,
-        object_type,
         parent_id,
         trigger_id,
         simple_trigger,
@@ -197,9 +194,9 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Server do
   def handle_call({:handle_delete_volatile_trigger, trigger_id}, _from, state) do
     timeout = Config.data_updater_deactivation_interval_ms!()
 
-    {result, new_state} = Core.Trigger.handle_delete_volatile_trigger(state, trigger_id)
+    Core.Trigger.handle_delete_volatile_trigger(state, trigger_id)
 
-    {:reply, result, new_state, timeout}
+    {:reply, :ok, state, timeout}
   end
 
   @impl GenServer

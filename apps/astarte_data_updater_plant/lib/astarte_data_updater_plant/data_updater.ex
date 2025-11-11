@@ -145,8 +145,6 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater do
   def handle_install_volatile_trigger(
         realm,
         encoded_device_id,
-        object_id,
-        object_type,
         parent_id,
         trigger_id,
         simple_trigger,
@@ -158,8 +156,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater do
            fetch_data_updater_process(realm, encoded_device_id, message_tracker) do
       GenServer.call(
         data_updater,
-        {:handle_install_volatile_trigger, object_id, object_type, parent_id, trigger_id,
-         simple_trigger, trigger_target}
+        {:handle_install_volatile_trigger, parent_id, trigger_id, simple_trigger, trigger_target}
       )
     end
   end

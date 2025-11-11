@@ -29,11 +29,9 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.Interface do
   alias Astarte.Core.InterfaceDescriptor
   alias Astarte.Core.Mapping
   alias Astarte.Core.Mapping.EndpointsAutomaton
-  alias Astarte.Core.Triggers.SimpleTriggersProtobuf
   alias Astarte.DataAccess.Device
   alias Astarte.DataAccess.Interface
   alias Astarte.DataAccess.Mappings
-  alias Astarte.DataUpdaterPlant.DataUpdater.Core
   alias Astarte.DataUpdaterPlant.DataUpdater.Queries
   alias Astarte.DataUpdaterPlant.DataUpdater.State
   alias Astarte.DataUpdaterPlant.TriggersHandler
@@ -50,44 +48,24 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.Interface do
          %InterfaceDescriptor{interface_id: interface_id} = interface_descriptor <-
            InterfaceDescriptor.from_db_result!(interface_row),
          {:ok, mappings} <-
-           Mappings.fetch_interface_mappings_map(state.realm, interface_id),
-         new_interfaces_by_expiry <-
-           state.interfaces_by_expiry ++
-             [{state.last_seen_message + @interface_lifespan_decimicroseconds, interface_name}],
-         new_state <- %State{
-           state
-           | interfaces: Map.put(state.interfaces, interface_name, interface_descriptor),
-             interface_ids_to_name:
-               Map.put(
-                 state.interface_ids_to_name,
-                 interface_id,
-                 interface_name
-               ),
-             interfaces_by_expiry: new_interfaces_by_expiry,
-             mappings: Map.merge(state.mappings, mappings)
-         },
-         new_state <-
-           Core.Trigger.populate_triggers_for_object!(
-             new_state,
-             interface_descriptor.interface_id,
-             :interface
-           ),
-         device_and_interface_object_id =
-           SimpleTriggersProtobuf.Utils.get_device_and_interface_object_id(
-             state.device_id,
-             interface_id
-           ),
-         new_state =
-           Core.Trigger.populate_triggers_for_object!(
-             new_state,
-             device_and_interface_object_id,
-             :device_and_interface
-           ),
-         new_state =
-           Core.Trigger.populate_triggers_for_group_and_interface!(
-             new_state,
-             interface_id
-           ) do
+           Mappings.fetch_interface_mappings_map(state.realm, interface_id) do
+      new_interfaces_by_expiry =
+        state.interfaces_by_expiry ++
+          [{state.last_seen_message + @interface_lifespan_decimicroseconds, interface_name}]
+
+      new_state = %State{
+        state
+        | interfaces: Map.put(state.interfaces, interface_name, interface_descriptor),
+          interface_ids_to_name:
+            Map.put(
+              state.interface_ids_to_name,
+              interface_id,
+              interface_name
+            ),
+          interfaces_by_expiry: new_interfaces_by_expiry,
+          mappings: Map.merge(state.mappings, mappings)
+      }
+
       # TODO: make everything with-friendly
       {:ok, interface_descriptor, new_state}
     else

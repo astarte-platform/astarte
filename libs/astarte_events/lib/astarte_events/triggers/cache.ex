@@ -104,7 +104,18 @@ defmodule Astarte.Events.Triggers.Cache do
     |> Enum.flat_map(& &1.trigger_targets)
   end
 
-  defp find_data_triggers(realm_name, device_id, groups, event_key, data) do
+  @doc """
+    Returns data triggers for a data event.
+    Use `find_data_trigger_targets/5` instead to retrieve trigger targets.
+  """
+  @spec find_data_triggers(
+          String.t(),
+          Astarte.DataAccess.UUID.t(),
+          [String.t()],
+          Core.data_event_key(),
+          Core.fetch_triggers_data()
+        ) :: [DataTrigger.t()]
+  def find_data_triggers(realm_name, device_id, groups, event_key, data) do
     interface_ids =
       case Map.fetch(data, :interface_ids_to_name) do
         :error -> []
@@ -363,6 +374,7 @@ defmodule Astarte.Events.Triggers.Cache do
     {:ok, new_events}
   end
 
+  @spec delete_volatile_trigger(String.t(), Astarte.DataAccess.UUID.t()) :: :ok 
   def delete_volatile_trigger(realm_name, trigger_id) do
     cache_key = trigger_cache_id(realm_name, trigger_id)
 

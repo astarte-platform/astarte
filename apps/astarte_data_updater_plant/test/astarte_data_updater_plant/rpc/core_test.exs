@@ -48,8 +48,7 @@ defmodule Astarte.DataUpdaterPlant.RPC.CoreTest do
 
     check all volatile_trigger <- volatile_trigger(realm_name, device.encoded_id) do
       expected_request =
-        {:handle_install_volatile_trigger, volatile_trigger.object_id,
-         volatile_trigger.object_type, volatile_trigger.parent_id,
+        {:handle_install_volatile_trigger, volatile_trigger.parent_id,
          volatile_trigger.simple_trigger_id, volatile_trigger.simple_trigger,
          volatile_trigger.trigger_target}
 

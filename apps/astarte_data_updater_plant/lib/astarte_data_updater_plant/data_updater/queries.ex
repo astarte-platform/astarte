@@ -22,10 +22,8 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
   alias Astarte.Core.Device.Capabilities
   alias Astarte.Core.InterfaceDescriptor
   alias Astarte.Core.Mapping
-  alias Astarte.DataAccess
   alias Astarte.DataAccess.Consistency
   alias Astarte.DataUpdaterPlant.Config
-  alias Astarte.DataAccess.Realms.SimpleTrigger
   alias Astarte.DataAccess.Device.DeletionInProgress
   alias Astarte.DataAccess.Devices.Device
   alias Astarte.DataAccess.Realms.Endpoint
@@ -35,18 +33,6 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
   alias Astarte.DataAccess.Repo
   import Ecto.Query
   require Logger
-
-  @spec query_simple_triggers!(String.t(), DataAccess.UUID.t(), integer()) :: [SimpleTrigger.t()]
-  def query_simple_triggers!(realm, object_id, object_type_int) do
-    keyspace_name = Realm.keyspace_name(realm)
-
-    query =
-      SimpleTrigger
-      |> where(object_id: ^object_id, object_type: ^object_type_int)
-      |> put_query_prefix(keyspace_name)
-
-    Repo.all(query, consistency: Consistency.domain_model(:read))
-  end
 
   def all_device_owned_property_endpoint_paths!(
         realm,

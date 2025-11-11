@@ -137,8 +137,6 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
     assert DataUpdater.handle_install_volatile_trigger(
              realm,
              encoded_device_id,
-             device_id,
-             1,
              volatile_trigger_parent_id,
              volatile_trigger_id,
              simple_trigger_data,
@@ -303,8 +301,6 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
     assert DataUpdater.handle_install_volatile_trigger(
              realm,
              encoded_device_id,
-             :uuid.string_to_uuid("0a0da77d-85b5-93d9-d4d2-bd26dd18c9af"),
-             2,
              incoming_introspection_volatile_trigger_parent_id,
              incoming_introspection_volatile_trigger_id,
              incoming_introspection_trigger_data,
@@ -383,8 +379,6 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
     assert DataUpdater.handle_install_volatile_trigger(
              realm,
              encoded_device_id,
-             :uuid.string_to_uuid("0a0da77d-85b5-93d9-d4d2-bd26dd18c9af"),
-             2,
              interface_added_volatile_trigger_parent_id,
              interface_added_volatile_trigger_id,
              interface_added_trigger_data,
@@ -468,8 +462,6 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
     assert DataUpdater.handle_install_volatile_trigger(
              realm,
              encoded_device_id,
-             :uuid.string_to_uuid("0a0da77d-85b5-93d9-d4d2-bd26dd18c9af"),
-             2,
              interface_minor_updated_volatile_trigger_parent_id,
              interface_minor_updated_volatile_trigger_id,
              interface_minor_updated_trigger_data,
@@ -553,8 +545,6 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
     assert DataUpdater.handle_install_volatile_trigger(
              realm,
              encoded_device_id,
-             :uuid.string_to_uuid("0a0da77d-85b5-93d9-d4d2-bd26dd18c9af"),
-             2,
              interface_removed_volatile_trigger_parent_id,
              interface_removed_volatile_trigger_id,
              interface_removed_trigger_data,
@@ -643,8 +633,6 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
     assert DataUpdater.handle_install_volatile_trigger(
              realm,
              encoded_device_id,
-             :uuid.string_to_uuid("0a0da77d-85b5-93d9-d4d2-bd26dd18c9af"),
-             2,
              volatile_trigger_parent_id,
              volatile_trigger_id,
              simple_trigger_data,
@@ -676,8 +664,6 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
     assert DataUpdater.handle_install_volatile_trigger(
              realm,
              encoded_device_id,
-             :uuid.string_to_uuid("0a0da77d-85b5-93d9-d4d2-bd26dd18c9af"),
-             2,
              non_matching_volatile_trigger_parent_id,
              non_matching_volatile_trigger_id,
              non_matching_simple_trigger_data,
@@ -687,8 +673,6 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
     assert DataUpdater.handle_install_volatile_trigger(
              realm,
              encoded_device_id,
-             :uuid.string_to_uuid("0a0da77d-85b5-93d9-d4d2-bd26dd18c9af"),
-             2,
              non_matching_volatile_trigger_parent_id,
              non_matching_volatile_trigger_id,
              non_matching_simple_trigger_data,
@@ -827,8 +811,6 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
     assert DataUpdater.handle_install_volatile_trigger(
              realm,
              encoded_device_id,
-             :uuid.string_to_uuid("798b93a5-842e-bbad-2e4d-d20306838051"),
-             2,
              volatile_changed_trigger_parent_id,
              volatile_changed_trigger_id,
              simple_trigger_data,
@@ -856,8 +838,6 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
     assert DataUpdater.handle_install_volatile_trigger(
              realm,
              encoded_device_id,
-             :uuid.string_to_uuid("badb93a5-842e-bbad-2e4d-d20306838051"),
-             2,
              bad_trigger_parent_id,
              bad_trigger_id,
              bad_trigger_data,
@@ -885,8 +865,6 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
     assert DataUpdater.handle_install_volatile_trigger(
              realm,
              encoded_device_id,
-             :uuid.string_to_uuid("798b93a5-842e-bbad-2e4d-d20306838051"),
-             2,
              bad_path_trigger_parent_id,
              bad_path_trigger_id,
              bad_path_trigger_data,
@@ -1009,7 +987,15 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
     interface_id = CQLUtils.interface_id("com.test.SimpleStreamTest", 1)
     endpoint_id = retrieve_endpoint_id(realm, "com.test.SimpleStreamTest", 1, "/0/value")
     trigger_key = {:on_incoming_data, interface_id, endpoint_id}
-    incoming_data_0_value_triggers = Map.get(state.data_triggers, trigger_key)
+
+    incoming_data_0_value_triggers =
+      Astarte.Events.Triggers.Cache.find_data_triggers(
+        realm,
+        device_id,
+        state.groups,
+        trigger_key,
+        Map.from_struct(state)
+      )
 
     # The length is 2 since greater-then triggers are merged into one because they are congruent
     assert length(incoming_data_0_value_triggers) == 2
@@ -1539,13 +1525,10 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
     volatile_trigger_id = :crypto.strong_rand_bytes(16)
 
     fail_encoded_device_id = "f0VMRgIBAQBBBBBBBBBBBB"
-    {:ok, fail_device_id} = Device.decode_device_id(fail_encoded_device_id)
 
     assert DataUpdater.handle_install_volatile_trigger(
              realm,
              fail_encoded_device_id,
-             fail_device_id,
-             1,
              volatile_trigger_parent_id,
              volatile_trigger_id,
              simple_trigger_data,
@@ -1679,8 +1662,6 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
     assert DataUpdater.handle_install_volatile_trigger(
              realm,
              encoded_device_id,
-             device_id,
-             1,
              volatile_trigger_parent_id,
              volatile_trigger_id,
              generate_disconnection_trigger_data(),
