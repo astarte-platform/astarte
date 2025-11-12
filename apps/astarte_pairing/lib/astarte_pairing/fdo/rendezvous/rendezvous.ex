@@ -60,7 +60,7 @@ defmodule Astarte.Pairing.FDO.Rendezvous do
         {:ok, body}
 
       {:ok, response} ->
-        "error during hello message: unexpected response #{inspect(response)}"
+        "error during owner sign message: unexpected response #{inspect(response)}"
         |> Logger.error()
 
         :error
