@@ -65,8 +65,14 @@ defmodule Astarte.Pairing.FDO.OwnershipVoucherTest do
   """
   @private_key """
   -----BEGIN EC PRIVATE KEY-----
-  some text
+  MHcCAQEEIFlbTEE1Ce+RSqhU8FqxsY7eNb9BaBWOTw6qFv7l0DZtoAoGCCqGSM49
+  AwEHoUQDQgAEocPEIHIrn08VRO5zkkDztwp72Sw0BSm0mZeLgOKkHLUPdVFFlc0E
+  O82b1/S2Cwzwh8MIDDx0CN2b+IBl5bRwOw==
   -----END EC PRIVATE KEY-----
+  """
+
+  @invalid_private_key """
+    AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
   """
 
   describe "handle ownership voucher," do
@@ -77,6 +83,15 @@ defmodule Astarte.Pairing.FDO.OwnershipVoucherTest do
 
       assert :ok = OwnershipVoucher.save_voucher(realm_name, @ownership_voucher, @private_key)
     end
+
+    # test "reject with malformed private key", ctx do
+    #   %{
+    #     realm_name: realm_name
+    #   } = ctx
+
+    #   assert {:error, :invalid_private_key} =
+    #            OwnershipVoucher.save_voucher(realm_name, @ownership_voucher, @invalid_private_key)
+    # end
 
     test "reject with malformed voucher", ctx do
       %{

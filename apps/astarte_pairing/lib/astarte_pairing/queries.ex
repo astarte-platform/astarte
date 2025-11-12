@@ -224,6 +224,36 @@ defmodule Astarte.Pairing.Queries do
     {:ok, count}
   end
 
+  def get_ownership_voucher(realm_name, device_id) do
+    keyspace_name = Realm.keyspace_name(realm_name)
+
+    query =
+      from o in OwnershipVoucher,
+        prefix: ^keyspace_name,
+        where: o.device_id == ^device_id,
+        select: o.voucher_data
+
+    consistency = Consistency.domain_model(:read)
+
+    # FIXME: functions that depends on this one shall handle one or more ownership voucher, keeping just the first for now
+    Ecto.Query.first(query) |> Repo.one(consistency: consistency)
+  end
+
+  def get_owner_private_key(realm_name, device_id) do
+    keyspace_name = Realm.keyspace_name(realm_name)
+
+    query =
+      from o in OwnershipVoucher,
+        prefix: ^keyspace_name,
+        where: o.device_id == ^device_id,
+        select: o.private_key
+
+    consistency = Consistency.domain_model(:read)
+
+    # FIXME: functions that depends on this one shall handle one or more private key, keeping just the first for now
+    Ecto.Query.first(query) |> Repo.one(consistency: consistency)
+  end
+
   def create_ownership_voucher(realm_name, device_id, voucher_blob, private_key, ttl) do
     keyspace_name = Realm.keyspace_name(realm_name)
 

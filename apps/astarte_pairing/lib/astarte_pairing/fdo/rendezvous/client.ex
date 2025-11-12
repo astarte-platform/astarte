@@ -16,22 +16,24 @@
 # limitations under the License.
 #
 
-defmodule Astarte.DataAccess.FDO.OwnershipVoucher do
-  use TypedEctoSchema
-  import Ecto.Changeset
-  alias Astarte.DataAccess.FDO.OwnershipVoucher
+defmodule Astarte.Pairing.FDO.Rendezvous.Client do
+  require Logger
 
-  @primary_key false
-  typed_schema "ownership_vouchers" do
-    field :private_key, :binary
-    field :voucher_data, :binary, primary_key: true
-    field :device_id, Astarte.DataAccess.UUID, primary_key: true
+  use HTTPoison.Base
+
+  alias Astarte.Pairing.Config
+
+  @impl true
+  def process_request_url(url) do
+    Config.fdo_rendezvous_url!() <> url
   end
 
-  @doc false
-  def changeset(%OwnershipVoucher{} = ownership_voucher, attrs) do
-    ownership_voucher
-    |> cast(attrs, [:private_key, :voucher_data, :device_id])
-    |> validate_required([:private_key, :voucher_data, :device_id])
+  @impl true
+  def process_request_options(options) do
+    auth_opts = [
+      # ssl: Config.ssl_options!() no ssl?
+    ]
+
+    Keyword.merge(auth_opts, options)
   end
 end
