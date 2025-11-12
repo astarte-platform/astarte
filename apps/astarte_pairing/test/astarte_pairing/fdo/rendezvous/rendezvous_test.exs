@@ -23,15 +23,21 @@ defmodule Astarte.Pairing.FDO.RendezvousTest do
   alias Astarte.Pairing.FDO.Rendezvous
   alias Astarte.Pairing.FDO.Rendezvous.Client
 
+  import Astarte.Helpers.FDO
+
+  setup :verify_on_exit!
+
   describe "send_hello/0" do
     test "returns {:ok, body} on 200 response" do
+      nonce = nonce() |> Enum.at(0)
+
       Client
       |> expect(:post, fn "/fdo/101/msg/20", _body, _headers ->
         {:ok,
-         %HTTPoison.Response{status_code: 200, headers: "some_headers", body: "hello-response"}}
+         %HTTPoison.Response{status_code: 200, headers: "some_headers", body: hello_ack(nonce)}}
       end)
 
-      assert {:ok, %{body: "hello-response", headers: "some_headers"}} = Rendezvous.send_hello()
+      assert {:ok, %{nonce: nonce, headers: "some_headers"}} == Rendezvous.send_hello()
     end
 
     test "returns :error on non-200 response" do
@@ -62,7 +68,7 @@ defmodule Astarte.Pairing.FDO.RendezvousTest do
         {:ok, %HTTPoison.Response{status_code: 200, body: "some_cbor_response"}}
       end)
 
-      assert {:ok, "some_cbor_response"} = Rendezvous.register_ownership(request_body, headers)
+      assert :ok = Rendezvous.register_ownership(request_body, headers)
     end
 
     test "returns :error on http error" do

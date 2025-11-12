@@ -19,16 +19,34 @@
 defmodule Astarte.PairingWeb.OwnershipVoucherController do
   use Astarte.PairingWeb, :controller
 
+  alias Astarte.Pairing.FDO
   alias Astarte.Pairing.FDO.OwnershipVoucher
+  alias Astarte.Pairing.FDO.OwnershipVoucher.CreateRequest
 
   action_fallback Astarte.PairingWeb.FallbackController
 
   def create(conn, %{
-        "ownership_voucher" => voucher,
-        "private_key" => key,
+        "data" => data,
         "realm_name" => realm_name
       }) do
-    with :ok <- OwnershipVoucher.save_voucher(realm_name, voucher, key) do
+    create = CreateRequest.changeset(%CreateRequest{}, data)
+
+    with {:ok, create} <- Ecto.Changeset.apply_action(create, :insert),
+         %CreateRequest{
+           decoded_ownership_voucher: decoded_ownership_voucher,
+           cbor_ownership_voucher: cbor_ownership_voucher,
+           private_key: private_key,
+           extracted_private_key: extracted_private_key,
+           device_guid: device_guid
+         } = create,
+         :ok <-
+           OwnershipVoucher.save_voucher(
+             realm_name,
+             cbor_ownership_voucher,
+             device_guid,
+             private_key
+           ),
+         :ok <- FDO.claim_ownership_voucher(decoded_ownership_voucher, extracted_private_key) do
       send_resp(conn, 200, "")
     end
   end

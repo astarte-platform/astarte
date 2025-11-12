@@ -32,18 +32,13 @@ defmodule Astarte.Pairing.FDO.Rendezvous.Core do
   end
 
   def build_owner_sign_message(decoded_ownership_voucher, owner_key, nonce, addr_entries) do
-    with to0d <- CBORCore.build_to0d(decoded_ownership_voucher, 3600, nonce),
-         to1d_to0d_hash <- CBORCore.build_to1d_to0d_hash(to0d),
-         to1d_rv = CBORCore.build_to1d_rv(addr_entries),
-         blob_payload <- CBORCore.build_to1d_blob_payload(to1d_rv, to1d_to0d_hash),
-         {:ok, signature} <- build_cose_sign1(blob_payload, owner_key) do
-      result = CBOR.encode([CBORCore.add_cbor_tag(to0d), signature])
-      {:ok, result}
-    else
-      error ->
-        Logger.error("build_owner_sign_message error: #{inspect(error)}")
-        {:error, error}
-    end
+    to0d = CBORCore.build_to0d(decoded_ownership_voucher, 3600, nonce)
+    to1d_to0d_hash = CBORCore.build_to1d_to0d_hash(to0d)
+    to1d_rv = CBORCore.build_to1d_rv(addr_entries)
+    blob_payload = CBORCore.build_to1d_blob_payload(to1d_rv, to1d_to0d_hash)
+    signature = build_cose_sign1(blob_payload, owner_key)
+
+    CBOR.encode([CBORCore.add_cbor_tag(to0d), signature])
   end
 
   def build_cose_sign1(payload, owner_key) do
@@ -53,37 +48,16 @@ defmodule Astarte.Pairing.FDO.Rendezvous.Core do
     sig_structure = ["Signature#{@es256_identifier}", protected_header_cbor, <<>>, payload]
     sig_structure_cbor = CBOR.encode(sig_structure)
 
-    with {:ok, private_key} <- validate_end_extract_private_key(owner_key),
-         raw_signature <- :public_key.sign(sig_structure_cbor, :sha256, private_key) do
-      cose_sign1_array = [
-        CBORCore.add_cbor_tag(protected_header_cbor),
-        %{},
-        CBORCore.add_cbor_tag(payload),
-        CBORCore.add_cbor_tag(raw_signature)
-      ]
+    raw_signature = :public_key.sign(sig_structure_cbor, :sha256, owner_key)
 
-      cose_sign1 = %CBOR.Tag{tag: @cose_sign1_tag, value: cose_sign1_array}
-      {:ok, cose_sign1}
-    end
-  end
+    cose_sign1_array = [
+      CBORCore.add_cbor_tag(protected_header_cbor),
+      %{},
+      CBORCore.add_cbor_tag(payload),
+      CBORCore.add_cbor_tag(raw_signature)
+    ]
 
-  defp validate_end_extract_private_key(private_key) do
-    :public_key.pem_decode(private_key)
-    |> Enum.find(fn {asn1_type, _, _} -> asn1_type in [:ECPrivateKey, :PrivateKeyInfo] end)
-    |> case do
-      nil -> {:error, :invalid_pem}
-      entry -> safe_decode_pem_entry(entry)
-    end
-  end
-
-  defp safe_decode_pem_entry(entry) do
-    try do
-      {:ok, :public_key.pem_entry_decode(entry)}
-    rescue
-      e ->
-        Logger.warning("pem_entry_decode failed: #{inspect(e)}")
-        {:error, :pem_entry_decoding_failed}
-    end
+    %CBOR.Tag{tag: @cose_sign1_tag, value: cose_sign1_array}
   end
 
   def get_body_nonce(body) do

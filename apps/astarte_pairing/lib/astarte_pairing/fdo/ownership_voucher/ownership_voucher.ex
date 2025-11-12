@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2017 Ispirata Srl
+# Copyright 2025 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -16,15 +16,22 @@
 # limitations under the License.
 #
 
-Mimic.copy(Astarte.DataAccess.Config)
-Mimic.copy(Astarte.DataAccess.Health.Health)
-Mimic.copy(Astarte.Events.TriggersHandler)
-Mimic.copy(Astarte.Pairing.Config)
-Mimic.copy(Astarte.Pairing.FDO.OwnershipVoucher.Core)
-Mimic.copy(Astarte.Pairing.FDO.Rendezvous)
-Mimic.copy(Astarte.Pairing.FDO.Rendezvous.Client)
-Mimic.copy(Astarte.Pairing.Queries)
-Mimic.copy(DateTime)
-Mimic.copy(HTTPoison)
+defmodule Astarte.Pairing.FDO.OwnershipVoucher do
+  alias Astarte.Pairing.Queries
+  require Logger
 
-ExUnit.start(capture_log: true)
+  @one_week 604_800
+
+  def save_voucher(realm_name, cbor_ownership_voucher, device_guid, owner_private_key) do
+    with {:ok, _} <-
+           Queries.create_ownership_voucher(
+             realm_name,
+             device_guid,
+             cbor_ownership_voucher,
+             owner_private_key,
+             @one_week
+           ) do
+      :ok
+    end
+  end
+end

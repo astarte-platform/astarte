@@ -227,41 +227,49 @@ defmodule Astarte.Pairing.Queries do
   def get_ownership_voucher(realm_name, device_id) do
     keyspace_name = Realm.keyspace_name(realm_name)
 
+    # FIXME: functions that depends on this one shall handle one or more ownership voucher, keeping just the first for now
     query =
       from o in OwnershipVoucher,
         prefix: ^keyspace_name,
         where: o.device_id == ^device_id,
+        limit: 1,
         select: o.voucher_data
 
     consistency = Consistency.domain_model(:read)
 
-    # FIXME: functions that depends on this one shall handle one or more ownership voucher, keeping just the first for now
-    Ecto.Query.first(query) |> Repo.one(consistency: consistency)
+    Repo.one(query, consistency: consistency)
   end
 
   def get_owner_private_key(realm_name, device_id) do
     keyspace_name = Realm.keyspace_name(realm_name)
 
+    # FIXME: functions that depends on this one shall handle one or more private key, keeping just the first for now
     query =
       from o in OwnershipVoucher,
         prefix: ^keyspace_name,
         where: o.device_id == ^device_id,
+        limit: 1,
         select: o.private_key
 
     consistency = Consistency.domain_model(:read)
 
-    # FIXME: functions that depends on this one shall handle one or more private key, keeping just the first for now
-    Ecto.Query.first(query) |> Repo.one(consistency: consistency)
+    Repo.one(query, consistency: consistency)
   end
 
-  def create_ownership_voucher(realm_name, device_id, voucher_blob, private_key, ttl) do
+  def create_ownership_voucher(
+        realm_name,
+        device_id,
+        cbor_ownership_voucher,
+        owner_private_key,
+        ttl
+      ) do
     keyspace_name = Realm.keyspace_name(realm_name)
 
     opts = [prefix: keyspace_name, consistency: Consistency.device_info(:write), ttl: ttl]
 
     %OwnershipVoucher{
-      voucher_data: voucher_blob,
-      private_key: private_key,
+      voucher_data: cbor_ownership_voucher,
+      private_key: owner_private_key,
       device_id: device_id
     }
     |> Repo.insert(opts)

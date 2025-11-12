@@ -19,13 +19,10 @@
 defmodule Astarte.Pairing.FDO do
   alias Astarte.Pairing.FDO.Rendezvous
   alias Astarte.Pairing.FDO.Rendezvous.Core, as: RendezvousCore
-  alias Astarte.Pairing.Queries
 
-  def claim_voucher(realm_name, device_id) do
-    with {:ok, %{nonce: nonce, headers: headers}} <- hello(),
-         {:ok, owner_private_key} <- Queries.get_owner_private_key(realm_name, device_id),
-         {:ok, ownership_voucher} <- Queries.get_ownership_voucher(realm_name, device_id) do
-      owner_sign(nonce, ownership_voucher, owner_private_key, headers)
+  def claim_ownership_voucher(decoded_ownership_voucher, owner_private_key) do
+    with {:ok, %{nonce: nonce, headers: headers}} <- hello() do
+      owner_sign(nonce, decoded_ownership_voucher, owner_private_key, headers)
     end
   end
 
@@ -35,10 +32,7 @@ defmodule Astarte.Pairing.FDO do
   Returns decoded TO0.HelloAck (message 21) with rendezvous nonce.
   """
   def hello() do
-    with {:ok, %{body: body, headers: headers}} <- Rendezvous.send_hello() do
-      {:ok, nonce} = RendezvousCore.get_body_nonce(body)
-      {:ok, %{nonce: nonce, headers: headers}}
-    end
+    Rendezvous.send_hello()
   end
 
   @doc """
@@ -46,18 +40,18 @@ defmodule Astarte.Pairing.FDO do
   Sends ownership voucher and waits for response from rendezvous server.
   Returns decoded TO0.AcceptOwner (message 23) with negotiated wait time.
   """
-
   def owner_sign(nonce, ownership_voucher, owner_private_key, headers) do
     # TODO: not sure about this string "entries" content, is it something we want parametrized?
     with {:ok, addr_entries} <-
-           RendezvousCore.get_rv_to2_addr_entries("test1", "0.0.0.0", "test2", "0.0.0.0"),
-         {:ok, request_body} <-
-           RendezvousCore.build_owner_sign_message(
-             ownership_voucher,
-             owner_private_key,
-             nonce,
-             addr_entries
-           ) do
+           RendezvousCore.get_rv_to2_addr_entries("test1", "0.0.0.0", "test2", "0.0.0.0") do
+      request_body =
+        RendezvousCore.build_owner_sign_message(
+          ownership_voucher,
+          owner_private_key,
+          nonce,
+          addr_entries
+        )
+
       Rendezvous.register_ownership(request_body, headers)
     end
   end

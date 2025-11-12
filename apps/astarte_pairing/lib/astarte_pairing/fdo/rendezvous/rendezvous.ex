@@ -18,8 +18,9 @@
 
 defmodule Astarte.Pairing.FDO.Rendezvous do
   alias Astarte.Pairing.FDO.Cbor.Core, as: CBORCore
-
   alias Astarte.Pairing.FDO.Rendezvous.Client
+  alias Astarte.Pairing.FDO.Rendezvous.Core
+
   require Logger
 
   def send_hello() do
@@ -30,9 +31,41 @@ defmodule Astarte.Pairing.FDO.Rendezvous do
 
     request_body = CBORCore.empty_payload()
 
-    case Client.post("/fdo/101/msg/20", request_body, headers) do
-      {:ok, %HTTPoison.Response{status_code: 200, headers: resp_headers, body: body}} ->
-        {:ok, %{body: body, headers: resp_headers}}
+    with {:ok, response} <- send_hello_message(request_body, headers),
+         {:ok, nonce} <- get_nonce(response) do
+      {:ok, %{nonce: nonce, headers: response.headers}}
+    end
+  end
+
+  def register_ownership(request_body, headers) do
+    headers = [
+      {"Content-Type", "application/cbor"},
+      {"Content-Length", byte_size(request_body)},
+      {"Authorization", get_auth_bearer(headers)}
+    ]
+
+    case Client.post("/fdo/101/msg/22", request_body, headers) do
+      {:ok, %HTTPoison.Response{status_code: 200}} ->
+        :ok
+
+      {:ok, response} ->
+        "error during owner sign message: unexpected response #{inspect(response)}"
+        |> Logger.error()
+
+        :error
+
+      {:error, reason} ->
+        "error during owner sign message: http error #{inspect(reason)}"
+        |> Logger.error()
+
+        :error
+    end
+  end
+
+  defp send_hello_message(body, headers) do
+    case Client.post("/fdo/101/msg/20", body, headers) do
+      {:ok, %HTTPoison.Response{status_code: 200} = response} ->
+        {:ok, response}
 
       {:ok, response} ->
         "error during hello message: unexpected response #{inspect(response)}"
@@ -48,25 +81,13 @@ defmodule Astarte.Pairing.FDO.Rendezvous do
     end
   end
 
-  def register_ownership(request_body, headers) do
-    headers = [
-      {"Content-Type", "application/cbor"},
-      {"Content-Length", byte_size(request_body)},
-      {"Authorization", get_auth_bearer(headers)}
-    ]
-
-    case Client.post("/fdo/101/msg/22", request_body, headers) do
-      {:ok, %HTTPoison.Response{status_code: 200, body: body}} ->
-        {:ok, body}
-
-      {:ok, response} ->
-        "error during owner sign message: unexpected response #{inspect(response)}"
-        |> Logger.error()
-
-        :error
+  defp get_nonce(response) do
+    case Core.get_body_nonce(response.body) do
+      {:ok, nonce} ->
+        {:ok, nonce}
 
       {:error, reason} ->
-        "error during owner sign message: http error #{inspect(reason)}"
+        "error during error message: invalid nonce #{inspect(reason)}"
         |> Logger.error()
 
         :error

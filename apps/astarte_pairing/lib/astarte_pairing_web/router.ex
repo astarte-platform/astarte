@@ -38,7 +38,7 @@ defmodule Astarte.PairingWeb.Router do
 
     get "/version", VersionController, :show
 
-    scope "/ownership_voucher" do
+    scope "/ownership" do
       pipe_through :agent_api
       post "/", OwnershipVoucherController, :create
     end

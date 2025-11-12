@@ -33,6 +33,8 @@ defmodule Astarte.PairingWeb.ConnCase do
 
   use ExUnit.CaseTemplate
 
+  alias Astarte.PairingWeb.Helpers.JWTTestHelper
+
   using do
     quote do
       # Import conveniences for testing with connections
@@ -46,6 +48,15 @@ defmodule Astarte.PairingWeb.ConnCase do
   end
 
   setup _tags do
-    {:ok, conn: Phoenix.ConnTest.build_conn()}
+    conn = Phoenix.ConnTest.build_conn()
+
+    jwt = JWTTestHelper.gen_jwt_all_access_token()
+
+    auth_conn =
+      conn
+      |> Plug.Conn.put_req_header("accept", "application/json")
+      |> Plug.Conn.put_req_header("authorization", "bearer #{jwt}")
+
+    %{conn: conn, auth_conn: auth_conn}
   end
 end
