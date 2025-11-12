@@ -77,6 +77,6 @@ defmodule Astarte.PopulateDBTest do
   """
 
   test "Test import into Cassandra database" do
-    PopulateDB.populate(@realm, @xml)
+    Xandra.Cluster.run(:astarte_data_access_xandra, &PopulateDB.populate(&1, @realm, @xml))
   end
 end

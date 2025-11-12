@@ -46,7 +46,16 @@ defmodule Astarte.Import.CLI do
         end
       end
 
-      PopulateDB.populate(realm, data, more_data)
+      case Xandra.Cluster.run(
+             :astarte_data_access_xandra,
+             &PopulateDB.populate(&1, realm, data, more_data)
+           ) do
+        {:error, reason} ->
+          Logger.error("Import failed: #{inspect(reason)}.", realm: realm)
+
+        _ ->
+          :ok
+      end
     else
       {:started, {:error, reason}} ->
         Logger.error("Cannot ensure all applications startup: #{inspect(reason)}")
