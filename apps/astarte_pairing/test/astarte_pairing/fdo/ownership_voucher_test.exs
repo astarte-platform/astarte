@@ -84,14 +84,14 @@ defmodule Astarte.Pairing.FDO.OwnershipVoucherTest do
       assert :ok = OwnershipVoucher.save_voucher(realm_name, @ownership_voucher, @private_key)
     end
 
-    # test "reject with malformed private key", ctx do
-    #   %{
-    #     realm_name: realm_name
-    #   } = ctx
+    test "reject with malformed private key", ctx do
+      %{
+        realm_name: realm_name
+      } = ctx
 
-    #   assert {:error, :invalid_private_key} =
-    #            OwnershipVoucher.save_voucher(realm_name, @ownership_voucher, @invalid_private_key)
-    # end
+      assert {:error, :invalid_pem} =
+               OwnershipVoucher.save_voucher(realm_name, @ownership_voucher, @invalid_private_key)
+    end
 
     test "reject with malformed voucher", ctx do
       %{

@@ -54,36 +54,22 @@ defmodule Astarte.Pairing.FDO.Rendezvous.Core do
     sig_structure = ["Signature#{@es256_identifier}", protected_header_cbor, <<>>, payload]
     sig_structure_cbor = CBOR.encode(sig_structure)
 
-    case sign_with_owner_key(sig_structure_cbor, owner_key) do
-      {:ok, raw_signature} ->
-        cose_sign1_array = [
-          CBORCore.add_cbor_tag(protected_header_cbor),
-          %{},
-          CBORCore.add_cbor_tag(payload),
-          CBORCore.add_cbor_tag(raw_signature)
-        ]
+    with {:ok, private_key} <- validate_end_extract_private_key(owner_key),
+         raw_signature <- :public_key.sign(sig_structure_cbor, :sha256, private_key) do
+      cose_sign1_array = [
+        CBORCore.add_cbor_tag(protected_header_cbor),
+        %{},
+        CBORCore.add_cbor_tag(payload),
+        CBORCore.add_cbor_tag(raw_signature)
+      ]
 
-        cose_sign1 = %CBOR.Tag{tag: @cose_sign1_tag, value: cose_sign1_array}
-        {:ok, cose_sign1}
-
-      {:error, _} ->
-        {:error, :signing_error}
+      cose_sign1 = %CBOR.Tag{tag: @cose_sign1_tag, value: cose_sign1_array}
+      {:ok, cose_sign1}
     end
   end
 
-  defp sign_with_owner_key(data, pem_key) do
-    case decode_owner_private_key(pem_key) do
-      {:ok, private_key} ->
-        signature = :public_key.sign(data, :sha256, private_key)
-        {:ok, signature}
-
-      {:error, reason} ->
-        {:error, reason}
-    end
-  end
-
-  defp decode_owner_private_key(key) do
-    :public_key.pem_decode(key)
+  defp validate_end_extract_private_key(private_key) do
+    :public_key.pem_decode(private_key)
     |> Enum.find(fn {asn1_type, _, _} -> asn1_type in [:ECPrivateKey, :PrivateKeyInfo] end)
     |> case do
       nil -> {:error, :invalid_pem}

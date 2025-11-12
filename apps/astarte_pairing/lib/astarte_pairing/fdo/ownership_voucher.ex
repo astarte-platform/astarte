@@ -23,7 +23,7 @@ defmodule Astarte.Pairing.FDO.OwnershipVoucher do
   @one_week 604_800
   def save_voucher(realm_name, voucher_blob, private_key) do
     with {:ok, device_guuid} <- extract_device_guuid_from_voucher_data(voucher_blob),
-         {:ok, _} <- validate_private_key(private_key),
+         {:ok, _} <- validate_end_extract_private_key(private_key),
          {:ok, _} <-
            Queries.create_ownership_voucher(
              realm_name,
@@ -71,8 +71,12 @@ defmodule Astarte.Pairing.FDO.OwnershipVoucher do
     |> Map.fetch!(:value)
   end
 
-  defp validate_private_key(private_key) do
-    # FIXME: private key controls are demanded to another PR
-    {:ok, private_key}
+  defp validate_end_extract_private_key(private_key) do
+    :public_key.pem_decode(private_key)
+    |> Enum.find(fn {asn1_type, _, _} -> asn1_type in [:ECPrivateKey, :PrivateKeyInfo] end)
+    |> case do
+      nil -> {:error, :invalid_pem}
+      _ -> {:ok, private_key}
+    end
   end
 end

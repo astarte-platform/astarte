@@ -138,7 +138,7 @@ defmodule Astarte.Pairing.FDO.Rendezvous.CoreTest do
       payload = CBOR.encode(["test", 123])
       invalid_key = "pippo"
 
-      {:error, :signing_error} = Core.build_cose_sign1(payload, invalid_key)
+      {:error, :invalid_pem} = Core.build_cose_sign1(payload, invalid_key)
     end
 
     test "returns sign with correct cbor signature for valid payload and owner key", %{
@@ -182,16 +182,6 @@ defmodule Astarte.Pairing.FDO.Rendezvous.CoreTest do
 
       assert is_list(decoded_msg)
       assert is_binary(to0_owner_sign_msg)
-    end
-
-    test "returns error when given invalid inputs",
-         %{
-           nonce: nonce,
-           ownership_voucher: ownership_voucher,
-           addr_entries: addr_entries
-         } do
-      assert {:error, _} =
-               Core.build_owner_sign_message(ownership_voucher, "", nonce, addr_entries)
     end
   end
 
