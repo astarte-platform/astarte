@@ -66,7 +66,7 @@ defmodule Astarte.Pairing.FDO.Rendezvous do
         :error
 
       {:error, reason} ->
-        "error during hello message: http error #{inspect(reason)}"
+        "error during owner sign message: http error #{inspect(reason)}"
         |> Logger.error()
 
         :error
