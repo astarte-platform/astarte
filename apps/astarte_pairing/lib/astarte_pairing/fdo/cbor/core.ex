@@ -16,7 +16,7 @@
 # limitations under the License.
 #
 
-defmodule AstartePairing.Fdo.Cbor.Core do
+defmodule Astarte.Pairing.FDO.Cbor.Core do
   @sha256 47
   def empty_payload() do
     CBOR.encode([])

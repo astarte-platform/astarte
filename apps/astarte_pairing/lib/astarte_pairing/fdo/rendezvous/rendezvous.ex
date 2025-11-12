@@ -17,7 +17,7 @@
 #
 
 defmodule Astarte.Pairing.FDO.Rendezvous do
-  alias AstartePairing.Fdo.Cbor.Core, as: CBORCore
+  alias Astarte.Pairing.FDO.Cbor.Core, as: CBORCore
 
   alias Astarte.Pairing.FDO.Rendezvous.Client
   require Logger

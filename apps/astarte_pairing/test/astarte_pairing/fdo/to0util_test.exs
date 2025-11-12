@@ -20,7 +20,6 @@ defmodule Astarte.Pairing.TO0UtilTest do
   use ExUnit.Case, async: true
 
   alias Astarte.Pairing.FDO.Rendezvous.Core
-  alias AstartePairing.Fdo.Cbor.Core, as: CBORCore
 
   describe "get_nonce_from_hello_ack/1" do
     test "returns nonce for actual FDO HelloAck CBOR payload (binary nonce)" do
