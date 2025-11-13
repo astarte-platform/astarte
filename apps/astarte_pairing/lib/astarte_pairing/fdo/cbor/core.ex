@@ -22,6 +22,23 @@ defmodule Astarte.Pairing.FDO.Cbor.Core do
     CBOR.encode([])
   end
 
+  @doc """
+  build rendezvous entries for TO, those are not mutually exclusive
+  each entry is composed of:
+  - ip of the rendezvous server
+  - dns entry of the rendezvous server
+  - exposed port of the rendezvous server
+  - transport protocol
+
+  available transport protocols are (from FDO docs)
+    ProtTCP:    1,     ;; bare TCP stream
+    ProtTLS:    2,     ;; bare TLS stream
+    ProtHTTP:   3,
+    ProtCoAP:   4,
+    ProtHTTPS:  5,
+    ProtCoAPS:  6,
+
+  """
   def build_rv_to2_addr_entry(ip, dns, port, protocol) do
     rv_entry = [ip, dns, port, protocol]
     CBOR.encode([rv_entry])

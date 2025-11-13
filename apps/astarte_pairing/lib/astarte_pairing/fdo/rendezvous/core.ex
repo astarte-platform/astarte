@@ -25,10 +25,9 @@ defmodule Astarte.Pairing.FDO.Rendezvous.Core do
   @es256_identifier 1
   @cose_sign1_tag 18
 
-  def get_rv_to2_addr_entries(first_entry, second_entry) do
-    # TODO: figure out how this function is supposed to work in practice
-    rv_entry1 = CBORCore.build_rv_to2_addr_entry(CBORCore.empty_payload(), first_entry, 8080, 3)
-    rv_entry2 = CBORCore.build_rv_to2_addr_entry(CBORCore.empty_payload(), second_entry, 8080, 3)
+  def get_rv_to2_addr_entries(first_entry, first_entry_ip, second_entry, second_entry_ip) do
+    rv_entry1 = CBORCore.build_rv_to2_addr_entry(first_entry_ip, first_entry, 8080, 3)
+    rv_entry2 = CBORCore.build_rv_to2_addr_entry(second_entry_ip, second_entry, 8080, 3)
     {:ok, [rv_entry1, rv_entry2]}
   end
 

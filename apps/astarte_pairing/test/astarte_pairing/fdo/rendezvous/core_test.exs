@@ -66,7 +66,7 @@ defmodule Astarte.Pairing.FDO.Rendezvous.CoreTest do
 
   describe "get_rv_to2_addr_entries/0" do
     test "returns a list of entries with correct types" do
-      {:ok, entries} = Core.get_rv_to2_addr_entries("test1", "test2")
+      {:ok, entries} = Core.get_rv_to2_addr_entries("test1", "0.0.0.0", "test2", "0.0.0.0")
       assert is_list(entries)
       assert length(entries) >= 1
 
@@ -158,7 +158,7 @@ defmodule Astarte.Pairing.FDO.Rendezvous.CoreTest do
       nonce = <<32, 54, 127, 243, 66, 48, 228, 115, 59, 186, 230, 246, 198, 179, 113, 78>>
       {:ok, owner_key} = get_mock_owner_key()
       {:ok, ownership_voucher} = get_mock_ownership_voucher()
-      {:ok, addr_entries} = Core.get_rv_to2_addr_entries("test1", "test2")
+      {:ok, addr_entries} = Core.get_rv_to2_addr_entries("test1", "0.0.0.0", "test2", "0.0.0.0")
 
       %{
         nonce: nonce,

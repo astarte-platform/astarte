@@ -49,7 +49,7 @@ defmodule Astarte.Pairing.FDO do
   def owner_sign(nonce, ownership_voucher, owner_private_key, headers) do
     # TODO: not sure about this string "entries" content, is it something we want parametrized?
     with {:ok, addr_entries} <-
-           RendezvousCore.get_rv_to2_addr_entries("first entry", "second entry"),
+           RendezvousCore.get_rv_to2_addr_entries("test1", "0.0.0.0", "test2", "0.0.0.0"),
          {:ok, request_body} <-
            RendezvousCore.build_owner_sign_message(
              ownership_voucher,
