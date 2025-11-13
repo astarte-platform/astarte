@@ -17,7 +17,7 @@
 #
 
 defmodule Astarte.DataUpdaterPlant.DataUpdater.Server do
-  use GenServer
+  use GenServer, restart: :transient
   alias Astarte.DataUpdaterPlant.DataUpdater.Core
   alias Astarte.DataUpdaterPlant.Config
   alias Astarte.DataUpdaterPlant.DataUpdater.Impl

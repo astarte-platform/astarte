@@ -14,27 +14,29 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+#
 
-defmodule Astarte.Helpers.DataUpdater do
-  alias Astarte.DataUpdaterPlant.DataUpdater
+defmodule Astarte.Cases.AMQP do
+  use ExUnit.CaseTemplate
+  require Logger
 
-  def setup_data_updater(realm_name, encoded_device_id) do
-    {:ok, message_tracker} = DataUpdater.fetch_message_tracker(realm_name, encoded_device_id)
+  alias Astarte.DataUpdaterPlant.AMQPTestHelper
+  alias Astarte.DataUpdaterPlant.AMQPTestEventsConsumer
 
-    {:ok, data_updater} =
-      DataUpdater.fetch_data_updater_process(
-        realm_name,
-        encoded_device_id,
-        message_tracker,
-        true
+  setup %{realm_name: realm} do
+    test_id = System.unique_integer()
+    amqp_consumer = start_link_supervised!({AMQPTestHelper, [test_id: test_id]})
+
+    events_consumer =
+      start_link_supervised!(
+        {AMQPTestEventsConsumer,
+         [
+           realm: realm,
+           consumer: amqp_consumer,
+           test_id: test_id
+         ]}
       )
 
-    Astarte.DataAccess.Config
-    |> Mimic.allow(self(), data_updater)
-
-    Astarte.DataUpdaterPlant.RPC.VMQPlugin.ClientMock
-    |> Mox.allow(self(), data_updater)
-
-    :ok = GenServer.call(data_updater, :start)
+    %{test_id: test_id, amqp_consumer: amqp_consumer, events_consumer: events_consumer}
   end
 end

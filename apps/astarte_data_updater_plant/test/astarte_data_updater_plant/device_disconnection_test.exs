@@ -17,8 +17,11 @@
 #
 
 defmodule Astarte.DataUpdaterPlant.DeviceDisconnectionTest do
-  use ExUnit.Case, async: true
+  use Astarte.Cases.Data, async: true
+  use Astarte.Cases.AMQP
+
   import Mox
+  import Astarte.Helpers.DataUpdater
 
   alias Astarte.DataUpdaterPlant.DatabaseTestHelper
   alias Astarte.Core.Device
@@ -32,37 +35,9 @@ defmodule Astarte.DataUpdaterPlant.DeviceDisconnectionTest do
 
   setup :verify_on_exit!
 
-  setup do
-    realm_string = "autotestrealm#{System.unique_integer([:positive])}"
-    {:ok, _keyspace_name} = DatabaseTestHelper.create_test_keyspace(realm_string)
-
-    on_exit(fn ->
-      DatabaseTestHelper.destroy_local_test_keyspace(realm_string)
-    end)
-
-    helper_name = String.to_atom("helper_#{realm_string}")
-
-    consumer_name = String.to_atom("consumer_#{realm_string}")
-
-    {:ok, _pid} = AMQPTestHelper.start_link(name: helper_name, realm: realm_string)
-
-    {:ok, _consumer_pid} =
-      AMQPTestHelper.start_events_consumer(
-        name: consumer_name,
-        realm: realm_string,
-        helper_name: helper_name
-      )
-
-    {:ok, %{realm: realm_string, helper_name: helper_name}}
-  end
-
-  test "device disconnection test", %{realm: realm, helper_name: helper_name} do
-    AMQPTestHelper.clean_queue(helper_name)
-
-    keyspace_name = Realm.keyspace_name(realm)
+  setup_all %{realm_name: realm_name} do
     encoded_device_id = "f0VMRgIBAQAAAAAAAAAAAA"
     {:ok, device_id} = Device.decode_device_id(encoded_device_id)
-
     received_msgs = 45000
     received_bytes = 4_500_000
     existing_introspection_map = %{"com.test.LCDMonitor" => 1, "com.test.SimpleStreamTest" => 1}
@@ -74,7 +49,28 @@ defmodule Astarte.DataUpdaterPlant.DeviceDisconnectionTest do
       groups: ["group1"]
     ]
 
-    DatabaseTestHelper.insert_device(realm, device_id, insert_opts)
+    DatabaseTestHelper.insert_device(realm_name, device_id, insert_opts)
+    setup_data_updater(realm_name, encoded_device_id)
+
+    %{
+      device_id: device_id,
+      encoded_device_id: encoded_device_id,
+      received_msgs: received_msgs,
+      received_bytes: received_bytes
+    }
+  end
+
+  test "device disconnection test", context do
+    %{
+      realm: realm,
+      amqp_consumer: amqp_consumer,
+      device_id: device_id,
+      encoded_device_id: encoded_device_id,
+      received_msgs: received_msgs,
+      received_bytes: received_bytes
+    } = context
+
+    keyspace_name = Realm.keyspace_name(realm)
 
     DataUpdater.handle_disconnection(
       realm,
@@ -107,18 +103,6 @@ defmodule Astarte.DataUpdaterPlant.DeviceDisconnectionTest do
              exchanged_bytes_by_interface: %{}
            }
 
-    assert AMQPTestHelper.awaiting_messages_count(helper_name) == 0
-  end
-
-  defp gen_tracking_id() do
-    message_id = :erlang.unique_integer([:monotonic]) |> Integer.to_string()
-    delivery_tag = {:injected_msg, make_ref()}
-    {message_id, delivery_tag}
-  end
-
-  defp make_timestamp(timestamp_string) do
-    {:ok, date_time, _} = DateTime.from_iso8601(timestamp_string)
-
-    DateTime.to_unix(date_time, :millisecond) * 10000
+    assert AMQPTestHelper.awaiting_messages_count(amqp_consumer) == 0
   end
 end
