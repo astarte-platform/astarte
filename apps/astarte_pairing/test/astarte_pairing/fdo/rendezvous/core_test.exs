@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2017-2025 SECO Mind Srl
+# Copyright 2025 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -16,34 +16,21 @@
 # limitations under the License.
 #
 
-defmodule Astarte.Pairing.TO0UtilTest do
+defmodule Astarte.Pairing.FDO.Rendezvous.CoreTest do
   use ExUnit.Case, async: true
 
   alias Astarte.Pairing.FDO.Rendezvous.Core
-  alias AstartePairing.Fdo.Cbor.Core, as: CBORCore
 
-  describe "get_nonce_from_hello_ack/1" do
-    test "returns nonce for actual FDO HelloAck CBOR payload (binary nonce)" do
-      valid_nonce = <<32, 54, 127, 243, 66, 48, 228, 115, 59, 186, 230, 246, 198, 179, 113, 78>>
-      hello_ack_cbor = CBOR.encode([%CBOR.Tag{tag: :bytes, value: valid_nonce}])
-      assert {:ok, ^valid_nonce} = Core.get_body_nonce(hello_ack_cbor)
-    end
+  @es256 -7
+  @es256_identifier 1
+  @cose_sign1_tag 18
 
-    test "fails with wrong length CBOR body" do
-      invalid_nonce = <<1, 2, 3, 4, 5, 6, 7, 8>>
-      hello_ack_cbor = CBOR.encode([%CBOR.Tag{tag: :bytes, value: invalid_nonce}])
+  describe "get_body_nonce/1" do
+    setup do
+      nonce = <<32, 54, 127, 243, 66, 48, 228, 115, 59, 186, 230, 246, 198, 179, 113, 78>>
+      nonce_with_invalid_size = <<1, 2, 3, 4, 5, 6, 7, 8>>
 
-      assert {:error, :unexpected_nonce_size} =
-               Core.get_body_nonce(hello_ack_cbor)
-    end
-
-    test "fails with non-CBOR binary" do
-      invalid_nonce = <<1, 2, 3, 4, 5, 6, 7, 8>>
-
-      assert {:error, :unexpected_body_format} =
-               Core.get_body_nonce(invalid_nonce)
-
-      wrong_cbor2 =
+      cbor =
         CBOR.encode([
           %CBOR.Tag{
             tag: :bytes,
@@ -55,7 +42,25 @@ defmodule Astarte.Pairing.TO0UtilTest do
           }
         ])
 
-      assert {:error, :unexpected_body_format} = Core.get_body_nonce(wrong_cbor2)
+      %{nonce: nonce, nonce_with_invalid_size: nonce_with_invalid_size, not_hello_ack_cbor: cbor}
+    end
+
+    test "returns nonce for actual FDO HelloAck CBOR payload (binary nonce)", %{nonce: nonce} do
+      ack = hello_ack(nonce)
+      assert {:ok, ^nonce} = Core.get_body_nonce(ack)
+    end
+
+    test "fails with wrong length CBOR body", %{nonce_with_invalid_size: nonce_with_invalid_size} do
+      invalid_ack = hello_ack(nonce_with_invalid_size)
+      assert {:error, :unexpected_nonce_size} == Core.get_body_nonce(invalid_ack)
+    end
+
+    test "only decodes valid cbor binaries" do
+      assert {:error, :cbor_decode_error} == Core.get_body_nonce(<<>>)
+    end
+
+    test "fails for cbors with unexpected format", %{not_hello_ack_cbor: cbor} do
+      assert {:error, :unexpected_body_format} == Core.get_body_nonce(cbor)
     end
   end
 
@@ -79,42 +84,126 @@ defmodule Astarte.Pairing.TO0UtilTest do
   end
 
   describe "build_cose_sign1/2" do
-    test "returns sign with correct cbor structure for valid payload and owner key" do
+    setup do
       payload = CBOR.encode(["test", 123])
-
       {:ok, owner_key} = get_mock_owner_key()
+      protected_header = %{@es256_identifier => @es256}
+      protected_header_cbor = CBOR.encode(protected_header)
 
-      result = Core.build_cose_sign1(payload, owner_key)
-      assert {:ok, %CBOR.Tag{tag: 18, value: cose_sign1_array}} = result
+      %{payload: payload, owner_key: owner_key, protected_header_cbor: protected_header_cbor}
+    end
+
+    test "returns sign list for valid payload and owner key", %{
+      payload: payload,
+      owner_key: owner_key
+    } do
+      cose_sign1_array = assert_cose_sign1(payload, owner_key)
+
       assert is_list(cose_sign1_array)
       assert length(cose_sign1_array) == 4
+    end
+
+    test "returns sign with correct protected header for valid payload and owner key", %{
+      payload: payload,
+      owner_key: owner_key,
+      protected_header_cbor: protected_header_cbor
+    } do
+      cose_sign1_array = assert_cose_sign1(payload, owner_key)
+
+      assert List.pop_at(cose_sign1_array, 0) |> elem(0) == %CBOR.Tag{
+               tag: :bytes,
+               value: protected_header_cbor
+             }
+    end
+
+    test "returns sign with correct unprotected header for valid payload and owner key", %{
+      payload: payload,
+      owner_key: owner_key
+    } do
+      cose_sign1_array = assert_cose_sign1(payload, owner_key)
+
+      assert List.pop_at(cose_sign1_array, 1) |> elem(0) == %{}
+    end
+
+    test "returns sign with correct cbor payload for valid payload and owner key", %{
+      payload: payload,
+      owner_key: owner_key
+    } do
+      cose_sign1_array = assert_cose_sign1(payload, owner_key)
+
+      assert List.pop_at(cose_sign1_array, 2) |> elem(0) == %CBOR.Tag{tag: :bytes, value: payload}
     end
 
     test "returns {:error, :signing_error} when passed invalid PEM key" do
       payload = CBOR.encode(["test", 123])
       invalid_key = "pippo"
 
-      result = Core.build_cose_sign1(payload, invalid_key)
-      assert {:error, :signing_error} = result
+      {:error, :signing_error} = Core.build_cose_sign1(payload, invalid_key)
+    end
+
+    test "returns sign with correct cbor signature for valid payload and owner key", %{
+      payload: payload,
+      owner_key: owner_key
+    } do
+      cose_sign1_array = assert_cose_sign1(payload, owner_key)
+
+      signature_tag = List.pop_at(cose_sign1_array, 3) |> elem(0)
+      assert %CBOR.Tag{tag: :bytes, value: signature_value} = signature_tag
+      assert is_binary(signature_value)
     end
   end
 
   describe "build_owner_sign_message/4" do
-    test "returns TO0.OwnerSign message when given valid inputs" do
-      with {:ok, owner_key} <- get_mock_owner_key(),
-           {:ok, ownership_voucher} <- get_mock_ownership_voucher(),
-           {:ok, addr_entries} <- Core.get_rv_to2_addr_entries("test1", "test2"),
-           {:ok, nonce} <- get_mock_nonce(),
-           {:ok, to0_owner_sign_msg} <-
-             Core.build_owner_sign_message(ownership_voucher, owner_key, nonce, addr_entries) do
-        assert is_binary(to0_owner_sign_msg)
-      end
+    setup do
+      nonce = <<32, 54, 127, 243, 66, 48, 228, 115, 59, 186, 230, 246, 198, 179, 113, 78>>
+      {:ok, owner_key} = get_mock_owner_key()
+      {:ok, ownership_voucher} = get_mock_ownership_voucher()
+      {:ok, addr_entries} = Core.get_rv_to2_addr_entries("test1", "test2")
+
+      %{
+        nonce: nonce,
+        owner_key: owner_key,
+        ownership_voucher: ownership_voucher,
+        addr_entries: addr_entries
+      }
+    end
+
+    test "returns TO0.OwnerSign message when given valid inputs",
+         %{
+           nonce: nonce,
+           owner_key: owner_key,
+           ownership_voucher: ownership_voucher,
+           addr_entries: addr_entries
+         } do
+      {:ok, to0_owner_sign_msg} =
+        Core.build_owner_sign_message(ownership_voucher, owner_key, nonce, addr_entries)
+
+      {:ok, decoded_msg, _} = CBOR.decode(to0_owner_sign_msg)
+
+      assert is_list(decoded_msg)
+      assert is_binary(to0_owner_sign_msg)
+    end
+
+    test "returns error when given invalid inputs",
+         %{
+           nonce: nonce,
+           ownership_voucher: ownership_voucher,
+           addr_entries: addr_entries
+         } do
+      assert {:error, _} =
+               Core.build_owner_sign_message(ownership_voucher, "", nonce, addr_entries)
     end
   end
 
-  defp get_mock_nonce() do
-    nonce = <<32, 54, 127, 243, 66, 48, 228, 115, 59, 186, 230, 246, 198, 179, 113, 78>>
-    {:ok, nonce}
+  defp assert_cose_sign1(payload, owner_key) do
+    {:ok, %CBOR.Tag{tag: @cose_sign1_tag, value: cose_sign1_array}} =
+      Core.build_cose_sign1(payload, owner_key)
+
+    cose_sign1_array
+  end
+
+  defp hello_ack(nonce) do
+    CBOR.encode([%CBOR.Tag{tag: :bytes, value: nonce}])
   end
 
   defp get_mock_ownership_voucher do

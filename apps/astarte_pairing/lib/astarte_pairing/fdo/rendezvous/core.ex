@@ -19,7 +19,7 @@
 defmodule Astarte.Pairing.FDO.Rendezvous.Core do
   require Logger
 
-  alias AstartePairing.Fdo.Cbor.Core, as: CBORCore
+  alias Astarte.Pairing.FDO.Cbor.Core, as: CBORCore
 
   @es256 -7
   @es256_identifier 1

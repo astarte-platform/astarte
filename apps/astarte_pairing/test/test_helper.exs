@@ -23,5 +23,6 @@ Mimic.copy(Astarte.DataAccess.Health.Health)
 Mimic.copy(HTTPoison)
 Mimic.copy(Astarte.Events.TriggersHandler)
 Mimic.copy(Astarte.Pairing.Queries)
+Mimic.copy(Astarte.Pairing.FDO.Rendezvous.Client)
 
 ExUnit.start(capture_log: true)
