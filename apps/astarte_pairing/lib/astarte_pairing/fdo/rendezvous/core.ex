@@ -83,12 +83,11 @@ defmodule Astarte.Pairing.FDO.Rendezvous.Core do
   end
 
   defp decode_owner_private_key(key) do
-    case :public_key.pem_decode(key) do
-      [entry] ->
-        safe_decode_pem_entry(entry)
-
-      [] ->
-        {:error, :invalid_pem}
+    :public_key.pem_decode(key)
+    |> Enum.find(fn {asn1_type, _, _} -> asn1_type in [:ECPrivateKey, :PrivateKeyInfo] end)
+    |> case do
+      nil -> {:error, :invalid_pem}
+      entry -> safe_decode_pem_entry(entry)
     end
   end
 
