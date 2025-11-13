@@ -64,12 +64,6 @@ defmodule Astarte.Pairing.FDO.Rendezvous.CoreTest do
     end
   end
 
-  describe "safe_der_decode/1" do
-    test "returns error for invalid DER data" do
-      assert {:error, :der_decode_failed} = Core.safe_der_decode(<<0, 1, 2>>)
-    end
-  end
-
   describe "get_rv_to2_addr_entries/0" do
     test "returns a list of entries with correct types" do
       {:ok, entries} = Core.get_rv_to2_addr_entries("test1", "test2")
@@ -138,6 +132,13 @@ defmodule Astarte.Pairing.FDO.Rendezvous.CoreTest do
       cose_sign1_array = assert_cose_sign1(payload, owner_key)
 
       assert List.pop_at(cose_sign1_array, 2) |> elem(0) == %CBOR.Tag{tag: :bytes, value: payload}
+    end
+
+    test "returns {:error, :signing_error} when passed invalid PEM key" do
+      payload = CBOR.encode(["test", 123])
+      invalid_key = "pippo"
+
+      {:error, :signing_error} = Core.build_cose_sign1(payload, invalid_key)
     end
 
     test "returns sign with correct cbor signature for valid payload and owner key", %{
