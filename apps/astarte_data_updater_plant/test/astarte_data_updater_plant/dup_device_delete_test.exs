@@ -37,7 +37,6 @@ defmodule Astarte.DataUpdaterPlant.DeviceDeleteTest do
 
   setup_all do
     realm = "autotestrealm#{System.unique_integer([:positive])}"
-    AMQPTestHelper.start_link()
     DatabaseTestHelper.destroy_local_test_keyspace(realm)
     {:ok, _keyspace_name} = DatabaseTestHelper.create_test_keyspace(realm)
 
@@ -45,7 +44,20 @@ defmodule Astarte.DataUpdaterPlant.DeviceDeleteTest do
       DatabaseTestHelper.destroy_local_test_keyspace(realm)
     end)
 
-    %{realm_name: realm}
+    helper_name = String.to_atom("helper_#{realm}")
+
+    consumer_name = String.to_atom("consumer_#{realm}")
+
+    {:ok, _pid} = AMQPTestHelper.start_link(name: helper_name, realm: realm)
+
+    {:ok, _consumer_pid} =
+      AMQPTestHelper.start_events_consumer(
+        name: consumer_name,
+        realm: realm,
+        helper_name: helper_name
+      )
+
+    %{realm_name: realm, helper_name: helper_name}
   end
 
   setup %{realm_name: realm} do
@@ -55,8 +67,11 @@ defmodule Astarte.DataUpdaterPlant.DeviceDeleteTest do
     end)
   end
 
-  test "device deletion replicates group information", %{realm_name: realm} do
-    AMQPTestHelper.clean_queue()
+  test "device deletion replicates group information", %{
+    realm_name: realm,
+    helper_name: helper_name
+  } do
+    AMQPTestHelper.clean_queue(helper_name)
     keyspace_name = Realm.keyspace_name(realm)
 
     device_id = Device.random_device_id()
@@ -92,8 +107,11 @@ defmodule Astarte.DataUpdaterPlant.DeviceDeleteTest do
     assert deletion_status.groups == expected_groups
   end
 
-  test "device deletion is acked and related DataUpdater process stops", %{realm_name: realm} do
-    AMQPTestHelper.clean_queue()
+  test "device deletion is acked and related DataUpdater process stops", %{
+    realm_name: realm,
+    helper_name: helper_name
+  } do
+    AMQPTestHelper.clean_queue(helper_name)
 
     encoded_device_id =
       :crypto.strong_rand_bytes(16)

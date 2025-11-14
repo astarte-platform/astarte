@@ -24,18 +24,16 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.Trigger do
 
   This module contains functions and utilities to process triggers.
   """
-  alias Astarte.DataUpdaterPlant.DataUpdater.Core
-  alias Astarte.DataUpdaterPlant.DataUpdater.State
-  alias Astarte.DataUpdaterPlant.TriggersHandler
-  alias Astarte.DataUpdaterPlant.DataUpdater.EventTypeUtils
-  alias Astarte.DataUpdaterPlant.DataUpdater.Queries
-  alias Astarte.Core.Triggers.SimpleTriggersProtobuf
+  alias Astarte.Core.Mapping.EndpointsAutomaton
   alias Astarte.Core.Triggers.DataTrigger
-  alias Astarte.DataAccess.Interface, as: InterfaceQueries
-  alias Astarte.DataAccess.Realms.SimpleTrigger
+  alias Astarte.Core.Triggers.SimpleTriggersProtobuf
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.DataTrigger, as: ProtobufDataTrigger
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.Utils, as: SimpleTriggersProtobufUtils
-  alias Astarte.DataUpdaterPlant.MessageTracker
+  alias Astarte.DataAccess.Realms.SimpleTrigger
+  alias Astarte.DataUpdaterPlant.DataUpdater.Core
+  alias Astarte.DataUpdaterPlant.DataUpdater.EventTypeUtils
+  alias Astarte.DataUpdaterPlant.DataUpdater.Queries
+  alias Astarte.DataUpdaterPlant.TriggersHandler
   alias Astarte.Events.Triggers
 
   def populate_triggers_for_object!(state, object_id, object_type) do
@@ -127,16 +125,6 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.Trigger do
   end
 
   def handle_install_volatile_trigger(
-        %State{discard_messages: true} = state,
-        _,
-        message_id,
-        _
-      ) do
-    MessageTracker.ack_delivery(state.message_tracker, message_id)
-    state
-  end
-
-  def handle_install_volatile_trigger(
         state,
         object_id,
         object_type,
@@ -154,80 +142,78 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.Trigger do
 
     deserialized_trigger = Triggers.deserialize_simple_trigger(trigger)
     {trigger_data, _trigger_target} = deserialized_trigger
-    object_key = {object_id, object_type}
-    new_volatile_trigger = {object_key, deserialized_trigger}
-    new_state = Map.update!(state, :volatile_triggers, &[new_volatile_trigger | &1])
 
-    case Triggers.fetch_triggers(
-           state.realm,
-           [deserialized_trigger],
-           Map.from_struct(new_state)
-         ) do
-      {:ok, data} ->
-        relevant_data =
-          Map.take(data, [:device_triggers, :data_triggers, :trigger_id_to_policy_name])
+    with {:ok, new_state} <- maybe_load_missing_interface(state, trigger_data),
+         {:ok, new_data} <-
+           Triggers.fetch_triggers(
+             state.realm,
+             [deserialized_trigger],
+             Map.from_struct(new_state)
+           ) do
+      object_key = {object_id, object_type}
+      new_volatile_trigger = {object_key, deserialized_trigger}
 
-        new_state =
-          new_state
-          |> Map.merge(relevant_data)
+      new_state =
+        Map.merge(new_state, new_data)
+        |> Map.update!(:volatile_triggers, &[new_volatile_trigger | &1])
 
-        Triggers.install_volatile_trigger(
-          new_state.realm,
-          deserialized_trigger,
-          Map.from_struct(new_state)
-        )
+      Triggers.install_volatile_trigger(
+        new_state.realm,
+        deserialized_trigger,
+        new_data
+      )
 
-        {:ok, new_state}
-
-      {:error, :interface_not_found} ->
-        with {:ok, temp_state} <- try_load_missing_interface(state, trigger_data),
-             {:ok, _data} <-
-               Triggers.fetch_triggers(
-                 state.realm,
-                 [deserialized_trigger],
-                 Map.from_struct(temp_state)
-               ) do
-          # We add the volatile trigger but don't load the triggers
-          Triggers.install_volatile_trigger(
-            new_state.realm,
-            deserialized_trigger,
-            Map.from_struct(temp_state)
-          )
-
-          {:ok, new_state}
-        else
-          error ->
-            {error, state}
-        end
-
+      {:ok, new_state}
+    else
       error ->
+        # rollback
         {error, state}
     end
   end
 
-  defp try_load_missing_interface(state, {:data_trigger, trigger}) do
-    %ProtobufDataTrigger{interface_name: name, interface_major: major} = trigger
+  defp maybe_load_missing_interface(state, {:device_trigger, _}), do: {:ok, state}
+  defp maybe_load_missing_interface(state, {_data, %{interface_name: "*"}}), do: {:ok, state}
 
-    case InterfaceQueries.fetch_interface_descriptor(state.realm, name, major) do
-      {:ok, descriptor} ->
-        temp_state =
-          state
-          |> Map.update!(:interfaces, &Map.put(&1, descriptor.name, descriptor))
-          |> Map.update!(
-            :interface_ids_to_name,
-            &Map.put(&1, descriptor.interface_id, descriptor.name)
-          )
+  defp maybe_load_missing_interface(state, {_data, data_trigger}) do
+    %ProtobufDataTrigger{
+      interface_name: interface_name,
+      interface_major: major,
+      match_path: match_path
+    } = data_trigger
 
-        {:ok, temp_state}
-
-      error ->
-        error
+    with {:ok, descriptor, new_state} <- handle_cache_miss(state, interface_name),
+         :ok <- check_interface_major_version(descriptor, major),
+         :ok <- check_trigger_path(match_path, descriptor.automaton) do
+      {:ok, new_state}
     end
   end
 
-  def handle_delete_volatile_trigger(%State{discard_messages: true} = state, _, message_id, _) do
-    MessageTracker.discard(state.message_tracker, message_id)
-    state
+  defp handle_cache_miss(state, interface_name) do
+    maybe_descriptor = Map.get(state.interfaces, interface_name)
+
+    case Core.Interface.maybe_handle_cache_miss(maybe_descriptor, interface_name, state) do
+      {:ok, _interface_descriptor, _new_state} = ok -> ok
+      {:error, :interface_loading_failed} -> {:error, :interface_not_found}
+    end
+  end
+
+  defp check_trigger_path("/*", _automaton) do
+    :ok
+  end
+
+  defp check_trigger_path(path, automaton) do
+    case EndpointsAutomaton.resolve_path(path, automaton) do
+      {:ok, _endpoint_id} -> :ok
+      {:guessed, _} -> {:error, :invalid_match_path}
+      {:error, :not_found} -> {:error, :invalid_match_path}
+    end
+  end
+
+  defp check_interface_major_version(descriptor, major) do
+    case descriptor.major_version do
+      ^major -> :ok
+      _ -> {:error, :interface_major_version_mismatch}
+    end
   end
 
   def handle_delete_volatile_trigger(state, trigger_id) do
