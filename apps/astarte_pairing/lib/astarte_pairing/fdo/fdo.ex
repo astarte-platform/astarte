@@ -22,10 +22,10 @@ defmodule Astarte.Pairing.FDO do
   alias Astarte.Pairing.Queries
 
   def claim_voucher(realm_name, device_id) do
-    with {:ok, nonce} <- hello(),
+    with {:ok, %{nonce: nonce, headers: headers}} <- hello(),
          {:ok, owner_private_key} <- Queries.get_owner_private_key(realm_name, device_id),
          {:ok, ownership_voucher} <- Queries.get_ownership_voucher(realm_name, device_id) do
-      owner_sign(nonce, ownership_voucher, owner_private_key, [])
+      owner_sign(nonce, ownership_voucher, owner_private_key, headers)
     end
   end
 
@@ -35,8 +35,9 @@ defmodule Astarte.Pairing.FDO do
   Returns decoded TO0.HelloAck (message 21) with rendezvous nonce.
   """
   def hello() do
-    with {:ok, body} <- Rendezvous.send_hello() do
-      RendezvousCore.get_body_nonce(body)
+    with {:ok, %{body: body, headers: headers}} <- Rendezvous.send_hello() do
+      {:ok, nonce} = RendezvousCore.get_body_nonce(body)
+      {:ok, %{nonce: nonce, headers: headers}}
     end
   end
 

@@ -27,10 +27,11 @@ defmodule Astarte.Pairing.FDO.RendezvousTest do
     test "returns {:ok, body} on 200 response" do
       Client
       |> expect(:post, fn "/fdo/101/msg/20", _body, _headers ->
-        {:ok, %HTTPoison.Response{status_code: 200, body: "hello-response"}}
+        {:ok,
+         %HTTPoison.Response{status_code: 200, headers: "some_headers", body: "hello-response"}}
       end)
 
-      assert {:ok, "hello-response"} = Rendezvous.send_hello()
+      assert {:ok, %{body: "hello-response", headers: "some_headers"}} = Rendezvous.send_hello()
     end
 
     test "returns :error on non-200 response" do
