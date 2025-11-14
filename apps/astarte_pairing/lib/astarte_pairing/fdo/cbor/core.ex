@@ -32,7 +32,7 @@ defmodule Astarte.Pairing.FDO.Cbor.Core do
   end
 
   def build_to0d(ov, wait_seconds, nonce) do
-    CBOR.encode([ov, wait_seconds, nonce])
+    CBOR.encode([ov, wait_seconds, add_cbor_tag(nonce)])
   end
 
   def add_cbor_tag(payload) do

@@ -67,7 +67,7 @@ defmodule Astarte.Pairing.FDO.Cbor.CoreTest do
       encoded = Core.build_to0d(ov, wait_seconds, nonce)
       {:ok, decoded, ""} = CBOR.decode(encoded)
 
-      assert decoded == [ov, wait_seconds, nonce]
+      assert decoded == [ov, wait_seconds, %CBOR.Tag{tag: :bytes, value: nonce}]
     end
   end
 
