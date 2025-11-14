@@ -165,7 +165,7 @@ services:
       - "traefik.http.services.astarte-grafana.loadbalancer.server.port=3000"
 
   traefik:
-    image: traefik:v2.9
+    image: traefik:v3.6
     restart: on-failure
     command:
       # Uncomment this if you want to enable Traefik's web UI
