@@ -31,8 +31,8 @@ defmodule Astarte.Pairing.FDO.Rendezvous do
     request_body = CBORCore.empty_payload()
 
     case Client.post("/fdo/101/msg/20", request_body, headers) do
-      {:ok, %HTTPoison.Response{status_code: 200, body: body}} ->
-        {:ok, body}
+      {:ok, %HTTPoison.Response{status_code: 200, headers: resp_headers, body: body}} ->
+        {:ok, %{body: body, headers: resp_headers}}
 
       {:ok, response} ->
         "error during hello message: unexpected response #{inspect(response)}"
