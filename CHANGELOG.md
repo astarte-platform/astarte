@@ -4,7 +4,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-## [1.3.0] - Unreleased
+## [1.3.0-rc.0] - 2025-11-21
 ### Added
 - [astarte_data_updater_plant] Added separate AMQP triggers producer configuration (falls back to general AMQP producer settings if unset):
   - `DATA_UPDATER_PLANT_AMQP_TRIGGERS_PRODUCER_HOST` - Host for triggers producer connection (no default, falls back to producer host)
@@ -16,13 +16,17 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
   - `DATA_UPDATER_PLANT_AMQP_TRIGGERS_PRODUCER_SSL_CA_FILE` - CA certificate file for triggers producer SSL (falls back to producer CA file or bundled cURL certificates)
   - `DATA_UPDATER_PLANT_AMQP_TRIGGERS_PRODUCER_SSL_DISABLE_SNI` - Disable Server Name Indication for triggers producer (default: false)
   - `DATA_UPDATER_PLANT_AMQP_TRIGGERS_PRODUCER_SSL_CUSTOM_SNI` - Custom SNI hostname for triggers producer (falls back to producer host if unset)
-- [astarte_housekeeping] Added Cassandra keyspace replication strategy configuration:
+- [astarte_housekeeping] support network topology replication strategy for the `astarte` keyspace, with the following env vars:
   - `HOUSEKEEPING_ASTARTE_KEYSPACE_REPLICATION_STRATEGY` - Replication strategy for the `astarte` keyspace: "SimpleStrategy" or "NetworkTopologyStrategy" (default: "SimpleStrategy")
   - `HOUSEKEEPING_ASTARTE_KEYSPACE_REPLICATION_FACTOR` - Replication factor when using SimpleStrategy (default: 1)
   - `HOUSEKEEPING_ASTARTE_KEYSPACE_NETWORK_REPLICATION_MAP` - Datacenter replication map when using NetworkTopologyStrategy (no default, required when using network strategy)
 - Added database events handling configuration across all services:
   - `DATABASE_EVENTS_HANDLING_METHOD` - Controls how database events are handled: "expose" (via telemetry) or "log" (to logs) (default: "expose")
 - [astarte_pairing] Added device registration triggers
+- [astarte_realm_management] Added device deletion started and device deletion completed triggers
+- Allow devices with empty introspection
+- Devices can now declare support for optional Astarte MQTT v1 features to Astarte via capabilities
+- Support for `purge_properties_compression_format` capability. possible values are `zlib` (default) and `plaintext`
 
 ### Changed
 - BREAKING: Merged API services into main services, eliminating separate containers:
@@ -39,6 +43,13 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
   - `HOUSEKEEPING_AMQP_PASSWORD` - AMQP password (default: guest)
   - `HOUSEKEEPING_AMQP_MANAGEMENT_PORT` - AMQP management API port (default: 15672)
 - BREAKING: [astarte_pairing] AMQP Producer configuration is now mandatory using the `ASTARTE_EVENTS_PRODUCER_AMQP_*` environment variables
+- BREAKING: [astarte_realm_management] AMQP Producer configuration is now mandatory using the `ASTARTE_EVENTS_PRODUCER_AMQP_*` environment variables
+- More accurate health checks for astarte services
+
+### Fixed
+- [astarte_data_updater_plant] Do not crash when transient triggers are installed on devices with outdated introspection
+- [astarte_data_updater_plant] Correctly encode values when sending properties to device on connection
+- [astarte_realm_management] Allow to delete long-disconnected devices
 
 ## [1.2.1] - Unreleased
 ### Fixed

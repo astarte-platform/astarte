@@ -22,7 +22,7 @@ defmodule Astarte.RealmManagement.Mixfile do
   def project do
     [
       app: :astarte_realm_management,
-      version: "1.3.0",
+      version: "1.3.0-rc.0",
       build_path: "_build",
       config_path: "config/config.exs",
       deps_path: "deps",

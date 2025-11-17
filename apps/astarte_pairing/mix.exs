@@ -23,7 +23,7 @@ defmodule Astarte.Pairing.Mixfile do
     [
       app: :astarte_pairing,
       elixir: "~> 1.15",
-      version: "1.3.0",
+      version: "1.3.0-rc.0",
       elixirc_paths: elixirc_paths(Mix.env()),
       start_permanent: Mix.env() == :prod,
       test_coverage: [tool: ExCoveralls],
