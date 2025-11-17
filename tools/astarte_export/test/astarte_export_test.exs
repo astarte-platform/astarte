@@ -94,34 +94,43 @@ defmodule Astarte.ExportTest do
     {:ok, state} = XMLGenerate.xml_write_start_tag(:standard_error, {"devices", []}, state)
     assert ["devices", "astarte"] == state
 
-    {:ok, conn} = FetchData.db_connection_identifier()
+    Xandra.Cluster.run(
+      :astarte_data_access_xandra,
+      fn conn ->
+        {:more_data, [device_data], _} = FetchData.fetch_device_data(conn, @realm, [])
 
-    {:more_data, [device_data], _} = FetchData.fetch_device_data(conn, @realm, [])
+        mapped_device_data = FetchData.process_device_data(device_data)
 
-    mapped_device_data = FetchData.process_device_data(device_data)
+        attributes = mapped_device_data.device
 
-    attributes = mapped_device_data.device
+        {:ok, state} =
+          XMLGenerate.xml_write_start_tag(:standard_error, {"device", attributes}, state)
 
-    {:ok, state} = XMLGenerate.xml_write_start_tag(:standard_error, {"device", attributes}, state)
-    assert ["device", "devices", "astarte"] == state
-    IO.inspect(state)
+        assert ["device", "devices", "astarte"] == state
+        IO.inspect(state)
 
-    {:ok, state} = Export.construct_device_xml_tags(mapped_device_data, :standard_error, state)
-    assert ["device", "devices", "astarte"] == state
+        {:ok, state} =
+          Export.construct_device_xml_tags(mapped_device_data, :standard_error, state)
 
-    {:ok, state} = Export.process_interfaces(conn, @realm, device_data, :standard_error, state)
-    assert ["device", "devices", "astarte"] == state
+        assert ["device", "devices", "astarte"] == state
 
-    {:ok, state} = XMLGenerate.xml_write_end_tag(:standard_error, state)
-    assert ["devices", "astarte"] == state
+        {:ok, state} =
+          Export.process_interfaces(conn, @realm, device_data, :standard_error, state)
 
-    {:ok, state} = XMLGenerate.xml_write_end_tag(:standard_error, state)
-    assert ["astarte"] == state
+        assert ["device", "devices", "astarte"] == state
 
-    {:ok, state} = XMLGenerate.xml_write_end_tag(:standard_error, state)
-    assert [] == state
+        {:ok, state} = XMLGenerate.xml_write_end_tag(:standard_error, state)
+        assert ["devices", "astarte"] == state
 
-    assert StringIO.flush(stdio) == @expected_xml
+        {:ok, state} = XMLGenerate.xml_write_end_tag(:standard_error, state)
+        assert ["astarte"] == state
+
+        {:ok, state} = XMLGenerate.xml_write_end_tag(:standard_error, state)
+        assert [] == state
+
+        assert StringIO.flush(stdio) == @expected_xml
+      end
+    )
   end
 
   def read_stdio_output_on_port() do

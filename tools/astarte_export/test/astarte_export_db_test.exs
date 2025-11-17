@@ -8,12 +8,17 @@ defmodule Astarte.Export.FetchDataDBTest do
   @device_id_expected "yKA3CMd07kWaDyj6aMP4Dg"
   @individual_datastream_interface "org.individualdatastreams.values"
   @major_version 0
+
   test "test to extract device from database using query_handler and verify device_id " do
-    {:ok, conn} = Queries.get_connection()
-    {:ok, result} = Queries.stream_devices(conn, @realm, [])
-    [device_record | _] = Enum.to_list(result)
-    device_id = Device.encode_device_id(device_record.device_id)
-    assert device_id == @device_id_expected
+    Xandra.Cluster.run(
+      :astarte_data_access_xandra,
+      fn conn ->
+        {:ok, result} = Queries.stream_devices(conn, @realm, [])
+        [device_record | _] = Enum.to_list(result)
+        device_id = Device.encode_device_id(device_record.device_id)
+        assert device_id == @device_id_expected
+      end
+    )
   end
 
   test "test to extract an interface information from interfaces tables for test realm" do
@@ -44,16 +49,19 @@ defmodule Astarte.Export.FetchDataDBTest do
       type: :datastream
     }
 
-    {:ok, conn} = Queries.get_connection()
-
-    assert {:ok, interface_details} ==
-             Queries.fetch_interface_descriptor(
-               conn,
-               @realm,
-               @individual_datastream_interface,
-               @major_version,
-               []
-             )
+    Xandra.Cluster.run(
+      :astarte_data_access_xandra,
+      fn conn ->
+        assert {:ok, interface_details} ==
+                 Queries.fetch_interface_descriptor(
+                   conn,
+                   @realm,
+                   @individual_datastream_interface,
+                   @major_version,
+                   []
+                 )
+      end
+    )
   end
 
   test " test to fetch interface mappings from endpoint table" do
@@ -154,9 +162,12 @@ defmodule Astarte.Export.FetchDataDBTest do
       }
     ]
 
-    {:ok, conn} = Queries.get_connection()
-
-    assert {:ok, interface_mappings} ==
-             Queries.fetch_interface_mappings(conn, @realm, interface_id, [])
+    Xandra.Cluster.run(
+      :astarte_data_access_xandra,
+      fn conn ->
+        assert {:ok, interface_mappings} ==
+                 Queries.fetch_interface_mappings(conn, @realm, interface_id, [])
+      end
+    )
   end
 end

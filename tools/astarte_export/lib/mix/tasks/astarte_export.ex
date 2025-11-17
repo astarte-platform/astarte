@@ -7,10 +7,10 @@ defmodule Mix.Tasks.Astarte.Export do
   @impl Mix.Task
   @shortdoc "export data from an existing Astarte realm"
   def run([realm, filename]) do
-    case Application.ensure_all_started(:astarte_export) do
-      {:ok, _} ->
-        Export.export_realm_data(realm, filename)
-
+    with {:ok, _} <- Application.ensure_all_started(:astarte_export),
+         :ok <- Astarte.Export.Cluster.ensure_registered() do
+      Export.export_realm_data(realm, filename)
+    else
       {:error, reason} ->
         Logger.error("Cannot start applications: #{inspect(reason)}")
     end
