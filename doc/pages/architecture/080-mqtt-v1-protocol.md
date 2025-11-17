@@ -88,7 +88,7 @@ This message in Astarte jargon is called *introspection* and it's performed by p
 Introspection payload is a simple plain text string, and it has the following format (in BNF like syntax):
 
 ```
-introspection ::= introspection_list
+introspection ::= "" | introspection_list
 introspection_list ::= introspection_entry ";" introspection_list | introspection_entry
 introspection_entry ::= interface_name ":" interface_major_version ":" interface_minor_version
 ```
@@ -98,6 +98,8 @@ The following example is a valid introspection payload:
 ```
 com.example.MyInterface:1:0;org.example.DraftInterface:0:3
 ```
+
+An empty string is the valid introspection payload for a device without interfaces.
 
 ## Empty Cache
 

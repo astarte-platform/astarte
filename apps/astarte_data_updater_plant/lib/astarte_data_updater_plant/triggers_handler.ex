@@ -481,6 +481,8 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandler do
     end
   end
 
+  defp introspection_string_to_introspection_proto_map!(""), do: %{}
+
   defp introspection_string_to_introspection_proto_map!(introspection_string) do
     # The string format is defined in Astarte MQTTv1,
     # so we want to crash here if something goes wrong
