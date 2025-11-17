@@ -32,6 +32,12 @@ defmodule Astarte.Pairing.Config do
     type: :binary,
     required: true
 
+  @envdoc "The astarte base domain, used for FDO authentication mechanism"
+  app_env :base_domain, :astarte_pairing, :base_domain,
+    os_env: "ASTARTE_BASE_DOMAIN",
+    type: :binary,
+    required: true
+
   @envdoc "URL to the running CFSSL instance for device certificate generation."
   app_env :cfssl_url, :astarte_pairing, :cfssl_url,
     os_env: "PAIRING_CFSSL_URL",

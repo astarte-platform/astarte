@@ -19,10 +19,11 @@
 defmodule Astarte.Pairing.FDO do
   alias Astarte.Pairing.FDO.Rendezvous
   alias Astarte.Pairing.FDO.Rendezvous.Core, as: RendezvousCore
+  alias Astarte.Pairing.Config
 
-  def claim_ownership_voucher(decoded_ownership_voucher, owner_private_key) do
+  def claim_ownership_voucher(realm_name, decoded_ownership_voucher, owner_private_key) do
     with {:ok, %{nonce: nonce, headers: headers}} <- hello() do
-      owner_sign(nonce, decoded_ownership_voucher, owner_private_key, headers)
+      owner_sign(realm_name, nonce, decoded_ownership_voucher, owner_private_key, headers)
     end
   end
 
@@ -40,10 +41,9 @@ defmodule Astarte.Pairing.FDO do
   Sends ownership voucher and waits for response from rendezvous server.
   Returns decoded TO0.AcceptOwner (message 23) with negotiated wait time.
   """
-  def owner_sign(nonce, ownership_voucher, owner_private_key, headers) do
-    # TODO: not sure about this string "entries" content, is it something we want parametrized?
+  def owner_sign(realm_name, nonce, ownership_voucher, owner_private_key, headers) do
     with {:ok, addr_entries} <-
-           RendezvousCore.get_rv_to2_addr_entries("test1", "0.0.0.0", "test2", "0.0.0.0") do
+           RendezvousCore.get_rv_to2_addr_entry("#{realm_name}.#{Config.base_domain!()}") do
       request_body =
         RendezvousCore.build_owner_sign_message(
           ownership_voucher,

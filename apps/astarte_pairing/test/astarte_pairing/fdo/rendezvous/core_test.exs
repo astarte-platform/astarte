@@ -66,18 +66,36 @@ defmodule Astarte.Pairing.FDO.Rendezvous.CoreTest do
     end
   end
 
-  describe "get_rv_to2_addr_entries/0" do
-    test "returns a list of entries with correct types" do
-      {:ok, entries} = Core.get_rv_to2_addr_entries("test1", "0.0.0.0", "test2", "0.0.0.0")
+  describe "get_rv_to2_addr_entry/2" do
+    test "returns a list of entries with correct types and one element" do
+      {:ok, entries} = Core.get_rv_to2_addr_entry("test1")
       assert is_list(entries)
-      assert length(entries) >= 1
+      assert length(entries) == 1
 
       Enum.each(entries, fn entry ->
         assert is_binary(entry)
         {:ok, [decoded], _rest} = CBOR.decode(entry)
         assert is_list(decoded)
         assert length(decoded) == 4
-        assert is_binary(Enum.at(decoded, 0))
+        assert is_nil(Enum.at(decoded, 0))
+        assert is_binary(Enum.at(decoded, 1))
+        assert is_integer(Enum.at(decoded, 2))
+        assert is_integer(Enum.at(decoded, 3))
+      end)
+    end
+
+    test "add an entry to a list of entries, returns with correct types and one more entry" do
+      {:ok, entries} = Core.get_rv_to2_addr_entry("test1")
+      {:ok, entries} = Core.get_rv_to2_addr_entry("test2", entries)
+      assert is_list(entries)
+      assert length(entries) == 2
+
+      Enum.each(entries, fn entry ->
+        assert is_binary(entry)
+        {:ok, [decoded], _rest} = CBOR.decode(entry)
+        assert is_list(decoded)
+        assert length(decoded) == 4
+        assert is_nil(Enum.at(decoded, 0))
         assert is_binary(Enum.at(decoded, 1))
         assert is_integer(Enum.at(decoded, 2))
         assert is_integer(Enum.at(decoded, 3))
@@ -160,7 +178,7 @@ defmodule Astarte.Pairing.FDO.Rendezvous.CoreTest do
       nonce = <<32, 54, 127, 243, 66, 48, 228, 115, 59, 186, 230, 246, 198, 179, 113, 78>>
       owner_key = sample_extracted_rsa_private_key()
       ownership_voucher = sample_voucher()
-      {:ok, addr_entries} = Core.get_rv_to2_addr_entries("test1", "0.0.0.0", "test2", "0.0.0.0")
+      {:ok, addr_entries} = Core.get_rv_to2_addr_entry("test1")
 
       %{
         nonce: nonce,

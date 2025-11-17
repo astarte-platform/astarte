@@ -46,7 +46,12 @@ defmodule Astarte.PairingWeb.OwnershipVoucherController do
              device_guid,
              private_key
            ),
-         :ok <- FDO.claim_ownership_voucher(decoded_ownership_voucher, extracted_private_key) do
+         :ok <-
+           FDO.claim_ownership_voucher(
+             realm_name,
+             decoded_ownership_voucher,
+             extracted_private_key
+           ) do
       send_resp(conn, 200, "")
     end
   end

@@ -24,11 +24,12 @@ defmodule Astarte.Pairing.FDO.Rendezvous.Core do
   @es256 -7
   @es256_identifier 1
   @cose_sign1_tag 18
+  @http 3
+  @load_balancer_port 4003
 
-  def get_rv_to2_addr_entries(first_entry, first_entry_ip, second_entry, second_entry_ip) do
-    rv_entry1 = CBORCore.build_rv_to2_addr_entry(first_entry_ip, first_entry, 8080, 3)
-    rv_entry2 = CBORCore.build_rv_to2_addr_entry(second_entry_ip, second_entry, 8080, 3)
-    {:ok, [rv_entry1, rv_entry2]}
+  def get_rv_to2_addr_entry(full_dns_name, pre_existing_entries \\ []) do
+    rv_entry = CBORCore.build_rv_to2_addr_entry(nil, full_dns_name, @load_balancer_port, @http)
+    {:ok, [rv_entry] ++ pre_existing_entries}
   end
 
   def build_owner_sign_message(decoded_ownership_voucher, owner_key, nonce, addr_entries) do

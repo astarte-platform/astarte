@@ -96,6 +96,7 @@ config :astarte_pairing,
        System.get_env("CFSSL_API_URL") || "http://localhost:8080"
 
 config :astarte_pairing, :astarte_instance_id, "test"
+config :astarte_pairing, :base_domain, "api.astarte.localhost"
 
 config :bcrypt_elixir,
   log_rounds: 4
