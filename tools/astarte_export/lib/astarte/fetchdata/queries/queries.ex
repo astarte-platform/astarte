@@ -3,20 +3,6 @@ defmodule Astarte.Export.FetchData.Queries do
   alias Astarte.Core.Mapping
   require Logger
 
-  def get_connection() do
-    host = System.get_env("CASSANDRA_DB_HOST")
-    port = System.get_env("CASSANDRA_DB_PORT")
-    Logger.info("Connecting to #{inspect(host)}:#{inspect(port)} cassandra database.")
-
-    with {:ok, xandra_conn} <- Xandra.start_link(nodes: ["#{host}:#{port}"], atom_keys: true) do
-      Logger.info("Connected to database.")
-      {:ok, xandra_conn}
-    else
-      {:error, reason} ->
-        Logger.error("DB connection setup failed: #{inspect(reason)}", tag: "db_connection_failed")
-    end
-  end
-
   def retrieve_interface_row(conn, realm, interface, major_version, options) do
     interface_statement = """
     SELECT name, major_version, minor_version, interface_id, type, ownership, aggregation,
@@ -124,8 +110,8 @@ defmodule Astarte.Export.FetchData.Queries do
         options
       ) do
     properties_statement = """
-    SELECT  #{data_type}, reception_timestamp from #{realm}.individual_properties 
-      where device_id=? AND interface_id=? AND endpoint_id=? AND path=? 
+    SELECT  #{data_type}, reception_timestamp from #{realm}.individual_properties
+      where device_id=? AND interface_id=? AND endpoint_id=? AND path=?
     """
 
     params = [{"uuid", device_id}, {"uuid", interface_id}, {"uuid", endpoint_id}, {"text", path}]

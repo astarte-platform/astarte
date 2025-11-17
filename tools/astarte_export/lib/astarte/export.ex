@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2019 Ispirata Srl
+# Copyright 2019 - 2025 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -40,20 +40,24 @@ defmodule Astarte.Export do
           :ok | {:error, :invalid_parameters} | {:error, any()}
 
   def export_realm_data(realm, file) do
-    file = Path.expand(file) |> Path.absname()
+    Xandra.Cluster.run(
+      :astarte_data_access_xandra,
+      fn conn ->
+        file = Path.expand(file) |> Path.absname()
 
-    with {:ok, fd} <- File.open(file, [:write]) do
-      generate_xml(realm, fd)
-    end
+        with {:ok, fd} <- File.open(file, [:write]) do
+          generate_xml(conn, realm, fd)
+        end
+      end
+    )
   end
 
-  defp generate_xml(realm, fd) do
+  defp generate_xml(conn, realm, fd) do
     Logger.info("Export started.", realm: realm, tag: "export_started")
 
     with {:ok, state} <- XMLGenerate.xml_write_default_header(fd),
          {:ok, state} <- XMLGenerate.xml_write_start_tag(fd, {"astarte", []}, state),
          {:ok, state} <- XMLGenerate.xml_write_start_tag(fd, {"devices", []}, state),
-         {:ok, conn} <- FetchData.db_connection_identifier(),
          {:ok, state} <- process_devices(conn, realm, fd, state),
          {:ok, state} <- XMLGenerate.xml_write_end_tag(fd, state),
          {:ok, _state} <- XMLGenerate.xml_write_end_tag(fd, state),

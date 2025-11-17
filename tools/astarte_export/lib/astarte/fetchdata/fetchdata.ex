@@ -3,14 +3,6 @@ defmodule Astarte.Export.FetchData do
   alias Astarte.Core.CQLUtils
   alias Astarte.Export.FetchData.Queries
 
-  def db_connection_identifier() do
-    with {:ok, conn_ref} <- Queries.get_connection() do
-      {:ok, conn_ref}
-    else
-      _ -> {:error, :connection_setup_failed}
-    end
-  end
-
   def fetch_device_data(conn, realm, opts) do
     with {:ok, result} <- Queries.stream_devices(conn, realm, opts),
          [_device_data | _] = result_list <- Enum.to_list(result) do

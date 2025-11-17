@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2019 Ispirata Srl
+# Copyright 2019 - 2025 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -17,6 +17,7 @@
 #
 
 defmodule Astarte.Import.CLI do
+  alias Astarte.Import.Cluster
   alias Astarte.Import.PopulateDB
   require Logger
 
@@ -24,6 +25,8 @@ defmodule Astarte.Import.CLI do
 
   def main(args) do
     with {:started, {:ok, _}} <- {:started, Application.ensure_all_started(:astarte_import)},
+         {:cluster_registry, :ok} <-
+           {:cluster_registry, Cluster.ensure_registered()},
          [realm, file_name] <- args,
          true <- String.valid?(realm),
          true <- String.valid?(file_name),
@@ -57,6 +60,9 @@ defmodule Astarte.Import.CLI do
           :ok
       end
     else
+      {:cluster_registry, {:error, reason}} ->
+        Logger.error("Cannot register Xandra cluster: #{inspect(reason)}")
+
       {:started, {:error, reason}} ->
         Logger.error("Cannot ensure all applications startup: #{inspect(reason)}")
 

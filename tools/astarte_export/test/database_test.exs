@@ -317,67 +317,70 @@ defmodule Astarte.DatabaseTestdata do
   """
 
   def initialize_database() do
-    {:ok, conn} = Queries.get_connection()
+    Xandra.Cluster.run(
+      :astarte_data_access_xandra,
+      fn conn ->
+        Xandra.execute(conn, @drop_keyspace, [], [])
+        :timer.sleep(3000)
 
-    Xandra.execute(conn, @drop_keyspace, [], [])
-    :timer.sleep(3000)
+        {:ok,
+         %Xandra.SchemaChange{
+           effect: "CREATED",
+           options: %{keyspace: "test"},
+           target: "KEYSPACE",
+           tracing_id: nil
+         }} = Xandra.execute(conn, @create_test, [], [])
 
-    {:ok,
-     %Xandra.SchemaChange{
-       effect: "CREATED",
-       options: %{keyspace: "test"},
-       target: "KEYSPACE",
-       tracing_id: nil
-     }} = Xandra.execute(conn, @create_test, [], [])
+        :timer.sleep(2000)
 
-    :timer.sleep(2000)
+        create_tables = [
+          @create_kv_store,
+          @create_names_table,
+          @create_groups_table,
+          @create_devices_table,
+          @create_interfaces_table,
+          @create_endpoints_table,
+          @create_individual_properties_table,
+          @create_individual_datastreams_table,
+          @create_objects_table
+        ]
 
-    create_tables = [
-      @create_kv_store,
-      @create_names_table,
-      @create_groups_table,
-      @create_devices_table,
-      @create_interfaces_table,
-      @create_endpoints_table,
-      @create_individual_properties_table,
-      @create_individual_datastreams_table,
-      @create_objects_table
-    ]
+        Enum.each(
+          create_tables,
+          fn table_statement ->
+            {:ok, %Xandra.SchemaChange{}} = Xandra.execute(conn, table_statement, [], [])
+          end
+        )
 
-    Enum.each(
-      create_tables,
-      fn table_statement ->
-        {:ok, %Xandra.SchemaChange{}} = Xandra.execute(conn, table_statement, [], [])
-      end
-    )
+        :timer.sleep(3000)
 
-    :timer.sleep(3000)
+        Enum.each(
+          @devices,
+          fn statement ->
+            {:ok, _} = Xandra.execute(conn, statement, [], [])
+          end
+        )
 
-    Enum.each(
-      @devices,
-      fn statement ->
-        {:ok, _} = Xandra.execute(conn, statement, [], [])
-      end
-    )
+        Enum.each(
+          @interfaces,
+          fn interface ->
+            {:ok, _} = Xandra.execute(conn, interface, [], [])
+          end
+        )
 
-    Enum.each(
-      @interfaces,
-      fn interface ->
-        {:ok, _} = Xandra.execute(conn, interface, [], [])
-      end
-    )
+        Enum.each(
+          @endpoints,
+          fn statement ->
+            {:ok, _} = Xandra.execute(conn, statement, [], [])
+          end
+        )
 
-    Enum.each(
-      @endpoints,
-      fn statement ->
-        {:ok, _} = Xandra.execute(conn, statement, [], [])
-      end
-    )
-
-    Enum.each(
-      @values,
-      fn statement ->
-        {:ok, _} = Xandra.execute(conn, statement, [], [])
+        Enum.each(
+          @values,
+          fn statement ->
+            {:ok, _} = Xandra.execute(conn, statement, [], [])
+          end
+        )
       end
     )
   end
