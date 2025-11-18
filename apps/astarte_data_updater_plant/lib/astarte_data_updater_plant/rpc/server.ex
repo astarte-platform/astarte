@@ -75,6 +75,18 @@ defmodule Astarte.DataUpdaterPlant.RPC.Server do
   end
 
   @impl GenServer
+  def handle_cast({:install_trigger, trigger_data}, state) do
+    {realm_name, tagged_simple_trigger, target, policy} = trigger_data
+    result = Core.install_trigger(realm_name, tagged_simple_trigger, target, policy)
+
+    with {:error, error} <- result do
+      _ = Logger.warning("Error while installing a new trigger: #{inspect(error)}")
+    end
+
+    {:noreply, state}
+  end
+
+  @impl GenServer
   def handle_info(
         {:EXIT, _pid, {:name_conflict, {_name, _value}, _registry, _winning_pid}},
         state

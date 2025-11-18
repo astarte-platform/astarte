@@ -21,6 +21,7 @@
 defmodule Astarte.DataUpdaterPlant.RPC.CoreTest do
   @moduledoc false
   alias Astarte.DataUpdaterPlant.DataUpdater
+  alias Astarte.DataUpdaterPlant.RPC.Replica
   alias Astarte.DataUpdaterPlant.RPC.Server.Core
 
   use Astarte.Cases.Data, async: true
@@ -85,6 +86,124 @@ defmodule Astarte.DataUpdaterPlant.RPC.CoreTest do
                  device_id: device.encoded_id,
                  trigger_id: trigger_id
                })
+    end
+  end
+
+  describe "install_trigger/4" do
+    setup do
+      test_process = self()
+
+      Replica
+      |> Mimic.stub(:send_all_replicas, fn _message ->
+        send(test_process, :sent_all_replicas)
+        :ok
+      end)
+
+      :ok
+    end
+
+    test "sends an install trigger message to all the replicas for device triggers", context do
+      %{
+        realm_name: realm_name
+      } = context
+
+      tagged_simple_trigger = %{
+        simple_trigger_container: %{
+          simple_trigger: {:device_trigger, nil}
+        }
+      }
+
+      Core.install_trigger(realm_name, tagged_simple_trigger, nil, nil)
+
+      assert_receive :sent_all_replicas
+    end
+
+    test "sends an install trigger message to all the replicas for all interface data triggers",
+         context do
+      %{
+        realm_name: realm_name
+      } = context
+
+      tagged_simple_trigger = %{
+        simple_trigger_container: %{
+          simple_trigger: {:data_trigger, %{interface_name: "*"}}
+        }
+      }
+
+      Core.install_trigger(realm_name, tagged_simple_trigger, nil, nil)
+
+      assert_receive :sent_all_replicas
+    end
+
+    test "sends an install trigger message to all the replicas for all paths data triggers",
+         context do
+      %{
+        realm_name: realm_name
+      } = context
+
+      tagged_simple_trigger = %{
+        simple_trigger_container: %{
+          simple_trigger: {:data_trigger, %{match_path: "/*"}}
+        }
+      }
+
+      Core.install_trigger(realm_name, tagged_simple_trigger, nil, nil)
+
+      assert_receive :sent_all_replicas
+    end
+
+    test "sends an install trigger message to all the replicas for path specific data triggers",
+         context do
+      %{
+        realm_name: realm_name,
+        fixed_endpoint_interface: interface
+      } = context
+
+      interface_specific_trigger = %{
+        interface_name: interface.name,
+        interface_major: interface.major_version,
+        match_path: "/value"
+      }
+
+      tagged_simple_trigger = %{
+        simple_trigger_container: %{
+          simple_trigger: {:data_trigger, interface_specific_trigger}
+        }
+      }
+
+      Core.install_trigger(realm_name, tagged_simple_trigger, nil, nil)
+
+      assert_receive :sent_all_replicas
+    end
+
+    test "does nothing if the interfaces can't be found", context do
+      %{
+        realm_name: realm_name
+      } = context
+
+      # an invalid interface is not installed
+      invalid_interface_data_trigger =
+        %{
+          interface_name: ".",
+          interface_major: 1,
+          match_path: "/value"
+        }
+
+      tagged_simple_trigger_with_interface_not_installed = %{
+        simple_trigger_container: %{
+          simple_trigger: {:data_trigger, invalid_interface_data_trigger}
+        }
+      }
+
+      Mimic.reject(&Replica.send_all_replicas/1)
+
+      assert {:error, :interface_not_found} ==
+               Core.install_trigger(
+                 realm_name,
+                 tagged_simple_trigger_with_interface_not_installed,
+                 nil,
+                 nil
+               )
     end
   end
 

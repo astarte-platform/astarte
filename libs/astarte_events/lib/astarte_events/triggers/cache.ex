@@ -275,7 +275,7 @@ defmodule Astarte.Events.Triggers.Cache do
       Queries.query_simple_triggers!(realm_name, object_id, object_type)
       |> Enum.map(&Core.deserialize_simple_trigger/1)
 
-    data = %{data | data_triggers: %{}}
+    data = Map.put(data, :data_triggers, %{})
 
     # SAFETY: triggers are fetched based on the interfaces inside data, so we
     #   are sure this always returns `{:ok, data}`
@@ -290,6 +290,30 @@ defmodule Astarte.Events.Triggers.Cache do
 
       {event_key, data_triggers_with_policy}
     end)
+  end
+
+  def install_trigger(realm_name, event_key, object, trigger_type, trigger, target, policy, data) do
+    {object_type, object_id} = object
+    event_target_id = event_target_id(realm_name, object_id, object_type)
+
+    update_function =
+      &load_event_trigger(
+        realm_name,
+        object,
+        event_key,
+        trigger_type,
+        target,
+        policy,
+        trigger,
+        &1,
+        data
+      )
+
+    ConCache.update(
+      @event_targets,
+      event_target_id,
+      update_function
+    )
   end
 
   def install_volatile_trigger(
@@ -321,6 +345,51 @@ defmodule Astarte.Events.Triggers.Cache do
     end)
 
     :ok
+  end
+
+  defp load_event_trigger(
+         realm_name,
+         object,
+         _event_key,
+         trigger_type,
+         _target,
+         _policy,
+         _trigger,
+         nil = _event_map,
+         data
+       ) do
+    {object_type, object_id} = object
+    # If we do not have a current trigger state, we have to read from the database anyway to avoid
+    # dirty states.
+    # The new trigger is stored on the database before the notification is sent, so we don't need
+    # to do anything else
+    result =
+      case trigger_type do
+        :device_trigger -> fetch_device_triggers(realm_name, object_id, object_type)
+        :data_trigger -> fetch_data_triggers(realm_name, object_id, object_type, data)
+      end
+
+    {:ok, result}
+  end
+
+  defp load_event_trigger(
+         realm_name,
+         _object,
+         event_key,
+         trigger_type,
+         target,
+         policy,
+         trigger,
+         event_map,
+         _data
+       ) do
+    events = Map.get(event_map, event_key, [])
+
+    new_events =
+      Core.load_trigger_with_policy(realm_name, trigger_type, target, policy, trigger, events)
+
+    result = Map.put(event_map, event_key, new_events)
+    {:ok, result}
   end
 
   defp load_trigger(realm_name, trigger_type, target, policy, trigger, events) do

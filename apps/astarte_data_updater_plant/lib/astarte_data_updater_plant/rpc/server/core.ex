@@ -23,7 +23,17 @@ defmodule Astarte.DataUpdaterPlant.RPC.Server.Core do
   The core logic handling the DataUpdaterPlant.RPC.Server
   """
   require Logger
+
+  alias Astarte.DataAccess.Interface
   alias Astarte.DataUpdaterPlant.DataUpdater
+  alias Astarte.DataUpdaterPlant.RPC.Replica
+
+  def install_trigger(realm_name, tagged_simple_trigger, target, policy) do
+    with {:ok, data} <- find_trigger_data(realm_name, tagged_simple_trigger) do
+      message = {:install_trigger, {realm_name, tagged_simple_trigger, target, policy, data}}
+      Replica.send_all_replicas(message)
+    end
+  end
 
   def install_volatile_trigger(volatile_trigger) do
     %{
@@ -65,5 +75,36 @@ defmodule Astarte.DataUpdaterPlant.RPC.Server.Core do
         )
       end
     )
+  end
+
+  defp find_trigger_data(realm_name, tagged_simple_trigger) do
+    case tagged_simple_trigger.simple_trigger_container.simple_trigger do
+      {:device_trigger, _} ->
+        {:ok, %{}}
+
+      {:data_trigger, %{interface_name: "*"}} ->
+        {:ok, %{}}
+
+      {:data_trigger, %{match_path: "/*"}} ->
+        {:ok, %{}}
+
+      {:data_trigger, %{interface_name: name, interface_major: major}} ->
+        load_interface(realm_name, name, major)
+    end
+  end
+
+  @spec load_interface(String.t(), String.t(), non_neg_integer()) ::
+          {:ok, %{interface_ids_to_name: map(), interfaces: map()}}
+          | {:error, :interface_not_found}
+  defp load_interface(realm_name, interface_name, interface_major) do
+    with {:ok, descriptor} <-
+           Interface.fetch_interface_descriptor(realm_name, interface_name, interface_major) do
+      result = %{
+        interface_ids_to_name: %{descriptor.interface_id => descriptor.name},
+        interfaces: %{descriptor.name => descriptor}
+      }
+
+      {:ok, result}
+    end
   end
 end

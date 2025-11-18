@@ -658,14 +658,15 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
       |> SimpleTriggerContainer.encode()
 
     non_matching_volatile_trigger_parent_id = :crypto.strong_rand_bytes(16)
-    non_matching_volatile_trigger_id = :crypto.strong_rand_bytes(16)
+    non_matching_volatile_trigger_id_1 = :crypto.strong_rand_bytes(16)
+    non_matching_volatile_trigger_id_2 = :crypto.strong_rand_bytes(16)
 
     # Install the non-matching trigger twice to check that this installs 2 trigger_targets
     assert DataUpdater.handle_install_volatile_trigger(
              realm,
              encoded_device_id,
              non_matching_volatile_trigger_parent_id,
-             non_matching_volatile_trigger_id,
+             non_matching_volatile_trigger_id_1,
              non_matching_simple_trigger_data,
              trigger_target_data
            ) == :ok
@@ -674,7 +675,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
              realm,
              encoded_device_id,
              non_matching_volatile_trigger_parent_id,
-             non_matching_volatile_trigger_id,
+             non_matching_volatile_trigger_id_2,
              non_matching_simple_trigger_data,
              trigger_target_data
            ) == :ok

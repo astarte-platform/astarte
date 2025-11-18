@@ -26,5 +26,10 @@ defmodule Astarte.RealmManagement.RPC.DataUpdaterPlant.Client do
     |> GenServer.call({:start_device_deletion, {realm_name, encoded_device_id}})
   end
 
+  def install_trigger(realm_name, tagged_simple_trigger, target, policy) do
+    server_via_tuple()
+    |> GenServer.cast({:install_trigger, {realm_name, tagged_simple_trigger, target, policy}})
+  end
+
   defp server_via_tuple(), do: {:via, Horde.Registry, {Registry.DataUpdaterRPC, :server}}
 end

@@ -151,7 +151,7 @@ defmodule Astarte.Events.Triggers.Core do
     data_triggers = state.data_triggers
 
     with {:ok, data_trigger_key, new_data_trigger} <-
-           get_trigger_with_event_key(state, :data_trigger, proto_buf_data_trigger) do
+           get_core_trigger_with_event_key(state, :data_trigger, proto_buf_data_trigger) do
       existing_triggers_for_key = Map.get(data_triggers, data_trigger_key, [])
 
       new_data_triggers_for_key =
@@ -235,7 +235,7 @@ defmodule Astarte.Events.Triggers.Core do
           [DataTriggerWithTargets.t()],
           AMQPTriggerTarget.t(),
           policy_name(),
-          DataTrigger.t()
+          DataTriggerWithTargets.t()
         ) :: [DataTriggerWithTargets.t()]
   def load_data_trigger_targets_with_policy(
         realm_name,
@@ -247,10 +247,10 @@ defmodule Astarte.Events.Triggers.Core do
     # Extract all the targets belonging to the (eventual) existing congruent trigger
     congruent_targets =
       existing_triggers_for_key
-      |> Enum.filter(&DataTrigger.are_congruent?(&1, new_data_trigger))
+      |> Enum.filter(&DataTriggerWithTargets.are_congruent?(&1, new_data_trigger))
       |> Enum.flat_map(fn congruent_trigger -> congruent_trigger.trigger_targets end)
 
-    new_targets = [{trigger_target, policy} | congruent_targets]
+    new_targets = [{trigger_target, policy} | congruent_targets] |> Enum.uniq()
     new_data_trigger_with_targets = %{new_data_trigger | trigger_targets: new_targets}
 
     # Register the new target
@@ -261,7 +261,7 @@ defmodule Astarte.Events.Triggers.Core do
       new_data_trigger_with_targets
       | Enum.reject(
           existing_triggers_for_key,
-          &DataTrigger.are_congruent?(&1, new_data_trigger_with_targets)
+          &DataTriggerWithTargets.are_congruent?(&1, new_data_trigger_with_targets)
         )
     ]
   end
@@ -280,15 +280,15 @@ defmodule Astarte.Events.Triggers.Core do
       ) do
     # Register the new target
     :ok = Core.register_target(realm_name, trigger_target)
-    [{trigger_target, policy} | existing_trigger_targets]
+    [{trigger_target, policy} | existing_trigger_targets] |> Enum.uniq()
   end
 
-  def get_trigger_with_event_key(_data, :device_trigger, trigger) do
+  defp get_core_trigger_with_event_key(_data, :device_trigger, trigger) do
     trigger_key = device_trigger_to_key(trigger)
     {:ok, trigger_key, trigger}
   end
 
-  def get_trigger_with_event_key(data, :data_trigger, trigger) do
+  defp get_core_trigger_with_event_key(data, :data_trigger, trigger) do
     new_data_trigger = Utils.simple_trigger_to_data_trigger(trigger)
     event_type = pretty_data_trigger_type(trigger.data_trigger_type)
 
@@ -297,7 +297,23 @@ defmodule Astarte.Events.Triggers.Core do
     end
   end
 
-  @spec fetch_endpoint(map(), DataTrigger.path_match_tokens(), DataTrigger.interface_id()) ::
+  def get_trigger_with_event_key(data, :device_trigger, trigger),
+    do: get_core_trigger_with_event_key(data, :device_trigger, trigger)
+
+  def get_trigger_with_event_key(data, :data_trigger, trigger) do
+    with {:ok, key, data_trigger} <- get_core_trigger_with_event_key(data, :data_trigger, trigger) do
+      policy_name_map = Map.get(data, :trigger_id_to_policy_name, %{})
+      data_trigger = DataTriggerWithTargets.from_core(data_trigger, policy_name_map)
+
+      {:ok, key, data_trigger}
+    end
+  end
+
+  @spec fetch_endpoint(
+          fetch_triggers_data(),
+          endpoint(),
+          interface()
+        ) ::
           {:ok, endpoint()}
           | {:error, :interface_not_found | :invalid_match_path}
   defp fetch_endpoint(state, path_match_tokens, interface_id) do
@@ -498,7 +514,7 @@ defmodule Astarte.Events.Triggers.Core do
           :data_trigger,
           AMQPTriggerTarget.t(),
           policy_name(),
-          DataTrigger.t(),
+          DataTriggerWithTargets.t(),
           [DataTriggerWithTargets.t()]
         ) :: [DataTriggerWithTargets.t()]
   @spec load_trigger_with_policy(

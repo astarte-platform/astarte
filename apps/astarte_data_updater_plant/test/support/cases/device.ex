@@ -213,6 +213,8 @@ defmodule Astarte.Cases.Device do
     server_property_with_all_endpoint_types =
       all_endpoint_types(:server, :properties) |> Enum.at(0)
 
+    fixed_endpoint_interface = fixed_endpoint_interface() |> Enum.at(0)
+
     other_interfaces = list_of(InterfaceGenerator.interface(), min_length: 1) |> Enum.at(0)
 
     all_interfaces =
@@ -224,12 +226,14 @@ defmodule Astarte.Cases.Device do
         properties_device,
         properties_server,
         [server_property_with_all_endpoint_types],
+        [fixed_endpoint_interface],
         other_interfaces
       ]
       |> Enum.concat()
 
     %{
       interfaces: all_interfaces,
+      fixed_endpoint_interface: fixed_endpoint_interface,
       server_property_with_all_endpoint_types: server_property_with_all_endpoint_types
     }
   end
@@ -248,6 +252,16 @@ defmodule Astarte.Cases.Device do
 
   defp properties(ownership) do
     InterfaceGenerator.interface(ownership: ownership, type: :properties)
+  end
+
+  defp fixed_endpoint_interface do
+    InterfaceGenerator.interface(ownership: :device, type: :datastream, aggregation: :individual)
+    |> map(fn interface ->
+      mapping = Enum.at(interface.mappings, 0)
+      mapping = %{mapping | endpoint: "/value", value_type: :integer}
+
+      %{interface | mappings: [mapping]}
+    end)
   end
 
   defp all_endpoint_types(ownership, type) do

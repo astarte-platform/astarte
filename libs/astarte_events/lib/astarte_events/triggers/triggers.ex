@@ -17,12 +17,38 @@
 #
 
 defmodule Astarte.Events.Triggers do
+  alias Astarte.Core.Triggers.SimpleTriggersProtobuf.TaggedSimpleTrigger
   alias Astarte.Events.Triggers.Cache
   alias Astarte.Events.Triggers.Core
   alias Astarte.Events.Triggers.Queries
 
   defdelegate fetch_triggers(realm_name, deserialized_simple_triggers), to: Core
   defdelegate fetch_triggers(realm_name, deserialized_simple_triggers, data), to: Core
+
+  def install_trigger(realm_name, tagged_simple_trigger, target, policy, data \\ %{}) do
+    %TaggedSimpleTrigger{
+      object_type: object_type,
+      object_id: object_id,
+      simple_trigger_container: simple_trigger_container
+    } = tagged_simple_trigger
+
+    {trigger_type, trigger} = simple_trigger_container.simple_trigger
+    object = {object_type, object_id}
+
+    with {:ok, event_key, new_trigger} <-
+           Core.get_trigger_with_event_key(data, trigger_type, trigger) do
+      Cache.install_trigger(
+        realm_name,
+        event_key,
+        object,
+        trigger_type,
+        new_trigger,
+        target,
+        policy,
+        data
+      )
+    end
+  end
 
   @spec install_volatile_trigger(
           String.t(),

@@ -19,15 +19,37 @@
 defmodule Astarte.Cases.Trigger do
   use ExUnit.CaseTemplate
 
+  alias Astarte.Core.Generators.Realm, as: RealmGenerator
+  alias Astarte.Core.Generators.Triggers.Policy, as: PolicyGenerator
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.AMQPTriggerTarget
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.DataTrigger
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.DeviceTrigger
+  alias Astarte.Core.Triggers.SimpleTriggersProtobuf.TaggedSimpleTrigger
+  alias Astarte.DataUpdaterPlant.DataUpdater.State
   alias Astarte.Events.Triggers.Cache
 
   using do
     quote do
       import Astarte.Cases.Trigger
     end
+  end
+
+  setup_all context do
+    realm_name = Map.get(context, :realm_name, RealmGenerator.realm_name() |> Enum.at(0))
+    tagged_simple_trigger = %TaggedSimpleTrigger{}
+    trigger_target = %AMQPTriggerTarget{}
+    policy = PolicyGenerator.policy() |> Enum.at(0) |> Map.fetch!(:name)
+    data = %State{} |> Map.from_struct()
+    install_trigger_message = {realm_name, tagged_simple_trigger, trigger_target, policy, data}
+
+    %{
+      data: data,
+      install_trigger_message: install_trigger_message,
+      policy: policy,
+      realm_name: realm_name,
+      tagged_simple_trigger: tagged_simple_trigger,
+      trigger_target: trigger_target
+    }
   end
 
   setup %{realm_name: realm_name} do

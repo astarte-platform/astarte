@@ -22,6 +22,7 @@ defmodule Astarte.Events.Triggers.DataTrigger do
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.AMQPTriggerTarget
   alias __MODULE__, as: DataTriggerWithPolicy
 
+  @type core_without_targets() :: %DataTrigger{trigger_targets: nil}
   @type policy_name() :: String.t() | nil
   @type target_and_policy() :: {AMQPTriggerTarget.t(), policy_name()}
   @type trigger_id_to_policy_name() :: %{Astarte.DataAccess.UUID.t() => String.t()}
@@ -38,6 +39,7 @@ defmodule Astarte.Events.Triggers.DataTrigger do
   defdelegate are_congruent?(trigger_a, trigger_b), to: DataTrigger
 
   @spec from_core(DataTrigger.t(), trigger_id_to_policy_name) :: t()
+  @spec from_core(core_without_targets(), trigger_id_to_policy_name) :: t()
   def from_core(data_trigger, trigger_id_to_policy_name) do
     %DataTrigger{
       interface_id: interface_id,
@@ -48,7 +50,7 @@ defmodule Astarte.Events.Triggers.DataTrigger do
     } = data_trigger
 
     targets_with_policies =
-      for target <- trigger_targets do
+      for target <- List.wrap(trigger_targets) do
         policy = Map.get(trigger_id_to_policy_name, target.parent_trigger_id)
         {target, policy}
       end

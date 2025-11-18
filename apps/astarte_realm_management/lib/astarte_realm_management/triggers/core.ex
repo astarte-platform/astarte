@@ -17,15 +17,16 @@
 #
 
 defmodule Astarte.RealmManagement.Triggers.Core do
-  alias Astarte.RealmManagement.Interfaces
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.AMQPTriggerTarget
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.DataTrigger
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.SimpleTriggerContainer
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.TaggedSimpleTrigger
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.TriggerTargetContainer
   alias Astarte.Core.Triggers.Trigger, as: CoreTrigger
-  alias Astarte.RealmManagement.Triggers.Trigger
+  alias Astarte.RealmManagement.Interfaces
+  alias Astarte.RealmManagement.RPC.DataUpdaterPlant.Client
   alias Astarte.RealmManagement.Triggers.Queries
+  alias Astarte.RealmManagement.Triggers.Trigger
 
   require Logger
 
@@ -89,6 +90,13 @@ defmodule Astarte.RealmManagement.Triggers.Core do
            tag: "install_trigger_started"
          ),
          :ok <- Queries.install_trigger(realm_name, trigger) do
+      notify_trigger_installation(
+        realm_name,
+        simple_trigger_maps,
+        trigger_target,
+        trigger_policy_name
+      )
+
       {:ok, trigger}
     end
   end
@@ -116,6 +124,29 @@ defmodule Astarte.RealmManagement.Triggers.Core do
       {:error, :trigger_not_found} -> :ok
       {:ok, _} -> {:error, :already_installed_trigger}
     end
+  end
+
+  defp notify_trigger_installation(realm_name, simple_trigger_maps, trigger_target, policy) do
+    for simple_trigger_map <- simple_trigger_maps do
+      %{
+        object_id: object_id,
+        object_type: object_type,
+        simple_trigger: simple_trigger,
+        simple_trigger_uuid: simple_trigger_uuid
+      } = simple_trigger_map
+
+      trigger = %TaggedSimpleTrigger{
+        object_id: object_id,
+        object_type: object_type,
+        simple_trigger_container: simple_trigger
+      }
+
+      target = %{trigger_target | simple_trigger_id: simple_trigger_uuid}
+
+      Client.install_trigger(realm_name, trigger, target, policy)
+    end
+
+    :ok
   end
 
   defp target_from_action(
