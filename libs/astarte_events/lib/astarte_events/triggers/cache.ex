@@ -230,16 +230,19 @@ defmodule Astarte.Events.Triggers.Cache do
   end
 
   defp fetch_device_event(realm_name, event_key, object_id, object_type) do
-    ConCache.get_or_store(@event_targets, {realm_name, object_id, object_type}, fn ->
-      fetch_device_triggers(realm_name, object_id, object_type)
-    end)
-    |> Map.get(event_key, [])
+    store_function = fn -> fetch_device_triggers(realm_name, object_id, object_type) end
+    fetch_event(realm_name, event_key, object_id, object_type, store_function)
   end
 
   defp fetch_data_event(realm_name, event_key, object_id, object_type, data) do
-    ConCache.get_or_store(@event_targets, {realm_name, object_id, object_type}, fn ->
-      fetch_data_triggers(realm_name, object_id, object_type, data)
-    end)
+    store_function = fn -> fetch_data_triggers(realm_name, object_id, object_type, data) end
+    fetch_event(realm_name, event_key, object_id, object_type, store_function)
+  end
+
+  defp fetch_event(realm_name, event_key, object_id, object_type, store_function) do
+    target_id = event_target_id(realm_name, object_id, object_type)
+
+    ConCache.get_or_store(@event_targets, target_id, store_function)
     |> Map.get(event_key, [])
   end
 
@@ -412,6 +415,9 @@ defmodule Astarte.Events.Triggers.Cache do
 
   defp volatile_events_id(realm_name, subject, event_key), do: {realm_name, subject, event_key}
   defp trigger_cache_id(realm_name, trigger_id), do: {realm_name, trigger_id}
+
+  defp event_target_id(realm_name, object_id, object_type),
+    do: {realm_name, object_id, object_type}
 
   def event_targets_cache_spec do
     con_cache_child_spec(@event_targets)
