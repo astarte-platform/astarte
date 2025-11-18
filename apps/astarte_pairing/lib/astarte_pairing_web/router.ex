@@ -33,6 +33,10 @@ defmodule Astarte.PairingWeb.Router do
     plug Astarte.PairingWeb.Plug.LogHwId
   end
 
+  pipeline :fdo do
+    plug Astarte.PairingWeb.Plug.VerifyFDO
+  end
+
   scope "/v1/:realm_name", Astarte.PairingWeb do
     pipe_through :realm_api
 
@@ -41,6 +45,12 @@ defmodule Astarte.PairingWeb.Router do
     scope "/ownership" do
       pipe_through :agent_api
       post "/", OwnershipVoucherController, :create
+    end
+
+    scope "/fdo/101" do
+      pipe_through :fdo
+
+      post "/msg/60", FDOOnboardingController, :hello_device
     end
 
     scope "/agent" do
