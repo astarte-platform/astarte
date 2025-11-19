@@ -18,11 +18,17 @@
 
 defmodule Astarte.PairingWeb.Router do
   use Astarte.PairingWeb, :router
+  alias Astarte.PairingWeb.FDOOnboardingController
 
   pipeline :realm_api do
     plug :accepts, ["json"]
     plug Astarte.PairingWeb.Plug.LogRealm
     plug Astarte.PairingWeb.Plug.VerifyRealmExists
+  end
+
+  # FIXME: this will generate a conflict, please ignore this version and keep what's been already merged
+  pipeline :fdo_cbor do
+    plug Astarte.PairingWeb.Plug.VerifyCbor
   end
 
   pipeline :agent_api do
@@ -51,6 +57,7 @@ defmodule Astarte.PairingWeb.Router do
       pipe_through :fdo
 
       post "/msg/60", FDOOnboardingController, :hello_device
+      post "/msg/62", FDOOnboardingController, :ov_next_entry
     end
 
     scope "/agent" do

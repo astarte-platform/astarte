@@ -83,4 +83,16 @@ defmodule Astarte.Pairing.FDO.OwnershipVoucher.Core do
       :error -> {:error, :invalid_certificate}
     end
   end
+
+  def get_ov_entry(ownership_voucher, entry_num) do
+    ov_entries = Enum.at(ownership_voucher, 3)
+
+    if entry_num < length(ov_entries) && entry_num >= 0 do
+      entry = Enum.at(ov_entries, entry_num)
+      response = [entry_num, entry]
+      {:ok, CBOR.encode(response)}
+    else
+      {:error, "invalid_entry_number"}
+    end
+  end
 end
