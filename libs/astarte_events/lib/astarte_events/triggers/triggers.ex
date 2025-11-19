@@ -34,7 +34,7 @@ defmodule Astarte.Events.Triggers do
 
     with {:ok, event_key, new_trigger} <-
            Core.get_trigger_with_event_key(data, trigger_type, trigger),
-         {:ok, subject} <- Cache.trigger_subject(trigger_type, trigger) do
+         {:ok, subject} <- Core.trigger_subject(trigger_type, trigger) do
       policy = Core.get_trigger_policy(realm_name, target)
 
       Cache.install_volatile_trigger(

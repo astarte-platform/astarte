@@ -17,10 +17,6 @@
 #
 
 defmodule Astarte.Events.Triggers.Cache do
-  alias Astarte.Core.Device
-  alias Astarte.Core.CQLUtils
-  alias Astarte.Core.Triggers.SimpleTriggersProtobuf.DeviceTrigger, as: ProtobufDeviceTrigger
-  alias Astarte.Core.Triggers.SimpleTriggersProtobuf.Utils
   alias Astarte.Events.Triggers.Core
   alias Astarte.Events.Triggers.DataTrigger
   alias Astarte.Events.Triggers.Queries
@@ -30,18 +26,6 @@ defmodule Astarte.Events.Triggers.Cache do
   @trigger_id :trigger_id
 
   @trigger_lifetime_ttl :timer.minutes(1)
-
-  @any_device_object_id Utils.any_device_object_id()
-  @any_device_object_type Utils.object_type_to_int!(:any_device)
-  @device_object_type Utils.object_type_to_int!(:device)
-  @group_object_type Utils.object_type_to_int!(:group)
-  @any_interface_object_id Utils.any_interface_object_id()
-  @any_interface_object_type Utils.object_type_to_int!(:any_interface)
-  @interface_object_type Utils.object_type_to_int!(:interface)
-  @device_and_any_interface_object_type Utils.object_type_to_int!(:device_and_any_interface)
-  @device_and_interface_object_type Utils.object_type_to_int!(:device_and_interface)
-  @group_and_any_interface_object_type Utils.object_type_to_int!(:group_and_any_interface)
-  @group_and_interface_object_type Utils.object_type_to_int!(:group_and_interface)
 
   @doc """
     Returns the list of targets for a device event.
@@ -153,46 +137,39 @@ defmodule Astarte.Events.Triggers.Cache do
   defp any_device_cache(realm_name, event_key) do
     subject = :any_device
 
-    device_cache(realm_name, event_key, subject, @any_device_object_id, @any_device_object_type)
+    device_trigger_cache(realm_name, event_key, subject)
   end
 
   defp device_cache(realm_name, event_key, device_id) do
     subject = {:device_id, device_id}
 
-    device_cache(realm_name, event_key, subject, device_id, @device_object_type)
+    device_trigger_cache(realm_name, event_key, subject)
   end
 
   defp group_cache(realm_name, event_key, group_name) do
-    group_id = Utils.get_group_object_id(group_name)
     subject = {:group, group_name}
 
-    device_cache(realm_name, event_key, subject, group_id, @group_object_type)
+    device_trigger_cache(realm_name, event_key, subject)
   end
 
   defp device_and_any_interface_cache(realm_name, event_key, device_id, data) do
-    object_id = Utils.get_device_and_any_interface_object_id(device_id)
     subject = {:device_and_any_interface, device_id}
 
-    data_cache(
+    data_trigger_cache(
       realm_name,
       event_key,
       subject,
-      object_id,
-      @device_and_any_interface_object_type,
       data
     )
   end
 
   defp device_and_interface_cache(realm_name, event_key, device_id, interface_id, data) do
-    object_id = Utils.get_device_and_interface_object_id(device_id, interface_id)
     subject = {:device_and_interface, device_id, interface_id}
 
-    data_cache(
+    data_trigger_cache(
       realm_name,
       event_key,
       subject,
-      object_id,
-      @device_and_interface_object_type,
       data
     )
   end
@@ -200,12 +177,10 @@ defmodule Astarte.Events.Triggers.Cache do
   defp any_interface_cache(realm_name, event_key, data) do
     subject = :any_interface
 
-    data_cache(
+    data_trigger_cache(
       realm_name,
       event_key,
       subject,
-      @any_interface_object_id,
-      @any_interface_object_type,
       data
     )
   end
@@ -213,45 +188,41 @@ defmodule Astarte.Events.Triggers.Cache do
   defp interface_cache(realm_name, event_key, interface_id, data) do
     subject = {:interface, interface_id}
 
-    data_cache(realm_name, event_key, subject, interface_id, @interface_object_type, data)
+    data_trigger_cache(realm_name, event_key, subject, data)
   end
 
   defp group_and_any_interface_cache(realm_name, event_key, group_name, data) do
-    object_id = Utils.get_group_and_any_interface_object_id(group_name)
     subject = {:group_and_any_interface, group_name}
 
-    data_cache(
+    data_trigger_cache(
       realm_name,
       event_key,
       subject,
-      object_id,
-      @group_and_any_interface_object_type,
       data
     )
   end
 
   defp group_and_interface_cache(realm_name, event_key, group, interface_id, data) do
-    object_id = Utils.get_group_and_interface_object_id(group, interface_id)
     subject = {:group_and_interface, group, interface_id}
 
-    data_cache(
+    data_trigger_cache(
       realm_name,
       event_key,
       subject,
-      object_id,
-      @group_and_interface_object_type,
       data
     )
   end
 
-  defp device_cache(realm_name, event_key, subject, object_id, object_type) do
+  defp device_trigger_cache(realm_name, event_key, subject) do
+    {object_type, object_id} = Core.object_from_subject(subject)
     triggers = fetch_device_event(realm_name, event_key, object_id, object_type)
     volatile_triggers = fetch_volatile_event(realm_name, event_key, subject)
 
     Enum.concat(triggers, volatile_triggers)
   end
 
-  defp data_cache(realm_name, event_key, subject, object_id, object_type, data) do
+  defp data_trigger_cache(realm_name, event_key, subject, data) do
+    {object_type, object_id} = Core.object_from_subject(subject)
     triggers = fetch_data_event(realm_name, event_key, object_id, object_type, data)
     volatile_triggers = fetch_volatile_event(realm_name, event_key, subject)
 
@@ -334,7 +305,7 @@ defmodule Astarte.Events.Triggers.Cache do
       ConCache.update(
         @event_volatile_targets,
         volatile_trigger_key,
-        &do_install_volatile_trigger(realm_name, trigger_type, target, policy, trigger, &1)
+        &load_trigger(realm_name, trigger_type, target, policy, trigger, &1)
       )
 
       trigger_cache = {trigger_type, realm_name, subject, event_key, trigger}
@@ -349,7 +320,7 @@ defmodule Astarte.Events.Triggers.Cache do
     :ok
   end
 
-  defp do_install_volatile_trigger(realm_name, trigger_type, target, policy, trigger, events) do
+  defp load_trigger(realm_name, trigger_type, target, policy, trigger, events) do
     events =
       case events do
         nil -> []
@@ -357,24 +328,12 @@ defmodule Astarte.Events.Triggers.Cache do
       end
 
     new_events =
-      case trigger_type do
-        :device_trigger ->
-          Core.load_device_trigger_targets_with_policy(realm_name, events, target, policy)
-
-        :data_trigger ->
-          Core.load_data_trigger_targets_with_policy(
-            realm_name,
-            events,
-            target,
-            policy,
-            trigger
-          )
-      end
+      Core.load_trigger_with_policy(realm_name, trigger_type, target, policy, trigger, events)
 
     {:ok, new_events}
   end
 
-  @spec delete_volatile_trigger(String.t(), Astarte.DataAccess.UUID.t()) :: :ok 
+  @spec delete_volatile_trigger(String.t(), Astarte.DataAccess.UUID.t()) :: :ok
   def delete_volatile_trigger(realm_name, trigger_id) do
     cache_key = trigger_cache_id(realm_name, trigger_id)
 
@@ -453,60 +412,6 @@ defmodule Astarte.Events.Triggers.Cache do
 
   defp volatile_events_id(realm_name, subject, event_key), do: {realm_name, subject, event_key}
   defp trigger_cache_id(realm_name, trigger_id), do: {realm_name, trigger_id}
-
-  def trigger_subject(:device_trigger, trigger) do
-    %ProtobufDeviceTrigger{device_id: hw_id, group_name: group} = trigger
-
-    case {hw_id, group} do
-      {nil, nil} ->
-        {:ok, :any_device}
-
-      {"*", nil} ->
-        {:ok, :any_device}
-
-      {hw_id, nil} ->
-        with {:ok, device_id} <- Device.decode_device_id(hw_id, allow_extended_id: true) do
-          {:ok, {:device_id, device_id}}
-        end
-
-      {_, group_name} ->
-        {:ok, {:group, group_name}}
-    end
-  end
-
-  def trigger_subject(:data_trigger, trigger) do
-    case trigger do
-      %{device_id: any_device, group_name: nil, interface_name: "*"}
-      when any_device in [nil, "*"] ->
-        {:ok, :any_interface}
-
-      %{device_id: any_device, group_name: nil, interface_name: name, interface_major: major}
-      when any_device in [nil, "*"] ->
-        interface_id = CQLUtils.interface_id(name, major)
-        {:ok, {:interface, interface_id}}
-
-      %{device_id: any_device, group_name: group, interface_name: "*"}
-      when any_device in [nil, "*"] ->
-        {:ok, {:group_and_any_interface, group}}
-
-      %{device_id: any_device, group_name: group, interface_name: name, interface_major: major}
-      when any_device in [nil, "*"] ->
-        interface_id = CQLUtils.interface_id(name, major)
-        {:ok, {:group_and_interface, group, interface_id}}
-
-      %{device_id: hw_id, interface_name: "*"} ->
-        with {:ok, device_id} <- Device.decode_device_id(hw_id, allow_extended_id: true) do
-          {:ok, {:device_and_any_interface, device_id}}
-        end
-
-      %{device_id: hw_id, interface_name: name, interface_major: major} ->
-        interface_id = CQLUtils.interface_id(name, major)
-
-        with {:ok, device_id} <- Device.decode_device_id(hw_id, allow_extended_id: true) do
-          {:ok, {:device_and_interface, device_id, interface_id}}
-        end
-    end
-  end
 
   def event_targets_cache_spec do
     con_cache_child_spec(@event_targets)

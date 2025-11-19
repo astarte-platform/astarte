@@ -17,6 +17,8 @@
 #
 
 defmodule Astarte.Events.Triggers.Core do
+  alias Astarte.Core.Device
+  alias Astarte.Core.CQLUtils
   alias Astarte.Core.InterfaceDescriptor
   alias Astarte.Core.Mapping.EndpointsAutomaton
   alias Astarte.Core.Triggers.DataTrigger
@@ -33,8 +35,13 @@ defmodule Astarte.Events.Triggers.Core do
   @type data_trigger :: %ProtobufDataTrigger{}
   @type device_trigger :: %ProtobufDeviceTrigger{}
   @type trigger_data :: {:data_trigger, data_trigger()} | {:device_trigger, device_trigger()}
-  @type endpoint :: Astarte.DataAccess.UUID.t() | :any_endpoint
-  @type interface :: Astarte.DataAccess.UUID.t() | :any_interface
+
+  @type group_name :: String.t()
+  @type device_id :: Astarte.DataAccess.UUID.t()
+  @type endpoint_id :: Astarte.DataAccess.UUID.t()
+  @type interface_id :: Astarte.DataAccess.UUID.t()
+  @type endpoint :: endpoint_id() | :any_endpoint
+  @type interface :: interface_id() | :any_interface
 
   @type device_event_key ::
           :on_device_connection
@@ -73,8 +80,36 @@ defmodule Astarte.Events.Triggers.Core do
             device_triggers: %{device_event_key() => [AMQPTriggerTarget.t()]},
             trigger_id_to_policy_name: DataTriggerWithTargets.trigger_id_to_policy_name(),
             interfaces: %{String.t() => InterfaceDescriptor.t()},
-            interface_ids_to_name: %{Astarte.DataAccess.UUID.t() => String.t()}
+            interface_ids_to_name: %{interface_id() => String.t()}
           }
+
+  @type device_trigger_subject() ::
+          :any_device | {:device_id, device_id()} | {:group, group_name()}
+
+  @type data_trigger_subject() ::
+          :any_interface
+          | {:interface, interface_id()}
+          | {:group_and_any_interface, group_name()}
+          | {:group_and_interface, group_name(), interface_id()}
+          | {:device_and_any_interface, device_id()}
+          | {:device_and_interface, device_id(), interface_id()}
+
+  @type trigger_subject() :: device_trigger_subject() | data_trigger_subject()
+
+  @type object_id :: binary()
+  @type object_type :: integer()
+
+  @any_device_object_id Utils.any_device_object_id()
+  @any_device_object_type Utils.object_type_to_int!(:any_device)
+  @device_object_type Utils.object_type_to_int!(:device)
+  @group_object_type Utils.object_type_to_int!(:group)
+  @any_interface_object_id Utils.any_interface_object_id()
+  @any_interface_object_type Utils.object_type_to_int!(:any_interface)
+  @interface_object_type Utils.object_type_to_int!(:interface)
+  @device_and_any_interface_object_type Utils.object_type_to_int!(:device_and_any_interface)
+  @device_and_interface_object_type Utils.object_type_to_int!(:device_and_interface)
+  @group_and_any_interface_object_type Utils.object_type_to_int!(:group_and_any_interface)
+  @group_and_interface_object_type Utils.object_type_to_int!(:group_and_interface)
 
   def register_targets(realm_name, simple_trigger_list) do
     for {_trigger_key, target} <- simple_trigger_list do
@@ -263,7 +298,7 @@ defmodule Astarte.Events.Triggers.Core do
   end
 
   @spec fetch_endpoint(map(), DataTrigger.path_match_tokens(), DataTrigger.interface_id()) ::
-          {:ok, Astarte.DataAccess.UUID.t() | :any_endpoint}
+          {:ok, endpoint()}
           | {:error, :interface_not_found | :invalid_match_path}
   defp fetch_endpoint(state, path_match_tokens, interface_id) do
     if path_match_tokens == :any_endpoint or interface_id == :any_interface do
@@ -456,5 +491,144 @@ defmodule Astarte.Events.Triggers.Core do
   def valid_trigger_for_value?(trigger, path_tokens, value) do
     path_matches?(path_tokens, trigger.path_match_tokens) and
       ValueMatchOperators.value_matches?(value, trigger.value_match_operator, trigger.known_value)
+  end
+
+  @spec load_trigger_with_policy(
+          String.t(),
+          :data_trigger,
+          AMQPTriggerTarget.t(),
+          policy_name(),
+          DataTrigger.t(),
+          [DataTriggerWithTargets.t()]
+        ) :: [DataTriggerWithTargets.t()]
+  @spec load_trigger_with_policy(
+          String.t(),
+          :device_trigger,
+          AMQPTriggerTarget.t(),
+          policy_name(),
+          term(),
+          [target_and_policy()]
+        ) :: [target_and_policy()]
+  def load_trigger_with_policy(
+        realm_name,
+        trigger_type,
+        trigger_target,
+        policy,
+        new_trigger,
+        existing_triggers_for_key
+      ) do
+    case trigger_type do
+      :device_trigger ->
+        load_device_trigger_targets_with_policy(
+          realm_name,
+          existing_triggers_for_key,
+          trigger_target,
+          policy
+        )
+
+      :data_trigger ->
+        load_data_trigger_targets_with_policy(
+          realm_name,
+          existing_triggers_for_key,
+          trigger_target,
+          policy,
+          new_trigger
+        )
+    end
+  end
+
+  @spec trigger_subject(:device_trigger, ProtobufDeviceTrigger.t()) ::
+          {:ok, device_trigger_subject()} | {:error, :invalid_device_id}
+  def trigger_subject(:device_trigger, trigger) do
+    %ProtobufDeviceTrigger{device_id: hw_id, group_name: group} = trigger
+
+    case {hw_id, group} do
+      {nil, nil} ->
+        {:ok, :any_device}
+
+      {"*", nil} ->
+        {:ok, :any_device}
+
+      {hw_id, nil} ->
+        with {:ok, device_id} <- Device.decode_device_id(hw_id, allow_extended_id: true) do
+          {:ok, {:device_id, device_id}}
+        end
+
+      {_, group_name} ->
+        {:ok, {:group, group_name}}
+    end
+  end
+
+  @spec trigger_subject(:data_trigger, ProtobufDataTrigger.t()) ::
+          {:ok, data_trigger_subject()} | {:error, :invalid_device_id}
+  def trigger_subject(:data_trigger, trigger) do
+    case trigger do
+      %{device_id: any_device, group_name: nil, interface_name: "*"}
+      when any_device in [nil, "*"] ->
+        {:ok, :any_interface}
+
+      %{device_id: any_device, group_name: nil, interface_name: name, interface_major: major}
+      when any_device in [nil, "*"] ->
+        interface_id = CQLUtils.interface_id(name, major)
+        {:ok, {:interface, interface_id}}
+
+      %{device_id: any_device, group_name: group, interface_name: "*"}
+      when any_device in [nil, "*"] ->
+        {:ok, {:group_and_any_interface, group}}
+
+      %{device_id: any_device, group_name: group, interface_name: name, interface_major: major}
+      when any_device in [nil, "*"] ->
+        interface_id = CQLUtils.interface_id(name, major)
+        {:ok, {:group_and_interface, group, interface_id}}
+
+      %{device_id: hw_id, interface_name: "*"} ->
+        with {:ok, device_id} <- Device.decode_device_id(hw_id, allow_extended_id: true) do
+          {:ok, {:device_and_any_interface, device_id}}
+        end
+
+      %{device_id: hw_id, interface_name: name, interface_major: major} ->
+        interface_id = CQLUtils.interface_id(name, major)
+
+        with {:ok, device_id} <- Device.decode_device_id(hw_id, allow_extended_id: true) do
+          {:ok, {:device_and_interface, device_id, interface_id}}
+        end
+    end
+  end
+
+  @spec object_from_subject(trigger_subject()) :: {object_type(), object_id()}
+  def object_from_subject(subject) do
+    case subject do
+      :any_device ->
+        {@any_device_object_type, @any_device_object_id}
+
+      {:device_id, device_id} ->
+        {@device_object_type, device_id}
+
+      {:group, group_name} ->
+        object_id = Utils.get_group_object_id(group_name)
+        {@group_object_type, object_id}
+
+      :any_interface ->
+        {@any_interface_object_type, @any_interface_object_id}
+
+      {:interface, interface_id} ->
+        {@interface_object_type, interface_id}
+
+      {:group_and_any_interface, group_name} ->
+        object_id = Utils.get_group_and_any_interface_object_id(group_name)
+        {@group_and_any_interface_object_type, object_id}
+
+      {:group_and_interface, group_name, interface_id} ->
+        object_id = Utils.get_group_and_interface_object_id(group_name, interface_id)
+        {@group_and_interface_object_type, object_id}
+
+      {:device_and_any_interface, device_id} ->
+        object_id = Utils.get_device_and_any_interface_object_id(device_id)
+        {@device_and_any_interface_object_type, object_id}
+
+      {:device_and_interface, device_id, interface_id} ->
+        object_id = Utils.get_device_and_interface_object_id(device_id, interface_id)
+        {@device_and_interface_object_type, object_id}
+    end
   end
 end
