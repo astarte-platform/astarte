@@ -76,7 +76,7 @@ defmodule Astarte.Events.Triggers do
   @spec find_interface_event_device_trigger_targets(
           String.t(),
           Astarte.DataAccess.UUID.t(),
-          [String.t()],
+          [String.t()] | nil,
           :on_interface_added | :on_interface_removed | :on_interface_minor_updated,
           Astarte.DataAccess.UUID.t()
         ) :: [Core.target_and_policy()]

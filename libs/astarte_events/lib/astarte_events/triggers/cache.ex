@@ -86,7 +86,7 @@ defmodule Astarte.Events.Triggers.Cache do
           Astarte.DataAccess.UUID.t(),
           [String.t()],
           Core.data_event_key(),
-          String.t(),
+          [String.t()],
           term(),
           Core.fetch_triggers_data()
         ) :: [Core.target_and_policy()]
