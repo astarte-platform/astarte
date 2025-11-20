@@ -38,9 +38,10 @@ defmodule Astarte.PairingWeb.FDOOnboardingController do
   end
 
   def ov_next_entry(conn, _params) do
-    # FIXME: this will generate a conflict,
+
     realm_name = conn.params["realm_name"]
     cbor_body = conn.assigns[:cbor_body]
+    # TODO: change this with the actual session implementation
     device_id = get_session(conn, :fdo_guid)
 
     with {:ok, response} <-
