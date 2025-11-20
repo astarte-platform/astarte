@@ -25,11 +25,6 @@ defmodule Astarte.PairingWeb.Router do
     plug Astarte.PairingWeb.Plug.VerifyRealmExists
   end
 
-  # FIXME: this will generate a conflict, please ignore this version and keep what's been already merged
-  pipeline :fdo_cbor do
-    plug Astarte.PairingWeb.Plug.VerifyCbor
-  end
-
   pipeline :agent_api do
     plug Astarte.PairingWeb.Plug.AuthorizePath
   end

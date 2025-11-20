@@ -29,7 +29,7 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding do
   alias Astarte.Pairing.FDO.OwnershipVoucher.Core, as: OwnershipVoucherCore
   alias Astarte.Pairing.FDO.Rendezvous.Core, as: RendezvousCore
   alias Astarte.Pairing.Queries
-
+  alias Astarte.Pairing.Config
   require Logger
 
   @max_owner_message_size 65_535
@@ -132,5 +132,140 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding do
          {:ok, ownership_voucher} <- Queries.get_ownership_voucher(realm_name, device_id) do
       OwnershipVoucherCore.get_ov_entry(ownership_voucher, entry_num)
     end
+  end
+
+  def prove_device(realm_name, device_pub_key, body) do
+    # TODO: nonce and device_id must be read from session
+    device_guid = "placeholder"
+    session_key = "placeholder"
+    nonce = "placeholder"
+
+    {:ok, current_rendezvous_info} =
+      RendezvousCore.get_rv_to2_addr_entry("#{realm_name}.#{Config.base_domain!()}")
+
+    {:ok, ownership_voucher} =
+      Queries.get_ownership_voucher(realm_name, device_guid)
+
+    connection_credentials = %{
+      guid: device_guid,
+      rendezvous_info: current_rendezvous_info,
+      owner_pub_key: OwnerOnboardingCore.ov_last_entry_public_key(ownership_voucher),
+      device_info: "owned by astarte - realm #{realm_name}.#{Config.base_domain!()}"
+    }
+
+    with {:ok, setup_device_message} <-
+           verify(body, device_pub_key, session_key, nonce, device_guid, connection_credentials) do
+      {:ok, setup_device_message}
+    else
+      _ ->
+        {:error, "invalid_signature"}
+    end
+  end
+
+  def verify(body, device_pub_key, session_key, nonce_to_check, device_id, connection_credentials) do
+    with {:ok, [protected_bin, _unprot, payload_bin, signature], _rest} <- CBOR.decode(body),
+         {:ok, protected_header_map, _rest} <- CBOR.decode(protected_bin),
+         {:ok, alg} <- fetch_alg(protected_header_map),
+         {:ok, to_be_signed_bytes} <- build_sig_structure(protected_bin, payload_bin),
+         {:ok, eat_claims, _rest} <- CBOR.decode(payload_bin),
+         received_nonce <- Map.get(eat_claims, 10),
+         received_device_id <- Map.get(eat_claims, 256),
+         true <- received_nonce == nonce_to_check,
+         true <- received_device_id == device_id,
+         true <- verify_signature(alg, device_pub_key, signature, to_be_signed_bytes),
+         {:ok, setup_device_message} <-
+           build_setup_device_message(session_key, connection_credentials) do
+      {:ok, setup_device_message}
+    else
+      _ ->
+        {:error, :invalid_signature}
+    end
+  end
+
+  def fetch_alg(header_map) when is_map(header_map) do
+    case Map.get(header_map, 1) do
+      -7 -> {:ok, :es256}
+      -8 -> {:ok, :edsdsa}
+      _ -> {:error, :unsupported_alg}
+    end
+  end
+
+  def fetch_alg(binary) when is_binary(binary) do
+    with {:ok, map, _rest} <- CBOR.decode(binary), do: fetch_alg(map)
+  end
+
+  def build_sig_structure(protected_bin, payload_bin) do
+    sig_struct = [
+      "Signature1",
+      protected_bin,
+      # external_aad empty in FDO
+      <<>>,
+      payload_bin
+    ]
+
+    {:ok, CBOR.encode(sig_struct)}
+  end
+
+  def verify_signature(:es256, pub_key, signature, sig_structure) do
+    if byte_size(signature) == 64 do
+      <<r_bin::binary-size(32), s_bin::binary-size(32)>> = signature
+
+      # ASN.1/DER requires integers for ECDSA-Sig-Value.
+      r = :binary.decode_unsigned(r_bin)
+      s = :binary.decode_unsigned(s_bin)
+
+      der_sig = der_encode_ecdsa(r, s)
+
+      :crypto.verify(:ecdsa, :sha256, sig_structure, der_sig, pub_key)
+    else
+      false
+    end
+  end
+
+  def verify_signature(:edsdsa, pub_key, signature, sig_structure) do
+    :crypto.verify(:eddsa, :none, sig_structure, signature, [pub_key, :ed25519])
+  end
+
+  def der_encode_ecdsa(r, s) do
+    # assuming ECDSA-Sig-Value record is available
+    :public_key.der_encode(:"ECDSA-Sig-Value", {:"ECDSA-Sig-Value", r, s})
+  end
+
+  def build_setup_device_message(session_key, creds) do
+    new_nonce = :crypto.strong_rand_bytes(16)
+
+    ov_header_array = [
+      # Protocol Version
+      101,
+      # GUID
+      creds.guid,
+      # RV Info
+      creds.rendezvous_info,
+      # DeviceInfo
+      creds.device_info,
+      # PubKey
+      creds.owner_pub_key,
+      # CertChainHash
+      nil
+    ]
+
+    ov_header_bin = CBOR.encode(ov_header_array)
+
+    ov_header_hmac = :crypto.mac(:hmac, :sha256, session_key, ov_header_bin)
+
+    ov_next_entry = [ov_header_bin, ov_header_hmac]
+
+    payload_data = [new_nonce, ov_next_entry]
+    payload_bin = CBOR.encode(payload_data)
+
+    protected_header = %{1 => 5}
+    protected_bin = CBOR.encode(protected_header)
+    mac_structure = ["MAC0", protected_bin, <<>>, payload_bin]
+    to_be_maced = CBOR.encode(mac_structure)
+    tag = :crypto.mac(:hmac, :sha256, session_key, to_be_maced)
+
+    cose_mac0 = [protected_bin, %{}, payload_bin, tag]
+
+    {:ok, CBOR.encode(cose_mac0)}
   end
 end
