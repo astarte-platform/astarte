@@ -48,4 +48,57 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding.Core do
         {:error, :invalid_hello_device_format}
     end
   end
+
+  def ov_header(ownership_voucher) do
+    %CBOR.Tag{tag: _tag, value: cbor_ov_header} = Enum.at(ownership_voucher, 1)
+    cbor_ov_header
+  end
+
+  def compute_hello_device_hash(cbor_hello_device) do
+    :crypto.hash(:sha256, cbor_hello_device)
+  end
+
+  def build_hmac(private_key, cbor_ov_header) do
+    :crypto.mac(:hmac, :sha256, private_key, cbor_ov_header)
+  end
+
+  def num_ov_entries(ownership_voucher) do
+    ownership_voucher
+    |> ov_entries()
+    |> length()
+  end
+
+  defp ov_entries([_version, _tag, _hmac, _cert_chain, entries]), do: entries
+
+  def ov_last_entry_public_key(ownership_voucher) do
+    ownership_voucher
+    |> leaf_ov_entry()
+    |> extract_entry_public_key()
+    |> decode_public_key()
+  end
+
+  defp extract_entry_public_key(%CBOR.Tag{
+         tag: 18,
+         value: [
+           _protected,
+           _unprotected,
+           %CBOR.Tag{value: public_key},
+           _signature
+         ]
+       }) do
+    public_key
+  end
+
+  defp decode_public_key(cbor_public_key) do
+    {:ok, [_, _, _, [_, _, %CBOR.Tag{tag: _, value: public_key}]], ""} =
+      CBOR.decode(cbor_public_key)
+
+    public_key
+  end
+
+  defp leaf_ov_entry(ownership_voucher) do
+    ownership_voucher
+    |> ov_entries()
+    |> List.last()
+  end
 end

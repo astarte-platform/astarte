@@ -42,7 +42,7 @@ defmodule Astarte.Pairing.FDO.Rendezvous.Core do
     CBOR.encode([CBORCore.add_cbor_tag(to0d), signature])
   end
 
-  def build_cose_sign1(payload, owner_key) do
+  def build_cose_sign1(payload, owner_key, unprotected_header \\ %{}) do
     protected_header = %{@es256_identifier => @es256}
     protected_header_cbor = CBOR.encode(protected_header)
 
@@ -53,7 +53,7 @@ defmodule Astarte.Pairing.FDO.Rendezvous.Core do
 
     cose_sign1_array = [
       CBORCore.add_cbor_tag(protected_header_cbor),
-      %{},
+      unprotected_header,
       CBORCore.add_cbor_tag(payload),
       CBORCore.add_cbor_tag(raw_signature)
     ]

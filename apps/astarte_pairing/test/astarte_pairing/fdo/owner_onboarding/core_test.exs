@@ -25,7 +25,7 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding.CoreTest do
   describe "decode_hello_device/1" do
     setup do
       valid_data = %{
-        max_size: 65535,
+        max_size: 65_535,
         device_id: <<1, 2, 3, 4>>,
         nonce: <<5, 6, 7, 8>>,
         kex_name: "DHKEXid14",
