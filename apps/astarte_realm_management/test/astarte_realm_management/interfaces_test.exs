@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2025 SECO Mind Srl
+# Copyright 2025 - 2026 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -21,6 +21,7 @@
 defmodule Astarte.RealmManagement.InterfacesTest do
   alias Astarte.RealmManagement.Queries
   alias Astarte.RealmManagement.Engine
+  alias Astarte.RealmManagement.Generators.InterfaceUtils
 
   use Astarte.RealmManagement.DataCase, async: true
   use ExUnitProperties
@@ -30,7 +31,11 @@ defmodule Astarte.RealmManagement.InterfacesTest do
 
     @tag :creation
     property "is installed properly", %{realm: realm} do
-      check all(interface <- Astarte.Core.Generators.Interface.interface()) do
+      check all(
+              interface <-
+                Astarte.Core.Generators.Interface.interface()
+                |> InterfaceUtils.filter_valid_interfaces()
+            ) do
         json_interface = Jason.encode!(interface)
 
         :ok = Engine.install_interface(realm, json_interface)
@@ -67,6 +72,7 @@ defmodule Astarte.RealmManagement.InterfacesTest do
       check all(
               interface <-
                 Astarte.Core.Generators.Interface.interface(major_version: integer(1..9))
+                |> InterfaceUtils.filter_valid_interfaces()
             ) do
         json_interface = Jason.encode!(interface)
 
@@ -82,7 +88,11 @@ defmodule Astarte.RealmManagement.InterfacesTest do
 
     @tag :deletion
     property "is deleted if the major version is 0", %{realm: realm} do
-      check all(interface <- Astarte.Core.Generators.Interface.interface(major_version: 0)) do
+      check all(
+              interface <-
+                Astarte.Core.Generators.Interface.interface(major_version: 0)
+                |> InterfaceUtils.filter_valid_interfaces()
+            ) do
         json_interface = Jason.encode!(interface)
 
         _ = Engine.install_interface(realm, json_interface)
@@ -97,12 +107,14 @@ defmodule Astarte.RealmManagement.InterfacesTest do
     property "can update only the same major version", %{realm: realm} do
       check all(
               interface <-
-                Astarte.Core.Generators.Interface.interface(major_version: integer(0..8)),
+                Astarte.Core.Generators.Interface.interface(major_version: integer(0..8))
+                |> InterfaceUtils.filter_valid_interfaces(),
               update_interface <-
                 Astarte.Core.Generators.Interface.interface(
                   name: interface.name,
                   major_version: interface.major_version + 1
                 )
+                |> InterfaceUtils.filter_valid_interfaces()
             ) do
         json_interface = Jason.encode!(interface)
         json_updated_interface = Jason.encode!(update_interface)
@@ -118,7 +130,8 @@ defmodule Astarte.RealmManagement.InterfacesTest do
     property "is updated with valid update", %{realm: realm} do
       check all(
               interface <-
-                Astarte.Core.Generators.Interface.interface(minor_version: integer(1..254)),
+                Astarte.Core.Generators.Interface.interface(minor_version: integer(1..254))
+                |> InterfaceUtils.filter_valid_interfaces(),
               valid_update_interface <-
                 Astarte.Core.Generators.Interface.interface(
                   name: interface.name,
@@ -158,7 +171,8 @@ defmodule Astarte.RealmManagement.InterfacesTest do
     property "is not updated on downgrade", %{realm: realm} do
       check all(
               interface <-
-                Astarte.Core.Generators.Interface.interface(minor_version: integer(2..255)),
+                Astarte.Core.Generators.Interface.interface(minor_version: integer(2..255))
+                |> InterfaceUtils.filter_valid_interfaces(),
               updated_interface <-
                 Astarte.Core.Generators.Interface.interface(
                   name: interface.name,
