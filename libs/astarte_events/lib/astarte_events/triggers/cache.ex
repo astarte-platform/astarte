@@ -525,7 +525,7 @@ defmodule Astarte.Events.Triggers.Cache do
   """
   def reset_realm_cache(realm_name) do
     ConCache.ets(@event_targets)
-    |> :ets.select_delete([{{{realm_name, :"$1", :"$2", :"$3"}, :"$4"}, [], [true]}])
+    |> :ets.select_delete([{{{realm_name, :"$1", :"$2"}, :"$3"}, [], [true]}])
 
     ConCache.ets(@event_volatile_targets)
     |> :ets.select_delete([{{{realm_name, :"$1", :"$2"}, :"$3"}, [], [true]}])
