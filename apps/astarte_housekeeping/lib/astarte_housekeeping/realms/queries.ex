@@ -241,6 +241,7 @@ defmodule Astarte.Housekeeping.Realms.Queries do
          :ok <- create_grouped_devices_table(keyspace_name),
          :ok <- create_deletion_in_progress_table(keyspace_name),
          :ok <- create_ownership_vouchers_table(keyspace_name),
+         :ok <- create_to2_sessions_table(keyspace_name),
          :ok <- insert_realm_public_key(keyspace_name, public_key_pem),
          :ok <- insert_realm_astarte_schema_version(keyspace_name),
          :ok <- insert_realm(realm_name, device_limit),
@@ -549,6 +550,22 @@ defmodule Astarte.Housekeeping.Realms.Queries do
       voucher_data blob,
       device_id uuid,
       PRIMARY KEY (device_id, voucher_data)
+    );
+    """
+
+    with {:ok, %{rows: nil, num_rows: 1}} <- CSystem.execute_schema_change(query) do
+      :ok
+    end
+  end
+
+  defp create_to2_sessions_table(keyspace_name) do
+    query = """
+    CREATE TABLE #{keyspace_name}.to2_sessions (
+      session_key blob,
+      device_id uuid,
+      private_key blob,
+      public_key blob,
+      PRIMARY KEY (session_key)
     );
     """
 

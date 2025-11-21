@@ -29,9 +29,11 @@ defmodule Astarte.PairingWeb.FDOOnboardingController do
     realm_name = Map.fetch!(conn.params, "realm_name")
     cbor_hello_device = conn.assigns.cbor_body
 
-    with {:ok, response_msg} <- OwnerOnboarding.hello_device(cbor_hello_device, realm_name) do
+    with {:ok, session_key, response_msg} <-
+           OwnerOnboarding.hello_device(realm_name, cbor_hello_device) do
       conn
       |> put_resp_content_type("application/cbor")
+      |> put_resp_header("authorization", session_key)
       |> send_resp(200, CBOR.encode(response_msg))
     end
   end

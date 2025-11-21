@@ -25,12 +25,15 @@ defmodule Astarte.Pairing.Queries do
 
   alias Astarte.DataAccess.Consistency
   alias Astarte.DataAccess.Devices.Device
+  alias Astarte.DataAccess.FDO.OwnershipVoucher
+  alias Astarte.DataAccess.FDO.TO2Session
   alias Astarte.DataAccess.KvStore
   alias Astarte.DataAccess.Realms.Realm
   alias Astarte.DataAccess.Repo
-  alias Astarte.DataAccess.FDO.OwnershipVoucher
 
   require Logger
+
+  @two_hours 7200
 
   def realm_existing?(realm_name) do
     keyspace_name = Realm.astarte_keyspace_name()
@@ -273,6 +276,26 @@ defmodule Astarte.Pairing.Queries do
       device_id: device_id
     }
     |> Repo.insert(opts)
+  end
+
+  def store_session(realm_name, session_key, device_id, public_key, private_key) do
+    keyspace = Realm.keyspace_name(realm_name)
+    consistency = Consistency.device_info(:write)
+    ttl = @two_hours
+    opts = [prefix: keyspace, consistency: consistency, ttl: ttl]
+
+    session = %TO2Session{
+      session_key: {:custom, "uuidAsBlob(?)", session_key},
+      device_id: device_id,
+      private_key: private_key,
+      public_key: public_key
+    }
+
+    {sql, params} = Repo.insert_to_sql(session, opts)
+
+    with {:ok, _} <- Repo.query(sql, params, opts) do
+      :ok
+    end
   end
 
   defp do_register_device(

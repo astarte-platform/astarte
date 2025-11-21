@@ -26,9 +26,9 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding do
 
   alias Astarte.Pairing.FDO.Core, as: FDOCore
   alias Astarte.Pairing.FDO.OwnerOnboarding.Core, as: OwnerOnboardingCore
+  alias Astarte.Pairing.FDO.OwnerOnboarding.Session
   alias Astarte.Pairing.FDO.OwnershipVoucher.Core, as: OwnershipVoucherCore
   alias Astarte.Pairing.FDO.Rendezvous.Core, as: RendezvousCore
-
   alias Astarte.Pairing.Queries
 
   require Logger
@@ -38,14 +38,13 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding do
   @cupd_nonce_tag 256
   @cuph_owner_pubkey_tag 257
 
-  def hello_device(cbor_hello_device, realm_name) do
+  def hello_device(realm_name, cbor_hello_device) do
     with {:ok, hello_device} <- OwnerOnboardingCore.decode_hello_device(cbor_hello_device),
-         {:ok, ownership_voucher} <-
-           Queries.get_ownership_voucher(realm_name, hello_device.device_id),
-         {:ok, owner_private_key} <-
-           Queries.get_owner_private_key(realm_name, hello_device.device_id),
-         {:ok, xa_key_exchange, _private_key} <-
-           generate_key_exchange_param(hello_device.kex_name) do
+         %{device_id: device_id, kex_name: kex_name} = hello_device,
+         {:ok, ownership_voucher} <- Queries.get_ownership_voucher(realm_name, device_id),
+         {:ok, owner_private_key} <- Queries.get_owner_private_key(realm_name, device_id),
+         {:ok, xa_key_exchange, private_key} <- generate_key_exchange_param(kex_name),
+         {:ok, session_key} <- Session.new(realm_name, device_id, xa_key_exchange, private_key) do
       # TODO save hello_device.device_id, hello_device.cipher_name and _private_key
 
       # SAFETY: the owner private key was validated before it was saved to the database
@@ -76,7 +75,7 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding do
           unprotected_headers
         )
 
-      {:ok, message}
+      {:ok, session_key, message}
     else
       {:error, reason} ->
         Logger.error("Failed to process hello_device: #{inspect(reason)}")
