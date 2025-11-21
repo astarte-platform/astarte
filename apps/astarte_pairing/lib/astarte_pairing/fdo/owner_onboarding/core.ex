@@ -19,6 +19,11 @@
 defmodule Astarte.Pairing.FDO.OwnerOnboarding.Core do
   alias Astarte.Pairing.FDO.OwnerOnboarding.HelloDevice
 
+  @sha256 -16
+  # @sha384 -43
+  # @hmac_sha256 5
+  # @hmac_sha384 6
+
   def decode_hello_device(cbor_hello_device) do
     case CBOR.decode(cbor_hello_device) do
       {:ok, decoded_hello_device, ""} ->
@@ -55,11 +60,13 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding.Core do
   end
 
   def compute_hello_device_hash(cbor_hello_device) do
-    :crypto.hash(:sha256, cbor_hello_device)
+    hash = :crypto.hash(:sha256, cbor_hello_device)
+    [@sha256, hash]
   end
 
-  def build_hmac(private_key, cbor_ov_header) do
-    :crypto.mac(:hmac, :sha256, private_key, cbor_ov_header)
+  def hmac(ownership_voucher) do
+    [_, _, hmac, _, _] = ownership_voucher
+    hmac
   end
 
   def num_ov_entries(ownership_voucher) do

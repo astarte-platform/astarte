@@ -24,15 +24,17 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding do
   and supports key exchange parameter generation for secure device onboarding.
   """
 
-  alias Astarte.Pairing.FDO.Rendezvous.Core, as: RendezvousCore
+  alias Astarte.Pairing.FDO.Core, as: FDOCore
   alias Astarte.Pairing.FDO.OwnerOnboarding.Core, as: OwnerOnboardingCore
   alias Astarte.Pairing.FDO.OwnershipVoucher.Core, as: OwnershipVoucherCore
+  alias Astarte.Pairing.FDO.Rendezvous.Core, as: RendezvousCore
 
   alias Astarte.Pairing.Queries
 
   require Logger
 
   @max_owner_message_size 65_535
+  @rsa_public_exponent 65_537
   @cupd_nonce_tag 256
   @cuph_owner_pubkey_tag 257
 
@@ -43,28 +45,38 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding do
          {:ok, owner_private_key} <-
            Queries.get_owner_private_key(realm_name, hello_device.device_id),
          {:ok, xa_key_exchange, _private_key} <-
-           generate_key_exchange_param(hello_device.kex_name),
-         # TODO save hello_device.device_id, hello_device.cipher_name and _private_key into session for later use
-         cbor_ov_header <- OwnerOnboardingCore.ov_header(ownership_voucher),
-         num_ov_entries <- OwnerOnboardingCore.num_ov_entries(ownership_voucher),
-         hmac <- OwnerOnboardingCore.build_hmac(owner_private_key, cbor_ov_header),
-         hello_device_hash <- OwnerOnboardingCore.compute_hello_device_hash(cbor_hello_device),
-         unprotected_headers <- build_unprotected_headers(owner_private_key),
-         to2_proveovhdr_payload <-
-           build_to2_proveovhdr_payload(
-             cbor_ov_header,
-             num_ov_entries,
-             hmac,
-             hello_device.nonce,
-             nil,
-             xa_key_exchange,
-             hello_device_hash
-           ) do
-      RendezvousCore.build_cose_sign1(
-        to2_proveovhdr_payload,
-        unprotected_headers,
-        owner_private_key
-      )
+           generate_key_exchange_param(hello_device.kex_name) do
+      # TODO save hello_device.device_id, hello_device.cipher_name and _private_key
+
+      # SAFETY: the owner private key was validated before it was saved to the database
+      {:ok, owner_private_key} =
+        FDOCore.extract_private_key(owner_private_key)
+
+      cbor_ov_header = OwnerOnboardingCore.ov_header(ownership_voucher)
+      num_ov_entries = OwnerOnboardingCore.num_ov_entries(ownership_voucher)
+      hmac = OwnerOnboardingCore.hmac(ownership_voucher)
+      hello_device_hash = OwnerOnboardingCore.compute_hello_device_hash(cbor_hello_device)
+      unprotected_headers = build_unprotected_headers(ownership_voucher)
+
+      to2_proveovhdr_payload =
+        build_to2_proveovhdr_payload(
+          cbor_ov_header,
+          num_ov_entries,
+          hmac,
+          hello_device.nonce,
+          nil,
+          xa_key_exchange,
+          hello_device_hash
+        )
+
+      message =
+        RendezvousCore.build_cose_sign1(
+          to2_proveovhdr_payload,
+          owner_private_key,
+          unprotected_headers
+        )
+
+      {:ok, message}
     else
       {:error, reason} ->
         Logger.error("Failed to process hello_device: #{inspect(reason)}")
@@ -105,7 +117,7 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding do
   defp generate_key_exchange_param(kex_suite_name) do
     case kex_suite_name do
       "ASYMKEX2048" ->
-        {:ok, private_key_record} = generate_rsa_2048_key()
+        private_key_record = generate_rsa_2048_key()
         {:ok, public_key_record} = get_public_key(private_key_record)
         {:ok, public_key_record, private_key_record}
 
@@ -116,9 +128,7 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding do
   end
 
   def generate_rsa_2048_key() do
-    public_exponent = 65_537
-
-    options = {:rsa, 2048, public_exponent}
+    options = {:rsa, 2048, @rsa_public_exponent}
 
     :public_key.generate_key(options)
   end
