@@ -26,6 +26,7 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding do
 
   alias Astarte.Pairing.FDO.Rendezvous.Core, as: RendezvousCore
   alias Astarte.Pairing.FDO.OwnerOnboarding.Core, as: OwnerOnboardingCore
+  alias Astarte.Pairing.FDO.OwnershipVoucher.Core, as: OwnershipVoucherCore
 
   alias Astarte.Pairing.Queries
 
@@ -130,6 +131,18 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding do
 
       _ ->
         {:error, :invalid_private_key_format}
+    end
+  end
+
+  def ov_next_entry(_cbor_body, _realm_name, nil) do
+    {:error, "bad_session"}
+  end
+
+  def ov_next_entry(cbor_body, realm_name, device_id) do
+    # entry num represent the current enties we need to check for in the ov
+    with {:ok, [entry_num], _} <- CBOR.decode(cbor_body),
+         {:ok, ownership_voucher} <- Queries.get_ownership_voucher(realm_name, device_id) do
+      OwnershipVoucherCore.get_ov_entry(ownership_voucher, entry_num)
     end
   end
 end

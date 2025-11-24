@@ -36,4 +36,23 @@ defmodule Astarte.PairingWeb.FDOOnboardingController do
     |> put_resp_content_type("application/cbor")
     |> send_resp(200, CBOR.encode(response_msg))
   end
+
+  def ov_next_entry(conn, _params) do
+
+    realm_name = conn.params["realm_name"]
+    cbor_body = conn.assigns[:cbor_body]
+    # TODO: change this with the actual session implementation
+    device_id = get_session(conn, :fdo_guid)
+
+    with {:ok, response} <-
+           OwnerOnboarding.ov_next_entry(cbor_body, realm_name, device_id) do
+      conn
+      |> put_resp_content_type("application/cbor")
+      |> send_resp(200, response)
+    else
+      {:error, err} ->
+        conn
+        |> send_resp(400, err)
+    end
+  end
 end
