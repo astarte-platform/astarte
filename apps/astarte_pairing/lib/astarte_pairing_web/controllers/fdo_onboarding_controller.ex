@@ -29,16 +29,14 @@ defmodule Astarte.PairingWeb.FDOOnboardingController do
     realm_name = Map.fetch!(conn.params, "realm_name")
     cbor_hello_device = conn.assigns.cbor_body
 
-    {:ok, response_msg} =
-      OwnerOnboarding.hello_device(cbor_hello_device, realm_name)
-
-    conn
-    |> put_resp_content_type("application/cbor")
-    |> send_resp(200, CBOR.encode(response_msg))
+    with {:ok, response_msg} <- OwnerOnboarding.hello_device(cbor_hello_device, realm_name) do
+      conn
+      |> put_resp_content_type("application/cbor")
+      |> send_resp(200, CBOR.encode(response_msg))
+    end
   end
 
   def ov_next_entry(conn, _params) do
-
     realm_name = conn.params["realm_name"]
     cbor_body = conn.assigns[:cbor_body]
     # TODO: change this with the actual session implementation

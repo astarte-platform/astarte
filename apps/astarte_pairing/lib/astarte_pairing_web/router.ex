@@ -18,7 +18,6 @@
 
 defmodule Astarte.PairingWeb.Router do
   use Astarte.PairingWeb, :router
-  alias Astarte.PairingWeb.FDOOnboardingController
 
   pipeline :realm_api do
     plug :accepts, ["json"]

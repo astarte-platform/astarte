@@ -21,6 +21,7 @@ defmodule Astarte.Pairing.FDO.OwnershipVoucher.CreateRequest do
 
   alias Astarte.Pairing.FDO.OwnershipVoucher.CreateRequest
   alias Astarte.Pairing.FDO.OwnershipVoucher.Core
+  alias Astarte.Pairing.FDO.Core, as: FDOCore
 
   require Logger
 
@@ -68,31 +69,12 @@ defmodule Astarte.Pairing.FDO.OwnershipVoucher.CreateRequest do
     # SAFETY: we've validated the field is required and we only accept valid changesets
     private_key = fetch_field!(changeset, :private_key)
 
-    case validate_end_extract_private_key(private_key) do
+    case FDOCore.extract_private_key(private_key) do
       {:ok, extracted_private_key} ->
         put_change(changeset, :extracted_private_key, extracted_private_key)
 
       {:error, _} ->
         add_error(changeset, :private_key, "must be a valid EC or RSA private key")
-    end
-  end
-
-  defp validate_end_extract_private_key(private_key) do
-    :public_key.pem_decode(private_key)
-    |> Enum.find(fn {asn1_type, _, _} -> asn1_type in [:ECPrivateKey, :PrivateKeyInfo] end)
-    |> case do
-      nil -> {:error, :invalid_pem}
-      entry -> safe_decode_pem_entry(entry)
-    end
-  end
-
-  defp safe_decode_pem_entry(entry) do
-    try do
-      {:ok, :public_key.pem_entry_decode(entry)}
-    rescue
-      e ->
-        Logger.warning("pem_entry_decode failed: #{inspect(e)}")
-        {:error, :pem_entry_decoding_failed}
     end
   end
 end
