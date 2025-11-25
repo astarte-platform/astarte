@@ -42,6 +42,10 @@ defmodule Astarte.PairingWeb.Router do
     plug Astarte.PairingWeb.Plug.VerifyFDO
   end
 
+  pipeline :fdo_session do
+    plug Astarte.PairingWeb.Plug.FDOSession
+  end
+
   scope "/v1/:realm_name", Astarte.PairingWeb do
     pipe_through :realm_api
 
@@ -56,6 +60,9 @@ defmodule Astarte.PairingWeb.Router do
       pipe_through :fdo
 
       post "/msg/60", FDOOnboardingController, :hello_device
+
+      pipe_through :fdo_session
+
       post "/msg/62", FDOOnboardingController, :ov_next_entry
     end
 

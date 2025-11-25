@@ -19,6 +19,7 @@
 defmodule Astarte.Pairing.FDO.OwnerOnboarding.Session do
   use TypedStruct
 
+  alias Astarte.DataAccess.FDO.TO2Session
   alias Astarte.Pairing.FDO.OwnerOnboarding.Session
   alias Astarte.Pairing.FDO.OwnerOnboarding.SessionKey
   alias Astarte.Pairing.Queries
@@ -68,6 +69,31 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding.Session do
            SessionKey.compute_shared_secret(kex, owner_key, owner_random, xb),
          :ok <- Queries.add_session_secret(realm_name, session_key, device_public, secret) do
       {:ok, %{session | secret: secret, device_public_key: device_public}}
+    end
+  end
+
+  def fetch(realm_name, session_key) do
+    with {:ok, database_session} <- Queries.fetch_session(realm_name, session_key) do
+      %TO2Session{
+        device_id: device_id,
+        device_public_key: device_public_key,
+        prove_ov_nonce: prove_ov_nonce,
+        kex_suite_name: kex_suite_name,
+        owner_random: owner_random,
+        secret: secret
+      } = database_session
+
+      session = %Session{
+        key: session_key,
+        device_id: device_id,
+        device_public_key: device_public_key,
+        prove_ov_nonce: prove_ov_nonce,
+        kex_suite_name: kex_suite_name,
+        owner_random: owner_random,
+        secret: secret
+      }
+
+      {:ok, session}
     end
   end
 end

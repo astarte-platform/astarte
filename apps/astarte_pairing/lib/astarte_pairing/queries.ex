@@ -326,6 +326,18 @@ defmodule Astarte.Pairing.Queries do
     end
   end
 
+  def fetch_session(realm_name, session_key) do
+    keyspace = Realm.keyspace_name(realm_name)
+    consistency = Consistency.device_info(:read)
+    opts = [prefix: keyspace, consistency: consistency]
+
+    query =
+      from s in TO2Session,
+        where: s.session_key == fragment("uuidAsBlob(?)", ^session_key)
+
+    Repo.fetch_one(query, opts)
+  end
+
   defp do_register_device(
          realm_name,
          device_id,

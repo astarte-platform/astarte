@@ -41,8 +41,7 @@ defmodule Astarte.PairingWeb.FDOOnboardingController do
   def ov_next_entry(conn, _params) do
     realm_name = conn.params["realm_name"]
     cbor_body = conn.assigns[:cbor_body]
-    # TODO: change this with the actual session implementation
-    device_id = get_session(conn, :fdo_guid)
+    device_id = conn.assigns.to2_session.device_id
 
     with {:ok, response} <-
            OwnerOnboarding.ov_next_entry(cbor_body, realm_name, device_id) do

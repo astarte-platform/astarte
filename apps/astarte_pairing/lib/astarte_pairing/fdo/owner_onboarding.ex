@@ -126,10 +126,6 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding do
     end
   end
 
-  def ov_next_entry(_cbor_body, _realm_name, nil) do
-    {:error, "bad_session"}
-  end
-
   def ov_next_entry(cbor_body, realm_name, device_id) do
     # entry num represent the current enties we need to check for in the ov
     with {:ok, [entry_num], _} <- CBOR.decode(cbor_body),
