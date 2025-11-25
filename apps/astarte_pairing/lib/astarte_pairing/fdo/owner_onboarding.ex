@@ -41,20 +41,13 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding do
     with {:ok, hello_device} <- OwnerOnboardingCore.decode_hello_device(cbor_hello_device),
          %{device_id: device_id, kex_name: kex_name} = hello_device,
          {:ok, ownership_voucher} <- Queries.get_ownership_voucher(realm_name, device_id),
-         {:ok, owner_private_key} <- Queries.get_owner_private_key(realm_name, device_id),
-         {:ok, xa_key_exchange, private_key} <- generate_key_exchange_param(kex_name),
-         {:ok, session_key} <- Session.new(realm_name, device_id, xa_key_exchange, private_key) do
-      # TODO save hello_device.device_id, hello_device.cipher_name and _private_key
-
-      # SAFETY: the owner private key was validated before it was saved to the database
-      {:ok, owner_private_key} =
-        COSE.Keys.from_pem(owner_private_key)
-
+         {:ok, owner_private_key} <- fetch_owner_private_key(realm_name, device_id),
+         {:ok, session} <- Session.new(realm_name, device_id, kex_name, owner_private_key) do
       cbor_ov_header = OwnerOnboardingCore.ov_header(ownership_voucher)
       num_ov_entries = OwnerOnboardingCore.num_ov_entries(ownership_voucher)
       hmac = OwnerOnboardingCore.hmac(ownership_voucher)
       hello_device_hash = OwnerOnboardingCore.compute_hello_device_hash(cbor_hello_device)
-      unprotected_headers = build_unprotected_headers(ownership_voucher)
+      unprotected_headers = build_unprotected_headers(ownership_voucher, session.prove_ov_nonce)
 
       to2_proveovhdr_payload =
         build_to2_proveovhdr_payload(
@@ -63,7 +56,7 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding do
           hmac,
           hello_device.nonce,
           nil,
-          xa_key_exchange,
+          session.xa,
           hello_device_hash
         )
 
@@ -74,11 +67,17 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding do
           unprotected_headers
         )
 
-      {:ok, session_key, message}
+      {:ok, session.key, message}
     else
       {:error, reason} ->
         Logger.error("Failed to process hello_device: #{inspect(reason)}")
         {:error, reason}
+    end
+  end
+
+  defp fetch_owner_private_key(realm_name, device_id) do
+    with {:ok, pem_key} <- Queries.get_owner_private_key(realm_name, device_id) do
+      COSE.Keys.from_pem(pem_key)
     end
   end
 
@@ -103,26 +102,11 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding do
     ]
   end
 
-  defp build_unprotected_headers(ownership_voucher) do
+  defp build_unprotected_headers(ownership_voucher, nonce) do
     %{
-      # TODO save nonce into session for later use
-      @cupd_nonce_tag => :crypto.strong_rand_bytes(16),
+      @cupd_nonce_tag => nonce,
       @cuph_owner_pubkey_tag => OwnerOnboardingCore.ov_last_entry_public_key(ownership_voucher)
     }
-  end
-
-  # Do we need to support all kex suites?
-  defp generate_key_exchange_param(kex_suite_name) do
-    case kex_suite_name do
-      "ASYMKEX2048" ->
-        private_key_record = generate_rsa_2048_key()
-        {:ok, public_key_record} = get_public_key(private_key_record)
-        {:ok, public_key_record, private_key_record}
-
-      _ ->
-        Logger.error("Key exchange suite not supported: #{kex_suite_name}")
-        {:error, :unsupported_kex_suite}
-    end
   end
 
   def generate_rsa_2048_key() do

@@ -22,8 +22,11 @@ defmodule Astarte.DataAccess.FDO.TO2Session do
   @primary_key false
   typed_schema "to2_sessions" do
     field :session_key, :binary, primary_key: true
-    field :device_id, Astarte.DataAccess.UUID, primary_key: true
-    field :private_key, :binary
-    field :public_key, :binary
+    field :device_id, Astarte.DataAccess.UUID
+    field :device_public_key, :binary
+    field :prove_ov_nonce, :binary
+    field :kex_suite_name, :string
+    field :owner_random, :binary
+    field :secret, :binary
   end
 end

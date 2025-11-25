@@ -83,6 +83,19 @@ defmodule Astarte.Helpers.Database do
    );
   """
 
+  @create_to2_sessions_table """
+  CREATE TABLE :keyspace.to2_sessions (
+    session_key blob,
+    device_id uuid,
+    device_public_key blob,
+    prove_ov_nonce blob,
+    kex_suite_name ascii,
+    owner_random blob,
+    secret blob,
+    PRIMARY KEY (session_key)
+  );
+  """
+
   @create_devices_table """
   CREATE TABLE :keyspace.devices (
     device_id uuid,
@@ -304,6 +317,7 @@ defmodule Astarte.Helpers.Database do
     execute!(realm_keyspace, @create_individual_datastreams_table)
     execute!(realm_keyspace, @create_interfaces_table)
     execute!(realm_keyspace, @create_deletion_in_progress_table)
+    execute!(realm_keyspace, @create_to2_sessions_table)
 
     :ok
   end

@@ -17,13 +17,57 @@
 #
 
 defmodule Astarte.Pairing.FDO.OwnerOnboarding.Session do
+  use TypedStruct
+
+  alias Astarte.Pairing.FDO.OwnerOnboarding.Session
+  alias Astarte.Pairing.FDO.OwnerOnboarding.SessionKey
   alias Astarte.Pairing.Queries
 
-  def new(realm_name, device_id, public_key, private_key) do
-    key = UUID.uuid4(:raw)
+  typedstruct do
+    field :key, String.t()
+    field :device_id, Astarte.DataAccess.UUID
+    field :device_public_key, binary()
+    field :prove_ov_nonce, binary()
+    field :kex_suite_name, String.t()
+    field :owner_random, term()
+    field :xa, binary()
+    field :secret, binary()
+  end
 
-    with :ok <- Queries.store_session(realm_name, key, device_id, public_key, private_key) do
-      {:ok, UUID.binary_to_string!(key)}
+  def new(realm_name, device_id, kex, owner_key) do
+    key = UUID.uuid4(:raw)
+    prove_ov_nonce = :crypto.strong_rand_bytes(16)
+
+    with {:ok, owner_random, xa} <- SessionKey.new(kex, owner_key),
+         :ok <-
+           Queries.store_session(
+             realm_name,
+             device_id,
+             key,
+             prove_ov_nonce,
+             kex,
+             owner_random
+           ) do
+      session = %Session{
+        key: UUID.binary_to_string!(key),
+        device_id: device_id,
+        prove_ov_nonce: prove_ov_nonce,
+        kex_suite_name: kex,
+        owner_random: owner_random,
+        xa: xa
+      }
+
+      {:ok, session}
+    end
+  end
+
+  def build_session_secret(session, realm_name, owner_key, xb) do
+    %Session{kex_suite_name: kex, owner_random: owner_random, key: session_key} = session
+
+    with {:ok, device_public, secret} <-
+           SessionKey.compute_shared_secret(kex, owner_key, owner_random, xb),
+         :ok <- Queries.add_session_secret(realm_name, session_key, device_public, secret) do
+      {:ok, %{session | secret: secret, device_public_key: device_public}}
     end
   end
 end

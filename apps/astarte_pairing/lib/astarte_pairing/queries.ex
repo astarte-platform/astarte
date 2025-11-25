@@ -278,7 +278,14 @@ defmodule Astarte.Pairing.Queries do
     |> Repo.insert(opts)
   end
 
-  def store_session(realm_name, session_key, device_id, public_key, private_key) do
+  def store_session(
+        realm_name,
+        device_id,
+        session_key,
+        prove_ov_nonce,
+        kex_suite_name,
+        owner_random
+      ) do
     keyspace = Realm.keyspace_name(realm_name)
     consistency = Consistency.device_info(:write)
     ttl = @two_hours
@@ -287,14 +294,35 @@ defmodule Astarte.Pairing.Queries do
     session = %TO2Session{
       session_key: {:custom, "uuidAsBlob(?)", session_key},
       device_id: device_id,
-      private_key: private_key,
-      public_key: public_key
+      prove_ov_nonce: prove_ov_nonce,
+      kex_suite_name: kex_suite_name,
+      owner_random: owner_random
     }
 
     {sql, params} = Repo.insert_to_sql(session, opts)
 
     with {:ok, _} <- Repo.query(sql, params, opts) do
       :ok
+    end
+  end
+
+  def add_session_secret(realm_name, session_key, device_public_key, secret) do
+    keyspace = Realm.keyspace_name(realm_name)
+    consistency = Consistency.device_info(:write)
+    ttl = @two_hours
+    opts = [prefix: keyspace, consistency: consistency, ttl: ttl]
+
+    session =
+      from s in TO2Session,
+        where: s.session_key == fragment("uuidAsBlob(?)", ^session_key)
+
+    case Repo.update_all(
+           session,
+           [set: [secret: secret, device_public_key: device_public_key]],
+           opts
+         ) do
+      {0, _} -> {:error, :session_not_found}
+      {1, _} -> :ok
     end
   end
 

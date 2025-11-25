@@ -563,8 +563,11 @@ defmodule Astarte.Housekeeping.Realms.Queries do
     CREATE TABLE #{keyspace_name}.to2_sessions (
       session_key blob,
       device_id uuid,
-      private_key blob,
-      public_key blob,
+      device_public_key blob,
+      prove_ov_nonce blob,
+      kex_suite_name ascii,
+      owner_random blob,
+      secret blob,
       PRIMARY KEY (session_key)
     );
     """
