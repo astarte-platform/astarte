@@ -34,6 +34,7 @@ defmodule Astarte.Pairing.OwnerOnboarding.Onboarding.ProveDevice do
 
   def generate_eddsa_keys do
     {pub, priv} = :crypto.generate_key(:eddsa, :ed25519)
+    # pair = COSE.Keys.OKP.generate(:sig)
     {priv, pub}
   end
 
@@ -102,7 +103,7 @@ defmodule Astarte.Pairing.OwnerOnboarding.Onboarding.ProveDevice do
     body = build_test_cose_sign1(@es256_alg, priv_struct, @test_nonce, @test_guid)
     creds = dummy_creds(pub_key)
 
-    result =
+    {:ok, msg_65_payload} =
       OwnerOnboarding.verify(
         body,
         pub_key,
@@ -111,8 +112,6 @@ defmodule Astarte.Pairing.OwnerOnboarding.Onboarding.ProveDevice do
         @test_guid,
         creds
       )
-
-    assert {:ok, msg_65_payload} = result
 
     assert {:ok, [_prot, _, _payload, _tag], _} = CBOR.decode(msg_65_payload)
   end

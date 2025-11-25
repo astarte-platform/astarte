@@ -134,11 +134,11 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding do
     end
   end
 
-  def prove_device(realm_name, device_pub_key, body) do
-    # TODO: nonce and device_id must be read from session
-    device_guid = "placeholder"
-    session_key = "placeholder"
-    nonce = "placeholder"
+  def prove_device(realm_name, body, session) do
+    session_key = session.key
+    device_guid = session.device_id
+    nonce = session.nonce
+    device_pub_key = session.device_public_key
 
     {:ok, current_rendezvous_info} =
       RendezvousCore.get_rv_to2_addr_entry("#{realm_name}.#{Config.base_domain!()}")
@@ -209,13 +209,10 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding do
   def verify_signature(:es256, pub_key, signature, sig_structure) do
     if byte_size(signature) == 64 do
       <<r_bin::binary-size(32), s_bin::binary-size(32)>> = signature
-
       # ASN.1/DER requires integers for ECDSA-Sig-Value.
       r = :binary.decode_unsigned(r_bin)
       s = :binary.decode_unsigned(s_bin)
-
       der_sig = der_encode_ecdsa(r, s)
-
       :crypto.verify(:ecdsa, :sha256, sig_structure, der_sig, pub_key)
     else
       false
