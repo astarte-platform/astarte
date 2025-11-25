@@ -21,7 +21,6 @@ defmodule Astarte.Pairing.FDO.OwnershipVoucher.CreateRequest do
 
   alias Astarte.Pairing.FDO.OwnershipVoucher.CreateRequest
   alias Astarte.Pairing.FDO.OwnershipVoucher.Core
-  alias Astarte.Pairing.FDO.Core, as: FDOCore
 
   require Logger
 
@@ -69,12 +68,9 @@ defmodule Astarte.Pairing.FDO.OwnershipVoucher.CreateRequest do
     # SAFETY: we've validated the field is required and we only accept valid changesets
     private_key = fetch_field!(changeset, :private_key)
 
-    case FDOCore.extract_private_key(private_key) do
-      {:ok, extracted_private_key} ->
-        put_change(changeset, :extracted_private_key, extracted_private_key)
-
-      {:error, _} ->
-        add_error(changeset, :private_key, "must be a valid EC or RSA private key")
+    case COSE.Keys.from_pem(private_key) do
+      {:ok, key} -> put_change(changeset, :extracted_private_key, key)
+      :error -> add_error(changeset, :private_key, "must be a valid EC or RSA private key")
     end
   end
 end

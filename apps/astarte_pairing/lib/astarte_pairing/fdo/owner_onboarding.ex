@@ -24,7 +24,6 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding do
   and supports key exchange parameter generation for secure device onboarding.
   """
 
-  alias Astarte.Pairing.FDO.Core, as: FDOCore
   alias Astarte.Pairing.FDO.OwnerOnboarding.Core, as: OwnerOnboardingCore
   alias Astarte.Pairing.FDO.OwnerOnboarding.Session
   alias Astarte.Pairing.FDO.OwnershipVoucher.Core, as: OwnershipVoucherCore
@@ -49,7 +48,7 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding do
 
       # SAFETY: the owner private key was validated before it was saved to the database
       {:ok, owner_private_key} =
-        FDOCore.extract_private_key(owner_private_key)
+        COSE.Keys.from_pem(owner_private_key)
 
       cbor_ov_header = OwnerOnboardingCore.ov_header(ownership_voucher)
       num_ov_entries = OwnerOnboardingCore.num_ov_entries(ownership_voucher)

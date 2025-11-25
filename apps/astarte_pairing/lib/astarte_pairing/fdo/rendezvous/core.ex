@@ -20,10 +20,8 @@ defmodule Astarte.Pairing.FDO.Rendezvous.Core do
   require Logger
 
   alias Astarte.Pairing.FDO.Cbor.Core, as: CBORCore
+  alias COSE.Messages.Sign1
 
-  @es256 -7
-  @es256_identifier 1
-  @cose_sign1_tag 18
   @http 3
   @load_balancer_port 4003
 
@@ -36,29 +34,17 @@ defmodule Astarte.Pairing.FDO.Rendezvous.Core do
     to0d = CBORCore.build_to0d(decoded_ownership_voucher, 3600, nonce)
     to1d_to0d_hash = CBORCore.build_to1d_to0d_hash(to0d)
     to1d_rv = CBORCore.build_to1d_rv(addr_entries)
-    blob_payload = CBORCore.build_to1d_blob_payload(to1d_rv, to1d_to0d_hash)
+    blob_payload = CBORCore.build_to1d_blob_payload(to1d_rv, to1d_to0d_hash) |> COSE.tag_as_byte()
     signature = build_cose_sign1(blob_payload, owner_key)
 
     CBOR.encode([CBORCore.add_cbor_tag(to0d), signature])
   end
 
   def build_cose_sign1(payload, owner_key, unprotected_header \\ %{}) do
-    protected_header = %{@es256_identifier => @es256}
-    protected_header_cbor = CBOR.encode(protected_header)
+    protected_header = %{alg: :es256}
 
-    sig_structure = ["Signature#{@es256_identifier}", protected_header_cbor, <<>>, payload]
-    sig_structure_cbor = CBOR.encode(sig_structure)
-
-    raw_signature = :public_key.sign(sig_structure_cbor, :sha256, owner_key)
-
-    cose_sign1_array = [
-      CBORCore.add_cbor_tag(protected_header_cbor),
-      unprotected_header,
-      CBORCore.add_cbor_tag(payload),
-      CBORCore.add_cbor_tag(raw_signature)
-    ]
-
-    %CBOR.Tag{tag: @cose_sign1_tag, value: cose_sign1_array}
+    %Sign1{payload: payload, phdr: protected_header, uhdr: unprotected_header}
+    |> Sign1.sign_encode(owner_key)
   end
 
   def get_body_nonce(body) do

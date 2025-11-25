@@ -59,7 +59,7 @@ defmodule Astarte.Pairing.Fdo.OwnershipVoucher.CreateRequestTest do
       assert %CreateRequest{extracted_private_key: extracted_private_key} =
                from_changeset!(@sample_params)
 
-      assert elem(extracted_private_key, 0) == :ECPrivateKey
+      assert is_struct(extracted_private_key, COSE.Keys.ECC)
     end
 
     test "`extracted_private_key` as the `:public_key.private_key()` encoding of the RSA pem key" do
@@ -68,7 +68,7 @@ defmodule Astarte.Pairing.Fdo.OwnershipVoucher.CreateRequestTest do
       assert %CreateRequest{extracted_private_key: extracted_private_key} =
                from_changeset!(params)
 
-      assert elem(extracted_private_key, 0) == :RSAPrivateKey
+      assert is_struct(extracted_private_key, COSE.Keys.RSA)
     end
   end
 

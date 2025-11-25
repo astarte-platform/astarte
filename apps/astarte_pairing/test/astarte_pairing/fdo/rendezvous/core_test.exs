@@ -151,14 +151,14 @@ defmodule Astarte.Pairing.FDO.Rendezvous.CoreTest do
     } do
       cose_sign1_array = assert_cose_sign1(payload, owner_key)
 
-      assert List.pop_at(cose_sign1_array, 2) |> elem(0) == %CBOR.Tag{tag: :bytes, value: payload}
+      assert List.pop_at(cose_sign1_array, 2) |> elem(0) == payload
     end
 
     test "raises with an invalid PEM key" do
       payload = CBOR.encode(["test", 123])
       invalid_key = {:InvalidKey, <<>>}
 
-      assert_raise ArgumentError, fn -> Core.build_cose_sign1(payload, invalid_key) end
+      assert_raise Protocol.UndefinedError, fn -> Core.build_cose_sign1(payload, invalid_key) end
     end
 
     test "returns sign with correct cbor signature for valid payload and owner key", %{
