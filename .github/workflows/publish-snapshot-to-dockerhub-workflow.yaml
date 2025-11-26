@@ -124,8 +124,8 @@ jobs:
         id: push
         uses: docker/build-push-action@v6.18.0
         with:
-          context: apps/${{ matrix.app }}
-          file: Dockerfile
+          context: .
+          file: apps/${{ matrix.app }}/Dockerfile
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
