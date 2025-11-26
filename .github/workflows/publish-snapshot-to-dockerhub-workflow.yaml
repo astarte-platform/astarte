@@ -16,9 +16,42 @@ on:
     - 'release-*'
 
 jobs:
-  container_tests:
+  astarte_appengine_api:
     uses: ./.github/workflows/astarte-apps-build-workflow.yaml
+    with:
+      app: "astarte_appengine_api"
     secrets: inherit
+
+  astarte_data_updater_plant:
+    uses: ./.github/workflows/astarte-apps-build-workflow.yaml
+    with:
+      app: "astarte_data_updater_plant"
+    secrets: inherit
+
+  astarte_housekeeping:
+    uses: ./.github/workflows/astarte-apps-build-workflow.yaml
+    with:
+      app: "astarte_housekeeping"
+    secrets: inherit
+
+  astarte_pairing:
+    uses: ./.github/workflows/astarte-apps-build-workflow.yaml
+    with:
+      app: "astarte_pairing"
+    secrets: inherit
+
+  astarte_realm_management:
+    uses: ./.github/workflows/astarte-apps-build-workflow.yaml
+    with:
+      app: "astarte_realm_management"
+    secrets: inherit
+
+  astarte_trigger_engine:
+    uses: ./.github/workflows/astarte-apps-build-workflow.yaml
+    with:
+      app: "astarte_trigger_engine"
+    secrets: inherit
+
 
   e2e_tests:
     uses: ./.github/workflows/astarte-end-to-end-test-workflow.yaml
@@ -32,7 +65,12 @@ jobs:
       attestations: write
       id-token: write
     needs:
-    - container_tests
+    - astarte_appengine_api
+    - astarte_data_updater_plant
+    - astarte_housekeeping
+    - astarte_pairing
+    - astarte_realm_management
+    - astarte_trigger_engine
     - e2e_tests
     strategy:
       fail-fast: true
@@ -41,11 +79,8 @@ jobs:
         - astarte_appengine_api
         - astarte_data_updater_plant
         - astarte_housekeeping
-        - astarte_housekeeping_api
         - astarte_pairing
-        - astarte_pairing_api
         - astarte_realm_management
-        - astarte_realm_management_api
         - astarte_trigger_engine
     steps:
       - name: Check out the repo
