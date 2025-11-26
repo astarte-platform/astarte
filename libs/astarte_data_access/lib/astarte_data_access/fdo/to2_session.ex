@@ -24,7 +24,7 @@ defmodule Astarte.DataAccess.FDO.TO2Session do
     field :session_key, :binary, primary_key: true
     field :device_id, Astarte.DataAccess.UUID
     field :device_public_key, :binary
-    field :prove_ov_nonce, :binary
+    field :prove_dv_nonce, :binary
     field :kex_suite_name, :string
     field :owner_random, :binary
     field :secret, :binary

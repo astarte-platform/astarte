@@ -47,7 +47,7 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding do
       num_ov_entries = OwnerOnboardingCore.num_ov_entries(ownership_voucher)
       hmac = OwnerOnboardingCore.hmac(ownership_voucher)
       hello_device_hash = OwnerOnboardingCore.compute_hello_device_hash(cbor_hello_device)
-      unprotected_headers = build_unprotected_headers(ownership_voucher, session.prove_ov_nonce)
+      unprotected_headers = build_unprotected_headers(ownership_voucher, session.prove_dv_nonce)
 
       to2_proveovhdr_payload =
         build_to2_proveovhdr_payload(

@@ -28,7 +28,7 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding.Session do
     field :key, String.t()
     field :device_id, Astarte.DataAccess.UUID
     field :device_public_key, binary()
-    field :prove_ov_nonce, binary()
+    field :prove_dv_nonce, binary()
     field :kex_suite_name, String.t()
     field :owner_random, term()
     field :xa, binary()
@@ -37,7 +37,7 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding.Session do
 
   def new(realm_name, device_id, kex, owner_key) do
     key = UUID.uuid4(:raw)
-    prove_ov_nonce = :crypto.strong_rand_bytes(16)
+    prove_dv_nonce = :crypto.strong_rand_bytes(16)
 
     with {:ok, owner_random, xa} <- SessionKey.new(kex, owner_key),
          :ok <-
@@ -45,14 +45,14 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding.Session do
              realm_name,
              device_id,
              key,
-             prove_ov_nonce,
+             prove_dv_nonce,
              kex,
              owner_random
            ) do
       session = %Session{
         key: UUID.binary_to_string!(key),
         device_id: device_id,
-        prove_ov_nonce: prove_ov_nonce,
+        prove_dv_nonce: prove_dv_nonce,
         kex_suite_name: kex,
         owner_random: owner_random,
         xa: xa
@@ -77,7 +77,7 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding.Session do
       %TO2Session{
         device_id: device_id,
         device_public_key: device_public_key,
-        prove_ov_nonce: prove_ov_nonce,
+        prove_dv_nonce: prove_dv_nonce,
         kex_suite_name: kex_suite_name,
         owner_random: owner_random,
         secret: secret
@@ -87,7 +87,7 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding.Session do
         key: session_key,
         device_id: device_id,
         device_public_key: device_public_key,
-        prove_ov_nonce: prove_ov_nonce,
+        prove_dv_nonce: prove_dv_nonce,
         kex_suite_name: kex_suite_name,
         owner_random: owner_random,
         secret: secret
