@@ -46,6 +46,7 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandlerTest do
   alias Astarte.DataUpdaterPlant.Config
   alias Astarte.DataUpdaterPlant.DataUpdater.State
   alias Astarte.DataUpdaterPlant.TriggersHandler
+  alias Astarte.Events.Config, as: EventsConfig
   alias Astarte.Housekeeping.AMQP.Vhost
 
   @introspection "com.My.Interface:1:0;com.Another.Interface:1:2"
@@ -93,20 +94,24 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandlerTest do
 
   setup_all do
     Vhost.create_vhost(@realm)
-    {:ok, conn} = Connection.open(Config.amqp_producer_options!())
+    {:ok, conn} = Connection.open(EventsConfig.amqp_options!())
     {:ok, chan} = Channel.open(conn)
     {:ok, _queue} = Queue.declare(chan, @queue_name)
     {:ok, _queue} = Queue.declare(chan, @default_policy_queue)
     {:ok, _queue} = Queue.declare(chan, @custom_policy_queue)
-    :ok = Queue.bind(chan, @queue_name, Config.events_exchange_name!(), routing_key: @routing_key)
 
     :ok =
-      Queue.bind(chan, @default_policy_queue, Config.events_exchange_name!(),
+      Queue.bind(chan, @queue_name, EventsConfig.amqp_events_exchange_name!(),
+        routing_key: @routing_key
+      )
+
+    :ok =
+      Queue.bind(chan, @default_policy_queue, EventsConfig.amqp_events_exchange_name!(),
         routing_key: @default_policy_routing_key
       )
 
     :ok =
-      Queue.bind(chan, @custom_policy_queue, Config.events_exchange_name!(),
+      Queue.bind(chan, @custom_policy_queue, EventsConfig.amqp_events_exchange_name!(),
         routing_key: @custom_policy_routing_key
       )
 

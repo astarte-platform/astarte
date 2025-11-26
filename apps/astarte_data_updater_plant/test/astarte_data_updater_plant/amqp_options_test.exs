@@ -30,16 +30,6 @@ defmodule Astarte.DataUpdaterPlant.AMQPOptionsTest do
     Config.reload_amqp_consumer_ssl_ca_file()
     Config.reload_amqp_consumer_ssl_disable_sni()
     Config.reload_amqp_consumer_ssl_custom_sni()
-
-    Config.reload_amqp_producer_password()
-    Config.reload_amqp_producer_username()
-    Config.reload_amqp_producer_port()
-    Config.reload_amqp_producer_host()
-    Config.reload_amqp_producer_virtual_host()
-    Config.reload_amqp_producer_ssl_enabled()
-    Config.reload_amqp_producer_ssl_ca_file()
-    Config.reload_amqp_producer_ssl_disable_sni()
-    Config.reload_amqp_producer_ssl_custom_sni()
   end
 
   setup do
@@ -79,111 +69,10 @@ defmodule Astarte.DataUpdaterPlant.AMQPOptionsTest do
       Config.put_amqp_consumer_ssl_enabled(true)
       Config.put_amqp_consumer_ssl_disable_sni(true)
 
-      Config.amqp_producer_options!()
+      Config.amqp_consumer_options!()
 
       ssl_options =
-        Config.amqp_producer_options!()
-        |> Keyword.fetch!(:ssl_options)
-
-      assert server_name_indication: :disable in ssl_options
-    end
-  end
-
-  describe "amqp producer options" do
-    test "get default values when not set" do
-      amqp_producer_options = Config.amqp_producer_options!()
-
-      assert length(amqp_producer_options) == 6
-      assert password: Config.amqp_consumer_password!() in amqp_producer_options
-      assert username: Config.amqp_consumer_username!() in amqp_producer_options
-      assert port: Config.amqp_consumer_port!() in amqp_producer_options
-      assert host: Config.amqp_consumer_host!() in amqp_producer_options
-      assert virtual_host: Config.amqp_consumer_virtual_host!() in amqp_producer_options
-
-      assert Keyword.get(amqp_producer_options, :ssl_options) == nil
-
-      consumer_options = Keyword.delete(Config.amqp_consumer_options!(), :channels)
-      producer_options = Keyword.delete(Config.amqp_producer_options!(), :channels)
-
-      assert consumer_options == producer_options
-    end
-
-    test "after setting its values" do
-      Config.put_amqp_producer_password("password")
-      Config.put_amqp_producer_username("username")
-      Config.put_amqp_producer_port(12345)
-      Config.put_amqp_producer_host("host")
-      Config.put_amqp_producer_virtual_host("virtual_host")
-
-      amqp_producer_options = Config.amqp_producer_options!()
-
-      assert length(amqp_producer_options) == 6
-      assert password: "password" in amqp_producer_options
-      assert username: "username" in amqp_producer_options
-      assert port: 12345 in amqp_producer_options
-      assert host: "host" in amqp_producer_options
-      assert virtual_host: "virtual_host" in amqp_producer_options
-      assert Keyword.get(amqp_producer_options, :ssl_options) == nil
-    end
-
-    test "SSL is enabled for consumer and ca_cart is not set neither for producer nor for consumer" do
-      Config.put_amqp_consumer_ssl_enabled(true)
-
-      ssl_amqp_producer_options =
-        Config.amqp_producer_options!()
-        |> Keyword.fetch!(:ssl_options)
-
-      assert cacertfile: CAStore.file_path() in ssl_amqp_producer_options
-
-      assert server_name_indication:
-               Config.amqp_consumer_ssl_custom_sni!() in ssl_amqp_producer_options
-
-      consumer_options = Keyword.delete(Config.amqp_consumer_options!(), :channels)
-      producer_options = Keyword.delete(Config.amqp_producer_options!(), :channels)
-
-      assert consumer_options == producer_options
-    end
-
-    test "SSL is enabled for consumer and its ca_cert is set" do
-      ca_cert_path = "/the/path/to/ca_cert.pem"
-      Config.put_amqp_consumer_ssl_enabled(true)
-      Config.put_amqp_consumer_ssl_ca_file(ca_cert_path)
-
-      ssl_amqp_producer_options =
-        Config.amqp_producer_options!()
-        |> Keyword.fetch!(:ssl_options)
-
-      assert cacertfile: ca_cert_path in ssl_amqp_producer_options
-
-      assert server_name_indication:
-               Config.amqp_consumer_ssl_custom_sni!() in ssl_amqp_producer_options
-
-      consumer_options = Keyword.delete(Config.amqp_consumer_options!(), :channels)
-      producer_options = Keyword.delete(Config.amqp_producer_options!(), :channels)
-
-      assert consumer_options == producer_options
-    end
-
-    test "SSL is enabled and ca_cert is set for producer" do
-      ca_cert_path = "/the/path/to/ca_cert.pem"
-      Config.put_amqp_producer_ssl_enabled(true)
-      Config.put_amqp_producer_ssl_ca_file(ca_cert_path)
-
-      ssl_amqp_producer_options =
-        Config.amqp_producer_options!()
-        |> Keyword.fetch!(:ssl_options)
-
-      assert cacertfile: ca_cert_path in ssl_amqp_producer_options
-    end
-
-    test "ssl is enabled and server name indication is disabled for producer" do
-      Config.put_amqp_producer_ssl_enabled(true)
-      Config.put_amqp_producer_ssl_disable_sni(true)
-
-      Config.amqp_producer_options!()
-
-      ssl_options =
-        Config.amqp_producer_options!()
+        Config.amqp_consumer_options!()
         |> Keyword.fetch!(:ssl_options)
 
       assert server_name_indication: :disable in ssl_options
