@@ -23,6 +23,7 @@ defmodule Astarte.Helpers.Database do
   alias Astarte.Core.Device
   alias Astarte.DataAccess.Consistency
   alias Astarte.DataAccess.Devices.Device, as: DeviceSchema
+  alias Astarte.DataAccess.FDO.TO2Session
   alias Astarte.DataAccess.Realms.Realm
   alias Astarte.DataAccess.Repo
   alias Astarte.Pairing.CredentialsSecret
@@ -90,8 +91,12 @@ defmodule Astarte.Helpers.Database do
     device_public_key blob,
     prove_ov_nonce blob,
     kex_suite_name ascii,
+    cipher_suite_name ascii,
     owner_random blob,
     secret blob,
+    sevk blob,
+    svk blob,
+    sek blob,
     PRIMARY KEY (session_key)
   );
   """
@@ -547,5 +552,15 @@ defmodule Astarte.Helpers.Database do
   def now_millis do
     DateTime.utc_now()
     |> DateTime.to_unix(:millisecond)
+  end
+
+  def delete_session(realm_name, session_key) do
+    keyspace = Realm.keyspace_name(realm_name)
+
+    query =
+      from s in TO2Session,
+        where: s.session_key == fragment("uuidAsBlob(?)", ^session_key)
+
+    Repo.delete_all(query, prefix: keyspace)
   end
 end

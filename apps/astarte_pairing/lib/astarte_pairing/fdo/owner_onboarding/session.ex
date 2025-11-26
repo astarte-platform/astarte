@@ -30,12 +30,16 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding.Session do
     field :device_public_key, binary()
     field :prove_ov_nonce, binary()
     field :kex_suite_name, String.t()
+    field :cipher_suite, String.t()
     field :owner_random, term()
     field :xa, binary()
-    field :secret, binary()
+    field :secret, binary() | nil
+    field :sevk, binary() | nil
+    field :svk, binary() | nil
+    field :sek, binary() | nil
   end
 
-  def new(realm_name, device_id, kex, owner_key) do
+  def new(realm_name, device_id, kex, cipher_suite, owner_key) do
     key = UUID.uuid4(:raw)
     prove_ov_nonce = :crypto.strong_rand_bytes(16)
 
@@ -47,6 +51,7 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding.Session do
              key,
              prove_ov_nonce,
              kex,
+             cipher_suite,
              owner_random
            ) do
       session = %Session{
@@ -54,6 +59,7 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding.Session do
         device_id: device_id,
         prove_ov_nonce: prove_ov_nonce,
         kex_suite_name: kex,
+        cipher_suite: cipher_suite,
         owner_random: owner_random,
         xa: xa
       }
@@ -72,6 +78,20 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding.Session do
     end
   end
 
+  def derive_key(session, realm_name) do
+    %Session{
+      cipher_suite: cipher_suite,
+      secret: secret,
+      owner_random: owner_random,
+      key: session_key
+    } = session
+
+    with {:ok, sevk, svk, sek} <- SessionKey.derive_key(cipher_suite, secret, owner_random),
+         :ok <- Queries.add_session_keys(realm_name, session_key, sevk, svk, sek) do
+      {:ok, %{session | sevk: sevk, svk: svk, sek: sek}}
+    end
+  end
+
   def fetch(realm_name, session_key) do
     with {:ok, database_session} <- Queries.fetch_session(realm_name, session_key) do
       %TO2Session{
@@ -79,8 +99,12 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding.Session do
         device_public_key: device_public_key,
         prove_ov_nonce: prove_ov_nonce,
         kex_suite_name: kex_suite_name,
+        cipher_suite_name: cipher_suite_name,
         owner_random: owner_random,
-        secret: secret
+        secret: secret,
+        sevk: sevk,
+        svk: svk,
+        sek: sek
       } = database_session
 
       session = %Session{
@@ -89,8 +113,12 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding.Session do
         device_public_key: device_public_key,
         prove_ov_nonce: prove_ov_nonce,
         kex_suite_name: kex_suite_name,
+        cipher_suite: cipher_suite_name,
         owner_random: owner_random,
-        secret: secret
+        secret: secret,
+        sevk: sevk,
+        svk: svk,
+        sek: sek
       }
 
       {:ok, session}

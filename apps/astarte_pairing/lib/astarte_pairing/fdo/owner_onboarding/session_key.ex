@@ -17,6 +17,7 @@
 #
 
 defmodule Astarte.Pairing.FDO.OwnerOnboarding.SessionKey do
+  alias Astarte.Pairing.FDO.OwnerOnboarding.Core
   alias COSE.Keys.ECC
 
   def new("ECDH256", %ECC{} = owner_key) do
@@ -59,5 +60,30 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding.SessionKey do
     shared_secret = :public_key.compute_key(point, owner_key.pem_record)
 
     <<shared_secret::binary, device_random::binary, owner_random::binary>>
+  end
+
+  def derive_key("A256GCM", shared_secret, owner_random) do
+    derive_sevk(:hmac, :sha256, shared_secret, owner_random, 256, 256)
+  end
+
+  defp derive_sevk(
+         mac_type,
+         mac_subtype,
+         shared_secret,
+         owner_random,
+         key_length,
+         kdf_output_length
+       ) do
+    n = ceil(key_length / kdf_output_length)
+
+    # The counter for each iteration, i, is a single byte
+    if n > 255 do
+      {:error, :too_many_iterations}
+    else
+      context = "AutomaticOnboardTunnel" <> owner_random
+      l = <<key_length::integer-big-unsigned-size(16)>>
+      sevk = Core.counter_mode_kdf(mac_type, mac_subtype, n, shared_secret, context, l)
+      {:ok, sevk, nil, nil}
+    end
   end
 end

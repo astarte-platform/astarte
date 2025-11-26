@@ -39,10 +39,11 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding do
 
   def hello_device(realm_name, cbor_hello_device) do
     with {:ok, hello_device} <- OwnerOnboardingCore.decode_hello_device(cbor_hello_device),
-         %{device_id: device_id, kex_name: kex_name} = hello_device,
+         %{device_id: device_id, kex_name: kex_name, cipher_name: cipher_name} = hello_device,
          {:ok, ownership_voucher} <- Queries.get_ownership_voucher(realm_name, device_id),
          {:ok, owner_private_key} <- fetch_owner_private_key(realm_name, device_id),
-         {:ok, session} <- Session.new(realm_name, device_id, kex_name, owner_private_key) do
+         {:ok, session} <-
+           Session.new(realm_name, device_id, kex_name, cipher_name, owner_private_key) do
       cbor_ov_header = OwnerOnboardingCore.ov_header(ownership_voucher)
       num_ov_entries = OwnerOnboardingCore.num_ov_entries(ownership_voucher)
       hmac = OwnerOnboardingCore.hmac(ownership_voucher)

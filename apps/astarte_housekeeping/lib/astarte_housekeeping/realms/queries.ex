@@ -566,8 +566,12 @@ defmodule Astarte.Housekeeping.Realms.Queries do
       device_public_key blob,
       prove_ov_nonce blob,
       kex_suite_name ascii,
+      cipher_suite_name ascii,
       owner_random blob,
       secret blob,
+      sevk blob,
+      svk blob,
+      sek blob,
       PRIMARY KEY (session_key)
     );
     """

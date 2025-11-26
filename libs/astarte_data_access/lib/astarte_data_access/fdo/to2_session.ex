@@ -26,7 +26,11 @@ defmodule Astarte.DataAccess.FDO.TO2Session do
     field :device_public_key, :binary
     field :prove_ov_nonce, :binary
     field :kex_suite_name, :string
+    field :cipher_suite_name, :string
     field :owner_random, :binary
     field :secret, :binary
+    field :sevk, :binary
+    field :svk, :binary
+    field :sek, :binary
   end
 end
