@@ -16,6 +16,20 @@
 # limitations under the License.
 #
 
-defmodule Astarte.Pairing.FDO.OwnerOnboarding.CoreTest do
-  use ExUnit.Case, async: true
+defmodule Astarte.Pairing.FDO.OwnerOnboarding.SignatureInfo do
+  @type t :: :es256 | :es384 | :rs256 | :rs384 | {:eipd10, binary()} | {:eipd11, binary()}
+  @es256 -7
+  @es384 -35
+  @eipd10 90
+  @eipd11 91
+
+  def decode(sig_info) do
+    case sig_info do
+      [@es256, <<>>] -> {:ok, :es256}
+      [@es384, <<>>] -> {:ok, :es384}
+      [@eipd10, gid] -> {:ok, {:eipd10, gid}}
+      [@eipd11, gid] -> {:ok, {:eipd11, gid}}
+      _ -> :error
+    end
+  end
 end

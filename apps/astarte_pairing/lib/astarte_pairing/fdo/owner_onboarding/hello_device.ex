@@ -22,6 +22,9 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding.HelloDevice do
   """
   use TypedStruct
 
+  alias Astarte.Pairing.FDO.OwnerOnboarding.HelloDevice
+  alias Astarte.Pairing.FDO.OwnerOnboarding.SignatureInfo
+
   @type sign_info :: {String.t(), binary()}
 
   typedstruct enforce: true do
@@ -32,6 +35,26 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding.HelloDevice do
     field :nonce, binary()
     field :kex_name, String.t()
     field :cipher_name, String.t()
-    field :easig_info, sign_info()
+    field :easig_info, SignatureInfo.t()
+  end
+
+  def decode(cbor_binary) do
+    with {:ok, message, _rest} <- CBOR.decode(cbor_binary),
+         [max_size, device_id, nonce_hello_device, kex_name, cipher_name, easig_info] <- message,
+         {:ok, easig_info} <- SignatureInfo.decode(easig_info) do
+      hello_device =
+        %HelloDevice{
+          max_size: max_size,
+          device_id: device_id,
+          nonce: nonce_hello_device,
+          kex_name: kex_name,
+          cipher_name: cipher_name,
+          easig_info: easig_info
+        }
+
+      {:ok, hello_device}
+    else
+      _ -> :error
+    end
   end
 end

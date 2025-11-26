@@ -25,6 +25,7 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding do
   """
 
   alias Astarte.Pairing.FDO.OwnerOnboarding.Core, as: OwnerOnboardingCore
+  alias Astarte.Pairing.FDO.OwnerOnboarding.HelloDevice
   alias Astarte.Pairing.FDO.OwnerOnboarding.Session
   alias Astarte.Pairing.FDO.OwnershipVoucher.Core, as: OwnershipVoucherCore
   alias Astarte.Pairing.FDO.Rendezvous.Core, as: RendezvousCore
@@ -38,7 +39,7 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding do
   @cuph_owner_pubkey_tag 257
 
   def hello_device(realm_name, cbor_hello_device) do
-    with {:ok, hello_device} <- OwnerOnboardingCore.decode_hello_device(cbor_hello_device),
+    with {:ok, hello_device} <- HelloDevice.decode(cbor_hello_device),
          %{device_id: device_id, kex_name: kex_name, cipher_name: cipher_name} = hello_device,
          {:ok, ownership_voucher} <- Queries.get_ownership_voucher(realm_name, device_id),
          {:ok, owner_private_key} <- fetch_owner_private_key(realm_name, device_id),
@@ -70,9 +71,9 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding do
 
       {:ok, session.key, message}
     else
-      {:error, reason} ->
-        Logger.error("Failed to process hello_device: #{inspect(reason)}")
-        {:error, reason}
+      error ->
+        Logger.error("Failed to process hello_device: #{inspect(error)}")
+        error
     end
   end
 

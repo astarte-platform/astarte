@@ -17,42 +17,10 @@
 #
 
 defmodule Astarte.Pairing.FDO.OwnerOnboarding.Core do
-  alias Astarte.Pairing.FDO.OwnerOnboarding.HelloDevice
-
   @sha256 -16
   # @sha384 -43
   # @hmac_sha256 5
   # @hmac_sha384 6
-
-  def decode_hello_device(cbor_hello_device) do
-    case CBOR.decode(cbor_hello_device) do
-      {:ok, decoded_hello_device, ""} ->
-        parse_hello_device(decoded_hello_device)
-
-      _ ->
-        {:error, :invalid_hello_device_message}
-    end
-  end
-
-  defp parse_hello_device(decoded_hello_device) do
-    case decoded_hello_device do
-      [max_size, device_id, nonce_hello_device, kex_name, cipher_name, easig_info] ->
-        hello_device =
-          %HelloDevice{
-            max_size: max_size,
-            device_id: device_id,
-            nonce: nonce_hello_device,
-            kex_name: kex_name,
-            cipher_name: cipher_name,
-            easig_info: easig_info
-          }
-
-        {:ok, hello_device}
-
-      _ ->
-        {:error, :invalid_hello_device_format}
-    end
-  end
 
   def ov_header(ownership_voucher) do
     %CBOR.Tag{tag: _tag, value: cbor_ov_header} = Enum.at(ownership_voucher, 1)
