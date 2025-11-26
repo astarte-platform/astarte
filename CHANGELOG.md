@@ -6,16 +6,6 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [1.3.0-rc.0] - 2025-11-21
 ### Added
-- [astarte_data_updater_plant] Added separate AMQP triggers producer configuration (falls back to general AMQP producer settings if unset):
-  - `DATA_UPDATER_PLANT_AMQP_TRIGGERS_PRODUCER_HOST` - Host for triggers producer connection (no default, falls back to producer host)
-  - `DATA_UPDATER_PLANT_AMQP_TRIGGERS_PRODUCER_USERNAME` - Username for triggers producer (no default, falls back to producer username)
-  - `DATA_UPDATER_PLANT_AMQP_TRIGGERS_PRODUCER_PASSWORD` - Password for triggers producer (no default, falls back to producer password)
-  - `DATA_UPDATER_PLANT_AMQP_TRIGGERS_PRODUCER_VIRTUAL_HOST` - Virtual host for triggers producer (no default, falls back to producer virtual host)
-  - `DATA_UPDATER_PLANT_AMQP_TRIGGERS_PRODUCER_PORT` - Port for triggers producer (no default, falls back to producer port)
-  - `DATA_UPDATER_PLANT_AMQP_TRIGGERS_PRODUCER_SSL_ENABLED` - Enable SSL for triggers producer (no default, falls back to producer SSL setting)
-  - `DATA_UPDATER_PLANT_AMQP_TRIGGERS_PRODUCER_SSL_CA_FILE` - CA certificate file for triggers producer SSL (falls back to producer CA file or bundled cURL certificates)
-  - `DATA_UPDATER_PLANT_AMQP_TRIGGERS_PRODUCER_SSL_DISABLE_SNI` - Disable Server Name Indication for triggers producer (default: false)
-  - `DATA_UPDATER_PLANT_AMQP_TRIGGERS_PRODUCER_SSL_CUSTOM_SNI` - Custom SNI hostname for triggers producer (falls back to producer host if unset)
 - [astarte_housekeeping] support network topology replication strategy for the `astarte` keyspace, with the following env vars:
   - `HOUSEKEEPING_ASTARTE_KEYSPACE_REPLICATION_STRATEGY` - Replication strategy for the `astarte` keyspace: "SimpleStrategy" or "NetworkTopologyStrategy" (default: "SimpleStrategy")
   - `HOUSEKEEPING_ASTARTE_KEYSPACE_REPLICATION_FACTOR` - Replication factor when using SimpleStrategy (default: 1)
@@ -42,6 +32,20 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
   - `HOUSEKEEPING_AMQP_USERNAME` - AMQP username (default: guest)
   - `HOUSEKEEPING_AMQP_PASSWORD` - AMQP password (default: guest)
   - `HOUSEKEEPING_AMQP_MANAGEMENT_PORT` - AMQP management API port (default: 15672)
+- BREAKING: [astarte_data_updater_plant] Added a separate the AMQP producer configuration, which is mandatory:
+  - `ASTARTE_EVENTS_PRODUCER_AMQP_HOST` - Host for producer connection (default: "localhost")
+  - `ASTARTE_EVENTS_PRODUCER_AMQP_USERNAME` - Username for producer (default: "guest")
+  - `ASTARTE_EVENTS_PRODUCER_AMQP_PASSWORD` - Password for producer (default: "guest")
+  - `ASTARTE_EVENTS_PRODUCER_AMQP_VIRTUAL_HOST` - Virtual host for internal events (default: "/")
+  - `ASTARTE_EVENTS_PRODUCER_AMQP_PORT` - Port for producer (default: 5672)
+  - `ASTARTE_EVENTS_PRODUCER_AMQP_SSL_ENABLED` - Enable SSL for producer (default: false)
+  - `ASTARTE_EVENTS_PRODUCER_AMQP_SSL_CA_FILE` - CA certificate file for producer SSL (default: bundled cURL certificates)
+  - `ASTARTE_EVENTS_PRODUCER_AMQP_SSL_DISABLE_SNI` - Disable Server Name Indication for producer (default: false)
+  - `ASTARTE_EVENTS_PRODUCER_AMQP_SSL_CUSTOM_SNI` - Custom SNI hostname for producer (falls back to the value of ASTARTE_EVENTS_PRODUCER_AMQP_HOST)
+  - `ASTARTE_EVENTS_PRODUCER_AMQP_CONNECTION_NUMBER` - The number of open connections to RabbitMQ (default: 10)
+  - `ASTARTE_EVENTS_PRODUCER_AMQP_DATA_QUEUE_TOTAL_COUNT` - The total number of data queues in the astarte cluster (default: 128)
+  - `ASTARTE_EVENTS_PRODUCER_AMQP_EVENTS_EXCHANGE_NAME` - The exchange for internal events (default: "astarte_events")
+- BREAKING: AMQP triggers are now always sent to an ad-hoc vhost for each realm. the vhost is `[astarte_instance_id]_[realm_name]`, which under normal circumstances is just `_[realm_name]`
 - BREAKING: [astarte_pairing] AMQP Producer configuration is now mandatory using the `ASTARTE_EVENTS_PRODUCER_AMQP_*` environment variables
 - BREAKING: [astarte_realm_management] AMQP Producer configuration is now mandatory using the `ASTARTE_EVENTS_PRODUCER_AMQP_*` environment variables
 - More accurate health checks for astarte services
