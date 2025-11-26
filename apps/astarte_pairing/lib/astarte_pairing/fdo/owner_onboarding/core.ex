@@ -22,11 +22,6 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding.Core do
   # @hmac_sha256 5
   # @hmac_sha384 6
 
-  def ov_header(ownership_voucher) do
-    %CBOR.Tag{tag: _tag, value: cbor_ov_header} = Enum.at(ownership_voucher, 1)
-    cbor_ov_header
-  end
-
   def compute_hello_device_hash(cbor_hello_device) do
     hash = :crypto.hash(:sha256, cbor_hello_device)
     [@sha256, hash]
@@ -37,17 +32,9 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding.Core do
     hmac
   end
 
-  def num_ov_entries(ownership_voucher) do
-    ownership_voucher
-    |> ov_entries()
-    |> length()
-  end
-
-  defp ov_entries([_version, _tag, _hmac, _cert_chain, entries]), do: entries
-
   def ov_last_entry_public_key(ownership_voucher) do
-    ownership_voucher
-    |> leaf_ov_entry()
+    ownership_voucher.entries
+    |> List.last()
     |> extract_entry_public_key()
     |> decode_public_key()
   end
@@ -69,12 +56,6 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding.Core do
       CBOR.decode(cbor_public_key)
 
     public_key
-  end
-
-  defp leaf_ov_entry(ownership_voucher) do
-    ownership_voucher
-    |> ov_entries()
-    |> List.last()
   end
 
   def counter_mode_kdf(mac_type, mac_subtype, n, secret, context, l) do

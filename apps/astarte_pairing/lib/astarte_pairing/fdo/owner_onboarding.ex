@@ -27,6 +27,7 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding do
   alias Astarte.Pairing.FDO.OwnerOnboarding.Core, as: OwnerOnboardingCore
   alias Astarte.Pairing.FDO.OwnerOnboarding.HelloDevice
   alias Astarte.Pairing.FDO.OwnerOnboarding.Session
+  alias Astarte.Pairing.FDO.OwnershipVoucher
   alias Astarte.Pairing.FDO.OwnershipVoucher.Core, as: OwnershipVoucherCore
   alias Astarte.Pairing.FDO.Rendezvous.Core, as: RendezvousCore
   alias Astarte.Pairing.Queries
@@ -41,21 +42,19 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding do
   def hello_device(realm_name, cbor_hello_device) do
     with {:ok, hello_device} <- HelloDevice.decode(cbor_hello_device),
          %{device_id: device_id, kex_name: kex_name, cipher_name: cipher_name} = hello_device,
-         {:ok, ownership_voucher} <- Queries.get_ownership_voucher(realm_name, device_id),
+         {:ok, ownership_voucher} <- OwnershipVoucher.fetch(realm_name, device_id),
          {:ok, owner_private_key} <- fetch_owner_private_key(realm_name, device_id),
          {:ok, session} <-
            Session.new(realm_name, device_id, kex_name, cipher_name, owner_private_key) do
-      cbor_ov_header = OwnerOnboardingCore.ov_header(ownership_voucher)
-      num_ov_entries = OwnerOnboardingCore.num_ov_entries(ownership_voucher)
-      hmac = OwnerOnboardingCore.hmac(ownership_voucher)
+      num_ov_entries = Enum.count(ownership_voucher.entries)
       hello_device_hash = OwnerOnboardingCore.compute_hello_device_hash(cbor_hello_device)
       unprotected_headers = build_unprotected_headers(ownership_voucher, session.prove_dv_nonce)
 
       to2_proveovhdr_payload =
         build_to2_proveovhdr_payload(
-          cbor_ov_header,
+          ownership_voucher.cbor_header,
           num_ov_entries,
-          hmac,
+          ownership_voucher.cbor_hmac,
           hello_device.nonce,
           nil,
           session.xa,
@@ -146,7 +145,7 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding do
       RendezvousCore.get_rv_to2_addr_entry("#{realm_name}.#{Config.base_domain!()}")
 
     {:ok, ownership_voucher} =
-      Queries.get_ownership_voucher(realm_name, device_guid)
+      OwnershipVoucher.fetch(realm_name, device_guid)
 
     connection_credentials = %{
       guid: device_guid,

@@ -106,6 +106,7 @@ defmodule Astarte.Helpers.FDO do
                       |> Ecto.Changeset.apply_action!(:insert)
 
   def sample_voucher, do: @sample_voucher
+  def sample_cbor_voucher, do: @sample_request_rc.cbor_ownership_voucher
   def sample_private_key, do: @sample_private_key
   def sample_extracted_private_key, do: @sample_request_rc.extracted_private_key
   def sample_extracted_rsa_private_key, do: @sample_request_rsa.extracted_private_key
