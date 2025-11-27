@@ -23,9 +23,31 @@ defmodule Astarte.Pairing.FDO.Types.Hash do
 
   @type type() :: :sha256 | :sha384 | :hmac_sha256 | :hmac_sha384
 
+  @sha256 -16
+  @sha384 -43
+  @hmac_sha256 5
+  @hmac_sha384 6
+
   typedstruct do
     field :type, type()
     field :hash, binary()
+  end
+
+  def new(hash_type, value) do
+    hash = :crypto.hash(hash_type, value)
+    %Hash{type: hash_type, hash: hash}
+  end
+
+  def encode(hash) do
+    %Hash{type: hash_type, hash: hash} = hash
+
+    type_id = encode_type(hash_type)
+    [type_id, hash]
+  end
+
+  def encode_cbor(hash) do
+    encode(hash)
+    |> CBOR.encode()
   end
 
   def decode(cbor_list) do
@@ -46,11 +68,20 @@ defmodule Astarte.Pairing.FDO.Types.Hash do
 
   defp decode_type(type_int) do
     case type_int do
-      -16 -> {:ok, :sha256}
-      -43 -> {:ok, :sha384}
-      5 -> {:ok, :hmac_sha256}
-      6 -> {:ok, :hmac_sha384}
+      @sha256 -> {:ok, :sha256}
+      @sha384 -> {:ok, :sha384}
+      @hmac_sha256 -> {:ok, :hmac_sha256}
+      @hmac_sha384 -> {:ok, :hmac_sha384}
       _ -> :error
+    end
+  end
+
+  defp encode_type(type) do
+    case type do
+      :sha256 -> @sha256
+      :sha384 -> @sha384
+      :hmac_sha256 -> @hmac_sha256
+      :hmac_sha384 -> @hmac_sha384
     end
   end
 end

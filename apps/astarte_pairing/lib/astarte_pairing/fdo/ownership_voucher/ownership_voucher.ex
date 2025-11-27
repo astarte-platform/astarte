@@ -53,6 +53,12 @@ defmodule Astarte.Pairing.FDO.OwnershipVoucher do
     end
   end
 
+  def owner_public_key(ownership_voucher) do
+    # TODO: handle ownership vouchers without entries
+    List.last(ownership_voucher.entries)
+    |> Core.entry_private_key()
+  end
+
   def device_public_key(ownership_voucher) do
     # The FIDO Device Onboard public key is in the leaf certificate (the "end-entity" key),
     # which is the first element of the x5chain sequence

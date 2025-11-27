@@ -16,7 +16,7 @@
 # limitations under the License.
 #
 
-defmodule Astarte.Pairing.FDO.OwnerOnboarding.ProveOVHdrPayload do
+defmodule Astarte.Pairing.FDO.OwnerOnboarding.ProveOVHdr do
   @moduledoc """
   Represents the internal payload for TO2.ProveOVHdr (Type 61).
 
@@ -32,10 +32,16 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding.ProveOVHdrPayload do
   Reference Section: 5.5.3 TO2.ProveOVHdr
   """
   use TypedStruct
-  alias Astarte.Pairing.FDO.OwnerOnboarding.ProveOVHdrPayload
 
-  typedstruct enforce: true do
-    @typedoc "The 8-element payload to be signed inside COSE_Sign1."
+  alias Astarte.Pairing.FDO.OwnerOnboarding.ProveOVHdr
+  alias Astarte.Pairing.FDO.Types.Hash
+  alias COSE.Messages.Sign1
+
+  @cupd_nonce_tag 256
+  @cuph_owner_pubkey_tag 257
+
+  typedstruct do
+    @typedoc "The payload to be signed inside COSE_Sign1."
 
     # 1. OVHeader
     # The header of the Ownership Voucher. 
@@ -56,7 +62,7 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding.ProveOVHdrPayload do
     # 4. NonceTO2ProveOV
     # The nonce received from the Device in TO2.HelloDevice.
     # Proves liveness and prevents replay attacks of the HelloDevice message.
-    field :nonce_hello_device, binary()
+    field :nonce_to2_prove_ov, binary()
 
     # 5. eBSigInfo
     # Contains information about the signature scheme used by the Device 
@@ -78,21 +84,27 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding.ProveOVHdrPayload do
     # Indicates the maximum message size the Owner Service can handle.
     # The Device uses this to fragment large responses if necessary.
     field :max_owner_message_size, non_neg_integer()
+
+    # CBOR encoded ov header
+    field :cbor_ov_header, binary()
+
+    # CBOR encoded hmac
+    field :cbor_hmac, binary()
   end
 
   @doc """
   Converts the struct into the raw CBOR list required for the COSE payload.
   Order: [OVHeader, NumOVEntries, HMac, NonceTO2ProveOV, eBSigInfo, xAKeyExchange, HelloDeviceHash, MaxOwnerMessageSize]
   """
-  def build_to2_proveovhdr_payload(%ProveOVHdrPayload{} = p) do
+  def encode(%ProveOVHdr{} = p) do
     [
-      p.ov_header,
+      ov_header(p),
       p.num_ov_entries,
-      p.hmac,
-      p.nonce_hello_device,
+      hmac(p),
+      p.nonce_to2_prove_ov,
       p.eb_sig_info,
       p.xa_key_exchange,
-      p.hello_device_hash,
+      Hash.encode(p.hello_device_hash),
       p.max_owner_message_size
     ]
   end
@@ -101,10 +113,37 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding.ProveOVHdrPayload do
   Encodes the ProveOVHdrPayload struct into CBOR format (binary).
   This binary is what will be subsequently signed and wrapped in the COSE_Sign1 structure.
   """
-  @spec encode(t()) :: binary()
-  def encode(%ProveOVHdrPayload{} = p) do
+  def encode_cbor(p) do
     p
-    |> build_to2_proveovhdr_payload()
+    |> encode()
     |> CBOR.encode()
+  end
+
+  def encode_sign(p, dv_nonce, owner_public_key, owner_private_key) do
+    payload = encode_cbor(p)
+
+    uhdr = %{
+      @cupd_nonce_tag => dv_nonce,
+      @cuph_owner_pubkey_tag => owner_public_key
+    }
+
+    %Sign1{payload: payload, uhdr: uhdr}
+    |> Sign1.sign_encode_cbor(owner_private_key)
+  end
+
+  defp ov_header(prove_ovhdr) do
+    case {prove_ovhdr.cbor_ov_header, prove_ovhdr.ov_header} do
+      {nil, nil} -> raise "invalid proveovh message #{inspect(prove_ovhdr)}"
+      {cbor, nil} -> cbor
+      {_, _ov_header} -> raise "todo: convert ov header"
+    end
+  end
+
+  defp hmac(prove_ovhdr) do
+    case {prove_ovhdr.cbor_hmac, prove_ovhdr.hmac} do
+      {nil, nil} -> raise "invalid proveovh message #{inspect(prove_ovhdr)}"
+      {cbor, nil} -> cbor
+      {_, _hmac} -> raise "todo: convert hmac"
+    end
   end
 end

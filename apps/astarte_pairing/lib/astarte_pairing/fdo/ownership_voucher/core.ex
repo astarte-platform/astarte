@@ -55,6 +55,17 @@ defmodule Astarte.Pairing.FDO.OwnershipVoucher.Core do
     end
   end
 
+  def entry_private_key(entry) do
+    with {:ok, entry} <- COSE.Messages.Sign1.decode(entry),
+         %CBOR.Tag{tag: :bytes, value: entry} <- entry.payload,
+         {:ok, entry, _} <- CBOR.decode(entry),
+         [_hash_prev, _hash_hdr, _extra, pub_key] <- entry do
+      {:ok, pub_key}
+    else
+      _ -> :error
+    end
+  end
+
   defp header_tag(decoded_voucher) do
     with [_protocol_version, header_tag, _header_hmac, _dev_cert_chain, _entry_array] <-
            decoded_voucher,

@@ -24,21 +24,21 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding do
   and supports key exchange parameter generation for secure device onboarding.
   """
 
-  alias COSE.Messages.Sign1
-  alias Astarte.Pairing.FDO.OwnerOnboarding.Core, as: OwnerOnboardingCore
+  alias Astarte.Pairing.Config
   alias Astarte.Pairing.FDO.OwnerOnboarding.HelloDevice
+  alias Astarte.Pairing.FDO.OwnerOnboarding.ProveOVHdr
   alias Astarte.Pairing.FDO.OwnerOnboarding.Session
   alias Astarte.Pairing.FDO.OwnershipVoucher
   alias Astarte.Pairing.FDO.OwnershipVoucher.Core, as: OwnershipVoucherCore
   alias Astarte.Pairing.FDO.Rendezvous.Core, as: RendezvousCore
+  alias Astarte.Pairing.FDO.Types.Hash
   alias Astarte.Pairing.Queries
-  alias Astarte.Pairing.Config
+  alias COSE.Messages.Sign1
+
   require Logger
 
   @max_owner_message_size 65_535
   @rsa_public_exponent 65_537
-  @cupd_nonce_tag 256
-  @cuph_owner_pubkey_tag 257
 
   def hello_device(realm_name, cbor_hello_device) do
     with {:ok, hello_device} <- HelloDevice.decode(cbor_hello_device),
@@ -48,26 +48,23 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding do
          {:ok, session} <-
            Session.new(realm_name, hello_device, ownership_voucher, owner_private_key) do
       num_ov_entries = Enum.count(ownership_voucher.entries)
-      hello_device_hash = OwnerOnboardingCore.compute_hello_device_hash(cbor_hello_device)
-      unprotected_headers = build_unprotected_headers(ownership_voucher, session.prove_dv_nonce)
+      hello_device_hash = Hash.new(:sha256, cbor_hello_device)
 
-      to2_proveovhdr_payload =
-        build_to2_proveovhdr_payload(
-          ownership_voucher.cbor_header,
-          num_ov_entries,
-          ownership_voucher.cbor_hmac,
-          hello_device.nonce,
-          nil,
-          session.xa,
-          hello_device_hash
-        )
+      prove_ovh =
+        %ProveOVHdr{
+          cbor_ov_header: ownership_voucher.cbor_header,
+          cbor_hmac: ownership_voucher.cbor_hmac,
+          num_ov_entries: num_ov_entries,
+          nonce_to2_prove_ov: hello_device.nonce,
+          xa_key_exchange: session.xa,
+          hello_device_hash: hello_device_hash,
+          max_owner_message_size: @max_owner_message_size
+        }
+
+      pub_key = OwnershipVoucher.owner_public_key(ownership_voucher)
 
       message =
-        RendezvousCore.build_cose_sign1(
-          to2_proveovhdr_payload,
-          owner_private_key,
-          unprotected_headers
-        )
+        ProveOVHdr.encode_sign(prove_ovh, session.prove_dv_nonce, pub_key, owner_private_key)
 
       {:ok, session.key, message}
     else
@@ -81,34 +78,6 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding do
     with {:ok, pem_key} <- Queries.get_owner_private_key(realm_name, device_id) do
       COSE.Keys.from_pem(pem_key)
     end
-  end
-
-  defp build_to2_proveovhdr_payload(
-         cbor_ov_header,
-         num_ov_entries,
-         hmac,
-         nonce_hello_device,
-         eb_sig_info,
-         xa_key_exchange,
-         hello_device_hash
-       ) do
-    [
-      cbor_ov_header,
-      num_ov_entries,
-      hmac,
-      nonce_hello_device,
-      eb_sig_info,
-      xa_key_exchange,
-      hello_device_hash,
-      @max_owner_message_size
-    ]
-  end
-
-  defp build_unprotected_headers(ownership_voucher, nonce) do
-    %{
-      @cupd_nonce_tag => nonce,
-      @cuph_owner_pubkey_tag => OwnerOnboardingCore.ov_last_entry_public_key(ownership_voucher)
-    }
   end
 
   def generate_rsa_2048_key() do
@@ -155,7 +124,7 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding do
     connection_credentials = %{
       guid: device_guid,
       rendezvous_info: current_rendezvous_info,
-      owner_pub_key: OwnerOnboardingCore.ov_last_entry_public_key(ownership_voucher),
+      owner_pub_key: OwnershipVoucher.owner_public_key(ownership_voucher),
       owner_private_key: private_key,
       device_info: "owned by astarte - realm #{realm_name}.#{Config.base_domain!()}"
     }
