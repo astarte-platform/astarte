@@ -39,12 +39,16 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding.Done do
   end
 
   @doc """
-  Converts the struct into a CBOR list for transmission.
-  Format: [NonceTO2ProveDv]
+  Decodes the raw CBOR binary into the Done struct.
   """
-  def to_cbor_list(%__MODULE__{} = t) do
-    [
-      t.nonce_to2_prove_dv
-    ]
+  @spec decode(binary()) :: {:ok, %__MODULE__{}} | {:error, atom()}
+  def decode(cbor_binary) do
+    case CBOR.decode(cbor_binary) do
+      {:ok, [%CBOR.Tag{tag: :bytes, value: nonce_to2_prove_dv}], _rest} ->
+        {:ok, %__MODULE__{nonce_to2_prove_dv: nonce_to2_prove_dv}}
+
+      _ ->
+        {:error, :invalid_cbor_payload}
+    end
   end
 end

@@ -39,12 +39,22 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding.Done2 do
   end
 
   @doc """
+  Encodes the Done2 struct into CBOR format (binary).
+  """
+  @spec encode(%__MODULE__{}) :: binary()
+  def encode(%__MODULE__{} = p) do
+    p
+    |> to_cbor_list()
+    |> CBOR.encode()
+  end
+
+  @doc """
   Converts the struct into a CBOR list for transmission.
   Format: [NonceTO2SetupDv]
   """
-  def to_cbor_list(%__MODULE__{} = t) do
+  def to_cbor_list(%__MODULE__{} = p) do
     [
-      t.nonce_to2_setup_dv
+      %CBOR.Tag{tag: :bytes, value: p.nonce_to2_setup_dv}
     ]
   end
 end

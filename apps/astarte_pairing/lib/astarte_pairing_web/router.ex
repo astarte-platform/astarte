@@ -67,6 +67,8 @@ defmodule Astarte.PairingWeb.Router do
       post "/msg/62", FDOOnboardingController, :ov_next_entry
 
       pipe_through :fdo_tunnel
+
+      post "/msg/70", FDOOnboardingController, :done
     end
 
     scope "/agent" do

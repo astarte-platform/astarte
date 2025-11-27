@@ -64,4 +64,18 @@ defmodule Astarte.PairingWeb.FDOOnboardingController do
       |> render("default.cbor", %{cbor_response: response})
     end
   end
+
+  def done(conn, _params) do
+    # TODO extract message from secure tunnel
+    cbor_body = conn.assigns.cbor_body
+    to2_session = conn.assigns.to2_session
+
+    case OwnerOnboarding.done(to2_session, cbor_body) do
+      {:ok, response_msg} ->
+        conn
+        |> put_resp_content_type("application/cbor")
+        # TODO put msg in secure tunnel
+        |> send_resp(200, response_msg)
+    end
+  end
 end

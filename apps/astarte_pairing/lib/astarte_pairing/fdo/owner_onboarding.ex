@@ -30,6 +30,8 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding do
   alias Astarte.Pairing.FDO.OwnerOnboarding.ProveOVHdr
   alias Astarte.Pairing.FDO.OwnerOnboarding.Session
   alias Astarte.Pairing.FDO.OwnershipVoucher
+  alias Astarte.Pairing.FDO.OwnerOnboarding.Done, as: DonePayload
+  alias Astarte.Pairing.FDO.OwnerOnboarding.Done2, as: Done2Payload
   alias Astarte.Pairing.FDO.OwnershipVoucher.Core, as: OwnershipVoucherCore
   alias Astarte.Pairing.FDO.Rendezvous.RvTO2Addr
   alias Astarte.Pairing.FDO.Types.Hash
@@ -199,5 +201,33 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding do
       |> Sign1.sign_encode_cbor(creds.owner_private_key)
 
     {:ok, res}
+  end
+
+  def done(to2_session, cbor_body) do
+    # retrieve nonce NonceTO2ProveDv from session and check against incoming nonce from device
+    # if match -> retrieve NonceTO2SetupDv from session and send back to device
+    with {:ok, %DonePayload{nonce_to2_prove_dv: prove_dv_nonce_challenge}} <-
+           DonePayload.decode(cbor_body),
+         :ok <-
+           check_prove_dv_nonces_equality(prove_dv_nonce_challenge, to2_session.prove_dv_nonce) do
+      done2_message = build_done2_message(to2_session.setup_dv_nonce)
+      {:ok, done2_message}
+    end
+  end
+
+  defp check_prove_dv_nonces_equality(incoming_nonce, stored_nonce) do
+    case incoming_nonce == stored_nonce do
+      true ->
+        :ok
+
+      false ->
+        # non-matching proveDv nonces
+        # TODO build error msg 101 ??
+        {:error, :prove_dv_nonce_mismatch}
+    end
+  end
+
+  defp build_done2_message(setup_dv_nonce) do
+    %Done2Payload{:nonce_to2_setup_dv => setup_dv_nonce} |> Done2Payload.encode()
   end
 end

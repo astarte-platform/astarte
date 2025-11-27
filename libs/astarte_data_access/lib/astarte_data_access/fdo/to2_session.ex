@@ -45,6 +45,7 @@ defmodule Astarte.DataAccess.FDO.TO2Session do
     field :epid_group, :binary
     field :device_public_key, :binary
     field :prove_dv_nonce, :binary
+    field :setup_dv_nonce, :binary
     field :kex_suite_name, :string
     field :cipher_suite_name, Ecto.Enum, values: @ciphers
     field :owner_random, :binary
