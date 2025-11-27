@@ -36,4 +36,12 @@ defmodule Astarte.Pairing.FDO.Rendezvous.Client do
 
     Keyword.merge(auth_opts, options)
   end
+
+  @impl true
+  def process_response_headers(headers) do
+    Enum.map(headers, fn
+      {key, value} ->
+        {String.downcase(key), value}
+    end)
+  end
 end
