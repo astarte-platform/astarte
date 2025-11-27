@@ -32,6 +32,7 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding.ProveOVHdrPayload do
   Reference Section: 5.5.3 TO2.ProveOVHdr
   """
   use TypedStruct
+  alias Astarte.Pairing.FDO.OwnerOnboarding.ProveOVHdrPayload
 
   typedstruct enforce: true do
     @typedoc "The 8-element payload to be signed inside COSE_Sign1."
@@ -83,7 +84,7 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding.ProveOVHdrPayload do
   Converts the struct into the raw CBOR list required for the COSE payload.
   Order: [OVHeader, NumOVEntries, HMac, NonceTO2ProveOV, eBSigInfo, xAKeyExchange, HelloDeviceHash, MaxOwnerMessageSize]
   """
-  def build_to2_proveovhdr_payload(%__MODULE__{} = p) do
+  def build_to2_proveovhdr_payload(%ProveOVHdrPayload{} = p) do
     [
       p.ov_header,
       p.num_ov_entries,
@@ -94,5 +95,16 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding.ProveOVHdrPayload do
       p.hello_device_hash,
       p.max_owner_message_size
     ]
+  end
+
+  @doc """
+  Encodes the ProveOVHdrPayload struct into CBOR format (binary).
+  This binary is what will be subsequently signed and wrapped in the COSE_Sign1 structure.
+  """
+  @spec encode(t()) :: binary()
+  def encode(%ProveOVHdrPayload{} = p) do
+    p
+    |> build_to2_proveovhdr_payload()
+    |> CBOR.encode()
   end
 end
