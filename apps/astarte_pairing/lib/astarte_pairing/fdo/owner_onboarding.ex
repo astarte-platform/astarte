@@ -25,6 +25,7 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding do
   """
 
   alias Astarte.Pairing.Config
+  alias Astarte.Pairing.FDO.OwnerOnboarding.DeviceAttestation
   alias Astarte.Pairing.FDO.OwnerOnboarding.HelloDevice
   alias Astarte.Pairing.FDO.OwnerOnboarding.ProveOVHdr
   alias Astarte.Pairing.FDO.OwnerOnboarding.Session
@@ -49,6 +50,7 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding do
            Session.new(realm_name, hello_device, ownership_voucher, owner_private_key) do
       num_ov_entries = Enum.count(ownership_voucher.entries)
       hello_device_hash = Hash.new(:sha256, cbor_hello_device)
+      eb_sig_info = DeviceAttestation.eb_sig_info(session.device_signature)
 
       prove_ovh =
         %ProveOVHdr{
@@ -56,6 +58,7 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding do
           cbor_hmac: ownership_voucher.cbor_hmac,
           num_ov_entries: num_ov_entries,
           nonce_to2_prove_ov: hello_device.nonce,
+          eb_sig_info: eb_sig_info,
           xa_key_exchange: session.xa,
           hello_device_hash: hello_device_hash,
           max_owner_message_size: @max_owner_message_size
