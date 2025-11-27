@@ -19,43 +19,40 @@
 defmodule Astarte.Pairing.FDO.OwnerOnboarding.SessionTest do
   use Astarte.Cases.Data, async: true
 
+  alias Astarte.Pairing.FDO.OwnerOnboarding.HelloDevice
   alias Astarte.Pairing.FDO.OwnerOnboarding.Session
   alias Astarte.Pairing.FDO.OwnerOnboarding.SessionKey
 
   import Astarte.Helpers.FDO
 
   setup_all do
-    key_exchange_format = "ECDH256"
-    cipher_suite_name = "A256GCM"
-    device_id = Astarte.Core.Device.random_device_id()
-    device_key = COSE.Keys.ECC.generate(:es256)
-    {:ok, device_random, xb} = SessionKey.new(key_exchange_format, device_key)
-
+    hello_device = HelloDevice.generate()
+    ownership_voucher = sample_ownership_voucher()
     owner_key = sample_extracted_private_key()
+    device_key = COSE.Keys.ECC.generate(:es256)
+    {:ok, device_random, xb} = SessionKey.new(hello_device.kex_name, device_key)
 
     %{
-      key_exchange_format: key_exchange_format,
-      cipher_suite_name: cipher_suite_name,
-      device_id: device_id,
+      hello_device: hello_device,
+      ownership_voucher: ownership_voucher,
+      owner_key: owner_key,
       device_key: device_key,
       device_random: device_random,
-      xb: xb,
-      owner_key: owner_key
+      xb: xb
     }
   end
 
   setup context do
     %{
       astarte_instance_id: astarte_instance_id,
+      hello_device: hello_device,
+      ownership_voucher: ownership_voucher,
       realm: realm_name,
-      device_id: device_id,
-      key_exchange_format: key_exchange_format,
-      cipher_suite_name: cipher_suite_name,
       owner_key: owner_key
     } = context
 
     {:ok, session} =
-      Session.new(realm_name, device_id, key_exchange_format, cipher_suite_name, owner_key)
+      Session.new(realm_name, hello_device, ownership_voucher, owner_key)
 
     on_exit(fn ->
       setup_database_access(astarte_instance_id)
@@ -69,17 +66,17 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding.SessionTest do
     test "returns required session information", context do
       %{
         realm: realm_name,
-        key_exchange_format: kex,
-        device_id: device_id,
-        cipher_suite_name: cipher
+        hello_device: hello_device,
+        owner_key: owner_key,
+        ownership_voucher: ownership_voucher
       } = context
 
-      owner_key = sample_extracted_private_key()
-      assert {:ok, session} = Session.new(realm_name, device_id, kex, cipher, owner_key)
+      assert {:ok, session} = Session.new(realm_name, hello_device, ownership_voucher, owner_key)
       assert is_binary(session.key)
       assert session.prove_dv_nonce
       assert session.owner_random
       assert session.xa
+      assert {:es256, %COSE.Keys.ECC{}} = session.device_signature
     end
   end
 

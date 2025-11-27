@@ -95,4 +95,24 @@ defmodule Astarte.Pairing.FDO.OwnershipVoucher.Core do
       {:error, "invalid_entry_number"}
     end
   end
+
+  def parse_device_certificate(device_cert_bin) do
+    with {:ok, cert} <- decode_cert(device_cert_bin),
+         {:OTPCertificate, otptbs_certificate, _, _} <- cert,
+         {:OTPTBSCertificate, _, _, _, _, _, _, pubkey_info, _, _, _} <- otptbs_certificate,
+         {:OTPSubjectPublicKeyInfo, _, pubkey} <- pubkey_info do
+      {:ok, pubkey}
+    else
+      _ -> :error
+    end
+  end
+
+  defp decode_cert(cert_bin) do
+    try do
+      cert = :public_key.pkix_decode_cert(cert_bin, :otp)
+      {:ok, cert}
+    rescue
+      _ -> :error
+    end
+  end
 end

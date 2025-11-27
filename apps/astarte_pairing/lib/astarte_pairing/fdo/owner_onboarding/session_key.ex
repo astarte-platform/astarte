@@ -39,7 +39,7 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding.SessionKey do
   def compute_shared_secret("ECDH256", %ECC{} = owner_key, owner_random, xb) do
     {device_random, device_public} = parse_xb_ecdh(xb)
     shse = shared_secret_ecdh(owner_key, owner_random, device_random, device_public)
-    {:ok, device_public, shse}
+    {:ok, shse}
   end
 
   defp parse_xb_ecdh(xb) do

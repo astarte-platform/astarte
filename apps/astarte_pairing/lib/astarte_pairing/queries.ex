@@ -278,71 +278,59 @@ defmodule Astarte.Pairing.Queries do
     |> Repo.insert(opts)
   end
 
-  def store_session(
-        realm_name,
-        device_id,
-        session_key,
-        prove_dv_nonce,
-        kex_suite_name,
-        cipher_suite,
-        owner_random
-      ) do
-    keyspace = Realm.keyspace_name(realm_name)
-    consistency = Consistency.device_info(:write)
-    ttl = @two_hours
-    opts = [prefix: keyspace, consistency: consistency, ttl: ttl]
+  def store_session(realm_name, session_key, session) do
+    with {:ok, session_key} <- Astarte.DataAccess.UUID.dump(session_key) do
+      keyspace = Realm.keyspace_name(realm_name)
+      consistency = Consistency.device_info(:write)
+      ttl = @two_hours
+      opts = [prefix: keyspace, consistency: consistency, ttl: ttl]
 
-    session = %TO2Session{
-      session_key: {:custom, "uuidAsBlob(?)", session_key},
-      device_id: device_id,
-      prove_dv_nonce: prove_dv_nonce,
-      kex_suite_name: kex_suite_name,
-      cipher_suite_name: cipher_suite,
-      owner_random: owner_random
-    }
+      session = %{session | session_key: :erlang.term_to_binary(session_key)}
 
-    {sql, params} = Repo.insert_to_sql(session, opts)
-
-    with {:ok, _} <- Repo.query(sql, params, opts) do
-      :ok
+      with {:ok, _} <- Repo.insert(session, opts) do
+        :ok
+      end
     end
   end
 
-  def add_session_secret(realm_name, session_key, device_public_key, secret) do
-    updates = [set: [secret: secret, device_public_key: device_public_key]]
+  def add_session_secret(realm_name, session_key, secret) do
+    updates = [secret: secret]
     update_session(realm_name, session_key, updates)
   end
 
   def add_session_keys(realm_name, session_key, sevk, svk, sek) do
-    updates = [set: [sevk: sevk, svk: svk, sek: sek]]
+    updates = [sevk: sevk, svk: svk, sek: sek]
     update_session(realm_name, session_key, updates)
   end
 
-  def fetch_session(realm_name, session_key) do
-    keyspace = Realm.keyspace_name(realm_name)
-    consistency = Consistency.device_info(:read)
-    opts = [prefix: keyspace, consistency: consistency]
+  defp update_session(realm_name, session_key, updates) do
+    with {:ok, session_key} <- Astarte.DataAccess.UUID.dump(session_key) do
+      keyspace = Realm.keyspace_name(realm_name)
+      consistency = Consistency.device_info(:write)
+      ttl = @two_hours
+      opts = [prefix: keyspace, consistency: consistency, ttl: ttl]
 
-    query =
-      from s in TO2Session,
-        where: s.session_key == fragment("uuidAsBlob(?)", ^session_key)
+      session_key = :erlang.term_to_binary(session_key)
 
-    Repo.fetch_one(query, opts)
+      %TO2Session{session_key: session_key}
+      |> Ecto.Changeset.change(updates)
+      |> Repo.update(opts)
+      |> case do
+        {:ok, _} -> :ok
+        _ -> {:error, :session_not_found}
+      end
+    end
   end
 
-  defp update_session(realm_name, session_key, updates) do
-    keyspace = Realm.keyspace_name(realm_name)
-    consistency = Consistency.device_info(:write)
-    ttl = @two_hours
-    opts = [prefix: keyspace, consistency: consistency, ttl: ttl]
+  def fetch_session(realm_name, session_key) do
+    with {:ok, session_key} <- Astarte.DataAccess.UUID.dump(session_key) do
+      keyspace = Realm.keyspace_name(realm_name)
+      consistency = Consistency.device_info(:read)
+      opts = [prefix: keyspace, consistency: consistency]
 
-    session =
-      from s in TO2Session,
-        where: s.session_key == fragment("uuidAsBlob(?)", ^session_key)
+      session_key = :erlang.term_to_binary(session_key)
 
-    case Repo.update_all(session, updates, opts) do
-      {0, _} -> {:error, :session_not_found}
-      {1, _} -> :ok
+      Repo.fetch(TO2Session, session_key, opts)
     end
   end
 

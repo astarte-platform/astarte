@@ -20,6 +20,7 @@ defmodule Astarte.Pairing.FDO.OwnershipVoucher do
   use TypedStruct
 
   alias Astarte.Pairing.FDO.OwnershipVoucher
+  alias Astarte.Pairing.FDO.OwnershipVoucher.Core
   alias Astarte.Pairing.FDO.OwnershipVoucher.Header
   alias Astarte.Pairing.FDO.Types.Hash
   alias Astarte.Pairing.Queries
@@ -30,7 +31,7 @@ defmodule Astarte.Pairing.FDO.OwnershipVoucher do
     field :protocol_version, :integer
     field :header, Header.t()
     field :hmac, Hash.t()
-    field :cert_chain, list() | nil
+    field :cert_chain, [binary()] | nil
     field :entries, list()
 
     field :cbor_header, binary()
@@ -49,6 +50,16 @@ defmodule Astarte.Pairing.FDO.OwnershipVoucher do
              @one_week
            ) do
       :ok
+    end
+  end
+
+  def device_public_key(ownership_voucher) do
+    # The FIDO Device Onboard public key is in the leaf certificate (the "end-entity" key),
+    # which is the first element of the x5chain sequence
+    case ownership_voucher.cert_chain do
+      nil -> {:ok, nil}
+      [device_cert | _] -> Core.parse_device_certificate(device_cert)
+      [] -> :error
     end
   end
 

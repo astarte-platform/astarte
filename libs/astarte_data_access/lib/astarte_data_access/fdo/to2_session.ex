@@ -23,6 +23,8 @@ defmodule Astarte.DataAccess.FDO.TO2Session do
   typed_schema "to2_sessions" do
     field :session_key, :binary, primary_key: true
     field :device_id, Astarte.DataAccess.UUID
+    field :sig_type, Ecto.Enum, values: [es256: -7, es384: -35, eipd10: 90, eipd11: 91]
+    field :epid_group, :binary
     field :device_public_key, :binary
     field :prove_dv_nonce, :binary
     field :kex_suite_name, :string

@@ -19,6 +19,7 @@
 defmodule Astarte.Helpers.FDO do
   import StreamData
 
+  alias Astarte.Pairing.FDO.OwnershipVoucher
   alias Astarte.Pairing.FDO.OwnershipVoucher.CreateRequest
 
   @sample_voucher """
@@ -112,6 +113,11 @@ defmodule Astarte.Helpers.FDO do
   def sample_extracted_rsa_private_key, do: @sample_request_rsa.extracted_private_key
   def sample_rsa_private_key, do: @sample_rsa_private_key
   def sample_device_guid, do: @sample_device_guid
+
+  def sample_ownership_voucher do
+    {:ok, voucher} = OwnershipVoucher.decode_cbor(sample_cbor_voucher())
+    voucher
+  end
 
   def nonce, do: binary(length: 16)
 

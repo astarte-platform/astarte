@@ -20,6 +20,8 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding.Session do
   use TypedStruct
 
   alias Astarte.DataAccess.FDO.TO2Session
+  alias Astarte.Pairing.FDO.OwnerOnboarding.HelloDevice
+  alias Astarte.Pairing.FDO.OwnerOnboarding.SignatureInfo
   alias Astarte.Pairing.FDO.OwnerOnboarding.Session
   alias Astarte.Pairing.FDO.OwnerOnboarding.SessionKey
   alias Astarte.Pairing.Queries
@@ -27,7 +29,7 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding.Session do
   typedstruct do
     field :key, String.t()
     field :device_id, Astarte.DataAccess.UUID
-    field :device_public_key, binary()
+    field :device_signature, SignatureInfo.device_signature()
     field :prove_dv_nonce, binary()
     field :kex_suite_name, String.t()
     field :cipher_suite, String.t()
@@ -39,29 +41,43 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding.Session do
     field :sek, binary() | nil
   end
 
-  def new(realm_name, device_id, kex, cipher_suite, owner_key) do
+  def new(realm_name, hello_device, ownership_voucher, owner_key) do
     key = UUID.uuid4(:raw)
     prove_dv_nonce = :crypto.strong_rand_bytes(16)
 
+    %HelloDevice{
+      kex_name: kex,
+      device_id: device_id,
+      easig_info: easig_info,
+      cipher_name: cipher_suite_name
+    } = hello_device
+
     with {:ok, owner_random, xa} <- SessionKey.new(kex, owner_key),
+         {:ok, device_signature} <- SignatureInfo.validate(easig_info, ownership_voucher),
+         signature_params = SignatureInfo.device_signature_to_database_params(device_signature),
+         session_params = %TO2Session{
+           device_id: device_id,
+           prove_dv_nonce: prove_dv_nonce,
+           kex_suite_name: kex,
+           cipher_suite_name: cipher_suite_name,
+           owner_random: owner_random
+         },
+         session_params = Map.merge(session_params, signature_params),
          :ok <-
            Queries.store_session(
              realm_name,
-             device_id,
              key,
-             prove_dv_nonce,
-             kex,
-             cipher_suite,
-             owner_random
+             session_params
            ) do
       session = %Session{
         key: UUID.binary_to_string!(key),
         device_id: device_id,
         prove_dv_nonce: prove_dv_nonce,
         kex_suite_name: kex,
-        cipher_suite: cipher_suite,
+        cipher_suite: cipher_suite_name,
         owner_random: owner_random,
-        xa: xa
+        xa: xa,
+        device_signature: device_signature
       }
 
       {:ok, session}
@@ -71,10 +87,10 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding.Session do
   def build_session_secret(session, realm_name, owner_key, xb) do
     %Session{kex_suite_name: kex, owner_random: owner_random, key: session_key} = session
 
-    with {:ok, device_public, secret} <-
+    with {:ok, secret} <-
            SessionKey.compute_shared_secret(kex, owner_key, owner_random, xb),
-         :ok <- Queries.add_session_secret(realm_name, session_key, device_public, secret) do
-      {:ok, %{session | secret: secret, device_public_key: device_public}}
+         :ok <- Queries.add_session_secret(realm_name, session_key, secret) do
+      {:ok, %{session | secret: secret}}
     end
   end
 
@@ -93,10 +109,11 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding.Session do
   end
 
   def fetch(realm_name, session_key) do
-    with {:ok, database_session} <- Queries.fetch_session(realm_name, session_key) do
+    with {:ok, database_session} <- Queries.fetch_session(realm_name, session_key),
+         {:ok, device_signature} <-
+           SignatureInfo.database_params_to_device_signature(database_session) do
       %TO2Session{
         device_id: device_id,
-        device_public_key: device_public_key,
         prove_dv_nonce: prove_dv_nonce,
         kex_suite_name: kex_suite_name,
         cipher_suite_name: cipher_suite_name,
@@ -110,11 +127,11 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding.Session do
       session = %Session{
         key: session_key,
         device_id: device_id,
-        device_public_key: device_public_key,
         prove_dv_nonce: prove_dv_nonce,
         kex_suite_name: kex_suite_name,
         cipher_suite: cipher_suite_name,
         owner_random: owner_random,
+        device_signature: device_signature,
         secret: secret,
         sevk: sevk,
         svk: svk,

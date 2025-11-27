@@ -57,4 +57,16 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding.HelloDevice do
       _ -> :error
     end
   end
+
+  @doc false
+  def generate do
+    %HelloDevice{
+      max_size: 1_000,
+      device_id: Astarte.Core.Device.random_device_id(),
+      nonce: :crypto.strong_rand_bytes(16),
+      kex_name: "ECDH256",
+      cipher_name: "A256GCM",
+      easig_info: :es256
+    }
+  end
 end
