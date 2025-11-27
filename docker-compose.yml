@@ -30,8 +30,8 @@ services:
   astarte-realm-management:
     image: astarte/astarte_realm_management:1.3-snapshot
     build:
-        dockerfile: apps/astarte_realm_management/Dockerfile
-        context: .
+      dockerfile: apps/astarte_realm_management/Dockerfile
+      context: .
     env_file:
       - ./.env
     restart: on-failure
@@ -55,14 +55,15 @@ services:
   astarte-pairing:
     image: astarte/astarte_pairing:1.3-snapshot
     build:
-        dockerfile: apps/astarte_pairing/Dockerfile
-        context: .
+      dockerfile: apps/astarte_pairing/Dockerfile
+      context: .
     env_file:
       - ./.env
     environment:
       PAIRING_CFSSL_URL: "http://cfssl:8080"
       ASTARTE_EVENTS_PRODUCER_AMQP_HOST: "rabbitmq"
       ASTARTE_BASE_DOMAIN: ${DOCKER_COMPOSE_ASTARTE_BASE_DOMAIN}
+      PAIRING_FDO_RENDEZVOUS_URL: "http://rendezvous:8041"
     restart: on-failure
     depends_on:
       - "rabbitmq"
@@ -82,13 +83,12 @@ services:
   astarte-appengine-api:
     image: astarte/astarte_appengine_api:1.3-snapshot
     build:
-        dockerfile: apps/astarte_appengine_api/Dockerfile
-        context: .
+      dockerfile: apps/astarte_appengine_api/Dockerfile
+      context: .
     env_file:
       - ./.env
     environment:
       APPENGINE_API_ROOMS_AMQP_CLIENT_HOST: "rabbitmq"
-      PAIRING_FDO_RENDEZVOUS_URL: "http://rendezvous:8041"
     restart: on-failure
     depends_on:
       - "rabbitmq"
@@ -128,8 +128,8 @@ services:
   astarte-trigger-engine:
     image: astarte/astarte_trigger_engine:1.3-snapshot
     build:
-        dockerfile: apps/astarte_trigger_engine/Dockerfile
-        context: .
+      dockerfile: apps/astarte_trigger_engine/Dockerfile
+      context: .
     env_file:
       - ./.env
     environment:
@@ -189,7 +189,7 @@ services:
       - "8883:8883"
     volumes:
       # So that Traefik can listen to the Docker events
-      - /var/run/docker.sock:/var/run/docker.sock:z
+      - ${DOCKER_HOST:-/var/run/docker.sock}:/var/run/docker.sock:z
     security_opt:
       - label=type:container_runtime_t
     networks:
@@ -201,18 +201,13 @@ services:
           - dashboard.${DOCKER_COMPOSE_ASTARTE_BASE_DOMAIN}
           - grafana.${DOCKER_COMPOSE_ASTARTE_BASE_DOMAIN}
           - broker.${DOCKER_COMPOSE_ASTARTE_BASE_DOMAIN}
-  
+
   rendezvous:
-    image: quay.io/fido-fdo/rendezvous-server:latest
+    image: astarte/go-fdo-server:ade68cda47-20251128
     restart: on-failure
-    ports:
-      - "8041:8041"
+    command: '--log-level=debug rendezvous 0.0.0.0:8041 --db-type sqlite --db-dsn "file:/var/lib/fdo/rendezvous.db"'
     volumes:
-      - ./compose/fdo-config/rendezvous-server.yml:/etc/fdo/rendezvous-server.yml:z
-      - ./compose/fdo-keys:/etc/fdo/keys:z
-      - fdo-rendezvous-data:/var/lib/fdo
-    environment:
-      RENDEZVOUS_SERVER_CONF: "/etc/fdo/rendezvous-server.yml"
+      - fdo-rendezvous-data:/var/lib/fdo:z
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.fdo-rendezvous.rule=Host(`fdo.${DOCKER_COMPOSE_ASTARTE_BASE_DOMAIN}`)"
