@@ -284,6 +284,7 @@ defmodule Astarte.Pairing.Queries do
         session_key,
         prove_ov_nonce,
         kex_suite_name,
+        cipher_suite,
         owner_random
       ) do
     keyspace = Realm.keyspace_name(realm_name)
@@ -296,6 +297,7 @@ defmodule Astarte.Pairing.Queries do
       device_id: device_id,
       prove_ov_nonce: prove_ov_nonce,
       kex_suite_name: kex_suite_name,
+      cipher_suite_name: cipher_suite,
       owner_random: owner_random
     }
 
@@ -307,23 +309,13 @@ defmodule Astarte.Pairing.Queries do
   end
 
   def add_session_secret(realm_name, session_key, device_public_key, secret) do
-    keyspace = Realm.keyspace_name(realm_name)
-    consistency = Consistency.device_info(:write)
-    ttl = @two_hours
-    opts = [prefix: keyspace, consistency: consistency, ttl: ttl]
+    updates = [set: [secret: secret, device_public_key: device_public_key]]
+    update_session(realm_name, session_key, updates)
+  end
 
-    session =
-      from s in TO2Session,
-        where: s.session_key == fragment("uuidAsBlob(?)", ^session_key)
-
-    case Repo.update_all(
-           session,
-           [set: [secret: secret, device_public_key: device_public_key]],
-           opts
-         ) do
-      {0, _} -> {:error, :session_not_found}
-      {1, _} -> :ok
-    end
+  def add_session_keys(realm_name, session_key, sevk, svk, sek) do
+    updates = [set: [sevk: sevk, svk: svk, sek: sek]]
+    update_session(realm_name, session_key, updates)
   end
 
   def fetch_session(realm_name, session_key) do
@@ -336,6 +328,22 @@ defmodule Astarte.Pairing.Queries do
         where: s.session_key == fragment("uuidAsBlob(?)", ^session_key)
 
     Repo.fetch_one(query, opts)
+  end
+
+  defp update_session(realm_name, session_key, updates) do
+    keyspace = Realm.keyspace_name(realm_name)
+    consistency = Consistency.device_info(:write)
+    ttl = @two_hours
+    opts = [prefix: keyspace, consistency: consistency, ttl: ttl]
+
+    session =
+      from s in TO2Session,
+        where: s.session_key == fragment("uuidAsBlob(?)", ^session_key)
+
+    case Repo.update_all(session, updates, opts) do
+      {0, _} -> {:error, :session_not_found}
+      {1, _} -> :ok
+    end
   end
 
   defp do_register_device(

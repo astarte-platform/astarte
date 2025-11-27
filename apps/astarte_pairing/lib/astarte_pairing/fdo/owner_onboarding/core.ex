@@ -108,4 +108,18 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding.Core do
     |> ov_entries()
     |> List.last()
   end
+
+  def counter_mode_kdf(mac_type, mac_subtype, n, secret, context, l) do
+    do_counter_mode_kdf(mac_type, mac_subtype, n, secret, context, l, <<>>)
+  end
+
+  defp do_counter_mode_kdf(_mac_type, _mac_subtype, 0, _secret, _context, _l, acc), do: acc
+
+  defp do_counter_mode_kdf(mac_type, mac_subtype, n, secret, context, l, acc) do
+    data = <<n::integer-unsigned-size(8), "FIDO-KDF"::binary, 0, context::binary, l::binary>>
+    new_key = :crypto.mac(mac_type, mac_subtype, secret, data)
+    acc = new_key <> acc
+
+    do_counter_mode_kdf(mac_type, mac_subtype, n - 1, secret, context, l, acc)
+  end
 end
