@@ -36,8 +36,9 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding.SetupDevicePayload do
 
     # 1. RendezvousInfo
     # Replacement for the device's RendezvousInfo.
-    # Defines how the device connects to the new Owner's infrastructure (e.g., Astarte URL).
-    # Can be a raw binary (if pre-encoded) or a list of instructions.
+    # It is a complex list of instructions (directives). 
+    # Usually passed as a raw CBOR binary if pre-built, or a list of maps/lists.
+    # Spec: RendezvousInfo [cite: 3188]
     field :rendezvous_info, list() | binary()
 
     # 2. Guid
