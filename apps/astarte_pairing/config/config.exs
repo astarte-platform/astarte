@@ -41,6 +41,10 @@ config :logger, :default_formatter,
 config :astarte_pairing, Astarte.PairingWeb.AuthGuardian,
   allowed_algos: ["ES256", "ES384", "ES512", "PS256", "PS384", "PS512", "RS256", "RS384", "RS512"]
 
+config :mime, :types, %{
+  "application/cbor" => ["cbor"]
+}
+
 config :phoenix, :json_library, Jason
 
 # Disable phoenix logger since we're using PlugLoggerWithMeta

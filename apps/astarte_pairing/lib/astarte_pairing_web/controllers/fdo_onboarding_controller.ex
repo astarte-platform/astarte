@@ -32,9 +32,8 @@ defmodule Astarte.PairingWeb.FDOOnboardingController do
     with {:ok, session_key, response_msg} <-
            OwnerOnboarding.hello_device(realm_name, cbor_hello_device) do
       conn
-      |> put_resp_content_type("application/cbor")
       |> put_resp_header("authorization", session_key)
-      |> send_resp(200, CBOR.encode(response_msg))
+      |> render("default.cbor", %{cbor_response: response_msg})
     end
   end
 
@@ -47,8 +46,7 @@ defmodule Astarte.PairingWeb.FDOOnboardingController do
     with {:ok, response} <-
            OwnerOnboarding.ov_next_entry(cbor_body, realm_name, device_id) do
       conn
-      |> put_resp_content_type("application/cbor")
-      |> send_resp(200, response)
+      |> render("default.cbor", %{cbor_response: response})
     else
       {:error, err} ->
         conn
@@ -67,8 +65,7 @@ defmodule Astarte.PairingWeb.FDOOnboardingController do
              conn.assigns.to2_session
            ) do
       conn
-      |> put_resp_content_type("application/cbor")
-      |> send_resp(200, response)
+      |> render("default.cbor", %{cbor_response: response})
     else
       {:error, err} ->
         conn

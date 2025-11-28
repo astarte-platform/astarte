@@ -34,7 +34,9 @@ defmodule Astarte.PairingWeb.Router do
   end
 
   pipeline :fdo do
-    plug Astarte.PairingWeb.Plug.VerifyFDO
+    plug :accepts, ["cbor"]
+    plug :put_view, Astarte.PairingWeb.FDOView
+    plug Astarte.PairingWeb.Plug.SetupFDO
   end
 
   pipeline :fdo_session do

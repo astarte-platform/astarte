@@ -16,7 +16,7 @@
 # limitations under the License.
 #
 
-defmodule Astarte.PairingWeb.Plug.VerifyFDO do
+defmodule Astarte.PairingWeb.Plug.SetupFDO do
   use Plug.Builder
 
   import Plug.Conn
@@ -26,18 +26,9 @@ defmodule Astarte.PairingWeb.Plug.VerifyFDO do
   end
 
   def call(conn, _opts) do
-    if get_req_header(conn, "content-type") == ["application/cbor"] do
-      case Plug.Conn.read_body(conn) do
-        {:ok, body, conn} ->
-          conn |> Plug.Conn.assign(:cbor_body, body)
-
-        _ ->
-          conn |> Plug.Conn.send_resp(400, "Could not read request body.") |> halt()
-      end
-    else
-      conn
-      |> Plug.Conn.send_resp(415, "Unsupported Media Type. Expected application/cbor.")
-      |> halt()
+    case read_body(conn) do
+      {:ok, body, conn} -> conn |> assign(:cbor_body, body)
+      _ -> conn |> send_resp(400, "Could not read request body.") |> halt()
     end
   end
 end
