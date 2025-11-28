@@ -107,6 +107,15 @@ defmodule Astarte.Helpers.Database do
   );
   """
 
+  @create_ownership_vouchers_table """
+  CREATE TABLE #{Realm.keyspace_name(@test_realm)}.ownership_vouchers (
+     private_key blob,
+     voucher_data blob,
+     device_id uuid,
+     PRIMARY KEY (device_id, voucher_data)
+   );
+  """
+
   @create_devices_table """
       CREATE TABLE #{Realm.keyspace_name(@test_realm)}.devices (
         device_id uuid,
@@ -432,6 +441,8 @@ defmodule Astarte.Helpers.Database do
     case Repo.query(@create_autotestrealm) do
       {:ok, _} ->
         Repo.query!(@create_capabilities_type)
+
+        Repo.query!(@create_ownership_vouchers_table)
 
         Repo.query!(@create_devices_table)
 

@@ -240,6 +240,8 @@ defmodule Astarte.Housekeeping.Realms.Queries do
          :ok <- create_simple_triggers_table(keyspace_name),
          :ok <- create_grouped_devices_table(keyspace_name),
          :ok <- create_deletion_in_progress_table(keyspace_name),
+         :ok <- create_ownership_vouchers_table(keyspace_name),
+         :ok <- create_to2_sessions_table(keyspace_name),
          :ok <- insert_realm_public_key(keyspace_name, public_key_pem),
          :ok <- insert_realm_astarte_schema_version(keyspace_name),
          :ok <- insert_realm(realm_name, device_limit),
@@ -539,6 +541,46 @@ defmodule Astarte.Housekeeping.Realms.Queries do
       groups set<text>,
 
       PRIMARY KEY (device_id)
+    );
+    """
+
+    with {:ok, %{rows: nil, num_rows: 1}} <- CSystem.execute_schema_change(query) do
+      :ok
+    end
+  end
+
+  defp create_ownership_vouchers_table(keyspace_name) do
+    query = """
+    CREATE TABLE #{keyspace_name}.ownership_vouchers (
+      private_key blob,
+      voucher_data blob,
+      device_id uuid,
+      PRIMARY KEY (device_id, voucher_data)
+    );
+    """
+
+    with {:ok, %{rows: nil, num_rows: 1}} <- CSystem.execute_schema_change(query) do
+      :ok
+    end
+  end
+
+  defp create_to2_sessions_table(keyspace_name) do
+    query = """
+    CREATE TABLE #{keyspace_name}.to2_sessions (
+      session_key blob,
+      sig_type int,
+      epid_group blob,
+      device_id uuid,
+      device_public_key blob,
+      prove_dv_nonce blob,
+      kex_suite_name ascii,
+      cipher_suite_name ascii,
+      owner_random blob,
+      secret blob,
+      sevk blob,
+      svk blob,
+      sek blob,
+      PRIMARY KEY (session_key)
     );
     """
 

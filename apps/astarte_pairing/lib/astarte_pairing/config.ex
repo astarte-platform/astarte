@@ -32,6 +32,12 @@ defmodule Astarte.Pairing.Config do
     type: :binary,
     required: true
 
+  @envdoc "The astarte base domain, used for FDO authentication mechanism"
+  app_env :base_domain, :astarte_pairing, :base_domain,
+    os_env: "ASTARTE_BASE_DOMAIN",
+    type: :binary,
+    required: true
+
   @envdoc "URL to the running CFSSL instance for device certificate generation."
   app_env :cfssl_url, :astarte_pairing, :cfssl_url,
     os_env: "PAIRING_CFSSL_URL",
@@ -48,6 +54,12 @@ defmodule Astarte.Pairing.Config do
     os_env: "CASSANDRA_NODES",
     type: CQExNodes,
     default: [{"localhost", 9042}]
+
+  @envdoc "The URL to access the FDO Rendezvous Server."
+  app_env :fdo_rendezvous_url, :astarte_pairing, :fdo_rendezvous_url,
+    os_env: "PAIRING_FDO_RENDEZVOUS_URL",
+    type: :binary,
+    default: "http://rendezvous:8041"
 
   def init! do
     if {:ok, nil} == ca_cert() do

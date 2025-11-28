@@ -87,6 +87,8 @@ defmodule Astarte.Pairing.Mixfile do
       {:phoenix_ecto, "~> 4.0"},
       {:phoenix_view, "~> 2.0"},
       {:jason, "~> 1.2"},
+      {:cbor, "~> 1.0"},
+      {:cose, github: "secomind/cose-elixir"},
       {:guardian, "~> 2.3.2"},
       {:remote_ip, "~> 1.0"},
       {:excoveralls, "~> 0.15", only: :test},
@@ -105,6 +107,7 @@ defmodule Astarte.Pairing.Mixfile do
       # See also: https://github.com/deadtrickster/ssl_verify_fun.erl/pull/27
       {:ssl_verify_fun, "~> 1.1.0", manager: :rebar3, override: true},
       {:cfxxl, github: "ispirata/cfxxl"},
+      {:httpoison, "~> 1.6"},
       {:astarte_data_access, path: astarte_lib("astarte_data_access")},
       {:bcrypt_elixir, "~> 2.2"},
       {:xandra, "~> 0.19"},

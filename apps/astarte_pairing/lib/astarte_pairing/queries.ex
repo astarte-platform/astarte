@@ -25,11 +25,15 @@ defmodule Astarte.Pairing.Queries do
 
   alias Astarte.DataAccess.Consistency
   alias Astarte.DataAccess.Devices.Device
+  alias Astarte.DataAccess.FDO.OwnershipVoucher
+  alias Astarte.DataAccess.FDO.TO2Session
   alias Astarte.DataAccess.KvStore
   alias Astarte.DataAccess.Realms.Realm
   alias Astarte.DataAccess.Repo
 
   require Logger
+
+  @two_hours 7200
 
   def realm_existing?(realm_name) do
     keyspace_name = Realm.astarte_keyspace_name()
@@ -221,6 +225,113 @@ defmodule Astarte.Pairing.Queries do
       |> Repo.one!(prefix: keyspace, consistency: consistency)
 
     {:ok, count}
+  end
+
+  def get_ownership_voucher(realm_name, device_id) do
+    keyspace_name = Realm.keyspace_name(realm_name)
+
+    # FIXME: functions that depends on this one shall handle one or more ownership voucher, keeping just the first for now
+    query =
+      from o in OwnershipVoucher,
+        prefix: ^keyspace_name,
+        where: o.device_id == ^device_id,
+        limit: 1,
+        select: o.voucher_data
+
+    consistency = Consistency.domain_model(:read)
+
+    Repo.one(query, consistency: consistency)
+  end
+
+  def get_owner_private_key(realm_name, device_id) do
+    keyspace_name = Realm.keyspace_name(realm_name)
+
+    # FIXME: functions that depends on this one shall handle one or more private key, keeping just the first for now
+    query =
+      from o in OwnershipVoucher,
+        prefix: ^keyspace_name,
+        where: o.device_id == ^device_id,
+        limit: 1,
+        select: o.private_key
+
+    consistency = Consistency.domain_model(:read)
+
+    Repo.one(query, consistency: consistency)
+  end
+
+  def create_ownership_voucher(
+        realm_name,
+        device_id,
+        cbor_ownership_voucher,
+        owner_private_key,
+        ttl
+      ) do
+    keyspace_name = Realm.keyspace_name(realm_name)
+
+    opts = [prefix: keyspace_name, consistency: Consistency.device_info(:write), ttl: ttl]
+
+    %OwnershipVoucher{
+      voucher_data: cbor_ownership_voucher,
+      private_key: owner_private_key,
+      device_id: device_id
+    }
+    |> Repo.insert(opts)
+  end
+
+  def store_session(realm_name, session_key, session) do
+    with {:ok, session_key} <- Astarte.DataAccess.UUID.dump(session_key) do
+      keyspace = Realm.keyspace_name(realm_name)
+      consistency = Consistency.device_info(:write)
+      ttl = @two_hours
+      opts = [prefix: keyspace, consistency: consistency, ttl: ttl]
+
+      session = %{session | session_key: :erlang.term_to_binary(session_key)}
+
+      with {:ok, _} <- Repo.insert(session, opts) do
+        :ok
+      end
+    end
+  end
+
+  def add_session_secret(realm_name, session_key, secret) do
+    updates = [secret: secret]
+    update_session(realm_name, session_key, updates)
+  end
+
+  def add_session_keys(realm_name, session_key, sevk, svk, sek) do
+    updates = [sevk: sevk, svk: svk, sek: sek]
+    update_session(realm_name, session_key, updates)
+  end
+
+  defp update_session(realm_name, session_key, updates) do
+    with {:ok, session_key} <- Astarte.DataAccess.UUID.dump(session_key) do
+      keyspace = Realm.keyspace_name(realm_name)
+      consistency = Consistency.device_info(:write)
+      ttl = @two_hours
+      opts = [prefix: keyspace, consistency: consistency, ttl: ttl]
+
+      session_key = :erlang.term_to_binary(session_key)
+
+      %TO2Session{session_key: session_key}
+      |> Ecto.Changeset.change(updates)
+      |> Repo.update(opts)
+      |> case do
+        {:ok, _} -> :ok
+        _ -> {:error, :session_not_found}
+      end
+    end
+  end
+
+  def fetch_session(realm_name, session_key) do
+    with {:ok, session_key} <- Astarte.DataAccess.UUID.dump(session_key) do
+      keyspace = Realm.keyspace_name(realm_name)
+      consistency = Consistency.device_info(:read)
+      opts = [prefix: keyspace, consistency: consistency]
+
+      session_key = :erlang.term_to_binary(session_key)
+
+      Repo.fetch(TO2Session, session_key, opts)
+    end
   end
 
   defp do_register_device(
