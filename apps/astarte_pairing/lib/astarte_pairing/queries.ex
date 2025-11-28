@@ -282,7 +282,7 @@ defmodule Astarte.Pairing.Queries do
         realm_name,
         device_id,
         session_key,
-        prove_ov_nonce,
+        prove_dv_nonce,
         kex_suite_name,
         cipher_suite,
         owner_random
@@ -295,7 +295,7 @@ defmodule Astarte.Pairing.Queries do
     session = %TO2Session{
       session_key: {:custom, "uuidAsBlob(?)", session_key},
       device_id: device_id,
-      prove_ov_nonce: prove_ov_nonce,
+      prove_dv_nonce: prove_dv_nonce,
       kex_suite_name: kex_suite_name,
       cipher_suite_name: cipher_suite,
       owner_random: owner_random

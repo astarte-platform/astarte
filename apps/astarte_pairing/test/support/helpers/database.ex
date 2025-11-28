@@ -89,7 +89,7 @@ defmodule Astarte.Helpers.Database do
     session_key blob,
     device_id uuid,
     device_public_key blob,
-    prove_ov_nonce blob,
+    prove_dv_nonce blob,
     kex_suite_name ascii,
     cipher_suite_name ascii,
     owner_random blob,

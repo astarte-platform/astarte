@@ -77,7 +77,7 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding.SessionTest do
       owner_key = sample_extracted_private_key()
       assert {:ok, session} = Session.new(realm_name, device_id, kex, cipher, owner_key)
       assert is_binary(session.key)
-      assert session.prove_ov_nonce
+      assert session.prove_dv_nonce
       assert session.owner_random
       assert session.xa
     end
