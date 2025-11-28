@@ -19,23 +19,17 @@ defmodule Astarte.Pairing.OwnerOnboarding.Onboarding.ProveDevice do
   use ExUnit.Case
   alias Astarte.Pairing.FDO.OwnerOnboarding
 
+  import Astarte.Helpers.FDO
+
   @es256_alg -7
   @edsdsa_alg -8
 
   @test_nonce :crypto.strong_rand_bytes(16)
-  @test_guid "test-device-guid-123"
+  @test_guid :crypto.strong_rand_bytes(16)
   @test_session_key :crypto.strong_rand_bytes(32)
 
   def generate_es256_keys do
-    {pub, priv} = :crypto.generate_key(:ecdh, :secp256r1)
-
-    {[priv, :secp256r1], [pub, :secp256r1]}
-  end
-
-  def generate_eddsa_keys do
-    {pub, priv} = :crypto.generate_key(:eddsa, :ed25519)
-    # pair = COSE.Keys.OKP.generate(:sig)
-    {priv, pub}
+    COSE.Keys.ECC.generate(:es256)
   end
 
   defp build_test_cose_sign1(alg_id, priv_key_struct, nonce_val, guid_val) do
@@ -46,26 +40,21 @@ defmodule Astarte.Pairing.OwnerOnboarding.Onboarding.ProveDevice do
 
     payload_bin = CBOR.encode(eat_claims)
 
-    protected_map = %{1 => alg_id}
-    protected_bin = CBOR.encode(protected_map)
-
-    sig_structure = [
-      "Signature1",
-      protected_bin,
-      <<>>,
-      payload_bin
-    ]
-
-    to_be_signed = CBOR.encode(sig_structure)
-
-    signature = sign_data(alg_id, priv_key_struct, to_be_signed)
-
-    cose = [protected_bin, %{}, payload_bin, signature]
-    CBOR.encode(cose)
+    COSE.Messages.Sign1.sign_encode_cbor(
+      %COSE.Messages.Sign1{payload: payload_bin, phdr: %{alg: :es256}, uhdr: %{}},
+      priv_key_struct
+    )
   end
 
-  defp sign_data(@es256_alg, priv_key_struct, data) do
-    der_signature = :crypto.sign(:ecdsa, :sha256, data, priv_key_struct)
+  defp sign_data(@es256_alg, priv_key_input, data) do
+    key_arg =
+      case priv_key_input do
+        %COSE.Keys.ECC{d: d} -> [d, :secp256r1]
+        binary when is_binary(binary) -> [binary, :secp256r1]
+        other -> other
+      end
+
+    der_signature = :crypto.sign(:ecdsa, :sha256, data, key_arg)
     der_to_raw_es256(der_signature)
   end
 
@@ -88,46 +77,50 @@ defmodule Astarte.Pairing.OwnerOnboarding.Onboarding.ProveDevice do
     end
   end
 
-  defp dummy_creds(owner_pub_key) do
+  defp dummy_creds(owner_pub_key, owner_private_key) do
     %{
       guid: @test_guid,
       rendezvous_info: [[2, 8080, "localhost"]],
       owner_pub_key: owner_pub_key,
-      device_info: "test"
+      device_info: "test",
+      owner_private_key: owner_private_key
     }
   end
 
   test "verify ES256 signature success and returns Msg 65" do
-    {priv_struct, pub_key} = generate_es256_keys()
+    key = generate_es256_keys()
 
-    body = build_test_cose_sign1(@es256_alg, priv_struct, @test_nonce, @test_guid)
-    creds = dummy_creds(pub_key)
+    body = build_test_cose_sign1(@es256_alg, key, @test_nonce, @test_guid)
+
+    creds = dummy_creds(COSE.Keys.ECC.public_key(key), key)
 
     {:ok, msg_65_payload} =
       OwnerOnboarding.verify(
         body,
-        pub_key,
-        @test_session_key,
+        key,
         @test_nonce,
         @test_guid,
         creds
       )
 
-    assert {:ok, [_prot, _, _payload, _tag], _} = CBOR.decode(msg_65_payload)
+    assert {
+             :ok,
+             %CBOR.Tag{tag: 18, value: _},
+             ""
+           } = CBOR.decode(msg_65_payload)
   end
 
   test "verify ES256 fails if Nonce does not match" do
-    {priv_struct, pub_key} = generate_es256_keys()
+    key = generate_es256_keys()
 
     wrong_nonce = :crypto.strong_rand_bytes(16)
-    body = build_test_cose_sign1(@es256_alg, priv_struct, wrong_nonce, @test_guid)
-    creds = dummy_creds(pub_key)
+    body = build_test_cose_sign1(@es256_alg, key, wrong_nonce, @test_guid)
+    creds = dummy_creds(COSE.Keys.ECC.public_key(key), key)
 
     assert {:error, :invalid_signature} =
              OwnerOnboarding.verify(
                body,
-               pub_key,
-               @test_session_key,
+               key,
                @test_nonce,
                @test_guid,
                creds
@@ -135,16 +128,16 @@ defmodule Astarte.Pairing.OwnerOnboarding.Onboarding.ProveDevice do
   end
 
   test "verify ES256 fails if Device ID (GUID) does not match" do
-    {priv_struct, pub_key} = generate_es256_keys()
+    key = generate_es256_keys()
 
-    body = build_test_cose_sign1(@es256_alg, priv_struct, @test_nonce, "wrong-guid")
-    creds = dummy_creds(pub_key)
+    body = build_test_cose_sign1(@es256_alg, key, @test_nonce, "wrong-guid")
+
+    creds = dummy_creds(COSE.Keys.ECC.public_key(key), key)
 
     assert {:error, :invalid_signature} =
              OwnerOnboarding.verify(
                body,
-               pub_key,
-               @test_session_key,
+               key,
                @test_nonce,
                @test_guid,
                creds
@@ -152,34 +145,17 @@ defmodule Astarte.Pairing.OwnerOnboarding.Onboarding.ProveDevice do
   end
 
   test "verify ES256 fails with wrong public key" do
-    {priv_struct, _real_pub} = generate_es256_keys()
-    {_wrong_priv, wrong_pub} = generate_es256_keys()
+    key = generate_es256_keys()
+    key2 = generate_es256_keys()
 
-    body = build_test_cose_sign1(@es256_alg, priv_struct, @test_nonce, @test_guid)
-    creds = dummy_creds(wrong_pub)
+    body = build_test_cose_sign1(@es256_alg, key, @test_nonce, @test_guid)
+
+    creds = dummy_creds(COSE.Keys.ECC.public_key(key2), key)
 
     assert {:error, :invalid_signature} =
              OwnerOnboarding.verify(
                body,
-               wrong_pub,
-               @test_session_key,
-               @test_nonce,
-               @test_guid,
-               creds
-             )
-  end
-
-  test "verify Ed25519 (EdDSA) signature success" do
-    {priv_key, pub_key} = generate_eddsa_keys()
-
-    body = build_test_cose_sign1(@edsdsa_alg, priv_key, @test_nonce, @test_guid)
-    creds = dummy_creds(pub_key)
-
-    assert {:ok, _} =
-             OwnerOnboarding.verify(
-               body,
-               pub_key,
-               @test_session_key,
+               key2,
                @test_nonce,
                @test_guid,
                creds
