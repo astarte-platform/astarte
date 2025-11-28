@@ -28,6 +28,7 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding.GetOVNextEntry do
   Spec Reference: 5.5.4 TO2.GetOVNextEntry, Type 62
   """
   use TypedStruct
+  alias Astarte.Pairing.FDO.OwnerOnboarding.GetOVNextEntry
 
   typedstruct enforce: true do
     @typedoc "Structure for TO2.GetOVNextEntry message."
@@ -40,12 +41,16 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding.GetOVNextEntry do
   end
 
   @doc """
-  Decodes the raw CBOR list into the struct.
-  Expected format from Device: [OVEntryNum]
+  Decodes the raw CBOR binary into the struct.
   """
-  def from_cbor_list([entry_num]) when is_integer(entry_num) do
-    %__MODULE__{
-      entry_num: entry_num
-    }
+  @spec decode(binary()) :: {:ok, t()} | :error
+  def decode(cbor_binary) do
+    case CBOR.decode(cbor_binary) do
+      {:ok, [entry_num], _rest} when is_integer(entry_num) and entry_num >= 0 ->
+        {:ok, %GetOVNextEntry{entry_num: entry_num}}
+
+      _ ->
+        :error
+    end
   end
 end
