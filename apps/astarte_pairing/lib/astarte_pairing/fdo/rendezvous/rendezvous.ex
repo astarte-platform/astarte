@@ -44,9 +44,15 @@ defmodule Astarte.Pairing.FDO.Rendezvous do
       {"Authorization", get_auth_bearer(headers)}
     ]
 
+    with {:ok, body} <- send_owner_sign_message(request_body, headers) do
+      verify_accept_owner_response(body)
+    end
+  end
+
+  defp send_owner_sign_message(request_body, headers) do
     case Client.post("/fdo/101/msg/22", request_body, headers) do
-      {:ok, %HTTPoison.Response{status_code: 200}} ->
-        :ok
+      {:ok, %HTTPoison.Response{status_code: 200, body: body}} ->
+        {:ok, body}
 
       {:ok, response} ->
         "error during owner sign message: unexpected response #{inspect(response)}"
@@ -56,6 +62,19 @@ defmodule Astarte.Pairing.FDO.Rendezvous do
 
       {:error, reason} ->
         "error during owner sign message: http error #{inspect(reason)}"
+        |> Logger.error()
+
+        :error
+    end
+  end
+
+  defp verify_accept_owner_response(accept_owner_body) do
+    with {:ok, message, _} <- CBOR.decode(accept_owner_body),
+         [wait_seconds] when is_integer(wait_seconds) <- message do
+      {:ok, wait_seconds}
+    else
+      _ ->
+        "error during owner sign message: invalid response body #{inspect(accept_owner_body)}"
         |> Logger.error()
 
         :error

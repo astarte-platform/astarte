@@ -17,30 +17,7 @@
 #
 
 defmodule Astarte.Pairing.FDO.Cbor.Core do
-  @sha256 47
   def empty_payload() do
     CBOR.encode([])
-  end
-
-  def build_to1d_rv(entries) do
-    CBOR.encode([entries])
-  end
-
-  def build_to0d(ov, wait_seconds, nonce) do
-    CBOR.encode([ov, wait_seconds, add_cbor_tag(nonce)])
-  end
-
-  def add_cbor_tag(payload) do
-    %CBOR.Tag{tag: :bytes, value: payload}
-  end
-
-  def build_to1d_to0d_hash(to0d) do
-    to1d_to0d_hash_value = :crypto.hash(:sha256, to0d)
-
-    CBOR.encode([@sha256, to1d_to0d_hash_value])
-  end
-
-  def build_to1d_blob_payload(to1d_rv, to1d_to0d_hash) do
-    CBOR.encode([to1d_rv, to1d_to0d_hash])
   end
 end

@@ -45,14 +45,23 @@ defmodule Astarte.Pairing.FDO do
     realm_rv_to2_addr_entry = RvTO2Addr.for_realm(realm_name)
     rv_to2_addr = [realm_rv_to2_addr_entry]
 
+    wait_seconds = 3600
+
     request_body =
       RendezvousCore.build_owner_sign_message(
         ownership_voucher,
         owner_private_key,
         nonce,
-        rv_to2_addr
+        rv_to2_addr,
+        wait_seconds
       )
 
-    Rendezvous.register_ownership(request_body, headers)
+    case Rendezvous.register_ownership(request_body, headers) do
+      {:ok, _rendezvous_wait_second} ->
+        :ok
+
+      :error ->
+        :error
+    end
   end
 end

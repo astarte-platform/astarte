@@ -54,7 +54,7 @@ defmodule Astarte.PairingWeb.Controllers.OwnershipVoucherControllerTest do
 
       Rendezvous
       |> expect(:send_hello, fn -> {:ok, %{nonce: sample_nonce, headers: []}} end)
-      |> expect(:register_ownership, fn _body, _headers -> :ok end)
+      |> expect(:register_ownership, fn _body, _headers -> {:ok, 3600} end)
 
       conn
       |> post(path, @sample_params)
@@ -69,7 +69,7 @@ defmodule Astarte.PairingWeb.Controllers.OwnershipVoucherControllerTest do
 
     Rendezvous
     |> stub(:send_hello, fn -> {:ok, %{nonce: sample_nonce, headers: []}} end)
-    |> stub(:register_ownership, fn _body, _headers -> :ok end)
+    |> stub(:register_ownership, fn _body, _headers -> {:ok, 3600} end)
 
     %{create_path: create_path}
   end

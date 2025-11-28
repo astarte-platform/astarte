@@ -61,14 +61,15 @@ defmodule Astarte.Pairing.FDO.RendezvousTest do
     test "returns {:ok, body} on 200 response" do
       request_body = "payload"
       headers = [{"authorization", "Bearer token"}]
+      cbor_response = [3600] |> CBOR.encode()
 
       Client
       |> expect(:post, fn "/fdo/101/msg/22", "payload", headers_with_auth ->
         assert {"Authorization", "Bearer token"} in headers_with_auth
-        {:ok, %HTTPoison.Response{status_code: 200, body: "some_cbor_response"}}
+        {:ok, %HTTPoison.Response{status_code: 200, body: cbor_response}}
       end)
 
-      assert :ok = Rendezvous.register_ownership(request_body, headers)
+      assert {:ok, 3600} = Rendezvous.register_ownership(request_body, headers)
     end
 
     test "returns :error on http error" do
