@@ -19,6 +19,7 @@
 defmodule Astarte.Pairing.FDO.OwnerOnboarding.SessionKey do
   alias Astarte.Pairing.FDO.OwnerOnboarding.Core
   alias COSE.Keys.ECC
+  alias COSE.Keys.Symmetric
 
   def new("ECDH256", %ECC{} = owner_key) do
     random = :crypto.strong_rand_bytes(16)
@@ -63,10 +64,11 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding.SessionKey do
   end
 
   def derive_key("A256GCM", shared_secret, owner_random) do
-    derive_sevk(:hmac, :sha256, shared_secret, owner_random, 256, 256)
+    derive_sevk(:aes_256_gcm, :hmac, :sha256, shared_secret, owner_random, 256, 256)
   end
 
   defp derive_sevk(
+         alg,
          mac_type,
          mac_subtype,
          shared_secret,
@@ -82,8 +84,21 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding.SessionKey do
     else
       context = "AutomaticOnboardTunnel" <> owner_random
       l = <<key_length::integer-big-unsigned-size(16)>>
-      sevk = Core.counter_mode_kdf(mac_type, mac_subtype, n, shared_secret, context, l)
+
+      sevk =
+        Core.counter_mode_kdf(mac_type, mac_subtype, n, shared_secret, context, l)
+        |> build_key(alg)
+
       {:ok, sevk, nil, nil}
     end
   end
+
+  defp build_key(binary_key, alg) do
+    %Symmetric{k: binary_key, alg: alg}
+  end
+
+  def to_db(nil), do: nil
+  def to_db(key), do: :erlang.term_to_binary(key)
+  def from_db(nil), do: nil
+  def from_db(key), do: :erlang.binary_to_term(key)
 end

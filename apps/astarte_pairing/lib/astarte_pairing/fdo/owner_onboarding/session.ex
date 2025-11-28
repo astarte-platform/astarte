@@ -25,6 +25,7 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding.Session do
   alias Astarte.Pairing.FDO.OwnerOnboarding.Session
   alias Astarte.Pairing.FDO.OwnerOnboarding.SessionKey
   alias Astarte.Pairing.Queries
+  alias COSE.Messages.Encrypt0
 
   typedstruct do
     field :key, String.t()
@@ -36,9 +37,9 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding.Session do
     field :owner_random, term()
     field :xa, binary()
     field :secret, binary() | nil
-    field :sevk, binary() | nil
-    field :svk, binary() | nil
-    field :sek, binary() | nil
+    field :sevk, struct() | nil
+    field :svk, struct() | nil
+    field :sek, struct() | nil
   end
 
   def new(realm_name, hello_device, ownership_voucher, owner_key) do
@@ -103,8 +104,20 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding.Session do
     } = session
 
     with {:ok, sevk, svk, sek} <- SessionKey.derive_key(cipher_suite, secret, owner_random),
-         :ok <- Queries.add_session_keys(realm_name, session_key, sevk, svk, sek) do
+         [db_sevk, db_svk, db_sek] = Enum.map([sevk, svk, sek], &SessionKey.to_db/1),
+         :ok <- Queries.add_session_keys(realm_name, session_key, db_sevk, db_svk, db_sek) do
       {:ok, %{session | sevk: sevk, svk: svk, sek: sek}}
+    end
+  end
+
+  def decrypt_and_verify(%Session{sevk: sevk}, message) when not is_nil(sevk) do
+    cipher = sevk.alg
+
+    with {:ok, enc0} <- Encrypt0.decrypt_decode(message, cipher, sevk),
+         {:ok, body, _} <- CBOR.decode(enc0.payload) do
+      {:ok, body}
+    else
+      _ -> :error
     end
   end
 
@@ -133,9 +146,9 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding.Session do
         owner_random: owner_random,
         device_signature: device_signature,
         secret: secret,
-        sevk: sevk,
-        svk: svk,
-        sek: sek
+        sevk: SessionKey.from_db(sevk),
+        svk: SessionKey.from_db(svk),
+        sek: SessionKey.from_db(sek)
       }
 
       {:ok, session}

@@ -115,7 +115,9 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding.SessionTest do
       } = context
 
       assert {:ok, session} = Session.derive_key(session, realm_name)
-      assert is_binary(session.sevk)
+      assert %COSE.Keys.Symmetric{k: binary_key, alg: alg} = session.sevk
+      assert is_binary(binary_key)
+      assert alg == :aes_256_gcm
     end
   end
 end

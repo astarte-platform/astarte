@@ -43,6 +43,10 @@ defmodule Astarte.PairingWeb.Router do
     plug Astarte.PairingWeb.Plug.FDOSession
   end
 
+  pipeline :fdo_tunnel do
+    plug Astarte.PairingWeb.Plug.DecryptAndVerify
+  end
+
   scope "/v1/:realm_name", Astarte.PairingWeb do
     pipe_through :realm_api
 
@@ -61,6 +65,8 @@ defmodule Astarte.PairingWeb.Router do
       pipe_through :fdo_session
 
       post "/msg/62", FDOOnboardingController, :ov_next_entry
+
+      pipe_through :fdo_tunnel
     end
 
     scope "/agent" do
