@@ -20,6 +20,7 @@ defmodule Astarte.Pairing.FDO.Rendezvous.CoreTest do
   use ExUnit.Case, async: true
 
   alias Astarte.Pairing.FDO.Rendezvous.Core
+  alias Astarte.Pairing.FDO.Rendezvous.RvTO2Addr
 
   import Astarte.Helpers.FDO
 
@@ -63,43 +64,6 @@ defmodule Astarte.Pairing.FDO.Rendezvous.CoreTest do
 
     test "fails for cbors with unexpected format", %{not_hello_ack_cbor: cbor} do
       assert {:error, :unexpected_body_format} == Core.get_body_nonce(cbor)
-    end
-  end
-
-  describe "get_rv_to2_addr_entry/2" do
-    test "returns a list of entries with correct types and one element" do
-      {:ok, entries} = Core.get_rv_to2_addr_entry("test1")
-      assert is_list(entries)
-      assert length(entries) == 1
-
-      Enum.each(entries, fn entry ->
-        assert is_binary(entry)
-        {:ok, [decoded], _rest} = CBOR.decode(entry)
-        assert is_list(decoded)
-        assert length(decoded) == 4
-        assert is_nil(Enum.at(decoded, 0))
-        assert is_binary(Enum.at(decoded, 1))
-        assert is_integer(Enum.at(decoded, 2))
-        assert is_integer(Enum.at(decoded, 3))
-      end)
-    end
-
-    test "add an entry to a list of entries, returns with correct types and one more entry" do
-      {:ok, entries} = Core.get_rv_to2_addr_entry("test1")
-      {:ok, entries} = Core.get_rv_to2_addr_entry("test2", entries)
-      assert is_list(entries)
-      assert length(entries) == 2
-
-      Enum.each(entries, fn entry ->
-        assert is_binary(entry)
-        {:ok, [decoded], _rest} = CBOR.decode(entry)
-        assert is_list(decoded)
-        assert length(decoded) == 4
-        assert is_nil(Enum.at(decoded, 0))
-        assert is_binary(Enum.at(decoded, 1))
-        assert is_integer(Enum.at(decoded, 2))
-        assert is_integer(Enum.at(decoded, 3))
-      end)
     end
   end
 
@@ -178,7 +142,7 @@ defmodule Astarte.Pairing.FDO.Rendezvous.CoreTest do
       nonce = <<32, 54, 127, 243, 66, 48, 228, 115, 59, 186, 230, 246, 198, 179, 113, 78>>
       owner_key = sample_extracted_rsa_private_key()
       ownership_voucher = sample_voucher()
-      {:ok, addr_entries} = Core.get_rv_to2_addr_entry("test1")
+      addr_entries = [RvTO2Addr.for_realm("test1")]
 
       %{
         nonce: nonce,

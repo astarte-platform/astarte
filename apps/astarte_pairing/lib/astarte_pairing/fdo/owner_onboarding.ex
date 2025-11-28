@@ -31,7 +31,7 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding do
   alias Astarte.Pairing.FDO.OwnerOnboarding.Session
   alias Astarte.Pairing.FDO.OwnershipVoucher
   alias Astarte.Pairing.FDO.OwnershipVoucher.Core, as: OwnershipVoucherCore
-  alias Astarte.Pairing.FDO.Rendezvous.Core, as: RendezvousCore
+  alias Astarte.Pairing.FDO.Rendezvous.RvTO2Addr
   alias Astarte.Pairing.FDO.Types.Hash
   alias Astarte.Pairing.Queries
   alias COSE.Messages.Sign1
@@ -113,8 +113,7 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding do
     nonce = session.nonce
     device_pub_key = session.device_public_key
 
-    {:ok, current_rendezvous_info} =
-      RendezvousCore.get_rv_to2_addr_entry("#{realm_name}.#{Config.base_domain!()}")
+    current_rendezvous_info = RvTO2Addr.for_realm(realm_name)
 
     {:ok, ownership_voucher} =
       OwnershipVoucher.fetch(realm_name, device_guid)

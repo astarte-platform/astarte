@@ -20,20 +20,13 @@ defmodule Astarte.Pairing.FDO.Rendezvous.Core do
   require Logger
 
   alias Astarte.Pairing.FDO.Cbor.Core, as: CBORCore
+  alias Astarte.Pairing.FDO.Rendezvous.RvTO2Addr
   alias COSE.Messages.Sign1
-
-  @http 3
-  @load_balancer_port 4003
-
-  def get_rv_to2_addr_entry(full_dns_name, pre_existing_entries \\ []) do
-    rv_entry = CBORCore.build_rv_to2_addr_entry(nil, full_dns_name, @load_balancer_port, @http)
-    {:ok, [rv_entry] ++ pre_existing_entries}
-  end
 
   def build_owner_sign_message(decoded_ownership_voucher, owner_key, nonce, addr_entries) do
     to0d = CBORCore.build_to0d(decoded_ownership_voucher, 3600, nonce)
     to1d_to0d_hash = CBORCore.build_to1d_to0d_hash(to0d)
-    to1d_rv = CBORCore.build_to1d_rv(addr_entries)
+    to1d_rv = RvTO2Addr.encode_list(addr_entries)
     blob_payload = CBORCore.build_to1d_blob_payload(to1d_rv, to1d_to0d_hash) |> COSE.tag_as_byte()
     signature = build_cose_sign1(blob_payload, owner_key)
 

@@ -28,22 +28,6 @@ defmodule Astarte.Pairing.FDO.Cbor.CoreTest do
     end
   end
 
-  describe "build_rv_to2_addr_entry/4" do
-    test "encodes a single rendezvous entry correctly" do
-      ip = "192.168.1.10"
-      dns = "example.com"
-      port = 8080
-      protocol = "https"
-
-      encoded = Core.build_rv_to2_addr_entry(ip, dns, port, protocol)
-      {:ok, decoded, ""} = CBOR.decode(encoded)
-
-      assert is_list(decoded)
-      [entry] = decoded
-      assert entry == [ip, dns, port, protocol]
-    end
-  end
-
   describe "build_to1d_rv/1" do
     test "encodes a list of rendezvous entries" do
       entries = [
