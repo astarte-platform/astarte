@@ -21,7 +21,6 @@ defmodule Astarte.Pairing.FDO.Rendezvous.RvTO2Addr do
 
   alias Astarte.Pairing.Config
   alias Astarte.Pairing.FDO.Rendezvous.RvTO2Addr
-  alias Astarte.PairingWeb.Endpoint
 
   @protocol_to_id %{
     tcp: 1,
@@ -42,9 +41,10 @@ defmodule Astarte.Pairing.FDO.Rendezvous.RvTO2Addr do
   end
 
   def for_realm(realm_name) do
-    base_domain = Config.base_domain!()
-    dns = "#{realm_name}.#{base_domain}"
-    {protocol, port} = default_endpoint_config()
+    domain = Config.base_url_domain!()
+    port = Config.base_url_port!()
+    protocol = Config.base_url_protocol!()
+    dns = "#{realm_name}.#{domain}"
 
     %RvTO2Addr{dns: dns, port: port, protocol: protocol}
   end
@@ -64,17 +64,5 @@ defmodule Astarte.Pairing.FDO.Rendezvous.RvTO2Addr do
   @doc false
   def encode_protocol(protocol) do
     Map.fetch!(@protocol_to_id, protocol)
-  end
-
-  defp default_endpoint_config do
-    cond do
-      http = Endpoint.config(:http) ->
-        port = Keyword.fetch!(http, :port)
-        {:http, port}
-
-      https = Endpoint.config(:https) ->
-        port = Keyword.fetch!(https, :port)
-        {:https, port}
-    end
   end
 end

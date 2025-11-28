@@ -33,10 +33,12 @@ defmodule Astarte.Pairing.FDO.Rendezvous.RvTO2AddrTest do
     test "returns the default configuration for the realm", %{realm_name: realm_name} do
       realm_config = RvTO2Addr.for_realm(realm_name)
 
-      expected_dns = "#{realm_name}.#{Config.base_domain!()}"
+      expected_port = Config.base_url_port!()
+      expected_protocol = Config.base_url_protocol!()
+      expected_dns = "#{realm_name}.#{Config.base_url_domain!()}"
 
-      assert realm_config.port == 4003
-      assert realm_config.protocol == :http
+      assert realm_config.port == expected_port
+      assert realm_config.protocol == expected_protocol
       assert realm_config.dns == expected_dns
     end
   end

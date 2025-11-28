@@ -24,6 +24,7 @@ defmodule Astarte.Pairing.Config do
   use Skogsra
 
   alias Astarte.Pairing.CFSSLCredentials
+  alias Astarte.Pairing.Config.BaseURLProtocol
   alias Astarte.Pairing.Config.CQExNodes
 
   @envdoc "The external broker URL which should be used by devices."
@@ -32,9 +33,21 @@ defmodule Astarte.Pairing.Config do
     type: :binary,
     required: true
 
+  @envdoc "The port the ingress is listening on, used for FDO authentication mechanism"
+  app_env :base_url_port, :astarte_pairing, :base_url_port,
+    os_env: "ASTARTE_BASE_URL_PORT",
+    type: :integer,
+    required: true
+
+  @envdoc "The protocol the ingress is listening on, used for FDO authentication mechanism"
+  app_env :base_url_protocol, :astarte_pairing, :base_url_protocol,
+    os_env: "ASTARTE_BASE_URL_PROTOCOL",
+    type: BaseURLProtocol,
+    required: true
+
   @envdoc "The astarte base domain, used for FDO authentication mechanism"
-  app_env :base_domain, :astarte_pairing, :base_domain,
-    os_env: "ASTARTE_BASE_DOMAIN",
+  app_env :base_url_domain, :astarte_pairing, :base_url_domain,
+    os_env: "ASTARTE_BASE_URL_DOMAIN",
     type: :binary,
     required: true
 

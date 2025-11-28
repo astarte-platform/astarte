@@ -128,7 +128,7 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding do
       rendezvous_info: current_rendezvous_info,
       owner_pub_key: OwnershipVoucher.owner_public_key(ownership_voucher),
       owner_private_key: private_key,
-      device_info: "owned by astarte - realm #{realm_name}.#{Config.base_domain!()}"
+      device_info: "owned by astarte - realm #{realm_name}.#{Config.base_url_domain!()}"
     }
 
     with {:ok, setup_device_message} <-
