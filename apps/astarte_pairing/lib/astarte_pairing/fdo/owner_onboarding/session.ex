@@ -121,6 +121,16 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding.Session do
     end
   end
 
+  def encrypt_and_sign(%Session{sevk: sevk}, message) when not is_nil(sevk) do
+    cipher = sevk.alg
+    iv = :crypto.strong_rand_bytes(16)
+    protected_headers = %{alg: cipher}
+    unprotected_headers = %{iv: COSE.tag_as_byte(iv)}
+
+    Encrypt0.build(message, protected_headers, unprotected_headers)
+    |> Encrypt0.encrypt_encode(cipher, sevk, iv)
+  end
+
   def fetch(realm_name, session_key) do
     with {:ok, database_session} <- Queries.fetch_session(realm_name, session_key),
          {:ok, device_signature} <-

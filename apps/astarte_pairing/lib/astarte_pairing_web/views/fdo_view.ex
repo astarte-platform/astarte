@@ -19,7 +19,14 @@
 defmodule Astarte.PairingWeb.FDOView do
   use Astarte.PairingWeb, :view
 
+  alias Astarte.Pairing.FDO.OwnerOnboarding.Session
+
   def render("default.cbor", %{cbor_response: response}) do
     response
+  end
+
+  def render("secure.cbor", %{cbor_response: response} = assigns) do
+    session = assigns.to2_session
+    Session.encrypt_and_sign(session, response)
   end
 end
