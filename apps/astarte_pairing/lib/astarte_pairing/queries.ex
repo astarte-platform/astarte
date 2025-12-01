@@ -293,6 +293,11 @@ defmodule Astarte.Pairing.Queries do
     end
   end
 
+  def update_session_max_payload(realm_name, session_key, size) do
+    updates = [max_service_info: size]
+    update_session(realm_name, session_key, updates)
+  end
+
   def add_session_secret(realm_name, session_key, secret) do
     updates = [secret: secret]
     update_session(realm_name, session_key, updates)

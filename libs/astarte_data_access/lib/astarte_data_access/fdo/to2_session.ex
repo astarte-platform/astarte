@@ -52,5 +52,6 @@ defmodule Astarte.DataAccess.FDO.TO2Session do
     field :sevk, :binary
     field :svk, :binary
     field :sek, :binary
+    field :max_service_info, :integer 
   end
 end

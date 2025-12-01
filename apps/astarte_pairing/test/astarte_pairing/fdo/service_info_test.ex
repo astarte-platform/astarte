@@ -17,17 +17,39 @@
 #
 
 defmodule Astarte.Pairing.FDO.ServiceInfoTest do
-  use ExUnit.Case
+  use Astarte.Cases.Data, async: true
+  use Astarte.Cases.Device
   doctest Astarte.Pairing.FDO.ServiceInfo
 
   alias Astarte.Pairing.FDO.ServiceInfo
   alias Astarte.Pairing.FDO.OwnerOnboarding.DeviceServiceInfoReady
+  alias Astarte.Pairing.FDO.OwnerOnboarding.HelloDevice
+  alias Astarte.Pairing.FDO.OwnerOnboarding.SessionKey
   alias Astarte.Pairing.FDO.OwnershipVoucher
   alias COSE.Messages.Encrypt0
+  alias Astarte.Pairing.FDO.OwnerOnboarding.Session
   alias COSE.Keys
+  import Astarte.Helpers.FDO
 
   @owner_max_service_info 4096
   @aes_256_gcm :aes_256_gcm
+
+  setup_all do
+    hello_device = HelloDevice.generate()
+    ownership_voucher = sample_ownership_voucher()
+    owner_key = sample_extracted_private_key()
+    device_key = COSE.Keys.ECC.generate(:es256)
+    {:ok, device_random, xb} = SessionKey.new(hello_device.kex_name, device_key)
+
+    %{
+      hello_device: hello_device,
+      ownership_voucher: ownership_voucher,
+      owner_key: owner_key,
+      device_key: device_key,
+      device_random: device_random,
+      xb: xb
+    }
+  end
 
   setup do
     header_list = [
@@ -60,13 +82,22 @@ defmodule Astarte.Pairing.FDO.ServiceInfoTest do
 
   describe "handle_msg_66/4" do
     test "successfully processes Msg 66, creates new voucher, and returns Msg 67", %{
+      realm: realm_name,
+      hello_device: hello_device,
+      owner_key: owner_key,
+      ownership_voucher: ownership_voucher,
       old_voucher: old_voucher
     } do
+      {:ok, session} =
+        Session.new(realm_name, hello_device, ownership_voucher, owner_key)
+
       new_hmac = :crypto.strong_rand_bytes(32)
       device_max_size = 2048
 
       assert {:ok, result_msg_67} =
                ServiceInfo.handle_msg_66(
+                 realm_name,
+                 session.key,
                  %DeviceServiceInfoReady{
                    replacement_hmac: new_hmac,
                    max_owner_service_info_sz: device_max_size
@@ -78,10 +109,19 @@ defmodule Astarte.Pairing.FDO.ServiceInfoTest do
     end
 
     test "handles Credential Reuse (nil HMAC) correctly", %{
+      realm: realm_name,
+      hello_device: hello_device,
+      owner_key: owner_key,
+      ownership_voucher: ownership_voucher,
       old_voucher: old_voucher
     } do
+      {:ok, session} =
+        Session.new(realm_name, hello_device, ownership_voucher, owner_key)
+
       assert {:ok, _result} =
                ServiceInfo.handle_msg_66(
+                 realm_name,
+                 session.key,
                  %DeviceServiceInfoReady{
                    replacement_hmac: nil,
                    max_owner_service_info_sz: 2048
@@ -91,20 +131,37 @@ defmodule Astarte.Pairing.FDO.ServiceInfoTest do
     end
 
     test "returns error if inner CBOR payload is malformed", %{
+      realm: realm_name,
+      hello_device: hello_device,
+      owner_key: owner_key,
+      ownership_voucher: ownership_voucher,
       old_voucher: old_voucher
     } do
+      {:ok, session} =
+        Session.new(realm_name, hello_device, ownership_voucher, owner_key)
+
       malformed_payload = "not_a_valid_payload"
 
-      result = ServiceInfo.handle_msg_66(malformed_payload, old_voucher)
+      result = ServiceInfo.handle_msg_66(realm_name, session.key, malformed_payload, old_voucher)
 
       assert {:error, :invalid_payload} = result
     end
 
-    test "returns error if old voucher is invalid" do
+    test "returns error if old voucher is invalid", %{
+      realm: realm_name,
+      hello_device: hello_device,
+      owner_key: owner_key,
+      ownership_voucher: ownership_voucher
+    } do
       invalid_voucher = CBOR.encode("not a voucher")
+
+      {:ok, session} =
+        Session.new(realm_name, hello_device, ownership_voucher, owner_key)
 
       result =
         ServiceInfo.handle_msg_66(
+          realm_name,
+          session.key,
           %DeviceServiceInfoReady{
             replacement_hmac: :crypto.strong_rand_bytes(32),
             max_owner_service_info_sz: 1024
