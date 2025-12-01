@@ -26,8 +26,8 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding.HelloDeviceTest do
     setup do
       valid_data = %{
         max_size: 65_535,
-        device_id: <<1, 2, 3, 4>>,
-        nonce: <<5, 6, 7, 8>>,
+        device_id: %CBOR.Tag{tag: :bytes, value: <<1, 2, 3, 4>>},
+        nonce: %CBOR.Tag{tag: :bytes, value: <<5, 6, 7, 8>>},
         kex_name: "DHKEXid14",
         cipher_name: :aes_256_gcm,
         easig_info: [-7, %CBOR.Tag{tag: :bytes, value: <<>>}]
@@ -48,9 +48,12 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding.HelloDeviceTest do
     } do
       assert {:ok, %HelloDevice{} = hello_device} = HelloDevice.decode(cbor)
 
+      %CBOR.Tag{tag: :bytes, value: device_id} = data.device_id
+      %CBOR.Tag{tag: :bytes, value: nonce} = data.nonce
+
       assert hello_device.max_size == data.max_size
-      assert hello_device.device_id == data.device_id
-      assert hello_device.nonce == data.nonce
+      assert hello_device.device_id == device_id
+      assert hello_device.nonce == nonce
       assert hello_device.kex_name == data.kex_name
       assert hello_device.cipher_name == data.cipher_name
       assert {:ok, hello_device.easig_info} == SignatureInfo.decode(data.easig_info)
