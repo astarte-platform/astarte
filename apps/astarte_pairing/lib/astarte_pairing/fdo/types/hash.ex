@@ -33,9 +33,17 @@ defmodule Astarte.Pairing.FDO.Types.Hash do
     field :hash, binary()
   end
 
-  def new(hash_type, value) do
+  def new(hash_type, value) when hash_type in [:sha256, :sha384] do
     hash = :crypto.hash(hash_type, value)
     %Hash{type: hash_type, hash: hash}
+  end
+
+  def new(:hmac_sha256, key, value), do: new_hmac(:sha256, key, value)
+  def new(:hmac_sha384, key, value), do: new_hmac(:sha384, key, value)
+
+  defp new_hmac(hmac_type, key, value) do
+    hmac = :crypto.mac(:hmac, hmac_type, key.k, value)
+    %Hash{type: hmac_type, hash: hmac}
   end
 
   def encode(hash) do
