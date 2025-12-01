@@ -240,7 +240,7 @@ defmodule Astarte.Pairing.Queries do
 
     consistency = Consistency.domain_model(:read)
 
-    Repo.one(query, consistency: consistency)
+    Repo.fetch_one(query, consistency: consistency)
   end
 
   def get_owner_private_key(realm_name, device_id) do
@@ -256,7 +256,7 @@ defmodule Astarte.Pairing.Queries do
 
     consistency = Consistency.domain_model(:read)
 
-    Repo.one(query, consistency: consistency)
+    Repo.fetch_one(query, consistency: consistency)
   end
 
   def create_ownership_voucher(

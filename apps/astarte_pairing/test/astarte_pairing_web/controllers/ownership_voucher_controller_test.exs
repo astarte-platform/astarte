@@ -45,7 +45,17 @@ defmodule Astarte.PairingWeb.Controllers.OwnershipVoucherControllerTest do
       |> post(path, @sample_params)
       |> response(200)
 
-      assert Queries.get_owner_private_key(realm_name, sample_device_guid())
+      assert {:ok, _} = Queries.get_ownership_voucher(realm_name, sample_device_guid())
+    end
+
+    test "stores the owner private key", context do
+      %{auth_conn: conn, create_path: path, realm_name: realm_name} = context
+
+      conn
+      |> post(path, @sample_params)
+      |> response(200)
+
+      assert {:ok, _} = Queries.get_owner_private_key(realm_name, sample_device_guid())
     end
 
     test "starts the to0 protocol", context do
