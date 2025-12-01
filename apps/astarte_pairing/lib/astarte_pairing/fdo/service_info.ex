@@ -19,19 +19,23 @@
 defmodule Astarte.Pairing.FDO.ServiceInfo do
   alias Astarte.Pairing.FDO.OwnershipVoucher
   alias Astarte.Pairing.FDO.OwnerOnboarding.DeviceServiceInfoReady
+  alias Astarte.Pairing.Queries
 
   @owner_max_service_info 4096
 
   def handle_msg_66(
+        realm_name,
+        session_key,
         %DeviceServiceInfoReady{
           replacement_hmac: replacement_hmac,
-          max_owner_service_info_sz: _device_max_size
+          max_owner_service_info_sz: device_max_size
         },
         %OwnershipVoucher{} = old_voucher
       ) do
     with {:ok, _new_voucher} <-
-           OwnershipVoucher.generate_replacement_voucher(old_voucher, replacement_hmac) do
-      # TODO: Store `new_voucher` and `device_max_size` in the Session or DB.
+           OwnershipVoucher.generate_replacement_voucher(old_voucher, replacement_hmac),
+         :ok <- Queries.update_session_max_payload(realm_name, session_key, device_max_size) do
+      # TODO: Store `new_voucher` into DB.
 
       msg_67_payload = [@owner_max_service_info]
 
@@ -43,6 +47,8 @@ defmodule Astarte.Pairing.FDO.ServiceInfo do
   end
 
   def handle_msg_66(
+        _,
+        _,
         %DeviceServiceInfoReady{},
         _
       ) do
@@ -50,6 +56,8 @@ defmodule Astarte.Pairing.FDO.ServiceInfo do
   end
 
   def handle_msg_66(
+        _,
+        _,
         _,
         %OwnershipVoucher{}
       ) do

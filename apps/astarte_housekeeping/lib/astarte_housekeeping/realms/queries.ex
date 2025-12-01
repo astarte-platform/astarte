@@ -576,6 +576,7 @@ defmodule Astarte.Housekeeping.Realms.Queries do
       setup_dv_nonce blob,
       kex_suite_name ascii,
       cipher_suite_name int,
+      max_service_info int,
       owner_random blob,
       secret blob,
       sevk blob,
