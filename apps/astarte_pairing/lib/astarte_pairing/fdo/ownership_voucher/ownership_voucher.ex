@@ -116,4 +116,14 @@ defmodule Astarte.Pairing.FDO.OwnershipVoucher do
 
     Enum.find(extracted, {:ok, extracted}, &(&1 == :error))
   end
+
+  def generate_replacement_voucher(_ownership_voucher, nil) do
+    # If ReplacementHMac is null, we don't create a new voucher (Credential Reuse)
+    {:ok, nil}
+  end
+
+  def generate_replacement_voucher(ownership_voucher, new_dev_id_hmac) do
+    new_voucher = ownership_voucher |> Map.put(:hmac, new_dev_id_hmac) |> Map.put(:entries, [])
+    {:ok, new_voucher}
+  end
 end
