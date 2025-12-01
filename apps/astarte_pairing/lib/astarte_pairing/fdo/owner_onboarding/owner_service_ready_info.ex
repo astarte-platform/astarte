@@ -25,6 +25,7 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding.OwnerServiceInfoReady do
   Owner Onboarding Service is ready to start exchanging ServiceInfo.
   """
   use TypedStruct
+  alias Astarte.Pairing.FDO.OwnerOnboarding.OwnerServiceInfoReady
 
   typedstruct enforce: true do
     @typedoc "Structure for TO2.OwnerServiceInfoReady message."
@@ -37,12 +38,20 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding.OwnerServiceInfoReady do
   end
 
   @doc """
-  Converts the struct into a CBOR list for transmission.
+  Converts the struct into a raw list for CBOR encoding.
   Format: [maxDeviceServiceInfoSz]
   """
-  def to_cbor_list(%__MODULE__{} = t) do
-    [
-      t.max_device_service_info_sz
-    ]
+  def to_cbor_list(%OwnerServiceInfoReady{max_device_service_info_sz: size}) do
+    [size]
+  end
+
+  @doc """
+  Encodes the struct into a CBOR binary.
+  """
+  @spec encode(t()) :: binary()
+  def encode(%OwnerServiceInfoReady{} = t) do
+    t
+    |> to_cbor_list()
+    |> CBOR.encode()
   end
 end
