@@ -35,10 +35,10 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding.SignatureInfo do
 
   def decode(sig_info) do
     case sig_info do
-      [@es256, <<>>] -> {:ok, :es256}
-      [@es384, <<>>] -> {:ok, :es384}
-      [@eipd10, gid] -> {:ok, {:eipd10, gid}}
-      [@eipd11, gid] -> {:ok, {:eipd11, gid}}
+      [@es256, %CBOR.Tag{tag: :bytes, value: <<>>}] -> {:ok, :es256}
+      [@es384, %CBOR.Tag{tag: :bytes, value: <<>>}] -> {:ok, :es384}
+      [@eipd10, %CBOR.Tag{tag: :bytes, value: gid}] -> {:ok, {:eipd10, gid}}
+      [@eipd11, %CBOR.Tag{tag: :bytes, value: gid}] -> {:ok, {:eipd11, gid}}
       _ -> :error
     end
   end

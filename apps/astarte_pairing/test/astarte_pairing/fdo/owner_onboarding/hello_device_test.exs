@@ -30,7 +30,7 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding.HelloDeviceTest do
         nonce: <<5, 6, 7, 8>>,
         kex_name: "DHKEXid14",
         cipher_name: :aes_256_gcm,
-        easig_info: [-7, <<>>]
+        easig_info: [-7, %CBOR.Tag{tag: :bytes, value: <<>>}]
       }
 
       hello_device_cbor = hello_device_list(valid_data) |> CBOR.encode()
