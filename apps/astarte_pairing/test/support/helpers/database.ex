@@ -23,6 +23,7 @@ defmodule Astarte.Helpers.Database do
   alias Astarte.Core.Device
   alias Astarte.DataAccess.Consistency
   alias Astarte.DataAccess.Devices.Device, as: DeviceSchema
+  alias Astarte.DataAccess.FDO.TO2Session
   alias Astarte.DataAccess.Realms.Realm
   alias Astarte.DataAccess.Repo
   alias Astarte.Pairing.CredentialsSecret
@@ -71,6 +72,34 @@ defmodule Astarte.Helpers.Database do
   @create_capabilities_type """
   CREATE TYPE :keyspace.capabilities (
     purge_properties_compression_format int
+  );
+  """
+
+  @create_ownership_vouchers_table """
+  CREATE TABLE :keyspace.ownership_vouchers (
+      private_key blob,
+      voucher_data blob,
+      device_id uuid,
+      PRIMARY KEY (device_id, voucher_data)
+   );
+  """
+
+  @create_to2_sessions_table """
+  CREATE TABLE :keyspace.to2_sessions (
+    session_key blob,
+    sig_type int,
+    epid_group blob,
+    device_id uuid,
+    device_public_key blob,
+    prove_dv_nonce blob,
+    kex_suite_name ascii,
+    cipher_suite_name ascii,
+    owner_random blob,
+    secret blob,
+    sevk blob,
+    svk blob,
+    sek blob,
+    PRIMARY KEY (session_key)
   );
   """
 
@@ -284,6 +313,7 @@ defmodule Astarte.Helpers.Database do
     realm_keyspace = Realm.keyspace_name(realm_name)
     execute!(realm_keyspace, @create_keyspace)
     execute!(realm_keyspace, @create_capabilities_type)
+    execute!(realm_keyspace, @create_ownership_vouchers_table)
     execute!(realm_keyspace, @create_devices_table)
     execute!(realm_keyspace, @create_groups_table)
     execute!(realm_keyspace, @create_names_table)
@@ -294,6 +324,7 @@ defmodule Astarte.Helpers.Database do
     execute!(realm_keyspace, @create_individual_datastreams_table)
     execute!(realm_keyspace, @create_interfaces_table)
     execute!(realm_keyspace, @create_deletion_in_progress_table)
+    execute!(realm_keyspace, @create_to2_sessions_table)
 
     :ok
   end
@@ -523,5 +554,15 @@ defmodule Astarte.Helpers.Database do
   def now_millis do
     DateTime.utc_now()
     |> DateTime.to_unix(:millisecond)
+  end
+
+  def delete_session(realm_name, session_key) do
+    keyspace = Realm.keyspace_name(realm_name)
+
+    query =
+      from s in TO2Session,
+        where: s.session_key == fragment("uuidAsBlob(?)", ^session_key)
+
+    Repo.delete_all(query, prefix: keyspace)
   end
 end

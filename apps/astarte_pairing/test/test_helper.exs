@@ -17,10 +17,14 @@
 #
 
 Mimic.copy(Astarte.DataAccess.Config)
-Mimic.copy(Astarte.Pairing.Config)
-Mimic.copy(DateTime)
 Mimic.copy(Astarte.DataAccess.Health.Health)
-Mimic.copy(HTTPoison)
 Mimic.copy(Astarte.Events.TriggersHandler)
+Mimic.copy(Astarte.Pairing.Config)
+Mimic.copy(Astarte.Pairing.FDO.OwnershipVoucher.Core)
+Mimic.copy(Astarte.Pairing.FDO.Rendezvous)
+Mimic.copy(Astarte.Pairing.FDO.Rendezvous.Client)
+Mimic.copy(Astarte.Pairing.Queries)
+Mimic.copy(DateTime)
+Mimic.copy(HTTPoison)
 
 ExUnit.start(capture_log: true)

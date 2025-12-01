@@ -21,7 +21,7 @@ import Config
 # We don't run a server during test. If one is required,
 # you can enable the server option below.
 config :astarte_pairing, Astarte.PairingWeb.Endpoint,
-  http: [port: 4001],
+  http: [port: 4003],
   server: false
 
 config :logger, :console,
@@ -96,6 +96,9 @@ config :astarte_pairing,
        System.get_env("CFSSL_API_URL") || "http://localhost:8080"
 
 config :astarte_pairing, :astarte_instance_id, "test"
+config :astarte_pairing, :base_url_domain, "api.astarte.localhost"
+config :astarte_pairing, :base_url_port, 4003
+config :astarte_pairing, :base_url_protocol, :http
 
 config :bcrypt_elixir,
   log_rounds: 4

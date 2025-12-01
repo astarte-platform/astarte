@@ -24,11 +24,30 @@ defmodule Astarte.Pairing.Config do
   use Skogsra
 
   alias Astarte.Pairing.CFSSLCredentials
+  alias Astarte.Pairing.Config.BaseURLProtocol
   alias Astarte.Pairing.Config.CQExNodes
 
   @envdoc "The external broker URL which should be used by devices."
   app_env :broker_url, :astarte_pairing, :broker_url,
     os_env: "PAIRING_BROKER_URL",
+    type: :binary,
+    required: true
+
+  @envdoc "The port the ingress is listening on, used for FDO authentication mechanism"
+  app_env :base_url_port, :astarte_pairing, :base_url_port,
+    os_env: "ASTARTE_BASE_URL_PORT",
+    type: :integer,
+    required: true
+
+  @envdoc "The protocol the ingress is listening on, used for FDO authentication mechanism"
+  app_env :base_url_protocol, :astarte_pairing, :base_url_protocol,
+    os_env: "ASTARTE_BASE_URL_PROTOCOL",
+    type: BaseURLProtocol,
+    required: true
+
+  @envdoc "The astarte base domain, used for FDO authentication mechanism"
+  app_env :base_url_domain, :astarte_pairing, :base_url_domain,
+    os_env: "ASTARTE_BASE_URL_DOMAIN",
     type: :binary,
     required: true
 
@@ -48,6 +67,12 @@ defmodule Astarte.Pairing.Config do
     os_env: "CASSANDRA_NODES",
     type: CQExNodes,
     default: [{"localhost", 9042}]
+
+  @envdoc "The URL to access the FDO Rendezvous Server."
+  app_env :fdo_rendezvous_url, :astarte_pairing, :fdo_rendezvous_url,
+    os_env: "PAIRING_FDO_RENDEZVOUS_URL",
+    type: :binary,
+    default: "http://rendezvous:8041"
 
   def init! do
     if {:ok, nil} == ca_cert() do
