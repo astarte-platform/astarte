@@ -63,12 +63,13 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding.SessionKey do
     <<shared_secret::binary, device_random::binary, owner_random::binary>>
   end
 
-  def derive_key("A256GCM", shared_secret, owner_random) do
-    derive_sevk(:aes_256_gcm, :hmac, :sha256, shared_secret, owner_random, 256, 256)
+  def derive_key(:aes_256_gcm, shared_secret, owner_random) do
+    derive_sevk(:aes_256_gcm, :aes_256_gcm, :hmac, :sha256, shared_secret, owner_random, 256, 256)
   end
 
   defp derive_sevk(
-         alg,
+         key_type,
+         cipher_aead,
          mac_type,
          mac_subtype,
          shared_secret,
@@ -87,14 +88,14 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding.SessionKey do
 
       sevk =
         Core.counter_mode_kdf(mac_type, mac_subtype, n, shared_secret, context, l)
-        |> build_key(alg)
+        |> build_key(key_type, cipher_aead)
 
       {:ok, sevk, nil, nil}
     end
   end
 
-  defp build_key(binary_key, alg) do
-    %Symmetric{k: binary_key, alg: alg}
+  defp build_key(binary_key, key_type, cipher_aead) do
+    %Symmetric{kty: key_type, k: binary_key, alg: cipher_aead}
   end
 
   def to_db(nil), do: nil

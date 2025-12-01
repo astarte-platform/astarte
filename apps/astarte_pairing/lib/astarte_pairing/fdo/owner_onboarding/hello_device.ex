@@ -25,7 +25,44 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding.HelloDevice do
   alias Astarte.Pairing.FDO.OwnerOnboarding.HelloDevice
   alias Astarte.Pairing.FDO.OwnerOnboarding.SignatureInfo
 
+  require Logger
+
   @type sign_info :: {String.t(), binary()}
+
+  @allowed_ciphers [
+    :aes_128_gcm,
+    :aes_192_gcm,
+    :aes_256_gcm,
+    :aes_ccm_16_64_128,
+    :aes_ccm_16_64_256,
+    :aes_ccm_64_64_128,
+    :aes_ccm_64_64_256,
+    :aes_ccm_16_128_128,
+    :aes_ccm_16_128_256,
+    :aes_ccm_64_128_128,
+    :aes_ccm_64_128_256,
+    :aes_128_cbc,
+    :aes_128_ctr,
+    :aes_256_cbc,
+    :aes_256_ctr
+  ]
+
+  @type cipher ::
+          :aes_128_gcm
+          | :aes_192_gcm
+          | :aes_256_gcm
+          | :aes_ccm_16_64_128
+          | :aes_ccm_16_64_256
+          | :aes_ccm_64_64_128
+          | :aes_ccm_64_64_256
+          | :aes_ccm_16_128_128
+          | :aes_ccm_16_128_256
+          | :aes_ccm_64_128_128
+          | :aes_ccm_64_128_256
+          | :aes_128_cbc
+          | :aes_128_ctr
+          | :aes_256_cbc
+          | :aes_256_ctr
 
   typedstruct enforce: true do
     @typedoc "A hello device message structure."
@@ -34,21 +71,22 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding.HelloDevice do
     field :device_id, binary()
     field :nonce, binary()
     field :kex_name, String.t()
-    field :cipher_name, String.t()
+    field :cipher_name, cipher()
     field :easig_info, SignatureInfo.t()
   end
 
   def decode(cbor_binary) do
     with {:ok, message, _rest} <- CBOR.decode(cbor_binary),
          [max_size, device_id, nonce_hello_device, kex_name, cipher_name, easig_info] <- message,
-         {:ok, easig_info} <- SignatureInfo.decode(easig_info) do
+         {:ok, easig_info} <- SignatureInfo.decode(easig_info),
+         {:ok, cipher} <- decode_cipher(cipher_name) do
       hello_device =
         %HelloDevice{
           max_size: max_size,
           device_id: device_id,
           nonce: nonce_hello_device,
           kex_name: kex_name,
-          cipher_name: cipher_name,
+          cipher_name: cipher,
           easig_info: easig_info
         }
 
@@ -65,8 +103,21 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding.HelloDevice do
       device_id: Astarte.Core.Device.random_device_id(),
       nonce: :crypto.strong_rand_bytes(16),
       kex_name: "ECDH256",
-      cipher_name: "A256GCM",
+      cipher_name: :aes_256_gcm,
       easig_info: :es256
     }
+  end
+
+  defp decode_cipher(cipher) do
+    case COSE.algorithm_from_id(cipher) do
+      cipher when cipher in @allowed_ciphers ->
+        {:ok, cipher}
+
+      bad_cipher ->
+        "hello device: received #{inspect(bad_cipher)} as cipher"
+        |> Logger.error()
+
+        :error
+    end
   end
 end

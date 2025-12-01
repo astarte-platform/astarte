@@ -29,7 +29,7 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding.HelloDeviceTest do
         device_id: <<1, 2, 3, 4>>,
         nonce: <<5, 6, 7, 8>>,
         kex_name: "DHKEXid14",
-        cipher_name: "AES256GCM",
+        cipher_name: :aes_256_gcm,
         easig_info: [-7, <<>>]
       }
 
@@ -72,6 +72,7 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding.HelloDeviceTest do
   end
 
   defp hello_device_list(data) do
-    [data.max_size, data.device_id, data.nonce, data.kex_name, data.cipher_name, data.easig_info]
+    cipher = COSE.algorithm(data.cipher_name)
+    [data.max_size, data.device_id, data.nonce, data.kex_name, cipher, data.easig_info]
   end
 end

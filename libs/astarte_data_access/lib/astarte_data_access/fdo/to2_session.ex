@@ -19,6 +19,24 @@
 defmodule Astarte.DataAccess.FDO.TO2Session do
   use TypedEctoSchema
 
+  @ciphers [
+    aes_128_gcm: 1,
+    aes_192_gcm: 2,
+    aes_256_gcm: 3,
+    aes_ccm_16_64_128: 10,
+    aes_ccm_16_64_256: 11,
+    aes_ccm_64_64_128: 12,
+    aes_ccm_64_64_256: 13,
+    aes_ccm_16_128_128: 30,
+    aes_ccm_16_128_256: 31,
+    aes_ccm_64_128_128: 32,
+    aes_ccm_64_128_256: 33,
+    aes_128_cbc: -17_760_703,
+    aes_128_ctr: -17_760_704,
+    aes_256_cbc: -17_760_705,
+    aes_256_ctr: -17_760_706
+  ]
+
   @primary_key false
   typed_schema "to2_sessions" do
     field :session_key, :binary, primary_key: true
@@ -28,7 +46,7 @@ defmodule Astarte.DataAccess.FDO.TO2Session do
     field :device_public_key, :binary
     field :prove_dv_nonce, :binary
     field :kex_suite_name, :string
-    field :cipher_suite_name, :string
+    field :cipher_suite_name, Ecto.Enum, values: @ciphers
     field :owner_random, :binary
     field :secret, :binary
     field :sevk, :binary
