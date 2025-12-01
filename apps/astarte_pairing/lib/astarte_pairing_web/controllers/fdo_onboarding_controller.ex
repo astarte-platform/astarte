@@ -47,10 +47,6 @@ defmodule Astarte.PairingWeb.FDOOnboardingController do
            OwnerOnboarding.ov_next_entry(cbor_body, realm_name, device_id) do
       conn
       |> render("default.cbor", %{cbor_response: response})
-    else
-      {:error, err} ->
-        conn
-        |> send_resp(400, err)
     end
   end
 
@@ -66,10 +62,6 @@ defmodule Astarte.PairingWeb.FDOOnboardingController do
            ) do
       conn
       |> render("default.cbor", %{cbor_response: response})
-    else
-      {:error, err} ->
-        conn
-        |> send_resp(400, err)
     end
   end
 end

@@ -16,31 +16,40 @@
 # limitations under the License.
 #
 
-defmodule Astarte.PairingWeb.FDOView do
-  use Astarte.PairingWeb, :view
+defmodule Astarte.Pairing.FDO.Types.Error do
+  use TypedStruct
 
-  alias Astarte.Pairing.FDO.OwnerOnboarding.Session
   alias Astarte.Pairing.FDO.Types.Error
 
-  def render("default.cbor", %{cbor_response: response}) do
-    response
+  typedstruct do
+    field :error_code, non_neg_integer()
+    field :previous_message_id, non_neg_integer()
+    field :error_message, String.t()
+    field :timestamp, nil
+    field :correlation_id, non_neg_integer()
   end
 
-  def render("secure.cbor", %{cbor_response: response} = assigns) do
-    session = assigns.to2_session
-    Session.encrypt_and_sign(session, response)
-  end
-
-  def render("error.cbor", assigns) do
-    %{error_code: error_code, correlation_id: correlation_id, message_id: message_id} = assigns
-
+  def encode(error) do
     %Error{
       error_code: error_code,
-      previous_message_id: message_id,
-      error_message: "",
-      timestamp: nil,
+      previous_message_id: previous_message_id,
+      error_message: error_message,
+      timestamp: timestamp,
       correlation_id: correlation_id
-    }
-    |> Error.encode_cbor()
+    } = error
+
+    [
+      error_code,
+      previous_message_id,
+      error_message,
+      timestamp,
+      correlation_id
+    ]
+  end
+
+  def encode_cbor(error) do
+    error
+    |> encode()
+    |> CBOR.encode()
   end
 end

@@ -19,6 +19,8 @@
 defmodule Astarte.PairingWeb.Plug.SetupFDO do
   use Plug.Builder
 
+  alias Astarte.PairingWeb.FDOFallbackController
+
   import Plug.Conn
 
   def init(_opts) do
@@ -26,9 +28,24 @@ defmodule Astarte.PairingWeb.Plug.SetupFDO do
   end
 
   def call(conn, _opts) do
+    # all fdo messages are /fdo/101/msg/id
+    {:ok, message_id} = parse_message_id(conn.request_path)
+    conn = assign(conn, :message_id, message_id)
+
     case read_body(conn) do
       {:ok, body, conn} -> conn |> assign(:cbor_body, body)
-      _ -> conn |> send_resp(400, "Could not read request body.") |> halt()
+      _ -> FDOFallbackController.message_body_error(conn)
+    end
+  end
+
+  defp parse_message_id(path) do
+    path
+    |> String.split("/")
+    |> List.last("")
+    |> Integer.parse()
+    |> case do
+      {message_id, _} -> {:ok, message_id}
+      :error -> :error
     end
   end
 end
