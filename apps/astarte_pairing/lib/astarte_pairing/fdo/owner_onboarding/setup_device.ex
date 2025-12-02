@@ -32,6 +32,9 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding.SetupDevicePayload do
   use TypedStruct
   alias Astarte.Pairing.FDO.Types.PublicKey
 
+  alias Astarte.Pairing.FDO.Types.PublicKey
+  alias COSE.Messages.Sign1
+
   typedstruct enforce: true do
     @typedoc "The 4-element payload to be signed inside COSE_Sign1."
 
@@ -77,5 +80,14 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding.SetupDevicePayload do
     p
     |> to_cbor_list()
     |> CBOR.encode()
+  end
+
+  def encode_sign(p, owner_private_key) do
+    payload = encode(p)
+
+    phdr = %{alg: :es256}
+
+    Sign1.build(payload, phdr)
+    |> Sign1.sign_encode(owner_private_key)
   end
 end

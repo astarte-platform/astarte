@@ -113,7 +113,6 @@ defmodule Astarte.Pairing.OwnerOnboarding.Onboarding.ProveDevice do
 
     pub_key =
       %PublicKey{type: :secp256r1, encoding: :x509, body: pub_key}
-      |> PublicKey.encode()
 
     %{
       guid: @test_guid,
@@ -149,11 +148,7 @@ defmodule Astarte.Pairing.OwnerOnboarding.Onboarding.ProveDevice do
         creds
       )
 
-    assert {
-             :ok,
-             %CBOR.Tag{tag: 18, value: _},
-             ""
-           } = CBOR.decode(msg_65_payload)
+    assert %CBOR.Tag{tag: 18, value: _} = msg_65_payload
   end
 
   test "verify ES256 fails if Nonce does not match", context do
