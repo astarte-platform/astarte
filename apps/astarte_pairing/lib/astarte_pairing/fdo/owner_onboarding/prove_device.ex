@@ -22,7 +22,7 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding.ProveDevice do
   From Device ROE to Owner Onboarding Service.
 
   This message contains a COSE_Sign1 object representing an EAT (Entity Attestation Token).
-  It authenticates the device via signature verification and provides the second part 
+  It authenticates the device via signature verification and provides the second part
   of the Key Exchange (xB).
 
   Spec Reference: 5.5.6 TO2.ProveDevice, Type 64 [cite: 3148]
@@ -36,7 +36,7 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding.ProveDevice do
   # --- IANA & FDO Constants (Appendix E & Spec 3.3.6) ---
 
   # EAT-FDO: FDO-specific claim wrapping the FDO payload (Label -257) [cite: 3456]
-  @eat_fdo_label -257
+  @eat_fdo_label :fdo
 
   typedstruct enforce: true do
     @typedoc "Decoded content of the TO2.ProveDevice message."
@@ -44,7 +44,7 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding.ProveDevice do
     # 1. xBKeyExchange
     # The Device's public key contribution to the Key Exchange.
     # Extracted from the EAT Payload inside the EAT-FDO claim.
-    # Spec: TO2ProveDevicePayload = [ xBKeyExchange ] 
+    # Spec: TO2ProveDevicePayload = [ xBKeyExchange ]
     field :xb_key_exchange, binary()
 
     # 2. NonceTO2ProveDv
@@ -68,7 +68,7 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding.ProveDevice do
   end
 
   @doc """
-  Decodes the TO2.ProveDevice message, verifies the COSE signature using the 
+  Decodes the TO2.ProveDevice message, verifies the COSE signature using the
   Device Public Key, and extracts the required FDO fields.
   """
   @spec decode(binary(), any()) :: {:ok, t()} | {:error, atom()}

@@ -22,12 +22,12 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding.EAToken do
   @known_payload_claims %{
     10 => :nonce,
     256 => :ueid,
-    -257 => :fdo,
-    -259 => :euphnonce
+    -257 => :fdo
   }
 
   @known_unprotected_header_claims %{
-    -258 => :maroeprefix
+    -258 => :maroeprefix,
+    -259 => :euphnonce
   }
 
   def verify_decode_cbor(
