@@ -42,7 +42,7 @@ defmodule Astarte.Pairing.FDO.Types.Hash do
     %Hash{type: hash_type, hash: hash} = hash
 
     type_id = encode_type(hash_type)
-    [type_id, hash]
+    [type_id, COSE.tag_as_byte(hash)]
   end
 
   def encode_cbor(hash) do

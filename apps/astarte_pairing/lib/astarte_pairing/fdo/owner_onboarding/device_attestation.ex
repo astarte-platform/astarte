@@ -17,7 +17,9 @@
 #
 
 defmodule Astarte.Pairing.FDO.OwnerOnboarding.DeviceAttestation do
-  @empty_binary COSE.tag_as_byte(<<>>)
+  alias Astarte.Pairing.FDO.OwnerOnboarding.SignatureInfo
 
-  def eb_sig_info({ecc, _}) when ecc in [:es256, :es384], do: @empty_binary
+  def eb_sig_info({ecc, _} = device_signature) when ecc in [:es256, :es384] do
+    SignatureInfo.from_device_signature(device_signature)
+  end
 end
