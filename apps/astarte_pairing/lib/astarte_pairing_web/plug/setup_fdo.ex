@@ -30,11 +30,19 @@ defmodule Astarte.PairingWeb.Plug.SetupFDO do
   def call(conn, _opts) do
     # all fdo messages are /fdo/101/msg/id
     {:ok, message_id} = parse_message_id(conn.request_path)
-    conn = assign(conn, :message_id, message_id)
+
+    # we always return the following message, except for errors (in which case we override)
+    next_message_id = message_id + 1
 
     case read_body(conn) do
-      {:ok, body, conn} -> conn |> assign(:cbor_body, body)
-      _ -> FDOFallbackController.message_body_error(conn)
+      {:ok, body, conn} ->
+        conn
+        |> put_resp_header("message-type", to_string(next_message_id))
+        |> assign(:message_id, message_id)
+        |> assign(:cbor_body, body)
+
+      _ ->
+        FDOFallbackController.message_body_error(conn)
     end
   end
 

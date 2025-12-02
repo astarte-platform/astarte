@@ -67,6 +67,7 @@ defmodule Astarte.PairingWeb.FDOFallbackController do
     conn
     |> assign(:correlation_id, correlation_id)
     |> put_status(500)
+    |> put_resp_header("message-type", "255")
     |> render("error.cbor", %{error_code: error_code})
   end
 

@@ -32,9 +32,10 @@ defmodule Astarte.PairingWeb.Plug.FDOSession do
     realm_name = Map.fetch!(conn.path_params, "realm_name")
 
     with [session_key] <- get_req_header(conn, "authorization"),
-         {:ok, session_key} <- Ecto.UUID.dump(session_key),
          {:ok, session} <- Session.fetch(realm_name, session_key) do
-      assign(conn, :to2_session, session)
+      conn
+      |> put_resp_header("authorization", session_key)
+      |> assign(:to2_session, session)
     else
       _ -> FDOFallbackController.invalid_token(conn)
     end
