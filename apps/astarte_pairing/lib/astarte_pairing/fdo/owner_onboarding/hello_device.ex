@@ -77,7 +77,14 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding.HelloDevice do
 
   def decode(cbor_binary) do
     with {:ok, message, _rest} <- CBOR.decode(cbor_binary),
-         [max_size, device_id, nonce_hello_device, kex_name, cipher_name, easig_info] <- message,
+         [
+           max_size,
+           %CBOR.Tag{tag: :bytes, value: device_id},
+           %CBOR.Tag{tag: :bytes, value: nonce_hello_device},
+           kex_name,
+           cipher_name,
+           easig_info
+         ] <- message,
          {:ok, easig_info} <- SignatureInfo.decode(easig_info),
          {:ok, cipher} <- decode_cipher(cipher_name) do
       hello_device =
