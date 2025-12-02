@@ -97,12 +97,12 @@ defmodule Astarte.Pairing.FDO.ServiceInfoTest do
       assert {:ok, result_msg_67} =
                ServiceInfo.handle_msg_66(
                  realm_name,
-                 session.key,
+                 session,
                  %DeviceServiceInfoReady{
                    replacement_hmac: new_hmac,
                    max_owner_service_info_sz: device_max_size
                  },
-                 old_voucher
+                 session.device_id
                )
 
       assert result_msg_67 == CBOR.encode([@owner_max_service_info]) |> COSE.tag_as_byte()
@@ -121,12 +121,12 @@ defmodule Astarte.Pairing.FDO.ServiceInfoTest do
       assert {:ok, _result} =
                ServiceInfo.handle_msg_66(
                  realm_name,
-                 session.key,
+                 session,
                  %DeviceServiceInfoReady{
                    replacement_hmac: nil,
                    max_owner_service_info_sz: 2048
                  },
-                 old_voucher
+                 session.device_id
                )
     end
 
@@ -142,7 +142,8 @@ defmodule Astarte.Pairing.FDO.ServiceInfoTest do
 
       malformed_payload = "not_a_valid_payload"
 
-      result = ServiceInfo.handle_msg_66(realm_name, session.key, malformed_payload, old_voucher)
+      result =
+        ServiceInfo.handle_msg_66(realm_name, session, malformed_payload, session.device_id)
 
       assert {:error, :invalid_payload} = result
     end
@@ -161,12 +162,12 @@ defmodule Astarte.Pairing.FDO.ServiceInfoTest do
       result =
         ServiceInfo.handle_msg_66(
           realm_name,
-          session.key,
+          session,
           %DeviceServiceInfoReady{
             replacement_hmac: :crypto.strong_rand_bytes(32),
             max_owner_service_info_sz: 1024
           },
-          invalid_voucher
+          session.device_id
         )
 
       assert {:error, :invalid_device_voucher} = result

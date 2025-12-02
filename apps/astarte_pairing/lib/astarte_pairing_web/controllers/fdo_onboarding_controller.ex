@@ -18,8 +18,10 @@
 
 defmodule Astarte.PairingWeb.FDOOnboardingController do
   use Astarte.PairingWeb, :controller
-
+  alias Astarte.Pairing.FDO.OwnerOnboarding.DeviceServiceInfoReady
+  alias Astarte.Pairing.FDO.OwnerOnboarding.DeviceServiceInfo
   alias Astarte.Pairing.FDO.OwnerOnboarding
+  alias Astarte.Pairing.FDO.ServiceInfo
 
   require Logger
 
@@ -76,6 +78,43 @@ defmodule Astarte.PairingWeb.FDOOnboardingController do
         |> put_resp_content_type("application/cbor")
         # TODO put msg in secure tunnel
         |> send_resp(200, response_msg)
+    end
+  end
+
+  def service_info_start(conn, _params) do
+    realm_name = Map.fetch!(conn.params, "realm_name")
+    cbor_body = conn.assigns.cbor_body
+
+    with {:ok, response} <-
+           ServiceInfo.handle_msg_66(
+             realm_name,
+             conn.assigns.to2_session,
+             %DeviceServiceInfoReady{
+               replacement_hmac: cbor_body.replacement_hmac,
+               max_owner_service_info_sz: cbor_body.max_owner_service_info_sz
+             },
+             conn.assigns.to2_session.device_id
+           ) do
+      conn
+      |> render("default.cbor", %{cbor_response: response})
+    end
+  end
+
+  def service_info_end(conn, _params) do
+    realm_name = Map.fetch!(conn.params, "realm_name")
+    cbor_body = conn.assigns.cbor_body
+
+    with {:ok, response} <-
+           ServiceInfo.handle_message_68(
+             realm_name,
+             conn.assigns.to2_session,
+             %DeviceServiceInfo{
+               is_more_service_info: cbor_body.is_more_service_info,
+               service_info: cbor_body.service_info
+             }
+           ) do
+      conn
+      |> render("default.cbor", %{cbor_response: response})
     end
   end
 end
