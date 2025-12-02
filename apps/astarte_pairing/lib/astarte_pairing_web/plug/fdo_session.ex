@@ -22,6 +22,7 @@ defmodule Astarte.PairingWeb.Plug.FDOSession do
   import Plug.Conn
 
   alias Astarte.Pairing.FDO.OwnerOnboarding.Session
+  alias Astarte.PairingWeb.FDOFallbackController
 
   def init(_opts) do
     nil
@@ -35,7 +36,7 @@ defmodule Astarte.PairingWeb.Plug.FDOSession do
          {:ok, session} <- Session.fetch(realm_name, session_key) do
       assign(conn, :to2_session, session)
     else
-      _ -> conn |> send_resp(401, "") |> halt()
+      _ -> FDOFallbackController.invalid_token(conn)
     end
   end
 end
