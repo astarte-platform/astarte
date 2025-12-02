@@ -308,6 +308,11 @@ defmodule Astarte.Pairing.Queries do
     update_session(realm_name, session_key, updates)
   end
 
+  def session_add_setup_dv_nonce(realm_name, session_key, setup_dv_nonce) do
+    updates = [setup_dv_nonce: setup_dv_nonce]
+    update_session(realm_name, session_key, updates)
+  end
+
   defp update_session(realm_name, session_key, updates) do
     with {:ok, session_key} <- Astarte.DataAccess.UUID.dump(session_key) do
       keyspace = Realm.keyspace_name(realm_name)

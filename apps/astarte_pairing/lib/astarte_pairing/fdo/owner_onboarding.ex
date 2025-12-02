@@ -28,6 +28,7 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding do
   alias Astarte.Pairing.FDO.OwnerOnboarding.DeviceAttestation
   alias Astarte.Pairing.FDO.OwnerOnboarding.HelloDevice
   alias Astarte.Pairing.FDO.OwnerOnboarding.ProveOVHdr
+  alias Astarte.Pairing.FDO.OwnerOnboarding.ProveDevice
   alias Astarte.Pairing.FDO.OwnerOnboarding.Session
   alias Astarte.Pairing.FDO.OwnershipVoucher
   alias Astarte.Pairing.FDO.OwnerOnboarding.Done, as: DonePayload
@@ -111,7 +112,7 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding do
 
   def prove_device(realm_name, body, session) do
     device_guid = session.device_id
-    nonce = session.nonce
+    stored_prove_dv_nonce = session.prove_dv_nonce
     device_pub_key = session.device_public_key
 
     current_rendezvous_info = RvTO2Addr.for_realm(realm_name)
@@ -132,26 +133,38 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding do
       device_info: "owned by astarte - realm #{realm_name}.#{Config.base_url_domain!()}"
     }
 
-    with {:ok, setup_device_message} <-
-           verify(body, device_pub_key, nonce, device_guid, connection_credentials) do
-      {:ok, setup_device_message}
-    else
-      _ ->
-        {:error, "invalid_signature"}
+    with {:ok, %{setup_dv_nonce: setup_dv_nonce, resp: resp_msg}} <-
+           verify_and_build_response(
+             body,
+             device_pub_key,
+             stored_prove_dv_nonce,
+             device_guid,
+             connection_credentials
+           ),
+         # need to save nonce for later! (for TO2 msg.71)
+         :ok <-
+           Queries.session_add_setup_dv_nonce(realm_name, session.key, setup_dv_nonce) do
+      {:ok, resp_msg}
     end
   end
 
-  def verify(body, device_pub_key, nonce_to_check, device_id, connection_credentials) do
-    with {:ok, sign1} <- Sign1.verify_decode(body, device_pub_key),
-         {:ok, eat_claims, _rest} <- CBOR.decode(sign1.payload),
-         received_nonce <- Map.get(eat_claims, 10),
-         received_device_id <- Map.get(eat_claims, 256),
-         true <- received_nonce == nonce_to_check,
-         true <- received_device_id == device_id do
-      build_setup_device_message(connection_credentials, nonce_to_check)
-    else
-      _ ->
-        {:error, :invalid_signature}
+  def verify_and_build_response(
+        body,
+        device_pub_key,
+        stored_prove_dv_nonce,
+        device_id,
+        connection_credentials
+      ) do
+    with {:ok,
+          %ProveDevice{
+            nonce_to2_prove_dv: received_prove_dv_nonce,
+            nonce_to2_setup_dv: received_setup_dv_nonce,
+            ueid: received_device_id
+          }} <- ProveDevice.decode(body, device_pub_key),
+         :ok <- check_prove_dv_nonces_equality(received_prove_dv_nonce, stored_prove_dv_nonce),
+         :ok <- check_device_guid_equality(received_device_id, device_id) do
+      resp_msg = build_setup_device_message(connection_credentials, received_setup_dv_nonce)
+      {:ok, %{setup_dv_nonce: received_setup_dv_nonce, resp: resp_msg}}
     end
   end
 
@@ -184,23 +197,20 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding do
     :public_key.der_encode(:"ECDSA-Sig-Value", {:"ECDSA-Sig-Value", r, s})
   end
 
-  def build_setup_device_message(creds, nonce) do
+  def build_setup_device_message(creds, setup_dv_nonce) do
     payload_array = [
       creds.rendezvous_info,
       creds.guid,
-      nonce,
+      setup_dv_nonce,
       creds.owner_pub_key
     ]
 
     protected_header_map = %{alg: :es256}
 
-    res =
-      payload_array
-      |> CBOR.encode()
-      |> Sign1.build(protected_header_map)
-      |> Sign1.sign_encode_cbor(creds.owner_private_key)
-
-    {:ok, res}
+    payload_array
+    |> CBOR.encode()
+    |> Sign1.build(protected_header_map)
+    |> Sign1.sign_encode_cbor(creds.owner_private_key)
   end
 
   def done(to2_session, cbor_body) do
@@ -222,8 +232,18 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding do
 
       false ->
         # non-matching proveDv nonces
-        # TODO build error msg 101 ??
         {:error, :prove_dv_nonce_mismatch}
+    end
+  end
+
+  defp check_device_guid_equality(incoming_guid, stored_guid) do
+    case incoming_guid == stored_guid do
+      true ->
+        :ok
+
+      false ->
+        # non-matching device GUIDs
+        {:error, :device_guid_mismatch}
     end
   end
 

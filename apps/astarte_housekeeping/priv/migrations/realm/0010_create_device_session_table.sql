@@ -5,6 +5,7 @@ CREATE TABLE :keyspace.to2_sessions (
   device_id uuid,
   device_public_key blob,
   prove_dv_nonce blob,
+  setup_dv_nonce blob,
   kex_suite_name ascii,
   cipher_suite_name int,
   owner_random blob,

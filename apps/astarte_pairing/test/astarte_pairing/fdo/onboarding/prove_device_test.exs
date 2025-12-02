@@ -24,7 +24,8 @@ defmodule Astarte.Pairing.OwnerOnboarding.Onboarding.ProveDevice do
   @es256_alg -7
   @edsdsa_alg -8
 
-  @test_nonce :crypto.strong_rand_bytes(16)
+  @test_prove_dv_nonce :crypto.strong_rand_bytes(16)
+  @test_setup_dv_nonce :crypto.strong_rand_bytes(16)
   @test_guid :crypto.strong_rand_bytes(16)
   @test_session_key :crypto.strong_rand_bytes(32)
 
@@ -32,16 +33,29 @@ defmodule Astarte.Pairing.OwnerOnboarding.Onboarding.ProveDevice do
     COSE.Keys.ECC.generate(:es256)
   end
 
-  defp build_test_cose_sign1(alg_id, priv_key_struct, nonce_val, guid_val) do
+  defp build_test_cose_sign1(
+         alg_id,
+         priv_key_struct,
+         prove_dv_nonce_val,
+         setup_dv_nonce_val,
+         guid_val
+       ) do
+    # ProveDvNonce is in payload
     eat_claims = %{
-      10 => nonce_val,
-      256 => guid_val
+      10 => prove_dv_nonce_val,
+      256 => guid_val,
+      -257 => [<<>>]
     }
 
     payload_bin = CBOR.encode(eat_claims)
 
     COSE.Messages.Sign1.sign_encode_cbor(
-      %COSE.Messages.Sign1{payload: payload_bin, phdr: %{alg: :es256}, uhdr: %{}},
+      %COSE.Messages.Sign1{
+        payload: payload_bin,
+        phdr: %{alg: :es256},
+        # SetupDvNonce is in unencrypted hdrs
+        uhdr: %{-259 => setup_dv_nonce_val}
+      },
       priv_key_struct
     )
   end
@@ -90,15 +104,22 @@ defmodule Astarte.Pairing.OwnerOnboarding.Onboarding.ProveDevice do
   test "verify ES256 signature success and returns Msg 65" do
     key = generate_es256_keys()
 
-    body = build_test_cose_sign1(@es256_alg, key, @test_nonce, @test_guid)
+    body =
+      build_test_cose_sign1(
+        @es256_alg,
+        key,
+        @test_prove_dv_nonce,
+        @test_setup_dv_nonce,
+        @test_guid
+      )
 
     creds = dummy_creds(COSE.Keys.ECC.public_key(key), key)
 
-    {:ok, msg_65_payload} =
-      OwnerOnboarding.verify(
+    {:ok, %{setup_dv_nonce: @test_setup_dv_nonce, resp: msg_65_payload}} =
+      OwnerOnboarding.verify_and_build_response(
         body,
         key,
-        @test_nonce,
+        @test_prove_dv_nonce,
         @test_guid,
         creds
       )
@@ -114,14 +135,14 @@ defmodule Astarte.Pairing.OwnerOnboarding.Onboarding.ProveDevice do
     key = generate_es256_keys()
 
     wrong_nonce = :crypto.strong_rand_bytes(16)
-    body = build_test_cose_sign1(@es256_alg, key, wrong_nonce, @test_guid)
+    body = build_test_cose_sign1(@es256_alg, key, wrong_nonce, @test_setup_dv_nonce, @test_guid)
     creds = dummy_creds(COSE.Keys.ECC.public_key(key), key)
 
-    assert {:error, :invalid_signature} =
-             OwnerOnboarding.verify(
+    assert {:error, :prove_dv_nonce_mismatch} =
+             OwnerOnboarding.verify_and_build_response(
                body,
                key,
-               @test_nonce,
+               @test_prove_dv_nonce,
                @test_guid,
                creds
              )
@@ -130,15 +151,22 @@ defmodule Astarte.Pairing.OwnerOnboarding.Onboarding.ProveDevice do
   test "verify ES256 fails if Device ID (GUID) does not match" do
     key = generate_es256_keys()
 
-    body = build_test_cose_sign1(@es256_alg, key, @test_nonce, "wrong-guid")
+    body =
+      build_test_cose_sign1(
+        @es256_alg,
+        key,
+        @test_prove_dv_nonce,
+        @test_setup_dv_nonce,
+        "wrong-guid"
+      )
 
     creds = dummy_creds(COSE.Keys.ECC.public_key(key), key)
 
-    assert {:error, :invalid_signature} =
-             OwnerOnboarding.verify(
+    assert {:error, :device_guid_mismatch} =
+             OwnerOnboarding.verify_and_build_response(
                body,
                key,
-               @test_nonce,
+               @test_prove_dv_nonce,
                @test_guid,
                creds
              )
@@ -148,15 +176,22 @@ defmodule Astarte.Pairing.OwnerOnboarding.Onboarding.ProveDevice do
     key = generate_es256_keys()
     key2 = generate_es256_keys()
 
-    body = build_test_cose_sign1(@es256_alg, key, @test_nonce, @test_guid)
+    body =
+      build_test_cose_sign1(
+        @es256_alg,
+        key,
+        @test_prove_dv_nonce,
+        @test_setup_dv_nonce,
+        @test_guid
+      )
 
     creds = dummy_creds(COSE.Keys.ECC.public_key(key2), key)
 
-    assert {:error, :invalid_signature} =
-             OwnerOnboarding.verify(
+    assert :error =
+             OwnerOnboarding.verify_and_build_response(
                body,
                key2,
-               @test_nonce,
+               @test_prove_dv_nonce,
                @test_guid,
                creds
              )
