@@ -19,7 +19,12 @@
 defmodule Astarte.Pairing.FDO.ServiceInfo do
   alias Astarte.Pairing.FDO.OwnershipVoucher
   alias Astarte.Pairing.FDO.OwnerOnboarding.DeviceServiceInfoReady
+  alias Astarte.Pairing.FDO.OwnerOnboarding.DeviceServiceInfo
+  alias Astarte.Pairing.FDO.OwnerOnboarding.OwnerServiceInfo
+  alias Astarte.Pairing.FDO.OwnerOnboarding.Session
+  alias Astarte.Core.Device
   alias Astarte.Pairing.Queries
+  alias Astarte.Pairing.Engine
 
   @owner_max_service_info 4096
 
@@ -28,7 +33,7 @@ defmodule Astarte.Pairing.FDO.ServiceInfo do
         session_key,
         %DeviceServiceInfoReady{
           replacement_hmac: replacement_hmac,
-          max_owner_service_info_sz: device_max_size
+          max_owner_service_info_sz: device_max_size \\ 1400
         },
         %OwnershipVoucher{} = old_voucher
       ) do
@@ -66,5 +71,82 @@ defmodule Astarte.Pairing.FDO.ServiceInfo do
 
   def generate_msg_67(payload) do
     CBOR.encode(payload) |> COSE.tag_as_byte()
+  end
+
+  # first device message, sending devmod
+  def handle_message_68(
+        realm_name,
+        session_max_service_info,
+        session_remaining,
+        %DeviceServiceInfo{is_more_service_info: false, service_info: service_info} =
+          device_service_info
+      ) do
+    devmod_data = %{
+      active: Map.fetch!(service_info, "devmod:active"),
+      sn: Map.fetch!(service_info, "devmod:sn"),
+      n_modules: Map.fetch!(service_info, "devmod:nummodules"),
+      modules: Map.fetch!(service_info, "devmod:modules")
+    }
+
+    with {:ok, credentials_secret} <- Engine.register_device(realm_name, devmod_data.sn),
+         {:ok, device_id} <- Device.decode_device_id(devmod_data.sn, allow_extended_id: true),
+         {:ok, session} <- Session.fetch(realm_name, session_key) do
+      # max_service_info
+
+      owner_service_info = %OwnerServiceInfo{
+        is_more_service_info: false,
+        is_done: true,
+        service_info: %{
+          "astarte:active": true,
+          "astarte:realm": realm_name,
+          "astarte:secret": credentials_secret,
+          "astarte:baseurl": "api.#{Config.base_url_domain!()}",
+          "astarte:deviceid": device_id,
+          "astarte:nummodules": devmod_data.n_modules,
+          "astarte:modules": devmod_data.modules
+        }
+      }
+
+      {:ok, encoded_cbor_list} =
+        owner_service_info
+        |> OwnerServiceInfo.to_cbor_list()
+        |> CBOR.encode()
+
+      {:ok, encoded_cbor_list}
+
+      # TODO uncomment and implement seriously this passage
+
+      # if byte_size(encoded_cbor_list) <= session.max_service_info do
+
+      # else
+      #   <<trimmed_part::binary-size(session.max_service_info), rest::binary>> = encoded_cbor_list
+
+      #   # Session.save_message_for_later_use(rest)
+      #   # out of scope for now
+
+      #   {:ok, trimmed_part}
+      # end
+    end
+  end
+
+  # all the others, awaiting for server message completion, out of scope
+  # def handle_message_68(
+  #       realm_name,
+  #       session_max_service_info,
+  #       session_remaining,
+  #       %DeviceServiceInfo{is_more_service_info: false, service_info: []} = device_service_info
+  #     ) do
+  #   # max_service_info
+  #   {:ok, session} = Session.fetch(realm_name, session_key)
+
+  #   %OwnerServiceInfo{
+  #     is_more_service_info: false,
+  #     is_done: false,
+  #     service_info: []
+  #   }
+
+  # end
+  def handle_message_68(realm_name, session_key, _) do
+    {:error, :invalid_payload}
   end
 end
