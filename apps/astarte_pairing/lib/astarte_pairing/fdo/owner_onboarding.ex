@@ -46,6 +46,7 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding do
          device_id = hello_device.device_id,
          {:ok, ownership_voucher} <- OwnershipVoucher.fetch(realm_name, device_id),
          {:ok, owner_private_key} <- fetch_owner_private_key(realm_name, device_id),
+         {:ok, pub_key} <- OwnershipVoucher.owner_public_key(ownership_voucher),
          {:ok, session} <-
            Session.new(realm_name, hello_device, ownership_voucher, owner_private_key) do
       num_ov_entries = Enum.count(ownership_voucher.entries)
@@ -63,8 +64,6 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding do
           hello_device_hash: hello_device_hash,
           max_owner_message_size: @max_owner_message_size
         }
-
-      pub_key = OwnershipVoucher.owner_public_key(ownership_voucher)
 
       message =
         ProveOVHdr.encode_sign(prove_ovh, session.prove_dv_nonce, pub_key, owner_private_key)
