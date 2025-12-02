@@ -34,6 +34,7 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding.ProveOVHdr do
   use TypedStruct
 
   alias Astarte.Pairing.FDO.OwnerOnboarding.ProveOVHdr
+  alias Astarte.Pairing.FDO.OwnerOnboarding.SignatureInfo
   alias Astarte.Pairing.FDO.Types.Hash
   alias COSE.Messages.Sign1
 
@@ -67,7 +68,7 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding.ProveOVHdr do
     # 5. eBSigInfo
     # Contains information about the signature scheme used by the Device 
     # for attestation (e.g., key type, curve).
-    field :eb_sig_info, map()
+    field :eb_sig_info, SignatureInfo.t()
 
     # 6. xAKeyExchange
     # The Owner's ephemeral public key contribution to the Key Exchange (Point A).
@@ -96,16 +97,31 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding.ProveOVHdr do
   Converts the struct into the raw CBOR list required for the COSE payload.
   Order: [OVHeader, NumOVEntries, HMac, NonceTO2ProveOV, eBSigInfo, xAKeyExchange, HelloDeviceHash, MaxOwnerMessageSize]
   """
-  def encode(%ProveOVHdr{} = p) do
+  def encode(proveovhdr) do
+    %ProveOVHdr{
+      num_ov_entries: num_ov_entries,
+      nonce_to2_prove_ov: nonce_to2_prove_ov,
+      eb_sig_info: eb_sig_info,
+      xa_key_exchange: xa_key_exchange,
+      hello_device_hash: hello_device_hash,
+      max_owner_message_size: max_owner_message_size
+    } = proveovhdr
+
+    ov_header =
+      ov_header(proveovhdr)
+      |> COSE.tag_as_byte()
+
+    hmac = hmac(proveovhdr)
+
     [
-      ov_header(p),
-      p.num_ov_entries,
-      hmac(p),
-      p.nonce_to2_prove_ov,
-      p.eb_sig_info,
-      p.xa_key_exchange,
-      Hash.encode(p.hello_device_hash),
-      p.max_owner_message_size
+      ov_header,
+      num_ov_entries,
+      hmac,
+      COSE.tag_as_byte(nonce_to2_prove_ov),
+      SignatureInfo.encode(eb_sig_info),
+      COSE.tag_as_byte(xa_key_exchange),
+      Hash.encode(hello_device_hash),
+      max_owner_message_size
     ]
   end
 
@@ -128,7 +144,7 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding.ProveOVHdr do
     }
 
     uhdr = %{
-      @cupd_nonce_tag => dv_nonce,
+      @cupd_nonce_tag => COSE.tag_as_byte(dv_nonce),
       @cuph_owner_pubkey_tag => owner_public_key
     }
 

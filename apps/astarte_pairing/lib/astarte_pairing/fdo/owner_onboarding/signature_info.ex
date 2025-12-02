@@ -43,6 +43,23 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding.SignatureInfo do
     end
   end
 
+  def encode(sig_info) do
+    case sig_info do
+      :es256 -> [@es256, %CBOR.Tag{tag: :bytes, value: <<>>}]
+      :es384 -> [@es384, %CBOR.Tag{tag: :bytes, value: <<>>}]
+      {:eipd10, gid} -> [@eipd10, %CBOR.Tag{tag: :bytes, value: gid}]
+      {:eipd11, gid} -> [@eipd11, %CBOR.Tag{tag: :bytes, value: gid}]
+    end
+  end
+
+  def from_device_signature(device_signature) do
+    case device_signature do
+      {:es256, _} -> :es256
+      {:es384, _} -> :es384
+      epid -> epid
+    end
+  end
+
   @spec validate(t(), OwnershipVoucher.t()) :: {:ok, device_signature()} | :error
   def validate(sig_info, ownership_voucher) do
     with {:ok, device_public_key} <- OwnershipVoucher.device_public_key(ownership_voucher) do
