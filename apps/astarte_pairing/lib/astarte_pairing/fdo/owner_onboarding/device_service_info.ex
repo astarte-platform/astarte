@@ -25,6 +25,8 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding.DeviceServiceInfo do
   It is part of a loop with TO2.OwnerServiceInfo and handles flow control.
   """
   use TypedStruct
+  alias Astarte.Pairing.FDO.OwnerOnboarding.DeviceServiceInfo
+  alias Astarte.Pairing.FDO.Types.ServiceInfo
 
   typedstruct enforce: true do
     @typedoc "Structure for TO2.DeviceServiceInfo message."
@@ -40,17 +42,51 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding.DeviceServiceInfo do
     # A list containing the Device's ServiceInfo instructions (Key-Value pairs).
     # - On the first message, it usually includes 'devmod' (device modules).
     # - Must be empty if the Device is yielding to the Owner (responding to Owner's IsMore=true).
-    field :service_info, list()
+    field :service_info, map()
   end
 
   @doc """
   Converts the struct into a CBOR list for transmission.
   Format: [IsMoreServiceInfo, ServiceInfo]
   """
-  def to_cbor_list(%__MODULE__{} = t) do
+  def to_cbor_list(%DeviceServiceInfo{} = t) do
     [
       t.is_more_service_info,
       t.service_info
     ]
   end
+
+  @doc """
+  Decodes the raw CBOR payload into the struct.
+  Validates that IsMoreServiceInfo is a boolean and ServiceInfo is a list.
+  """
+  @spec decode(binary()) :: {:ok, t()} | {:error, atom()}
+  def decode(cbor_payload) do
+    case CBOR.decode(cbor_payload) do
+      {:ok, [is_more, service_info_list], ""} ->
+        validate_and_build(is_more, service_info_list)
+
+      {:ok, _decoded, _rest} ->
+        {:error, :invalid_structure}
+
+      {:error, _reason} ->
+        {:error, :invalid_cbor}
+    end
+  end
+
+  defp validate_and_build(is_more, info) do
+    with :ok <- validate_bool(is_more),
+         {:ok, service_info_map} <- ServiceInfo.decode_map(info) do
+      {:ok,
+       %DeviceServiceInfo{
+         is_more_service_info: is_more,
+         service_info: service_info_map
+       }}
+    else
+      error -> error
+    end
+  end
+
+  defp validate_bool(val) when is_boolean(val), do: :ok
+  defp validate_bool(_), do: {:error, :invalid_is_more_type}
 end
