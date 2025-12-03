@@ -40,6 +40,7 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding.Session do
     field :sevk, struct() | nil
     field :svk, struct() | nil
     field :sek, struct() | nil
+    field :max_service_info, integer() | nil
   end
 
   def new(realm_name, hello_device, ownership_voucher, owner_key) do
@@ -144,7 +145,8 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding.Session do
         secret: secret,
         sevk: sevk,
         svk: svk,
-        sek: sek
+        sek: sek,
+        max_service_info: max_service_info
       } = database_session
 
       session = %Session{
@@ -158,7 +160,8 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding.Session do
         secret: secret,
         sevk: SessionKey.from_db(sevk),
         svk: SessionKey.from_db(svk),
-        sek: SessionKey.from_db(sek)
+        sek: SessionKey.from_db(sek),
+        max_service_info: max_service_info
       }
 
       {:ok, session}
