@@ -113,7 +113,7 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding do
   def prove_device(realm_name, body, session) do
     device_guid = session.device_id
     stored_prove_dv_nonce = session.prove_dv_nonce
-    device_pub_key = session.device_public_key
+    device_signature = session.device_signature
 
     current_rendezvous_info = RvTO2Addr.for_realm(realm_name)
 
@@ -136,7 +136,7 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding do
     with {:ok, %{setup_dv_nonce: setup_dv_nonce, resp: resp_msg}} <-
            verify_and_build_response(
              body,
-             device_pub_key,
+             device_signature,
              stored_prove_dv_nonce,
              device_guid,
              connection_credentials
@@ -150,11 +150,12 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding do
 
   def verify_and_build_response(
         body,
-        device_pub_key,
+        {ecc, device_pub_key},
         stored_prove_dv_nonce,
         device_id,
         connection_credentials
-      ) do
+      )
+      when ecc in [:es256, :es384] do
     with {:ok,
           %ProveDevice{
             nonce_to2_prove_dv: received_prove_dv_nonce,

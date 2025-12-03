@@ -19,22 +19,18 @@ defmodule Astarte.Pairing.OwnerOnboarding.Onboarding.ProveDevice do
   use ExUnit.Case
   alias Astarte.Pairing.FDO.OwnerOnboarding
 
-  import Astarte.Helpers.FDO
-
   @es256_alg -7
-  @edsdsa_alg -8
 
   @test_prove_dv_nonce :crypto.strong_rand_bytes(16)
   @test_setup_dv_nonce :crypto.strong_rand_bytes(16)
   @test_guid :crypto.strong_rand_bytes(16)
-  @test_session_key :crypto.strong_rand_bytes(32)
 
   def generate_es256_keys do
     COSE.Keys.ECC.generate(:es256)
   end
 
   defp build_test_cose_sign1(
-         alg_id,
+         _alg_id,
          priv_key_struct,
          prove_dv_nonce_val,
          setup_dv_nonce_val,
@@ -58,37 +54,6 @@ defmodule Astarte.Pairing.OwnerOnboarding.Onboarding.ProveDevice do
       },
       priv_key_struct
     )
-  end
-
-  defp sign_data(@es256_alg, priv_key_input, data) do
-    key_arg =
-      case priv_key_input do
-        %COSE.Keys.ECC{d: d} -> [d, :secp256r1]
-        binary when is_binary(binary) -> [binary, :secp256r1]
-        other -> other
-      end
-
-    der_signature = :crypto.sign(:ecdsa, :sha256, data, key_arg)
-    der_to_raw_es256(der_signature)
-  end
-
-  defp sign_data(@edsdsa_alg, priv_key_raw, data) do
-    :crypto.sign(:eddsa, :none, data, [priv_key_raw, :ed25519])
-  end
-
-  defp der_to_raw_es256(der) do
-    {:"ECDSA-Sig-Value", r, s} = :public_key.der_decode(:"ECDSA-Sig-Value", der)
-    pad_to_32(r) <> pad_to_32(s)
-  end
-
-  defp pad_to_32(int) do
-    bin = :binary.encode_unsigned(int)
-
-    case 32 - byte_size(bin) do
-      0 -> bin
-      n when n > 0 -> <<0::size(n)-unit(8), bin::binary>>
-      _ -> bin
-    end
   end
 
   defp dummy_creds(owner_pub_key, owner_private_key) do
@@ -118,7 +83,7 @@ defmodule Astarte.Pairing.OwnerOnboarding.Onboarding.ProveDevice do
     {:ok, %{setup_dv_nonce: @test_setup_dv_nonce, resp: msg_65_payload}} =
       OwnerOnboarding.verify_and_build_response(
         body,
-        key,
+        {:es256, key},
         @test_prove_dv_nonce,
         @test_guid,
         creds
@@ -141,7 +106,7 @@ defmodule Astarte.Pairing.OwnerOnboarding.Onboarding.ProveDevice do
     assert {:error, :prove_dv_nonce_mismatch} =
              OwnerOnboarding.verify_and_build_response(
                body,
-               key,
+               {:es256, key},
                @test_prove_dv_nonce,
                @test_guid,
                creds
@@ -165,7 +130,7 @@ defmodule Astarte.Pairing.OwnerOnboarding.Onboarding.ProveDevice do
     assert {:error, :device_guid_mismatch} =
              OwnerOnboarding.verify_and_build_response(
                body,
-               key,
+               {:es256, key},
                @test_prove_dv_nonce,
                @test_guid,
                creds
@@ -190,7 +155,7 @@ defmodule Astarte.Pairing.OwnerOnboarding.Onboarding.ProveDevice do
     assert :error =
              OwnerOnboarding.verify_and_build_response(
                body,
-               key2,
+               {:es256, key2},
                @test_prove_dv_nonce,
                @test_guid,
                creds
