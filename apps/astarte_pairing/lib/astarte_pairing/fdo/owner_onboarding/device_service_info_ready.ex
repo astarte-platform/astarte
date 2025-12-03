@@ -25,6 +25,8 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding.DeviceServiceInfoReady do
   Provisioning phase (ServiceInfo negotiation).
   """
   use TypedStruct
+  alias Astarte.Pairing.FDO.OwnerOnboarding.DeviceServiceInfoReady
+  alias Astarte.Pairing.FDO.Types.Hash
 
   typedstruct enforce: true do
     @typedoc "Structure for TO2.DeviceServiceInfoReady message."
@@ -32,7 +34,7 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding.DeviceServiceInfoReady do
     # ReplacementHMac
     # Used by the Owner to create a new Ownership Voucher for the device (resale).
     # If nil, it indicates acceptance of the Credential Reuse protocol.
-    field :replacement_hmac, binary() | nil
+    field :replacement_hmac, Hash.t() | nil
 
     # maxOwnerServiceInfoSz
     # If nil, the default recommended limit (1300 bytes) is assumed.
@@ -44,9 +46,45 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding.DeviceServiceInfoReady do
   Expected format: [ReplacementHMac, maxOwnerServiceInfoSz]
   """
   def from_cbor_list([hmac, size]) do
-    %__MODULE__{
+    %DeviceServiceInfoReady{
       replacement_hmac: hmac,
       max_owner_service_info_sz: size
     }
   end
+
+  @doc """
+  Decodes the raw CBOR payload into the DeviceServiceInfoReady struct.
+  It validates that the structure is a list of two elements and checks types.
+  """
+  @spec decode(binary()) :: {:ok, t()} | {:error, atom()}
+  def decode(cbor_payload) do
+    case CBOR.decode(cbor_payload) do
+      {:ok, [hmac, size], ""} ->
+        validate_and_build(hmac, size)
+
+      {:ok, _decoded, _rest} ->
+        {:error, :invalid_structure}
+
+      {:error, _reason} ->
+        {:error, :invalid_cbor}
+    end
+  end
+
+  defp validate_and_build(hmac, size) do
+    with {:ok, hmac} <- Hash.decode(hmac),
+         :ok <- validate_size(size) do
+      {:ok,
+       %DeviceServiceInfoReady{
+         replacement_hmac: hmac,
+         max_owner_service_info_sz: size
+       }}
+    else
+      error -> error
+    end
+  end
+
+  # Spec: maxOwnerServiceInfoSz = uint / null
+  defp validate_size(nil), do: :ok
+  defp validate_size(size) when is_integer(size) and size >= 0, do: :ok
+  defp validate_size(_), do: {:error, :invalid_size_type}
 end
