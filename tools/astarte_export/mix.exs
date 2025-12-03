@@ -50,7 +50,12 @@ defmodule AstarteExport.MixProject do
       # Workaround for Elixir 1.15 / ssl_verify_fun issue
       # See also: https://github.com/deadtrickster/ssl_verify_fun.erl/pull/27
       {:ssl_verify_fun, "~> 1.1.0", manager: :rebar3, override: true},
-      {:astarte_data_access, path: "../../libs/astarte_data_access"}
+      {:astarte_data_access, path: astarte_lib("astarte_data_access")}
     ]
+  end
+
+  defp astarte_lib(library_name) do
+    base_directory = System.get_env("ASTARTE_LIBRARIES_PATH", "../../libs")
+    Path.join(base_directory, library_name)
   end
 end

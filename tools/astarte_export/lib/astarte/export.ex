@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2019 Ispirata Srl
+# Copyright 2019 - 2025 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -40,20 +40,24 @@ defmodule Astarte.Export do
           :ok | {:error, :invalid_parameters} | {:error, any()}
 
   def export_realm_data(realm, file) do
-    file = Path.expand(file) |> Path.absname()
+    Xandra.Cluster.run(
+      :astarte_data_access_xandra,
+      fn conn ->
+        file = Path.expand(file) |> Path.absname()
 
-    with {:ok, fd} <- File.open(file, [:write]) do
-      generate_xml(realm, fd)
-    end
+        with {:ok, fd} <- File.open(file, [:write]) do
+          generate_xml(conn, realm, fd)
+        end
+      end
+    )
   end
 
-  defp generate_xml(realm, fd) do
+  defp generate_xml(conn, realm, fd) do
     Logger.info("Export started.", realm: realm, tag: "export_started")
 
     with {:ok, state} <- XMLGenerate.xml_write_default_header(fd),
          {:ok, state} <- XMLGenerate.xml_write_start_tag(fd, {"astarte", []}, state),
          {:ok, state} <- XMLGenerate.xml_write_start_tag(fd, {"devices", []}, state),
-         {:ok, conn} <- FetchData.db_connection_identifier(),
          {:ok, state} <- process_devices(conn, realm, fd, state),
          {:ok, state} <- XMLGenerate.xml_write_end_tag(fd, state),
          {:ok, _state} <- XMLGenerate.xml_write_end_tag(fd, state),
@@ -104,6 +108,8 @@ defmodule Astarte.Export do
 
     with {:ok, state} <- XMLGenerate.xml_write_start_tag(fd, {"device", device}, state),
          {:ok, state} <- construct_device_xml_tags(mapped_device_data, fd, state),
+         {:ok, state} <- process_attributes(mapped_device_data, fd, state),
+         {:ok, state} <- process_aliases(mapped_device_data, fd, state),
          {:ok, state} <- process_interfaces(conn, realm, device_data, fd, state),
          {:ok, state} <- XMLGenerate.xml_write_end_tag(fd, state) do
       {:ok, state}
@@ -318,12 +324,54 @@ defmodule Astarte.Export do
     generate_object_item_xml(fd, state, t)
   end
 
+  def process_attributes(device_data, fd, state) do
+    attributes = device_data.attributes
+
+    with {:ok, state} <- XMLGenerate.xml_write_start_tag(fd, {"attributes", []}, state),
+         {:ok, state} <- process_attribute_list(attributes, fd, state),
+         {:ok, state} <- XMLGenerate.xml_write_end_tag(fd, state) do
+      {:ok, state}
+    end
+  end
+
+  defp process_attribute_list([], _, state) do
+    {:ok, state}
+  end
+
+  defp process_attribute_list([h | t], fd, state) do
+    with {:ok, state} <- XMLGenerate.xml_write_empty_element(fd, {"attribute", h, []}, state) do
+      process_attribute_list(t, fd, state)
+    end
+  end
+
+  def process_aliases(device_data, fd, state) do
+    aliases = device_data.aliases
+
+    with {:ok, state} <- XMLGenerate.xml_write_start_tag(fd, {"aliases", []}, state),
+         {:ok, state} <- process_alias_list(aliases, fd, state),
+         {:ok, state} <- XMLGenerate.xml_write_end_tag(fd, state) do
+      {:ok, state}
+    end
+  end
+
+  defp process_alias_list([], _, state) do
+    {:ok, state}
+  end
+
+  defp process_alias_list([h | t], fd, state) do
+    with {:ok, state} <- XMLGenerate.xml_write_empty_element(fd, {"alias", h, []}, state) do
+      process_alias_list(t, fd, state)
+    end
+  end
+
   def construct_device_xml_tags(device_data, fd, state) do
     %{
       protocol: protocol,
       registration: registration,
       credentials: credentials,
-      stats: stats
+      stats: stats,
+      groups: groups,
+      capabilities: capabilities
     } = device_data
 
     with {:ok, state} <-
@@ -332,6 +380,10 @@ defmodule Astarte.Export do
            XMLGenerate.xml_write_empty_element(fd, {"registration", registration, []}, state),
          {:ok, state} <-
            XMLGenerate.xml_write_empty_element(fd, {"credentials", credentials, []}, state),
+         {:ok, state} <-
+           XMLGenerate.xml_write_empty_element(fd, {"groups", groups, []}, state),
+         {:ok, state} <-
+           XMLGenerate.xml_write_empty_element(fd, {"capabilities", capabilities, []}, state),
          {:ok, state} <- XMLGenerate.xml_write_empty_element(fd, {"stats", stats, []}, state) do
       {:ok, state}
     end

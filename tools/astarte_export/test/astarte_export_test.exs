@@ -1,5 +1,6 @@
 defmodule Astarte.ExportTest do
   use ExUnit.Case
+  alias Astarte.Export.Utilities
   alias Astarte.Export
   alias Astarte.Export.XMLGenerate
   alias Astarte.Export.FetchData
@@ -10,17 +11,40 @@ defmodule Astarte.ExportTest do
   <?xml version="1.0" encoding="UTF-8"?>
   <astarte>
   <devices>
-  <device device_id="yKA3CMd07kWaDyj6aMP4Dg">
+  <device device_id="yKA3CMd07kWaDyj6aMP4Dg" connected="false">
   <protocol revision="0" pending_empty_cache="false"/>
-  <registration secret_bcrypt_hash="null" first_registration="2019-05-30T13:49:57.045Z"/>
+  <registration credentials_secret="$2b$12$bKly9EEKmxfVyDeXjXu1vOebWgr34C8r4IHd9Cd.34Ozm0TWVo1Ve" first_registration="2019-05-30T13:49:57.045Z"/>
   <credentials inhibit_request="false" cert_serial="324725654494785828109237459525026742139358888604" cert_aki="a8eaf08a797f0b10bb9e7b5dca027ec2571c5ea6" first_credentials_request="2019-05-30T13:49:57.355Z" last_credentials_request_ip="198.51.100.1"/>
+  <capabilities purge_properties_compression_format="0"/>
   <stats total_received_msgs="64" total_received_bytes="3960" last_connection="2019-05-30T13:49:57.561Z" last_disconnection="2019-05-30T13:51:00.038Z" last_seen_ip="198.51.100.89"/>
+  <attributes>
+  <attribute name="attribute" value="value_of_attribute"/>
+  </attributes>
+  <aliases>
+  <alias name="alias" as="value_of_alias"/>
+  </aliases>
   <interfaces>
-  <interface interface_name="properties.org" major_version="0" minor_version="1" active="true">
+  <interface name="objectdatastreams.org" major_version="0" minor_version="1" active="false">
+  <datastream path="/objectendpoint1">
+  <object reception_timestamp="2019-06-11T13:24:03.200Z">
+  <item name="/y">2</item>
+  <item name="/x">45.0</item>
+  </object>
+  <object reception_timestamp="2019-06-11T13:26:28.994Z">
+  <item name="/y">555</item>
+  <item name="/x">1.0</item>
+  </object>
+  <object reception_timestamp="2019-06-11T13:26:44.218Z">
+  <item name="/y">22</item>
+  <item name="/x">488.0</item>
+  </object>
+  </datastream>
+  </interface>
+  <interface name="properties.org" major_version="0" minor_version="1" active="true">
   <property reception_timestamp="2020-01-30T03:26:23.184Z" path="/properties1">42.0</property>
   <property reception_timestamp="2020-01-30T03:26:23.185Z" path="/properties2">This is property string</property>
   </interface>
-  <interface interface_name="org.individualdatastreams.values" major_version="0" minor_version="1" active="true">
+  <interface name="org.individualdatastreams.values" major_version="0" minor_version="1" active="true">
   <datastream path="/testinstall1">
   <value reception_timestamp="2019-05-31T09:12:42.789Z">0.1</value>
   <value reception_timestamp="2019-05-31T09:13:29.144Z">0.2</value>
@@ -45,7 +69,7 @@ defmodule Astarte.ExportTest do
   <value reception_timestamp="2019-05-31T09:13:29.144Z">4885959589</value>
   </datastream>
   </interface>
-  <interface interface_name="objectdatastreams.org" major_version="0" minor_version="1" active="true">
+  <interface name="objectdatastreams.org" major_version="1" minor_version="0" active="true">
   <datastream path="/objectendpoint1">
   <object reception_timestamp="2019-06-11T13:24:03.200Z">
   <item name="/y">2</item>
@@ -71,7 +95,6 @@ defmodule Astarte.ExportTest do
   """
 
   test "export realm data to xmlfile" do
-    DatabaseTestdata.initialize_database()
     assert {:ok, :export_completed} == Export.export_realm_data(@realm, "test.xml")
     file = Path.expand("test.xml") |> Path.absname()
     assert @expected_xml == File.read!(file)
@@ -94,34 +117,52 @@ defmodule Astarte.ExportTest do
     {:ok, state} = XMLGenerate.xml_write_start_tag(:standard_error, {"devices", []}, state)
     assert ["devices", "astarte"] == state
 
-    {:ok, conn} = FetchData.db_connection_identifier()
+    Xandra.Cluster.run(
+      :astarte_data_access_xandra,
+      fn conn ->
+        {:more_data, [device_data], _} = FetchData.fetch_device_data(conn, @realm, [])
 
-    {:more_data, [device_data], _} = FetchData.fetch_device_data(conn, @realm, [])
+        mapped_device_data = FetchData.process_device_data(device_data)
 
-    mapped_device_data = FetchData.process_device_data(device_data)
+        attributes = mapped_device_data.device
 
-    attributes = mapped_device_data.device
+        {:ok, state} =
+          XMLGenerate.xml_write_start_tag(:standard_error, {"device", attributes}, state)
 
-    {:ok, state} = XMLGenerate.xml_write_start_tag(:standard_error, {"device", attributes}, state)
-    assert ["device", "devices", "astarte"] == state
-    IO.inspect(state)
+        assert ["device", "devices", "astarte"] == state
 
-    {:ok, state} = Export.construct_device_xml_tags(mapped_device_data, :standard_error, state)
-    assert ["device", "devices", "astarte"] == state
+        {:ok, state} =
+          Export.construct_device_xml_tags(mapped_device_data, :standard_error, state)
 
-    {:ok, state} = Export.process_interfaces(conn, @realm, device_data, :standard_error, state)
-    assert ["device", "devices", "astarte"] == state
+        assert ["device", "devices", "astarte"] == state
 
-    {:ok, state} = XMLGenerate.xml_write_end_tag(:standard_error, state)
-    assert ["devices", "astarte"] == state
+        {:ok, state} =
+          Export.process_attributes(mapped_device_data, :standard_error, state)
 
-    {:ok, state} = XMLGenerate.xml_write_end_tag(:standard_error, state)
-    assert ["astarte"] == state
+        assert ["device", "devices", "astarte"] == state
 
-    {:ok, state} = XMLGenerate.xml_write_end_tag(:standard_error, state)
-    assert [] == state
+        {:ok, state} =
+          Export.process_aliases(mapped_device_data, :standard_error, state)
 
-    assert StringIO.flush(stdio) == @expected_xml
+        assert ["device", "devices", "astarte"] == state
+
+        {:ok, state} =
+          Export.process_interfaces(conn, @realm, device_data, :standard_error, state)
+
+        assert ["device", "devices", "astarte"] == state
+
+        {:ok, state} = XMLGenerate.xml_write_end_tag(:standard_error, state)
+        assert ["devices", "astarte"] == state
+
+        {:ok, state} = XMLGenerate.xml_write_end_tag(:standard_error, state)
+        assert ["astarte"] == state
+
+        {:ok, state} = XMLGenerate.xml_write_end_tag(:standard_error, state)
+        assert [] == state
+
+        assert StringIO.flush(stdio) == @expected_xml
+      end
+    )
   end
 
   def read_stdio_output_on_port() do
