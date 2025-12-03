@@ -34,7 +34,6 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding do
   alias Astarte.Pairing.FDO.OwnerOnboarding.Done, as: DonePayload
   alias Astarte.Pairing.FDO.OwnerOnboarding.Done2, as: Done2Payload
   alias Astarte.Pairing.FDO.OwnershipVoucher.Core, as: OwnershipVoucherCore
-  alias Astarte.Pairing.FDO.Rendezvous.RvTO2Addr
   alias Astarte.Pairing.FDO.Types.Hash
   alias Astarte.Pairing.Queries
   alias COSE.Messages.Sign1
@@ -115,19 +114,19 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding do
     stored_prove_dv_nonce = session.prove_dv_nonce
     device_signature = session.device_signature
 
-    current_rendezvous_info = RvTO2Addr.for_realm(realm_name)
-
     {:ok, ownership_voucher} =
       OwnershipVoucher.fetch(realm_name, device_guid)
 
     {:ok, private_key} =
       Queries.get_owner_private_key(realm_name, device_guid)
 
+    rendezvous_info = ownership_voucher.header.rendezvous_info
+
     {:ok, private_key} = COSE.Keys.from_pem(private_key)
 
     connection_credentials = %{
       guid: device_guid,
-      rendezvous_info: current_rendezvous_info,
+      rendezvous_info: rendezvous_info,
       owner_pub_key: OwnershipVoucher.owner_public_key(ownership_voucher),
       owner_private_key: private_key,
       device_info: "owned by astarte - realm #{realm_name}.#{Config.base_url_domain!()}"
