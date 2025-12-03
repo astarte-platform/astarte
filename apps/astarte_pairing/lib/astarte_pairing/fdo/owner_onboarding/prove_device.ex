@@ -77,9 +77,9 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding.ProveDevice do
   def decode(binary_msg, device_pub_key) do
     with {:ok, cose_object} <- EAToken.verify_decode_cbor(binary_msg, device_pub_key),
          {:ok, xb_key} <- extract_fdo_payload(cose_object.payload),
-         {:ok, nonce_prove} <- fetch_required(cose_object.payload, :nonce),
-         {:ok, nonce_setup} <- fetch_required(cose_object.uhdr, :euphnonce),
-         {:ok, ueid} <- fetch_required(cose_object.payload, :ueid),
+         {:ok, nonce_prove} <- fetch_binary(cose_object.payload, :nonce),
+         {:ok, nonce_setup} <- fetch_binary(cose_object.uhdr, :euphnonce),
+         {:ok, ueid} <- fetch_binary(cose_object.payload, :ueid),
          {:ok, guid} <- guid_from_ueid(ueid) do
       {:ok,
        %ProveDevice{
@@ -102,18 +102,18 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding.ProveDevice do
     end
   end
 
-  defp fetch_required(map, key) do
-    case Map.fetch(map, key) do
-      {:ok, val} -> {:ok, val}
-      :error -> {:error, :message_body_error}
+  defp fetch_binary(map, key) do
+    with {:ok, value} <- Map.fetch(map, key),
+         %CBOR.Tag{tag: :bytes, value: value} <- value do
+      {:ok, value}
+    else
+      _ -> {:error, :message_body_error}
     end
   end
 
   defp guid_from_ueid(ueid) do
-    with %CBOR.Tag{tag: :bytes, value: ueid} <- ueid,
-         <<@eat_random::binary, guid::binary-size(16)>> <- ueid do
-      {:ok, guid}
-    else
+    case ueid do
+      <<@eat_random::binary, guid::binary-size(16)>> -> {:ok, guid}
       _ -> {:error, :message_body_error}
     end
   end

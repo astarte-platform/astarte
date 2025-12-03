@@ -42,7 +42,7 @@ defmodule Astarte.Pairing.OwnerOnboarding.Onboarding.ProveDevice do
     ueid = COSE.tag_as_byte(ueid)
 
     eat_claims = %{
-      10 => prove_dv_nonce_val,
+      10 => COSE.tag_as_byte(prove_dv_nonce_val),
       256 => ueid,
       -257 => [COSE.tag_as_byte(<<>>)]
     }
@@ -54,7 +54,7 @@ defmodule Astarte.Pairing.OwnerOnboarding.Onboarding.ProveDevice do
         payload: payload_bin,
         phdr: %{alg: :es256},
         # SetupDvNonce is in unencrypted hdrs
-        uhdr: %{-259 => setup_dv_nonce_val}
+        uhdr: %{-259 => COSE.tag_as_byte(setup_dv_nonce_val)}
       },
       priv_key_struct
     )
