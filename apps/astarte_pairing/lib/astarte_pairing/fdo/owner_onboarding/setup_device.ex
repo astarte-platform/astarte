@@ -30,6 +30,7 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding.SetupDevicePayload do
   Reference Section: 5.5.7 TO2.SetupDevice
   """
   use TypedStruct
+  alias Astarte.Pairing.FDO.Types.PublicKey
 
   typedstruct enforce: true do
     @typedoc "The 4-element payload to be signed inside COSE_Sign1."
@@ -38,7 +39,6 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding.SetupDevicePayload do
     # Replacement for the device's RendezvousInfo.
     # It is a complex list of instructions (directives). 
     # Usually passed as a raw CBOR binary if pre-built, or a list of maps/lists.
-    # Spec: RendezvousInfo [cite: 3188]
     field :rendezvous_info, list() | binary()
 
     # 2. Guid
@@ -53,7 +53,7 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding.SetupDevicePayload do
     # 4. Owner2Key
     # The New Owner Public Key.
     # This is the key the device will trust from now on.
-    field :owner2_key, binary() | map()
+    field :owner2_key, PublicKey.t()
   end
 
   @doc """
@@ -65,7 +65,7 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding.SetupDevicePayload do
       p.rendezvous_info,
       p.guid,
       p.nonce_setup_device,
-      p.owner2_key
+      PublicKey.encode(p.owner2_key)
     ]
   end
 

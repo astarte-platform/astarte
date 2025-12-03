@@ -68,4 +68,37 @@ defmodule Astarte.Pairing.FDO.Types.PublicKey do
       _ -> :error
     end
   end
+
+  def encode(%PublicKey{} = pk) do
+    %PublicKey{
+      type: type,
+      encoding: enc,
+      body: body
+    } = pk
+
+    cbor_type = encode_type(type)
+    cbor_encoding = encode_encoding(enc)
+    cbor_body = %CBOR.Tag{tag: :bytes, value: body}
+
+    [cbor_type, cbor_encoding, cbor_body]
+  end
+
+  defp encode_type(type) do
+    case type do
+      :rsa2048restr -> 1
+      :rsapkcs -> 5
+      :rsapss -> 6
+      :secp256r1 -> 10
+      :secp384r1 -> 11
+    end
+  end
+
+  defp encode_encoding(encoding) do
+    case encoding do
+      :crypto -> 0
+      :x509 -> 1
+      :x5chain -> 2
+      :cosekey -> 3
+    end
+  end
 end
