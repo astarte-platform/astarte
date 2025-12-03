@@ -56,14 +56,15 @@ defmodule Astarte.PairingWeb.FDOOnboardingController do
     realm_name = Map.fetch!(conn.params, "realm_name")
     cbor_body = conn.assigns.cbor_body
 
-    with {:ok, response} <-
+    with {:ok, session, response} <-
            OwnerOnboarding.prove_device(
              realm_name,
              cbor_body,
              conn.assigns.to2_session
            ) do
       conn
-      |> render("default.cbor", %{cbor_response: response})
+      |> assign(:to2_session, session)
+      |> render("secure.cbor", %{cbor_response: response})
     end
   end
 
@@ -75,9 +76,7 @@ defmodule Astarte.PairingWeb.FDOOnboardingController do
     case OwnerOnboarding.done(to2_session, cbor_body) do
       {:ok, response_msg} ->
         conn
-        |> put_resp_content_type("application/cbor")
-        # TODO put msg in secure tunnel
-        |> send_resp(200, response_msg)
+        |> render("secure.cbor", %{cbor_response: response_msg})
     end
   end
 

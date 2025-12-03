@@ -111,8 +111,6 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding do
 
   def prove_device(realm_name, body, session) do
     device_guid = session.device_id
-    stored_prove_dv_nonce = session.prove_dv_nonce
-    device_signature = session.device_signature
 
     {:ok, ownership_voucher} =
       OwnershipVoucher.fetch(realm_name, device_guid)
@@ -132,39 +130,44 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding do
       device_info: "owned by astarte - realm #{realm_name}.#{Config.base_url_domain!()}"
     }
 
-    with {:ok, %{setup_dv_nonce: setup_dv_nonce, resp: resp_msg}} <-
+    with {:ok, %{setup_dv_nonce: setup_dv_nonce, resp: resp_msg, session: session}} <-
            verify_and_build_response(
+             realm_name,
+             session,
              body,
-             device_signature,
-             stored_prove_dv_nonce,
-             device_guid,
              connection_credentials
            ),
          # need to save nonce for later! (for TO2 msg.71)
          :ok <-
            Queries.session_add_setup_dv_nonce(realm_name, session.key, setup_dv_nonce) do
-      {:ok, resp_msg}
+      {:ok, session, resp_msg}
     end
   end
 
   def verify_and_build_response(
+        realm_name,
+        session = %{device_signature: {ecc, device_pub_key}},
         body,
-        {ecc, device_pub_key},
-        stored_prove_dv_nonce,
-        device_id,
         connection_credentials
       )
       when ecc in [:es256, :es384] do
+    %Session{device_id: device_id, prove_dv_nonce: prove_dv_nonce} = session
+    owner_key = connection_credentials.owner_private_key
+
     with {:ok,
           %ProveDevice{
             nonce_to2_prove_dv: received_prove_dv_nonce,
             nonce_to2_setup_dv: received_setup_dv_nonce,
-            guid: received_device_id
+            guid: received_device_id,
+            xb_key_exchange: xb
           }} <- ProveDevice.decode(body, device_pub_key),
-         :ok <- check_prove_dv_nonces_equality(received_prove_dv_nonce, stored_prove_dv_nonce),
-         :ok <- check_device_guid_equality(received_device_id, device_id) do
+         :ok <- check_prove_dv_nonces_equality(received_prove_dv_nonce, prove_dv_nonce),
+         :ok <- check_device_guid_equality(received_device_id, device_id),
+         {:ok, session} <- Session.build_session_secret(session, realm_name, owner_key, xb),
+         {:ok, session} <- Session.derive_key(session, realm_name) do
       resp_msg = build_setup_device_message(connection_credentials, received_setup_dv_nonce)
-      {:ok, %{setup_dv_nonce: received_setup_dv_nonce, resp: resp_msg}}
+
+      {:ok, %{setup_dv_nonce: received_setup_dv_nonce, resp: resp_msg, session: session}}
     end
   end
 

@@ -16,14 +16,60 @@
 # limitations under the License.
 #
 defmodule Astarte.Pairing.OwnerOnboarding.Onboarding.ProveDevice do
-  use ExUnit.Case
+  use Astarte.Cases.Data, async: true
   alias Astarte.Pairing.FDO.OwnerOnboarding
+  alias Astarte.Pairing.FDO.OwnerOnboarding.HelloDevice
+  alias Astarte.Pairing.FDO.OwnerOnboarding.Session
+  alias Astarte.Pairing.FDO.OwnerOnboarding.SessionKey
+  alias Astarte.Pairing.FDO.Types.PublicKey
+
+  import Astarte.Helpers.FDO
 
   @es256_alg -7
 
   @test_prove_dv_nonce :crypto.strong_rand_bytes(16)
   @test_setup_dv_nonce :crypto.strong_rand_bytes(16)
   @test_guid :crypto.strong_rand_bytes(16)
+
+  setup_all do
+    hello_device = HelloDevice.generate()
+    ownership_voucher = sample_ownership_voucher()
+    owner_key = sample_extracted_private_key()
+    device_key = COSE.Keys.ECC.generate(:es256)
+    {:ok, device_random, xb} = SessionKey.new(hello_device.kex_name, device_key)
+
+    %{
+      hello_device: hello_device,
+      ownership_voucher: ownership_voucher,
+      owner_key: owner_key,
+      device_key: device_key,
+      device_random: device_random,
+      xb: xb
+    }
+  end
+
+  setup context do
+    %{
+      astarte_instance_id: astarte_instance_id,
+      hello_device: hello_device,
+      ownership_voucher: ownership_voucher,
+      realm: realm_name,
+      owner_key: owner_key,
+      device_key: key
+    } = context
+
+    {:ok, session} =
+      Session.new(realm_name, hello_device, ownership_voucher, owner_key)
+
+    session = %{session | device_signature: {:es256, key}}
+
+    on_exit(fn ->
+      setup_database_access(astarte_instance_id)
+      delete_session(realm_name, session.key)
+    end)
+
+    %{session: session}
+  end
 
   def generate_es256_keys do
     COSE.Keys.ECC.generate(:es256)
@@ -34,7 +80,8 @@ defmodule Astarte.Pairing.OwnerOnboarding.Onboarding.ProveDevice do
          priv_key_struct,
          prove_dv_nonce_val,
          setup_dv_nonce_val,
-         guid_val
+         guid_val,
+         xb
        ) do
     # ProveDvNonce is in payload
 
@@ -44,7 +91,7 @@ defmodule Astarte.Pairing.OwnerOnboarding.Onboarding.ProveDevice do
     eat_claims = %{
       10 => COSE.tag_as_byte(prove_dv_nonce_val),
       256 => ueid,
-      -257 => [COSE.tag_as_byte(<<>>)]
+      -257 => [COSE.tag_as_byte(xb)]
     }
 
     payload_bin = CBOR.encode(eat_claims) |> COSE.tag_as_byte()
@@ -60,36 +107,45 @@ defmodule Astarte.Pairing.OwnerOnboarding.Onboarding.ProveDevice do
     )
   end
 
-  defp dummy_creds(owner_pub_key, owner_private_key) do
+  defp dummy_creds() do
+    owner_key = sample_extracted_private_key()
+    pub_key = COSE.Keys.ECC.public_key(owner_key)
+
+    pub_key =
+      %PublicKey{type: :secp256r1, encoding: :x509, body: pub_key}
+      |> PublicKey.encode()
+
     %{
       guid: @test_guid,
       rendezvous_info: [[2, 8080, "localhost"]],
-      owner_pub_key: owner_pub_key,
+      owner_pub_key: pub_key,
       device_info: "test",
-      owner_private_key: owner_private_key
+      owner_private_key: owner_key
     }
   end
 
-  test "verify ES256 signature success and returns Msg 65" do
-    key = generate_es256_keys()
+  test "verify ES256 signature success and returns Msg 65", context do
+    %{realm_name: realm_name, session: session, device_key: key, xb: xb} = context
 
     body =
       build_test_cose_sign1(
         @es256_alg,
         key,
-        @test_prove_dv_nonce,
+        session.prove_dv_nonce,
         @test_setup_dv_nonce,
-        @test_guid
+        session.device_id,
+        xb
       )
 
-    creds = dummy_creds(COSE.Keys.ECC.public_key(key), key)
+    creds = dummy_creds()
+
+    COSE.Messages.Sign1.verify_decode(body, key)
 
     {:ok, %{setup_dv_nonce: @test_setup_dv_nonce, resp: msg_65_payload}} =
       OwnerOnboarding.verify_and_build_response(
+        realm_name,
+        session,
         body,
-        {:es256, key},
-        @test_prove_dv_nonce,
-        @test_guid,
         creds
       )
 
@@ -100,68 +156,77 @@ defmodule Astarte.Pairing.OwnerOnboarding.Onboarding.ProveDevice do
            } = CBOR.decode(msg_65_payload)
   end
 
-  test "verify ES256 fails if Nonce does not match" do
-    key = generate_es256_keys()
+  test "verify ES256 fails if Nonce does not match", context do
+    %{realm_name: realm_name, session: session, device_key: key, xb: xb} = context
 
     wrong_nonce = :crypto.strong_rand_bytes(16)
-    body = build_test_cose_sign1(@es256_alg, key, wrong_nonce, @test_setup_dv_nonce, @test_guid)
-    creds = dummy_creds(COSE.Keys.ECC.public_key(key), key)
-
-    assert {:error, :prove_dv_nonce_mismatch} =
-             OwnerOnboarding.verify_and_build_response(
-               body,
-               {:es256, key},
-               @test_prove_dv_nonce,
-               @test_guid,
-               creds
-             )
-  end
-
-  test "verify ES256 fails if Device ID (GUID) does not match" do
-    key = generate_es256_keys()
 
     body =
       build_test_cose_sign1(
         @es256_alg,
         key,
-        @test_prove_dv_nonce,
+        wrong_nonce,
         @test_setup_dv_nonce,
-        "wrong-guid"
+        session.device_id,
+        xb
       )
 
-    creds = dummy_creds(COSE.Keys.ECC.public_key(key), key)
+    creds = dummy_creds()
 
-    assert {:error, :message_body_error} =
+    assert {:error, :prove_dv_nonce_mismatch} =
              OwnerOnboarding.verify_and_build_response(
+               realm_name,
+               session,
                body,
-               {:es256, key},
-               @test_prove_dv_nonce,
-               @test_guid,
                creds
              )
   end
 
-  test "verify ES256 fails with wrong public key" do
-    key = generate_es256_keys()
+  test "verify ES256 fails if Device ID (GUID) does not match", context do
+    %{realm_name: realm_name, session: session, device_key: key, xb: xb} = context
+
+    body =
+      build_test_cose_sign1(
+        @es256_alg,
+        key,
+        session.prove_dv_nonce,
+        @test_setup_dv_nonce,
+        "wrong-guid",
+        xb
+      )
+
+    creds = dummy_creds()
+
+    assert {:error, :message_body_error} =
+             OwnerOnboarding.verify_and_build_response(
+               realm_name,
+               session,
+               body,
+               creds
+             )
+  end
+
+  test "verify ES256 fails with wrong public key", context do
+    %{realm_name: realm_name, session: session, xb: xb} = context
     key2 = generate_es256_keys()
 
     body =
       build_test_cose_sign1(
         @es256_alg,
-        key,
-        @test_prove_dv_nonce,
+        key2,
+        session.prove_dv_nonce,
         @test_setup_dv_nonce,
-        @test_guid
+        session.device_id,
+        xb
       )
 
-    creds = dummy_creds(COSE.Keys.ECC.public_key(key2), key)
+    creds = dummy_creds()
 
     assert :error =
              OwnerOnboarding.verify_and_build_response(
+               realm_name,
+               session,
                body,
-               {:es256, key2},
-               @test_prove_dv_nonce,
-               @test_guid,
                creds
              )
   end
