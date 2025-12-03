@@ -105,7 +105,7 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding do
   def ov_next_entry(cbor_body, realm_name, device_id) do
     # entry num represent the current enties we need to check for in the ov
     with {:ok, [entry_num], _} <- CBOR.decode(cbor_body),
-         {:ok, ownership_voucher} <- Queries.get_ownership_voucher(realm_name, device_id) do
+         {:ok, ownership_voucher} <- OwnershipVoucher.fetch(realm_name, device_id) do
       OwnershipVoucherCore.get_ov_entry(ownership_voucher, entry_num)
     end
   end

@@ -19,17 +19,28 @@
 defmodule Astarte.Pairing.FDO.Onboarding.OvNextEntryTest do
   use ExUnit.Case, async: true
 
+  alias Astarte.Pairing.FDO.OwnershipVoucher
   alias Astarte.Pairing.FDO.OwnershipVoucher.Core
 
   import Astarte.Helpers.FDO
 
   describe "get_ov_entry/2" do
-    test "returns {:ok, cbor_binary} when entry_num is valid" do
+    setup do
       {:ok, voucher} = sample_voucher() |> Core.decode_ownership_voucher()
-      ov_entries = Enum.at(voucher, 3)
+      {:ok, decoded_voucher} = OwnershipVoucher.decode(voucher)
 
-      assert length(ov_entries) > 0
+      {:ok,
+       %{
+         voucher: decoded_voucher,
+         entries: decoded_voucher.entries,
+         count: length(decoded_voucher.entries)
+       }}
+    end
 
+    test "returns {:ok, cbor_binary} when entry_num is valid", %{
+      voucher: voucher,
+      entries: ov_entries
+    } do
       entry_num = 0
       expected_entry = Enum.at(ov_entries, entry_num)
 
@@ -38,13 +49,12 @@ defmodule Astarte.Pairing.FDO.Onboarding.OvNextEntryTest do
       assert {:ok, [^entry_num, ^expected_entry], ""} = CBOR.decode(encoded)
     end
 
-    test "returns {:ok, cbor_binary} when entry_num is valid and is the last entry" do
-      {:ok, voucher} = sample_voucher() |> Core.decode_ownership_voucher()
-      ov_entries = Enum.at(voucher, 3)
-
-      assert length(ov_entries) > 0
-
-      entry_num = length(ov_entries) - 1
+    test "returns {:ok, cbor_binary} when entry_num is valid and is the last entry", %{
+      voucher: voucher,
+      entries: ov_entries,
+      count: count
+    } do
+      entry_num = count - 1
       expected_entry = Enum.at(ov_entries, entry_num)
 
       assert {:ok, encoded} = Core.get_ov_entry(voucher, entry_num)
@@ -52,18 +62,15 @@ defmodule Astarte.Pairing.FDO.Onboarding.OvNextEntryTest do
       assert {:ok, [^entry_num, ^expected_entry], ""} = CBOR.decode(encoded)
     end
 
-    test "returns error for negative entry_num" do
-      {:ok, voucher} = sample_voucher() |> Core.decode_ownership_voucher()
-
+    test "returns error for negative entry_num", %{voucher: voucher} do
       assert {:error, "invalid_entry_number"} =
                Core.get_ov_entry(voucher, -1)
     end
 
-    test "returns error when entry_num is over the max number ov entries" do
-      {:ok, voucher} = sample_voucher() |> Core.decode_ownership_voucher()
-      ov_entries = Enum.at(voucher, 3)
-      invalid_index = length(ov_entries)
-
+    test "returns error when entry_num is over the max number ov entries", %{
+      voucher: voucher,
+      count: invalid_index
+    } do
       assert {:error, "invalid_entry_number"} =
                Core.get_ov_entry(voucher, invalid_index)
     end

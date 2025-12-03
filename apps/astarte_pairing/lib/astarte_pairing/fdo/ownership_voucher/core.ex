@@ -17,6 +17,7 @@
 #
 
 defmodule Astarte.Pairing.FDO.OwnershipVoucher.Core do
+  alias Astarte.Pairing.FDO.OwnershipVoucher
   alias Astarte.Pairing.FDO.OwnershipVoucher.Core
 
   @type decoded_voucher :: list()
@@ -95,15 +96,17 @@ defmodule Astarte.Pairing.FDO.OwnershipVoucher.Core do
     end
   end
 
-  def get_ov_entry(ownership_voucher, entry_num) do
-    ov_entries = Enum.at(ownership_voucher, 3)
+  def get_ov_entry(_ov, entry_num) when entry_num < 0 do
+    {:error, "invalid_entry_number"}
+  end
 
-    if entry_num < length(ov_entries) && entry_num >= 0 do
-      entry = Enum.at(ov_entries, entry_num)
-      response = [entry_num, entry]
-      {:ok, CBOR.encode(response)}
-    else
-      {:error, "invalid_entry_number"}
+  def get_ov_entry(%OwnershipVoucher{entries: entries}, entry_num) do
+    case Enum.fetch(entries, entry_num) do
+      {:ok, entry} ->
+        {:ok, CBOR.encode([entry_num, entry])}
+
+      :error ->
+        {:error, "invalid_entry_number"}
     end
   end
 
