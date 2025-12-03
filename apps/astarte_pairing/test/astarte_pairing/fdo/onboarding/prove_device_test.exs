@@ -37,9 +37,13 @@ defmodule Astarte.Pairing.OwnerOnboarding.Onboarding.ProveDevice do
          guid_val
        ) do
     # ProveDvNonce is in payload
+
+    ueid = <<1>> <> guid_val
+    ueid = COSE.tag_as_byte(ueid)
+
     eat_claims = %{
       10 => prove_dv_nonce_val,
-      256 => guid_val,
+      256 => ueid,
       -257 => [COSE.tag_as_byte(<<>>)]
     }
 
@@ -127,7 +131,7 @@ defmodule Astarte.Pairing.OwnerOnboarding.Onboarding.ProveDevice do
 
     creds = dummy_creds(COSE.Keys.ECC.public_key(key), key)
 
-    assert {:error, :device_guid_mismatch} =
+    assert {:error, :message_body_error} =
              OwnerOnboarding.verify_and_build_response(
                body,
                {:es256, key},

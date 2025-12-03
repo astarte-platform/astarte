@@ -38,6 +38,8 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding.ProveDevice do
   # EAT-FDO: FDO-specific claim wrapping the FDO payload (Label -257) [cite: 3456]
   @eat_fdo_label :fdo
 
+  @eat_random <<1>>
+
   typedstruct enforce: true do
     @typedoc "Decoded content of the TO2.ProveDevice message."
 
@@ -61,7 +63,7 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding.ProveDevice do
     # 4. UEID (GUID)
     # The device GUID extracted from the EAT token.
     # Must match the GUID of the session.
-    field :ueid, binary()
+    field :guid, binary()
 
     # Raw EAT token binary, useful for audit logging.
     field :raw_eat_token, binary()
@@ -75,16 +77,16 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding.ProveDevice do
   def decode(binary_msg, device_pub_key) do
     with {:ok, cose_object} <- EAToken.verify_decode_cbor(binary_msg, device_pub_key),
          {:ok, xb_key} <- extract_fdo_payload(cose_object.payload),
-         {:ok, nonce_prove} <- fetch_required(cose_object.payload, :nonce, :missing_eat_nonce),
-         {:ok, nonce_setup} <- fetch_required(cose_object.uhdr, :euphnonce, :missing_euph_nonce) do
-      ueid = Map.get(cose_object.payload, :ueid)
-
+         {:ok, nonce_prove} <- fetch_required(cose_object.payload, :nonce),
+         {:ok, nonce_setup} <- fetch_required(cose_object.uhdr, :euphnonce),
+         {:ok, ueid} <- fetch_required(cose_object.payload, :ueid),
+         {:ok, guid} <- guid_from_ueid(ueid) do
       {:ok,
        %ProveDevice{
          xb_key_exchange: xb_key,
          nonce_to2_prove_dv: nonce_prove,
          nonce_to2_setup_dv: nonce_setup,
-         ueid: ueid,
+         guid: guid,
          raw_eat_token: binary_msg
        }}
     end
@@ -100,10 +102,19 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding.ProveDevice do
     end
   end
 
-  defp fetch_required(map, key, error_atom) do
+  defp fetch_required(map, key) do
     case Map.fetch(map, key) do
       {:ok, val} -> {:ok, val}
-      :error -> {:error, error_atom}
+      :error -> {:error, :message_body_error}
+    end
+  end
+
+  defp guid_from_ueid(ueid) do
+    with %CBOR.Tag{tag: :bytes, value: ueid} <- ueid,
+         <<@eat_random::binary, guid::binary-size(16)>> <- ueid do
+      {:ok, guid}
+    else
+      _ -> {:error, :message_body_error}
     end
   end
 end

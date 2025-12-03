@@ -160,7 +160,7 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding do
           %ProveDevice{
             nonce_to2_prove_dv: received_prove_dv_nonce,
             nonce_to2_setup_dv: received_setup_dv_nonce,
-            ueid: received_device_id
+            guid: received_device_id
           }} <- ProveDevice.decode(body, device_pub_key),
          :ok <- check_prove_dv_nonces_equality(received_prove_dv_nonce, stored_prove_dv_nonce),
          :ok <- check_device_guid_equality(received_device_id, device_id) do
