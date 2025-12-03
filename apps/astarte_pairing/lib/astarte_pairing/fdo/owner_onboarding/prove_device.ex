@@ -94,7 +94,7 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding.ProveDevice do
   # Spec: TO2ProveDevicePayload = [ xBKeyExchange ]
   defp extract_fdo_payload(payload_map) do
     case Map.fetch(payload_map, @eat_fdo_label) do
-      {:ok, [xb_key]} when is_binary(xb_key) -> {:ok, xb_key}
+      {:ok, [%CBOR.Tag{tag: :bytes, value: xb_key}]} when is_binary(xb_key) -> {:ok, xb_key}
       {:ok, _invalid_structure} -> {:error, :invalid_fdo_claim_structure}
       :error -> {:error, :missing_eat_fdo_claim}
     end

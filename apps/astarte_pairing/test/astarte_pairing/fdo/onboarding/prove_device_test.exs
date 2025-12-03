@@ -40,10 +40,10 @@ defmodule Astarte.Pairing.OwnerOnboarding.Onboarding.ProveDevice do
     eat_claims = %{
       10 => prove_dv_nonce_val,
       256 => guid_val,
-      -257 => [<<>>]
+      -257 => [COSE.tag_as_byte(<<>>)]
     }
 
-    payload_bin = CBOR.encode(eat_claims)
+    payload_bin = CBOR.encode(eat_claims) |> COSE.tag_as_byte()
 
     COSE.Messages.Sign1.sign_encode_cbor(
       %COSE.Messages.Sign1{

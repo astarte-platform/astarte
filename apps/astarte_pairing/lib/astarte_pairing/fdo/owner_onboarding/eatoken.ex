@@ -55,8 +55,10 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding.EAToken do
   defp verify_payload(payload, extra_claims) do
     known_claims = Map.merge(@known_payload_claims, extra_claims)
 
-    case CBOR.decode(payload) do
-      {:ok, raw_claims = %{}, _} -> {:ok, translate_claims(raw_claims, known_claims)}
+    with %CBOR.Tag{tag: :bytes, value: cbor_payload} <- payload,
+         {:ok, raw_claims = %{}, _} <- CBOR.decode(cbor_payload) do
+      {:ok, translate_claims(raw_claims, known_claims)}
+    else
       _ -> :error
     end
   end
