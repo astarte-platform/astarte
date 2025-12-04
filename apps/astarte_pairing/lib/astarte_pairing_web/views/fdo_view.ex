@@ -26,6 +26,11 @@ defmodule Astarte.PairingWeb.FDOView do
     response
   end
 
+  def render("secure.cbor", %{response: response} = assigns) do
+    session = assigns.to2_session
+    Session.encrypt_and_sign(session, CBOR.encode(response))
+  end
+
   def render("secure.cbor", %{cbor_response: response} = assigns) do
     session = assigns.to2_session
     Session.encrypt_and_sign(session, response)
