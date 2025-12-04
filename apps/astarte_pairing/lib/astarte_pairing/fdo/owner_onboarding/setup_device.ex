@@ -63,8 +63,8 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding.SetupDevicePayload do
   def to_cbor_list(%__MODULE__{} = p) do
     [
       p.rendezvous_info,
-      p.guid,
-      p.nonce_setup_device,
+      COSE.tag_as_byte(p.guid),
+      COSE.tag_as_byte(p.nonce_setup_device),
       PublicKey.encode(p.owner2_key)
     ]
   end

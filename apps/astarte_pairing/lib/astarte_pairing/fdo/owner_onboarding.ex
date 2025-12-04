@@ -26,13 +26,14 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding do
 
   alias Astarte.Pairing.Config
   alias Astarte.Pairing.FDO.OwnerOnboarding.DeviceAttestation
-  alias Astarte.Pairing.FDO.OwnerOnboarding.HelloDevice
-  alias Astarte.Pairing.FDO.OwnerOnboarding.ProveOVHdr
-  alias Astarte.Pairing.FDO.OwnerOnboarding.ProveDevice
-  alias Astarte.Pairing.FDO.OwnerOnboarding.Session
-  alias Astarte.Pairing.FDO.OwnershipVoucher
-  alias Astarte.Pairing.FDO.OwnerOnboarding.Done, as: DonePayload
   alias Astarte.Pairing.FDO.OwnerOnboarding.Done2, as: Done2Payload
+  alias Astarte.Pairing.FDO.OwnerOnboarding.Done, as: DonePayload
+  alias Astarte.Pairing.FDO.OwnerOnboarding.HelloDevice
+  alias Astarte.Pairing.FDO.OwnerOnboarding.ProveDevice
+  alias Astarte.Pairing.FDO.OwnerOnboarding.ProveOVHdr
+  alias Astarte.Pairing.FDO.OwnerOnboarding.Session
+  alias Astarte.Pairing.FDO.OwnerOnboarding.SetupDevicePayload
+  alias Astarte.Pairing.FDO.OwnershipVoucher
   alias Astarte.Pairing.FDO.OwnershipVoucher.Core, as: OwnershipVoucherCore
   alias Astarte.Pairing.FDO.Types.Hash
   alias Astarte.Pairing.Queries
@@ -199,17 +200,17 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding do
   end
 
   def build_setup_device_message(creds, setup_dv_nonce) do
-    payload_array = [
-      creds.rendezvous_info,
-      creds.guid,
-      setup_dv_nonce,
-      creds.owner_pub_key
-    ]
+    setup_device = %SetupDevicePayload{
+      rendezvous_info: creds.rendezvous_info,
+      guid: creds.guid,
+      nonce_setup_device: setup_dv_nonce,
+      owner2_key: creds.owner_pub_key
+    }
 
     protected_header_map = %{alg: :es256}
 
-    payload_array
-    |> CBOR.encode()
+    setup_device
+    |> SetupDevicePayload.encode()
     |> Sign1.build(protected_header_map)
     |> Sign1.sign_encode_cbor(creds.owner_private_key)
   end
