@@ -7,9 +7,6 @@ RUN apt-get update --allow-releaseinfo-change -y && apt-get install -y build-ess
 
 WORKDIR /app
 
-COPY ../../libs ./libraries
-COPY apps/astarte_trigger_engine .  
-
 # Install hex
 RUN mix local.hex --force && \
 mix local.rebar --force && \
@@ -26,6 +23,7 @@ ENV ASTARTE_LIBRARIES_PATH=libraries
 # Cache elixir deps
 ADD apps/astarte_trigger_engine/mix.exs ./
 ADD apps/astarte_trigger_engine/mix.lock ./
+COPY ../../libs ./libraries
 
 RUN mix do deps.get, deps.compile
 
