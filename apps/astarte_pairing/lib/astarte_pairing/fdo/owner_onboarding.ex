@@ -137,8 +137,7 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding do
                connection_credentials
              ),
            # need to save nonce for later! (for TO2 msg.71)
-           :ok <-
-             Queries.session_add_setup_dv_nonce(realm_name, session.key, setup_dv_nonce) do
+           :ok <- Queries.session_add_setup_dv_nonce(realm_name, session.key, setup_dv_nonce) do
         {:ok, session, resp_msg}
       end
     end

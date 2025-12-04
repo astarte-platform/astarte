@@ -64,7 +64,7 @@ defmodule Astarte.PairingWeb.FDOOnboardingController do
            ) do
       conn
       |> assign(:to2_session, session)
-      |> render("secure.cbor", %{cbor_response: response})
+      |> render("secure.cbor", %{response: response})
     end
   end
 

@@ -27,14 +27,14 @@ defmodule Astarte.Pairing.FDO.Types.PublicKey do
   typedstruct do
     field :type, type()
     field :encoding, encoding()
-    field :body, binary()
+    field :body, binary() | [binary()]
   end
 
   def decode(cbor_list) do
     with [type, enc, body] <- cbor_list,
          {:ok, type} <- decode_type(type),
          {:ok, enc} <- decode_encoding(enc),
-         %CBOR.Tag{tag: :bytes, value: body} <- body do
+         {:ok, body} <- parse_body(enc, body) do
       public_key =
         %PublicKey{
           type: type,
@@ -44,6 +44,26 @@ defmodule Astarte.Pairing.FDO.Types.PublicKey do
 
       {:ok, public_key}
     else
+      _ -> :error
+    end
+  end
+
+  defp parse_body(:x5chain, body) when is_list(body) do
+    cert_chain =
+      Enum.map(body, fn
+        %CBOR.Tag{tag: :bytes, value: val} -> {:ok, val}
+        _ -> :error
+      end)
+
+    with :ok <- Enum.find(cert_chain, :ok, &(&1 == :error)) do
+      res = Enum.map(cert_chain, fn {:ok, cert} -> cert end)
+      {:ok, res}
+    end
+  end
+
+  defp parse_body(_, body) do
+    case body do
+      %CBOR.Tag{tag: :bytes, value: val} -> {:ok, val}
       _ -> :error
     end
   end
@@ -78,10 +98,16 @@ defmodule Astarte.Pairing.FDO.Types.PublicKey do
 
     cbor_type = encode_type(type)
     cbor_encoding = encode_encoding(enc)
-    cbor_body = %CBOR.Tag{tag: :bytes, value: body}
+    cbor_body = encode_body(enc, body)
 
     [cbor_type, cbor_encoding, cbor_body]
   end
+
+  defp encode_body(:x5chain, body) do
+    Enum.map(body, &COSE.tag_as_byte/1)
+  end
+
+  defp encode_body(_, body), do: COSE.tag_as_byte(body)
 
   defp encode_type(type) do
     case type do
