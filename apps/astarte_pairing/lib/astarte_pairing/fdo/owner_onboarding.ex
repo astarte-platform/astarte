@@ -112,35 +112,33 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding do
   def prove_device(realm_name, body, session) do
     device_guid = session.device_id
 
-    {:ok, ownership_voucher} =
-      OwnershipVoucher.fetch(realm_name, device_guid)
+    with {:ok, ownership_voucher} <- OwnershipVoucher.fetch(realm_name, device_guid),
+         {:ok, private_key} <- Queries.get_owner_private_key(realm_name, device_guid),
+         {:ok, owner_public_key} <- OwnershipVoucher.owner_public_key(ownership_voucher) do
+      rendezvous_info = ownership_voucher.header.rendezvous_info
 
-    {:ok, private_key} =
-      Queries.get_owner_private_key(realm_name, device_guid)
+      {:ok, private_key} = COSE.Keys.from_pem(private_key)
 
-    rendezvous_info = ownership_voucher.header.rendezvous_info
+      connection_credentials = %{
+        guid: device_guid,
+        rendezvous_info: rendezvous_info,
+        owner_pub_key: owner_public_key,
+        owner_private_key: private_key,
+        device_info: "owned by astarte - realm #{realm_name}.#{Config.base_url_domain!()}"
+      }
 
-    {:ok, private_key} = COSE.Keys.from_pem(private_key)
-
-    connection_credentials = %{
-      guid: device_guid,
-      rendezvous_info: rendezvous_info,
-      owner_pub_key: OwnershipVoucher.owner_public_key(ownership_voucher),
-      owner_private_key: private_key,
-      device_info: "owned by astarte - realm #{realm_name}.#{Config.base_url_domain!()}"
-    }
-
-    with {:ok, %{setup_dv_nonce: setup_dv_nonce, resp: resp_msg, session: session}} <-
-           verify_and_build_response(
-             realm_name,
-             session,
-             body,
-             connection_credentials
-           ),
-         # need to save nonce for later! (for TO2 msg.71)
-         :ok <-
-           Queries.session_add_setup_dv_nonce(realm_name, session.key, setup_dv_nonce) do
-      {:ok, session, resp_msg}
+      with {:ok, %{setup_dv_nonce: setup_dv_nonce, resp: resp_msg, session: session}} <-
+             verify_and_build_response(
+               realm_name,
+               session,
+               body,
+               connection_credentials
+             ),
+           # need to save nonce for later! (for TO2 msg.71)
+           :ok <-
+             Queries.session_add_setup_dv_nonce(realm_name, session.key, setup_dv_nonce) do
+        {:ok, session, resp_msg}
+      end
     end
   end
 
