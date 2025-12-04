@@ -107,6 +107,13 @@ This is the generic representation of a Device Trigger:
 - `device_connected`: triggered when a device connects to its transport.
 - `device_disconnected`: triggered when a device disconnects from its transport.
 - `device_error`: triggered when data from a device causes an error.
+- `device_registered`: triggered when a device is registered to Astarte.
+- `device_deletion_started`: triggered when the deletion of a device is started.
+- `device_deletion_finished`: triggered when the deletion of a device is finished.
+- `incoming_introspection`: triggered when Astarte receives an [introspection message](080-mqtt-v1-protocol.md.html#introspection) from the device.
+- `interface_added`: triggered when an interface is added to the device introspection.
+- `interface_removed`: triggered when an interface is removed from the device introspection.
+- `interface_minor_updated`: triggered when the device introspection contains a new minor version of an interface.
 
 `device_id` can be used to pass a specific Device ID to restrict the trigger to a single device. `*`
 is also accepted as `device_id` to maintain backwards compatibility and it is considered equivalent
@@ -298,6 +305,104 @@ documentation](045-device_errors.html)
 `metadata` is a map with string key and string values that may contain additional information about
 the error. Some metadata (_e.g._ binary payloads) might be encoded in base64 if they cannot be
 represented as string. In that case, the key is prepended with the `base64_` prefix.
+
+###### DeviceRegisteredEvent
+
+```json
+{
+  "type": "device_registered"
+}
+```
+
+###### DeviceDeletionStartedEvent
+
+```json
+{
+  "type": "device_deletion_started"
+}
+```
+
+###### DeviceDeletionFinishedEvent
+
+```json
+{
+  "type": "device_deletion_finished"
+}
+```
+
+###### IncomingIntrospectionEvent
+
+```json
+{
+  "type": "incoming_introspection",
+  "introspection_map": {
+    "<interface_name>": {
+      "major": <major_value>,
+      "minor":  <minor_value>
+    },
+    ...
+  }
+}
+```
+
+`interface_name` is the name of an interface. There is one map entry for each interface in the introspection.
+
+`<major_value>` is the major version of the interface.
+
+`<minor_value>` is the minor version of the interface.
+
+
+###### InterfaceAddedEvent
+
+```json
+{
+  "type": "interface_added",
+  "interface": "<interface_name>",
+  "major_version": <major_value>,
+  "minor_version":  <minor_value>
+}
+```
+
+`interface_name` is the name of the interface.
+
+`<major_value>` is the major version of the interface.
+
+`<minor_value>` is the minor version of the interface.
+
+###### InterfaceRemovedEvent
+
+```json
+{
+  "type": "interface_removed",
+  "interface": "<interface_name>",
+  "major_version": <major_value>
+}
+```
+
+`interface_name` is the name of the interface.
+
+`<major_value>` is the major version of the interface.
+
+###### InterfaceMinorUpdatedEvent
+
+```json
+{
+  "type": "interface_minor_updated",
+  "interface": "<interface_name>",
+  "major_version": <major_value>,
+  "old_minor_version":  <old_minor_value>,
+  "new_minor_version":  <new_minor_value>
+
+}
+```
+
+`interface_name` is the name of the interface.
+
+`<major_value>` is the major version of the interface.
+
+`<old_minor_value>` is the old, outdated minor version of the interface declared by the device.
+
+`<new_minor_value>` is the new minor version of the interface declared by the device.
 
 ###### IncomingDataEvent
 
