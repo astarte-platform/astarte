@@ -25,7 +25,7 @@ defmodule Astarte.PairingWeb.FDOOnboardingController do
 
   require Logger
 
-  action_fallback Astarte.PairingWeb.FallbackController
+  action_fallback Astarte.PairingWeb.FDOFallbackController
 
   def hello_device(conn, _params) do
     realm_name = Map.fetch!(conn.params, "realm_name")
