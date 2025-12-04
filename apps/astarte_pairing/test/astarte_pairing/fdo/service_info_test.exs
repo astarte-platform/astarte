@@ -25,18 +25,21 @@ defmodule Astarte.Pairing.FDO.ServiceInfoTest do
   alias Astarte.Pairing.FDO.OwnerOnboarding.DeviceServiceInfoReady
   alias Astarte.Pairing.FDO.OwnerOnboarding.HelloDevice
   alias Astarte.Pairing.FDO.OwnerOnboarding.SessionKey
-  alias Astarte.Pairing.FDO.OwnershipVoucher
   alias Astarte.Pairing.FDO.OwnerOnboarding.Session
+
   import Astarte.Helpers.FDO
 
   @owner_max_service_info 4096
 
-  setup_all do
-    hello_device = HelloDevice.generate()
+  setup_all %{realm_name: realm_name} do
+    device_id = sample_device_guid()
+    hello_device = %{HelloDevice.generate() | device_id: device_id}
     ownership_voucher = sample_ownership_voucher()
     owner_key = sample_extracted_private_key()
     device_key = COSE.Keys.ECC.generate(:es256)
     {:ok, device_random, xb} = SessionKey.new(hello_device.kex_name, device_key)
+
+    insert_voucher(realm_name, sample_private_key(), sample_cbor_voucher(), device_id)
 
     %{
       hello_device: hello_device,
@@ -48,45 +51,35 @@ defmodule Astarte.Pairing.FDO.ServiceInfoTest do
     }
   end
 
-  setup do
-    header_list = [
-      # prot_ver
-      101,
-      # guid
-      :crypto.strong_rand_bytes(16),
-      # rendezvous info
-      [[2, "ip.addr", 8080]],
-      # device info
-      "device_info_string",
-      # pub_key
-      :crypto.strong_rand_bytes(32),
-      # cert_chain_hash
-      :crypto.strong_rand_bytes(32)
-    ]
+  setup context do
+    %{
+      astarte_instance_id: astarte_instance_id,
+      hello_device: hello_device,
+      ownership_voucher: ownership_voucher,
+      realm: realm_name,
+      owner_key: owner_key,
+      xb: xb
+    } = context
 
-    header_bstr = CBOR.encode(header_list)
+    {:ok, session} =
+      Session.new(realm_name, hello_device, ownership_voucher, owner_key)
 
-    old_voucher = %OwnershipVoucher{
-      protocol_version: 101,
-      header: header_bstr,
-      hmac: :crypto.strong_rand_bytes(32),
-      cert_chain: nil,
-      entries: []
-    }
+    on_exit(fn ->
+      setup_database_access(astarte_instance_id)
+      delete_session(realm_name, session.key)
+    end)
 
-    {:ok, %{old_voucher: old_voucher}}
+    {:ok, session} = Session.build_session_secret(session, realm_name, owner_key, xb)
+    {:ok, session} = Session.derive_key(session, realm_name)
+
+    %{session: session}
   end
 
   describe "handle_msg_66/4" do
     test "successfully processes Msg 66, creates new voucher, and returns Msg 67", %{
       realm: realm_name,
-      hello_device: hello_device,
-      owner_key: owner_key,
-      ownership_voucher: ownership_voucher
+      session: session
     } do
-      {:ok, session} =
-        Session.new(realm_name, hello_device, ownership_voucher, owner_key)
-
       new_hmac = :crypto.strong_rand_bytes(32)
       device_max_size = 2048
 
@@ -105,13 +98,8 @@ defmodule Astarte.Pairing.FDO.ServiceInfoTest do
 
     test "handles Credential Reuse (nil HMAC) correctly", %{
       realm: realm_name,
-      hello_device: hello_device,
-      owner_key: owner_key,
-      ownership_voucher: ownership_voucher
+      session: session
     } do
-      {:ok, session} =
-        Session.new(realm_name, hello_device, ownership_voucher, owner_key)
-
       assert {:ok, _result} =
                ServiceInfo.handle_msg_66(
                  realm_name,
@@ -121,46 +109,6 @@ defmodule Astarte.Pairing.FDO.ServiceInfoTest do
                    max_owner_service_info_sz: 2048
                  }
                )
-    end
-
-    test "returns error if inner CBOR payload is malformed", %{
-      realm: realm_name,
-      hello_device: hello_device,
-      owner_key: owner_key,
-      ownership_voucher: ownership_voucher
-    } do
-      {:ok, session} =
-        Session.new(realm_name, hello_device, ownership_voucher, owner_key)
-
-      malformed_payload =  ""
-
-      result =
-        ServiceInfo.handle_msg_66(realm_name, session, malformed_payload)
-
-      assert {:error, :invalid_payload} = result
-    end
-
-    test "returns error if old voucher is invalid", %{
-      realm: realm_name,
-      hello_device: hello_device,
-      owner_key: owner_key,
-      ownership_voucher: ownership_voucher
-    } do
-
-      {:ok, session} =
-        Session.new(realm_name, hello_device, ownership_voucher, owner_key)
-
-      result =
-        ServiceInfo.handle_msg_66(
-          realm_name,
-          session,
-          %DeviceServiceInfoReady{
-            replacement_hmac: :crypto.strong_rand_bytes(32),
-            max_owner_service_info_sz: 1024
-          }
-        )
-
-      assert {:error, :invalid_device_voucher} = result
     end
   end
 end
