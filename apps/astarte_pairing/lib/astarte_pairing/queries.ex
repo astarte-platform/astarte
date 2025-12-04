@@ -304,12 +304,7 @@ defmodule Astarte.Pairing.Queries do
   end
 
   def add_session_keys(realm_name, session_key, sevk, svk, sek) do
-    updates = [
-      sevk: :erlang.term_to_binary(sevk),
-      svk: :erlang.term_to_binary(svk),
-      sek: :erlang.term_to_binary(sek)
-    ]
-
+    updates = [sevk: sevk, svk: svk, sek: sek]
     update_session(realm_name, session_key, updates)
   end
 

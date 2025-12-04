@@ -56,38 +56,43 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding.DeviceServiceInfoReady do
   Decodes the raw CBOR payload into the DeviceServiceInfoReady struct.
   It validates that the structure is a list of two elements and checks types.
   """
-  @spec decode(binary()) :: {:ok, t()} | {:error, atom()}
-  def decode(cbor_payload) do
+  @spec cbor_decode(binary()) :: {:ok, t()} | {:error, atom()}
+  def cbor_decode(cbor_payload) do
     case CBOR.decode(cbor_payload) do
-      {:ok, [hmac, size], ""} ->
-        validate_and_build(hmac, size)
+      {:ok, payload, _} -> DeviceServiceInfoReady.decode(payload)
+      _ -> {:error, :message_body_error}
+    end
+  end
 
-      {:ok, _decoded, _rest} ->
-        {:error, :invalid_structure}
-
-      {:error, _reason} ->
-        {:error, :invalid_cbor}
+  def decode(payload) do
+    case payload do
+      [hmac, size] -> validate_and_build(hmac, size)
+      _ -> {:error, :message_body_error}
     end
   end
 
   defp validate_and_build(nil, size) do
     with :ok <- validate_size(size) do
-      {:ok,
-       %DeviceServiceInfoReady{
-         replacement_hmac: nil,
-         max_owner_service_info_sz: size
-       }}
+      message =
+        %DeviceServiceInfoReady{
+          replacement_hmac: nil,
+          max_owner_service_info_sz: size
+        }
+
+      {:ok, message}
     end
   end
 
   defp validate_and_build(hmac, size) do
     with {:ok, hmac} <- Hash.decode(hmac),
          :ok <- validate_size(size) do
-      {:ok,
-       %DeviceServiceInfoReady{
-         replacement_hmac: hmac,
-         max_owner_service_info_sz: size
-       }}
+      message =
+        %DeviceServiceInfoReady{
+          replacement_hmac: hmac,
+          max_owner_service_info_sz: size
+        }
+
+      {:ok, message}
     end
   end
 

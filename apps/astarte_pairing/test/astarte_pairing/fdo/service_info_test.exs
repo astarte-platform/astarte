@@ -93,7 +93,7 @@ defmodule Astarte.Pairing.FDO.ServiceInfoTest do
                  }
                )
 
-      assert result_msg_67 == CBOR.encode([@owner_max_service_info]) |> COSE.tag_as_byte()
+      assert result_msg_67 == [@owner_max_service_info]
     end
 
     test "handles Credential Reuse (nil HMAC) correctly", %{

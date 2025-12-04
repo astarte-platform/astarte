@@ -81,15 +81,11 @@ defmodule Astarte.Pairing.FDO.ServiceInfo do
 
       msg_67_payload = [@owner_max_service_info]
 
-      {:ok, generate_msg_67(msg_67_payload)}
+      {:ok, msg_67_payload}
     else
       _ ->
         {:error, :failed_66}
     end
-  end
-
-  def generate_msg_67(payload) do
-    CBOR.encode(payload) |> COSE.tag_as_byte()
   end
 
   # first device message, sending devmod

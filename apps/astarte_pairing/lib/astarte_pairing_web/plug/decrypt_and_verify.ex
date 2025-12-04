@@ -33,7 +33,7 @@ defmodule Astarte.PairingWeb.Plug.DecryptAndVerify do
 
     # TODO: send error message 101
     case Session.decrypt_and_verify(session, body) do
-      {:ok, body} -> assign(conn, :cbor_body, body)
+      {:ok, body} -> assign(conn, :body, body)
       :error -> conn |> send_resp(500, "") |> halt()
     end
   end
