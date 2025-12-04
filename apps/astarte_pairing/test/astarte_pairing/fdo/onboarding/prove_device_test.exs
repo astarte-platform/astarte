@@ -17,6 +17,7 @@
 #
 defmodule Astarte.Pairing.OwnerOnboarding.Onboarding.ProveDevice do
   use Astarte.Cases.Data, async: true
+  alias Astarte.Pairing.FDO.OwnerOnboarding.ProveDevice
   alias Astarte.Pairing.FDO.OwnerOnboarding
   alias Astarte.Pairing.FDO.OwnerOnboarding.HelloDevice
   alias Astarte.Pairing.FDO.OwnerOnboarding.Session
@@ -26,8 +27,12 @@ defmodule Astarte.Pairing.OwnerOnboarding.Onboarding.ProveDevice do
   import Astarte.Helpers.FDO
 
   @es256_alg -7
+  @eat_fdo_label -257
+  @eat_nonce_label 10
+  @eat_ueid_label 256
+  @euph_nonce -259
+  @eat_random <<1>>
 
-  @test_prove_dv_nonce :crypto.strong_rand_bytes(16)
   @test_setup_dv_nonce :crypto.strong_rand_bytes(16)
   @test_guid :crypto.strong_rand_bytes(16)
 
@@ -37,9 +42,13 @@ defmodule Astarte.Pairing.OwnerOnboarding.Onboarding.ProveDevice do
     owner_key = sample_extracted_private_key()
     device_key = COSE.Keys.ECC.generate(:es256)
     {:ok, device_random, xb} = SessionKey.new(hello_device.kex_name, device_key)
+    prove_device_data = ProveDevice.generate()
+    prove_device_msg = prove_device_data |> ProveDevice.encode_sign(device_key)
 
     %{
       hello_device: hello_device,
+      prove_device_data: prove_device_data,
+      prove_device_msg: prove_device_msg,
       ownership_voucher: ownership_voucher,
       owner_key: owner_key,
       device_key: device_key,
@@ -83,8 +92,6 @@ defmodule Astarte.Pairing.OwnerOnboarding.Onboarding.ProveDevice do
          guid_val,
          xb
        ) do
-    # ProveDvNonce is in payload
-
     ueid = <<1>> <> guid_val
     ueid = COSE.tag_as_byte(ueid)
 
@@ -121,6 +128,52 @@ defmodule Astarte.Pairing.OwnerOnboarding.Onboarding.ProveDevice do
       device_info: "test",
       owner_private_key: owner_key
     }
+  end
+
+  describe "decode/2" do
+    test "correctly decodes a ProveDevice message coming from device", context do
+      assert {:ok, prove_device_decoded} =
+               ProveDevice.decode(context.prove_device_msg, context.device_key)
+
+      # check equality of decoded and original data, ignoring raw_eat_token entry (used only for audit purposes)
+      assert Map.equal?(
+               prove_device_decoded |> Map.delete(:raw_eat_token),
+               context.prove_device_data |> Map.delete(:raw_eat_token)
+             )
+    end
+
+    test "spots a nonce of incorrect length", context do
+      prove_device_msg_wrong =
+        prove_device_fixture(
+          %{nonce_to2_prove_dv: :crypto.strong_rand_bytes(15)},
+          context.device_key
+        )
+
+      {:error, :message_body_error} =
+        ProveDevice.decode(prove_device_msg_wrong, context.device_key)
+    end
+
+    test "spots a GUID of incorrect length", context do
+      prove_device_msg_wrong =
+        prove_device_fixture(%{guid: :crypto.strong_rand_bytes(15)}, context.device_key)
+
+      {:error, :message_body_error} =
+        ProveDevice.decode(prove_device_msg_wrong, context.device_key)
+    end
+
+    test "spots missing CBOR Tags", context do
+      # encode/sign the message but do not include any CBOR tag
+      Mimic.stub(ProveDevice, :encode_sign, fn msg_data, dev_key ->
+        encode_sign_missing_cbor_tags(msg_data, dev_key)
+      end)
+
+      prove_device_msg_notag =
+        context.prove_device_data |> ProveDevice.encode_sign(context.device_key)
+
+      # the first check that fails is the one about the EAT FDO claim decode
+      {:error, :invalid_fdo_claim_structure} =
+        ProveDevice.decode(prove_device_msg_notag, context.device_key)
+    end
   end
 
   test "verify ES256 signature success and returns Msg 65", context do
@@ -224,5 +277,28 @@ defmodule Astarte.Pairing.OwnerOnboarding.Onboarding.ProveDevice do
                body,
                creds
              )
+  end
+
+  defp encode_sign_missing_cbor_tags(msg_data, dev_key) do
+    eat_cbor_payload =
+      %{
+        @eat_fdo_label => [msg_data.xb_key_exchange],
+        @eat_nonce_label => msg_data.nonce_to2_prove_dv,
+        @eat_ueid_label => @eat_random <> msg_data.guid
+      }
+      |> CBOR.encode()
+
+    phdr = %{alg: :es256}
+
+    uhdr = %{@euph_nonce => msg_data.nonce_to2_setup_dv}
+
+    COSE.Messages.Sign1.build(eat_cbor_payload, phdr, uhdr)
+    |> COSE.Messages.Sign1.sign_encode_cbor(dev_key)
+  end
+
+  defp prove_device_fixture(overwrite_submap \\ %{}, dev_key) do
+    ProveDevice.generate()
+    |> Map.merge(overwrite_submap)
+    |> ProveDevice.encode_sign(dev_key)
   end
 end
