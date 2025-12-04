@@ -58,7 +58,7 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding.ProveOVHdr do
     # HMAC-SHA256 or HMAC-SHA384 of the OVHeader.
     # Matches the value stored in the Device during Device Initialization (DI).
     # Verifies the device integrity (ensures it hasn't been wiped/re-initialized).
-    field :hmac, binary()
+    field :hmac, Hash.t()
 
     # 4. NonceTO2ProveOV
     # The nonce received from the Device in TO2.HelloDevice.
