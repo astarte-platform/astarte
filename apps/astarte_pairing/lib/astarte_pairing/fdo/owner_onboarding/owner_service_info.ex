@@ -25,6 +25,8 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding.OwnerServiceInfo do
   It manages flow control (fragmentation) and termination of the ServiceInfo phase.
   """
   use TypedStruct
+  alias Astarte.Pairing.FDO.Types.ServiceInfo
+  alias Astarte.Pairing.FDO.OwnerOnboarding.OwnerServiceInfo
 
   typedstruct enforce: true do
     @typedoc "Structure for TO2.OwnerServiceInfo message."
@@ -44,7 +46,7 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding.OwnerServiceInfo do
     # ServiceInfo
     # A list containing the actual ServiceInfo instructions (Key-Value pairs).
     # Examples: "fdo_sys:filedesc" (write file), "fdo_sys:exec" (execute script).
-    field :service_info, list()
+    field :service_info, map()
   end
 
   @doc """
@@ -55,7 +57,17 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding.OwnerServiceInfo do
     [
       t.is_more_service_info,
       t.is_done,
-      t.service_info
+      ServiceInfo.encode_map(t.service_info)
     ]
+  end
+
+  @doc """
+  Encodes the struct into a CBOR binary ready for transmission.
+  """
+  @spec encode(t()) :: binary()
+  def encode(%OwnerServiceInfo{} = t) do
+    t
+    |> to_cbor_list()
+    |> CBOR.encode()
   end
 end

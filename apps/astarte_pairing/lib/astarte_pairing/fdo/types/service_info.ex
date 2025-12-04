@@ -45,4 +45,19 @@ defmodule Astarte.Pairing.FDO.Types.ServiceInfo do
         error
     end
   end
+
+  def encode(%ServiceInfo{} = service_info) do
+    %ServiceInfo{key: key, value: value} = service_info
+
+    encoded_value = CBOR.encode(value)
+
+    [key, COSE.tag_as_byte(encoded_value)]
+  end
+
+  def encode_map(service_info_map) do
+    service_info_map
+    |> Enum.map(fn {key, value} ->
+      encode(%ServiceInfo{key: key, value: value})
+    end)
+  end
 end
