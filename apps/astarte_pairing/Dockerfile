@@ -7,9 +7,6 @@ RUN apt-get update --allow-releaseinfo-change -y && apt-get install -y build-ess
 
 WORKDIR /app
 
-COPY apps/astarte_pairing/ ./
-COPY ../../libs ./libraries
-
 # Install hex
 RUN mix local.hex --force && \
 mix local.rebar --force && \
@@ -24,6 +21,8 @@ ENV ASTARTE_LIBRARIES_PATH=libraries
 # Cache elixir deps
 ADD apps/astarte_pairing/mix.exs ./
 ADD apps/astarte_pairing/mix.lock ./
+
+COPY ../../libs ./libraries
 
 RUN mix do deps.get, deps.compile
 
