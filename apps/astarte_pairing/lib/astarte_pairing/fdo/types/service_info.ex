@@ -10,6 +10,7 @@ defmodule Astarte.Pairing.FDO.Types.ServiceInfo do
   def decode(service_info) do
     with [key, value] <- service_info,
          true <- is_binary(key),
+         %CBOR.Tag{tag: :bytes, value: value} <- value,
          {:ok, value, _} <- CBOR.decode(value) do
       service_info =
         %ServiceInfo{

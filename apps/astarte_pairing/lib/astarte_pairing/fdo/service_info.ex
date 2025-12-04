@@ -94,37 +94,38 @@ defmodule Astarte.Pairing.FDO.ServiceInfo do
         _session,
         %DeviceServiceInfo{is_more_service_info: false, service_info: service_info}
       ) do
-    # TODO: make sure service info are parsed to a map
-    devmod_data = %{
-      active: Map.fetch!(service_info, "devmod:active"),
-      sn: Map.fetch!(service_info, "devmod:sn"),
-      n_modules: Map.fetch!(service_info, "devmod:nummodules"),
-      modules: Map.fetch!(service_info, "devmod:modules")
-    }
+    # TODO: make use of other device service info
+    device_id = generate_device_id(service_info)
+    encoded_device_id = Device.encode_device_id(device_id)
 
-    # new device id is calculated on the sn, trimmed to the required size (128 bit)
-    with {:ok, credentials_secret} <- Engine.register_device(realm_name, devmod_data.sn),
-         {:ok, device_id} <- Device.decode_device_id(devmod_data.sn, allow_extended_id: true) do
+    with {:ok, credentials_secret} <- Engine.register_device(realm_name, encoded_device_id) do
+      service_info = %{
+        "astarte:active" => true,
+        "astarte:realm" => realm_name,
+        "astarte:secret" => credentials_secret,
+        "astarte:baseurl" => "#{Config.base_url!()}",
+        "astarte:deviceid" => encoded_device_id
+      }
+
+      service_info_keys = Map.keys(service_info)
+      service_info_count = Enum.count(service_info_keys)
+
+      # FIXME: this only works for single message service info
+      modules = [service_info_count, service_info_count | service_info_keys]
+
+      service_info
+      |> Map.put("astarte:modules", modules)
+      |> Map.put("astarte:nummodules", service_info_count)
+
       owner_service_info = %OwnerServiceInfo{
         is_more_service_info: false,
         is_done: true,
-        service_info: %{
-          "astarte:active": true,
-          "astarte:realm": realm_name,
-          "astarte:secret": credentials_secret,
-          "astarte:baseurl": "#{Config.base_url_domain!()}",
-          "astarte:deviceid": device_id,
-          "astarte:nummodules": devmod_data.n_modules,
-          "astarte:modules": devmod_data.modules
-        }
+        service_info: service_info
       }
 
-      encoded_cbor_list =
-        owner_service_info
-        |> OwnerServiceInfo.to_cbor_list()
-        |> CBOR.encode()
+      response = OwnerServiceInfo.encode(owner_service_info)
 
-      {:ok, encoded_cbor_list}
+      {:ok, response}
 
       # TODO uncomment and implement seriously this passage
 
@@ -161,4 +162,7 @@ defmodule Astarte.Pairing.FDO.ServiceInfo do
   def handle_message_68(_realm_name, _session_key, _) do
     {:error, :invalid_payload}
   end
+
+  defp generate_device_id(%{"devmod:sn" => sn}), do: UUID.uuid5(:oid, sn, :raw)
+  defp generate_device_id(_), do: Device.random_device_id()
 end

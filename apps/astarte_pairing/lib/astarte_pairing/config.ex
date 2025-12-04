@@ -117,6 +117,14 @@ defmodule Astarte.Pairing.Config do
   @spec cassandra_node!() :: {String.t(), integer()}
   def cassandra_node!, do: Enum.random(cqex_nodes!())
 
+  def base_url! do
+    protocol = base_url_protocol!()
+    domain = base_url_domain!()
+    port = base_url_port!()
+
+    "#{protocol}://#{domain}:#{port}"
+  end
+
   @doc """
   Returns true if the authentication for the agent is disabled.
   Credential requests made by devices are always authenticated, even it this is true.

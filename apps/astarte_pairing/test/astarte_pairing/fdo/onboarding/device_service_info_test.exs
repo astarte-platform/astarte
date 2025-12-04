@@ -5,17 +5,24 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding.DeviceServiceInfoTest do
 
   describe "decode/1" do
     test "correctly decodes a valid payload (IsMore=false, Empty List)" do
-      cbor_payload = CBOR.encode([false, []])
-      assert {:ok, %DeviceServiceInfo{} = msg} = DeviceServiceInfo.decode(cbor_payload)
+      payload = [false, []]
+      assert {:ok, %DeviceServiceInfo{} = msg} = DeviceServiceInfo.decode(payload)
       assert msg.is_more_service_info == false
       assert msg.service_info == %{}
     end
 
     test "correctly decodes a valid payload with data (IsMore=true)" do
-      info_list = [["devmod:os", CBOR.encode("linux")], ["devmod:version", CBOR.encode("1.0")]]
-      cbor_payload = CBOR.encode([true, info_list])
+      info_list = [["devmod:os", "linux"], ["devmod:version", "1.0"]]
 
-      assert {:ok, msg} = DeviceServiceInfo.decode(cbor_payload)
+      info_list =
+        Enum.map(info_list, fn [key, value] ->
+          value = value |> CBOR.encode() |> COSE.tag_as_byte()
+          [key, value]
+        end)
+
+      payload = [true, info_list]
+
+      assert {:ok, msg} = DeviceServiceInfo.decode(payload)
       assert msg.is_more_service_info == true
 
       assert msg.service_info ==
@@ -24,18 +31,24 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding.DeviceServiceInfoTest do
 
     test "correctly decodes a Astarte ServiceInfo payload " do
       complex_service_info = [
-        ["astarte:active", CBOR.encode(true)],
-        ["astarte:realm", CBOR.encode("test_realm")],
-        ["astarte:secret", CBOR.encode("super_secret_credential")],
-        ["astarte:baseurl", CBOR.encode("http://api.astarte.localhost")],
-        ["astarte:deviceid", CBOR.encode("2TBn-jNESuuHamE2Zo1anA")],
-        ["astarte:nummodules", CBOR.encode(1)],
-        ["astarte:modules", CBOR.encode([1, 0, "astarte_interface_1", "astarte_interface_2"])]
+        ["astarte:active", true],
+        ["astarte:realm", "test_realm"],
+        ["astarte:secret", "super_secret_credential"],
+        ["astarte:baseurl", "http://api.astarte.localhost"],
+        ["astarte:deviceid", "2TBn-jNESuuHamE2Zo1anA"],
+        ["astarte:nummodules", 1],
+        ["astarte:modules", [1, 0, "astarte_interface_1", "astarte_interface_2"]]
       ]
 
-      cbor_payload = CBOR.encode([true, complex_service_info])
+      complex_service_info =
+        Enum.map(complex_service_info, fn [key, value] ->
+          value = value |> CBOR.encode() |> COSE.tag_as_byte()
+          [key, value]
+        end)
 
-      assert {:ok, msg} = DeviceServiceInfo.decode(cbor_payload)
+      payload = [true, complex_service_info]
+
+      assert {:ok, msg} = DeviceServiceInfo.decode(payload)
       assert msg.is_more_service_info == true
       assert is_map(msg.service_info)
 
@@ -53,34 +66,34 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding.DeviceServiceInfoTest do
     end
 
     test "returns error if IsMoreServiceInfo is not a boolean" do
-      cbor_payload = CBOR.encode([1, []])
+      payload = [1, []]
 
-      assert {:error, :invalid_is_more_type} = DeviceServiceInfo.decode(cbor_payload)
+      assert {:error, :message_body_error} = DeviceServiceInfo.decode(payload)
     end
 
     test "returns error if IsMoreServiceInfo is nil" do
-      cbor_payload = CBOR.encode([nil, []])
+      payload = [nil, []]
 
-      assert {:error, :invalid_is_more_type} = DeviceServiceInfo.decode(cbor_payload)
+      assert {:error, :message_body_error} = DeviceServiceInfo.decode(payload)
     end
 
     test "returns error if ServiceInfo is a simple string" do
-      cbor_payload = CBOR.encode([true, ["devmod:os"]])
+      payload = [true, ["devmod:os"]]
 
-      assert {:error, :message_body_error} = DeviceServiceInfo.decode(cbor_payload)
+      assert {:error, :message_body_error} = DeviceServiceInfo.decode(payload)
     end
 
     test "returns error on invalid structure (list too short)" do
       # Manca l'elemento service_info
-      cbor_payload = CBOR.encode([true])
+      payload = [true]
 
-      assert {:error, :invalid_structure} = DeviceServiceInfo.decode(cbor_payload)
+      assert {:error, :message_body_error} = DeviceServiceInfo.decode(payload)
     end
 
     test "returns error on invalid structure (list too long)" do
-      cbor_payload = CBOR.encode([true, [], "extra_garbage"])
+      payload = [true, [], "extra_garbage"]
 
-      assert {:error, :invalid_structure} = DeviceServiceInfo.decode(cbor_payload)
+      assert {:error, :message_body_error} = DeviceServiceInfo.decode(payload)
     end
   end
 

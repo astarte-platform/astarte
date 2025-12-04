@@ -60,30 +60,32 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding.DeviceServiceInfo do
   Decodes the raw CBOR payload into the struct.
   Validates that IsMoreServiceInfo is a boolean and ServiceInfo is a list.
   """
-  @spec decode(binary()) :: {:ok, t()} | {:error, atom()}
-  def decode(cbor_payload) do
+  @spec cbor_decode(binary()) :: {:ok, t()} | {:error, atom()}
+  def cbor_decode(cbor_payload) do
     case CBOR.decode(cbor_payload) do
-      {:ok, [is_more, service_info_list], ""} ->
-        validate_and_build(is_more, service_info_list)
+      {:ok, payload, _} -> decode(payload)
+      _ -> {:error, :message_body_error}
+    end
+  end
 
-      {:ok, _decoded, _rest} ->
-        {:error, :invalid_structure}
-
-      {:error, _reason} ->
-        {:error, :invalid_cbor}
+  def decode(payload) do
+    case payload do
+      [is_more, service_info_list] -> validate_and_build(is_more, service_info_list)
+      _ -> {:error, :message_body_error}
     end
   end
 
   defp validate_and_build(is_more, info) do
     with :ok <- validate_bool(is_more),
          {:ok, service_info_map} <- ServiceInfo.decode_map(info) do
-      {:ok,
-       %DeviceServiceInfo{
-         is_more_service_info: is_more,
-         service_info: service_info_map
-       }}
+      message = %DeviceServiceInfo{
+        is_more_service_info: is_more,
+        service_info: service_info_map
+      }
+
+      {:ok, message}
     else
-      error -> error
+      _ -> {:error, :message_body_error}
     end
   end
 
