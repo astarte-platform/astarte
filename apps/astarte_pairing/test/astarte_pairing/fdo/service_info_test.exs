@@ -75,7 +75,7 @@ defmodule Astarte.Pairing.FDO.ServiceInfoTest do
     %{session: session}
   end
 
-  describe "handle_msg_66/4" do
+  describe "handle_msg_66/3" do
     test "successfully processes Msg 66, creates new voucher, and returns Msg 67", %{
       realm: realm_name,
       session: session
@@ -107,6 +107,56 @@ defmodule Astarte.Pairing.FDO.ServiceInfoTest do
                  %DeviceServiceInfoReady{
                    replacement_hmac: nil,
                    max_owner_service_info_sz: 2048
+                 }
+               )
+    end
+
+    test "handles the default recommended limit(nil info size) correctly", %{
+      realm: realm_name,
+      session: session
+    } do
+      new_hmac = :crypto.strong_rand_bytes(32)
+
+      assert {:ok, _result} =
+               ServiceInfo.handle_msg_66(
+                 realm_name,
+                 session,
+                 %DeviceServiceInfoReady{
+                   replacement_hmac: new_hmac,
+                   max_owner_service_info_sz: nil
+                 }
+               )
+    end
+
+    test "handles the default recommended limit(0 info size) correctly", %{
+      realm: realm_name,
+      session: session
+    } do
+      new_hmac = :crypto.strong_rand_bytes(32)
+
+      assert {:ok, _result} =
+               ServiceInfo.handle_msg_66(
+                 realm_name,
+                 session,
+                 %DeviceServiceInfoReady{
+                   replacement_hmac: new_hmac,
+                   max_owner_service_info_sz: 0
+                 }
+               )
+    end
+
+    test "returns error for wrong session", %{
+      realm: realm_name
+    } do
+      new_hmac = :crypto.strong_rand_bytes(32)
+
+      assert {:error, :failed_66} =
+               ServiceInfo.handle_msg_66(
+                 realm_name,
+                 %Session{device_id: :crypto.strong_rand_bytes(16)},
+                 %DeviceServiceInfoReady{
+                   replacement_hmac: new_hmac,
+                   max_owner_service_info_sz: 0
                  }
                )
     end
