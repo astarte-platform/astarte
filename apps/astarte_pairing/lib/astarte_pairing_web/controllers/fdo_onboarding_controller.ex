@@ -84,17 +84,15 @@ defmodule Astarte.PairingWeb.FDOOnboardingController do
     realm_name = Map.fetch!(conn.params, "realm_name")
     cbor_body = conn.assigns.cbor_body
 
-    with {:ok, response} <-
+    with {:ok, device_service_info_ready} <- DeviceServiceInfoReady.decode(cbor_body),
+         {:ok, response} <-
            ServiceInfo.handle_msg_66(
              realm_name,
              conn.assigns.to2_session,
-             %DeviceServiceInfoReady{
-               replacement_hmac: cbor_body.replacement_hmac,
-               max_owner_service_info_sz: cbor_body.max_owner_service_info_sz
-             }
+             device_service_info_ready
            ) do
       conn
-      |> render("default.cbor", %{cbor_response: response})
+      |> render("secure.cbor", %{cbor_response: response})
     end
   end
 
