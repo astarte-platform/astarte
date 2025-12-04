@@ -124,7 +124,7 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding.Session do
 
   def encrypt_and_sign(%Session{sevk: sevk}, message) when not is_nil(sevk) do
     cipher = sevk.alg
-    iv = :crypto.strong_rand_bytes(16)
+    iv = :crypto.strong_rand_bytes(12)
     protected_headers = %{alg: cipher}
     unprotected_headers = %{iv: COSE.tag_as_byte(iv)}
 
