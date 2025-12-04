@@ -34,8 +34,7 @@ defmodule Astarte.Pairing.FDO.ServiceInfo do
         %DeviceServiceInfoReady{
           replacement_hmac: replacement_hmac,
           max_owner_service_info_sz: nil
-        },
-        device_id
+        }
       ) do
     handle_msg_66(
       realm_name,
@@ -43,8 +42,7 @@ defmodule Astarte.Pairing.FDO.ServiceInfo do
       %DeviceServiceInfoReady{
         replacement_hmac: replacement_hmac,
         max_owner_service_info_sz: 1400
-      },
-      device_id
+      }
     )
   end
 
@@ -54,8 +52,7 @@ defmodule Astarte.Pairing.FDO.ServiceInfo do
         %DeviceServiceInfoReady{
           replacement_hmac: replacement_hmac,
           max_owner_service_info_sz: 0
-        },
-        device_id
+        }
       ) do
     handle_msg_66(
       realm_name,
@@ -63,8 +60,7 @@ defmodule Astarte.Pairing.FDO.ServiceInfo do
       %DeviceServiceInfoReady{
         replacement_hmac: replacement_hmac,
         max_owner_service_info_sz: 1400
-      },
-      device_id
+      }
     )
   end
 
@@ -74,11 +70,10 @@ defmodule Astarte.Pairing.FDO.ServiceInfo do
         %DeviceServiceInfoReady{
           replacement_hmac: replacement_hmac,
           max_owner_service_info_sz: device_max_size
-        },
-        device_id
+        }
       ) do
     with {:ok, old_voucher} <-
-           OwnershipVoucher.fetch(realm_name, device_id),
+           OwnershipVoucher.fetch(realm_name, session.device_id),
          {:ok, _new_voucher} <-
            OwnershipVoucher.generate_replacement_voucher(old_voucher, replacement_hmac),
          :ok <-
@@ -92,24 +87,6 @@ defmodule Astarte.Pairing.FDO.ServiceInfo do
       _ ->
         {:error, :failed_66}
     end
-  end
-
-  def handle_msg_66(
-        _,
-        _,
-        %DeviceServiceInfoReady{},
-        _
-      ) do
-    {:error, :invalid_device_voucher}
-  end
-
-  def handle_msg_66(
-        _,
-        _,
-        _,
-        %OwnershipVoucher{}
-      ) do
-    {:error, :invalid_payload}
   end
 
   def generate_msg_67(payload) do

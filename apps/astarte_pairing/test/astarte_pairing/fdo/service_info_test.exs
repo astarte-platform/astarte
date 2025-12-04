@@ -26,13 +26,10 @@ defmodule Astarte.Pairing.FDO.ServiceInfoTest do
   alias Astarte.Pairing.FDO.OwnerOnboarding.HelloDevice
   alias Astarte.Pairing.FDO.OwnerOnboarding.SessionKey
   alias Astarte.Pairing.FDO.OwnershipVoucher
-  alias COSE.Messages.Encrypt0
   alias Astarte.Pairing.FDO.OwnerOnboarding.Session
-  alias COSE.Keys
   import Astarte.Helpers.FDO
 
   @owner_max_service_info 4096
-  @aes_256_gcm :aes_256_gcm
 
   setup_all do
     hello_device = HelloDevice.generate()
@@ -85,8 +82,7 @@ defmodule Astarte.Pairing.FDO.ServiceInfoTest do
       realm: realm_name,
       hello_device: hello_device,
       owner_key: owner_key,
-      ownership_voucher: ownership_voucher,
-      old_voucher: old_voucher
+      ownership_voucher: ownership_voucher
     } do
       {:ok, session} =
         Session.new(realm_name, hello_device, ownership_voucher, owner_key)
@@ -101,8 +97,7 @@ defmodule Astarte.Pairing.FDO.ServiceInfoTest do
                  %DeviceServiceInfoReady{
                    replacement_hmac: new_hmac,
                    max_owner_service_info_sz: device_max_size
-                 },
-                 session.device_id
+                 }
                )
 
       assert result_msg_67 == CBOR.encode([@owner_max_service_info]) |> COSE.tag_as_byte()
@@ -112,8 +107,7 @@ defmodule Astarte.Pairing.FDO.ServiceInfoTest do
       realm: realm_name,
       hello_device: hello_device,
       owner_key: owner_key,
-      ownership_voucher: ownership_voucher,
-      old_voucher: old_voucher
+      ownership_voucher: ownership_voucher
     } do
       {:ok, session} =
         Session.new(realm_name, hello_device, ownership_voucher, owner_key)
@@ -125,8 +119,7 @@ defmodule Astarte.Pairing.FDO.ServiceInfoTest do
                  %DeviceServiceInfoReady{
                    replacement_hmac: nil,
                    max_owner_service_info_sz: 2048
-                 },
-                 session.device_id
+                 }
                )
     end
 
@@ -134,16 +127,15 @@ defmodule Astarte.Pairing.FDO.ServiceInfoTest do
       realm: realm_name,
       hello_device: hello_device,
       owner_key: owner_key,
-      ownership_voucher: ownership_voucher,
-      old_voucher: old_voucher
+      ownership_voucher: ownership_voucher
     } do
       {:ok, session} =
         Session.new(realm_name, hello_device, ownership_voucher, owner_key)
 
-      malformed_payload = "not_a_valid_payload"
+      malformed_payload =  ""
 
       result =
-        ServiceInfo.handle_msg_66(realm_name, session, malformed_payload, session.device_id)
+        ServiceInfo.handle_msg_66(realm_name, session, malformed_payload)
 
       assert {:error, :invalid_payload} = result
     end
@@ -154,7 +146,6 @@ defmodule Astarte.Pairing.FDO.ServiceInfoTest do
       owner_key: owner_key,
       ownership_voucher: ownership_voucher
     } do
-      invalid_voucher = CBOR.encode("not a voucher")
 
       {:ok, session} =
         Session.new(realm_name, hello_device, ownership_voucher, owner_key)
@@ -166,8 +157,7 @@ defmodule Astarte.Pairing.FDO.ServiceInfoTest do
           %DeviceServiceInfoReady{
             replacement_hmac: :crypto.strong_rand_bytes(32),
             max_owner_service_info_sz: 1024
-          },
-          session.device_id
+          }
         )
 
       assert {:error, :invalid_device_voucher} = result

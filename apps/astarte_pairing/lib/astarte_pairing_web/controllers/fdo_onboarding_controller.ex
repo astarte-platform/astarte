@@ -91,8 +91,7 @@ defmodule Astarte.PairingWeb.FDOOnboardingController do
              %DeviceServiceInfoReady{
                replacement_hmac: cbor_body.replacement_hmac,
                max_owner_service_info_sz: cbor_body.max_owner_service_info_sz
-             },
-             conn.assigns.to2_session.device_id
+             }
            ) do
       conn
       |> render("default.cbor", %{cbor_response: response})
