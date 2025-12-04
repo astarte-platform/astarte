@@ -72,18 +72,12 @@ defmodule Astarte.PairingWeb.FDOFallbackController do
   end
 
   defp get_correlation_id(conn) do
-    get_resp_header(conn, "x-request-id")
-    |> case do
-      [request_id] ->
-        {correlation_id, _} =
-          request_id
-          |> Base.encode16()
-          |> Integer.parse(16)
-
-        correlation_id
-
-      [] ->
-        0
+    with [request_id] <- get_resp_header(conn, "x-request-id"),
+         {:ok, bin} <- Base.decode64(request_id) do
+      binary_slice(bin, 0, div(128, 8))
+      |> :binary.decode_unsigned()
+    else
+      _ -> 0
     end
   end
 end
