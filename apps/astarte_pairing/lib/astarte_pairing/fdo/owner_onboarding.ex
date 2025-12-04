@@ -24,6 +24,7 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding do
   and supports key exchange parameter generation for secure device onboarding.
   """
 
+  alias Astarte.Pairing.FDO.OwnerOnboarding.SetupDevicePayload
   alias Astarte.Pairing.Config
   alias Astarte.Pairing.FDO.OwnerOnboarding.DeviceAttestation
   alias Astarte.Pairing.FDO.OwnerOnboarding.HelloDevice
@@ -199,17 +200,17 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding do
   end
 
   def build_setup_device_message(creds, setup_dv_nonce) do
-    payload_array = [
-      creds.rendezvous_info,
-      creds.guid,
-      setup_dv_nonce,
-      creds.owner_pub_key
-    ]
+    payload = %SetupDevicePayload{
+      rendezvous_info: creds.rendezvous_info,
+      guid: creds.guid,
+      nonce_setup_device: setup_dv_nonce,
+      owner2_key: creds.owner_pub_key
+    }
 
     protected_header_map = %{alg: :es256}
 
-    payload_array
-    |> CBOR.encode()
+    payload
+    |> SetupDevicePayload.encode()
     |> Sign1.build(protected_header_map)
     |> Sign1.sign_encode_cbor(creds.owner_private_key)
   end

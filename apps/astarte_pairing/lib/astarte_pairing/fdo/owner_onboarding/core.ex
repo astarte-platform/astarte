@@ -17,17 +17,53 @@
 #
 
 defmodule Astarte.Pairing.FDO.OwnerOnboarding.Core do
-  def counter_mode_kdf(mac_type, mac_subtype, n, secret, context, l) do
-    do_counter_mode_kdf(mac_type, mac_subtype, 1, n + 1, secret, context, l, <<>>)
+  # h – The length of the output of a single invocation of the PRF in bits
+  # r – The length of the binary representation of the counter i
+  # l_bits - The length of the binary representation of L 
+  # l - is passed in binary
+  def counter_mode_kdf(h, r, l_bits, mac_type, mac_subtype, k_in, label, context, l) do
+    if h == 0 do
+      {:error, :unspecified}
+    else
+      n = ceil(l / h)
+
+      if n > Integer.pow(2, r) - 1 do
+        {:error, :unspecified}
+      else
+        l_2 = <<l::integer-big-unsigned-size(l_bits)>>
+
+        do_counter_mode_kdf(<<>>, n, 1, r, mac_type, mac_subtype, k_in, label, context, l_2)
+        |> binary_part(0, div(l, 8))
+      end
+    end
   end
 
-  defp do_counter_mode_kdf(_mac_type, _mac_subtype, n, n, _secret, _context, _l, acc), do: acc
+  defp do_counter_mode_kdf(
+         result,
+         0,
+         _i,
+         _r,
+         _mac_type,
+         _mac_subtype,
+         _k_in,
+         _label,
+         _context,
+         _l_2
+       ) do
+    result
+  end
 
-  defp do_counter_mode_kdf(mac_type, mac_subtype, i, n, secret, context, l, acc) do
-    data = <<i::integer-unsigned-size(8), "FIDO-KDF"::binary, 0, context::binary, l::binary>>
-    new_key = :crypto.mac(mac_type, mac_subtype, secret, data)
-    acc = acc <> new_key
+  defp do_counter_mode_kdf(result, n, i, r, mac_type, mac_subtype, k_in, label, context, l_2) do
+    i_2 = <<i::integer-big-unsigned-size(r)>>
 
-    do_counter_mode_kdf(mac_type, mac_subtype, i + 1, n, secret, context, l, acc)
+    # [i]2 || Label || 0x00 || Context || [L]2
+    data = i_2 <> <<label::binary>> <> <<0x00>> <> <<context::binary>> <> l_2
+
+    # K(i)
+    k_of_i = :crypto.mac(mac_type, mac_subtype, k_in, data)
+
+    result = result <> k_of_i
+
+    do_counter_mode_kdf(result, n - 1, i + 1, r, mac_type, mac_subtype, k_in, label, context, l_2)
   end
 end

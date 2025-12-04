@@ -63,7 +63,7 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding.SessionKey do
     <<shared_secret::binary, device_random::binary, owner_random::binary>>
   end
 
-  def derive_key(:aes_256_gcm, shared_secret, _owner_random) do
+  def derive_key(:aes_256_gcm, shared_secret) do
     context_random = <<>>
 
     derive_sevk(
@@ -72,39 +72,29 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding.SessionKey do
       :hmac,
       :sha256,
       shared_secret,
-      context_random,
-      256,
-      256
+      context_random
     )
   end
 
-  defp derive_sevk(
-         key_type,
-         cipher_aead,
-         mac_type,
-         mac_subtype,
-         shared_secret,
-         context_random,
-         key_length,
-         kdf_output_length
-       ) do
-    n = ceil(key_length / kdf_output_length)
+  defp derive_sevk(key_type, cipher_aead, mac_type, mac_subtype, shared_secret, context_random) do
+    # TODO, get h from hmac alg
+    # HMac-sha256 output length in bytes
+    h = 32 * 8
+    # iteration given in fido
+    r = 1 * 8
+    # len given in fido 16 bites
+    l_bits = 2 * 8
+    # Key output len for Aead
+    l = 32 * 8
 
-    # The counter for each iteration, i, is a single byte
-    if n > 255 do
-      {:error, :too_many_iterations}
-    else
-      context = "AutomaticOnboardTunnel" <> context_random
-      l = <<key_length::integer-big-unsigned-size(16)>>
-      key_byte_length = div(key_length, 8)
+    label = "FIDO-KDF"
+    context = "AutomaticOnboardTunnel" <> context_random
 
-      sevk =
-        Core.counter_mode_kdf(mac_type, mac_subtype, n, shared_secret, context, l)
-        |> binary_part(0, key_byte_length)
-        |> build_key(key_type, cipher_aead)
+    sevk =
+      Core.counter_mode_kdf(h, r, l_bits, mac_type, mac_subtype, shared_secret, label, context, l)
+      |> build_key(key_type, cipher_aead)
 
-      {:ok, sevk, nil, nil}
-    end
+    {:ok, sevk, nil, nil}
   end
 
   defp build_key(binary_key, key_type, cipher_aead) do

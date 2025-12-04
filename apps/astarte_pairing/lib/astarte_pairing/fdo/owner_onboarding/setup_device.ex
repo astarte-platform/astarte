@@ -63,10 +63,11 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding.SetupDevicePayload do
   def to_cbor_list(%__MODULE__{} = p) do
     [
       p.rendezvous_info,
-      p.guid,
-      p.nonce_setup_device,
+      %CBOR.Tag{tag: :binary, value: p.guid},
+      %CBOR.Tag{tag: :binary, value: p.nonce_setup_device},
       PublicKey.encode(p.owner2_key)
     ]
+    |> dbg(limit: :infinity)
   end
 
   @doc """

@@ -100,11 +100,11 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding.Session do
     %Session{
       cipher_suite: cipher_suite,
       secret: secret,
-      owner_random: owner_random,
+      owner_random: _owner_random,
       key: session_key
     } = session
 
-    with {:ok, sevk, svk, sek} <- SessionKey.derive_key(cipher_suite, secret, owner_random),
+    with {:ok, sevk, svk, sek} <- SessionKey.derive_key(cipher_suite, secret),
          [db_sevk, db_svk, db_sek] = Enum.map([sevk, svk, sek], &SessionKey.to_db/1),
          :ok <- Queries.add_session_keys(realm_name, session_key, db_sevk, db_svk, db_sek) do
       {:ok, %{session | sevk: sevk, svk: svk, sek: sek}}
@@ -124,12 +124,26 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding.Session do
 
   def encrypt_and_sign(%Session{sevk: sevk}, message) when not is_nil(sevk) do
     cipher = sevk.alg
-    iv = :crypto.strong_rand_bytes(16)
+    # The AEADs we support use a 96 bit nonce
+    iv = :crypto.strong_rand_bytes(12)
     protected_headers = %{alg: cipher}
     unprotected_headers = %{iv: COSE.tag_as_byte(iv)}
 
-    Encrypt0.build(message, protected_headers, unprotected_headers)
-    |> Encrypt0.encrypt_encode(cipher, sevk, iv)
+    msg = Encrypt0.build(message, protected_headers, unprotected_headers)
+
+    aad =
+      [
+        "Encrypt0",
+        (msg.phdr == %{} && COSE.tag_as_byte(<<>>)) || COSE.Headers.tag_phdr(msg.phdr),
+        COSE.tag_as_byte(<<>>)
+      ]
+      |> CBOR.encode()
+
+    {encrypted, tag} =
+      :crypto.crypto_one_time_aead(cipher, sevk.k, iv, msg.payload, aad, 16, true)
+
+    Map.put(msg, :ciphertext, COSE.tag_as_byte(encrypted <> tag))
+    |> Encrypt0.encode_cbor()
   end
 
   def fetch(realm_name, session_key) do
