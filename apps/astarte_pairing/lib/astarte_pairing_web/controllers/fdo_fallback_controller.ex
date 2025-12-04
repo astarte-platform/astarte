@@ -49,7 +49,9 @@ defmodule Astarte.PairingWeb.FDOFallbackController do
     fdo_error(conn, @cred_reuse_error)
   end
 
-  def call(conn, _error) do
+  def call(conn, error) do
+    Logger.error("FDO internal server error: #{inspect(error)}")
+
     fdo_error(conn, @internal_server_error)
   end
 
