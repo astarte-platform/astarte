@@ -76,7 +76,7 @@ services:
       - "traefik.http.middlewares.astarte-pairing.stripprefix.prefixes=/pairing"
       - "traefik.http.services.astarte-pairing.loadbalancer.server.port=4003"
         # Route for fdo
-      - "traefik.http.routers.fdo-rewrite-router.rule=Host(`${FDO_REALM:-test}.api.${DOCKER_COMPOSE_ASTARTE_BASE_DOMAIN}`) && PathPrefix(`/fdo`)"
+      - "traefik.http.routers.fdo-rewrite-router.rule=Host(`${FDO_REALM:-test}.api.${DOCKER_COMPOSE_ASTARTE_BASE_DOMAIN}`)"
       - "traefik.http.routers.fdo-rewrite-router.entrypoints=web"
       - "traefik.http.routers.fdo-rewrite-router.middlewares=fdo-rewrite-mid"
       - "traefik.http.routers.fdo-rewrite-router.service=astarte-pairing"
