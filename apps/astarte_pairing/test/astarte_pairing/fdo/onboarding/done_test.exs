@@ -35,19 +35,19 @@ defmodule Astarte.Pairing.FDO.Onboarding.DoneTest do
 
   describe "done/2" do
     test "returns {:ok, cbor_binary} (containing SetupDv nonce) when ProveDv nonces match" do
-      done_msg_cbor = CBOR.encode([%CBOR.Tag{tag: :bytes, value: @correct_prove_dv_nonce}])
+      done_msg = [%CBOR.Tag{tag: :bytes, value: @correct_prove_dv_nonce}]
 
-      {:ok, done2_msg_cbor} = OwnerOnboarding.done(@minimal_to2_session, done_msg_cbor)
+      {:ok, done2_msg_cbor} = OwnerOnboarding.done(@minimal_to2_session, done_msg)
 
       assert {:ok, [%CBOR.Tag{tag: :bytes, value: @setup_dv_nonce}], _} =
                CBOR.decode(done2_msg_cbor)
     end
 
     test "returns {:error, TBD} when the ProveDv nonces don't match" do
-      mismatch_msg_cbor = CBOR.encode([%CBOR.Tag{tag: :bytes, value: @wrong_prove_dv_nonce}])
+      mismatch_msg = [%CBOR.Tag{tag: :bytes, value: @wrong_prove_dv_nonce}]
 
       {:error, :prove_dv_nonce_mismatch} =
-        OwnerOnboarding.done(@minimal_to2_session, mismatch_msg_cbor)
+        OwnerOnboarding.done(@minimal_to2_session, mismatch_msg)
     end
   end
 end

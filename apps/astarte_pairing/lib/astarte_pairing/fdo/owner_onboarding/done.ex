@@ -28,6 +28,8 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding.Done do
   """
   use TypedStruct
 
+  alias Astarte.Pairing.FDO.OwnerOnboarding.Done
+
   typedstruct enforce: true do
     @typedoc "Structure for TO2.Done message."
 
@@ -41,14 +43,20 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding.Done do
   @doc """
   Decodes the raw CBOR binary into the Done struct.
   """
-  @spec decode(binary()) :: {:ok, %__MODULE__{}} | {:error, atom()}
-  def decode(cbor_binary) do
+  @spec cbor_decode(binary()) :: {:ok, t()} | {:error, atom()}
+  def cbor_decode(cbor_binary) do
     case CBOR.decode(cbor_binary) do
-      {:ok, [%CBOR.Tag{tag: :bytes, value: nonce_to2_prove_dv}], _rest} ->
-        {:ok, %__MODULE__{nonce_to2_prove_dv: nonce_to2_prove_dv}}
+      {:ok, payload, _rest} -> decode(payload)
+      _ -> {:error, :message_body_error}
+    end
+  end
 
-      _ ->
-        {:error, :invalid_cbor_payload}
+  def decode(payload) do
+    with [nonce] <- payload,
+         %CBOR.Tag{tag: :bytes, value: nonce} <- nonce do
+      {:ok, %Done{nonce_to2_prove_dv: nonce}}
+    else
+      _ -> {:error, :message_body_error}
     end
   end
 end

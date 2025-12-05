@@ -32,6 +32,7 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding.Session do
     field :device_id, Astarte.DataAccess.UUID
     field :device_signature, SignatureInfo.device_signature()
     field :prove_dv_nonce, binary()
+    field :setup_dv_nonce, binary()
     field :kex_suite_name, String.t()
     field :cipher_suite, String.t()
     field :owner_random, term()
@@ -83,6 +84,12 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding.Session do
       }
 
       {:ok, session}
+    end
+  end
+
+  def add_setup_dv_nonce(session, realm_name, setup_dv_nonce) do
+    with :ok <- Queries.session_add_setup_dv_nonce(realm_name, session.key, setup_dv_nonce) do
+      {:ok, %{session | setup_dv_nonce: setup_dv_nonce}}
     end
   end
 
@@ -139,6 +146,7 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding.Session do
       %TO2Session{
         device_id: device_id,
         prove_dv_nonce: prove_dv_nonce,
+        setup_dv_nonce: setup_dv_nonce,
         kex_suite_name: kex_suite_name,
         cipher_suite_name: cipher_suite_name,
         owner_random: owner_random,
@@ -153,6 +161,7 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding.Session do
         key: session_key,
         device_id: device_id,
         prove_dv_nonce: prove_dv_nonce,
+        setup_dv_nonce: setup_dv_nonce,
         kex_suite_name: kex_suite_name,
         cipher_suite: cipher_suite_name,
         owner_random: owner_random,

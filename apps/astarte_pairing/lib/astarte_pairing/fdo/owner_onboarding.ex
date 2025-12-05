@@ -129,15 +129,13 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding do
         device_info: "owned by astarte - realm #{realm_name}.#{Config.base_url_domain!()}"
       }
 
-      with {:ok, %{setup_dv_nonce: setup_dv_nonce, resp: resp_msg, session: session}} <-
+      with {:ok, %{resp: resp_msg, session: session}} <-
              verify_and_build_response(
                realm_name,
                session,
                body,
                connection_credentials
-             ),
-           # need to save nonce for later! (for TO2 msg.71)
-           :ok <- Queries.session_add_setup_dv_nonce(realm_name, session.key, setup_dv_nonce) do
+             ) do
         {:ok, session, resp_msg}
       end
     end
@@ -162,6 +160,8 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding do
           }} <- ProveDevice.decode(body, device_pub_key),
          :ok <- check_prove_dv_nonces_equality(received_prove_dv_nonce, prove_dv_nonce),
          :ok <- check_device_guid_equality(received_device_id, device_id),
+         {:ok, session} <-
+           Session.add_setup_dv_nonce(session, realm_name, received_setup_dv_nonce),
          {:ok, session} <- Session.build_session_secret(session, realm_name, owner_key, xb),
          {:ok, session} <- Session.derive_key(session, realm_name) do
       resp_msg = build_setup_device_message(connection_credentials, received_setup_dv_nonce)
@@ -211,11 +211,11 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding do
     |> SetupDevicePayload.encode_sign(creds.owner_private_key)
   end
 
-  def done(to2_session, cbor_body) do
+  def done(to2_session, body) do
     # retrieve nonce NonceTO2ProveDv from session and check against incoming nonce from device
     # if match -> retrieve NonceTO2SetupDv from session and send back to device
     with {:ok, %DonePayload{nonce_to2_prove_dv: prove_dv_nonce_challenge}} <-
-           DonePayload.decode(cbor_body),
+           DonePayload.decode(body),
          :ok <-
            check_prove_dv_nonces_equality(prove_dv_nonce_challenge, to2_session.prove_dv_nonce) do
       done2_message = build_done2_message(to2_session.setup_dv_nonce)
