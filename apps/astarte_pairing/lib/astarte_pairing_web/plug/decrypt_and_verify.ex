@@ -22,6 +22,7 @@ defmodule Astarte.PairingWeb.Plug.DecryptAndVerify do
   import Plug.Conn
 
   alias Astarte.Pairing.FDO.OwnerOnboarding.Session
+  alias Astarte.PairingWeb.FDOFallbackController
 
   def init(_opts) do
     nil
@@ -31,10 +32,9 @@ defmodule Astarte.PairingWeb.Plug.DecryptAndVerify do
     session = conn.assigns.to2_session
     body = conn.assigns.cbor_body
 
-    # TODO: send error message 101
     case Session.decrypt_and_verify(session, body) do
       {:ok, body} -> assign(conn, :body, body)
-      :error -> conn |> send_resp(500, "") |> halt()
+      _ -> FDOFallbackController.invalid_message(conn)
     end
   end
 end

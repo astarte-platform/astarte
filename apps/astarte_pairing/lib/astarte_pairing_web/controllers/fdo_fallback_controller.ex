@@ -55,6 +55,10 @@ defmodule Astarte.PairingWeb.FDOFallbackController do
     fdo_error(conn, @internal_server_error)
   end
 
+  def invalid_message(conn) do
+    fdo_error(conn, @invalid_message_error)
+  end
+
   def message_body_error(conn) do
     fdo_error(conn, @message_body_error)
   end
