@@ -37,6 +37,7 @@ defmodule Astarte.PairingWeb.Router do
     pipe_through :realm_api
 
     get "/version", VersionController, :show
+    get "/health", HealthController, :show
 
     scope "/agent" do
       pipe_through :agent_api

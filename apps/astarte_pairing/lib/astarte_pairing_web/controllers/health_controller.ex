@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2020 - 2025 SECO Mind Srl
+# Copyright 2025 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -16,21 +16,26 @@
 # limitations under the License.
 #
 
-defmodule Astarte.PairingWeb.HealthPlug do
-  @moduledoc false
-  @behaviour Plug
+defmodule Astarte.PairingWeb.HealthController do
+  use Astarte.PairingWeb, :controller
 
-  alias Astarte.PairingWeb.HealthController
+  alias Astarte.Pairing.Health
 
-  def init(_opts) do
-    nil
+  def show(conn, _params) do
+    send_health(conn)
   end
 
-  def call(%{request_path: "/health", method: "GET"} = conn, _opts) do
-    HealthController.send_health(conn)
-  end
+  def send_health(conn) do
+    case Health.get_health() do
+      :ready ->
+        conn
+        |> send_resp(:ok, "")
+        |> halt()
 
-  def call(conn, _opts) do
-    conn
+      :bad ->
+        conn
+        |> send_resp(:service_unavailable, "")
+        |> halt()
+    end
   end
 end
