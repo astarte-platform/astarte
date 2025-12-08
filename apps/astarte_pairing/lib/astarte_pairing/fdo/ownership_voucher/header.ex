@@ -22,12 +22,12 @@ defmodule Astarte.Pairing.FDO.OwnershipVoucher.Header do
   alias Astarte.Pairing.FDO.Types.PublicKey
   alias Astarte.Pairing.FDO.Types.Hash
   alias Astarte.Pairing.FDO.OwnershipVoucher.Header
+  alias Astarte.Pairing.FDO.OwnershipVoucher.RendezvousInfo
 
-  # TODO: rendezvous_info type
   typedstruct do
     field :protocol_version, :integer
     field :guid, binary()
-    field :rendezvous_info, list()
+    field :rendezvous_info, RendezvousInfo.t()
     field :device_info, binary()
     field :public_key, PublicKey.t()
     field :cert_chain_hash, Hash.t() | nil
@@ -41,7 +41,8 @@ defmodule Astarte.Pairing.FDO.OwnershipVoucher.Header do
   end
 
   def decode(cbor_list) do
-    with [protocol, guid, rendezvous_info, device_info, pub_key, cert_chain_hash] <- cbor_list,
+    with [protocol, guid, rv_info, device_info, pub_key, cert_chain_hash] <- cbor_list,
+         {:ok, rendezvous_info} <- RendezvousInfo.decode(rv_info),
          {:ok, public_key} <- PublicKey.decode(pub_key),
          {:ok, cert_chain_hash} <- decode_cert_chain_hash(cert_chain_hash),
          %CBOR.Tag{tag: :bytes, value: guid} <- guid do

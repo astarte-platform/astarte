@@ -24,6 +24,9 @@ defmodule Astarte.Helpers.FDO do
   alias Astarte.DataAccess.Repo
   alias Astarte.Pairing.FDO.OwnershipVoucher
   alias Astarte.Pairing.FDO.OwnershipVoucher.CreateRequest
+  alias Astarte.Pairing.FDO.OwnershipVoucher.RendezvousInfo
+  alias Astarte.Pairing.FDO.OwnershipVoucher.RendezvousInfo.RendezvousDirective
+  alias Astarte.Pairing.FDO.OwnershipVoucher.RendezvousInfo.RendezvousInstr
 
   @sample_voucher """
   -----BEGIN OWNERSHIP VOUCHER-----
@@ -109,6 +112,35 @@ defmodule Astarte.Helpers.FDO do
                       })
                       |> Ecto.Changeset.apply_action!(:insert)
 
+  @sample_rv_info %RendezvousInfo{
+    directives: [
+      %RendezvousDirective{
+        instructions: [
+          %RendezvousInstr{
+            rv_value: "ufdo.astarte.localhost",
+            rv_variable: :dns
+          },
+          %RendezvousInstr{
+            rv_value: <<1>>,
+            rv_variable: :protocol
+          },
+          %RendezvousInstr{
+            rv_value: <<24, 80>>,
+            rv_variable: :dev_port
+          },
+          %RendezvousInstr{
+            rv_value: <<25, 31, 105>>,
+            rv_variable: :owner_port
+          },
+          %RendezvousInstr{
+            rv_value: "\n",
+            rv_variable: :delaysec
+          }
+        ]
+      }
+    ]
+  }
+
   def sample_voucher, do: @sample_voucher
   def sample_cbor_voucher, do: @sample_request_rc.cbor_ownership_voucher
   def sample_private_key, do: @sample_private_key
@@ -116,6 +148,7 @@ defmodule Astarte.Helpers.FDO do
   def sample_extracted_rsa_private_key, do: @sample_request_rsa.extracted_private_key
   def sample_rsa_private_key, do: @sample_rsa_private_key
   def sample_device_guid, do: @sample_device_guid
+  def sample_rv_info, do: @sample_rv_info
 
   def sample_ownership_voucher do
     {:ok, voucher} = OwnershipVoucher.decode_cbor(sample_cbor_voucher())

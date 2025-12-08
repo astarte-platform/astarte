@@ -116,7 +116,7 @@ defmodule Astarte.Pairing.OwnerOnboarding.Onboarding.ProveDevice do
 
     %{
       guid: @test_guid,
-      rendezvous_info: [[2, 8080, "localhost"]],
+      rendezvous_info: sample_rv_info(),
       owner_pub_key: pub_key,
       device_info: "test",
       owner_private_key: owner_key

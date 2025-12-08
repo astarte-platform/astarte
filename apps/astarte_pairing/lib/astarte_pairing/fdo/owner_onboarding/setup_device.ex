@@ -20,7 +20,7 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding.SetupDevicePayload do
   @moduledoc """
   Represents the internal payload for TO2.SetupDevice (Type 65).
 
-  This structure contains the new credentials and configuration that the Device   
+  This structure contains the new credentials and configuration that the Device
   will adopt upon successful completion of the protocol (at TO2.Done).
 
   1. This payload is encoded to CBOR.
@@ -31,6 +31,7 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding.SetupDevicePayload do
   """
   use TypedStruct
   alias Astarte.Pairing.FDO.Types.PublicKey
+  alias Astarte.Pairing.FDO.OwnershipVoucher.RendezvousInfo
 
   alias Astarte.Pairing.FDO.Types.PublicKey
   alias COSE.Messages.Sign1
@@ -40,12 +41,12 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding.SetupDevicePayload do
 
     # 1. RendezvousInfo
     # Replacement for the device's RendezvousInfo.
-    # It is a complex list of instructions (directives). 
+    # It is a complex list of instructions (directives).
     # Usually passed as a raw CBOR binary if pre-built, or a list of maps/lists.
     field :rendezvous_info, list() | binary()
 
     # 2. Guid
-    # Replacement for the device GUID. 
+    # Replacement for the device GUID.
     field :guid, binary()
 
     # 3. NonceTO2SetupDv
@@ -65,7 +66,7 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding.SetupDevicePayload do
   """
   def to_cbor_list(%__MODULE__{} = p) do
     [
-      p.rendezvous_info,
+      RendezvousInfo.encode(p.rendezvous_info),
       COSE.tag_as_byte(p.guid),
       COSE.tag_as_byte(p.nonce_setup_device),
       PublicKey.encode(p.owner2_key)
@@ -73,7 +74,7 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding.SetupDevicePayload do
   end
 
   @doc """
-  Encodes the payload to binary CBOR. 
+  Encodes the payload to binary CBOR.
   This binary is what gets signed in the payload field of the COSE_Sign1.
   """
   def encode(%__MODULE__{} = p) do
