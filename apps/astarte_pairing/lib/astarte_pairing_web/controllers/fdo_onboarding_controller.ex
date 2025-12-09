@@ -71,10 +71,9 @@ defmodule Astarte.PairingWeb.FDOOnboardingController do
   def done(conn, _params) do
     to2_session = conn.assigns.to2_session
 
-    case OwnerOnboarding.done(to2_session, conn.assigns.body) do
-      {:ok, response_msg} ->
-        conn
-        |> render("secure.cbor", %{cbor_response: response_msg})
+    with {:ok, response_msg} <- OwnerOnboarding.done(to2_session, conn.assigns.body) do
+      conn
+      |> render("secure.cbor", %{cbor_response: response_msg})
     end
   end
 
