@@ -165,8 +165,11 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding do
          {:ok, session} <- Session.build_session_secret(session, realm_name, owner_key, xb),
          {:ok, session} <- Session.derive_key(session, realm_name) do
       resp_msg = build_setup_device_message(connection_credentials, received_setup_dv_nonce)
-
       {:ok, %{setup_dv_nonce: received_setup_dv_nonce, resp: resp_msg, session: session}}
+    else
+      error ->
+        Logger.error("prove_device failed: #{inspect(error)}")
+        error
     end
   end
 
@@ -230,7 +233,7 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding do
 
       false ->
         # non-matching proveDv nonces
-        {:error, :prove_dv_nonce_mismatch}
+        {:error, :invalid_message}
     end
   end
 
@@ -241,7 +244,7 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding do
 
       false ->
         # non-matching device GUIDs
-        {:error, :device_guid_mismatch}
+        {:error, :invalid_message}
     end
   end
 

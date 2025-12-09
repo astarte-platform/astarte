@@ -101,6 +101,8 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding.ProveDevice do
          guid: guid,
          raw_eat_token: binary_msg
        }}
+    else
+      _ -> {:error, :message_body_error}
     end
   end
 
@@ -135,9 +137,7 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding.ProveDevice do
   defp extract_fdo_payload(payload_map) do
     case Map.fetch(payload_map, :fdo) do
       {:ok, [%CBOR.Tag{tag: :bytes, value: xb_key}]} when is_binary(xb_key) -> {:ok, xb_key}
-      # FIXME return valid errors for FDO fallback controller
-      {:ok, _invalid_structure} -> {:error, :invalid_fdo_claim_structure}
-      :error -> {:error, :missing_eat_fdo_claim}
+      _ -> {:error, :message_body_error}
     end
   end
 
