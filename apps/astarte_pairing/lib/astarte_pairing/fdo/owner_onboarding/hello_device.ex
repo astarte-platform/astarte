@@ -47,6 +47,15 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding.HelloDevice do
     :aes_256_ctr
   ]
 
+  @allowed_kex_names [
+    "DHKEXid14",
+    "DHKEXid15",
+    "ASYMKEX2048",
+    "ASYMKEX3072",
+    "ECDH256",
+    "ECDH384"
+  ]
+
   @type cipher ::
           :aes_128_gcm
           | :aes_192_gcm
@@ -64,44 +73,72 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding.HelloDevice do
           | :aes_256_cbc
           | :aes_256_ctr
 
+  @typedoc "Allowed values: DHKEXid14, DHKEXid15, ASYMKEX2048, ASYMKEX3072, ECDH256, ECDH384"
+  @type kex_name :: String.t()
+
   typedstruct enforce: true do
     @typedoc "A hello device message structure."
 
     field :max_size, non_neg_integer()
     field :device_id, binary()
     field :nonce, binary()
-    field :kex_name, String.t()
+    field :kex_name, kex_name()
     field :cipher_name, cipher()
     field :easig_info, SignatureInfo.t()
   end
 
   def decode(cbor_binary) do
-    with {:ok, message, _rest} <- CBOR.decode(cbor_binary),
-         [
-           max_size,
-           %CBOR.Tag{tag: :bytes, value: device_id},
-           %CBOR.Tag{tag: :bytes, value: nonce_hello_device},
-           kex_name,
-           cipher_name,
-           easig_info
-         ] <- message,
-         {:ok, easig_info} <- SignatureInfo.decode(easig_info),
-         {:ok, cipher} <- decode_cipher(cipher_name) do
-      hello_device =
-        %HelloDevice{
-          max_size: max_size,
-          device_id: device_id,
-          nonce: nonce_hello_device,
-          kex_name: kex_name,
-          cipher_name: cipher,
-          easig_info: easig_info
-        }
-
+    with {:ok, message, _rest} <- cbor_decode(cbor_binary),
+         {:ok, hello_device} <- parse_hello_device(message) do
       {:ok, hello_device}
-    else
-      _ -> :error
     end
   end
+
+  defp cbor_decode(cbor_binary) do
+    case CBOR.decode(cbor_binary) do
+      {:ok, message, rest} -> {:ok, message, rest}
+      _ -> {:error, :message_body_error}
+    end
+  end
+
+  defp decode_kex_name(kex_name) do
+    if kex_name in @allowed_kex_names do
+      {:ok, kex_name}
+    else
+      "hello device: received #{inspect(kex_name)} as kex_name"
+      |> Logger.error()
+
+      {:error, :invalid_message}
+    end
+  end
+
+  defp parse_hello_device([
+         max_size,
+         %CBOR.Tag{tag: :bytes, value: device_id},
+         %CBOR.Tag{tag: :bytes, value: nonce_hello_device},
+         kex_name,
+         cipher_name,
+         easig_info
+       ]) do
+    with {:ok, kex_name_str} <- decode_kex_name(kex_name),
+         {:ok, easig_info} <- SignatureInfo.decode(easig_info),
+         {:ok, cipher} <- decode_cipher(cipher_name) do
+      {:ok,
+       %HelloDevice{
+         max_size: max_size,
+         device_id: device_id,
+         nonce: nonce_hello_device,
+         kex_name: kex_name_str,
+         cipher_name: cipher,
+         easig_info: easig_info
+       }}
+    else
+      _ ->
+        {:error, :message_body_error}
+    end
+  end
+
+  defp parse_hello_device(_), do: {:error, :message_body_error}
 
   @doc false
   def generate do
@@ -124,7 +161,7 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding.HelloDevice do
         "hello device: received #{inspect(bad_cipher)} as cipher"
         |> Logger.error()
 
-        :error
+        {:error, :invalid_message}
     end
   end
 end
