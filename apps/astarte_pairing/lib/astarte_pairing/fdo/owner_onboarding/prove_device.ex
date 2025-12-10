@@ -30,15 +30,25 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding.ProveDevice do
   use TypedStruct
   alias Astarte.Pairing.FDO.OwnerOnboarding.ProveDevice
 
+  # xB keys generation
+  alias Astarte.Pairing.FDO.OwnerOnboarding.SessionKey
+  alias COSE.Keys.ECC
+  alias COSE.Messages.Sign1
+
   # Alias per la libreria COSE (da adattare in base alla libreria effettiva in uso su Astarte)
   alias Astarte.Pairing.FDO.OwnerOnboarding.EAToken
 
   # --- IANA & FDO Constants (Appendix E & Spec 3.3.6) ---
 
   # EAT-FDO: FDO-specific claim wrapping the FDO payload (Label -257) [cite: 3456]
-  @eat_fdo_label :fdo
+  @eat_fdo_label -257
+  @eat_nonce_label 10
+  @eat_ueid_label 256
+  @euph_nonce -259
 
   @eat_random <<1>>
+
+  @nonce_binary_size 16
 
   typedstruct enforce: true do
     @typedoc "Decoded content of the TO2.ProveDevice message."
@@ -78,7 +88,9 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding.ProveDevice do
     with {:ok, cose_object} <- EAToken.verify_decode_cbor(binary_msg, device_pub_key),
          {:ok, xb_key} <- extract_fdo_payload(cose_object.payload),
          {:ok, nonce_prove} <- fetch_binary(cose_object.payload, :nonce),
+         :ok <- check_expected_binary_size(nonce_prove, @nonce_binary_size),
          {:ok, nonce_setup} <- fetch_binary(cose_object.uhdr, :euphnonce),
+         :ok <- check_expected_binary_size(nonce_setup, @nonce_binary_size),
          {:ok, ueid} <- fetch_binary(cose_object.payload, :ueid),
          {:ok, guid} <- guid_from_ueid(ueid) do
       {:ok,
@@ -92,11 +104,38 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding.ProveDevice do
     end
   end
 
+  @doc false
+  def generate() do
+    {:ok, _, xb} = SessionKey.new("ECDH256", ECC.generate(:es256))
+
+    %ProveDevice{
+      xb_key_exchange: xb,
+      nonce_to2_prove_dv: :crypto.strong_rand_bytes(16),
+      nonce_to2_setup_dv: :crypto.strong_rand_bytes(16),
+      guid: :crypto.strong_rand_bytes(16),
+      raw_eat_token: <<>>
+    }
+  end
+
+  def encode_sign(%ProveDevice{} = prove_device_payload, priv_key) do
+    # TODO add a EAToken.encode() function to create the EAT payload
+    eat_cbor_payload =
+      prove_device_payload
+      |> prove_device_payload_to_cbor()
+
+    phdr = %{alg: :es256}
+
+    uhdr = %{@euph_nonce => prove_device_payload.nonce_to2_setup_dv |> COSE.tag_as_byte()}
+
+    Sign1.build(eat_cbor_payload, phdr, uhdr) |> Sign1.sign_encode_cbor(priv_key)
+  end
+
   # Extracts xBKeyExchange from the EAT-FDO claim array
   # Spec: TO2ProveDevicePayload = [ xBKeyExchange ]
   defp extract_fdo_payload(payload_map) do
-    case Map.fetch(payload_map, @eat_fdo_label) do
+    case Map.fetch(payload_map, :fdo) do
       {:ok, [%CBOR.Tag{tag: :bytes, value: xb_key}]} when is_binary(xb_key) -> {:ok, xb_key}
+      # FIXME return valid errors for FDO fallback controller
       {:ok, _invalid_structure} -> {:error, :invalid_fdo_claim_structure}
       :error -> {:error, :missing_eat_fdo_claim}
     end
@@ -111,10 +150,29 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding.ProveDevice do
     end
   end
 
+  defp check_expected_binary_size(binary_val, expected_len) do
+    case byte_size(binary_val) do
+      ^expected_len ->
+        :ok
+
+      _ ->
+        {:error, :message_body_error}
+    end
+  end
+
   defp guid_from_ueid(ueid) do
     case ueid do
       <<@eat_random::binary, guid::binary-size(16)>> -> {:ok, guid}
       _ -> {:error, :message_body_error}
     end
+  end
+
+  defp prove_device_payload_to_cbor(prove_device_payload) do
+    %{
+      @eat_fdo_label => [prove_device_payload.xb_key_exchange |> COSE.tag_as_byte()],
+      @eat_nonce_label => prove_device_payload.nonce_to2_prove_dv |> COSE.tag_as_byte(),
+      @eat_ueid_label => (@eat_random <> prove_device_payload.guid) |> COSE.tag_as_byte()
+    }
+    |> CBOR.encode()
   end
 end
