@@ -84,9 +84,9 @@ defmodule Astarte.Pairing.FDO.OwnershipVoucher do
   end
 
   def decode(cbor_list) do
-    with [protocol, header, cbor_hmac, cert_chain, entries] <- cbor_list,
-         %CBOR.Tag{tag: :bytes, value: cbor_header} <- header,
-         {:ok, header} <- Header.decode_cbor(cbor_header),
+    with [protocol, cbor_header, cbor_hmac, cert_chain, entries] <- cbor_list,
+         %CBOR.Tag{tag: :bytes, value: binary_header} <- cbor_header,
+         {:ok, header} <- Header.decode_cbor(binary_header),
          {:ok, hmac} <- Hash.decode(cbor_hmac),
          {:ok, cert_chain} <- extract_cert_chain(cert_chain) do
       ownership_voucher =
