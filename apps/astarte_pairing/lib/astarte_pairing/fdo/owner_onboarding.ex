@@ -103,10 +103,15 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding do
   end
 
   def ov_next_entry(cbor_body, realm_name, device_id) do
-    # entry num represent the current enties we need to check for in the ov
-    with {:ok, [entry_num], _} <- CBOR.decode(cbor_body),
-         {:ok, ownership_voucher} <- OwnershipVoucher.fetch(realm_name, device_id) do
-      OwnershipVoucherCore.get_ov_entry(ownership_voucher, entry_num)
+    # entry num represent the current entries we need to check for in the ov
+    case CBOR.decode(cbor_body) do
+      {:ok, [entry_num], _} when is_integer(entry_num) ->
+        with {:ok, ownership_voucher} <- OwnershipVoucher.fetch(realm_name, device_id) do
+          OwnershipVoucherCore.get_ov_entry(ownership_voucher, entry_num)
+        end
+
+      _ ->
+        {:error, :message_body_error}
     end
   end
 

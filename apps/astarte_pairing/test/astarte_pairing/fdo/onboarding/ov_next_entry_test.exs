@@ -63,7 +63,7 @@ defmodule Astarte.Pairing.FDO.Onboarding.OvNextEntryTest do
     end
 
     test "returns error for negative entry_num", %{voucher: voucher} do
-      assert {:error, "invalid_entry_number"} =
+      assert {:error, :invalid_message} =
                Core.get_ov_entry(voucher, -1)
     end
 
@@ -71,7 +71,7 @@ defmodule Astarte.Pairing.FDO.Onboarding.OvNextEntryTest do
       voucher: voucher,
       count: invalid_index
     } do
-      assert {:error, "invalid_entry_number"} =
+      assert {:error, :invalid_message} =
                Core.get_ov_entry(voucher, invalid_index)
     end
   end

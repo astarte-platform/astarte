@@ -97,7 +97,7 @@ defmodule Astarte.Pairing.FDO.OwnershipVoucher.Core do
   end
 
   def get_ov_entry(_ov, entry_num) when entry_num < 0 do
-    {:error, "invalid_entry_number"}
+    {:error, :invalid_message}
   end
 
   def get_ov_entry(%OwnershipVoucher{entries: entries}, entry_num) do
@@ -106,7 +106,7 @@ defmodule Astarte.Pairing.FDO.OwnershipVoucher.Core do
         {:ok, CBOR.encode([entry_num, entry])}
 
       :error ->
-        {:error, "invalid_entry_number"}
+        {:error, :invalid_message}
     end
   end
 
