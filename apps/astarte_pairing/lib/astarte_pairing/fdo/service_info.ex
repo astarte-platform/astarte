@@ -160,7 +160,7 @@ defmodule Astarte.Pairing.FDO.ServiceInfo do
 
   # end
   def handle_message_68(_realm_name, _session_key, _) do
-    {:error, :invalid_payload}
+    {:error, :message_body_error}
   end
 
   defp generate_device_id(%{"devmod:sn" => sn}), do: UUID.uuid5(:oid, sn, :raw)
