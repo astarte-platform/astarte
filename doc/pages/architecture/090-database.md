@@ -38,6 +38,18 @@ CREATE KEYSPACE astarte
     durable_writes = true;
 ```
 
+> #### Tablets {: .info}
+>
+> In recent versions of scylladb, we explicitly disable the tablets feature as they break
+> lightweight transactions, which are used within astarte
+>
+> ```sql
+> CREATE KEYSPACE astarte
+>   WITH replication = {'class': 'SimpleStrategy', 'replication_factor': <replication factor>}  AND
+>     durable_writes = true AND
+>     tablets = { 'enabled': false };
+> ```
+
 ```sql
 CREATE TABLE astarte.realms (
   realm_name varchar,
@@ -75,6 +87,18 @@ CREATE KEYSPACE <realm name>
   WITH replication = {'class': 'SimpleStrategy', 'replication_factor': :replication_factor} AND
     durable_writes = true;
 ```
+
+> #### Tablets {: .info}
+>
+> In recent versions of scylladb, we explicitly disable the tablets feature as they break
+> lightweight transactions, which are used within astarte
+>
+> ```sql
+> CREATE KEYSPACE <realm name>
+>   WITH replication = {'class': 'SimpleStrategy', 'replication_factor': :replication_factor} AND
+>     durable_writes = true AND
+>     tablets = { 'enabled': false };
+> ```
 
 ```sql
 CREATE TYPE <realm name>.capabilities (

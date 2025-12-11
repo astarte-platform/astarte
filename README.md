@@ -101,3 +101,11 @@ needs.
 Astarte source code is released under the Apache 2 License.
 
 Check the LICENSE file for more information.
+
+## Notice
+
+The docker-compose file uses a version of ScyllaDB licensed under the Business Source License (BSL).
+
+- Development, testing, and demo use is free under the BSL
+- Production use over the defined BSL threshold **requires a commercial license** from [ScyllaDB](https://www.scylladb.com/)
+- For details, see the [ScyllaDB License Agreement](https://github.com/scylladb/scylladb/blob/master/LICENSE-ScyllaDB-Source-Available.md)

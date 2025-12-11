@@ -25,13 +25,14 @@ defmodule Astarte.Housekeeping.RealmsTest do
 
   alias Astarte.Core.Generators.Realm, as: GeneratorsRealm
   alias Astarte.DataAccess.Repo
+  alias Astarte.Housekeeping.AMQP
+  alias Astarte.Housekeeping.AMQP.Vhost
   alias Astarte.Housekeeping.Config
+  alias Astarte.Housekeeping.Helpers.Database
   alias Astarte.Housekeeping.Helpers.Database
   alias Astarte.Housekeeping.Realms
   alias Astarte.Housekeeping.Realms.Queries
   alias Astarte.Housekeeping.Realms.Realm
-  alias Astarte.Housekeeping.AMQP.Vhost
-  alias Astarte.Housekeeping.AMQP
 
   @malformed_pubkey """
   -----BEGIN PUBLIC KEY-----
@@ -210,6 +211,23 @@ defmodule Astarte.Housekeeping.RealmsTest do
     test "with empty required data returns error changeset" do
       assert {:error, %Ecto.Changeset{}} = Realms.create_realm(@empty_name_attrs)
       assert {:error, %Ecto.Changeset{}} = Realms.create_realm(@empty_pubkey_attrs)
+    end
+
+    @tag :regression
+    test "creates keyspaces where lightweight transactions work", %{realm_name: realm_name} do
+      {:ok, local_datacenter} = Queries.get_local_datacenter()
+
+      attrs = %{
+        realm_name: realm_name,
+        jwt_public_key_pem: pubkey(),
+        replication_class: "NetworkTopologyStrategy",
+        datacenter_replication_factors: %{local_datacenter => 1}
+      }
+
+      keyspace_name = Astarte.DataAccess.Realms.Realm.keyspace_name(realm_name)
+
+      assert {:ok, %Realm{} = _realm} = Realms.create_realm(attrs, async_operation: false)
+      assert {:ok, _} = Database.lightweight_transaction_check(keyspace_name)
     end
   end
 
