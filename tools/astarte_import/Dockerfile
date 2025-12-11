@@ -1,10 +1,9 @@
-FROM hexpm/elixir:1.15.7-erlang-25.3.2.7-debian-bullseye-20231009-slim as builder
+FROM hexpm/elixir:1.15.7-erlang-25.3.2.7-debian-bullseye-20231009-slim AS builder
 
 # install build dependencies
 # --allow-releaseinfo-change allows to pull from 'oldstable'
 RUN apt-get update --allow-releaseinfo-change -y && apt-get install -y build-essential git \
     && apt-get clean && rm -f /var/lib/apt/lists/*_*
-
 
 WORKDIR /app
 
@@ -36,7 +35,7 @@ WORKDIR /app
 RUN apt-get -qq update
 
 # Set the locale
-ENV LANG C.UTF-8
+ENV LANG=C.UTF-8
 
 # We need SSL
 RUN apt-get -qq install libssl1.1

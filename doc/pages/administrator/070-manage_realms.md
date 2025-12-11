@@ -14,6 +14,7 @@ kubectl get secret -n astarte astarte-housekeeping-private-key -o=jsonpath={.dat
 You can then use `housekeeping.key` to authenticate against Housekeeping API.
 
 ## Device limit in a Realm
+
 While there is no limit on the number of Devices registered in a Realm, it is possible to impose
 an upper bound using the `<astarte base API URL>/housekeeping/v1/realms/<realm name>` API.
 By default, such an upper bound does not exist. The limit can be retrieved, updated or removed

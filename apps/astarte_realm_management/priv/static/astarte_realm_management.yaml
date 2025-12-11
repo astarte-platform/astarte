@@ -1,9 +1,9 @@
 openapi: 3.0.0
 servers:
-  - url: '{base_url}/v1'
+  - url: "{base_url}/v1"
     variables:
       base_url:
-        default: 'http://localhost:4000'
+        default: "http://localhost:4000"
         description: >-
           The base URL you're serving Astarte from. This should point to the
           base path from which Realm Management is served. In case you are
@@ -30,16 +30,16 @@ tags:
       possible) and updating Interfaces in a Realm.
     externalDocs:
       description: User documentation
-      url: 'https://docs.astarte-platform.org/astarte/1.0/030-manage_interfaces.html'
+      url: "https://docs.astarte-platform.org/astarte/1.0/030-manage_interfaces.html"
   - name: trigger
     description: Trigger management
     externalDocs:
       description: User documentation
-      url: 'https://docs.astarte-platform.org/astarte/1.0/060-triggers.html'
+      url: "https://docs.astarte-platform.org/astarte/1.0/060-triggers.html"
 paths:
-  '/{realm_name}/config/auth':
+  "/{realm_name}/config/auth":
     parameters:
-      - $ref: '#/components/parameters/Realm'
+      - $ref: "#/components/parameters/Realm"
     get:
       tags:
         - config
@@ -49,12 +49,12 @@ paths:
       security:
         - JWT: []
       responses:
-        '200':
-          $ref: '#/components/responses/GetAuthConfig'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
+        "200":
+          $ref: "#/components/responses/GetAuthConfig"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
     put:
       tags:
         - config
@@ -67,19 +67,19 @@ paths:
       security:
         - JWT: []
       responses:
-        '204':
+        "204":
           description: Success
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '422':
-          $ref: '#/components/responses/ConfigValidationError'
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "422":
+          $ref: "#/components/responses/ConfigValidationError"
       requestBody:
-        $ref: '#/components/requestBodies/PutAuthConfig'
-  '/{realm_name}/config/device_registration_limit':
+        $ref: "#/components/requestBodies/PutAuthConfig"
+  "/{realm_name}/config/device_registration_limit":
     parameters:
-      - $ref: '#/components/parameters/Realm'
+      - $ref: "#/components/parameters/Realm"
     get:
       tags:
         - config
@@ -89,17 +89,17 @@ paths:
       security:
         - JWT: []
       responses:
-        '200':
-          $ref: '#/components/responses/GetDeviceRegistrationLimit'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '404':
-          $ref: '#/components/responses/NotFound'
-  '/{realm_name}/config/datastream_maximum_storage_retention':
+        "200":
+          $ref: "#/components/responses/GetDeviceRegistrationLimit"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+  "/{realm_name}/config/datastream_maximum_storage_retention":
     parameters:
-      - $ref: '#/components/parameters/Realm'
+      - $ref: "#/components/parameters/Realm"
     get:
       tags:
         - config
@@ -109,17 +109,17 @@ paths:
       security:
         - JWT: []
       responses:
-        '200':
-          $ref: '#/components/responses/GetDatastreamMaximumStorageRetention'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '404':
-          $ref: '#/components/responses/NotFound'
-  '/{realm_name}/interfaces':
+        "200":
+          $ref: "#/components/responses/GetDatastreamMaximumStorageRetention"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+  "/{realm_name}/interfaces":
     parameters:
-      - $ref: '#/components/parameters/Realm'
+      - $ref: "#/components/parameters/Realm"
     get:
       tags:
         - interface
@@ -129,12 +129,12 @@ paths:
       security:
         - JWT: []
       responses:
-        '200':
-          $ref: '#/components/responses/GetInterfaceList'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
+        "200":
+          $ref: "#/components/responses/GetInterfaceList"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
     post:
       tags:
         - interface
@@ -157,42 +157,42 @@ paths:
             type: boolean
             default: true
       responses:
-        '201':
-          $ref: '#/components/responses/InstallInterface'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '422':
-          $ref: '#/components/responses/InterfaceValidationError'
+        "201":
+          $ref: "#/components/responses/InstallInterface"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "422":
+          $ref: "#/components/responses/InterfaceValidationError"
       requestBody:
-        $ref: '#/components/requestBodies/InstallInterface'
-  '/{realm_name}/interfaces/{interface_name}':
+        $ref: "#/components/requestBodies/InstallInterface"
+  "/{realm_name}/interfaces/{interface_name}":
     parameters:
-      - $ref: '#/components/parameters/Realm'
-      - $ref: '#/components/parameters/InterfaceName'
+      - $ref: "#/components/parameters/Realm"
+      - $ref: "#/components/parameters/InterfaceName"
     get:
       tags:
         - interface
       summary: Get interface major versions
-      description: 'An interface might have multiple major versions, list all of them.'
+      description: "An interface might have multiple major versions, list all of them."
       operationId: getInterfaceMajorVersions
       security:
         - JWT: []
       responses:
-        '200':
-          $ref: '#/components/responses/GetInterfaceMajorVersions'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '404':
-          $ref: '#/components/responses/InterfaceNotFound'
-  '/{realm_name}/interfaces/{interface_name}/{major_version}':
+        "200":
+          $ref: "#/components/responses/GetInterfaceMajorVersions"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/InterfaceNotFound"
+  "/{realm_name}/interfaces/{interface_name}/{major_version}":
     parameters:
-      - $ref: '#/components/parameters/Realm'
-      - $ref: '#/components/parameters/InterfaceName'
-      - $ref: '#/components/parameters/InterfaceMajor'
+      - $ref: "#/components/parameters/Realm"
+      - $ref: "#/components/parameters/InterfaceName"
+      - $ref: "#/components/parameters/InterfaceMajor"
       - name: realm_name
         in: path
         description: Target realm
@@ -236,20 +236,20 @@ paths:
             type: boolean
             default: true
       responses:
-        '204':
+        "204":
           description: Success
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '404':
-          $ref: '#/components/responses/InterfaceNotFound'
-        '409':
-          $ref: '#/components/responses/UpdateConflict'
-        '422':
-          $ref: '#/components/responses/InterfaceValidationError'
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/InterfaceNotFound"
+        "409":
+          $ref: "#/components/responses/UpdateConflict"
+        "422":
+          $ref: "#/components/responses/InterfaceValidationError"
       requestBody:
-        $ref: '#/components/requestBodies/UpdateInterface'
+        $ref: "#/components/requestBodies/UpdateInterface"
     get:
       tags:
         - interface
@@ -262,14 +262,14 @@ paths:
       security:
         - JWT: []
       responses:
-        '200':
-          $ref: '#/components/responses/GetInterface'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '404':
-          $ref: '#/components/responses/InterfaceNotFound'
+        "200":
+          $ref: "#/components/responses/GetInterface"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/InterfaceNotFound"
     delete:
       tags:
         - interface
@@ -292,17 +292,17 @@ paths:
             type: boolean
             default: true
       responses:
-        '204':
+        "204":
           description: Success
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '404':
-          $ref: '#/components/responses/InterfaceNotFound'
-  '/{realm_name}/triggers':
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/InterfaceNotFound"
+  "/{realm_name}/triggers":
     parameters:
-      - $ref: '#/components/parameters/Realm'
+      - $ref: "#/components/parameters/Realm"
     get:
       tags:
         - trigger
@@ -314,12 +314,12 @@ paths:
       security:
         - JWT: []
       responses:
-        '200':
-          $ref: '#/components/responses/GetTriggerList'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
+        "200":
+          $ref: "#/components/responses/GetTriggerList"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
     post:
       tags:
         - trigger
@@ -333,22 +333,22 @@ paths:
       security:
         - JWT: []
       responses:
-        '201':
-          $ref: '#/components/responses/InstallTrigger'
-        '400':
+        "201":
+          $ref: "#/components/responses/InstallTrigger"
+        "400":
           description: Bad request
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '422':
-          $ref: '#/components/responses/TriggerValidationError'
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "422":
+          $ref: "#/components/responses/TriggerValidationError"
       requestBody:
-        $ref: '#/components/requestBodies/InstallTrigger'
-  '/{realm_name}/triggers/{trigger_name}':
+        $ref: "#/components/requestBodies/InstallTrigger"
+  "/{realm_name}/triggers/{trigger_name}":
     parameters:
-      - $ref: '#/components/parameters/Realm'
-      - $ref: '#/components/parameters/TriggerName'
+      - $ref: "#/components/parameters/Realm"
+      - $ref: "#/components/parameters/TriggerName"
     get:
       tags:
         - trigger
@@ -358,15 +358,15 @@ paths:
       security:
         - JWT: []
       responses:
-        '200':
-          $ref: '#/components/responses/GetTrigger'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '404':
-          $ref: '#/components/responses/TriggerNotFound'
-        '500':
+        "200":
+          $ref: "#/components/responses/GetTrigger"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/TriggerNotFound"
+        "500":
           description: Internal Server Error.
     delete:
       tags:
@@ -380,19 +380,19 @@ paths:
       security:
         - JWT: []
       responses:
-        '204':
+        "204":
           description: Success
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '404':
-          $ref: '#/components/responses/TriggerNotFound'
-        '500':
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/TriggerNotFound"
+        "500":
           description: Internal Server Error.
-  '/{realm_name}/policies':
+  "/{realm_name}/policies":
     parameters:
-      - $ref: '#/components/parameters/Realm'
+      - $ref: "#/components/parameters/Realm"
     get:
       tags:
         - policy
@@ -404,12 +404,12 @@ paths:
       security:
         - JWT: []
       responses:
-        '200':
-          $ref: '#/components/responses/GetTriggerDeliveryPolicyList'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
+        "200":
+          $ref: "#/components/responses/GetTriggerDeliveryPolicyList"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
     post:
       tags:
         - policy
@@ -423,24 +423,24 @@ paths:
       security:
         - JWT: []
       responses:
-        '201':
-          $ref: '#/components/responses/InstallTriggerDeliveryPolicy'
-        '400':
+        "201":
+          $ref: "#/components/responses/InstallTriggerDeliveryPolicy"
+        "400":
           description: Bad request
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '409':
-          $ref: '#/components/responses/TriggerDeliveryPolicyAlreadyInstalledError'
-        '422':
-          $ref: '#/components/responses/TriggerDeliveryPolicyValidationError'
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "409":
+          $ref: "#/components/responses/TriggerDeliveryPolicyAlreadyInstalledError"
+        "422":
+          $ref: "#/components/responses/TriggerDeliveryPolicyValidationError"
       requestBody:
-        $ref: '#/components/requestBodies/InstallTriggerDeliveryPolicy'
-  '/{realm_name}/policies/{policy_name}':
+        $ref: "#/components/requestBodies/InstallTriggerDeliveryPolicy"
+  "/{realm_name}/policies/{policy_name}":
     parameters:
-      - $ref: '#/components/parameters/Realm'
-      - $ref: '#/components/parameters/TriggerDeliveryPolicyName'
+      - $ref: "#/components/parameters/Realm"
+      - $ref: "#/components/parameters/TriggerDeliveryPolicyName"
     get:
       tags:
         - policy
@@ -450,15 +450,15 @@ paths:
       security:
         - JWT: []
       responses:
-        '200':
-          $ref: '#/components/responses/GetTriggerDeliveryPolicy'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '404':
-          $ref: '#/components/responses/TriggerDeliveryPolicyNotFound'
-        '500':
+        "200":
+          $ref: "#/components/responses/GetTriggerDeliveryPolicy"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/TriggerDeliveryPolicyNotFound"
+        "500":
           description: Internal Server Error.
     delete:
       tags:
@@ -472,22 +472,22 @@ paths:
       security:
         - JWT: []
       responses:
-        '204':
+        "204":
           description: Success
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '404':
-          $ref: '#/components/responses/TriggerDeliveryPolicyNotFound'
-        '409':
-          $ref: '#/components/responses/TriggerDeliveryPolicyCurrentlyUsedError'
-        '500':
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/TriggerDeliveryPolicyNotFound"
+        "409":
+          $ref: "#/components/responses/TriggerDeliveryPolicyCurrentlyUsedError"
+        "500":
           description: Internal Server Error.
-  '/{realm_name}/devices/{device_id}':
+  "/{realm_name}/devices/{device_id}":
     parameters:
-      - $ref: '#/components/parameters/Realm'
-      - $ref: '#/components/parameters/DeviceID'
+      - $ref: "#/components/parameters/Realm"
+      - $ref: "#/components/parameters/DeviceID"
     delete:
       tags:
         - device
@@ -500,17 +500,17 @@ paths:
       security:
         - JWT: []
       responses:
-        '204':
+        "204":
           description: Success
-        '400':
+        "400":
           description: Bad request
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '404':
-          $ref: '#/components/responses/NotFound'
-        '500':
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
           description: Internal Server Error.
 components:
   responses:
@@ -519,7 +519,7 @@ components:
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/ValidationError'
+            $ref: "#/components/schemas/ValidationError"
           example:
             errors:
               jwt_public_key_pem:
@@ -531,7 +531,7 @@ components:
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/GenericError'
+            $ref: "#/components/schemas/GenericError"
           example:
             errors:
               detail: Forbidden
@@ -545,7 +545,7 @@ components:
               - data
             properties:
               data:
-                $ref: '#/components/schemas/AuthConfig'
+                $ref: "#/components/schemas/AuthConfig"
     GetDeviceRegistrationLimit:
       description: Success
       content:
@@ -556,7 +556,7 @@ components:
               - data
             properties:
               data:
-                $ref: '#/components/schemas/DeviceRegistrationLimit'
+                $ref: "#/components/schemas/DeviceRegistrationLimit"
     GetDatastreamMaximumStorageRetention:
       description: Success
       content:
@@ -567,7 +567,7 @@ components:
               - data
             properties:
               data:
-                $ref: '#/components/schemas/DatastreamMaximumStorageRetention'
+                $ref: "#/components/schemas/DatastreamMaximumStorageRetention"
     GetInterface:
       description: Success
       content:
@@ -578,7 +578,7 @@ components:
               - data
             properties:
               data:
-                $ref: '#/components/schemas/Interface'
+                $ref: "#/components/schemas/Interface"
     GetInterfaceList:
       description: Success
       content:
@@ -624,15 +624,15 @@ components:
               - data
             properties:
               data:
-                $ref: '#/components/schemas/TriggerConfig'
+                $ref: "#/components/schemas/TriggerConfig"
             example:
               data:
                 name: my_device_connected
                 action:
-                  http_post_url: 'http://example.com/my_post_url'
+                  http_post_url: "http://example.com/my_post_url"
                 simple_triggers:
                   - type: device_trigger
-                    'on': device_connected
+                    "on": device_connected
                     device_id: glO6LullTKmwxebForU-eg
     GetTriggerDeliveryPolicy:
       description: Success
@@ -644,13 +644,13 @@ components:
               - data
             properties:
               data:
-                $ref: '#/components/schemas/TriggerDeliveryPolicyConfig'
+                $ref: "#/components/schemas/TriggerDeliveryPolicyConfig"
             example:
               data:
                 name: my_policy
                 maximum_capacity: 100
                 error_handlers:
-                  - 'on': any_error
+                  - "on": any_error
                     strategy: discard
     GetTriggerList:
       description: Success
@@ -710,7 +710,7 @@ components:
               - data
             properties:
               data:
-                $ref: '#/components/schemas/TriggerConfig'
+                $ref: "#/components/schemas/TriggerConfig"
     InstallTriggerDeliveryPolicy:
       description: Success
       headers:
@@ -726,13 +726,13 @@ components:
               - data
             properties:
               data:
-                $ref: '#/components/schemas/TriggerDeliveryPolicyConfig'
+                $ref: "#/components/schemas/TriggerDeliveryPolicyConfig"
     InterfaceNotFound:
       description: Requested interface was not found
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/GenericError'
+            $ref: "#/components/schemas/GenericError"
           example:
             errors:
               detail: Interface not found
@@ -741,7 +741,7 @@ components:
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/ValidationError'
+            $ref: "#/components/schemas/ValidationError"
           example:
             errors:
               mappings:
@@ -752,7 +752,7 @@ components:
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/GenericError'
+            $ref: "#/components/schemas/GenericError"
           example:
             errors:
               detail: Trigger not found
@@ -761,7 +761,7 @@ components:
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/ValidationError'
+            $ref: "#/components/schemas/ValidationError"
           example:
             errors:
               simple_triggers:
@@ -772,7 +772,7 @@ components:
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/GenericError'
+            $ref: "#/components/schemas/GenericError"
           example:
             errors:
               detail: Policy already exists
@@ -781,7 +781,7 @@ components:
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/GenericError'
+            $ref: "#/components/schemas/GenericError"
           example:
             errors:
               detail: Cannot delete policy as it is being currently used by triggers
@@ -790,7 +790,7 @@ components:
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/ValidationError'
+            $ref: "#/components/schemas/ValidationError"
           example:
             errors:
               detail: is invalid
@@ -799,7 +799,7 @@ components:
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/GenericError'
+            $ref: "#/components/schemas/GenericError"
           example:
             errors:
               detail: Trigger policy not found
@@ -808,7 +808,7 @@ components:
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/GenericError'
+            $ref: "#/components/schemas/GenericError"
           example:
             errors:
               detail: Unauthorized
@@ -819,7 +819,7 @@ components:
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/GenericError'
+            $ref: "#/components/schemas/GenericError"
           example:
             errors:
               detail: Interface minor version was not increased
@@ -828,7 +828,7 @@ components:
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/GenericError'
+            $ref: "#/components/schemas/GenericError"
   securitySchemes:
     JWT:
       type: apiKey
@@ -852,7 +852,7 @@ components:
               - data
             properties:
               data:
-                $ref: '#/components/schemas/TriggerConfig'
+                $ref: "#/components/schemas/TriggerConfig"
     InstallTriggerDeliveryPolicy:
       content:
         application/json:
@@ -862,7 +862,7 @@ components:
               - data
             properties:
               data:
-                $ref: '#/components/schemas/TriggerDeliveryPolicyConfig'
+                $ref: "#/components/schemas/TriggerDeliveryPolicyConfig"
     InstallInterface:
       content:
         application/json:
@@ -872,7 +872,7 @@ components:
               - data
             properties:
               data:
-                $ref: '#/components/schemas/Interface'
+                $ref: "#/components/schemas/Interface"
       description: A JSON object representing an Astarte Interface.
       required: true
     PutAuthConfig:
@@ -884,7 +884,7 @@ components:
               - data
             properties:
               data:
-                $ref: '#/components/schemas/AuthConfig'
+                $ref: "#/components/schemas/AuthConfig"
       description: AuthConfig object with the new configuration
       required: true
     UpdateInterface:
@@ -896,7 +896,7 @@ components:
               - data
             properties:
               data:
-                $ref: '#/components/schemas/Interface'
+                $ref: "#/components/schemas/Interface"
           example:
             data:
               interface_name: org.astarteplatform.Values
@@ -1062,7 +1062,7 @@ components:
             parametrization). Every mapping acquires type, quality and
             aggregation of the interface.
           items:
-            $ref: '#/components/schemas/Mapping'
+            $ref: "#/components/schemas/Mapping"
           minItems: 1
           maxItems: 1024
           uniqueItems: true
@@ -1091,7 +1091,7 @@ components:
       properties:
         endpoint:
           type: string
-          pattern: '^(/(%{([a-zA-Z][a-zA-Z0-9]*)}|[a-zA-Z][a-zA-Z0-9]*)){1,64}$'
+          pattern: "^(/(%{([a-zA-Z][a-zA-Z0-9]*)}|[a-zA-Z][a-zA-Z0-9]*)){1,64}$"
           minLength: 2
           maxLength: 256
           description: >-
@@ -1189,7 +1189,7 @@ components:
           type: string
         action:
           oneOf:
-            - $ref: '#/components/schemas/HTTPPostAction'
+            - $ref: "#/components/schemas/HTTPPostAction"
         simple_triggers:
           description: >-
             Simple triggers that will trigger the action. For now only a single
@@ -1199,8 +1199,8 @@ components:
           maxLength: 1
           items:
             oneOf:
-              - $ref: '#/components/schemas/DataSimpleTrigger'
-              - $ref: '#/components/schemas/DeviceSimpleTrigger'
+              - $ref: "#/components/schemas/DataSimpleTrigger"
+              - $ref: "#/components/schemas/DeviceSimpleTrigger"
       required:
         - name
         - action
@@ -1208,14 +1208,14 @@ components:
       example:
         name: value_above_threshold_alarm
         action:
-          http_post_url: 'http://example.com/my_post_url'
+          http_post_url: "http://example.com/my_post_url"
         simple_triggers:
           - type: data_trigger
-            'on': incoming_data
+            "on": incoming_data
             interface_name: org.astarteplatform.Values
             interface_major: 0
             match_path: /realValue
-            value_match_operator: '>'
+            value_match_operator: ">"
             known_value: 0.6
     TriggerDeliveryPolicyConfig:
       type: object
@@ -1237,7 +1237,7 @@ components:
           minLength: 1
           maxLength: 200
           items:
-            $ref: '#/components/schemas/TriggerDeliveryPolicyErrorHandler'
+            $ref: "#/components/schemas/TriggerDeliveryPolicyErrorHandler"
         event_ttl:
           type: integer
           description: The amount of time (in milliseconds) an event will be retained in the event queue.
@@ -1252,26 +1252,26 @@ components:
         name: my_policy
         maximum_capacity: 100
         error_handlers:
-          - 'on': any_error
+          - "on": any_error
             strategy: discard
     TriggerDeliveryPolicyErrorHandler:
       type: object
       properties:
-        'on':
+        "on":
           description: >-
             The range of errors the handler refers to. Must be one of: 'any_error',
             'client_error', 'server_error' or a custom error range (e.g. '[418, 419, 420, 500]').
         strategy:
           type: string
           enum:
-          - discard
-          - retry
+            - discard
+            - retry
           description: What Astarte must do if an HTTP error occurs when delivering errors the handler refers to.
       required:
-        - 'on'
+        - "on"
         - strategy
       example:
-        'on': any_error
+        "on": any_error
         strategy: discard
     HTTPPostAction:
       type: object
@@ -1299,7 +1299,7 @@ components:
             If a template_type is specified, this should contain the template to
             be applied.
           type: string
-          example: 'Just received {{value}} from {{device_id}}'
+          example: "Just received {{value}} from {{device_id}}"
       required:
         - http_post_url
     DataSimpleTrigger:
@@ -1307,7 +1307,7 @@ components:
       description: An object describing a simple trigger reacting to published data.
       properties:
         type:
-          description: 'The type of the simple trigger, must be data_trigger.'
+          description: "The type of the simple trigger, must be data_trigger."
           type: string
           enum:
             - data_trigger
@@ -1330,7 +1330,7 @@ components:
             The target endpoint path for the trigger or /* to match all the
             endpoints of the target interface.
           type: string
-        'on':
+        "on":
           description: The type of data event the trigger will react to
           type: string
           enum:
@@ -1354,11 +1354,11 @@ components:
             everything. See also known_value.
           type: string
           enum:
-            - '*'
+            - "*"
             - ==
-            - '!='
-            - '>'
-            - '>='
+            - "!="
+            - ">"
+            - ">="
             - <
             - <=
             - contains
@@ -1367,18 +1367,18 @@ components:
         - type
         - interface_name
         - match_path
-        - 'on'
+        - "on"
         - value_match_operator
     DeviceSimpleTrigger:
       type: object
       description: An object describing a simple trigger reacting to device state changes.
       properties:
         type:
-          description: 'The type of the simple trigger, must be device_trigger.'
+          description: "The type of the simple trigger, must be device_trigger."
           type: string
           enum:
             - device_trigger
-        'on':
+        "on":
           description: The type of device event the trigger will react to.
           type: string
           enum:
@@ -1394,7 +1394,7 @@ components:
           type: string
       required:
         - type
-        - 'on'
+        - "on"
     GenericError:
       type: object
       required:

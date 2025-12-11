@@ -73,15 +73,15 @@ To get a Trigger definition:
   "data": {
     "name": "my_connection_trigger",
     "action": {
-        "http_url": "<url>",
-        "http_method": "<method>"
+      "http_url": "<url>",
+      "http_method": "<method>"
     },
     "simple_triggers": [
-        {
-            "type": "device_trigger",
-            "device_id": "*",
-            "on": "device_connected"
-        }
+      {
+        "type": "device_trigger",
+        "device_id": "*",
+        "on": "device_connected"
+      }
     ]
   }
 }
@@ -124,15 +124,15 @@ The POST request must have the following request body, with content type `applic
   "data": {
     "name": "my_connection_trigger",
     "action": {
-        "http_url": "<url>",
-        "http_method": "<method>"
+      "http_url": "<url>",
+      "http_method": "<method>"
     },
     "simple_triggers": [
-        {
-            "type": "device_trigger",
-            "device_id": "*",
-            "on": "device_connected"
-        }
+      {
+        "type": "device_trigger",
+        "device_id": "*",
+        "on": "device_connected"
+      }
     ]
   }
 }
@@ -176,18 +176,18 @@ This is the JSON representation of the trigger:
 
 ```json
 {
-    "name": "my_connection_trigger",
-    "action": {
-        "http_url": "<url>",
-        "http_method": "post"
-    },
-    "simple_triggers": [
-        {
-            "type": "device_trigger",
-            "device_id": "*",
-            "on": "device_connected"
-        }
-    ]
+  "name": "my_connection_trigger",
+  "action": {
+    "http_url": "<url>",
+    "http_method": "post"
+  },
+  "simple_triggers": [
+    {
+      "type": "device_trigger",
+      "device_id": "*",
+      "on": "device_connected"
+    }
+  ]
 }
 ```
 
@@ -213,21 +213,21 @@ This is the JSON representation of the trigger
 
 ```json
 {
-    "name": "my_data_trigger",
-    "action": {
-        "http_url": "http://www.example.com/hook",
-        "http_method": "post"
-    },
-    "simple_triggers": [
-        {
-            "type": "data_trigger",
-            "on": "incoming_data",
-            "interface_name": "org.astarte-platform.genericsensors.Values",
-            "interface_major": 0,
-            "match_path": "/streamTest/value",
-            "value_match_operator": "*"
-        }
-    ]
+  "name": "my_data_trigger",
+  "action": {
+    "http_url": "http://www.example.com/hook",
+    "http_method": "post"
+  },
+  "simple_triggers": [
+    {
+      "type": "data_trigger",
+      "on": "incoming_data",
+      "interface_name": "org.astarte-platform.genericsensors.Values",
+      "interface_major": 0,
+      "match_path": "/streamTest/value",
+      "value_match_operator": "*"
+    }
+  ]
 }
 ```
 
@@ -269,19 +269,19 @@ The following is an example of a Connection Trigger linked to the `simple_trigge
 
 ```json
 {
-    "name": "my_connection_trigger",
-    "action": {
-        "http_url": "<url>",
-        "http_method": "post"
-    },
-    "simple_triggers": [
-        {
-            "type": "device_trigger",
-            "device_id": "*",
-            "on": "device_connected"
-        }
-    ],
-    "policy" : "simple_trigger_delivery_policy"
+  "name": "my_connection_trigger",
+  "action": {
+    "http_url": "<url>",
+    "http_method": "post"
+  },
+  "simple_triggers": [
+    {
+      "type": "device_trigger",
+      "device_id": "*",
+      "on": "device_connected"
+    }
+  ],
+  "policy": "simple_trigger_delivery_policy"
 }
 ```
 

@@ -66,23 +66,23 @@ $ docker compose pull
 $ docker compose up -d
 ```
 
-`docker-compose-initializer` will generate a root CA for devices, a key pair for Housekeeping, and a self-signed certificate for the broker (note: this is a *really* bad idea in production). You can tune the compose file further to use legitimate certificates and custom keys, but this is out of the scope of this tutorial.
+`docker-compose-initializer` will generate a root CA for devices, a key pair for Housekeeping, and a self-signed certificate for the broker (note: this is a _really_ bad idea in production). You can tune the compose file further to use legitimate certificates and custom keys, but this is out of the scope of this tutorial.
 
 Compose might take some time to bring everything up, but usually within a minute from the containers creation Astarte will be ready.
 You can reach Astarte at the following addresses:
 
-* `api.astarte.localhost`: Astarte API, in detail:
-  * `api.astarte.localhost/appengine`: AppEngine
-  * `api.astarte.localhost/housekeeping`: Housekeeping
-  * `api.astarte.localhost/pairing`: Pairing
-  * `api.astarte.localhost/realmmanagement`: Realm Management
-* `broker.astarte.localhost`: VerneMQ broker
-* `dashboard.astarte.localhost`: Astarte Dashboard
+- `api.astarte.localhost`: Astarte API, in detail:
+  - `api.astarte.localhost/appengine`: AppEngine
+  - `api.astarte.localhost/housekeeping`: Housekeeping
+  - `api.astarte.localhost/pairing`: Pairing
+  - `api.astarte.localhost/realmmanagement`: Realm Management
+- `broker.astarte.localhost`: VerneMQ broker
+- `dashboard.astarte.localhost`: Astarte Dashboard
 
 Moreover, Compose will forward the following ports to your machine:
 
-* `80`: HTTP
-* `8883`: MQTTS
+- `80`: HTTP
+- `8883`: MQTTS
 
 To check everything went fine, use `docker ps` to verify relevant containers are up: Astarte itself, VerneMQ, CFSSL, RabbitMQ and ScyllaDB should be now running on your system. If any of them isn't up and running, `docker ps -a` should show it stopped or failed. In those cases, it is advised to issue `docker compose up -d` again to fix potential temporary failures.
 
@@ -224,7 +224,7 @@ When you're done with your tests and developments, you can use `docker compose` 
 $ docker compose down
 ```
 
-Unless you add the `-v ` option, persistencies will be kept and next time you will `docker compose up` the cluster will come back in the very same state you left it last time. `docker compose down -v` is extremely useful during development, especially if you want a clean slate for testing your applications or your routines every time.
+Unless you add the `-v` option, persistencies will be kept and next time you will `docker compose up` the cluster will come back in the very same state you left it last time. `docker compose down -v` is extremely useful during development, especially if you want a clean slate for testing your applications or your routines every time.
 
 ## Final notes
 

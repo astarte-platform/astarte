@@ -19,7 +19,6 @@ ENV MIX_ENV=$BUILD_ENV
 
 ENV ASTARTE_LIBRARIES_PATH=libraries
 
-
 # Cache elixir deps
 ADD apps/astarte_housekeeping/mix.exs ./
 ADD apps/astarte_housekeeping/mix.lock ./

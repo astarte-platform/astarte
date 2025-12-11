@@ -16,17 +16,17 @@ and [Cassandra](http://cassandra.apache.org/)/[ScyllaDB](https://www.scylladb.co
 
 ## Resources and Quickstart
 
- * [Astarte Documentation](https://docs.astarte-platform.org) - The main resource to learn about
-   Astarte.
- * [astartectl](https://github.com/astarte-platform/astartectl) - A Command Line tool to manage your
-   Astarte cluster(s).
- * [Astarte Kubernetes Operator](https://github.com/astarte-platform/astarte-kubernetes-operator) -
-   The preferred and supported way to run Astarte - in Production, and pretty much anywhere else.
- * Device SDKs - Connect your device to Astarte in a few lines of code. Available for
-   [Python](https://github.com/astarte-platform/astarte-device-sdk-python),
-   [Qt5](https://github.com/astarte-platform/astarte-device-sdk-qt5),
-   [ESP32](https://github.com/astarte-platform/astarte-device-sdk-esp32),
-   [Elixir](https://github.com/astarte-platform/astarte-device-sdk-elixir) and counting.
+- [Astarte Documentation](https://docs.astarte-platform.org) - The main resource to learn about
+  Astarte.
+- [astartectl](https://github.com/astarte-platform/astartectl) - A Command Line tool to manage your
+  Astarte cluster(s).
+- [Astarte Kubernetes Operator](https://github.com/astarte-platform/astarte-kubernetes-operator) -
+  The preferred and supported way to run Astarte - in Production, and pretty much anywhere else.
+- Device SDKs - Connect your device to Astarte in a few lines of code. Available for
+  [Python](https://github.com/astarte-platform/astarte-device-sdk-python),
+  [Qt5](https://github.com/astarte-platform/astarte-device-sdk-qt5),
+  [ESP32](https://github.com/astarte-platform/astarte-device-sdk-esp32),
+  [Elixir](https://github.com/astarte-platform/astarte-device-sdk-elixir) and counting.
 
 ## Let's try it!
 
@@ -53,11 +53,9 @@ Whoa, not so fast. Putting together an Astarte instance which can handle your da
 tricky, and requires some knowledge about the platform to make sure it won't break.
 
 So, if you're serious about getting Astarte in your production environment, you might want to learn
-more about it first. Start by [having a look at its
-architecture](https://docs.astarte-platform.org/astarte/1.2/001-intro_architecture.html) and
+more about it first. Start by [having a look at its architecture](https://docs.astarte-platform.org/astarte/1.2/001-intro_architecture.html) and
 [finding out how it works](https://docs.astarte-platform.org/astarte/1.2/001-intro_user.html). Once
-you feel confident, head over to the [Administration
-Manual](https://docs.astarte-platform.org/astarte-kubernetes-operator/latest/001-intro_administrator.html).
+you feel confident, head over to the [Administration Manual](https://docs.astarte-platform.org/astarte-kubernetes-operator/latest/001-intro_administrator.html).
 
 ## Where do I find binaries?
 
@@ -66,8 +64,7 @@ Astarte is designed from the ground up to be run in containers, with
 deployment. Astarte's images can be found at [Docker Hub](https://hub.docker.com/u/astarte/), with
 every Astarte service coming with its own image.
 
-With the help of our [Kubernetes
-Operator](https://github.com/astarte-platform/astarte-kubernetes-operator) and
+With the help of our [Kubernetes Operator](https://github.com/astarte-platform/astarte-kubernetes-operator) and
 [`astartectl`](https://github.com/astarte-platform/astartectl), you can deploy your Astarte instance
 to your favorite cloud provider in a matter of minutes.
 
@@ -79,9 +76,7 @@ contributor guide. For the time being, you can head over to the repository you w
 and set up a Pull Request. We're using [DCO](https://developercertificate.org/) for our
 contributions, so you'll need to sign off all commit messages before submitting a Pull Request.
 
-You can also join us on [#astarte slack channel on Elixir
-Slack](https://elixir-slackin.herokuapp.com/) and on [#astarte IRC channel on
-freenode](ircs://chat.freenode.net:6697/#astarte).
+You can also join us on [#astarte slack channel on Elixir Slack](https://elixir-slackin.herokuapp.com/) and on [#astarte IRC channel on freenode](ircs://chat.freenode.net:6697/#astarte).
 
 We accept all kind of quality contributions, as long as they adhere with the project goals and
 philosophy, and have some tests.

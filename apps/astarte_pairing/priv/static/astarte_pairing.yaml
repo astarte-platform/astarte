@@ -1,6 +1,6 @@
 openapi: 3.0.0
 servers:
-  - url: '{base_url}/v1'
+  - url: "{base_url}/v1"
     variables:
       base_url:
         default: http://localhost:4003
@@ -10,7 +10,7 @@ servers:
           a local installation, this is likely `http://localhost:4003`. In case you have a
           standard Astarte installation, it is most likely `https://<your host>/pairing`.
 info:
-  description: 'Control device registration, authentication an authorization'
+  description: "Control device registration, authentication an authorization"
   version: 1.2.0
   title: Astarte Pairing API
   contact:
@@ -20,14 +20,14 @@ tags:
     description: Device registration and credentials secret emission
     externalDocs:
       description: Find out more
-      url: 'https://docs.astarte-platform.org/astarte/1.0/050-pairing_mechanism.html'
+      url: "https://docs.astarte-platform.org/astarte/1.0/050-pairing_mechanism.html"
   - name: device
     description: Device credentials emission and info
     externalDocs:
       description: Find out more
-      url: 'https://docs.astarte-platform.org/astarte/1.0/050-pairing_mechanism.html'
+      url: "https://docs.astarte-platform.org/astarte/1.0/050-pairing_mechanism.html"
 paths:
-  '/{realm_name}/agent/devices':
+  "/{realm_name}/agent/devices":
     post:
       tags:
         - agent
@@ -48,7 +48,7 @@ paths:
           schema:
             type: string
       responses:
-        '201':
+        "201":
           description: Device registered
           content:
             application/json:
@@ -56,30 +56,30 @@ paths:
                 type: object
                 properties:
                   data:
-                    $ref: '#/components/schemas/DeviceRegistrationResponse'
+                    $ref: "#/components/schemas/DeviceRegistrationResponse"
               examples:
                 response:
                   value:
                     data:
                       credentials_secret: TTkd5OgB13X/3qU0LXU7OCxyTXz5QHM2NY1IgidtPOs=
-        '401':
+        "401":
           description: Unauthorized
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/UnauthorizedResponse'
-        '403':
+                $ref: "#/components/schemas/UnauthorizedResponse"
+        "403":
           description: Forbidden
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ForbiddenResponse'
-        '422':
+                $ref: "#/components/schemas/ForbiddenResponse"
+        "422":
           description: Unprocessable entity
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/GenericErrorResponse'
+                $ref: "#/components/schemas/GenericErrorResponse"
               examples:
                 response:
                   value:
@@ -93,7 +93,7 @@ paths:
               type: object
               properties:
                 data:
-                  $ref: '#/components/schemas/DeviceRegistrationRequest'
+                  $ref: "#/components/schemas/DeviceRegistrationRequest"
               example:
                 data:
                   hw_id: YHjKs3SMTgqq09eD7fzm6w
@@ -106,7 +106,7 @@ paths:
                       minor: 1
         description: Device parameters
         required: true
-  '/{realm_name}/agent/devices/{device_id}':
+  "/{realm_name}/agent/devices/{device_id}":
     delete:
       tags:
         - agent
@@ -132,32 +132,32 @@ paths:
           schema:
             type: string
       responses:
-        '204':
+        "204":
           description: Device unregistered
-        '401':
+        "401":
           description: Unauthorized
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/UnauthorizedResponse'
-        '403':
+                $ref: "#/components/schemas/UnauthorizedResponse"
+        "403":
           description: Forbidden
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ForbiddenResponse'
-        '404':
+                $ref: "#/components/schemas/ForbiddenResponse"
+        "404":
           description: Device not found
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/GenericErrorResponse'
+                $ref: "#/components/schemas/GenericErrorResponse"
               examples:
                 response:
                   value:
                     errors:
                       detail: Device not found
-  '/{realm_name}/devices/{hw_id}':
+  "/{realm_name}/devices/{hw_id}":
     get:
       tags:
         - device
@@ -179,7 +179,7 @@ paths:
           schema:
             type: string
       responses:
-        '200':
+        "200":
           description: Info
           content:
             application/json:
@@ -187,7 +187,7 @@ paths:
                 type: object
                 properties:
                   data:
-                    $ref: '#/components/schemas/InfoResponse'
+                    $ref: "#/components/schemas/InfoResponse"
               examples:
                 response:
                   value:
@@ -196,20 +196,20 @@ paths:
                       status: confirmed
                       protocols:
                         astarte_mqtt_v1:
-                          broker_url: 'ssl://broker.astarte.example.com:8883'
-        '401':
+                          broker_url: "ssl://broker.astarte.example.com:8883"
+        "401":
           description: Unauthorized
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/UnauthorizedResponse'
-        '403':
+                $ref: "#/components/schemas/UnauthorizedResponse"
+        "403":
           description: Forbidden
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ForbiddenResponse'
-  '/{realm_name}/devices/{hw_id}/protocols/astarte_mqtt_v1/credentials':
+                $ref: "#/components/schemas/ForbiddenResponse"
+  "/{realm_name}/devices/{hw_id}/protocols/astarte_mqtt_v1/credentials":
     post:
       tags:
         - device
@@ -231,7 +231,7 @@ paths:
           schema:
             type: string
       responses:
-        '201':
+        "201":
           description: Credentials created
           content:
             application/json:
@@ -239,7 +239,7 @@ paths:
                 type: object
                 properties:
                   data:
-                    $ref: '#/components/schemas/AstarteMQTTV1CredentialsResponse'
+                    $ref: "#/components/schemas/AstarteMQTTV1CredentialsResponse"
               examples:
                 response:
                   value:
@@ -277,24 +277,24 @@ paths:
                         1o2dS9VvunQFSNA8diqBSOjuyoEuR6qo1ejF0o7KW6cJWMsvqq+awKuNmqM7yG59
                         ySj0xif2Z8U7MTfhmZs1cyDA/A==
                         -----END CERTIFICATE-----
-        '401':
+        "401":
           description: Unauthorized
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/UnauthorizedResponse'
-        '403':
+                $ref: "#/components/schemas/UnauthorizedResponse"
+        "403":
           description: Forbidden
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ForbiddenResponse'
-        '422':
+                $ref: "#/components/schemas/ForbiddenResponse"
+        "422":
           description: Unprocessable entity
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/GenericErrorResponse'
+                $ref: "#/components/schemas/GenericErrorResponse"
               examples:
                 response:
                   value:
@@ -308,7 +308,7 @@ paths:
               type: object
               properties:
                 data:
-                  $ref: '#/components/schemas/AstarteMQTTV1CredentialsRequest'
+                  $ref: "#/components/schemas/AstarteMQTTV1CredentialsRequest"
               example:
                 data:
                   csr: >
@@ -331,7 +331,7 @@ paths:
                     -----END CERTIFICATE REQUEST-----
         description: Credentials request
         required: true
-  '/{realm_name}/devices/{hw_id}/protocols/astarte_mqtt_v1/credentials/verify':
+  "/{realm_name}/devices/{hw_id}/protocols/astarte_mqtt_v1/credentials/verify":
     post:
       tags:
         - device
@@ -353,7 +353,7 @@ paths:
           schema:
             type: string
       responses:
-        '200':
+        "200":
           description: Credentials verified
           content:
             application/json:
@@ -374,24 +374,24 @@ paths:
                     data:
                       valid: false
                       cause: INVALID_ISSUER
-        '401':
+        "401":
           description: Unauthorized
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/UnauthorizedResponse'
-        '403':
+                $ref: "#/components/schemas/UnauthorizedResponse"
+        "403":
           description: Forbidden
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ForbiddenResponse'
-        '422':
+                $ref: "#/components/schemas/ForbiddenResponse"
+        "422":
           description: Unprocessable entity
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/GenericErrorResponse'
+                $ref: "#/components/schemas/GenericErrorResponse"
               examples:
                 response:
                   value:
@@ -405,7 +405,7 @@ paths:
               type: object
               properties:
                 data:
-                  $ref: '#/components/schemas/AstarteMQTTV1VerifyCredentialsRequest'
+                  $ref: "#/components/schemas/AstarteMQTTV1VerifyCredentialsRequest"
               example:
                 data:
                   client_crt: >
@@ -476,7 +476,7 @@ components:
         initial_introspection:
           type: object
           additionalProperties:
-            $ref: '#/components/schemas/IntrospectionEntry'
+            $ref: "#/components/schemas/IntrospectionEntry"
           description: >-
             An optional object specifying the initial introspection for the device. The keys
             of the object are the interface names, while the values are objects with the "major"
@@ -535,7 +535,7 @@ components:
       properties:
         valid:
           type: boolean
-          description: 'true if the credentials are valid, false otherwise'
+          description: "true if the credentials are valid, false otherwise"
         timestamp:
           type: integer
           description: the timestamp of the credentials verification

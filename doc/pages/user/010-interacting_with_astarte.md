@@ -2,26 +2,25 @@
 
 Astarte's interaction is logically divided amongst two main entities.
 
-*Devices* are the bottom end, and represent your IoT fleet. They can access Astarte only through a Transport, they are defined by a set of [Interfaces](030-interface.html) which, in turn, also define on a very granular level which kind of data they can exchange. By design, they can't access any resource which isn't their own: such a behavior can be configured using Astarte as a middleman to act as a secure Gateway.
+_Devices_ are the bottom end, and represent your IoT fleet. They can access Astarte only through a Transport, they are defined by a set of [Interfaces](030-interface.html) which, in turn, also define on a very granular level which kind of data they can exchange. By design, they can't access any resource which isn't their own: such a behavior can be configured using Astarte as a middleman to act as a secure Gateway.
 
-*Users* are actual users, applications or anything else which needs to interact directly with Astarte. They are bound to a realm, and can virtually access any resource in that realm given they're authorized to do so. Users can also manage triggers and perform maintenance activity on the Realm.
+_Users_ are actual users, applications or anything else which needs to interact directly with Astarte. They are bound to a realm, and can virtually access any resource in that realm given they're authorized to do so. Users can also manage triggers and perform maintenance activity on the Realm.
 
 ## User-side Tools
 
 When interacting with Astarte as a User, you have several options to choose from:
 
-* [astartectl](https://github.com/astarte-platform/astartectl): `astartectl` is the main command-line tool to interact with Astarte clusters, which packs
+- [astartectl](https://github.com/astarte-platform/astartectl): `astartectl` is the main command-line tool to interact with Astarte clusters, which packs
   in a number of subcommands to interact with Astarte API sets. It is a swiss army knife to perform daily operations on Astarte Clusters, and it abstracts
   most Astarte API interactions in a user-friendly way.
-* [Astarte Dashboard](015-astarte_dashboard.html): Astarte provides a built-in UI that can be used for managing Interfaces, Devices and Triggers.
+- [Astarte Dashboard](015-astarte_dashboard.html): Astarte provides a built-in UI that can be used for managing Interfaces, Devices and Triggers.
   It is meant to be a graphical, user-friendly tool to perform daily operations on Realms.
-* Astarte API Clients: API Clients are provided for a variety of languages. These clients abstract API interaction with language-friendly paradigms, and provide
+- Astarte API Clients: API Clients are provided for a variety of languages. These clients abstract API interaction with language-friendly paradigms, and provide
   API automations for several operations. Currently, the main API client available is [astarte-go](https://github.com/astarte-platform/astarte-go).
-* Astarte APIs: The base APIs are the lower level interaction layer. They are accessible, in standard installations, at `api.<base Astarte URL>/<apiset>`, and are
+- Astarte APIs: The base APIs are the lower level interaction layer. They are accessible, in standard installations, at `api.<base Astarte URL>/<apiset>`, and are
   the main mean of interaction upon which all other clients are based upon.
-* [Grafana Datasource Plugin for Astarte](080-grafana_datasource.md): Thanks to the Astarte Datasource Plugin, data coming from Astarte
+- [Grafana Datasource Plugin for Astarte](080-grafana_datasource.md): Thanks to the Astarte Datasource Plugin, data coming from Astarte
   may be visualised in custom dashboards provided by Grafana, the open source observability platform.
-
 
 Depending on the context, you might want to choose what suits you best. Over the course of the documentation, several examples will be provided with
 interaction means.
@@ -54,8 +53,8 @@ Again, Astarte's SDK allows you to interact with your device interfaces directly
 
 Astarte is mainly accessed through its APIs. Astarte's APIs are exposed through dedicated microservices (see [Components](020-components.html)) and are meant both for configuration and for accessing data. There are two main sets of APIs we'll be using frequently:
 
-* **AppEngine API**: This API is meant for querying/pushing data from/to devices. This maps to `astartectl`'s `astartectl appengine` subcommand.
-* **Realm Management API**: This API is meant for configuring a target realm, and most notably for managing triggers. This maps to `astartectl`'s `astartectl realm-management` subcommand.
+- **AppEngine API**: This API is meant for querying/pushing data from/to devices. This maps to `astartectl`'s `astartectl appengine` subcommand.
+- **Realm Management API**: This API is meant for configuring a target realm, and most notably for managing triggers. This maps to `astartectl`'s `astartectl realm-management` subcommand.
 
 ### Authentication
 
@@ -63,8 +62,8 @@ Authenticating against Astarte is out of the scope of this guide, especially due
 
 ```json
 {
-    "a_aea": ".*:.*",
-    "a_rma": ".*:.*"
+  "a_aea": ".*:.*",
+  "a_rma": ".*:.*"
 }
 ```
 

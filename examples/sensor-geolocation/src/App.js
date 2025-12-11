@@ -1,27 +1,14 @@
-import React, { useState } from "react";
-import {
-  Accordion,
-  Button,
-  Col,
-  Container,
-  FormControl,
-  InputGroup,
-  Row,
-  Spinner,
-} from "react-bootstrap";
 import _ from "lodash";
+import React, { useState } from "react";
+import { Accordion, Button, Col, Container, FormControl, InputGroup, Row, Spinner } from "react-bootstrap";
 
+import { getDeviceData, getInterface, isMissingCredentials } from "./apiHandler";
 import CredentialsModal from "./components/CredentialsModal";
 import SensorLocationList from "./components/SensorLocationList";
-import {
-  getDeviceData,
-  getInterface,
-  isMissingCredentials,
-} from "./apiHandler";
 
 function App() {
   const [showCredentialsModal, setShowCredentialsModal] = useState(
-    isMissingCredentials()
+    isMissingCredentials(),
   );
   const [deviceId, setDeviceId] = useState("");
   const [device, setDevice] = useState();
@@ -34,14 +21,14 @@ function App() {
     const deviceId = res.device.id;
     if (res.availableSensorsInterface) {
       getInterface(deviceId, res.availableSensorsInterface).then(
-        setDeviceSensors
+        setDeviceSensors,
       );
     } else {
       setDeviceSensors({});
     }
     if (res.geolocationInterface) {
       getInterface(deviceId, res.geolocationInterface).then(
-        setSensorsGeolocationData
+        setSensorsGeolocationData,
       );
     } else {
       setSensorsGeolocationData({});
@@ -92,16 +79,18 @@ function App() {
                         variant="primary"
                         className="bg-sensor-theme rounded"
                       >
-                        {loading ? (
-                          <Spinner
-                            as="span"
-                            animation="border"
-                            size="sm"
-                            role="status"
-                          />
-                        ) : (
-                          "SUBMIT"
-                        )}
+                        {loading
+                          ? (
+                            <Spinner
+                              as="span"
+                              animation="border"
+                              size="sm"
+                              role="status"
+                            />
+                          )
+                          : (
+                            "SUBMIT"
+                          )}
                       </Button>
                     </InputGroup.Append>
                   </InputGroup>
@@ -112,9 +101,7 @@ function App() {
                   {!_.isEmpty(device) && (
                     <h6>
                       <span
-                        className={`mr-2 status-dot ${
-                          device.connected ? "green" : "red"
-                        }`}
+                        className={`mr-2 status-dot ${device.connected ? "green" : "red"}`}
                       />
                       Device {device.connected ? "Connected" : "Disconnected"}
                     </h6>

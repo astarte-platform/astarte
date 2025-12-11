@@ -1,5 +1,4 @@
-🧠 Data Updater Plant (dup)
-===================================
+# 🧠 Data Updater Plant (dup)
 
 Data Updater Plant is a replicable, scalable component which takes care of the
 ingestion pipeline. It gathers data from devices and orchestrates data flow
@@ -14,7 +13,7 @@ dealing with massive data flows.
 
 to build dup you can follow the usual elixir flow
 
-``` shell
+```shell
 mix deps.get
 mix compile
 ```
@@ -22,7 +21,7 @@ mix compile
 to lint dup code and get some insights on pattern matching and typing you can
 run dialyzer.
 
-``` shell
+```shell
 mix dialyzer
 ```
 
@@ -34,7 +33,7 @@ a pull request saves everyone some precious review time!
 to test dup you need a running instance of rabbitmq and a cassandra-compatible
 database, (we suggest scylla)
 
-``` shell
+```shell
 docker run --rm -d -p 9042:9042 --name scylla scylladb/scylla
 docker run --rm  -d -p 5672:5672 -p 15672:15672 --name rabbit rabbitmq:3.12.0-management
 ```
@@ -42,13 +41,13 @@ docker run --rm  -d -p 5672:5672 -p 15672:15672 --name rabbit rabbitmq:3.12.0-ma
 by default `RABBITMQ_HOST` and `CASSANDRA_NODES` environment variables map to
 `localhost`, so that
 
-``` shell
+```shell
 mix test
 ```
 
 just works. In more complex scenarios you might need to tell to astarte where
 these resources are located.
 
-``` shell
+```shell
 RABBITMQ_HOST=localhost CASSANDRA_NODES=localhost mix test
 ```

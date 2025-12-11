@@ -30,7 +30,7 @@ From your Dashboard, after logging in, click on "Interfaces" in the left menu.
 `GET <astarte base API URL>/realmmanagement/v1/test/interfaces`
 
 ```json
-{"data": ["com.my.Interface1","com.my.Interface2","com.my.Interface3"]}
+{ "data": ["com.my.Interface1", "com.my.Interface2", "com.my.Interface3"] }
 ```
 
 ### Listing Major Versions for an Interface
@@ -62,7 +62,7 @@ installed major versions for that Interface name.
 `GET <astarte base API URL>/realmmanagement/v1/test/interfaces/com.my.Interface1`
 
 ```json
-{"data": [0,1,2]}
+{ "data": [0, 1, 2] }
 ```
 
 #### Getting an Interface Definition
@@ -182,10 +182,10 @@ Interface com.my.Interface3 updated successfully to version 1.4
 
 After invocation, your Astarte Realm will be up to date with all Interfaces in your local directory.
 
-*Note: `astartectl realm-management interfaces sync` currently synchronizes Interfaces only from
+_Note: `astartectl realm-management interfaces sync` currently synchronizes Interfaces only from
 your local machine to the Realm, and not the other way round. In case the Realm has a more recent
 version of an interface compared to your local files, or it has some interfaces which are not
-referenced by your local files, no action will be taken.*
+referenced by your local files, no action will be taken._
 
 ### Install an Interface using Astarte Dashboard
 
@@ -252,8 +252,8 @@ The POST request must have the following request body, with content type `applic
 
 The call will return either `201 Created` or an error. Most common failure cases are:
 
-* The interface/major combination already exists in the Realm
-* The interface schema fails validation
+- The interface/major combination already exists in the Realm
+- The interface schema fails validation
 
 In any case, the API returns details on what caused the error and how to solve it through Astarte's
 standard error reply schema.
@@ -293,8 +293,7 @@ installed minor.
 
 Major version updates have no intrinsic limitations as they are not meant to ensure compatibility
 with older versions of the same interface. Therefore, if you plan to bump your interface major you
-are allowed to update your interface at your preference. Please, refer to the [Interface Design
-Guide](029-interface_design_guide.html) to follow the best practices while developing your new
+are allowed to update your interface at your preference. Please, refer to the [Interface Design Guide](029-interface_design_guide.html) to follow the best practices while developing your new
 updated interface.
 
 #### Minor version updates
@@ -316,7 +315,7 @@ Currently, based on the interface type and aggregation, different update capabil
 
 - `object aggregated datastream`:
   - currently, due to a limitation in how data are stored within Cassandra, the `doc`, `descriprion`
-    and `explicit-timestamp` fields *can not* be updated;
+    and `explicit-timestamp` fields _can not_ be updated;
   - at mapping level, an arbitrary number of mappings can be added.
 
 Where not explicitly stated, all the other values are to be considered as not updatable. In case you
@@ -330,8 +329,7 @@ latest installed minor version of each major version, due to the inherent compat
 Versioning.
 
 There is no significant cost in adding a non-aggregated interface to a Realm or updating a
-non-aggregated interface frequently - keep in mind, however, that you might incur in [dangling
-data](#dangling-data) in your devices if you don't plan your interface update strategy accurately.
+non-aggregated interface frequently - keep in mind, however, that you might incur in [dangling data](#dangling-data) in your devices if you don't plan your interface update strategy accurately.
 For what concerns Aggregated interfaces, instead, there is [an inherent cost which might end up in
 putting pressure on your Cluster](029-interface_design_guide.html#aggregation-makes-a-difference).
 
@@ -364,7 +362,7 @@ interface versioning on a Device.
 ## Caveats
 
 Due to how minor versions work, it is responsibility of the end user to prevent accidental data loss
-due to missing data. Every mapping declared in a new minor release *must* be assumed as optional, as
+due to missing data. Every mapping declared in a new minor release _must_ be assumed as optional, as
 there is no guarantee that a Device will be able to publish (or receive) data on that specific
 mapping.
 
@@ -375,8 +373,7 @@ version update or a whole new interface instead.
 
 Also, please keep in mind that designing interfaces in the right way, especially being as atomic as
 reasonably possible, helps a lot in preventing situations where a minor interface update can't be
-done without disrupting operations. Again, the [Interface design
-guide](029-interface_design_guide.html) covers this topic extensively.
+done without disrupting operations. Again, the [Interface design guide](029-interface_design_guide.html) covers this topic extensively.
 
 ## Dangling data
 

@@ -4,22 +4,22 @@ on:
   # Run when pushing to stable branches
   push:
     paths:
-    - 'apps/astarte_housekeeping/**'
-    - '.github/workflows/astarte-apps-build-workflow.yaml'
-    - '.github/workflows/astarte-housekeeping-workflow.yaml'
-    - '.github/codecov.yml'
+      - "apps/astarte_housekeeping/**"
+      - ".github/workflows/astarte-apps-build-workflow.yaml"
+      - ".github/workflows/astarte-housekeeping-workflow.yaml"
+      - ".github/codecov.yml"
     branches:
-    - 'master'
-    - 'release-*'
+      - "master"
+      - "release-*"
   # Run on branch/tag creation
   create:
   # Run on pull requests for astarte_housekeeping
   pull_request:
     paths:
-    - 'apps/astarte_housekeeping/**'
-    - '.github/workflows/astarte-apps-build-workflow.yaml'
-    - '.github/workflows/astarte-housekeeping-workflow.yaml'
-    - '.github/codecov.yml'
+      - "apps/astarte_housekeeping/**"
+      - ".github/workflows/astarte-apps-build-workflow.yaml"
+      - ".github/workflows/astarte-housekeeping-workflow.yaml"
+      - ".github/codecov.yml"
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}

@@ -1,13 +1,6 @@
 import React, { useState } from "react";
 import { Button, Col, Form, Modal } from "react-bootstrap";
-import {
-  getAuthToken,
-  getEndpoint,
-  getRealmName,
-  setAuthToken,
-  setEndpoint,
-  setRealmName,
-} from "../apiHandler";
+import { getAuthToken, getEndpoint, getRealmName, setAuthToken, setEndpoint, setRealmName } from "../apiHandler";
 
 const CredentialsModal = (props) => {
   const [credentials, setCredentials] = useState({
@@ -50,9 +43,7 @@ const CredentialsModal = (props) => {
               value={credentials.endpoint}
               required
               name="endpoint"
-              onChange={(e) =>
-                setCredentials({ ...credentials, endpoint: e.target.value })
-              }
+              onChange={(e) => setCredentials({ ...credentials, endpoint: e.target.value })}
               type="text"
               placeholder="Enter Astarte endpoint"
             />
@@ -65,9 +56,7 @@ const CredentialsModal = (props) => {
               value={credentials.realmName}
               required
               name="realmName"
-              onChange={(e) =>
-                setCredentials({ ...credentials, realmName: e.target.value })
-              }
+              onChange={(e) => setCredentials({ ...credentials, realmName: e.target.value })}
               type="text"
               placeholder="Enter Realm name"
             />
@@ -77,9 +66,7 @@ const CredentialsModal = (props) => {
             <Form.Control
               value={credentials.token}
               required
-              onChange={(e) =>
-                setCredentials({ ...credentials, token: e.target.value })
-              }
+              onChange={(e) => setCredentials({ ...credentials, token: e.target.value })}
               name="token"
               type="text"
               placeholder="Enter JWT token with AppEngine claims"

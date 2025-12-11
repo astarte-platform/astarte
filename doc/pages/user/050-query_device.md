@@ -40,49 +40,47 @@ Clicking on the Device ID will take you to its details page.
 
 ```json
 {
-    "data": {
-        "total_received_msgs": 221,
-        "total_received_bytes": 11660,
-        "last_seen_ip": "203.0.113.89",
-        "last_credentials_request_ip": "203.0.113.201",
-        "last_disconnection": "2018-02-07T18:38:57.266Z",
-        "last_connection": "2018-02-08T09:49:26.556Z",
-        "id": "f0VMRgIBAQAAAAAAAAAAAA",
-        "first_registration": "2018-01-31T17:10:59.270Z",
-        "connected": true,
-        "introspection": {
-            "com.example.ExampleInterface" : {
-                "major" : 1,
-                "minor" : 0,
-                "exchanged_msgs": 20,
-                "exchanged_bytes": 200
-            },
-            "org.example.TestInterface" : {
-                "major" : 0,
-                "minor" : 2,
-                "exchanged_msgs": 8,
-                "exchanged_bytes": 147
-            }
-        },
-        "aliases": {
-            "name": "device_a"
-        },
-        "attributes": {
-            "attributes_key": "attributes_value"
-        },
-        "groups": [
-            "my_group",
-        ],
-        "previous_interfaces": [
-            {
-                "name": "com.example.ExampleInterface",
-                "major" : 0,
-                "minor" : 2,
-                "exchanged_msgs": 3,
-                "exchanged_bytes": 120
-            }
-        ]
-    }
+  "data": {
+    "total_received_msgs": 221,
+    "total_received_bytes": 11660,
+    "last_seen_ip": "203.0.113.89",
+    "last_credentials_request_ip": "203.0.113.201",
+    "last_disconnection": "2018-02-07T18:38:57.266Z",
+    "last_connection": "2018-02-08T09:49:26.556Z",
+    "id": "f0VMRgIBAQAAAAAAAAAAAA",
+    "first_registration": "2018-01-31T17:10:59.270Z",
+    "connected": true,
+    "introspection": {
+      "com.example.ExampleInterface": {
+        "major": 1,
+        "minor": 0,
+        "exchanged_msgs": 20,
+        "exchanged_bytes": 200
+      },
+      "org.example.TestInterface": {
+        "major": 0,
+        "minor": 2,
+        "exchanged_msgs": 8,
+        "exchanged_bytes": 147
+      }
+    },
+    "aliases": {
+      "name": "device_a"
+    },
+    "attributes": {
+      "attributes_key": "attributes_value"
+    },
+    "groups": ["my_group"],
+    "previous_interfaces": [
+      {
+        "name": "com.example.ExampleInterface",
+        "major": 0,
+        "minor": 2,
+        "exchanged_msgs": 3,
+        "exchanged_bytes": 120
+      }
+    ]
+  }
 }
 ```
 
@@ -92,14 +90,11 @@ Through the API, it is also possible to get the Introspection of the device only
 
 ```json
 {
-    "data": [
-        "com.example.ExampleInterface",
-        "com.example.TestInterface"
-    ]
+  "data": ["com.example.ExampleInterface", "com.example.TestInterface"]
 }
 ```
 
-This returns the Interfaces which the device reported in its Introspection *and* which are known to the Realm.
+This returns the Interfaces which the device reported in its Introspection _and_ which are known to the Realm.
 
 Arbitrary information can be added to the device by means of `attributes`: they allow to store any
 number of string values associated to a corresponding string key.
@@ -141,13 +136,13 @@ Request body: `{"data": <value>}`
 
 In general, to query AppEngine, the following things must be kept in mind
 
-* When sending data, use `PUT` if dealing with `properties`, `POST` if dealing with `datastream`.
-* When `GET`ting, if you are querying an `aggregate` interface, make sure to query the interface itself rather than its mappings.
-* When `GET`ting `datastream`, keep in mind that AppEngine's default behavior is to return a large as possible timeseries.
+- When sending data, use `PUT` if dealing with `properties`, `POST` if dealing with `datastream`.
+- When `GET`ting, if you are querying an `aggregate` interface, make sure to query the interface itself rather than its mappings.
+- When `GET`ting `datastream`, keep in mind that AppEngine's default behavior is to return a large as possible timeseries.
 
 ## Navigating and retrieving Datastream results through APIs
 
-The Datastream case is significant, as it might be common to have *a lot* of values for each endpoint/interface. As such, returning all of them in a single API call is most of the times not desirable nor recommended.
+The Datastream case is significant, as it might be common to have _a lot_ of values for each endpoint/interface. As such, returning all of them in a single API call is most of the times not desirable nor recommended.
 
 To avoid putting the cluster under excessive pressure, AppEngine API is configured with a hard cap on the maximum number of returned results for each single call, with a sane default of `10000`. Although this hard cap is entirely configurable, please be aware that AppEngine API is designed to process a lot of reasonably small requests in the shortest possible time, and hence is **not optimised nor strongly tested against big requests**. Make sure that AppEngine API has enough resources available to cope with the maximum dataset size.
 
@@ -181,7 +176,7 @@ Due to how LTTB works, `downsample_to` **must** be `>2`, as the algorithm will r
 
 `downsample_to=x` can be used in conjunction with other query parameters, including `limit=y`. When doing so, Astarte will downsample to `x` samples the dataset composed of the last `y` values. Every feature previously outlined is in fact available with downsampling, including pagination - bear in mind, though, that for how the algorithm works, some options have drastically different semantic effects.
 
-Also, the hard cap has a very different meaning in downsampling. In this case, the hard cap applies to `downsample_to` instead of `limit`. `limit` can be an arbitrarly large amount of samples taken out of the DB, and can be used mainly to alleviate pressure in case of *extremely* large datasets which would require a lot of time for being processed by LTTB - even though, most of the time, you might want to define a time window to downsample instead.
+Also, the hard cap has a very different meaning in downsampling. In this case, the hard cap applies to `downsample_to` instead of `limit`. `limit` can be an arbitrarly large amount of samples taken out of the DB, and can be used mainly to alleviate pressure in case of _extremely_ large datasets which would require a lot of time for being processed by LTTB - even though, most of the time, you might want to define a time window to downsample instead.
 
 Astarte is also capable of downsampling aggregated interfaces, as long as a `downsample_key` is specified, which has to match the last token of an `endpoint` of the queried `interface` (i.e. in case the interface has a `/%{id}/myValue` mapping which should be used as the `downsample_key`, you should specify `downsample_key=myValue` in the query). When doing so, the aggregate will be downsampled using the chosen `endpoint` value as the `y` axis value, whereas its other `endpoints` will be disregarded when applying the algorithm. Please note that, no matter what `downsample_key` is used, a sample will be composed by the whole aggregation.
 

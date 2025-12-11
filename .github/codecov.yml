@@ -24,8 +24,7 @@ ignore:
 
 comment:
   layout: "header, diff, files, flags"
-  require_changes: yes
-
+  require_changes: true
 
 flag_management:
   default_rules:

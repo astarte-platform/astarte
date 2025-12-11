@@ -1,13 +1,5 @@
 import React, { Component } from "react";
-import {
-  Button,
-  Col,
-  Container,
-  FormControl,
-  InputGroup,
-  Row,
-  Spinner,
-} from "react-bootstrap";
+import { Button, Col, Container, FormControl, InputGroup, Row, Spinner } from "react-bootstrap";
 import CredentialsModal from "./CredentialsModal";
 
 import ApiHandler from "../apiHandler";
@@ -72,10 +64,10 @@ class SensorViewer extends Component {
     const id = res.id;
     const interfaces = Object.keys(res.introspection);
     const samplingRateInterface = interfaces.find(
-      (key) => key.search(INTERFACES.SAMPLING_RATE) > -1
+      (key) => key.search(INTERFACES.SAMPLING_RATE) > -1,
     );
     const valueInterface = interfaces.find(
-      (key) => key.search(INTERFACES.VALUES) > -1
+      (key) => key.search(INTERFACES.VALUES) > -1,
     );
     this.setState({
       data: res,
@@ -119,10 +111,8 @@ class SensorViewer extends Component {
         <Container>
           <Row>
             <Col xs={12} className="p-0">
-              <h5
-                className="sensor-main-div text-center text-uppercase
-                            text-white bg-sensor-theme mb-5 px-0 py-3"
-              >
+              <h5 className="sensor-main-div text-center text-uppercase
+                            text-white bg-sensor-theme mb-5 px-0 py-3">
                 <b>Sensor Configuration</b>
               </h5>
               <Col xs={12} className="sensor-id-search-div px-5 pt-5 pb-4">
@@ -148,17 +138,19 @@ class SensorViewer extends Component {
                                       text-uppercase px-4
                                        text-decoration-none rounded"
                         >
-                          {loading ? (
-                            <Spinner
-                              as="span"
-                              animation="border"
-                              size="sm"
-                              role="status"
-                              aria-hidden="true"
-                            />
-                          ) : (
-                            "Show"
-                          )}
+                          {loading
+                            ? (
+                              <Spinner
+                                as="span"
+                                animation="border"
+                                size="sm"
+                                role="status"
+                                aria-hidden="true"
+                              />
+                            )
+                            : (
+                              "Show"
+                            )}
                         </Button>
                       </InputGroup.Append>
                     </InputGroup>
@@ -166,19 +158,21 @@ class SensorViewer extends Component {
                 </Row>
 
                 <Row className="card-main-row">
-                  {!_.isEmpty(sensorValues) ? (
-                    <SensorSamplingUpdate
-                      data={data}
-                      astarte={astarte}
-                      sensorValues={sensorValues}
-                      setCredentials={this.setCredentials}
-                      samplingRateInterface={samplingRateInterface}
-                      refreshSamplingRate={this.refreshSamplingRate}
-                      sensorSamplingRate={sensorSamplingRate}
-                    />
-                  ) : (
-                    ""
-                  )}
+                  {!_.isEmpty(sensorValues)
+                    ? (
+                      <SensorSamplingUpdate
+                        data={data}
+                        astarte={astarte}
+                        sensorValues={sensorValues}
+                        setCredentials={this.setCredentials}
+                        samplingRateInterface={samplingRateInterface}
+                        refreshSamplingRate={this.refreshSamplingRate}
+                        sensorSamplingRate={sensorSamplingRate}
+                      />
+                    )
+                    : (
+                      ""
+                    )}
                 </Row>
               </Col>
             </Col>

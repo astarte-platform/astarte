@@ -1,5 +1,4 @@
-🧹 Astarte Housekeeping (hk)
-============================
+# 🧹 Astarte Housekeeping (hk)
 
 Housekeeping is the equivalent of a superadmin API. It is usually not accessible
 to the end user but rather to Astarte's administrator who, in most cases, might
@@ -10,7 +9,7 @@ cluster-wide maintenance actions.
 
 to build hk you can follow the usual elixir flow
 
-``` shell
+```shell
 mix deps.get
 mix compile
 ```
@@ -18,7 +17,7 @@ mix compile
 to lint hk code and get some insights on pattern matching and typing you can
 run dialyzer.
 
-``` shell
+```shell
 mix dialyzer
 ```
 
@@ -30,19 +29,19 @@ a pull request saves everyone some precious review time!
 to test hk you need a running instance of rabbitmq and a cassandra-compatible
 database, (we suggest scylla)
 
-``` shell
+```shell
 docker run --rm -d -p 9042:9042 --name scylla scylladb/scylla
 ```
 
 by default `CASSANDRA_NODES` environment variable map to `localhost`, so that
 
-``` shell
+```shell
 mix test
 ```
 
 just works. In more complex scenarios you might need to tell to astarte where
 these resources are located.
 
-``` shell
+```shell
 CASSANDRA_NODES=localhost mix test
 ```
