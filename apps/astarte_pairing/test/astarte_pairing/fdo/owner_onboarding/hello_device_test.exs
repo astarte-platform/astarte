@@ -72,6 +72,21 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding.HelloDeviceTest do
 
       assert {:error, :message_body_error} == HelloDevice.decode(invalid_binary)
     end
+
+    test "Decodes a hello device with ES384 signature info", %{valid_data: base_data} do
+      es384_raw_sig_info = [-35, %CBOR.Tag{tag: :bytes, value: <<>>}]
+
+      data_es384 = %{base_data | easig_info: es384_raw_sig_info}
+
+      cbor_payload =
+        hello_device_list(data_es384)
+        |> CBOR.encode()
+
+      assert {:ok, %HelloDevice{} = hello_device} = HelloDevice.decode(cbor_payload)
+      assert hello_device.easig_info == :es384
+
+      assert hello_device.kex_name == base_data.kex_name
+    end
   end
 
   defp hello_device_list(data) do

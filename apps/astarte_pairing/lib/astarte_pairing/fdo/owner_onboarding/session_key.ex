@@ -28,6 +28,12 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding.SessionKey do
     {:ok, random, xa}
   end
 
+  def new("ECDH384", %ECC{} = key) do
+    random = :crypto.strong_rand_bytes(48)
+    xa = random_ecdh(key, random)
+    {:ok, random, xa}
+  end
+
   defp random_ecdh(key, random) do
     blen_r = byte_size(random)
     blen_x = byte_size(key.x)
