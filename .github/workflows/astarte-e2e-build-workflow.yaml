@@ -2,6 +2,7 @@ name: Astarte end-to-end build
 
 on:
   workflow_call:
+  workflow_dispatch:
 
 env:
   elixir_version: "1.15"
