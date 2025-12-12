@@ -34,6 +34,10 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding.SessionKey do
     {:ok, random, xa}
   end
 
+  def new(_suite, _) do
+    {:error, :invalid_message}
+  end
+
   defp random_ecdh(key, random) do
     blen_r = byte_size(random)
     blen_x = byte_size(key.x)
@@ -43,7 +47,8 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding.SessionKey do
       key.y::binary, blen_r::integer-unsigned-size(16), random::binary>>
   end
 
-  def compute_shared_secret("ECDH256", %ECC{} = owner_key, owner_random, xb) do
+  def compute_shared_secret(suite, %ECC{} = owner_key, owner_random, xb)
+      when suite in ["ECDH256", "ECDH384"] do
     {device_random, device_public} = parse_xb_ecdh(xb)
     shse = shared_secret_ecdh(owner_key, owner_random, device_random, device_public)
     {:ok, shse}
@@ -63,24 +68,80 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding.SessionKey do
   end
 
   defp shared_secret_ecdh(owner_key, owner_random, device_random, device_public) do
-    point = {:ECPoint, device_public}
-    shared_secret = :public_key.compute_key(point, owner_key.pem_record)
+    curve =
+      ECC.curve(owner_key)
+
+    shared_secret =
+      :crypto.compute_key(:ecdh, device_public, owner_key.d, curve)
 
     <<shared_secret::binary, device_random::binary, owner_random::binary>>
   end
 
-  def derive_key(:aes_256_gcm, shared_secret, _owner_random) do
-    context_random = <<>>
+  def derive_key("ECDH256", cipher_name, shared_secret, _owner_random)
+      when cipher_name in [:aes_128_gcm, :aes_128_ctr, :aes_128_cbc] do
+    derive_sevk(
+      cipher_name,
+      cipher_name,
+      :hmac,
+      :sha256,
+      shared_secret,
+      <<>>,
+      128,
+      256
+    )
+  end
 
+  def derive_key("ECDH256", cipher_name, shared_secret, _owner_random)
+      when cipher_name == :aes_256_gcm do
+    derive_sevk(
+      cipher_name,
+      cipher_name,
+      :hmac,
+      :sha256,
+      shared_secret,
+      <<>>,
+      256,
+      256
+    )
+  end
+
+  def derive_key("ECDH384", cipher_name, shared_secret, _owner_random)
+      when cipher_name in [:aes_128_gcm, :aes_128_ctr, :aes_128_cbc] do
+    derive_sevk(
+      cipher_name,
+      cipher_name,
+      :hmac,
+      :sha384,
+      shared_secret,
+      <<>>,
+      128,
+      384
+    )
+  end
+
+  def derive_key("ECDH384", :aes_192_gcm, shared_secret, _owner_random) do
+    derive_sevk(
+      :aes_192_gcm,
+      :aes_192_gcm,
+      :hmac,
+      :sha384,
+      shared_secret,
+      <<>>,
+      192,
+      384
+    )
+  end
+
+  def derive_key("ECDH384", :aes_256_gcm, shared_secret, _owner_random) do
     derive_sevk(
       :aes_256_gcm,
       :aes_256_gcm,
       :hmac,
-      :sha256,
+      :sha384,
       shared_secret,
-      context_random,
+      <<>>,
       256,
-      256
+      384
     )
   end
 

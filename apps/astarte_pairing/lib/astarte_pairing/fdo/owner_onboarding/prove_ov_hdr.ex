@@ -135,12 +135,12 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding.ProveOVHdr do
     |> CBOR.encode()
   end
 
-  def encode_sign(p, dv_nonce, owner_public_key, owner_private_key) do
+  def encode_sign(p, dv_nonce, owner_public_key, owner_private_key, signing_alg) do
     payload = encode_cbor(p)
 
     # TODO: choose alg based on owner key type
     phdr = %{
-      alg: :es256
+      alg: signing_alg
     }
 
     uhdr = %{

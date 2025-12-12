@@ -62,7 +62,7 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding.SessionTest do
     %{session: session}
   end
 
-  describe "new/5" do
+  describe "new/4" do
     test "returns required session information", context do
       %{
         realm: realm_name,
@@ -71,7 +71,9 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding.SessionTest do
         ownership_voucher: ownership_voucher
       } = context
 
-      assert {:ok, session} = Session.new(realm_name, hello_device, ownership_voucher, owner_key)
+      assert {:ok, session} =
+               Session.new(realm_name, hello_device, ownership_voucher, owner_key)
+
       assert is_binary(session.key)
       assert session.prove_dv_nonce
       assert session.owner_random
@@ -118,6 +120,39 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding.SessionTest do
       assert %COSE.Keys.Symmetric{k: binary_key, alg: alg} = session.sevk
       assert is_binary(binary_key)
       assert alg == :aes_256_gcm
+    end
+  end
+
+  describe "derive_key/2 with P-384 (ECDH384)" do
+    setup %{realm: realm_name} do
+      {p384_voucher, owner_key_pem} = generate_p384_x5chain_data_and_pem()
+      {:ok, p384_owner_key} = COSE.Keys.from_pem(owner_key_pem)
+
+      device_id = p384_voucher.header.guid
+
+      hello_device =
+        HelloDevice.generate(
+          device_id: device_id,
+          kex_name: "ECDH384",
+          easig_info: :es384
+        )
+
+      p384_device_key = COSE.Keys.ECC.generate(:es384)
+      {:ok, _dev_rand, xb} = SessionKey.new("ECDH384", p384_device_key)
+
+      {:ok, session} =
+        Session.new(realm_name, hello_device, p384_voucher, p384_owner_key)
+
+      {:ok, session_with_secret} =
+        Session.build_session_secret(session, realm_name, p384_owner_key, xb)
+
+      %{session: session_with_secret}
+    end
+
+    test "successfully derives keys using SHA-384 logic", %{session: session, realm: realm_name} do
+      assert {:ok, derived_session} = Session.derive_key(session, realm_name)
+      assert %COSE.Keys.Symmetric{k: key_bytes, alg: :aes_256_gcm} = derived_session.sevk
+      assert byte_size(key_bytes) == 32
     end
   end
 end

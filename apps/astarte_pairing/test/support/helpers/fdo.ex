@@ -27,6 +27,10 @@ defmodule Astarte.Helpers.FDO do
   alias Astarte.Pairing.FDO.OwnershipVoucher.RendezvousInfo
   alias Astarte.Pairing.FDO.OwnershipVoucher.RendezvousInfo.RendezvousDirective
   alias Astarte.Pairing.FDO.OwnershipVoucher.RendezvousInfo.RendezvousInstr
+  alias Astarte.Pairing.FDO.Types.PublicKey
+  alias Astarte.Pairing.FDO.Types.Hash
+  alias COSE.Keys.ECC
+  alias COSE.Messages.Sign1
 
   @sample_voucher """
   -----BEGIN OWNERSHIP VOUCHER-----
@@ -168,5 +172,196 @@ defmodule Astarte.Helpers.FDO do
       device_id: device_id
     }
     |> Repo.insert(prefix: Realm.keyspace_name(realm_name))
+  end
+
+  def generate_p384_x5chain_data_and_pem do
+    generate_voucher_data_and_pem(curve: :p384, encoding: :x5chain)
+  end
+
+  def generate_p384_x509_data_and_pem do
+    generate_voucher_data_and_pem(curve: :p384, encoding: :x509)
+  end
+
+  def generate_p256_x5chain_data_and_pem do
+    generate_voucher_data_and_pem(curve: :p256, encoding: :x5chain)
+  end
+
+  def generate_p256_x509_data_and_pem do
+    generate_voucher_data_and_pem()
+  end
+
+  # Generic generator for all suported curve e encoding
+  # Options:
+  #   :curve -> :p256 o :p384 (default :p256)
+  #   :encoding -> :x509 o :x5chain (default :x509)
+  def generate_voucher_data_and_pem(opts \\ []) do
+    curve = Keyword.get(opts, :curve, :p256)
+    encoding = Keyword.get(opts, :encoding, :x509)
+
+    # Curve parameters
+    {oid, hash_alg, sig_alg, _fdo_alg_id, pub_key_type} = get_curve_params(curve)
+
+    cose_alg = if curve == :p256, do: :es256, else: :es384
+
+    cose_key = ECC.generate(cose_alg)
+
+    device_pub_key_point = <<4, cose_key.x::binary, cose_key.y::binary>>
+
+    device_priv_key = {
+      :ECPrivateKey,
+      1,
+      cose_key.d,
+      {:namedCurve, oid},
+      device_pub_key_point,
+      :asn1_NOVALUE
+    }
+
+    # Self signed cert
+    cert_der = generate_self_signed_cert(device_pub_key_point, device_priv_key, oid, sig_alg)
+
+    pem =
+      :public_key.pem_entry_encode(:ECPrivateKey, device_priv_key)
+      |> List.wrap()
+      |> :public_key.pem_encode()
+
+    pub_key_body =
+      case encoding do
+        :x5chain -> [cert_der]
+        :x509 -> cert_der
+      end
+
+    # Entry Payload (COSE Key)
+    entry_payload_bin = create_cose_key_entry_payload(cose_key, curve)
+
+    guid_raw = UUID.uuid4(:raw)
+
+    chain_data_to_hash =
+      case pub_key_body do
+        list when is_list(list) -> Enum.join(list)
+        bin -> bin
+      end
+
+    cert_chain_hash_struct = Hash.new(hash_alg, chain_data_to_hash)
+
+    rv_info = %RendezvousInfo{
+      directives: [
+        %RendezvousDirective{
+          instructions: [
+            %RendezvousInstr{rv_variable: :dev_port, rv_value: <<25, 31, 146>>},
+            %RendezvousInstr{rv_variable: :ip_address, rv_value: <<68, 127, 0, 0, 1>>},
+            %RendezvousInstr{rv_variable: :owner_port, rv_value: <<25, 31, 146>>},
+            %RendezvousInstr{rv_variable: :protocol, rv_value: <<1>>}
+          ]
+        }
+      ]
+    }
+
+    header_struct = %OwnershipVoucher.Header{
+      guid: guid_raw,
+      device_info: "#{curve}-device",
+      public_key: %PublicKey{type: pub_key_type, encoding: encoding, body: pub_key_body},
+      rendezvous_info: rv_info,
+      cert_chain_hash: cert_chain_hash_struct,
+      protocol_version: 101
+    }
+
+    {hmac_len, hmac_type} =
+      case hash_alg do
+        :sha256 -> {32, :hmac_sha256}
+        :sha384 -> {48, :hmac_sha384}
+      end
+
+    hmac_bytes = :crypto.strong_rand_bytes(hmac_len)
+    hmac_struct = %Hash{type: hmac_type, hash: hmac_bytes}
+
+    protected_header = %{alg: cose_alg}
+    unprotected_header_map = %{}
+
+    sign1_msg = Sign1.build(entry_payload_bin, protected_header, unprotected_header_map)
+
+    entry_tag = Sign1.sign_encode(sign1_msg, cose_key)
+
+    voucher = %OwnershipVoucher{
+      header: header_struct,
+      hmac: hmac_struct,
+      entries: [entry_tag],
+      protocol_version: 101,
+      cert_chain: [cert_der]
+    }
+
+    {voucher, pem}
+  end
+
+  defp get_curve_params(:p256) do
+    # OID, HashAlg, SigAlg, COSE Alg ID (:es256 = -7), PublicKeyType (:secp256r1 = 10)
+    {{1, 2, 840, 10045, 3, 1, 7}, :sha256, {:sha256, :ecdsa}, -7, :secp256r1}
+  end
+
+  defp get_curve_params(:p384) do
+    # OID, HashAlg, SigAlg, COSE Alg ID (:es384 = -35), PublicKeyType (:secp384r1 = 11)
+    {{1, 3, 132, 0, 34}, :sha384, {:sha384, :ecdsa}, -35, :secp384r1}
+  end
+
+  defp generate_self_signed_cert(pub_key_point, priv_key, oid, sig_alg) do
+    sig_oid =
+      case sig_alg do
+        {:sha256, :ecdsa} -> {1, 2, 840, 10045, 4, 3, 2}
+        {:sha384, :ecdsa} -> {1, 2, 840, 10045, 4, 3, 3}
+      end
+
+    validity = {:Validity, {:utcTime, ~c"240101000000Z"}, {:utcTime, ~c"340101000000Z"}}
+
+    subject =
+      {:rdnSequence, [[{:AttributeTypeAndValue, {2, 5, 4, 3}, {:utf8String, "Test Device"}}]]}
+
+    spki =
+      {:OTPSubjectPublicKeyInfo,
+       {:PublicKeyAlgorithm, {1, 2, 840, 10045, 2, 1}, {:namedCurve, oid}},
+       {:ECPoint, pub_key_point}}
+
+    tbs_cert =
+      {
+        :OTPTBSCertificate,
+        :v3,
+        123_456,
+        {:SignatureAlgorithm, sig_oid, :asn1_NOVALUE},
+        subject,
+        validity,
+        subject,
+        spki,
+        :asn1_NOVALUE,
+        :asn1_NOVALUE,
+        :asn1_NOVALUE
+      }
+
+    :public_key.pkix_sign(tbs_cert, priv_key)
+  end
+
+  defp create_cose_key_entry_payload(%ECC{x: x, y: y}, curve) do
+    {cose_crv, cose_alg} =
+      if curve == :p256, do: {1, -7}, else: {2, -35}
+
+    cose_key_map = %{
+      1 => 2,
+      -1 => cose_crv,
+      3 => cose_alg,
+      -2 => x,
+      -3 => y
+    }
+
+    type_int = if curve == :p256, do: 10, else: 11
+    enc_int = 3
+
+    key_bytes = CBOR.encode(cose_key_map)
+
+    fdo_public_key = [
+      type_int,
+      enc_int,
+      %CBOR.Tag{tag: :bytes, value: key_bytes}
+    ]
+
+    entry_list = [<<>>, <<>>, <<>>, fdo_public_key]
+
+    CBOR.encode(entry_list)
   end
 end

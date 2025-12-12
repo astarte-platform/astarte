@@ -42,6 +42,8 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding do
   alias Astarte.Pairing.FDO.OwnerOnboarding.DeviceServiceInfoReady
   alias Astarte.Pairing.FDO.OwnerOnboarding.OwnerServiceInfoReady
   alias Astarte.Pairing.FDO.OwnershipVoucher.Header
+  alias Astarte.Pairing.FDO.OwnerOnboarding.KeyExchangeStrategy
+  alias Astarte.Pairing.FDO.OwnershipVoucher.Header
 
   require Logger
 
@@ -53,12 +55,21 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding do
          device_id = hello_device.device_id,
          {:ok, ownership_voucher} <- OwnershipVoucher.fetch(realm_name, device_id),
          {:ok, owner_private_key} <- fetch_owner_private_key(realm_name, device_id),
+         {:ok, signing_alg} <- get_signing_alg(owner_private_key),
          {:ok, pub_key} <- OwnershipVoucher.owner_public_key(ownership_voucher),
+         :ok <- KeyExchangeStrategy.validate(hello_device.kex_name, owner_private_key),
          {:ok, session} <-
-           Session.new(realm_name, hello_device, ownership_voucher, owner_private_key) do
+           Session.new(
+             realm_name,
+             hello_device,
+             ownership_voucher,
+             owner_private_key
+           ) do
       encoded_pub_key = PublicKey.encode(pub_key)
       num_ov_entries = Enum.count(ownership_voucher.entries)
+
       hello_device_hash = Hash.new(:sha256, cbor_hello_device)
+
       eb_sig_info = DeviceAttestation.eb_sig_info(session.device_signature)
 
       cbor_ov_header = Header.cbor_encode(ownership_voucher.header)
@@ -81,7 +92,8 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding do
           prove_ovh,
           session.prove_dv_nonce,
           encoded_pub_key,
-          owner_private_key
+          owner_private_key,
+          signing_alg
         )
 
       {:ok, session.key, message}
@@ -290,5 +302,13 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding do
 
   defp build_done2_message(setup_dv_nonce) do
     %Done2Payload{:nonce_to2_setup_dv => setup_dv_nonce} |> Done2Payload.encode()
+  end
+
+  defp get_signing_alg(%COSE.Keys.ECC{alg: alg}) do
+    case alg do
+      :es256 -> {:ok, :es256}
+      :es384 -> {:ok, :es384}
+      _ -> {:error, :unsupported_owner_key_algorithm}
+    end
   end
 end

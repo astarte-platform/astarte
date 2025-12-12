@@ -53,22 +53,26 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding.Session do
     prove_dv_nonce = :crypto.strong_rand_bytes(16)
 
     %HelloDevice{
-      kex_name: kex,
       device_id: device_id,
       easig_info: easig_info,
-      cipher_name: cipher_suite_name
-    } = hello_device
+      cipher_name: cipher_suite_name,
+      kex_name: kex_name
+    } =
+      hello_device
 
-    with {:ok, owner_random, xa} <- SessionKey.new(kex, owner_key),
-         {:ok, device_signature} <- SignatureInfo.validate(easig_info, ownership_voucher),
-         signature_params = SignatureInfo.device_signature_to_database_params(device_signature),
-         session_params = %TO2Session{
-           device_id: device_id,
-           prove_dv_nonce: prove_dv_nonce,
-           kex_suite_name: kex,
-           cipher_suite_name: cipher_suite_name,
-           owner_random: owner_random
-         },
+    with {:ok, owner_random, xa} <- SessionKey.new(kex_name, owner_key),
+         {:ok, device_signature} <-
+           SignatureInfo.validate(easig_info, ownership_voucher),
+         signature_params =
+           SignatureInfo.device_signature_to_database_params(device_signature),
+         session_params =
+           %TO2Session{
+             device_id: device_id,
+             prove_dv_nonce: prove_dv_nonce,
+             kex_suite_name: kex_name,
+             cipher_suite_name: cipher_suite_name,
+             owner_random: owner_random
+           },
          session_params = Map.merge(session_params, signature_params),
          :ok <-
            Queries.store_session(
@@ -76,16 +80,17 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding.Session do
              key,
              session_params
            ) do
-      session = %Session{
-        key: UUID.binary_to_string!(key),
-        device_id: device_id,
-        prove_dv_nonce: prove_dv_nonce,
-        kex_suite_name: kex,
-        cipher_suite: cipher_suite_name,
-        owner_random: owner_random,
-        xa: xa,
-        device_signature: device_signature
-      }
+      session =
+        %Session{
+          key: UUID.binary_to_string!(key),
+          device_id: device_id,
+          prove_dv_nonce: prove_dv_nonce,
+          kex_suite_name: kex_name,
+          cipher_suite: cipher_suite_name,
+          owner_random: owner_random,
+          xa: xa,
+          device_signature: device_signature
+        }
 
       {:ok, session}
     end
@@ -178,13 +183,15 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding.Session do
 
   def derive_key(session, realm_name) do
     %Session{
+      kex_suite_name: kex_suite_name,
       cipher_suite: cipher_suite,
       secret: secret,
       owner_random: owner_random,
       key: session_key
     } = session
 
-    with {:ok, sevk, svk, sek} <- SessionKey.derive_key(cipher_suite, secret, owner_random),
+    with {:ok, sevk, svk, sek} <-
+           SessionKey.derive_key(kex_suite_name, cipher_suite, secret, owner_random),
          [db_sevk, db_svk, db_sek] = Enum.map([sevk, svk, sek], &SessionKey.to_db/1),
          :ok <- Queries.add_session_keys(realm_name, session_key, db_sevk, db_svk, db_sek) do
       {:ok, %{session | sevk: sevk, svk: svk, sek: sek}}

@@ -140,8 +140,8 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding.HelloDevice do
   defp parse_hello_device(_), do: {:error, :message_body_error}
 
   @doc false
-  def generate do
-    %HelloDevice{
+  def generate(opts \\ []) do
+    defaults = %HelloDevice{
       max_size: 1_000,
       device_id: Astarte.Core.Device.random_device_id(),
       nonce: :crypto.strong_rand_bytes(16),
@@ -149,6 +149,8 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding.HelloDevice do
       cipher_name: :aes_256_gcm,
       easig_info: :es256
     }
+
+    struct(defaults, opts)
   end
 
   defp decode_cipher(cipher) do
@@ -163,4 +165,28 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding.HelloDevice do
         {:error, :invalid_message}
     end
   end
+
+  def encode(hello_device) do
+    cipher_id = COSE.algorithm(hello_device.cipher_name)
+
+    sig_info_cbor =
+      case hello_device.easig_info do
+        atom when is_atom(atom) ->
+          [COSE.algorithm(atom), %CBOR.Tag{tag: :bytes, value: <<>>}]
+
+        val ->
+          val
+      end
+
+    [
+      hello_device.max_size,
+      %CBOR.Tag{tag: :bytes, value: hello_device.device_id},
+      %CBOR.Tag{tag: :bytes, value: hello_device.nonce},
+      hello_device.kex_name,
+      cipher_id,
+      sig_info_cbor
+    ]
+  end
+
+  def cbor_encode(hello_device), do: encode(hello_device) |> CBOR.encode()
 end
