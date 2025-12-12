@@ -42,7 +42,9 @@ jobs:
       - name: Restore astarte images
         uses: actions/download-artifact@v4
         with:
-          name: astarte-images
+          # Download all app images; merge them into the same directory for loading
+          pattern: astarte-images-*
+          merge-multiple: true
           path: ${{ runner.temp }}
       - name: Restore astarte e2e image
         uses: actions/download-artifact@v4
