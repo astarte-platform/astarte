@@ -1,6 +1,22 @@
-defmodule Astarte.DatabaseTestdata do
-  alias Astarte.Export.FetchData.Queries
+#
+# This file is part of Astarte.
+#
+# Copyright 2025 SECO Mind Srl
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
 
+defmodule Astarte.DatabaseTestdata do
   @create_test """
     CREATE KEYSPACE test
       WITH
@@ -73,7 +89,6 @@ defmodule Astarte.DatabaseTestdata do
   @create_interfaces_table """
    CREATE TABLE test.interfaces (
     name ascii,
-    interface_name ascii,
     major_version int,
     aggregation int,
     automaton_accepting_states blob,
@@ -327,12 +342,6 @@ defmodule Astarte.DatabaseTestdata do
     """
   ]
 
-  @devices [
-    """
-    INSERT INTO test.devices (device_id, aliases, attributes, cert_aki, cert_serial, connected, credentials_secret, exchanged_bytes_by_interface, exchanged_msgs_by_interface, first_credentials_request, first_registration, groups, capabilities, inhibit_credentials_request, introspection, introspection_minor, last_connection, last_credentials_request_ip, last_disconnection, last_seen_ip, old_introspection, pending_empty_cache, protocol_revision, total_received_bytes, total_received_msgs) VALUES (c8a03708-c774-ee45-9a0f-28fa68c3f80e, {'alias': 'value_of_alias'}, {'attribute': 'value_of_attribute'}, 'a8eaf08a797f0b10bb9e7b5dca027ec2571c5ea6', '324725654494785828109237459525026742139358888604', False, '$2b$12$bKly9EEKmxfVyDeXjXu1vOebWgr34C8r4IHd9Cd.34Ozm0TWVo1Ve', null, null, '2019-05-30 13:49:57.355+0000', '2019-05-30 13:49:57.045+0000', null, {purge_properties_compression_format: 0}, False, {'objectdatastreams.org': 1, 'org.individualdatastreams.values': 0, 'properties.org': 0}, {'objectdatastreams.org': 0, 'org.individualdatastreams.values': 1, 'properties.org': 1}, '2019-05-30 13:49:57.561+0000', '198.51.100.1', '2019-05-30 13:51:00.038+0000', '198.51.100.89', {('objectdatastreams.org', 0): 1}, False, 0, 3960, 64);
-    """
-  ]
-
   @drop_keyspace """
   DROP KEYSPACE IF EXISTS test
   """
@@ -368,13 +377,6 @@ defmodule Astarte.DatabaseTestdata do
           create_tables,
           fn table_statement ->
             {:ok, %Xandra.SchemaChange{}} = Xandra.execute(conn, table_statement, [], [])
-          end
-        )
-
-        Enum.each(
-          @devices,
-          fn statement ->
-            {:ok, _} = Xandra.execute(conn, statement, [], [])
           end
         )
 

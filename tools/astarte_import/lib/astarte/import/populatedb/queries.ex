@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2019 Ispirata Srl
+# Copyright 2019 - 2025 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -31,13 +31,14 @@ defmodule Astarte.Import.PopulateDB.Queries do
     """
 
     params = [
-      {"map<ascii, int>", introspection},
-      {"map<ascii, int>", introspection_minor},
-      {"uuid", device_id}
+      introspection,
+      introspection_minor,
+      device_id
     ]
 
-    with {:ok, _} <-
-           Xandra.execute(conn, introspection_update_statement, params, consistency: :quorum) do
+    with {:ok, prepared} <- Xandra.prepare(conn, introspection_update_statement),
+         {:ok, _} <-
+           Xandra.execute(conn, prepared, params, consistency: :quorum) do
       :ok
     else
       {:error, %Xandra.Error{message: message} = err} ->
@@ -58,12 +59,13 @@ defmodule Astarte.Import.PopulateDB.Queries do
     """
 
     params = [
-      {"map<frozen<tuple<ascii, int>>, int>", old_interfaces},
-      {"uuid", device_id}
+      old_interfaces,
+      device_id
     ]
 
-    with {:ok, _} <-
-           Xandra.execute(conn, old_introspection_update_statement, params, consistency: :quorum) do
+    with {:ok, prepared} <- Xandra.prepare(conn, old_introspection_update_statement),
+         {:ok, _} <-
+           Xandra.execute(conn, prepared, params, consistency: :quorum) do
       :ok
     else
       {:error, %Xandra.Error{message: message} = err} ->
@@ -76,22 +78,36 @@ defmodule Astarte.Import.PopulateDB.Queries do
     end
   end
 
-  def do_register_device({conn, realm}, device_id, credentials_secret, registration_timestamp) do
+  def do_register_device(
+        {conn, realm},
+        device_id,
+        connected,
+        aliases,
+        attributes,
+        capabilities,
+        credentials_secret,
+        registration_timestamp
+      ) do
     statement = """
     INSERT INTO #{realm}.devices
     (
-      device_id, first_registration, credentials_secret, inhibit_credentials_request,
-      protocol_revision, total_received_bytes, total_received_msgs
-    ) VALUES (?, ?, ?, false, 0, 0, 0)
+      device_id, connected, first_registration, aliases, attributes, capabilities,
+      credentials_secret, inhibit_credentials_request, protocol_revision, total_received_bytes, total_received_msgs
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, false, 0, 0, 0)
     """
 
     params = [
-      {"uuid", device_id},
-      {"timestamp", registration_timestamp},
-      {"ascii", credentials_secret}
+      device_id,
+      connected,
+      registration_timestamp,
+      aliases,
+      attributes,
+      capabilities,
+      credentials_secret
     ]
 
-    with {:ok, _} <- Xandra.execute(conn, statement, params, consistency: :quorum) do
+    with {:ok, prepared} <- Xandra.prepare(conn, statement),
+         {:ok, _} <- Xandra.execute(conn, prepared, params, consistency: :quorum) do
       :ok
     else
       {:error, %Xandra.Error{message: message} = err} ->
@@ -119,14 +135,15 @@ defmodule Astarte.Import.PopulateDB.Queries do
     """
 
     params = [
-      {"ascii", aki},
-      {"ascii", serial},
-      {"inet", device_ip},
-      {"timestamp", first_credentials_request_timestamp},
-      {"uuid", device_id}
+      aki,
+      serial,
+      device_ip,
+      first_credentials_request_timestamp,
+      device_id
     ]
 
-    with {:ok, _} <- Xandra.execute(conn, statement, params, consistency: :quorum) do
+    with {:ok, prepared} <- Xandra.prepare(conn, statement),
+         {:ok, _} <- Xandra.execute(conn, prepared, params, consistency: :quorum) do
       :ok
     else
       {:error, %Xandra.Error{message: message} = err} ->
@@ -147,11 +164,12 @@ defmodule Astarte.Import.PopulateDB.Queries do
     """
 
     params = [
-      {"boolean", pending_empty_cache},
-      {"uuid", device_id}
+      pending_empty_cache,
+      device_id
     ]
 
-    with {:ok, _result} <- Xandra.execute(conn, pending_empty_cache_statement, params) do
+    with {:ok, prepared} <- Xandra.prepare(conn, pending_empty_cache_statement),
+         {:ok, _result} <- Xandra.execute(conn, prepared, params) do
       :ok
     else
       {:error, %Xandra.Error{message: message} = err} ->
@@ -172,12 +190,13 @@ defmodule Astarte.Import.PopulateDB.Queries do
     """
 
     params = [
-      {"timestamp", tstamp},
-      {"inet", ip_address},
-      {"uuid", device_id}
+      tstamp,
+      ip_address,
+      device_id
     ]
 
-    with {:ok, _} <- Xandra.execute(conn, device_update_statement, params, consistency: :quorum) do
+    with {:ok, prepared} <- Xandra.prepare(conn, device_update_statement),
+         {:ok, _} <- Xandra.execute(conn, prepared, params, consistency: :quorum) do
       :ok
     else
       {:error, %Xandra.Error{message: message} = err} ->
@@ -201,14 +220,15 @@ defmodule Astarte.Import.PopulateDB.Queries do
     """
 
     params = [
-      {"timestamp", tstamp},
-      {"bigint", tot_recv_msgs},
-      {"bigint", tot_recv_bytes},
-      {"uuid", device_id}
+      tstamp,
+      tot_recv_msgs,
+      tot_recv_bytes,
+      device_id
     ]
 
-    with {:ok, _} <-
-           Xandra.execute(conn, device_update_statement, params, consistency: :local_quorum) do
+    with {:ok, prepared} <- Xandra.prepare(conn, device_update_statement),
+         {:ok, _} <-
+           Xandra.execute(conn, prepared, params, consistency: :local_quorum) do
       :ok
     else
       {:error, %Xandra.Error{message: message} = err} ->
@@ -244,7 +264,6 @@ defmodule Astarte.Import.PopulateDB.Queries do
     } = endpoint
 
     db_column_name = CQLUtils.type_to_db_column_name(value_type)
-    db_column_type = CQLUtils.mapping_value_type_to_db_type(value_type)
 
     statement = """
     INSERT INTO #{realm}.#{storage}
@@ -253,17 +272,23 @@ defmodule Astarte.Import.PopulateDB.Queries do
     VALUES (?, ?, ?, ?, ?, ?, ?);
     """
 
+    reception_submillis =
+      if is_nil(reception_timestamp),
+        do: nil,
+        else: rem(DateTime.to_unix(reception_timestamp, :microsecond), 100)
+
     params = [
-      {"uuid", device_id},
-      {"uuid", interface_id},
-      {"uuid", endpoint_id},
-      {"varchar", path},
-      {"timestamp", reception_timestamp},
-      {"smallint", rem(DateTime.to_unix(reception_timestamp, :microsecond), 100)},
-      {db_column_type, value}
+      device_id,
+      interface_id,
+      endpoint_id,
+      path,
+      reception_timestamp,
+      reception_submillis,
+      value
     ]
 
-    with {:ok, _} <- Xandra.execute(conn, statement, params, consistency: :local_quorum) do
+    with {:ok, prepared} <- Xandra.prepare(conn, statement),
+         {:ok, _} <- Xandra.execute(conn, prepared, params, consistency: :local_quorum) do
       :ok
     else
       {:error, %Xandra.Error{message: message} = err} ->
@@ -295,19 +320,25 @@ defmodule Astarte.Import.PopulateDB.Queries do
     VALUES (?, ?, ?, ?, ?, ?, ?)
     """
 
+    reception_submillis =
+      if is_nil(reception_timestamp),
+        do: nil,
+        else: rem(DateTime.to_unix(reception_timestamp, :microsecond), 100)
+
     params = [
-      {"uuid", device_id},
-      {"uuid", interface_descriptor.interface_id},
-      {"uuid", endpoint.endpoint_id},
-      {"varchar", path},
-      {"timestamp", reception_timestamp},
-      {"smallint", rem(DateTime.to_unix(reception_timestamp, :microsecond), 100)},
-      {"timestamp", value_timestamp}
+      device_id,
+      interface_descriptor.interface_id,
+      endpoint.endpoint_id,
+      path,
+      reception_timestamp,
+      reception_submillis,
+      value_timestamp
     ]
 
-    with {:ok, _} <-
-           Xandra.execute(conn, insert_statement, params,
-             consitency: path_consistency(interface_descriptor, endpoint)
+    with {:ok, prepared} <- Xandra.prepare(conn, insert_statement),
+         {:ok, _} <-
+           Xandra.execute(conn, prepared, params,
+             consistency: path_consistency(interface_descriptor, endpoint)
            ) do
       :ok
     else
