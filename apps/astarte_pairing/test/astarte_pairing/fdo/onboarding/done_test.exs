@@ -46,7 +46,7 @@ defmodule Astarte.Pairing.FDO.Onboarding.DoneTest do
     test "returns {:error, TBD} when the ProveDv nonces don't match" do
       mismatch_msg = [%CBOR.Tag{tag: :bytes, value: @wrong_prove_dv_nonce}]
 
-      {:error, :prove_dv_nonce_mismatch} =
+      {:error, :invalid_message} =
         OwnerOnboarding.done(@minimal_to2_session, mismatch_msg)
     end
   end

@@ -171,7 +171,7 @@ defmodule Astarte.Pairing.OwnerOnboarding.Onboarding.ProveDevice do
         context.prove_device_data |> ProveDevice.encode_sign(context.device_key)
 
       # the first check that fails is the one about the EAT FDO claim decode
-      {:error, :invalid_fdo_claim_structure} =
+      {:error, :message_body_error} =
         ProveDevice.decode(prove_device_msg_notag, context.device_key)
     end
   end
@@ -221,7 +221,7 @@ defmodule Astarte.Pairing.OwnerOnboarding.Onboarding.ProveDevice do
 
     creds = dummy_creds()
 
-    assert {:error, :prove_dv_nonce_mismatch} =
+    assert {:error, :invalid_message} =
              OwnerOnboarding.verify_and_build_response(
                realm_name,
                session,
@@ -270,7 +270,7 @@ defmodule Astarte.Pairing.OwnerOnboarding.Onboarding.ProveDevice do
 
     creds = dummy_creds()
 
-    assert :error =
+    assert {:error, :message_body_error} =
              OwnerOnboarding.verify_and_build_response(
                realm_name,
                session,
