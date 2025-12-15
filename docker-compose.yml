@@ -166,6 +166,7 @@ services:
 
   traefik:
     image: traefik:v3.6
+    hostname: traefik
     restart: on-failure
     command:
       # Uncomment this if you want to enable Traefik's web UI
@@ -203,13 +204,18 @@ services:
   # RabbitMQ
   rabbitmq:
     image: rabbitmq:3.12.0-management
+    hostname: rabbitmq
     restart: on-failure
+    ports:
+      - 5672:5672
+      - 15672:15672
     volumes:
       - rabbitmq-data:/var/lib/rabbitmq
 
   # CFSSL
   cfssl:
     image: astarte/cfssl:1.5.0-astarte.4
+    hostname: cfssl
     volumes:
       - ./compose/cfssl-config:/config:z
       - cfssl-data:/data
@@ -220,6 +226,7 @@ services:
   # Scylla
   scylla:
     image: scylladb/scylla:5.2.2
+    hostname: scylla
     restart: on-failure
     volumes:
       - scylla-data:/var/lib/scylla
@@ -227,6 +234,7 @@ services:
   # VerneMQ
   vernemq:
     image: astarte/vernemq:1.2-snapshot
+    hostname: vernemq
     env_file:
       - ./.env
     environment:
