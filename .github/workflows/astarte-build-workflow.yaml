@@ -7,31 +7,45 @@ jobs:
   astarte-build:
     name: Astarte build
     runs-on: ubuntu-22.04
+    strategy:
+      matrix:
+        app:
+          - name: astarte-housekeeping
+            dockerfile: apps/astarte_housekeeping/Dockerfile
+          - name: astarte-realm-management
+            dockerfile: apps/astarte_realm_management/Dockerfile
+          - name: astarte-pairing
+            dockerfile: apps/astarte_pairing/Dockerfile
+          - name: astarte-appengine-api
+            dockerfile: apps/astarte_appengine_api/Dockerfile
+          - name: astarte-data-updater-plant
+            dockerfile: apps/astarte_data_updater_plant/Dockerfile
+          - name: astarte-trigger-engine
+            dockerfile: apps/astarte_trigger_engine/Dockerfile
     steps:
       - uses: actions/checkout@v2
       - name: Setup Docker Buildx
         uses: docker/setup-buildx-action@v3
-      - name: Build Astarte containers
-        uses: docker/bake-action@v6
+      - name: Build branch slug env variable (job-scoped)
+        run: |
+          # Slugify branch/tag name for Docker tag safety and consistency
+          echo "BRANCH_SLUG=$(echo "${GITHUB_REF_NAME}" | sha1sum | cut -f 1 -d ' ')" >> $GITHUB_ENV
+      # Build and save each Astarte app Docker image in parallel
+      # and use build cache from GitHub Container Registry (isolated per app and branch to avoid cache thrashing)
+      - name: Build ${{ matrix.app.name }}
+        uses: docker/build-push-action@v6
         with:
-          files: docker-compose.yml
-          set: |
-            *.cache-from=type=gha
-            *.cache-to=type=gha,mode=max
-            astarte-housekeeping.output=type=docker,dest=${{ runner.temp }}/astarte-housekeeping.tar
-            astarte-realm-management.output=type=docker,dest=${{ runner.temp }}/astarte-realm-management.tar
-            astarte-pairing.output=type=docker,dest=${{ runner.temp }}/astarte-pairing.tar
-            astarte-appengine-api.output=type=docker,dest=${{ runner.temp }}/astarte-appengine-api.tar
-            astarte-data-updater-plant.output=type=docker,dest=${{ runner.temp }}/astarte-data-updater-plant.tar
-            astarte-trigger-engine.output=type=docker,dest=${{ runner.temp }}/astarte-trigger-engine.tar
-      - name: Upload artifacts
+          context: .
+          file: ${{ matrix.app.dockerfile }}
+          push: false
+          cache-from: type=gha,scope=${{ matrix.app.name }}-${{ env.BRANCH_SLUG }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.app.name }}-${{ env.BRANCH_SLUG }}
+          outputs: type=docker,dest=${{ runner.temp }}/${{ matrix.app.name }}.tar
+      # Upload the built image as an artifact to be shared with other workflows
+      # we use the commit SHA to avoid collisions between different workflow runs
+      - name: Upload ${{ matrix.app.name }} artifact
         uses: actions/upload-artifact@v4
         with:
-          name: astarte-images
-          path: |
-            ${{ runner.temp }}/astarte-housekeeping.tar
-            ${{ runner.temp }}/astarte-realm-management.tar
-            ${{ runner.temp }}/astarte-pairing.tar
-            ${{ runner.temp }}/astarte-appengine-api.tar
-            ${{ runner.temp }}/astarte-data-updater-plant.tar
-            ${{ runner.temp }}/astarte-trigger-engine.tar
+          # Give each image a unique artifact name to avoid clashes across matrix jobs
+          name: astarte-images-${{ matrix.app.name }}
+          path: ${{ runner.temp }}/${{ matrix.app.name }}.tar
