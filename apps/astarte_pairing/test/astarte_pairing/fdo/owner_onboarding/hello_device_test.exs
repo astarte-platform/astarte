@@ -64,13 +64,13 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding.HelloDeviceTest do
 
       cbor_payload = CBOR.encode(invalid_payload)
 
-      assert HelloDevice.decode(cbor_payload) == :error
+      assert HelloDevice.decode(cbor_payload) == {:error, :message_body_error}
     end
 
     test "returns error when CBOR decode fails" do
       invalid_binary = "invalid_cbor"
 
-      assert :error == HelloDevice.decode(invalid_binary)
+      assert {:error, :message_body_error} == HelloDevice.decode(invalid_binary)
     end
   end
 

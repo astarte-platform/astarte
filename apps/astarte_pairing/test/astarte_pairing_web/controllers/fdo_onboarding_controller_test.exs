@@ -94,8 +94,7 @@ defmodule Astarte.PairingWeb.FDOOnboardingControllerTest do
       message_id: id
     } do
       conn = post(conn, path, CBOR.encode(%{hello: "device"}))
-      # FIXME this should return error 100?
-      assert {500, id} == assert_cbor_error(conn)
+      assert {100, id} == assert_cbor_error(conn)
     end
   end
 
