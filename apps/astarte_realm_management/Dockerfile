@@ -23,7 +23,7 @@ ENV ASTARTE_LIBRARIES_PATH=libraries
 # Cache elixir deps
 ADD apps/astarte_realm_management/mix.exs ./
 ADD apps/astarte_realm_management/mix.lock ./
-COPY ../../libs ./libraries
+COPY libs ./libraries
 
 RUN mix do deps.get, deps.compile
 
