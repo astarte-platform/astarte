@@ -102,7 +102,8 @@ defmodule Astarte.Helpers.Database do
     svk blob,
     sek blob,
     PRIMARY KEY (session_key)
-  );
+  )
+  WITH default_time_to_live = 7200;
   """
 
   @create_devices_table """

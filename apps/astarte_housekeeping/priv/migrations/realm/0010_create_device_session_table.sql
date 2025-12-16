@@ -15,4 +15,5 @@ CREATE TABLE :keyspace.to2_sessions (
   svk blob,
   sek blob,
   PRIMARY KEY (session_key)
-);
+)
+WITH default_time_to_live = 7200;
