@@ -24,6 +24,7 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding.DeviceServiceInfoReadyTest do
   alias Astarte.Pairing.FDO.Types.Hash
 
   @key %COSE.Keys.Symmetric{k: :crypto.strong_rand_bytes(16)}
+  @default_max_owner_service_info_sz 1400
 
   setup :verify_on_exit!
 
@@ -70,7 +71,7 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding.DeviceServiceInfoReadyTest do
 
       assert {:ok, msg} = DeviceServiceInfoReady.decode(payload)
       assert msg.replacement_hmac == hmac
-      assert msg.max_owner_service_info_sz == nil
+      assert msg.max_owner_service_info_sz == @default_max_owner_service_info_sz
     end
 
     test "correctly decodes payload where both are nil" do

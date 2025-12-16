@@ -17,76 +17,11 @@
 #
 
 defmodule Astarte.Pairing.FDO.ServiceInfo do
-  alias Astarte.Pairing.FDO.OwnershipVoucher
-  alias Astarte.Pairing.FDO.OwnerOnboarding.DeviceServiceInfoReady
   alias Astarte.Pairing.FDO.OwnerOnboarding.DeviceServiceInfo
   alias Astarte.Pairing.FDO.OwnerOnboarding.OwnerServiceInfo
   alias Astarte.Core.Device
-  alias Astarte.Pairing.Queries
   alias Astarte.Pairing.Engine
   alias Astarte.Pairing.Config
-
-  @owner_max_service_info 4096
-
-  def handle_msg_66(
-        realm_name,
-        session,
-        %DeviceServiceInfoReady{
-          replacement_hmac: replacement_hmac,
-          max_owner_service_info_sz: nil
-        }
-      ) do
-    handle_msg_66(
-      realm_name,
-      session,
-      %DeviceServiceInfoReady{
-        replacement_hmac: replacement_hmac,
-        max_owner_service_info_sz: 1400
-      }
-    )
-  end
-
-  def handle_msg_66(
-        realm_name,
-        session,
-        %DeviceServiceInfoReady{
-          replacement_hmac: replacement_hmac,
-          max_owner_service_info_sz: 0
-        }
-      ) do
-    handle_msg_66(
-      realm_name,
-      session,
-      %DeviceServiceInfoReady{
-        replacement_hmac: replacement_hmac,
-        max_owner_service_info_sz: 1400
-      }
-    )
-  end
-
-  def handle_msg_66(
-        realm_name,
-        session,
-        %DeviceServiceInfoReady{
-          replacement_hmac: replacement_hmac,
-          max_owner_service_info_sz: device_max_size
-        }
-      ) do
-    with {:ok, old_voucher} <-
-           OwnershipVoucher.fetch(realm_name, session.device_id),
-         {:ok, _new_voucher} <-
-           OwnershipVoucher.generate_replacement_voucher(old_voucher, replacement_hmac),
-         :ok <- Queries.update_session_max_payload(realm_name, session.key, device_max_size) do
-      # TODO: Store `new_voucher` into DB.
-
-      msg_67_payload = [@owner_max_service_info]
-
-      {:ok, msg_67_payload}
-    else
-      _ ->
-        {:error, :failed_66}
-    end
-  end
 
   # first device message, sending devmod
   def handle_message_68(

@@ -82,7 +82,7 @@ defmodule Astarte.PairingWeb.FDOOnboardingController do
 
     with {:ok, device_service_info_ready} <- DeviceServiceInfoReady.decode(conn.assigns.body),
          {:ok, response} <-
-           ServiceInfo.handle_msg_66(
+           OwnerOnboarding.build_owner_service_info_ready(
              realm_name,
              conn.assigns.to2_session,
              device_service_info_ready

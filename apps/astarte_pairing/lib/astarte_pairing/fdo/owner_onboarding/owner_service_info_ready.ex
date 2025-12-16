@@ -21,20 +21,30 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding.OwnerServiceInfoReady do
   TO2.OwnerServiceInfoReady (Msg 67).
   From Owner Onboarding Service to Device ROE.
 
-  This message responds to TO2.DeviceServiceInfoReady and indicates that the 
+  This message responds to TO2.DeviceServiceInfoReady and indicates that the
   Owner Onboarding Service is ready to start exchanging ServiceInfo.
   """
   use TypedStruct
   alias Astarte.Pairing.FDO.OwnerOnboarding.OwnerServiceInfoReady
 
+  # TO2.OwnerServiceInfoReady  = [
+  #   maxDeviceServiceInfoSz ;; maximum size service info that Owner can receive
+  # ]
+  # maxDeviceServiceInfoSz = uint16 / null
+  @max_device_service_info_sz 4096
+
   typedstruct enforce: true do
     @typedoc "Structure for TO2.OwnerServiceInfoReady message."
 
-    # Indicates the maximum size of ServiceInfo messages that the Owner 
+    # Indicates the maximum size of ServiceInfo messages that the Owner
     # is able to process from the Device.
     # - If nil: indicates the recommended maximum size (1300 bytes).
     # - If uint16: specifies a custom size limit.
     field :max_device_service_info_sz, non_neg_integer() | nil
+  end
+
+  def new() do
+    %OwnerServiceInfoReady{max_device_service_info_sz: @max_device_service_info_sz}
   end
 
   @doc """

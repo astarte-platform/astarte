@@ -16,20 +16,19 @@
 # limitations under the License.
 #
 
-defmodule Astarte.Pairing.FDO.ServiceInfoTest do
+defmodule Astarte.Pairing.FDO.OwnerOnboardingTest do
   use Astarte.Cases.Data, async: true
   use Astarte.Cases.Device
-  doctest Astarte.Pairing.FDO.ServiceInfo
+  doctest Astarte.Pairing.FDO.OwnerOnboarding
 
-  alias Astarte.Pairing.FDO.ServiceInfo
+  alias Astarte.Pairing.FDO.OwnerOnboarding
   alias Astarte.Pairing.FDO.OwnerOnboarding.DeviceServiceInfoReady
   alias Astarte.Pairing.FDO.OwnerOnboarding.HelloDevice
   alias Astarte.Pairing.FDO.OwnerOnboarding.SessionKey
   alias Astarte.Pairing.FDO.OwnerOnboarding.Session
 
   import Astarte.Helpers.FDO
-
-  @owner_max_service_info 4096
+  @max_device_service_info_sz 4096
 
   setup_all %{realm_name: realm_name} do
     device_id = sample_device_guid()
@@ -75,16 +74,17 @@ defmodule Astarte.Pairing.FDO.ServiceInfoTest do
     %{session: session}
   end
 
-  describe "handle_msg_66/3" do
-    test "successfully processes Msg 66, creates new voucher, and returns Msg 67", %{
-      realm: realm_name,
-      session: session
-    } do
+  describe "build_owner_service_info_ready/3" do
+    test "successfully processes DeviceServiceInfoReady, creates new voucher, and returns OwnerServiceInfoReady",
+         %{
+           realm: realm_name,
+           session: session
+         } do
       new_hmac = :crypto.strong_rand_bytes(32)
       device_max_size = 2048
 
-      assert {:ok, result_msg_67} =
-               ServiceInfo.handle_msg_66(
+      assert {:ok, response} =
+               OwnerOnboarding.build_owner_service_info_ready(
                  realm_name,
                  session,
                  %DeviceServiceInfoReady{
@@ -93,7 +93,7 @@ defmodule Astarte.Pairing.FDO.ServiceInfoTest do
                  }
                )
 
-      assert result_msg_67 == [@owner_max_service_info]
+      assert response == [@max_device_service_info_sz]
     end
 
     test "handles Credential Reuse (nil HMAC) correctly", %{
@@ -101,7 +101,7 @@ defmodule Astarte.Pairing.FDO.ServiceInfoTest do
       session: session
     } do
       assert {:ok, _result} =
-               ServiceInfo.handle_msg_66(
+               OwnerOnboarding.build_owner_service_info_ready(
                  realm_name,
                  session,
                  %DeviceServiceInfoReady{
@@ -118,7 +118,7 @@ defmodule Astarte.Pairing.FDO.ServiceInfoTest do
       new_hmac = :crypto.strong_rand_bytes(32)
 
       assert {:ok, _result} =
-               ServiceInfo.handle_msg_66(
+               OwnerOnboarding.build_owner_service_info_ready(
                  realm_name,
                  session,
                  %DeviceServiceInfoReady{
@@ -135,7 +135,7 @@ defmodule Astarte.Pairing.FDO.ServiceInfoTest do
       new_hmac = :crypto.strong_rand_bytes(32)
 
       assert {:ok, _result} =
-               ServiceInfo.handle_msg_66(
+               OwnerOnboarding.build_owner_service_info_ready(
                  realm_name,
                  session,
                  %DeviceServiceInfoReady{
@@ -151,7 +151,7 @@ defmodule Astarte.Pairing.FDO.ServiceInfoTest do
       new_hmac = :crypto.strong_rand_bytes(32)
 
       assert {:error, :failed_66} =
-               ServiceInfo.handle_msg_66(
+               OwnerOnboarding.build_owner_service_info_ready(
                  realm_name,
                  %Session{device_id: :crypto.strong_rand_bytes(16)},
                  %DeviceServiceInfoReady{
