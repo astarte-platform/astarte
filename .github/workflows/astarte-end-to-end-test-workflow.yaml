@@ -54,7 +54,7 @@ jobs:
       - name: Load astarte images
         run: ls ${{ runner.temp }}/*.tar | xargs --max-args 1 docker load --input
       - name: Start all Astarte services
-        run: docker compose up -d
+        run: docker compose up --no-build --pull missing -d
       - name: Wait for Astarte to come up
         run: |
           wget https://github.com/astarte-platform/wait-for-astarte-docker-compose/releases/download/v1.1.0/wait-for-astarte-docker-compose_1.1.0_linux_amd64.tar.gz
