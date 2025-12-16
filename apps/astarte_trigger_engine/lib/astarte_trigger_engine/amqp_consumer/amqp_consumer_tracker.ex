@@ -106,7 +106,7 @@ defmodule Astarte.TriggerEngine.AMQPConsumer.AMQPConsumerTracker do
 
     case Registry.lookup(Registry.AMQPConsumerRegistry, {realm_name, policy_name}) do
       [{pid, nil}] -> AMQPConsumerSupervisor.terminate_child(pid)
-      # already ded, we don't care
+      # already dead, we don't care
       [] -> :ok
     end
   end

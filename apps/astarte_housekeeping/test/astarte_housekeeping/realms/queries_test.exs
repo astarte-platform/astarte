@@ -44,7 +44,7 @@ defmodule Astarte.Housekeeping.Realms.QueriesTest do
   @replication_factor 1
   @datacenter "datacenter1"
   @map_replication_factor %{@datacenter => 1}
-  describe "database inizialization" do
+  describe "database initialization" do
     setup do
       astarte_instance_id = "another#{System.unique_integer([:positive])}"
       Database.setup_database_access(astarte_instance_id)

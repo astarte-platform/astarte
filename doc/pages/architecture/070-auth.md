@@ -132,7 +132,7 @@ For the sake of simplicity, one might include in this token the adequate claims 
 
 The token exchange approach can be efficiently paired with a mechanism of granular claims. Consider the use case above, and let's assume the frontend needs direct, frequent access to Astarte's APIs. Exchanging tokens too many times might put a burden on the SSO and might become impractical.
 
-However, Astarte decouples entirely authentication and authorization - that means, if two subsequent (valid) tokens which represent the same identity have substantially different claims, it doesn't care. This is intentional, as it allows for a much more efficient pattern: the token used by an hypotetical frontend can have a subset of the user's claims - for example, allowing him to read data from its devices, whereas token exchange can be used whenever more specific operations should be performed - for example, sending some commands or data to devices.
+However, Astarte decouples entirely authentication and authorization - that means, if two subsequent (valid) tokens which represent the same identity have substantially different claims, it doesn't care. This is intentional, as it allows for a much more efficient pattern: the token used by an hypothetical frontend can have a subset of the user's claims - for example, allowing him to read data from its devices, whereas token exchange can be used whenever more specific operations should be performed - for example, sending some commands or data to devices.
 
 This also addresses the objection that regular expressions can grow big or quite complicated in case users need a large number of very granular permissions. In such complex cases, the SSO can be tuned to give out only a subset of claims depending on the user's operation.
 

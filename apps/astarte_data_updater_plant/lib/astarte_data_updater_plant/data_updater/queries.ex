@@ -493,7 +493,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
 
     opts = [prefix: keyspace_name, ttl: ttl, consistency: Consistency.device_info(:write)]
 
-    # We use `insert` here becuase Exandra does not support ttl on updates. However, this is an upsert in Scylla.
+    # We use `insert` here because Exandra does not support ttl on updates. However, this is an upsert in Scylla.
     Repo.insert!(changeset, opts)
   end
 

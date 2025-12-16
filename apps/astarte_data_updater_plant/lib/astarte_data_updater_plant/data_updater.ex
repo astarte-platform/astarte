@@ -316,7 +316,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater do
   end
 
   @doc """
-  Runs a `funciton` that needs a `dup` and `message_tracker` reference.
+  Runs a `function` that needs a `dup` and `message_tracker` reference.
 
   Returns the function return value or `{:error, reason}` if one of these happen
   - The device could not be found (`device_id` in `realm`)

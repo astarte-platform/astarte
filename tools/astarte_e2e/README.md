@@ -55,7 +55,7 @@ be found at [https://hexdocs.pm/astarte_e2e](https://hexdocs.pm/astarte_e2e).
 | E2E_MAIL_API_BASE_URI      | &cross;  | None    | The mail API base URI. This env var must be set and valid to use the mail service.                                                                                                                            |
 | E2E_MAIL_SERVICE           | &cross;  | None    | The mail service. Currently only "mailgun" and "sendgrid" are supported. This env var must be set and valid to use the mail service.                                                                          |
 
-### Required Environment before runing project
+### Required Environment before running project
 
 ```bash
 export  E2E_DEVICE_ID="Device ID"

@@ -150,7 +150,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ### Added
 
-- [astarte_trigger_engine] Add `trigger_name` to envent payload
+- [astarte_trigger_engine] Add `trigger_name` to event payload
   and mustache template
 - Add support for limiting the number of registered devices in a realm.
   Existing realms are not affected by this change.
@@ -203,7 +203,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 - [astarte_data_updater_plant] customize the number of consumer connections
   to the AMQP broker using `DATA_UPDATER_PLANT_AMQP_CONSUMER_CONNECTION_NUMBER`
-  (defult: 10).
+  (default: 10).
 
 ### Fixed
 
@@ -225,7 +225,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 - [astarte_data_updater_plant] Don't crash when retrieving the interface version
   in a device whose introspection is empty, allowing data in `astarte-data_`
-  AMQP queues to flow seamlessy.
+  AMQP queues to flow seamlessly.
 - [astarte_appengine_api] Don't crash when retrieving the interface version
   in a device whose introspection is empty.
 - [astarte_appengine_api] Return the number of results specified by `downsample_to`
@@ -536,7 +536,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
   (see [#128](https://github.com/astarte-platform/astarte/issues/128)).
 - [trigger_egnine] Add optional support to custom http headers, such as
   `Authorization: Bearer ...` (see [#129](https://github.com/astarte-platform/astarte/issues/129)).
-- [data_updater_plant] Handle device hearbeat sent by VerneMQ plugin.
+- [data_updater_plant] Handle device heartbeat sent by VerneMQ plugin.
 - [data_updater_plant] Deactivate Data Updaters when they don't receive messages for some time,
   freeing up resources.
 - [appengine_api] Support SSL connections to RabbitMQ.

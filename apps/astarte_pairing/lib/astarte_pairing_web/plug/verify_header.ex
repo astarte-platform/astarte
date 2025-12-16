@@ -19,7 +19,7 @@
 defmodule Astarte.PairingWeb.Plug.VerifyHeader do
   @moduledoc """
   This is a wrapper around `Guardian.Plug.VerifyHeader` that allows to recover
-  the JWT public key dynamically using informations contained in the connection
+  the JWT public key dynamically using information contained in the connection
   """
   alias Astarte.Pairing.Auth
   alias Guardian.Plug.VerifyHeader, as: GuardianVerifyHeader

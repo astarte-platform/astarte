@@ -689,7 +689,7 @@ components:
                 - simple_policy
                 - discard_403_errors_policy
     InstallInterface:
-      description: Interface installation succesfully started
+      description: Interface installation successfully started
       headers:
         Location:
           description: URL of the installed interface

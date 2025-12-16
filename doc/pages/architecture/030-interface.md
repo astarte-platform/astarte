@@ -48,7 +48,7 @@ Valid values and variables are listed in the [Interface Schema](040-interface_sc
 
 A valid interface name consists of a Reverse Domain Name containing alphanumeric characters, hyphens
 and dots. By design, both the top level domain and last domain component cannot contain hyphens,
-although hypens are allowed in other parts of the interface name (e.g.: `org.astarte-platform.Values`
+although hyphens are allowed in other parts of the interface name (e.g.: `org.astarte-platform.Values`
 is a valid interface name).
 
 Interface names have to be fully-defined Reverse Domain Names. `Values` will not be accepted as an
@@ -246,7 +246,7 @@ Moreover, aggregated interfaces can also be parametrized, although with [some li
 
 Since Astarte 0.11, Aggregations cannot have endpoints with depth 1. This was an erroneously allowed
 behavior in Astarte 0.10 which is kept for retrocompatibility - however, new interfaces should ensure
-each endpoint in an aggreate has at least depth 2, as support for depth 1 will be removed in a future
+each endpoint in an aggregate has at least depth 2, as support for depth 1 will be removed in a future
 release. This change has been done to be consistent with AppEngine API design, and to ensure that
 path `/` is not ambiguous.
 

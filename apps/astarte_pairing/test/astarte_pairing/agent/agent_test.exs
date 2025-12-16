@@ -56,7 +56,7 @@ defmodule Astarte.Pairing.AgentTest do
       assert_receive ^ref
     end
 
-    test "succesful call with initial_introspection", %{realm_name: realm_name} do
+    test "successful call with initial_introspection", %{realm_name: realm_name} do
       initial_introspection = %{
         "org.astarteplatform.Values" => %{"major" => 0, "minor" => 4},
         "org.astarteplatform.OtherValues" => %{"major" => 1, "minor" => 0}
@@ -70,7 +70,7 @@ defmodule Astarte.Pairing.AgentTest do
       assert is_binary(credentials_secret)
     end
 
-    test "succesful trigger emission on successful call with initial_introspection", %{
+    test "successful trigger emission on successful call with initial_introspection", %{
       realm_name: realm_name
     } do
       ref =

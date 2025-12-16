@@ -194,7 +194,7 @@ defmodule Astarte.RealmManagement.DeviceRemover.CoreTest do
               device_id <- Astarte.Core.Generators.Device.id(),
               grouped_devices <-
                 list_of(
-                  Astarte.RealmManagement.Generators.GroupedDevice.grouped_devide(
+                  Astarte.RealmManagement.Generators.GroupedDevice.grouped_device(
                     device_id: device_id
                   )
                 )

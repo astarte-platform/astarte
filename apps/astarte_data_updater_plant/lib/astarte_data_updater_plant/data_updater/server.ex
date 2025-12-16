@@ -239,7 +239,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Server do
       ) do
     _ =
       Logger.warning(
-        "Received a :name_confict signal from the outer space, maybe a netsplit occurred? Gracefully shutting down.",
+        "Received a :name_conflict signal from the outer space, maybe a netsplit occurred? Gracefully shutting down.",
         tag: "name_conflict"
       )
 

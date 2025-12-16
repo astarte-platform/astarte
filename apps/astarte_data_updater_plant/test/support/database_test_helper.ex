@@ -356,7 +356,7 @@ defmodule Astarte.DataUpdaterPlant.DatabaseTestHelper do
   """
 
   def create_test_keyspace do
-    # for compatibily reasons only
+    # for compatibility reasons only
     create_test_keyspace(@test_realm)
   end
 
