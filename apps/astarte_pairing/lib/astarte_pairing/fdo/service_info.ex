@@ -19,85 +19,56 @@
 defmodule Astarte.Pairing.FDO.ServiceInfo do
   alias Astarte.Pairing.FDO.OwnerOnboarding.DeviceServiceInfo
   alias Astarte.Pairing.FDO.OwnerOnboarding.OwnerServiceInfo
+  alias Astarte.Pairing.FDO.OwnerOnboarding.Session
   alias Astarte.Core.Device
   alias Astarte.Pairing.Engine
-  alias Astarte.Pairing.Config
 
-  # first device message, sending devmod
-  def handle_message_68(
+  # If device has more data to send, save recevied part to the session
+  # and respond with empty OwnerService Info
+  def build_owner_service_info(
         realm_name,
-        _session,
-        %DeviceServiceInfo{is_more_service_info: false, service_info: service_info}
+        session,
+        %DeviceServiceInfo{
+          is_more_service_info: true,
+          service_info: service_info
+        }
+      ) do
+    Session.add_device_service_info(session, realm_name, service_info)
+    resp = OwnerServiceInfo.empty()
+    {:ok, resp}
+  end
+
+  # Device has no more data to send, this function appends recevied part to the previous recevied
+  # parts of service info and proceed sending OwnerService info
+  def build_owner_service_info(
+        realm_name,
+        session,
+        %DeviceServiceInfo{
+          is_more_service_info: false,
+          service_info: service_info
+        }
       ) do
     # TODO: make use of other device service info
-    device_id = generate_device_id(service_info)
-    encoded_device_id = Device.encode_device_id(device_id)
+    {:ok, session} = Session.add_device_service_info(session, realm_name, service_info)
+
+    encoded_device_id =
+      session.device_service_info
+      |> generate_device_id()
+      |> Device.encode_device_id()
 
     with {:ok, credentials_secret} <- Engine.register_device(realm_name, encoded_device_id) do
-      service_info = %{
-        "astarte:active" => true,
-        "astarte:realm" => realm_name,
-        "astarte:secret" => credentials_secret,
-        "astarte:baseurl" => "#{Config.base_url!()}",
-        "astarte:deviceid" => encoded_device_id
-      }
-
-      service_info_keys = Map.keys(service_info)
-      service_info_count = Enum.count(service_info_keys)
-
-      # FIXME: this only works for single message service info
-      modules = [service_info_count, service_info_count | service_info_keys]
-
-      service_info
-      |> Map.put("astarte:modules", modules)
-      |> Map.put("astarte:nummodules", service_info_count)
-
-      owner_service_info = %OwnerServiceInfo{
-        is_more_service_info: false,
-        is_done: true,
-        service_info: service_info
-      }
-
-      response = OwnerServiceInfo.encode(owner_service_info)
+      response =
+        OwnerServiceInfo.build(realm_name, credentials_secret, encoded_device_id)
+        |> OwnerServiceInfo.encode()
 
       {:ok, response}
-
-      # TODO uncomment and implement seriously this passage
-
-      # if byte_size(encoded_cbor_list) <= session.max_service_info do
-
-      # else
-      #   <<trimmed_part::binary-size(session.max_service_info), rest::binary>> = encoded_cbor_list
-
-      #   # Session.save_message_for_later_use(rest)
-      #   # out of scope for now
-
-      #   {:ok, trimmed_part}
-      # end
     end
   end
 
-  # all the others, awaiting for server message completion, out of scope
-  # def handle_message_68(
-  #       realm_name,
-  #       session_max_service_info,
-  #       session_remaining,
-  #       %DeviceServiceInfo{is_more_service_info: false, service_info: []} = device_service_info
-  #     ) do
-  #   # max_service_info
-  #   {:ok, session} = Session.fetch(realm_name, session_key)
-
-  #   %OwnerServiceInfo{
-  #     is_more_service_info: false,
-  #     is_done: false,
-  #     service_info: []
-  #   }
-
-  # end
-  def handle_message_68(_realm_name, _session_key, _) do
+  def build_owner_service_info(_realm_name, _session_key, _) do
     {:error, :message_body_error}
   end
 
-  defp generate_device_id(%{"devmod:sn" => sn}), do: UUID.uuid5(:oid, sn, :raw)
+  defp generate_device_id(%{{"devmod", "sn"} => %{value: sn}}), do: UUID.uuid5(:oid, sn, :raw)
   defp generate_device_id(_), do: Device.random_device_id()
 end

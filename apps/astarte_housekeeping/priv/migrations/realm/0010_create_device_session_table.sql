@@ -14,6 +14,7 @@ CREATE TABLE :keyspace.to2_sessions (
   sevk blob,
   svk blob,
   sek blob,
+  device_service_info map<tuple<text, text>, blob>,
   PRIMARY KEY (session_key)
 )
 WITH default_time_to_live = 7200;

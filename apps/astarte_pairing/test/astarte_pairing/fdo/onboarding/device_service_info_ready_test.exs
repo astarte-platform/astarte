@@ -79,7 +79,7 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding.DeviceServiceInfoReadyTest do
 
       assert {:ok, msg} = DeviceServiceInfoReady.decode(payload)
       assert msg.replacement_hmac == nil
-      assert msg.max_owner_service_info_sz == nil
+      assert msg.max_owner_service_info_sz == @default_max_owner_service_info_sz
     end
 
     test "returns error if ReplacementHMac has invalid type" do

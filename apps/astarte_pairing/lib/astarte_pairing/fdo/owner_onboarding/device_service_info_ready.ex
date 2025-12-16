@@ -75,6 +75,8 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding.DeviceServiceInfoReady do
 
   defp validate_and_build(nil, size) do
     with :ok <- validate_size(size) do
+      size = normalize_owner_max_size(size)
+
       message =
         %DeviceServiceInfoReady{
           replacement_hmac: nil,
@@ -87,8 +89,9 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding.DeviceServiceInfoReady do
 
   defp validate_and_build(hmac, size) do
     with {:ok, hmac} <- Hash.decode(hmac),
-         :ok <- validate_size(size),
-         size <- normalize_owner_max_size(size) do
+         :ok <- validate_size(size) do
+      size = normalize_owner_max_size(size)
+
       message =
         %DeviceServiceInfoReady{
           replacement_hmac: hmac,

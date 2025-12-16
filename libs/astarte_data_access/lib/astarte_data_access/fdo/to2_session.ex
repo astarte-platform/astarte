@@ -53,6 +53,11 @@ defmodule Astarte.DataAccess.FDO.TO2Session do
     field :sevk, :binary
     field :svk, :binary
     field :sek, :binary
-    field :max_service_info, :integer 
+    field :max_service_info, :integer
+
+    field :device_service_info, Exandra.Map,
+      key: Exandra.Tuple,
+      types: [:string, :string],
+      value: :binary
   end
 end

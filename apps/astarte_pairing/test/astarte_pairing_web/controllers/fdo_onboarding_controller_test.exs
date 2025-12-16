@@ -211,7 +211,7 @@ defmodule Astarte.PairingWeb.FDOOnboardingControllerTest do
       context
     end
 
-    test "calls ServiceInfo.handle_message_68/3", %{
+    test "calls ServiceInfo.build_owner_service_info/3", %{
       conn: conn,
       create_path: path,
       message_id: id
@@ -222,7 +222,7 @@ defmodule Astarte.PairingWeb.FDOOnboardingControllerTest do
       # TODO make direct call for decode
       expect(DeviceServiceInfo, :decode, fn _ -> {:ok, decoded} end)
 
-      expect(ServiceInfo, :handle_message_68, fn _, _, _ ->
+      expect(ServiceInfo, :build_owner_service_info, fn _, _, _ ->
         {:ok, CBOR.encode(expected_response)}
       end)
 
