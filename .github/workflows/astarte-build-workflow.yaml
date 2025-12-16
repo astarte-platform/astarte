@@ -12,16 +12,22 @@ jobs:
         app:
           - name: astarte-housekeeping
             dockerfile: apps/astarte_housekeeping/Dockerfile
+            tag: astarte/astarte_housekeeping:1.3-snapshot
           - name: astarte-realm-management
             dockerfile: apps/astarte_realm_management/Dockerfile
+            tag: astarte/astarte_realm_management:1.3-snapshot
           - name: astarte-pairing
             dockerfile: apps/astarte_pairing/Dockerfile
+            tag: astarte/astarte_pairing:1.3-snapshot
           - name: astarte-appengine-api
             dockerfile: apps/astarte_appengine_api/Dockerfile
+            tag: astarte/astarte_appengine_api:1.3-snapshot
           - name: astarte-data-updater-plant
             dockerfile: apps/astarte_data_updater_plant/Dockerfile
+            tag: astarte/astarte_data_updater_plant:1.3-snapshot
           - name: astarte-trigger-engine
             dockerfile: apps/astarte_trigger_engine/Dockerfile
+            tag: astarte/astarte_trigger_engine:1.3-snapshot
     steps:
       - uses: actions/checkout@v2
       - name: Setup Docker Buildx
@@ -41,6 +47,7 @@ jobs:
           cache-from: type=gha,scope=${{ matrix.app.name }}-${{ env.BRANCH_SLUG }}
           cache-to: type=gha,mode=max,scope=${{ matrix.app.name }}-${{ env.BRANCH_SLUG }}
           outputs: type=docker,dest=${{ runner.temp }}/${{ matrix.app.name }}.tar
+          tags: ${{ matrix.app.tag }}
       # Upload the built image as an artifact to be shared with other workflows
       # we use the commit SHA to avoid collisions between different workflow runs
       - name: Upload ${{ matrix.app.name }} artifact
