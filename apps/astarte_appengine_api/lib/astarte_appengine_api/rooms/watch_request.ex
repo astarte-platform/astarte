@@ -37,12 +37,21 @@ defmodule Astarte.AppEngine.API.Rooms.WatchRequest do
 
   @doc false
   def changeset(%WatchRequest{} = data, params \\ %{}) do
-    data
-    |> cast(params, @params)
-    |> validate_required(@required)
-    |> validate_device_id_xor_group_name()
-    |> validate_change(:device_id, &validate_device_id/2)
-    |> cast_embed(:simple_trigger, required: true)
+    changeset =
+      data
+      |> cast(params, @params)
+      |> validate_required(@required)
+      |> validate_device_id_xor_group_name()
+      |> validate_change(:device_id, &validate_device_id/2)
+
+    device_id = get_change(changeset, :device_id)
+    group_name = get_change(changeset, :group_name)
+
+    changeset
+    |> cast_embed(:simple_trigger,
+      required: true,
+      with: &simple_trigger_changeset(&1, &2, device_id, group_name)
+    )
   end
 
   defp validate_device_id_xor_group_name(%Ecto.Changeset{} = changeset) do
@@ -76,5 +85,21 @@ defmodule Astarte.AppEngine.API.Rooms.WatchRequest do
       {:error, :extended_id_not_allowed} ->
         [{field, "is too long, device id must be 128 bits"}]
     end
+  end
+
+  defp simple_trigger_changeset(simple_trigger, params, device_id, group_name) do
+    params =
+      case Enum.take(params, 1) do
+        [{key, _}] when is_atom(key) ->
+          params |> Map.merge(%{device_id: device_id, group_name: group_name})
+
+        [{key, _}] when is_binary(key) ->
+          params |> Map.merge(%{"device_id" => device_id, "group_name" => group_name})
+
+        [] ->
+          params
+      end
+
+    SimpleTriggerConfig.changeset(simple_trigger, params)
   end
 end
