@@ -583,7 +583,8 @@ defmodule Astarte.Housekeeping.Realms.Queries do
       svk blob,
       sek blob,
       PRIMARY KEY (session_key)
-    );
+    )
+    WITH default_time_to_live = 7200;
     """
 
     with {:ok, %{rows: nil, num_rows: 1}} <- CSystem.execute_schema_change(query) do

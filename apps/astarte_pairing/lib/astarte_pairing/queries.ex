@@ -33,8 +33,6 @@ defmodule Astarte.Pairing.Queries do
 
   require Logger
 
-  @two_hours 7200
-
   def realm_existing?(realm_name) do
     keyspace_name = Realm.astarte_keyspace_name()
 
@@ -282,8 +280,7 @@ defmodule Astarte.Pairing.Queries do
     with {:ok, session_key} <- Astarte.DataAccess.UUID.dump(session_key) do
       keyspace = Realm.keyspace_name(realm_name)
       consistency = Consistency.device_info(:write)
-      ttl = @two_hours
-      opts = [prefix: keyspace, consistency: consistency, ttl: ttl]
+      opts = [prefix: keyspace, consistency: consistency]
 
       session = %{session | session_key: :erlang.term_to_binary(session_key)}
 
@@ -317,8 +314,7 @@ defmodule Astarte.Pairing.Queries do
     with {:ok, session_key} <- Astarte.DataAccess.UUID.dump(session_key) do
       keyspace = Realm.keyspace_name(realm_name)
       consistency = Consistency.device_info(:write)
-      ttl = @two_hours
-      opts = [prefix: keyspace, consistency: consistency, ttl: ttl]
+      opts = [prefix: keyspace, consistency: consistency]
 
       session_key = :erlang.term_to_binary(session_key)
 
