@@ -112,7 +112,7 @@ defmodule AstarteE2E.AmqpTriggers.Consumer do
     %{realm_name: realm_name, routing_key: routing_key} = state
     exchange_suffix = Config.amqp_trigger_exchange_suffix!()
     exchange_name = "astarte_events_#{realm_name}_#{exchange_suffix}"
-    queue_name = exchange_name
+    queue_name = exchange_name <> routing_key
 
     amqp_consumer_opts =
       Config.amqp_consumer_options!()

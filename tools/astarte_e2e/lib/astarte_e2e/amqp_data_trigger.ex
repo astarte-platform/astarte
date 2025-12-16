@@ -227,6 +227,7 @@ defmodule AstarteE2E.AmqpDataTrigger do
           %{
             "type" => "data_trigger",
             "on" => "incoming_data",
+            "device_id" => encoded_device_id,
             "interface_name" => properties_interface.interface_name,
             "interface_major" => properties_interface.version_major,
             "match_path" => "/*",
