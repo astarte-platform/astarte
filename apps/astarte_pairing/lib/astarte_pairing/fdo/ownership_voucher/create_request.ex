@@ -21,6 +21,7 @@ defmodule Astarte.Pairing.FDO.OwnershipVoucher.CreateRequest do
 
   alias Astarte.Pairing.FDO.OwnershipVoucher.CreateRequest
   alias Astarte.Pairing.FDO.OwnershipVoucher.Core
+  alias Astarte.Pairing.FDO.OwnershipVoucher
 
   require Logger
 
@@ -51,11 +52,11 @@ defmodule Astarte.Pairing.FDO.OwnershipVoucher.CreateRequest do
 
     with {:ok, binary_voucher} <- Core.binary_voucher(ownership_voucher),
          {:ok, decoded_voucher, _rest} <- CBOR.decode(binary_voucher),
-         {:ok, device_guid} <- Core.device_guid(decoded_voucher) do
+         {:ok, ownership_voucher} <- OwnershipVoucher.decode(decoded_voucher) do
       changeset
       |> put_change(:cbor_ownership_voucher, binary_voucher)
       |> put_change(:decoded_ownership_voucher, decoded_voucher)
-      |> put_change(:device_guid, device_guid)
+      |> put_change(:device_guid, ownership_voucher.header.guid)
     else
       _err ->
         add_error(changeset, :ownership_voucher, "is not a valid ownership voucher")
