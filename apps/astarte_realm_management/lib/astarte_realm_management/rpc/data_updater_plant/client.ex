@@ -31,5 +31,10 @@ defmodule Astarte.RealmManagement.RPC.DataUpdaterPlant.Client do
     |> GenServer.cast({:install_trigger, {realm_name, tagged_simple_trigger, target, policy}})
   end
 
+  def delete_trigger(realm_name, trigger_id, tagged_simple_trigger) do
+    server_via_tuple()
+    |> GenServer.cast({:delete_trigger, {realm_name, trigger_id, tagged_simple_trigger}})
+  end
+
   defp server_via_tuple(), do: {:via, Horde.Registry, {Registry.DataUpdaterRPC, :server}}
 end

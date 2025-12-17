@@ -17,6 +17,7 @@
 #
 
 defmodule Astarte.RealmManagement.Triggers.Core do
+  alias Astarte.Core.Triggers.SimpleTriggerConfig
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.AMQPTriggerTarget
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.DataTrigger
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.SimpleTriggerContainer
@@ -103,10 +104,13 @@ defmodule Astarte.RealmManagement.Triggers.Core do
 
   @spec delete_trigger(String.t(), Trigger.t()) :: :ok | {:error, :trigger_not_found}
   def delete_trigger(realm_name, trigger) do
-    with :ok <- delete_all_simple_triggers(realm_name, trigger) do
-      :ok = Queries.delete_trigger_policy_link(realm_name, trigger.trigger_uuid, trigger.policy)
+    %{name: name, trigger_uuid: trigger_uuid, policy: policy} = trigger
 
-      Queries.delete_trigger(realm_name, trigger.name)
+    with :ok <- delete_all_simple_triggers(realm_name, trigger),
+         :ok = Queries.delete_trigger_policy_link(realm_name, trigger_uuid, policy),
+         :ok <- Queries.delete_trigger(realm_name, name) do
+      notify_trigger_deletion(realm_name, trigger)
+      :ok
     end
   end
 
@@ -147,6 +151,16 @@ defmodule Astarte.RealmManagement.Triggers.Core do
     end
 
     :ok
+  end
+
+  defp notify_trigger_deletion(realm_name, trigger) do
+    simple_triggers = Enum.zip(trigger.simple_triggers_uuids, trigger.simple_triggers)
+
+    for {trigger_id, simple_trigger_config} <- simple_triggers do
+      trigger = SimpleTriggerConfig.to_tagged_simple_trigger(simple_trigger_config)
+
+      Client.delete_trigger(realm_name, trigger_id, trigger)
+    end
   end
 
   defp target_from_action(

@@ -41,6 +41,14 @@ defmodule Astarte.DataUpdaterPlant.RPC.Replica do
     {:reply, reply, state}
   end
 
+  @impl true
+  def handle_call({:delete_trigger, trigger_data}, _from, state) do
+    {realm_name, trigger_id, tagged_simple_trigger, data} = trigger_data
+    reply = Core.delete_trigger(realm_name, trigger_id, tagged_simple_trigger, data)
+
+    {:reply, reply, state}
+  end
+
   def send_all_replicas(msg) do
     Core.multi_call(replicas(), msg)
     |> Core.handle_result()

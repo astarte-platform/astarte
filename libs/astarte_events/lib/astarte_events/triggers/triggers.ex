@@ -50,6 +50,29 @@ defmodule Astarte.Events.Triggers do
     end
   end
 
+  def delete_trigger(realm_name, trigger_id, tagged_simple_trigger, data \\ %{}) do
+    %TaggedSimpleTrigger{
+      object_type: object_type,
+      object_id: object_id,
+      simple_trigger_container: simple_trigger_container
+    } = tagged_simple_trigger
+
+    {trigger_type, trigger} = simple_trigger_container.simple_trigger
+    object = {object_type, object_id}
+
+    with {:ok, event_key, new_trigger} <-
+           Core.get_trigger_with_event_key(data, trigger_type, trigger) do
+      Cache.delete_trigger(
+        realm_name,
+        event_key,
+        trigger_id,
+        object,
+        trigger_type,
+        new_trigger
+      )
+    end
+  end
+
   @spec install_volatile_trigger(
           String.t(),
           Core.deserialized_simple_trigger(),

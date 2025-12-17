@@ -87,6 +87,18 @@ defmodule Astarte.DataUpdaterPlant.RPC.Server do
   end
 
   @impl GenServer
+  def handle_cast({:delete_trigger, trigger_data}, state) do
+    {realm_name, trigger_id, tagged_simple_trigger} = trigger_data
+    result = Core.delete_trigger(realm_name, trigger_id, tagged_simple_trigger)
+
+    with {:error, error} <- result do
+      _ = Logger.warning("Error while installing a new trigger: #{inspect(error)}")
+    end
+
+    {:noreply, state}
+  end
+
+  @impl GenServer
   def handle_info(
         {:EXIT, _pid, {:name_conflict, {_name, _value}, _registry, _winning_pid}},
         state

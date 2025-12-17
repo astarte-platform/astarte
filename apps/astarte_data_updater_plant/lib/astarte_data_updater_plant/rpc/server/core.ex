@@ -35,6 +35,13 @@ defmodule Astarte.DataUpdaterPlant.RPC.Server.Core do
     end
   end
 
+  def delete_trigger(realm_name, trigger_id, tagged_simple_trigger) do
+    with {:ok, data} <- find_trigger_data(realm_name, tagged_simple_trigger) do
+      message = {:delete_trigger, {realm_name, trigger_id, tagged_simple_trigger, data}}
+      Replica.send_all_replicas(message)
+    end
+  end
+
   def install_volatile_trigger(volatile_trigger) do
     %{
       realm_name: realm,

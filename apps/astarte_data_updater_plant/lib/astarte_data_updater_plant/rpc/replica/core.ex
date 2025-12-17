@@ -48,6 +48,10 @@ defmodule Astarte.DataUpdaterPlant.RPC.Replica.Core do
     Triggers.install_trigger(realm_name, tagged_simple_trigger, target, policy, data)
   end
 
+  def delete_trigger(realm_name, trigger_id, tagged_simple_trigger, data) do
+    Triggers.delete_trigger(realm_name, trigger_id, tagged_simple_trigger, data)
+  end
+
   defp safe_call(server, request, timeout) do
     try do
       resp = GenServer.call(server, request, timeout)

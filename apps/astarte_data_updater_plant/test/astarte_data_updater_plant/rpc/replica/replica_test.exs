@@ -80,6 +80,25 @@ defmodule Astarte.DataUpdaterPlant.RPC.Replica.ReplicaTest do
     Replica.send_all_replicas({:install_trigger, message})
   end
 
+  test "delete_trigger calls core delete trigger function", context do
+    %{
+      data: data,
+      delete_trigger_message: message,
+      realm_name: realm_name,
+      tagged_simple_trigger: tagged_simple_trigger,
+      trigger_id: trigger_id
+    } = context
+
+    Replica.Core
+    |> expect(:delete_trigger, fn
+      ^realm_name, ^trigger_id, ^tagged_simple_trigger, ^data -> :ok
+    end)
+
+    allow_all_nodes()
+
+    Replica.send_all_replicas({:delete_trigger, message})
+  end
+
   defp allow_current_node do
     allow(own_replica())
   end

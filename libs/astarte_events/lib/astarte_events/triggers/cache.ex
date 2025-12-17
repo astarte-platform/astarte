@@ -316,6 +316,26 @@ defmodule Astarte.Events.Triggers.Cache do
     )
   end
 
+  def delete_trigger(realm_name, event_key, trigger_id, object, trigger_type, trigger) do
+    {object_type, object_id} = object
+    event_target_id = event_target_id(realm_name, object_id, object_type)
+
+    update_function =
+      &delete_event_trigger(
+        event_key,
+        trigger_id,
+        trigger_type,
+        trigger,
+        &1
+      )
+
+    case ConCache.update_existing(@event_targets, event_target_id, update_function) do
+      :ok -> :ok
+      {:error, :not_existing} -> :ok
+      {:error, reason} -> {:error, reason}
+    end
+  end
+
   def install_volatile_trigger(
         realm_name,
         event_key,
@@ -389,6 +409,42 @@ defmodule Astarte.Events.Triggers.Cache do
       Core.load_trigger_with_policy(realm_name, trigger_type, target, policy, trigger, events)
 
     result = Map.put(event_map, event_key, new_events)
+    {:ok, result}
+  end
+
+  defp delete_event_trigger(
+         event_key,
+         trigger_id,
+         :device_trigger,
+         _trigger,
+         event_map
+       ) do
+    result =
+      Map.update(event_map, event_key, [], fn trigger_list ->
+        case do_delete_device_trigger(trigger_id, trigger_list) do
+          {:ok, result} -> result
+          {:error, :empty} -> []
+        end
+      end)
+
+    {:ok, result}
+  end
+
+  defp delete_event_trigger(
+         event_key,
+         trigger_id,
+         :data_trigger,
+         trigger,
+         event_map
+       ) do
+    result =
+      Map.update(event_map, event_key, [], fn trigger_list ->
+        case do_delete_data_trigger(trigger_id, trigger, trigger_list) do
+          {:ok, result} -> result
+          {:error, :empty} -> []
+        end
+      end)
+
     {:ok, result}
   end
 

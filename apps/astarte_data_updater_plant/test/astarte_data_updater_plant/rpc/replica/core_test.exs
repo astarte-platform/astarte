@@ -84,4 +84,22 @@ defmodule Astarte.DataUpdaterPlant.RPC.Replica.CoreTest do
       Core.install_trigger(realm_name, tagged_simple_trigger, trigger_target, policy, data)
     end
   end
+
+  describe "delete_trigger/4" do
+    test "calls the delete trigger function from astarte_events", context do
+      %{
+        data: data,
+        realm_name: realm_name,
+        tagged_simple_trigger: tagged_simple_trigger,
+        trigger_id: trigger_id
+      } = context
+
+      Triggers
+      |> expect(:delete_trigger, fn
+        ^realm_name, ^trigger_id, ^tagged_simple_trigger, ^data -> :ok
+      end)
+
+      Core.delete_trigger(realm_name, trigger_id, tagged_simple_trigger, data)
+    end
+  end
 end

@@ -36,15 +36,19 @@ defmodule Astarte.Cases.Trigger do
 
   setup_all context do
     realm_name = Map.get(context, :realm_name, RealmGenerator.realm_name() |> Enum.at(0))
+    trigger_id = UUID.uuid4(:raw)
     tagged_simple_trigger = %TaggedSimpleTrigger{}
     trigger_target = %AMQPTriggerTarget{}
     policy = PolicyGenerator.policy() |> Enum.at(0) |> Map.fetch!(:name)
     data = %State{} |> Map.from_struct()
     install_trigger_message = {realm_name, tagged_simple_trigger, trigger_target, policy, data}
+    delete_trigger_message = {realm_name, trigger_id, tagged_simple_trigger, data}
 
     %{
       data: data,
+      trigger_id: trigger_id,
       install_trigger_message: install_trigger_message,
+      delete_trigger_message: delete_trigger_message,
       policy: policy,
       realm_name: realm_name,
       tagged_simple_trigger: tagged_simple_trigger,
