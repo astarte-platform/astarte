@@ -431,4 +431,14 @@ defmodule Astarte.Housekeeping.Helpers.Database do
   defp execute(keyspace, query, params \\ [], opts \\ []) do
     Repo.query(String.replace(query, ":keyspace", keyspace), params, opts)
   end
+
+  def lightweight_transaction_check(keyspace_name) do
+    lwt_query = """
+    INSERT INTO #{keyspace_name}.kv_store (group, key, value)
+    VALUES ('test', 'test', intAsBlob(0))
+    IF NOT EXISTS
+    """
+
+    Repo.query(lwt_query)
+  end
 end

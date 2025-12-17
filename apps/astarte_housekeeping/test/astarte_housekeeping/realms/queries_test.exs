@@ -80,6 +80,18 @@ defmodule Astarte.Housekeeping.Realms.QueriesTest do
       assert datacenter_replication == @map_replication_factor[@datacenter]
     end
 
+    test "always creates keyspaces where lightweight transactions work" do
+      Config
+      |> expect(:astarte_keyspace_replication_strategy!, fn -> :network_topology_strategy end)
+      |> expect(:astarte_keyspace_network_replication_map!, fn -> @map_replication_factor end)
+      |> reject(:astarte_keyspace_replication_factor!, 0)
+
+      astarte_keyspace = Realm.astarte_keyspace_name()
+
+      assert :ok = Queries.initialize_database()
+      assert {:ok, _} = Database.lightweight_transaction_check(astarte_keyspace)
+    end
+
     test "returns database error" do
       Mimic.stub(Xandra, :execute, fn _, _, _, _ -> {:error, %Xandra.Error{}} end)
       assert {:error, :database_error} = Queries.initialize_database()

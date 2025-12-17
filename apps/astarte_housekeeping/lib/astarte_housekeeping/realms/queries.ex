@@ -331,15 +331,23 @@ defmodule Astarte.Housekeeping.Realms.Queries do
   end
 
   defp create_realm_keyspace(keyspace_name, replication_map_str) do
-    query = """
+    base_query = """
     CREATE KEYSPACE #{keyspace_name}
     WITH replication = #{replication_map_str}
-    AND durable_writes = true;
+    AND durable_writes = true
     """
 
-    case CSystem.execute_schema_change(query) do
+    tablets_query = base_query <> " AND tablets = { 'enabled': false }"
+
+    case CSystem.execute_schema_change(tablets_query) do
       {:ok, %{rows: nil, num_rows: 1}} ->
         :ok
+
+      {:ok, res} ->
+        "Unexpected ok result from database while creating astarte keyspace: #{inspect(res)}"
+        |> Logger.warning()
+
+        {:error, :astarte_keyspace_creation_failed}
 
       {:error, %Xandra.Error{reason: :already_exists}} ->
         "Tried to create already existing realm"
@@ -347,14 +355,32 @@ defmodule Astarte.Housekeeping.Realms.Queries do
 
         {:error, :conflicting_realm_name}
 
-      {:error, reason} ->
-        _ =
-          Logger.warning("Cannot create keyspace: #{inspect(reason)}.",
-            tag: "build_keyspace_error",
-            realm: keyspace_name
-          )
+      {:error, _reason} ->
+        case CSystem.execute_schema_change(base_query) do
+          {:ok, %{rows: nil, num_rows: 1}} ->
+            :ok
 
-        {:error, reason}
+          {:ok, res} ->
+            "Unexpected ok result from database while creating astarte keyspace: #{inspect(res)}"
+            |> Logger.warning()
+
+            {:error, :astarte_keyspace_creation_failed}
+
+          {:error, %Xandra.Error{reason: :already_exists}} ->
+            "Tried to create already existing realm"
+            |> Logger.warning(realm: keyspace_name)
+
+            {:error, :conflicting_realm_name}
+
+          {:error, reason} ->
+            _ =
+              Logger.warning("Cannot create keyspace: #{inspect(reason)}.",
+                tag: "build_keyspace_error",
+                realm: keyspace_name
+              )
+
+            {:error, reason}
+        end
     end
   end
 
@@ -447,7 +473,8 @@ defmodule Astarte.Housekeeping.Realms.Queries do
     KvStore.insert(kv_store_map, opts)
   end
 
-  defp get_local_datacenter do
+  @doc false
+  def get_local_datacenter do
     query =
       from sl in "system.local",
         select: sl.data_center
@@ -1039,6 +1066,7 @@ defmodule Astarte.Housekeeping.Realms.Queries do
   end
 
   defp create_astarte_keyspace do
+    keyspace = Realm.astarte_keyspace_name()
     consistency = Consistency.domain_model(:write)
 
     replication =
@@ -1048,13 +1076,7 @@ defmodule Astarte.Housekeeping.Realms.Queries do
       end
 
     with {:ok, replication_map_str} <- build_replication_map_str(replication),
-         query = """
-         CREATE KEYSPACE #{Realm.astarte_keyspace_name()}
-         WITH replication = #{replication_map_str}
-         AND durable_writes = true;
-         """,
-         {:ok, %{rows: nil, num_rows: 1}} <-
-           Repo.query(query, [], consistency: consistency) do
+         :ok <- do_create_astarte_keyspace(keyspace, replication_map_str, consistency) do
       :ok
     else
       {:error, reason} ->
@@ -1063,6 +1085,44 @@ defmodule Astarte.Housekeeping.Realms.Queries do
         )
 
         {:error, reason}
+    end
+  end
+
+  defp do_create_astarte_keyspace(keyspace, replication, consistency) do
+    base_query = """
+    CREATE KEYSPACE #{keyspace}
+    WITH replication = #{replication}
+    AND durable_writes = true
+    """
+
+    tablets_query = base_query <> " AND tablets = { 'enabled': false }"
+
+    opts = [consistency: consistency]
+
+    case Repo.query(tablets_query, [], opts) do
+      {:ok, %{num_rows: 1}} ->
+        :ok
+
+      {:ok, res} ->
+        "Unexpected ok result from database while creating astarte keyspace: #{inspect(res)}"
+        |> Logger.warning()
+
+        {:error, :astarte_keyspace_creation_failed}
+
+      _ ->
+        case Repo.query(base_query, [], opts) do
+          {:ok, %{num_rows: 1}} ->
+            :ok
+
+          {:ok, res} ->
+            "Unexpected ok result from database while creating astarte keyspace: #{inspect(res)}"
+            |> Logger.warning()
+
+            {:error, :astarte_keyspace_creation_failed}
+
+          error ->
+            error
+        end
     end
   end
 
