@@ -54,7 +54,7 @@ defmodule Astarte.Pairing.FDO.OwnershipVoucher do
   end
 
   def owner_public_key(ownership_voucher) do
-    # TODO: handle ownership vouchers without entries
+    # N.B.: Checking if there are entries is not necessary, as by spec the ownership voucher will always have at least one entry
     List.last(ownership_voucher.entries)
     |> Core.entry_private_key()
   end

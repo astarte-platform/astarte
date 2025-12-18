@@ -55,6 +55,7 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding do
          {:ok, pub_key} <- OwnershipVoucher.owner_public_key(ownership_voucher),
          {:ok, session} <-
            Session.new(realm_name, hello_device, ownership_voucher, owner_private_key) do
+      encoded_pub_key = PublicKey.encode(pub_key)
       num_ov_entries = Enum.count(ownership_voucher.entries)
       hello_device_hash = Hash.new(:sha256, cbor_hello_device)
       eb_sig_info = DeviceAttestation.eb_sig_info(session.device_signature)
@@ -72,7 +73,12 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding do
         }
 
       message =
-        ProveOVHdr.encode_sign(prove_ovh, session.prove_dv_nonce, pub_key, owner_private_key)
+        ProveOVHdr.encode_sign(
+          prove_ovh,
+          session.prove_dv_nonce,
+          encoded_pub_key,
+          owner_private_key
+        )
 
       {:ok, session.key, message}
     else
@@ -118,8 +124,7 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding do
 
     with {:ok, ownership_voucher} <- OwnershipVoucher.fetch(realm_name, device_guid),
          {:ok, private_key} <- Queries.get_owner_private_key(realm_name, device_guid),
-         {:ok, owner_public_key} <- OwnershipVoucher.owner_public_key(ownership_voucher),
-         {:ok, owner_public_key} <- PublicKey.decode(owner_public_key) do
+         {:ok, owner_public_key} <- OwnershipVoucher.owner_public_key(ownership_voucher) do
       rendezvous_info = ownership_voucher.header.rendezvous_info
 
       {:ok, private_key} = COSE.Keys.from_pem(private_key)

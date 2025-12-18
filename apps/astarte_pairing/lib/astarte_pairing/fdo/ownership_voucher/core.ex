@@ -19,6 +19,7 @@
 defmodule Astarte.Pairing.FDO.OwnershipVoucher.Core do
   alias Astarte.Pairing.FDO.OwnershipVoucher
   alias Astarte.Pairing.FDO.OwnershipVoucher.Core
+  alias Astarte.Pairing.FDO.Types.PublicKey
 
   @type decoded_voucher :: list()
 
@@ -58,10 +59,11 @@ defmodule Astarte.Pairing.FDO.OwnershipVoucher.Core do
 
   def entry_private_key(entry) do
     with {:ok, entry} <- COSE.Messages.Sign1.decode(entry),
-         %CBOR.Tag{tag: :bytes, value: entry} <- entry.payload,
-         {:ok, entry, _} <- CBOR.decode(entry),
-         [_hash_prev, _hash_hdr, _extra, pub_key] <- entry do
-      {:ok, pub_key}
+         %CBOR.Tag{tag: :bytes, value: payload} <- entry.payload,
+         {:ok, decoded_entry, _} <- CBOR.decode(payload),
+         [_hash_prev, _hash_hdr, _extra, pub_key] <- decoded_entry,
+         {:ok, decoded_pubkey} <- PublicKey.decode(pub_key) do
+      {:ok, decoded_pubkey}
     else
       _ -> :error
     end
