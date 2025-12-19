@@ -101,8 +101,6 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding.ProveDevice do
          guid: guid,
          raw_eat_token: binary_msg
        }}
-    else
-      _ -> {:error, :message_body_error}
     end
   end
 

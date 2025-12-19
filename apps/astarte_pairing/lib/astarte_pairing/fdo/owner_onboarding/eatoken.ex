@@ -36,14 +36,29 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding.EAToken do
         extra_payload_claims \\ %{},
         extra_unprotected_header_claims \\ %{}
       ) do
-    with {:ok, eatoken_message} <- Sign1.verify_decode(eatoken_cbor, device_public_key),
-         {:ok, payload} <- verify_payload(eatoken_message.payload, extra_payload_claims) do
-      unprotected_headers =
-        translate_unprotected_headers(eatoken_message.uhdr, extra_unprotected_header_claims)
+    # COSE.Messages.Sign1.verify_decode returns :error for both decode failures and verification failures
+    # This extra check distinguish between error 100 and 101 according to FDO Spec
+    case Sign1.decode_cbor(eatoken_cbor) do
+      {:ok, decoded} ->
+        # CBOR structure is valid, now verify the signature
+        if Sign1.verify(decoded, device_public_key) do
+          with {:ok, payload} <- verify_payload(decoded.payload, extra_payload_claims) do
+            unprotected_headers =
+              translate_unprotected_headers(
+                decoded.uhdr,
+                extra_unprotected_header_claims
+              )
 
-      {:ok, %{eatoken_message | payload: payload, uhdr: unprotected_headers}}
-    else
-      _ -> :error
+            {:ok, %{decoded | payload: payload, uhdr: unprotected_headers}}
+          end
+        else
+          # Decode succeeded but verification failed
+          {:error, :invalid_message}
+        end
+
+      _ ->
+        # CBOR decode failed
+        {:error, :message_body_error}
     end
   end
 
@@ -59,7 +74,7 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding.EAToken do
          {:ok, raw_claims = %{}, _} <- CBOR.decode(cbor_payload) do
       {:ok, translate_claims(raw_claims, known_claims)}
     else
-      _ -> :error
+      _ -> {:error, :message_body_error}
     end
   end
 

@@ -21,8 +21,8 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding.GetOVNextEntry do
   TO2.GetOVNextEntry (Type 62) structure.
   From Device ROE to Owner Onboarding Service.
 
-  This message is sent by the Device to request a specific entry from the 
-  Ownership Voucher chain. It acknowledges the previous message (ProveOVHdr or 
+  This message is sent by the Device to request a specific entry from the
+  Ownership Voucher chain. It acknowledges the previous message (ProveOVHdr or
   a previous OVNextEntry) and asks for the next step.
 
   Spec Reference: 5.5.4 TO2.GetOVNextEntry, Type 62
@@ -43,14 +43,14 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding.GetOVNextEntry do
   @doc """
   Decodes the raw CBOR binary into the struct.
   """
-  @spec decode(binary()) :: {:ok, t()} | :error
+  @spec decode(binary()) :: {:ok, t()} | {:error, :message_body_error}
   def decode(cbor_binary) do
     case CBOR.decode(cbor_binary) do
       {:ok, [entry_num], _rest} when is_integer(entry_num) and entry_num >= 0 ->
         {:ok, %GetOVNextEntry{entry_num: entry_num}}
 
       _ ->
-        :error
+        {:error, :message_body_error}
     end
   end
 end

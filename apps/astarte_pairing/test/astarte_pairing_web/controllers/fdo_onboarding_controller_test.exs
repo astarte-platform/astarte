@@ -27,6 +27,9 @@ defmodule Astarte.PairingWeb.FDOOnboardingControllerTest do
   alias Astarte.Pairing.FDO.OwnerOnboarding.Session
   alias Astarte.Pairing.FDO.ServiceInfo
 
+  alias Astarte.Pairing.FDO.OwnerOnboarding.HelloDevice
+  alias Astarte.Pairing.FDO.OwnerOnboarding.SessionKey
+
   import Astarte.Helpers.FDO
 
   setup :verify_on_exit!
@@ -46,15 +49,9 @@ defmodule Astarte.PairingWeb.FDOOnboardingControllerTest do
   end
 
   defp setup_authenticated(context, action, message_id) do
-    %{conn: conn, realm_name: realm} = context
+    %{conn: conn, realm_name: realm, session: %Session{key: session_key}} = context
 
-    conn =
-      conn
-      |> put_req_header("authorization", "mock_session_key")
-
-    stub(Session, :fetch, fn ^realm, "mock_session_key" ->
-      {:ok, %{device_id: sample_device_guid()}}
-    end)
+    conn = put_req_header(conn, "authorization", session_key)
 
     %{
       conn: conn,
@@ -62,6 +59,50 @@ defmodule Astarte.PairingWeb.FDOOnboardingControllerTest do
       realm_name: realm,
       message_id: message_id
     }
+  end
+
+  setup_all %{realm_name: realm_name} do
+    device_id = sample_device_guid()
+    hello_device = %{HelloDevice.generate() | device_id: device_id}
+    ownership_voucher = sample_ownership_voucher()
+    owner_key = sample_extracted_private_key()
+    device_key = COSE.Keys.ECC.generate(:es256)
+    {:ok, device_random, xb} = SessionKey.new(hello_device.kex_name, device_key)
+
+    insert_voucher(realm_name, sample_private_key(), sample_cbor_voucher(), device_id)
+
+    %{
+      hello_device: hello_device,
+      ownership_voucher: ownership_voucher,
+      owner_key: owner_key,
+      device_key: device_key,
+      device_random: device_random,
+      xb: xb
+    }
+  end
+
+  setup context do
+    %{
+      astarte_instance_id: astarte_instance_id,
+      hello_device: hello_device,
+      ownership_voucher: ownership_voucher,
+      realm_name: realm_name,
+      owner_key: owner_key,
+      xb: xb
+    } = context
+
+    {:ok, session} =
+      Session.new(realm_name, hello_device, ownership_voucher, owner_key)
+
+    on_exit(fn ->
+      setup_database_access(astarte_instance_id)
+      Astarte.Helpers.Database.delete_session(realm_name, session.key)
+    end)
+
+    {:ok, session} = Session.build_session_secret(session, realm_name, owner_key, xb)
+    {:ok, session} = Session.derive_key(session, realm_name)
+
+    %{session: session}
   end
 
   describe "HelloDevice" do
@@ -138,20 +179,23 @@ defmodule Astarte.PairingWeb.FDOOnboardingControllerTest do
     test "calls `OwnerOnboarding.prove_device/3`", %{
       conn: conn,
       create_path: path,
-      message_id: id
+      message_id: id,
+      session: session
     } do
       expected_response = %{"result" => true}
-      session_map = %{device_id: "device123", session_info: "mock"}
 
       expect(OwnerOnboarding, :prove_device, fn _, _, _ ->
-        {:ok, session_map, expected_response}
+        {:ok, session, expected_response}
       end)
 
-      stub(Session, :encrypt_and_sign, fn _, cbor -> cbor end)
+      request_body = Session.encrypt_and_sign(session, CBOR.encode(%{prove: "device"}))
 
-      conn = post(conn, path, CBOR.encode(%{prove: "device"}))
-      assert cbor_response(conn) == expected_response
-      assert conn.assigns.to2_session == session_map
+      conn = post(conn, path, request_body)
+
+      http_response = response(conn, 200)
+      assert {:ok, decoded_response} = Session.decrypt_and_verify(session, http_response)
+      assert decoded_response == expected_response
+      assert conn.assigns.to2_session == session
       assert conn.assigns.message_id == id
     end
 
@@ -161,44 +205,44 @@ defmodule Astarte.PairingWeb.FDOOnboardingControllerTest do
       message_id: id
     } do
       conn = post(conn, path, CBOR.encode(%{prove: "device"}))
-      # FIXME this should return error 100?
-      assert {500, id} == assert_cbor_error(conn)
+      assert {100, id} == assert_cbor_error(conn)
     end
   end
 
   describe "DeviceServiceInfoReady" do
     setup context do
-      context = setup_authenticated(context, :service_info_start, 66)
-      # TODO make direct call for decrypt_and_verify
-      stub(Session, :decrypt_and_verify, fn _, body -> {:ok, body} end)
-      context
+      setup_authenticated(context, :service_info_start, 66)
     end
 
     test "calls OwnerOnboarding.build_owner_service_info_ready/3", %{
       conn: conn,
       create_path: path,
-      message_id: id
+      message_id: id,
+      session: session
     } do
-      decoded = %{hello: "service"}
+      decoded = %{"hello" => "service"}
       expected_response = %{"result" => "ok"}
-      # TODO make direct call for decode
       expect(DeviceServiceInfoReady, :decode, fn _ -> {:ok, decoded} end)
 
       expect(OwnerOnboarding, :build_owner_service_info_ready, fn _, _, _ ->
         {:ok, expected_response}
       end)
 
-      # TODO make direct call for encrypt_and_sign
-      stub(Session, :encrypt_and_sign, fn _, cbor -> cbor end)
+      request_body = Session.encrypt_and_sign(session, CBOR.encode(decoded))
 
-      conn = post(conn, path, CBOR.encode(decoded))
-      assert cbor_response(conn) == expected_response
+      conn = post(conn, path, request_body)
+
+      http_response = response(conn, 200)
+      assert {:ok, decoded_response} = Session.decrypt_and_verify(session, http_response)
+      assert decoded_response == expected_response
       assert conn.assigns.message_id == id
     end
 
     test "returns message body error when it called with something other than a DeviceServiceInfoReady",
-         %{conn: conn, create_path: path, message_id: id} do
-      conn = post(conn, path, CBOR.encode(%{bad: true}))
+         %{conn: conn, create_path: path, message_id: id, session: session} do
+      request_body = Session.encrypt_and_sign(session, CBOR.encode(%{bad: true}))
+
+      conn = post(conn, path, request_body)
       assert {100, id} == assert_cbor_error(conn)
     end
   end
@@ -206,37 +250,38 @@ defmodule Astarte.PairingWeb.FDOOnboardingControllerTest do
   describe "DeviceServiceInfo" do
     setup context do
       context = setup_authenticated(context, :service_info_end, 68)
-      # TODO make direct call for decrypt_and_verify
-      stub(Session, :decrypt_and_verify, fn _, body -> {:ok, body} end)
       context
     end
 
     test "calls ServiceInfo.build_owner_service_info/3", %{
       conn: conn,
       create_path: path,
-      message_id: id
+      message_id: id,
+      session: session
     } do
-      decoded = %{hello: "service"}
+      decoded = %{"hello" => "service"}
       expected_response = %{"result" => "ok"}
 
-      # TODO make direct call for decode
       expect(DeviceServiceInfo, :decode, fn _ -> {:ok, decoded} end)
 
       expect(ServiceInfo, :build_owner_service_info, fn _, _, _ ->
         {:ok, CBOR.encode(expected_response)}
       end)
 
-      # TODO make direct call for encrypt_and_sign
-      stub(Session, :encrypt_and_sign, fn _, cbor -> cbor end)
+      request_body = Session.encrypt_and_sign(session, CBOR.encode(decoded))
 
-      conn = post(conn, path, CBOR.encode(decoded))
-      assert cbor_response(conn) == expected_response
+      conn = post(conn, path, request_body)
+
+      http_response = response(conn, 200)
+      assert {:ok, decoded_response} = Session.decrypt_and_verify(session, http_response)
+      assert decoded_response == expected_response
       assert conn.assigns.message_id == id
     end
 
     test "returns message body error when it called with something other than a DeviceServiceInfo",
-         %{conn: conn, create_path: path, message_id: id} do
-      conn = post(conn, path, CBOR.encode(%{}))
+         %{conn: conn, create_path: path, message_id: id, session: session} do
+      request_body = Session.encrypt_and_sign(session, CBOR.encode(%{}))
+      conn = post(conn, path, request_body)
       assert {100, id} == assert_cbor_error(conn)
     end
   end
@@ -246,29 +291,36 @@ defmodule Astarte.PairingWeb.FDOOnboardingControllerTest do
       setup_authenticated(context, :done, 70)
     end
 
-    test "calls OwnerOnboarding.done/2", %{conn: conn, create_path: path, message_id: id} do
+    test "calls OwnerOnboarding.done/2", %{
+      conn: conn,
+      create_path: path,
+      message_id: id,
+      session: session
+    } do
       expected_response = %{"result" => "finished"}
+      expected_cbor_response = CBOR.encode(expected_response)
 
-      expect(OwnerOnboarding, :done, fn _, _ -> {:ok, expected_response} end)
+      expect(OwnerOnboarding, :done, fn _, _ -> {:ok, expected_cbor_response} end)
 
-      # TODO make direct call for encrypt_and_sign and decrypt_and_verify
-      stub(Session, :encrypt_and_sign, fn _, map -> CBOR.encode(map) end)
-      stub(Session, :decrypt_and_verify, fn _, body -> {:ok, body} end)
+      request_body = Session.encrypt_and_sign(session, CBOR.encode(%{done: 1}))
 
-      conn = post(conn, path, CBOR.encode(%{done: 1}))
-      assert cbor_response(conn) == expected_response
+      conn = post(conn, path, request_body)
+
+      http_response = response(conn, 200)
+      assert {:ok, decoded_response} = Session.decrypt_and_verify(session, http_response)
+      assert decoded_response == expected_response
       assert conn.assigns.message_id == id
     end
 
     test "returns message body error when it called with something other than a Done", %{
       conn: conn,
       create_path: path,
-      message_id: id
+      message_id: id,
+      session: session
     } do
-      # TODO make direct call for decrypt_and_verify
-      stub(Session, :decrypt_and_verify, fn _, body -> {:ok, body} end)
+      request_body = Session.encrypt_and_sign(session, CBOR.encode(%{}))
 
-      conn = post(conn, path, CBOR.encode(%{}))
+      conn = post(conn, path, request_body)
       assert {100, id} == assert_cbor_error(conn)
     end
   end

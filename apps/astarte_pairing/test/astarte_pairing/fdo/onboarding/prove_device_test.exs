@@ -270,7 +270,7 @@ defmodule Astarte.Pairing.OwnerOnboarding.Onboarding.ProveDevice do
 
     creds = dummy_creds()
 
-    assert {:error, :message_body_error} =
+    assert {:error, :invalid_message} =
              OwnerOnboarding.verify_and_build_response(
                realm_name,
                session,

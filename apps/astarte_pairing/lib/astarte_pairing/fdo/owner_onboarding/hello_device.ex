@@ -133,8 +133,7 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding.HelloDevice do
          easig_info: easig_info
        }}
     else
-      _ ->
-        {:error, :message_body_error}
+      _ -> {:error, :message_body_error}
     end
   end
 
