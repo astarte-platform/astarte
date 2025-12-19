@@ -23,17 +23,21 @@ defmodule Astarte.RealmManagement.TriggersTest do
 
   @moduletag :triggers
 
-  alias Astarte.Helpers.Database
+  alias Astarte.Core.Generators.Triggers.Policy, as: PolicyGenerator
   alias Astarte.Core.Triggers.SimpleTriggerConfig
+  alias Astarte.Core.Triggers.SimpleTriggersProtobuf.AMQPTriggerTarget
+  alias Astarte.Helpers.Database
   alias Astarte.RealmManagement.Fixtures.SimpleTriggerConfig, as: SimpleTriggerConfigFixture
   alias Astarte.RealmManagement.Fixtures.Trigger, as: TriggerFixture
   alias Astarte.RealmManagement.Triggers
-  alias Astarte.RealmManagement.Triggers.Core
-  alias Astarte.RealmManagement.Triggers.Trigger
-  alias Astarte.RealmManagement.Triggers.HttpAction
   alias Astarte.RealmManagement.Triggers.Action
+  alias Astarte.RealmManagement.Triggers.Core
+  alias Astarte.RealmManagement.Triggers.HttpAction
   alias Astarte.RealmManagement.Triggers.Policies
-  alias Astarte.Core.Generators.Triggers.Policy, as: PolicyGenerator
+  alias Astarte.RealmManagement.Triggers.Trigger
+  alias Astarte.RPC.Triggers, as: RPCTriggers
+  alias Astarte.RPC.Triggers.TriggerDeletion
+  alias Astarte.RPC.Triggers.TriggerInstallation
 
   setup :verify_on_exit!
 
@@ -74,6 +78,23 @@ defmodule Astarte.RealmManagement.TriggersTest do
 
       assert expected_simple_triggers ==
                trigger_attrs["simple_triggers"]
+    end
+
+    test "create_trigger/1 sends a trigger installation notification", context do
+      %{realm: realm, trigger_attrs: trigger_attrs} = context
+      RPCTriggers.subscribe_all()
+
+      {:ok, installed_trigger} =
+        Triggers.create_trigger(realm, trigger_attrs)
+
+      [simple_trigger_config] = installed_trigger.simple_triggers
+      tagged_simple_trigger = SimpleTriggerConfig.to_tagged_simple_trigger(simple_trigger_config)
+
+      assert_receive %TriggerInstallation{} = trigger_installation
+      assert trigger_installation.realm_name == realm
+      assert trigger_installation.policy == trigger_attrs["policy"]
+      assert trigger_installation.simple_trigger == tagged_simple_trigger
+      assert is_struct(trigger_installation.target, AMQPTriggerTarget)
     end
 
     test "create_trigger/1 with invalid data returns error changeset", context do
@@ -118,18 +139,21 @@ defmodule Astarte.RealmManagement.TriggersTest do
       assert {:ok, %Trigger{}} = Triggers.delete_trigger(realm, installed_trigger)
     end
 
-    test "delete_trigger/1 sends a notification to Data Updater Plant", context do
+    test "delete_trigger/1 sends a trigger deletion notification", context do
       %{realm: realm, trigger_attrs: trigger_attrs} = context
 
       {:ok, %Trigger{} = installed_trigger} = Triggers.create_trigger(realm, trigger_attrs)
+      RPCTriggers.subscribe_all()
       [trigger_id] = installed_trigger.simple_triggers_uuids
       [simple_trigger_config] = installed_trigger.simple_triggers
       tagged_simple_trigger = SimpleTriggerConfig.to_tagged_simple_trigger(simple_trigger_config)
 
-      Astarte.RealmManagement.RPC.DataUpdaterPlant.Client
-      |> Mimic.expect(:delete_trigger, fn ^realm, ^trigger_id, ^tagged_simple_trigger -> :ok end)
-
       {:ok, %Trigger{}} = Triggers.delete_trigger(realm, installed_trigger)
+
+      assert_receive %TriggerDeletion{} = deletion_notification
+      assert deletion_notification.realm_name == realm
+      assert deletion_notification.trigger_id == trigger_id
+      assert deletion_notification.simple_trigger == tagged_simple_trigger
     end
 
     test "delete_trigger/1 fails on an already deleted trigger", context do

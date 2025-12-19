@@ -21,7 +21,7 @@
 defmodule Astarte.DataUpdaterPlant.RPC.ServerTest do
   @moduledoc false
 
-  use Astarte.Cases.Trigger, async: true
+  use ExUnit.Case, async: true
   use Mimic
   use ExUnitProperties
 
@@ -55,31 +55,6 @@ defmodule Astarte.DataUpdaterPlant.RPC.ServerTest do
 
       assert ^answer = GenServer.call(rpc_server, {:delete_volatile_trigger, payload})
     end
-  end
-
-  test ":install_trigger request gets handled by the Core module", context do
-    %{
-      policy: policy,
-      realm_name: realm_name,
-      rpc_server: rpc_server,
-      tagged_simple_trigger: tagged_simple_trigger,
-      trigger_target: trigger_target
-    } = context
-
-    test_process = self()
-
-    Astarte.DataUpdaterPlant.RPC.Server.Core
-    |> expect(:install_trigger, fn
-      ^realm_name, ^tagged_simple_trigger, ^trigger_target, ^policy ->
-        send(test_process, :ok)
-        :ok
-    end)
-    |> allow(self(), rpc_server)
-
-    message = {realm_name, tagged_simple_trigger, trigger_target, policy}
-    GenServer.cast(rpc_server, {:install_trigger, message})
-
-    assert_receive :ok
   end
 
   defp answer, do: one_of([oks(), errors()])

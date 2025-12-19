@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2017 - 2025 SECO Mind Srl
+# Copyright 2025 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -16,15 +16,22 @@
 # limitations under the License.
 #
 
-Mimic.copy(Astarte.DataAccess.Config)
-Mimic.copy(Astarte.DataAccess.Config)
-Mimic.copy(Astarte.DataAccess.Health.Health)
-Mimic.copy(Astarte.DataAccess.KvStore)
-Mimic.copy(Astarte.DataAccess.Repo)
-Mimic.copy(Astarte.Events.TriggersHandler)
-Mimic.copy(Astarte.RealmManagement.Devices.Queries)
-Mimic.copy(Astarte.RealmManagement.RealmConfig.Queries)
-Mimic.copy(Astarte.RealmManagement.RPC.DataUpdaterPlant.Client)
-Mimic.copy(Astarte.RPC.Triggers)
-Mimic.copy(Task)
-ExUnit.start(capture_log: true)
+defmodule Astarte.RPC.Application do
+  @moduledoc false
+
+  use Application
+  alias Astarte.RPC.Config
+  alias Astarte.RPC.Server
+
+  @impl true
+  def start(_type, _args) do
+    Config.validate!()
+
+    children = [
+      {Phoenix.PubSub, name: Server, pool_size: Config.pool_size!()}
+    ]
+
+    opts = [strategy: :one_for_one, name: Astarte.RPC.Supervisor]
+    Supervisor.start_link(children, opts)
+  end
+end

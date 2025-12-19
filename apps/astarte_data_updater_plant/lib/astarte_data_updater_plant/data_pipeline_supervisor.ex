@@ -50,7 +50,7 @@ defmodule Astarte.DataUpdaterPlant.DataPipelineSupervisor do
          distribution_strategy: Horde.UniformDistribution
        ]},
       ConsumersSupervisor,
-      Astarte.DataUpdaterPlant.RPC.Replica,
+      Astarte.RPC.Triggers.Client,
       Astarte.DataUpdaterPlant.RPC.Supervisor
     ]
 

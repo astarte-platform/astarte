@@ -96,6 +96,7 @@ defmodule Astarte.DataUpdaterPlant.Mixfile do
       {:typed_ecto_schema, "~> 0.4"},
       {:xandra, "~> 0.13"},
       {:astarte_data_access, path: astarte_lib("astarte_data_access"), override: true},
+      {:astarte_rpc, path: astarte_lib("astarte_rpc")},
       {:skogsra, "~> 2.2"},
       {:telemetry, "~> 1.0"},
       {:telemetry_metrics, "~> 1.1"},

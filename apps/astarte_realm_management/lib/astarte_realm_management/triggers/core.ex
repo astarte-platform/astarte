@@ -25,9 +25,9 @@ defmodule Astarte.RealmManagement.Triggers.Core do
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.TriggerTargetContainer
   alias Astarte.Core.Triggers.Trigger, as: CoreTrigger
   alias Astarte.RealmManagement.Interfaces
-  alias Astarte.RealmManagement.RPC.DataUpdaterPlant.Client
   alias Astarte.RealmManagement.Triggers.Queries
   alias Astarte.RealmManagement.Triggers.Trigger
+  alias Astarte.RPC.Triggers
 
   require Logger
 
@@ -147,7 +147,7 @@ defmodule Astarte.RealmManagement.Triggers.Core do
 
       target = %{trigger_target | simple_trigger_id: simple_trigger_uuid}
 
-      Client.install_trigger(realm_name, trigger, target, policy)
+      Triggers.notify_installation(realm_name, trigger, target, policy)
     end
 
     :ok
@@ -159,7 +159,7 @@ defmodule Astarte.RealmManagement.Triggers.Core do
     for {trigger_id, simple_trigger_config} <- simple_triggers do
       trigger = SimpleTriggerConfig.to_tagged_simple_trigger(simple_trigger_config)
 
-      Client.delete_trigger(realm_name, trigger_id, trigger)
+      Triggers.notify_deletion(realm_name, trigger_id, trigger)
     end
   end
 

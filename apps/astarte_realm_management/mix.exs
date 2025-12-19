@@ -101,6 +101,7 @@ defmodule Astarte.RealmManagement.Mixfile do
       {:astarte_data_access, path: astarte_lib("astarte_data_access")},
       {:dialyxir, "~> 1.0", only: [:dev, :ci], runtime: false},
       {:astarte_events, path: astarte_lib("astarte_events")},
+      {:astarte_rpc, path: astarte_lib("astarte_rpc")},
       {:mimic, "~> 1.11", only: :test},
       # Workaround for Elixir 1.15 / ssl_verify_fun issue
       # See also: https://github.com/deadtrickster/ssl_verify_fun.erl/pull/27

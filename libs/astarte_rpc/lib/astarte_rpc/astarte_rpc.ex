@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2017 - 2025 SECO Mind Srl
+# Copyright 2025 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -16,15 +16,8 @@
 # limitations under the License.
 #
 
-Mimic.copy(Astarte.DataAccess.Config)
-Mimic.copy(Astarte.DataAccess.Config)
-Mimic.copy(Astarte.DataAccess.Health.Health)
-Mimic.copy(Astarte.DataAccess.KvStore)
-Mimic.copy(Astarte.DataAccess.Repo)
-Mimic.copy(Astarte.Events.TriggersHandler)
-Mimic.copy(Astarte.RealmManagement.Devices.Queries)
-Mimic.copy(Astarte.RealmManagement.RealmConfig.Queries)
-Mimic.copy(Astarte.RealmManagement.RPC.DataUpdaterPlant.Client)
-Mimic.copy(Astarte.RPC.Triggers)
-Mimic.copy(Task)
-ExUnit.start(capture_log: true)
+defmodule Astarte.RPC do
+  @moduledoc """
+  Functions for inter-nodes communications based on Phoenix PubSubs
+  """
+end
