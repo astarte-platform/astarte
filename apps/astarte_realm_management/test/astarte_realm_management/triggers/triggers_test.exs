@@ -26,6 +26,7 @@ defmodule Astarte.RealmManagement.TriggersTest do
   alias Astarte.Core.Generators.Triggers.Policy, as: PolicyGenerator
   alias Astarte.Core.Triggers.SimpleTriggerConfig
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.AMQPTriggerTarget
+  alias Astarte.Events.Triggers, as: EventsTriggers
   alias Astarte.Helpers.Database
   alias Astarte.RealmManagement.Fixtures.SimpleTriggerConfig, as: SimpleTriggerConfigFixture
   alias Astarte.RealmManagement.Fixtures.Trigger, as: TriggerFixture
@@ -39,12 +40,16 @@ defmodule Astarte.RealmManagement.TriggersTest do
   alias Astarte.RPC.Triggers.TriggerDeletion
   alias Astarte.RPC.Triggers.TriggerInstallation
 
+  import Astarte.Helpers.Triggers
+
   setup :verify_on_exit!
 
   setup context do
     %{realm: realm, astarte_instance_id: astarte_instance_id} = context
     trigger_attrs = TriggerFixture.valid_trigger_attrs()
     trigger_name = trigger_attrs["name"]
+
+    ignore_trigger_notifications()
 
     on_exit(fn ->
       Database.setup_database_access(astarte_instance_id)
@@ -246,6 +251,87 @@ defmodule Astarte.RealmManagement.TriggersTest do
         assert {:error, :trigger_not_found} = Triggers.get_trigger(realm, trigger.name)
       end
     end
+
+    test "properly notify installation and deletion of triggers", context do
+      %{realm: realm, trigger_attrs: trigger_attrs, astarte_instance_id: astarte_instance_id} =
+        context
+
+      device_id = Astarte.Core.Device.random_device_id()
+      installation_ref = trigger_notification_installation_ref(astarte_instance_id, realm)
+      deletion_ref = trigger_notification_deletion_ref(astarte_instance_id, realm)
+
+      [] = get_triggers(realm, device_id)
+      {:ok, trigger} = Triggers.create_trigger(realm, trigger_attrs)
+      assert_receive ^installation_ref
+      assert [_target] = get_triggers(realm, device_id)
+      {:ok, _trigger} = Triggers.delete_trigger(realm, trigger)
+      assert_receive ^deletion_ref
+      assert [] = get_triggers(realm, device_id)
+    end
+  end
+
+  defp get_triggers(realm, device_id) do
+    EventsTriggers.find_device_trigger_targets(realm, device_id, [], :on_device_connection)
+  end
+
+  defp trigger_notification_installation_ref(astarte_instance_id, realm_name) do
+    id = System.unique_integer()
+    ref = {:trigger_installed, id}
+    test_process = self()
+
+    EventsTriggers
+    |> expect(:install_trigger, fn
+      ^realm_name, simple_trigger, target, policy, data ->
+        Database.setup_database_access(astarte_instance_id)
+
+        res =
+          Mimic.call_original(EventsTriggers, :install_trigger, [
+            realm_name,
+            simple_trigger,
+            target,
+            policy,
+            data
+          ])
+
+        send(test_process, ref)
+        res
+    end)
+    |> allow(test_process, rpc_trigger_client())
+
+    ref
+  end
+
+  defp trigger_notification_deletion_ref(astarte_instance_id, realm_name) do
+    id = System.unique_integer()
+    ref = {:trigger_deleted, id}
+    test_process = self()
+
+    EventsTriggers
+    |> expect(:delete_trigger, fn
+      ^realm_name, trigger_id, simple_trigger, data ->
+        Database.setup_database_access(astarte_instance_id)
+
+        res =
+          Mimic.call_original(EventsTriggers, :delete_trigger, [
+            realm_name,
+            trigger_id,
+            simple_trigger,
+            data
+          ])
+
+        send(test_process, ref)
+        res
+    end)
+    |> allow(test_process, rpc_trigger_client())
+
+    ref
+  end
+
+  defp ignore_trigger_notifications do
+    EventsTriggers
+    |> stub(:install_trigger, fn _, _, _, _, _ -> :ok end)
+    |> stub(:delete_trigger, fn _, _, _, _ -> :ok end)
+    |> allow(self(), rpc_trigger_client())
   end
 
   defp simple_triggers_to_map(simple_triggers) do

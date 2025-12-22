@@ -25,6 +25,7 @@ defmodule Astarte.RealmManagement.DeviceRemoval.DeviceRemoverTest do
 
   use Astarte.Cases.Data, async: true
   use Astarte.Cases.Device
+  use Astarte.Cases.Triggers
   use ExUnitProperties
 
   alias Astarte.DataAccess.Device.DeletionInProgress
@@ -64,8 +65,8 @@ defmodule Astarte.RealmManagement.DeviceRemoval.DeviceRemoverTest do
     groups = string(:alphanumeric, min_length: 5) |> Enum.take(3)
 
     ref = register_device_deletion_finished_trigger(realm_name, group_name: Enum.random(groups))
-
     reset_cache(realm_name)
+
     insert_deletion_entry(realm_name, device_id, groups)
     DeviceRemover.run(%{device_id: device_id, realm_name: realm_name})
 

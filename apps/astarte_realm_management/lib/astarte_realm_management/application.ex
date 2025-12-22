@@ -43,6 +43,7 @@ defmodule Astarte.RealmManagement.Application do
       [
         {Cluster.Supervisor,
          [Config.cluster_topologies!(), [name: Astarte.RealmManagement.ClusterSupervisor]]},
+        Astarte.RPC.Triggers.Client,
         Astarte.RealmManagementWeb.Telemetry,
         Astarte.RealmManagementWeb.Endpoint,
         {Task.Supervisor, name: Astarte.RealmManagement.DeviceRemoverSupervisor},

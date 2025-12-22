@@ -24,6 +24,14 @@ defmodule Astarte.Helpers.Triggers do
     Cache.reset_realm_cache(realm_name)
   end
 
+  def rpc_trigger_client do
+    Astarte.RealmManagement.Supervisor
+    |> Supervisor.which_children()
+    |> Enum.find_value(fn {id, pid, _type, _mod} ->
+      id == Astarte.RPC.Triggers.Client && pid
+    end)
+  end
+
   def register_device_deletion_started_trigger(realm_name, conditions) do
     register_device_trigger(
       realm_name,

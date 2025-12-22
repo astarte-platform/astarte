@@ -55,6 +55,7 @@ defmodule Astarte.Cases.Data do
 
   setup %{astarte_instance_id: astarte_instance_id} do
     setup_database_access(astarte_instance_id)
+    Astarte.DataAccess.Config |> allow(self(), Astarte.Helpers.Triggers.rpc_trigger_client())
 
     :ok
   end

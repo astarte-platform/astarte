@@ -18,8 +18,9 @@
 
 defmodule Astarte.RealmManagement.DevicesTest do
   use Astarte.Cases.Data, async: true
-  use ExUnitProperties
   use Astarte.Cases.Device
+  use Astarte.Cases.Triggers
+  use ExUnitProperties
   use Mimic
 
   alias Astarte.RealmManagement.Devices
