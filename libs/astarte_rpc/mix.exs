@@ -46,7 +46,7 @@ defmodule Astarte.RPC.MixProject do
        github: "astarte-platform/astarte_core", branch: "release-1.3", override: true},
       {:astarte_data_access, path: "../astarte_data_access"},
       {:astarte_generators, github: "astarte-platform/astarte_generators", only: [:dev, :test]},
-      {:astarte_events, path: "../astarte_events"},
+      {:astarte_events, path: "../astarte_events", runtime: false},
       {:dialyxir, "~> 1.0", only: [:dev, :ci], runtime: false},
       {:mimic, "~> 1.11", only: [:test, :dev]},
       {:phoenix_pubsub, "~> 2.0"},
