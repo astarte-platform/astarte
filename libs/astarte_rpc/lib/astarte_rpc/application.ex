@@ -28,7 +28,8 @@ defmodule Astarte.RPC.Application do
     Config.validate!()
 
     children = [
-      {Phoenix.PubSub, name: Server, pool_size: Config.pool_size!()}
+      {Phoenix.PubSub, name: Server, pool_size: Config.pool_size!()},
+      {Cluster.Supervisor, [Config.cluster_topologies!(), [name: Astarte.RPC.ClusterSupervisor]]}
     ]
 
     opts = [strategy: :one_for_one, name: Astarte.RPC.Supervisor]

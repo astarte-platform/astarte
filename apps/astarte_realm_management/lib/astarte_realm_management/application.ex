@@ -36,13 +36,11 @@ defmodule Astarte.RealmManagement.Application do
     )
 
     Logger.info("Starting application v#{@app_version}.", tag: "realm_management_start")
-    Astarte.RealmManagement.Config.validate!()
+    Config.validate!()
     DataAccessConfig.validate!()
 
     children =
       [
-        {Cluster.Supervisor,
-         [Config.cluster_topologies!(), [name: Astarte.RealmManagement.ClusterSupervisor]]},
         Astarte.RPC.Triggers.Client,
         Astarte.RealmManagementWeb.Telemetry,
         Astarte.RealmManagementWeb.Endpoint,

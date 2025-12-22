@@ -18,22 +18,23 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
-defmodule Astarte.DataUpdaterPlant.Config.ClusteringStrategy do
+defmodule Astarte.RPC.Config.AstarteServices do
   @moduledoc """
   The clustering strategy that the node should use to discover other nodes.
   """
 
   use Skogsra.Type
 
-  @allowed_strategies ~w(none kubernetes docker-compose)
+  @all_services [:astarte_data_updater_plant, :astarte_vmq_plugin]
+  @all_services_mapset MapSet.new(@all_services)
 
   @impl Skogsra.Type
-  def cast(value) when value in @allowed_strategies do
-    {:ok, value}
-  end
+  def cast(services) do
+    services_mapset = MapSet.new(services)
 
-  @impl Skogsra.Type
-  def cast(_) do
-    :error
+    case MapSet.subset?(services_mapset, @all_services_mapset) do
+      true -> {:ok, MapSet.to_list(services_mapset)}
+      false -> :error
+    end
   end
 end

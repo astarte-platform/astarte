@@ -23,4 +23,6 @@ config :astarte_data_updater_plant, Astarte.DataAccess.Repo, []
 
 config :astarte_events, :connection_backoff, 10_000
 
+config :astarte_rpc, :astarte_services, [:astarte_data_updater_plant, :astarte_vmq_plugin]
+
 import_config "#{config_env()}.exs"

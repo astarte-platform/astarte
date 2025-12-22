@@ -40,8 +40,6 @@ defmodule Astarte.AppEngine.API.Application do
 
     # Define workers and child supervisors to be supervised
     children = [
-      {Cluster.Supervisor,
-       [Config.cluster_topologies!(), [name: Astarte.AppEngine.API.ClusterSupervisor]]},
       {Horde.Registry, [keys: :unique, name: Registry.DataUpdaterRPC, members: :auto]},
       {Horde.Registry, [keys: :unique, name: Registry.VMQPluginRPC, members: :auto]},
       Astarte.AppEngine.APIWeb.Telemetry,

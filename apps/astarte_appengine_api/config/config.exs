@@ -59,6 +59,8 @@ config :astarte_appengine_api, swagger_ui: true
 
 config :astarte_appengine_api, :max_results_limit, 10000
 
+config :astarte_rpc, :astarte_services, [:astarte_data_updater_plant, :astarte_vmq_plugin]
+
 # Import environment specific config. This must remain at the bottom
 # of this file so it overrides the configuration defined above.
 import_config "#{config_env()}.exs"

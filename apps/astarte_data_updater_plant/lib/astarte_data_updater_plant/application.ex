@@ -42,8 +42,6 @@ defmodule Astarte.DataUpdaterPlant.Application do
     DataAccessConfig.validate!()
 
     children = [
-      {Cluster.Supervisor,
-       [Config.cluster_topologies!(), [name: Astarte.DataUpdaterPlant.ClusterSupervisor]]},
       Astarte.DataUpdaterPlantWeb.Telemetry,
       Astarte.DataUpdaterPlant.DataPipelineSupervisor
     ]

@@ -111,6 +111,7 @@ defmodule Astarte.AppEngine.API.Mixfile do
       {:dialyxir, "~> 1.0", only: [:dev, :ci], runtime: false},
       {:libcluster, "~> 3.3"},
       {:astarte_data_access, path: astarte_lib("astarte_data_access")},
+      {:astarte_rpc, path: astarte_lib("astarte_rpc")},
       {:horde, "~> 0.9"},
       # Workaround for Elixir 1.15 / ssl_verify_fun issue
       # See also: https://github.com/deadtrickster/ssl_verify_fun.erl/pull/27

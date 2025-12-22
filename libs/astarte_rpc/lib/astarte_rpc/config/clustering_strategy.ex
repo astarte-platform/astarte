@@ -18,17 +18,24 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
-defmodule Astarte.RealmManagement.Config.ClusteringStrategy do
+defmodule Astarte.RPC.Config.ClusteringStrategy do
   @moduledoc """
-  Clustering strategy for node discovery with libcluster.
+  The clustering strategy that the node should use to discover other nodes.
   """
 
   use Skogsra.Type
 
+  @strategies [:none, :kubernetes, :docker_compose]
   @allowed_strategies ~w(none kubernetes docker-compose)
+  @strategy_map Enum.zip(@allowed_strategies, @strategies) |> Map.new()
 
   @impl Skogsra.Type
-  def cast(value) when value in @allowed_strategies do
+  def cast(value) when is_binary(value) do
+    Map.fetch(@strategy_map, value)
+  end
+
+  @impl Skogsra.Type
+  def cast(value) when value in @strategies do
     {:ok, value}
   end
 
