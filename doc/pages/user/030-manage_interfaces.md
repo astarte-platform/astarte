@@ -367,7 +367,7 @@ there is no guarantee that a Device will be able to publish (or receive) data on
 mapping.
 
 Minor version bumps work great in case they represents additional, optional features which might be
-available on an arbitrarly large subset of Devices implementing that interface's major version, and
+available on an arbitrarily large subset of Devices implementing that interface's major version, and
 are not necessary or fundamental for normal operations. If that is not the case, consider a major
 version update or a whole new interface instead.
 
@@ -397,7 +397,7 @@ recent version might have been installed in the realm.
 
 ### Interface deletion from device
 
-A device might arbitrarly decide to remove an interface from its introspection. In such a case,
+A device might arbitrarily decide to remove an interface from its introspection. In such a case,
 Astarte won't return any data and will consider all data previously pushed to said interface
 inaccessible. In case the interface comes back again in the introspection, previously pushed data
 will be available as if nothing happened.

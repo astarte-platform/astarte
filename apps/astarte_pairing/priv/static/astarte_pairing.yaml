@@ -161,7 +161,7 @@ paths:
     get:
       tags:
         - device
-      summary: Obtain status informations for a device
+      summary: Obtain status information for a device
       operationId: getInfo
       security:
         - CredentialsSecret: []

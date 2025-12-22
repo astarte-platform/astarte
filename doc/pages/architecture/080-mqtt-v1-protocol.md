@@ -22,7 +22,7 @@ Astarte MQTT v1 Protocol relies on few well known reserved topics.
 | `<realm name>/<device id>/<interface name>/<path>`     | Publish Data     | Both         | 0, 1, 2 | BSON (or empty)                         |
 
 For clarity reasons all `<realm name>/<device id>` prefixes will be omitted on the following paragraphs, those topics will be called device topics.
-Topics are not bidirectional, devices must not publish data for server owned topics and viceversa, onwership is explicitly stated in interfaces files.
+Topics are not bidirectional, devices must not publish data for server owned topics and viceversa, ownership is explicitly stated in interfaces files.
 
 ## BSON
 
@@ -104,7 +104,7 @@ An empty string is the valid introspection payload for a device without interfac
 ## Empty Cache
 
 Astarte MQTT v1 strives to save bandwidth upon reconnections, to make sure even frequent reconnections don't affect bandwidth consumption. As such, upon connecting and if MQTT advertises a session present, both sides assume that data flow is ordered and consistent. However, there might be cases where this guarantee isn't respected by the device for a number of reasons (e.g.: new device, factory reset, cache lost...). In this case, a device might declare that it has no confidence about its status and its known properties, and can request to resynchronise entirely with Astarte.
-In Astarte jargon this message is called _empty cache_ and it is performed by publising "1" on the device `/control/emptyCache` topic.
+In Astarte jargon this message is called _empty cache_ and it is performed by publishing "1" on the device `/control/emptyCache` topic.
 
 After an empty cache message properties might be purged and Astarte might publish all the server owned properties again.
 
@@ -291,7 +291,7 @@ Malformed or unexpected messages are discarded and further actions might be take
 
 ## Authentication
 
-In Astarte, every Transport orchestrates its credentials through Pairing. Astarte/VerneMQ authenticates devices using Mutual SSL Autentication - as such, devices use SSL certificates emitted through [Pairing API](050-pairing_mechanism.html) to authenticate against the broker. To achieve this, the device must ensure it is capable of performing http(s) calls to Pairing API to obtain its certificates, performing SSL/X509 operations and connecting to the MQTT Broker through the use of SSL certificates.
+In Astarte, every Transport orchestrates its credentials through Pairing. Astarte/VerneMQ authenticates devices using Mutual SSL Authentication - as such, devices use SSL certificates emitted through [Pairing API](050-pairing_mechanism.html) to authenticate against the broker. To achieve this, the device must ensure it is capable of performing http(s) calls to Pairing API to obtain its certificates, performing SSL/X509 operations and connecting to the MQTT Broker through the use of SSL certificates.
 
 ## Authorization
 

@@ -64,7 +64,7 @@ defmodule Astarte.AppEngine.API.Device.InterfaceValuesOptions do
     changes = Map.get(changeset, :changes)
 
     if Map.has_key?(changes, field_a) and Map.has_key?(changes, field_b) do
-      add_error(changeset, field_b, "conflicts already set parameter", conflits: field_a)
+      add_error(changeset, field_b, "conflicts already set parameter", conflicts: field_a)
     else
       changeset
     end

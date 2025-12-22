@@ -278,7 +278,7 @@ defmodule Astarte.AppEngine.APIWeb.GroupsControllerTest do
       assert json_response(conn, 404)["errors"]["detail"] == "Device not found"
     end
 
-    test "succesfully delete device", %{conn: conn} do
+    test "successfully delete device", %{conn: conn} do
       delete_conn =
         delete(
           conn,

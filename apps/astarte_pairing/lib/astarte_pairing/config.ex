@@ -80,7 +80,7 @@ defmodule Astarte.Pairing.Config do
           default: :expose
 
   @envdoc """
-  "set the name for the triggers cache, used for caching trigggers and avoid constant db access, defaults to 'trigger_cache'"
+  "set the name for the triggers cache, used for caching triggers and avoid constant db access, defaults to 'trigger_cache'"
   """
   app_env :trigger_cache_name, :astarte_pairing, :trigger_cache_name,
     type: :atom,

@@ -428,7 +428,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.Device do
         {:ok, byte_size(topic) + byte_size(bson_value)}
 
       {:ok, %{local_matches: local, remote_matches: remote}} when local + remote > 1 ->
-        # This should not happen so we print a warning, but we consider it a succesful publish
+        # This should not happen so we print a warning, but we consider it a successful publish
         Logger.warning(
           "Multiple match while publishing #{inspect(encapsulated_value)} on #{topic}.",
           tag: "publish_multiple_matches"

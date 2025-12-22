@@ -29,7 +29,7 @@ and to persist this configuration
 $ sudo sysctl -p
 ```
 
-## Checking prerequistes
+## Checking prerequisites
 
 Docker version >= 19 is recommended:
 

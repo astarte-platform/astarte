@@ -25,7 +25,7 @@ defmodule Astarte.Export do
   @moduledoc """
     This  module provide API functions to export realm device
     data in a xml format. This data can be used by astarte_import
-    application utlity  to import into a new realm.
+    application utility  to import into a new realm.
   """
 
   @doc """

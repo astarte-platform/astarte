@@ -345,7 +345,7 @@ The `devices` table stores the list of all the devices for a certain realm and a
 
 ### Endpoints
 
-The `endpoints` table stores the list of all endpoints of all interfaces for realm, with all the data needed to define an endpoint, such as retention, realiability, value type and so on.
+The `endpoints` table stores the list of all endpoints of all interfaces for realm, with all the data needed to define an endpoint, such as retention, reliability, value type and so on.
 
 | Column Name                 | Column Type | Description                                                   |
 | --------------------------- | ----------- | ------------------------------------------------------------- |
@@ -369,7 +369,7 @@ The `endpoints` table stores the list of all endpoints of all interfaces for rea
 
 ### Interfaces
 
-The `interfaces` table stores the list of all interfaces for realm, with all the data needed to define an endpoint, such as retention, realiability, value type and so on.
+The `interfaces` table stores the list of all interfaces for realm, with all the data needed to define an endpoint, such as retention, reliability, value type and so on.
 
 | Column Name                  | Column Type | Description                                                                                                                                    |
 | ---------------------------- | ----------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -451,7 +451,7 @@ ADD (
 #### Realm Keyspace v1.0.0-beta.1 Changes
 
 - The `connected` field of the `devices` table is now saved with a TTL, so it automatically expires
-  if it doesn't gets refreshed by the hearbeat sent by the broker. This behaviour was added to
+  if it doesn't gets refreshed by the heartbeat sent by the broker. This behaviour was added to
   avoid stale connected devices if they disconnect while the broker is down.
 
 - Add `metadata` column to the `devices` table

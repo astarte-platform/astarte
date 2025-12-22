@@ -99,7 +99,7 @@ defmodule Astarte.DataUpdaterPlant.Config do
           os_env: "DATA_UPDATER_PLANT_AMQP_CONSUMER_SSL_CUSTOM_SNI",
           type: :binary
 
-  @envdoc "The prefix used to contruct data queue names, together with queue indexes."
+  @envdoc "The prefix used to construct data queue names, together with queue indexes."
   app_env :data_queue_prefix, :astarte_data_updater_plant, :amqp_data_queue_prefix,
     os_env: "DATA_UPDATER_PLANT_AMQP_DATA_QUEUE_PREFIX",
     type: :binary,
@@ -131,7 +131,7 @@ defmodule Astarte.DataUpdaterPlant.Config do
           type: :integer,
           default: 300
 
-  @envdoc "The port where Data Upater Plant metrics will be exposed."
+  @envdoc "The port where Data Updater Plant metrics will be exposed."
   app_env :port, :astarte_data_updater_plant, :port,
     os_env: "DATA_UPDATER_PLANT_PORT",
     type: :integer,

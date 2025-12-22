@@ -22,7 +22,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.Error do
   @moduledoc """
   Part of the `DataUpdater` `Core` modules
 
-  This module is responsble for providing utilities to handle errors during the handling of messages
+  This module is responsible for providing utilities to handle errors during the handling of messages
   """
   alias Astarte.DataUpdaterPlant.MessageTracker
   alias Astarte.DataUpdaterPlant.DataUpdater.Core

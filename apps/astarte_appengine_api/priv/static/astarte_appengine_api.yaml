@@ -45,7 +45,7 @@ externalDocs:
 tags:
   - name: device
     description: >-
-      Device data status retrival and publish. All operations on a device can be
+      Device data status retrieval and publish. All operations on a device can be
       done using both the device id or any of its aliases.
   - name: groups
     description: >-
@@ -81,7 +81,7 @@ paths:
             Opaque devices list page pointer: it basically points to the
             beginning of a devices page. If not specified the devices list is
             displayed from the beginning. This format might change in future
-            versions so it should be passed without any furhter assumption about
+            versions so it should be passed without any further assumption about
             type, format or its value.
           required: false
           schema:
@@ -341,7 +341,7 @@ paths:
       description: >-
         Get a list of interfaces supported by a certain device. Interfaces that
         are not reported by the device are not reported here. If a device stops
-        to advertise a certain interface, it should be retrived from a different
+        to advertise a certain interface, it should be retrieved from a different
         API, same applies for older versions of a certain interface.
       operationId: getInterfaces
       security:
@@ -1119,10 +1119,10 @@ components:
           description: Last known device IP address used while obtaining credentials.
         total_received_bytes:
           type: integer
-          description: Total ammount of received payload bytes.
+          description: Total amount of received payload bytes.
         total_received_msgs:
           type: integer
-          description: Total ammount of received messages.
+          description: Total amount of received messages.
         groups:
           type: array
           description: The groups the device belongs to.

@@ -125,7 +125,7 @@ The exported realm data is captured in xml_format as below.
 </astarte>
 ```
 
-# Configiuration
+# Configuration
 
 Update MIX configuration to allow accessing the CASSANDRA database tables with page_size options. This reduces the caching of devices data in-memory.
 

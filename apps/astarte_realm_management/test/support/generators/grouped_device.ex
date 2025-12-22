@@ -28,7 +28,7 @@ defmodule Astarte.RealmManagement.Generators.GroupedDevice do
   use ExUnitProperties
   import ParamsGen
 
-  def grouped_devide(params) do
+  def grouped_device(params) do
     params gen(
              all(
                device_id <- Astarte.Core.Generators.Device.id(),

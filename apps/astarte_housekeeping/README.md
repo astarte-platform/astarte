@@ -21,7 +21,7 @@ run dialyzer.
 mix dialyzer
 ```
 
-nb: all PRs have to be linter-approved, so running `mix dialyzer` before makeing
+nb: all PRs have to be linter-approved, so running `mix dialyzer` before making
 a pull request saves everyone some precious review time!
 
 ## 🧑‍🔬 Test
