@@ -42,9 +42,9 @@ jobs:
         id: plt_cache
         with:
           path: apps/${{ inputs.app }}/dialyzer_cache
-          key: ${{ runner.os }}-dialyzer_cache-${{ env.otp_version }}-${{ env.elixir_version }}-${{ inputs.app }}-${{ github.sha }}
+          key: ${{ runner.os }}-dialyzer_cache-${{ env.otp_version }}-${{ env.elixir_version }}-${{ inputs.app }}-${{ hashFiles(format('{0}{1}{2}{3}', github.workspace, '/apps/', inputs.app, '/mix.lock')) }}-${{ hashFiles(format('{0}{1}', github.workspace, '/libs/')) }}-${{ github.sha }}
           restore-keys: |
-            ${{ runner.os }}-dialyzer_cache-${{ env.otp_version }}-${{ env.elixir_version }}-${{ inputs.app }}-
+            ${{ runner.os }}-dialyzer_cache-${{ env.otp_version }}-${{ env.elixir_version }}-${{ inputs.app }}-${{ hashFiles(format('{0}{1}{2}{3}', github.workspace, '/apps/', inputs.app, '/mix.lock')) }}-${{ hashFiles(format('{0}{1}', github.workspace, '/libs/')) }}-
       - uses: erlef/setup-beam@v1.15
         with:
           otp-version: ${{ env.otp_version }}
