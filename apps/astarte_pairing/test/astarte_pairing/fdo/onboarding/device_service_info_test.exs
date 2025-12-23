@@ -25,19 +25,15 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding.DeviceServiceInfoTest do
       assert {:ok, msg} = DeviceServiceInfo.decode(payload)
       assert msg.is_more_service_info == true
 
-      assert msg.service_info ==
-               %{"devmod:os" => "linux", "devmod:version" => "1.0"}
+      assert msg.service_info == %{
+               {"devmod", "os"} => "linux",
+               {"devmod", "version"} => "1.0"
+             }
     end
 
-    test "correctly decodes a Astarte ServiceInfo payload " do
+    test "correctly decodes a Device ServiceInfo payload " do
       complex_service_info = [
-        ["astarte:active", true],
-        ["astarte:realm", "test_realm"],
-        ["astarte:secret", "super_secret_credential"],
-        ["astarte:baseurl", "http://api.astarte.localhost"],
-        ["astarte:deviceid", "2TBn-jNESuuHamE2Zo1anA"],
-        ["astarte:nummodules", 1],
-        ["astarte:modules", [1, 0, "astarte_interface_1", "astarte_interface_2"]]
+        ["devmode:active", true]
       ]
 
       complex_service_info =
@@ -52,15 +48,7 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding.DeviceServiceInfoTest do
       assert msg.is_more_service_info == true
       assert is_map(msg.service_info)
 
-      expected_map = %{
-        "astarte:active" => true,
-        "astarte:realm" => "test_realm",
-        "astarte:baseurl" => "http://api.astarte.localhost",
-        "astarte:deviceid" => "2TBn-jNESuuHamE2Zo1anA",
-        "astarte:modules" => [1, 0, "astarte_interface_1", "astarte_interface_2"],
-        "astarte:nummodules" => 1,
-        "astarte:secret" => "super_secret_credential"
-      }
+      expected_map = %{{"devmode", "active"} => true}
 
       assert msg.service_info == expected_map
     end

@@ -17,19 +17,17 @@
 #
 
 defmodule Astarte.Pairing.FDO.ServiceInfoTest do
+  use ExUnit.Case, async: true
   use Astarte.Cases.Data, async: true
-  use Astarte.Cases.Device
-  doctest Astarte.Pairing.FDO.ServiceInfo
 
   alias Astarte.Pairing.FDO.ServiceInfo
-  alias Astarte.Pairing.FDO.OwnerOnboarding.DeviceServiceInfoReady
+  alias Astarte.Pairing.FDO.OwnerOnboarding.DeviceServiceInfo
+  alias Astarte.Pairing.FDO.OwnerOnboarding.OwnerServiceInfo
   alias Astarte.Pairing.FDO.OwnerOnboarding.HelloDevice
   alias Astarte.Pairing.FDO.OwnerOnboarding.SessionKey
   alias Astarte.Pairing.FDO.OwnerOnboarding.Session
 
   import Astarte.Helpers.FDO
-
-  @owner_max_service_info 4096
 
   setup_all %{realm_name: realm_name} do
     device_id = sample_device_guid()
@@ -75,90 +73,87 @@ defmodule Astarte.Pairing.FDO.ServiceInfoTest do
     %{session: session}
   end
 
-  describe "handle_msg_66/3" do
-    test "successfully processes Msg 66, creates new voucher, and returns Msg 67", %{
+  describe "build_owner_service_info/3 when device has more data" do
+    test "stores partial device service info and returns empty owner service info", %{
       realm: realm_name,
       session: session
     } do
-      new_hmac = :crypto.strong_rand_bytes(32)
-      device_max_size = 2048
+      service_info = %{{"devmode", "active"} => true}
+      expected_service_info = %{{"devmode", "active"} => CBOR.encode(true)}
 
-      assert {:ok, result_msg_67} =
-               ServiceInfo.handle_msg_66(
+      device_info = %DeviceServiceInfo{
+        is_more_service_info: true,
+        service_info: service_info
+      }
+
+      empty_message = OwnerServiceInfo.empty()
+
+      assert {:ok, empty_message} ==
+               ServiceInfo.build_owner_service_info(
                  realm_name,
                  session,
-                 %DeviceServiceInfoReady{
-                   replacement_hmac: new_hmac,
-                   max_owner_service_info_sz: device_max_size
-                 }
+                 device_info
                )
 
-      assert result_msg_67 == [@owner_max_service_info]
+      {:ok, session_after} = Session.fetch(realm_name, session.key)
+
+      assert expected_service_info == session_after.device_service_info
     end
 
-    test "handles Credential Reuse (nil HMAC) correctly", %{
+    test "appends partial device service info and returns empty owner service info", %{
       realm: realm_name,
       session: session
     } do
-      assert {:ok, _result} =
-               ServiceInfo.handle_msg_66(
-                 realm_name,
-                 session,
-                 %DeviceServiceInfoReady{
-                   replacement_hmac: nil,
-                   max_owner_service_info_sz: 2048
-                 }
-               )
-    end
+      first_service_info = %{{"devmode", "active"} => true}
+      second_service_info = %{{"devmode", "os"} => "linux"}
 
-    test "handles the default recommended limit(nil info size) correctly", %{
+      expected_service_info = %{
+        {"devmode", "active"} => CBOR.encode(true),
+        {"devmode", "os"} => CBOR.encode("linux")
+      }
+
+      device_info = %DeviceServiceInfo{
+        is_more_service_info: true,
+        service_info: first_service_info
+      }
+
+      ServiceInfo.build_owner_service_info(realm_name, session, device_info)
+
+      device_info = %DeviceServiceInfo{
+        is_more_service_info: true,
+        service_info: second_service_info
+      }
+
+      {:ok, session} = Session.fetch(realm_name, session.key)
+
+      ServiceInfo.build_owner_service_info(realm_name, session, device_info)
+
+      {:ok, session_after} = Session.fetch(realm_name, session.key)
+
+      assert expected_service_info == session_after.device_service_info
+    end
+  end
+
+  describe "build_owner_service_info/3 when device has sent all data" do
+    test "registers device and returns owner service info", %{
       realm: realm_name,
       session: session
     } do
-      new_hmac = :crypto.strong_rand_bytes(32)
+      service_info = %{{"devmod", "sn"} => "serial_number_1234"}
 
-      assert {:ok, _result} =
-               ServiceInfo.handle_msg_66(
+      device_info = %DeviceServiceInfo{
+        is_more_service_info: false,
+        service_info: service_info
+      }
+
+      assert {:ok, encoded_owner_service_info} =
+               ServiceInfo.build_owner_service_info(
                  realm_name,
                  session,
-                 %DeviceServiceInfoReady{
-                   replacement_hmac: new_hmac,
-                   max_owner_service_info_sz: nil
-                 }
+                 device_info
                )
-    end
 
-    test "handles the default recommended limit(0 info size) correctly", %{
-      realm: realm_name,
-      session: session
-    } do
-      new_hmac = :crypto.strong_rand_bytes(32)
-
-      assert {:ok, _result} =
-               ServiceInfo.handle_msg_66(
-                 realm_name,
-                 session,
-                 %DeviceServiceInfoReady{
-                   replacement_hmac: new_hmac,
-                   max_owner_service_info_sz: 0
-                 }
-               )
-    end
-
-    test "returns error for wrong session", %{
-      realm: realm_name
-    } do
-      new_hmac = :crypto.strong_rand_bytes(32)
-
-      assert {:error, :failed_66} =
-               ServiceInfo.handle_msg_66(
-                 realm_name,
-                 %Session{device_id: :crypto.strong_rand_bytes(16)},
-                 %DeviceServiceInfoReady{
-                   replacement_hmac: new_hmac,
-                   max_owner_service_info_sz: 0
-                 }
-               )
+      assert is_binary(encoded_owner_service_info)
     end
   end
 end

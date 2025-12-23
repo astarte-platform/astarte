@@ -3,6 +3,7 @@ defmodule Astarte.Pairing.FDO.Types.ServiceInfo do
   alias Astarte.Pairing.FDO.Types.ServiceInfo
 
   typedstruct do
+    field :module, String.t()
     field :key, String.t()
     field :value, term()
   end
@@ -10,10 +11,12 @@ defmodule Astarte.Pairing.FDO.Types.ServiceInfo do
   def decode(service_info) do
     with [key, value] <- service_info,
          true <- is_binary(key),
-         %CBOR.Tag{tag: :bytes, value: value} <- value,
-         {:ok, value, _} <- CBOR.decode(value) do
+         %CBOR.Tag{tag: :bytes, value: cbor_value} <- value,
+         {:ok, value, _} <- CBOR.decode(cbor_value),
+         [module, key] <- String.split(key, ":", parts: 2) do
       service_info =
         %ServiceInfo{
+          module: module,
           key: key,
           value: value
         }
@@ -36,8 +39,8 @@ defmodule Astarte.Pairing.FDO.Types.ServiceInfo do
       {:ok, list} ->
         map =
           Map.new(list, fn {:ok, value} ->
-            %ServiceInfo{key: key, value: value} = value
-            {key, value}
+            %ServiceInfo{module: module, key: key, value: value} = value
+            {{module, key}, value}
           end)
 
         {:ok, map}

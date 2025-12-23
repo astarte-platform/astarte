@@ -21,12 +21,14 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding.DeviceServiceInfoReady do
   TO2.DeviceServiceInfoReady (Msg 66).
   From Device ROE to Owner Onboarding Service.
 
-  This message signals the transition from the Authentication phase to the 
+  This message signals the transition from the Authentication phase to the
   Provisioning phase (ServiceInfo negotiation).
   """
   use TypedStruct
   alias Astarte.Pairing.FDO.OwnerOnboarding.DeviceServiceInfoReady
   alias Astarte.Pairing.FDO.Types.Hash
+
+  @default_max_owner_service_info_sz 1400
 
   typedstruct enforce: true do
     @typedoc "Structure for TO2.DeviceServiceInfoReady message."
@@ -73,6 +75,8 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding.DeviceServiceInfoReady do
 
   defp validate_and_build(nil, size) do
     with :ok <- validate_size(size) do
+      size = normalize_owner_max_size(size)
+
       message =
         %DeviceServiceInfoReady{
           replacement_hmac: nil,
@@ -86,6 +90,8 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding.DeviceServiceInfoReady do
   defp validate_and_build(hmac, size) do
     with {:ok, hmac} <- Hash.decode(hmac),
          :ok <- validate_size(size) do
+      size = normalize_owner_max_size(size)
+
       message =
         %DeviceServiceInfoReady{
           replacement_hmac: hmac,
@@ -100,4 +106,8 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding.DeviceServiceInfoReady do
   defp validate_size(nil), do: :ok
   defp validate_size(size) when is_integer(size) and size >= 0, do: :ok
   defp validate_size(_), do: {:error, :invalid_size_type}
+
+  defp normalize_owner_max_size(nil), do: @default_max_owner_service_info_sz
+  defp normalize_owner_max_size(0), do: @default_max_owner_service_info_sz
+  defp normalize_owner_max_size(size), do: size
 end

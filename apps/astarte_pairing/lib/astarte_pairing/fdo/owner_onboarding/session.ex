@@ -42,6 +42,7 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding.Session do
     field :svk, struct() | nil
     field :sek, struct() | nil
     field :max_service_info, integer() | nil
+    field :device_service_info, map() | nil
   end
 
   def new(realm_name, hello_device, ownership_voucher, owner_key) do
@@ -91,6 +92,27 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding.Session do
     with :ok <- Queries.session_add_setup_dv_nonce(realm_name, session.key, setup_dv_nonce) do
       {:ok, %{session | setup_dv_nonce: setup_dv_nonce}}
     end
+  end
+
+  def add_device_service_info(session, realm_name, new_service_info) do
+    service_info = encode_values_to_cbor(new_service_info)
+    session = update_in(session.device_service_info, &Map.merge(&1 || %{}, service_info))
+
+    with :ok <-
+           Queries.session_add_device_service_info(
+             realm_name,
+             session.key,
+             session.device_service_info
+           ) do
+      {:ok, session}
+    end
+  end
+
+  defp encode_values_to_cbor(map) when is_map(map) do
+    Map.new(map, fn
+      {key, value} ->
+        {key, CBOR.encode(value)}
+    end)
   end
 
   def build_session_secret(session, realm_name, owner_key, xb) do
@@ -154,7 +176,8 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding.Session do
         sevk: sevk,
         svk: svk,
         sek: sek,
-        max_service_info: max_service_info
+        max_service_info: max_service_info,
+        device_service_info: device_service_info
       } = database_session
 
       session = %Session{
@@ -170,7 +193,8 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding.Session do
         sevk: SessionKey.from_db(sevk),
         svk: SessionKey.from_db(svk),
         sek: SessionKey.from_db(sek),
-        max_service_info: max_service_info
+        max_service_info: max_service_info,
+        device_service_info: device_service_info
       }
 
       {:ok, session}

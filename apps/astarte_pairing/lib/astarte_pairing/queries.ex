@@ -310,6 +310,11 @@ defmodule Astarte.Pairing.Queries do
     update_session(realm_name, session_key, updates)
   end
 
+  def session_add_device_service_info(realm_name, session_key, service_info) do
+    updates = [device_service_info: service_info]
+    update_session(realm_name, session_key, updates)
+  end
+
   defp update_session(realm_name, session_key, updates) do
     with {:ok, session_key} <- Astarte.DataAccess.UUID.dump(session_key) do
       keyspace = Realm.keyspace_name(realm_name)

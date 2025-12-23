@@ -27,6 +27,7 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding.OwnerServiceInfo do
   use TypedStruct
   alias Astarte.Pairing.FDO.Types.ServiceInfo
   alias Astarte.Pairing.FDO.OwnerOnboarding.OwnerServiceInfo
+  alias Astarte.Pairing.Config
 
   typedstruct enforce: true do
     @typedoc "Structure for TO2.OwnerServiceInfo message."
@@ -69,5 +70,44 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding.OwnerServiceInfo do
     t
     |> to_cbor_list()
     |> CBOR.encode()
+  end
+
+  def build(realm_name, credentials_secret, encoded_device_id) do
+    service_info = %{
+      "astarte:active" => true,
+      "astarte:realm" => realm_name,
+      "astarte:secret" => credentials_secret,
+      "astarte:baseurl" => "#{Config.base_url!()}",
+      "astarte:deviceid" => encoded_device_id
+    }
+
+    service_info_keys = Map.keys(service_info)
+    service_info_count = Enum.count(service_info_keys)
+
+    # FIXME: this only works for single message service info
+    modules = [service_info_count, service_info_count | service_info_keys]
+
+    service_info
+    |> Map.put("astarte:modules", modules)
+    |> Map.put("astarte:nummodules", service_info_count)
+
+    %OwnerServiceInfo{
+      is_more_service_info: false,
+      is_done: true,
+      service_info: service_info
+    }
+  end
+
+  def empty() do
+    build_empty_owner_service_info()
+    |> OwnerServiceInfo.encode()
+  end
+
+  defp build_empty_owner_service_info() do
+    %OwnerServiceInfo{
+      is_more_service_info: false,
+      is_done: false,
+      service_info: %{}
+    }
   end
 end

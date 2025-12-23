@@ -38,6 +38,8 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding do
   alias Astarte.Pairing.FDO.Types.Hash
   alias Astarte.Pairing.Queries
   alias Astarte.Pairing.FDO.OwnerOnboarding.SetupDevicePayload
+  alias Astarte.Pairing.FDO.OwnerOnboarding.DeviceServiceInfoReady
+  alias Astarte.Pairing.FDO.OwnerOnboarding.OwnerServiceInfoReady
 
   require Logger
 
@@ -217,6 +219,33 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding do
 
     payload
     |> SetupDevicePayload.encode_sign(creds.owner_private_key)
+  end
+
+  def build_owner_service_info_ready(
+        realm_name,
+        session,
+        %DeviceServiceInfoReady{
+          replacement_hmac: replacement_hmac,
+          max_owner_service_info_sz: max_owner_service_info_sz
+        }
+      ) do
+    with {:ok, old_voucher} <-
+           OwnershipVoucher.fetch(realm_name, session.device_id),
+         {:ok, _new_voucher} <-
+           OwnershipVoucher.generate_replacement_voucher(old_voucher, replacement_hmac),
+         :ok <-
+           Queries.update_session_max_payload(realm_name, session.key, max_owner_service_info_sz) do
+      # TODO: Store `new_voucher` into DB.
+
+      response =
+        OwnerServiceInfoReady.new()
+        |> OwnerServiceInfoReady.to_cbor_list()
+
+      {:ok, response}
+    else
+      _ ->
+        {:error, :failed_66}
+    end
   end
 
   def done(to2_session, body) do
