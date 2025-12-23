@@ -254,6 +254,17 @@ defmodule Astarte.RealmManagement.TriggersTest do
       %{realm: realm, trigger_attrs: trigger_attrs, astarte_instance_id: astarte_instance_id} =
         context
 
+      # realm management receives device_deletion_started notifications
+      trigger_attrs =
+        Enum.into(
+          %{
+            "simple_triggers" => [
+              %{"on" => "device_deletion_started", "type" => "device_trigger"}
+            ]
+          },
+          trigger_attrs
+        )
+
       device_id = Astarte.Core.Device.random_device_id()
       installation_ref = trigger_notification_installation_ref(astarte_instance_id, realm)
       deletion_ref = trigger_notification_deletion_ref(astarte_instance_id, realm)
@@ -269,7 +280,7 @@ defmodule Astarte.RealmManagement.TriggersTest do
   end
 
   defp get_triggers(realm, device_id) do
-    EventsTriggers.find_device_trigger_targets(realm, device_id, [], :on_device_connection)
+    EventsTriggers.find_device_trigger_targets(realm, device_id, [], :on_device_deletion_started)
   end
 
   defp trigger_notification_installation_ref(astarte_instance_id, realm_name) do

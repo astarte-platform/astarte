@@ -46,7 +46,7 @@ defmodule Astarte.Pairing.Application do
     children = [
       Astarte.PairingWeb.Telemetry,
       {Astarte.Pairing.CredentialsSecret.Cache, []},
-      Astarte.RPC.Triggers.Client,
+      {Astarte.RPC.Triggers.Client, types: [:DEVICE_REGISTERED]},
       Astarte.PairingWeb.Endpoint
     ]
 

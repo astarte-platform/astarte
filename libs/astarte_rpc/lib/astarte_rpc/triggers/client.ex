@@ -28,8 +28,11 @@ defmodule Astarte.RPC.Triggers.Client do
   def start_link(init_arg), do: GenServer.start_link(Client, init_arg, name: Client)
 
   @impl GenServer
-  def init(_) do
-    Triggers.subscribe_all()
+  def init(opts) do
+    case Keyword.fetch(opts, :types) do
+      {:ok, trigger_types} -> Triggers.subscribe_types(trigger_types)
+      :error -> Triggers.subscribe_all()
+    end
 
     {:ok, nil}
   end

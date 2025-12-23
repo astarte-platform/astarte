@@ -39,9 +39,11 @@ defmodule Astarte.RealmManagement.Application do
     Config.validate!()
     DataAccessConfig.validate!()
 
+    trigger_types = [:DEVICE_DELETION_STARTED, :DEVICE_DELETION_FINISHED]
+
     children =
       [
-        Astarte.RPC.Triggers.Client,
+        {Astarte.RPC.Triggers.Client, types: trigger_types},
         Astarte.RealmManagementWeb.Telemetry,
         Astarte.RealmManagementWeb.Endpoint,
         {Task.Supervisor, name: Astarte.RealmManagement.DeviceRemoverSupervisor},

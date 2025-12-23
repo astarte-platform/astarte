@@ -29,6 +29,13 @@ defmodule Astarte.RPC.Triggers do
 
   def subscribe_all, do: PubSub.subscribe(Server, "triggers:*")
 
+  def subscribe_types(types) do
+    for type <- types do
+      key = trigger_by_type_key(type)
+      PubSub.subscribe(Server, key)
+    end
+  end
+
   def notify_installation(realm_name, tagged_simple_trigger, target, policy, data \\ %{}) do
     with {:ok, data} <- Core.find_trigger_data(realm_name, tagged_simple_trigger, data) do
       message =
@@ -40,7 +47,7 @@ defmodule Astarte.RPC.Triggers do
           data: data
         }
 
-      PubSub.broadcast(Server, "triggers:*", message)
+      broadcast(tagged_simple_trigger, message)
     end
   end
 
@@ -54,7 +61,27 @@ defmodule Astarte.RPC.Triggers do
           data: data
         }
 
-      PubSub.broadcast(Server, "triggers:*", message)
+      broadcast(tagged_simple_trigger, message)
     end
   end
+
+  defp broadcast(tagged_simple_trigger, message) do
+    trigger_by_type_key = to_trigger_by_type_key(tagged_simple_trigger)
+
+    PubSub.broadcast(Server, trigger_by_type_key, message)
+    PubSub.broadcast(Server, "triggers:*", message)
+  end
+
+  defp to_trigger_by_type_key(tagged_simple_trigger) do
+    trigger_type = trigger_type(tagged_simple_trigger.simple_trigger_container.simple_trigger)
+
+    trigger_by_type_key(trigger_type)
+  end
+
+  defp trigger_by_type_key(trigger_type) do
+    "trigger-by-type:" <> Atom.to_string(trigger_type)
+  end
+
+  defp trigger_type({:device_trigger, device_trigger}), do: device_trigger.device_event_type
+  defp trigger_type({:data_trigger, data_trigger}), do: data_trigger.data_trigger_type
 end

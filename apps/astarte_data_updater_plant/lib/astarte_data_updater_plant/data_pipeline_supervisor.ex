@@ -27,6 +27,28 @@ defmodule Astarte.DataUpdaterPlant.DataPipelineSupervisor do
 
   @impl true
   def init(_init_arg) do
+    dup_device_triggers = [
+      :DEVICE_CONNECTED,
+      :DEVICE_DISCONNECTED,
+      :DEVICE_EMPTY_CACHE_RECEIVED,
+      :DEVICE_ERROR,
+      :INCOMING_INTROSPECTION,
+      :INTERFACE_ADDED,
+      :INTERFACE_REMOVED,
+      :INTERFACE_MINOR_UPDATED
+    ]
+
+    dup_data_triggers = [
+      :INCOMING_DATA,
+      :VALUE_CHANGE,
+      :VALUE_CHANGE_APPLIED,
+      :PATH_CREATED,
+      :PATH_REMOVED,
+      :VALUE_STORED
+    ]
+
+    trigger_types = Enum.concat(dup_device_triggers, dup_data_triggers)
+
     children = [
       {Horde.Registry, [keys: :unique, name: Registry.MessageTracker, members: :auto]},
       {Horde.Registry, [keys: :unique, name: Registry.DataUpdater, members: :auto]},
@@ -50,7 +72,7 @@ defmodule Astarte.DataUpdaterPlant.DataPipelineSupervisor do
          distribution_strategy: Horde.UniformDistribution
        ]},
       ConsumersSupervisor,
-      Astarte.RPC.Triggers.Client,
+      {Astarte.RPC.Triggers.Client, types: trigger_types},
       Astarte.DataUpdaterPlant.RPC.Supervisor
     ]
 
