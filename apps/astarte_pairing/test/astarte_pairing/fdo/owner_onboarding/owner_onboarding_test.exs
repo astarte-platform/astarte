@@ -47,9 +47,31 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding.OwnerOnboardingTest do
 
     cbor_hello_p384_x509 = HelloDevice.cbor_encode(hello_msg_p384_x509)
 
+    {voucher_p256_chain, key_p256_chain} = generate_p256_x5chain_data_and_pem()
+    cbor_p256_chain = OwnershipVoucher.cbor_encode(voucher_p256_chain)
+    id_p256_chain = voucher_p256_chain.header.guid
+    insert_voucher(realm_name, key_p256_chain, cbor_p256_chain, id_p256_chain)
+
+    hello_msg_p256_x5chain =
+      HelloDevice.generate(device_id: id_p256_chain, kex_name: "ECDH256", easig_info: :es256)
+
+    cbor_hello_p256_chain = HelloDevice.cbor_encode(hello_msg_p256_x5chain)
+
+    {voucher_p384_chain, key_p384_chain} = generate_p384_x5chain_data_and_pem()
+    cbor_p384_chain = OwnershipVoucher.cbor_encode(voucher_p384_chain)
+    id_p384_chain = voucher_p384_chain.header.guid
+    insert_voucher(realm_name, key_p384_chain, cbor_p384_chain, id_p384_chain)
+
+    hello_msg_p384_x5chain =
+      HelloDevice.generate(device_id: id_p384_chain, kex_name: "ECDH384", easig_info: :es384)
+
+    cbor_hello_p384_x5chain = HelloDevice.cbor_encode(hello_msg_p384_x5chain)
+
     %{
       p256_x509: %{id: id_p256_x509, cbor_hello: cbor_hello_p256_x509},
-      p384_x509: %{id: id_p384_x509, cbor_hello: cbor_hello_p384_x509}
+      p256_chain: %{id: id_p256_chain, cbor_hello: cbor_hello_p256_chain},
+      p384_x509: %{id: id_p384_x509, cbor_hello: cbor_hello_p384_x509},
+      p384_chain: %{id: id_p384_chain, cbor_hello: cbor_hello_p384_x5chain}
     }
   end
 
@@ -71,5 +93,29 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding.OwnerOnboardingTest do
       assert {:ok, sign1_msg} = Sign1.decode_cbor(resp_binary)
       assert sign1_msg.phdr.alg == :es384
     end
+  end
+
+  test "P-256 with X5CHAIN: extracts key from certificate chain", %{
+    realm_name: realm_name,
+    p256_chain: ctx
+  } do
+    assert {:ok, session_key, resp_binary} =
+             OwnerOnboarding.hello_device(realm_name, ctx.cbor_hello)
+
+    assert is_binary(session_key)
+    assert {:ok, sign1_msg} = Sign1.decode_cbor(resp_binary)
+    assert sign1_msg.phdr.alg == :es256
+  end
+
+  test "P-384 with X5CHAIN: extracts key from P-384 certificate chain", %{
+    realm: realm_name,
+    p384_chain: ctx
+  } do
+    assert {:ok, session_key, resp_binary} =
+             OwnerOnboarding.hello_device(realm_name, ctx.cbor_hello)
+
+    assert is_binary(session_key)
+    assert {:ok, sign1_msg} = Sign1.decode_cbor(resp_binary)
+    assert sign1_msg.phdr.alg == :es384
   end
 end

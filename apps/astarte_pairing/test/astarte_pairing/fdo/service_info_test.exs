@@ -31,7 +31,7 @@ defmodule Astarte.Pairing.FDO.ServiceInfoTest do
 
   setup_all %{realm_name: realm_name} do
     device_id = sample_device_guid()
-    hello_device = %{HelloDevice.generate() | device_id: device_id}
+    hello_device = HelloDevice.generate(device_id: device_id)
     ownership_voucher = sample_ownership_voucher()
     owner_key = sample_extracted_private_key()
     device_key = COSE.Keys.ECC.generate(:es256)
