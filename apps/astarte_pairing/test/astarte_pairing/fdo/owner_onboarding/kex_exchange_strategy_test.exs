@@ -33,6 +33,21 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding.KeyExchangeStrategyTest do
       assert :ok = KeyExchangeStrategy.validate("DHKEXid15", owner_key)
     end
 
+    test "validates device requesting ASYMKEX2048 when Owner Key is of type RSA2048" do
+      owner_key = %RSA{alg: :rs256}
+      assert :ok = KeyExchangeStrategy.validate("ASYMKEX2048", owner_key)
+    end
+
+    test "validates device requesting ASYMKEX3072 when Owner Key is of type RSA3072" do
+      owner_key = %RSA{alg: :rs384}
+      assert :ok = KeyExchangeStrategy.validate("ASYMKEX3072", owner_key)
+    end
+
+    test "returns error if Device requests ASYMKEX2048 but Owner has RSA3072 key (Mismatch)" do
+      owner_key = %RSA{alg: :rs384}
+      assert {:error, :invalid_message} = KeyExchangeStrategy.validate("ASYMKEX2048", owner_key)
+    end
+
     test "validates ECDH256 successfully when Owner uses P-256" do
       owner_key = %ECC{crv: :p256}
       assert :ok = KeyExchangeStrategy.validate("ECDH256", owner_key)

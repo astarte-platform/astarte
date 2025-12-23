@@ -131,6 +131,34 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding.SessionTest do
       # secret size: 384 byes (RSA-3072 key size)
       assert byte_size(owner_dhkex15_secret) == 384
     end
+
+    @tag owner_key: "RSA2048", kex_name: "ASYMKEX2048"
+    test "is carried out correctly when device and owner use ASYMKEX2048 algorithm", %{
+      session: session,
+      device_random: device_random
+    } do
+      owner_asymkex2048_secret = session.secret
+
+      assert is_binary(owner_asymkex2048_secret)
+      # for ASYMKEX, device_secret == device_random
+      assert owner_asymkex2048_secret == device_random
+      # secret size: 32 bytes (device random)
+      assert byte_size(owner_asymkex2048_secret) == 32
+    end
+
+    @tag owner_key: "RSA3072", kex_name: "ASYMKEX3072"
+    test "is carried out correctly when device and owner use ASYMKEX3072 algorithm", %{
+      session: session,
+      device_random: device_random
+    } do
+      owner_asymkex3072_secret = session.secret
+
+      assert is_binary(owner_asymkex3072_secret)
+      # for ASYMKEX, device_secret == device_random
+      assert owner_asymkex3072_secret == device_random
+      # secret size: 96 bytes (device random)
+      assert byte_size(owner_asymkex3072_secret) == 96
+    end
   end
 
   describe "derive_key/2" do

@@ -51,7 +51,14 @@ defmodule Astarte.Cases.FDOSession do
   end
 
   @allowed_owner_key_tag_values ["EC256", "EC384", "RSA2048", "RSA3072"]
-  @allowed_kex_name_tag_values ["ECDH256", "ECDH384", "DHKEXid14", "DHKEXid15"]
+  @allowed_kex_name_tag_values [
+    "ECDH256",
+    "ECDH384",
+    "DHKEXid14",
+    "DHKEXid15",
+    "ASYMKEX2048",
+    "ASYMKEX3072"
+  ]
 
   setup context do
     # setup block for owner/device keys & ownership voucher
@@ -99,7 +106,8 @@ defmodule Astarte.Cases.FDOSession do
           "unsupported association owner key type #{context.owner_key.alg} <-> KEX alg #{kex_name}"
         )
 
-    {:ok, device_random, xb} = SessionKey.new(kex_name, context.device_key)
+    {:ok, device_random, xb} =
+      generate_xb_key_exchange(kex_name, context.device_key, context.owner_key)
 
     hello_device =
       HelloDevice.generate(
@@ -155,5 +163,29 @@ defmodule Astarte.Cases.FDOSession do
         {voucher, _} = generate_voucher_data_and_pem(curve: :p384, device_key: device_key)
         {owner_key, device_key, voucher}
     end
+  end
+
+  defp generate_xb_key_exchange(kex_name, device_key, owner_key) do
+    case kex_name do
+      kn when kn in ["ECDH256", "ECDH384", "DHKEXid14", "DHKEXid15"] ->
+        SessionKey.new(kn, device_key)
+
+      kn when kn in ["ASYMKEX2048", "ASYMKEX3072"] ->
+        {:ok, device_rand, _} = SessionKey.new(kn, :nokey)
+        # Owner RSA key used to encrypt/decrypt device rand
+        pub_key_record = owner_key |> RSA.to_public_record()
+        xb = asymkex_msg_encryption(device_rand, pub_key_record)
+        {:ok, device_rand, xb}
+    end
+  end
+
+  defp asymkex_msg_encryption(msg, pub_rsa_key) do
+    encrypt_opts = [
+      rsa_padding: :rsa_pkcs1_oaep_padding,
+      rsa_oaep_md: :sha256,
+      rsa_mgf1_md: :sha256
+    ]
+
+    :public_key.encrypt_public(msg, pub_rsa_key, encrypt_opts)
   end
 end

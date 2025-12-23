@@ -18,7 +18,7 @@
 
 defmodule Astarte.Pairing.FDO.OwnerOnboarding.SessionKey do
   alias Astarte.Pairing.FDO.OwnerOnboarding.Core
-  alias COSE.Keys.ECC
+  alias COSE.Keys.{ECC, RSA}
   alias COSE.Keys.Symmetric
 
   # DHKEX constants as defined in RFC 3526 (for groups 14 and 15)
@@ -84,6 +84,16 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding.SessionKey do
     {:ok, dhkex_random, xa}
   end
 
+  def new("ASYMKEX2048", _key) do
+    xa = :crypto.strong_rand_bytes(32)
+    {:ok, xa, xa}
+  end
+
+  def new("ASYMKEX3072", _key) do
+    xa = :crypto.strong_rand_bytes(96)
+    {:ok, xa, xa}
+  end
+
   def new(_suite, _) do
     {:error, :invalid_message}
   end
@@ -126,6 +136,26 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding.SessionKey do
     {:ok, shse}
   end
 
+  def compute_shared_secret(alg, %RSA{} = owner_key, _owner_random, xb)
+      when alg in ["ASYMKEX2048", "ASYMKEX3072"] do
+    # decrypt xb with owner_key; use Optimal Asymmetric Encryption Padding
+    decrypt_options = [
+      rsa_padding: :rsa_pkcs1_oaep_padding,
+      rsa_oaep_md: :sha256,
+      rsa_mgf1_md: :sha256
+    ]
+
+    # need to translate COSE.Keys.RSA in Erlang record format
+    owner_key_record = RSA.to_record(owner_key)
+
+    try do
+      {:ok, :public_key.decrypt_private(xb, owner_key_record, decrypt_options)}
+    rescue
+      # cryptographic failure: return FDO error 101
+      _ -> {:error, :invalid_message}
+    end
+  end
+
   defp parse_xb_ecdh(xb) do
     <<blen_x::integer-unsigned-size(16), rest::binary>> = xb
     <<x::binary-size(blen_x), rest::binary>> = rest
@@ -149,8 +179,8 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding.SessionKey do
     <<shared_secret::binary, device_random::binary, owner_random::binary>>
   end
 
-  def derive_key(kex_alg, cipher_name, shared_secret, _owner_random)
-      when kex_alg in ["ECDH256", "DHKEXid14"] and
+  def derive_key(kex_alg, cipher_name, shared_secret, owner_random)
+      when kex_alg in ["ECDH256", "DHKEXid14", "ASYMKEX2048"] and
              cipher_name in [:aes_128_gcm, :aes_128_ctr, :aes_128_cbc] do
     derive_sevk(
       cipher_name,
@@ -158,28 +188,28 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding.SessionKey do
       :hmac,
       :sha256,
       shared_secret,
-      <<>>,
+      get_sevk_context_random(kex_alg, owner_random),
       128,
       256
     )
   end
 
-  def derive_key(kex_alg, :aes_256_gcm, shared_secret, _owner_random)
-      when kex_alg in ["ECDH256", "DHKEXid14"] do
+  def derive_key(kex_alg, :aes_256_gcm, shared_secret, owner_random)
+      when kex_alg in ["ECDH256", "DHKEXid14", "ASYMKEX2048"] do
     derive_sevk(
       :aes_256_gcm,
       :aes_256_gcm,
       :hmac,
       :sha256,
       shared_secret,
-      <<>>,
+      get_sevk_context_random(kex_alg, owner_random),
       256,
       256
     )
   end
 
-  def derive_key(kex_alg, cipher_name, shared_secret, _owner_random)
-      when kex_alg in ["ECDH384", "DHKEXid15"] and
+  def derive_key(kex_alg, cipher_name, shared_secret, owner_random)
+      when kex_alg in ["ECDH384", "DHKEXid15", "ASYMKEX3072"] and
              cipher_name in [:aes_128_gcm, :aes_128_ctr, :aes_128_cbc] do
     derive_sevk(
       cipher_name,
@@ -187,38 +217,46 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding.SessionKey do
       :hmac,
       :sha384,
       shared_secret,
-      <<>>,
+      get_sevk_context_random(kex_alg, owner_random),
       128,
       384
     )
   end
 
-  def derive_key(kex_alg, :aes_192_gcm, shared_secret, _owner_random)
-      when kex_alg in ["ECDH384", "DHKEXid15"] do
+  def derive_key(kex_alg, :aes_192_gcm, shared_secret, owner_random)
+      when kex_alg in ["ECDH384", "DHKEXid15", "ASYMKEX3072"] do
     derive_sevk(
       :aes_192_gcm,
       :aes_192_gcm,
       :hmac,
       :sha384,
       shared_secret,
-      <<>>,
+      get_sevk_context_random(kex_alg, owner_random),
       192,
       384
     )
   end
 
-  def derive_key(kex_alg, :aes_256_gcm, shared_secret, _owner_random)
-      when kex_alg in ["ECDH384", "DHKEXid15"] do
+  def derive_key(kex_alg, :aes_256_gcm, shared_secret, owner_random)
+      when kex_alg in ["ECDH384", "DHKEXid15", "ASYMKEX3072"] do
     derive_sevk(
       :aes_256_gcm,
       :aes_256_gcm,
       :hmac,
       :sha384,
       shared_secret,
-      <<>>,
+      get_sevk_context_random(kex_alg, owner_random),
       256,
       384
     )
+  end
+
+  defp get_sevk_context_random(kex_suite_name, owner_random) do
+    # only ASYMKEX algorithms actually use the context_random
+    case kex_suite_name do
+      ksn when ksn in ["ASYMKEX2048", "ASYMKEX3072"] -> owner_random
+      _ -> <<>>
+    end
   end
 
   defp derive_sevk(

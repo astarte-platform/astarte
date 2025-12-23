@@ -28,6 +28,8 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding.KeyExchangeStrategy do
   @ecdh384 "ECDH384"
   @dhkex14 "DHKEXid14"
   @dhkex15 "DHKEXid15"
+  @asymkex2048 "ASYMKEX2048"
+  @asymkex3072 "ASYMKEX3072"
 
   @doc """
   Validates the Device's Key Exchange choice against the Owner's Key.
@@ -39,10 +41,10 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding.KeyExchangeStrategy do
   @spec validate(String.t(), struct()) :: :ok | {:error, :invalid_message}
   def validate(device_kex_name, owner_key) do
     case {device_kex_name, owner_key} do
-      {@dhkex14, %RSA{alg: :rs256}} ->
+      {dkn, %RSA{alg: :rs256}} when dkn in [@dhkex14, @asymkex2048] ->
         :ok
 
-      {@dhkex15, %RSA{alg: :rs384}} ->
+      {dkn, %RSA{alg: :rs384}} when dkn in [@dhkex15, @asymkex3072] ->
         :ok
 
       {@ecdh256, %ECC{crv: :p256}} ->
