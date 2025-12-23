@@ -95,8 +95,7 @@ defmodule Astarte.RealmManagement.TriggersTest do
       [simple_trigger_config] = installed_trigger.simple_triggers
       tagged_simple_trigger = SimpleTriggerConfig.to_tagged_simple_trigger(simple_trigger_config)
 
-      assert_receive %TriggerInstallation{} = trigger_installation
-      assert trigger_installation.realm_name == realm
+      assert_receive %TriggerInstallation{realm_name: ^realm} = trigger_installation
       assert trigger_installation.policy == trigger_attrs["policy"]
       assert trigger_installation.simple_trigger == tagged_simple_trigger
       assert is_struct(trigger_installation.target, AMQPTriggerTarget)
@@ -155,8 +154,7 @@ defmodule Astarte.RealmManagement.TriggersTest do
 
       {:ok, %Trigger{}} = Triggers.delete_trigger(realm, installed_trigger)
 
-      assert_receive %TriggerDeletion{} = deletion_notification
-      assert deletion_notification.realm_name == realm
+      assert_receive %TriggerDeletion{realm_name: ^realm} = deletion_notification
       assert deletion_notification.trigger_id == trigger_id
       assert deletion_notification.simple_trigger == tagged_simple_trigger
     end

@@ -45,6 +45,12 @@ defmodule Astarte.RPC.Config do
     type: :binary,
     default: "app=astarte-data-updater-plant"
 
+  @envdoc "The endpoint label to query to get other realm management instances. Defaults to `app=astarte-realm-management`."
+  app_env :rm_clustering_kubernetes_selector, :astarte_rpc, :rm_clustering_kubernetes_selector,
+    os_env: "REALM_MANAGEMENT_CLUSTERING_KUBERNETES_SELECTOR",
+    type: :binary,
+    default: "app=astarte-realm-management"
+
   @envdoc "The Pod label to use to query Kubernetes to find vernemq instances. Defaults to `app=astarte-vernemq`."
   app_env :vernemq_clustering_kubernetes_selector,
           :astarte_rpc,
@@ -98,6 +104,18 @@ defmodule Astarte.RPC.Config do
              polling_interval: 10_000
            ]
          ]},
+      astarte_realm_management:
+        {:realm_management_k8s,
+         [
+           strategy: Elixir.Cluster.Strategy.Kubernetes,
+           config: [
+             mode: :ip,
+             kubernetes_node_basename: "astarte_realm_management",
+             kubernetes_selector: rm_clustering_kubernetes_selector!(),
+             kubernetes_namespace: clustering_kubernetes_namespace!(),
+             polling_interval: 10_000
+           ]
+         ]},
       astarte_vmq_plugin:
         {:vernemq_k8s,
          [
@@ -125,6 +143,16 @@ defmodule Astarte.RPC.Config do
              polling_interval: 5_000,
              query: "astarte-data-updater-plant",
              node_basename: "astarte_data_updater_plant"
+           ]
+         ]},
+      astarte_realm_management:
+        {:realm_management,
+         [
+           strategy: Elixir.Cluster.Strategy.DNSPoll,
+           config: [
+             polling_interval: 5_000,
+             query: "astarte-realm-management",
+             node_basename: "astarte_realm_management"
            ]
          ]},
       astarte_vmq_plugin:

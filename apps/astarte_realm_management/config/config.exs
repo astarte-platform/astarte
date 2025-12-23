@@ -29,7 +29,7 @@ config :phoenix, :logger, false
 
 # TODO: add astarte_realm_management when available: it's needed to notify all realm_management
 # replicas of trigger installation/deletions
-config :astarte_rpc, :astarte_services, [:astarte_data_updater_plant]
+config :astarte_rpc, :astarte_services, [:astarte_data_updater_plant, :astarte_realm_management]
 
 # Import environment specific config. This must remain at the bottom
 # of this file so it overrides the configuration defined above.
