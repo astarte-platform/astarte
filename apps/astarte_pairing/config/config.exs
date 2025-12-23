@@ -46,9 +46,6 @@ config :phoenix, :json_library, Jason
 # Disable phoenix logger since we're using PlugLoggerWithMeta
 config :phoenix, :logger, false
 
-# TODO: use astarte_realm_management when available
-config :astarte_rpc, :astarte_services, [:astarte_data_updater_plant]
-
 # Import environment specific config. This must remain at the bottom
 # of this file so it overrides the configuration defined above.
 import_config "#{config_env()}.exs"

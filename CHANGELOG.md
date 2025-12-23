@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 - New environment variables for trigger notifications between realm management repliacs and realm management -> pairing. These variables are currently being used only by realm management
   - `REALM_MANAGEMENT_CLUSTERING_KUBERNETES_SELECTOR`. The Endpoint label to query to get other realm management instances. Defaults to `app=astarte-realm-management`.
+  - `PAIRING_CLUSTERING_KUBERNETES_SELECTOR`. The Endpoint label to query to get other realm management instances. Defaults to `app=astarte-pairing`.
 
 ## [1.3.0-rc.0] - 2025-11-21
 

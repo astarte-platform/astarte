@@ -25,7 +25,12 @@ defmodule Astarte.RPC.Config.AstarteServices do
 
   use Skogsra.Type
 
-  @all_services [:astarte_data_updater_plant, :astarte_realm_management, :astarte_vmq_plugin]
+  @all_services [
+    :astarte_data_updater_plant,
+    :astarte_pairing,
+    :astarte_realm_management,
+    :astarte_vmq_plugin
+  ]
   @all_services_mapset MapSet.new(@all_services)
 
   @impl Skogsra.Type

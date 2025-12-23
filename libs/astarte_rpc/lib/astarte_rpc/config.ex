@@ -45,6 +45,12 @@ defmodule Astarte.RPC.Config do
     type: :binary,
     default: "app=astarte-data-updater-plant"
 
+  @envdoc "The endpoint label to query to get other pairing instances. Defaults to `app=astarte-pairing`."
+  app_env :pairing_clustering_kubernetes_selector, :astarte_rpc, :pairing_clustering_kubernetes_selector,
+    os_env: "PAIRING_CLUSTERING_KUBERNETES_SELECTOR",
+    type: :binary,
+    default: "app=astarte-pairing"
+
   @envdoc "The endpoint label to query to get other realm management instances. Defaults to `app=astarte-realm-management`."
   app_env :rm_clustering_kubernetes_selector, :astarte_rpc, :rm_clustering_kubernetes_selector,
     os_env: "REALM_MANAGEMENT_CLUSTERING_KUBERNETES_SELECTOR",
@@ -104,6 +110,18 @@ defmodule Astarte.RPC.Config do
              polling_interval: 10_000
            ]
          ]},
+      astarte_pairing:
+        {:realm_management_k8s,
+         [
+           strategy: Elixir.Cluster.Strategy.Kubernetes,
+           config: [
+             mode: :ip,
+             kubernetes_node_basename: "astarte_pairing",
+             kubernetes_selector: pairing_clustering_kubernetes_selector!(),
+             kubernetes_namespace: clustering_kubernetes_namespace!(),
+             polling_interval: 10_000
+           ]
+         ]},
       astarte_realm_management:
         {:realm_management_k8s,
          [
@@ -143,6 +161,16 @@ defmodule Astarte.RPC.Config do
              polling_interval: 5_000,
              query: "astarte-data-updater-plant",
              node_basename: "astarte_data_updater_plant"
+           ]
+         ]},
+      astarte_pairing:
+        {:pairing,
+         [
+           strategy: Elixir.Cluster.Strategy.DNSPoll,
+           config: [
+             polling_interval: 5_000,
+             query: "astarte-pairing",
+             node_basename: "astarte_pairing"
            ]
          ]},
       astarte_realm_management:
