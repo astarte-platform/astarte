@@ -36,35 +36,36 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding.EAToken do
         extra_payload_claims \\ %{},
         extra_unprotected_header_claims \\ %{}
       ) do
-    # COSE.Messages.Sign1.verify_decode returns :error for both decode failures and verification failures
-    # This extra check distinguish between error 100 and 101 according to FDO Spec
+    with {:ok, decoded_eatoken} <- decode_eatoken(eatoken_cbor),
+         {:ok, :verified} <- verify_signature(decoded_eatoken, device_public_key),
+         {:ok, payload} <- verify_payload(decoded_eatoken.payload, extra_payload_claims) do
+      unprotected_headers =
+        translate_unprotected_headers(
+          decoded_eatoken.uhdr,
+          extra_unprotected_header_claims
+        )
+
+      {:ok, %{decoded_eatoken | payload: payload, uhdr: unprotected_headers}}
+    end
+  end
+
+  defp decode_eatoken(eatoken_cbor) do
     case Sign1.decode_cbor(eatoken_cbor) do
-      {:ok, decoded} ->
-        # CBOR structure is valid, now verify the signature
-        if Sign1.verify(decoded, device_public_key) do
-          with {:ok, payload} <- verify_payload(decoded.payload, extra_payload_claims) do
-            unprotected_headers =
-              translate_unprotected_headers(
-                decoded.uhdr,
-                extra_unprotected_header_claims
-              )
-
-            {:ok, %{decoded | payload: payload, uhdr: unprotected_headers}}
-          end
-        else
-          # Decode succeeded but verification failed
-          {:error, :invalid_message}
-        end
-
-      _ ->
-        # CBOR decode failed
-        {:error, :message_body_error}
+      {:ok, decoded_eatoken} -> {:ok, decoded_eatoken}
+      _ -> {:error, :message_body_error}
     end
   end
 
   defp translate_unprotected_headers(unprotected_headers, extra_claims) do
     known_claims = Map.merge(@known_unprotected_header_claims, extra_claims)
     translate_claims(unprotected_headers, known_claims)
+  end
+
+  defp verify_signature(decoded, device_public_key) do
+    case Sign1.verify(decoded, device_public_key) do
+      true -> {:ok, :verified}
+      false -> {:error, :invalid_message}
+    end
   end
 
   defp verify_payload(payload, extra_claims) do

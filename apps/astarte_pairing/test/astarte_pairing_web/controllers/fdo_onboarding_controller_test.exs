@@ -19,6 +19,7 @@
 defmodule Astarte.PairingWeb.FDOOnboardingControllerTest do
   use Astarte.PairingWeb.CBORConnCase, async: true
   use Astarte.Cases.Data
+  use Astarte.Cases.FDOSession
   use Mimic
 
   alias Astarte.Pairing.FDO.OwnerOnboarding
@@ -26,11 +27,6 @@ defmodule Astarte.PairingWeb.FDOOnboardingControllerTest do
   alias Astarte.Pairing.FDO.OwnerOnboarding.DeviceServiceInfo
   alias Astarte.Pairing.FDO.OwnerOnboarding.Session
   alias Astarte.Pairing.FDO.ServiceInfo
-
-  alias Astarte.Pairing.FDO.OwnerOnboarding.HelloDevice
-  alias Astarte.Pairing.FDO.OwnerOnboarding.SessionKey
-
-  import Astarte.Helpers.FDO
 
   setup :verify_on_exit!
 
@@ -59,50 +55,6 @@ defmodule Astarte.PairingWeb.FDOOnboardingControllerTest do
       realm_name: realm,
       message_id: message_id
     }
-  end
-
-  setup_all %{realm_name: realm_name} do
-    device_id = sample_device_guid()
-    hello_device = %{HelloDevice.generate() | device_id: device_id}
-    ownership_voucher = sample_ownership_voucher()
-    owner_key = sample_extracted_private_key()
-    device_key = COSE.Keys.ECC.generate(:es256)
-    {:ok, device_random, xb} = SessionKey.new(hello_device.kex_name, device_key)
-
-    insert_voucher(realm_name, sample_private_key(), sample_cbor_voucher(), device_id)
-
-    %{
-      hello_device: hello_device,
-      ownership_voucher: ownership_voucher,
-      owner_key: owner_key,
-      device_key: device_key,
-      device_random: device_random,
-      xb: xb
-    }
-  end
-
-  setup context do
-    %{
-      astarte_instance_id: astarte_instance_id,
-      hello_device: hello_device,
-      ownership_voucher: ownership_voucher,
-      realm_name: realm_name,
-      owner_key: owner_key,
-      xb: xb
-    } = context
-
-    {:ok, session} =
-      Session.new(realm_name, hello_device, ownership_voucher, owner_key)
-
-    on_exit(fn ->
-      setup_database_access(astarte_instance_id)
-      Astarte.Helpers.Database.delete_session(realm_name, session.key)
-    end)
-
-    {:ok, session} = Session.build_session_secret(session, realm_name, owner_key, xb)
-    {:ok, session} = Session.derive_key(session, realm_name)
-
-    %{session: session}
   end
 
   describe "HelloDevice" do
