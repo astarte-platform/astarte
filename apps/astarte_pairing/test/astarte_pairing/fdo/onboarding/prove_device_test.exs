@@ -19,6 +19,7 @@ defmodule Astarte.Pairing.OwnerOnboarding.Onboarding.ProveDevice do
   use Astarte.Cases.Data, async: true
   alias Astarte.Pairing.FDO.OwnerOnboarding.ProveDevice
   alias Astarte.Pairing.FDO.OwnerOnboarding
+  alias Astarte.Pairing.FDO.OwnerOnboarding.EAToken
   alias Astarte.Pairing.FDO.OwnerOnboarding.HelloDevice
   alias Astarte.Pairing.FDO.OwnerOnboarding.Session
   alias Astarte.Pairing.FDO.OwnerOnboarding.SessionKey
@@ -27,11 +28,6 @@ defmodule Astarte.Pairing.OwnerOnboarding.Onboarding.ProveDevice do
   import Astarte.Helpers.FDO
 
   @es256_alg -7
-  @eat_fdo_label -257
-  @eat_nonce_label 10
-  @eat_ueid_label 256
-  @euph_nonce -259
-  @eat_random <<1>>
 
   @test_setup_dv_nonce :crypto.strong_rand_bytes(16)
   @test_guid :crypto.strong_rand_bytes(16)
@@ -92,26 +88,19 @@ defmodule Astarte.Pairing.OwnerOnboarding.Onboarding.ProveDevice do
          guid_val,
          xb
        ) do
-    ueid = <<1>> <> guid_val
-    ueid = COSE.tag_as_byte(ueid)
-
-    eat_claims = %{
-      10 => COSE.tag_as_byte(prove_dv_nonce_val),
-      256 => ueid,
-      -257 => [COSE.tag_as_byte(xb)]
+    payload_claims = %{
+      fdo: [COSE.tag_as_byte(xb)],
+      nonce: COSE.tag_as_byte(prove_dv_nonce_val),
+      ueid: EAToken.build_ueid(guid_val) |> COSE.tag_as_byte()
     }
 
-    payload_bin = CBOR.encode(eat_claims) |> COSE.tag_as_byte()
+    uhdr_claims = %{
+      euph_nonce: COSE.tag_as_byte(setup_dv_nonce_val)
+    }
 
-    COSE.Messages.Sign1.sign_encode_cbor(
-      %COSE.Messages.Sign1{
-        payload: payload_bin,
-        phdr: %{alg: :es256},
-        # SetupDvNonce is in unencrypted hdrs
-        uhdr: %{-259 => COSE.tag_as_byte(setup_dv_nonce_val)}
-      },
-      priv_key_struct
-    )
+    extra_uhdr_claims = %{ProveDevice.euph_nonce_claim_key() => :euph_nonce}
+
+    EAToken.encode_sign(payload_claims, uhdr_claims, priv_key_struct, %{}, extra_uhdr_claims)
   end
 
   defp dummy_creds() do
@@ -128,6 +117,23 @@ defmodule Astarte.Pairing.OwnerOnboarding.Onboarding.ProveDevice do
       device_info: "test",
       owner_private_key: owner_key
     }
+  end
+
+  describe "encode_sign/2 and decode/2 symmetry" do
+    test "encode and decode are symmetric operations", _context do
+      device_priv_key = COSE.Keys.ECC.generate(:es256)
+
+      original_data = ProveDevice.generate()
+
+      encoded_msg = ProveDevice.encode_sign(original_data, device_priv_key)
+      assert {:ok, decoded_data} = ProveDevice.decode(encoded_msg, device_priv_key)
+
+      assert decoded_data.xb_key_exchange == original_data.xb_key_exchange
+      assert decoded_data.nonce_to2_prove_dv == original_data.nonce_to2_prove_dv
+      assert decoded_data.nonce_to2_setup_dv == original_data.nonce_to2_setup_dv
+      assert decoded_data.guid == original_data.guid
+      assert decoded_data.raw_eat_token == encoded_msg
+    end
   end
 
   describe "decode/2" do
@@ -280,20 +286,19 @@ defmodule Astarte.Pairing.OwnerOnboarding.Onboarding.ProveDevice do
   end
 
   defp encode_sign_missing_cbor_tags(msg_data, dev_key) do
-    eat_cbor_payload =
-      %{
-        @eat_fdo_label => [msg_data.xb_key_exchange],
-        @eat_nonce_label => msg_data.nonce_to2_prove_dv,
-        @eat_ueid_label => @eat_random <> msg_data.guid
-      }
-      |> CBOR.encode()
+    payload_claims = %{
+      fdo: [msg_data.xb_key_exchange],
+      nonce: msg_data.nonce_to2_prove_dv,
+      ueid: EAToken.build_ueid(msg_data.guid)
+    }
 
-    phdr = %{alg: :es256}
+    uhdr_claims = %{
+      euph_nonce: msg_data.nonce_to2_setup_dv
+    }
 
-    uhdr = %{@euph_nonce => msg_data.nonce_to2_setup_dv}
+    extra_uhdr_claims = %{ProveDevice.euph_nonce_claim_key() => :euph_nonce}
 
-    COSE.Messages.Sign1.build(eat_cbor_payload, phdr, uhdr)
-    |> COSE.Messages.Sign1.sign_encode_cbor(dev_key)
+    EAToken.encode_sign(payload_claims, uhdr_claims, dev_key, extra_uhdr_claims)
   end
 
   defp prove_device_fixture(overwrite_submap \\ %{}, dev_key) do
