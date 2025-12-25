@@ -41,7 +41,7 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding.Session do
     field :sevk, struct() | nil
     field :svk, struct() | nil
     field :sek, struct() | nil
-    field :max_service_info, integer() | nil
+    field :max_owner_service_info_size, integer() | nil
     field :device_service_info, map() | nil
   end
 
@@ -91,6 +91,12 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding.Session do
   def add_setup_dv_nonce(session, realm_name, setup_dv_nonce) do
     with :ok <- Queries.session_add_setup_dv_nonce(realm_name, session.key, setup_dv_nonce) do
       {:ok, %{session | setup_dv_nonce: setup_dv_nonce}}
+    end
+  end
+
+  def add_max_owner_service_info_size(session, realm_name, size) do
+    with :ok <- Queries.add_session_max_owner_service_info_size(realm_name, session.key, size) do
+      {:ok, %{session | max_owner_service_info_size: size}}
     end
   end
 
@@ -176,7 +182,7 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding.Session do
         sevk: sevk,
         svk: svk,
         sek: sek,
-        max_service_info: max_service_info,
+        max_owner_service_info_size: max_owner_service_info_size,
         device_service_info: device_service_info
       } = database_session
 
@@ -193,7 +199,7 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding.Session do
         sevk: SessionKey.from_db(sevk),
         svk: SessionKey.from_db(svk),
         sek: SessionKey.from_db(sek),
-        max_service_info: max_service_info,
+        max_owner_service_info_size: max_owner_service_info_size,
         device_service_info: device_service_info
       }
 

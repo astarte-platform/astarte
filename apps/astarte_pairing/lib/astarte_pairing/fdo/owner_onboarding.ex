@@ -229,8 +229,8 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding do
            OwnershipVoucher.fetch(realm_name, session.device_id),
          {:ok, _new_voucher} <-
            OwnershipVoucher.generate_replacement_voucher(old_voucher, replacement_hmac),
-         :ok <-
-           Queries.update_session_max_payload(realm_name, session.key, max_owner_service_info_sz) do
+         {:ok, _session} <-
+           Session.add_max_owner_service_info_size(session, realm_name, max_owner_service_info_sz) do
       # TODO: Store `new_voucher` into DB.
 
       response =
