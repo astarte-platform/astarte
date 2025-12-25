@@ -315,6 +315,16 @@ defmodule Astarte.Pairing.Queries do
     update_session(realm_name, session_key, updates)
   end
 
+  def session_add_owner_service_info(realm_name, session_key, owner_service_info) do
+    updates = [owner_service_info: owner_service_info]
+    update_session(realm_name, session_key, updates)
+  end
+
+  def session_update_last_chunk_sent(realm_name, session_key, last_chunk) do
+    updates = [last_chunk_sent: last_chunk]
+    update_session(realm_name, session_key, updates)
+  end
+
   defp update_session(realm_name, session_key, updates) do
     with {:ok, session_key} <- Astarte.DataAccess.UUID.dump(session_key) do
       keyspace = Realm.keyspace_name(realm_name)

@@ -59,5 +59,8 @@ defmodule Astarte.DataAccess.FDO.TO2Session do
       key: Exandra.Tuple,
       types: [:string, :string],
       value: :binary
+
+    field :owner_service_info, {:array, :binary}
+    field :last_chunk_sent, :integer
   end
 end

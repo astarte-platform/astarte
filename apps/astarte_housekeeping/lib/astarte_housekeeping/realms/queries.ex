@@ -583,6 +583,8 @@ defmodule Astarte.Housekeeping.Realms.Queries do
       svk blob,
       sek blob,
       device_service_info map<tuple<text, text>, blob>,
+      owner_service_info list<blob>,
+      last_chunk_sent int,
       PRIMARY KEY (session_key)
     )
     WITH default_time_to_live = 7200;

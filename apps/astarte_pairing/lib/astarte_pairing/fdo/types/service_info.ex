@@ -64,4 +64,46 @@ defmodule Astarte.Pairing.FDO.Types.ServiceInfo do
       encode(%ServiceInfo{key: key, value: value})
     end)
   end
+
+  @doc """
+  Splits `service_info` into CBOR-encoded chunks, each not exceeding `max_chunk_size` bytes.
+  Returns a list of chunks.
+  """
+  def to_chunks(service_info, max_chunk_size) do
+    service_info
+    |> ServiceInfo.encode_map()
+    |> Enum.chunk_while({[], 0}, chunk_fun(max_chunk_size), after_fun())
+  end
+
+  defp chunk_fun(max_chunk_size) do
+    fn entry, {current_chunk, current_size} ->
+      entry_size = cbor_size(entry)
+
+      if current_size + entry_size > max_chunk_size and current_chunk != [] do
+        {:cont, Enum.reverse(current_chunk), {[entry], entry_size}}
+      else
+        {:cont, {[entry | current_chunk], current_size + entry_size}}
+      end
+    end
+  end
+
+  defp after_fun do
+    fn
+      {[], _size} -> {:cont, []}
+      {current_chunk, _size} -> {:cont, Enum.reverse(current_chunk), []}
+    end
+  end
+
+  defp cbor_size(term) do
+    term |> CBOR.encode() |> byte_size()
+  end
+
+  @doc """
+  Indicates that the device yielded during Owner Service Info chunk transmission
+  by sending an empty ServiceInfo map.
+  """
+  defguard is_empty(service_info)
+           when service_info.module == nil and
+                  service_info.key == nil and
+                  service_info.value == nil
 end
