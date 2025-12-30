@@ -22,10 +22,12 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding.KeyExchangeStrategy do
   is compatible with the Owner's Private Key curve.
   """
 
-  alias COSE.Keys.ECC
+  alias COSE.Keys.{ECC, RSA}
 
   @ecdh256 "ECDH256"
   @ecdh384 "ECDH384"
+  @dhkex14 "DHKEXid14"
+  @dhkex15 "DHKEXid15"
 
   @doc """
   Validates the Device's Key Exchange choice against the Owner's Key.
@@ -37,6 +39,12 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding.KeyExchangeStrategy do
   @spec validate(String.t(), struct()) :: :ok | {:error, :invalid_message}
   def validate(device_kex_name, owner_key) do
     case {device_kex_name, owner_key} do
+      {@dhkex14, %RSA{alg: :rs256}} ->
+        :ok
+
+      {@dhkex15, %RSA{alg: :rs384}} ->
+        :ok
+
       {@ecdh256, %ECC{crv: :p256}} ->
         :ok
 

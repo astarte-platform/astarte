@@ -23,6 +23,16 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding.KeyExchangeStrategyTest do
   alias COSE.Keys.RSA
 
   describe "validate/2" do
+    test "validates device requesting DHKEXid14 when Owner Key is of type RSA2048" do
+      owner_key = %RSA{alg: :rs256}
+      assert :ok = KeyExchangeStrategy.validate("DHKEXid14", owner_key)
+    end
+
+    test "validates device requesting DHKEXid15 when Owner Key is of type RSA3072" do
+      owner_key = %RSA{alg: :rs384}
+      assert :ok = KeyExchangeStrategy.validate("DHKEXid15", owner_key)
+    end
+
     test "validates ECDH256 successfully when Owner uses P-256" do
       owner_key = %ECC{crv: :p256}
       assert :ok = KeyExchangeStrategy.validate("ECDH256", owner_key)
@@ -47,11 +57,18 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding.KeyExchangeStrategyTest do
                KeyExchangeStrategy.validate("ECDH256", owner_key)
     end
 
-    test "returns error for incompatible RSA owner key" do
-      owner_key = %RSA{}
+    test "returns error for incompatible kex algorithm / owner key type" do
+      owner_key = %RSA{alg: :rs256}
 
       assert {:error, :invalid_message} =
                KeyExchangeStrategy.validate("ECDH256", owner_key)
+    end
+
+    test "returns error for incompatible RSA kex algorithm / owner key strength" do
+      owner_key = %RSA{alg: :rs256}
+
+      assert {:error, :invalid_message} =
+               KeyExchangeStrategy.validate("DHKEXid15", owner_key)
     end
 
     test "returns error for unknown/unsupported device suite" do
