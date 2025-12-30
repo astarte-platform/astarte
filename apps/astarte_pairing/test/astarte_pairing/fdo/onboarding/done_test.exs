@@ -17,37 +17,114 @@
 #
 
 defmodule Astarte.Pairing.FDO.Onboarding.DoneTest do
-  use ExUnit.Case, async: true
+  use Astarte.Cases.Data, async: false
+  use Astarte.Cases.FDOSession
 
+  import Ecto.Query
+
+  alias Astarte.Core.Device
   alias Astarte.Pairing.FDO.OwnerOnboarding
-  alias Astarte.DataAccess.FDO.TO2Session
-
-  @correct_prove_dv_nonce :crypto.strong_rand_bytes(16)
+  alias Astarte.Pairing.FDO.OwnerOnboarding.Session
+  alias Astarte.Pairing.Queries
+  alias Astarte.DataAccess.Devices.Device, as: DeviceDB
+  alias Astarte.DataAccess.Realms.Realm
+  alias Astarte.DataAccess.Repo
 
   @wrong_prove_dv_nonce :crypto.strong_rand_bytes(16)
 
-  @setup_dv_nonce :crypto.strong_rand_bytes(16)
+  defp get_device_ttl(realm_name, device_id) do
+    keyspace = Realm.keyspace_name(realm_name)
 
-  @minimal_to2_session %TO2Session{
-    prove_dv_nonce: @correct_prove_dv_nonce,
-    setup_dv_nonce: @setup_dv_nonce
-  }
+    query =
+      from d in DeviceDB,
+        where: d.device_id == ^device_id,
+        select: fragment("TTL(?)", d.first_registration)
 
-  describe "done/2" do
-    test "returns {:ok, cbor_binary} (containing SetupDv nonce) when ProveDv nonces match" do
-      done_msg = [%CBOR.Tag{tag: :bytes, value: @correct_prove_dv_nonce}]
+    Repo.one(query, prefix: keyspace)
+  end
 
-      {:ok, done2_msg_cbor} = OwnerOnboarding.done(@minimal_to2_session, done_msg)
+  setup %{realm: realm_name, session: session} do
+    setup_dv_nonce = :crypto.strong_rand_bytes(16)
 
-      assert {:ok, [%CBOR.Tag{tag: :bytes, value: @setup_dv_nonce}], _} =
+    {:ok, session_with_setup_nonce} =
+      Session.add_setup_dv_nonce(session, realm_name, setup_dv_nonce)
+
+    encoded_device_id = Device.encode_device_id(session.device_id)
+    credentials_secret_hash = "temporary_fdo_secret_hash"
+
+    {:ok, _device} =
+      Queries.register_device(
+        realm_name,
+        session.device_id,
+        encoded_device_id,
+        credentials_secret_hash,
+        unconfirmed: true
+      )
+
+    %{session: session_with_setup_nonce}
+  end
+
+  describe "done/3" do
+    test "returns {:ok, cbor_binary} (containing SetupDv nonce) when ProveDv nonces match", %{
+      realm: realm_name,
+      session: session
+    } do
+      done_msg = [%CBOR.Tag{tag: :bytes, value: session.prove_dv_nonce}]
+
+      {:ok, done2_msg_cbor} = OwnerOnboarding.done(realm_name, session, done_msg)
+
+      assert {:ok, [%CBOR.Tag{tag: :bytes, value: setup_nonce}], _} =
                CBOR.decode(done2_msg_cbor)
+
+      assert setup_nonce == session.setup_dv_nonce
     end
 
-    test "returns {:error, TBD} when the ProveDv nonces don't match" do
+    test "returns {:error, :invalid_message} when the ProveDv nonces don't match", %{
+      realm: realm_name,
+      session: session
+    } do
       mismatch_msg = [%CBOR.Tag{tag: :bytes, value: @wrong_prove_dv_nonce}]
 
-      {:error, :invalid_message} =
-        OwnerOnboarding.done(@minimal_to2_session, mismatch_msg)
+      assert {:error, :invalid_message} =
+               OwnerOnboarding.done(realm_name, session, mismatch_msg)
+    end
+
+    test "removes device TTL when onboarding completes successfully", %{
+      realm: realm_name,
+      session: session
+    } do
+      done_msg = [%CBOR.Tag{tag: :bytes, value: session.prove_dv_nonce}]
+
+      {:ok, device_before} = Queries.fetch_device(realm_name, session.device_id)
+      assert device_before.device_id == session.device_id
+
+      ttl_before = get_device_ttl(realm_name, session.device_id)
+      assert is_integer(ttl_before) and ttl_before > 0
+
+      assert {:ok, _} = OwnerOnboarding.done(realm_name, session, done_msg)
+
+      {:ok, device_after} = Queries.fetch_device(realm_name, session.device_id)
+      assert device_after.device_id == session.device_id
+      assert device_after.credentials_secret == device_before.credentials_secret
+      assert device_after.first_registration == device_before.first_registration
+
+      ttl_after = get_device_ttl(realm_name, session.device_id)
+
+      assert ttl_after == nil,
+             "TTL should be nil (no TTL/permanent) after removal, got #{inspect(ttl_after)}"
+    end
+
+    test "returns error when device doesn't exist in database", %{
+      realm: realm_name,
+      session: session
+    } do
+      keyspace = Realm.keyspace_name(realm_name)
+      Repo.delete(%DeviceDB{device_id: session.device_id}, prefix: keyspace)
+
+      done_msg = [%CBOR.Tag{tag: :bytes, value: session.prove_dv_nonce}]
+
+      assert {:error, :device_not_found} =
+               OwnerOnboarding.done(realm_name, session, done_msg)
     end
   end
 end

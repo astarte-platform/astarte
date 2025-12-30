@@ -139,6 +139,12 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding.Session do
     end
   end
 
+  def add_device_id(session, realm_name, device_id) do
+    with :ok <- Queries.session_update_device_id(realm_name, session.key, device_id) do
+      {:ok, %{session | device_id: device_id}}
+    end
+  end
+
   def add_device_service_info(session, realm_name, new_service_info) do
     service_info = encode_values_to_cbor(new_service_info)
     session = update_in(session.device_service_info, &Map.merge(&1 || %{}, service_info))

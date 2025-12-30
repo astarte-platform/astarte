@@ -69,9 +69,10 @@ defmodule Astarte.PairingWeb.FDOOnboardingController do
   end
 
   def done(conn, _params) do
+    realm_name = Map.fetch!(conn.params, "realm_name")
     to2_session = conn.assigns.to2_session
 
-    with {:ok, response_msg} <- OwnerOnboarding.done(to2_session, conn.assigns.body) do
+    with {:ok, response_msg} <- OwnerOnboarding.done(realm_name, to2_session, conn.assigns.body) do
       conn
       |> render("secure.cbor", %{cbor_response: response_msg})
     end

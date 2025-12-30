@@ -249,13 +249,14 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding do
     end
   end
 
-  def done(to2_session, body) do
+  def done(realm_name, to2_session, body) do
     # retrieve nonce NonceTO2ProveDv from session and check against incoming nonce from device
     # if match -> retrieve NonceTO2SetupDv from session and send back to device
     with {:ok, %DonePayload{nonce_to2_prove_dv: prove_dv_nonce_challenge}} <-
            DonePayload.decode(body),
          :ok <-
-           check_prove_dv_nonces_equality(prove_dv_nonce_challenge, to2_session.prove_dv_nonce) do
+           check_prove_dv_nonces_equality(prove_dv_nonce_challenge, to2_session.prove_dv_nonce),
+         {:ok, _device} <- Queries.remove_device_ttl(realm_name, to2_session.device_id) do
       done2_message = build_done2_message(to2_session.setup_dv_nonce)
       {:ok, done2_message}
     end

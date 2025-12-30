@@ -243,7 +243,7 @@ defmodule Astarte.PairingWeb.FDOOnboardingControllerTest do
       setup_authenticated(context, :done, 70)
     end
 
-    test "calls OwnerOnboarding.done/2", %{
+    test "calls OwnerOnboarding.done/3", %{
       conn: conn,
       create_path: path,
       message_id: id,
@@ -252,7 +252,7 @@ defmodule Astarte.PairingWeb.FDOOnboardingControllerTest do
       expected_response = %{"result" => "finished"}
       expected_cbor_response = CBOR.encode(expected_response)
 
-      expect(OwnerOnboarding, :done, fn _, _ -> {:ok, expected_cbor_response} end)
+      expect(OwnerOnboarding, :done, fn _, _, _ -> {:ok, expected_cbor_response} end)
 
       request_body = Session.encrypt_and_sign(session, CBOR.encode(%{done: 1}))
 

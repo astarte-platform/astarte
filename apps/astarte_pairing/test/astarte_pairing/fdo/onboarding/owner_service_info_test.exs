@@ -30,7 +30,7 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding.OwnerServiceInfoTest do
     test "correctly encodes a fragmentation message (IsMore=true)" do
       chunk_data = %{"big_config" => "part_1"}
 
-      expected_service_info =
+      _expected_service_info =
         [
           ["big_config", CBOR.encode("part_1") |> COSE.tag_as_byte()]
         ]
@@ -45,7 +45,7 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding.OwnerServiceInfoTest do
       encoded_binary = OwnerServiceInfo.encode(msg)
 
       assert {:ok, decoded_list, ""} = CBOR.decode(encoded_binary)
-      assert [true, false, chunk_data] = decoded_list
+      assert [true, false, _chunk_data] = decoded_list
     end
 
     test "correctly encodes the Done message (IsDone=true)" do

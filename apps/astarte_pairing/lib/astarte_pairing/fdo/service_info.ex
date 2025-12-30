@@ -66,8 +66,12 @@ defmodule Astarte.Pairing.FDO.ServiceInfo do
       ) do
     with {:ok, session} <-
            Session.add_device_service_info(session, realm_name, service_info) do
-      encoded_device_id = generate_encoded_device_id(session.device_service_info)
-      build_and_send_owner_service_info(session, realm_name, encoded_device_id)
+      device_id = generate_device_id(session.device_service_info)
+
+      with {:ok, _session} <- Session.add_device_id(session, realm_name, device_id) do
+        encoded_device_id = Device.encode_device_id(device_id)
+        build_and_send_owner_service_info(session, realm_name, encoded_device_id)
+      end
     end
   end
 
@@ -78,15 +82,9 @@ defmodule Astarte.Pairing.FDO.ServiceInfo do
     end
   end
 
-  defp generate_encoded_device_id(device_service_info) do
-    device_service_info
-    |> generate_device_id()
-    |> Device.encode_device_id()
-  end
-
   defp build_and_send_owner_service_info(session, realm_name, encoded_device_id) do
     with {:ok, credentials_secret} <-
-           Engine.register_device(realm_name, encoded_device_id) do
+           Engine.register_device(realm_name, encoded_device_id, unconfirmed: true) do
       owner_service_info =
         OwnerServiceInfo.build(realm_name, credentials_secret, encoded_device_id)
 
@@ -132,5 +130,6 @@ defmodule Astarte.Pairing.FDO.ServiceInfo do
   end
 
   defp generate_device_id(%{{"devmod", "sn"} => %{value: sn}}), do: UUID.uuid5(:oid, sn, :raw)
+
   defp generate_device_id(_), do: Device.random_device_id()
 end

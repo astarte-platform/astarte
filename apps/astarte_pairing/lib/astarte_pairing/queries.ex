@@ -189,6 +189,19 @@ defmodule Astarte.Pairing.Queries do
     |> Repo.update(prefix: keyspace_name, consistency: consistency)
   end
 
+  def remove_device_ttl(realm_name, device_id) do
+    keyspace_name = Realm.keyspace_name(realm_name)
+    consistency = Consistency.device_info(:write)
+
+    with {:ok, device} <- fetch_device(realm_name, device_id) do
+      device
+      |> Repo.insert(
+        prefix: keyspace_name,
+        consistency: consistency
+      )
+    end
+  end
+
   def fetch_device_registration_limit(realm_name) do
     keyspace = Realm.astarte_keyspace_name()
 
@@ -310,6 +323,11 @@ defmodule Astarte.Pairing.Queries do
     update_session(realm_name, session_key, updates)
   end
 
+  def session_update_device_id(realm_name, session_key, device_id) do
+    updates = [device_id: device_id]
+    update_session(realm_name, session_key, updates)
+  end
+
   def session_add_device_service_info(realm_name, session_key, service_info) do
     updates = [device_service_info: service_info]
     update_session(realm_name, session_key, updates)
@@ -371,6 +389,13 @@ defmodule Astarte.Pairing.Queries do
 
     consistency = Consistency.device_info(:write)
 
+    repo_opts =
+      if Keyword.get(opts, :unconfirmed, false) do
+        [prefix: keyspace_name, consistency: consistency, ttl: 7200]
+      else
+        [prefix: keyspace_name, consistency: consistency]
+      end
+
     %Device{}
     |> Ecto.Changeset.change(%{
       device_id: device_id,
@@ -383,7 +408,7 @@ defmodule Astarte.Pairing.Queries do
       introspection: introspection,
       introspection_minor: introspection_minor
     })
-    |> Repo.insert(prefix: keyspace_name, consistency: consistency)
+    |> Repo.insert(repo_opts)
   end
 
   defp do_register_unconfirmed_device(
@@ -401,6 +426,13 @@ defmodule Astarte.Pairing.Queries do
 
     consistency = Consistency.device_info(:write)
 
+    repo_opts =
+      if Keyword.get(opts, :unconfirmed, false) do
+        [prefix: keyspace_name, consistency: consistency, ttl: 7200]
+      else
+        [prefix: keyspace_name, consistency: consistency]
+      end
+
     device
     |> Ecto.Changeset.change(%{
       credentials_secret: credentials_secret,
@@ -409,7 +441,7 @@ defmodule Astarte.Pairing.Queries do
       introspection: introspection,
       introspection_minor: introspection_minor
     })
-    |> Repo.update(prefix: keyspace_name, consistency: consistency)
+    |> Repo.insert(repo_opts)
   end
 
   defp build_initial_introspection_maps(initial_introspection) do
