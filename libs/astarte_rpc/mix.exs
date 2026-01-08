@@ -26,6 +26,7 @@ defmodule Astarte.RPC.MixProject do
       elixir: "~> 1.15",
       start_permanent: Mix.env() == :prod,
       elixirc_paths: elixirc_paths(Mix.env()),
+      dialyzer: [plt_add_apps: [:ex_unit]],
       deps: deps()
     ]
   end
@@ -46,7 +47,7 @@ defmodule Astarte.RPC.MixProject do
       {:astarte_data_access, path: "../astarte_data_access"},
       {:astarte_events, path: "../astarte_events", runtime: false},
       {:astarte_generators, github: "astarte-platform/astarte_generators", only: [:dev, :test]},
-      {:dialyxir, "~> 1.0", only: [:dev, :ci], runtime: false},
+      {:dialyxir, "~> 1.0", only: [:dev, :test], runtime: false},
       {:libcluster, "~> 3.3"},
       {:mimic, "~> 1.11", only: [:test, :dev]},
       {:phoenix_pubsub, "~> 2.0"},

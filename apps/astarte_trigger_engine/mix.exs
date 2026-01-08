@@ -34,21 +34,13 @@ defmodule Astarte.TriggerEngine.Mixfile do
         "coveralls.post": :test,
         "coveralls.html": :test
       ],
-      dialyzer: [plt_core_path: dialyzer_cache_directory(Mix.env())],
+      dialyzer: [plt_add_apps: [:ex_unit]],
       deps: deps() ++ astarte_required_modules(System.get_env("ASTARTE_IN_UMBRELLA"))
     ]
   end
 
   defp elixirc_paths(:test), do: ["test/support", "lib"]
   defp elixirc_paths(_), do: ["lib"]
-
-  defp dialyzer_cache_directory(:ci) do
-    "dialyzer_cache"
-  end
-
-  defp dialyzer_cache_directory(_) do
-    nil
-  end
 
   defp astarte_required_modules("true") do
     [
@@ -96,7 +88,7 @@ defmodule Astarte.TriggerEngine.Mixfile do
       # hex.pm package and esl/ex_rabbit_pool do not support amqp version 2.1.
       # This fork is supporting amqp ~> 2.0 and also ~> 3.0.
       {:ex_rabbit_pool, github: "leductam/ex_rabbit_pool"},
-      {:dialyxir, "~> 1.0", only: [:dev, :ci], runtime: false},
+      {:dialyxir, "~> 1.0", only: [:dev, :test], runtime: false},
       {:excoveralls, "~> 0.15", only: :test},
       {:mox, "~> 0.5", only: :test},
       {:mimic, "~> 1.11", only: :test},

@@ -32,7 +32,7 @@ defmodule Astarte.AppEngine.API.Mixfile do
         "coveralls.post": :test,
         "coveralls.html": :test
       ],
-      dialyzer: [plt_core_path: dialyzer_cache_directory(Mix.env())],
+      dialyzer: [plt_add_apps: [:astarte_realm_management, :ex_unit]],
       deps: deps() ++ astarte_required_modules(System.get_env("ASTARTE_IN_UMBRELLA"))
     ]
   end
@@ -50,14 +50,6 @@ defmodule Astarte.AppEngine.API.Mixfile do
   # Specifies which paths to compile per environment.
   defp elixirc_paths(:test), do: ["test/support", "lib"]
   defp elixirc_paths(_), do: ["lib"]
-
-  defp dialyzer_cache_directory(:ci) do
-    "dialyzer_cache"
-  end
-
-  defp dialyzer_cache_directory(_) do
-    nil
-  end
 
   defp astarte_required_modules("true") do
     [
@@ -108,7 +100,7 @@ defmodule Astarte.AppEngine.API.Mixfile do
       {:skogsra, "~> 2.2"},
       {:castore, "~> 1.0.0"},
       {:observer_cli, "~> 1.5"},
-      {:dialyxir, "~> 1.0", only: [:dev, :ci], runtime: false},
+      {:dialyxir, "~> 1.0", only: [:dev, :test], runtime: false},
       {:libcluster, "~> 3.3"},
       {:astarte_data_access, path: astarte_lib("astarte_data_access")},
       {:astarte_rpc, path: astarte_lib("astarte_rpc")},

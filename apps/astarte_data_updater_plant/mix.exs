@@ -34,7 +34,7 @@ defmodule Astarte.DataUpdaterPlant.Mixfile do
         "coveralls.post": :test,
         "coveralls.html": :test
       ],
-      dialyzer: [plt_core_path: dialyzer_cache_directory(Mix.env())],
+      dialyzer: [plt_add_apps: [:astarte_housekeeping, :astarte_realm_management, :ex_unit]],
       deps: deps() ++ astarte_required_modules(System.get_env("ASTARTE_IN_UMBRELLA"))
     ]
   end
@@ -49,14 +49,6 @@ defmodule Astarte.DataUpdaterPlant.Mixfile do
   # Compile order is relevant: we make sure support files are available when testing
   defp elixirc_paths(:test), do: ["test/support", "lib"]
   defp elixirc_paths(_), do: ["lib"]
-
-  defp dialyzer_cache_directory(:ci) do
-    "dialyzer_cache"
-  end
-
-  defp dialyzer_cache_directory(_) do
-    nil
-  end
 
   defp astarte_required_modules("true") do
     [
@@ -104,7 +96,7 @@ defmodule Astarte.DataUpdaterPlant.Mixfile do
       {:telemetry_poller, "~> 1.3"},
       {:telemetry_metrics_prometheus_core, "~> 1.2"},
       {:observer_cli, "~> 1.5"},
-      {:dialyxir, "~> 1.0", only: [:dev, :ci], runtime: false},
+      {:dialyxir, "~> 1.0", only: [:dev, :test], runtime: false},
       # Workaround for Elixir 1.15 / ssl_verify_fun issue
       # See also: https://github.com/deadtrickster/ssl_verify_fun.erl/pull/27
       {:ssl_verify_fun, "~> 1.1.0", manager: :rebar3, override: true},

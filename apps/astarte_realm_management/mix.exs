@@ -37,7 +37,7 @@ defmodule Astarte.RealmManagement.Mixfile do
         "coveralls.post": :test,
         "coveralls.html": :test
       ],
-      dialyzer: [plt_core_path: dialyzer_cache_directory(Mix.env())],
+      dialyzer: [plt_add_apps: [:ex_unit]],
       deps: deps() ++ astarte_required_modules(System.get_env("ASTARTE_IN_UMBRELLA"))
     ]
   end
@@ -55,14 +55,6 @@ defmodule Astarte.RealmManagement.Mixfile do
   # Specifies which paths to compile per environment.
   defp elixirc_paths(:test), do: ["test/support", "lib"]
   defp elixirc_paths(_), do: ["lib"]
-
-  defp dialyzer_cache_directory(:ci) do
-    "dialyzer_cache"
-  end
-
-  defp dialyzer_cache_directory(_) do
-    nil
-  end
 
   defp astarte_required_modules("true") do
     [
@@ -99,7 +91,7 @@ defmodule Astarte.RealmManagement.Mixfile do
       {:telemetry_poller, "~> 1.3"},
       {:telemetry_metrics_prometheus_core, "~> 1.2"},
       {:astarte_data_access, path: astarte_lib("astarte_data_access")},
-      {:dialyxir, "~> 1.0", only: [:dev, :ci], runtime: false},
+      {:dialyxir, "~> 1.0", only: [:dev, :test], runtime: false},
       {:astarte_events, path: astarte_lib("astarte_events")},
       {:astarte_rpc, path: astarte_lib("astarte_rpc")},
       {:mimic, "~> 1.11", only: :test},
