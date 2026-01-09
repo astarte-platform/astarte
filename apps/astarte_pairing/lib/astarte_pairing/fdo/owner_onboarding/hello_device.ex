@@ -139,6 +139,19 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding.HelloDevice do
 
   defp parse_hello_device(_), do: {:error, :message_body_error}
 
+  defp decode_cipher(cipher) do
+    case COSE.algorithm_from_id(cipher) do
+      cipher when cipher in @allowed_ciphers ->
+        {:ok, cipher}
+
+      bad_cipher ->
+        "hello device: received #{inspect(bad_cipher)} as cipher"
+        |> Logger.error()
+
+        {:error, :invalid_message}
+    end
+  end
+
   @doc false
   def generate(opts \\ []) do
     defaults = %HelloDevice{
@@ -153,38 +166,14 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding.HelloDevice do
     struct(defaults, opts)
   end
 
-  defp decode_cipher(cipher) do
-    case COSE.algorithm_from_id(cipher) do
-      cipher when cipher in @allowed_ciphers ->
-        {:ok, cipher}
-
-      bad_cipher ->
-        "hello device: received #{inspect(bad_cipher)} as cipher"
-        |> Logger.error()
-
-        {:error, :invalid_message}
-    end
-  end
-
   def encode(hello_device) do
-    cipher_id = COSE.algorithm(hello_device.cipher_name)
-
-    sig_info_cbor =
-      case hello_device.easig_info do
-        atom when is_atom(atom) ->
-          [COSE.algorithm(atom), %CBOR.Tag{tag: :bytes, value: <<>>}]
-
-        val ->
-          val
-      end
-
     [
       hello_device.max_size,
-      %CBOR.Tag{tag: :bytes, value: hello_device.device_id},
-      %CBOR.Tag{tag: :bytes, value: hello_device.nonce},
+      COSE.tag_as_byte(hello_device.device_id),
+      COSE.tag_as_byte(hello_device.nonce),
       hello_device.kex_name,
-      cipher_id,
-      sig_info_cbor
+      COSE.algorithm(hello_device.cipher_name),
+      SignatureInfo.encode(hello_device.easig_info)
     ]
   end
 

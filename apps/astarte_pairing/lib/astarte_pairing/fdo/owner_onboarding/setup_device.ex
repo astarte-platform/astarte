@@ -86,7 +86,7 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding.SetupDevicePayload do
   def encode_sign(p, owner_private_key) do
     payload = encode(p)
 
-    phdr = %{alg: :es256}
+    phdr = %{alg: owner_private_key.alg}
 
     Sign1.build(payload, phdr)
     |> Sign1.sign_encode(owner_private_key)

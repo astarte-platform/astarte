@@ -55,7 +55,6 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding do
          device_id = hello_device.device_id,
          {:ok, ownership_voucher} <- OwnershipVoucher.fetch(realm_name, device_id),
          {:ok, owner_private_key} <- fetch_owner_private_key(realm_name, device_id),
-         {:ok, signing_alg} <- get_signing_alg(owner_private_key),
          {:ok, pub_key} <- OwnershipVoucher.owner_public_key(ownership_voucher),
          :ok <- KeyExchangeStrategy.validate(hello_device.kex_name, owner_private_key),
          {:ok, session} <-
@@ -92,8 +91,7 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding do
           prove_ovh,
           session.prove_dv_nonce,
           encoded_pub_key,
-          owner_private_key,
-          signing_alg
+          owner_private_key
         )
 
       {:ok, session.key, message}
@@ -302,13 +300,5 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding do
 
   defp build_done2_message(setup_dv_nonce) do
     %Done2Payload{:nonce_to2_setup_dv => setup_dv_nonce} |> Done2Payload.encode()
-  end
-
-  defp get_signing_alg(%COSE.Keys.ECC{alg: alg}) do
-    case alg do
-      :es256 -> {:ok, :es256}
-      :es384 -> {:ok, :es384}
-      _ -> {:error, :unsupported_owner_key_algorithm}
-    end
   end
 end

@@ -94,8 +94,9 @@ defmodule Astarte.Cases.FDOSession do
   setup context do
     # setup block for FDO Session
     # use test tag 'kex_name' to select non-default KEX algorithm
-    # default: ECDH256 key exchange
-    kex_name = Map.get(context, :kex_name, "ECDH256")
+    # if none is declared, a compatible KEX suite will be chosen in accordance with owner key type
+    kex_name =
+      Map.get_lazy(context, :kex_name, fn -> find_compatible_kex_suite(context.owner_key.alg) end)
 
     if kex_name not in @allowed_kex_name_tag_values,
       do: raise("unsupported kex_name tag value: #{kex_name}")
@@ -162,6 +163,15 @@ defmodule Astarte.Cases.FDOSession do
         device_key = ECC.generate(:es384)
         {voucher, _} = generate_voucher_data_and_pem(curve: :p384, device_key: device_key)
         {owner_key, device_key, voucher}
+    end
+  end
+
+  defp find_compatible_kex_suite(key_type) do
+    case key_type do
+      :es256 -> "ECDH256"
+      :es384 -> "ECDH384"
+      :rs256 -> "DHKEXid14"
+      :rs384 -> "DHKEXid15"
     end
   end
 

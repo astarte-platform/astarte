@@ -19,60 +19,16 @@
 defmodule Astarte.Pairing.FDO.OwnerOnboardingTest do
   use Astarte.Cases.Data, async: true
   use Astarte.Cases.Device
+  use Astarte.Cases.FDOSession
   doctest Astarte.Pairing.FDO.OwnerOnboarding
 
   alias Astarte.Pairing.FDO.OwnerOnboarding
   alias Astarte.Pairing.FDO.OwnerOnboarding.DeviceServiceInfoReady
   alias Astarte.Pairing.FDO.OwnerOnboarding.HelloDevice
-  alias Astarte.Pairing.FDO.OwnerOnboarding.SessionKey
   alias Astarte.Pairing.FDO.OwnerOnboarding.Session
+  alias COSE.Messages.Sign1
 
-  import Astarte.Helpers.FDO
   @max_device_service_info_sz 4096
-
-  setup_all %{realm_name: realm_name} do
-    device_id = sample_device_guid()
-    hello_device = HelloDevice.generate(device_id: device_id)
-    ownership_voucher = sample_ownership_voucher()
-    owner_key = sample_extracted_private_key()
-    device_key = COSE.Keys.ECC.generate(:es256)
-    {:ok, device_random, xb} = SessionKey.new(hello_device.kex_name, device_key)
-
-    insert_voucher(realm_name, sample_private_key(), sample_cbor_voucher(), device_id)
-
-    %{
-      hello_device: hello_device,
-      ownership_voucher: ownership_voucher,
-      owner_key: owner_key,
-      device_key: device_key,
-      device_random: device_random,
-      xb: xb
-    }
-  end
-
-  setup context do
-    %{
-      astarte_instance_id: astarte_instance_id,
-      hello_device: hello_device,
-      ownership_voucher: ownership_voucher,
-      realm: realm_name,
-      owner_key: owner_key,
-      xb: xb
-    } = context
-
-    {:ok, session} =
-      Session.new(realm_name, hello_device, ownership_voucher, owner_key)
-
-    on_exit(fn ->
-      setup_database_access(astarte_instance_id)
-      delete_session(realm_name, session.key)
-    end)
-
-    {:ok, session} = Session.build_session_secret(session, realm_name, owner_key, xb)
-    {:ok, session} = Session.derive_key(session, realm_name)
-
-    %{session: session}
-  end
 
   describe "build_owner_service_info_ready/3" do
     test "successfully processes DeviceServiceInfoReady, creates new voucher, and returns OwnerServiceInfoReady",
@@ -159,6 +115,84 @@ defmodule Astarte.Pairing.FDO.OwnerOnboardingTest do
                    max_owner_service_info_sz: 0
                  }
                )
+    end
+  end
+
+  describe "hello_device/2" do
+    setup context do
+      %{cbor_hello_device: HelloDevice.cbor_encode(context.hello_device)}
+    end
+
+    @tag owner_key: "EC256"
+    test "returns a correct ProveOVHdr message signed with EC256 owner key",
+         %{
+           realm_name: realm_name,
+           cbor_hello_device: cbor_hello_device,
+           owner_key: owner_key
+         } do
+      assert {:ok, session_key, prove_ovhdr_bin} =
+               OwnerOnboarding.hello_device(realm_name, cbor_hello_device)
+
+      assert is_binary(session_key)
+
+      assert {:ok, %Sign1{} = prove_ovhdr_dec} =
+               Sign1.verify_decode(prove_ovhdr_bin, owner_key)
+
+      assert prove_ovhdr_dec.phdr.alg == :es256
+    end
+
+    @tag owner_key: "EC384"
+    test "returns a correct ProveOVHdr message signed with EC384 owner key",
+         %{
+           realm_name: realm_name,
+           cbor_hello_device: cbor_hello_device,
+           owner_key: owner_key
+         } do
+      assert {:ok, session_key, prove_ovhdr_bin} =
+               OwnerOnboarding.hello_device(realm_name, cbor_hello_device)
+
+      assert is_binary(session_key)
+
+      assert {:ok, %Sign1{} = prove_ovhdr_dec} =
+               Sign1.verify_decode(prove_ovhdr_bin, owner_key)
+
+      assert prove_ovhdr_dec.phdr.alg == :es384
+    end
+
+    @tag owner_key: "RSA2048"
+    test "returns a correct ProveOVHdr message signed with RSA2048 owner key",
+         %{
+           realm_name: realm_name,
+           cbor_hello_device: cbor_hello_device,
+           owner_key: owner_key
+         } do
+      assert {:ok, session_key, prove_ovhdr_bin} =
+               OwnerOnboarding.hello_device(realm_name, cbor_hello_device)
+
+      assert is_binary(session_key)
+
+      assert {:ok, %Sign1{} = prove_ovhdr_dec} =
+               Sign1.verify_decode(prove_ovhdr_bin, owner_key)
+
+      assert prove_ovhdr_dec.phdr.alg == :rs256
+    end
+
+    @tag owner_key: "RSA3072"
+    test "returns a correct ProveOVHdr message signed with RSA3072 owner key",
+         %{
+           realm_name: realm_name,
+           cbor_hello_device: cbor_hello_device,
+           owner_key: owner_key
+         } do
+      assert {:ok, session_key, prove_ovhdr_bin} =
+               OwnerOnboarding.hello_device(realm_name, cbor_hello_device)
+
+      assert is_binary(session_key)
+
+      assert {:ok, %Sign1{} = prove_ovhdr_dec} =
+               Sign1.verify_decode(prove_ovhdr_bin, owner_key)
+
+      assert prove_ovhdr_dec.phdr.alg == :rs384
     end
   end
 end

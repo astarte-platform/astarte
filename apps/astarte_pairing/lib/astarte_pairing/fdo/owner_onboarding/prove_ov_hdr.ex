@@ -24,7 +24,7 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding.ProveOVHdr do
   It is wrapped inside a COSE_Sign1 structure.
 
   **Important Note on COSE Headers:**
-  According to Spec 5.5.3, this message MUST include specific parameters in the 
+  According to Spec 5.5.3, this message MUST include specific parameters in the
   COSE Unprotected Headers which are NOT part of this payload struct:
   1. `CUPHNonce` (NonceTO2ProveDv): Used for freshness in TO2.ProveDevice.
   2. `CUPHOwnerPubKey`: The Owner Public Key used to verify this message's signature.
@@ -45,7 +45,7 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding.ProveOVHdr do
     @typedoc "The payload to be signed inside COSE_Sign1."
 
     # 1. OVHeader
-    # The header of the Ownership Voucher. 
+    # The header of the Ownership Voucher.
     # Contains the GUID, Device Info, and the initial Owner Public Key.
     field :ov_header, binary()
 
@@ -66,7 +66,7 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding.ProveOVHdr do
     field :nonce_to2_prove_ov, binary()
 
     # 5. eBSigInfo
-    # Contains information about the signature scheme used by the Device 
+    # Contains information about the signature scheme used by the Device
     # for attestation (e.g., key type, curve).
     field :eb_sig_info, SignatureInfo.t()
 
@@ -77,7 +77,7 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding.ProveOVHdr do
 
     # 7. helloDeviceHash
     # A SHA hash of the full TO2.HelloDevice message received earlier.
-    # Allows the Device to verify that the Hello message was not tampered with 
+    # Allows the Device to verify that the Hello message was not tampered with
     # by a Man-in-the-Middle (MitM) before reaching the Owner.
     field :hello_device_hash, binary()
 
@@ -135,12 +135,11 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding.ProveOVHdr do
     |> CBOR.encode()
   end
 
-  def encode_sign(p, dv_nonce, owner_public_key, owner_private_key, signing_alg) do
+  def encode_sign(p, dv_nonce, owner_public_key, owner_private_key) do
     payload = encode_cbor(p)
 
-    # TODO: choose alg based on owner key type
     phdr = %{
-      alg: signing_alg
+      alg: owner_private_key.alg
     }
 
     uhdr = %{

@@ -82,7 +82,7 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding.EAToken do
       )
 
     eat_cbor_payload = CBOR.encode(eat_payload)
-    phdr = %{alg: :es256}
+    phdr = %{alg: priv_key.alg}
 
     Sign1.build(eat_cbor_payload, phdr, eat_uhdr)
     |> Sign1.sign_encode_cbor(priv_key)
