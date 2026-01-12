@@ -72,6 +72,14 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding.OwnerServiceInfo do
     |> CBOR.encode()
   end
 
+  def encode_with_service_info_chunk(owner_service_info, encoded_service_info_chunk) do
+    %OwnerServiceInfo{is_more_service_info: is_more_service_info, is_done: is_done} =
+      owner_service_info
+
+    [is_more_service_info, is_done, encoded_service_info_chunk]
+    |> CBOR.encode()
+  end
+
   def build(realm_name, credentials_secret, encoded_device_id) do
     service_info = %{
       "astarte:active" => true,

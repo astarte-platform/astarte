@@ -290,8 +290,8 @@ defmodule Astarte.Pairing.Queries do
     end
   end
 
-  def update_session_max_payload(realm_name, session_key, size) do
-    updates = [max_service_info: size]
+  def add_session_max_owner_service_info_size(realm_name, session_key, size) do
+    updates = [max_owner_service_info_size: size]
     update_session(realm_name, session_key, updates)
   end
 
@@ -312,6 +312,16 @@ defmodule Astarte.Pairing.Queries do
 
   def session_add_device_service_info(realm_name, session_key, service_info) do
     updates = [device_service_info: service_info]
+    update_session(realm_name, session_key, updates)
+  end
+
+  def session_add_owner_service_info(realm_name, session_key, owner_service_info) do
+    updates = [owner_service_info: owner_service_info]
+    update_session(realm_name, session_key, updates)
+  end
+
+  def session_update_last_chunk_sent(realm_name, session_key, last_chunk) do
+    updates = [last_chunk_sent: last_chunk]
     update_session(realm_name, session_key, updates)
   end
 
