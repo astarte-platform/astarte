@@ -27,8 +27,6 @@ config :phoenix, :json_library, Jason
 # Disable phoenix logger since we're using PlugLoggerWithMeta
 config :phoenix, :logger, false
 
-# TODO: add astarte_realm_management when available: it's needed to notify all realm_management
-# replicas of trigger installation/deletions
 config :astarte_rpc, :astarte_services, [
   :astarte_data_updater_plant,
   :astarte_pairing,
