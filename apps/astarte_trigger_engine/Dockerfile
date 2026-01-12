@@ -29,7 +29,7 @@ COPY libs/astarte_events/mix.lock libraries/astarte_events/mix.lock
 RUN mix do deps.get, deps.compile --skip-local-deps --include-children
 
 COPY libs ./libraries
-RUN mix do deps.compile
+RUN mix deps.compile
 
 # Add all the rest
 COPY apps/astarte_trigger_engine .

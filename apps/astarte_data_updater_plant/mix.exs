@@ -70,15 +70,16 @@ defmodule Astarte.DataUpdaterPlant.Mixfile do
       {:astarte_core, github: "astarte-platform/astarte_core", branch: "release-1.3"},
       {:astarte_generators, github: "astarte-platform/astarte_generators", only: [:dev, :test]},
       {:astarte_realm_management,
-       path: "../astarte_realm_management", only: [:dev, :test], runtime: false},
+       path: "../astarte_realm_management", only: :test, runtime: false},
       {:astarte_housekeeping,
-       path: "../astarte_housekeeping", only: [:dev, :test], env: :dev, runtime: false},
+       path: "../astarte_housekeeping", only: :test, env: :dev, runtime: false},
       {:astarte_events, path: astarte_lib("astarte_events")}
     ]
   end
 
   defp deps do
     [
+      {:jason, "~> 1.2"},
       {:amqp, "~> 3.3"},
       {:castore, "~> 1.0.0"},
       {:cyanide, "~> 2.0"},
