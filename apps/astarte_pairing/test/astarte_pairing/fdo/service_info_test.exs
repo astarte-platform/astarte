@@ -155,5 +155,35 @@ defmodule Astarte.Pairing.FDO.ServiceInfoTest do
 
       assert is_binary(encoded_owner_service_info)
     end
+
+    test "returns empty owner service info when all chunks are sent", %{
+      realm: realm_name,
+      session: session
+    } do
+      service_info = %{{"devmode", "active"} => true}
+
+      device_info = %DeviceServiceInfo{
+        is_more_service_info: false,
+        service_info: service_info
+      }
+
+      ServiceInfo.build_owner_service_info(realm_name, session, device_info)
+
+      {:ok, session_after} = Session.fetch(realm_name, session.key)
+
+      empty_device_info = %DeviceServiceInfo{
+        is_more_service_info: false,
+        service_info: %{}
+      }
+
+      empty_owner_message = OwnerServiceInfo.empty()
+
+      assert {:ok, empty_owner_message} ==
+               ServiceInfo.build_owner_service_info(
+                 realm_name,
+                 session_after,
+                 empty_device_info
+               )
+    end
   end
 end

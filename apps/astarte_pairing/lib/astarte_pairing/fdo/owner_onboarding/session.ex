@@ -228,7 +228,9 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding.Session do
         svk: svk,
         sek: sek,
         max_owner_service_info_size: max_owner_service_info_size,
-        device_service_info: device_service_info
+        device_service_info: device_service_info,
+        owner_service_info: owner_service_info,
+        last_chunk_sent: last_chunk_sent
       } = database_session
 
       session = %Session{
@@ -245,7 +247,9 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding.Session do
         svk: SessionKey.from_db(svk),
         sek: SessionKey.from_db(sek),
         max_owner_service_info_size: max_owner_service_info_size,
-        device_service_info: device_service_info
+        device_service_info: device_service_info,
+        owner_service_info: owner_service_info,
+        last_chunk_sent: last_chunk_sent
       }
 
       {:ok, session}
