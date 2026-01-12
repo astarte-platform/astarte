@@ -111,7 +111,7 @@ defmodule Astarte.RPC.Config do
            ]
          ]},
       astarte_pairing:
-        {:realm_management_k8s,
+        {:pairing_k8s,
          [
            strategy: Elixir.Cluster.Strategy.Kubernetes,
            config: [
