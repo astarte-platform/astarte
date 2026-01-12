@@ -33,7 +33,7 @@ defmodule Astarte.Events.Mixfile do
         "coveralls.post": :test,
         "coveralls.html": :test
       ],
-      dialyzer: [plt_core_path: dialyzer_cache_directory(Mix.env())],
+      dialyzer: [plt_add_apps: [:ex_unit]],
       deps: deps()
     ]
   end
@@ -49,9 +49,6 @@ defmodule Astarte.Events.Mixfile do
   defp elixirc_paths(:test), do: ["test/support", "lib"]
   defp elixirc_paths(_), do: ["lib"]
 
-  defp dialyzer_cache_directory(:ci), do: "dialyzer_cache"
-  defp dialyzer_cache_directory(_), do: nil
-
   defp deps do
     [
       {:amqp, "~> 3.3"},
@@ -62,7 +59,7 @@ defmodule Astarte.Events.Mixfile do
       {:skogsra, "~> 2.2"},
       {:mox, "~> 1.0", only: :test},
       {:mimic, "~> 1.11", only: [:dev, :test]},
-      {:dialyxir, "~> 1.0", only: [:dev, :ci], runtime: false},
+      {:dialyxir, "~> 1.0", only: [:dev, :test], runtime: false},
       # Workaround for Elixir 1.15 / ssl_verify_fun issue
       # See also: https://github.com/deadtrickster/ssl_verify_fun.erl/pull/27
       {:ssl_verify_fun, "~> 1.1.0", manager: :rebar3, override: true},

@@ -34,7 +34,7 @@ defmodule Astarte.DataAccess.Mixfile do
       ],
       description: description(),
       package: package(),
-      dialyzer: [plt_core_path: dialyzer_cache_directory(Mix.env())],
+      dialyzer: [plt_add_apps: [:ex_unit]],
       deps: deps() ++ astarte_required_modules(System.get_env("ASTARTE_IN_UMBRELLA")),
       source_url: "https://github.com/astarte-platform/astarte_data_access",
       homepage_url: "https://astarte-platform.org/"
@@ -47,14 +47,6 @@ defmodule Astarte.DataAccess.Mixfile do
       mod: {Astarte.DataAccess, []},
       extra_applications: [:logger]
     ]
-  end
-
-  defp dialyzer_cache_directory(:ci) do
-    "dialyzer_cache"
-  end
-
-  defp dialyzer_cache_directory(_) do
-    nil
   end
 
   defp astarte_required_modules("true") do
@@ -78,7 +70,7 @@ defmodule Astarte.DataAccess.Mixfile do
       {:excoveralls, "~> 0.15", only: :test},
       {:castore, "~> 1.0.0"},
       {:ex_doc, ">= 0.0.0", only: :dev, runtime: false},
-      {:dialyxir, "~> 1.4", only: [:dev, :ci], runtime: false},
+      {:dialyxir, "~> 1.4", only: [:dev, :test], runtime: false},
       {:mimic, "~> 1.7.4", only: :test}
     ]
   end

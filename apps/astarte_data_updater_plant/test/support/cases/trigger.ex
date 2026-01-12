@@ -66,7 +66,7 @@ defmodule Astarte.Cases.Trigger do
     %AMQPTriggerTarget{
       parent_trigger_id: :uuid.get_v4(),
       simple_trigger_id: :uuid.get_v4(),
-      static_headers: [],
+      static_headers: %{},
       routing_key: routing_key
     }
   end
@@ -95,7 +95,7 @@ defmodule Astarte.Cases.Trigger do
     Astarte.Events.Triggers.install_volatile_trigger(
       state.realm,
       deserialized_simple_trigger,
-      state
+      Map.from_struct(state)
     )
 
     ref

@@ -25,7 +25,7 @@ defmodule AstarteE2E.MixProject do
       version: "1.2.0",
       elixir: "~> 1.15",
       start_permanent: Mix.env() == :prod,
-      dialyzer_cache_directory: dialyzer_cache_directory(Mix.env()),
+      dialyzer: [plt_add_apps: [:ex_unit]],
       deps: deps()
     ]
   end
@@ -36,14 +36,6 @@ defmodule AstarteE2E.MixProject do
       mod: {AstarteE2E.Application, []},
       extra_applications: [:logger]
     ]
-  end
-
-  defp dialyzer_cache_directory(:ci) do
-    "dialyzer_cache"
-  end
-
-  defp dialyzer_cache_directory(_) do
-    nil
   end
 
   # Run "mix help deps" to learn about dependencies.
@@ -70,7 +62,7 @@ defmodule AstarteE2E.MixProject do
       {:bamboo_config_adapter, "~> 1.0"},
       {:httpoison, "~> 2.0"},
       {:hukai, "~> 0.3"},
-      {:dialyzex, github: "Comcast/dialyzex", only: [:dev, :ci]},
+      {:dialyxir, "~> 1.0", only: [:dev, :test], runtime: false},
       # Workaround for Elixir 1.15 / ssl_verify_fun issue
       # See also: https://github.com/deadtrickster/ssl_verify_fun.erl/pull/27
       {:ssl_verify_fun, "~> 1.1.0", manager: :rebar3, override: true}
