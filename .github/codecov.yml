@@ -17,9 +17,13 @@ coverage:
           - astarte_pairing
           - astarte_realm_management
           - astarte_trigger_engine
+          - astarte_data_access
+          - astarte_events
+          - astarte_rpc
 
 ignore:
   - "apps/*/test"
+  - "libs/*/test"
 
 comment:
   layout: "header, diff, files, flags"
@@ -62,3 +66,15 @@ flags:
     carryforward: true
     paths:
       - apps/astarte_trigger_engine
+  astarte_data_access:
+    carryforward: true
+    paths:
+      - libs/astarte_data_access
+  astarte_events:
+    carryforward: true
+    paths:
+      - libs/astarte_events
+  astarte_rpc:
+    carryforward: true
+    paths:
+      - libs/astarte_rpc
