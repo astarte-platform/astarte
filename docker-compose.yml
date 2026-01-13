@@ -62,6 +62,7 @@ services:
       ASTARTE_BASE_URL_PORT: 80
       ASTARTE_BASE_URL_PROTOCOL: "http"
       PAIRING_FDO_RENDEZVOUS_URL: "http://rendezvous:8041"
+      PAIRING_FDO_ENABLE_CREDENTIAL_REUSE: true
     restart: on-failure
     depends_on:
       - "rabbitmq"

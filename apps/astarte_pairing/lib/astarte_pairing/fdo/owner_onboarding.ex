@@ -49,6 +49,7 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding do
 
   @max_owner_message_size 65_535
   @rsa_public_exponent 65_537
+  @one_week 604_800
 
   def hello_device(realm_name, cbor_hello_device) do
     with {:ok, hello_device} <- HelloDevice.decode(cbor_hello_device),
@@ -134,7 +135,15 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding do
   end
 
   def prove_device(realm_name, body, session) do
-    guid = session.guid
+    guid =
+      if Config.enable_credential_reuse!() do
+        session.guid
+      else
+        :crypto.strong_rand_bytes(16)
+      end
+
+    # TODO credential reuse requires also Owner2Key and/or rv info to be changed for credential reuse
+    # so far, there is no API to do so, so it-s limited to the guid
 
     with {:ok, ownership_voucher} <- OwnershipVoucher.fetch(realm_name, guid),
          {:ok, private_key} <- Queries.get_owner_private_key(realm_name, guid),
@@ -158,6 +167,13 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding do
                body,
                connection_credentials
              ) do
+        session = %{
+          session
+          | replacement_guid: guid,
+            replacement_rv_info: rendezvous_info,
+            replacement_pub_key: owner_public_key
+        }
+
         {:ok, session, resp_msg}
       end
     end
@@ -244,19 +260,15 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding do
           max_owner_service_info_sz: max_owner_service_info_sz
         }
       ) do
-    with {:ok, old_voucher} <-
-           OwnershipVoucher.fetch(realm_name, session.guid),
-         {:ok, _new_voucher} <-
-           OwnershipVoucher.generate_replacement_voucher(old_voucher, replacement_hmac),
-         {:ok, _session} <-
+    with {:ok, session} <-
            Session.add_max_owner_service_info_size(session, realm_name, max_owner_service_info_sz) do
-      # TODO: Store `new_voucher` into DB.
+      session = %{session | replacement_hmac: replacement_hmac}
 
       response =
         OwnerServiceInfoReady.new()
         |> OwnerServiceInfoReady.to_cbor_list()
 
-      {:ok, response}
+      {:ok, session, response}
     else
       _ ->
         {:error, :failed_66}
@@ -272,6 +284,42 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding do
            check_prove_dv_nonces_equality(prove_dv_nonce_challenge, to2_session.prove_dv_nonce),
          {:ok, _device} <- Queries.remove_device_ttl(realm_name, to2_session.device_id) do
       done2_message = build_done2_message(to2_session.setup_dv_nonce)
+
+      unless OwnershipVoucher.credential_reuse?(to2_session) do
+        new_hmac = :crypto.strong_rand_bytes(32)
+
+        to2_session = %{
+          to2_session
+          | replacement_hmac: %Hash{hash: new_hmac, type: :hmac_sha256}
+        }
+
+        with {:ok, old_voucher} <-
+               OwnershipVoucher.fetch(realm_name, to2_session.guid),
+             {:ok, new_voucher} <-
+               OwnershipVoucher.generate_replacement_voucher(old_voucher, to2_session),
+             #  TODO change this line to ensure the retrival of latest private key after exposing an API to do so
+             {:ok, private_key} <-
+               Queries.get_owner_private_key(realm_name, to2_session.guid) do
+          cbor_voucher = OwnershipVoucher.cbor_encode(new_voucher)
+          cbor_old_voucher = OwnershipVoucher.cbor_encode(old_voucher)
+
+          Queries.delete_ownership_voucher(
+            realm_name,
+            cbor_old_voucher,
+            private_key,
+            to2_session.guid
+          )
+
+          Queries.create_ownership_voucher(
+            realm_name,
+            to2_session.guid,
+            cbor_voucher,
+            private_key,
+            @one_week
+          )
+        end
+      end
+
       {:ok, done2_message}
     end
   end

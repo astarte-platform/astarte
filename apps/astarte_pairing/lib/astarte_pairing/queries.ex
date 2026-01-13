@@ -283,6 +283,17 @@ defmodule Astarte.Pairing.Queries do
     |> Repo.insert(opts)
   end
 
+  def delete_ownership_voucher(realm_name, old_voucher, owner_private_key, device_id) do
+    keyspace = Realm.keyspace_name(realm_name)
+
+    %OwnershipVoucher{
+      voucher_data: old_voucher,
+      private_key: owner_private_key,
+      guid: device_id
+    }
+    |> Repo.delete(prefix: keyspace)
+  end
+
   def store_session(realm_name, guid, session) do
     keyspace = Realm.keyspace_name(realm_name)
     consistency = Consistency.device_info(:write)
@@ -338,14 +349,21 @@ defmodule Astarte.Pairing.Queries do
   defp update_session(realm_name, guid, updates) do
     keyspace = Realm.keyspace_name(realm_name)
     consistency = Consistency.device_info(:write)
+    read_consistency = Consistency.device_info(:read)
     opts = [prefix: keyspace, consistency: consistency]
+    read_opts = [prefix: keyspace, consistency: read_consistency]
 
-    %TO2Session{guid: guid}
-    |> Ecto.Changeset.change(updates)
-    |> Repo.update(opts)
-    |> case do
-      {:ok, _} -> :ok
-      _ -> {:error, :session_not_found}
+    # we need to check if session exists first, making an empty changeset with only the guid (old version) will create a record (empty except for the primary key) once update/1 is called
+    with %TO2Session{} = session <- Repo.get(TO2Session, guid, read_opts) do
+      session
+      |> Ecto.Changeset.change(updates)
+      |> Repo.update(opts)
+      |> case do
+        {:ok, _} -> :ok
+        _ -> {:error, :session_not_found}
+      end
+    else
+      nil -> {:error, :session_not_found}
     end
   end
 

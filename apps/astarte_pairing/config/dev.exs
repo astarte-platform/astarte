@@ -74,3 +74,4 @@ config :astarte_pairing, :cfssl_url, "http://localhost:8888"
 config :astarte_pairing, :base_url_domain, "api.astarte.localhost"
 config :astarte_pairing, :base_url_port, 4003
 config :astarte_pairing, :base_url_protocol, :http
+config :astarte_pairing, :enable_credential_reuse, true
