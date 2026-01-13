@@ -81,4 +81,3 @@ defmodule Astarte.RPC.Cases.Database do
   defp astarte_instance_id, do: "test#{System.unique_integer([:positive])}"
   defp realm_name, do: "realm#{System.unique_integer([:positive])}"
 end
-
