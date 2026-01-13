@@ -5,6 +5,7 @@ on:
   push:
     paths:
       - "apps/astarte_realm_management/**"
+      - "libs/**"
       - ".github/workflows/astarte-apps-build-workflow.yaml"
       - ".github/workflows/astarte-realm-management-workflow.yaml"
       - ".github/codecov.yml"
@@ -17,6 +18,7 @@ on:
   pull_request:
     paths:
       - "apps/astarte_realm_management/**"
+      - "libs/**"
       - ".github/workflows/astarte-apps-build-workflow.yaml"
       - ".github/workflows/astarte-realm-management-workflow.yaml"
       - ".github/codecov.yml"
