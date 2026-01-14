@@ -47,7 +47,15 @@ defmodule Astarte.Helpers.Device do
 
     Repo.delete(interface_db, prefix: keyspace)
 
-    capture_log(fn -> RMInterfaces.install_interface(realm_name, interface_params) end)
+    capture_log(fn ->
+      case RMInterfaces.install_interface(realm_name, interface_params) do
+        {:error, reason} ->
+          raise "Failed to install interface #{interface.name} v#{interface.major_version}: #{inspect(reason)}"
+
+        _ ->
+          :ok
+      end
+    end)
   end
 
   def insert_device_cleanly(realm_name, device, interfaces, secret) do
