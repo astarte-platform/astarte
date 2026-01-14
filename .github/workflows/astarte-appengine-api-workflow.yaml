@@ -5,6 +5,7 @@ on:
   push:
     paths:
       - "apps/astarte_appengine_api/**"
+      - "libs/**"
       - ".github/workflows/astarte-apps-build-workflow.yaml"
       - ".github/workflows/astarte-appengine-api-workflow.yaml"
       - ".github/codecov.yml"
@@ -17,6 +18,7 @@ on:
   pull_request:
     paths:
       - "apps/astarte_appengine_api/**"
+      - "libs/**"
       - ".github/workflows/astarte-apps-build-workflow.yaml"
       - ".github/workflows/astarte-appengine-api-workflow.yaml"
       - ".github/codecov.yml"
