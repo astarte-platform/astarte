@@ -41,6 +41,7 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding do
   alias Astarte.Pairing.FDO.OwnerOnboarding.SetupDevicePayload
   alias Astarte.Pairing.FDO.OwnerOnboarding.DeviceServiceInfoReady
   alias Astarte.Pairing.FDO.OwnerOnboarding.OwnerServiceInfoReady
+  alias Astarte.Pairing.FDO.OwnershipVoucher.Header
 
   require Logger
 
@@ -60,10 +61,13 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding do
       hello_device_hash = Hash.new(:sha256, cbor_hello_device)
       eb_sig_info = DeviceAttestation.eb_sig_info(session.device_signature)
 
+      cbor_ov_header = Header.cbor_encode(ownership_voucher.header)
+      cbor_hmac_list = Hash.encode(ownership_voucher.hmac)
+
       prove_ovh =
         %ProveOVHdr{
-          cbor_ov_header: ownership_voucher.cbor_header,
-          cbor_hmac: ownership_voucher.cbor_hmac,
+          cbor_ov_header: cbor_ov_header,
+          cbor_hmac: cbor_hmac_list,
           num_ov_entries: num_ov_entries,
           nonce_to2_prove_ov: hello_device.nonce,
           eb_sig_info: eb_sig_info,

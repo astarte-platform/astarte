@@ -33,9 +33,6 @@ defmodule Astarte.Pairing.FDO.OwnershipVoucher do
     field :hmac, Hash.t()
     field :cert_chain, [binary()] | nil
     field :entries, list()
-
-    field :cbor_header, binary()
-    field :cbor_hmac, binary()
   end
 
   @one_week 604_800
@@ -98,9 +95,7 @@ defmodule Astarte.Pairing.FDO.OwnershipVoucher do
           header: header,
           hmac: hmac,
           cert_chain: cert_chain,
-          entries: entries,
-          cbor_header: cbor_header,
-          cbor_hmac: cbor_hmac
+          entries: entries
         }
 
       {:ok, ownership_voucher}
@@ -128,5 +123,23 @@ defmodule Astarte.Pairing.FDO.OwnershipVoucher do
   def generate_replacement_voucher(ownership_voucher, new_dev_id_hmac) do
     new_voucher = ownership_voucher |> Map.put(:hmac, new_dev_id_hmac) |> Map.put(:entries, [])
     {:ok, new_voucher}
+  end
+
+  def encode(voucher) do
+    header_binary = Header.cbor_encode(voucher.header)
+
+    hmac_list = Hash.encode(voucher.hmac)
+
+    [
+      voucher.protocol_version,
+      %CBOR.Tag{tag: :bytes, value: header_binary},
+      hmac_list,
+      Enum.map(voucher.cert_chain || [], fn cert -> %CBOR.Tag{tag: :bytes, value: cert} end),
+      voucher.entries
+    ]
+  end
+
+  def cbor_encode(voucher) do
+    encode(voucher) |> CBOR.encode()
   end
 end
