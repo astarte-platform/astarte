@@ -103,7 +103,8 @@ defmodule Astarte.DataUpdaterPlant.Mixfile do
       # TODO: needed to run test because we cannot start the housekeeping application as is
       {:httpoison, "~> 2.2", only: [:dev, :test]},
       {:uuid, "~> 2.0", hex: :uuid_erl},
-      {:typedstruct, "~> 0.5"}
+      {:typedstruct, "~> 0.5"},
+      {:credo, "~> 1.7", only: [:dev, :test], runtime: false}
     ]
   end
 

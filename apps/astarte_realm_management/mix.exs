@@ -99,7 +99,8 @@ defmodule Astarte.RealmManagement.Mixfile do
       # See also: https://github.com/deadtrickster/ssl_verify_fun.erl/pull/27
       {:ssl_verify_fun, "~> 1.1.0", manager: :rebar3, override: true},
       {:uuid, "~> 2.0", hex: :uuid_erl},
-      {:libcluster, "~> 3.3"}
+      {:libcluster, "~> 3.3"},
+      {:credo, "~> 1.7", only: [:dev, :test], runtime: false}
     ]
   end
 
