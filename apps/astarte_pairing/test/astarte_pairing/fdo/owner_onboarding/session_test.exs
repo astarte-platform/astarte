@@ -48,22 +48,22 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding.SessionTest do
 
   # DH keys derivation according to FIDO spec section 3.6
   describe "DH shared secret derivation" do
-    @tag kex_name: "ECDH256"
-    test "is carried out correctly when device and owner use ECDH256 algorithm", context do
-      {:ok, %Session{secret: owner_ecdh256_secret}} =
-        Session.build_session_secret(
-          context.session,
-          context.realm_name,
-          context.owner_key,
-          context.xb
-        )
+    @tag owner_key: "EC256", kex_name: "ECDH256"
+    test "is carried out correctly when device and owner use ECDH256 algorithm", %{
+      session: session,
+      device_key: device_key,
+      device_random: device_random
+    } do
+      owner_ecdh256_secret = session.secret
+
+      owner_public_key = parse_key_from_xa(session.xa, session.kex_suite_name)
 
       device_ecdh256_secret =
         compute_device_shared_secret_ecdh(
-          context.device_key,
-          context.device_rand,
-          context.session.owner_random,
-          context.owner_public_key
+          device_key,
+          device_random,
+          session.owner_random,
+          owner_public_key
         )
 
       assert is_binary(owner_ecdh256_secret)
@@ -72,22 +72,22 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding.SessionTest do
       assert byte_size(owner_ecdh256_secret) == 64
     end
 
-    @tag kex_name: "ECDH384"
-    test "is carried out correctly when device and owner use ECDH384 algorithm", context do
-      {:ok, %Session{secret: owner_ecdh384_secret}} =
-        Session.build_session_secret(
-          context.session,
-          context.realm_name,
-          context.owner_key,
-          context.xb
-        )
+    @tag owner_key: "EC384", kex_name: "ECDH384"
+    test "is carried out correctly when device and owner use ECDH384 algorithm", %{
+      session: session,
+      device_key: device_key,
+      device_random: device_random
+    } do
+      owner_ecdh384_secret = session.secret
+
+      owner_public_key = parse_key_from_xa(session.xa, session.kex_suite_name)
 
       device_ecdh384_secret =
         compute_device_shared_secret_ecdh(
-          context.device_key,
-          context.device_rand,
-          context.session.owner_random,
-          context.owner_public_key
+          device_key,
+          device_random,
+          session.owner_random,
+          owner_public_key
         )
 
       assert is_binary(owner_ecdh384_secret)
@@ -96,20 +96,17 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding.SessionTest do
       assert byte_size(owner_ecdh384_secret) == 144
     end
 
-    @tag kex_name: "DHKEXid14"
-    test "is carried out correctly when device and owner use DHKEXid14 algorithm", context do
-      {:ok, %Session{secret: owner_dhkex14_secret}} =
-        Session.build_session_secret(
-          context.session,
-          context.realm_name,
-          context.owner_key,
-          context.xb
-        )
+    @tag owner_key: "RSA2048", kex_name: "DHKEXid14"
+    test "is carried out correctly when device and owner use DHKEXid14 algorithm", %{
+      session: session,
+      device_random: device_random
+    } do
+      owner_dhkex14_secret = session.secret
 
       dhkex_group = 14
 
       device_dhkex14_secret =
-        compute_device_shared_secret_dhkex(context.session.xa, context.device_rand, dhkex_group)
+        compute_device_shared_secret_dhkex(session.xa, device_random, dhkex_group)
 
       assert is_binary(owner_dhkex14_secret)
       assert owner_dhkex14_secret == device_dhkex14_secret
@@ -117,20 +114,17 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding.SessionTest do
       assert byte_size(owner_dhkex14_secret) == 256
     end
 
-    @tag kex_name: "DHKEXid15"
-    test "is carried out correctly when device and owner use DHKEXid15 algorithm", context do
-      {:ok, %Session{secret: owner_dhkex15_secret}} =
-        Session.build_session_secret(
-          context.session,
-          context.realm_name,
-          context.owner_key,
-          context.xb
-        )
+    @tag owner_key: "RSA3072", kex_name: "DHKEXid15"
+    test "is carried out correctly when device and owner use DHKEXid15 algorithm", %{
+      session: session,
+      device_random: device_random
+    } do
+      owner_dhkex15_secret = session.secret
 
       dhkex_group = 15
 
       device_dhkex15_secret =
-        compute_device_shared_secret_dhkex(context.session.xa, context.device_rand, dhkex_group)
+        compute_device_shared_secret_dhkex(session.xa, device_random, dhkex_group)
 
       assert is_binary(owner_dhkex15_secret)
       assert owner_dhkex15_secret == device_dhkex15_secret
@@ -199,11 +193,29 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding.SessionTest do
     end
   end
 
+  defp parse_key_from_xa(xa, kex_name) do
+    {x_bytesize, y_bytesize, rand_bytesize} =
+      case kex_name do
+        "ECDH256" ->
+          {32, 32, 16}
+
+        "ECDH384" ->
+          {48, 48, 48}
+      end
+
+    <<_::binary-size(2), x::binary-size(x_bytesize), _::binary-size(2),
+      y::binary-size(y_bytesize), _rest::binary-size(2 + rand_bytesize)>> = xa
+
+    # derived owner public key
+    <<4, x::binary, y::binary>>
+  end
+
   defp compute_device_shared_secret_ecdh(device_key, device_random, owner_random, owner_public) do
     point = {:ECPoint, owner_public}
+    device_key_record = COSE.Keys.ECC.to_record(device_key)
 
     shared_secret =
-      :public_key.compute_key(point, COSE.Keys.ECC.to_record(device_key))
+      :public_key.compute_key(point, device_key_record)
 
     <<shared_secret::binary, device_random::binary, owner_random::binary>>
   end

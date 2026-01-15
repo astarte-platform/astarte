@@ -27,13 +27,18 @@ defmodule Astarte.Cases.FDOSession do
   - Owner and device keys
   - A Session with derived session keys (SEVK)
   - Automatic cleanup of the session on test exit
+
+  Using ExUnit test tags it is possible to add customizations to the test setup
+  (e.g. creating the context with non-default owner key and voucher).
   """
 
   use ExUnit.CaseTemplate
 
+  alias Astarte.Pairing.FDO.OwnershipVoucher
   alias Astarte.Pairing.FDO.OwnerOnboarding.HelloDevice
   alias Astarte.Pairing.FDO.OwnerOnboarding.Session
   alias Astarte.Pairing.FDO.OwnerOnboarding.SessionKey
+  alias Astarte.Pairing.FDO.OwnerOnboarding.KeyExchangeStrategy
   alias COSE.Keys.{ECC, RSA}
 
   import Astarte.Helpers.Database
@@ -45,174 +50,110 @@ defmodule Astarte.Cases.FDOSession do
     end
   end
 
-  setup_all %{realm_name: realm_name} do
-    device_id = sample_device_guid()
-    hello_device = %{HelloDevice.generate() | device_id: device_id}
-    ownership_voucher = sample_ownership_voucher()
-    owner_key = sample_extracted_private_key()
-    device_key = COSE.Keys.ECC.generate(:es256)
-    {:ok, device_random, xb} = SessionKey.new(hello_device.kex_name, device_key)
+  @allowed_owner_key_tag_values ["EC256", "EC384", "RSA2048", "RSA3072"]
+  @allowed_kex_name_tag_values ["ECDH256", "ECDH384", "DHKEXid14", "DHKEXid15"]
 
-    insert_voucher(realm_name, sample_private_key(), sample_cbor_voucher(), device_id)
+  setup context do
+    # setup block for owner/device keys & ownership voucher
+    # use test tag 'owner_key' to select non-default keys
+    # default: EC256 keys
+    key_type = Map.get(context, :owner_key, "EC256")
+
+    if key_type not in @allowed_owner_key_tag_values,
+      do: raise("unsupported owner_key tag value: #{key_type}")
+
+    {owner_key_struct, device_key, ownership_voucher} = generate_keys_and_voucher(key_type)
+    owner_key_pem = COSE.Keys.to_pem(owner_key_struct)
+    cbor_ownership_voucher = OwnershipVoucher.cbor_encode(ownership_voucher)
+    device_id = Astarte.Core.Device.random_device_id()
+
+    insert_voucher(
+      context.realm_name,
+      owner_key_pem,
+      cbor_ownership_voucher,
+      device_id
+    )
 
     %{
-      hello_device: hello_device,
+      owner_key: owner_key_struct,
+      owner_key_pem: owner_key_pem,
       ownership_voucher: ownership_voucher,
-      owner_key: owner_key,
-      device_key: device_key,
-      device_random: device_random,
-      xb: xb
+      cbor_ownership_voucher: cbor_ownership_voucher,
+      device_id: device_id,
+      device_key: device_key
     }
   end
 
   setup context do
-    %{
-      astarte_instance_id: astarte_instance_id,
-      hello_device: hello_device,
-      ownership_voucher: ownership_voucher,
-      realm_name: realm_name,
-      owner_key: owner_key,
-      xb: xb
-    } = context
+    # setup block for FDO Session
+    # use test tag 'kex_name' to select non-default KEX algorithm
+    # default: ECDH256 key exchange
+    kex_name = Map.get(context, :kex_name, "ECDH256")
+
+    if kex_name not in @allowed_kex_name_tag_values,
+      do: raise("unsupported kex_name tag value: #{kex_name}")
+
+    if KeyExchangeStrategy.validate(kex_name, context.owner_key) != :ok,
+      do:
+        raise(
+          "unsupported association owner key type #{context.owner_key.alg} <-> KEX alg #{kex_name}"
+        )
+
+    {:ok, device_random, xb} = SessionKey.new(kex_name, context.device_key)
+
+    hello_device =
+      HelloDevice.generate(
+        kex_name: kex_name,
+        easig_info: context.device_key.alg,
+        device_id: context.device_id
+      )
 
     {:ok, session} =
-      Session.new(realm_name, hello_device, ownership_voucher, owner_key)
+      Session.new(
+        context.realm_name,
+        hello_device,
+        context.ownership_voucher,
+        context.owner_key
+      )
 
     on_exit(fn ->
-      setup_database_access(astarte_instance_id)
-      delete_session(realm_name, session.key)
+      setup_database_access(context.astarte_instance_id)
+      delete_session(context.realm_name, session.key)
     end)
 
-    {:ok, session} = Session.build_session_secret(session, realm_name, owner_key, xb)
-    {:ok, session} = Session.derive_key(session, realm_name)
+    {:ok, session} =
+      Session.build_session_secret(session, context.realm_name, context.owner_key, xb)
 
-    # modify session if the test needs a custom set of values for KEX procedures
-    custom_kex_session_map = setup_custom_kex_session(context)
+    {:ok, session} = Session.derive_key(session, context.realm_name)
 
-    Map.merge(%{session: session}, custom_kex_session_map)
+    %{hello_device: hello_device, session: session, device_random: device_random, xb: xb}
   end
 
-  defp setup_custom_kex_session(context) do
-    # generate fresh sets of values to start clean shared secret derivation
-    kex_alg = Map.get(context, :kex_name)
-
-    case kex_alg do
-      nil ->
-        # no KEX modifier applied: use the default session
-        %{}
-
-      "ECDH256" ->
+  defp generate_keys_and_voucher(key_type) do
+    case key_type do
+      "EC256" ->
         owner_key = ECC.generate(:es256)
         device_key = ECC.generate(:es256)
-        {:ok, device_rand, xb} = SessionKey.new("ECDH256", device_key)
+        {voucher, _} = generate_voucher_data_and_pem(curve: :p256, device_key: device_key)
+        {owner_key, device_key, voucher}
 
-        # generate a new consistent session starting from a HelloDevice msg requesting ECDH256
-        hello_device_ecdh256 = %{context.hello_device | kex_name: "ECDH256"}
-
-        {:ok, custom_session} =
-          Session.new(
-            context.realm_name,
-            hello_device_ecdh256,
-            context.ownership_voucher,
-            owner_key
-          )
-
-        owner_public_key = parse_xa_ecdh(custom_session.xa, :ec256)
-
-        %{
-          session: custom_session,
-          device_key: device_key,
-          device_rand: device_rand,
-          owner_key: owner_key,
-          xb: xb,
-          owner_public_key: owner_public_key
-        }
-
-      "ECDH384" ->
+      "EC384" ->
         owner_key = ECC.generate(:es384)
         device_key = ECC.generate(:es384)
-        {:ok, device_rand, xb} = SessionKey.new("ECDH384", device_key)
+        {voucher, _} = generate_voucher_data_and_pem(curve: :p384, device_key: device_key)
+        {owner_key, device_key, voucher}
 
-        # generate a new consistent session starting from a HelloDevice msg requesting ECDH384
-        hello_device_ecdh384 = %{context.hello_device | kex_name: "ECDH384"}
-
-        {:ok, custom_session} =
-          Session.new(
-            context.realm_name,
-            hello_device_ecdh384,
-            context.ownership_voucher,
-            owner_key
-          )
-
-        owner_public_key = parse_xa_ecdh(custom_session.xa, :ec384)
-
-        %{
-          session: custom_session,
-          device_key: device_key,
-          device_rand: device_rand,
-          owner_key: owner_key,
-          xb: xb,
-          owner_public_key: owner_public_key
-        }
-
-      "DHKEXid14" ->
+      "RSA2048" ->
         owner_key = RSA.generate(:rs256)
-        {:ok, device_rand, xb} = SessionKey.new("DHKEXid14", :nokey)
+        device_key = ECC.generate(:es256)
+        {voucher, _} = generate_voucher_data_and_pem(curve: :p256, device_key: device_key)
+        {owner_key, device_key, voucher}
 
-        # generate a new consistent session starting from a HelloDevice msg requesting DHKEXid14
-        hello_device_dhkex14 = %{context.hello_device | kex_name: "DHKEXid14"}
-
-        {:ok, custom_session} =
-          Session.new(
-            context.realm_name,
-            hello_device_dhkex14,
-            context.ownership_voucher,
-            owner_key
-          )
-
-        %{
-          session: custom_session,
-          device_rand: device_rand,
-          xb: xb
-        }
-
-      "DHKEXid15" ->
+      "RSA3072" ->
         owner_key = RSA.generate(:rs384)
-        {:ok, device_rand, xb} = SessionKey.new("DHKEXid15", :nokey)
-
-        # generate a new consistent session starting from a HelloDevice msg requesting DHKEXid15
-        hello_device_dhkex15 = %{context.hello_device | kex_name: "DHKEXid15"}
-
-        {:ok, custom_session} =
-          Session.new(
-            context.realm_name,
-            hello_device_dhkex15,
-            context.ownership_voucher,
-            owner_key
-          )
-
-        %{
-          session: custom_session,
-          device_rand: device_rand,
-          xb: xb
-        }
+        device_key = ECC.generate(:es384)
+        {voucher, _} = generate_voucher_data_and_pem(curve: :p384, device_key: device_key)
+        {owner_key, device_key, voucher}
     end
-  end
-
-  defp parse_xa_ecdh(xa, alg_type) do
-    {x_bytesize, y_bytesize, rand_bytesize} =
-      case alg_type do
-        :ec256 ->
-          {32, 32, 16}
-
-        :ec384 ->
-          {48, 48, 48}
-      end
-
-    <<_::binary-size(2), x::binary-size(x_bytesize), _::binary-size(2),
-      y::binary-size(y_bytesize), _rest::binary-size(2 + rand_bytesize)>> = xa
-
-    # derived owner public key
-    <<4, x::binary, y::binary>>
   end
 end

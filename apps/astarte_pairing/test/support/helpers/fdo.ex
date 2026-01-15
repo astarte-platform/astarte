@@ -174,26 +174,28 @@ defmodule Astarte.Helpers.FDO do
     |> Repo.insert(prefix: Realm.keyspace_name(realm_name))
   end
 
-  def generate_p384_x5chain_data_and_pem do
+  def generate_p384_x5chain_data_and_pem() do
     generate_voucher_data_and_pem(curve: :p384, encoding: :x5chain)
   end
 
-  def generate_p384_x509_data_and_pem do
+  def generate_p384_x509_data_and_pem() do
     generate_voucher_data_and_pem(curve: :p384, encoding: :x509)
   end
 
-  def generate_p256_x5chain_data_and_pem do
+  def generate_p256_x5chain_data_and_pem() do
     generate_voucher_data_and_pem(curve: :p256, encoding: :x5chain)
   end
 
-  def generate_p256_x509_data_and_pem do
+  def generate_p256_x509_data_and_pem() do
     generate_voucher_data_and_pem()
   end
 
-  # Generic generator for all suported curve e encoding
+  # Generic generator for all supported curves and encodings
   # Options:
-  #   :curve -> :p256 o :p384 (default :p256)
-  #   :encoding -> :x509 o :x5chain (default :x509)
+  #   :curve -> :p256 or :p384 (default :p256)
+  #   :encoding -> :x509 or :x5chain (default :x509)
+  #   :device_key -> an EC256 or EC384 device key used for attestation inside the voucher;
+  #                  if empty, a new key will be generated on the fly according to the curve type
   def generate_voucher_data_and_pem(opts \\ []) do
     curve = Keyword.get(opts, :curve, :p256)
     encoding = Keyword.get(opts, :encoding, :x509)
@@ -203,7 +205,9 @@ defmodule Astarte.Helpers.FDO do
 
     cose_alg = if curve == :p256, do: :es256, else: :es384
 
-    cose_key = ECC.generate(cose_alg)
+    cose_key = Keyword.get_lazy(opts, :device_key, fn -> ECC.generate(cose_alg) end)
+
+    %ECC{alg: ^cose_alg} = cose_key
 
     device_pub_key_point = <<4, cose_key.x::binary, cose_key.y::binary>>
 
