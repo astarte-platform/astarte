@@ -1,77 +1,111 @@
-# Astarte Generators
+# Astarte
 
-A collection of Elixir modules for generating Astarte-compatible entities and code constructs, such as interfaces, device declarations, MQTT topics, and trigger policies.
+![](https://github.com/astarte-platform/astarte/workflows/Build%20and%20Test%20Astarte%20Apps/badge.svg?branch=v1.2.0)
+[![codecov](https://codecov.io/gh/astarte-platform/astarte/tag/v1.2.0/graph/badge.svg)](https://codecov.io/gh/astarte-platform/astarte)
 
-This library is primarily intended for internal use by the Astarte platform to reduce duplication and enable generation of protocol-related logic in a consistent and testable way.
+<img src="doc/images/mascotte.svg" align="left" width="160px" />Astarte is an Open Source IoT
+platform focused on Data management and processing written in [Elixir](https://github.com/elixir-lang/elixir).
+It is a turnkey solution which packs in everything you need for connecting a device fleet to a set of
+remote applications and process data as it flows through a set of built-in features.
 
-## Features
+It performs data modeling, automated data reduction, real-time events,
+and provides you with any feature you might expect in a modern IoT platform.
 
-- Code generators for:
-  - Interfaces and Mappings
-  - Device descriptors
-  - MQTT Topics and Payloads
-  - Realm definitions
-  - Triggers and Policies
-  - Common types (IP, HTTP, Datetime, Timestamp)
-- Utility modules for structured printing and parameter generation
+Astarte builds on top of amazing Open Source projects such as [RabbitMQ](https://www.rabbitmq.com/)
+and [Cassandra](http://cassandra.apache.org/)/[ScyllaDB](https://www.scylladb.com/).
 
-## Installation
+## Resources and Quickstart
 
-Add the dependency to your `mix.exs`:
+- [Astarte Documentation](https://docs.astarte-platform.org) - The main resource to learn about
+  Astarte.
+- [astartectl](https://github.com/astarte-platform/astartectl) - A Command Line tool to manage your
+  Astarte cluster(s).
+- [Astarte Kubernetes Operator](https://github.com/astarte-platform/astarte-kubernetes-operator) -
+  The preferred and supported way to run Astarte - in Production, and pretty much anywhere else.
+- Device SDKs - Connect your device to Astarte in a few lines of code. Available for
+  [Python](https://github.com/astarte-platform/astarte-device-sdk-python),
+  [Qt5](https://github.com/astarte-platform/astarte-device-sdk-qt5),
+  [ESP32](https://github.com/astarte-platform/astarte-device-sdk-esp32),
+  [Elixir](https://github.com/astarte-platform/astarte-device-sdk-elixir) and counting.
 
-```elixir
-def deps do
-  [
-    {:astarte_generators, github: "astarte-platform/astarte_generators"}
-  ]
-end
-```
+## Let's try it!
 
-## Dependencies
-
-This project depends on:
-
-- [`astarte_core`](https://github.com/astarte-platform/astarte_core): provides the core data types and utilities used across the Astarte platform.
-- [`StreamData`](https://hexdocs.pm/stream_data/StreamData.html): used heavily for both property-based testing and runtime generation of Astarte-compatible entities (e.g., *interfaces*, *triggers*, *payloads*).
-
-To fetch the dependencies:
+Can't be easier. Pick your favorite machine with at least 4GB of free RAM, make sure it has
+[Docker](https://www.docker.com/), and simply:
 
 ```sh
-mix deps.get
+$ git clone https://github.com/astarte-platform/astarte.git -b v1.2.0 && cd astarte
+$ docker run -v $(pwd)/compose:/compose astarte/docker-compose-initializer:1.1
+$ docker compose pull
+$ docker compose up -d
 ```
 
-## Usage
+Make sure to use the latest stable release if you want a flawless experience.
 
-These modules are intended for internal consumption within the Astarte ecosystem. Example usage patterns may include:
+You should be up and running in a matter of minutes. If you want a more thorough explanation and
+find out how to access your new Astarte cluster and what you can do with it, [follow our "Astarte in
+5 minutes" tutorial](https://docs.astarte-platform.org/astarte/1.2/010-astarte_in_5_minutes.html) to
+get some fake or real devices to stream and process data while your tea gets ready.
 
-- Generating payload encoders/decoders for MQTT messages
-- Assembling interface schemas dynamically
-- Handling structured trigger policies
+## Sweet! Let's move it to production!
 
-Many of the generators rely on `StreamData` to ensure valid and randomized constructs in both testing and generation contexts.
+Whoa, not so fast. Putting together an Astarte instance which can handle your data might be
+tricky, and requires some knowledge about the platform to make sure it won't break.
 
-## Modules Overview
+So, if you're serious about getting Astarte in your production environment, you might want to learn
+more about it first. Start by [having a look at its architecture](https://docs.astarte-platform.org/astarte/1.2/001-intro_architecture.html) and
+[finding out how it works](https://docs.astarte-platform.org/astarte/1.2/001-intro_user.html). Once
+you feel confident, head over to the [Administration Manual](https://docs.astarte-platform.org/astarte-kubernetes-operator/latest/001-intro_administrator.html).
 
-Some notable modules:
+## Where do I find binaries?
 
-- `Astarte.Core.Generators.Interface` – Builds Astarte interface definitions.
-- `Astarte.Core.Generators.Device` – Constructs device metadata.
-- `Astarte.Core.Generators.MQTTTopic` – Generates MQTT topic strings.
-- `Astarte.Core.Generators.Mapping` – Defines individual mappings within interfaces.
-- `Astarte.Core.Generators.Triggers.Policy.*` – Logic for error handlers and conditions in trigger policies.
-- `Astarte.Utilities.*` – General-purpose helper modules for maps, parameter handling, and formatted output.
+Astarte is designed from the ground up to be run in containers, with
+[Kubernetes](https://github.com/kubernetes/kubernetes) as a first-class citizen when it comes to
+deployment. Astarte's images can be found at [Docker Hub](https://hub.docker.com/u/astarte/), with
+every Astarte service coming with its own image.
 
-## License
+With the help of our [Kubernetes Operator](https://github.com/astarte-platform/astarte-kubernetes-operator) and
+[`astartectl`](https://github.com/astarte-platform/astartectl), you can deploy your Astarte instance
+to your favorite cloud provider in a matter of minutes.
 
-Copyright 2025 SECO Mind Srl
+## Looks great! I want to contribute!
 
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy at
+That's awesome! Astarte is quite young as an Open Source project, so we're still setting up bits and
+pieces to make contributions easier and more effective, such as a shared roadmap, a proper
+contributor guide. For the time being, you can head over to the repository you want to contribute to
+and set up a Pull Request. We're using [DCO](https://developercertificate.org/) for our
+contributions, so you'll need to sign off all commit messages before submitting a Pull Request.
 
-<http://www.apache.org/licenses/LICENSE-2.0>
+You can also join us on [#astarte slack channel on Elixir Slack](https://elixir-slackin.herokuapp.com/) and on [#astarte IRC channel on freenode](ircs://chat.freenode.net:6697/#astarte).
 
-Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+We accept all kind of quality contributions, as long as they adhere with the project goals and
+philosophy, and have some tests.
 
-See the [LICENSE.txt](LICENSE.txt) file for more information.
+## Any chance I can get a hosted and managed instance?
+
+Yup, stay tuned :) or get in touch with us.
+
+## I need some help with my installation! Where can I get commercial support?
+
+Glad you asked. Astarte is developed by SECO Mind, who fuels its development thanks to the
+generosity of many customers running it in production. Besides consultancy, installation,
+maintenance, long-term support and customizations, SECO Mind also commercializes Astarte Enterprise,
+an Astarte variant packing in some additional goodies and features.
+
+[Get in touch](https://astarte.cloud/contactus) or [contact us via email](mailto:info@secomind.com)
+to find out how we can help you in getting Astarte in its best possible shape for your specific
+needs.
+
+# License
+
+Astarte source code is released under the Apache 2 License.
+
+Check the LICENSE file for more information.
+
+## Notice
+
+The docker-compose file uses a version of ScyllaDB licensed under the Business Source License (BSL).
+
+- Development, testing, and demo use is free under the BSL
+- Production use over the defined BSL threshold **requires a commercial license** from [ScyllaDB](https://www.scylladb.com/)
+- For details, see the [ScyllaDB License Agreement](https://github.com/scylladb/scylladb/blob/master/LICENSE-ScyllaDB-Source-Available.md)

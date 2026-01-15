@@ -1,0 +1,39 @@
+name: Build and Test Astarte Pairing
+
+on:
+  # Run when pushing to stable branches
+  push:
+    paths:
+      - "apps/astarte_pairing/**"
+      - "libs/**"
+      - ".github/workflows/astarte-apps-build-workflow.yaml"
+      - ".github/workflows/astarte-pairing-workflow.yaml"
+      - ".github/codecov.yml"
+    branches:
+      - "master"
+      - "release-*"
+  # Run on branch/tag creation
+  create:
+  # Run on pull requests for astarte_pairing
+  pull_request:
+    paths:
+      - "apps/astarte_pairing/**"
+      - "libs/**"
+      - ".github/workflows/astarte-apps-build-workflow.yaml"
+      - ".github/workflows/astarte-pairing-workflow.yaml"
+      - ".github/codecov.yml"
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  astarte_pairing:
+    uses: ./.github/workflows/astarte-apps-build-workflow.yaml
+    with:
+      app: "astarte_pairing"
+    secrets: inherit

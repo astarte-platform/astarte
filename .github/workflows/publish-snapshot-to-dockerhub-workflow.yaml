@@ -1,0 +1,132 @@
+# GitHub recommends pinning actions to a commit SHA.
+# To get a newer version, you will need to update the SHA.
+# You can also reference a tag or branch, but the action may change without warning.
+
+name: Publish snapshot Docker images
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - "apps/**"
+      - ".github/workflows/publish-snapshot-to-dockerhub-workflow.yaml"
+      - "Dockerfile"
+    branches:
+      - "master"
+      - "release-*"
+
+jobs:
+  astarte_appengine_api:
+    uses: ./.github/workflows/astarte-apps-build-workflow.yaml
+    with:
+      app: "astarte_appengine_api"
+    secrets: inherit
+
+  astarte_data_updater_plant:
+    uses: ./.github/workflows/astarte-apps-build-workflow.yaml
+    with:
+      app: "astarte_data_updater_plant"
+    secrets: inherit
+
+  astarte_housekeeping:
+    uses: ./.github/workflows/astarte-apps-build-workflow.yaml
+    with:
+      app: "astarte_housekeeping"
+    secrets: inherit
+
+  astarte_pairing:
+    uses: ./.github/workflows/astarte-apps-build-workflow.yaml
+    with:
+      app: "astarte_pairing"
+    secrets: inherit
+
+  astarte_realm_management:
+    uses: ./.github/workflows/astarte-apps-build-workflow.yaml
+    with:
+      app: "astarte_realm_management"
+    secrets: inherit
+
+  astarte_trigger_engine:
+    uses: ./.github/workflows/astarte-apps-build-workflow.yaml
+    with:
+      app: "astarte_trigger_engine"
+    secrets: inherit
+
+  e2e_tests:
+    uses: ./.github/workflows/astarte-end-to-end-test-workflow.yaml
+
+  push_snapshot_to_registry:
+    name: Push Docker images to Docker Hub
+    runs-on: ubuntu-22.04
+    permissions:
+      packages: write
+      contents: read
+      attestations: write
+      id-token: write
+    needs:
+      - astarte_appengine_api
+      - astarte_data_updater_plant
+      - astarte_housekeeping
+      - astarte_pairing
+      - astarte_realm_management
+      - astarte_trigger_engine
+      - e2e_tests
+    strategy:
+      fail-fast: true
+      matrix:
+        app:
+          - astarte_appengine_api
+          - astarte_data_updater_plant
+          - astarte_housekeeping
+          - astarte_pairing
+          - astarte_realm_management
+          - astarte_trigger_engine
+    steps:
+      - name: Check out the repo
+        uses: actions/checkout@v4
+
+      - name: Get current datetime
+        id: datetime
+        run: |
+          echo "BUILD_DATE=$(date -u +'%Y-%m-%dT%H:%M:%SZ')" >> $GITHUB_OUTPUT
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3.4.0
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Compute tag name for snapshot images
+        id: compute-tag
+        run: |
+          export TAG="$(echo ${{ github.ref }} | sed 's,refs/heads/,,' | sed 's/master/snapshot/g' | sed 's/release-\(.*\)/\1-snapshot/g' )"
+          echo "TAG=$TAG" >> "$GITHUB_OUTPUT"
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Extract metadata (tags, labels) for Docker
+        id: meta
+        uses: docker/metadata-action@v5.7.0
+        with:
+          images: |
+            astarte/${{ matrix.app }}
+          tags: |
+            # TODO we probably want something smarter, but the 'pattern' type runs only on tags at the moment
+            type=raw,value=${{ steps.compute-tag.outputs.TAG }}
+          labels: |
+            org.opencontainers.image.created=${{ steps.datetime.outputs.BUILD_DATE }}
+            org.opencontainers.image.revision=${{ github.sha }}
+            org.opencontainers.image.source=https://github.com/${{ github.repository }}
+
+      - name: Build and push tagged Docker image
+        id: push
+        uses: docker/build-push-action@v6.18.0
+        with:
+          context: .
+          file: apps/${{ matrix.app }}/Dockerfile
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          platforms: linux/amd64,linux/arm64
+          annotations: ${{ steps.meta.outputs.labels }}

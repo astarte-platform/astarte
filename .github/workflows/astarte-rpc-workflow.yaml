@@ -1,0 +1,39 @@
+name: Build and Test Astarte RPC
+
+on:
+  # Run when pushing to stable branches
+  push:
+    paths:
+      - "libs/astarte_rpc/**"
+      - ".github/workflows/astarte-libs-build-workflow.yaml"
+      - ".github/workflows/astarte-rpc-workflow.yaml"
+      - ".github/codecov.yml"
+    branches:
+      - "master"
+      - "release-*"
+
+  # Run on branch/tag creation
+  create:
+
+  # Run on pull requests for astarte_rpc lib
+  pull_request:
+    paths:
+      - "libs/astarte_rpc/**"
+      - ".github/workflows/astarte-libs-build-workflow.yaml"
+      - ".github/workflows/astarte-rpc-workflow.yaml"
+      - ".github/codecov.yml"
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  astarte_rpc:
+    uses: ./.github/workflows/astarte-libs-build-workflow.yaml
+    with:
+      lib: "astarte_rpc"
+    secrets: inherit

@@ -1,0 +1,3 @@
+#!/usr/bin/env bash
+
+release_ctl eval --mfa "Mix.Tasks.Astarte.Import.run/1" --argv -- "$@"

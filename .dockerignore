@@ -1,0 +1,42 @@
+*
+
+!Dockerfile
+!.dockerignore
+
+!/apps/
+!/libs/
+
+# Standard Elixir gitignore to be applied to all apps
+**/_build/
+**/cover/
+**/deps/
+**/doc
+**/doc/doc
+**/.fetch
+**/db
+**/erl_crash.dump
+**/*.ez
+**/*.beam
+**/config/*.secret.exs
+**/.elixir_ls/
+**/.lexical/
+
+# Standard Erlang gitignore to be applied to all apps
+**/.eunit
+**/*.o
+**/*.beam
+**/*.plt
+**/.concrete/DEV_MODE
+**/erl_crash.dump
+
+# rebar 2.x
+**/.rebar
+**/rel/example_project
+**/ebin/*.beam
+
+# tools
+**/.direnv/
+**/.envrc
+**/.helix
+**/.nix-mix/
+**/.nix-hex/

@@ -1,0 +1,106 @@
+name: Build and Test
+on:
+  # Run when pushing to stable branches
+  push:
+    branches:
+      - "master"
+      - "release-*"
+  # Run on branch/tag creation
+  create:
+  # Run on pull requests
+  pull_request:
+env:
+  elixir_version: "1.15.7"
+  otp_version: "26.1"
+jobs:
+  test-dialyzer:
+    name: Check Dialyzer
+    runs-on: ubuntu-22.04
+    env:
+      MIX_ENV: ci
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/cache@v4
+        with:
+          path: deps
+          key: ${{ runner.os }}-${{ env.elixir_version }}-${{ env.otp_version }}-mix-${{ hashFiles(format('{0}{1}', github.workspace, '/mix.lock')) }}
+          restore-keys: |
+            ${{ runner.os }}-${{ env.elixir_version }}-${{ env.otp_version }}-mix-
+      - uses: actions/cache@v4
+        with:
+          path: _build
+          key: ${{ runner.os }}-${{ env.elixir_version }}-${{ env.otp_version }}-_build-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-${{ env.elixir_version }}-${{ env.otp_version }}-_build-
+      - id: plt_cache
+        uses: actions/cache@v4
+        with:
+          path: dialyzer_cache
+          key: ${{ runner.os }}-${{ env.elixir_version }}-${{ env.otp_version }}-dialyzer_cache-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-${{ env.elixir_version }}-${{ env.otp_version }}-dialyzer_cache-
+      - uses: erlef/setup-beam@v1.15
+        with:
+          otp-version: ${{ env.otp_version }}
+          elixir-version: ${{ env.elixir_version }}
+      - name: Install Dependencies
+        run: mix deps.get
+      - name: Create PLTs dir
+        if: ${{steps.plt_cache.outputs.cache-hit != 'true'}}
+        run: mkdir -p dialyzer_cache && mix dialyzer --plt
+      - name: Run dialyzer
+        run: mix dialyzer
+
+  test-coverage:
+    name: Build and Test
+    runs-on: ubuntu-22.04
+    # Wait for Dialyzer to give it a go before building
+    needs:
+      - test-dialyzer
+    strategy:
+      fail-fast: false
+      matrix:
+        database:
+          - "cassandra:3.11.15"
+          - "scylladb/scylla:2025.2.2"
+    services:
+      database:
+        image: ${{ matrix.database }}
+        ports:
+          - 9042:9042
+    env:
+      MIX_ENV: test
+      CASSANDRA_DB_HOST: localhost
+      ASTARTE_CASSANDRA_NODES: localhost
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/cache@v4
+        with:
+          path: deps
+          key: ${{ runner.os }}-${{ env.elixir_version }}-${{ env.otp_version }}-mix-${{ hashFiles(format('{0}{1}', github.workspace, '/mix.lock')) }}
+          restore-keys: |
+            ${{ runner.os }}-${{ env.elixir_version }}-${{ env.otp_version }}-mix-
+      - uses: actions/cache@v4
+        with:
+          path: _build
+          key: ${{ runner.os }}-${{ env.elixir_version }}-${{ env.otp_version }}-_build-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-${{ env.elixir_version }}-${{ env.otp_version }}-_build-
+      - uses: erlef/setup-beam@v1.15
+        with:
+          otp-version: ${{ env.otp_version }}
+          elixir-version: ${{ env.elixir_version }}
+      - name: Install Dependencies
+        run: mix deps.get
+      - name: Check formatting
+        run: mix format --check-formatted
+      - name: Compile
+        run: mix do compile
+      - name: Wait for Cassandra
+        run: |
+          npm install -g wait-for-cassandra
+          wait-for-cassandra -T 120000 -h ${CASSANDRA_DB_HOST:-cassandra}:${CASSANDRA_DB_PORT:-9042}
+      - name: Test and Coverage
+        run: mix coveralls.json  --exclude wip -o coverage_results
+      - name: Upload coverage report
+        uses: codecov/codecov-action@v1

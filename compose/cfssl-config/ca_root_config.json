@@ -1,0 +1,13 @@
+{
+  "signing": {
+    "default": {
+      "usages": ["digital signature", "cert sign", "crl sign", "signing"],
+      "expiry": "2190h",
+      "ca_constraint": {
+        "is_ca": true,
+        "max_path_len": 0,
+        "max_path_len_zero": true
+      }
+    }
+  }
+}

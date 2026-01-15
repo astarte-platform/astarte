@@ -1,0 +1,125 @@
+name: Build and Test Astarte Apps
+
+on:
+  workflow_dispatch:
+    inputs:
+      app:
+        type: string
+        description: ""
+        required: true
+  workflow_call:
+    inputs:
+      app:
+        type: string
+        description: ""
+        required: true
+
+jobs:
+  warmup:
+    name: Cache warmup
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v6
+      - uses: team-alembic/staple-actions/actions/mix-compile@a74b3b61209d35d45526df174766632f8aee03ed
+        with:
+          working-directory: apps/${{ inputs.app }}
+          mix-env: test
+          args: "--warnings-as-errors"
+
+  formatter:
+    name: Formatting
+    runs-on: ubuntu-22.04
+    needs:
+      - warmup
+    steps:
+      - uses: actions/checkout@v6
+      - uses: team-alembic/staple-actions/actions/mix-format@a74b3b61209d35d45526df174766632f8aee03ed
+        with:
+          working-directory: apps/${{ inputs.app }}
+          mix-env: test
+
+  credo:
+    name: Credo
+    runs-on: ubuntu-22.04
+    needs:
+      - warmup
+    steps:
+      - uses: actions/checkout@v6
+      - uses: team-alembic/staple-actions/actions/mix-credo@a74b3b61209d35d45526df174766632f8aee03ed
+        with:
+          working-directory: apps/${{ inputs.app }}
+          mix-env: test
+
+  dialyzer:
+    name: Dialyzer
+    runs-on: ubuntu-22.04
+    needs:
+      - warmup
+    steps:
+      - uses: actions/checkout@v6
+      - uses: team-alembic/staple-actions/actions/mix-dialyzer-plt@a74b3b61209d35d45526df174766632f8aee03ed
+        with:
+          working-directory: apps/${{ inputs.app }}
+          mix-env: test
+      - run: mix dialyzer --format github --force-check
+        shell: bash
+        env:
+          MIX_ENV: "test"
+          HEX_HOME: ${{ runner.temp }}/.hex
+          MIX_HOME: ${{ runner.temp }}/.mix
+        working-directory: apps/${{ inputs.app }}
+
+  test:
+    name: Test
+    needs:
+      - warmup
+    runs-on: ubuntu-22.04
+    strategy:
+      fail-fast: false
+      matrix:
+        database:
+          - "cassandra:3.11.15"
+          - "scylladb/scylla:2025.2.2"
+        rabbitmq:
+          - "rabbitmq:3.12.0-management"
+    services:
+      rabbitmq:
+        image: ${{ matrix.rabbitmq }}
+        ports:
+          - 5672:5672
+          - 15672:15672
+      database:
+        image: ${{ matrix.database }}
+        ports:
+          - 9042:9042
+        options: >-
+          --health-cmd "cqlsh -e 'SELECT release_version FROM system.local;'"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+      cfssl:
+        image: ispirata/docker-alpine-cfssl-autotest:astarte
+        ports:
+          - 8080/tcp
+    steps:
+      - uses: actions/checkout@v6
+      - uses: team-alembic/staple-actions/actions/mix-task@a74b3b61209d35d45526df174766632f8aee03ed
+        with:
+          working-directory: apps/${{ inputs.app }}
+          mix-env: test
+          task: coveralls.json --exclude wip -o coverage_results
+        env:
+          CFSSL_API_URL: http://localhost:${{ job.services.cfssl.ports[8080] }}
+      - name: Upload Coverage Results to CodeCov
+        # Don't upload more than once per component
+        if: ${{
+          matrix.database == 'scylladb/scylla:2025.2.2' &&
+          github.repository == 'astarte-platform/astarte'
+          }}
+        uses: codecov/codecov-action@v5
+        with:
+          fail_ci_if_error: true
+          token: ${{ secrets.CODECOV_TOKEN }}
+          verbose: true
+          directory: ./apps/${{ inputs.app }}/coverage_results
+          flags: ${{ inputs.app }}

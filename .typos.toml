@@ -1,0 +1,24 @@
+[default]
+extend-ignore-re = [
+  # base64 encoded strings
+  "Base.decode\\d\\d!?\\(\"[^\"]*\"\\)",
+  # PEMs
+  "-----BEGIN ([A-Z]+ )*[A-Z]+-----\\n[a-zA-Z0-9\\s\\/\\+=]*-----END ([A-Z]+ )*[A-Z]+-----",
+  # test private key
+  "config\\s*:\\w+\\s*,\\s*:test_priv_key\\s*,\\s*\\{\\s*%\\{\\s*kty:\\s*:jose_jwk_kty_rsa\\}\\s*,\\s*%\\{[^\\}]*\\}\\}",
+  # phoenix cookie
+  "set\\s+cookie:\\s+:\"[^\"]+\"",
+  # encoded device id
+  "[\\w\\-_]{22}",
+  # custom spellchecker option for ignoring the line below this comment
+  "(#|//)\\s*spellchecker:ignore-next-line\\n.*",
+]
+
+[default.extend-words]
+clea = "clea"
+
+# byte 0xba used in documentation
+ba = "ba"
+
+[default.extend-identifiers]
+OTPs = "OTPs"

@@ -1,0 +1,39 @@
+name: Build and Test Astarte Realm Management
+
+on:
+  # Run when pushing to stable branches
+  push:
+    paths:
+      - "apps/astarte_realm_management/**"
+      - "libs/**"
+      - ".github/workflows/astarte-apps-build-workflow.yaml"
+      - ".github/workflows/astarte-realm-management-workflow.yaml"
+      - ".github/codecov.yml"
+    branches:
+      - "master"
+      - "release-*"
+  # Run on branch/tag creation
+  create:
+  # Run on pull requests for astarte_realm_management
+  pull_request:
+    paths:
+      - "apps/astarte_realm_management/**"
+      - "libs/**"
+      - ".github/workflows/astarte-apps-build-workflow.yaml"
+      - ".github/workflows/astarte-realm-management-workflow.yaml"
+      - ".github/codecov.yml"
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  astarte_realm_management:
+    uses: ./.github/workflows/astarte-apps-build-workflow.yaml
+    with:
+      app: "astarte_realm_management"
+    secrets: inherit
