@@ -61,7 +61,8 @@ defmodule Astarte.RPC.MixProject do
       {:phoenix_pubsub, "~> 2.0"},
       {:skogsra, "~> 2.0"},
       {:typedstruct, "~> 0.5"},
-      {:excoveralls, "~> 0.15", only: :test}
+      {:excoveralls, "~> 0.15", only: :test},
+      {:credo, "~> 1.7", only: [:dev, :test], runtime: false}
     ]
   end
 end

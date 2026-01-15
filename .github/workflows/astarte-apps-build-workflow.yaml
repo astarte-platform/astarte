@@ -38,6 +38,18 @@ jobs:
           working-directory: apps/${{ inputs.app }}
           mix-env: test
 
+  credo:
+    name: Credo
+    runs-on: ubuntu-22.04
+    needs:
+      - warmup
+    steps:
+      - uses: actions/checkout@v6
+      - uses: team-alembic/staple-actions/actions/mix-credo@a74b3b61209d35d45526df174766632f8aee03ed
+        with:
+          working-directory: apps/${{ inputs.app }}
+          mix-env: test
+
   dialyzer:
     name: Dialyzer
     runs-on: ubuntu-22.04
