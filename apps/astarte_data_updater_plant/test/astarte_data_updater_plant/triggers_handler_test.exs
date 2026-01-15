@@ -137,7 +137,7 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandlerTest do
       parent_trigger_id = :uuid.get_v4()
       static_header_key = "important_metadata_connected"
       static_header_value = "test_meta_connected"
-      static_headers = [{static_header_key, static_header_value}]
+      static_headers = %{static_header_key => static_header_value}
       timestamp = get_timestamp()
 
       target = %AMQPTriggerTarget{
@@ -179,7 +179,7 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandlerTest do
       parent_trigger_id = :uuid.get_v4()
       static_header_key = "important_metadata_error"
       static_header_value = "test_meta_error"
-      static_headers = [{static_header_key, static_header_value}]
+      static_headers = %{static_header_key => static_header_value}
       timestamp = get_timestamp()
 
       target = %AMQPTriggerTarget{
@@ -233,7 +233,7 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandlerTest do
       parent_trigger_id = :uuid.get_v4()
       static_header_key = "important_metadata_disconnected"
       static_header_value = "test_meta_disconnected"
-      static_headers = [{static_header_key, static_header_value}]
+      static_headers = %{static_header_key => static_header_value}
       timestamp = get_timestamp()
 
       target = %AMQPTriggerTarget{
@@ -273,7 +273,7 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandlerTest do
       parent_trigger_id = :uuid.get_v4()
       static_header_key = "important_metadata"
       static_header_value = "test_meta"
-      static_headers = [{static_header_key, static_header_value}]
+      static_headers = %{static_header_key => static_header_value}
       timestamp = get_timestamp()
       context = %{default_context(timestamp) | value: nil}
 
@@ -325,7 +325,7 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandlerTest do
       parent_trigger_id = :uuid.get_v4()
       static_header_key = "important_metadata_incoming_introspection"
       static_header_value = "test_meta_incoming_introspection"
-      static_headers = [{static_header_key, static_header_value}]
+      static_headers = %{static_header_key => static_header_value}
       timestamp = get_timestamp()
 
       target = %AMQPTriggerTarget{
@@ -375,7 +375,7 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandlerTest do
       parent_trigger_id = :uuid.get_v4()
       static_header_key = "important_metadata_incoming_introspection"
       static_header_value = "test_meta_incoming_introspection"
-      static_headers = [{static_header_key, static_header_value}]
+      static_headers = %{static_header_key => static_header_value}
       timestamp = get_timestamp()
 
       target = %AMQPTriggerTarget{
@@ -422,7 +422,7 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandlerTest do
       parent_trigger_id = :uuid.get_v4()
       static_header_key = "important_metadata_interface_added"
       static_header_value = "test_meta_interface_added"
-      static_headers = [{static_header_key, static_header_value}]
+      static_headers = %{static_header_key => static_header_value}
       timestamp = get_timestamp()
 
       target = %AMQPTriggerTarget{
@@ -474,7 +474,7 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandlerTest do
       parent_trigger_id = :uuid.get_v4()
       static_header_key = "important_metadata_interface_minor_updated"
       static_header_value = "test_meta_interface_minor_updated"
-      static_headers = [{static_header_key, static_header_value}]
+      static_headers = %{static_header_key => static_header_value}
       timestamp = get_timestamp()
 
       target = %AMQPTriggerTarget{
@@ -531,7 +531,7 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandlerTest do
       parent_trigger_id = :uuid.get_v4()
       static_header_key = "important_metadata_interface_removed"
       static_header_value = "test_meta_interface_removed"
-      static_headers = [{static_header_key, static_header_value}]
+      static_headers = %{static_header_key => static_header_value}
       timestamp = get_timestamp()
 
       target = %AMQPTriggerTarget{
@@ -581,7 +581,7 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandlerTest do
       parent_trigger_id = :uuid.get_v4()
       static_header_key = "important_metadata_path_created"
       static_header_value = "test_meta_path_created"
-      static_headers = [{static_header_key, static_header_value}]
+      static_headers = %{static_header_key => static_header_value}
       timestamp = get_timestamp()
       context = default_context(timestamp)
 
@@ -636,7 +636,7 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandlerTest do
       parent_trigger_id = :uuid.get_v4()
       static_header_key = "important_metadata_path_removed"
       static_header_value = "test_meta_path_removed"
-      static_headers = [{static_header_key, static_header_value}]
+      static_headers = %{static_header_key => static_header_value}
       timestamp = get_timestamp()
       context = default_context(timestamp)
 
@@ -687,7 +687,7 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandlerTest do
       parent_trigger_id = :uuid.get_v4()
       static_header_key = "important_metadata_value_change"
       static_header_value = "test_meta_value_change"
-      static_headers = [{static_header_key, static_header_value}]
+      static_headers = %{static_header_key => static_header_value}
       old_bson_value = %{v: 41} |> Cyanide.encode!()
       new_bson_value = %{v: 42} |> Cyanide.encode!()
       timestamp = get_timestamp()
@@ -741,7 +741,7 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandlerTest do
       parent_trigger_id = :uuid.get_v4()
       static_header_key = "important_metadata_value_change_applied"
       static_header_value = "test_meta_value_change_applied"
-      static_headers = [{static_header_key, static_header_value}]
+      static_headers = %{static_header_key => static_header_value}
       old_bson_value = %{v: 41} |> Cyanide.encode!()
       new_bson_value = %{v: 42} |> Cyanide.encode!()
       timestamp = get_timestamp()
@@ -809,7 +809,7 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandlerTest do
       parent_trigger_id = :uuid.get_v4()
       static_header_key = "important_metadata_value_change_applied"
       static_header_value = "test_meta_value_change_applied"
-      static_headers = [{static_header_key, static_header_value}]
+      static_headers = %{static_header_key => static_header_value}
       old_bson_value = %{v: 41} |> Cyanide.encode!()
       new_bson_value = %{v: 42} |> Cyanide.encode!()
       timestamp = get_timestamp()
@@ -864,7 +864,7 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandlerTest do
       parent_trigger_id = :uuid.get_v4()
       static_header_key = "important_metadata_value_change_applied"
       static_header_value = "test_meta_value_change_applied"
-      static_headers = [{static_header_key, static_header_value}]
+      static_headers = %{static_header_key => static_header_value}
       old_bson_value = %{v: 41} |> Cyanide.encode!()
       new_bson_value = %{v: 42} |> Cyanide.encode!()
       timestamp = get_timestamp()
@@ -919,7 +919,7 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandlerTest do
       parent_trigger_id = :uuid.get_v4()
       static_header_key = "important_metadata_value_change_applied"
       static_header_value = "test_meta_value_change_applied"
-      static_headers = [{static_header_key, static_header_value}]
+      static_headers = %{static_header_key => static_header_value}
       old_bson_value = %{v: 41} |> Cyanide.encode!()
       new_bson_value = %{v: 42} |> Cyanide.encode!()
       timestamp = get_timestamp()
