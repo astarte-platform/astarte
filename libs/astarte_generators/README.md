@@ -32,7 +32,7 @@ end
 This project depends on:
 
 - [`astarte_core`](https://github.com/astarte-platform/astarte_core): provides the core data types and utilities used across the Astarte platform.
-- [`StreamData`](https://hexdocs.pm/stream_data/StreamData.html): used heavily for both property-based testing and runtime generation of Astarte-compatible entities (e.g., *interfaces*, *triggers*, *payloads*).
+- [`StreamData`](https://hexdocs.pm/stream_data/StreamData.html): used heavily for both property-based testing and runtime generation of Astarte-compatible entities (e.g., _interfaces_, _triggers_, _payloads_).
 
 To fetch the dependencies:
 

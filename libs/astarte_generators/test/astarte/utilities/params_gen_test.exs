@@ -206,7 +206,7 @@ defmodule Astarte.Generators.Utilities.ParamsGenTest do
       end
     end
 
-    property "params gen all with internal destruction cannot be overrided" do
+    property "params gen all with internal destruction cannot be overridden" do
       check all {a, b, c} <- params_gen_destruct(), max_runs: 1 do
         assert a == 0
         assert b == "a"
