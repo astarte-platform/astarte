@@ -68,4 +68,23 @@ defmodule Astarte.Pairing.FDO.OwnershipVoucher.Header do
       hash -> Hash.decode(hash)
     end
   end
+
+  def encode(%Header{} = header) do
+    [
+      header.protocol_version,
+      COSE.tag_as_byte(header.guid),
+      RendezvousInfo.encode(header.rendezvous_info),
+      header.device_info,
+      PublicKey.encode(header.public_key),
+      encode_cert_chain_hash(header.cert_chain_hash)
+    ]
+  end
+
+  def cbor_encode(%Header{} = header) do
+    encode(header)
+    |> CBOR.encode()
+  end
+
+  defp encode_cert_chain_hash(nil), do: nil
+  defp encode_cert_chain_hash(hash), do: Hash.encode(hash)
 end
