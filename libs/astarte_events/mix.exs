@@ -65,7 +65,8 @@ defmodule Astarte.Events.Mixfile do
       {:ssl_verify_fun, "~> 1.1.0", manager: :rebar3, override: true},
       {:astarte_data_access, path: "../astarte_data_access"},
       {:astarte_core, github: "astarte-platform/astarte_core", branch: "release-1.3"},
-      {:elixir_uuid, "~> 1.2"}
+      {:elixir_uuid, "~> 1.2"},
+      {:credo, "~> 1.7", only: [:dev, :test], runtime: false}
     ]
   end
 end
