@@ -46,10 +46,12 @@ defmodule Astarte.RPC.Config do
     default: "app=astarte-data-updater-plant"
 
   @envdoc "The endpoint label to query to get other pairing instances. Defaults to `app=astarte-pairing`."
-  app_env :pairing_clustering_kubernetes_selector, :astarte_rpc, :pairing_clustering_kubernetes_selector,
-    os_env: "PAIRING_CLUSTERING_KUBERNETES_SELECTOR",
-    type: :binary,
-    default: "app=astarte-pairing"
+  app_env :pairing_clustering_kubernetes_selector,
+          :astarte_rpc,
+          :pairing_clustering_kubernetes_selector,
+          os_env: "PAIRING_CLUSTERING_KUBERNETES_SELECTOR",
+          type: :binary,
+          default: "app=astarte-pairing"
 
   @envdoc "The endpoint label to query to get other realm management instances. Defaults to `app=astarte-realm-management`."
   app_env :rm_clustering_kubernetes_selector, :astarte_rpc, :rm_clustering_kubernetes_selector,

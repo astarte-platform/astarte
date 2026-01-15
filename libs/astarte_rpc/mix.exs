@@ -25,8 +25,15 @@ defmodule Astarte.RPC.MixProject do
       version: "1.3.0-rc.0",
       elixir: "~> 1.15",
       start_permanent: Mix.env() == :prod,
+      test_coverage: [tool: ExCoveralls],
+      preferred_cli_env: [
+        coveralls: :test,
+        "coveralls.detail": :test,
+        "coveralls.post": :test,
+        "coveralls.html": :test
+      ],
       elixirc_paths: elixirc_paths(Mix.env()),
-      dialyzer: [plt_add_apps: [:ex_unit]],
+      dialyzer: [plt_add_apps: [:ex_unit, :astarte_events]],
       deps: deps()
     ]
   end
@@ -43,7 +50,8 @@ defmodule Astarte.RPC.MixProject do
 
   defp deps do
     [
-      {:astarte_core, github: "astarte-platform/astarte_core", branch: "release-1.3", override: true},
+      {:astarte_core,
+       github: "astarte-platform/astarte_core", branch: "release-1.3", override: true},
       {:astarte_data_access, path: "../astarte_data_access"},
       {:astarte_events, path: "../astarte_events", runtime: false},
       {:astarte_generators, github: "astarte-platform/astarte_generators", only: [:dev, :test]},
@@ -52,7 +60,8 @@ defmodule Astarte.RPC.MixProject do
       {:mimic, "~> 1.11", only: [:test, :dev]},
       {:phoenix_pubsub, "~> 2.0"},
       {:skogsra, "~> 2.0"},
-      {:typedstruct, "~> 0.5"}
+      {:typedstruct, "~> 0.5"},
+      {:excoveralls, "~> 0.15", only: :test}
     ]
   end
 end

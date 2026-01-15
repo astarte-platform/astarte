@@ -69,7 +69,7 @@ defmodule Astarte.RPC.TriggersTest do
 
       tagged_simple_trigger = %{
         simple_trigger_container: %{
-          simple_trigger: {:device_trigger, nil}
+          simple_trigger: {:device_trigger, %{device_event_type: :INTERFACE_ADDED}}
         }
       }
 
@@ -86,7 +86,8 @@ defmodule Astarte.RPC.TriggersTest do
 
       tagged_simple_trigger = %{
         simple_trigger_container: %{
-          simple_trigger: {:data_trigger, %{interface_name: "*"}}
+          simple_trigger:
+            {:data_trigger, %{interface_name: "*", data_trigger_type: :INCOMING_DATA}}
         }
       }
 
@@ -103,7 +104,7 @@ defmodule Astarte.RPC.TriggersTest do
 
       tagged_simple_trigger = %{
         simple_trigger_container: %{
-          simple_trigger: {:data_trigger, %{match_path: "/*"}}
+          simple_trigger: {:data_trigger, %{match_path: "/*", data_trigger_type: :INCOMING_DATA}}
         }
       }
 
@@ -120,6 +121,7 @@ defmodule Astarte.RPC.TriggersTest do
       } = context
 
       interface_specific_trigger = %{
+        data_trigger_type: :INCOMING_DATA,
         interface_name: interface.name,
         interface_major: interface.major_version,
         match_path: "/value"
@@ -145,6 +147,7 @@ defmodule Astarte.RPC.TriggersTest do
       } = context
 
       interface_specific_trigger = %{
+        data_trigger_type: :INCOMING_DATA,
         interface_name: interface.name,
         interface_major: interface.major_version,
         match_path: "/value"
@@ -176,6 +179,7 @@ defmodule Astarte.RPC.TriggersTest do
       }
 
       interface_specific_trigger = %{
+        data_trigger_type: :INCOMING_DATA,
         interface_name: interface.name,
         interface_major: interface.major_version,
         match_path: "/value"
@@ -233,7 +237,7 @@ defmodule Astarte.RPC.TriggersTest do
 
       tagged_simple_trigger = %{
         simple_trigger_container: %{
-          simple_trigger: {:device_trigger, nil}
+          simple_trigger: {:device_trigger, %{device_event_type: :INTERFACE_REMOVED}}
         }
       }
 
@@ -251,7 +255,8 @@ defmodule Astarte.RPC.TriggersTest do
 
       tagged_simple_trigger = %{
         simple_trigger_container: %{
-          simple_trigger: {:data_trigger, %{interface_name: "*"}}
+          simple_trigger:
+            {:data_trigger, %{interface_name: "*", data_trigger_type: :INCOMING_DATA}}
         }
       }
 
@@ -269,7 +274,7 @@ defmodule Astarte.RPC.TriggersTest do
 
       tagged_simple_trigger = %{
         simple_trigger_container: %{
-          simple_trigger: {:data_trigger, %{match_path: "/*"}}
+          simple_trigger: {:data_trigger, %{match_path: "/*", data_trigger_type: :INCOMING_DATA}}
         }
       }
 
@@ -287,6 +292,7 @@ defmodule Astarte.RPC.TriggersTest do
       } = context
 
       interface_specific_trigger = %{
+        data_trigger_type: :INCOMING_DATA,
         interface_name: interface.name,
         interface_major: interface.major_version,
         match_path: "/value"
@@ -313,6 +319,7 @@ defmodule Astarte.RPC.TriggersTest do
       } = context
 
       interface_specific_trigger = %{
+        data_trigger_type: :INCOMING_DATA,
         interface_name: interface.name,
         interface_major: interface.major_version,
         match_path: "/value"
@@ -345,6 +352,7 @@ defmodule Astarte.RPC.TriggersTest do
       }
 
       interface_specific_trigger = %{
+        data_trigger_type: :INCOMING_DATA,
         interface_name: interface.name,
         interface_major: interface.major_version,
         match_path: "/value"
