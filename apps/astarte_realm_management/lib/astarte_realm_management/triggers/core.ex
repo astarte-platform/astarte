@@ -169,7 +169,6 @@ defmodule Astarte.RealmManagement.Triggers.Core do
        ) do
     static_headers =
       Map.get(action, "amqp_static_headers", %{})
-      |> Enum.to_list()
 
     %AMQPTriggerTarget{
       exchange: exchange,

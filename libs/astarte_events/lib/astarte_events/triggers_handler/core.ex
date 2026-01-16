@@ -66,7 +66,7 @@ defmodule Astarte.Events.TriggersHandler.Core do
       {"x_astarte_simple_trigger_id", simple_trigger_id_str},
       {"x_astarte_parent_trigger_id", parent_trigger_id_str},
       {"x_astarte_event_type", to_string(event_type)}
-      | static_headers
+      | Enum.to_list(static_headers)
     ]
 
     {routing_key, headers} =

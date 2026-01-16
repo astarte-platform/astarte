@@ -1,5 +1,5 @@
 %{
-  "astarte_core": {:git, "https://github.com/astarte-platform/astarte_core.git", "4fcb19e67b5afcaeba569d28847a6756f017c3e2", []},
+  "astarte_core": {:git, "https://github.com/astarte-platform/astarte_core.git", "43e96a2bef68374647c10900c412a5c1cc2c9a83", [branch: "release-1.3"]},
   "astarte_device": {:git, "https://github.com/astarte-platform/astarte-device-sdk-elixir.git", "074be82576cee2dfd2dc0abed1df4997a06aa7ce", []},
   "certifi": {:hex, :certifi, "2.9.0", "6f2a475689dd47f19fb74334859d460a2dc4e3252a3324bd2111b8f0429e7e21", [:rebar3], [], "hexpm", "266da46bdb06d6c6d35fde799bcb28d36d985d424ad7c08b5bb48f5b5cdd4641"},
   "cyanide": {:hex, :cyanide, "2.0.0", "f97b700b87f9b0679ae812f0c4b7fe35ea6541a4121a096cf10287941b7a6d55", [:mix], [], "hexpm", "7f9748251804c2a2115b539202568e1117ab2f0ae09875853fb89cc94ae19dd1"},
