@@ -61,6 +61,26 @@ defmodule Astarte.RPC.TriggersTest do
     end
   end
 
+  describe "subscribe_types/1" do
+    test "subscribe_types subscribes to trigger type topics" do
+      types = [:device_trigger]
+
+      Triggers.subscribe_types(types)
+
+      PubSub.broadcast(Server, "trigger-by-type:device_trigger", :msg)
+
+      assert_receive :msg
+    end
+
+    test "subscribe_types with empty list does not subscribe to any topic" do
+      Triggers.subscribe_types([])
+
+      PubSub.broadcast(Server, "trigger-by-type:device_trigger", :msg)
+
+      refute_receive :msg
+    end
+  end
+
   describe "notify_installation/5" do
     test "sends an install trigger message to all the replicas for device triggers", context do
       %{
