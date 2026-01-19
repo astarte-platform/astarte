@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2025 SECO Mind Srl
+# Copyright 2025 - 2026 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -24,9 +24,17 @@ defmodule Astarte.Core.Generators.Group do
   """
   use ExUnitProperties
 
+  import Astarte.Generators.Utilities.ParamsGen
+
+  alias Astarte.Core.Generators.Device, as: DeviceGenerator
+
   @max_subpath_count 10
   @max_subpath_length 20
+  @max_devices_count 10
 
+  @doc """
+  Generates a valid Astarte Group name.
+  """
   @spec name() :: StreamData.t(String.t())
   def name do
     string(:ascii, min_length: 1, max_length: @max_subpath_length)
@@ -35,20 +43,21 @@ defmodule Astarte.Core.Generators.Group do
       max_length: @max_subpath_count
     )
     |> map(&Enum.join(&1, "/"))
-    |> filter(fn name ->
-      String.first(name) not in ["@", "~", "\s"]
-    end)
+    |> filter(&(String.first(&1) not in ["@", "~", "\s"]))
   end
 
-  @spec group([{:devices, any()}, ...]) :: StreamData.t(map())
-  def group(devices: devices) do
-    gen all(
-          name <- name(),
-          device_ids <-
-            devices
-            |> Enum.map(fn i -> i.device_id end)
-            |> constant()
-        ) do
+  @doc """
+  Generates a valid Astarte Group.
+  """
+  @spec group() :: StreamData.t(map())
+  @spec group(params :: keyword()) :: StreamData.t(map())
+  def group(params \\ []) do
+    params gen all name <- name(),
+                   device_ids <-
+                     DeviceGenerator.device()
+                     |> map(& &1.id)
+                     |> list_of(min_length: 1, max_length: @max_devices_count),
+                   params: params do
       %{
         name: name,
         device_ids: device_ids
