@@ -27,7 +27,7 @@ defmodule Astarte.Core.Generators.MixProject do
       start_permanent: Mix.env() == :prod,
       deps: deps() ++ astarte_required_modules(),
       package: package(),
-      dialyzer: dialyzer(),
+      dialyzer: [plt_add_apps: [:ex_unit]],
       test_coverage: [tool: ExCoveralls]
     ]
   end
@@ -45,18 +45,7 @@ defmodule Astarte.Core.Generators.MixProject do
     ]
   end
 
-  defp dialyzer,
-    do: [
-      plt_core_path: dialyzer_cache_directory(Mix.env()),
-      plt_add_apps: [:ex_unit],
-      ignore_warnings: "dialyzer.ignore-warnings",
-      files: ["lib"]
-    ]
-
-  defp dialyzer_cache_directory(:ci), do: "dialyzer_cache"
-  defp dialyzer_cache_directory(_), do: nil
-
-  defp elixirc_paths(env) when env in [:test, :ci], do: ["test/support", "lib"]
+  defp elixirc_paths(:test), do: ["test/support", "lib"]
   defp elixirc_paths(_), do: ["lib"]
 
   # Run "mix help deps" to learn about dependencies.
@@ -64,9 +53,9 @@ defmodule Astarte.Core.Generators.MixProject do
     [
       {:stream_data, "~> 1.1"},
       # Test section
-      {:dialyxir, "~> 1.4", only: [:dev, :ci], runtime: false},
-      {:credo, "~> 1.7", only: [:dev, :test, :ci], runtime: false},
-      {:excoveralls, "~> 0.15", only: [:test, :ci]},
+      {:dialyxir, "~> 1.4", only: [:dev, :test], runtime: false},
+      {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
+      {:excoveralls, "~> 0.15", only: :test},
       {:mox, "~> 0.5", only: :test}
     ]
   end
