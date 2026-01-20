@@ -1,0 +1,65 @@
+{
+  "interface_name": "org.astarte-platform.e2e.ServerDatastream",
+  "version_major": 0,
+  "version_minor": 1,
+  "type": "datastream",
+  "ownership": "server",
+  "mappings": [
+    {
+      "endpoint": "/binaryblob_endpoint",
+      "type": "binaryblob"
+    },
+    {
+      "endpoint": "/binaryblobarray_endpoint",
+      "type": "binaryblobarray"
+    },
+    {
+      "endpoint": "/boolean_endpoint",
+      "type": "boolean"
+    },
+    {
+      "endpoint": "/booleanarray_endpoint",
+      "type": "booleanarray"
+    },
+    {
+      "endpoint": "/datetime_endpoint",
+      "type": "datetime"
+    },
+    {
+      "endpoint": "/datetimearray_endpoint",
+      "type": "datetimearray"
+    },
+    {
+      "endpoint": "/double_endpoint",
+      "type": "double"
+    },
+    {
+      "endpoint": "/doublearray_endpoint",
+      "type": "doublearray"
+    },
+    {
+      "endpoint": "/integer_endpoint",
+      "type": "integer"
+    },
+    {
+      "endpoint": "/integerarray_endpoint",
+      "type": "integerarray"
+    },
+    {
+      "endpoint": "/longinteger_endpoint",
+      "type": "longinteger"
+    },
+    {
+      "endpoint": "/longintegerarray_endpoint",
+      "type": "longintegerarray"
+    },
+    {
+      "endpoint": "/string_endpoint",
+      "type": "string"
+    },
+    {
+      "endpoint": "/stringarray_endpoint",
+      "type": "stringarray"
+    }
+  ]
+}
