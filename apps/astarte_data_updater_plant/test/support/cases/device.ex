@@ -238,6 +238,10 @@ defmodule Astarte.Cases.Device do
        end},
       {:fixed_endpoint_interface,
        fn acc -> [new_interfaces(fixed_endpoint_interface(), acc, :single)] end},
+      {:fixed_object_datastream_1,
+       fn acc -> [new_interfaces(fixed_object_datastream_1(), acc, :single)] end},
+      {:fixed_object_datastream_2,
+       fn acc -> [new_interfaces(fixed_object_datastream_2(), acc, :single)] end},
       {:other_interfaces,
        fn acc -> new_interfaces(InterfaceGenerator.interface(), acc, :list) end}
     ]
@@ -252,6 +256,8 @@ defmodule Astarte.Cases.Device do
 
     %{
       interfaces: all_interfaces,
+      fixed_object_datastream_1: named_interfaces.fixed_object_datastream_1,
+      fixed_object_datastream_2: named_interfaces.fixed_object_datastream_2,
       fixed_endpoint_interface: named_interfaces.fixed_endpoint_interface,
       server_property_with_all_endpoint_types:
         named_interfaces.server_property_with_all_endpoint_types,
@@ -285,6 +291,58 @@ defmodule Astarte.Cases.Device do
       mapping = %{mapping | endpoint: "/value", value_type: :integer}
 
       %{interface | mappings: [mapping]}
+    end)
+  end
+
+  defp fixed_object_datastream_1 do
+    InterfaceGenerator.interface(
+      name: "test.FixedObjectDatastream1",
+      ownership: :device,
+      type: :datastream,
+      aggregation: :object
+    )
+    |> map(fn interface ->
+      mapping = Enum.at(interface.mappings, 0)
+
+      mapping_first = %{
+        mapping
+        | endpoint: "/data/first",
+          value_type: :string
+      }
+
+      mapping_second = %{
+        mapping
+        | endpoint: "/data/second",
+          value_type: :integer
+      }
+
+      %{interface | mappings: [mapping_first, mapping_second]}
+    end)
+  end
+
+  defp fixed_object_datastream_2 do
+    InterfaceGenerator.interface(
+      name: "test.FixedObjectDatastream2",
+      ownership: :device,
+      type: :datastream,
+      aggregation: :object
+    )
+    |> map(fn interface ->
+      mapping = Enum.at(interface.mappings, 0)
+
+      mapping_first = %{
+        mapping
+        | endpoint: "/data/first",
+          value_type: :boolean
+      }
+
+      mapping_second = %{
+        mapping
+        | endpoint: "/data/second",
+          value_type: :binaryblob
+      }
+
+      %{interface | mappings: [mapping_first, mapping_second]}
     end)
   end
 
