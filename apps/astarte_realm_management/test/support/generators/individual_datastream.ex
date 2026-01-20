@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2025 SECO - 2026 Mind Srl
+# Copyright 2025 - 2026 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -18,9 +18,9 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
-defmodule Astarte.RealmManagement.Generators.IndividualProperty do
+defmodule Astarte.RealmManagement.Generators.IndividualDatastream do
   @moduledoc """
-  Generators of `IndividualProperty`es
+  Generator of `IndividualDatastream`s.
   """
   use ExUnitProperties
 
@@ -29,30 +29,37 @@ defmodule Astarte.RealmManagement.Generators.IndividualProperty do
   alias Astarte.Core.Interface
   alias Astarte.Core.Mapping
 
-  alias Astarte.DataAccess.Realms.IndividualProperty
+  alias Astarte.DataAccess.Realms.IndividualDatastream
 
+  alias Astarte.Common.Generators.DateTime, as: DateTimeGenerator
   alias Astarte.Core.Generators.Device, as: DeviceGenerator
   alias Astarte.Core.Generators.Interface, as: InterfaceGenerator
   alias Astarte.Core.Generators.Mapping.Value, as: ValueGenerator
 
   @doc false
-  @spec individual_property(params :: keyword()) :: StreamData.t(IndividualProperty.t())
-  def individual_property(params \\ []) do
+  @spec individual_datastream(params :: keyword()) :: StreamData.t(IndividualDatastream.t())
+  def individual_datastream(params \\ []) do
     params gen all interface <-
-                     InterfaceGenerator.interface(aggregation: :individual, type: :properties),
+                     InterfaceGenerator.interface(aggregation: :individual, type: :datastream),
                    value <- ValueGenerator.value(interface: interface),
                    device_id <- DeviceGenerator.id(),
+                   value_timestamp <- DateTimeGenerator.date_time(),
+                   reception_timestamp <- DateTimeGenerator.date_time(),
+                   reception_timestamp_submillis <- integer(0..10),
                    %Interface{
                      interface_id: interface_id,
                      mappings: [%Mapping{endpoint_id: endpoint_id} | _]
                    } = interface,
                    %{path: path} = value,
                    params: params do
-      %IndividualProperty{
-        device_id: device_id,
+      %IndividualDatastream{
         interface_id: interface_id,
+        device_id: device_id,
         endpoint_id: endpoint_id,
-        path: path
+        path: path,
+        value_timestamp: value_timestamp,
+        reception_timestamp: reception_timestamp,
+        reception_timestamp_submillis: reception_timestamp_submillis
       }
     end
   end

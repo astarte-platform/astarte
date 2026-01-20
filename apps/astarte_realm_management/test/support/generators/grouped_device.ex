@@ -22,22 +22,22 @@ defmodule Astarte.RealmManagement.Generators.GroupedDevice do
   @moduledoc """
   Generator for `Astarte.DataAccess.Groups.GroupedDevice` structure
   """
-  alias Astarte.Core.Generators.Device
-  alias Astarte.DataAccess.Groups.GroupedDevice
-  alias Astarte.Generators.Utilities.ParamsGen
-
   use ExUnitProperties
-  import ParamsGen
 
+  import Astarte.Generators.Utilities.ParamsGen
+
+  alias Astarte.DataAccess.Groups.GroupedDevice
+
+  alias Astarte.Core.Generators.Device, as: DeviceGenerator
+  alias Astarte.Core.Generators.Group, as: GroupGenerator
+
+  @doc false
+  @spec grouped_device(params :: keyword()) :: StreamData.t(GroupedDevice.t())
   def grouped_device(params) do
-    params gen(
-             all(
-               device_id <- Device.id(),
-               group_name <- string(:utf8, length: 1..256),
-               insertion_uuid <- repeatedly(&UUID.uuid1/0),
-               params: params
-             )
-           ) do
+    params gen all device_id <- DeviceGenerator.id(),
+                   group_name <- GroupGenerator.name(),
+                   insertion_uuid <- repeatedly(&UUID.uuid1/0),
+                   params: params do
       %GroupedDevice{
         device_id: device_id,
         group_name: group_name,

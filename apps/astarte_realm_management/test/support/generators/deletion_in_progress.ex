@@ -22,22 +22,22 @@ defmodule Astarte.RealmManagement.Generators.DeletionInProgress do
   @moduledoc """
   Generator for `Astarte.DataAccess.Device.DeletionInProgress`
   """
-  alias Astarte.DataAccess.Device.DeletionInProgress
-  alias Astarte.Generators.Utilities.ParamsGen
-
   use ExUnitProperties
-  import ParamsGen
 
-  def deletion_in_progress(device_id_gen, params \\ []) do
-    params gen(
-             all(
-               device_id <- device_id_gen,
-               dup_end_ack <- boolean(),
-               vmq_ack <- boolean(),
-               dup_start_ack <- boolean(),
-               params: params
-             )
-           ) do
+  import Astarte.Generators.Utilities.ParamsGen
+
+  alias Astarte.DataAccess.Device.DeletionInProgress
+
+  alias Astarte.Core.Generators.Device, as: DeviceGenerator
+
+  @doc false
+  @spec deletion_in_progress(params :: keyword()) :: StreamData.t(DeletionInProgress.t())
+  def deletion_in_progress(params \\ []) do
+    params gen all device_id <- DeviceGenerator.id(),
+                   dup_end_ack <- boolean(),
+                   vmq_ack <- boolean(),
+                   dup_start_ack <- boolean(),
+                   params: params do
       %DeletionInProgress{
         device_id: device_id,
         dup_end_ack: dup_end_ack,
