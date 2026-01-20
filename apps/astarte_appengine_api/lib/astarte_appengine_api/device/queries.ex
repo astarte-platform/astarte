@@ -219,8 +219,7 @@ defmodule Astarte.AppEngine.API.Device.Queries do
         device_id,
         %InterfaceDescriptor{storage_type: :multi_interface_individual_properties_dbtable} =
           interface_descriptor,
-        endpoint_id,
-        %Endpoint{allow_unset: true},
+        %Endpoint{allow_unset: true} = endpoint,
         path,
         nil,
         _timestamp,
@@ -228,6 +227,7 @@ defmodule Astarte.AppEngine.API.Device.Queries do
       ) do
     # TODO: :reception_timestamp_submillis is just a place holder right now
     %InterfaceDescriptor{interface_id: interface_id, storage: storage} = interface_descriptor
+    %Endpoint{endpoint_id: endpoint_id} = endpoint
     keyspace_name = Realm.keyspace_name(realm_name)
 
     delete_match =
@@ -256,7 +256,6 @@ defmodule Astarte.AppEngine.API.Device.Queries do
         _device_id,
         %InterfaceDescriptor{storage_type: :multi_interface_individual_properties_dbtable} =
           _interface_descriptor,
-        _endpoint_id,
         _endpoint,
         _path,
         nil,
@@ -277,8 +276,7 @@ defmodule Astarte.AppEngine.API.Device.Queries do
         device_id,
         %InterfaceDescriptor{storage_type: :multi_interface_individual_properties_dbtable} =
           interface_descriptor,
-        endpoint_id,
-        endpoint,
+        %Endpoint{} = endpoint,
         path,
         value,
         timestamp,
@@ -290,6 +288,8 @@ defmodule Astarte.AppEngine.API.Device.Queries do
     {timestamp_ms, timestamp_submillis} = DateTimeMs.split_submillis(timestamp)
 
     # TODO: :reception_timestamp_submillis is just a place holder right now
+    %Endpoint{endpoint_id: endpoint_id} = endpoint
+
     interface_storage_attributes = %{
       value_column => to_db_friendly_type(value),
       device_id: device_id,
@@ -318,7 +318,6 @@ defmodule Astarte.AppEngine.API.Device.Queries do
         device_id,
         %InterfaceDescriptor{storage_type: :multi_interface_individual_datastream_dbtable} =
           interface_descriptor,
-        _endpoint_id,
         endpoint,
         path,
         value,
@@ -356,7 +355,6 @@ defmodule Astarte.AppEngine.API.Device.Queries do
         realm_name,
         device_id,
         %InterfaceDescriptor{storage_type: :one_object_datastream_dbtable} = interface_descriptor,
-        _endpoint_id,
         mapping,
         path,
         value,

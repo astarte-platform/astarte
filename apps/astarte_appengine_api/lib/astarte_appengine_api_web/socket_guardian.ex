@@ -45,9 +45,10 @@ defmodule Astarte.AppEngine.APIWeb.SocketGuardian do
 
   defp extract_authorization_paths(authorizations, match_prefix) do
     Enum.reduce(authorizations, [], fn authorization, acc ->
-      with [^match_prefix, _opts, auth_path] <- String.split(authorization, ":", parts: 3) do
-        [auth_path | acc]
-      else
+      case String.split(authorization, ":", parts: 3) do
+        [^match_prefix, _opts, auth_path] ->
+          [auth_path | acc]
+
         _ ->
           acc
       end

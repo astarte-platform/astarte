@@ -38,9 +38,9 @@ defmodule Astarte.AppEngine.API.Device.DeviceV2ReadingTest do
       } = context
 
       downsampable_interfaces =
-        interfaces_with_data
-        |> Enum.filter(&downsampable?/1)
-        |> Enum.filter(&(&1.aggregation == :individual))
+        Enum.filter(interfaces_with_data, fn interface ->
+          downsampable?(interface) and interface.aggregation == :individual
+        end)
 
       downsampable_paths =
         downsampable_interfaces

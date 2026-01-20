@@ -17,13 +17,12 @@ defmodule Astarte.AppEngine.APIWeb.Plug.VerifyHeader do
   end
 
   def call(conn, opts) do
-    with {:ok, secret} <- fetch_secret(conn) do
-      merged_opts =
-        opts
-        |> Keyword.merge(secret: secret)
+    case fetch_secret(conn) do
+      {:ok, secret} ->
+        merged_opts = Keyword.merge(opts, secret: secret)
 
-      GuardianVerifyHeader.call(conn, merged_opts)
-    else
+        GuardianVerifyHeader.call(conn, merged_opts)
+
       error ->
         Logger.error("Couldn't get JWT public key PEM: #{inspect(error)}.",
           tag: "get_jwt_secret_error"

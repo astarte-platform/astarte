@@ -30,24 +30,25 @@ defmodule Astarte.AppEngine.APIWeb.HealthPlug do
     try do
       status = Health.get_health()
 
-      with true <- Enum.member?([:ready, :degraded], status) do
-        :telemetry.execute(
-          [:astarte, :appengine, :service],
-          %{health: 1},
-          %{consistency_level: :quorum}
-        )
+      case Enum.member?([:ready, :degraded], status) do
+        true ->
+          :telemetry.execute(
+            [:astarte, :appengine, :service],
+            %{health: 1},
+            %{consistency_level: :quorum}
+          )
 
-        :telemetry.execute(
-          [:astarte, :appengine, :service],
-          %{health: 1},
-          %{consistency_level: :one}
-        )
+          :telemetry.execute(
+            [:astarte, :appengine, :service],
+            %{health: 1},
+            %{consistency_level: :one}
+          )
 
-        conn
-        |> send_resp(:ok, "")
-        |> halt()
-      else
-        _ ->
+          conn
+          |> send_resp(:ok, "")
+          |> halt()
+
+        false ->
           :telemetry.execute(
             [:astarte, :appengine, :service],
             %{health: 0},
