@@ -1,0 +1,3 @@
+[alias]
+e2e = "test -p astarte-e2e --test e2e"
+regen-proto = "run -p astarte-e2e --example regen"

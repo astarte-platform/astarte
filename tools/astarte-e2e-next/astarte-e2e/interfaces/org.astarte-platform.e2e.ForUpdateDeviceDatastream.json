@@ -1,0 +1,25 @@
+{
+  "interface_name": "org.astarte-platform.e2e.ForUpdateDeviceDatastream",
+  "version_major": 0,
+  "version_minor": 1,
+  "type": "datastream",
+  "ownership": "device",
+  "description": "Test datastream interface.",
+  "doc": "Test interface used to test datastream.",
+  "mappings": [
+    {
+      "endpoint": "/%{sensor_id}/stored",
+      "type": "double",
+      "retention": "stored",
+      "reliability": "guaranteed",
+      "explicit_timestamp": true
+    },
+    {
+      "endpoint": "/%{sensor_id}/volatile",
+      "type": "double",
+      "retention": "volatile",
+      "reliability": "guaranteed",
+      "explicit_timestamp": true
+    }
+  ]
+}

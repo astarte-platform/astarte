@@ -1,0 +1,38 @@
+version: 3
+
+output:
+  group:
+    begin: "::group::{{.TASK}}"
+    end: "::endgroup::"
+    error_only: false
+
+set: [errexit, nounset, pipefail]
+
+env:
+  CARGO_TERM_COLOR: always
+  RUSTFLAGS: -D warnings
+
+tasks:
+  ci:
+    desc: "Run all CI checks"
+    deps:
+      - fmt
+      - clippy
+      - regen
+      - test
+
+  fmt:
+    desc: "Check cargo fmt"
+    cmd: cargo fmt --check --all
+
+  clippy:
+    desc: "Check cargo clippy"
+    cmd: cargo clippy --locked --all-targets --all-features --workspace
+
+  regen:
+    desc: "Check the generated protos are up to date"
+    cmd: cargo regen-proto -- --check
+
+  test:
+    desc: "Run all unit tests"
+    cmd: cargo nextest run --locked --all-features --workspace -E 'not binary(e2e)'
