@@ -66,7 +66,9 @@ defmodule Astarte.Events.Mixfile do
       {:astarte_data_access, path: "../astarte_data_access"},
       {:astarte_core, github: "astarte-platform/astarte_core", branch: "release-1.3"},
       {:elixir_uuid, "~> 1.2"},
-      {:credo, "~> 1.7", only: [:dev, :test], runtime: false}
+      {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
+      {:astarte_generators, path: "../astarte_generators", only: [:dev, :test]},
+      {:httpoison, "~> 2.2"}
     ]
   end
 end

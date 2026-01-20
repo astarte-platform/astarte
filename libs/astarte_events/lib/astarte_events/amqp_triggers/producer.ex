@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2025 SECO Mind Srl
+# Copyright 2025 - 2026 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -48,14 +48,26 @@ defmodule Astarte.Events.AMQPTriggers.Producer do
   @impl true
   def init(opts) do
     realm_name = Keyword.fetch!(opts, :realm)
+    wait_start = Keyword.get(opts, :wait_start, false)
 
     Logger.info("AMQPTriggers producer init for realm #{realm_name}.",
       tag: "amqp_triggers_producer_init"
     )
 
+    if wait_start do
+      {:ok, {:wait_start, realm_name}, 60_000}
+    else
+      case init_producer(realm_name) do
+        {:ok, state} -> {:ok, state, 60_000}
+        {:error, reason} -> {:stop, reason}
+      end
+    end
+  end
+
+  def handle_call(:start, _from, {:wait_start, realm_name}) do
     case init_producer(realm_name) do
-      {:ok, state} -> {:ok, state, 60_000}
-      {:error, reason} -> {:stop, reason}
+      {:ok, state} -> {:reply, :ok, state, 60_000}
+      {:error, reason} -> {:stop, reason, {:error, reason}, {:wait_start, realm_name}}
     end
   end
 

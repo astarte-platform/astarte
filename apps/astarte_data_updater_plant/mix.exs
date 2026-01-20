@@ -101,7 +101,7 @@ defmodule Astarte.DataUpdaterPlant.Mixfile do
       # See also: https://github.com/deadtrickster/ssl_verify_fun.erl/pull/27
       {:ssl_verify_fun, "~> 1.1.0", manager: :rebar3, override: true},
       # TODO: needed to run test because we cannot start the housekeeping application as is
-      {:httpoison, "~> 2.2", only: [:dev, :test]},
+      {:httpoison, "~> 2.2"},
       {:uuid, "~> 2.0", hex: :uuid_erl},
       {:typedstruct, "~> 0.5"},
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false}

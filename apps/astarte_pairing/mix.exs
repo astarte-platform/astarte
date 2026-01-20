@@ -112,7 +112,9 @@ defmodule Astarte.Pairing.Mixfile do
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
       {:con_cache, "~> 1.1"},
       {:astarte_events, path: astarte_lib("astarte_events")},
-      {:astarte_rpc, path: astarte_lib("astarte_rpc")}
+      {:astarte_rpc, path: astarte_lib("astarte_rpc")},
+      # HTTP client needed by some tests, override to avoid conflicts with cfxxl
+      {:httpoison, "~> 2.2", override: true}
     ]
   end
 

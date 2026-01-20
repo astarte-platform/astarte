@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2025 SECO Mind Srl
+# Copyright 2025 - 2026 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -31,10 +31,10 @@ defmodule Astarte.Events.AMQPTriggers.VHostSupervisor do
     DynamicSupervisor.init(strategy: :one_for_one)
   end
 
-  def for_realm(realm_name) do
+  def for_realm(realm_name, wait_start \\ false) do
     server_name = server_from_realm(realm_name)
 
-    child = {Producer, [realm: realm_name, server: server_name]}
+    child = {Producer, [realm: realm_name, server: server_name, wait_start: wait_start]}
 
     case DynamicSupervisor.start_child(__MODULE__, child) do
       {:ok, pid} ->
