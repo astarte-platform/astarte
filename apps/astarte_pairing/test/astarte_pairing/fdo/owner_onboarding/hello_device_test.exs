@@ -26,7 +26,7 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding.HelloDeviceTest do
     setup do
       valid_data = %{
         max_size: 65_535,
-        device_id: %CBOR.Tag{tag: :bytes, value: <<1, 2, 3, 4>>},
+        guid: %CBOR.Tag{tag: :bytes, value: <<1, 2, 3, 4>>},
         nonce: %CBOR.Tag{tag: :bytes, value: <<5, 6, 7, 8>>},
         kex_name: "DHKEXid14",
         cipher_name: :aes_256_gcm,
@@ -48,11 +48,11 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding.HelloDeviceTest do
     } do
       assert {:ok, %HelloDevice{} = hello_device} = HelloDevice.decode(cbor)
 
-      %CBOR.Tag{tag: :bytes, value: device_id} = data.device_id
+      %CBOR.Tag{tag: :bytes, value: guid} = data.guid
       %CBOR.Tag{tag: :bytes, value: nonce} = data.nonce
 
       assert hello_device.max_size == data.max_size
-      assert hello_device.device_id == device_id
+      assert hello_device.guid == guid
       assert hello_device.nonce == nonce
       assert hello_device.kex_name == data.kex_name
       assert hello_device.cipher_name == data.cipher_name
@@ -91,6 +91,6 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding.HelloDeviceTest do
 
   defp hello_device_list(data) do
     cipher = COSE.algorithm(data.cipher_name)
-    [data.max_size, data.device_id, data.nonce, data.kex_name, cipher, data.easig_info]
+    [data.max_size, data.guid, data.nonce, data.kex_name, cipher, data.easig_info]
   end
 end

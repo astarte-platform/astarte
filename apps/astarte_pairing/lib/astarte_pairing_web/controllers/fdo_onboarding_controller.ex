@@ -31,10 +31,10 @@ defmodule Astarte.PairingWeb.FDOOnboardingController do
     realm_name = Map.fetch!(conn.params, "realm_name")
     cbor_hello_device = conn.assigns.cbor_body
 
-    with {:ok, session_key, response_msg} <-
+    with {:ok, token, response_msg} <-
            OwnerOnboarding.hello_device(realm_name, cbor_hello_device) do
       conn
-      |> put_resp_header("authorization", session_key)
+      |> put_resp_header("authorization", token)
       |> render("default.cbor", %{cbor_response: response_msg})
     end
   end
@@ -43,10 +43,10 @@ defmodule Astarte.PairingWeb.FDOOnboardingController do
     realm_name = Map.fetch!(conn.params, "realm_name")
     cbor_body = conn.assigns.cbor_body
 
-    device_id = conn.assigns.to2_session.device_id
+    guid = conn.assigns.to2_session.guid
 
     with {:ok, response} <-
-           OwnerOnboarding.ov_next_entry(cbor_body, realm_name, device_id) do
+           OwnerOnboarding.ov_next_entry(cbor_body, realm_name, guid) do
       conn
       |> render("default.cbor", %{cbor_response: response})
     end

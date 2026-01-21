@@ -114,10 +114,10 @@ defmodule Astarte.Cases.FDOSession do
       HelloDevice.generate(
         kex_name: kex_name,
         easig_info: context.device_key.alg,
-        device_id: context.device_id
+        guid: context.device_id
       )
 
-    {:ok, session} =
+    {:ok, token, session} =
       Session.new(
         context.realm_name,
         hello_device,
@@ -127,7 +127,7 @@ defmodule Astarte.Cases.FDOSession do
 
     on_exit(fn ->
       setup_database_access(context.astarte_instance_id)
-      delete_session(context.realm_name, session.key)
+      delete_session(context.realm_name, session.guid)
     end)
 
     {:ok, session} =
@@ -135,7 +135,13 @@ defmodule Astarte.Cases.FDOSession do
 
     {:ok, session} = Session.derive_key(session, context.realm_name)
 
-    %{hello_device: hello_device, session: session, device_random: device_random, xb: xb}
+    %{
+      hello_device: hello_device,
+      session: session,
+      token: token,
+      device_random: device_random,
+      xb: xb
+    }
   end
 
   defp generate_keys_and_voucher(key_type) do

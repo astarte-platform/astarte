@@ -554,8 +554,8 @@ defmodule Astarte.Housekeeping.Realms.Queries do
     CREATE TABLE #{keyspace_name}.ownership_vouchers (
       private_key blob,
       voucher_data blob,
-      device_id uuid,
-      PRIMARY KEY (device_id, voucher_data)
+      guid blob,
+      PRIMARY KEY (guid, voucher_data)
     );
     """
 
@@ -567,10 +567,11 @@ defmodule Astarte.Housekeeping.Realms.Queries do
   defp create_to2_sessions_table(keyspace_name) do
     query = """
     CREATE TABLE #{keyspace_name}.to2_sessions (
-      session_key blob,
+      guid blob,
+      device_id uuid,
+      nonce blob,
       sig_type int,
       epid_group blob,
-      device_id uuid,
       device_public_key blob,
       prove_dv_nonce blob,
       setup_dv_nonce blob,
@@ -585,7 +586,7 @@ defmodule Astarte.Housekeeping.Realms.Queries do
       device_service_info map<tuple<text, text>, blob>,
       owner_service_info list<blob>,
       last_chunk_sent int,
-      PRIMARY KEY (session_key)
+      PRIMARY KEY (guid)
     )
     WITH default_time_to_live = 7200;
     """

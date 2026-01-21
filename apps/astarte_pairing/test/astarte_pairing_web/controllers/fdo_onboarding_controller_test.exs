@@ -45,9 +45,8 @@ defmodule Astarte.PairingWeb.FDOOnboardingControllerTest do
   end
 
   defp setup_authenticated(context, action, message_id) do
-    %{conn: conn, realm_name: realm, session: %Session{key: session_key}} = context
-
-    conn = put_req_header(conn, "authorization", session_key)
+    %{conn: conn, realm_name: realm, token: token} = context
+    conn = put_req_header(conn, "authorization", token)
 
     %{
       conn: conn,
@@ -151,12 +150,20 @@ defmodule Astarte.PairingWeb.FDOOnboardingControllerTest do
       assert conn.assigns.message_id == id
     end
 
-    test "returns message body error when it called with something other than a ProveDevice", %{
-      conn: conn,
-      create_path: path,
-      message_id: id
-    } do
-      conn = post(conn, path, CBOR.encode(%{prove: "device"}))
+    test "returns message body error when it called with something other than a ProveDevice",
+         %{
+           conn: conn,
+           create_path: path,
+           message_id: id,
+           session: session,
+           realm_name: realm,
+           owner_key_pem: owner_key_pem,
+           cbor_ownership_voucher: cbor_ownership_voucher
+         } = context do
+      insert_voucher(realm, owner_key_pem, cbor_ownership_voucher, session.guid)
+
+      request_body = Session.encrypt_and_sign(session, CBOR.encode(%{prove: "device"}))
+      conn = post(conn, path, request_body)
       assert {100, id} == assert_cbor_error(conn)
     end
   end

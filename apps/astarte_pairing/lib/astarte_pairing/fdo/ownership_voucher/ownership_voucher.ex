@@ -66,8 +66,8 @@ defmodule Astarte.Pairing.FDO.OwnershipVoucher do
     end
   end
 
-  def fetch(realm_name, device_id) do
-    case Queries.get_ownership_voucher(realm_name, device_id) do
+  def fetch(realm_name, guid) do
+    case Queries.get_ownership_voucher(realm_name, guid) do
       {:ok, ownership_voucher_cbor} ->
         decode_cbor(ownership_voucher_cbor)
 

@@ -52,12 +52,12 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding do
 
   def hello_device(realm_name, cbor_hello_device) do
     with {:ok, hello_device} <- HelloDevice.decode(cbor_hello_device),
-         device_id = hello_device.device_id,
-         {:ok, ownership_voucher} <- OwnershipVoucher.fetch(realm_name, device_id),
-         {:ok, owner_private_key} <- fetch_owner_private_key(realm_name, device_id),
+         guid = hello_device.guid,
+         {:ok, ownership_voucher} <- OwnershipVoucher.fetch(realm_name, guid),
+         {:ok, owner_private_key} <- fetch_owner_private_key(realm_name, guid),
          {:ok, pub_key} <- OwnershipVoucher.owner_public_key(ownership_voucher),
          :ok <- KeyExchangeStrategy.validate(hello_device.kex_name, owner_private_key),
-         {:ok, session} <-
+         {:ok, token, session} <-
            Session.new(
              realm_name,
              hello_device,
@@ -94,7 +94,7 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding do
           owner_private_key
         )
 
-      {:ok, session.key, message}
+      {:ok, token, message}
     else
       error ->
         Logger.error("Failed to process hello_device: #{inspect(error)}")
@@ -102,8 +102,8 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding do
     end
   end
 
-  defp fetch_owner_private_key(realm_name, device_id) do
-    with {:ok, pem_key} <- Queries.get_owner_private_key(realm_name, device_id) do
+  defp fetch_owner_private_key(realm_name, guid) do
+    with {:ok, pem_key} <- Queries.get_owner_private_key(realm_name, guid) do
       COSE.Keys.from_pem(pem_key)
     end
   end
@@ -125,26 +125,26 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding do
     end
   end
 
-  def ov_next_entry(cbor_body, realm_name, device_id) do
+  def ov_next_entry(cbor_body, realm_name, guid) do
     # entry num represent the current enties we need to check for in the ov
     with {:ok, %GetOVNextEntry{entry_num: entry_num}} <- GetOVNextEntry.decode(cbor_body),
-         {:ok, ownership_voucher} <- OwnershipVoucher.fetch(realm_name, device_id) do
+         {:ok, ownership_voucher} <- OwnershipVoucher.fetch(realm_name, guid) do
       OwnershipVoucherCore.get_ov_entry(ownership_voucher, entry_num)
     end
   end
 
   def prove_device(realm_name, body, session) do
-    device_guid = session.device_id
+    guid = session.guid
 
-    with {:ok, ownership_voucher} <- OwnershipVoucher.fetch(realm_name, device_guid),
-         {:ok, private_key} <- Queries.get_owner_private_key(realm_name, device_guid),
+    with {:ok, ownership_voucher} <- OwnershipVoucher.fetch(realm_name, guid),
+         {:ok, private_key} <- Queries.get_owner_private_key(realm_name, guid),
          {:ok, owner_public_key} <- OwnershipVoucher.owner_public_key(ownership_voucher) do
       rendezvous_info = ownership_voucher.header.rendezvous_info
 
       {:ok, private_key} = COSE.Keys.from_pem(private_key)
 
       connection_credentials = %{
-        guid: device_guid,
+        guid: guid,
         rendezvous_info: rendezvous_info,
         owner_pub_key: owner_public_key,
         owner_private_key: private_key,
@@ -170,18 +170,18 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding do
         connection_credentials
       )
       when ecc in [:es256, :es384] do
-    %Session{device_id: device_id, prove_dv_nonce: prove_dv_nonce} = session
+    %Session{guid: guid, prove_dv_nonce: prove_dv_nonce} = session
     owner_key = connection_credentials.owner_private_key
 
     with {:ok,
           %ProveDevice{
             nonce_to2_prove_dv: received_prove_dv_nonce,
             nonce_to2_setup_dv: received_setup_dv_nonce,
-            guid: received_device_id,
+            guid: received_guid,
             xb_key_exchange: xb
           }} <- ProveDevice.decode(body, device_pub_key),
          :ok <- check_prove_dv_nonces_equality(received_prove_dv_nonce, prove_dv_nonce),
-         :ok <- check_device_guid_equality(received_device_id, device_id),
+         :ok <- check_device_guid_equality(received_guid, guid),
          {:ok, session} <-
            Session.add_setup_dv_nonce(session, realm_name, received_setup_dv_nonce),
          {:ok, session} <- Session.build_session_secret(session, realm_name, owner_key, xb),
@@ -245,7 +245,7 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding do
         }
       ) do
     with {:ok, old_voucher} <-
-           OwnershipVoucher.fetch(realm_name, session.device_id),
+           OwnershipVoucher.fetch(realm_name, session.guid),
          {:ok, _new_voucher} <-
            OwnershipVoucher.generate_replacement_voucher(old_voucher, replacement_hmac),
          {:ok, _session} <-
@@ -293,7 +293,6 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding do
         :ok
 
       false ->
-        # non-matching device GUIDs
         {:error, :invalid_message}
     end
   end

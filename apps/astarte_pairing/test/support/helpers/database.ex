@@ -79,17 +79,18 @@ defmodule Astarte.Helpers.Database do
   CREATE TABLE :keyspace.ownership_vouchers (
       private_key blob,
       voucher_data blob,
-      device_id uuid,
-      PRIMARY KEY (device_id, voucher_data)
+      guid blob,
+      PRIMARY KEY (guid, voucher_data)
    );
   """
 
   @create_to2_sessions_table """
   CREATE TABLE :keyspace.to2_sessions (
-    session_key blob,
+    guid blob,
+    device_id uuid,
+    nonce blob,
     sig_type int,
     epid_group blob,
-    device_id uuid,
     device_public_key blob,
     prove_dv_nonce blob,
     setup_dv_nonce blob,
@@ -104,7 +105,7 @@ defmodule Astarte.Helpers.Database do
     device_service_info map<tuple<text, text>, blob>,
     owner_service_info list<blob>,
     last_chunk_sent int,
-    PRIMARY KEY (session_key)
+    PRIMARY KEY (guid)
   )
   WITH default_time_to_live = 7200;
   """
@@ -562,12 +563,12 @@ defmodule Astarte.Helpers.Database do
     |> DateTime.to_unix(:millisecond)
   end
 
-  def delete_session(realm_name, session_key) do
+  def delete_session(realm_name, guid) do
     keyspace = Realm.keyspace_name(realm_name)
 
     query =
       from s in TO2Session,
-        where: s.session_key == fragment("uuidAsBlob(?)", ^session_key)
+        where: s.guid == ^guid
 
     Repo.delete_all(query, prefix: keyspace)
   end

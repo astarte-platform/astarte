@@ -59,18 +59,18 @@ defmodule Astarte.Pairing.FDO.ServiceInfoTest do
       xb: xb
     } = context
 
-    {:ok, session} =
+    {:ok, token, session} =
       Session.new(realm_name, hello_device, ownership_voucher, owner_key)
 
     on_exit(fn ->
       setup_database_access(astarte_instance_id)
-      delete_session(realm_name, session.key)
+      delete_session(realm_name, session.guid)
     end)
 
     {:ok, session} = Session.build_session_secret(session, realm_name, owner_key, xb)
     {:ok, session} = Session.derive_key(session, realm_name)
 
-    %{session: session}
+    %{session: session, token: token}
   end
 
   describe "build_owner_service_info/3 when device has more data" do
@@ -95,7 +95,7 @@ defmodule Astarte.Pairing.FDO.ServiceInfoTest do
                  device_info
                )
 
-      {:ok, session_after} = Session.fetch(realm_name, session.key)
+      {:ok, session_after} = Session.fetch(realm_name, session.guid)
 
       assert expected_service_info == session_after.device_service_info
     end
@@ -124,11 +124,11 @@ defmodule Astarte.Pairing.FDO.ServiceInfoTest do
         service_info: second_service_info
       }
 
-      {:ok, session} = Session.fetch(realm_name, session.key)
+      {:ok, session} = Session.fetch(realm_name, session.guid)
 
       ServiceInfo.build_owner_service_info(realm_name, session, device_info)
 
-      {:ok, session_after} = Session.fetch(realm_name, session.key)
+      {:ok, session_after} = Session.fetch(realm_name, session.guid)
 
       assert expected_service_info == session_after.device_service_info
     end
@@ -169,7 +169,7 @@ defmodule Astarte.Pairing.FDO.ServiceInfoTest do
 
       ServiceInfo.build_owner_service_info(realm_name, session, device_info)
 
-      {:ok, session_after} = Session.fetch(realm_name, session.key)
+      {:ok, session_after} = Session.fetch(realm_name, session.guid)
 
       empty_device_info = %DeviceServiceInfo{
         is_more_service_info: false,

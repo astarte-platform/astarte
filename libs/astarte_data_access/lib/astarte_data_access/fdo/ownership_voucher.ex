@@ -25,13 +25,13 @@ defmodule Astarte.DataAccess.FDO.OwnershipVoucher do
   typed_schema "ownership_vouchers" do
     field :private_key, :binary
     field :voucher_data, :binary, primary_key: true
-    field :device_id, Astarte.DataAccess.UUID, primary_key: true
+    field :guid, Astarte.DataAccess.UUID, primary_key: true
   end
 
   @doc false
   def changeset(%OwnershipVoucher{} = ownership_voucher, attrs) do
     ownership_voucher
-    |> cast(attrs, [:private_key, :voucher_data, :device_id])
-    |> validate_required([:private_key, :voucher_data, :device_id])
+    |> cast(attrs, [:private_key, :voucher_data, :guid])
+    |> validate_required([:private_key, :voucher_data, :guid])
   end
 end

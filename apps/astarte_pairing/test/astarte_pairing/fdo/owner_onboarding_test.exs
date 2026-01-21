@@ -31,11 +31,18 @@ defmodule Astarte.Pairing.FDO.OwnerOnboardingTest do
   @max_device_service_info_sz 4096
 
   describe "build_owner_service_info_ready/3" do
+    setup %{
+      realm: realm_name,
+      session: session,
+      owner_key_pem: owner_key_pem,
+      cbor_ownership_voucher: cbor_ownership_voucher
+    } do
+      insert_voucher(realm_name, owner_key_pem, cbor_ownership_voucher, session.guid)
+      %{realm: realm_name, session: session}
+    end
+
     test "successfully processes DeviceServiceInfoReady, creates new voucher, and returns OwnerServiceInfoReady",
-         %{
-           realm: realm_name,
-           session: session
-         } do
+         %{realm: realm_name, session: session} do
       new_hmac = :crypto.strong_rand_bytes(32)
       device_max_size = 2048
 
@@ -52,10 +59,7 @@ defmodule Astarte.Pairing.FDO.OwnerOnboardingTest do
       assert response == [@max_device_service_info_sz]
     end
 
-    test "handles Credential Reuse (nil HMAC) correctly", %{
-      realm: realm_name,
-      session: session
-    } do
+    test "handles Credential Reuse (nil HMAC) correctly", %{realm: realm_name, session: session} do
       assert {:ok, _result} =
                OwnerOnboarding.build_owner_service_info_ready(
                  realm_name,
@@ -109,7 +113,7 @@ defmodule Astarte.Pairing.FDO.OwnerOnboardingTest do
       assert {:error, :failed_66} =
                OwnerOnboarding.build_owner_service_info_ready(
                  realm_name,
-                 %Session{device_id: :crypto.strong_rand_bytes(16)},
+                 %Session{guid: :crypto.strong_rand_bytes(16)},
                  %DeviceServiceInfoReady{
                    replacement_hmac: new_hmac,
                    max_owner_service_info_sz: 0
@@ -119,8 +123,15 @@ defmodule Astarte.Pairing.FDO.OwnerOnboardingTest do
   end
 
   describe "hello_device/2" do
-    setup context do
-      %{cbor_hello_device: HelloDevice.cbor_encode(context.hello_device)}
+    setup %{
+      realm: realm_name,
+      owner_key_pem: owner_key_pem,
+      cbor_ownership_voucher: cbor_ownership_voucher,
+      session: session,
+      hello_device: hello_device
+    } do
+      insert_voucher(realm_name, owner_key_pem, cbor_ownership_voucher, session.guid)
+      %{cbor_hello_device: HelloDevice.cbor_encode(hello_device)}
     end
 
     @tag owner_key: "EC256"

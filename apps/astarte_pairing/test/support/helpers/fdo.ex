@@ -165,11 +165,11 @@ defmodule Astarte.Helpers.FDO do
     CBOR.encode([%CBOR.Tag{tag: :bytes, value: nonce}])
   end
 
-  def insert_voucher(realm_name, private_key, cbor_voucher, device_id) do
+  def insert_voucher(realm_name, private_key, cbor_voucher, guid) do
     %DBOwnershipVoucher{
       voucher_data: cbor_voucher,
       private_key: private_key,
-      device_id: device_id
+      guid: guid
     }
     |> Repo.insert(prefix: Realm.keyspace_name(realm_name))
   end

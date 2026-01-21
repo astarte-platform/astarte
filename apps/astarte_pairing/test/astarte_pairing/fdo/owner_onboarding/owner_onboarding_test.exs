@@ -33,7 +33,7 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding.OwnerOnboardingTest do
     insert_voucher(realm_name, key_p256_x509, cbor_p256_x509, id_p256_x509)
 
     hello_msg_p256_x509 =
-      HelloDevice.generate(device_id: id_p256_x509, kex_name: "ECDH256", easig_info: :es256)
+      HelloDevice.generate(guid: id_p256_x509, kex_name: "ECDH256", easig_info: :es256)
 
     cbor_hello_p256_x509 = HelloDevice.cbor_encode(hello_msg_p256_x509)
 
@@ -43,7 +43,7 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding.OwnerOnboardingTest do
     insert_voucher(realm_name, key_p384_x509, cbor_p384_x509, id_p384_x509)
 
     hello_msg_p384_x509 =
-      HelloDevice.generate(device_id: id_p384_x509, kex_name: "ECDH384", easig_info: :es384)
+      HelloDevice.generate(guid: id_p384_x509, kex_name: "ECDH384", easig_info: :es384)
 
     cbor_hello_p384_x509 = HelloDevice.cbor_encode(hello_msg_p384_x509)
 
@@ -53,7 +53,7 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding.OwnerOnboardingTest do
     insert_voucher(realm_name, key_p256_chain, cbor_p256_chain, id_p256_chain)
 
     hello_msg_p256_x5chain =
-      HelloDevice.generate(device_id: id_p256_chain, kex_name: "ECDH256", easig_info: :es256)
+      HelloDevice.generate(guid: id_p256_chain, kex_name: "ECDH256", easig_info: :es256)
 
     cbor_hello_p256_chain = HelloDevice.cbor_encode(hello_msg_p256_x5chain)
 
@@ -63,7 +63,7 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding.OwnerOnboardingTest do
     insert_voucher(realm_name, key_p384_chain, cbor_p384_chain, id_p384_chain)
 
     hello_msg_p384_x5chain =
-      HelloDevice.generate(device_id: id_p384_chain, kex_name: "ECDH384", easig_info: :es384)
+      HelloDevice.generate(guid: id_p384_chain, kex_name: "ECDH384", easig_info: :es384)
 
     cbor_hello_p384_x5chain = HelloDevice.cbor_encode(hello_msg_p384_x5chain)
 
@@ -77,19 +77,19 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding.OwnerOnboardingTest do
 
   describe "hello_device/2" do
     test "P-256 Flow: negotiates ECDH256 and ES256", %{realm_name: realm_name, p256_x509: ctx} do
-      assert {:ok, session_key, resp_binary} =
+      assert {:ok, token, resp_binary} =
                OwnerOnboarding.hello_device(realm_name, ctx.cbor_hello)
 
-      assert is_binary(session_key)
+      assert is_binary(token)
       assert {:ok, sign1_msg} = Sign1.decode_cbor(resp_binary)
       assert sign1_msg.phdr.alg == :es256
     end
 
     test "P-384 Flow: negotiates ECDH384 and ES384", %{realm_name: realm_name, p384_x509: ctx} do
-      assert {:ok, session_key, resp_binary} =
+      assert {:ok, token, resp_binary} =
                OwnerOnboarding.hello_device(realm_name, ctx.cbor_hello)
 
-      assert is_binary(session_key)
+      assert is_binary(token)
       assert {:ok, sign1_msg} = Sign1.decode_cbor(resp_binary)
       assert sign1_msg.phdr.alg == :es384
     end
@@ -99,10 +99,10 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding.OwnerOnboardingTest do
     realm_name: realm_name,
     p256_chain: ctx
   } do
-    assert {:ok, session_key, resp_binary} =
+    assert {:ok, token, resp_binary} =
              OwnerOnboarding.hello_device(realm_name, ctx.cbor_hello)
 
-    assert is_binary(session_key)
+    assert is_binary(token)
     assert {:ok, sign1_msg} = Sign1.decode_cbor(resp_binary)
     assert sign1_msg.phdr.alg == :es256
   end
@@ -111,10 +111,10 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding.OwnerOnboardingTest do
     realm: realm_name,
     p384_chain: ctx
   } do
-    assert {:ok, session_key, resp_binary} =
+    assert {:ok, token, resp_binary} =
              OwnerOnboarding.hello_device(realm_name, ctx.cbor_hello)
 
-    assert is_binary(session_key)
+    assert is_binary(token)
     assert {:ok, sign1_msg} = Sign1.decode_cbor(resp_binary)
     assert sign1_msg.phdr.alg == :es384
   end

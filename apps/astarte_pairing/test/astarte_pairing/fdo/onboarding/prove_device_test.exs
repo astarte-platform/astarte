@@ -115,7 +115,7 @@ defmodule Astarte.Pairing.OwnerOnboarding.Onboarding.ProveDevice do
         xb_key_exchange: xb,
         nonce_to2_prove_dv: session.prove_dv_nonce,
         nonce_to2_setup_dv: @test_setup_dv_nonce,
-        guid: session.device_id,
+        guid: session.guid,
         raw_eat_token: <<>>
       }
       |> ProveDevice.encode_sign(device_key)
@@ -157,7 +157,7 @@ defmodule Astarte.Pairing.OwnerOnboarding.Onboarding.ProveDevice do
         xb_key_exchange: xb,
         nonce_to2_prove_dv: wrong_nonce,
         nonce_to2_setup_dv: @test_setup_dv_nonce,
-        guid: session.device_id,
+        guid: session.guid,
         raw_eat_token: <<>>
       }
       |> ProveDevice.encode_sign(device_key)
@@ -220,7 +220,7 @@ defmodule Astarte.Pairing.OwnerOnboarding.Onboarding.ProveDevice do
         xb_key_exchange: xb,
         nonce_to2_prove_dv: session.prove_dv_nonce,
         nonce_to2_setup_dv: @test_setup_dv_nonce,
-        guid: session.device_id,
+        guid: session.guid,
         raw_eat_token: <<>>
       }
       |> ProveDevice.encode_sign(device_key2)
@@ -252,7 +252,7 @@ defmodule Astarte.Pairing.OwnerOnboarding.Onboarding.ProveDevice do
           xb_key_exchange: xb,
           nonce_to2_prove_dv: session.prove_dv_nonce,
           nonce_to2_setup_dv: @test_setup_dv_nonce,
-          guid: session.device_id,
+          guid: session.guid,
           raw_eat_token: <<>>
         }
         |> ProveDevice.encode_sign(device_key)

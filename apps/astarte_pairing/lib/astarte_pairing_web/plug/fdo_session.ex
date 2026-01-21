@@ -31,13 +31,20 @@ defmodule Astarte.PairingWeb.Plug.FDOSession do
   def call(conn, _opts) do
     realm_name = Map.fetch!(conn.path_params, "realm_name")
 
-    with [session_key] <- get_req_header(conn, "authorization"),
-         {:ok, session} <- Session.fetch(realm_name, session_key) do
+    with [token] <- get_req_header(conn, "authorization"),
+         {:ok, guid, token_nonce} <-
+           Astarte.Pairing.FDO.OwnerOnboarding.SessionToken.verify(token),
+         {:ok, session} <- Session.fetch(realm_name, guid),
+         :ok <- verify_nonce(session.nonce, token_nonce) do
       conn
-      |> put_resp_header("authorization", session_key)
+      |> put_resp_header("authorization", token)
       |> assign(:to2_session, session)
     else
       _ -> FDOFallbackController.invalid_token(conn)
     end
+  end
+
+  defp verify_nonce(session_nonce, token_nonce) do
+    if session_nonce == token_nonce, do: :ok, else: {:error, :invalid_nonce}
   end
 end

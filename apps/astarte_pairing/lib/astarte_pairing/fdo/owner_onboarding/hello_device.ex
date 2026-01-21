@@ -80,7 +80,7 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding.HelloDevice do
     @typedoc "A hello device message structure."
 
     field :max_size, non_neg_integer()
-    field :device_id, binary()
+    field :guid, binary()
     field :nonce, binary()
     field :kex_name, kex_name()
     field :cipher_name, cipher()
@@ -114,7 +114,7 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding.HelloDevice do
 
   defp parse_hello_device([
          max_size,
-         %CBOR.Tag{tag: :bytes, value: device_id},
+         %CBOR.Tag{tag: :bytes, value: guid},
          %CBOR.Tag{tag: :bytes, value: nonce_hello_device},
          kex_name,
          cipher_name,
@@ -126,7 +126,7 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding.HelloDevice do
       {:ok,
        %HelloDevice{
          max_size: max_size,
-         device_id: device_id,
+         guid: guid,
          nonce: nonce_hello_device,
          kex_name: kex_name_str,
          cipher_name: cipher,
@@ -156,7 +156,7 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding.HelloDevice do
   def generate(opts \\ []) do
     defaults = %HelloDevice{
       max_size: 1_000,
-      device_id: Astarte.Core.Device.random_device_id(),
+      guid: Astarte.Core.Device.random_device_id(),
       nonce: :crypto.strong_rand_bytes(16),
       kex_name: "ECDH256",
       cipher_name: :aes_256_gcm,
@@ -169,7 +169,7 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding.HelloDevice do
   def encode(hello_device) do
     [
       hello_device.max_size,
-      COSE.tag_as_byte(hello_device.device_id),
+      COSE.tag_as_byte(hello_device.guid),
       COSE.tag_as_byte(hello_device.nonce),
       hello_device.kex_name,
       COSE.algorithm(hello_device.cipher_name),

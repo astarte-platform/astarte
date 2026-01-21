@@ -35,10 +35,10 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding.SessionTest do
         ownership_voucher: ownership_voucher
       } = context
 
-      assert {:ok, session} =
+      assert {:ok, _token, session} =
                Session.new(realm_name, hello_device, ownership_voucher, owner_key)
 
-      assert is_binary(session.key)
+      assert is_binary(session.guid)
       assert session.prove_dv_nonce
       assert session.owner_random
       assert session.xa
@@ -205,7 +205,7 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding.SessionTest do
       p384_device_key = COSE.Keys.ECC.generate(:es384)
       {:ok, _dev_rand, xb} = SessionKey.new("ECDH384", p384_device_key)
 
-      {:ok, session} =
+      {:ok, _token, session} =
         Session.new(realm_name, hello_device, p384_voucher, p384_owner_key)
 
       {:ok, session_with_secret} =

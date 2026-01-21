@@ -45,23 +45,16 @@ defmodule Astarte.Pairing.FDO.Onboarding.DoneTest do
 
   setup %{realm: realm_name, session: session} do
     setup_dv_nonce = :crypto.strong_rand_bytes(16)
+    device_id = Device.random_device_id()
 
-    {:ok, session_with_setup_nonce} =
-      Session.add_setup_dv_nonce(session, realm_name, setup_dv_nonce)
-
-    encoded_device_id = Device.encode_device_id(session.device_id)
-    credentials_secret_hash = "temporary_fdo_secret_hash"
-
-    {:ok, _device} =
-      Queries.register_device(
-        realm_name,
-        session.device_id,
-        encoded_device_id,
-        credentials_secret_hash,
-        unconfirmed: true
-      )
-
-    %{session: session_with_setup_nonce}
+    with {:ok, session_with_setup_nonce} <-
+           Session.add_setup_dv_nonce(session, realm_name, setup_dv_nonce),
+         {:ok, session_with_device_id} <-
+           Session.add_device_id(session_with_setup_nonce, realm_name, device_id) do
+      encoded_device_id = Device.encode_device_id(device_id)
+      Astarte.Pairing.Engine.register_device(realm_name, encoded_device_id, unconfirmed: true)
+      %{session: session_with_device_id}
+    end
   end
 
   describe "done/3" do
