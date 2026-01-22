@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2025 SECO Mind Srl
+# Copyright 2025 - 2026 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -19,12 +19,15 @@
 #
 
 defmodule Astarte.RealmManagement.RealmConfig.RealmConfigTest do
-  use Astarte.Cases.Data, async: true, jwt_public_key: "fake_pem"
   use ExUnitProperties
+
+  use Astarte.Cases.Data, async: true, jwt_public_key: "fake_pem"
 
   alias Astarte.DataAccess.KvStore
   alias Astarte.DataAccess.Repo
+
   alias Astarte.Helpers
+
   alias Astarte.RealmManagement.RealmConfig
   alias Astarte.RealmManagement.RealmConfig.AuthConfig
 
@@ -63,7 +66,7 @@ defmodule Astarte.RealmManagement.RealmConfig.RealmConfigTest do
   end
 
   property "retrieves datasteam_maximum_storage_retention correctly", %{realm: realm} do
-    check all(retention <- integer(1..256)) do
+    check all retention <- integer(1..256) do
       Helpers.Database.set_datastream_maximum_storage_retention(realm, retention)
       assert {:ok, ^retention} = RealmConfig.get_datastream_maximum_storage_retention(realm)
     end
@@ -84,7 +87,7 @@ defmodule Astarte.RealmManagement.RealmConfig.RealmConfigTest do
   end
 
   property "Fetches device_registration limit correctly", %{realm: realm} do
-    check all(limit <- integer(1..256)) do
+    check all limit <- integer(1..256) do
       Helpers.Database.insert_device_registration_limit!(realm, limit)
       assert {:ok, ^limit} = RealmConfig.get_device_registration_limit(realm)
     end
