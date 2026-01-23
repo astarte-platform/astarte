@@ -16,6 +16,7 @@
 # limitations under the License.
 
 defmodule Astarte.AppEngine.API.Device.DeviceStatus do
+  @moduledoc false
   use Ecto.Schema
   import Ecto.Changeset
 
@@ -83,7 +84,7 @@ defmodule Astarte.AppEngine.API.Device.DeviceStatus do
     }
   end
 
-  # Helper per l'introspezione attuale
+  # Helper for actual introspection
   defp build_introspection(row, msgs_map, bytes_map) do
     Map.merge(row.introspection || %{}, row.introspection_minor || %{}, fn
       interface_name, major, minor ->

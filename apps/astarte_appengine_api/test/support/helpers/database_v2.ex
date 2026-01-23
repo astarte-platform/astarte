@@ -17,9 +17,11 @@
 #
 
 defmodule Astarte.Helpers.DatabaseV2 do
+  @moduledoc false
+
   alias Astarte.Core.Realm
-  alias Astarte.DataAccess.Repo
   alias Astarte.DataAccess.Realms.Realm
+  alias Astarte.DataAccess.Repo
 
   @create_keyspace """
   CREATE KEYSPACE :keyspace

@@ -24,6 +24,7 @@ defmodule Astarte.InterfaceUpdateGenerators do
   import Astarte.Generators.Utilities.ParamsGen
   import Astarte.Helpers.Device
   alias Astarte.Common.Generators.Timestamp, as: TimestampGenerator
+  alias Astarte.Core.Mapping
 
   def valid_fallible_mapping_update_for(interface) when interface.aggregation == :individual,
     do: valid_mapping_update_for(interface)
@@ -182,7 +183,7 @@ defmodule Astarte.InterfaceUpdateGenerators do
     prefix
     |> String.split("/")
     |> Enum.map(fn token ->
-      case Astarte.Core.Mapping.is_placeholder?(token) do
+      case Mapping.is_placeholder?(token) do
         true -> string(:alphanumeric, min_length: 1)
         false -> constant(token)
       end

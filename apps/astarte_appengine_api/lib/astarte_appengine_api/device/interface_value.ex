@@ -17,6 +17,12 @@
 #
 
 defmodule Astarte.AppEngine.API.Device.InterfaceValue do
+  @moduledoc """
+  Provide casting and normalizzation logic for incoming interface data.
+
+  This module ensures that data received matches the expected types defined before
+  it is processed further.
+  """
   def cast_value(expected_types, object) when is_map(expected_types) and is_map(object) do
     Enum.reduce_while(object, {:ok, %{}}, fn {key, value}, {:ok, acc} ->
       with {:ok, expected_type} <- Map.fetch(expected_types, key),

@@ -18,9 +18,9 @@
 
 defmodule Astarte.AppEngine.API.StatsTest do
   use ExUnit.Case
-  alias Astarte.Helpers.Database, as: DatabaseTestHelper
   alias Astarte.AppEngine.API.Stats
   alias Astarte.AppEngine.API.Stats.DevicesStats
+  alias Astarte.Helpers.Database, as: DatabaseTestHelper
 
   setup_all do
     DatabaseTestHelper.create_test_keyspace()

@@ -21,14 +21,14 @@ defmodule Astarte.AppEngine.API.Device do
   """
   alias Astarte.AppEngine.API.DataTransmitter
   alias Astarte.AppEngine.API.Device.Aliases
-  alias Astarte.AppEngine.API.Device.Attributes
   alias Astarte.AppEngine.API.Device.AstarteValue
+  alias Astarte.AppEngine.API.Device.Attributes
   alias Astarte.AppEngine.API.Device.DevicesListOptions
   alias Astarte.AppEngine.API.Device.DeviceStatus
-  alias Astarte.AppEngine.API.Device.MapTree
   alias Astarte.AppEngine.API.Device.InterfaceValue
   alias Astarte.AppEngine.API.Device.InterfaceValues
   alias Astarte.AppEngine.API.Device.InterfaceValuesOptions
+  alias Astarte.AppEngine.API.Device.MapTree
   alias Astarte.AppEngine.API.Device.Queries
   alias Astarte.Core.CQLUtils
   alias Astarte.Core.Device
@@ -36,9 +36,9 @@ defmodule Astarte.AppEngine.API.Device do
   alias Astarte.Core.Mapping
   alias Astarte.Core.Mapping.EndpointsAutomaton
   alias Astarte.Core.Mapping.ValueType
-  alias Astarte.DataAccess.Mappings
   alias Astarte.DataAccess.Device, as: DeviceQueries
   alias Astarte.DataAccess.Interface, as: InterfaceQueries
+  alias Astarte.DataAccess.Mappings
   alias Ecto.Changeset
 
   require Logger
@@ -216,55 +216,26 @@ defmodule Astarte.AppEngine.API.Device do
              wrapped_value,
              publish_opts
            ) do
-      realm_max_ttl = Queries.fetch_datastream_maximum_storage_retention(realm_name)
-
+      opts = build_database_opts(realm_name, mapping)
       now = DateTime.utc_now()
 
-      db_max_ttl =
-        if mapping.database_retention_policy == :use_ttl do
-          min(realm_max_ttl, mapping.database_retention_ttl)
-        else
-          realm_max_ttl
-        end
+      ctx = %{
+        realm: realm_name,
+        device: device_id,
+        desc: interface_descriptor,
+        mapping: mapping,
+        end_id: endpoint_id,
+        opts: opts
+      }
 
-      opts =
-        case db_max_ttl do
-          nil ->
-            []
+      data = %{
+        path: path,
+        val: value,
+        raw: raw_value,
+        now: now
+      }
 
-          _ ->
-            [ttl: db_max_ttl]
-        end
-
-      with :ok <-
-             Queries.insert_value_into_db(
-               realm_name,
-               device_id,
-               interface_descriptor,
-               mapping,
-               path,
-               value,
-               now,
-               opts
-             ) do
-        if interface_descriptor.type == :datastream do
-          Queries.insert_path_into_db(
-            realm_name,
-            device_id,
-            interface_descriptor,
-            endpoint_id,
-            path,
-            now,
-            now,
-            opts
-          )
-        end
-
-        {:ok,
-         %InterfaceValues{
-           data: raw_value
-         }}
-      end
+      persist_individual_value(ctx, data)
     else
       {:error, :endpoint_guess_not_allowed} ->
         _ = Logger.warning("Incomplete path not allowed.", tag: "endpoint_guess_not_allowed")
@@ -277,6 +248,34 @@ defmodule Astarte.AppEngine.API.Device do
       {:error, reason} ->
         _ = Logger.warning("Error while writing to interface.", tag: "write_to_device_error")
         {:error, reason}
+    end
+  end
+
+  # Helper to calculate TTL and build DB options
+  defp build_database_opts(realm_name, mapping) do
+    realm_max_ttl = Queries.fetch_datastream_maximum_storage_retention(realm_name)
+
+    db_max_ttl =
+      if mapping.database_retention_policy == :use_ttl do
+        min(realm_max_ttl, mapping.database_retention_ttl)
+      else
+        realm_max_ttl
+      end
+
+    if db_max_ttl, do: [ttl: db_max_ttl], else: []
+  end
+
+  # Helper to handle database persistence logic
+  defp persist_individual_value(ctx, data) do
+    %{realm: realm, device: device, desc: desc, mapping: mapping, opts: opts} = ctx
+    %{path: path, val: val, now: now, raw: raw} = data
+
+    with :ok <- Queries.insert_value_into_db(realm, device, desc, mapping, path, val, now, opts) do
+      if desc.type == :datastream do
+        Queries.insert_path_into_db(realm, device, desc, ctx.end_id, path, now, now, opts)
+      end
+
+      {:ok, %InterfaceValues{data: raw}}
     end
   end
 
@@ -686,25 +685,7 @@ defmodule Astarte.AppEngine.API.Device do
       mapping =
         Queries.retrieve_mapping(realm_name, interface_descriptor.interface_id, endpoint_id)
 
-      with :ok <-
-             Queries.insert_value_into_db(
-               realm_name,
-               device_id,
-               interface_descriptor,
-               mapping,
-               path,
-               nil,
-               nil,
-               []
-             ) do
-        case interface_descriptor.type do
-          :properties ->
-            unset_property(realm_name, device_id, interface, path)
-
-          :datastream ->
-            :ok
-        end
-      end
+      perform_value_deletion(realm_name, device_id, interface_descriptor, mapping, path)
     else
       {:ownership, :device} ->
         {:error, :cannot_write_to_device_owned}
@@ -717,6 +698,21 @@ defmodule Astarte.AppEngine.API.Device do
     end
   end
 
+  defp perform_value_deletion(realm, device, descriptor, mapping, path) do
+    with :ok <-
+           Queries.insert_value_into_db(realm, device, descriptor, mapping, path, nil, nil, []) do
+      handle_interface_type_cleanup(realm, device, descriptor.name, descriptor.type, path)
+    end
+  end
+
+  defp handle_interface_type_cleanup(realm, device, interface_name, :properties, path) do
+    unset_property(realm, device, interface_name, path)
+  end
+
+  defp handle_interface_type_cleanup(_realm, _device, _interface, :datastream, _path) do
+    :ok
+  end
+
   defp unset_property(realm_name, device_id, interface, path) do
     # Do not check for matches, as the device receives the unset information anyway
     # (either when it reconnects or in the /control/consumerProperties message).
@@ -727,11 +723,6 @@ defmodule Astarte.AppEngine.API.Device do
   end
 
   defp do_get_interface_values!(realm_name, device_id, :individual, interface_row, opts) do
-    ctx = %{
-      realm: realm_name,
-      device_id: device_id
-    }
-
     endpoint_rows =
       Queries.retrieve_all_endpoint_ids_for_interface!(realm_name, interface_row.interface_id)
 
@@ -740,9 +731,8 @@ defmodule Astarte.AppEngine.API.Device do
         # TODO: we can do this by using just one query without any filter on the endpoint
         value =
           retrieve_endpoint_values(
-            ctx,
-            interface_row.aggregation,
-            interface_row.type,
+            realm_name,
+            device_id,
             interface_row,
             endpoint_row.endpoint_id,
             endpoint_row,
@@ -782,11 +772,6 @@ defmodule Astarte.AppEngine.API.Device do
          path,
          opts
        ) do
-    ctx = %{
-      realm: realm_name,
-      device_id: device_id
-    }
-
     result =
       List.foldl(endpoint_ids, %{}, fn endpoint_id, values ->
         endpoint_row =
@@ -794,9 +779,8 @@ defmodule Astarte.AppEngine.API.Device do
 
         value =
           retrieve_endpoint_values(
-            ctx,
-            :individual,
-            :properties,
+            realm_name,
+            device_id,
             interface_row,
             endpoint_id,
             endpoint_row,
@@ -832,15 +816,9 @@ defmodule Astarte.AppEngine.API.Device do
     [endpoint_id] = endpoint_ids
     endpoint_row = Queries.value_type_query(realm_name, interface_row.interface_id, endpoint_id)
 
-    ctx = %{
-      realm: realm_name,
-      device_id: device_id
-    }
-
     retrieve_endpoint_values(
-      ctx,
-      :individual,
-      :datastream,
+      realm_name,
+      device_id,
       interface_row,
       endpoint_id,
       endpoint_row,
@@ -859,11 +837,6 @@ defmodule Astarte.AppEngine.API.Device do
          path,
          opts
        ) do
-    ctx = %{
-      realm: realm_name,
-      device_id: device_id
-    }
-
     explicit_timestamp =
       Queries.interface_has_explicit_timestamp?(realm_name, interface_row.interface_id)
 
@@ -872,9 +845,8 @@ defmodule Astarte.AppEngine.API.Device do
 
     interface_values =
       retrieve_endpoint_values(
-        ctx,
-        :object,
-        :datastream,
+        realm_name,
+        device_id,
         interface_row,
         nil,
         endpoint_rows,
@@ -923,25 +895,26 @@ defmodule Astarte.AppEngine.API.Device do
   end
 
   defp retrieve_endpoint_values(
-         ctx,
-         :individual,
-         :datastream,
-         interface_row,
+         realm_name,
+         device_id,
+         %{aggregation: :individual, type: :datastream} = interface_row,
          endpoint_id,
          endpoint_row,
-         "/",
+         "/" = path,
          opts
        ) do
-    path = "/"
     interface_id = interface_row.interface_id
-    device_id = ctx.device_id
-    realm_name = ctx.realm
 
     value_column =
       CQLUtils.type_to_db_column_name(endpoint_row.value_type) |> String.to_atom()
 
     values =
-      Queries.retrieve_all_endpoint_paths!(realm_name, device_id, interface_id, endpoint_id)
+      Queries.retrieve_all_endpoint_paths!(
+        realm_name,
+        device_id,
+        interface_id,
+        endpoint_id
+      )
       |> Enum.filter(fn endpoint -> endpoint[:path] |> String.starts_with?(path) end)
       |> Enum.reduce(%{}, fn row, values_map ->
         last_value =
@@ -992,18 +965,14 @@ defmodule Astarte.AppEngine.API.Device do
   end
 
   defp retrieve_endpoint_values(
-         ctx,
-         :object,
-         :datastream,
-         interface_row,
+         realm_name,
+         device_id,
+         %{aggregation: :object, type: :datastream} = interface_row,
          nil,
          endpoint_row,
-         "/",
+         "/" = path,
          opts
        ) do
-    realm_name = ctx.realm
-    device_id = ctx.device_id
-    path = "/"
     interface_id = interface_row.interface_id
     endpoint_id = CQLUtils.endpoint_id(interface_row.name, interface_row.major_version, "")
 
@@ -1015,11 +984,20 @@ defmodule Astarte.AppEngine.API.Device do
         {:error, :path_not_found}
 
       1 ->
-        handle_single_object_path(ctx, interface_row, endpoint_row, paths, path, opts)
+        handle_single_object_path(
+          realm_name,
+          device_id,
+          interface_row,
+          endpoint_row,
+          paths,
+          path,
+          opts
+        )
 
       _ ->
         handle_multiple_object_paths(
-          ctx,
+          realm_name,
+          device_id,
           interface_row,
           endpoint_id,
           endpoint_row,
@@ -1031,17 +1009,14 @@ defmodule Astarte.AppEngine.API.Device do
   end
 
   defp retrieve_endpoint_values(
-         ctx,
-         :object,
-         :datastream,
-         interface_row,
+         realm_name,
+         device_id,
+         %{aggregation: :object, type: :datastream} = interface_row,
          _endpoint_id,
          endpoint_rows,
          path,
          opts
        ) do
-    device_id = ctx.device_id
-    realm_name = ctx.realm
     # FIXME: reading result wastes atoms: new atoms are allocated every time a new table is seen
     # See cqerl_protocol.erl:330 (binary_to_atom), strings should be used when dealing with large schemas
     # https://github.com/elixir-ecto/ecto/pull/4384
@@ -1086,18 +1061,14 @@ defmodule Astarte.AppEngine.API.Device do
   end
 
   defp retrieve_endpoint_values(
-         ctx,
-         :individual,
-         :datastream,
-         interface_row,
+         realm_name,
+         device_id,
+         %{aggregation: :individual, type: :datastream} = interface_row,
          endpoint_id,
          endpoint_row,
          path,
          opts
        ) do
-    device_id = ctx.device_id
-    realm_name = ctx.realm
-
     {count, values} =
       Queries.retrieve_datastream_values(
         realm_name,
@@ -1118,18 +1089,14 @@ defmodule Astarte.AppEngine.API.Device do
   end
 
   defp retrieve_endpoint_values(
-         ctx,
-         :individual,
-         :properties,
-         interface_row,
+         realm_name,
+         device_id,
+         %{aggregation: :individual, type: :properties} = interface_row,
          endpoint_id,
          endpoint_row,
          path,
          opts
        ) do
-    realm_name = ctx.realm
-    device_id = ctx.device_id
-
     value_column =
       CQLUtils.type_to_db_column_name(endpoint_row.value_type) |> String.to_atom()
 
@@ -1171,24 +1138,29 @@ defmodule Astarte.AppEngine.API.Device do
     end)
   end
 
-  defp handle_single_object_path(ctx, interface_row, endpoint_row, [only_path], path, opts) do
+  defp handle_single_object_path(
+         realm_name,
+         device_id,
+         interface_row,
+         endpoint_row,
+         [only_path],
+         path,
+         opts
+       ) do
     endpoint_id = CQLUtils.endpoint_id(interface_row.name, interface_row.major_version, "")
 
-    with {:ok, %InterfaceValues{data: values, metadata: metadata}} <-
-           retrieve_endpoint_values(
-             ctx,
-             :object,
-             :datastream,
-             interface_row,
-             endpoint_id,
-             endpoint_row,
-             only_path,
-             opts
-           ),
-         {:ok, interface_values} <-
-           get_interface_values_from_path(values, metadata, path, only_path) do
-      {:ok, interface_values}
-    else
+    case retrieve_endpoint_values(
+           realm_name,
+           device_id,
+           interface_row,
+           endpoint_id,
+           endpoint_row,
+           only_path,
+           opts
+         ) do
+      {:ok, %InterfaceValues{data: values, metadata: metadata}} ->
+        get_interface_values_from_path(values, metadata, path, only_path)
+
       err ->
         Logger.warning("An error occurred while retrieving endpoint values: #{inspect(err)}",
           tag: "retrieve_endpoint_values_error"
@@ -1199,7 +1171,8 @@ defmodule Astarte.AppEngine.API.Device do
   end
 
   defp handle_multiple_object_paths(
-         ctx,
+         realm_name,
+         device_id,
          interface_row,
          endpoint_id,
          endpoint_row,
@@ -1210,9 +1183,8 @@ defmodule Astarte.AppEngine.API.Device do
     data =
       Enum.reduce(paths, %{}, fn a_path, values_map ->
         case retrieve_endpoint_values(
-               ctx,
-               :object,
-               :datastream,
+               realm_name,
+               device_id,
                interface_row,
                endpoint_id,
                endpoint_row,

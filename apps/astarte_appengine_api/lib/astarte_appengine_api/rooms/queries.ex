@@ -17,12 +17,18 @@
 #
 
 defmodule Astarte.AppEngine.API.Rooms.Queries do
-  alias Astarte.DataAccess.Devices.Device, as: DatabaseDevice
+  @moduledoc """
+  Database queries for Rooms management.
+
+  This module provides functions to validate and retrieve data required by 
+  the Rooms context, such as verifying device existence before allowing 
+  a room connection.
+  """
   alias Astarte.Core.Device
-  alias Astarte.DataAccess.Repo
-  alias Astarte.DataAccess.Realms.Realm
-  alias Astarte.DataAccess.Devices.Device, as: DatabaseDevice
   alias Astarte.DataAccess.Consistency
+  alias Astarte.DataAccess.Devices.Device, as: DatabaseDevice
+  alias Astarte.DataAccess.Realms.Realm
+  alias Astarte.DataAccess.Repo
 
   require Logger
 

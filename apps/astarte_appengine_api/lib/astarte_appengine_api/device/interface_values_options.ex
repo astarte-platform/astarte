@@ -16,6 +16,11 @@
 # limitations under the License.
 
 defmodule Astarte.AppEngine.API.Device.InterfaceValuesOptions do
+  @moduledoc """
+  Schema and validation for interface values retrieval options.
+
+  This module defines the parameters that can be used when requesting interface values from a device.
+  """
   use Ecto.Schema
   import Ecto.Changeset
   alias Astarte.AppEngine.API.Device.InterfaceValuesOptions

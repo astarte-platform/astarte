@@ -16,6 +16,13 @@
 # limitations under the License.
 
 defmodule Astarte.AppEngine.APIWeb.SocketGuardian do
+  @moduledoc """
+  Guardian implementation for Astarte Channels (WebSockets).
+
+  This modules is responsible for handling tokens for the Romms API, extracting 
+  specific channel authorizations (JOIN and WATCH) from the token claims to populate
+  a RoomsUser struct.
+  """
   use Guardian, otp_app: :astarte_appengine_api
 
   alias Astarte.AppEngine.API.Auth.RoomsUser

@@ -16,6 +16,11 @@
 # limitations under the License.
 
 defmodule Astarte.AppEngine.API.Config.NonNegativeInteger do
+  @moduledoc """
+  This module provides casting logic to ensure that configuration values 
+  are strictly non-negative integers, defaulting to 0 if a negative value is 
+  provided during the cast.
+  """
   use Skogsra.Type
 
   @impl Skogsra.Type

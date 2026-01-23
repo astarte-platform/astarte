@@ -48,21 +48,29 @@ defmodule Astarte.AppEngine.APIWeb.Telemetry.DatabaseEvents do
   executes the telemetry event with the provided measurements and metadata.
   """
   def handle_event([:xandra | event], measurements, metadata, :expose) do
-    with :bounce <- validate_event(event) do
-      Task.Supervisor.start_child(TelemetryTaskSupervisor, fn ->
-        with :ok <- filter_event(event, metadata) do
-          :telemetry.execute(
-            [:astarte, :appengine, :database] ++ event,
-            measurements,
-            metadata
-          )
-        end
-      end)
+    case validate_event(event) do
+      :bounce ->
+        Task.Supervisor.start_child(TelemetryTaskSupervisor, fn ->
+          execute_telemetry_task(event, measurements, metadata)
+        end)
+
+      _ ->
+        :ok
     end
   end
 
   def handle_event(event, measurements, metadata, :log) do
     Xandra.Telemetry.handle_event(event, measurements, metadata, :no_config)
+  end
+
+  defp execute_telemetry_task(event, measurements, metadata) do
+    with :ok <- filter_event(event, metadata) do
+      :telemetry.execute(
+        [:astarte, :appengine, :database] ++ event,
+        measurements,
+        metadata
+      )
+    end
   end
 
   defp validate_event(event) do

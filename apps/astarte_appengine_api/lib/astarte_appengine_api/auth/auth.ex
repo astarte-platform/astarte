@@ -17,6 +17,12 @@
 #
 
 defmodule Astarte.AppEngine.API.Auth do
+  @moduledoc """
+  Auth context module.
+
+  This module serves as the entry point for authentication-related operations
+  within the AppEngine API, such as retrieving public keys for JWT validation.
+  """
   alias Astarte.AppEngine.API.Auth.Queries
 
   def fetch_public_key(realm) do

@@ -16,6 +16,9 @@
 # limitations under the License.
 
 defmodule Astarte.AppEngine.API.Device.MapTree do
+  @moduledoc """
+  Utilities to inflate flat maps with path-like keys into nested maps.
+  """
   @spec inflate_tree(map) :: map
   def inflate_tree(values_map) do
     Enum.reduce(values_map, %{}, fn {key, value}, acc ->

@@ -16,6 +16,10 @@
 # limitations under the License.
 
 defmodule Astarte.AppEngine.APIWeb.AuthGuardian do
+  @moduledoc """
+  Guardian implementation for Astarte AppEngine API.
+  Handles transaction between JWT claims and the User Struct.
+  """
   use Guardian, otp_app: :astarte_appengine_api
 
   alias Astarte.AppEngine.API.Auth.User

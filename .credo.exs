@@ -7,13 +7,13 @@
           "lib/",
           "src/",
           "test/",
-          "web/",
+          "web/"
         ],
         excluded: [~r"/_build/", ~r"/deps/", ~r"/node_modules/"]
       },
       plugins: [],
       requires: [],
-      strict: false,
+      strict: true,
       parse_timeout: 5000,
       color: true,
       checks: [

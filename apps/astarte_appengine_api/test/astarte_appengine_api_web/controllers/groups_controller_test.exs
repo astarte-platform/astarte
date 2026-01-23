@@ -20,13 +20,13 @@ defmodule Astarte.AppEngine.APIWeb.GroupsControllerTest do
   use ExUnitProperties
   use Astarte.Cases.Conn
 
-  alias Astarte.Helpers.Database, as: DatabaseTestHelper
-  alias Astarte.Helpers.JWT, as: JWTTestHelper
   alias Astarte.AppEngine.API.Device
   alias Astarte.AppEngine.API.Device.DevicesList
   alias Astarte.AppEngine.API.Device.DeviceStatus
   alias Astarte.AppEngine.API.Groups
   alias Astarte.AppEngine.API.GroupTestGenerator
+  alias Astarte.Helpers.Database, as: DatabaseTestHelper
+  alias Astarte.Helpers.JWT, as: JWTTestHelper
 
   @realm "autotestrealm"
   @group_name "mygroup"

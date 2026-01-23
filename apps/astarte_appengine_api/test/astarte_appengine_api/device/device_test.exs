@@ -17,14 +17,15 @@
 
 defmodule Astarte.AppEngine.API.DeviceTest do
   use ExUnit.Case
-  alias Astarte.Helpers.Database, as: DatabaseTestHelper
+
   alias Astarte.AppEngine.API.Device
-  alias Astarte.AppEngine.API.Device.DeviceStatus
   alias Astarte.AppEngine.API.Device.DevicesList
+  alias Astarte.AppEngine.API.Device.DeviceStatus
   alias Astarte.AppEngine.API.Device.InterfaceInfo
   alias Astarte.AppEngine.API.Device.InterfaceValues
-  alias Astarte.DataAccess.Repo
   alias Astarte.DataAccess.Realms.Realm
+  alias Astarte.DataAccess.Repo
+  alias Astarte.Helpers.Database, as: DatabaseTestHelper
 
   import Mox
 

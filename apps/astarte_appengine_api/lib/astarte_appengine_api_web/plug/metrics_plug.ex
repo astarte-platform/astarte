@@ -17,6 +17,11 @@
 #
 
 defmodule Astarte.AppEngine.APIWeb.MetricsPlug do
+  @moduledoc """
+  Plug that exposes application metrics for Prometheus scraping.
+  It listens for GET requests on the /metrics path and returns the current state of all telemetry
+    metrics collected within the application in a Prometheus-compatible format.
+  """
   @behaviour Plug
   import Plug.Conn
 

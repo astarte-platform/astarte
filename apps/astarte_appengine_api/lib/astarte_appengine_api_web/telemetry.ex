@@ -20,8 +20,8 @@ defmodule Astarte.AppEngine.APIWeb.Telemetry do
   import Telemetry.Metrics
 
   alias Astarte.AppEngine.API.Config
-  alias Astarte.AppEngine.APIWeb.Telemetry.DatabaseEvents
   alias Astarte.AppEngine.APIWeb.Telemetry.APIUsage
+  alias Astarte.AppEngine.APIWeb.Telemetry.DatabaseEvents
 
   def start_link(arg) do
     Supervisor.start_link(__MODULE__, arg, name: __MODULE__)

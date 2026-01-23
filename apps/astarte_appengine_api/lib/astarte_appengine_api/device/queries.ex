@@ -17,26 +17,36 @@
 #
 
 defmodule Astarte.AppEngine.API.Device.Queries do
+  @moduledoc """
+  Core database query logic for device-related operations.
+
+  This module provides an API to interact with underlying distributed storage.
+  It handle:
+  * Retrieval of device status and metadata.
+  * Fetching and inserting Interface data (properties and datastreams).
+  * Management of device aliases and groups.
+  * Listing devices within a realm.
+  """
   import Ecto.Query
 
   alias Astarte.AppEngine.API.Config
   alias Astarte.AppEngine.API.DateTime, as: DateTimeMs
-  alias Astarte.DataAccess.Device.DeletionInProgress
-  alias Astarte.AppEngine.API.Device.DeviceStatus
   alias Astarte.AppEngine.API.Device.DevicesList
+  alias Astarte.AppEngine.API.Device.DeviceStatus
   alias Astarte.AppEngine.API.Device.InterfaceInfo
-  alias Astarte.DataAccess.Realms.IndividualProperty
-  alias Astarte.DataAccess.KvStore
-  alias Astarte.DataAccess.Realms.Name
-  alias Astarte.DataAccess.Repo
   alias Astarte.Core.CQLUtils
   alias Astarte.Core.Device
-  alias Astarte.Core.Mapping
   alias Astarte.Core.InterfaceDescriptor
-  alias Astarte.DataAccess.Realms.Realm
-  alias Astarte.DataAccess.Realms.Endpoint
-  alias Astarte.DataAccess.Devices.Device, as: DatabaseDevice
+  alias Astarte.Core.Mapping
   alias Astarte.DataAccess.Consistency
+  alias Astarte.DataAccess.Device.DeletionInProgress
+  alias Astarte.DataAccess.Devices.Device, as: DatabaseDevice
+  alias Astarte.DataAccess.KvStore
+  alias Astarte.DataAccess.Realms.Endpoint
+  alias Astarte.DataAccess.Realms.IndividualProperty
+  alias Astarte.DataAccess.Realms.Name
+  alias Astarte.DataAccess.Realms.Realm
+  alias Astarte.DataAccess.Repo
 
   require Logger
 

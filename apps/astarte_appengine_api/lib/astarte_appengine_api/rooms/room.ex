@@ -17,16 +17,23 @@
 #
 
 defmodule Astarte.AppEngine.API.Rooms.Room do
+  @moduledoc """
+  Genserver representing a real-time communication room.
+
+  Rooms act as dynamic bridges between Astarte devices/groups and connected clients.
+  They manage volatile triggers, monitor clients connections, and handle the 
+  broadcasting of events over channels.
+  """
   use GenServer, restart: :transient
 
+  alias Astarte.AppEngine.API.Config
   alias Astarte.AppEngine.API.Device.DevicesList
   alias Astarte.AppEngine.API.Groups
-  alias Astarte.AppEngine.API.Rooms.WatchRequest
   alias Astarte.AppEngine.API.Rooms.Queries
+  alias Astarte.AppEngine.API.Rooms.WatchRequest
   alias Astarte.AppEngine.API.RPC.DataUpdaterPlant
   alias Astarte.AppEngine.API.RPC.DataUpdaterPlant.VolatileTrigger
   alias Astarte.AppEngine.API.Utils
-  alias Astarte.AppEngine.API.Config
   alias Astarte.AppEngine.APIWeb.Endpoint
   alias Astarte.Core.Triggers.SimpleTriggerConfig
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.AMQPTriggerTarget
@@ -379,21 +386,32 @@ defmodule Astarte.AppEngine.API.Rooms.Room do
   defp install_group_volatile_trigger(realm, group_name, volatile_trigger) do
     # TODO: handle pagination
     with {:ok, %DevicesList{devices: device_ids}} <- Groups.list_devices(realm, group_name) do
-      Enum.reduce_while(device_ids, :ok, fn device_id, _acc ->
-        with :ok <- Queries.verify_device_exists(realm, device_id),
-             :ok <- DataUpdaterPlant.install_volatile_trigger(realm, device_id, volatile_trigger) do
-          {:cont, :ok}
-        else
-          {:error, :device_does_not_exist} ->
-            {:halt, {:error, :device_does_not_exist}}
+      install_triggers_on_devices(realm, device_ids, volatile_trigger)
+    end
+  end
 
-          {:error, %{error_name: reason}} ->
-            {:halt, {:error, reason}}
+  defp install_triggers_on_devices(realm, device_ids, volatile_trigger) do
+    Enum.reduce_while(device_ids, :ok, fn device_id, _acc ->
+      case install_single_volatile_trigger(realm, device_id, volatile_trigger) do
+        :ok -> {:cont, :ok}
+        {:error, reason} -> {:halt, {:error, reason}}
+      end
+    end)
+  end
 
-          {:error, reason} ->
-            {:halt, {:error, reason}}
-        end
-      end)
+  defp install_single_volatile_trigger(realm, device_id, volatile_trigger) do
+    with :ok <- Queries.verify_device_exists(realm, device_id),
+         :ok <- DataUpdaterPlant.install_volatile_trigger(realm, device_id, volatile_trigger) do
+      :ok
+    else
+      {:error, :device_does_not_exist} ->
+        {:error, :device_does_not_exist}
+
+      {:error, %{error_name: reason}} ->
+        {:error, reason}
+
+      {:error, reason} ->
+        {:error, reason}
     end
   end
 
