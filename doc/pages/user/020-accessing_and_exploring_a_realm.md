@@ -3,7 +3,7 @@
 In Astarte, a Realm is a logical partition which holds a number of devices and an Authentication
 Realm.
 
-The [Astarte Dashboard](015-astarte_dashboard) allows you to explore all resources of a given Realm,
+The [Astarte Dashboard](015-astarte_dashboard.md) allows you to explore all resources of a given Realm,
 such as e.g. Interfaces, Triggers, Devices, Groups etc...
 
 ## Device limit in a Realm

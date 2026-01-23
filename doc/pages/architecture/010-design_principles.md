@@ -8,9 +8,9 @@ Astarte does not allow exchanging raw data - it rather forces the user to descri
 
 Data is described with a mechanism named [Interfaces, explained in detail in the user guide](030-interface.html). Through Interfaces, Astarte creates and maintains a data model autonomously, sparing the user from the complexity of dealing with Databases and Data Management in general.
 
-## AMQP as internal API mechanism
+## Internal API mechanism
 
-Astarte services use a Protobuf-based API to exchange data over AMQP in a [gRPC](https://grpc.io/) like fashion. As such, as long as a service conforms with the policies defined by the queues, it is possible to extend Astarte in virtually any language that can deliver a compliant AMQP client.
+Astarte services generally use native Erlang messages to exchange data, but resort to a Protobuf-based API over AMQP for the device-to-cloud data path in order to increase resiliency and to provide a backpressure mechanism.
 
 ## Device ID
 
@@ -24,7 +24,8 @@ This detail is relevant not only for identifying and querying the device, but al
 
 _Note: currently, Astarte accepts Device IDs longer than 128 bit, which are then truncated to 128 bit internally. This behaviour exists for compatibility reasons but it's not supported and will likely change in future releases - hence, refrain from using anything which is not a 128-bit Device ID._
 
-_Note: As much as Device IDs should effectively be unique per-realm and this configuration will always be supported, some future optional optimizations might be available on top of the assumption that Device IDs are globally unique to an Astarte installation. Given the Device ID format has a 2<sup>-128</sup> chance of collision, it is safe to assume that as long as best practices for Device ID generation are followed, Device IDs will always be globally unique._
+<!-- This needs explicit html tags instead of underscores so that the sup tag is correctly formatted -->
+<p><em>Note: As much as Device IDs should effectively be unique per-realm and this configuration will always be supported, some future optional optimizations might be available on top of the assumption that Device IDs are globally unique to an Astarte installation. Given the Device ID format has a 2<sup>-128</sup> chance of collision, it is safe to assume that as long as best practices for Device ID generation are followed, Device IDs will always be globally unique.</em></p>
 
 ## Device interaction
 

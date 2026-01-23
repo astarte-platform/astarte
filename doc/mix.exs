@@ -1,7 +1,7 @@
 defmodule Doc.MixProject do
   use Mix.Project
 
-  @source_ref "release-1.0"
+  @source_ref "release-1.3"
 
   def project do
     source_version =
@@ -10,8 +10,8 @@ defmodule Doc.MixProject do
 
     [
       app: :doc,
-      version: "1.2.0",
-      elixir: "~> 1.14",
+      version: "1.3.0-rc.0",
+      elixir: "~> 1.15",
       start_permanent: Mix.env() == :prod,
       deps: deps(),
       name: "Clea Astarte",
@@ -24,7 +24,7 @@ defmodule Doc.MixProject do
   defp deps do
     [
       {:ex_doc, "~> 0.29", only: :dev},
-      {:makeup_json, "~> 1.0", only: :dev, runtime: false},
+      {:makeup_json, "~> 1.0", only: :dev, runtime: false}
     ]
   end
 
@@ -36,7 +36,7 @@ defmodule Doc.MixProject do
       # It's in the docs repo root
       javascript_config_path: "../common_vars.js",
       extras: Path.wildcard("pages/*/*.md"),
-      assets: "images/",
+      assets: %{"images/" => "assets"},
       api_reference: false,
       source_ref: "#{@source_ref}/doc",
       groups_for_extras: [

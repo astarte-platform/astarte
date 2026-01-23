@@ -1,0 +1,63 @@
+name: Docs
+
+on:
+  push:
+    paths:
+      - "doc/**"
+      - ".github/workflows/docs-check.yml"
+    branches:
+      - "master"
+      - "release-*"
+  create:
+  pull_request:
+    paths:
+      - "doc/**"
+      - ".github/workflows/docs-check.yml"
+
+jobs:
+  warmup:
+    name: Cache warmup
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v6
+      - uses: team-alembic/staple-actions/actions/mix-compile@a74b3b61209d35d45526df174766632f8aee03ed
+        with:
+          mix-env: dev
+          working-directory: doc/
+          args: "--warnings-as-errors"
+
+  formatter:
+    name: Formatting
+    runs-on: ubuntu-22.04
+    needs:
+      - warmup
+    steps:
+      - uses: actions/checkout@v6
+      - uses: team-alembic/staple-actions/actions/mix-format@a74b3b61209d35d45526df174766632f8aee03ed
+        with:
+          mix-env: dev
+          working-directory: doc/
+
+  docs:
+    name: Generation
+    needs:
+      - warmup
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v6
+      - uses: team-alembic/staple-actions/actions/mix-compile@a74b3b61209d35d45526df174766632f8aee03ed
+        with:
+          mix-env: dev
+          working-directory: doc/
+      - run: mix docs --warnings-as-errors
+        shell: bash
+        env:
+          MIX_ENV: dev
+          HEX_HOME: ${{ runner.temp }}/.hex
+          MIX_HOME: ${{ runner.temp }}/.mix
+        working-directory: doc/
+      - name: Upload documentation artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Documentation
+          path: doc/doc/
