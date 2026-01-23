@@ -50,7 +50,7 @@ defmodule Astarte.Pairing.AgentTest do
 
       reset_cache(realm_name)
 
-      assert {:ok, %DeviceRegistrationResponse{credentials_secret: credentials_secret}} =
+      assert {:ok, %DeviceRegistrationResponse{credentials_secret: _credentials_secret}} =
                Agent.register_device(realm_name, @valid_attrs)
 
       assert_receive ^ref
@@ -85,7 +85,7 @@ defmodule Astarte.Pairing.AgentTest do
 
       attrs = Map.put(@valid_attrs, "initial_introspection", initial_introspection)
 
-      assert {:ok, %DeviceRegistrationResponse{credentials_secret: credentials_secret}} =
+      assert {:ok, %DeviceRegistrationResponse{credentials_secret: _credentials_secret}} =
                Agent.register_device(realm_name, attrs)
 
       assert_receive ^ref
@@ -168,7 +168,7 @@ defmodule Astarte.Pairing.AgentTest do
       reset_cache(realm_name)
       {:ok, _} = Database.update_device(device.id, realm_name, first_credentials_request: nil)
 
-      assert {:ok, %DeviceRegistrationResponse{credentials_secret: credentials_secret}} =
+      assert {:ok, %DeviceRegistrationResponse{credentials_secret: _credentials_secret}} =
                Agent.register_device(realm_name, %{"hw_id" => device.encoded_id})
 
       assert_receive ^ref

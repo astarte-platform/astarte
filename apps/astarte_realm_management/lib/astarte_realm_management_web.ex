@@ -36,7 +36,7 @@ defmodule Astarte.RealmManagementWeb do
 
   def controller do
     quote do
-      use Phoenix.Controller, namespace: Astarte.RealmManagementWeb
+      use Phoenix.Controller, formats: [json: "View"]
       use Gettext, backend: Astarte.RealmManagementWeb.Gettext
       import Plug.Conn
       import Astarte.RealmManagementWeb.Router.Helpers

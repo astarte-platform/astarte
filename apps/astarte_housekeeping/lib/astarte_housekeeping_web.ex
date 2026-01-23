@@ -36,7 +36,7 @@ defmodule Astarte.HousekeepingWeb do
 
   def controller do
     quote do
-      use Phoenix.Controller, namespace: Astarte.HousekeepingWeb
+      use Phoenix.Controller, formats: [json: "View"]
       use Gettext, backend: Astarte.HousekeepingWeb.Gettext
 
       import Astarte.HousekeepingWeb.Router.Helpers

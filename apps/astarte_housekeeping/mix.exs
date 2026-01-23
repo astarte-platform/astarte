@@ -22,7 +22,7 @@ defmodule Astarte.Housekeeping.Mixfile do
   def project do
     [
       app: :astarte_housekeeping,
-      version: "1.3.0-rc.0",
+      version: "1.3.0-rc.1",
       elixir: "~> 1.15",
       elixirc_paths: elixirc_paths(Mix.env()),
       start_permanent: Mix.env() == :prod,
@@ -60,7 +60,7 @@ defmodule Astarte.Housekeeping.Mixfile do
 
   defp astarte_required_modules(_) do
     [
-      {:astarte_core, github: "astarte-platform/astarte_core", branch: "release-1.3"}
+      {:astarte_core, github: "astarte-platform/astarte_core", tag: "v1.3.0-rc.1", override: true}
     ]
   end
 
@@ -87,9 +87,6 @@ defmodule Astarte.Housekeeping.Mixfile do
       {:telemetry_metrics_prometheus_core, "~> 1.2"},
       {:dialyxir, "~> 1.0", only: [:dev, :test], runtime: false},
       {:mimic, "~> 1.11", only: [:test, :dev]},
-      # Workaround for Elixir 1.15 / ssl_verify_fun issue
-      # See also: https://github.com/deadtrickster/ssl_verify_fun.erl/pull/27
-      {:ssl_verify_fun, "~> 1.1.0", manager: :rebar3, override: true},
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
       {:astarte_generators, github: "astarte-platform/astarte_generators", only: [:dev, :test]},
       {:httpoison, "~> 2.0"},

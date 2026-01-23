@@ -21,7 +21,8 @@ jobs:
       - name: Build Astarte E2E
         uses: docker/build-push-action@v6
         with:
-          context: tools/astarte_e2e
+          context: .
+          file: tools/astarte_e2e/Dockerfile
           tags: astarte-e2e
           outputs: type=docker,dest=${{ runner.temp }}/astarte-e2e.tar
           build-args: BUILD_ENV=dev

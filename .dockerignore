@@ -5,6 +5,7 @@
 
 !/apps/
 !/libs/
+!/tools/
 
 # Standard Elixir gitignore to be applied to all apps
 **/_build/
