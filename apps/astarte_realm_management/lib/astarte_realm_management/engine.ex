@@ -67,9 +67,9 @@ defmodule Astarte.RealmManagement.Engine do
         Queries.install_new_interface(realm_name, interface_doc, automaton)
       end
     else
-      {:error, {:invalid, _invalid_str, _invalid_pos}} ->
+      {:error, %Jason.DecodeError{} = jason_error_interface} ->
         _ =
-          Logger.warning("Received invalid interface JSON: #{inspect(interface_json)}.",
+          Logger.warning("Received invalid interface JSON: #{inspect(jason_error_interface)}.",
             tag: "invalid_json"
           )
 
@@ -148,9 +148,9 @@ defmodule Astarte.RealmManagement.Engine do
         )
       end
     else
-      {:error, {:invalid, _invalid_str, _invalid_pos}} ->
+      {:error, %Jason.DecodeError{} = jason_error_interface} ->
         _ =
-          Logger.warning("Received invalid interface JSON: #{inspect(interface_json)}.",
+          Logger.warning("Received invalid interface JSON: #{inspect(jason_error_interface)}.",
             tag: "invalid_json"
           )
 
@@ -794,7 +794,7 @@ defmodule Astarte.RealmManagement.Engine do
   end
 
   defp decode_policy(policy_json) do
-    with {:error, {:invalid, _invalid_str, _invalid_pos}} <- Jason.decode(policy_json) do
+    with {:error, %Jason.DecodeError{}} <- Jason.decode(policy_json) do
       _ =
         Logger.warning("Received invalid trigger policy JSON: #{inspect(policy_json)}.",
           tag: "invalid_trigger_policy_json"
