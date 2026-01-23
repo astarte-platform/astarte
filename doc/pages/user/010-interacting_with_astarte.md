@@ -73,6 +73,6 @@ When using `astartectl` or any other client, you can also pass a Realm Private K
 
 ### Accessing the APIs
 
-In a standard Astarte installation, AppEngine API and Realm Management API are usually accessible at `api.<your astarte domain>/appengine` and `api.<your astarte domain>/realmmanagement`.
+In a standard Astarte installation, AppEngine API and Realm Management API are usually accessible at `<astarte base API URL>/appengine` and `<astarte base API URL>/realmmanagement`.
 
 If your Astarte installation has Swagger UI enabled, you can use the `/swagger` endpoint to access it, and to issue API calls straight from your browser to follow this guide.
