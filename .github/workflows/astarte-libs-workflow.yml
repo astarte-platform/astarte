@@ -1,0 +1,49 @@
+name: Build and Test Astarte Libraries
+
+on:
+  push:
+    paths:
+      - "libs/**"
+      - ".github/workflows/astarte-libs-build-workflow.yaml"
+      - ".github/workflows/astarte-libs-workflow.yml"
+      - ".github/codecov.yml"
+    branches:
+      - "master"
+      - "release-*"
+  create:
+  pull_request:
+    paths:
+      - "libs/**"
+      - ".github/workflows/astarte-libs-build-workflow.yaml"
+      - ".github/workflows/astarte-libs-workflow.yml"
+      - ".github/codecov.yml"
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  astarte_data_access:
+    uses: ./.github/workflows/astarte-libs-build-workflow.yaml
+    with:
+      lib: "astarte_data_access"
+    secrets: inherit
+  astarte_events:
+    uses: ./.github/workflows/astarte-libs-build-workflow.yaml
+    with:
+      lib: "astarte_events"
+    secrets: inherit
+  astarte_generators:
+    uses: ./.github/workflows/astarte-libs-build-workflow.yaml
+    with:
+      lib: "astarte_generators"
+    secrets: inherit
+  astarte_rpc:
+    uses: ./.github/workflows/astarte-libs-build-workflow.yaml
+    with:
+      lib: "astarte_rpc"
+    secrets: inherit
