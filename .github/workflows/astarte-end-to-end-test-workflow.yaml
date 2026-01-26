@@ -142,6 +142,8 @@ jobs:
           astartectl utils gen-keypair test
       - name: Load astarte images
         run: ls ${{ runner.temp }}/*.tar | xargs --max-args 1 docker load --input
+      - name: Enable FDO
+        run: echo "PAIRING_ENABLE_FDO=true" >> .tmp/repos/astarte/.env
       - name: Start all Astarte services
         working-directory: .tmp/repos/astarte
         run: docker compose up -d

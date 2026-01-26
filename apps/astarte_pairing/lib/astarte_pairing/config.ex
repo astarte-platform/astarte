@@ -33,23 +33,29 @@ defmodule Astarte.Pairing.Config do
     type: :binary,
     required: true
 
+  @envdoc """
+  Set this variable to 'true' to enable FDO feature as device authentication mechanism.
+  WARNING: this feature is experimental and is not enabled by default
+  """
+  app_env :enable_fdo, :astarte_pairing, :enable_fdo,
+    os_env: "PAIRING_ENABLE_FDO",
+    type: :boolean,
+    default: false
+
   @envdoc "The port the ingress is listening on, used for FDO authentication mechanism"
   app_env :base_url_port, :astarte_pairing, :base_url_port,
     os_env: "ASTARTE_BASE_URL_PORT",
-    type: :integer,
-    required: true
+    type: :integer
 
   @envdoc "The protocol the ingress is listening on, used for FDO authentication mechanism"
   app_env :base_url_protocol, :astarte_pairing, :base_url_protocol,
     os_env: "ASTARTE_BASE_URL_PROTOCOL",
-    type: BaseURLProtocol,
-    required: true
+    type: BaseURLProtocol
 
   @envdoc "The astarte base domain, used for FDO authentication mechanism"
   app_env :base_url_domain, :astarte_pairing, :base_url_domain,
     os_env: "ASTARTE_BASE_URL_DOMAIN",
-    type: :binary,
-    required: true
+    type: :binary
 
   @envdoc "URL to the running CFSSL instance for device certificate generation."
   app_env :cfssl_url, :astarte_pairing, :cfssl_url,
@@ -82,6 +88,15 @@ defmodule Astarte.Pairing.Config do
 
         {:error, _reason} ->
           raise "No CA certificate available."
+      end
+    end
+
+    if enable_fdo!() do
+      # check that all mandatory FDO variables are configured before starting
+      variables_to_check = [:base_url_port, :base_url_protocol, :base_url_domain]
+
+      if !Enum.all?(variables_to_check, &is_variable_set?(&1)) do
+        raise "FDO feature is enabled but not all its parameters are configured"
       end
     end
   end
@@ -130,4 +145,14 @@ defmodule Astarte.Pairing.Config do
   Credential requests made by devices are always authenticated, even it this is true.
   """
   def authentication_disabled?, do: disable_authentication!()
+
+  defp is_variable_set?(var_name) do
+    case apply(__MODULE__, var_name, []) do
+      {:ok, val} when not is_nil(val) ->
+        true
+
+      _ ->
+        false
+    end
+  end
 end
