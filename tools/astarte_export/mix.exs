@@ -4,7 +4,7 @@ defmodule AstarteExport.MixProject do
   def project do
     [
       app: :astarte_export,
-      version: "1.2.0",
+      version: "1.3.0-rc.1",
       elixir: "~> 1.15",
       start_permanent: Mix.env() == :prod,
       test_coverage: [tool: ExCoveralls],
@@ -27,11 +27,7 @@ defmodule AstarteExport.MixProject do
 
   defp deps do
     [
-      {:astarte_core,
-       [
-         git: "https://github.com/astarte-platform/astarte_core.git",
-         branch: "release-1.3"
-       ]},
+      {:astarte_core, github: "astarte-platform/astarte_core", tag: "v1.3.0-rc.1"},
       {:xandra, "~> 0.19.4"},
       {:exandra, "~>0.16.0"},
       {:distillery, "~> 2.1.1"},
@@ -39,9 +35,6 @@ defmodule AstarteExport.MixProject do
       {:xml_stream_writer, "~> 0.1"},
       {:excoveralls, "~> 0.12", only: :test},
       {:dialyxir, "~> 1.0", only: [:dev, :test], runtime: false},
-      # Workaround for Elixir 1.15 / ssl_verify_fun issue
-      # See also: https://github.com/deadtrickster/ssl_verify_fun.erl/pull/27
-      {:ssl_verify_fun, "~> 1.1.0", manager: :rebar3, override: true},
       {:astarte_data_access, path: astarte_lib("astarte_data_access")}
     ]
   end

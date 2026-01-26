@@ -22,7 +22,7 @@ defmodule AstarteDeviceFleetSimulator.MixProject do
   def project do
     [
       app: :astarte_device_fleet_simulator,
-      version: "1.2.0",
+      version: "1.3.0-rc.1",
       elixir: "~> 1.15",
       start_permanent: Mix.env() == :prod,
       deps: deps()
@@ -44,10 +44,7 @@ defmodule AstarteDeviceFleetSimulator.MixProject do
       {:skogsra, "~> 2.3"},
       {:logfmt, "~> 3.3"},
       {:pretty_log, "~> 0.1"},
-      {:elixir_uuid, "~> 1.2"},
-      # Workaround for Elixir 1.15 / ssl_verify_fun issue
-      # See also: https://github.com/deadtrickster/ssl_verify_fun.erl/pull/27
-      {:ssl_verify_fun, "~> 1.1.0", manager: :rebar3, override: true}
+      {:elixir_uuid, "~> 1.2"}
     ]
   end
 end

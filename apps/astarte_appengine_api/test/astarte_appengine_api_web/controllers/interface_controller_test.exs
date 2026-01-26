@@ -252,7 +252,7 @@ defmodule Astarte.AppEngine.APIWeb.InterfaceControllerTest do
       expected_time = DateTime.utc_now(:millisecond)
 
       DateTime
-      |> allow(conn.owner, self())
+      |> allow(self(), conn.owner)
       |> stub(:utc_now, fn -> expected_time end)
 
       conn = post(conn, request_path, %{"data" => mapping_update.value})
@@ -314,7 +314,7 @@ defmodule Astarte.AppEngine.APIWeb.InterfaceControllerTest do
       expected_time = DateTime.utc_now()
 
       DateTime
-      |> allow(conn.owner, self())
+      |> allow(self(), conn.owner)
       |> stub(:utc_now, fn -> expected_time end)
 
       conn = post(conn, request_path, %{"data" => mapping_update.value})

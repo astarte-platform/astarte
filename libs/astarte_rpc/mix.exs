@@ -22,7 +22,7 @@ defmodule Astarte.RPC.MixProject do
   def project do
     [
       app: :astarte_rpc,
-      version: "1.3.0-rc.0",
+      version: "1.3.0-rc.1",
       elixir: "~> 1.15",
       start_permanent: Mix.env() == :prod,
       test_coverage: [tool: ExCoveralls],
@@ -51,7 +51,7 @@ defmodule Astarte.RPC.MixProject do
   defp deps do
     [
       {:astarte_core,
-       github: "astarte-platform/astarte_core", branch: "release-1.3", override: true},
+       github: "astarte-platform/astarte_core", tag: "v1.3.0-rc.1", override: true},
       {:astarte_data_access, path: "../astarte_data_access"},
       {:astarte_events, path: "../astarte_events", runtime: false},
       {:astarte_generators, github: "astarte-platform/astarte_generators", only: [:dev, :test]},

@@ -7,12 +7,24 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## Unreleased
 
+## [1.3.0-rc.1] - 2026-01-26
+
 ### Added
 
 - New environment variables for trigger notifications between realm management replicas and realm management -> pairing. These variables are currently being used only by realm management
-  - `REALM_MANAGEMENT_CLUSTERING_KUBERNETES_SELECTOR`. The Endpoint label to query to get other realm management instances. Defaults to `app=astarte-realm-management`.
+  - `REALM_MANAGEMENT_CLUSTERING_KUBERNETES_SELECTOR`. The Endpoint label to query to get realm management instances. Defaults to `app=astarte-realm-management`.
   - `PAIRING_CLUSTERING_KUBERNETES_SELECTOR`. The Endpoint label to query to get pairing instances. Defaults to `app=astarte-pairing`.
 - [astarte_pairing] Cluster with realm management using `CLUSTERING_STRATEGY` and `CLUSTERING_KUBERNETES_NAMESPACE`
+- [astarte_pairing] Add realm-scoped health checks, which can be used to test astarte health or connectivity by devices who are only aware of realm-scoped paths, such as during FDO
+
+### Fixed
+
+- Fix crashes in new ScyllaDB versions
+- [astarte_appengine_api] Volatile trigger requests to Data Updater Plant now properly encode the volatile trigger type
+
+### Changed
+
+- Services now receive trigger installation and deletion notifications, which should reduce the delay between installing the trigger and starting to receive messages
 
 ## [1.3.0-rc.0] - 2025-11-21
 

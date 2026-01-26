@@ -37,7 +37,7 @@ defmodule Astarte.PairingWeb do
 
   def controller do
     quote do
-      use Phoenix.Controller, namespace: Astarte.PairingWeb
+      use Phoenix.Controller, formats: [json: "View"]
       use Gettext, backend: Astarte.PairingWeb.Gettext
 
       import Astarte.PairingWeb.Router.Helpers

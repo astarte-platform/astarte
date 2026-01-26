@@ -22,7 +22,7 @@ defmodule AstarteE2E.MixProject do
   def project do
     [
       app: :astarte_e2e,
-      version: "1.2.0",
+      version: "1.3.0-rc.1",
       elixir: "~> 1.15",
       start_permanent: Mix.env() == :prod,
       dialyzer: [plt_add_apps: [:ex_unit]],
@@ -43,8 +43,8 @@ defmodule AstarteE2E.MixProject do
     [
       {:astarte_device, github: "astarte-platform/astarte-device-sdk-elixir"},
       {:astarte_core,
-       github: "astarte-platform/astarte_core", branch: "release-1.3", override: true},
-      {:astarte_generators, github: "astarte-platform/astarte_generators"},
+       github: "astarte-platform/astarte_core", tag: "v1.3.0-rc.1", override: true},
+      {:astarte_generators, path: astarte_lib("astarte_generators")},
       {:phoenix_gen_socket_client, "~> 4.0"},
       {:amqp, "~> 4.0"},
       {:websocket_client, "~> 1.5"},
@@ -62,10 +62,12 @@ defmodule AstarteE2E.MixProject do
       {:bamboo_config_adapter, "~> 1.0"},
       {:httpoison, "~> 2.0"},
       {:hukai, "~> 0.3"},
-      {:dialyxir, "~> 1.0", only: [:dev, :test], runtime: false},
-      # Workaround for Elixir 1.15 / ssl_verify_fun issue
-      # See also: https://github.com/deadtrickster/ssl_verify_fun.erl/pull/27
-      {:ssl_verify_fun, "~> 1.1.0", manager: :rebar3, override: true}
+      {:dialyxir, "~> 1.0", only: [:dev, :test], runtime: false}
     ]
+  end
+
+  defp astarte_lib(library_name) do
+    base_directory = System.get_env("ASTARTE_LIBRARIES_PATH", "../../libs")
+    Path.join(base_directory, library_name)
   end
 end
