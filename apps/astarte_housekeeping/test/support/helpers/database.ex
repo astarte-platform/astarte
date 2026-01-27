@@ -18,9 +18,9 @@
 
 defmodule Astarte.Housekeeping.Helpers.Database do
   @moduledoc false
+  alias Astarte.DataAccess.KvStore
   alias Astarte.DataAccess.Realms.Realm
   alias Astarte.DataAccess.Repo
-  alias Astarte.DataAccess.KvStore
 
   @create_keyspace """
   CREATE KEYSPACE :keyspace

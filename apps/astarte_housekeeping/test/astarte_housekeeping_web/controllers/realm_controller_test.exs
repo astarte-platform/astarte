@@ -25,6 +25,7 @@ defmodule Astarte.HousekeepingWeb.RealmControllerTest do
   import Ecto.Query
 
   alias Astarte.DataAccess.Repo
+  alias Astarte.Helpers.JWTTestHelper
   alias Astarte.Housekeeping.Config
   alias Astarte.Housekeeping.Helpers.Database
   alias Astarte.Housekeeping.Realms
@@ -94,7 +95,7 @@ defmodule Astarte.HousekeepingWeb.RealmControllerTest do
   end
 
   test "does not allow unauthorized connections", %{conn: conn} do
-    token = Astarte.Helpers.JWTTestHelper.gen_jwt_token([])
+    token = JWTTestHelper.gen_jwt_token([])
 
     response =
       conn

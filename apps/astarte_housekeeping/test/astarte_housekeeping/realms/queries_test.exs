@@ -20,12 +20,12 @@ defmodule Astarte.Housekeeping.Realms.QueriesTest do
   use Astarte.Housekeeping.DataCase, async: true
   use Mimic
 
-  alias Astarte.DataAccess.Repo
   alias Astarte.DataAccess.Realms.Realm
+  alias Astarte.DataAccess.Repo
+  alias Astarte.Housekeeping.Config
   alias Astarte.Housekeeping.Helpers.Database
   alias Astarte.Housekeeping.Realms
   alias Astarte.Housekeeping.Realms.Queries
-  alias Astarte.Housekeeping.Config
   alias Astarte.Housekeeping.Realms.Realm, as: HKRealm
 
   import Ecto.Query

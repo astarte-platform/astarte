@@ -18,6 +18,7 @@
 
 defmodule Astarte.Housekeeping.Realms.Core do
   @moduledoc false
+  alias Astarte.Housekeeping.AMQP.Vhost
   alias Astarte.Housekeeping.Realms.Queries
   alias Astarte.Housekeeping.Realms.Realm
 
@@ -140,7 +141,7 @@ defmodule Astarte.Housekeeping.Realms.Core do
   end
 
   defp create_vhost(realm_name) do
-    case Astarte.Housekeeping.AMQP.Vhost.create_vhost(realm_name) do
+    case Vhost.create_vhost(realm_name) do
       :ok -> :ok
       :error -> {:error, :vhost_creation_error}
     end

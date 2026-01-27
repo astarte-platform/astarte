@@ -126,7 +126,7 @@ defmodule Astarte.Housekeeping.Config do
   app_env :amqp_management_port, :astarte_housekeeping, :amqp_management_port,
     os_env: "HOUSEKEEPING_AMQP_MANAGEMENT_PORT",
     type: :integer,
-    default: 15672
+    default: 15_672
 
   @envdoc "The username for the AMQP connection."
   app_env :amqp_username, :astarte_housekeeping, :amqp_username,
@@ -148,7 +148,7 @@ defmodule Astarte.Housekeeping.Config do
     disable_authentication!()
   end
 
-  def amqp_base_url!() do
+  def amqp_base_url! do
     if amqp_ssl_enabled!() do
       "https://#{amqp_host!()}:#{amqp_management_port!()}"
     else
@@ -164,7 +164,7 @@ defmodule Astarte.Housekeeping.Config do
     end
   end
 
-  defp build_ssl_options() do
+  defp build_ssl_options do
     [
       cacertfile: amqp_ssl_ca_file!(),
       verify: :verify_peer,
