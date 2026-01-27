@@ -41,11 +41,11 @@ defmodule Astarte.Housekeeping.Config.NetworkReplicationMapTest do
     end
 
     test "non-integer values" do
-      assert :error = NetworkReplicationMap.cast(~S({\"datacenter1\": \"invalid value\"}))
+      assert :error = NetworkReplicationMap.cast(~S({"datacenter1": "invalid value"}))
     end
 
     test "non-objects as top-level elements" do
-      assert :error = NetworkReplicationMap.cast(~S([{\"datacenter1\": \"\"}]))
+      assert :error = NetworkReplicationMap.cast(~S([{"datacenter1": ""}]))
     end
 
     test "empty value" do

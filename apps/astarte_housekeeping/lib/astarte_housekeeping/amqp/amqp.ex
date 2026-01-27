@@ -1,4 +1,11 @@
 defmodule Astarte.Housekeeping.AMQP do
+  @moduledoc """
+  Http client for RabbitMQ Management API.
+
+  This module extends `HTTPoison.Base` to provide automated base URL construction,
+  Basic Authentication, and SSL configuration for all outgoing requests to the 
+  RabbitMQ cluster Management endpoint.
+  """
   use HTTPoison.Base
 
   alias Astarte.Housekeeping.Config
