@@ -66,9 +66,7 @@ defmodule Astarte.RealmManagement.InterfacesTest do
     setup %{realm_name: realm_name, astarte_instance_id: astarte_instance_id} do
       interface = InterfaceGenerators.interface() |> Enum.at(0)
 
-      interface_params = interface |> to_input_map()
-
-      {:ok, installed_interface} = Interfaces.install_interface(realm_name, interface_params)
+      {:ok, installed_interface} = insert_interface_cleanly(realm_name, interface)
 
       on_exit(fn ->
         Database.setup_database_access(astarte_instance_id)
@@ -412,7 +410,7 @@ defmodule Astarte.RealmManagement.InterfacesTest do
         updated_interface_params =
           valid_update_interface |> Jason.encode!() |> Jason.decode!(keys: :atoms)
 
-        {:ok, interface} = Interfaces.install_interface(realm, to_input_map(interface))
+        {:ok, interface} = insert_interface_cleanly(realm, interface)
 
         assert :ok =
                  Interfaces.update_interface(
@@ -456,7 +454,7 @@ defmodule Astarte.RealmManagement.InterfacesTest do
         interface_update =
           updated_interface |> Jason.encode!() |> Jason.decode!(keys: :atoms)
 
-        {:ok, interface} = Interfaces.install_interface(realm, to_input_map(interface))
+        {:ok, interface} = insert_interface_cleanly(realm, interface)
 
         assert {:error, :major_version_not_matching} =
                  Interfaces.update_interface(
@@ -491,7 +489,7 @@ defmodule Astarte.RealmManagement.InterfacesTest do
         interface_update =
           updated_interface |> Jason.encode!() |> Jason.decode!(keys: :atoms)
 
-        {:ok, interface} = Interfaces.install_interface(realm, to_input_map(interface))
+        {:ok, interface} = insert_interface_cleanly(realm, interface)
 
         {:error, :downgrade_not_allowed} =
           Interfaces.update_interface(
@@ -567,6 +565,25 @@ defmodule Astarte.RealmManagement.InterfacesTest do
 
       assert {:error, :interface_not_found} =
                Interfaces.fetch_interface(realm, @interface_name, @interface_major)
+    end
+  end
+
+  defp insert_interface_cleanly(realm_name, interface) do
+    capture_log(fn ->
+      Core.delete_interface(realm_name, interface.name, interface.major_version)
+    end)
+
+    interface_params =
+      interface
+      |> Jason.encode!()
+      |> Jason.decode!()
+
+    case Interfaces.install_interface(realm_name, interface_params) do
+      {:ok, installed_interface} ->
+        {:ok, installed_interface}
+
+      {:error, reason} ->
+        raise "Failed to install interface #{interface.name} v#{interface.major_version}: #{inspect(reason)}"
     end
   end
 end

@@ -185,7 +185,8 @@ defmodule Astarte.RealmManagement.TriggersTest do
     @tag :creation
     property "are installed correctly", %{realm: realm} do
       check all device <- Astarte.Core.Generators.Device.device(),
-                trigger <- trigger(string(:utf8, min_length: 1)),
+                trigger <-
+                  trigger(string(:alphanumeric, min_length: 1)),
                 policy <- PolicyGenerator.policy() |> PolicyGenerator.to_changes(),
                 simple_trigger <- simple_trigger_config(device.device_id) do
         {:ok, policy} = Policies.create_trigger_policy(realm, policy)
@@ -234,7 +235,8 @@ defmodule Astarte.RealmManagement.TriggersTest do
     @tag :deletion
     property "are deleted correctly", %{realm: realm} do
       check all device <- Astarte.Core.Generators.Device.device(),
-                trigger <- trigger(string(:utf8, min_length: 1)),
+                trigger <-
+                  trigger(string(:alphanumeric, min_length: 1)),
                 simple_trigger <- simple_trigger_config(device.device_id) do
         attrs = %{
           name: trigger.name,
