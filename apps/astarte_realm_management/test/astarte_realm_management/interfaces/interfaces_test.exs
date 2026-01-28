@@ -22,11 +22,11 @@ defmodule Astarte.RealmManagement.InterfacesTest do
 
   @moduletag :interfaces
 
-  alias Astarte.DataAccess.Realms.Realm
-  alias Astarte.DataAccess.KvStore
+  alias Astarte.Core.Generators.Interface, as: InterfaceGenerators
   alias Astarte.Core.Interface
   alias Astarte.Core.Mapping
-  alias Astarte.Core.Generators.Interface, as: InterfaceGenerators
+  alias Astarte.DataAccess.KvStore
+  alias Astarte.DataAccess.Realms.Realm
   alias Astarte.Helpers.Database
   alias Astarte.RealmManagement.Interfaces
   alias Astarte.RealmManagement.Interfaces.Core

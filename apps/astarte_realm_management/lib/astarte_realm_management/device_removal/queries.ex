@@ -1,18 +1,18 @@
 defmodule Astarte.RealmManagement.DeviceRemoval.Queries do
   require Logger
-  alias Astarte.DataAccess.Device.DeletionInProgress
-  alias Astarte.DataAccess.Groups.GroupedDevice
-  alias Astarte.DataAccess.Realms.Name
-  alias Astarte.DataAccess.Realms.IndividualDatastream
-  alias Astarte.DataAccess.Devices.Device, as: RealmsDevice
-  alias Astarte.DataAccess.Realms.Interface
-  alias Astarte.DataAccess.Realms.IndividualProperty
-  alias Astarte.DataAccess.Repo
-  alias Astarte.DataAccess.Realms.Realm
-  alias Astarte.DataAccess.KvStore
-  alias Astarte.DataAccess.Consistency
   alias Astarte.Core.CQLUtils
+  alias Astarte.DataAccess.Consistency
+  alias Astarte.DataAccess.Device.DeletionInProgress
+  alias Astarte.DataAccess.Devices.Device, as: RealmsDevice
+  alias Astarte.DataAccess.Groups.GroupedDevice
+  alias Astarte.DataAccess.KvStore
   alias Astarte.DataAccess.Realms.Endpoint
+  alias Astarte.DataAccess.Realms.IndividualDatastream
+  alias Astarte.DataAccess.Realms.IndividualProperty
+  alias Astarte.DataAccess.Realms.Interface
+  alias Astarte.DataAccess.Realms.Name
+  alias Astarte.DataAccess.Realms.Realm
+  alias Astarte.DataAccess.Repo
 
   import Ecto.Query
 
@@ -307,7 +307,7 @@ defmodule Astarte.RealmManagement.DeviceRemoval.Queries do
     :ok
   end
 
-  def retrieve_realms!() do
+  def retrieve_realms! do
     keyspace = Realm.astarte_keyspace_name()
 
     opts = [

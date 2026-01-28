@@ -6,18 +6,7 @@ config :astarte_realm_management, Astarte.RealmManagementWeb.Endpoint,
   http: [port: 4001],
   server: false
 
-config :logger, :console,
-  format: {PrettyLog.UserFriendlyFormatter, :format},
-  metadata: [
-    :method,
-    :request_path,
-    :status_code,
-    :elapsed,
-    :realm,
-    :function,
-    :request_id,
-    :tag
-  ]
+config :logger, :console, format: {PrettyLog.UserFriendlyFormatter, :format}
 
 config :astarte_realm_management,
        :test_priv_key,

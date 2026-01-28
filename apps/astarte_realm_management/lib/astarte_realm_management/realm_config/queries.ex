@@ -22,8 +22,8 @@ defmodule Astarte.RealmManagement.RealmConfig.Queries do
   @moduledoc """
   Queries to handle JWT public keys retrieval and update.
   """
-  alias Astarte.DataAccess.KvStore
   alias Astarte.DataAccess.Consistency
+  alias Astarte.DataAccess.KvStore
   alias Astarte.DataAccess.Realms.Realm
   alias Astarte.DataAccess.Repo
 

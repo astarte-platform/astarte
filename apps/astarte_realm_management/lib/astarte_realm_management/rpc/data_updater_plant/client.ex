@@ -26,5 +26,5 @@ defmodule Astarte.RealmManagement.RPC.DataUpdaterPlant.Client do
     |> GenServer.call({:start_device_deletion, {realm_name, encoded_device_id}})
   end
 
-  defp server_via_tuple(), do: {:via, Horde.Registry, {Registry.DataUpdaterRPC, :server}}
+  defp server_via_tuple, do: {:via, Horde.Registry, {Registry.DataUpdaterRPC, :server}}
 end

@@ -25,8 +25,8 @@ defmodule Astarte.RealmManagement.RealmConfig.RealmConfigTest do
   alias Astarte.DataAccess.KvStore
   alias Astarte.DataAccess.Repo
   alias Astarte.Helpers
-  alias Astarte.RealmManagement.RealmConfig.AuthConfig
   alias Astarte.RealmManagement.RealmConfig
+  alias Astarte.RealmManagement.RealmConfig.AuthConfig
 
   setup %{realm_name: realm_name, jwt_public_key: key, astarte_instance_id: astarte_instance_id} do
     on_exit(fn ->

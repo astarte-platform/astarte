@@ -22,10 +22,10 @@ defmodule Astarte.RealmManagement.Triggers.Policies.PolicyTest do
 
   @moduletag :trigger_policy
 
-  alias Astarte.RealmManagement.Triggers.Policies
   alias Astarte.Core.Generators.Triggers.Policy, as: PolicyGenerator
   alias Astarte.Core.Triggers.Policy
   alias Astarte.Helpers.Policy, as: PolicyHelper
+  alias Astarte.RealmManagement.Triggers.Policies
 
   import ExUnit.CaptureLog
 

@@ -257,46 +257,46 @@ defmodule Astarte.RealmManagement.Triggers.Core do
   end
 
   defp validate_simple_trigger(realm_name, %DataTrigger{} = data_trigger) do
-    %DataTrigger{
-      interface_name: interface_name,
-      interface_major: interface_major,
-      value_match_operator: match_operator,
-      match_path: match_path,
-      data_trigger_type: data_trigger_type
-    } = data_trigger
-
-    # This should fail with {:error, :interface_not_found} if the interface does not exist
     with {:ok, interface} <-
-           Interfaces.fetch_interface(realm_name, interface_name, interface_major) do
-      case interface.aggregation do
-        :individual ->
-          cond do
-            interface.type != :properties and properties_trigger_type?(data_trigger_type) ->
-              {:error, :invalid_datastream_trigger}
-
-            match_path == "/*" and
-                (data_trigger_type == :VALUE_CHANGE or data_trigger_type == :VALUE_CHANGE_APPLIED) ->
-              # TODO: this is a workaround to a data updater plant limitation
-              # see also https://github.com/astarte-platform/astarte/issues/513
-              {:error, :unsupported_trigger_type}
-
-            true ->
-              :ok
-          end
-
-        :object ->
-          if data_trigger_type != :INCOMING_DATA or match_operator != :ANY or match_path != "/*" do
-            {:error, :invalid_object_aggregation_trigger}
-          else
-            :ok
-          end
-      end
+           Interfaces.fetch_interface(
+             realm_name,
+             data_trigger.interface_name,
+             data_trigger.interface_major
+           ) do
+      # Dispatch validation based on interface aggregation
+      do_validate_data_trigger(data_trigger, interface)
     end
   end
 
   defp validate_simple_trigger(_client, _other_trigger) do
     # TODO: validate DeviceTrigger and IntrospectionTrigger
     :ok
+  end
+
+  #  Individual Aggregation
+  defp do_validate_data_trigger(%DataTrigger{} = dt, %{aggregation: :individual} = interface) do
+    cond do
+      interface.type != :properties and properties_trigger_type?(dt.data_trigger_type) ->
+        {:error, :invalid_datastream_trigger}
+
+      dt.match_path == "/*" and dt.data_trigger_type in [:VALUE_CHANGE, :VALUE_CHANGE_APPLIED] ->
+        # Workaround for https://github.com/astarte-platform/astarte/issues/513
+        {:error, :unsupported_trigger_type}
+
+      true ->
+        :ok
+    end
+  end
+
+  # Object Aggregation
+  defp do_validate_data_trigger(%DataTrigger{} = dt, %{aggregation: :object}) do
+    # Object triggers must be INCOMING_DATA on path "/*" with ANY operator
+    if dt.data_trigger_type == :INCOMING_DATA and dt.value_match_operator == :ANY and
+         dt.match_path == "/*" do
+      :ok
+    else
+      {:error, :invalid_object_aggregation_trigger}
+    end
   end
 
   defp properties_trigger_type?(tt) do

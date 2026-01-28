@@ -29,24 +29,7 @@ config :astarte_realm_management, Astarte.RealmManagementWeb.Endpoint,
 # configured to run both http and https servers on
 # different ports.
 
-config :logger, :console,
-  format: {PrettyLog.LogfmtFormatter, :format},
-  metadata: [
-    :method,
-    :request_path,
-    :status_code,
-    :elapsed,
-    :realm,
-    :module,
-    :function,
-    :request_id,
-    :tag,
-    :interface_major,
-    :trigger_name,
-    :interface,
-    :policy_name,
-    :reason
-  ]
+config :logger, :console, format: {PrettyLog.LogfmtFormatter, :format}
 
 # Set a higher stacktrace during development. Avoid configuring such
 # in production as building large stacktraces may be expensive.

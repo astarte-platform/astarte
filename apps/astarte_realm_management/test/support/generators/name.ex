@@ -22,6 +22,7 @@ defmodule Astarte.RealmManagement.Generators.Name do
   @moduledoc """
   Generator for `Astarte.DataAccess.Realms.Name` structures
   """
+  alias Astarte.Core.Generators.Device
   alias Astarte.DataAccess.Realms.Name
   alias Astarte.Generators.Utilities.ParamsGen
 
@@ -32,7 +33,7 @@ defmodule Astarte.RealmManagement.Generators.Name do
   def name(params) do
     params gen(
              all(
-               device_id <- Astarte.Core.Generators.Device.id(),
+               device_id <- Device.id(),
                alias <- string(:utf8, length: 1..100),
                object_type <- integer(0..256),
                params: params

@@ -131,7 +131,7 @@ defmodule Astarte.RealmManagement.Fixtures.Trigger do
     ]
   end
 
-  def invalid_triggers() do
+  def invalid_triggers do
     action_1 = """
     {
       "http_url": "http://hello.world.ai",

@@ -17,9 +17,9 @@
 #
 
 defmodule Astarte.Cases.Device do
+  alias Astarte.Core.Device
   alias Astarte.Core.Generators.Device, as: DeviceGenerator
   alias Astarte.Core.Generators.Interface, as: InterfaceGenerator
-  alias Astarte.Core.Device
 
   use ExUnit.CaseTemplate
   use ExUnitProperties

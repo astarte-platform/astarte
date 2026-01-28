@@ -17,8 +17,8 @@
 #
 
 defmodule Astarte.RealmManagement.RealmConfig do
-  alias Astarte.RealmManagement.RealmConfig.Queries
   alias Astarte.RealmManagement.RealmConfig.AuthConfig
+  alias Astarte.RealmManagement.RealmConfig.Queries
 
   def get_auth_config(realm) do
     with {:ok, jwt_public_key_pem} <- Queries.fetch_jwt_public_key_pem(realm) do

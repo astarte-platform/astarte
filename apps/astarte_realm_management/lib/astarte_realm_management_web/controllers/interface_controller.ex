@@ -25,7 +25,7 @@ defmodule Astarte.RealmManagementWeb.InterfaceController do
   action_fallback Astarte.RealmManagementWeb.FallbackController
 
   def index(conn, %{"realm_name" => realm_name}) do
-    with {:ok, interfaces} <- Astarte.RealmManagement.Interfaces.list_interfaces(realm_name) do
+    with {:ok, interfaces} <- Interfaces.list_interfaces(realm_name) do
       render(conn, "index.json", interfaces: interfaces)
     end
   end
@@ -38,21 +38,21 @@ defmodule Astarte.RealmManagementWeb.InterfaceController do
         true
       end
 
-    with {:ok, %Interface{} = interface} <-
-           Interfaces.install_interface(realm_name, interface_params, async: async_operation) do
-      location =
-        interface_path(
-          conn,
-          :show,
-          realm_name,
-          interface.name,
-          Integer.to_string(interface.major_version)
-        )
+    case Interfaces.install_interface(realm_name, interface_params, async: async_operation) do
+      {:ok, %Interface{} = interface} ->
+        location =
+          interface_path(
+            conn,
+            :show,
+            realm_name,
+            interface.name,
+            Integer.to_string(interface.major_version)
+          )
 
-      conn
-      |> put_resp_header("location", location)
-      |> send_resp(:created, "")
-    else
+        conn
+        |> put_resp_header("location", location)
+        |> send_resp(:created, "")
+
       {:error, :already_installed_interface = err_atom} ->
         conn
         |> put_status(:conflict)
@@ -63,7 +63,6 @@ defmodule Astarte.RealmManagementWeb.InterfaceController do
         |> put_status(:conflict)
         |> render(err_atom)
 
-      # Let FallbackController handle the rest
       {:error, other} ->
         {:error, other}
     end
@@ -167,22 +166,17 @@ defmodule Astarte.RealmManagementWeb.InterfaceController do
       ) do
     {parsed_major, ""} = Integer.parse(major_version)
 
-    async_operation =
-      if Map.get(params, "async_operation") == "false" do
-        false
-      else
-        true
-      end
+    async_operation = Map.get(params, "async_operation") != "false"
 
-    with :ok <-
-           Interfaces.delete_interface(
-             realm_name,
-             interface_name,
-             parsed_major,
-             async_operation: async_operation
-           ) do
-      send_resp(conn, :no_content, "")
-    else
+    case Interfaces.delete_interface(
+           realm_name,
+           interface_name,
+           parsed_major,
+           async_operation: async_operation
+         ) do
+      :ok ->
+        send_resp(conn, :no_content, "")
+
       {:error, :forbidden} ->
         conn
         |> put_status(:forbidden)

@@ -19,8 +19,8 @@
 defmodule Astarte.RealmManagement.Triggers.Queries do
   alias Astarte.Core.AstarteReference
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.SimpleTriggerContainer
-  alias Astarte.Core.Triggers.SimpleTriggersProtobuf.TriggerTargetContainer
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.TaggedSimpleTrigger
+  alias Astarte.Core.Triggers.SimpleTriggersProtobuf.TriggerTargetContainer
   alias Astarte.Core.Triggers.Trigger
   alias Astarte.DataAccess.Consistency
   alias Astarte.DataAccess.KvStore
@@ -201,9 +201,8 @@ defmodule Astarte.RealmManagement.Triggers.Queries do
 
     opts = [prefix: keyspace, consistency: Consistency.domain_model(:write)]
 
-    with {:ok, _} <- Repo.insert(simple_trigger, opts),
-         :ok <- KvStore.insert(kv_insert, opts) do
-      :ok
+    with {:ok, _} <- Repo.insert(simple_trigger, opts) do
+      KvStore.insert(kv_insert, opts)
     end
   end
 
@@ -236,9 +235,8 @@ defmodule Astarte.RealmManagement.Triggers.Queries do
 
     opts = [prefix: keyspace, consistency: Consistency.domain_model(:write)]
 
-    with :ok <- KvStore.insert(triggers_with_policy, opts),
-         :ok <- KvStore.insert(trigger_to_policy, opts) do
-      :ok
+    with :ok <- KvStore.insert(triggers_with_policy, opts) do
+      KvStore.insert(trigger_to_policy, opts)
     end
   end
 

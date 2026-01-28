@@ -17,11 +17,11 @@
 #
 
 defmodule Astarte.RealmManagement.Devices.Queries do
-  alias Astarte.DataAccess.Devices.Device, as: RealmsDevice
-  alias Astarte.DataAccess.Repo
-  alias Astarte.DataAccess.Device.DeletionInProgress
-  alias Astarte.DataAccess.Realms.Realm
   alias Astarte.DataAccess.Consistency
+  alias Astarte.DataAccess.Device.DeletionInProgress
+  alias Astarte.DataAccess.Devices.Device, as: RealmsDevice
+  alias Astarte.DataAccess.Realms.Realm
+  alias Astarte.DataAccess.Repo
 
   import Ecto.Query
 

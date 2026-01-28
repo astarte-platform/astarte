@@ -25,6 +25,7 @@ defmodule Astarte.Cases.Data do
 
   You may define functions here to be used as helpers in your tests.
   """
+  alias Astarte.Helpers.Triggers
 
   use ExUnit.CaseTemplate
   use Mimic
@@ -55,7 +56,7 @@ defmodule Astarte.Cases.Data do
 
   setup %{astarte_instance_id: astarte_instance_id} do
     setup_database_access(astarte_instance_id)
-    Astarte.DataAccess.Config |> allow(self(), Astarte.Helpers.Triggers.rpc_trigger_client())
+    Astarte.DataAccess.Config |> allow(self(), Triggers.rpc_trigger_client())
 
     :ok
   end

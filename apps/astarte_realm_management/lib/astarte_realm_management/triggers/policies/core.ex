@@ -1,7 +1,7 @@
 defmodule Astarte.RealmManagement.Triggers.Policies.Core do
   alias Astarte.RealmManagement.Triggers.Core, as: TriggersCore
-  alias Astarte.RealmManagement.Triggers.Queries, as: TriggerQueries
   alias Astarte.RealmManagement.Triggers.Policies.Queries, as: PolicyQueries
+  alias Astarte.RealmManagement.Triggers.Queries, as: TriggerQueries
 
   require Logger
 
