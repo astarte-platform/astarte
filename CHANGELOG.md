@@ -5,11 +5,12 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
 ## [1.3.0] - Unreleased
-- [astarte_pairing] FDO authentication. New environment variables are needed in order to use FDO:
-  - `PAIRING_FDO_RENDEZVOUS_URL` - url of the rendezvous server (default: "http://rendezvous:8041")
-  - `ASTARTE_BASE_URL_DOMAIN` - domain part of the base url of astarte, used by devices to connect during to2 (required)
-  - `ASTARTE_BASE_URL_PORT` - port of the base url of astarte (required)
-  - `ASTARTE_BASE_URL_PROTOCOL` - protocol of the base url of astarte (required)
+- [astarte_pairing] FDO authentication (EXPERIMENTAL feature, disabled by default). New environment variables are needed in order to use FDO:
+  - `PAIRING_ENABLE_FDO` - whether the FDO feature is enabled or not (default: false)
+  - `PAIRING_FDO_RENDEZVOUS_URL` - URL of the rendezvous server (default: "http://rendezvous:8041")
+  - `ASTARTE_BASE_URL_DOMAIN` - domain part of the base URL of astarte, used by devices to connect in TO2 phase (required if FDO enabled)
+  - `ASTARTE_BASE_URL_PORT` - port of the base URL of astarte (required if FDO enabled)
+  - `ASTARTE_BASE_URL_PROTOCOL` - protocol of the base URL of astarte (required if FDO enabled)
 
 ## [1.3.0-rc.0] - 2025-11-21
 ### Added

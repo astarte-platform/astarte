@@ -23,6 +23,7 @@ defmodule Astarte.PairingWeb.Controllers.OwnershipVoucherControllerTest do
 
   alias Astarte.Pairing.Queries
   alias Astarte.Pairing.FDO.Rendezvous
+  alias Astarte.Pairing.Config
 
   import Astarte.Helpers.FDO
 
@@ -69,6 +70,16 @@ defmodule Astarte.PairingWeb.Controllers.OwnershipVoucherControllerTest do
       conn
       |> post(path, @sample_params)
       |> response(200)
+    end
+
+    test "returns a 404 error if FDO feature is disabled", context do
+      %{auth_conn: conn, create_path: path} = context
+
+      stub(Config, :enable_fdo!, fn -> false end)
+
+      conn
+      |> post(path, @sample_params)
+      |> response(404)
     end
   end
 

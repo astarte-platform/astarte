@@ -33,6 +33,10 @@ defmodule Astarte.PairingWeb.Router do
     plug Astarte.PairingWeb.Plug.LogHwId
   end
 
+  pipeline :fdo_feature_gate do
+    plug Astarte.PairingWeb.Plug.FDOGate
+  end
+
   pipeline :fdo do
     plug :accepts, ["cbor"]
     plug :put_view, Astarte.PairingWeb.FDOView
@@ -50,6 +54,8 @@ defmodule Astarte.PairingWeb.Router do
   end
 
   scope "/v1/:realm_name/fdo/101", Astarte.PairingWeb do
+    pipe_through :fdo_feature_gate
+
     pipe_through :fdo
 
     post "/msg/60", FDOOnboardingController, :hello_device
@@ -74,6 +80,7 @@ defmodule Astarte.PairingWeb.Router do
     get "/health", HealthController, :show
 
     scope "/ownership" do
+      pipe_through :fdo_feature_gate
       pipe_through :agent_api
       post "/", OwnershipVoucherController, :create
     end
