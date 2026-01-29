@@ -51,36 +51,35 @@ defmodule Astarte.Events.TriggersHandler.Integration.CoreTest do
   setup context do
     realm_name = context[:realm_name]
     routing_key = context[:routing_key] || @routing_key
-    test_process = self()
-
-    opts = [
-      realm_name: realm_name,
-      routing_key: routing_key,
-      ready_pid: test_process,
-      wait_start: true,
-      message_handler: fn payload, meta ->
-        send(test_process, {:amqp_message, payload, meta})
-        :ok
-      end
-    ]
-
-    consumer = start_supervised!({Consumer, opts})
-
-    Astarte.DataAccess.Config
-    |> allow(self(), consumer)
-
-    :ok = GenServer.call(consumer, :start)
-
-    assert_receive :consumer_ready
-
-    %{amqp_consumer: consumer, realm_name: realm_name}
+    %{realm_name: realm_name, routing_key: routing_key}
   end
 
-  describe "integration tests with AMQP" do
-    setup %{realm_name: realm_name} do
-      # Build the exchange name that the Consumer will use
-      exchange_suffix = "events"
-      exchange = "astarte_events_#{realm_name}_#{exchange_suffix}"
+  describe "integration tests with AMQP using AMQP triggers" do
+    setup %{realm_name: realm_name, routing_key: routing_key} do
+      exchange = "astarte_events_#{realm_name}_events"
+
+      test_process = self()
+
+      opts = [
+        realm_name: realm_name,
+        routing_key: routing_key,
+        ready_pid: test_process,
+        wait_start: true,
+        exchange_name: exchange,
+        message_handler: fn payload, meta ->
+          send(test_process, {:amqp_message, payload, meta})
+          :ok
+        end
+      ]
+
+      consumer = start_supervised!({Consumer, opts})
+
+      Astarte.DataAccess.Config
+      |> allow(self(), consumer)
+
+      :ok = GenServer.call(consumer, :start)
+
+      assert_receive :consumer_ready
 
       simple_event =
         SimpleEventGenerator.simple_event(
@@ -106,6 +105,87 @@ defmodule Astarte.Events.TriggersHandler.Integration.CoreTest do
       realm_name: realm,
       simple_event_default: simple_event,
       target_default: target
+    } do
+      parent_trigger_id = simple_event.parent_trigger_id
+      simple_trigger_id = simple_event.simple_trigger_id
+      timestamp = simple_event.timestamp
+      event = simple_event.event
+
+      # Dispatch the event to real AMQP broker
+      assert Core.dispatch_event(simple_event, target, nil) == :ok
+
+      # Wait for message to be received by consumer
+      assert_receive {:amqp_message, payload, meta}
+
+      # Verify the message content
+      assert %SimpleEvent{
+               device_id: @device_id,
+               parent_trigger_id: ^parent_trigger_id,
+               simple_trigger_id: ^simple_trigger_id,
+               realm: ^realm,
+               timestamp: ^timestamp,
+               event: ^event
+             } = SimpleEvent.decode(payload)
+
+      # Verify headers
+      headers_map = amqp_headers_to_map(meta.headers)
+      assert Map.get(headers_map, "x_astarte_realm") == realm
+      assert Map.get(headers_map, "x_astarte_device_id") == @device_id
+      assert Map.get(headers_map, "x_astarte_event_type") == elem(event, 0) |> Atom.to_string()
+      assert Map.get(headers_map, "custom_header") == "custom_value"
+    end
+  end
+
+  describe "integration tests with AMQP using AMQP events" do
+    setup %{realm_name: realm_name, routing_key: routing_key} do
+      exchange = "astarte_events"
+      test_process = self()
+
+      opts = [
+        realm_name: realm_name,
+        routing_key: routing_key,
+        ready_pid: test_process,
+        wait_start: true,
+        exchange_name: exchange,
+        virtual_host: "/",
+        message_handler: fn payload, meta ->
+          send(test_process, {:amqp_message, payload, meta})
+          :ok
+        end
+      ]
+
+      consumer = start_supervised!({Consumer, opts})
+
+      Astarte.DataAccess.Config
+      |> allow(self(), consumer)
+
+      :ok = GenServer.call(consumer, :start)
+
+      assert_receive :consumer_ready
+
+      simple_event =
+        SimpleEventGenerator.simple_event(
+          realm: realm_name,
+          device_id: @device_id
+        )
+        |> Enum.at(0)
+
+      target_custom = %AMQPTriggerTarget{
+        exchange: nil,
+        routing_key: @routing_key,
+        static_headers: [{"custom_header", "custom_value"}],
+        message_expiration_ms: 5000,
+        message_priority: 5,
+        message_persistent: true
+      }
+
+      {:ok, simple_event_default: simple_event, target_custom: target_custom, exchange: exchange}
+    end
+
+    test "publishes custom event to broker and consumer receives it", %{
+      realm_name: realm,
+      simple_event_default: simple_event,
+      target_custom: target
     } do
       parent_trigger_id = simple_event.parent_trigger_id
       simple_trigger_id = simple_event.simple_trigger_id

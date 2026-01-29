@@ -29,11 +29,21 @@ defmodule Astarte.Events.Test.AmqpTriggers.Consumer do
             channel: AMQP.Channel.t() | nil,
             realm_name: String.t(),
             routing_key: String.t(),
+            virtual_host: String.t() | nil,
+            exchange_name: String.t() | nil,
             message_handler: (binary(), map() -> :ok | :error | {:error, term()}),
             ready_pid: pid() | nil
           }
 
-    defstruct [:channel, :realm_name, :routing_key, :message_handler, :ready_pid]
+    defstruct [
+      :channel,
+      :realm_name,
+      :routing_key,
+      :message_handler,
+      :virtual_host,
+      :ready_pid,
+      :exchange_name
+    ]
   end
 
   use GenServer
@@ -54,22 +64,10 @@ defmodule Astarte.Events.Test.AmqpTriggers.Consumer do
   def init(opts) do
     wait_start = Keyword.get(opts, :wait_start, false)
 
-    realm_name = Keyword.fetch!(opts, :realm_name)
-    routing_key = Keyword.fetch!(opts, :routing_key)
-    message_handler = Keyword.fetch!(opts, :message_handler)
-    ready_pid = Keyword.fetch!(opts, :ready_pid)
-
-    state = %State{
-      realm_name: realm_name,
-      routing_key: routing_key,
-      message_handler: message_handler,
-      ready_pid: ready_pid
-    }
-
     if wait_start do
-      {:ok, state}
+      {:ok, {:uninitialized, opts}}
     else
-      {:ok, state, {:continue, :connect}}
+      {:ok, {:uninitialized, opts}, {:continue, :init}}
     end
   end
 
@@ -79,7 +77,7 @@ defmodule Astarte.Events.Test.AmqpTriggers.Consumer do
 
   @impl true
   def handle_call(:start, _from, state) do
-    {:reply, :ok, state, {:continue, :connect}}
+    {:reply, :ok, state, {:continue, :init}}
   end
 
   @impl true
@@ -87,6 +85,27 @@ defmodule Astarte.Events.Test.AmqpTriggers.Consumer do
     Logger.info("Stopping consumer for routing key #{inspect(state.routing_key)}")
     Channel.close(state.channel)
     {:stop, :normal, :ok, state}
+  end
+
+  @impl true
+  def handle_continue(:init, {:uninitialized, opts}) do
+    realm_name = Keyword.fetch!(opts, :realm_name)
+    routing_key = Keyword.fetch!(opts, :routing_key)
+    message_handler = Keyword.fetch!(opts, :message_handler)
+    ready_pid = Keyword.fetch!(opts, :ready_pid)
+    exchange_name = Keyword.get(opts, :exchange_name, "astarte_events_#{realm_name}_events")
+    virtual_host = Keyword.get(opts, :virtual_host, Vhost.vhost_name(realm_name))
+
+    state = %State{
+      realm_name: realm_name,
+      routing_key: routing_key,
+      message_handler: message_handler,
+      ready_pid: ready_pid,
+      exchange_name: exchange_name,
+      virtual_host: virtual_host
+    }
+
+    {:noreply, state, {:continue, :connect}}
   end
 
   @impl true
@@ -137,14 +156,17 @@ defmodule Astarte.Events.Test.AmqpTriggers.Consumer do
 
   @spec do_connect(State.t()) :: State.t()
   defp do_connect(state) do
-    %{realm_name: realm_name, routing_key: routing_key} = state
-    exchange_suffix = "events"
-    exchange_name = "astarte_events_#{realm_name}_#{exchange_suffix}"
+    %{
+      routing_key: routing_key,
+      exchange_name: exchange_name,
+      virtual_host: virtual_host
+    } = state
+
     queue_name = exchange_name <> routing_key
 
     amqp_consumer_opts =
       Config.amqp_options!()
-      |> Keyword.put(:virtual_host, Vhost.vhost_name(realm_name))
+      |> Keyword.put(:virtual_host, virtual_host)
 
     with {:ok, connection} <- Connection.open(amqp_consumer_opts),
          {:ok, channel} <- Channel.open(connection),
