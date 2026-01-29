@@ -1,5 +1,13 @@
 defmodule Astarte.Housekeeping.AMQP.Vhost do
+  @moduledoc """
+  Handles the creation of RabbitMQ Virtual Hosts (vhosts).
+
+  Each Astarte Realm requires its own vhost for message isolation.
+  This module interfaces with the rabbitmq management API to ensure these environments
+  are provisioned correctly during realm creation.
+  """
   require Logger
+  alias Astarte.DataAccess.Config
   alias Astarte.Housekeeping.AMQP
 
   @spec create_vhost(String.t()) :: :ok | :error
@@ -31,7 +39,7 @@ defmodule Astarte.Housekeeping.AMQP.Vhost do
   end
 
   def vhost_name(realm_name) do
-    astarte_instance = Astarte.DataAccess.Config.astarte_instance_id!()
+    astarte_instance = Config.astarte_instance_id!()
     "#{astarte_instance}_#{realm_name}"
   end
 end

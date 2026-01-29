@@ -23,8 +23,8 @@ defmodule Astarte.HousekeepingWeb.Telemetry do
   import Telemetry.Metrics
 
   alias Astarte.Housekeeping.Config
-  alias Astarte.HousekeepingWeb.Telemetry.DatabaseEvents
   alias Astarte.HousekeepingWeb.Telemetry.APIUsage
+  alias Astarte.HousekeepingWeb.Telemetry.DatabaseEvents
 
   def start_link(arg) do
     Supervisor.start_link(__MODULE__, arg, name: __MODULE__)

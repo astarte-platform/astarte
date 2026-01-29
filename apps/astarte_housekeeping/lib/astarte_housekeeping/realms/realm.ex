@@ -22,8 +22,8 @@ defmodule Astarte.Housekeeping.Realms.Realm do
 
   import Ecto.Changeset
 
-  alias Astarte.Housekeeping.Realms.NonNegativeIntegerOrUnsetType
   alias Astarte.Core.Realm, as: CoreRealm
+  alias Astarte.Housekeeping.Realms.NonNegativeIntegerOrUnsetType
 
   require Logger
 

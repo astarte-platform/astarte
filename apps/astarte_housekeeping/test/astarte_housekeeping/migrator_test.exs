@@ -90,7 +90,8 @@ defmodule Astarte.Housekeeping.MigratorTest do
           Path.join(["priv", "migrations", "realm"])
         )
 
-      # We don't specify the .sql extension so we also check if there are migrations with the wrong extension
+      # We don't specify the .sql extension so we also check if there are
+      # migrations with the wrong extension
       realm_migrations_count =
         [realm_migrations_path, "*"]
         |> Path.join()
@@ -123,7 +124,8 @@ defmodule Astarte.Housekeeping.MigratorTest do
           Path.join(["priv", "migrations", "astarte"])
         )
 
-      # We don't specify the .sql extension so we also check if there are migrations with the wrong extension
+      # We don't specify the .sql extension so we also check if there are
+      # migrations with the wrong extension
       astarte_migrations_count =
         [astarte_migrations_path, "*"]
         |> Path.join()
@@ -138,7 +140,8 @@ defmodule Astarte.Housekeeping.MigratorTest do
       realm_migrations_path =
         Application.app_dir(:astarte_housekeeping, Path.join(["priv", "migrations", "realm"]))
 
-      # We don't specify the .sql extension so we also check if there are migrations with the wrong extension
+      # We don't specify the .sql extension so we also check if there are
+      # migrations with the wrong extension
       realm_migrations_count =
         [realm_migrations_path, "*.sql"]
         |> Path.join()
