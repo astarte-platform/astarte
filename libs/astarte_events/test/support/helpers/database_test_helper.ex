@@ -25,12 +25,16 @@ defmodule Astarte.Helpers.Database do
 
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.SimpleTriggerContainer
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.TriggerTargetContainer
-  alias Astarte.Core.Triggers.SimpleTriggersProtobuf.Utils, as: SimpleTriggersProtobufUtils
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.AMQPTriggerTarget
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.DeviceTrigger
+  alias Astarte.Core.Triggers.SimpleTriggersProtobuf.DataTrigger
+
   alias Astarte.DataAccess.Consistency
   alias Astarte.DataAccess.KvStore
+  alias Astarte.DataAccess.Realms.Interface
   alias Astarte.DataAccess.Realms.SimpleTrigger
+
+  alias Astarte.Events.Triggers.Core, as: TriggersCore
 
   @create_keyspace """
   CREATE KEYSPACE :keyspace
@@ -431,42 +435,172 @@ defmodule Astarte.Helpers.Database do
     })
   end
 
-  def install_simple_trigger(realm_name) do
+  def install_interface(realm_name) do
+    realm_keyspace = Realm.keyspace_name(realm_name)
+
+    interface =
+      %Interface{}
+      |> Ecto.Changeset.change(%{
+        name: "com.test.LCDMonitor",
+        major_version: 1,
+        automaton_accepting_states:
+          Base.decode64!(
+            "g3QAAAAFYQNtAAAAEIAeEDVf33Bpjm4/0nkmmathBG0AAAAQjrtis2DBS6JBcp3e3YCcn2EFbQAAABBP5QNKPZuZ7H7DsjcWMD0zYQdtAAAAEOb3NjHv/B1+rVLT86O65QthCG0AAAAQKyxj3bvZVzVtSo5W9QTt2g=="
+          ),
+        automaton_transitions:
+          Base.decode64!(
+            "g3QAAAAIaAJhAG0AAAAKbGNkQ29tbWFuZGEFaAJhAG0AAAAEdGltZWEGaAJhAG0AAAAMd2Vla1NjaGVkdWxlYQFoAmEBbQAAAABhAmgCYQJtAAAABXN0YXJ0YQNoAmECbQAAAARzdG9wYQRoAmEGbQAAAARmcm9tYQdoAmEGbQAAAAJ0b2EI"
+          ),
+        aggregation: :individual,
+        interface_id: "798b93a5-842e-bbad-2e4d-d20306838051",
+        minor_version: 3,
+        ownership: :device,
+        storage: "individual_properties",
+        storage_type: :multi_interface_individual_properties_dbtable,
+        type: :properties
+      })
+      |> Repo.insert!(prefix: realm_keyspace)
+
+    endpoints = [
+      """
+        INSERT INTO #{realm_keyspace}.endpoints (interface_id, endpoint_id, allow_unset, endpoint, expiry, interface_major_version, interface_minor_version, interface_name, interface_type, reliability, retention, value_type) VALUES
+          (798b93a5-842e-bbad-2e4d-d20306838051, e6f73631-effc-1d7e-ad52-d3f3a3bae50b, False, '/time/from', 0, 0, 3, 'com.test.LCDMonitor', 1, 1, 1, 5);
+      """,
+      """
+        INSERT INTO #{realm_keyspace}.endpoints (interface_id, endpoint_id, allow_unset, endpoint, expiry, interface_major_version, interface_minor_version, interface_name, interface_type, reliability, retention, value_type) VALUES
+          (798b93a5-842e-bbad-2e4d-d20306838051, 2b2c63dd-bbd9-5735-6d4a-8e56f504edda, False, '/time/to', 0, 0, 3, 'com.test.LCDMonitor', 1, 1, 1, 5);
+      """,
+      """
+        INSERT INTO #{realm_keyspace}.endpoints (interface_id, endpoint_id, allow_unset, endpoint, expiry, interface_major_version, interface_minor_version, interface_name, interface_type, reliability, retention, value_type) VALUES
+          (798b93a5-842e-bbad-2e4d-d20306838051, 801e1035-5fdf-7069-8e6e-3fd2792699ab, False, '/weekSchedule/%{day}/start', 0, 0, 3, 'com.test.LCDMonitor', 1, 1, 1, 5);
+      """,
+      """
+        INSERT INTO #{realm_keyspace}.endpoints (interface_id, endpoint_id, allow_unset, endpoint, expiry, interface_major_version, interface_minor_version, interface_name, interface_type, reliability, retention, value_type) VALUES
+          (798b93a5-842e-bbad-2e4d-d20306838051, 4fe5034a-3d9b-99ec-7ec3-b23716303d33, False, '/lcdCommand', 0, 0, 3, 'com.test.LCDMonitor', 1, 1, 1, 7);
+      """,
+      """
+        INSERT INTO #{realm_keyspace}.endpoints (interface_id, endpoint_id, allow_unset, endpoint, expiry, interface_major_version, interface_minor_version, interface_name, interface_type, reliability, retention, value_type) VALUES
+          (798b93a5-842e-bbad-2e4d-d20306838051, 8ebb62b3-60c1-4ba2-4172-9ddedd809c9f, False, '/weekSchedule/%{day}/stop', 0, 0, 3, 'com.test.LCDMonitor', 1, 1, 1, 5);
+      """
+    ]
+
+    Enum.each(endpoints, fn query ->
+      execute!(realm_keyspace, query)
+    end)
+
+    interface
+  end
+
+  def install_simple_trigger(realm_name, opts \\ []) do
     keyspace_name = Realm.keyspace_name(realm_name)
+
+    # ---- defaults -------------------------------------------------
+
+    event =
+      Keyword.get(opts, :event, :DEVICE_CONNECTED)
+
+    object =
+      Keyword.get(opts, :object, :any_device)
+
+    target =
+      Keyword.get(opts, :target, {:amqp, default_amqp_target(realm_name)})
+
+    parent_trigger_id =
+      Keyword.get(opts, :parent_trigger_id, UUID.uuid4(:raw))
+
+    simple_trigger_id =
+      Keyword.get(opts, :simple_trigger_id, UUID.uuid4(:raw))
+
+    {object_type, object_id} = TriggersCore.object_from_subject(object)
 
     simple_trigger_data =
       %SimpleTriggerContainer{
         simple_trigger: {
           :device_trigger,
           %DeviceTrigger{
-            device_event_type: :DEVICE_CONNECTED
+            device_event_type: event
           }
         }
       }
       |> SimpleTriggerContainer.encode()
 
     trigger_target_data =
-      %TriggerTargetContainer{
-        trigger_target: {
-          :amqp_trigger_target,
-          %AMQPTriggerTarget{
-            routing_key: "test_events_#{realm_name}",
-            exchange: "astarte_events_#{realm_name}"
-          }
-        }
-      }
-      |> TriggerTargetContainer.encode()
+      encode_trigger_target(target)
 
     %SimpleTrigger{}
     |> Ecto.Changeset.change(%{
-      object_id: UUID.uuid4(:raw),
-      object_type: SimpleTriggersProtobufUtils.object_type_to_int!(:device),
-      parent_trigger_id: UUID.uuid4(:raw),
-      simple_trigger_id: UUID.uuid4(:raw),
+      object_id: object_id,
+      object_type: object_type,
+      parent_trigger_id: parent_trigger_id,
+      simple_trigger_id: simple_trigger_id,
       trigger_data: simple_trigger_data,
       trigger_target: trigger_target_data
     })
     |> Repo.insert!(prefix: keyspace_name)
+  end
+
+  def install_data_trigger(realm_name, opts \\ []) do
+    keyspace_name = Realm.keyspace_name(realm_name)
+
+    # ---- defaults -------------------------------------------------
+    object = Keyword.get(opts, :object, :any_device)
+    data_trigger_type = Keyword.get(opts, :data_trigger_type, :INCOMING_DATA)
+    interface_name = Keyword.get(opts, :interface_name, "*")
+    interface_major = Keyword.get(opts, :interface_major, 1)
+    match_path = Keyword.get(opts, :match_path, "/*")
+    target = Keyword.get(opts, :target, {:amqp, default_amqp_target(realm_name)})
+    parent_trigger_id = Keyword.get(opts, :parent_trigger_id, UUID.uuid4(:raw))
+    simple_trigger_id = Keyword.get(opts, :simple_trigger_id, UUID.uuid4(:raw))
+
+    {object_type, object_id} = TriggersCore.object_from_subject(object)
+
+    # ---- trigger payload -----------------------------------------
+    simple_trigger_data =
+      %SimpleTriggerContainer{
+        simple_trigger: {
+          :data_trigger,
+          %DataTrigger{
+            interface_name: interface_name,
+            interface_major: interface_major,
+            data_trigger_type: data_trigger_type,
+            match_path: match_path
+          }
+        }
+      }
+      |> SimpleTriggerContainer.encode()
+
+    trigger_target_data = encode_trigger_target(target)
+
+    %SimpleTrigger{}
+    |> Ecto.Changeset.change(%{
+      object_id: object_id,
+      object_type: object_type,
+      parent_trigger_id: parent_trigger_id,
+      simple_trigger_id: simple_trigger_id,
+      trigger_data: simple_trigger_data,
+      trigger_target: trigger_target_data
+    })
+    |> Repo.insert!(prefix: keyspace_name)
+  end
+
+  defp default_amqp_target(realm_name) do
+    %{
+      routing_key: "test_events_#{realm_name}",
+      exchange: "astarte_events_#{realm_name}"
+    }
+  end
+
+  defp encode_trigger_target({:amqp, opts}) do
+    %TriggerTargetContainer{
+      trigger_target: {
+        :amqp_trigger_target,
+        %AMQPTriggerTarget{
+          routing_key: Map.fetch!(opts, :routing_key),
+          exchange: Map.fetch!(opts, :exchange)
+        }
+      }
+    }
+    |> TriggerTargetContainer.encode()
   end
 
   def install_trigger_policy_link(realm_name, trigger_uuid, trigger_policy) do
