@@ -23,6 +23,15 @@ defmodule Astarte.Helpers.Database do
   alias Astarte.DataAccess.Realms.Realm
   alias Astarte.DataAccess.Repo
 
+  alias Astarte.Core.Triggers.SimpleTriggersProtobuf.SimpleTriggerContainer
+  alias Astarte.Core.Triggers.SimpleTriggersProtobuf.TriggerTargetContainer
+  alias Astarte.Core.Triggers.SimpleTriggersProtobuf.Utils, as: SimpleTriggersProtobufUtils
+  alias Astarte.Core.Triggers.SimpleTriggersProtobuf.AMQPTriggerTarget
+  alias Astarte.Core.Triggers.SimpleTriggersProtobuf.DeviceTrigger
+  alias Astarte.DataAccess.Consistency
+  alias Astarte.DataAccess.KvStore
+  alias Astarte.DataAccess.Realms.SimpleTrigger
+
   @create_keyspace """
   CREATE KEYSPACE :keyspace
     WITH
@@ -420,6 +429,74 @@ defmodule Astarte.Helpers.Database do
     execute!(realm_keyspace, @insert_datastream_maximum_storage_retention, %{
       "max_retention" => max_retention
     })
+  end
+
+  def install_simple_trigger(realm_name) do
+    keyspace_name = Realm.keyspace_name(realm_name)
+
+    simple_trigger_data =
+      %SimpleTriggerContainer{
+        simple_trigger: {
+          :device_trigger,
+          %DeviceTrigger{
+            device_event_type: :DEVICE_CONNECTED
+          }
+        }
+      }
+      |> SimpleTriggerContainer.encode()
+
+    trigger_target_data =
+      %TriggerTargetContainer{
+        trigger_target: {
+          :amqp_trigger_target,
+          %AMQPTriggerTarget{
+            routing_key: "test_events_#{realm_name}",
+            exchange: "astarte_events_#{realm_name}"
+          }
+        }
+      }
+      |> TriggerTargetContainer.encode()
+
+    %SimpleTrigger{}
+    |> Ecto.Changeset.change(%{
+      object_id: UUID.uuid4(:raw),
+      object_type: SimpleTriggersProtobufUtils.object_type_to_int!(:device),
+      parent_trigger_id: UUID.uuid4(:raw),
+      simple_trigger_id: UUID.uuid4(:raw),
+      trigger_data: simple_trigger_data,
+      trigger_target: trigger_target_data
+    })
+    |> Repo.insert!(prefix: keyspace_name)
+  end
+
+  def install_trigger_policy_link(realm_name, trigger_uuid, trigger_policy) do
+    keyspace = Realm.keyspace_name(realm_name)
+
+    trigger_uuid =
+      trigger_uuid
+      |> UUID.binary_to_string!()
+
+    triggers_with_policy =
+      %{
+        group: "triggers-with-policy-#{trigger_policy}",
+        key: trigger_uuid,
+        value: trigger_uuid,
+        value_type: :uuid
+      }
+
+    trigger_to_policy =
+      %{
+        group: "trigger_to_policy",
+        key: trigger_uuid,
+        value: trigger_policy
+      }
+
+    opts = [prefix: keyspace, consistency: Consistency.domain_model(:write)]
+
+    with :ok <- KvStore.insert(triggers_with_policy, opts),
+         :ok <- KvStore.insert(trigger_to_policy, opts) do
+      :ok
+    end
   end
 
   defp execute!(keyspace, query, params \\ [], opts \\ []) do
