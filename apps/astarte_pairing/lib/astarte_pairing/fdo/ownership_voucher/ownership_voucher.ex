@@ -154,7 +154,7 @@ defmodule Astarte.Pairing.FDO.OwnershipVoucher do
     # TODO credential reuse requires also Owner2Key and/or rv info to be changed for credential reuse
     # so far, there is no API to do so, so it-s limited to the guid
 
-    is_nil(session.replacement_hmac) &&
+    session.replacement_hmac == session.hmac &&
       session.guid == session.replacement_guid &&
       Config.enable_credential_reuse!()
   end

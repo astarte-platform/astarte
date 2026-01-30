@@ -99,7 +99,7 @@ defmodule Astarte.Pairing.FDO.Onboarding.DoneTest do
       session = %{
         session
         | replacement_guid: session.guid,
-          replacement_hmac: nil,
+          replacement_hmac: session.hmac,
           replacement_rv_info: rendezvous_info,
           replacement_pub_key: owner_public_key
       }

@@ -63,7 +63,8 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding do
              realm_name,
              hello_device,
              ownership_voucher,
-             owner_private_key
+             owner_private_key,
+             ownership_voucher.hmac
            ) do
       encoded_pub_key = PublicKey.encode(pub_key)
       num_ov_entries = Enum.count(ownership_voucher.entries)
@@ -262,7 +263,7 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding do
       ) do
     with {:ok, session} <-
            Session.add_max_owner_service_info_size(session, realm_name, max_owner_service_info_sz) do
-      session = %{session | replacement_hmac: replacement_hmac}
+      session = %{session | replacement_hmac: replacement_hmac || session.hmac}
 
       response =
         OwnerServiceInfoReady.new()
