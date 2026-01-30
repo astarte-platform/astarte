@@ -491,9 +491,7 @@ defmodule Astarte.Helpers.Database do
     interface
   end
 
-  def install_simple_trigger(realm_name, opts \\ []) do
-    keyspace_name = Realm.keyspace_name(realm_name)
-
+  def generate_device_trigger(realm_name, opts \\ []) do
     # ---- defaults -------------------------------------------------
 
     event =
@@ -527,15 +525,21 @@ defmodule Astarte.Helpers.Database do
     trigger_target_data =
       encode_trigger_target(target)
 
-    %SimpleTrigger{}
-    |> Ecto.Changeset.change(%{
+    %SimpleTrigger{
       object_id: object_id,
       object_type: object_type,
       parent_trigger_id: parent_trigger_id,
       simple_trigger_id: simple_trigger_id,
       trigger_data: simple_trigger_data,
       trigger_target: trigger_target_data
-    })
+    }
+  end
+
+  def install_simple_trigger(realm_name, opts \\ []) do
+    keyspace_name = Realm.keyspace_name(realm_name)
+
+    realm_name
+    |> generate_device_trigger(opts)
     |> Repo.insert!(prefix: keyspace_name)
   end
 
