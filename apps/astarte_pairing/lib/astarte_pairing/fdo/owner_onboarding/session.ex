@@ -32,6 +32,7 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding.Session do
 
   typedstruct do
     field :guid, binary()
+    field :hmac, binary()
     field :device_id, Astarte.DataAccess.UUID, default: nil
     field :nonce, binary()
     field :device_signature, SignatureInfo.device_signature()
@@ -55,7 +56,7 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding.Session do
     field :replacement_hmac, binary() | nil
   end
 
-  def new(realm_name, hello_device, ownership_voucher, owner_key) do
+  def new(realm_name, hello_device, ownership_voucher, owner_key, hmac) do
     prove_dv_nonce = :crypto.strong_rand_bytes(16)
     nonce = :crypto.strong_rand_bytes(16)
 
@@ -93,6 +94,7 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding.Session do
       session =
         %Session{
           guid: guid,
+          hmac: hmac,
           device_id: nil,
           nonce: nonce,
           prove_dv_nonce: prove_dv_nonce,
