@@ -196,11 +196,18 @@ defmodule Astarte.Helpers.Device do
   end
 
   def valid_result?(result, interface, value)
-      when interface.aggregation == :individual and is_map(value) do
+      when interface.aggregation == :individual and is_list(result) do
+    similar?(result, value) or Enum.any?(result, &valid_result?(&1, interface, value))
+  end
+
+  def valid_result?(result, interface, value)
+      when interface.aggregation == :individual and is_map(value) and
+             not is_struct(value, DateTime) and not is_list(result) do
     similar?(result, value)
   end
 
-  def valid_result?(result, _interface, value) when is_map(result) and is_map(value) do
+  def valid_result?(result, _interface, value)
+      when is_map(result) and is_map(value) and not is_struct(value, DateTime) do
     Map.intersect(value, result)
     |> Enum.all?(fn {key, result_value} -> similar?(result_value, Map.fetch!(value, key)) end)
   end
@@ -229,9 +236,12 @@ defmodule Astarte.Helpers.Device do
     do: result == to_string(value)
 
   defp similar?(result, value) when is_list(result) and is_list(value) do
-    Enum.zip(result, value)
-    |> Enum.map(fn {result, value} -> similar?(result, value) end)
-    |> Enum.all?()
+    if length(result) == length(value) do
+      Enum.zip(result, value)
+      |> Enum.all?(fn {r, v} -> similar?(r, v) end)
+    else
+      false
+    end
   end
 
   defp similar?(result, value) when is_binary(result) and is_struct(value, DateTime),
