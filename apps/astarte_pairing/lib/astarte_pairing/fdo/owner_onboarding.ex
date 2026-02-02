@@ -297,6 +297,7 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding do
 
         with {:ok, old_voucher} <-
                OwnershipVoucher.fetch(realm_name, to2_session.guid),
+             dbg(to2_session),
              {:ok, new_voucher} <-
                OwnershipVoucher.generate_replacement_voucher(old_voucher, to2_session),
              #  TODO change this line to ensure the retrival of latest private key after exposing an API to do so
