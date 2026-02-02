@@ -150,7 +150,6 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding do
          {:ok, private_key} <- Queries.get_owner_private_key(realm_name, guid),
          {:ok, owner_public_key} <- OwnershipVoucher.owner_public_key(ownership_voucher) do
       rendezvous_info = ownership_voucher.header.rendezvous_info
-      dbg(rendezvous_info)
       {:ok, private_key} = COSE.Keys.from_pem(private_key)
 
       connection_credentials = %{
@@ -175,7 +174,6 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding do
             replacement_pub_key: owner_public_key
         }
 
-        dbg(session)
         {:ok, session, resp_msg}
       end
     end
