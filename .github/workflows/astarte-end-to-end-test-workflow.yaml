@@ -174,3 +174,7 @@ jobs:
             -k compose/astarte-keys/housekeeping_private.pem
       - name: Run FDO
         run: just astarte-run
+      - name: Check Docker
+        working-directory: .tmp/repos/astarte
+        if: ${{ failure() }}
+        run: docker compose logs astarte-pairing

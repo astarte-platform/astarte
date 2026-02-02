@@ -122,7 +122,8 @@ defmodule Astarte.Cases.FDOSession do
         context.realm_name,
         hello_device,
         context.ownership_voucher,
-        context.owner_key
+        context.owner_key,
+        context.ownership_voucher.hmac
       )
 
     on_exit(fn ->

@@ -60,7 +60,7 @@ defmodule Astarte.Pairing.FDO.ServiceInfoTest do
     } = context
 
     {:ok, token, session} =
-      Session.new(realm_name, hello_device, ownership_voucher, owner_key)
+      Session.new(realm_name, hello_device, ownership_voucher, owner_key, ownership_voucher.hmac)
 
     on_exit(fn ->
       setup_database_access(astarte_instance_id)

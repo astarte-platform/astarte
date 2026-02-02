@@ -62,6 +62,8 @@ defmodule Astarte.PairingWeb.FDOOnboardingController do
              cbor_body,
              conn.assigns.to2_session
            ) do
+      dbg(session)
+
       conn
       |> assign(:to2_session, session)
       |> render("secure.cbor", %{response: response})
@@ -71,6 +73,7 @@ defmodule Astarte.PairingWeb.FDOOnboardingController do
   def done(conn, _params) do
     realm_name = Map.fetch!(conn.params, "realm_name")
     to2_session = conn.assigns.to2_session
+    dbg(to2_session)
 
     with {:ok, response_msg} <- OwnerOnboarding.done(realm_name, to2_session, conn.assigns.body) do
       conn
@@ -82,13 +85,14 @@ defmodule Astarte.PairingWeb.FDOOnboardingController do
     realm_name = Map.fetch!(conn.params, "realm_name")
 
     with {:ok, device_service_info_ready} <- DeviceServiceInfoReady.decode(conn.assigns.body),
-         {:ok, response} <-
+         {:ok, session, response} <-
            OwnerOnboarding.build_owner_service_info_ready(
              realm_name,
              conn.assigns.to2_session,
              device_service_info_ready
            ) do
       conn
+      |> assign(:to2_session, session)
       |> render("secure.cbor", %{response: response})
     end
   end
