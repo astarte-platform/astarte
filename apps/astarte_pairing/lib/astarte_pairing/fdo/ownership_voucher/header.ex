@@ -70,6 +70,8 @@ defmodule Astarte.Pairing.FDO.OwnershipVoucher.Header do
   end
 
   def encode(%Header{} = header) do
+    dbg(header.rendezvous_info)
+
     [
       header.protocol_version,
       COSE.tag_as_byte(header.guid),
