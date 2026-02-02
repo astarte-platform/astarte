@@ -502,6 +502,12 @@ defmodule Astarte.Helpers.Database do
     object =
       Keyword.get(opts, :object, :any_device)
 
+    interface_name =
+      Keyword.get(opts, :interface_name, "*")
+
+    interface_major =
+      Keyword.get(opts, :interface_major, 1)
+
     target =
       Keyword.get(opts, :target, {:amqp, default_amqp_target(realm_name)})
 
@@ -518,7 +524,9 @@ defmodule Astarte.Helpers.Database do
         simple_trigger: {
           :device_trigger,
           %DeviceTrigger{
-            device_event_type: event
+            device_event_type: event,
+            interface_name: interface_name,
+            interface_major: interface_major
           }
         }
       }
