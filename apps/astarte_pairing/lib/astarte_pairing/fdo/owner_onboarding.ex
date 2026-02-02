@@ -175,6 +175,7 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding do
             replacement_pub_key: owner_public_key
         }
 
+        dbg(session)
         {:ok, session, resp_msg}
       end
     end
