@@ -17,6 +17,11 @@
 #
 
 defmodule Astarte.RealmManagementWeb.Plug.AuthorizePath do
+  @moduledoc """
+  A Plug to handle path-based authorization.
+
+  This plug checks the global configuration to determine if authentication is enabled and enforces authorization rules accordingly.
+  """
   alias Astarte.RealmManagement.Config
   alias Astarte.RealmManagementWeb.Plug.GuardianAuthorizePath
 

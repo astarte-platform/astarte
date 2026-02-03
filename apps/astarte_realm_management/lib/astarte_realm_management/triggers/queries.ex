@@ -17,6 +17,14 @@
 #
 
 defmodule Astarte.RealmManagement.Triggers.Queries do
+  @moduledoc """
+  Database queries for Trigger management.
+
+  This module interacts with the KvStore and Simple Trigger tables to manage trigger persistence. It handles: 
+  - Trigger retrieval by name or UUID
+  - Installation of triggers and their components (Simple Triggers)
+  - Management of trigger-policy links ( retention and retry logic)
+  """
   alias Astarte.Core.AstarteReference
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.SimpleTriggerContainer
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.TaggedSimpleTrigger

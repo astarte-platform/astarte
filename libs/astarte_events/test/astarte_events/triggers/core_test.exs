@@ -206,7 +206,7 @@ defmodule Astarte.Events.Triggers.CoreTest do
                Core.trigger_subject(:data_trigger, trigger)
     end
 
-    test "returns {:device_and_any_interface, device_id} when device is specifed and interface is '*'" do
+    test "returns {:device_and_any_interface, device_id} when device is specified and interface is '*'" do
       device_id = DeviceGenerator.encoded_id() |> Enum.at(0)
       {:ok, decoded_device_id} = Device.decode_device_id(device_id, allow_extended_id: true)
 

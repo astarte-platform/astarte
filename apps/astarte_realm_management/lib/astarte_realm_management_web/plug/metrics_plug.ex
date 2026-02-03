@@ -17,6 +17,9 @@
 #
 
 defmodule Astarte.RealmManagementWeb.MetricsPlug do
+  @moduledoc """
+  Plug to expose prometheus metrics. 
+  """
   @behaviour Plug
   import Plug.Conn
 

@@ -17,6 +17,7 @@
 #
 
 defmodule Astarte.RealmManagement.Helpers.JWTTestHelper do
+  @moduledoc false
   alias Astarte.RealmManagement.Auth.User
   alias Astarte.RealmManagementWeb.AuthGuardian
 

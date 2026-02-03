@@ -17,6 +17,9 @@
 #
 
 defmodule Astarte.RealmManagement.Auth.User do
+  @moduledoc """
+  Represents an authenticated user in Astarte Realm Management.
+  """
   @enforce_keys [:id]
   defstruct [
     :id,

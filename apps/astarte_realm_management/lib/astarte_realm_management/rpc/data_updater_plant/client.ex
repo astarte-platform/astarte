@@ -17,6 +17,9 @@
 #
 
 defmodule Astarte.RealmManagement.RPC.DataUpdaterPlant.Client do
+  @moduledoc """
+  RPC Client module for interacting with the Data Updater Plant.
+  """
   alias Astarte.Core.Device
 
   def start_device_deletion_rpc(realm_name, decoded_id) do

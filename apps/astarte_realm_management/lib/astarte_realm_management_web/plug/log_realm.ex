@@ -17,6 +17,9 @@
 #
 
 defmodule Astarte.RealmManagementWeb.Plug.LogRealm do
+  @moduledoc """
+  A plug to inject the realm name into Logger metadata.
+  """
   def init(opts) do
     opts
   end

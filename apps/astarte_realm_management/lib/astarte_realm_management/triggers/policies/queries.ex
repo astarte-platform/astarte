@@ -17,6 +17,12 @@
 #
 
 defmodule Astarte.RealmManagement.Triggers.Policies.Queries do
+  @moduledoc """
+  Database queries for Trigger Policies.
+
+  This module provides direct access to the KvStore for managing trigger policies.
+  It handles listing, installation, and multi-table cleanup during policy deletion.
+  """
   require Logger
   alias Astarte.DataAccess.Consistency
   alias Astarte.DataAccess.KvStore

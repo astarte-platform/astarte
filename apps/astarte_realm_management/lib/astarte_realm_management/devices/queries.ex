@@ -17,6 +17,11 @@
 #
 
 defmodule Astarte.RealmManagement.Devices.Queries do
+  @moduledoc """
+  Database queries for Devices management within Astarte Realm Management.
+
+  This module handles direct database interactions for devices, including checking for device existence and managing the state of devices currently undergoing deletion to ensure system consistency.
+  """
   alias Astarte.DataAccess.Consistency
   alias Astarte.DataAccess.Device.DeletionInProgress
   alias Astarte.DataAccess.Devices.Device, as: RealmsDevice

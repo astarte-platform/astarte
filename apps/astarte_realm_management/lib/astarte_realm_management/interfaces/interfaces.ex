@@ -17,6 +17,11 @@
 #
 
 defmodule Astarte.RealmManagement.Interfaces do
+  @moduledoc """
+  Public API for Interface management within Astarte.
+
+  It handles the complete lifecycle of Interfaces, including creation, updating, listing, and deletion.
+  """
   alias Astarte.Core.CQLUtils
   alias Astarte.Core.Interface
   alias Astarte.Core.InterfaceDescriptor

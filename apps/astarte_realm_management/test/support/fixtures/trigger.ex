@@ -17,6 +17,7 @@
 #
 
 defmodule Astarte.RealmManagement.Fixtures.Trigger do
+  @moduledoc false
   alias Astarte.Core.Triggers.Trigger
 
   @valid_attrs %{

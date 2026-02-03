@@ -17,6 +17,12 @@
 #
 
 defmodule Astarte.RealmManagement.Devices do
+  @moduledoc """
+  Context module for managing Devices within a Realm.
+
+  This module provides functionality to manage the device lificycle, primarily focusing on secure device deletion.
+
+  """
   alias Astarte.Core.Device
   alias Astarte.RealmManagement.DeviceRemoval
   alias Astarte.RealmManagement.Devices.Queries

@@ -17,6 +17,11 @@
 #
 
 defmodule Astarte.RealmManagement.Triggers.Core do
+  @moduledoc """
+  Core orchestrator for Trigger management.
+
+  This module handles the logic for installing  and deleting triggers.
+  """
   alias Astarte.Core.Triggers.SimpleTriggerConfig
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.AMQPTriggerTarget
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.DataTrigger

@@ -17,6 +17,11 @@
 #
 
 defmodule Astarte.RealmManagement.RealmConfig.AuthConfig do
+  @moduledoc """
+  Schema and validation for realm authentication configuration.
+
+  This embedded schema handles the validation of JWT public keys in  PEM format. 
+  """
   use Ecto.Schema
   import Ecto.Changeset
   alias Astarte.RealmManagement.RealmConfig.AuthConfig

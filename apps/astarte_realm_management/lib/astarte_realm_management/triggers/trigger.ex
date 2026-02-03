@@ -17,6 +17,9 @@
 #
 
 defmodule Astarte.RealmManagement.Triggers.Trigger do
+  @moduledoc """
+  Schema and validation logic Triggers.
+  """
   use TypedEctoSchema
   import Ecto.Changeset
   alias Astarte.Core.Triggers.SimpleTriggerConfig

@@ -17,6 +17,11 @@
 #
 
 defmodule Astarte.RealmManagement.Application do
+  @moduledoc """
+  The root module of the Astarte Realm Management application.
+  This module is responsible for starting the Astarte Realm Management service,
+  including its supervision tree, web endpoints, and background workers.
+  """
   use Application
 
   alias Astarte.DataAccess.Config, as: DataAccessConfig

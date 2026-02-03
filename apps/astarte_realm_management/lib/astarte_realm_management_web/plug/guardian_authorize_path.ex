@@ -17,6 +17,9 @@
 #
 
 defmodule Astarte.RealmManagementWeb.Plug.GuardianAuthorizePath do
+  @moduledoc """
+  Enforces path-based authorization using Guardian.
+  """
   use Plug.Builder
 
   import Plug.Conn

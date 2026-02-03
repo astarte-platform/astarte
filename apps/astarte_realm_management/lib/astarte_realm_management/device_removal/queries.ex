@@ -1,4 +1,11 @@
 defmodule Astarte.RealmManagement.DeviceRemoval.Queries do
+  @moduledoc """
+  Database queries for the device removal process.
+
+  This module handles the deletion logic for all data associated with a device
+  across different storage structures: datastreams, properties, aliases, groups, and KV store.
+  It also provides utilities to check for table existence and manage the `deletion_in_progress` state.
+  """
   require Logger
   alias Astarte.Core.CQLUtils
   alias Astarte.DataAccess.Consistency

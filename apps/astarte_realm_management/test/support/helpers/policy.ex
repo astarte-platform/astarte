@@ -1,4 +1,5 @@
 defmodule Astarte.Helpers.Policy do
+  @moduledoc false
   alias Astarte.Core.Triggers.Policy
   alias Astarte.Core.Triggers.Policy.ErrorKeyword
   alias Astarte.Core.Triggers.Policy.ErrorRange

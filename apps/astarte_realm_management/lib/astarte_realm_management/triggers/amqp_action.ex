@@ -17,6 +17,9 @@
 #
 
 defmodule Astarte.RealmManagement.Triggers.AMQPAction do
+  @moduledoc """
+  Schema and validation for AMQP trigger actions.
+  """
   use TypedEctoSchema
   import Ecto.Changeset
   alias Astarte.RealmManagement.Triggers.AMQPAction

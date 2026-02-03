@@ -17,6 +17,9 @@
 #
 
 defmodule Astarte.RealmManagementWeb.HealthPlug do
+  @moduledoc """
+  Plug to handle health checks requests.
+  """
   @behaviour Plug
   import Plug.Conn
 

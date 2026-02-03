@@ -16,6 +16,11 @@
 # limitations under the License.
 
 defmodule Astarte.RealmManagementWeb.Telemetry.APIUsage do
+  @moduledoc """
+  Telemetry handler for tracking API usage.
+
+  This module listens for cowboy request events and calculates usage metrics such as request and response body sizes. 
+  """
   alias Astarte.RealmManagementWeb.TelemetryTaskSupervisor
 
   @api_prefix "v1"

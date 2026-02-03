@@ -17,6 +17,7 @@
 #
 
 defmodule Astarte.Cases.Device do
+  @moduledoc false
   alias Astarte.Core.Device
   alias Astarte.Core.Generators.Device, as: DeviceGenerator
   alias Astarte.Core.Generators.Interface, as: InterfaceGenerator

@@ -17,6 +17,11 @@
 #
 
 defmodule Astarte.RealmManagement.Interfaces.Core do
+  @moduledoc """
+  Core logic for Interface management. 
+
+  This module coordinates the lifecycvle of Astarte Interfaces, including storage updates, schema migrations, and secure deletion of interface data and associated device references.
+  """
   alias Astarte.DataAccess.Interface, as: InterfaceQueries
   alias Astarte.RealmManagement.Interfaces.MappingUpdates
   alias Astarte.RealmManagement.Interfaces.Queries

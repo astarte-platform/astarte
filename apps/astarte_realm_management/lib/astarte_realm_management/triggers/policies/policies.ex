@@ -17,6 +17,9 @@
 #
 
 defmodule Astarte.RealmManagement.Triggers.Policies do
+  @moduledoc """
+  Public API for managing trigger policies within a Realm.
+  """
   alias Astarte.Core.Triggers.Policy
   alias Astarte.Core.Triggers.PolicyProtobuf.Policy, as: PolicyProto
   alias Astarte.RealmManagement.Triggers.Policies.Core
