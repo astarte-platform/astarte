@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2026 SECO Mind srl
+# Copyright 2026 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -16,26 +16,25 @@
 # limitations under the License.
 #
 
-defmodule Astarte.Events.AMQP do
-  use HTTPoison.Base
-
+defmodule Astarte.Events.Triggers.DataTriggerContext do
   @moduledoc """
-  Module providing basic HTTP functionalities to interact with the AMQP management API.
+  Module representing the context of a data trigger event in Astarte Events.
   """
-  alias Astarte.Events.Config
 
-  @impl true
-  def process_request_url(url) do
-    Config.amqp_base_url!() <> url
-  end
+  alias Astarte.DataAccess.UUID
+  alias Astarte.Events.Triggers.Core
 
-  @impl true
-  def process_request_options(options) do
-    auth_opts = [
-      hackney: [basic_auth: {Config.amqp_username!(), Config.amqp_password!()}],
-      ssl: Config.ssl_options!()
-    ]
+  use TypedStruct
 
-    Keyword.merge(auth_opts, options)
+  typedstruct do
+    field :realm_name, String.t()
+    field :device_id, UUID.t()
+    field :groups, [String.t()]
+    field :event, Core.data_trigger_event()
+    field :interface_id, UUID.t()
+    field :endpoint_id, UUID.t()
+    field :path, String.t() | nil
+    field :value, term() | nil
+    field :data, Core.fetch_triggers_data()
   end
 end

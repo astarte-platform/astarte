@@ -17,6 +17,13 @@
 #
 
 defmodule Astarte.Events.Triggers.Supervisor do
+  @moduledoc """
+  Supervisor for Astarte Events triggers-related processes, including caches and other components.
+   It ensures that all related processes are started and supervised properly.
+   If any of the child processes crash, the supervisor will restart them according to the defined strategy.
+   This module is essential for maintaining the stability and reliability of the triggers management in Astarte Events.
+   It uses a :one_for_all strategy, meaning if one child process crashes, all other child processes will be restarted as well.
+  """
   use Supervisor
 
   alias Astarte.Events.Triggers.Cache

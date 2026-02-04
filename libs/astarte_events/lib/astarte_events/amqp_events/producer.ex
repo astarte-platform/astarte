@@ -17,11 +17,14 @@
 #
 
 defmodule Astarte.Events.AMQPEvents.Producer do
+  @moduledoc """
+  AMQP Events Producer GenServer.
+  """
   require Logger
   use GenServer
 
-  alias Astarte.Events.Config
   alias AMQP.Channel
+  alias Astarte.Events.Config
 
   @connection_backoff Application.compile_env(:astarte_events, :connection_backoff, 10_000)
   alias ExRabbitPool.RabbitMQ
@@ -106,7 +109,7 @@ defmodule Astarte.Events.AMQPEvents.Producer do
   @impl true
   def handle_info(:init, chan), do: {:noreply, chan}
 
-  defp init_producer() do
+  defp init_producer do
     conn = ExRabbitPool.get_connection_worker(:events_producer_pool)
 
     with {:ok, channel} <- checkout_channel(conn),
@@ -152,7 +155,7 @@ defmodule Astarte.Events.AMQPEvents.Producer do
     end
   end
 
-  defp schedule_connect() do
+  defp schedule_connect do
     _ = Logger.warning("Retrying connection in #{@connection_backoff} ms")
     Process.send_after(self(), :init, @connection_backoff)
   end

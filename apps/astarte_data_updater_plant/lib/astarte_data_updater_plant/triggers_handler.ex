@@ -42,6 +42,7 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandler do
   alias Astarte.Core.CQLUtils
   alias Astarte.DataUpdaterPlant.Config
   alias Astarte.Events.Triggers
+  alias Astarte.Events.Triggers.DataTriggerContext
   alias Astarte.Events.TriggersHandler
 
   require Logger
@@ -126,17 +127,19 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandler do
 
     event = %IncomingDataEvent{interface: interface_name, path: path, bson_value: bson_value}
 
-    Triggers.find_all_data_trigger_targets(
-      realm,
-      device_id,
-      groups,
-      :on_incoming_data,
-      interface_id,
-      endpoint_id,
-      path,
-      value,
-      Map.from_struct(state)
-    )
+    query = %DataTriggerContext{
+      realm_name: realm,
+      device_id: device_id,
+      groups: groups,
+      event: :on_incoming_data,
+      interface_id: interface_id,
+      endpoint_id: endpoint_id,
+      path: path,
+      value: value,
+      data: Map.from_struct(state)
+    }
+
+    Triggers.find_all_data_trigger_targets(query)
     |> execute_all_ok(fn {target, policy} ->
       dispatch_event_with_telemetry(
         event,
@@ -310,17 +313,19 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandler do
 
     event = %PathCreatedEvent{interface: interface, path: path, bson_value: bson_value}
 
-    Triggers.find_all_data_trigger_targets(
-      realm,
-      device_id,
-      groups,
-      :on_path_created,
-      interface_id,
-      endpoint_id,
-      path,
-      value,
-      Map.from_struct(state)
-    )
+    query = %DataTriggerContext{
+      realm_name: realm,
+      device_id: device_id,
+      groups: groups,
+      event: :on_path_created,
+      interface_id: interface_id,
+      endpoint_id: endpoint_id,
+      path: path,
+      value: value,
+      data: Map.from_struct(state)
+    }
+
+    Triggers.find_all_data_trigger_targets(query)
     |> execute_all_ok(fn {target, policy} ->
       dispatch_event_with_telemetry(
         event,
@@ -349,16 +354,19 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandler do
 
     event = %PathRemovedEvent{interface: interface, path: path}
 
-    Triggers.find_all_data_trigger_targets(
-      realm,
-      device_id,
-      groups,
-      :on_path_removed,
-      interface_id,
-      endpoint_id,
-      path,
-      Map.from_struct(state)
-    )
+    query = %DataTriggerContext{
+      realm_name: realm,
+      device_id: device_id,
+      groups: groups,
+      event: :on_path_removed,
+      interface_id: interface_id,
+      endpoint_id: endpoint_id,
+      path: path,
+      value: nil,
+      data: Map.from_struct(state)
+    }
+
+    Triggers.find_all_data_trigger_targets(query)
     |> execute_all_ok(fn {target, policy} ->
       dispatch_event_with_telemetry(
         event,
@@ -397,17 +405,19 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandler do
       new_bson_value: new_bson_value
     }
 
-    Triggers.find_all_data_trigger_targets(
-      realm,
-      device_id,
-      groups,
-      :on_value_change,
-      interface_id,
-      endpoint_id,
-      path,
-      value,
-      Map.from_struct(state)
-    )
+    query = %DataTriggerContext{
+      realm_name: realm,
+      device_id: device_id,
+      groups: groups,
+      event: :on_value_change,
+      interface_id: interface_id,
+      endpoint_id: endpoint_id,
+      path: path,
+      value: value,
+      data: Map.from_struct(state)
+    }
+
+    Triggers.find_all_data_trigger_targets(query)
     |> execute_all_ok(fn {target, policy} ->
       dispatch_event_with_telemetry(
         event,
@@ -446,17 +456,19 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandler do
       new_bson_value: new_bson_value
     }
 
-    Triggers.find_all_data_trigger_targets(
-      realm,
-      device_id,
-      groups,
-      :on_value_change_applied,
-      interface_id,
-      endpoint_id,
-      path,
-      value,
-      Map.from_struct(state)
-    )
+    query = %DataTriggerContext{
+      realm_name: realm,
+      device_id: device_id,
+      groups: groups,
+      event: :on_value_change_applied,
+      interface_id: interface_id,
+      endpoint_id: endpoint_id,
+      path: path,
+      value: value,
+      data: Map.from_struct(state)
+    }
+
+    Triggers.find_all_data_trigger_targets(query)
     |> execute_all_ok(fn {target, policy} ->
       dispatch_event_with_telemetry(
         event,

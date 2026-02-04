@@ -17,6 +17,9 @@
 #
 
 defmodule Astarte.Events.AMQPTriggers do
+  @moduledoc """
+  Module providing functionalities to interact with AMQP triggers in Astarte Events.
+  """
   alias Astarte.Events.AMQPTriggers.{Producer, VHostSupervisor}
 
   def declare_exchange(realm_name, exchange) do

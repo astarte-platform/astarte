@@ -17,8 +17,11 @@
 #
 
 defmodule Astarte.Events.Triggers.Core do
-  alias Astarte.Core.Device
+  @moduledoc """
+  Core functionalities for managing triggers.
+  """
   alias Astarte.Core.CQLUtils
+  alias Astarte.Core.Device
   alias Astarte.Core.InterfaceDescriptor
   alias Astarte.Core.Mapping.EndpointsAutomaton
   alias Astarte.Core.Triggers.DataTrigger
@@ -28,9 +31,9 @@ defmodule Astarte.Events.Triggers.Core do
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.Utils
   alias Astarte.DataAccess.Realms.SimpleTrigger
   alias Astarte.Events.Triggers.DataTrigger, as: DataTriggerWithTargets
-  alias Astarte.Events.TriggersHandler.Core
   alias Astarte.Events.Triggers.Queries
   alias Astarte.Events.Triggers.ValueMatchOperators
+  alias Astarte.Events.TriggersHandler.Core
 
   @type data_trigger :: %ProtobufDataTrigger{}
   @type device_trigger :: %ProtobufDeviceTrigger{}
@@ -111,6 +114,20 @@ defmodule Astarte.Events.Triggers.Core do
   @group_and_any_interface_object_type Utils.object_type_to_int!(:group_and_any_interface)
   @group_and_interface_object_type Utils.object_type_to_int!(:group_and_interface)
 
+  @device_event_type_map %{
+    DEVICE_CONNECTED: :on_device_connection,
+    DEVICE_DISCONNECTED: :on_device_disconnection,
+    DEVICE_EMPTY_CACHE_RECEIVED: :on_empty_cache_received,
+    DEVICE_ERROR: :on_device_error,
+    INCOMING_INTROSPECTION: :on_incoming_introspection,
+    INTERFACE_ADDED: :on_interface_added,
+    INTERFACE_REMOVED: :on_interface_removed,
+    INTERFACE_MINOR_UPDATED: :on_interface_minor_updated,
+    DEVICE_REGISTERED: :on_device_registered,
+    DEVICE_DELETION_STARTED: :on_device_deletion_started,
+    DEVICE_DELETION_FINISHED: :on_device_deletion_finished
+  }
+
   def register_targets(realm_name, simple_trigger_list) do
     for {_trigger_key, target} <- simple_trigger_list do
       Core.register_target(realm_name, target)
@@ -120,7 +137,7 @@ defmodule Astarte.Events.Triggers.Core do
   @doc """
     Fetches triggers associated with the given deserialized simple trigger list.
     The return value is a map with `:data_triggers`, `:device_triggers`, and additional values loaded from the database.
-    Additional parameters are accepted, which can be used to initialize the return value for the cached item. In case of pre-existing 
+    Additional parameters are accepted, which can be used to initialize the return value for the cached item. In case of pre-existing
     In case of the possibility of interface-driven data triggers, `:interfaces` and `:interface_ids_to_name` must be set to appropriate values.
   """
   @spec fetch_triggers(String.t(), [deserialized_simple_trigger()], fetch_triggers_data()) ::
@@ -301,7 +318,8 @@ defmodule Astarte.Events.Triggers.Core do
     do: get_core_trigger_with_event_key(data, :device_trigger, trigger)
 
   def get_trigger_with_event_key(data, :data_trigger, trigger) do
-    with {:ok, key, data_trigger} <- get_core_trigger_with_event_key(data, :data_trigger, trigger) do
+    with {:ok, key, data_trigger} <-
+           get_core_trigger_with_event_key(data, :data_trigger, trigger) do
       policy_name_map = Map.get(data, :trigger_id_to_policy_name, %{})
       data_trigger = DataTriggerWithTargets.from_core(data_trigger, policy_name_map)
 
@@ -316,27 +334,30 @@ defmodule Astarte.Events.Triggers.Core do
         ) ::
           {:ok, endpoint()}
           | {:error, :interface_not_found | :invalid_match_path}
+  defp fetch_endpoint(_state, :any_endpoint, _interface_id) do
+    {:ok, :any_endpoint}
+  end
+
+  defp fetch_endpoint(_state, _path_match_tokens, :any_interface) do
+    {:ok, :any_endpoint}
+  end
+
   defp fetch_endpoint(state, path_match_tokens, interface_id) do
-    if path_match_tokens == :any_endpoint or interface_id == :any_interface do
-      {:ok, :any_endpoint}
-    else
-      interface_name = Map.get(state.interface_ids_to_name, interface_id)
+    interface_name = Map.get(state.interface_ids_to_name, interface_id)
 
-      case Map.fetch(state.interfaces, interface_name) do
-        :error ->
-          {:error, :interface_not_found}
+    case Map.fetch(state.interfaces, interface_name) do
+      :error ->
+        {:error, :interface_not_found}
 
-        {:ok, interface_descriptor} ->
-          path_no_root =
-            path_match_tokens
-            |> Enum.map(&replace_empty_token/1)
-            |> Enum.join("/")
+      {:ok, interface_descriptor} ->
+        path_no_root =
+          path_match_tokens
+          |> Enum.map_join("/", &replace_empty_token/1)
 
-          case EndpointsAutomaton.resolve_path("/#{path_no_root}", interface_descriptor.automaton) do
-            {:ok, endpoint_id} -> {:ok, endpoint_id}
-            _ -> {:error, :invalid_match_path}
-          end
-      end
+        case EndpointsAutomaton.resolve_path("/#{path_no_root}", interface_descriptor.automaton) do
+          {:ok, endpoint_id} -> {:ok, endpoint_id}
+          _ -> {:error, :invalid_match_path}
+        end
     end
   end
 
@@ -403,40 +424,7 @@ defmodule Astarte.Events.Triggers.Core do
   end
 
   def pretty_device_event_type(device_event_type) do
-    case device_event_type do
-      :DEVICE_CONNECTED ->
-        :on_device_connection
-
-      :DEVICE_DISCONNECTED ->
-        :on_device_disconnection
-
-      :DEVICE_EMPTY_CACHE_RECEIVED ->
-        :on_empty_cache_received
-
-      :DEVICE_ERROR ->
-        :on_device_error
-
-      :INCOMING_INTROSPECTION ->
-        :on_incoming_introspection
-
-      :INTERFACE_ADDED ->
-        :on_interface_added
-
-      :INTERFACE_REMOVED ->
-        :on_interface_removed
-
-      :INTERFACE_MINOR_UPDATED ->
-        :on_interface_minor_updated
-
-      :DEVICE_REGISTERED ->
-        :on_device_registered
-
-      :DEVICE_DELETION_STARTED ->
-        :on_device_deletion_started
-
-      :DEVICE_DELETION_FINISHED ->
-        :on_device_deletion_finished
-    end
+    Map.fetch!(@device_event_type_map, device_event_type)
   end
 
   def build_trigger_id_to_policy_name_map(realm_name, simple_triggers) do
@@ -611,40 +599,42 @@ defmodule Astarte.Events.Triggers.Core do
     end
   end
 
-  @spec object_from_subject(trigger_subject()) :: {object_type(), object_id()}
-  def object_from_subject(subject) do
-    case subject do
-      :any_device ->
-        {@any_device_object_type, @any_device_object_id}
+  @spec object_from_subject(trigger_subject()) ::
+          {object_type(), object_id()}
 
-      {:device_id, device_id} ->
-        {@device_object_type, device_id}
+  def object_from_subject(:any_device),
+    do: {@any_device_object_type, @any_device_object_id}
 
-      {:group, group_name} ->
-        object_id = Utils.get_group_object_id(group_name)
-        {@group_object_type, object_id}
+  def object_from_subject({:device_id, device_id}),
+    do: {@device_object_type, device_id}
 
-      :any_interface ->
-        {@any_interface_object_type, @any_interface_object_id}
+  def object_from_subject({:group, group_name}) do
+    {@group_object_type, Utils.get_group_object_id(group_name)}
+  end
 
-      {:interface, interface_id} ->
-        {@interface_object_type, interface_id}
+  def object_from_subject(:any_interface),
+    do: {@any_interface_object_type, @any_interface_object_id}
 
-      {:group_and_any_interface, group_name} ->
-        object_id = Utils.get_group_and_any_interface_object_id(group_name)
-        {@group_and_any_interface_object_type, object_id}
+  def object_from_subject({:interface, interface_id}),
+    do: {@interface_object_type, interface_id}
 
-      {:group_and_interface, group_name, interface_id} ->
-        object_id = Utils.get_group_and_interface_object_id(group_name, interface_id)
-        {@group_and_interface_object_type, object_id}
+  def object_from_subject({:group_and_any_interface, group_name}) do
+    {@group_and_any_interface_object_type,
+     Utils.get_group_and_any_interface_object_id(group_name)}
+  end
 
-      {:device_and_any_interface, device_id} ->
-        object_id = Utils.get_device_and_any_interface_object_id(device_id)
-        {@device_and_any_interface_object_type, object_id}
+  def object_from_subject({:group_and_interface, group_name, interface_id}) do
+    {@group_and_interface_object_type,
+     Utils.get_group_and_interface_object_id(group_name, interface_id)}
+  end
 
-      {:device_and_interface, device_id, interface_id} ->
-        object_id = Utils.get_device_and_interface_object_id(device_id, interface_id)
-        {@device_and_interface_object_type, object_id}
-    end
+  def object_from_subject({:device_and_any_interface, device_id}) do
+    {@device_and_any_interface_object_type,
+     Utils.get_device_and_any_interface_object_id(device_id)}
+  end
+
+  def object_from_subject({:device_and_interface, device_id, interface_id}) do
+    {@device_and_interface_object_type,
+     Utils.get_device_and_interface_object_id(device_id, interface_id)}
   end
 end

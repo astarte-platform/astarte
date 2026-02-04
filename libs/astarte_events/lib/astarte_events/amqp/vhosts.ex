@@ -17,7 +17,11 @@
 #
 
 defmodule Astarte.Events.AMQP.Vhost do
+  @moduledoc """
+  Module providing functionalities to manage AMQP vhosts for Astarte Events.
+  """
   require Logger
+  alias Astarte.DataAccess.Config
   alias Astarte.Events.AMQP
 
   @spec create_vhost(String.t()) :: :ok | :error
@@ -49,7 +53,7 @@ defmodule Astarte.Events.AMQP.Vhost do
   end
 
   def vhost_name(realm_name) do
-    astarte_instance = Astarte.DataAccess.Config.astarte_instance_id!()
+    astarte_instance = Config.astarte_instance_id!()
     "#{astarte_instance}_#{realm_name}"
   end
 end

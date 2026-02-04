@@ -21,8 +21,8 @@ defmodule Astarte.Events.Triggers.QueriesTests do
 
   import Mimic
 
-  alias Astarte.Events.Triggers.Queries
   alias Astarte.Core.Generators.Device, as: DeviceGenerator
+  alias Astarte.Events.Triggers.Queries
 
   setup :verify_on_exit!
 

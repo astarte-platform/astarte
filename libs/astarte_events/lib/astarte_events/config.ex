@@ -17,6 +17,9 @@
 #
 
 defmodule Astarte.Events.Config do
+  @moduledoc """
+  This module contains functions to access the configuration.
+  """
   use Skogsra
   alias Astarte.DataAccess.Config, as: DataAccessConfig
 
@@ -77,7 +80,7 @@ defmodule Astarte.Events.Config do
   app_env :amqp_management_port, :astarte_housekeeping, :amqp_management_port,
     os_env: "HOUSEKEEPING_AMQP_MANAGEMENT_PORT",
     type: :integer,
-    default: 15672
+    default: 15_672
 
   @envdoc "Enable SSL for the AMQP consumer connection. If not specified, SSL is disabled."
   app_env(:amqp_ssl_enabled, :astarte_events, :amqp_ssl_enabled,
@@ -134,7 +137,7 @@ defmodule Astarte.Events.Config do
     default: "astarte_events"
 
   # Since we have one channel per queue, this is not configurable
-  def amqp_channels_per_connection_number!() do
+  def amqp_channels_per_connection_number! do
     ceil(data_queue_total_count!() / amqp_connection_number!())
   end
 
@@ -154,7 +157,7 @@ defmodule Astarte.Events.Config do
     |> populate_consumer_ssl_options()
   end
 
-  def amqp_base_url!() do
+  def amqp_base_url! do
     if amqp_ssl_enabled!() do
       "https://#{amqp_host!()}:#{amqp_management_port!()}"
     else
@@ -170,7 +173,7 @@ defmodule Astarte.Events.Config do
     end
   end
 
-  defp build_ssl_options() do
+  defp build_ssl_options do
     [
       cacertfile: amqp_ssl_ca_file!(),
       verify: :verify_peer,
@@ -197,7 +200,7 @@ defmodule Astarte.Events.Config do
     end
   end
 
-  defp build_consumer_ssl_options() do
+  defp build_consumer_ssl_options do
     [
       cacertfile: amqp_ssl_ca_file!() || CAStore.file_path(),
       verify: :verify_peer,
@@ -216,9 +219,9 @@ defmodule Astarte.Events.Config do
   end
 
   # Since we have only one producer, this is not configurable
-  def events_connection_number!(), do: 1
+  def events_connection_number!, do: 1
 
-  def events_pool_config!() do
+  def events_pool_config! do
     [
       name: {:local, :events_producer_pool},
       worker_module: ExRabbitPool.Worker.RabbitConnection,

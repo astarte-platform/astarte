@@ -22,11 +22,12 @@ defmodule Astarte.Events.Triggers.CacheTest do
 
   import Mimic
 
-  alias Astarte.Events.Triggers.Cache
   alias Astarte.Core.Generators.Device, as: DeviceGenerator
+  alias Astarte.DataAccess.UUID
   alias Astarte.Events.AMQP.Vhost
   alias Astarte.Events.AMQPTriggers.VHostSupervisor
   alias Astarte.Events.Triggers
+  alias Astarte.Events.Triggers.Cache
 
   setup_all context do
     %{realm_name: realm_name} = context
@@ -130,7 +131,7 @@ defmodule Astarte.Events.Triggers.CacheTest do
           interface_major: interface.major_version
         )
 
-      {:ok, interface_id} = Astarte.DataAccess.UUID.cast(interface.interface_id)
+      {:ok, interface_id} = UUID.cast(interface.interface_id)
 
       targets =
         Cache.find_data_trigger_targets(

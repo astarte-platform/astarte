@@ -23,13 +23,15 @@ defmodule Astarte.Events.TriggersHandler.CoreTest do
 
   alias Astarte.Core.Triggers.SimpleEvents.SimpleEvent
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.AMQPTriggerTarget
-  alias Astarte.Events.TriggersHandler.Core
-  alias Astarte.Events.AMQPEvents
-  alias Astarte.Events.AMQPTriggers
+
   alias Astarte.Core.Generators.Triggers.SimpleEvents.SimpleEvent, as: SimpleEventGenerator
 
   alias Astarte.Core.Generators.Triggers.SimpleEvents.IncomingDataEvent,
     as: IncomingDataEventGenerator
+
+  alias Astarte.Events.AMQPEvents
+  alias Astarte.Events.AMQPTriggers
+  alias Astarte.Events.TriggersHandler.Core
 
   @device_id "f0VMRgIBAQAAAAAAAAAAAA"
   @routing_key "test.routing.key"
@@ -56,9 +58,9 @@ defmodule Astarte.Events.TriggersHandler.CoreTest do
       target = %AMQPTriggerTarget{exchange: exchange}
 
       AMQPTriggers
-      |> expect(:declare_exchange, fn realm, exchange ->
-        assert realm == realm
-        assert exchange == exchange
+      |> expect(:declare_exchange, fn fn_realm, fn_exchange ->
+        assert fn_realm == realm
+        assert fn_exchange == exchange
         :ok
       end)
 

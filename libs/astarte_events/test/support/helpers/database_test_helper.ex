@@ -23,11 +23,12 @@ defmodule Astarte.Helpers.Database do
   alias Astarte.DataAccess.Realms.Realm
   alias Astarte.DataAccess.Repo
 
+  alias Astarte.Core.Triggers.SimpleTriggersProtobuf.AMQPTriggerTarget
+  alias Astarte.Core.Triggers.SimpleTriggersProtobuf.DataTrigger
+  alias Astarte.Core.Triggers.SimpleTriggersProtobuf.DeviceTrigger
+
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.SimpleTriggerContainer
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.TriggerTargetContainer
-  alias Astarte.Core.Triggers.SimpleTriggersProtobuf.AMQPTriggerTarget
-  alias Astarte.Core.Triggers.SimpleTriggersProtobuf.DeviceTrigger
-  alias Astarte.Core.Triggers.SimpleTriggersProtobuf.DataTrigger
 
   alias Astarte.DataAccess.Consistency
   alias Astarte.DataAccess.KvStore
@@ -639,9 +640,8 @@ defmodule Astarte.Helpers.Database do
 
     opts = [prefix: keyspace, consistency: Consistency.domain_model(:write)]
 
-    with :ok <- KvStore.insert(triggers_with_policy, opts),
-         :ok <- KvStore.insert(trigger_to_policy, opts) do
-      :ok
+    with :ok <- KvStore.insert(triggers_with_policy, opts) do
+      KvStore.insert(trigger_to_policy, opts)
     end
   end
 
