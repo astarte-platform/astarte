@@ -1,0 +1,83 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "description": "Renovate configuration for Astarte - Conflict-Free Elixir Monorepo",
+  "extends": [
+    "config:recommended",
+    ":rebaseStalePrs",
+    ":semanticCommits",
+    "helpers:pinGitHubActionDigests"
+  ],
+  
+  "configMigration": true,
+  "dependencyDashboard": true,
+  "dependencyDashboardApproval": false,
+  "prCreation": "not-pending",
+  "rebaseWhen": "conflicted",
+  "platformAutomerge": true,
+  "automergeType": "branch",
+  "rangeStrategy": "update-lockfile",
+  "internalChecksFilter": "strict",
+  
+  "timezone": "UTC",
+  "labels": ["renovate"],
+  "separateMajorMinor": true,
+  "separateMinorPatch": false,
+  "prConcurrentLimit": 2,
+  "prHourlyLimit": 1,
+  
+  "vulnerabilityAlerts": {
+    "enabled": true,
+    "labels": ["security"],
+    "automerge": false
+  },
+  
+  "lockFileMaintenance": {
+    "enabled": true,
+    "schedule": ["before 9am on the first day of the month"]
+  },
+  
+  "packageRules": [
+    {
+      "description": "Disable Docker updates",
+      "matchDatasources": ["docker"],
+      "enabled": false
+    },
+    {
+      "description": "Group all Elixir dependencies together (non-major)",
+      "matchManagers": ["mix"],
+      "matchUpdateTypes": ["patch", "minor"],
+      "groupName": "Elixir dependencies (non-major)",
+      "minimumReleaseAge": "3 days",
+      "automerge": true,
+      "labels": ["dependencies", "elixir", "automerge"],
+      "schedule": ["before 6am on Monday"]
+    },
+    {
+      "description": "Group all Elixir major updates separately",
+      "matchManagers": ["mix"],
+      "matchUpdateTypes": ["major"],
+      "groupName": "Elixir dependencies",
+      "dependencyDashboardApproval": true,
+      "automerge": false,
+      "labels": ["dependencies", "elixir", "major"]
+    },
+    {
+      "description": "Automerge GitHub Actions (non-major)",
+      "matchManagers": ["github-actions"],
+      "matchUpdateTypes": ["patch", "minor", "digest"],
+      "groupName": "GitHub Actions",
+      "automerge": true,
+      "labels": ["dependencies", "github-actions", "automerge"],
+      "schedule": ["before 6am on Monday"]
+    },
+    {
+      "description": "GitHub Actions major updates require approval",
+      "matchManagers": ["github-actions"],
+      "matchUpdateTypes": ["major"],
+      "groupName": "GitHub Actions",
+      "dependencyDashboardApproval": true,
+      "automerge": false,
+      "labels": ["dependencies", "github-actions", "major"]
+    }
+  ]
+}
