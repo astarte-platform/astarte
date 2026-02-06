@@ -150,7 +150,7 @@ Astarte Dashboard is written in TypeScript using the React framework and npm to 
    ```sh
    npm install
    ```
-3. Place your configuration file in `src/user-config/config.json`
+3. Place your configuration file in `public/user-config/config.json`
 4. Start the dev server
    ```sh
    npm run start
