@@ -17,11 +17,14 @@
 #
 
 defmodule Astarte.RealmManagement.Triggers.Policies do
+  @moduledoc """
+  Public API for managing trigger policies within a Realm.
+  """
   alias Astarte.Core.Triggers.Policy
-  alias Astarte.RealmManagement.Triggers.Policies.Queries
-  alias Astarte.RealmManagement.Triggers.Queries, as: TriggerQueries
   alias Astarte.Core.Triggers.PolicyProtobuf.Policy, as: PolicyProto
   alias Astarte.RealmManagement.Triggers.Policies.Core
+  alias Astarte.RealmManagement.Triggers.Policies.Queries
+  alias Astarte.RealmManagement.Triggers.Queries, as: TriggerQueries
 
   require Logger
 

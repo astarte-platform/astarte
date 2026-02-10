@@ -17,6 +17,7 @@
 #
 
 defmodule Astarte.Helpers.Database do
+  @moduledoc false
   alias Astarte.DataAccess.KvStore
   alias Astarte.DataAccess.Realms.Realm
   alias Astarte.DataAccess.Repo

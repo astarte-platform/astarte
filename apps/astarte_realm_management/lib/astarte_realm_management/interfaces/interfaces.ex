@@ -17,12 +17,17 @@
 #
 
 defmodule Astarte.RealmManagement.Interfaces do
-  alias Astarte.Core.Mapping.EndpointsAutomaton
-  alias Astarte.Core.Mapping
+  @moduledoc """
+  Public API for Interface management within Astarte.
+
+  It handles the complete lifecycle of Interfaces, including creation, updating, listing, and deletion.
+  """
   alias Astarte.Core.CQLUtils
   alias Astarte.Core.Interface
   alias Astarte.Core.InterfaceDescriptor
   alias Astarte.Core.Mapping
+  alias Astarte.Core.Mapping
+  alias Astarte.Core.Mapping.EndpointsAutomaton
   alias Astarte.Core.Mapping.EndpointsAutomaton
   alias Astarte.DataAccess.Interface, as: DataAccessInterface
   alias Astarte.DataAccess.Mappings
@@ -107,9 +112,8 @@ defmodule Astarte.RealmManagement.Interfaces do
   end
 
   defp can_install_interface?(realm_name, interface) do
-    with :ok <- check_major_version(realm_name, interface),
-         :ok <- check_name_collision(realm_name, interface) do
-      :ok
+    with :ok <- check_major_version(realm_name, interface) do
+      check_name_collision(realm_name, interface)
     end
   end
 
@@ -137,7 +141,7 @@ defmodule Astarte.RealmManagement.Interfaces do
   end
 
   defp check_major_version(realm_name, interface) do
-    if Queries.is_interface_major_available?(
+    if Queries.interface_major_available?(
          realm_name,
          interface.name,
          interface.major_version
@@ -203,9 +207,9 @@ defmodule Astarte.RealmManagement.Interfaces do
     end
   end
 
-  defp check_name_matches(name = _name_path, name = _name_param), do: :ok
+  defp check_name_matches(name_path, name_param) when name_path == name_param, do: :ok
   defp check_name_matches(_name_path, _name_param), do: {:error, :name_not_matching}
-  defp check_major_matches(major = _major_path, major = _major_param), do: :ok
+  defp check_major_matches(major_path, major_param) when major_path == major_param, do: :ok
   defp check_major_matches(_major_path, _major_param), do: {:error, :major_version_not_matching}
 
   defp fetch_installed_interface_descriptor(realm_name, name, major) do
@@ -269,7 +273,7 @@ defmodule Astarte.RealmManagement.Interfaces do
     Enum.reduce_while(old_mappings, {:ok, %{}}, fn {mapping_id, old_mapping}, {:ok, acc} ->
       with {:ok, updated_mapping} <- Map.fetch(changed_mappings, mapping_id),
            {:allowed, true} <- {:allowed, allowed_mapping_update?(old_mapping, updated_mapping)},
-           {:updated, true} <- {:updated, is_mapping_updated?(old_mapping, updated_mapping)} do
+           {:updated, true} <- {:updated, mapping_updated?(old_mapping, updated_mapping)} do
         {:cont, {:ok, Map.put(acc, mapping_id, updated_mapping)}}
       else
         :error ->
@@ -291,7 +295,7 @@ defmodule Astarte.RealmManagement.Interfaces do
     new_mapping == old_mapping
   end
 
-  defp is_mapping_updated?(mapping, upd_mapping) do
+  defp mapping_updated?(mapping, upd_mapping) do
     mapping.explicit_timestamp != upd_mapping.explicit_timestamp or
       mapping.doc != upd_mapping.doc or
       mapping.description != upd_mapping.description or
@@ -347,17 +351,15 @@ defmodule Astarte.RealmManagement.Interfaces do
          interface_name,
          interface_major_version
        ) do
-    try do
-      check_interface_major_available(realm_name, interface_name, interface_major_version)
-    rescue
-      Xandra.Error ->
-        # realm does not exist
-        {:error, :interface_not_found}
-    end
+    check_interface_major_available(realm_name, interface_name, interface_major_version)
+  rescue
+    Xandra.Error ->
+      # realm does not exist
+      {:error, :interface_not_found}
   end
 
   defp check_interface_major_available(realm_name, interface_name, interface_major_version) do
-    if Queries.is_interface_major_available?(
+    if Queries.interface_major_available?(
          realm_name,
          interface_name,
          interface_major_version
@@ -369,7 +371,7 @@ defmodule Astarte.RealmManagement.Interfaces do
   end
 
   defp check_interface_not_in_use_by_devices(realm_name, interface_name) do
-    case Queries.is_any_device_using_interface?(realm_name, interface_name) do
+    case Queries.any_device_using_interface?(realm_name, interface_name) do
       false -> :ok
       true -> {:error, :cannot_delete_currently_used_interface}
     end

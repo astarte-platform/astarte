@@ -220,10 +220,7 @@ defmodule Astarte.RealmManagement.TriggersTest do
         assert trigger.name == fetched_trigger.name
         assert policy.name == fetched_trigger.policy
 
-        simple_trigger =
-          unless simple_trigger.interface_major,
-            do: Map.put(simple_trigger, :interface_major, 0),
-            else: simple_trigger
+        simple_trigger = Map.update(simple_trigger, :interface_major, 0, &(&1 || 0))
 
         assert fetched_trigger.simple_triggers == [simple_trigger]
 

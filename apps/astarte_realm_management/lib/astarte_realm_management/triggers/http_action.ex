@@ -17,6 +17,9 @@
 #
 
 defmodule Astarte.RealmManagement.Triggers.HttpAction do
+  @moduledoc """
+  Schema and validation for HTTP trigger actions (Webhooks).
+  """
   use TypedEctoSchema
   import Ecto.Changeset
   alias Astarte.RealmManagement.Triggers.HttpAction

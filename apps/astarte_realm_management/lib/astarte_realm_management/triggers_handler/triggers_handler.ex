@@ -17,6 +17,9 @@
 #
 
 defmodule Astarte.RealmManagement.TriggersHandler do
+  @moduledoc """
+  Handles the dispatching of Trigger events for Realm Management.
+  """
   alias Astarte.Core.Device
   alias Astarte.Core.Triggers.SimpleEvents.DeviceDeletionFinishedEvent
   alias Astarte.Core.Triggers.SimpleEvents.DeviceDeletionStartedEvent

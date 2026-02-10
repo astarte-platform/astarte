@@ -17,6 +17,9 @@
 #
 
 defmodule Astarte.RealmManagement.RPC.DataUpdaterPlant.Client do
+  @moduledoc """
+  RPC Client module for interacting with the Data Updater Plant.
+  """
   alias Astarte.Core.Device
 
   def start_device_deletion_rpc(realm_name, decoded_id) do
@@ -26,5 +29,5 @@ defmodule Astarte.RealmManagement.RPC.DataUpdaterPlant.Client do
     |> GenServer.call({:start_device_deletion, {realm_name, encoded_device_id}})
   end
 
-  defp server_via_tuple(), do: {:via, Horde.Registry, {Registry.DataUpdaterRPC, :server}}
+  defp server_via_tuple, do: {:via, Horde.Registry, {Registry.DataUpdaterRPC, :server}}
 end

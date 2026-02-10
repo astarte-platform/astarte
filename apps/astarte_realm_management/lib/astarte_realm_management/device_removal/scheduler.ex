@@ -27,8 +27,8 @@ defmodule Astarte.RealmManagement.DeviceRemoval.Scheduler do
 
   use GenServer
 
-  alias Astarte.RealmManagement.DeviceRemoval.Queries
   alias Astarte.RealmManagement.DeviceRemoval.DeviceRemover
+  alias Astarte.RealmManagement.DeviceRemoval.Queries
 
   require Logger
 
@@ -54,13 +54,13 @@ defmodule Astarte.RealmManagement.DeviceRemoval.Scheduler do
     {:noreply, state}
   end
 
-  defp start_device_deletion!() do
+  defp start_device_deletion! do
     device_to_delete_list = retrieve_devices_to_delete!()
 
     Enum.each(device_to_delete_list, &start_device_deletion/1)
   end
 
-  defp schedule_device_deletion() do
+  defp schedule_device_deletion do
     Process.send_after(self(), :delete_devices, @reconciliation_timeout)
   end
 
@@ -74,7 +74,7 @@ defmodule Astarte.RealmManagement.DeviceRemoval.Scheduler do
     )
   end
 
-  defp retrieve_devices_to_delete!() do
+  defp retrieve_devices_to_delete! do
     realms = Queries.retrieve_realms!()
 
     Enum.flat_map(realms, fn %{realm_name: realm_name} ->

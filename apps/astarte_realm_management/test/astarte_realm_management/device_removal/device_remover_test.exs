@@ -30,8 +30,8 @@ defmodule Astarte.RealmManagement.DeviceRemoval.DeviceRemoverTest do
 
   alias Astarte.DataAccess.Device.DeletionInProgress
   alias Astarte.DataAccess.Realms.Realm
-  alias Astarte.RealmManagement.DeviceRemoval.DeviceRemover
   alias Astarte.DataAccess.Repo
+  alias Astarte.RealmManagement.DeviceRemoval.DeviceRemover
 
   import Astarte.Helpers.Triggers
 

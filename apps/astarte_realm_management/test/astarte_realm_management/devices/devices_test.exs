@@ -23,16 +23,16 @@ defmodule Astarte.RealmManagement.DevicesTest do
   use ExUnitProperties
   use Mimic
 
-  alias Astarte.RealmManagement.Devices
+  alias Astarte.Core.Device, as: DeviceCore
   alias Astarte.Core.Generators.Device, as: DeviceGenerator
   alias Astarte.DataAccess.Device.DeletionInProgress
-  alias Astarte.DataAccess.Repo
   alias Astarte.DataAccess.Devices.Device
-  alias Astarte.RealmManagement.RPC.DataUpdaterPlant.Client, as: DevicesRPC
   alias Astarte.DataAccess.Realms.Realm
-  alias Astarte.Core.Device, as: DeviceCore
+  alias Astarte.DataAccess.Repo
   alias Astarte.RealmManagement.DeviceRemoval.Queries
+  alias Astarte.RealmManagement.Devices
   alias Astarte.RealmManagement.Devices.Queries, as: DeviceQueries
+  alias Astarte.RealmManagement.RPC.DataUpdaterPlant.Client, as: DevicesRPC
 
   import Astarte.Helpers.Triggers
 

@@ -17,11 +17,14 @@
 #
 
 defmodule Astarte.RealmManagement.Triggers.Trigger do
+  @moduledoc """
+  Schema and validation logic Triggers.
+  """
   use TypedEctoSchema
   import Ecto.Changeset
-  alias Ecto.Changeset
   alias Astarte.Core.Triggers.SimpleTriggerConfig
   alias Astarte.RealmManagement.Triggers.{Action, AMQPAction, HttpAction, Trigger}
+  alias Ecto.Changeset
 
   @derive {Phoenix.Param, key: :name}
   @primary_key false

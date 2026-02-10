@@ -17,8 +17,13 @@
 #
 
 defmodule Astarte.RealmManagement.RealmConfig do
-  alias Astarte.RealmManagement.RealmConfig.Queries
+  @moduledoc """
+  Context module for managing realm configuration.
+
+  This module handles the retrieval and update of realm-specific configuration settings, such as JWT authentication credentials, device registration limits, and datastream storage retention policies.
+  """
   alias Astarte.RealmManagement.RealmConfig.AuthConfig
+  alias Astarte.RealmManagement.RealmConfig.Queries
 
   def get_auth_config(realm) do
     with {:ok, jwt_public_key_pem} <- Queries.fetch_jwt_public_key_pem(realm) do

@@ -17,7 +17,22 @@ config :astarte_realm_management, Astarte.RealmManagementWeb.Endpoint,
 # Configures Elixir's Logger
 config :logger, :console,
   format: "$time $metadata[$level] $message\n",
-  metadata: [:request_id]
+  metadata: [
+    :method,
+    :request_path,
+    :status_code,
+    :elapsed,
+    :realm,
+    :module,
+    :function,
+    :request_id,
+    :tag,
+    :interface_major,
+    :trigger_name,
+    :interface,
+    :policy_name,
+    :reason
+  ]
 
 config :astarte_realm_management, Astarte.RealmManagementWeb.AuthGuardian,
   allowed_algos: ["ES256", "ES384", "ES512", "PS256", "PS384", "PS512", "RS256", "RS384", "RS512"]

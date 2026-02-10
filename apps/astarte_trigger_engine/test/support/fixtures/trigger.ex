@@ -124,7 +124,7 @@ defmodule Astarte.Fixtures.Trigger do
     ]
   end
 
-  def triggers_not_installed() do
+  def triggers_not_installed do
     action_1 = """
     {
       "http_url": "http://hello.world.ai",

@@ -22,9 +22,9 @@ defmodule Astarte.RealmManagement.Generators.IndividualDatastream do
   @moduledoc """
   Generator of `IndividualDatastream`s.
   """
+  alias Astarte.DataAccess.Realms.IndividualDatastream
   alias Astarte.Generators.Utilities.ParamsGen
   alias Ecto.UUID
-  alias Astarte.DataAccess.Realms.IndividualDatastream
 
   use ExUnitProperties
 

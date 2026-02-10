@@ -1,7 +1,10 @@
 defmodule Astarte.RealmManagement.Triggers.Policies.Core do
+  @moduledoc """
+  This module handles the lifecycle and validation of policies that rules how trigger behave, particularly regarding retry strategies and error handling.
+  """
   alias Astarte.RealmManagement.Triggers.Core, as: TriggersCore
-  alias Astarte.RealmManagement.Triggers.Queries, as: TriggerQueries
   alias Astarte.RealmManagement.Triggers.Policies.Queries, as: PolicyQueries
+  alias Astarte.RealmManagement.Triggers.Queries, as: TriggerQueries
 
   require Logger
 

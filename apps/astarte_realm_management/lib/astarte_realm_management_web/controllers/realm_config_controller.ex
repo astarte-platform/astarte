@@ -25,19 +25,20 @@ defmodule Astarte.RealmManagementWeb.RealmConfigController do
   action_fallback Astarte.RealmManagementWeb.FallbackController
 
   def show(conn, %{"realm_name" => realm_name, "group" => "auth"}) do
-    with {:ok, %AuthConfig{} = auth_config} = RealmConfig.get_auth_config(realm_name) do
+    with {:ok, %AuthConfig{} = auth_config} <- RealmConfig.get_auth_config(realm_name) do
       render(conn, "show.json", auth_config: auth_config)
     end
   end
 
   def show(conn, %{"realm_name" => realm_name, "group" => "device_registration_limit"}) do
-    with {:ok, device_registration_limit} = RealmConfig.get_device_registration_limit(realm_name) do
+    with {:ok, device_registration_limit} <-
+           RealmConfig.get_device_registration_limit(realm_name) do
       render(conn, "show.json", device_registration_limit: device_registration_limit)
     end
   end
 
   def show(conn, %{"realm_name" => realm_name, "group" => "datastream_maximum_storage_retention"}) do
-    with {:ok, datastream_maximum_storage_retention} =
+    with {:ok, datastream_maximum_storage_retention} <-
            RealmConfig.get_datastream_maximum_storage_retention(realm_name) do
       render(conn, "show.json",
         datastream_maximum_storage_retention: datastream_maximum_storage_retention

@@ -22,8 +22,8 @@ defmodule Astarte.RealmManagement.Triggers.TriggerTest do
   @moduletag :trigger_actions
 
   alias Astarte.Core.Triggers.SimpleTriggerConfig
-  alias Astarte.RealmManagement.Triggers.Trigger
   alias Astarte.RealmManagement.Triggers.Action
+  alias Astarte.RealmManagement.Triggers.Trigger
   alias Ecto.Changeset
 
   test "valid triggers with http action are accepted" do

@@ -16,6 +16,7 @@
 # limitations under the License.
 
 defmodule Astarte.Helpers.Device do
+  @moduledoc false
   alias Astarte.DataAccess.Devices.Device
   alias Astarte.DataAccess.Groups.GroupedDevice
   alias Astarte.DataAccess.Realms.Interface

@@ -30,12 +30,13 @@ defmodule Astarte.RealmManagementWeb.TriggerController do
   end
 
   def create(conn, %{"realm_name" => realm_name, "data" => trigger_params}) do
-    with {:ok, %Trigger{} = trigger} <- Triggers.create_trigger(realm_name, trigger_params) do
-      conn
-      |> put_status(:created)
-      |> put_resp_header("location", trigger_path(conn, :show, realm_name, trigger))
-      |> render("show.json", trigger: trigger)
-    else
+    case Triggers.create_trigger(realm_name, trigger_params) do
+      {:ok, %Trigger{} = trigger} ->
+        conn
+        |> put_status(:created)
+        |> put_resp_header("location", trigger_path(conn, :show, realm_name, trigger))
+        |> render("show.json", trigger: trigger)
+
       {:error, :already_installed_trigger} ->
         conn
         |> put_status(:conflict)
@@ -63,9 +64,10 @@ defmodule Astarte.RealmManagementWeb.TriggerController do
   end
 
   def show(conn, %{"realm_name" => realm_name, "id" => id}) do
-    with {:ok, trigger} <- Triggers.get_trigger(realm_name, id) do
-      render(conn, "show.json", trigger: trigger)
-    else
+    case Triggers.get_trigger(realm_name, id) do
+      {:ok, trigger} ->
+        render(conn, "show.json", trigger: trigger)
+
       {:error, :cannot_retrieve_simple_trigger} ->
         conn
         |> put_status(:internal_server_error)

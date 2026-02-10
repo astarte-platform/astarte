@@ -22,8 +22,8 @@ defmodule Astarte.RealmManagement.Generators.IndividualProperty do
   @moduledoc """
   Generators of `IndividualProperty`es
   """
-  alias Astarte.Generators.Utilities.ParamsGen
   alias Astarte.DataAccess.Realms.IndividualProperty
+  alias Astarte.Generators.Utilities.ParamsGen
   alias Ecto.UUID
 
   use ExUnitProperties

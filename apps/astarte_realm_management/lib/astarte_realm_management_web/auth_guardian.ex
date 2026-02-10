@@ -17,6 +17,12 @@
 #
 
 defmodule Astarte.RealmManagementWeb.AuthGuardian do
+  @moduledoc """
+  Guardian implementation for Real Management.
+
+  This module handles the encoding and of JWT.
+  It maps the JWT subject to an Astarte auth user and extracts the specific Astarte claims for authorizations.
+  """
   use Guardian, otp_app: :astarte_realm_management
 
   alias Astarte.RealmManagement.Auth.User

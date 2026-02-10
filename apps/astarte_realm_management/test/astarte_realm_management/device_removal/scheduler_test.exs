@@ -22,10 +22,11 @@ defmodule Astarte.RealmManagement.DeviceRemoval.SchedulerTest do
   @moduledoc """
   Tests for the device remover scheduler.
   """
-  alias Astarte.RealmManagement.DeviceRemoval.Queries
-  alias Astarte.DataAccess.Repo
-  alias Astarte.DataAccess.Realms.Realm
+  alias Astarte.Core.Generators.Device
   alias Astarte.DataAccess.Device.DeletionInProgress
+  alias Astarte.DataAccess.Realms.Realm
+  alias Astarte.DataAccess.Repo
+  alias Astarte.RealmManagement.DeviceRemoval.Queries
   alias Astarte.RealmManagement.Generators.DeletionInProgress, as: DeletionGenerator
 
   use Astarte.Cases.Data, async: true
@@ -36,9 +37,9 @@ defmodule Astarte.RealmManagement.DeviceRemoval.SchedulerTest do
   # pre-determined timeout and running a task.
   property "Test device removal happens only when all ACKs are available", %{realm: realm} do
     check all(
-            ackd_devices <- Astarte.Core.Generators.Device.id() |> list_of(length: 1..10),
+            ackd_devices <- Device.id() |> list_of(length: 1..10),
             non_ackd <-
-              Astarte.Core.Generators.Device.id()
+              Device.id()
               |> StreamData.filter(fn id -> id not in ackd_devices end)
               |> DeletionGenerator.deletion_in_progress()
               |> StreamData.filter(fn deletion -> not DeletionInProgress.all_ack?(deletion) end)

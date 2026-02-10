@@ -17,6 +17,11 @@
 #
 
 defmodule Astarte.RealmManagement.Auth do
+  @moduledoc """
+  Authentication context for Astarte Realm Management.
+
+  This module provides function to retrieve security credentialias, such as JWT public keys, required for authentication requests within a specific realm.
+  """
   alias Astarte.RealmManagement.RealmConfig.Queries
 
   require Logger

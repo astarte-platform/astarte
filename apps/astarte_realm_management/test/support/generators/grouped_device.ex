@@ -22,6 +22,7 @@ defmodule Astarte.RealmManagement.Generators.GroupedDevice do
   @moduledoc """
   Generator for `Astarte.DataAccess.Groups.GroupedDevice` structure
   """
+  alias Astarte.Core.Generators.Device
   alias Astarte.DataAccess.Groups.GroupedDevice
   alias Astarte.Generators.Utilities.ParamsGen
 
@@ -31,7 +32,7 @@ defmodule Astarte.RealmManagement.Generators.GroupedDevice do
   def grouped_device(params) do
     params gen(
              all(
-               device_id <- Astarte.Core.Generators.Device.id(),
+               device_id <- Device.id(),
                group_name <- string(:utf8, length: 1..256),
                insertion_uuid <- repeatedly(&UUID.uuid1/0),
                params: params

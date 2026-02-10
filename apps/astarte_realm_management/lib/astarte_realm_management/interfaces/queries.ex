@@ -20,23 +20,22 @@ defmodule Astarte.RealmManagement.Interfaces.Queries do
   @moduledoc """
   Astarte Realm Management Interfaces Queries module.
   """
-  alias Astarte.Core.StorageType
-  alias Astarte.Core.Interface.Ownership
-  alias Astarte.Core.Interface.Aggregation
   alias Astarte.Core.CQLUtils
-  alias Astarte.DataAccess.CSystem
-  alias Astarte.RealmManagement.CreateDatastreamIndividualMultiInterface
   alias Astarte.Core.Device
-  alias Astarte.Core.InterfaceDescriptor
-  alias Astarte.DataAccess.KvStore
   alias Astarte.Core.Interface, as: InterfaceDocument
+  alias Astarte.Core.Interface.Aggregation
+  alias Astarte.Core.Interface.Ownership
   alias Astarte.Core.Interface.Type, as: InterfaceType
+  alias Astarte.Core.InterfaceDescriptor
   alias Astarte.Core.Mapping
   alias Astarte.Core.Mapping.DatabaseRetentionPolicy
   alias Astarte.Core.Mapping.Reliability
   alias Astarte.Core.Mapping.Retention
   alias Astarte.Core.Mapping.ValueType
+  alias Astarte.Core.StorageType
   alias Astarte.DataAccess.Consistency
+  alias Astarte.DataAccess.CSystem
+  alias Astarte.DataAccess.KvStore
   alias Astarte.DataAccess.KvStore
   alias Astarte.DataAccess.Realms.Endpoint
   alias Astarte.DataAccess.Realms.IndividualProperty
@@ -44,6 +43,7 @@ defmodule Astarte.RealmManagement.Interfaces.Queries do
   alias Astarte.DataAccess.Realms.Realm
   alias Astarte.DataAccess.Realms.SimpleTrigger
   alias Astarte.DataAccess.Repo
+  alias Astarte.RealmManagement.CreateDatastreamIndividualMultiInterface
 
   require Logger
 
@@ -316,7 +316,7 @@ defmodule Astarte.RealmManagement.Interfaces.Queries do
   - `true`: If the interface major version is already installed.
   - `false`: If the interface major version is available for installation.
   """
-  def is_interface_major_available?(realm_name, interface_name, interface_major) do
+  def interface_major_available?(realm_name, interface_name, interface_major) do
     keyspace = Realm.keyspace_name(realm_name)
 
     query =
@@ -735,15 +735,11 @@ defmodule Astarte.RealmManagement.Interfaces.Queries do
   end
 
   defp delete_all_paths_values(realm_name, device_id, interface_descriptor, all_paths) do
-    Enum.reduce_while(all_paths, :ok, fn [endpoint_id: endpoint_id, path: path], _acc ->
-      with :ok <-
-             delete_path_values(realm_name, device_id, interface_descriptor, endpoint_id, path) do
-        {:cont, :ok}
-      else
-        {:error, reason} ->
-          {:halt, {:error, reason}}
-      end
+    Enum.each(all_paths, fn [endpoint_id: endpoint_id, path: path] ->
+      delete_path_values(realm_name, device_id, interface_descriptor, endpoint_id, path)
     end)
+
+    :ok
   end
 
   def delete_path_values(
@@ -803,7 +799,7 @@ defmodule Astarte.RealmManagement.Interfaces.Queries do
     result
   end
 
-  def is_any_device_using_interface?(realm_name, interface_name) do
+  def any_device_using_interface?(realm_name, interface_name) do
     group_name = "devices-by-interface-#{interface_name}-v0"
     keyspace = Realm.keyspace_name(realm_name)
 

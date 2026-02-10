@@ -19,8 +19,8 @@
 defmodule Astarte.RealmManagementWeb.TriggerPolicyController do
   use Astarte.RealmManagementWeb, :controller
 
-  alias Astarte.RealmManagement.Triggers.Policies
   alias Astarte.Core.Triggers.Policy
+  alias Astarte.RealmManagement.Triggers.Policies
 
   action_fallback(Astarte.RealmManagementWeb.FallbackController)
 
