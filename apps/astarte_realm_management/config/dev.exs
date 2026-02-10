@@ -40,7 +40,12 @@ config :logger, :console,
     :module,
     :function,
     :request_id,
-    :tag
+    :tag,
+    :interface_major,
+    :trigger_name,
+    :interface,
+    :policy_name,
+    :reason
   ]
 
 # Set a higher stacktrace during development. Avoid configuring such
