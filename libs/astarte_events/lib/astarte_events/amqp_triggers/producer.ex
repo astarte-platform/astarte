@@ -17,6 +17,9 @@
 #
 
 defmodule Astarte.Events.AMQPTriggers.Producer do
+  @moduledoc """
+  Handles connection and publishing messages to an AMQP broker.
+  """
   use GenServer, restart: :transient
   require Logger
 
@@ -133,7 +136,7 @@ defmodule Astarte.Events.AMQPTriggers.Producer do
     end
   end
 
-  defp schedule_connect() do
+  defp schedule_connect do
     Logger.warning("Retrying connection in #{@connection_backoff} ms")
     Process.send_after(self(), :init, @connection_backoff)
   end

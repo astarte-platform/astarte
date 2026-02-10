@@ -17,6 +17,9 @@
 #
 
 defmodule Astarte.Events.Triggers.Cache do
+  @moduledoc """
+  Module implementing caching functionalities for Astarte Events triggers.
+  """
   alias Astarte.Events.Triggers.Core
   alias Astarte.Events.Triggers.DataTrigger
   alias Astarte.Events.Triggers.Queries
@@ -296,18 +299,19 @@ defmodule Astarte.Events.Triggers.Cache do
     {object_type, object_id} = object
     event_target_id = event_target_id(realm_name, object_id, object_type)
 
+    context = %{
+      realm_name: realm_name,
+      object: object,
+      event_key: event_key,
+      trigger_type: trigger_type,
+      target: target,
+      policy: policy,
+      trigger: trigger,
+      data: data
+    }
+
     update_function =
-      &load_event_trigger(
-        realm_name,
-        object,
-        event_key,
-        trigger_type,
-        target,
-        policy,
-        trigger,
-        &1,
-        data
-      )
+      &load_event_trigger(context, &1)
 
     ConCache.update(
       @event_targets,
@@ -368,15 +372,8 @@ defmodule Astarte.Events.Triggers.Cache do
   end
 
   defp load_event_trigger(
-         realm_name,
-         object,
-         _event_key,
-         trigger_type,
-         _target,
-         _policy,
-         _trigger,
-         nil = _event_map,
-         data
+         %{realm_name: realm_name, object: object, trigger_type: trigger_type, data: data},
+         nil = _event_map
        ) do
     {object_type, object_id} = object
     # If we do not have a current trigger state, we have to read from the database anyway to avoid
@@ -393,15 +390,15 @@ defmodule Astarte.Events.Triggers.Cache do
   end
 
   defp load_event_trigger(
-         realm_name,
-         _object,
-         event_key,
-         trigger_type,
-         target,
-         policy,
-         trigger,
-         event_map,
-         _data
+         %{
+           realm_name: realm_name,
+           event_key: event_key,
+           trigger_type: trigger_type,
+           target: target,
+           policy: policy,
+           trigger: trigger
+         },
+         event_map
        ) do
     events = Map.get(event_map, event_key, [])
 

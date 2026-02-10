@@ -17,6 +17,9 @@
 #
 
 defmodule Astarte.Events.TriggersHandler.Core do
+  @moduledoc """
+  Core module for handling triggers in Astarte Events.
+  """
   alias Astarte.Core.Triggers.SimpleEvents.SimpleEvent
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.AMQPTriggerTarget
   alias Astarte.Events.AMQPEvents
@@ -39,7 +42,7 @@ defmodule Astarte.Events.TriggersHandler.Core do
   end
 
   def dispatch_event(
-        simple_event = %SimpleEvent{},
+        %SimpleEvent{} = simple_event,
         %AMQPTriggerTarget{
           exchange: target_exchange,
           routing_key: routing_key,

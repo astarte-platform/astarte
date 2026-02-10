@@ -17,7 +17,14 @@
 #
 
 defmodule Astarte.Events.Test.AmqpTriggers.Consumer do
+  @moduledoc """
+  A simple AMQP Consumer for testing purposes.
+  It connects to the AMQP broker, declares the necessary exchange and queue.
+  """
   defmodule State do
+    @moduledoc """
+    State struct for the AMQP Consumer GenServer
+    """
     @type t :: %__MODULE__{
             channel: AMQP.Channel.t() | nil,
             realm_name: String.t(),
@@ -36,8 +43,8 @@ defmodule Astarte.Events.Test.AmqpTriggers.Consumer do
   alias AMQP.Connection
   alias AMQP.Exchange
   alias AMQP.Queue
-  alias Astarte.Events.Config
   alias Astarte.Events.AMQP.Vhost
+  alias Astarte.Events.Config
 
   require Logger
 

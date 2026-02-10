@@ -21,10 +21,10 @@ defmodule Astarte.Events.TriggersHandlerTest do
 
   import Mimic
 
+  alias Astarte.Core.Triggers.SimpleEvents.SimpleEvent
+  alias Astarte.Core.Triggers.SimpleTriggersProtobuf.AMQPTriggerTarget
   alias Astarte.Events.TriggersHandler
   alias Astarte.Events.TriggersHandler.Core
-  alias Astarte.Core.Triggers.SimpleTriggersProtobuf.AMQPTriggerTarget
-  alias Astarte.Core.Triggers.SimpleEvents.SimpleEvent
 
   setup :verify_on_exit!
 

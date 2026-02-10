@@ -17,6 +17,11 @@
 #
 
 defmodule Astarte.Events.Application do
+  @moduledoc """
+  The main application module for Astarte Events.
+  It starts the necessary supervisors and processes for handling events
+  and triggers within the Astarte ecosystem.
+  """
   use Application
 
   alias Astarte.Events.AMQPEvents

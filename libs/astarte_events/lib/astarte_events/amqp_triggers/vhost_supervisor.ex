@@ -17,6 +17,9 @@
 #
 
 defmodule Astarte.Events.AMQPTriggers.VHostSupervisor do
+  @moduledoc """
+  Supervisor for AMQP trigger producers per realm.
+  """
   use DynamicSupervisor
   require Logger
   alias Astarte.Events.AMQPTriggers.Producer

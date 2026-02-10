@@ -17,6 +17,9 @@
 #
 
 defmodule Astarte.Events.AMQPTriggers.Supervisor do
+  @moduledoc """
+  Supervisor for AMQP trigger related processes.
+  """
   use Supervisor
 
   alias Astarte.Events.AMQPTriggers.VHostSupervisor

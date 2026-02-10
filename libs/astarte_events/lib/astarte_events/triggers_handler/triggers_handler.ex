@@ -23,8 +23,8 @@ defmodule Astarte.Events.TriggersHandler do
   """
 
   alias Astarte.Core.Device
-  alias Astarte.Core.Triggers.SimpleTriggersProtobuf.AMQPTriggerTarget
   alias Astarte.Core.Triggers.SimpleEvents.SimpleEvent
+  alias Astarte.Core.Triggers.SimpleTriggersProtobuf.AMQPTriggerTarget
   alias Astarte.Events.TriggersHandler.Core
 
   @typedoc "event type as defined in simple event (eg `:device_connected_event`)"

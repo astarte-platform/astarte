@@ -17,9 +17,13 @@
 #
 
 defmodule Astarte.Events.Triggers do
+  @moduledoc """
+  Module providing functionalities to manage and query triggers in Astarte Events.
+  """
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.TaggedSimpleTrigger
   alias Astarte.Events.Triggers.Cache
   alias Astarte.Events.Triggers.Core
+  alias Astarte.Events.Triggers.DataTriggerContext
   alias Astarte.Events.Triggers.Queries
 
   defdelegate fetch_triggers(realm_name, deserialized_simple_triggers), to: Core
@@ -147,79 +151,51 @@ defmodule Astarte.Events.Triggers do
 
   @doc """
     Returns the full list of targets for data events on an interface and endpoint.
+    If `path` is present in the query, targets are filtered by path and value.
   """
-  @spec find_all_data_trigger_targets(
-          String.t(),
-          Astarte.DataAccess.UUID.t(),
-          [String.t()],
-          Core.data_trigger_event(),
-          Astarte.DataAccess.UUID.t(),
-          Astarte.DataAccess.UUID.t(),
-          Core.fetch_triggers_data()
-        ) :: [Core.target_and_policy()]
-  def find_all_data_trigger_targets(
-        realm_name,
-        device_id,
-        groups,
-        event,
-        interface_id,
-        endpoint_id,
-        data
-      ) do
-    [
+  @spec find_all_data_trigger_targets(DataTriggerContext.t()) :: [Core.target_and_policy()]
+  def find_all_data_trigger_targets(%DataTriggerContext{} = query) do
+    %{
+      realm_name: realm_name,
+      device_id: device_id,
+      groups: groups,
+      event: event,
+      interface_id: interface_id,
+      endpoint_id: endpoint_id,
+      data: data
+    } = query
+
+    event_keys = [
       {event, :any_interface, :any_endpoint},
       {event, interface_id, :any_endpoint},
       {event, interface_id, endpoint_id}
     ]
-    |> Enum.map(fn event_key ->
-      Cache.find_data_trigger_targets(realm_name, device_id, groups, event_key, data)
-    end)
-    |> Enum.concat()
-  end
 
-  @doc """
-    Returns the full list of targets for data events on an interface and endpoint with a path and value.
-  """
-  @spec find_all_data_trigger_targets(
-          String.t(),
-          Astarte.DataAccess.UUID.t(),
-          [String.t()],
-          Core.data_trigger_event(),
-          Astarte.DataAccess.UUID.t(),
-          Astarte.DataAccess.UUID.t(),
-          String.t(),
-          term(),
-          Core.fetch_triggers_data()
-        ) :: [Core.target_and_policy()]
-  def find_all_data_trigger_targets(
-        realm_name,
-        device_id,
-        groups,
-        event,
-        interface_id,
-        endpoint_id,
-        path,
-        value \\ nil,
-        data
-      ) do
-    path_tokens = path |> String.split("/") |> Enum.drop(1)
+    find_triggers =
+      case query.path do
+        nil ->
+          fn event_key ->
+            Cache.find_data_trigger_targets(realm_name, device_id, groups, event_key, data)
+          end
 
-    [
-      {event, :any_interface, :any_endpoint},
-      {event, interface_id, :any_endpoint},
-      {event, interface_id, endpoint_id}
-    ]
-    |> Enum.map(fn event_key ->
-      Cache.find_data_trigger_targets(
-        realm_name,
-        device_id,
-        groups,
-        event_key,
-        path_tokens,
-        value,
-        data
-      )
-    end)
+        path ->
+          path_tokens = path |> String.split("/") |> Enum.drop(1)
+
+          fn event_key ->
+            Cache.find_data_trigger_targets(
+              realm_name,
+              device_id,
+              groups,
+              event_key,
+              path_tokens,
+              query.value,
+              data
+            )
+          end
+      end
+
+    event_keys
+    |> Enum.map(find_triggers)
     |> Enum.concat()
   end
 

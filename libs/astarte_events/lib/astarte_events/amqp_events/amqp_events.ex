@@ -17,6 +17,9 @@
 #
 
 defmodule Astarte.Events.AMQPEvents do
+  @moduledoc """
+  Module providing functionalities to interact with AMQP events.
+  """
   alias Astarte.Events.AMQPEvents.Producer
 
   alias Astarte.Events.Config

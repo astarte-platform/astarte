@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2026 SECO Mind srl
+# Copyright 2026 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -16,26 +16,8 @@
 # limitations under the License.
 #
 
-defmodule Astarte.Events.AMQP do
-  use HTTPoison.Base
+import Config
 
-  @moduledoc """
-  Module providing basic HTTP functionalities to interact with the AMQP management API.
-  """
-  alias Astarte.Events.Config
-
-  @impl true
-  def process_request_url(url) do
-    Config.amqp_base_url!() <> url
-  end
-
-  @impl true
-  def process_request_options(options) do
-    auth_opts = [
-      hackney: [basic_auth: {Config.amqp_username!(), Config.amqp_password!()}],
-      ssl: Config.ssl_options!()
-    ]
-
-    Keyword.merge(auth_opts, options)
-  end
-end
+config :logger, :console,
+  format: "$time $metadata[$level] $message\n",
+  metadata: [:tag]

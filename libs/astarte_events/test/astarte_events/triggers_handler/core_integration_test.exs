@@ -21,13 +21,13 @@ defmodule Astarte.Events.TriggersHandler.Integration.CoreTest do
 
   import Mimic
 
+  alias Astarte.Core.Generators.Triggers.SimpleEvents.SimpleEvent, as: SimpleEventGenerator
   alias Astarte.Core.Triggers.SimpleEvents.SimpleEvent
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.AMQPTriggerTarget
-  alias Astarte.Events.TriggersHandler.Core
-  alias Astarte.Core.Generators.Triggers.SimpleEvents.SimpleEvent, as: SimpleEventGenerator
+  alias Astarte.Events.AMQP.Vhost
   alias Astarte.Events.AMQPTriggers.VHostSupervisor
   alias Astarte.Events.Test.AmqpTriggers.Consumer
-  alias Astarte.Events.AMQP.Vhost
+  alias Astarte.Events.TriggersHandler.Core
 
   @device_id "f0VMRgIBAQAAAAAAAAAAAA"
   @routing_key "test.routing.key"

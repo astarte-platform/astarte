@@ -17,6 +17,9 @@
 #
 
 defmodule Astarte.Events.Triggers.DataTrigger do
+  @moduledoc """
+   Module representing a data trigger in Astarte Events.
+  """
   use TypedStruct
   alias Astarte.Core.Triggers.DataTrigger
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.AMQPTriggerTarget

@@ -17,6 +17,9 @@
 #
 
 defmodule Astarte.Events.Triggers.ValueMatchOperators do
+  @moduledoc """
+  Module providing value match operator functionalities for Astarte Events triggers.
+  """
   def value_matches?(_received_value, :ANY, _known_value) do
     true
   end

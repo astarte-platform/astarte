@@ -21,12 +21,14 @@ defmodule Astarte.Events.TriggersTest do
   import Mimic
 
   alias Astarte.Core.Generators.Device, as: DeviceGenerator
-  alias Astarte.Core.Triggers.SimpleTriggersProtobuf.Utils
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.TaggedSimpleTrigger
+  alias Astarte.Core.Triggers.SimpleTriggersProtobuf.Utils
+  alias Astarte.DataAccess.UUID, as: AstarteUUID
   alias Astarte.Events.AMQP.Vhost
   alias Astarte.Events.AMQPTriggers.VHostSupervisor
-  alias Astarte.Events.Triggers
   alias Astarte.Events.Test.AmqpTriggers.Consumer
+  alias Astarte.Events.Triggers
+  alias Astarte.Events.Triggers.DataTriggerContext
 
   @routing_key "test.routing.key"
 
@@ -160,7 +162,7 @@ defmodule Astarte.Events.TriggersTest do
           interface_major: interface.major_version
         )
 
-      {:ok, interface_id} = Astarte.DataAccess.UUID.cast(interface.interface_id)
+      {:ok, interface_id} = AstarteUUID.cast(interface.interface_id)
 
       targets =
         Triggers.find_data_trigger_targets(
@@ -179,7 +181,7 @@ defmodule Astarte.Events.TriggersTest do
     test "returns targets", %{realm_name: realm} do
       device_id = DeviceGenerator.id() |> Enum.at(0)
       interface = install_interface(realm)
-      {:ok, interface_id} = Astarte.DataAccess.UUID.cast(interface.interface_id)
+      {:ok, interface_id} = AstarteUUID.cast(interface.interface_id)
 
       _trigger =
         install_simple_trigger(realm,
@@ -212,22 +214,23 @@ defmodule Astarte.Events.TriggersTest do
           interface_major: interface.major_version
         )
 
-      {:ok, interface_id} = Astarte.DataAccess.UUID.cast(interface.interface_id)
+      {:ok, interface_id} = AstarteUUID.cast(interface.interface_id)
 
-      targets =
-        Triggers.find_all_data_trigger_targets(
-          realm,
-          device_id,
-          [],
-          :on_incoming_data,
-          interface_id,
-          :any_endpoint,
-          "",
-          "",
-          %{}
-        )
+      query = %DataTriggerContext{
+        realm_name: realm,
+        device_id: device_id,
+        groups: [],
+        event: :on_incoming_data,
+        interface_id: interface_id,
+        endpoint_id: :any_endpoint,
+        path: "",
+        value: "",
+        data: %{}
+      }
 
-      assert length(targets) > 0
+      targets = Triggers.find_all_data_trigger_targets(query)
+
+      assert Enum.any?(targets)
     end
   end
 end
