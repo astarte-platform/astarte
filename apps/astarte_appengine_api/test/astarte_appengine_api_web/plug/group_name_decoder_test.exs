@@ -18,8 +18,8 @@
 defmodule Astarte.AppEngine.APIWeb.Plug.GroupNameDecoderTest do
   use Astarte.Cases.Conn
   use ExUnitProperties
-  alias Astarte.AppEngine.APIWeb.Plug.GroupNameDecoder
   alias Astarte.AppEngine.API.GroupTestGenerator
+  alias Astarte.AppEngine.APIWeb.Plug.GroupNameDecoder
 
   @tag issue: 904
   property "call/2 decode path" do

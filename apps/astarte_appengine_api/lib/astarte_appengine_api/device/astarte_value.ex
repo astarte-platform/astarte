@@ -16,6 +16,12 @@
 # limitations under the License.
 
 defmodule Astarte.AppEngine.API.Device.AstarteValue do
+  @moduledoc """
+  Utility module to convert Astarte data type into JSON-friendly formats.
+
+  It handles longintegers, binary blobs and datetimes ensuring they are correctly
+  serialized when converting to JSON.
+  """
   # Match on nil values, skipping any conversion. This is needed to handle missing endpoints in
   # object aggregations, which are allowed due to semantic versioning (i.e. data sent from a
   # previous minor version doesn't contain data on new endpoints)

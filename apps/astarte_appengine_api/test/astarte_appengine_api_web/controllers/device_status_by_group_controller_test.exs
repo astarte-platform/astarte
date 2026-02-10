@@ -19,9 +19,9 @@
 defmodule Astarte.AppEngine.APIWeb.DeviceStatusByGroupControllerTest do
   use Astarte.Cases.Conn
 
+  alias Astarte.AppEngine.API.Groups
   alias Astarte.Helpers.Database, as: DatabaseTestHelper
   alias Astarte.Helpers.JWT, as: JWTTestHelper
-  alias Astarte.AppEngine.API.Groups
 
   @realm "autotestrealm"
   @group_name "mygroup"

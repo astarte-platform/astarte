@@ -30,14 +30,15 @@ defmodule Astarte.AppEngine.API.GroupTestGenerator do
   world/europe/italy
   """
   def group_name do
-    string(:ascii, min_length: 1, max_length: @max_subpath_length)
+    first = string(:alphanumeric, length: 1)
+    rest = string(:ascii, min_length: 0, max_length: @max_subpath_length - 1)
+    group = gen all first <- first, rest <- rest, do: first <> rest
+
+    group
     |> uniq_list_of(
       min_length: 1,
       max_length: @max_subpath_count
     )
-    |> filter(fn [<<first, _::binary>> | _] ->
-      first not in [?@, ?~, ?\s]
-    end)
     |> map(&Enum.join(&1, "/"))
   end
 end

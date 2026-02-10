@@ -21,8 +21,8 @@
 defmodule Astarte.AppEngine.API.RPC.DataUpdaterPlant.Behaviour do
   @moduledoc false
 
-  alias Astarte.AppEngine.API.RPC.DataUpdaterPlant.InstallVolatileTrigger
   alias Astarte.AppEngine.API.RPC.DataUpdaterPlant.DeleteVolatileTrigger
+  alias Astarte.AppEngine.API.RPC.DataUpdaterPlant.InstallVolatileTrigger
 
   @callback install_volatile_trigger(request_data :: InstallVolatileTrigger.RequestData.t()) ::
               :ok | {:error, term()}

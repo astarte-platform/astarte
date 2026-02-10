@@ -16,6 +16,7 @@
 # limitations under the License.
 
 defmodule Astarte.AppEngine.API.Device.DeviceStatus do
+  @moduledoc false
   use Ecto.Schema
   import Ecto.Changeset
 
@@ -52,89 +53,63 @@ defmodule Astarte.AppEngine.API.Device.DeviceStatus do
   def from_db_row(row) when is_map(row) do
     %{
       device_id: device_id,
-      aliases: aliases,
-      introspection: introspection_major,
-      introspection_minor: introspection_minor,
-      connected: connected,
-      last_connection: last_connection,
-      last_disconnection: last_disconnection,
-      first_registration: first_registration,
-      first_credentials_request: first_credentials_request,
-      last_credentials_request_ip: last_credentials_request_ip,
-      last_seen_ip: last_seen_ip,
-      attributes: attributes,
-      inhibit_credentials_request: credentials_inhibited,
-      total_received_msgs: total_received_msgs,
-      total_received_bytes: total_received_bytes,
       groups: groups_map,
       exchanged_msgs_by_interface: exchanged_msgs_by_interface,
-      exchanged_bytes_by_interface: exchanged_bytes_by_interface,
-      old_introspection: old_introspection
+      exchanged_bytes_by_interface: exchanged_bytes_by_interface
     } = row
-
-    introspection =
-      Map.merge(introspection_major || %{}, introspection_minor || %{}, fn
-        interface_name, major, minor ->
-          exchanged_msgs =
-            (exchanged_msgs_by_interface || %{})
-            |> Map.get({interface_name, major}, 0)
-
-          exchanged_bytes =
-            (exchanged_bytes_by_interface || %{})
-            |> Map.get({interface_name, major}, 0)
-
-          %InterfaceInfo{
-            major: major,
-            minor: minor,
-            exchanged_msgs: exchanged_msgs,
-            exchanged_bytes: exchanged_bytes
-          }
-      end)
-
-    previous_interfaces =
-      Enum.map(old_introspection || %{}, fn {{interface_name, major}, minor} ->
-        exchanged_msgs =
-          (exchanged_msgs_by_interface || %{})
-          |> Map.get({interface_name, major}, 0)
-
-        exchanged_bytes =
-          (exchanged_bytes_by_interface || %{})
-          |> Map.get({interface_name, major}, 0)
-
-        %InterfaceInfo{
-          name: interface_name,
-          major: major,
-          minor: minor,
-          exchanged_msgs: exchanged_msgs,
-          exchanged_bytes: exchanged_bytes
-        }
-      end)
-
-    # groups_map could be nil, default to empty map
-    groups = Map.keys(groups_map || %{})
-    last_connection = truncate_datetime(last_connection)
-    last_disconnection = truncate_datetime(last_disconnection)
-    first_registration = truncate_datetime(first_registration)
-    first_credentials_request = truncate_datetime(first_credentials_request)
 
     %DeviceStatus{
       id: Device.encode_device_id(device_id),
-      aliases: aliases || %{},
-      introspection: introspection,
-      connected: connected,
-      last_connection: last_connection,
-      last_disconnection: last_disconnection,
-      first_registration: first_registration,
-      first_credentials_request: first_credentials_request,
-      last_credentials_request_ip: ip_string(last_credentials_request_ip),
-      last_seen_ip: ip_string(last_seen_ip),
-      attributes: attributes || %{},
-      credentials_inhibited: credentials_inhibited,
-      total_received_msgs: total_received_msgs,
-      total_received_bytes: total_received_bytes,
-      previous_interfaces: previous_interfaces,
-      groups: groups
+      aliases: row.aliases || %{},
+      introspection:
+        build_introspection(row, exchanged_msgs_by_interface, exchanged_bytes_by_interface),
+      connected: row.connected,
+      last_connection: truncate_datetime(row.last_connection),
+      last_disconnection: truncate_datetime(row.last_disconnection),
+      first_registration: truncate_datetime(row.first_registration),
+      first_credentials_request: truncate_datetime(row.first_credentials_request),
+      last_credentials_request_ip: ip_string(row.last_credentials_request_ip),
+      last_seen_ip: ip_string(row.last_seen_ip),
+      attributes: row.attributes || %{},
+      credentials_inhibited: row.inhibit_credentials_request,
+      total_received_msgs: row.total_received_msgs,
+      total_received_bytes: row.total_received_bytes,
+      previous_interfaces:
+        build_previous_interfaces(
+          row.old_introspection,
+          exchanged_msgs_by_interface,
+          exchanged_bytes_by_interface
+        ),
+      groups: Map.keys(groups_map || %{})
     }
+  end
+
+  # Helper for actual introspection
+  defp build_introspection(row, msgs_map, bytes_map) do
+    Map.merge(row.introspection || %{}, row.introspection_minor || %{}, fn
+      interface_name, major, minor ->
+        build_interface_info(interface_name, major, minor, msgs_map, bytes_map)
+    end)
+  end
+
+  defp build_previous_interfaces(old_introspection, msgs_map, bytes_map) do
+    Enum.map(old_introspection || %{}, fn {{name, major}, minor} ->
+      build_interface_info(name, major, minor, msgs_map, bytes_map, include_name: true)
+    end)
+  end
+
+  defp build_interface_info(name, major, minor, msgs_map, bytes_map, opts \\ []) do
+    msgs = Map.get(msgs_map || %{}, {name, major}, 0)
+    bytes = Map.get(bytes_map || %{}, {name, major}, 0)
+
+    info = %InterfaceInfo{
+      major: major,
+      minor: minor,
+      exchanged_msgs: msgs,
+      exchanged_bytes: bytes
+    }
+
+    if Keyword.get(opts, :include_name, false), do: %{info | name: name}, else: info
   end
 
   defp truncate_datetime(nil), do: nil

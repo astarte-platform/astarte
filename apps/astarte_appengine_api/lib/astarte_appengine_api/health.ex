@@ -36,11 +36,11 @@ defmodule Astarte.AppEngine.API.Health do
   end
 
   # Use the existing DataAccess health check for database connectivity
-  defp database_health() do
+  defp database_health do
     # When degraded, some database nodes are available so it's still ok
     case DatabaseHealth.get_health() do
       :ready -> :ready
-      :degraded -> :ready
+      :degraded -> :degraded
       :bad -> :bad
       :error -> :bad
     end

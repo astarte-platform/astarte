@@ -16,11 +16,13 @@
 # limitations under the License.
 
 defmodule Astarte.InterfaceUpdateGenerators do
+  @moduledoc false
   # TODO: move all these generators to astarte_generators
 
   use ExUnitProperties
   import Astarte.Helpers.Device
   alias Astarte.Common.Generators.Timestamp, as: TimestampGenerator
+  alias Astarte.Core.Mapping
 
   def valid_fallible_mapping_update_for(interface) when interface.aggregation == :individual,
     do: valid_mapping_update_for(interface)
@@ -160,7 +162,7 @@ defmodule Astarte.InterfaceUpdateGenerators do
     prefix
     |> String.split("/")
     |> Enum.map(fn token ->
-      case Astarte.Core.Mapping.is_placeholder?(token) do
+      case Mapping.is_placeholder?(token) do
         true -> string(:alphanumeric, min_length: 1)
         false -> constant(token)
       end
@@ -232,24 +234,20 @@ defmodule Astarte.InterfaceUpdateGenerators do
     one_of([invalid_map(value_types), random_except([])])
   end
 
-  def invalid_type(value_type) do
-    case value_type do
-      :double -> invalid_number()
-      :integer -> invalid_number()
-      :boolean -> invalid_boolean()
-      :longinteger -> invalid_number()
-      :string -> invalid_string()
-      :binaryblob -> invalid_binary()
-      :datetime -> invalid_datetime()
-      :doublearray -> invalid_list_or(invalid_number())
-      :integerarray -> invalid_list_or(invalid_number())
-      :booleanarray -> invalid_list_or(invalid_boolean())
-      :longintegerarray -> invalid_list_or(invalid_number())
-      :stringarray -> invalid_list_or(invalid_string())
-      :binaryblobarray -> invalid_list_or(invalid_binary())
-      :datetimearray -> invalid_list_or(invalid_datetime())
-    end
-  end
+  def invalid_type(type) when type in [:double, :integer, :longinteger], do: invalid_number()
+
+  def invalid_type(:boolean), do: invalid_boolean()
+  def invalid_type(:string), do: invalid_string()
+  def invalid_type(:binaryblob), do: invalid_binary()
+  def invalid_type(:datetime), do: invalid_datetime()
+
+  def invalid_type(:doublearray), do: invalid_list_or(invalid_number())
+  def invalid_type(:integerarray), do: invalid_list_or(invalid_number())
+  def invalid_type(:longintegerarray), do: invalid_list_or(invalid_number())
+  def invalid_type(:booleanarray), do: invalid_list_or(invalid_boolean())
+  def invalid_type(:stringarray), do: invalid_list_or(invalid_string())
+  def invalid_type(:binaryblobarray), do: invalid_list_or(invalid_binary())
+  def invalid_type(:datetimearray), do: invalid_list_or(invalid_datetime())
 
   defp invalid_map(value_types) do
     invalid_key_subset =
@@ -328,38 +326,36 @@ defmodule Astarte.InterfaceUpdateGenerators do
     |> one_of()
   end
 
-  defp random_value(value_type) do
-    integer = integer(-0x7FFFFFFF..0x7FFFFFFF)
-    longinteger = integer(-0x7FFFFFFFFFFFFFFF..0x7FFFFFFFFFFFFFFF)
-    str = string(:utf8, max_length: 65_535)
+  defp random_value(:double), do: float()
+  defp random_value(:boolean), do: boolean()
+  defp random_value(:integer), do: gen_integer()
+  defp random_value(:longinteger), do: gen_longinteger()
+  defp random_value(:string), do: gen_string()
+  defp random_value(:datetime), do: gen_datetime()
+  defp random_value(:binaryblob), do: gen_binaryblob()
 
-    datetime =
-      one_of([
-        TimestampGenerator.timestamp(),
-        TimestampGenerator.timestamp()
-        |> map(&DateTime.from_unix!/1)
-        |> map(&DateTime.to_iso8601/1)
-      ])
+  defp random_value(:doublearray), do: list_of(float(), max_length: 1023)
+  defp random_value(:booleanarray), do: list_of(boolean(), max_length: 1023)
+  defp random_value(:integerarray), do: list_of(gen_integer(), max_length: 1023)
+  defp random_value(:longintegerarray), do: list_of(gen_longinteger(), max_length: 1023)
+  defp random_value(:stringarray), do: list_of(gen_string(), max_length: 1023)
+  defp random_value(:datetimearray), do: list_of(gen_datetime(), max_length: 1023)
+  defp random_value(:binaryblobarray), do: list_of(gen_binaryblob(), max_length: 1023)
 
-    binaryblob = map(binary(max_length: 65_535), &Base.encode64/1)
+  defp gen_integer, do: integer(-0x7FFFFFFF..0x7FFFFFFF)
+  defp gen_longinteger, do: integer(-0x7FFFFFFFFFFFFFFF..0x7FFFFFFFFFFFFFFF)
+  defp gen_string, do: string(:utf8, max_length: 65_535)
 
-    case value_type do
-      :double -> float()
-      :integer -> integer
-      :boolean -> boolean()
-      :longinteger -> longinteger
-      :string -> str
-      :binaryblob -> binaryblob
-      :datetime -> datetime
-      :doublearray -> list_of(float(), max_length: 1023)
-      :integerarray -> list_of(integer, max_length: 1023)
-      :booleanarray -> list_of(boolean(), max_length: 1023)
-      :longintegerarray -> list_of(longinteger, max_length: 1023)
-      :stringarray -> list_of(str, max_length: 1023)
-      :binaryblobarray -> list_of(binaryblob, max_length: 1023)
-      :datetimearray -> list_of(datetime, max_length: 1023)
-    end
+  defp gen_datetime do
+    one_of([
+      TimestampGenerator.timestamp(),
+      TimestampGenerator.timestamp()
+      |> map(&DateTime.from_unix!/1)
+      |> map(&DateTime.to_iso8601/1)
+    ])
   end
+
+  defp gen_binaryblob, do: map(binary(max_length: 65_535), &Base.encode64/1)
 
   defp object_interface_value_types(interface) do
     # each interface must have at least 1 mapping

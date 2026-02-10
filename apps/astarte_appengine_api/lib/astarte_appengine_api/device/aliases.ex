@@ -16,6 +16,10 @@
 # limitations under the License.
 
 defmodule Astarte.AppEngine.API.Device.Aliases do
+  @moduledoc """
+    Handles validation and application of device aliases.
+  """
+
   alias Astarte.DataAccess.Devices.Device
   alias Ecto.Changeset
 

@@ -17,6 +17,10 @@
 #
 
 defmodule Astarte.AppEngine.API.Auth.RoomsUser do
+  @moduledoc """
+  Data structure representing a user in the Rooms service.
+  This structure holds the user's unique identifier and their access control lists for joining and watching rooms.
+  """
   @enforce_keys [:id]
   defstruct [
     :id,
@@ -27,7 +31,7 @@ defmodule Astarte.AppEngine.API.Auth.RoomsUser do
   alias Astarte.AppEngine.API.Auth.RoomsUser
   alias Astarte.AppEngine.API.Utils
 
-  def all_access_user() do
+  def all_access_user do
     %RoomsUser{
       id:
         Utils.get_uuid()

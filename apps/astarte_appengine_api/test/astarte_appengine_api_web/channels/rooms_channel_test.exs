@@ -26,6 +26,7 @@ defmodule Astarte.AppEngine.APIWeb.RoomsChannelTest do
   alias Astarte.AppEngine.API.Utils
   alias Astarte.AppEngine.APIWeb.RoomsChannel
   alias Astarte.AppEngine.APIWeb.UserSocket
+  alias Astarte.Core.Device
   alias Astarte.Core.Triggers.SimpleEvents.IncomingDataEvent
   alias Astarte.Core.Triggers.SimpleEvents.SimpleEvent
   alias Astarte.Helpers.Database, as: DatabaseTestHelper
@@ -687,7 +688,7 @@ defmodule Astarte.AppEngine.APIWeb.RoomsChannelTest do
   end
 
   defp insert_device_id(device_id) do
-    {:ok, decoded_device_id} = Astarte.Core.Device.decode_device_id(device_id)
+    {:ok, decoded_device_id} = Device.decode_device_id(device_id)
     DatabaseTestHelper.insert_empty_device(decoded_device_id)
   end
 

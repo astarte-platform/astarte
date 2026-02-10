@@ -17,26 +17,36 @@
 #
 
 defmodule Astarte.AppEngine.API.Device.Queries do
+  @moduledoc """
+  Core database query logic for device-related operations.
+
+  This module provides an API to interact with underlying distributed storage.
+  It handle:
+  * Retrieval of device status and metadata.
+  * Fetching and inserting Interface data (properties and datastreams).
+  * Management of device aliases and groups.
+  * Listing devices within a realm.
+  """
   import Ecto.Query
 
   alias Astarte.AppEngine.API.Config
   alias Astarte.AppEngine.API.DateTime, as: DateTimeMs
-  alias Astarte.DataAccess.Device.DeletionInProgress
-  alias Astarte.AppEngine.API.Device.DeviceStatus
   alias Astarte.AppEngine.API.Device.DevicesList
+  alias Astarte.AppEngine.API.Device.DeviceStatus
   alias Astarte.AppEngine.API.Device.InterfaceInfo
-  alias Astarte.DataAccess.Realms.IndividualProperty
-  alias Astarte.DataAccess.KvStore
-  alias Astarte.DataAccess.Realms.Name
-  alias Astarte.DataAccess.Repo
   alias Astarte.Core.CQLUtils
   alias Astarte.Core.Device
-  alias Astarte.Core.Mapping
   alias Astarte.Core.InterfaceDescriptor
-  alias Astarte.DataAccess.Realms.Realm
-  alias Astarte.DataAccess.Realms.Endpoint
-  alias Astarte.DataAccess.Devices.Device, as: DatabaseDevice
+  alias Astarte.Core.Mapping
   alias Astarte.DataAccess.Consistency
+  alias Astarte.DataAccess.Device.DeletionInProgress
+  alias Astarte.DataAccess.Devices.Device, as: DatabaseDevice
+  alias Astarte.DataAccess.KvStore
+  alias Astarte.DataAccess.Realms.Endpoint
+  alias Astarte.DataAccess.Realms.IndividualProperty
+  alias Astarte.DataAccess.Realms.Name
+  alias Astarte.DataAccess.Realms.Realm
+  alias Astarte.DataAccess.Repo
 
   require Logger
 
@@ -219,8 +229,7 @@ defmodule Astarte.AppEngine.API.Device.Queries do
         device_id,
         %InterfaceDescriptor{storage_type: :multi_interface_individual_properties_dbtable} =
           interface_descriptor,
-        endpoint_id,
-        %Endpoint{allow_unset: true},
+        %Endpoint{allow_unset: true} = endpoint,
         path,
         nil,
         _timestamp,
@@ -228,6 +237,7 @@ defmodule Astarte.AppEngine.API.Device.Queries do
       ) do
     # TODO: :reception_timestamp_submillis is just a place holder right now
     %InterfaceDescriptor{interface_id: interface_id, storage: storage} = interface_descriptor
+    %Endpoint{endpoint_id: endpoint_id} = endpoint
     keyspace_name = Realm.keyspace_name(realm_name)
 
     delete_match =
@@ -256,7 +266,6 @@ defmodule Astarte.AppEngine.API.Device.Queries do
         _device_id,
         %InterfaceDescriptor{storage_type: :multi_interface_individual_properties_dbtable} =
           _interface_descriptor,
-        _endpoint_id,
         _endpoint,
         _path,
         nil,
@@ -277,8 +286,7 @@ defmodule Astarte.AppEngine.API.Device.Queries do
         device_id,
         %InterfaceDescriptor{storage_type: :multi_interface_individual_properties_dbtable} =
           interface_descriptor,
-        endpoint_id,
-        endpoint,
+        %Endpoint{} = endpoint,
         path,
         value,
         timestamp,
@@ -290,6 +298,8 @@ defmodule Astarte.AppEngine.API.Device.Queries do
     {timestamp_ms, timestamp_submillis} = DateTimeMs.split_submillis(timestamp)
 
     # TODO: :reception_timestamp_submillis is just a place holder right now
+    %Endpoint{endpoint_id: endpoint_id} = endpoint
+
     interface_storage_attributes = %{
       value_column => to_db_friendly_type(value),
       device_id: device_id,
@@ -318,7 +328,6 @@ defmodule Astarte.AppEngine.API.Device.Queries do
         device_id,
         %InterfaceDescriptor{storage_type: :multi_interface_individual_datastream_dbtable} =
           interface_descriptor,
-        _endpoint_id,
         endpoint,
         path,
         value,
@@ -356,7 +365,6 @@ defmodule Astarte.AppEngine.API.Device.Queries do
         realm_name,
         device_id,
         %InterfaceDescriptor{storage_type: :one_object_datastream_dbtable} = interface_descriptor,
-        _endpoint_id,
         mapping,
         path,
         value,

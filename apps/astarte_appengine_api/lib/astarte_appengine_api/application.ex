@@ -16,6 +16,15 @@
 # limitations under the License.
 
 defmodule Astarte.AppEngine.API.Application do
+  @moduledoc """
+  Main Application module for Astarte AppEngine API.
+
+  This module handles the lifecycle of the AppEngine API service, 
+  initializing configurations, setting up logging filters, and 
+  starting the supervision tree.
+  """
+
+  alias Astarte.AppEngine.APIWeb.Endpoint
   use Application
   require Logger
 
@@ -58,7 +67,7 @@ defmodule Astarte.AppEngine.API.Application do
   # Tell Phoenix to update the endpoint configuration
   # whenever the application is updated.
   def config_change(changed, _new, removed) do
-    Astarte.AppEngine.APIWeb.Endpoint.config_change(changed, removed)
+    Endpoint.config_change(changed, removed)
     :ok
   end
 end

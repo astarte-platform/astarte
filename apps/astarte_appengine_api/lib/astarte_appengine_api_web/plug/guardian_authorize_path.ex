@@ -1,4 +1,8 @@
 defmodule Astarte.AppEngine.APIWeb.Plug.GuardianAuthorizePath do
+  @moduledoc """
+  Plug to authorize requests based on path and user authorizations.
+  It performs granular access control with role-based access control using regex matching. 
+  """
   use Plug.Builder
 
   import Plug.Conn

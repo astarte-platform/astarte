@@ -16,9 +16,9 @@
 # limitations under the License.
 
 defmodule Astarte.Helpers.Device do
+  @moduledoc false
   alias Astarte.AppEngine.API.Device, as: Core
   alias Astarte.AppEngine.API.Device.InterfaceValue
-  alias Astarte.DataAccess.Repo
   alias Astarte.Common.Generators.Timestamp, as: TimestampGenerator
   alias Astarte.Core.Mapping.EndpointsAutomaton
   alias Astarte.Core.Mapping.EndpointsAutomaton
@@ -27,6 +27,7 @@ defmodule Astarte.Helpers.Device do
   alias Astarte.DataAccess.Mappings, as: MappingsQueries
   alias Astarte.DataAccess.Realms.Interface
   alias Astarte.DataAccess.Realms.Realm
+  alias Astarte.DataAccess.Repo
   alias Astarte.RealmManagement.Interfaces, as: RMInterfaces
 
   import ExUnit.CaptureLog
@@ -101,26 +102,34 @@ defmodule Astarte.Helpers.Device do
         end
 
       {last_time, _} =
-        for mapping_update <- mapping_updates, reduce: {nil, initial_time} do
-          {_prev, time} ->
-            Mimic.expect(DateTime, :utc_now, fn -> time end)
-
-            update_function.(
-              realm_name,
-              device_id,
-              interface_descriptor,
-              mapping_update.path,
-              mapping_update.value
-            )
-
-            seconds_increment = :rand.uniform(60) + 5
-            next = DateTime.add(time, seconds_increment, :second)
-            {time, next}
-        end
+        perform_updates(mapping_updates, initial_time, update_function, %{
+          realm_name: realm_name,
+          device_id: device_id,
+          interface_descriptor: interface_descriptor
+        })
 
       %{initial_time: initial_time, last_time: last_time}
     end)
     |> Task.await()
+  end
+
+  defp perform_updates(updates, start_time, update_fn, context) do
+    for mapping_update <- updates, reduce: {nil, start_time} do
+      {_prev, time} ->
+        Mimic.expect(DateTime, :utc_now, fn -> time end)
+
+        update_fn.(
+          context.realm_name,
+          context.device_id,
+          context.interface_descriptor,
+          mapping_update.path,
+          mapping_update.value
+        )
+
+        seconds_increment = :rand.uniform(60) + 5
+        next = DateTime.add(time, seconds_increment, :second)
+        {time, next}
+    end
   end
 
   def publish_result_ok(interface, mapping_update, validation_function) do

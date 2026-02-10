@@ -17,12 +17,16 @@
 #
 
 defmodule Astarte.AppEngine.API.Stats.Queries do
+  @moduledoc """
+  Database queries for retrieving statistics about devices in an Astarte realm.
+  This module handles the aggregation of device data, such as total device count and connected device count.
+  """
+  alias Astarte.AppEngine.API.Stats.DevicesStats
   alias Astarte.Core.Device
+  alias Astarte.DataAccess.Consistency
+  alias Astarte.DataAccess.Devices.Device
   alias Astarte.DataAccess.Realms.Realm
   alias Astarte.DataAccess.Repo
-  alias Astarte.DataAccess.Devices.Device
-  alias Astarte.DataAccess.Consistency
-  alias Astarte.AppEngine.API.Stats.DevicesStats
 
   require Logger
 

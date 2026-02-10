@@ -25,6 +25,7 @@ defmodule AstarteE2E do
 
   use ExUnitProperties
 
+  alias Astarte.Core.Mapping
   alias Astarte.Device
   alias AstarteE2E.{Client, Utils}
 
@@ -155,7 +156,7 @@ defmodule AstarteE2E do
     endpoint
     |> String.split("/")
     |> Enum.map(fn token ->
-      if Astarte.Core.Mapping.is_placeholder?(token) do
+      if Mapping.is_placeholder?(token) do
         Utils.random_string()
       else
         token

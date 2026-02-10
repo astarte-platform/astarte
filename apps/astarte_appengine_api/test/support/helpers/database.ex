@@ -16,19 +16,21 @@
 # limitations under the License.
 
 defmodule Astarte.Helpers.Database do
+  @moduledoc false
   import Ecto.Query
 
-  alias Astarte.DataAccess.Interface
   alias Astarte.Core.Device
-  alias Astarte.Helpers.JWT, as: JWTTestHelper
-  alias Astarte.DataAccess.Realms.Realm
-  alias Astarte.DataAccess.Devices.Device, as: DeviceSchema
-  alias Astarte.DataAccess.KvStore
-  alias Astarte.DataAccess.Repo
   alias Astarte.DataAccess.Device.DeletionInProgress
-  alias Astarte.DataAccess.Realms.Interface
+  alias Astarte.DataAccess.Devices.Device, as: DeviceSchema
+  alias Astarte.DataAccess.Interface
+  alias Astarte.DataAccess.KvStore
   alias Astarte.DataAccess.Realms.Endpoint, as: EndpointSchema
+  alias Astarte.DataAccess.Realms.Interface
   alias Astarte.DataAccess.Realms.Name
+  alias Astarte.DataAccess.Realms.Realm
+  alias Astarte.DataAccess.Repo
+  alias Astarte.DataAccess.UUID
+  alias Astarte.Helpers.JWT, as: JWTTestHelper
 
   require Logger
 
@@ -718,7 +720,7 @@ defmodule Astarte.Helpers.Database do
     |> Repo.insert!(prefix: keyspace_name)
   end
 
-  defp insert_datastream_receiving_device_endpoints() do
+  defp insert_datastream_receiving_device_endpoints do
     keyspace_name = Realm.keyspace_name(@test_realm)
 
     %EndpointSchema{}
@@ -739,7 +741,7 @@ defmodule Astarte.Helpers.Database do
     |> Repo.insert!(prefix: keyspace_name)
   end
 
-  defp insert_into_interface_datastream() do
+  defp insert_into_interface_datastream do
     keyspace_name = Realm.keyspace_name(@test_realm)
 
     %Interface{}
@@ -766,9 +768,9 @@ defmodule Astarte.Helpers.Database do
   def remove_datastream_receiving_device do
     keyspace_name = Realm.keyspace_name(@test_realm)
 
-    {:ok, device_id} = Astarte.Core.Device.decode_device_id("fmloLzG5T5u0aOUfIkL8KA")
+    {:ok, device_id} = Device.decode_device_id("fmloLzG5T5u0aOUfIkL8KA")
 
-    {:ok, interface_id} = Astarte.DataAccess.UUID.cast("13ccc31d-f911-29df-cbe6-be22635293bd")
+    {:ok, interface_id} = UUID.cast("13ccc31d-f911-29df-cbe6-be22635293bd")
 
     Repo.delete_all(
       from d in DeviceSchema,
@@ -796,7 +798,7 @@ defmodule Astarte.Helpers.Database do
     insert_into_interface_obj_aggregated()
   end
 
-  defp insert_object_receiving_device_endpoints() do
+  defp insert_object_receiving_device_endpoints do
     insert_endpoint_queries = [
       """
       INSERT INTO #{Realm.keyspace_name(@test_realm)}.endpoints(interface_id, endpoint_id, allow_unset, endpoint, expiry, interface_major_version, interface_minor_version, interface_name, interface_type, reliability, retention, value_type) VALUES
@@ -817,7 +819,7 @@ defmodule Astarte.Helpers.Database do
     end)
   end
 
-  defp insert_into_interface_obj_aggregated() do
+  defp insert_into_interface_obj_aggregated do
     keyspace_name = Realm.keyspace_name(@test_realm)
 
     %Interface{}
@@ -841,7 +843,7 @@ defmodule Astarte.Helpers.Database do
     |> Repo.insert!(prefix: keyspace_name)
   end
 
-  defp create_server_owned_aggregated_object_table() do
+  defp create_server_owned_aggregated_object_table do
     create_server_owned_aggregated_object_table_query = """
     CREATE TABLE IF NOT EXISTS #{Realm.keyspace_name(@test_realm)}.com_example_server_owned_aggregated_object_v1 (
     device_id uuid,
@@ -857,7 +859,7 @@ defmodule Astarte.Helpers.Database do
     Repo.query!(create_server_owned_aggregated_object_table_query)
   end
 
-  defp insert_object_receiving_device() do
+  defp insert_object_receiving_device do
     keyspace_name = Realm.keyspace_name(@test_realm)
 
     {:ok, device_id} = Astarte.Core.Device.decode_device_id("fmloLzG5T5u0aOUfIkL8KA")

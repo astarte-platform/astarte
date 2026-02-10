@@ -17,6 +17,11 @@
 #
 
 defmodule Astarte.AppEngine.API.Rooms.WatchRequest do
+  @moduledoc """
+  Schema and validation for a request to watch a room.
+
+  This module handles the validation of romm subscription requests, ensuring that either a device ID or a group name is provided (mutually exclusive).
+  """
   use Ecto.Schema
 
   import Ecto.Changeset

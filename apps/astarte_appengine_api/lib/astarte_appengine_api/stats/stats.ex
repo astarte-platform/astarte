@@ -17,6 +17,11 @@
 #
 
 defmodule Astarte.AppEngine.API.Stats do
+  @moduledoc """
+  Context module for device statistics.
+
+  This module provides an interface to retrieve metrics about devices in a specific realm.
+  """
   alias Astarte.AppEngine.API.Stats.Queries
 
   def get_devices_stats(realm_name) do

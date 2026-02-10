@@ -186,7 +186,7 @@ defmodule Astarte.AppEngine.API.Config do
     end
   end
 
-  defp build_ssl_options() do
+  defp build_ssl_options do
     [
       cacertfile: rooms_amqp_client_ssl_ca_file!() || CAStore.file_path(),
       verify: :verify_peer,

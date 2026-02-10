@@ -18,8 +18,8 @@
 
 defmodule Astarte.AppEngine.APIWeb.DeviceStatusByGroupView do
   use Astarte.AppEngine.APIWeb, :view
-  alias Astarte.AppEngine.APIWeb.Endpoint
   alias Astarte.AppEngine.APIWeb.DeviceStatusView
+  alias Astarte.AppEngine.APIWeb.Endpoint
   alias Astarte.AppEngine.APIWeb.Router.Helpers, as: RouterHelpers
 
   def render("index.json", %{devices_list: devices_list, request: params}) do

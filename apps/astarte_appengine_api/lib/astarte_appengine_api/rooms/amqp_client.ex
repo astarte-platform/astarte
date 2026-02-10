@@ -17,6 +17,13 @@
 #
 
 defmodule Astarte.AppEngine.API.Rooms.AMQPClient do
+  @moduledoc """
+  AMQP client for consuming Room-related events from RabbitMQ.
+
+  This Genserver manages the connection and channel lifecycle, ensuring that 
+  events are consumed from the configured queue and dispatched to the EventsDispatcher.
+  It implements automatic reconnection logic and channel monitoring.
+  """
   require Logger
   use GenServer
 

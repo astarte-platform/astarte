@@ -20,10 +20,10 @@
 
 defmodule Astarte.AppEngine.APIWeb.InterfaceControllerTest do
   @moduledoc false
-  alias Astarte.AppEngine.API.Device.InterfaceValues
-  alias Astarte.DataAccess.Realms.Realm
-  alias Astarte.DataAccess.KvStore
   alias Astarte.AppEngine.API.Device
+  alias Astarte.AppEngine.API.Device.InterfaceValues
+  alias Astarte.DataAccess.KvStore
+  alias Astarte.DataAccess.Realms.Realm
   alias Astarte.Helpers.JWT
 
   use Astarte.Cases.Data, async: true

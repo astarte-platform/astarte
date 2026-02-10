@@ -17,6 +17,9 @@
 #
 
 defmodule Astarte.RPC.Helpers.Database do
+  @moduledoc """
+  Helper module for database schema management and data manipulation.
+  """
   alias Astarte.DataAccess.Devices.Device, as: DeviceSchema
   alias Astarte.DataAccess.Realms.Interface, as: InterfaceSchema
   alias Astarte.DataAccess.Realms.Realm

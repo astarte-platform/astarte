@@ -16,6 +16,12 @@
 # limitations under the License.
 
 defmodule Astarte.AppEngine.API.Device.Attributes do
+  @moduledoc """
+  Handles validation and application of Device Attributes.
+
+  This module manage the update and deletion of Device Attributes (Stored as 
+  key-Value pairs) in an Ecto Changeset while ensuring data integrity through validation.
+  """
   alias Ecto.Changeset
 
   require Logger
