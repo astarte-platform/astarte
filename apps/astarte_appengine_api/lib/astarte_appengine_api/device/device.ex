@@ -195,8 +195,16 @@ defmodule Astarte.AppEngine.API.Device do
         device_id,
         interface_descriptor,
         path,
-        raw_value
+        raw_value,
+        explicit_timestamp
       ) do
+    # check for explicit timestamp
+    now =
+      case explicit_timestamp do
+        false -> DateTime.utc_now()
+        {:ok, timestamp} -> timestamp
+      end
+
     with {:ok, [endpoint_id]} <- get_endpoint_ids(interface_descriptor.automaton, path),
          mapping =
            Queries.retrieve_mapping(realm_name, interface_descriptor.interface_id, endpoint_id),
@@ -205,7 +213,7 @@ defmodule Astarte.AppEngine.API.Device do
          wrapped_value = wrap_to_bson_struct(mapping.value_type, value),
          interface_type = interface_descriptor.type,
          reliability = mapping.reliability,
-         publish_opts = build_publish_opts(interface_type, reliability),
+         publish_opts = build_publish_opts(interface_type, reliability, now),
          interface_name = interface_descriptor.name,
          :ok <-
            ensure_publish(
@@ -217,8 +225,6 @@ defmodule Astarte.AppEngine.API.Device do
              publish_opts
            ) do
       realm_max_ttl = Queries.fetch_datastream_maximum_storage_retention(realm_name)
-
-      now = DateTime.utc_now()
 
       db_max_ttl =
         if mapping.database_retention_policy == :use_ttl do
@@ -369,9 +375,15 @@ defmodule Astarte.AppEngine.API.Device do
         device_id,
         interface_descriptor,
         path,
-        raw_value
+        raw_value,
+        explicit_timestamp
       ) do
-    now = DateTime.utc_now()
+    # check for explicit timestamp
+    now =
+      case explicit_timestamp do
+        false -> DateTime.utc_now()
+        {:ok, timestamp} -> timestamp
+      end
 
     with {:ok, mappings} <-
            Mappings.fetch_interface_mappings(
@@ -387,7 +399,7 @@ defmodule Astarte.AppEngine.API.Device do
          wrapped_value = wrap_to_bson_struct(expected_types, value),
          reliability = extract_aggregate_reliability(mappings),
          interface_type = interface_descriptor.type,
-         publish_opts = build_publish_opts(interface_type, reliability),
+         publish_opts = build_publish_opts(interface_type, reliability, now),
          interface_name = interface_descriptor.name,
          :ok <-
            ensure_publish(
@@ -472,8 +484,10 @@ defmodule Astarte.AppEngine.API.Device do
         interface,
         no_prefix_path,
         raw_value,
-        _params
+        params
       ) do
+
+
     with {:ok, device_id} <- Device.decode_device_id(encoded_device_id),
          {:ok, major_version} <-
            DeviceQueries.interface_version(realm_name, device_id, interface),
@@ -482,13 +496,23 @@ defmodule Astarte.AppEngine.API.Device do
          {:ok, interface_descriptor} <- InterfaceDescriptor.from_db_result(interface_row),
          {:ownership, :server} <- {:ownership, interface_descriptor.ownership},
          path <- "/" <> no_prefix_path do
+
+          explicit_timestamp =
+            with true <-
+                   Queries.interface_has_explicit_timestamp?(realm_name, interface_row.interface_id),
+                 :error <- Map.fetch(params, :explicit_timestamp) do
+              false
+            end
+
+
       if interface_descriptor.aggregation == :individual do
         update_individual_interface_values(
           realm_name,
           device_id,
           interface_descriptor,
           path,
-          raw_value
+          raw_value,
+          explicit_timestamp
         )
       else
         update_object_interface_values(
@@ -496,7 +520,8 @@ defmodule Astarte.AppEngine.API.Device do
           device_id,
           interface_descriptor,
           path,
-          raw_value
+          raw_value,
+          explicit_timestamp
         )
       end
     else
@@ -527,12 +552,12 @@ defmodule Astarte.AppEngine.API.Device do
     mapping.reliability
   end
 
-  defp build_publish_opts(:properties, _reliability) do
-    [type: :properties]
+  defp build_publish_opts(:properties, _reliability, timestamp) do
+    [type: :properties, timestamp: timestamp]
   end
 
-  defp build_publish_opts(:datastream, reliability) do
-    [type: :datastream, reliability: reliability]
+  defp build_publish_opts(:datastream, reliability, timestamp) do
+    [type: :datastream, reliability: reliability, timestamp: timestamp]
   end
 
   defp ensure_publish(realm, device_id, interface, path, value, opts) do
@@ -543,6 +568,8 @@ defmodule Astarte.AppEngine.API.Device do
   end
 
   defp publish_data(realm, device_id, interface, path, value, opts) do
+    timestamp = Keyword.fetch!(opts, :timestamp)
+
     case Keyword.fetch!(opts, :type) do
       :properties ->
         DataTransmitter.set_property(
@@ -550,7 +577,8 @@ defmodule Astarte.AppEngine.API.Device do
           device_id,
           interface,
           path,
-          value
+          value,
+          timestamp: timestamp
         )
 
       :datastream ->
@@ -564,7 +592,8 @@ defmodule Astarte.AppEngine.API.Device do
           interface,
           path,
           value,
-          qos: qos
+          qos: qos,
+          timestamp: timestamp
         )
     end
   end
