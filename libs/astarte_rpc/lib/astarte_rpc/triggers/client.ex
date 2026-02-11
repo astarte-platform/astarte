@@ -17,13 +17,16 @@
 #
 
 defmodule Astarte.RPC.Triggers.Client do
+  @moduledoc """
+  This module defines the GenServer responsible for handling trigger installation and deletion messages in the Astarte RPC system.
+  """
   use GenServer
 
+  alias Astarte.Events.Triggers, as: EventsTriggers
   alias Astarte.RPC.Triggers
   alias Astarte.RPC.Triggers.Client
   alias Astarte.RPC.Triggers.TriggerDeletion
   alias Astarte.RPC.Triggers.TriggerInstallation
-  alias Astarte.Events.Triggers, as: EventsTriggers
 
   def start_link(init_arg), do: GenServer.start_link(Client, init_arg, name: Client)
 

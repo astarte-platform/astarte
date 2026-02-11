@@ -17,10 +17,14 @@
 #
 
 defmodule Astarte.RPC.Triggers.TriggerInstallation do
+  @moduledoc """
+  This module defines the struct for trigger installation requests in the Astarte RPC system.
+  """
   use TypedStruct
 
-  alias Astarte.Core.Triggers.SimpleTriggersProtobuf.TaggedSimpleTrigger
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.AMQPTriggerTarget
+  alias Astarte.Core.Triggers.SimpleTriggersProtobuf.TaggedSimpleTrigger
+  alias Astarte.Events.Triggers.Core
 
   @type trigger_target :: AMQPTriggerTarget.t()
 
@@ -29,6 +33,6 @@ defmodule Astarte.RPC.Triggers.TriggerInstallation do
     field :simple_trigger, TaggedSimpleTrigger.t()
     field :target, trigger_target()
     field :policy, String.t() | nil
-    field :data, Astarte.Events.Triggers.Core.fetch_triggers_data()
+    field :data, Core.fetch_triggers_data()
   end
 end
