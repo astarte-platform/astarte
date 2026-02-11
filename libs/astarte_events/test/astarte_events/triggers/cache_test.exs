@@ -28,6 +28,7 @@ defmodule Astarte.Events.Triggers.CacheTest do
   alias Astarte.Events.AMQPTriggers.VHostSupervisor
   alias Astarte.Events.Triggers
   alias Astarte.Events.Triggers.Cache
+  alias Astarte.Events.Triggers.Core
 
   setup_all context do
     %{realm_name: realm_name} = context
@@ -77,7 +78,7 @@ defmodule Astarte.Events.Triggers.CacheTest do
     end
   end
 
-  test "installs and deletes volatile triggers", %{realm_name: realm} do
+  test "installs and deletes device volatile triggers", %{realm_name: realm} do
     device_id = DeviceGenerator.id() |> Enum.at(0)
     event_key = :on_device_connection
     default_trigger = install_simple_trigger(realm, object: {:device_id, device_id})
@@ -119,6 +120,64 @@ defmodule Astarte.Events.Triggers.CacheTest do
     assert length(targets_after_delete) == 1
   end
 
+  test "installs and deletes data volatile triggers", %{realm_name: realm} do
+    device_id = DeviceGenerator.id() |> Enum.at(0)
+    interface = install_interface(realm)
+    {:ok, interface_id} = UUID.cast(interface.interface_id)
+    data = %{interface_ids_to_name: %{interface_id => interface.name}}
+
+    default_trigger =
+      install_data_trigger(realm,
+        object: {:device_and_any_interface, device_id},
+        interface_name: interface.name,
+        interface_major: interface.major_version
+      )
+
+    simple_trigger = Triggers.deserialize_simple_trigger(default_trigger)
+
+    {{trigger_type, trigger}, target} = simple_trigger
+
+    {:ok, event_key, trigger_with_key} =
+      Core.get_trigger_with_event_key(data, trigger_type, trigger)
+
+    {:ok, subject} = Core.trigger_subject(trigger_type, trigger)
+
+    :ok =
+      Cache.install_volatile_trigger(
+        realm,
+        event_key,
+        subject,
+        trigger_type,
+        trigger_with_key,
+        target,
+        "policy1"
+      )
+
+    targets =
+      Cache.find_data_trigger_targets(
+        realm,
+        device_id,
+        [],
+        {:on_incoming_data, interface_id, :any_endpoint},
+        data
+      )
+
+    assert length(targets) == 2
+
+    :ok = Cache.delete_volatile_trigger(realm, default_trigger.simple_trigger_id)
+
+    targets =
+      Cache.find_data_trigger_targets(
+        realm,
+        device_id,
+        [],
+        {:on_incoming_data, interface_id, :any_endpoint},
+        data
+      )
+
+    assert length(targets) == 1
+  end
+
   describe "find_data_triggers/4" do
     test "loads data triggers from DB", %{realm_name: realm} do
       device_id = DeviceGenerator.id() |> Enum.at(0)
@@ -137,9 +196,9 @@ defmodule Astarte.Events.Triggers.CacheTest do
         Cache.find_data_trigger_targets(
           realm,
           device_id,
-          [],
+          ["group1"],
           {:on_incoming_data, interface_id, :any_endpoint},
-          %{}
+          %{interface_ids_to_name: %{interface_id => interface.name}}
         )
 
       assert length(targets) == 1
