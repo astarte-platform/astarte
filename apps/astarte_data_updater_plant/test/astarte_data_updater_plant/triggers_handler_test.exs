@@ -47,6 +47,7 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandlerTest do
   alias Astarte.DataUpdaterPlant.DataUpdater.State
   alias Astarte.DataUpdaterPlant.TriggersHandler
   alias Astarte.Events.Config, as: EventsConfig
+  alias Astarte.Events.Triggers.DataTriggerContext
   alias Astarte.Housekeeping.AMQP.Vhost
 
   @introspection "com.My.Interface:1:0;com.Another.Interface:1:2"
@@ -994,13 +995,7 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandlerTest do
 
   defp register_target(event, target, policy \\ nil) do
     Astarte.Events.Triggers
-    |> Mimic.stub(:find_all_data_trigger_targets, fn _, _, _, ^event, _, _, _, _, _ ->
-      [{target, policy}]
-    end)
-    |> Mimic.stub(:find_all_data_trigger_targets, fn _, _, _, ^event, _, _, _, _ ->
-      [{target, policy}]
-    end)
-    |> Mimic.stub(:find_all_data_trigger_targets, fn _, _, _, ^event, _, _, _ ->
+    |> Mimic.stub(:find_all_data_trigger_targets, fn %DataTriggerContext{event: ^event} ->
       [{target, policy}]
     end)
     |> Mimic.stub(:find_device_trigger_targets, fn _, _, _, ^event -> [{target, policy}] end)
