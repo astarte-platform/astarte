@@ -20,8 +20,8 @@ defmodule Astarte.DataAccess.Data.XandraTest do
   use ExUnit.Case
   alias Astarte.Core.Device, as: CoreDevice
   alias Astarte.Core.InterfaceDescriptor
-  alias Astarte.DataAccess.DatabaseTestHelper
   alias Astarte.DataAccess.Data
+  alias Astarte.DataAccess.DatabaseTestHelper
   alias Astarte.DataAccess.Interface
   alias Astarte.DataAccess.Mappings
 

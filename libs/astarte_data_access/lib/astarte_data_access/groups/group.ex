@@ -17,6 +17,9 @@
 #
 
 defmodule Astarte.DataAccess.Groups.Group do
+  @moduledoc """
+  This module defines the Ecto schema for the `groups` table.
+  """
   use Ecto.Schema
   import Ecto.Changeset
   alias Astarte.DataAccess.Groups.Group

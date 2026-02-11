@@ -17,6 +17,9 @@
 #
 
 defmodule Astarte.DataAccess.Config.XandraNodes do
+  @moduledoc """
+  This module defines a custom type for parsing the `xandra_nodes` configuration value.
+  """
   use Skogsra.Type
 
   @impl Skogsra.Type

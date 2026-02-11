@@ -22,8 +22,8 @@ defmodule Astarte.DataAccess.Config do
   Data Access
   """
 
-  alias Astarte.DataAccess.Config.XandraNodes
   alias Astarte.Core.Mapping
+  alias Astarte.DataAccess.Config.XandraNodes
 
   use Skogsra
 

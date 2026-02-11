@@ -17,6 +17,9 @@
 #
 
 defmodule Astarte.DataAccess.Interface do
+  @moduledoc """
+  This module provides functions to fetch and manipulate interface information in Astarte Data Access.
+  """
   require Logger
   alias Astarte.Core.InterfaceDescriptor
   alias Astarte.DataAccess.Consistency
@@ -24,8 +27,8 @@ defmodule Astarte.DataAccess.Interface do
   import Ecto.Query
 
   alias Astarte.Core.InterfaceDescriptor
-  alias Astarte.DataAccess.Realms.Realm
   alias Astarte.DataAccess.Realms.Interface
+  alias Astarte.DataAccess.Realms.Realm
   alias Astarte.DataAccess.Repo
 
   require Logger
@@ -64,7 +67,7 @@ defmodule Astarte.DataAccess.Interface do
   end
 
   @spec fetch_interface_descriptor(String.t(), String.t(), non_neg_integer) ::
-          {:ok, %InterfaceDescriptor{}} | {:error, atom}
+          {:ok, InterfaceDescriptor.t()} | {:error, atom}
   def fetch_interface_descriptor(realm_name, interface_name, major_version) do
     with {:ok, interface} <- retrieve_interface_row(realm_name, interface_name, major_version) do
       InterfaceDescriptor.from_db_result(interface)

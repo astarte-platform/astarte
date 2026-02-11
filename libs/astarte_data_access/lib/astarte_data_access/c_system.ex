@@ -17,25 +17,29 @@
 #
 
 defmodule Astarte.DataAccess.CSystem do
-  alias Astarte.DataAccess.Repo
-  alias Astarte.DataAccess.CSystem
+  @moduledoc """
+  This module provides functions to interact with the Cassandra system keyspace, particularly for ensuring schema agreement when performing schema changes.
+  """
+
   alias Astarte.DataAccess.Consistency
+  alias Astarte.DataAccess.CSystem
+  alias Astarte.DataAccess.Repo
 
   import Ecto.Query
 
   @agreement_sleep_millis 200
 
   def run_with_schema_agreement(opts \\ [], fun) when is_function(fun) do
-    timeout = Keyword.get(opts, :timeout, 30000)
+    timeout = Keyword.get(opts, :timeout, 30_000)
     expect_change = Keyword.get(opts, :expect_change, false)
 
     with {:ok, initial} <- wait_schema_agreement(timeout),
          out = fun.(),
          {:ok, final} <- wait_schema_agreement(timeout) do
-      unless expect_change and initial == final do
-        out
-      else
+      if expect_change and initial == final do
         {:error, :no_schema_change}
+      else
+        out
       end
     end
   end
@@ -57,13 +61,13 @@ defmodule Astarte.DataAccess.CSystem do
     end
   end
 
-  def schema_versions() do
+  def schema_versions do
     local_version = query_local_schema_version()
     peers_versions = query_peers_schema_versions()
     Enum.uniq([local_version | peers_versions])
   end
 
-  def query_peers_schema_versions() do
+  def query_peers_schema_versions do
     query =
       from(peers in "peers",
         prefix: "system",
@@ -75,7 +79,7 @@ defmodule Astarte.DataAccess.CSystem do
     |> Enum.to_list()
   end
 
-  def query_local_schema_version() do
+  def query_local_schema_version do
     query =
       from(locals in "local",
         prefix: "system",

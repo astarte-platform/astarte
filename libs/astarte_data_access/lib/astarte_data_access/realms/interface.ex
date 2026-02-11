@@ -17,6 +17,9 @@
 #
 
 defmodule Astarte.DataAccess.Realms.Interface do
+  @moduledoc """
+  This module defines the Ecto schema for the `interfaces` table.
+  """
   use TypedEctoSchema
 
   alias Astarte.Core.Interface.Aggregation

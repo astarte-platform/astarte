@@ -17,6 +17,9 @@
 #
 
 defmodule Astarte.DataAccess.Consistency do
+  @moduledoc """
+  This module provides functions to determine the appropriate consistency levels for various operations in Astarte Data Access.
+  """
   alias Astarte.Core.Mapping
   alias Astarte.DataAccess.Config
 

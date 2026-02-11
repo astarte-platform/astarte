@@ -17,14 +17,16 @@
 #
 
 defmodule Astarte.DataAccess.Mappings do
+  @moduledoc """
+  This module provides functions to fetch and manipulate interface mappings in Astarte Data Access.
+  """
   import Ecto.Query
 
   alias Astarte.Core.Mapping
 
   alias Astarte.DataAccess.Consistency
-
-  alias Astarte.DataAccess.Realms.Realm
   alias Astarte.DataAccess.Realms.Endpoint
+  alias Astarte.DataAccess.Realms.Realm
   alias Astarte.DataAccess.Repo
 
   require Logger
@@ -44,7 +46,7 @@ defmodule Astarte.DataAccess.Mappings do
   ]
 
   @spec fetch_interface_mappings(String.t(), binary, keyword) ::
-          {:ok, list(%Mapping{})} | {:error, atom}
+          {:ok, list(Mapping.t())} | {:error, atom}
   def fetch_interface_mappings(realm, interface_id, opts \\ []) do
     keyspace = Realm.keyspace_name(realm)
 
