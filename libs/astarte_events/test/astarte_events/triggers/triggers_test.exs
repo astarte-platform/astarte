@@ -150,6 +150,29 @@ defmodule Astarte.Events.TriggersTest do
     end
   end
 
+  describe "fetch_triggers" do
+    test "fetch_triggers/2 returns device triggers", %{realm_name: realm} do
+      device_id = DeviceGenerator.id() |> Enum.at(0)
+      simple_trigger = install_simple_trigger(realm, object: {:device_id, device_id})
+
+      deserialized = Triggers.deserialize_simple_trigger(simple_trigger)
+
+      assert {:ok, data} = Triggers.fetch_triggers(realm, [deserialized])
+      assert length(data.device_triggers[:on_device_connection]) == 1
+    end
+
+    test "fetch_triggers/3 returns data triggers", %{realm_name: realm} do
+      simple_trigger = install_data_trigger(realm)
+
+      deserialized = Triggers.deserialize_simple_trigger(simple_trigger)
+
+      assert {:ok, data} = Triggers.fetch_triggers(realm, [deserialized], %{})
+
+      [data_trigger] = data.data_triggers[{:on_incoming_data, :any_interface, :any_endpoint}]
+      assert length(data_trigger.trigger_targets) == 1
+    end
+  end
+
   describe "find_data_triggers" do
     test "loads data triggers from DB", %{realm_name: realm} do
       device_id = DeviceGenerator.id() |> Enum.at(0)

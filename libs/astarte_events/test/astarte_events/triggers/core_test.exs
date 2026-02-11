@@ -19,9 +19,13 @@
 defmodule Astarte.Events.Triggers.CoreTest do
   use Astarte.Cases.Data, async: true
 
+  import Mimic
+
   alias Astarte.Core.CQLUtils
   alias Astarte.Core.Device
   alias Astarte.Core.Generators.Device, as: DeviceGenerator
+  alias Astarte.Core.InterfaceDescriptor
+  alias Astarte.Core.Triggers.DataTrigger
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.AMQPTriggerTarget
 
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.DataTrigger,
@@ -33,6 +37,9 @@ defmodule Astarte.Events.Triggers.CoreTest do
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.Utils
   alias Astarte.Events.Triggers.Core
   alias Astarte.Events.Triggers.DataTrigger, as: DataTriggerWithTargets
+  alias Astarte.Events.TriggersHandler.Core, as: TriggersHandlerCore
+
+  setup :verify_on_exit!
 
   @any_device_object_id Utils.any_device_object_id()
   @any_device_object_type Utils.object_type_to_int!(:any_device)
@@ -110,6 +117,29 @@ defmodule Astarte.Events.Triggers.CoreTest do
     end
   end
 
+  describe "register_targets/2" do
+    test "registers all targets", %{realm_name: realm} do
+      target1 = %AMQPTriggerTarget{exchange: "exchange1"}
+      target2 = %AMQPTriggerTarget{exchange: "exchange2"}
+
+      simple_trigger_list = [
+        {:on_device_connection, target1},
+        {:on_device_disconnection, target2}
+      ]
+
+      TriggersHandlerCore
+      |> expect(:register_target, 2, fn ^realm, target ->
+        send(self(), {:register_target, target})
+        :ok
+      end)
+
+      Core.register_targets(realm, simple_trigger_list)
+
+      assert_receive {:register_target, ^target1}
+      assert_receive {:register_target, ^target2}
+    end
+  end
+
   describe "trigger_subject/2 for device_trigger" do
     test "returns :any_device when device_id and group_name are nil" do
       trigger = %ProtobufDeviceTrigger{
@@ -152,6 +182,70 @@ defmodule Astarte.Events.Triggers.CoreTest do
 
       assert {:ok, {:group, "group"}} =
                Core.trigger_subject(:device_trigger, trigger)
+    end
+  end
+
+  describe "data_trigger_to_key/3" do
+    test "returns endpoint for valid interface and path", %{realm_name: realm} do
+      interface = install_interface(realm)
+      descriptor = InterfaceDescriptor.from_db_result!(interface)
+
+      interface_id = descriptor.interface_id
+
+      state = %{
+        interfaces: %{descriptor.name => descriptor},
+        interface_ids_to_name: %{interface_id => descriptor.name}
+      }
+
+      data_trigger = %DataTrigger{
+        interface_id: interface_id,
+        path_match_tokens: ["time", "from"],
+        trigger_targets: []
+      }
+
+      assert {:ok, {:on_incoming_data, ^interface_id, endpoint}} =
+               Core.data_trigger_to_key(state, data_trigger, :on_incoming_data)
+
+      assert endpoint != :any_endpoint
+    end
+
+    test "returns :interface_not_found when interface is missing" do
+      interface_id = UUID.uuid4(:raw)
+
+      state = %{
+        interfaces: %{},
+        interface_ids_to_name: %{interface_id => "missing.interface"}
+      }
+
+      data_trigger = %DataTrigger{
+        interface_id: interface_id,
+        path_match_tokens: ["time", "from"],
+        trigger_targets: []
+      }
+
+      assert {:error, :interface_not_found} =
+               Core.data_trigger_to_key(state, data_trigger, :on_incoming_data)
+    end
+
+    test "returns :invalid_match_path when path is not in the interface", %{realm_name: realm} do
+      interface = install_interface(realm)
+      descriptor = InterfaceDescriptor.from_db_result!(interface)
+
+      interface_id = descriptor.interface_id
+
+      state = %{
+        interfaces: %{descriptor.name => descriptor},
+        interface_ids_to_name: %{interface_id => descriptor.name}
+      }
+
+      data_trigger = %DataTrigger{
+        interface_id: interface_id,
+        path_match_tokens: ["invalid", "path"],
+        trigger_targets: []
+      }
+
+      assert {:error, :invalid_match_path} =
+               Core.data_trigger_to_key(state, data_trigger, :on_incoming_data)
     end
   end
 
