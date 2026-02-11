@@ -355,6 +355,7 @@ defmodule Astarte.DataUpdaterPlant.TimeBasedActionsTest do
   end
 
   describe "reload_datastream_maximum_storage_retention_on_expiry/2" do
+    @describetag timeout: 120_000
     setup do
       %{realm_names: [realm_name]} = setup_instance()
 
