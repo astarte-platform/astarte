@@ -31,7 +31,7 @@ defmodule Astarte.Helpers.DatabaseV2 do
   """
 
   @drop_keyspace """
-  DROP KEYSPACE :keyspace
+  DROP KEYSPACE IF EXISTS :keyspace
   """
 
   @create_realms_table """
@@ -275,8 +275,8 @@ defmodule Astarte.Helpers.DatabaseV2 do
     realm_keyspace = Realm.keyspace_name(realm_name)
     astarte_keyspace = Realm.astarte_keyspace_name()
 
-    execute!(realm_keyspace, @drop_keyspace)
-    execute!(astarte_keyspace, @drop_keyspace)
+    execute!(realm_keyspace, @drop_keyspace, [], timeout: 60_000)
+    execute!(astarte_keyspace, @drop_keyspace, [], timeout: 60_000)
 
     :ok
   end
