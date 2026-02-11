@@ -19,15 +19,17 @@
 defmodule Astarte.RPC.Config.AstarteServicesTest do
   use ExUnit.Case, async: true
 
+  alias Astarte.RPC.Config.AstarteServices
+
   describe "cast/1" do
     test "returns ok with valid single service" do
       assert {:ok, [:astarte_data_updater_plant]} ==
-               Astarte.RPC.Config.AstarteServices.cast([:astarte_data_updater_plant])
+               AstarteServices.cast([:astarte_data_updater_plant])
     end
 
     test "returns ok with multiple valid services" do
       services = [:astarte_pairing, :astarte_realm_management]
-      assert {:ok, result} = Astarte.RPC.Config.AstarteServices.cast(services)
+      assert {:ok, result} = AstarteServices.cast(services)
       assert MapSet.equal?(MapSet.new(result), MapSet.new(services))
     end
 
@@ -39,24 +41,24 @@ defmodule Astarte.RPC.Config.AstarteServicesTest do
         :astarte_vmq_plugin
       ]
 
-      assert {:ok, result} = Astarte.RPC.Config.AstarteServices.cast(services)
+      assert {:ok, result} = AstarteServices.cast(services)
       assert MapSet.equal?(MapSet.new(result), MapSet.new(services))
     end
 
     test "returns error with invalid service" do
-      assert :error == Astarte.RPC.Config.AstarteServices.cast([:invalid_service])
+      assert :error == AstarteServices.cast([:invalid_service])
     end
 
     test "returns error with mix of valid and invalid services" do
       assert :error ==
-               Astarte.RPC.Config.AstarteServices.cast([
+               AstarteServices.cast([
                  :astarte_pairing,
                  :invalid_service
                ])
     end
 
     test "returns ok with empty list" do
-      assert {:ok, []} == Astarte.RPC.Config.AstarteServices.cast([])
+      assert {:ok, []} == AstarteServices.cast([])
     end
   end
 end

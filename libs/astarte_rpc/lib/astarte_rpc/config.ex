@@ -17,6 +17,9 @@
 #
 
 defmodule Astarte.RPC.Config do
+  @moduledoc """
+  This module defines the configuration for the Astarte RPC application.
+  """
   use Skogsra
 
   alias Astarte.RPC.Config

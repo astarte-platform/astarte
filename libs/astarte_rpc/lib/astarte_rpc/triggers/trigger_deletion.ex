@@ -17,14 +17,19 @@
 #
 
 defmodule Astarte.RPC.Triggers.TriggerDeletion do
+  @moduledoc """
+  This module defines the struct for trigger deletion requests in the Astarte RPC system.
+  """
   use TypedStruct
 
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.TaggedSimpleTrigger
+  alias Astarte.DataAccess.UUID
+  alias Astarte.Events.Triggers.Core
 
   typedstruct do
     field :realm_name, String.t()
-    field :trigger_id, Astarte.DataAccess.UUID.t()
+    field :trigger_id, UUID.t()
     field :simple_trigger, TaggedSimpleTrigger.t()
-    field :data, Astarte.Events.Triggers.Core.fetch_triggers_data()
+    field :data, Core.fetch_triggers_data()
   end
 end

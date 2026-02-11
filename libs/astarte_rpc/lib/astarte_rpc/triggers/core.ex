@@ -17,10 +17,13 @@
 #
 
 defmodule Astarte.RPC.Triggers.Core do
-  alias Astarte.DataAccess.Interface
-  alias Astarte.Core.Triggers.SimpleTriggersProtobuf.TaggedSimpleTrigger
-  alias Astarte.Events.Triggers.Core, as: EventsCore
+  @moduledoc """
+  This module provides core functionalities for handling triggers in the Astarte RPC.
+  """
   alias Astarte.Core.CQLUtils
+  alias Astarte.Core.Triggers.SimpleTriggersProtobuf.TaggedSimpleTrigger
+  alias Astarte.DataAccess.Interface
+  alias Astarte.Events.Triggers.Core, as: EventsCore
 
   @spec find_trigger_data(
           String.t(),
