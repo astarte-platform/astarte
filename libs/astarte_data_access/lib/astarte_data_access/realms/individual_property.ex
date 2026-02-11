@@ -17,11 +17,14 @@
 #
 
 defmodule Astarte.DataAccess.Realms.IndividualProperty do
+  @moduledoc """
+  This module defines the Ecto schema for the `individual_properties` table.
+  """
   use TypedEctoSchema
-  alias Astarte.DataAccess.UUID
-  alias Astarte.DataAccess.SmallInt
   alias Astarte.DataAccess.BigInt
   alias Astarte.DataAccess.DateTime, as: DateTimeMs
+  alias Astarte.DataAccess.SmallInt
+  alias Astarte.DataAccess.UUID
 
   @primary_key false
   typed_schema "individual_properties" do

@@ -17,11 +17,14 @@
 #
 
 defmodule Astarte.DataAccess.Devices.Device do
+  @moduledoc """
+  This module defines the Ecto schema for the `devices` table.
+  """
   use TypedEctoSchema
 
   alias Astarte.Core.Device.Capabilities
-  alias Astarte.DataAccess.UUID
   alias Astarte.DataAccess.DateTime, as: DateTimeMs
+  alias Astarte.DataAccess.UUID
 
   @primary_key {:device_id, UUID, autogenerate: false}
   typed_schema "devices" do

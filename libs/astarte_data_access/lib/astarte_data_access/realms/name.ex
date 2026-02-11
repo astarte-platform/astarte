@@ -17,6 +17,9 @@
 #
 
 defmodule Astarte.DataAccess.Realms.Name do
+  @moduledoc """
+  This module defines the Ecto schema for the `names` table.
+  """
   use TypedEctoSchema
 
   alias Astarte.DataAccess.UUID

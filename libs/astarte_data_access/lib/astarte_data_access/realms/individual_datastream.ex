@@ -17,10 +17,13 @@
 #
 
 defmodule Astarte.DataAccess.Realms.IndividualDatastream do
+  @moduledoc """
+  This module defines the Ecto schema for the `individual_datastreams` table.
+  """
   use TypedEctoSchema
-  alias Astarte.DataAccess.UUID
-  alias Astarte.DataAccess.SmallInt
   alias Astarte.DataAccess.BigInt
+  alias Astarte.DataAccess.SmallInt
+  alias Astarte.DataAccess.UUID
 
   @primary_key false
   typed_schema "individual_datastreams" do
@@ -29,7 +32,8 @@ defmodule Astarte.DataAccess.Realms.IndividualDatastream do
     field :endpoint_id, UUID, primary_key: true
     field :path, :string, primary_key: true
 
-    # We use `utc_datetime_usec`because we're interested in ms, which `utc_datetime` does not provide
+    # We use `utc_datetime_usec`because we're interested in ms,
+    # which `utc_datetime` does not provide
     field :value_timestamp, :utc_datetime_usec, primary_key: true
     field :reception_timestamp, :utc_datetime_usec, primary_key: true
     # Ecto does not have a :smallint type

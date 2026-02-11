@@ -17,6 +17,9 @@
 #
 
 defmodule Astarte.DataAccess.Groups.GroupedDevice do
+  @moduledoc """
+  This module defines the Ecto schema for the `grouped_devices` table.
+  """
   use TypedEctoSchema
   alias Astarte.DataAccess.UUID
 

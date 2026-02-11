@@ -248,20 +248,16 @@ defmodule Astarte.DataAccess.Repo do
   end
 
   defp safe_wrap(f) do
-    try do
-      {:ok, f.()}
-    rescue
-      error ->
-        handle_database_error(error)
-    end
+    {:ok, f.()}
+  rescue
+    error ->
+      handle_database_error(error)
   end
 
   defp safe(f) do
-    try do
-      f.()
-    rescue
-      error ->
-        handle_database_error(error)
-    end
+    f.()
+  rescue
+    error ->
+      handle_database_error(error)
   end
 end

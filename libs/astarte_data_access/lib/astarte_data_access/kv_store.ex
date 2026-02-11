@@ -16,6 +16,9 @@
 # limitations under the License.
 
 defmodule Astarte.DataAccess.KvStore do
+  @moduledoc """
+  This module defines the Ecto schema for the `kv_store` table.
+  """
   use TypedEctoSchema
 
   alias Astarte.DataAccess.Repo

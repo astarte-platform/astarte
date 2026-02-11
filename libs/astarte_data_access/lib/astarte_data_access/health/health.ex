@@ -17,6 +17,10 @@
 #
 
 defmodule Astarte.DataAccess.Health.Health do
+  @moduledoc """
+  This module provides functions to check the health status of the Astarte Data Access
+  database by executing specific queries with defined consistency levels.
+  """
   alias Astarte.DataAccess.Health.Queries
 
   def get_health do

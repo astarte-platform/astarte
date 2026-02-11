@@ -17,6 +17,9 @@
 #
 
 defmodule Astarte.DataAccess do
+  @moduledoc """
+  This module serves as the entry point for the Astarte Data Access application.
+  """
   use Application
 
   alias Astarte.DataAccess.Config

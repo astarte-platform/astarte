@@ -16,6 +16,9 @@
 # limitations under the License.
 #
 defmodule Astarte.DataAccess.Device.DeletionInProgress do
+  @moduledoc """
+  This module defines the Ecto schema for the `deletion_in_progress` table.
+  """
   use TypedEctoSchema
   alias Astarte.DataAccess.UUID
 

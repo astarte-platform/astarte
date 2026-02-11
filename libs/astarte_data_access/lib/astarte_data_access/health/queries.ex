@@ -17,6 +17,10 @@
 #
 
 defmodule Astarte.DataAccess.Health.Queries do
+  @moduledoc """
+  This module provides functions to perform health checks on the Astarte Data Access
+  database by executing specific queries with defined consistency levels.
+  """
   alias Astarte.DataAccess.KvStore
   alias Astarte.DataAccess.Realms.Realm
   alias Astarte.DataAccess.Repo

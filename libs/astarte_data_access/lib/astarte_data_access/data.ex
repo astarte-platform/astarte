@@ -17,6 +17,9 @@
 #
 
 defmodule Astarte.DataAccess.Data do
+  @moduledoc """
+  This module provides functions to access data stored in the database, ensuring schema agreement when necessary.
+  """
   require Logger
   alias Astarte.DataAccess.Consistency
   import Ecto.Query
@@ -24,8 +27,8 @@ defmodule Astarte.DataAccess.Data do
   alias Astarte.Core.Device
   alias Astarte.Core.InterfaceDescriptor
   alias Astarte.Core.Mapping
-  alias Astarte.DataAccess.Realms.Realm
   alias Astarte.DataAccess.Realms.IndividualProperty
+  alias Astarte.DataAccess.Realms.Realm
   alias Astarte.DataAccess.Repo
   alias Ecto.UUID
 
@@ -34,8 +37,8 @@ defmodule Astarte.DataAccess.Data do
   @spec fetch_property(
           String.t(),
           Device.device_id(),
-          %InterfaceDescriptor{},
-          %Mapping{},
+          InterfaceDescriptor.t(),
+          Mapping.t(),
           String.t()
         ) :: {:ok, any} | {:error, atom}
   def fetch_property(

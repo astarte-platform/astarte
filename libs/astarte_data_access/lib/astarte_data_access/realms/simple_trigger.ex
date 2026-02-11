@@ -17,6 +17,9 @@
 #
 
 defmodule Astarte.DataAccess.Realms.SimpleTrigger do
+  @moduledoc """
+  This module defines the Ecto schema for the `simple_triggers` table, which stores information about simple triggers in Astarte Data Access.
+  """
   use TypedEctoSchema
   alias Astarte.DataAccess.UUID
 

@@ -17,6 +17,9 @@
 #
 
 defmodule Astarte.DataAccess.NonNegativeIntegerOrUnsetType do
+  @moduledoc """
+  Custom Ecto type to represent a non-negative integer or the special value `:unset`.
+  """
   use Ecto.Type
   def type, do: :any
 

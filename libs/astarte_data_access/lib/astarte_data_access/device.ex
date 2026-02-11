@@ -17,12 +17,16 @@
 #
 
 defmodule Astarte.DataAccess.Device do
+  @moduledoc """
+  This module provides functions to fetch and manipulate device information in Astarte Data Access.
+  """
   require Logger
-  alias Astarte.DataAccess.Consistency
-  alias Astarte.DataAccess.Realms.Realm
-  alias Astarte.DataAccess.Devices.Device
-  alias Astarte.DataAccess.Repo
   alias Astarte.Core.Device, as: DeviceCore
+  alias Astarte.DataAccess.Consistency
+  alias Astarte.DataAccess.Devices.Device
+  alias Astarte.DataAccess.Realms.Realm
+  alias Astarte.DataAccess.Repo
+
   import Ecto.Query
 
   @spec interface_version(String.t(), DeviceCore.device_id(), String.t()) ::
@@ -37,9 +41,8 @@ defmodule Astarte.DataAccess.Device do
       |> select([:introspection])
       |> Repo.fetch_one(error: :device_not_found, prefix: keyspace, consistency: consistency)
 
-    with {:ok, device} <- device_fetch,
-         {:ok, major} <- retrieve_major(device, interface_name) do
-      {:ok, major}
+    with {:ok, device} <- device_fetch do
+      retrieve_major(device, interface_name)
     end
   end
 

@@ -3,8 +3,8 @@ defmodule Astarte.DataAccess.RepoTest do
 
   alias Astarte.DataAccess.DatabaseTestHelper
 
-  alias Astarte.DataAccess.Repo
   alias Astarte.DataAccess.Realms.Realm
+  alias Astarte.DataAccess.Repo
 
   import Ecto.Query
   use Mimic

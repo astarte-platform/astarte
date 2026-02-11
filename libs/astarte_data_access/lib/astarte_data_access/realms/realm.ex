@@ -16,6 +16,9 @@
 # limitations under the License.
 
 defmodule Astarte.DataAccess.Realms.Realm do
+  @moduledoc """
+  This module defines the Ecto schema for the `realms` table, which stores information about realms in Astarte Data Access.
+  """
   use TypedEctoSchema
 
   alias Astarte.Core.CQLUtils
@@ -36,7 +39,7 @@ defmodule Astarte.DataAccess.Realms.Realm do
     end
   end
 
-  def astarte_keyspace_name() do
+  def astarte_keyspace_name do
     CQLUtils.realm_name_to_keyspace_name("astarte", Config.astarte_instance_id!())
   end
 end
