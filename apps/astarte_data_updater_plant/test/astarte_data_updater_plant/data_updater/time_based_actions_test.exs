@@ -28,7 +28,7 @@ defmodule Astarte.DataUpdaterPlant.TimeBasedActionsTest do
 
   @timestamp_us_x_10 Database.make_timestamp("2025-05-14T14:00:32+00:00")
   @timestamp2_us_x_10 Database.make_timestamp("2025-05-14T14:10:32+00:00")
-  @interface_lifespan_decimicroseconds 60 * 10 * 1000 * 10000
+  @interface_lifespan_decimicroseconds 60 * 10 * 1000 * 10_000
 
   setup do
     device_id = Database.random_device_id()
@@ -524,7 +524,7 @@ defmodule Astarte.DataUpdaterPlant.TimeBasedActionsTest do
   end
 
   defp insert_device_and_start_data_updater(realm_name, device_id, params) do
-    encoded_device_id = Astarte.Core.Device.encode_device_id(device_id)
+    encoded_device_id = Device.encode_device_id(device_id)
     Database.insert_device(device_id, realm_name, params)
 
     setup_data_updater(realm_name, encoded_device_id)

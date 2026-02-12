@@ -5,7 +5,7 @@ config :astarte_data_updater_plant, :amqp_consumer_options,
 
 config :logger, :console,
   format: {PrettyLog.UserFriendlyFormatter, :format},
-  metadata: [:realm, :device_id, :function]
+  metadata: [:realm, :device_id, :ip_address, :module, :function, :tag]
 
 config :astarte_data_updater_plant, :astarte_instance_id, "test"
 

@@ -309,7 +309,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.TriggerTest do
       error_name = "test_error"
       error_metadata = %{"details" => "test details"}
       timestamp = 1_600_000_000_000_000
-      timestamp_ms = 1_600_000_000_00
+      timestamp_ms = 160_000_000_000
 
       ref =
         install_volatile_trigger(state, %DeviceTrigger{device_event_type: :DEVICE_ERROR}, fn
@@ -339,7 +339,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.TriggerTest do
       error_name = "test_error"
       error_metadata = %{}
       timestamp = 1_600_000_000_000_000
-      timestamp_ms = 1_600_000_000_00
+      timestamp_ms = 160_000_000_000
 
       ref =
         install_volatile_trigger(state, %DeviceTrigger{device_event_type: :DEVICE_ERROR}, fn

@@ -17,22 +17,27 @@
 #
 
 defmodule Astarte.DataUpdaterPlant.AMQPTestHelper do
+  @moduledoc """
+  This module implements a GenServer that acts as a helper for AMQP tests.
+  """
   use GenServer
   require Logger
+
+  alias Astarte.DataUpdaterPlant.AMQPTestEventsConsumer
 
   def start_link(args) do
     GenServer.start_link(__MODULE__, args, name: Keyword.fetch!(args, :name))
   end
 
   def start_events_consumer(args) do
-    Astarte.DataUpdaterPlant.AMQPTestEventsConsumer.start_link(args)
+    AMQPTestEventsConsumer.start_link(args)
   end
 
   def init(args) do
     {:ok, %{realm: Keyword.get(args, :realm)}}
   end
 
-  def amqp_consumer_options() do
+  def amqp_consumer_options do
     Application.get_env(:astarte_data_updater_plant, :amqp_consumer_options, [])
   end
 
@@ -48,7 +53,7 @@ defmodule Astarte.DataUpdaterPlant.AMQPTestHelper do
     "test_events_#{realm}"
   end
 
-  def events_routing_key() do
+  def events_routing_key do
     "test_events"
   end
 
@@ -62,7 +67,7 @@ defmodule Astarte.DataUpdaterPlant.AMQPTestHelper do
     GenServer.call(name, :wait_and_get_message)
   end
 
-  def wait_and_get_message() do
+  def wait_and_get_message do
     GenServer.call(AMQPTestHelper, :wait_and_get_message)
   end
 

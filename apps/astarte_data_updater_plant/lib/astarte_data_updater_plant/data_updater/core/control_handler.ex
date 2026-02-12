@@ -19,17 +19,19 @@
 #
 
 defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandler do
+  @moduledoc """
+  This module is responsible for handling the control messages.
+  """
   alias Astarte.DataUpdaterPlant.DataUpdater.Core
 
   alias Astarte.Core.Device
-  alias Astarte.DataUpdaterPlant.RPC.VMQPlugin
-
-  alias Astarte.DataUpdaterPlant.DataUpdater.State
-  alias Astarte.DataUpdaterPlant.DataUpdater.PayloadsDecoder
-  alias Astarte.DataUpdaterPlant.MessageTracker
   alias Astarte.DataUpdaterPlant.DataUpdater.Core
-  alias Astarte.DataUpdaterPlant.TimeBasedActions
+  alias Astarte.DataUpdaterPlant.DataUpdater.PayloadsDecoder
   alias Astarte.DataUpdaterPlant.DataUpdater.Queries
+  alias Astarte.DataUpdaterPlant.DataUpdater.State
+  alias Astarte.DataUpdaterPlant.MessageTracker
+  alias Astarte.DataUpdaterPlant.RPC.VMQPlugin
+  alias Astarte.DataUpdaterPlant.TimeBasedActions
 
   require Logger
 

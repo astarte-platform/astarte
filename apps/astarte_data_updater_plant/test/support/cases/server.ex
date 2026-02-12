@@ -19,9 +19,13 @@
 #
 
 defmodule Astarte.Cases.Server do
+  @moduledoc """
+  This module defines test cases for GenServer behavior.
+  """
   use ExUnit.CaseTemplate
 
   defmodule Astarte.Cases.Server.PingPong do
+    @moduledoc false
     use GenServer
 
     def start_link(opts) do
@@ -48,6 +52,7 @@ defmodule Astarte.Cases.Server do
   end
 
   defmodule Astarte.Cases.Server.Ignore do
+    @moduledoc false
     use GenServer
 
     def start_link(opts) do

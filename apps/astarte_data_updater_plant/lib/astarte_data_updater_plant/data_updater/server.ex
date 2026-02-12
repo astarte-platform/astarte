@@ -17,12 +17,14 @@
 #
 
 defmodule Astarte.DataUpdaterPlant.DataUpdater.Server do
+  @moduledoc """
+  This module implements the GenServer responsible for managing the state of a single device in the DataUpdaterPlant.
+  """
   use GenServer
-  alias Astarte.DataUpdaterPlant.DataUpdater.Core
   alias Astarte.DataUpdaterPlant.Config
+  alias Astarte.DataUpdaterPlant.DataUpdater.Core
   alias Astarte.DataUpdaterPlant.DataUpdater.Impl
   alias Astarte.DataUpdaterPlant.MessageTracker
-  alias Astarte.DataUpdaterPlant.DataUpdater.Core
 
   require Logger
 

@@ -17,12 +17,16 @@
 #
 
 defmodule Astarte.Helpers.Database do
+  @moduledoc """
+  This module provides helper functions and setup for tests related to the database in the DataUpdaterPlant.
+  """
   alias Astarte.DataAccess.Devices.Device, as: DeviceSchema
-  alias Astarte.DataAccess.Realms.Interface, as: InterfaceSchema
   alias Astarte.DataAccess.Interface
+  alias Astarte.DataAccess.Realms.Interface, as: InterfaceSchema
   alias Astarte.DataAccess.Realms.Realm
   alias Astarte.DataAccess.Repo
   alias Astarte.DataUpdaterPlant.DataUpdater.Core
+  alias Astarte.DataUpdaterPlant.DataUpdater.InsertContext
   alias Astarte.DataUpdaterPlant.DataUpdater.Queries
 
   @create_keyspace """
@@ -485,16 +489,16 @@ defmodule Astarte.Helpers.Database do
 
   def make_timestamp(timestamp_string) do
     {:ok, date_time, _} = DateTime.from_iso8601(timestamp_string)
-    DateTime.to_unix(date_time, :millisecond) * 10000
+    DateTime.to_unix(date_time, :millisecond) * 10_000
   end
 
-  def gen_tracking_id() do
+  def gen_tracking_id do
     message_id = :erlang.unique_integer([:monotonic]) |> Integer.to_string()
     delivery_tag = {:injected_msg, make_ref()}
     {message_id, delivery_tag}
   end
 
-  def random_device_id() do
+  def random_device_id do
     seq = :crypto.strong_rand_bytes(16)
     <<u0::48, _::4, u1::12, _::2, u2::62>> = seq
     <<u0::48, 4::4, u1::12, 2::2, u2::62>>
@@ -524,18 +528,19 @@ defmodule Astarte.Helpers.Database do
       {:ok, mapping} =
         Core.Interface.resolve_path(mapping_update.path, interface_descriptor, mappings_map)
 
-      :ok =
-        Queries.insert_value_into_db(
-          realm_name,
-          device.device_id,
-          interface_descriptor,
-          mapping,
-          mapping_update.path,
-          mapping_update.value,
-          timestamp,
-          timestamp,
-          []
-        )
+      insert_context = %InsertContext{
+        realm: realm_name,
+        device_id: device.device_id,
+        interface_descriptor: interface_descriptor,
+        mapping: mapping,
+        path: mapping_update.path,
+        value: mapping_update.value,
+        value_timestamp: timestamp,
+        reception_timestamp: timestamp,
+        opts: []
+      }
+
+      :ok = Queries.insert_value_into_db(insert_context)
 
       timestamp
     end)

@@ -22,7 +22,7 @@ defmodule Astarte.DataUpdaterPlant.RPC.VMQPlugin.Client do
   @moduledoc false
   @behaviour Astarte.DataUpdaterPlant.RPC.VMQPlugin.Behaviour
 
-  defp rpc_server(), do: {:via, Horde.Registry, {Registry.VMQPluginRPC, :server}}
+  defp rpc_server, do: {:via, Horde.Registry, {Registry.VMQPluginRPC, :server}}
 
   @impl Astarte.DataUpdaterPlant.RPC.VMQPlugin.Behaviour
   def publish(data) do

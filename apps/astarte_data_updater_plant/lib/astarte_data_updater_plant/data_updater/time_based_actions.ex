@@ -17,21 +17,25 @@
 #
 
 defmodule Astarte.DataUpdaterPlant.TimeBasedActions do
+  @moduledoc """
+  This module implements the time-based actions that need to be executed periodically for each device in the DataUpdaterPlant.
+  """
   alias Astarte.Core.Device
   alias Astarte.DataUpdaterPlant.DataUpdater.Core
-  alias Astarte.DataUpdaterPlant.DataUpdater.State
   alias Astarte.DataUpdaterPlant.DataUpdater.Queries
+  alias Astarte.DataUpdaterPlant.DataUpdater.State
   alias Astarte.DataUpdaterPlant.RPC.VMQPlugin
 
   require Logger
 
-  @groups_lifespan_decimicroseconds 60 * 10 * 1000 * 10000
-  @deletion_refresh_lifespan_decimicroseconds 60 * 10 * 1000 * 10000
-  @datastream_maximum_retention_refresh_lifespan_decimicroseconds 60 * 10 * 1000 * 10000
+  @groups_lifespan_decimicroseconds 60 * 10 * 1000 * 10_000
+  @deletion_refresh_lifespan_decimicroseconds 60 * 10 * 1000 * 10_000
+  @datastream_maximum_retention_refresh_lifespan_decimicroseconds 60 * 10 * 1000 * 10_000
 
   def execute_time_based_actions(state, timestamp) do
     if state.connected && state.last_seen_message > 0 do
-      # timestamps are handled as microseconds*10, so we need to divide by 10 when saving as a metric for a coherent data
+      # timestamps are handled as microseconds*10, so we need to divide by 10 when saving as a
+      # metric for a coherent data
       :telemetry.execute(
         [:astarte, :data_updater_plant, :service, :connected_devices],
         %{duration: Integer.floor_div(timestamp - state.last_seen_message, 10)},

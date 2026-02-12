@@ -29,6 +29,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DeviceTest do
   alias Astarte.Core.Device
   alias Astarte.Core.Generators.Device, as: DeviceGenerator
   alias Astarte.Core.Mapping.EndpointsAutomaton
+  alias Astarte.Core.Mapping.ValueType
   alias Astarte.DataAccess.Devices.Device, as: DatabaseDevice
   alias Astarte.DataAccess.Interface, as: InterfaceQueries
   alias Astarte.DataAccess.Realms.Realm
@@ -281,5 +282,5 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DeviceTest do
     do: Enum.all?(value, &valid_value_type?(:datetime, &1))
 
   defp valid_value_type?(value_type, value),
-    do: Astarte.Core.Mapping.ValueType.validate_value(value_type, value) == :ok
+    do: ValueType.validate_value(value_type, value) == :ok
 end

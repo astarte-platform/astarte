@@ -17,6 +17,9 @@
 #
 
 defmodule Astarte.DataUpdaterPlant.DatabaseTestHelper do
+  @moduledoc """
+  This module provides helper functions and setup for tests related to the database in the DataUpdaterPlant.
+  """
   import Ecto.Query
 
   alias Astarte.Core.CQLUtils
@@ -31,8 +34,8 @@ defmodule Astarte.DataUpdaterPlant.DatabaseTestHelper do
   alias Astarte.DataAccess.Realms.Interface
   alias Astarte.DataAccess.Realms.Realm
   alias Astarte.DataAccess.Realms.SimpleTrigger
-  alias Astarte.DataUpdaterPlant.AMQPTestHelper
   alias Astarte.DataAccess.Repo
+  alias Astarte.DataUpdaterPlant.AMQPTestHelper
   alias Astarte.Housekeeping.AMQP.Vhost
 
   @test_realm "autotestrealm"
@@ -809,39 +812,39 @@ defmodule Astarte.DataUpdaterPlant.DatabaseTestHelper do
     end
   end
 
-  def fake_parent_trigger_id() do
+  def fake_parent_trigger_id do
     <<252, 187, 176, 47, 156, 161, 74, 169, 161, 197, 180, 56, 7, 115, 128, 207>>
   end
 
-  def device_connected_trigger_id() do
+  def device_connected_trigger_id do
     <<216, 12, 133, 232, 80, 173, 169, 7, 46, 113, 239, 216, 165, 193, 220, 33>>
   end
 
-  def group1_device_connected_trigger_id() do
+  def group1_device_connected_trigger_id do
     <<182, 120, 174, 119, 245, 179, 155, 140, 4, 8, 11, 179, 198, 39, 108, 227>>
   end
 
-  def group2_device_connected_trigger_id() do
+  def group2_device_connected_trigger_id do
     <<237, 137, 173, 250, 141, 190, 136, 30, 95, 127, 62, 188, 145, 4, 134, 154>>
   end
 
-  def interface_added_trigger_id() do
+  def interface_added_trigger_id do
     <<29, 75, 194, 112, 8, 190, 133, 129, 152, 38, 51, 180, 37, 93, 103, 33>>
   end
 
-  def path_removed_trigger_id() do
+  def path_removed_trigger_id do
     <<8, 107, 10, 96, 174, 205, 127, 187, 26, 141, 199, 195, 211, 61, 148, 174>>
   end
 
-  def greater_than_incoming_trigger_id() do
+  def greater_than_incoming_trigger_id do
     <<173, 82, 46, 100, 127, 143, 79, 136, 37, 210, 111, 73, 7, 24, 69, 130>>
   end
 
-  def less_than_device_incoming_trigger_id() do
+  def less_than_device_incoming_trigger_id do
     <<186, 166, 108, 33, 121, 60, 44, 72, 206, 25, 165, 98, 144, 127, 142, 227>>
   end
 
-  def equal_to_group_incoming_trigger_id() do
+  def equal_to_group_incoming_trigger_id do
     <<140, 143, 242, 83, 113, 178, 249, 23, 213, 224, 46, 58, 138, 34, 20, 45>>
   end
 

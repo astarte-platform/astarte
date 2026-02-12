@@ -19,17 +19,21 @@
 #
 
 defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DataHandler do
+  @moduledoc """
+  This module is responsible for handling the messages received from the AMQPDataConsumer.
+  """
   alias Astarte.Core.Device
   alias Astarte.Core.InterfaceDescriptor
   alias Astarte.Core.Mapping.ValueType
-  alias Astarte.DataUpdaterPlant.DataUpdater.State
-  alias Astarte.DataUpdaterPlant.DataUpdater.CachedPath
-  alias Astarte.DataUpdaterPlant.DataUpdater.Cache
-  alias Astarte.DataUpdaterPlant.DataUpdater.Queries
-  alias Astarte.DataUpdaterPlant.MessageTracker
   alias Astarte.DataAccess.Data
-  alias Astarte.DataUpdaterPlant.DataUpdater.PayloadsDecoder
+  alias Astarte.DataUpdaterPlant.DataUpdater.Cache
+  alias Astarte.DataUpdaterPlant.DataUpdater.CachedPath
   alias Astarte.DataUpdaterPlant.DataUpdater.Core
+  alias Astarte.DataUpdaterPlant.DataUpdater.InsertContext
+  alias Astarte.DataUpdaterPlant.DataUpdater.PayloadsDecoder
+  alias Astarte.DataUpdaterPlant.DataUpdater.Queries
+  alias Astarte.DataUpdaterPlant.DataUpdater.State
+  alias Astarte.DataUpdaterPlant.MessageTracker
   alias Astarte.DataUpdaterPlant.TriggersHandler
 
   require Logger
@@ -65,7 +69,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DataHandler do
       maybe_explicit_value_timestamp =
         if mapping.explicit_timestamp,
           do: value_timestamp,
-          else: div(timestamp, 10000)
+          else: div(timestamp, 10_000)
 
       previous_value = get_previous_value(context, interface_descriptor, mapping)
 
@@ -103,17 +107,19 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DataHandler do
         if interface_descriptor.type == :datastream,
           do: maybe_insert_path(context, interface_descriptor, mapping)
 
-        Queries.insert_value_into_db(
-          context.state.realm,
-          context.state.device_id,
-          interface_descriptor,
-          mapping,
-          path,
-          value,
-          maybe_explicit_value_timestamp,
-          timestamp,
-          ttl: db_max_ttl
-        )
+        insert_context = %InsertContext{
+          realm: context.state.realm,
+          device_id: context.state.device_id,
+          interface_descriptor: interface_descriptor,
+          mapping: mapping,
+          path: path,
+          value: value,
+          value_timestamp: maybe_explicit_value_timestamp,
+          reception_timestamp: timestamp,
+          opts: [ttl: db_max_ttl]
+        }
+
+        Queries.insert_value_into_db(insert_context)
         |> handle_result(context)
       end
     end
@@ -202,7 +208,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DataHandler do
              mapping,
              path
            )
-           |> is_still_valid?(db_max_ttl) do
+           |> still_valid?(db_max_ttl) do
       Queries.insert_path_into_db(
         state.realm,
         state.device_id,
@@ -324,11 +330,11 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DataHandler do
   defp path_ttl(nil), do: nil
   defp path_ttl(retention_secs), do: retention_secs * 2 + div(retention_secs, 2)
 
-  defp is_still_valid?({:error, :property_not_set}, _ttl), do: false
-  defp is_still_valid?({:ok, :no_expiry}, _ttl), do: true
-  defp is_still_valid?({:ok, _expiry_date}, nil), do: false
+  defp still_valid?({:error, :property_not_set}, _ttl), do: false
+  defp still_valid?({:ok, :no_expiry}, _ttl), do: true
+  defp still_valid?({:ok, _expiry_date}, nil), do: false
 
-  defp is_still_valid?({:ok, expiry_date}, ttl) do
+  defp still_valid?({:ok, expiry_date}, ttl) do
     expiry_secs = DateTime.to_unix(expiry_date)
 
     now_secs =
