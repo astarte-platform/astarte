@@ -19,10 +19,10 @@
 defmodule Astarte.DataUpdaterPlant.PayloadsDecoderTest do
   use ExUnit.Case, async: true
   use ExUnitProperties
-  alias Astarte.Core.Interface
-  alias Astarte.DataUpdaterPlant.DataUpdater.PayloadsDecoder
   alias Astarte.Common.Generators.Timestamp, as: TimestampGenerator
   alias Astarte.Core.Generators.Interface, as: InterfaceGenerator
+  alias Astarte.Core.Interface
+  alias Astarte.DataUpdaterPlant.DataUpdater.PayloadsDecoder
 
   test "unset" do
     timestamp = decimicrosecond_timestamp() |> Enum.at(0)
@@ -180,7 +180,7 @@ defmodule Astarte.DataUpdaterPlant.PayloadsDecoderTest do
     one_of([individual_astarte_value(), object_astarte_value()])
   end
 
-  defp decoded_payload() do
+  defp decoded_payload do
     value = astarte_value()
     timestamp = map(TimestampGenerator.timestamp(), &DateTime.from_unix!/1)
     metadata = map_of(string(:utf8), string(:utf8))

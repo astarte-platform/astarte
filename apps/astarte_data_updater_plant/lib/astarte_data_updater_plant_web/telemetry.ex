@@ -20,8 +20,8 @@ defmodule Astarte.DataUpdaterPlantWeb.Telemetry do
   use Supervisor
   import Telemetry.Metrics
 
-  alias Astarte.DataUpdaterPlantWeb.Telemetry.DatabaseEvents
   alias Astarte.DataUpdaterPlant.Config
+  alias Astarte.DataUpdaterPlantWeb.Telemetry.DatabaseEvents
 
   def start_link(arg) do
     Supervisor.start_link(__MODULE__, arg, name: __MODULE__)

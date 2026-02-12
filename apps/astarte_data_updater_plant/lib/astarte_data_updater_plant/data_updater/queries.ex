@@ -17,20 +17,24 @@
 #
 
 defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
+  @moduledoc """
+  This module provides functions for querying the database related to device properties and interfaces.
+  """
   alias Astarte.Core.CQLUtils
   alias Astarte.Core.Device, as: CoreDevice
   alias Astarte.Core.Device.Capabilities
   alias Astarte.Core.InterfaceDescriptor
   alias Astarte.Core.Mapping
   alias Astarte.DataAccess.Consistency
-  alias Astarte.DataUpdaterPlant.Config
   alias Astarte.DataAccess.Device.DeletionInProgress
   alias Astarte.DataAccess.Devices.Device
+  alias Astarte.DataAccess.KvStore
   alias Astarte.DataAccess.Realms.Endpoint
   alias Astarte.DataAccess.Realms.IndividualProperty
-  alias Astarte.DataAccess.KvStore
   alias Astarte.DataAccess.Realms.Realm
   alias Astarte.DataAccess.Repo
+  alias Astarte.DataUpdaterPlant.Config
+  alias Astarte.DataUpdaterPlant.DataUpdater.InsertContext
   import Ecto.Query
   require Logger
 
@@ -79,17 +83,23 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
   end
 
   def insert_value_into_db(
-        realm,
-        device_id,
-        %InterfaceDescriptor{storage_type: :multi_interface_individual_properties_dbtable} =
-          interface_descriptor,
-        %Mapping{allow_unset: true} = mapping,
-        path,
-        nil,
-        _value_timestamp,
-        _reception_timestamp,
-        opts
+        %{
+          interface_descriptor: %InterfaceDescriptor{
+            storage_type: :multi_interface_individual_properties_dbtable
+          },
+          mapping: %Mapping{allow_unset: true},
+          value: nil
+        } = context
       ) do
+    %InsertContext{
+      realm: realm,
+      device_id: device_id,
+      interface_descriptor: interface_descriptor,
+      mapping: mapping,
+      path: path,
+      opts: opts
+    } = context
+
     %InterfaceDescriptor{storage: storage, interface_id: interface_id} = interface_descriptor
     %Mapping{endpoint_id: endpoint_id} = mapping
     keyspace = Realm.keyspace_name(realm)
@@ -101,17 +111,18 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
   end
 
   def insert_value_into_db(
-        realm,
-        device_id,
-        %InterfaceDescriptor{storage_type: :multi_interface_individual_properties_dbtable} =
-          _interface_descriptor,
-        _mapping,
-        _path,
-        nil,
-        _value_timestamp,
-        _reception_timestamp,
-        _opts
+        %{
+          interface_descriptor: %InterfaceDescriptor{
+            storage_type: :multi_interface_individual_properties_dbtable
+          },
+          value: nil
+        } = context
       ) do
+    %InsertContext{
+      realm: realm,
+      device_id: device_id
+    } = context
+
     _ =
       Logger.warning(
         "Device #{inspect(device_id)} in realm #{realm} tried to unset an unsettable property.",
@@ -122,22 +133,27 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
   end
 
   def insert_value_into_db(
-        realm,
-        device_id,
-        %InterfaceDescriptor{storage_type: :multi_interface_individual_properties_dbtable} =
-          interface_descriptor,
-        mapping,
-        path,
-        value,
-        _value_timestamp,
-        reception_timestamp,
-        _opts
+        %{
+          interface_descriptor: %InterfaceDescriptor{
+            storage_type: :multi_interface_individual_properties_dbtable
+          }
+        } = context
       ) do
+    %InsertContext{
+      realm: realm,
+      device_id: device_id,
+      interface_descriptor: interface_descriptor,
+      mapping: mapping,
+      path: path,
+      value: value,
+      reception_timestamp: reception_timestamp
+    } = context
+
     %InterfaceDescriptor{interface_id: interface_id, storage: storage} = interface_descriptor
     %Mapping{endpoint_id: endpoint_id, value_type: value_type} = mapping
     keyspace_name = Realm.keyspace_name(realm)
-    timestamp = div(reception_timestamp, 10000)
-    reception_timestamp_submillis = rem(reception_timestamp, 10000)
+    timestamp = div(reception_timestamp, 10_000)
+    reception_timestamp_submillis = rem(reception_timestamp, 10_000)
     column_name = CQLUtils.type_to_db_column_name(value_type)
     db_value = to_db_friendly_type(value)
 
@@ -162,22 +178,29 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
   end
 
   def insert_value_into_db(
-        realm,
-        device_id,
-        %InterfaceDescriptor{storage_type: :multi_interface_individual_datastream_dbtable} =
-          interface_descriptor,
-        mapping,
-        path,
-        value,
-        value_timestamp,
-        reception_timestamp,
-        opts
+        %{
+          interface_descriptor: %InterfaceDescriptor{
+            storage_type: :multi_interface_individual_datastream_dbtable
+          }
+        } = context
       ) do
+    %InsertContext{
+      realm: realm,
+      device_id: device_id,
+      interface_descriptor: interface_descriptor,
+      mapping: mapping,
+      path: path,
+      value: value,
+      value_timestamp: value_timestamp,
+      reception_timestamp: reception_timestamp,
+      opts: opts
+    } = context
+
     %InterfaceDescriptor{interface_id: interface_id, storage: storage} = interface_descriptor
     %Mapping{endpoint_id: endpoint_id, value_type: value_type} = mapping
     keyspace_name = Realm.keyspace_name(realm)
-    timestamp = div(reception_timestamp, 10000)
-    reception_timestamp_submillis = rem(reception_timestamp, 10000)
+    timestamp = div(reception_timestamp, 10_000)
+    reception_timestamp_submillis = rem(reception_timestamp, 10_000)
     column_name = CQLUtils.type_to_db_column_name(value_type)
     db_value = to_db_friendly_type(value)
 
@@ -205,21 +228,27 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
   end
 
   def insert_value_into_db(
-        realm,
-        device_id,
-        %InterfaceDescriptor{storage_type: :one_object_datastream_dbtable} = interface_descriptor,
-        mapping,
-        path,
-        value,
-        value_timestamp,
-        reception_timestamp,
-        opts
+        %{
+          interface_descriptor: %InterfaceDescriptor{storage_type: :one_object_datastream_dbtable}
+        } = context
       ) do
+    %InsertContext{
+      realm: realm,
+      device_id: device_id,
+      interface_descriptor: interface_descriptor,
+      mapping: mapping,
+      path: path,
+      value: value,
+      value_timestamp: value_timestamp,
+      reception_timestamp: reception_timestamp,
+      opts: opts
+    } = context
+
     %InterfaceDescriptor{interface_id: interface_id, storage: storage} = interface_descriptor
 
     keyspace_name = Realm.keyspace_name(realm)
-    timestamp = div(reception_timestamp, 10000)
-    reception_timestamp_submillis = rem(reception_timestamp, 10000)
+    timestamp = div(reception_timestamp, 10_000)
+    reception_timestamp_submillis = rem(reception_timestamp, 10_000)
 
     # TODO: we should cache endpoints by interface_id
     column_info =
@@ -377,8 +406,8 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
     %InterfaceDescriptor{interface_id: interface_id} = interface_descriptor
     %Mapping{endpoint_id: endpoint_id} = mapping
     keyspace_name = Realm.keyspace_name(realm)
-    timestamp = div(reception_timestamp, 10000) |> DateTime.from_unix!(:microsecond)
-    reception_timestamp_submillis = rem(reception_timestamp, 10000)
+    timestamp = div(reception_timestamp, 10_000) |> DateTime.from_unix!(:microsecond)
+    reception_timestamp_submillis = rem(reception_timestamp, 10_000)
 
     # TODO: :reception_timestamp_submillis is just a place holder right now
     entry = %{
@@ -493,7 +522,8 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
 
     opts = [prefix: keyspace_name, ttl: ttl, consistency: Consistency.device_info(:write)]
 
-    # We use `insert` here because Exandra does not support ttl on updates. However, this is an upsert in Scylla.
+    # We use `insert` here because Exandra does not support ttl on updates.
+    # However, this is an upsert in Scylla.
     Repo.insert!(changeset, opts)
   end
 
@@ -571,9 +601,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
 
     consistency = Consistency.device_info(:read)
 
-    with {:ok, minors} <- Repo.safe_fetch_one(query, consistency: consistency) do
-      {:ok, minors}
-    end
+    Repo.safe_fetch_one(query, consistency: consistency)
   end
 
   def get_device_groups(realm, device_id) do

@@ -17,6 +17,9 @@
 #
 
 defmodule Astarte.DataUpdaterPlant.AMQPDataConsumer.Supervisor do
+  @moduledoc """
+  This module is responsible for supervising the AMQPDataConsumer processes.
+  """
   use Supervisor
 
   alias Astarte.DataUpdaterPlant.AMQPDataConsumer

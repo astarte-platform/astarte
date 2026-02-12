@@ -25,10 +25,10 @@ defmodule Astarte.DataUpdater.DeletionScheduler do
   """
   use GenServer
 
-  alias Astarte.DataUpdaterPlant.DataUpdater.Queries
-  alias Astarte.DataUpdaterPlant.DataUpdater
-  alias Astarte.DataUpdaterPlant.Config
   alias Astarte.Core.Device
+  alias Astarte.DataUpdaterPlant.Config
+  alias Astarte.DataUpdaterPlant.DataUpdater
+  alias Astarte.DataUpdaterPlant.DataUpdater.Queries
 
   require Logger
 
@@ -76,7 +76,7 @@ defmodule Astarte.DataUpdater.DeletionScheduler do
       _ =
         Logger.debug("Retrieved device to delete",
           tag: "device_to_delete",
-          realm_name: realm_name,
+          realm: realm_name,
           device_id: encoded_device_id
         )
 

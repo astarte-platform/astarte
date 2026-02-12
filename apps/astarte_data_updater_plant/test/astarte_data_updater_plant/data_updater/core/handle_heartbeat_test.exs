@@ -24,12 +24,12 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.HandleHeartbeatTest do
   use ExUnitProperties
   use Mimic
 
-  alias Astarte.DataUpdaterPlant.TimeBasedActions
-  alias Astarte.DataUpdaterPlant.MessageTracker
-  alias Astarte.DataUpdaterPlant.DataUpdater.Queries
-  alias Astarte.DataUpdaterPlant.DataUpdater.State
   alias Astarte.DataUpdaterPlant.DataUpdater
   alias Astarte.DataUpdaterPlant.DataUpdater.Core
+  alias Astarte.DataUpdaterPlant.DataUpdater.Queries
+  alias Astarte.DataUpdaterPlant.DataUpdater.State
+  alias Astarte.DataUpdaterPlant.MessageTracker
+  alias Astarte.DataUpdaterPlant.TimeBasedActions
 
   import Astarte.Helpers.DataUpdater
 

@@ -23,9 +23,9 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.HeartbeatHandler do
   Heartbeat messages handler.
   """
   alias Astarte.DataUpdaterPlant.DataUpdater.Queries
-  alias Astarte.DataUpdaterPlant.TimeBasedActions
-  alias Astarte.DataUpdaterPlant.MessageTracker
   alias Astarte.DataUpdaterPlant.DataUpdater.State
+  alias Astarte.DataUpdaterPlant.MessageTracker
+  alias Astarte.DataUpdaterPlant.TimeBasedActions
 
   require Logger
 

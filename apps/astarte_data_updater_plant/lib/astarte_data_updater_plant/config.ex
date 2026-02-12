@@ -242,18 +242,18 @@ defmodule Astarte.DataUpdaterPlant.Config do
           default: :expose
 
   # Since we have one channel per queue, this is not configurable
-  def amqp_consumer_channels_per_connection_number!() do
+  def amqp_consumer_channels_per_connection_number! do
     ceil(data_queue_total_count!() / amqp_consumer_connection_number!())
   end
 
   # Since we have only one producer, this is not configurable
-  def events_producer_connection_number!(), do: 1
+  def events_producer_connection_number!, do: 1
 
   # Since we have only one producer, this is not configurable
-  def triggers_producer_connection_number!(), do: 1
+  def triggers_producer_connection_number!, do: 1
 
   # Since we have one channel per queue, this is not configurable
-  def events_producer_channels_per_connection_number!(), do: 1
+  def events_producer_channels_per_connection_number!, do: 1
 
   @doc """
   Returns the AMQP data consumer connection options
@@ -280,7 +280,7 @@ defmodule Astarte.DataUpdaterPlant.Config do
     end
   end
 
-  defp build_consumer_ssl_options() do
+  defp build_consumer_ssl_options do
     [
       cacertfile: amqp_consumer_ssl_ca_file!() || CAStore.file_path(),
       verify: :verify_peer,
@@ -298,7 +298,7 @@ defmodule Astarte.DataUpdaterPlant.Config do
     end
   end
 
-  def amqp_consumer_pool_config!() do
+  def amqp_consumer_pool_config! do
     [
       name: {:local, :amqp_consumer_pool},
       worker_module: ExRabbitPool.Worker.RabbitConnection,
@@ -311,7 +311,7 @@ defmodule Astarte.DataUpdaterPlant.Config do
     device_heartbeat_interval_ms!() * 3
   end
 
-  def amqp_adapter!() do
+  def amqp_adapter! do
     Application.get_env(:astarte_data_updater_plant, :amqp_adapter)
   end
 

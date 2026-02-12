@@ -17,6 +17,9 @@
 #
 
 defmodule Astarte.Cases.Trigger do
+  @moduledoc """
+  This module defines test cases for trigger handling in the Astarte Data Updater Plant.
+  """
   use ExUnit.CaseTemplate
 
   alias Astarte.Core.Generators.Realm, as: RealmGenerator
@@ -26,6 +29,7 @@ defmodule Astarte.Cases.Trigger do
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.DeviceTrigger
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.TaggedSimpleTrigger
   alias Astarte.DataUpdaterPlant.DataUpdater.State
+  alias Astarte.Events.Triggers
   alias Astarte.Events.Triggers.Cache
 
   using do
@@ -92,7 +96,7 @@ defmodule Astarte.Cases.Trigger do
         send(test_process, ref)
     end)
 
-    Astarte.Events.Triggers.install_volatile_trigger(
+    Triggers.install_volatile_trigger(
       state.realm,
       deserialized_simple_trigger,
       Map.from_struct(state)

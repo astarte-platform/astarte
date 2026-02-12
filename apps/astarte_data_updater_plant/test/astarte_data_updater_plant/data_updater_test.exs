@@ -24,33 +24,35 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
 
   import Ecto.Query
 
+  alias Astarte.Core.CQLUtils
   alias Astarte.Core.Device
+  alias Astarte.Core.Mapping.EndpointsAutomaton
   alias Astarte.Core.Triggers.SimpleEvents.DeviceConnectedEvent
   alias Astarte.Core.Triggers.SimpleEvents.DeviceDisconnectedEvent
   alias Astarte.Core.Triggers.SimpleEvents.IncomingDataEvent
+  alias Astarte.Core.Triggers.SimpleEvents.IncomingIntrospectionEvent
+  alias Astarte.Core.Triggers.SimpleEvents.InterfaceAddedEvent
+  alias Astarte.Core.Triggers.SimpleEvents.InterfaceMinorUpdatedEvent
+  alias Astarte.Core.Triggers.SimpleEvents.InterfaceRemovedEvent
+  alias Astarte.Core.Triggers.SimpleEvents.InterfaceVersion
   alias Astarte.Core.Triggers.SimpleEvents.PathRemovedEvent
   alias Astarte.Core.Triggers.SimpleEvents.SimpleEvent
   alias Astarte.Core.Triggers.SimpleEvents.ValueChangeAppliedEvent
-  alias Astarte.Core.Triggers.SimpleEvents.IncomingIntrospectionEvent
-  alias Astarte.Core.Triggers.SimpleEvents.InterfaceAddedEvent
-  alias Astarte.Core.Triggers.SimpleEvents.InterfaceRemovedEvent
-  alias Astarte.Core.Triggers.SimpleEvents.InterfaceMinorUpdatedEvent
-  alias Astarte.Core.Triggers.SimpleEvents.InterfaceVersion
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.AMQPTriggerTarget
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.DataTrigger
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.DeviceTrigger
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.SimpleTriggerContainer
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.TriggerTargetContainer
   alias Astarte.DataAccess.Devices.Device, as: DeviceSchema
-  alias Astarte.DataAccess.Realms.Realm
   alias Astarte.DataAccess.Realms.IndividualDatastream
   alias Astarte.DataAccess.Realms.IndividualProperty
   alias Astarte.DataAccess.Realms.Interface
+  alias Astarte.DataAccess.Realms.Realm
+  alias Astarte.DataAccess.Repo
   alias Astarte.DataUpdaterPlant.AMQPTestHelper
   alias Astarte.DataUpdaterPlant.DatabaseTestHelper
   alias Astarte.DataUpdaterPlant.DataUpdater
-  alias Astarte.DataAccess.Repo
-  alias Astarte.Core.CQLUtils
+  alias Astarte.Events.Triggers.Cache
 
   setup :verify_on_exit!
 
@@ -88,7 +90,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
     encoded_device_id = "f0VMRgIBAQAAAAAAAAAAAA"
     {:ok, device_id} = Device.decode_device_id(encoded_device_id)
 
-    received_msgs = 45000
+    received_msgs = 45_000
     received_bytes = 4_500_000
     existing_introspection_map = %{"com.test.LCDMonitor" => 1, "com.test.SimpleStreamTest" => 1}
     existing_introspection_string = "com.test.LCDMonitor:1:0;com.test.SimpleStreamTest:1:0"
@@ -255,7 +257,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
 
     assert device_row == %{
              connected: true,
-             total_received_msgs: 45000,
+             total_received_msgs: 45_000,
              total_received_bytes: 4_500_000,
              exchanged_msgs_by_interface: %{},
              exchanged_bytes_by_interface: %{}
@@ -990,7 +992,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
     trigger_key = {:on_incoming_data, interface_id, endpoint_id}
 
     incoming_data_0_value_triggers =
-      Astarte.Events.Triggers.Cache.find_data_triggers(
+      Cache.find_data_triggers(
         realm,
         device_id,
         state.groups,
@@ -1098,7 +1100,8 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
       make_timestamp("2017-10-26T08:48:51+00:00")
     )
 
-    # we expect only /string to be updated here, we need this to check against accidental NULL insertions, that are bad for tombstones on cassandra.
+    # we expect only /string to be updated here, we need this to check against
+    # accidental NULL insertions, that are bad for tombstones on cassandra.
     payload3 = Cyanide.encode!(%{"string" => "zzz"})
 
     DataUpdater.handle_data(
@@ -1712,7 +1715,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
     assert AMQPTestHelper.awaiting_messages_count(helper_name) == 0
   end
 
-  defp generate_disconnection_trigger_data() do
+  defp generate_disconnection_trigger_data do
     %SimpleTriggerContainer{
       simple_trigger: {
         :device_trigger,
@@ -1755,7 +1758,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
       {:erlang.binary_to_term(interface_row[:automaton_transitions]),
        :erlang.binary_to_term(interface_row[:automaton_accepting_states])}
 
-    {:ok, endpoint_id} = Astarte.Core.Mapping.EndpointsAutomaton.resolve_path(path, automaton)
+    {:ok, endpoint_id} = EndpointsAutomaton.resolve_path(path, automaton)
 
     endpoint_id
   end
@@ -1763,10 +1766,10 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
   defp make_timestamp(timestamp_string) do
     {:ok, date_time, _} = DateTime.from_iso8601(timestamp_string)
 
-    DateTime.to_unix(date_time, :millisecond) * 10000
+    DateTime.to_unix(date_time, :millisecond) * 10_000
   end
 
-  defp gen_tracking_id() do
+  defp gen_tracking_id do
     message_id = :erlang.unique_integer([:monotonic]) |> Integer.to_string()
     delivery_tag = {:injected_msg, make_ref()}
     {message_id, delivery_tag}

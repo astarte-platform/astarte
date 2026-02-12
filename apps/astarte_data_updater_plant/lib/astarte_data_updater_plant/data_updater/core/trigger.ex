@@ -99,16 +99,17 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.Trigger do
     deserialized_trigger = Triggers.deserialize_simple_trigger(trigger)
     {trigger_data, _trigger_target} = deserialized_trigger
 
-    with {:ok, new_state} <- maybe_load_missing_interface(state, trigger_data) do
-      result =
-        Triggers.install_volatile_trigger(
-          state.realm,
-          deserialized_trigger,
-          Map.from_struct(new_state)
-        )
+    case maybe_load_missing_interface(state, trigger_data) do
+      {:ok, new_state} ->
+        result =
+          Triggers.install_volatile_trigger(
+            state.realm,
+            deserialized_trigger,
+            Map.from_struct(new_state)
+          )
 
-      {result, new_state}
-    else
+        {result, new_state}
+
       error ->
         # rollback
         {error, state}

@@ -17,13 +17,16 @@
 #
 
 defmodule Astarte.Cases.Device do
-  alias Astarte.DataAccess.Repo
-  alias Astarte.DataAccess.Realms.Realm
-  alias Astarte.DataAccess.Interface, as: InterfaceQueries
-  alias Astarte.DataAccess.Realms.Endpoint
+  @moduledoc """
+  This module provides helper functions and setup for tests related to devices in the DataUpdaterPlant.
+  """
   alias Astarte.Core.Generators.Device, as: DeviceGenerator
   alias Astarte.Core.Generators.Interface, as: InterfaceGenerator
   alias Astarte.Core.Generators.Mapping, as: MappingGenerator
+  alias Astarte.DataAccess.Interface, as: InterfaceQueries
+  alias Astarte.DataAccess.Realms.Endpoint
+  alias Astarte.DataAccess.Realms.Realm
+  alias Astarte.DataAccess.Repo
 
   use ExUnit.CaseTemplate
   use ExUnitProperties

@@ -17,8 +17,12 @@
 #
 
 defmodule Astarte.DataUpdaterPlant.DataUpdater do
-  alias Astarte.DataUpdaterPlant.DataUpdater
+  @moduledoc """
+  This module is responsible for handling the messages received from the AMQPDataConsumer.
+  """
   alias Astarte.Core.Device
+  alias Astarte.DataUpdaterPlant.Config
+  alias Astarte.DataUpdaterPlant.DataUpdater
   alias Astarte.DataUpdaterPlant.DataUpdater.Queries
   alias Astarte.DataUpdaterPlant.MessageTracker
   require Logger
@@ -199,42 +203,10 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater do
   end
 
   def fetch_data_updater_process(realm, encoded_device_id, message_tracker, wait_start \\ false) do
-    with {:ok, device_id} <- Device.decode_device_id(encoded_device_id) do
-      sharding_key = {realm, device_id}
+    case Device.decode_device_id(encoded_device_id) do
+      {:ok, device_id} ->
+        fetch_data_updater_process_for_device(realm, device_id, message_tracker, wait_start)
 
-      args =
-        if wait_start,
-          do: {realm, device_id, message_tracker, :wait_start},
-          else: {realm, device_id, message_tracker}
-
-      case Horde.Registry.lookup(Registry.DataUpdater, {realm, device_id}) do
-        [] ->
-          case Horde.DynamicSupervisor.start_child(
-                 Supervisor.DataUpdater,
-                 {DataUpdater.Server, args}
-               ) do
-            {:ok, pid} ->
-              {:ok, pid}
-
-            {:ok, pid, _info} ->
-              {:ok, pid}
-
-            {:error, {:already_started, pid}} ->
-              {:ok, pid}
-
-            other ->
-              _ =
-                Logger.error(
-                  "Could not start DataUpdater process for sharding_key #{inspect(sharding_key)}: #{inspect(other)}"
-                )
-
-              {:error, :data_updater_start_failed}
-          end
-
-        [{pid, _}] ->
-          {:ok, pid}
-      end
-    else
       {:error, :extended_id_not_allowed} ->
         # TODO: unrecoverable error, discard the message here
         Logger.info("Received unexpected extended device id: #{encoded_device_id}")
@@ -247,46 +219,52 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater do
     end
   end
 
+  defp fetch_data_updater_process_for_device(realm, device_id, message_tracker, wait_start) do
+    sharding_key = {realm, device_id}
+
+    args =
+      if wait_start,
+        do: {realm, device_id, message_tracker, :wait_start},
+        else: {realm, device_id, message_tracker}
+
+    case Horde.Registry.lookup(Registry.DataUpdater, {realm, device_id}) do
+      [] ->
+        start_data_updater_process(args, sharding_key)
+
+      [{pid, _}] ->
+        {:ok, pid}
+    end
+  end
+
+  defp start_data_updater_process(args, sharding_key) do
+    case Horde.DynamicSupervisor.start_child(
+           Supervisor.DataUpdater,
+           {DataUpdater.Server, args}
+         ) do
+      {:ok, pid} ->
+        {:ok, pid}
+
+      {:ok, pid, _info} ->
+        {:ok, pid}
+
+      {:error, {:already_started, pid}} ->
+        {:ok, pid}
+
+      other ->
+        _ =
+          Logger.error(
+            "Could not start DataUpdater process for sharding_key #{inspect(sharding_key)}: #{inspect(other)}"
+          )
+
+        {:error, :data_updater_start_failed}
+    end
+  end
+
   def fetch_message_tracker(realm, encoded_device_id) do
-    with {:ok, device_id} <- Device.decode_device_id(encoded_device_id) do
-      # Consistent with verne algorithm
-      queue_index =
-        {realm, encoded_device_id}
-        |> :erlang.phash2(Astarte.DataUpdaterPlant.Config.data_queue_total_count!())
+    case Device.decode_device_id(encoded_device_id) do
+      {:ok, device_id} ->
+        fetch_message_tracker_for_device(realm, encoded_device_id, device_id)
 
-      name = {:via, Horde.Registry, {Registry.MessageTracker, {realm, device_id}}}
-
-      acknowledger =
-        {:via, Horde.Registry, {Registry.AMQPDataConsumer, {:queue_index, queue_index}}}
-
-      case Horde.Registry.lookup(Registry.MessageTracker, {realm, device_id}) do
-        [] ->
-          case Horde.DynamicSupervisor.start_child(
-                 Supervisor.MessageTracker,
-                 {MessageTracker.Server, [name: name, acknowledger: acknowledger]}
-               ) do
-            {:ok, pid} ->
-              {:ok, pid}
-
-            {:ok, pid, _info} ->
-              {:ok, pid}
-
-            {:error, {:already_started, pid}} ->
-              {:ok, pid}
-
-            other ->
-              _ =
-                Logger.error(
-                  "Got error #{inspect(other)} while trying to setup a new message tracker for device #{inspect(device_id)} in realm #{inspect(realm)}. discarding the message."
-                )
-
-              {:error, :message_tracker_start_fail}
-          end
-
-        [{pid, _}] ->
-          {:ok, pid}
-      end
-    else
       {:error, :extended_id_not_allowed} ->
         # TODO: unrecoverable error, discard the message here
         Logger.info("Received unexpected extended device id: #{encoded_device_id}")
@@ -294,6 +272,50 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater do
       {:error, :invalid_device_id} ->
         Logger.info("Received invalid device id: #{encoded_device_id}")
         # TODO: unrecoverable error, discard the message here
+    end
+  end
+
+  defp fetch_message_tracker_for_device(realm, encoded_device_id, device_id) do
+    # Consistent with verne algorithm
+    queue_index =
+      {realm, encoded_device_id}
+      |> :erlang.phash2(Config.data_queue_total_count!())
+
+    name = {:via, Horde.Registry, {Registry.MessageTracker, {realm, device_id}}}
+
+    acknowledger =
+      {:via, Horde.Registry, {Registry.AMQPDataConsumer, {:queue_index, queue_index}}}
+
+    case Horde.Registry.lookup(Registry.MessageTracker, {realm, device_id}) do
+      [] ->
+        start_message_tracker(name, acknowledger, realm, device_id)
+
+      [{pid, _}] ->
+        {:ok, pid}
+    end
+  end
+
+  defp start_message_tracker(name, acknowledger, realm, device_id) do
+    case Horde.DynamicSupervisor.start_child(
+           Supervisor.MessageTracker,
+           {MessageTracker.Server, [name: name, acknowledger: acknowledger]}
+         ) do
+      {:ok, pid} ->
+        {:ok, pid}
+
+      {:ok, pid, _info} ->
+        {:ok, pid}
+
+      {:error, {:already_started, pid}} ->
+        {:ok, pid}
+
+      other ->
+        _ =
+          Logger.error(
+            "Got error #{inspect(other)} while trying to setup a new message tracker for device #{inspect(device_id)} in realm #{inspect(realm)}. discarding the message."
+          )
+
+        {:error, :message_tracker_start_fail}
     end
   end
 
