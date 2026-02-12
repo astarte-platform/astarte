@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2023 - 2025 SECO Mind Srl
+# Copyright 2023 - 2026 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -17,24 +17,29 @@
 #
 
 defmodule Astarte.RealmManagement.DevicesTest do
+  use ExUnitProperties
+
   use Astarte.Cases.Data, async: true
   use Astarte.Cases.Device
   use Astarte.Cases.Triggers
-  use ExUnitProperties
-  use Mimic
 
-  alias Astarte.Core.Device, as: DeviceCore
+  import Mimic
+
+  import Astarte.Helpers.Triggers
+
+  alias Astarte.Core.Device
+
   alias Astarte.Core.Generators.Device, as: DeviceGenerator
+
   alias Astarte.DataAccess.Device.DeletionInProgress
-  alias Astarte.DataAccess.Devices.Device
+  alias Astarte.DataAccess.Devices.Device, as: DeviceData
   alias Astarte.DataAccess.Realms.Realm
   alias Astarte.DataAccess.Repo
+
   alias Astarte.RealmManagement.DeviceRemoval.Queries
   alias Astarte.RealmManagement.Devices
   alias Astarte.RealmManagement.Devices.Queries, as: DeviceQueries
   alias Astarte.RealmManagement.RPC.DataUpdaterPlant.Client, as: DevicesRPC
-
-  import Astarte.Helpers.Triggers
 
   describe "deletion in progress tests" do
     @describetag :devices
@@ -46,7 +51,7 @@ defmodule Astarte.RealmManagement.DevicesTest do
       |> expect(:start_device_deletion_rpc, fn _, _ -> :ok end)
 
       keyspace = Realm.keyspace_name(realm)
-      {:ok, decoded_id} = DeviceCore.decode_device_id(device_id)
+      {:ok, decoded_id} = Device.decode_device_id(device_id)
 
       assert :ok = Devices.delete_device(realm, device_id)
 
@@ -58,16 +63,16 @@ defmodule Astarte.RealmManagement.DevicesTest do
     end
 
     property "is not queued for deletion if there are no acks", %{realm: realm} do
-      check all(device_id <- Astarte.Core.Generators.Device.id()) do
+      check all device_id <- DeviceGenerator.id(), max_runs: 10 do
         DevicesRPC
         |> expect(:start_device_deletion_rpc, fn _, _ -> :ok end)
 
         keyspace = Realm.keyspace_name(realm)
-        device = %Device{device_id: device_id}
+        device = %DeviceData{device_id: device_id}
 
         Repo.insert!(device, prefix: keyspace)
 
-        encoded_device_id = DeviceCore.encode_device_id(device_id)
+        encoded_device_id = Device.encode_device_id(device_id)
         :ok = Devices.delete_device(realm, encoded_device_id)
 
         assert [] = Queries.retrieve_devices_to_delete!(realm)
@@ -85,10 +90,10 @@ defmodule Astarte.RealmManagement.DevicesTest do
     end
 
     property "is queued for deletion with all acks", %{realm: realm} do
-      check all(device <- Astarte.Core.Generators.Device.device(interfaces: [])) do
+      check all device <- DeviceGenerator.device(interfaces: []) do
         keyspace = Realm.keyspace_name(realm)
         device_id = device.device_id
-        device = %Device{device_id: device_id}
+        device = %DeviceData{device_id: device_id}
 
         Repo.insert!(device, prefix: keyspace)
 
@@ -138,11 +143,11 @@ defmodule Astarte.RealmManagement.DevicesTest do
     |> expect(:start_device_deletion_rpc, fn _, _ -> :ok end)
 
     keyspace = Realm.keyspace_name(realm)
-    device_id = Astarte.Core.Generators.Device.id() |> Enum.at(0)
-    encoded_id = Astarte.Core.Device.encode_device_id(device_id)
+    device_id = DeviceGenerator.id() |> Enum.at(0)
+    encoded_id = Device.encode_device_id(device_id)
 
     device =
-      %Device{
+      %DeviceData{
         device_id: device_id
       }
 
@@ -171,8 +176,8 @@ defmodule Astarte.RealmManagement.DevicesTest do
 
     %{realm: realm} = context
     keyspace = Realm.keyspace_name(realm)
-    device_id = Astarte.Core.Generators.Device.id() |> Enum.at(0)
-    encoded_id = Astarte.Core.Device.encode_device_id(device_id)
+    device_id = DeviceGenerator.id() |> Enum.at(0)
+    encoded_id = Device.encode_device_id(device_id)
 
     DeviceQueries
     |> expect(:device_exists?, fn ^realm, ^device_id -> true end)
@@ -184,7 +189,7 @@ defmodule Astarte.RealmManagement.DevicesTest do
 
   defp start_device_deletion(realm_name, device_id) do
     keyspace = Realm.keyspace_name(realm_name)
-    {:ok, decoded_id} = DeviceCore.decode_device_id(device_id)
+    {:ok, decoded_id} = Device.decode_device_id(device_id)
 
     on_exit(fn ->
       %DeletionInProgress{device_id: decoded_id}

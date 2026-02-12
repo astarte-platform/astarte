@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2018 - 2025 SECO Mind Srl
+# Copyright 2018 - 2026 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -17,30 +17,39 @@
 #
 
 defmodule Astarte.RealmManagement.TriggersTest do
-  use Astarte.Cases.Data, async: true
   use ExUnitProperties
-  use Mimic
 
-  @moduletag :triggers
+  use Astarte.Cases.Data, async: true
 
-  alias Astarte.Core.Generators.Triggers.Policy, as: PolicyGenerator
+  import Mimic
+
+  import Astarte.Helpers.Triggers
+
   alias Astarte.Core.Triggers.SimpleTriggerConfig
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.AMQPTriggerTarget
+
   alias Astarte.Events.Triggers, as: EventsTriggers
+
+  alias Astarte.Core.Generators.Device, as: DeviceGenerator
+  alias Astarte.Core.Generators.Triggers.Policy, as: PolicyGenerator
+
+  alias Astarte.RPC.Triggers, as: RPCTriggers
+  alias Astarte.RPC.Triggers.TriggerDeletion
+  alias Astarte.RPC.Triggers.TriggerInstallation
+
   alias Astarte.Helpers.Database
-  alias Astarte.RealmManagement.Fixtures.SimpleTriggerConfig, as: SimpleTriggerConfigFixture
-  alias Astarte.RealmManagement.Fixtures.Trigger, as: TriggerFixture
+
   alias Astarte.RealmManagement.Triggers
   alias Astarte.RealmManagement.Triggers.Action
   alias Astarte.RealmManagement.Triggers.Core
   alias Astarte.RealmManagement.Triggers.HttpAction
   alias Astarte.RealmManagement.Triggers.Policies
   alias Astarte.RealmManagement.Triggers.Trigger
-  alias Astarte.RPC.Triggers, as: RPCTriggers
-  alias Astarte.RPC.Triggers.TriggerDeletion
-  alias Astarte.RPC.Triggers.TriggerInstallation
 
-  import Astarte.Helpers.Triggers
+  alias Astarte.RealmManagement.Fixtures.SimpleTriggerConfig, as: SimpleTriggerConfigFixture
+  alias Astarte.RealmManagement.Fixtures.Trigger, as: TriggerFixture
+
+  @moduletag :triggers
 
   setup :verify_on_exit!
 
@@ -180,13 +189,10 @@ defmodule Astarte.RealmManagement.TriggersTest do
   end
 
   describe "Test triggers" do
-    @describetag :triggers
-
     @tag :creation
     property "are installed correctly", %{realm: realm} do
-      check all device <- Astarte.Core.Generators.Device.device(),
-                trigger <-
-                  trigger(string(:alphanumeric, min_length: 1)),
+      check all device <- DeviceGenerator.device(),
+                trigger <- trigger(string(:utf8, min_length: 1)),
                 policy <- PolicyGenerator.policy() |> PolicyGenerator.to_changes(),
                 simple_trigger <- simple_trigger_config(device.device_id) do
         {:ok, policy} = Policies.create_trigger_policy(realm, policy)

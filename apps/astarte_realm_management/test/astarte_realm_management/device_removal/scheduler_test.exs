@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2025 SECO Mind Srl
+# Copyright 2025 - 2026 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -22,31 +22,34 @@ defmodule Astarte.RealmManagement.DeviceRemoval.SchedulerTest do
   @moduledoc """
   Tests for the device remover scheduler.
   """
-  alias Astarte.Core.Generators.Device
+  use ExUnitProperties
+
+  use Astarte.Cases.Data, async: true
+
+  alias Astarte.Core.Generators.Device, as: DeviceGenerator
+
   alias Astarte.DataAccess.Device.DeletionInProgress
   alias Astarte.DataAccess.Realms.Realm
   alias Astarte.DataAccess.Repo
-  alias Astarte.RealmManagement.DeviceRemoval.Queries
-  alias Astarte.RealmManagement.Generators.DeletionInProgress, as: DeletionGenerator
 
-  use Astarte.Cases.Data, async: true
-  use ExUnitProperties
+  alias Astarte.RealmManagement.DeviceRemoval.Queries
+
+  alias Astarte.RealmManagement.Generators.DeletionInProgress, as: DeletionGenerator
 
   # We only test this as is the only important logic happening inside of the
   # Scheduler. The rest of the logic consists in calling itself after a
   # pre-determined timeout and running a task.
   property "Test device removal happens only when all ACKs are available", %{realm: realm} do
-    check all(
-            ackd_devices <- Device.id() |> list_of(length: 1..10),
-            non_ackd <-
-              Device.id()
-              |> StreamData.filter(fn id -> id not in ackd_devices end)
-              |> DeletionGenerator.deletion_in_progress()
-              |> StreamData.filter(fn deletion -> not DeletionInProgress.all_ack?(deletion) end)
-              |> list_of(length: 1..10)
-          ) do
+    check all ackd_devices <- DeviceGenerator.id() |> list_of(length: 1..10),
+              non_ackd_devices <-
+                DeviceGenerator.id()
+                |> filter(&(&1 not in ackd_devices))
+                |> bind(&DeletionGenerator.deletion_in_progress(device_id: &1))
+                |> filter(&(not DeletionInProgress.all_ack?(&1)))
+                |> list_of(length: 1..10),
+              max_runs: 25 do
       ackd_deletions = seed_ackd_deletions(ackd_devices, realm)
-      non_ackd_deletions = seed_non_ackd_deletions(non_ackd, realm)
+      non_ackd_deletions = seed_non_ackd_deletions(non_ackd_devices, realm)
 
       devices_to_delete =
         Queries.retrieve_devices_to_delete!(realm)

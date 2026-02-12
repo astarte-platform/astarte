@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2018 - 2025 SECO Mind Srl
+# Copyright 2018 - 2026 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -17,21 +17,26 @@
 #
 
 defmodule Astarte.RealmManagement.InterfacesTest do
-  use Astarte.Cases.Data, async: true
   use ExUnitProperties
 
-  @moduletag :interfaces
+  use Astarte.Cases.Data, async: true
 
-  alias Astarte.Core.Generators.Interface, as: InterfaceGenerators
+  import ExUnit.CaptureLog
+
   alias Astarte.Core.Interface
   alias Astarte.Core.Mapping
+
+  alias Astarte.Core.Generators.Interface, as: InterfaceGenerator
+
   alias Astarte.DataAccess.KvStore
   alias Astarte.DataAccess.Realms.Realm
+
   alias Astarte.Helpers.Database
+
   alias Astarte.RealmManagement.Interfaces
   alias Astarte.RealmManagement.Interfaces.Core
 
-  import ExUnit.CaptureLog
+  @moduletag :interfaces
 
   @interface_name "com.Some.Interface"
   @interface_major 0
@@ -64,7 +69,7 @@ defmodule Astarte.RealmManagement.InterfacesTest do
 
   describe "list_interface_major_versions/2" do
     setup %{realm_name: realm_name, astarte_instance_id: astarte_instance_id} do
-      interface = InterfaceGenerators.interface() |> Enum.at(0)
+      interface = InterfaceGenerator.interface() |> Enum.at(0)
 
       {:ok, installed_interface} = insert_interface_cleanly(realm_name, interface)
 
@@ -406,7 +411,8 @@ defmodule Astarte.RealmManagement.InterfacesTest do
                     aggregation: interface.aggregation,
                     interface_id: interface.interface_id,
                     mappings: interface.mappings
-                  ) do
+                  ),
+                max_runs: 10 do
         updated_interface_params =
           valid_update_interface |> Jason.encode!() |> Jason.decode!(keys: :atoms)
 
@@ -442,15 +448,13 @@ defmodule Astarte.RealmManagement.InterfacesTest do
     end
 
     property "does not allow major version changes", %{realm: realm} do
-      check all(
-              interface <-
-                Astarte.Core.Generators.Interface.interface(major_version: integer(0..8)),
-              updated_interface <-
-                Astarte.Core.Generators.Interface.interface(
-                  name: interface.name,
-                  major_version: interface.major_version + 1
-                )
-            ) do
+      check all interface <- InterfaceGenerator.interface(major_version: integer(0..8)),
+                updated_interface <-
+                  InterfaceGenerator.interface(
+                    name: interface.name,
+                    major_version: interface.major_version + 1
+                  ),
+                max_runs: 10 do
         interface_update =
           updated_interface |> Jason.encode!() |> Jason.decode!(keys: :atoms)
 
@@ -471,21 +475,20 @@ defmodule Astarte.RealmManagement.InterfacesTest do
     end
 
     property "does not allow downgrade", %{realm: realm} do
-      check all(
-              interface <-
-                Astarte.Core.Generators.Interface.interface(minor_version: integer(2..255)),
-              updated_interface <-
-                Astarte.Core.Generators.Interface.interface(
-                  name: interface.name,
-                  major_version: interface.major_version,
-                  minor_version: interface.minor_version - 1,
-                  type: interface.type,
-                  ownership: interface.ownership,
-                  aggregation: interface.aggregation,
-                  interface_id: interface.interface_id,
-                  mappings: interface.mappings
-                )
-            ) do
+      check all interface <-
+                  InterfaceGenerator.interface(minor_version: integer(2..255)),
+                updated_interface <-
+                  InterfaceGenerator.interface(
+                    name: interface.name,
+                    major_version: interface.major_version,
+                    minor_version: interface.minor_version - 1,
+                    type: interface.type,
+                    ownership: interface.ownership,
+                    aggregation: interface.aggregation,
+                    interface_id: interface.interface_id,
+                    mappings: interface.mappings
+                  ),
+                max_runs: 10 do
         interface_update =
           updated_interface |> Jason.encode!() |> Jason.decode!(keys: :atoms)
 

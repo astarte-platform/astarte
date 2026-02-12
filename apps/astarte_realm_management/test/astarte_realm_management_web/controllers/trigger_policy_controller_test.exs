@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2022 - 2025 SECO Mind Srl
+# Copyright 2022 - 2026 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -19,13 +19,13 @@
 defmodule Astarte.RealmManagementWeb.TriggerPolicyControllerTest do
   use Astarte.Cases.Data, async: true
   use Astarte.RealmManagementWeb.ConnCase
-  @moduletag :trigger_policy
-
-  alias Astarte.Core.Generators.Triggers.Policy, as: PolicyGenerator
-  alias Astarte.Helpers.Policy, as: PolicyHelper
-  alias Astarte.RealmManagement.Triggers.Policies
 
   import ExUnit.CaptureLog
+
+  alias Astarte.Core.Generators.Triggers.Policy, as: PolicyGenerator
+  alias Astarte.RealmManagement.Triggers.Policies
+
+  @moduletag :trigger_policy
 
   @invalid_attrs %{
     "name" => "@invalid",
@@ -44,17 +44,17 @@ defmodule Astarte.RealmManagementWeb.TriggerPolicyControllerTest do
     end
 
     test "list existing policies", %{auth_conn: conn, realm: realm} do
-      policy = PolicyGenerator.policy() |> Enum.at(0)
-      policy_map = PolicyHelper.policy_struct_to_map(policy)
+      policy_changeset =
+        %{name: name} = PolicyGenerator.policy() |> PolicyGenerator.to_changes() |> Enum.at(0)
 
-      post_conn = post(conn, trigger_policy_path(conn, :create, realm), data: policy_map)
-      assert json_response(post_conn, 201)["data"]["name"] == policy.name
+      post_conn = post(conn, trigger_policy_path(conn, :create, realm), data: policy_changeset)
+      assert json_response(post_conn, 201)["data"]["name"] == name
 
       conn = get(conn, trigger_policy_path(conn, :index, realm))
-      assert json_response(conn, 200)["data"] == [policy.name]
+      assert json_response(conn, 200)["data"] == [name]
 
       capture_log(fn ->
-        Policies.delete_trigger_policy(realm, policy.name)
+        Policies.delete_trigger_policy(realm, name)
       end)
     end
   end
@@ -63,18 +63,18 @@ defmodule Astarte.RealmManagementWeb.TriggerPolicyControllerTest do
     @describetag :show
 
     test "shows existing policy", %{auth_conn: conn, realm: realm} do
-      policy = PolicyGenerator.policy() |> Enum.at(0)
-      policy_map = PolicyHelper.policy_struct_to_map(policy)
+      policy_changeset =
+        %{name: name} = PolicyGenerator.policy() |> PolicyGenerator.to_changes() |> Enum.at(0)
 
-      post_conn = post(conn, trigger_policy_path(conn, :create, realm), data: policy_map)
-      assert json_response(post_conn, 201)["data"]["name"] == policy.name
+      post_conn = post(conn, trigger_policy_path(conn, :create, realm), data: policy_changeset)
+      assert json_response(post_conn, 201)["data"]["name"] == name
 
-      show_conn = get(conn, trigger_policy_path(conn, :show, realm, policy.name))
+      show_conn = get(conn, trigger_policy_path(conn, :show, realm, name))
 
-      assert json_response(show_conn, 200)["data"]["name"] == policy.name
+      assert json_response(show_conn, 200)["data"]["name"] == name
 
       capture_log(fn ->
-        Policies.delete_trigger_policy(realm, policy.name)
+        Policies.delete_trigger_policy(realm, name)
       end)
     end
 
@@ -89,18 +89,18 @@ defmodule Astarte.RealmManagementWeb.TriggerPolicyControllerTest do
     @describetag :creation
 
     test "renders policy when data is valid", %{auth_conn: conn, realm: realm} do
-      policy = PolicyGenerator.policy() |> Enum.at(0)
-      policy_map = PolicyHelper.policy_struct_to_map(policy)
+      policy_changeset =
+        %{name: name} = PolicyGenerator.policy() |> PolicyGenerator.to_changes() |> Enum.at(0)
 
-      post_conn = post(conn, trigger_policy_path(conn, :create, realm), data: policy_map)
-      assert json_response(post_conn, 201)["data"]["name"] == policy.name
+      post_conn = post(conn, trigger_policy_path(conn, :create, realm), data: policy_changeset)
+      assert json_response(post_conn, 201)["data"]["name"] == name
 
-      get_conn = get(conn, trigger_policy_path(conn, :show, realm, policy.name))
+      get_conn = get(conn, trigger_policy_path(conn, :show, realm, name))
 
-      assert json_response(get_conn, 200)["data"]["name"] == policy.name
+      assert json_response(get_conn, 200)["data"]["name"] == name
 
       capture_log(fn ->
-        Policies.delete_trigger_policy(realm, policy.name)
+        Policies.delete_trigger_policy(realm, name)
       end)
     end
 
@@ -110,17 +110,17 @@ defmodule Astarte.RealmManagementWeb.TriggerPolicyControllerTest do
     end
 
     test "renders error when policy is already installed", %{auth_conn: conn, realm: realm} do
-      policy = PolicyGenerator.policy() |> Enum.at(0)
-      policy_map = PolicyHelper.policy_struct_to_map(policy)
+      policy_changeset =
+        %{name: name} = PolicyGenerator.policy() |> PolicyGenerator.to_changes() |> Enum.at(0)
 
-      post_conn = post(conn, trigger_policy_path(conn, :create, realm), data: policy_map)
-      assert json_response(post_conn, 201)["data"]["name"] == policy.name
+      post_conn = post(conn, trigger_policy_path(conn, :create, realm), data: policy_changeset)
+      assert json_response(post_conn, 201)["data"]["name"] == name
 
-      post2_conn = post(conn, trigger_policy_path(conn, :create, realm), data: policy_map)
+      post2_conn = post(conn, trigger_policy_path(conn, :create, realm), data: policy_changeset)
       assert json_response(post2_conn, 409)["errors"] != %{}
 
       capture_log(fn ->
-        Policies.delete_trigger_policy(realm, policy.name)
+        Policies.delete_trigger_policy(realm, name)
       end)
     end
   end
@@ -129,20 +129,18 @@ defmodule Astarte.RealmManagementWeb.TriggerPolicyControllerTest do
     @describetag :deletion
 
     test "deletes existing policy", %{auth_conn: conn, realm: realm} do
-      policy = PolicyGenerator.policy() |> Enum.at(0)
-      policy_map = PolicyHelper.policy_struct_to_map(policy)
+      policy_changeset =
+        %{name: name} = PolicyGenerator.policy() |> PolicyGenerator.to_changes() |> Enum.at(0)
 
-      post_conn = post(conn, trigger_policy_path(conn, :create, realm), data: policy_map)
-      assert json_response(post_conn, 201)["data"]["name"] == policy.name
+      post_conn = post(conn, trigger_policy_path(conn, :create, realm), data: policy_changeset)
+      assert json_response(post_conn, 201)["data"]["name"] == name
 
       delete_conn =
-        delete(conn, trigger_policy_path(conn, :delete, realm, policy.name),
-          async_operation: "false"
-        )
+        delete(conn, trigger_policy_path(conn, :delete, realm, name), async_operation: "false")
 
       assert response(delete_conn, 204)
 
-      get_conn = get(conn, trigger_policy_path(conn, :show, realm, policy.name))
+      get_conn = get(conn, trigger_policy_path(conn, :show, realm, name))
       assert json_response(get_conn, 404)["errors"] != %{}
     end
 
