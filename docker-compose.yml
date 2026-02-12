@@ -225,7 +225,7 @@ services:
 
   # Scylla
   scylla:
-    image: scylladb/scylla:2025.2.2
+    image: scylladb/scylla:2025.4.2
     hostname: scylla
     restart: on-failure
     volumes:

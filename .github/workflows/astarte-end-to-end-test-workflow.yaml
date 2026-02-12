@@ -4,7 +4,9 @@ on:
   # Run when pushing to stable branches
   push:
     paths:
+      - "docker-compose.yml"
       - "apps/**"
+      - "libs/**"
       - "tools/astarte_e2e/**"
       - ".github/workflows/astarte-end-to-end-test-workflow.yaml"
     branches:
@@ -15,7 +17,9 @@ on:
   # Run on pull requests matching apps
   pull_request:
     paths:
+      - "docker-compose.yml"
       - "apps/**"
+      - "libs/**"
       - "tools/astarte_e2e/**"
       - ".github/workflows/astarte-end-to-end-test-workflow.yaml"
   # Allow this workflow to be called  by others
