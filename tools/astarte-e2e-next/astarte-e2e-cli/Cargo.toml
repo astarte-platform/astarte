@@ -1,7 +1,6 @@
-#
 # This file is part of Astarte.
 #
-# Copyright 2017 Ispirata Srl
+# Copyright 2026 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -14,17 +13,20 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+#
+# SPDX-License-Identifier: Apache-2.0
 
-defmodule Astarte.AppEngine.API do
-  @moduledoc """
-  Astarte.AppEngine.API keeps the contexts that define your domain
-  and business logic.
+[package]
+name = "astarte-e2e-cli"
+version = "0.1.0"
+edition = "2024"
 
-  Contexts are also responsible for managing your data, regardless
-  if it comes from the database, an external API or others.
-  """
-
-  def cacca do
-    a =
-  end
-end
+[dependencies]
+astarte-device-sdk.workspace = true
+astarte-e2e.workspace = true
+clap = { workspace = true, features = ["derive", "env"] }
+color-eyre.workspace = true
+eyre.workspace = true
+reqwest = { workspace = true, features = ["json"] }
+tempfile.workspace = true
+tokio = { workspace = true, features = ["full"] }
