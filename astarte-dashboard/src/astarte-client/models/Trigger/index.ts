@@ -51,7 +51,14 @@ interface AstarteTriggerAMQPActionObject {
 
 interface AstarteSimpleDeviceTriggerObject {
   type: 'device_trigger';
-  on: 'device_disconnected' | 'device_connected' | 'device_error' | 'device_empty_cache_received';
+  on:
+    | 'device_disconnected'
+    | 'device_connected'
+    | 'device_registered'
+    | 'device_deletion_finished'
+    | 'device_deletion_started'
+    | 'device_error'
+    | 'device_empty_cache_received';
   deviceId?: string;
   groupName?: string;
 }
@@ -208,6 +215,9 @@ const astarteSimpleDeviceTriggerObjectSchema: yup.ObjectSchema<AstarteSimpleDevi
         .oneOf([
           'device_disconnected',
           'device_connected',
+          'device_registered',
+          'device_deletion_finished',
+          'device_deletion_started',
           'device_error',
           'device_empty_cache_received',
         ])

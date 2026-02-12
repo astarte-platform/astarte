@@ -30,6 +30,9 @@ import _ from 'lodash';
 const triggerConditionToLabel = {
   device_disconnected: 'Device Disconnected',
   device_connected: 'Device Connected',
+  device_registered: 'Device Registered',
+  device_deletion_finished: 'Device Deletion Finished',
+  device_deletion_started: 'Device Deletion Started',
   device_error: 'Device Error',
   device_empty_cache_received: 'Empty Cache Received',
   incoming_data: 'Incoming Data',
@@ -99,30 +102,39 @@ const SimpleTriggerForm = ({
 }: SimpleTriggerFormProps): React.ReactElement => {
   const endpointList =
     simpleTriggerInterface?.mappings.map((mapping: AstarteMapping) => mapping.endpoint) || [];
+
   const isDeviceTrigger = _.get(simpleTrigger, 'type') === 'device_trigger';
   const isDataTrigger = _.get(simpleTrigger, 'type') === 'data_trigger';
   const hasTargetDevice = _.get(simpleTrigger, 'deviceId') != null;
   const hasTargetGroup = _.get(simpleTrigger, 'groupName') != null;
+
   // eslint-disable-next-line no-nested-ternary
   const triggerTargetType = hasTargetDevice ? 'device' : hasTargetGroup ? 'group' : 'all_devices';
+
   const triggerInterfaceName = _.get(simpleTrigger, 'interfaceName') as string | undefined;
   const hasSelectedInterface = triggerInterfaceName != null && triggerInterfaceName !== '*';
+
   const triggerValueMatchOperator: AstarteSimpleDataTrigger['valueMatchOperator'] | undefined =
     _.get(simpleTrigger, 'valueMatchOperator');
+
   const hasSelectedOperator =
     triggerValueMatchOperator != null && triggerValueMatchOperator !== '*';
+
   const triggerMatchPath: AstarteSimpleDataTrigger['matchPath'] | undefined = _.get(
     simpleTrigger,
     'matchPath',
   );
+
   const triggerInterfaceType = useMemo(
     () => (simpleTriggerInterface ? simpleTriggerInterface.type : null),
     [simpleTriggerInterface],
   );
+
   const triggerInterfaceAggregation = useMemo(
     () => (simpleTriggerInterface ? simpleTriggerInterface.aggregation : null),
     [simpleTriggerInterface],
   );
+
   const triggerInterfacePathType = useMemo(() => {
     if (!simpleTriggerInterface || !triggerMatchPath) {
       return null;
@@ -291,6 +303,9 @@ const SimpleTriggerForm = ({
       options = [
         'device_connected',
         'device_disconnected',
+        'device_registered',
+        'device_deletion_finished',
+        'device_deletion_started',
         'device_error',
         'device_empty_cache_received',
       ];

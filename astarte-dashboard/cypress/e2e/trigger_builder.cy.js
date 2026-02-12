@@ -1,6 +1,9 @@
 const triggerConditionToLabel = {
   device_connected: 'Device Connected',
   device_disconnected: 'Device Disconnected',
+  device_registered: 'Device Registered',
+  device_deletion_finished: 'Device Deletion Finished',
+  device_deletion_started: 'Device Deletion Started',
   device_error: 'Device Error',
   device_empty_cache_received: 'Empty Cache Received',
   incoming_data: 'Incoming Data',
@@ -462,6 +465,9 @@ describe('Trigger builder tests', () => {
           expect(labels).to.deep.eq([
             'Device Connected',
             'Device Disconnected',
+            'Device Registered',
+            'Device Deletion Finished',
+            'Device Deletion Started',
             'Device Error',
             'Empty Cache Received',
           ]);

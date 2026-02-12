@@ -22,6 +22,9 @@ import { AstarteDeviceDisconnectedEvent } from './AstarteDeviceDisconnectedEvent
 import { AstarteDeviceErrorEvent } from './AstarteDeviceErrorEvent';
 import { AstarteDeviceIncomingDataEvent } from './AstarteDeviceIncomingDataEvent';
 import { AstarteDeviceUnsetPropertyEvent } from './AstarteDeviceUnsetPropertyEvent';
+import { AstarteDeviceRegistrationEvent } from './AstarteDeviceRegistrationEvent';
+import { AstarteDeviceDeletionFinishedEvent } from './AstateDeviceDeletionFinishedEvent';
+import { AstarteDeviceDeletionStartedEvent } from './AstarteDeviceDeletionStartedEvent';
 
 function decodeEvent(arg: unknown): AstarteDeviceEvent | null {
   return decodeAnyOf(
@@ -31,6 +34,9 @@ function decodeEvent(arg: unknown): AstarteDeviceEvent | null {
       AstarteDeviceErrorEvent.fromJSON,
       AstarteDeviceUnsetPropertyEvent.fromJSON,
       AstarteDeviceIncomingDataEvent.fromJSON,
+      AstarteDeviceRegistrationEvent.fromJSON,
+      AstarteDeviceDeletionFinishedEvent.fromJSON,
+      AstarteDeviceDeletionStartedEvent.fromJSON,
     ],
     arg,
   );
@@ -56,6 +62,9 @@ export {
   AstarteDeviceEvent,
   AstarteDeviceConnectedEvent,
   AstarteDeviceDisconnectedEvent,
+  AstarteDeviceRegistrationEvent,
+  AstarteDeviceDeletionFinishedEvent,
+  AstarteDeviceDeletionStartedEvent,
   AstarteDeviceErrorEvent,
   AstarteDeviceIncomingDataEvent,
   AstarteDeviceUnsetPropertyEvent,

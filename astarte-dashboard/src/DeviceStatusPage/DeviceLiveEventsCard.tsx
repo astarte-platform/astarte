@@ -24,6 +24,9 @@ import AstarteClient, {
   AstarteDeviceEvent,
   AstarteDeviceConnectedEvent,
   AstarteDeviceDisconnectedEvent,
+  AstarteDeviceRegistrationEvent,
+  AstarteDeviceDeletionFinishedEvent,
+  AstarteDeviceDeletionStartedEvent,
   AstarteDeviceErrorEvent,
   AstarteDeviceIncomingDataEvent,
   AstarteDeviceUnsetPropertyEvent,
@@ -234,6 +237,39 @@ const astarteDeviceEventBody = (event: AstarteDeviceEvent) => {
       </>
     );
   }
+  if (event instanceof AstarteDeviceRegistrationEvent) {
+    return (
+      <>
+        <Badge bg="success" className="me-2">
+          device registered
+        </Badge>
+        <span>Device registered</span>
+      </>
+    );
+  }
+
+  if (event instanceof AstarteDeviceDeletionStartedEvent) {
+    return (
+      <>
+        <Badge bg="success" className="me-2">
+          device deletion started
+        </Badge>
+        <span>Started Device deletion</span>
+      </>
+    );
+  }
+
+  if (event instanceof AstarteDeviceDeletionFinishedEvent) {
+    return (
+      <>
+        <Badge bg="success" className="me-2">
+          device deletion finished
+        </Badge>
+        <span>Device deleted</span>
+      </>
+    );
+  }
+
   if (event instanceof AstarteDeviceIncomingDataEvent) {
     return (
       <>
