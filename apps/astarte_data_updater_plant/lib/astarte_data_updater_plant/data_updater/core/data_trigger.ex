@@ -20,10 +20,10 @@
 
 defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DataTrigger do
   @moduledoc """
-
+  This module is responsible for handling data triggers.
   """
-  alias Astarte.Core.Mapping.EndpointsAutomaton
   alias Astarte.Core.InterfaceDescriptor
+  alias Astarte.Core.Mapping.EndpointsAutomaton
   alias Astarte.Core.Triggers.DataTrigger
 
   def data_trigger_to_key(state, data_trigger, event_type) do
@@ -39,8 +39,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DataTrigger do
 
         path_no_root =
           path_match_tokens
-          |> Enum.map(&replace_empty_token/1)
-          |> Enum.join("/")
+          |> Enum.map_join("/", &replace_empty_token/1)
 
         {:ok, endpoint_id} = EndpointsAutomaton.resolve_path("/#{path_no_root}", automaton)
 

@@ -17,7 +17,11 @@
 #
 
 defmodule Astarte.DataUpdaterPlant.AMQPDataConsumer do
+  @moduledoc """
+  This module is responsible for consuming messages from the AMQP broker.
+  """
   defmodule State do
+    @moduledoc false
     defstruct [
       :channel,
       :monitor,
@@ -151,7 +155,7 @@ defmodule Astarte.DataUpdaterPlant.AMQPDataConsumer do
     {:noreply, state}
   end
 
-  defp schedule_connect() do
+  defp schedule_connect do
     Process.send_after(self(), :init_consume, @reconnect_interval)
   end
 

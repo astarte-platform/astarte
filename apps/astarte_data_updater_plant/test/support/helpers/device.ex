@@ -16,10 +16,13 @@
 # limitations under the License.
 
 defmodule Astarte.Helpers.Device do
-  alias Astarte.DataAccess.Repo
+  @moduledoc """
+  This module provides helper functions for testing device-related functionality.
+  """
   alias Astarte.DataAccess.Devices.Device
   alias Astarte.DataAccess.Realms.Interface
   alias Astarte.DataAccess.Realms.Realm
+  alias Astarte.DataAccess.Repo
   alias Astarte.RealmManagement.Interfaces, as: RMInterfaces
 
   import ExUnit.CaptureLog

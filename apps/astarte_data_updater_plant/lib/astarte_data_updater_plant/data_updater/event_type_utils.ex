@@ -18,6 +18,23 @@
 #
 
 defmodule Astarte.DataUpdaterPlant.DataUpdater.EventTypeUtils do
+  @moduledoc """
+  This module provides utility functions for handling event types in the data updater.
+  """
+  @device_event_type_map %{
+    DEVICE_CONNECTED: :on_device_connection,
+    DEVICE_DISCONNECTED: :on_device_disconnection,
+    DEVICE_EMPTY_CACHE_RECEIVED: :on_empty_cache_received,
+    DEVICE_ERROR: :on_device_error,
+    INCOMING_INTROSPECTION: :on_incoming_introspection,
+    INTERFACE_ADDED: :on_interface_added,
+    INTERFACE_REMOVED: :on_interface_removed,
+    INTERFACE_MINOR_UPDATED: :on_interface_minor_updated,
+    DEVICE_REGISTERED: :on_device_registered,
+    DEVICE_DELETION_STARTED: :on_device_deletion_started,
+    DEVICE_DELETION_FINISHED: :on_device_deletion_finished
+  }
+
   def pretty_data_trigger_type(data_trigger_type) do
     case data_trigger_type do
       :INCOMING_DATA ->
@@ -41,39 +58,6 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.EventTypeUtils do
   end
 
   def pretty_device_event_type(device_event_type) do
-    case device_event_type do
-      :DEVICE_CONNECTED ->
-        :on_device_connection
-
-      :DEVICE_DISCONNECTED ->
-        :on_device_disconnection
-
-      :DEVICE_EMPTY_CACHE_RECEIVED ->
-        :on_empty_cache_received
-
-      :DEVICE_ERROR ->
-        :on_device_error
-
-      :INCOMING_INTROSPECTION ->
-        :on_incoming_introspection
-
-      :INTERFACE_ADDED ->
-        :on_interface_added
-
-      :INTERFACE_REMOVED ->
-        :on_interface_removed
-
-      :INTERFACE_MINOR_UPDATED ->
-        :on_interface_minor_updated
-
-      :DEVICE_REGISTERED ->
-        :on_device_registered
-
-      :DEVICE_DELETION_STARTED ->
-        :on_device_deletion_started
-
-      :DEVICE_DELETION_FINISHED ->
-        :on_device_deletion_finished
-    end
+    Map.fetch!(@device_event_type_map, device_event_type)
   end
 end

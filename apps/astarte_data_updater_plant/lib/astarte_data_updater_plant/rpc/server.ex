@@ -23,9 +23,8 @@ defmodule Astarte.DataUpdaterPlant.RPC.Server do
   This server receives incoming calls from other astarte services and queues the
   calls to the appropriate dup services to handle the calls.
   """
-
-  alias Astarte.DataUpdaterPlant.RPC.Server.Core
   alias Astarte.DataUpdaterPlant.DataUpdater
+  alias Astarte.DataUpdaterPlant.RPC.Server.Core
 
   use GenServer, restart: :transient
   require Logger

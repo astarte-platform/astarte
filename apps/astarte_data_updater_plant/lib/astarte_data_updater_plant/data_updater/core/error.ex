@@ -24,8 +24,8 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.Error do
 
   This module is responsible for providing utilities to handle errors during the handling of messages
   """
-  alias Astarte.DataUpdaterPlant.MessageTracker
   alias Astarte.DataUpdaterPlant.DataUpdater.Core
+  alias Astarte.DataUpdaterPlant.MessageTracker
 
   require Logger
 

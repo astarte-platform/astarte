@@ -30,6 +30,8 @@ defmodule Astarte.Cases.Data do
   use Mimic
   import Astarte.Helpers.Database
 
+  alias Astarte.Housekeeping.AMQP.Vhost
+
   using opts do
     astarte_instance_id = Keyword.get_lazy(opts, :astarte_instance_id, &astarte_instance_id/0)
     realm_name = Keyword.get_lazy(opts, :realm_name, &realm_name/0)
@@ -45,7 +47,7 @@ defmodule Astarte.Cases.Data do
 
   setup_all %{realm_name: realm, astarte_instance_id: astarte_instance_id} do
     setup_instance(astarte_instance_id, [realm])
-    Astarte.Housekeeping.AMQP.Vhost.create_vhost(realm)
+    Vhost.create_vhost(realm)
     %{realm: realm, astarte_instance_id: astarte_instance_id}
   end
 

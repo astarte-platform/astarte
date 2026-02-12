@@ -17,15 +17,19 @@
 #
 
 defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
-  alias Astarte.DataUpdaterPlant.DataUpdater.Core
-  alias Astarte.DataUpdaterPlant.Config
+  @moduledoc """
+  This module implements the core logic of the DataUpdater process.
+  """
   alias Astarte.Core.Device
-  alias Astarte.DataUpdaterPlant.DataUpdater.State
+  alias Astarte.DataUpdaterPlant.Config
   alias Astarte.DataUpdaterPlant.DataUpdater.Cache
+  alias Astarte.DataUpdaterPlant.DataUpdater.Core
   alias Astarte.DataUpdaterPlant.DataUpdater.Queries
+  alias Astarte.DataUpdaterPlant.DataUpdater.State
   alias Astarte.DataUpdaterPlant.MessageTracker
-  alias Astarte.DataUpdaterPlant.TriggersHandler
   alias Astarte.DataUpdaterPlant.TimeBasedActions
+  alias Astarte.DataUpdaterPlant.TriggersHandler
+
   require Logger
 
   def init_state(realm, device_id, message_tracker) do

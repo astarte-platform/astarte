@@ -17,6 +17,9 @@
 #
 
 defmodule Astarte.DataUpdaterPlant.AMQPTestEventsConsumer do
+  @moduledoc """
+  This module implements a GenServer that acts as a consumer for AMQP events in tests.
+  """
   use GenServer
 
   alias AMQP.Basic
@@ -24,9 +27,10 @@ defmodule Astarte.DataUpdaterPlant.AMQPTestEventsConsumer do
   alias AMQP.Connection
   alias AMQP.Exchange
   alias AMQP.Queue
+  alias Astarte.DataAccess.Config
   alias Astarte.DataUpdaterPlant.AMQPTestHelper
 
-  @connection_backoff 10000
+  @connection_backoff 10_000
 
   # API
 
@@ -106,7 +110,7 @@ defmodule Astarte.DataUpdaterPlant.AMQPTestEventsConsumer do
   end
 
   defp rabbitmq_connect(state, retry \\ true) do
-    realm_vhost = "#{Astarte.DataAccess.Config.astarte_instance_id!()}_#{state.realm}"
+    realm_vhost = "#{Config.astarte_instance_id!()}_#{state.realm}"
 
     realm_conn_opts =
       AMQPTestHelper.amqp_consumer_options()

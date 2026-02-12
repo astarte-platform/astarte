@@ -27,10 +27,11 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.IntrospectionHandlerTest do
   import StreamData
   import Astarte.Helpers.DataUpdater
 
-  alias Astarte.DataUpdaterPlant.DataUpdater.PayloadsDecoder
-  alias Astarte.DataUpdaterPlant.DataUpdater.Core.IntrospectionHandler
+  alias Astarte.Common.Generators.Timestamp
   alias Astarte.DataUpdaterPlant.DataUpdater
   alias Astarte.DataUpdaterPlant.DataUpdater.Core
+  alias Astarte.DataUpdaterPlant.DataUpdater.Core.IntrospectionHandler
+  alias Astarte.DataUpdaterPlant.DataUpdater.PayloadsDecoder
   alias Astarte.DataUpdaterPlant.MessageTracker
 
   setup_all %{realm_name: realm_name, device: device} do
@@ -144,7 +145,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.IntrospectionHandlerTest do
 
       check all interfaces <- random_interfaces(interfaces),
                 introspection <- gen_introspection(interfaces),
-                time <- Astarte.Common.Generators.Timestamp.timestamp() do
+                time <- Timestamp.timestamp() do
         DataUpdater.handle_introspection(
           realm_name,
           device.encoded_id,
@@ -166,10 +167,9 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.IntrospectionHandlerTest do
   defp gen_introspection(interfaces) do
     repeatedly(fn ->
       interfaces
-      |> Enum.map(fn interface ->
+      |> Enum.map_join(";", fn interface ->
         "#{interface.name}:#{interface.major_version}:#{interface.minor_version}"
       end)
-      |> Enum.join(";")
     end)
   end
 

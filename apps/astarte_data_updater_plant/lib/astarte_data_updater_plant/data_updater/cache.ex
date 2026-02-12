@@ -17,6 +17,9 @@
 #
 
 defmodule Astarte.DataUpdaterPlant.DataUpdater.Cache do
+  @moduledoc """
+  This module implements a simple in-memory cache with a fixed size and optional TTL for each entry.
+  """
   @typep cache_size :: non_neg_integer()
   @typep expiry :: integer() | nil
 
@@ -54,11 +57,9 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Cache do
   end
 
   def get(cache, key, default \\ nil) do
-    with {:ok, value} <- fetch(cache, key) do
-      value
-    else
-      :error ->
-        default
+    case fetch(cache, key) do
+      {:ok, value} -> value
+      :error -> default
     end
   end
 
