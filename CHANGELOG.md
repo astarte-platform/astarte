@@ -5,9 +5,11 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
 
-## [1.2.1] - Unreleased
+## [1.2.1-rc.1] - 2026-02-13
 ### Fixed
 - [astarte_realm_management] Bug where devices got stuck in the "in deletion" status: [#1493](https://github.com/astarte-platform/astarte/issues/1493).
+- [astarte_data_updater_plant] Correctly reconnect to AMQP after a connection loss
+- [astarte_data_updater_plant] Fix possible crash when sending data on interface-specific volatile triggers
 
 ## [1.2.1-rc.0] - 2025-08-26
 ### Added
