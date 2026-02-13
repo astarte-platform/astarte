@@ -11,7 +11,7 @@ docker run -e CASSANDRA_DB_HOST=127.0.0.1 -e CASSANDRA_DB_PORT=9042 \
 Command to run data import:
 
 ```bash
-mix astarte.import <realm> <xml file>
+mix astarte.import <realm> <xml file> <db_host_and_port>
 ```
 
 ```xml
