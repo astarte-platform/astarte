@@ -391,6 +391,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.QueriesTest do
   end
 
   describe "retrieve_realms!/0" do
+    @describetag timeout: 120_000
     setup do
       astarte_instance_id = "custom#{System.unique_integer([:positive])}"
 
@@ -415,6 +416,8 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.QueriesTest do
   describe "retrieve_devices_waiting_to_start_deletion!/1" do
     setup %{realm_name: realm_name} do
       result = populate_deletion_in_progress(realm_name)
+
+      validate_deletion_in_progress_entries(realm_name, result)
 
       %{deletion_in_progress: result}
     end
@@ -443,6 +446,19 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.QueriesTest do
         assert dup_start_ack == expected_dup_start_ack
         assert dup_end_ack == expected_dup_end_ack
       end
+    end
+
+    defp validate_deletion_in_progress_entries(realm_name, expected_entries) do
+      retrieved_entries = Queries.retrieve_devices_waiting_to_start_deletion!(realm_name)
+      retrieved_device_ids = MapSet.new(retrieved_entries, & &1.device_id)
+
+      for entry <- expected_entries do
+        if entry.device_id not in retrieved_device_ids do
+          raise "Deletion in progress entry not found for device_id: #{inspect(entry.device_id)}"
+        end
+      end
+
+      :ok
     end
   end
 

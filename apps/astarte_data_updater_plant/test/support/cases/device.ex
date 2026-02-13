@@ -65,9 +65,16 @@ defmodule Astarte.Cases.Device do
     %{
       realm_name: realm_name,
       interfaces: interfaces,
+      interface_descriptors: interface_descriptors,
       server_property_with_all_endpoint_types: server_property_with_all_endpoint_types,
       device: device
     } = context
+
+    descriptors_map =
+      interface_descriptors
+      |> Enum.into(%{}, fn desc ->
+        {desc.interface_id, desc}
+      end)
 
     random_interfaces =
       interfaces
@@ -103,7 +110,12 @@ defmodule Astarte.Cases.Device do
       ]
 
     server_property_with_all_endpoint_types_data =
-      populate_all_mappings(realm_name, device, server_property_with_all_endpoint_types)
+      populate_all_mappings(
+        realm_name,
+        device,
+        server_property_with_all_endpoint_types,
+        Map.fetch!(descriptors_map, server_property_with_all_endpoint_types.interface_id)
+      )
 
     server_property_with_all_endpoint_types_key =
       {server_property_with_all_endpoint_types.name,
@@ -111,8 +123,9 @@ defmodule Astarte.Cases.Device do
 
     interface_data =
       for interface <- interfaces_with_data, into: %{} do
-        interface_data = populate(realm_name, device, interface)
         interface_key = {interface.name, interface.major_version}
+        descriptor = Map.fetch!(descriptors_map, interface.interface_id)
+        interface_data = populate(realm_name, device, interface, descriptor)
 
         {interface_key, interface_data}
       end
@@ -140,26 +153,26 @@ defmodule Astarte.Cases.Device do
     }
   end
 
-  defp populate(realm_name, device, interface) do
+  defp populate(realm_name, device, interface, interface_descriptor) do
     mapping_update = valid_mapping_update_for(interface)
 
     values =
       list_of(mapping_update, length: 100..10_000)
       |> Enum.at(0)
 
-    timings = insert_values(realm_name, device, interface, values)
+    timings = insert_values(realm_name, device, interface, interface_descriptor, values)
     paths = MapSet.new(values, & &1.path)
 
     %{paths: paths, timings: timings}
   end
 
-  defp populate_all_mappings(realm_name, device, interface) do
+  defp populate_all_mappings(realm_name, device, interface, interface_descriptor) do
     mapping_updates =
       interface.mappings
       |> Enum.map(&valid_mapping_update_for(interface, mapping: &1))
       |> Enum.map(&Enum.at(&1, 0))
 
-    timings = insert_values(realm_name, device, interface, mapping_updates)
+    timings = insert_values(realm_name, device, interface, interface_descriptor, mapping_updates)
     paths = MapSet.new(mapping_updates, & &1.path)
 
     %{paths: paths, timings: timings}
@@ -347,14 +360,20 @@ defmodule Astarte.Cases.Device do
 
   defp get_interface_descriptors(realm_name, interfaces) do
     for interface <- interfaces do
-      {:ok, interface_descriptor} =
-        InterfaceQueries.fetch_interface_descriptor(
-          realm_name,
-          interface.name,
-          interface.major_version
-        )
+      case InterfaceQueries.fetch_interface_descriptor(
+             realm_name,
+             interface.name,
+             interface.major_version
+           ) do
+        {:ok, interface_descriptor} ->
+          interface_descriptor
 
-      interface_descriptor
+        {:error, :interface_not_found} ->
+          raise "Interface not found: #{interface.name} v#{interface.major_version} in #{realm_name}"
+
+        {:error, reason} ->
+          raise "Failed to fetch interface descriptor: #{interface.name} v#{interface.major_version} in #{realm_name}, reason: #{inspect(reason)}"
+      end
     end
   end
 

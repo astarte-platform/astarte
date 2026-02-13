@@ -363,8 +363,15 @@ defmodule Astarte.DataUpdaterPlant.DatabaseTestHelper do
   def create_test_keyspace(realm_name) do
     keyspace_name = Realm.keyspace_name(realm_name)
 
-    case execute(keyspace_name, @create_autotestrealm) do
-      {:ok, _} ->
+    result = execute(keyspace_name, @create_autotestrealm)
+
+    case result do
+      {:ok, _} -> :ok
+      {:error, %Xandra.Error{reason: :already_exists}} -> :ok
+      {:error, error} -> {:error, error}
+    end
+    |> case do
+      :ok ->
         execute!(keyspace_name, @create_capabilities_type)
         execute!(keyspace_name, @create_devices_table)
         execute!(keyspace_name, @create_endpoints_table)
