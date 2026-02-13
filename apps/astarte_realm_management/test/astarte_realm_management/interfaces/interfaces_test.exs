@@ -533,9 +533,17 @@ defmodule Astarte.RealmManagement.InterfacesTest do
                Interfaces.fetch_interface(realm, @interface_name, @interface_major)
     end
 
-    test "fails if major version is other than 0", %{realm: realm} do
+    test "fails if major version is other than 0", context do
+      %{realm: realm, astarte_instance_id: astarte_instance_id} = context
       new_interface_major = 1
-      new_name = "com.Some.Interface1"
+
+      on_exit(fn ->
+        Database.setup_database_access(astarte_instance_id)
+
+        capture_log(fn ->
+          Core.delete_interface(realm, @interface_name, new_interface_major)
+        end)
+      end)
 
       major_attrs =
         @valid_attrs
@@ -544,7 +552,7 @@ defmodule Astarte.RealmManagement.InterfacesTest do
       assert {:ok, %Interface{}} = Interfaces.install_interface(realm, major_attrs)
 
       assert {:error, :forbidden} =
-               Interfaces.delete_interface(realm, new_name, new_interface_major)
+               Interfaces.delete_interface(realm, @interface_name, new_interface_major)
     end
 
     test "fails with not installed interface", %{realm: realm} do
