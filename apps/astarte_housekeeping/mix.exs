@@ -88,7 +88,7 @@ defmodule Astarte.Housekeeping.Mixfile do
       {:dialyxir, "~> 1.0", only: [:dev, :test], runtime: false},
       {:mimic, "~> 1.11", only: [:test, :dev]},
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
-      {:astarte_generators, github: "astarte-platform/astarte_generators", only: [:dev, :test]},
+      {:astarte_generators, path: astarte_lib("astarte_generators"), only: [:dev, :test]},
       {:httpoison, "~> 2.0"},
       {:astarte_data_access, path: astarte_lib("astarte_data_access")},
       {:castore, "~> 1.0.0"}
