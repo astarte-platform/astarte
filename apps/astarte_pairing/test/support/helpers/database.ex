@@ -80,7 +80,7 @@ defmodule Astarte.Helpers.Database do
       private_key blob,
       voucher_data blob,
       guid blob,
-      PRIMARY KEY (guid, voucher_data)
+      PRIMARY KEY (guid)
    );
   """
 
