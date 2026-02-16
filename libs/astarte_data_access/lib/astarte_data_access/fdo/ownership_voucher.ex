@@ -24,7 +24,7 @@ defmodule Astarte.DataAccess.FDO.OwnershipVoucher do
   @primary_key false
   typed_schema "ownership_vouchers" do
     field :private_key, :binary
-    field :voucher_data, :binary, primary_key: true
+    field :voucher_data, :binary
     field :guid, Astarte.DataAccess.UUID, primary_key: true
   end
 
