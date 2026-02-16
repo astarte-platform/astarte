@@ -38,8 +38,8 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandler do
     ValueChangeEvent
   }
 
-  alias Astarte.Core.Device
   alias Astarte.Core.CQLUtils
+  alias Astarte.Core.Device
   alias Astarte.DataUpdaterPlant.Config
   alias Astarte.Events.Triggers
   alias Astarte.Events.Triggers.DataTriggerContext

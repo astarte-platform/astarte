@@ -24,9 +24,9 @@ defmodule Astarte.DataUpdaterPlant.DeviceDeleteTest do
   import StreamData
 
   alias Astarte.Core.Device
-  alias Astarte.DataAccess.Realms.Realm
   alias Astarte.DataAccess.Device.DeletionInProgress
   alias Astarte.DataAccess.Devices.Device, as: DeviceSchema
+  alias Astarte.DataAccess.Realms.Realm
   alias Astarte.DataAccess.Repo
   alias Astarte.DataUpdaterPlant.AMQPTestHelper
   alias Astarte.DataUpdaterPlant.DatabaseTestHelper
@@ -216,10 +216,10 @@ defmodule Astarte.DataUpdaterPlant.DeviceDeleteTest do
   defp make_timestamp(timestamp_string) do
     {:ok, date_time, _} = DateTime.from_iso8601(timestamp_string)
 
-    DateTime.to_unix(date_time, :millisecond) * 10000
+    DateTime.to_unix(date_time, :millisecond) * 10_000
   end
 
-  defp gen_tracking_id() do
+  defp gen_tracking_id do
     message_id = :erlang.unique_integer([:monotonic]) |> Integer.to_string()
     delivery_tag = {:injected_msg, make_ref()}
     {message_id, delivery_tag}

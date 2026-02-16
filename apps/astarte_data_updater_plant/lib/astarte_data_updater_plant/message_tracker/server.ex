@@ -17,6 +17,9 @@
 #
 
 defmodule Astarte.DataUpdaterPlant.MessageTracker.Server do
+  @moduledoc """
+  This module implements the GenServer responsible for tracking the messages.
+  """
   require Logger
   use GenServer
 
@@ -162,12 +165,12 @@ defmodule Astarte.DataUpdaterPlant.MessageTracker.Server do
         {:track_delivery, message_id, delivery_tag},
         {state, queue, ids, acknowledger}
       ) do
-    unless Map.has_key?(ids, message_id) do
-      {new_queue, new_ids} = enqueue_message(queue, ids, message_id, delivery_tag)
-      {:noreply, {state, new_queue, new_ids, acknowledger}}
-    else
+    if Map.has_key?(ids, message_id) do
       new_ids = Map.put(ids, message_id, delivery_tag)
       {:noreply, {state, queue, new_ids, acknowledger}}
+    else
+      {new_queue, new_ids} = enqueue_message(queue, ids, message_id, delivery_tag)
+      {:noreply, {state, new_queue, new_ids, acknowledger}}
     end
   end
 

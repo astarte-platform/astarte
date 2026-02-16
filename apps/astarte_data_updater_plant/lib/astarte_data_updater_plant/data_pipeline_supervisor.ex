@@ -17,6 +17,9 @@
 #
 
 defmodule Astarte.DataUpdaterPlant.DataPipelineSupervisor do
+  @moduledoc """
+  This module is responsible for supervising the data pipeline processes.
+  """
   use Supervisor
 
   alias Astarte.DataUpdaterPlant.ConsumersSupervisor

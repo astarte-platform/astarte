@@ -17,6 +17,9 @@
 #
 
 defmodule Astarte.DataUpdaterPlantWeb.HealthPlug do
+  @moduledoc """
+  This module defines a Plug that handles health check requests for the Astarte Data Updater Plant.
+  """
   import Plug.Conn
 
   alias Astarte.DataUpdaterPlant.Health.Health

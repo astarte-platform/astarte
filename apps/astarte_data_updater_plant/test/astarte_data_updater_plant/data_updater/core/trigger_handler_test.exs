@@ -1,13 +1,13 @@
 defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.TriggerHandlerTest do
   @moduledoc false
+  alias Astarte.Core.Triggers.SimpleTriggersProtobuf.AMQPTriggerTarget
+  alias Astarte.Core.Triggers.SimpleTriggersProtobuf.DataTrigger
+  alias Astarte.Core.Triggers.SimpleTriggersProtobuf.DeviceTrigger
+  alias Astarte.Core.Triggers.SimpleTriggersProtobuf.SimpleTriggerContainer
+  alias Astarte.Core.Triggers.SimpleTriggersProtobuf.TriggerTargetContainer
+  alias Astarte.DataUpdaterPlant.AMQPTestHelper
   alias Astarte.DataUpdaterPlant.DataUpdater
   alias Astarte.DataUpdaterPlant.DataUpdater.Core.Trigger
-  alias Astarte.Core.Triggers.SimpleTriggersProtobuf.DeviceTrigger
-  alias Astarte.Core.Triggers.SimpleTriggersProtobuf.DataTrigger
-  alias Astarte.Core.Triggers.SimpleTriggersProtobuf.SimpleTriggerContainer
-  alias Astarte.Core.Triggers.SimpleTriggersProtobuf.AMQPTriggerTarget
-  alias Astarte.DataUpdaterPlant.AMQPTestHelper
-  alias Astarte.Core.Triggers.SimpleTriggersProtobuf.TriggerTargetContainer
 
   use Astarte.Cases.Data, async: true
   use Astarte.Cases.Device

@@ -24,8 +24,8 @@ defmodule Astarte.DataUpdaterPlant.Application do
   use Application
   require Logger
 
-  alias Astarte.DataUpdaterPlant.Config
   alias Astarte.DataAccess.Config, as: DataAccessConfig
+  alias Astarte.DataUpdaterPlant.Config
 
   @app_version Mix.Project.config()[:version]
 

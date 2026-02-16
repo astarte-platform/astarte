@@ -29,10 +29,10 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DataHandlerErrorTest do
   use Mimic
 
   alias Astarte.Core.Mapping.ValueType
-  alias Astarte.DataUpdaterPlant.DataUpdater.PayloadsDecoder
-  alias Astarte.DataUpdaterPlant.DataUpdater.Core.DataHandler
   alias Astarte.DataUpdaterPlant.DataUpdater
   alias Astarte.DataUpdaterPlant.DataUpdater.Core
+  alias Astarte.DataUpdaterPlant.DataUpdater.Core.DataHandler
+  alias Astarte.DataUpdaterPlant.DataUpdater.PayloadsDecoder
 
   import Astarte.Helpers.DataUpdater
   import Astarte.InterfaceUpdateGenerators

@@ -17,6 +17,9 @@
 #
 
 defmodule Astarte.DataUpdaterPlant.DataUpdater.State do
+  @moduledoc """
+  This module defines the state struct for the DataUpdater.
+  """
   use TypedStruct
 
   alias Astarte.Core.Device.Capabilities

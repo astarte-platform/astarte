@@ -11,6 +11,17 @@ config :astarte_data_updater_plant, :amqp_consumer_options,
   virtual_host: "/",
   port: 5672
 
+config :logger, :console,
+  format: "$time $metadata[$level] $message\n",
+  metadata: [
+    :realm,
+    :device_id,
+    :ip_address,
+    :module,
+    :function,
+    :tag
+  ]
+
 config :astarte_data_updater_plant, :amqp_events_exchange_name, "astarte_events"
 
 config :astarte_data_updater_plant, :amqp_consumer_prefetch_count, 300

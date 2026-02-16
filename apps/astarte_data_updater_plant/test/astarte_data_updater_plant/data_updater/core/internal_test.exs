@@ -24,11 +24,11 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.InternalTest do
   use ExUnitProperties
   use Mimic
 
-  alias Astarte.DataUpdaterPlant.MessageTracker
-  alias Astarte.DataUpdaterPlant.DataUpdater.Queries
-  alias Astarte.DataUpdaterPlant.DataUpdater.State
   alias Astarte.DataUpdaterPlant.DataUpdater
   alias Astarte.DataUpdaterPlant.DataUpdater.Core
+  alias Astarte.DataUpdaterPlant.DataUpdater.Queries
+  alias Astarte.DataUpdaterPlant.DataUpdater.State
+  alias Astarte.DataUpdaterPlant.MessageTracker
 
   import Astarte.Helpers.DataUpdater
   import Astarte.InterfaceUpdateGenerators

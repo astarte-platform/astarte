@@ -16,6 +16,9 @@
 # limitations under the License.
 
 defmodule Astarte.Helpers.DataUpdater do
+  @moduledoc """
+  This module provides helper functions for testing the DataUpdater module.
+  """
   alias Astarte.DataUpdaterPlant.DataUpdater
   import Mimic
 

@@ -17,14 +17,17 @@
 #
 
 defmodule Astarte.DataUpdaterPlant.TriggerPolicy.Queries do
+  @moduledoc """
+  This module is responsible for querying the database for trigger policies.
+  """
   require Logger
 
   import Ecto.Query
 
   alias Astarte.DataAccess.Consistency
-  alias Astarte.DataAccess.Repo
   alias Astarte.DataAccess.KvStore
   alias Astarte.DataAccess.Realms.Realm
+  alias Astarte.DataAccess.Repo
 
   def retrieve_policy_name(realm_name, trigger_id) do
     keyspace_name = Realm.keyspace_name(realm_name)

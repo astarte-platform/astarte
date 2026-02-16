@@ -23,10 +23,11 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.CapabilitiesHandlerTest do
   use Astarte.Cases.Device
   use ExUnitProperties
 
-  alias Astarte.DataUpdaterPlant.DataUpdater
-  alias Astarte.DataUpdaterPlant.DataUpdater.Queries
-  alias Astarte.DataUpdaterPlant.DataUpdater.Core.CapabilitiesHandler
+  alias Astarte.Common.Generators.Timestamp
   alias Astarte.Core.Device.Capabilities
+  alias Astarte.DataUpdaterPlant.DataUpdater
+  alias Astarte.DataUpdaterPlant.DataUpdater.Core.CapabilitiesHandler
+  alias Astarte.DataUpdaterPlant.DataUpdater.Queries
 
   import Astarte.Helpers.DataUpdater
 
@@ -40,7 +41,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.CapabilitiesHandlerTest do
   describe "handle_capabilities/4" do
     property "updates valid capabilities", %{realm_name: realm_name, state: state, device: device} do
       check all capabilities <- gen_capabilities(),
-                timestamp <- Astarte.Common.Generators.Timestamp.timestamp(),
+                timestamp <- Timestamp.timestamp(),
                 tracking_id <- repeatedly(&gen_tracking_id/0) do
         {message_id, _} = tracking_id
 

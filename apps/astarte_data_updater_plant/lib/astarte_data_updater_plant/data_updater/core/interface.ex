@@ -38,7 +38,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.Interface do
 
   require Logger
 
-  @interface_lifespan_decimicroseconds 60 * 10 * 1000 * 10000
+  @interface_lifespan_decimicroseconds 60 * 10 * 1000 * 10_000
 
   def maybe_handle_cache_miss(nil, interface_name, state) do
     with {:ok, major_version} <-
@@ -130,34 +130,69 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.Interface do
     }
 
     each_interface_mapping(state.mappings, interface_descriptor, fn mapping ->
-      endpoint_id = mapping.endpoint_id
+      prune_mapping_paths(
+        state,
+        interface_descriptor,
+        mapping.endpoint_id,
+        all_paths_set,
+        context
+      )
+    end)
+  end
 
+  defp prune_mapping_paths(
+         state,
+         interface_descriptor,
+         endpoint_id,
+         all_paths_set,
+         context
+       ) do
+    database_paths =
       Queries.all_device_owned_property_endpoint_paths!(
         state.realm,
         state.device_id,
         interface_descriptor,
         endpoint_id
       )
-      |> Enum.each(fn path ->
-        if not MapSet.member?(all_paths_set, {interface_descriptor.name, path}) do
-          Queries.delete_property_from_db(
-            state.realm,
-            state.device_id,
-            interface_descriptor,
-            endpoint_id,
-            path
-          )
 
-          context = %{
-            context
-            | endpoint_id: endpoint_id,
-              path: path
-          }
+    interface_name = interface_descriptor.name
+    paths = database_paths |> Enum.map(&{interface_name, &1}) |> MapSet.new()
+    unset_paths = MapSet.difference(paths, all_paths_set)
 
-          TriggersHandler.path_removed(context)
-        end
-      end)
+    unset_paths
+    |> Enum.each(fn {_interface_name, path} ->
+      prune_path(
+        state,
+        interface_descriptor,
+        endpoint_id,
+        path,
+        context
+      )
     end)
+  end
+
+  defp prune_path(
+         state,
+         interface_descriptor,
+         endpoint_id,
+         path,
+         context
+       ) do
+    Queries.delete_property_from_db(
+      state.realm,
+      state.device_id,
+      interface_descriptor,
+      endpoint_id,
+      path
+    )
+
+    context = %{
+      context
+      | endpoint_id: endpoint_id,
+        path: path
+    }
+
+    TriggersHandler.path_removed(context)
   end
 
   def each_interface_mapping(mappings, interface_descriptor, fun) do
@@ -223,7 +258,8 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.Interface do
             {:error, :mapping_not_found}
 
           {:ok, _endpoint_id} ->
-            # This is invalid here, publish doesn't happen on endpoints in object aggregated interfaces
+            # This is invalid here, publish doesn't happen on endpoints
+            # in object aggregated interfaces
             Logger.warning(
               "Tried to publish on endpoint #{inspect(path)} for object aggregated " <>
                 "interface #{inspect(interface_descriptor.name)}. You should publish on " <>
@@ -281,22 +317,29 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.Interface do
         endpoint.value_type
 
       :object ->
-        # TODO: we should probably cache this
-        Enum.flat_map(mappings, fn {_id, mapping} ->
-          if mapping.interface_id == interface_descriptor.interface_id do
-            expected_key =
-              mapping.endpoint
-              |> String.split("/")
-              |> List.last()
-
-            [{expected_key, mapping.value_type}]
-          else
-            []
-          end
-        end)
-        |> Enum.into(%{})
+        expected_object_types(interface_descriptor, mappings)
     end
   end
+
+  defp expected_object_types(interface_descriptor, mappings) do
+    # TODO: we should probably cache this
+    mappings
+    |> Enum.flat_map(fn {_id, mapping} ->
+      mapping_to_expected_type(interface_descriptor.interface_id, mapping)
+    end)
+    |> Enum.into(%{})
+  end
+
+  defp mapping_to_expected_type(interface_id, %Mapping{interface_id: interface_id} = mapping) do
+    expected_key =
+      mapping.endpoint
+      |> String.split("/")
+      |> List.last()
+
+    [{expected_key, mapping.value_type}]
+  end
+
+  defp mapping_to_expected_type(_interface_id, %Mapping{}), do: []
 
   def forget_interfaces(state, []) do
     state
