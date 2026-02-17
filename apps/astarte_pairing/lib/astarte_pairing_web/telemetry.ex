@@ -22,9 +22,9 @@ defmodule Astarte.PairingWeb.Telemetry do
 
   import Telemetry.Metrics
 
+  alias Astarte.Pairing.Config
   alias Astarte.PairingWeb.Telemetry.APIUsage
   alias Astarte.PairingWeb.Telemetry.DatabaseEvents
-  alias Astarte.Pairing.Config
 
   def start_link(arg) do
     Supervisor.start_link(__MODULE__, arg, name: __MODULE__)

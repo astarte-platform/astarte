@@ -22,6 +22,7 @@ defmodule Astarte.Pairing.Application do
 
   alias Astarte.DataAccess.Config, as: DataAccessConfig
   alias Astarte.Pairing.Config
+  alias Astarte.PairingWeb.Endpoint
 
   require Logger
 
@@ -59,7 +60,7 @@ defmodule Astarte.Pairing.Application do
   # Tell Phoenix to update the endpoint configuration
   # whenever the application is updated.
   def config_change(changed, _new, removed) do
-    Astarte.PairingWeb.Endpoint.config_change(changed, removed)
+    Endpoint.config_change(changed, removed)
     :ok
   end
 end
