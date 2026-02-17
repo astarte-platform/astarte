@@ -17,6 +17,10 @@
 #
 
 defmodule Astarte.TriggerEngine.ConsumerSupervisor do
+  @moduledoc """
+  Supervisor for event consumers.
+  """
+
   # Automatically defines child_spec/1
   use Supervisor
   require Logger

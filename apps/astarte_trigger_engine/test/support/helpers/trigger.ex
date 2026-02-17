@@ -17,6 +17,10 @@
 #
 
 defmodule Astarte.Helpers.Trigger do
+  @moduledoc """
+  Helper module for trigger operations.
+  """
+
   alias Astarte.Core.Triggers.Trigger
   alias Astarte.DataAccess.KvStore
   alias Astarte.DataAccess.Realms.Realm

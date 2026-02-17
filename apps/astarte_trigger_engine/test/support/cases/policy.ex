@@ -17,6 +17,10 @@
 #
 
 defmodule Astarte.Cases.Policy do
+  @moduledoc """
+  ExUnit case template for policy tests.
+  """
+
   use ExUnit.CaseTemplate
 
   alias Astarte.Core.Generators.Triggers.Policy

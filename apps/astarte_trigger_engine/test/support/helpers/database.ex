@@ -17,8 +17,12 @@
 #
 
 defmodule Astarte.Helpers.Database do
-  alias Astarte.DataAccess.Repo
+  @moduledoc """
+  Helper module for database operations.
+  """
+
   alias Astarte.DataAccess.Realms.Realm
+  alias Astarte.DataAccess.Repo
 
   @create_keyspace """
   CREATE KEYSPACE :keyspace
@@ -37,7 +41,7 @@ defmodule Astarte.Helpers.Database do
     device_registration_limit bigint,
 
     PRIMARY KEY (realm_name)
-  );  
+  );
   """
 
   @create_kv_store """
@@ -153,7 +157,7 @@ defmodule Astarte.Helpers.Database do
     trigger_target blob,
 
     PRIMARY KEY ((object_id, object_type), parent_trigger_id, simple_trigger_id)
-  );  
+  );
   """
 
   @create_individual_properties_table """

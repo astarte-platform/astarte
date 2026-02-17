@@ -17,9 +17,13 @@
 #
 
 defmodule Astarte.Fixtures.Policy do
-  alias Astarte.Core.Triggers.Policy.Handler
+  @moduledoc """
+  Fixtures for policy test data.
+  """
+
   alias Astarte.Core.Triggers.Policy.ErrorKeyword
   alias Astarte.Core.Triggers.Policy.ErrorRange
+  alias Astarte.Core.Triggers.Policy.Handler
 
   def retry_all_handlers do
     handlers_1 = [

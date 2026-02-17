@@ -17,6 +17,10 @@
 #
 
 defmodule Astarte.TriggerEngine.AMQPConsumer.AMQPConsumerSupervisor do
+  @moduledoc """
+  Dynamic supervisor for AMQP consumers.
+  """
+
   require Logger
   use DynamicSupervisor
 

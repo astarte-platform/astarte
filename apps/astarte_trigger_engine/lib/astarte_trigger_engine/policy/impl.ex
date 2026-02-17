@@ -17,6 +17,10 @@
 #
 
 defmodule Astarte.TriggerEngine.Policy.Impl do
+  @moduledoc """
+  Implementation of policy message handling.
+  """
+
   # TODO use the ExRabbitPool.RabbitMQ adapter when it will have a `nack` function
   alias AMQP.Basic
   alias Astarte.Core.Triggers.Policy

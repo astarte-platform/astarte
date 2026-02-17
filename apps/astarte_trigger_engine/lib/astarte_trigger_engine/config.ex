@@ -169,7 +169,7 @@ defmodule Astarte.TriggerEngine.Config do
     end
   end
 
-  defp build_ssl_options() do
+  defp build_ssl_options do
     [
       cacertfile: amqp_consumer_ssl_ca_file!() || CAStore.file_path(),
       verify: :verify_peer,
@@ -187,7 +187,7 @@ defmodule Astarte.TriggerEngine.Config do
     end
   end
 
-  def events_consumer_pool_config!() do
+  def events_consumer_pool_config! do
     [
       name: {:local, :events_consumer_pool},
       worker_module: ExRabbitPool.Worker.RabbitConnection,
@@ -196,11 +196,11 @@ defmodule Astarte.TriggerEngine.Config do
     ]
   end
 
-  def amqp_adapter!() do
+  def amqp_adapter! do
     Application.get_env(:astarte_trigger_engine, :amqp_adapter)
   end
 
-  def events_consumer!() do
+  def events_consumer! do
     Application.get_env(:astarte_trigger_engine, :events_consumer)
   end
 end

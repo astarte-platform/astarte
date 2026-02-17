@@ -17,6 +17,10 @@
 #
 
 defmodule Astarte.TriggerEngineWeb.HealthPlug do
+  @moduledoc """
+  Plug for health check endpoint.
+  """
+
   import Plug.Conn
   alias Astarte.TriggerEngine.Health
 

@@ -17,9 +17,13 @@
 #
 
 defmodule Astarte.Fixtures.Trigger do
+  @moduledoc """
+  Fixtures for trigger test data.
+  """
+
   alias Astarte.Core.Triggers.Trigger
 
-  def triggers() do
+  def triggers do
     default_action_triggers() ++ mustache_triggers() ++ triggers_with_static_headers()
   end
 
@@ -94,7 +98,7 @@ defmodule Astarte.Fixtures.Trigger do
     ]
   end
 
-  def invalid_triggers() do
+  def invalid_triggers do
     action_1 = """
     {
       "http_url": "http://hello.world.ai",

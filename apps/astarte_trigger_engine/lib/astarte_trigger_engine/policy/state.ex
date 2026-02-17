@@ -17,6 +17,10 @@
 #
 
 defmodule Astarte.TriggerEngine.Policy.State do
+  @moduledoc """
+  State struct for policy process.
+  """
+
   use TypedStruct
 
   alias Astarte.Core.Triggers.Policy

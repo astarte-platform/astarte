@@ -17,15 +17,18 @@
 #
 
 defmodule Astarte.Fixtures.SimpleEvent do
-  alias Astarte.Core.Triggers.SimpleEvents.SimpleEvent
+  @moduledoc """
+  Fixtures for simple event test data.
+  """
+
   alias Astarte.Core.Triggers.SimpleEvents.DeviceConnectedEvent
   alias Astarte.Core.Triggers.SimpleEvents.DeviceErrorEvent
-  alias Astarte.Core.Triggers.SimpleEvents.IncomingIntrospectionEvent
   alias Astarte.Core.Triggers.SimpleEvents.IncomingDataEvent
-  alias Astarte.Core.Triggers.SimpleEvents.ValueChangeEvent
+  alias Astarte.Core.Triggers.SimpleEvents.IncomingIntrospectionEvent
   alias Astarte.Core.Triggers.SimpleEvents.SimpleEvent
+  alias Astarte.Core.Triggers.SimpleEvents.ValueChangeEvent
 
-  def simple_events() do
+  def simple_events do
     incoming_data_event_individual = %IncomingDataEvent{
       interface: "com.example.Interface",
       path: "/my_path",

@@ -22,8 +22,8 @@ defmodule Astarte.TriggerEngine.Application do
   use Application
   require Logger
 
-  alias Astarte.TriggerEngine.Config
   alias Astarte.DataAccess.Config, as: DataAccessConfig
+  alias Astarte.TriggerEngine.Config
   alias Astarte.TriggerEngine.DeliverySupervisor
 
   @app_version Mix.Project.config()[:version]

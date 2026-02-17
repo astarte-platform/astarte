@@ -17,6 +17,10 @@
 #
 
 defmodule Astarte.TriggerEngine.Policy do
+  @moduledoc """
+  Policy process for handling trigger policy events.
+  """
+
   use GenServer
   require Logger
 

@@ -20,19 +20,20 @@ defmodule Astarte.TriggerEngine.PolicyTest do
   use Astarte.Cases.Policy, async: true
   use ExUnitProperties
 
+  import Mox
   import StreamData
   require Logger
-  import Mox
-  alias Astarte.Core.Generators.Triggers.Policy, as: PolicyGenerator
-  alias Astarte.TriggerEngine.Config
+
   alias AMQP.Basic
+  alias Astarte.Core.Generators.Triggers.Policy, as: PolicyGenerator
+  alias Astarte.Core.Triggers.Policy
+  alias Astarte.Core.Triggers.Policy.ErrorKeyword
+  alias Astarte.Core.Triggers.Policy.ErrorRange
+  alias Astarte.Core.Triggers.Policy.Handler
+  alias Astarte.TriggerEngine.Config
   alias Astarte.TriggerEngine.Policy, as: PolicyProcess
   alias Astarte.TriggerEngine.Policy.Impl
   alias Astarte.TriggerEngine.Policy.State
-  alias Astarte.Core.Triggers.Policy
-  alias Astarte.Core.Triggers.Policy.Handler
-  alias Astarte.Core.Triggers.Policy.ErrorKeyword
-  alias Astarte.Core.Triggers.Policy.ErrorRange
 
   import Astarte.Fixtures.Policy
 
@@ -157,7 +158,7 @@ defmodule Astarte.TriggerEngine.PolicyTest do
     )
   end
 
-  defp retry_map() do
+  defp retry_map do
     map_of(string(:alphanumeric), integer(1..100))
   end
 

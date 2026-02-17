@@ -27,6 +27,14 @@ config :astarte_trigger_engine, :amqp_consumer_options,
   virtual_host: "/",
   port: 5672
 
+config :logger, :console,
+  format: "$time $metadata[$level] $message\n",
+  metadata: [
+    :module,
+    :function,
+    :tag
+  ]
+
 config :astarte_trigger_engine, :amqp_events_queue_name, "astarte_events"
 
 config :astarte_trigger_engine, :amqp_events_exchange_name, "astarte_events"

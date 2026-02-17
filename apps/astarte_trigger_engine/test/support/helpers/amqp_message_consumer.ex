@@ -17,6 +17,10 @@
 #
 
 defmodule Astarte.Helpers.AMQPMessageConsumer do
+  @moduledoc """
+  Helper module for AMQP message consumer testing.
+  """
+
   def kill_channel(channel) do
     Process.exit(channel.pid, :kill)
   end

@@ -6,6 +6,4 @@ config :astarte_trigger_engine, :amqp_consumer_options,
 config :astarte_trigger_engine, :events_consumer, MockEventsConsumer
 config :astarte_trigger_engine, :astarte_instance_id, "test"
 
-config :logger, :console,
-  format: {PrettyLog.UserFriendlyFormatter, :format},
-  metadata: [:function]
+config :logger, :console, format: {PrettyLog.UserFriendlyFormatter, :format}
