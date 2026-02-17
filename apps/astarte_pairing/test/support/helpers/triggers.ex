@@ -16,6 +16,9 @@
 # limitations under the License.
 
 defmodule Astarte.Helpers.Triggers do
+  @moduledoc """
+  Helper functions for triggers tests.
+  """
   alias Astarte.Events.Triggers.Cache
   alias Astarte.Events.TriggersHandler
   alias Astarte.RealmManagement.Triggers
