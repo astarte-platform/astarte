@@ -26,9 +26,8 @@ defmodule Astarte.Housekeeping.RealmsTest do
   alias Astarte.Core.Generators.Realm, as: RealmGenerators
 
   alias Astarte.DataAccess.Repo
-
-  alias Astarte.Housekeeping.AMQP
-  alias Astarte.Housekeeping.AMQP.Vhost
+  alias Astarte.Events.AMQP
+  alias Astarte.Events.AMQP.Vhost
   alias Astarte.Housekeeping.Config
   alias Astarte.Housekeeping.Helpers.Database
   alias Astarte.Housekeeping.Realms
@@ -133,7 +132,7 @@ defmodule Astarte.Housekeeping.RealmsTest do
     end
 
     test "realm creation respects ssl options", %{realm_name: name} do
-      Mimic.stub(Config, :amqp_ssl_enabled!, fn -> true end)
+      Mimic.stub(Astarte.Events.Config, :amqp_ssl_enabled!, fn -> true end)
       # check if put options are the same inside config
       Mimic.expect(HTTPoison.Base, :request, fn _, %{options: options}, _, _, _, _ ->
         assert cacertfile: CAStore.file_path() in options[:ssl]

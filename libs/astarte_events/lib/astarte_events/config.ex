@@ -38,6 +38,67 @@ defmodule Astarte.Events.Config do
           | {:port, integer()}
           | {:ssl_options, ssl_options}
           | {:channels, integer()}
+
+  @envdoc "Enable SSL for the AMQP connection. If not specified, SSL is disabled."
+  app_env(:amqp_management_ssl_enabled, :astarte_housekeeping, :amqp_management_ssl_enabled,
+    os_env: "ASTARTE_EVENTS_AMQP_MANAGEMENT_SSL_ENABLED",
+    type: :boolean,
+    default: false
+  )
+
+  @envdoc """
+  Specifies the certificates of the root Certificate Authorities to be trusted for the AMQP connection. When not specified, the bundled cURL certificate bundle will be used.
+  """
+  app_env(:amqp_management_ssl_ca_file, :astarte_housekeeping, :amqp_management_ssl_ca_file,
+    os_env: "ASTARTE_EVENTS_AMQP_MANAGEMENT_SSL_CA_FILE",
+    type: :binary,
+    default: CAStore.file_path()
+  )
+
+  @envdoc "Disable Server Name Indication. Defaults to false."
+  app_env(
+    :amqp_management_ssl_disable_sni,
+    :astarte_housekeeping,
+    :amqp_management_ssl_disable_sni,
+    os_env: "ASTARTE_EVENTS_AMQP_MANAGEMENT_SSL_DISABLE_SNI",
+    type: :boolean,
+    default: false
+  )
+
+  @envdoc "Specify the hostname to be used in TLS Server Name Indication extension. If not specified, the amqp consumer host will be used. This value is used only if Server Name Indication is enabled."
+  app_env(:amqp_management_ssl_custom_sni, :astarte_housekeeping, :amqp_management_ssl_custom_sni,
+    os_env: "ASTARTE_EVENTS_AMQP_MANAGEMENT_SSL_CUSTOM_SNI",
+    type: :binary
+  )
+
+  @envdoc "The host for the AMQP management API connection."
+  app_env(:amqp_management_host, :astarte_events, :amqp_management_host,
+    os_env: "ASTARTE_EVENTS_AMQP_MANAGEMENT_HOST",
+    type: :binary,
+    default: "localhost"
+  )
+
+  @envdoc "The port for the AMQP management connection."
+  app_env(:amqp_management_port, :astarte_events, :amqp_management_port,
+    os_env: "ASTARTE_EVENTS_AMQP_MANAGEMENT_PORT",
+    type: :integer,
+    default: 15_672
+  )
+
+  @envdoc "The username for the AMQP management API connection."
+  app_env(:amqp_management_username, :astarte_events, :amqp_management_username,
+    os_env: "ASTARTE_EVENTS_AMQP_MANAGEMENT_USERNAME",
+    type: :binary,
+    default: "guest"
+  )
+
+  @envdoc "The password for the AMQP management API connection."
+  app_env(:amqp_management_password, :astarte_events, :amqp_management_password,
+    os_env: "ASTARTE_EVENTS_AMQP_MANAGEMENT_PASSWORD",
+    type: :binary,
+    default: "guest"
+  )
+
   @envdoc "The host for the AMQP consumer connection."
   app_env(:amqp_host, :astarte_events, :amqp_host,
     os_env: "ASTARTE_EVENTS_PRODUCER_AMQP_HOST",
@@ -75,12 +136,6 @@ defmodule Astarte.Events.Config do
     type: :integer,
     default: 5672
   )
-
-  @envdoc "The port for the AMQP connection."
-  app_env :amqp_management_port, :astarte_housekeeping, :amqp_management_port,
-    os_env: "HOUSEKEEPING_AMQP_MANAGEMENT_PORT",
-    type: :integer,
-    default: 15_672
 
   @envdoc "Enable SSL for the AMQP consumer connection. If not specified, SSL is disabled."
   app_env(:amqp_ssl_enabled, :astarte_events, :amqp_ssl_enabled,
@@ -162,6 +217,40 @@ defmodule Astarte.Events.Config do
       "https://#{amqp_host!()}:#{amqp_management_port!()}"
     else
       "http://#{amqp_host!()}:#{amqp_management_port!()}"
+    end
+  end
+
+  def amqp_management_base_url! do
+    if amqp_management_ssl_enabled!() do
+      "https://#{amqp_management_host!()}:#{amqp_management_port!()}"
+    else
+      "http://#{amqp_management_host!()}:#{amqp_management_port!()}"
+    end
+  end
+
+  def ssl_management_options! do
+    if amqp_management_ssl_enabled!() do
+      build_management_ssl_options()
+    else
+      []
+    end
+  end
+
+  defp build_management_ssl_options do
+    [
+      cacertfile: amqp_management_ssl_ca_file!(),
+      verify: :verify_peer,
+      depth: 10
+    ]
+    |> populate_management_sni()
+  end
+
+  defp populate_management_sni(ssl_options) do
+    if amqp_management_ssl_disable_sni!() do
+      Keyword.put(ssl_options, :server_name_indication, :disable)
+    else
+      server_name = amqp_management_ssl_custom_sni!() || amqp_management_host!()
+      Keyword.put(ssl_options, :server_name_indication, to_charlist(server_name))
     end
   end
 
