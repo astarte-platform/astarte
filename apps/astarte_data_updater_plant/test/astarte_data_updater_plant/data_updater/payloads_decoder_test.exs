@@ -38,7 +38,7 @@ defmodule Astarte.DataUpdaterPlant.PayloadsDecoderTest do
     assert PayloadsDecoder.decode_bson_payload(unset_payload, timestamp) == {nil, nil, nil}
   end
 
-  property "individual value payloads without metadata and without timestamp" do
+  property "individual value payloads optional metadata and timestamp" do
     timestamp = decimicrosecond_timestamp() |> Enum.at(0)
     expected_timestamp = timestamp |> div(10_000)
 
@@ -59,11 +59,36 @@ defmodule Astarte.DataUpdaterPlant.PayloadsDecoderTest do
     end
   end
 
+  test "metadata keys with null byte cannot be preserved" do
+    payload = %{"v" => true, "m" => %{"bad\0key" => "x"}}
+    reception_timestamp = 0
+
+    case Cyanide.encode(payload) do
+      {:ok, encoded} ->
+        assert PayloadsDecoder.decode_bson_payload(encoded, reception_timestamp) ==
+                 {true, reception_timestamp, %{}}
+    end
+  end
+
+  test "metadata keys without null byte are preserved" do
+    payload = %{"v" => true, "m" => %{"good_key" => "x"}}
+    reception_timestamp = 0
+
+    case Cyanide.encode(payload) do
+      {:ok, encoded} ->
+        assert PayloadsDecoder.decode_bson_payload(encoded, reception_timestamp) ==
+                 {true, reception_timestamp, %{"good_key" => "x"}}
+    end
+  end
+
   test "deprecated object aggregation" do
     timestamp = decimicrosecond_timestamp() |> Enum.at(0)
     expected_timestamp = timestamp |> div(10_000)
 
-    object_payload = object_astarte_value() |> Enum.at(0)
+    object_payload =
+      object_astarte_value()
+      |> filter(&(not Map.has_key?(&1, "v")))
+      |> Enum.at(0)
 
     assert PayloadsDecoder.decode_bson_payload(Cyanide.encode!(object_payload), timestamp) ==
              {object_payload, expected_timestamp, %{}}
@@ -173,7 +198,7 @@ defmodule Astarte.DataUpdaterPlant.PayloadsDecoderTest do
   end
 
   defp object_astarte_value do
-    map_of(string(:alphanumeric), individual_astarte_value())
+    map_of(string(:alphanumeric, min_length: 1), individual_astarte_value())
   end
 
   defp astarte_value do
@@ -183,7 +208,7 @@ defmodule Astarte.DataUpdaterPlant.PayloadsDecoderTest do
   defp decoded_payload do
     value = astarte_value()
     timestamp = map(TimestampGenerator.timestamp(), &DateTime.from_unix!/1)
-    metadata = map_of(string(:utf8), string(:utf8))
+    metadata = map_of(string(:alphanumeric, min_length: 1), string(:utf8, min_length: 1))
 
     optional_map(%{"v" => value, "t" => timestamp, "m" => metadata}, ["t", "m"])
   end

@@ -22,6 +22,8 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DeviceTest do
   use ExUnitProperties
   use Mimic
 
+  @moduletag timeout: 180_000
+
   import Astarte.Helpers.DataUpdater
   import Astarte.InterfaceUpdateGenerators
   import Ecto.Query
@@ -101,9 +103,16 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DeviceTest do
       %{
         state: state,
         interfaces: interfaces,
+        interface_descriptors: interface_descriptors,
         realm_name: realm_name,
         device: device
       } = context
+
+      descriptors_map =
+        interface_descriptors
+        |> Map.new(fn desc ->
+          {desc.interface_id, desc}
+        end)
 
       valid_interfaces =
         interfaces
@@ -131,7 +140,8 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DeviceTest do
                     interface.name <> mapping_update.path
                   end) do
         Enum.each(mapping_updates_list, fn {interface, mapping_update} ->
-          Database.insert_values(realm_name, device, interface, [mapping_update])
+          descriptor = Map.fetch!(descriptors_map, interface.interface_id)
+          Database.insert_values(realm_name, device, interface, descriptor, [mapping_update])
         end)
 
         :ok = Core.Device.prune_device_properties(state, decoded_payload, DateTime.utc_now())

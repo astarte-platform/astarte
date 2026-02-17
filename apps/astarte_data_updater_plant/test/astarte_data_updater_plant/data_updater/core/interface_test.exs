@@ -123,16 +123,25 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.InterfaceTest do
       %{
         state: state,
         interfaces: interfaces,
+        interface_descriptors: interface_descriptors,
         realm_name: realm_name,
         device: device
       } = context
+
+      descriptors_map =
+        interface_descriptors
+        |> Map.new(fn desc ->
+          {desc.interface_id, desc}
+        end)
 
       valid_interfaces =
         interfaces |> Enum.filter(&(&1.type == :properties and &1.ownership == :device))
 
       check all interface <- member_of(valid_interfaces),
                 mapping_update <- valid_mapping_update_for(interface) do
-        Helpers.Database.insert_values(realm_name, device, interface, [mapping_update])
+        descriptor = Map.fetch!(descriptors_map, interface.interface_id)
+
+        Helpers.Database.insert_values(realm_name, device, interface, descriptor, [mapping_update])
 
         keyspace = Realm.keyspace_name(realm_name)
 
