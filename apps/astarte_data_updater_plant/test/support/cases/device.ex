@@ -68,9 +68,16 @@ defmodule Astarte.Cases.Device do
     %{
       realm_name: realm_name,
       interfaces: interfaces,
+      interface_descriptors: interface_descriptors,
       server_property_with_all_endpoint_types: server_property_with_all_endpoint_types,
       device: device
     } = context
+
+    descriptors_map =
+      interface_descriptors
+      |> Map.new(fn desc ->
+        {desc.interface_id, desc}
+      end)
 
     random_interfaces =
       interfaces
@@ -106,7 +113,12 @@ defmodule Astarte.Cases.Device do
       ]
 
     server_property_with_all_endpoint_types_data =
-      populate_all_mappings(realm_name, device, server_property_with_all_endpoint_types)
+      populate_all_mappings(
+        realm_name,
+        device,
+        server_property_with_all_endpoint_types,
+        Map.fetch!(descriptors_map, server_property_with_all_endpoint_types.interface_id)
+      )
 
     server_property_with_all_endpoint_types_key =
       {server_property_with_all_endpoint_types.name,
@@ -114,8 +126,9 @@ defmodule Astarte.Cases.Device do
 
     interface_data =
       for interface <- interfaces_with_data, into: %{} do
-        interface_data = populate(realm_name, device, interface)
         interface_key = {interface.name, interface.major_version}
+        descriptor = Map.fetch!(descriptors_map, interface.interface_id)
+        interface_data = populate(realm_name, device, interface, descriptor)
 
         {interface_key, interface_data}
       end
@@ -143,26 +156,26 @@ defmodule Astarte.Cases.Device do
     }
   end
 
-  defp populate(realm_name, device, interface) do
+  defp populate(realm_name, device, interface, interface_descriptor) do
     mapping_update = valid_mapping_update_for(interface)
 
     values =
       list_of(mapping_update, length: 100..10_000)
       |> Enum.at(0)
 
-    timings = insert_values(realm_name, device, interface, values)
+    timings = insert_values(realm_name, device, interface, interface_descriptor, values)
     paths = MapSet.new(values, & &1.path)
 
     %{paths: paths, timings: timings}
   end
 
-  defp populate_all_mappings(realm_name, device, interface) do
+  defp populate_all_mappings(realm_name, device, interface, interface_descriptor) do
     mapping_updates =
       interface.mappings
       |> Enum.map(&valid_mapping_update_for(interface, mapping: &1))
       |> Enum.map(&Enum.at(&1, 0))
 
-    timings = insert_values(realm_name, device, interface, mapping_updates)
+    timings = insert_values(realm_name, device, interface, interface_descriptor, mapping_updates)
     paths = MapSet.new(mapping_updates, & &1.path)
 
     %{paths: paths, timings: timings}
@@ -201,43 +214,38 @@ defmodule Astarte.Cases.Device do
   end
 
   defp interfaces do
-    # make sure we have at least 1 interface of each type
-    individual_datastream_device =
-      list_of(individual_datastream(:device), min_length: 1) |> Enum.at(0)
+    interface_specs = [
+      {:individual_datastream_device,
+       fn acc -> new_interfaces(individual_datastream(:device), acc, :list) end},
+      {:individual_datastream_server,
+       fn acc -> new_interfaces(individual_datastream(:server), acc, :list) end},
+      {:object_datastream_server,
+       fn acc -> new_interfaces(object_datastream(:server), acc, :list) end},
+      {:object_datastream_device,
+       fn acc -> new_interfaces(object_datastream(:device), acc, :list) end},
+      {:properties_device, fn acc -> new_interfaces(properties(:device), acc, :list) end},
+      {:properties_server, fn acc -> new_interfaces(properties(:server), acc, :list) end},
+      {:server_property_with_all_endpoint_types,
+       fn acc -> [new_interfaces(all_endpoint_types(:server, :properties), acc, :single)] end},
+      {:fixed_endpoint_interface,
+       fn acc -> [new_interfaces(fixed_endpoint_interface(), acc, :single)] end},
+      {:other_interfaces,
+       fn acc -> new_interfaces(InterfaceGenerator.interface(), acc, :list) end}
+    ]
 
-    individual_datastream_server =
-      list_of(individual_datastream(:server), min_length: 1) |> Enum.at(0)
-
-    object_datastream_server = list_of(object_datastream(:server), min_length: 1) |> Enum.at(0)
-    object_datastream_device = list_of(object_datastream(:device), min_length: 1) |> Enum.at(0)
-    properties_device = list_of(properties(:device), min_length: 1) |> Enum.at(0)
-    properties_server = list_of(properties(:server), min_length: 1) |> Enum.at(0)
-
-    server_property_with_all_endpoint_types =
-      all_endpoint_types(:server, :properties) |> Enum.at(0)
-
-    fixed_endpoint_interface = fixed_endpoint_interface() |> Enum.at(0)
-
-    other_interfaces = list_of(InterfaceGenerator.interface(), min_length: 1) |> Enum.at(0)
-
-    all_interfaces =
-      [
-        individual_datastream_device,
-        individual_datastream_server,
-        object_datastream_device,
-        object_datastream_server,
-        properties_device,
-        properties_server,
-        [server_property_with_all_endpoint_types],
-        [fixed_endpoint_interface],
-        other_interfaces
-      ]
-      |> Enum.concat()
+    {all_interfaces, named_interfaces} =
+      Enum.reduce(interface_specs, {[], %{}}, fn {name, gen_fn}, {acc_interfaces, named} ->
+        new_ifaces = gen_fn.(acc_interfaces)
+        updated_interfaces = Enum.concat(acc_interfaces, new_ifaces)
+        updated_named = Map.put(named, name, List.first(new_ifaces) || hd(new_ifaces))
+        {updated_interfaces, updated_named}
+      end)
 
     %{
       interfaces: all_interfaces,
-      fixed_endpoint_interface: fixed_endpoint_interface,
-      server_property_with_all_endpoint_types: server_property_with_all_endpoint_types
+      fixed_endpoint_interface: named_interfaces.fixed_endpoint_interface,
+      server_property_with_all_endpoint_types:
+        named_interfaces.server_property_with_all_endpoint_types
     }
   end
 
@@ -350,14 +358,20 @@ defmodule Astarte.Cases.Device do
 
   defp get_interface_descriptors(realm_name, interfaces) do
     for interface <- interfaces do
-      {:ok, interface_descriptor} =
-        InterfaceQueries.fetch_interface_descriptor(
-          realm_name,
-          interface.name,
-          interface.major_version
-        )
+      case InterfaceQueries.fetch_interface_descriptor(
+             realm_name,
+             interface.name,
+             interface.major_version
+           ) do
+        {:ok, interface_descriptor} ->
+          interface_descriptor
 
-      interface_descriptor
+        {:error, :interface_not_found} ->
+          raise "Interface not found: #{interface.name} v#{interface.major_version} in #{realm_name}"
+
+        {:error, reason} ->
+          raise "Failed to fetch interface descriptor: #{interface.name} v#{interface.major_version} in #{realm_name}, reason: #{inspect(reason)}"
+      end
     end
   end
 
@@ -367,5 +381,51 @@ defmodule Astarte.Cases.Device do
     Repo.all(Endpoint, prefix: Realm.keyspace_name(realm_name))
     |> Enum.group_by(& &1.interface_id)
     |> Map.take(interface_ids)
+  end
+
+  defp new_interfaces(interface_gen, previous_interfaces, type) do
+    installed_interfaces = previous_interfaces |> Enum.map(&{&1.name, &1.major_version})
+
+    installed_normalized_interfaces =
+      previous_interfaces |> Enum.map(&normalize_name(&1.name))
+
+    interface_gen =
+      interface_gen
+      |> filter(fn interface ->
+        name_and_major = {interface.name, interface.major_version}
+        normalized_name = normalize_name(interface.name)
+
+        name_and_major not in installed_interfaces and
+          normalized_name not in installed_normalized_interfaces
+      end)
+
+    case type do
+      :single -> interface_gen |> Enum.at(0)
+      :list -> interface_gen |> list_of(min_length: 1) |> Enum.at(0) |> cleanup_duplicates()
+    end
+  end
+
+  defp cleanup_duplicates(interfaces) do
+    interfaces
+    |> Enum.reduce([], fn new_interface, acc_interfaces ->
+      prev = acc_interfaces |> Enum.map(&{&1.name, &1.major_version})
+      prev_normalized = acc_interfaces |> Enum.map(&normalize_name(&1.name))
+      name_and_major = {new_interface.name, new_interface.major_version}
+      normalized_name = normalize_name(new_interface.name)
+
+      if name_and_major not in prev and normalized_name not in prev_normalized do
+        [new_interface | acc_interfaces]
+      else
+        acc_interfaces
+      end
+    end)
+    |> Enum.reverse()
+  end
+
+  defp normalize_name(interface_name) do
+    interface_name
+    |> String.replace("-", "")
+    |> String.replace(".", "")
+    |> String.downcase()
   end
 end

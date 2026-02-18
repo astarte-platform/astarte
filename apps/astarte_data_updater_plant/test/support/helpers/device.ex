@@ -44,11 +44,19 @@ defmodule Astarte.Helpers.Device do
   def insert_interface_cleanly(realm_name, interface) do
     keyspace = Realm.keyspace_name(realm_name)
     interface_db = %Interface{name: interface.name, major_version: interface.major_version}
-    interface_params = interface |> Jason.encode!() |> Jason.decode!()
-
     Repo.delete(interface_db, prefix: keyspace)
 
-    capture_log(fn -> RMInterfaces.install_interface(realm_name, interface_params) end)
+    interface_params = interface |> Jason.encode!() |> Jason.decode!()
+
+    capture_log(fn ->
+      case RMInterfaces.install_interface(realm_name, interface_params) do
+        {:ok, _installed_interface} ->
+          :ok
+
+        {:error, reason} ->
+          raise "Failed to install interface #{interface.name} v#{interface.major_version}: #{inspect(reason)}"
+      end
+    end)
   end
 
   def insert_device_cleanly(realm_name, device, interfaces) do

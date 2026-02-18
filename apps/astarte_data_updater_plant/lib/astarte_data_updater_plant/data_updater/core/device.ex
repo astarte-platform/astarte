@@ -427,9 +427,6 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.Device do
         {:error, :interface_loading_failed} ->
           Logger.warning("Failed #{interface} interface loading.")
           {:halt, {:error, :sending_properties_to_interface_failed}}
-
-        {:error, reason} ->
-          {:halt, {:error, reason}}
       end
     end)
   end
