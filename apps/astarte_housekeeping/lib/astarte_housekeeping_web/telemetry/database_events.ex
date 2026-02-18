@@ -49,20 +49,25 @@ defmodule Astarte.HousekeepingWeb.Telemetry.DatabaseEvents do
   """
   def handle_event([:xandra | event], measurements, metadata, :expose) do
     with :bounce <- validate_event(event) do
-      Task.Supervisor.start_child(TelemetryTaskSupervisor, fn ->
-        with :ok <- filter_event(event, metadata) do
-          :telemetry.execute(
-            [:astarte, :housekeeping, :database] ++ event,
-            measurements,
-            metadata
-          )
-        end
-      end)
+      Task.Supervisor.start_child(
+        TelemetryTaskSupervisor,
+        fn -> emit_telemetry_event(event, measurements, metadata) end
+      )
     end
   end
 
   def handle_event(event, measurements, metadata, :log) do
     Xandra.Telemetry.handle_event(event, measurements, metadata, :no_config)
+  end
+
+  defp emit_telemetry_event(event, measurements, metadata) do
+    with :ok <- filter_event(event, metadata) do
+      :telemetry.execute(
+        [:astarte, :housekeeping, :database] ++ event,
+        measurements,
+        metadata
+      )
+    end
   end
 
   defp validate_event(event) do
