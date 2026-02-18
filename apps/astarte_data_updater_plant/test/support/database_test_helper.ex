@@ -36,7 +36,7 @@ defmodule Astarte.DataUpdaterPlant.DatabaseTestHelper do
   alias Astarte.DataAccess.Realms.SimpleTrigger
   alias Astarte.DataAccess.Repo
   alias Astarte.DataUpdaterPlant.AMQPTestHelper
-  alias Astarte.Housekeeping.AMQP.Vhost
+  alias Astarte.Events.AMQP.Vhost
 
   @test_realm "autotestrealm"
 

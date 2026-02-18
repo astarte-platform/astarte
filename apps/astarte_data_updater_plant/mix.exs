@@ -34,7 +34,7 @@ defmodule Astarte.DataUpdaterPlant.Mixfile do
         "coveralls.post": :test,
         "coveralls.html": :test
       ],
-      dialyzer: [plt_add_apps: [:astarte_housekeeping, :astarte_realm_management, :ex_unit]],
+      dialyzer: [plt_add_apps: [:astarte_realm_management, :ex_unit]],
       deps: deps() ++ astarte_required_modules(System.get_env("ASTARTE_IN_UMBRELLA"))
     ]
   end
@@ -64,8 +64,6 @@ defmodule Astarte.DataUpdaterPlant.Mixfile do
       {:astarte_generators, github: "astarte-platform/astarte_generators", only: [:dev, :test]},
       {:astarte_realm_management,
        path: "../astarte_realm_management", only: :test, runtime: false},
-      {:astarte_housekeeping,
-       path: "../astarte_housekeeping", only: :test, env: :dev, runtime: false},
       {:astarte_events, path: astarte_lib("astarte_events")}
     ]
   end
@@ -98,8 +96,6 @@ defmodule Astarte.DataUpdaterPlant.Mixfile do
       {:telemetry_metrics_prometheus_core, "~> 1.2"},
       {:observer_cli, "~> 1.5"},
       {:dialyxir, "~> 1.0", only: [:dev, :test], runtime: false},
-      # TODO: needed to run test because we cannot start the housekeeping application as is
-      {:httpoison, "~> 2.2"},
       {:uuid, "~> 2.0", hex: :uuid_erl},
       {:typedstruct, "~> 0.5"},
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false}

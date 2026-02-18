@@ -30,7 +30,7 @@ defmodule Astarte.Cases.Data do
   use Mimic
   import Astarte.Helpers.Database
 
-  alias Astarte.Housekeeping.AMQP.Vhost
+  alias Astarte.Events.AMQP.Vhost
 
   using opts do
     astarte_instance_id = Keyword.get_lazy(opts, :astarte_instance_id, &astarte_instance_id/0)

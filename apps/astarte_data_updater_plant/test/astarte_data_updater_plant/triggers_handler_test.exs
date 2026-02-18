@@ -46,9 +46,9 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandlerTest do
   alias Astarte.DataUpdaterPlant.Config
   alias Astarte.DataUpdaterPlant.DataUpdater.State
   alias Astarte.DataUpdaterPlant.TriggersHandler
+  alias Astarte.Events.AMQP.Vhost
   alias Astarte.Events.Config, as: EventsConfig
   alias Astarte.Events.Triggers.DataTriggerContext
-  alias Astarte.Housekeeping.AMQP.Vhost
 
   @introspection "com.My.Interface:1:0;com.Another.Interface:1:2"
   @introspection_map %{
