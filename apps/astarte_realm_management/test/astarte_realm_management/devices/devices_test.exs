@@ -20,10 +20,9 @@ defmodule Astarte.RealmManagement.DevicesTest do
   use ExUnitProperties
 
   use Astarte.Cases.Data, async: true
+  use Mimic
   use Astarte.Cases.Device
   use Astarte.Cases.Triggers
-
-  import Mimic
 
   import Astarte.Helpers.Triggers
 

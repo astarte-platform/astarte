@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2017 - 2025 SECO Mind Srl
+# Copyright 2017 - 2026 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -17,18 +17,19 @@
 #
 
 defmodule Astarte.Housekeeping.RealmsTest do
-  use Astarte.Housekeeping.DataCase, async: true
   use ExUnitProperties
+  use Astarte.Housekeeping.DataCase, async: true
   use Mimic
 
   import Astarte.Housekeeping.Fixtures.Realm
 
-  alias Astarte.Core.Generators.Realm, as: GeneratorsRealm
+  alias Astarte.Core.Generators.Realm, as: RealmGenerators
+
   alias Astarte.DataAccess.Repo
+
   alias Astarte.Housekeeping.AMQP
   alias Astarte.Housekeeping.AMQP.Vhost
   alias Astarte.Housekeeping.Config
-  alias Astarte.Housekeeping.Helpers.Database
   alias Astarte.Housekeeping.Helpers.Database
   alias Astarte.Housekeeping.Realms
   alias Astarte.Housekeeping.Realms.Queries
@@ -112,7 +113,7 @@ defmodule Astarte.Housekeeping.RealmsTest do
 
   describe "property based tests" do
     property "realm lifecycle operations work as expected" do
-      check all(name <- GeneratorsRealm.realm_name(), max_runs: 5) do
+      check all name <- RealmGenerators.realm_name(), max_runs: 5 do
         # Test realm creation
         realm = realm_fixture(%{realm_name: name})
 
