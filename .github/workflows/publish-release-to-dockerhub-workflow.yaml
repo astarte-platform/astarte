@@ -1,0 +1,107 @@
+name: Publish Docker images
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+
+jobs:
+  astarte_appengine_api:
+    uses: ./.github/workflows/astarte-apps-build-workflow.yaml
+    with:
+      app: "astarte_appengine_api"
+    secrets: inherit
+
+  astarte_data_updater_plant:
+    uses: ./.github/workflows/astarte-apps-build-workflow.yaml
+    with:
+      app: "astarte_data_updater_plant"
+    secrets: inherit
+
+  astarte_housekeeping:
+    uses: ./.github/workflows/astarte-apps-build-workflow.yaml
+    with:
+      app: "astarte_housekeeping"
+    secrets: inherit
+
+  astarte_pairing:
+    uses: ./.github/workflows/astarte-apps-build-workflow.yaml
+    with:
+      app: "astarte_pairing"
+    secrets: inherit
+
+  astarte_realm_management:
+    uses: ./.github/workflows/astarte-apps-build-workflow.yaml
+    with:
+      app: "astarte_realm_management"
+    secrets: inherit
+
+  astarte_trigger_engine:
+    uses: ./.github/workflows/astarte-apps-build-workflow.yaml
+    with:
+      app: "astarte_trigger_engine"
+    secrets: inherit
+
+  e2e_tests:
+    uses: ./.github/workflows/astarte-end-to-end-test-workflow.yaml
+
+  push_release_to_registry:
+    name: Push Docker images to Docker Hub
+    runs-on: ${{ matrix.platform }}
+    permissions:
+      packages: write
+      contents: read
+      attestations: write
+      id-token: write
+    strategy:
+      fail-fast: true
+      matrix:
+        platform:
+          - ubuntu-22.04
+          - ubuntu-22.04-arm
+        app:
+          - astarte_appengine_api
+          - astarte_data_updater_plant
+          - astarte_housekeeping
+          - astarte_pairing
+          - astarte_realm_management
+          - astarte_trigger_engine
+    needs:
+      - astarte_appengine_api
+      - astarte_data_updater_plant
+      - astarte_housekeeping
+      - astarte_pairing
+      - astarte_realm_management
+      - astarte_trigger_engine
+      - e2e_tests
+    steps:
+      - name: Check out the repo
+        uses: actions/checkout@v4
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@f4ef78c080cd8ba55a85445d5b36e214a81df20a
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Extract metadata (tags, labels) for Docker
+        id: meta
+        uses: docker/metadata-action@9ec57ed1fcdbf14dcef7dfbe97b2010124a938b7
+        with:
+          images: |
+            astarte/${{ matrix.app }}
+          tags: |
+            type=semver,pattern={{version}}
+
+      - name: Build and push tagged Docker image
+        id: push
+        uses: docker/build-push-action@3b5e8027fcad23fda98b2e3ac259d8d67585f671
+        with:
+          context: .
+          file: apps/${{ matrix.app }}/Dockerfile
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
