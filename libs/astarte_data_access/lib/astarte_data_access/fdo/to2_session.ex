@@ -41,6 +41,7 @@ defmodule Astarte.DataAccess.FDO.TO2Session do
   typed_schema "to2_sessions" do
     field :guid, :binary, primary_key: true
     field :device_id, Astarte.DataAccess.UUID
+    field :hmac, :binary
     field :nonce, :binary
     field :sig_type, Ecto.Enum, values: [es256: -7, es384: -35, eipd10: 90, eipd11: 91]
     field :epid_group, :binary
@@ -63,5 +64,9 @@ defmodule Astarte.DataAccess.FDO.TO2Session do
 
     field :owner_service_info, {:array, :binary}
     field :last_chunk_sent, :integer
+    field :replacement_guid, :binary
+    field :replacement_rv_info, :binary
+    field :replacement_pub_key, :binary
+    field :replacement_hmac, :binary
   end
 end

@@ -167,14 +167,16 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding do
                session,
                body,
                connection_credentials
+             ),
+           {:ok, session} <-
+             Session.add_replacement_info(
+               session,
+               realm_name,
+               guid,
+               rendezvous_info,
+               owner_public_key,
+               nil
              ) do
-        session = %{
-          session
-          | replacement_guid: guid,
-            replacement_rv_info: rendezvous_info,
-            replacement_pub_key: owner_public_key
-        }
-
         {:ok, session, resp_msg}
       end
     end
@@ -262,9 +264,16 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding do
         }
       ) do
     with {:ok, session} <-
-           Session.add_max_owner_service_info_size(session, realm_name, max_owner_service_info_sz) do
-      session = %{session | replacement_hmac: replacement_hmac || session.hmac}
-
+           Session.add_max_owner_service_info_size(session, realm_name, max_owner_service_info_sz),
+         {:ok, session} <-
+           Session.add_replacement_info(
+             session,
+             realm_name,
+             session.replacement_guid,
+             session.replacement_rv_info,
+             session.replacement_pub_key,
+             replacement_hmac || session.hmac
+           ) do
       response =
         OwnerServiceInfoReady.new()
         |> OwnerServiceInfoReady.to_cbor_list()
@@ -287,13 +296,6 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding do
       done2_message = build_done2_message(to2_session.setup_dv_nonce)
 
       unless OwnershipVoucher.credential_reuse?(to2_session) do
-        new_hmac = :crypto.strong_rand_bytes(32)
-
-        to2_session = %{
-          to2_session
-          | replacement_hmac: %Hash{hash: new_hmac, type: :hmac_sha256}
-        }
-
         with {:ok, old_voucher} <-
                OwnershipVoucher.fetch(realm_name, to2_session.guid),
              {:ok, new_voucher} <-
@@ -304,16 +306,10 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding do
           cbor_voucher = OwnershipVoucher.cbor_encode(new_voucher)
           cbor_old_voucher = OwnershipVoucher.cbor_encode(old_voucher)
 
-          Queries.delete_ownership_voucher(
-            realm_name,
-            cbor_old_voucher,
-            private_key,
-            to2_session.guid
-          )
-
-          Queries.create_ownership_voucher(
+          Queries.replace_ownership_voucher(
             realm_name,
             to2_session.guid,
+            cbor_old_voucher,
             cbor_voucher,
             private_key,
             @one_week

@@ -150,12 +150,20 @@ defmodule Astarte.Pairing.FDO.OwnershipVoucher do
     encode(voucher) |> CBOR.encode()
   end
 
+  def credential_reuse_config_enabled?() do
+    case Config.enable_credential_reuse!() do
+      true -> true
+      false -> {:error, "Credential reuse is disabled by configuration"}
+    end
+  end
+
   def credential_reuse?(session) do
     # TODO credential reuse requires also Owner2Key and/or rv info to be changed for credential reuse
     # so far, there is no API to do so, so it-s limited to the guid
 
-    session.replacement_hmac == session.hmac &&
-      session.guid == session.replacement_guid &&
-      Config.enable_credential_reuse!()
+    case session.replacement_hmac == session.hmac && session.guid == session.replacement_guid do
+      false -> false
+      true -> credential_reuse_config_enabled?()
+    end
   end
 end
