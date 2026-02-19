@@ -126,14 +126,6 @@ defmodule Astarte.Pairing.Config do
     type: :atom,
     default: :trigger_cache
 
-  @envdoc """
-  Enable credential reuse protocol for FDO onboarding
-  """
-  app_env :enable_credential_reuse, :astarte_pairing, :enable_credential_reuse,
-    os_env: "PAIRING_FDO_ENABLE_CREDENTIAL_REUSE",
-    type: :boolean,
-    default: false
-
   @doc """
   Returns the cassandra node configuration
   """

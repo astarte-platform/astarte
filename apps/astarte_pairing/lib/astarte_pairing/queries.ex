@@ -266,7 +266,7 @@ defmodule Astarte.Pairing.Queries do
 
   def create_ownership_voucher(
         realm_name,
-        device_id,
+        guid,
         cbor_ownership_voucher,
         owner_private_key,
         ttl
@@ -278,20 +278,30 @@ defmodule Astarte.Pairing.Queries do
     %OwnershipVoucher{
       voucher_data: cbor_ownership_voucher,
       private_key: owner_private_key,
-      guid: device_id
+      guid: guid
     }
     |> Repo.insert(opts)
   end
 
-  def delete_ownership_voucher(realm_name, old_voucher, owner_private_key, device_id) do
+  def delete_ownership_voucher(realm_name, guid) do
     keyspace = Realm.keyspace_name(realm_name)
 
     %OwnershipVoucher{
-      voucher_data: old_voucher,
-      private_key: owner_private_key,
-      guid: device_id
+      guid: guid
     }
     |> Repo.delete(prefix: keyspace)
+  end
+
+  def replace_ownership_voucher(
+        realm_name,
+        guid,
+        new_voucher,
+        owner_private_key,
+        ttl
+      ) do
+    with {:ok, _} <- delete_ownership_voucher(realm_name, guid) do
+      create_ownership_voucher(realm_name, guid, new_voucher, owner_private_key, ttl)
+    end
   end
 
   def store_session(realm_name, guid, session) do
@@ -346,24 +356,28 @@ defmodule Astarte.Pairing.Queries do
     update_session(realm_name, guid, updates)
   end
 
+  def session_add_replacement_info(realm_name, guid, replacement_guid, rv_info, pub_key, hmac) do
+    updates = [
+      replacement_guid: replacement_guid,
+      replacement_rv_info: rv_info,
+      replacement_pub_key: pub_key,
+      replacement_hmac: hmac
+    ]
+
+    update_session(realm_name, guid, updates)
+  end
+
   defp update_session(realm_name, guid, updates) do
     keyspace = Realm.keyspace_name(realm_name)
     consistency = Consistency.device_info(:write)
-    read_consistency = Consistency.device_info(:read)
     opts = [prefix: keyspace, consistency: consistency]
-    read_opts = [prefix: keyspace, consistency: read_consistency]
 
-    # we need to check if session exists first, making an empty changeset with only the guid (old version) will create a record (empty except for the primary key) once update/1 is called
-    with %TO2Session{} = session <- Repo.get(TO2Session, guid, read_opts) do
-      session
-      |> Ecto.Changeset.change(updates)
-      |> Repo.update(opts)
-      |> case do
-        {:ok, _} -> :ok
-        _ -> {:error, :session_not_found}
-      end
-    else
-      nil -> {:error, :session_not_found}
+    %TO2Session{guid: guid}
+    |> Ecto.Changeset.change(updates)
+    |> Repo.update(opts)
+    |> case do
+      {:ok, _} -> :ok
+      _ -> {:error, :session_not_found}
     end
   end
 
