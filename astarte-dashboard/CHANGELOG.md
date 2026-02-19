@@ -4,7 +4,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-## [1.3.0-dev] - Unreleased
+## [1.3.0-rc.1] - 2026-02-17
 ### Added
 - Compute permissions from the JWT and disable unavailable UI sections, ([#416](https://github.com/astarte-platform/astarte-dashboard/issues/416)).
 - For server-owned interfaces, display a form to send data to the device, ([#417](https://github.com/astarte-platform/astarte-dashboard/issues/417)).
@@ -12,6 +12,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Allow unsetting property endpoints, ([#450](https://github.com/astarte-platform/astarte-dashboard/issues/450)).
 - Allow to filter time of Interface DataStream data, ([#441](https://github.com/astarte-platform/astarte-dashboard/issues/441)).
 - Add useful feedback about the invalid JWT token, ([#485](https://github.com/astarte-platform/astarte-dashboard/issues/485)).
+- Add JSON user config defaulting to using local Astarte instance ([#515](https://github.com/astarte-platform/astarte-dashboard/pull/515))
+- Add support for device registration and deletion triggers ([#517](https://github.com/astarte-platform/astarte-dashboard/pull/517))
 ### Changed
 - Adapt Device Stats and PieChart to exclude interfaces with 0 exchanged messages, ([#428](https://github.com/astarte-platform/astarte-dashboard/issues/428)).
 - Persist login using cookies instead of localStorage, ([#419](https://github.com/astarte-platform/astarte-dashboard/issues/419)).
