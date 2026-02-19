@@ -48,7 +48,10 @@ defmodule Astarte.Pairing.Application do
       Astarte.PairingWeb.Telemetry,
       {Astarte.Pairing.CredentialsSecret.Cache, []},
       {Astarte.RPC.Triggers.Client, types: [:DEVICE_REGISTERED]},
-      Astarte.PairingWeb.Endpoint
+      Astarte.PairingWeb.Endpoint,
+      {Astarte.Events.AMQPEvents.Supervisor, []},
+      {Astarte.Events.AMQPTriggers.Supervisor, []},
+      {Astarte.Events.Triggers.Supervisor, []}
     ]
 
     # See https://hexdocs.pm/elixir/Supervisor.html

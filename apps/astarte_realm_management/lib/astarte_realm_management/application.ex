@@ -53,7 +53,10 @@ defmodule Astarte.RealmManagement.Application do
         Astarte.RealmManagementWeb.Endpoint,
         {Task.Supervisor, name: Astarte.RealmManagement.DeviceRemoverSupervisor},
         {Horde.Registry, [keys: :unique, name: Registry.DataUpdaterRPC, members: :auto]},
-        Astarte.RealmManagement.DeviceRemoval.Scheduler
+        Astarte.RealmManagement.DeviceRemoval.Scheduler,
+        {Astarte.Events.AMQPEvents.Supervisor, []},
+        {Astarte.Events.AMQPTriggers.Supervisor, []},
+        {Astarte.Events.Triggers.Supervisor, []}
       ]
 
     # See http://elixir-lang.org/docs/stable/elixir/Supervisor.html

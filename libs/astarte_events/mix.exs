@@ -40,8 +40,7 @@ defmodule Astarte.Events.Mixfile do
 
   def application do
     [
-      extra_applications: [:logger],
-      mod: {Astarte.Events.Application, []}
+      extra_applications: [:logger]
     ]
   end
 
