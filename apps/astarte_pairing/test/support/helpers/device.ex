@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2025 SECO Mind Srl
+# Copyright 2025 - 2026 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -19,11 +19,15 @@ defmodule Astarte.Helpers.Device do
   @moduledoc false
   import ExUnit.CaptureLog
 
+  alias Astarte.Core.Generators.Device, as: DeviceGenerator
+
   alias Astarte.DataAccess.Devices.Device
   alias Astarte.DataAccess.Realms.Interface
   alias Astarte.DataAccess.Realms.Realm
   alias Astarte.DataAccess.Repo
+
   alias Astarte.Pairing.CredentialsSecret
+
   alias Astarte.RealmManagement.Interfaces, as: RMInterfaces
 
   @fallible_value_type [
@@ -99,5 +103,15 @@ defmodule Astarte.Helpers.Device do
     Repo.get!(Device, device_id, prefix: keyspace)
     |> Ecto.Changeset.change(params)
     |> Repo.update!(prefix: keyspace)
+  end
+
+  # TODO should be moved as "get_sample" or similar
+  # to `astarte_generators` or `astarte_test_suite`
+  @doc false
+  @spec sample_device(list(Astarte.Core.Interface.t())) :: map()
+  def sample_device(interfaces) do
+    DeviceGenerator.device(interfaces: interfaces)
+    |> StreamData.resize(10)
+    |> Enum.at(0)
   end
 end

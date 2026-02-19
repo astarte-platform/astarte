@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2017 - 2025 SECO Mind Srl
+# Copyright 2017 - 2026 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -19,7 +19,7 @@
 defmodule Astarte.PairingWeb.DeviceControllerTest do
   use Astarte.Cases.Data, async: true
   use Astarte.Cases.Device
-  use Astarte.PairingWeb.ConnCase, async: true
+  use Astarte.Cases.Conn, async: true
 
   import Astarte.Helpers.Device
 
