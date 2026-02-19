@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2018 - 2025 SECO Mind Srl
+# Copyright 2018 - 2026 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -18,7 +18,7 @@
 
 defmodule Astarte.PairingWeb.AuthTest do
   use Astarte.Cases.Data, async: true
-  use Astarte.PairingWeb.ConnCase, async: true
+  use Astarte.Cases.Conn, async: true
 
   alias Astarte.PairingWeb.Helpers.JWTTestHelper
 
