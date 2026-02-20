@@ -15,7 +15,7 @@ on:
   workflow_dispatch:
 
 jobs:
-  push_tool_snapshot_to_registry:
+  build_snapshot:
     name: Push Docker images of Astarte tools to Docker Hub
     runs-on: ${{ matrix.platform.os }}
     permissions:
