@@ -57,7 +57,7 @@ jobs:
 
   build_snapshot:
     name: Push Docker images to Docker Hub
-    runs-on: ${{ matrix.platform }}
+    runs-on: ${{ matrix.platform.os }}
     permissions:
       packages: write
       contents: read
