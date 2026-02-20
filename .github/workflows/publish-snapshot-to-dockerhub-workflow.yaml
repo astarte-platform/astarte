@@ -113,6 +113,7 @@ jobs:
           context: .
           file: apps/${{ matrix.app }}/Dockerfile
           push: true
+          tags: astarte/${{ matrix.app }}
           platforms: ${{ matrix.platform.platform }}
           cache-from: type=gha,scope=${{ matrix.app.name }}-${{ env.BRANCH_SLUG }}
           cache-to: type=gha,mode=max,scope=${{ matrix.app.name }}-${{ env.BRANCH_SLUG }}

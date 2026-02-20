@@ -58,6 +58,7 @@ jobs:
           context: ${{ matrix.app.context }}
           file: ${{ matrix.app.file }}
           push: true
+          tags: astarte/${{ matrix.app.tool }}
           platforms: ${{ matrix.platform.platform }}
           outputs: type=image,push-by-digest=true,name-canonical=true,push=true
 
