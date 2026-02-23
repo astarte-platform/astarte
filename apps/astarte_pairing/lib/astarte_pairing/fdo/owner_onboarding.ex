@@ -259,6 +259,8 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding do
       ) do
     with {:ok, _} <- Queries.fetch_session(realm_name, session.guid),
          {:ok, session} <-
+    with {:ok, _} <- Queries.fetch_session(realm_name, session.guid),
+         {:ok, session} <-
            Session.add_max_owner_service_info_size(session, realm_name, max_owner_service_info_sz),
          {:ok, session} <-
            Session.add_replacement_info(
