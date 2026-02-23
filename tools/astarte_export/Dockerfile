@@ -50,7 +50,7 @@ RUN apt-get update -y && \
 
 # We have to redefine this here since it goes out of scope for each build stage
 ARG BUILD_ENV=prod
-COPY ./run_export.sh /app/
+COPY tools/astarte_export/run_export.sh /app/
 COPY --from=builder /app/_build/$BUILD_ENV/rel/astarte_export .
 
 CMD ["sh", "/app/run_export.sh"]
