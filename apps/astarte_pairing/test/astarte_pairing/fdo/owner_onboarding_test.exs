@@ -98,7 +98,7 @@ defmodule Astarte.Pairing.FDO.OwnerOnboardingTest do
                  realm_name,
                  session,
                  %DeviceServiceInfoReady{
-                   replacement_hmac: new_hmac,
+                   replacement_hmac: %Hash{hash: new_hmac, type: :hmac_sha256},
                    max_owner_service_info_sz: nil
                  }
                )
@@ -115,7 +115,7 @@ defmodule Astarte.Pairing.FDO.OwnerOnboardingTest do
                  realm_name,
                  session,
                  %DeviceServiceInfoReady{
-                   replacement_hmac: new_hmac,
+                   replacement_hmac: %Hash{hash: new_hmac, type: :hmac_sha256},
                    max_owner_service_info_sz: 0
                  }
                )

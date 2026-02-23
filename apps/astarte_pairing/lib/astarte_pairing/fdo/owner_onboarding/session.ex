@@ -26,8 +26,9 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding.Session do
   alias Astarte.Pairing.FDO.OwnerOnboarding.Session
   alias Astarte.Pairing.FDO.OwnerOnboarding.SessionKey
   alias Astarte.Pairing.FDO.OwnerOnboarding.SessionToken
-  alias Astarte.Pairing.FDO.Rendezvous.RvTO2Addr
+  alias Astarte.Pairing.FDO.OwnershipVoucher.RendezvousInfo
   alias Astarte.Pairing.FDO.Types.Hash
+  alias Astarte.Pairing.FDO.Types.PublicKey
   alias Astarte.Pairing.Queries
   alias COSE.Messages.Encrypt0
 
@@ -52,8 +53,8 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding.Session do
     field :owner_service_info, [binary()] | nil
     field :last_chunk_sent, non_neg_integer() | nil
     field :replacement_guid, binary() | nil
-    field :replacement_rv_info, [RvTO2Addr.t()] | nil
-    field :replacement_pub_key, struct() | nil
+    field :replacement_rv_info, RendezvousInfo.t() | nil
+    field :replacement_pub_key, PublicKey.t() | nil
     field :replacement_hmac, Hash.t() | nil
   end
 
@@ -184,13 +185,6 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding.Session do
     end
   end
 
-  defp decode_hash(binary) do
-    with {:ok, cbor_list, ""} <- CBOR.decode(binary),
-         {:ok, hash} <- Hash.decode(cbor_list) do
-      {:ok, hash}
-    end
-  end
-
   defp encode_values_to_cbor(map) when is_map(map) do
     Map.new(map, fn
       {key, value} ->
@@ -199,18 +193,14 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding.Session do
   end
 
   def add_replacement_info(session, realm_name, replacement_guid, rv_info, pub_key, hmac) do
-    serialized_hmac = if hmac, do: Hash.encode_cbor(hmac), else: nil
-    serialized_rv_info = if rv_info, do: :erlang.term_to_binary(rv_info), else: nil
-    serialized_pub_key = if pub_key, do: :erlang.term_to_binary(pub_key), else: nil
-
     with :ok <-
            Queries.session_add_replacement_info(
              realm_name,
              session.guid,
              replacement_guid,
-             serialized_rv_info,
-             serialized_pub_key,
-             serialized_hmac
+             rv_info,
+             pub_key,
+             hmac
            ) do
       {:ok,
        %{
@@ -294,24 +284,12 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding.Session do
         owner_service_info: owner_service_info,
         last_chunk_sent: last_chunk_sent,
         replacement_guid: replacement_guid,
-        replacement_rv_info: db_replacement_rv_info,
-        replacement_pub_key: db_replacement_pub_key,
-        replacement_hmac: db_replacement_hmac
+        replacement_rv_info: replacement_rv_info,
+        replacement_pub_key: replacement_pub_key,
+        replacement_hmac: replacement_hmac
       } = database_session
 
-      {:ok, hmac} = decode_hash(db_hmac)
-
-      replacement_hmac =
-        if db_replacement_hmac do
-          {:ok, h} = decode_hash(db_replacement_hmac)
-          h
-        end
-
-      replacement_rv_info =
-        if db_replacement_rv_info, do: :erlang.binary_to_term(db_replacement_rv_info), else: nil
-
-      replacement_pub_key =
-        if db_replacement_pub_key, do: :erlang.binary_to_term(db_replacement_pub_key), else: nil
+      {:ok, hmac} = Hash.decode_cbor(db_hmac)
 
       session = %Session{
         guid: guid,

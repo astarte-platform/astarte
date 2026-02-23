@@ -283,12 +283,10 @@ defmodule Astarte.Pairing.Queries do
     |> Repo.insert(opts)
   end
 
-  def delete_ownership_voucher(realm_name, old_voucher, owner_private_key, guid) do
+  def delete_ownership_voucher(realm_name, guid) do
     keyspace = Realm.keyspace_name(realm_name)
 
     %OwnershipVoucher{
-      voucher_data: old_voucher,
-      private_key: owner_private_key,
       guid: guid
     }
     |> Repo.delete(prefix: keyspace)
@@ -297,12 +295,11 @@ defmodule Astarte.Pairing.Queries do
   def replace_ownership_voucher(
         realm_name,
         guid,
-        old_voucher,
         new_voucher,
         owner_private_key,
         ttl
       ) do
-    with {:ok, _} <- delete_ownership_voucher(realm_name, old_voucher, owner_private_key, guid) do
+    with {:ok, _} <- delete_ownership_voucher(realm_name, guid) do
       create_ownership_voucher(realm_name, guid, new_voucher, owner_private_key, ttl)
     end
   end

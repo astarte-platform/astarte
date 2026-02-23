@@ -52,9 +52,9 @@ defmodule Astarte.DataAccess.FDO.TO2Session do
     field :cipher_suite_name, Ecto.Enum, values: @ciphers
     field :owner_random, :binary
     field :secret, :binary
-    field :sevk, :binary
-    field :svk, :binary
-    field :sek, :binary
+    field :sevk, Exandra.EmbeddedType, using: Astarte.DataAccess.FDO.SessionKey
+    field :svk, Exandra.EmbeddedType, using: Astarte.DataAccess.FDO.SessionKey
+    field :sek, Exandra.EmbeddedType, using: Astarte.DataAccess.FDO.SessionKey
     field :max_owner_service_info_size, :integer
 
     field :device_service_info, Exandra.Map,
@@ -65,8 +65,14 @@ defmodule Astarte.DataAccess.FDO.TO2Session do
     field :owner_service_info, {:array, :binary}
     field :last_chunk_sent, :integer
     field :replacement_guid, :binary
-    field :replacement_rv_info, :binary
-    field :replacement_pub_key, :binary
-    field :replacement_hmac, :binary
+
+    field :replacement_rv_info, Astarte.DataAccess.FDO.CBORType,
+      using: Astarte.Pairing.FDO.OwnershipVoucher.RendezvousInfo
+
+    field :replacement_pub_key, Astarte.DataAccess.FDO.CBORType,
+      using: Astarte.Pairing.FDO.Types.PublicKey
+
+    field :replacement_hmac, Astarte.DataAccess.FDO.CBORType,
+      using: Astarte.Pairing.FDO.Types.Hash
   end
 end

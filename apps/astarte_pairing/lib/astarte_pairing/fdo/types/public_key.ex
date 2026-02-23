@@ -30,6 +30,15 @@ defmodule Astarte.Pairing.FDO.Types.PublicKey do
     field :body, binary() | [binary()]
   end
 
+  def decode_cbor(cbor_binary) do
+    with {:ok, cbor_list, ""} <- CBOR.decode(cbor_binary),
+         {:ok, public_key} <- decode(cbor_list) do
+      {:ok, public_key}
+    else
+      _ -> :error
+    end
+  end
+
   def decode(cbor_list) do
     with [type, enc, body] <- cbor_list,
          {:ok, type} <- decode_type(type),
@@ -87,6 +96,10 @@ defmodule Astarte.Pairing.FDO.Types.PublicKey do
       3 -> {:ok, :cosekey}
       _ -> :error
     end
+  end
+
+  def encode_cbor(%PublicKey{} = pk) do
+    pk |> encode() |> CBOR.encode()
   end
 
   def encode(%PublicKey{} = pk) do

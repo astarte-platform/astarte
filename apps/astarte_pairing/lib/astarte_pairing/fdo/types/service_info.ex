@@ -8,6 +8,15 @@ defmodule Astarte.Pairing.FDO.Types.ServiceInfo do
     field :value, term()
   end
 
+  def decode_cbor(cbor_binary) do
+    with {:ok, cbor_list, ""} <- CBOR.decode(cbor_binary),
+         {:ok, service_info} <- decode(cbor_list) do
+      {:ok, service_info}
+    else
+      _ -> :error
+    end
+  end
+
   def decode(service_info) do
     with [key, value] <- service_info,
          true <- is_binary(key),

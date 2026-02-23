@@ -75,6 +75,14 @@ defmodule Astarte.Helpers.Database do
   );
   """
 
+  @create_session_key_type """
+  CREATE TYPE :keyspace.session_key (
+    alg text,
+    k blob,
+    kty text
+  );
+  """
+
   @create_ownership_vouchers_table """
   CREATE TABLE :keyspace.ownership_vouchers (
       private_key blob,
@@ -100,9 +108,9 @@ defmodule Astarte.Helpers.Database do
     max_owner_service_info_size int,
     owner_random blob,
     secret blob,
-    sevk blob,
-    svk blob,
-    sek blob,
+    sevk session_key,
+    svk session_key,
+    sek session_key,
     device_service_info map<tuple<text, text>, blob>,
     owner_service_info list<blob>,
     last_chunk_sent int,
@@ -325,6 +333,7 @@ defmodule Astarte.Helpers.Database do
     realm_keyspace = Realm.keyspace_name(realm_name)
     execute!(realm_keyspace, @create_keyspace)
     execute!(realm_keyspace, @create_capabilities_type)
+    execute!(realm_keyspace, @create_session_key_type)
     execute!(realm_keyspace, @create_ownership_vouchers_table)
     execute!(realm_keyspace, @create_devices_table)
     execute!(realm_keyspace, @create_groups_table)

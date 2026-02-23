@@ -58,6 +58,15 @@ defmodule Astarte.Pairing.FDO.Types.Hash do
     |> CBOR.encode()
   end
 
+  def decode_cbor(cbor_binary) do
+    with {:ok, cbor_list, ""} <- CBOR.decode(cbor_binary),
+         {:ok, hash} <- decode(cbor_list) do
+      {:ok, hash}
+    else
+      _ -> :error
+    end
+  end
+
   def decode(cbor_list) do
     with [type, hash] <- cbor_list,
          {:ok, type} <- decode_type(type),

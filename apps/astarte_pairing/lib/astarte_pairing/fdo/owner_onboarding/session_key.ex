@@ -17,6 +17,7 @@
 #
 
 defmodule Astarte.Pairing.FDO.OwnerOnboarding.SessionKey do
+  alias Astarte.DataAccess.FDO.SessionKey
   alias Astarte.Pairing.FDO.OwnerOnboarding.Core
   alias COSE.Keys.{ECC, RSA}
   alias COSE.Keys.Symmetric
@@ -309,7 +310,28 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding.SessionKey do
   end
 
   def to_db(nil), do: nil
-  def to_db(key), do: :erlang.term_to_binary(key)
+
+  def to_db(%Symmetric{alg: alg, k: k, kty: kty}) do
+    %SessionKey{alg: Atom.to_string(alg), k: k, kty: Atom.to_string(kty)}
+  end
+
   def from_db(nil), do: nil
-  def from_db(key), do: :erlang.binary_to_term(key)
+
+  def from_db(%SessionKey{alg: alg, k: k, kty: kty}) do
+    %Symmetric{
+      alg: String.to_existing_atom(alg),
+      k: k,
+      kty: String.to_existing_atom(kty)
+    }
+  end
+
+  def from_db(%{"alg" => alg, "k" => k, "kty" => kty}) do
+    %Symmetric{
+      alg: String.to_existing_atom(alg),
+      k: k,
+      kty: String.to_existing_atom(kty)
+    }
+  end
+
+  def from_db(%{}), do: nil
 end

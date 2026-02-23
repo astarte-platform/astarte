@@ -136,12 +136,8 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding do
   end
 
   def prove_device(realm_name, body, session) do
-    guid =
-      if Config.enable_credential_reuse!() do
-        session.guid
-      else
-        :crypto.strong_rand_bytes(16)
-      end
+    # TODO: add credential reuse logic when the dedicated field becomes available
+    guid = session.guid
 
     # TODO credential reuse requires also Owner2Key and/or rv info to be changed for credential reuse
     # so far, there is no API to do so, so it-s limited to the guid
@@ -263,7 +259,8 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding do
           max_owner_service_info_sz: max_owner_service_info_sz
         }
       ) do
-    with {:ok, session} <-
+    with {:ok, _} <- Queries.fetch_session(realm_name, session.guid),
+         {:ok, session} <-
            Session.add_max_owner_service_info_size(session, realm_name, max_owner_service_info_sz),
          {:ok, session} <-
            Session.add_replacement_info(
@@ -295,7 +292,7 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding do
          {:ok, _device} <- Queries.remove_device_ttl(realm_name, to2_session.device_id) do
       done2_message = build_done2_message(to2_session.setup_dv_nonce)
 
-      unless OwnershipVoucher.credential_reuse?(to2_session) do
+      if not OwnershipVoucher.credential_reuse?(to2_session) do
         with {:ok, old_voucher} <-
                OwnershipVoucher.fetch(realm_name, to2_session.guid),
              {:ok, new_voucher} <-
@@ -304,12 +301,10 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding do
              {:ok, private_key} <-
                Queries.get_owner_private_key(realm_name, to2_session.guid) do
           cbor_voucher = OwnershipVoucher.cbor_encode(new_voucher)
-          cbor_old_voucher = OwnershipVoucher.cbor_encode(old_voucher)
 
           Queries.replace_ownership_voucher(
             realm_name,
             to2_session.guid,
-            cbor_old_voucher,
             cbor_voucher,
             private_key,
             @one_week
