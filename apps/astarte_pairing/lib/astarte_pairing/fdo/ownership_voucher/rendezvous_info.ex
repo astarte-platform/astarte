@@ -53,9 +53,26 @@ defmodule Astarte.Pairing.FDO.OwnershipVoucher.RendezvousInfo do
 
   def decode(_), do: {:error, :invalid_ownership_voucher}
 
+  @doc "Decode a CBOR-encoded binary into a RendezvousInfo struct."
+  @spec decode_cbor(binary()) :: {:ok, t()} | {:error, any()}
+  def decode_cbor(cbor_binary) do
+    with {:ok, cbor_list, ""} <- CBOR.decode(cbor_binary),
+         {:ok, rv_info} <- decode(cbor_list) do
+      {:ok, rv_info}
+    else
+      _ -> :error
+    end
+  end
+
   @doc "Encode RendezvousInfo into CBOR-compatible terms."
   @spec encode(RendezvousInfo.t()) :: list()
   def encode(rv_info) do
     Enum.map(rv_info.directives, &RendezvousDirective.encode/1)
+  end
+
+  @doc "Encode RendezvousInfo into a CBOR binary."
+  @spec encode_cbor(RendezvousInfo.t()) :: binary()
+  def encode_cbor(rv_info) do
+    rv_info |> encode() |> CBOR.encode()
   end
 end
