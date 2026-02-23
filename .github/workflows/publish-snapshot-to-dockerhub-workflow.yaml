@@ -121,15 +121,15 @@ jobs:
 
       - name: Export digest
         run: |
-          mkdir -p ${{ runner.temp }}/digests/${{ matrix.app }}
+          mkdir -p ${{ runner.temp }}/digests/
           digest="${{ steps.build.outputs.digest }}"
-          touch "${{ runner.temp }}/digests/${{ matrix.app }}/${digest#sha256:}"
+          touch "${{ runner.temp }}/digests/${digest#sha256:}"
 
       - name: Upload digest
         uses: actions/upload-artifact@v4
         with:
-          name: digests-${{ matrix.platform.platform-pair }}
-          path: ${{ runner.temp }}/digests/${{ matrix.app }}/*
+          name: ${{ matrix.app }}-digests-${{ matrix.platform.platform-pair }}
+          path: ${{ runner.temp }}/digests/*
           if-no-files-found: error
           retention-days: 1
 
@@ -152,8 +152,8 @@ jobs:
       - name: Download digests
         uses: actions/download-artifact@v4
         with:
-          path: ${{ runner.temp }}/digests/${{ matrix.app }}
-          pattern: digests-*
+          path: ${{ runner.temp }}/digests/
+          pattern: ${{ matrix.app }}-digests-*
           merge-multiple: true
 
       - name: Get current datetime
@@ -191,7 +191,7 @@ jobs:
             org.opencontainers.image.source=https://github.com/${{ github.repository }}
 
       - name: Create manifest list and push
-        working-directory: ${{ runner.temp }}/digests/${{ matrix.app }}
+        working-directory: ${{ runner.temp }}/digests/
         run: |
           docker buildx imagetools create $(jq -cr '.tags | map("-t " + .) | join(" ")' <<< "$DOCKER_METADATA_OUTPUT_JSON") \
-            $(printf '${{ matrix.app }}@sha256:%s ' *)
+            $(printf 'astarte/${{ matrix.app }}@sha256:%s ' *)
