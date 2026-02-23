@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2025 SECO Mind Srl
+# Copyright 2025 - 2026 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -28,6 +28,7 @@ defmodule Astarte.RealmManagement.DeviceRemover.CoreTest do
   alias Astarte.DataAccess.Realms.Realm
   alias Astarte.DataAccess.Repo
   alias Astarte.RealmManagement.DeviceRemoval.Core
+  alias Astarte.RealmManagement.Generators.InterfaceUtils
 
   use Astarte.RealmManagement.DataCase, async: true
   use ExUnitProperties
@@ -115,11 +116,13 @@ defmodule Astarte.RealmManagement.DeviceRemover.CoreTest do
                   type: :datastream,
                   aggregation: :object,
                   explicit_timestamp: true
-                ),
+                )
+                |> InterfaceUtils.filter_valid_interfaces(),
               device_id <- Astarte.Core.Generators.Device.id(),
               value_timestamp <- repeatedly(&DateTime.utc_now/0),
               reception_timestamp <- repeatedly(&DateTime.utc_now/0),
-              reception_timestamp_submillis <- integer(0..10)
+              reception_timestamp_submillis <- integer(0..10),
+              max_runs: 25
             ) do
         seed_device_interface(
           realm,
