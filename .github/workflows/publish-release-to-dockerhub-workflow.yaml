@@ -98,6 +98,7 @@ jobs:
           context: .
           file: apps/${{ matrix.app }}/Dockerfile
           push: true
+          tags: astarte/${{ matrix.app }}
           platforms: ${{ matrix.platform.platform }}
           outputs: type=image,push-by-digest=true,name-canonical=true,push=true
 

@@ -71,6 +71,7 @@ jobs:
           context: ${{ matrix.app.context }}
           file: ${{ matrix.app.file }}
           push: true
+          tags: astarte/${{ matrix.app.tool }}
           platforms: ${{ matrix.platform.platform }}
           cache-from: type=gha,scope=${{ matrix.app.tool }}-${{ env.BRANCH_SLUG }}
           cache-to: type=gha,mode=max,scope=${{ matrix.app.tool }}-${{ env.BRANCH_SLUG }}
