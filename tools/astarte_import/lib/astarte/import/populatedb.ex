@@ -41,11 +41,21 @@ defmodule Astarte.Import.PopulateDB do
     ]
   end
 
-  def populate(realm, xml, continuation_fun \\ :undefined) do
+  def populate(realm, xml, continuation_fun \\ :undefined, opts \\ []) do
     Logger.info("Import started.", realm: realm)
 
-    nodes = Application.get_env(:cqerl, :cassandra_nodes)
-    {host, port} = Enum.random(nodes)
+    db_host_and_port = opts[:db_host_and_port]
+
+    [host, port] =
+      case db_host_and_port do
+        nil ->
+          nodes = Application.get_env(:cqerl, :cassandra_nodes)
+          Enum.random(nodes) |> Tuple.to_list()
+
+        _ ->
+          String.split(db_host_and_port, ":")
+      end
+
     Logger.info("Connecting to #{host}:#{port} cassandra database.", realm: realm)
 
     {:ok, xandra_conn} = Xandra.start_link(nodes: ["#{host}:#{port}"])

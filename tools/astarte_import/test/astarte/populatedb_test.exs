@@ -21,6 +21,7 @@ defmodule Astarte.PopulateDBTest do
   alias Astarte.Import.PopulateDB
 
   @realm "test"
+  @db_host_and_port "localhost:9042"
 
   @xml """
   <?xml version="1.0" encoding="UTF-8"?>
@@ -78,5 +79,9 @@ defmodule Astarte.PopulateDBTest do
 
   test "Test import into Cassandra database" do
     PopulateDB.populate(@realm, @xml)
+  end
+
+  test "Test import into Cassandra database using db_host_and_port" do
+    PopulateDB.populate(@realm, @xml, :undefined, [db_host_and_port: @db_host_and_port])
   end
 end
