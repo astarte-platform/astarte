@@ -7,6 +7,12 @@ name: Publish Docker images of Astarte tools
 on:
   release:
     types: [published]
+  workflow_dispatch:
+    inputs:
+      target_tag:
+        description: "The ref run this workflow against (e.g., v1.0.0)"
+        required: true
+        type: string
 
 jobs:
   push_tool_release_to_registry:
@@ -28,6 +34,8 @@ jobs:
     steps:
       - name: Check out the repo
         uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.target_tag || github.ref }}
 
       - name: Get current datetime
         id: datetime
