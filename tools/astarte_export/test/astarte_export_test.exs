@@ -4,7 +4,7 @@ defmodule Astarte.ExportTest do
   alias Astarte.Export.XMLGenerate
   alias Astarte.Export.FetchData
   alias Astarte.DatabaseTestdata
-  @realm "test"
+  @realm "astarte_test"
 
   @expected_xml """
   <?xml version="1.0" encoding="UTF-8"?>
@@ -70,8 +70,15 @@ defmodule Astarte.ExportTest do
   </astarte>
   """
 
-  test "export realm data to xmlfile" do
+  setup_all do
     DatabaseTestdata.initialize_database()
+
+    on_exit(fn ->
+      DatabaseTestdata.drop_test_database()
+    end)
+  end
+
+  test "export realm data to xmlfile" do
     assert {:ok, :export_completed} == Export.export_realm_data(@realm, "test.xml")
     file = Path.expand("test.xml") |> Path.absname()
     assert @expected_xml == File.read!(file)
