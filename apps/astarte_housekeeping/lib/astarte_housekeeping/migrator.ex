@@ -20,8 +20,8 @@ defmodule Astarte.Housekeeping.Migrator do
   require Logger
   alias Astarte.Core.CQLUtils
   alias Astarte.Housekeeping.Config
+  alias Astarte.DataAccess.Realm
 
-  alias Astarte.Housekeeping.Queries
   @query_timeout 60_000
 
   def run_astarte_keyspace_migrations do
@@ -37,7 +37,7 @@ defmodule Astarte.Housekeeping.Migrator do
   def run_realms_migrations do
     _ = Logger.info("Starting to migrate Realms.", tag: "realms_migration_started")
 
-    with {:ok, realms} <- Queries.list_realms(),
+    with {:ok, realms} <- Realm.list_realms(),
          :ok <- migrate_realms(realms) do
       :ok
     end
