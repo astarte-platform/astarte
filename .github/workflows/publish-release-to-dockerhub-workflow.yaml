@@ -4,6 +4,11 @@ on:
   release:
     types: [published]
   workflow_dispatch:
+    inputs:
+      target_tag:
+        description: "The ref run this workflow against (e.g., v1.0.0)"
+        required: true
+        type: string
 
 jobs:
   astarte_appengine_api:
@@ -81,6 +86,8 @@ jobs:
     steps:
       - name: Check out the repo
         uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.target_tag || github.ref }}
 
       - name: Log in to Docker Hub
         uses: docker/login-action@f4ef78c080cd8ba55a85445d5b36e214a81df20a
