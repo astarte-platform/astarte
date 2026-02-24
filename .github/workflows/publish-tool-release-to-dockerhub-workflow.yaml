@@ -58,6 +58,9 @@ jobs:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
       - name: Build Docker image
         uses: docker/build-push-action@v6.18.0
         id: build
@@ -120,7 +123,7 @@ jobs:
           images: |
             astarte/${{ matrix.app }}
           tags: |
-            type=semver,pattern={{version}}
+            type=semver,pattern={{version}},value=${{ inputs.target_tag || github.event.release.tag_name }}
 
       - name: Create manifest list and push
         working-directory: ${{ runner.temp }}/digests/
