@@ -18,7 +18,7 @@
 
 defmodule Astarte.Housekeeping.Realms.Core do
   @moduledoc false
-  alias Astarte.Housekeeping.AMQP.Vhost
+  alias Astarte.Events.AMQP.Vhost
   alias Astarte.Housekeeping.Realms.Queries
   alias Astarte.Housekeeping.Realms.Realm
 

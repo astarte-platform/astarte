@@ -26,14 +26,16 @@ defmodule Astarte.Events.AMQP do
 
   @impl true
   def process_request_url(url) do
-    Config.amqp_base_url!() <> url
+    Config.amqp_management_base_url!() <> url
   end
 
   @impl true
   def process_request_options(options) do
     auth_opts = [
-      hackney: [basic_auth: {Config.amqp_username!(), Config.amqp_password!()}],
-      ssl: Config.ssl_options!()
+      hackney: [
+        basic_auth: {Config.amqp_management_username!(), Config.amqp_management_password!()}
+      ],
+      ssl: Config.ssl_management_options!()
     ]
 
     Keyword.merge(auth_opts, options)

@@ -43,7 +43,10 @@ defmodule Astarte.DataUpdaterPlant.Application do
 
     children = [
       Astarte.DataUpdaterPlantWeb.Telemetry,
-      Astarte.DataUpdaterPlant.DataPipelineSupervisor
+      Astarte.DataUpdaterPlant.DataPipelineSupervisor,
+      {Astarte.Events.AMQPEvents.Supervisor, []},
+      {Astarte.Events.AMQPTriggers.Supervisor, []},
+      {Astarte.Events.Triggers.Supervisor, []}
     ]
 
     opts = [strategy: :one_for_one, name: Astarte.DataUpdaterPlant.Supervisor]

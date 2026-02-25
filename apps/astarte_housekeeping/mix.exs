@@ -91,6 +91,7 @@ defmodule Astarte.Housekeeping.Mixfile do
       {:astarte_generators, path: astarte_lib("astarte_generators"), only: [:dev, :test]},
       {:httpoison, "~> 2.0"},
       {:astarte_data_access, path: astarte_lib("astarte_data_access")},
+      {:astarte_events, path: astarte_lib("astarte_events")},
       {:castore, "~> 1.0.0"}
     ]
   end
