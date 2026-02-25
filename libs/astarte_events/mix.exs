@@ -64,6 +64,7 @@ defmodule Astarte.Events.Mixfile do
       {:elixir_uuid, "~> 1.2"},
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
       {:astarte_generators, path: "../astarte_generators", only: [:dev, :test]},
+      {:typedstruct, "~> 0.5"},
       {:httpoison, "~> 2.2"}
     ]
   end
