@@ -21,7 +21,7 @@ defmodule Astarte.Pairing.OwnerOnboarding.Onboarding.ProveDevice do
   alias Astarte.Pairing.FDO.OwnerOnboarding.ProveDevice
   alias Astarte.Pairing.FDO.OwnerOnboarding
   alias Astarte.Pairing.FDO.OwnerOnboarding.EAToken
-  alias Astarte.Pairing.FDO.Types.PublicKey
+  alias Astarte.FDO.PublicKey
   alias COSE.Keys.{ECC, RSA}
 
   @test_setup_dv_nonce :crypto.strong_rand_bytes(16)

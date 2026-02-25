@@ -35,7 +35,7 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding.ProveOVHdr do
 
   alias Astarte.Pairing.FDO.OwnerOnboarding.ProveOVHdr
   alias Astarte.Pairing.FDO.OwnerOnboarding.SignatureInfo
-  alias Astarte.Pairing.FDO.Types.Hash
+  alias Astarte.FDO.Hash
   alias COSE.Messages.Sign1
 
   @cupd_nonce_tag 256

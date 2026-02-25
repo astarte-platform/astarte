@@ -16,10 +16,10 @@
 # limitations under the License.
 #
 
-defmodule Astarte.Pairing.FDO.Types.Error do
+defmodule Astarte.FDO.Error do
   use TypedStruct
 
-  alias Astarte.Pairing.FDO.Types.Error
+  alias Astarte.FDO.Error
 
   typedstruct do
     field :error_code, non_neg_integer()

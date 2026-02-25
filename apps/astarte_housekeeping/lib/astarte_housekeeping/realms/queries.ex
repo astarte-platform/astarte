@@ -233,6 +233,7 @@ defmodule Astarte.Housekeeping.Realms.Queries do
          :ok <- create_realm_kv_store(keyspace_name),
          :ok <- create_names_table(keyspace_name),
          :ok <- create_capabilities_type(keyspace_name),
+         :ok <- create_session_key_type(keyspace_name),
          :ok <- create_devices_table(keyspace_name),
          :ok <- create_endpoints_table(keyspace_name),
          :ok <- create_interfaces_table(keyspace_name),
@@ -564,11 +565,26 @@ defmodule Astarte.Housekeeping.Realms.Queries do
     end
   end
 
+  defp create_session_key_type(keyspace_name) do
+    query = """
+    CREATE TYPE #{keyspace_name}.session_key (
+      alg text,
+      k blob,
+      kty text
+    );
+    """
+
+    with {:ok, %{rows: nil, num_rows: 1}} <- CSystem.execute_schema_change(query) do
+      :ok
+    end
+  end
+
   defp create_to2_sessions_table(keyspace_name) do
     query = """
     CREATE TABLE #{keyspace_name}.to2_sessions (
       guid blob,
       device_id uuid,
+      hmac blob,
       nonce blob,
       sig_type int,
       epid_group blob,
@@ -580,12 +596,16 @@ defmodule Astarte.Housekeeping.Realms.Queries do
       max_owner_service_info_size int,
       owner_random blob,
       secret blob,
-      sevk blob,
-      svk blob,
-      sek blob,
+      sevk session_key,
+      svk session_key,
+      sek session_key,
       device_service_info map<tuple<text, text>, blob>,
       owner_service_info list<blob>,
       last_chunk_sent int,
+      replacement_guid blob,
+      replacement_rv_info blob,
+      replacement_pub_key blob,
+      replacement_hmac blob,
       PRIMARY KEY (guid)
     )
     WITH default_time_to_live = 7200;

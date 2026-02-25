@@ -16,10 +16,10 @@
 # limitations under the License.
 #
 
-defmodule Astarte.Pairing.FDO.Types.PublicKey do
+defmodule Astarte.FDO.PublicKey do
   use TypedStruct
 
-  alias Astarte.Pairing.FDO.Types.PublicKey
+  alias Astarte.FDO.PublicKey
 
   @type type() :: :rsa2048restr | :rsapkcs | :rsapss | :secp256r1 | :secp384r1
   @type encoding() :: :crypto | :x509 | :x5chain | :cosekey
@@ -28,6 +28,15 @@ defmodule Astarte.Pairing.FDO.Types.PublicKey do
     field :type, type()
     field :encoding, encoding()
     field :body, binary() | [binary()]
+  end
+
+  def decode_cbor(cbor_binary) do
+    with {:ok, cbor_list, ""} <- CBOR.decode(cbor_binary),
+         {:ok, public_key} <- decode(cbor_list) do
+      {:ok, public_key}
+    else
+      _ -> :error
+    end
   end
 
   def decode(cbor_list) do
@@ -87,6 +96,10 @@ defmodule Astarte.Pairing.FDO.Types.PublicKey do
       3 -> {:ok, :cosekey}
       _ -> :error
     end
+  end
+
+  def encode_cbor(%PublicKey{} = pk) do
+    pk |> encode() |> CBOR.encode()
   end
 
   def encode(%PublicKey{} = pk) do

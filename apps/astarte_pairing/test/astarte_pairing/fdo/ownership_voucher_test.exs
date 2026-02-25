@@ -22,8 +22,8 @@ defmodule Astarte.Pairing.FDO.OwnershipVoucherTest do
 
   alias Astarte.Pairing.FDO.OwnershipVoucher
   alias Astarte.Pairing.FDO.OwnershipVoucher.Header
-  alias Astarte.Pairing.FDO.Types.Hash
-  alias Astarte.Pairing.FDO.Types.PublicKey
+  alias Astarte.FDO.Hash
+  alias Astarte.FDO.PublicKey
   alias Astarte.Pairing.Queries
 
   import Astarte.Helpers.FDO

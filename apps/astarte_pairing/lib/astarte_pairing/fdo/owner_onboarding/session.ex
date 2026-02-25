@@ -19,18 +19,22 @@
 defmodule Astarte.Pairing.FDO.OwnerOnboarding.Session do
   use TypedStruct
 
-  alias Astarte.DataAccess.FDO.TO2Session
+  alias Astarte.FDO.TO2Session
   alias Astarte.Pairing.FDO.OwnerOnboarding.HelloDevice
   alias Astarte.Pairing.FDO.OwnerOnboarding.OwnerServiceInfo
   alias Astarte.Pairing.FDO.OwnerOnboarding.SignatureInfo
   alias Astarte.Pairing.FDO.OwnerOnboarding.Session
   alias Astarte.Pairing.FDO.OwnerOnboarding.SessionKey
   alias Astarte.Pairing.FDO.OwnerOnboarding.SessionToken
+  alias Astarte.Pairing.FDO.OwnershipVoucher.RendezvousInfo
+  alias Astarte.FDO.Hash
+  alias Astarte.FDO.PublicKey
   alias Astarte.Pairing.Queries
   alias COSE.Messages.Encrypt0
 
   typedstruct do
     field :guid, binary()
+    field :hmac, Hash.t()
     field :device_id, Astarte.DataAccess.UUID, default: nil
     field :nonce, binary()
     field :device_signature, SignatureInfo.device_signature()
@@ -48,9 +52,13 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding.Session do
     field :device_service_info, map() | nil
     field :owner_service_info, [binary()] | nil
     field :last_chunk_sent, non_neg_integer() | nil
+    field :replacement_guid, binary() | nil
+    field :replacement_rv_info, RendezvousInfo.t() | nil
+    field :replacement_pub_key, PublicKey.t() | nil
+    field :replacement_hmac, Hash.t() | nil
   end
 
-  def new(realm_name, hello_device, ownership_voucher, owner_key) do
+  def new(realm_name, hello_device, ownership_voucher, owner_key, hmac) do
     prove_dv_nonce = :crypto.strong_rand_bytes(16)
     nonce = :crypto.strong_rand_bytes(16)
 
@@ -70,6 +78,7 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding.Session do
            %TO2Session{
              guid: guid,
              device_id: nil,
+             hmac: Hash.encode_cbor(hmac),
              nonce: nonce,
              prove_dv_nonce: prove_dv_nonce,
              kex_suite_name: kex_name,
@@ -88,6 +97,7 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding.Session do
       session =
         %Session{
           guid: guid,
+          hmac: hmac,
           device_id: nil,
           nonce: nonce,
           prove_dv_nonce: prove_dv_nonce,
@@ -182,6 +192,27 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding.Session do
     end)
   end
 
+  def add_replacement_info(session, realm_name, replacement_guid, rv_info, pub_key, hmac) do
+    with :ok <-
+           Queries.session_add_replacement_info(
+             realm_name,
+             session.guid,
+             replacement_guid,
+             rv_info,
+             pub_key,
+             hmac
+           ) do
+      {:ok,
+       %{
+         session
+         | replacement_guid: replacement_guid,
+           replacement_rv_info: rv_info,
+           replacement_pub_key: pub_key,
+           replacement_hmac: hmac
+       }}
+    end
+  end
+
   def build_session_secret(session, realm_name, owner_key, xb) do
     %Session{kex_suite_name: kex, owner_random: owner_random, guid: guid} = session
 
@@ -237,6 +268,7 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding.Session do
       %TO2Session{
         guid: guid,
         device_id: device_id,
+        hmac: db_hmac,
         nonce: db_nonce,
         prove_dv_nonce: prove_dv_nonce,
         setup_dv_nonce: setup_dv_nonce,
@@ -250,12 +282,19 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding.Session do
         max_owner_service_info_size: max_owner_service_info_size,
         device_service_info: device_service_info,
         owner_service_info: owner_service_info,
-        last_chunk_sent: last_chunk_sent
+        last_chunk_sent: last_chunk_sent,
+        replacement_guid: replacement_guid,
+        replacement_rv_info: replacement_rv_info,
+        replacement_pub_key: replacement_pub_key,
+        replacement_hmac: replacement_hmac
       } = database_session
+
+      {:ok, hmac} = Hash.decode_cbor(db_hmac)
 
       session = %Session{
         guid: guid,
         device_id: device_id,
+        hmac: hmac,
         nonce: db_nonce,
         prove_dv_nonce: prove_dv_nonce,
         setup_dv_nonce: setup_dv_nonce,
@@ -270,7 +309,11 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding.Session do
         max_owner_service_info_size: max_owner_service_info_size,
         device_service_info: device_service_info,
         owner_service_info: owner_service_info,
-        last_chunk_sent: last_chunk_sent
+        last_chunk_sent: last_chunk_sent,
+        replacement_guid: replacement_guid,
+        replacement_rv_info: replacement_rv_info,
+        replacement_pub_key: replacement_pub_key,
+        replacement_hmac: replacement_hmac
       }
 
       {:ok, session}

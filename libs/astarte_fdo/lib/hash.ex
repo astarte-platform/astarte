@@ -16,10 +16,10 @@
 # limitations under the License.
 #
 
-defmodule Astarte.Pairing.FDO.Types.Hash do
+defmodule Astarte.FDO.Hash do
   use TypedStruct
 
-  alias Astarte.Pairing.FDO.Types.Hash
+  alias Astarte.FDO.Hash
 
   @type type() :: :sha256 | :sha384 | :hmac_sha256 | :hmac_sha384
 
@@ -56,6 +56,15 @@ defmodule Astarte.Pairing.FDO.Types.Hash do
   def encode_cbor(hash) do
     encode(hash)
     |> CBOR.encode()
+  end
+
+  def decode_cbor(cbor_binary) do
+    with {:ok, cbor_list, ""} <- CBOR.decode(cbor_binary),
+         {:ok, hash} <- decode(cbor_list) do
+      {:ok, hash}
+    else
+      _ -> :error
+    end
   end
 
   def decode(cbor_list) do

@@ -27,6 +27,8 @@ defmodule Astarte.Pairing.FDO.OwnerOnboardingTest do
   alias Astarte.Pairing.FDO.OwnerOnboarding.HelloDevice
   alias Astarte.Pairing.FDO.OwnerOnboarding.Session
   alias COSE.Messages.Sign1
+  alias Astarte.FDO.Hash
+  alias Astarte.Pairing.FDO.OwnershipVoucher
 
   @max_device_service_info_sz 4096
 
@@ -42,11 +44,15 @@ defmodule Astarte.Pairing.FDO.OwnerOnboardingTest do
     end
 
     test "successfully processes DeviceServiceInfoReady, creates new voucher, and returns OwnerServiceInfoReady",
-         %{realm: realm_name, session: session} do
-      new_hmac = :crypto.strong_rand_bytes(32)
+         %{
+           realm: realm_name,
+           session: session
+         } do
+      new_hmac_value = :crypto.strong_rand_bytes(32)
+      new_hmac = %Hash{type: :hmac_sha256, hash: new_hmac_value}
       device_max_size = 2048
 
-      assert {:ok, response} =
+      assert {:ok, session, response} =
                OwnerOnboarding.build_owner_service_info_ready(
                  realm_name,
                  session,
@@ -56,11 +62,19 @@ defmodule Astarte.Pairing.FDO.OwnerOnboardingTest do
                  }
                )
 
+      assert session.replacement_hmac == new_hmac
+      assert OwnershipVoucher.credential_reuse?(session) == false
+
       assert response == [@max_device_service_info_sz]
     end
 
-    test "handles Credential Reuse (nil HMAC) correctly", %{realm: realm_name, session: session} do
-      assert {:ok, _result} =
+    test "handles Credential Reuse (nil HMAC) correctly", %{
+      realm: realm_name,
+      session: session
+    } do
+      session = %{session | replacement_guid: session.guid}
+
+      assert {:ok, session, _result} =
                OwnerOnboarding.build_owner_service_info_ready(
                  realm_name,
                  session,
@@ -69,6 +83,8 @@ defmodule Astarte.Pairing.FDO.OwnerOnboardingTest do
                    max_owner_service_info_sz: 2048
                  }
                )
+
+      assert OwnershipVoucher.credential_reuse?(session) == true
     end
 
     test "handles the default recommended limit(nil info size) correctly", %{
@@ -77,12 +93,12 @@ defmodule Astarte.Pairing.FDO.OwnerOnboardingTest do
     } do
       new_hmac = :crypto.strong_rand_bytes(32)
 
-      assert {:ok, _result} =
+      assert {:ok, _, _result} =
                OwnerOnboarding.build_owner_service_info_ready(
                  realm_name,
                  session,
                  %DeviceServiceInfoReady{
-                   replacement_hmac: new_hmac,
+                   replacement_hmac: %Hash{hash: new_hmac, type: :hmac_sha256},
                    max_owner_service_info_sz: nil
                  }
                )
@@ -94,12 +110,12 @@ defmodule Astarte.Pairing.FDO.OwnerOnboardingTest do
     } do
       new_hmac = :crypto.strong_rand_bytes(32)
 
-      assert {:ok, _result} =
+      assert {:ok, _, _result} =
                OwnerOnboarding.build_owner_service_info_ready(
                  realm_name,
                  session,
                  %DeviceServiceInfoReady{
-                   replacement_hmac: new_hmac,
+                   replacement_hmac: %Hash{hash: new_hmac, type: :hmac_sha256},
                    max_owner_service_info_sz: 0
                  }
                )
@@ -115,7 +131,7 @@ defmodule Astarte.Pairing.FDO.OwnerOnboardingTest do
                  realm_name,
                  %Session{guid: :crypto.strong_rand_bytes(16)},
                  %DeviceServiceInfoReady{
-                   replacement_hmac: new_hmac,
+                   replacement_hmac: %Hash{hash: new_hmac, type: :hmac_sha256},
                    max_owner_service_info_sz: 0
                  }
                )

@@ -29,6 +29,8 @@ defmodule Astarte.Pairing.FDO.Onboarding.DoneTest do
   alias Astarte.DataAccess.Devices.Device, as: DeviceDB
   alias Astarte.DataAccess.Realms.Realm
   alias Astarte.DataAccess.Repo
+  alias Astarte.Pairing.FDO.OwnershipVoucher
+  alias Astarte.FDO.Hash
 
   @wrong_prove_dv_nonce :crypto.strong_rand_bytes(16)
 
@@ -64,12 +66,81 @@ defmodule Astarte.Pairing.FDO.Onboarding.DoneTest do
     } do
       done_msg = [%CBOR.Tag{tag: :bytes, value: session.prove_dv_nonce}]
 
+      {:ok, ownership_voucher} = OwnershipVoucher.fetch(realm_name, session.guid)
+      {:ok, owner_public_key} = OwnershipVoucher.owner_public_key(ownership_voucher)
+      rendezvous_info = ownership_voucher.header.rendezvous_info
+      new_hmac = :crypto.strong_rand_bytes(32)
+
+      session = %{
+        session
+        | replacement_guid: session.guid,
+          replacement_hmac: %Hash{hash: new_hmac, type: :hmac_sha256},
+          replacement_rv_info: rendezvous_info,
+          replacement_pub_key: owner_public_key
+      }
+
       {:ok, done2_msg_cbor} = OwnerOnboarding.done(realm_name, session, done_msg)
 
       assert {:ok, [%CBOR.Tag{tag: :bytes, value: setup_nonce}], _} =
                CBOR.decode(done2_msg_cbor)
 
       assert setup_nonce == session.setup_dv_nonce
+    end
+
+    test "ensure new voucher is saved when ProveDv nonces match and TO2.done ends successfully ",
+         %{
+           realm: realm_name,
+           session: session
+         } do
+      {:ok, ownership_voucher} = OwnershipVoucher.fetch(realm_name, session.guid)
+      {:ok, owner_public_key} = OwnershipVoucher.owner_public_key(ownership_voucher)
+      rendezvous_info = ownership_voucher.header.rendezvous_info
+
+      session = %{
+        session
+        | replacement_guid: session.guid,
+          replacement_hmac: session.hmac,
+          replacement_rv_info: rendezvous_info,
+          replacement_pub_key: owner_public_key
+      }
+
+      done_msg = [%CBOR.Tag{tag: :bytes, value: session.prove_dv_nonce}]
+      {:ok, old_voucher} = OwnershipVoucher.fetch(realm_name, session.guid)
+      {:ok, _} = OwnerOnboarding.done(realm_name, session, done_msg)
+
+      {:ok, voucher} = OwnershipVoucher.fetch(realm_name, session.guid)
+
+      assert voucher.entries == old_voucher.entries
+      assert voucher.hmac == old_voucher.hmac
+    end
+
+    test "ensure old voucher is keep when ProveDv nonces match and TO2.done ends successfully without credential reuse ",
+         %{
+           realm: realm_name,
+           session: session
+         } do
+      {:ok, ownership_voucher} = OwnershipVoucher.fetch(realm_name, session.guid)
+      {:ok, owner_public_key} = OwnershipVoucher.owner_public_key(ownership_voucher)
+      rendezvous_info = ownership_voucher.header.rendezvous_info
+      new_hmac = :crypto.strong_rand_bytes(32)
+
+      session = %{
+        session
+        | replacement_guid: session.guid,
+          replacement_hmac: %Hash{hash: new_hmac, type: :hmac_sha256},
+          replacement_rv_info: rendezvous_info,
+          replacement_pub_key: owner_public_key
+      }
+
+      done_msg = [%CBOR.Tag{tag: :bytes, value: session.prove_dv_nonce}]
+      {:ok, old_voucher} = OwnershipVoucher.fetch(realm_name, session.guid)
+      {:ok, _} = OwnerOnboarding.done(realm_name, session, done_msg)
+
+      {:ok, voucher} = OwnershipVoucher.fetch(realm_name, session.guid)
+
+      assert voucher.entries == []
+
+      assert voucher.hmac != old_voucher.hmac
     end
 
     test "returns {:error, :invalid_message} when the ProveDv nonces don't match", %{
@@ -86,6 +157,19 @@ defmodule Astarte.Pairing.FDO.Onboarding.DoneTest do
       realm: realm_name,
       session: session
     } do
+      {:ok, ownership_voucher} = OwnershipVoucher.fetch(realm_name, session.guid)
+      {:ok, owner_public_key} = OwnershipVoucher.owner_public_key(ownership_voucher)
+      rendezvous_info = ownership_voucher.header.rendezvous_info
+      new_hmac = :crypto.strong_rand_bytes(32)
+
+      session = %{
+        session
+        | replacement_guid: session.guid,
+          replacement_hmac: %Hash{hash: new_hmac, type: :hmac_sha256},
+          replacement_rv_info: rendezvous_info,
+          replacement_pub_key: owner_public_key
+      }
+
       done_msg = [%CBOR.Tag{tag: :bytes, value: session.prove_dv_nonce}]
 
       {:ok, device_before} = Queries.fetch_device(realm_name, session.device_id)

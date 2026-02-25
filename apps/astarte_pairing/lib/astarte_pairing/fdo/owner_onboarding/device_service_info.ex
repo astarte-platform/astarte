@@ -26,7 +26,7 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding.DeviceServiceInfo do
   """
   use TypedStruct
   alias Astarte.Pairing.FDO.OwnerOnboarding.DeviceServiceInfo
-  alias Astarte.Pairing.FDO.Types.ServiceInfo
+  alias Astarte.FDO.ServiceInfo
 
   typedstruct enforce: true do
     @typedoc "Structure for TO2.DeviceServiceInfo message."
