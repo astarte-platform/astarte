@@ -1,6 +1,6 @@
-defmodule Astarte.Pairing.FDO.Types.ServiceInfo do
+defmodule Astarte.FDO.ServiceInfo do
   use TypedStruct
-  alias Astarte.Pairing.FDO.Types.ServiceInfo
+  alias Astarte.FDO.ServiceInfo
 
   typedstruct do
     field :module, String.t()
@@ -106,13 +106,4 @@ defmodule Astarte.Pairing.FDO.Types.ServiceInfo do
   defp cbor_size(term) do
     term |> CBOR.encode() |> byte_size()
   end
-
-  @doc """
-  Indicates that the device yielded during Owner Service Info chunk transmission
-  by sending an empty ServiceInfo map.
-  """
-  defguard is_empty(service_info)
-           when service_info.module == nil and
-                  service_info.key == nil and
-                  service_info.value == nil
 end

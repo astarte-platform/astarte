@@ -19,8 +19,8 @@
 defmodule Astarte.Pairing.FDO.OwnershipVoucher.Header do
   use TypedStruct
 
-  alias Astarte.Pairing.FDO.Types.PublicKey
-  alias Astarte.Pairing.FDO.Types.Hash
+  alias Astarte.FDO.PublicKey
+  alias Astarte.FDO.Hash
   alias Astarte.Pairing.FDO.OwnershipVoucher.Header
   alias Astarte.Pairing.FDO.OwnershipVoucher.RendezvousInfo
 

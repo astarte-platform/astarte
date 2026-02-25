@@ -16,10 +16,10 @@
 # limitations under the License.
 #
 
-defmodule Astarte.Pairing.FDO.Types.PublicKey do
+defmodule Astarte.FDO.PublicKey do
   use TypedStruct
 
-  alias Astarte.Pairing.FDO.Types.PublicKey
+  alias Astarte.FDO.PublicKey
 
   @type type() :: :rsa2048restr | :rsapkcs | :rsapss | :secp256r1 | :secp384r1
   @type encoding() :: :crypto | :x509 | :x5chain | :cosekey

@@ -25,8 +25,8 @@ defmodule Astarte.Pairing.Queries do
 
   alias Astarte.DataAccess.Consistency
   alias Astarte.DataAccess.Devices.Device
-  alias Astarte.DataAccess.FDO.OwnershipVoucher
-  alias Astarte.DataAccess.FDO.TO2Session
+  alias Astarte.FDO.OwnershipVoucher
+  alias Astarte.FDO.TO2Session
   alias Astarte.DataAccess.KvStore
   alias Astarte.DataAccess.Realms.Realm
   alias Astarte.DataAccess.Repo

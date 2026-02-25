@@ -19,7 +19,7 @@
 defmodule Astarte.Pairing.FDO.OwnerOnboarding.Session do
   use TypedStruct
 
-  alias Astarte.DataAccess.FDO.TO2Session
+  alias Astarte.FDO.TO2Session
   alias Astarte.Pairing.FDO.OwnerOnboarding.HelloDevice
   alias Astarte.Pairing.FDO.OwnerOnboarding.OwnerServiceInfo
   alias Astarte.Pairing.FDO.OwnerOnboarding.SignatureInfo
@@ -27,8 +27,8 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding.Session do
   alias Astarte.Pairing.FDO.OwnerOnboarding.SessionKey
   alias Astarte.Pairing.FDO.OwnerOnboarding.SessionToken
   alias Astarte.Pairing.FDO.OwnershipVoucher.RendezvousInfo
-  alias Astarte.Pairing.FDO.Types.Hash
-  alias Astarte.Pairing.FDO.Types.PublicKey
+  alias Astarte.FDO.Hash
+  alias Astarte.FDO.PublicKey
   alias Astarte.Pairing.Queries
   alias COSE.Messages.Encrypt0
 

@@ -16,10 +16,10 @@
 # limitations under the License.
 #
 
-defmodule Astarte.Pairing.FDO.Types.Hash do
+defmodule Astarte.FDO.Hash do
   use TypedStruct
 
-  alias Astarte.Pairing.FDO.Types.Hash
+  alias Astarte.FDO.Hash
 
   @type type() :: :sha256 | :sha384 | :hmac_sha256 | :hmac_sha384
 

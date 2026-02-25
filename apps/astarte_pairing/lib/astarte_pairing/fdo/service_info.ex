@@ -17,7 +17,7 @@
 #
 
 defmodule Astarte.Pairing.FDO.ServiceInfo do
-  import Astarte.Pairing.FDO.Types.ServiceInfo
+  alias Astarte.FDO.ServiceInfo
 
   alias Astarte.Pairing.FDO.OwnerOnboarding.DeviceServiceInfo
   alias Astarte.Pairing.FDO.OwnerOnboarding.OwnerServiceInfo
@@ -43,14 +43,13 @@ defmodule Astarte.Pairing.FDO.ServiceInfo do
   # Case when the device yielded during Owner Service Info chunk transmission
   # by sending an empty ServiceInfo map.
   def build_owner_service_info(
-        realm_name,
-        session,
-        %DeviceServiceInfo{
-          is_more_service_info: false,
-          service_info: service_info
-        }
-      )
-      when is_empty(service_info) do
+      realm_name,
+      session,
+      %DeviceServiceInfo{
+        is_more_service_info: false,
+        service_info: service_info
+      }
+    ) when service_info.module == nil and service_info.key == nil and service_info.value == nil do
     send_next_owner_chunk(session, realm_name)
   end
 
@@ -89,7 +88,7 @@ defmodule Astarte.Pairing.FDO.ServiceInfo do
         OwnerServiceInfo.build(realm_name, credentials_secret, encoded_device_id)
 
       service_info_chunks =
-        to_chunks(
+        ServiceInfo.to_chunks(
           owner_service_info.service_info,
           session.max_owner_service_info_size
         )

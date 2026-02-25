@@ -30,7 +30,7 @@ defmodule Astarte.Pairing.FDO.Onboarding.DoneTest do
   alias Astarte.DataAccess.Realms.Realm
   alias Astarte.DataAccess.Repo
   alias Astarte.Pairing.FDO.OwnershipVoucher
-  alias Astarte.Pairing.FDO.Types.Hash
+  alias Astarte.FDO.Hash
 
   @wrong_prove_dv_nonce :crypto.strong_rand_bytes(16)
 

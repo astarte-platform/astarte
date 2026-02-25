@@ -26,7 +26,7 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding.DeviceServiceInfoReady do
   """
   use TypedStruct
   alias Astarte.Pairing.FDO.OwnerOnboarding.DeviceServiceInfoReady
-  alias Astarte.Pairing.FDO.Types.Hash
+  alias Astarte.FDO.Hash
 
   @default_max_owner_service_info_sz 1400
 

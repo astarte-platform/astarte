@@ -16,7 +16,7 @@
 # limitations under the License.
 #
 
-defmodule Astarte.DataAccess.FDO.SessionKey do
+defmodule Astarte.FDO.SessionKey do
   @moduledoc """
   Ecto embedded schema representing the `session_key` Cassandra UDT.
 
@@ -27,7 +27,7 @@ defmodule Astarte.DataAccess.FDO.SessionKey do
     - `kty` — key type atom stored as text
 
   Conversion to/from `%COSE.Keys.Symmetric{}` is handled by
-  `Astarte.Pairing.FDO.OwnerOnboarding.SessionKey.to_db/1` and `from_db/1`.
+  `Astarte.FDO.OwnerOnboarding.SessionKey.to_db/1` and `from_db/1`.
   """
 
   use TypedEctoSchema

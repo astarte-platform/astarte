@@ -108,7 +108,7 @@ defmodule Astarte.Pairing.Mixfile do
       {:ssl_verify_fun, "~> 1.1.0", manager: :rebar3, override: true},
       {:cfxxl, github: "ispirata/cfxxl"},
       {:httpoison, "~> 1.6"},
-      {:astarte_data_access, path: astarte_lib("astarte_data_access")},
+      {:astarte_data_access, path: astarte_lib("astarte_data_access"), override: true},
       {:bcrypt_elixir, "~> 2.2"},
       {:xandra, "~> 0.19"},
       # Fix: could not compile dependency due to an old snappy version (1.2.8).
@@ -122,7 +122,9 @@ defmodule Astarte.Pairing.Mixfile do
       {:mimic, "~> 1.11", only: :test},
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
       {:con_cache, "~> 1.1"},
-      {:astarte_events, path: astarte_lib("astarte_events")}
+      {:astarte_events, path: astarte_lib("astarte_events")},
+      {:astarte_fdo, path: astarte_lib("astarte_fdo")}
+
     ]
   end
 

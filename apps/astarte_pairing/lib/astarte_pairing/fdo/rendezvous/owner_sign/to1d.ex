@@ -21,7 +21,7 @@ defmodule Astarte.Pairing.FDO.Rendezvous.OwnerSign.TO1D do
 
   alias Astarte.Pairing.FDO.Rendezvous.OwnerSign.TO1D
   alias Astarte.Pairing.FDO.Rendezvous.RvTO2Addr
-  alias Astarte.Pairing.FDO.Types.Hash
+  alias Astarte.FDO.Hash
   alias COSE.Messages.Sign1
 
   typedstruct do

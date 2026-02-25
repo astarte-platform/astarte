@@ -16,10 +16,10 @@
 # limitations under the License.
 #
 
-defmodule Astarte.DataAccess.FDO.OwnershipVoucher do
+defmodule Astarte.FDO.OwnershipVoucher do
   use TypedEctoSchema
   import Ecto.Changeset
-  alias Astarte.DataAccess.FDO.OwnershipVoucher
+  alias Astarte.FDO.OwnershipVoucher
 
   @primary_key false
   typed_schema "ownership_vouchers" do

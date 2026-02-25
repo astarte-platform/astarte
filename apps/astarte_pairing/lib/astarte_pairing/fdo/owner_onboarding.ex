@@ -24,7 +24,7 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding do
   and supports key exchange parameter generation for secure device onboarding.
   """
 
-  alias Astarte.Pairing.FDO.Types.PublicKey
+  alias Astarte.FDO.PublicKey
   alias Astarte.Pairing.Config
   alias Astarte.Pairing.FDO.OwnerOnboarding.DeviceAttestation
   alias Astarte.Pairing.FDO.OwnerOnboarding.HelloDevice
@@ -36,7 +36,7 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding do
   alias Astarte.Pairing.FDO.OwnerOnboarding.Done, as: DonePayload
   alias Astarte.Pairing.FDO.OwnerOnboarding.Done2, as: Done2Payload
   alias Astarte.Pairing.FDO.OwnershipVoucher.Core, as: OwnershipVoucherCore
-  alias Astarte.Pairing.FDO.Types.Hash
+  alias Astarte.FDO.Hash
   alias Astarte.Pairing.Queries
   alias Astarte.Pairing.FDO.OwnerOnboarding.SetupDevicePayload
   alias Astarte.Pairing.FDO.OwnerOnboarding.DeviceServiceInfoReady

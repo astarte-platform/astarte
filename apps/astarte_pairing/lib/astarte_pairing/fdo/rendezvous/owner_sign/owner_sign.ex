@@ -19,7 +19,7 @@
 defmodule Astarte.Pairing.FDO.Rendezvous.OwnerSign do
   use TypedStruct
 
-  alias Astarte.Pairing.FDO.Types.Hash
+  alias Astarte.FDO.Hash
   alias Astarte.Pairing.FDO.Rendezvous.OwnerSign
   alias Astarte.Pairing.FDO.Rendezvous.OwnerSign.TO0D
   alias Astarte.Pairing.FDO.Rendezvous.OwnerSign.TO1D

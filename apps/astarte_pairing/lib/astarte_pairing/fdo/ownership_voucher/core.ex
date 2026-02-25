@@ -19,7 +19,7 @@
 defmodule Astarte.Pairing.FDO.OwnershipVoucher.Core do
   alias Astarte.Pairing.FDO.OwnershipVoucher
   alias Astarte.Pairing.FDO.OwnershipVoucher.Core
-  alias Astarte.Pairing.FDO.Types.PublicKey
+  alias Astarte.FDO.PublicKey
 
   @type decoded_voucher :: list()
 

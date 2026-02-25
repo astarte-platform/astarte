@@ -30,10 +30,10 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding.SetupDevicePayload do
   Reference Section: 5.5.7 TO2.SetupDevice
   """
   use TypedStruct
-  alias Astarte.Pairing.FDO.Types.PublicKey
+  alias Astarte.FDO.PublicKey
   alias Astarte.Pairing.FDO.OwnershipVoucher.RendezvousInfo
 
-  alias Astarte.Pairing.FDO.Types.PublicKey
+  alias Astarte.FDO.PublicKey
   alias COSE.Messages.Sign1
 
   typedstruct enforce: true do

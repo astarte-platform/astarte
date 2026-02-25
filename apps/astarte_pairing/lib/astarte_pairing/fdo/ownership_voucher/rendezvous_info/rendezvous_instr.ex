@@ -20,7 +20,7 @@ defmodule Astarte.Pairing.FDO.OwnershipVoucher.RendezvousInfo.RendezvousInstr do
   @moduledoc "A single rendezvous instruction `[RVVariable, RVValue]`."
   use TypedStruct
   alias Astarte.Pairing.FDO.OwnershipVoucher.RendezvousInfo.RendezvousInstr
-  alias Astarte.Pairing.FDO.OwnershipVoucher.RendezvousInfo.RVVariable
+  alias Astarte.FDO.OwnershipVoucher.RendezvousInfo.RVVariable
 
   typedstruct enforce: true do
     field :rv_variable, RVVariable.t()

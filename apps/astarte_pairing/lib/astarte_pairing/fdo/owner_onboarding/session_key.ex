@@ -17,7 +17,7 @@
 #
 
 defmodule Astarte.Pairing.FDO.OwnerOnboarding.SessionKey do
-  alias Astarte.DataAccess.FDO.SessionKey
+  alias Astarte.FDO.SessionKey
   alias Astarte.Pairing.FDO.OwnerOnboarding.Core
   alias COSE.Keys.{ECC, RSA}
   alias COSE.Keys.Symmetric

@@ -16,7 +16,7 @@
 # limitations under the License.
 #
 
-defmodule Astarte.DataAccess.FDO.TO2Session do
+defmodule Astarte.FDO.TO2Session do
   use TypedEctoSchema
 
   @ciphers [
@@ -52,9 +52,9 @@ defmodule Astarte.DataAccess.FDO.TO2Session do
     field :cipher_suite_name, Ecto.Enum, values: @ciphers
     field :owner_random, :binary
     field :secret, :binary
-    field :sevk, Exandra.EmbeddedType, using: Astarte.DataAccess.FDO.SessionKey
-    field :svk, Exandra.EmbeddedType, using: Astarte.DataAccess.FDO.SessionKey
-    field :sek, Exandra.EmbeddedType, using: Astarte.DataAccess.FDO.SessionKey
+    field :sevk, Exandra.EmbeddedType, using: Astarte.FDO.SessionKey
+    field :svk, Exandra.EmbeddedType, using: Astarte.FDO.SessionKey
+    field :sek, Exandra.EmbeddedType, using: Astarte.FDO.SessionKey
     field :max_owner_service_info_size, :integer
 
     field :device_service_info, Exandra.Map,
@@ -66,13 +66,13 @@ defmodule Astarte.DataAccess.FDO.TO2Session do
     field :last_chunk_sent, :integer
     field :replacement_guid, :binary
 
-    field :replacement_rv_info, Astarte.DataAccess.FDO.CBORType,
-      using: Astarte.Pairing.FDO.OwnershipVoucher.RendezvousInfo
+    field :replacement_rv_info, Astarte.FDO.CBOR,
+      using: Astarte.FDO.OwnershipVoucher.RendezvousInfo
 
-    field :replacement_pub_key, Astarte.DataAccess.FDO.CBORType,
-      using: Astarte.Pairing.FDO.Types.PublicKey
+    field :replacement_pub_key, Astarte.FDO.CBOR,
+      using: Astarte.FDO.PublicKey
 
-    field :replacement_hmac, Astarte.DataAccess.FDO.CBORType,
-      using: Astarte.Pairing.FDO.Types.Hash
+    field :replacement_hmac, Astarte.FDO.CBOR,
+      using: Astarte.FDO.Hash
   end
 end

@@ -21,7 +21,7 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding.DeviceServiceInfoReadyTest do
   use Mimic
 
   alias Astarte.Pairing.FDO.OwnerOnboarding.DeviceServiceInfoReady
-  alias Astarte.Pairing.FDO.Types.Hash
+  alias Astarte.FDO.Hash
 
   @key %COSE.Keys.Symmetric{k: :crypto.strong_rand_bytes(16)}
   @default_max_owner_service_info_sz 1400

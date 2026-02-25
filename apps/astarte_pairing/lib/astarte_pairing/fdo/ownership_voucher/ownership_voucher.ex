@@ -22,7 +22,7 @@ defmodule Astarte.Pairing.FDO.OwnershipVoucher do
   alias Astarte.Pairing.FDO.OwnershipVoucher
   alias Astarte.Pairing.FDO.OwnershipVoucher.Core
   alias Astarte.Pairing.FDO.OwnershipVoucher.Header
-  alias Astarte.Pairing.FDO.Types.Hash
+  alias Astarte.FDO.Hash
   alias Astarte.Pairing.Queries
   alias Astarte.Pairing.Config
 

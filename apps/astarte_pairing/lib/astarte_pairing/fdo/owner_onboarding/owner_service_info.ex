@@ -25,7 +25,7 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding.OwnerServiceInfo do
   It manages flow control (fragmentation) and termination of the ServiceInfo phase.
   """
   use TypedStruct
-  alias Astarte.Pairing.FDO.Types.ServiceInfo
+  alias Astarte.FDO.ServiceInfo
   alias Astarte.Pairing.FDO.OwnerOnboarding.OwnerServiceInfo
   alias Astarte.Pairing.Config
 
