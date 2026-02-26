@@ -17,43 +17,11 @@
 #
 
 defmodule Astarte.Pairing do
-  @moduledoc false
+  @moduledoc """
+  Astarte.Pairing keeps the contexts that define your domain
+  and business logic.
 
-  use Application
-  require Logger
-
-  alias Astarte.Pairing.Config
-  alias Astarte.Pairing.RPC.Handler
-
-  alias Astarte.DataAccess.Config, as: DataAccessConfig
-  alias Astarte.RPC.Protocol.Pairing, as: Protocol
-
-  @app_version Mix.Project.config()[:version]
-
-  def start(_type, _args) do
-    # make amqp supervisors logs less verbose
-    :logger.add_primary_filter(
-      :ignore_rabbitmq_progress_reports,
-      {&:logger_filters.domain/2, {:stop, :equal, [:progress]}}
-    )
-
-    Logger.info("Starting application v#{@app_version}.", tag: "pairing_app_start")
-
-    DataAccessConfig.validate!()
-    Config.validate!()
-    Config.init!()
-
-    xandra_options =
-      Config.xandra_options!()
-      |> Keyword.put(:name, :xandra)
-
-    children = [
-      Astarte.PairingWeb.Telemetry,
-      {Xandra.Cluster, xandra_options},
-      {Astarte.RPC.AMQP.Server, [amqp_queue: Protocol.amqp_queue(), handler: Handler]},
-      {Astarte.Pairing.CredentialsSecret.Cache, []}
-    ]
-
-    Supervisor.start_link(children, strategy: :one_for_one)
-  end
+  Contexts are also responsible for managing your data, regardless
+  if it comes from the database, an external API or others.
+  """
 end

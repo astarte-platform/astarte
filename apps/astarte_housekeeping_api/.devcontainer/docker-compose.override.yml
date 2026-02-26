@@ -1,4 +1,0 @@
-services:
-  astarte-housekeeping-api:
-    volumes:
-      - ../../../:/workspace/astarte

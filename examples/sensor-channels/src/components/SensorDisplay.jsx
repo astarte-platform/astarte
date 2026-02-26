@@ -1,16 +1,8 @@
 import React, { Component } from "react";
-import {
-  Button,
-  Col,
-  Container,
-  FormControl,
-  InputGroup,
-  Row,
-  Spinner,
-} from "react-bootstrap";
+import { Button, Col, Container, FormControl, InputGroup, Row, Spinner } from "react-bootstrap";
+import ApiHandler from "../apiHandler";
 import CredentialsModal from "./CredentialsModal";
 import SensorDataHandler from "./SensorDataHandler";
-import ApiHandler from "../apiHandler";
 
 class SensorDisplay extends Component {
   constructor(props) {
@@ -113,17 +105,19 @@ class SensorDisplay extends Component {
                           disabled={loading}
                           className="bg-sensor-theme text-uppercase font-weight-normal px-4 text-decoration-none rounded"
                         >
-                          {loading ? (
-                            <Spinner
-                              as="span"
-                              animation="border"
-                              size="sm"
-                              role="status"
-                              aria-hidden="true"
-                            />
-                          ) : (
-                            "Show"
-                          )}
+                          {loading
+                            ? (
+                              <Spinner
+                                as="span"
+                                animation="border"
+                                size="sm"
+                                role="status"
+                                aria-hidden="true"
+                              />
+                            )
+                            : (
+                              "Show"
+                            )}
                         </Button>
                       </InputGroup.Append>
                     </InputGroup>
@@ -133,9 +127,7 @@ class SensorDisplay extends Component {
             </Col>
           </Row>
           <Row>
-            {submit ? (
-              <SensorDataHandler astarte={astarte} device={device} />
-            ) : (
+            {submit ? <SensorDataHandler astarte={astarte} device={device} /> : (
               ""
             )}
           </Row>

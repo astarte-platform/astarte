@@ -23,16 +23,11 @@ defmodule AstarteDevTool.Commands.System.Watch do
   alias AstarteDevTool.Utilities.Process, as: AstarteProcess
 
   def exec(path) do
-    with :ok <- check_and_kill_process(path),
-         task <- Task.async(fn -> execute_process(path) end),
-         :ok <- listen_for_input(),
-         nil <- Task.shutdown(task, :brutal_kill),
-         :ok <- check_and_kill_process(path) do
-      :ok
+    case AstarteProcess.check_process(Constants.command(), Constants.command_watch_args(), path) do
+      {:ok, pid} when not is_nil(pid) -> kill_zombie_process(pid)
+      _ -> :ok
     end
-  end
 
-  defp execute_process(path) do
     case System.cmd(
            Constants.command(),
            Constants.command_watch_args(),
@@ -41,20 +36,6 @@ defmodule AstarteDevTool.Commands.System.Watch do
       {_result, 0} -> :ok
       {:error, reason} -> {:error, "Cannot run system watching: #{reason}"}
       {result, exit_code} -> {:error, "Cannot exec system.watch: #{result}, #{exit_code}"}
-    end
-  end
-
-  defp listen_for_input() do
-    IO.puts("Press ENTER to stop watching.")
-    IO.gets("")
-    IO.puts("Stopping...")
-    :ok
-  end
-
-  defp check_and_kill_process(path) do
-    case AstarteProcess.check_process(Constants.command(), Constants.command_watch_args(), path) do
-      {:ok, pid} when not is_nil(pid) -> kill_zombie_process(pid)
-      _ -> :ok
     end
   end
 

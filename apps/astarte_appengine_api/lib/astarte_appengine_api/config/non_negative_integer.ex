@@ -16,6 +16,11 @@
 # limitations under the License.
 
 defmodule Astarte.AppEngine.API.Config.NonNegativeInteger do
+  @moduledoc """
+  This module provides casting logic to ensure that configuration values 
+  are strictly non-negative integers, defaulting to 0 if a negative value is 
+  provided during the cast.
+  """
   use Skogsra.Type
 
   @impl Skogsra.Type
@@ -25,13 +30,11 @@ defmodule Astarte.AppEngine.API.Config.NonNegativeInteger do
   def cast(""), do: :error
 
   def cast(value) when is_binary(value) do
-    with {limit, _} <- Integer.parse(value) do
-      if limit >= 0 do
-        {:ok, limit}
-      else
-        {:ok, 0}
-      end
-    else
+    case Integer.parse(value) do
+      {limit, _} ->
+        # Ensures we never return a number lower than 0
+        {:ok, max(limit, 0)}
+
       :error ->
         :error
     end

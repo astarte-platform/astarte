@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2019 Ispirata Srl
+# Copyright 2019 - 2025 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -17,13 +17,16 @@
 #
 
 defmodule Astarte.Import.CLI do
+  alias Astarte.Import.Cluster
   alias Astarte.Import.PopulateDB
   require Logger
 
   @chunk_size 4096
 
-  def main([realm, file_name]) do
+  def main(args) do
     with {:started, {:ok, _}} <- {:started, Application.ensure_all_started(:astarte_import)},
+         :ok = Cluster.ensure_registered(),
+         [realm, file_name] <- args,
          true <- String.valid?(realm),
          true <- String.valid?(file_name),
          {:ok, file} <- File.open(file_name, [:read]),
@@ -33,15 +36,45 @@ defmodule Astarte.Import.CLI do
           {data, state}
         else
           :eof ->
-            {nil, state}
+            {"", state}
+
+          {:error, reason} ->
+            Logger.error("Cannot read #{file_name}: #{inspect(reason)}.", realm: realm)
+            throw({:error, :cannot_read})
+
+          any ->
+            Logger.error("Cannot read #{file_name}. unexpected: #{inspect(any)}.", realm: realm)
+            throw({:error, :cannot_read})
         end
       end
 
-      # Call the populate function with the necessary arguments
-      PopulateDB.populate(realm, data, more_data)
+      case Xandra.Cluster.run(
+             :astarte_data_access_xandra,
+             &PopulateDB.populate(&1, realm, data, more_data)
+           ) do
+        {:error, reason} ->
+          Logger.error("Import failed: #{inspect(reason)}.", realm: realm)
+
+        _ ->
+          :ok
+      end
     else
-      error ->
-        Logger.error("Failed to start import: #{inspect(error)}")
+      {:cluster_registry, {:error, reason}} ->
+        Logger.error("Cannot register Xandra cluster: #{inspect(reason)}")
+
+      {:started, {:error, reason}} ->
+        Logger.error("Cannot ensure all applications startup: #{inspect(reason)}")
+
+      {:error, :enoent} ->
+        [realm, file_name] = args
+        Logger.error("File not found: #{file_name}.", realm: realm)
+
+      {:error, :eacces} ->
+        [realm, file_name] = args
+        Logger.error("Cannot access: #{file_name}.", realm: realm)
+
+      any ->
+        Logger.error("Invalid args: #{inspect(any)}. exiting.")
     end
   end
 end

@@ -17,24 +17,15 @@
 #
 
 defmodule Astarte.AppEngine.API.Auth do
-  alias Astarte.AppEngine.API.Queries
-  alias Astarte.DataAccess.Database
+  @moduledoc """
+  Auth context module.
 
-  require Logger
+  This module serves as the entry point for authentication-related operations
+  within the AppEngine API, such as retrieving public keys for JWT validation.
+  """
+  alias Astarte.AppEngine.API.Auth.Queries
 
   def fetch_public_key(realm) do
-    with {:ok, client} <- Database.connect(realm: realm),
-         {:ok, public_key} <- Queries.fetch_public_key(client) do
-      {:ok, public_key}
-    else
-      {:error, :public_key_not_found} ->
-        _ = Logger.warning("No public key found in realm #{realm}.", tag: "no_public_key_found")
-        {:error, :public_key_not_found}
-
-      {:error, :database_connection_error} ->
-        _ = Logger.info("Auth request for unexisting realm #{realm}.", tag: "unexisting_realm")
-        # TODO: random busy wait here to prevent realm enumeration
-        {:error, :not_existing_realm}
-    end
+    Queries.fetch_public_key(realm)
   end
 end

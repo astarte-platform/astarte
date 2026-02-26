@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2019 Ispirata Srl
+# Copyright 2025 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -17,28 +17,60 @@
 #
 
 defmodule Astarte.AppEngine.API.Health do
-  alias Astarte.AppEngine.API.Queries
-  alias Astarte.DataAccess.Database
+  @moduledoc """
+  Health check module for Data Updater Plant service
+  """
 
+  alias Astarte.DataAccess.Health.Health, as: DatabaseHealth
+
+  require Logger
+
+  @doc """
+  Gets the backend health.
+  """
   def get_health do
-    with {:ok, client} <- Database.connect(),
-         :ok <- Queries.check_astarte_health(client, :quorum) do
-      :ok
-    else
-      {:error, :health_check_bad} ->
-        with {:ok, client} <- Database.connect(),
-             :ok <- Queries.check_astarte_health(client, :one) do
-          {:error, :degraded_health}
-        else
-          {:error, :health_check_bad} ->
-            {:error, :bad_health}
+    with :ready <- database_health(),
+         :ready <- vernemq_health() do
+      dup_health()
+    end
+  end
 
-          {:error, :database_connection_error} ->
-            {:error, :bad_health}
-        end
+  # Use the existing DataAccess health check for database connectivity
+  defp database_health do
+    # When degraded, some database nodes are available so it's still ok
+    case DatabaseHealth.get_health() do
+      :ready -> :ready
+      :degraded -> :degraded
+      :bad -> :bad
+      :error -> :bad
+    end
+  end
 
-      {:error, :database_connection_error} ->
-        {:error, :bad_health}
+  # Check if VerneMQ service is available via Horde registry lookup
+  defp vernemq_health do
+    case Horde.Registry.lookup(Registry.VMQPluginRPC, :server) do
+      [] ->
+        Logger.warning("VerneMQ RPC server not found in registry", tag: "vernemq_health_check")
+
+        :bad
+
+      [{_pid, _value}] ->
+        :ready
+    end
+  end
+
+  # Check if DataUpdaterRPC service is available via Horde registry lookup
+  defp dup_health do
+    case Horde.Registry.lookup(Registry.DataUpdaterRPC, :server) do
+      [] ->
+        Logger.warning("DataUpdaterRPC server not found in registry",
+          tag: "dataupdaterrpc_health_check"
+        )
+
+        :bad
+
+      [{_pid, _value}] ->
+        :ready
     end
   end
 end

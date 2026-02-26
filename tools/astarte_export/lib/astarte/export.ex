@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2019 Ispirata Srl
+# Copyright 2019 - 2025 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -25,7 +25,7 @@ defmodule Astarte.Export do
   @moduledoc """
     This  module provide API functions to export realm device
     data in a xml format. This data can be used by astarte_import
-    application utlity  to import into a new realm.
+    application utility  to import into a new realm.
   """
 
   @doc """
@@ -34,28 +34,31 @@ defmodule Astarte.Export do
     the arguments are
     - realm-name -> This is a string format of input
     - file      -> file where to export the realm data.
-    - options   -> options to export the realm data.
   """
 
-  @spec export_realm_data(String.t(), String.t(), keyword()) ::
+  @spec export_realm_data(String.t(), String.t()) ::
           :ok | {:error, :invalid_parameters} | {:error, any()}
 
-  def export_realm_data(realm, file, opts \\ []) do
-    file = Path.expand(file) |> Path.absname()
+  def export_realm_data(realm, file) do
+    Xandra.Cluster.run(
+      :astarte_data_access_xandra,
+      fn conn ->
+        file = Path.expand(file) |> Path.absname()
 
-    with {:ok, fd} <- File.open(file, [:write]) do
-      generate_xml(realm, fd, opts)
-    end
+        with {:ok, fd} <- File.open(file, [:write]) do
+          generate_xml(conn, realm, fd)
+        end
+      end
+    )
   end
 
-  defp generate_xml(realm, fd, opts \\ []) do
+  defp generate_xml(conn, realm, fd) do
     Logger.info("Export started.", realm: realm, tag: "export_started")
 
     with {:ok, state} <- XMLGenerate.xml_write_default_header(fd),
          {:ok, state} <- XMLGenerate.xml_write_start_tag(fd, {"astarte", []}, state),
          {:ok, state} <- XMLGenerate.xml_write_start_tag(fd, {"devices", []}, state),
-         {:ok, conn} <- FetchData.db_connection_identifier(),
-         {:ok, state} <- process_devices(conn, realm, fd, state, opts),
+         {:ok, state} <- process_devices(conn, realm, fd, state),
          {:ok, state} <- XMLGenerate.xml_write_end_tag(fd, state),
          {:ok, _state} <- XMLGenerate.xml_write_end_tag(fd, state),
          :ok <- File.close(fd) do
@@ -68,20 +71,20 @@ defmodule Astarte.Export do
     end
   end
 
-  defp process_devices(conn, realm, fd, state, opts \\ []) do
+  defp process_devices(conn, realm, fd, state) do
     tables_page_configs = Application.get_env(:xandra, :cassandra_table_page_sizes, [])
     page_size = Keyword.get(tables_page_configs, :device_table_page_size, 100)
     options = [page_size: page_size]
-    process_devices(conn, realm, fd, state, options, opts)
+    process_devices(conn, realm, fd, state, options)
   end
 
-  defp process_devices(conn, realm, fd, state, options, opts) do
+  defp process_devices(conn, realm, fd, state, options) do
     with {:more_data, device_list, updated_options} <-
-           FetchData.fetch_device_data(conn, realm, options, opts),
+           FetchData.fetch_device_data(conn, realm, options),
          {:ok, state} <- process_device_list(conn, realm, device_list, fd, state),
          {:ok, paging_state} when paging_state != nil <-
            Keyword.fetch(updated_options, :paging_state) do
-      process_devices(conn, realm, fd, state, updated_options, opts)
+      process_devices(conn, realm, fd, state, updated_options)
     else
       {:ok, nil} -> {:ok, state}
       {:ok, :completed} -> {:ok, state}
@@ -105,6 +108,8 @@ defmodule Astarte.Export do
 
     with {:ok, state} <- XMLGenerate.xml_write_start_tag(fd, {"device", device}, state),
          {:ok, state} <- construct_device_xml_tags(mapped_device_data, fd, state),
+         {:ok, state} <- process_attributes(mapped_device_data, fd, state),
+         {:ok, state} <- process_aliases(mapped_device_data, fd, state),
          {:ok, state} <- process_interfaces(conn, realm, device_data, fd, state),
          {:ok, state} <- XMLGenerate.xml_write_end_tag(fd, state) do
       {:ok, state}
@@ -186,7 +191,9 @@ defmodule Astarte.Export do
 
   defp process_object_streams(conn, realm, mappings, interface_info, fd, state, opts) do
     [h | _t] = mappings
-    path = "" <> h.path
+    fullpath = h.endpoint
+    [_, endpointprefix, _] = String.split(fullpath, "/")
+    path = "/" <> endpointprefix
 
     sub_paths_info =
       Enum.reduce(mappings, [], fn mapping, acc1 ->
@@ -214,7 +221,7 @@ defmodule Astarte.Export do
 
   defp process_individual_streams(conn, realm, [h | t], interface_info, fd, state, opts) do
     with {:ok, state} <-
-           XMLGenerate.xml_write_start_tag(fd, {"datastream", [path: h.path]}, state),
+           XMLGenerate.xml_write_start_tag(fd, {"datastream", [path: h.endpoint]}, state),
          {:ok, state} <-
            do_process_individual_streams(conn, realm, h, interface_info, fd, state, opts),
          {:ok, state} <- XMLGenerate.xml_write_end_tag(fd, state) do
@@ -317,12 +324,54 @@ defmodule Astarte.Export do
     generate_object_item_xml(fd, state, t)
   end
 
+  def process_attributes(device_data, fd, state) do
+    attributes = device_data.attributes
+
+    with {:ok, state} <- XMLGenerate.xml_write_start_tag(fd, {"attributes", []}, state),
+         {:ok, state} <- process_attribute_list(attributes, fd, state),
+         {:ok, state} <- XMLGenerate.xml_write_end_tag(fd, state) do
+      {:ok, state}
+    end
+  end
+
+  defp process_attribute_list([], _, state) do
+    {:ok, state}
+  end
+
+  defp process_attribute_list([h | t], fd, state) do
+    with {:ok, state} <- XMLGenerate.xml_write_empty_element(fd, {"attribute", h, []}, state) do
+      process_attribute_list(t, fd, state)
+    end
+  end
+
+  def process_aliases(device_data, fd, state) do
+    aliases = device_data.aliases
+
+    with {:ok, state} <- XMLGenerate.xml_write_start_tag(fd, {"aliases", []}, state),
+         {:ok, state} <- process_alias_list(aliases, fd, state),
+         {:ok, state} <- XMLGenerate.xml_write_end_tag(fd, state) do
+      {:ok, state}
+    end
+  end
+
+  defp process_alias_list([], _, state) do
+    {:ok, state}
+  end
+
+  defp process_alias_list([h | t], fd, state) do
+    with {:ok, state} <- XMLGenerate.xml_write_empty_element(fd, {"alias", h, []}, state) do
+      process_alias_list(t, fd, state)
+    end
+  end
+
   def construct_device_xml_tags(device_data, fd, state) do
     %{
       protocol: protocol,
       registration: registration,
       credentials: credentials,
-      stats: stats
+      stats: stats,
+      groups: groups,
+      capabilities: capabilities
     } = device_data
 
     with {:ok, state} <-
@@ -331,6 +380,10 @@ defmodule Astarte.Export do
            XMLGenerate.xml_write_empty_element(fd, {"registration", registration, []}, state),
          {:ok, state} <-
            XMLGenerate.xml_write_empty_element(fd, {"credentials", credentials, []}, state),
+         {:ok, state} <-
+           XMLGenerate.xml_write_empty_element(fd, {"groups", groups, []}, state),
+         {:ok, state} <-
+           XMLGenerate.xml_write_empty_element(fd, {"capabilities", capabilities, []}, state),
          {:ok, state} <- XMLGenerate.xml_write_empty_element(fd, {"stats", stats, []}, state) do
       {:ok, state}
     end

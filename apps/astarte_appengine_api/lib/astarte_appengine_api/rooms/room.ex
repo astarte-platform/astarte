@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2017-2018 Ispirata Srl
+# Copyright 2017 - 2025 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -17,24 +17,30 @@
 #
 
 defmodule Astarte.AppEngine.API.Rooms.Room do
+  @moduledoc """
+  Genserver representing a real-time communication room.
+
+  Rooms act as dynamic bridges between Astarte devices/groups and connected clients.
+  They manage volatile triggers, monitor clients connections, and handle the 
+  broadcasting of events over channels.
+  """
   use GenServer, restart: :transient
 
+  alias Astarte.AppEngine.API.Config
   alias Astarte.AppEngine.API.Device.DevicesList
   alias Astarte.AppEngine.API.Groups
+  alias Astarte.AppEngine.API.Rooms.Queries
   alias Astarte.AppEngine.API.Rooms.WatchRequest
   alias Astarte.AppEngine.API.RPC.DataUpdaterPlant
   alias Astarte.AppEngine.API.RPC.DataUpdaterPlant.VolatileTrigger
   alias Astarte.AppEngine.API.Utils
-  alias Astarte.AppEngine.API.Config
   alias Astarte.AppEngine.APIWeb.Endpoint
   alias Astarte.Core.Triggers.SimpleTriggerConfig
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.AMQPTriggerTarget
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.SimpleTriggerContainer
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.TaggedSimpleTrigger
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.TriggerTargetContainer
-  alias Astarte.Core.Device
-  alias Astarte.DataAccess.Database
-  alias Astarte.AppEngine.API.Rooms.Queries
+
   require Logger
 
   # API
@@ -133,6 +139,12 @@ defmodule Astarte.AppEngine.API.Rooms.Room do
       watch_name_to_id: watch_name_to_id
     } = state
 
+    :telemetry.execute(
+      [:astarte, :appengine, :channels, :watch_request],
+      %{},
+      %{realm: state.realm}
+    )
+
     with {:duplicate, false} <- {:duplicate, Map.has_key?(watch_name_to_id, watch_request.name)},
          {:ok, new_state} <- do_watch(watch_request, state) do
       {:reply, :ok, new_state}
@@ -150,6 +162,12 @@ defmodule Astarte.AppEngine.API.Rooms.Room do
       watch_id_to_request: watch_id_to_request,
       watch_name_to_id: watch_name_to_id
     } = state
+
+    :telemetry.execute(
+      [:astarte, :appengine, :channels, :unwatch_request],
+      %{},
+      %{realm: state.realm}
+    )
 
     with {:ok, trigger_id} <- Map.fetch(watch_name_to_id, watch_name),
          {:ok, %WatchRequest{} = watch_request} <- Map.fetch(watch_id_to_request, trigger_id),
@@ -173,9 +191,7 @@ defmodule Astarte.AppEngine.API.Rooms.Room do
     %{room_name: room_name, watch_id_to_request: watch_id_to_request} = state
 
     reply =
-      if not Map.has_key?(watch_id_to_request, trigger_id) do
-        {:error, :trigger_not_found}
-      else
+      if Map.has_key?(watch_id_to_request, trigger_id) do
         payload = %{
           "device_id" => device_id,
           "timestamp" => timestamp,
@@ -189,6 +205,8 @@ defmodule Astarte.AppEngine.API.Rooms.Room do
         )
 
         Endpoint.broadcast("rooms:" <> room_name, "new_event", payload)
+      else
+        {:error, :trigger_not_found}
       end
 
     {:reply, reply, state}
@@ -267,7 +285,7 @@ defmodule Astarte.AppEngine.API.Rooms.Room do
     trigger_id = Utils.get_uuid()
     volatile_trigger = build_volatile_trigger(room_uuid, trigger_id, simple_trigger_config)
 
-    with :ok <- verify_device_exists(realm, device_id),
+    with :ok <- Queries.verify_device_exists(realm, device_id),
          :ok <- DataUpdaterPlant.install_volatile_trigger(realm, device_id, volatile_trigger) do
       new_state = %{
         state
@@ -292,24 +310,6 @@ defmodule Astarte.AppEngine.API.Rooms.Room do
           )
 
         {:error, reason}
-    end
-  end
-
-  defp verify_device_exists(realm_name, encoded_device_id) do
-    with {:ok, decoded_device_id} <- Device.decode_device_id(encoded_device_id),
-         {:ok, client} <- Database.connect(realm: realm_name),
-         {:ok, exists?} <- Queries.check_device_exists(client, decoded_device_id) do
-      if exists? do
-        :ok
-      else
-        _ =
-          Logger.warning(
-            "Device #{encoded_device_id} in realm #{realm_name} does not exist.",
-            tag: "device_does_not_exist"
-          )
-
-        {:error, :device_does_not_exist}
-      end
     end
   end
 
@@ -368,7 +368,7 @@ defmodule Astarte.AppEngine.API.Rooms.Room do
       name: watch_name
     } = watch_request
 
-    with :ok <- verify_device_exists(realm, device_id),
+    with :ok <- Queries.verify_device_exists(realm, device_id),
          :ok <- DataUpdaterPlant.delete_volatile_trigger(realm, device_id, trigger_id) do
       new_state = %{
         state
@@ -386,21 +386,32 @@ defmodule Astarte.AppEngine.API.Rooms.Room do
   defp install_group_volatile_trigger(realm, group_name, volatile_trigger) do
     # TODO: handle pagination
     with {:ok, %DevicesList{devices: device_ids}} <- Groups.list_devices(realm, group_name) do
-      Enum.reduce_while(device_ids, :ok, fn device_id, _acc ->
-        with :ok <- verify_device_exists(realm, device_id),
-             :ok <- DataUpdaterPlant.install_volatile_trigger(realm, device_id, volatile_trigger) do
-          {:cont, :ok}
-        else
-          {:error, :device_does_not_exist} ->
-            {:halt, {:error, :device_does_not_exist}}
+      install_triggers_on_devices(realm, device_ids, volatile_trigger)
+    end
+  end
 
-          {:error, %{error_name: reason}} ->
-            {:halt, {:error, reason}}
+  defp install_triggers_on_devices(realm, device_ids, volatile_trigger) do
+    Enum.reduce_while(device_ids, :ok, fn device_id, _acc ->
+      case install_single_volatile_trigger(realm, device_id, volatile_trigger) do
+        :ok -> {:cont, :ok}
+        {:error, reason} -> {:halt, {:error, reason}}
+      end
+    end)
+  end
 
-          {:error, reason} ->
-            {:halt, {:error, reason}}
-        end
-      end)
+  defp install_single_volatile_trigger(realm, device_id, volatile_trigger) do
+    with :ok <- Queries.verify_device_exists(realm, device_id),
+         :ok <- DataUpdaterPlant.install_volatile_trigger(realm, device_id, volatile_trigger) do
+      :ok
+    else
+      {:error, :device_does_not_exist} ->
+        {:error, :device_does_not_exist}
+
+      {:error, %{error_name: reason}} ->
+        {:error, reason}
+
+      {:error, reason} ->
+        {:error, reason}
     end
   end
 

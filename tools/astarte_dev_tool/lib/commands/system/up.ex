@@ -21,20 +21,12 @@ defmodule AstarteDevTool.Commands.System.Up do
   alias AstarteDevTool.Constants.System, as: Constants
 
   def exec(path) do
-    with {_result, 0} <-
-           System.cmd(
-             Constants.command(),
-             Constants.command_initialize_keys(),
-             Constants.base_opts() ++ [cd: path]
-           ),
-         {_result, 0} <-
-           System.cmd(
-             Constants.command(),
-             Constants.command_up_args(),
-             Constants.base_opts() ++ [cd: path]
-           ) do
-      :ok
-    else
+    case System.cmd(
+           Constants.command(),
+           Constants.command_up_args(),
+           Constants.base_opts() ++ [cd: path]
+         ) do
+      {_result, 0} -> :ok
       {:process, _} -> {:error, "The system is already running"}
       {result, exit_code} -> {:error, "Cannot exec system.up: #{result}, #{exit_code}"}
     end

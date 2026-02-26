@@ -1,0 +1,381 @@
+#
+# This file is part of Astarte.
+#
+# Copyright 2025 SECO Mind Srl
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
+defmodule Astarte.RealmManagement.Triggers.Core do
+  @moduledoc """
+  Core orchestrator for Trigger management.
+
+  This module handles the logic for installing  and deleting triggers.
+  """
+  alias Astarte.Core.Triggers.SimpleTriggerConfig
+  alias Astarte.Core.Triggers.SimpleTriggersProtobuf.AMQPTriggerTarget
+  alias Astarte.Core.Triggers.SimpleTriggersProtobuf.DataTrigger
+  alias Astarte.Core.Triggers.SimpleTriggersProtobuf.SimpleTriggerContainer
+  alias Astarte.Core.Triggers.SimpleTriggersProtobuf.TaggedSimpleTrigger
+  alias Astarte.Core.Triggers.SimpleTriggersProtobuf.TriggerTargetContainer
+  alias Astarte.Core.Triggers.Trigger, as: CoreTrigger
+  alias Astarte.RealmManagement.Interfaces
+  alias Astarte.RealmManagement.Triggers.Queries
+  alias Astarte.RealmManagement.Triggers.Trigger
+  alias Astarte.RPC.Triggers
+
+  require Logger
+
+  def get_trigger(realm_name, trigger_name) do
+    with {:ok, trigger} <- Queries.retrieve_trigger(realm_name, trigger_name) do
+      %CoreTrigger{
+        trigger_uuid: parent_uuid,
+        simple_triggers_uuids: simple_triggers_uuids
+      } = trigger
+
+      initial_acc = {:ok, %{trigger: trigger, tagged_simple_triggers: []}}
+
+      # TODO: use batch
+      Enum.reduce_while(simple_triggers_uuids, initial_acc, fn uuid, {:ok, acc} ->
+        case Queries.retrieve_tagged_simple_trigger(realm_name, parent_uuid, uuid) do
+          {:ok, %TaggedSimpleTrigger{} = result} ->
+            tagged_simple_triggers = [result | acc.tagged_simple_triggers]
+            acc = %{acc | tagged_simple_triggers: tagged_simple_triggers}
+            {:cont, {:ok, acc}}
+
+          _error ->
+            Logger.warning("Failed to get trigger.",
+              trigger_name: trigger_name,
+              tag: "get_trigger_fail"
+            )
+
+            {:halt, {:error, :cannot_retrieve_simple_trigger}}
+        end
+      end)
+    end
+  end
+
+  def install_trigger(
+        realm_name,
+        trigger_name,
+        trigger_policy_name,
+        action,
+        tagged_simple_triggers
+      ) do
+    _ =
+      Logger.info("Going to install a new trigger.",
+        trigger_name: trigger_name,
+        tag: "install_trigger"
+      )
+
+    with :ok <- check_trigger_does_not_exitst(realm_name, trigger_name),
+         simple_trigger_maps = build_simple_trigger_maps(tagged_simple_triggers),
+         trigger = build_trigger(trigger_name, trigger_policy_name, simple_trigger_maps, action),
+         %CoreTrigger{trigger_uuid: trigger_uuid} = trigger,
+         {:ok, action_map} <- Jason.decode(action),
+         trigger_target = target_from_action(action_map, trigger_uuid),
+         t_container = build_trigger_target_container(trigger_target),
+         :ok <- validate_simple_triggers(realm_name, simple_trigger_maps),
+         # TODO: these should be batched together
+         :ok <-
+           install_simple_triggers(realm_name, simple_trigger_maps, trigger_uuid, t_container),
+         :ok <-
+           install_trigger_policy_link(realm_name, trigger_uuid, trigger_policy_name),
+         Logger.info("Installing trigger.",
+           trigger_name: trigger_name,
+           tag: "install_trigger_started"
+         ),
+         :ok <- Queries.install_trigger(realm_name, trigger) do
+      notify_trigger_installation(
+        realm_name,
+        simple_trigger_maps,
+        trigger_target,
+        trigger_policy_name
+      )
+
+      {:ok, trigger}
+    end
+  end
+
+  @spec delete_trigger(String.t(), Trigger.t()) :: :ok | {:error, :trigger_not_found}
+  def delete_trigger(realm_name, trigger) do
+    %{name: name, trigger_uuid: trigger_uuid, policy: policy} = trigger
+
+    with :ok <- delete_all_simple_triggers(realm_name, trigger),
+         :ok = Queries.delete_trigger_policy_link(realm_name, trigger_uuid, policy),
+         :ok <- Queries.delete_trigger(realm_name, name) do
+      notify_trigger_deletion(realm_name, trigger)
+      :ok
+    end
+  end
+
+  defp delete_all_simple_triggers(realm_name, trigger) do
+    Enum.reduce_while(trigger.simple_triggers_uuids, :ok, fn simple_trigger_uuid, :ok ->
+      case Queries.delete_simple_trigger(realm_name, trigger.trigger_uuid, simple_trigger_uuid) do
+        :ok -> {:cont, :ok}
+        error -> {:halt, error}
+      end
+    end)
+  end
+
+  defp check_trigger_does_not_exitst(realm_name, trigger_name) do
+    case Queries.retrieve_trigger_uuid(realm_name, trigger_name) do
+      {:error, :trigger_not_found} -> :ok
+      {:ok, _} -> {:error, :already_installed_trigger}
+    end
+  end
+
+  defp notify_trigger_installation(realm_name, simple_trigger_maps, trigger_target, policy) do
+    for simple_trigger_map <- simple_trigger_maps do
+      %{
+        object_id: object_id,
+        object_type: object_type,
+        simple_trigger: simple_trigger,
+        simple_trigger_uuid: simple_trigger_uuid
+      } = simple_trigger_map
+
+      trigger = %TaggedSimpleTrigger{
+        object_id: object_id,
+        object_type: object_type,
+        simple_trigger_container: simple_trigger
+      }
+
+      target = %{trigger_target | simple_trigger_id: simple_trigger_uuid}
+
+      Triggers.notify_installation(realm_name, trigger, target, policy)
+    end
+
+    :ok
+  end
+
+  defp notify_trigger_deletion(realm_name, trigger) do
+    simple_triggers = Enum.zip(trigger.simple_triggers_uuids, trigger.simple_triggers)
+
+    for {trigger_id, simple_trigger_config} <- simple_triggers do
+      trigger = SimpleTriggerConfig.to_tagged_simple_trigger(simple_trigger_config)
+
+      Triggers.notify_deletion(realm_name, trigger_id, trigger)
+    end
+  end
+
+  defp target_from_action(
+         %{"amqp_exchange" => exchange, "amqp_routing_key" => key} = action,
+         parent_uuid
+       ) do
+    static_headers =
+      Map.get(action, "amqp_static_headers", %{})
+
+    %AMQPTriggerTarget{
+      exchange: exchange,
+      routing_key: key,
+      parent_trigger_id: parent_uuid,
+      static_headers: static_headers,
+      message_expiration_ms: Map.get(action, "amqp_message_expiration_ms"),
+      message_priority: Map.get(action, "amqp_message_priority"),
+      message_persistent: Map.get(action, "amqp_message_persistent")
+    }
+  end
+
+  defp target_from_action(_action, parent_uuid) do
+    %AMQPTriggerTarget{
+      routing_key: "trigger_engine",
+      parent_trigger_id: parent_uuid
+    }
+  end
+
+  defp build_simple_trigger_maps(tagged_simple_triggers) do
+    for tagged_simple_trigger <- tagged_simple_triggers do
+      %TaggedSimpleTrigger{
+        object_id: object_id,
+        object_type: object_type,
+        simple_trigger_container: simple_trigger_container
+      } = tagged_simple_trigger
+
+      %{
+        object_id: object_id,
+        object_type: object_type,
+        simple_trigger_uuid: :uuid.get_v4(),
+        simple_trigger: simple_trigger_container
+      }
+    end
+  end
+
+  defp build_trigger(trigger_name, policy, simple_trigger_maps, action) do
+    simple_trigger_uuids =
+      for simple_trigger_map <- simple_trigger_maps do
+        simple_trigger_map[:simple_trigger_uuid]
+      end
+
+    policy =
+      if policy == "" do
+        nil
+      else
+        policy
+      end
+
+    %CoreTrigger{
+      trigger_uuid: :uuid.get_v4(),
+      simple_triggers_uuids: simple_trigger_uuids,
+      action: action,
+      name: trigger_name,
+      policy: policy
+    }
+  end
+
+  defp build_trigger_target_container(%AMQPTriggerTarget{} = trigger_target) do
+    %TriggerTargetContainer{
+      trigger_target: {
+        :amqp_trigger_target,
+        trigger_target
+      }
+    }
+  end
+
+  defp validate_simple_triggers(realm_name, simple_trigger_maps) do
+    Enum.reduce_while(simple_trigger_maps, :ok, fn
+      %{simple_trigger: simple_trigger_container}, _acc ->
+        %SimpleTriggerContainer{simple_trigger: {_tag, simple_trigger}} = simple_trigger_container
+
+        case validate_simple_trigger(realm_name, simple_trigger) do
+          :ok ->
+            {:cont, :ok}
+
+          {:error, reason} ->
+            {:halt, {:error, reason}}
+        end
+    end)
+  end
+
+  defp validate_simple_trigger(_client, %DataTrigger{interface_name: "*"}) do
+    # TODO: we ignore catch-all interface triggers for now
+    :ok
+  end
+
+  defp validate_simple_trigger(realm_name, %DataTrigger{} = data_trigger) do
+    with {:ok, interface} <-
+           Interfaces.fetch_interface(
+             realm_name,
+             data_trigger.interface_name,
+             data_trigger.interface_major
+           ) do
+      # Dispatch validation based on interface aggregation
+      do_validate_data_trigger(data_trigger, interface)
+    end
+  end
+
+  defp validate_simple_trigger(_client, _other_trigger) do
+    # TODO: validate DeviceTrigger and IntrospectionTrigger
+    :ok
+  end
+
+  #  Individual Aggregation
+  defp do_validate_data_trigger(%DataTrigger{} = dt, %{aggregation: :individual} = interface) do
+    cond do
+      interface.type != :properties and properties_trigger_type?(dt.data_trigger_type) ->
+        {:error, :invalid_datastream_trigger}
+
+      dt.match_path == "/*" and dt.data_trigger_type in [:VALUE_CHANGE, :VALUE_CHANGE_APPLIED] ->
+        # Workaround for https://github.com/astarte-platform/astarte/issues/513
+        {:error, :unsupported_trigger_type}
+
+      true ->
+        :ok
+    end
+  end
+
+  # Object Aggregation
+  defp do_validate_data_trigger(%DataTrigger{} = dt, %{aggregation: :object}) do
+    # Object triggers must be INCOMING_DATA on path "/*" with ANY operator
+    if dt.data_trigger_type == :INCOMING_DATA and dt.value_match_operator == :ANY and
+         dt.match_path == "/*" do
+      :ok
+    else
+      {:error, :invalid_object_aggregation_trigger}
+    end
+  end
+
+  defp properties_trigger_type?(tt) do
+    case tt do
+      :VALUE_CHANGE -> true
+      :VALUE_CHANGE_APPLIED -> true
+      :PATH_REMOVED -> true
+      _ -> false
+    end
+  end
+
+  defp install_simple_triggers(realm_name, simple_trigger_maps, trigger_uuid, trigger_target) do
+    Enum.reduce_while(simple_trigger_maps, :ok, fn
+      simple_trigger_map, _acc ->
+        %{
+          object_id: object_id,
+          object_type: object_type,
+          simple_trigger_uuid: simple_trigger_uuid,
+          simple_trigger: simple_trigger_container
+        } = simple_trigger_map
+
+        case Queries.install_simple_trigger(
+               realm_name,
+               object_id,
+               object_type,
+               trigger_uuid,
+               simple_trigger_uuid,
+               simple_trigger_container,
+               trigger_target
+             ) do
+          :ok ->
+            {:cont, :ok}
+
+          {:error, reason} ->
+            {:halt, {:error, reason}}
+        end
+    end)
+  end
+
+  defp install_trigger_policy_link(_realm_name, _trigger_uuid, nil) do
+    :ok
+  end
+
+  defp install_trigger_policy_link(_realm_name, _trigger_uuid, "") do
+    :ok
+  end
+
+  defp install_trigger_policy_link(realm_name, trigger_uuid, trigger_policy_name) do
+    with :ok <- verify_trigger_policy_exists(realm_name, trigger_policy_name) do
+      Queries.install_trigger_policy_link(realm_name, trigger_uuid, trigger_policy_name)
+    end
+  end
+
+  def verify_trigger_policy_exists(client, policy_name) do
+    if Queries.trigger_policy_exists?(client, policy_name) do
+      :ok
+    else
+      Logger.warning("Trigger policy #{policy_name} not found",
+        tag: "trigger_policy_not_found"
+      )
+
+      {:error, :trigger_policy_not_found}
+    end
+  end
+
+  def verify_trigger_policy_has_no_triggers(realm_name, policy_name) do
+    if Queries.policy_has_triggers?(realm_name, policy_name) do
+      Logger.warning("Trigger policy #{policy_name} is currently being used by triggers",
+        tag: "cannot_delete_currently_used_trigger_policy"
+      )
+
+      {:error, :cannot_delete_currently_used_trigger_policy}
+    else
+      :ok
+    end
+  end
+end

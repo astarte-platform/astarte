@@ -17,6 +17,9 @@
 #
 
 defmodule Astarte.DataUpdaterPlant.DataUpdater.PayloadsDecoder do
+  @moduledoc """
+  This module is responsible for decoding the payloads received from the AMQPDataConsumer.
+  """
   require Logger
   alias Astarte.Core.Interface
 
@@ -26,39 +29,40 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.PayloadsDecoder do
   Decode a BSON payload a returns a tuple containing the decoded value, the timestamp and metadata.
   reception_timestamp is used if no timestamp has been sent with the payload.
   """
-  @spec decode_bson_payload(binary, integer) :: {map, integer, map}
+  @spec decode_bson_payload(binary, integer) ::
+          {:ok, {map, integer, map}}
+          | {:ok, {nil, nil, nil}}
+          | {:error, :undecodable_bson_payload}
+
   def decode_bson_payload(payload, reception_timestamp) do
     if byte_size(payload) != 0 do
       case Cyanide.decode(payload) do
         {:ok, %{"v" => bson_value, "t" => %DateTime{} = timestamp, "m" => %{} = metadata}} ->
           bson_timestamp = DateTime.to_unix(timestamp, :millisecond)
-          {bson_value, bson_timestamp, metadata}
+          {:ok, {bson_value, bson_timestamp, metadata}}
 
         {:ok, %{"v" => bson_value, "m" => %{} = metadata}} ->
-          {bson_value, div(reception_timestamp, 10000), metadata}
+          {:ok, {bson_value, div(reception_timestamp, 10_000), metadata}}
 
         {:ok, %{"v" => bson_value, "t" => %DateTime{} = timestamp}} ->
           bson_timestamp = DateTime.to_unix(timestamp, :millisecond)
-          {bson_value, bson_timestamp, %{}}
+          {:ok, {bson_value, bson_timestamp, %{}}}
 
         {:ok, %{"v" => %Cyanide.Binary{data: <<>>}}} ->
-          {nil, nil, nil}
+          {:ok, {nil, nil, nil}}
 
         {:ok, %{"v" => bson_value}} ->
-          {bson_value, div(reception_timestamp, 10000), %{}}
+          {:ok, {bson_value, div(reception_timestamp, 10_000), %{}}}
 
         {:ok, %{} = bson_value} ->
           # Handling old format object aggregation
-          {bson_value, div(reception_timestamp, 10000), %{}}
+          {:ok, {bson_value, div(reception_timestamp, 10_000), %{}}}
 
         {:error, _reason} ->
           {:error, :undecodable_bson_payload}
-
-        _ ->
-          {:error, :undecodable_bson_payload}
       end
     else
-      {nil, nil, nil}
+      {:ok, {nil, nil, nil}}
     end
   end
 
@@ -152,20 +156,25 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.PayloadsDecoder do
       decoded_payload
       |> String.split(";")
       |> List.foldl(MapSet.new(), fn property_full_path, paths_acc ->
-        with [interface, path] <- String.split(property_full_path, "/", parts: 2) do
-          if Map.has_key?(introspection, interface) do
-            MapSet.put(paths_acc, {interface, "/" <> path})
-          else
-            paths_acc
-          end
-        else
-          _ ->
-            # TODO: we should print a warning, or return a :issues_found status
-            paths_acc
-        end
+        add_property_path(paths_acc, property_full_path, introspection)
       end)
 
     {:ok, paths_list}
+  end
+
+  defp add_property_path(paths_acc, property_full_path, introspection) do
+    case String.split(property_full_path, "/", parts: 2) do
+      [interface, path] ->
+        if Map.has_key?(introspection, interface) do
+          MapSet.put(paths_acc, {interface, "/" <> path})
+        else
+          paths_acc
+        end
+
+      _ ->
+        # TODO: we should print a warning, or return a :issues_found status
+        paths_acc
+    end
   end
 
   @doc """

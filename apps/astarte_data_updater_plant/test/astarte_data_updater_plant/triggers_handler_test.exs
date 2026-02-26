@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2017 Ispirata Srl
+# Copyright 2017 - 2025 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -17,7 +17,8 @@
 #
 
 defmodule Astarte.DataUpdaterPlant.TriggersHandlerTest do
-  use ExUnit.Case
+  use ExUnit.Case, async: true
+  use Astarte.Cases.Trigger
 
   alias Astarte.Core.Triggers.SimpleEvents.{
     DeviceConnectedEvent,
@@ -33,16 +34,21 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandlerTest do
     PathRemovedEvent,
     SimpleEvent,
     ValueChangeAppliedEvent,
-    ValueChangeEvent,
-    ValueStoredEvent
+    ValueChangeEvent
   }
 
   alias AMQP.Channel
   alias AMQP.Connection
   alias AMQP.Queue
+  alias Astarte.Core.CQLUtils
+  alias Astarte.Core.Device
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.AMQPTriggerTarget
   alias Astarte.DataUpdaterPlant.Config
+  alias Astarte.DataUpdaterPlant.DataUpdater.State
   alias Astarte.DataUpdaterPlant.TriggersHandler
+  alias Astarte.Events.AMQP.Vhost
+  alias Astarte.Events.Config, as: EventsConfig
+  alias Astarte.Events.Triggers.DataTriggerContext
 
   @introspection "com.My.Interface:1:0;com.Another.Interface:1:2"
   @introspection_map %{
@@ -52,13 +58,30 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandlerTest do
   @queue_name "test_events_queue"
   @routing_key "test_routing_key"
   @realm "autotestrealm"
-  @device_id :crypto.strong_rand_bytes(16) |> Base.url_encode64(padding: false)
+  @decoded_device_id Device.random_device_id()
+  @device_id Device.encode_device_id(@decoded_device_id)
   @interface "com.Test.Interface"
   @major_version 1
   @minor_version 1
   @path "/some/path"
-  @bson_value %{v: "testvalue"} |> Cyanide.encode!()
+  @value "testvalue"
+  @bson_value %{v: @value} |> Cyanide.encode!()
   @ip_address "2.3.4.5"
+
+  @default_data_trigger_context %{
+    hardware_id: @device_id,
+    interface: @interface,
+    interface_id: CQLUtils.interface_id(@interface, @major_version),
+    endpoint_id: CQLUtils.endpoint_id(@interface, @major_version, @path),
+    path: @path,
+    value: @value,
+    payload: @bson_value,
+    value_timestamp: nil,
+    state: %State{
+      realm: @realm,
+      device_id: @decoded_device_id
+    }
+  }
 
   @default_policy_name "@default"
   @default_policy_queue "#{@realm}_#{@default_policy_name}_queue"
@@ -67,21 +90,29 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandlerTest do
   @custom_policy_queue "#{@realm}_#{@custom_policy_name}_queue"
   @custom_policy_routing_key "#{@realm}_#{@custom_policy_name}"
 
+  # Needed for Astarte.Cases.Trigger
+  @moduletag realm_name: @realm
+
   setup_all do
-    {:ok, conn} = Connection.open(Config.amqp_producer_options!())
+    Vhost.create_vhost(@realm)
+    {:ok, conn} = Connection.open(EventsConfig.amqp_options!())
     {:ok, chan} = Channel.open(conn)
     {:ok, _queue} = Queue.declare(chan, @queue_name)
     {:ok, _queue} = Queue.declare(chan, @default_policy_queue)
     {:ok, _queue} = Queue.declare(chan, @custom_policy_queue)
-    :ok = Queue.bind(chan, @queue_name, Config.events_exchange_name!(), routing_key: @routing_key)
 
     :ok =
-      Queue.bind(chan, @default_policy_queue, Config.events_exchange_name!(),
+      Queue.bind(chan, @queue_name, EventsConfig.amqp_events_exchange_name!(),
+        routing_key: @routing_key
+      )
+
+    :ok =
+      Queue.bind(chan, @default_policy_queue, EventsConfig.amqp_events_exchange_name!(),
         routing_key: @default_policy_routing_key
       )
 
     :ok =
-      Queue.bind(chan, @custom_policy_queue, Config.events_exchange_name!(),
+      Queue.bind(chan, @custom_policy_queue, EventsConfig.amqp_events_exchange_name!(),
         routing_key: @custom_policy_routing_key
       )
 
@@ -107,7 +138,7 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandlerTest do
       parent_trigger_id = :uuid.get_v4()
       static_header_key = "important_metadata_connected"
       static_header_value = "test_meta_connected"
-      static_headers = [{static_header_key, static_header_value}]
+      static_headers = %{static_header_key => static_header_value}
       timestamp = get_timestamp()
 
       target = %AMQPTriggerTarget{
@@ -117,7 +148,9 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandlerTest do
         routing_key: @routing_key
       }
 
-      TriggersHandler.device_connected(target, @realm, @device_id, @ip_address, timestamp, nil)
+      register_target(:on_device_connection, target)
+
+      TriggersHandler.device_connected(@realm, @decoded_device_id, [], @ip_address, timestamp)
 
       assert_receive {:event, payload, meta}
 
@@ -147,7 +180,7 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandlerTest do
       parent_trigger_id = :uuid.get_v4()
       static_header_key = "important_metadata_error"
       static_header_value = "test_meta_error"
-      static_headers = [{static_header_key, static_header_value}]
+      static_headers = %{static_header_key => static_header_value}
       timestamp = get_timestamp()
 
       target = %AMQPTriggerTarget{
@@ -157,16 +190,16 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandlerTest do
         routing_key: @routing_key
       }
 
+      register_target(:on_device_error, target)
       error_metadata = %{"base64_payload" => Base.encode64("aninvalidintrospection")}
 
       TriggersHandler.device_error(
-        target,
         @realm,
-        @device_id,
+        @decoded_device_id,
+        [],
         "invalid_introspection",
         error_metadata,
-        timestamp,
-        nil
+        timestamp
       )
 
       assert_receive {:event, payload, meta}
@@ -201,7 +234,7 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandlerTest do
       parent_trigger_id = :uuid.get_v4()
       static_header_key = "important_metadata_disconnected"
       static_header_value = "test_meta_disconnected"
-      static_headers = [{static_header_key, static_header_value}]
+      static_headers = %{static_header_key => static_header_value}
       timestamp = get_timestamp()
 
       target = %AMQPTriggerTarget{
@@ -211,7 +244,9 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandlerTest do
         routing_key: @routing_key
       }
 
-      TriggersHandler.device_disconnected(target, @realm, @device_id, timestamp, nil)
+      register_target(:on_device_disconnection, target)
+
+      TriggersHandler.device_disconnected(@realm, @decoded_device_id, [], timestamp)
 
       assert_receive {:event, payload, meta}
 
@@ -239,8 +274,9 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandlerTest do
       parent_trigger_id = :uuid.get_v4()
       static_header_key = "important_metadata"
       static_header_value = "test_meta"
-      static_headers = [{static_header_key, static_header_value}]
+      static_headers = %{static_header_key => static_header_value}
       timestamp = get_timestamp()
+      context = %{default_context(timestamp) | value: nil}
 
       target = %AMQPTriggerTarget{
         simple_trigger_id: simple_trigger_id,
@@ -249,16 +285,9 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandlerTest do
         routing_key: @routing_key
       }
 
-      TriggersHandler.incoming_data(
-        target,
-        @realm,
-        @device_id,
-        @interface,
-        @path,
-        @bson_value,
-        timestamp,
-        nil
-      )
+      register_target(:on_incoming_data, target)
+
+      TriggersHandler.incoming_data(context)
 
       assert_receive {:event, payload, meta}
 
@@ -297,7 +326,7 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandlerTest do
       parent_trigger_id = :uuid.get_v4()
       static_header_key = "important_metadata_incoming_introspection"
       static_header_value = "test_meta_incoming_introspection"
-      static_headers = [{static_header_key, static_header_value}]
+      static_headers = %{static_header_key => static_header_value}
       timestamp = get_timestamp()
 
       target = %AMQPTriggerTarget{
@@ -307,13 +336,14 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandlerTest do
         routing_key: @routing_key
       }
 
+      register_target(:on_incoming_introspection, target)
+
       TriggersHandler.incoming_introspection(
-        target,
         @realm,
-        @device_id,
+        @decoded_device_id,
+        [],
         @introspection,
-        timestamp,
-        nil
+        timestamp
       )
 
       assert_receive {:event, payload, meta}
@@ -346,7 +376,7 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandlerTest do
       parent_trigger_id = :uuid.get_v4()
       static_header_key = "important_metadata_incoming_introspection"
       static_header_value = "test_meta_incoming_introspection"
-      static_headers = [{static_header_key, static_header_value}]
+      static_headers = %{static_header_key => static_header_value}
       timestamp = get_timestamp()
 
       target = %AMQPTriggerTarget{
@@ -356,13 +386,14 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandlerTest do
         routing_key: @routing_key
       }
 
+      register_target(:on_incoming_introspection, target)
+
       TriggersHandler.incoming_introspection(
-        target,
         @realm,
-        @device_id,
+        @decoded_device_id,
+        [],
         @introspection,
-        timestamp,
-        nil
+        timestamp
       )
 
       assert_receive {:event, payload, meta}
@@ -392,7 +423,7 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandlerTest do
       parent_trigger_id = :uuid.get_v4()
       static_header_key = "important_metadata_interface_added"
       static_header_value = "test_meta_interface_added"
-      static_headers = [{static_header_key, static_header_value}]
+      static_headers = %{static_header_key => static_header_value}
       timestamp = get_timestamp()
 
       target = %AMQPTriggerTarget{
@@ -402,15 +433,16 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandlerTest do
         routing_key: @routing_key
       }
 
+      register_target(:on_interface_added, target)
+
       TriggersHandler.interface_added(
-        target,
         @realm,
-        @device_id,
+        @decoded_device_id,
+        [],
         @interface,
         @major_version,
         @minor_version,
-        timestamp,
-        nil
+        timestamp
       )
 
       assert_receive {:event, payload, meta}
@@ -443,7 +475,7 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandlerTest do
       parent_trigger_id = :uuid.get_v4()
       static_header_key = "important_metadata_interface_minor_updated"
       static_header_value = "test_meta_interface_minor_updated"
-      static_headers = [{static_header_key, static_header_value}]
+      static_headers = %{static_header_key => static_header_value}
       timestamp = get_timestamp()
 
       target = %AMQPTriggerTarget{
@@ -453,19 +485,20 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandlerTest do
         routing_key: @routing_key
       }
 
+      register_target(:on_interface_minor_updated, target)
+
       old_minor_version = @minor_version
       new_minor_version = @minor_version + 2
 
       TriggersHandler.interface_minor_updated(
-        target,
         @realm,
-        @device_id,
+        @decoded_device_id,
+        [],
         @interface,
         @major_version,
         old_minor_version,
         new_minor_version,
-        timestamp,
-        nil
+        timestamp
       )
 
       assert_receive {:event, payload, meta}
@@ -499,7 +532,7 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandlerTest do
       parent_trigger_id = :uuid.get_v4()
       static_header_key = "important_metadata_interface_removed"
       static_header_value = "test_meta_interface_removed"
-      static_headers = [{static_header_key, static_header_value}]
+      static_headers = %{static_header_key => static_header_value}
       timestamp = get_timestamp()
 
       target = %AMQPTriggerTarget{
@@ -509,14 +542,15 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandlerTest do
         routing_key: @routing_key
       }
 
+      register_target(:on_interface_removed, target)
+
       TriggersHandler.interface_removed(
-        target,
         @realm,
-        @device_id,
+        @decoded_device_id,
+        [],
         @interface,
         @major_version,
-        timestamp,
-        nil
+        timestamp
       )
 
       assert_receive {:event, payload, meta}
@@ -548,8 +582,9 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandlerTest do
       parent_trigger_id = :uuid.get_v4()
       static_header_key = "important_metadata_path_created"
       static_header_value = "test_meta_path_created"
-      static_headers = [{static_header_key, static_header_value}]
+      static_headers = %{static_header_key => static_header_value}
       timestamp = get_timestamp()
+      context = default_context(timestamp)
 
       target = %AMQPTriggerTarget{
         simple_trigger_id: simple_trigger_id,
@@ -558,15 +593,11 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandlerTest do
         routing_key: @routing_key
       }
 
+      register_target(:on_path_created, target)
+
       TriggersHandler.path_created(
-        target,
-        @realm,
-        @device_id,
-        @interface,
-        @path,
-        @bson_value,
-        timestamp,
-        nil
+        context,
+        @bson_value
       )
 
       assert_receive {:event, payload, meta}
@@ -606,8 +637,9 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandlerTest do
       parent_trigger_id = :uuid.get_v4()
       static_header_key = "important_metadata_path_removed"
       static_header_value = "test_meta_path_removed"
-      static_headers = [{static_header_key, static_header_value}]
+      static_headers = %{static_header_key => static_header_value}
       timestamp = get_timestamp()
+      context = default_context(timestamp)
 
       target = %AMQPTriggerTarget{
         simple_trigger_id: simple_trigger_id,
@@ -616,7 +648,9 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandlerTest do
         routing_key: @routing_key
       }
 
-      TriggersHandler.path_removed(target, @realm, @device_id, @interface, @path, timestamp, nil)
+      register_target(:on_path_removed, target)
+
+      TriggersHandler.path_removed(context)
 
       assert_receive {:event, payload, meta}
 
@@ -654,10 +688,11 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandlerTest do
       parent_trigger_id = :uuid.get_v4()
       static_header_key = "important_metadata_value_change"
       static_header_value = "test_meta_value_change"
-      static_headers = [{static_header_key, static_header_value}]
+      static_headers = %{static_header_key => static_header_value}
       old_bson_value = %{v: 41} |> Cyanide.encode!()
       new_bson_value = %{v: 42} |> Cyanide.encode!()
       timestamp = get_timestamp()
+      context = %{default_context(timestamp) | value: 42}
 
       target = %AMQPTriggerTarget{
         simple_trigger_id: simple_trigger_id,
@@ -666,17 +701,8 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandlerTest do
         routing_key: @routing_key
       }
 
-      TriggersHandler.value_change(
-        target,
-        @realm,
-        @device_id,
-        @interface,
-        @path,
-        old_bson_value,
-        new_bson_value,
-        timestamp,
-        nil
-      )
+      register_target(:on_value_change, target)
+      TriggersHandler.value_change(context, old_bson_value, new_bson_value)
 
       assert_receive {:event, payload, meta}
 
@@ -716,10 +742,11 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandlerTest do
       parent_trigger_id = :uuid.get_v4()
       static_header_key = "important_metadata_value_change_applied"
       static_header_value = "test_meta_value_change_applied"
-      static_headers = [{static_header_key, static_header_value}]
+      static_headers = %{static_header_key => static_header_value}
       old_bson_value = %{v: 41} |> Cyanide.encode!()
       new_bson_value = %{v: 42} |> Cyanide.encode!()
       timestamp = get_timestamp()
+      context = %{default_context(timestamp) | value: 42}
 
       target = %AMQPTriggerTarget{
         simple_trigger_id: simple_trigger_id,
@@ -728,17 +755,8 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandlerTest do
         routing_key: @routing_key
       }
 
-      TriggersHandler.value_change_applied(
-        target,
-        @realm,
-        @device_id,
-        @interface,
-        @path,
-        old_bson_value,
-        new_bson_value,
-        timestamp,
-        nil
-      )
+      register_target(:on_value_change_applied, target)
+      TriggersHandler.value_change_applied(context, old_bson_value, new_bson_value)
 
       assert_receive {:event, payload, meta}
 
@@ -787,15 +805,16 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandlerTest do
       end)
     end
 
-    test "HTTP trigger with no policy defaults to default one", %{chan: chan} do
+    test "HTTP trigger with no policy defaults to default one" do
       simple_trigger_id = :uuid.get_v4()
       parent_trigger_id = :uuid.get_v4()
       static_header_key = "important_metadata_value_change_applied"
       static_header_value = "test_meta_value_change_applied"
-      static_headers = [{static_header_key, static_header_value}]
+      static_headers = %{static_header_key => static_header_value}
       old_bson_value = %{v: 41} |> Cyanide.encode!()
       new_bson_value = %{v: 42} |> Cyanide.encode!()
       timestamp = get_timestamp()
+      context = %{default_context(timestamp) | value: 42}
 
       target = %AMQPTriggerTarget{
         simple_trigger_id: simple_trigger_id,
@@ -804,17 +823,8 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandlerTest do
         routing_key: "trigger_engine"
       }
 
-      TriggersHandler.value_change_applied(
-        target,
-        @realm,
-        @device_id,
-        @interface,
-        @path,
-        old_bson_value,
-        new_bson_value,
-        timestamp,
-        nil
-      )
+      register_target(:on_value_change_applied, target, nil)
+      TriggersHandler.value_change_applied(context, old_bson_value, new_bson_value)
 
       assert_receive {:event, payload, meta}
 
@@ -850,15 +860,16 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandlerTest do
       assert Map.get(headers_map, static_header_key) == static_header_value
     end
 
-    test "HTTP trigger with explicit trigger policy is correctly routed", %{chan: chan} do
+    test "HTTP trigger with explicit trigger policy is correctly routed" do
       simple_trigger_id = :uuid.get_v4()
       parent_trigger_id = :uuid.get_v4()
       static_header_key = "important_metadata_value_change_applied"
       static_header_value = "test_meta_value_change_applied"
-      static_headers = [{static_header_key, static_header_value}]
+      static_headers = %{static_header_key => static_header_value}
       old_bson_value = %{v: 41} |> Cyanide.encode!()
       new_bson_value = %{v: 42} |> Cyanide.encode!()
       timestamp = get_timestamp()
+      context = %{default_context(timestamp) | value: 42}
 
       target = %AMQPTriggerTarget{
         simple_trigger_id: simple_trigger_id,
@@ -867,17 +878,8 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandlerTest do
         routing_key: "trigger_engine"
       }
 
-      TriggersHandler.value_change_applied(
-        target,
-        @realm,
-        @device_id,
-        @interface,
-        @path,
-        old_bson_value,
-        new_bson_value,
-        timestamp,
-        @custom_policy_name
-      )
+      register_target(:on_value_change_applied, target, @custom_policy_name)
+      TriggersHandler.value_change_applied(context, old_bson_value, new_bson_value)
 
       assert_receive {:event, payload, meta}
 
@@ -913,15 +915,16 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandlerTest do
       assert Map.get(headers_map, static_header_key) == static_header_value
     end
 
-    test "AMQP trigger has no trigger policy", %{chan: chan} do
+    test "AMQP trigger has no trigger policy" do
       simple_trigger_id = :uuid.get_v4()
       parent_trigger_id = :uuid.get_v4()
       static_header_key = "important_metadata_value_change_applied"
       static_header_value = "test_meta_value_change_applied"
-      static_headers = [{static_header_key, static_header_value}]
+      static_headers = %{static_header_key => static_header_value}
       old_bson_value = %{v: 41} |> Cyanide.encode!()
       new_bson_value = %{v: 42} |> Cyanide.encode!()
       timestamp = get_timestamp()
+      context = %{default_context(timestamp) | value: 42}
 
       target = %AMQPTriggerTarget{
         simple_trigger_id: simple_trigger_id,
@@ -930,17 +933,8 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandlerTest do
         routing_key: @routing_key
       }
 
-      TriggersHandler.value_change_applied(
-        target,
-        @realm,
-        @device_id,
-        @interface,
-        @path,
-        old_bson_value,
-        new_bson_value,
-        timestamp,
-        nil
-      )
+      register_target(:on_value_change_applied, target)
+      TriggersHandler.value_change_applied(context, old_bson_value, new_bson_value)
 
       assert_receive {:event, payload, meta}
 
@@ -997,5 +991,20 @@ defmodule Astarte.DataUpdaterPlant.TriggersHandlerTest do
       end)
 
     consumer_tag
+  end
+
+  defp register_target(event, target, policy \\ nil) do
+    Astarte.Events.Triggers
+    |> Mimic.stub(:find_all_data_trigger_targets, fn %DataTriggerContext{event: ^event} ->
+      [{target, policy}]
+    end)
+    |> Mimic.stub(:find_device_trigger_targets, fn _, _, _, ^event -> [{target, policy}] end)
+    |> Mimic.stub(:find_interface_event_device_trigger_targets, fn _, _, _, ^event, _ ->
+      [{target, policy}]
+    end)
+  end
+
+  defp default_context(timestamp) do
+    %{@default_data_trigger_context | value_timestamp: timestamp}
   end
 end

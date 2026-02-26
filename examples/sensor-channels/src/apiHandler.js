@@ -1,5 +1,5 @@
-import { reverse } from "named-urls";
 import axios from "axios";
+import { reverse } from "named-urls";
 
 const { Socket } = require("phoenix");
 
@@ -39,14 +39,14 @@ export default class ApiHandler {
     const path = reverse(ENDPOINT[endPoint], params);
     return new URL(
       `/appengine/${this.version}/${this.realm}/${path}`,
-      this.endpoint
+      this.endpoint,
     );
   }
 
   getWSUrl() {
     const astarteChannelUrl = new URL(
       `/appengine/${this.version}/socket`,
-      this.endpoint
+      this.endpoint,
     );
     astarteChannelUrl.protocol = "wss:";
     return astarteChannelUrl;
@@ -123,7 +123,7 @@ export default class ApiHandler {
     const room_name = Math.random().toString(36).substring(7);
     const channel = phoenixSocket.channel(
       `rooms:${this.realm}:${device}_${room_name}`,
-      { token: this.token }
+      { token: this.token },
     );
     channel.join().receive("ok", (response) => {
       channel.push("watch", this.getConnectionTriggerPayload(device));
@@ -133,7 +133,7 @@ export default class ApiHandler {
         this.getValueTriggerPayload({
           device,
           interfaceName,
-        })
+        }),
       );
     });
     this.socket = phoenixSocket;

@@ -17,6 +17,13 @@
 #
 
 defmodule Astarte.AppEngine.API.Rooms.AMQPClient do
+  @moduledoc """
+  AMQP client for consuming Room-related events from RabbitMQ.
+
+  This Genserver manages the connection and channel lifecycle, ensuring that 
+  events are consumed from the configured queue and dispatched to the EventsDispatcher.
+  It implements automatic reconnection logic and channel monitoring.
+  """
   require Logger
   use GenServer
 
@@ -28,7 +35,7 @@ defmodule Astarte.AppEngine.API.Rooms.AMQPClient do
   alias Astarte.AppEngine.API.Config
   alias Astarte.AppEngine.API.Rooms.EventsDispatcher
 
-  @connection_backoff 10000
+  @connection_backoff 10_000
   @prefetch_count 300
 
   # API
@@ -148,6 +155,8 @@ defmodule Astarte.AppEngine.API.Rooms.AMQPClient do
          :ok <- Basic.qos(chan, prefetch_count: @prefetch_count),
          :ok <-
            Exchange.declare(chan, Config.rooms_events_routing_key!(), :direct, durable: true),
+         :ok <-
+           Exchange.declare(chan, Config.events_exchange_name!(), :direct, durable: true),
          {:ok, _queue} <- Queue.declare(chan, Config.rooms_events_queue_name!(), durable: true),
          :ok <-
            Queue.bind(
@@ -156,9 +165,9 @@ defmodule Astarte.AppEngine.API.Rooms.AMQPClient do
              Config.events_exchange_name!(),
              routing_key: Config.rooms_events_routing_key!()
            ),
-         {:ok, _consumer_tag} <- Basic.consume(chan, Config.rooms_events_queue_name!()),
-         # Get notifications when the chan or the connection go down
-         Process.monitor(chan.pid) do
+         {:ok, _consumer_tag} <- Basic.consume(chan, Config.rooms_events_queue_name!()) do
+      # Get notifications when the chan or the connection go down
+      Process.monitor(chan.pid)
       {:ok, chan}
     end
   end

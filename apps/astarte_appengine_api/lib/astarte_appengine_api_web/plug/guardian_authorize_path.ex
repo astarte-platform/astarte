@@ -1,4 +1,8 @@
 defmodule Astarte.AppEngine.APIWeb.Plug.GuardianAuthorizePath do
+  @moduledoc """
+  Plug to authorize requests based on path and user authorizations.
+  It performs granular access control with role-based access control using regex matching. 
+  """
   use Plug.Builder
 
   import Plug.Conn
@@ -22,7 +26,7 @@ defmodule Astarte.AppEngine.APIWeb.Plug.GuardianAuthorizePath do
   defp authorize(conn, opts) do
     with %User{authorizations: authorizations} <- AuthGuardian.Plug.current_resource(conn),
          {:ok, auth_path} <- build_auth_path(conn),
-         :ok <- is_path_authorized?(conn.method, auth_path, authorizations) do
+         :ok <- check_path_authorized(conn.method, auth_path, authorizations) do
       conn
     else
       {:error, :invalid_auth_path} ->
@@ -63,15 +67,15 @@ defmodule Astarte.AppEngine.APIWeb.Plug.GuardianAuthorizePath do
     end
   end
 
-  defp is_path_authorized?(method, auth_path, authorizations) when is_list(authorizations) do
+  defp check_path_authorized(method, auth_path, authorizations) when is_list(authorizations) do
     authorized =
       Enum.any?(authorizations, fn auth_string ->
         case get_auth_regex(auth_string) do
           {:ok, {method_regex, path_regex}} ->
             _ =
               Logger.debug(
-                "Checking #{method} against #{inspect(method_regex)} and " <>
-                  "#{auth_path} against #{inspect(path_regex)}."
+                "Checking #{inspect(method)} against #{inspect(method_regex)} and " <>
+                  "#{inspect(auth_path)} against #{inspect(path_regex)}."
               )
 
             Regex.match?(method_regex, method) and Regex.match?(path_regex, auth_path)
@@ -88,7 +92,7 @@ defmodule Astarte.AppEngine.APIWeb.Plug.GuardianAuthorizePath do
     end
   end
 
-  defp is_path_authorized?(method, auth_path, authorizations),
+  defp check_path_authorized(method, auth_path, authorizations),
     do: {:error, {:unauthorized, method, auth_path, authorizations}}
 
   defp get_auth_regex(authorization_string) do

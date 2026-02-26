@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2019 Ispirata Srl
+# Copyright 2019 - 2025 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -17,9 +17,14 @@
 #
 
 defmodule Astarte.AppEngine.API.Stats do
+  @moduledoc """
+  Context module for device statistics.
+
+  This module provides an interface to retrieve metrics about devices in a specific realm.
+  """
   alias Astarte.AppEngine.API.Stats.Queries
 
-  def get_devices_stats(realm) do
-    Queries.get_devices_stats(realm)
+  def get_devices_stats(realm_name) do
+    Queries.for_realm(realm_name)
   end
 end

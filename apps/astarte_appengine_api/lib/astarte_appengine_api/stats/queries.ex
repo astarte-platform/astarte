@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2019 Ispirata Srl
+# Copyright 2019 - 2025 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -17,78 +17,40 @@
 #
 
 defmodule Astarte.AppEngine.API.Stats.Queries do
-  alias Astarte.Core.Realm
+  @moduledoc """
+  Database queries for retrieving statistics about devices in an Astarte realm.
+  This module handles the aggregation of device data, such as total device count and connected device count.
+  """
   alias Astarte.AppEngine.API.Stats.DevicesStats
-  alias Astarte.Core.CQLUtils
-  alias Astarte.AppEngine.API.Config
+  alias Astarte.Core.Device
+  alias Astarte.DataAccess.Consistency
+  alias Astarte.DataAccess.Devices.Device
+  alias Astarte.DataAccess.Realms.Realm
+  alias Astarte.DataAccess.Repo
+
   require Logger
 
-  def get_devices_stats(realm) do
-    Xandra.Cluster.run(:xandra, fn conn ->
-      with {:ok, total_devices_count} <- get_total_devices_count(conn, realm),
-           {:ok, connected_devices_count} <- get_connected_devices_count(conn, realm) do
-        stats = %DevicesStats{
-          total_devices: total_devices_count,
-          connected_devices: connected_devices_count
-        }
+  import Ecto.Query
 
-        {:ok, stats}
-      else
-        {:error, reason} ->
-          _ = Logger.warning("Database error: #{inspect(reason)}.", tag: "db_error")
-          {:error, :database_error}
-      end
-    end)
-  end
+  def for_realm(realm_name) do
+    keyspace = Realm.keyspace_name(realm_name)
 
-  defp get_total_devices_count(conn, realm) do
-    query = """
-    SELECT count(device_id)
-    FROM :keyspace.devices
-    """
+    device_count = Repo.aggregate(Device, :count, prefix: keyspace)
 
-    with {:ok, prepared} <- prepare_with_realm(conn, realm, query),
-         {:ok, %Xandra.Page{} = page} <- Xandra.execute(conn, prepared) do
-      [%{"system.count(device_id)" => count}] = Enum.to_list(page)
-
-      {:ok, count}
-    end
-  end
-
-  defp get_connected_devices_count(conn, realm) do
     # TODO: we should do this via DataUpdaterPlant instead of using ALLOW FILTERING
-    query = """
-    SELECT count(device_id)
-    FROM :keyspace.devices
-    WHERE connected=true
-    ALLOW FILTERING
-    """
+    online_query =
+      from Device,
+        hints: ["ALLOW FILTERING"],
+        prefix: ^keyspace,
+        where: [connected: true]
 
-    with {:ok, prepared} <- prepare_with_realm(conn, realm, query),
-         {:ok, %Xandra.Page{} = page} <- Xandra.execute(conn, prepared, %{}) do
-      [%{"system.count(device_id)" => count}] = Enum.to_list(page)
+    consistency = Consistency.device_info(:read)
 
-      {:ok, count}
-    end
-  end
+    online_count = Repo.aggregate(online_query, :count, consistency: consistency)
 
-  # TODO: copypasted from Groups.Queries, this is going to be moved to Astarte.DataAccess
-  # when we move everything to Xandra
-  defp prepare_with_realm(conn, realm_name, query) do
-    keyspace_name =
-      CQLUtils.realm_name_to_keyspace_name(realm_name, Config.astarte_instance_id!())
-
-    with {:valid, true} <- {:valid, Realm.valid_name?(realm_name)},
-         query_with_keyspace = String.replace(query, ":keyspace", keyspace_name),
-         {:ok, prepared} <- Xandra.prepare(conn, query_with_keyspace) do
-      {:ok, prepared}
-    else
-      {:valid, false} ->
-        {:error, :not_found}
-
-      {:error, reason} ->
-        _ = Logger.warning("Database error: #{inspect(reason)}.", tag: "db_error")
-        {:error, :database_error}
-    end
+    %DevicesStats{
+      total_devices: device_count,
+      connected_devices: online_count
+    }
   end
 end

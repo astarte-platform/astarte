@@ -7,7 +7,7 @@
     ":semanticCommits",
     "helpers:pinGitHubActionDigests"
   ],
-  
+
   "configMigration": true,
   "prCreation": "not-pending",
   "rebaseWhen": "conflicted",
@@ -15,25 +15,25 @@
   "automergeType": "branch",
   "rangeStrategy": "update-lockfile",
   "internalChecksFilter": "strict",
-  
+
   "timezone": "UTC",
   "labels": ["renovate"],
   "separateMajorMinor": true,
   "separateMinorPatch": false,
   "prConcurrentLimit": 2,
   "prHourlyLimit": 0,
-  
+
   "vulnerabilityAlerts": {
     "enabled": true,
     "labels": ["security"],
     "automerge": false
   },
-  
+
   "lockFileMaintenance": {
     "enabled": true,
     "schedule": ["before 9am on the first day of the month"]
   },
-  
+
   "packageRules": [
     {
       "matchUpdateTypes": ["minor", "patch", "pin", "digest"],
@@ -68,8 +68,7 @@
       "groupName": "Elixir dependencies",
       "dependencyDashboardApproval": true,
       "automerge": false,
-      "labels": ["dependencies", "elixir", "major"],
-      
+      "labels": ["dependencies", "elixir", "major"]
     },
     {
       "description": "Automerge GitHub Actions (non-major)",

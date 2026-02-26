@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2019-2023 SECO Mind Srl
+# Copyright 2019-2025 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -17,11 +17,11 @@
 #
 
 defmodule Astarte.AppEngine.APIWeb.DeviceStatusByGroupControllerTest do
-  use Astarte.AppEngine.APIWeb.ConnCase
+  use Astarte.Cases.Conn
 
-  alias Astarte.AppEngine.API.DatabaseTestHelper
-  alias Astarte.AppEngine.API.JWTTestHelper
   alias Astarte.AppEngine.API.Groups
+  alias Astarte.Helpers.Database, as: DatabaseTestHelper
+  alias Astarte.Helpers.JWT, as: JWTTestHelper
 
   @realm "autotestrealm"
   @group_name "mygroup"
@@ -92,14 +92,14 @@ defmodule Astarte.AppEngine.APIWeb.DeviceStatusByGroupControllerTest do
     "attributes" => %{"attribute_key" => "device_a_attribute"},
     "credentials_inhibited" => false,
     "total_received_bytes" => 4_500_000,
-    "total_received_msgs" => 45000,
+    "total_received_msgs" => 45_000,
     "previous_interfaces" => @expected_previous_interfaces,
     "groups" => [@group_name],
     "deletion_in_progress" => false
   }
 
   setup_all do
-    {:ok, _client} = DatabaseTestHelper.create_test_keyspace()
+    DatabaseTestHelper.create_test_keyspace()
 
     on_exit(fn ->
       DatabaseTestHelper.destroy_local_test_keyspace()
@@ -158,10 +158,6 @@ defmodule Astarte.AppEngine.APIWeb.DeviceStatusByGroupControllerTest do
           "aliases" => _,
           "introspection" => _,
           "last_connection" => _,
-          "last_disconnection" => _,
-          "first_registration" => _,
-          "first_credentials_request" => _,
-          "last_credentials_request_ip" => _,
           "attributes" => _,
           "last_seen_ip" => _,
           "credentials_inhibited" => _,

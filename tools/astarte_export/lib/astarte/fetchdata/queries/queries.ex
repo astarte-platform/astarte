@@ -1,26 +1,8 @@
 defmodule Astarte.Export.FetchData.Queries do
-  require IEx
+  alias Astarte.Export.Utilities
   alias Astarte.Core.InterfaceDescriptor
   alias Astarte.Core.Mapping
-  alias Astarte.Core.Device
-
   require Logger
-
-  def get_connection() do
-    host = System.get_env("CASSANDRA_DB_HOST")
-    port = System.get_env("CASSANDRA_DB_PORT")
-    Logger.info("Connecting to #{inspect(host)}:#{inspect(port)} cassandra database.")
-
-    with {:ok, xandra_conn} <- Xandra.start_link(nodes: ["#{host}:#{port}"], atom_keys: true) do
-      Logger.info("Connected to database.")
-      {:ok, xandra_conn}
-    else
-      {:error, reason} ->
-        Logger.error("DB connection setup failed: #{inspect(reason)}",
-          tag: "db_connection_failed"
-        )
-    end
-  end
 
   def retrieve_interface_row(conn, realm, interface, major_version, options) do
     interface_statement = """
@@ -56,31 +38,17 @@ defmodule Astarte.Export.FetchData.Queries do
       interface_row
       |> Enum.to_list()
       |> hd()
+      |> Utilities.map_string_to_atom()
       |> InterfaceDescriptor.from_db_result()
     end
   end
 
-  def stream_devices(conn, realm, options, device_options \\ []) do
-    device_id = device_id_to_uuid(device_options[:device_id])
+  def stream_devices(conn, realm, options) do
+    devices_statement = """
+    SELECT * from #{realm}.devices
+    """
 
-    {devices_statement, params} =
-      case device_id do
-        nil ->
-          {
-            """
-            SELECT * from #{realm}.devices
-            """,
-            []
-          }
-
-        device_uuid ->
-          {
-            """
-            SELECT * from #{realm}.devices WHERE device_id=?
-            """,
-            [{"uuid", device_id}]
-          }
-      end
+    params = []
 
     options = options ++ [uuid_format: :binary, timestamp_format: :datetime]
 
@@ -116,9 +84,10 @@ defmodule Astarte.Export.FetchData.Queries do
       mappings =
         result
         |> Enum.to_list()
+        |> Enum.map(&Utilities.map_string_to_atom/1)
+        |> Enum.map(&Mapping.from_db_result!/1)
 
-      mappings_1 = Enum.map(mappings, &Mapping.from_db_result!/1)
-      {:ok, mappings_1}
+      {:ok, mappings}
     else
       {:error, %Xandra.Error{message: message}} ->
         Logger.error("database error: #{inspect(message)}.", tag: "database_error")
@@ -246,72 +215,5 @@ defmodule Astarte.Export.FetchData.Queries do
 
         {:error, :database_connection_error}
     end
-  end
-
-  def retrieve_all_endpoint_paths(conn, realm, interface_id, device_id, endpoint_id, aggregation) do
-    {all_paths_statement, params} =
-      case aggregation do
-        :object ->
-          {
-            """
-            SELECT path
-            FROM #{realm}.individual_properties
-            WHERE device_id=? AND interface_id=?
-            """,
-            [{"uuid", device_id}, {"uuid", interface_id}]
-          }
-
-        :individual ->
-          {
-            """
-            SELECT path
-            FROM #{realm}.individual_properties
-            WHERE device_id=? AND interface_id=? AND endpoint_id=?
-            """,
-            [{"uuid", device_id}, {"uuid", interface_id}, {"uuid", endpoint_id}]
-          }
-      end
-
-    with {:ok, result} <-
-           Xandra.execute(conn, all_paths_statement, params) do
-      rows = Enum.map(result, fn row -> row[:path] end)
-
-      if rows == [] do
-        Logger.info("No paths found for interface_id: #{inspect(interface_id)}",
-          tag: "no_paths_found"
-        )
-      else
-        {:ok, rows}
-      end
-
-      {:ok, rows}
-    else
-      {:error, %Xandra.Error{message: message}} ->
-        Logger.error("database error: #{inspect(message)}.",
-          realm: realm,
-          device_id: device_id,
-          tag: "database_error"
-        )
-
-        {:error, :database_error}
-
-      {:error, %Xandra.ConnectionError{} = err} ->
-        Logger.error("database connection error: #{inspect(err)}.",
-          realm: realm,
-          device_id: device_id,
-          tag: "database_connection_error"
-        )
-
-        {:error, :database_connection_error}
-    end
-  end
-
-  defp device_id_to_uuid(device_id) when is_nil(device_id) do
-    nil
-  end
-
-  defp device_id_to_uuid(device_id) do
-    {:ok, device_uuid, _} = Device.decode_extended_device_id(device_id)
-    device_uuid
   end
 end

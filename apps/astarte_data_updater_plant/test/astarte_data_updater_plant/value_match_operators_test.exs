@@ -18,7 +18,7 @@
 
 defmodule Astarte.DataUpdaterPlant.ValueMatchOperatorsTest do
   alias Astarte.DataUpdaterPlant.ValueMatchOperators
-  use ExUnit.Case
+  use ExUnit.Case, async: true
 
   test "any match operator matches everything" do
     assert ValueMatchOperators.value_matches?(5, :ANY, nil) == true

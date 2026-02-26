@@ -8,5 +8,5 @@ ReactDOM.render(
   <div>
     <SensorDisplay />
   </div>,
-  document.getElementById("root")
+  document.getElementById("root"),
 );

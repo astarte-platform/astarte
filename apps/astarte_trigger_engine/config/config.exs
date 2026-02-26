@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2017 Ispirata Srl
+# Copyright 2017 - 2025 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -27,6 +27,14 @@ config :astarte_trigger_engine, :amqp_consumer_options,
   virtual_host: "/",
   port: 5672
 
+config :logger, :console,
+  format: "$time $metadata[$level] $message\n",
+  metadata: [
+    :module,
+    :function,
+    :tag
+  ]
+
 config :astarte_trigger_engine, :amqp_events_queue_name, "astarte_events"
 
 config :astarte_trigger_engine, :amqp_events_exchange_name, "astarte_events"
@@ -36,5 +44,7 @@ config :astarte_trigger_engine, :amqp_events_routing_key, "trigger_engine"
 config :astarte_trigger_engine, :events_consumer, Astarte.TriggerEngine.EventsConsumer
 
 config :astarte_trigger_engine, :amqp_adapter, ExRabbitPool.RabbitMQ
+
+config :astarte_trigger_engine, ecto_repos: [Astarte.DataAccess.Repo]
 
 import_config "#{config_env()}.exs"

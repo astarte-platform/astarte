@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2018 Ispirata Srl
+# Copyright 2018 - 2025 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -17,28 +17,20 @@
 #
 
 defmodule Astarte.AppEngine.APIWeb.RoomsChannelTest do
-  use Astarte.AppEngine.APIWeb.ChannelCase
+  use Astarte.Cases.Channel
 
   alias Astarte.AppEngine.API.Auth.RoomsUser
-  alias Astarte.AppEngine.API.DatabaseTestHelper
   alias Astarte.AppEngine.API.Groups
-  alias Astarte.AppEngine.API.JWTTestHelper
   alias Astarte.AppEngine.API.Rooms.EventsDispatcher
   alias Astarte.AppEngine.API.Rooms.Room
   alias Astarte.AppEngine.API.Utils
   alias Astarte.AppEngine.APIWeb.RoomsChannel
   alias Astarte.AppEngine.APIWeb.UserSocket
-
+  alias Astarte.Core.Device
   alias Astarte.Core.Triggers.SimpleEvents.IncomingDataEvent
   alias Astarte.Core.Triggers.SimpleEvents.SimpleEvent
-
-  alias Astarte.RPC.Protocol.DataUpdaterPlant, as: Protocol
-  alias Astarte.RPC.Protocol.DataUpdaterPlant.Call
-  alias Astarte.RPC.Protocol.DataUpdaterPlant.DeleteVolatileTrigger
-  alias Astarte.RPC.Protocol.DataUpdaterPlant.GenericErrorReply
-  alias Astarte.RPC.Protocol.DataUpdaterPlant.GenericOkReply
-  alias Astarte.RPC.Protocol.DataUpdaterPlant.InstallVolatileTrigger
-  alias Astarte.RPC.Protocol.DataUpdaterPlant.Reply
+  alias Astarte.Helpers.Database, as: DatabaseTestHelper
+  alias Astarte.Helpers.JWT, as: JWTTestHelper
 
   import Mox
 
@@ -57,8 +49,6 @@ defmodule Astarte.AppEngine.APIWeb.RoomsChannelTest do
   @group_name "my_group"
   @authorized_group_watch_path "groups/#{@group_name}/#{@interface_exact}#{@path}"
   @authorized_group "groups/#{@group_name}"
-
-  @dup_rpc_destination Protocol.amqp_queue()
 
   @name "testwatch"
 
@@ -81,20 +71,6 @@ defmodule Astarte.AppEngine.APIWeb.RoomsChannelTest do
   @timestamp 1_573_233_693_478
 
   @unauthorized_reason %{reason: "unauthorized"}
-
-  @encoded_generic_ok_reply %Reply{
-                              reply: {:generic_ok_reply, %GenericOkReply{async_operation: false}}
-                            }
-                            |> Reply.encode()
-
-  @error_string "unsupported_interface_aggregation"
-  @encoded_generic_error_reply %Reply{
-                                 error: true,
-                                 reply:
-                                   {:generic_error_reply,
-                                    %GenericErrorReply{error_name: @error_string}}
-                               }
-                               |> Reply.encode()
 
   @event_simple_trigger_id Utils.get_uuid()
   @event_value 1000
@@ -133,6 +109,11 @@ defmodule Astarte.AppEngine.APIWeb.RoomsChannelTest do
     on_exit(fn ->
       DatabaseTestHelper.destroy_local_test_keyspace()
     end)
+
+    Mox.stub_with(
+      Astarte.AppEngine.API.RPC.DataUpdaterPlant.ClientMock,
+      Astarte.AppEngine.API.RPC.DataUpdaterPlant.Client
+    )
 
     :ok
   end
@@ -270,11 +251,9 @@ defmodule Astarte.AppEngine.APIWeb.RoomsChannelTest do
     end
 
     test "fails if RPC replies with an error", %{socket: socket, room_process: room_process} do
-      MockRPCClient
+      Astarte.AppEngine.API.RPC.DataUpdaterPlant.ClientMock
       |> allow(self(), room_process)
-      |> expect(:rpc_call, fn _serialized_call, @dup_rpc_destination ->
-        {:ok, @encoded_generic_error_reply}
-      end)
+      |> expect(:install_volatile_trigger, fn _ -> {:error, :device_does_not_exist} end)
 
       watch_payload = %{
         "device_id" => @device_id,
@@ -283,26 +262,17 @@ defmodule Astarte.AppEngine.APIWeb.RoomsChannelTest do
       }
 
       ref = push(socket, "watch", watch_payload)
-      assert_reply(ref, :error, %{reason: @error_string})
+      assert_reply(ref, :error, %{reason: :device_does_not_exist})
     end
 
     test "succeeds on authorized exact path", %{socket: socket, room_process: room_process} do
-      MockRPCClient
+      Astarte.AppEngine.API.RPC.DataUpdaterPlant.ClientMock
       |> allow(self(), room_process)
-      |> expect(:rpc_call, fn serialized_call, @dup_rpc_destination ->
-        assert %Call{call: {:install_volatile_trigger, %InstallVolatileTrigger{} = install_call}} =
-                 Call.decode(serialized_call)
-
-        assert %InstallVolatileTrigger{
-                 realm_name: @realm,
-                 device_id: @device_id
-               } = install_call
-
-        {:ok, @encoded_generic_ok_reply}
+      |> expect(:install_volatile_trigger, fn volatile_trigger ->
+        assert %{realm_name: @realm, device_id: @device_id} = volatile_trigger
+        :ok
       end)
-      |> stub(:rpc_call, fn _serialized_call, @dup_rpc_destination ->
-        {:ok, @encoded_generic_ok_reply}
-      end)
+      |> expect(:delete_volatile_trigger, fn _ -> :ok end)
 
       watch_payload = %{
         "device_id" => @device_id,
@@ -318,22 +288,13 @@ defmodule Astarte.AppEngine.APIWeb.RoomsChannelTest do
     end
 
     test "fails on duplicate", %{socket: socket, room_process: room_process} do
-      MockRPCClient
+      Astarte.AppEngine.API.RPC.DataUpdaterPlant.ClientMock
       |> allow(self(), room_process)
-      |> expect(:rpc_call, fn serialized_call, @dup_rpc_destination ->
-        assert %Call{call: {:install_volatile_trigger, %InstallVolatileTrigger{} = install_call}} =
-                 Call.decode(serialized_call)
-
-        assert %InstallVolatileTrigger{
-                 realm_name: @realm,
-                 device_id: @device_id
-               } = install_call
-
-        {:ok, @encoded_generic_ok_reply}
+      |> expect(:install_volatile_trigger, fn volatile_trigger ->
+        assert %{realm_name: @realm, device_id: @device_id} = volatile_trigger
+        :ok
       end)
-      |> stub(:rpc_call, fn _serialized_call, @dup_rpc_destination ->
-        {:ok, @encoded_generic_ok_reply}
-      end)
+      |> expect(:delete_volatile_trigger, fn _ -> :ok end)
 
       watch_payload = %{
         "device_id" => @device_id,
@@ -352,22 +313,13 @@ defmodule Astarte.AppEngine.APIWeb.RoomsChannelTest do
     end
 
     test "succeeds on authorized regex path", %{socket: socket, room_process: room_process} do
-      MockRPCClient
+      Astarte.AppEngine.API.RPC.DataUpdaterPlant.ClientMock
       |> allow(self(), room_process)
-      |> expect(:rpc_call, fn serialized_call, @dup_rpc_destination ->
-        assert %Call{call: {:install_volatile_trigger, %InstallVolatileTrigger{} = install_call}} =
-                 Call.decode(serialized_call)
-
-        assert %InstallVolatileTrigger{
-                 realm_name: @realm,
-                 device_id: @device_id
-               } = install_call
-
-        {:ok, @encoded_generic_ok_reply}
+      |> expect(:install_volatile_trigger, fn volatile_trigger ->
+        assert %{realm_name: @realm, device_id: @device_id} = volatile_trigger
+        :ok
       end)
-      |> stub(:rpc_call, fn _serialized_call, @dup_rpc_destination ->
-        {:ok, @encoded_generic_ok_reply}
-      end)
+      |> expect(:delete_volatile_trigger, fn _ -> :ok end)
 
       regex_trigger =
         @data_simple_trigger
@@ -387,49 +339,42 @@ defmodule Astarte.AppEngine.APIWeb.RoomsChannelTest do
       watch_cleanup(socket, @name)
     end
 
-    test "fails on device_trigger with conflicting device_ids", %{socket: socket} do
+    test "the device_id in the request dictates the target", %{socket: socket, room_process: pid} do
+      Astarte.AppEngine.API.RPC.DataUpdaterPlant.ClientMock
+      |> allow(self(), pid)
+      |> expect(:install_volatile_trigger, fn volatile_trigger ->
+        assert %{realm_name: @realm, device_id: @device_id} = volatile_trigger
+        :ok
+      end)
+      |> expect(:delete_volatile_trigger, fn _ -> :ok end)
+
       other_device_id = "0JS2C1qlTiS0JTmUC4vCKQ"
 
       wrong_device_id_trigger =
         @device_simple_trigger
         |> Map.put("device_id", other_device_id)
 
-      conflicting_device_id_payload_1 = %{
+      watch_payload = %{
         "device_id" => @device_id,
         "name" => @name,
         "simple_trigger" => wrong_device_id_trigger
       }
 
-      ref = push(socket, "watch", conflicting_device_id_payload_1)
-      assert_reply(ref, :error, @unauthorized_reason)
+      ref = push(socket, "watch", watch_payload)
+      assert_broadcast("watch_added", _)
+      assert_reply(ref, :ok, %{})
 
-      conflicting_device_id_payload_2 = %{
-        "device_id" => other_device_id,
-        "name" => @name,
-        "simple_trigger" => @device_simple_trigger
-      }
-
-      ref = push(socket, "watch", conflicting_device_id_payload_2)
-      assert_reply(ref, :error, @unauthorized_reason)
+      watch_cleanup(socket, @name)
     end
 
     test "succeeds on authorized device_id", %{socket: socket, room_process: room_process} do
-      MockRPCClient
+      Astarte.AppEngine.API.RPC.DataUpdaterPlant.ClientMock
       |> allow(self(), room_process)
-      |> expect(:rpc_call, fn serialized_call, @dup_rpc_destination ->
-        assert %Call{call: {:install_volatile_trigger, %InstallVolatileTrigger{} = install_call}} =
-                 Call.decode(serialized_call)
-
-        assert %InstallVolatileTrigger{
-                 realm_name: @realm,
-                 device_id: @device_id
-               } = install_call
-
-        {:ok, @encoded_generic_ok_reply}
+      |> expect(:install_volatile_trigger, fn volatile_trigger ->
+        assert %{realm_name: @realm, device_id: @device_id} = volatile_trigger
+        :ok
       end)
-      |> stub(:rpc_call, fn _serialized_call, @dup_rpc_destination ->
-        {:ok, @encoded_generic_ok_reply}
-      end)
+      |> expect(:delete_volatile_trigger, fn _ -> :ok end)
 
       watch_payload = %{
         "device_id" => @device_id,
@@ -448,33 +393,14 @@ defmodule Astarte.AppEngine.APIWeb.RoomsChannelTest do
       socket: socket,
       room_process: room_process
     } do
-      MockRPCClient
+      Astarte.AppEngine.API.RPC.DataUpdaterPlant.ClientMock
       |> allow(self(), room_process)
-      |> expect(:rpc_call, fn serialized_call, @dup_rpc_destination ->
-        assert %Call{call: {:install_volatile_trigger, %InstallVolatileTrigger{} = install_call}} =
-                 Call.decode(serialized_call)
-
-        assert %InstallVolatileTrigger{
-                 realm_name: @realm,
-                 device_id: @grouped_device_id_1
-               } = install_call
-
-        {:ok, @encoded_generic_ok_reply}
+      |> expect(:install_volatile_trigger, 2, fn volatile_trigger ->
+        %{realm_name: @realm, device_id: device_id} = volatile_trigger
+        assert device_id in [@grouped_device_id_1, @grouped_device_id_2]
+        :ok
       end)
-      |> expect(:rpc_call, fn serialized_call, @dup_rpc_destination ->
-        assert %Call{call: {:install_volatile_trigger, %InstallVolatileTrigger{} = install_call}} =
-                 Call.decode(serialized_call)
-
-        assert %InstallVolatileTrigger{
-                 realm_name: @realm,
-                 device_id: @grouped_device_id_2
-               } = install_call
-
-        {:ok, @encoded_generic_ok_reply}
-      end)
-      |> stub(:rpc_call, fn _serialized_call, @dup_rpc_destination ->
-        {:ok, @encoded_generic_ok_reply}
-      end)
+      |> expect(:delete_volatile_trigger, 2, fn _ -> :ok end)
 
       watch_payload = %{
         "group_name" => @group_name,
@@ -525,17 +451,9 @@ defmodule Astarte.AppEngine.APIWeb.RoomsChannelTest do
     end
 
     test "fails if RPC replies with an error", %{socket: socket, room_process: room_process} do
-      MockRPCClient
+      Astarte.AppEngine.API.RPC.DataUpdaterPlant.ClientMock
       |> allow(self(), room_process)
-      |> expect(:rpc_call, fn _serialized_install, @dup_rpc_destination ->
-        {:ok, @encoded_generic_ok_reply}
-      end)
-      |> expect(:rpc_call, fn _serialized_delete, @dup_rpc_destination ->
-        {:ok, @encoded_generic_error_reply}
-      end)
-      |> stub(:rpc_call, fn _serialized_call, @dup_rpc_destination ->
-        {:ok, @encoded_generic_ok_reply}
-      end)
+      |> expect(:install_volatile_trigger, fn _ -> {:error, :device_does_not_exist} end)
 
       watch_payload = %{
         "device_id" => @device_id,
@@ -544,29 +462,14 @@ defmodule Astarte.AppEngine.APIWeb.RoomsChannelTest do
       }
 
       ref = push(socket, "watch", watch_payload)
-      assert_broadcast("watch_added", _)
-      assert_reply(ref, :ok, %{})
-
-      unwatch_payload = %{"name" => @name}
-
-      ref = push(socket, "unwatch", unwatch_payload)
-      assert_reply(ref, :error, %{reason: "unwatch failed"})
-
-      watch_cleanup(socket, @name)
+      assert_reply(ref, :error, %{reason: :device_does_not_exist})
     end
 
     test "succeeds with valid name", %{socket: socket, room_process: room_process} do
-      MockRPCClient
+      Astarte.AppEngine.API.RPC.DataUpdaterPlant.ClientMock
       |> allow(self(), room_process)
-      |> expect(:rpc_call, fn _serialized_install, @dup_rpc_destination ->
-        {:ok, @encoded_generic_ok_reply}
-      end)
-      |> expect(:rpc_call, fn _serialized_delete, @dup_rpc_destination ->
-        {:ok, @encoded_generic_ok_reply}
-      end)
-      |> stub(:rpc_call, fn _serialized_call, @dup_rpc_destination ->
-        {:ok, @encoded_generic_ok_reply}
-      end)
+      |> expect(:install_volatile_trigger, fn _ -> :ok end)
+      |> expect(:delete_volatile_trigger, fn _ -> :ok end)
 
       watch_payload = %{
         "device_id" => @device_id,
@@ -589,38 +492,13 @@ defmodule Astarte.AppEngine.APIWeb.RoomsChannelTest do
       socket: socket,
       room_process: room_process
     } do
-      MockRPCClient
+      Astarte.AppEngine.API.RPC.DataUpdaterPlant.ClientMock
       |> allow(self(), room_process)
-      |> expect(:rpc_call, fn _serialized_install_1, @dup_rpc_destination ->
-        {:ok, @encoded_generic_ok_reply}
-      end)
-      |> expect(:rpc_call, fn _serialized_install_2, @dup_rpc_destination ->
-        {:ok, @encoded_generic_ok_reply}
-      end)
-      |> expect(:rpc_call, fn serialized_call, @dup_rpc_destination ->
-        assert %Call{call: {:delete_volatile_trigger, %DeleteVolatileTrigger{} = delete_call}} =
-                 Call.decode(serialized_call)
-
-        assert %DeleteVolatileTrigger{
-                 realm_name: @realm,
-                 device_id: @grouped_device_id_1
-               } = delete_call
-
-        {:ok, @encoded_generic_ok_reply}
-      end)
-      |> expect(:rpc_call, fn serialized_call, @dup_rpc_destination ->
-        assert %Call{call: {:delete_volatile_trigger, %DeleteVolatileTrigger{} = delete_call}} =
-                 Call.decode(serialized_call)
-
-        assert %DeleteVolatileTrigger{
-                 realm_name: @realm,
-                 device_id: @grouped_device_id_2
-               } = delete_call
-
-        {:ok, @encoded_generic_ok_reply}
-      end)
-      |> stub(:rpc_call, fn _serialized_call, @dup_rpc_destination ->
-        {:ok, @encoded_generic_ok_reply}
+      |> expect(:install_volatile_trigger, 2, fn _ -> :ok end)
+      |> expect(:delete_volatile_trigger, 2, fn delete_trigger ->
+        %{realm_name: @realm, device_id: device_id} = delete_trigger
+        assert device_id in [@grouped_device_id_1, @grouped_device_id_2]
+        :ok
       end)
 
       watch_payload = %{
@@ -647,26 +525,16 @@ defmodule Astarte.AppEngine.APIWeb.RoomsChannelTest do
     test "an event directed towards an unexisting room uninstalls the trigger", %{
       room_process: room_process
     } do
-      MockRPCClient
+      Astarte.AppEngine.API.RPC.DataUpdaterPlant.ClientMock
       |> allow(self(), room_process)
-      |> expect(:rpc_call, fn serialized_call, @dup_rpc_destination ->
-        assert %Call{
-                 call: {
-                   :delete_volatile_trigger,
-                   serialized_delete
-                 }
-               } = Call.decode(serialized_call)
-
-        assert %DeleteVolatileTrigger{
+      |> expect(:delete_volatile_trigger, fn delete_trigger ->
+        assert %{
                  realm_name: @realm,
                  device_id: @device_id,
                  trigger_id: @event_simple_trigger_id
-               } = serialized_delete
+               } = delete_trigger
 
-        {:ok, @encoded_generic_ok_reply}
-      end)
-      |> stub(:rpc_call, fn _serialized_call, @dup_rpc_destination ->
-        {:ok, @encoded_generic_ok_reply}
+        :ok
       end)
 
       unexisting_room_serialized_event =
@@ -681,23 +549,16 @@ defmodule Astarte.AppEngine.APIWeb.RoomsChannelTest do
 
     test "an event for an unwatched trigger uninstalls the trigger and doesn't trigger a broadcast",
          %{room_process: room_process} do
-      MockRPCClient
+      Astarte.AppEngine.API.RPC.DataUpdaterPlant.ClientMock
       |> allow(self(), room_process)
-      |> expect(:rpc_call, fn serialized_call, @dup_rpc_destination ->
-        assert %Call{
-                 call: {
-                   :delete_volatile_trigger,
-                   serialized_delete
-                 }
-               } = Call.decode(serialized_call)
-
-        assert %DeleteVolatileTrigger{
+      |> expect(:delete_volatile_trigger, fn delete_trigger ->
+        assert %{
                  realm_name: @realm,
                  device_id: @device_id,
                  trigger_id: @event_simple_trigger_id
-               } = serialized_delete
+               } = delete_trigger
 
-        {:ok, @encoded_generic_ok_reply}
+        :ok
       end)
 
       %{room_uuid: room_uuid} = :sys.get_state(room_process)
@@ -716,22 +577,13 @@ defmodule Astarte.AppEngine.APIWeb.RoomsChannelTest do
       socket: socket,
       room_process: room_process
     } do
-      MockRPCClient
+      Astarte.AppEngine.API.RPC.DataUpdaterPlant.ClientMock
       |> allow(self(), room_process)
-      |> expect(:rpc_call, fn serialized_call, @dup_rpc_destination ->
-        assert %Call{call: {:install_volatile_trigger, %InstallVolatileTrigger{} = install_call}} =
-                 Call.decode(serialized_call)
-
-        assert %InstallVolatileTrigger{
-                 realm_name: @realm,
-                 device_id: @device_id
-               } = install_call
-
-        {:ok, @encoded_generic_ok_reply}
+      |> expect(:install_volatile_trigger, fn volatile_trigger ->
+        assert %{realm_name: @realm, device_id: @device_id} = volatile_trigger
+        :ok
       end)
-      |> stub(:rpc_call, fn _serialized_call, @dup_rpc_destination ->
-        {:ok, @encoded_generic_ok_reply}
-      end)
+      |> expect(:delete_volatile_trigger, fn _ -> :ok end)
 
       watch_payload = %{
         "device_id" => @device_id,
@@ -776,22 +628,13 @@ defmodule Astarte.AppEngine.APIWeb.RoomsChannelTest do
       socket: socket,
       room_process: room_process
     } do
-      MockRPCClient
+      Astarte.AppEngine.API.RPC.DataUpdaterPlant.ClientMock
       |> allow(self(), room_process)
-      |> expect(:rpc_call, fn serialized_call, @dup_rpc_destination ->
-        assert %Call{call: {:install_volatile_trigger, %InstallVolatileTrigger{} = install_call}} =
-                 Call.decode(serialized_call)
-
-        assert %InstallVolatileTrigger{
-                 realm_name: @realm,
-                 device_id: @device_id
-               } = install_call
-
-        {:ok, @encoded_generic_ok_reply}
+      |> expect(:install_volatile_trigger, fn volatile_trigger ->
+        assert %{realm_name: @realm, device_id: @device_id} = volatile_trigger
+        :ok
       end)
-      |> stub(:rpc_call, fn _serialized_call, @dup_rpc_destination ->
-        {:ok, @encoded_generic_ok_reply}
-      end)
+      |> expect(:delete_volatile_trigger, fn _ -> :ok end)
 
       watch_payload = %{
         "device_id" => @device_id,
@@ -845,9 +688,8 @@ defmodule Astarte.AppEngine.APIWeb.RoomsChannelTest do
   end
 
   defp insert_device_id(device_id) do
-    {:ok, decoded_device_id} = Astarte.Core.Device.decode_device_id(device_id)
-    {:ok, client} = DatabaseTestHelper.connect_to_test_keyspace()
-    DatabaseTestHelper.insert_empty_device(client, decoded_device_id)
+    {:ok, decoded_device_id} = Device.decode_device_id(device_id)
+    DatabaseTestHelper.insert_empty_device(decoded_device_id)
   end
 
   defp room_join_authorized_socket(_context) do

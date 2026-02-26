@@ -17,79 +17,51 @@
 #
 
 defmodule Astarte.TriggerEngine.AMQPConsumer.Queries do
-  alias Astarte.Core.CQLUtils
-  alias Astarte.TriggerEngine.Config
+  @moduledoc """
+  Database queries for AMQP consumer.
+  """
+
+  alias Astarte.DataAccess.Consistency
+  alias Astarte.DataAccess.KvStore
+  alias Astarte.DataAccess.Realms.Realm
+  alias Astarte.DataAccess.Repo
   require Logger
 
+  import Ecto.Query
+
   def list_policies(realm_name) do
-    Xandra.Cluster.run(:xandra, &do_list_policies(&1, realm_name))
-  end
+    keyspace_name = Realm.keyspace_name(realm_name)
 
-  defp do_list_policies(conn, realm_name) do
-    keyspace_name =
-      CQLUtils.realm_name_to_keyspace_name(realm_name, Config.astarte_instance_id!())
+    query =
+      from k in KvStore,
+        prefix: ^keyspace_name,
+        where: k.group == "trigger_policy"
 
-    list_policies_statement =
-      "SELECT * FROM #{keyspace_name}.kv_store WHERE group='trigger_policy';"
+    case Repo.fetch_all(query, consistency: Consistency.domain_model(:read)) do
+      {:ok, policies} ->
+        {:ok, Enum.map(policies, &extract_name_and_data/1)}
 
-    with {:ok, prepared} <-
-           Xandra.prepare(conn, list_policies_statement),
-         {:ok, %Xandra.Page{} = page} <-
-           Xandra.execute(conn, prepared, %{}),
-         policy_list <- Enum.map(page, &extract_name_and_data/1) do
-      {:ok, policy_list}
-    else
-      {:error, %Xandra.Error{} = err} ->
-        _ = Logger.warning("Database error: #{inspect(err)}.", tag: "database_error")
-        {:error, :database_error}
-
-      {:error, %Xandra.ConnectionError{} = err} ->
-        _ =
-          Logger.warning("Database connection error: #{inspect(err)}.",
-            tag: "database_connection_error"
-          )
-
-        {:error, :database_connection_error}
+      {:error, reason} ->
+        _ = Logger.warning("Could not list policies, reason: #{inspect(reason)}")
+        {:error, reason}
     end
   end
 
   def list_realms do
-    Xandra.Cluster.run(:xandra, &do_list_realms/1)
-  end
+    keyspace_name = Realm.astarte_keyspace_name()
 
-  def do_list_realms(conn) do
-    query = """
-    SELECT realm_name
-    FROM #{CQLUtils.realm_name_to_keyspace_name("astarte", Config.astarte_instance_id!())}.realms;
-    """
+    query =
+      from r in Realm,
+        prefix: ^keyspace_name,
+        select: r.realm_name
 
-    case Xandra.execute(conn, query, %{}, consistency: :quorum) do
-      {:ok, %Xandra.Page{} = page} ->
-        {:ok, Enum.map(page, &extract_realm_name/1)}
-
-      {:error, %Xandra.Error{} = err} ->
-        _ =
-          Logger.warning("Database error while listing realms: #{inspect(err)}.",
-            tag: "database_error"
-          )
-
-        {:error, :database_error}
-
-      {:error, %Xandra.ConnectionError{} = err} ->
-        _ =
-          Logger.warning("Database connection error while listing realms: #{inspect(err)}.",
-            tag: "database_connection_error"
-          )
-
-        {:error, :database_connection_error}
+    with {:error, reason} <- Repo.fetch_all(query, consistency: Consistency.domain_model(:read)) do
+      _ = Logger.warning("Could not list realms, reason: #{inspect(reason)}")
+      {:error, reason}
     end
   end
 
-  defp extract_name_and_data(%{"key" => name, "value" => data}) do
+  defp extract_name_and_data(%KvStore{key: name, value: data}) do
     {name, data}
-  end
-
-  defp extract_realm_name(%{"realm_name" => name}) do
-    name
   end
 end

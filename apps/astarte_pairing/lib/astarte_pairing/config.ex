@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2017-2018 Ispirata Srl
+# Copyright 2017-2025 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -18,19 +18,13 @@
 
 defmodule Astarte.Pairing.Config do
   @moduledoc """
-  This module helps the access to the runtime configuration of Astarte Pairing
+  This module contains functions to access the configuration
   """
 
   use Skogsra
 
   alias Astarte.Pairing.CFSSLCredentials
-  alias Astarte.DataAccess.Config, as: DataAccessConfig
-
-  @envdoc "The port where Pairing metrics will be exposed."
-  app_env :port, :astarte_pairing, :port,
-    os_env: "PAIRING_PORT",
-    type: :integer,
-    default: 4000
+  alias Astarte.Pairing.Config.CQExNodes
 
   @envdoc "The external broker URL which should be used by devices."
   app_env :broker_url, :astarte_pairing, :broker_url,
@@ -49,6 +43,12 @@ defmodule Astarte.Pairing.Config do
     os_env: "PAIRING_CA_CERT",
     type: :binary
 
+  @envdoc "A list of {host, port} values of accessible Cassandra nodes in a cqex compliant format"
+  app_env :cqex_nodes, :astarte_pairing, :cqex_nodes,
+    os_env: "CASSANDRA_NODES",
+    type: CQExNodes,
+    default: [{"localhost", 9042}]
+
   def init! do
     if {:ok, nil} == ca_cert() do
       case CFSSLCredentials.ca_cert() do
@@ -61,6 +61,31 @@ defmodule Astarte.Pairing.Config do
     end
   end
 
+  @envdoc """
+  Disables JWT authentication for agent's endpoints. CHANGING IT TO TRUE IS GENERALLY A REALLY BAD IDEA IN A PRODUCTION ENVIRONMENT, IF YOU DON'T KNOW WHAT YOU ARE DOING.
+  """
+  app_env :disable_authentication, :astarte_pairing, :disable_authentication,
+    os_env: "PAIRING_API_DISABLE_AUTHENTICATION",
+    type: :boolean,
+    default: false
+
+  @envdoc """
+  "The handling method for database events. The default is `expose`, which means that the events are exposed trough telemetry. The other possible value, `log`, means that the events are logged instead."
+  """
+  app_env :database_events_handling_method,
+          :astarte_realm_management,
+          :database_events_handling_method,
+          os_env: "DATABASE_EVENTS_HANDLING_METHOD",
+          type: Astarte.Pairing.Config.TelemetryType,
+          default: :expose
+
+  @envdoc """
+  "set the name for the triggers cache, used for caching triggers and avoid constant db access, defaults to 'trigger_cache'"
+  """
+  app_env :trigger_cache_name, :astarte_pairing, :trigger_cache_name,
+    type: :atom,
+    default: :trigger_cache
+
   @doc """
   Returns the cassandra node configuration
   """
@@ -68,17 +93,8 @@ defmodule Astarte.Pairing.Config do
   def cassandra_node!, do: Enum.random(cqex_nodes!())
 
   @doc """
-  Returns Cassandra nodes formatted in the Xandra format.
+  Returns true if the authentication for the agent is disabled.
+  Credential requests made by devices are always authenticated, even it this is true.
   """
-  defdelegate xandra_nodes, to: DataAccessConfig
-  defdelegate xandra_nodes!, to: DataAccessConfig
-
-  defdelegate cqex_nodes, to: DataAccessConfig
-  defdelegate cqex_nodes!, to: DataAccessConfig
-
-  defdelegate xandra_options!, to: DataAccessConfig
-  defdelegate cqex_options!, to: DataAccessConfig
-
-  defdelegate astarte_instance_id!, to: DataAccessConfig
-  defdelegate astarte_instance_id, to: DataAccessConfig
+  def authentication_disabled?, do: disable_authentication!()
 end

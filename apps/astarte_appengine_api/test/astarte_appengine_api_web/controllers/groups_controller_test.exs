@@ -18,15 +18,15 @@
 
 defmodule Astarte.AppEngine.APIWeb.GroupsControllerTest do
   use ExUnitProperties
-  use Astarte.AppEngine.APIWeb.ConnCase
+  use Astarte.Cases.Conn
 
-  alias Astarte.AppEngine.API.DatabaseTestHelper
-  alias Astarte.AppEngine.API.JWTTestHelper
   alias Astarte.AppEngine.API.Device
   alias Astarte.AppEngine.API.Device.DevicesList
   alias Astarte.AppEngine.API.Device.DeviceStatus
   alias Astarte.AppEngine.API.Groups
   alias Astarte.AppEngine.API.GroupTestGenerator
+  alias Astarte.Helpers.Database, as: DatabaseTestHelper
+  alias Astarte.Helpers.JWT, as: JWTTestHelper
 
   @realm "autotestrealm"
   @group_name "mygroup"
@@ -37,7 +37,7 @@ defmodule Astarte.AppEngine.APIWeb.GroupsControllerTest do
   @device_id_in_group "olFkumNuZ_J0f_d6-8XCDg"
 
   setup_all do
-    {:ok, _client} = DatabaseTestHelper.create_test_keyspace()
+    DatabaseTestHelper.create_test_keyspace()
 
     on_exit(fn ->
       DatabaseTestHelper.destroy_local_test_keyspace()
@@ -58,7 +58,7 @@ defmodule Astarte.AppEngine.APIWeb.GroupsControllerTest do
   end
 
   describe "index" do
-    test "returns 403 on unexisting realm", %{conn: conn} do
+    test "returns 401 on unexisting realm", %{conn: conn} do
       conn = get(conn, groups_path(conn, :index, "unexisting"))
 
       assert json_response(conn, 401)["errors"] == %{"detail" => "Invalid JWT token"}
@@ -278,7 +278,7 @@ defmodule Astarte.AppEngine.APIWeb.GroupsControllerTest do
       assert json_response(conn, 404)["errors"]["detail"] == "Device not found"
     end
 
-    test "succesfully delete device", %{conn: conn} do
+    test "successfully delete device", %{conn: conn} do
       delete_conn =
         delete(
           conn,

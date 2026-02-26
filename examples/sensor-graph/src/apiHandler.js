@@ -1,5 +1,5 @@
-import { reverse } from "named-urls";
 import axios from "axios";
+import { reverse } from "named-urls";
 
 export const constant = {
   ID: "id",
@@ -18,8 +18,7 @@ const Endpoint = {
   interface_by_alias: "devices/:device_alias/interfaces/:interface/",
   interface_by_id: "devices/:device_id/interfaces/:interface/",
   interface_id_path: "devices/:device_id/interfaces/:interface/:path/value",
-  interface_alias_path:
-    "devices/:device_alias/interfaces/:interface/:path/value",
+  interface_alias_path: "devices/:device_alias/interfaces/:interface/:path/value",
 };
 
 function getAPIUrl(endPoint, params = null) {
@@ -48,10 +47,10 @@ export const getDeviceDataById = (id, params = {}) => {
       const data = response.data.data;
       const interfaces = Object.keys(data.introspection);
       const availableIndex = interfaces.findIndex(
-        (key) => key.search(constant.AVAILABLE_SENSORS) > -1
+        (key) => key.search(constant.AVAILABLE_SENSORS) > -1,
       );
       const valueIndex = interfaces.findIndex(
-        (key) => key.search(constant.VALUES) > -1
+        (key) => key.search(constant.VALUES) > -1,
       );
       return Promise.resolve({ valueIndex, availableIndex, interfaces });
     })
@@ -66,10 +65,10 @@ export const getDeviceDataByAlias = (alias, params = {}) => {
       const data = response.data.data;
       const interfaces = Object.keys(data.introspection);
       const availableIndex = interfaces.findIndex(
-        (key) => key.search(constant.AVAILABLE_SENSORS) > -1
+        (key) => key.search(constant.AVAILABLE_SENSORS) > -1,
       );
       const valueIndex = interfaces.findIndex(
-        (key) => key.search(constant.VALUES) > -1
+        (key) => key.search(constant.VALUES) > -1,
       );
       return Promise.resolve({ valueIndex, availableIndex, interfaces });
     })

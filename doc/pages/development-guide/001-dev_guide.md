@@ -59,7 +59,7 @@ The development system only requires _docker_ and _docker compose_ to be install
 The development containers will already have the necessary add-ons to optimise the work.
 
 > [!NOTE]
-> When using dev containers, it is only possible to work on Astarte  [apps](https://www.github.com/astarte-platform/astarte), with the main requirement that all the Astarte containers must  be started.
+> When using dev containers, it is only possible to work on Astarte [apps](https://www.github.com/astarte-platform/astarte), with the main requirement that all the Astarte containers must be started.
 > If you want to work on the other tools or libraries (e.g. [Astarte Core](https://github.com/astarte-platform/astarte_core)), you must use another set-up method.
 
 ### Host with Elixir installed
@@ -69,12 +69,14 @@ In order to install and manage Elixir (and Erlang), we recommend using either th
 #### Using asdf
 
 From inside the main Astarte directory, install the Elixir and Erlang asdf plugins
+
 ```bash
 asdf plugin add erlang
 asdf plugin add elixir
 ```
 
 Then install Elang/OTP and Elixir with
+
 ```bash
 asdf install
 ```
@@ -82,6 +84,7 @@ asdf install
 #### Using nix
 
 From inside the main Astarte directory, just run
+
 - `nix develop`, if you are using flakes
 - `nix-shell`, if not
 
@@ -118,32 +121,39 @@ Refer to the following ["Testing a single component"](#testing-a-single-componen
 
 In general, you will have to bring up a RabbitMQ and a Scylla instance (not all services need both: API services will not need access to the database).
 You can do so by running
+
 ```bash
 docker run --rm -p 5672:5672 -p 15672:15672 rabbitmq:management
 docker run --rm -p 9042:9042 scylladb/scylla
 ```
 
 Then, you can run test in the component directory with
+
 ```bash
 RABBITMQ_HOST=localhost CASSANDRA_NODES=localhost mix test --exclude wip
 ```
 
 > [!NOTE]
 > Some services are a bit special (for now!) and might need a little more setup for testing.
+>
 > - AppEngine API needs the AMQP exchange `astarte_events` to be declared:
-> after having started RabbitMQ, run the following lines to declare it:
->  ```bash
->   docker exec $RABBITMQ_CONTAINER_NAME rabbitmqadmin declare exchange name=astarte_events type=direct
->  ```
+>   after having started RabbitMQ, run the following lines to declare it:
+>
+> ```bash
+> docker exec $RABBITMQ_CONTAINER_NAME rabbitmqadmin declare exchange name=astarte_events type=direct
+> ```
 
 > - Pairing needs a CFSSL instance available and exposed on port 8080: you can run
->  ```bash
->  docker run --net=host -p 8080/tcp ispirata/docker-alpine-cfssl-autotest:astarte
->  ```
+>
+> ```bash
+> docker run --net=host -p 8080/tcp ispirata/docker-alpine-cfssl-autotest:astarte
+> ```
+>
 > and then test using
->  ```bash
->  RABBITMQ_HOST=localhost CASSANDRA_NODES=localhost CFSSL_API_URL=http://localhost:8080 mix test --exclude wip
->  ```
+>
+> ```bash
+> RABBITMQ_HOST=localhost CASSANDRA_NODES=localhost CFSSL_API_URL=http://localhost:8080 mix test --exclude wip
+> ```
 
 ## Ok, I made changes, what now?
 
@@ -161,6 +171,7 @@ You can do so just by running `docker compose up -d` in the main Astarte directo
 You can rebuild the service you’re working on with `docker compose build $SERVICE_NAME`,
 or edit the `docker-compose.yml` file to change the service image name.
 The first time you're running Astarte, you will have to run
+
 ```bash
 docker run -v $(pwd)/compose:/compose astarte/docker-compose-initializer:snapshot
 ```
@@ -168,6 +179,7 @@ docker run -v $(pwd)/compose:/compose astarte/docker-compose-initializer:snapsho
 in order to set up the Housekeeping keypair, the devices root CA and a certificate for the broker.
 
 Then, you can use the following commands to manage Astarte services:
+
 - `docker compose up -d` starts all containers in detached mode
 - `docker compose down $SERVICE_NAME -v` stops and cleans the service you’re working on
 - `docker compose up $SERVICE_NAME --build` rebuilds the service and restarts it. If you don’t need to tail logs, you may add `-d`
@@ -177,26 +189,26 @@ Then, you can use the following commands to manage Astarte services:
 Now, some commands you might find helpful to set up a realm:
 
 - Create a realm keypair:
-`astartectl utils gen-keypair $REALM_NAME`
+  `astartectl utils gen-keypair $REALM_NAME`
 - Create a Realm:
-`astartectl housekeeping realms create $REALM_NAME -u http://api.astarte.localhost --housekeeping-key ./compose/astarte-keys/housekeeping_private.pem --realm-private-key $REALM_PRIVATE_KEY_FILE`
+  `astartectl housekeeping realms create $REALM_NAME -u http://api.astarte.localhost --housekeeping-key ./compose/astarte-keys/housekeeping_private.pem --realm-private-key $REALM_PRIVATE_KEY_FILE`
 - Install a list of Interfaces in a Realm:
-`astartectl realm-management interfaces sync $(find $INTERFACE_DIRECTORY -name '*.json') -u http://api.astarte.localhost -r $REALM_NAME -k $REALM_PRIVATE_KEY_FILE`
-- Create a JWT wth claims on AppEngine, Pairing and RealmManagement APIs:
-`astartectl utils gen-jwt all-realm-apis -k $REALM_PRIVATE_KEY_FILE`
+  `astartectl realm-management interfaces sync $(find $INTERFACE_DIRECTORY -name '*.json') -u http://api.astarte.localhost -r $REALM_NAME -k $REALM_PRIVATE_KEY_FILE`
+- Create a JWT with claims on AppEngine, Pairing and RealmManagement APIs:
+  `astartectl utils gen-jwt all-realm-apis -k $REALM_PRIVATE_KEY_FILE`
 - Start a virtual device:
-`docker run --net="host" -e "DEVICE_ID=$(astartectl utils device-id generate-random)" -e "PAIRING_URL=http://api.astarte.localhost/pairing" -e "REALM=$REALM_NAME" -e "PAIRING_JWT=$(astartectl utils gen-jwt pairing -k $REALM_PRIVATE_KEY_FILE)" -e "IGNORE_SSL_ERRORS=true" astarte/astarte-stream-qt5-test:1.0.4`
-    - In this case, two interfaces need to be already installed in your realm: `org.astarte-platform.genericsensors.Values` and `org.astarte-platform.genericcommands.ServerCommands`
-    - You can find them in the `standard-interfaces` directory in the Astarte repo
+  `docker run --net="host" -e "DEVICE_ID=$(astartectl utils device-id generate-random)" -e "PAIRING_URL=http://api.astarte.localhost/pairing" -e "REALM=$REALM_NAME" -e "PAIRING_JWT=$(astartectl utils gen-jwt pairing -k $REALM_PRIVATE_KEY_FILE)" -e "IGNORE_SSL_ERRORS=true" astarte/astarte-stream-qt5-test:1.0.4`
+  - In this case, two interfaces need to be already installed in your realm: `org.astarte-platform.genericsensors.Values` and `org.astarte-platform.genericcommands.ServerCommands`
+  - You can find them in the `standard-interfaces` directory in the Astarte repo
 
 ### Sending data from Astarte to a device
 
 Using `astartectl` you can send messages to a device. For example:
 
 - Publish a (server-owned) datastream:
-`astartectl appengine devices publish-datastream $DEVICE_ID $SERVER_OWNED_DATASTREAM_INTERFACE $PATH $VALUE -r $REALM_NAME -k $REALM_PRIVATE_KEY_FILE -u "http://api.astarte.localhost/"`
+  `astartectl appengine devices publish-datastream $DEVICE_ID $SERVER_OWNED_DATASTREAM_INTERFACE $PATH $VALUE -r $REALM_NAME -k $REALM_PRIVATE_KEY_FILE -u "http://api.astarte.localhost/"`
 - Set a (server-owned) property:
-`astartectl appengine devices set-property $DEVICE_ID $SERVER_OWNED_PROPERTY_INTERFACE $PATH $VALUE -r $REALM_NAME -k $REALM_PRIVATE_KEY_FILE -u "http://api.astarte.localhost/"`
+  `astartectl appengine devices set-property $DEVICE_ID $SERVER_OWNED_PROPERTY_INTERFACE $PATH $VALUE -r $REALM_NAME -k $REALM_PRIVATE_KEY_FILE -u "http://api.astarte.localhost/"`
 
 ## Virtual devices
 

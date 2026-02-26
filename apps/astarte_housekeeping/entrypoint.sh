@@ -1,7 +1,8 @@
 #!/bin/bash
+
 set -e
 
-./astarte-service eval Elixir.Astarte.Housekeeping.ReleaseTasks.init_database
-./astarte-service eval Elixir.Astarte.Housekeeping.ReleaseTasks.migrate
+./bin/astarte_housekeeping eval Elixir.Astarte.Housekeeping.ReleaseTasks.init_database
+./bin/astarte_housekeeping eval Elixir.Astarte.Housekeeping.ReleaseTasks.migrate
 
-exec $@
+exec ./bin/astarte_housekeeping $@

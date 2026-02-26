@@ -1,89 +1,70 @@
-FROM --platform=${BUILDPLATFORM} hexpm/elixir:1.15.7-erlang-26.1-debian-bookworm-20230612-slim as base
+FROM hexpm/elixir:1.15.7-erlang-26.1-debian-bookworm-20230612-slim AS builder
 
 # install build dependencies
 # --allow-releaseinfo-change allows to pull from 'oldstable'
 RUN apt-get update --allow-releaseinfo-change -y && \
-    apt-get install -y \
-    build-essential \
-    git \
-    openssl \
-    ca-certificates \
-    inotify-tools && \
+    apt-get install -y build-essential git --no-install-recommends && \
     apt-get clean && \
-    rm -f /var/lib/apt/lists/*_*
+    rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
 
 # Install hex
 RUN mix local.hex --force && \
     mix local.rebar --force && \
     mix hex.info
 
-WORKDIR /src
-
-FROM base as deps
-
+# Pass --build-arg BUILD_ENV=dev to build a dev image
 ARG BUILD_ENV=prod
+ARG SERVICE
 
-ENV MIX_ENV=${BUILD_ENV}
+ENV MIX_ENV=$BUILD_ENV
+ENV ASTARTE_LIBRARIES_PATH=libraries
 
 # Cache elixir deps
-ADD mix.exs mix.lock ./
-RUN mix do deps.get --only ${MIX_ENV}, deps.compile
+COPY apps/$SERVICE/mix.exs ./
+COPY apps/$SERVICE/mix.lock ./
+COPY libs/astarte_data_access/mix.exs libraries/astarte_data_access/mix.exs
+COPY libs/astarte_data_access/mix.lock libraries/astarte_data_access/mix.lock
+COPY libs/astarte_events/mix.exs libraries/astarte_events/mix.exs
+COPY libs/astarte_events/mix.lock libraries/astarte_events/mix.lock
+COPY libs/astarte_rpc/mix.exs libraries/astarte_rpc/mix.exs
+COPY libs/astarte_rpc/mix.lock libraries/astarte_rpc/mix.lock
+RUN mix do deps.get, deps.compile --skip-local-deps
 
-FROM deps as builder
-
-ENV MIX_ENV=${BUILD_ENV}
+COPY libs ./libraries
+RUN mix deps.compile
 
 # Add all the rest
-ADD . .
-ENTRYPOINT [ "/bin/sh", "-c" ]
-# ------------------------
-# Only for production
-FROM builder as release
+COPY apps/$SERVICE .
 
-ENV MIX_ENV=${BUILD_ENV}
-
-COPY --from=builder /src .
-
-WORKDIR /src
+# Build and release
 RUN mix do compile, release
 
-RUN mkdir -p /rel && \
-    cp -r _build/$BUILD_ENV/rel /rel
-# Check if entrypoint.sh exists,
-# otherwise a default script is created
-RUN if [ -f "./entrypoint.sh" ]; then \
-    cp ./entrypoint.sh /rel/entrypoint.sh; \
-    else \
-    echo '#!/bin/bash' >> /rel/entrypoint.sh; \
-    echo exec \$@ >> /rel/entrypoint.sh; \
-    fi; \
-    chmod +x /rel/entrypoint.sh
-
-# Note: it is important to keep Debian versions in sync, 
-# or incompatibilities between libcrypto will happen
-FROM --platform=${BUILDPLATFORM} debian:bookworm-slim
-
-# Set the locale
-ENV LANG C.UTF-8
-
-# We need SSL
-RUN apt-get -qq update -y && \
-    apt-get -qq install \
-    openssl \
-    ca-certificates \
-    && apt-get clean \
-    && rm -f /var/lib/apt/lists/*_*
+# Note: it is important to keep Debian versions in sync, or incompatibilities between libcrypto will happen
+FROM debian:bookworm-20230612-slim
 
 WORKDIR /app
 
-COPY --from=release --chown=nobody:nobody /rel/* .
+RUN chown -R nobody:nogroup /app
 
-# Symlink to the service, to make a single entry point 
-# for all the apps
-RUN APP_NAME=$(ls | head -n 1) && \
-    ln -s ${APP_NAME}/bin/${APP_NAME} astarte-service 
+# Set the locale
+ENV LANG=C.UTF-8
 
+# We need SSL
+RUN apt-get update -y && \
+    apt-get install openssl ca-certificates -y --no-install-recommends && \
+    rm -rf /var/lib/apt/lists/*
+
+# We have to redefine this here since it goes out of scope for each build stage
+ARG BUILD_ENV=prod
+ARG SERVICE
+
+COPY --from=builder --chown=nobody:nogroup /app/_build/$BUILD_ENV/rel/$SERVICE .
+COPY --from=builder --chown=nobody:nogroup /app/entrypoint.sh .
+
+# Change to non-root user
 USER nobody
 
-ENTRYPOINT [ "./entrypoint.sh" ]
-CMD ["./astarte-service", "start"]
+ENTRYPOINT ["/bin/bash", "entrypoint.sh"]
+CMD ["start"]

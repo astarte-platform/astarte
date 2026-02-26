@@ -7,16 +7,17 @@ name: Publish snapshot Docker images of Astarte tools
 on:
   push:
     paths:
-    - 'tools/**'
-    - '.github/workflows/publish-tool-snapshot-to-dockerhub-workflow.yaml'
+      - "tools/**"
+      - ".github/workflows/publish-tool-snapshot-to-dockerhub-workflow.yaml"
     branches:
-    - 'master'
-    - 'release-*'
+      - "master"
+      - "release-*"
+  workflow_dispatch:
 
 jobs:
-  push_tool_snapshot_to_registry:
+  build_snapshot:
     name: Push Docker images of Astarte tools to Docker Hub
-    runs-on: ubuntu-22.04
+    runs-on: ${{ matrix.platform.os }}
     permissions:
       packages: write
       contents: read
@@ -25,22 +26,103 @@ jobs:
     strategy:
       fail-fast: true
       matrix:
+        platform:
+          - os: ubuntu-22.04
+            platform: linux/amd64
+            platform-pair: linux-amd64
+          - os: ubuntu-22.04-arm
+            platform: linux/arm64
+            platform-pair: linux-arm64
         app:
-        - astarte_device_fleet_simulator
-        - astarte_e2e
-        - astarte_export
-        - astarte_import
+          - tool: astarte_device_fleet_simulator
+            context: tools/astarte_device_fleet_simulator
+            file: tools/astarte_device_fleet_simulator/Dockerfile
+          - tool: astarte_e2e
+            context: .
+            file: tools/astarte_e2e/Dockerfile
+          - tool: astarte_export
+            context: .
+            file: tools/astarte_export/Dockerfile
+          - tool: astarte_import
+            context: .
+            file: tools/astarte_import/Dockerfile
     steps:
       - name: Check out the repo
         uses: actions/checkout@v4
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@f4ef78c080cd8ba55a85445d5b36e214a81df20a
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Build branch slug env variable (job-scoped)
+        run: |
+          # Slugify branch/tag name for Docker tag safety and consistency
+          echo "BRANCH_SLUG=$(echo "${GITHUB_REF_NAME}" | sha1sum | cut -f 1 -d ' ')" >> $GITHUB_ENV
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build Docker image
+        id: build
+        uses: docker/build-push-action@v6.18.0
+        with:
+          context: ${{ matrix.app.context }}
+          file: ${{ matrix.app.file }}
+          push: true
+          tags: astarte/${{ matrix.app.tool }}
+          platforms: ${{ matrix.platform.platform }}
+          cache-from: type=gha,scope=${{ matrix.app.tool }}-${{ env.BRANCH_SLUG }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.app.tool }}-${{ env.BRANCH_SLUG }}
+          outputs: type=image,push-by-digest=true,name-canonical=true,push=true
+
+      - name: Export digest
+        run: |
+          mkdir -p ${{ runner.temp }}/digests/
+          digest="${{ steps.build.outputs.digest }}"
+          touch "${{ runner.temp }}/digests/${digest#sha256:}"
+
+      - name: Upload digest
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.app.tool }}-digests-${{ matrix.platform.platform-pair }}
+          path: ${{ runner.temp }}/digests/*
+          if-no-files-found: error
+          retention-days: 1
+
+  merge_snapshots:
+    name: Publish snapshot
+    runs-on: ubuntu-22.04
+    needs:
+      - build_snapshot
+    strategy:
+      fail-fast: true
+      matrix:
+        platform:
+          - ubuntu-22.04
+          - ubuntu-22.04-arm
+        app:
+          - astarte_device_fleet_simulator
+          - astarte_e2e
+          - astarte_export
+          - astarte_import
+
+    steps:
+      - name: Download digests
+        uses: actions/download-artifact@v4
+        with:
+          path: ${{ runner.temp }}/digests/
+          pattern: ${{ matrix.app }}-digests-*
+          merge-multiple: true
 
       - name: Get current datetime
         id: datetime
         run: |
           echo "BUILD_DATE=$(date -u +'%Y-%m-%dT%H:%M:%SZ')" >> $GITHUB_OUTPUT
 
-      - name: Log in to Docker Hub
-        uses: docker/login-action@v3.4.0
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
@@ -51,27 +133,21 @@ jobs:
           export TAG="$(echo ${{ github.ref }} | sed 's,refs/heads/,,' | sed 's/master/snapshot/g' | sed 's/release-\(.*\)/\1-snapshot/g' )"
           echo "TAG=$TAG" >> "$GITHUB_OUTPUT"
 
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
       - name: Extract metadata (tags, labels) of Astarte tools for Docker
         id: meta
-        uses: docker/metadata-action@v5.7.0
+        uses: docker/metadata-action@9ec57ed1fcdbf14dcef7dfbe97b2010124a938b7
         with:
           images: |
             astarte/${{ matrix.app }}
           tags: |
             # TODO we probably want something smarter, but the 'pattern' type runs only on tags at the moment
             type=raw,value=${{ steps.compute-tag.outputs.TAG }}
-          labels: |
-            org.opencontainers.image.created=${{ steps.datetime.outputs.BUILD_DATE }}
-            org.opencontainers.image.revision=${{ github.sha }}
-            org.opencontainers.image.source=https://github.com/${{ github.repository }}
 
-      - name: Build and push tagged Docker image of Astarte tools
-        id: push
-        uses: docker/build-push-action@v6.18.0
-        with:
-          context: tools/${{ matrix.app }}
-          file: tools/${{ matrix.app }}/Dockerfile
-          push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
-          annotations: ${{ steps.meta.outputs.labels }}
+      - name: Create manifest list and push
+        working-directory: ${{ runner.temp }}/digests
+        run: |
+          docker buildx imagetools create $(jq -cr '.tags | map("-t " + .) | join(" ")' <<< "$DOCKER_METADATA_OUTPUT_JSON") \
+            $(printf 'astarte/${{ matrix.app }}@sha256:%s ' *)

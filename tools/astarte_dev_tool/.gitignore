@@ -24,6 +24,3 @@ astarte_dev_tool-*.tar
 
 # Temporary files, for example, from tests.
 /tmp/
-
-# Ignore .DS_Store files
-.DS_Store

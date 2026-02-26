@@ -1,31 +1,204 @@
 # Changelog
+
 All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-## [1.3.0] - Unreleased
-### Added
-- [astarte_realm_management_api] Allow to list all interfaces definitions using 
-  the `detailed=true` parameter
+## Unreleased
+
+## Added
+
+- [astarte_realm_management] Allow listing interfaces with mappings using the `detailed=true` parameter
 - [astarte_import] Added support for data types: `doublearray`, `integerarray`,
   `booleanarray`, `longintegerarray`, `stringarray`, `datetimearray`, `binaryblobarray`.
-- [astarte_export] Added a new command for exporting by device_id. 
-  `mix astarte.export $REALM $FILE_XML $DEVICE_ID`
+
+## [1.3.0] - Unreleased
+
+### Changed
+
+- [astarte_housekeeping] AMQP management configuration moved to `astarte_events` library. Environment variables changed:
+  - `HOUSEKEEPING_AMQP_SSL_ENABLED` is now `ASTARTE_EVENTS_AMQP_MANAGEMENT_SSL_ENABLED`
+  - `HOUSEKEEPING_AMQP_SSL_CA_FILE` is now `ASTARTE_EVENTS_AMQP_MANAGEMENT_SSL_CA_FILE`
+  - `HOUSEKEEPING_AMQP_SSL_DISABLE_SNI` is now `ASTARTE_EVENTS_AMQP_MANAGEMENT_SSL_DISABLE_SNI`
+  - `HOUSEKEEPING_AMQP_SSL_CUSTOM_SNI` is now `ASTARTE_EVENTS_AMQP_MANAGEMENT_SSL_CUSTOM_SNI`
+  - `HOUSEKEEPING_AMQP_HOST` is now `ASTARTE_EVENTS_AMQP_MANAGEMENT_HOST`
+  - `HOUSEKEEPING_AMQP_MANAGEMENT_PORT` is now `ASTARTE_EVENTS_AMQP_MANAGEMENT_PORT`
+  - `HOUSEKEEPING_AMQP_USERNAME` is now `ASTARTE_EVENTS_AMQP_MANAGEMENT_USERNAME`
+  - `HOUSEKEEPING_AMQP_PASSWORD` is now `ASTARTE_EVENTS_AMQP_MANAGEMENT_PASSWORD`
+
+## [1.3.0-rc.1] - 2026-01-26
+
+### Added
+
+- New environment variables for trigger notifications between realm management replicas and realm management -> pairing. These variables are currently being used only by realm management
+  - `REALM_MANAGEMENT_CLUSTERING_KUBERNETES_SELECTOR`. The Endpoint label to query to get realm management instances. Defaults to `app=astarte-realm-management`.
+  - `PAIRING_CLUSTERING_KUBERNETES_SELECTOR`. The Endpoint label to query to get pairing instances. Defaults to `app=astarte-pairing`.
+- [astarte_pairing] Cluster with realm management using `CLUSTERING_STRATEGY` and `CLUSTERING_KUBERNETES_NAMESPACE`
+- [astarte_pairing] Add realm-scoped health checks, which can be used to test astarte health or connectivity by devices who are only aware of realm-scoped paths, such as during FDO
+
+### Fixed
+
+- Fix crashes in new ScyllaDB versions
+- [astarte_appengine_api] Volatile trigger requests to Data Updater Plant now properly encode the volatile trigger type
+
+### Changed
+
+- Services now receive trigger installation and deletion notifications, which should reduce the delay between installing the trigger and starting to receive messages
+
+## [1.3.0-rc.0] - 2025-11-21
+
+### Added
+
+- [astarte_housekeeping] support network topology replication strategy for the `astarte` keyspace, with the following env vars:
+  - `HOUSEKEEPING_ASTARTE_KEYSPACE_REPLICATION_STRATEGY` - Replication strategy for the `astarte` keyspace: "SimpleStrategy" or "NetworkTopologyStrategy" (default: "SimpleStrategy")
+  - `HOUSEKEEPING_ASTARTE_KEYSPACE_REPLICATION_FACTOR` - Replication factor when using SimpleStrategy (default: 1)
+  - `HOUSEKEEPING_ASTARTE_KEYSPACE_NETWORK_REPLICATION_MAP` - Datacenter replication map when using NetworkTopologyStrategy (no default, required when using network strategy)
+- Added database events handling configuration across all services:
+  - `DATABASE_EVENTS_HANDLING_METHOD` - Controls how database events are handled: "expose" (via telemetry) or "log" (to logs) (default: "expose")
+- [astarte_pairing] Added device registration triggers
+- [astarte_realm_management] Added device deletion started and device deletion completed triggers
+- Allow devices with empty introspection
+- Devices can now declare support for optional Astarte MQTT v1 features to Astarte via capabilities
+- Support for `purge_properties_compression_format` capability. possible values are `zlib` (default) and `plaintext`
+
+### Changed
+
+- BREAKING: Merged API services into main services, eliminating separate containers:
+  - `astarte-housekeeping-api` merged into `astarte-housekeeping`
+  - `astarte-pairing-api` merged into `astarte-pairing`
+  - `astarte-realm-management-api` merged into `astarte-realm-management`
+- BREAKING: [astarte_housekeeping] Housekeeping now creates an AMQP vhost for each created realm. Some required configuration was introduced:
+  - `HOUSEKEEPING_AMQP_HOST` - AMQP host for housekeeping operations (required in production, defaults to "localhost" in dev/test)
+  - `HOUSEKEEPING_AMQP_SSL_ENABLED` - Enable SSL for AMQP connections (default: false)
+  - `HOUSEKEEPING_AMQP_SSL_CA_FILE` - CA certificate file for AMQP SSL connections (default: bundled cURL certificate bundle)
+  - `HOUSEKEEPING_AMQP_SSL_DISABLE_SNI` - Disable Server Name Indication (default: false)
+  - `HOUSEKEEPING_AMQP_SSL_CUSTOM_SNI` - Custom SNI hostname (defaults to AMQP host if unset)
+  - `HOUSEKEEPING_AMQP_USERNAME` - AMQP username (default: guest)
+  - `HOUSEKEEPING_AMQP_PASSWORD` - AMQP password (default: guest)
+  - `HOUSEKEEPING_AMQP_MANAGEMENT_PORT` - AMQP management API port (default: 15672)
+- BREAKING: [astarte_data_updater_plant] Added a separate the AMQP producer configuration, which is mandatory:
+  - `ASTARTE_EVENTS_PRODUCER_AMQP_HOST` - Host for producer connection (default: "localhost")
+  - `ASTARTE_EVENTS_PRODUCER_AMQP_USERNAME` - Username for producer (default: "guest")
+  - `ASTARTE_EVENTS_PRODUCER_AMQP_PASSWORD` - Password for producer (default: "guest")
+  - `ASTARTE_EVENTS_PRODUCER_AMQP_VIRTUAL_HOST` - Virtual host for internal events (default: "/")
+  - `ASTARTE_EVENTS_PRODUCER_AMQP_PORT` - Port for producer (default: 5672)
+  - `ASTARTE_EVENTS_PRODUCER_AMQP_SSL_ENABLED` - Enable SSL for producer (default: false)
+  - `ASTARTE_EVENTS_PRODUCER_AMQP_SSL_CA_FILE` - CA certificate file for producer SSL (default: bundled cURL certificates)
+  - `ASTARTE_EVENTS_PRODUCER_AMQP_SSL_DISABLE_SNI` - Disable Server Name Indication for producer (default: false)
+  - `ASTARTE_EVENTS_PRODUCER_AMQP_SSL_CUSTOM_SNI` - Custom SNI hostname for producer (falls back to the value of ASTARTE_EVENTS_PRODUCER_AMQP_HOST)
+  - `ASTARTE_EVENTS_PRODUCER_AMQP_CONNECTION_NUMBER` - The number of open connections to RabbitMQ (default: 10)
+  - `ASTARTE_EVENTS_PRODUCER_AMQP_DATA_QUEUE_TOTAL_COUNT` - The total number of data queues in the astarte cluster (default: 128)
+  - `ASTARTE_EVENTS_PRODUCER_AMQP_EVENTS_EXCHANGE_NAME` - The exchange for internal events (default: "astarte_events")
+- BREAKING: AMQP triggers are now always sent to an ad-hoc vhost for each realm. the vhost is `[astarte_instance_id]_[realm_name]`, which under normal circumstances is just `_[realm_name]`
+- BREAKING: [astarte_pairing] AMQP Producer configuration is now mandatory using the `ASTARTE_EVENTS_PRODUCER_AMQP_*` environment variables
+- BREAKING: [astarte_realm_management] AMQP Producer configuration is now mandatory using the `ASTARTE_EVENTS_PRODUCER_AMQP_*` environment variables
+- More accurate health checks for astarte services
+
+### Fixed
+
+- [astarte_data_updater_plant] Do not crash when transient triggers are installed on devices with outdated introspection
+- [astarte_data_updater_plant] Correctly encode values when sending properties to device on connection
+- [astarte_realm_management] Allow to delete long-disconnected devices. For this to work, Realm Management needs `CLUSTERING_STRATEGY`, `CLUSTERING_KUBERNETES_NAMESPACE` and `DATA_UPDATER_PLANT_CLUSTERING_KUBERNETES_SELECTOR` to be set, just like AppEngine and DUP. Refer to 1.2.1-rc.0 for additional information on the variables.
 
 ## [1.2.1] - Unreleased
+
+### Fixed
+
+- [astarte_realm_management] Insufficient validation for conflicting options in interface aggregate mappings
+  [#1072](https://github.com/astarte-platform/astarte/issues/1072)
+
+## [1.2.1-rc.1] - 2026-02-13
+
+- [astarte_realm_management] Bug where devices got stuck in the "in deletion" status: [#1493](https://github.com/astarte-platform/astarte/issues/1493).
+- [astarte_data_updater_plant] Correctly reconnect to AMQP after a connection loss
+- [astarte_data_updater_plant] Fix possible crash when sending data on interface-specific volatile triggers
+
+## [1.2.1-rc.0] - 2025-08-26
+
+### Added
+
+- New environment variables to control how clustering work, needed on AppEngine and DUP.
+  - `CLUSTERING_STRATEGY`. Its possible values are:
+    - `none` (default): the service will not look for other nodes/services.
+    - `docker-compose`: this is meant to work in our docker-compose environment and no additional configuration is needed.
+    - `kubernetes`: other nodes/services are found thanks to kubernetes DNS, and the other variables below are relevant.
+  - `CLUSTERING_KUBERNETES_NAMESPACE`. It states under which namespace the Astarte instance has been deployed. Defaults to `astarte`.
+  - `DATA_UPDATER_PLANT_CLUSTERING_KUBERNETES_SELECTOR`. The Endpoint label to query to get other data updater plant instances. Defaults to `app=astarte-data-updater-plant`.
+  - `VERNEMQ_CLUSTERING_KUBERNETES_SELECTOR`. The Pod label to use to query Kubernetes to find VerneMQ instances. Defaults to `app=astarte-vernemq`.
+  - `VERNEMQ_CLUSTERING_KUBERNETES_SERVICE_NAME`. The Service name to use to query Kubernetes to find VerneMQ instances. Defaults to `astarte-vernemq`.
+
 ### Changed
+
+- Rework RPC between AppEngine and DUP using Erlang's native clustering and
+  message-passing instead of AMQP queues:
+  [#1186](https://github.com/astarte-platform/astarte/pull/1186).
+  Fix [#699](https://github.com/astarte-platform/astarte/issues/699).
+- Rework RPC between AppEngine and VerneMQ using Erlang's native clustering and
+  message-passing instead of AMQP queues:
+  [#1194](https://github.com/astarte-platform/astarte/pull/1194).
+- Rework RPC between DUP and VerneMQ using Erlang's native clustering and
+  message-passing instead of AMQP queues:
+  [#1197](https://github.com/astarte-platform/astarte/pull/1197).
+- Changed the database driver from CQEx (unmantained) to (E)xandra
+- [astarte_trigger_engine] avoid exposing **unknown_fields** in mustache templates
+- [astarte_trigger_engine] properly handle incoming introspection events
+
+### Fixed
+
+- avoid leaving dangling device deletion entries
+- [astarte_appengine_api] fix a crash on invalid object update values
+- [astarte_appengine_api] fix a crash with empty result and `disjoint_tables` format for object aggregates
+- [astarte_appengine_api] Create needed AMQP exchanges instead of crashing
+- [astarte_appengine_api] Handle unset of properties which don't allow being unset
+- [astarte_data_updater_plant] fix a crash when performing updates of deleted values
+- [astarte_data_updater_plant] Fix a crash while handling device introspection
+- [astarte_data_updater_plant] Fix DataUpdater GenServer timeout handling that prevented inactive processes to shut down automatically.
+- [astarte_data_updater_plant] Handle unset of properties which don't allow being unset
+- [astarte_data_updater_plant] properly discard heartbeat messages when discarding messages
+- [astarte_data_updater_plant] Properly reconnect to RabbitMQ in case of disconnection
+- [astarte_data_updater_plant] Some queries had the `astarte_instance_id` applied twice
+- [astarte_realm_management] avoid crashing on interface list
+- [astarte_realm_management] avoid crash when deleting devices with invalid introspection
+- [astarte_realm_management] ensure devices are cleaned up after being deleted
+
+## [1.2.1-alpha.0] - 2025-04-10
+
+### Changed
+
 - Update the docker-compose configuration to allow both physical and virtual devices
   to connect to Astarte, provided that the devices and the host are on the same LAN.
 
+## Fixed
+
+- [astarte_appengine_api] Correctly handle Cassandra `varchar`s.
+- [astarte_data_updater_plant] Correctly handle Cassandra `varchar`s.
+- [astarte_housekeeping] Correctly handle Cassandra `varchar`s.
+- [astarte_pairing] Correctly handle Cassandra `varchar`s.
+- [astarte_realm_management] Correctly handle Cassandra `varchar`s.
+- [astarte_trigger_engine] Correctly handle Cassandra `varchar`s.
+- [astarte_pairing] Fix a corner case in the realm public key retrieval
+  when connection to the database might fail.
+- [astarte_realm_management] Fix a corner case in the realm public key retrieval
+  when connection to the database might fail.
+- [astarte_appengine_api] Fix a corner case in the realm public key retrieval
+  when connection to the database might fail.
+- [astarte_data_updater_plant] Do not generate redundant disconnection
+  triggers in corner cases when a device is already disconnected.
+  Fix [#1014](https://github.com/astarte-platform/astarte/issues/1014).
+
 ## [1.2.0] - 2024-07-02
+
 ### Fixed
+
 - Forward port changes from release-1.1 (connection failure when delivering
   triggers is handled as an error).
 
 ## [1.2.0-rc.0] 11-06-2024
+
 ### Added
-- [astarte_trigger_engine] Add `trigger_name` to envent payload
+
+- [astarte_trigger_engine] Add `trigger_name` to event payload
   and mustache template
 - Add support for limiting the number of registered devices in a realm.
   Existing realms are not affected by this change.
@@ -55,6 +228,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
   endpoint.
 
 ### Changed
+
 - Forward port changes from release 1.1.
 - [astarte_housekeeping_api] Introduce a PATCH-based API for realm update.
   The old POST-based one is deprecated.
@@ -72,12 +246,15 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
   retention period, if set.
 
 ## [1.1.2] - Unreleased
+
 ### Added
+
 - [astarte_data_updater_plant] customize the number of consumer connections
   to the AMQP broker using `DATA_UPDATER_PLANT_AMQP_CONSUMER_CONNECTION_NUMBER`
-  (defult: 10).
+  (default: 10).
 
 ### Fixed
+
 - Forward-port changes from release-1.0 (gracefully handle malformed
   purge properties messages, fix message count metrics, fix typing issues
   in payloads).
@@ -91,10 +268,12 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
   into `InterfaceValue` module and add tests
 
 ## [1.1.1] - 2023-11-15
+
 ### Fixed
+
 - [astarte_data_updater_plant] Don't crash when retrieving the interface version
   in a device whose introspection is empty, allowing data in `astarte-data_`
-  AMQP queues to flow seamlessy.
+  AMQP queues to flow seamlessly.
 - [astarte_appengine_api] Don't crash when retrieving the interface version
   in a device whose introspection is empty.
 - [astarte_appengine_api] Return the number of results specified by `downsample_to`
@@ -111,25 +290,34 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
   bugfixes in AppEngine, Data Updater Plant and Pairing).
 
 ### Changed
+
 - [astarte_e2e] Update Elixir to 1.14.5 and Erlang/OTP to 25.3.2. (see https://github.com/astarte-platform/astarte/issues/858)
 
 ## [1.1.0] - 2023-06-20
+
 ### Fixed
+
 - [astarte_trigger_engine] Allow to decode events that do not contain the
-  deprecated `version` field. 
+  deprecated `version` field.
 
 ## [1.1.0-rc.0] - 2023-06-09
+
 ### Changed
+
 - Update Elixir to 1.14.5 and Erlang/OTP to 25.3.2.
 - [astarte_data_updater_plant] Use the `internal` event type for Astarte
   internal messages. (e.g. device heartbeat).
+
 ### Fixed
+
 - [astarte_realm_management_api] Provide detailed feedback when a trigger action
   is malformed. Fix [#748](https://github.com/astarte-platform/astarte/issues/748).
 - [astarte_realm_management_api] Include the `policy` field when a trigger is returned.
 
 ## [1.1.0-alpha.0] - 2022-11-24
+
 ### Added
+
 - [astarte_data_updater_plant] Add support for device introspection triggers.
 - [astarte_realm_management] Add support for device introspection triggers.
 - [astarte_realm_management_api] Add support for device introspection triggers.
@@ -141,13 +329,16 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
   trigger policies (see [#554](https://github.com/astarte-platform/astarte/issues/554)).
 
 ### Fixed
-- [astarte_appengine_api] Return empty data instead of error when querying `properties` interfaces 
+
+- [astarte_appengine_api] Return empty data instead of error when querying `properties` interfaces
   which are not fully populated. Fix [531](astarte-platform#531).
 
 ## [1.0.6] - 2024-04-23
+
 ### Fixed
+
 - [astarte_appengine_api] Allow to send binaryblobarrays over server owned interfaces.
-- [astarte_appengine_api] Doubles and DoubleArrays without decimal part are no longer saved as 
+- [astarte_appengine_api] Doubles and DoubleArrays without decimal part are no longer saved as
   integer, but a trailing zero is added.
 - [astarte_data_updater_plant] Do not crash when receiving a malformed purge properties message.
 - [astarte_pairing_api] Gracefully handle HTTP requests with malformed payload.
@@ -158,7 +349,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
   Fix [#776](https://github.com/astarte-platform/astarte/issues/776).
 
 ## [1.0.5] - 2023-09-26
+
 ### Fixed
+
 - [astarte_appengine_api] Correctly handle `binaryblob` and `datetime` in server-owned object
   aggregated interfaces.
 - [astarte_appengine_api] Handle non-array values POSTed to an array endpoint gracefully instead of
@@ -178,20 +371,25 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
   Updater stalling in some corner cases.
 
 ### Changed
+
 - [doc] Update the documentation structure. Pages dealing with administrative tasks involving the
   Astarte Operator and Kubernetes are moved to the
   [astarte-kubernetes-operator](https://github.com/astarte-platform/astarte-kubernetes-operator)
   repository.
 
 ## [1.0.4] - 2022-10-25
+
 ### Changed
+
 - [astarte_appengine_api] Check for device existence before accepting a watch request on
   Astarte rooms.
 - [astarte_data_updater_plant] Check for device existence before installation or deletion
   of volatile triggers.
 
 ## [1.0.3] - 2022-07-04
+
 ### Fixed
+
 - [astarte_appengine_api] Consider `allow_bigintegers` and `allow_safe_bigintegers` params
   when querying the root of individual datastream / properties interfaces.
   Fix [#630](https://github.com/astarte-platform/astarte/issues/630).
@@ -202,6 +400,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - [astarte_e2e] Fix ssl options handling so that the e2e client is aware of the CA.
 
 ### Changed
+
 - [doc] Administrator Guide: bump cert-manager dependency to v1.7.0.
 - [data_updater_plant] Increase the `declare_exchange` timeout to 60 sec.
 - [data_updater_plant] Increase the `publish` timeout to 60 sec for the AMQPEventsProducer.
@@ -215,7 +414,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
   with unexpected key.
 
 ## [1.0.2] - 2022-04-01
+
 ### Added
+
 - [realm_management] Accept `retention` and `expiry` updates when updating the minor version of an
   interface.
 - [astarte_realm_management_api] Allow synchronous requests for interface creation, update
@@ -224,29 +425,35 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
   using the `async_operation` option. Default to async calls.
 
 ### Fixed
+
 - [realm_management] Accept allowed mapping updates in object aggregated interfaces without
   crashing.
 - [astarte_appengine_api] Handle server owned datetimearray values correctly.
 
 ### Changed
+
 - [astarte_housekeeping] Allow to delete a realm only if all its devices are disconnected.
   Realm deletion can still only be enabled with an environment variable (defaults to disabled).
 - Update CA store to 2022-03-21 version.
 
 ## [1.0.1] - 2021-12-17
+
 ### Added
+
 - [data_updater_plant] Add handle_data duration metric.
 - [doc] Add documentation for AstarteDefaultIngress.
 - [doc] Add deprecation notice for AstarteVoyagerIngress.
 - [doc] Add documentation for the handling of Astarte certificates.
 
 ### Changed
+
 - [doc] Remove astartectl profiles from the possible deployment alternatives.
 
 ### Fixed
+
 - [astarte_appengine_api] Correctly serialize events containing datetime and array values.
 - [astarte_appengine_api] Do not fail when querying `datastream` interfaces data with `since`,
-`to`, `sinceAfter` params if result is empty. Fix [#552](https://github.com/astarte-platform/astarte/issues/552).
+  `to`, `sinceAfter` params if result is empty. Fix [#552](https://github.com/astarte-platform/astarte/issues/552).
 - [astarte_appengine_api] Consider microseconds when using timestamps.
   Fix [#620](https://github.com/astarte-platform/astarte/issues/620).
 - [astarte_appengine_api] Don't crash when removing an alias with non-existing tag.
@@ -257,19 +464,25 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Update Cyanide BSON library, in order to fix crash when handling ill-formed BSON arrays.
 
 ## [1.0.0] - 2021-06-30
+
 ### Added
+
 - Add support for volatile triggers on interfaces with object aggregation.
 
 ### Changed
+
 - Document future removal of Astarte Operator's support for Cassandra.
 - Log application version when starting.
 
 ### Fixed
+
 - [astarte_appengine_api] Fix the support for `null` values in interfaces, the fix contained in
-`1.0.0-rc.0` was incomplete.
+  `1.0.0-rc.0` was incomplete.
 
 ## [1.0.0-rc.0] - 2021-05-10
+
 ### Added
+
 - [astarte_appengine_api] Add `/v1/<realm>/version` endpoint, returning the API application version.
 - [astarte_realm_management_api] Add `/v1/<realm>/version` endpoint, returning the API application
   version.
@@ -279,18 +492,22 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
   version.
 
 ### Changed
+
 - [astarte_realm_management] Make `amqp_routing_key` mandatory in AMQP actions.
 - Update documentation for backing up and restoring Astarte.
 - Update documentation for Operator's uninstall procedure.
 
 ### Fixed
+
 - [astarte_appengine_api] Don't crash when an interface contains `null` values, just show them as
   `null` in the resulting JSON.
 - [astarte_realm_management] Fix log noise due to Cassandra warnings when checking health
   (see [#420](https://github.com/astarte-platform/astarte/issues/420)).
 
 ## [1.0.0-beta.2] - 2021-03-24
+
 ### Fixed
+
 - [astarte_e2e] Fix alerting mechanism preventing "unknown" failures to be raised or linked.
 - [astarte_appengine_api] Allow retrieving data from interfaces with parametric endpoint and object
   aggregation (see [#480](https://github.com/astarte-platform/astarte/issues/480)).
@@ -300,16 +517,19 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
   aggregate value.
 
 ### Changed
+
 - [astarte_e2e] Client disconnections are responsible for triggering a mail alert.
 - Run tests against RabbitMQ 3.8.14 and ScyllaDB 4.4-rc.4 / Cassandra 3.11.10.
 - Update dependencies to latest available versions (see `mix.lock` files).
 - Update Elixir to 1.11.4 and OTP to 23.2.
-- Rename device `metadata` to `attributes`. *This requires a manual intervention on the database*,
+- Rename device `metadata` to `attributes`. _This requires a manual intervention on the database_,
   see the [Schema Changes](https://docs.astarte-platform.org/1.0/090-database.html#schema-changes)
   documentation for additional information.
 
 ## [1.0.0-beta.1] - 2021-02-16
+
 ### Fixed
+
 - [astarte_appengine_api] Fix regression that made it impossible to use Astarte Channels.
 - [astarte_appengine_api] Fix bug that prevented data publishing in object aggregated interfaces.
 - [astarte_appengine_api] Fix regression that prevented properties to be set before the first
@@ -321,11 +541,13 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
   disconnected device.
 
 ### Added
+
 - [astarte_housekeeping] Allow deleting a realm. The feature can be enabled with an environment
   variable (defaults to disabled).
 - [astarte_data_updater_plant] Declare custom exchanges when an AMQP trigger is loaded.
 
 ### Changed
+
 - [astarte_housekeeping_api] Remove format check on Cassandra datacenter name when a realm is
   created, the datacenter is just verified against the one present in the database.
 - [housekeeping] Increase the delay between connection attempts to 1000 ms, for an overall number
@@ -340,11 +562,14 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Update Operator's documentation for install/upgrade/uninstall procedures.
 
 ## [1.0.0-alpha.1] - 2020-06-19
+
 ### Fixed
+
 - Make sure devices are eventually marked as disconnected even if they disconnect while VerneMQ is
   temporarily down (see [#305](https://github.com/astarte-platform/astarte/issues/305)).
 
 ### Changed
+
 - [appengine_api] Always return an object when GETting on object aggregated interfaces.
 - Replace Conform and Distillery with Elixir native releases.
 - Remove the `ASTARTE_` prefix from all env variables.
@@ -353,12 +578,13 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
   equivalent to passing `*` as `device_id`. The old behaviour is still supported.
 
 ### Added
+
 - [appengine_api] Add metadata to device
 - [trigger_engine] Allow configuring preferred http method (such as `PUT` or `GET`)
   (see [#128](https://github.com/astarte-platform/astarte/issues/128)).
 - [trigger_egnine] Add optional support to custom http headers, such as
   `Authorization: Bearer ...` (see [#129](https://github.com/astarte-platform/astarte/issues/129)).
-- [data_updater_plant] Handle device hearbeat sent by VerneMQ plugin.
+- [data_updater_plant] Handle device heartbeat sent by VerneMQ plugin.
 - [data_updater_plant] Deactivate Data Updaters when they don't receive messages for some time,
   freeing up resources.
 - [appengine_api] Support SSL connections to RabbitMQ.
@@ -373,17 +599,22 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Add support for device error triggers.
 
 ### Removed
+
 - [appengine_api] Remove deprecated not versioned socket route.
 
 ## [0.11.5] - Unreleased
+
 ### Fixed
+
 - [realm_management] Avoid deleting all interfaces sharing the same name by mistake, only the v0
   interface can be deleted.
 - [data_updater_plant] Use a reasonable backoff time (at most around 5 minutes) when publishing
   to RabbitMQ.
 
 ## [0.11.4] - 2021-01-26
+
 ### Fixed
+
 - Avoid creating an `housekeeping_public.pem` directory if `docker-compose up` doesn't find the
   housekeeping keypair.
 - [trigger_engine] Correctly handle triggers on binaryblob interfaces, serializing value with base64
@@ -399,23 +630,29 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ## [0.11.3] - 2020-09-24
 
 ## [0.11.2] - 2020-08-14
+
 ### Added
+
 - [trigger_engine] Add `ignore_ssl_errors` key in trigger actions, allowing to ignore SSL actions
   when delivering an HTTP trigger action.
 - [trigger_engine] Update certifi to 2.5.2
 - Update Elixir to 1.8.2
 
 ### Changed
+
 - [appengine_api] Remove `topic` from channel metrics.
 
 ## [0.11.1] - 2020-05-18
+
 ### Added
+
 - [data_updater_plant] Add `DATA_UPDATER_PLANT_AMQP_DATA_QUEUE_TOTAL_COUNT` environment variable,
   this must be equal to the total number of queues in the Astarte instance.
 - [trigger_engine] Add `TRIGGER_ENGINE_AMQP_PREFETCH_COUNT` environment variable to set the
   prefetech count of AMQPEventsConsumer, avoiding excessive memory usage.
 
 ### Fixed
+
 - Wait for schema_version agreement before applying any schema change (such as creating tables or a
   new realm). (see [#312](https://github.com/astarte-platform/astarte/issues/312).
 - [appengine_api] Fix the metric counting discarded channel events, it was not correctly increased.
@@ -425,7 +662,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
   [#375](https://github.com/astarte-platform/astarte/issues/375).
 
 ## [0.11.0] - 2020-04-13
+
 ### Fixed
+
 - [appengine_api] Handle server owned datetime values correctly
 - [housekeeping] Fix a bug preventing the public key of newly created realms to be correctly
   inserted to the realm (see #294).
@@ -433,12 +672,16 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
   targeting the `*` interface) to be loaded immediately.
 
 ## [0.11.0-rc.1] - 2020-03-26
+
 ### Fixed
+
 - [data_updater_plant] Discard unexpected object aggregated values on individual interfaces.
 - [trigger_engine] 500 was not included in the range of HTTP server errors, causing a crash.
 
 ## [0.11.0-rc.0] - 2020-02-26
+
 ### Added
+
 - [pairing_api] Add health endpoint.
 - [realm_management_api] Add health endpoint.
 - [housekeeping] Add Prometheus instrumenters and exporters.
@@ -452,13 +695,16 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - [appengine_api] Export specific metrics with telemetry.
 
 ### Changed
+
 - [realm_management] Correctly handle parametric endpoints regardless of the ordering, so that overlapping endpoints are always refused.
 - [all] Make Elixir logger handle OTP requests: print stack traces only when needed.
 - [appengine_api] Handle aggregated server owned interfaces.
 - [appengine-api] Handle TTL for server owned interfaces.
 
 ## [0.11.0-beta.2] - 2020-01-24
+
 ### Added
+
 - [pairing] Add Prometheus instrumenters and exporters.
 - [realm_management] Add Prometheus instrumenters and exporters.
 - [housekeeping_api] Add pretty_log.
@@ -472,11 +718,13 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - [pairing] Expose registration count and get_credentials count metrics.
 
 ### Changed
+
 - [realm_management] Handle hyphens in `interface_name`. ([#96](https://github.com/astarte-platform/astarte/issues/96))
 - [realm_management] Restrict the use of `*` as `interface_name` only to `incoming_data` data
   triggers.
 
 ### Fixed
+
 - [data_updater_plant] Load `incoming_data` triggers targeting `any_interface`.
   ([#139](https://github.com/astarte-platform/astarte/issues/139))
 - [housekeeping] Remove extra column in realm migration, preventing the correct upgrade to 0.11.
@@ -484,7 +732,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
   value (e.g. an IncomingDataEvent generated by an unset property).
 
 ## [0.11.0-beta.1] - 2019-12-26
+
 ### Added
+
 - Add astarte_import tool, which allows users to import devices and data using XML files.
 - [appegnine_api] Add new `/v1/socket` route for Astarte Channels. The `/socket` route is **deprecated** and will be
   removed in a future release.
@@ -502,6 +752,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - [realm_management] Trigger validation, checks that the interface is existing and performs validation on object aggregation triggers.
 
 ### Changed
+
 - Use separate docker images with docker-compose
 - Use Scylla instead of Cassandra with docker-compose
 - Authorization regular expressions must not have delimiters: they are implicit.
@@ -513,17 +764,20 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - [housekeeping_api] Move health check API from /v1/health to /health to be consistent with all Astarte components.
 
 ## [0.10.2] - 2019-12-09
+
 ### Added
+
 - [appengine_api] Add timestamp field to channel events.
 - Add device unregister API, allowing to reset the registration of a device.
 - [trigger_engine] Trigger timestamp is now extracted from SimpleEvent and not generated.
   This means that all triggers generated from the same event will have the same timestamp.
 
 ### Fixed
+
 - [appengine_api] Fix invalid dates handling, they should not cause an internal server error.
 - [appengine_api] Gracefully handle existing aliases instead of returning an internal server error.
 - [appengine_api] Fix querying object aggregated interface with explicit timestamp, use value_timestamp to avoid
-an internal server error.
+  an internal server error.
 - [appengine_api] Device details now show false in the connected field for never connected devices (null was
   returned before)
 - [appengine_api] Handle out-of-band RPC errors gracefully instead of crashing.
@@ -534,15 +788,19 @@ an internal server error.
 - [realm_management_api] Handle trigger not found reply from RPC, return 404 instead of 500.
 
 ### Changed
+
 - Use the timestamp sent by VerneMQ (or explicit timestamp if available) to populate SimpleEvent timestamp.
 - [data_updater_plant] Update suggested RabbitMQ version to 3.7.15, older versions can be still used.
 
 ## [0.10.1] - 2019-10-02
+
 ### Added
+
 - Support both SimpleStrategy and NetworkTopologyStrategy replications when creating a realm.
 - Add sanity checks on the replication factor during realm creation.
 
 ### Fixed
+
 - Auth was refusing any POST method, a workaround has been added, however this will not work with regex.
 - Fix reversed order when sending binaryblobarray and datetimearray.
 - [data_updater_plant] Fix a bug that was causing a crash-loop in some corner cases when a message was sent on an outdated interface.
@@ -555,23 +813,30 @@ an internal server error.
 ## [0.10.0] - 2019-04-16
 
 ## [0.10.0-rc.0] - 2019-04-03
+
 ### Added
+
 - [data_updater_plant] Add missing support to incoming object aggregated data with explicit_timestamp.
 
 ## [0.10.0-beta.3] - 2018-12-19
+
 ### Added
+
 - [appengine_api] Binary blobs and date time values handling when PUTing and POSTing on a server owned interface.
 
 ### Fixed
+
 - docker-compose: Ensure CFSSL persists the CA when no external CA is provided.
 - [data_updater_plant] Correctly handle Bson.UTC and Bson.Bin incoming data.
 - [data_updater_plant] Fix crash when an interface that has been previously removed from the device introspection expires from cache.
 - [data_updater_plant] Undecodable BSON payloads handling (handle Bson.Decoder.Error struct).
 - [data_updater_plant] Discard invalid introspection payloads instead of crashing the data updater process.
-- [realm_management_api] Correctly serialize triggers on the special "*" interface and device.
+- [realm_management_api] Correctly serialize triggers on the special "\*" interface and device.
 
 ## [0.10.0-beta.2] - 2018-10-19
+
 ### Added
+
 - Automatically add begin and end delimiters to authorization regular expressions.
 - [appengine_api] Value type and size validation.
 - [appengine_api] Option to enable HTTP compression.
@@ -579,6 +844,7 @@ an internal server error.
 - [data_updater_plant] Publish set properties list to `/control/consumer/properties`.
 
 ### Fixed
+
 - [appengine_api] Path was added twice in authorization path, resulting in failures in authorization.
 - [appengine_api] POST to a datastream endpoint doesn't crash anymore.
 - [data_updater_plant] Validate all incoming values before performing any further computation on them, to avoid crash loops.
@@ -587,9 +853,12 @@ an internal server error.
 - [realm_management_api] Do not reply "Internal Server Error" when trying to delete a non existing interface.
 
 ### Changed
+
 - [appengine_api] "data" key is used instead of "value" when PUT/POSTing a value to an interface.
 - [appengine_api] APPENGINE_MAX_RESULTS_LIMIT env var was renamed to APPENGINE_API_MAX_RESULTS_LIMIT.
 
 ## [0.10.0-beta.1] - 2018-08-10
+
 ### Added
+
 - First Astarte release.

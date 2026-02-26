@@ -20,7 +20,6 @@ defmodule Mix.Tasks.AstarteDevTool.System.Up do
   use Mix.Task
   alias AstarteDevTool.Commands.System.Up
   alias AstarteDevTool.Utilities.Path
-  alias AstarteDevTool.Utilities.Process
 
   @shortdoc "Up the local Astarte system"
 
@@ -38,8 +37,8 @@ defmodule Mix.Tasks.AstarteDevTool.System.Up do
 
   ## Examples
 
-      $ mix astarte_dev_tool.system.up -p /absolute/path/astarte
-      $ mix astarte_dev_tool.system.up -p ../../relative/to/astarte
+      $ mix system.up -p /absolute/path/astarte
+      $ mix system.up -p ../../relative/to/astarte
 
   ## Command line options
     * `-p` `--path` - (required) working Astarte project directory
@@ -54,10 +53,6 @@ defmodule Mix.Tasks.AstarteDevTool.System.Up do
   @impl true
   def run(args) do
     {opts, _} = OptionParser.parse!(args, strict: @switches, aliases: @aliases)
-    {:ok, is_valid} = Process.check_valid_version()
-
-    unless is_valid,
-      do: Mix.raise("Docker v#{Process.version_ref()} at least is required")
 
     unless Keyword.has_key?(opts, :path), do: Mix.raise("The --path argument is required")
 

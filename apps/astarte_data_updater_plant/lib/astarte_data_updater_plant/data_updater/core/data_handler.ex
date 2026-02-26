@@ -1,0 +1,577 @@
+#
+# This file is part of Astarte.
+#
+# Copyright 2025 SECO Mind Srl
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+# SPDX-License-Identifier: Apache-2.0
+#
+
+defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DataHandler do
+  @moduledoc """
+  This module is responsible for handling the messages received from the AMQPDataConsumer.
+  """
+  alias Astarte.Core.Device
+  alias Astarte.Core.InterfaceDescriptor
+  alias Astarte.Core.Mapping.ValueType
+  alias Astarte.DataAccess.Data
+  alias Astarte.DataUpdaterPlant.DataUpdater.Cache
+  alias Astarte.DataUpdaterPlant.DataUpdater.CachedPath
+  alias Astarte.DataUpdaterPlant.DataUpdater.Core
+  alias Astarte.DataUpdaterPlant.DataUpdater.InsertContext
+  alias Astarte.DataUpdaterPlant.DataUpdater.PayloadsDecoder
+  alias Astarte.DataUpdaterPlant.DataUpdater.Queries
+  alias Astarte.DataUpdaterPlant.DataUpdater.State
+  alias Astarte.DataUpdaterPlant.TriggersHandler
+
+  require Logger
+
+  def handle_data(state, interface, path, payload, timestamp, start) do
+    hw_id = Device.encode_device_id(state.device_id)
+
+    context = %{
+      state: state,
+      interface: interface,
+      path: path,
+      payload: payload,
+      timestamp: timestamp,
+      hardware_id: hw_id,
+      value_timestamp: nil,
+      value: nil,
+      previous_value: nil,
+      db_max_ttl: nil,
+      interface_descriptor: nil,
+      interface_id: nil,
+      mapping: nil,
+      endpoint_id: nil
+    }
+
+    with :ok <- validate_interface(context),
+         :ok <- validate_path(context),
+         {:ok, interface_descriptor, context} <- maybe_handle_cache_miss(context),
+         :ok <- can_write_on_interface?(context, interface_descriptor.ownership),
+         {:ok, mapping} <- resolve_path(context, interface_descriptor),
+         {:ok, {value, value_timestamp, _metadata}} <- decode_bson_payload(context),
+         :ok <- validate_value_type(context, interface_descriptor, mapping, value) do
+      maybe_explicit_value_timestamp =
+        if mapping.explicit_timestamp,
+          do: value_timestamp,
+          else: div(timestamp, 10_000)
+
+      previous_value = get_previous_value(context, interface_descriptor, mapping)
+
+      realm_max_ttl = context.state.datastream_maximum_storage_retention
+
+      db_max_ttl =
+        max_ttl(
+          mapping.database_retention_policy,
+          realm_max_ttl,
+          mapping.database_retention_ttl
+        )
+
+      context = %{
+        context
+        | interface_descriptor: interface_descriptor,
+          interface_id: interface_descriptor.interface_id,
+          mapping: mapping,
+          endpoint_id: mapping.endpoint_id,
+          db_max_ttl: db_max_ttl,
+          value: value,
+          previous_value: previous_value,
+          value_timestamp: maybe_explicit_value_timestamp
+      }
+
+      # We want to execute incoming data triggers even if we can't set to value
+      execute_incoming_data_triggers(context)
+
+      with :ok <- can_set_to_value(context, interface_descriptor, value) do
+        if interface_descriptor.type == :properties do
+          :ok = Core.Trigger.execute_pre_change_triggers(context)
+        end
+
+        # Here value cannot be nil, otherwise `can_set_to_value/5` would have not
+        # been :ok
+        if interface_descriptor.type == :datastream,
+          do: maybe_insert_path(context, interface_descriptor, mapping)
+
+        insert_context = %InsertContext{
+          realm: context.state.realm,
+          device_id: context.state.device_id,
+          interface_descriptor: interface_descriptor,
+          mapping: mapping,
+          path: path,
+          value: value,
+          value_timestamp: maybe_explicit_value_timestamp,
+          reception_timestamp: timestamp,
+          opts: [ttl: db_max_ttl]
+        }
+
+        Queries.insert_value_into_db(insert_context)
+        |> handle_result(context, start)
+      end
+    end
+  end
+
+  defp get_previous_value(context, interface_descriptor, mapping)
+       when interface_descriptor.type == :properties do
+    %{state: state, path: path} = context
+
+    case Data.fetch_property(state.realm, state.device_id, interface_descriptor, mapping, path) do
+      {:ok, property_value} -> property_value
+      _ -> nil
+    end
+  end
+
+  defp get_previous_value(_, _, _), do: nil
+
+  defp handle_result({:error, :unset_not_allowed}, context, _start) do
+    error = %{
+      message: "Tried to unset a property with `allow_unset`=false.",
+      logger_metadata: [tag: "unset_not_allowed"],
+      error_name: "unset_not_allowed",
+      error: :unset_not_allowed
+    }
+
+    # with `unset_not_allowed` we do not want to update the stats
+    Core.Error.handle_error(context, error, update_stats: false)
+  end
+
+  defp handle_result(:ok, context, start) do
+    %{
+      state: state,
+      path: path,
+      interface: interface,
+      interface_descriptor: interface_descriptor,
+      db_max_ttl: db_max_ttl
+    } = context
+
+    if interface_descriptor.type == :properties do
+      Core.Trigger.execute_post_change_triggers(context)
+    end
+
+    paths_cache = Cache.put(state.paths_cache, {interface, path}, %CachedPath{}, db_max_ttl)
+    state = %{state | paths_cache: paths_cache}
+
+    continue_arg = {:processed_message, context, start}
+    {:ack, :ok, state, {:continue, continue_arg}}
+  end
+
+  defp maybe_insert_path(context, interface_descriptor, mapping) do
+    %{
+      state: state,
+      interface: interface,
+      path: path,
+      timestamp: timestamp,
+      value_timestamp: explicit_value_timestamp,
+      db_max_ttl: db_max_ttl
+    } = context
+
+    cache_hit = Cache.has_key?(state.paths_cache, {interface, path})
+
+    # Track path cache performance
+    :telemetry.execute(
+      [:astarte, :data_updater_plant, :data_handler, :path_cache],
+      %{},
+      %{realm: state.realm, result: if(cache_hit, do: "hit", else: "miss")}
+    )
+
+    with false <- cache_hit,
+         false <-
+           Queries.fetch_path_expiry(
+             state.realm,
+             state.device_id,
+             interface_descriptor,
+             mapping,
+             path
+           )
+           |> still_valid?(db_max_ttl) do
+      Queries.insert_path_into_db(
+        state.realm,
+        state.device_id,
+        interface_descriptor,
+        mapping,
+        path,
+        explicit_value_timestamp,
+        timestamp,
+        ttl: path_ttl(db_max_ttl)
+      )
+    end
+  end
+
+  defp can_set_to_value(
+         context,
+         %InterfaceDescriptor{type: :datastream},
+         nil
+       ) do
+    error = %{
+      message: "Tried to unset a datastream.",
+      error_name: "unset_on_datastream",
+      logger_metadata: [tag: "unset_on_datastream"],
+      error: :unset_on_datastream
+    }
+
+    Core.Error.handle_error(context, error,
+      ask_clean_session: false,
+      update_stats: false
+    )
+  end
+
+  defp can_set_to_value(_context, _descriptor, _value), do: :ok
+
+  defp execute_incoming_data_triggers(context) do
+    TriggersHandler.incoming_data(context)
+  end
+
+  defp maybe_handle_cache_miss(context) do
+    %{interface: interface, state: state} = context
+
+    cache_miss =
+      state.interfaces
+      |> Map.get(interface)
+      |> Core.Interface.maybe_handle_cache_miss(interface, state)
+
+    case cache_miss do
+      {:error, :interface_loading_failed} ->
+        error = %{
+          message: "Cannot load interface: #{interface}.",
+          logger_metadata: [tag: "interface_loading_failed"],
+          error_name: "interface_loading_failed",
+          error: :interface_loading_failed
+        }
+
+        :telemetry.execute(
+          [:astarte, :data_updater_plant, :data_handler, :interface_cache_miss],
+          %{},
+          %{realm: state.realm, interface: interface, result: "failed"}
+        )
+
+        Core.Error.handle_error(context, error)
+
+      {:ok, descriptor, state} ->
+        # Track successful interface cache hit or successful load
+        cache_result =
+          if Map.has_key?(state.interfaces, interface), do: "hit", else: "miss_resolved"
+
+        :telemetry.execute(
+          [:astarte, :data_updater_plant, :data_handler, :interface_cache],
+          %{},
+          %{realm: state.realm, interface: interface, result: cache_result}
+        )
+
+        new_context = Map.put(context, :state, state)
+        {:ok, descriptor, new_context}
+    end
+  end
+
+  defp resolve_path(context, interface_descriptor) do
+    %{interface: interface, path: path, state: state} = context
+    mappings = Core.Interface.resolve_path(path, interface_descriptor, state.mappings)
+
+    case mappings do
+      {:error, :mapping_not_found} ->
+        error = %{
+          message: "Mapping not found for #{interface}#{path}. Maybe outdated introspection?",
+          logger_metadata: [tag: "mapping_not_found"],
+          error_name: "mapping_not_found",
+          error: :mapping_not_found
+        }
+
+        Core.Error.handle_error(context, error)
+
+      {:guessed, _guessed_endpoints} ->
+        error = %{
+          message: "Mapping guessed for #{interface}#{path}. Maybe outdated introspection?",
+          logger_metadata: [tag: "ambiguous_path"],
+          error_name: "ambiguous_path",
+          error: :ambiguous_path
+        }
+
+        Core.Error.handle_error(context, error)
+
+      ok ->
+        ok
+    end
+  end
+
+  defp decode_bson_payload(context) do
+    %{payload: payload, timestamp: timestamp, interface: interface, path: path} = context
+    decoding = PayloadsDecoder.decode_bson_payload(payload, timestamp)
+
+    with {:error, :undecodable_bson_payload} <- decoding do
+      error = %{
+        message:
+          "Invalid BSON base64-encoded payload: #{inspect(Base.encode64(payload))} sent to #{interface}#{path}.",
+        logger_metadata: [tag: "undecodable_bson_payload"],
+        error_name: "undecodable_bson_payload",
+        error: :undecodable_bson_payload
+      }
+
+      Core.Error.handle_error(context, error)
+    end
+  end
+
+  defp path_ttl(nil), do: nil
+  defp path_ttl(retention_secs), do: retention_secs * 2 + div(retention_secs, 2)
+
+  defp still_valid?({:error, :property_not_set}, _ttl), do: false
+  defp still_valid?({:ok, :no_expiry}, _ttl), do: true
+  defp still_valid?({:ok, _expiry_date}, nil), do: false
+
+  defp still_valid?({:ok, expiry_date}, ttl) do
+    expiry_secs = DateTime.to_unix(expiry_date)
+
+    now_secs =
+      DateTime.utc_now()
+      |> DateTime.to_unix()
+
+    # 3600 seconds is one hour
+    # this adds 1 hour of tolerance to clock synchronization issues
+    now_secs + ttl + 3600 < expiry_secs
+  end
+
+  defp validate_interface(%{interface: interface} = context) do
+    case String.valid?(interface) do
+      true -> :ok
+      false -> invalid_interface_error(context)
+    end
+  end
+
+  defp invalid_interface_error(%{interface: interface} = context) do
+    error =
+      %{
+        message: "Received invalid interface: #{inspect(interface)}.",
+        logger_metadata: [tag: "invalid_interface"],
+        error: :invalid_interface,
+        error_name: "invalid_interface"
+      }
+
+    Core.Error.handle_error(context, error, update_stats: false)
+  end
+
+  defp validate_path(%{path: path} = context),
+    do: valid_path_or_error(context, String.valid?(path), String.contains?(path, "//"))
+
+  defp valid_path_or_error(_context, true, false), do: :ok
+
+  defp valid_path_or_error(%{path: path} = context, _, _) do
+    error = %{
+      message: "Received invalid path: #{inspect(path)}.",
+      logger_metadata: [tag: "invalid_path"],
+      error: :invalid_path,
+      error_name: "invalid_path"
+    }
+
+    Core.Error.handle_error(context, error)
+  end
+
+  defp can_write_on_interface?(_context, :device), do: :ok
+
+  defp can_write_on_interface?(context, :server) do
+    %{interface: interface, path: path, payload: payload, timestamp: timestamp} = context
+
+    message =
+      "Tried to write on server owned interface: #{interface} on " <>
+        "path: #{path}, base64-encoded payload: #{inspect(Base.encode64(payload))}, timestamp: #{inspect(timestamp)}."
+
+    tag = "write_on_server_owned_interface"
+
+    error_name = "write_on_server_owned_interface"
+
+    error = %{
+      message: message,
+      logger_metadata: [tag: tag],
+      error_name: error_name,
+      error: :cannot_write_on_server_owned_interface
+    }
+
+    Core.Error.handle_error(context, error)
+  end
+
+  defp validate_value_type(context, interface_descriptor, mapping, value) do
+    %{interface: interface, path: path, payload: payload, state: state} = context
+
+    expected_types =
+      Core.Interface.extract_expected_types(
+        path,
+        interface_descriptor,
+        mapping,
+        state.mappings
+      )
+
+    validation = validate_value_type(expected_types, value)
+
+    case validation do
+      {:error, :unexpected_value_type} ->
+        error = %{
+          message:
+            "Received invalid value: #{inspect(Base.encode64(payload))} sent to #{interface}#{path}.",
+          logger_metadata: [tag: "unexpected_value_type"],
+          error_name: "unexpected_value_type",
+          error: :unexpected_value_type
+        }
+
+        Core.Error.handle_error(context, error)
+
+      {:error, :unexpected_object_key} ->
+        error = %{
+          message:
+            "Received object with unexpected key, object base64 is: #{inspect(Base.encode64(payload))} sent to #{interface}#{path}.",
+          logger_metadata: [tag: "unexpected_object_key"],
+          error_name: "unexpected_object_key",
+          error: :unexpected_value_type
+        }
+
+        Core.Error.handle_error(context, error)
+
+      {:error, :value_size_exceeded} ->
+        error = %{
+          message:
+            "Received huge base64-encoded payload: #{inspect(Base.encode64(payload))} sent to #{interface}#{path}.",
+          logger_metadata: [tag: "value_size_exceeded"],
+          error_name: "value_size_exceeded",
+          error: :value_size_exceeded
+        }
+
+        Core.Error.handle_error(context, error)
+
+      :ok ->
+        :ok
+    end
+  end
+
+  # TODO: We need tests for this function
+  def validate_value_type(expected_type, %DateTime{} = value) do
+    ValueType.validate_value(expected_type, value)
+  end
+
+  # From Cyanide 2.0, binaries are decoded as %Cyanide.Binary{}
+  def validate_value_type(expected_type, %Cyanide.Binary{} = value) do
+    %Cyanide.Binary{subtype: _subtype, data: bin} = value
+    validate_value_type(expected_type, bin)
+  end
+
+  # Explicitly match on all other structs to avoid pattern matching them as maps below
+  def validate_value_type(_expected_type, %_{} = _unsupported_struct) do
+    {:error, :unexpected_value_type}
+  end
+
+  def validate_value_type(%{} = expected_types, %{} = object) do
+    Enum.reduce_while(object, :ok, fn {key, value}, _acc ->
+      with {:ok, expected_type} <- Map.fetch(expected_types, key),
+           :ok <- ValueType.validate_value(expected_type, value) do
+        {:cont, :ok}
+      else
+        {:error, reason} ->
+          {:halt, {:error, reason}}
+
+        :error ->
+          Logger.warning("Unexpected key #{inspect(key)} in object #{inspect(object)}.",
+            tag: "unexpected_object_key"
+          )
+
+          {:halt, {:error, :unexpected_object_key}}
+      end
+    end)
+  end
+
+  # TODO: we should test for this kind of unexpected messages
+  # We expected an individual value, but we received an aggregated
+  def validate_value_type(_expected_types, %{} = _object) do
+    {:error, :unexpected_value_type}
+  end
+
+  # TODO: we should test for this kind of unexpected messages
+  # We expected an aggregated, but we received an individual
+  def validate_value_type(%{} = _expected_types, _object) do
+    {:error, :unexpected_value_type}
+  end
+
+  def validate_value_type(expected_type, value) do
+    if value != nil do
+      ValueType.validate_value(expected_type, value)
+    else
+      :ok
+    end
+  end
+
+  def update_stats(state, interface, major, path, payload) do
+    exchanged_bytes = byte_size(payload) + byte_size(interface) + byte_size(path)
+
+    :telemetry.execute(
+      [:astarte, :data_updater_plant, :data_updater, :exchanged_bytes],
+      %{bytes: exchanged_bytes},
+      %{realm: state.realm}
+    )
+
+    %{
+      state
+      | total_received_msgs: state.total_received_msgs + 1,
+        total_received_bytes: state.total_received_bytes + exchanged_bytes
+    }
+    |> update_interface_stats(interface, major, path, payload)
+  end
+
+  defp update_interface_stats(state, interface, major, _path, _payload)
+       when interface == "" or major == nil do
+    # Skip when we can't identify a specific major or interface is empty (e.g. control messages)
+    # TODO: restructure code to access major version even in the else branch of handle_data
+    state
+  end
+
+  defp update_interface_stats(state, interface, major, path, payload) do
+    %State{
+      initial_interface_exchanged_bytes: initial_interface_exchanged_bytes,
+      initial_interface_exchanged_msgs: initial_interface_exchanged_msgs,
+      interface_exchanged_bytes: interface_exchanged_bytes,
+      interface_exchanged_msgs: interface_exchanged_msgs
+    } = state
+
+    bytes = byte_size(payload) + byte_size(interface) + byte_size(path)
+
+    # If present, get exchanged bytes from live count, otherwise fallback to initial
+    # count and in case nothing is there too, fallback to 0
+    exchanged_bytes =
+      Map.get_lazy(interface_exchanged_bytes, {interface, major}, fn ->
+        Map.get(initial_interface_exchanged_bytes, {interface, major}, 0)
+      end)
+
+    # As above but with msgs
+    exchanged_msgs =
+      Map.get_lazy(interface_exchanged_msgs, {interface, major}, fn ->
+        Map.get(initial_interface_exchanged_msgs, {interface, major}, 0)
+      end)
+
+    updated_interface_exchanged_bytes =
+      Map.put(interface_exchanged_bytes, {interface, major}, exchanged_bytes + bytes)
+
+    updated_interface_exchanged_msgs =
+      Map.put(interface_exchanged_msgs, {interface, major}, exchanged_msgs + 1)
+
+    %{
+      state
+      | interface_exchanged_bytes: updated_interface_exchanged_bytes,
+        interface_exchanged_msgs: updated_interface_exchanged_msgs
+    }
+  end
+
+  defp max_ttl(:use_ttl, realm_max_ttl, db_ttl) when is_integer(realm_max_ttl),
+    do: min(db_ttl, realm_max_ttl)
+
+  defp max_ttl(:use_ttl, _, db_ttl), do: db_ttl
+
+  defp max_ttl(_db_retention_policy, realm_max_ttl, _db_ttl) when is_integer(realm_max_ttl),
+    do: realm_max_ttl
+
+  defp max_ttl(_, _, _), do: nil
+end

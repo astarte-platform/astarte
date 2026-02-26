@@ -17,6 +17,9 @@
 #
 
 defmodule Astarte.AppEngine.APIWeb.Plug.LogDeviceAlias do
+  @moduledoc """
+  Plug that injects the 'device alias' into the Logger metadata.
+  """
   def init(opts) do
     opts
   end

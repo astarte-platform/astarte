@@ -12,6 +12,20 @@ Astarte is multi-tenant by design, with each tenant mapping to an Astarte Realm.
 
 Astarte automatically takes care of keyspaces, tables creation and intra-version migrations (those tasks are performed by `astarte_housekeeping` or `astarte_realm_management`, depending on the context). The following documentation is just a reference about Astarte's internal statements, and is related to the release series referenced by the documentation.
 
+### Astarte Instance ID
+
+The Astarte Instance ID is needed in order to run multiple Astarte instances on a shared database,
+as it provides proper namespace isolation. It is configurable by setting the `ASTARTE_INSTANCE_ID` environment variable, and when set to an empty string (the default), maintains the same behavior
+as previous installations.
+The Astarte Instance ID is fully supported by the Astarte Operator.For the usage with the operator you can
+refer to [the corresponding documentation](https://docs.astarte-platform.org/astarte-kubernetes-operator/24.5/001-intro_administrator.html)
+
+#### Inner workings
+
+When the Astarte Instance ID is set, it is used as a prefix for the Cassandra keyspace name.
+If the resulting keyspace name would exceed Cassandra’s length limits, suitable adjustments
+are automatically applied to ensure compliance.
+
 ### Astarte Keyspace
 
 Astarte needs an `astarte` keyspace to store its own data.
@@ -23,6 +37,18 @@ CREATE KEYSPACE astarte
   WITH replication = {'class': 'SimpleStrategy', 'replication_factor': <replication factor>}  AND
     durable_writes = true;
 ```
+
+> #### Tablets {: .info}
+>
+> In recent versions of scylladb, we explicitly disable the tablets feature as they break
+> lightweight transactions, which are used within astarte
+>
+> ```sql
+> CREATE KEYSPACE astarte
+>   WITH replication = {'class': 'SimpleStrategy', 'replication_factor': <replication factor>}  AND
+>     durable_writes = true AND
+>     tablets = { 'enabled': false };
+> ```
 
 The table containing all existing realms with their relative limits:
 
@@ -59,12 +85,12 @@ INSERT INTO astarte.kv_store
 Each realm needs several tables to store data for all the functionalities.
 Realm tables can be grouped in the following functionalities:
 
-* Configuration & key-value store
-* Interfaces schema
-* Device management
-* Groups management
-* Triggers storage
-* Data storage
+- Configuration & key-value store
+- Interfaces schema
+- Device management
+- Groups management
+- Triggers storage
+- Data storage
 
 Some data storage tables might be created when required, whereas all other tables are created when a keyspace is created, using the following statements.
 
@@ -77,6 +103,26 @@ CREATE KEYSPACE <realm name>
 ```
 
 Replication can also be configured with a NetworkTopologyStrategy class, especially for production environments.
+
+> #### Tablets {: .info}
+>
+> In recent versions of scylladb, we explicitly disable the tablets feature as they break
+> lightweight transactions, which are used within astarte
+>
+> ```sql
+> CREATE KEYSPACE <realm name>
+>   WITH replication = {'class': 'SimpleStrategy', 'replication_factor': :replication_factor} AND
+>     durable_writes = true AND
+>     tablets = { 'enabled': false };
+> ```
+
+The `capabilities` type is used by the `devices` to represent their capabilities.
+
+```sql
+CREATE TYPE <realm name>.capabilities (
+  purge_properties_compression_format int
+);
+```
 
 A table acting as a generic key-value store is also created for each realm:
 
@@ -132,6 +178,7 @@ CREATE TABLE <realm_name>.devices (
   attributes map<varchar, varchar>,
 
   groups map<varchar, timeuuid>,
+  capabilities capabilities,
 
   PRIMARY KEY (device_id)
 );
@@ -212,7 +259,6 @@ CREATE TABLE <realm name>.simple_triggers (
 ```
 
 ```sql
-
 CREATE TABLE <realm name>.individual_datastreams (
     device_id uuid,
     interface_id uuid,
@@ -236,7 +282,7 @@ CREATE TABLE <realm name>.individual_datastreams (
     string_value varchar,
     stringarray_value list<varchar>,
     PRIMARY KEY ((device_id, interface_id, endpoint_id, path), value_timestamp, reception_timestamp, reception_timestamp_submillis)
-) 
+)
 ```
 
 ```sql
@@ -272,14 +318,15 @@ CREATE TABLE <realm name>.deletion_in_progress (
   vmq_ack boolean,
   dup_start_ack boolean,
   dup_end_ack boolean,
+  groups set<text>,
   PRIMARY KEY (device_id)
 );
 ```
 
 The following table is generated upon datastream interface creation for keeping all data sent to Astarte through the interface.
 
-The table name is derived from lower case interface name where `.` and `-` have been replaced by `_` and `""` (empty string), then the major version is appended with a `_v` prefix. 
-For example, com.Astarte.TestInterface version 1 becomes  `com_astarte_testinterface_v1`.
+The table name is derived from lower case interface name where `.` and `-` have been replaced by `_` and `""` (empty string), then the major version is appended with a `_v` prefix.
+For example, com.Astarte.TestInterface version 1 becomes `com_astarte_testinterface_v1`.
 
 If, after all the required transformations, the resulting name is too long (>45 chars), it will be encoded and truncated.
 
@@ -293,8 +340,7 @@ CREATE TABLE <interpolated interface name>_v<major_version> (
     v_<property_mapping> <property_type>
     ...
     PRIMARY KEY ((device_id, path), reception_timestamp, reception_timestamp_submillis)
-) 
-
+)
 ```
 
 Then some initial values are inserted into the following tables to initialize the realm.
@@ -334,79 +380,76 @@ INSERT INTO astarte.realms (realm_name, device_registration_limit)
 
 The `devices` table stores the list of all the devices for a certain realm and all their metadata, including the introspection, the device status and credentials information.
 
-| Column Name                   | Column Type                           | Description                                                                                                                                                                                        |
-|-------------------------------|---------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `device_id`                   | `uuid`                                | Device unique 128 bits ID.                                                                                                                                                                         |
-| `aliases`                     | `map<ascii, varchar>`                 | Alias purpose and alias map.                                                                                                                                                                       |
-| `introspection`               | `map<ascii, int>`                     | Device interface name to interface major version map based on most recent device introspection.                                                                                                    |
-| `introspection_minor`         | `map<ascii, int>`                     | Device interface name to interface minor version map based on most recent device introspection.                                                                                                    |
-| `old_introspection`           | `map<frozen<tuple<ascii, int>>, int>` | All previous device interfaces. This column is used to keep track of all interfaces that have been used and might still have some recorded data. The column maps interface (name, major) to minor. |
-| `protocol_revision`           | `int`                                 | Spoken Astarte MQTT v1 protocol revision.                                                                                                                                                          |
-| `first_registration`          | `timestamp`                           | First registration attempt timestamp.                                                                                                                                                              |
-| `credentials_secret`          | `ascii`                               | The bcrypt hash of the credential secret, that the device uses to obtain new credentials.                                                                                                          |
-| `inhibit_credentials_request` | `boolean`                             | Ban device credentials renewal, device will be able to connect to the transport up to the credential expiry.                                                                                      |
-| `cert_serial`                 | `ascii`                               | Device certificate serial used by the CA.                                                                                                                                                          |
-| `cert_aki`                    | `ascii`                               | Device certificate Authority Key Identifier.                                                                                                                                                       |
-| `first_credentials_request`   | `timestamp`                           | First credentials request timestamp.                                                                                                                                                               |
-| `last_connection`             | `timestamp`                           | Most recent device connection event timestamp.                                                                                                                                                     |
-| `last_disconnection`          | `timestamp`                           | Most recent device disconnection event timestamp.                                                                                                                                                  |
-| `connected`                   | `boolean`                             | True if the device is connected, otherwise is false.                                                                                                                                               |
-| `pending_empty_cache`         | `boolean`                             | Device is in an unclean state and an empty cache message is being waited.                                                                                                                          |
-| `total_received_msgs`         | `bigint`                              | Count of received messages since the device registration.                                                                                                                                          |
-| `total_received_bytes`        | `bigint`                              | Amount of received messages bytes since the device registration.                                                                                                                                   |
-| `exchanged_msgs_by_interface` | `bigint`                              | Count of exchanged messages since the device registration.                                                                                                                                         |
-| `exchanged_bytes_by_interface`| `bigint`                              | Amount of exchanged messages bytes since the device registration.                                                                                                                                  |
-| `last_credentials_request_ip` | `inet`                                | Device IP address used during the last credential request.                                                                                                                                         |
-| `last_seen_ip`                | `inet`                                | Most recent device IP address.                                                                                                                                                                     |
-| `attributes`                  | `map<varchar, varchar>`               | Device attributes. It can contain arbitrary string key and values associated with the device.
-| `groups`                      | `map<varchar, timeuuid>`              | Groups which the device belongs to, the key is the group name, and the value is its insertion timeuuid, which is used as part of the key on grouped_devices table.     
+| Column Name                    | Column Type                           | Description                                                                                                                                                                                        |
+| ------------------------------ | ------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `device_id`                    | `uuid`                                | Device unique 128 bits ID.                                                                                                                                                                         |
+| `aliases`                      | `map<ascii, varchar>`                 | Alias purpose and alias map.                                                                                                                                                                       |
+| `introspection`                | `map<ascii, int>`                     | Device interface name to interface major version map based on most recent device introspection.                                                                                                    |
+| `introspection_minor`          | `map<ascii, int>`                     | Device interface name to interface minor version map based on most recent device introspection.                                                                                                    |
+| `old_introspection`            | `map<frozen<tuple<ascii, int>>, int>` | All previous device interfaces. This column is used to keep track of all interfaces that have been used and might still have some recorded data. The column maps interface (name, major) to minor. |
+| `protocol_revision`            | `int`                                 | Spoken Astarte MQTT v1 protocol revision.                                                                                                                                                          |
+| `first_registration`           | `timestamp`                           | First registration attempt timestamp.                                                                                                                                                              |
+| `credentials_secret`           | `ascii`                               | The bcrypt hash of the credential secret, that the device uses to obtain new credentials.                                                                                                          |
+| `inhibit_credentials_request`  | `boolean`                             | Ban device credentials renewal, device will be able to connect to the transport up to the credential expiry.                                                                                       |
+| `cert_serial`                  | `ascii`                               | Device certificate serial used by the CA.                                                                                                                                                          |
+| `cert_aki`                     | `ascii`                               | Device certificate Authority Key Identifier.                                                                                                                                                       |
+| `first_credentials_request`    | `timestamp`                           | First credentials request timestamp.                                                                                                                                                               |
+| `last_connection`              | `timestamp`                           | Most recent device connection event timestamp.                                                                                                                                                     |
+| `last_disconnection`           | `timestamp`                           | Most recent device disconnection event timestamp.                                                                                                                                                  |
+| `connected`                    | `boolean`                             | True if the device is connected, otherwise is false.                                                                                                                                               |
+| `pending_empty_cache`          | `boolean`                             | Device is in an unclean state and an empty cache message is being waited.                                                                                                                          |
+| `total_received_msgs`          | `bigint`                              | Count of received messages since the device registration.                                                                                                                                          |
+| `total_received_bytes`         | `bigint`                              | Amount of received messages bytes since the device registration.                                                                                                                                   |
+| `exchanged_msgs_by_interface`  | `bigint`                              | Count of exchanged messages since the device registration.                                                                                                                                         |
+| `exchanged_bytes_by_interface` | `bigint`                              | Amount of exchanged messages bytes since the device registration.                                                                                                                                  |
+| `last_credentials_request_ip`  | `inet`                                | Device IP address used during the last credential request.                                                                                                                                         |
+| `last_seen_ip`                 | `inet`                                | Most recent device IP address.                                                                                                                                                                     |
+| `attributes`                   | `map<varchar, varchar>`               | Device attributes. It can contain arbitrary string key and values associated with the device.                                                                                                      |
+| `groups`                       | `map<varchar, timeuuid>`              | Groups which the device belongs to, the key is the group name, and the value is its insertion timeuuid, which is used as part of the key on grouped_devices table.                                 |
 
 ### Endpoints
 
-The `endpoints` table stores the list of all endpoints of all interfaces for realm, with all the data needed to define an endpoint, such as retention, realiability, value type and so on.
+The `endpoints` table stores the list of all endpoints of all interfaces for realm, with all the data needed to define an endpoint, such as retention, reliability, value type and so on.
 
-| Column Name                   | Column Type                           | Description                                                                                                                                                                                        |
-|-------------------------------|---------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `interface_id`                | `uuid`                                | Interface unique 128 bits ID.                                                                                                                                                                      |
-| `endpoint_id`                 | `uuid`                                | Endpoint unique 128 bits ID.                                                                                                                                                                       |
-| `interface_name`              | `ascii`                               | Human-readable name for interface.                                                                                                                                                                 |
-| `interface_major_version`     | `int`                                 | Interface major version related to the endpoint.                                                                                                                                                   |
-| `interface_minor_version`     | `int`                                 | Interface minor version related to the endpoint.                                                                                                                                                   |
-| `interface_type`              | `int`                                 | Interface type identifier related to the endpoint.                                                                                                                                                 |
-| `endpoint`                    | `ascii`                               | Human-readable endpoint string.                                                                                                                                                                    |
-| `value_type`                  | `int`                                 | Value type identifier related to the endpoint.                                                                                                                                                     |
-| `reliability`                 | `int`                                 | Reliability identifier related to the endpoint.                                                                                                                                                    |
-| `retention`                   | `int`                                 | Retention identifier related to the endpoint.                                                                                                                                                      |
-| `expiry`                      | `int`                                 | Expiry identifier related to the endpoint.                                                                                                                                                         |
-| `database_retention_ttl`      | `int`                                 | Milliseconds before data deletion.                                                                                                                                                                 |
-| `database_retention_policy`   | `int`                                 | Database_retention_policy identifier related to the endpoint.                                                                                                                                      |
-| `allow_unset`                 | `boolean`                             | Enable or disable possibility of setting value to null.                                                                                                                                            |
-| `explicit_timestamp`          | `boolean`                             | Set or unset explicit timestamp.                                                                                                                                                                   |
-| `description`                 | `varchar`                             | Description of endpoint.                                                                                                                                                                           |          
-| `doc`                         | `varchar`                             | Documentation for endpoint.                                                                                                                                                                       | 
-
-
+| Column Name                 | Column Type | Description                                                   |
+| --------------------------- | ----------- | ------------------------------------------------------------- |
+| `interface_id`              | `uuid`      | Interface unique 128 bits ID.                                 |
+| `endpoint_id`               | `uuid`      | Endpoint unique 128 bits ID.                                  |
+| `interface_name`            | `ascii`     | Human-readable name for interface.                            |
+| `interface_major_version`   | `int`       | Interface major version related to the endpoint.              |
+| `interface_minor_version`   | `int`       | Interface minor version related to the endpoint.              |
+| `interface_type`            | `int`       | Interface type identifier related to the endpoint.            |
+| `endpoint`                  | `ascii`     | Human-readable endpoint string.                               |
+| `value_type`                | `int`       | Value type identifier related to the endpoint.                |
+| `reliability`               | `int`       | Reliability identifier related to the endpoint.               |
+| `retention`                 | `int`       | Retention identifier related to the endpoint.                 |
+| `expiry`                    | `int`       | Expiry identifier related to the endpoint.                    |
+| `database_retention_ttl`    | `int`       | Milliseconds before data deletion.                            |
+| `database_retention_policy` | `int`       | Database_retention_policy identifier related to the endpoint. |
+| `allow_unset`               | `boolean`   | Enable or disable possibility of setting value to null.       |
+| `explicit_timestamp`        | `boolean`   | Set or unset explicit timestamp.                              |
+| `description`               | `varchar`   | Description of endpoint.                                      |
+| `doc`                       | `varchar`   | Documentation for endpoint.                                   |
 
 ### Interfaces
 
-The `interfaces` table stores the list of all interfaces for realm, with all the data needed to define an endpoint, such as retention, realiability, value type and so on.
+The `interfaces` table stores the list of all interfaces for realm, with all the data needed to define an endpoint, such as retention, reliability, value type and so on.
 
-| Column Name                   | Column Type                           | Description                                                                                                                                                                                        |
-|-------------------------------|---------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `interface_id`                | `uuid`                                | Interface unique 128 bits ID.                                                                                                                                                                      |
-| `name`                        | `ascii`                               | Human-readable name for interface.                                                                                                                                                                 |
-| `major_version`               | `int`                                 | Interface major version related to the endpoint.                                                                                                                                                   |
-| `minor_version`               | `int`                                 | Interface minor version related to the endpoint.                                                                                                                                                   |
-| `storage_type`                | `int`                                 | Storage type identifier related to the endpoint.                                                                                                                                                   |
-| `storage`                     | `ascii`                               | Interface storage.                                                                                                                                                                                 |
-| `type`                        | `int`                                 | Identifies the type of this Interface. Currently two types are supported: datastream and properties.                                                                                               |
-| `ownership`                   | `int`                                 | Identifies the quality of the interface. Interfaces are meant to be unidirectional, and this property defines who's sending or receiving data.                                                     |
-| `aggregation`                 | `int`                                 | Identifies the aggregation of the mappings of the interface.                                                                                                                                       |
-| `automaton_transitions`       | `blob`                                | Automaton internal field.                                                                                                                                                                          |
-| `automaton_accepting_states`  | `blob`                                | Automaton internal field.                                                                                                                                                                          |
-| `description`                 | `varchar`                             | Description of interface.                                                                                                                                                                          |
-| `doc`                         | `varchar`                             | Documentation of interface.                                                                                                                                                                        |
-
+| Column Name                  | Column Type | Description                                                                                                                                    |
+| ---------------------------- | ----------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
+| `interface_id`               | `uuid`      | Interface unique 128 bits ID.                                                                                                                  |
+| `name`                       | `ascii`     | Human-readable name for interface.                                                                                                             |
+| `major_version`              | `int`       | Interface major version related to the endpoint.                                                                                               |
+| `minor_version`              | `int`       | Interface minor version related to the endpoint.                                                                                               |
+| `storage_type`               | `int`       | Storage type identifier related to the endpoint.                                                                                               |
+| `storage`                    | `ascii`     | Interface storage.                                                                                                                             |
+| `type`                       | `int`       | Identifies the type of this Interface. Currently two types are supported: datastream and properties.                                           |
+| `ownership`                  | `int`       | Identifies the quality of the interface. Interfaces are meant to be unidirectional, and this property defines who's sending or receiving data. |
+| `aggregation`                | `int`       | Identifies the aggregation of the mappings of the interface.                                                                                   |
+| `automaton_transitions`      | `blob`      | Automaton internal field.                                                                                                                      |
+| `automaton_accepting_states` | `blob`      | Automaton internal field.                                                                                                                      |
+| `description`                | `varchar`   | Description of interface.                                                                                                                      |
+| `doc`                        | `varchar`   | Documentation of interface.                                                                                                                    |
 
 ## Schema changes
 
@@ -421,13 +464,13 @@ Every change is followed by the CQL statement that produces the change.
 
 #### Astarte Keyspace v0.11 Changes
 
-* Remove `astarte_schema` table
+- Remove `astarte_schema` table
 
 ```sql
 DROP TABLE astarte_schema;
 ```
 
-* Remove `replication_factor` column from the `realms` table
+- Remove `replication_factor` column from the `realms` table
 
 ```sql
 ALTER TABLE realms
@@ -436,7 +479,7 @@ DROP replication_factor;
 
 #### Realm Keyspaces v0.11 Changes
 
-* Add `grouped_devices` table
+- Add `grouped_devices` table
 
 ```sql
 CREATE TABLE <realm_name>.grouped_devices (
@@ -447,7 +490,7 @@ CREATE TABLE <realm_name>.grouped_devices (
 );
 ```
 
-* Add `groups`, `exchanged_bytes_by_interface` and `exchanged_msgs_by_interface` columns to the
+- Add `groups`, `exchanged_bytes_by_interface` and `exchanged_msgs_by_interface` columns to the
   `devices` table
 
 ```sql
@@ -457,7 +500,7 @@ ADD (groups map<varchar, timeuuid>,
     exchanged_msgs_by_interface map<frozen<tuple<ascii, int>>, bigint>);
 ```
 
-* Add `database_retention_ttl` and `database_retention_policy` columns to the `endpoints` table
+- Add `database_retention_ttl` and `database_retention_policy` columns to the `endpoints` table
 
 ```sql
 ALTER TABLE <realm_name>.endpoints
@@ -471,11 +514,11 @@ ADD (
 
 #### Realm Keyspace v1.0.0-beta.1 Changes
 
-* The `connected` field of the `devices` table is now saved with a TTL, so it automatically expires
-  if it doesn't gets refreshed by the hearbeat sent by the broker. This behaviour was added to
+- The `connected` field of the `devices` table is now saved with a TTL, so it automatically expires
+  if it doesn't gets refreshed by the heartbeat sent by the broker. This behaviour was added to
   avoid stale connected devices if they disconnect while the broker is down.
 
-* Add `metadata` column to the `devices` table
+- Add `metadata` column to the `devices` table
 
 ```sql
 ALTER TABLE devices
@@ -488,11 +531,11 @@ ADD (
 
 #### Realm Keyspace v1.0.0 Changes
 
-* Rename the `metadata` to `attributes` in the `devices` table
+- Rename the `metadata` to `attributes` in the `devices` table
 
-*Warning*: migrating data from the `metadata` column to the `attributes` one is possible but is out
+_Warning_: migrating data from the `metadata` column to the `attributes` one is possible but is out
 of scope of this guide since this change happened between development releases. The procedure below
-just creates the new column and then deletes the old one *without migrating data*. You're free to
+just creates the new column and then deletes the old one _without migrating data_. You're free to
 implement a migration procedure between the two steps.
 
 ```sql

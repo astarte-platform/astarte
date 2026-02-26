@@ -17,19 +17,13 @@
 #
 
 defmodule AstarteDevTool.Utilities.Path do
-  @moduledoc false
-  def path_from(path) when is_bitstring(path) do
-    abs_path = Path.expand(path)
-    if File.exists?(abs_path), do: {:ok, abs_path}, else: {:error, "Invalid path: #{path}"}
-  end
-
   def directory_path_from(path) when is_bitstring(path) do
-    case path_from(path) do
-      {:ok, abs_path} ->
-        if File.dir?(abs_path), do: {:ok, abs_path}, else: {:error, "#{path} is not a directory"}
-
-      error ->
-        error
+    with abs_path <- Path.expand(path),
+         true <- File.exists?(abs_path),
+         true <- File.dir?(abs_path) do
+      {:ok, abs_path}
+    else
+      _ -> {:error, "Invalid directory: #{path}"}
     end
   end
 end

@@ -2,11 +2,10 @@
 
 Once a Device has been Registered in Astarte, it is capable of connecting to it.
 
-Devices connect to Astarte through the use of *Transports*. A Transport is an arbitrary protocol
+Devices connect to Astarte through the use of _Transports_. A Transport is an arbitrary protocol
 implementation which maps Astarte's concepts (mainly Interfaces) to a communication channel.
 Astarte's main supported Transport is Astarte/MQTT, implemented on top of
-[VerneMQ](https://github.com/erlio/vernemq) through [an additional
-plugin](https://github.com/astarte-platform/astarte_vmq_plugin), and it is used by Astarte's SDKs
+[VerneMQ](https://github.com/erlio/vernemq) through [an additional plugin](https://github.com/astarte-platform/astarte_vmq_plugin), and it is used by Astarte's SDKs
 for communication. However, virtually any protocol can be integrated in Astarte by creating a
 corresponding Transport.
 
@@ -17,18 +16,16 @@ Transport(s) and Credentials, Devices have to interact with Pairing.
 
 ## Credentials Secret, Pairing and Transports
 
-Once a Device has performed its first registration through an Agent, it holds its *Credentials
-Secret*. This *Credentials Secret* is the token the device uses for performing the actual Pairing
+Once a Device has performed its first registration through an Agent, it holds its _Credentials
+Secret_. This _Credentials Secret_ is the token the device uses for performing the actual Pairing
 routine, which results in the device obtaining its Credentials for accessing its designated
 Transport.
 
-A Device's *Credentials Secret* allows access to [Pairing API's Device REST
-API](https://docs.astarte-platform.org/astarte/1.1/api/?urls.primaryName=Pairing%20API#/device),
+A Device's _Credentials Secret_ allows access to [Pairing API's Device REST API](https://docs.astarte-platform.org/astarte/1.1/api/?urls.primaryName=Pairing%20API#/device),
 which is then used for obtaining information about which Transports the Device can use for
 communicating, and for obtaining Credentials for its assigned Transports.
 
-The ability to request Credentials of a Device can be inhibited with [AppEngine
-API](https://docs.astarte-platform.org/astarte/1.1/api/#/device/updateDeviceStatus) or using
+The ability to request Credentials of a Device can be inhibited with [AppEngine API](https://docs.astarte-platform.org/astarte/1.1/api/#/device/updateDeviceStatus) or using
 [`astartectl`](https://github.com/astarte-platform/astartectl) with this command:
 
 ```bash
@@ -48,7 +45,7 @@ own, head over to [Transport Developer Documentation]().
 ## Using Astarte/MQTT through Astarte SDK
 
 If you are using one of Astarte's SDK, the Pairing routine is entirely managed, and you won't need
-to do any of the aforementioned steps. Just make sure your *Credentials Secret* is passed as the
+to do any of the aforementioned steps. Just make sure your _Credentials Secret_ is passed as the
 `apiKey` configuration key, to allow the SDK to perform automatically the Pairing routine when
 needed.
 
@@ -65,9 +62,9 @@ The SDK does a number of automated things under the hood. Its flow is:
 The SDK considers a Device successfully paired when it has a valid certificate and manages to
 connect to the Transport. Once in this state, the Device can start exchanging data.
 
-*Note: the Pairing procedure is secure as long as Pairing API is queried using HTTPS. Plain HTTP
+_Note: the Pairing procedure is secure as long as Pairing API is queried using HTTPS. Plain HTTP
 installations are vulnerable to a number of different attacks and should NEVER be used in
-production.*
+production._
 
 ### Interfaces and Introspection
 

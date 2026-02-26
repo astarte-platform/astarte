@@ -17,37 +17,35 @@
 #
 
 defmodule Astarte.DataUpdaterPlant.TriggerPolicy.Queries do
+  @moduledoc """
+  This module is responsible for querying the database for trigger policies.
+  """
   require Logger
-  alias Astarte.Core.CQLUtils
-  alias Astarte.DataUpdaterPlant.Config
+
+  import Ecto.Query
+
+  alias Astarte.DataAccess.Consistency
+  alias Astarte.DataAccess.KvStore
+  alias Astarte.DataAccess.Realms.Realm
+  alias Astarte.DataAccess.Repo
 
   def retrieve_policy_name(realm_name, trigger_id) do
+    keyspace_name = Realm.keyspace_name(realm_name)
+
     trigger_id =
       trigger_id
       |> :uuid.uuid_to_string()
       |> to_string()
 
-    keyspace_name =
-      CQLUtils.realm_name_to_keyspace_name(realm_name, Config.astarte_instance_id!())
+    query =
+      from kvstore in KvStore,
+        prefix: ^keyspace_name,
+        where: kvstore.group == "trigger_to_policy" and kvstore.key == ^trigger_id,
+        select: kvstore.value
 
-    Xandra.Cluster.run(:xandra, &do_retrieve_policy_name(&1, keyspace_name, trigger_id))
-  end
-
-  defp do_retrieve_policy_name(conn, keyspace_name, trigger_id) do
-    retrieve_statement =
-      "SELECT value FROM #{keyspace_name}.kv_store WHERE group='trigger_to_policy' AND key=:trigger_id;"
-
-    with {:ok, prepared} <- Xandra.prepare(conn, retrieve_statement),
-         {:ok, %Xandra.Page{} = page} <-
-           Xandra.execute(conn, prepared, %{"trigger_id" => trigger_id}) do
-      case Enum.to_list(page) do
-        [%{"value" => policy_name}] -> {:ok, policy_name}
-        [] -> {:error, :policy_not_found}
-      end
-    else
-      {:error, error} ->
-        Logger.warning("Database error #{inspect(error)}", tag: "retrieve_policy_name_db_error")
-        {:error, error}
+    case Repo.one(query, consistency: Consistency.domain_model(:read)) do
+      nil -> {:error, :policy_not_found}
+      value -> {:ok, value}
     end
   end
 end

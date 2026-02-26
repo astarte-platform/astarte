@@ -5,58 +5,164 @@
 name: Publish snapshot Docker images
 
 on:
+  workflow_dispatch:
   push:
     paths:
-    - 'apps/**'
-    - '.github/workflows/publish-snapshot-to-dockerhub-workflow.yaml'
-    - 'Dockerfile'
+      - "apps/**"
+      - ".github/workflows/publish-snapshot-to-dockerhub-workflow.yaml"
+      - "Dockerfile"
     branches:
-    - 'master'
-    - 'release-*'
+      - "master"
+      - "release-*"
 
 jobs:
-  container_tests:
+  astarte_appengine_api:
     uses: ./.github/workflows/astarte-apps-build-workflow.yaml
+    with:
+      app: "astarte_appengine_api"
+    secrets: inherit
+
+  astarte_data_updater_plant:
+    uses: ./.github/workflows/astarte-apps-build-workflow.yaml
+    with:
+      app: "astarte_data_updater_plant"
+    secrets: inherit
+
+  astarte_housekeeping:
+    uses: ./.github/workflows/astarte-apps-build-workflow.yaml
+    with:
+      app: "astarte_housekeeping"
+    secrets: inherit
+
+  astarte_pairing:
+    uses: ./.github/workflows/astarte-apps-build-workflow.yaml
+    with:
+      app: "astarte_pairing"
+    secrets: inherit
+
+  astarte_realm_management:
+    uses: ./.github/workflows/astarte-apps-build-workflow.yaml
+    with:
+      app: "astarte_realm_management"
+    secrets: inherit
+
+  astarte_trigger_engine:
+    uses: ./.github/workflows/astarte-apps-build-workflow.yaml
+    with:
+      app: "astarte_trigger_engine"
     secrets: inherit
 
   e2e_tests:
     uses: ./.github/workflows/astarte-end-to-end-test-workflow.yaml
 
-  push_snapshot_to_registry:
+  build_snapshot:
     name: Push Docker images to Docker Hub
-    runs-on: ubuntu-22.04
+    runs-on: ${{ matrix.platform.os }}
     permissions:
       packages: write
       contents: read
       attestations: write
       id-token: write
     needs:
-    - container_tests
-    - e2e_tests
+      - astarte_appengine_api
+      - astarte_data_updater_plant
+      - astarte_housekeeping
+      - astarte_pairing
+      - astarte_realm_management
+      - astarte_trigger_engine
+      - e2e_tests
+    strategy:
+      fail-fast: true
+      matrix:
+        platform:
+          - os: ubuntu-22.04
+            platform: linux/amd64
+            platform-pair: linux-amd64
+          - os: ubuntu-22.04-arm
+            platform: linux/arm64
+            platform-pair: linux-arm64
+        app:
+          - astarte_appengine_api
+          - astarte_data_updater_plant
+          - astarte_housekeeping
+          - astarte_pairing
+          - astarte_realm_management
+          - astarte_trigger_engine
+    steps:
+      - name: Check out the repo
+        uses: actions/checkout@v4
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3.4.0
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Build branch slug env variable (job-scoped)
+        run: |
+          # Slugify branch/tag name for Docker tag safety and consistency
+          echo "BRANCH_SLUG=$(echo "${GITHUB_REF_NAME}" | sha1sum | cut -f 1 -d ' ')" >> $GITHUB_ENV
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build Docker image
+        id: build
+        uses: docker/build-push-action@v6.18.0
+        with:
+          context: .
+          build-args: SERVICE=${{ matrix.app }}
+          push: true
+          tags: astarte/${{ matrix.app }}
+          platforms: ${{ matrix.platform.platform }}
+          cache-from: type=gha,scope=${{ matrix.app.name }}-${{ env.BRANCH_SLUG }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.app.name }}-${{ env.BRANCH_SLUG }}
+          outputs: type=image,push-by-digest=true,name-canonical=true,push=true
+
+      - name: Export digest
+        run: |
+          mkdir -p ${{ runner.temp }}/digests/
+          digest="${{ steps.build.outputs.digest }}"
+          touch "${{ runner.temp }}/digests/${digest#sha256:}"
+
+      - name: Upload digest
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.app }}-digests-${{ matrix.platform.platform-pair }}
+          path: ${{ runner.temp }}/digests/*
+          if-no-files-found: error
+          retention-days: 1
+
+  merge_snapshots:
+    name: Publish snapshot
+    runs-on: ubuntu-22.04
+    needs:
+      - build_snapshot
     strategy:
       fail-fast: true
       matrix:
         app:
-        - astarte_appengine_api
-        - astarte_data_updater_plant
-        - astarte_housekeeping
-        - astarte_housekeeping_api
-        - astarte_pairing
-        - astarte_pairing_api
-        - astarte_realm_management
-        - astarte_realm_management_api
-        - astarte_trigger_engine
+          - astarte_appengine_api
+          - astarte_data_updater_plant
+          - astarte_housekeeping
+          - astarte_pairing
+          - astarte_realm_management
+          - astarte_trigger_engine
     steps:
-      - name: Check out the repo
-        uses: actions/checkout@v4
+      - name: Download digests
+        uses: actions/download-artifact@v4
+        with:
+          path: ${{ runner.temp }}/digests/
+          pattern: ${{ matrix.app }}-digests-*
+          merge-multiple: true
 
       - name: Get current datetime
         id: datetime
         run: |
           echo "BUILD_DATE=$(date -u +'%Y-%m-%dT%H:%M:%SZ')" >> $GITHUB_OUTPUT
 
-      - name: Log in to Docker Hub
-        uses: docker/login-action@v3.4.0
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
@@ -84,14 +190,8 @@ jobs:
             org.opencontainers.image.revision=${{ github.sha }}
             org.opencontainers.image.source=https://github.com/${{ github.repository }}
 
-      - name: Build and push tagged Docker image
-        id: push
-        uses: docker/build-push-action@v6.18.0
-        with:
-          context: apps/${{ matrix.app }}
-          file: Dockerfile
-          push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
-          platforms: linux/amd64,linux/arm64
-          annotations: ${{ steps.meta.outputs.labels }}
+      - name: Create manifest list and push
+        working-directory: ${{ runner.temp }}/digests/
+        run: |
+          docker buildx imagetools create $(jq -cr '.tags | map("-t " + .) | join(" ")' <<< "$DOCKER_METADATA_OUTPUT_JSON") \
+            $(printf 'astarte/${{ matrix.app }}@sha256:%s ' *)

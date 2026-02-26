@@ -1,4 +1,0 @@
-services:
-  astarte-pairing-api:
-    volumes:
-      - ../../../:/workspace/astarte

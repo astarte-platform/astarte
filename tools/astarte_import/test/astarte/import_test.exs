@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2019 Ispirata Srl
+# Copyright 2019 - 2025 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -27,53 +27,101 @@ defmodule Astarte.ImportTest do
 
   @xml_chunk2 """
     <devices>
-      <device device_id="yKA3CMd07kWaDyj6aMP4Dg">
-        <protocol revision="0" pending_empty_cache="false" />
-        <registration
-         secret_bcrypt_hash="$2b$12$bKly9EEKmxfVyDeXjXu1vOebWgr34C8r4IHd9Cd.34Ozm0TWVo1Ve"
-         first_registration="2019-05-30T13:49:57.045000Z" />
-        <credentials inhibit_request="false"
-         cert_serial="324725654494785828109237459525026742139358888604"
-         cert_aki="a8eaf08a797f0b10bb9e7b5dca027ec2571c5ea6"
-         first_credentials_request="2019-05-30T13:49:57.355000Z"
-         last_credentials_request_ip="198.51.100.1" />
-        <stats total_received_msgs="64" total_received_bytes="3960"
-         last_connection="2019-05-30T13:49:57.561000Z" last_disconnection="2019-05-30T13:51:00.038000Z"
-         last_seen_ip="198.51.100.89"/>
-
-        <interfaces>
-          <interface name="org.astarteplatform.Values" major_version="0" minor_version="1" active="true">
-            <datastream path="/realValue">
-              <value reception_timestamp="2019-05-31T09:12:42.789379Z">0.1</value>
-              <value reception_timestamp="2019-05-31T09:13:29.144111Z">0.2</value>
+        <device device_id="yKA3CMd07kWaDyj6aMP4Dg" connected="false">
+            <protocol revision="0" pending_empty_cache="false" />
+            <registration
+                credentials_secret="$2b$12$bKly9EEKmxfVyDeXjXu1vOebWgr34C8r4IHd9Cd.34Ozm0TWVo1Ve"
+                first_registration="2019-05-30T13:49:57.045Z" />
+            <credentials inhibit_request="false"
+                cert_serial="324725654494785828109237459525026742139358888604"
+                cert_aki="a8eaf08a797f0b10bb9e7b5dca027ec2571c5ea6"
+                first_credentials_request="2019-05-30T13:49:57.355Z"
+                last_credentials_request_ip="198.51.100.1" />
+            <capabilities purge_properties_compression_format="0" />
+            <stats total_received_msgs="64" total_received_bytes="3960"
+                last_connection="2019-05-30T13:49:57.561Z"
+                last_disconnection="2019-05-30T13:51:00.038Z" last_seen_ip="198.51.100.89" />
+            <attributes>
+                <attribute name="attribute" value="value_of_attribute" />
+            </attributes>
+            <aliases>
+                <alias name="alias" as="value_of_alias" />
+            </aliases>
+            <interfaces>
+                <interface name="objectdatastreams.org" major_version="0" minor_version="1"
+                    active="false">
+                    <datastream path="/objectendpoint1">
+                        <object reception_timestamp="2019-06-11T13:24:03.200Z">
+                            <item name="/y">2</item>
+                            <item name="/x">45.0</item>
+                        </object>
+                        <object reception_timestamp="2019-06-11T13:26:28.994Z">
+                            <item name="/y">555</item>
+                            <item name="/x">1.0</item>
+                        </object>
+                        <object reception_timestamp="2019-06-11T13:26:44.218Z">
+                            <item name="/y">22</item>
+                            <item name="/x">488.0</item>
+                        </object>
+                    </datastream>
+                </interface>
+                <interface name="properties.org" major_version="0" minor_version="1" active="true">
+                    <property reception_timestamp="2020-01-30T03:26:23.184Z" path="/properties1">
+                        42.0</property>
+                    <property reception_timestamp="2020-01-30T03:26:23.185Z" path="/properties2">This
+                        is property string</property>
+                </interface>
+                <interface name="org.individualdatastreams.values" major_version="0"
+                    minor_version="1" active="true">
+                    <datastream path="/testinstall1">
   """
 
   @xml_chunk3 """
-              <value reception_timestamp="2019-05-31T09:13:52.040373Z">0.3</value>
-            </datastream>
-          </interface>
-        <interface name="org.astarteplatform.Values" major_version="1" minor_version="0" active="false"/>
-        </interfaces>
-        <interface name="org.astarteplatform.Properties" major_version="1" minor_version="1" active="true">
-          <property path="/hello" reception_timestamp="2019-06-12T14:45:49.706034Z">world</property>
-          <property path="/items/1/value" reception_timestamp="2019-06-12T14:45:49.706034Z">1.1</property>
-          <property path="/items/1/string" reception_timestamp="2019-06-12T14:45:49.706034Z">string 1</property>
-          <property path="/items/2/value" reception_timestamp="2019-06-12T14:45:49.706034Z">2.2</property>
-          <property path="/items/2/string" reception_timestamp="2019-06-12T14:45:49.706034Z">string 2</property>
-        </interface>
-        <interface name="org.astarteplatform.ObjectAggregated" major_version="2" minor_version="0" active="true">
-          <datastream path="/obj">
-            <object reception_timestamp="2019-06-11T10:40:47.162207Z">
-              <item name="/val1">true</item>
-              <item name="/val2">1</item>
-            </object>
-            <object reception_timestamp="2019-06-11T10:43:19.599735Z">
-              <item name="/val1">false</item>
-              <item name="/val2">2</item>
-            </object>
-          </datastream>
-        </interface>
-      </device>
+                        <value reception_timestamp="2019-05-31T09:12:42.789Z">0.1</value>
+                        <value reception_timestamp="2019-05-31T09:13:29.144Z">0.2</value>
+                        <value reception_timestamp="2019-05-31T09:13:52.040Z">0.3</value>
+                    </datastream>
+                    <datastream path="/testinstall2">
+                        <value reception_timestamp="2019-05-31T09:12:42.789Z">3</value>
+                        <value reception_timestamp="2019-05-31T09:13:52.040Z">4</value>
+                    </datastream>
+                    <datastream path="/testinstall3">
+                        <value reception_timestamp="2019-05-31T09:12:42.789Z">true</value>
+                        <value reception_timestamp="2019-05-31T09:13:29.144Z">false</value>
+                        <value reception_timestamp="2019-05-31T09:13:52.040Z">true</value>
+                    </datastream>
+                    <datastream path="/testinstall4">
+                        <value reception_timestamp="2019-05-31T09:12:42.789Z">This is the data1</value>
+                        <value reception_timestamp="2019-05-31T09:13:29.144Z">This is the data2</value>
+                        <value reception_timestamp="2019-05-31T09:13:52.040Z">This is the data3</value>
+                    </datastream>
+                    <datastream path="/testinstall5">
+                        <value reception_timestamp="2019-05-31T09:12:42.789Z">3244325554</value>
+                        <value reception_timestamp="2019-05-31T09:13:29.144Z">4885959589</value>
+                    </datastream>
+                </interface>
+                <interface name="objectdatastreams.org" major_version="1" minor_version="0"
+                    active="true">
+                    <datastream path="/objectendpoint1">
+                        <object reception_timestamp="2019-06-11T13:24:03.200Z">
+                            <item name="/y">2</item>
+                            <item name="/x">45.0</item>
+                            <item name="/d">78787985785</item>
+                        </object>
+                        <object reception_timestamp="2019-06-11T13:26:28.994Z">
+                            <item name="/y">555</item>
+                            <item name="/x">1.0</item>
+                            <item name="/d">747989859</item>
+                        </object>
+                        <object reception_timestamp="2019-06-11T13:26:44.218Z">
+                            <item name="/y">22</item>
+                            <item name="/x">488.0</item>
+                            <item name="/d">747847748</item>
+                        </object>
+                    </datastream>
+                </interface>
+            </interfaces>
+        </device>
     </devices>
   """
 
@@ -85,50 +133,79 @@ defmodule Astarte.ImportTest do
 
   @populated_map %{
     "yKA3CMd07kWaDyj6aMP4Dg" => %{
-      {"org.astarteplatform.Values", 0, 1} => %{
-        "/realValue" => %{
-          "2019-05-31T09:12:42.789379Z" => '0.1',
-          "2019-05-31T09:13:29.144111Z" => '0.2',
-          "2019-05-31T09:13:52.040373Z" => '0.3'
+      {"org.individualdatastreams.values", 0, 1} => %{
+        "/testinstall1" => %{
+          "2019-05-31T09:12:42.789Z" => ~c"0.1",
+          "2019-05-31T09:13:29.144Z" => ~c"0.2",
+          "2019-05-31T09:13:52.040Z" => ~c"0.3"
+        },
+        "/testinstall2" => %{
+          "2019-05-31T09:12:42.789Z" => ~c"3",
+          "2019-05-31T09:13:52.040Z" => ~c"4"
+        },
+        "/testinstall3" => %{
+          "2019-05-31T09:12:42.789Z" => ~c"true",
+          "2019-05-31T09:13:29.144Z" => ~c"false",
+          "2019-05-31T09:13:52.040Z" => ~c"true"
+        },
+        "/testinstall4" => %{
+          "2019-05-31T09:12:42.789Z" => ~c"This is the data1",
+          "2019-05-31T09:13:29.144Z" => ~c"This is the data2",
+          "2019-05-31T09:13:52.040Z" => ~c"This is the data3"
+        },
+        "/testinstall5" => %{
+          "2019-05-31T09:12:42.789Z" => ~c"3244325554",
+          "2019-05-31T09:13:29.144Z" => ~c"4885959589"
         }
       },
-      {"org.astarteplatform.Properties", 1, 1} => %{
-        "/hello" => 'world',
-        "/items/1/value" => '1.1',
-        "/items/1/string" => 'string 1',
-        "/items/2/value" => '2.2',
-        "/items/2/string" => 'string 2'
+      {"properties.org", 0, 1} => %{
+        "/properties1" => ~c"42.0",
+        "/properties2" => ~c"This is property string"
       },
-      {"org.astarteplatform.ObjectAggregated", 2, 0} => %{
-        "/obj" => %{
-          "2019-06-11T10:40:47.162207Z" => %{
-            "/val1" => 'true',
-            "/val2" => '1'
+      {"objectdatastreams.org", 0, 1} => %{
+        "/objectendpoint1" => %{
+          "2019-06-11T13:24:03.200Z" => %{"/x" => ~c"45.0", "/y" => ~c"2"},
+          "2019-06-11T13:26:28.994Z" => %{"/x" => ~c"1.0", "/y" => ~c"555"},
+          "2019-06-11T13:26:44.218Z" => %{"/x" => ~c"488.0", "/y" => ~c"22"}
+        }
+      },
+      {"objectdatastreams.org", 1, 0} => %{
+        "/objectendpoint1" => %{
+          "2019-06-11T13:24:03.200Z" => %{
+            "/d" => ~c"78787985785",
+            "/x" => ~c"45.0",
+            "/y" => ~c"2"
           },
-          "2019-06-11T10:43:19.599735Z" => %{
-            "/val1" => 'false',
-            "/val2" => '2'
+          "2019-06-11T13:26:28.994Z" => %{"/d" => ~c"747989859", "/x" => ~c"1.0", "/y" => ~c"555"},
+          "2019-06-11T13:26:44.218Z" => %{
+            "/d" => ~c"747847748",
+            "/x" => ~c"488.0",
+            "/y" => ~c"22"
           }
         }
       },
       device_status: %{
+        connected: false,
         introspection: %{
-          "org.astarteplatform.Values" => {0, 1},
-          "org.astarteplatform.Properties" => {1, 1},
-          "org.astarteplatform.ObjectAggregated" => {2, 0}
+          "properties.org" => {0, 1},
+          "org.individualdatastreams.values" => {0, 1},
+          "objectdatastreams.org" => {1, 0}
         },
-        old_introspection: %{{"org.astarteplatform.Values", 1} => 0},
+        aliases: %{"alias" => "value_of_alias"},
+        attributes: %{"attribute" => "value_of_attribute"},
+        capabilities: %{"purge_properties_compression_format" => 0},
+        old_introspection: %{{"objectdatastreams.org", 0} => 1},
         pending_empty_cache: false,
         credentials_secret: "$2b$12$bKly9EEKmxfVyDeXjXu1vOebWgr34C8r4IHd9Cd.34Ozm0TWVo1Ve",
-        first_registration: elem(DateTime.from_iso8601("2019-05-30T13:49:57.045000Z"), 1),
+        first_registration: elem(DateTime.from_iso8601("2019-05-30T13:49:57.045Z"), 1),
         cert_aki: "a8eaf08a797f0b10bb9e7b5dca027ec2571c5ea6",
         cert_serial: "324725654494785828109237459525026742139358888604",
-        first_credentials_request: elem(DateTime.from_iso8601("2019-05-30T13:49:57.355000Z"), 1),
+        first_credentials_request: elem(DateTime.from_iso8601("2019-05-30T13:49:57.355Z"), 1),
         last_credentials_request_ip: {198, 51, 100, 1},
         total_received_msgs: 64,
         total_received_bytes: 3960,
-        last_connection: elem(DateTime.from_iso8601("2019-05-30T13:49:57.561000Z"), 1),
-        last_disconnection: elem(DateTime.from_iso8601("2019-05-30T13:51:00.038000Z"), 1),
+        last_connection: elem(DateTime.from_iso8601("2019-05-30T13:49:57.561Z"), 1),
+        last_disconnection: elem(DateTime.from_iso8601("2019-05-30T13:51:00.038Z"), 1),
         last_seen_ip: {198, 51, 100, 89}
       }
     }
@@ -180,6 +257,7 @@ defmodule Astarte.ImportTest do
       new_data =
         (data || %{})
         |> update_in([device_id], &(&1 || %{}))
+        |> update_in([device_id], &(&1 || %{}))
         |> update_in([device_id, interface], &(&1 || %{}))
         |> update_in([device_id, interface, path], &(&1 || %{}))
         |> put_in([device_id, interface, path, timestamp_s], chars)
@@ -209,8 +287,12 @@ defmodule Astarte.ImportTest do
     %Import.State{
       data: data,
       device_id: device_id,
+      connected: connected,
       cert_aki: cert_aki,
       cert_serial: cert_serial,
+      aliases: aliases,
+      attributes: attributes,
+      capabilities: capabilities,
       credentials_secret: credentials_secret,
       first_credentials_request: first_credentials_request,
       first_registration: first_registration,
@@ -226,8 +308,12 @@ defmodule Astarte.ImportTest do
     } = state
 
     device_status = %{
+      connected: connected,
       cert_aki: cert_aki,
       cert_serial: cert_serial,
+      aliases: aliases,
+      attributes: attributes,
+      capabilities: capabilities,
       credentials_secret: credentials_secret,
       first_credentials_request: first_credentials_request,
       first_registration: first_registration,
@@ -242,7 +328,12 @@ defmodule Astarte.ImportTest do
       total_received_bytes: total_received_bytes
     }
 
-    new_data = update_in(data, [device_id, :device_status], &(&1 || device_status))
+    new_data =
+      update_in(
+        data,
+        [device_id, :device_status],
+        &(&1 || device_status)
+      )
 
     %Import.State{state | data: new_data}
   end
@@ -261,6 +352,7 @@ defmodule Astarte.ImportTest do
     new_data =
       (data || %{})
       |> update_in([device_id], &(&1 || %{}))
+      |> update_in([device_id], &(&1 || %{}))
       |> update_in([device_id, interface], &(&1 || %{}))
       |> update_in([device_id, interface, path], &(&1 || %{}))
       |> put_in([device_id, interface, path, timestamp_s], obj)
@@ -278,6 +370,7 @@ defmodule Astarte.ImportTest do
 
     new_data =
       (data || %{})
+      |> update_in([device_id], &(&1 || %{}))
       |> update_in([device_id], &(&1 || %{}))
       |> update_in([device_id, interface], &(&1 || %{}))
       |> put_in([device_id, interface, path], chars)

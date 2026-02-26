@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2017 Ispirata Srl
+# Copyright 2017 - 2025 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -16,10 +16,10 @@
 # limitations under the License.
 
 defmodule Astarte.AppEngine.APIWeb.AuthTest do
-  use Astarte.AppEngine.APIWeb.ConnCase
+  use Astarte.Cases.Conn
 
-  alias Astarte.AppEngine.API.DatabaseTestHelper
-  alias Astarte.AppEngine.API.JWTTestHelper
+  alias Astarte.Helpers.Database, as: DatabaseTestHelper
+  alias Astarte.Helpers.JWT, as: JWTTestHelper
 
   @realm "autotestrealm"
   @device_id "f0VMRgIBAQAAAAAAAAAAAA"
@@ -30,6 +30,7 @@ defmodule Astarte.AppEngine.APIWeb.AuthTest do
   @valid_auth_path "devices/#{@device_id}/interfaces/#{@escaped_interface}#{@path}"
   @fake_valid_auth_path "devices/c0VMRgIBAQAAAAAAAAAAAA/interfaces/#{@escaped_interface}#{@path}"
   @fake_request_path "/v1/#{@realm}/devices/c0VMRgIBAQAAAAAAAAAAAA/interfaces/#{@interface}#{@path}"
+  @invalid_realm_request_path "/v1/noneexistant/devices/#{@device_id}/interfaces/#{@interface}#{@path}"
   @other_device_id "OTHERDEVICEAAAAAAAAAAAIAPgABAAAAsCVAAAAAAABAAAAAAAAAADDEAAAAAAAAAAAAAEAAOAAJ"
   @other_device_auth_path "devices/#{@other_device_id}/interfaces/#{@escaped_interface}#{@path}"
 
@@ -41,7 +42,7 @@ defmodule Astarte.AppEngine.APIWeb.AuthTest do
   end
 
   setup_all do
-    {:ok, _client} = DatabaseTestHelper.create_test_keyspace()
+    DatabaseTestHelper.create_test_keyspace()
 
     on_exit(fn ->
       DatabaseTestHelper.destroy_local_test_keyspace()
@@ -54,6 +55,18 @@ defmodule Astarte.AppEngine.APIWeb.AuthTest do
     test "no token returns 401", %{conn: conn} do
       conn = get(conn, @request_path)
       assert json_response(conn, 401)["errors"]["detail"] == "Missing authorization token"
+    end
+
+    test "invalid realm returns 401", %{conn: conn} do
+      conn =
+        put_req_header(
+          conn,
+          "authorization",
+          "bearer #{JWTTestHelper.gen_jwt_all_access_token()}"
+        )
+        |> get(@invalid_realm_request_path)
+
+      assert json_response(conn, 401)["errors"]["detail"] == "Invalid JWT token"
     end
 
     test "all access token returns the data", %{conn: conn} do
@@ -92,7 +105,7 @@ defmodule Astarte.AppEngine.APIWeb.AuthTest do
       assert json_response(conn, 404)["data"] == nil
     end
 
-    test "token returns the data also with explicity regex delimiters", %{conn: conn} do
+    test "token returns the data also with explicitly regex delimiters", %{conn: conn} do
       conn =
         put_req_header(
           conn,
@@ -113,8 +126,7 @@ defmodule Astarte.AppEngine.APIWeb.AuthTest do
         )
         |> get("#{@request_path}/with/suffix")
 
-      assert json_response(conn, 403)["errors"]["detail"] ==
-               "Unauthorized access to #{conn.assigns.method} #{conn.assigns.path}. Please verify your permissions"
+      assert json_response(conn, 403)["errors"]["detail"] == unauthorized_access_message(conn)
     end
 
     test "token for another device returns 403", %{conn: conn} do
@@ -126,8 +138,7 @@ defmodule Astarte.AppEngine.APIWeb.AuthTest do
         )
         |> get(@request_path)
 
-      assert json_response(conn, 403)["errors"]["detail"] ==
-               "Unauthorized access to #{conn.assigns.method} #{conn.assigns.path}. Please verify your permissions"
+      assert json_response(conn, 403)["errors"]["detail"] == unauthorized_access_message(conn)
     end
 
     test "token for both devices returns the data", %{conn: conn} do
@@ -151,8 +162,7 @@ defmodule Astarte.AppEngine.APIWeb.AuthTest do
         )
         |> get(@request_path)
 
-      assert json_response(conn, 403)["errors"]["detail"] ==
-               "Unauthorized access to #{conn.assigns.method} #{conn.assigns.path}. Please verify your permissions"
+      assert json_response(conn, 403)["errors"]["detail"] == unauthorized_access_message(conn)
     end
 
     test "token with generic matching regexp returns the data", %{conn: conn} do
@@ -202,5 +212,9 @@ defmodule Astarte.AppEngine.APIWeb.AuthTest do
 
       assert json_response(conn, 401)["errors"]["detail"] == "Invalid JWT token"
     end
+  end
+
+  defp unauthorized_access_message(conn) do
+    "Unauthorized access to #{conn.assigns.method} #{conn.assigns.path}. Please verify your permissions"
   end
 end

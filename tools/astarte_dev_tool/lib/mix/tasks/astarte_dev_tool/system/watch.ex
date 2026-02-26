@@ -37,8 +37,8 @@ defmodule Mix.Tasks.AstarteDevTool.System.Watch do
 
   ## Examples
 
-      $ mix astarte_dev_tool.system.watch -p /absolute/path/astarte
-      $ mix astarte_dev_tool.system.watch -p ../../relative/to/astarte
+      $ mix system.watch -p /absolute/path/astarte
+      $ mix system.watch -p ../../relative/to/astarte
 
   ## Command line options
     * `-p` `--path` - (required) working Astarte project directory

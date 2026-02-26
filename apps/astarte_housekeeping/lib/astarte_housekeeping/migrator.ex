@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2019 Ispirata Srl
+# Copyright 2025 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -17,29 +17,35 @@
 #
 
 defmodule Astarte.Housekeeping.Migrator do
-  require Logger
-  alias Astarte.Core.CQLUtils
-  alias Astarte.Housekeeping.Config
+  @moduledoc false
+  import Ecto.Query
 
-  alias Astarte.Housekeeping.Queries
+  alias Astarte.DataAccess.Consistency
+  alias Astarte.DataAccess.CSystem
+  alias Astarte.DataAccess.KvStore
+  alias Astarte.DataAccess.Realms.Realm
+  alias Astarte.DataAccess.Repo
+  alias Astarte.Housekeeping.Realms.Queries
+  alias Astarte.Housekeeping.Realms.Realm, as: HKRealm
+
+  require Logger
+
   @query_timeout 60_000
 
   def run_astarte_keyspace_migrations do
     _ = Logger.info("Starting to migrate Astarte keyspace.", tag: "astarte_migration_started")
 
     with :ok <- ensure_astarte_kv_store(),
-         {:ok, astarte_schema_version} <- get_astarte_schema_version(),
-         :ok <- migrate_astarte_keyspace_from_version(astarte_schema_version) do
-      :ok
+         {:ok, astarte_schema_version} <- get_astarte_schema_version() do
+      migrate_astarte_keyspace_from_version(astarte_schema_version)
     end
   end
 
   def run_realms_migrations do
     _ = Logger.info("Starting to migrate Realms.", tag: "realms_migration_started")
 
-    with {:ok, realms} <- Queries.list_realms(),
-         :ok <- migrate_realms(realms) do
-      :ok
+    with {:ok, realms} <- Queries.list_realms() do
+      migrate_realms(realms)
     end
   end
 
@@ -67,46 +73,50 @@ defmodule Astarte.Housekeeping.Migrator do
   end
 
   defp migrate_realms([realm | tail]) do
-    _ = Logger.info("Starting to migrate realm.", tag: "realm_migration_started", realm: realm)
+    %HKRealm{realm_name: realm_name} = realm
 
-    with {:ok, realm_astarte_schema_version} <- get_realm_astarte_schema_version(realm),
-         :ok <- migrate_realm_from_version(realm, realm_astarte_schema_version) do
+    Logger.info("Starting to migrate realm.",
+      tag: "realm_migration_started",
+      realm: realm_name
+    )
+
+    with {:ok, realm_astarte_schema_version} <- get_realm_astarte_schema_version(realm_name),
+         :ok <- migrate_realm_from_version(realm_name, realm_astarte_schema_version) do
       migrate_realms(tail)
     end
   end
 
   defp ensure_astarte_kv_store do
-    query = """
-    SELECT table_name
-    FROM system_schema.tables
-    WHERE keyspace_name='#{CQLUtils.realm_name_to_keyspace_name("astarte", Config.astarte_instance_id!())}' AND table_name='kv_store'
-    """
+    keyspace_name = Realm.astarte_keyspace_name()
 
-    with {:ok, %Xandra.Page{} = page} <-
-           Xandra.Cluster.execute(:xandra, query, %{}, consistency: :quorum) do
-      if Enum.count(page) == 1 do
+    query =
+      from t in "system_schema.tables",
+        where:
+          t.keyspace_name == ^keyspace_name and
+            t.table_name == "kv_store",
+        select: t.table_name
+
+    consistency = Consistency.domain_model(:read)
+
+    case Repo.safe_fetch_one(query, consistency: consistency) do
+      {:ok, _item} ->
         :ok
-      else
+
+      {:error, :not_found} ->
         create_astarte_kv_store()
-      end
-    else
-      {:error, %Xandra.Error{} = err} ->
-        _ = Logger.warning("Database error: #{inspect(err)}.", tag: "database_error")
-        {:error, :database_error}
 
-      {:error, %Xandra.ConnectionError{} = err} ->
-        _ =
-          Logger.warning("Database connection error: #{inspect(err)}.",
-            tag: "database_connection_error"
-          )
+      {:error, reason} ->
+        Logger.warning("Error checking Astarte kv_store existence: #{inspect(reason)}.",
+          tag: "database_error"
+        )
 
-        {:error, :database_connection_error}
+        {:error, reason}
     end
   end
 
   defp create_astarte_kv_store do
     query = """
-    CREATE TABLE #{CQLUtils.realm_name_to_keyspace_name("astarte", Config.astarte_instance_id!())}.kv_store (
+    CREATE TABLE #{Realm.astarte_keyspace_name()}.kv_store (
       group varchar,
       key varchar,
       value blob,
@@ -115,148 +125,67 @@ defmodule Astarte.Housekeeping.Migrator do
     );
     """
 
-    case Xandra.Cluster.execute(:xandra, query, %{},
-           consistency: :each_quorum,
-           timeout: @query_timeout
-         ) do
-      {:ok, %Xandra.SchemaChange{}} ->
-        :ok
-
-      {:error, %Xandra.Error{} = err} ->
-        _ = Logger.warning("Database error: #{inspect(err)}.", tag: "database_error")
-        {:error, :database_error}
-
-      {:error, %Xandra.ConnectionError{} = err} ->
-        _ =
-          Logger.warning("Database connection error: #{inspect(err)}.",
-            tag: "database_connection_error"
-          )
-
-        {:error, :database_connection_error}
+    with {:ok, %{rows: nil, num_rows: 1}} <- CSystem.execute_schema_change(query) do
+      :ok
     end
   end
 
   defp get_astarte_schema_version do
-    Xandra.Cluster.run(:xandra, fn conn ->
-      with :ok <-
-             use_keyspace(
-               conn,
-               "#{CQLUtils.realm_name_to_keyspace_name("astarte", Config.astarte_instance_id!())}"
-             ) do
-        get_keyspace_astarte_schema_version(conn)
-      end
-    end)
+    get_schema_version(Realm.astarte_keyspace_name())
   end
 
   defp get_realm_astarte_schema_version(realm_name) do
-    Xandra.Cluster.run(:xandra, fn conn ->
-      with :ok <-
-             use_keyspace(
-               conn,
-               CQLUtils.realm_name_to_keyspace_name(realm_name, Config.astarte_instance_id!())
-             ) do
-        get_keyspace_astarte_schema_version(conn)
-      end
-    end)
+    get_schema_version(Realm.keyspace_name(realm_name))
   end
 
-  defp use_keyspace(conn, keyspace) do
-    case Xandra.execute(conn, "USE #{keyspace}", %{}, timeout: @query_timeout) do
-      {:ok, %Xandra.SetKeyspace{}} ->
-        :ok
+  defp get_schema_version(keyspace_name) do
+    opts = [
+      prefix: keyspace_name,
+      consistency: Consistency.domain_model(:read)
+    ]
 
-      {:error, %Xandra.Error{} = err} ->
-        _ = Logger.warning("Database error: #{inspect(err)}.", tag: "database_error")
-        {:error, :database_error}
-
-      {:error, %Xandra.ConnectionError{} = err} ->
-        _ =
-          Logger.warning("Database connection error: #{inspect(err)}.",
-            tag: "database_connection_error"
-          )
-
-        {:error, :database_connection_error}
-    end
-  end
-
-  defp get_keyspace_astarte_schema_version(keyspace_conn) do
-    query = """
-    SELECT blobAsBigint(value)
-    FROM kv_store
-    WHERE group='astarte' AND key='schema_version'
-    """
-
-    with {:ok, %Xandra.Page{} = page} <-
-           Xandra.execute(keyspace_conn, query, %{}, consistency: :quorum) do
-      case Enum.to_list(page) do
-        [%{"system.blobasbigint(value)" => schema_version}] ->
-          {:ok, schema_version}
-
-        [] ->
-          # If no entry is found, we assume we're at version 0
-          {:ok, 0}
-      end
-    else
-      {:error, %Xandra.Error{} = err} ->
-        _ = Logger.warning("Database error: #{inspect(err)}.", tag: "database_error")
-        {:error, :database_error}
-
-      {:error, %Xandra.ConnectionError{} = err} ->
-        _ =
-          Logger.warning("Database connection error: #{inspect(err)}.",
-            tag: "database_connection_error"
-          )
-
-        {:error, :database_connection_error}
+    case KvStore.fetch_value("astarte", "schema_version", :big_integer, opts) do
+      {:ok, schema_version} -> {:ok, schema_version}
+      {:error, :not_found} -> {:ok, 0}
+      {:error, reason} -> {:error, reason}
     end
   end
 
   defp migrate_astarte_keyspace_from_version(current_schema_version) do
-    _ = Logger.info("Astarte schema version is #{current_schema_version}")
+    Logger.info("Astarte schema version is #{current_schema_version}")
+
+    keyspace_name = Realm.astarte_keyspace_name()
 
     migrations =
       astarte_migrations_path()
       |> collect_migrations()
       |> filter_migrations(current_schema_version)
 
-    Xandra.Cluster.run(:xandra, [timeout: :infinity], fn conn ->
-      with :ok <-
-             use_keyspace(
-               conn,
-               "#{CQLUtils.realm_name_to_keyspace_name("astarte", Config.astarte_instance_id!())}"
-             ),
-           :ok <- execute_migrations(conn, migrations) do
-        _ = Logger.info("Finished migrating Astarte keyspace.", tag: "astarte_migration_finished")
+    with :ok <- execute_migrations(keyspace_name, migrations) do
+      Logger.info("Finished migrating Astarte keyspace.", tag: "astarte_migration_finished")
 
-        :ok
-      end
-    end)
+      :ok
+    end
   end
 
   defp migrate_realm_from_version(realm_name, current_schema_version) do
-    _ = Logger.info("Realm schema version is #{current_schema_version}", realm: realm_name)
+    Logger.info("Realm schema version is #{current_schema_version}", realm: realm_name)
+
+    keyspace_name = Realm.keyspace_name(realm_name)
 
     migrations =
       realm_migrations_path()
       |> collect_migrations()
       |> filter_migrations(current_schema_version)
 
-    Xandra.Cluster.run(:xandra, [timeout: :infinity], fn conn ->
-      with :ok <-
-             use_keyspace(
-               conn,
-               CQLUtils.realm_name_to_keyspace_name(realm_name, Config.astarte_instance_id!())
-             ),
-           :ok <- execute_migrations(conn, migrations) do
-        _ =
-          Logger.info("Finished migrating realm.",
-            tag: "realm_migration_finished",
-            realm: realm_name
-          )
+    with :ok <- execute_migrations(keyspace_name, migrations) do
+      Logger.info("Finished migrating realm.",
+        tag: "realm_migration_finished",
+        realm: realm_name
+      )
 
-        :ok
-      end
-    end)
+      :ok
+    end
   end
 
   defp astarte_migrations_path do
@@ -277,7 +206,8 @@ defmodule Astarte.Housekeeping.Migrator do
           fn a, b -> a >= b end
       end
 
-    Path.join([migrations_path, "*.sql"])
+    [migrations_path, "*.sql"]
+    |> Path.join()
     |> Path.wildcard()
     |> Enum.map(&extract_migration_info/1)
     |> Enum.filter(&(&1 != nil))
@@ -299,28 +229,28 @@ defmodule Astarte.Housekeeping.Migrator do
     end)
   end
 
-  defp execute_migrations(_keyspace_conn, []) do
+  defp execute_migrations(_keyspace_name, []) do
     :ok
   end
 
-  defp execute_migrations(keyspace_conn, [{version, name, file} | tail]) do
-    _ = Logger.info("Executing migration #{version} #{name} using file #{file}")
+  defp execute_migrations(keyspace_name, [{version, name, file} | tail]) do
+    Logger.info("Executing migration #{version} #{name} using file #{file}")
 
     with {:ok, query} <- File.read(file),
+         query = String.replace(query, ":keyspace", keyspace_name),
          _ = Logger.info("Migration query:\n#{query}"),
-         {:ok, _result} <- CSystem.execute_schema_change(keyspace_conn, query),
-         :ok <- set_schema_version(keyspace_conn, version) do
-      execute_migrations(keyspace_conn, tail)
+         {:ok, _result} <- CSystem.execute_schema_change(query),
+         :ok <- set_schema_version(keyspace_name, version) do
+      execute_migrations(keyspace_name, tail)
     else
       {:error, %Xandra.Error{} = err} ->
-        _ = Logger.warning("Database error: #{inspect(err)}.", tag: "database_error")
+        Logger.warning("Database error: #{inspect(err)}.", tag: "database_error")
         {:error, :database_error}
 
       {:error, %Xandra.ConnectionError{} = err} ->
-        _ =
-          Logger.warning("Database connection error: #{inspect(err)}.",
-            tag: "database_connection_error"
-          )
+        Logger.warning("Database connection error: #{inspect(err)}.",
+          tag: "database_connection_error"
+        )
 
         {:error, :database_connection_error}
 
@@ -329,36 +259,24 @@ defmodule Astarte.Housekeeping.Migrator do
     end
   end
 
-  defp set_schema_version(keyspace_conn, schema_version) do
-    _ = Logger.info("Setting schema version to #{schema_version}.")
+  defp set_schema_version(keyspace_name, schema_version) do
+    Logger.info("Setting schema version to #{schema_version}.")
 
-    query = """
-    INSERT INTO kv_store
-    (group, key, value)
-    VALUES
-    ('astarte', 'schema_version', bigintAsBlob(:schema_version))
-    """
+    consistency = Consistency.domain_model(:write)
 
-    params = %{"schema_version" => {"bigint", schema_version}}
+    opts = [
+      prefix: keyspace_name,
+      consistency: consistency,
+      timeout: @query_timeout
+    ]
 
-    with {:ok, %Xandra.Void{}} <-
-           Xandra.execute(keyspace_conn, query, params,
-             consistency: :each_quorum,
-             timeout: @query_timeout
-           ) do
-      :ok
-    else
-      {:error, %Xandra.Error{} = err} ->
-        _ = Logger.warning("Database error: #{inspect(err)}.", tag: "database_error")
-        {:error, :database_error}
+    kv_store_map = %{
+      group: "astarte",
+      key: "schema_version",
+      value: schema_version,
+      value_type: :big_integer
+    }
 
-      {:error, %Xandra.ConnectionError{} = err} ->
-        _ =
-          Logger.warning("Database connection error: #{inspect(err)}.",
-            tag: "database_connection_error"
-          )
-
-        {:error, :database_connection_error}
-    end
+    KvStore.insert(kv_store_map, opts)
   end
 end

@@ -1,0 +1,103 @@
+#
+# This file is part of Astarte.
+#
+# Copyright 2025 SECO Mind Srl
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+defmodule Astarte.Helpers.Device do
+  @moduledoc false
+  import ExUnit.CaptureLog
+
+  alias Astarte.DataAccess.Devices.Device
+  alias Astarte.DataAccess.Realms.Interface
+  alias Astarte.DataAccess.Realms.Realm
+  alias Astarte.DataAccess.Repo
+  alias Astarte.Pairing.CredentialsSecret
+  alias Astarte.RealmManagement.Interfaces, as: RMInterfaces
+
+  @fallible_value_type [
+    :integer,
+    :longinteger,
+    :string,
+    :binaryblob,
+    :doublearray,
+    :integerarray,
+    :booleanarray,
+    :longintegerarray,
+    :stringarray,
+    :binaryblobarray,
+    :datetimearray
+  ]
+
+  def insert_interface_cleanly(realm_name, interface) do
+    keyspace = Realm.keyspace_name(realm_name)
+    interface_db = %Interface{name: interface.name, major_version: interface.major_version}
+    interface_params = interface |> Jason.encode!() |> Jason.decode!()
+
+    Repo.delete(interface_db, prefix: keyspace)
+
+    capture_log(fn ->
+      case RMInterfaces.install_interface(realm_name, interface_params) do
+        {:error, reason} ->
+          raise "Failed to install interface #{interface.name} v#{interface.major_version}: #{inspect(reason)}"
+
+        _ ->
+          :ok
+      end
+    end)
+  end
+
+  def insert_device_cleanly(realm_name, device, interfaces, secret) do
+    keyspace = Realm.keyspace_name(realm_name)
+    introspection = interfaces |> Map.new(&{&1.name, &1.major_version})
+    introspection_minor = interfaces |> Map.new(&{&1.name, &1.minor_version})
+    interfaces_bytes = Map.fetch!(device, :interfaces_bytes)
+    interfaces_msgs = Map.fetch!(device, :interfaces_msgs)
+    secret = CredentialsSecret.hash(secret)
+
+    device_db_params = %{
+      introspection: introspection,
+      introspection_minor: introspection_minor,
+      exchanged_bytes_by_interface: interfaces_bytes,
+      exchanged_msgs_by_interface: interfaces_msgs,
+      credentials_secret: secret
+    }
+
+    device_db = struct(Device, Map.merge(device, device_db_params))
+    Repo.delete(device_db, prefix: keyspace)
+    Repo.insert!(device_db, prefix: keyspace)
+  end
+
+  def fallible_value_types do
+    @fallible_value_type
+  end
+
+  def update_credentials_secret!(realm_name, device_id, new_secret) do
+    keyspace = Realm.keyspace_name(realm_name)
+
+    hashed_secret = CredentialsSecret.hash(new_secret)
+
+    Repo.get!(Device, device_id, prefix: keyspace)
+    |> Ecto.Changeset.change(credentials_secret: hashed_secret)
+    |> Repo.update!(prefix: keyspace)
+  end
+
+  def update_device!(realm_name, device_id, params \\ []) do
+    keyspace = Realm.keyspace_name(realm_name)
+
+    Repo.get!(Device, device_id, prefix: keyspace)
+    |> Ecto.Changeset.change(params)
+    |> Repo.update!(prefix: keyspace)
+  end
+end

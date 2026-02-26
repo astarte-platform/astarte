@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2017 Ispirata Srl
+# Copyright 2017-2025 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -20,7 +20,6 @@ defmodule Astarte.AppEngine.API.Config do
   This module contains functions to access the configuration
   """
 
-  alias Astarte.DataAccess.Config, as: DataAccessConfig
   alias Astarte.AppEngine.API.Config.NonNegativeInteger
 
   use Skogsra
@@ -31,7 +30,7 @@ defmodule Astarte.AppEngine.API.Config do
   app_env :max_results_limit, :astarte_appengine_api, :max_results_limit,
     os_env: "APPENGINE_API_MAX_RESULTS_LIMIT",
     type: NonNegativeInteger,
-    default: 10000
+    default: 10_000
 
   @envdoc "The host for the AMQP consumer connection."
   app_env :rooms_amqp_client_host, :astarte_appengine_api, :rooms_amqp_client_host,
@@ -121,12 +120,15 @@ defmodule Astarte.AppEngine.API.Config do
           os_env: "APPENGINE_API_ROOMS_AMQP_CLIENT_SSL_CUSTOM_SNI",
           type: :binary
 
-  @envdoc "Returns the RPC client, defaulting to AMQP.Client. Used for Mox during testing."
-  app_env :rpc_client, :astarte_appengine_api, :rpc_client,
-    os_env: "APPENGINE_API_RPC_CLIENT",
-    binding_skip: [:system],
-    type: :module,
-    default: Astarte.RPC.AMQP.Client
+  @envdoc """
+  "The handling method for database events. The default is `expose`, which means that the events are exposed trough telemetry. The other possible value, `log`, means that the events are logged instead."
+  """
+  app_env :database_events_handling_method,
+          :astarte_appengine_api,
+          :database_events_handling_method,
+          os_env: "DATABASE_EVENTS_HANDLING_METHOD",
+          type: Astarte.AppEngine.API.Config.TelemetryType,
+          default: :expose
 
   @doc """
   Returns the routing key used for Rooms AMQP events consumer. A constant for now.
@@ -152,6 +154,8 @@ defmodule Astarte.AppEngine.API.Config do
           | {:server_name_indication, :disable | charlist()}
           | {:depth, integer()}
   @type ssl_options :: :none | [ssl_option]
+
+  @type auth_options :: {module(), [{String.t(), String.t()}]}
 
   @type options ::
           {:username, String.t()}
@@ -182,7 +186,7 @@ defmodule Astarte.AppEngine.API.Config do
     end
   end
 
-  defp build_ssl_options() do
+  defp build_ssl_options do
     [
       cacertfile: rooms_amqp_client_ssl_ca_file!() || CAStore.file_path(),
       verify: :verify_peer,
@@ -199,21 +203,4 @@ defmodule Astarte.AppEngine.API.Config do
       Keyword.put(ssl_options, :server_name_indication, to_charlist(server_name))
     end
   end
-
-  @doc """
-  Returns cassandra nodes formatted in the Xandra format
-  """
-  defdelegate xandra_nodes, to: DataAccessConfig
-  defdelegate xandra_nodes!, to: DataAccessConfig
-
-  @doc """
-  Returns cassandra nodes formatted in the CQEx format
-  """
-  defdelegate cqex_nodes, to: DataAccessConfig
-  defdelegate cqex_nodes!, to: DataAccessConfig
-
-  defdelegate xandra_options!, to: DataAccessConfig
-
-  defdelegate astarte_instance_id!, to: DataAccessConfig
-  defdelegate astarte_instance_id, to: DataAccessConfig
 end

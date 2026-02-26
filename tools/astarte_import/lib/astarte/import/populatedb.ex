@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2019 Ispirata Srl
+# Copyright 2019 - 2025 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -34,21 +34,15 @@ defmodule Astarte.Import.PopulateDB do
       :interface_descriptor,
       :mapping,
       :mappings,
-      :last_seen_reception_timestamp,
+      :reception_timestamp,
       :prepared_query,
       :value_columns,
       :value_type
     ]
   end
 
-  def populate(realm, xml, continuation_fun \\ :undefined) do
+  def populate(xandra_conn, realm, xml, continuation_fun \\ :undefined) do
     Logger.info("Import started.", realm: realm)
-
-    nodes = Application.get_env(:cqerl, :cassandra_nodes)
-    {host, port} = Enum.random(nodes)
-    Logger.info("Connecting to #{host}:#{port} cassandra database.", realm: realm)
-
-    {:ok, xandra_conn} = Xandra.start_link(nodes: ["#{host}:#{port}"])
 
     got_interface_fun = fn %Import.State{data: data} = state, interface_name, major, minor ->
       Logger.info("Importing data for #{interface_name} v#{major}.#{minor}.",
@@ -204,7 +198,7 @@ defmodule Astarte.Import.PopulateDB do
         data: %State{
           interface_descriptor: interface_descriptor,
           mapping: mapping,
-          last_seen_reception_timestamp: reception_timestamp
+          reception_timestamp: reception_timestamp
         }
       } = state
 
@@ -229,8 +223,12 @@ defmodule Astarte.Import.PopulateDB do
     got_device_end = fn state ->
       %Import.State{
         device_id: device_id,
+        connected: connected,
         introspection: introspection,
         old_introspection: old_introspection,
+        aliases: aliases,
+        attributes: attributes,
+        capabilities: capabilities,
         first_registration: first_registration,
         credentials_secret: credentials_secret,
         cert_serial: cert_serial,
@@ -261,6 +259,10 @@ defmodule Astarte.Import.PopulateDB do
       Queries.do_register_device(
         dbclient,
         decoded_device_id,
+        connected,
+        aliases,
+        attributes,
+        capabilities,
         credentials_secret,
         first_registration
       )
@@ -309,7 +311,11 @@ defmodule Astarte.Import.PopulateDB do
         value_type: value_type
       } = data
 
-      reception_submillis = rem(DateTime.to_unix(reception_timestamp, :microsecond), 100)
+      reception_submillis =
+        if is_nil(reception_timestamp),
+          do: nil,
+          else: rem(DateTime.to_unix(reception_timestamp, :microsecond), 100)
+
       {:ok, native_value} = to_native_type(chars, value_type)
 
       params = [
@@ -323,25 +329,27 @@ defmodule Astarte.Import.PopulateDB do
 
       %Import.State{
         state
-        | data: %State{data | last_seen_reception_timestamp: reception_timestamp}
+        | data: %State{data | reception_timestamp: reception_timestamp}
       }
     end
 
     got_end_of_object_fun = fn state, object ->
       %Import.State{
         reception_timestamp: reception_timestamp,
-        data: data
+        data: %State{
+          mappings: mappings,
+          prepared_params: prepared_params,
+          prepared_query: prepared_query,
+          value_columns: value_columns,
+          value_type: expected_types
+        }
       } = state
 
-      %State{
-        mappings: mappings,
-        prepared_params: prepared_params,
-        prepared_query: prepared_query,
-        value_columns: value_columns,
-        value_type: expected_types
-      } = data
+      reception_submillis =
+        if is_nil(reception_timestamp),
+          do: nil,
+          else: rem(DateTime.to_unix(reception_timestamp, :microsecond), 100)
 
-      reception_submillis = rem(DateTime.to_unix(reception_timestamp, :microsecond), 100)
       {:ok, native_value} = to_native_type(object, expected_types)
 
       db_value =
@@ -362,10 +370,7 @@ defmodule Astarte.Import.PopulateDB do
 
       {:ok, %Xandra.Void{}} = Xandra.execute(xandra_conn, prepared_query, params)
 
-      %Import.State{
-        state
-        | data: %State{data | last_seen_reception_timestamp: reception_timestamp}
-      }
+      state
     end
 
     got_end_of_property_fun = fn state, chars ->
@@ -444,8 +449,8 @@ defmodule Astarte.Import.PopulateDB do
 
   defp to_native_type(value_chars, :boolean) do
     case value_chars do
-      'true' -> {:ok, true}
-      'false' -> {:ok, false}
+      ~c"true" -> {:ok, true}
+      ~c"false" -> {:ok, false}
       _any -> {:error, :invalid_value}
     end
   end

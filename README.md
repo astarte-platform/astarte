@@ -1,7 +1,7 @@
 # Astarte
 
-![](https://github.com/astarte-platform/astarte/workflows/Build%20and%20Test%20Astarte%20Apps/badge.svg?branch=master)
-[![codecov](https://codecov.io/gh/astarte-platform/astarte/tree/master/graph/badge.svg)](https://codecov.io/gh/astarte-platform/astarte)
+![](https://github.com/astarte-platform/astarte/workflows/Build%20and%20Test%20Astarte%20Apps/badge.svg?branch=v1.2.0)
+[![codecov](https://codecov.io/gh/astarte-platform/astarte/tag/v1.2.0/graph/badge.svg)](https://codecov.io/gh/astarte-platform/astarte)
 
 <img src="doc/images/mascotte.svg" align="left" width="160px" />Astarte is an Open Source IoT
 platform focused on Data management and processing written in [Elixir](https://github.com/elixir-lang/elixir).
@@ -16,30 +16,26 @@ and [Cassandra](http://cassandra.apache.org/)/[ScyllaDB](https://www.scylladb.co
 
 ## Resources and Quickstart
 
- * [Astarte Documentation](https://docs.astarte-platform.org) - The main resource to learn about
-   Astarte.
- * [astartectl](https://github.com/astarte-platform/astartectl) - A Command Line tool to manage your
-   Astarte cluster(s).
- * [Astarte Kubernetes Operator](https://github.com/astarte-platform/astarte-kubernetes-operator) -
-   The preferred and supported way to run Astarte - in Production, and pretty much anywhere else.
- * Device SDKs - Connect your device to Astarte in a few lines of code. Available for
-   [Python](https://github.com/astarte-platform/astarte-device-sdk-python),
-   [Qt5](https://github.com/astarte-platform/astarte-device-sdk-qt5),
-   [ESP32](https://github.com/astarte-platform/astarte-device-sdk-esp32),
-   [Elixir](https://github.com/astarte-platform/astarte-device-sdk-elixir) and counting.
+- [Astarte Documentation](https://docs.astarte-platform.org) - The main resource to learn about
+  Astarte.
+- [astartectl](https://github.com/astarte-platform/astartectl) - A Command Line tool to manage your
+  Astarte cluster(s).
+- [Astarte Kubernetes Operator](https://github.com/astarte-platform/astarte-kubernetes-operator) -
+  The preferred and supported way to run Astarte - in Production, and pretty much anywhere else.
+- Device SDKs - Connect your device to Astarte in a few lines of code. Available for
+  [Python](https://github.com/astarte-platform/astarte-device-sdk-python),
+  [Qt5](https://github.com/astarte-platform/astarte-device-sdk-qt5),
+  [ESP32](https://github.com/astarte-platform/astarte-device-sdk-esp32),
+  [Elixir](https://github.com/astarte-platform/astarte-device-sdk-elixir) and counting.
 
 ## Let's try it!
-
-**This is the master branch, which is not guaranteed to always be in a usable state.**
-
-**For production purposes we recommend using the latest stable release (currently [v1.2](https://github.com/astarte-platform/astarte/tree/release-1.2)), this branch should be used only for v1.3 development activities.**
 
 Can't be easier. Pick your favorite machine with at least 4GB of free RAM, make sure it has
 [Docker](https://www.docker.com/), and simply:
 
 ```sh
-$ git clone https://github.com/astarte-platform/astarte.git && cd astarte
-$ docker run -v $(pwd)/compose:/compose astarte/docker-compose-initializer:snapshot
+$ git clone https://github.com/astarte-platform/astarte.git -b v1.2.0 && cd astarte
+$ docker run -v $(pwd)/compose:/compose astarte/docker-compose-initializer:1.1
 $ docker compose pull
 $ docker compose up -d
 ```
@@ -48,7 +44,7 @@ Make sure to use the latest stable release if you want a flawless experience.
 
 You should be up and running in a matter of minutes. If you want a more thorough explanation and
 find out how to access your new Astarte cluster and what you can do with it, [follow our "Astarte in
-5 minutes" tutorial](https://docs.astarte-platform.org/astarte/latest/010-astarte_in_5_minutes.html) to
+5 minutes" tutorial](https://docs.astarte-platform.org/astarte/1.2/010-astarte_in_5_minutes.html) to
 get some fake or real devices to stream and process data while your tea gets ready.
 
 ## Sweet! Let's move it to production!
@@ -57,11 +53,9 @@ Whoa, not so fast. Putting together an Astarte instance which can handle your da
 tricky, and requires some knowledge about the platform to make sure it won't break.
 
 So, if you're serious about getting Astarte in your production environment, you might want to learn
-more about it first. Start by [having a look at its
-architecture](https://docs.astarte-platform.org/astarte/latest/001-intro_architecture.html) and
-[finding out how it works](https://docs.astarte-platform.org/astarte/latest/001-intro_user.html). Once
-you feel confident, head over to the [Administration
-Manual](https://docs.astarte-platform.org/astarte-kubernetes-operator/latest/001-intro_administrator.html).
+more about it first. Start by [having a look at its architecture](https://docs.astarte-platform.org/astarte/1.2/001-intro_architecture.html) and
+[finding out how it works](https://docs.astarte-platform.org/astarte/1.2/001-intro_user.html). Once
+you feel confident, head over to the [Administration Manual](https://docs.astarte-platform.org/astarte-kubernetes-operator/latest/001-intro_administrator.html).
 
 ## Where do I find binaries?
 
@@ -70,8 +64,7 @@ Astarte is designed from the ground up to be run in containers, with
 deployment. Astarte's images can be found at [Docker Hub](https://hub.docker.com/u/astarte/), with
 every Astarte service coming with its own image.
 
-With the help of our [Kubernetes
-Operator](https://github.com/astarte-platform/astarte-kubernetes-operator) and
+With the help of our [Kubernetes Operator](https://github.com/astarte-platform/astarte-kubernetes-operator) and
 [`astartectl`](https://github.com/astarte-platform/astartectl), you can deploy your Astarte instance
 to your favorite cloud provider in a matter of minutes.
 
@@ -83,9 +76,7 @@ contributor guide. For the time being, you can head over to the repository you w
 and set up a Pull Request. We're using [DCO](https://developercertificate.org/) for our
 contributions, so you'll need to sign off all commit messages before submitting a Pull Request.
 
-You can also join us on [#astarte slack channel on Elixir
-Slack](https://elixir-slackin.herokuapp.com/) and on [#astarte IRC channel on
-freenode](ircs://chat.freenode.net:6697/#astarte).
+You can also join us on [#astarte slack channel on Elixir Slack](https://elixir-slackin.herokuapp.com/) and on [#astarte IRC channel on freenode](ircs://chat.freenode.net:6697/#astarte).
 
 We accept all kind of quality contributions, as long as they adhere with the project goals and
 philosophy, and have some tests.
@@ -110,3 +101,11 @@ needs.
 Astarte source code is released under the Apache 2 License.
 
 Check the LICENSE file for more information.
+
+## Notice
+
+The docker-compose file uses a version of ScyllaDB licensed under the Business Source License (BSL).
+
+- Development, testing, and demo use is free under the BSL
+- Production use over the defined BSL threshold **requires a commercial license** from [ScyllaDB](https://www.scylladb.com/)
+- For details, see the [ScyllaDB License Agreement](https://github.com/scylladb/scylladb/blob/master/LICENSE-ScyllaDB-Source-Available.md)

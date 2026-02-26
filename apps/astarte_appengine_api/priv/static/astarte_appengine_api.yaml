@@ -18,7 +18,7 @@
 
 openapi: 3.0.0
 servers:
-  - url: '{base_url}/v1'
+  - url: "{base_url}/v1"
     variables:
       base_url:
         default: http://localhost:4002
@@ -35,17 +35,17 @@ info:
     an impact on devices and their data. Most Astarte applications would want to
     use this API to interact with devices, stream and receive data, and oversee
     their fleet.
-  version: 1.3.0-dev
+  version: 1.2.0
   title: Astarte App Engine API
   contact:
     email: info@ispirata.com
 externalDocs:
   description: User documentation
-  url: 'https://docs.astarte-platform.org/astarte/1.0/050-query_device.html'
+  url: "https://docs.astarte-platform.org/astarte/1.0/050-query_device.html"
 tags:
   - name: device
     description: >-
-      Device data status retrival and publish. All operations on a device can be
+      Device data status retrieval and publish. All operations on a device can be
       done using both the device id or any of its aliases.
   - name: groups
     description: >-
@@ -55,7 +55,7 @@ tags:
     description: >-
       Retrieve stats (e.g. total number of devices, connected devices, etc).
 paths:
-  '/{realm_name}/devices':
+  "/{realm_name}/devices":
     get:
       tags:
         - device
@@ -81,7 +81,7 @@ paths:
             Opaque devices list page pointer: it basically points to the
             beginning of a devices page. If not specified the devices list is
             displayed from the beginning. This format might change in future
-            versions so it should be passed without any furhter assumption about
+            versions so it should be passed without any further assumption about
             type, format or its value.
           required: false
           schema:
@@ -104,7 +104,7 @@ paths:
             type: boolean
             default: false
       responses:
-        '200':
+        "200":
           description: Devices list
           content:
             application/json:
@@ -135,11 +135,11 @@ paths:
                     - hjnD0GrEP3o9ED1SUuL4QQ
                     - 8ZxuSGkU7pggwoomJeXo9g
                     - k-IFKDPoVzIXUcFkF7U80A
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/AuthorizationPathNotMatched'
-  '/{realm_name}/devices/{device_id}':
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/AuthorizationPathNotMatched"
+  "/{realm_name}/devices/{device_id}":
     parameters:
       - name: realm_name
         in: path
@@ -164,7 +164,7 @@ paths:
       security:
         - JWT: []
       responses:
-        '200':
+        "200":
           description: Success
           content:
             application/json:
@@ -172,17 +172,17 @@ paths:
                 type: object
                 properties:
                   data:
-                    $ref: '#/components/schemas/DeviceStatus'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/AuthorizationPathNotMatched'
-        '404':
+                    $ref: "#/components/schemas/DeviceStatus"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/AuthorizationPathNotMatched"
+        "404":
           description: Device not found
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/NotFoundError'
+                $ref: "#/components/schemas/NotFoundError"
               examples:
                 response:
                   value:
@@ -205,7 +205,7 @@ paths:
           A JSON Merge Patch containing the property changes which should be applied to
           the device.
       responses:
-        '200':
+        "200":
           description: Success
           content:
             application/json:
@@ -213,25 +213,25 @@ paths:
                 type: object
                 properties:
                   data:
-                    $ref: '#/components/schemas/DeviceStatus'
-        '400':
+                    $ref: "#/components/schemas/DeviceStatus"
+        "400":
           description: Bad request
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/AuthorizationPathNotMatched'
-        '404':
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/AuthorizationPathNotMatched"
+        "404":
           description: Device not found.
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/NotFoundError'
+                $ref: "#/components/schemas/NotFoundError"
               examples:
                 response:
                   value:
                     errors:
                       detail: Device not found
-  '/{realm_name}/devices-by-alias/{device_alias}':
+  "/{realm_name}/devices-by-alias/{device_alias}":
     parameters:
       - name: realm_name
         in: path
@@ -256,7 +256,7 @@ paths:
       security:
         - JWT: []
       responses:
-        '200':
+        "200":
           description: Success
           content:
             application/json:
@@ -264,17 +264,17 @@ paths:
                 type: object
                 properties:
                   data:
-                    $ref: '#/components/schemas/DeviceStatus'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/AuthorizationPathNotMatched'
-        '404':
+                    $ref: "#/components/schemas/DeviceStatus"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/AuthorizationPathNotMatched"
+        "404":
           description: Device not found
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/NotFoundError'
+                $ref: "#/components/schemas/NotFoundError"
               examples:
                 response:
                   value:
@@ -297,7 +297,7 @@ paths:
           A JSON Merge Patch containing the property changes which should be applied to
           the device.
       responses:
-        '200':
+        "200":
           description: Success
           content:
             application/json:
@@ -305,25 +305,25 @@ paths:
                 type: object
                 properties:
                   data:
-                    $ref: '#/components/schemas/DeviceStatus'
-        '400':
+                    $ref: "#/components/schemas/DeviceStatus"
+        "400":
           description: Bad request
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/AuthorizationPathNotMatched'
-        '404':
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/AuthorizationPathNotMatched"
+        "404":
           description: Device not found.
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/NotFoundError'
+                $ref: "#/components/schemas/NotFoundError"
               examples:
                 response:
                   value:
                     errors:
                       detail: Device not found
-  '/{realm_name}/devices/{device_id}/interfaces':
+  "/{realm_name}/devices/{device_id}/interfaces":
     get:
       tags:
         - device
@@ -331,7 +331,7 @@ paths:
       description: >-
         Get a list of interfaces supported by a certain device. Interfaces that
         are not reported by the device are not reported here. If a device stops
-        to advertise a certain interface, it should be retrived from a different
+        to advertise a certain interface, it should be retrieved from a different
         API, same applies for older versions of a certain interface.
       operationId: getInterfaces
       security:
@@ -350,7 +350,7 @@ paths:
           schema:
             type: string
       responses:
-        '200':
+        "200":
           description: Success
           content:
             application/json:
@@ -360,22 +360,22 @@ paths:
                     data:
                       - com.test.foo
                       - com.test.bar
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/AuthorizationPathNotMatched'
-        '404':
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/AuthorizationPathNotMatched"
+        "404":
           description: Device not found.
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/NotFoundError'
+                $ref: "#/components/schemas/NotFoundError"
               examples:
                 response:
                   value:
                     errors:
                       detail: Device not found
-  '/{realm_name}/devices/{device_id}/interfaces/{interface}':
+  "/{realm_name}/devices/{device_id}/interfaces/{interface}":
     get:
       tags:
         - device
@@ -408,24 +408,24 @@ paths:
           schema:
             type: string
       responses:
-        '200':
+        "200":
           description: Success
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/AuthorizationPathNotMatched'
-        '404':
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/AuthorizationPathNotMatched"
+        "404":
           description: Interface not found in introspection or device not found.
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/NotFoundError'
+                $ref: "#/components/schemas/NotFoundError"
               examples:
                 response:
                   value:
                     errors:
                       detail: Interface not found in device introspection
-  '/{realm_name}/devices/{device_id}/interfaces/{interface}/{path}':
+  "/{realm_name}/devices/{device_id}/interfaces/{interface}/{path}":
     get:
       tags:
         - device
@@ -508,26 +508,26 @@ paths:
           schema:
             type: string
       responses:
-        '200':
+        "200":
           description: Success
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/AuthorizationPathNotMatched'
-        '404':
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/AuthorizationPathNotMatched"
+        "404":
           description: >-
             Path not found or interface not found in introspection or device not
             found.
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/NotFoundError'
+                $ref: "#/components/schemas/NotFoundError"
               examples:
                 response:
                   value:
                     errors:
                       detail: Path not found
-        '405':
+        "405":
           description: Invalid Request
     put:
       tags:
@@ -567,30 +567,32 @@ paths:
           schema:
             type: string
       responses:
-        '200':
+        "200":
           description: Success
-        '400':
+        "400":
           description: Bad request
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/AuthorizationPathNotMatched'
-        '404':
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/AuthorizationPathNotMatched"
+        "404":
           description: >-
             Endpoint not found or interface not found in introspection or device
             not found.
           content:
-            '*/*':
+            "*/*":
               schema:
-                $ref: '#/components/schemas/NotFoundError'
+                $ref: "#/components/schemas/NotFoundError"
             application/json:
               examples:
                 response:
                   value:
                     errors:
                       detail: Endpoint not found
-        '405':
+        "405":
           description: Invalid object
+        "422":
+          description: Tried to unset a property with `allow_unset` false
     post:
       tags:
         - device
@@ -627,29 +629,29 @@ paths:
           schema:
             type: string
       responses:
-        '200':
+        "200":
           description: Success
-        '400':
+        "400":
           description: Bad request
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/AuthorizationPathNotMatched'
-        '404':
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/AuthorizationPathNotMatched"
+        "404":
           description: >-
             Endpoint not found or interface not found in introspection or device
             not found.
           content:
-            '*/*':
+            "*/*":
               schema:
-                $ref: '#/components/schemas/NotFoundError'
+                $ref: "#/components/schemas/NotFoundError"
             application/json:
               examples:
                 response:
                   value:
                     errors:
                       detail: Endpoint not found
-        '405':
+        "405":
           description: Invalid object
     delete:
       tags:
@@ -687,29 +689,31 @@ paths:
           schema:
             type: string
       responses:
-        '204':
+        "204":
           description: Success
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/AuthorizationPathNotMatched'
-        '404':
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/AuthorizationPathNotMatched"
+        "404":
           description: >-
             Path not found or interface not found in introspection or device not
             found.
           content:
-            '*/*':
+            "*/*":
               schema:
-                $ref: '#/components/schemas/NotFoundError'
+                $ref: "#/components/schemas/NotFoundError"
             application/json:
               examples:
                 response:
                   value:
                     errors:
                       detail: Path not found
-        '405':
+        "405":
           description: Invalid object
-  '/{realm_name}/groups':
+        "422":
+          description: Tried to unset a property with `allow_unset` false
+  "/{realm_name}/groups":
     get:
       tags:
         - groups
@@ -720,14 +724,14 @@ paths:
       security:
         - JWT: []
       parameters:
-        - $ref: '#/components/parameters/RealmName'
+        - $ref: "#/components/parameters/RealmName"
       responses:
-        '200':
-          $ref: '#/components/responses/IndexGroups'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/AuthorizationPathNotMatched'
+        "200":
+          $ref: "#/components/responses/IndexGroups"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/AuthorizationPathNotMatched"
     post:
       tags:
         - groups
@@ -739,19 +743,19 @@ paths:
       security:
         - JWT: []
       parameters:
-        - $ref: '#/components/parameters/RealmName'
+        - $ref: "#/components/parameters/RealmName"
       requestBody:
-        $ref: '#/components/requestBodies/CreateGroup'
+        $ref: "#/components/requestBodies/CreateGroup"
       responses:
-        '201':
-          $ref: '#/components/responses/GroupCreated'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/AuthorizationPathNotMatched'
-        '422':
-          $ref: '#/components/responses/InvalidGroupConfig'
-  '/{realm_name}/groups/{group_name}':
+        "201":
+          $ref: "#/components/responses/GroupCreated"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/AuthorizationPathNotMatched"
+        "422":
+          $ref: "#/components/responses/InvalidGroupConfig"
+  "/{realm_name}/groups/{group_name}":
     get:
       tags:
         - groups
@@ -763,18 +767,18 @@ paths:
       security:
         - JWT: []
       parameters:
-        - $ref: '#/components/parameters/RealmName'
-        - $ref: '#/components/parameters/GroupName'
+        - $ref: "#/components/parameters/RealmName"
+        - $ref: "#/components/parameters/GroupName"
       responses:
-        '200':
-          $ref: '#/components/responses/GetGroup'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/AuthorizationPathNotMatched'
-        '404':
-          $ref: '#/components/responses/GroupNotFound'
-  '/{realm_name}/groups/{group_name}/devices':
+        "200":
+          $ref: "#/components/responses/GetGroup"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/AuthorizationPathNotMatched"
+        "404":
+          $ref: "#/components/responses/GroupNotFound"
+  "/{realm_name}/groups/{group_name}/devices":
     get:
       tags:
         - groups
@@ -785,17 +789,17 @@ paths:
       security:
         - JWT: []
       parameters:
-        - $ref: '#/components/parameters/RealmName'
-        - $ref: '#/components/parameters/GroupName'
+        - $ref: "#/components/parameters/RealmName"
+        - $ref: "#/components/parameters/GroupName"
       responses:
-        '200':
-          $ref: '#/components/responses/IndexGroupDevices'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/AuthorizationPathNotMatched'
-        '404':
-          $ref: '#/components/responses/GroupNotFound'
+        "200":
+          $ref: "#/components/responses/IndexGroupDevices"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/AuthorizationPathNotMatched"
+        "404":
+          $ref: "#/components/responses/GroupNotFound"
     post:
       tags:
         - groups
@@ -806,22 +810,22 @@ paths:
       security:
         - JWT: []
       parameters:
-        - $ref: '#/components/parameters/RealmName'
-        - $ref: '#/components/parameters/GroupName'
+        - $ref: "#/components/parameters/RealmName"
+        - $ref: "#/components/parameters/GroupName"
       requestBody:
-        $ref: '#/components/requestBodies/AddDeviceToGroup'
+        $ref: "#/components/requestBodies/AddDeviceToGroup"
       responses:
-        '201':
+        "201":
           description: Success
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/AuthorizationPathNotMatched'
-        '404':
-          $ref: '#/components/responses/GroupNotFound'
-        '422':
-          $ref: '#/components/responses/InvalidAddGroup'
-  '/{realm_name}/groups/{group_name}/devices/{device_id}':
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/AuthorizationPathNotMatched"
+        "404":
+          $ref: "#/components/responses/GroupNotFound"
+        "422":
+          $ref: "#/components/responses/InvalidAddGroup"
+  "/{realm_name}/groups/{group_name}/devices/{device_id}":
     delete:
       tags:
         - groups
@@ -832,19 +836,19 @@ paths:
       security:
         - JWT: []
       parameters:
-        - $ref: '#/components/parameters/RealmName'
-        - $ref: '#/components/parameters/GroupName'
-        - $ref: '#/components/parameters/DeviceId'
+        - $ref: "#/components/parameters/RealmName"
+        - $ref: "#/components/parameters/GroupName"
+        - $ref: "#/components/parameters/DeviceId"
       responses:
-        '204':
+        "204":
           description: Device removed
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/AuthorizationPathNotMatched'
-        '404':
-          $ref: '#/components/responses/GroupOrDeviceNotFound'
-  '/{realm_name}/stats/devices':
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/AuthorizationPathNotMatched"
+        "404":
+          $ref: "#/components/responses/GroupOrDeviceNotFound"
+  "/{realm_name}/stats/devices":
     get:
       tags:
         - stats
@@ -855,14 +859,14 @@ paths:
       security:
         - JWT: []
       parameters:
-        - $ref: '#/components/parameters/RealmName'
+        - $ref: "#/components/parameters/RealmName"
       responses:
-        '200':
-          $ref: '#/components/responses/GetDevicesStats'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/AuthorizationPathNotMatched'
+        "200":
+          $ref: "#/components/responses/GetDevicesStats"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/AuthorizationPathNotMatched"
 components:
   securitySchemes:
     JWT:
@@ -894,7 +898,7 @@ components:
                   device_id:
                     description: The device id of the device to add
                     type: string
-                    example: '8NWCESshRrmUe9FWhg39qQ'
+                    example: "8NWCESshRrmUe9FWhg39qQ"
     CreateGroup:
       content:
         application/json:
@@ -904,7 +908,7 @@ components:
               - data
             properties:
               data:
-                $ref: '#/components/schemas/CreateGroupConfig'
+                $ref: "#/components/schemas/CreateGroupConfig"
   responses:
     IndexGroups:
       description: Groups list
@@ -929,7 +933,7 @@ components:
             type: object
             properties:
               data:
-                $ref: '#/components/schemas/GroupConfig'
+                $ref: "#/components/schemas/GroupConfig"
     GroupCreated:
       description: Success
       content:
@@ -938,7 +942,7 @@ components:
             type: object
             properties:
               data:
-                $ref: '#/components/schemas/CreateGroupConfig'
+                $ref: "#/components/schemas/CreateGroupConfig"
     IndexGroupDevices:
       description: Group device list
       content:
@@ -997,10 +1001,10 @@ components:
         application/json:
           schema:
             oneOf:
-              - $ref: '#/components/schemas/MissingTokenError'
-              - $ref: '#/components/schemas/InvalidTokenError'
-              - $ref: '#/components/schemas/InvalidAuthPathError'
-              - $ref: '#/components/schemas/UnauthorizedError'
+              - $ref: "#/components/schemas/MissingTokenError"
+              - $ref: "#/components/schemas/InvalidTokenError"
+              - $ref: "#/components/schemas/InvalidAuthPathError"
+              - $ref: "#/components/schemas/UnauthorizedError"
     AuthorizationPathNotMatched:
       description: Authorization path not matched.
       content:
@@ -1009,7 +1013,7 @@ components:
             type: object
             properties:
               data:
-                $ref: '#/components/schemas/AuthorizationPathNotMatchedError'
+                $ref: "#/components/schemas/AuthorizationPathNotMatchedError"
     GroupNotFound:
       description: Group not found
       content:
@@ -1044,7 +1048,7 @@ components:
             type: object
             properties:
               data:
-                $ref: '#/components/schemas/DevicesStats'
+                $ref: "#/components/schemas/DevicesStats"
   parameters:
     GroupName:
       name: group_name
@@ -1120,10 +1124,10 @@ components:
           description: Last known device IP address used while obtaining credentials.
         total_received_bytes:
           type: integer
-          description: Total ammount of received payload bytes.
+          description: Total amount of received payload bytes.
         total_received_msgs:
           type: integer
-          description: Total ammount of received messages.
+          description: Total amount of received messages.
         groups:
           type: array
           description: The groups the device belongs to.
@@ -1165,7 +1169,7 @@ components:
       example:
         id: hm8AjtbN5P2mxo_gfXSfvQ
         aliases:
-          serial_number: '1234567'
+          serial_number: "1234567"
           display_name: my_device_name
         attributes:
           attribute_key: attribute_value
@@ -1181,10 +1185,10 @@ components:
             exchanged_msgs: 3
             exchanged_bytes: 42
         connected: false
-        last_connection: '2017-09-28T03:45:00.000Z'
-        last_disconnection: '2017-09-29T18:25:00.000Z'
-        first_registration: '2016-07-08T09:44:00.000Z'
-        first_credentials_request: '2016-08-20T09:44:00.000Z'
+        last_connection: "2017-09-28T03:45:00.000Z"
+        last_disconnection: "2017-09-29T18:25:00.000Z"
+        first_registration: "2016-07-08T09:44:00.000Z"
+        first_credentials_request: "2016-08-20T09:44:00.000Z"
         last_seen_ip: 198.51.100.81
         credentials_inhibited: false
         last_credentials_request_ip: 98.51.100.89
@@ -1269,7 +1273,6 @@ components:
       example:
         errors:
           detail: Missing authorization token
-
     InvalidTokenError:
       type: object
       properties:
@@ -1282,7 +1285,6 @@ components:
       example:
         errors:
           detail: Invalid JWT token
-
     InvalidAuthPathError:
       type: object
       properties:
@@ -1295,7 +1297,6 @@ components:
       example:
         errors:
           detail: Authorization failed due to an invalid path
-
     AuthorizationPathNotMatchedError:
       type: object
       properties:

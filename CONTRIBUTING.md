@@ -16,6 +16,7 @@ and more, please refer to our [Astarte Development Guide](https://docs.astarte-p
 ## Getting Help
 
 If you need help or have questions, feel free to reach out to us on:
+
 - our [discord](https://discord.gg/EzpBKcMN8g) server
 
 We truly appreciate your contributions and look forward to collaborating with you!

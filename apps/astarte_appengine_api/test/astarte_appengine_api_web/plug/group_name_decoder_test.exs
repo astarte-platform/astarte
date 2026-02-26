@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2024 SECO Mind Srl
+# Copyright 2024 - 2025 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -16,12 +16,10 @@
 # limitations under the License.
 
 defmodule Astarte.AppEngine.APIWeb.Plug.GroupNameDecoderTest do
-  use Astarte.AppEngine.APIWeb.ConnCase
+  use Astarte.Cases.Conn
   use ExUnitProperties
-  alias Astarte.AppEngine.APIWeb.Plug.GroupNameDecoder
   alias Astarte.AppEngine.API.GroupTestGenerator
-
-  @max_subpath_count 10
+  alias Astarte.AppEngine.APIWeb.Plug.GroupNameDecoder
 
   @tag issue: 904
   property "call/2 decode path" do

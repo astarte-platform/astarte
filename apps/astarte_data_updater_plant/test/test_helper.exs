@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2017 Ispirata Srl
+# Copyright 2017 - 2025 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -16,8 +16,33 @@
 # limitations under the License.
 #
 
-ExUnit.start()
+Mimic.copy(Astarte.Core.Mapping.ValueType)
+Mimic.copy(Astarte.DataAccess.Config)
+Mimic.copy(Astarte.DataAccess.Health.Health)
+Mimic.copy(Astarte.DataAccess.Health.Health)
+Mimic.copy(Astarte.DataUpdaterPlant.DataUpdater.Core.DataHandler)
+Mimic.copy(Astarte.DataUpdaterPlant.DataUpdater.Core.Device)
+Mimic.copy(Astarte.DataUpdaterPlant.DataUpdater.Core.Error)
+Mimic.copy(Astarte.DataUpdaterPlant.DataUpdater.Core.HeartbeatHandler)
+Mimic.copy(Astarte.DataUpdaterPlant.DataUpdater.Core.Interface)
+Mimic.copy(Astarte.DataUpdaterPlant.DataUpdater.Core.Trigger)
+Mimic.copy(Astarte.DataUpdaterPlant.DataUpdater.Impl)
+Mimic.copy(Astarte.DataUpdaterPlant.DataUpdater.PayloadsDecoder)
+Mimic.copy(Astarte.DataUpdaterPlant.DataUpdater.Queries)
+Mimic.copy(Astarte.DataUpdaterPlant.RPC.Server.Core)
+Mimic.copy(Mississippi.Consumer.MessageTracker.Server)
+Mimic.copy(Astarte.DataUpdaterPlant.RPC.VMQPlugin)
+Mimic.copy(Astarte.DataUpdaterPlant.TimeBasedActions)
+Mimic.copy(Astarte.DataUpdaterPlant.TriggersHandler)
+Mimic.copy(Astarte.Events.Triggers)
+Mimic.copy(Astarte.Events.TriggersHandler)
+Mimic.copy(ExRabbitPool)
+Mimic.copy(GenServer)
+Mimic.copy(Horde.Registry)
+Mimic.copy(Mississippi.Consumer.MessageTracker)
+Mimic.copy(System)
+Mimic.copy(Xandra)
 
-Code.require_file("support/database_test_helper.exs", __DIR__)
-Code.require_file("support/amqp_test_helper.exs", __DIR__)
-Code.require_file("support/amqp_events_consumer.exs", __DIR__)
+Mississippi.Producer.start_link(Astarte.Helpers.DataUpdater.mississippi_producer_opts!())
+
+ExUnit.start(capture_log: true)

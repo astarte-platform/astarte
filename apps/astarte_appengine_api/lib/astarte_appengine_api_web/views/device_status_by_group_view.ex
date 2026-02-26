@@ -18,8 +18,8 @@
 
 defmodule Astarte.AppEngine.APIWeb.DeviceStatusByGroupView do
   use Astarte.AppEngine.APIWeb, :view
-  alias Astarte.AppEngine.APIWeb.Endpoint
   alias Astarte.AppEngine.APIWeb.DeviceStatusView
+  alias Astarte.AppEngine.APIWeb.Endpoint
   alias Astarte.AppEngine.APIWeb.Router.Helpers, as: RouterHelpers
 
   def render("index.json", %{devices_list: devices_list, request: params}) do
@@ -46,7 +46,13 @@ defmodule Astarte.AppEngine.APIWeb.DeviceStatusByGroupView do
       next_params = Map.put(request_params, "from_token", last_token)
 
       next_path =
-        RouterHelpers.device_status_by_group_path(Endpoint, :index, realm, group, next_params)
+        RouterHelpers.device_status_by_group_path(
+          Endpoint,
+          :index,
+          realm,
+          group,
+          next_params
+        )
 
       %{self: self_path, next: next_path}
     else

@@ -82,6 +82,10 @@ defmodule Astarte.AppEngine.APIWeb.ErrorView do
     %{errors: %{detail: "Alias already in use"}}
   end
 
+  def render("422_unset_not_allowed.json", _assigns) do
+    %{errors: %{detail: "Unset not allowed"}}
+  end
+
   def render("422_alias_tag_not_found.json", _assigns) do
     %{errors: %{detail: "Alias tag not found"}}
   end
@@ -98,6 +102,14 @@ defmodule Astarte.AppEngine.APIWeb.ErrorView do
     %{errors: %{detail: "Unexpected object key"}}
   end
 
+  def render("500.json", %{conn: %{assigns: %{reason: %Xandra.ConnectionError{}}}}) do
+    %{errors: %{detail: "Database connection error"}}
+  end
+
+  def render("500.json", %{conn: %{assigns: %{reason: %Xandra.Error{message: message}}}}) do
+    %{errors: %{detail: "Database error: #{message}"}}
+  end
+
   def render("500.json", _assigns) do
     %{errors: %{detail: "Internal server error"}}
   end
@@ -108,6 +120,14 @@ defmodule Astarte.AppEngine.APIWeb.ErrorView do
 
   def render("403.json", _assigns) do
     %{errors: %{detail: "Forbidden"}}
+  end
+
+  def render("503_cannot_push_to_device.json", _assigns) do
+    %{errors: %{detail: "Cannot push to device"}}
+  end
+
+  def render("503_service_unavailable.json", _assigns) do
+    %{errors: %{detail: "Service unavailable"}}
   end
 
   def render("missing_token.json", _assigns) do
@@ -132,14 +152,6 @@ defmodule Astarte.AppEngine.APIWeb.ErrorView do
         detail: "Unauthorized access to #{method} #{path}. Please verify your permissions"
       }
     }
-  end
-
-  def render("503_cannot_push_to_device.json", _assigns) do
-    %{errors: %{detail: "Cannot push to device"}}
-  end
-
-  def render("503_service_unavailable.json", _assigns) do
-    %{errors: %{detail: "Service unavailable"}}
   end
 
   # In case no render clause matches or no

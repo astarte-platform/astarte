@@ -1,5 +1,5 @@
-import { reverse } from "named-urls";
 import axios from "axios";
+import { reverse } from "named-urls";
 
 const ENDPOINT = {
   device_alias: "devices-by-alias/:device_alias/",
@@ -37,7 +37,7 @@ export default class ApiHandler {
     const path = reverse(ENDPOINT[endPoint], params);
     return new URL(
       `/appengine/${this.version}/${this.realm}/${path}`,
-      this.endpoint
+      this.endpoint,
     );
   }
 

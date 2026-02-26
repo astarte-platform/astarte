@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2020 Ispirata Srl
+# Copyright 2020 - 2025 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -17,36 +17,30 @@
 #
 
 defmodule Astarte.HousekeepingWeb.HealthPlug do
-  import Plug.Conn
-  alias Astarte.Housekeeping.Engine
+  @moduledoc false
+  @behaviour Plug
 
-  def init(_args), do: nil
+  import Plug.Conn
+
+  alias Astarte.DataAccess.Health.Health
+
+  def init(_opts) do
+    nil
+  end
 
   def call(%{request_path: "/health", method: "GET"} = conn, _opts) do
-    try do
-      case Engine.get_health() do
-        {:ok, %{status: status}} when status in [:ready, :degraded] ->
-          :telemetry.execute(
-            [:astarte, :housekeeping, :service],
-            %{health: 1},
-            %{status: status}
-          )
+    case Health.get_health() do
+      status when status in [:ready, :degraded] ->
+        :telemetry.execute(
+          [:astarte, :housekeeping, :service],
+          %{health: 1},
+          %{status: status}
+        )
 
-          conn
-          |> send_resp(:ok, "")
-          |> halt()
+        conn
+        |> send_resp(:ok, "")
+        |> halt()
 
-        _ ->
-          :telemetry.execute(
-            [:astarte, :housekeeping, :service],
-            %{health: 0}
-          )
-
-          conn
-          |> send_resp(:service_unavailable, "")
-          |> halt()
-      end
-    rescue
       _ ->
         :telemetry.execute(
           [:astarte, :housekeeping, :service],
@@ -54,10 +48,22 @@ defmodule Astarte.HousekeepingWeb.HealthPlug do
         )
 
         conn
-        |> send_resp(:internal_server_error, "")
+        |> send_resp(:service_unavailable, "")
         |> halt()
     end
+  rescue
+    _ ->
+      :telemetry.execute(
+        [:astarte, :housekeeping, :service],
+        %{health: 0}
+      )
+
+      conn
+      |> send_resp(:internal_server_error, "")
+      |> halt()
   end
 
-  def call(conn, _opts), do: conn
+  def call(conn, _opts) do
+    conn
+  end
 end

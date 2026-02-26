@@ -1,16 +1,5 @@
 import React, { Component } from "react";
-import {
-  Accordion,
-  Button,
-  Col,
-  Container,
-  FormControl,
-  InputGroup,
-  Row,
-  Spinner,
-} from "react-bootstrap";
-import CredentialsModal from "./CredentialsModal";
-import SensorItem from "./SensorItem";
+import { Accordion, Button, Col, Container, FormControl, InputGroup, Row, Spinner } from "react-bootstrap";
 import {
   constant,
   getDeviceDataByAlias,
@@ -18,6 +7,8 @@ import {
   getInterfaceById,
   isMissingCredentials,
 } from "../apiHandler";
+import CredentialsModal from "./CredentialsModal";
+import SensorItem from "./SensorItem";
 
 const _ = require("lodash");
 
@@ -51,13 +42,14 @@ class SensorViewer extends Component {
 
   checkDeviceType = (value) => {
     const expression = new RegExp(/[a-z]?[A-Z]?[0-9]?-?_?/i);
-    if (value.length === 22) if (expression.test(value)) return constant.ID;
+    if (value.length === 22) { if (expression.test(value)) return constant.ID; }
     return constant.ALIAS;
   };
 
   handleError(err) {
-    if (err.response.status === 403)
+    if (err.response.status === 403) {
       this.setState({ visible: true, loading: false });
+    }
     if (err.response.status === 404) {
       this.setState({ loading: false });
       window.confirm("Device ID Invalid");
@@ -135,10 +127,8 @@ class SensorViewer extends Component {
         <Container>
           <Row>
             <Col xs={12} className="p-0">
-              <h5
-                className="sensor-main-div text-center text-uppercase
-                                font-weight-bold text-white bg-sensor-theme mb-5 px-0 py-3"
-              >
+              <h5 className="sensor-main-div text-center text-uppercase
+                                font-weight-bold text-white bg-sensor-theme mb-5 px-0 py-3">
                 Sensors Viewer
               </h5>
               <Col xs={12} className="sensor-id-search-div px-5 pt-5 pb-4">
@@ -164,17 +154,19 @@ class SensorViewer extends Component {
                                                         text-uppercase font-weight-normal px-4
                                                         text-decoration-none rounded"
                         >
-                          {loading ? (
-                            <Spinner
-                              as="span"
-                              animation="border"
-                              size="sm"
-                              role="status"
-                              aria-hidden="true"
-                            />
-                          ) : (
-                            "Submit"
-                          )}
+                          {loading
+                            ? (
+                              <Spinner
+                                as="span"
+                                animation="border"
+                                size="sm"
+                                role="status"
+                                aria-hidden="true"
+                              />
+                            )
+                            : (
+                              "Submit"
+                            )}
                         </Button>
                       </InputGroup.Append>
                     </InputGroup>
@@ -182,35 +174,37 @@ class SensorViewer extends Component {
                 </Row>
                 <Row className="card-main-row mt-5">
                   <Col xs={12} className="device-status-div px-3 pb-4">
-                    {fetched ? (
-                      <h6 className="m-0 font-weight-bold position-relative">
-                        <span
-                          className="status-tag rounded-circle d-inline-block mr-2"
-                          style={{
-                            backgroundColor: `${
-                              data.connected ? "#008000" : "#ff0000"
-                            }`,
-                          }}
-                        />
-                        Device {data.connected ? "Connected" : "Disconnected"}
-                      </h6>
-                    ) : (
+                    {fetched
+                      ? (
+                        <h6 className="m-0 font-weight-bold position-relative">
+                          <span
+                            className="status-tag rounded-circle d-inline-block mr-2"
+                            style={{
+                              backgroundColor: `${data.connected ? "#008000" : "#ff0000"}`,
+                            }}
+                          />
+                          Device {data.connected ? "Connected" : "Disconnected"}
+                        </h6>
+                      )
+                      : (
+                        ""
+                      )}
+                  </Col>
+                  {!_.isEmpty(sensorsValues)
+                    ? (
+                      <Col xs={12}>
+                        <Accordion>
+                          <SensorItem
+                            availableSensors={availableSensors}
+                            sensorsValues={sensorsValues}
+                            sensorsSamplingRate={sensorsSamplingRate}
+                          />
+                        </Accordion>
+                      </Col>
+                    )
+                    : (
                       ""
                     )}
-                  </Col>
-                  {!_.isEmpty(sensorsValues) ? (
-                    <Col xs={12}>
-                      <Accordion>
-                        <SensorItem
-                          availableSensors={availableSensors}
-                          sensorsValues={sensorsValues}
-                          sensorsSamplingRate={sensorsSamplingRate}
-                        />
-                      </Accordion>
-                    </Col>
-                  ) : (
-                    ""
-                  )}
                 </Row>
               </Col>
             </Col>

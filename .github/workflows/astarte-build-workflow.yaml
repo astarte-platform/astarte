@@ -1,0 +1,58 @@
+name: Astarte build
+
+on:
+  workflow_call:
+
+jobs:
+  astarte-build:
+    name: Astarte build
+    runs-on: ubuntu-22.04
+    strategy:
+      matrix:
+        app:
+          - name: astarte-housekeeping
+            service: astarte_housekeeping
+            tag: astarte/astarte_housekeeping:snapshot
+          - name: astarte-realm-management
+            service: astarte_realm_management
+            tag: astarte/astarte_realm_management:snapshot
+          - name: astarte-pairing
+            service: astarte_pairing
+            tag: astarte/astarte_pairing:snapshot
+          - name: astarte-appengine-api
+            service: astarte_appengine_api
+            tag: astarte/astarte_appengine_api:snapshot
+          - name: astarte-data-updater-plant
+            service: astarte_data_updater_plant
+            tag: astarte/astarte_data_updater_plant:snapshot
+          - name: astarte-trigger-engine
+            service: astarte_trigger_engine
+            tag: astarte/astarte_trigger_engine:snapshot
+    steps:
+      - uses: actions/checkout@v2
+      - name: Setup Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      - name: Build branch slug env variable (job-scoped)
+        run: |
+          # Slugify branch/tag name for Docker tag safety and consistency
+          echo "BRANCH_SLUG=$(echo "${GITHUB_REF_NAME}" | sha1sum | cut -f 1 -d ' ')" >> $GITHUB_ENV
+      # Build and save each Astarte app Docker image in parallel
+      # and use build cache from GitHub Container Registry (isolated per app and branch to avoid cache thrashing)
+      - name: Build ${{ matrix.app.name }}
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          build-args: SERVICE=${{ matrix.app.service }}
+          push: false
+          cache-from: type=gha,scope=${{ matrix.app.name }}-${{ env.BRANCH_SLUG }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.app.name }}-${{ env.BRANCH_SLUG }}
+          outputs: type=docker,dest=${{ runner.temp }}/${{ matrix.app.name }}.tar
+          tags: ${{ matrix.app.tag }}
+      # Upload the built image as an artifact to be shared with other workflows
+      # we use the commit SHA to avoid collisions between different workflow runs
+      - name: Upload ${{ matrix.app.name }} artifact
+        uses: actions/upload-artifact@v4
+        with:
+          # Give each image a unique artifact name to avoid clashes across matrix jobs
+          name: astarte-images-${{ matrix.app.name }}
+          path: ${{ runner.temp }}/${{ matrix.app.name }}.tar

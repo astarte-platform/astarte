@@ -16,6 +16,12 @@
 # limitations under the License.
 
 defmodule Astarte.AppEngine.API.Device.AstarteValue do
+  @moduledoc """
+  Utility module to convert Astarte data type into JSON-friendly formats.
+
+  It handles longintegers, binary blobs and datetimes ensuring they are correctly
+  serialized when converting to JSON.
+  """
   # Match on nil values, skipping any conversion. This is needed to handle missing endpoints in
   # object aggregations, which are allowed due to semantic versioning (i.e. data sent from a
   # previous minor version doesn't contain data on new endpoints)
@@ -50,11 +56,19 @@ defmodule Astarte.AppEngine.API.Device.AstarteValue do
     Base.encode64(value)
   end
 
-  def to_json_friendly(value, :datetime, opts) do
+  def to_json_friendly(value, :datetime, opts) when is_integer(value) do
     if opts[:keep_milliseconds] do
       value
     else
       DateTime.from_unix!(value, :millisecond)
+    end
+  end
+
+  def to_json_friendly(value, :datetime, opts) when is_struct(value, DateTime) do
+    if opts[:keep_milliseconds] do
+      DateTime.to_unix(value, :millisecond)
+    else
+      value
     end
   end
 

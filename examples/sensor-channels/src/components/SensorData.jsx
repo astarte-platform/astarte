@@ -7,7 +7,7 @@ function ListItem(props) {
       key={props.index}
       className="temperature-list px-3 border-0 pb-0 py-2 bg-transparent"
     >
-      <b>{props.label}: </b>
+      <b>{props.label}:</b>
       <span>{props.value}</span>
     </ListGroup.Item>
   );
@@ -31,9 +31,7 @@ const setSensorDataCard = (index, sensor) => {
           <b className="m-0">Sensor Name : {sensor.name}</b>
         </span>
         <ListGroup className="py-1 my-2">
-          {sensor_item.map((item, index) => (
-            <ListItem key={index} label={item.label} value={item.value} />
-          ))}
+          {sensor_item.map((item, index) => <ListItem key={index} label={item.label} value={item.value} />)}
         </ListGroup>
       </Col>
     </Row>

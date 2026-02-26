@@ -1,14 +1,5 @@
 import React, { Component } from "react";
-import {
-  Accordion,
-  Button,
-  Col,
-  FormCheck,
-  FormControl,
-  FormGroup,
-  Row,
-  Spinner,
-} from "react-bootstrap";
+import { Accordion, Button, Col, FormCheck, FormControl, FormGroup, Row, Spinner } from "react-bootstrap";
 import CredentialsModal from "./CredentialsModal";
 import SensorItems from "./SensorItem";
 
@@ -53,12 +44,7 @@ class SensorSamplingUpdate extends Component {
 
   updateSensorRateValue = () => {
     const { sensor, status, samplingRate, samplingRateStatus } = this.state;
-    const {
-      data,
-      astarte,
-      samplingRateInterface,
-      refreshSamplingRate,
-    } = this.props;
+    const { data, astarte, samplingRateInterface, refreshSamplingRate } = this.props;
     if (sensor && (status === "enable" || samplingRateStatus)) {
       this.setState({ loading: true });
       astarte
@@ -83,12 +69,7 @@ class SensorSamplingUpdate extends Component {
 
   updateSamplingRateStatus = () => {
     const { sensor, status } = this.state;
-    const {
-      data,
-      astarte,
-      samplingRateInterface,
-      refreshSamplingRate,
-    } = this.props;
+    const { data, astarte, samplingRateInterface, refreshSamplingRate } = this.props;
     if (sensor && status) {
       this.setState({ loading: true });
       astarte
@@ -113,13 +94,7 @@ class SensorSamplingUpdate extends Component {
 
   render() {
     const { sensorValues } = this.props;
-    const {
-      loading,
-      visible,
-      current,
-      status,
-      samplingRateStatus,
-    } = this.state;
+    const { loading, visible, current, status, samplingRateStatus } = this.state;
     return (
       <Col xs={12} className="border-separate">
         <div className="sensor-sampling-div">
@@ -176,38 +151,42 @@ class SensorSamplingUpdate extends Component {
               </FormGroup>
             </Col>
           </Row>
-          {status === "enable" ? (
-            <Row className="main-row col-sm-9 mx-auto my-3">
-              <Col sm={3} xs={12} className={"p-0 pt-3"}>
-                <span>Period:</span>
-              </Col>
-              <Col sm={9} xs={12}>
-                <FormGroup>
-                  <FormCheck
-                    onChange={this.handleCheckbox}
-                    inline
-                    name="samplingRateStatus"
-                    label="Auto"
-                    type="checkbox"
-                    className="mb-3"
-                  />
-                  {!samplingRateStatus ? (
-                    <FormControl
-                      onChange={this.handleChange}
-                      name="samplingRate"
-                      type="number"
-                      placeholder="Sampling period"
-                      min={0}
+          {status === "enable"
+            ? (
+              <Row className="main-row col-sm-9 mx-auto my-3">
+                <Col sm={3} xs={12} className={"p-0 pt-3"}>
+                  <span>Period:</span>
+                </Col>
+                <Col sm={9} xs={12}>
+                  <FormGroup>
+                    <FormCheck
+                      onChange={this.handleCheckbox}
+                      inline
+                      name="samplingRateStatus"
+                      label="Auto"
+                      type="checkbox"
+                      className="mb-3"
                     />
-                  ) : (
-                    ""
-                  )}
-                </FormGroup>
-              </Col>
-            </Row>
-          ) : (
-            ""
-          )}
+                    {!samplingRateStatus
+                      ? (
+                        <FormControl
+                          onChange={this.handleChange}
+                          name="samplingRate"
+                          type="number"
+                          placeholder="Sampling period"
+                          min={0}
+                        />
+                      )
+                      : (
+                        ""
+                      )}
+                  </FormGroup>
+                </Col>
+              </Row>
+            )
+            : (
+              ""
+            )}
           <Row className="main-row col-sm-9 mx-auto my-3  justify-content-center">
             <Col sm={6} xs={12}>
               <FormGroup>
@@ -217,17 +196,19 @@ class SensorSamplingUpdate extends Component {
                   type="primary"
                   onClick={this.handleSubmit}
                 >
-                  {loading ? (
-                    <Spinner
-                      as="span"
-                      animation="border"
-                      size="sm"
-                      role="status"
-                      aria-hidden="true"
-                    />
-                  ) : (
-                    "Update"
-                  )}
+                  {loading
+                    ? (
+                      <Spinner
+                        as="span"
+                        animation="border"
+                        size="sm"
+                        role="status"
+                        aria-hidden="true"
+                      />
+                    )
+                    : (
+                      "Update"
+                    )}
                 </Button>
               </FormGroup>
             </Col>

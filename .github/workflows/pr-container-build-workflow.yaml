@@ -3,9 +3,9 @@ name: Test Container Builds
 on:
   pull_request:
     paths:
-    - '**/Dockerfile'
-    - '**/entrypoint.sh'
-    - '.github/workflows/pr-container-build-workflow.yaml'
+      - "**/Dockerfile"
+      - "**/entrypoint.sh"
+      - ".github/workflows/pr-container-build-workflow.yaml"
 
 jobs:
   test-build-container:
@@ -15,19 +15,15 @@ jobs:
       fail-fast: false
       matrix:
         app:
-        - astarte_appengine_api
-        - astarte_data_updater_plant
-        - astarte_housekeeping
-        - astarte_housekeeping_api
-        - astarte_pairing
-        - astarte_pairing_api
-        - astarte_realm_management
-        - astarte_realm_management_api
-        - astarte_trigger_engine
+          - astarte-appengine-api
+          - astarte-data-updater-plant
+          - astarte-housekeeping
+          - astarte-pairing
+          - astarte-realm-management
+          - astarte-trigger-engine
     steps:
-    - uses: actions/checkout@v4
-    - name: Building Docker Image
-      env:
-        CONTAINER_IMAGE_NAME: gh_actions_test
-      working-directory: ./apps/${{ matrix.app }}
-      run: docker build -t ${CONTAINER_IMAGE_NAME}:ci-test -f ../../Dockerfile .
+      - uses: actions/checkout@v4
+      - name: Building Docker Image
+        env:
+          CONTAINER_IMAGE_NAME: gh_actions_test
+        run: docker compose build ${{ matrix.app }}

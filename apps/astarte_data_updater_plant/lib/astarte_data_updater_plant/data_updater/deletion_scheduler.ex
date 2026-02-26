@@ -25,10 +25,9 @@ defmodule Astarte.DataUpdater.DeletionScheduler do
   """
   use GenServer
 
-  alias Astarte.DataUpdaterPlant.DataUpdater.Queries
-  alias Astarte.DataUpdaterPlant.Config
   alias Astarte.Core.Device
-  alias Astarte.Core.CQLUtils
+  alias Astarte.Core.Device
+  alias Astarte.DataUpdaterPlant.DataUpdater.Queries
   alias Mississippi.Consumer.DataUpdater
 
   require Logger
@@ -70,16 +69,13 @@ defmodule Astarte.DataUpdater.DeletionScheduler do
     realms = Queries.retrieve_realms!()
 
     for %{"realm_name" => realm_name} <- realms,
-        keyspace_name =
-          CQLUtils.realm_name_to_keyspace_name(realm_name, Config.astarte_instance_id!()),
         %{"device_id" => device_id} <-
-          Queries.retrieve_devices_waiting_to_start_deletion!(keyspace_name) do
-      _ =
-        Logger.debug("Retrieved device to delete",
-          tag: "device_to_delete",
-          realm_name: realm_name,
-          encoded_device_id: Device.encode_device_id(device_id)
-        )
+          Queries.retrieve_devices_waiting_to_start_deletion!(realm_name) do
+      Logger.debug("Retrieved device to delete",
+        tag: "device_to_delete",
+        realm: realm_name,
+        device_id: Device.encode_device_id(device_id)
+      )
 
       %{realm_name: realm_name, device_id: device_id}
     end

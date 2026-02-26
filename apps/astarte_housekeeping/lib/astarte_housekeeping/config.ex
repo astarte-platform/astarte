@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2018 Ispirata Srl
+# Copyright 2018 - 2025 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -17,23 +17,29 @@
 #
 
 defmodule Astarte.Housekeeping.Config do
-  alias Astarte.DataAccess.Config, as: DataAccessConfig
-  alias Astarte.RPC.Config, as: RPCConfig
+  @moduledoc false
   use Skogsra
 
-  @envdoc "Replication factor for the astarte keyspace, defaults to 1"
-  app_env :astarte_keyspace_replication_factor,
-          :astarte_housekeeping,
-          :astarte_keyspace_replication_factor,
-          os_env: "HOUSEKEEPING_ASTARTE_KEYSPACE_REPLICATION_FACTOR",
-          type: :integer,
-          default: 1
+  alias Astarte.Housekeeping.Config.JWTPublicKeyPEMType
 
-  @envdoc "The port where the housekeeping metrics endpoint will be exposed."
-  app_env :port, :astarte_housekeeping, :port,
-    os_env: "HOUSEKEEPING_PORT",
-    type: :integer,
-    default: 4000
+  @envdoc "The bind address for the Phoenix server."
+  app_env :bind_address, :astarte_housekeeping, :bind_address,
+    os_env: "HOUSEKEEPING_API_BIND_ADDRESS",
+    type: :binary,
+    default: "0.0.0.0"
+
+  @envdoc """
+  Disables the authentication. CHANGING IT TO TRUE IS GENERALLY A REALLY BAD IDEA IN A PRODUCTION ENVIRONMENT, IF YOU DON'T KNOW WHAT YOU ARE DOING.
+  """
+  app_env :disable_authentication, :astarte_housekeeping, :disable_authentication,
+    os_env: "HOUSEKEEPING_API_DISABLE_AUTHENTICATION",
+    type: :boolean,
+    default: false
+
+  @envdoc "The JWT public key."
+  app_env :jwt_public_key_pem, :astarte_housekeeping, :jwt_public_key_pem,
+    os_env: "HOUSEKEEPING_API_JWT_PUBLIC_KEY_PATH",
+    type: JWTPublicKeyPEMType
 
   @envdoc """
   By default Astarte Housekeeping doesn't support realm deletion. Set this variable to true to
@@ -44,32 +50,92 @@ defmodule Astarte.Housekeeping.Config do
     type: :boolean,
     default: false
 
-  defdelegate astarte_instance_id!, to: DataAccessConfig
-  defdelegate astarte_instance_id, to: DataAccessConfig
+  @envdoc "Replication strategy for the `astarte` keyspace, either `simple` or `network`. Defaults to `simple`"
+  app_env :astarte_keyspace_replication_strategy,
+          :astarte_housekeeping,
+          :astarte_keyspace_replication_strategy,
+          os_env: "HOUSEKEEPING_ASTARTE_KEYSPACE_REPLICATION_STRATEGY",
+          type: Astarte.Housekeeping.Config.ReplicationStrategy,
+          default: :simple_strategy
 
-  defdelegate xandra_nodes, to: DataAccessConfig
-  defdelegate xandra_nodes!, to: DataAccessConfig
+  @envdoc "Replication factor for the astarte keyspace, used when simple strategy is used for the astarte keyspace. defaults to 1"
+  app_env :astarte_keyspace_replication_factor,
+          :astarte_housekeeping,
+          :astarte_keyspace_replication_factor,
+          os_env: "HOUSEKEEPING_ASTARTE_KEYSPACE_REPLICATION_FACTOR",
+          type: :integer,
+          default: 1
 
-  defdelegate xandra_options!, to: DataAccessConfig
+  @envdoc "Replication map for the astarte keyspace, used when network topology strategy is used for the astarte keyspace."
+  app_env :astarte_keyspace_network_replication_map,
+          :astarte_housekeeping,
+          :astarte_keyspace_network_replication_map,
+          os_env: "HOUSEKEEPING_ASTARTE_KEYSPACE_NETWORK_REPLICATION_MAP",
+          type: Astarte.Housekeeping.Config.NetworkReplicationMap
 
-  defdelegate amqp_connection_username, to: RPCConfig
-  defdelegate amqp_connection_username!, to: RPCConfig
+  @envdoc """
+  "The handling method for database events. The default is `expose`, which means that the events are exposed trough telemetry. The other possible value, `log`, means that the events are logged instead."
+  """
+  app_env :database_events_handling_method,
+          :astarte_housekeeping,
+          :database_events_handling_method,
+          os_env: "DATABASE_EVENTS_HANDLING_METHOD",
+          type: Astarte.Housekeeping.Config.TelemetryType,
+          default: :expose
 
-  defdelegate amqp_connection_password, to: RPCConfig
-  defdelegate amqp_connection_password!, to: RPCConfig
+  @doc """
+  Returns true if the authentication is disabled.
+  """
+  @spec authentication_disabled?() :: boolean()
+  def authentication_disabled? do
+    disable_authentication!()
+  end
 
-  defdelegate amqp_connection_host, to: RPCConfig
-  defdelegate amqp_connection_host!, to: RPCConfig
+  @doc """
+  Returns :ok if the JWT key is valid, otherwise raise an exception.
+  """
+  def validate_jwt_public_key_pem! do
+    if authentication_disabled?() do
+      :ok
+    else
+      case jwt_public_key_pem() do
+        {:ok, nil} ->
+          raise "JWT public key not found, HOUSEKEEPING_API_JWT_PUBLIC_KEY_PATH must be set when authentication is enabled."
 
-  defdelegate amqp_connection_virtual_host, to: RPCConfig
-  defdelegate amqp_connection_virtual_host!, to: RPCConfig
+        {:ok, _key} ->
+          :ok
+      end
+    end
+  end
 
-  defdelegate amqp_connection_port, to: RPCConfig
-  defdelegate amqp_connection_port!, to: RPCConfig
+  @doc """
+  Returns :ok if at least one of HOUSEKEEPING_ASTARTE_KEYSPACE_REPLICATION_FACTOR or HOUSEKEEPING_ASTARTE_KEYSPACE_NETWORK_REPLICATION_MAP is valid, based on HOUSEKEEPING_ASTARTE_KEYSPACE_REPLICATION_STRATEGY value.
+  """
+  def validate_astarte_replication! do
+    case astarte_keyspace_replication_strategy!() do
+      :simple_strategy -> validate_astarte_replication_factor!()
+      :network_topology_strategy -> validate_astarte_replication_map!()
+      nil -> raise "Invalid replication strategy set for the astarte keyspace"
+    end
+  end
 
-  defdelegate amqp_prefetch_count, to: RPCConfig
-  defdelegate amqp_prefetch_count!, to: RPCConfig
+  defp validate_astarte_replication_factor! do
+    case astarte_keyspace_replication_factor() do
+      {:ok, replication_factor} when replication_factor != nil ->
+        :ok
 
-  defdelegate amqp_queue_max_length, to: RPCConfig
-  defdelegate amqp_queue_max_length!, to: RPCConfig
+      _ ->
+        raise "Invalid replication factor for the astarte keyspace with simple replication strategy. Check the values of HOUSEKEEPING_ASTARTE_KEYSPACE_REPLICATION_STRATEGY and HOUSEKEEPING_ASTARTE_KEYSPACE_REPLICATION_FACTOR"
+    end
+  end
+
+  defp validate_astarte_replication_map! do
+    case astarte_keyspace_network_replication_map() do
+      {:ok, replication_map} when replication_map != nil ->
+        :ok
+
+      _ ->
+        raise "Invalid or empty replication map for the astarte keyspace with network topology replication strategy. Check the values of HOUSEKEEPING_ASTARTE_KEYSPACE_REPLICATION_STRATEGY and HOUSEKEEPING_ASTARTE_KEYSPACE_NETWORK_REPLICATION_MAP"
+    end
+  end
 end

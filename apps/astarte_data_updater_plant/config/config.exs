@@ -11,12 +11,29 @@ config :astarte_data_updater_plant, :amqp_consumer_options,
   virtual_host: "/",
   port: 5672
 
+config :logger, :console,
+  format: "$time $metadata[$level] $message\n",
+  metadata: [
+    :realm,
+    :device_id,
+    :ip_address,
+    :module,
+    :function,
+    :tag
+  ]
+
 config :astarte_data_updater_plant, :amqp_events_exchange_name, "astarte_events"
 
 config :astarte_data_updater_plant, :amqp_consumer_prefetch_count, 300
 
-config :astarte_rpc, :amqp_queue, "data_updater_plant_rpc"
-
 config :astarte_data_updater_plant, :amqp_adapter, ExRabbitPool.RabbitMQ
+
+config :astarte_data_updater_plant, ecto_repos: [Astarte.DataAccess.Repo]
+
+config :astarte_data_updater_plant, Astarte.DataAccess.Repo, []
+
+config :astarte_events, :connection_backoff, 10_000
+
+config :astarte_rpc, :astarte_services, [:astarte_data_updater_plant, :astarte_vmq_plugin]
 
 import_config "#{config_env()}.exs"

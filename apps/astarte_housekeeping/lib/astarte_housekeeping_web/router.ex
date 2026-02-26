@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2020 Ispirata Srl
+# Copyright 2017-2023 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -17,17 +17,24 @@
 #
 
 defmodule Astarte.HousekeepingWeb.Router do
-  @moduledoc false
+  use Astarte.HousekeepingWeb, :router
 
-  use Plug.Router
+  pipeline :api do
+    plug :accepts, ["json"]
+    plug Astarte.HousekeepingWeb.Plug.AuthorizePath
+  end
 
-  plug Astarte.HousekeepingWeb.HealthPlug
-  plug Astarte.HousekeepingWeb.MetricsPlug
+  scope "/v1", Astarte.HousekeepingWeb do
+    pipe_through :api
 
-  plug :match
-  plug :dispatch
+    get "/version", VersionController, :show
 
-  match _ do
-    send_resp(conn, 404, "Not found")
+    resources "/realms", RealmController, except: [:new, :edit, :update]
+
+    patch "/realms/:realm_name", RealmController, :update
+  end
+
+  scope "/version", Astarte.HousekeepingWeb do
+    get "/", VersionController, :show
   end
 end

@@ -4,16 +4,16 @@ This tutorial will guide you through bringing up your Astarte instance, creating
 
 ## Before you begin
 
-First of all, please keep in mind that **this setup is not meant to be used in production**: by default, no persistence is involved, the installation does not have any recovery mechanism, and you will have to restart services manually in case something goes awry. This guide is great if you want to take Astarte for a spin, or if you want to use an isolated instance for development.
+First of all, please keep in mind that **this setup is not meant to be used in production**: by default, no persistence is involved, the installation does not have any recovery mechanism, and you will have to restart services manually in case something goes wrong. This guide is great if you want to take Astarte for a spin, or if you want to use an isolated instance for development.
 
-You will need a machine with at least 4GB of RAM, a recent 64-bit operating system with [Docker](https://www.docker.com/), [Docker Compose](https://docs.docker.com/compose/install/) and [astartectl](https://github.com/astarte-platform/astartectl) installed. If you don't have `astartectl` installed on your machine yet, you should install it by following the instructions in [astartectl's README](https://github.com/astarte-platform/astartectl#installation)
+You will need a machine with at least 4GB of RAM, a recent 64-bit operating system with [Docker](https://www.docker.com/), [Docker Compose](https://docs.docker.com/compose/install/) and [astartectl](https://github.com/astarte-platform/astartectl) installed. If you don't have `astartectl` installed on your machine yet, you should install it by following the instructions in [astartectl's README](https://github.com/astarte-platform/astartectl#installation).
 
 Also, on the machine(s) or device(s) you will use as a client, you will need either Docker, or a [Qt5](https://www.qt.io/) installation with development components if you wish to build and run components locally.
 
 Due to ScyllaDB requirements, if you're working on a Linux machine you should make sure that `aio-max-nr` is at least `1048576`:
 
 ```sh
-cat /proc/sys/fs/aio-max-nr
+$ cat /proc/sys/fs/aio-max-nr
 1048576
 ```
 
@@ -26,10 +26,10 @@ fs.aio-max-nr = 1048576
 and to persist this configuration
 
 ```sh
-sudo sysctl -p
+$ sudo sysctl -p
 ```
 
-## Checking prerequistes
+## Checking prerequisites
 
 Docker version >= 19 is recommended:
 
@@ -66,23 +66,23 @@ $ docker compose pull
 $ docker compose up -d
 ```
 
-`docker-compose-initializer` will generate a root CA for devices, a key pair for Housekeeping, and a self-signed certificate for the broker (note: this is a *really* bad idea in production). You can tune the compose file further to use legitimate certificates and custom keys, but this is out of the scope of this tutorial.
+`docker-compose-initializer` will generate a root CA for devices, a key pair for Housekeeping, and a self-signed certificate for the broker (note: this is a _really_ bad idea in production). You can tune the compose file further to use legitimate certificates and custom keys, but this is out of the scope of this tutorial.
 
 Compose might take some time to bring everything up, but usually within a minute from the containers creation Astarte will be ready.
 You can reach Astarte at the following addresses:
 
-* `api.astarte.localhost`: Astarte API, in detail:
-  * `api.astarte.localhost/appengine`: AppEngine
-  * `api.astarte.localhost/housekeeping`: Housekeeping
-  * `api.astarte.localhost/pairing`: Pairing
-  * `api.astarte.localhost/realmmanagement`: Realm Management
-* `broker.astarte.localhost`: VerneMQ broker
-* `dashboard.astarte.localhost`: Astarte Dashboard
+- `api.astarte.localhost`: Astarte API, in detail:
+  - `api.astarte.localhost/appengine`: AppEngine
+  - `api.astarte.localhost/housekeeping`: Housekeeping
+  - `api.astarte.localhost/pairing`: Pairing
+  - `api.astarte.localhost/realmmanagement`: Realm Management
+- `broker.astarte.localhost`: VerneMQ broker
+- `dashboard.astarte.localhost`: Astarte Dashboard
 
 Moreover, Compose will forward the following ports to your machine:
 
-* `80`: HTTP
-* `8883`: MQTTS
+- `80`: HTTP
+- `8883`: MQTTS
 
 To check everything went fine, use `docker ps` to verify relevant containers are up: Astarte itself, VerneMQ, CFSSL, RabbitMQ and ScyllaDB should be now running on your system. If any of them isn't up and running, `docker ps -a` should show it stopped or failed. In those cases, it is advised to issue `docker compose up -d` again to fix potential temporary failures.
 
@@ -111,9 +111,11 @@ $ astartectl housekeeping realms ls --astarte-url http://api.astarte.localhost -
 ## Install interfaces
 
 We will use [Astarte's Qt5 Stream Generator](https://github.com/astarte-platform/stream-qt5-test)
-to feed data into Astarte. However before starting, we will have to install the `org.astarte-
-platform.genericsensors.Values` and the `org.astarte-platform.genericcommands.ServerCommands`
-interfaces into our new realm. To do that, we can use `astartectl` again:
+to feed data into Astarte, as we will see in the [Stream Data](#stream-data) section.
+However, before starting we have to set up a few things. First we have to install the
+`org.astarte-platform.genericsensors.Values` and the
+`org.astarte-platform.genericcommands.ServerCommands` interfaces into our new
+realm. To do that, we can use `astartectl` again:
 
 ```sh
 $ astartectl realm-management interfaces sync standard-interfaces/org.astarte-platform.genericsensors.Values.json standard-interfaces/org.astarte-platform.genericcommands.ServerCommands.json --astarte-url http://api.astarte.localhost -r test -k test_private.pem -y
@@ -126,11 +128,12 @@ platform.genericcommands.ServerCommands` should show up among our available inte
 $ astartectl realm-management interfaces ls --astarte-url http://api.astarte.localhost -r test -k test_private.pem
 ```
 
-Our Astarte instance is now ready for our devices.
+Our Astarte instance is now ready for our devices, but there is still something
+we want to do before trying it out: installing a trigger.
 
 ## Install a trigger
 
-We will also test Astarte's push capabilities with a trigger. This will send a POST to a URL of our choice every time the value generated by `stream_test` is above 0.6.
+We will use a trigger to test Astarte's push capabilities. In this case, we will send a POST to a URL of our choice every time the value generated by `stream_test` is above 0.6.
 
 Due to how triggers work, it is fundamental to install the trigger before a device connects. Doing otherwise will cause the trigger to kick in at a later time, and as such no events will be streamed for a while.
 
@@ -170,6 +173,8 @@ $ astartectl realm-management triggers ls --astarte-url http://api.astarte.local
 ```
 
 ## Stream data
+
+We are now ready to test our Astarte instance.
 
 If you already have an Astarte compliant device, you can configure it and connect it straight away,
 and it will just work with your new installation - provided you skip SSL checks on the broker's
@@ -219,7 +224,7 @@ When you're done with your tests and developments, you can use `docker compose` 
 $ docker compose down
 ```
 
-Unless you add the `-v ` option, persistencies will be kept and next time you will `docker compose up` the cluster will come back in the very same state you left it last time. `docker compose down -v` is extremely useful during development, especially if you want a clean slate for testing your applications or your routines every time.
+Unless you add the `-v` option, persistencies will be kept and next time you will `docker compose up` the cluster will come back in the very same state you left it last time. `docker compose down -v` is extremely useful during development, especially if you want a clean slate for testing your applications or your routines every time.
 
 ## Final notes
 

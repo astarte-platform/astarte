@@ -17,16 +17,21 @@
 #
 
 defmodule Astarte.TriggerEngine.AMQPConsumer.AMQPConsumerTracker do
+  @moduledoc """
+  Tracker for AMQP consumers and policies.
+  """
+
   require Logger
 
   use GenServer
-  alias Astarte.TriggerEngine.AMQPConsumer.Queries
+
+  alias Astarte.Core.Triggers.Policy
+  alias Astarte.Core.Triggers.Policy.ErrorKeyword
+  alias Astarte.Core.Triggers.Policy.Handler
+  alias Astarte.Core.Triggers.PolicyProtobuf.Policy, as: PolicyProto
   alias Astarte.TriggerEngine.AMQPConsumer.AMQPConsumerSupervisor
   alias Astarte.TriggerEngine.AMQPConsumer.AMQPMessageConsumer
-  alias Astarte.Core.Triggers.Policy
-  alias Astarte.Core.Triggers.Policy.Handler
-  alias Astarte.Core.Triggers.Policy.ErrorKeyword
-  alias Astarte.Core.Triggers.PolicyProtobuf.Policy, as: PolicyProto
+  alias Astarte.TriggerEngine.AMQPConsumer.Queries
 
   # 30 seconds
   @update_timeout 30 * 1000
@@ -47,6 +52,13 @@ defmodule Astarte.TriggerEngine.AMQPConsumer.AMQPConsumerTracker do
 
   @impl true
   def handle_info(:update_consumers, state) do
+    update_consumers()
+    schedule_update()
+
+    {:noreply, state}
+  end
+
+  def update_consumers do
     registered_consumers =
       Registry.select(Registry.AMQPConsumerRegistry, [{{:"$1", :_, :_}, [], [:"$1"]}])
 
@@ -67,12 +79,10 @@ defmodule Astarte.TriggerEngine.AMQPConsumer.AMQPConsumerTracker do
 
     Enum.each(outdated_consumers, &remove_outdated_consumer/1)
 
-    schedule_update()
-
-    {:noreply, state}
+    :ok
   end
 
-  defp schedule_update() do
+  defp schedule_update do
     Process.send_after(__MODULE__, :update_consumers, @update_timeout)
   end
 
@@ -101,12 +111,12 @@ defmodule Astarte.TriggerEngine.AMQPConsumer.AMQPConsumerTracker do
 
     case Registry.lookup(Registry.AMQPConsumerRegistry, {realm_name, policy_name}) do
       [{pid, nil}] -> AMQPConsumerSupervisor.terminate_child(pid)
-      # already ded, we don't care
+      # already dead, we don't care
       [] -> :ok
     end
   end
 
-  def fetch_all_policies_with_realms() do
+  def fetch_all_policies_with_realms do
     with {:ok, realm_names} <- Queries.list_realms() do
       Enum.reduce(realm_names, %{}, fn realm_name, acc ->
         Map.merge(acc, fetch_realm_policies_map(realm_name))
@@ -131,7 +141,7 @@ defmodule Astarte.TriggerEngine.AMQPConsumer.AMQPConsumerTracker do
   end
 
   # we need this because the default policy cannot be installed
-  defp default_policy() do
+  defp default_policy do
     %Policy{
       name: @default_policy_name,
       # Do not limit default queue size so that we don't break Astarte < 1.1 behaviour

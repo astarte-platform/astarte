@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2020 Ispirata Srl
+# Copyright 2020 - 2025 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -17,6 +17,11 @@
 #
 
 defmodule Astarte.AppEngine.APIWeb.HealthPlug do
+  @moduledoc """
+  Plug dedicated to handling heatlh check requests.
+  It intercepts GET requests to the /health endpoint and reports the service status based on the availability.
+  It also emits telemetry events for monitoring purposes.
+  """
   @behaviour Plug
   import Plug.Conn
 
@@ -27,79 +32,42 @@ defmodule Astarte.AppEngine.APIWeb.HealthPlug do
   end
 
   def call(%{request_path: "/health", method: "GET"} = conn, _opts) do
-    try do
-      status =
-        case Health.get_health() do
-          :ok ->
-            :telemetry.execute(
-              [:astarte, :appengine, :service],
-              %{health: 1},
-              %{consistency_level: :quorum}
-            )
+    status = Health.get_health()
 
-            :telemetry.execute(
-              [:astarte, :appengine, :service],
-              %{health: 1},
-              %{consistency_level: :one}
-            )
-
-            :ok
-
-          {:error, :degraded_health} ->
-            :telemetry.execute(
-              [:astarte, :appengine, :service],
-              %{health: 0},
-              %{consistency_level: :quorum}
-            )
-
-            :telemetry.execute(
-              [:astarte, :appengine, :service],
-              %{health: 1},
-              %{consistency_level: :one}
-            )
-
-            :ok
-
-          _ ->
-            :telemetry.execute(
-              [:astarte, :appengine, :service],
-              %{health: 0},
-              %{consistency_level: :quorum}
-            )
-
-            :telemetry.execute(
-              [:astarte, :appengine, :service],
-              %{health: 0},
-              %{consistency_level: :one}
-            )
-
-            :service_unavailable
-        end
+    if status in [:ready, :degraded] do
+      log_health_telemetry(1)
 
       conn
-      |> send_resp(status, "")
+      |> send_resp(:ok, "")
       |> halt()
-    rescue
-      _ ->
-        :telemetry.execute(
-          [:astarte, :appengine, :service],
-          %{health: 0},
-          %{consistency_level: :quorum}
-        )
+    else
+      log_health_telemetry(0)
 
-        :telemetry.execute(
-          [:astarte, :appengine, :service],
-          %{health: 0},
-          %{consistency_level: :one}
-        )
-
-        conn
-        |> send_resp(:internal_server_error, "")
-        |> halt()
+      conn
+      |> send_resp(:service_unavailable, "")
+      |> halt()
     end
+  rescue
+    _ ->
+      log_health_telemetry(0)
+
+      conn
+      |> send_resp(:internal_server_error, "")
+      |> halt()
   end
 
   def call(conn, _opts) do
     conn
+  end
+
+  # helper for telemetry reporting
+  defp log_health_telemetry(health_score) do
+    for level <- [:quorum, :one] do
+      :telemetry.execute(
+        [:astarte, :appengine, :service],
+        %{health: health_score},
+        %{consistency_level: level}
+      )
+    end
   end
 end

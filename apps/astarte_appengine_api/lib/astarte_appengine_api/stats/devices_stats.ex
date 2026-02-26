@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2019 Ispirata Srl
+# Copyright 2019 - 2025 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -17,6 +17,11 @@
 #
 
 defmodule Astarte.AppEngine.API.Stats.DevicesStats do
+  @moduledoc """
+  Data Structure representing statistics about devices in an Astarte realm.
+
+  This struct aggregates the count of all devices and the count of currently connected devices.
+  """
   defstruct [
     :total_devices,
     :connected_devices

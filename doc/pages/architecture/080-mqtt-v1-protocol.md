@@ -13,15 +13,16 @@ A protocol reference implementation is provided with an Astarte SDK, however dev
 Astarte MQTT v1 Protocol relies on few well known reserved topics.
 
 | Topic                                                  | Purpose          | Published By | QoS     | Payload Format                          |
-|--------------------------------------------------------|------------------|--------------|---------|-----------------------------------------|
+| ------------------------------------------------------ | ---------------- | ------------ | ------- | --------------------------------------- |
 | `<realm name>/<device id>`                             | Introspection    | Device       | 2       | ASCII plain text, ':' and ';' delimited |
+| `<realm name>/<device id>/capabilities`                | Capabilities     | Device       | 2       | BSON                                    |
 | `<realm name>/<device id>/control/emptyCache`          | Empty Cache      | Device       | 2       | ASCII plain text (always "1")           |
 | `<realm name>/<device id>/control/consumer/properties` | Purge Properties | Astarte      | 2       | deflated plain text                     |
 | `<realm name>/<device id>/control/producer/properties` | Purge Properties | Device       | 2       | deflated plain text                     |
 | `<realm name>/<device id>/<interface name>/<path>`     | Publish Data     | Both         | 0, 1, 2 | BSON (or empty)                         |
 
 For clarity reasons all `<realm name>/<device id>` prefixes will be omitted on the following paragraphs, those topics will be called device topics.
-Topics are not bidirectional, devices must not publish data for server owned topics and viceversa, onwership is explicitly stated in interfaces files.
+Topics are not bidirectional, devices must not publish data for server owned topics and viceversa, ownership is explicitly stated in interfaces files.
 
 ## BSON
 
@@ -39,19 +40,19 @@ that fits just in 27 bytes.
 
 ### BSON format
 
-BSON is a really simple binary format, breaking down the previous example is very easy thanks to BSON simplicity: the first 4 bytes (`1b 00 00 00`) are the document size header, follows the timestamp marker (`09`), the timestamp key name (`74 00`, that is "t"), the timestamp value (`5f 48 06 f1 65 01 00 00` as int64), the double value marker (`01`),  the value key name (`76 00`, that is "v"), the actual value (`cd cc cc cc cc 4c 39 40` as 64-bit IEEE 754-2008 floating point) and the end of document marker (`00`).
+BSON is a really simple binary format, breaking down the previous example is very easy thanks to BSON simplicity: the first 4 bytes (`1b 00 00 00`) are the document size header, follows the timestamp marker (`09`), the timestamp key name (`74 00`, that is "t"), the timestamp value (`5f 48 06 f1 65 01 00 00` as int64), the double value marker (`01`), the value key name (`76 00`, that is "v"), the actual value (`cd cc cc cc cc 4c 39 40` as 64-bit IEEE 754-2008 floating point) and the end of document marker (`00`).
 
 ### Astarte payload standard fields
 
 | Key | Type             | Mandatory | Description                                                |
-|-----|------------------|-----------|------------------------------------------------------------|
+| --- | ---------------- | --------- | ---------------------------------------------------------- |
 | v   | Any Astarte type | Yes       | The value being sent (both properties and datastream)      |
 | t   | UTC datetime     | No        | Explicit timestamp, if present (optional, datastream only) |
 
 ### Astarte data types to BSON types
 
 | Astarte Data Type | BSON Type           | Size in Bytes                                      |
-|-------------------|---------------------|----------------------------------------------------|
+| ----------------- | ------------------- | -------------------------------------------------- |
 | double            | double (0x01)       | 8                                                  |
 | integer           | int32 (0x10)        | 4                                                  |
 | boolean           | boolean (0x08)      | 1                                                  |
@@ -59,10 +60,10 @@ BSON is a really simple binary format, breaking down the previous example is ver
 | string            | UTF-8 string (0x02) | >= length (encoding dependent)                     |
 | binaryblob        | binary (0x05)       | length                                             |
 | datetime          | UTC datetime (0x09) | 8                                                  |
-| doublearray       | Array (0x04)        | (8 + keysize) * count                              |
-| integerarray      | Array (0x04)        | (4 + keysize) * count                              |
-| booleanarray      | Array (0x04)        | (1 + keysize) * count                              |
-| longintegerarray  | Array (0x04)        | (1 + keysize) * count                              |
+| doublearray       | Array (0x04)        | (8 + keysize) \* count                             |
+| integerarray      | Array (0x04)        | (4 + keysize) \* count                             |
+| booleanarray      | Array (0x04)        | (1 + keysize) \* count                             |
+| longintegerarray  | Array (0x04)        | (1 + keysize) \* count                             |
 | stringarray       | Array (0x04)        | depends on count, length, keys length and encoding |
 | binaryblobarray   | Array (0x04)        | depends on count, keys length and length           |
 
@@ -71,23 +72,23 @@ BSON is a really simple binary format, breaking down the previous example is ver
 ## Connection and Disconnection
 
 A device is not required to publish any additional connection or disconnection messages, the MQTT broker will automatically keep track of these events and relay them to Astarte.
-When connecting, before publishing any data message, a device should check MQTT *session present* flag. When the MQTT *session present* flag is *true* no further actions are required, when *false* the device should take following actions:
+When connecting, before publishing any data message, a device should check MQTT _session present_ flag. When the MQTT _session present_ flag is _true_ no further actions are required, when _false_ the device should take following actions:
 
-* Publish its introspection
-* Publish an empty cache message
-* Publish all of its existing and set properties on all its property interfaces
+- Publish its introspection
+- Publish an empty cache message
+- Publish all of its existing and set properties on all its property interfaces
 
-If a device is unable to inspect *session present* all previous actions must be taken at every reconnection.
+If a device is unable to inspect _session present_ all previous actions must be taken at every reconnection.
 
 ## Introspection
 
 Each device must declare the set of supported interfaces and their version. Astarte needs to know which interfaces the device advertises before processing any further data publish.
-This message in Astarte jargon is called *introspection* and it's performed by publishing on the device root topic the list of interfaces that are installed on the device.
+This message in Astarte jargon is called _introspection_ and it's performed by publishing on the device root topic the list of interfaces that are installed on the device.
 
 Introspection payload is a simple plain text string, and it has the following format (in BNF like syntax):
 
 ```
-introspection ::= introspection_list
+introspection ::= "" | introspection_list
 introspection_list ::= introspection_entry ";" introspection_list | introspection_entry
 introspection_entry ::= interface_name ":" interface_major_version ":" interface_minor_version
 ```
@@ -98,10 +99,12 @@ The following example is a valid introspection payload:
 com.example.MyInterface:1:0;org.example.DraftInterface:0:3
 ```
 
+An empty string is the valid introspection payload for a device without interfaces.
+
 ## Empty Cache
 
 Astarte MQTT v1 strives to save bandwidth upon reconnections, to make sure even frequent reconnections don't affect bandwidth consumption. As such, upon connecting and if MQTT advertises a session present, both sides assume that data flow is ordered and consistent. However, there might be cases where this guarantee isn't respected by the device for a number of reasons (e.g.: new device, factory reset, cache lost...). In this case, a device might declare that it has no confidence about its status and its known properties, and can request to resynchronise entirely with Astarte.
-In Astarte jargon this message is called *empty cache* and it is performed by publising "1" on the device `/control/emptyCache` topic.
+In Astarte jargon this message is called _empty cache_ and it is performed by publishing "1" on the device `/control/emptyCache` topic.
 
 After an empty cache message properties might be purged and Astarte might publish all the server owned properties again.
 
@@ -111,6 +114,25 @@ In the very same fashion as the device, Astarte (or the broker) might be inconsi
 Astarte performs this task by telling the broker to disconnect the device and clear its session. After this, when the device will attempt reconnection, session present will be false.
 
 After a clean session properties might be purged.
+
+## Device capabilities
+
+A device can define how future communication with Astarte will take place by specifying **capabilities**. Interacting with astarte to set capabilities works as follows:
+
+1. A device can send one or more capabilities at a time.
+2. If a capability is not explicitly set, its default value is used.
+3. When a device sends a capabilities message, two things can happen. Either the message is valid and the new values override the current ones, or the message was malformed. In this case the following happens:
+   - the previously stored values remain unchanged;
+   - the device gets forcefully disconnected.
+4. Capabilities are preserved in the database, ensuring consistency across sessions.
+
+### Capabilities List
+
+The following is a comprehensive list of all capabilities currently implemented. In the _possible values_ column the **default value** is marked in bold.
+
+| Name                                  | Values                  | Purpose                                                                                          |
+| ------------------------------------- | ----------------------- | ------------------------------------------------------------------------------------------------ |
+| `purge_properties_compression_format` | **"zlib"**, "plaintext" | Set if Astarte should send the purge properties payload compressed with _zlib_ or in _plaintext_ |
 
 ## Purge Properties
 
@@ -144,7 +166,7 @@ The following example is the inflated previous payload:
 com.example.MyInterface/some/path;org.example.DraftInterface/otherPath
 ```
 
-This protocol feature is fundamental when a device has any interface with an *allow_unset* mapping, *purge properties* allows to correct any error due to unhandled unset messages.
+This protocol feature is fundamental when a device has any interface with an _allow_unset_ mapping, _purge properties_ allows to correct any error due to unhandled unset messages.
 
 ## Publishing Data
 
@@ -155,18 +177,18 @@ Also `/` path is a valid path for object aggregated interfaces.
 
 The following device topics are valid:
 
-* `/com.example.MyInterface/some/path`
-* `/org.example.DraftInterface/otherPath`
-* `/com.example.astarte.ObjectAggregatedInterface/`
+- `/com.example.MyInterface/some/path`
+- `/org.example.DraftInterface/otherPath`
+- `/com.example.astarte.ObjectAggregatedInterface/`
 
 Data messages QoS is chosen according to mapping settings, such as reliability. Properties are always published using QoS 2.
 
-| Interface Type | Reliability     | QoS |
-|----------------|-----------------|-----|
-| properties     | always unique   | 2   |
-| datastream     | unreliable      | 0   |
-| datastream     | guaranteed      | 1   |
-| datastream     | unique          | 2   |
+| Interface Type | Reliability   | QoS |
+| -------------- | ------------- | --- |
+| properties     | always unique | 2   |
+| datastream     | unreliable    | 0   |
+| datastream     | guaranteed    | 1   |
+| datastream     | unique        | 2   |
 
 ### Payload Format
 
@@ -176,9 +198,9 @@ Payload format might change according to the message type. Payloads are always B
 
 Property messages have a ["v" key](#astarte-payload-standard-fields) (which means value). Valid examples are:
 
-* `{"v": "string property value"}`
-* `{"v": 10}`
-* `{"v": true}`
+- `{"v": "string property value"}`
+- `{"v": 10}`
+- `{"v": true}`
 
 Previous payloads are BSON encoded as the following hex dumps:
 
@@ -207,11 +229,11 @@ Properties can be unset with an unset message. An unset message is just an empty
 
 Datastream messages for interfaces with individual aggregation have a ["v" key](#astarte-payload-standard-fields) and an optional ["t" key](#astarte-payload-standard-fields) (which means timestamp). Valid examples are:
 
-* `{"v": false}`
+- `{"v": false}`
 
-* `{"v": 16.73}`
+- `{"v": 16.73}`
 
-* `{"v": 16.73, "t": 1537449422890}`
+- `{"v": 16.73, "t": 1537449422890}`
 
 Timestamps are UTC timestamps (BSON 0x09 type), when not provided reception timestamp is used.
 
@@ -234,9 +256,9 @@ Previous payloads are BSON encoded as the following hex dumps:
 
 Datastream messages for interfaces with object aggregation support every Astarte payload standard field (such as "t"), but in this case _value_ is a BSON subdocument, in which each key represent a mapping of the aggregation. Valid examples are:
 
-* `{"v": {"temp": 25.3123, "hum": 67.112}}`
+- `{"v": {"temp": 25.3123, "hum": 67.112}}`
 
-* `{"v": {"temp": 25.3123, "hum": 67.112}, "t": 1537452514811}`
+- `{"v": {"temp": 25.3123, "hum": 67.112}, "t": 1537452514811}`
 
 Timestamps are UTC timestamps (BSON 0x09 type), when not provided reception timestamp is used.
 
@@ -269,7 +291,7 @@ Malformed or unexpected messages are discarded and further actions might be take
 
 ## Authentication
 
-In Astarte, every Transport orchestrates its credentials through Pairing. Astarte/VerneMQ authenticates devices using Mutual SSL Autentication - as such, devices use SSL certificates emitted through [Pairing API](050-pairing_mechanism.html) to authenticate against the broker. To achieve this, the device must ensure it is capable of performing http(s) calls to Pairing API to obtain its certificates, performing SSL/X509 operations and connecting to the MQTT Broker through the use of SSL certificates.
+In Astarte, every Transport orchestrates its credentials through Pairing. Astarte/VerneMQ authenticates devices using Mutual SSL Authentication - as such, devices use SSL certificates emitted through [Pairing API](050-pairing_mechanism.html) to authenticate against the broker. To achieve this, the device must ensure it is capable of performing http(s) calls to Pairing API to obtain its certificates, performing SSL/X509 operations and connecting to the MQTT Broker through the use of SSL certificates.
 
 ## Authorization
 

@@ -22,16 +22,25 @@ defmodule Astarte.AppEngine.API.Groups do
   """
 
   alias Astarte.AppEngine.API.Device.DevicesListOptions
-  alias Astarte.AppEngine.API.Groups.Group
   alias Astarte.AppEngine.API.Groups.Queries
   alias Astarte.Core.Device
+  alias Astarte.DataAccess.Groups.Group
+  alias Ecto.Changeset
 
   @default_list_limit 1000
 
   def create_group(realm_name, params) do
-    changeset = Group.changeset(%Group{}, params)
+    group_changeset =
+      %Group{}
+      |> Group.changeset(params)
 
-    Queries.create_group(realm_name, changeset)
+    with {:ok, group} <- Changeset.apply_action(group_changeset, :insert),
+         {:ok, decoded_device_ids} <- decode_device_ids(group.devices),
+         :ok <- Queries.check_all_devices_exist(realm_name, decoded_device_ids, group_changeset),
+         :ok <- check_group_does_not_exist(realm_name, group.group_name),
+         :ok <- Queries.add_to_grouped_device(realm_name, group.group_name, decoded_device_ids) do
+      {:ok, group}
+    end
   end
 
   def list_groups(realm_name) do
@@ -110,5 +119,28 @@ defmodule Astarte.AppEngine.API.Groups do
 
   def check_device_in_group(realm_name, group_name, device_id) do
     Queries.check_device_in_group(realm_name, group_name, device_id)
+  end
+
+  defp check_group_does_not_exist(realm_name, group_name) do
+    Queries.check_group_exists(realm_name, group_name)
+    |> case do
+      {:error, _} ->
+        :ok
+
+      {:ok, _} ->
+        {:error, :group_already_exists}
+    end
+  end
+
+  defp decode_device_ids(encoded_device_ids) do
+    {decoded_ids, errors} =
+      encoded_device_ids
+      |> Enum.map(&Device.decode_device_id/1)
+      |> Enum.split_with(fn {result, _} -> result == :ok end)
+
+    case errors do
+      [] -> {:ok, Enum.map(decoded_ids, fn {:ok, id} -> id end)}
+      [first_error | _] -> first_error
+    end
   end
 end

@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2017-2024 SECO Mind Srl
+# Copyright 2017 - 2025 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -17,16 +17,26 @@
 #
 
 defmodule Astarte.TriggerEngine.EventsConsumer do
-  alias Astarte.Core.Triggers.SimpleEvents.IncomingIntrospectionEvent
-  alias Astarte.Core.Triggers.SimpleEvents.InterfaceVersion
-  alias Astarte.Core.Triggers.SimpleEvents.SimpleEvent
-  alias Astarte.Core.Triggers.Trigger
-  alias Astarte.DataAccess.Database
-  alias CQEx.Query, as: DatabaseQuery
-  alias CQEx.Result, as: DatabaseResult
+  @moduledoc """
+  Consumer for trigger events.
+  """
+
   require Logger
 
+  import Ecto.Query
+
+  alias Astarte.Core.Triggers.SimpleEvents.SimpleEvent
+  alias Astarte.Core.Triggers.Trigger
+  alias Astarte.DataAccess.Consistency
+  alias Astarte.DataAccess.KvStore
+  alias Astarte.DataAccess.Realms.Realm
+  alias Astarte.DataAccess.Repo
+
   defmodule Behaviour do
+    @moduledoc """
+    Behaviour for events consumer implementations.
+    """
+
     @callback consume(payload :: binary, headers :: map) :: :ok | {:error, reason :: atom}
   end
 
@@ -52,7 +62,7 @@ defmodule Astarte.TriggerEngine.EventsConsumer do
       case decoded_payload.timestamp do
         nil ->
           DateTime.utc_now()
-          |> DateTime.from_unix(:millisecond)
+          |> DateTime.to_unix(:millisecond)
 
         timestamp when is_integer(timestamp) ->
           timestamp
@@ -138,6 +148,7 @@ defmodule Astarte.TriggerEngine.EventsConsumer do
 
     # TODO: check this with object aggregations
     Map.from_struct(event)
+    |> Map.delete(:__unknown_fields__)
     |> Enum.reduce(base_values, fn {item_key, item_value}, acc ->
       case item_key do
         :bson_value ->
@@ -191,7 +202,6 @@ defmodule Astarte.TriggerEngine.EventsConsumer do
          trigger_name,
          _timestamp_ms
        ) do
-    event = maybe_normalize_introspection_event(event)
     values = build_values_map(realm, device_id, event_type, event, trigger_name)
 
     {:ok, :bbmustache.render(template, values, key_type: :binary)}
@@ -206,8 +216,6 @@ defmodule Astarte.TriggerEngine.EventsConsumer do
          trigger_name,
          timestamp_ms
        ) do
-    event = maybe_normalize_introspection_event(event)
-
     with {:ok, timestamp} <- DateTime.from_unix(timestamp_ms, :millisecond) do
       %{
         "timestamp" => timestamp,
@@ -226,28 +234,6 @@ defmodule Astarte.TriggerEngine.EventsConsumer do
   defp build_request_opts(_action) do
     []
   end
-
-  # If introspection = nil, it means we are using the introspection map format
-  # instead of the old one (pre-1.2) where introspection is a string
-  defp maybe_normalize_introspection_event(
-         %IncomingIntrospectionEvent{introspection: nil} = event
-       ) do
-    %IncomingIntrospectionEvent{introspection_map: introspection_map} = event
-
-    Enum.reduce(introspection_map, fn {interface_name, version}, acc ->
-      %InterfaceVersion{
-        major: version_major,
-        minor: version_minor
-      } = version
-
-      Map.put_new(acc, interface_name, %{
-        major: version_major,
-        minor: version_minor
-      })
-    end)
-  end
-
-  defp maybe_normalize_introspection_event(event), do: event
 
   defp execute_action(payload, headers, action) do
     with {:ok, method, url} <- fetch_method_and_url(action),
@@ -312,27 +298,28 @@ defmodule Astarte.TriggerEngine.EventsConsumer do
   end
 
   defp retrieve_trigger_configuration(realm_name, trigger_id) do
-    query =
-      DatabaseQuery.new()
-      |> DatabaseQuery.statement(
-        "SELECT value FROM kv_store WHERE group='triggers' AND key=:trigger_id;"
-      )
-      |> DatabaseQuery.put(:trigger_id, trigger_id)
+    keyspace_name = Realm.keyspace_name(realm_name)
 
-    with {:ok, client} <- Database.connect(realm: realm_name),
-         {:ok, result} <- DatabaseQuery.call(client, query),
-         [value: trigger_data] <- DatabaseResult.head(result),
-         trigger <- Trigger.decode(trigger_data),
+    query =
+      from kvstore in KvStore,
+        prefix: ^keyspace_name,
+        where: kvstore.group == "triggers" and kvstore.key == ^trigger_id,
+        select: kvstore.value
+
+    opts = [consistency: Consistency.domain_model(:read)]
+
+    with encoded_trigger when encoded_trigger != nil <- Repo.one(query, opts),
+         trigger <- Trigger.decode(encoded_trigger),
          {:ok, action} <- Jason.decode(trigger.action) do
       {:ok, %{action: action, trigger_name: trigger.name}}
     else
-      {:error, :database_connection_error} ->
-        Logger.warning("Database connection error.")
-        {:error, :database_connection_error}
-
-      error ->
-        Logger.warning("Error while processing event: #{inspect(error)}")
+      nil ->
+        Logger.warning("Trigger not found: #{inspect(trigger_id)}")
         {:error, :trigger_not_found}
+
+      _ ->
+        Logger.warning("Error while decoding trigger: #{inspect(trigger_id)}")
+        {:error, :trigger_decoding_error}
     end
   end
 end

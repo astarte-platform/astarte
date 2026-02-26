@@ -21,8 +21,6 @@ defmodule Astarte.TriggerEngine.Config do
   This module handles the configuration of TriggerEngine
   """
 
-  alias Astarte.DataAccess.Config, as: DataAccessConfig
-
   use Skogsra
 
   @envdoc "Host for the AMQP consumer connection"
@@ -121,6 +119,16 @@ defmodule Astarte.TriggerEngine.Config do
           type: :integer,
           default: 10
 
+  @envdoc """
+  "The handling method for database events. The default is `expose`, which means that the events are exposed trough telemetry. The other possible value, `log`, means that the events are logged instead."
+  """
+  app_env :database_events_handling_method,
+          :astarte_realm_management,
+          :database_events_handling_method,
+          os_env: "DATABASE_EVENTS_HANDLING_METHOD",
+          type: Astarte.TriggerEngine.Config.TelemetryType,
+          default: :expose
+
   @doc """
   Returns the AMQP events consumer connection options
   """
@@ -161,7 +169,7 @@ defmodule Astarte.TriggerEngine.Config do
     end
   end
 
-  defp build_ssl_options() do
+  defp build_ssl_options do
     [
       cacertfile: amqp_consumer_ssl_ca_file!() || CAStore.file_path(),
       verify: :verify_peer,
@@ -179,7 +187,7 @@ defmodule Astarte.TriggerEngine.Config do
     end
   end
 
-  def events_consumer_pool_config!() do
+  def events_consumer_pool_config! do
     [
       name: {:local, :events_consumer_pool},
       worker_module: ExRabbitPool.Worker.RabbitConnection,
@@ -188,25 +196,11 @@ defmodule Astarte.TriggerEngine.Config do
     ]
   end
 
-  def amqp_adapter!() do
+  def amqp_adapter! do
     Application.get_env(:astarte_trigger_engine, :amqp_adapter)
   end
 
-  def events_consumer!() do
+  def events_consumer! do
     Application.get_env(:astarte_trigger_engine, :events_consumer)
   end
-
-  @doc "A list of host values of accessible Cassandra nodes formatted in the Xandra format"
-  defdelegate xandra_nodes, to: DataAccessConfig
-  defdelegate xandra_nodes!, to: DataAccessConfig
-
-  @doc "A list of {host, port} values of accessible Cassandra nodes in a CQEx compliant format"
-  defdelegate cqex_nodes, to: DataAccessConfig
-  defdelegate cqex_nodes!, to: DataAccessConfig
-
-  defdelegate xandra_options!, to: DataAccessConfig
-  defdelegate cqex_options!, to: DataAccessConfig
-
-  defdelegate astarte_instance_id!, to: DataAccessConfig
-  defdelegate astarte_instance_id, to: DataAccessConfig
 end

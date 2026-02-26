@@ -17,12 +17,12 @@ class Astarte {
     xhr.setRequestHeader("Content-Type", "application/json");
     xhr.setRequestHeader("Authorization", `Bearer ${this.token}`);
     xhr.send();
-    xhr.onreadystatechange = function () {
+    xhr.onreadystatechange = function() {
       if (xhr.readyState === 4) {
         callback(JSON.parse(xhr.response));
       }
     };
-    xhr.onerror = function () {
+    xhr.onerror = function() {
       alert("Request failed");
     };
   }

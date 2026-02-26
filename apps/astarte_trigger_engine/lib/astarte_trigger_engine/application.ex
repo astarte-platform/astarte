@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2017 Ispirata Srl
+# Copyright 2017 - 2025 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -22,8 +22,8 @@ defmodule Astarte.TriggerEngine.Application do
   use Application
   require Logger
 
-  alias Astarte.TriggerEngine.Config
   alias Astarte.DataAccess.Config, as: DataAccessConfig
+  alias Astarte.TriggerEngine.Config
   alias Astarte.TriggerEngine.DeliverySupervisor
 
   @app_version Mix.Project.config()[:version]
@@ -40,13 +40,8 @@ defmodule Astarte.TriggerEngine.Application do
     Config.validate!()
     DataAccessConfig.validate!()
 
-    xandra_options =
-      Config.xandra_options!()
-      |> Keyword.put(:name, :xandra)
-
     children = [
       Astarte.TriggerEngineWeb.Telemetry,
-      {Xandra.Cluster, xandra_options},
       DeliverySupervisor
     ]
 

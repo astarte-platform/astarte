@@ -1,5 +1,5 @@
-import { Accordion, Button, Card, ListGroup } from "react-bootstrap";
 import React from "react";
+import { Accordion, Button, Card, ListGroup } from "react-bootstrap";
 
 const _ = require("lodash");
 

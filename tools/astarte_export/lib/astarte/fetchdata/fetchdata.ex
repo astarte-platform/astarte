@@ -1,45 +1,26 @@
 defmodule Astarte.Export.FetchData do
+  alias Astarte.Export.Utilities
   alias Astarte.Core.Device
   alias Astarte.Core.CQLUtils
   alias Astarte.Export.FetchData.Queries
 
-  @base_types %{
-    binaryblobarray: :binaryblob,
-    datetimearray: :datetime,
-    stringarray: :string,
-    integerarray: :integer,
-    longintegerarray: :longinteger,
-    doublearray: :double,
-    booleanarray: :boolean
-  }
-
-  def db_connection_identifier() do
-    with {:ok, conn_ref} <- Queries.get_connection() do
-      {:ok, conn_ref}
+  def fetch_device_data(conn, realm, opts) do
+    with {:ok, result} <- Queries.stream_devices(conn, realm, opts),
+         [_device_data | _] = result_list <- Enum.map(result, &Utilities.map_string_to_atom/1) do
+      updated_options = Keyword.put(opts, :paging_state, result.paging_state)
+      {:more_data, result_list, updated_options}
     else
-      _ -> {:error, :connection_setup_failed}
-    end
-  end
-
-  def fetch_device_data(conn, realm, options, device_options \\ []) do
-    case Queries.stream_devices(conn, realm, options, device_options) do
-      {:ok, result} ->
-        result_list = Enum.to_list(result)
-
-        if result_list == [] do
-          {:ok, :completed}
-        else
-          updated_options = Keyword.put(options, :paging_state, result.paging_state)
-          {:more_data, result_list, updated_options}
-        end
-
-      {:error, reason} ->
-        {:error, reason}
+      [] -> {:ok, :completed}
+      {:error, reason} -> {:error, reason}
     end
   end
 
   def process_device_data(device_data) do
     device_id = Device.encode_device_id(device_data.device_id)
+
+    connected =
+      to_string(device_data.connected)
+      |> String.downcase()
 
     revision = to_string(device_data.protocol_revision)
 
@@ -47,80 +28,70 @@ defmodule Astarte.Export.FetchData do
       to_string(device_data.pending_empty_cache)
       |> String.downcase()
 
-    secret_bcrypt_hash = device_data.credentials_secret
+    credentials_secret = device_data.credentials_secret
 
-    first_registration =
-      case device_data.first_registration do
-        nil -> ""
-        datetime -> DateTime.to_iso8601(datetime)
-      end
+    first_registration = DateTime.to_iso8601(device_data.first_registration)
 
     inhibit_request =
-      case device_data.inhibit_credentials_request do
-        nil -> ""
-        value -> value |> to_string() |> String.downcase()
-      end
+      device_data.inhibit_credentials_request
+      |> to_string
+      |> String.downcase()
 
-    cert_serial =
-      case device_data.cert_serial do
-        nil -> ""
-        serial -> serial
-      end
+    cert_serial = device_data.cert_serial
+    cert_aki = device_data.cert_aki
 
-    cert_aki =
-      case device_data.cert_aki do
-        nil -> ""
-        serial -> serial
-      end
-
-    first_credentials_request =
-      case device_data.first_credentials_request do
-        nil -> ""
-        datetime -> DateTime.to_iso8601(datetime)
-      end
+    first_credentials_request = DateTime.to_iso8601(device_data.first_credentials_request)
 
     last_credentials_request_ip =
-      case device_data.last_credentials_request_ip do
-        nil -> ""
-        ip -> ip |> :inet_parse.ntoa() |> to_string()
-      end
+      device_data.last_credentials_request_ip
+      |> :inet_parse.ntoa()
+      |> to_string()
 
-    total_received_msgs =
-      case device_data.total_received_msgs do
-        nil -> "0"
-        msgs -> to_string(msgs)
-      end
+    total_received_msgs = to_string(device_data.total_received_msgs)
 
-    total_received_bytes =
-      case device_data.total_received_bytes do
-        nil -> "0"
-        bytes -> to_string(bytes)
-      end
+    total_received_bytes = to_string(device_data.total_received_bytes)
 
-    last_connection =
-      case device_data.last_connection do
-        nil -> ""
-        datetime -> DateTime.to_iso8601(datetime)
-      end
+    last_connection = DateTime.to_iso8601(device_data.last_connection)
 
-    last_disconnection =
-      case device_data.last_disconnection do
-        nil -> ""
-        datetime -> DateTime.to_iso8601(datetime)
-      end
+    last_disconnection = DateTime.to_iso8601(device_data.last_disconnection)
 
     last_seen_ip =
-      case device_data.last_seen_ip do
-        nil -> ""
-        ip -> ip |> :inet_parse.ntoa() |> to_string()
+      device_data.last_seen_ip
+      |> :inet_parse.ntoa()
+      |> to_string()
+
+    aliases =
+      device_data.aliases |> Enum.map(fn {name, as} -> %{name: name, as: as} end)
+
+    attributes =
+      device_data.attributes |> Enum.map(fn {name, value} -> %{name: name, value: value} end)
+
+    capabilities =
+      case device_data.capabilities do
+        nil ->
+          nil
+
+        map ->
+          map
+          |> Map.new(fn {key, value} -> {key, to_string(value)} end)
       end
 
-    device_attributes = [device_id: device_id]
+    groups =
+      case device_data.groups do
+        nil ->
+          nil
+
+        map ->
+          map
+          |> Map.new(fn {key, value} -> {key, to_string(value)} end)
+      end
+
+    device_attributes = [device_id: device_id, connected: connected]
 
     protocol_attributes = [revision: revision, pending_empty_cache: pending_empty_cache]
 
     registration_attributes = [
-      secret_bcrypt_hash: secret_bcrypt_hash,
+      credentials_secret: credentials_secret,
       first_registration: first_registration
     ]
 
@@ -140,25 +111,42 @@ defmodule Astarte.Export.FetchData do
       last_seen_ip: last_seen_ip
     ]
 
+    # Excluded fields:
+    # - exchanged_bytes_by_interface
+    # - exchanged_msgs_by_interface
+    # - introspection_minor
     %{
       device: device_attributes,
       protocol: protocol_attributes,
       registration: registration_attributes,
       credentials: credentials_attributes,
-      stats: stats_attributes
+      stats: stats_attributes,
+      aliases: aliases,
+      attributes: attributes,
+      groups: groups,
+      capabilities: capabilities
     }
   end
 
   def get_interface_details(conn, realm, device_data) do
     device_id = device_data.device_id
-    introspection = device_data.introspection
 
-    introspection = if introspection == nil, do: [], else: introspection
+    introspection =
+      Enum.map(device_data.introspection, fn {name, major_version} ->
+        {name, major_version, true}
+      end)
+
+    old_introspection =
+      Enum.map(device_data.old_introspection, fn {{name, major_version}, _minor_version} ->
+        {name, major_version, false}
+      end)
+
+    introspections = Enum.concat(introspection, old_introspection)
 
     mapped_interfaces =
-      Enum.reduce(introspection, [], fn {interface_name, major_version}, acc ->
+      Enum.reduce(introspections, [], fn {name, major_version, active}, acc ->
         {:ok, interface_description} =
-          Queries.fetch_interface_descriptor(conn, realm, interface_name, major_version, [])
+          Queries.fetch_interface_descriptor(conn, realm, name, major_version, [])
 
         minor_version = interface_description.minor_version
         interface_id = interface_description.interface_id
@@ -168,26 +156,11 @@ defmodule Astarte.Export.FetchData do
         {:ok, mappings} = Queries.fetch_interface_mappings(conn, realm, interface_id, [])
         mappings = Enum.sort_by(mappings, fn mapping -> mapping.endpoint end)
 
-        mappings =
-          Enum.map(mappings, fn mapping ->
-            path =
-              fetch_all_endpoint_paths(
-                conn,
-                realm,
-                interface_id,
-                device_id,
-                mapping.endpoint_id,
-                aggregation
-              )
-
-            Map.put(mapping, :path, path |> Enum.at(0) || mapping.endpoint)
-          end)
-
         interface_attributes = [
-          name: interface_name,
+          name: name,
           major_version: to_string(major_version),
           minor_version: to_string(minor_version),
-          active: "true"
+          active: to_string(active)
         ]
 
         type =
@@ -218,20 +191,6 @@ defmodule Astarte.Export.FetchData do
     {:ok, mapped_interfaces}
   end
 
-  defp fetch_all_endpoint_paths(conn, realm, interface_id, device_id, endpoint_id, aggregation) do
-    with {:ok, result} <-
-           Queries.retrieve_all_endpoint_paths(
-             conn,
-             realm,
-             interface_id,
-             device_id,
-             endpoint_id,
-             aggregation
-           ) do
-      result
-    end
-  end
-
   def fetch_individual_datastreams(conn, realm, mapping, interface_info, options) do
     %{
       device_id: device_id,
@@ -239,7 +198,7 @@ defmodule Astarte.Export.FetchData do
     } = interface_info
 
     endpoint_id = mapping.endpoint_id
-    path = mapping.path
+    path = mapping.endpoint
     data_type = mapping.value_type
     data_field = CQLUtils.type_to_db_column_name(data_type)
 
@@ -254,7 +213,7 @@ defmodule Astarte.Export.FetchData do
              data_field,
              options
            ),
-         [_value | _] = result_list <- Enum.to_list(result) do
+         [_device_data | _] = result_list <- Enum.map(result, &Utilities.map_string_to_atom/1) do
       updated_options = Keyword.put(options, :paging_state, result.paging_state)
 
       values =
@@ -292,7 +251,8 @@ defmodule Astarte.Export.FetchData do
              options
            ) do
       updated_options = Keyword.put(options, :paging_state, result.paging_state)
-      result_list = Enum.to_list(result)
+
+      [_device_data | _] = result_list = Enum.map(result, &Utilities.map_string_to_atom/1)
 
       values =
         Enum.reduce(result_list, [], fn map, acc ->
@@ -329,7 +289,7 @@ defmodule Astarte.Export.FetchData do
       interface_id: interface_id
     } = interface_info
 
-    path = mapping.path
+    path = mapping.endpoint
     endpoint_id = mapping.endpoint_id
     data_type = mapping.value_type
     data_field = CQLUtils.type_to_db_column_name(data_type)
@@ -345,7 +305,7 @@ defmodule Astarte.Export.FetchData do
              data_field,
              options
            ),
-         [_value | _] = result_list <- Enum.to_list(result) do
+         [_device_data | _] = result_list <- Enum.map(result, &Utilities.map_string_to_atom/1) do
       updated_options = Keyword.put(options, :paging_state, result.paging_state)
 
       values =
@@ -368,12 +328,15 @@ defmodule Astarte.Export.FetchData do
     end
   end
 
-  defp from_native_type(value, native_type) when is_list(value) do
-    type = Map.get(@base_types, native_type, native_type)
-    Enum.map(value, &from_native_type(&1, type))
+  defp from_native_type(value, :binaryblob) do
+    Base.encode64(value)
   end
 
-  defp from_native_type(value, :binaryblob), do: Base.encode64(value)
-  defp from_native_type(value, :datetime), do: DateTime.to_iso8601(value)
-  defp from_native_type(value, _any_type), do: to_string(value)
+  defp from_native_type(value, :datetime) do
+    DateTime.to_iso8601(value)
+  end
+
+  defp from_native_type(value, _any_type) do
+    to_string(value)
+  end
 end
