@@ -53,6 +53,15 @@ defmodule Astarte.DataUpdaterPlant.DatabaseTestHelper do
     );
   """
 
+  @create_ownership_vouchers_table """
+  CREATE TABLE :keyspace.ownership_vouchers (
+      private_key blob,
+      voucher_data blob,
+      device_id uuid,
+     PRIMARY KEY (device_id, voucher_data)
+   );
+  """
+
   @create_devices_table """
       CREATE TABLE :keyspace.devices (
         device_id uuid,
@@ -369,6 +378,7 @@ defmodule Astarte.DataUpdaterPlant.DatabaseTestHelper do
     case execute(keyspace_name, @create_autotestrealm) do
       {:ok, _} ->
         execute!(keyspace_name, @create_capabilities_type)
+        execute!(keyspace_name, @create_ownership_vouchers_table)
         execute!(keyspace_name, @create_devices_table)
         execute!(keyspace_name, @create_endpoints_table)
 

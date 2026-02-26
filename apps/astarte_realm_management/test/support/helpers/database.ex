@@ -68,6 +68,15 @@ defmodule Astarte.Helpers.Database do
   );
   """
 
+  @create_ownership_vouchers_table """
+  CREATE TABLE IF NOT EXISTS :keyspace.ownership_vouchers (
+     private_key blob,
+     voucher_data blob,
+     device_id uuid,
+     PRIMARY KEY (device_id, voucher_data)
+   );
+  """
+
   @create_devices_table """
   CREATE TABLE IF NOT EXISTS :keyspace.devices (
     device_id uuid,
@@ -94,7 +103,6 @@ defmodule Astarte.Helpers.Database do
     last_seen_ip inet,
     attributes map<varchar, varchar>,
     capabilities capabilities,
-
     groups map<text, timeuuid>,
 
     PRIMARY KEY (device_id)
@@ -263,6 +271,7 @@ defmodule Astarte.Helpers.Database do
     realm_keyspace = Realm.keyspace_name(realm_name)
     execute!(realm_keyspace, @create_keyspace)
     execute!(realm_keyspace, @create_capabilities_type)
+    execute!(realm_keyspace, @create_ownership_vouchers_table)
     execute!(realm_keyspace, @create_devices_table)
     execute!(realm_keyspace, @create_groups_table)
     execute!(realm_keyspace, @create_names_table)

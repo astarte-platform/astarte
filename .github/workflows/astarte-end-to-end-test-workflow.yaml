@@ -24,10 +24,15 @@ on:
 env:
   elixir_version: "1.15"
   otp_version: "26.1"
+  CLEA_DEV_BASE: ""
+  CLEA_DEV_REALM: ""
+  CLEA_DEV_REALM_TOKEN: ""
+  BOARD_BASE_URL: ""
 
 jobs:
   e2e-build:
     uses: ./.github/workflows/astarte-e2e-build-workflow.yaml
+
   astarte-build:
     uses: ./.github/workflows/astarte-build-workflow.yaml
 
@@ -60,6 +65,80 @@ jobs:
           wget https://github.com/astarte-platform/wait-for-astarte-docker-compose/releases/download/v1.1.0/wait-for-astarte-docker-compose_1.1.0_linux_amd64.tar.gz
           tar xf wait-for-astarte-docker-compose_1.1.0_linux_amd64.tar.gz
           ./wait-for-astarte-docker-compose
+    - uses: actions/checkout@v2
+    - name: Initialize docker compose files
+      run: docker run -v $(pwd)/compose:/compose astarte/docker-compose-initializer
+    - name: Restore astarte images
+      uses: actions/download-artifact@v4
+      with:
+        name: astarte-images
+        path: ${{ runner.temp }}
+    - name: Restore astarte e2e image
+      uses: actions/download-artifact@v4
+      with:
+        name: astarte-e2e-image
+        path: ${{ runner.temp }}
+    - name: Load astarte images
+      run: ls ${{ runner.temp }}/*.tar | xargs --max-args 1 docker load --input
+    - name: Start all Astarte services
+      run: docker compose up -d
+    - name: Wait for Astarte to come up
+      run: |
+        wget https://github.com/astarte-platform/wait-for-astarte-docker-compose/releases/download/v1.1.0/wait-for-astarte-docker-compose_1.1.0_linux_amd64.tar.gz
+        tar xf wait-for-astarte-docker-compose_1.1.0_linux_amd64.tar.gz
+        ./wait-for-astarte-docker-compose
+    - name: Install astartectl
+      run: |
+        wget https://github.com/astarte-platform/astartectl/releases/download/v22.11.02/astartectl_22.11.02_linux_x86_64.tar.gz
+        tar xf astartectl_22.11.02_linux_x86_64.tar.gz
+        chmod +x astartectl
+    - name: Generate realm keypair and JWT
+      run: |
+        ./astartectl utils gen-keypair test
+        E2E_HOUSEKEEPING_API_JWT=$(./astartectl utils gen-jwt housekeeping -k compose/astarte-keys/housekeeping_private.pem)
+        echo "E2E_HOUSEKEEPING_API_JWT=$E2E_HOUSEKEEPING_API_JWT" >> $GITHUB_ENV
+    - name: Generate JWT
+      run: |
+        JWT=$(./astartectl utils gen-jwt appengine channels pairing realm-management -k test_private.pem)
+        echo "E2E_JWT=$JWT" >> $GITHUB_ENV
+    - name: Run Astarte E2E
+      working-directory: tools/astarte_e2e
+      env:
+        E2E_HOST: "astarte-e2e"
+        E2E_PAIRING_URL: http://api.astarte.localhost/pairing
+        E2E_APPENGINE_URL: http://api.astarte.localhost/appengine
+        E2E_HOUSEKEEPING_URL: http://api.astarte.localhost/housekeeping
+        E2E_REALM_MANAGEMENT_URL: http://api.astarte.localhost/realmmanagement
+        E2E_AMQP_CONSUMER_HOST: rabbitmq
+        E2E_IGNORE_SSL_ERRORS: true
+        E2E_CHECK_INTERVAL_SECONDS: 5
+        E2E_CHECK_REPETITIONS: 5
+        E2E_MAILER_TO_ADDRESS: mail@example.com
+        E2E_MAIL_SUBJECT: "Subj: Astarte Notification"
+      run: |
+       docker run \
+        -e E2E_REALM_PUBLIC_KEY_PEM="$(cat ../../test_public.pem)" \
+        --env-file=<(env | grep '^E2E_' | grep -v '^E2E_REALM_PUBLIC_KEY_PEM=') \
+        --network astarte \
+        --hostname "$E2E_HOST" \
+        astarte-e2e
+    - name: Check Docker
+      if: ${{ failure() }}
+      run: docker compose logs
+    - name: Bring down Astarte docker-compose
+      run: docker compose down
+
+  fdo-end-to-end:
+    needs: [astarte-build]
+    name: FDO end-to-end Test
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout fdo e2e repo
+        uses: actions/checkout@v6
+        with:
+          repository: astarte-platform/astarte-device-fdo-rust
+          ref: dev
+      - uses: ./.github/actions/install-deps
       - name: Install astartectl
         run: |
           wget https://github.com/astarte-platform/astartectl/releases/download/v22.11.02/astartectl_22.11.02_linux_x86_64.tar.gz
@@ -100,3 +179,61 @@ jobs:
         run: docker compose logs
       - name: Bring down Astarte docker-compose
         run: docker compose down
+          mkdir -p ${{ runner.temp }}/bin
+          mv ./astartectl ${{ runner.temp }}/bin
+          echo ${{ runner.temp }}/bin >> "$GITHUB_PATH"
+      - name: Install additional dependencies
+        run: |
+          sudo apt-get install -y openssl jq
+      - uses: actions/checkout@v6
+        name: checkout astarte
+        with:
+          path: .tmp/repos/astarte
+      - name: Restore astarte images
+        uses: actions/download-artifact@v4
+        with:
+          name: astarte-images
+          path: ${{ runner.temp }}
+      - name: Initialize keys
+        working-directory: .tmp/repos/astarte
+        run: |
+          docker run -v $(pwd)/compose:/compose astarte/docker-compose-initializer
+          astartectl utils gen-keypair test
+      - name: Load astarte images
+        run: ls ${{ runner.temp }}/*.tar | xargs --max-args 1 docker load --input
+      - name: Enable FDO
+        run: echo "PAIRING_ENABLE_FDO=true" >> .tmp/repos/astarte/.env
+      - name: Start all Astarte services
+        working-directory: .tmp/repos/astarte
+        run: docker compose up -d
+      - uses: actions-rust-lang/setup-rust-toolchain@v1.15.2
+      - uses: mozilla-actions/sccache-action@v0.0.9
+      - name: Cache container build
+        id: cache-container
+        uses: actions/cache@v4.3.0
+        with:
+          path: .tmp/cache/containers
+          key: ${{ runner.os }}-${{ hashFiles('justfile', 'scripts/**/*.sh', 'containers/**') }}
+      - name: Install just
+        uses: taiki-e/install-action@v2.49.43
+        with:
+          tool: just
+      - run: just go-server-setup
+      - name: Wait for Astarte to come up
+        run: |
+          wget https://github.com/astarte-platform/wait-for-astarte-docker-compose/releases/download/v1.1.0/wait-for-astarte-docker-compose_1.1.0_linux_amd64.tar.gz
+          tar xf wait-for-astarte-docker-compose_1.1.0_linux_amd64.tar.gz
+          ./wait-for-astarte-docker-compose
+      - name: Create realm
+        working-directory: .tmp/repos/astarte
+        run: |
+          astartectl housekeeping realms create -y "test" \
+            --astarte-url "http://api.astarte.localhost" \
+            --realm-public-key "test_public.pem" \
+            -k compose/astarte-keys/housekeeping_private.pem
+      - name: Run FDO
+        run: just astarte-run
+      - name: Check Docker
+        working-directory: .tmp/repos/astarte
+        if: ${{ failure() }}
+        run: docker compose logs astarte-pairing

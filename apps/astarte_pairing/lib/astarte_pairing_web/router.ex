@@ -33,11 +33,57 @@ defmodule Astarte.PairingWeb.Router do
     plug Astarte.PairingWeb.Plug.LogHwId
   end
 
+  pipeline :fdo_feature_gate do
+    plug Astarte.PairingWeb.Plug.FDOGate
+  end
+
+  pipeline :fdo do
+    plug :accepts, ["cbor"]
+    plug :put_view, Astarte.PairingWeb.FDOView
+    plug Astarte.PairingWeb.Plug.LogRealm
+    plug Astarte.PairingWeb.Plug.VerifyRealmExists
+    plug Astarte.PairingWeb.Plug.SetupFDO
+  end
+
+  pipeline :fdo_session do
+    plug Astarte.PairingWeb.Plug.FDOSession
+  end
+
+  pipeline :fdo_tunnel do
+    plug Astarte.PairingWeb.Plug.DecryptAndVerify
+  end
+
+  scope "/v1/:realm_name/fdo/101", Astarte.PairingWeb do
+    pipe_through :fdo_feature_gate
+
+    pipe_through :fdo
+
+    post "/msg/60", FDOOnboardingController, :hello_device
+
+    pipe_through :fdo_session
+
+    post "/msg/62", FDOOnboardingController, :ov_next_entry
+
+    post "/msg/64", FDOOnboardingController, :prove_device
+
+    pipe_through :fdo_tunnel
+
+    post "/msg/66", FDOOnboardingController, :service_info_start
+    post "/msg/68", FDOOnboardingController, :service_info_end
+    post "/msg/70", FDOOnboardingController, :done
+  end
+
   scope "/v1/:realm_name", Astarte.PairingWeb do
     pipe_through :realm_api
 
     get "/version", VersionController, :show
     get "/health", HealthController, :show
+
+    scope "/ownership" do
+      pipe_through :fdo_feature_gate
+      pipe_through :agent_api
+      post "/", OwnershipVoucherController, :create
+    end
 
     scope "/agent" do
       pipe_through :agent_api

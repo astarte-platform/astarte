@@ -39,6 +39,13 @@ defmodule Astarte.DatabaseTestdata do
   CREATE TYPE test.capabilities (
     purge_properties_compression_format int
   );
+  @create_ownership_vouchers_table """
+  CREATE TABLE :keyspace.ownership_vouchers (
+      private_key blob,
+      voucher_data blob,
+      device_id uuid,
+      PRIMARY KEY (device_id, voucher_data)
+   );
   """
 
   @create_devices_table """
@@ -377,6 +384,18 @@ defmodule Astarte.DatabaseTestdata do
             {:ok, _} = Xandra.execute(conn, statement, [], [])
           end
         )
+    create_tables = [
+      @create_kv_store,
+      @create_names_table,
+      @create_groups_table,
+      @create_ownership_vouchers_table,
+      @create_devices_table,
+      @create_interfaces_table,
+      @create_endpoints_table,
+      @create_individual_properties_table,
+      @create_individual_datastreams_table,
+      @create_objects_table
+    ]
 
         Enum.each(
           @interfaces,
