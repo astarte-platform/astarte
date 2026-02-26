@@ -304,7 +304,7 @@ defmodule Astarte.Housekeeping.Helpers.Database do
   """
 
   @drop_capabilities_from_devices """
-  ALTER TABLE :keyspace.devices DROP capabilities;  
+  ALTER TABLE :keyspace.devices DROP capabilities;
   """
 
   def setup(realm_name) do

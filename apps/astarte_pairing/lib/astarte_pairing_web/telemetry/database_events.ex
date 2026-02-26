@@ -50,13 +50,7 @@ defmodule Astarte.PairingWeb.Telemetry.DatabaseEvents do
   def handle_event([:xandra | event], measurements, metadata, :expose) do
     with :bounce <- validate_event(event) do
       Task.Supervisor.start_child(TelemetryTaskSupervisor, fn ->
-        with :ok <- filter_event(event, metadata) do
-          :telemetry.execute(
-            [:astarte, :pairing, :database] ++ event,
-            measurements,
-            metadata
-          )
-        end
+        emit_event(event, measurements, metadata)
       end)
     end
   end
@@ -75,6 +69,16 @@ defmodule Astarte.PairingWeb.Telemetry.DatabaseEvents do
   defp filter_event([:execute_query, _], metadata), do: has_reason(metadata)
   defp filter_event([:prepare_query, _], metadata), do: has_reason(metadata)
   defp filter_event(_event, _metadata), do: :ok
+
+  defp emit_event(event, measurements, metadata) do
+    with :ok <- filter_event(event, metadata) do
+      :telemetry.execute(
+        [:astarte, :pairing, :database] ++ event,
+        measurements,
+        metadata
+      )
+    end
+  end
 
   defp has_reason(metadata) do
     case Map.has_key?(metadata, :reason) do

@@ -260,6 +260,8 @@ defmodule Astarte.Housekeeping.Realms.Queries do
          :ok <- create_simple_triggers_table(keyspace_name),
          :ok <- create_grouped_devices_table(keyspace_name),
          :ok <- create_deletion_in_progress_table(keyspace_name),
+         :ok <- create_ownership_vouchers_table(keyspace_name),
+         :ok <- create_to2_sessions_table(keyspace_name),
          :ok <- insert_realm_public_key(keyspace_name, public_key_pem),
          :ok <- insert_realm_astarte_schema_version(keyspace_name),
          :ok <- insert_realm(realm_name, device_limit),
@@ -592,6 +594,58 @@ defmodule Astarte.Housekeeping.Realms.Queries do
 
       PRIMARY KEY (device_id)
     );
+    """
+
+    with {:ok, %{rows: nil, num_rows: 1}} <- CSystem.execute_schema_change(query) do
+      :ok
+    end
+  end
+
+  defp create_ownership_vouchers_table(keyspace_name) do
+    query = """
+    CREATE TABLE #{keyspace_name}.ownership_vouchers (
+      private_key blob,
+      voucher_data blob,
+      guid blob,
+      PRIMARY KEY (guid)
+    );
+    """
+
+    with {:ok, %{rows: nil, num_rows: 1}} <- CSystem.execute_schema_change(query) do
+      :ok
+    end
+  end
+
+  defp create_to2_sessions_table(keyspace_name) do
+    query = """
+    CREATE TABLE #{keyspace_name}.to2_sessions (
+      guid blob,
+      device_id uuid,
+      hmac blob,
+      nonce blob,
+      sig_type int,
+      epid_group blob,
+      device_public_key blob,
+      prove_dv_nonce blob,
+      setup_dv_nonce blob,
+      kex_suite_name ascii,
+      cipher_suite_name int,
+      max_owner_service_info_size int,
+      owner_random blob,
+      secret blob,
+      sevk blob,
+      svk blob,
+      sek blob,
+      device_service_info map<tuple<text, text>, blob>,
+      owner_service_info list<blob>,
+      last_chunk_sent int,
+      replacement_guid blob,
+      replacement_rv_info blob,
+      replacement_pub_key blob,
+      replacement_hmac blob,
+      PRIMARY KEY (guid)
+    )
+    WITH default_time_to_live = 7200;
     """
 
     with {:ok, %{rows: nil, num_rows: 1}} <- CSystem.execute_schema_change(query) do

@@ -16,6 +16,10 @@ extend-ignore-re = [
 
 [default.extend-words]
 clea = "clea"
+# cbor object signing ecoding
+cose = "cose"
+# erlang module
+certifi = "certifi"
 
 # byte 0xba used in documentation
 ba = "ba"

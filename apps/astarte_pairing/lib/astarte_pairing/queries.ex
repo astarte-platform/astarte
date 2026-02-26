@@ -25,6 +25,8 @@ defmodule Astarte.Pairing.Queries do
 
   alias Astarte.DataAccess.Consistency
   alias Astarte.DataAccess.Devices.Device
+  alias Astarte.DataAccess.FDO.OwnershipVoucher
+  alias Astarte.DataAccess.FDO.TO2Session
   alias Astarte.DataAccess.KvStore
   alias Astarte.DataAccess.Realms.Realm
   alias Astarte.DataAccess.Repo
@@ -187,6 +189,19 @@ defmodule Astarte.Pairing.Queries do
     |> Repo.update(prefix: keyspace_name, consistency: consistency)
   end
 
+  def remove_device_ttl(realm_name, device_id) do
+    keyspace_name = Realm.keyspace_name(realm_name)
+    consistency = Consistency.device_info(:write)
+
+    with {:ok, device} <- fetch_device(realm_name, device_id) do
+      device
+      |> Repo.insert(
+        prefix: keyspace_name,
+        consistency: consistency
+      )
+    end
+  end
+
   def fetch_device_registration_limit(realm_name) do
     keyspace = Realm.astarte_keyspace_name()
 
@@ -223,6 +238,156 @@ defmodule Astarte.Pairing.Queries do
     {:ok, count}
   end
 
+  def get_ownership_voucher(realm_name, guid) do
+    keyspace_name = Realm.keyspace_name(realm_name)
+
+    query =
+      from o in OwnershipVoucher,
+        prefix: ^keyspace_name,
+        select: o.voucher_data
+
+    consistency = Consistency.domain_model(:read)
+
+    Repo.fetch(query, guid, consistency: consistency)
+  end
+
+  def get_owner_private_key(realm_name, guid) do
+    keyspace_name = Realm.keyspace_name(realm_name)
+
+    query =
+      from o in OwnershipVoucher,
+        prefix: ^keyspace_name,
+        select: o.private_key
+
+    consistency = Consistency.domain_model(:read)
+
+    Repo.fetch(query, guid, consistency: consistency)
+  end
+
+  def create_ownership_voucher(
+        realm_name,
+        guid,
+        cbor_ownership_voucher,
+        owner_private_key,
+        ttl
+      ) do
+    keyspace_name = Realm.keyspace_name(realm_name)
+
+    opts = [prefix: keyspace_name, consistency: Consistency.device_info(:write), ttl: ttl]
+
+    %OwnershipVoucher{
+      voucher_data: cbor_ownership_voucher,
+      private_key: owner_private_key,
+      guid: guid
+    }
+    |> Repo.insert(opts)
+  end
+
+  def delete_ownership_voucher(realm_name, guid) do
+    keyspace = Realm.keyspace_name(realm_name)
+
+    %OwnershipVoucher{
+      guid: guid
+    }
+    |> Repo.delete(prefix: keyspace)
+  end
+
+  def replace_ownership_voucher(
+        realm_name,
+        guid,
+        new_voucher,
+        owner_private_key,
+        ttl
+      ) do
+    with {:ok, _} <- delete_ownership_voucher(realm_name, guid) do
+      create_ownership_voucher(realm_name, guid, new_voucher, owner_private_key, ttl)
+    end
+  end
+
+  def store_session(realm_name, guid, session) do
+    keyspace = Realm.keyspace_name(realm_name)
+    consistency = Consistency.device_info(:write)
+    opts = [prefix: keyspace, consistency: consistency]
+
+    session = %{session | guid: guid}
+
+    with {:ok, _} <- Repo.insert(session, opts) do
+      :ok
+    end
+  end
+
+  def add_session_max_owner_service_info_size(realm_name, guid, size) do
+    updates = [max_owner_service_info_size: size]
+    update_session(realm_name, guid, updates)
+  end
+
+  def add_session_secret(realm_name, guid, secret) do
+    updates = [secret: secret]
+    update_session(realm_name, guid, updates)
+  end
+
+  def add_session_keys(realm_name, guid, sevk, svk, sek) do
+    updates = [sevk: sevk, svk: svk, sek: sek]
+    update_session(realm_name, guid, updates)
+  end
+
+  def session_add_setup_dv_nonce(realm_name, guid, setup_dv_nonce) do
+    updates = [setup_dv_nonce: setup_dv_nonce]
+    update_session(realm_name, guid, updates)
+  end
+
+  def session_update_device_id(realm_name, guid, device_id) do
+    updates = [device_id: device_id]
+    update_session(realm_name, guid, updates)
+  end
+
+  def session_add_device_service_info(realm_name, guid, service_info) do
+    updates = [device_service_info: service_info]
+    update_session(realm_name, guid, updates)
+  end
+
+  def session_add_owner_service_info(realm_name, guid, owner_service_info) do
+    updates = [owner_service_info: owner_service_info]
+    update_session(realm_name, guid, updates)
+  end
+
+  def session_update_last_chunk_sent(realm_name, guid, last_chunk) do
+    updates = [last_chunk_sent: last_chunk]
+    update_session(realm_name, guid, updates)
+  end
+
+  def session_add_replacement_info(realm_name, guid, replacement_guid, rv_info, pub_key, hmac) do
+    updates = [
+      replacement_guid: replacement_guid,
+      replacement_rv_info: rv_info,
+      replacement_pub_key: pub_key,
+      replacement_hmac: hmac
+    ]
+
+    update_session(realm_name, guid, updates)
+  end
+
+  defp update_session(realm_name, guid, updates) do
+    keyspace = Realm.keyspace_name(realm_name)
+    consistency = Consistency.device_info(:write)
+    opts = [prefix: keyspace, consistency: consistency]
+
+    %TO2Session{guid: guid}
+    |> Ecto.Changeset.change(updates)
+    |> Repo.update(opts)
+    |> case do
+      {:ok, _} -> :ok
+      _ -> {:error, :session_not_found}
+    end
+  end
+
+  def fetch_session(realm_name, guid) do
+    keyspace = Realm.keyspace_name(realm_name)
+    consistency = Consistency.device_info(:read)
+    opts = [prefix: keyspace, consistency: consistency]
+    Repo.fetch(TO2Session, guid, opts)
+  end
+
   defp do_register_device(
          realm_name,
          device_id,
@@ -239,6 +404,13 @@ defmodule Astarte.Pairing.Queries do
 
     consistency = Consistency.device_info(:write)
 
+    repo_opts =
+      if Keyword.get(opts, :unconfirmed, false) do
+        [prefix: keyspace_name, consistency: consistency, ttl: 7200]
+      else
+        [prefix: keyspace_name, consistency: consistency]
+      end
+
     %Device{}
     |> Ecto.Changeset.change(%{
       device_id: device_id,
@@ -251,7 +423,7 @@ defmodule Astarte.Pairing.Queries do
       introspection: introspection,
       introspection_minor: introspection_minor
     })
-    |> Repo.insert(prefix: keyspace_name, consistency: consistency)
+    |> Repo.insert(repo_opts)
   end
 
   defp do_register_unconfirmed_device(
@@ -269,6 +441,13 @@ defmodule Astarte.Pairing.Queries do
 
     consistency = Consistency.device_info(:write)
 
+    repo_opts =
+      if Keyword.get(opts, :unconfirmed, false) do
+        [prefix: keyspace_name, consistency: consistency, ttl: 7200]
+      else
+        [prefix: keyspace_name, consistency: consistency]
+      end
+
     device
     |> Ecto.Changeset.change(%{
       credentials_secret: credentials_secret,
@@ -277,7 +456,7 @@ defmodule Astarte.Pairing.Queries do
       introspection: introspection,
       introspection_minor: introspection_minor
     })
-    |> Repo.update(prefix: keyspace_name, consistency: consistency)
+    |> Repo.insert(repo_opts)
   end
 
   defp build_initial_introspection_maps(initial_introspection) do

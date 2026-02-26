@@ -314,7 +314,7 @@ Currently, based on the interface type and aggregation, different update capabil
     an arbitrary number of new mappings can be added;
 
 - `object aggregated datastream`:
-  - currently, due to a limitation in how data are stored within Cassandra, the `doc`, `descriprion`
+  - currently, due to a limitation in how data are stored within Cassandra, the `doc`, `description`
     and `explicit-timestamp` fields _can not_ be updated;
   - at mapping level, an arbitrary number of mappings can be added.
 
