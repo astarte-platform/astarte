@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2025 SECO Mind Srl
+# Copyright 2025 - 2026 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -203,17 +203,25 @@ defmodule Astarte.Core.Generators.Interface do
 
   defp mappings(aggregation, interface_type, interface_name, interface_major) do
     common =
-      gen all retention <- MappingGenerator.retention(interface_type),
-              reliability <- MappingGenerator.reliability(interface_type),
-              expiry <- MappingGenerator.expiry(interface_type),
-              allow_unset <- MappingGenerator.allow_unset(interface_type),
-              explicit_timestamp <- MappingGenerator.explicit_timestamp(interface_type) do
+      gen all(
+            retention <- MappingGenerator.retention(interface_type),
+            reliability <- MappingGenerator.reliability(interface_type),
+            expiry <- MappingGenerator.expiry(interface_type),
+            allow_unset <- MappingGenerator.allow_unset(interface_type),
+            explicit_timestamp <- MappingGenerator.explicit_timestamp(interface_type),
+            database_retention_policy <-
+              MappingGenerator.database_retention_policy(interface_type),
+            database_retention_ttl <-
+              MappingGenerator.database_retention_ttl(interface_type, database_retention_policy)
+          ) do
         [
           retention: retention,
           reliability: reliability,
           expiry: expiry,
           allow_unset: allow_unset,
-          explicit_timestamp: explicit_timestamp
+          explicit_timestamp: explicit_timestamp,
+          database_retention_policy: database_retention_policy,
+          database_retention_ttl: database_retention_ttl
         ]
       end
 

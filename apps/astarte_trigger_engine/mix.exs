@@ -52,7 +52,7 @@ defmodule Astarte.TriggerEngine.Mixfile do
   defp astarte_required_modules(_) do
     [
       {:astarte_core,
-       github: "astarte-platform/astarte_core", tag: "v1.3.0-rc.1", override: true},
+       github: "astarte-platform/astarte_core", branch: "release-1.3", override: true},
       {:astarte_generators, github: "astarte-platform/astarte_generators", only: [:dev, :test]}
     ]
   end

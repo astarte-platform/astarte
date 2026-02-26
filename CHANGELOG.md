@@ -97,7 +97,14 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ### Fixed
 
+- [astarte_realm_management] Insufficient validation for conflicting options in interface aggregate mappings
+  [#1072](https://github.com/astarte-platform/astarte/issues/1072)
+
+## [1.2.1-rc.1] - 2026-02-13
+
 - [astarte_realm_management] Bug where devices got stuck in the "in deletion" status: [#1493](https://github.com/astarte-platform/astarte/issues/1493).
+- [astarte_data_updater_plant] Correctly reconnect to AMQP after a connection loss
+- [astarte_data_updater_plant] Fix possible crash when sending data on interface-specific volatile triggers
 
 ## [1.2.1-rc.0] - 2025-08-26
 

@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2025 SECO Mind Srl
+# Copyright 2025 - 2026 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -169,6 +169,25 @@ defmodule Astarte.Core.Generators.InterfaceTest do
       check all changes <- gen_interface_changes,
                 changeset = Interface.changeset(%Interface{}, changes) do
         assert changeset.valid?, "Invalid interface: #{inspect(changeset.errors)}"
+      end
+    end
+
+    @tag issue: 1072
+    property "validate database retention opts in interface aggregate mappings are consistent" do
+      check all interface <- InterfaceGenerator.interface(), max_runs: 100 do
+        %Mapping{
+          database_retention_policy: reference_database_retention_policy,
+          database_retention_ttl: reference_database_retention_ttl
+        } = Enum.at(interface.mappings, 0)
+
+        assert Enum.all?(interface.mappings, fn
+                 %Mapping{
+                   database_retention_policy: mapping_database_retention_policy,
+                   database_retention_ttl: mapping_database_retention_ttl
+                 } ->
+                   mapping_database_retention_policy == reference_database_retention_policy and
+                     mapping_database_retention_ttl == reference_database_retention_ttl
+               end)
       end
     end
   end
