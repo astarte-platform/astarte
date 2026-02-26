@@ -185,7 +185,7 @@ defmodule Astarte.PairingWeb.FDOOnboardingControllerTest do
       expect(DeviceServiceInfoReady, :decode, fn _ -> {:ok, decoded} end)
 
       expect(OwnerOnboarding, :build_owner_service_info_ready, fn _, _, _ ->
-        {:ok, expected_response}
+        {:ok, session, expected_response}
       end)
 
       request_body = Session.encrypt_and_sign(session, CBOR.encode(decoded))

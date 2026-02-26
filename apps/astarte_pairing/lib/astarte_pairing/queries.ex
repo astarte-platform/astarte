@@ -266,7 +266,7 @@ defmodule Astarte.Pairing.Queries do
 
   def create_ownership_voucher(
         realm_name,
-        device_id,
+        guid,
         cbor_ownership_voucher,
         owner_private_key,
         ttl
@@ -278,9 +278,30 @@ defmodule Astarte.Pairing.Queries do
     %OwnershipVoucher{
       voucher_data: cbor_ownership_voucher,
       private_key: owner_private_key,
-      guid: device_id
+      guid: guid
     }
     |> Repo.insert(opts)
+  end
+
+  def delete_ownership_voucher(realm_name, guid) do
+    keyspace = Realm.keyspace_name(realm_name)
+
+    %OwnershipVoucher{
+      guid: guid
+    }
+    |> Repo.delete(prefix: keyspace)
+  end
+
+  def replace_ownership_voucher(
+        realm_name,
+        guid,
+        new_voucher,
+        owner_private_key,
+        ttl
+      ) do
+    with {:ok, _} <- delete_ownership_voucher(realm_name, guid) do
+      create_ownership_voucher(realm_name, guid, new_voucher, owner_private_key, ttl)
+    end
   end
 
   def store_session(realm_name, guid, session) do
@@ -332,6 +353,17 @@ defmodule Astarte.Pairing.Queries do
 
   def session_update_last_chunk_sent(realm_name, guid, last_chunk) do
     updates = [last_chunk_sent: last_chunk]
+    update_session(realm_name, guid, updates)
+  end
+
+  def session_add_replacement_info(realm_name, guid, replacement_guid, rv_info, pub_key, hmac) do
+    updates = [
+      replacement_guid: replacement_guid,
+      replacement_rv_info: rv_info,
+      replacement_pub_key: pub_key,
+      replacement_hmac: hmac
+    ]
+
     update_session(realm_name, guid, updates)
   end
 

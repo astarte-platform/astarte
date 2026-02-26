@@ -115,13 +115,19 @@ defmodule Astarte.Pairing.FDO.OwnershipVoucher do
     Enum.find(extracted, {:ok, extracted}, &(&1 == :error))
   end
 
-  def generate_replacement_voucher(_ownership_voucher, nil) do
-    # If ReplacementHMac is null, we don't create a new voucher (Credential Reuse)
-    {:ok, nil}
-  end
+  def generate_replacement_voucher(ownership_voucher, session) do
+    new_header =
+      ownership_voucher.header
+      |> Map.put(:guid, session.replacement_guid)
+      |> Map.put(:rendezvous_info, session.replacement_rv_info)
+      |> Map.put(:public_key, session.replacement_pub_key)
 
-  def generate_replacement_voucher(ownership_voucher, new_dev_id_hmac) do
-    new_voucher = ownership_voucher |> Map.put(:hmac, new_dev_id_hmac) |> Map.put(:entries, [])
+    new_voucher =
+      ownership_voucher
+      |> Map.put(:hmac, session.replacement_hmac)
+      |> Map.put(:header, new_header)
+      |> Map.put(:entries, [])
+
     {:ok, new_voucher}
   end
 
@@ -141,5 +147,19 @@ defmodule Astarte.Pairing.FDO.OwnershipVoucher do
 
   def cbor_encode(voucher) do
     encode(voucher) |> CBOR.encode()
+  end
+
+  def credential_reuse_config_enabled?() do
+    true
+  end
+
+  def credential_reuse?(session) do
+    # TODO credential reuse requires also Owner2Key and/or rv info to be changed for credential reuse
+    # so far, there is no API to do so, so it-s limited to the guid
+
+    case session.replacement_hmac == session.hmac && session.guid == session.replacement_guid do
+      false -> false
+      true -> credential_reuse_config_enabled?()
+    end
   end
 end
