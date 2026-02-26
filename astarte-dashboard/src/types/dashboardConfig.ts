@@ -41,6 +41,9 @@ type DashboardConfig = {
   pairingApiUrl?: string;
   flowApiUrl?: string;
   enableFlowPreview: boolean;
+  ui: {
+    hideSidebar: boolean;
+  };
 } & DashboardAuthConfig;
 
 export type { DashboardConfig };

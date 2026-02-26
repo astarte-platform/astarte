@@ -45,6 +45,9 @@ type ConfigContextValue = {
   features: {
     flow: boolean;
   };
+  ui: {
+    hideSidebar: boolean;
+  };
 };
 
 const ConfigContext = createContext<ConfigContextValue | null>(null);
@@ -76,6 +79,9 @@ const ConfigProvider = ({
       },
       features: {
         flow: !!config.enableFlowPreview,
+      },
+      ui: {
+        hideSidebar: !!config.ui?.hideSidebar,
       },
     };
 

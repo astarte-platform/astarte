@@ -35,8 +35,9 @@ const DashboardSidebar = () => {
   const config = useConfig();
   const astarte = useAstarte();
   const { triggerDeliveryPoliciesSupported } = useAstarte();
+  const isSidebarHidden = config.ui.hideSidebar;
 
-  if (!astarte.isAuthenticated) {
+  if (!astarte.isAuthenticated || isSidebarHidden) {
     return null;
   }
 

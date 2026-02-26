@@ -6,5 +6,8 @@
         {
             "type": "token"
         }
-    ]
+    ],
+    "ui": {
+        "hideSidebar": true
+    }
 }

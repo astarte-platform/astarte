@@ -35,6 +35,7 @@ fetch('/user-config/config.json')
     auth: json.auth,
     defaultAuth: json.default_auth,
     defaultRealm: json.default_realm,
+    ui: json.ui,
   }))
   .catch(() => null)
   .then((config: DashboardConfig | null) => {
