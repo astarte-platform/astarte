@@ -82,7 +82,7 @@ jobs:
       matrix:
         database:
           - "cassandra:3.11.15"
-          - "scylladb/scylla:2025.2.2"
+          - "scylladb/scylla:2025.4.2"
         rabbitmq:
           - "rabbitmq:3.12.0-management"
 
@@ -115,7 +115,7 @@ jobs:
 
       - name: Upload Coverage Results to CodeCov
         if: ${{
-          matrix.database == 'scylladb/scylla:2025.2.2' &&
+          matrix.database == 'scylladb/scylla:2025.4.2' &&
           github.repository == 'astarte-platform/astarte'
           }}
         uses: codecov/codecov-action@v5
