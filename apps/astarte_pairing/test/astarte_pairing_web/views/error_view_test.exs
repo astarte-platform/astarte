@@ -17,7 +17,7 @@
 #
 
 defmodule Astarte.PairingWeb.ErrorViewTest do
-  use Astarte.PairingWeb.ConnCase, async: true
+  use Astarte.Cases.Conn, async: true
 
   # Bring render/3 and render_to_string/3 for testing custom views
   import Phoenix.View

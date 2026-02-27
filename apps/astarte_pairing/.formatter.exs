@@ -3,6 +3,7 @@
   import_deps: [
     :ecto,
     :phoenix,
-    :skogsra
+    :skogsra,
+    :astarte_generators
   ]
 ]

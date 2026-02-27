@@ -61,8 +61,7 @@ defmodule Astarte.Pairing.Mixfile do
   defp astarte_required_modules(_) do
     [
       {:astarte_core,
-       github: "astarte-platform/astarte_core", branch: "release-1.3", override: true},
-      {:astarte_generators, github: "astarte-platform/astarte_generators", only: [:dev, :test]},
+       github: "astarte-platform/astarte_core", tag: "v1.3.0-rc.1", override: true},
       {:astarte_realm_management,
        path: "../astarte_realm_management", only: :test, runtime: false}
     ]
@@ -95,6 +94,7 @@ defmodule Astarte.Pairing.Mixfile do
       {:observer_cli, "~> 1.5"},
       {:cfxxl, github: "ispirata/cfxxl"},
       {:astarte_data_access, path: astarte_lib("astarte_data_access")},
+      {:astarte_generators, path: astarte_lib("astarte_generators"), only: [:dev, :test]},
       {:bcrypt_elixir, "~> 2.2"},
       {:xandra, "~> 0.19"},
       {:ecto, "~> 3.12"},
