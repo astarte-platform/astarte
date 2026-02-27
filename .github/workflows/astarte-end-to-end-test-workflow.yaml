@@ -34,20 +34,20 @@ jobs:
   end-to-end-test:
     needs: [e2e-build, astarte-build]
     name: End-to-end Test
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
       - name: Initialize docker compose files
         run: docker run -v $(pwd)/compose:/compose astarte/docker-compose-initializer
       - name: Restore astarte images
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@70fc10c6e5e1ce46ad2ea6f2b72d43f7d47b13c3 # v8
         with:
           # Download all app images; merge them into the same directory for loading
           pattern: astarte-images-*
           merge-multiple: true
           path: ${{ runner.temp }}
       - name: Restore astarte e2e image
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@70fc10c6e5e1ce46ad2ea6f2b72d43f7d47b13c3 # v8
         with:
           name: astarte-e2e-image
           path: ${{ runner.temp }}

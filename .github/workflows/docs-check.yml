@@ -17,7 +17,7 @@ on:
 jobs:
   warmup:
     name: Cache warmup
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v6
       - uses: team-alembic/staple-actions/actions/mix-compile@a74b3b61209d35d45526df174766632f8aee03ed
@@ -28,7 +28,7 @@ jobs:
 
   formatter:
     name: Formatting
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     needs:
       - warmup
     steps:
@@ -42,7 +42,7 @@ jobs:
     name: Generation
     needs:
       - warmup
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v6
       - uses: team-alembic/staple-actions/actions/mix-compile@a74b3b61209d35d45526df174766632f8aee03ed
@@ -57,7 +57,7 @@ jobs:
           MIX_HOME: ${{ runner.temp }}/.mix
         working-directory: doc/
       - name: Upload documentation artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7
         with:
           name: Documentation
           path: doc/doc/
