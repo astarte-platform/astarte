@@ -211,7 +211,7 @@ services:
 
   # RabbitMQ
   rabbitmq:
-    image: rabbitmq:3.12.0-management
+    image: rabbitmq:4.2.4-management
     hostname: rabbitmq
     restart: on-failure
     ports:
