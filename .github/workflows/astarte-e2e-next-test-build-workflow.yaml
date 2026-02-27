@@ -1,0 +1,30 @@
+name: Astarte end-to-end test build
+
+on:
+  workflow_call:
+
+jobs:
+  end-to-end-build:
+    name: End-to-end build
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v6
+      - uses: docker/setup-buildx-action@v3
+      - name: Build branch slug env variable (job-scoped)
+        run: |
+          # Slugify branch/tag name for Docker tag safety and consistency
+          echo "BRANCH_SLUG=$(echo "${GITHUB_REF_NAME}" | sha1sum | cut -f 1 -d ' ')" >> $GITHUB_ENV
+      - name: Build Astarte E2E
+        uses: docker/build-push-action@v6
+        with:
+          context: tools/astarte-e2e-next
+          target: tester
+          tags: astarte-e2e-next-test
+          outputs: type=docker,dest=${{ runner.temp }}/astarte-e2e-next-test.tar
+          cache-from: type=gha,scope=astarte-e2e-next-test-${{ env.BRANCH_SLUG }}
+          cache-to: type=gha,mode=max,scope=astarte-e2e-next-test-${{ env.BRANCH_SLUG }}
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: astarte-e2e-next-test-image
+          path: ${{ runner.temp }}/astarte-e2e-next-test.tar

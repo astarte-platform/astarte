@@ -58,6 +58,8 @@ defmodule Astarte.AppEngine.API.Application do
       Astarte.AppEngine.APIWeb.Endpoint
     ]
 
+    a = Con
+
     # See https://hexdocs.pm/elixir/Supervisor.html
     # for other strategies and supported options
     opts = [strategy: :one_for_one, name: Astarte.AppEngine.API.Supervisor]
