@@ -57,7 +57,7 @@ defmodule Astarte.RPC.MixProject do
       {:astarte_generators, github: "astarte-platform/astarte_generators", only: [:dev, :test]},
       {:dialyxir, "~> 1.0", only: [:dev, :test], runtime: false},
       {:libcluster, "~> 3.3"},
-      {:mimic, "~> 1.11", only: [:test, :dev]},
+      {:mimic, "~> 2.0", only: [:test, :dev]},
       {:phoenix_pubsub, "~> 2.0"},
       {:skogsra, "~> 2.0"},
       {:typedstruct, "~> 0.5"},
