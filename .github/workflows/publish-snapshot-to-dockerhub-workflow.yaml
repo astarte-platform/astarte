@@ -90,7 +90,7 @@ jobs:
           - astarte_trigger_engine
     steps:
       - name: Check out the repo
-        uses: actions/checkout@v4
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
 
       - name: Log in to Docker Hub
         uses: docker/login-action@v3.4.0
@@ -126,7 +126,7 @@ jobs:
           touch "${{ runner.temp }}/digests/${digest#sha256:}"
 
       - name: Upload digest
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7
         with:
           name: ${{ matrix.app }}-digests-${{ matrix.platform.platform-pair }}
           path: ${{ runner.temp }}/digests/*
@@ -135,7 +135,7 @@ jobs:
 
   merge_snapshots:
     name: Publish snapshot
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     needs:
       - build_snapshot
     strategy:
@@ -150,7 +150,7 @@ jobs:
           - astarte_trigger_engine
     steps:
       - name: Download digests
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@70fc10c6e5e1ce46ad2ea6f2b72d43f7d47b13c3 # v8
         with:
           path: ${{ runner.temp }}/digests/
           pattern: ${{ matrix.app }}-digests-*

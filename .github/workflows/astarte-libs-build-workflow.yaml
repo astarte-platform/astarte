@@ -18,7 +18,7 @@ on:
 jobs:
   warmup:
     name: Cache warmup
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v6
       - uses: team-alembic/staple-actions/actions/mix-compile@a74b3b61209d35d45526df174766632f8aee03ed
@@ -29,7 +29,7 @@ jobs:
 
   formatter:
     name: Formatting
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     needs:
       - warmup
     steps:
@@ -41,7 +41,7 @@ jobs:
 
   credo:
     name: Credo
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     needs:
       - warmup
     steps:
@@ -53,7 +53,7 @@ jobs:
 
   dialyzer:
     name: Dialyzer
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     needs:
       - warmup
     steps:
@@ -76,7 +76,7 @@ jobs:
     name: Test
     needs:
       - warmup
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     strategy:
       fail-fast: false
       matrix:
