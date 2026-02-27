@@ -11,8 +11,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 - Add the `CASSANDRA_ENABLE_KEEPALIVE` env to enable or disable the keepalive option for the xandra
   connection. This is enabled by default
-- Add `PAIRING_FDO_ENABLE_CREDENTIAL_REUSE` enc to enable or disable credential reusing protocol in FDO
-
+  
 ## [1.2.0] 2025-03-17
 
 ### Changed

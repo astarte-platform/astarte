@@ -96,7 +96,6 @@ defmodule Astarte.Pairing.Mixfile do
       {:telemetry_metrics_prometheus_core, "~> 1.2"},
       {:observer_cli, "~> 1.5"},
       {:cfxxl, github: "ispirata/cfxxl"},
-      {:httpoison, "~> 1.6"},
       {:astarte_data_access, path: astarte_lib("astarte_data_access")},
       {:bcrypt_elixir, "~> 2.2"},
       {:xandra, "~> 0.19"},

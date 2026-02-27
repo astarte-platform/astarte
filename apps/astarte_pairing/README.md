@@ -50,26 +50,25 @@ CASSANDRA_NODES=localhost CFSSL_API_URL=http://localhost:8080 mix test
 
 # Test FDO
 
+> The feature is experimental and PAIRING_ENABLE_FDO must be set to true
+
 To test FDO, the manufacturer and Device CA keys are required and
 can be generated from the following tools:
 
-# Generate manufacturer keys
+## Generate manufacturer keys
 docker run --rm \
   -v $(pwd)/compose/fdo-keys:/keys \
   quay.io/fido-fdo/admin-cli:latest \
   generate-key-and-cert manufacturer \
   --destination-dir /keys
 
-# Generate device CA keys
+## Generate device CA keys
 docker run --rm \
   -v $(pwd)/compose/fdo-keys:/keys \
   quay.io/fido-fdo/admin-cli:latest \
   generate-key-and-cert device-ca \
   --destination-dir /keys
 
-# Set permissions
+## Set permissions
 chmod 644 compose/fdo-keys/*.pem
 chmod 600 compose/fdo-keys/*.der
-
-An ownership voucher and owner private key are also required.
-For testing purposes, a mock key and voucher have been stored in the priv folder of the Pairing Service.

@@ -9,6 +9,13 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ### Changed
 
+- [astarte_pairing] FDO authentication (EXPERIMENTAL feature, disabled by default). New environment variables are needed in order to use FDO:
+  - `PAIRING_ENABLE_FDO` - whether the FDO feature is enabled or not (default: false)
+  - `PAIRING_FDO_RENDEZVOUS_URL` - URL of the rendezvous server (default: "http://rendezvous:8041")
+  - `ASTARTE_BASE_URL_DOMAIN` - domain part of the base URL of astarte, used by devices to connect in TO2 phase (required if FDO enabled)
+  - `ASTARTE_BASE_URL_PORT` - port of the base URL of astarte (required if FDO enabled)
+  - `ASTARTE_BASE_URL_PROTOCOL` - protocol of the base URL of astarte (required if FDO enabled)
+
 - [astarte_housekeeping] AMQP management configuration moved to `astarte_events` library. Environment variables changed:
   - `HOUSEKEEPING_AMQP_SSL_ENABLED` is now `ASTARTE_EVENTS_AMQP_MANAGEMENT_SSL_ENABLED`
   - `HOUSEKEEPING_AMQP_SSL_CA_FILE` is now `ASTARTE_EVENTS_AMQP_MANAGEMENT_SSL_CA_FILE`
@@ -21,15 +28,6 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [1.3.0-rc.1] - 2026-01-26
 
-## [1.3.0] - Unreleased
-- [astarte_pairing] FDO authentication (EXPERIMENTAL feature, disabled by default). New environment variables are needed in order to use FDO:
-  - `PAIRING_ENABLE_FDO` - whether the FDO feature is enabled or not (default: false)
-  - `PAIRING_FDO_RENDEZVOUS_URL` - URL of the rendezvous server (default: "http://rendezvous:8041")
-  - `ASTARTE_BASE_URL_DOMAIN` - domain part of the base URL of astarte, used by devices to connect in TO2 phase (required if FDO enabled)
-  - `ASTARTE_BASE_URL_PORT` - port of the base URL of astarte (required if FDO enabled)
-  - `ASTARTE_BASE_URL_PROTOCOL` - protocol of the base URL of astarte (required if FDO enabled)
-
-## [1.3.0-rc.0] - 2025-11-21
 ### Added
 
 - New environment variables for trigger notifications between realm management replicas and realm management -> pairing. These variables are currently being used only by realm management

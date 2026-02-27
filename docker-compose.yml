@@ -175,7 +175,7 @@ services:
     restart: on-failure
     command:
       # Uncomment this if you want to enable Traefik's web UI
-      - "--api.insecure=true"
+      # - "--api.insecure=true"
       # Tells Traefik to listen to docker
       - "--providers.docker"
       # Don't expose everything
@@ -191,7 +191,7 @@ services:
       # The HTTP port
       - "80:80"
       # Uncomment this if you want to display Traefik's web UI (enabled by --api.insecure=true)
-      - "8080:8080"
+      # - "8080:8080"
       # VerneMQ's SSL Listener
       - "8883:8883"
     volumes:

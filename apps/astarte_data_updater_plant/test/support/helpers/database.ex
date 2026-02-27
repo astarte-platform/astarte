@@ -75,15 +75,6 @@ defmodule Astarte.Helpers.Database do
   );
   """
 
-  @create_ownership_vouchers_table """
-  CREATE TABLE :keyspace.ownership_vouchers (
-      private_key blob,
-      voucher_data blob,
-      device_id uuid,
-     PRIMARY KEY (device_id, voucher_data)
-   );
-  """
-
   @create_devices_table """
   CREATE TABLE :keyspace.devices (
     device_id uuid,
@@ -327,19 +318,6 @@ defmodule Astarte.Helpers.Database do
     execute!(realm_keyspace, @create_individual_datastreams_table, [], timeout: 60_000)
     execute!(realm_keyspace, @create_interfaces_table, [], timeout: 60_000)
     execute!(realm_keyspace, @create_deletion_in_progress_table, [], timeout: 60_000)
-    execute!(realm_keyspace, @create_keyspace)
-    execute!(realm_keyspace, @create_capabilities_type)
-    execute!(realm_keyspace, @create_ownership_vouchers_table)
-    execute!(realm_keyspace, @create_devices_table)
-    execute!(realm_keyspace, @create_groups_table)
-    execute!(realm_keyspace, @create_names_table)
-    execute!(realm_keyspace, @create_kv_store)
-    execute!(realm_keyspace, @create_endpoints_table)
-    execute!(realm_keyspace, @create_simple_triggers_table)
-    execute!(realm_keyspace, @create_individual_properties_table)
-    execute!(realm_keyspace, @create_individual_datastreams_table)
-    execute!(realm_keyspace, @create_interfaces_table)
-    execute!(realm_keyspace, @create_deletion_in_progress_table)
 
     Enum.each(@insert_endpoints, fn query ->
       execute!(realm_keyspace, query, [], timeout: 60_000)
