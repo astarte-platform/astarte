@@ -72,14 +72,14 @@ defmodule Astarte.AppEngine.API.Mixfile do
   # Type `mix help deps` for examples and options.
   defp deps do
     [
-      {:amqp, "~> 3.0"},
+      {:amqp, "~> 4.0"},
       {:phoenix, "~> 1.7"},
       {:phoenix_ecto, "~> 4.0"},
       {:phoenix_view, "~> 2.0"},
-      {:gettext, "~> 0.24"},
+      {:gettext, "~> 1.0"},
       {:plug_cowboy, "~> 2.1"},
       {:jason, "~> 1.2"},
-      {:cors_plug, "~> 2.0"},
+      {:cors_plug, "~> 3.0"},
       {:ex_lttb, "~> 0.3"},
       {:cyanide, "~> 2.0"},
       {:guardian, "~> 2.3.2"},
@@ -108,8 +108,8 @@ defmodule Astarte.AppEngine.API.Mixfile do
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
       # Test section
       {:excoveralls, "~> 0.15", only: :test},
-      {:mox, "~> 0.5", only: :test},
-      {:mimic, "~> 1.11", only: :test}
+      {:mox, "~> 1.0", only: :test},
+      {:mimic, "~> 2.0", only: :test}
     ]
   end
 
