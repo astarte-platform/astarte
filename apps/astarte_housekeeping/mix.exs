@@ -77,7 +77,7 @@ defmodule Astarte.Housekeeping.Mixfile do
       {:gettext, "~> 0.24"},
       {:cors_plug, "~> 2.0"},
       {:plug_cowboy, "~> 2.1"},
-      {:guardian, "~> 2.3.2"},
+      {:guardian, "~> 2.4.0"},
       {:excoveralls, "~> 0.15", only: :test},
       {:pretty_log, "~> 0.1"},
       {:skogsra, "~> 2.5"},

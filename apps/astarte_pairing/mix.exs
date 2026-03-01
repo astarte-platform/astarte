@@ -79,7 +79,7 @@ defmodule Astarte.Pairing.Mixfile do
       {:phoenix_ecto, "~> 4.0"},
       {:phoenix_view, "~> 2.0"},
       {:jason, "~> 1.2"},
-      {:guardian, "~> 2.3.2"},
+      {:guardian, "~> 2.4.0"},
       {:remote_ip, "~> 1.0"},
       {:excoveralls, "~> 0.15", only: :test},
       {:mox, "~> 0.5", only: :test},

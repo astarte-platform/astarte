@@ -82,7 +82,7 @@ defmodule Astarte.AppEngine.API.Mixfile do
       {:cors_plug, "~> 2.0"},
       {:ex_lttb, "~> 0.3"},
       {:cyanide, "~> 2.0"},
-      {:guardian, "~> 2.3.2"},
+      {:guardian, "~> 2.4.0"},
       {:uuid, "~> 2.0", hex: :uuid_erl},
       # Required by :phoenix_swagger, otherwise it fails finding ex_json_schema.app
       {:ex_json_schema, "~> 0.7"},
