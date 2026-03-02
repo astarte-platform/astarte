@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2025 SECO Mind Srl
+# Copyright 2025 - 2026 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -20,20 +20,21 @@
 
 defmodule Astarte.AppEngine.APIWeb.InterfaceControllerTest do
   @moduledoc false
-  alias Astarte.AppEngine.API.Device
-  alias Astarte.AppEngine.API.Device.InterfaceValues
-  alias Astarte.DataAccess.KvStore
-  alias Astarte.DataAccess.Realms.Realm
-  alias Astarte.Helpers.JWT
-
+  use ExUnitProperties
   use Astarte.Cases.Data, async: true
+  use Mimic
   use Astarte.Cases.Device
   use Astarte.Cases.Conn
-  use ExUnitProperties
-  use Mimic
 
-  import Astarte.InterfaceUpdateGenerators
   import Astarte.Helpers.Device
+  import Astarte.Helpers.JWT
+
+  alias Astarte.DataAccess.KvStore
+  alias Astarte.DataAccess.Realms.Realm
+
+  alias Astarte.AppEngine.API.Device
+  alias Astarte.AppEngine.API.Device.InterfaceValues
+  alias Astarte.Generators.InterfaceUpdate, as: InterfaceUpdateGenerator
 
   setup_all %{realm_name: realm} do
     keyspace = Realm.keyspace_name(realm)
@@ -41,7 +42,7 @@ defmodule Astarte.AppEngine.APIWeb.InterfaceControllerTest do
     %{
       group: "auth",
       key: "jwt_public_key_pem",
-      value: JWT.public_key_pem()
+      value: public_key_pem()
     }
     |> KvStore.insert(prefix: keyspace)
 
@@ -52,7 +53,7 @@ defmodule Astarte.AppEngine.APIWeb.InterfaceControllerTest do
     authorized_conn =
       conn
       |> put_req_header("accept", "application/json")
-      |> put_req_header("authorization", "bearer #{JWT.gen_jwt_all_access_token()}")
+      |> put_req_header("authorization", "bearer #{gen_jwt_all_access_token()}")
 
     {:ok, auth_conn: authorized_conn}
   end
@@ -63,7 +64,8 @@ defmodule Astarte.AppEngine.APIWeb.InterfaceControllerTest do
       valid_interfaces_for_update = interfaces |> Enum.filter(&(&1.ownership == :server))
 
       check all interface_to_update <- member_of(valid_interfaces_for_update),
-                mapping_update <- valid_mapping_update_for(interface_to_update) do
+                mapping_update <-
+                  InterfaceUpdateGenerator.valid_mapping_update_for(interface_to_update) do
         path =
           interface_values_path(
             conn,
@@ -102,8 +104,8 @@ defmodule Astarte.AppEngine.APIWeb.InterfaceControllerTest do
 
       check all interface <- member_of(interfaces),
                 mapping <- member_of(interface.mappings),
-                path <- path_from_endpoint(mapping.endpoint),
-                value <- valid_update_value_for(mapping.value_type) do
+                path <- InterfaceUpdateGenerator.path_from_endpoint(mapping.endpoint),
+                value <- InterfaceUpdateGenerator.valid_update_value_for(mapping.value_type) do
         interface_name = interface.name
         device_id = device.encoded_id
 
@@ -133,7 +135,7 @@ defmodule Astarte.AppEngine.APIWeb.InterfaceControllerTest do
 
       check all interface <- member_of(interfaces),
                 mapping <- member_of(interface.mappings),
-                path <- path_from_endpoint(mapping.endpoint) do
+                path <- InterfaceUpdateGenerator.path_from_endpoint(mapping.endpoint) do
         interface_name = interface.name
         device_id = device.encoded_id
 
@@ -165,7 +167,8 @@ defmodule Astarte.AppEngine.APIWeb.InterfaceControllerTest do
       valid_interfaces_for_update = interfaces |> Enum.filter(&(&1.ownership == :server))
 
       check all interface_to_update <- member_of(valid_interfaces_for_update),
-                mapping_update <- valid_mapping_update_for(interface_to_update) do
+                mapping_update <-
+                  InterfaceUpdateGenerator.valid_mapping_update_for(interface_to_update) do
         request_path =
           interface_values_path(
             conn,
@@ -232,7 +235,7 @@ defmodule Astarte.AppEngine.APIWeb.InterfaceControllerTest do
 
       mapping_update =
         interface
-        |> valid_mapping_update_for()
+        |> InterfaceUpdateGenerator.valid_mapping_update_for()
         |> Enum.at(0)
 
       path = path_tokens(mapping_update.path)
@@ -294,7 +297,7 @@ defmodule Astarte.AppEngine.APIWeb.InterfaceControllerTest do
 
       mapping_update =
         interface
-        |> valid_mapping_update_for()
+        |> InterfaceUpdateGenerator.valid_mapping_update_for()
         |> Enum.at(0)
 
       path = path_tokens(mapping_update.path)
@@ -364,7 +367,7 @@ defmodule Astarte.AppEngine.APIWeb.InterfaceControllerTest do
     check all interface <- member_of(valid_interfaces_to_unset),
               mapping_to_unset <-
                 member_of(interface.mappings |> Enum.filter(& &1.allow_unset)),
-              path <- path_from_endpoint(mapping_to_unset.endpoint) do
+              path <- InterfaceUpdateGenerator.path_from_endpoint(mapping_to_unset.endpoint) do
       if mapping_to_unset.allow_unset do
         path_tokens = path_tokens(path)
         expected_token = [realm_name, device.encoded_id, interface.name | path_tokens]
@@ -424,7 +427,7 @@ defmodule Astarte.AppEngine.APIWeb.InterfaceControllerTest do
     check all interface <- member_of(valid_interfaces_to_unset),
               mapping_to_unset <-
                 member_of(interface.mappings |> Enum.filter(&(!&1.allow_unset))),
-              path <- path_from_endpoint(mapping_to_unset.endpoint) do
+              path <- InterfaceUpdateGenerator.path_from_endpoint(mapping_to_unset.endpoint) do
       if mapping_to_unset.allow_unset do
         path_tokens = path_tokens(path)
         expected_token = [realm_name, device.encoded_id, interface.name | path_tokens]

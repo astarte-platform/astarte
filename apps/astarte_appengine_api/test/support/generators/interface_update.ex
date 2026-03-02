@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2025 SECO Mind Srl
+# Copyright 2025 - 2026 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -15,14 +15,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defmodule Astarte.InterfaceUpdateGenerators do
+defmodule Astarte.Generators.InterfaceUpdate do
   @moduledoc false
   # TODO: move all these generators to astarte_generators
-
   use ExUnitProperties
+
   import Astarte.Helpers.Device
-  alias Astarte.Common.Generators.Timestamp, as: TimestampGenerator
+
   alias Astarte.Core.Mapping
+
+  alias Astarte.Common.Generators.Timestamp, as: TimestampGenerator
 
   def valid_fallible_mapping_update_for(interface) when interface.aggregation == :individual,
     do: valid_mapping_update_for(interface)
@@ -94,6 +96,7 @@ defmodule Astarte.InterfaceUpdateGenerators do
 
   def valid_complete_mapping_update_for(interface) when interface.aggregation == :object do
     endpoint = object_interface_endpoint(interface)
+
     value_types = object_interface_value_types(interface)
     reliability = object_interface_reliability(interface)
 
@@ -383,6 +386,7 @@ defmodule Astarte.InterfaceUpdateGenerators do
   defp object_interface_endpoint(interface) do
     # each interface must have at least 1 mapping
     first_mapping = interface.mappings |> Enum.at(0)
+
     String.replace(first_mapping.endpoint, ~r"/[^/]+$", "")
   end
 end

@@ -16,18 +16,17 @@
 # limitations under the License.
 #
 
-defmodule Astarte.InterfaceValuesRetrievealGenerators do
+defmodule Astarte.Generators.InterfaceValuesRetrieveal do
   @moduledoc """
   Generators for Astarte AppEngine API Device InterfaceValuesOptions.
 
-  This module provides stream data generators to create valid options for 
-  retrieving interface values, handling complex logic like downsampling 
+  This module provides stream data generators to create valid options for
+  retrieving interface values, handling complex logic like downsampling
   constraints based on the interface type.
   """
-
-  alias Astarte.Helpers.Device
-
   use Astarte.Generators.Utilities.ParamsGen
+
+  import Astarte.Helpers.Device
 
   @doc """
   Generate valid Astarte.AppEngine.API.Device.InterfaceValuesOptions.
@@ -70,7 +69,7 @@ defmodule Astarte.InterfaceValuesRetrievealGenerators do
   defp downsample_to(nil = _interface, _), do: nil
 
   defp downsample_to(interface, _downsample_key) when interface.aggregation == :individual do
-    if Device.downsampable?(interface), do: downsample_to()
+    if downsampable?(interface), do: downsample_to()
   end
 
   defp downsample_to(interface, nil = _downsample_key) when interface.aggregation == :object,
