@@ -30,6 +30,9 @@
 **/.concrete/DEV_MODE
 **/erl_crash.dump
 
+# Standard Rust gitignore to be applied to all apps
+**/target/
+
 # rebar 2.x
 **/.rebar
 **/rel/example_project

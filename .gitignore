@@ -34,6 +34,9 @@ apps/*/config/*.secret.exs
 *.plt
 apps/*/.concrete/DEV_MODE
 
+# Standard Rust gitignore to be applied to all apps
+target
+
 # rebar 2.x
 .rebar
 apps/*/rel/example_project

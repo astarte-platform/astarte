@@ -1,0 +1,52 @@
+# This file is part of Astarte.
+#
+# Copyright 2026 SECO Mind Srl
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+# SPDX-License-Identifier: Apache-2.0
+
+[workspace]
+resolver = "3"
+members = [
+  "astarte-e2e",
+  "astarte-e2e-cli",
+]
+
+[workspace.metadata]
+crane.name = "astarte-e2e"
+
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+license = "Apache-2.0"
+rust-version = "1.91.0"
+
+[workspace.dependencies]
+astarte-device-sdk = { version = "0.11.2", features = ["derive"] }
+astarte-e2e = { path = "./astarte-e2e" }
+async-channel = "2.5.0"
+base64 = "0.22.1"
+chrono = "0.4.43"
+clap = { version = "4.5.54", features = ["derive", "env"] }
+color-eyre = "0.6.5"
+eyre = "0.6.12"
+phoenix-chan = "0.4.4"
+reqwest = { version = "0.13.1", features = ["json"] }
+rustls = "0.23.36"
+rustls-platform-verifier = "0.6.2"
+serde = "1.0.228"
+serde_json = "1.0.149"
+tokio = { version = "1.49.0", features = ["full"] }
+tempfile = "3.24.0"
+tracing = "0.1.44"
