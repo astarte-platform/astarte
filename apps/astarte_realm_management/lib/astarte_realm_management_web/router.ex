@@ -22,6 +22,7 @@ defmodule Astarte.RealmManagementWeb.Router do
   pipeline :api do
     plug :accepts, ["json"]
     plug Astarte.RealmManagementWeb.Plug.LogRealm
+    plug Astarte.RealmManagementWeb.Plug.VerifyRealmExists
     plug Astarte.RealmManagementWeb.Plug.AuthorizePath
   end
 
