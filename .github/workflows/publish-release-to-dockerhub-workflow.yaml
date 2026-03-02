@@ -162,7 +162,7 @@ jobs:
           images: |
             astarte/${{ matrix.app }}
           tags: |
-            type=semver,pattern={{version}}
+            type=semver,pattern={{version}},value=${{ inputs.target_tag || github.event.release.tag_name }}
 
       - name: Create manifest list and push
         working-directory: ${{ runner.temp }}/digests/

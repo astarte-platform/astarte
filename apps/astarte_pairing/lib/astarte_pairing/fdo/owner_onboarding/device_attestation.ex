@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2017 - 2025 SECO Mind Srl
+# Copyright 2025 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -16,7 +16,15 @@
 # limitations under the License.
 #
 
-defmodule Astarte.Pairing.DataCase do
-  @moduledoc false
-  use ExUnit.CaseTemplate
+defmodule Astarte.Pairing.FDO.OwnerOnboarding.DeviceAttestation do
+  @moduledoc """
+  This module provides functionality for handling device attestation
+  in the FDO protocol, in particular extracting signature information
+  from a device signature (built using either in :es256 or :es384).
+  """
+  alias Astarte.Pairing.FDO.OwnerOnboarding.SignatureInfo
+
+  def eb_sig_info({ecc, _} = device_signature) when ecc in [:es256, :es384] do
+    SignatureInfo.from_device_signature(device_signature)
+  end
 end

@@ -62,7 +62,6 @@ defmodule Astarte.Pairing.Mixfile do
     [
       {:astarte_core,
        github: "astarte-platform/astarte_core", branch: "release-1.3", override: true},
-      {:astarte_generators, github: "astarte-platform/astarte_generators", only: [:dev, :test]},
       {:astarte_realm_management,
        path: "../astarte_realm_management", only: :test, runtime: false}
     ]
@@ -79,6 +78,8 @@ defmodule Astarte.Pairing.Mixfile do
       {:phoenix_ecto, "~> 4.0"},
       {:phoenix_view, "~> 2.0"},
       {:jason, "~> 1.2"},
+      {:cbor, "~> 1.0"},
+      {:cose, github: "secomind/cose-elixir"},
       {:guardian, "~> 2.3.2"},
       {:remote_ip, "~> 1.0"},
       {:excoveralls, "~> 0.15", only: :test},
@@ -95,6 +96,7 @@ defmodule Astarte.Pairing.Mixfile do
       {:observer_cli, "~> 1.5"},
       {:cfxxl, github: "ispirata/cfxxl"},
       {:astarte_data_access, path: astarte_lib("astarte_data_access")},
+      {:astarte_generators, path: astarte_lib("astarte_generators"), only: [:dev, :test]},
       {:bcrypt_elixir, "~> 2.2"},
       {:xandra, "~> 0.19"},
       {:ecto, "~> 3.12"},

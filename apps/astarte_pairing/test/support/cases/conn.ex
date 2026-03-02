@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2017 - 2025 SECO Mind Srl
+# Copyright 2017 - 2026 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -16,7 +16,7 @@
 # limitations under the License.
 #
 
-defmodule Astarte.PairingWeb.ConnCase do
+defmodule Astarte.Cases.Conn do
   @moduledoc """
   This module defines the test case to be used by
   tests that require setting up a connection.
@@ -33,6 +33,8 @@ defmodule Astarte.PairingWeb.ConnCase do
 
   use ExUnit.CaseTemplate
 
+  alias Astarte.PairingWeb.Helpers.JWTTestHelper
+
   using do
     quote do
       # Import conveniences for testing with connections
@@ -46,6 +48,15 @@ defmodule Astarte.PairingWeb.ConnCase do
   end
 
   setup _tags do
-    {:ok, conn: Phoenix.ConnTest.build_conn()}
+    conn = Phoenix.ConnTest.build_conn()
+
+    jwt = JWTTestHelper.gen_jwt_all_access_token()
+
+    auth_conn =
+      conn
+      |> Plug.Conn.put_req_header("accept", "application/json")
+      |> Plug.Conn.put_req_header("authorization", "bearer #{jwt}")
+
+    %{conn: conn, auth_conn: auth_conn}
   end
 end

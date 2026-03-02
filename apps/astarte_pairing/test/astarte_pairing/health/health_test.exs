@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2025 SECO Mind Srl
+# Copyright 2025 - 2026 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -17,7 +17,7 @@
 #
 
 defmodule Astarte.Pairing.HealthTest do
-  use Astarte.Pairing.DataCase, async: true
+  use Astarte.Cases.Data, async: true
 
   alias Astarte.DataAccess.Health.Health, as: DataAccessHealth
   alias Astarte.Pairing.Health

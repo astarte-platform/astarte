@@ -67,7 +67,8 @@ defmodule Astarte.DataUpdaterPlant.Application do
           range_end: Config.data_queue_range_end!(),
           total_count: Config.data_queue_total_count!()
         ],
-        message_handler: Impl
+        message_handler: Impl,
+        cluster_distribution_strategy: :uniform
       ]
     ]
   end
