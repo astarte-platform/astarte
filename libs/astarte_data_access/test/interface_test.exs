@@ -64,16 +64,16 @@ defmodule Astarte.DataAccess.Interfaces.XandraTest do
   end
 
   setup_all do
-    DatabaseTestHelper.await_cluster_connected!(:astarte_data_access_xandra)
-
-    Xandra.Cluster.run(:astarte_data_access_xandra, fn conn ->
-      DatabaseTestHelper.create_test_keyspace(conn)
-    end)
-
     on_exit(fn ->
       Xandra.Cluster.run(:astarte_data_access_xandra, fn conn ->
         DatabaseTestHelper.destroy_local_test_keyspace(conn)
       end)
+    end)
+
+    DatabaseTestHelper.await_cluster_connected!(:astarte_data_access_xandra)
+
+    Xandra.Cluster.run(:astarte_data_access_xandra, fn conn ->
+      DatabaseTestHelper.create_test_keyspace(conn)
     end)
 
     :ok
