@@ -19,7 +19,7 @@ jobs:
     name: Cache warmup
     runs-on: ubuntu-22.04
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
       - uses: team-alembic/staple-actions/actions/mix-compile@a74b3b61209d35d45526df174766632f8aee03ed
         with:
           mix-env: dev
@@ -32,7 +32,7 @@ jobs:
     needs:
       - warmup
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
       - uses: team-alembic/staple-actions/actions/mix-format@a74b3b61209d35d45526df174766632f8aee03ed
         with:
           mix-env: dev
@@ -44,7 +44,7 @@ jobs:
       - warmup
     runs-on: ubuntu-22.04
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
       - uses: team-alembic/staple-actions/actions/mix-compile@a74b3b61209d35d45526df174766632f8aee03ed
         with:
           mix-env: dev
@@ -57,7 +57,7 @@ jobs:
           MIX_HOME: ${{ runner.temp }}/.mix
         working-directory: doc/
       - name: Upload documentation artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: Documentation
           path: doc/doc/

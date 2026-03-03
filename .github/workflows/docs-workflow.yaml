@@ -21,11 +21,11 @@ jobs:
     runs-on: ubuntu-22.04
     steps:
       # Checkout the source
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@ee0669bd1cc54295c223e0bb666b733df41de1c5 # v2
         with:
           path: astarte
       # Checkout the docs repository
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@ee0669bd1cc54295c223e0bb666b733df41de1c5 # v2
         with:
           repository: astarte-platform/docs
           path: docs
@@ -41,7 +41,7 @@ jobs:
           mkdir docs/$DOCS_DIRNAME
           cp -r astarte/doc/doc/* docs/$DOCS_DIRNAME/
       - name: Checkout Swagger UI
-        uses: actions/checkout@v2
+        uses: actions/checkout@ee0669bd1cc54295c223e0bb666b733df41de1c5 # v2
         with:
           repository: swagger-api/swagger-ui
           path: swagger-ui
