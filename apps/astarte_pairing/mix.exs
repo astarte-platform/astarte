@@ -72,6 +72,7 @@ defmodule Astarte.Pairing.Mixfile do
   # Type `mix help deps` for examples and options.
   defp deps do
     [
+      {:castore, "~> 1.0.0"},
       {:phoenix, "~> 1.7"},
       {:gettext, "~> 0.24"},
       {:plug_cowboy, "~> 2.2"},

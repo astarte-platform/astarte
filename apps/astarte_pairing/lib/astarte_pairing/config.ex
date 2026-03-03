@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2017-2025 SECO Mind Srl
+# Copyright 2017 - 2026 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -24,6 +24,7 @@ defmodule Astarte.Pairing.Config do
   use Skogsra
 
   alias Astarte.Pairing.CFSSLCredentials
+  alias Astarte.Pairing.Config
   alias Astarte.Pairing.Config.BaseURLProtocol
   alias Astarte.Pairing.Config.CQExNodes
 
@@ -79,6 +80,76 @@ defmodule Astarte.Pairing.Config do
     os_env: "PAIRING_FDO_RENDEZVOUS_URL",
     type: :binary,
     default: "http://rendezvous:8041"
+
+  # TODO: properly set default value once available in docker-compose
+  @envdoc "The URL to access OpenBao."
+  app_env :bao_url, :astarte_pairing, :bao_url,
+    os_env: "ASTARTE_OPENBAO_URL",
+    type: :binary,
+    default: ""
+
+  @envdoc "Enable SSL for the OpenBao connection. If not specified, SSL is disabled."
+  app_env :bao_ssl_enabled, :astarte_housekeeping, :bao_ssl_enabled,
+    os_env: "ASTARTE_OPENBAO_SSL_ENABLED",
+    type: :boolean,
+    default: false
+
+  @envdoc """
+  Specifies the certificates of the root Certificate Authorities to be trusted for the OpenBao connection. When not specified, the bundled cURL certificate bundle will be used.
+  """
+  app_env :bao_ssl_ca_file, :astarte_housekeeping, :bao_ssl_ca_file,
+    os_env: "ASTARTE_OPENBAO_SSL_CA_FILE",
+    type: :binary,
+    default: CAStore.file_path()
+
+  @envdoc "Disable Server Name Indication. Defaults to false."
+  app_env :bao_ssl_disable_sni,
+          :astarte_housekeeping,
+          :bao_ssl_disable_sni,
+          os_env: "ASTARTE_OPENBAO_SSL_DISABLE_SNI",
+          type: :boolean,
+          default: false
+
+  @envdoc "Specify the hostname to be used in TLS Server Name Indication extension. If not specified, the amqp consumer host will be used. This value is used only if Server Name Indication is enabled."
+  app_env :bao_ssl_custom_sni, :astarte_housekeeping, :bao_ssl_custom_sni,
+    os_env: "ASTARTE_OPENBAO_SSL_CUSTOM_SNI",
+    type: :binary
+
+  def bao_ssl_options! do
+    if Config.bao_ssl_enabled!() do
+      build_bao_ssl_options()
+    else
+      []
+    end
+  end
+
+  defp build_bao_ssl_options do
+    [
+      cacertfile: bao_ssl_ca_file!(),
+      verify: :verify_peer,
+      depth: 10
+    ]
+    |> populate_bao_sni()
+  end
+
+  defp populate_bao_sni(ssl_options) do
+    if Config.bao_ssl_disable_sni!() do
+      Keyword.put(ssl_options, :server_name_indication, :disable)
+    else
+      server_name =
+        case Config.bao_ssl_custom_sni!() do
+          nil ->
+            Config.bao_url!()
+            |> URI.parse()
+            |> Map.fetch!(:host)
+
+          custom_sni ->
+            custom_sni
+        end
+
+      Keyword.put(ssl_options, :server_name_indication, to_charlist(server_name))
+    end
+  end
 
   def init! do
     if {:ok, nil} == ca_cert() do
