@@ -20,9 +20,10 @@ defmodule Astarte.Pairing.FDO.OwnershipVoucher.Core do
   @moduledoc """
   Core decoding and parsing utilities for FDO Ownership Vouchers.
   """
-  alias Astarte.Pairing.FDO.OwnershipVoucher
+  alias Astarte.FDO.OwnershipVoucher
+  alias Astarte.FDO.PublicKey
   alias Astarte.Pairing.FDO.OwnershipVoucher.Core
-  alias Astarte.Pairing.FDO.Types.PublicKey
+  alias Astarte.Pairing.Queries
   alias COSE.Messages.Sign1
 
   @type decoded_voucher :: list()
@@ -131,5 +132,47 @@ defmodule Astarte.Pairing.FDO.OwnershipVoucher.Core do
     {:ok, :public_key.pkix_decode_cert(cert_bin, :otp)}
   rescue
     _ -> :error
+  end
+
+  @one_week 604_800
+
+  def save_voucher(realm_name, cbor_ownership_voucher, device_guid, owner_private_key) do
+    with {:ok, _} <-
+           Queries.create_ownership_voucher(
+             realm_name,
+             device_guid,
+             cbor_ownership_voucher,
+             owner_private_key,
+             @one_week
+           ) do
+      :ok
+    end
+  end
+
+  def owner_public_key(ownership_voucher) do
+    # N.B.: Checking if there are entries is not necessary,
+    # as by spec the ownership voucher will always have at least one entry
+    List.last(ownership_voucher.entries)
+    |> Core.entry_private_key()
+  end
+
+  def device_public_key(ownership_voucher) do
+    # The FIDO Device Onboard public key is in the leaf certificate (the "end-entity" key),
+    # which is the first element of the x5chain sequence
+    case ownership_voucher.cert_chain do
+      nil -> {:ok, nil}
+      [device_cert | _] -> Core.parse_device_certificate(device_cert)
+      [] -> :error
+    end
+  end
+
+  def fetch(realm_name, guid) do
+    case Queries.get_ownership_voucher(realm_name, guid) do
+      {:ok, ownership_voucher_cbor} ->
+        OwnershipVoucher.decode_cbor(ownership_voucher_cbor)
+
+      {:error, reason} ->
+        {:error, reason}
+    end
   end
 end

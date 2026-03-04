@@ -25,8 +25,8 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding.DeviceServiceInfoReady do
   Provisioning phase (ServiceInfo negotiation).
   """
   use TypedStruct
+  alias Astarte.FDO.Hash
   alias Astarte.Pairing.FDO.OwnerOnboarding.DeviceServiceInfoReady
-  alias Astarte.Pairing.FDO.Types.Hash
 
   @default_max_owner_service_info_sz 1400
 

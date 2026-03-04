@@ -22,12 +22,12 @@ defmodule Astarte.Pairing.FDO.OwnerOnboardingTest do
   use Astarte.Cases.FDOSession
   doctest Astarte.Pairing.FDO.OwnerOnboarding
 
+  alias Astarte.FDO.Hash
+  alias Astarte.FDO.OwnershipVoucher
   alias Astarte.Pairing.FDO.OwnerOnboarding
   alias Astarte.Pairing.FDO.OwnerOnboarding.DeviceServiceInfoReady
   alias Astarte.Pairing.FDO.OwnerOnboarding.HelloDevice
   alias Astarte.Pairing.FDO.OwnerOnboarding.Session
-  alias Astarte.Pairing.FDO.OwnershipVoucher
-  alias Astarte.Pairing.FDO.Types.Hash
   alias COSE.Messages.Sign1
 
   @max_device_service_info_sz 4096

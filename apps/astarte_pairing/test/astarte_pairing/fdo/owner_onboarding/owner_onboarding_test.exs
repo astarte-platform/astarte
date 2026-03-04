@@ -19,9 +19,9 @@
 defmodule Astarte.Pairing.FDO.OwnerOnboarding.OwnerOnboardingTest do
   use Astarte.Cases.Data, async: true
 
+  alias Astarte.FDO.OwnershipVoucher
   alias Astarte.Pairing.FDO.OwnerOnboarding
   alias Astarte.Pairing.FDO.OwnerOnboarding.HelloDevice
-  alias Astarte.Pairing.FDO.OwnershipVoucher
   alias COSE.Messages.Sign1
 
   import Astarte.Helpers.FDO

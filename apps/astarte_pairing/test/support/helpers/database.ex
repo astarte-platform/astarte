@@ -77,9 +77,8 @@ defmodule Astarte.Helpers.Database do
 
   @create_session_key_type """
   CREATE TYPE :keyspace.session_key (
-    alg text,
-    k blob,
-    kty text
+    alg int,
+    k blob
   );
   """
 

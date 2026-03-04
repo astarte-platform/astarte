@@ -20,7 +20,7 @@ defmodule Astarte.PairingWeb.OwnershipVoucherController do
   use Astarte.PairingWeb, :controller
 
   alias Astarte.Pairing.FDO
-  alias Astarte.Pairing.FDO.OwnershipVoucher
+  alias Astarte.Pairing.FDO.OwnershipVoucher.Core, as: OwnershipVoucherCore
   alias Astarte.Pairing.FDO.OwnershipVoucher.CreateRequest
 
   action_fallback Astarte.PairingWeb.FallbackController
@@ -40,7 +40,7 @@ defmodule Astarte.PairingWeb.OwnershipVoucherController do
            device_guid: device_guid
          } = create,
          :ok <-
-           OwnershipVoucher.save_voucher(
+           OwnershipVoucherCore.save_voucher(
              realm_name,
              cbor_ownership_voucher,
              device_guid,

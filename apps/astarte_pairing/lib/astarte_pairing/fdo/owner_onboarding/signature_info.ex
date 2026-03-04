@@ -22,7 +22,8 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding.SignatureInfo do
   including encoding, decoding, and validation against the ownership voucher.
   """
 
-  alias Astarte.Pairing.FDO.OwnershipVoucher
+  alias Astarte.FDO.OwnershipVoucher
+  alias Astarte.Pairing.FDO.OwnershipVoucher.Core, as: OwnershipVoucherCore
   alias COSE.Keys.ECC
 
   @type t :: :es256 | :es384 | :rs256 | :rs384 | {:eipd10, binary()} | {:eipd11, binary()}
@@ -67,7 +68,7 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding.SignatureInfo do
 
   @spec validate(t(), OwnershipVoucher.t()) :: {:ok, device_signature()} | :error
   def validate(sig_info, ownership_voucher) do
-    with {:ok, device_public_key} <- OwnershipVoucher.device_public_key(ownership_voucher) do
+    with {:ok, device_public_key} <- OwnershipVoucherCore.device_public_key(ownership_voucher) do
       case {sig_info, device_public_key} do
         {{:eipd10, _gid}, nil} -> {:ok, sig_info}
         {{:eipd11, _gid}, nil} -> {:ok, sig_info}

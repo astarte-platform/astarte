@@ -16,7 +16,7 @@
 # limitations under the License.
 #
 
-defmodule Astarte.Pairing.FDO.OwnershipVoucher.RendezvousInfo.RendezvousDirective do
+defmodule Astarte.FDO.OwnershipVoucher.RendezvousInfo.RendezvousDirective do
   @moduledoc """
   One RendezvousDirective = a list of RendezvousInstr.
 
@@ -24,11 +24,11 @@ defmodule Astarte.Pairing.FDO.OwnershipVoucher.RendezvousInfo.RendezvousDirectiv
   i.e. a list of rendezvous instructions interpreted together.
   """
   use TypedStruct
-  alias Astarte.Pairing.FDO.OwnershipVoucher.RendezvousInfo.RendezvousDirective
-  alias Astarte.Pairing.FDO.OwnershipVoucher.RendezvousInfo.RendezvousInstr
+  alias Astarte.FDO.OwnershipVoucher.RendezvousInfo.RendezvousDirective
+  alias Astarte.FDO.OwnershipVoucher.RendezvousInfo.RendezvousInstr
 
   typedstruct enforce: true do
-    field :instructions, [RendezvousInstr.t()]
+    field(:instructions, [RendezvousInstr.t()])
   end
 
   def decode(instructions) when is_list(instructions) do

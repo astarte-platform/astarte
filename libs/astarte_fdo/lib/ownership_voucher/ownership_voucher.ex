@@ -16,66 +16,20 @@
 # limitations under the License.
 #
 
-defmodule Astarte.Pairing.FDO.OwnershipVoucher do
+defmodule Astarte.FDO.OwnershipVoucher do
   @moduledoc false
   use TypedStruct
 
-  alias Astarte.Pairing.FDO.OwnershipVoucher
-  alias Astarte.Pairing.FDO.OwnershipVoucher.Core
-  alias Astarte.Pairing.FDO.OwnershipVoucher.Header
-  alias Astarte.Pairing.FDO.Types.Hash
-  alias Astarte.Pairing.Queries
-
-  require Logger
+  alias Astarte.FDO.Hash
+  alias Astarte.FDO.OwnershipVoucher
+  alias Astarte.FDO.OwnershipVoucher.Header
 
   typedstruct do
-    field :protocol_version, :integer
-    field :header, Header.t()
-    field :hmac, Hash.t()
-    field :cert_chain, [binary()] | nil
-    field :entries, list()
-  end
-
-  @one_week 604_800
-
-  def save_voucher(realm_name, cbor_ownership_voucher, device_guid, owner_private_key) do
-    with {:ok, _} <-
-           Queries.create_ownership_voucher(
-             realm_name,
-             device_guid,
-             cbor_ownership_voucher,
-             owner_private_key,
-             @one_week
-           ) do
-      :ok
-    end
-  end
-
-  def owner_public_key(ownership_voucher) do
-    # N.B.: Checking if there are entries is not necessary,
-    # as by spec the ownership voucher will always have at least one entry
-    List.last(ownership_voucher.entries)
-    |> Core.entry_private_key()
-  end
-
-  def device_public_key(ownership_voucher) do
-    # The FIDO Device Onboard public key is in the leaf certificate (the "end-entity" key),
-    # which is the first element of the x5chain sequence
-    case ownership_voucher.cert_chain do
-      nil -> {:ok, nil}
-      [device_cert | _] -> Core.parse_device_certificate(device_cert)
-      [] -> :error
-    end
-  end
-
-  def fetch(realm_name, guid) do
-    case Queries.get_ownership_voucher(realm_name, guid) do
-      {:ok, ownership_voucher_cbor} ->
-        decode_cbor(ownership_voucher_cbor)
-
-      {:error, reason} ->
-        {:error, reason}
-    end
+    field(:protocol_version, :integer)
+    field(:header, Header.t())
+    field(:hmac, Hash.t())
+    field(:cert_chain, [binary()] | nil)
+    field(:entries, list())
   end
 
   def decode_cbor(cbor) do
@@ -135,7 +89,6 @@ defmodule Astarte.Pairing.FDO.OwnershipVoucher do
 
   def encode(voucher) do
     header_binary = Header.cbor_encode(voucher.header)
-
     hmac_list = Hash.encode(voucher.hmac)
 
     [

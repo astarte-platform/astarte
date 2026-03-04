@@ -18,10 +18,10 @@
 defmodule Astarte.Pairing.OwnerOnboarding.Onboarding.ProveDevice do
   use Astarte.Cases.Data, async: true
   use Astarte.Cases.FDOSession
+  alias Astarte.FDO.PublicKey
   alias Astarte.Pairing.FDO.OwnerOnboarding
   alias Astarte.Pairing.FDO.OwnerOnboarding.EAToken
   alias Astarte.Pairing.FDO.OwnerOnboarding.ProveDevice
-  alias Astarte.Pairing.FDO.Types.PublicKey
   alias COSE.Keys.{ECC, RSA}
   alias COSE.Messages.Sign1
 

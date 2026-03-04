@@ -16,7 +16,7 @@
 # limitations under the License.
 #
 
-defmodule Astarte.Pairing.FDO.OwnershipVoucher.RendezvousInfo.RVVariable do
+defmodule Astarte.FDO.OwnershipVoucher.RendezvousInfo.RVVariable do
   @moduledoc """
   RVVariable conversion module.
   """

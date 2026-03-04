@@ -16,17 +16,17 @@
 # limitations under the License.
 #
 
-defmodule Astarte.Pairing.FDO.OwnershipVoucher.RendezvousInfo do
+defmodule Astarte.FDO.OwnershipVoucher.RendezvousInfo do
   @moduledoc """
   Implementation of FDO RendezvousInfo type.
   """
 
   use TypedStruct
-  alias Astarte.Pairing.FDO.OwnershipVoucher.RendezvousInfo
-  alias Astarte.Pairing.FDO.OwnershipVoucher.RendezvousInfo.RendezvousDirective
+  alias Astarte.FDO.OwnershipVoucher.RendezvousInfo
+  alias Astarte.FDO.OwnershipVoucher.RendezvousInfo.RendezvousDirective
 
   typedstruct enforce: true do
-    field :directives, [RendezvousDirective.t()]
+    field(:directives, [RendezvousDirective.t()])
   end
 
   @doc """

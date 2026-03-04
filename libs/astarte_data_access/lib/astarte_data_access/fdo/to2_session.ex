@@ -20,8 +20,9 @@ defmodule Astarte.DataAccess.FDO.TO2Session do
   @moduledoc """
   Identifies a session in the TO2 protocol
   """
-
   use TypedEctoSchema
+
+  alias COSE.Keys.Symmetric
 
   @ciphers [
     aes_128_gcm: 1,
@@ -45,7 +46,7 @@ defmodule Astarte.DataAccess.FDO.TO2Session do
   typed_schema "to2_sessions" do
     field :guid, :binary, primary_key: true
     field :device_id, Astarte.DataAccess.UUID
-    field :hmac, :binary
+    field :hmac, Astarte.DataAccess.FDO.CBOR, using: Astarte.FDO.Hash
     field :nonce, :binary
     field :sig_type, Ecto.Enum, values: [es256: -7, es384: -35, eipd10: 90, eipd11: 91]
     field :epid_group, :binary
@@ -56,9 +57,9 @@ defmodule Astarte.DataAccess.FDO.TO2Session do
     field :cipher_suite_name, Ecto.Enum, values: @ciphers
     field :owner_random, :binary
     field :secret, :binary
-    field :sevk, Exandra.EmbeddedType, using: Astarte.DataAccess.FDO.SessionKey
-    field :svk, Exandra.EmbeddedType, using: Astarte.DataAccess.FDO.SessionKey
-    field :sek, Exandra.EmbeddedType, using: Astarte.DataAccess.FDO.SessionKey
+    field :sevk, Exandra.EmbeddedType, using: Symmetric
+    field :svk, Exandra.EmbeddedType, using: Symmetric
+    field :sek, Exandra.EmbeddedType, using: Symmetric
     field :max_owner_service_info_size, :integer
 
     field :device_service_info, Exandra.Map,
@@ -70,13 +71,11 @@ defmodule Astarte.DataAccess.FDO.TO2Session do
     field :last_chunk_sent, :integer
     field :replacement_guid, :binary
 
-    field :replacement_rv_info, Astarte.DataAccess.FDO.CBORType,
-      using: Astarte.Pairing.FDO.OwnershipVoucher.RendezvousInfo
+    field :replacement_rv_info, Astarte.DataAccess.FDO.CBOR,
+      using: Astarte.FDO.OwnershipVoucher.RendezvousInfo
 
-    field :replacement_pub_key, Astarte.DataAccess.FDO.CBORType,
-      using: Astarte.Pairing.FDO.Types.PublicKey
+    field :replacement_pub_key, Astarte.DataAccess.FDO.CBOR, using: Astarte.FDO.PublicKey
 
-    field :replacement_hmac, Astarte.DataAccess.FDO.CBORType,
-      using: Astarte.Pairing.FDO.Types.Hash
+    field :replacement_hmac, Astarte.DataAccess.FDO.CBOR, using: Astarte.FDO.Hash
   end
 end

@@ -620,9 +620,8 @@ defmodule Astarte.Housekeeping.Realms.Queries do
   defp create_session_key_type(keyspace_name) do
     query = """
     CREATE TYPE #{keyspace_name}.session_key (
-      alg text,
-      k blob,
-      kty text
+      alg int,
+      k blob
     );
     """
 

@@ -19,7 +19,7 @@
 defmodule Astarte.Pairing.FDO.OwnershipVoucher.RendezvousInfoTest do
   use ExUnit.Case, async: true
 
-  alias Astarte.Pairing.FDO.OwnershipVoucher.RendezvousInfo
+  alias Astarte.FDO.OwnershipVoucher.RendezvousInfo
 
   @rendezvous_info_cbor [
     [

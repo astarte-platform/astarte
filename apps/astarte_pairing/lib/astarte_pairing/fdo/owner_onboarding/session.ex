@@ -26,15 +26,15 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding.Session do
   use TypedStruct
 
   alias Astarte.DataAccess.FDO.TO2Session
+  alias Astarte.FDO.Hash
+  alias Astarte.FDO.OwnershipVoucher.RendezvousInfo
+  alias Astarte.FDO.PublicKey
   alias Astarte.Pairing.FDO.OwnerOnboarding.HelloDevice
   alias Astarte.Pairing.FDO.OwnerOnboarding.OwnerServiceInfo
   alias Astarte.Pairing.FDO.OwnerOnboarding.Session
   alias Astarte.Pairing.FDO.OwnerOnboarding.SessionKey
   alias Astarte.Pairing.FDO.OwnerOnboarding.SessionToken
   alias Astarte.Pairing.FDO.OwnerOnboarding.SignatureInfo
-  alias Astarte.Pairing.FDO.Rendezvous.RvTO2Addr
-  alias Astarte.Pairing.FDO.Types.Hash
-  alias Astarte.Pairing.FDO.Types.PublicKey
   alias Astarte.Pairing.Queries
   alias COSE.Messages.Encrypt0
 
@@ -84,7 +84,7 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding.Session do
            %TO2Session{
              guid: guid,
              device_id: nil,
-             hmac: Hash.encode_cbor(hmac),
+             hmac: hmac,
              nonce: nonce,
              prove_dv_nonce: prove_dv_nonce,
              kex_suite_name: kex_name,
@@ -191,13 +191,6 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding.Session do
     end
   end
 
-  defp decode_hash(binary) do
-    case CBOR.decode(binary) do
-      {:ok, cbor_list, ""} -> Hash.decode(cbor_list)
-      error -> error
-    end
-  end
-
   defp encode_values_to_cbor(map) when is_map(map) do
     Map.new(map, fn
       {key, value} ->
@@ -247,8 +240,7 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding.Session do
 
     with {:ok, sevk, svk, sek} <-
            SessionKey.derive_key(kex_suite_name, cipher_suite, secret, owner_random),
-         [db_sevk, db_svk, db_sek] = Enum.map([sevk, svk, sek], &SessionKey.to_db/1),
-         :ok <- Queries.add_session_keys(realm_name, guid, db_sevk, db_svk, db_sek) do
+         :ok <- Queries.add_session_keys(realm_name, guid, sevk, svk, sek) do
       {:ok, %{session | sevk: sevk, svk: svk, sek: sek}}
     end
   end
@@ -281,7 +273,7 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding.Session do
       %TO2Session{
         guid: guid,
         device_id: device_id,
-        hmac: db_hmac,
+        hmac: hmac,
         nonce: db_nonce,
         prove_dv_nonce: prove_dv_nonce,
         setup_dv_nonce: setup_dv_nonce,
@@ -302,8 +294,6 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding.Session do
         replacement_hmac: replacement_hmac
       } = database_session
 
-      {:ok, hmac} = Hash.decode_cbor(db_hmac)
-
       session = %Session{
         guid: guid,
         device_id: device_id,
@@ -316,9 +306,9 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding.Session do
         owner_random: owner_random,
         device_signature: device_signature,
         secret: secret,
-        sevk: SessionKey.from_db(sevk),
-        svk: SessionKey.from_db(svk),
-        sek: SessionKey.from_db(sek),
+        sevk: sevk,
+        svk: svk,
+        sek: sek,
         max_owner_service_info_size: max_owner_service_info_size,
         device_service_info: device_service_info,
         owner_service_info: owner_service_info,

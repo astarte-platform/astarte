@@ -20,10 +20,11 @@ defmodule Astarte.Pairing.FDO.OwnershipVoucherTest do
   use Astarte.Cases.Data, async: true
   use Astarte.Cases.Device
 
-  alias Astarte.Pairing.FDO.OwnershipVoucher
-  alias Astarte.Pairing.FDO.OwnershipVoucher.Header
-  alias Astarte.Pairing.FDO.Types.Hash
-  alias Astarte.Pairing.FDO.Types.PublicKey
+  alias Astarte.FDO.Hash
+  alias Astarte.FDO.OwnershipVoucher
+  alias Astarte.FDO.OwnershipVoucher.Header
+  alias Astarte.FDO.PublicKey
+  alias Astarte.Pairing.FDO.OwnershipVoucher.Core, as: OwnershipVoucherCore
   alias Astarte.Pairing.Queries
   alias COSE.Messages.Sign1
 
@@ -39,7 +40,7 @@ defmodule Astarte.Pairing.FDO.OwnershipVoucherTest do
       device_id = device.device_id
 
       assert :ok =
-               OwnershipVoucher.save_voucher(
+               OwnershipVoucherCore.save_voucher(
                  realm_name,
                  sample_voucher(),
                  device_id,
