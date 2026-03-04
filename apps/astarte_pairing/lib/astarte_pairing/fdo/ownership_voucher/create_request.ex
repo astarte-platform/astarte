@@ -20,7 +20,7 @@ defmodule Astarte.Pairing.FDO.OwnershipVoucher.CreateRequest do
   @moduledoc false
   use TypedEctoSchema
 
-  alias Astarte.Pairing.FDO.OwnershipVoucher
+  alias Astarte.FDO.OwnershipVoucher
   alias Astarte.Pairing.FDO.OwnershipVoucher.Core
   alias Astarte.Pairing.FDO.OwnershipVoucher.CreateRequest
 

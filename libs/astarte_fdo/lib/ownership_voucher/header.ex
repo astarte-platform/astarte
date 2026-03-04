@@ -16,22 +16,22 @@
 # limitations under the License.
 #
 
-defmodule Astarte.Pairing.FDO.OwnershipVoucher.Header do
+defmodule Astarte.FDO.OwnershipVoucher.Header do
   @moduledoc false
   use TypedStruct
 
-  alias Astarte.Pairing.FDO.OwnershipVoucher.Header
-  alias Astarte.Pairing.FDO.OwnershipVoucher.RendezvousInfo
-  alias Astarte.Pairing.FDO.Types.Hash
-  alias Astarte.Pairing.FDO.Types.PublicKey
+  alias Astarte.FDO.Hash
+  alias Astarte.FDO.PublicKey
+  alias Astarte.FDO.OwnershipVoucher.Header
+  alias Astarte.FDO.OwnershipVoucher.RendezvousInfo
 
   typedstruct do
-    field :protocol_version, :integer
-    field :guid, binary()
-    field :rendezvous_info, RendezvousInfo.t()
-    field :device_info, binary()
-    field :public_key, PublicKey.t()
-    field :cert_chain_hash, Hash.t() | nil
+    field(:protocol_version, :integer)
+    field(:guid, binary())
+    field(:rendezvous_info, RendezvousInfo.t())
+    field(:device_info, binary())
+    field(:public_key, PublicKey.t())
+    field(:cert_chain_hash, Hash.t() | nil)
   end
 
   def decode_cbor(cbor) do

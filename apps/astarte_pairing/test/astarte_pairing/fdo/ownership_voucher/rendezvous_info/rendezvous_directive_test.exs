@@ -16,11 +16,11 @@
 # limitations under the License.
 #
 
-defmodule Astarte.Pairing.FDO.OwnershipVoucher.RendezvousInfo.RendezvousDirectiveTest do
+defmodule Astarte.FDO.OwnershipVoucher.RendezvousInfo.RendezvousDirectiveTest do
   use ExUnit.Case, async: true
 
-  alias Astarte.Pairing.FDO.OwnershipVoucher.RendezvousInfo.RendezvousDirective
-  alias Astarte.Pairing.FDO.OwnershipVoucher.RendezvousInfo.RendezvousInstr
+  alias Astarte.FDO.OwnershipVoucher.RendezvousInfo.RendezvousDirective
+  alias Astarte.FDO.OwnershipVoucher.RendezvousInfo.RendezvousInstr
 
   @rendezvous_info_instructions [
     [5, %CBOR.Tag{tag: :bytes, value: "ufdo.astarte.localhost"}],

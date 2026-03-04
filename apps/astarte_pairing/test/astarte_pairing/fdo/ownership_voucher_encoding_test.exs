@@ -19,8 +19,8 @@
 defmodule Astarte.Pairing.FDO.OwnershipVoucherEncodingTest do
   use ExUnit.Case, async: true
 
+  alias Astarte.FDO.OwnershipVoucher
   alias Astarte.Helpers.FDO
-  alias Astarte.Pairing.FDO.OwnershipVoucher
 
   test "encode_voucher_to_cbor/1 dynamically reconstructs valid CBOR from static sample" do
     original_cbor = FDO.sample_cbor_voucher()

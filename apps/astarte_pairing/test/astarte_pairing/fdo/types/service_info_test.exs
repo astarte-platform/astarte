@@ -16,10 +16,10 @@
 # limitations under the License.
 #
 
-defmodule Astarte.Pairing.FDO.Types.ServiceInfoTest do
+defmodule Astarte.FDO.ServiceInfoTest do
   use ExUnit.Case, async: true
 
-  alias Astarte.Pairing.FDO.Types.ServiceInfo
+  alias Astarte.FDO.ServiceInfo
 
   @service_info %{
     "astarte:active" => true,

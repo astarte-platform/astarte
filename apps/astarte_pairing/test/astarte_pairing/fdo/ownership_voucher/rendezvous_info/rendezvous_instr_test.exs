@@ -15,10 +15,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-defmodule Astarte.Pairing.FDO.OwnershipVoucher.RendezvousInfo.RendezvousInstrTest do
+defmodule Astarte.FDO.OwnershipVoucher.RendezvousInfo.RendezvousInstrTest do
   use ExUnit.Case, async: true
 
-  alias Astarte.Pairing.FDO.OwnershipVoucher.RendezvousInfo.RendezvousInstr
+  alias Astarte.FDO.OwnershipVoucher.RendezvousInfo.RendezvousInstr
 
   @rendezvous_info_instruction [5, %CBOR.Tag{tag: :bytes, value: "ufdo.astarte.localhost"}]
 

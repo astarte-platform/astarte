@@ -26,11 +26,11 @@ defmodule Astarte.Pairing.FDO.Onboarding.DoneTest do
   alias Astarte.DataAccess.Devices.Device, as: DeviceDB
   alias Astarte.DataAccess.Realms.Realm
   alias Astarte.DataAccess.Repo
+  alias Astarte.FDO.Hash
   alias Astarte.Pairing.Engine
   alias Astarte.Pairing.FDO.OwnerOnboarding
   alias Astarte.Pairing.FDO.OwnerOnboarding.Session
   alias Astarte.Pairing.FDO.OwnershipVoucher
-  alias Astarte.Pairing.FDO.Types.Hash
   alias Astarte.Pairing.Queries
 
   @wrong_prove_dv_nonce :crypto.strong_rand_bytes(16)
@@ -67,15 +67,15 @@ defmodule Astarte.Pairing.FDO.Onboarding.DoneTest do
     } do
       done_msg = [%CBOR.Tag{tag: :bytes, value: session.prove_dv_nonce}]
 
-      {:ok, ownership_voucher} = OwnershipVoucher.fetch(realm_name, session.guid)
-      {:ok, owner_public_key} = OwnershipVoucher.owner_public_key(ownership_voucher)
+      {:ok, ownership_voucher} = OwnershipVoucher.Core.fetch(realm_name, session.guid)
+      {:ok, owner_public_key} = OwnershipVoucher.Core.owner_public_key(ownership_voucher)
       rendezvous_info = ownership_voucher.header.rendezvous_info
       new_hmac = :crypto.strong_rand_bytes(32)
 
       session = %{
         session
         | replacement_guid: session.guid,
-          replacement_hmac: %Hash{hash: new_hmac, type: :hmac_sha256},
+          replacement_hmac: %Hash{type: :hmac_sha256, hash: new_hmac},
           replacement_rv_info: rendezvous_info,
           replacement_pub_key: owner_public_key
       }
@@ -93,8 +93,8 @@ defmodule Astarte.Pairing.FDO.Onboarding.DoneTest do
            realm: realm_name,
            session: session
          } do
-      {:ok, ownership_voucher} = OwnershipVoucher.fetch(realm_name, session.guid)
-      {:ok, owner_public_key} = OwnershipVoucher.owner_public_key(ownership_voucher)
+      {:ok, ownership_voucher} = OwnershipVoucher.Core.fetch(realm_name, session.guid)
+      {:ok, owner_public_key} = OwnershipVoucher.Core.owner_public_key(ownership_voucher)
       rendezvous_info = ownership_voucher.header.rendezvous_info
 
       session = %{
@@ -106,10 +106,10 @@ defmodule Astarte.Pairing.FDO.Onboarding.DoneTest do
       }
 
       done_msg = [%CBOR.Tag{tag: :bytes, value: session.prove_dv_nonce}]
-      {:ok, old_voucher} = OwnershipVoucher.fetch(realm_name, session.guid)
+      {:ok, old_voucher} = OwnershipVoucher.Core.fetch(realm_name, session.guid)
       {:ok, _} = OwnerOnboarding.done(realm_name, session, done_msg)
 
-      {:ok, voucher} = OwnershipVoucher.fetch(realm_name, session.guid)
+      {:ok, voucher} = OwnershipVoucher.Core.fetch(realm_name, session.guid)
 
       assert voucher.entries == old_voucher.entries
       assert voucher.hmac == old_voucher.hmac
@@ -122,24 +122,24 @@ defmodule Astarte.Pairing.FDO.Onboarding.DoneTest do
            realm: realm_name,
            session: session
          } do
-      {:ok, ownership_voucher} = OwnershipVoucher.fetch(realm_name, session.guid)
-      {:ok, owner_public_key} = OwnershipVoucher.owner_public_key(ownership_voucher)
+      {:ok, ownership_voucher} = OwnershipVoucher.Core.fetch(realm_name, session.guid)
+      {:ok, owner_public_key} = OwnershipVoucher.Core.owner_public_key(ownership_voucher)
       rendezvous_info = ownership_voucher.header.rendezvous_info
       new_hmac = :crypto.strong_rand_bytes(32)
 
       session = %{
         session
         | replacement_guid: session.guid,
-          replacement_hmac: %Hash{hash: new_hmac, type: :hmac_sha256},
+          replacement_hmac: %Hash{type: :hmac_sha256, hash: new_hmac},
           replacement_rv_info: rendezvous_info,
           replacement_pub_key: owner_public_key
       }
 
       done_msg = [%CBOR.Tag{tag: :bytes, value: session.prove_dv_nonce}]
-      {:ok, old_voucher} = OwnershipVoucher.fetch(realm_name, session.guid)
+      {:ok, old_voucher} = OwnershipVoucher.Core.fetch(realm_name, session.guid)
       {:ok, _} = OwnerOnboarding.done(realm_name, session, done_msg)
 
-      {:ok, voucher} = OwnershipVoucher.fetch(realm_name, session.guid)
+      {:ok, voucher} = OwnershipVoucher.Core.fetch(realm_name, session.guid)
 
       assert voucher.entries == []
 
@@ -160,15 +160,15 @@ defmodule Astarte.Pairing.FDO.Onboarding.DoneTest do
       realm: realm_name,
       session: session
     } do
-      {:ok, ownership_voucher} = OwnershipVoucher.fetch(realm_name, session.guid)
-      {:ok, owner_public_key} = OwnershipVoucher.owner_public_key(ownership_voucher)
+      {:ok, ownership_voucher} = OwnershipVoucher.Core.fetch(realm_name, session.guid)
+      {:ok, owner_public_key} = OwnershipVoucher.Core.owner_public_key(ownership_voucher)
       rendezvous_info = ownership_voucher.header.rendezvous_info
       new_hmac = :crypto.strong_rand_bytes(32)
 
       session = %{
         session
         | replacement_guid: session.guid,
-          replacement_hmac: %Hash{hash: new_hmac, type: :hmac_sha256},
+          replacement_hmac: %Hash{type: :hmac_sha256, hash: new_hmac},
           replacement_rv_info: rendezvous_info,
           replacement_pub_key: owner_public_key
       }

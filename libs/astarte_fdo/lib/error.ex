@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2025 SECO Mind Srl
+# Copyright 2026 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -16,7 +16,7 @@
 # limitations under the License.
 #
 
-defmodule Astarte.Pairing.FDO.Types.Error do
+defmodule Astarte.FDO.Error do
   @moduledoc """
   This module defines the structure of an error message in
   the FDO protocol, including the error code, previous message ID,
@@ -26,14 +26,14 @@ defmodule Astarte.Pairing.FDO.Types.Error do
   """
   use TypedStruct
 
-  alias Astarte.Pairing.FDO.Types.Error
+  alias Astarte.FDO.Error
 
   typedstruct do
-    field :error_code, non_neg_integer()
-    field :previous_message_id, non_neg_integer()
-    field :error_message, String.t()
-    field :timestamp, nil
-    field :correlation_id, non_neg_integer()
+    field(:error_code, non_neg_integer())
+    field(:previous_message_id, non_neg_integer())
+    field(:error_message, String.t())
+    field(:timestamp, nil)
+    field(:correlation_id, non_neg_integer())
   end
 
   def encode(error) do

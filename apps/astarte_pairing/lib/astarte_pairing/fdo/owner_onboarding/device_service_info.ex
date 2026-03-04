@@ -25,8 +25,8 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding.DeviceServiceInfo do
   It is part of a loop with TO2.OwnerServiceInfo and handles flow control.
   """
   use TypedStruct
+  alias Astarte.FDO.ServiceInfo
   alias Astarte.Pairing.FDO.OwnerOnboarding.DeviceServiceInfo
-  alias Astarte.Pairing.FDO.Types.ServiceInfo
 
   typedstruct enforce: true do
     @typedoc "Structure for TO2.DeviceServiceInfo message."

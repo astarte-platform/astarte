@@ -24,7 +24,7 @@ defmodule Astarte.Pairing.FDO.Rendezvous.OwnerSign.TO0D do
 
   use TypedStruct
 
-  alias Astarte.Pairing.FDO.OwnershipVoucher
+  alias Astarte.FDO.OwnershipVoucher
   alias Astarte.Pairing.FDO.Rendezvous.OwnerSign.TO0D
 
   typedstruct do

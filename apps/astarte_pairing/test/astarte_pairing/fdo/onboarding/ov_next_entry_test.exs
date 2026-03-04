@@ -19,7 +19,7 @@
 defmodule Astarte.Pairing.FDO.Onboarding.OvNextEntryTest do
   use ExUnit.Case, async: true
 
-  alias Astarte.Pairing.FDO.OwnershipVoucher
+  alias Astarte.FDO.OwnershipVoucher
   alias Astarte.Pairing.FDO.OwnershipVoucher.Core
 
   import Astarte.Helpers.FDO

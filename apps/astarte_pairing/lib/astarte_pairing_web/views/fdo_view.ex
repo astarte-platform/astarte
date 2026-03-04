@@ -19,8 +19,8 @@
 defmodule Astarte.PairingWeb.FDOView do
   use Astarte.PairingWeb, :view
 
+  alias Astarte.FDO.Error
   alias Astarte.Pairing.FDO.OwnerOnboarding.Session
-  alias Astarte.Pairing.FDO.Types.Error
 
   def render("default.cbor", %{cbor_response: response}) do
     response

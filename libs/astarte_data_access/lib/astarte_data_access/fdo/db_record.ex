@@ -16,14 +16,13 @@
 # limitations under the License.
 #
 
-defmodule Astarte.DataAccess.FDO.OwnershipVoucher do
+defmodule Astarte.DataAccess.FDO.OwnershipVoucher.DBRecord do
   @moduledoc """
-  Ownership Voucher information uploaded by the owner.
+  Ecto schema for persisting ownership voucher binary data to the database.
   """
-
   use TypedEctoSchema
   import Ecto.Changeset
-  alias Astarte.DataAccess.FDO.OwnershipVoucher
+  alias Astarte.DataAccess.FDO.OwnershipVoucher.DBRecord
 
   @primary_key false
   typed_schema "ownership_vouchers" do
@@ -33,8 +32,8 @@ defmodule Astarte.DataAccess.FDO.OwnershipVoucher do
   end
 
   @doc false
-  def changeset(%OwnershipVoucher{} = ownership_voucher, attrs) do
-    ownership_voucher
+  def changeset(%DBRecord{} = record, attrs) do
+    record
     |> cast(attrs, [:private_key, :voucher_data, :guid])
     |> validate_required([:private_key, :voucher_data, :guid])
   end

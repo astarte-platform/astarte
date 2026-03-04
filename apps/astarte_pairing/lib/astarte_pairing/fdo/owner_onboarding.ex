@@ -24,6 +24,10 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding do
   and supports key exchange parameter generation for secure device onboarding.
   """
 
+  alias Astarte.FDO.Hash
+  alias Astarte.FDO.OwnershipVoucher
+  alias Astarte.FDO.OwnershipVoucher.Header
+  alias Astarte.FDO.PublicKey
   alias Astarte.Pairing.Config
   alias Astarte.Pairing.FDO.OwnerOnboarding.DeviceAttestation
   alias Astarte.Pairing.FDO.OwnerOnboarding.DeviceServiceInfoReady
@@ -37,11 +41,7 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding do
   alias Astarte.Pairing.FDO.OwnerOnboarding.ProveOVHdr
   alias Astarte.Pairing.FDO.OwnerOnboarding.Session
   alias Astarte.Pairing.FDO.OwnerOnboarding.SetupDevicePayload
-  alias Astarte.Pairing.FDO.OwnershipVoucher
   alias Astarte.Pairing.FDO.OwnershipVoucher.Core, as: OwnershipVoucherCore
-  alias Astarte.Pairing.FDO.OwnershipVoucher.Header
-  alias Astarte.Pairing.FDO.Types.Hash
-  alias Astarte.Pairing.FDO.Types.PublicKey
   alias Astarte.Pairing.Queries
 
   require Logger
@@ -53,9 +53,9 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding do
   def hello_device(realm_name, cbor_hello_device) do
     with {:ok, hello_device} <- HelloDevice.decode(cbor_hello_device),
          guid = hello_device.guid,
-         {:ok, ownership_voucher} <- OwnershipVoucher.fetch(realm_name, guid),
+         {:ok, ownership_voucher} <- OwnershipVoucherCore.fetch(realm_name, guid),
          {:ok, owner_private_key} <- fetch_owner_private_key(realm_name, guid),
-         {:ok, pub_key} <- OwnershipVoucher.owner_public_key(ownership_voucher),
+         {:ok, pub_key} <- OwnershipVoucherCore.owner_public_key(ownership_voucher),
          :ok <- KeyExchangeStrategy.validate(hello_device.kex_name, owner_private_key),
          {:ok, token, session} <-
            Session.new(
@@ -129,7 +129,7 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding do
   def ov_next_entry(cbor_body, realm_name, guid) do
     # entry num represent the current entries we need to check for in the ov
     with {:ok, %GetOVNextEntry{entry_num: entry_num}} <- GetOVNextEntry.decode(cbor_body),
-         {:ok, ownership_voucher} <- OwnershipVoucher.fetch(realm_name, guid) do
+         {:ok, ownership_voucher} <- OwnershipVoucherCore.fetch(realm_name, guid) do
       OwnershipVoucherCore.get_ov_entry(ownership_voucher, entry_num)
     end
   end
@@ -140,9 +140,9 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding do
     # TODO: credential reuse requires also Owner2Key and/or rv info to be changed
     # for credential reuse; so far, there is no API to do so, so it-s limited to the guid
 
-    with {:ok, ownership_voucher} <- OwnershipVoucher.fetch(realm_name, guid),
+    with {:ok, ownership_voucher} <- OwnershipVoucherCore.fetch(realm_name, guid),
          {:ok, private_key} <- Queries.get_owner_private_key(realm_name, guid),
-         {:ok, owner_public_key} <- OwnershipVoucher.owner_public_key(ownership_voucher) do
+         {:ok, owner_public_key} <- OwnershipVoucherCore.owner_public_key(ownership_voucher) do
       rendezvous_info = ownership_voucher.header.rendezvous_info
 
       {:ok, private_key} = COSE.Keys.from_pem(private_key)
@@ -259,8 +259,6 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding do
       ) do
     with {:ok, _} <- Queries.fetch_session(realm_name, session.guid),
          {:ok, session} <-
-    with {:ok, _} <- Queries.fetch_session(realm_name, session.guid),
-         {:ok, session} <-
            Session.add_max_owner_service_info_size(session, realm_name, max_owner_service_info_sz),
          {:ok, session} <-
            Session.add_replacement_info(
@@ -299,7 +297,7 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding do
   defp maybe_replace_voucher(realm_name, to2_session) do
     if not OwnershipVoucher.credential_reuse?(to2_session) do
       with {:ok, old_voucher} <-
-             OwnershipVoucher.fetch(realm_name, to2_session.guid),
+             OwnershipVoucherCore.fetch(realm_name, to2_session.guid),
            {:ok, new_voucher} <-
              OwnershipVoucher.generate_replacement_voucher(old_voucher, to2_session),
            # TODO: change this line to ensure the retrieval of latest private key

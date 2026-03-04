@@ -35,11 +35,11 @@ defmodule Astarte.Cases.FDOSession do
   use ExUnit.CaseTemplate
 
   alias Astarte.Core.Device
+  alias Astarte.FDO.OwnershipVoucher
   alias Astarte.Pairing.FDO.OwnerOnboarding.HelloDevice
   alias Astarte.Pairing.FDO.OwnerOnboarding.KeyExchangeStrategy
   alias Astarte.Pairing.FDO.OwnerOnboarding.Session
   alias Astarte.Pairing.FDO.OwnerOnboarding.SessionKey
-  alias Astarte.Pairing.FDO.OwnershipVoucher
   alias COSE.Keys.{ECC, RSA}
 
   import Astarte.Helpers.Database

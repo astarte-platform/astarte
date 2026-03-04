@@ -22,7 +22,6 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding.SessionKey do
   including generation, shared secret computation, and key derivation for the session.
   """
 
-  alias Astarte.DataAccess.FDO.SessionKey
   alias Astarte.Pairing.FDO.OwnerOnboarding.Core
   alias COSE.Keys.{ECC, RSA}
   alias COSE.Keys.Symmetric
@@ -190,7 +189,6 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding.SessionKey do
              cipher_name in [:aes_128_gcm, :aes_128_ctr, :aes_128_cbc] do
     derive_sevk(
       cipher_name,
-      cipher_name,
       :hmac,
       :sha256,
       shared_secret,
@@ -203,7 +201,6 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding.SessionKey do
   def derive_key(kex_alg, :aes_256_gcm, shared_secret, owner_random)
       when kex_alg in ["ECDH256", "DHKEXid14", "ASYMKEX2048"] do
     derive_sevk(
-      :aes_256_gcm,
       :aes_256_gcm,
       :hmac,
       :sha256,
@@ -219,7 +216,6 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding.SessionKey do
              cipher_name in [:aes_128_gcm, :aes_128_ctr, :aes_128_cbc] do
     derive_sevk(
       cipher_name,
-      cipher_name,
       :hmac,
       :sha384,
       shared_secret,
@@ -233,7 +229,6 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding.SessionKey do
       when kex_alg in ["ECDH384", "DHKEXid15", "ASYMKEX3072"] do
     derive_sevk(
       :aes_192_gcm,
-      :aes_192_gcm,
       :hmac,
       :sha384,
       shared_secret,
@@ -246,7 +241,6 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding.SessionKey do
   def derive_key(kex_alg, :aes_256_gcm, shared_secret, owner_random)
       when kex_alg in ["ECDH384", "DHKEXid15", "ASYMKEX3072"] do
     derive_sevk(
-      :aes_256_gcm,
       :aes_256_gcm,
       :hmac,
       :sha384,
@@ -266,7 +260,6 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding.SessionKey do
   end
 
   defp derive_sevk(
-         key_type,
          cipher_aead,
          mac_type,
          mac_subtype,
@@ -288,14 +281,14 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding.SessionKey do
       sevk =
         Core.counter_mode_kdf(mac_type, mac_subtype, n, shared_secret, context, l)
         |> binary_part(0, key_byte_length)
-        |> build_key(key_type, cipher_aead)
+        |> build_key(cipher_aead)
 
       {:ok, sevk, nil, nil}
     end
   end
 
-  defp build_key(binary_key, key_type, cipher_aead) do
-    %Symmetric{kty: key_type, k: binary_key, alg: cipher_aead}
+  defp build_key(binary_key, cipher_aead) do
+    %Symmetric{k: binary_key, alg: cipher_aead}
   end
 
   @doc false
@@ -313,30 +306,4 @@ defmodule Astarte.Pairing.FDO.OwnerOnboarding.SessionKey do
         raise "unsupported dhkex group #{inspect(dhkex_group)}"
     end
   end
-
-  def to_db(nil), do: nil
-
-  def to_db(%Symmetric{alg: alg, k: k, kty: kty}) do
-    %SessionKey{alg: Atom.to_string(alg), k: k, kty: Atom.to_string(kty)}
-  end
-
-  def from_db(nil), do: nil
-
-  def from_db(%SessionKey{alg: alg, k: k, kty: kty}) do
-    %Symmetric{
-      alg: String.to_existing_atom(alg),
-      k: k,
-      kty: String.to_existing_atom(kty)
-    }
-  end
-
-  def from_db(%{"alg" => alg, "k" => k, "kty" => kty}) do
-    %Symmetric{
-      alg: String.to_existing_atom(alg),
-      k: k,
-      kty: String.to_existing_atom(kty)
-    }
-  end
-
-  def from_db(%{}), do: nil
 end
