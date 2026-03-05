@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2017 - 2025 SECO Mind Srl
+# Copyright 2017 - 2026 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -16,16 +16,17 @@
 # limitations under the License.
 #
 
-Mimic.copy(Astarte.DataAccess.Health.Health)
 Mimic.copy(Astarte.DataAccess.Config)
+Mimic.copy(Astarte.DataAccess.Health.Health)
 Mimic.copy(Astarte.DataAccess.Repo)
-Mimic.copy(Astarte.Housekeeping.Realms)
-Mimic.copy(Astarte.Housekeeping.Config)
-Mimic.copy(Astarte.Housekeeping.Realms.Queries)
-Mimic.copy(Xandra)
 Mimic.copy(Astarte.Events.AMQP)
+Mimic.copy(Astarte.Events.AMQP.Vhost)
 Mimic.copy(Astarte.Events.Config)
+Mimic.copy(Astarte.Housekeeping.Config)
+Mimic.copy(Astarte.Housekeeping.Realms)
+Mimic.copy(Astarte.Housekeeping.Realms.Queries)
 Mimic.copy(HTTPoison)
 Mimic.copy(HTTPoison.Base)
+Mimic.copy(Xandra)
 
 ExUnit.start(capture_log: true)
