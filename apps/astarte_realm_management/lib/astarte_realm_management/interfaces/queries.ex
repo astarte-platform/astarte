@@ -499,19 +499,7 @@ defmodule Astarte.RealmManagement.Interfaces.Queries do
 
       with {:ok, endpoints} <-
              Repo.fetch_all(endpoints_query, prefix: keyspace, consistency: consistency) do
-        mappings =
-          Enum.map(endpoints, fn endpoint ->
-            %Mapping{}
-            |> Mapping.changeset(Map.from_struct(endpoint),
-              interface_name: interface.name,
-              interface_id: interface.interface_id,
-              interface_major: interface.major_version,
-              interface_type: interface.type
-            )
-            |> Ecto.Changeset.apply_changes()
-            |> Map.from_struct()
-            |> Map.put(:type, endpoint.value_type)
-          end)
+        mappings = Enum.map(endpoints, &to_mapping(&1, interface))
 
         interface =
           interface
@@ -529,6 +517,19 @@ defmodule Astarte.RealmManagement.Interfaces.Queries do
         {:ok, interface_document}
       end
     end
+  end
+
+  defp to_mapping(endpoint, interface) do
+    %Mapping{}
+    |> Mapping.changeset(Map.from_struct(endpoint),
+      interface_name: interface.name,
+      interface_id: interface.interface_id,
+      interface_major: interface.major_version,
+      interface_type: interface.type
+    )
+    |> Ecto.Changeset.apply_changes()
+    |> Map.from_struct()
+    |> Map.put(:type, endpoint.value_type)
   end
 
   @doc """
@@ -639,14 +640,18 @@ defmodule Astarte.RealmManagement.Interfaces.Queries do
   def delete_interface_storage(realm_name, %InterfaceDescriptor{} = interface_descriptor) do
     with {:ok, result} <- devices_with_data_on_interface(realm_name, interface_descriptor.name) do
       Enum.reduce_while(result, :ok, fn encoded_device_id, _acc ->
-        with {:ok, device_id} <- Device.decode_device_id(encoded_device_id),
-             :ok <- delete_values(realm_name, device_id, interface_descriptor) do
-          {:cont, :ok}
-        else
-          {:error, reason} ->
-            {:halt, {:error, reason}}
-        end
+        delete_device_values(realm_name, encoded_device_id, interface_descriptor)
       end)
+    end
+  end
+
+  defp delete_device_values(realm_name, encoded_device_id, interface_descriptor) do
+    with {:ok, device_id} <- Device.decode_device_id(encoded_device_id),
+         :ok <- delete_values(realm_name, device_id, interface_descriptor) do
+      {:cont, :ok}
+    else
+      {:error, reason} ->
+        {:halt, {:error, reason}}
     end
   end
 
