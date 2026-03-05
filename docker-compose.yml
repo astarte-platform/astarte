@@ -216,6 +216,10 @@ services:
           - broker.${DOCKER_COMPOSE_ASTARTE_BASE_DOMAIN}
           - ${FDO_REALM:-test}.api.${DOCKER_COMPOSE_ASTARTE_BASE_DOMAIN}
 
+  openbao:
+    image: openbao/openbao:2
+    command: server -dev -dev-root-token-id="${ASTARTE_OPENBAO_TOKEN}"
+
   rendezvous:
     image: astarte/go-fdo-server:ade68cda47-20251128
     restart: on-failure
