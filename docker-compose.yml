@@ -68,6 +68,7 @@ services:
       ASTARTE_BASE_URL_PROTOCOL: "http"
       PAIRING_FDO_RENDEZVOUS_URL: "http://rendezvous:8041"
       PAIRING_FDO_ENABLE_CREDENTIAL_REUSE: true
+      ASTARTE_OPENBAO_URL: "http://openbao:8200"
     restart: on-failure
     depends_on:
       - "rabbitmq"

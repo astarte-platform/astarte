@@ -38,4 +38,26 @@ defmodule Astarte.Pairing.FDO.OpenBao.Client do
 
     Keyword.merge(auth_opts, options)
   end
+
+  @impl true
+  def process_request_headers(headers) do
+    case Config.bao_authentication() do
+      {:ok, {:token, token}} ->
+        maybe_add_default_token(headers, token)
+
+      _ ->
+        headers
+    end
+  end
+
+  defp maybe_add_default_token(headers, token) do
+    # If the token is not already set, add the default token
+    case Enum.find(headers, &authentication_header?/1) do
+      nil -> [{"X-Vault-Token", token} | headers]
+      _ -> headers
+    end
+  end
+
+  defp authentication_header?({header, _value}),
+    do: String.downcase(header, :ascii) in ["x-vault-token", "authorization"]
 end
