@@ -46,22 +46,26 @@ defmodule Astarte.RealmManagement.Triggers.Core do
       initial_acc = {:ok, %{trigger: trigger, tagged_simple_triggers: []}}
 
       # TODO: use batch
-      Enum.reduce_while(simple_triggers_uuids, initial_acc, fn uuid, {:ok, acc} ->
-        case Queries.retrieve_tagged_simple_trigger(realm_name, parent_uuid, uuid) do
-          {:ok, %TaggedSimpleTrigger{} = result} ->
-            tagged_simple_triggers = [result | acc.tagged_simple_triggers]
-            acc = %{acc | tagged_simple_triggers: tagged_simple_triggers}
-            {:cont, {:ok, acc}}
-
-          _error ->
-            Logger.warning("Failed to get trigger.",
-              trigger_name: trigger_name,
-              tag: "get_trigger_fail"
-            )
-
-            {:halt, {:error, :cannot_retrieve_simple_trigger}}
-        end
+      Enum.reduce_while(simple_triggers_uuids, initial_acc, fn simple_trigger_uuid, {:ok, acc} ->
+        add_tagged_simple_trigger(realm_name, trigger_name, parent_uuid, simple_trigger_uuid, acc)
       end)
+    end
+  end
+
+  defp add_tagged_simple_trigger(realm_name, trigger_name, parent_uuid, simple_trigger_uuid, acc) do
+    case Queries.retrieve_tagged_simple_trigger(realm_name, parent_uuid, simple_trigger_uuid) do
+      {:ok, %TaggedSimpleTrigger{} = result} ->
+        tagged_simple_triggers = [result | acc.tagged_simple_triggers]
+        acc = %{acc | tagged_simple_triggers: tagged_simple_triggers}
+        {:cont, {:ok, acc}}
+
+      _error ->
+        Logger.warning("Failed to get trigger.",
+          trigger_name: trigger_name,
+          tag: "get_trigger_fail"
+        )
+
+        {:halt, {:error, :cannot_retrieve_simple_trigger}}
     end
   end
 

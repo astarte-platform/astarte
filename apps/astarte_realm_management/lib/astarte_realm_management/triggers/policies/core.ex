@@ -41,14 +41,18 @@ defmodule Astarte.RealmManagement.Triggers.Policies.Core do
 
     with :ok <- TriggersCore.verify_trigger_policy_exists(realm_name, policy_name),
          :ok <- TriggersCore.verify_trigger_policy_has_no_triggers(realm_name, policy_name) do
-      if opts[:async] do
-        {:ok, _pid} =
-          Task.start(fn -> execute_trigger_policy_deletion(realm_name, policy_name) end)
+      do_delete_trigger_policy(realm_name, policy_name, opts)
+    end
+  end
 
-        :ok
-      else
-        execute_trigger_policy_deletion(realm_name, policy_name)
-      end
+  defp do_delete_trigger_policy(realm_name, policy_name, opts) do
+    if opts[:async] do
+      {:ok, _pid} =
+        Task.start(fn -> execute_trigger_policy_deletion(realm_name, policy_name) end)
+
+      :ok
+    else
+      execute_trigger_policy_deletion(realm_name, policy_name)
     end
   end
 

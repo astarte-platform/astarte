@@ -50,19 +50,23 @@ defmodule Astarte.RealmManagementWeb.Telemetry.DatabaseEvents do
   def handle_event([:xandra | event], measurements, metadata, :expose) do
     with :bounce <- validate_event(event) do
       Task.Supervisor.start_child(TelemetryTaskSupervisor, fn ->
-        with :ok <- filter_event(event, metadata) do
-          :telemetry.execute(
-            [:astarte, :realm_management, :database] ++ event,
-            measurements,
-            metadata
-          )
-        end
+        start_telemetry_task(event, metadata, measurements)
       end)
     end
   end
 
   def handle_event(event, measurements, metadata, :log) do
     Xandra.Telemetry.handle_event(event, measurements, metadata, :no_config)
+  end
+
+  defp start_telemetry_task(event, metadata, measurements) do
+    with :ok <- filter_event(event, metadata) do
+      :telemetry.execute(
+        [:astarte, :realm_management, :database] ++ event,
+        measurements,
+        metadata
+      )
+    end
   end
 
   defp validate_event(event) do
