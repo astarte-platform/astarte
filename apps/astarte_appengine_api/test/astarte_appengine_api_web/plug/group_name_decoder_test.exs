@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2024 - 2025 SECO Mind Srl
+# Copyright 2024 - 2026 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -16,14 +16,17 @@
 # limitations under the License.
 
 defmodule Astarte.AppEngine.APIWeb.Plug.GroupNameDecoderTest do
-  use Astarte.Cases.Conn
   use ExUnitProperties
-  alias Astarte.AppEngine.API.GroupTestGenerator
+
+  use Astarte.Cases.Conn
+
+  alias Astarte.Core.Generators.Group, as: GroupGenerator
+
   alias Astarte.AppEngine.APIWeb.Plug.GroupNameDecoder
 
   @tag issue: 904
   property "call/2 decode path" do
-    check all raw <- GroupTestGenerator.group_name() do
+    check all raw <- GroupGenerator.name() do
       conn = build_conn()
       # Normally, phx does encoding
       encoded =

@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2025 SECO Mind Srl
+# Copyright 2025 - 2026 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -20,11 +20,11 @@ defmodule Astarte.AppEngine.API.Device.DeviceV2Test do
   use Astarte.Cases.Device
   use ExUnitProperties
 
+  import Astarte.Generators.InterfaceUpdate
+  import Astarte.Helpers.Device
+
   alias Astarte.AppEngine.API.Device
   alias Astarte.AppEngine.API.Device.InterfaceValues
-
-  import Astarte.Helpers.Device
-  import Astarte.InterfaceUpdateGenerators
 
   describe "update_interface_value" do
     property "returns the given value for valid parameters", context do
