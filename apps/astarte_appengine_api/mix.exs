@@ -22,7 +22,7 @@ defmodule Astarte.AppEngine.API.Mixfile do
     [
       app: :astarte_appengine_api,
       elixir: "~> 1.15",
-      version: "1.2.1-rc.1",
+      version: "1.2.1",
       elixirc_paths: elixirc_paths(Mix.env()),
       start_permanent: Mix.env() == :prod,
       test_coverage: [tool: ExCoveralls],
@@ -68,12 +68,11 @@ defmodule Astarte.AppEngine.API.Mixfile do
 
   defp astarte_required_modules(_) do
     [
-      {:astarte_core, github: "astarte-platform/astarte_core", branch: "release-1.2"},
-      {:astarte_data_access,
-       github: "astarte-platform/astarte_data_access", branch: "release-1.2"},
+      {:astarte_core, "~> 1.2", override: true},
+      {:astarte_data_access, "~> 1.2"},
       {:astarte_generators, github: "astarte-platform/astarte_generators", only: [:dev, :test]},
       {:astarte_realm_management,
-       path: "../astarte_realm_management", only: [:dev, :test], runtime: false}
+       path: "../astarte_realm_management", only: :test, runtime: false}
     ]
   end
 
