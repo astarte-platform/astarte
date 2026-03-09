@@ -107,8 +107,6 @@ defmodule Astarte.Pairing.FDO.OpenBao.CoreTest do
   end
 
   describe "create_nested_namespace/1" do
-    @describetag skip: "needs openbao in ci"
-
     setup :create_nested_namespace_setup
 
     test "returns the final namespace created", context do
@@ -130,7 +128,7 @@ defmodule Astarte.Pairing.FDO.OpenBao.CoreTest do
   end
 
   defp create_nested_namespace_setup(_context) do
-    namespace = "/some/namespace/path"
+    namespace = "some/namespace/path"
     tokens = namespace |> String.split("/", trim: true)
     all_namespaces = ["some/", "some/namespace/", "some/namespace/path/"]
 

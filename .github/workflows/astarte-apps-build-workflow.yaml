@@ -74,6 +74,8 @@ jobs:
     needs:
       - warmup
     runs-on: ubuntu-22.04
+    env:
+      ASTARTE_OPENBAO_TOKEN: "astarte_token"
     strategy:
       fail-fast: false
       matrix:
@@ -82,6 +84,8 @@ jobs:
           - "scylladb/scylla:2025.2.2"
         rabbitmq:
           - "rabbitmq:3.12.0-management"
+        openbao:
+          - "openbao/openbao:2"
     services:
       rabbitmq:
         image: ${{ matrix.rabbitmq }}
@@ -101,6 +105,19 @@ jobs:
         image: ispirata/docker-alpine-cfssl-autotest:astarte
         ports:
           - 8080/tcp
+      openbao:
+        image: ${{ matrix.openbao }}
+        ports:
+          - 8200:8200
+        env:
+          BAO_DEV_ROOT_TOKEN_ID: ${{ env.ASTARTE_OPENBAO_TOKEN }}
+          BAO_DEV_LISTEN_ADDRESS: "0.0.0.0:8200"
+        options: >-
+          --health-cmd "bao status -address=http://127.0.0.1:8200 || exit 1"
+          --health-interval=2s
+          --health-timeout=2s
+          --health-retries=5
+
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
       - uses: team-alembic/staple-actions/actions/mix-task@a74b3b61209d35d45526df174766632f8aee03ed

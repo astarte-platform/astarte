@@ -27,6 +27,47 @@ defmodule Astarte.Pairing.FDO.OpenBao.Core do
 
   require Logger
 
+  @type key_algorithm :: :ec256 | :ec384 | :rsa2048 | :rsa3072
+
+  @spec key_type_to_string(key_algorithm()) :: {:ok, String.t()} | :error
+  def key_type_to_string(key_type) do
+    case key_type do
+      :ec256 -> {:ok, "ecdsa-p256"}
+      :ec384 -> {:ok, "ecdsa-p384"}
+      :rsa2048 -> {:ok, "rsa-2048"}
+      :rsa3072 -> {:ok, "rsa-3072"}
+      _ -> :error
+    end
+  end
+
+  @spec create_keypair(String.t(), String.t(), boolean(), String.t()) ::
+          :error | {:error, Jason.DecodeError.t()} | {:ok, any()}
+  def create_keypair(key_name, key_type, allow_key_export_and_backup, namespace) do
+    req_body =
+      %{
+        type: key_type,
+        exportable: allow_key_export_and_backup,
+        allow_plaintext_backup: allow_key_export_and_backup
+      }
+      |> Jason.encode!()
+
+    headers = [{"Content-Type", "application/json"}]
+
+    options = [{:namespace, namespace}]
+
+    case Client.post("/transit/keys/#{key_name}", req_body, headers, options) do
+      {:ok, %HTTPoison.Response{status_code: 200, body: resp_body}} ->
+        parse_json_data(resp_body)
+
+      error_resp ->
+        Logger.error(
+          "Encountered HTTP error while creating key #{key_name}: #{inspect(error_resp)}"
+        )
+
+        :error
+    end
+  end
+
   @doc """
   Returns the namespace name for the given params, represented as a list of tokens
   """
@@ -50,11 +91,12 @@ defmodule Astarte.Pairing.FDO.OpenBao.Core do
 
   def create_nested_namespace(namespace_tokens) do
     Enum.reduce_while(namespace_tokens, {:ok, ""}, fn new_namespace, {:ok, base_namespace} ->
-      headers = [{"X-Vault-Namespace", base_namespace}]
+      headers = []
+      options = [namespace: base_namespace]
 
-      case Client.post("/sys/namespaces/#{new_namespace}", "", headers) do
+      case Client.post("/sys/namespaces/#{new_namespace}", "", headers, options) do
         {:ok, %HTTPoison.Response{status_code: 200}} ->
-          new_base_namespace = base_namespace <> "/" <> new_namespace
+          new_base_namespace = Path.join(base_namespace, new_namespace)
           {:cont, {:ok, new_base_namespace}}
 
         error ->
@@ -64,6 +106,24 @@ defmodule Astarte.Pairing.FDO.OpenBao.Core do
           {:halt, {:error, :namespace_creation_error}}
       end
     end)
+  end
+
+  def mount_transit_engine(namespace) do
+    req_body = %{type: "transit"} |> Jason.encode!()
+    headers = [{"Content-Type", "application/json"}]
+    options = [{:namespace, namespace}]
+
+    case Client.post("/sys/mounts/transit", req_body, headers, options) do
+      {:ok, %HTTPoison.Response{status_code: 204}} ->
+        :ok
+
+      error_resp ->
+        Logger.error(
+          "Encountered HTTP error while mounting transit engine in namespace #{namespace}: #{inspect(error_resp)}"
+        )
+
+        :error
+    end
   end
 
   defp parse_data_key(json_str, key) do

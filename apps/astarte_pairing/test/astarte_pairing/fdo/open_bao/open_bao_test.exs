@@ -20,6 +20,7 @@ defmodule Astarte.Pairing.FDO.OpenBaoTest do
   use ExUnit.Case, async: true
   use Mimic
 
+  alias Astarte.Pairing.Config
   alias Astarte.Pairing.FDO.OpenBao
   alias Astarte.Pairing.FDO.OpenBao.Core
 
@@ -39,5 +40,115 @@ defmodule Astarte.Pairing.FDO.OpenBaoTest do
 
       assert {:ok, _} = OpenBao.create_namespace(realm_name, user_id, key_algorithm)
     end
+  end
+
+  describe "successfully create and delete a key pair in OpenBao" do
+    setup context do
+      key_type = Map.get(context, :key_type)
+      {:ok, key_type_to_string} = Core.key_type_to_string(key_type)
+      realm_name = "realm#{System.unique_integer([:positive])}"
+      {:ok, namespace} = OpenBao.create_namespace(realm_name, key_type_to_string)
+      key_name = "some_key_#{key_type_to_string}"
+      allow_key_export_and_backup = true
+
+      opts = [
+        {:token, Config.bao_token!()},
+        {:namespace, namespace},
+        {:allow_key_export_and_backup, allow_key_export_and_backup}
+      ]
+
+      %{
+        key_name: key_name,
+        key_type: key_type,
+        key_type_to_string: key_type_to_string,
+        allow_key_export_and_backup: allow_key_export_and_backup,
+        opts: opts
+      }
+    end
+
+    @tag key_type: :ec256
+    test "of type EC256", %{
+      key_name: key_name,
+      key_type: key_type,
+      key_type_to_string: key_type_to_string,
+      allow_key_export_and_backup: allow_key_export_and_backup,
+      opts: opts
+    } do
+      assert {:ok, key_data} = OpenBao.create_keypair(key_name, key_type, opts)
+
+      assert %{
+               "name" => ^key_name,
+               "type" => ^key_type_to_string,
+               "exportable" => ^allow_key_export_and_backup,
+               "allow_plaintext_backup" => ^allow_key_export_and_backup
+             } = key_data
+
+      assert :ok == cleanup_key(key_name, opts)
+    end
+
+    @tag key_type: :ec384
+    test "of type EC384", %{
+      key_name: key_name,
+      key_type: key_type,
+      key_type_to_string: key_type_to_string,
+      allow_key_export_and_backup: allow_key_export_and_backup,
+      opts: opts
+    } do
+      assert {:ok, key_data} = OpenBao.create_keypair(key_name, key_type, opts)
+
+      assert %{
+               "name" => ^key_name,
+               "type" => ^key_type_to_string,
+               "exportable" => ^allow_key_export_and_backup,
+               "allow_plaintext_backup" => ^allow_key_export_and_backup
+             } = key_data
+
+      assert :ok == cleanup_key(key_name, opts)
+    end
+
+    @tag key_type: :rsa2048
+    test "of type RSA2048", %{
+      key_name: key_name,
+      key_type: key_type,
+      key_type_to_string: key_type_to_string,
+      allow_key_export_and_backup: allow_key_export_and_backup,
+      opts: opts
+    } do
+      assert {:ok, key_data} = OpenBao.create_keypair(key_name, key_type, opts)
+
+      assert %{
+               "name" => ^key_name,
+               "type" => ^key_type_to_string,
+               "exportable" => ^allow_key_export_and_backup,
+               "allow_plaintext_backup" => ^allow_key_export_and_backup
+             } = key_data
+
+      assert :ok == cleanup_key(key_name, opts)
+    end
+
+    @tag key_type: :rsa3072
+    test "of type RSA3072", %{
+      key_name: key_name,
+      key_type: key_type,
+      key_type_to_string: key_type_to_string,
+      allow_key_export_and_backup: allow_key_export_and_backup,
+      opts: opts
+    } do
+      assert {:ok, key_data} = OpenBao.create_keypair(key_name, key_type, opts)
+
+      assert %{
+               "name" => ^key_name,
+               "type" => ^key_type_to_string,
+               "exportable" => ^allow_key_export_and_backup,
+               "allow_plaintext_backup" => ^allow_key_export_and_backup
+             } = key_data
+
+      assert :ok == cleanup_key(key_name, opts)
+    end
+  end
+
+  defp cleanup_key(key_name, opts) do
+    OpenBao.enable_key_deletion(key_name, opts)
+    OpenBao.delete_key(key_name, opts)
   end
 end
