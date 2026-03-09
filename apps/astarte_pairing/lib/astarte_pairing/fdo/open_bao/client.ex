@@ -25,6 +25,8 @@ defmodule Astarte.Pairing.FDO.OpenBao.Client do
 
   alias Astarte.Pairing.Config
 
+  # TODO add implementation for LIST operations
+
   @impl true
   def process_request_url(url) do
     Config.bao_url!() <> url
