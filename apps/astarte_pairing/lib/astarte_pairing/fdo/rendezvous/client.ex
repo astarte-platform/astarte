@@ -36,7 +36,7 @@ defmodule Astarte.Pairing.FDO.Rendezvous.Client do
   @impl true
   def process_request_options(options) do
     auth_opts = [
-      # ssl: Config.ssl_options!() no ssl?
+      ssl: Config.fdo_rendezvous_ssl_options!()
     ]
 
     Keyword.merge(auth_opts, options)
