@@ -103,5 +103,7 @@ config :astarte_pairing, :base_url_port, 4003
 config :astarte_pairing, :base_url_protocol, :http
 config :astarte_pairing, :enable_credential_reuse, true
 
+config :astarte_pairing, bao_authentication_mechanism: :token, bao_token: ""
+
 config :bcrypt_elixir,
   log_rounds: 4

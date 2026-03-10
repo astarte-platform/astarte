@@ -68,6 +68,7 @@ services:
       ASTARTE_BASE_URL_PROTOCOL: "http"
       PAIRING_FDO_RENDEZVOUS_URL: "http://rendezvous:8041"
       PAIRING_FDO_ENABLE_CREDENTIAL_REUSE: true
+      ASTARTE_OPENBAO_URL: "http://openbao:8200"
     restart: on-failure
     depends_on:
       - "rabbitmq"
@@ -215,6 +216,10 @@ services:
           - grafana.${DOCKER_COMPOSE_ASTARTE_BASE_DOMAIN}
           - broker.${DOCKER_COMPOSE_ASTARTE_BASE_DOMAIN}
           - ${FDO_REALM:-test}.api.${DOCKER_COMPOSE_ASTARTE_BASE_DOMAIN}
+
+  openbao:
+    image: openbao/openbao:2
+    command: server -dev -dev-root-token-id="${ASTARTE_OPENBAO_TOKEN}"
 
   rendezvous:
     image: astarte/go-fdo-server:ade68cda47-20251128

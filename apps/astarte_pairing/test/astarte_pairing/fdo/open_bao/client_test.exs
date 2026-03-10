@@ -95,6 +95,54 @@ defmodule Astarte.Pairing.FDO.OpenBao.ClientTest do
     end
   end
 
+  describe "using token authentication" do
+    setup :token_authentication
+
+    test "the token header is not added if the 'Authorization' header exists" do
+      path = "/example"
+      new_token = UUID.uuid4()
+      bearer = "Bearer " <> new_token
+
+      validate_request(fn _method, _url, headers, _body, _opts ->
+        assert [bearer] == get_header(headers, "authorization")
+        assert [] == get_header(headers, "x-vault-token")
+      end)
+
+      Client.get(path, [{"Authorization", bearer}])
+    end
+
+    test "the token header is not added if the 'X-Vault-Token' header exists" do
+      path = "/example"
+      new_token = UUID.uuid4()
+
+      validate_request(fn _method, _url, headers, _body, _opts ->
+        assert [] == get_header(headers, "authorization")
+        assert [new_token] == get_header(headers, "x-vault-token")
+      end)
+
+      Client.get(path, [{"X-Vault-Token", new_token}])
+    end
+
+    test "adds the vault token if no other token is specified", %{token: token} do
+      path = "/example"
+
+      validate_request(fn _method, _url, headers, _body, _opts ->
+        assert [] == get_header(headers, "authorization")
+        assert [token] == get_header(headers, "x-vault-token")
+      end)
+
+      Client.get(path)
+    end
+  end
+
+  defp token_authentication(_context) do
+    token = UUID.uuid4()
+    stub(Config, :bao_authentication, fn -> {:ok, {:token, token}} end)
+    stub(Config, :bao_authentication!, fn -> {:token, token} end)
+
+    %{token: token}
+  end
+
   defp enable_ssl(_context) do
     stub(Config, :bao_ssl_enabled!, fn -> true end)
     :ok
@@ -105,5 +153,12 @@ defmodule Astarte.Pairing.FDO.OpenBao.ClientTest do
       validation_fun.(method, url, headers, body, opts)
       {:ok, 200, []}
     end)
+  end
+
+  defp get_header(headers, header) do
+    Enum.filter(headers, fn {header_name, _} ->
+      String.downcase(header_name) == header
+    end)
+    |> Enum.map(fn {_header, value} -> value end)
   end
 end
