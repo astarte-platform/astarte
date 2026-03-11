@@ -42,7 +42,8 @@ defmodule Astarte.DataAccess.Mappings do
     :allow_unset,
     :explicit_timestamp,
     :endpoint_id,
-    :interface_id
+    :interface_id,
+    :required
   ]
 
   @spec fetch_interface_mappings(String.t(), binary, keyword) ::
