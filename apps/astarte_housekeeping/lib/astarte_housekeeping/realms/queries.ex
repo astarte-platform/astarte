@@ -807,6 +807,7 @@ defmodule Astarte.Housekeeping.Realms.Queries do
       explicit_timestamp boolean,
       description varchar,
       doc varchar,
+      required boolean,
 
       PRIMARY KEY ((interface_id), endpoint_id)
     );

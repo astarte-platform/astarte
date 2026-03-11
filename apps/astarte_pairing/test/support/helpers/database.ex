@@ -187,6 +187,7 @@ defmodule Astarte.Helpers.Database do
     explicit_timestamp boolean,
     description text,
     doc text,
+    required boolean,
 
     PRIMARY KEY ((interface_id), endpoint_id)
   )
