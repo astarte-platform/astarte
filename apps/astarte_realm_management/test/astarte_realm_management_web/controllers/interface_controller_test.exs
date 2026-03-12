@@ -60,6 +60,22 @@ defmodule Astarte.RealmManagementWeb.InterfaceControllerTest do
     ]
   }
 
+  @iface_with_required_mappings %{
+    "interface_name" => @interface_name,
+    "version_major" => @interface_major,
+    "version_minor" => 2,
+    "type" => "datastream",
+    "ownership" => "device",
+    "aggregation" => "object",
+    "mappings" => [
+      %{
+        "endpoint" => "/test",
+        "type" => "integer",
+        "required" => true
+      }
+    ]
+  }
+
   setup %{realm: realm, astarte_instance_id: astarte_instance_id} do
     on_exit(fn ->
       Database.setup_database_access(astarte_instance_id)
@@ -179,6 +195,24 @@ defmodule Astarte.RealmManagementWeb.InterfaceControllerTest do
 
       post2_conn = post(conn, interface_path(conn, :create, realm), data: @valid_attrs)
       assert json_response(post2_conn, 409)["errors"] != %{}
+    end
+
+    test "renders interface on required mapping", %{
+      auth_conn: conn,
+      realm: realm
+    } do
+      conn =
+        post(conn, interface_path(conn, :create, realm),
+          data: @iface_with_required_mappings,
+          async_operation: "false"
+        )
+
+      assert response(conn, 201) == ""
+
+      get_conn =
+        get(conn, interface_path(conn, :show, realm, @interface_name, @interface_major_str))
+
+      assert json_response(get_conn, 200)["data"] == @iface_with_required_mappings
     end
 
     test "renders error on mapping with higher database_retention_ttl than the maximum", %{

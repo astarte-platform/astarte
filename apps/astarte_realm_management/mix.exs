@@ -64,8 +64,7 @@ defmodule Astarte.RealmManagement.Mixfile do
 
   defp astarte_required_modules(_) do
     [
-      {:astarte_core,
-       github: "astarte-platform/astarte_core", branch: "release-1.3", override: true}
+      {:astarte_core, github: "astarte-platform/astarte_core", branch: "master", override: true}
     ]
   end
 
