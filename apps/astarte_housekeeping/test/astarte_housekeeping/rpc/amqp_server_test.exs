@@ -90,7 +90,7 @@ defmodule Astarte.Housekeeping.RPC.HandlerTest do
 
   test "invalid empty message" do
     encoded =
-      Call.new()
+      %Call{}
       |> Call.encode()
 
     assert Handler.handle_rpc(encoded) == {:error, :empty_call}
@@ -98,7 +98,7 @@ defmodule Astarte.Housekeeping.RPC.HandlerTest do
 
   test "CreateRealm call with nil realm" do
     encoded =
-      Call.new(call: {:create_realm, CreateRealm.new()})
+      %Call{call: {:create_realm, %CreateRealm{}}}
       |> Call.encode()
 
     expected = generic_error("empty_name", "empty realm name")
@@ -110,7 +110,7 @@ defmodule Astarte.Housekeeping.RPC.HandlerTest do
 
   test "CreateRealm call with nil public key" do
     encoded =
-      Call.new(call: {:create_realm, CreateRealm.new(realm: @test_realm)})
+      %Call{call: {:create_realm, %CreateRealm{realm: @test_realm}}}
       |> Call.encode()
 
     expected = generic_error("empty_public_key", "empty jwt public key pem")
@@ -122,11 +122,11 @@ defmodule Astarte.Housekeeping.RPC.HandlerTest do
 
   test "valid call, invalid realm_name" do
     encoded =
-      Call.new(
+      %Call{
         call:
           {:create_realm,
-           CreateRealm.new(realm: @invalid_test_realm, jwt_public_key_pem: @public_key_pem)}
-      )
+           %CreateRealm{realm: @invalid_test_realm, jwt_public_key_pem: @public_key_pem}}
+      }
       |> Call.encode()
 
     {:ok, reply} = Handler.handle_rpc(encoded)
@@ -140,11 +140,10 @@ defmodule Astarte.Housekeeping.RPC.HandlerTest do
     end)
 
     encoded =
-      Call.new(
+      %Call{
         call:
-          {:create_realm,
-           CreateRealm.new(realm: @test_realm, jwt_public_key_pem: @public_key_pem)}
-      )
+          {:create_realm, %CreateRealm{realm: @test_realm, jwt_public_key_pem: @public_key_pem}}
+      }
       |> Call.encode()
 
     {:ok, create_reply} = Handler.handle_rpc(encoded)
@@ -208,15 +207,15 @@ defmodule Astarte.Housekeeping.RPC.HandlerTest do
     end)
 
     encoded =
-      Call.new(
+      %Call{
         call:
           {:create_realm,
-           CreateRealm.new(
+           %CreateRealm{
              realm: @test_realm,
              jwt_public_key_pem: @public_key_pem,
              replication_factor: @replication_factor
-           )}
-      )
+           }}
+      }
       |> Call.encode()
 
     {:ok, create_reply} = Handler.handle_rpc(encoded)
@@ -251,16 +250,16 @@ defmodule Astarte.Housekeeping.RPC.HandlerTest do
     end)
 
     encoded =
-      Call.new(
+      %Call{
         call:
           {:create_realm,
-           CreateRealm.new(
+           %CreateRealm{
              realm: @test_realm,
              jwt_public_key_pem: @public_key_pem,
              replication_class: :NETWORK_TOPOLOGY_STRATEGY,
              datacenter_replication_factors: %{"datacenter1" => 1}
-           )}
-      )
+           }}
+      }
       |> Call.encode()
 
     {:ok, create_reply} = Handler.handle_rpc(encoded)
@@ -292,15 +291,15 @@ defmodule Astarte.Housekeeping.RPC.HandlerTest do
 
   test "realm creation fails with invalid SimpleStrategy replication" do
     encoded =
-      Call.new(
+      %Call{
         call:
           {:create_realm,
-           CreateRealm.new(
+           %CreateRealm{
              realm: @test_realm,
              jwt_public_key_pem: @public_key_pem,
              replication_factor: 9
-           )}
-      )
+           }}
+      }
       |> Call.encode()
 
     {:ok, create_reply} = Handler.handle_rpc(encoded)
@@ -313,16 +312,16 @@ defmodule Astarte.Housekeeping.RPC.HandlerTest do
 
   test "realm creation fails with invalid NetworkTopologyStrategy replication" do
     encoded =
-      Call.new(
+      %Call{
         call:
           {:create_realm,
-           CreateRealm.new(
+           %CreateRealm{
              realm: @test_realm,
              jwt_public_key_pem: @public_key_pem,
              replication_class: :NETWORK_TOPOLOGY_STRATEGY,
              datacenter_replication_factors: [{"imaginarydatacenter", 3}]
-           )}
-      )
+           }}
+      }
       |> Call.encode()
 
     {:ok, create_reply} = Handler.handle_rpc(encoded)
@@ -368,15 +367,15 @@ defmodule Astarte.Housekeeping.RPC.HandlerTest do
     end)
 
     encoded =
-      Call.new(
+      %Call{
         call:
           {:create_realm,
-           CreateRealm.new(
+           %CreateRealm{
              realm: @test_realm,
              jwt_public_key_pem: @public_key_pem,
              replication_factor: @replication_factor
-           )}
-      )
+           }}
+      }
       |> Call.encode()
 
     {:ok, create_reply} = Handler.handle_rpc(encoded)

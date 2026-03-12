@@ -1,7 +1,7 @@
 defmodule Doc.MixProject do
   use Mix.Project
 
-  @source_ref "release-1.0"
+  @source_ref "release-1.2"
 
   def project do
     source_version =
@@ -10,7 +10,7 @@ defmodule Doc.MixProject do
 
     [
       app: :doc,
-      version: "1.2.0",
+      version: "1.2.1",
       elixir: "~> 1.14",
       start_permanent: Mix.env() == :prod,
       deps: deps(),

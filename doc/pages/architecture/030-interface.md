@@ -156,7 +156,7 @@ The following types are supported:
 * `doublearray`, `integerarray`, `booleanarray`, `longintegerarray`, `stringarray`,
   `binaryblobarray`, `datetimearray`: A list of values, represented as a JSON Array. Arrays can have
   up to 1024 items and each item must respect the limits of its scalar type (_i.e._ each string in a
-  `stringarray` must be at most 65535 bytes long, each binary blob in a `binaryblobarray` must be
+  `stringarray` must be at most 65536 bytes long, each binary blob in a `binaryblobarray` must be
   shorter than 64 KiB.
 
 Make sure that the differences between two distinct interface names are not limited to the casing or

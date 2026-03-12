@@ -4,10 +4,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-## [1.2.1] - Unreleased
+## [1.2.1] - 2026-03-12
 ### Fixed
 - [astarte_realm_management] Insufficient validation for conflicting options in interface aggregate mappings
   [#1072](https://github.com/astarte-platform/astarte/issues/1072)
+- [astarte_data_updater_plant] Ensure device deletion rpc always checks updated status
 
 ## [1.2.1-rc.1] - 2026-02-13
 ### Fixed
