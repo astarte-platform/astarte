@@ -440,6 +440,54 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DataHandlerErrorTest do
                  start
                )
     end
+
+    test "missing required mappings", test_context do
+      %{state: state, interfaces: interfaces} = test_context
+
+      object_device_interfaces =
+        interfaces
+        |> Enum.filter(&(&1.aggregation == :object and &1.ownership == :device))
+
+      interface = Enum.at(object_device_interfaces, 0)
+      interface_name = interface.name
+      timestamp = DateTime.utc_now(:millisecond)
+
+      {:ok, descriptor, loaded_state} =
+        Core.Interface.maybe_handle_cache_miss(nil, interface_name, state)
+
+      # Pick the first mapping belonging to this interface and mark it as required
+      {req_endpoint_id, req_mapping} =
+        loaded_state.mappings
+        |> Enum.find(fn {_id, m} -> m.interface_id == interface.interface_id end)
+
+      state_with_required_mapping = %{
+        loaded_state
+        | mappings:
+            Map.put(loaded_state.mappings, req_endpoint_id, %{req_mapping | required: true})
+      }
+
+      path = req_mapping.endpoint |> String.split("/") |> Enum.drop(-1) |> Enum.join("/")
+
+      # Payload value is empty – the required key is absent
+      payload = Cyanide.encode!(%{"v" => %{}, "t" => timestamp})
+
+      # Inject the modified state (with required mapping) from the cache miss
+      expect(Core.Interface, :maybe_handle_cache_miss, fn _cached, ^interface_name, ^state ->
+        {:ok, descriptor, state_with_required_mapping}
+      end)
+
+      expect(Core.Error, :handle_error, &discard_error/2)
+
+      assert {:discard, :missing_required_mapping, ^state_with_required_mapping} =
+               DataHandler.handle_data(
+                 state,
+                 interface_name,
+                 path,
+                 payload,
+                 timestamp,
+                 System.monotonic_time()
+               )
+    end
   end
 
   defp discard_error(context, error), do: {:discard, error.error, context.state}
