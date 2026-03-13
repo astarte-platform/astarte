@@ -101,6 +101,7 @@ config :astarte_pairing, :enable_fdo, true
 config :astarte_pairing, :base_url_domain, "api.astarte.localhost"
 config :astarte_pairing, :base_url_port, 4003
 config :astarte_pairing, :base_url_protocol, :http
+config :astarte_pairing, :fdo_session_secret_key_base, "test_secret_key_for_fdo_sessions_in_tests"
 config :astarte_pairing, :enable_credential_reuse, true
 
 config :astarte_pairing, bao_authentication_mechanism: :token, bao_token: ""

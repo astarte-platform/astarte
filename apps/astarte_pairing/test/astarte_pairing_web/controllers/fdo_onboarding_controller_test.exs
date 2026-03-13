@@ -22,12 +22,12 @@ defmodule Astarte.PairingWeb.FDOOnboardingControllerTest do
   use Astarte.Cases.FDOSession
   use Mimic
 
+  alias Astarte.FDO.Core.OwnerOnboarding.DeviceServiceInfo
+  alias Astarte.FDO.Core.OwnerOnboarding.DeviceServiceInfoReady
+  alias Astarte.FDO.Core.OwnerOnboarding.Session
+  alias Astarte.FDO.OwnerOnboarding
+  alias Astarte.FDO.ServiceInfo
   alias Astarte.Pairing.Config
-  alias Astarte.Pairing.FDO.OwnerOnboarding
-  alias Astarte.Pairing.FDO.OwnerOnboarding.DeviceServiceInfo
-  alias Astarte.Pairing.FDO.OwnerOnboarding.DeviceServiceInfoReady
-  alias Astarte.Pairing.FDO.OwnerOnboarding.Session
-  alias Astarte.Pairing.FDO.ServiceInfo
 
   setup :verify_on_exit!
 
@@ -224,7 +224,7 @@ defmodule Astarte.PairingWeb.FDOOnboardingControllerTest do
 
       expect(DeviceServiceInfo, :decode, fn _ -> {:ok, decoded} end)
 
-      expect(ServiceInfo, :build_owner_service_info, fn _, _, _ ->
+      expect(ServiceInfo, :build_owner_service_info, fn _, _, _, _, _ ->
         {:ok, CBOR.encode(expected_response)}
       end)
 
