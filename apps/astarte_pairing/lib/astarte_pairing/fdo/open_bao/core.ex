@@ -20,4 +20,14 @@ defmodule Astarte.Pairing.FDO.OpenBao.Core do
   @moduledoc """
   Implementation of function to interface with OpenBao.
   """
+
+  @spec key_type_to_string(atom()) :: String.t()
+  def key_type_to_string(key_type) do
+    case key_type do
+      :ec256 -> "ecdsa-p256"
+      :ec384 -> "ecdsa-p384"
+      :rsa2048 -> "rsa-2048"
+      :rsa3072 -> "rsa-3072"
+    end
+  end
 end
