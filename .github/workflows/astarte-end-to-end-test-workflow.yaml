@@ -99,7 +99,6 @@ jobs:
             --hostname "$E2E_HOST" \
             astarte-e2e
       - name: Check Docker
-        if: ${{ failure() }}
         run: docker compose logs
       - name: Bring down Astarte docker-compose
         run: docker compose down
