@@ -18,7 +18,7 @@
 
 defmodule Astarte.DataUpdaterPlant.MessageTracker.Server do
   require Logger
-  use GenServer
+  use GenServer, restart: :transient
 
   @base_backoff 1000
   @random_backoff 9000
