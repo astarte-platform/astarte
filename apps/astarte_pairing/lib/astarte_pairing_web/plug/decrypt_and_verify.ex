@@ -25,7 +25,7 @@ defmodule Astarte.PairingWeb.Plug.DecryptAndVerify do
 
   import Plug.Conn
 
-  alias Astarte.Pairing.FDO.OwnerOnboarding.Session
+  alias Astarte.FDO.Core.OwnerOnboarding.Session
   alias Astarte.PairingWeb.FDOFallbackController
 
   def init(_opts) do

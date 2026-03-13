@@ -18,10 +18,13 @@
 
 defmodule Astarte.PairingWeb.FDOOnboardingController do
   use Astarte.PairingWeb, :controller
-  alias Astarte.Pairing.FDO.OwnerOnboarding
-  alias Astarte.Pairing.FDO.OwnerOnboarding.DeviceServiceInfo
-  alias Astarte.Pairing.FDO.OwnerOnboarding.DeviceServiceInfoReady
-  alias Astarte.Pairing.FDO.ServiceInfo
+  alias Astarte.Core.Device
+  alias Astarte.FDO.Core.OwnerOnboarding.DeviceServiceInfo
+  alias Astarte.FDO.Core.OwnerOnboarding.DeviceServiceInfoReady
+  alias Astarte.FDO.Core.OwnerOnboarding.Session
+  alias Astarte.FDO.OwnerOnboarding
+  alias Astarte.FDO.ServiceInfo
+  alias Astarte.Pairing.Engine
 
   require Logger
 
@@ -98,14 +101,26 @@ defmodule Astarte.PairingWeb.FDOOnboardingController do
     realm_name = Map.fetch!(conn.params, "realm_name")
 
     with {:ok, device_service_info} <- DeviceServiceInfo.decode(conn.assigns.body),
+         device_id <- generate_device_id(device_service_info),
+         encoded_device_id <- Device.encode_device_id(device_id),
+         {:ok, session} <- Session.add_device_id(conn.assigns.to2_session, realm_name, device_id),
+         {:ok, credentials_secret} <-
+           Engine.register_device(realm_name, encoded_device_id, unconfirmed: true),
          {:ok, response} <-
            ServiceInfo.build_owner_service_info(
              realm_name,
-             conn.assigns.to2_session,
-             device_service_info
+             session,
+             device_service_info,
+             encoded_device_id,
+             credentials_secret
            ) do
       conn
       |> render("secure.cbor", %{cbor_response: response})
     end
   end
+
+  defp generate_device_id(%DeviceServiceInfo{service_info: %{{"devmod", "sn"} => %{value: sn}}}),
+    do: UUID.uuid5(:oid, sn, :raw)
+
+  defp generate_device_id(_), do: Device.random_device_id()
 end

@@ -46,7 +46,7 @@ defmodule Astarte.DataAccess.FDO.TO2Session do
   typed_schema "to2_sessions" do
     field :guid, :binary, primary_key: true
     field :device_id, Astarte.DataAccess.UUID
-    field :hmac, Astarte.DataAccess.FDO.CBOR, using: Astarte.FDO.Hash
+    field :hmac, Astarte.DataAccess.FDO.CBOR, using: Astarte.FDO.Core.Hash
     field :nonce, :binary
     field :sig_type, Ecto.Enum, values: [es256: -7, es384: -35, eipd10: 90, eipd11: 91]
     field :epid_group, :binary
@@ -72,10 +72,10 @@ defmodule Astarte.DataAccess.FDO.TO2Session do
     field :replacement_guid, :binary
 
     field :replacement_rv_info, Astarte.DataAccess.FDO.CBOR,
-      using: Astarte.FDO.OwnershipVoucher.RendezvousInfo
+      using: Astarte.FDO.Core.OwnershipVoucher.RendezvousInfo
 
-    field :replacement_pub_key, Astarte.DataAccess.FDO.CBOR, using: Astarte.FDO.PublicKey
+    field :replacement_pub_key, Astarte.DataAccess.FDO.CBOR, using: Astarte.FDO.Core.PublicKey
 
-    field :replacement_hmac, Astarte.DataAccess.FDO.CBOR, using: Astarte.FDO.Hash
+    field :replacement_hmac, Astarte.DataAccess.FDO.CBOR, using: Astarte.FDO.Core.Hash
   end
 end

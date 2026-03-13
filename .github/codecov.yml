@@ -21,6 +21,8 @@ coverage:
           - astarte_events
           - astarte_generators
           - astarte_rpc
+          - astarte_fdo
+          - astarte_fdo_core
 
 ignore:
   - "apps/*/test"
@@ -83,3 +85,11 @@ flags:
     carryforward: true
     paths:
       - libs/astarte_rpc
+  astarte_fdo:
+    carryforward: true
+    paths:
+      - libs/astarte_fdo
+  astarte_fdo_core:
+    carryforward: true
+    paths:
+      - libs/astarte_fdo_core

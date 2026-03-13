@@ -26,8 +26,8 @@ defmodule Astarte.PairingWeb.Plug.FDOSession do
 
   import Plug.Conn
 
-  alias Astarte.Pairing.FDO.OwnerOnboarding.Session
-  alias Astarte.Pairing.FDO.OwnerOnboarding.SessionToken
+  alias Astarte.FDO.Core.OwnerOnboarding.Session
+  alias Astarte.FDO.OwnerOnboarding.SessionToken
   alias Astarte.PairingWeb.FDOFallbackController
 
   def init(_opts) do
