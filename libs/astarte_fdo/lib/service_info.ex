@@ -18,128 +18,126 @@
 
 defmodule Astarte.FDO.ServiceInfo do
   @moduledoc """
-  Defines the structure of the ServiceInfo type: a collection of key-value pairs
-  which allows an interaction between the Management Service (on the cloud side)
-  and Management Agent functions (on the Device side),
-  using the FIDO Device Onboard encrypted channel as a transport.
-  The module also provides functions for encoding and decoding ServiceInfo structures
-  to and from CBOR, as well as for splitting large ServiceInfo maps into
-  smaller chunks that fit within a specified maximum size.
+  Provides functions for building and handling ServiceInfo structures in the FDO protocol,
+  including splitting large ServiceInfo maps into smaller chunks
+  that fit within a specified maximum chunk size.
+  This is used during the FDO onboarding process to ensure that ServiceInfo data
+  can be transmitted in manageable pieces.
   """
-  use TypedStruct
-  alias Astarte.FDO.ServiceInfo
 
-  typedstruct do
-    field(:module, String.t())
-    field(:key, String.t())
-    field(:value, term())
-  end
+  alias Astarte.FDO.Core.ServiceInfo
 
-  def decode_cbor(cbor_binary) do
-    with {:ok, cbor_list, ""} <- CBOR.decode(cbor_binary),
-         {:ok, service_info} <- decode(cbor_list) do
-      {:ok, service_info}
-    else
-      _ -> :error
-    end
-  end
+  alias Astarte.FDO.Core.OwnerOnboarding.DeviceServiceInfo
+  alias Astarte.FDO.Core.OwnerOnboarding.OwnerServiceInfo
+  alias Astarte.FDO.Core.OwnerOnboarding.Session
 
-  def decode(service_info) do
-    with [key, value] <- service_info,
-         true <- is_binary(key),
-         %CBOR.Tag{tag: :bytes, value: cbor_value} <- value,
-         {:ok, value, _} <- CBOR.decode(cbor_value),
-         [module, key] <- String.split(key, ":", parts: 2) do
-      service_info =
-        %ServiceInfo{
-          module: module,
-          key: key,
-          value: value
+  import Astarte.FDO.Core.ServiceInfo
+
+  # If device has more data to send, save received part to the session
+  # and respond with empty OwnerService Info
+  def build_owner_service_info(
+        realm_name,
+        session,
+        %DeviceServiceInfo{
+          is_more_service_info: true,
+          service_info: service_info
         }
+      ) do
+    Session.add_device_service_info(session, realm_name, service_info)
+    resp = OwnerServiceInfo.empty()
+    {:ok, resp}
+  end
 
-      {:ok, service_info}
-    else
-      _ ->
-        # fallback controller: error 100
-        {:error, :message_body_error}
+  # Case when the device yielded during Owner Service Info chunk transmission
+  # by sending an empty ServiceInfo map.
+  def build_owner_service_info(
+        realm_name,
+        session,
+        %DeviceServiceInfo{
+          is_more_service_info: false,
+          service_info: service_info
+        }
+      )
+      when is_empty(service_info) do
+    send_next_owner_chunk(session, realm_name)
+  end
+
+  # Device has no more data to send, this function appends received part to the previous received
+  # parts of service info and proceed sending OwnerService info
+  def build_owner_service_info(
+        realm_name,
+        session,
+        %DeviceServiceInfo{
+          is_more_service_info: false,
+          service_info: service_info
+        },
+        encoded_device_id,
+        credentials_secret
+      ) do
+    with {:ok, session} <-
+           Session.add_device_service_info(session, realm_name, service_info) do
+      build_and_send_owner_service_info(
+        session,
+        realm_name,
+        encoded_device_id,
+        credentials_secret
+      )
     end
   end
 
-  def decode_map(service_info_list) do
-    decoded =
-      service_info_list
-      |> Enum.map(&decode/1)
-
-    Enum.find(decoded, {:ok, decoded}, fn {tag, _} -> tag == :error end)
-    |> case do
-      {:ok, list} ->
-        map =
-          Map.new(list, fn {:ok, value} ->
-            %ServiceInfo{module: module, key: key, value: value} = value
-            {{module, key}, value}
-          end)
-
-        {:ok, map}
-
-      error ->
-        error
+  defp send_next_owner_chunk(session, realm_name) do
+    with {:ok, _session, service_info_chunk} <-
+           Session.next_owner_service_info_chunk(session, realm_name) do
+      {:ok, service_info_chunk}
     end
   end
 
-  def encode(%ServiceInfo{} = service_info) do
-    %ServiceInfo{key: key, value: value} = service_info
+  defp build_and_send_owner_service_info(
+         session,
+         realm_name,
+         encoded_device_id,
+         credentials_secret
+       ) do
+    owner_service_info =
+      OwnerServiceInfo.build(realm_name, credentials_secret, encoded_device_id)
 
-    encoded_value = CBOR.encode(value)
+    service_info_chunks =
+      ServiceInfo.to_chunks(
+        owner_service_info.service_info,
+        session.max_owner_service_info_size
+      )
+      |> chunks_to_owner_service_info()
 
-    [key, COSE.tag_as_byte(encoded_value)]
+    {:ok, session} =
+      Session.add_owner_service_info(
+        session,
+        realm_name,
+        service_info_chunks
+      )
+
+    send_next_owner_chunk(session, realm_name)
   end
 
-  def encode_map(service_info_map) do
-    service_info_map
-    |> Enum.map(fn {key, value} ->
-      encode(%ServiceInfo{key: key, value: value})
+  defp chunks_to_owner_service_info(chunks) do
+    # SAFETY: we always have at least one service info message
+    init_owner_service_info_length = Enum.count(chunks) - 1
+
+    init_owner_service_info =
+      Enum.map(1..init_owner_service_info_length//1, fn _ ->
+        %OwnerServiceInfo{is_more_service_info: true, is_done: false, service_info: nil}
+      end)
+
+    last_owner_service_info = %OwnerServiceInfo{
+      is_more_service_info: false,
+      is_done: true,
+      service_info: nil
+    }
+
+    owner_service_info = Enum.concat(init_owner_service_info, [last_owner_service_info])
+
+    Enum.zip(owner_service_info, chunks)
+    |> Enum.map(fn {owner_service_info, chunk} ->
+      OwnerServiceInfo.encode_with_service_info_chunk(owner_service_info, chunk)
     end)
   end
-
-  @doc """
-  Splits `service_info` into CBOR-encoded chunks, each not exceeding `max_chunk_size` bytes.
-  Returns a list of chunks.
-  """
-  def to_chunks(service_info, max_chunk_size) do
-    service_info
-    |> ServiceInfo.encode_map()
-    |> Enum.chunk_while({[], 0}, chunk_fun(max_chunk_size), after_fun())
-  end
-
-  defp chunk_fun(max_chunk_size) do
-    fn entry, {current_chunk, current_size} ->
-      entry_size = cbor_size(entry)
-
-      if current_size + entry_size > max_chunk_size and current_chunk != [] do
-        {:cont, Enum.reverse(current_chunk), {[entry], entry_size}}
-      else
-        {:cont, {[entry | current_chunk], current_size + entry_size}}
-      end
-    end
-  end
-
-  defp after_fun do
-    fn
-      {[], _size} -> {:cont, []}
-      {current_chunk, _size} -> {:cont, Enum.reverse(current_chunk), []}
-    end
-  end
-
-  defp cbor_size(term) do
-    term |> CBOR.encode() |> byte_size()
-  end
-
-  @doc """
-  Indicates that the device yielded during Owner Service Info chunk transmission
-  by sending an empty ServiceInfo map.
-  """
-  defguard is_empty(service_info)
-           when service_info.module == nil and
-                  service_info.key == nil and
-                  service_info.value == nil
 end

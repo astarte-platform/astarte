@@ -28,7 +28,7 @@ defmodule Astarte.DataAccess.FDO.CBOR do
   ## Example
 
       field :replacement_rv_info, Astarte.DataAccess.FDO.CBOR,
-        using: Astarte.FDO.OwnershipVoucher.RendezvousInfo
+        using: Astarte.FDO.Core.OwnershipVoucher.RendezvousInfo
   """
 
   use Ecto.ParameterizedType

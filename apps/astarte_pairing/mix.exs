@@ -60,8 +60,7 @@ defmodule Astarte.Pairing.Mixfile do
 
   defp astarte_required_modules(_) do
     [
-      {:astarte_core,
-       github: "astarte-platform/astarte_core", branch: "release-1.3", override: true},
+      {:astarte_core, github: "astarte-platform/astarte_core", branch: "master", override: true},
       {:astarte_realm_management,
        path: "../astarte_realm_management", only: :test, runtime: false}
     ]
@@ -75,7 +74,8 @@ defmodule Astarte.Pairing.Mixfile do
       {:castore, "~> 1.0.0"},
       {:astarte_data_access, path: astarte_lib("astarte_data_access"), override: true},
       {:astarte_events, path: astarte_lib("astarte_events")},
-      {:astarte_fdo, path: astarte_lib("astarte_fdo")},
+      {:astarte_fdo, path: astarte_lib("astarte_fdo"), env: :dev},
+      {:astarte_fdo_core, path: astarte_lib("astarte_fdo_core"), env: :dev, override: true},
       {:astarte_generators, path: astarte_lib("astarte_generators"), only: [:dev, :test]},
       {:astarte_rpc, path: astarte_lib("astarte_rpc")},
       {:bcrypt_elixir, "~> 2.2"},

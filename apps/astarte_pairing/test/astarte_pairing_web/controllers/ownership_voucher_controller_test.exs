@@ -21,8 +21,8 @@ defmodule Astarte.PairingWeb.Controllers.OwnershipVoucherControllerTest do
   use Astarte.Cases.Data
   use Mimic
 
+  alias Astarte.FDO.Rendezvous
   alias Astarte.Pairing.Config
-  alias Astarte.Pairing.FDO.Rendezvous
   alias Astarte.Pairing.Queries
 
   import Astarte.Helpers.FDO

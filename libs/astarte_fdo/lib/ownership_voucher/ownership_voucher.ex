@@ -17,58 +17,55 @@
 #
 
 defmodule Astarte.FDO.OwnershipVoucher do
-  @moduledoc false
-  use TypedStruct
+  @moduledoc """
+  This module provides functions to manage ownership vouchers, including saving them to the database,
+  fetching them, and generating replacement vouchers.
+  """
 
-  alias Astarte.FDO.Hash
-  alias Astarte.FDO.OwnershipVoucher
-  alias Astarte.FDO.OwnershipVoucher.Header
+  alias Astarte.DataAccess.FDO.Queries
+  alias Astarte.FDO.Core.OwnershipVoucher
+  alias Astarte.FDO.Core.OwnershipVoucher.Core
 
-  typedstruct do
-    field(:protocol_version, :integer)
-    field(:header, Header.t())
-    field(:hmac, Hash.t())
-    field(:cert_chain, [binary()] | nil)
-    field(:entries, list())
-  end
+  @one_week 604_800
 
-  def decode_cbor(cbor) do
-    case CBOR.decode(cbor) do
-      {:ok, message, _} -> decode(message)
-      _ -> :error
+  def save_voucher(realm_name, cbor_ownership_voucher, device_guid, owner_private_key) do
+    with {:ok, _} <-
+           Queries.create_ownership_voucher(
+             realm_name,
+             device_guid,
+             cbor_ownership_voucher,
+             owner_private_key,
+             @one_week
+           ) do
+      :ok
     end
   end
 
-  def decode(cbor_list) do
-    with [protocol, header, cbor_hmac, cert_chain, entries] <- cbor_list,
-         %CBOR.Tag{tag: :bytes, value: cbor_header} <- header,
-         {:ok, header} <- Header.decode_cbor(cbor_header),
-         {:ok, hmac} <- Hash.decode(cbor_hmac),
-         {:ok, cert_chain} <- extract_cert_chain(cert_chain) do
-      ownership_voucher =
-        %OwnershipVoucher{
-          protocol_version: protocol,
-          header: header,
-          hmac: hmac,
-          cert_chain: cert_chain,
-          entries: entries
-        }
+  def fetch(realm_name, guid) do
+    case Queries.get_ownership_voucher(realm_name, guid) do
+      {:ok, ownership_voucher_cbor} ->
+        OwnershipVoucher.decode_cbor(ownership_voucher_cbor)
 
-      {:ok, ownership_voucher}
-    else
-      _ -> :error
+      {:error, reason} ->
+        {:error, reason}
     end
   end
 
-  defp extract_cert_chain(cert_chain) do
-    extracted =
-      cert_chain
-      |> Enum.map(fn
-        %CBOR.Tag{tag: :bytes, value: cert} -> cert
-        _ -> :error
-      end)
+  def owner_public_key(ownership_voucher) do
+    # N.B.: Checking if there are entries is not necessary,
+    # as by spec the ownership voucher will always have at least one entry
+    List.last(ownership_voucher.entries)
+    |> Core.entry_private_key()
+  end
 
-    Enum.find(extracted, {:ok, extracted}, &(&1 == :error))
+  def get_ov_entry(%OwnershipVoucher{entries: entries}, entry_num) do
+    case Enum.fetch(entries, entry_num) do
+      {:ok, entry} ->
+        {:ok, CBOR.encode([entry_num, entry])}
+
+      :error ->
+        {:error, :invalid_message}
+    end
   end
 
   def generate_replacement_voucher(ownership_voucher, session) do
@@ -85,23 +82,6 @@ defmodule Astarte.FDO.OwnershipVoucher do
       |> Map.put(:entries, [])
 
     {:ok, new_voucher}
-  end
-
-  def encode(voucher) do
-    header_binary = Header.cbor_encode(voucher.header)
-    hmac_list = Hash.encode(voucher.hmac)
-
-    [
-      voucher.protocol_version,
-      %CBOR.Tag{tag: :bytes, value: header_binary},
-      hmac_list,
-      Enum.map(voucher.cert_chain || [], fn cert -> %CBOR.Tag{tag: :bytes, value: cert} end),
-      voucher.entries
-    ]
-  end
-
-  def cbor_encode(voucher) do
-    encode(voucher) |> CBOR.encode()
   end
 
   def credential_reuse?(_session) do
