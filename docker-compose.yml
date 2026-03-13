@@ -143,7 +143,7 @@ services:
       - "scylla"
 
   astarte-dashboard:
-    image: astarte/astarte-dashboard:1.2-snapshot
+    image: astarte/astarte-dashboard:snapshot
     volumes:
       - ./compose/astarte-dashboard/config.json:/usr/share/nginx/html/user-config/config.json:z
     depends_on:
@@ -255,7 +255,7 @@ services:
 
   # VerneMQ
   vernemq:
-    image: astarte/vernemq:1.3.0-rc.1
+    image: noaccos/vernemq:1.3-snapshot@sha256:09c839d15344aecb5b25859644c72107328f7b56ec99b7d622675fe258e66a66
     hostname: vernemq
     env_file:
       - ./.env

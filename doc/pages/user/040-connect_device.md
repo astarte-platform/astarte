@@ -21,12 +21,12 @@ Secret_. This _Credentials Secret_ is the token the device uses for performing t
 routine, which results in the device obtaining its Credentials for accessing its designated
 Transport.
 
-A Device's _Credentials Secret_ allows access to [Pairing API's Device REST API](https://docs.astarte-platform.org/astarte/1.1/api/?urls.primaryName=Pairing%20API#/device),
+A Device's _Credentials Secret_ allows access to [Pairing API's Device REST API](https://docs.astarte-platform.org/astarte/1.2/api/?urls.primaryName=Pairing%20API#/device),
 which is then used for obtaining information about which Transports the Device can use for
 communicating, and for obtaining Credentials for its assigned Transports.
 
-The ability to request Credentials of a Device can be inhibited with [AppEngine API](https://docs.astarte-platform.org/astarte/1.1/api/#/device/updateDeviceStatus) or using
-[`astartectl`](https://github.com/astarte-platform/astartectl) with this command:
+The ability to request Credentials of a Device can be inhibited with [AppEngine API](https://docs.astarte-platform.org/astarte/1.2/api/#/device/updateDeviceStatus)
+or using [`astartectl`](https://github.com/astarte-platform/astartectl) with this command:
 
 ```bash
 astartectl appengine devices credentials inhibit <device_id_or_alias> true \
