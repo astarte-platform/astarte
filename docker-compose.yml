@@ -143,7 +143,7 @@ services:
       - "scylla"
 
   astarte-dashboard:
-    image: astarte/astarte-dashboard:1.2-snapshot
+    image: astarte/astarte-dashboard:snapshot
     volumes:
       - ./compose/astarte-dashboard/config.json:/usr/share/nginx/html/user-config/config.json:z
     depends_on:

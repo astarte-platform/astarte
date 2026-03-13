@@ -27,3 +27,5 @@ jobs:
         with:
           fetch-depth: 0
       - uses: crate-ci/committed@v1.1.10
+        with:
+          args: "-vv"
