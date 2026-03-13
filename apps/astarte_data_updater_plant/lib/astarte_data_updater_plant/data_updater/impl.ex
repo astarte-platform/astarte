@@ -117,6 +117,9 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
   end
 
   def start_device_deletion(state, timestamp) do
+    # Force deletion status check
+    state = %{state | last_deletion_in_progress_refresh: 0}
+
     # Device deletion is among time-based actions
     new_state = TimeBasedActions.execute_time_based_actions(state, timestamp)
 

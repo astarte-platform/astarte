@@ -104,14 +104,17 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - [astarte_data_updater_plant] Correctly encode values when sending properties to device on connection
 - [astarte_realm_management] Allow to delete long-disconnected devices. For this to work, Realm Management needs `CLUSTERING_STRATEGY`, `CLUSTERING_KUBERNETES_NAMESPACE` and `DATA_UPDATER_PLANT_CLUSTERING_KUBERNETES_SELECTOR` to be set, just like AppEngine and DUP. Refer to 1.2.1-rc.0 for additional information on the variables.
 
-## [1.2.1] - Unreleased
+## [1.2.1] - 2026-03-12
 
 ### Fixed
 
 - [astarte_realm_management] Insufficient validation for conflicting options in interface aggregate mappings
   [#1072](https://github.com/astarte-platform/astarte/issues/1072)
+- [astarte_data_updater_plant] Ensure device deletion rpc always checks updated status
 
 ## [1.2.1-rc.1] - 2026-02-13
+
+### Fixed
 
 - [astarte_realm_management] Bug where devices got stuck in the "in deletion" status: [#1493](https://github.com/astarte-platform/astarte/issues/1493).
 - [astarte_data_updater_plant] Correctly reconnect to AMQP after a connection loss
