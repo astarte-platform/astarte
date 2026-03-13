@@ -311,35 +311,21 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.Interface do
     |> length()
   end
 
-  def extract_expected_types(_path, interface_descriptor, endpoint, mappings) do
-    case interface_descriptor.aggregation do
-      :individual ->
-        endpoint.value_type
-
-      :object ->
-        expected_object_types(interface_descriptor, mappings)
-    end
+  def extract_mappings(%InterfaceDescriptor{aggregation: :individual}, mapping, _mappings) do
+    mapping
   end
 
-  defp expected_object_types(interface_descriptor, mappings) do
-    # TODO: we should probably cache this
+  def extract_mappings(
+        %InterfaceDescriptor{aggregation: :object},
+        _mapping,
+        mappings
+      ) do
     mappings
-    |> Enum.flat_map(fn {_id, mapping} ->
-      mapping_to_expected_type(interface_descriptor.interface_id, mapping)
+    |> Map.new(fn {_id, m} ->
+      key = m.endpoint |> String.split("/") |> List.last()
+      {key, m}
     end)
-    |> Enum.into(%{})
   end
-
-  defp mapping_to_expected_type(interface_id, %Mapping{interface_id: interface_id} = mapping) do
-    expected_key =
-      mapping.endpoint
-      |> String.split("/")
-      |> List.last()
-
-    [{expected_key, mapping.value_type}]
-  end
-
-  defp mapping_to_expected_type(_interface_id, %Mapping{}), do: []
 
   def forget_interfaces(state, []) do
     state

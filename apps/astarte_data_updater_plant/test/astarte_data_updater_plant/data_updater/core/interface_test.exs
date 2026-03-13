@@ -177,7 +177,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.InterfaceTest do
       end
     end
 
-    property "extract_expected_types/3 extracts types from endpoint", context do
+    property "extract_mappings/3 extracts mappings from endpoint", context do
       %{
         interfaces: interfaces,
         state: state,
@@ -185,8 +185,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.InterfaceTest do
       } = context
 
       check all interface <- member_of(interfaces),
-                mapping <- member_of(interface.mappings),
-                path <- path_from_endpoint(mapping.endpoint) do
+                mapping <- member_of(interface.mappings) do
         descriptor = state.interfaces[interface.name]
 
         keyspace = Realm.keyspace_name(realm_name)
@@ -200,8 +199,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.InterfaceTest do
         endpoint = Repo.one(query, prefix: keyspace)
 
         expected_type =
-          Core.Interface.extract_expected_types(
-            path,
+          Core.Interface.extract_mappings(
             descriptor,
             endpoint,
             state.mappings
@@ -301,13 +299,16 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.InterfaceTest do
     end
   end
 
-  defp valid_type?(mapping, expected_type, :individual), do: mapping.value_type == expected_type
+  defp valid_type?(mapping, %Mapping{value_type: value_type}, :individual),
+    do: mapping.value_type == value_type
 
-  defp valid_type?(mapping, expected_type, :object) do
+  defp valid_type?(mapping, %{} = mappings_by_key, :object) do
     key = mapping.endpoint |> String.split("/") |> List.last()
-    value = mapping.value_type
 
-    %{key => value} == expected_type
+    case Map.fetch(mappings_by_key, key) do
+      {:ok, %Mapping{value_type: value_type}} -> mapping.value_type == value_type
+      :error -> false
+    end
   end
 
   defp matches?(endpoint, path, aggregation) do
