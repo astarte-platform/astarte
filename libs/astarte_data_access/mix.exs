@@ -71,7 +71,7 @@ defmodule Astarte.DataAccess.Mixfile do
       {:castore, "~> 1.0.0"},
       {:ex_doc, ">= 0.0.0", only: :dev, runtime: false},
       {:dialyxir, "~> 1.4", only: [:dev, :test], runtime: false},
-      {:mimic, "~> 1.7.4", only: :test},
+      {:mimic, "~> 2.3.0", only: :test},
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false}
     ]
   end
