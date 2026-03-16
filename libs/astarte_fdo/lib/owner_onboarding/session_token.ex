@@ -25,7 +25,7 @@ defmodule Astarte.FDO.OwnerOnboarding.SessionToken do
   - nonce: A random nonce for replay attack prevention
   """
 
-  alias Astarte.FDO.Core.Config
+  alias Astarte.FDO.Config
   alias Phoenix.Token
 
   @token_salt "fdo_session_token"
@@ -46,9 +46,7 @@ defmodule Astarte.FDO.OwnerOnboarding.SessionToken do
 
   """
   def verify(token) do
-    case Token.verify(Config.fdo_session_endpoint!(), @token_salt, token,
-           max_age: @max_age
-         ) do
+    case Token.verify(Config.fdo_session_endpoint!(), @token_salt, token, max_age: @max_age) do
       {:ok, %{guid: guid, nonce: nonce}} ->
         {:ok, guid, nonce}
 

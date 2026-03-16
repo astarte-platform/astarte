@@ -37,7 +37,7 @@ defmodule Astarte.FDO.Core.OwnerOnboarding.GetOVNextEntry do
     # The index of the Ownership Voucher entry requested by the Device.
     # - The first entry is index 0.
     # - The Device increments this counter in subsequent requests until the chain is complete.
-    field(:entry_num, non_neg_integer())
+    field :entry_num, non_neg_integer()
   end
 
   @doc """
@@ -52,5 +52,7 @@ defmodule Astarte.FDO.Core.OwnerOnboarding.GetOVNextEntry do
       _ ->
         {:error, :message_body_error}
     end
+  rescue
+    _ -> {:error, :message_body_error}
   end
 end

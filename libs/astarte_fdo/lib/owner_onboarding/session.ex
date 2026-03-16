@@ -40,29 +40,29 @@ defmodule Astarte.FDO.Core.OwnerOnboarding.Session do
   alias COSE.Messages.Encrypt0
 
   typedstruct do
-    field(:guid, binary())
-    field(:hmac, Hash.t())
-    field(:device_id, Astarte.DataAccess.UUID, default: nil)
-    field(:nonce, binary())
-    field(:device_signature, SignatureInfo.device_signature())
-    field(:prove_dv_nonce, binary())
-    field(:setup_dv_nonce, binary())
-    field(:kex_suite_name, String.t())
-    field(:cipher_suite, String.t())
-    field(:owner_random, term())
-    field(:xa, binary())
-    field(:secret, binary() | nil)
-    field(:sevk, struct() | nil)
-    field(:svk, struct() | nil)
-    field(:sek, struct() | nil)
-    field(:max_owner_service_info_size, integer() | nil)
-    field(:device_service_info, map() | nil)
-    field(:owner_service_info, [binary()] | nil)
-    field(:last_chunk_sent, non_neg_integer() | nil)
-    field(:replacement_guid, binary() | nil)
-    field(:replacement_rv_info, RendezvousInfo.t() | nil)
-    field(:replacement_pub_key, PublicKey.t() | nil)
-    field(:replacement_hmac, Hash.t() | nil)
+    field :guid, binary()
+    field :hmac, Hash.t()
+    field :device_id, Astarte.DataAccess.UUID, default: nil
+    field :nonce, binary()
+    field :device_signature, SignatureInfo.device_signature()
+    field :prove_dv_nonce, binary()
+    field :setup_dv_nonce, binary()
+    field :kex_suite_name, String.t()
+    field :cipher_suite, String.t()
+    field :owner_random, term()
+    field :xa, binary()
+    field :secret, binary() | nil
+    field :sevk, struct() | nil
+    field :svk, struct() | nil
+    field :sek, struct() | nil
+    field :max_owner_service_info_size, integer() | nil
+    field :device_service_info, map() | nil
+    field :owner_service_info, [binary()] | nil
+    field :last_chunk_sent, non_neg_integer() | nil
+    field :replacement_guid, binary() | nil
+    field :replacement_rv_info, RendezvousInfo.t() | nil
+    field :replacement_pub_key, PublicKey.t() | nil
+    field :replacement_hmac, Hash.t() | nil
   end
 
   def new(realm_name, hello_device, ownership_voucher, owner_key, hmac) do

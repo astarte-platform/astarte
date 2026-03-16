@@ -34,8 +34,8 @@ defmodule Astarte.FDO.Core.Hash do
   @hmac_sha384 6
 
   typedstruct do
-    field(:type, type())
-    field(:hash, binary())
+    field :type, type()
+    field :hash, binary()
   end
 
   def new(hash_type, value) when hash_type in [:sha256, :sha384] do
@@ -43,12 +43,12 @@ defmodule Astarte.FDO.Core.Hash do
     %Hash{type: hash_type, hash: hash}
   end
 
-  def new(:hmac_sha256, key, value), do: new_hmac(:sha256, key, value)
-  def new(:hmac_sha384, key, value), do: new_hmac(:sha384, key, value)
+  def new(:hmac_sha256, key, value), do: new_hmac(:hmac_sha256, :sha256, key, value)
+  def new(:hmac_sha384, key, value), do: new_hmac(:hmac_sha384, :sha384, key, value)
 
-  defp new_hmac(hmac_type, key, value) do
-    hmac = :crypto.mac(:hmac, hmac_type, key.k, value)
-    %Hash{type: hmac_type, hash: hmac}
+  defp new_hmac(hash_type, crypto_type, key, value) do
+    hmac = :crypto.mac(:hmac, crypto_type, key.k, value)
+    %Hash{type: hash_type, hash: hmac}
   end
 
   def encode(hash) do
@@ -70,6 +70,8 @@ defmodule Astarte.FDO.Core.Hash do
     else
       _ -> :error
     end
+  rescue
+    _ -> :error
   end
 
   def decode(cbor_list) do

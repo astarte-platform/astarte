@@ -39,6 +39,16 @@ defmodule Astarte.FDO.OwnerOnboarding.ProveDeviceTest do
   end
 
   describe "encode_sign/2 and decode/2 symmetry" do
+    test "returns raw binary CBOR, not an ok-tuple", _context do
+      device_priv_key = ECC.generate(:es256)
+      original_data = ProveDevice.generate()
+
+      result = ProveDevice.encode_sign(original_data, device_priv_key)
+
+      assert is_binary(result)
+      refute match?({:ok, _}, result)
+    end
+
     test "encode and decode are symmetric operations", _context do
       device_priv_key = ECC.generate(:es256)
 

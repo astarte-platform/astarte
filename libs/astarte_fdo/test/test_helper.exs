@@ -18,28 +18,28 @@
 
 Mimic.copy(:hackney)
 Mimic.copy(Astarte.DataAccess.Config)
+Mimic.copy(Astarte.FDO.Config)
 
 # Define a test endpoint module for FDO session tokens
 defmodule Astarte.FDO.TestEndpoint do
   def config(:secret_key_base), do: "test_secret_key_for_fdo_sessions_in_tests"
 end
 
-Application.put_env(:astarte_pairing, :fdo_session_endpoint, Astarte.FDO.TestEndpoint)
-
-Application.put_env(:astarte_pairing, :base_url_domain, "api.astarte.localhost")
-Application.put_env(:astarte_pairing, :base_url_port, 4003)
-Application.put_env(:astarte_pairing, :base_url_protocol, :http)
+Application.put_env(:astarte_fdo, :endpoint, Astarte.FDO.TestEndpoint)
+Application.put_env(:astarte_fdo, :base_url_domain, "api.astarte.localhost")
+Application.put_env(:astarte_fdo, :base_url_port, 4003)
+Application.put_env(:astarte_fdo, :base_url_protocol, :http)
 
 Mimic.copy(Astarte.DataAccess.Health.Health)
-Mimic.copy(Astarte.FDO.OwnerOnboarding)
-Mimic.copy(Astarte.FDO.OwnerOnboarding.DeviceAttestation)
 Mimic.copy(Astarte.FDO.Core.OwnerOnboarding.DeviceServiceInfo)
 Mimic.copy(Astarte.FDO.Core.OwnerOnboarding.DeviceServiceInfoReady)
 Mimic.copy(Astarte.FDO.Core.OwnerOnboarding.ProveDevice)
 Mimic.copy(Astarte.FDO.Core.OwnerOnboarding.Session)
 Mimic.copy(Astarte.FDO.Core.OwnershipVoucher.Core)
-Mimic.copy(Astarte.FDO.Rendezvous)
+Mimic.copy(Astarte.FDO.OwnerOnboarding.DeviceAttestation)
+Mimic.copy(Astarte.FDO.OwnerOnboarding)
 Mimic.copy(Astarte.FDO.Rendezvous.Client)
+Mimic.copy(Astarte.FDO.Rendezvous)
 Mimic.copy(Astarte.FDO.ServiceInfo)
 Mimic.copy(DateTime)
 Mimic.copy(HTTPoison)

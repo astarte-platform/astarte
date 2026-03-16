@@ -36,11 +36,11 @@ defmodule Astarte.FDO.Core.OwnerOnboarding.DeviceServiceInfoReady do
     # ReplacementHMac
     # Used by the Owner to create a new Ownership Voucher for the device (resale).
     # If nil, it indicates acceptance of the Credential Reuse protocol.
-    field(:replacement_hmac, Hash.t() | nil)
+    field :replacement_hmac, Hash.t() | nil
 
     # maxOwnerServiceInfoSz
     # If nil, the default recommended limit (1300 bytes) is assumed.
-    field(:max_owner_service_info_sz, non_neg_integer() | nil)
+    field :max_owner_service_info_sz, non_neg_integer() | nil
   end
 
   @doc """

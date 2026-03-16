@@ -26,12 +26,12 @@ defmodule Astarte.FDO.Core.OwnershipVoucher.Header do
   alias Astarte.FDO.Core.PublicKey
 
   typedstruct do
-    field(:protocol_version, :integer)
-    field(:guid, binary())
-    field(:rendezvous_info, RendezvousInfo.t())
-    field(:device_info, binary())
-    field(:public_key, PublicKey.t())
-    field(:cert_chain_hash, Hash.t() | nil)
+    field :protocol_version, :integer
+    field :guid, binary()
+    field :rendezvous_info, RendezvousInfo.t()
+    field :device_info, binary()
+    field :public_key, PublicKey.t()
+    field :cert_chain_hash, Hash.t() | nil
   end
 
   def decode_cbor(cbor) do

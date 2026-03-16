@@ -28,10 +28,10 @@ defmodule Astarte.FDO.Core.Rendezvous.OwnerSign.TO0D do
   alias Astarte.FDO.Core.Rendezvous.OwnerSign.TO0D
 
   typedstruct do
-    field(:cbor_decoded_ownership_voucher, list())
-    field(:ownership_voucher, OwnershipVoucher.t())
-    field(:wait_seconds, non_neg_integer())
-    field(:nonce_to0_sign, binary())
+    field :cbor_decoded_ownership_voucher, list()
+    field :ownership_voucher, OwnershipVoucher.t()
+    field :wait_seconds, non_neg_integer()
+    field :nonce_to0_sign, binary()
   end
 
   def encode(to0d) do

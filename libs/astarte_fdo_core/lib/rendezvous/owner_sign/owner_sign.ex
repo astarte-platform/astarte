@@ -30,8 +30,8 @@ defmodule Astarte.FDO.Core.Rendezvous.OwnerSign do
   alias Astarte.FDO.Core.Rendezvous.OwnerSign.TO1D
 
   typedstruct do
-    field(:to0d, TO0D.t())
-    field(:to1d, TO1D.t())
+    field :to0d, TO0D.t()
+    field :to1d, TO1D.t()
   end
 
   def encode_sign_with_hash(owner_sign, owner_key) do

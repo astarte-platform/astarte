@@ -80,12 +80,12 @@ defmodule Astarte.FDO.Core.OwnerOnboarding.HelloDevice do
   typedstruct enforce: true do
     @typedoc "A hello device message structure."
 
-    field(:max_size, non_neg_integer())
-    field(:guid, binary())
-    field(:nonce, binary())
-    field(:kex_name, kex_name())
-    field(:cipher_name, cipher())
-    field(:easig_info, SignatureInfo.t())
+    field :max_size, non_neg_integer()
+    field :guid, binary()
+    field :nonce, binary()
+    field :kex_name, kex_name()
+    field :cipher_name, cipher()
+    field :easig_info, SignatureInfo.t()
   end
 
   def decode(cbor_binary) do

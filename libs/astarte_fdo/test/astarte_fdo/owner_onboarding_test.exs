@@ -222,4 +222,102 @@ defmodule Astarte.FDO.OwnerOnboardingTest do
       assert prove_ovhdr_dec.phdr.alg == :rs384
     end
   end
+
+  describe "generate_rsa_2048_key/0" do
+    test "returns an RSA private key record" do
+      key = OwnerOnboarding.generate_rsa_2048_key()
+      assert {:RSAPrivateKey, _, _, _, _, _, _, _, _, _, _} = key
+    end
+  end
+
+  describe "get_public_key/1" do
+    test "returns {:ok, RSAPublicKey} for a valid RSA private key record" do
+      private_key = OwnerOnboarding.generate_rsa_2048_key()
+
+      assert {:ok, {:RSAPublicKey, modulus, public_exponent}} =
+               OwnerOnboarding.get_public_key(private_key)
+
+      assert is_integer(modulus)
+      assert is_integer(public_exponent)
+    end
+
+    test "returns {:error, :invalid_private_key_format} for invalid input" do
+      assert {:error, :invalid_private_key_format} = OwnerOnboarding.get_public_key("not_a_key")
+      assert {:error, :invalid_private_key_format} = OwnerOnboarding.get_public_key(nil)
+      assert {:error, :invalid_private_key_format} = OwnerOnboarding.get_public_key(%{})
+    end
+  end
+
+  describe "fetch_alg/1 with map input" do
+    test "returns {:ok, :es256} for algorithm -7" do
+      assert {:ok, :es256} = OwnerOnboarding.fetch_alg(%{1 => -7})
+    end
+
+    test "returns {:ok, :edsdsa} for algorithm -8" do
+      assert {:ok, :edsdsa} = OwnerOnboarding.fetch_alg(%{1 => -8})
+    end
+
+    test "returns {:error, :unsupported_alg} for unknown algorithm" do
+      assert {:error, :unsupported_alg} = OwnerOnboarding.fetch_alg(%{1 => 999})
+    end
+
+    test "returns {:error, :unsupported_alg} when alg key is missing" do
+      assert {:error, :unsupported_alg} = OwnerOnboarding.fetch_alg(%{})
+    end
+  end
+
+  describe "fetch_alg/1 with binary CBOR input" do
+    test "decodes CBOR and returns the algorithm" do
+      cbor = CBOR.encode(%{1 => -7})
+      assert {:ok, :es256} = OwnerOnboarding.fetch_alg(cbor)
+    end
+
+    test "returns {:error, :unsupported_alg} for CBOR with unknown algorithm" do
+      cbor = CBOR.encode(%{1 => 42})
+      assert {:error, :unsupported_alg} = OwnerOnboarding.fetch_alg(cbor)
+    end
+  end
+
+  describe "build_sig_structure/2" do
+    test "returns {:ok, CBOR-encoded sig structure}" do
+      protected = CBOR.encode(%{1 => -7})
+      payload = :crypto.strong_rand_bytes(32)
+
+      assert {:ok, cbor} = OwnerOnboarding.build_sig_structure(protected, payload)
+      assert is_binary(cbor)
+
+      assert {:ok, ["Signature1", ^protected, <<>>, ^payload], ""} = CBOR.decode(cbor)
+    end
+  end
+
+  describe "ov_next_entry/3" do
+    setup %{
+      realm: realm_name,
+      owner_key_pem: owner_key_pem,
+      cbor_ownership_voucher: cbor_ownership_voucher,
+      session: session
+    } do
+      insert_voucher(realm_name, owner_key_pem, cbor_ownership_voucher, session.guid)
+      %{realm: realm_name, guid: session.guid}
+    end
+
+    test "returns {:ok, entry} for valid entry_num 0", %{realm: realm_name, guid: guid} do
+      cbor_body = CBOR.encode([0])
+      assert {:ok, _entry} = OwnerOnboarding.ov_next_entry(cbor_body, realm_name, guid)
+    end
+
+    test "returns {:error, :message_body_error} for invalid CBOR body", %{
+      realm: realm_name,
+      guid: guid
+    } do
+      assert {:error, :message_body_error} =
+               OwnerOnboarding.ov_next_entry(<<0xFF>>, realm_name, guid)
+    end
+
+    test "returns error when guid does not match any voucher", %{realm: realm_name} do
+      cbor_body = CBOR.encode([0])
+      unknown_guid = :crypto.strong_rand_bytes(16)
+      assert {:error, _} = OwnerOnboarding.ov_next_entry(cbor_body, realm_name, unknown_guid)
+    end
+  end
 end

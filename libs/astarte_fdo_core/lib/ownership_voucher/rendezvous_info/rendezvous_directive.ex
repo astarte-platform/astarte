@@ -28,7 +28,7 @@ defmodule Astarte.FDO.Core.OwnershipVoucher.RendezvousInfo.RendezvousDirective d
   alias Astarte.FDO.Core.OwnershipVoucher.RendezvousInfo.RendezvousInstr
 
   typedstruct enforce: true do
-    field(:instructions, [RendezvousInstr.t()])
+    field :instructions, [RendezvousInstr.t()]
   end
 
   def decode(instructions) when is_list(instructions) do

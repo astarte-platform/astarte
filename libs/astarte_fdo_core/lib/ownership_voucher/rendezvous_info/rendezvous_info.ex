@@ -26,7 +26,7 @@ defmodule Astarte.FDO.Core.OwnershipVoucher.RendezvousInfo do
   alias Astarte.FDO.Core.OwnershipVoucher.RendezvousInfo.RendezvousDirective
 
   typedstruct enforce: true do
-    field(:directives, [RendezvousDirective.t()])
+    field :directives, [RendezvousDirective.t()]
   end
 
   @doc """

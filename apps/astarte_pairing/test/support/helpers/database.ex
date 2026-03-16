@@ -27,7 +27,6 @@ defmodule Astarte.Helpers.Database do
   alias Astarte.DataAccess.Realms.Realm
   alias Astarte.DataAccess.Repo
   alias Astarte.Pairing.CredentialsSecret
-  alias Astarte.Pairing.Queries
 
   @create_keyspace """
   CREATE KEYSPACE :keyspace
@@ -503,27 +502,27 @@ defmodule Astarte.Helpers.Database do
   def get_first_registration(realm, hardware_id) do
     {:ok, device_id} = Device.decode_device_id(hardware_id, allow_extended_id: true)
 
-    {:ok, device} = Queries.fetch_device(realm, device_id)
+    {:ok, device} = Astarte.DataAccess.Device.fetch(realm, device_id)
     device.first_registration
   end
 
   def get_introspection(realm, hardware_id) do
     {:ok, device_id} = Device.decode_device_id(hardware_id, allow_extended_id: true)
 
-    {:ok, device} = Queries.fetch_device(realm, device_id)
+    {:ok, device} = Astarte.DataAccess.Device.fetch(realm, device_id)
     device.introspection
   end
 
   def get_introspection_minor(realm, hardware_id) do
     {:ok, device_id} = Device.decode_device_id(hardware_id, allow_extended_id: true)
-    {:ok, device} = Queries.fetch_device(realm, device_id)
+    {:ok, device} = Astarte.DataAccess.Device.fetch(realm, device_id)
     device.introspection_minor
   end
 
   def get_message_count_for_device(realm, hardware_id) do
     {:ok, device_id} = Device.decode_device_id(hardware_id, allow_extended_id: true)
 
-    {:ok, device} = Queries.fetch_device(realm, device_id)
+    {:ok, device} = Astarte.DataAccess.Device.fetch(realm, device_id)
 
     [
       %{

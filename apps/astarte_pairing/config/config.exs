@@ -34,7 +34,7 @@ config :astarte_pairing, Astarte.PairingWeb.Endpoint,
   render_errors: [view: Astarte.PairingWeb.ErrorView, accepts: ~w(json)]
 
 # FDO session tokens use the endpoint's secret_key_base
-config :astarte_pairing, :fdo_session_endpoint, Astarte.PairingWeb.Endpoint
+config :astarte_fdo, :endpoint, Astarte.PairingWeb.Endpoint
 
 # Configures Elixir's Logger
 config :logger, :default_formatter,

@@ -25,6 +25,7 @@ defmodule Astarte.FDO.ServiceInfo do
   can be transmitted in manageable pieces.
   """
 
+  alias Astarte.FDO.Config
   alias Astarte.FDO.Core.ServiceInfo
 
   alias Astarte.FDO.Core.OwnerOnboarding.DeviceServiceInfo
@@ -99,7 +100,12 @@ defmodule Astarte.FDO.ServiceInfo do
          credentials_secret
        ) do
     owner_service_info =
-      OwnerServiceInfo.build(realm_name, credentials_secret, encoded_device_id)
+      OwnerServiceInfo.build(
+        realm_name,
+        credentials_secret,
+        encoded_device_id,
+        Config.base_url!()
+      )
 
     service_info_chunks =
       ServiceInfo.to_chunks(

@@ -19,27 +19,34 @@
 defmodule Astarte.FDO.Rendezvous.RvTO2AddrTest do
   use ExUnit.Case, async: true
 
-  alias Astarte.FDO.Core.Config
+  alias Astarte.FDO.Config
   alias Astarte.FDO.Core.Rendezvous.RvTO2Addr
 
   setup_all do
     realm = "realm#{System.unique_integer([:positive])}"
-    addr = RvTO2Addr.for_realm(realm)
+
+    addr =
+      RvTO2Addr.for_realm(
+        realm,
+        Config.base_url_domain!(),
+        Config.base_url_port!(),
+        Config.base_url_protocol!()
+      )
 
     %{rv_to2_addr: addr, realm_name: realm}
   end
 
   describe "for_realm/1" do
     test "returns the default configuration for the realm", %{realm_name: realm_name} do
-      realm_config = RvTO2Addr.for_realm(realm_name)
+      domain = Config.base_url_domain!()
+      port = Config.base_url_port!()
+      protocol = Config.base_url_protocol!()
 
-      expected_port = Config.base_url_port!()
-      expected_protocol = Config.base_url_protocol!()
-      expected_dns = "#{realm_name}.#{Config.base_url_domain!()}"
+      realm_config = RvTO2Addr.for_realm(realm_name, domain, port, protocol)
 
-      assert realm_config.port == expected_port
-      assert realm_config.protocol == expected_protocol
-      assert realm_config.dns == expected_dns
+      assert realm_config.port == port
+      assert realm_config.protocol == protocol
+      assert realm_config.dns == "#{realm_name}.#{domain}"
     end
   end
 

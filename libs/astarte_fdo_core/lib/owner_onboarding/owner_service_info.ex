@@ -25,7 +25,6 @@ defmodule Astarte.FDO.Core.OwnerOnboarding.OwnerServiceInfo do
   It manages flow control (fragmentation) and termination of the ServiceInfo phase.
   """
   use TypedStruct
-  alias Astarte.FDO.Core.Config
   alias Astarte.FDO.Core.OwnerOnboarding.OwnerServiceInfo
   alias Astarte.FDO.Core.ServiceInfo
 
@@ -38,7 +37,7 @@ defmodule Astarte.FDO.Core.OwnerOnboarding.OwnerServiceInfo do
     #   to continue.
     # - If the PREVIOUS DeviceServiceInfo had IsMore=true, this field MUST be false
     #   (Owner yields to Device).
-    field(:is_more_service_info, boolean())
+    field :is_more_service_info, boolean()
 
     # IsDone
     # Boolean flag indicating if the Owner has finished the entire provisioning process.
@@ -46,12 +45,12 @@ defmodule Astarte.FDO.Core.OwnerOnboarding.OwnerServiceInfo do
     #   eventually send TO2.Done.
     # - If true: The 'service_info' field in this message (and subsequent keepalives) must be
     #   empty.
-    field(:is_done, boolean())
+    field :is_done, boolean()
 
     # ServiceInfo
     # A list containing the actual ServiceInfo instructions (Key-Value pairs).
     # Examples: "fdo_sys:filedesc" (write file), "fdo_sys:exec" (execute script).
-    field(:service_info, map())
+    field :service_info, map()
   end
 
   @doc """
@@ -84,12 +83,12 @@ defmodule Astarte.FDO.Core.OwnerOnboarding.OwnerServiceInfo do
     |> CBOR.encode()
   end
 
-  def build(realm_name, credentials_secret, encoded_device_id) do
+  def build(realm_name, credentials_secret, encoded_device_id, base_url) do
     service_info = %{
       "astarte:active" => true,
       "astarte:realm" => realm_name,
       "astarte:secret" => credentials_secret,
-      "astarte:baseurl" => "#{Config.base_url!()}",
+      "astarte:baseurl" => base_url,
       "astarte:deviceid" => encoded_device_id
     }
 

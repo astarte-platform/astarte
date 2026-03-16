@@ -33,7 +33,6 @@ defmodule Astarte.FDO.ServiceInfoTest do
 
   setup_all %{realm_name: realm_name} do
     device_id = sample_device_guid()
-    encoded_device_id = Device.encode_device_id(device_id)
     hello_device = HelloDevice.generate(device_id: device_id)
     ownership_voucher = sample_ownership_voucher()
     owner_key = sample_extracted_private_key()
@@ -44,7 +43,6 @@ defmodule Astarte.FDO.ServiceInfoTest do
 
     %{
       device_id: device_id,
-      encoded_device_id: encoded_device_id,
       hello_device: hello_device,
       ownership_voucher: ownership_voucher,
       owner_key: owner_key,

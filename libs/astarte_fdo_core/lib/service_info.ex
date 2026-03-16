@@ -30,9 +30,9 @@ defmodule Astarte.FDO.Core.ServiceInfo do
   alias Astarte.FDO.Core.ServiceInfo
 
   typedstruct do
-    field(:module, String.t())
-    field(:key, String.t())
-    field(:value, term())
+    field :module, String.t()
+    field :key, String.t()
+    field :value, term()
   end
 
   def decode_cbor(cbor_binary) do

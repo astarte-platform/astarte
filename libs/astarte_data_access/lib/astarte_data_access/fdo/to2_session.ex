@@ -22,6 +22,10 @@ defmodule Astarte.DataAccess.FDO.TO2Session do
   """
   use TypedEctoSchema
 
+  alias Astarte.DataAccess.FDO.CBOR.Encoded, as: CBOREncoded
+  alias Astarte.FDO.Core.Hash
+  alias Astarte.FDO.Core.OwnershipVoucher.RendezvousInfo
+  alias Astarte.FDO.Core.PublicKey
   alias COSE.Keys.Symmetric
 
   @ciphers [
@@ -46,7 +50,7 @@ defmodule Astarte.DataAccess.FDO.TO2Session do
   typed_schema "to2_sessions" do
     field :guid, :binary, primary_key: true
     field :device_id, Astarte.DataAccess.UUID
-    field :hmac, Astarte.DataAccess.FDO.CBOR, using: Astarte.FDO.Core.Hash
+    field :hmac, CBOREncoded, using: Hash
     field :nonce, :binary
     field :sig_type, Ecto.Enum, values: [es256: -7, es384: -35, eipd10: 90, eipd11: 91]
     field :epid_group, :binary
@@ -71,11 +75,10 @@ defmodule Astarte.DataAccess.FDO.TO2Session do
     field :last_chunk_sent, :integer
     field :replacement_guid, :binary
 
-    field :replacement_rv_info, Astarte.DataAccess.FDO.CBOR,
-      using: Astarte.FDO.Core.OwnershipVoucher.RendezvousInfo
+    field :replacement_rv_info, CBOREncoded, using: RendezvousInfo
 
-    field :replacement_pub_key, Astarte.DataAccess.FDO.CBOR, using: Astarte.FDO.Core.PublicKey
+    field :replacement_pub_key, CBOREncoded, using: PublicKey
 
-    field :replacement_hmac, Astarte.DataAccess.FDO.CBOR, using: Astarte.FDO.Core.Hash
+    field :replacement_hmac, CBOREncoded, using: Hash
   end
 end

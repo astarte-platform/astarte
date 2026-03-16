@@ -37,12 +37,12 @@ defmodule Astarte.FDO.Core.OwnerOnboarding.OVNextEntry do
 
     # OVEntryNum
     # The index of the entry being sent. Must match the request received in Msg 62.
-    field(:entry_num, non_neg_integer())
+    field :entry_num, non_neg_integer()
 
     # OVEntry
     # The actual Ownership Voucher entry.
     # This is a COSE_Sign1 structure (encoded as binary).
-    field(:ov_entry, binary())
+    field :ov_entry, binary()
   end
 
   @doc """

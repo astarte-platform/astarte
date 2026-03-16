@@ -26,7 +26,7 @@ defmodule Astarte.FDO.Rendezvous.Client do
 
   use HTTPoison.Base
 
-  alias Astarte.FDO.Core.Config
+  alias Astarte.FDO.Config
 
   @impl true
   def process_request_url(url) do

@@ -40,7 +40,7 @@ defmodule Astarte.FDO.Core.OwnerOnboarding.OwnerServiceInfoReady do
     # is able to process from the Device.
     # - If nil: indicates the recommended maximum size (1300 bytes).
     # - If uint16: specifies a custom size limit.
-    field(:max_device_service_info_sz, non_neg_integer() | nil)
+    field :max_device_service_info_sz, non_neg_integer() | nil
   end
 
   def new do

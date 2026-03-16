@@ -25,7 +25,7 @@ defmodule Astarte.FDO.OwnerOnboarding do
   """
 
   alias Astarte.DataAccess.FDO.Queries
-  alias Astarte.FDO.Core.Config
+  alias Astarte.FDO.Config
   alias Astarte.FDO.Core.Hash
   alias Astarte.FDO.Core.OwnerOnboarding.DeviceServiceInfoReady
   alias Astarte.FDO.Core.OwnerOnboarding.Done, as: DonePayload

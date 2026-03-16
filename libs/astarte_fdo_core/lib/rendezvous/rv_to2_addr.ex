@@ -25,7 +25,6 @@ defmodule Astarte.FDO.Core.Rendezvous.RvTO2Addr do
 
   use TypedStruct
 
-  alias Astarte.FDO.Core.Config
   alias Astarte.FDO.Core.Rendezvous.RvTO2Addr
 
   @protocol_to_id %{
@@ -40,18 +39,14 @@ defmodule Astarte.FDO.Core.Rendezvous.RvTO2Addr do
   @type protocol :: :tcp | :tls | :http | :coap | :https | :coaps
 
   typedstruct do
-    field(:ip, binary() | nil)
-    field(:dns, String.t() | nil)
-    field(:port, non_neg_integer())
-    field(:protocol, protocol())
+    field :ip, binary() | nil
+    field :dns, String.t() | nil
+    field :port, non_neg_integer()
+    field :protocol, protocol()
   end
 
-  def for_realm(realm_name) do
-    domain = Config.base_url_domain!()
-    port = Config.base_url_port!()
-    protocol = Config.base_url_protocol!()
+  def for_realm(realm_name, domain, port, protocol) do
     dns = "#{realm_name}.#{domain}"
-
     %RvTO2Addr{dns: dns, port: port, protocol: protocol}
   end
 

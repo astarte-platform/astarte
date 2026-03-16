@@ -25,11 +25,11 @@ defmodule Astarte.FDO.Core.OwnershipVoucher do
   alias Astarte.FDO.Core.OwnershipVoucher.Header
 
   typedstruct do
-    field(:protocol_version, :integer)
-    field(:header, Header.t())
-    field(:hmac, Hash.t())
-    field(:cert_chain, [binary()] | nil)
-    field(:entries, list())
+    field :protocol_version, :integer
+    field :header, Header.t()
+    field :hmac, Hash.t()
+    field :cert_chain, [binary()] | nil
+    field :entries, list()
   end
 
   def decode_cbor(cbor) do
@@ -59,6 +59,9 @@ defmodule Astarte.FDO.Core.OwnershipVoucher do
       _ -> :error
     end
   end
+
+  defp extract_cert_chain(nil), do: {:ok, nil}
+  defp extract_cert_chain([]), do: :error
 
   defp extract_cert_chain(cert_chain) do
     extracted =
@@ -109,8 +112,8 @@ defmodule Astarte.FDO.Core.OwnershipVoucher do
   def device_public_key(ownership_voucher) do
     case ownership_voucher.cert_chain do
       nil -> {:ok, nil}
-      [device_cert | _] -> parse_device_certificate(device_cert)
       [] -> :error
+      [device_cert | _] -> parse_device_certificate(device_cert)
     end
   end
 

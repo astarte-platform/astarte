@@ -41,21 +41,21 @@ defmodule Astarte.FDO.Core.OwnerOnboarding.SetupDevicePayload do
     # Replacement for the device's RendezvousInfo.
     # It is a complex list of instructions (directives).
     # Usually passed as a raw CBOR binary if pre-built, or a list of maps/lists.
-    field(:rendezvous_info, list() | binary())
+    field :rendezvous_info, list() | binary()
 
     # 2. Guid
     # Replacement for the device GUID.
-    field(:guid, binary())
+    field :guid, binary()
 
     # 3. NonceTO2SetupDv
     # The Nonce received from the Device in TO2.ProveDevice (Type 64).
     # Ensures this Setup command is linked to the current authenticated session.
-    field(:nonce_setup_device, binary())
+    field :nonce_setup_device, binary()
 
     # 4. Owner2Key
     # The New Owner Public Key.
     # This is the key the device will trust from now on.
-    field(:owner2_key, PublicKey.t())
+    field :owner2_key, PublicKey.t()
   end
 
   @doc """

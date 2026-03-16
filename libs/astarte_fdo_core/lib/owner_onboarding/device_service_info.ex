@@ -36,13 +36,13 @@ defmodule Astarte.FDO.Core.OwnerOnboarding.DeviceServiceInfo do
     # 1. Fragmentation: If true, the Device has more data to send that didn't fit.
     #    The Owner must reply with an empty OwnerServiceInfo.
     # 2. Yield: If the PREVIOUS OwnerServiceInfo had IsMore=true, this must be false.
-    field(:is_more_service_info, boolean())
+    field :is_more_service_info, boolean()
 
     # ServiceInfo
     # A list containing the Device's ServiceInfo instructions (Key-Value pairs).
     # - On the first message, it usually includes 'devmod' (device modules).
     # - Must be empty if the Device is yielding to the Owner (responding to Owner's IsMore=true).
-    field(:service_info, map())
+    field :service_info, map()
   end
 
   @doc """

@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2017 Ispirata Srl
+# Copyright 2026 Seco Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -17,5 +17,6 @@
 #
 
 Mimic.copy(Astarte.FDO.Core.OwnerOnboarding.DeviceServiceInfoReady)
+Mimic.copy(Astarte.FDO.Core.OwnershipVoucher)
 
 ExUnit.start()

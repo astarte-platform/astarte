@@ -29,18 +29,18 @@ defmodule Astarte.FDO.Core.PublicKey do
   @type encoding() :: :crypto | :x509 | :x5chain | :cosekey
 
   typedstruct do
-    field(:type, type())
-    field(:encoding, encoding())
-    field(:body, binary() | [binary()])
+    field :type, type()
+    field :encoding, encoding()
+    field :body, binary() | [binary()]
   end
 
   def decode_cbor(cbor_binary) do
-    with {:ok, cbor_list, ""} <- CBOR.decode(cbor_binary),
-         {:ok, public_key} <- decode(cbor_list) do
-      {:ok, public_key}
-    else
+    case CBOR.decode(cbor_binary) do
+      {:ok, cbor_list, ""} -> decode(cbor_list)
       _ -> :error
     end
+  rescue
+    _ -> :error
   end
 
   def decode(cbor_list) do

@@ -21,7 +21,7 @@ defmodule Astarte.PairingWeb.OwnershipVoucherController do
 
   alias Astarte.DataAccess.FDO.OwnershipVoucher.CreateRequest
   alias Astarte.FDO.OwnershipVoucher
-  alias Astarte.FDO.To0
+  alias Astarte.FDO.TO0
 
   action_fallback Astarte.PairingWeb.FallbackController
 
@@ -47,7 +47,7 @@ defmodule Astarte.PairingWeb.OwnershipVoucherController do
              private_key
            ),
          :ok <-
-           To0.claim_ownership_voucher(
+           TO0.claim_ownership_voucher(
              realm_name,
              decoded_ownership_voucher,
              extracted_private_key

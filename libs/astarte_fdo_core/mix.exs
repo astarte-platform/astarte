@@ -1,3 +1,20 @@
+#
+# This file is part of Astarte.
+#
+# Copyright 2026 Ispirata Srl
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
 defmodule Astarte.FDO.Core.MixProject do
   use Mix.Project
 
@@ -15,7 +32,7 @@ defmodule Astarte.FDO.Core.MixProject do
         "coveralls.post": :test,
         "coveralls.html": :test
       ],
-      dialyzer: [plt_add_apps: [:ex_unit], plt_core_path: dialyzer_cache_directory(Mix.env())],
+      dialyzer: [plt_add_apps: [:ex_unit]],
       deps: deps() ++ astarte_required_modules(System.get_env("ASTARTE_IN_UMBRELLA"))
     ]
   end
@@ -42,14 +59,6 @@ defmodule Astarte.FDO.Core.MixProject do
   defp elixirc_paths(:test), do: ["test/support", "lib"]
   defp elixirc_paths(_), do: ["lib"]
 
-  defp dialyzer_cache_directory(:ci) do
-    "dialyzer_cache"
-  end
-
-  defp dialyzer_cache_directory(_) do
-    nil
-  end
-
   # Run "mix help deps" to learn about dependencies.
   defp deps do
     [
@@ -58,9 +67,8 @@ defmodule Astarte.FDO.Core.MixProject do
       {:cbor, "~> 1.0"},
       {:cose, github: "secomind/cose-elixir"},
       {:excoveralls, "~> 0.15", only: :test},
-      {:dialyxir, "~> 1.4", only: [:dev, :test, :ci], runtime: false},
+      {:dialyxir, "~> 1.4", only: [:dev, :test], runtime: false},
       {:mimic, "~> 1.11", only: :test},
-      {:skogsra, "~> 2.2"},
       {:typedstruct, "~> 0.5"},
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false}
     ]

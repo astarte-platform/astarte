@@ -33,6 +33,7 @@ allowed_scopes = [
   "events",
   "rpc",
   "fdo",
+  "fdo_core",
   "generators",
   # tools
   "e2e",

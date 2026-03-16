@@ -68,7 +68,7 @@ defmodule Astarte.FDO.Rendezvous.CoreTest do
       nonce = <<32, 54, 127, 243, 66, 48, 228, 115, 59, 186, 230, 246, 198, 179, 113, 78>>
       owner_key = sample_extracted_rsa_private_key()
       ownership_voucher = sample_voucher()
-      addr_entries = [RvTO2Addr.for_realm("test1")]
+      addr_entries = [RvTO2Addr.for_realm("test1", "test.example.com", 443, :https)]
 
       %{
         nonce: nonce,

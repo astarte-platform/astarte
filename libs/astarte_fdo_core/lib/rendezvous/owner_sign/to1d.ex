@@ -30,8 +30,8 @@ defmodule Astarte.FDO.Core.Rendezvous.OwnerSign.TO1D do
   alias COSE.Messages.Sign1
 
   typedstruct do
-    field(:rv_to2_addr, [RvTO2Addr.t()])
-    field(:to0d_hash, Hash.t())
+    field :rv_to2_addr, [RvTO2Addr.t()]
+    field :to0d_hash, Hash.t()
   end
 
   def encode(to1d) do

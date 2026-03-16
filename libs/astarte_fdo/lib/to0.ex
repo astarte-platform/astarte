@@ -16,7 +16,7 @@
 # limitations under the License.
 #
 
-defmodule Astarte.FDO.To0 do
+defmodule Astarte.FDO.TO0 do
   @moduledoc """
   Main module for handling the FDO.TO0 protocol,
   in particular the function for claiming ownership of a device,
@@ -25,6 +25,7 @@ defmodule Astarte.FDO.To0 do
   server.
   """
 
+  alias Astarte.FDO.Config
   alias Astarte.FDO.Core.Rendezvous.RvTO2Addr
   alias Astarte.FDO.Rendezvous
   alias Astarte.FDO.Rendezvous.Core, as: RendezvousCore
@@ -50,7 +51,14 @@ defmodule Astarte.FDO.To0 do
   Returns decoded TO0.AcceptOwner (message 23) with negotiated wait time.
   """
   def owner_sign(realm_name, nonce, ownership_voucher, owner_private_key, headers) do
-    realm_rv_to2_addr_entry = RvTO2Addr.for_realm(realm_name)
+    realm_rv_to2_addr_entry =
+      RvTO2Addr.for_realm(
+        realm_name,
+        Config.base_url_domain!(),
+        Config.base_url_port!(),
+        Config.base_url_protocol!()
+      )
+
     rv_to2_addr = [realm_rv_to2_addr_entry]
 
     wait_seconds = 3600

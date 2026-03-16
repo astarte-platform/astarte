@@ -47,50 +47,50 @@ defmodule Astarte.FDO.Core.OwnerOnboarding.ProveOVHdr do
     # 1. OVHeader
     # The header of the Ownership Voucher.
     # Contains the GUID, Device Info, and the initial Owner Public Key.
-    field(:ov_header, binary())
+    field :ov_header, binary()
 
     # 2. NumOVEntries
     # The number of Ownership Voucher entries that will follow in subsequent messages.
     # Must be < 256. If 0, it implies a re-manufacturing scenario.
-    field(:num_ov_entries, non_neg_integer())
+    field :num_ov_entries, non_neg_integer()
 
     # 3. HMac
     # HMAC-SHA256 or HMAC-SHA384 of the OVHeader.
     # Matches the value stored in the Device during Device Initialization (DI).
     # Verifies the device integrity (ensures it hasn't been wiped/re-initialized).
-    field(:hmac, Hash.t())
+    field :hmac, Hash.t()
 
     # 4. NonceTO2ProveOV
     # The nonce received from the Device in TO2.HelloDevice.
     # Proves liveness and prevents replay attacks of the HelloDevice message.
-    field(:nonce_to2_prove_ov, binary())
+    field :nonce_to2_prove_ov, binary()
 
     # 5. eBSigInfo
     # Contains information about the signature scheme used by the Device
     # for attestation (e.g., key type, curve).
-    field(:eb_sig_info, SignatureInfo.t())
+    field :eb_sig_info, SignatureInfo.t()
 
     # 6. xAKeyExchange
     # The Owner's ephemeral public key contribution to the Key Exchange (Point A).
     # FDO uses ECDH (Elliptic Curve Diffie-Hellman).
-    field(:xa_key_exchange, binary())
+    field :xa_key_exchange, binary()
 
     # 7. helloDeviceHash
     # A SHA hash of the full TO2.HelloDevice message received earlier.
     # Allows the Device to verify that the Hello message was not tampered with
     # by a Man-in-the-Middle (MitM) before reaching the Owner.
-    field(:hello_device_hash, binary())
+    field :hello_device_hash, binary()
 
     # 8. maxOwnerMessageSize
     # Indicates the maximum message size the Owner Service can handle.
     # The Device uses this to fragment large responses if necessary.
-    field(:max_owner_message_size, non_neg_integer())
+    field :max_owner_message_size, non_neg_integer()
 
     # CBOR encoded ov header
-    field(:cbor_ov_header, binary())
+    field :cbor_ov_header, binary()
 
     # CBOR encoded hmac
-    field(:cbor_hmac, binary())
+    field :cbor_hmac, binary()
   end
 
   @doc """

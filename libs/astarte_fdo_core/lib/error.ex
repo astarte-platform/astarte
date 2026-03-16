@@ -29,11 +29,11 @@ defmodule Astarte.FDO.Core.Error do
   alias Astarte.FDO.Core.Error
 
   typedstruct do
-    field(:error_code, non_neg_integer())
-    field(:previous_message_id, non_neg_integer())
-    field(:error_message, String.t())
-    field(:timestamp, nil)
-    field(:correlation_id, non_neg_integer())
+    field :error_code, non_neg_integer()
+    field :previous_message_id, non_neg_integer()
+    field :error_message, String.t()
+    field :timestamp, nil
+    field :correlation_id, non_neg_integer()
   end
 
   def encode(error) do

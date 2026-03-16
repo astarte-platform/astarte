@@ -16,8 +16,7 @@
 # limitations under the License.
 #
 
-defmodule Astarte.DataAccess.FDO.CBOR do
-  @type t :: term
+defmodule Astarte.DataAccess.FDO.CBOR.Encoded do
   @moduledoc """
   A generic Ecto parameterized type that stores values as CBOR binaries.
 
@@ -27,11 +26,13 @@ defmodule Astarte.DataAccess.FDO.CBOR do
 
   ## Example
 
-      field :replacement_rv_info, Astarte.DataAccess.FDO.CBOR,
+      field :replacement_rv_info, Astarte.DataAccess.FDO.CBOR.Encoded,
         using: Astarte.FDO.Core.OwnershipVoucher.RendezvousInfo
   """
 
   use Ecto.ParameterizedType
+
+  @type t :: any()
 
   @impl Ecto.ParameterizedType
   def init(opts) do
@@ -64,6 +65,5 @@ defmodule Astarte.DataAccess.FDO.CBOR do
   def dump(_, _, _), do: :error
 
   @impl Ecto.ParameterizedType
-  def cast(nil, _params), do: {:ok, nil}
   def cast(value, _params), do: {:ok, value}
 end

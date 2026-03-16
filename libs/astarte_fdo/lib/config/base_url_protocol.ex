@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2025 SECO Mind Srl
+# Copyright 2026 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -16,4 +16,24 @@
 # limitations under the License.
 #
 
-import Config
+defmodule Astarte.FDO.Config.BaseURLProtocol do
+  @moduledoc """
+  Custom Skogsra type for the base URL protocol (`:http` or `:https`).
+  """
+
+  use Skogsra.Type
+
+  @protocols [:tcp, :tls, :http, :coap, :https, :coaps]
+  @protocol_map Map.new(@protocols, &{Atom.to_string(&1), &1})
+
+  @impl Skogsra.Type
+  def cast(value) when is_binary(value) do
+    Map.fetch(@protocol_map, value)
+  end
+
+  @impl Skogsra.Type
+  def cast(value) when value in @protocols, do: {:ok, value}
+
+  @impl Skogsra.Type
+  def cast(_), do: :error
+end

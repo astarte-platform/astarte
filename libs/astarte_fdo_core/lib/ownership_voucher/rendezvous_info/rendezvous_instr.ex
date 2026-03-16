@@ -23,8 +23,8 @@ defmodule Astarte.FDO.Core.OwnershipVoucher.RendezvousInfo.RendezvousInstr do
   alias Astarte.FDO.Core.OwnershipVoucher.RendezvousInfo.RVVariable
 
   typedstruct enforce: true do
-    field(:rv_variable, RVVariable.t())
-    field(:rv_value, binary())
+    field :rv_variable, RVVariable.t()
+    field :rv_value, binary()
   end
 
   def decode([u8_rv_variable, value]) do
