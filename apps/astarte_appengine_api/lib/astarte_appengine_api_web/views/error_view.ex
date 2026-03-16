@@ -102,6 +102,10 @@ defmodule Astarte.AppEngine.APIWeb.ErrorView do
     %{errors: %{detail: "Unexpected object key"}}
   end
 
+  def render("422_missing_required_mapping.json", _assigns) do
+    %{errors: %{detail: "Missing required mapping key"}}
+  end
+
   def render("500.json", %{conn: %{assigns: %{reason: %Xandra.ConnectionError{}}}}) do
     %{errors: %{detail: "Database connection error"}}
   end

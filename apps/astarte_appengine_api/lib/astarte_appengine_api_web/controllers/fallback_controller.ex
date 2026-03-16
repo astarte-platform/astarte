@@ -212,6 +212,13 @@ defmodule Astarte.AppEngine.APIWeb.FallbackController do
     |> render(:"422_unset_not_allowed")
   end
 
+  def call(conn, {:error, :missing_required_mapping}) do
+    conn
+    |> put_status(:unprocessable_entity)
+    |> put_view(Astarte.AppEngine.APIWeb.ErrorView)
+    |> render(:"422_missing_required_mapping")
+  end
+
   def call(conn, {:error, :realm_not_found}) do
     conn
     |> put_status(:unauthorized)
