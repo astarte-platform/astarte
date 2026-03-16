@@ -24,6 +24,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DataHandler do
   """
   alias Astarte.Core.Device
   alias Astarte.Core.InterfaceDescriptor
+  alias Astarte.Core.Mapping
   alias Astarte.Core.Mapping.ValueType
   alias Astarte.DataAccess.Data
   alias Astarte.DataUpdaterPlant.DataUpdater.Cache
@@ -63,7 +64,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DataHandler do
          :ok <- can_write_on_interface?(context, interface_descriptor.ownership),
          {:ok, mapping} <- resolve_path(context, interface_descriptor),
          {:ok, {value, value_timestamp, _metadata}} <- decode_bson_payload(context),
-         :ok <- validate_value_type(context, interface_descriptor, mapping, value) do
+         :ok <- validate_value(context, interface_descriptor, mapping, value) do
       maybe_explicit_value_timestamp =
         if mapping.explicit_timestamp,
           do: value_timestamp,
@@ -208,6 +209,44 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DataHandler do
       )
     end
   end
+
+  defp validate_value(context, interface_descriptor, mapping, value) do
+    %{state: state} = context
+
+    mappings = Core.Interface.extract_mappings(interface_descriptor, mapping, state.mappings)
+
+    with :ok <- validate_value_type(context, mappings, value) do
+      validate_required_mappings(context, interface_descriptor, mappings, value)
+    end
+  end
+
+  defp validate_required_mappings(
+         context,
+         %InterfaceDescriptor{aggregation: :object},
+         %{} = mappings_by_key,
+         %{} = value
+       ) do
+    case Enum.find(mappings_by_key, fn {key, mapping} ->
+           mapping.required and not Map.has_key?(value, key)
+         end) do
+      nil ->
+        :ok
+
+      _missing ->
+        %{interface: interface, path: path} = context
+
+        error = %{
+          message: "Missing required mapping key in object sent to #{interface}#{path}.",
+          logger_metadata: [tag: "missing_required_mapping"],
+          error_name: "missing_required_mapping",
+          error: :missing_required_mapping
+        }
+
+        Core.Error.handle_error(context, error)
+    end
+  end
+
+  defp validate_required_mappings(_context, _interface_descriptor, _mappings, _value), do: :ok
 
   defp can_set_to_value(
          context,
@@ -398,18 +437,10 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DataHandler do
     Core.Error.handle_error(context, error)
   end
 
-  defp validate_value_type(context, interface_descriptor, mapping, value) do
-    %{interface: interface, path: path, payload: payload, state: state} = context
+  defp validate_value_type(context, mappings, value) do
+    %{interface: interface, path: path, payload: payload} = context
 
-    expected_types =
-      Core.Interface.extract_expected_types(
-        path,
-        interface_descriptor,
-        mapping,
-        state.mappings
-      )
-
-    validation = validate_value_type(expected_types, value)
+    validation = validate_value_type(mappings, value)
 
     case validation do
       {:error, :unexpected_value_type} ->
@@ -466,9 +497,13 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DataHandler do
     {:error, :unexpected_value_type}
   end
 
-  def validate_value_type(%{} = expected_types, %{} = object) do
+  def validate_value_type(%Mapping{value_type: expected_type}, value) do
+    validate_value_type(expected_type, value)
+  end
+
+  def validate_value_type(%{} = mappings_by_key, %{} = object) do
     Enum.reduce_while(object, :ok, fn {key, value}, _acc ->
-      with {:ok, expected_type} <- Map.fetch(expected_types, key),
+      with {:ok, %Mapping{value_type: expected_type}} <- Map.fetch(mappings_by_key, key),
            :ok <- ValueType.validate_value(expected_type, value) do
         {:cont, :ok}
       else
