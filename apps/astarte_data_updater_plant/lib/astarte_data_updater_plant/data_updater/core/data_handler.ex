@@ -97,31 +97,49 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DataHandler do
       execute_incoming_data_triggers(context)
 
       with :ok <- can_set_to_value(context, interface_descriptor, value) do
-        if interface_descriptor.type == :properties do
-          :ok = Core.Trigger.execute_pre_change_triggers(context)
-        end
-
-        # Here value cannot be nil, otherwise `can_set_to_value/5` would have not
-        # been :ok
-        if interface_descriptor.type == :datastream,
-          do: maybe_insert_path(context, interface_descriptor, mapping)
-
-        insert_context = %InsertContext{
-          realm: context.state.realm,
-          device_id: context.state.device_id,
-          interface_descriptor: interface_descriptor,
-          mapping: mapping,
-          path: path,
-          value: value,
-          value_timestamp: maybe_explicit_value_timestamp,
-          reception_timestamp: timestamp,
-          opts: [ttl: db_max_ttl]
-        }
-
-        Queries.insert_value_into_db(insert_context)
-        |> handle_result(context, start)
+        set_value(context, start)
       end
     end
+  end
+
+  defp set_value(context, start) do
+    %{
+      db_max_ttl: db_max_ttl,
+      interface_descriptor: interface_descriptor,
+      mapping: mapping,
+      path: path,
+      state: state,
+      timestamp: timestamp,
+      value_timestamp: maybe_explicit_value_timestamp,
+      value: value
+    } = context
+
+    %{realm: realm, device_id: device_id} = state
+
+    if interface_descriptor.type == :properties do
+      :ok = Core.Trigger.execute_pre_change_triggers(context)
+    end
+
+    # Here value cannot be nil, otherwise `can_set_to_value/5` would have not
+    # been :ok
+    if interface_descriptor.type == :datastream do
+      maybe_insert_path(context, interface_descriptor, mapping)
+    end
+
+    insert_context = %InsertContext{
+      realm: realm,
+      device_id: device_id,
+      interface_descriptor: interface_descriptor,
+      mapping: mapping,
+      path: path,
+      value: value,
+      value_timestamp: maybe_explicit_value_timestamp,
+      reception_timestamp: timestamp,
+      opts: [ttl: db_max_ttl]
+    }
+
+    Queries.insert_value_into_db(insert_context)
+    |> handle_result(context, start)
   end
 
   defp get_previous_value(context, interface_descriptor, mapping)

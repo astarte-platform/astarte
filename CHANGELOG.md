@@ -23,6 +23,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
   - `ASTARTE_BASE_URL_DOMAIN` - domain part of the base URL of astarte, used by devices to connect in TO2 phase (required if FDO enabled)
   - `ASTARTE_BASE_URL_PORT` - port of the base URL of astarte (required if FDO enabled)
   - `ASTARTE_BASE_URL_PROTOCOL` - protocol of the base URL of astarte (required if FDO enabled)
+  - `PAIRING_FDO_RENDEZVOUS_SSL_ENABLED` - whether SSL is enabled for the connection to the rendezvous server (default: false)
+  - `PAIRING_FDO_RENDEZVOUS_SSL_CA_FILE` - path to the CA certificate file for the rendezvous server TLS connection; when not specified, the bundled cURL certificate bundle will be used
+  - `PAIRING_FDO_RENDEZVOUS_SSL_DISABLE_SNI` - disable Server Name Indication for the rendezvous server TLS connection (default: false)
+  - `PAIRING_FDO_RENDEZVOUS_SSL_CUSTOM_SNI` - custom SNI hostname for the rendezvous server TLS connection; when not specified, the Rendezvous hostname will be used
 
 - [astarte_housekeeping] AMQP management configuration moved to `astarte_events` library. Environment variables changed:
   - `HOUSEKEEPING_AMQP_SSL_ENABLED` is now `ASTARTE_EVENTS_AMQP_MANAGEMENT_SSL_ENABLED`
@@ -108,14 +112,17 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - [astarte_data_updater_plant] Correctly encode values when sending properties to device on connection
 - [astarte_realm_management] Allow to delete long-disconnected devices. For this to work, Realm Management needs `CLUSTERING_STRATEGY`, `CLUSTERING_KUBERNETES_NAMESPACE` and `DATA_UPDATER_PLANT_CLUSTERING_KUBERNETES_SELECTOR` to be set, just like AppEngine and DUP. Refer to 1.2.1-rc.0 for additional information on the variables.
 
-## [1.2.1] - Unreleased
+## [1.2.1] - 2026-03-12
 
 ### Fixed
 
 - [astarte_realm_management] Insufficient validation for conflicting options in interface aggregate mappings
   [#1072](https://github.com/astarte-platform/astarte/issues/1072)
+- [astarte_data_updater_plant] Ensure device deletion rpc always checks updated status
 
 ## [1.2.1-rc.1] - 2026-02-13
+
+### Fixed
 
 - [astarte_realm_management] Bug where devices got stuck in the "in deletion" status: [#1493](https://github.com/astarte-platform/astarte/issues/1493).
 - [astarte_data_updater_plant] Correctly reconnect to AMQP after a connection loss

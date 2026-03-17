@@ -25,6 +25,7 @@ defmodule Astarte.Housekeeping.Migrator do
   alias Astarte.DataAccess.KvStore
   alias Astarte.DataAccess.Realms.Realm
   alias Astarte.DataAccess.Repo
+  alias Astarte.Events.AMQP.Vhost
   alias Astarte.Housekeeping.Realms.Queries
   alias Astarte.Housekeeping.Realms.Realm, as: HKRealm
 
@@ -81,7 +82,8 @@ defmodule Astarte.Housekeeping.Migrator do
     )
 
     with {:ok, realm_astarte_schema_version} <- get_realm_astarte_schema_version(realm_name),
-         :ok <- migrate_realm_from_version(realm_name, realm_astarte_schema_version) do
+         :ok <- migrate_realm_from_version(realm_name, realm_astarte_schema_version),
+         :ok <- Vhost.create_vhost(realm_name) do
       migrate_realms(tail)
     end
   end

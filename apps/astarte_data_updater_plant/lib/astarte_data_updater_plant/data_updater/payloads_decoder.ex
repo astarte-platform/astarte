@@ -198,29 +198,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.PayloadsDecoder do
     introspection_tokens = String.split(introspection_payload, ";")
 
     all_tokens_are_good =
-      Enum.all?(introspection_tokens, fn token ->
-        with [interface_name, major_version_string, minor_version_string] <-
-               String.split(token, ":"),
-             {major_version, ""} <- Integer.parse(major_version_string),
-             {minor_version, ""} <- Integer.parse(minor_version_string) do
-          cond do
-            String.match?(interface_name, Interface.interface_name_regex()) == false ->
-              false
-
-            major_version < 0 ->
-              false
-
-            minor_version < 0 ->
-              false
-
-            true ->
-              true
-          end
-        else
-          _not_expected ->
-            false
-        end
-      end)
+      Enum.all?(introspection_tokens, &token_good?/1)
 
     if all_tokens_are_good do
       parsed_introspection =
@@ -236,6 +214,30 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.PayloadsDecoder do
       {:ok, parsed_introspection}
     else
       {:error, :invalid_introspection}
+    end
+  end
+
+  defp token_good?(token) do
+    with [interface_name, major_version_string, minor_version_string] <-
+           String.split(token, ":"),
+         {major_version, ""} <- Integer.parse(major_version_string),
+         {minor_version, ""} <- Integer.parse(minor_version_string) do
+      cond do
+        String.match?(interface_name, Interface.interface_name_regex()) == false ->
+          false
+
+        major_version < 0 ->
+          false
+
+        minor_version < 0 ->
+          false
+
+        true ->
+          true
+      end
+    else
+      _not_expected ->
+        false
     end
   end
 end

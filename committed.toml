@@ -44,7 +44,7 @@ allowed_scopes = [
   "nix",
   "deps",
 ]
-merge_commit = false
+merge_commit = true
 imperative_subject = true
 subject_not_punctuated = true
 subject_capitalized = false

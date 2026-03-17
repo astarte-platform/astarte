@@ -22,6 +22,7 @@ defmodule Astarte.Housekeeping.MigratorTest do
 
   alias Astarte.DataAccess.KvStore
   alias Astarte.DataAccess.Realms.Realm, as: DatabaseRealm
+  alias Astarte.Events.AMQP.Vhost
   alias Astarte.Housekeeping.Helpers.Database
   alias Astarte.Housekeeping.Migrator
   alias Astarte.Housekeeping.Realms.Core
@@ -74,7 +75,8 @@ defmodule Astarte.Housekeeping.MigratorTest do
       Queries.initialize_database()
       Core.create_realm(realm, [])
       Database.edit_with_outdated_column_for_astarte_realms_table!()
-      :ok
+
+      %{realm_name: realm_name}
     end
 
     test "returns ok with complete db" do
@@ -112,6 +114,11 @@ defmodule Astarte.Housekeeping.MigratorTest do
     test "returns error due do xandra connection problem" do
       Mimic.stub(Xandra, :execute, fn _, _, _, _ -> {:error, %Xandra.ConnectionError{}} end)
       assert {:error, :database_connection_error} = Migrator.run_realms_migrations()
+    end
+
+    test "creates the realm vhost", %{realm_name: realm_name} do
+      Mimic.expect(Vhost, :create_vhost, fn ^realm_name -> :ok end)
+      assert :ok = Migrator.run_realms_migrations()
     end
   end
 

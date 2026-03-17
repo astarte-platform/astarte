@@ -40,136 +40,115 @@ defmodule Astarte.Events.Config do
           | {:channels, integer()}
 
   @envdoc "Enable SSL for the AMQP connection. If not specified, SSL is disabled."
-  app_env(:amqp_management_ssl_enabled, :astarte_housekeeping, :amqp_management_ssl_enabled,
+  app_env :amqp_management_ssl_enabled, :astarte_events, :amqp_management_ssl_enabled,
     os_env: "ASTARTE_EVENTS_AMQP_MANAGEMENT_SSL_ENABLED",
     type: :boolean,
     default: false
-  )
 
   @envdoc """
   Specifies the certificates of the root Certificate Authorities to be trusted for the AMQP connection. When not specified, the bundled cURL certificate bundle will be used.
   """
-  app_env(:amqp_management_ssl_ca_file, :astarte_housekeeping, :amqp_management_ssl_ca_file,
+  app_env :amqp_management_ssl_ca_file, :astarte_events, :amqp_management_ssl_ca_file,
     os_env: "ASTARTE_EVENTS_AMQP_MANAGEMENT_SSL_CA_FILE",
     type: :binary,
     default: CAStore.file_path()
-  )
 
   @envdoc "Disable Server Name Indication. Defaults to false."
-  app_env(
-    :amqp_management_ssl_disable_sni,
-    :astarte_housekeeping,
-    :amqp_management_ssl_disable_sni,
-    os_env: "ASTARTE_EVENTS_AMQP_MANAGEMENT_SSL_DISABLE_SNI",
-    type: :boolean,
-    default: false
-  )
+  app_env :amqp_management_ssl_disable_sni,
+          :astarte_events,
+          :amqp_management_ssl_disable_sni,
+          os_env: "ASTARTE_EVENTS_AMQP_MANAGEMENT_SSL_DISABLE_SNI",
+          type: :boolean,
+          default: false
 
   @envdoc "Specify the hostname to be used in TLS Server Name Indication extension. If not specified, the amqp consumer host will be used. This value is used only if Server Name Indication is enabled."
-  app_env(:amqp_management_ssl_custom_sni, :astarte_housekeeping, :amqp_management_ssl_custom_sni,
+  app_env :amqp_management_ssl_custom_sni, :astarte_events, :amqp_management_ssl_custom_sni,
     os_env: "ASTARTE_EVENTS_AMQP_MANAGEMENT_SSL_CUSTOM_SNI",
     type: :binary
-  )
 
   @envdoc "The host for the AMQP management API connection."
-  app_env(:amqp_management_host, :astarte_events, :amqp_management_host,
+  app_env :amqp_management_host, :astarte_events, :amqp_management_host,
     os_env: "ASTARTE_EVENTS_AMQP_MANAGEMENT_HOST",
     type: :binary,
     default: "localhost"
-  )
 
   @envdoc "The port for the AMQP management connection."
-  app_env(:amqp_management_port, :astarte_events, :amqp_management_port,
+  app_env :amqp_management_port, :astarte_events, :amqp_management_port,
     os_env: "ASTARTE_EVENTS_AMQP_MANAGEMENT_PORT",
     type: :integer,
     default: 15_672
-  )
 
   @envdoc "The username for the AMQP management API connection."
-  app_env(:amqp_management_username, :astarte_events, :amqp_management_username,
+  app_env :amqp_management_username, :astarte_events, :amqp_management_username,
     os_env: "ASTARTE_EVENTS_AMQP_MANAGEMENT_USERNAME",
     type: :binary,
     default: "guest"
-  )
 
   @envdoc "The password for the AMQP management API connection."
-  app_env(:amqp_management_password, :astarte_events, :amqp_management_password,
+  app_env :amqp_management_password, :astarte_events, :amqp_management_password,
     os_env: "ASTARTE_EVENTS_AMQP_MANAGEMENT_PASSWORD",
     type: :binary,
     default: "guest"
-  )
 
   @envdoc "The host for the AMQP consumer connection."
-  app_env(:amqp_host, :astarte_events, :amqp_host,
+  app_env :amqp_host, :astarte_events, :amqp_host,
     os_env: "ASTARTE_EVENTS_PRODUCER_AMQP_HOST",
     type: :binary,
     default: "localhost"
-  )
 
   @envdoc "The username for the AMQP consumer connection."
-  app_env(:amqp_username, :astarte_events, :amqp_username,
+  app_env :amqp_username, :astarte_events, :amqp_username,
     os_env: "ASTARTE_EVENTS_PRODUCER_AMQP_USERNAME",
     type: :binary,
     default: "guest"
-  )
 
   @envdoc "The password for the AMQP consumer connection."
-  app_env(:amqp_password, :astarte_events, :amqp_password,
+  app_env :amqp_password, :astarte_events, :amqp_password,
     os_env: "ASTARTE_EVENTS_PRODUCER_AMQP_PASSWORD",
     type: :binary,
     default: "guest"
-  )
 
   @envdoc "The virtual_host for the AMQP consumer connection."
-  app_env(
-    :amqp_virtual_host,
-    :astarte_events,
-    :amqp_virtual_host,
-    os_env: "ASTARTE_EVENTS_PRODUCER_AMQP_VIRTUAL_HOST",
-    type: :binary,
-    default: "/"
-  )
+  app_env :amqp_virtual_host,
+          :astarte_events,
+          :amqp_virtual_host,
+          os_env: "ASTARTE_EVENTS_PRODUCER_AMQP_VIRTUAL_HOST",
+          type: :binary,
+          default: "/"
 
   @envdoc "The port for the AMQP consumer connection."
-  app_env(:amqp_port, :astarte_events, :amqp_port,
+  app_env :amqp_port, :astarte_events, :amqp_port,
     os_env: "ASTARTE_EVENTS_PRODUCER_AMQP_PORT",
     type: :integer,
     default: 5672
-  )
 
   @envdoc "Enable SSL for the AMQP consumer connection. If not specified, SSL is disabled."
-  app_env(:amqp_ssl_enabled, :astarte_events, :amqp_ssl_enabled,
+  app_env :amqp_ssl_enabled, :astarte_events, :amqp_ssl_enabled,
     os_env: "ASTARTE_EVENTS_PRODUCER_AMQP_SSL_ENABLED",
     type: :boolean,
     default: false
-  )
 
   @envdoc """
   Specifies the certificates of the root Certificate Authorities to be trusted for the AMQP consumer connection. When not specified, the bundled cURL certificate bundle will be used.
   """
-  app_env(:amqp_ssl_ca_file, :astarte_events, :amqp_ssl_ca_file,
+  app_env :amqp_ssl_ca_file, :astarte_events, :amqp_ssl_ca_file,
     os_env: "ASTARTE_EVENTS_PRODUCER_AMQP_SSL_CA_FILE",
     type: :binary
-  )
 
   @envdoc "Disable Server Name Indication. Defaults to false."
-  app_env(
-    :amqp_ssl_disable_sni,
-    :astarte_events,
-    :amqp_ssl_disable_sni,
-    os_env: "ASTARTE_EVENTS_PRODUCER_AMQP_SSL_DISABLE_SNI",
-    type: :boolean,
-    default: false
-  )
+  app_env :amqp_ssl_disable_sni,
+          :astarte_events,
+          :amqp_ssl_disable_sni,
+          os_env: "ASTARTE_EVENTS_PRODUCER_AMQP_SSL_DISABLE_SNI",
+          type: :boolean,
+          default: false
 
   @envdoc "Specify the hostname to be used in TLS Server Name Indication extension. If not specified, the amqp consumer host will be used. This value is used only if Server Name Indication is enabled."
-  app_env(
-    :amqp_ssl_custom_sni,
-    :astarte_events,
-    :amqp_ssl_custom_sni,
-    os_env: "ASTARTE_EVENTS_PRODUCER_AMQP_SSL_CUSTOM_SNI",
-    type: :binary
-  )
+  app_env :amqp_ssl_custom_sni,
+          :astarte_events,
+          :amqp_ssl_custom_sni,
+          os_env: "ASTARTE_EVENTS_PRODUCER_AMQP_SSL_CUSTOM_SNI",
+          type: :binary
 
   @envdoc "The number of connections to RabbitMQ used to consume data"
   app_env :amqp_connection_number,
