@@ -1,6 +1,6 @@
 %{
   "artificery": {:hex, :artificery, "0.4.4", "04ef46408596052053f0152b08d86b31a85b63862613f7fc13d6fb4f64819f6a", [:mix], [], "hexpm", "b897b4986dc1bb3e2f5c86de5bb4ea101b656441d16fc0db73622c09c18e96b7"},
-  "astarte_core": {:git, "https://github.com/astarte-platform/astarte_core.git", "ed0f13174a94de5f6107aa327b61e7697ca4a224", [tag: "v1.3.0-rc.1"]},
+  "astarte_core": {:git, "https://github.com/astarte-platform/astarte_core.git", "a6efa2e87b7f121cc7656640cdff88c408e180f5", []},
   "castore": {:hex, :castore, "1.0.17", "4f9770d2d45fbd91dcf6bd404cf64e7e58fed04fadda0923dc32acca0badffa2", [:mix], [], "hexpm", "12d24b9d80b910dd3953e165636d68f147a31db945d2dcb9365e441f8b5351e5"},
   "cyanide": {:hex, :cyanide, "2.0.0", "f97b700b87f9b0679ae812f0c4b7fe35ea6541a4121a096cf10287941b7a6d55", [:mix], [], "hexpm", "7f9748251804c2a2115b539202568e1117ab2f0ae09875853fb89cc94ae19dd1"},
   "db_connection": {:hex, :db_connection, "2.9.0", "a6a97c5c958a2d7091a58a9be40caf41ab496b0701d21e1d1abff3fa27a7f371", [:mix], [{:telemetry, "~> 0.4 or ~> 1.0", [hex: :telemetry, repo: "hexpm", optional: false]}], "hexpm", "17d502eacaf61829db98facf6f20808ed33da6ccf495354a41e64fe42f9c509c"},

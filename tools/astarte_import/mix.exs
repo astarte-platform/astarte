@@ -4,7 +4,7 @@ defmodule Astarte.Import.MixProject do
   def project do
     [
       app: :astarte_import,
-      version: "1.3.0-rc.1",
+      version: "1.4.0-dev",
       elixir: "~> 1.15",
       start_permanent: Mix.env() == :prod,
       deps: deps()
@@ -25,7 +25,7 @@ defmodule Astarte.Import.MixProject do
       {:exandra, "~>0.16.0"},
       {:ecto, "~>3.13"},
       {:logfmt, "~> 3.3"},
-      {:astarte_core, github: "astarte-platform/astarte_core", tag: "v1.3.0-rc.1"},
+      {:astarte_core, github: "astarte-platform/astarte_core"},
       {:astarte_data_access, path: astarte_lib("astarte_data_access")},
       {:jason, "~> 1.4"},
       {:distillery, "~> 2.0"}
