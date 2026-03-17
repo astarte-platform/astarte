@@ -1610,6 +1610,34 @@ defmodule Astarte.AppEngine.API.DeviceTest do
                par
              ) == {:error, :cannot_push_to_device}
     end
+
+    test "fails when missing required mapping" do
+      test_realm = "autotestrealm"
+      device_id = "fmloLzG5T5u0aOUfIkL8KA"
+      interface = "org.astarte-platform.genericsensors.ServerOwnedAggregateObj"
+      path = "/my_path"
+      par = nil
+
+      # Set mapping as required
+      Repo.query!("""
+        UPDATE #{Realm.keyspace_name(test_realm)}.endpoints
+        SET required = true
+        WHERE interface_id = 65c96ecb-f2d5-b440-4840-16cd84d2c2be
+        AND endpoint_id = 76c99541-dd31-6369-bcdd-f2fdacc2d3ff
+      """)
+
+      # Omit the required key from the value
+      value = %{"samplingPeriod" => 10}
+
+      assert Device.update_interface_values(
+               test_realm,
+               device_id,
+               interface,
+               path,
+               value,
+               par
+             ) == {:error, :missing_required_mapping}
+    end
   end
 
   describe "ttl is handled properly for server owned individual interface" do
