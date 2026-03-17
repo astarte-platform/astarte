@@ -130,7 +130,6 @@ defmodule Astarte.Events.TriggersTest do
         Triggers.find_device_trigger_targets(
           realm,
           device_id,
-          [],
           event_key
         )
 
@@ -142,7 +141,6 @@ defmodule Astarte.Events.TriggersTest do
         Triggers.find_device_trigger_targets(
           realm,
           device_id,
-          [],
           event_key
         )
 
@@ -193,6 +191,7 @@ defmodule Astarte.Events.TriggersTest do
           device_id,
           [],
           {:on_incoming_data, interface_id, :any_endpoint},
+          "some_value",
           %{}
         )
 
@@ -216,7 +215,6 @@ defmodule Astarte.Events.TriggersTest do
         Triggers.find_interface_event_device_trigger_targets(
           realm,
           device_id,
-          [],
           :on_interface_added,
           interface_id
         )
