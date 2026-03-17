@@ -149,7 +149,7 @@ jobs:
       - name: Start all Astarte services
         working-directory: .tmp/repos/astarte
         run: docker compose up --no-build --pull missing -d
-      - uses: actions-rust-lang/setup-rust-toolchain@1780873c7b576612439a134613cc4cc74ce5538c # v1.15.2
+      - uses: actions-rust-lang/setup-rust-toolchain@150fca883cd4034361b621bd4e6a9d34e5143606 # v1.15.4
       - uses: mozilla-actions/sccache-action@7d986dd989559c6ecdb630a3fd2557667be217ad # v0.0.9
       - name: Cache container build
         id: cache-container
@@ -158,7 +158,7 @@ jobs:
           path: .tmp/cache/containers
           key: ${{ runner.os }}-${{ hashFiles('justfile', 'scripts/**/*.sh', 'containers/**') }}
       - name: Install just
-        uses: taiki-e/install-action@575f713d0233afba556737a7b85080563be14186 # v2.49.43
+        uses: taiki-e/install-action@94a7388bec5d4c8dd93e3ebf09e0ff448f3f6f4d # v2.68.35
         with:
           tool: just
       - run: just go-server-setup
