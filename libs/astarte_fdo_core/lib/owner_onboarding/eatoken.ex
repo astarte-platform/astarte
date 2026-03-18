@@ -123,8 +123,8 @@ defmodule Astarte.FDO.Core.OwnerOnboarding.EAToken do
 
   defp verify_signature(decoded, device_public_key) do
     case Sign1.verify(decoded, device_public_key) do
-      true -> {:ok, :verified}
-      false -> {:error, :invalid_message}
+      :ok -> {:ok, :verified}
+      _ -> {:error, :invalid_message}
     end
   end
 

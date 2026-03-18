@@ -30,7 +30,7 @@ defmodule Astarte.FDO.OwnerOnboarding.ProveDeviceTest do
 
   setup context do
     prove_device_data = ProveDevice.generate()
-    prove_device_msg = prove_device_data |> ProveDevice.encode_sign(context.device_key)
+    {:ok, prove_device_msg} = prove_device_data |> ProveDevice.encode_sign(context.device_key)
 
     %{
       prove_device_data: prove_device_data,
@@ -43,10 +43,9 @@ defmodule Astarte.FDO.OwnerOnboarding.ProveDeviceTest do
       device_priv_key = ECC.generate(:es256)
       original_data = ProveDevice.generate()
 
-      result = ProveDevice.encode_sign(original_data, device_priv_key)
+      assert {:ok, result} = ProveDevice.encode_sign(original_data, device_priv_key)
 
       assert is_binary(result)
-      refute match?({:ok, _}, result)
     end
 
     test "encode and decode are symmetric operations", _context do
@@ -54,7 +53,7 @@ defmodule Astarte.FDO.OwnerOnboarding.ProveDeviceTest do
 
       original_data = ProveDevice.generate()
 
-      encoded_msg = ProveDevice.encode_sign(original_data, device_priv_key)
+      {:ok, encoded_msg} = ProveDevice.encode_sign(original_data, device_priv_key)
       assert {:ok, decoded_data} = ProveDevice.decode(encoded_msg, device_priv_key)
 
       assert decoded_data.xb_key_exchange == original_data.xb_key_exchange
@@ -103,7 +102,7 @@ defmodule Astarte.FDO.OwnerOnboarding.ProveDeviceTest do
         encode_sign_missing_cbor_tags(msg_data, dev_key)
       end)
 
-      prove_device_msg_notag =
+      {:ok, prove_device_msg_notag} =
         context.prove_device_data |> ProveDevice.encode_sign(context.device_key)
 
       # the first check that fails is the one about the EAT FDO claim decode
@@ -122,7 +121,7 @@ defmodule Astarte.FDO.OwnerOnboarding.ProveDeviceTest do
       owner_key: owner_key
     } = context
 
-    prove_device_msg =
+    {:ok, prove_device_msg} =
       %ProveDevice{
         xb_key_exchange: xb,
         nonce_to2_prove_dv: session.prove_dv_nonce,
@@ -150,7 +149,7 @@ defmodule Astarte.FDO.OwnerOnboarding.ProveDeviceTest do
 
     # message is signed with the owner EC256 private key and can be verified using
     # the related public key
-    assert Sign1.verify(setup_device_msg_decoded, owner_key)
+    assert :ok == Sign1.verify(setup_device_msg_decoded, owner_key)
   end
 
   test "verify ES256 fails if Nonce does not match", context do
@@ -165,7 +164,7 @@ defmodule Astarte.FDO.OwnerOnboarding.ProveDeviceTest do
 
     wrong_nonce = :crypto.strong_rand_bytes(16)
 
-    body =
+    {:ok, body} =
       %ProveDevice{
         xb_key_exchange: xb,
         nonce_to2_prove_dv: wrong_nonce,
@@ -196,7 +195,7 @@ defmodule Astarte.FDO.OwnerOnboarding.ProveDeviceTest do
     } =
       context
 
-    body =
+    {:ok, body} =
       %ProveDevice{
         xb_key_exchange: xb,
         nonce_to2_prove_dv: session.prove_dv_nonce,
@@ -228,7 +227,7 @@ defmodule Astarte.FDO.OwnerOnboarding.ProveDeviceTest do
 
     device_key2 = ECC.generate(:es256)
 
-    body =
+    {:ok, body} =
       %ProveDevice{
         xb_key_exchange: xb,
         nonce_to2_prove_dv: session.prove_dv_nonce,
@@ -260,7 +259,7 @@ defmodule Astarte.FDO.OwnerOnboarding.ProveDeviceTest do
 
       creds = dummy_creds(owner_key)
 
-      prove_device_msg =
+      {:ok, prove_device_msg} =
         %ProveDevice{
           xb_key_exchange: xb,
           nonce_to2_prove_dv: session.prove_dv_nonce,
@@ -301,7 +300,7 @@ defmodule Astarte.FDO.OwnerOnboarding.ProveDeviceTest do
 
       # message is signed with the EC384 owner private key and can be verified
       # using the related public key
-      assert Sign1.verify(setup_device_msg_decoded, creds.owner_private_key)
+      assert :ok == Sign1.verify(setup_device_msg_decoded, creds.owner_private_key)
     end
 
     @tag owner_key: "RSA2048"
@@ -329,7 +328,7 @@ defmodule Astarte.FDO.OwnerOnboarding.ProveDeviceTest do
 
       # message is signed with the RSA2048 owner private key and can be verified using
       # the related public key
-      assert Sign1.verify(setup_device_msg_decoded, creds.owner_private_key)
+      assert :ok == Sign1.verify(setup_device_msg_decoded, creds.owner_private_key)
     end
 
     @tag owner_key: "RSA3072"
@@ -357,7 +356,7 @@ defmodule Astarte.FDO.OwnerOnboarding.ProveDeviceTest do
 
       # message is signed with the RSA3072 owner private key and can be verified using the
       # related public key
-      assert Sign1.verify(setup_device_msg_decoded, creds.owner_private_key)
+      assert :ok == Sign1.verify(setup_device_msg_decoded, creds.owner_private_key)
     end
   end
 
