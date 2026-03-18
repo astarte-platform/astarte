@@ -31,7 +31,7 @@ defmodule AstarteExport.MixProject do
       {:xandra, "~> 0.19.4"},
       {:exandra, "~>0.16.0"},
       {:distillery, "~> 2.1.1"},
-      {:pretty_log, "~> 0.1.0"},
+      {:pretty_log, "~> 0.9.0"},
       {:xml_stream_writer, "~> 0.1"},
       {:excoveralls, "~> 0.12", only: :test},
       {:dialyxir, "~> 1.0", only: [:dev, :test], runtime: false},
