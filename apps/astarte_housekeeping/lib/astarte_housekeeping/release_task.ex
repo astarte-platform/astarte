@@ -26,6 +26,7 @@ defmodule Astarte.Housekeeping.ReleaseTasks do
 
   @start_apps [
     :ecto,
+    :httpoison,
     :logger,
     :crypto,
     :ssl
