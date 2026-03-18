@@ -29,28 +29,21 @@ defmodule Astarte.Pairing.FDO.OpenBao.Client do
   alias HTTPoison.Response
 
   @impl true
-  def process_request_url(url) do
-    Config.bao_url!() <> "/v1" <> url
+  def post(url, body, headers \\ [], options \\ []) do
+    {headers, options} = populate_openbao_headers(headers, options)
+    super(url, body, headers, options)
   end
 
   @impl true
-  def process_request_options(options) do
-    auth_opts = [
-      ssl: Config.bao_ssl_options!()
-    ]
-
-    Keyword.merge(auth_opts, options)
+  def get(url, headers \\ [], options \\ []) do
+    {headers, options} = populate_openbao_headers(headers, options)
+    super(url, headers, options)
   end
 
   @impl true
-  def process_request_headers(headers) do
-    case Config.bao_authentication() do
-      {:ok, {:token, token}} ->
-        maybe_add_default_token(headers, token)
-
-      _ ->
-        headers
-    end
+  def delete(url, headers \\ [], options \\ []) do
+    {headers, options} = populate_openbao_headers(headers, options)
+    super(url, headers, options)
   end
 
   @doc """
@@ -65,6 +58,7 @@ defmodule Astarte.Pairing.FDO.OpenBao.Client do
           {:ok, Response.t() | AsyncResponse.t()} | {:error, Error.t()}
   def list(url, headers \\ [], options \\ []) do
     options = update_in(options, [:params], &[{"list", "true"} | &1 || []])
+    {headers, options} = populate_openbao_headers(headers, options)
     get(url, headers, options)
   end
 
@@ -79,17 +73,43 @@ defmodule Astarte.Pairing.FDO.OpenBao.Client do
   @spec list!(binary, headers, Keyword.t()) :: Response.t() | AsyncResponse.t()
   def list!(url, headers \\ [], options \\ []) do
     options = update_in(options, [:params], &[{"list", "true"} | &1 || []])
+    {headers, options} = populate_openbao_headers(headers, options)
     get!(url, headers, options)
   end
 
-  defp maybe_add_default_token(headers, token) do
-    # If the token is not already set, add the default token
-    case Enum.find(headers, &authentication_header?/1) do
-      nil -> [{"X-Vault-Token", token} | headers]
-      _ -> headers
+  @impl true
+  def process_request_url(url) do
+    Config.bao_url!() <> "/v1" <> url
+  end
+
+  @impl true
+  def process_request_options(options) do
+    auth_opts = [
+      ssl: Config.bao_ssl_options!()
+    ]
+
+    Keyword.merge(auth_opts, options)
+  end
+
+  # add here custom headers for OpenBao API calls
+  defp populate_openbao_headers(headers, opts) do
+    {token, opts} = Keyword.pop(opts, :token, Config.bao_token!())
+    {namespace, opts} = Keyword.pop(opts, :namespace)
+    headers = headers |> add_token_to_header(token) |> add_namespace_to_header(namespace)
+    {headers, opts}
+  end
+
+  defp add_token_to_header(headers, token) do
+    case token do
+      nil -> headers
+      token -> [{"X-Vault-Token", token} | headers]
     end
   end
 
-  defp authentication_header?({header, _value}),
-    do: String.downcase(header, :ascii) in ["x-vault-token", "authorization"]
+  defp add_namespace_to_header(headers, namespace) do
+    case namespace do
+      nil -> headers
+      namespace -> [{"X-Vault-Namespace", namespace} | headers]
+    end
+  end
 end
