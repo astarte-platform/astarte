@@ -33,6 +33,9 @@ config :astarte_pairing, Astarte.PairingWeb.Endpoint,
   secret_key_base: "LXWGqSIaFRDtOaX5Qgfw5TrSAsWQs6V8OkXEsGuuqRhc1oFvrGax/SfP7F7gAIcX",
   render_errors: [view: Astarte.PairingWeb.ErrorView, accepts: ~w(json)]
 
+# FDO session tokens use the endpoint's secret_key_base
+config :astarte_fdo, :endpoint, Astarte.PairingWeb.Endpoint
+
 # Configures Elixir's Logger
 config :logger, :default_formatter,
   format: "$time $metadata[$level] $message\n",

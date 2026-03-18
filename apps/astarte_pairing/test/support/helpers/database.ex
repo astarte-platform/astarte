@@ -27,7 +27,6 @@ defmodule Astarte.Helpers.Database do
   alias Astarte.DataAccess.Realms.Realm
   alias Astarte.DataAccess.Repo
   alias Astarte.Pairing.CredentialsSecret
-  alias Astarte.Pairing.Queries
 
   @create_keyspace """
   CREATE KEYSPACE :keyspace
@@ -75,6 +74,13 @@ defmodule Astarte.Helpers.Database do
   );
   """
 
+  @create_session_key_type """
+  CREATE TYPE :keyspace.session_key (
+    alg int,
+    k blob
+  );
+  """
+
   @create_ownership_vouchers_table """
   CREATE TABLE :keyspace.ownership_vouchers (
       private_key blob,
@@ -100,9 +106,9 @@ defmodule Astarte.Helpers.Database do
     max_owner_service_info_size int,
     owner_random blob,
     secret blob,
-    sevk blob,
-    svk blob,
-    sek blob,
+    sevk session_key,
+    svk session_key,
+    sek session_key,
     device_service_info map<tuple<text, text>, blob>,
     owner_service_info list<blob>,
     last_chunk_sent int,
@@ -326,6 +332,7 @@ defmodule Astarte.Helpers.Database do
     realm_keyspace = Realm.keyspace_name(realm_name)
     execute!(realm_keyspace, @create_keyspace)
     execute!(realm_keyspace, @create_capabilities_type)
+    execute!(realm_keyspace, @create_session_key_type)
     execute!(realm_keyspace, @create_ownership_vouchers_table)
     execute!(realm_keyspace, @create_devices_table)
     execute!(realm_keyspace, @create_groups_table)
@@ -495,27 +502,27 @@ defmodule Astarte.Helpers.Database do
   def get_first_registration(realm, hardware_id) do
     {:ok, device_id} = Device.decode_device_id(hardware_id, allow_extended_id: true)
 
-    {:ok, device} = Queries.fetch_device(realm, device_id)
+    {:ok, device} = Astarte.DataAccess.Device.fetch(realm, device_id)
     device.first_registration
   end
 
   def get_introspection(realm, hardware_id) do
     {:ok, device_id} = Device.decode_device_id(hardware_id, allow_extended_id: true)
 
-    {:ok, device} = Queries.fetch_device(realm, device_id)
+    {:ok, device} = Astarte.DataAccess.Device.fetch(realm, device_id)
     device.introspection
   end
 
   def get_introspection_minor(realm, hardware_id) do
     {:ok, device_id} = Device.decode_device_id(hardware_id, allow_extended_id: true)
-    {:ok, device} = Queries.fetch_device(realm, device_id)
+    {:ok, device} = Astarte.DataAccess.Device.fetch(realm, device_id)
     device.introspection_minor
   end
 
   def get_message_count_for_device(realm, hardware_id) do
     {:ok, device_id} = Device.decode_device_id(hardware_id, allow_extended_id: true)
 
-    {:ok, device} = Queries.fetch_device(realm, device_id)
+    {:ok, device} = Astarte.DataAccess.Device.fetch(realm, device_id)
 
     [
       %{

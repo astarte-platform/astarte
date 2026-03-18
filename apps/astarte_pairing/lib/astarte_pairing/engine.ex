@@ -22,6 +22,7 @@ defmodule Astarte.Pairing.Engine do
   """
 
   alias Astarte.Core.Device
+  alias Astarte.DataAccess.Device, as: DataAccessDevice
   alias Astarte.Pairing.CertVerifier
   alias Astarte.Pairing.CFSSLCredentials
   alias Astarte.Pairing.Config
@@ -50,7 +51,7 @@ defmodule Astarte.Pairing.Engine do
 
     with {:ok, device_id} <- Device.decode_device_id(hardware_id, allow_extended_id: true),
          {:ok, ip_tuple} <- parse_ip(device_ip),
-         {:ok, device} <- Queries.fetch_device(realm, device_id),
+         {:ok, device} <- DataAccessDevice.fetch(realm, device_id),
          {:authorized?, true} <-
            {:authorized?, CredentialsSecret.verify(credentials_secret, device.credentials_secret)},
          {:credentials_inhibited?, false} <-
@@ -99,7 +100,7 @@ defmodule Astarte.Pairing.Engine do
     Logger.debug("get_info request for device #{inspect(hardware_id)} in realm #{inspect(realm)}")
 
     with {:ok, device_id} <- Device.decode_device_id(hardware_id, allow_extended_id: true),
-         {:ok, device} <- Queries.fetch_device(realm, device_id),
+         {:ok, device} <- DataAccessDevice.fetch(realm, device_id),
          {:authorized?, true} <-
            {:authorized?, CredentialsSecret.verify(credentials_secret, device.credentials_secret)} do
       device_status = device_status_string(device)
@@ -133,7 +134,7 @@ defmodule Astarte.Pairing.Engine do
          credentials_secret <- CredentialsSecret.generate(),
          secret_hash <- CredentialsSecret.hash(credentials_secret),
          {:ok, _device} <-
-           Queries.register_device(realm, device_id, hardware_id, secret_hash, opts) do
+           DataAccessDevice.register(realm, device_id, hardware_id, secret_hash, opts) do
       {:ok, credentials_secret}
     else
       {:error, :shutdown} ->
@@ -197,7 +198,7 @@ defmodule Astarte.Pairing.Engine do
     )
 
     with {:ok, device_id} <- Device.decode_device_id(hardware_id, allow_extended_id: true),
-         {:ok, device} <- Queries.fetch_device(realm, device_id),
+         {:ok, device} <- DataAccessDevice.fetch(realm, device_id),
          {:authorized?, true} <-
            {:authorized?, CredentialsSecret.verify(secret, device.credentials_secret)} do
       CertVerifier.verify(client_crt, Config.ca_cert!())

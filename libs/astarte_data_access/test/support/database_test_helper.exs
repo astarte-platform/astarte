@@ -30,6 +30,59 @@ defmodule Astarte.DataAccess.DatabaseTestHelper do
         replication = {'class': 'SimpleStrategy', 'replication_factor': '1'} AND
         durable_writes = true;
   """
+
+  @create_capabilities_type """
+  CREATE TYPE autotestrealm.capabilities (
+    purge_properties_compression_format int
+  );
+  """
+
+  @create_session_key_type """
+  CREATE TYPE autotestrealm.session_key (
+    alg int,
+    k blob
+  );
+  """
+
+  @create_ownership_vouchers_table """
+  CREATE TABLE autotestrealm.ownership_vouchers (
+    private_key blob,
+    voucher_data blob,
+    guid blob,
+    PRIMARY KEY (guid)
+  );
+  """
+
+  @create_to2_sessions_table """
+  CREATE TABLE autotestrealm.to2_sessions (
+    guid blob,
+    device_id uuid,
+    hmac blob,
+    nonce blob,
+    sig_type int,
+    epid_group blob,
+    device_public_key blob,
+    prove_dv_nonce blob,
+    setup_dv_nonce blob,
+    kex_suite_name ascii,
+    cipher_suite_name int,
+    max_owner_service_info_size int,
+    owner_random blob,
+    secret blob,
+    sevk frozen<session_key>,
+    svk frozen<session_key>,
+    sek frozen<session_key>,
+    device_service_info map<frozen<tuple<text, text>>, blob>,
+    owner_service_info list<blob>,
+    last_chunk_sent int,
+    replacement_guid blob,
+    replacement_rv_info blob,
+    replacement_pub_key blob,
+    replacement_hmac blob,
+    PRIMARY KEY (guid)
+  )
+  WITH default_time_to_live = 7200;
+  """
   @create_realms_table """
   CREATE TABLE astarte.realms (
     realm_name varchar,
@@ -83,6 +136,7 @@ defmodule Astarte.DataAccess.DatabaseTestHelper do
         last_seen_ip inet,
         attributes map<varchar, varchar>,
         groups map<text, timeuuid>,
+        capabilities frozen<capabilities>,
 
         PRIMARY KEY (device_id)
       );
@@ -404,6 +458,7 @@ defmodule Astarte.DataAccess.DatabaseTestHelper do
   def create_test_keyspace(conn) do
     case Xandra.execute(conn, @create_autotestrealm) do
       {:ok, _} ->
+        Xandra.execute!(conn, @create_capabilities_type)
         Xandra.execute!(conn, @create_devices_table)
         Xandra.execute!(conn, @create_names_table)
         Xandra.execute!(conn, @create_kv_store)
@@ -412,6 +467,9 @@ defmodule Astarte.DataAccess.DatabaseTestHelper do
         Xandra.execute!(conn, @create_individual_datastreams_table)
         Xandra.execute!(conn, @create_test_object_table)
         Xandra.execute!(conn, @create_interfaces_table)
+        Xandra.execute!(conn, @create_session_key_type)
+        Xandra.execute!(conn, @create_ownership_vouchers_table)
+        Xandra.execute!(conn, @create_to2_sessions_table)
         :ok
 
       {:error, msg} ->

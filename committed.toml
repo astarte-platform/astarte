@@ -32,6 +32,8 @@ allowed_scopes = [
   "data_access",
   "events",
   "rpc",
+  "fdo",
+  "fdo_core",
   "generators",
   # tools
   "e2e",
