@@ -22,6 +22,7 @@ defmodule Astarte.Pairing.FDO.OpenBaoTest do
 
   alias Astarte.Pairing.Config
   alias Astarte.Pairing.FDO.OpenBao
+  alias Astarte.Pairing.FDO.OpenBao.Client
   alias Astarte.Pairing.FDO.OpenBao.Core
 
   import Astarte.Helpers.OpenBao
@@ -147,43 +148,83 @@ defmodule Astarte.Pairing.FDO.OpenBaoTest do
     end
   end
 
-  describe "sign/4" do
-    alias Astarte.Pairing.FDO.OpenBao.Core
-
+  describe "sign/5" do
     setup do
+      # Read credentials and URL from config
+      {:ok, {:token, token}} = Config.bao_authentication()
+
       unique_id = System.unique_integer([:positive])
+      realm_name = "test_realm_#{unique_id}"
+
+      {:ok, namespace} = OpenBao.create_namespace(realm_name, nil, "my_namespace_#{unique_id}")
+
+      ecdsa_key = "ecdsa_#{unique_id}"
+      ecdsa384_key = "ecdsa384_#{unique_id}"
+      rsa_key = "rsa_#{unique_id}"
+
+      {:ok, _} = OpenBao.create_keypair(ecdsa_key, :ec256, namespace: namespace)
+      {:ok, _} = OpenBao.create_keypair(ecdsa384_key, :ec384, namespace: namespace)
+      {:ok, _} = OpenBao.create_keypair(rsa_key, :rsa2048, namespace: namespace)
 
       %{
-        key_name: "device_key",
-        payload: "test_payload",
-        alg: :es256,
-        opts: [token: "my_token", namespace: "my_namespace_#{unique_id}"]
+        ecdsa_key: ecdsa_key,
+        ecdsa384_key: ecdsa384_key,
+        rsa_key: rsa_key,
+        opts: [token: token, namespace: namespace]
       }
     end
 
-    test "delegates to Core.sign/4 with default empty options", %{
-      key_name: key_name,
-      payload: payload,
-      alg: alg
-    } do
-      expect(Core, :sign, fn ^key_name, ^payload, ^alg, [] ->
-        {:ok, "raw_signature"}
-      end)
+    test "successfully signs with ECDSA (:es256)", %{ecdsa_key: key_name, opts: opts} do
+      payload = "test_payload"
 
-      assert {:ok, "raw_signature"} = OpenBao.sign(key_name, payload, alg)
+      assert {:ok, raw_sig} = OpenBao.sign(key_name, payload, :es256, :sha256, opts)
+
+      assert is_binary(raw_sig)
+      assert byte_size(raw_sig) == 64
     end
 
-    test "delegates to Core.sign/4 passing opts directly", %{
-      key_name: key_name,
-      payload: payload,
-      alg: alg,
-      opts: opts
-    } do
-      expect(Core, :sign, fn ^key_name, ^payload, ^alg, ^opts ->
-        {:ok, "raw_signature"}
+    test "successfully signs with ECDSA (:es384)", %{ecdsa384_key: key_name, opts: opts} do
+      payload = "test_payload"
+
+      assert {:ok, raw_sig} = OpenBao.sign(key_name, payload, :es384, :sha384, opts)
+
+      assert is_binary(raw_sig)
+      assert byte_size(raw_sig) == 96
+    end
+
+    test "successfully signs with RSA-PKCS1v1.5 (:rs256)", %{rsa_key: key_name, opts: opts} do
+      payload = "test_payload"
+
+      assert {:ok, raw_sig} = OpenBao.sign(key_name, payload, :rs256, :sha256, opts)
+
+      assert is_binary(raw_sig)
+      assert byte_size(raw_sig) == 256
+    end
+
+    test "successfully signs with RSA-PKCS1v1.5 (:rs384)", %{rsa_key: key_name, opts: opts} do
+      payload = "test_payload"
+
+      assert {:ok, raw_sig} = OpenBao.sign(key_name, payload, :rs384, :sha384, opts)
+
+      assert is_binary(raw_sig)
+      assert byte_size(raw_sig) == 256
+    end
+
+    test "handles missing signature in Vault JSON response", %{rsa_key: key_name, opts: opts} do
+      payload = "test_payload"
+
+      expect(Client, :post, fn _url, _body, _headers, _opts ->
+        wrong_body = ~s[{"data": {"wrong_key": "value"}}]
+        {:ok, %HTTPoison.Response{status_code: 200, body: wrong_body}}
       end)
 
-      assert {:ok, "raw_signature"} = OpenBao.sign(key_name, payload, alg, opts)
+      assert :error = OpenBao.sign(key_name, payload, :rs256, :sha3_256, opts)
+    end
+
+    test "returns :error for a non-existent key", %{opts: opts} do
+      payload = "test_payload"
+
+      assert :error = OpenBao.sign("random_missing_key", payload, :es256, :sha3_512, opts)
     end
   end
 

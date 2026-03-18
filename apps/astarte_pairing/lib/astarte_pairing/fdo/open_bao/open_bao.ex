@@ -102,7 +102,15 @@ defmodule Astarte.Pairing.FDO.OpenBao do
     end
   end
 
-  def sign(key_name, payload, alg, opts \\ []) do
-    Core.sign(key_name, payload, alg, opts)
+  @type cose_alg :: :es256 | :es384 | :ps256 | :rs256 | :rs384
+
+  @spec sign(String.t(), binary(), Core.key_algorithm(), Core.digest_type(), keyword()) ::
+          {:ok, binary()} | :error
+  def sign(key_name, payload, key_alg, digest_type, opts) do
+    opts = Keyword.take(opts, [:namespace, :token])
+
+    with {:ok, digest_type} <- Core.digest_type(digest_type) do
+      Core.sign(key_name, payload, key_alg, digest_type, opts)
+    end
   end
 end

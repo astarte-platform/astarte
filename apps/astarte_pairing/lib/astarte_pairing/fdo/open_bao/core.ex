@@ -27,7 +27,8 @@ defmodule Astarte.Pairing.FDO.OpenBao.Core do
 
   require Logger
 
-  @type key_algorithm :: :ec256 | :ec384 | :rsa2048 | :rsa3072
+  @type key_algorithm() :: :ec256 | :ec384 | :rsa2048 | :rsa3072
+  @type digest_type() :: :crypto.sha1() | :crypto.sha2()
 
   @spec key_type_to_string(key_algorithm()) :: {:ok, String.t()} | :error
   def key_type_to_string(key_type) do
@@ -38,6 +39,22 @@ defmodule Astarte.Pairing.FDO.OpenBao.Core do
       :rsa3072 -> {:ok, "rsa-3072"}
       _ -> :error
     end
+  end
+
+  @spec digest_type(digest_type) :: {:ok, String.t()} | :error
+  def digest_type(:sha), do: {:ok, "sha1"}
+  def digest_type(:sha224), do: {:ok, "sha2-224"}
+  def digest_type(:sha256), do: {:ok, "sha2-256"}
+  def digest_type(:sha384), do: {:ok, "sha2-384"}
+  def digest_type(:sha512), do: {:ok, "sha2-512"}
+  def digest_type(:sha3_224), do: {:ok, "sha3-224"}
+  def digest_type(:sha3_256), do: {:ok, "sha3-256"}
+  def digest_type(:sha3_384), do: {:ok, "sha3-384"}
+  def digest_type(:sha3_512), do: {:ok, "sha3-512"}
+
+  def digest_type(digest_type) do
+    Logger.warning("Invalid digest type: #{inspect(digest_type)}")
+    :error
   end
 
   @spec create_keypair(String.t(), String.t(), boolean(), String.t()) ::
@@ -234,16 +251,15 @@ defmodule Astarte.Pairing.FDO.OpenBao.Core do
     end
   end
 
-  @type cose_alg :: :es256 | :es384 | :ps256 | :rs256 | :rs384
-
   @doc """
   Signs data using a key stored in OpenBao's transit engine.
   Translates FDO/COSE algorithms to the specific OpenBao parameters.
   """
-  def sign(key_name, payload, alg, opts) do
-    vault_opts = map_cose_alg_to_vault_opts(alg)
-    hash_alg = Keyword.fetch!(vault_opts, :hash_algorithm)
-    url_path = "/transit/sign/#{key_name}/#{hash_alg}"
+  @spec sign(String.t(), binary(), key_algorithm(), String.t(), keyword()) ::
+          {:ok, binary()} | :error
+  def sign(key_name, payload, key_alg, digest_type, opts) do
+    vault_opts = map_cose_alg_to_vault_opts(key_alg)
+    url_path = "/transit/sign/#{key_name}/#{digest_type}"
 
     req_body = build_sign_payload(payload, vault_opts)
     headers = [{"Content-Type", "application/json"}]
@@ -299,22 +315,18 @@ defmodule Astarte.Pairing.FDO.OpenBao.Core do
 
   # Translates Astarte/COSE supported algorithms into OpenBao Transit engine parameters.
   defp map_cose_alg_to_vault_opts(:es256) do
-    [hash_algorithm: "sha2-256", marshaling_algorithm: "jws"]
+    [marshaling_algorithm: "jws"]
   end
 
   defp map_cose_alg_to_vault_opts(:es384) do
-    [hash_algorithm: "sha2-384", marshaling_algorithm: "jws"]
-  end
-
-  defp map_cose_alg_to_vault_opts(:ps256) do
-    [hash_algorithm: "sha2-256", signature_algorithm: "pss"]
+    [marshaling_algorithm: "jws"]
   end
 
   defp map_cose_alg_to_vault_opts(:rs256) do
-    [hash_algorithm: "sha2-256", signature_algorithm: "pkcs1v15"]
+    [signature_algorithm: "pkcs1v15"]
   end
 
   defp map_cose_alg_to_vault_opts(:rs384) do
-    [hash_algorithm: "sha2-384", signature_algorithm: "pkcs1v15"]
+    [signature_algorithm: "pkcs1v15"]
   end
 end
