@@ -16,21 +16,28 @@
 # limitations under the License.
 #
 
-defmodule Astarte.Pairing.FDO.OpenBao do
-  @moduledoc """
-  Functionality to interface with OpenBao.
-  """
+defmodule Astarte.Pairing.FDO.OpenBaoTest do
+  use ExUnit.Case, async: true
+  use Mimic
 
+  alias Astarte.Pairing.FDO.OpenBao
   alias Astarte.Pairing.FDO.OpenBao.Core
 
-  def create_namespace(realm_name, user_id \\ nil, key_algorithm) do
-    Core.namespace_tokens(realm_name, user_id, key_algorithm)
-    |> Core.create_nested_namespace()
-  end
+  import Astarte.Helpers.OpenBao
 
-  def list_namespaces do
-    with {:ok, namespaces} <- Core.list_namespaces() do
-      {:ok, Enum.to_list(namespaces)}
+  describe "create_namespace/3" do
+    setup :namespace_tokens_setup
+
+    test "calls core functions", context do
+      %{realm_name: realm_name, user_id: user_id, key_algorithm: key_algorithm} = context
+
+      ref = System.unique_integer()
+
+      Core
+      |> expect(:namespace_tokens, fn ^realm_name, ^user_id, ^key_algorithm -> ref end)
+      |> expect(:create_nested_namespace, fn ^ref -> {:ok, ""} end)
+
+      assert {:ok, _} = OpenBao.create_namespace(realm_name, user_id, key_algorithm)
     end
   end
 end

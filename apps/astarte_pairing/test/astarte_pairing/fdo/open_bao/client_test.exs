@@ -34,7 +34,7 @@ defmodule Astarte.Pairing.FDO.OpenBao.ClientTest do
 
   test "always performs requests on the open bao base url", %{bao_url: bao_url} do
     path = "/example"
-    expected_url = bao_url <> path
+    expected_url = bao_url <> "/v1" <> path
 
     validate_request(fn _method, url, _headers, _body, _opts ->
       assert url == expected_url

@@ -24,10 +24,13 @@ defmodule Astarte.Pairing.FDO.OpenBao.Client do
   use HTTPoison.Base
 
   alias Astarte.Pairing.Config
+  alias HTTPoison.AsyncResponse
+  alias HTTPoison.Error
+  alias HTTPoison.Response
 
   @impl true
   def process_request_url(url) do
-    Config.bao_url!() <> url
+    Config.bao_url!() <> "/v1" <> url
   end
 
   @impl true
@@ -48,6 +51,35 @@ defmodule Astarte.Pairing.FDO.OpenBao.Client do
       _ ->
         headers
     end
+  end
+
+  @doc """
+  Issues a LIST request to the given url.
+
+  Returns `{:ok, response}` if the request is successful, `{:error, reason}`
+  otherwise.
+
+  See `request/5` for more detailed information.
+  """
+  @spec list(binary, headers, Keyword.t()) ::
+          {:ok, Response.t() | AsyncResponse.t()} | {:error, Error.t()}
+  def list(url, headers \\ [], options \\ []) do
+    options = update_in(options, [:params], &[{"list", "true"} | &1 || []])
+    get(url, headers, options)
+  end
+
+  @doc """
+  Issues a LIST request to the given url, raising an exception in case of
+  failure.
+
+  If the request does not fail, the response is returned.
+
+  See `request!/5` for more detailed information.
+  """
+  @spec list!(binary, headers, Keyword.t()) :: Response.t() | AsyncResponse.t()
+  def list!(url, headers \\ [], options \\ []) do
+    options = update_in(options, [:params], &[{"list", "true"} | &1 || []])
+    get!(url, headers, options)
   end
 
   defp maybe_add_default_token(headers, token) do
