@@ -86,4 +86,8 @@ defmodule Astarte.Pairing.FDO.OpenBao do
         :error
     end
   end
+
+  def sign(key_name, payload, alg, opts \\ []) do
+    Core.sign(key_name, payload, alg, opts)
+  end
 end
