@@ -75,3 +75,18 @@ generate-key-and-cert device-ca\
 
 chmod 644 compose/fdo-keys/_.pem
 chmod 600 compose/fdo-keys/_.der
+
+# Test OpenBao locally
+
+## Test import_keys flow
+
+iex -S mix
+
+alias Astarte.Pairing.FDO.OpenBao.Core
+alias Astarte.Pairing.FDO.OpenBao.Client
+
+ec_key = :public_key.generate_key({:namedCurve, :secp256r1})
+
+Core.import_key("my-imported-key", "ecdsa-p256", ec_key, auth_token: "astarte_token")
+
+Client.get("/transit/keys/my-imported-key", [], token: "astarte_token")

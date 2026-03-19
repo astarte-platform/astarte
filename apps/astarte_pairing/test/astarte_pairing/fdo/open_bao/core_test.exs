@@ -229,4 +229,109 @@ defmodule Astarte.Pairing.FDO.OpenBao.CoreTest do
 
     %{final_namespace: namespace, tokens: tokens, all_namespaces: all_namespaces}
   end
+
+  describe "key_type_to_string/1" do
+    test "converts known key types to their string representation" do
+      assert {:ok, "ecdsa-p256"} = Core.key_type_to_string(:ec256)
+      assert {:ok, "ecdsa-p384"} = Core.key_type_to_string(:ec384)
+      assert {:ok, "rsa-2048"} = Core.key_type_to_string(:rsa2048)
+      assert {:ok, "rsa-3072"} = Core.key_type_to_string(:rsa3072)
+    end
+
+    test "returns :error for unknown key type" do
+      assert :error = Core.key_type_to_string(:unknown)
+      assert :error = Core.key_type_to_string("ecdsa-p256")
+      assert :error = Core.key_type_to_string(nil)
+    end
+  end
+
+  describe "import_key/4" do
+    setup :http_stubs_setup
+
+    setup do
+      rsa_priv = :public_key.generate_key({:rsa, 2048, 65_537})
+      {:RSAPrivateKey, _, modulus, pub_exp, _, _, _, _, _, _, _} = rsa_priv
+      rsa_pub = {:RSAPublicKey, modulus, pub_exp}
+      pem_entry = :public_key.pem_entry_encode(:RSAPublicKey, rsa_pub)
+      wrapping_key_pem = :public_key.pem_encode([pem_entry])
+      wrapping_key_body = Jason.encode!(%{"data" => %{"public_key" => wrapping_key_pem}})
+      ec_key = :public_key.generate_key({:namedCurve, :secp256r1})
+      %{wrapping_key_body: wrapping_key_body, ec_key: ec_key}
+    end
+
+    test "returns {:ok, data} on HTTP 200 with JSON body", %{
+      wrapping_key_body: wk_body,
+      ec_key: ec_key
+    } do
+      body = Jason.encode!(%{"data" => %{"name" => "my-key"}})
+
+      expect(:hackney, :request, fn :get, _url, _headers, _body, _opts ->
+        {:ok, 200, [], :wk_client}
+      end)
+
+      expect(:hackney, :body, fn :wk_client, _ -> {:ok, wk_body} end)
+
+      expect(:hackney, :request, fn :post, _url, _headers, _body, _opts ->
+        {:ok, 200, [], :import_client}
+      end)
+
+      expect(:hackney, :body, fn :import_client, _ -> {:ok, body} end)
+
+      assert {:ok, %{"name" => "my-key"}} = Core.import_key("my-key", "ecdsa-p256", ec_key)
+    end
+
+    test "returns :error on HTTP error response", %{
+      wrapping_key_body: wk_body,
+      ec_key: ec_key
+    } do
+      expect(:hackney, :request, fn :get, _url, _headers, _body, _opts ->
+        {:ok, 200, [], :wk_client}
+      end)
+
+      expect(:hackney, :body, fn :wk_client, _ -> {:ok, wk_body} end)
+
+      expect(:hackney, :request, fn :post, _url, _headers, _body, _opts ->
+        {:ok, 400, [], :err_client}
+      end)
+
+      expect(:hackney, :body, fn :err_client, _ -> {:ok, "bad request"} end)
+
+      assert :error = Core.import_key("my-key", "ecdsa-p256", ec_key)
+    end
+
+    test "returns :error when wrapping key fetch fails", %{ec_key: ec_key} do
+      expect(:hackney, :request, fn :get, _url, _headers, _body, _opts ->
+        {:ok, 403, []}
+      end)
+
+      assert :error = Core.import_key("my-key", "ecdsa-p256", ec_key)
+    end
+
+    test "sends correct key type and ciphertext in request body", %{
+      wrapping_key_body: wk_body,
+      ec_key: ec_key
+    } do
+      expect(:hackney, :request, fn :get, _url, _headers, _body, _opts ->
+        {:ok, 200, [], :wk_client}
+      end)
+
+      expect(:hackney, :body, fn :wk_client, _ -> {:ok, wk_body} end)
+
+      expect(:hackney, :request, fn :post, _url, _headers, body_str, _opts ->
+        {:ok, decoded} = Jason.decode(body_str)
+        assert decoded["type"] == "ecdsa-p256"
+        assert is_binary(decoded["ciphertext"])
+        {:ok, 204, []}
+      end)
+
+      assert {:ok, %{}} = Core.import_key("my-key", "ecdsa-p256", ec_key)
+    end
+  end
+
+  defp http_stubs_setup(_context) do
+    stub(Astarte.Pairing.Config, :bao_url!, fn -> "http://localhost:8200" end)
+    stub(Astarte.Pairing.Config, :bao_token!, fn -> "root" end)
+    stub(Astarte.Pairing.Config, :bao_ssl_enabled!, fn -> false end)
+    :ok
+  end
 end

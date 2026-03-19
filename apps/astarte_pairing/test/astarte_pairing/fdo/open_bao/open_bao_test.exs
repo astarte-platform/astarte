@@ -477,4 +477,38 @@ defmodule Astarte.Pairing.FDO.OpenBaoTest do
     OpenBao.enable_key_deletion(key_name, opts)
     OpenBao.delete_key(key_name, opts)
   end
+
+  describe "import_key/4" do
+    setup do
+      %{ec_key: :public_key.generate_key({:namedCurve, :secp256r1})}
+    end
+
+    test "converts key type atom to string and delegates to Core", %{ec_key: ec_key} do
+      expect(Core, :import_key, fn "my-key", "ecdsa-p256", ^ec_key, _opts -> {:ok, %{}} end)
+      assert {:ok, %{}} = OpenBao.import_key("my-key", :ec256, ec_key)
+    end
+
+    test "returns :error for unknown key_type without calling Core", %{ec_key: ec_key} do
+      assert :error = OpenBao.import_key("k", :unknown_type, ec_key)
+    end
+
+    test "passes opts through to Core", %{ec_key: ec_key} do
+      expect(Core, :import_key, fn "k", "ecdsa-p256", ^ec_key, opts ->
+        assert opts[:namespace] == "my-ns"
+        assert opts[:auth_token] == "tok"
+        {:ok, %{}}
+      end)
+
+      assert {:ok, %{}} =
+               OpenBao.import_key("k", :ec256, ec_key, namespace: "my-ns", auth_token: "tok")
+    end
+
+    test "propagates Core errors", %{ec_key: ec_key} do
+      expect(Core, :import_key, fn _name, _type, ^ec_key, _opts ->
+        {:error, {:http_error, 500}}
+      end)
+
+      assert {:error, {:http_error, 500}} = OpenBao.import_key("k", :ec256, ec_key)
+    end
+  end
 end

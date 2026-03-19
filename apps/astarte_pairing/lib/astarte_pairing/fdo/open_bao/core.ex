@@ -29,6 +29,9 @@ defmodule Astarte.Pairing.FDO.OpenBao.Core do
 
   @type key_algorithm :: :ec256 | :ec384 | :rsa2048 | :rsa3072
 
+  # RFC 5649 AES Key Wrap with Padding magic constant
+  @aes_kwp_magic <<0xA6, 0x59, 0x59, 0xA6>>
+
   @spec key_type_to_string(key_algorithm()) :: {:ok, String.t()} | :error
   def key_type_to_string(key_type) do
     case key_type do
@@ -65,6 +68,163 @@ defmodule Astarte.Pairing.FDO.OpenBao.Core do
         )
 
         :error
+    end
+  end
+
+  defp get_wrapping_key(auth_token, namespace) do
+    options =
+      Keyword.reject([token: auth_token, namespace: namespace], fn {_, v} -> is_nil(v) end)
+
+    case Client.get("/transit/wrapping_key", [], options) do
+      {:ok, %HTTPoison.Response{status_code: 200, body: resp_body}} ->
+        with {:ok, decoded_resp_body} <- Jason.decode(resp_body),
+             {:ok, data} <- Map.fetch(decoded_resp_body, "data"),
+             {:ok, public_key} <- Map.fetch(data, "public_key") do
+          {:ok, public_key}
+        else
+          _ ->
+            Logger.error("Failed to extract public_key from wrapping_key response")
+            {:error, :wrapping_key_parse_failed}
+        end
+
+      error_resp ->
+        Logger.error("Encountered HTTP error while fetching wrapping key: #{inspect(error_resp)}")
+        :error
+    end
+  end
+
+  # Prepares the BYOK ciphertext for importing key material into OpenBao.
+  defp prepare_import_ciphertext(key_material, wrapping_key_pem) do
+    with {:ok, rsa_public_key} <- decode_pem_public_key(wrapping_key_pem) do
+      # Generate a random 256-bit AES ephemeral key
+      aes_key = :crypto.strong_rand_bytes(32)
+
+      # Wrap the key material with AES-256-KWP (RFC 5649)
+      wrapped_key_material = aes_key_wrap_with_padding(aes_key, key_material)
+
+      # Wrap the AES key with the RSA wrapping key using RSA-OAEP + SHA-256
+      wrapped_aes_key =
+        :public_key.encrypt_public(aes_key, rsa_public_key,
+          rsa_padding: :rsa_pkcs1_oaep_padding,
+          rsa_oaep_md: :sha256
+        )
+
+      # OpenBao expects: RSA-OAEP(aes_key) [512 bytes] || AES-KWP(key_material)
+      {:ok, Base.encode64(wrapped_aes_key <> wrapped_key_material)}
+    end
+  end
+
+  @doc """
+  Full BYOK pipeline: fetches the wrapping key, encodes `ec_key` to PKCS #8 DER,
+  builds the import ciphertext, then posts to the OpenBao transit import endpoint.
+
+  `opts` can include:
+    - `:hash_function`          - hash for RSA-OAEP wrapping ("SHA1".."SHA512"); defaults to "SHA256"
+    - `:allow_rotation`         - allow key rotation inside OpenBao; defaults to false
+    - `:exportable`             - allow key export; irreversible; defaults to false
+    - `:allow_plaintext_backup` - allow plaintext backups; irreversible; defaults to false
+    - `:auto_rotate_period`     - auto-rotation period, e.g. "1h"; "0" disables; defaults to "0"
+    - `:namespace`              - OpenBao namespace to target
+    - `:auth_token`             - override the configured auth token
+  """
+  @spec import_key(String.t(), String.t(), term(), keyword()) ::
+          {:ok, map()}
+          | :error
+          | {:error, :wrapping_key_parse_failed}
+          | {:error, :pem_decode_failed}
+  def import_key(key_name, key_type_string, ec_key, opts \\ []) do
+    auth_token = Keyword.get(opts, :auth_token)
+    namespace = Keyword.get(opts, :namespace)
+
+    with {:ok, wrapping_key_pem} <- get_wrapping_key(auth_token, namespace),
+         {:ok, ciphertext} <-
+           prepare_import_ciphertext(encode_ec_key_to_pkcs8(ec_key), wrapping_key_pem) do
+      req_body =
+        %{
+          type: key_type_string,
+          ciphertext: ciphertext,
+          hash_function: Keyword.get(opts, :hash_function, "SHA256"),
+          allow_rotation: Keyword.get(opts, :allow_rotation, false),
+          exportable: Keyword.get(opts, :exportable, false),
+          allow_plaintext_backup: Keyword.get(opts, :allow_plaintext_backup, false),
+          auto_rotate_period: Keyword.get(opts, :auto_rotate_period, "0")
+        }
+        |> Jason.encode!()
+
+      headers = [{"Content-Type", "application/json"}]
+
+      options =
+        Keyword.reject([token: auth_token, namespace: namespace], fn {_, v} -> is_nil(v) end)
+
+      case Client.post("/transit/keys/#{key_name}/import", req_body, headers, options) do
+        {:ok, %HTTPoison.Response{status_code: 204}} ->
+          {:ok, %{}}
+
+        {:ok, %HTTPoison.Response{status_code: 200, body: resp_body}} ->
+          parse_json_data(resp_body)
+
+        error_resp ->
+          Logger.error(
+            "Encountered HTTP error while importing key #{key_name}: #{inspect(error_resp)}"
+          )
+
+          :error
+      end
+    end
+  end
+
+  # Encodes an Erlang ECPrivateKey record into PKCS#8 DER format,
+  # which is what OpenBao expects as key_material for EC key import.
+  defp encode_ec_key_to_pkcs8(ec_key) do
+    X509.PrivateKey.to_der(ec_key, wrap: true)
+  end
+
+  # RFC 5649 AES Key Wrap with Padding (AES-KWP)
+  # Used by OpenBao for BYOK import (replaces plain RFC 3394 AES-KW).
+  defp aes_key_wrap_with_padding(aes_key, plaintext) do
+    mlen = byte_size(plaintext)
+    aiv = @aes_kwp_magic <> <<mlen::unsigned-big-integer-size(32)>>
+
+    # pad to multiple of 8 bytes
+    pad_len = rem(8 - rem(mlen, 8), 8)
+    padded = plaintext <> :binary.copy(<<0>>, pad_len)
+
+    n = div(byte_size(padded), 8)
+
+    if n == 1 do
+      # single 8-byte block: one AES-ECB encryption of AIV || padded
+      :crypto.crypto_one_time(:aes_256_ecb, aes_key, <<>>, aiv <> padded, true)
+    else
+      # RFC 3394 W algorithm with KWP AIV
+      r = for i <- 0..(n - 1), do: binary_part(padded, i * 8, 8)
+
+      {a, r} =
+        Enum.reduce(0..5, {aiv, r}, fn j, {a, r} ->
+          Enum.reduce(0..(n - 1), {a, r}, &aes_kwp_step(aes_key, n, j, &1, &2))
+        end)
+
+      Enum.reduce(r, a, fn ri, acc -> acc <> ri end)
+    end
+  end
+
+  defp aes_kwp_step(aes_key, n, j, i, {a, r}) do
+    ri = Enum.at(r, i)
+    b = :crypto.crypto_one_time(:aes_256_ecb, aes_key, <<>>, a <> ri, true)
+    msb = binary_part(b, 0, 8)
+    lsb = binary_part(b, 8, 8)
+    t = j * n + (i + 1)
+    a_new = :crypto.exor(msb, <<t::unsigned-big-integer-size(64)>>)
+    {a_new, List.replace_at(r, i, lsb)}
+  end
+
+  defp decode_pem_public_key(pem_string) do
+    case :public_key.pem_decode(pem_string) do
+      [entry | _] ->
+        {:ok, :public_key.pem_entry_decode(entry)}
+
+      [] ->
+        Logger.error("PEM decode returned no entries")
+        {:error, :pem_decode_failed}
     end
   end
 

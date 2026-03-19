@@ -105,4 +105,12 @@ defmodule Astarte.Pairing.FDO.OpenBao do
   def sign(key_name, payload, alg, opts \\ []) do
     Core.sign(key_name, payload, alg, opts)
   end
+
+  @spec import_key(String.t(), Core.key_algorithm(), term(), list()) ::
+          {:ok, map()} | {:error, term()}
+  def import_key(key_name, key_type, ec_key, opts \\ []) do
+    with {:ok, key_type_string} <- Core.key_type_to_string(key_type) do
+      Core.import_key(key_name, key_type_string, ec_key, opts)
+    end
+  end
 end
