@@ -112,8 +112,6 @@ defmodule Astarte.FDO.Core.OwnerOnboarding.EAToken do
       {:ok, decoded_eatoken} -> {:ok, decoded_eatoken}
       _ -> {:error, :message_body_error}
     end
-  rescue
-    _ -> {:error, :message_body_error}
   end
 
   defp translate_unprotected_headers(unprotected_headers, extra_claims) do

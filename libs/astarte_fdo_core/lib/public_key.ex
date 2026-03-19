@@ -39,8 +39,6 @@ defmodule Astarte.FDO.Core.PublicKey do
       {:ok, cbor_list, ""} -> decode(cbor_list)
       _ -> :error
     end
-  rescue
-    _ -> :error
   end
 
   def decode(cbor_list) do

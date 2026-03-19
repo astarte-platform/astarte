@@ -49,8 +49,6 @@ defmodule Astarte.FDO.Core.OwnerOnboarding.Done do
       {:ok, payload, _rest} -> decode(payload)
       _ -> {:error, :message_body_error}
     end
-  rescue
-    _ -> {:error, :message_body_error}
   end
 
   def decode(payload) do
