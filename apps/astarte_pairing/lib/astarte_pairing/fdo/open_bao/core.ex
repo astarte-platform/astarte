@@ -23,12 +23,17 @@ defmodule Astarte.Pairing.FDO.OpenBao.Core do
 
   alias Astarte.DataAccess.Config, as: DataAccessConfig
   alias Astarte.Pairing.FDO.OpenBao.Client
+  alias COSE.Keys.ECC
+  alias COSE.Keys.RSA
   alias HTTPoison.Response
 
   require Logger
 
   @type key_algorithm() :: :es256 | :es384 | :rs256 | :rs384
   @type digest_type() :: :crypto.sha1() | :crypto.sha2()
+
+  # RFC 5649 AES Key Wrap with Padding magic constant
+  @aes_kwp_magic <<0xA6, 0x59, 0x59, 0xA6>>
 
   @spec key_type_to_string(key_algorithm()) :: {:ok, String.t()} | :error
   def key_type_to_string(key_type) do
@@ -82,6 +87,141 @@ defmodule Astarte.Pairing.FDO.OpenBao.Core do
         )
 
         :error
+    end
+  end
+
+  def get_wrapping_key(opts) do
+    case Client.get("/transit/wrapping_key", [], opts) do
+      {:ok, %HTTPoison.Response{status_code: 200, body: resp_body}} ->
+        with {:error, reason} <- parse_data_key(resp_body, "public_key") do
+          Logger.error("Failed to get wrapping key: #{inspect(reason)}")
+          {:error, :wrapping_key_parse_failed}
+        end
+
+      error_resp ->
+        Logger.error("Encountered HTTP error while fetching wrapping key: #{inspect(error_resp)}")
+        :error
+    end
+  end
+
+  # Prepares the BYOK ciphertext for importing key material into OpenBao.
+  def prepare_import_ciphertext(key_material, wrapping_key_pem) do
+    with {:ok, rsa_public_key} <- decode_pem_public_key(wrapping_key_pem) do
+      # Generate a random 256-bit AES ephemeral key
+      aes_key = :crypto.strong_rand_bytes(32)
+
+      # Wrap the key material with AES-256-KWP (RFC 5649)
+      wrapped_key_material = aes_key_wrap_with_padding(aes_key, key_material)
+
+      # Wrap the AES key with the RSA wrapping key using RSA-OAEP + SHA-256
+      wrapped_aes_key =
+        :public_key.encrypt_public(aes_key, rsa_public_key,
+          rsa_padding: :rsa_pkcs1_oaep_padding,
+          rsa_oaep_md: :sha256
+        )
+
+      # OpenBao expects: RSA-OAEP(aes_key) [512 bytes] || AES-KWP(key_material)
+      {:ok, Base.encode64(wrapped_aes_key <> wrapped_key_material)}
+    end
+  end
+
+  @doc """
+  Posts pre-built BYOK `ciphertext` to the OpenBao transit import endpoint.
+
+  `opts` can include:
+    - `:allow_rotation`         - allow key rotation inside OpenBao; defaults to false
+    - `:exportable`             - allow key export; irreversible; defaults to false
+    - `:allow_plaintext_backup` - allow plaintext backups; irreversible; defaults to false
+    - `:auto_rotate_period`     - auto-rotation period, e.g. "1h"; "0" disables; defaults to "0"
+    - `:namespace`              - OpenBao namespace to target
+    - `:token`                  - override the configured auth token
+  """
+  @spec import_key(String.t(), String.t(), String.t(), keyword()) :: :ok | :error
+  def import_key(key_name, key_type_string, ciphertext, opts \\ []) do
+    client_opts = Keyword.take(opts, [:namespace, :token])
+
+    req_body =
+      %{
+        type: key_type_string,
+        ciphertext: ciphertext,
+        # must match the rsa_oaep_md used in prepare_import_ciphertext
+        hash_function: "SHA256",
+        allow_rotation: Keyword.get(opts, :allow_rotation, false),
+        exportable: Keyword.get(opts, :exportable, false),
+        allow_plaintext_backup: Keyword.get(opts, :allow_plaintext_backup, false),
+        auto_rotate_period: Keyword.get(opts, :auto_rotate_period, "0")
+      }
+      |> Jason.encode!()
+
+    headers = [{"Content-Type", "application/json"}]
+
+    case Client.post("/transit/keys/#{key_name}/import", req_body, headers, client_opts) do
+      {:ok, %HTTPoison.Response{status_code: 204}} ->
+        :ok
+
+      error_resp ->
+        Logger.error(
+          "Encountered HTTP error while importing key #{key_name}: #{inspect(error_resp)}"
+        )
+
+        :error
+    end
+  end
+
+  # Encodes a COSE key (ECC or RSA) into PKCS#8 DER format,
+  # which is what OpenBao expects as key_material for key import.
+  def encode_key_to_pkcs8(%ECC{} = key),
+    do: key |> ECC.to_record() |> X509.PrivateKey.to_der(wrap: true)
+
+  def encode_key_to_pkcs8(%RSA{} = key),
+    do: key |> RSA.to_record() |> X509.PrivateKey.to_der(wrap: true)
+
+  # RFC 5649 AES Key Wrap with Padding (AES-KWP)
+  # Used by OpenBao for BYOK import (replaces plain RFC 3394 AES-KW).
+  defp aes_key_wrap_with_padding(aes_key, plaintext) do
+    mlen = byte_size(plaintext)
+    aiv = @aes_kwp_magic <> <<mlen::unsigned-big-integer-size(32)>>
+
+    # pad to multiple of 8 bytes
+    pad_len = rem(8 - rem(mlen, 8), 8)
+    padded = plaintext <> :binary.copy(<<0>>, pad_len)
+
+    n = div(byte_size(padded), 8)
+
+    if n == 1 do
+      # single 8-byte block: one AES-ECB encryption of AIV || padded
+      :crypto.crypto_one_time(:aes_256_ecb, aes_key, <<>>, aiv <> padded, true)
+    else
+      # RFC 3394 W algorithm with KWP AIV
+      r = for i <- 0..(n - 1), do: binary_part(padded, i * 8, 8)
+
+      {a, r} =
+        Enum.reduce(0..5, {aiv, r}, fn j, {a, r} ->
+          Enum.reduce(0..(n - 1), {a, r}, &aes_kwp_step(aes_key, n, j, &1, &2))
+        end)
+
+      Enum.reduce(r, a, fn ri, acc -> acc <> ri end)
+    end
+  end
+
+  defp aes_kwp_step(aes_key, n, j, i, {a, r}) do
+    ri = Enum.at(r, i)
+    b = :crypto.crypto_one_time(:aes_256_ecb, aes_key, <<>>, a <> ri, true)
+    msb = binary_part(b, 0, 8)
+    lsb = binary_part(b, 8, 8)
+    t = j * n + (i + 1)
+    a_new = :crypto.exor(msb, <<t::unsigned-big-integer-size(64)>>)
+    {a_new, List.replace_at(r, i, lsb)}
+  end
+
+  defp decode_pem_public_key(pem_string) do
+    case :public_key.pem_decode(pem_string) do
+      [entry | _] ->
+        {:ok, :public_key.pem_entry_decode(entry)}
+
+      [] ->
+        Logger.error("PEM decode returned no entries")
+        {:error, :pem_decode_failed}
     end
   end
 
