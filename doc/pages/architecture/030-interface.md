@@ -235,12 +235,28 @@ values, which might as well have some form of correlation.
 
 In Astarte, this concept is mapped to interface `aggregation`. In case aggregation is `individual`,
 each mapping is treated as an independent value and is managed individually. In case aggregation is
-`object`, Astarte expects the owner to send all of the interface's mappings at the same time, packed
+`object`, Astarte expects the owner to send multiple interface's mappings at the same time, packed
 in a single message. In this case, all of the mappings share some core properties such as the
 timestamp.
 
 Aggregation is a powerful mechanism that can be used to map interfaces to real world _"objects"_.
 Moreover, aggregated interfaces can also be parametrized, although with [some limitations](#limitations).
+
+### Requiring mappings to always be present
+
+With `object` aggregated interfaces, a device can send any subset of an interface's mappings to Astarte,
+but it's possible to require some of them to always be sent using the `required` attribute:
+
+```json
+[...]
+"mappings": [
+    {
+        "endpoint": "/objects/value",
+        "type": "integer",
+        "required": true
+    },
+[...]
+```
 
 ### Endpoints and aggregation
 
