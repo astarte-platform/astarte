@@ -41,10 +41,10 @@ defmodule Astarte.Pairing.FDO.OpenBao do
   alias Astarte.Pairing.FDO.OpenBao.Core
 
   def create_namespace(realm_name, user_id \\ nil, key_algorithm) do
-    with {:ok, namespace} <-
-           Core.namespace_tokens(realm_name, user_id, key_algorithm)
-           |> Core.create_nested_namespace() do
-      Core.mount_transit_engine(namespace)
+    with {:ok, algorithm} <- Core.key_type_to_string(key_algorithm),
+         namespace_tokens = Core.namespace_tokens(realm_name, user_id, algorithm),
+         {:ok, namespace} <- Core.create_nested_namespace(namespace_tokens),
+         :ok <- Core.mount_transit_engine(namespace) do
       {:ok, namespace}
     end
   end
@@ -102,7 +102,13 @@ defmodule Astarte.Pairing.FDO.OpenBao do
     end
   end
 
-  def sign(key_name, payload, alg, opts \\ []) do
-    Core.sign(key_name, payload, alg, opts)
+  @spec sign(String.t(), binary(), Core.key_algorithm(), Core.digest_type(), keyword()) ::
+          {:ok, binary()} | :error
+  def sign(key_name, payload, key_alg, digest_type, opts) do
+    opts = Keyword.take(opts, [:namespace, :token])
+
+    with {:ok, digest_type} <- Core.digest_type(digest_type) do
+      Core.sign(key_name, payload, key_alg, digest_type, opts)
+    end
   end
 end
