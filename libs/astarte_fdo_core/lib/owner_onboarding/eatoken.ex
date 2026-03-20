@@ -112,8 +112,6 @@ defmodule Astarte.FDO.Core.OwnerOnboarding.EAToken do
       {:ok, decoded_eatoken} -> {:ok, decoded_eatoken}
       _ -> {:error, :message_body_error}
     end
-  rescue
-    _ -> {:error, :message_body_error}
   end
 
   defp translate_unprotected_headers(unprotected_headers, extra_claims) do
@@ -123,8 +121,8 @@ defmodule Astarte.FDO.Core.OwnerOnboarding.EAToken do
 
   defp verify_signature(decoded, device_public_key) do
     case Sign1.verify(decoded, device_public_key) do
-      true -> {:ok, :verified}
-      false -> {:error, :invalid_message}
+      :ok -> {:ok, :verified}
+      _ -> {:error, :invalid_message}
     end
   end
 

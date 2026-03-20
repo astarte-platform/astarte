@@ -287,7 +287,7 @@ defmodule Astarte.Helpers.FDO do
 
     sign1_msg = Sign1.build(entry_payload_bin, protected_header, unprotected_header_map)
 
-    entry_tag = Sign1.sign_encode(sign1_msg, cose_key)
+    {:ok, entry_tag} = Sign1.sign_encode(sign1_msg, cose_key)
 
     voucher = %OwnershipVoucher{
       header: header_struct,

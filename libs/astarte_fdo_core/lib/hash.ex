@@ -70,8 +70,6 @@ defmodule Astarte.FDO.Core.Hash do
     else
       _ -> :error
     end
-  rescue
-    _ -> :error
   end
 
   def decode(cbor_list) do

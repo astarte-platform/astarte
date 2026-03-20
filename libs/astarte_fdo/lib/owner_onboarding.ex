@@ -87,15 +87,19 @@ defmodule Astarte.FDO.OwnerOnboarding do
           max_owner_message_size: @max_owner_message_size
         }
 
-      message =
-        ProveOVHdr.encode_sign(
-          prove_ovh,
-          session.prove_dv_nonce,
-          encoded_pub_key,
-          owner_private_key
-        )
+      case ProveOVHdr.encode_sign(
+             prove_ovh,
+             session.prove_dv_nonce,
+             encoded_pub_key,
+             owner_private_key
+           ) do
+        {:ok, message} ->
+          {:ok, token, message}
 
-      {:ok, token, message}
+        error ->
+          Logger.error("Failed to sign ProveOVHdr: #{inspect(error)}")
+          error
+      end
     else
       error ->
         Logger.error("Failed to process hello_device: #{inspect(error)}")
@@ -198,8 +202,9 @@ defmodule Astarte.FDO.OwnerOnboarding do
          {:ok, session} <-
            Session.add_setup_dv_nonce(session, realm_name, received_setup_dv_nonce),
          {:ok, session} <- Session.build_session_secret(session, realm_name, owner_key, xb),
-         {:ok, session} <- Session.derive_key(session, realm_name) do
-      resp_msg = build_setup_device_message(connection_credentials, received_setup_dv_nonce)
+         {:ok, session} <- Session.derive_key(session, realm_name),
+         {:ok, resp_msg} <-
+           build_setup_device_message(connection_credentials, received_setup_dv_nonce) do
       {:ok, %{setup_dv_nonce: received_setup_dv_nonce, resp: resp_msg, session: session}}
     else
       error ->

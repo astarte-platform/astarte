@@ -52,7 +52,5 @@ defmodule Astarte.FDO.Core.OwnerOnboarding.GetOVNextEntry do
       _ ->
         {:error, :message_body_error}
     end
-  rescue
-    _ -> {:error, :message_body_error}
   end
 end

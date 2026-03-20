@@ -63,21 +63,16 @@ defmodule Astarte.FDO.TO0 do
 
     wait_seconds = 3600
 
-    request_body =
-      RendezvousCore.build_owner_sign_message(
-        ownership_voucher,
-        owner_private_key,
-        nonce,
-        rv_to2_addr,
-        wait_seconds
-      )
-
-    case Rendezvous.register_ownership(request_body, headers) do
-      {:ok, _rendezvous_wait_second} ->
-        :ok
-
-      :error ->
-        :error
+    with {:ok, request_body} <-
+           RendezvousCore.build_owner_sign_message(
+             ownership_voucher,
+             owner_private_key,
+             nonce,
+             rv_to2_addr,
+             wait_seconds
+           ),
+         {:ok, _rendezvous_wait_second} <- Rendezvous.register_ownership(request_body, headers) do
+      :ok
     end
   end
 end

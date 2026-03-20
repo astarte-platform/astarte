@@ -68,7 +68,7 @@ defmodule Astarte.FDO.Core.OwnerOnboarding.EATokenTest do
 
       uhdr_claims = %{}
 
-      cbor_token = EAToken.encode_sign(payload_claims, uhdr_claims, key)
+      {:ok, cbor_token} = EAToken.encode_sign(payload_claims, uhdr_claims, key)
 
       assert {:ok, decoded} = EAToken.verify_decode_cbor(cbor_token, key)
       # Payload values come back as CBOR byte tags after decode
@@ -84,7 +84,7 @@ defmodule Astarte.FDO.Core.OwnerOnboarding.EATokenTest do
         nonce: nonce |> COSE.tag_as_byte()
       }
 
-      cbor_token = EAToken.encode_sign(payload_claims, %{}, key)
+      {:ok, cbor_token} = EAToken.encode_sign(payload_claims, %{}, key)
 
       wrong_key = Keys.generate(:es256)
 

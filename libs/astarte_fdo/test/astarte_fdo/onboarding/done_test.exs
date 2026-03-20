@@ -46,7 +46,7 @@ defmodule Astarte.FDO.Onboarding.DoneTest do
     Repo.one(query, prefix: keyspace)
   end
 
-  defp register_device(realm, hardware_id, opts \\ []) do
+  defp register_device(realm, hardware_id, opts) do
     credentials_secret = :crypto.strong_rand_bytes(32) |> Base.encode64()
 
     with {:ok, device_id} <- CoreDevice.decode_device_id(hardware_id, allow_extended_id: true),

@@ -85,7 +85,7 @@ defmodule Astarte.FDO.Rendezvous.CoreTest do
            ownership_voucher: ownership_voucher,
            addr_entries: addr_entries
          } do
-      to0_owner_sign_msg =
+      {:ok, to0_owner_sign_msg} =
         Core.build_owner_sign_message(ownership_voucher, owner_key, nonce, addr_entries, 3600)
 
       {:ok, decoded_msg, _} = CBOR.decode(to0_owner_sign_msg)
