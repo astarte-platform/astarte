@@ -32,11 +32,12 @@ defmodule Astarte.Pairing.FDO.OpenBaoTest do
 
     test "calls core functions", context do
       %{realm_name: realm_name, user_id: user_id, key_algorithm: key_algorithm} = context
+      {:ok, key_algorithm_str} = Core.key_type_to_string(key_algorithm)
 
       ref = System.unique_integer()
 
       Core
-      |> expect(:namespace_tokens, fn ^realm_name, ^user_id, ^key_algorithm -> ref end)
+      |> expect(:namespace_tokens, fn ^realm_name, ^user_id, ^key_algorithm_str -> ref end)
       |> expect(:create_nested_namespace, fn ^ref -> {:ok, ""} end)
 
       assert {:ok, _} = OpenBao.create_namespace(realm_name, user_id, key_algorithm)
@@ -48,7 +49,7 @@ defmodule Astarte.Pairing.FDO.OpenBaoTest do
       key_type = Map.get(context, :key_type)
       {:ok, key_type_to_string} = Core.key_type_to_string(key_type)
       realm_name = "realm#{System.unique_integer([:positive])}"
-      {:ok, namespace} = OpenBao.create_namespace(realm_name, key_type_to_string)
+      {:ok, namespace} = OpenBao.create_namespace(realm_name, key_type)
       key_name = "some_key_#{key_type_to_string}"
       allow_key_export_and_backup = true
 
@@ -156,7 +157,7 @@ defmodule Astarte.Pairing.FDO.OpenBaoTest do
       unique_id = System.unique_integer([:positive])
       realm_name = "test_realm_#{unique_id}"
 
-      {:ok, namespace} = OpenBao.create_namespace(realm_name, nil, "my_namespace_#{unique_id}")
+      {:ok, namespace} = OpenBao.create_namespace(realm_name, nil, :es256)
 
       ecdsa_key = "ecdsa_#{unique_id}"
       ecdsa384_key = "ecdsa384_#{unique_id}"
@@ -233,7 +234,7 @@ defmodule Astarte.Pairing.FDO.OpenBaoTest do
       key_type = Map.get(context, :key_type)
       {:ok, key_type_to_string} = Core.key_type_to_string(key_type)
       realm_name = "realm#{System.unique_integer([:positive])}"
-      {:ok, namespace} = OpenBao.create_namespace(realm_name, key_type_to_string)
+      {:ok, namespace} = OpenBao.create_namespace(realm_name, key_type)
       key_name = "some_key_#{key_type_to_string}"
       allow_key_export_and_backup = true
 
@@ -338,7 +339,7 @@ defmodule Astarte.Pairing.FDO.OpenBaoTest do
       key_type = Map.get(context, :key_type)
       {:ok, key_type_to_string} = Core.key_type_to_string(key_type)
       realm_name = "realm#{System.unique_integer([:positive])}"
-      {:ok, namespace} = OpenBao.create_namespace(realm_name, key_type_to_string)
+      {:ok, namespace} = OpenBao.create_namespace(realm_name, key_type)
       key_name = "some_key_#{key_type_to_string}"
       key_name1 = "some_key_#{key_type_to_string}1"
       key_name2 = "some_key_#{key_type_to_string}2"

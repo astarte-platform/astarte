@@ -172,8 +172,16 @@ defmodule Astarte.Pairing.FDO.OpenBao.Core do
     options = [{:namespace, namespace}]
 
     case Client.post("/sys/mounts/transit", req_body, headers, options) do
-      {:ok, %HTTPoison.Response{status_code: 204}} ->
+      {:ok, %Response{status_code: 204}} ->
         :ok
+
+      {:ok, %Response{status_code: 400, body: body}} = resp ->
+        if "already in use at transit" =~ body do
+          :ok
+        else
+          "Encountered HTTP error while mounting transit engine in namespace #{namespace}: #{inspect(resp)}"
+          |> Logger.error()
+        end
 
       error_resp ->
         Logger.error(
