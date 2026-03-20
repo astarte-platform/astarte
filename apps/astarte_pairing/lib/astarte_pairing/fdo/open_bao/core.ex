@@ -68,6 +68,47 @@ defmodule Astarte.Pairing.FDO.OpenBao.Core do
     end
   end
 
+  @spec get_key(String.t(), String.t()) ::
+          :error | {:error, Jason.DecodeError.t()} | {:ok, any()}
+  def get_key(key_name, namespace) do
+    headers = [{"Content-Type", "application/json"}]
+
+    options = [{:namespace, namespace}]
+
+    case Client.get("/transit/keys/#{key_name}", headers, options) do
+      {:ok, %HTTPoison.Response{status_code: 200, body: resp_body}} ->
+        parse_json_data(resp_body)
+
+      error_resp ->
+        Logger.error(
+          "Encountered HTTP error while getting key #{key_name}: #{inspect(error_resp)}"
+        )
+
+        :error
+    end
+  end
+
+  @spec list_keys(String.t()) ::
+          :error | {:error, Jason.DecodeError.t()} | {:ok, any()}
+  def list_keys(namespace) do
+    headers = [{"Content-Type", "application/json"}]
+
+    options = [{:namespace, namespace}]
+
+    case Client.list("/transit/keys", headers, options) do
+      {:ok, %HTTPoison.Response{status_code: 200, body: resp_body}} ->
+        parse_json_data(resp_body)
+
+      {:ok, %HTTPoison.Response{status_code: 404}} ->
+        {:ok, []}
+
+      error_resp ->
+        Logger.error("Encountered HTTP error while getting keys list: #{inspect(error_resp)}")
+
+        :error
+    end
+  end
+
   @doc """
   Returns the namespace name for the given params, represented as a list of tokens
   """
