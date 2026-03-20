@@ -480,35 +480,51 @@ defmodule Astarte.Pairing.FDO.OpenBaoTest do
 
   describe "import_key/4" do
     setup do
-      %{ec_key: :public_key.generate_key({:namedCurve, :secp256r1})}
+      ec_key = :public_key.generate_key({:namedCurve, :secp256r1})
+      stub(Core, :get_wrapping_key, fn _opts -> {:ok, "wrapping_pem"} end)
+      stub(Core, :encode_key_to_pkcs8, fn _key -> <<1, 2, 3>> end)
+      stub(Core, :prepare_import_ciphertext, fn _material, _pem -> {:ok, "ciphertext"} end)
+      stub(Core, :import_key, fn _name, _type, _ct, _opts -> :ok end)
+      %{ec_key: ec_key}
     end
 
-    test "converts key type atom to string and delegates to Core", %{ec_key: ec_key} do
-      expect(Core, :import_key, fn "my-key", "ecdsa-p256", ^ec_key, _opts -> {:ok, %{}} end)
-      assert {:ok, %{}} = OpenBao.import_key("my-key", :ec256, ec_key)
+    test "returns :error for unknown key type without calling Core", %{ec_key: ec_key} do
+      assert :error = OpenBao.import_key("k", :unknown_type, ec_key, namespace: "my-ns")
     end
 
-    test "returns :error for unknown key_type without calling Core", %{ec_key: ec_key} do
-      assert :error = OpenBao.import_key("k", :unknown_type, ec_key)
-    end
+    test "passes only :namespace and :token to get_wrapping_key", %{ec_key: ec_key} do
+      opts = [namespace: "my-ns", token: "tok", exportable: true]
 
-    test "passes opts through to Core", %{ec_key: ec_key} do
-      expect(Core, :import_key, fn "k", "ecdsa-p256", ^ec_key, opts ->
-        assert opts[:namespace] == "my-ns"
-        assert opts[:auth_token] == "tok"
-        {:ok, %{}}
+      expect(Core, :get_wrapping_key, fn client_opts ->
+        assert client_opts == [namespace: "my-ns", token: "tok"]
+        {:ok, "wrapping_pem"}
       end)
 
-      assert {:ok, %{}} =
-               OpenBao.import_key("k", :ec256, ec_key, namespace: "my-ns", auth_token: "tok")
+      assert :ok = OpenBao.import_key("k", :ec256, ec_key, opts)
     end
 
-    test "propagates Core errors", %{ec_key: ec_key} do
-      expect(Core, :import_key, fn _name, _type, ^ec_key, _opts ->
-        {:error, {:http_error, 500}}
+    test "passes full opts to Core.import_key", %{ec_key: ec_key} do
+      opts = [namespace: "my-ns", token: "tok", exportable: true]
+
+      expect(Core, :import_key, fn "k", "ecdsa-p256", "ciphertext", ^opts -> :ok end)
+
+      assert :ok = OpenBao.import_key("k", :ec256, ec_key, opts)
+    end
+
+    test "returns :error when get_wrapping_key fails", %{ec_key: ec_key} do
+      expect(Core, :get_wrapping_key, fn _opts -> {:error, :wrapping_key_parse_failed} end)
+
+      assert {:error, :wrapping_key_parse_failed} =
+               OpenBao.import_key("k", :ec256, ec_key, namespace: "my-ns")
+    end
+
+    test "returns :error when prepare_import_ciphertext fails", %{ec_key: ec_key} do
+      expect(Core, :prepare_import_ciphertext, fn _material, _pem ->
+        {:error, :pem_decode_failed}
       end)
 
-      assert {:error, {:http_error, 500}} = OpenBao.import_key("k", :ec256, ec_key)
+      assert {:error, :pem_decode_failed} =
+               OpenBao.import_key("k", :ec256, ec_key, namespace: "my-ns")
     end
   end
 end

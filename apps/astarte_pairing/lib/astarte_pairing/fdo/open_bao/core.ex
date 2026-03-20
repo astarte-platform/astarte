@@ -71,20 +71,12 @@ defmodule Astarte.Pairing.FDO.OpenBao.Core do
     end
   end
 
-  defp get_wrapping_key(auth_token, namespace) do
-    options =
-      Keyword.reject([token: auth_token, namespace: namespace], fn {_, v} -> is_nil(v) end)
-
-    case Client.get("/transit/wrapping_key", [], options) do
+  def get_wrapping_key(opts) do
+    case Client.get("/transit/wrapping_key", [], opts) do
       {:ok, %HTTPoison.Response{status_code: 200, body: resp_body}} ->
-        with {:ok, decoded_resp_body} <- Jason.decode(resp_body),
-             {:ok, data} <- Map.fetch(decoded_resp_body, "data"),
-             {:ok, public_key} <- Map.fetch(data, "public_key") do
-          {:ok, public_key}
-        else
-          _ ->
-            Logger.error("Failed to extract public_key from wrapping_key response")
-            {:error, :wrapping_key_parse_failed}
+        with {:error, reason} <- parse_data_key(resp_body, "public_key") do
+          Logger.error("Failed to get wrapping key: #{inspect(reason)}")
+          {:error, :wrapping_key_parse_failed}
         end
 
       error_resp ->
@@ -94,7 +86,7 @@ defmodule Astarte.Pairing.FDO.OpenBao.Core do
   end
 
   # Prepares the BYOK ciphertext for importing key material into OpenBao.
-  defp prepare_import_ciphertext(key_material, wrapping_key_pem) do
+  def prepare_import_ciphertext(key_material, wrapping_key_pem) do
     with {:ok, rsa_public_key} <- decode_pem_public_key(wrapping_key_pem) do
       # Generate a random 256-bit AES ephemeral key
       aes_key = :crypto.strong_rand_bytes(32)
@@ -115,68 +107,52 @@ defmodule Astarte.Pairing.FDO.OpenBao.Core do
   end
 
   @doc """
-  Full BYOK pipeline: fetches the wrapping key, encodes `ec_key` to PKCS #8 DER,
-  builds the import ciphertext, then posts to the OpenBao transit import endpoint.
+  Posts pre-built BYOK `ciphertext` to the OpenBao transit import endpoint.
 
   `opts` can include:
-    - `:hash_function`          - hash for RSA-OAEP wrapping ("SHA1".."SHA512"); defaults to "SHA256"
     - `:allow_rotation`         - allow key rotation inside OpenBao; defaults to false
     - `:exportable`             - allow key export; irreversible; defaults to false
     - `:allow_plaintext_backup` - allow plaintext backups; irreversible; defaults to false
     - `:auto_rotate_period`     - auto-rotation period, e.g. "1h"; "0" disables; defaults to "0"
     - `:namespace`              - OpenBao namespace to target
-    - `:auth_token`             - override the configured auth token
+    - `:token`                  - override the configured auth token
   """
-  @spec import_key(String.t(), String.t(), term(), keyword()) ::
-          {:ok, map()}
-          | :error
-          | {:error, :wrapping_key_parse_failed}
-          | {:error, :pem_decode_failed}
-  def import_key(key_name, key_type_string, ec_key, opts \\ []) do
-    auth_token = Keyword.get(opts, :auth_token)
-    namespace = Keyword.get(opts, :namespace)
+  @spec import_key(String.t(), String.t(), String.t(), keyword()) :: :ok | :error
+  def import_key(key_name, key_type_string, ciphertext, opts \\ []) do
+    client_opts = Keyword.take(opts, [:namespace, :token])
 
-    with {:ok, wrapping_key_pem} <- get_wrapping_key(auth_token, namespace),
-         {:ok, ciphertext} <-
-           prepare_import_ciphertext(encode_ec_key_to_pkcs8(ec_key), wrapping_key_pem) do
-      req_body =
-        %{
-          type: key_type_string,
-          ciphertext: ciphertext,
-          hash_function: Keyword.get(opts, :hash_function, "SHA256"),
-          allow_rotation: Keyword.get(opts, :allow_rotation, false),
-          exportable: Keyword.get(opts, :exportable, false),
-          allow_plaintext_backup: Keyword.get(opts, :allow_plaintext_backup, false),
-          auto_rotate_period: Keyword.get(opts, :auto_rotate_period, "0")
-        }
-        |> Jason.encode!()
+    req_body =
+      %{
+        type: key_type_string,
+        ciphertext: ciphertext,
+        # must match the rsa_oaep_md used in prepare_import_ciphertext
+        hash_function: "SHA256",
+        allow_rotation: Keyword.get(opts, :allow_rotation, false),
+        exportable: Keyword.get(opts, :exportable, false),
+        allow_plaintext_backup: Keyword.get(opts, :allow_plaintext_backup, false),
+        auto_rotate_period: Keyword.get(opts, :auto_rotate_period, "0")
+      }
+      |> Jason.encode!()
 
-      headers = [{"Content-Type", "application/json"}]
+    headers = [{"Content-Type", "application/json"}]
 
-      options =
-        Keyword.reject([token: auth_token, namespace: namespace], fn {_, v} -> is_nil(v) end)
+    case Client.post("/transit/keys/#{key_name}/import", req_body, headers, client_opts) do
+      {:ok, %HTTPoison.Response{status_code: 204}} ->
+        :ok
 
-      case Client.post("/transit/keys/#{key_name}/import", req_body, headers, options) do
-        {:ok, %HTTPoison.Response{status_code: 204}} ->
-          {:ok, %{}}
+      error_resp ->
+        Logger.error(
+          "Encountered HTTP error while importing key #{key_name}: #{inspect(error_resp)}"
+        )
 
-        {:ok, %HTTPoison.Response{status_code: 200, body: resp_body}} ->
-          parse_json_data(resp_body)
-
-        error_resp ->
-          Logger.error(
-            "Encountered HTTP error while importing key #{key_name}: #{inspect(error_resp)}"
-          )
-
-          :error
-      end
+        :error
     end
   end
 
-  # Encodes an Erlang ECPrivateKey record into PKCS#8 DER format,
-  # which is what OpenBao expects as key_material for EC key import.
-  defp encode_ec_key_to_pkcs8(ec_key) do
-    X509.PrivateKey.to_der(ec_key, wrap: true)
+  # Encodes an Erlang private key record into PKCS#8 DER format,
+  # which is what OpenBao expects as key_material for key import.
+  def encode_key_to_pkcs8(key) do
+    X509.PrivateKey.to_der(key, wrap: true)
   end
 
   # RFC 5649 AES Key Wrap with Padding (AES-KWP)

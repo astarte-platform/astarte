@@ -106,11 +106,16 @@ defmodule Astarte.Pairing.FDO.OpenBao do
     Core.sign(key_name, payload, alg, opts)
   end
 
-  @spec import_key(String.t(), Core.key_algorithm(), term(), list()) ::
-          {:ok, map()} | {:error, term()}
+  @spec import_key(String.t(), Core.key_algorithm(), term(), list()) :: :ok | :error
   def import_key(key_name, key_type, ec_key, opts \\ []) do
-    with {:ok, key_type_string} <- Core.key_type_to_string(key_type) do
-      Core.import_key(key_name, key_type_string, ec_key, opts)
+    namespace = Keyword.fetch!(opts, :namespace)
+    client_opts = [namespace: namespace] ++ Keyword.take(opts, [:token])
+
+    with {:ok, key_type_string} <- Core.key_type_to_string(key_type),
+         {:ok, wrapping_key_pem} <- Core.get_wrapping_key(client_opts),
+         {:ok, ciphertext} <-
+           Core.prepare_import_ciphertext(Core.encode_key_to_pkcs8(ec_key), wrapping_key_pem) do
+      Core.import_key(key_name, key_type_string, ciphertext, opts)
     end
   end
 end
