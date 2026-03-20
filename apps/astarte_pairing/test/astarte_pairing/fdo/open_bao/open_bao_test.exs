@@ -339,7 +339,7 @@ defmodule Astarte.Pairing.FDO.OpenBaoTest do
       key_type = Map.get(context, :key_type)
       {:ok, key_type_to_string} = Core.key_type_to_string(key_type)
       realm_name = "realm#{System.unique_integer([:positive])}"
-      {:ok, namespace} = OpenBao.create_namespace(realm_name, key_type_to_string)
+      {:ok, namespace} = OpenBao.create_namespace(realm_name, key_type)
       key_name = "some_key_#{key_type_to_string}"
       key_name1 = "some_key_#{key_type_to_string}1"
       key_name2 = "some_key_#{key_type_to_string}2"
