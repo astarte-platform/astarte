@@ -222,7 +222,7 @@ defmodule Astarte.Pairing.FDO.OpenBao.CoreTest do
         |> String.trim_trailing()
 
       assert {:ok, key_data} = OpenBao.get_key(key_name, opts)
-      stored_pem = get_in(key_data, ["keys", "1", "public_key"]) |> String.trim_trailing()
+      stored_pem = key_data.public_pem |> String.trim_trailing()
       assert expected_pub_pem == stored_pem
     end
 
@@ -244,7 +244,7 @@ defmodule Astarte.Pairing.FDO.OpenBao.CoreTest do
         |> String.trim_trailing()
 
       assert {:ok, key_data} = OpenBao.get_key(key_name, opts)
-      stored_pem = get_in(key_data, ["keys", "1", "public_key"]) |> String.trim_trailing()
+      stored_pem = key_data.public_pem |> String.trim_trailing()
       assert expected_pub_pem == stored_pem
     end
 
@@ -266,7 +266,7 @@ defmodule Astarte.Pairing.FDO.OpenBao.CoreTest do
         |> String.trim_trailing()
 
       assert {:ok, key_data} = OpenBao.get_key(key_name, opts)
-      stored_pem = get_in(key_data, ["keys", "1", "public_key"]) |> String.trim_trailing()
+      stored_pem = key_data.public_pem |> String.trim_trailing()
       assert expected_pub_pem == stored_pem
     end
   end

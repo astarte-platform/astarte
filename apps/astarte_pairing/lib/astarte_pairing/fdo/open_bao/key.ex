@@ -21,14 +21,42 @@ defmodule Astarte.Pairing.FDO.OpenBao.Key do
   `COSE.Keys.Key` implementation for OpenBao keys.
   """
 
-  use TypedStruct
+  use TypedEctoSchema
+
+  import Ecto.Changeset
 
   alias Astarte.Pairing.FDO.OpenBao.Core
+  alias Astarte.Pairing.FDO.OpenBao.Key
 
-  typedstruct do
-    field :name, String.t()
-    field :namespace, String.t()
-    field :alg, Core.key_algorithm()
+  @primary_key false
+  typed_embedded_schema do
+    field :name, :string
+    field :namespace, :string
+    field :alg, Ecto.Enum, values: Core.key_algorithm_enum()
+    field :public_pem, :string
+  end
+
+  @doc """
+  Convert the result from OpenBao's API into `t()`
+  """
+  @spec parse(String.t(), String.t(), String.t()) :: {:ok, t()} | {:error, term()}
+  def parse(key_name, namespace, response_body) do
+    with {:ok, data} <- Core.parse_json_data(response_body) do
+      params = %{
+        "namespace" => namespace,
+        "name" => key_name,
+        "alg" => data["type"],
+        "public_pem" => get_in(data, ["keys", "1", "public_key"])
+      }
+
+      changeset = changeset(%Key{}, params)
+      apply_action(changeset, :insert)
+    end
+  end
+
+  def changeset(key, params) do
+    key
+    |> cast(params, [:namespace, :name, :alg, :public_pem])
   end
 end
 
