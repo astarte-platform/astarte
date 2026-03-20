@@ -245,8 +245,7 @@ defmodule Astarte.Pairing.FDO.OpenBao.Core do
     end
   end
 
-  @spec list_keys(String.t()) ::
-          :error | {:error, Jason.DecodeError.t()} | {:ok, any()}
+  @spec list_keys(String.t()) :: {:ok, [String.t()]} | :error
   def list_keys(namespace) do
     headers = [{"Content-Type", "application/json"}]
 
@@ -254,7 +253,14 @@ defmodule Astarte.Pairing.FDO.OpenBao.Core do
 
     case Client.list("/transit/keys", headers, options) do
       {:ok, %HTTPoison.Response{status_code: 200, body: resp_body}} ->
-        parse_json_data(resp_body)
+        case parse_data_key(resp_body, "keys") do
+          {:ok, keys} ->
+            {:ok, keys}
+
+          {:error, reason} ->
+            Logger.error("Encountered HTTP error while getting keys list: #{inspect(reason)}")
+            :error
+        end
 
       {:ok, %HTTPoison.Response{status_code: 404}} ->
         {:ok, []}
