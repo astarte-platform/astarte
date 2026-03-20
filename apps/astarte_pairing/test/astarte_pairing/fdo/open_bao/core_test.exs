@@ -229,4 +229,125 @@ defmodule Astarte.Pairing.FDO.OpenBao.CoreTest do
 
     %{final_namespace: namespace, tokens: tokens, all_namespaces: all_namespaces}
   end
+
+  describe "key_type_to_string/1" do
+    test "converts known key types to their string representation" do
+      assert {:ok, "ecdsa-p256"} = Core.key_type_to_string(:ec256)
+      assert {:ok, "ecdsa-p384"} = Core.key_type_to_string(:ec384)
+      assert {:ok, "rsa-2048"} = Core.key_type_to_string(:rsa2048)
+      assert {:ok, "rsa-3072"} = Core.key_type_to_string(:rsa3072)
+    end
+
+    test "returns :error for unknown key type" do
+      assert :error = Core.key_type_to_string(:unknown)
+      assert :error = Core.key_type_to_string("ecdsa-p256")
+      assert :error = Core.key_type_to_string(nil)
+    end
+  end
+
+  describe "import_key/4" do
+    setup :http_stubs_setup
+
+    setup do
+      ciphertext = Base.encode64(:crypto.strong_rand_bytes(32))
+      %{ciphertext: ciphertext}
+    end
+
+    test "returns :ok on HTTP 204", %{ciphertext: ciphertext} do
+      expect(Client, :post, fn _url, _body, _headers, _opts ->
+        {:ok, %HTTPoison.Response{status_code: 204}}
+      end)
+
+      assert :ok = Core.import_key("my-key", "ecdsa-p256", ciphertext)
+    end
+
+    test "returns :error on HTTP error response", %{ciphertext: ciphertext} do
+      expect(Client, :post, fn _url, _body, _headers, _opts ->
+        {:ok, %HTTPoison.Response{status_code: 400, body: "bad request"}}
+      end)
+
+      assert :error = Core.import_key("my-key", "ecdsa-p256", ciphertext)
+    end
+
+    test "sends correct key type and ciphertext in request body", %{ciphertext: ciphertext} do
+      expect(Client, :post, fn _url, body_str, _headers, _opts ->
+        {:ok, decoded} = Jason.decode(body_str)
+        assert decoded["type"] == "ecdsa-p256"
+        assert decoded["ciphertext"] == ciphertext
+        {:ok, %HTTPoison.Response{status_code: 204}}
+      end)
+
+      assert :ok = Core.import_key("my-key", "ecdsa-p256", ciphertext)
+    end
+  end
+
+  describe "import_key/4 integration" do
+    setup do
+      {:ok, {:token, token}} = Config.bao_authentication()
+
+      unique_id = System.unique_integer([:positive])
+      realm_name = "test_realm_#{unique_id}"
+
+      {:ok, namespace} = OpenBao.create_namespace(realm_name, nil, "import_#{unique_id}")
+
+      opts = [token: token, namespace: namespace]
+
+      %{unique_id: unique_id, opts: opts}
+    end
+
+    test "successfully imports an EC-256 key into OpenBao", %{unique_id: uid, opts: opts} do
+      key_name = "imported_ec256_#{uid}"
+      ec_key = :public_key.generate_key({:namedCurve, :secp256r1})
+
+      assert :ok = OpenBao.import_key(key_name, :ec256, ec_key, opts)
+
+      assert {:ok, raw_sig} = OpenBao.sign(key_name, "test_payload", :es256, opts)
+      assert is_binary(raw_sig)
+      assert byte_size(raw_sig) == 64
+
+      expected_pub_pem = ec_key |> X509.PublicKey.derive() |> X509.PublicKey.to_pem()
+      assert {:ok, key_data} = OpenBao.get_key(key_name, opts)
+      stored_pem = get_in(key_data, ["keys", "1", "public_key"])
+      assert expected_pub_pem == stored_pem
+    end
+
+    test "successfully imports an RSA-2048 key into OpenBao", %{unique_id: uid, opts: opts} do
+      key_name = "imported_rsa2048_#{uid}"
+      rsa_key = :public_key.generate_key({:rsa, 2048, 65_537})
+
+      assert :ok = OpenBao.import_key(key_name, :rsa2048, rsa_key, opts)
+
+      assert {:ok, raw_sig} = OpenBao.sign(key_name, "test_payload", :rs256, opts)
+      assert is_binary(raw_sig)
+      assert byte_size(raw_sig) == 256
+
+      expected_pub_pem = rsa_key |> X509.PublicKey.derive() |> X509.PublicKey.to_pem()
+      assert {:ok, key_data} = OpenBao.get_key(key_name, opts)
+      stored_pem = get_in(key_data, ["keys", "1", "public_key"])
+      assert expected_pub_pem == stored_pem
+    end
+
+    test "successfully imports an RSA-3072 key into OpenBao", %{unique_id: uid, opts: opts} do
+      key_name = "imported_rsa3072_#{uid}"
+      rsa_key = :public_key.generate_key({:rsa, 3072, 65_537})
+
+      assert :ok = OpenBao.import_key(key_name, :rsa3072, rsa_key, opts)
+
+      assert {:ok, raw_sig} = OpenBao.sign(key_name, "test_payload", :rs256, opts)
+      assert is_binary(raw_sig)
+      assert byte_size(raw_sig) == 384
+
+      expected_pub_pem = rsa_key |> X509.PublicKey.derive() |> X509.PublicKey.to_pem()
+      assert {:ok, key_data} = OpenBao.get_key(key_name, opts)
+      stored_pem = get_in(key_data, ["keys", "1", "public_key"])
+      assert expected_pub_pem == stored_pem
+    end
+  end
+
+  defp http_stubs_setup(_context) do
+    stub(Astarte.Pairing.Config, :bao_url!, fn -> "http://localhost:8200" end)
+    stub(Astarte.Pairing.Config, :bao_token!, fn -> "root" end)
+    stub(Astarte.Pairing.Config, :bao_ssl_enabled!, fn -> false end)
+    :ok
+  end
 end

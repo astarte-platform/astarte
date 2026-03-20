@@ -110,7 +110,8 @@ defmodule Astarte.Pairing.Mixfile do
       {:astarte_fdo_core, path: astarte_lib("astarte_fdo_core")},
       {:astarte_rpc, path: astarte_lib("astarte_rpc")},
       # HTTP client needed by some tests, override to avoid conflicts with cfxxl
-      {:httpoison, "~> 2.2", override: true}
+      {:httpoison, "~> 2.2", override: true},
+      {:x509, "~> 0.8"}
     ]
   end
 

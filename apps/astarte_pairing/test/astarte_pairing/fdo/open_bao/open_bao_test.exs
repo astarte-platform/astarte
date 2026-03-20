@@ -477,4 +477,54 @@ defmodule Astarte.Pairing.FDO.OpenBaoTest do
     OpenBao.enable_key_deletion(key_name, opts)
     OpenBao.delete_key(key_name, opts)
   end
+
+  describe "import_key/4" do
+    setup do
+      ec_key = :public_key.generate_key({:namedCurve, :secp256r1})
+      stub(Core, :get_wrapping_key, fn _opts -> {:ok, "wrapping_pem"} end)
+      stub(Core, :encode_key_to_pkcs8, fn _key -> <<1, 2, 3>> end)
+      stub(Core, :prepare_import_ciphertext, fn _material, _pem -> {:ok, "ciphertext"} end)
+      stub(Core, :import_key, fn _name, _type, _ct, _opts -> :ok end)
+      %{ec_key: ec_key}
+    end
+
+    test "returns :error for unknown key type without calling Core", %{ec_key: ec_key} do
+      assert :error = OpenBao.import_key("k", :unknown_type, ec_key, namespace: "my-ns")
+    end
+
+    test "passes only :namespace and :token to get_wrapping_key", %{ec_key: ec_key} do
+      opts = [namespace: "my-ns", token: "tok", exportable: true]
+
+      expect(Core, :get_wrapping_key, fn client_opts ->
+        assert client_opts == [namespace: "my-ns", token: "tok"]
+        {:ok, "wrapping_pem"}
+      end)
+
+      assert :ok = OpenBao.import_key("k", :ec256, ec_key, opts)
+    end
+
+    test "passes full opts to Core.import_key", %{ec_key: ec_key} do
+      opts = [namespace: "my-ns", token: "tok", exportable: true]
+
+      expect(Core, :import_key, fn "k", "ecdsa-p256", "ciphertext", ^opts -> :ok end)
+
+      assert :ok = OpenBao.import_key("k", :ec256, ec_key, opts)
+    end
+
+    test "returns :error when get_wrapping_key fails", %{ec_key: ec_key} do
+      expect(Core, :get_wrapping_key, fn _opts -> {:error, :wrapping_key_parse_failed} end)
+
+      assert {:error, :wrapping_key_parse_failed} =
+               OpenBao.import_key("k", :ec256, ec_key, namespace: "my-ns")
+    end
+
+    test "returns :error when prepare_import_ciphertext fails", %{ec_key: ec_key} do
+      expect(Core, :prepare_import_ciphertext, fn _material, _pem ->
+        {:error, :pem_decode_failed}
+      end)
+
+      assert {:error, :pem_decode_failed} =
+               OpenBao.import_key("k", :ec256, ec_key, namespace: "my-ns")
+    end
+  end
 end
