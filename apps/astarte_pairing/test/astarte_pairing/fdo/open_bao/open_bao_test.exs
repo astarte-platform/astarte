@@ -67,7 +67,7 @@ defmodule Astarte.Pairing.FDO.OpenBaoTest do
       }
     end
 
-    @tag key_type: :ec256
+    @tag key_type: :es256
     test "of type EC256", %{
       key_name: key_name,
       key_type: key_type,
@@ -87,7 +87,7 @@ defmodule Astarte.Pairing.FDO.OpenBaoTest do
       assert :ok == cleanup_key(key_name, opts)
     end
 
-    @tag key_type: :ec384
+    @tag key_type: :es384
     test "of type EC384", %{
       key_name: key_name,
       key_type: key_type,
@@ -107,7 +107,7 @@ defmodule Astarte.Pairing.FDO.OpenBaoTest do
       assert :ok == cleanup_key(key_name, opts)
     end
 
-    @tag key_type: :rsa2048
+    @tag key_type: :rs256
     test "of type RSA2048", %{
       key_name: key_name,
       key_type: key_type,
@@ -127,7 +127,7 @@ defmodule Astarte.Pairing.FDO.OpenBaoTest do
       assert :ok == cleanup_key(key_name, opts)
     end
 
-    @tag key_type: :rsa3072
+    @tag key_type: :rs384
     test "of type RSA3072", %{
       key_name: key_name,
       key_type: key_type,
@@ -162,9 +162,9 @@ defmodule Astarte.Pairing.FDO.OpenBaoTest do
       ecdsa384_key = "ecdsa384_#{unique_id}"
       rsa_key = "rsa_#{unique_id}"
 
-      {:ok, _} = OpenBao.create_keypair(ecdsa_key, :ec256, namespace: namespace)
-      {:ok, _} = OpenBao.create_keypair(ecdsa384_key, :ec384, namespace: namespace)
-      {:ok, _} = OpenBao.create_keypair(rsa_key, :rsa2048, namespace: namespace)
+      {:ok, _} = OpenBao.create_keypair(ecdsa_key, :es256, namespace: namespace)
+      {:ok, _} = OpenBao.create_keypair(ecdsa384_key, :es384, namespace: namespace)
+      {:ok, _} = OpenBao.create_keypair(rsa_key, :rs256, namespace: namespace)
 
       %{
         ecdsa_key: ecdsa_key,
@@ -252,7 +252,7 @@ defmodule Astarte.Pairing.FDO.OpenBaoTest do
       }
     end
 
-    @tag key_type: :ec256
+    @tag key_type: :es256
     test "of type EC256", %{
       key_name: key_name,
       key_type: key_type,
@@ -272,7 +272,7 @@ defmodule Astarte.Pairing.FDO.OpenBaoTest do
       assert {:ok, key_data} == OpenBao.get_key(key_name, opts)
     end
 
-    @tag key_type: :ec384
+    @tag key_type: :es384
     test "of type EC384", %{
       key_name: key_name,
       key_type: key_type,
@@ -292,7 +292,7 @@ defmodule Astarte.Pairing.FDO.OpenBaoTest do
       assert {:ok, key_data} == OpenBao.get_key(key_name, opts)
     end
 
-    @tag key_type: :rsa2048
+    @tag key_type: :rs256
     test "of type RSA2048", %{
       key_name: key_name,
       key_type: key_type,
@@ -312,7 +312,7 @@ defmodule Astarte.Pairing.FDO.OpenBaoTest do
       assert {:ok, key_data} == OpenBao.get_key(key_name, opts)
     end
 
-    @tag key_type: :rsa3072
+    @tag key_type: :rs384
     test "of type RSA3072", %{
       key_name: key_name,
       key_type: key_type,
@@ -361,7 +361,7 @@ defmodule Astarte.Pairing.FDO.OpenBaoTest do
       }
     end
 
-    @tag key_type: :ec256
+    @tag key_type: :es256
     test "of type EC256", %{
       key_name: key_name,
       key_name1: key_name1,
@@ -399,7 +399,7 @@ defmodule Astarte.Pairing.FDO.OpenBaoTest do
       assert {:ok, %{"keys" => [key_name, key_name1, key_name2]}} == OpenBao.list_keys_names(opts)
     end
 
-    @tag key_type: :ec384
+    @tag key_type: :es384
     test "of type EC384", %{
       key_name: key_name,
       key_name1: key_name1,
@@ -437,7 +437,7 @@ defmodule Astarte.Pairing.FDO.OpenBaoTest do
       assert {:ok, %{"keys" => [key_name, key_name1, key_name2]}} == OpenBao.list_keys_names(opts)
     end
 
-    @tag key_type: :rsa2048
+    @tag key_type: :rs256
     test "of type RSA2048", %{
       key_name: key_name,
       key_name1: key_name1,
@@ -475,7 +475,7 @@ defmodule Astarte.Pairing.FDO.OpenBaoTest do
       assert {:ok, %{"keys" => [key_name, key_name1, key_name2]}} == OpenBao.list_keys_names(opts)
     end
 
-    @tag key_type: :rsa3072
+    @tag key_type: :rs384
     test "of type RSA3072", %{
       key_name: key_name,
       key_name1: key_name1,

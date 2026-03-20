@@ -27,16 +27,16 @@ defmodule Astarte.Pairing.FDO.OpenBao.Core do
 
   require Logger
 
-  @type key_algorithm() :: :ec256 | :ec384 | :rsa2048 | :rsa3072
+  @type key_algorithm() :: :es256 | :es384 | :rs256 | :rs384
   @type digest_type() :: :crypto.sha1() | :crypto.sha2()
 
   @spec key_type_to_string(key_algorithm()) :: {:ok, String.t()} | :error
   def key_type_to_string(key_type) do
     case key_type do
-      :ec256 -> {:ok, "ecdsa-p256"}
-      :ec384 -> {:ok, "ecdsa-p384"}
-      :rsa2048 -> {:ok, "rsa-2048"}
-      :rsa3072 -> {:ok, "rsa-3072"}
+      :es256 -> {:ok, "ecdsa-p256"}
+      :es384 -> {:ok, "ecdsa-p384"}
+      :rs256 -> {:ok, "rsa-2048"}
+      :rs384 -> {:ok, "rsa-3072"}
       _ -> :error
     end
   end

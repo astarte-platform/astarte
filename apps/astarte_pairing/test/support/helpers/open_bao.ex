@@ -24,7 +24,7 @@ defmodule Astarte.Helpers.OpenBao do
 
   def namespace_tokens_setup(context) do
     realm_name = "realm#{System.unique_integer([:positive])}"
-    key_algorithm = [:ec256, :ec384, :rsa2048, :rsa3072] |> Enum.random()
+    key_algorithm = [:es256, :es384, :rs256, :rs384] |> Enum.random()
 
     instance = Map.get(context, :instance, "")
     user_id = Map.get(context, :user_id, nil)

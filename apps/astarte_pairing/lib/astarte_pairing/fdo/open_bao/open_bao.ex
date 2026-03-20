@@ -102,8 +102,6 @@ defmodule Astarte.Pairing.FDO.OpenBao do
     end
   end
 
-  @type cose_alg :: :es256 | :es384 | :ps256 | :rs256 | :rs384
-
   @spec sign(String.t(), binary(), Core.key_algorithm(), Core.digest_type(), keyword()) ::
           {:ok, binary()} | :error
   def sign(key_name, payload, key_alg, digest_type, opts) do
