@@ -192,4 +192,88 @@ defmodule Astarte.Pairing.FDO.OpenBao.Core do
         {:halt, error}
     end
   end
+
+  @type cose_alg :: :es256 | :es384 | :ps256 | :rs256 | :rs384
+
+  @doc """
+  Signs data using a key stored in OpenBao's transit engine.
+  Translates FDO/COSE algorithms to the specific OpenBao parameters.
+  """
+  def sign(key_name, payload, alg, opts) do
+    vault_opts = map_cose_alg_to_vault_opts(alg)
+    hash_alg = Keyword.fetch!(vault_opts, :hash_algorithm)
+    url_path = "/transit/sign/#{key_name}/#{hash_alg}"
+
+    req_body = build_sign_payload(payload, vault_opts)
+    headers = [{"Content-Type", "application/json"}]
+    marshaling = Keyword.get(vault_opts, :marshaling_algorithm)
+
+    with {:ok, %HTTPoison.Response{status_code: 200, body: resp_body}} <-
+           Client.post(url_path, req_body, headers, opts),
+         {:ok, raw_sig} <- extract_and_decode_signature(resp_body, marshaling) do
+      {:ok, raw_sig}
+    else
+      error ->
+        Logger.error("Failed to sign payload or decode Vault response: #{inspect(error)}")
+        :error
+    end
+  end
+
+  # Builds the JSON payload to send to Vault based on the algorithm options
+  defp build_sign_payload(payload, vault_opts) do
+    vault_opts
+    |> Keyword.take([:signature_algorithm, :marshaling_algorithm])
+    |> Map.new()
+    |> Map.put(:input, Base.encode64(payload))
+    |> Jason.encode!()
+  end
+
+  # Parses the JSON response, extracts the signature string, and decodes it into a binary
+  defp extract_and_decode_signature(resp_body, marshaling) do
+    with {:ok, vault_sig} <- parse_data_key(resp_body, "signature"),
+         true <- is_binary(vault_sig),
+         [_, _, b64_sig] <- String.split(vault_sig, ":", parts: 3) do
+      # decode_vault_sig returns {:ok, raw_sig} or :error
+      decode_vault_sig(b64_sig, marshaling)
+    else
+      {:error, _reason} = error ->
+        error
+
+      _ ->
+        :error
+    end
+  end
+
+  # Decodes the Base64 signature returned by OpenBao.
+  # When using the "jws" marshaling algorithm, OpenBao returns a
+  # URL-safe Base64 string without padding.
+  defp decode_vault_sig(b64_sig, "jws") do
+    Base.url_decode64(b64_sig, padding: false)
+  end
+
+  # For "asn1" or default marshaling, OpenBao uses standard Base64 encoding.
+  defp decode_vault_sig(b64_sig, _other) do
+    Base.decode64(b64_sig)
+  end
+
+  # Translates Astarte/COSE supported algorithms into OpenBao Transit engine parameters.
+  defp map_cose_alg_to_vault_opts(:es256) do
+    [hash_algorithm: "sha2-256", marshaling_algorithm: "jws"]
+  end
+
+  defp map_cose_alg_to_vault_opts(:es384) do
+    [hash_algorithm: "sha2-384", marshaling_algorithm: "jws"]
+  end
+
+  defp map_cose_alg_to_vault_opts(:ps256) do
+    [hash_algorithm: "sha2-256", signature_algorithm: "pss"]
+  end
+
+  defp map_cose_alg_to_vault_opts(:rs256) do
+    [hash_algorithm: "sha2-256", signature_algorithm: "pkcs1v15"]
+  end
+
+  defp map_cose_alg_to_vault_opts(:rs384) do
+    [hash_algorithm: "sha2-384", signature_algorithm: "pkcs1v15"]
+  end
 end

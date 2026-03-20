@@ -17,10 +17,12 @@
 #
 
 defmodule Astarte.Pairing.FDO.OpenBao.CoreTest do
-  use ExUnit.Case, async: true
+  use ExUnit.Case, async: false
   use Mimic
 
+  alias Astarte.Pairing.Config
   alias Astarte.Pairing.FDO.OpenBao
+  alias Astarte.Pairing.FDO.OpenBao.Client
   alias Astarte.Pairing.FDO.OpenBao.Core
 
   import Astarte.Helpers.OpenBao
@@ -124,6 +126,99 @@ defmodule Astarte.Pairing.FDO.OpenBao.CoreTest do
       fetched_namespaces = MapSet.new(fetched_namespaces)
 
       assert MapSet.subset?(namespaces, fetched_namespaces)
+    end
+  end
+
+  describe "sign/4" do
+    setup do
+      # Read credentials and URL from config
+      {:ok, {:token, token}} = Config.bao_authentication()
+
+      unique_id = System.unique_integer([:positive])
+      realm_name = "test_realm_#{unique_id}"
+
+      {:ok, namespace} = OpenBao.create_namespace(realm_name, nil, "my_namespace_#{unique_id}")
+
+      ecdsa_key = "ecdsa_#{unique_id}"
+      ecdsa384_key = "ecdsa384_#{unique_id}"
+      rsa_key = "rsa_#{unique_id}"
+
+      {:ok, _} = OpenBao.create_keypair(ecdsa_key, :ec256, namespace: namespace)
+      {:ok, _} = OpenBao.create_keypair(ecdsa384_key, :ec384, namespace: namespace)
+      {:ok, _} = OpenBao.create_keypair(rsa_key, :rsa2048, namespace: namespace)
+
+      %{
+        ecdsa_key: ecdsa_key,
+        ecdsa384_key: ecdsa384_key,
+        rsa_key: rsa_key,
+        opts: [token: token, namespace: namespace]
+      }
+    end
+
+    test "successfully signs with ECDSA (:es256)", %{ecdsa_key: key_name, opts: opts} do
+      payload = "test_payload"
+
+      # Perform the HTTP call to OpenBao using our new Facade
+      assert {:ok, raw_sig} = OpenBao.sign(key_name, payload, :es256, opts)
+
+      # Verify it's a binary and exactly 64 bytes long
+      assert is_binary(raw_sig)
+      assert byte_size(raw_sig) == 64
+    end
+
+    test "successfully signs with RSA-PSS (:ps256)", %{rsa_key: key_name, opts: opts} do
+      payload = "test_payload"
+
+      # Perform the actual HTTP call to OpenBao
+      assert {:ok, raw_sig} = OpenBao.sign(key_name, payload, :ps256, opts)
+
+      # Verify it's a binary and exactly 256 bytes long
+      assert is_binary(raw_sig)
+      assert byte_size(raw_sig) == 256
+    end
+
+    test "successfully signs with ECDSA (:es384)", %{ecdsa384_key: key_name, opts: opts} do
+      payload = "test_payload"
+
+      assert {:ok, raw_sig} = OpenBao.sign(key_name, payload, :es384, opts)
+
+      assert is_binary(raw_sig)
+      assert byte_size(raw_sig) == 96
+    end
+
+    test "successfully signs with RSA-PKCS1v1.5 (:rs256)", %{rsa_key: key_name, opts: opts} do
+      payload = "test_payload"
+
+      assert {:ok, raw_sig} = OpenBao.sign(key_name, payload, :rs256, opts)
+
+      assert is_binary(raw_sig)
+      assert byte_size(raw_sig) == 256
+    end
+
+    test "successfully signs with RSA-PKCS1v1.5 (:rs384)", %{rsa_key: key_name, opts: opts} do
+      payload = "test_payload"
+
+      assert {:ok, raw_sig} = OpenBao.sign(key_name, payload, :rs384, opts)
+
+      assert is_binary(raw_sig)
+      assert byte_size(raw_sig) == 256
+    end
+
+    test "handles missing signature in Vault JSON response", %{rsa_key: key_name, opts: opts} do
+      payload = "test_payload"
+
+      expect(Client, :post, fn _url, _body, _headers, _opts ->
+        {:ok,
+         %HTTPoison.Response{status_code: 200, body: "{\"data\": {\"wrong_key\": \"value\"}}"}}
+      end)
+
+      assert :error = OpenBao.sign(key_name, payload, :ps256, opts)
+    end
+
+    test "returns :error for a non-existent key", %{opts: opts} do
+      payload = "test_payload"
+
+      assert :error = OpenBao.sign("random_missing_key", payload, :es256, opts)
     end
   end
 

@@ -147,6 +147,46 @@ defmodule Astarte.Pairing.FDO.OpenBaoTest do
     end
   end
 
+  describe "sign/4" do
+    alias Astarte.Pairing.FDO.OpenBao.Core
+
+    setup do
+      unique_id = System.unique_integer([:positive])
+
+      %{
+        key_name: "device_key",
+        payload: "test_payload",
+        alg: :es256,
+        opts: [token: "my_token", namespace: "my_namespace_#{unique_id}"]
+      }
+    end
+
+    test "delegates to Core.sign/4 with default empty options", %{
+      key_name: key_name,
+      payload: payload,
+      alg: alg
+    } do
+      expect(Core, :sign, fn ^key_name, ^payload, ^alg, [] ->
+        {:ok, "raw_signature"}
+      end)
+
+      assert {:ok, "raw_signature"} = OpenBao.sign(key_name, payload, alg)
+    end
+
+    test "delegates to Core.sign/4 passing opts directly", %{
+      key_name: key_name,
+      payload: payload,
+      alg: alg,
+      opts: opts
+    } do
+      expect(Core, :sign, fn ^key_name, ^payload, ^alg, ^opts ->
+        {:ok, "raw_signature"}
+      end)
+
+      assert {:ok, "raw_signature"} = OpenBao.sign(key_name, payload, alg, opts)
+    end
+  end
+
   defp cleanup_key(key_name, opts) do
     OpenBao.enable_key_deletion(key_name, opts)
     OpenBao.delete_key(key_name, opts)
