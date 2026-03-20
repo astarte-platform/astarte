@@ -25,6 +25,21 @@ defmodule Astarte.Pairing.FDO.OpenBao do
 
   require Logger
 
+  @spec get_key(String.t()) :: {:ok, map()} | :error
+  def get_key(key_name, opts \\ []) do
+    namespace = Keyword.fetch!(opts, :namespace)
+
+    Core.get_key(key_name, namespace)
+  end
+
+  @spec list_keys_names() :: {:ok, map()} | :error
+  def list_keys_names(opts \\ []) do
+    namespace = Keyword.fetch!(opts, :namespace)
+    Core.list_keys(namespace)
+  end
+
+  alias Astarte.Pairing.FDO.OpenBao.Core
+
   def create_namespace(realm_name, user_id \\ nil, key_algorithm) do
     with {:ok, namespace} <-
            Core.namespace_tokens(realm_name, user_id, key_algorithm)
