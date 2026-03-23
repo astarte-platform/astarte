@@ -22,6 +22,8 @@ defmodule Astarte.Pairing.FDO.OpenBao do
   """
 
   alias Astarte.Pairing.FDO.OpenBao.{Client, Core}
+  alias COSE.Keys.ECC
+  alias COSE.Keys.RSA
 
   require Logger
 
@@ -109,6 +111,21 @@ defmodule Astarte.Pairing.FDO.OpenBao do
 
     with {:ok, digest_type} <- Core.digest_type(digest_type) do
       Core.sign(key_name, payload, key_alg, digest_type, opts)
+    end
+  end
+
+  @type cose_key :: %ECC{} | %RSA{}
+
+  @spec import_key(String.t(), Core.key_algorithm(), cose_key(), list()) :: :ok | :error
+  def import_key(key_name, key_type, key, opts \\ []) do
+    namespace = Keyword.fetch!(opts, :namespace)
+    client_opts = [namespace: namespace] ++ Keyword.take(opts, [:token])
+
+    with {:ok, key_type_string} <- Core.key_type_to_string(key_type),
+         {:ok, wrapping_key_pem} <- Core.get_wrapping_key(client_opts),
+         {:ok, ciphertext} <-
+           Core.prepare_import_ciphertext(Core.encode_key_to_pkcs8(key), wrapping_key_pem) do
+      Core.import_key(key_name, key_type_string, ciphertext, opts)
     end
   end
 end
