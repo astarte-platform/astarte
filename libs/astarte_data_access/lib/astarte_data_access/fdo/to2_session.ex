@@ -24,8 +24,6 @@ defmodule Astarte.DataAccess.FDO.TO2Session do
 
   alias Astarte.DataAccess.FDO.CBOR.Encoded, as: CBOREncoded
   alias Astarte.FDO.Core.Hash
-  alias Astarte.FDO.Core.OwnershipVoucher.RendezvousInfo
-  alias Astarte.FDO.Core.PublicKey
   alias COSE.Keys.Symmetric
 
   @ciphers [
@@ -73,12 +71,6 @@ defmodule Astarte.DataAccess.FDO.TO2Session do
 
     field :owner_service_info, {:array, :binary}
     field :last_chunk_sent, :integer
-    field :replacement_guid, :binary
-
-    field :replacement_rv_info, CBOREncoded, using: RendezvousInfo
-
-    field :replacement_pub_key, CBOREncoded, using: PublicKey
-
     field :replacement_hmac, CBOREncoded, using: Hash
   end
 end
