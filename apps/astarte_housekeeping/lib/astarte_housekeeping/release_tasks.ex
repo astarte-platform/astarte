@@ -27,7 +27,8 @@ defmodule Astarte.Housekeeping.ReleaseTasks do
     :logger,
     :crypto,
     :ssl,
-    :xandra
+    :xandra,
+    :ecto
   ]
 
   def init_database do
@@ -108,16 +109,14 @@ defmodule Astarte.Housekeeping.ReleaseTasks do
   defp start_services do
     Enum.each(@start_apps, &Application.ensure_all_started/1)
 
-    # Load astarte_data_access, without starting it. This makes the application env accessible.
-    :ok = Application.load(:astarte_data_access)
-
     _ = Logger.info("Starting Xandra connection to #{inspect(Config.xandra_nodes!())}")
 
-    xandra_options =
-      Config.xandra_options!()
-      |> Keyword.put(:name, :xandra)
+    xandra_options = Config.xandra_options!()
+    data_access_opts = [xandra_options: xandra_options]
+    hk_xandra_opts = Keyword.put(xandra_options, :name, :xandra)
 
-    {:ok, _pid} = Xandra.Cluster.start_link(xandra_options)
+    {:ok, _pid} = Xandra.Cluster.start_link(hk_xandra_opts)
+    {:ok, _pid} = Astarte.DataAccess.start_link(data_access_opts)
 
     :ok
   end
