@@ -98,7 +98,7 @@ defmodule Astarte.Pairing.Mixfile do
       {:cfxxl, github: "ispirata/cfxxl"},
       {:astarte_data_access, path: astarte_lib("astarte_data_access")},
       {:astarte_generators, path: astarte_lib("astarte_generators"), only: [:dev, :test]},
-      {:astarte_secrets, path: astarte_lib("astarte_secrets")},
+      {:astarte_secrets, path: astarte_lib("astarte_secrets"), override: true},
       {:bcrypt_elixir, "~> 2.2"},
       {:xandra, "~> 0.19"},
       {:ecto, "~> 3.12"},
