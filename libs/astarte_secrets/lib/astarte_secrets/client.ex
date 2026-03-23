@@ -16,14 +16,14 @@
 # limitations under the License.
 #
 
-defmodule Astarte.Pairing.FDO.OpenBao.Client do
+defmodule Astarte.Secrets.Client do
   @moduledoc """
   Client for OpenBao
   """
 
   use HTTPoison.Base
 
-  alias Astarte.Pairing.Config
+  alias Astarte.Secrets.Config
   alias HTTPoison.AsyncResponse
   alias HTTPoison.Error
   alias HTTPoison.Response

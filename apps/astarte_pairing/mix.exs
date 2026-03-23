@@ -97,11 +97,11 @@ defmodule Astarte.Pairing.Mixfile do
       {:cfxxl, github: "ispirata/cfxxl"},
       {:astarte_data_access, path: astarte_lib("astarte_data_access")},
       {:astarte_generators, path: astarte_lib("astarte_generators"), only: [:dev, :test]},
+      {:astarte_secrets, path: astarte_lib("astarte_secrets")},
       {:bcrypt_elixir, "~> 2.2"},
       {:xandra, "~> 0.19"},
       {:ecto, "~> 3.12"},
       {:exandra, "~> 0.13"},
-      {:typed_ecto_schema, "~> 0.4"},
       {:mimic, "~> 1.11", only: :test},
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
       {:con_cache, "~> 1.1"},
@@ -110,8 +110,7 @@ defmodule Astarte.Pairing.Mixfile do
       {:astarte_fdo_core, path: astarte_lib("astarte_fdo_core")},
       {:astarte_rpc, path: astarte_lib("astarte_rpc")},
       # HTTP client needed by some tests, override to avoid conflicts with cfxxl
-      {:httpoison, "~> 2.2", override: true},
-      {:x509, "~> 0.8"}
+      {:httpoison, "~> 2.2", override: true}
     ]
   end
 

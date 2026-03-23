@@ -16,12 +16,12 @@
 # limitations under the License.
 #
 
-defmodule Astarte.Pairing.FDO.OpenBao.KeyTest do
+defmodule Astarte.Secrets.KeyTest do
   use ExUnit.Case, async: true
   use Mimic
 
-  alias Astarte.Pairing.FDO.OpenBao
-  alias Astarte.Pairing.FDO.OpenBao.Key
+  alias Astarte.Secrets
+  alias Astarte.Secrets.Key
   alias COSE.Keys
   alias COSE.Messages.Sign1
 
@@ -29,8 +29,8 @@ defmodule Astarte.Pairing.FDO.OpenBao.KeyTest do
     realm_name = "realm#{System.unique_integer([:positive])}"
     key_name = "key#{System.unique_integer()}"
     key_algorithm = Map.get(context, :key_algorithm, :es256)
-    {:ok, namespace} = OpenBao.create_namespace(realm_name, key_algorithm)
-    {:ok, _} = OpenBao.create_keypair(key_name, key_algorithm, namespace: namespace)
+    {:ok, namespace} = Secrets.create_namespace(realm_name, key_algorithm)
+    {:ok, _} = Secrets.create_keypair(key_name, key_algorithm, namespace: namespace)
     key = %Key{name: key_name, namespace: namespace, alg: key_algorithm}
 
     %{key: key}
@@ -42,17 +42,17 @@ defmodule Astarte.Pairing.FDO.OpenBao.KeyTest do
   end
 
   describe "sign/3" do
-    test "calls OpenBao.sign/5", %{key: key} do
+    test "calls Secrets.sign/5", %{key: key} do
       out = <<>>
 
-      OpenBao
+      Secrets
       |> expect(:sign, fn _key_name, _payload, _algorithm, _digest_type, _opts -> {:ok, out} end)
 
       assert {:ok, out} == Keys.sign(key, key.alg, <<>>)
     end
 
     test "returns `{:error, :signature_error}` in case of error", %{key: key} do
-      OpenBao
+      Secrets
       |> expect(:sign, fn _key_name, _payload, _algorithm, _digest_type, _opts -> :error end)
 
       assert {:error, :signature_error} == Keys.sign(key, key.alg, <<>>)
