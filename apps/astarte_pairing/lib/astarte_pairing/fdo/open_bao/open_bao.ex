@@ -37,7 +37,7 @@ defmodule Astarte.Pairing.FDO.OpenBao do
     end
   end
 
-  @spec list_keys_names() :: {:ok, map()} | :error
+  @spec list_keys_names() :: {:ok, [String.t()]} | :error
   def list_keys_names(opts \\ []) do
     namespace = Keyword.fetch!(opts, :namespace)
 
