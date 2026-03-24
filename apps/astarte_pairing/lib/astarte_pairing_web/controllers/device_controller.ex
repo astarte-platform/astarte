@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2017 - 2025 SECO Mind Srl
+# Copyright 2017 - 2026 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -18,6 +18,7 @@
 
 defmodule Astarte.PairingWeb.DeviceController do
   use Astarte.PairingWeb, :controller
+  use OpenApiSpex.ControllerSpecs
 
   require Logger
 
@@ -25,15 +26,225 @@ defmodule Astarte.PairingWeb.DeviceController do
   alias Astarte.Pairing.Credentials.AstarteMQTTV1
   alias Astarte.Pairing.Info
   alias Astarte.Pairing.Info.DeviceInfo
+  alias Astarte.PairingWeb.ApiSpec.Schemas.Device
+  alias Astarte.PairingWeb.ApiSpec.Schemas.Errors
   alias Astarte.PairingWeb.CredentialsStatusView
   alias Astarte.PairingWeb.CredentialsView
   alias Astarte.PairingWeb.DeviceInfoView
+  alias OpenApiSpex.{Example, MediaType, Reference, Response, Schema}
 
   require Logger
 
   @bearer_regex ~r/bearer\:?\s+(.*)$/i
 
   action_fallback Astarte.PairingWeb.FallbackController
+
+  tags ["device"]
+  security [%{"CredentialsSecret" => []}]
+
+  operation :show_info,
+    summary: "Obtain status information for a device",
+    operation_id: "getInfo",
+    parameters: [
+      realm_name: [
+        in: :path,
+        description: "Name of the realm the device belongs to.",
+        type: :string,
+        required: true
+      ],
+      hw_id: [
+        in: :path,
+        description: "Hardware id of the device.",
+        type: :string,
+        required: true
+      ]
+    ],
+    responses: [
+      ok:
+        {"Info", "application/json",
+         %Schema{
+           type: :object,
+           properties: %{data: Device.InfoResponse},
+           required: [:data]
+         }},
+      unauthorized: %Reference{"$ref": "#/components/responses/Unauthorized"},
+      forbidden: %Response{
+        description: "Forbidden or Authorization path not matched",
+        content: %{
+          "application/json" => %MediaType{
+            schema: %Schema{
+              oneOf: [
+                Errors.ForbiddenResponse,
+                Errors.AuthorizationPathNotMatchedResponse
+              ]
+            }
+          }
+        }
+      }
+    ]
+
+  operation :create_credentials,
+    summary: "Obtain the credentials for Astarte MQTT v1 protocol",
+    operation_id: "obtainCredentials",
+    parameters: [
+      realm_name: [
+        in: :path,
+        description: "Name of the realm the device belongs to.",
+        type: :string,
+        required: true
+      ],
+      hw_id: [
+        in: :path,
+        description: "Hardware id of the device.",
+        type: :string,
+        required: true
+      ],
+      protocol: [
+        in: :path,
+        description: "Credentials protocol identifier.",
+        schema: %Schema{type: :string, enum: ["astarte_mqtt_v1"]},
+        required: true
+      ]
+    ],
+    request_body: {
+      "Credentials request",
+      "application/json",
+      %Schema{
+        type: :object,
+        properties: %{data: Device.AstarteMQTTV1CredentialsRequest},
+        required: [:data]
+      },
+      required: true
+    },
+    responses: [
+      created:
+        {"Credentials created", "application/json",
+         %Schema{
+           type: :object,
+           properties: %{data: Device.AstarteMQTTV1CredentialsResponse},
+           required: [:data]
+         }},
+      unauthorized: %Reference{"$ref": "#/components/responses/Unauthorized"},
+      forbidden: %Response{
+        description: "Token/Realm doesn't exist or operation not allowed.",
+        content: %{
+          "application/json" => %MediaType{
+            schema: %Schema{
+              oneOf: [
+                Errors.ForbiddenResponse,
+                Errors.AuthorizationPathNotMatchedResponse
+              ]
+            }
+          }
+        }
+      },
+      unprocessable_entity: %Response{
+        description: "Unprocessable entity",
+        content: %{
+          "application/json" => %MediaType{
+            schema: Errors.GenericErrorResponse,
+            example: %{
+              errors: %{
+                purpose: ["can't be blank"]
+              }
+            }
+          }
+        }
+      }
+    ]
+
+  operation :verify_credentials,
+    summary: "Verify the credentials for Astarte MQTT v1 protocol",
+    operation_id: "verifyCredentials",
+    parameters: [
+      realm_name: [
+        in: :path,
+        description: "Name of the realm the device belongs to.",
+        type: :string,
+        required: true
+      ],
+      hw_id: [
+        in: :path,
+        description: "Hardware id of the device.",
+        type: :string,
+        required: true
+      ],
+      protocol: [
+        in: :path,
+        description: "Credentials protocol identifier.",
+        schema: %Schema{type: :string, enum: ["astarte_mqtt_v1"]},
+        required: true
+      ]
+    ],
+    request_body: {
+      "Credentials verification request",
+      "application/json",
+      %Schema{
+        type: :object,
+        properties: %{data: Device.AstarteMQTTV1VerifyCredentialsRequest},
+        required: [:data]
+      },
+      required: true
+    },
+    responses: [
+      ok: %Response{
+        description: "Credentials verified",
+        content: %{
+          "application/json" => %MediaType{
+            schema: %Schema{
+              type: :object,
+              properties: %{data: Device.AstarteMQTTV1VerifyCredentialsResponse},
+              required: [:data]
+            },
+            examples: %{
+              "response valid certificate" => %Example{
+                value: %{
+                  data: %{
+                    valid: true,
+                    until: "2025-03-25 19:25:00.000Z"
+                  }
+                }
+              },
+              "response invalid certificate" => %Example{
+                value: %{
+                  data: %{
+                    valid: false,
+                    cause: "INVALID_ISSUER"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      unauthorized: %Reference{"$ref": "#/components/responses/Unauthorized"},
+      forbidden: %Response{
+        description: "Token/Realm doesn't exist or operation not allowed.",
+        content: %{
+          "application/json" => %MediaType{
+            schema: %Schema{
+              oneOf: [
+                Errors.ForbiddenResponse,
+                Errors.AuthorizationPathNotMatchedResponse
+              ]
+            }
+          }
+        }
+      },
+      unprocessable_entity: %Response{
+        description: "Unprocessable entity",
+        content: %{
+          "application/json" => %MediaType{
+            schema: Errors.GenericErrorResponse,
+            example: %{
+              errors: %{
+                purpose: ["can't be blank"]
+              }
+            }
+          }
+        }
+      }
+    ]
 
   def create_credentials(conn, %{
         "realm_name" => realm,
