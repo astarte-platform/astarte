@@ -19,6 +19,7 @@
 defmodule Astarte.PairingWeb.OwnerKeyController do
   use Astarte.PairingWeb, :controller
 
+  alias Astarte.Secrets
   alias Astarte.Secrets.OwnerKeyInitialization
   alias Astarte.Secrets.OwnerKeyInitializationOptions
 
@@ -43,5 +44,16 @@ defmodule Astarte.PairingWeb.OwnerKeyController do
            OwnerKeyInitialization.create_or_upload(create_or_upload_changeset, realm_name) do
       send_resp(conn, 200, public_key)
     end
+  end
+
+  @supported_key_algorithms [:es256, :es384, :rs256, :rs384]
+  def list_keys(
+        conn,
+        %{
+          "realm_name" => realm_name
+        }
+      ) do
+    keys = Secrets.Core.get_keys_from_algorithm(realm_name, @supported_key_algorithms)
+    send_resp(conn, 200, Jason.encode!(keys))
   end
 end

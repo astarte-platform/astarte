@@ -109,6 +109,7 @@ defmodule Astarte.PairingWeb.Router do
       pipe_through :agent_api
 
       post "/owner_key", OwnerKeyController, :create_or_upload_key
+      get "/owner_keys", OwnerKeyController, :list_keys
     end
   end
 
