@@ -258,7 +258,7 @@ defmodule Astarte.Pairing.FDO.OpenBao.Core do
             {:ok, keys}
 
           {:error, reason} ->
-            Logger.error("Encountered HTTP error while getting keys list: #{inspect(reason)}")
+            Logger.error("Encountered error while getting keys list: #{inspect(reason)}")
             :error
         end
 
