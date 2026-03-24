@@ -145,6 +145,7 @@ interface AstarteClientConfig {
   realm?: string;
   realmManagementApiUrl: string;
   token?: string;
+  fdoApiUrl: string;
 }
 
 class AstarteClient {
@@ -201,6 +202,7 @@ class AstarteClient {
     this.getAppEngineVersion = this.getAppEngineVersion.bind(this);
     this.getUnauthenticatedPairingVersion = this.getUnauthenticatedPairingVersion.bind(this);
     this.getPairingVersion = this.getPairingVersion.bind(this);
+    this.uploadFdoVoucher = this.uploadFdoVoucher.bind(this);
 
     // prettier-ignore
     this.apiConfig = {
@@ -213,7 +215,7 @@ class AstarteClient {
       interfaceMajors:       astarteAPIurl`${config.realmManagementApiUrl}v1/${'realm'}/interfaces/${'interfaceName'}`,
       interface:             astarteAPIurl`${config.realmManagementApiUrl}v1/${'realm'}/interfaces/${'interfaceName'}/${'interfaceMajor'}`,
       interfaceData: 
-astarteAPIurl`${config.realmManagementApiUrl}v1/${'realm'}/interfaces/${'interfaceName'}/${'interfaceMajor'}`,
+      astarteAPIurl`${config.realmManagementApiUrl}v1/${'realm'}/interfaces/${'interfaceName'}/${'interfaceMajor'}`,
       trigger:               astarteAPIurl`${config.realmManagementApiUrl}v1/${'realm'}/triggers/${'triggerName'}`,
       triggers:              astarteAPIurl`${config.realmManagementApiUrl}v1/${'realm'}/triggers`,
       policies:              astarteAPIurl`${config.realmManagementApiUrl}v1/${'realm'}/policies`,
@@ -243,6 +245,10 @@ astarteAPIurl`${config.realmManagementApiUrl}v1/${'realm'}/interfaces/${'interfa
       pipelineSource:        astarteAPIurl`${config.flowApiUrl}v1/${'realm'}/pipelines/${'pipelineId'}`,
       blocks:                astarteAPIurl`${config.flowApiUrl}v1/${'realm'}/blocks`,
       blockSource:           astarteAPIurl`${config.flowApiUrl}v1/${'realm'}/blocks/${'blockId'}`,
+      fdoOwnerKey:           astarteAPIurl`${config.pairingApiUrl}v1/${'realm'}/fdo/owner_key`,
+      fdoOwnershipVoucher:   astarteAPIurl`${config.pairingApiUrl}v1/${'realm'}/fdo/ownership_voucher`,
+      fdoCompatibleKeys: astarteAPIurl`${config.pairingApiUrl}v1/${'realm'}/ownership/compatible_keys`,
+      fdoLoadVoucher:    astarteAPIurl`${config.pairingApiUrl}v1/${'realm'}/ownership/load`,
     };
   }
 
@@ -777,6 +783,100 @@ astarteAPIurl`${config.realmManagementApiUrl}v1/${'realm'}/interfaces/${'interfa
   async getPairingVersion(): Promise<string> {
     const response = await this.$get(this.apiConfig.pairingVersion(this.config));
     return response.data;
+  }
+
+  async uploadFdoVoucher(
+    keyName: string,
+    voucherText: string,
+    options?: { replacementGuid?: string; replacementRvInfo?: string; replacementPubKey?: string },
+  ): Promise<any> {
+    const payloadData: any = {
+      ownership_voucher: voucherText,
+    };
+
+    if (keyName.trim() !== '') {
+      payloadData.key_name = keyName;
+    }
+
+    if (options?.replacementGuid?.trim()) {
+      payloadData.replacement_guid = options.replacementGuid;
+    }
+    if (options?.replacementRvInfo?.trim()) {
+      payloadData.replacement_rv_info = options.replacementRvInfo;
+    }
+    if (options?.replacementPubKey?.trim()) {
+      payloadData.replacement_pub_key = options.replacementPubKey;
+    }
+
+    return axios({
+      method: 'post',
+      url: this.apiConfig.fdoLoadVoucher(this.config),
+      headers: {
+        Authorization: `Bearer ${this.token}`,
+        'Content-Type': 'application/json',
+      },
+      data: {
+        data: payloadData,
+      },
+    }).then((response) => response.data);
+  }
+
+  async getCompatibleOwnerKeys(voucherText: string): Promise<string[]> {
+    return axios({
+      method: 'post',
+      url: this.apiConfig.fdoCompatibleKeys(this.config),
+      headers: {
+        Authorization: `Bearer ${this.token}`,
+        'Content-Type': 'application/json',
+      },
+      data: {
+        data: {
+          ownership_voucher: voucherText,
+        },
+      },
+    }).then((response) => {
+      // response.data.data is an object: {"es256":["abcd","ec256"], "rs256": ["other-key"]}
+      const rawData = response.data.data;
+
+      // extract all keys and put the on into a unique array
+      if (rawData && typeof rawData === 'object') {
+        const flatKeys = Object.values(rawData).flat() as string[];
+        return flatKeys;
+      }
+
+      return []; // Fallback
+    });
+  }
+
+  async manageFdoOwnerKey(params: {
+    action: 'create' | 'upload';
+    keyName: string;
+    keyAlgorithm?: string;
+    keyData?: string;
+  }): Promise<string> {
+    const payloadData: any = {
+      action: params.action,
+      key_name: params.keyName,
+    };
+
+    if (params.action === 'create') {
+      payloadData.key_algorithm = params.keyAlgorithm;
+    } else if (params.action === 'upload') {
+      payloadData.key_data = params.keyData;
+    }
+
+    return axios({
+      method: 'post',
+      url: this.apiConfig.fdoOwnerKey(this.config),
+      headers: {
+        Authorization: `Bearer ${this.token}`,
+        'Content-Type': 'application/json',
+      },
+      responseType: 'text',
+      data: {
+        data: payloadData,
+      },
+    }).then((response) => response.data);
   }
 
   private async $get(url: string) {

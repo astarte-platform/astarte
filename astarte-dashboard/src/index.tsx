@@ -31,6 +31,7 @@ fetch('/user-config/config.json')
     realmManagementApiUrl: json.realm_management_api_url,
     pairingApiUrl: json.pairing_api_url,
     flowApiUrl: json.flow_api_url,
+    fdoApiUrl: json.fdo_api_url,
     enableFlowPreview: json.enable_flow_preview,
     auth: json.auth,
     defaultAuth: json.default_auth,

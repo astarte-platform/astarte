@@ -40,6 +40,7 @@ type DashboardConfig = {
   realmManagementApiUrl?: string;
   pairingApiUrl?: string;
   flowApiUrl?: string;
+  fdoApiUrl?: string;
   enableFlowPreview: boolean;
   ui: {
     hideSidebar: boolean;
