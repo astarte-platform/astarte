@@ -57,3 +57,8 @@ jobs:
     with:
       lib: "astarte_rpc"
     secrets: inherit
+  astarte_secrets:
+    uses: ./.github/workflows/astarte-libs-build-workflow.yaml
+    with:
+      lib: "astarte_secrets"
+    secrets: inherit

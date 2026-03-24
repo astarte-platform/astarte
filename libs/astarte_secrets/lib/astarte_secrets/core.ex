@@ -16,13 +16,13 @@
 # limitations under the License.
 #
 
-defmodule Astarte.Pairing.FDO.OpenBao.Core do
+defmodule Astarte.Secrets.Core do
   @moduledoc """
   Implementation of function to interface with OpenBao.
   """
 
   alias Astarte.DataAccess.Config, as: DataAccessConfig
-  alias Astarte.Pairing.FDO.OpenBao.Client
+  alias Astarte.Secrets.Client
   alias COSE.Keys.ECC
   alias COSE.Keys.RSA
   alias HTTPoison.Response

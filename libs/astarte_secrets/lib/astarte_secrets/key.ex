@@ -16,7 +16,7 @@
 # limitations under the License.
 #
 
-defmodule Astarte.Pairing.FDO.OpenBao.Key do
+defmodule Astarte.Secrets.Key do
   @moduledoc """
   `COSE.Keys.Key` implementation for OpenBao keys.
   """
@@ -25,8 +25,8 @@ defmodule Astarte.Pairing.FDO.OpenBao.Key do
 
   import Ecto.Changeset
 
-  alias Astarte.Pairing.FDO.OpenBao.Core
-  alias Astarte.Pairing.FDO.OpenBao.Key
+  alias Astarte.Secrets.Core
+  alias Astarte.Secrets.Key
 
   @primary_key false
   typed_embedded_schema do
@@ -60,20 +60,20 @@ defmodule Astarte.Pairing.FDO.OpenBao.Key do
   end
 end
 
-defimpl COSE.Keys.Key, for: Astarte.Pairing.FDO.OpenBao.Key do
-  alias Astarte.Pairing.FDO.OpenBao
-  alias Astarte.Pairing.FDO.OpenBao.Key
+defimpl COSE.Keys.Key, for: Astarte.Secrets.Key do
+  alias Astarte.Secrets
+  alias Astarte.Secrets.Key
 
   def sign(key, digest_type, to_be_signed) do
     %Key{name: name, namespace: namespace, alg: algorithm} = key
     opts = [namespace: namespace]
 
-    with :error <- OpenBao.sign(name, to_be_signed, algorithm, digest_type, opts) do
+    with :error <- Secrets.sign(name, to_be_signed, algorithm, digest_type, opts) do
       {:error, :signature_error}
     end
   end
 
   def verify(_key, _digest_type, _to_be_verified, _signature) do
-    raise "`Astarte.Pairing.FDO.OpenBao.Key.verify/4`: Not yet implemented"
+    raise "`Astarte.Secrets.Key.verify/4`: Not yet implemented"
   end
 end

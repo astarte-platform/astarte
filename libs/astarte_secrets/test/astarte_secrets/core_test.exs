@@ -16,18 +16,18 @@
 # limitations under the License.
 #
 
-defmodule Astarte.Pairing.FDO.OpenBao.CoreTest do
+defmodule Astarte.Secrets.CoreTest do
   use ExUnit.Case, async: false
   use Mimic
 
-  alias Astarte.Pairing.Config
-  alias Astarte.Pairing.FDO.OpenBao
-  alias Astarte.Pairing.FDO.OpenBao.Client
-  alias Astarte.Pairing.FDO.OpenBao.Core
+  alias Astarte.Secrets
+  alias Astarte.Secrets.Client
+  alias Astarte.Secrets.Config
+  alias Astarte.Secrets.Core
   alias COSE.Keys.ECC
   alias COSE.Keys.RSA
 
-  import Astarte.Helpers.OpenBao
+  import Astarte.Helpers.Namespace
 
   describe "namespace_tokens/3" do
     setup :namespace_tokens_setup
@@ -124,7 +124,7 @@ defmodule Astarte.Pairing.FDO.OpenBao.CoreTest do
       namespaces = MapSet.new(namespaces)
 
       {:ok, _} = Core.create_nested_namespace(tokens)
-      {:ok, fetched_namespaces} = OpenBao.list_namespaces()
+      {:ok, fetched_namespaces} = Secrets.list_namespaces()
       fetched_namespaces = MapSet.new(fetched_namespaces)
 
       assert MapSet.subset?(namespaces, fetched_namespaces)
@@ -197,7 +197,7 @@ defmodule Astarte.Pairing.FDO.OpenBao.CoreTest do
       unique_id = System.unique_integer([:positive])
       realm_name = "test_realm_#{unique_id}"
 
-      {:ok, namespace} = OpenBao.create_namespace(realm_name, nil, :es256)
+      {:ok, namespace} = Secrets.create_namespace(realm_name, nil, :es256)
 
       opts = [token: token, namespace: namespace]
 
@@ -208,9 +208,9 @@ defmodule Astarte.Pairing.FDO.OpenBao.CoreTest do
       key_name = "imported_ec256_#{uid}"
       ec_key = ECC.generate(:es256)
 
-      assert :ok = OpenBao.import_key(key_name, :es256, ec_key, opts)
+      assert :ok = Secrets.import_key(key_name, :es256, ec_key, opts)
 
-      assert {:ok, raw_sig} = OpenBao.sign(key_name, "test_payload", :es256, :sha256, opts)
+      assert {:ok, raw_sig} = Secrets.sign(key_name, "test_payload", :es256, :sha256, opts)
       assert is_binary(raw_sig)
       assert byte_size(raw_sig) == 64
 
@@ -221,7 +221,7 @@ defmodule Astarte.Pairing.FDO.OpenBao.CoreTest do
         |> X509.PublicKey.to_pem()
         |> String.trim_trailing()
 
-      assert {:ok, key_data} = OpenBao.get_key(key_name, opts)
+      assert {:ok, key_data} = Secrets.get_key(key_name, opts)
       stored_pem = key_data.public_pem |> String.trim_trailing()
       assert expected_pub_pem == stored_pem
     end
@@ -230,9 +230,9 @@ defmodule Astarte.Pairing.FDO.OpenBao.CoreTest do
       key_name = "imported_rsa2048_#{uid}"
       rsa_key = RSA.generate(:rs256)
 
-      assert :ok = OpenBao.import_key(key_name, :rs256, rsa_key, opts)
+      assert :ok = Secrets.import_key(key_name, :rs256, rsa_key, opts)
 
-      assert {:ok, raw_sig} = OpenBao.sign(key_name, "test_payload", :rs256, :sha256, opts)
+      assert {:ok, raw_sig} = Secrets.sign(key_name, "test_payload", :rs256, :sha256, opts)
       assert is_binary(raw_sig)
       assert byte_size(raw_sig) == 256
 
@@ -243,7 +243,7 @@ defmodule Astarte.Pairing.FDO.OpenBao.CoreTest do
         |> X509.PublicKey.to_pem()
         |> String.trim_trailing()
 
-      assert {:ok, key_data} = OpenBao.get_key(key_name, opts)
+      assert {:ok, key_data} = Secrets.get_key(key_name, opts)
       stored_pem = key_data.public_pem |> String.trim_trailing()
       assert expected_pub_pem == stored_pem
     end
@@ -252,9 +252,9 @@ defmodule Astarte.Pairing.FDO.OpenBao.CoreTest do
       key_name = "imported_rsa3072_#{uid}"
       rsa_key = RSA.generate(:rs384)
 
-      assert :ok = OpenBao.import_key(key_name, :rs384, rsa_key, opts)
+      assert :ok = Secrets.import_key(key_name, :rs384, rsa_key, opts)
 
-      assert {:ok, raw_sig} = OpenBao.sign(key_name, "test_payload", :rs384, :sha384, opts)
+      assert {:ok, raw_sig} = Secrets.sign(key_name, "test_payload", :rs384, :sha384, opts)
       assert is_binary(raw_sig)
       assert byte_size(raw_sig) == 384
 
@@ -265,16 +265,18 @@ defmodule Astarte.Pairing.FDO.OpenBao.CoreTest do
         |> X509.PublicKey.to_pem()
         |> String.trim_trailing()
 
-      assert {:ok, key_data} = OpenBao.get_key(key_name, opts)
+      assert {:ok, key_data} = Secrets.get_key(key_name, opts)
       stored_pem = key_data.public_pem |> String.trim_trailing()
       assert expected_pub_pem == stored_pem
     end
   end
 
   defp http_stubs_setup(_context) do
-    stub(Astarte.Pairing.Config, :bao_url!, fn -> "http://localhost:8200" end)
-    stub(Astarte.Pairing.Config, :bao_token!, fn -> "root" end)
-    stub(Astarte.Pairing.Config, :bao_ssl_enabled!, fn -> false end)
+    Config
+    |> stub(:bao_url!, fn -> "http://localhost:8200" end)
+    |> stub(:bao_token!, fn -> "root" end)
+    |> stub(:bao_ssl_enabled!, fn -> false end)
+
     :ok
   end
 end

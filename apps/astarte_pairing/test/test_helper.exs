@@ -16,7 +16,6 @@
 # limitations under the License.
 #
 
-Mimic.copy(:hackney)
 Mimic.copy(Astarte.DataAccess.Config)
 Mimic.copy(Astarte.DataAccess.Health.Health)
 Mimic.copy(Astarte.Events.TriggersHandler)
@@ -31,9 +30,6 @@ Mimic.copy(Astarte.FDO.Rendezvous)
 Mimic.copy(Astarte.FDO.Rendezvous.Client)
 Mimic.copy(Astarte.FDO.ServiceInfo)
 Mimic.copy(Astarte.Pairing.Config)
-Mimic.copy(Astarte.Pairing.FDO.OpenBao)
-Mimic.copy(Astarte.Pairing.FDO.OpenBao.Client)
-Mimic.copy(Astarte.Pairing.FDO.OpenBao.Core)
 Mimic.copy(Astarte.Pairing.Queries)
 Mimic.copy(DateTime)
 Mimic.copy(HTTPoison)

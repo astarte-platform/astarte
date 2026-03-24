@@ -16,18 +16,18 @@
 # limitations under the License.
 #
 
-defmodule Astarte.Pairing.FDO.OpenBaoTest do
+defmodule Astarte.SecretsTest do
   use ExUnit.Case, async: true
   use Mimic
 
-  alias Astarte.Pairing.Config
-  alias Astarte.Pairing.FDO.OpenBao
-  alias Astarte.Pairing.FDO.OpenBao.Client
-  alias Astarte.Pairing.FDO.OpenBao.Core
-  alias Astarte.Pairing.FDO.OpenBao.Key
+  alias Astarte.Secrets
+  alias Astarte.Secrets.Client
+  alias Astarte.Secrets.Config
+  alias Astarte.Secrets.Core
+  alias Astarte.Secrets.Key
   alias COSE.Keys.ECC
 
-  import Astarte.Helpers.OpenBao
+  import Astarte.Helpers.Namespace
 
   describe "create_namespace/3" do
     setup :namespace_tokens_setup
@@ -42,16 +42,16 @@ defmodule Astarte.Pairing.FDO.OpenBaoTest do
       |> expect(:namespace_tokens, fn ^realm_name, ^user_id, ^key_algorithm_str -> ref end)
       |> expect(:create_nested_namespace, fn ^ref -> {:ok, ""} end)
 
-      assert {:ok, _} = OpenBao.create_namespace(realm_name, user_id, key_algorithm)
+      assert {:ok, _} = Secrets.create_namespace(realm_name, user_id, key_algorithm)
     end
   end
 
-  describe "successfully create and delete a key pair in OpenBao" do
+  describe "successfully create and delete a key pair in Secrets" do
     setup context do
       key_type = Map.get(context, :key_type)
       {:ok, key_type_to_string} = Core.key_type_to_string(key_type)
       realm_name = "realm#{System.unique_integer([:positive])}"
-      {:ok, namespace} = OpenBao.create_namespace(realm_name, key_type)
+      {:ok, namespace} = Secrets.create_namespace(realm_name, key_type)
       key_name = "some_key_#{key_type_to_string}"
       allow_key_export_and_backup = true
 
@@ -78,7 +78,7 @@ defmodule Astarte.Pairing.FDO.OpenBaoTest do
       allow_key_export_and_backup: allow_key_export_and_backup,
       opts: opts
     } do
-      assert {:ok, key_data} = OpenBao.create_keypair(key_name, key_type, opts)
+      assert {:ok, key_data} = Secrets.create_keypair(key_name, key_type, opts)
 
       assert %{
                "name" => ^key_name,
@@ -98,7 +98,7 @@ defmodule Astarte.Pairing.FDO.OpenBaoTest do
       allow_key_export_and_backup: allow_key_export_and_backup,
       opts: opts
     } do
-      assert {:ok, key_data} = OpenBao.create_keypair(key_name, key_type, opts)
+      assert {:ok, key_data} = Secrets.create_keypair(key_name, key_type, opts)
 
       assert %{
                "name" => ^key_name,
@@ -118,7 +118,7 @@ defmodule Astarte.Pairing.FDO.OpenBaoTest do
       allow_key_export_and_backup: allow_key_export_and_backup,
       opts: opts
     } do
-      assert {:ok, key_data} = OpenBao.create_keypair(key_name, key_type, opts)
+      assert {:ok, key_data} = Secrets.create_keypair(key_name, key_type, opts)
 
       assert %{
                "name" => ^key_name,
@@ -138,7 +138,7 @@ defmodule Astarte.Pairing.FDO.OpenBaoTest do
       allow_key_export_and_backup: allow_key_export_and_backup,
       opts: opts
     } do
-      assert {:ok, key_data} = OpenBao.create_keypair(key_name, key_type, opts)
+      assert {:ok, key_data} = Secrets.create_keypair(key_name, key_type, opts)
 
       assert %{
                "name" => ^key_name,
@@ -159,15 +159,15 @@ defmodule Astarte.Pairing.FDO.OpenBaoTest do
       unique_id = System.unique_integer([:positive])
       realm_name = "test_realm_#{unique_id}"
 
-      {:ok, namespace} = OpenBao.create_namespace(realm_name, nil, :es256)
+      {:ok, namespace} = Secrets.create_namespace(realm_name, nil, :es256)
 
       ecdsa_key = "ecdsa_#{unique_id}"
       ecdsa384_key = "ecdsa384_#{unique_id}"
       rsa_key = "rsa_#{unique_id}"
 
-      {:ok, _} = OpenBao.create_keypair(ecdsa_key, :es256, namespace: namespace)
-      {:ok, _} = OpenBao.create_keypair(ecdsa384_key, :es384, namespace: namespace)
-      {:ok, _} = OpenBao.create_keypair(rsa_key, :rs256, namespace: namespace)
+      {:ok, _} = Secrets.create_keypair(ecdsa_key, :es256, namespace: namespace)
+      {:ok, _} = Secrets.create_keypair(ecdsa384_key, :es384, namespace: namespace)
+      {:ok, _} = Secrets.create_keypair(rsa_key, :rs256, namespace: namespace)
 
       %{
         ecdsa_key: ecdsa_key,
@@ -180,7 +180,7 @@ defmodule Astarte.Pairing.FDO.OpenBaoTest do
     test "successfully signs with ECDSA (:es256)", %{ecdsa_key: key_name, opts: opts} do
       payload = "test_payload"
 
-      assert {:ok, raw_sig} = OpenBao.sign(key_name, payload, :es256, :sha256, opts)
+      assert {:ok, raw_sig} = Secrets.sign(key_name, payload, :es256, :sha256, opts)
 
       assert is_binary(raw_sig)
       assert byte_size(raw_sig) == 64
@@ -189,7 +189,7 @@ defmodule Astarte.Pairing.FDO.OpenBaoTest do
     test "successfully signs with ECDSA (:es384)", %{ecdsa384_key: key_name, opts: opts} do
       payload = "test_payload"
 
-      assert {:ok, raw_sig} = OpenBao.sign(key_name, payload, :es384, :sha384, opts)
+      assert {:ok, raw_sig} = Secrets.sign(key_name, payload, :es384, :sha384, opts)
 
       assert is_binary(raw_sig)
       assert byte_size(raw_sig) == 96
@@ -198,7 +198,7 @@ defmodule Astarte.Pairing.FDO.OpenBaoTest do
     test "successfully signs with RSA-PKCS1v1.5 (:rs256)", %{rsa_key: key_name, opts: opts} do
       payload = "test_payload"
 
-      assert {:ok, raw_sig} = OpenBao.sign(key_name, payload, :rs256, :sha256, opts)
+      assert {:ok, raw_sig} = Secrets.sign(key_name, payload, :rs256, :sha256, opts)
 
       assert is_binary(raw_sig)
       assert byte_size(raw_sig) == 256
@@ -207,7 +207,7 @@ defmodule Astarte.Pairing.FDO.OpenBaoTest do
     test "successfully signs with RSA-PKCS1v1.5 (:rs384)", %{rsa_key: key_name, opts: opts} do
       payload = "test_payload"
 
-      assert {:ok, raw_sig} = OpenBao.sign(key_name, payload, :rs384, :sha384, opts)
+      assert {:ok, raw_sig} = Secrets.sign(key_name, payload, :rs384, :sha384, opts)
 
       assert is_binary(raw_sig)
       assert byte_size(raw_sig) == 256
@@ -221,22 +221,22 @@ defmodule Astarte.Pairing.FDO.OpenBaoTest do
         {:ok, %HTTPoison.Response{status_code: 200, body: wrong_body}}
       end)
 
-      assert :error = OpenBao.sign(key_name, payload, :rs256, :sha3_256, opts)
+      assert :error = Secrets.sign(key_name, payload, :rs256, :sha3_256, opts)
     end
 
     test "returns :error for a non-existent key", %{opts: opts} do
       payload = "test_payload"
 
-      assert :error = OpenBao.sign("random_missing_key", payload, :es256, :sha3_512, opts)
+      assert :error = Secrets.sign("random_missing_key", payload, :es256, :sha3_512, opts)
     end
   end
 
-  describe "successfully create and fetch a key pair in OpenBao" do
+  describe "successfully create and fetch a key pair in Secrets" do
     setup context do
       key_type = Map.get(context, :key_type)
       {:ok, key_type_to_string} = Core.key_type_to_string(key_type)
       realm_name = "realm#{System.unique_integer([:positive])}"
-      {:ok, namespace} = OpenBao.create_namespace(realm_name, key_type)
+      {:ok, namespace} = Secrets.create_namespace(realm_name, key_type)
       key_name = "some_key_#{key_type_to_string}"
       allow_key_export_and_backup = true
 
@@ -265,7 +265,7 @@ defmodule Astarte.Pairing.FDO.OpenBaoTest do
       allow_key_export_and_backup: allow_key_export_and_backup,
       opts: opts
     } do
-      assert {:ok, key_data} = OpenBao.create_keypair(key_name, key_type, opts)
+      assert {:ok, key_data} = Secrets.create_keypair(key_name, key_type, opts)
 
       assert %{
                "name" => ^key_name,
@@ -275,7 +275,7 @@ defmodule Astarte.Pairing.FDO.OpenBaoTest do
              } = key_data
 
       assert {:ok, %Key{name: ^key_name, namespace: ^namespace, alg: ^key_type}} =
-               OpenBao.get_key(key_name, opts)
+               Secrets.get_key(key_name, opts)
     end
 
     @tag key_type: :es384
@@ -287,7 +287,7 @@ defmodule Astarte.Pairing.FDO.OpenBaoTest do
       allow_key_export_and_backup: allow_key_export_and_backup,
       opts: opts
     } do
-      assert {:ok, key_data} = OpenBao.create_keypair(key_name, key_type, opts)
+      assert {:ok, key_data} = Secrets.create_keypair(key_name, key_type, opts)
 
       assert %{
                "name" => ^key_name,
@@ -297,7 +297,7 @@ defmodule Astarte.Pairing.FDO.OpenBaoTest do
              } = key_data
 
       assert {:ok, %Key{name: ^key_name, namespace: ^namespace, alg: ^key_type}} =
-               OpenBao.get_key(key_name, opts)
+               Secrets.get_key(key_name, opts)
     end
 
     @tag key_type: :rs256
@@ -309,7 +309,7 @@ defmodule Astarte.Pairing.FDO.OpenBaoTest do
       allow_key_export_and_backup: allow_key_export_and_backup,
       opts: opts
     } do
-      assert {:ok, key_data} = OpenBao.create_keypair(key_name, key_type, opts)
+      assert {:ok, key_data} = Secrets.create_keypair(key_name, key_type, opts)
 
       assert %{
                "name" => ^key_name,
@@ -319,7 +319,7 @@ defmodule Astarte.Pairing.FDO.OpenBaoTest do
              } = key_data
 
       assert {:ok, %Key{name: ^key_name, namespace: ^namespace, alg: ^key_type}} =
-               OpenBao.get_key(key_name, opts)
+               Secrets.get_key(key_name, opts)
     end
 
     @tag key_type: :rs384
@@ -331,7 +331,7 @@ defmodule Astarte.Pairing.FDO.OpenBaoTest do
       allow_key_export_and_backup: allow_key_export_and_backup,
       opts: opts
     } do
-      assert {:ok, key_data} = OpenBao.create_keypair(key_name, key_type, opts)
+      assert {:ok, key_data} = Secrets.create_keypair(key_name, key_type, opts)
 
       assert %{
                "name" => ^key_name,
@@ -341,7 +341,7 @@ defmodule Astarte.Pairing.FDO.OpenBaoTest do
              } = key_data
 
       assert {:ok, %Key{name: ^key_name, namespace: ^namespace, alg: ^key_type}} =
-               OpenBao.get_key(key_name, opts)
+               Secrets.get_key(key_name, opts)
     end
   end
 
@@ -350,7 +350,7 @@ defmodule Astarte.Pairing.FDO.OpenBaoTest do
       key_type = Map.get(context, :key_type)
       {:ok, key_type_to_string} = Core.key_type_to_string(key_type)
       realm_name = "realm#{System.unique_integer([:positive])}"
-      {:ok, namespace} = OpenBao.create_namespace(realm_name, key_type)
+      {:ok, namespace} = Secrets.create_namespace(realm_name, key_type)
       key_name = "some_key_#{key_type_to_string}"
       key_name1 = "some_key_#{key_type_to_string}1"
       key_name2 = "some_key_#{key_type_to_string}2"
@@ -383,9 +383,9 @@ defmodule Astarte.Pairing.FDO.OpenBaoTest do
       allow_key_export_and_backup: allow_key_export_and_backup,
       opts: opts
     } do
-      assert {:ok, key_data} = OpenBao.create_keypair(key_name, key_type, opts)
-      assert {:ok, key_data1} = OpenBao.create_keypair(key_name1, key_type, opts)
-      assert {:ok, key_data2} = OpenBao.create_keypair(key_name2, key_type, opts)
+      assert {:ok, key_data} = Secrets.create_keypair(key_name, key_type, opts)
+      assert {:ok, key_data1} = Secrets.create_keypair(key_name1, key_type, opts)
+      assert {:ok, key_data2} = Secrets.create_keypair(key_name2, key_type, opts)
 
       assert %{
                "name" => ^key_name,
@@ -408,7 +408,7 @@ defmodule Astarte.Pairing.FDO.OpenBaoTest do
                "allow_plaintext_backup" => ^allow_key_export_and_backup
              } = key_data2
 
-      assert {:ok, [key_name, key_name1, key_name2]} == OpenBao.list_keys_names(opts)
+      assert {:ok, [key_name, key_name1, key_name2]} == Secrets.list_keys_names(opts)
     end
 
     @tag key_type: :es384
@@ -421,9 +421,9 @@ defmodule Astarte.Pairing.FDO.OpenBaoTest do
       allow_key_export_and_backup: allow_key_export_and_backup,
       opts: opts
     } do
-      assert {:ok, key_data} = OpenBao.create_keypair(key_name, key_type, opts)
-      assert {:ok, key_data1} = OpenBao.create_keypair(key_name1, key_type, opts)
-      assert {:ok, key_data2} = OpenBao.create_keypair(key_name2, key_type, opts)
+      assert {:ok, key_data} = Secrets.create_keypair(key_name, key_type, opts)
+      assert {:ok, key_data1} = Secrets.create_keypair(key_name1, key_type, opts)
+      assert {:ok, key_data2} = Secrets.create_keypair(key_name2, key_type, opts)
 
       assert %{
                "name" => ^key_name,
@@ -446,7 +446,7 @@ defmodule Astarte.Pairing.FDO.OpenBaoTest do
                "allow_plaintext_backup" => ^allow_key_export_and_backup
              } = key_data2
 
-      assert {:ok, [key_name, key_name1, key_name2]} == OpenBao.list_keys_names(opts)
+      assert {:ok, [key_name, key_name1, key_name2]} == Secrets.list_keys_names(opts)
     end
 
     @tag key_type: :rs256
@@ -459,9 +459,9 @@ defmodule Astarte.Pairing.FDO.OpenBaoTest do
       allow_key_export_and_backup: allow_key_export_and_backup,
       opts: opts
     } do
-      assert {:ok, key_data} = OpenBao.create_keypair(key_name, key_type, opts)
-      assert {:ok, key_data1} = OpenBao.create_keypair(key_name1, key_type, opts)
-      assert {:ok, key_data2} = OpenBao.create_keypair(key_name2, key_type, opts)
+      assert {:ok, key_data} = Secrets.create_keypair(key_name, key_type, opts)
+      assert {:ok, key_data1} = Secrets.create_keypair(key_name1, key_type, opts)
+      assert {:ok, key_data2} = Secrets.create_keypair(key_name2, key_type, opts)
 
       assert %{
                "name" => ^key_name,
@@ -484,7 +484,7 @@ defmodule Astarte.Pairing.FDO.OpenBaoTest do
                "allow_plaintext_backup" => ^allow_key_export_and_backup
              } = key_data2
 
-      assert {:ok, [key_name, key_name1, key_name2]} == OpenBao.list_keys_names(opts)
+      assert {:ok, [key_name, key_name1, key_name2]} == Secrets.list_keys_names(opts)
     end
 
     @tag key_type: :rs384
@@ -497,9 +497,9 @@ defmodule Astarte.Pairing.FDO.OpenBaoTest do
       allow_key_export_and_backup: allow_key_export_and_backup,
       opts: opts
     } do
-      assert {:ok, key_data} = OpenBao.create_keypair(key_name, key_type, opts)
-      assert {:ok, key_data1} = OpenBao.create_keypair(key_name1, key_type, opts)
-      assert {:ok, key_data2} = OpenBao.create_keypair(key_name2, key_type, opts)
+      assert {:ok, key_data} = Secrets.create_keypair(key_name, key_type, opts)
+      assert {:ok, key_data1} = Secrets.create_keypair(key_name1, key_type, opts)
+      assert {:ok, key_data2} = Secrets.create_keypair(key_name2, key_type, opts)
 
       assert %{
                "name" => ^key_name,
@@ -522,13 +522,13 @@ defmodule Astarte.Pairing.FDO.OpenBaoTest do
                "allow_plaintext_backup" => ^allow_key_export_and_backup
              } = key_data2
 
-      assert {:ok, [key_name, key_name1, key_name2]} == OpenBao.list_keys_names(opts)
+      assert {:ok, [key_name, key_name1, key_name2]} == Secrets.list_keys_names(opts)
     end
   end
 
   defp cleanup_key(key_name, opts) do
-    OpenBao.enable_key_deletion(key_name, opts)
-    OpenBao.delete_key(key_name, opts)
+    Secrets.enable_key_deletion(key_name, opts)
+    Secrets.delete_key(key_name, opts)
   end
 
   describe "import_key/4" do
@@ -542,7 +542,7 @@ defmodule Astarte.Pairing.FDO.OpenBaoTest do
     end
 
     test "returns :error for unknown key type without calling Core", %{ec_key: ec_key} do
-      assert :error = OpenBao.import_key("k", :unknown_type, ec_key, namespace: "my-ns")
+      assert :error = Secrets.import_key("k", :unknown_type, ec_key, namespace: "my-ns")
     end
 
     test "passes only :namespace and :token to get_wrapping_key", %{ec_key: ec_key} do
@@ -553,7 +553,7 @@ defmodule Astarte.Pairing.FDO.OpenBaoTest do
         {:ok, "wrapping_pem"}
       end)
 
-      assert :ok = OpenBao.import_key("k", :es256, ec_key, opts)
+      assert :ok = Secrets.import_key("k", :es256, ec_key, opts)
     end
 
     test "passes full opts to Core.import_key", %{ec_key: ec_key} do
@@ -561,14 +561,14 @@ defmodule Astarte.Pairing.FDO.OpenBaoTest do
 
       expect(Core, :import_key, fn "k", "ecdsa-p256", "ciphertext", ^opts -> :ok end)
 
-      assert :ok = OpenBao.import_key("k", :es256, ec_key, opts)
+      assert :ok = Secrets.import_key("k", :es256, ec_key, opts)
     end
 
     test "returns :error when get_wrapping_key fails", %{ec_key: ec_key} do
       expect(Core, :get_wrapping_key, fn _opts -> {:error, :wrapping_key_parse_failed} end)
 
       assert {:error, :wrapping_key_parse_failed} =
-               OpenBao.import_key("k", :es256, ec_key, namespace: "my-ns")
+               Secrets.import_key("k", :es256, ec_key, namespace: "my-ns")
     end
 
     test "returns :error when prepare_import_ciphertext fails", %{ec_key: ec_key} do
@@ -577,7 +577,7 @@ defmodule Astarte.Pairing.FDO.OpenBaoTest do
       end)
 
       assert {:error, :pem_decode_failed} =
-               OpenBao.import_key("k", :es256, ec_key, namespace: "my-ns")
+               Secrets.import_key("k", :es256, ec_key, namespace: "my-ns")
     end
   end
 end

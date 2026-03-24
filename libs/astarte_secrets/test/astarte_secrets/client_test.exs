@@ -16,12 +16,12 @@
 # limitations under the License.
 #
 
-defmodule Astarte.Pairing.FDO.OpenBao.ClientTest do
+defmodule Astarte.Secrets.ClientTest do
   use ExUnit.Case, async: true
   use Mimic
 
-  alias Astarte.Pairing.Config
-  alias Astarte.Pairing.FDO.OpenBao.Client
+  alias Astarte.Secrets.Client
+  alias Astarte.Secrets.Config
 
   import Astarte.Common.Generators.HTTP
 

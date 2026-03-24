@@ -18,38 +18,24 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
-style = "conventional"
-allowed_types = ["fix", "feat", "perf", "chore", "build", "docs", "style", "refactor", "test", "ci"]
-allowed_scopes = [
-  # services
-  "dup",
-  "rm",
-  "pairing",
-  "housekeeping",
-  "appengine",
-  "te",
-  # libraries
-  "data_access",
-  "events",
-  "rpc",
-  "fdo",
-  "fdo_core",
-  "generators",
-  "secrets",
-  # tools
-  "e2e",
-  "import",
-  "export",
-  "fleet",
-  # build/dev tools
-  "docker",
-  "credo",
-  "nix",
-  "deps",
-]
-merge_commit = true
-imperative_subject = true
-subject_not_punctuated = true
-subject_capitalized = false
-subject_length = 72
-line_length = 100
+defmodule Astarte.Secrets.Config.AuthenticationMechanism do
+  @moduledoc """
+  The mechanism to use to authenticate with OpenBao
+  """
+
+  use Skogsra.Type
+
+  @methods [:token]
+  @methods_map Map.new(@methods, &{Atom.to_string(&1), &1})
+
+  @impl Skogsra.Type
+  def cast(value) when is_binary(value) do
+    Map.fetch(@methods_map, value)
+  end
+
+  @impl Skogsra.Type
+  def cast(value) when value in @methods, do: {:ok, value}
+
+  @impl Skogsra.Type
+  def cast(_), do: :error
+end

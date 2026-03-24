@@ -23,6 +23,7 @@ coverage:
           - astarte_rpc
           - astarte_fdo
           - astarte_fdo_core
+          - astarte_secrets
 
 ignore:
   - "apps/*/test"
@@ -93,3 +94,7 @@ flags:
     carryforward: true
     paths:
       - libs/astarte_fdo_core
+  astarte_secrets:
+    carryforward: true
+    paths:
+      - libs/astarte_secrets

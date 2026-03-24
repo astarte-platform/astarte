@@ -16,7 +16,7 @@
 # limitations under the License.
 #
 
-defmodule Astarte.Helpers.OpenBao do
+defmodule Astarte.Helpers.Namespace do
   @moduledoc false
   import Mimic
 
