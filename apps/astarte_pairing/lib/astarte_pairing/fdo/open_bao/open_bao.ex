@@ -20,8 +20,9 @@ defmodule Astarte.Pairing.FDO.OpenBao do
   @moduledoc """
   Functionality to interface with OpenBao APIs.
   """
-
-  alias Astarte.Pairing.FDO.OpenBao.{Client, Core}
+  alias Astarte.Pairing.FDO.OpenBao.Client
+  alias Astarte.Pairing.FDO.OpenBao.Core
+  alias Astarte.Pairing.FDO.OpenBao.Key
   alias COSE.Keys.ECC
   alias COSE.Keys.RSA
 
@@ -31,16 +32,17 @@ defmodule Astarte.Pairing.FDO.OpenBao do
   def get_key(key_name, opts \\ []) do
     namespace = Keyword.fetch!(opts, :namespace)
 
-    Core.get_key(key_name, namespace)
+    with {:ok, resp} <- Core.get_key(key_name, namespace) do
+      Key.parse(key_name, namespace, resp)
+    end
   end
 
   @spec list_keys_names() :: {:ok, map()} | :error
   def list_keys_names(opts \\ []) do
     namespace = Keyword.fetch!(opts, :namespace)
+
     Core.list_keys(namespace)
   end
-
-  alias Astarte.Pairing.FDO.OpenBao.Core
 
   def create_namespace(realm_name, user_id \\ nil, key_algorithm) do
     with {:ok, algorithm} <- Core.key_type_to_string(key_algorithm),

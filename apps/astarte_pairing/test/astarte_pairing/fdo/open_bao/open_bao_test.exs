@@ -24,6 +24,7 @@ defmodule Astarte.Pairing.FDO.OpenBaoTest do
   alias Astarte.Pairing.FDO.OpenBao
   alias Astarte.Pairing.FDO.OpenBao.Client
   alias Astarte.Pairing.FDO.OpenBao.Core
+  alias Astarte.Pairing.FDO.OpenBao.Key
   alias COSE.Keys.ECC
 
   import Astarte.Helpers.OpenBao
@@ -250,6 +251,7 @@ defmodule Astarte.Pairing.FDO.OpenBaoTest do
         key_type: key_type,
         key_type_to_string: key_type_to_string,
         allow_key_export_and_backup: allow_key_export_and_backup,
+        namespace: namespace,
         opts: opts
       }
     end
@@ -259,6 +261,7 @@ defmodule Astarte.Pairing.FDO.OpenBaoTest do
       key_name: key_name,
       key_type: key_type,
       key_type_to_string: key_type_to_string,
+      namespace: namespace,
       allow_key_export_and_backup: allow_key_export_and_backup,
       opts: opts
     } do
@@ -271,7 +274,8 @@ defmodule Astarte.Pairing.FDO.OpenBaoTest do
                "allow_plaintext_backup" => ^allow_key_export_and_backup
              } = key_data
 
-      assert {:ok, key_data} == OpenBao.get_key(key_name, opts)
+      assert {:ok, %Key{name: ^key_name, namespace: ^namespace, alg: ^key_type}} =
+               OpenBao.get_key(key_name, opts)
     end
 
     @tag key_type: :es384
@@ -279,6 +283,7 @@ defmodule Astarte.Pairing.FDO.OpenBaoTest do
       key_name: key_name,
       key_type: key_type,
       key_type_to_string: key_type_to_string,
+      namespace: namespace,
       allow_key_export_and_backup: allow_key_export_and_backup,
       opts: opts
     } do
@@ -291,7 +296,8 @@ defmodule Astarte.Pairing.FDO.OpenBaoTest do
                "allow_plaintext_backup" => ^allow_key_export_and_backup
              } = key_data
 
-      assert {:ok, key_data} == OpenBao.get_key(key_name, opts)
+      assert {:ok, %Key{name: ^key_name, namespace: ^namespace, alg: ^key_type}} =
+               OpenBao.get_key(key_name, opts)
     end
 
     @tag key_type: :rs256
@@ -299,6 +305,7 @@ defmodule Astarte.Pairing.FDO.OpenBaoTest do
       key_name: key_name,
       key_type: key_type,
       key_type_to_string: key_type_to_string,
+      namespace: namespace,
       allow_key_export_and_backup: allow_key_export_and_backup,
       opts: opts
     } do
@@ -311,7 +318,8 @@ defmodule Astarte.Pairing.FDO.OpenBaoTest do
                "allow_plaintext_backup" => ^allow_key_export_and_backup
              } = key_data
 
-      assert {:ok, key_data} == OpenBao.get_key(key_name, opts)
+      assert {:ok, %Key{name: ^key_name, namespace: ^namespace, alg: ^key_type}} =
+               OpenBao.get_key(key_name, opts)
     end
 
     @tag key_type: :rs384
@@ -319,6 +327,7 @@ defmodule Astarte.Pairing.FDO.OpenBaoTest do
       key_name: key_name,
       key_type: key_type,
       key_type_to_string: key_type_to_string,
+      namespace: namespace,
       allow_key_export_and_backup: allow_key_export_and_backup,
       opts: opts
     } do
@@ -331,7 +340,8 @@ defmodule Astarte.Pairing.FDO.OpenBaoTest do
                "allow_plaintext_backup" => ^allow_key_export_and_backup
              } = key_data
 
-      assert {:ok, key_data} == OpenBao.get_key(key_name, opts)
+      assert {:ok, %Key{name: ^key_name, namespace: ^namespace, alg: ^key_type}} =
+               OpenBao.get_key(key_name, opts)
     end
   end
 

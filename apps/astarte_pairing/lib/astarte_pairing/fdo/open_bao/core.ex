@@ -46,6 +46,16 @@ defmodule Astarte.Pairing.FDO.OpenBao.Core do
     end
   end
 
+  @spec key_algorithm_enum :: Keyword.t(String.t())
+  def key_algorithm_enum do
+    [
+      es256: "ecdsa-p256",
+      es384: "ecdsa-p384",
+      rs256: "rsa-2048",
+      rs384: "rsa-3072"
+    ]
+  end
+
   @spec digest_type(digest_type) :: {:ok, String.t()} | :error
   def digest_type(:sha), do: {:ok, "sha1"}
   def digest_type(:sha224), do: {:ok, "sha2-224"}
@@ -225,8 +235,7 @@ defmodule Astarte.Pairing.FDO.OpenBao.Core do
     end
   end
 
-  @spec get_key(String.t(), String.t()) ::
-          :error | {:error, Jason.DecodeError.t()} | {:ok, any()}
+  @spec get_key(String.t(), String.t()) :: {:ok, String.t()} | :error
   def get_key(key_name, namespace) do
     headers = [{"Content-Type", "application/json"}]
 
@@ -234,12 +243,11 @@ defmodule Astarte.Pairing.FDO.OpenBao.Core do
 
     case Client.get("/transit/keys/#{key_name}", headers, options) do
       {:ok, %HTTPoison.Response{status_code: 200, body: resp_body}} ->
-        parse_json_data(resp_body)
+        {:ok, resp_body}
 
       error_resp ->
-        Logger.error(
-          "Encountered HTTP error while getting key #{key_name}: #{inspect(error_resp)}"
-        )
+        "Encountered HTTP error while getting key #{key_name}: #{inspect(error_resp)}"
+        |> Logger.error()
 
         :error
     end
@@ -338,7 +346,7 @@ defmodule Astarte.Pairing.FDO.OpenBao.Core do
     end
   end
 
-  defp parse_json_data(json_str) do
+  def parse_json_data(json_str) do
     with {:ok, map} when is_map(map) <- Jason.decode(json_str),
          {:ok, data} <- Map.fetch(map, "data") do
       {:ok, data}
