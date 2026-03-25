@@ -4,6 +4,7 @@
     :ecto,
     :phoenix,
     :skogsra,
-    :astarte_generators
+    :astarte_generators,
+    :open_api_spex
   ]
 ]
