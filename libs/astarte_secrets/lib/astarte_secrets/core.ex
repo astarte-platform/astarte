@@ -46,6 +46,17 @@ defmodule Astarte.Secrets.Core do
     end
   end
 
+  @spec string_to_key_type(String.t()) :: {:ok, key_algorithm()} | :error
+  def string_to_key_type(string_key_type) do
+    case string_key_type do
+      "ecdsa-p256" -> {:ok, :es256}
+      "ecdsa-p384" -> {:ok, :es384}
+      "rsa-2048" -> {:ok, :rs256}
+      "rsa-3072" -> {:ok, :rs384}
+      _ -> :error
+    end
+  end
+
   @spec key_algorithm_enum :: Keyword.t(String.t())
   def key_algorithm_enum do
     [
@@ -330,7 +341,7 @@ defmodule Astarte.Secrets.Core do
         :ok
 
       {:ok, %Response{status_code: 400, body: body}} = resp ->
-        if "already in use at transit" =~ body do
+        if body =~ "already in use at transit" do
           :ok
         else
           "Encountered HTTP error while mounting transit engine in namespace #{namespace}: #{inspect(resp)}"

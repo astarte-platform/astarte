@@ -55,6 +55,7 @@ defmodule Astarte.FDO.MixProject do
       {:cbor, "~> 1.0"},
       {:astarte_data_access, path: "../astarte_data_access"},
       {:astarte_fdo_core, path: "../astarte_fdo_core"},
+      {:astarte_secrets, path: astarte_lib("astarte_secrets")},
       {:cose, github: "secomind/cose-elixir"},
       {:excoveralls, "~> 0.15", only: :test},
       {:dialyxir, "~> 1.4", only: [:dev, :test], runtime: false},
@@ -67,5 +68,10 @@ defmodule Astarte.FDO.MixProject do
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
       {:phoenix, "~> 1.7"}
     ]
+  end
+
+  defp astarte_lib(library_name) do
+    base_directory = System.get_env("ASTARTE_LIBRARIES_PATH", "../../libs")
+    Path.join(base_directory, library_name)
   end
 end
