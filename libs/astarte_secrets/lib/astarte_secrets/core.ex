@@ -181,6 +181,14 @@ defmodule Astarte.Secrets.Core do
       {:ok, %HTTPoison.Response{status_code: 204}} ->
         :ok
 
+      {:ok, %Response{status_code: 500, body: body}} = resp ->
+        if body =~ "import path cannot be used with an existing key" do
+          {:error, :key_already_imported}
+        else
+          Logger.error("Encountered HTTP error while importing key #{key_name}: #{inspect(resp)}")
+          :error
+        end
+
       error_resp ->
         Logger.error(
           "Encountered HTTP error while importing key #{key_name}: #{inspect(error_resp)}"
@@ -275,7 +283,7 @@ defmodule Astarte.Secrets.Core do
       {:ok, %HTTPoison.Response{status_code: 200, body: resp_body}} ->
         case parse_data_key(resp_body, "keys") do
           {:ok, keys} ->
-            {:ok, keys}
+            filter_real_keys(keys)
 
           {:error, reason} ->
             Logger.error("Encountered error while getting keys list: #{inspect(reason)}")
@@ -516,5 +524,12 @@ defmodule Astarte.Secrets.Core do
     with {:ok, keys} <- Secrets.list_keys_names(namespace: namespace) do
       %{key_algorithm => keys}
     end
+  end
+
+  defp filter_real_keys(keys) do
+    # drop the "import/" element that (if present) is listed as a key
+    # but is actually an operational endpoint
+    keys = Enum.reject(keys, fn key -> key == "import/" end)
+    {:ok, keys}
   end
 end

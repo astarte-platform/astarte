@@ -78,6 +78,22 @@ defmodule Astarte.PairingWeb.FallbackController do
     |> render(:invalid_auth_path)
   end
 
+  # The format of the uploaded (FDO) key is not the expected one
+  def call(conn, {:error, :unprocessable_key}) do
+    conn
+    |> put_status(:unprocessable_entity)
+    |> put_view(Astarte.PairingWeb.ErrorView)
+    |> render(:unprocessable_key)
+  end
+
+  # A key with the same name has already been imported in OpenBao
+  def call(conn, {:error, :key_already_imported}) do
+    conn
+    |> put_status(:conflict)
+    |> put_view(Astarte.PairingWeb.ErrorView)
+    |> render(:key_already_imported)
+  end
+
   # This is called when no JWT token is present
   def auth_error(conn, {:unauthenticated, :unauthenticated}, _opts) do
     conn

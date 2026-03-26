@@ -269,6 +269,14 @@ defmodule Astarte.Secrets.CoreTest do
       stored_pem = key_data.public_pem |> String.trim_trailing()
       assert expected_pub_pem == stored_pem
     end
+
+    test "returns error if the key has already been imported", %{unique_id: uid, opts: opts} do
+      key_name = "imported_ec256_#{uid}"
+      ec_key = ECC.generate(:es256)
+
+      assert :ok = Secrets.import_key(key_name, :es256, ec_key, opts)
+      assert {:error, :key_already_imported} = Secrets.import_key(key_name, :es256, ec_key, opts)
+    end
   end
 
   defp http_stubs_setup(_context) do

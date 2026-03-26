@@ -40,9 +40,10 @@ defmodule Astarte.PairingWeb.OwnerKeyController do
 
     with {:ok, create_or_upload_changeset} <-
            Ecto.Changeset.apply_action(create_or_upload_changeset, :insert),
-         {:ok, public_key} <-
+         {:ok, resp} <-
            OwnerKeyInitialization.create_or_upload(create_or_upload_changeset, realm_name) do
-      send_resp(conn, 200, public_key)
+      # the successful resp will be a public key (when creating) or an empty string (when uploading)
+      send_resp(conn, 200, resp)
     end
   end
 
