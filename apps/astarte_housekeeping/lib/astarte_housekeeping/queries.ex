@@ -657,41 +657,48 @@ defmodule Astarte.Housekeeping.Queries do
   end
 
   def initialize_database do
-    Xandra.Cluster.run(:xandra, [timeout: 60_000], fn conn ->
-      with :ok <- create_astarte_keyspace(conn),
-           :ok <- create_realms_table(conn),
-           :ok <- create_astarte_kv_store(conn),
-           :ok <- insert_astarte_schema_version(conn) do
-        :ok
-      else
-        {:error, %Xandra.Error{} = err} ->
-          _ =
-            Logger.error(
-              "Database error while initializing database: #{inspect(err)}. ASTARTE WILL NOT WORK.",
-              tag: "init_database_error"
-            )
+    Xandra.Cluster.run(:xandra, &initialize_database/1)
+  end
 
-          {:error, :database_error}
+  def initialize_database(conn) do
+    ensure_kv_store = fn -> ensure_astarte_kv_store_exists(conn) end
 
-        {:error, %Xandra.ConnectionError{} = err} ->
-          _ =
-            Logger.error(
-              "Database connection error while initializing database: #{inspect(err)}. ASTARTE WILL NOT WORK.",
-              tag: "init_database_connection_error"
-            )
+    Logger.info("Starting Astarte keyspace initialization")
 
-          {:error, :database_connection_error}
+    with :ok <- create_astarte_keyspace(conn),
+         :ok <- create_realms_table(conn),
+         :ok <- create_astarte_kv_store(conn),
+         :ok <- retry(ensure_kv_store, "setting up astarte keyspace"),
+         :ok <- insert_astarte_schema_version(conn) do
+      :ok
+    else
+      {:error, %Xandra.Error{} = err} ->
+        _ =
+          Logger.error(
+            "Database error while initializing database: #{inspect(err)}. ASTARTE WILL NOT WORK.",
+            tag: "init_database_error"
+          )
 
-        {:error, reason} ->
-          _ =
-            Logger.error(
-              "Error while initializing database: #{inspect(reason)}. ASTARTE WILL NOT WORK.",
-              tag: "init_error"
-            )
+        {:error, :database_error}
 
-          {:error, reason}
-      end
-    end)
+      {:error, %Xandra.ConnectionError{} = err} ->
+        _ =
+          Logger.error(
+            "Database connection error while initializing database: #{inspect(err)}. ASTARTE WILL NOT WORK.",
+            tag: "init_database_connection_error"
+          )
+
+        {:error, :database_connection_error}
+
+      {:error, reason} ->
+        _ =
+          Logger.error(
+            "Error while initializing database: #{inspect(reason)}. ASTARTE WILL NOT WORK.",
+            tag: "init_error"
+          )
+
+        {:error, reason}
+    end
   end
 
   defp create_astarte_keyspace(conn) do
@@ -707,10 +714,18 @@ defmodule Astarte.Housekeeping.Queries do
          WITH replication = #{replication_map_str}
          AND durable_writes = true;
          """,
-         :ok <- check_replication(conn, astarte_keyspace_replication),
-         {:ok, %Xandra.SchemaChange{}} <-
-           Xandra.execute(conn, query, %{}, consistency: consistency) do
-      :ok
+         :ok <- check_replication(conn, astarte_keyspace_replication) do
+      case Xandra.execute(conn, query, %{}, consistency: consistency) do
+        {:ok, %Xandra.SchemaChange{}} ->
+          Logger.info("Astarte keyspace initialized")
+          :ok
+
+        {:error, %Xandra.Error{reason: :already_exists}} ->
+          :ok
+
+        error ->
+          error
+      end
     else
       {:error, reason} ->
         _ =
@@ -733,9 +748,16 @@ defmodule Astarte.Housekeeping.Queries do
 
     consistency = Consistency.domain_model(:write)
 
-    with {:ok, %Xandra.SchemaChange{}} <-
-           Xandra.execute(conn, query, %{}, consistency: consistency) do
-      :ok
+    case Xandra.execute(conn, query, %{}, consistency: consistency) do
+      {:ok, %Xandra.SchemaChange{}} ->
+        Logger.info("Created Astarte realms table")
+        :ok
+
+      {:error, %Xandra.Error{reason: :already_exists}} ->
+        :ok
+
+      error ->
+        error
     end
   end
 
@@ -752,9 +774,16 @@ defmodule Astarte.Housekeeping.Queries do
 
     consistency = Consistency.domain_model(:write)
 
-    with {:ok, %Xandra.SchemaChange{}} <-
-           Xandra.execute(conn, query, %{}, consistency: consistency) do
-      :ok
+    case Xandra.execute(conn, query, %{}, consistency: consistency) do
+      {:ok, %Xandra.SchemaChange{}} ->
+        Logger.info("Initialized Astarte KV Store")
+        :ok
+
+      {:error, %Xandra.Error{reason: :already_exists}} ->
+        :ok
+
+      error ->
+        error
     end
   end
 
@@ -772,15 +801,69 @@ defmodule Astarte.Housekeeping.Queries do
     end
   end
 
+  def get_astarte_schema_version do
+    Xandra.Cluster.run(:xandra, &get_astarte_schema_version/1)
+  end
+
+  def get_astarte_schema_version(conn) do
+    get_schema_version(conn, "astarte")
+  end
+
+  def get_realm_schema_version(realm_name) do
+    Xandra.Cluster.run(:xandra, fn conn -> get_realm_schema_version(conn, realm_name) end)
+  end
+
+  def get_realm_schema_version(conn, realm_name) do
+    get_schema_version(conn, realm_name)
+  end
+
+  defp get_schema_version(conn, realm) do
+    keyspace = CQLUtils.realm_name_to_keyspace_name(realm, Config.astarte_instance_id!())
+
+    query = """
+    SELECT blobAsBigint(value)
+    FROM #{keyspace}.kv_store
+    WHERE group = 'astarte' and key = 'schema_version'
+    """
+
+    consistency = Consistency.domain_model(:read)
+
+    case Xandra.execute(conn, query, %{}, consistency: consistency) do
+      {:ok, page} ->
+        case Enum.at(page, 0) do
+          nil ->
+            # If no entry is found, we assume we're at version 0
+            {:ok, 0}
+
+          %{"system.blobasbigint(value)" => schema_version} ->
+            {:ok, schema_version}
+        end
+
+      {:error, %Xandra.Error{} = err} ->
+        _ = Logger.warning("Database error: #{inspect(err)}.", tag: "database_error")
+        {:error, :database_error}
+
+      {:error, %Xandra.ConnectionError{} = err} ->
+        _ =
+          Logger.warning("Database connection error: #{inspect(err)}.",
+            tag: "database_connection_error"
+          )
+
+        {:error, :database_connection_error}
+    end
+  end
+
   def is_realm_existing(realm_name) do
     Xandra.Cluster.run(:xandra, &is_realm_existing(&1, realm_name))
   end
 
   def is_astarte_keyspace_existing do
+    keyspace = CQLUtils.realm_name_to_keyspace_name("astarte", Config.astarte_instance_id!())
+
     query = """
     SELECT keyspace_name
     FROM system_schema.keyspaces
-    WHERE keyspace_name='#{CQLUtils.realm_name_to_keyspace_name("astarte", Config.astarte_instance_id!())}'
+    WHERE keyspace_name='#{keyspace}'
     """
 
     consistency = Consistency.domain_model(:read)
@@ -808,6 +891,10 @@ defmodule Astarte.Housekeeping.Queries do
   end
 
   def list_realms do
+    Xandra.Cluster.run(:xandra, &list_realms/1)
+  end
+
+  def list_realms(conn) do
     query = """
     SELECT realm_name
     FROM #{CQLUtils.realm_name_to_keyspace_name("astarte", Config.astarte_instance_id!())}.realms;
@@ -815,7 +902,7 @@ defmodule Astarte.Housekeeping.Queries do
 
     consistency = Consistency.domain_model(:read)
 
-    case Xandra.Cluster.execute(:xandra, query, %{}, consistency: consistency) do
+    case Xandra.execute(conn, query, %{}, consistency: consistency) do
       {:ok, %Xandra.Page{} = page} ->
         {:ok, Enum.map(page, fn %{"realm_name" => realm_name} -> realm_name end)}
 
@@ -1372,6 +1459,51 @@ defmodule Astarte.Housekeeping.Queries do
           )
 
         {:error, :database_connection_error}
+    end
+  end
+
+  defp ensure_astarte_kv_store_exists(conn) do
+    keyspace = CQLUtils.realm_name_to_keyspace_name("astarte", Config.astarte_instance_id!())
+
+    query = """
+    SELECT table_name
+    FROM system_schema.tables
+    WHERE keyspace_name='#{keyspace}' AND table_name='kv_store'
+    """
+
+    # use write consistency as we're ensuring the info was written
+    consistency = Consistency.domain_model(:write)
+
+    case Xandra.execute(conn, query, %{}, consistency: consistency) do
+      {:ok, page} ->
+        case Enum.count(page) do
+          0 -> {:error, :consistency_not_met}
+          1 -> :ok
+        end
+
+      error ->
+        error
+    end
+  end
+
+  defp retry(fun, title, retries \\ 10) do
+    case fun.() do
+      :ok ->
+        :ok
+
+      {:ok, _} ->
+        :ok
+
+      _err ->
+        case retries do
+          0 ->
+            Logger.error("Did not reach consistency while #{title}")
+            {:error, :database_error}
+
+          n ->
+            Process.sleep(:timer.seconds(1))
+            retry(fun, title, n - 1)
+        end
     end
   end
 end

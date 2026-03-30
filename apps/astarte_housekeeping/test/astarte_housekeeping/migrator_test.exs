@@ -25,42 +25,41 @@ defmodule Astarte.Housekeeping.MigratorTest do
   alias Astarte.Housekeeping.Helpers.Database
   use Mimic
 
+  setup do
+    {:ok, [{conn, _host} | _connected_hosts]} = Xandra.Cluster.Pool.checkout(:xandra)
+    %{conn: conn}
+  end
+
   describe "run migrations, " do
-    setup do
+    setup %{conn: conn} do
       on_exit(fn ->
         Database.destroy_test_astarte_keyspace!(:xandra)
       end)
 
-      Queries.initialize_database()
+      Queries.initialize_database(conn)
       Database.edit_with_outdated_column_for_astarte_realms_table!(:xandra)
       :ok
     end
 
-    test "returns ok with complete db" do
-      assert :ok = Migrator.run_astarte_keyspace_migrations()
+    test "returns ok with complete db", %{conn: conn} do
+      assert :ok = Migrator.run_astarte_keyspace_migrations(conn)
     end
 
-    test "returns ok with incomplete db (missing kv_store table)" do
-      Database.destroy_astarte_kv_store_table!(:xandra)
-
-      assert :ok = Migrator.run_astarte_keyspace_migrations()
-    end
-
-    test "returns error due do xandra problem" do
+    test "returns error due do xandra problem", %{conn: conn} do
       Xandra |> stub(:execute, fn _, _, _, _ -> {:error, %Xandra.Error{}} end)
 
-      assert {:error, :database_error} = Migrator.run_astarte_keyspace_migrations()
+      assert {:error, :database_error} = Migrator.run_astarte_keyspace_migrations(conn)
     end
 
-    test "returns error due do xandra connection problem" do
+    test "returns error due do xandra connection problem", %{conn: conn} do
       Xandra |> stub(:execute, fn _, _, _, _ -> {:error, %Xandra.ConnectionError{}} end)
 
-      assert {:error, :database_connection_error} = Migrator.run_astarte_keyspace_migrations()
+      assert {:error, :database_connection_error} = Migrator.run_astarte_keyspace_migrations(conn)
     end
   end
 
   describe "run realms migrations, " do
-    setup do
+    setup %{conn: conn} do
       realm_name = Astarte.Core.Generators.Realm.realm_name() |> Enum.at(0)
 
       on_exit(fn ->
@@ -68,32 +67,32 @@ defmodule Astarte.Housekeeping.MigratorTest do
         Database.destroy_test_keyspace!(:xandra, realm_name)
       end)
 
-      Queries.initialize_database()
+      Queries.initialize_database(conn)
       :ok = Engine.create_realm(realm_name, "test1publickey", 1, 1, 1, [])
       Database.edit_with_outdated_column_for_astarte_realms_table!(:xandra)
       :ok
     end
 
-    test "returns ok with complete db" do
-      assert :ok = Migrator.run_realms_migrations()
+    test "returns ok with complete db", %{conn: conn} do
+      assert :ok = Migrator.run_realms_migrations(conn)
     end
 
-    test "returns ok with incomplete db (missing kv_store table)" do
+    test "returns ok with incomplete db (missing kv_store table)", %{conn: conn} do
       Database.destroy_astarte_kv_store_table!(:xandra)
 
-      assert :ok = Migrator.run_realms_migrations()
+      assert :ok = Migrator.run_realms_migrations(conn)
     end
 
-    test "returns error due do xandra problem" do
+    test "returns error due do xandra problem", %{conn: conn} do
       Xandra |> stub(:execute, fn _, _, _, _ -> {:error, %Xandra.Error{}} end)
 
-      assert {:error, :database_error} = Migrator.run_realms_migrations()
+      assert {:error, :database_error} = Migrator.run_realms_migrations(conn)
     end
 
-    test "returns error due do xandra connection problem" do
+    test "returns error due do xandra connection problem", %{conn: conn} do
       Xandra |> stub(:execute, fn _, _, _, _ -> {:error, %Xandra.ConnectionError{}} end)
 
-      assert {:error, :database_connection_error} = Migrator.run_realms_migrations()
+      assert {:error, :database_connection_error} = Migrator.run_realms_migrations(conn)
     end
   end
 

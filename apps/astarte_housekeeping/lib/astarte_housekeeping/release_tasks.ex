@@ -17,116 +17,37 @@
 #
 
 defmodule Astarte.Housekeeping.ReleaseTasks do
+  use Task, restart: :transient
+
   require Logger
 
-  alias Astarte.Housekeeping.Config
   alias Astarte.Housekeeping.Migrator
   alias Astarte.Housekeeping.Queries
 
-  @start_apps [
-    :logger,
-    :crypto,
-    :ssl,
-    :xandra,
-    :ecto
-  ]
+  def start_link(_init_arg), do: Task.start_link(__MODULE__, :ensure_migrated!, [])
 
-  def init_database do
-    :ok = start_services()
-
-    with {:ok, exists?} <- wait_connection_and_check_astarte_keyspace() do
-      unless exists? do
-        _ =
-          Logger.info("Astarte keyspace not found, creating it",
-            tag: "astarte_db_initialization_started"
-          )
-
-        :ok = Queries.initialize_database()
-      else
+  def ensure_migrated! do
+    case Xandra.Cluster.run(:xandra, &do_ensure_migrated!/1) do
+      :ok ->
         :ok
-      end
-    else
-      {:error, reason} ->
-        _ =
-          Logger.error("Can't check if Astarte keyspace exists: #{inspect(reason)}",
-            tag: "astarte_db_initialization_failed"
-          )
 
+      error ->
+        "Error during astarte initialization: #{inspect(error)}"
+        |> Logger.error(tag: "astarte_db_migration_failed")
+
+        # Here we raise in order to notify the supervisor something went wrong
         raise "init_database failed"
     end
-
-    :ok = stop_services()
   end
 
-  def migrate do
-    :ok = start_services()
+  defp do_ensure_migrated!(conn) do
+    with :ok <- Queries.initialize_database(conn),
+         :ok <- Migrator.run_astarte_keyspace_migrations(conn),
+         :ok <- Migrator.run_realms_migrations(conn) do
+      "Astarte database correctly initialized"
+      |> Logger.info(tag: "astarte_db_initialization_finished")
 
-    _ = Logger.info("Starting to migrate the database", tag: "astarte_db_migration_started")
-
-    with {:ok, true} <- wait_connection_and_check_astarte_keyspace(),
-         :ok <- Migrator.run_astarte_keyspace_migrations(),
-         :ok <- Migrator.run_realms_migrations() do
       :ok
-    else
-      {:ok, false} ->
-        _ =
-          Logger.error("Cannot migrate the database, Astarte keyspace does not exist",
-            tag: "astarte_db_migration_failed"
-          )
-
-        raise "migrate failed"
-
-      {:error, reason} ->
-        _ =
-          Logger.error("Cannot migrate the database: #{inspect(reason)}",
-            tag: "astarte_db_migration_failed"
-          )
-
-        raise "migrate failed"
     end
-
-    :ok = stop_services()
-  end
-
-  defp wait_connection_and_check_astarte_keyspace(retries \\ 60) do
-    case Queries.is_astarte_keyspace_existing() do
-      {:ok, exists?} ->
-        {:ok, exists?}
-
-      {:error, :database_connection_error} ->
-        if retries > 0 do
-          :timer.sleep(1000)
-          wait_connection_and_check_astarte_keyspace(retries - 1)
-        else
-          {:error, :database_connection_error}
-        end
-
-      {:error, reason} ->
-        {:error, reason}
-    end
-  end
-
-  defp start_services do
-    Enum.each(@start_apps, &Application.ensure_all_started/1)
-
-    _ = Logger.info("Starting Xandra connection to #{inspect(Config.xandra_nodes!())}")
-
-    xandra_options = Config.xandra_options!()
-    data_access_opts = [xandra_options: xandra_options]
-    hk_xandra_opts = Keyword.put(xandra_options, :name, :xandra)
-
-    {:ok, _pid} = Xandra.Cluster.start_link(hk_xandra_opts)
-    {:ok, _pid} = Astarte.DataAccess.start_link(data_access_opts)
-
-    :ok
-  end
-
-  defp stop_services do
-    _ =
-      Logger.info("Astarte database correctly initialized",
-        tag: "astarte_db_initialization_finished"
-      )
-
-    :init.stop()
   end
 end

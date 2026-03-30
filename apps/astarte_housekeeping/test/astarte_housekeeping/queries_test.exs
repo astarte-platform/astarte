@@ -9,6 +9,11 @@ defmodule Astarte.Housekeeping.V2.QueriesTest do
   use Mimic
   setup :set_mimic_private
 
+  setup_all do
+    Database.destroy_test_astarte_keyspace!(:xandra)
+    :ok
+  end
+
   describe "database inizialization" do
     test "returns ok" do
       on_exit(fn ->
