@@ -79,6 +79,7 @@ defmodule Astarte.Housekeeping.Mixfile do
       {:plug_cowboy, "~> 2.1"},
       {:guardian, "~> 2.3.2"},
       {:excoveralls, "~> 0.15", only: :test},
+      {:exandra, github: "noaccOS/exandra", branch: "push-zlnkysuyqwmt", override: true},
       {:pretty_log, "~> 0.1"},
       {:skogsra, "~> 2.5"},
       {:observer_cli, "~> 1.5"},

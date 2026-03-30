@@ -1112,6 +1112,8 @@ defmodule Astarte.Housekeeping.Realms.Queries do
   end
 
   def initialize_database do
+    Logger.info("Starting Astarte keyspace initialization")
+
     with :ok <- create_astarte_keyspace(),
          :ok <- create_realms_table(),
          :ok <- create_astarte_kv_store(),
@@ -1179,25 +1181,21 @@ defmodule Astarte.Housekeeping.Realms.Queries do
     opts = [consistency: consistency]
 
     case Repo.query(tablets_query, [], opts) do
-      {:ok, %{num_rows: 1}} ->
+      {:ok, _} ->
+        Logger.info("Astarte keyspace initialized")
         :ok
 
-      {:ok, res} ->
-        "Unexpected ok result from database while creating astarte keyspace: #{inspect(res)}"
-        |> Logger.warning()
-
-        {:error, :astarte_keyspace_creation_failed}
+      {:error, %Xandra.Error{reason: :already_exists}} ->
+        :ok
 
       _ ->
         case Repo.query(base_query, [], opts) do
-          {:ok, %{num_rows: 1}} ->
+          {:ok, _} ->
+            Logger.info("Astarte keyspace initialized")
             :ok
 
-          {:ok, res} ->
-            "Unexpected ok result from database while creating astarte keyspace: #{inspect(res)}"
-            |> Logger.warning()
-
-            {:error, :astarte_keyspace_creation_failed}
+          {:error, %Xandra.Error{reason: :already_exists}} ->
+            :ok
 
           error ->
             error
@@ -1215,10 +1213,18 @@ defmodule Astarte.Housekeeping.Realms.Queries do
     """
 
     consistency = Consistency.domain_model(:write)
+    opts = [consistency: consistency]
 
-    with {:ok, %{rows: nil, num_rows: 1}} <-
-           Repo.query(query, [], consistency: consistency) do
-      :ok
+    case Repo.query(query, [], opts) do
+      {:ok, _} ->
+        Logger.info("Created Astarte realms table")
+        :ok
+
+      {:error, %Xandra.Error{reason: :already_exists}} ->
+        :ok
+
+      error ->
+        error
     end
   end
 
@@ -1234,10 +1240,18 @@ defmodule Astarte.Housekeeping.Realms.Queries do
     """
 
     consistency = Consistency.domain_model(:write)
+    opts = [consistency: consistency]
 
-    with {:ok, %{rows: nil, num_rows: 1}} <-
-           Repo.query(query, [], consistency: consistency) do
-      :ok
+    case Repo.query(query, [], opts) do
+      {:ok, _} ->
+        Logger.info("Initialized Astarte KV Store")
+        :ok
+
+      {:error, %Xandra.Error{reason: :already_exists}} ->
+        :ok
+
+      error ->
+        error
     end
   end
 
@@ -1259,20 +1273,5 @@ defmodule Astarte.Housekeeping.Realms.Queries do
     }
 
     KvStore.insert(kv_store_map, opts)
-  end
-
-  def astarte_keyspace_existing? do
-    keyspace_name = Realm.astarte_keyspace_name()
-
-    query =
-      from k in "system_schema.keyspaces",
-        where: k.keyspace_name == ^keyspace_name,
-        select: count()
-
-    consistency = Consistency.domain_model(:read)
-
-    with {:ok, count} <- Repo.safe_fetch_one(query, consistency: consistency) do
-      {:ok, count > 0}
-    end
   end
 end

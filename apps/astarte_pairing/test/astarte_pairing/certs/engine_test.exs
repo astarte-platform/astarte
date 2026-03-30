@@ -56,9 +56,7 @@ defmodule Astarte.Pairing.EngineTest do
     test "fails with non-existing realm" do
       realm_keyspace = Realm.keyspace_name("nonexisting")
 
-      assert_raise Xandra.Error, "Keyspace #{realm_keyspace} does not exist", fn ->
-        Engine.get_agent_public_key_pems("nonexisting")
-      end
+      assert {:error, :realm_not_found} == Engine.get_agent_public_key_pems("nonexisting")
     end
 
     test "successful call", %{realm: realm} do

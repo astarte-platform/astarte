@@ -47,5 +47,5 @@ merge_commit = true
 imperative_subject = true
 subject_not_punctuated = true
 subject_capitalized = false
-subject_length = 72
+subject_length = 100
 line_length = 100

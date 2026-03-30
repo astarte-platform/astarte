@@ -133,6 +133,10 @@ defmodule Astarte.DataAccess.Repo do
     safe(fn -> fetch_one(queryable, opts) end)
   end
 
+  def safe_fetch_by(queryable, clauses, opts \\ []) do
+    safe(fn -> fetch_by(queryable, clauses, opts) end)
+  end
+
   def safe_insert_all(source, entries, opts \\ []) do
     safe_wrap(fn -> insert_all(source, entries, opts) end)
   end
@@ -143,6 +147,10 @@ defmodule Astarte.DataAccess.Repo do
 
   def safe_update_all(queryable, updates, opts \\ []) do
     safe_wrap(fn -> update_all(queryable, updates, opts) end)
+  end
+
+  def safe_delete(struct_or_changeset, opts \\ []) do
+    safe(fn -> delete(struct_or_changeset, opts) end)
   end
 
   def safe_delete_all(queryable, opts \\ []) do

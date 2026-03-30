@@ -56,10 +56,8 @@ RUN apt-get update -y && \
 ARG BUILD_ENV=prod
 
 COPY --from=builder --chown=nobody:nogroup /app/_build/$BUILD_ENV/rel/astarte_housekeeping .
-COPY --from=builder --chown=nobody:nogroup /app/entrypoint.sh .
 
 # Change to non-root user
 USER nobody
 
-ENTRYPOINT ["/bin/bash", "entrypoint.sh"]
-CMD ["start"]
+CMD ["./bin/astarte_housekeeping", "start"]

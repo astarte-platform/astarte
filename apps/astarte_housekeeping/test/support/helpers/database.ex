@@ -359,8 +359,11 @@ defmodule Astarte.Housekeeping.Helpers.Database do
   end
 
   def teardown_realm_keyspace(realm_name) do
+    astarte_keyspace = Realm.astarte_keyspace_name()
     realm_keyspace = Realm.keyspace_name(realm_name)
     execute(realm_keyspace, @drop_keyspace)
+
+    Repo.safe_delete(%Realm{realm_name: realm_name}, prefix: astarte_keyspace)
     :ok
   end
 
