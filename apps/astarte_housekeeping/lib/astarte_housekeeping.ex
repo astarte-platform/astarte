@@ -17,9 +17,10 @@
 #
 
 defmodule Astarte.Housekeeping do
-  alias Astarte.Housekeeping.Config
-  alias Astarte.RPC.Config, as: RPCConfig
   alias Astarte.DataAccess.Config, as: DataAccessConfig
+  alias Astarte.Housekeeping.Config
+  alias Astarte.Housekeeping.ReleaseTasks
+  alias Astarte.RPC.Config, as: RPCConfig
 
   use Application
 
@@ -34,7 +35,8 @@ defmodule Astarte.Housekeeping do
 
     children = [
       Astarte.HousekeepingWeb.Telemetry,
-      Astarte.Housekeeping.BackendSupervisor
+      Astarte.Housekeeping.BackendSupervisor,
+      ReleaseTasks
     ]
 
     # make amqp supervisors logs less verbose
