@@ -32,7 +32,6 @@ defmodule Astarte.FDO.Core.OwnerOnboarding.ProveDevice do
 
   # xB keys generation
   alias Astarte.FDO.Core.OwnerOnboarding.SessionKey
-  alias COSE.Keys.ECC
 
   # EAToken encoding and decoding
   alias Astarte.FDO.Core.OwnerOnboarding.EAToken
@@ -103,7 +102,7 @@ defmodule Astarte.FDO.Core.OwnerOnboarding.ProveDevice do
 
   @doc false
   def generate do
-    {:ok, _, xb} = SessionKey.new("ECDH256", ECC.generate(:es256))
+    {:ok, _, xb} = SessionKey.new("ECDH256")
 
     %ProveDevice{
       xb_key_exchange: xb,

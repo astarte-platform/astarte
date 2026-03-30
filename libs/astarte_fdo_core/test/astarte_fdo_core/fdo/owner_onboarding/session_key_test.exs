@@ -26,7 +26,7 @@ defmodule Astarte.FDO.Core.OwnerOnboarding.SessionKeyTest do
   describe "new/2 for ECDH suites" do
     test "ECDH256 returns random of 16 bytes and xa key exchange material" do
       key = Keys.generate(:es256)
-      assert {:ok, random, xa} = SessionKey.new("ECDH256", key)
+      assert {:ok, random, xa} = SessionKey.new("ECDH256")
 
       assert byte_size(random) == 16
       assert is_binary(xa)
@@ -34,7 +34,7 @@ defmodule Astarte.FDO.Core.OwnerOnboarding.SessionKeyTest do
 
     test "ECDH384 returns random of 48 bytes and xa key exchange material" do
       key = Keys.generate(:es384)
-      assert {:ok, random, xa} = SessionKey.new("ECDH384", key)
+      assert {:ok, random, xa} = SessionKey.new("ECDH384")
 
       assert byte_size(random) == 48
       assert is_binary(xa)
@@ -43,14 +43,14 @@ defmodule Astarte.FDO.Core.OwnerOnboarding.SessionKeyTest do
 
   describe "new/2 for DHKEX suites" do
     test "DHKEXid14 returns a random and xa (mod_pow result)" do
-      assert {:ok, random, xa} = SessionKey.new("DHKEXid14", nil)
+      assert {:ok, random, xa} = SessionKey.new("DHKEXid14")
 
       assert byte_size(random) == 32
       assert is_binary(xa)
     end
 
     test "DHKEXid15 returns a random and xa (mod_pow result)" do
-      assert {:ok, random, xa} = SessionKey.new("DHKEXid15", nil)
+      assert {:ok, random, xa} = SessionKey.new("DHKEXid15")
 
       assert byte_size(random) == 96
       assert is_binary(xa)
@@ -59,14 +59,14 @@ defmodule Astarte.FDO.Core.OwnerOnboarding.SessionKeyTest do
 
   describe "new/2 for ASYMKEX suites" do
     test "ASYMKEX2048 returns xa equal to random (32 bytes)" do
-      assert {:ok, random, xa} = SessionKey.new("ASYMKEX2048", nil)
+      assert {:ok, random, xa} = SessionKey.new("ASYMKEX2048")
 
       assert byte_size(xa) == 32
       assert random == xa
     end
 
     test "ASYMKEX3072 returns xa equal to random (96 bytes)" do
-      assert {:ok, random, xa} = SessionKey.new("ASYMKEX3072", nil)
+      assert {:ok, random, xa} = SessionKey.new("ASYMKEX3072")
 
       assert byte_size(xa) == 96
       assert random == xa
@@ -76,8 +76,8 @@ defmodule Astarte.FDO.Core.OwnerOnboarding.SessionKeyTest do
   describe "new/2 produces different values on each call" do
     test "ECDH256 generates unique randoms" do
       key = Keys.generate(:es256)
-      {:ok, random1, _xa1} = SessionKey.new("ECDH256", key)
-      {:ok, random2, _xa2} = SessionKey.new("ECDH256", key)
+      {:ok, random1, _xa1} = SessionKey.new("ECDH256")
+      {:ok, random2, _xa2} = SessionKey.new("ECDH256")
 
       refute random1 == random2
     end
@@ -85,7 +85,7 @@ defmodule Astarte.FDO.Core.OwnerOnboarding.SessionKeyTest do
 
   describe "new/2 with unknown suite" do
     test "returns {:error, :invalid_message}" do
-      assert {:error, :invalid_message} = SessionKey.new("UnknownSuite", nil)
+      assert {:error, :invalid_message} = SessionKey.new("UnknownSuite")
     end
   end
 
@@ -93,8 +93,8 @@ defmodule Astarte.FDO.Core.OwnerOnboarding.SessionKeyTest do
     test "ECDH256 computes a shared secret from device xb" do
       owner_key = Keys.generate(:es256)
       device_key = Keys.generate(:es256)
-      {:ok, owner_random, _xa} = SessionKey.new("ECDH256", owner_key)
-      {:ok, _device_random, xb} = SessionKey.new("ECDH256", device_key)
+      {:ok, owner_random, _xa} = SessionKey.new("ECDH256")
+      {:ok, _device_random, xb} = SessionKey.new("ECDH256")
 
       assert {:ok, shse} =
                SessionKey.compute_shared_secret("ECDH256", owner_key, owner_random, xb)
@@ -105,8 +105,8 @@ defmodule Astarte.FDO.Core.OwnerOnboarding.SessionKeyTest do
     test "ECDH384 computes a shared secret from device xb" do
       owner_key = Keys.generate(:es384)
       device_key = Keys.generate(:es384)
-      {:ok, owner_random, _xa} = SessionKey.new("ECDH384", owner_key)
-      {:ok, _device_random, xb} = SessionKey.new("ECDH384", device_key)
+      {:ok, owner_random, _xa} = SessionKey.new("ECDH384")
+      {:ok, _device_random, xb} = SessionKey.new("ECDH384")
 
       assert {:ok, shse} =
                SessionKey.compute_shared_secret("ECDH384", owner_key, owner_random, xb)
@@ -117,8 +117,8 @@ defmodule Astarte.FDO.Core.OwnerOnboarding.SessionKeyTest do
 
   describe "compute_shared_secret/4 for DHKEX suites" do
     test "DHKEXid14 computes a shared secret padded to 256 bytes" do
-      {:ok, owner_random, _xa} = SessionKey.new("DHKEXid14", nil)
-      {:ok, _device_random, device_xb} = SessionKey.new("DHKEXid14", nil)
+      {:ok, owner_random, _xa} = SessionKey.new("DHKEXid14")
+      {:ok, _device_random, device_xb} = SessionKey.new("DHKEXid14")
 
       assert {:ok, shse} =
                SessionKey.compute_shared_secret("DHKEXid14", nil, owner_random, device_xb)
@@ -127,8 +127,8 @@ defmodule Astarte.FDO.Core.OwnerOnboarding.SessionKeyTest do
     end
 
     test "DHKEXid15 computes a shared secret padded to 384 bytes" do
-      {:ok, owner_random, _xa} = SessionKey.new("DHKEXid15", nil)
-      {:ok, _device_random, device_xb} = SessionKey.new("DHKEXid15", nil)
+      {:ok, owner_random, _xa} = SessionKey.new("DHKEXid15")
+      {:ok, _device_random, device_xb} = SessionKey.new("DHKEXid15")
 
       assert {:ok, shse} =
                SessionKey.compute_shared_secret("DHKEXid15", nil, owner_random, device_xb)
@@ -141,14 +141,14 @@ defmodule Astarte.FDO.Core.OwnerOnboarding.SessionKeyTest do
     setup do
       owner_key = Keys.generate(:es256)
       device_key = Keys.generate(:es256)
-      {:ok, owner_random, _} = SessionKey.new("ECDH256", owner_key)
-      {:ok, _, xb} = SessionKey.new("ECDH256", device_key)
+      {:ok, owner_random, _} = SessionKey.new("ECDH256")
+      {:ok, _, xb} = SessionKey.new("ECDH256")
       {:ok, shse256} = SessionKey.compute_shared_secret("ECDH256", owner_key, owner_random, xb)
 
       owner_key384 = Keys.generate(:es384)
       device_key384 = Keys.generate(:es384)
-      {:ok, owner_random384, _} = SessionKey.new("ECDH384", owner_key384)
-      {:ok, _, xb384} = SessionKey.new("ECDH384", device_key384)
+      {:ok, owner_random384, _} = SessionKey.new("ECDH384")
+      {:ok, _, xb384} = SessionKey.new("ECDH384")
 
       {:ok, shse384} =
         SessionKey.compute_shared_secret("ECDH384", owner_key384, owner_random384, xb384)

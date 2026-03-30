@@ -108,8 +108,7 @@ defmodule Astarte.Cases.FDOSession do
           "unsupported association owner key type #{context.owner_key.alg} <-> KEX alg #{kex_name}"
         )
 
-    {:ok, device_random, xb} =
-      generate_xb_key_exchange(kex_name, context.device_key, context.owner_key)
+    {:ok, device_random, xb} = generate_xb_key_exchange(kex_name, context.owner_key)
 
     hello_device =
       HelloDevice.generate(
@@ -123,7 +122,6 @@ defmodule Astarte.Cases.FDOSession do
         context.realm_name,
         hello_device,
         context.ownership_voucher,
-        context.owner_key,
         context.ownership_voucher.hmac
       )
 
@@ -183,13 +181,13 @@ defmodule Astarte.Cases.FDOSession do
     end
   end
 
-  defp generate_xb_key_exchange(kex_name, device_key, owner_key) do
+  defp generate_xb_key_exchange(kex_name, owner_key) do
     case kex_name do
       kn when kn in ["ECDH256", "ECDH384", "DHKEXid14", "DHKEXid15"] ->
-        SessionKey.new(kn, device_key)
+        SessionKey.new(kn)
 
       kn when kn in ["ASYMKEX2048", "ASYMKEX3072"] ->
-        {:ok, device_rand, _} = SessionKey.new(kn, :nokey)
+        {:ok, device_rand, _} = SessionKey.new(kn)
         # Owner RSA key used to encrypt/decrypt device rand
         pub_key_record = owner_key |> RSA.to_public_record()
         xb = asymkex_msg_encryption(device_rand, pub_key_record)

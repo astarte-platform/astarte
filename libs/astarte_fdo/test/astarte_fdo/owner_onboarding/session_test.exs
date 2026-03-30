@@ -32,7 +32,6 @@ defmodule Astarte.FDO.OwnerOnboarding.SessionTest do
       %{
         realm: realm_name,
         hello_device: hello_device,
-        owner_key: owner_key,
         ownership_voucher: ownership_voucher
       } = context
 
@@ -41,7 +40,6 @@ defmodule Astarte.FDO.OwnerOnboarding.SessionTest do
                  realm_name,
                  hello_device,
                  ownership_voucher,
-                 owner_key,
                  ownership_voucher.hmac
                )
 
@@ -58,16 +56,15 @@ defmodule Astarte.FDO.OwnerOnboarding.SessionTest do
     @tag owner_key: "EC256", kex_name: "ECDH256"
     test "is carried out correctly when device and owner use ECDH256 algorithm", %{
       session: session,
-      device_key: device_key,
       device_random: device_random
     } do
       owner_ecdh256_secret = session.secret
 
-      owner_public_key = parse_key_from_xa(session.xa, session.kex_suite_name)
+      owner_public_key = parse_key_from_xa(session.xa)
 
       device_ecdh256_secret =
         compute_device_shared_secret_ecdh(
-          device_key,
+          session.kex_suite_name,
           device_random,
           session.owner_random,
           owner_public_key
@@ -82,16 +79,15 @@ defmodule Astarte.FDO.OwnerOnboarding.SessionTest do
     @tag owner_key: "EC384", kex_name: "ECDH384"
     test "is carried out correctly when device and owner use ECDH384 algorithm", %{
       session: session,
-      device_key: device_key,
       device_random: device_random
     } do
       owner_ecdh384_secret = session.secret
 
-      owner_public_key = parse_key_from_xa(session.xa, session.kex_suite_name)
+      owner_public_key = parse_key_from_xa(session.xa)
 
       device_ecdh384_secret =
         compute_device_shared_secret_ecdh(
-          device_key,
+          session.kex_suite_name,
           device_random,
           session.owner_random,
           owner_public_key
@@ -209,11 +205,10 @@ defmodule Astarte.FDO.OwnerOnboarding.SessionTest do
           easig_info: :es384
         )
 
-      p384_device_key = ECC.generate(:es384)
-      {:ok, _dev_rand, xb} = SessionKey.new("ECDH384", p384_device_key)
+      {:ok, _dev_rand, xb} = SessionKey.new("ECDH384")
 
       {:ok, _token, session} =
-        Session.new(realm_name, hello_device, p384_voucher, p384_owner_key, p384_voucher.hmac)
+        Session.new(realm_name, hello_device, p384_voucher, p384_voucher.hmac)
 
       {:ok, session_with_secret} =
         Session.build_session_secret(session, realm_name, p384_owner_key, xb)
@@ -228,29 +223,24 @@ defmodule Astarte.FDO.OwnerOnboarding.SessionTest do
     end
   end
 
-  defp parse_key_from_xa(xa, kex_name) do
-    {x_bytesize, y_bytesize, rand_bytesize} =
-      case kex_name do
-        "ECDH256" ->
-          {32, 32, 16}
+  defp parse_key_from_xa(xa) do
+    <<blen_x::integer-unsigned-size(16), rest::binary>> = xa
+    <<x::binary-size(blen_x), rest::binary>> = rest
+    <<blen_y::integer-unsigned-size(16), rest::binary>> = rest
+    <<y::binary-size(blen_y), _rest::binary>> = rest
 
-        "ECDH384" ->
-          {48, 48, 48}
-      end
-
-    <<_::binary-size(2), x::binary-size(x_bytesize), _::binary-size(2),
-      y::binary-size(y_bytesize), _rest::binary-size(2 + rand_bytesize)>> = xa
-
-    # derived owner public key
     <<4, x::binary, y::binary>>
   end
 
-  defp compute_device_shared_secret_ecdh(device_key, device_random, owner_random, owner_public) do
-    point = {:ECPoint, owner_public}
-    device_key_record = ECC.to_record(device_key)
+  defp compute_device_shared_secret_ecdh(kex_suite, device_random, owner_random, owner_public) do
+    curve =
+      case kex_suite do
+        "ECDH256" -> :secp256r1
+        "ECDH384" -> :secp384r1
+      end
 
     shared_secret =
-      :public_key.compute_key(point, device_key_record)
+      :crypto.compute_key(:ecdh, owner_public, device_random, curve)
 
     <<shared_secret::binary, device_random::binary, owner_random::binary>>
   end

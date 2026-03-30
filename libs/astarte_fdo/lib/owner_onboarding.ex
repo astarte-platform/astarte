@@ -62,7 +62,6 @@ defmodule Astarte.FDO.OwnerOnboarding do
              realm_name,
              hello_device,
              ownership_voucher,
-             owner_private_key,
              ownership_voucher.hmac
            ) do
       encoded_pub_key = PublicKey.encode(pub_key)

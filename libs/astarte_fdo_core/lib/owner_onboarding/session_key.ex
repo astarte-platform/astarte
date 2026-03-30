@@ -23,7 +23,7 @@ defmodule Astarte.FDO.Core.OwnerOnboarding.SessionKey do
   """
 
   alias Astarte.FDO.Core.OwnerOnboarding.Core
-  alias COSE.Keys.{ECC, RSA}
+  alias COSE.Keys.RSA
   alias COSE.Keys.Symmetric
 
   # DHKEX constants as defined in RFC 3526 (for groups 14 and 15)
@@ -62,60 +62,75 @@ defmodule Astarte.FDO.Core.OwnerOnboarding.SessionKey do
   """
   @dhkex_p_3072 String.replace(@dhkex_p_3072_str, "\n", "") |> String.to_integer(16)
 
-  def new("ECDH256", %ECC{} = owner_key) do
-    random = :crypto.strong_rand_bytes(16)
-    xa = random_ecdh(owner_key, random)
-
-    {:ok, random, xa}
+  def new("ECDH256") do
+    blen_random = 16
+    blen_ec_point = 32
+    generate_ecdh_values(:secp256r1, blen_random, blen_ec_point)
   end
 
-  def new("ECDH384", %ECC{} = key) do
-    random = :crypto.strong_rand_bytes(48)
-    xa = random_ecdh(key, random)
-    {:ok, random, xa}
+  def new("ECDH384") do
+    blen_random = 48
+    blen_ec_point = 48
+    generate_ecdh_values(:secp384r1, blen_random, blen_ec_point)
   end
 
-  def new("DHKEXid14", _key) do
+  def new("DHKEXid14") do
     dhkex_random = :crypto.strong_rand_bytes(32)
     # A = g^a mod p
     xa = :crypto.mod_pow(@dhkex_g, :binary.decode_unsigned(dhkex_random), @dhkex_p_2048)
     {:ok, dhkex_random, xa}
   end
 
-  def new("DHKEXid15", _key) do
+  def new("DHKEXid15") do
     dhkex_random = :crypto.strong_rand_bytes(96)
     # A = g^a mod p
     xa = :crypto.mod_pow(@dhkex_g, :binary.decode_unsigned(dhkex_random), @dhkex_p_3072)
     {:ok, dhkex_random, xa}
   end
 
-  def new("ASYMKEX2048", _key) do
+  def new("ASYMKEX2048") do
     xa = :crypto.strong_rand_bytes(32)
     {:ok, xa, xa}
   end
 
-  def new("ASYMKEX3072", _key) do
+  def new("ASYMKEX3072") do
     xa = :crypto.strong_rand_bytes(96)
     {:ok, xa, xa}
   end
 
-  def new(_suite, _) do
+  def new(_suite) do
     {:error, :invalid_message}
   end
 
-  defp random_ecdh(key, random) do
-    blen_r = byte_size(random)
-    blen_x = byte_size(key.x)
-    blen_y = byte_size(key.y)
+  defp generate_ecdh_values(ec_curve, blen_random, blen_ec_point) do
+    random = :crypto.strong_rand_bytes(blen_random)
+    {pub_key, _} = :crypto.generate_key(:ecdh, ec_curve, random)
 
-    <<blen_x::integer-unsigned-size(16), key.x::binary, blen_y::integer-unsigned-size(16),
-      key.y::binary, blen_r::integer-unsigned-size(16), random::binary>>
+    <<4::size(8), pub_key_x::binary-size(blen_ec_point), pub_key_y::binary-size(blen_ec_point)>> =
+      pub_key
+
+    xa =
+      <<blen_ec_point::integer-unsigned-size(16), pub_key_x::binary,
+        blen_ec_point::integer-unsigned-size(16), pub_key_y::binary,
+        blen_random::integer-unsigned-size(16), random::binary>>
+
+    {:ok, random, xa}
   end
 
-  def compute_shared_secret(suite, %ECC{} = owner_key, owner_random, xb)
-      when suite in ["ECDH256", "ECDH384"] do
+  def compute_shared_secret(kex_suite, _key, owner_random, xb)
+      when kex_suite in ["ECDH256", "ECDH384"] do
     {device_random, device_public} = parse_xb_ecdh(xb)
-    shse = shared_secret_ecdh(owner_key, owner_random, device_random, device_public)
+
+    curve =
+      case kex_suite do
+        "ECDH256" -> :secp256r1
+        "ECDH384" -> :secp384r1
+      end
+
+    shared_secret =
+      :crypto.compute_key(:ecdh, device_public, owner_random, curve)
+
+    shse = <<shared_secret::binary, device_random::binary, owner_random::binary>>
     {:ok, shse}
   end
 
@@ -170,16 +185,6 @@ defmodule Astarte.FDO.Core.OwnerOnboarding.SessionKey do
     device_public = <<4, x::binary, y::binary>>
 
     {device_random, device_public}
-  end
-
-  defp shared_secret_ecdh(owner_key, owner_random, device_random, device_public) do
-    curve =
-      ECC.curve(owner_key)
-
-    shared_secret =
-      :crypto.compute_key(:ecdh, device_public, owner_key.d, curve)
-
-    <<shared_secret::binary, device_random::binary, owner_random::binary>>
   end
 
   def derive_key(kex_alg, cipher_name, shared_secret, owner_random)

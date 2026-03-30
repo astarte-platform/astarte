@@ -37,7 +37,7 @@ defmodule Astarte.FDO.ServiceInfoTest do
     ownership_voucher = sample_ownership_voucher()
     owner_key = sample_extracted_private_key()
     device_key = ECC.generate(:es256)
-    {:ok, device_random, xb} = SessionKey.new(hello_device.kex_name, device_key)
+    {:ok, device_random, xb} = SessionKey.new(hello_device.kex_name)
 
     insert_voucher(realm_name, sample_private_key(), sample_cbor_voucher(), device_id)
 
@@ -63,7 +63,7 @@ defmodule Astarte.FDO.ServiceInfoTest do
     } = context
 
     {:ok, token, session} =
-      Session.new(realm_name, hello_device, ownership_voucher, owner_key, ownership_voucher.hmac)
+      Session.new(realm_name, hello_device, ownership_voucher, ownership_voucher.hmac)
 
     on_exit(fn ->
       setup_database_access(astarte_instance_id)

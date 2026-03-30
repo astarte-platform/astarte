@@ -65,7 +65,7 @@ defmodule Astarte.FDO.Core.OwnerOnboarding.Session do
     field :replacement_hmac, Hash.t() | nil
   end
 
-  def new(realm_name, hello_device, ownership_voucher, owner_key, hmac) do
+  def new(realm_name, hello_device, ownership_voucher, hmac) do
     prove_dv_nonce = :crypto.strong_rand_bytes(16)
     nonce = :crypto.strong_rand_bytes(16)
 
@@ -76,7 +76,7 @@ defmodule Astarte.FDO.Core.OwnerOnboarding.Session do
       kex_name: kex_name
     } = hello_device
 
-    with {:ok, owner_random, xa} <- SessionKey.new(kex_name, owner_key),
+    with {:ok, owner_random, xa} <- SessionKey.new(kex_name),
          {:ok, device_signature} <-
            Helpers.validate_signature_info(easig_info, ownership_voucher),
          signature_params =
