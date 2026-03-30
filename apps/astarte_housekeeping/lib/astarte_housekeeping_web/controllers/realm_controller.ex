@@ -18,11 +18,158 @@
 
 defmodule Astarte.HousekeepingWeb.RealmController do
   use Astarte.HousekeepingWeb, :controller
+  use OpenApiSpex.ControllerSpecs
 
   alias Astarte.Housekeeping.Realms
   alias Astarte.Housekeeping.Realms.Realm
+  alias OpenApiSpex.{Reference, Schema}
 
   action_fallback Astarte.HousekeepingWeb.FallbackController
+
+  tags(["realm"])
+  security([%{"JWT" => []}])
+
+  operation :index,
+    summary: "Get all realms",
+    description: "Returns a list of all existing realms.",
+    operation_id: "getRealms",
+    responses: [
+      created:
+        {"Success", "application/json",
+         %Schema{
+           type: :object,
+           properties: %{
+             data: %Schema{
+               type: :array,
+               items: %Schema{type: :string}
+             }
+           },
+           example: %{
+             data: ["arealm", "anotherrealm"]
+           }
+         }}
+    ]
+
+  operation :create,
+    summary: "Create a realm",
+    description: "Creates a new realm, based on the provided realm configuration.
+        Realm creation will be executed asynchronously by default - it is not
+        guaranteed that the requested realm will be available as soon as the
+        API call returns, but it is guaranteed that it will be eventually created
+        if no errors are returned and Astarte is operating normally.
+        You can perform the call synchronously by setting the async_operation query
+        param to false.",
+    operation_id: "createRealm",
+    parameters: [
+      async_operation: [
+        in: :query,
+        description: "Whether the operation should be carried out asynchronously.",
+        required: false,
+        schema: %Schema{type: :boolean, default: true}
+      ]
+    ],
+    request_body: %Reference{"$ref": "#/components/requestBodies/createRealmBody"},
+    responses: [
+      ok:
+        {"Success", "application/json",
+         %Schema{
+           type: :object,
+           properties: %{
+             data: %Reference{"$ref": "#/components/schemas/Realm"}
+           }
+         }}
+    ]
+
+  operation :show,
+    summary: "Get realm configuration",
+    description: "Retrieves a realm's configuration.",
+    operation_id: "getRealmConfiguration",
+    parameters: [
+      realm_name: [
+        in: :path,
+        description: "Realm name",
+        required: true,
+        schema: %Schema{type: :string}
+      ]
+    ],
+    responses: [
+      ok:
+        {"Success", "application/json",
+         %Schema{
+           type: :object,
+           properties: %{
+             data: %Reference{"$ref": "#/components/schemas/Realm"}
+           }
+         }},
+      unauthorized: %Reference{"$ref": "#/components/responses/Unauthorized"},
+      forbidden: %Reference{"$ref": "#/components/responses/AuthorizationPathNotMatched"}
+    ]
+
+  operation :update,
+    summary: "Update a realm",
+    description: "Updates a realm's configuration.",
+    operation_id: "updateRealm",
+    parameters: [
+      realm_name: [
+        name: :realm_name,
+        in: :path,
+        description: "Realm name",
+        required: true,
+        schema: %Schema{type: :string}
+      ]
+    ],
+    request_body: %Reference{"$ref": "#/components/requestBodies/updateRealmBody"},
+    responses: [
+      ok:
+        {"Success", "application/json",
+         %Schema{
+           type: :object,
+           properties: %{
+             data: %Reference{"$ref": "#/components/schemas/Realm"}
+           }
+         }},
+      bad_request: "Bad request",
+      unauthorized: %Reference{"$ref": "#/components/responses/Unauthorized"},
+      forbidden: %Reference{"$ref": "#/components/responses/AuthorizationPathNotMatched"},
+      not_found:
+        {"Realm not found", "application/json",
+         %Reference{"$ref": "#/components/schemas/GenericError"}}
+    ]
+
+  operation :delete,
+    summary: "Delete realm",
+    description: "Deletes a realm from Astarte. This feature must be explicitly enabled
+        in the cluster, if it's disabled a 405 status code will be returned.
+        If there are connected devices present in the realm, a 422 status
+        code will be returned. Realm deletion will be executed asynchronously
+        by default - it is not guaranteed that the realm will be deleted as
+        soon as the API call returns, but it is guaranteed that it will be
+        eventually removed if no errors are returned and Astarte is
+        operating normally. You can perform the call synchronously by setting
+        the async_operation parameter to false.",
+    operation_id: "deleteRealm",
+    parameters: [
+      realm_name: [
+        name: :realm_name,
+        in: :path,
+        description: "Realm name",
+        required: true,
+        schema: %Schema{type: :string}
+      ],
+      async_operation: [
+        in: :query,
+        description: "Whether the operation should be carried out asynchronously.",
+        required: false,
+        schema: %Schema{type: :boolean, default: true}
+      ]
+    ],
+    responses: [
+      no_content: "Success",
+      unauthorized: %Reference{"$ref": "#/components/responses/Unauthorized"},
+      forbidden: %Reference{"$ref": "#/components/responses/AuthorizationPathNotMatched"},
+      method_not_allowed: "Realm deletion disabled",
+      unprocessable_entity: "Connected devices present"
+    ]
 
   def index(conn, _params) do
     with {:ok, realms} <- Realms.list_realms() do
@@ -47,8 +194,8 @@ defmodule Astarte.HousekeepingWeb.RealmController do
     end
   end
 
-  def show(conn, %{"id" => id}) do
-    with {:ok, %Realm{} = realm} <- Realms.get_realm(id) do
+  def show(conn, %{"realm_name" => realm_name}) do
+    with {:ok, %Realm{} = realm} <- Realms.get_realm(realm_name) do
       render(conn, "show.json", realm: realm)
     end
   end
@@ -64,7 +211,7 @@ defmodule Astarte.HousekeepingWeb.RealmController do
     end
   end
 
-  def delete(conn, %{"id" => id} = params) do
+  def delete(conn, %{"realm_name" => realm_name} = params) do
     async_operation =
       if Map.get(params, "async_operation") == "false" do
         false
@@ -72,7 +219,7 @@ defmodule Astarte.HousekeepingWeb.RealmController do
         true
       end
 
-    with :ok <- Realms.delete_realm(id, async_operation: async_operation) do
+    with :ok <- Realms.delete_realm(realm_name, async_operation: async_operation) do
       send_resp(conn, :no_content, "")
     end
   end
