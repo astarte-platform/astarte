@@ -24,6 +24,8 @@ defmodule Astarte.PairingWeb.Controllers.OwnerKeyControllerTest do
   alias Astarte.Pairing.Config
   alias Astarte.Secrets
   alias Astarte.Secrets.Key
+  alias Astarte.Secrets.OwnerKeyInitialization
+  alias Astarte.Secrets.OwnerKeyInitializationOptions
 
   setup :verify_on_exit!
 
@@ -105,6 +107,39 @@ defmodule Astarte.PairingWeb.Controllers.OwnerKeyControllerTest do
     end
   end
 
+  describe "/fdo/owner_keys listing" do
+    setup :owner_keys_setup
+
+    test "list 4 keys in p256 group", context do
+      %{
+        auth_conn: conn,
+        openbao_namespace: namespace,
+        list_path: path
+      } = context
+
+      keys =
+        conn
+        |> get(path)
+        |> response(200)
+
+      keys = Jason.decode!(keys)
+
+      assert keys == [
+               %{
+                 "es256" => [
+                   "key_to_create",
+                   "key_to_create1",
+                   "key_to_create2",
+                   "key_to_create3"
+                 ]
+               },
+               %{"es384" => []},
+               %{"rs256" => []},
+               %{"rs384" => []}
+             ]
+    end
+  end
+
   defp owner_key_setup(context) do
     %{auth_conn: conn, realm_name: realm_name} = context
     create_path = owner_key_path(conn, :create_or_upload_key, realm_name)
@@ -124,5 +159,47 @@ defmodule Astarte.PairingWeb.Controllers.OwnerKeyControllerTest do
       create_key_payload: create_key_payload,
       openbao_namespace: namespace_es256
     }
+  end
+
+  defp owner_keys_setup(context) do
+    %{auth_conn: conn, realm_name: realm_name} = context
+    list_path = owner_key_path(conn, :list_keys, realm_name)
+
+    {:ok, namespace_es256} = Secrets.create_namespace(realm_name, :es256)
+
+    [
+      %{
+        action: "create",
+        key_name: "key_to_create",
+        key_algorithm: "ecdsa-p256"
+      },
+      %{
+        action: "create",
+        key_name: "key_to_create1",
+        key_algorithm: "ecdsa-p256"
+      },
+      %{
+        action: "create",
+        key_name: "key_to_create2",
+        key_algorithm: "ecdsa-p256"
+      },
+      %{
+        action: "create",
+        key_name: "key_to_create3",
+        key_algorithm: "ecdsa-p256"
+      }
+    ]
+    |> Enum.each(fn data ->
+      create_or_upload_changeset =
+        OwnerKeyInitializationOptions.changeset(%OwnerKeyInitializationOptions{}, data)
+
+      {:ok, create_or_upload_changeset} =
+        Ecto.Changeset.apply_action(create_or_upload_changeset, :insert)
+
+      {:ok, _} =
+        OwnerKeyInitialization.create_or_upload(create_or_upload_changeset, realm_name)
+    end)
+
+    %{list_path: list_path, openbao_namespace: namespace_es256}
   end
 end
