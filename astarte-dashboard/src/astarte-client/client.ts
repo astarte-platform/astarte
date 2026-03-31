@@ -203,8 +203,10 @@ class AstarteClient {
     this.getUnauthenticatedPairingVersion = this.getUnauthenticatedPairingVersion.bind(this);
     this.getPairingVersion = this.getPairingVersion.bind(this);
     this.uploadFdoVoucher = this.uploadFdoVoucher.bind(this);
-
-    // prettier-ignore
+    this.manageFdoOwnerKey = this.manageFdoOwnerKey.bind(this);
+    this.createFdoOwnerKey = this.createFdoOwnerKey.bind(this);
+    this.listFdoOwnerKeys = this.listFdoOwnerKeys.bind(this);
+    this.getFdoOwnerKey = this.getFdoOwnerKey.bind(this);
     this.apiConfig = {
       realmManagementHealth: astarteAPIurl`${config.realmManagementApiUrl}health`,
       unAuthenticatedRealmManagementVersion: astarteAPIurl`${config.realmManagementApiUrl}version`,
@@ -245,8 +247,11 @@ class AstarteClient {
       pipelineSource:        astarteAPIurl`${config.flowApiUrl}v1/${'realm'}/pipelines/${'pipelineId'}`,
       blocks:                astarteAPIurl`${config.flowApiUrl}v1/${'realm'}/blocks`,
       blockSource:           astarteAPIurl`${config.flowApiUrl}v1/${'realm'}/blocks/${'blockId'}`,
-      fdoOwnerKey:           astarteAPIurl`${config.pairingApiUrl}v1/${'realm'}/fdo/owner_key`,
+      fdoOwnerKey:           astarteAPIurl`${config.fdoApiUrl}v1/${'realm'}/fdo/owner_key`,
+      fdoOwnerKeyDetail:     astarteAPIurl`${config.fdoApiUrl}v1/${'realm'}/fdo/owner_key/${'keyName'}`,
+      fdoOwnerKeys:          astarteAPIurl`${config.fdoApiUrl}v1/${'realm'}/fdo/owner_keys`,
       fdoOwnershipVoucher:   astarteAPIurl`${config.pairingApiUrl}v1/${'realm'}/fdo/ownership_voucher`,
+      // fdoOwnerKeysList: astarteAPIurl`${config.pairingApiUrl}v1/${'realm'}/fdo/list_keys`,
       fdoCompatibleKeys: astarteAPIurl`${config.pairingApiUrl}v1/${'realm'}/ownership/compatible_keys`,
       fdoLoadVoucher:    astarteAPIurl`${config.pairingApiUrl}v1/${'realm'}/ownership/load`,
     };
@@ -877,6 +882,48 @@ class AstarteClient {
         data: payloadData,
       },
     }).then((response) => response.data);
+  }
+
+  async createFdoOwnerKey(keyName: string, keyAlgorithm: string): Promise<string> {
+    return this.manageFdoOwnerKey({ action: 'create', keyName, keyAlgorithm });
+  }
+
+  async listFdoOwnerKeys(): Promise<{ key_name: string; key_algorithm: string }[]> {
+    return axios({
+      method: 'get',
+      url: this.apiConfig.fdoOwnerKeys(this.config),
+      headers: {
+        Authorization: `Bearer ${this.token}`,
+      },
+    }).then((response) => {
+      // API returns: [{"es256":["key1","key2"]},{"es384":[]},...]
+      // Key names may have a Vault path prefix (e.g. "import/my-key") — strip it.
+      const grouped: Record<string, string[]>[] = response.data ?? [];
+      return grouped.flatMap((entry) =>
+        Object.entries(entry).flatMap(([algorithm, keyNames]) =>
+          keyNames
+            .map((key_name) => key_name.replace(/^import\//, ''))
+            .filter((key_name) => key_name !== '')
+            .map((key_name) => ({ key_name, key_algorithm: algorithm })),
+        ),
+      );
+    });
+  }
+
+  async getFdoOwnerKey(keyName: string): Promise<{ key_name: string; public_key: string }> {
+    // The server stores uploaded keys under "import/<keyName>" in Vault — try that path first
+    const vaultKeyName = `import/${keyName}`;
+    const tryFetch = (name: string) =>
+      axios({
+        method: 'get',
+        url: this.apiConfig.fdoOwnerKeyDetail({ ...this.config, keyName: name }),
+        headers: { Authorization: `Bearer ${this.token}` },
+      }).then((response) => response.data.data);
+
+    return tryFetch(vaultKeyName).catch(() => tryFetch(keyName)).then((data) => ({
+      ...data,
+      key_name: (data.key_name as string).replace(/^import\//, ''),
+    }));
   }
 
   private async $get(url: string) {
