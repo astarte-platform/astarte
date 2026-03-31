@@ -28,7 +28,15 @@ defmodule Astarte.AppEngine.APIWeb.InterfaceValuesController do
     end
   end
 
-  def show(
+  def show_value(conn, parameters) do
+    do_show(conn, parameters)
+  end
+
+  def show_values(conn, parameters) do
+    do_show(conn, parameters)
+  end
+
+  defp do_show(
         conn,
         %{
           "realm_name" => realm_name,
@@ -43,7 +51,7 @@ defmodule Astarte.AppEngine.APIWeb.InterfaceValuesController do
     end
   end
 
-  def show(
+  defp do_show(
         conn,
         %{"realm_name" => realm_name, "device_id" => device_id, "interface" => interface} =
           parameters
