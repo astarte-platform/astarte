@@ -90,4 +90,29 @@ defmodule Astarte.FDO.OwnershipVoucher do
     # so it is limited to the guid
     true
   end
+
+  @doc """
+  Decodes a PEM-encoded ownership voucher into a `CoreOwnershipVoucher` struct.
+  """
+  @spec decode_binary_voucher(String.t()) :: {:ok, OwnershipVoucher.t()} | {:error, atom()}
+  def decode_binary_voucher(pem) do
+    with {:ok, binary} <- OwnershipVoucher.binary_voucher(pem) do
+      OwnershipVoucher.decode_cbor(binary)
+    end
+  end
+
+  @doc """
+  Returns the key algorithm compatible with `Astarte.Secrets.Core` for the
+  given decoded ownership voucher.
+  """
+  @spec key_algorithm(OwnershipVoucher.t()) :: atom() | [atom()]
+  def key_algorithm(%OwnershipVoucher{} = voucher) do
+    fdo_type_to_key_algorithm(voucher.header.public_key.type)
+  end
+
+  defp fdo_type_to_key_algorithm(:secp256r1), do: :es256
+  defp fdo_type_to_key_algorithm(:secp384r1), do: :es384
+  defp fdo_type_to_key_algorithm(:rsa2048restr), do: :rs256
+  defp fdo_type_to_key_algorithm(:rsapkcs), do: [:rs256, :rs384]
+  defp fdo_type_to_key_algorithm(:rsapss), do: [:rs256, :rs384]
 end

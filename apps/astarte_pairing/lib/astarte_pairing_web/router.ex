@@ -79,12 +79,6 @@ defmodule Astarte.PairingWeb.Router do
     get "/version", VersionController, :show
     get "/health", HealthController, :show
 
-    scope "/ownership" do
-      pipe_through :fdo_feature_gate
-      pipe_through :agent_api
-      post "/", OwnershipVoucherController, :create
-    end
-
     scope "/agent" do
       pipe_through :agent_api
 
@@ -108,8 +102,17 @@ defmodule Astarte.PairingWeb.Router do
 
       pipe_through :agent_api
 
-      post "/owner_key", OwnerKeyController, :create_or_upload_key
+      post "/owner_keys", OwnerKeyController, :create_or_upload_key
       get "/owner_keys", OwnerKeyController, :list_keys
+      get "/owner_keys/:key_algorithm/:key_name", OwnerKeyController, :get_key
+      post "/owner_keys_for_voucher", OwnershipVoucherController, :owner_keys_for_voucher
+    end
+
+    scope "/ownership" do
+      pipe_through :fdo_feature_gate
+      pipe_through :agent_api
+
+      post "/", OwnershipVoucherController, :create
     end
   end
 

@@ -94,6 +94,14 @@ defmodule Astarte.PairingWeb.FallbackController do
     |> render(:key_already_imported)
   end
 
+  # The ownership_voucher parameter was missing from the request
+  def call(conn, {:error, :missing_ownership_voucher}) do
+    conn
+    |> put_status(:unprocessable_entity)
+    |> put_view(Astarte.PairingWeb.ErrorView)
+    |> render(:missing_ownership_voucher)
+  end
+
   # This is called when no JWT token is present
   def auth_error(conn, {:unauthenticated, :unauthenticated}, _opts) do
     conn

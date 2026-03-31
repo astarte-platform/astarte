@@ -265,6 +265,10 @@ defmodule Astarte.Secrets.Core do
       {:ok, %HTTPoison.Response{status_code: 200, body: resp_body}} ->
         {:ok, resp_body}
 
+      {:ok, %HTTPoison.Response{status_code: 404}} ->
+        Logger.debug("Key #{key_name} not found in namespace #{namespace}")
+        :error
+
       error_resp ->
         "Encountered HTTP error while getting key #{key_name}: #{inspect(error_resp)}"
         |> Logger.error()
@@ -513,16 +517,48 @@ defmodule Astarte.Secrets.Core do
   end
 
   def get_keys_from_algorithm(realm_name, key_algorithms) when is_list(key_algorithms) do
-    Enum.map(key_algorithms, fn key_algorithm ->
-      get_keys_from_algorithm(realm_name, key_algorithm)
-    end)
+    keys_map =
+      Enum.flat_map(key_algorithms, fn key_algorithm ->
+        case Secrets.create_namespace(realm_name, key_algorithm) do
+          {:ok, namespace} ->
+            case Secrets.list_keys_names(namespace: namespace) do
+              {:ok, keys} -> [%{key_algorithm => keys}]
+              _ -> []
+            end
+
+          _ ->
+            []
+        end
+      end)
+
+    {:ok, keys_map}
+  end
+
+  def get_keys_from_algorithm(realm_name, key_algorithm) when is_binary(key_algorithm) do
+    with {:ok, algorithm_atom} <- string_to_key_type(key_algorithm),
+         {:ok, namespace} <- Secrets.create_namespace(realm_name, algorithm_atom),
+         {:ok, keys} <- Secrets.list_keys_names(namespace: namespace) do
+      {:ok, %{key_algorithm => keys}}
+    end
   end
 
   def get_keys_from_algorithm(realm_name, key_algorithm) when is_atom(key_algorithm) do
-    {:ok, namespace} = Secrets.create_namespace(realm_name, key_algorithm)
+    with {:ok, namespace} <- Secrets.create_namespace(realm_name, key_algorithm),
+         {:ok, keys} <- Secrets.list_keys_names(namespace: namespace) do
+      {:ok, %{key_algorithm => keys}}
+    end
+  end
 
-    with {:ok, keys} <- Secrets.list_keys_names(namespace: namespace) do
-      %{key_algorithm => keys}
+  @doc """
+  Looks up a key by name within the namespace for the given algorithm.
+  Returns `{:ok, key}` if found, `:not_found` otherwise.
+  """
+  def find_key(realm_name, key_algorithm, key_name) do
+    with {:ok, namespace} <- Secrets.create_namespace(realm_name, key_algorithm) do
+      case Secrets.get_key(key_name, namespace: namespace) do
+        {:ok, key} -> {:ok, key}
+        _ -> :not_found
+      end
     end
   end
 

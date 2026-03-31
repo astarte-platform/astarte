@@ -128,6 +128,30 @@ defmodule Astarte.FDO.Core.OwnershipVoucher do
     end
   end
 
+  @doc """
+  Decodes a PEM-encoded ownership voucher and returns the key algorithm
+  compatible with `Astarte.Secrets.Core` (`:es256`, `:es384`, `:rs256`, `:rs384`,
+  or a list thereof when the FDO key type is ambiguous about the RSA key size).
+  """
+  @spec key_algorithm_from_voucher(String.t()) ::
+          {:ok, atom() | [atom()]} | {:error, atom()}
+  def key_algorithm_from_voucher(pem) do
+    with {:ok, binary} <- binary_voucher(pem),
+         {:ok, voucher} <- decode_cbor(binary) do
+      fdo_type_to_key_algorithm(voucher.header.public_key.type)
+    else
+      {:error, reason} -> {:error, reason}
+      :error -> {:error, :invalid_ownership_voucher}
+    end
+  end
+
+  defp fdo_type_to_key_algorithm(:secp256r1), do: {:ok, :es256}
+  defp fdo_type_to_key_algorithm(:secp384r1), do: {:ok, :es384}
+  defp fdo_type_to_key_algorithm(:rsa2048restr), do: {:ok, :rs256}
+  defp fdo_type_to_key_algorithm(:rsapkcs), do: {:ok, [:rs256, :rs384]}
+  defp fdo_type_to_key_algorithm(:rsapss), do: {:ok, [:rs256, :rs384]}
+  defp fdo_type_to_key_algorithm(_), do: {:error, :unsupported_key_algorithm}
+
   defp decode_cert(cert_bin) do
     {:ok, :public_key.pkix_decode_cert(cert_bin, :otp)}
   rescue
