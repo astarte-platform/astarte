@@ -72,6 +72,10 @@ const DashboardSidebar = () => {
         )}
         {(astarte.token?.can('appEngine', 'GET', '/devices') ||
           astarte.token?.can('appEngine', 'GET', '/groups')) && <Sidebar.Separator />}
+        <Sidebar.Item label="FDO Vouchers" link="/fdo-vouchers" icon="devices" />
+        <Sidebar.Item label="FDO Owner Keys" link="/fdo-owner-keys" icon="settings" />
+        <Sidebar.Separator />
+
         {config.features.flow && (
           <>
             {astarte.token?.can('flow', 'GET', '/flows') && (
