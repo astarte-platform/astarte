@@ -33,7 +33,8 @@ defmodule Astarte.AppEngine.API.Mixfile do
         "coveralls.html": :test
       ],
       dialyzer: [plt_add_apps: [:astarte_realm_management, :ex_unit]],
-      deps: deps() ++ astarte_required_modules(System.get_env("ASTARTE_IN_UMBRELLA"))
+      deps: deps() ++ astarte_required_modules(System.get_env("ASTARTE_IN_UMBRELLA")),
+      description: "Astarte App Engine API"
     ]
   end
 
@@ -105,6 +106,8 @@ defmodule Astarte.AppEngine.API.Mixfile do
       {:astarte_generators, path: astarte_lib("astarte_generators"), only: [:dev, :test]},
       {:horde, "~> 0.9"},
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
+      {:open_api_spex, "~> 3.22"},
+      {:ymlr, "~> 5.1"},
       # Test section
       {:excoveralls, "~> 0.15", only: :test},
       {:mox, "~> 0.5", only: :test},
