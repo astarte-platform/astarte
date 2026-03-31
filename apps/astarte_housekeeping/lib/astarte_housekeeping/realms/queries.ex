@@ -218,7 +218,7 @@ defmodule Astarte.Housekeeping.Realms.Queries do
     if opts[:async] do
       {:ok, _pid} =
         Task.start(fn ->
-          do_create_realm(
+          do_execute_realm_creation(
             realm_name,
             keyspace_name,
             public_key_pem,
@@ -230,7 +230,7 @@ defmodule Astarte.Housekeeping.Realms.Queries do
 
       {:ok, :started}
     else
-      do_create_realm(
+      do_execute_realm_creation(
         realm_name,
         keyspace_name,
         public_key_pem,
@@ -239,6 +239,26 @@ defmodule Astarte.Housekeeping.Realms.Queries do
         max_retention
       )
     end
+  end
+
+  defp do_execute_realm_creation(
+         realm_name,
+         keyspace_name,
+         public_key_pem,
+         replication_map_str,
+         device_limit,
+         max_retention
+       ) do
+    Repo.checkout(fn ->
+      do_create_realm(
+        realm_name,
+        keyspace_name,
+        public_key_pem,
+        replication_map_str,
+        device_limit,
+        max_retention
+      )
+    end)
   end
 
   defp do_create_realm(
