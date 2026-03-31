@@ -32,13 +32,11 @@ describe('AstarteClient', () => {
   const pairingApiUrl = `${astarteUrl}/pairing/`;
   const realmManagementApiUrl = `${astarteUrl}/realmmanagement/`;
   const flowApiUrl = `${astarteUrl}/flow/`;
-  const fdoApiUrl = `${astarteUrl}/fdo/`;
   const astarte = new AstarteClient({
     appEngineApiUrl,
     pairingApiUrl,
     realmManagementApiUrl,
     flowApiUrl,
-    fdoApiUrl,
     realm,
     token,
   });

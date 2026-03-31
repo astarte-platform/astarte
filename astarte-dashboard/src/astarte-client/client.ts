@@ -145,7 +145,6 @@ interface AstarteClientConfig {
   realm?: string;
   realmManagementApiUrl: string;
   token?: string;
-  fdoApiUrl: string;
 }
 
 class AstarteClient {
@@ -247,13 +246,13 @@ class AstarteClient {
       pipelineSource:        astarteAPIurl`${config.flowApiUrl}v1/${'realm'}/pipelines/${'pipelineId'}`,
       blocks:                astarteAPIurl`${config.flowApiUrl}v1/${'realm'}/blocks`,
       blockSource:           astarteAPIurl`${config.flowApiUrl}v1/${'realm'}/blocks/${'blockId'}`,
-      fdoOwnerKey:           astarteAPIurl`${config.fdoApiUrl}v1/${'realm'}/fdo/owner_key`,
-      fdoOwnerKeyDetail:     astarteAPIurl`${config.fdoApiUrl}v1/${'realm'}/fdo/owner_key/${'keyName'}`,
-      fdoOwnerKeys:          astarteAPIurl`${config.fdoApiUrl}v1/${'realm'}/fdo/owner_keys`,
-      fdoOwnershipVoucher:   astarteAPIurl`${config.pairingApiUrl}v1/${'realm'}/fdo/ownership_voucher`,
-      // fdoOwnerKeysList: astarteAPIurl`${config.pairingApiUrl}v1/${'realm'}/fdo/list_keys`,
-      fdoCompatibleKeys: astarteAPIurl`${config.pairingApiUrl}v1/${'realm'}/ownership/compatible_keys`,
-      fdoLoadVoucher:    astarteAPIurl`${config.pairingApiUrl}v1/${'realm'}/ownership/load`,
+      // Owner Keys (OpenBao-backed, agent API)
+      fdoOwnerKeys:             astarteAPIurl`${config.pairingApiUrl}v1/${'realm'}/fdo/owner_keys`,
+      fdoOwnerKeysByAlgorithm:  astarteAPIurl`${config.pairingApiUrl}v1/${'realm'}/fdo/owner_keys/${'keyAlgorithm'}`,
+      fdoOwnerKeyDetail:        astarteAPIurl`${config.pairingApiUrl}v1/${'realm'}/fdo/owner_keys/${'keyAlgorithm'}/${'keyName'}`,
+      // Ownership Vouchers (OpenBao-backed, agent API)
+      fdoOwnerKeysForVoucher:   astarteAPIurl`${config.pairingApiUrl}v1/${'realm'}/fdo/owner_keys_for_voucher`,
+      fdoOwnershipVouchers:     astarteAPIurl`${config.pairingApiUrl}v1/${'realm'}/fdo/ownership_vouchers`,
     };
   }
 
@@ -815,7 +814,7 @@ class AstarteClient {
 
     return axios({
       method: 'post',
-      url: this.apiConfig.fdoLoadVoucher(this.config),
+      url: this.apiConfig.fdoOwnershipVouchers(this.config),
       headers: {
         Authorization: `Bearer ${this.token}`,
         'Content-Type': 'application/json',
@@ -826,10 +825,10 @@ class AstarteClient {
     }).then((response) => response.data);
   }
 
-  async getCompatibleOwnerKeys(voucherText: string): Promise<string[]> {
+  async getCompatibleOwnerKeys(voucherText: string): Promise<{ key_name: string; key_algorithm: string }[]> {
     return axios({
       method: 'post',
-      url: this.apiConfig.fdoCompatibleKeys(this.config),
+      url: this.apiConfig.fdoOwnerKeysForVoucher(this.config),
       headers: {
         Authorization: `Bearer ${this.token}`,
         'Content-Type': 'application/json',
@@ -843,10 +842,10 @@ class AstarteClient {
       // response.data.data is an object: {"es256":["abcd","ec256"], "rs256": ["other-key"]}
       const rawData = response.data.data;
 
-      // extract all keys and put the on into a unique array
       if (rawData && typeof rawData === 'object') {
-        const flatKeys = Object.values(rawData).flat() as string[];
-        return flatKeys;
+        return Object.entries(rawData).flatMap(([key_algorithm, keyNames]) =>
+          (keyNames as string[]).map((key_name) => ({ key_name, key_algorithm })),
+        );
       }
 
       return []; // Fallback
@@ -872,7 +871,7 @@ class AstarteClient {
 
     return axios({
       method: 'post',
-      url: this.apiConfig.fdoOwnerKey(this.config),
+      url: this.apiConfig.fdoOwnerKeys(this.config),
       headers: {
         Authorization: `Bearer ${this.token}`,
         'Content-Type': 'application/json',
@@ -910,20 +909,15 @@ class AstarteClient {
     });
   }
 
-  async getFdoOwnerKey(keyName: string): Promise<{ key_name: string; public_key: string }> {
-    // The server stores uploaded keys under "import/<keyName>" in Vault — try that path first
-    const vaultKeyName = `import/${keyName}`;
-    const tryFetch = (name: string) =>
-      axios({
-        method: 'get',
-        url: this.apiConfig.fdoOwnerKeyDetail({ ...this.config, keyName: name }),
-        headers: { Authorization: `Bearer ${this.token}` },
-      }).then((response) => response.data.data);
-
-    return tryFetch(vaultKeyName).catch(() => tryFetch(keyName)).then((data) => ({
-      ...data,
-      key_name: (data.key_name as string).replace(/^import\//, ''),
-    }));
+  async getFdoOwnerKey(
+    keyAlgorithm: string,
+    keyName: string,
+  ): Promise<{ key_name: string; public_key: string }> {
+    return axios({
+      method: 'get',
+      url: this.apiConfig.fdoOwnerKeyDetail({ ...this.config, keyAlgorithm, keyName }),
+      headers: { Authorization: `Bearer ${this.token}` },
+    }).then((response) => response.data.data);
   }
 
   private async $get(url: string) {
