@@ -25,6 +25,7 @@ defmodule Astarte.Secrets.OwnerKeyInitialization do
   alias Astarte.Secrets
   alias Astarte.Secrets.Core
   alias Astarte.Secrets.OwnerKeyInitializationOptions
+  alias COSE.Keys
 
   def create_or_upload(
         %OwnerKeyInitializationOptions{
@@ -36,8 +37,26 @@ defmodule Astarte.Secrets.OwnerKeyInitialization do
       ) do
     {:ok, key_algorithm} = Core.string_to_key_type(key_algorithm)
     {:ok, namespace} = Secrets.create_namespace(realm_name, key_algorithm)
-
     do_create_key(key_name, key_algorithm, namespace)
+  end
+
+  def create_or_upload(
+        %OwnerKeyInitializationOptions{
+          action: "upload",
+          key_name: key_name,
+          key_data: key_data
+        },
+        realm_name
+      ) do
+    case Keys.from_pem(key_data) do
+      {:ok, decoded_key_data} ->
+        key_algorithm = decoded_key_data.alg
+        {:ok, namespace} = Secrets.create_namespace(realm_name, key_algorithm)
+        do_upload_key(key_name, key_algorithm, decoded_key_data, namespace)
+
+      :error ->
+        {:error, :unprocessable_key}
+    end
   end
 
   defp do_create_key(key_name, key_algorithm, namespace) do
@@ -46,6 +65,12 @@ defmodule Astarte.Secrets.OwnerKeyInitialization do
       # TODO use the appropriate key struct
       public_key = get_in(key_data, ["keys", "1", "public_key"])
       {:ok, public_key}
+    end
+  end
+
+  defp do_upload_key(key_name, key_algorithm, key_body, namespace) do
+    with :ok <- Secrets.import_key(key_name, key_algorithm, key_body, namespace: namespace) do
+      {:ok, ""}
     end
   end
 end

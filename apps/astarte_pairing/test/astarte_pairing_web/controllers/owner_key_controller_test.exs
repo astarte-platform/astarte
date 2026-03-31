@@ -26,16 +26,17 @@ defmodule Astarte.PairingWeb.Controllers.OwnerKeyControllerTest do
   alias Astarte.Secrets.Key
   alias Astarte.Secrets.OwnerKeyInitialization
   alias Astarte.Secrets.OwnerKeyInitializationOptions
+  alias COSE.Keys
 
   setup :verify_on_exit!
 
-  describe "/fdo/owner_key" do
+  describe "POST /fdo/owner_key" do
     setup :owner_key_setup
 
     test "rejects the request if no correct key action is specified", context do
       %{
         auth_conn: conn,
-        create_path: path,
+        owner_key_path: path,
         create_key_payload: payload
       } = context
 
@@ -50,7 +51,7 @@ defmodule Astarte.PairingWeb.Controllers.OwnerKeyControllerTest do
     test "rejects the request if no algorithm is specified while creating key", context do
       %{
         auth_conn: conn,
-        create_path: path,
+        owner_key_path: path,
         create_key_payload: payload
       } = context
 
@@ -65,7 +66,7 @@ defmodule Astarte.PairingWeb.Controllers.OwnerKeyControllerTest do
          context do
       %{
         auth_conn: conn,
-        create_path: path,
+        owner_key_path: path,
         create_key_payload: payload
       } = context
 
@@ -80,10 +81,12 @@ defmodule Astarte.PairingWeb.Controllers.OwnerKeyControllerTest do
     test "creates in OpenBao a key of the chosen type (EC256)", context do
       %{
         auth_conn: conn,
-        create_path: path,
+        owner_key_path: path,
         create_key_payload: payload,
         openbao_namespace: namespace
       } = context
+
+      on_exit(fn -> cleanup_keys(namespace) end)
 
       public_key_created =
         conn
@@ -96,8 +99,85 @@ defmodule Astarte.PairingWeb.Controllers.OwnerKeyControllerTest do
       assert public_key_created == public_key_retrieved
     end
 
+    test "rejects the request if no key data is specified while uploading key", context do
+      %{
+        auth_conn: conn,
+        owner_key_path: path,
+        upload_key_payload: payload
+      } = context
+
+      {_, payload_no_key_data} = pop_in(payload, [:data, :key_data])
+
+      conn
+      |> post(path, payload_no_key_data)
+      |> response(422)
+    end
+
+    test "rejects the request if an invalid key body is passed while uploading key",
+         context do
+      %{
+        auth_conn: conn,
+        owner_key_path: path,
+        upload_key_payload: payload
+      } = context
+
+      payload_wrong_key_data =
+        update_in(payload, [:data, :key_data], fn _ -> "invalid_key_body" end)
+
+      conn
+      |> post(path, payload_wrong_key_data)
+      |> response(422)
+    end
+
+    test "uploads in OpenBao a key of the chosen type (EC256)", context do
+      %{
+        auth_conn: conn,
+        owner_key_path: path,
+        upload_key_payload: payload,
+        openbao_namespace: namespace
+      } = context
+
+      on_exit(fn -> cleanup_keys(namespace) end)
+
+      conn
+      |> post(path, payload)
+      |> response(200)
+
+      assert {:ok, %Key{public_pem: public_key_retrieved}} =
+               Secrets.get_key(payload[:data][:key_name], namespace: namespace)
+
+      # we load a private key PEM, OpenBao returns a public key PEM. Need to compare them
+      assert private_pem_public_pem_match?(payload[:data][:key_data], public_key_retrieved)
+    end
+
+    test "returns a warning if a key with the same name has been already imported in OpenBao",
+         context do
+      %{
+        auth_conn: conn,
+        owner_key_path: path,
+        upload_key_payload: payload,
+        openbao_namespace: namespace
+      } = context
+
+      on_exit(fn -> cleanup_keys(namespace) end)
+
+      payload_duplicated_key =
+        update_in(payload, [:data, :key_name], fn _ -> "duplicated_key" end)
+
+      conn
+      |> post(path, payload_duplicated_key)
+      |> response(200)
+
+      resp_message =
+        conn
+        |> post(path, payload_duplicated_key)
+        |> response(409)
+
+      assert resp_message =~ "has already been imported"
+    end
+
     test "returns a 404 error if FDO feature is disabled", context do
-      %{auth_conn: conn, create_path: path, create_key_payload: payload} = context
+      %{auth_conn: conn, owner_key_path: path, create_key_payload: payload} = context
 
       stub(Config, :enable_fdo!, fn -> false end)
 
@@ -116,6 +196,8 @@ defmodule Astarte.PairingWeb.Controllers.OwnerKeyControllerTest do
         openbao_namespace: namespace,
         list_path: path
       } = context
+
+      on_exit(fn -> cleanup_keys(namespace) end)
 
       keys =
         conn
@@ -142,7 +224,7 @@ defmodule Astarte.PairingWeb.Controllers.OwnerKeyControllerTest do
 
   defp owner_key_setup(context) do
     %{auth_conn: conn, realm_name: realm_name} = context
-    create_path = owner_key_path(conn, :create_or_upload_key, realm_name)
+    owner_key_path = owner_key_path(conn, :create_or_upload_key, realm_name)
 
     create_key_payload = %{
       data: %{
@@ -152,11 +234,20 @@ defmodule Astarte.PairingWeb.Controllers.OwnerKeyControllerTest do
       }
     }
 
+    upload_key_payload = %{
+      data: %{
+        action: "upload",
+        key_name: "key_to_upload",
+        key_data: Keys.ECC.generate(:es256) |> Keys.to_pem()
+      }
+    }
+
     {:ok, namespace_es256} = Secrets.create_namespace(realm_name, :es256)
 
     %{
-      create_path: create_path,
+      owner_key_path: owner_key_path,
       create_key_payload: create_key_payload,
+      upload_key_payload: upload_key_payload,
       openbao_namespace: namespace_es256
     }
   end
@@ -201,5 +292,32 @@ defmodule Astarte.PairingWeb.Controllers.OwnerKeyControllerTest do
     end)
 
     %{list_path: list_path, openbao_namespace: namespace_es256}
+  end
+
+  # simple version, works only for EC keys
+  # TODO implement using COSE functions
+  defp private_pem_public_pem_match?(private_pem, public_pem) do
+    private_pem_decoded = decode_pem(private_pem) |> extract_public()
+    public_pem_decoded = decode_pem(public_pem)
+
+    private_pem_decoded == public_pem_decoded
+  end
+
+  defp decode_pem(pem_string) do
+    [entry] = :public_key.pem_decode(pem_string)
+    :public_key.pem_entry_decode(entry)
+  end
+
+  defp extract_public({:ECPrivateKey, _version, _priv, params, pub_bytes, _attributes}) do
+    {{:ECPoint, pub_bytes}, params}
+  end
+
+  defp cleanup_keys(namespace) do
+    {:ok, keys_to_delete} = Secrets.list_keys_names(namespace: namespace)
+
+    Enum.each(keys_to_delete, fn key ->
+      Secrets.enable_key_deletion(key, namespace: namespace)
+      Secrets.delete_key(key, namespace: namespace)
+    end)
   end
 end

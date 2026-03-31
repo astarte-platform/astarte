@@ -71,6 +71,22 @@ defmodule Astarte.PairingWeb.ErrorView do
     }
   end
 
+  def render("unprocessable_key.json", _assigns) do
+    %{
+      errors: %{
+        detail: "The provided key format is invalid or cannot be processed."
+      }
+    }
+  end
+
+  def render("key_already_imported.json", _assigns) do
+    %{
+      errors: %{
+        detail: "A key with this name has already been imported"
+      }
+    }
+  end
+
   # In case no render clause matches or no
   # template is found, let's render it as 500
   def template_not_found(_template, assigns) do
