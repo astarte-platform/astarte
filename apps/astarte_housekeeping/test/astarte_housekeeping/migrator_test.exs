@@ -86,6 +86,10 @@ defmodule Astarte.Housekeeping.MigratorTest do
     test "returns ok with missing capabilities" do
       new_realm = "realm#{System.unique_integer([:positive])}"
 
+      on_exit(fn ->
+        Database.teardown_realm_keyspace(new_realm)
+      end)
+
       realm_migrations_path =
         Application.app_dir(
           :astarte_housekeeping,

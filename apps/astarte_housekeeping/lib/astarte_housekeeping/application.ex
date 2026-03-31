@@ -22,6 +22,7 @@ defmodule Astarte.Housekeeping.Application do
 
   alias Astarte.DataAccess.Config, as: DataAccessConfig
   alias Astarte.Housekeeping.Config
+  alias Astarte.Housekeeping.ReleaseTasks
 
   require Logger
 
@@ -45,6 +46,7 @@ defmodule Astarte.Housekeeping.Application do
 
     # Define workers and child supervisors to be supervised
     children = [
+      ReleaseTasks,
       Astarte.HousekeepingWeb.Telemetry,
       Astarte.HousekeepingWeb.Endpoint
     ]

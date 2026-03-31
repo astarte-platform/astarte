@@ -18,13 +18,11 @@
 
 defmodule Astarte.Housekeeping.Migrator do
   @moduledoc false
-  import Ecto.Query
 
   alias Astarte.DataAccess.Consistency
   alias Astarte.DataAccess.CSystem
   alias Astarte.DataAccess.KvStore
   alias Astarte.DataAccess.Realms.Realm
-  alias Astarte.DataAccess.Repo
   alias Astarte.Events.AMQP.Vhost
   alias Astarte.Housekeeping.Realms.Queries
   alias Astarte.Housekeeping.Realms.Realm, as: HKRealm
@@ -36,8 +34,7 @@ defmodule Astarte.Housekeeping.Migrator do
   def run_astarte_keyspace_migrations do
     _ = Logger.info("Starting to migrate Astarte keyspace.", tag: "astarte_migration_started")
 
-    with :ok <- ensure_astarte_kv_store(),
-         {:ok, astarte_schema_version} <- get_astarte_schema_version() do
+    with {:ok, astarte_schema_version} <- get_astarte_schema_version() do
       migrate_astarte_keyspace_from_version(astarte_schema_version)
     end
   end
@@ -85,50 +82,6 @@ defmodule Astarte.Housekeeping.Migrator do
          :ok <- migrate_realm_from_version(realm_name, realm_astarte_schema_version),
          :ok <- Vhost.create_vhost(realm_name) do
       migrate_realms(tail)
-    end
-  end
-
-  defp ensure_astarte_kv_store do
-    keyspace_name = Realm.astarte_keyspace_name()
-
-    query =
-      from t in "system_schema.tables",
-        where:
-          t.keyspace_name == ^keyspace_name and
-            t.table_name == "kv_store",
-        select: t.table_name
-
-    consistency = Consistency.domain_model(:read)
-
-    case Repo.safe_fetch_one(query, consistency: consistency) do
-      {:ok, _item} ->
-        :ok
-
-      {:error, :not_found} ->
-        create_astarte_kv_store()
-
-      {:error, reason} ->
-        Logger.warning("Error checking Astarte kv_store existence: #{inspect(reason)}.",
-          tag: "database_error"
-        )
-
-        {:error, reason}
-    end
-  end
-
-  defp create_astarte_kv_store do
-    query = """
-    CREATE TABLE #{Realm.astarte_keyspace_name()}.kv_store (
-      group varchar,
-      key varchar,
-      value blob,
-
-      PRIMARY KEY ((group), key)
-    );
-    """
-
-    with {:ok, %{rows: nil, num_rows: 1}} <- CSystem.execute_schema_change(query) do
-      :ok
     end
   end
 

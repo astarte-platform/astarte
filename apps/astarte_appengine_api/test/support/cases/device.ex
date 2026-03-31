@@ -169,6 +169,7 @@ defmodule Astarte.Cases.Device do
         individual_downsampable: individual_downsampable(),
         object_downsampable: object_downsampable(),
         properties_server_allow_unset: properties_server_allow_unset(),
+        properties_server_without_unset: properties_server_without_unset(),
         explicit_timestamps: explicit_timestamps(),
         other_interfaces: other_interfaces()
       }
@@ -229,6 +230,14 @@ defmodule Astarte.Cases.Device do
     |> list_of(min_length: 1)
     |> Enum.at(0)
     |> customize_mappings(allow_unset: true)
+  end
+
+  defp properties_server_without_unset do
+    [ownership: :server, type: :properties]
+    |> InterfaceGenerator.interface()
+    |> list_of(min_length: 1)
+    |> Enum.at(0)
+    |> customize_mappings(allow_unset: false)
   end
 
   defp fallible_interfaces do

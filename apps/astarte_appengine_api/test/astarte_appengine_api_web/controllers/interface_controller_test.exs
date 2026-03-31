@@ -413,33 +413,21 @@ defmodule Astarte.AppEngine.APIWeb.InterfaceControllerTest do
   property "forbids deletion if `allow_unset` is false", context do
     %{realm_name: realm_name, interfaces: interfaces, device: device, auth_conn: conn} = context
 
-    valid_interfaces_to_unset =
+    invalid_interfaces_to_unset =
       interfaces
       |> Enum.filter(fn interface ->
-        allow_unset? = Enum.any?(interface.mappings, &(!&1.allow_unset))
+        doesnt_allow_unset? = Enum.any?(interface.mappings, &(!&1.allow_unset))
 
         server? = interface.ownership == :server
         property? = interface.type == :properties
 
-        property? && server? && allow_unset?
+        property? && server? && doesnt_allow_unset?
       end)
 
-    check all interface <- member_of(valid_interfaces_to_unset),
+    check all interface <- member_of(invalid_interfaces_to_unset),
               mapping_to_unset <-
                 member_of(interface.mappings |> Enum.filter(&(!&1.allow_unset))),
               path <- InterfaceUpdateGenerator.path_from_endpoint(mapping_to_unset.endpoint) do
-      if mapping_to_unset.allow_unset do
-        path_tokens = path_tokens(path)
-        expected_token = [realm_name, device.encoded_id, interface.name | path_tokens]
-
-        publish_result_ok(interface, mapping_to_unset, fn args ->
-          assert %{payload: payload, topic_tokens: topic_tokens, qos: qos} = args
-          assert topic_tokens == expected_token
-          assert qos == 2
-          assert payload == ""
-        end)
-      end
-
       request_path =
         interface_values_path(
           conn,

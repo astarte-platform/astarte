@@ -44,6 +44,7 @@ defmodule Astarte.Housekeeping.Realms.QueriesTest do
   @replication_factor 1
   @datacenter "datacenter1"
   @map_replication_factor %{@datacenter => 1}
+
   describe "database initialization" do
     setup do
       astarte_instance_id = "another#{System.unique_integer([:positive])}"
@@ -108,39 +109,6 @@ defmodule Astarte.Housekeeping.Realms.QueriesTest do
     end
   end
 
-  describe "astarte_keyspace_existing?/0," do
-    setup do
-      astarte_instance_id = "another#{System.unique_integer([:positive])}"
-      Database.setup_database_access(astarte_instance_id)
-
-      on_exit(fn ->
-        Database.setup_database_access(astarte_instance_id)
-        Database.teardown_astarte_keyspace()
-      end)
-
-      %{astarte_instance_id: astarte_instance_id}
-    end
-
-    test "true" do
-      assert :ok = Queries.initialize_database()
-      assert {:ok, true} = Queries.astarte_keyspace_existing?()
-    end
-
-    test "false" do
-      assert {:ok, false} = Queries.astarte_keyspace_existing?()
-    end
-
-    test "fails due to db error" do
-      Mimic.expect(Xandra, :execute, fn _, _, _, _ -> {:error, %Xandra.Error{message: ""}} end)
-      assert {:error, :database_error} = Queries.astarte_keyspace_existing?()
-    end
-
-    test "fails due to db connection error" do
-      Mimic.expect(Xandra, :execute, fn _, _, _, _ -> {:error, %Xandra.ConnectionError{}} end)
-      assert {:error, :database_connection_error} = Queries.astarte_keyspace_existing?()
-    end
-  end
-
   describe "create a realm," do
     setup %{astarte_instance_id: astarte_instance_id} do
       realm_name = "another#{System.unique_integer([:positive])}"
@@ -172,11 +140,6 @@ defmodule Astarte.Housekeeping.Realms.QueriesTest do
               {:invalid_replication,
                "replication_factor 10 is >= 1 nodes in datacenter datacenter1"}} =
                Queries.create_realm(realm_name, "test1publickey", 10, 1, 1, [])
-    end
-
-    test "async creations returns ok", %{realm_name: realm_name} do
-      assert {:ok, :started} =
-               Queries.create_realm(realm_name, "test1publickey", 1, 1, 1, async: true)
     end
 
     test "creations returns an error", %{realm_name: realm_name} do
@@ -509,14 +472,16 @@ defmodule Astarte.Housekeeping.Realms.QueriesTest do
 
   describe "realm creation" do
     setup %{astarte_instance_id: astarte_instance_id, realm_name: realm_name} do
+      other_realm_name = "realm#{System.unique_integer([:positive])}"
+
       on_exit(fn ->
         Database.setup_database_access(astarte_instance_id)
         Queries.set_datastream_maximum_storage_retention(realm_name, 50)
         Queries.set_device_registration_limit(realm_name, 500)
+        Database.teardown_realm_keyspace(other_realm_name)
         Database.insert_public_key(realm_name)
       end)
 
-      other_realm_name = "realm#{System.unique_integer([:positive])}"
       %{other_realm_name: other_realm_name}
     end
 

@@ -68,11 +68,11 @@ RUN apt-get update -y && \
 ARG BUILD_ENV=prod
 ARG SERVICE
 
+ENV SERVICE_CMD="./bin/$SERVICE start"
+
 COPY --from=builder --chown=nobody:nogroup /app/_build/$BUILD_ENV/rel/$SERVICE .
-COPY --from=builder --chown=nobody:nogroup /app/entrypoint.sh .
 
 # Change to non-root user
 USER nobody
 
-ENTRYPOINT ["/bin/bash", "entrypoint.sh"]
-CMD ["start"]
+CMD $SERVICE_CMD

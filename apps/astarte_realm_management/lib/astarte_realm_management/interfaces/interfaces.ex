@@ -170,7 +170,11 @@ defmodule Astarte.RealmManagement.Interfaces do
 
   defp mappings_retention_valid?(mappings, max_retention) do
     Enum.all?(mappings, fn %Mapping{database_retention_ttl: retention} ->
-      retention <= max_retention
+      case retention do
+        nil -> true
+        n when n <= max_retention -> true
+        _ -> false
+      end
     end)
   end
 
