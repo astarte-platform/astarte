@@ -210,6 +210,7 @@ defmodule Astarte.FDO.Helpers do
     cose_alg = if curve == :p256, do: :es256, else: :es384
 
     cose_key = Keyword.get_lazy(opts, :device_key, fn -> ECC.generate(cose_alg) end)
+    owner_key = Keyword.get(opts, :owner_key, cose_key)
 
     %ECC{alg: ^cose_alg} = cose_key
 
@@ -238,8 +239,8 @@ defmodule Astarte.FDO.Helpers do
         :x509 -> cert_der
       end
 
-    # Entry Payload (COSE Key)
-    entry_payload_bin = create_cose_key_entry_payload(cose_key, curve)
+    # Entry Payload (COSE Key) — use owner_key if provided, else device key
+    entry_payload_bin = create_cose_key_entry_payload(owner_key)
 
     guid_raw = UUID.uuid4(:raw)
 
@@ -282,12 +283,12 @@ defmodule Astarte.FDO.Helpers do
     hmac_bytes = :crypto.strong_rand_bytes(hmac_len)
     hmac_struct = %Hash{type: hmac_type, hash: hmac_bytes}
 
-    protected_header = %{alg: cose_alg}
+    protected_header = %{alg: owner_key.alg}
     unprotected_header_map = %{}
 
     sign1_msg = Sign1.build(entry_payload_bin, protected_header, unprotected_header_map)
 
-    {:ok, entry_tag} = Sign1.sign_encode(sign1_msg, cose_key)
+    {:ok, entry_tag} = Sign1.sign_encode(sign1_msg, owner_key)
 
     voucher = %OwnershipVoucher{
       header: header_struct,
@@ -298,6 +299,16 @@ defmodule Astarte.FDO.Helpers do
     }
 
     {voucher, pem}
+  end
+
+  @doc """
+  Encodes an `Astarte.FDO.Core.OwnershipVoucher` struct to a PEM string.
+  """
+  def voucher_to_pem(voucher) do
+    cbor_bytes = Astarte.FDO.Core.OwnershipVoucher.cbor_encode(voucher)
+    b64 = Base.encode64(cbor_bytes)
+    wrapped = Regex.replace(~r/.{64}/, b64, "\\0\n")
+    "-----BEGIN OWNERSHIP VOUCHER-----\n#{wrapped}\n-----END OWNERSHIP VOUCHER-----\n"
   end
 
   defp get_curve_params(:p256) do
@@ -345,9 +356,12 @@ defmodule Astarte.FDO.Helpers do
     :public_key.pkix_sign(tbs_cert, priv_key)
   end
 
-  defp create_cose_key_entry_payload(%ECC{x: x, y: y}, curve) do
-    {cose_crv, cose_alg} =
-      if curve == :p256, do: {1, -7}, else: {2, -35}
+  defp create_cose_key_entry_payload(%ECC{x: x, y: y, alg: alg}) do
+    {cose_crv, cose_alg, type_int} =
+      case alg do
+        :es256 -> {1, -7, 10}
+        :es384 -> {2, -35, 11}
+      end
 
     cose_key_map = %{
       1 => 2,
@@ -357,7 +371,6 @@ defmodule Astarte.FDO.Helpers do
       -3 => y
     }
 
-    type_int = if curve == :p256, do: 10, else: 11
     enc_int = 3
 
     key_bytes = CBOR.encode(cose_key_map)

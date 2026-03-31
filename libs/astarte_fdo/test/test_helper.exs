@@ -41,6 +41,7 @@ Mimic.copy(Astarte.FDO.OwnerOnboarding)
 Mimic.copy(Astarte.FDO.Rendezvous.Client)
 Mimic.copy(Astarte.FDO.Rendezvous)
 Mimic.copy(Astarte.FDO.ServiceInfo)
+Mimic.copy(Astarte.Secrets)
 Mimic.copy(DateTime)
 Mimic.copy(HTTPoison)
 

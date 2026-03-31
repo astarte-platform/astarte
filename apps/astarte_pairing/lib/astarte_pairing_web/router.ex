@@ -106,6 +106,7 @@ defmodule Astarte.PairingWeb.Router do
       get "/owner_keys", OwnerKeyController, :list_keys
       get "/owner_keys/:key_algorithm/:key_name", OwnerKeyController, :get_key
       post "/owner_keys_for_voucher", OwnershipVoucherController, :owner_keys_for_voucher
+      post "/ownership_vouchers", OwnershipVoucherController, :register
     end
 
     scope "/ownership" do
