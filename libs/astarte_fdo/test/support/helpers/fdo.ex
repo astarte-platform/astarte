@@ -169,13 +169,9 @@ defmodule Astarte.FDO.Helpers do
     CBOR.encode([%CBOR.Tag{tag: :bytes, value: nonce}])
   end
 
-  def insert_voucher(realm_name, key_name, key_algorithm, cbor_voucher, guid) do
-    %DBOwnershipVoucher{
-      voucher_data: cbor_voucher,
-      key_algorithm: key_algorithm,
-      key_name: key_name,
-      guid: guid
-    }
+  def insert_voucher(realm_name, attrs) when is_map(attrs) do
+    %DBOwnershipVoucher{}
+    |> DBOwnershipVoucher.changeset(attrs)
     |> Repo.insert(prefix: Realm.keyspace_name(realm_name))
   end
 

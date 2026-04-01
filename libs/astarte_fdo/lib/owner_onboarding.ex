@@ -309,9 +309,7 @@ defmodule Astarte.FDO.OwnerOnboarding do
         Queries.replace_ownership_voucher(
           realm_name,
           to2_session.guid,
-          cbor_voucher,
-          key_name,
-          @one_week
+          cbor_voucher
         )
       end
     end

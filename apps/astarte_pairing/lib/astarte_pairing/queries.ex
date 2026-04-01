@@ -207,7 +207,7 @@ defmodule Astarte.Pairing.Queries do
     query =
       from o in OwnershipVoucher,
         prefix: ^keyspace_name,
-        select: o.private_key
+        select: o.key_name
 
     consistency = Consistency.domain_model(:read)
 
@@ -218,7 +218,7 @@ defmodule Astarte.Pairing.Queries do
         realm_name,
         guid,
         cbor_ownership_voucher,
-        owner_private_key,
+        key_name,
         ttl
       ) do
     keyspace_name = Realm.keyspace_name(realm_name)
@@ -227,7 +227,7 @@ defmodule Astarte.Pairing.Queries do
 
     %OwnershipVoucher{
       voucher_data: cbor_ownership_voucher,
-      private_key: owner_private_key,
+      key_name: key_name,
       guid: guid
     }
     |> Repo.insert(opts)
@@ -245,13 +245,14 @@ defmodule Astarte.Pairing.Queries do
   def replace_ownership_voucher(
         realm_name,
         guid,
-        new_voucher,
-        owner_private_key,
-        ttl
+        new_voucher
       ) do
-    with {:ok, _} <- delete_ownership_voucher(realm_name, guid) do
-      create_ownership_voucher(realm_name, guid, new_voucher, owner_private_key, ttl)
-    end
+    keyspace = Realm.keyspace_name(realm_name)
+    consistency = Consistency.device_info(:write)
+    opts = [prefix: keyspace, consistency: consistency]
+
+    %OwnershipVoucher{guid: guid, output_voucher: new_voucher}
+    |> Repo.update(opts)
   end
 
   def store_session(realm_name, guid, session) do

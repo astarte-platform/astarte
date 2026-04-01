@@ -45,7 +45,15 @@ defmodule Astarte.DataAccess.FDO.OwnershipVoucher do
   @doc false
   def changeset(%OwnershipVoucher{} = record, attrs) do
     record
-    |> cast(attrs, [:private_key, :voucher_data, :guid])
-    |> validate_required([:private_key, :voucher_data, :guid])
+    |> cast(attrs, [
+      :key_name,
+      :voucher_data,
+      :guid,
+      :key_algorithm,
+      :replacement_guid,
+      :replacement_rv_info,
+      :replacement_pub_key
+    ])
+    |> validate_required([:key_name, :key_algorithm, :voucher_data, :guid])
   end
 end
