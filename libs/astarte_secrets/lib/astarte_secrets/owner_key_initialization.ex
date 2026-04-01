@@ -69,8 +69,14 @@ defmodule Astarte.Secrets.OwnerKeyInitialization do
   end
 
   defp do_upload_key(key_name, key_algorithm, key_body, namespace) do
-    with :ok <- Secrets.import_key(key_name, key_algorithm, key_body, namespace: namespace) do
-      {:ok, ""}
+    case Secrets.get_key(key_name, namespace: namespace) do
+      {:ok, _key} ->
+        {:error, {:already_imported, "Key #{key_name} has already been imported"}}
+
+      _ ->
+        with :ok <- Secrets.import_key(key_name, key_algorithm, key_body, namespace: namespace) do
+          {:ok, ""}
+        end
     end
   end
 end

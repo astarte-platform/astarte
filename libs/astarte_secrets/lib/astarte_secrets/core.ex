@@ -359,6 +359,8 @@ defmodule Astarte.Secrets.Core do
         else
           "Encountered HTTP error while mounting transit engine in namespace #{namespace}: #{inspect(resp)}"
           |> Logger.error()
+
+          :error
         end
 
       error_resp ->
@@ -553,8 +555,12 @@ defmodule Astarte.Secrets.Core do
   Looks up a key by name within the namespace for the given algorithm.
   Returns `{:ok, key}` if found, `:not_found` otherwise.
   """
-  def find_key(realm_name, key_algorithm, key_name) do
-    with {:ok, namespace} <- Secrets.create_namespace(realm_name, key_algorithm) do
+  def find_key(realm_name, key_name, key_algorithm) do
+    with {:ok, algorithm} <- key_type_to_string(key_algorithm) do
+      namespace =
+        namespace_tokens(realm_name, nil, algorithm)
+        |> Enum.join("/")
+
       case Secrets.get_key(key_name, namespace: namespace) do
         {:ok, key} -> {:ok, key}
         _ -> :not_found
