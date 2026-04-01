@@ -20,8 +20,8 @@ defmodule Astarte.FDO.Core.OwnershipVoucher.CreateRequest do
   @moduledoc false
   use TypedEctoSchema
 
-  alias Astarte.FDO.Core.OwnershipVoucher.CreateRequest
   alias Astarte.FDO.Core.OwnershipVoucher
+  alias Astarte.FDO.Core.OwnershipVoucher.CreateRequest
 
   require Logger
 
