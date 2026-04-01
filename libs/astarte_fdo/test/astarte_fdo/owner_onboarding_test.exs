@@ -231,48 +231,6 @@ defmodule Astarte.FDO.OwnerOnboardingTest do
     end
   end
 
-  describe "fetch_alg/1 with map input" do
-    test "returns {:ok, :es256} for algorithm -7" do
-      assert {:ok, :es256} = OwnerOnboarding.fetch_alg(%{1 => -7})
-    end
-
-    test "returns {:ok, :edsdsa} for algorithm -8" do
-      assert {:ok, :edsdsa} = OwnerOnboarding.fetch_alg(%{1 => -8})
-    end
-
-    test "returns {:error, :unsupported_alg} for unknown algorithm" do
-      assert {:error, :unsupported_alg} = OwnerOnboarding.fetch_alg(%{1 => 999})
-    end
-
-    test "returns {:error, :unsupported_alg} when alg key is missing" do
-      assert {:error, :unsupported_alg} = OwnerOnboarding.fetch_alg(%{})
-    end
-  end
-
-  describe "fetch_alg/1 with binary CBOR input" do
-    test "decodes CBOR and returns the algorithm" do
-      cbor = CBOR.encode(%{1 => -7})
-      assert {:ok, :es256} = OwnerOnboarding.fetch_alg(cbor)
-    end
-
-    test "returns {:error, :unsupported_alg} for CBOR with unknown algorithm" do
-      cbor = CBOR.encode(%{1 => 42})
-      assert {:error, :unsupported_alg} = OwnerOnboarding.fetch_alg(cbor)
-    end
-  end
-
-  describe "build_sig_structure/2" do
-    test "returns {:ok, CBOR-encoded sig structure}" do
-      protected = CBOR.encode(%{1 => -7})
-      payload = :crypto.strong_rand_bytes(32)
-
-      assert {:ok, cbor} = OwnerOnboarding.build_sig_structure(protected, payload)
-      assert is_binary(cbor)
-
-      assert {:ok, ["Signature1", ^protected, <<>>, ^payload], ""} = CBOR.decode(cbor)
-    end
-  end
-
   describe "ov_next_entry/3" do
     test "returns {:ok, entry} for valid entry_num 0", %{realm: realm_name, guid: guid} do
       cbor_body = CBOR.encode([0])

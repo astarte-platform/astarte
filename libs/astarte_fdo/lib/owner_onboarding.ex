@@ -208,35 +208,6 @@ defmodule Astarte.FDO.OwnerOnboarding do
     end
   end
 
-  def fetch_alg(header_map) when is_map(header_map) do
-    case Map.get(header_map, 1) do
-      -7 -> {:ok, :es256}
-      -8 -> {:ok, :edsdsa}
-      _ -> {:error, :unsupported_alg}
-    end
-  end
-
-  def fetch_alg(binary) when is_binary(binary) do
-    with {:ok, map, _rest} <- CBOR.decode(binary), do: fetch_alg(map)
-  end
-
-  def build_sig_structure(protected_bin, payload_bin) do
-    sig_struct = [
-      "Signature1",
-      protected_bin,
-      # external_aad empty in FDO
-      <<>>,
-      payload_bin
-    ]
-
-    {:ok, CBOR.encode(sig_struct)}
-  end
-
-  def der_encode_ecdsa(r, s) do
-    # assuming ECDSA-Sig-Value record is available
-    :public_key.der_encode(:"ECDSA-Sig-Value", {:"ECDSA-Sig-Value", r, s})
-  end
-
   def build_setup_device_message(creds, setup_dv_nonce) do
     payload = %SetupDevicePayload{
       rendezvous_info: creds.rendezvous_info,
