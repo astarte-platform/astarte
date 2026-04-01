@@ -90,20 +90,14 @@ defmodule Astarte.DataAccess.FDO.Queries do
 
   def create_ownership_voucher(
         realm_name,
-        guid,
-        cbor_ownership_voucher,
-        key_name,
-        ttl
+        attrs
       ) do
     keyspace_name = Realm.keyspace_name(realm_name)
 
-    opts = [prefix: keyspace_name, consistency: Consistency.device_info(:write), ttl: ttl]
+    opts = [prefix: keyspace_name, consistency: Consistency.device_info(:write)]
 
-    %OwnershipVoucher{
-      voucher_data: cbor_ownership_voucher,
-      key_name: key_name,
-      guid: guid
-    }
+    %OwnershipVoucher{}
+    |> OwnershipVoucher.changeset(attrs)
     |> Repo.insert(opts)
   end
 
