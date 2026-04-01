@@ -119,13 +119,14 @@ defmodule Astarte.DataAccess.FDO.Queries do
   def replace_ownership_voucher(
         realm_name,
         guid,
-        new_voucher,
-        owner_key_name,
-        ttl
+        new_voucher
       ) do
-    with {:ok, _} <- delete_ownership_voucher(realm_name, guid) do
-      create_ownership_voucher(realm_name, guid, new_voucher, owner_key_name, ttl)
-    end
+    keyspace = Realm.keyspace_name(realm_name)
+    consistency = Consistency.device_info(:write)
+    opts = [prefix: keyspace, consistency: consistency]
+
+    %OwnershipVoucher{guid: guid, output_voucher: new_voucher}
+    |> Repo.update(opts)
   end
 
   def store_session(realm_name, guid, session) do
