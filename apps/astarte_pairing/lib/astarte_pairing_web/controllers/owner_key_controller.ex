@@ -44,6 +44,12 @@ defmodule Astarte.PairingWeb.OwnerKeyController do
            OwnerKeyInitialization.create_or_upload(create_or_upload_changeset, realm_name) do
       # the successful resp will be a public key (when creating) or an empty string (when uploading)
       send_resp(conn, 200, resp)
+    else
+      {:error, {:already_imported, message}} ->
+        send_resp(conn, 409, message)
+
+      err ->
+        err
     end
   end
 
@@ -66,7 +72,7 @@ defmodule Astarte.PairingWeb.OwnerKeyController do
         "key_name" => key_name
       }) do
     with {:ok, algorithm_atom} <- Secrets.Core.string_to_key_type(key_algorithm) do
-      case Secrets.Core.find_key(realm_name, algorithm_atom, key_name) do
+      case Secrets.Core.find_key(realm_name, key_name, algorithm_atom) do
         {:ok, key} ->
           json(conn, %{data: %{key_name: key.name, public_key: key.public_pem}})
 

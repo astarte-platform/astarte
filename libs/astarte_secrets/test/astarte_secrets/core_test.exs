@@ -287,4 +287,350 @@ defmodule Astarte.Secrets.CoreTest do
 
     :ok
   end
+
+  describe "string_to_key_type/1" do
+    test "converts string key types to their atom representation" do
+      assert {:ok, :es256} = Core.string_to_key_type("ecdsa-p256")
+      assert {:ok, :es384} = Core.string_to_key_type("ecdsa-p384")
+      assert {:ok, :rs256} = Core.string_to_key_type("rsa-2048")
+      assert {:ok, :rs384} = Core.string_to_key_type("rsa-3072")
+    end
+
+    test "returns :error for unknown string" do
+      assert :error = Core.string_to_key_type("unknown")
+      assert :error = Core.string_to_key_type(:es256)
+      assert :error = Core.string_to_key_type(nil)
+    end
+
+    test "round-trips with key_type_to_string/1" do
+      for atom <- [:es256, :es384, :rs256, :rs384] do
+        {:ok, string} = Core.key_type_to_string(atom)
+        assert {:ok, ^atom} = Core.string_to_key_type(string)
+      end
+    end
+  end
+
+  describe "key_algorithm_enum/0" do
+    test "returns a keyword list containing all supported algorithms" do
+      enum = Core.key_algorithm_enum()
+      assert Keyword.get(enum, :es256) == "ecdsa-p256"
+      assert Keyword.get(enum, :es384) == "ecdsa-p384"
+      assert Keyword.get(enum, :rs256) == "rsa-2048"
+      assert Keyword.get(enum, :rs384) == "rsa-3072"
+    end
+  end
+
+  describe "digest_type/1" do
+    test "converts known digest atoms to OpenBao strings" do
+      assert {:ok, "sha1"} = Core.digest_type(:sha)
+      assert {:ok, "sha2-224"} = Core.digest_type(:sha224)
+      assert {:ok, "sha2-256"} = Core.digest_type(:sha256)
+      assert {:ok, "sha2-384"} = Core.digest_type(:sha384)
+      assert {:ok, "sha2-512"} = Core.digest_type(:sha512)
+      assert {:ok, "sha3-224"} = Core.digest_type(:sha3_224)
+      assert {:ok, "sha3-256"} = Core.digest_type(:sha3_256)
+      assert {:ok, "sha3-384"} = Core.digest_type(:sha3_384)
+      assert {:ok, "sha3-512"} = Core.digest_type(:sha3_512)
+    end
+
+    test "returns :error for unknown digest type" do
+      assert :error = Core.digest_type(:md5)
+      assert :error = Core.digest_type(:unknown)
+    end
+  end
+
+  describe "encode_key_to_pkcs8/1" do
+    test "encodes an ECC key to PKCS8 DER binary" do
+      key = ECC.generate(:es256)
+      pkcs8 = Core.encode_key_to_pkcs8(key)
+      assert is_binary(pkcs8)
+      assert byte_size(pkcs8) > 0
+      # PKCS8 DER starts with sequence tag 0x30
+      assert <<0x30, _rest::binary>> = pkcs8
+    end
+
+    test "encodes an RSA key to PKCS8 DER binary" do
+      key = RSA.generate(:rs256)
+      pkcs8 = Core.encode_key_to_pkcs8(key)
+      assert is_binary(pkcs8)
+      assert byte_size(pkcs8) > 0
+      assert <<0x30, _rest::binary>> = pkcs8
+    end
+  end
+
+  describe "prepare_import_ciphertext/2" do
+    test "returns {:ok, base64_string} for valid key material and wrapping PEM" do
+      wrapping_pem =
+        X509.PrivateKey.new_rsa(2048)
+        |> X509.PublicKey.derive()
+        |> X509.PublicKey.to_pem()
+
+      key_material = ECC.generate(:es256) |> Core.encode_key_to_pkcs8()
+
+      assert {:ok, ciphertext} = Core.prepare_import_ciphertext(key_material, wrapping_pem)
+      assert is_binary(ciphertext)
+      assert {:ok, _} = Base.decode64(ciphertext)
+    end
+
+    test "returns error for invalid PEM" do
+      assert {:error, :pem_decode_failed} =
+               Core.prepare_import_ciphertext(<<1, 2, 3>>, "not a pem")
+    end
+  end
+
+  describe "parse_json_data/1" do
+    test "parses a valid JSON object with a data key" do
+      json = Jason.encode!(%{"data" => %{"foo" => "bar"}})
+      assert {:ok, %{"foo" => "bar"}} = Core.parse_json_data(json)
+    end
+
+    test "returns error when data key is missing" do
+      json = Jason.encode!(%{"other" => "value"})
+      assert {:error, _} = Core.parse_json_data(json)
+    end
+
+    test "returns error for non-JSON input" do
+      assert {:error, _} = Core.parse_json_data("not json")
+    end
+
+    test "returns error for JSON array (not a map)" do
+      assert {:error, _} = Core.parse_json_data("[1, 2, 3]")
+    end
+  end
+
+  describe "create_keypair/4" do
+    setup :http_stubs_setup
+
+    test "returns parsed data on HTTP 200" do
+      body = Jason.encode!(%{"data" => %{"name" => "my-key"}})
+
+      expect(Client, :post, fn _url, _body, _headers, _opts ->
+        {:ok, %HTTPoison.Response{status_code: 200, body: body}}
+      end)
+
+      assert {:ok, %{"name" => "my-key"}} =
+               Core.create_keypair("my-key", "ecdsa-p256", false, "ns")
+    end
+
+    test "returns :error on HTTP error response" do
+      expect(Client, :post, fn _url, _body, _headers, _opts ->
+        {:ok, %HTTPoison.Response{status_code: 400, body: "bad request"}}
+      end)
+
+      assert :error = Core.create_keypair("my-key", "ecdsa-p256", false, "ns")
+    end
+  end
+
+  describe "get_wrapping_key/1" do
+    setup :http_stubs_setup
+
+    test "returns {:ok, pem} on 200 with valid body" do
+      pem = "-----BEGIN PUBLIC KEY-----\nfake\n-----END PUBLIC KEY-----"
+      body = Jason.encode!(%{"data" => %{"public_key" => pem}})
+
+      expect(Client, :get, fn _url, _headers, _opts ->
+        {:ok, %HTTPoison.Response{status_code: 200, body: body}}
+      end)
+
+      assert {:ok, ^pem} = Core.get_wrapping_key([])
+    end
+
+    test "returns {:error, :wrapping_key_parse_failed} when public_key is missing" do
+      body = Jason.encode!(%{"data" => %{"other" => "value"}})
+
+      expect(Client, :get, fn _url, _headers, _opts ->
+        {:ok, %HTTPoison.Response{status_code: 200, body: body}}
+      end)
+
+      assert {:error, :wrapping_key_parse_failed} = Core.get_wrapping_key([])
+    end
+
+    test "returns :error on HTTP error" do
+      expect(Client, :get, fn _url, _headers, _opts ->
+        {:error, %HTTPoison.Error{reason: :econnrefused}}
+      end)
+
+      assert :error = Core.get_wrapping_key([])
+    end
+  end
+
+  describe "get_key/2" do
+    setup :http_stubs_setup
+
+    test "returns {:ok, body} on HTTP 200" do
+      body = Jason.encode!(%{"data" => %{"name" => "my-key"}})
+
+      expect(Client, :get, fn _url, _headers, _opts ->
+        {:ok, %HTTPoison.Response{status_code: 200, body: body}}
+      end)
+
+      assert {:ok, ^body} = Core.get_key("my-key", "ns")
+    end
+
+    test "returns :error on HTTP 404" do
+      expect(Client, :get, fn _url, _headers, _opts ->
+        {:ok, %HTTPoison.Response{status_code: 404}}
+      end)
+
+      assert :error = Core.get_key("missing-key", "ns")
+    end
+
+    test "returns :error on HTTP error" do
+      expect(Client, :get, fn _url, _headers, _opts ->
+        {:error, %HTTPoison.Error{reason: :econnrefused}}
+      end)
+
+      assert :error = Core.get_key("my-key", "ns")
+    end
+  end
+
+  describe "list_keys/1" do
+    setup :http_stubs_setup
+
+    test "returns {:ok, keys} on HTTP 200 with valid body" do
+      body = Jason.encode!(%{"data" => %{"keys" => ["key1", "key2"]}})
+
+      expect(Client, :list, fn _url, _headers, _opts ->
+        {:ok, %HTTPoison.Response{status_code: 200, body: body}}
+      end)
+
+      assert {:ok, ["key1", "key2"]} = Core.list_keys("ns")
+    end
+
+    test "returns {:ok, []} on HTTP 404" do
+      expect(Client, :list, fn _url, _headers, _opts ->
+        {:ok, %HTTPoison.Response{status_code: 404}}
+      end)
+
+      assert {:ok, []} = Core.list_keys("ns")
+    end
+
+    test "returns :error when response body is malformed" do
+      expect(Client, :list, fn _url, _headers, _opts ->
+        {:ok, %HTTPoison.Response{status_code: 200, body: "not json"}}
+      end)
+
+      assert :error = Core.list_keys("ns")
+    end
+
+    test "returns :error on HTTP error" do
+      expect(Client, :list, fn _url, _headers, _opts ->
+        {:error, %HTTPoison.Error{reason: :econnrefused}}
+      end)
+
+      assert :error = Core.list_keys("ns")
+    end
+  end
+
+  describe "mount_transit_engine/1" do
+    setup :http_stubs_setup
+
+    test "returns :ok on HTTP 204" do
+      expect(Client, :post, fn "/sys/mounts/transit", _body, _headers, _opts ->
+        {:ok, %HTTPoison.Response{status_code: 204}}
+      end)
+
+      assert :ok = Core.mount_transit_engine("ns")
+    end
+
+    test "returns :ok on HTTP 400 with 'already in use' message" do
+      expect(Client, :post, fn "/sys/mounts/transit", _body, _headers, _opts ->
+        {:ok, %HTTPoison.Response{status_code: 400, body: "path is already in use at transit/"}}
+      end)
+
+      assert :ok = Core.mount_transit_engine("ns")
+    end
+
+    test "returns error on HTTP 400 with different message" do
+      expect(Client, :post, fn "/sys/mounts/transit", _body, _headers, _opts ->
+        {:ok,
+         %HTTPoison.Response{
+           status_code: 400,
+           body: "some other error",
+           headers: [],
+           request: nil
+         }}
+      end)
+
+      assert :error = Core.mount_transit_engine("ns")
+    end
+
+    test "returns :error on HTTP connection error" do
+      expect(Client, :post, fn "/sys/mounts/transit", _body, _headers, _opts ->
+        {:error, %HTTPoison.Error{reason: :econnrefused}}
+      end)
+
+      assert :error = Core.mount_transit_engine("ns")
+    end
+  end
+
+  describe "get_keys_from_algorithm/2 with list" do
+    test "returns a list of maps with key names per algorithm" do
+      unique_id = System.unique_integer([:positive])
+      realm_name = "listtest_#{unique_id}"
+
+      {:ok, ns} = Secrets.create_namespace(realm_name, :es256)
+
+      Secrets.create_keypair("k1", :es256, namespace: ns)
+      Secrets.create_keypair("k2", :es256, namespace: ns)
+
+      result = Core.get_keys_from_algorithm(realm_name, [:es256])
+      assert {:ok, [%{es256: keys}]} = result
+      assert "k1" in keys
+      assert "k2" in keys
+    end
+  end
+
+  describe "get_keys_from_algorithm/2 with binary algorithm" do
+    test "returns a map with key names for valid binary algorithm string" do
+      unique_id = System.unique_integer([:positive])
+      realm_name = "bintest_#{unique_id}"
+
+      {:ok, ns} = Secrets.create_namespace(realm_name, :es256)
+
+      Secrets.create_keypair("k1", :es256, namespace: ns)
+
+      result = Core.get_keys_from_algorithm(realm_name, "ecdsa-p256")
+      assert {:ok, %{"ecdsa-p256" => keys}} = result
+      assert "k1" in keys
+    end
+
+    test "returns :error for unknown algorithm string" do
+      assert :error = Core.get_keys_from_algorithm("realm", "unknown-algo")
+    end
+  end
+
+  describe "find_key/3" do
+    test "returns {:ok, key} when the key exists" do
+      unique_id = System.unique_integer([:positive])
+      realm_name = "findtest_#{unique_id}"
+
+      {:ok, ns} = Secrets.create_namespace(realm_name, :es256)
+
+      Secrets.create_keypair("find-me", :es256, namespace: ns)
+
+      assert {:ok, key} = Core.find_key(realm_name, "find-me", :es256)
+      assert key.name == "find-me"
+    end
+
+    test "returns :not_found when key does not exist" do
+      unique_id = System.unique_integer([:positive])
+      realm_name = "findtest_missing_#{unique_id}"
+
+      {:ok, _} = Secrets.create_namespace(realm_name, :es256)
+
+      assert :not_found = Core.find_key(realm_name, "no-such-key", :es256)
+    end
+
+    test "returns :not_found when key exists under a different algorithm" do
+      unique_id = System.unique_integer([:positive])
+      realm_name = "findtest_alg_#{unique_id}"
+
+      {:ok, ns} = Secrets.create_namespace(realm_name, :es256)
+
+      Secrets.create_keypair("find-me", :es256, namespace: ns)
+
+      assert :not_found = Core.find_key(realm_name, "find-me", :es384)
+    end
+  end
 end
