@@ -26,17 +26,8 @@ defmodule Astarte.FDO.OwnershipVoucher do
   alias Astarte.FDO.Core.OwnershipVoucher
   alias Astarte.FDO.Core.OwnershipVoucher.Core
 
-  @one_week 604_800
-
-  def save_voucher(realm_name, cbor_ownership_voucher, device_guid, owner_private_key) do
-    with {:ok, _} <-
-           Queries.create_ownership_voucher(
-             realm_name,
-             device_guid,
-             cbor_ownership_voucher,
-             owner_private_key,
-             @one_week
-           ) do
+  def save_voucher(realm_name, attrs) do
+    with {:ok, _} <- Queries.create_ownership_voucher(realm_name, attrs) do
       :ok
     end
   end
