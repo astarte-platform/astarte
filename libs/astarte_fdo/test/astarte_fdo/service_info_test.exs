@@ -39,7 +39,21 @@ defmodule Astarte.FDO.ServiceInfoTest do
     device_key = ECC.generate(:es256)
     {:ok, device_random, xb} = SessionKey.new(hello_device.kex_name)
 
-    insert_voucher(realm_name, sample_private_key(), sample_cbor_voucher(), device_id)
+    key_alg = :es256
+    key_name = "default"
+    {:ok, namespace} = Astarte.Secrets.create_namespace(realm_name, key_alg)
+
+    {:ok, owner_key} =
+      Astarte.Secrets.import_key(key_name, key_alg, owner_key, namespace: namespace)
+
+    attrs = %{
+      key_name: key_name,
+      key_algoright: key_alg,
+      voucher_data: ownership_voucher,
+      guid: device_id
+    }
+
+    insert_voucher(realm_name, attrs)
 
     %{
       device_id: device_id,

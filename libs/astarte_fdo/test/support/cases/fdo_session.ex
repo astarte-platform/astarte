@@ -75,15 +75,30 @@ defmodule Astarte.Cases.FDOSession do
     cbor_ownership_voucher = OwnershipVoucher.cbor_encode(ownership_voucher)
     device_id = Device.random_device_id()
 
-    insert_voucher(
-      context.realm_name,
-      owner_key_pem,
-      cbor_ownership_voucher,
-      device_id
-    )
+    key_alg =
+      case key_type do
+        "EC256" -> :ec256
+        "EC384" -> :ec384
+        "RSA2048" -> :rs256
+        "RSA3072" -> :rs384
+      end
+
+    {:ok, namespace} = Astarte.Secrets.create_namespace(context.realm_name, key_alg)
+
+    {:ok, owner_key} =
+      Astarte.Secrets.import_key(key_type, key_alg, owner_key_struct, namespace: namespace)
+
+    attrs = %{
+      key_name: key_type,
+      key_algoright: key_alg,
+      voucher_data: cbor_ownership_voucher,
+      guid: device_id
+    }
+
+    insert_voucher(context.realm_name, attrs)
 
     %{
-      owner_key: owner_key_struct,
+      owner_key: owner_key,
       owner_key_pem: owner_key_pem,
       ownership_voucher: ownership_voucher,
       cbor_ownership_voucher: cbor_ownership_voucher,

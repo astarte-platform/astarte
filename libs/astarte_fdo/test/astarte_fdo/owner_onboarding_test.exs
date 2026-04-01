@@ -31,16 +31,6 @@ defmodule Astarte.FDO.OwnerOnboardingTest do
   @max_device_service_info_sz 4096
 
   describe "build_owner_service_info_ready/3" do
-    setup %{
-      realm: realm_name,
-      session: session,
-      owner_key_pem: owner_key_pem,
-      cbor_ownership_voucher: cbor_ownership_voucher
-    } do
-      insert_voucher(realm_name, owner_key_pem, cbor_ownership_voucher, session.guid)
-      %{realm: realm_name, session: session}
-    end
-
     @tag :skip
     # TODO: re-enable this test when credential reuse logic is implemented.
     test "successfully processes DeviceServiceInfoReady, creates new voucher, and returns OwnerServiceInfoReady",
@@ -139,14 +129,7 @@ defmodule Astarte.FDO.OwnerOnboardingTest do
   end
 
   describe "hello_device/2" do
-    setup %{
-      realm: realm_name,
-      owner_key_pem: owner_key_pem,
-      cbor_ownership_voucher: cbor_ownership_voucher,
-      session: session,
-      hello_device: hello_device
-    } do
-      insert_voucher(realm_name, owner_key_pem, cbor_ownership_voucher, session.guid)
+    setup %{hello_device: hello_device} do
       %{cbor_hello_device: HelloDevice.cbor_encode(hello_device)}
     end
 
@@ -291,16 +274,6 @@ defmodule Astarte.FDO.OwnerOnboardingTest do
   end
 
   describe "ov_next_entry/3" do
-    setup %{
-      realm: realm_name,
-      owner_key_pem: owner_key_pem,
-      cbor_ownership_voucher: cbor_ownership_voucher,
-      session: session
-    } do
-      insert_voucher(realm_name, owner_key_pem, cbor_ownership_voucher, session.guid)
-      %{realm: realm_name, guid: session.guid}
-    end
-
     test "returns {:ok, entry} for valid entry_num 0", %{realm: realm_name, guid: guid} do
       cbor_body = CBOR.encode([0])
       assert {:ok, _entry} = OwnerOnboarding.ov_next_entry(cbor_body, realm_name, guid)

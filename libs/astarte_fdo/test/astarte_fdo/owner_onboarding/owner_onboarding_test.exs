@@ -30,37 +30,93 @@ defmodule Astarte.FDO.OwnerOnboarding.OwnerOnboardingTest do
     {voucher_p256_x509, key_p256_x509} = generate_p256_x509_data_and_pem()
     cbor_p256_x509 = OwnershipVoucher.cbor_encode(voucher_p256_x509)
     id_p256_x509 = voucher_p256_x509.header.guid
-    insert_voucher(realm_name, key_p256_x509, cbor_p256_x509, id_p256_x509)
+    key_alg = :es256
+    key_type = "ECDH256_X509"
+    {:ok, namespace} = Astarte.Secrets.create_namespace(realm_name, key_alg)
+
+    {:ok, key_p256_x509} =
+      Astarte.Secrets.import_key(key_type, key_alg, key_p256_x509, namespace: namespace)
+
+    attrs = %{
+      key_name: key_type,
+      key_algoright: key_alg,
+      voucher_data: cbor_p256_x509,
+      guid: id_p256_x509
+    }
+
+    insert_voucher(realm_name, attrs)
 
     hello_msg_p256_x509 =
       HelloDevice.generate(guid: id_p256_x509, kex_name: "ECDH256", easig_info: :es256)
 
     cbor_hello_p256_x509 = HelloDevice.cbor_encode(hello_msg_p256_x509)
 
+    key_alg = :es384
+    key_type = "ECDH384_X509"
+
     {voucher_p384_x509, key_p384_x509} = generate_p384_x509_data_and_pem()
     cbor_p384_x509 = OwnershipVoucher.cbor_encode(voucher_p384_x509)
     id_p384_x509 = voucher_p384_x509.header.guid
-    insert_voucher(realm_name, key_p384_x509, cbor_p384_x509, id_p384_x509)
+
+    {:ok, key_p384_x509} =
+      Astarte.Secrets.import_key(key_type, key_alg, key_p384_x509, namespace: namespace)
+
+    attrs = %{
+      key_name: key_type,
+      key_algoright: key_alg,
+      voucher_data: cbor_p384_x509,
+      guid: id_p384_x509
+    }
+
+    insert_voucher(realm_name, attrs)
 
     hello_msg_p384_x509 =
       HelloDevice.generate(guid: id_p384_x509, kex_name: "ECDH384", easig_info: :es384)
 
     cbor_hello_p384_x509 = HelloDevice.cbor_encode(hello_msg_p384_x509)
 
+    key_alg = :es256
+    key_type = "ECDH256_X5CHAIN"
     {voucher_p256_chain, key_p256_chain} = generate_p256_x5chain_data_and_pem()
     cbor_p256_chain = OwnershipVoucher.cbor_encode(voucher_p256_chain)
     id_p256_chain = voucher_p256_chain.header.guid
-    insert_voucher(realm_name, key_p256_chain, cbor_p256_chain, id_p256_chain)
+    {:ok, namespace} = Astarte.Secrets.create_namespace(realm_name, key_alg)
+
+    {:ok, key_p256_chain} =
+      Astarte.Secrets.import_key(key_type, key_alg, key_p256_chain, namespace: namespace)
+
+    attrs = %{
+      key_name: key_type,
+      key_algoright: key_alg,
+      voucher_data: cbor_p256_chain,
+      guid: id_p256_chain
+    }
+
+    insert_voucher(realm_name, attrs)
 
     hello_msg_p256_x5chain =
       HelloDevice.generate(guid: id_p256_chain, kex_name: "ECDH256", easig_info: :es256)
 
     cbor_hello_p256_chain = HelloDevice.cbor_encode(hello_msg_p256_x5chain)
+    key_alg = :es384
+    key_type = "ECDH384_X5CHAIN"
 
     {voucher_p384_chain, key_p384_chain} = generate_p384_x5chain_data_and_pem()
     cbor_p384_chain = OwnershipVoucher.cbor_encode(voucher_p384_chain)
     id_p384_chain = voucher_p384_chain.header.guid
-    insert_voucher(realm_name, key_p384_chain, cbor_p384_chain, id_p384_chain)
+    {:ok, namespace} = Astarte.Secrets.create_namespace(realm_name, key_alg)
+
+    {:ok, key_p384_chain} =
+      Astarte.Secrets.import_key(key_type, key_alg, key_p384_chain, namespace: namespace)
+
+    attrs = %{
+      key_name: key_type,
+      key_algoright: key_alg,
+      voucher_data: cbor_p384_chain,
+      guid: id_p384_chain
+    }
+
+    insert_voucher(realm_name, attrs)
 
     hello_msg_p384_x5chain =
       HelloDevice.generate(guid: id_p384_chain, kex_name: "ECDH384", easig_info: :es384)
