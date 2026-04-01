@@ -2,12 +2,12 @@ defmodule Astarte.Secrets do
   @moduledoc """
   Functionality to interface with OpenBao APIs.
   """
+  alias Astarte.DataAccess.FDO.Queries
   alias Astarte.Secrets.Client
   alias Astarte.Secrets.Core
   alias Astarte.Secrets.Key
   alias COSE.Keys.ECC
   alias COSE.Keys.RSA
-  alias Astarte.DataAccess.FDO.Queries
 
   require Logger
 

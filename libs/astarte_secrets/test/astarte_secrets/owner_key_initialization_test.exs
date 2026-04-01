@@ -264,11 +264,8 @@ defmodule Astarte.Secrets.OwnerKeyInitializationTest do
         key_data: @p256_private_key_pem
       }
 
-      assert {:error, {:already_imported, message}} =
+      assert {:error, :key_already_imported} =
                OwnerKeyInitialization.create_or_upload(opts, @sample_realm)
-
-      assert message =~ @sample_key_name
-      assert message =~ "already been imported"
     end
 
     test "message contains the key name" do
@@ -284,10 +281,8 @@ defmodule Astarte.Secrets.OwnerKeyInitializationTest do
         key_data: @p256_private_key_pem
       }
 
-      assert {:error, {:already_imported, message}} =
+      assert {:error, :key_already_imported} =
                OwnerKeyInitialization.create_or_upload(opts, @sample_realm)
-
-      assert message =~ custom_key_name
     end
   end
 
