@@ -43,6 +43,8 @@ defmodule Astarte.FDO.OwnerOnboarding do
   alias Astarte.FDO.OwnerOnboarding.DeviceAttestation
   alias Astarte.FDO.OwnerOnboarding.KeyExchangeStrategy
   alias Astarte.FDO.OwnershipVoucher
+  alias Astarte.FDO.Core.OwnershipVoucher.Core, as: OVCore
+  alias Astarte.Secrets
 
   require Logger
 
@@ -53,10 +55,10 @@ defmodule Astarte.FDO.OwnerOnboarding do
   def hello_device(realm_name, cbor_hello_device) do
     with {:ok, hello_device} <- HelloDevice.decode(cbor_hello_device),
          guid = hello_device.guid,
-         {:ok, ownership_voucher} <- OwnershipVoucher.fetch(realm_name, guid),
-         {:ok, owner_private_key} <- fetch_owner_private_key(realm_name, guid),
+         {:ok, ownership_voucher} <- OwnershipVoucher.fetch(realm_name, guid) |> dbg(),
+         {:ok, owner_key} <- Secrets.get_key_for_guid(realm_name, guid),
          {:ok, pub_key} <- OwnershipVoucher.owner_public_key(ownership_voucher),
-         :ok <- KeyExchangeStrategy.validate(hello_device.kex_name, owner_private_key),
+         :ok <- KeyExchangeStrategy.validate(hello_device.kex_name, owner_key),
          {:ok, token, session} <-
            Session.new(
              realm_name,
@@ -90,7 +92,7 @@ defmodule Astarte.FDO.OwnerOnboarding do
              prove_ovh,
              session.prove_dv_nonce,
              encoded_pub_key,
-             owner_private_key
+             owner_key
            ) do
         {:ok, message} ->
           {:ok, token, message}
@@ -103,12 +105,6 @@ defmodule Astarte.FDO.OwnerOnboarding do
       error ->
         Logger.error("Failed to process hello_device: #{inspect(error)}")
         error
-    end
-  end
-
-  defp fetch_owner_private_key(realm_name, guid) do
-    with {:ok, pem_key} <- Queries.get_owner_private_key(realm_name, guid) do
-      COSE.Keys.from_pem(pem_key)
     end
   end
 
@@ -144,17 +140,17 @@ defmodule Astarte.FDO.OwnerOnboarding do
     # for credential reuse; so far, there is no API to do so, so it-s limited to the guid
 
     with {:ok, ownership_voucher} <- OwnershipVoucher.fetch(realm_name, guid),
-         {:ok, private_key} <- Queries.get_owner_private_key(realm_name, guid),
+         {:ok, owner_key} <- Secrets.get_key_for_guid(realm_name, guid),
          {:ok, owner_public_key} <- OwnershipVoucher.owner_public_key(ownership_voucher) do
       rendezvous_info = ownership_voucher.header.rendezvous_info
 
-      {:ok, private_key} = COSE.Keys.from_pem(private_key)
+      # {:ok, private_key} = COSE.Keys.from_pem(private_key)
 
       connection_credentials = %{
         guid: guid,
         rendezvous_info: rendezvous_info,
         owner_pub_key: owner_public_key,
-        owner_private_key: private_key,
+        owner_private_key: owner_key,
         device_info: "owned by astarte - realm #{realm_name}.#{Config.base_url_domain!()}"
       }
 
@@ -306,7 +302,7 @@ defmodule Astarte.FDO.OwnerOnboarding do
              OwnershipVoucher.generate_replacement_voucher(old_voucher, to2_session),
            # TODO: change this line to ensure the retrieval of latest private key
            # after exposing an API to do so
-           {:ok, private_key} <-
+           {:ok, key_name} <-
              Queries.get_owner_private_key(realm_name, to2_session.guid) do
         cbor_voucher = CoreOwnershipVoucher.cbor_encode(new_voucher)
 
@@ -314,7 +310,7 @@ defmodule Astarte.FDO.OwnerOnboarding do
           realm_name,
           to2_session.guid,
           cbor_voucher,
-          private_key,
+          key_name,
           @one_week
         )
       end

@@ -25,7 +25,8 @@ defmodule Astarte.DataAccess.FDO.Queries do
 
   alias Astarte.DataAccess.Consistency
   alias Astarte.DataAccess.Device
-  alias Astarte.DataAccess.FDO.OwnershipVoucher, as: OwnershipVoucher
+  alias Astarte.DataAccess.FDO.OwnershipVoucher
+  alias Astarte.FDO.Core.OwnershipVoucher, as: FDOOV
   alias Astarte.DataAccess.FDO.TO2Session
   alias Astarte.DataAccess.Realms.Realm
   alias Astarte.DataAccess.Repo
@@ -64,18 +65,34 @@ defmodule Astarte.DataAccess.FDO.Queries do
     query =
       from o in OwnershipVoucher,
         prefix: ^keyspace_name,
-        select: o.private_key
+        select: o.key_name
 
     consistency = Consistency.domain_model(:read)
 
     Repo.fetch(query, guid, consistency: consistency)
   end
 
+  def get_owner_key_params(realm_name, guid) do
+    keyspace_name = Realm.keyspace_name(realm_name)
+
+    query =
+      from OwnershipVoucher,
+        prefix: ^keyspace_name,
+        select: [:key_name, :key_algorithm]
+
+    consistency = Consistency.domain_model(:read)
+
+    with {:ok, ov} <- Repo.fetch(query, guid, consistency: consistency) do
+      result = %{name: ov.key_name, algorithm: ov.key_algorithm}
+      {:ok, result}
+    end
+  end
+
   def create_ownership_voucher(
         realm_name,
         guid,
         cbor_ownership_voucher,
-        owner_private_key,
+        key_name,
         ttl
       ) do
     keyspace_name = Realm.keyspace_name(realm_name)
@@ -84,7 +101,7 @@ defmodule Astarte.DataAccess.FDO.Queries do
 
     %OwnershipVoucher{
       voucher_data: cbor_ownership_voucher,
-      private_key: owner_private_key,
+      key_name: key_name,
       guid: guid
     }
     |> Repo.insert(opts)
@@ -103,11 +120,11 @@ defmodule Astarte.DataAccess.FDO.Queries do
         realm_name,
         guid,
         new_voucher,
-        owner_private_key,
+        owner_key_name,
         ttl
       ) do
     with {:ok, _} <- delete_ownership_voucher(realm_name, guid) do
-      create_ownership_voucher(realm_name, guid, new_voucher, owner_private_key, ttl)
+      create_ownership_voucher(realm_name, guid, new_voucher, owner_key_name, ttl)
     end
   end
 

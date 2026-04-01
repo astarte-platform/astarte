@@ -289,9 +289,9 @@ defmodule Astarte.FDO.Core.OwnerOnboarding.Session do
         device_service_info: device_service_info,
         owner_service_info: owner_service_info,
         last_chunk_sent: last_chunk_sent,
-        replacement_guid: replacement_guid,
-        replacement_rv_info: replacement_rv_info,
-        replacement_pub_key: replacement_pub_key,
+        # replacement_guid: replacement_guid,
+        # replacement_rv_info: replacement_rv_info,
+        # replacement_pub_key: replacement_pub_key,
         replacement_hmac: replacement_hmac
       } = database_session
 
@@ -314,9 +314,9 @@ defmodule Astarte.FDO.Core.OwnerOnboarding.Session do
         device_service_info: device_service_info,
         owner_service_info: owner_service_info,
         last_chunk_sent: last_chunk_sent,
-        replacement_guid: replacement_guid,
-        replacement_rv_info: replacement_rv_info,
-        replacement_pub_key: replacement_pub_key,
+        # replacement_guid: replacement_guid,
+        # replacement_rv_info: replacement_rv_info,
+        # replacement_pub_key: replacement_pub_key,
         replacement_hmac: replacement_hmac
       }
 

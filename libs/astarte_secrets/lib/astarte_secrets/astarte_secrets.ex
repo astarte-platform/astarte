@@ -7,6 +7,7 @@ defmodule Astarte.Secrets do
   alias Astarte.Secrets.Key
   alias COSE.Keys.ECC
   alias COSE.Keys.RSA
+  alias Astarte.DataAccess.FDO.Queries
 
   require Logger
 
@@ -16,6 +17,13 @@ defmodule Astarte.Secrets do
 
     with {:ok, resp} <- Core.get_key(key_name, namespace) do
       Key.parse(key_name, namespace, resp)
+    end
+  end
+
+  def get_key_for_guid(realm_name, user_id \\ nil, guid) do
+    with {:ok, params} <- Queries.get_owner_key_params(realm_name, guid),
+         {:ok, namespace} <- create_namespace(realm_name, user_id, params.key_algorithm) do
+      get_key(params.key_name, namespace: namespace)
     end
   end
 
