@@ -35,20 +35,21 @@ defmodule Astarte.FDO.OwnershipVoucher.LoadRequest do
 
   import Ecto.Changeset
 
+  @allowed_key_algorithms ["ecdsa-p256", "ecdsa-p384", "rsa-2048", "rsa-3072"]
+
   typed_embedded_schema do
     field :ownership_voucher, :string
     field :realm_name, :string
     field :key_name, :string
-
-    field :key_algorithm, Ecto.Enum, values: Secrets.Core.key_algorithm_enum()
+    field :key_algorithm, :string
     field(:extracted_owner_key, :any, virtual: true) :: Key.t() | nil
-
     field :cbor_ownership_voucher, :binary
 
     field(:decoded_ownership_voucher, :any, virtual: true) ::
       OwnershipVoucher.decoded_voucher() | nil
 
     field(:voucher_struct, :any, virtual: true) :: struct() | nil
+    field(:owner_key_algorithm, :any, virtual: true)
     field :device_guid, :binary
     field(:owner_voucher_public_key, :any, virtual: true) :: PublicKey.t() | nil
     field :replacement_rendezvous_info, :binary
@@ -71,12 +72,35 @@ defmodule Astarte.FDO.OwnershipVoucher.LoadRequest do
       :replacement_guid
     ])
     |> validate_required([:ownership_voucher, :realm_name, :key_name, :key_algorithm])
+    |> validate_inclusion(:key_algorithm, @allowed_key_algorithms)
     |> put_device_guid()
     |> fetch_owner_key()
     |> verify_owner_key_matches()
     |> validate_replacement_rendezvous_info()
-    |> validate_replacement_public_key()
-    |> validate_replacement_guid()
+    |> validate_change(:replacement_public_key, fn :replacement_public_key, pem_string ->
+      case public_key_from_pem(pem_string) do
+        {:ok, _} -> []
+        :error -> [replacement_public_key: "is not a valid PEM public key"]
+      end
+    end)
+    |> validate_change(:replacement_guid, fn :replacement_guid, b64_string ->
+      case Base.decode64(b64_string) do
+        {:ok, _} -> []
+        :error -> [replacement_guid: "is not valid base64"]
+      end
+    end)
+  end
+
+  defp validate_replacement_rendezvous_info(changeset) do
+    validate_change(changeset, :replacement_rendezvous_info, fn :replacement_rendezvous_info,
+                                                                b64_string ->
+      with {:ok, cbor_binary} <- Base.decode64(b64_string),
+           {:ok, _} <- RendezvousInfo.decode_cbor(cbor_binary) do
+        []
+      else
+        _ -> [replacement_rendezvous_info: "is not valid base64-encoded CBOR rendezvous info"]
+      end
+    end)
   end
 
   defp put_device_guid(%Ecto.Changeset{valid?: false} = changeset), do: changeset
@@ -215,36 +239,6 @@ defmodule Astarte.FDO.OwnershipVoucher.LoadRequest do
   end
 
   defp cose_record_equal?(_, _), do: false
-
-  defp validate_replacement_rendezvous_info(changeset) do
-    validate_change(changeset, :replacement_rendezvous_info, fn :replacement_rendezvous_info,
-                                                                b64_string ->
-      with {:ok, cbor_binary} <- Base.decode64(b64_string),
-           {:ok, _} <- RendezvousInfo.decode_cbor(cbor_binary) do
-        []
-      else
-        _ -> [replacement_rendezvous_info: "is not valid base64-encoded CBOR rendezvous info"]
-      end
-    end)
-  end
-
-  defp validate_replacement_public_key(changeset) do
-    validate_change(changeset, :replacement_public_key, fn :replacement_public_key, pem_string ->
-      case public_key_from_pem(pem_string) do
-        {:ok, _} -> []
-        :error -> [replacement_public_key: "is not a valid PEM public key"]
-      end
-    end)
-  end
-
-  defp validate_replacement_guid(changeset) do
-    validate_change(changeset, :replacement_guid, fn :replacement_guid, b64_string ->
-      case Base.decode64(b64_string) do
-        {:ok, _} -> []
-        :error -> [replacement_guid: "is not valid base64"]
-      end
-    end)
-  end
 
   defp public_key_from_pem(pem_string) do
     with [{:SubjectPublicKeyInfo, spki_der, :not_encrypted} = entry] <-

@@ -44,12 +44,6 @@ defmodule Astarte.PairingWeb.OwnerKeyController do
            OwnerKeyInitialization.create_or_upload(create_or_upload_changeset, realm_name) do
       # the successful resp will be a public key (when creating) or an empty string (when uploading)
       send_resp(conn, 200, resp)
-    else
-      {:error, {:already_imported, message}} ->
-        send_resp(conn, 409, message)
-
-      err ->
-        err
     end
   end
 
@@ -66,21 +60,30 @@ defmodule Astarte.PairingWeb.OwnerKeyController do
     end
   end
 
+  def get_keys_for_algorithm(conn, %{
+        "realm_name" => realm_name,
+        "key_algorithm" => key_algorithm
+      }) do
+    case Secrets.Core.get_keys_from_algorithm(realm_name, key_algorithm) do
+      {:ok, keys} -> json(conn, %{data: keys})
+      :error -> {:error, :unprocessable_key}
+    end
+  end
+
   def get_key(conn, %{
         "realm_name" => realm_name,
         "key_algorithm" => key_algorithm,
         "key_name" => key_name
       }) do
-    with {:ok, algorithm_atom} <- Secrets.Core.string_to_key_type(key_algorithm) do
-      case Secrets.Core.find_key(realm_name, key_name, algorithm_atom) do
-        {:ok, key} ->
-          json(conn, %{data: %{key_name: key.name, public_key: key.public_pem}})
-
-        :not_found ->
-          conn
-          |> put_status(:not_found)
-          |> json(%{errors: %{detail: "Key not found"}})
-      end
+    with {:ok, algorithm_atom} <- Secrets.Core.string_to_key_type(key_algorithm),
+         {:ok, key} <- Secrets.Core.find_key(realm_name, key_name, algorithm_atom) do
+      json(conn, %{data: %{key_name: key.name, public_key: key.public_pem}})
+    else
+      :error -> {:error, :unprocessable_key}
+      :not_found ->
+        conn
+        |> put_status(:not_found)
+        |> json(%{errors: %{detail: "Key not found"}})
     end
   end
 end
