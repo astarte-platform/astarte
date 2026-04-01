@@ -55,7 +55,7 @@ defmodule Astarte.FDO.OwnerOnboarding do
   def hello_device(realm_name, cbor_hello_device) do
     with {:ok, hello_device} <- HelloDevice.decode(cbor_hello_device),
          guid = hello_device.guid,
-         {:ok, ownership_voucher} <- OwnershipVoucher.fetch(realm_name, guid) |> dbg(),
+         {:ok, ownership_voucher} <- OwnershipVoucher.fetch(realm_name, guid),
          {:ok, owner_key} <- Secrets.get_key_for_guid(realm_name, guid),
          {:ok, pub_key} <- OwnershipVoucher.owner_public_key(ownership_voucher),
          :ok <- KeyExchangeStrategy.validate(hello_device.kex_name, owner_key),

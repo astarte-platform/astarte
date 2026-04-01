@@ -20,7 +20,6 @@ defmodule Astarte.FDO.OwnershipVoucher.LoadRequestTest do
   use ExUnit.Case, async: true
   use Mimic
 
-  alias Astarte.FDO.Core.OwnershipVoucher, as: CoreOwnershipVoucher
   alias Astarte.FDO.Core.OwnershipVoucher.Core, as: OVCore
   alias Astarte.FDO.Core.PublicKey
   alias Astarte.FDO.OwnershipVoucher.LoadRequest
@@ -290,7 +289,7 @@ defmodule Astarte.FDO.OwnershipVoucher.LoadRequestTest do
   end
 
   describe "changeset/2 with a secp384r1/x509 voucher" do
-    test "parses successfully and sets owner_key_algorithm to :es384" do
+    test "parses successfully and sets key_algorithm to :es384" do
       {voucher, private_pem} = generate_p384_x509_data_and_pem()
       voucher_pem = voucher_to_pem(voucher)
       public_pem = ec_private_pem_to_public_pem(private_pem)
@@ -308,9 +307,12 @@ defmodule Astarte.FDO.OwnershipVoucher.LoadRequestTest do
 
       stub(Secrets, :get_key, fn _name, _opts -> {:ok, p384_key} end)
 
-      params = Map.put(@sample_params, "ownership_voucher", voucher_pem)
+      params =
+        @sample_params
+        |> Map.put("ownership_voucher", voucher_pem)
+        |> Map.put("key_algorithm", "ecdsa-p384")
 
-      assert %LoadRequest{owner_key_algorithm: :es384} = from_changeset!(params)
+      assert %LoadRequest{key_algorithm: :es384} = from_changeset!(params)
     end
   end
 
@@ -336,7 +338,7 @@ defmodule Astarte.FDO.OwnershipVoucher.LoadRequestTest do
       params = Map.put(@sample_params, "ownership_voucher", voucher_pem)
 
       result = from_changeset!(params)
-      assert %LoadRequest{owner_key_algorithm: :es256, device_guid: guid} = result
+      assert %LoadRequest{key_algorithm: :es256, device_guid: guid} = result
       assert is_binary(guid) and byte_size(guid) == 16
     end
   end
@@ -349,7 +351,7 @@ defmodule Astarte.FDO.OwnershipVoucher.LoadRequestTest do
       [cert_der | _] = voucher.cert_chain
       public_pem = ec_private_pem_to_public_pem(private_pem)
 
-      stub(OVCore, :entry_private_key, fn _entry ->
+      stub(OVCore, :entry_public_key, fn _entry ->
         {:ok, %PublicKey{encoding: :x5chain, body: [cert_der], type: :secp256r1}}
       end)
 
@@ -366,7 +368,7 @@ defmodule Astarte.FDO.OwnershipVoucher.LoadRequestTest do
 
       stub(Secrets, :get_key, fn _name, _opts -> {:ok, matching_key} end)
 
-      assert %LoadRequest{owner_key_algorithm: :es256} = from_changeset!(@sample_params)
+      assert %LoadRequest{key_algorithm: :es256} = from_changeset!(@sample_params)
     end
 
     test "rejects a key whose EC point is NOT in the x5chain certificate" do
@@ -376,7 +378,7 @@ defmodule Astarte.FDO.OwnershipVoucher.LoadRequestTest do
       {_other_voucher, other_private_pem} = generate_p256_x509_data_and_pem()
       wrong_public_pem = ec_private_pem_to_public_pem(other_private_pem)
 
-      stub(OVCore, :entry_private_key, fn _entry ->
+      stub(OVCore, :entry_public_key, fn _entry ->
         {:ok, %PublicKey{encoding: :x5chain, body: [cert_der], type: :secp256r1}}
       end)
 
@@ -401,7 +403,7 @@ defmodule Astarte.FDO.OwnershipVoucher.LoadRequestTest do
   end
 
   describe "changeset/2 with a secp384r1/x5chain voucher" do
-    test "parses successfully and sets owner_key_algorithm to :es384" do
+    test "parses successfully and sets key_algorithm to :es384" do
       {voucher, private_pem} = generate_p384_x5chain_data_and_pem()
       voucher_pem = voucher_to_pem(voucher)
       public_pem = ec_private_pem_to_public_pem(private_pem)
@@ -419,9 +421,12 @@ defmodule Astarte.FDO.OwnershipVoucher.LoadRequestTest do
 
       stub(Secrets, :get_key, fn _name, _opts -> {:ok, x5chain_p384_key} end)
 
-      params = Map.put(@sample_params, "ownership_voucher", voucher_pem)
+      params =
+        @sample_params
+        |> Map.put("ownership_voucher", voucher_pem)
+        |> Map.put("key_algorithm", "ecdsa-p384")
 
-      assert %LoadRequest{owner_key_algorithm: :es384} = from_changeset!(params)
+      assert %LoadRequest{key_algorithm: :es384} = from_changeset!(params)
     end
 
     test "rejects a mismatched key even with x5chain encoding" do
@@ -444,7 +449,10 @@ defmodule Astarte.FDO.OwnershipVoucher.LoadRequestTest do
 
       stub(Secrets, :get_key, fn _name, _opts -> {:ok, wrong_key} end)
 
-      params = Map.put(@sample_params, "ownership_voucher", voucher_pem)
+      params =
+        @sample_params
+        |> Map.put("ownership_voucher", voucher_pem)
+        |> Map.put("key_algorithm", "ecdsa-p384")
 
       assert {:error, changeset} = from_changeset(params)
 
