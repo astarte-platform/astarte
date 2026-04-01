@@ -26,7 +26,6 @@ defmodule Astarte.DataAccess.FDO.Queries do
   alias Astarte.DataAccess.Consistency
   alias Astarte.DataAccess.Device
   alias Astarte.DataAccess.FDO.OwnershipVoucher
-  alias Astarte.FDO.Core.OwnershipVoucher, as: FDOOV
   alias Astarte.DataAccess.FDO.TO2Session
   alias Astarte.DataAccess.Realms.Realm
   alias Astarte.DataAccess.Repo
@@ -175,14 +174,8 @@ defmodule Astarte.DataAccess.FDO.Queries do
     update_session(realm_name, guid, updates)
   end
 
-  def session_add_replacement_info(realm_name, guid, replacement_guid, rv_info, pub_key, hmac) do
-    updates = [
-      replacement_guid: replacement_guid,
-      replacement_rv_info: rv_info,
-      replacement_pub_key: pub_key,
-      replacement_hmac: hmac
-    ]
-
+  def session_add_replacement_hmac(realm_name, guid, hmac) do
+    updates = [replacement_hmac: hmac]
     update_session(realm_name, guid, updates)
   end
 
