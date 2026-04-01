@@ -24,73 +24,73 @@ defmodule Astarte.FDO.OwnerOnboarding.KeyExchangeStrategyTest do
 
   describe "validate/2" do
     test "validates device requesting DHKEXid14 when Owner Key is of type RSA2048" do
-      owner_key = %RSA{alg: :rs256}
-      assert :ok = KeyExchangeStrategy.validate("DHKEXid14", owner_key)
+      owner_key_alg = :rs256
+      assert :ok = KeyExchangeStrategy.validate("DHKEXid14", owner_key_alg)
     end
 
     test "validates device requesting DHKEXid15 when Owner Key is of type RSA3072" do
-      owner_key = %RSA{alg: :rs384}
-      assert :ok = KeyExchangeStrategy.validate("DHKEXid15", owner_key)
+      owner_key_alg = :rs384
+      assert :ok = KeyExchangeStrategy.validate("DHKEXid15", owner_key_alg)
     end
 
     test "validates device requesting ASYMKEX2048 when Owner Key is of type RSA2048" do
-      owner_key = %RSA{alg: :rs256}
-      assert :ok = KeyExchangeStrategy.validate("ASYMKEX2048", owner_key)
+      owner_key_alg = :rs256
+      assert :ok = KeyExchangeStrategy.validate("ASYMKEX2048", owner_key_alg)
     end
 
     test "validates device requesting ASYMKEX3072 when Owner Key is of type RSA3072" do
-      owner_key = %RSA{alg: :rs384}
-      assert :ok = KeyExchangeStrategy.validate("ASYMKEX3072", owner_key)
+      owner_key_alg = :rs384
+      assert :ok = KeyExchangeStrategy.validate("ASYMKEX3072", owner_key_alg)
     end
 
     test "returns error if Device requests ASYMKEX2048 but Owner has RSA3072 key (Mismatch)" do
-      owner_key = %RSA{alg: :rs384}
-      assert {:error, :invalid_message} = KeyExchangeStrategy.validate("ASYMKEX2048", owner_key)
+      owner_key_alg = :rs384
+      assert {:error, :invalid_message} = KeyExchangeStrategy.validate("ASYMKEX2048", owner_key_alg)
     end
 
     test "validates ECDH256 successfully when Owner uses P-256" do
-      owner_key = %ECC{crv: :p256}
-      assert :ok = KeyExchangeStrategy.validate("ECDH256", owner_key)
+      owner_key_alg = :es256
+      assert :ok = KeyExchangeStrategy.validate("ECDH256", owner_key_alg)
     end
 
     test "validates ECDH384 successfully when Owner uses P-384" do
-      owner_key = %ECC{crv: :p384}
-      assert :ok = KeyExchangeStrategy.validate("ECDH384", owner_key)
+      owner_key_alg = :es384
+      assert :ok = KeyExchangeStrategy.validate("ECDH384", owner_key_alg)
     end
 
     test "returns error if Device requests ECDH384 but Owner has P-256 key (Mismatch)" do
-      owner_key = %ECC{crv: :p256}
+      owner_key_alg = :es256
 
       assert {:error, :invalid_message} =
-               KeyExchangeStrategy.validate("ECDH384", owner_key)
+               KeyExchangeStrategy.validate("ECDH384", owner_key_alg)
     end
 
     test "returns error if Device requests ECDH256 but Owner has P-384 key (Mismatch)" do
-      owner_key = %ECC{crv: :p384}
+      owner_key_alg = :es384
 
       assert {:error, :invalid_message} =
-               KeyExchangeStrategy.validate("ECDH256", owner_key)
+               KeyExchangeStrategy.validate("ECDH256", owner_key_alg)
     end
 
     test "returns error for incompatible kex algorithm / owner key type" do
-      owner_key = %RSA{alg: :rs256}
+      owner_key_alg = :rs256
 
       assert {:error, :invalid_message} =
-               KeyExchangeStrategy.validate("ECDH256", owner_key)
+               KeyExchangeStrategy.validate("ECDH256", owner_key_alg)
     end
 
     test "returns error for incompatible RSA kex algorithm / owner key strength" do
-      owner_key = %RSA{alg: :rs256}
+      owner_key_alg = :rs256
 
       assert {:error, :invalid_message} =
-               KeyExchangeStrategy.validate("DHKEXid15", owner_key)
+               KeyExchangeStrategy.validate("DHKEXid15", owner_key_alg)
     end
 
     test "returns error for unknown/unsupported device suite" do
-      owner_key = %ECC{crv: :p256}
+      owner_key_alg = :es256
 
       assert {:error, :invalid_message} =
-               KeyExchangeStrategy.validate("UNKNOWN_SUITE", owner_key)
+               KeyExchangeStrategy.validate("UNKNOWN_SUITE", owner_key_alg)
     end
   end
 end
