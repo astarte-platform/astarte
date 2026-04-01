@@ -16,11 +16,11 @@
 # limitations under the License.
 #
 
-defmodule Astarte.DataAccess.FDO.OwnershipVoucher.CreateRequest do
+defmodule Astarte.FDO.Core.OwnershipVoucher.CreateRequest do
   @moduledoc false
   use TypedEctoSchema
 
-  alias Astarte.DataAccess.FDO.OwnershipVoucher.CreateRequest
+  alias Astarte.FDO.Core.OwnershipVoucher.CreateRequest
   alias Astarte.FDO.Core.OwnershipVoucher
 
   require Logger

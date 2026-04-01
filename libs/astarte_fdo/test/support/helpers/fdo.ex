@@ -24,11 +24,11 @@ defmodule Astarte.FDO.Helpers do
   import StreamData
 
   alias Astarte.DataAccess.FDO.OwnershipVoucher, as: DBOwnershipVoucher
-  alias Astarte.DataAccess.FDO.OwnershipVoucher.CreateRequest
   alias Astarte.DataAccess.Realms.Realm
   alias Astarte.DataAccess.Repo
   alias Astarte.FDO.Core.Hash
   alias Astarte.FDO.Core.OwnershipVoucher
+  alias Astarte.FDO.Core.OwnershipVoucher.CreateRequest
   alias Astarte.FDO.Core.OwnershipVoucher.RendezvousInfo
   alias Astarte.FDO.Core.OwnershipVoucher.RendezvousInfo.RendezvousDirective
   alias Astarte.FDO.Core.OwnershipVoucher.RendezvousInfo.RendezvousInstr

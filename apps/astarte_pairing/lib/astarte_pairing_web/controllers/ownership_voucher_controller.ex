@@ -19,7 +19,7 @@
 defmodule Astarte.PairingWeb.OwnershipVoucherController do
   use Astarte.PairingWeb, :controller
 
-  alias Astarte.DataAccess.FDO.OwnershipVoucher.CreateRequest
+  alias Astarte.FDO.Core.OwnershipVoucher.CreateRequest
   alias Astarte.FDO.OwnershipVoucher
   alias Astarte.FDO.OwnershipVoucher.LoadRequest
   alias Astarte.FDO.TO0
