@@ -22,8 +22,6 @@ defmodule Astarte.FDO.OwnerOnboarding.KeyExchangeStrategy do
   is compatible with the Owner's Private Key curve.
   """
 
-  alias COSE.Keys.{ECC, RSA}
-
   @ecdh256 "ECDH256"
   @ecdh384 "ECDH384"
   @dhkex14 "DHKEXid14"
@@ -36,21 +34,21 @@ defmodule Astarte.FDO.OwnerOnboarding.KeyExchangeStrategy do
 
   ## Parameters
   - `device_kex_name`: The string identifying the suite chosen by the device (e.g., "ECDH256").
-  - `owner_key`: The COSE Key struct representing the Owner's private key.
+  - `owner_key_alg`: The key algorithm, in [:es256, :es384, :rs256, :rs384].
   """
   @spec validate(String.t(), struct()) :: :ok | {:error, :invalid_message}
-  def validate(device_kex_name, owner_key) do
-    case {device_kex_name, owner_key} do
-      {dkn, %RSA{alg: :rs256}} when dkn in [@dhkex14, @asymkex2048] ->
+  def validate(device_kex_name, owner_key_alg) do
+    case {device_kex_name, owner_key_alg} do
+      {dkn, :rs256} when dkn in [@dhkex14, @asymkex2048] ->
         :ok
 
-      {dkn, %RSA{alg: :rs384}} when dkn in [@dhkex15, @asymkex3072] ->
+      {dkn, :rs384} when dkn in [@dhkex15, @asymkex3072] ->
         :ok
 
-      {@ecdh256, %ECC{crv: :p256}} ->
+      {@ecdh256, :es256} ->
         :ok
 
-      {@ecdh384, %ECC{crv: :p384}} ->
+      {@ecdh384, :es384} ->
         :ok
 
       _ ->
