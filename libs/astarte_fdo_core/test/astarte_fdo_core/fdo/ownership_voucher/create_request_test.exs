@@ -20,7 +20,7 @@ defmodule Astarte.FDO.Core.OwnershipVoucher.CreateRequestTest do
   use ExUnit.Case, async: true
 
   alias Astarte.FDO.Core.OwnershipVoucher.CreateRequest
-  import Astarte.FDO.Core.Helpers
+  import Astarte.FDO.Core.FDOHelpers
 
   @valid_params %{
     "ownership_voucher" => sample_voucher(),
