@@ -59,7 +59,7 @@ defmodule Astarte.PairingWeb.OwnershipVoucherController do
   end
 
   @doc """
-  Validates an FDO Ownership Voucher load request.
+  Validates an FDO Ownership Voucher load request and register the OV in the database.
 
   Returns `200 OK` with the owner public key PEM on success.
   """

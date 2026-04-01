@@ -71,7 +71,7 @@ defmodule Astarte.FDO.Core.OwnershipVoucher.Core do
     end
   end
 
-  def entry_private_key(entry) do
+  def entry_public_key(entry) do
     with {:ok, entry} <- Sign1.decode(entry),
          %CBOR.Tag{tag: :bytes, value: payload} <- entry.payload,
          {:ok, decoded_entry, _} <- CBOR.decode(payload),

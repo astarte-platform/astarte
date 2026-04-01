@@ -34,10 +34,13 @@ defmodule Astarte.FDO.OwnershipVoucher.LoadRequest do
 
   import Ecto.Changeset
 
+  @allowed_key_algorithms ["ecdsa-p256", "ecdsa-p384", "rsa-2048", "rsa-3072"]
+
   typed_embedded_schema do
     field :ownership_voucher, :string
     field :realm_name, :string
     field :key_name, :string
+    field :key_algorithm, :string
     field(:extracted_owner_key, :any, virtual: true) :: Key.t() | nil
     field :cbor_ownership_voucher, :binary
 
@@ -52,32 +55,12 @@ defmodule Astarte.FDO.OwnershipVoucher.LoadRequest do
   @spec changeset(t(), map()) :: Ecto.Changeset.t()
   def changeset(%LoadRequest{} = request, params) do
     request
-    |> cast(params, [:ownership_voucher, :realm_name, :key_name])
-    |> validate_required([:ownership_voucher, :realm_name, :key_name])
+    |> cast(params, [:ownership_voucher, :realm_name, :key_name, :key_algorithm])
+    |> validate_required([:ownership_voucher, :realm_name, :key_name, :key_algorithm])
+    |> validate_inclusion(:key_algorithm, @allowed_key_algorithms)
     |> put_device_guid()
     |> fetch_owner_key()
     |> verify_owner_key_matches()
-  end
-
-  @doc """
-  Extracts the key algorithm required by the last ownership voucher entry.
-
-  Accepts a PEM-encoded ownership voucher string and returns
-  `{:ok, key_algorithm}` where `key_algorithm` is one of `:es256`, `:es384`,
-  `:rs256`, or `:rs384`, or `:error` if the voucher cannot be parsed or the
-  algorithm is unsupported.
-  """
-  @spec key_algorithm_from_voucher(String.t()) :: {:ok, atom()} | :error
-  def key_algorithm_from_voucher(ownership_voucher_pem) do
-    with {:ok, binary_voucher} <- OwnershipVoucher.binary_voucher(ownership_voucher_pem),
-         {:ok, decoded_voucher, _rest} <- CBOR.decode(binary_voucher),
-         {:ok, voucher_struct} <- OwnershipVoucher.decode(decoded_voucher),
-         {:ok, %PublicKey{type: pubkey_type}} <-
-           OVCore.entry_private_key(List.last(voucher_struct.entries)) do
-      pubkey_type_to_algorithm(pubkey_type)
-    else
-      _ -> :error
-    end
   end
 
   defp put_device_guid(%Ecto.Changeset{valid?: false} = changeset), do: changeset
@@ -87,15 +70,11 @@ defmodule Astarte.FDO.OwnershipVoucher.LoadRequest do
 
     with {:ok, binary_voucher} <- OwnershipVoucher.binary_voucher(ownership_voucher_pem),
          {:ok, decoded_voucher, _rest} <- CBOR.decode(binary_voucher),
-         {:ok, voucher_struct} <- OwnershipVoucher.decode(decoded_voucher),
-         {:ok, %PublicKey{type: pubkey_type}} <-
-           OVCore.entry_private_key(List.last(voucher_struct.entries)),
-         {:ok, key_algorithm} <- pubkey_type_to_algorithm(pubkey_type) do
+         {:ok, voucher_struct} <- OwnershipVoucher.decode(decoded_voucher) do
       changeset
       |> put_change(:cbor_ownership_voucher, binary_voucher)
       |> put_change(:decoded_ownership_voucher, decoded_voucher)
       |> put_change(:voucher_struct, voucher_struct)
-      |> put_change(:owner_key_algorithm, key_algorithm)
       |> put_change(:device_guid, voucher_struct.header.guid)
     else
       err ->
@@ -112,7 +91,7 @@ defmodule Astarte.FDO.OwnershipVoucher.LoadRequest do
   defp fetch_owner_key(changeset) do
     realm_name = fetch_field!(changeset, :realm_name)
     key_name = fetch_field!(changeset, :key_name)
-    key_algorithm = fetch_field!(changeset, :owner_key_algorithm)
+    key_algorithm = fetch_field!(changeset, :key_algorithm)
 
     with {:ok, namespace} <- Secrets.create_namespace(realm_name, key_algorithm),
          {:ok, key} <- Secrets.get_key(key_name, namespace: namespace) do
@@ -139,9 +118,9 @@ defmodule Astarte.FDO.OwnershipVoucher.LoadRequest do
     %Astarte.Secrets.Key{name: key_name, public_pem: pem} =
       fetch_field!(changeset, :extracted_owner_key)
 
-    with {:ok, %PublicKey{encoding: encoding, body: voucher_body}} <-
-           OVCore.entry_private_key(List.last(voucher_struct.entries)),
-         true <- public_keys_match?(encoding, voucher_body, pem) do
+    with {:ok, %PublicKey{encoding: voucher_key_encoding, body: voucher_key_body}} <-
+           OVCore.entry_public_key(List.last(voucher_struct.entries)),
+         true <- public_keys_match?(voucher_key_encoding, voucher_key_body, pem) do
       changeset
     else
       false ->
@@ -209,20 +188,13 @@ defmodule Astarte.FDO.OwnershipVoucher.LoadRequest do
     end
   end
 
-  defp public_keys_match?(encoding, voucher_body, pem) do
-    with {:ok, voucher_point} <- ec_point_from_voucher(encoding, voucher_body),
+  # TODO extend/correct this validation to work also for RSA keys
+  defp public_keys_match?(voucher_key_encoding, voucher_key_body, pem) do
+    with {:ok, voucher_point} <- ec_point_from_voucher(voucher_key_encoding, voucher_key_body),
          {:ok, key_point} <- ec_point_from_pem(pem) do
       voucher_point == key_point
     else
       _ -> false
     end
   end
-
-  # Maps FDO PublicKey type to the Secrets key algorithm atom.
-  # The type is taken from the last voucher entry, which identifies the current owner's key.
-  defp pubkey_type_to_algorithm(:secp256r1), do: {:ok, :es256}
-  defp pubkey_type_to_algorithm(:secp384r1), do: {:ok, :es384}
-  defp pubkey_type_to_algorithm(:rsa2048restr), do: {:ok, :rs256}
-  defp pubkey_type_to_algorithm(:rsapkcs), do: {:ok, :rs256}
-  defp pubkey_type_to_algorithm(:rsapss), do: {:ok, :rs384}
 end
