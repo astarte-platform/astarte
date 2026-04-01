@@ -55,7 +55,7 @@ defmodule Astarte.FDO.OwnershipVoucher do
     # N.B.: Checking if there are entries is not necessary,
     # as by spec the ownership voucher will always have at least one entry
     List.last(ownership_voucher.entries)
-    |> Core.entry_private_key()
+    |> Core.entry_public_key()
   end
 
   def get_ov_entry(%OwnershipVoucher{entries: entries}, entry_num) do
@@ -100,19 +100,4 @@ defmodule Astarte.FDO.OwnershipVoucher do
       OwnershipVoucher.decode_cbor(binary)
     end
   end
-
-  @doc """
-  Returns the key algorithm compatible with `Astarte.Secrets.Core` for the
-  given decoded ownership voucher.
-  """
-  @spec key_algorithm(OwnershipVoucher.t()) :: atom() | [atom()]
-  def key_algorithm(%OwnershipVoucher{} = voucher) do
-    fdo_type_to_key_algorithm(voucher.header.public_key.type)
-  end
-
-  defp fdo_type_to_key_algorithm(:secp256r1), do: :es256
-  defp fdo_type_to_key_algorithm(:secp384r1), do: :es384
-  defp fdo_type_to_key_algorithm(:rsa2048restr), do: :rs256
-  defp fdo_type_to_key_algorithm(:rsapkcs), do: [:rs256, :rs384]
-  defp fdo_type_to_key_algorithm(:rsapss), do: [:rs256, :rs384]
 end

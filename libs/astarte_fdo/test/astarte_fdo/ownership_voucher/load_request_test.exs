@@ -28,7 +28,7 @@ defmodule Astarte.FDO.OwnershipVoucher.LoadRequestTest do
   import Astarte.FDO.Helpers
 
   # The public key PEM that matches the last entry of @sample_voucher.
-  # Extracted via OVCore.entry_private_key/1 on the sample voucher.
+  # Extracted via OVCore.entry_public_key/1 on the sample voucher.
   @sample_owner_public_key_pem """
   -----BEGIN PUBLIC KEY-----
   MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAES+TkA7VtJQv9YQ75yl5btXKR/cso
@@ -37,11 +37,13 @@ defmodule Astarte.FDO.OwnershipVoucher.LoadRequestTest do
   """
 
   @sample_key_name "owner_key"
+  @sample_key_algorithm "ecdsa-p256"
   @sample_realm "test_realm"
 
   @sample_params %{
     "ownership_voucher" => sample_voucher(),
     "key_name" => @sample_key_name,
+    "key_algorithm" => @sample_key_algorithm,
     "realm_name" => @sample_realm
   }
 
@@ -80,10 +82,6 @@ defmodule Astarte.FDO.OwnershipVoucher.LoadRequestTest do
 
       assert %LoadRequest{cbor_ownership_voucher: ^expected_cbor} =
                from_changeset!(@sample_params)
-    end
-
-    test "populates `owner_key_algorithm` as `:es256` for a secp256r1 voucher" do
-      assert %LoadRequest{owner_key_algorithm: :es256} = from_changeset!(@sample_params)
     end
 
     test "populates `extracted_owner_key` with the key returned by Secrets" do
@@ -128,6 +126,12 @@ defmodule Astarte.FDO.OwnershipVoucher.LoadRequestTest do
       params = Map.delete(@sample_params, "key_name")
       assert {:error, changeset} = from_changeset(params)
       assert %{key_name: [_ | _]} = errors_on(changeset)
+    end
+
+    test "a missing `key_algorithm`" do
+      params = Map.delete(@sample_params, "key_algorithm")
+      assert {:error, changeset} = from_changeset(params)
+      assert %{key_algorithm: [_ | _]} = errors_on(changeset)
     end
 
     test "a missing `realm_name`" do
@@ -200,25 +204,5 @@ defmodule Astarte.FDO.OwnershipVoucher.LoadRequestTest do
 
   defp errors_on(changeset) do
     Ecto.Changeset.traverse_errors(changeset, fn {msg, _opts} -> msg end)
-  end
-
-  describe "CoreOwnershipVoucher.key_algorithm_from_voucher/1" do
-    test "returns {:ok, :es256} for the sample secp256r1 voucher" do
-      assert {:ok, :es256} = CoreOwnershipVoucher.key_algorithm_from_voucher(sample_voucher())
-    end
-
-    test "returns {:error, _} for an invalid PEM string" do
-      assert {:error, _} = CoreOwnershipVoucher.key_algorithm_from_voucher("not a voucher")
-    end
-
-    test "returns {:error, _} for a malformed base64 body" do
-      bad_voucher = """
-      -----BEGIN OWNERSHIP VOUCHER-----
-      * not valid base64 *
-      -----END OWNERSHIP VOUCHER-----
-      """
-
-      assert {:error, _} = CoreOwnershipVoucher.key_algorithm_from_voucher(bad_voucher)
-    end
   end
 end
