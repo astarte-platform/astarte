@@ -18,11 +18,100 @@
 
 defmodule Astarte.RealmManagementWeb.TriggerController do
   use Astarte.RealmManagementWeb, :controller
+  use OpenApiSpex.ControllerSpecs
 
   alias Astarte.RealmManagement.Triggers
   alias Astarte.RealmManagement.Triggers.Trigger
+  alias OpenApiSpex.{Reference, Schema}
 
   action_fallback Astarte.RealmManagementWeb.FallbackController
+
+  tags ["trigger"]
+  security [%{"JWT" => []}]
+
+  operation :index,
+    summary: "Get trigger list",
+    description: """
+    Get a list of all installed triggers. The trigger name for each
+    installed trigger is reported.
+    """,
+    operation_id: "getTriggerList",
+    parameters: [
+      %Reference{"$ref": "#/components/parameters/Realm"}
+    ],
+    responses: [
+      ok: %Reference{"$ref": "#/components/responses/GetTriggerList"},
+      unauthorized: %Reference{"$ref": "#/components/responses/Unauthorized"},
+      forbidden: %Reference{"$ref": "#/components/responses/Forbidden"}
+    ]
+
+  operation :create,
+    summary: "Install trigger configuration",
+    description: """
+    Install a new trigger using provided configuration. Trigger validation
+    is performed before installation, if trigger configuration is not valid
+    or a trigger with the same name already exists an error is reported. New
+    trigger events might not be immediately processed.
+    """,
+    operation_id: "installTrigger",
+    parameters: [
+      %Reference{"$ref": "#/components/parameters/Realm"}
+    ],
+    request_body: {
+      "Trigger configuration",
+      "application/json",
+      %Schema{
+        type: :object,
+        required: [:data],
+        properties: %{
+          data: %Reference{"$ref": "#/components/schemas/TriggerConfig"}
+        }
+      },
+      required: true
+    },
+    responses: [
+      created: %Reference{"$ref": "#/components/responses/InstallTrigger"},
+      bad_request: {"Bad request", nil, nil},
+      unauthorized: %Reference{"$ref": "#/components/responses/Unauthorized"},
+      forbidden: %Reference{"$ref": "#/components/responses/Forbidden"},
+      unprocessable_entity: %Reference{"$ref": "#/components/responses/TriggerValidationError"}
+    ]
+
+  operation :show,
+    summary: "Get trigger configuration",
+    description: "Retrieve installed trigger configuration.",
+    operation_id: "getTrigger",
+    parameters: [
+      %Reference{"$ref": "#/components/parameters/Realm"},
+      %Reference{"$ref": "#/components/parameters/TriggerName"}
+    ],
+    responses: [
+      ok: %Reference{"$ref": "#/components/responses/GetTrigger"},
+      unauthorized: %Reference{"$ref": "#/components/responses/Unauthorized"},
+      forbidden: %Reference{"$ref": "#/components/responses/Forbidden"},
+      not_found: %Reference{"$ref": "#/components/responses/TriggerNotFound"},
+      internal_server_error: {"Internal Server Error.", nil, nil}
+    ]
+
+  operation :delete,
+    summary: "Delete trigger",
+    description: """
+    Deletes an existing trigger with a given `trigger_name`. Please note
+    that triggers which have been already queued might still be delivered
+    for a short time even after trigger deletion.
+    """,
+    operation_id: "deleteTrigger",
+    parameters: [
+      %Reference{"$ref": "#/components/parameters/Realm"},
+      %Reference{"$ref": "#/components/parameters/TriggerName"}
+    ],
+    responses: [
+      no_content: {"Success", nil, nil},
+      unauthorized: %Reference{"$ref": "#/components/responses/Unauthorized"},
+      forbidden: %Reference{"$ref": "#/components/responses/Forbidden"},
+      not_found: %Reference{"$ref": "#/components/responses/TriggerNotFound"},
+      internal_server_error: {"Internal Server Error.", nil, nil}
+    ]
 
   def index(conn, %{"realm_name" => realm_name}) do
     triggers = Triggers.list_triggers(realm_name)
