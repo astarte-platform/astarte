@@ -18,10 +18,36 @@
 
 defmodule Astarte.RealmManagementWeb.DeviceController do
   use Astarte.RealmManagementWeb, :controller
+  use OpenApiSpex.ControllerSpecs
 
   alias Astarte.RealmManagement.Devices
+  alias OpenApiSpex.{Reference, Response}
 
   action_fallback Astarte.RealmManagementWeb.FallbackController
+
+  tags ["device"]
+  security [%{"JWT" => []}]
+
+  operation :delete,
+    summary: "Delete device",
+    description: """
+    Deletes an existing device with a given `device_id`.
+    Device deletion happens asynchronously, and receiving a 204 response
+    doesn't guarantee immediate deletion of the device.
+    """,
+    operation_id: "deleteDevice",
+    parameters: [
+      %Reference{"$ref": "#/components/parameters/Realm"},
+      %Reference{"$ref": "#/components/parameters/DeviceID"}
+    ],
+    responses: [
+      no_content: %Response{description: "Success"},
+      bad_request: %Response{description: "Bad request"},
+      unauthorized: %Reference{"$ref": "#/components/responses/Unauthorized"},
+      forbidden: %Reference{"$ref": "#/components/responses/Forbidden"},
+      not_found: %Reference{"$ref": "#/components/responses/NotFound"},
+      internal_server_error: %Response{description: "Internal Server Error."}
+    ]
 
   def delete(conn, %{"realm_name" => realm_name, "device_id" => device_id}) do
     with :ok <- Devices.delete_device(realm_name, device_id) do
