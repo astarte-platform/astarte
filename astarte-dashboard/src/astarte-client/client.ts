@@ -792,7 +792,7 @@ class AstarteClient {
   async uploadFdoVoucher(
     keyName: string,
     voucherText: string,
-    options?: { replacementGuid?: string; replacementRvInfo?: string; replacementPubKey?: string },
+    options?: { keyAlgorithm?: string; replacementGuid?: string; replacementRvInfo?: string; replacementPubKey?: string },
   ): Promise<any> {
     const payloadData: any = {
       ownership_voucher: voucherText,
@@ -800,6 +800,10 @@ class AstarteClient {
 
     if (keyName.trim() !== '') {
       payloadData.key_name = keyName;
+    }
+
+    if (options?.keyAlgorithm?.trim()) {
+      payloadData.key_algorithm = options.keyAlgorithm;
     }
 
     if (options?.replacementGuid?.trim()) {
@@ -839,16 +843,20 @@ class AstarteClient {
         },
       },
     }).then((response) => {
-      // response.data.data is an object: {"es256":["abcd","ec256"], "rs256": ["other-key"]}
       const rawData = response.data.data;
+      if (!rawData) {return [];}
 
-      if (rawData && typeof rawData === 'object') {
-        return Object.entries(rawData).flatMap(([key_algorithm, keyNames]) =>
-          (keyNames as string[]).map((key_name) => ({ key_name, key_algorithm })),
-        );
-      }
+      // Handle both shapes the API might return:
+      // 1. flat object:  {"es256":["key1","key2"], "rs256":["key3"]}
+      // 2. array of objects: [{"es256":["key1"]},{"rs256":["key2"]}]
+      const entries: [string, unknown][] = Array.isArray(rawData)
+        ? (rawData as Record<string, unknown>[]).flatMap((obj) => Object.entries(obj))
+        : Object.entries(rawData);
 
-      return []; // Fallback
+      return entries.flatMap(([key_algorithm, keyNames]) => {
+        if (!Array.isArray(keyNames)) {return [];}
+        return (keyNames as string[]).map((key_name) => ({ key_name, key_algorithm }));
+      });
     });
   }
 
@@ -895,16 +903,14 @@ class AstarteClient {
         Authorization: `Bearer ${this.token}`,
       },
     }).then((response) => {
-      // API returns: [{"es256":["key1","key2"]},{"es384":[]},...]
+      // API returns: {"es256":["key1","key2"],"es384":[],...}
       // Key names may have a Vault path prefix (e.g. "import/my-key") — strip it.
-      const grouped: Record<string, string[]>[] = response.data ?? [];
-      return grouped.flatMap((entry) =>
-        Object.entries(entry).flatMap(([algorithm, keyNames]) =>
-          keyNames
-            .map((key_name) => key_name.replace(/^import\//, ''))
-            .filter((key_name) => key_name !== '')
-            .map((key_name) => ({ key_name, key_algorithm: algorithm })),
-        ),
+      const grouped: Record<string, string[]> = response.data ?? {};
+      return Object.entries(grouped).flatMap(([algorithm, keyNames]) =>
+        keyNames
+          .map((key_name) => key_name.replace(/^import\//, ''))
+          .filter((key_name) => key_name !== '')
+          .map((key_name) => ({ key_name, key_algorithm: algorithm })),
       );
     });
   }

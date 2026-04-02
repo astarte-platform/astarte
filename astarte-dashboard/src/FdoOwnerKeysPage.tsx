@@ -43,8 +43,7 @@ const AlgorithmFilter = ({
   activeFilter,
   onSelect,
 }: AlgorithmFilterProps): React.ReactElement => {
-  const countByAlgo = (algo: Algorithm) =>
-    allKeys.filter((k) => k.key_algorithm === algo).length;
+  const countByAlgo = (algo: Algorithm) => allKeys.filter((k) => k.key_algorithm === algo).length;
 
   return (
     <div className="d-flex align-items-center gap-2 flex-wrap mb-3">
@@ -137,7 +136,11 @@ interface PublicKeyModalProps {
   onClose: () => void;
 }
 
-const PublicKeyModal = ({ keyName, keyAlgorithm, onClose }: PublicKeyModalProps): React.ReactElement => {
+const PublicKeyModal = ({
+  keyName,
+  keyAlgorithm,
+  onClose,
+}: PublicKeyModalProps): React.ReactElement => {
   const astarte = useAstarte();
   const keyFetcher = useFetch(astarte.client.getFdoOwnerKey, keyAlgorithm, keyName);
   const [copied, setCopied] = useState(false);
@@ -164,7 +167,10 @@ const PublicKeyModal = ({ keyName, keyAlgorithm, onClose }: PublicKeyModalProps)
           </div>
         )}
         {keyFetcher.status === 'err' && (
-          <Empty title="Couldn't load public key" onRetry={() => keyFetcher.refresh(keyAlgorithm, keyName)} />
+          <Empty
+            title="Couldn't load public key"
+            onRetry={() => keyFetcher.refresh(keyAlgorithm, keyName)}
+          />
         )}
         {keyFetcher.status === 'ok' && keyFetcher.value && (
           <>
@@ -265,7 +271,11 @@ export default (): React.ReactElement => {
                             ) : (
                               <div className="text-muted">
                                 <p className="mb-1">No keys match the selected filters.</p>
-                                <Button variant="link" className="p-0" onClick={() => setActiveFilter(null)}>
+                                <Button
+                                  variant="link"
+                                  className="p-0"
+                                  onClick={() => setActiveFilter(null)}
+                                >
                                   Clear filters
                                 </Button>
                               </div>

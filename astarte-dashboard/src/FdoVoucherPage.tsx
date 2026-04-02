@@ -24,7 +24,8 @@ const FdoVoucherPage: React.FC = () => {
 
   // States for Key Selection
   const [keyName, setKeyName] = useState('');
-  const [availableKeys, setAvailableKeys] = useState<string[]>([]);
+  const [selectedAlgorithm, setSelectedAlgorithm] = useState('');
+  const [availableKeys, setAvailableKeys] = useState<{ key_name: string; key_algorithm: string }[]>([]);
   const [isLoadingKeys, setIsLoadingKeys] = useState(false);
 
   // States for new replacement fields (FDO TO2 settings)
@@ -84,6 +85,7 @@ const FdoVoucherPage: React.FC = () => {
         // Reset keys if user removes the file
         setAvailableKeys([]);
         setKeyName('');
+        setSelectedAlgorithm('');
       }
     };
 
@@ -122,6 +124,7 @@ const FdoVoucherPage: React.FC = () => {
     try {
       // Pass the updated parameters to the hook
       const response = await uploadVoucher(keyName, finalVoucherText, {
+        keyAlgorithm: selectedAlgorithm || undefined,
         replacementGuid,
         replacementRvInfo,
         replacementPubKey,
@@ -133,6 +136,7 @@ const FdoVoucherPage: React.FC = () => {
 
       // Reset form fields
       setKeyName('');
+      setSelectedAlgorithm('');
       setFile(null);
       setVoucherText('');
       setReplacementGuid('');
@@ -225,30 +229,70 @@ const FdoVoucherPage: React.FC = () => {
                     <Spinner animation="border" size="sm" className="ms-2" variant="primary" />
                   )}
                 </h5>
-                <Form.Group className="mb-4">
-                  <Form.Label>Owner Key Name</Form.Label>
-                  <Form.Select
-                    value={keyName}
-                    onChange={(e) => setKeyName(e.target.value)}
-                    disabled={!isVoucherLoaded || isLoadingKeys}
-                  >
-                    <option value="">
-                      {!isVoucherLoaded
-                        ? 'Please load a voucher first...'
-                        : isLoadingKeys
-                          ? 'Fetching available keys...'
-                          : '-- Select a key --'}
-                    </option>
-                    {availableKeys.map((key) => (
-                      <option key={key} value={key}>
-                        {key}
-                      </option>
-                    ))}
-                  </Form.Select>
-                  <Form.Text className="text-muted">
-                    The alias of the OpenBao key to correlate with this voucher.
-                  </Form.Text>
-                </Form.Group>
+                {(() => {
+                  const algorithms = [...new Set(availableKeys.map((k) => k.key_algorithm))];
+                  const showAlgorithmPicker = algorithms.length > 1;
+                  const filteredKeys = showAlgorithmPicker
+                    ? availableKeys.filter((k) => k.key_algorithm === selectedAlgorithm)
+                    : availableKeys;
+                  const placeholderText = !isVoucherLoaded
+                    ? 'Please load a voucher first...'
+                    : isLoadingKeys
+                      ? 'Fetching available keys...'
+                      : '-- Select --';
+                  return (
+                    <>
+                      {showAlgorithmPicker && (
+                        <Form.Group className="mb-3">
+                          <Form.Label>Algorithm</Form.Label>
+                          <Form.Select
+                            value={selectedAlgorithm}
+                            onChange={(e) => {
+                              setSelectedAlgorithm(e.target.value);
+                              setKeyName('');
+                            }}
+                            disabled={!isVoucherLoaded || isLoadingKeys}
+                          >
+                            <option value="">{placeholderText}</option>
+                            {algorithms.map((algo) => (
+                              <option key={algo} value={algo}>
+                                {algo}
+                              </option>
+                            ))}
+                          </Form.Select>
+                        </Form.Group>
+                      )}
+                      <Form.Group className="mb-4">
+                        <Form.Label>Owner Key Name</Form.Label>
+                        <Form.Select
+                          value={keyName}
+                          onChange={(e) => {
+                            const name = e.target.value;
+                            setKeyName(name);
+                            // Always track the algorithm of the selected key so it gets sent in the payload
+                            const found = availableKeys.find((k) => k.key_name === name);
+                            if (found) { setSelectedAlgorithm(found.key_algorithm); }
+                          }}
+                          disabled={!isVoucherLoaded || isLoadingKeys || (showAlgorithmPicker && !selectedAlgorithm)}
+                        >
+                          <option value="">
+                            {showAlgorithmPicker && !selectedAlgorithm
+                              ? 'Select an algorithm first...'
+                              : placeholderText}
+                          </option>
+                          {filteredKeys.map((k) => (
+                            <option key={`${k.key_algorithm}/${k.key_name}`} value={k.key_name}>
+                              {k.key_name}
+                            </option>
+                          ))}
+                        </Form.Select>
+                        <Form.Text className="text-muted">
+                          The alias of the OpenBao key to correlate with this voucher.
+                        </Form.Text>
+                      </Form.Group>
+                    </>
+                  );
+                })()}
 
                 <hr className="my-4" />
 

@@ -154,7 +154,11 @@ export default (): React.ReactElement => {
             </Form.Group>
 
             <div className="d-flex gap-2">
-              <Button variant="secondary" onClick={() => navigate('/fdo-owner-keys')} disabled={isLoading}>
+              <Button
+                variant="secondary"
+                onClick={() => navigate('/fdo-owner-keys')}
+                disabled={isLoading}
+              >
                 Cancel
               </Button>
               <Button variant="primary" type="submit" disabled={isLoading || !keyName}>
