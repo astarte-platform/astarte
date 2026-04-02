@@ -29,19 +29,18 @@ defmodule Astarte.FDO.OwnershipVoucher.LoadRequest do
   alias Astarte.FDO.Core.PublicKey
   alias Astarte.FDO.OwnershipVoucher.LoadRequest
   alias Astarte.Secrets
+  alias Astarte.Secrets.Core, as: SecretsCore
   alias Astarte.Secrets.Key
 
   require Logger
 
   import Ecto.Changeset
 
-  @allowed_key_algorithms ["ecdsa-p256", "ecdsa-p384", "rsa-2048", "rsa-3072"]
-
   typed_embedded_schema do
     field :ownership_voucher, :string
     field :realm_name, :string
     field :key_name, :string
-    field :key_algorithm, :string
+    field :key_algorithm, Ecto.Enum, values: SecretsCore.key_algorithm_enum()
     field(:extracted_owner_key, :any, virtual: true) :: Key.t() | nil
     field :cbor_ownership_voucher, :binary
 
@@ -72,7 +71,6 @@ defmodule Astarte.FDO.OwnershipVoucher.LoadRequest do
       :replacement_guid
     ])
     |> validate_required([:ownership_voucher, :realm_name, :key_name, :key_algorithm])
-    |> validate_inclusion(:key_algorithm, @allowed_key_algorithms)
     |> put_device_guid()
     |> fetch_owner_key()
     |> verify_owner_key_matches()
