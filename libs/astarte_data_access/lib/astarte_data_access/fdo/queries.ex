@@ -109,7 +109,7 @@ defmodule Astarte.DataAccess.FDO.Queries do
     |> Repo.delete(prefix: keyspace)
   end
 
-  def replace_ownership_voucher(
+  def add_output_voucher(
         realm_name,
         guid,
         new_voucher
@@ -118,8 +118,12 @@ defmodule Astarte.DataAccess.FDO.Queries do
     consistency = Consistency.device_info(:write)
     opts = [prefix: keyspace, consistency: consistency]
 
-    %OwnershipVoucher{guid: guid, output_voucher: new_voucher}
-    |> Repo.update(opts)
+    result =
+      %OwnershipVoucher{guid: guid}
+      |> Ecto.Changeset.change(output_voucher: new_voucher)
+      |> Repo.update(opts)
+
+    with {:ok, _} <- result, do: :ok
   end
 
   def store_session(realm_name, guid, session) do
