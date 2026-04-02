@@ -67,6 +67,7 @@ defmodule Astarte.Cases.FDOSession do
     # use test tag 'owner_key' to select non-default keys
     # default: EC256 keys
     key_type = Map.get(context, :owner_key, "EC256")
+    key_name = :crypto.strong_rand_bytes(8) |> :binary.encode_hex() |> String.downcase()
 
     if key_type not in @allowed_owner_key_tag_values,
       do: raise("unsupported owner_key tag value: #{key_type}")
@@ -86,12 +87,12 @@ defmodule Astarte.Cases.FDOSession do
 
     {:ok, namespace} = Secrets.create_namespace(context.realm_name, key_alg)
 
-    Secrets.import_key(key_type, key_alg, owner_key_struct, namespace: namespace)
+    Secrets.import_key(key_name, key_alg, owner_key_struct, namespace: namespace)
 
-    {:ok, owner_key} = Secrets.get_key(key_type, namespace: namespace)
+    {:ok, owner_key} = Secrets.get_key(key_name, namespace: namespace)
 
     attrs = %{
-      key_name: key_type,
+      key_name: key_name,
       key_algorithm: key_alg,
       voucher_data: cbor_ownership_voucher,
       guid: device_id
