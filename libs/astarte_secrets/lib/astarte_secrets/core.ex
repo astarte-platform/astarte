@@ -451,12 +451,11 @@ defmodule Astarte.Secrets.Core do
 
     req_body = build_sign_payload(payload, vault_opts)
     headers = [{"Content-Type", "application/json"}]
-    marshaling = Keyword.get(vault_opts, :marshaling_algorithm)
 
     with {:ok, %HTTPoison.Response{status_code: 200, body: resp_body}} <-
            Client.post(url_path, req_body, headers, opts),
-         {:ok, raw_sig} <- extract_and_decode_signature(resp_body, marshaling) do
-      {:ok, raw_sig}
+         {:ok, signature} <- extract_and_decode_signature(resp_body, key_alg) do
+      {:ok, signature}
     else
       error ->
         Logger.error("Failed to sign payload or decode Vault response: #{inspect(error)}")
@@ -474,12 +473,13 @@ defmodule Astarte.Secrets.Core do
   end
 
   # Parses the JSON response, extracts the signature string, and decodes it into a binary
-  defp extract_and_decode_signature(resp_body, marshaling) do
+  defp extract_and_decode_signature(resp_body, key_algorithm) do
     with {:ok, vault_sig} <- parse_data_key(resp_body, "signature"),
          true <- is_binary(vault_sig),
-         [_, _, b64_sig] <- String.split(vault_sig, ":", parts: 3) do
+         [_, _, b64_sig] <- String.split(vault_sig, ":", parts: 3),
+         {:ok, raw_signature} <- Base.decode64(b64_sig) do
       # decode_vault_sig returns {:ok, raw_sig} or :error
-      decode_vault_sig(b64_sig, marshaling)
+      decode_vault_sig(raw_signature, key_algorithm)
     else
       {:error, _reason} = error ->
         error
@@ -489,33 +489,47 @@ defmodule Astarte.Secrets.Core do
     end
   end
 
-  # Decodes the Base64 signature returned by OpenBao.
-  # When using the "jws" marshaling algorithm, OpenBao returns a
-  # URL-safe Base64 string without padding.
-  defp decode_vault_sig(b64_sig, "jws") do
-    Base.url_decode64(b64_sig, padding: false)
-  end
-
   # For "asn1" or default marshaling, OpenBao uses standard Base64 encoding.
-  defp decode_vault_sig(b64_sig, _other) do
-    Base.decode64(b64_sig)
+  defp decode_vault_sig(raw_signature, rsa) when rsa in [:rs256, :rs384], do: {:ok, raw_signature}
+
+  defp decode_vault_sig(raw_signature, ecdh) do
+    size =
+      case ecdh do
+        :es256 -> 32
+        :es384 -> 48
+      end
+
+    {:"ECDSA-Sig-Value", r, s} = :public_key.der_decode(:"ECDSA-Sig-Value", raw_signature)
+    r = pad(r, size)
+    s = pad(s, size)
+    {:ok, r <> s}
+  rescue
+    _ -> :error
   end
 
-  # Translates Astarte/COSE supported algorithms into OpenBao Transit engine parameters.
-  defp map_cose_alg_to_vault_opts(:es256) do
-    [marshaling_algorithm: "jws"]
+  defp pad(value, size) do
+    bin = :binary.encode_unsigned(value)
+    bin_size = byte_size(bin)
+
+    case bin_size do
+      ^size ->
+        bin
+
+      s when s < size ->
+        padding = :binary.copy(<<0>>, size - bin_size)
+        padding <> bin
+
+      _ ->
+        binary_part(bin, bin_size - size, size)
+    end
   end
 
-  defp map_cose_alg_to_vault_opts(:es384) do
-    [marshaling_algorithm: "jws"]
-  end
-
-  defp map_cose_alg_to_vault_opts(:rs256) do
-    [signature_algorithm: "pkcs1v15"]
-  end
-
-  defp map_cose_alg_to_vault_opts(:rs384) do
-    [signature_algorithm: "pkcs1v15"]
+  defp map_cose_alg_to_vault_opts(alg) do
+    case alg do
+      :rs256 -> [signature_algorithm: "pkcs1v15"]
+      :rs384 -> [signature_algorithm: "pkcs1v15"]
+      _ -> []
+    end
   end
 
   def get_keys_from_algorithm(realm_name, key_algorithms) when is_list(key_algorithms) do
