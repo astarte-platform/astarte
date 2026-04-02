@@ -211,6 +211,20 @@ defmodule Astarte.FDO.Core.OwnerOnboarding.Session do
     end
   end
 
+  def build_session_secret(
+        session = %{kex_suite_name: kex, guid: guid},
+        realm_name,
+        %Astarte.Secrets.Key{} = owner_key,
+        xb
+      )
+      when kex in ["ASYMKEX2048", "ASYMKEX3072"] do
+    with {:ok, secret} <-
+           Astarte.Secrets.decrypt(owner_key.name, xb, namespace: owner_key.namespace),
+         :ok <- Queries.add_session_secret(realm_name, guid, secret) do
+      {:ok, %{session | secret: secret}}
+    end
+  end
+
   def build_session_secret(session, realm_name, owner_key, xb) do
     %Session{kex_suite_name: kex, owner_random: owner_random, guid: guid} = session
 
