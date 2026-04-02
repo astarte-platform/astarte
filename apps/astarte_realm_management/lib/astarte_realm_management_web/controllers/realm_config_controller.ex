@@ -24,20 +24,20 @@ defmodule Astarte.RealmManagementWeb.RealmConfigController do
 
   action_fallback Astarte.RealmManagementWeb.FallbackController
 
-  def show(conn, %{"realm_name" => realm_name, "group" => "auth"}) do
+  def show_auth(conn, %{"realm_name" => realm_name}) do
     with {:ok, %AuthConfig{} = auth_config} <- RealmConfig.get_auth_config(realm_name) do
       render(conn, "show.json", auth_config: auth_config)
     end
   end
 
-  def show(conn, %{"realm_name" => realm_name, "group" => "device_registration_limit"}) do
+  def show_device_registration_limit(conn, %{"realm_name" => realm_name}) do
     with {:ok, device_registration_limit} <-
            RealmConfig.get_device_registration_limit(realm_name) do
       render(conn, "show.json", device_registration_limit: device_registration_limit)
     end
   end
 
-  def show(conn, %{"realm_name" => realm_name, "group" => "datastream_maximum_storage_retention"}) do
+  def show_datastream_maximum_storage_retention(conn, %{"realm_name" => realm_name}) do
     with {:ok, datastream_maximum_storage_retention} <-
            RealmConfig.get_datastream_maximum_storage_retention(realm_name) do
       render(conn, "show.json",
@@ -46,7 +46,7 @@ defmodule Astarte.RealmManagementWeb.RealmConfigController do
     end
   end
 
-  def update(conn, %{"realm_name" => realm_name, "group" => "auth", "data" => new_config}) do
+  def update_auth(conn, %{"realm_name" => realm_name, "data" => new_config}) do
     with :ok <- RealmConfig.update_auth_config(realm_name, new_config) do
       send_resp(conn, :no_content, "")
     end

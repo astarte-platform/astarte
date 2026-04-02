@@ -70,9 +70,14 @@ defmodule Astarte.RealmManagementWeb.InterfaceController do
     end
   end
 
-  def show(conn, %{"realm_name" => realm_name, "id" => id, "major_version" => major_version}) do
+  def show(conn, %{
+        "realm_name" => realm_name,
+        "interface_name" => interface_name,
+        "major_version" => major_version
+      }) do
     with {:major_parsing, {parsed_major, ""}} <- {:major_parsing, Integer.parse(major_version)},
-         {:ok, interface_source} <- Interfaces.fetch_interface(realm_name, id, parsed_major) do
+         {:ok, interface_source} <-
+           Interfaces.fetch_interface(realm_name, interface_name, parsed_major) do
       render(conn, "show.json", interface: interface_source)
     else
       {:major_parsing, _} ->
@@ -88,7 +93,7 @@ defmodule Astarte.RealmManagementWeb.InterfaceController do
         conn,
         %{
           "realm_name" => realm_name,
-          "id" => interface_name,
+          "interface_name" => interface_name,
           "major_version" => major_version,
           "data" => %{} = interface_params
         } = params
@@ -162,7 +167,7 @@ defmodule Astarte.RealmManagementWeb.InterfaceController do
         conn,
         %{
           "realm_name" => realm_name,
-          "id" => interface_name,
+          "interface_name" => interface_name,
           "major_version" => major_version
         } = params
       ) do

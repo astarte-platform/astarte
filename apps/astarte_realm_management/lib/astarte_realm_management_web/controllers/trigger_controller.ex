@@ -63,8 +63,8 @@ defmodule Astarte.RealmManagementWeb.TriggerController do
     end
   end
 
-  def show(conn, %{"realm_name" => realm_name, "id" => id}) do
-    case Triggers.get_trigger(realm_name, id) do
+  def show(conn, %{"realm_name" => realm_name, "trigger_name" => trigger_name}) do
+    case Triggers.get_trigger(realm_name, trigger_name) do
       {:ok, trigger} ->
         render(conn, "show.json", trigger: trigger)
 
@@ -79,8 +79,8 @@ defmodule Astarte.RealmManagementWeb.TriggerController do
     end
   end
 
-  def delete(conn, %{"realm_name" => realm_name, "id" => id}) do
-    with {:ok, %Trigger{} = trigger} <- Triggers.get_trigger(realm_name, id),
+  def delete(conn, %{"realm_name" => realm_name, "trigger_name" => trigger_name}) do
+    with {:ok, %Trigger{} = trigger} <- Triggers.get_trigger(realm_name, trigger_name),
          {:ok, %Trigger{}} <- Triggers.delete_trigger(realm_name, trigger) do
       send_resp(conn, :no_content, "")
     else

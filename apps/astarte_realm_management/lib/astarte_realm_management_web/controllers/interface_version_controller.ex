@@ -23,8 +23,9 @@ defmodule Astarte.RealmManagementWeb.InterfaceVersionController do
 
   action_fallback Astarte.RealmManagementWeb.FallbackController
 
-  def index(conn, %{"realm_name" => realm_name, "id" => id}) do
-    with {:ok, interfaces} <- Interfaces.list_interface_major_versions(realm_name, id) do
+  def index(conn, %{"realm_name" => realm_name, "interface_name" => interface_name}) do
+    with {:ok, interfaces} <-
+           Interfaces.list_interface_major_versions(realm_name, interface_name) do
       render(conn, "index.json", interfaces: interfaces)
     end
   end
