@@ -58,7 +58,7 @@ defmodule Astarte.FDO.OwnerOnboarding do
          {:ok, ownership_voucher} <- OwnershipVoucher.fetch(realm_name, guid),
          {:ok, owner_key} <- Secrets.get_key_for_guid(realm_name, guid),
          {:ok, pub_key} <- OwnershipVoucher.owner_public_key(ownership_voucher),
-         :ok <- KeyExchangeStrategy.validate(hello_device.kex_name, owner_key),
+         :ok <- KeyExchangeStrategy.validate(hello_device.kex_name, owner_key.alg),
          {:ok, token, session} <-
            Session.new(
              realm_name,
