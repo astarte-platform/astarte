@@ -19,8 +19,6 @@ defmodule Astarte.FDO.OwnerOnboarding.KeyExchangeStrategyTest do
   use ExUnit.Case, async: true
 
   alias Astarte.FDO.OwnerOnboarding.KeyExchangeStrategy
-  alias COSE.Keys.ECC
-  alias COSE.Keys.RSA
 
   describe "validate/2" do
     test "validates device requesting DHKEXid14 when Owner Key is of type RSA2048" do
