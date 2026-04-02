@@ -199,24 +199,15 @@ defmodule Astarte.FDO.Core.OwnerOnboarding.Session do
     end)
   end
 
-  def add_replacement_info(session, realm_name, replacement_guid, rv_info, pub_key, hmac) do
+  def add_replacement_hmac(session, realm_name, hmac) do
     with :ok <-
-           Queries.session_add_replacement_info(
+           Queries.session_add_replacement_hmac(
              realm_name,
              session.guid,
-             replacement_guid,
-             rv_info,
-             pub_key,
              hmac
            ) do
-      {:ok,
-       %{
-         session
-         | replacement_guid: replacement_guid,
-           replacement_rv_info: rv_info,
-           replacement_pub_key: pub_key,
-           replacement_hmac: hmac
-       }}
+      session = %{session | replacement_hmac: hmac}
+      {:ok, session}
     end
   end
 

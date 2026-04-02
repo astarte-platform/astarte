@@ -160,15 +160,6 @@ defmodule Astarte.FDO.OwnerOnboarding do
                session,
                body,
                connection_credentials
-             ),
-           {:ok, session} <-
-             Session.add_replacement_info(
-               session,
-               realm_name,
-               guid,
-               rendezvous_info,
-               owner_public_key,
-               nil
              ) do
         {:ok, session, resp_msg}
       end
@@ -232,12 +223,9 @@ defmodule Astarte.FDO.OwnerOnboarding do
          {:ok, session} <-
            Session.add_max_owner_service_info_size(session, realm_name, max_owner_service_info_sz),
          {:ok, session} <-
-           Session.add_replacement_info(
+           Session.add_replacement_hmac(
              session,
              realm_name,
-             session.replacement_guid,
-             session.replacement_rv_info,
-             session.replacement_pub_key,
              replacement_hmac || session.hmac
            ) do
       response =
@@ -270,14 +258,10 @@ defmodule Astarte.FDO.OwnerOnboarding do
       with {:ok, old_voucher} <-
              OwnershipVoucher.fetch(realm_name, to2_session.guid),
            {:ok, new_voucher} <-
-             OwnershipVoucher.generate_replacement_voucher(old_voucher, to2_session),
-           # TODO: change this line to ensure the retrieval of latest private key
-           # after exposing an API to do so
-           {:ok, key_name} <-
-             Queries.get_owner_private_key(realm_name, to2_session.guid) do
+             OwnershipVoucher.generate_replacement_voucher(old_voucher, to2_session) do
         cbor_voucher = CoreOwnershipVoucher.cbor_encode(new_voucher)
 
-        Queries.replace_ownership_voucher(
+        Queries.add_output_voucher(
           realm_name,
           to2_session.guid,
           cbor_voucher
