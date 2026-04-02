@@ -207,11 +207,22 @@ defmodule Astarte.Cases.FDOSession do
 
       kn when kn in ["ASYMKEX2048", "ASYMKEX3072"] ->
         {:ok, device_rand, _} = SessionKey.new(kn)
+
         # Owner RSA key used to encrypt/decrypt device rand
-        pub_key_record = owner_key |> RSA.to_public_record()
+        pub_key_record = extract_public_record(owner_key)
+
         xb = asymkex_msg_encryption(device_rand, pub_key_record)
         {:ok, device_rand, xb}
     end
+  end
+
+  defp extract_public_record(%Astarte.Secrets.Key{} = openbao_key) do
+    [pem_entry] = :public_key.pem_decode(openbao_key.public_pem)
+    :public_key.pem_entry_decode(pem_entry)
+  end
+
+  defp extract_public_record(%COSE.Keys.RSA{} = raw_rsa_key) do
+    RSA.to_public_record(raw_rsa_key)
   end
 
   defp asymkex_msg_encryption(msg, pub_rsa_key) do
