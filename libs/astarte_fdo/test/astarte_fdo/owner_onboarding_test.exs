@@ -138,7 +138,7 @@ defmodule Astarte.FDO.OwnerOnboardingTest do
          %{
            realm_name: realm_name,
            cbor_hello_device: cbor_hello_device,
-           owner_key: owner_key
+           owner_key_struct: owner_key
          } do
       assert {:ok, session_key, prove_ovhdr_bin} =
                OwnerOnboarding.hello_device(realm_name, cbor_hello_device)
@@ -156,7 +156,7 @@ defmodule Astarte.FDO.OwnerOnboardingTest do
          %{
            realm_name: realm_name,
            cbor_hello_device: cbor_hello_device,
-           owner_key: owner_key
+           owner_key_struct: owner_key
          } do
       assert {:ok, session_key, prove_ovhdr_bin} =
                OwnerOnboarding.hello_device(realm_name, cbor_hello_device)
@@ -174,7 +174,7 @@ defmodule Astarte.FDO.OwnerOnboardingTest do
          %{
            realm_name: realm_name,
            cbor_hello_device: cbor_hello_device,
-           owner_key: owner_key
+           owner_key_struct: owner_key
          } do
       assert {:ok, session_key, prove_ovhdr_bin} =
                OwnerOnboarding.hello_device(realm_name, cbor_hello_device)
@@ -192,7 +192,7 @@ defmodule Astarte.FDO.OwnerOnboardingTest do
          %{
            realm_name: realm_name,
            cbor_hello_device: cbor_hello_device,
-           owner_key: owner_key
+           owner_key_struct: owner_key
          } do
       assert {:ok, session_key, prove_ovhdr_bin} =
                OwnerOnboarding.hello_device(realm_name, cbor_hello_device)
@@ -232,20 +232,19 @@ defmodule Astarte.FDO.OwnerOnboardingTest do
   end
 
   describe "ov_next_entry/3" do
-    test "returns {:ok, entry} for valid entry_num 0", %{realm: realm_name, guid: guid} do
+    test "returns {:ok, entry} for valid entry_num 0", %{realm_name: realm_name, device_id: guid} do
       cbor_body = CBOR.encode([0])
       assert {:ok, _entry} = OwnerOnboarding.ov_next_entry(cbor_body, realm_name, guid)
     end
 
-    test "returns {:error, :message_body_error} for invalid CBOR body", %{
-      realm: realm_name,
-      guid: guid
-    } do
+    test "returns {:error, :message_body_error} for invalid CBOR body", context do
+      %{realm_name: realm_name, device_id: guid} = context
+
       assert {:error, :message_body_error} =
                OwnerOnboarding.ov_next_entry(<<0xFF>>, realm_name, guid)
     end
 
-    test "returns error when guid does not match any voucher", %{realm: realm_name} do
+    test "returns error when guid does not match any voucher", %{realm_name: realm_name} do
       cbor_body = CBOR.encode([0])
       unknown_guid = :crypto.strong_rand_bytes(16)
       assert {:error, _} = OwnerOnboarding.ov_next_entry(cbor_body, realm_name, unknown_guid)

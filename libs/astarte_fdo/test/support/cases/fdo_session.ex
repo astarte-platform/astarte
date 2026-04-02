@@ -101,6 +101,7 @@ defmodule Astarte.Cases.FDOSession do
 
     %{
       owner_key: owner_key,
+      owner_key_struct: owner_key_struct,
       owner_key_pem: owner_key_pem,
       ownership_voucher: ownership_voucher,
       cbor_ownership_voucher: cbor_ownership_voucher,
