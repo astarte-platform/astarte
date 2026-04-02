@@ -43,12 +43,13 @@ defmodule Astarte.FDO.ServiceInfoTest do
     key_name = "default"
     {:ok, namespace} = Astarte.Secrets.create_namespace(realm_name, key_alg)
 
-    {:ok, owner_key} =
-      Astarte.Secrets.import_key(key_name, key_alg, owner_key, namespace: namespace)
+    Astarte.Secrets.import_key(key_name, key_alg, owner_key, namespace: namespace)
+
+    {:ok, owner_key} = Astarte.Secrets.get_key(key_name, namespace: namespace)
 
     attrs = %{
       key_name: key_name,
-      key_algoright: key_alg,
+      key_algorithm: key_alg,
       voucher_data: ownership_voucher,
       guid: device_id
     }

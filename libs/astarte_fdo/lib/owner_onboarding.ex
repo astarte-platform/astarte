@@ -49,7 +49,6 @@ defmodule Astarte.FDO.OwnerOnboarding do
 
   @max_owner_message_size 65_535
   @rsa_public_exponent 65_537
-  @one_week 604_800
 
   def hello_device(realm_name, cbor_hello_device) do
     with {:ok, hello_device} <- HelloDevice.decode(cbor_hello_device),

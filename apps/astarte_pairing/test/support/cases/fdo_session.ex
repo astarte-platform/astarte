@@ -40,6 +40,7 @@ defmodule Astarte.Cases.FDOSession do
   alias Astarte.FDO.Core.OwnerOnboarding.SessionKey
   alias Astarte.FDO.Core.OwnershipVoucher
   alias Astarte.FDO.OwnerOnboarding.KeyExchangeStrategy
+  alias Astarte.Secrets
   alias COSE.Keys.{ECC, RSA}
 
   import Astarte.Helpers.Database
@@ -77,20 +78,21 @@ defmodule Astarte.Cases.FDOSession do
 
     key_alg =
       case key_type do
-        "EC256" -> :ec256
-        "EC384" -> :ec384
+        "EC256" -> :es256
+        "EC384" -> :es384
         "RSA2048" -> :rs256
         "RSA3072" -> :rs384
       end
 
-    {:ok, namespace} = Astarte.Secrets.create_namespace(context.realm_name, key_alg)
+    {:ok, namespace} = Secrets.create_namespace(context.realm_name, key_alg)
 
-    {:ok, owner_key} =
-      Astarte.Secrets.import_key(key_type, key_alg, owner_key_struct, namespace: namespace)
+    Secrets.import_key(key_type, key_alg, owner_key_struct, namespace: namespace)
+
+    {:ok, owner_key} = Secrets.get_key(key_type, namespace: namespace)
 
     attrs = %{
       key_name: key_type,
-      key_algoright: key_alg,
+      key_algorithm: key_alg,
       voucher_data: cbor_ownership_voucher,
       guid: device_id
     }
@@ -117,7 +119,7 @@ defmodule Astarte.Cases.FDOSession do
     if kex_name not in @allowed_kex_name_tag_values,
       do: raise("unsupported kex_name tag value: #{kex_name}")
 
-    if KeyExchangeStrategy.validate(kex_name, context.owner_key) != :ok,
+    if KeyExchangeStrategy.validate(kex_name, context.owner_key.alg) != :ok,
       do:
         raise(
           "unsupported association owner key type #{context.owner_key.alg} <-> KEX alg #{kex_name}"
