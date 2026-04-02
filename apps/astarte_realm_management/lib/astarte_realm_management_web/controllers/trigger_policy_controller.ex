@@ -46,8 +46,8 @@ defmodule Astarte.RealmManagementWeb.TriggerPolicyController do
     end
   end
 
-  def show(conn, %{"realm_name" => realm_name, "id" => id}) do
-    with {:ok, policy_source} <- Policies.get_trigger_policy_source(realm_name, id),
+  def show(conn, %{"realm_name" => realm_name, "policy_name" => policy_name}) do
+    with {:ok, policy_source} <- Policies.get_trigger_policy_source(realm_name, policy_name),
          # Use (safe) atoms as keys to simplify handler normalization in Trigger Policy View
          # TODO: move this to a function in Astarte Core building a Policy from its source
          {:ok, decoded_json} <- Jason.decode(policy_source, keys: :atoms!) do
@@ -55,7 +55,7 @@ defmodule Astarte.RealmManagementWeb.TriggerPolicyController do
     end
   end
 
-  def delete(conn, %{"realm_name" => realm_name, "id" => id} = params) do
+  def delete(conn, %{"realm_name" => realm_name, "policy_name" => policy_name} = params) do
     async_operation =
       if Map.get(params, "async_operation") == "false" do
         false
@@ -63,8 +63,8 @@ defmodule Astarte.RealmManagementWeb.TriggerPolicyController do
         true
       end
 
-    with {:ok, _policy_source} <- Policies.get_trigger_policy_source(realm_name, id),
-         :ok <- Policies.delete_trigger_policy(realm_name, id, async: async_operation) do
+    with {:ok, _policy_source} <- Policies.get_trigger_policy_source(realm_name, policy_name),
+         :ok <- Policies.delete_trigger_policy(realm_name, policy_name, async: async_operation) do
       send_resp(conn, :no_content, "")
     end
   end
