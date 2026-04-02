@@ -518,7 +518,7 @@ defmodule Astarte.Secrets.Core do
     [signature_algorithm: "pkcs1v15"]
   end
 
-  def get_keys_from_algorithm(realm_name, key_algorithms) when is_list(key_algorithms) do
+  def get_keys_from_algorithm(realm_name, key_algorithms) do
     keys_map =
       Enum.flat_map(key_algorithms, fn key_algorithm ->
         case Secrets.create_namespace(realm_name, key_algorithm) do
@@ -534,21 +534,6 @@ defmodule Astarte.Secrets.Core do
       end)
 
     {:ok, keys_map}
-  end
-
-  def get_keys_from_algorithm(realm_name, key_algorithm) when is_binary(key_algorithm) do
-    with {:ok, algorithm_atom} <- string_to_key_type(key_algorithm),
-         {:ok, namespace} <- Secrets.create_namespace(realm_name, algorithm_atom),
-         {:ok, keys} <- Secrets.list_keys_names(namespace: namespace) do
-      {:ok, %{key_algorithm => keys}}
-    end
-  end
-
-  def get_keys_from_algorithm(realm_name, key_algorithm) when is_atom(key_algorithm) do
-    with {:ok, namespace} <- Secrets.create_namespace(realm_name, key_algorithm),
-         {:ok, keys} <- Secrets.list_keys_names(namespace: namespace) do
-      {:ok, %{key_algorithm => keys}}
-    end
   end
 
   @doc """

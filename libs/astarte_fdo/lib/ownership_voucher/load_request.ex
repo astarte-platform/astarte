@@ -40,7 +40,6 @@ defmodule Astarte.FDO.OwnershipVoucher.LoadRequest do
     field :ownership_voucher, :string
     field :realm_name, :string
     field :key_name, :string
-    field :key_algorithm, Ecto.Enum, values: SecretsCore.key_algorithm_enum()
     field(:extracted_owner_key, :any, virtual: true) :: Key.t() | nil
     field :cbor_ownership_voucher, :binary
 
@@ -48,7 +47,7 @@ defmodule Astarte.FDO.OwnershipVoucher.LoadRequest do
       OwnershipVoucher.decoded_voucher() | nil
 
     field(:voucher_struct, :any, virtual: true) :: struct() | nil
-    field(:owner_key_algorithm, :any, virtual: true)
+    field :key_algorithm, Ecto.Enum, values: SecretsCore.key_algorithm_enum()
     field :device_guid, :binary
     field(:owner_voucher_public_key, :any, virtual: true) :: PublicKey.t() | nil
     field :replacement_rendezvous_info, :binary
@@ -72,6 +71,7 @@ defmodule Astarte.FDO.OwnershipVoucher.LoadRequest do
     ])
     |> validate_required([:ownership_voucher, :realm_name, :key_name, :key_algorithm])
     |> put_device_guid()
+    |> validate_key_algorithm_compatible()
     |> fetch_owner_key()
     |> verify_owner_key_matches()
     |> validate_replacement_rendezvous_info()
@@ -109,7 +109,7 @@ defmodule Astarte.FDO.OwnershipVoucher.LoadRequest do
     with {:ok, binary_voucher} <- OwnershipVoucher.binary_voucher(ownership_voucher_pem),
          {:ok, decoded_voucher, _rest} <- CBOR.decode(binary_voucher),
          {:ok, voucher_struct} <- OwnershipVoucher.decode(decoded_voucher),
-         {:ok, owner_public_key} <-
+         {:ok, %PublicKey{} = owner_public_key} <-
            OVCore.entry_public_key(List.last(voucher_struct.entries)) do
       changeset
       |> put_change(:cbor_ownership_voucher, binary_voucher)
@@ -127,6 +127,26 @@ defmodule Astarte.FDO.OwnershipVoucher.LoadRequest do
     end
   end
 
+  defp validate_key_algorithm_compatible(%Ecto.Changeset{valid?: false} = changeset),
+    do: changeset
+
+  defp validate_key_algorithm_compatible(changeset) do
+    key_algorithm = fetch_field!(changeset, :key_algorithm)
+    %PublicKey{type: pubkey_type} = fetch_field!(changeset, :owner_voucher_public_key)
+
+    case OwnershipVoucher.key_algorithm_from_type(pubkey_type) do
+      {:ok, valid_algorithms} ->
+        if key_algorithm in valid_algorithms do
+          changeset
+        else
+          add_error(changeset, :key_algorithm, "is not compatible with the ownership voucher's key type")
+        end
+
+      {:error, _} ->
+        add_error(changeset, :ownership_voucher, "has an unsupported key type")
+    end
+  end
+
   defp fetch_owner_key(%Ecto.Changeset{valid?: false} = changeset), do: changeset
 
   defp fetch_owner_key(changeset) do
@@ -134,12 +154,18 @@ defmodule Astarte.FDO.OwnershipVoucher.LoadRequest do
     key_name = fetch_field!(changeset, :key_name)
     key_algorithm = fetch_field!(changeset, :key_algorithm)
 
+    case fetch_key_for_algorithm(realm_name, key_name, key_algorithm) do
+      {:ok, key} -> put_change(changeset, :extracted_owner_key, key)
+      {:error, _} -> add_error(changeset, :key_name, "does not exist in secrets store")
+    end
+  end
+
+  defp fetch_key_for_algorithm(realm_name, key_name, key_algorithm) do
     with {:ok, namespace} <- Secrets.create_namespace(realm_name, key_algorithm),
          {:ok, key} <- Secrets.get_key(key_name, namespace: namespace) do
-      put_change(changeset, :extracted_owner_key, key)
+      {:ok, key}
     else
-      _err ->
-        add_error(changeset, :key_name, "does not exist in secrets store")
+      _ -> {:error, :not_found}
     end
   end
 

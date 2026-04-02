@@ -128,6 +128,32 @@ defmodule Astarte.FDO.Core.OwnershipVoucher do
     end
   end
 
+  @doc """
+  Decodes a PEM-encoded ownership voucher and returns the key algorithm
+  """
+  @spec key_algorithm_from_voucher(String.t()) ::
+          {:ok, [atom()]} | {:error, atom()}
+  def key_algorithm_from_voucher(pem) do
+    with {:ok, binary} <- binary_voucher(pem),
+         {:ok, voucher} <- decode_cbor(binary) do
+      key_algorithm_from_type(voucher.header.public_key.type)
+    else
+      {:error, reason} -> {:error, reason}
+      :error -> {:error, :invalid_ownership_voucher}
+    end
+  end
+
+  @doc """
+  Returns the key algorithm(s) for a given FDO public key type atom.
+  """
+  @spec key_algorithm_from_type(atom()) :: {:ok, [atom()]} | {:error, atom()}
+  def key_algorithm_from_type(:secp256r1), do: {:ok, [:es256]}
+  def key_algorithm_from_type(:secp384r1), do: {:ok, [:es384]}
+  def key_algorithm_from_type(:rsa2048restr), do: {:ok, [:rs256]}
+  def key_algorithm_from_type(:rsapkcs), do: {:ok, [:rs256, :rs384]}
+  def key_algorithm_from_type(:rsapss), do: {:ok, [:rs256, :rs384]}
+  def key_algorithm_from_type(_), do: {:error, :unsupported_key_algorithm}
+
   defp decode_cert(cert_bin) do
     {:ok, :public_key.pkix_decode_cert(cert_bin, :otp)}
   rescue

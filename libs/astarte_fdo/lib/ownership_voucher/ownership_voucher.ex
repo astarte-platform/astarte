@@ -91,4 +91,14 @@ defmodule Astarte.FDO.OwnershipVoucher do
       OwnershipVoucher.decode_cbor(binary)
     end
   end
+
+  @doc """
+  Returns the list of key algorithm atoms compatible with the given ownership voucher.
+  Returns an empty list if the key type is unsupported.
+  """
+  @spec key_algorithm(OwnershipVoucher.t()) :: [atom()]
+  def key_algorithm(voucher) do
+    {:ok, algorithms} = OwnershipVoucher.key_algorithm_from_type(voucher.header.public_key.type)
+    algorithms
+  end
 end

@@ -66,7 +66,14 @@ defmodule Astarte.PairingWeb.OwnershipVoucherController do
   def register(conn, %{"data" => data, "realm_name" => realm_name}) do
     with {:ok, req} <-
            LoadRequest.changeset(%LoadRequest{}, Map.put(data, "realm_name", realm_name))
-           |> Ecto.Changeset.apply_action(:insert) do
+           |> Ecto.Changeset.apply_action(:insert),
+         :ok <-
+           OwnershipVoucher.save_voucher(realm_name, %{
+             voucher_data: req.cbor_ownership_voucher,
+             guid: req.device_guid,
+             key_name: req.key_name,
+             key_algorithm: req.key_algorithm
+           }) do
       json(conn, %{
         data: %{
           public_key: req.extracted_owner_key.public_pem,
