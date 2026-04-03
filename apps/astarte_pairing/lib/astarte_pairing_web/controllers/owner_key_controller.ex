@@ -64,9 +64,8 @@ defmodule Astarte.PairingWeb.OwnerKeyController do
         "realm_name" => realm_name,
         "key_algorithm" => key_algorithm
       }) do
-    case Secrets.Core.get_keys_from_algorithm(realm_name, key_algorithm) do
-      {:ok, keys} -> json(conn, %{data: keys})
-      :error -> {:error, :unprocessable_key}
+    with {:ok, keys} <- Secrets.Core.get_keys_from_algorithm(realm_name, key_algorithm) do
+      json(conn, %{data: keys})
     end
   end
 
@@ -79,7 +78,9 @@ defmodule Astarte.PairingWeb.OwnerKeyController do
          {:ok, key} <- Secrets.Core.find_key(realm_name, key_name, algorithm_atom) do
       json(conn, %{data: %{key_name: key.name, public_key: key.public_pem}})
     else
-      :error -> {:error, :unprocessable_key}
+      :error ->
+        {:error, :unprocessable_key}
+
       :not_found ->
         conn
         |> put_status(:not_found)

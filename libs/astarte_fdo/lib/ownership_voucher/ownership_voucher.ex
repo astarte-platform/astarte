@@ -93,21 +93,12 @@ defmodule Astarte.FDO.OwnershipVoucher do
   end
 
   @doc """
-  Extracts the key algorithm from the given ownership voucher struct.
+  Returns the list of key algorithm atoms compatible with the given ownership voucher.
+  Returns an empty list if the key type is unsupported.
   """
-  def key_algorithm(%Astarte.FDO.Core.OwnershipVoucher{} = voucher) do
-    with {:ok, %{type: pubkey_type}} <- Core.entry_public_key(List.last(voucher.entries)),
-         {:ok, algo} <- pubkey_type_to_algorithm(pubkey_type) do
-      algo
-    else
-      _ -> :error
-    end
+  @spec key_algorithm(OwnershipVoucher.t()) :: [atom()]
+  def key_algorithm(voucher) do
+    {:ok, algorithms} = OwnershipVoucher.key_algorithm_from_type(voucher.header.public_key.type)
+    algorithms
   end
-
-  defp pubkey_type_to_algorithm(:secp256r1), do: {:ok, :es256}
-  defp pubkey_type_to_algorithm(:secp384r1), do: {:ok, :es384}
-  defp pubkey_type_to_algorithm(:rsa2048restr), do: {:ok, :rs256}
-  defp pubkey_type_to_algorithm(:rsapkcs), do: {:ok, :rs256}
-  defp pubkey_type_to_algorithm(:rsapss), do: {:ok, :rs384}
-  defp pubkey_type_to_algorithm(_), do: {:error, :unsupported_fdo_key_type}
 end
