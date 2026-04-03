@@ -43,6 +43,7 @@ defmodule Astarte.PairingWeb.Plug.SetupFDO do
     case read_body(conn) do
       {:ok, body, conn} ->
         conn
+        |> put_resp_header("content-type", "application/cbor")
         |> put_resp_header("message-type", to_string(next_message_id))
         |> assign(:message_id, message_id)
         |> assign(:cbor_body, body)
