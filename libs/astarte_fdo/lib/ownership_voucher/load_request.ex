@@ -40,6 +40,7 @@ defmodule Astarte.FDO.OwnershipVoucher.LoadRequest do
     field :ownership_voucher, :string
     field :realm_name, :string
     field :key_name, :string
+    field :key_algorithm, Ecto.Enum, values: SecretsCore.key_algorithm_enum()
     field(:extracted_owner_key, :any, virtual: true) :: Key.t() | nil
     field :cbor_ownership_voucher, :binary
 
@@ -47,7 +48,6 @@ defmodule Astarte.FDO.OwnershipVoucher.LoadRequest do
       OwnershipVoucher.decoded_voucher() | nil
 
     field(:voucher_struct, :any, virtual: true) :: struct() | nil
-    field :key_algorithm, Ecto.Enum, values: SecretsCore.key_algorithm_enum()
     field :device_guid, :binary
     field(:owner_voucher_public_key, :any, virtual: true) :: PublicKey.t() | nil
     field :replacement_rendezvous_info, :binary
