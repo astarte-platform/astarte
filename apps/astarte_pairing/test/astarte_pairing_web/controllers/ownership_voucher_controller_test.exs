@@ -174,7 +174,7 @@ defmodule Astarte.PairingWeb.Controllers.OwnershipVoucherControllerTest do
       assert %{"es256" => [@sample_key_name, "another_key"]} = get_in(body, ["data"])
     end
 
-    test "returns 200 with an empty list when no keys are registered", context do
+    test "returns 200 with an empty key list when no keys are registered", context do
       %{auth_conn: conn, path: path, realm_name: realm_name} = context
 
       stub(Secrets, :create_namespace, fn ^realm_name, :es256 ->

@@ -55,7 +55,7 @@ defmodule Astarte.PairingWeb.OwnerKeyController do
         }
       ) do
     with {:ok, keys} <-
-           Secrets.Core.get_keys_from_algorithm(realm_name, @supported_key_algorithms) do
+           Secrets.Core.get_keys(realm_name, @supported_key_algorithms) do
       send_resp(conn, 200, Jason.encode!(keys))
     end
   end
@@ -64,7 +64,8 @@ defmodule Astarte.PairingWeb.OwnerKeyController do
         "realm_name" => realm_name,
         "key_algorithm" => key_algorithm
       }) do
-    with {:ok, keys} <- Secrets.Core.get_keys_from_algorithm(realm_name, key_algorithm) do
+    with {:ok, algorithm} <- Secrets.Core.string_to_key_type(key_algorithm),
+         {:ok, keys} <- Secrets.Core.get_keys(realm_name, [algorithm]) do
       json(conn, %{data: keys})
     end
   end

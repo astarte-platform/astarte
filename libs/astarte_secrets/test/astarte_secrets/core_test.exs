@@ -564,8 +564,8 @@ defmodule Astarte.Secrets.CoreTest do
     end
   end
 
-  describe "get_keys_from_algorithm/2 with list" do
-    test "returns a list of maps with key names per algorithm" do
+  describe "get_keys/2" do
+    test "returns a map of algorithm to key names" do
       unique_id = System.unique_integer([:positive])
       realm_name = "listtest_#{unique_id}"
 
@@ -574,29 +574,10 @@ defmodule Astarte.Secrets.CoreTest do
       Secrets.create_keypair("k1", :es256, namespace: ns)
       Secrets.create_keypair("k2", :es256, namespace: ns)
 
-      result = Core.get_keys_from_algorithm(realm_name, [:es256])
-      assert {:ok, [%{es256: keys}]} = result
+      result = Core.get_keys(realm_name, [:es256])
+      assert {:ok, %{es256: keys}} = result
       assert "k1" in keys
       assert "k2" in keys
-    end
-  end
-
-  describe "get_keys_from_algorithm/2 with binary algorithm" do
-    test "returns a map with key names for valid binary algorithm string" do
-      unique_id = System.unique_integer([:positive])
-      realm_name = "bintest_#{unique_id}"
-
-      {:ok, ns} = Secrets.create_namespace(realm_name, :es256)
-
-      Secrets.create_keypair("k1", :es256, namespace: ns)
-
-      result = Core.get_keys_from_algorithm(realm_name, "ecdsa-p256")
-      assert {:ok, %{"ecdsa-p256" => keys}} = result
-      assert "k1" in keys
-    end
-
-    test "returns :error for unknown algorithm string" do
-      assert :error = Core.get_keys_from_algorithm("realm", "unknown-algo")
     end
   end
 

@@ -251,7 +251,8 @@ defmodule Astarte.Pairing.Queries do
     consistency = Consistency.device_info(:write)
     opts = [prefix: keyspace, consistency: consistency]
 
-    %OwnershipVoucher{guid: guid, output_voucher: new_voucher}
+    %OwnershipVoucher{guid: guid}
+    |> Ecto.Changeset.change(output_voucher: new_voucher)
     |> Repo.update(opts)
   end
 
