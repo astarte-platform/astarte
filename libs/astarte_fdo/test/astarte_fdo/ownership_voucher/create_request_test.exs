@@ -16,10 +16,10 @@
 # limitations under the License.
 #
 
-defmodule Astarte.DataAccess.FDO.OwnershipVoucher.CreateRequestTest do
+defmodule Astarte.FDO.Core.OwnershipVoucher.CreateRequestTest do
   use ExUnit.Case, async: true
 
-  alias Astarte.DataAccess.FDO.OwnershipVoucher.CreateRequest
+  alias Astarte.FDO.Core.OwnershipVoucher.CreateRequest
 
   import Astarte.FDO.Helpers
 

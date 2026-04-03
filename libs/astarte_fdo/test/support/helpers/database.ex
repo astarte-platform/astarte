@@ -83,9 +83,15 @@ defmodule Astarte.FDO.Helpers.Database do
 
   @create_ownership_vouchers_table """
   CREATE TABLE :keyspace.ownership_vouchers (
-      private_key blob,
-      voucher_data blob,
       guid blob,
+      voucher_data blob,
+      output_voucher blob,
+      replacement_guid blob,
+      replacement_rendezvous_info blob,
+      replacement_public_key blob,
+      key_name varchar,
+      key_algorithm int,
+      user_id blob,
       PRIMARY KEY (guid)
    );
   """

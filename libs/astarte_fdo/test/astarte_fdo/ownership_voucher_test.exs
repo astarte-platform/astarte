@@ -39,15 +39,20 @@ defmodule Astarte.FDO.OwnershipVoucherTest do
         device_id: device_id
       } = ctx
 
-      assert :ok =
-               OwnershipVoucher.save_voucher(
-                 realm_name,
-                 Helpers.sample_voucher(),
-                 device_id,
-                 Helpers.sample_private_key()
-               )
+      key_name = "some_key"
+      key_alg = :es256
 
-      assert Queries.get_owner_private_key(realm_name, device_id)
+      attrs = %{
+        guid: device_id,
+        key_name: key_name,
+        key_algorithm: key_alg,
+        voucher_data: Helpers.sample_cbor_voucher()
+      }
+
+      assert :ok = OwnershipVoucher.save_voucher(realm_name, attrs)
+
+      assert {:ok, key_data} = Queries.get_owner_key_params(realm_name, device_id)
+      assert %{name: key_name, algorithm: key_alg} == key_data
     end
   end
 

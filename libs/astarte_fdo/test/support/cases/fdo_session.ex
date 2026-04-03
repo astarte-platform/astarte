@@ -40,6 +40,7 @@ defmodule Astarte.Cases.FDOSession do
   alias Astarte.FDO.Core.OwnerOnboarding.SessionKey
   alias Astarte.FDO.Core.OwnershipVoucher
   alias Astarte.FDO.OwnerOnboarding.KeyExchangeStrategy
+  alias Astarte.Secrets
   alias COSE.Keys.{ECC, RSA}
 
   import Astarte.FDO.Helpers.Database
@@ -66,6 +67,7 @@ defmodule Astarte.Cases.FDOSession do
     # use test tag 'owner_key' to select non-default keys
     # default: EC256 keys
     key_type = Map.get(context, :owner_key, "EC256")
+    key_name = :crypto.strong_rand_bytes(8) |> :binary.encode_hex() |> String.downcase()
 
     if key_type not in @allowed_owner_key_tag_values,
       do: raise("unsupported owner_key tag value: #{key_type}")
@@ -75,15 +77,32 @@ defmodule Astarte.Cases.FDOSession do
     cbor_ownership_voucher = OwnershipVoucher.cbor_encode(ownership_voucher)
     device_id = Device.random_device_id()
 
-    insert_voucher(
-      context.realm_name,
-      owner_key_pem,
-      cbor_ownership_voucher,
-      device_id
-    )
+    key_alg =
+      case key_type do
+        "EC256" -> :es256
+        "EC384" -> :es384
+        "RSA2048" -> :rs256
+        "RSA3072" -> :rs384
+      end
+
+    {:ok, namespace} = Secrets.create_namespace(context.realm_name, key_alg)
+
+    Secrets.import_key(key_name, key_alg, owner_key_struct, namespace: namespace)
+
+    {:ok, owner_key} = Secrets.get_key(key_name, namespace: namespace)
+
+    attrs = %{
+      key_name: key_name,
+      key_algorithm: key_alg,
+      voucher_data: cbor_ownership_voucher,
+      guid: device_id
+    }
+
+    insert_voucher(context.realm_name, attrs)
 
     %{
-      owner_key: owner_key_struct,
+      owner_key: owner_key,
+      owner_key_struct: owner_key_struct,
       owner_key_pem: owner_key_pem,
       ownership_voucher: ownership_voucher,
       cbor_ownership_voucher: cbor_ownership_voucher,
@@ -102,7 +121,7 @@ defmodule Astarte.Cases.FDOSession do
     if kex_name not in @allowed_kex_name_tag_values,
       do: raise("unsupported kex_name tag value: #{kex_name}")
 
-    if KeyExchangeStrategy.validate(kex_name, context.owner_key) != :ok,
+    if KeyExchangeStrategy.validate(kex_name, context.owner_key.alg) != :ok,
       do:
         raise(
           "unsupported association owner key type #{context.owner_key.alg} <-> KEX alg #{kex_name}"
@@ -189,11 +208,22 @@ defmodule Astarte.Cases.FDOSession do
 
       kn when kn in ["ASYMKEX2048", "ASYMKEX3072"] ->
         {:ok, device_rand, _} = SessionKey.new(kn)
+
         # Owner RSA key used to encrypt/decrypt device rand
-        pub_key_record = owner_key |> RSA.to_public_record()
+        pub_key_record = extract_public_record(owner_key)
+
         xb = asymkex_msg_encryption(device_rand, pub_key_record)
         {:ok, device_rand, xb}
     end
+  end
+
+  defp extract_public_record(%Astarte.Secrets.Key{} = openbao_key) do
+    [pem_entry] = :public_key.pem_decode(openbao_key.public_pem)
+    :public_key.pem_entry_decode(pem_entry)
+  end
+
+  defp extract_public_record(%COSE.Keys.RSA{} = raw_rsa_key) do
+    RSA.to_public_record(raw_rsa_key)
   end
 
   defp asymkex_msg_encryption(msg, pub_rsa_key) do
