@@ -38,11 +38,11 @@ defmodule Astarte.FDO.OwnerOnboarding.OwnerOnboardingTest do
     {:ok, namespace} = Secrets.create_namespace(realm_name, key_alg)
 
     :ok = Secrets.import_key(key_name, key_alg, key_p256_x509, namespace: namespace)
-    {:ok, key_p256_x509} = Secrets.get_key(key_name, namespace: namespace)
+    {:ok, _key_p256_x509} = Secrets.get_key(key_name, namespace: namespace)
 
     attrs = %{
       key_name: key_name,
-      key_algoright: key_alg,
+      key_algorithm: key_alg,
       voucher_data: cbor_p256_x509,
       guid: id_p256_x509
     }
@@ -62,12 +62,14 @@ defmodule Astarte.FDO.OwnerOnboarding.OwnerOnboardingTest do
     cbor_p384_x509 = OwnershipVoucher.cbor_encode(voucher_p384_x509)
     id_p384_x509 = voucher_p384_x509.header.guid
 
-     :ok = Secrets.import_key(key_name, key_alg, key_p384_x509, namespace: namespace)
-    {:ok, key_p384_x509} = Secrets.get_key(key_name, namespace: namespace)
+    {:ok, namespace} = Secrets.create_namespace(realm_name, key_alg)
+
+    :ok = Secrets.import_key(key_name, key_alg, key_p384_x509, namespace: namespace)
+    {:ok, _key_p384_x509} = Secrets.get_key(key_name, namespace: namespace)
 
     attrs = %{
       key_name: key_name,
-      key_algoright: key_alg,
+      key_algorithm: key_alg,
       voucher_data: cbor_p384_x509,
       guid: id_p384_x509
     }
@@ -87,12 +89,12 @@ defmodule Astarte.FDO.OwnerOnboarding.OwnerOnboardingTest do
     id_p256_chain = voucher_p256_chain.header.guid
     {:ok, namespace} = Astarte.Secrets.create_namespace(realm_name, key_alg)
 
-     :ok = Secrets.import_key(key_name, key_alg, key_p256_chain, namespace: namespace)
-    {:ok, key_p256_chain} = Secrets.get_key(key_name, namespace: namespace)
+    :ok = Secrets.import_key(key_name, key_alg, key_p256_chain, namespace: namespace)
+    {:ok, _key_p256_chain} = Secrets.get_key(key_name, namespace: namespace)
 
     attrs = %{
       key_name: key_name,
-      key_algoright: key_alg,
+      key_algorithm: key_alg,
       voucher_data: cbor_p256_chain,
       guid: id_p256_chain
     }
@@ -112,12 +114,12 @@ defmodule Astarte.FDO.OwnerOnboarding.OwnerOnboardingTest do
     id_p384_chain = voucher_p384_chain.header.guid
     {:ok, namespace} = Astarte.Secrets.create_namespace(realm_name, key_alg)
 
-     :ok = Secrets.import_key(key_name, key_alg, key_p384_chain, namespace: namespace)
-    {:ok, key_p384_chain} = Secrets.get_key(key_name, namespace: namespace)
+    :ok = Secrets.import_key(key_name, key_alg, key_p384_chain, namespace: namespace)
+    {:ok, _key_p384_chain} = Secrets.get_key(key_name, namespace: namespace)
 
     attrs = %{
       key_name: key_name,
-      key_algoright: key_alg,
+      key_algorithm: key_alg,
       voucher_data: cbor_p384_chain,
       guid: id_p384_chain
     }
@@ -170,7 +172,7 @@ defmodule Astarte.FDO.OwnerOnboarding.OwnerOnboardingTest do
   end
 
   test "P-384 with X5CHAIN: extracts key from P-384 certificate chain", %{
-    realm: realm_name,
+    realm_name: realm_name,
     p384_chain: ctx
   } do
     assert {:ok, token, resp_binary} =
