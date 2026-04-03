@@ -199,8 +199,6 @@ defmodule Astarte.FDO.OwnerOnboarding.OwnerOnboardingTest do
   end
 
   describe "build_owner_service_info_ready/3" do
-    @tag :skip
-    # TODO: re-enable this test when credential reuse logic is implemented.
     test "successfully processes DeviceServiceInfoReady, creates new voucher, and returns OwnerServiceInfoReady",
          %{
            realm: realm_name,
@@ -209,6 +207,12 @@ defmodule Astarte.FDO.OwnerOnboarding.OwnerOnboardingTest do
       new_hmac_value = :crypto.strong_rand_bytes(32)
       new_hmac = %Hash{type: :hmac_sha256, hash: new_hmac_value}
       device_max_size = 2048
+
+      ov_entry = %{
+        replacement_guid: session.guid,
+        replacement_public_key: "test_pub_key",
+        replacement_rendezvous_info: "test_rv"
+      }
 
       assert {:ok, session, response} =
                OwnerOnboarding.build_owner_service_info_ready(
@@ -221,7 +225,7 @@ defmodule Astarte.FDO.OwnerOnboarding.OwnerOnboardingTest do
                )
 
       assert session.replacement_hmac == new_hmac
-      assert OwnershipVoucher.credential_reuse?(session) == false
+      assert OwnershipVoucher.credential_reuse?(ov_entry) == false
 
       assert response == [@max_device_service_info_sz]
     end
@@ -230,9 +234,13 @@ defmodule Astarte.FDO.OwnerOnboarding.OwnerOnboardingTest do
       realm_name: realm_name,
       session: session
     } do
-      session = %{session | replacement_guid: session.guid}
+      ov_entry = %{
+        replacement_guid: nil,
+        replacement_public_key: nil,
+        replacement_rendezvous_info: nil
+      }
 
-      assert {:ok, session, _result} =
+      assert {:ok, _session, _result} =
                OwnerOnboarding.build_owner_service_info_ready(
                  realm_name,
                  session,
@@ -242,7 +250,7 @@ defmodule Astarte.FDO.OwnerOnboarding.OwnerOnboardingTest do
                  }
                )
 
-      assert OwnershipVoucher.credential_reuse?(session) == true
+      assert OwnershipVoucher.credential_reuse?(ov_entry) == true
     end
 
     test "handles the default recommended limit(nil info size) correctly", %{
