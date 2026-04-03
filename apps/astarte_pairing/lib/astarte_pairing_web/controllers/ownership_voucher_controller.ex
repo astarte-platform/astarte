@@ -19,44 +19,12 @@
 defmodule Astarte.PairingWeb.OwnershipVoucherController do
   use Astarte.PairingWeb, :controller
 
-  alias Astarte.FDO.Core.OwnershipVoucher.CreateRequest
   alias Astarte.FDO.OwnershipVoucher
   alias Astarte.FDO.OwnershipVoucher.LoadRequest
   alias Astarte.FDO.TO0
   alias Astarte.Secrets.Core, as: SecretsCore
 
   action_fallback Astarte.PairingWeb.FallbackController
-
-  def create(conn, %{
-        "data" => data,
-        "realm_name" => realm_name
-      }) do
-    create = CreateRequest.changeset(%CreateRequest{}, data)
-
-    with {:ok, create} <- Ecto.Changeset.apply_action(create, :insert),
-         %CreateRequest{
-           decoded_ownership_voucher: decoded_ownership_voucher,
-           cbor_ownership_voucher: cbor_ownership_voucher,
-           private_key: private_key,
-           extracted_private_key: extracted_private_key,
-           device_guid: device_guid
-         } = create,
-         :ok <-
-           OwnershipVoucher.save_voucher(
-             realm_name,
-             cbor_ownership_voucher,
-             device_guid,
-             private_key
-           ),
-         :ok <-
-           TO0.claim_ownership_voucher(
-             realm_name,
-             decoded_ownership_voucher,
-             extracted_private_key
-           ) do
-      send_resp(conn, 200, "")
-    end
-  end
 
   @doc """
   Validates an FDO Ownership Voucher load request and register the OV in the database.
@@ -72,8 +40,17 @@ defmodule Astarte.PairingWeb.OwnershipVoucherController do
              voucher_data: req.cbor_ownership_voucher,
              guid: req.device_guid,
              key_name: req.key_name,
-             key_algorithm: req.key_algorithm
-           }) do
+             key_algorithm: req.key_algorithm,
+             replacement_guid: req.replacement_guid,
+             replacement_rendezvous_info: req.decoded_replacement_rendezvous_info,
+             replacement_public_key: req.decoded_replacement_public_key
+           }),
+         :ok <-
+           TO0.claim_ownership_voucher(
+             realm_name,
+             req.decoded_ownership_voucher,
+             req.extracted_owner_key
+           ) do
       json(conn, %{
         data: %{
           public_key: req.extracted_owner_key.public_pem,
@@ -93,7 +70,7 @@ defmodule Astarte.PairingWeb.OwnershipVoucherController do
     with {:ok, pem} <- ensure_ownership_voucher_parameter(data),
          {:ok, voucher} <- OwnershipVoucher.decode_binary_voucher(pem),
          key_algorithm = OwnershipVoucher.key_algorithm(voucher),
-         {:ok, keys_map} <- SecretsCore.get_keys_from_algorithm(realm_name, key_algorithm) do
+         {:ok, keys_map} <- SecretsCore.get_keys(realm_name, key_algorithm) do
       json(conn, %{data: keys_map})
     end
   end

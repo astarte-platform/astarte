@@ -59,12 +59,18 @@ defmodule Astarte.FDO.OwnershipVoucher do
     end
   end
 
-  def generate_replacement_voucher(ownership_voucher, session) do
+  def generate_replacement_voucher(ownership_voucher, ov_entry, session) do
     new_header =
       ownership_voucher.header
-      |> Map.put(:guid, session.replacement_guid)
-      |> Map.put(:rendezvous_info, session.replacement_rv_info)
-      |> Map.put(:public_key, session.replacement_pub_key)
+      |> Map.put(:guid, ov_entry.replacement_guid || ownership_voucher.header.guid)
+      |> Map.put(
+        :rendezvous_info,
+        ov_entry.replacement_rendezvous_info || ownership_voucher.header.rendezvous_info
+      )
+      |> Map.put(
+        :public_key,
+        ov_entry.replacement_public_key || ownership_voucher.header.public_key
+      )
 
     new_voucher =
       ownership_voucher
@@ -75,11 +81,10 @@ defmodule Astarte.FDO.OwnershipVoucher do
     {:ok, new_voucher}
   end
 
-  def credential_reuse?(_session) do
-    # Credential reuse requires also Owner2Key and/or rv info
-    # to be changed for credential reuse; so far, there is no API to do so,
-    # so it is limited to the guid
-    true
+  def credential_reuse?(ov_entry) do
+    is_nil(ov_entry.replacement_public_key) and
+      is_nil(ov_entry.replacement_rendezvous_info) and
+      is_nil(ov_entry.replacement_guid)
   end
 
   @doc """

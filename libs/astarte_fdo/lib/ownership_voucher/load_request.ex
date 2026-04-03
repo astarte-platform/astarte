@@ -87,6 +87,7 @@ defmodule Astarte.FDO.OwnershipVoucher.LoadRequest do
         :error -> [replacement_guid: "is not valid base64"]
       end
     end)
+    |> decode_replacement_fields()
   end
 
   defp validate_replacement_rendezvous_info(changeset) do
@@ -99,6 +100,61 @@ defmodule Astarte.FDO.OwnershipVoucher.LoadRequest do
         _ -> [replacement_rendezvous_info: "is not valid base64-encoded CBOR rendezvous info"]
       end
     end)
+  end
+
+  defp decode_replacement_fields(%Ecto.Changeset{valid?: false} = changeset), do: changeset
+
+  defp decode_replacement_fields(changeset) do
+    changeset
+    |> decode_replacement_guid()
+    |> decode_replacement_rendezvous_info()
+    |> decode_replacement_public_key()
+  end
+
+  defp decode_replacement_guid(changeset) do
+    case fetch_change(changeset, :replacement_guid) do
+      {:ok, b64} ->
+        case Base.decode64(b64) do
+          {:ok, bin} -> put_change(changeset, :replacement_guid, bin)
+          :error -> add_error(changeset, :replacement_guid, "is not valid base64")
+        end
+
+      :error ->
+        changeset
+    end
+  end
+
+  defp decode_replacement_rendezvous_info(changeset) do
+    case fetch_change(changeset, :replacement_rendezvous_info) do
+      {:ok, b64} ->
+        with {:ok, cbor_bin} <- Base.decode64(b64),
+             {:ok, rv_info} <- RendezvousInfo.decode_cbor(cbor_bin) do
+          put_change(changeset, :decoded_replacement_rendezvous_info, rv_info)
+        else
+          _ ->
+            add_error(
+              changeset,
+              :replacement_rendezvous_info,
+              "is not valid base64-encoded CBOR rendezvous info"
+            )
+        end
+
+      :error ->
+        changeset
+    end
+  end
+
+  defp decode_replacement_public_key(changeset) do
+    case fetch_change(changeset, :replacement_public_key) do
+      {:ok, pem_string} ->
+        case public_key_from_pem(pem_string) do
+          {:ok, public_key} -> put_change(changeset, :decoded_replacement_public_key, public_key)
+          :error -> add_error(changeset, :replacement_public_key, "is not a valid PEM public key")
+        end
+
+      :error ->
+        changeset
+    end
   end
 
   defp put_device_guid(%Ecto.Changeset{valid?: false} = changeset), do: changeset
@@ -139,7 +195,11 @@ defmodule Astarte.FDO.OwnershipVoucher.LoadRequest do
         if key_algorithm in valid_algorithms do
           changeset
         else
-          add_error(changeset, :key_algorithm, "is not compatible with the ownership voucher's key type")
+          add_error(
+            changeset,
+            :key_algorithm,
+            "is not compatible with the ownership voucher's key type"
+          )
         end
 
       {:error, _} ->
@@ -229,14 +289,12 @@ defmodule Astarte.FDO.OwnershipVoucher.LoadRequest do
 
   # Extract the SubjectPublicKeyInfo DER bytes embedded in an X.509 certificate.
   defp spki_der_from_cert(cert_der) do
-    try do
-      {:Certificate, {:TBSCertificate, _, _, _, _, _, _, spki, _, _, _}, _, _} =
-        :public_key.pkix_decode_cert(cert_der, :plain)
+    {:Certificate, {:TBSCertificate, _, _, _, _, _, _, spki, _, _, _}, _, _} =
+      :public_key.pkix_decode_cert(cert_der, :plain)
 
-      {:ok, :public_key.der_encode(:SubjectPublicKeyInfo, spki)}
-    rescue
-      _ -> :error
-    end
+    {:ok, :public_key.der_encode(:SubjectPublicKeyInfo, spki)}
+  rescue
+    _ -> :error
   end
 
   # EC public key: pem_entry_decode yields {{:ECPoint, <<4,x,y>>}, {:namedCurve, oid}}
