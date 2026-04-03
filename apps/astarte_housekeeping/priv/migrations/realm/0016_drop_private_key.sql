@@ -1,2 +1,2 @@
-ALTER TABLE :keyspace.ownership_voucher
+ALTER TABLE :keyspace.ownership_vouchers
 DROP private_key

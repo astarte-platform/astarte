@@ -1,4 +1,4 @@
-ALTER TABLE :keyspace.ownership_voucher
+ALTER TABLE :keyspace.ownership_vouchers
 ADD (
   replacement_guid blob,
   replacement_rendezvous_info blob,
@@ -6,5 +6,5 @@ ADD (
   output_voucher blob,
   key_name varchar,
   key_algorithm int,
-  user_id blob,
+  user_id blob
 );
