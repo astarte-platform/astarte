@@ -206,19 +206,17 @@ defmodule Astarte.PairingWeb.Controllers.OwnerKeyControllerTest do
 
       keys = Jason.decode!(keys)
 
-      assert keys == [
-               %{
-                 "es256" => [
-                   "key_to_create",
-                   "key_to_create1",
-                   "key_to_create2",
-                   "key_to_create3"
-                 ]
-               },
-               %{"es384" => []},
-               %{"rs256" => []},
-               %{"rs384" => []}
-             ]
+      assert keys == %{
+               "es256" => [
+                 "key_to_create",
+                 "key_to_create1",
+                 "key_to_create2",
+                 "key_to_create3"
+               ],
+               "es384" => [],
+               "rs256" => [],
+               "rs384" => []
+             }
     end
   end
 

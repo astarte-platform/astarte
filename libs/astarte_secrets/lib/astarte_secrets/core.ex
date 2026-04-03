@@ -532,22 +532,19 @@ defmodule Astarte.Secrets.Core do
     end
   end
 
-  def get_keys_from_algorithm(realm_name, key_algorithms) do
-    keys_map =
-      Enum.flat_map(key_algorithms, fn key_algorithm ->
-        case Secrets.create_namespace(realm_name, key_algorithm) do
-          {:ok, namespace} ->
-            case Secrets.list_keys_names(namespace: namespace) do
-              {:ok, keys} -> [%{key_algorithm => keys}]
-              _ -> []
-            end
+  def get_keys(realm_name, key_algorithms) do
+    Enum.reduce_while(key_algorithms, {:ok, %{}}, fn algorithm, {:ok, acc} ->
+      case list_keys_for_algorithm(realm_name, algorithm) do
+        {:ok, keys} -> {:cont, {:ok, Map.put(acc, algorithm, keys)}}
+        error -> {:halt, error}
+      end
+    end)
+  end
 
-          _ ->
-            []
-        end
-      end)
-
-    {:ok, keys_map}
+  defp list_keys_for_algorithm(realm_name, key_algorithm) do
+    with {:ok, namespace} <- Secrets.create_namespace(realm_name, key_algorithm) do
+      Secrets.list_keys_names(namespace: namespace)
+    end
   end
 
   @doc """

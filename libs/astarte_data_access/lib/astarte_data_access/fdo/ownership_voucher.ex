@@ -38,8 +38,8 @@ defmodule Astarte.DataAccess.FDO.OwnershipVoucher do
     field :key_name, :string
     field :key_algorithm, Ecto.Enum, values: [es256: 0, es384: 1, rs256: 10, rs384: 11]
     field :replacement_guid, :binary
-    field :replacement_rv_info, CBOREncoded, using: RendezvousInfo
-    field :replacement_pub_key, CBOREncoded, using: PublicKey
+    field :replacement_rendezvous_info, CBOREncoded, using: RendezvousInfo
+    field :replacement_public_key, CBOREncoded, using: PublicKey
   end
 
   @doc false
@@ -51,8 +51,8 @@ defmodule Astarte.DataAccess.FDO.OwnershipVoucher do
       :guid,
       :key_algorithm,
       :replacement_guid,
-      :replacement_rv_info,
-      :replacement_pub_key
+      :replacement_rendezvous_info,
+      :replacement_public_key
     ])
     |> validate_required([:key_name, :key_algorithm, :voucher_data, :guid])
   end
