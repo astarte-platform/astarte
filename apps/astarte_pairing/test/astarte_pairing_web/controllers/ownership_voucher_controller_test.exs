@@ -171,7 +171,7 @@ defmodule Astarte.PairingWeb.Controllers.OwnershipVoucherControllerTest do
         |> post(path, %{data: %{"ownership_voucher" => sample_voucher()}})
         |> json_response(200)
 
-      assert %{"es256" => [@sample_key_name, "another_key"]} = get_in(body, ["data"])
+      assert [%{"es256" => [@sample_key_name, "another_key"]}] = get_in(body, ["data"])
     end
 
     test "returns 200 with an empty list when no keys are registered", context do
@@ -188,7 +188,7 @@ defmodule Astarte.PairingWeb.Controllers.OwnershipVoucherControllerTest do
         |> post(path, %{data: %{"ownership_voucher" => sample_voucher()}})
         |> json_response(200)
 
-      assert %{"es256" => []} = get_in(body, ["data"])
+      assert [%{"es256" => []}] = get_in(body, ["data"])
     end
 
     test "returns 422 when the ownership_voucher field is missing", context do

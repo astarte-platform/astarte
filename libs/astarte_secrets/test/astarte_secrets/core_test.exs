@@ -564,39 +564,42 @@ defmodule Astarte.Secrets.CoreTest do
     end
   end
 
-  describe "get_keys_from_algorithm/2 with list" do
-    test "returns a list of maps with key names per algorithm" do
+  describe "get_keys_from_algorithm/2" do
+    test "returns a map with key name for a valid algorithm atom" do
       unique_id = System.unique_integer([:positive])
-      realm_name = "listtest_#{unique_id}"
-
-      {:ok, ns} = Secrets.create_namespace(realm_name, :es256)
-
-      Secrets.create_keypair("k1", :es256, namespace: ns)
-      Secrets.create_keypair("k2", :es256, namespace: ns)
-
-      result = Core.get_keys_from_algorithm(realm_name, [:es256])
-      assert {:ok, [%{es256: keys}]} = result
-      assert "k1" in keys
-      assert "k2" in keys
-    end
-  end
-
-  describe "get_keys_from_algorithm/2 with binary algorithm" do
-    test "returns a map with key names for valid binary algorithm string" do
-      unique_id = System.unique_integer([:positive])
-      realm_name = "bintest_#{unique_id}"
+      realm_name = "algtest_#{unique_id}"
 
       {:ok, ns} = Secrets.create_namespace(realm_name, :es256)
 
       Secrets.create_keypair("k1", :es256, namespace: ns)
 
-      result = Core.get_keys_from_algorithm(realm_name, "ecdsa-p256")
+      result = Core.get_keys_from_algorithm(realm_name, :es256)
       assert {:ok, %{"ecdsa-p256" => keys}} = result
       assert "k1" in keys
     end
 
-    test "returns :error for unknown algorithm string" do
-      assert :error = Core.get_keys_from_algorithm("realm", "unknown-algo")
+    test "returns a map with multiple key names when multiple keys exist for the algorithm" do
+      unique_id = System.unique_integer([:positive])
+      realm_name = "algtest_multiple_#{unique_id}"
+
+      {:ok, ns} = Secrets.create_namespace(realm_name, :es256)
+
+      Secrets.create_keypair("key_one", :es256, namespace: ns)
+      Secrets.create_keypair("key_two", :es256, namespace: ns)
+
+      result = Core.get_keys_from_algorithm(realm_name, :es256)
+
+      assert {:ok, %{"ecdsa-p256" => keys}} = result
+      assert "key_one" in keys
+      assert "key_two" in keys
+      assert length(keys) == 2
+    end
+
+    test "returns an empty map when no keys exist for the algorithm" do
+      unique_id = System.unique_integer([:positive])
+      realm_name = "algtest_empty_#{unique_id}"
+
+      assert {:ok, %{}} = Core.get_keys_from_algorithm(realm_name, :es384)
     end
   end
 

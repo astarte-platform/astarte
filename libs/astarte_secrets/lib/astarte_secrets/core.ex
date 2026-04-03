@@ -532,22 +532,31 @@ defmodule Astarte.Secrets.Core do
     end
   end
 
-  def get_keys_from_algorithm(realm_name, key_algorithms) do
-    keys_map =
-      Enum.flat_map(key_algorithms, fn key_algorithm ->
-        case Secrets.create_namespace(realm_name, key_algorithm) do
-          {:ok, namespace} ->
-            case Secrets.list_keys_names(namespace: namespace) do
-              {:ok, keys} -> [%{key_algorithm => keys}]
-              _ -> []
-            end
+  @spec get_keys_from_algorithm(String.t(), key_algorithm()) :: {:ok, map()}
+  def get_keys_from_algorithm(realm_name, key_alg) when is_atom(key_alg) do
+    with {:ok, namespace} <- Secrets.create_namespace(realm_name, key_alg),
+         {:ok, keys} <- Secrets.list_keys_names(namespace: namespace),
+         {:ok, str_alg} <- key_type_to_string(key_alg) do
+      {:ok, %{str_alg => keys}}
+    else
+      _ -> {:ok, %{}}
+    end
+  end
 
-          _ ->
-            []
+  def get_keys_from_algorithm(realm_name, key_algorithms) when is_list(key_algorithms) do
+    keys_list =
+      Enum.map(key_algorithms, fn key_alg ->
+        str_alg = Atom.to_string(key_alg)
+
+        with {:ok, namespace} <- Secrets.create_namespace(realm_name, key_alg),
+             {:ok, keys} <- Secrets.list_keys_names(namespace: namespace) do
+          %{str_alg => keys}
+        else
+          _ -> %{str_alg => []}
         end
       end)
 
-    {:ok, keys_map}
+    {:ok, keys_list}
   end
 
   @doc """

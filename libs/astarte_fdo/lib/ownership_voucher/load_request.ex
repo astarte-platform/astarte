@@ -139,7 +139,11 @@ defmodule Astarte.FDO.OwnershipVoucher.LoadRequest do
         if key_algorithm in valid_algorithms do
           changeset
         else
-          add_error(changeset, :key_algorithm, "is not compatible with the ownership voucher's key type")
+          add_error(
+            changeset,
+            :key_algorithm,
+            "is not compatible with the ownership voucher's key type"
+          )
         end
 
       {:error, _} ->
@@ -229,14 +233,12 @@ defmodule Astarte.FDO.OwnershipVoucher.LoadRequest do
 
   # Extract the SubjectPublicKeyInfo DER bytes embedded in an X.509 certificate.
   defp spki_der_from_cert(cert_der) do
-    try do
-      {:Certificate, {:TBSCertificate, _, _, _, _, _, _, spki, _, _, _}, _, _} =
-        :public_key.pkix_decode_cert(cert_der, :plain)
+    {:Certificate, {:TBSCertificate, _, _, _, _, _, _, spki, _, _, _}, _, _} =
+      :public_key.pkix_decode_cert(cert_der, :plain)
 
-      {:ok, :public_key.der_encode(:SubjectPublicKeyInfo, spki)}
-    rescue
-      _ -> :error
-    end
+    {:ok, :public_key.der_encode(:SubjectPublicKeyInfo, spki)}
+  rescue
+    _ -> :error
   end
 
   # EC public key: pem_entry_decode yields {{:ECPoint, <<4,x,y>>}, {:namedCurve, oid}}
