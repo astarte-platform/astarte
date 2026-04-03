@@ -108,7 +108,8 @@ config :astarte_pairing, :enable_credential_reuse, true
 
 config :astarte_secrets, bao_authentication_mechanism: :token
 config :astarte_secrets, bao_token: "astarte_token"
-config :astarte_secrets, bao_url: "http://localhost:8200"
+
+config :astarte_fdo, fdo_rendezvous_url: "http://localhost:8041"
 
 config :bcrypt_elixir,
   log_rounds: 4

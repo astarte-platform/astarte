@@ -221,7 +221,6 @@ defmodule Astarte.FDO.Helpers do
     cert_der = generate_self_signed_cert(device_pub_key_point, device_priv_key, oid, sig_alg)
     cert_chain_hash_struct = Hash.new(hash_alg, cert_der)
 
-    entry_payload_bin = create_cose_key_entry_payload(owner_key)
     guid_raw = UUID.uuid4(:raw)
 
     rv_info = %RendezvousInfo{
@@ -248,6 +247,16 @@ defmodule Astarte.FDO.Helpers do
 
     hmac_bytes = :crypto.strong_rand_bytes(32)
     hmac_struct = %Hash{type: :hmac_sha256, hash: hmac_bytes}
+
+    header_cbor = OwnershipVoucher.Header.cbor_encode(header_struct)
+    hmac_cbor = Hash.encode_cbor(hmac_struct)
+
+    header_info = guid_raw <> "rsapss-device"
+    hash_hdr = Hash.new(hash_alg, header_info)
+
+    hash_prev = Hash.new(hash_alg, header_cbor <> hmac_cbor)
+
+    entry_payload_bin = create_cose_key_entry_payload(owner_key, hash_prev, hash_hdr)
 
     sign1_msg = Sign1.build(entry_payload_bin, %{alg: owner_key.alg}, %{})
     {:ok, entry_tag} = Sign1.sign_encode(sign1_msg, owner_key)
@@ -304,24 +313,23 @@ defmodule Astarte.FDO.Helpers do
       |> List.wrap()
       |> :public_key.pem_encode()
 
+    spki_der =
+      :public_key.der_encode(
+        :SubjectPublicKeyInfo,
+        {:SubjectPublicKeyInfo,
+         {:AlgorithmIdentifier, {1, 2, 840, 10_045, 2, 1},
+          :public_key.der_encode(:EcpkParameters, {:namedCurve, oid})}, device_pub_key_point}
+      )
+
     pub_key_body =
       case encoding do
         :x5chain -> [cert_der]
-        :x509 -> cert_der
+        :x509 -> spki_der
       end
-
-    # Entry Payload (COSE Key) — use owner_key if provided, else device key
-    entry_payload_bin = create_cose_key_entry_payload(owner_key)
 
     guid_raw = UUID.uuid4(:raw)
 
-    chain_data_to_hash =
-      case pub_key_body do
-        list when is_list(list) -> Enum.join(list)
-        bin -> bin
-      end
-
-    cert_chain_hash_struct = Hash.new(hash_alg, chain_data_to_hash)
+    cert_chain_hash_struct = Hash.new(hash_alg, cert_der)
 
     rv_info = %RendezvousInfo{
       directives: [
@@ -354,12 +362,22 @@ defmodule Astarte.FDO.Helpers do
     hmac_bytes = :crypto.strong_rand_bytes(hmac_len)
     hmac_struct = %Hash{type: hmac_type, hash: hmac_bytes}
 
-    protected_header = %{alg: owner_key.alg}
+    header_cbor = OwnershipVoucher.Header.cbor_encode(header_struct)
+    hmac_cbor = Hash.encode_cbor(hmac_struct)
+
+    header_info = guid_raw <> header_struct.device_info
+    hash_hdr = Hash.new(hash_alg, header_info)
+
+    hash_prev = Hash.new(hash_alg, header_cbor <> hmac_cbor)
+
+    entry_payload_bin = create_cose_key_entry_payload(owner_key, hash_prev, hash_hdr)
+
+    protected_header = %{alg: cose_key.alg}
     unprotected_header_map = %{}
 
     sign1_msg = Sign1.build(entry_payload_bin, protected_header, unprotected_header_map)
 
-    {:ok, entry_tag} = Sign1.sign_encode(sign1_msg, owner_key)
+    {:ok, entry_tag} = Sign1.sign_encode(sign1_msg, cose_key)
 
     voucher = %OwnershipVoucher{
       header: header_struct,
@@ -446,8 +464,14 @@ defmodule Astarte.FDO.Helpers do
     :public_key.pkix_sign(tbs_cert, priv_key)
   end
 
-  defp create_cose_key_entry_payload(key) do
+  defp create_cose_key_entry_payload(key, hash_prev, hash_hdr) do
     public_key = cose_key_to_fdo_public_key(key)
-    CBOR.encode([<<>>, <<>>, <<>>, PublicKey.encode(public_key)])
+
+    CBOR.encode([
+      Hash.encode(hash_prev),
+      Hash.encode(hash_hdr),
+      nil,
+      PublicKey.encode(public_key)
+    ])
   end
 end
