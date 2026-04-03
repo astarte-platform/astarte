@@ -1,6 +1,6 @@
 services:
   astarte-housekeeping:
-    image: astarte/astarte_housekeeping:1.3-snapshot
+    image: astarte/astarte_housekeeping:1.3-snapshot@sha256:a5c81973bdddd0997c0db73cfa02d4b53ebdc7f944c00b52ff627f92afb307ac
     build:
       dockerfile: apps/astarte_housekeeping/Dockerfile
       context: .
@@ -28,7 +28,7 @@ services:
       - "traefik.http.services.astarte-housekeeping.loadbalancer.server.port=4001"
 
   astarte-realm-management:
-    image: astarte/astarte_realm_management:1.3-snapshot
+    image: astarte/astarte_realm_management:1.3-snapshot@sha256:b5d8798d4008edb44a85eb190e65f37e49b4269b40df4890757bc3d7f3adfa40
     build:
       dockerfile: apps/astarte_realm_management/Dockerfile
       context: .
@@ -51,7 +51,7 @@ services:
       - "traefik.http.services.astarte-realm-management.loadbalancer.server.port=4000"
 
   astarte-pairing:
-    image: astarte/astarte_pairing:1.3-snapshot
+    image: astarte/astarte_pairing:1.3-snapshot@sha256:bfa9f41f3752888d5e2ee8c743ab50b66d0af00153cc87819efae344fb4bcbe8
     build:
       dockerfile: apps/astarte_pairing/Dockerfile
       context: .
@@ -86,7 +86,7 @@ services:
       - "traefik.http.middlewares.fdo-rewrite-mid.addprefix.prefix=/v1/${FDO_REALM:-test}"
 
   astarte-appengine-api:
-    image: astarte/astarte_appengine_api:1.3-snapshot
+    image: astarte/astarte_appengine_api:1.3-snapshot@sha256:9acd94cf3f83fc67c005b674244a47fe86875c3b1ef2e62b7713efc47aede8a0
     build:
       dockerfile: apps/astarte_appengine_api/Dockerfile
       context: .
@@ -109,7 +109,7 @@ services:
       - "traefik.http.services.astarte-appengine-api.loadbalancer.server.port=4002"
 
   astarte-data-updater-plant:
-    image: astarte/astarte_data_updater_plant:1.3-snapshot
+    image: astarte/astarte_data_updater_plant:1.3-snapshot@sha256:45c40c43c41d403fe22f0cd7df7ab391986faaea122cdb2487d0a46b98d568f7
     build:
       context: .
       dockerfile: apps/astarte_data_updater_plant/Dockerfile
@@ -129,7 +129,7 @@ services:
       - "scylla"
 
   astarte-trigger-engine:
-    image: astarte/astarte_trigger_engine:1.3-snapshot
+    image: astarte/astarte_trigger_engine:1.3-snapshot@sha256:4f60970f4ce6e9b06744988108282bc82df28f047fe3cdc5f721f426b367f8fc
     build:
       dockerfile: apps/astarte_trigger_engine/Dockerfile
       context: .
@@ -143,7 +143,7 @@ services:
       - "scylla"
 
   astarte-dashboard:
-    image: astarte/astarte-dashboard:snapshot
+    image: astarte/astarte-dashboard:1.3-snapshot@sha256:10eb7f91b7cac589af4a5ddca3ef225fa6079d15c8fb2ee33ba16175eeaf55db
     volumes:
       - ./compose/astarte-dashboard/config.json:/usr/share/nginx/html/user-config/config.json:z
     depends_on:
@@ -255,7 +255,7 @@ services:
 
   # VerneMQ
   vernemq:
-    image: astarte/vernemq:1.3-snapshot
+    image: astarte/vernemq:1.3-snapshot@sha256:ccc2b1673e85b290b7f52a8e4ca1943cdd5e98eb6ee135b07d01c42ab0f2d26d
     hostname: vernemq
     env_file:
       - ./.env
