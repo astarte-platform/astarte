@@ -91,4 +91,23 @@ defmodule Astarte.FDO.OwnershipVoucher do
       OwnershipVoucher.decode_cbor(binary)
     end
   end
+
+  @doc """
+  Extracts the key algorithm from the given ownership voucher struct.
+  """
+  def key_algorithm(%Astarte.FDO.Core.OwnershipVoucher{} = voucher) do
+    with {:ok, %{type: pubkey_type}} <- Core.entry_public_key(List.last(voucher.entries)),
+         {:ok, algo} <- pubkey_type_to_algorithm(pubkey_type) do
+      algo
+    else
+      _ -> :error
+    end
+  end
+
+  defp pubkey_type_to_algorithm(:secp256r1), do: {:ok, :es256}
+  defp pubkey_type_to_algorithm(:secp384r1), do: {:ok, :es384}
+  defp pubkey_type_to_algorithm(:rsa2048restr), do: {:ok, :rs256}
+  defp pubkey_type_to_algorithm(:rsapkcs), do: {:ok, :rs256}
+  defp pubkey_type_to_algorithm(:rsapss), do: {:ok, :rs384}
+  defp pubkey_type_to_algorithm(_), do: {:error, :unsupported_fdo_key_type}
 end
