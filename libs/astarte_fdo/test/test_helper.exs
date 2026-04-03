@@ -45,4 +45,7 @@ Mimic.copy(Astarte.Secrets)
 Mimic.copy(DateTime)
 Mimic.copy(HTTPoison)
 
+# fix flakiness caused by namespaces being created at the same time
+Astarte.Secrets.Core.create_nested_namespace(["fdo_owner_keys", "instance"])
+
 ExUnit.start(capture_log: true)

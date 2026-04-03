@@ -17,8 +17,7 @@
 #
 
 defmodule Astarte.FDO.OwnerOnboardingTest do
-  # FIXME (async:false as a temporary solution for race conditions on namespaces creation)
-  use Astarte.Cases.Data, async: false
+  use Astarte.Cases.Data, async: true
   use Astarte.Cases.FDOSession
 
   alias Astarte.FDO.Core.Hash
