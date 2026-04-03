@@ -22,23 +22,26 @@ defmodule Astarte.FDO.OwnerOnboarding.OwnerOnboardingTest do
   alias Astarte.FDO.Core.OwnerOnboarding.HelloDevice
   alias Astarte.FDO.Core.OwnershipVoucher
   alias Astarte.FDO.OwnerOnboarding
+  alias Astarte.Secrets
+  alias COSE.Keys
   alias COSE.Messages.Sign1
 
   import Astarte.FDO.Helpers
 
   setup_all %{realm_name: realm_name} do
     {voucher_p256_x509, key_p256_x509} = generate_p256_x509_data_and_pem()
+    {:ok, key_p256_x509} = Keys.from_pem(key_p256_x509)
     cbor_p256_x509 = OwnershipVoucher.cbor_encode(voucher_p256_x509)
     id_p256_x509 = voucher_p256_x509.header.guid
     key_alg = :es256
-    key_type = "ECDH256_X509"
-    {:ok, namespace} = Astarte.Secrets.create_namespace(realm_name, key_alg)
+    key_name = "ECDH256_X509_#{System.unique_integer([:positive])}"
+    {:ok, namespace} = Secrets.create_namespace(realm_name, key_alg)
 
-    {:ok, key_p256_x509} =
-      Astarte.Secrets.import_key(key_type, key_alg, key_p256_x509, namespace: namespace)
+    :ok = Secrets.import_key(key_name, key_alg, key_p256_x509, namespace: namespace)
+    {:ok, key_p256_x509} = Secrets.get_key(key_name, namespace: namespace)
 
     attrs = %{
-      key_name: key_type,
+      key_name: key_name,
       key_algoright: key_alg,
       voucher_data: cbor_p256_x509,
       guid: id_p256_x509
@@ -52,17 +55,18 @@ defmodule Astarte.FDO.OwnerOnboarding.OwnerOnboardingTest do
     cbor_hello_p256_x509 = HelloDevice.cbor_encode(hello_msg_p256_x509)
 
     key_alg = :es384
-    key_type = "ECDH384_X509"
+    key_name = "ECDH384_X509_#{System.unique_integer([:positive])}"
 
     {voucher_p384_x509, key_p384_x509} = generate_p384_x509_data_and_pem()
+    {:ok, key_p384_x509} = Keys.from_pem(key_p384_x509)
     cbor_p384_x509 = OwnershipVoucher.cbor_encode(voucher_p384_x509)
     id_p384_x509 = voucher_p384_x509.header.guid
 
-    {:ok, key_p384_x509} =
-      Astarte.Secrets.import_key(key_type, key_alg, key_p384_x509, namespace: namespace)
+     :ok = Secrets.import_key(key_name, key_alg, key_p384_x509, namespace: namespace)
+    {:ok, key_p384_x509} = Secrets.get_key(key_name, namespace: namespace)
 
     attrs = %{
-      key_name: key_type,
+      key_name: key_name,
       key_algoright: key_alg,
       voucher_data: cbor_p384_x509,
       guid: id_p384_x509
@@ -76,17 +80,18 @@ defmodule Astarte.FDO.OwnerOnboarding.OwnerOnboardingTest do
     cbor_hello_p384_x509 = HelloDevice.cbor_encode(hello_msg_p384_x509)
 
     key_alg = :es256
-    key_type = "ECDH256_X5CHAIN"
+    key_name = "ECDH256_X5CHAIN_#{System.unique_integer([:positive])}"
     {voucher_p256_chain, key_p256_chain} = generate_p256_x5chain_data_and_pem()
+    {:ok, key_p256_chain} = Keys.from_pem(key_p256_chain)
     cbor_p256_chain = OwnershipVoucher.cbor_encode(voucher_p256_chain)
     id_p256_chain = voucher_p256_chain.header.guid
     {:ok, namespace} = Astarte.Secrets.create_namespace(realm_name, key_alg)
 
-    {:ok, key_p256_chain} =
-      Astarte.Secrets.import_key(key_type, key_alg, key_p256_chain, namespace: namespace)
+     :ok = Secrets.import_key(key_name, key_alg, key_p256_chain, namespace: namespace)
+    {:ok, key_p256_chain} = Secrets.get_key(key_name, namespace: namespace)
 
     attrs = %{
-      key_name: key_type,
+      key_name: key_name,
       key_algoright: key_alg,
       voucher_data: cbor_p256_chain,
       guid: id_p256_chain
@@ -99,18 +104,19 @@ defmodule Astarte.FDO.OwnerOnboarding.OwnerOnboardingTest do
 
     cbor_hello_p256_chain = HelloDevice.cbor_encode(hello_msg_p256_x5chain)
     key_alg = :es384
-    key_type = "ECDH384_X5CHAIN"
+    key_name = "ECDH384_X5CHAIN_#{System.unique_integer([:positive])}"
 
     {voucher_p384_chain, key_p384_chain} = generate_p384_x5chain_data_and_pem()
+    {:ok, key_p384_chain} = Keys.from_pem(key_p384_chain)
     cbor_p384_chain = OwnershipVoucher.cbor_encode(voucher_p384_chain)
     id_p384_chain = voucher_p384_chain.header.guid
     {:ok, namespace} = Astarte.Secrets.create_namespace(realm_name, key_alg)
 
-    {:ok, key_p384_chain} =
-      Astarte.Secrets.import_key(key_type, key_alg, key_p384_chain, namespace: namespace)
+     :ok = Secrets.import_key(key_name, key_alg, key_p384_chain, namespace: namespace)
+    {:ok, key_p384_chain} = Secrets.get_key(key_name, namespace: namespace)
 
     attrs = %{
-      key_name: key_type,
+      key_name: key_name,
       key_algoright: key_alg,
       voucher_data: cbor_p384_chain,
       guid: id_p384_chain
