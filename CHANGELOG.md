@@ -7,11 +7,26 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## Unreleased
 
-## Added
+## [1.4.0-rc.0] - 2026-04-08
 
+### Added
+
+- Add required flag for mappings of object aggregated interfaces
+- [astarte_pairing] Support for FIDO Device Onboard v1.1 for device registration. The following environment variables have been added for the Vault connectivity:
+  - `ASTARTE_VAULT_URL` - The URL to access Vault.
+  - `ASTARTE_VAULT_AUTHENTICATION_MECHANISM` - The mechanism to use for authenticating with Vault (default: `""`, allowed: \["token"])
+  - `ASTARTE_VAULT_TOKEN` - Token to authenticate with Vault, used if `ASTARTE_VAULT_AUTHENTICATION_MECHANISM` is `"token"` (default: `""`)
+  - `ASTARTE_VAULT_SSL_CA_FILE` - path to the CA certificate file for the vault TLS connection; when not specified, the bundled cURL certificate bundle will be used
+  - `ASTARTE_VAULT_SSL_CUSTOM_SNI` - custom SNI hostname for the vault TLS connection; when not specified, the vault hostname will be used
+  - `ASTARTE_VAULT_SSL_DISABLE_SNI` - Disable Server Name Indication for Vault. (default: `false`)
+  - `ASTARTE_VAULT_SSL_ENABLED` - Whether to enable SSL for the Vault connection. (default `false`)
 - [astarte_realm_management] Allow listing interfaces with mappings using the `detailed=true` parameter
 - [astarte_import] Added support for data types: `doublearray`, `integerarray`,
   `booleanarray`, `longintegerarray`, `stringarray`, `datetimearray`, `binaryblobarray`.
+
+### Changed
+
+- [astarte_data_updater_plant] Use mississippi consumer for data updater processes
 
 ## [1.3.0] - Unreleased
 

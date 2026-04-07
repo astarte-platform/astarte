@@ -91,6 +91,27 @@ the Device, which includes securing the communication channel. On the other hand
 extremely flexible approach to Registration, which can be implemented through an entirely custom
 logic.
 
+## FIDO Device Onboard
+
+Since v1.4.0, Astarte can also be used as the Owner Onboarding Service for [FDO 1.1], allowing
+devices to be registered without being aware of their destination realm during device
+initialization. Device Initialization is out of scope for the Astarte implementation of FDO, and
+Astarte expects an external rendezvous server to be available and correctly configured.
+
+When using FDO, the Device ID is derived from the device's hardware id, and the
+_Credentials Secret_ is sent directly to the device in the Owner Service Info messages.
+
+### Key management
+
+Astarte must be able to sign messages using the owner private key in order to complete the
+Transfer Ownership protocol.
+Vault/OpenBao is used as a safe storage solution, and messages are signed directly by it without
+keys ever being downloaded (or even known) by Astarte.
+
+In order to import your keys, you may either upload your private key to astarte, which is imported
+in Vault and immediately forgotten, or have Vault generate a keypair for you, and then you can use
+the new public key to extend the Ownership Voucher yourself.
+
 ## Credentials Secret Lifecycle
 
 _Credentials Secrets_ are meant to be immutable - as such, they should be handled with extreme care.
@@ -113,3 +134,5 @@ If there's the need of registering the device again (e.g.: a Device has been tam
 to its plant with its previous _Credentials Secret_ compromised), it is possible to explicitly
 unregister the device to obtain a new _Credentials Secret_ using [Pairing's Agent APIs](api/index.html?urls.primaryName=Pairing%20API#/agent/unregisterDevice) or with `astartectl`
 (see the output of `astartectl pairing agent unregister -h` for more documentation).
+
+[FDO 1.1]: https://fidoalliance.org/device-onboarding-overview/

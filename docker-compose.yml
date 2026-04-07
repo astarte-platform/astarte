@@ -295,7 +295,7 @@ services:
 
   # VerneMQ
   vernemq:
-    image: astarte/vernemq:snapshot
+    image: astarte/vernemq:1.4.0-rc.0
     hostname: vernemq
     env_file:
       - ./.env
