@@ -245,29 +245,29 @@ defmodule Astarte.FDO.OwnerOnboarding do
            DonePayload.decode(body),
          :ok <-
            check_prove_dv_nonces_equality(prove_dv_nonce_challenge, to2_session.prove_dv_nonce),
-         {:ok, _device} <- Queries.remove_device_ttl(realm_name, to2_session.device_id) do
+         {:ok, _device} <- Queries.remove_device_ttl(realm_name, to2_session.device_id),
+         {:ok, ov_entry} <- fetch_ov_entry(realm_name, to2_session.guid) do
+      if not OwnershipVoucher.credential_reuse?(ov_entry) do
+        add_output_voucher(realm_name, ov_entry, to2_session)
+      end
+
       done2_message = build_done2_message(to2_session.setup_dv_nonce)
-      maybe_replace_voucher(realm_name, to2_session)
       {:ok, done2_message}
     end
   end
 
-  defp maybe_replace_voucher(realm_name, to2_session) do
-    {:ok, ov_entry} = fetch_ov_entry(realm_name, to2_session.guid)
+  defp add_output_voucher(realm_name, ov_entry, to2_session) do
+    with {:ok, old_voucher} <- OwnershipVoucher.fetch(realm_name, to2_session.guid),
+         # Passiamo sia la ov_entry (per le chiavi) che to2_session (per l'HMAC)
+         {:ok, new_voucher} <-
+           OwnershipVoucher.generate_replacement_voucher(old_voucher, ov_entry, to2_session) do
+      cbor_voucher = CoreOwnershipVoucher.cbor_encode(new_voucher)
 
-    if not OwnershipVoucher.credential_reuse?(ov_entry) do
-      with {:ok, old_voucher} <- OwnershipVoucher.fetch(realm_name, to2_session.guid),
-           # Passiamo sia la ov_entry (per le chiavi) che to2_session (per l'HMAC)
-           {:ok, new_voucher} <-
-             OwnershipVoucher.generate_replacement_voucher(old_voucher, ov_entry, to2_session) do
-        cbor_voucher = CoreOwnershipVoucher.cbor_encode(new_voucher)
-
-        Queries.add_output_voucher(
-          realm_name,
-          to2_session.guid,
-          cbor_voucher
-        )
-      end
+      Queries.add_output_voucher(
+        realm_name,
+        to2_session.guid,
+        cbor_voucher
+      )
     end
   end
 
