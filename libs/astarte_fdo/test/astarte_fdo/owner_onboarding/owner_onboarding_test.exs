@@ -26,7 +26,6 @@ defmodule Astarte.FDO.OwnerOnboarding.OwnerOnboardingTest do
   alias Astarte.FDO.Core.OwnerOnboarding.Session
   alias Astarte.FDO.Core.OwnershipVoucher, as: OVCore
   alias Astarte.FDO.OwnerOnboarding
-  alias Astarte.FDO.OwnershipVoucher
   alias Astarte.Secrets
   alias COSE.Keys
   alias COSE.Messages.Sign1

@@ -60,17 +60,18 @@ defmodule Astarte.FDO.OwnershipVoucher do
   end
 
   def generate_replacement_voucher(ownership_voucher, ov_entry, session) do
+    guid = ov_entry.replacement_guid || ownership_voucher.header.guid
+
+    rendezvous_info =
+      ov_entry.replacement_rendezvous_info || ownership_voucher.header.rendezvous_info
+
+    public_key = ov_entry.replacement_public_key || ownership_voucher.header.public_key
+
     new_header =
       ownership_voucher.header
-      |> Map.put(:guid, ov_entry.replacement_guid || ownership_voucher.header.guid)
-      |> Map.put(
-        :rendezvous_info,
-        ov_entry.replacement_rendezvous_info || ownership_voucher.header.rendezvous_info
-      )
-      |> Map.put(
-        :public_key,
-        ov_entry.replacement_public_key || ownership_voucher.header.public_key
-      )
+      |> Map.put(:guid, guid)
+      |> Map.put(:rendezvous_info, rendezvous_info)
+      |> Map.put(:public_key, public_key)
 
     new_voucher =
       ownership_voucher

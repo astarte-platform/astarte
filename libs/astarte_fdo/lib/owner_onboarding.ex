@@ -135,7 +135,7 @@ defmodule Astarte.FDO.OwnerOnboarding do
     guid = session.guid
 
     with {:ok, ownership_voucher} <- OwnershipVoucher.fetch(realm_name, guid),
-         {:ok, ov_entry} <- fetch_ov_entry(realm_name, guid),
+         {:ok, ov_entry} <- Queries.get_replacement_data(realm_name, guid),
          {:ok, owner_key} <- Secrets.get_key_for_guid(realm_name, guid),
          {:ok, owner_public_key} <- OwnershipVoucher.owner_public_key(ownership_voucher) do
       next_guid = ov_entry.replacement_guid || guid
@@ -246,7 +246,7 @@ defmodule Astarte.FDO.OwnerOnboarding do
          :ok <-
            check_prove_dv_nonces_equality(prove_dv_nonce_challenge, to2_session.prove_dv_nonce),
          {:ok, _device} <- Queries.remove_device_ttl(realm_name, to2_session.device_id),
-         {:ok, ov_entry} <- fetch_ov_entry(realm_name, to2_session.guid) do
+         {:ok, ov_entry} <- Queries.get_replacement_data(realm_name, to2_session.guid) do
       if not OwnershipVoucher.credential_reuse?(ov_entry) do
         add_output_voucher(realm_name, ov_entry, to2_session)
       end
@@ -294,16 +294,5 @@ defmodule Astarte.FDO.OwnerOnboarding do
 
   defp build_done2_message(setup_dv_nonce) do
     %Done2Payload{:nonce_to2_setup_dv => setup_dv_nonce} |> Done2Payload.encode()
-  end
-
-  defp fetch_ov_entry(realm_name, guid) do
-    keyspace = Astarte.DataAccess.Realms.Realm.keyspace_name(realm_name)
-
-    case Astarte.DataAccess.Repo.get(Astarte.DataAccess.FDO.OwnershipVoucher, guid,
-           prefix: keyspace
-         ) do
-      nil -> {:error, :not_found}
-      entry -> {:ok, entry}
-    end
   end
 end

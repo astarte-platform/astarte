@@ -58,19 +58,6 @@ defmodule Astarte.DataAccess.FDO.Queries do
     Repo.fetch(query, guid, consistency: consistency)
   end
 
-  def get_owner_private_key(realm_name, guid) do
-    keyspace_name = Realm.keyspace_name(realm_name)
-
-    query =
-      from o in OwnershipVoucher,
-        prefix: ^keyspace_name,
-        select: o.key_name
-
-    consistency = Consistency.domain_model(:read)
-
-    Repo.fetch(query, guid, consistency: consistency)
-  end
-
   def get_owner_key_params(realm_name, guid) do
     keyspace_name = Realm.keyspace_name(realm_name)
 
@@ -83,6 +70,24 @@ defmodule Astarte.DataAccess.FDO.Queries do
 
     with {:ok, ov} <- Repo.fetch(query, guid, consistency: consistency) do
       result = %{name: ov.key_name, algorithm: ov.key_algorithm}
+      {:ok, result}
+    end
+  end
+
+  def get_replacement_data(realm_name, guid) do
+    keyspace = Realm.keyspace_name(realm_name)
+
+    fields = [:replacement_guid, :replacement_rendezvous_info, :replacement_public_key]
+
+    query =
+      from OwnershipVoucher,
+        select: ^fields
+
+    consistency = Consistency.domain_model(:read)
+    opts = [consistency: consistency, prefix: keyspace]
+
+    with {:ok, data} <- Repo.fetch(query, guid, opts) do
+      result = Map.take(data, fields)
       {:ok, result}
     end
   end
