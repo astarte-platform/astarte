@@ -20,6 +20,7 @@ defmodule Astarte.HousekeepingWeb.RealmController do
   use Astarte.HousekeepingWeb, :controller
   use OpenApiSpex.ControllerSpecs
 
+  alias Astarte.Housekeeping.Config
   alias Astarte.Housekeeping.Realms
   alias Astarte.Housekeeping.Realms.Realm
   alias OpenApiSpex.{Reference, Schema}
@@ -171,6 +172,19 @@ defmodule Astarte.HousekeepingWeb.RealmController do
       unprocessable_entity: "Connected devices present"
     ]
 
+  operation :get_default_replication,
+    summary: "Get default Realm replication settings",
+    description: "Retrieves the default DB replication settings applied to new Realms.",
+    operation_id: "getDefaultReplication",
+    responses: [
+      ok:
+        {"Success", "application/json",
+         %Reference{"$ref": "#/components/schemas/DefaultReplication"}},
+      unauthorized: %Reference{"$ref": "#/components/responses/Unauthorized"},
+      forbidden: %Reference{"$ref": "#/components/responses/AuthorizationPathNotMatched"},
+      service_unavailable: "Astarte is unable to retrieve the replication settings."
+    ]
+
   def index(conn, _params) do
     with {:ok, realms} <- Realms.list_realms() do
       render(conn, "index.json", realms: realms)
@@ -222,6 +236,27 @@ defmodule Astarte.HousekeepingWeb.RealmController do
     with :ok <- Realms.delete_realm(realm_name, async_operation: async_operation) do
       send_resp(conn, :no_content, "")
     end
+  end
+
+  def get_default_replication(conn, _params) do
+    # TODO: this function needs to retrieve the default replication from the db
+    # to change once the appropriate pr has been merged
+    replication =
+      case Config.astarte_keyspace_replication_strategy!() do
+        :simple_strategy ->
+          %{
+            replication_class: :simple_strategy,
+            replication_factor: Config.astarte_keyspace_replication_factor!()
+          }
+
+        :network_topology_strategy ->
+          %{
+            replication_class: :network_topology_strategy,
+            datacenter_replication_factor: Config.astarte_keyspace_network_replication_map!()
+          }
+      end
+
+    render(conn, "replication.json", replication: replication)
   end
 
   defp normalize_update_attrs(update_attrs) when is_map(update_attrs) do

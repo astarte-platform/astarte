@@ -94,11 +94,42 @@ defmodule Astarte.HousekeepingWeb.ApiSpec do
     %{
       "Realm" => Realm.Realm.schema(),
       "RealmPatch" => Realm.RealmPatch.schema(),
+      "DefaultReplication" => default_replication_schema(),
       "GenericError" => Errors.GenericError.schema(),
       "MissingTokenError" => Errors.MissingTokenError.schema(),
       "InvalidTokenError" => Errors.InvalidTokenError.schema(),
       "InvalidAuthPathError" => Errors.InvalidAuthPathError.schema(),
       "AuthorizationPathNotMatchedError" => Errors.AuthorizationPathNotMatchedError.schema()
+    }
+  end
+
+  defp default_replication_schema do
+    %Schema{
+      type: :object,
+      required: [:replication_class],
+      properties: %{
+        replication_class: %Schema{
+          type: :string,
+          example: "NetworkTopologyStrategy",
+          description:
+            "The default Replication Class used for new realms (e.g., SimpleStrategy or NetworkTopologyStrategy)."
+        },
+        replication_factor: %Schema{
+          type: :integer,
+          example: 3,
+          description:
+            "The default replication factor. Populated only if replication_class is \"SimpleStrategy\"."
+        },
+        datacenter_replication_factor: %Schema{
+          type: :object,
+          example: %{
+            datacenter_1: 3,
+            datacenter_2: 2
+          },
+          description:
+            "The default datacenter replication map. Populated only if replication_class is \"NetworkTopologyStrategy\"."
+        }
+      }
     }
   end
 
