@@ -16,7 +16,7 @@
 # limitations under the License.
 #
 
-defmodule Astarte.DataAccess.FDO.TestHelpers do
+defmodule Astarte.FDO.Core.FDOHelpers do
   @moduledoc """
   Shared test fixtures for FDO-related tests in astarte_data_access.
   """

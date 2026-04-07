@@ -41,8 +41,10 @@ defmodule Astarte.FDO.Core.Rendezvous.OwnerSign do
     to0d_hash = Hash.new(:sha256, to0d)
     to1d = %{to1d | to0d_hash: to0d_hash}
 
+    to0d_bstr = %CBOR.Tag{tag: :bytes, value: to0d}
+
     with {:ok, to1d} <- TO1D.encode_sign(to1d, owner_key) do
-      {:ok, [to0d, to1d]}
+      {:ok, [to0d_bstr, to1d]}
     end
   end
 

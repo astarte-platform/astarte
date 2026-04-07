@@ -43,20 +43,20 @@ defmodule Astarte.FDO.OwnerOnboarding do
   alias Astarte.FDO.OwnerOnboarding.DeviceAttestation
   alias Astarte.FDO.OwnerOnboarding.KeyExchangeStrategy
   alias Astarte.FDO.OwnershipVoucher
+  alias Astarte.Secrets
 
   require Logger
 
   @max_owner_message_size 65_535
   @rsa_public_exponent 65_537
-  @one_week 604_800
 
   def hello_device(realm_name, cbor_hello_device) do
     with {:ok, hello_device} <- HelloDevice.decode(cbor_hello_device),
          guid = hello_device.guid,
          {:ok, ownership_voucher} <- OwnershipVoucher.fetch(realm_name, guid),
-         {:ok, owner_private_key} <- fetch_owner_private_key(realm_name, guid),
+         {:ok, owner_key} <- Secrets.get_key_for_guid(realm_name, guid),
          {:ok, pub_key} <- OwnershipVoucher.owner_public_key(ownership_voucher),
-         :ok <- KeyExchangeStrategy.validate(hello_device.kex_name, owner_private_key),
+         :ok <- KeyExchangeStrategy.validate(hello_device.kex_name, owner_key.alg),
          {:ok, token, session} <-
            Session.new(
              realm_name,
@@ -90,7 +90,7 @@ defmodule Astarte.FDO.OwnerOnboarding do
              prove_ovh,
              session.prove_dv_nonce,
              encoded_pub_key,
-             owner_private_key
+             owner_key
            ) do
         {:ok, message} ->
           {:ok, token, message}
@@ -103,12 +103,6 @@ defmodule Astarte.FDO.OwnerOnboarding do
       error ->
         Logger.error("Failed to process hello_device: #{inspect(error)}")
         error
-    end
-  end
-
-  defp fetch_owner_private_key(realm_name, guid) do
-    with {:ok, pem_key} <- Queries.get_owner_private_key(realm_name, guid) do
-      COSE.Keys.from_pem(pem_key)
     end
   end
 
@@ -140,21 +134,22 @@ defmodule Astarte.FDO.OwnerOnboarding do
   def prove_device(realm_name, body, session) do
     guid = session.guid
 
-    # TODO: credential reuse requires also Owner2Key and/or rv info to be changed
-    # for credential reuse; so far, there is no API to do so, so it-s limited to the guid
-
     with {:ok, ownership_voucher} <- OwnershipVoucher.fetch(realm_name, guid),
-         {:ok, private_key} <- Queries.get_owner_private_key(realm_name, guid),
+         {:ok, ov_entry} <- Queries.get_replacement_data(realm_name, guid),
+         {:ok, owner_key} <- Secrets.get_key_for_guid(realm_name, guid),
          {:ok, owner_public_key} <- OwnershipVoucher.owner_public_key(ownership_voucher) do
-      rendezvous_info = ownership_voucher.header.rendezvous_info
+      next_guid = ov_entry.replacement_guid || guid
 
-      {:ok, private_key} = COSE.Keys.from_pem(private_key)
+      next_rv_info =
+        ov_entry.replacement_rendezvous_info || ownership_voucher.header.rendezvous_info
+
+      next_owner_pub_key = ov_entry.replacement_public_key || owner_public_key
 
       connection_credentials = %{
-        guid: guid,
-        rendezvous_info: rendezvous_info,
-        owner_pub_key: owner_public_key,
-        owner_private_key: private_key,
+        guid: next_guid,
+        rendezvous_info: next_rv_info,
+        owner_pub_key: next_owner_pub_key,
+        owner_private_key: owner_key,
         device_info: "owned by astarte - realm #{realm_name}.#{Config.base_url_domain!()}"
       }
 
@@ -164,15 +159,6 @@ defmodule Astarte.FDO.OwnerOnboarding do
                session,
                body,
                connection_credentials
-             ),
-           {:ok, session} <-
-             Session.add_replacement_info(
-               session,
-               realm_name,
-               guid,
-               rendezvous_info,
-               owner_public_key,
-               nil
              ) do
         {:ok, session, resp_msg}
       end
@@ -212,35 +198,6 @@ defmodule Astarte.FDO.OwnerOnboarding do
     end
   end
 
-  def fetch_alg(header_map) when is_map(header_map) do
-    case Map.get(header_map, 1) do
-      -7 -> {:ok, :es256}
-      -8 -> {:ok, :edsdsa}
-      _ -> {:error, :unsupported_alg}
-    end
-  end
-
-  def fetch_alg(binary) when is_binary(binary) do
-    with {:ok, map, _rest} <- CBOR.decode(binary), do: fetch_alg(map)
-  end
-
-  def build_sig_structure(protected_bin, payload_bin) do
-    sig_struct = [
-      "Signature1",
-      protected_bin,
-      # external_aad empty in FDO
-      <<>>,
-      payload_bin
-    ]
-
-    {:ok, CBOR.encode(sig_struct)}
-  end
-
-  def der_encode_ecdsa(r, s) do
-    # assuming ECDSA-Sig-Value record is available
-    :public_key.der_encode(:"ECDSA-Sig-Value", {:"ECDSA-Sig-Value", r, s})
-  end
-
   def build_setup_device_message(creds, setup_dv_nonce) do
     payload = %SetupDevicePayload{
       rendezvous_info: creds.rendezvous_info,
@@ -265,12 +222,9 @@ defmodule Astarte.FDO.OwnerOnboarding do
          {:ok, session} <-
            Session.add_max_owner_service_info_size(session, realm_name, max_owner_service_info_sz),
          {:ok, session} <-
-           Session.add_replacement_info(
+           Session.add_replacement_hmac(
              session,
              realm_name,
-             session.replacement_guid,
-             session.replacement_rv_info,
-             session.replacement_pub_key,
              replacement_hmac || session.hmac
            ) do
       response =
@@ -291,33 +245,29 @@ defmodule Astarte.FDO.OwnerOnboarding do
            DonePayload.decode(body),
          :ok <-
            check_prove_dv_nonces_equality(prove_dv_nonce_challenge, to2_session.prove_dv_nonce),
-         {:ok, _device} <- Queries.remove_device_ttl(realm_name, to2_session.device_id) do
+         {:ok, _device} <- Queries.remove_device_ttl(realm_name, to2_session.device_id),
+         {:ok, ov_entry} <- Queries.get_replacement_data(realm_name, to2_session.guid) do
+      if not OwnershipVoucher.credential_reuse?(ov_entry) do
+        add_output_voucher(realm_name, ov_entry, to2_session)
+      end
+
       done2_message = build_done2_message(to2_session.setup_dv_nonce)
-      maybe_replace_voucher(realm_name, to2_session)
       {:ok, done2_message}
     end
   end
 
-  defp maybe_replace_voucher(realm_name, to2_session) do
-    if not OwnershipVoucher.credential_reuse?(to2_session) do
-      with {:ok, old_voucher} <-
-             OwnershipVoucher.fetch(realm_name, to2_session.guid),
-           {:ok, new_voucher} <-
-             OwnershipVoucher.generate_replacement_voucher(old_voucher, to2_session),
-           # TODO: change this line to ensure the retrieval of latest private key
-           # after exposing an API to do so
-           {:ok, private_key} <-
-             Queries.get_owner_private_key(realm_name, to2_session.guid) do
-        cbor_voucher = CoreOwnershipVoucher.cbor_encode(new_voucher)
+  defp add_output_voucher(realm_name, ov_entry, to2_session) do
+    with {:ok, old_voucher} <- OwnershipVoucher.fetch(realm_name, to2_session.guid),
+         # Passiamo sia la ov_entry (per le chiavi) che to2_session (per l'HMAC)
+         {:ok, new_voucher} <-
+           OwnershipVoucher.generate_replacement_voucher(old_voucher, ov_entry, to2_session) do
+      cbor_voucher = CoreOwnershipVoucher.cbor_encode(new_voucher)
 
-        Queries.replace_ownership_voucher(
-          realm_name,
-          to2_session.guid,
-          cbor_voucher,
-          private_key,
-          @one_week
-        )
-      end
+      Queries.add_output_voucher(
+        realm_name,
+        to2_session.guid,
+        cbor_voucher
+      )
     end
   end
 

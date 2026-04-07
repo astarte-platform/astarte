@@ -21,9 +21,7 @@ defmodule Astarte.PairingWeb.Controllers.OwnershipVoucherControllerTest do
   use Astarte.Cases.Data
   use Mimic
 
-  alias Astarte.FDO.Rendezvous
   alias Astarte.Pairing.Config
-  alias Astarte.Pairing.Queries
   alias Astarte.Secrets
   alias Astarte.Secrets.Key
 
@@ -31,87 +29,44 @@ defmodule Astarte.PairingWeb.Controllers.OwnershipVoucherControllerTest do
 
   @sample_key_name "owner_key"
 
-  @sample_owner_public_key_pem """
-  -----BEGIN PUBLIC KEY-----
-  MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAES+TkA7VtJQv9YQ75yl5btXKR/cso
-  yfLzYWUTgxViGMfJkvql4W3zrtRaVPU9I06TOHFC2Mwy+9S3A7UWv/EWtg==
-  -----END PUBLIC KEY-----
+  @sample_private_key_pem """
+  -----BEGIN EC PRIVATE KEY-----
+  MHcCAQEEIPKdthyV+2F5gPIqHyiQ9Wi1Y01r66/BbvnILFWehTRToAoGCCqGSM49
+  AwEHoUQDQgAEGwrCWU3M3/Cxk0jMB4TmyQEaXLp+tqX42GsmeZ+7jeEWjHLFmEYH
+  LC/GgcMr88CXA3/i64k0iiIMRRQ3osnV/A==
+  -----END EC PRIVATE KEY-----
   """
 
-  @sample_params %{
-    data: %{
-      "ownership_voucher" => sample_voucher(),
-      "private_key" => sample_private_key()
-    }
-  }
+  @sample_ownership_voucher_pem """
+  -----BEGIN OWNERSHIP VOUCHER-----
+  hRhlWL6GGGVQsfHY8DqfTPi0ayOpTPxm54GEggNDGR+SggJFRH8AAAGCBEMZH5KC
+  DEEBa3AyNTYtZGV2aWNlgwoBWFswWTATBgcqhkjOPQIBBggqhkjOPQMBBwNCAAQb
+  CsJZTczf8LGTSMwHhObJARpcun62pfjYayZ5n7uN4RaMcsWYRgcsL8aBwyvzwJcD
+  f+LriTSKIgxFFDeiydX8gi9YINH8REeqEOOpCpH9Arx8yt1/2ZKICO5s8mo4AW2h
+  Gfz2ggVYIENgeEjaDkp0mbAiC/jro5IUx9j0jtTEUNLm8M74YleDgVkBHjCCARow
+  gcGgAwIBAgIDAeJAMAoGCCqGSM49BAMCMBYxFDASBgNVBAMMC1Rlc3QgRGV2aWNl
+  MB4XDTI0MDEwMTAwMDAwMFoXDTM0MDEwMTAwMDAwMFowFjEUMBIGA1UEAwwLVGVz
+  dCBEZXZpY2UwWTATBgcqhkjOPQIBBggqhkjOPQMBBwNCAAQbCsJZTczf8LGTSMwH
+  hObJARpcun62pfjYayZ5n7uN4RaMcsWYRgcsL8aBwyvzwJcDf+LriTSKIgxFFDei
+  ydX8MAoGCCqGSM49BAMCA0gAMEUCIF+IuxL2kt310Im+OjbA/lNNG73qUX1CH22i
+  5/WGPHz8AiEAuzPBY60mRQHyetxjA4Lx+Wkdm7NWWxzdfv+6uDhVhOiB0oRDoQEm
+  oFichIIvWCBSpkHIqibg9oEqb9tnSTB0ABsn9mji099pWZIcvH0WdoIvWCCLI3XG
+  98ZneM2FDlIJC7dH8MZSxltPfu4TkN7z6GIo1vaDCgNYTaUieCAWjHLFmEYHLC/G
+  gcMr88CXA3/i64k0iiIMRRQ3osnV/CF4IBsKwllNzN/wsZNIzAeE5skBGly6fral
+  +NhrJnmfu43hIAEBAgMmWEChODtvywnaQNZqZtAi+ukIDh06ZQxYk/BZ72qtX4Qt
+  KgRKDMZ26gaTvdOSYOiWl+hL0gCbdyhXp5dySgYsHYEn
+  -----END OWNERSHIP VOUCHER-----
+  """
 
   @sample_load_params %{
     data: %{
       "ownership_voucher" => sample_voucher(),
-      "key_name" => @sample_key_name
+      "key_name" => @sample_key_name,
+      "key_algorithm" => "es256"
     }
   }
 
   setup :verify_on_exit!
-
-  describe "/ownership" do
-    setup :ownership
-
-    test "stores the ownership voucher", context do
-      %{auth_conn: conn, create_path: path, realm_name: realm_name} = context
-
-      conn
-      |> post(path, @sample_params)
-      |> response(200)
-
-      assert {:ok, _} = Queries.get_ownership_voucher(realm_name, sample_device_guid())
-    end
-
-    test "stores the owner private key", context do
-      %{auth_conn: conn, create_path: path, realm_name: realm_name} = context
-
-      conn
-      |> post(path, @sample_params)
-      |> response(200)
-
-      assert {:ok, _} = Queries.get_owner_private_key(realm_name, sample_device_guid())
-    end
-
-    test "starts the to0 protocol", context do
-      %{auth_conn: conn, create_path: path} = context
-      sample_nonce = nonce() |> Enum.at(0)
-
-      Rendezvous
-      |> expect(:send_hello, fn -> {:ok, %{nonce: sample_nonce, headers: []}} end)
-      |> expect(:register_ownership, fn _body, _headers -> {:ok, 3600} end)
-
-      conn
-      |> post(path, @sample_params)
-      |> response(200)
-    end
-
-    test "returns a 404 error if FDO feature is disabled", context do
-      %{auth_conn: conn, create_path: path} = context
-
-      stub(Config, :enable_fdo!, fn -> false end)
-
-      conn
-      |> post(path, @sample_params)
-      |> response(404)
-    end
-  end
-
-  defp ownership(context) do
-    %{auth_conn: conn, realm_name: realm_name} = context
-    create_path = ownership_voucher_path(conn, :create, realm_name)
-    sample_nonce = nonce() |> Enum.at(0)
-
-    Rendezvous
-    |> stub(:send_hello, fn -> {:ok, %{nonce: sample_nonce, headers: []}} end)
-    |> stub(:register_ownership, fn _body, _headers -> {:ok, 3600} end)
-
-    %{create_path: create_path}
-  end
 
   describe "/fdo/ownership_vouchers" do
     setup :register_setup
@@ -119,27 +74,27 @@ defmodule Astarte.PairingWeb.Controllers.OwnershipVoucherControllerTest do
     test "returns 200 with the owner public key on a valid matching key", context do
       %{auth_conn: conn, register_path: path, realm_name: realm_name} = context
 
-      stub(Secrets, :create_namespace, fn ^realm_name, :es256 ->
-        {:ok, "fdo_owner_keys/#{realm_name}/ecdsa-p256"}
-      end)
+      {:ok, owner_cose_key} = COSE.Keys.from_pem(@sample_private_key_pem)
+      {:ok, namespace} = Secrets.create_namespace(realm_name, :es256)
+      :ok = Secrets.import_key(@sample_key_name, :es256, owner_cose_key, namespace: namespace)
 
-      stub(Secrets, :get_key, fn @sample_key_name, _opts ->
-        {:ok,
-         %Key{
-           name: @sample_key_name,
-           namespace: "fdo_owner_keys/#{realm_name}/ecdsa-p256",
-           alg: :es256,
-           public_pem: @sample_owner_public_key_pem
-         }}
-      end)
+      {:ok, %Key{public_pem: expected_public_key}} =
+        Secrets.get_key(@sample_key_name, namespace: namespace)
+
+      params = %{
+        data: %{
+          "ownership_voucher" => @sample_ownership_voucher_pem,
+          "key_name" => @sample_key_name,
+          "key_algorithm" => "es256"
+        }
+      }
 
       body =
         conn
-        |> post(path, @sample_load_params)
+        |> post(path, params)
         |> json_response(200)
 
-      assert get_in(body, ["data", "public_key"]) == @sample_owner_public_key_pem
-      assert get_in(body, ["data", "guid"]) == UUID.binary_to_string!(sample_device_guid())
+      assert get_in(body, ["data", "public_key"]) == expected_public_key
     end
 
     test "returns 422 when the ownership_voucher field is missing", context do
@@ -241,7 +196,7 @@ defmodule Astarte.PairingWeb.Controllers.OwnershipVoucherControllerTest do
       assert %{"es256" => [@sample_key_name, "another_key"]} = get_in(body, ["data"])
     end
 
-    test "returns 200 with an empty list when no keys are registered", context do
+    test "returns 200 with an empty key list when no keys are registered", context do
       %{auth_conn: conn, path: path, realm_name: realm_name} = context
 
       stub(Secrets, :create_namespace, fn ^realm_name, :es256 ->

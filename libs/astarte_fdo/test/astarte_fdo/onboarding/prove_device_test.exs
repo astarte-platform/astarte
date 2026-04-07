@@ -118,7 +118,7 @@ defmodule Astarte.FDO.OwnerOnboarding.ProveDeviceTest do
       session: session,
       device_key: device_key,
       xb: xb,
-      owner_key: owner_key
+      owner_key_struct: owner_key_struct
     } = context
 
     {:ok, prove_device_msg} =
@@ -131,7 +131,7 @@ defmodule Astarte.FDO.OwnerOnboarding.ProveDeviceTest do
       }
       |> ProveDevice.encode_sign(device_key)
 
-    creds = dummy_creds(owner_key)
+    creds = dummy_creds(owner_key_struct)
 
     assert {:ok, %{setup_dv_nonce: @test_setup_dv_nonce, resp: msg_65_payload}} =
              OwnerOnboarding.verify_and_build_response(
@@ -149,7 +149,7 @@ defmodule Astarte.FDO.OwnerOnboarding.ProveDeviceTest do
 
     # message is signed with the owner EC256 private key and can be verified using
     # the related public key
-    assert :ok == Sign1.verify(setup_device_msg_decoded, owner_key)
+    assert :ok == Sign1.verify(setup_device_msg_decoded, owner_key_struct)
   end
 
   test "verify ES256 fails if Nonce does not match", context do
@@ -158,7 +158,7 @@ defmodule Astarte.FDO.OwnerOnboarding.ProveDeviceTest do
       session: session,
       device_key: device_key,
       xb: xb,
-      owner_key: owner_key
+      owner_key_struct: owner_key_struct
     } =
       context
 
@@ -174,7 +174,7 @@ defmodule Astarte.FDO.OwnerOnboarding.ProveDeviceTest do
       }
       |> ProveDevice.encode_sign(device_key)
 
-    creds = dummy_creds(owner_key)
+    creds = dummy_creds(owner_key_struct)
 
     assert {:error, :invalid_message} =
              OwnerOnboarding.verify_and_build_response(
@@ -191,7 +191,7 @@ defmodule Astarte.FDO.OwnerOnboarding.ProveDeviceTest do
       session: session,
       device_key: device_key,
       xb: xb,
-      owner_key: owner_key
+      owner_key_struct: owner_key_struct
     } =
       context
 
@@ -205,7 +205,7 @@ defmodule Astarte.FDO.OwnerOnboarding.ProveDeviceTest do
       }
       |> ProveDevice.encode_sign(device_key)
 
-    creds = dummy_creds(owner_key)
+    creds = dummy_creds(owner_key_struct)
 
     assert {:error, :message_body_error} =
              OwnerOnboarding.verify_and_build_response(
@@ -221,7 +221,7 @@ defmodule Astarte.FDO.OwnerOnboarding.ProveDeviceTest do
       realm_name: realm_name,
       session: session,
       xb: xb,
-      owner_key: owner_key
+      owner_key_struct: owner_key_struct
     } =
       context
 
@@ -237,7 +237,7 @@ defmodule Astarte.FDO.OwnerOnboarding.ProveDeviceTest do
       }
       |> ProveDevice.encode_sign(device_key2)
 
-    creds = dummy_creds(owner_key)
+    creds = dummy_creds(owner_key_struct)
 
     assert {:error, :invalid_message} =
              OwnerOnboarding.verify_and_build_response(
@@ -251,13 +251,13 @@ defmodule Astarte.FDO.OwnerOnboarding.ProveDeviceTest do
   describe "verify response SetupDevice is correctly signed" do
     setup context do
       %{
-        owner_key: owner_key,
+        owner_key_struct: owner_key_struct,
         session: session,
         xb: xb,
         device_key: device_key
       } = context
 
-      creds = dummy_creds(owner_key)
+      creds = dummy_creds(owner_key_struct)
 
       {:ok, prove_device_msg} =
         %ProveDevice{

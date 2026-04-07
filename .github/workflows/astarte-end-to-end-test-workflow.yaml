@@ -112,8 +112,8 @@ jobs:
       - name: Checkout fdo e2e repo
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
         with:
-          repository: astarte-platform/astarte-device-fdo-rust
-          ref: astarte-device-fdo-v1.0.0
+          repository: noaccos/astarte-device-fdo-rust
+          ref: push-mzlxtwylktkr
       - uses: ./.github/actions/install-deps
       - name: Install astartectl
         run: |

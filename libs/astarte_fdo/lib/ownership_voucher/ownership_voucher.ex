@@ -26,17 +26,8 @@ defmodule Astarte.FDO.OwnershipVoucher do
   alias Astarte.FDO.Core.OwnershipVoucher
   alias Astarte.FDO.Core.OwnershipVoucher.Core
 
-  @one_week 604_800
-
-  def save_voucher(realm_name, cbor_ownership_voucher, device_guid, owner_private_key) do
-    with {:ok, _} <-
-           Queries.create_ownership_voucher(
-             realm_name,
-             device_guid,
-             cbor_ownership_voucher,
-             owner_private_key,
-             @one_week
-           ) do
+  def save_voucher(realm_name, attrs) do
+    with {:ok, _} <- Queries.create_ownership_voucher(realm_name, attrs) do
       :ok
     end
   end
@@ -55,7 +46,7 @@ defmodule Astarte.FDO.OwnershipVoucher do
     # N.B.: Checking if there are entries is not necessary,
     # as by spec the ownership voucher will always have at least one entry
     List.last(ownership_voucher.entries)
-    |> Core.entry_private_key()
+    |> Core.entry_public_key()
   end
 
   def get_ov_entry(%OwnershipVoucher{entries: entries}, entry_num) do
@@ -68,12 +59,19 @@ defmodule Astarte.FDO.OwnershipVoucher do
     end
   end
 
-  def generate_replacement_voucher(ownership_voucher, session) do
+  def generate_replacement_voucher(ownership_voucher, ov_entry, session) do
+    guid = ov_entry.replacement_guid || ownership_voucher.header.guid
+
+    rendezvous_info =
+      ov_entry.replacement_rendezvous_info || ownership_voucher.header.rendezvous_info
+
+    public_key = ov_entry.replacement_public_key || ownership_voucher.header.public_key
+
     new_header =
       ownership_voucher.header
-      |> Map.put(:guid, session.replacement_guid)
-      |> Map.put(:rendezvous_info, session.replacement_rv_info)
-      |> Map.put(:public_key, session.replacement_pub_key)
+      |> Map.put(:guid, guid)
+      |> Map.put(:rendezvous_info, rendezvous_info)
+      |> Map.put(:public_key, public_key)
 
     new_voucher =
       ownership_voucher
@@ -84,11 +82,10 @@ defmodule Astarte.FDO.OwnershipVoucher do
     {:ok, new_voucher}
   end
 
-  def credential_reuse?(_session) do
-    # Credential reuse requires also Owner2Key and/or rv info
-    # to be changed for credential reuse; so far, there is no API to do so,
-    # so it is limited to the guid
-    true
+  def credential_reuse?(ov_entry) do
+    is_nil(ov_entry.replacement_public_key) and
+      is_nil(ov_entry.replacement_rendezvous_info) and
+      is_nil(ov_entry.replacement_guid)
   end
 
   @doc """
@@ -102,17 +99,12 @@ defmodule Astarte.FDO.OwnershipVoucher do
   end
 
   @doc """
-  Returns the key algorithm compatible with `Astarte.Secrets.Core` for the
-  given decoded ownership voucher.
+  Returns the list of key algorithm atoms compatible with the given ownership voucher.
+  Returns an empty list if the key type is unsupported.
   """
-  @spec key_algorithm(OwnershipVoucher.t()) :: atom() | [atom()]
-  def key_algorithm(%OwnershipVoucher{} = voucher) do
-    fdo_type_to_key_algorithm(voucher.header.public_key.type)
+  @spec key_algorithm(OwnershipVoucher.t()) :: [atom()]
+  def key_algorithm(voucher) do
+    {:ok, algorithms} = OwnershipVoucher.key_algorithm_from_type(voucher.header.public_key.type)
+    algorithms
   end
-
-  defp fdo_type_to_key_algorithm(:secp256r1), do: :es256
-  defp fdo_type_to_key_algorithm(:secp384r1), do: :es384
-  defp fdo_type_to_key_algorithm(:rsa2048restr), do: :rs256
-  defp fdo_type_to_key_algorithm(:rsapkcs), do: [:rs256, :rs384]
-  defp fdo_type_to_key_algorithm(:rsapss), do: [:rs256, :rs384]
 end

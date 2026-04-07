@@ -25,7 +25,7 @@ defmodule Astarte.DataAccess.FDO.Queries do
 
   alias Astarte.DataAccess.Consistency
   alias Astarte.DataAccess.Device
-  alias Astarte.DataAccess.FDO.OwnershipVoucher, as: OwnershipVoucher
+  alias Astarte.DataAccess.FDO.OwnershipVoucher
   alias Astarte.DataAccess.FDO.TO2Session
   alias Astarte.DataAccess.Realms.Realm
   alias Astarte.DataAccess.Repo
@@ -58,35 +58,50 @@ defmodule Astarte.DataAccess.FDO.Queries do
     Repo.fetch(query, guid, consistency: consistency)
   end
 
-  def get_owner_private_key(realm_name, guid) do
+  def get_owner_key_params(realm_name, guid) do
     keyspace_name = Realm.keyspace_name(realm_name)
 
     query =
-      from o in OwnershipVoucher,
+      from OwnershipVoucher,
         prefix: ^keyspace_name,
-        select: o.private_key
+        select: [:key_name, :key_algorithm]
 
     consistency = Consistency.domain_model(:read)
 
-    Repo.fetch(query, guid, consistency: consistency)
+    with {:ok, ov} <- Repo.fetch(query, guid, consistency: consistency) do
+      result = %{name: ov.key_name, algorithm: ov.key_algorithm}
+      {:ok, result}
+    end
+  end
+
+  def get_replacement_data(realm_name, guid) do
+    keyspace = Realm.keyspace_name(realm_name)
+
+    fields = [:replacement_guid, :replacement_rendezvous_info, :replacement_public_key]
+
+    query =
+      from OwnershipVoucher,
+        select: ^fields
+
+    consistency = Consistency.domain_model(:read)
+    opts = [consistency: consistency, prefix: keyspace]
+
+    with {:ok, data} <- Repo.fetch(query, guid, opts) do
+      result = Map.take(data, fields)
+      {:ok, result}
+    end
   end
 
   def create_ownership_voucher(
         realm_name,
-        guid,
-        cbor_ownership_voucher,
-        owner_private_key,
-        ttl
+        attrs
       ) do
     keyspace_name = Realm.keyspace_name(realm_name)
 
-    opts = [prefix: keyspace_name, consistency: Consistency.device_info(:write), ttl: ttl]
+    opts = [prefix: keyspace_name, consistency: Consistency.device_info(:write)]
 
-    %OwnershipVoucher{
-      voucher_data: cbor_ownership_voucher,
-      private_key: owner_private_key,
-      guid: guid
-    }
+    %OwnershipVoucher{}
+    |> OwnershipVoucher.changeset(attrs)
     |> Repo.insert(opts)
   end
 
@@ -99,16 +114,21 @@ defmodule Astarte.DataAccess.FDO.Queries do
     |> Repo.delete(prefix: keyspace)
   end
 
-  def replace_ownership_voucher(
+  def add_output_voucher(
         realm_name,
         guid,
-        new_voucher,
-        owner_private_key,
-        ttl
+        new_voucher
       ) do
-    with {:ok, _} <- delete_ownership_voucher(realm_name, guid) do
-      create_ownership_voucher(realm_name, guid, new_voucher, owner_private_key, ttl)
-    end
+    keyspace = Realm.keyspace_name(realm_name)
+    consistency = Consistency.device_info(:write)
+    opts = [prefix: keyspace, consistency: consistency]
+
+    result =
+      %OwnershipVoucher{guid: guid}
+      |> Ecto.Changeset.change(output_voucher: new_voucher)
+      |> Repo.update(opts)
+
+    with {:ok, _} <- result, do: :ok
   end
 
   def store_session(realm_name, guid, session) do
@@ -163,14 +183,8 @@ defmodule Astarte.DataAccess.FDO.Queries do
     update_session(realm_name, guid, updates)
   end
 
-  def session_add_replacement_info(realm_name, guid, replacement_guid, rv_info, pub_key, hmac) do
-    updates = [
-      replacement_guid: replacement_guid,
-      replacement_rv_info: rv_info,
-      replacement_pub_key: pub_key,
-      replacement_hmac: hmac
-    ]
-
+  def session_add_replacement_hmac(realm_name, guid, hmac) do
+    updates = [replacement_hmac: hmac]
     update_session(realm_name, guid, updates)
   end
 

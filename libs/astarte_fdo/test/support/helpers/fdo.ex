@@ -24,16 +24,17 @@ defmodule Astarte.FDO.Helpers do
   import StreamData
 
   alias Astarte.DataAccess.FDO.OwnershipVoucher, as: DBOwnershipVoucher
-  alias Astarte.DataAccess.FDO.OwnershipVoucher.CreateRequest
   alias Astarte.DataAccess.Realms.Realm
   alias Astarte.DataAccess.Repo
   alias Astarte.FDO.Core.Hash
   alias Astarte.FDO.Core.OwnershipVoucher
+  alias Astarte.FDO.Core.OwnershipVoucher.CreateRequest
   alias Astarte.FDO.Core.OwnershipVoucher.RendezvousInfo
   alias Astarte.FDO.Core.OwnershipVoucher.RendezvousInfo.RendezvousDirective
   alias Astarte.FDO.Core.OwnershipVoucher.RendezvousInfo.RendezvousInstr
   alias Astarte.FDO.Core.PublicKey
   alias COSE.Keys.ECC
+  alias COSE.Keys.RSA
   alias COSE.Messages.Sign1
 
   @sample_voucher """
@@ -169,12 +170,9 @@ defmodule Astarte.FDO.Helpers do
     CBOR.encode([%CBOR.Tag{tag: :bytes, value: nonce}])
   end
 
-  def insert_voucher(realm_name, private_key, cbor_voucher, guid) do
-    %DBOwnershipVoucher{
-      voucher_data: cbor_voucher,
-      private_key: private_key,
-      guid: guid
-    }
+  def insert_voucher(realm_name, attrs) when is_map(attrs) do
+    %DBOwnershipVoucher{}
+    |> DBOwnershipVoucher.changeset(attrs)
     |> Repo.insert(prefix: Realm.keyspace_name(realm_name))
   end
 
@@ -192,6 +190,88 @@ defmodule Astarte.FDO.Helpers do
 
   def generate_p256_x509_data_and_pem do
     generate_voucher_data_and_pem()
+  end
+
+  @doc """
+  Generates a voucher with FDO public key type `:rsapss` (compatible with both
+  `:rs256` and `:rs384` owner keys) and returns `{voucher, owner_rsa_private_key_pem}`.
+
+  Options:
+    - `:alg`       - `:rs256` (2048-bit, default) or `:rs384` (3072-bit)
+    - `:owner_key` - a `%COSE.Keys.RSA{}` key; generated fresh if not given
+  """
+  def generate_rsapss_data_and_pem(opts \\ []) do
+    alg = Keyword.get(opts, :alg, :rs256)
+    owner_key = Keyword.get_lazy(opts, :owner_key, fn -> RSA.generate(alg) end)
+
+    # Use an ECC P-256 device cert for the cert-chain (keeps things simple)
+    {oid, hash_alg, sig_alg, _, _} = get_curve_params(:p256)
+    device_ecc_key = ECC.generate(:es256)
+    device_pub_key_point = <<4, device_ecc_key.x::binary, device_ecc_key.y::binary>>
+
+    device_priv_key = {
+      :ECPrivateKey,
+      1,
+      device_ecc_key.d,
+      {:namedCurve, oid},
+      device_pub_key_point,
+      :asn1_NOVALUE
+    }
+
+    cert_der = generate_self_signed_cert(device_pub_key_point, device_priv_key, oid, sig_alg)
+    cert_chain_hash_struct = Hash.new(hash_alg, cert_der)
+
+    guid_raw = UUID.uuid4(:raw)
+
+    rv_info = %RendezvousInfo{
+      directives: [
+        %RendezvousDirective{
+          instructions: [
+            %RendezvousInstr{rv_variable: :dev_port, rv_value: <<25, 31, 146>>},
+            %RendezvousInstr{rv_variable: :ip_address, rv_value: <<68, 127, 0, 0, 1>>},
+            %RendezvousInstr{rv_variable: :owner_port, rv_value: <<25, 31, 146>>},
+            %RendezvousInstr{rv_variable: :protocol, rv_value: <<1>>}
+          ]
+        }
+      ]
+    }
+
+    header_struct = %OwnershipVoucher.Header{
+      guid: guid_raw,
+      device_info: "rsapss-device",
+      public_key: cose_key_to_fdo_public_key(owner_key),
+      rendezvous_info: rv_info,
+      cert_chain_hash: cert_chain_hash_struct,
+      protocol_version: 101
+    }
+
+    hmac_bytes = :crypto.strong_rand_bytes(32)
+    hmac_struct = %Hash{type: :hmac_sha256, hash: hmac_bytes}
+
+    header_cbor = OwnershipVoucher.Header.cbor_encode(header_struct)
+    hmac_cbor = Hash.encode_cbor(hmac_struct)
+
+    header_info = guid_raw <> "rsapss-device"
+    hash_hdr = Hash.new(hash_alg, header_info)
+
+    hash_prev = Hash.new(hash_alg, header_cbor <> hmac_cbor)
+
+    entry_payload_bin = create_cose_key_entry_payload(owner_key, hash_prev, hash_hdr)
+
+    sign1_msg = Sign1.build(entry_payload_bin, %{alg: owner_key.alg}, %{})
+    {:ok, entry_tag} = Sign1.sign_encode(sign1_msg, owner_key)
+
+    owner_pem = COSE.Keys.to_pem(owner_key)
+
+    voucher = %OwnershipVoucher{
+      header: header_struct,
+      hmac: hmac_struct,
+      entries: [entry_tag],
+      protocol_version: 101,
+      cert_chain: [cert_der]
+    }
+
+    {voucher, owner_pem}
   end
 
   # Generic generator for all supported curves and encodings
@@ -233,24 +313,23 @@ defmodule Astarte.FDO.Helpers do
       |> List.wrap()
       |> :public_key.pem_encode()
 
+    spki_der =
+      :public_key.der_encode(
+        :SubjectPublicKeyInfo,
+        {:SubjectPublicKeyInfo,
+         {:AlgorithmIdentifier, {1, 2, 840, 10_045, 2, 1},
+          :public_key.der_encode(:EcpkParameters, {:namedCurve, oid})}, device_pub_key_point}
+      )
+
     pub_key_body =
       case encoding do
         :x5chain -> [cert_der]
-        :x509 -> cert_der
+        :x509 -> spki_der
       end
-
-    # Entry Payload (COSE Key) — use owner_key if provided, else device key
-    entry_payload_bin = create_cose_key_entry_payload(owner_key)
 
     guid_raw = UUID.uuid4(:raw)
 
-    chain_data_to_hash =
-      case pub_key_body do
-        list when is_list(list) -> Enum.join(list)
-        bin -> bin
-      end
-
-    cert_chain_hash_struct = Hash.new(hash_alg, chain_data_to_hash)
+    cert_chain_hash_struct = Hash.new(hash_alg, cert_der)
 
     rv_info = %RendezvousInfo{
       directives: [
@@ -283,12 +362,22 @@ defmodule Astarte.FDO.Helpers do
     hmac_bytes = :crypto.strong_rand_bytes(hmac_len)
     hmac_struct = %Hash{type: hmac_type, hash: hmac_bytes}
 
-    protected_header = %{alg: owner_key.alg}
+    header_cbor = OwnershipVoucher.Header.cbor_encode(header_struct)
+    hmac_cbor = Hash.encode_cbor(hmac_struct)
+
+    header_info = guid_raw <> header_struct.device_info
+    hash_hdr = Hash.new(hash_alg, header_info)
+
+    hash_prev = Hash.new(hash_alg, header_cbor <> hmac_cbor)
+
+    entry_payload_bin = create_cose_key_entry_payload(owner_key, hash_prev, hash_hdr)
+
+    protected_header = %{alg: cose_key.alg}
     unprotected_header_map = %{}
 
     sign1_msg = Sign1.build(entry_payload_bin, protected_header, unprotected_header_map)
 
-    {:ok, entry_tag} = Sign1.sign_encode(sign1_msg, owner_key)
+    {:ok, entry_tag} = Sign1.sign_encode(sign1_msg, cose_key)
 
     voucher = %OwnershipVoucher{
       header: header_struct,
@@ -309,6 +398,25 @@ defmodule Astarte.FDO.Helpers do
     b64 = Base.encode64(cbor_bytes)
     wrapped = Regex.replace(~r/.{64}/, b64, "\\0\n")
     "-----BEGIN OWNERSHIP VOUCHER-----\n#{wrapped}\n-----END OWNERSHIP VOUCHER-----\n"
+  end
+
+  defp rsa_cose_alg_int(:rs256), do: -257
+  defp rsa_cose_alg_int(:rs384), do: -258
+
+  defp cose_key_to_fdo_public_key(%RSA{n: n, e: e, alg: alg}) do
+    key_bytes = CBOR.encode(%{1 => 3, 3 => rsa_cose_alg_int(alg), -1 => n, -2 => e})
+    %PublicKey{type: :rsapss, encoding: :cosekey, body: key_bytes}
+  end
+
+  defp cose_key_to_fdo_public_key(%ECC{x: x, y: y, alg: alg}) do
+    {cose_crv, cose_alg, pub_key_type} =
+      case alg do
+        :es256 -> {1, -7, :secp256r1}
+        :es384 -> {2, -35, :secp384r1}
+      end
+
+    key_bytes = CBOR.encode(%{1 => 2, -1 => cose_crv, 3 => cose_alg, -2 => x, -3 => y})
+    %PublicKey{type: pub_key_type, encoding: :cosekey, body: key_bytes}
   end
 
   defp get_curve_params(:p256) do
@@ -356,33 +464,14 @@ defmodule Astarte.FDO.Helpers do
     :public_key.pkix_sign(tbs_cert, priv_key)
   end
 
-  defp create_cose_key_entry_payload(%ECC{x: x, y: y, alg: alg}) do
-    {cose_crv, cose_alg, type_int} =
-      case alg do
-        :es256 -> {1, -7, 10}
-        :es384 -> {2, -35, 11}
-      end
+  defp create_cose_key_entry_payload(key, hash_prev, hash_hdr) do
+    public_key = cose_key_to_fdo_public_key(key)
 
-    cose_key_map = %{
-      1 => 2,
-      -1 => cose_crv,
-      3 => cose_alg,
-      -2 => x,
-      -3 => y
-    }
-
-    enc_int = 3
-
-    key_bytes = CBOR.encode(cose_key_map)
-
-    fdo_public_key = [
-      type_int,
-      enc_int,
-      %CBOR.Tag{tag: :bytes, value: key_bytes}
-    ]
-
-    entry_list = [<<>>, <<>>, <<>>, fdo_public_key]
-
-    CBOR.encode(entry_list)
+    CBOR.encode([
+      Hash.encode(hash_prev),
+      Hash.encode(hash_hdr),
+      nil,
+      PublicKey.encode(public_key)
+    ])
   end
 end

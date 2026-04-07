@@ -359,6 +359,8 @@ defmodule Astarte.Secrets.Core do
         else
           "Encountered HTTP error while mounting transit engine in namespace #{namespace}: #{inspect(resp)}"
           |> Logger.error()
+
+          :error
         end
 
       error_resp ->
@@ -449,12 +451,11 @@ defmodule Astarte.Secrets.Core do
 
     req_body = build_sign_payload(payload, vault_opts)
     headers = [{"Content-Type", "application/json"}]
-    marshaling = Keyword.get(vault_opts, :marshaling_algorithm)
 
     with {:ok, %HTTPoison.Response{status_code: 200, body: resp_body}} <-
            Client.post(url_path, req_body, headers, opts),
-         {:ok, raw_sig} <- extract_and_decode_signature(resp_body, marshaling) do
-      {:ok, raw_sig}
+         {:ok, signature} <- extract_and_decode_signature(resp_body, key_alg) do
+      {:ok, signature}
     else
       error ->
         Logger.error("Failed to sign payload or decode Vault response: #{inspect(error)}")
@@ -472,12 +473,13 @@ defmodule Astarte.Secrets.Core do
   end
 
   # Parses the JSON response, extracts the signature string, and decodes it into a binary
-  defp extract_and_decode_signature(resp_body, marshaling) do
+  defp extract_and_decode_signature(resp_body, key_algorithm) do
     with {:ok, vault_sig} <- parse_data_key(resp_body, "signature"),
          true <- is_binary(vault_sig),
-         [_, _, b64_sig] <- String.split(vault_sig, ":", parts: 3) do
+         [_, _, b64_sig] <- String.split(vault_sig, ":", parts: 3),
+         {:ok, raw_signature} <- Base.decode64(b64_sig) do
       # decode_vault_sig returns {:ok, raw_sig} or :error
-      decode_vault_sig(b64_sig, marshaling)
+      decode_vault_sig(raw_signature, key_algorithm)
     else
       {:error, _reason} = error ->
         error
@@ -487,65 +489,61 @@ defmodule Astarte.Secrets.Core do
     end
   end
 
-  # Decodes the Base64 signature returned by OpenBao.
-  # When using the "jws" marshaling algorithm, OpenBao returns a
-  # URL-safe Base64 string without padding.
-  defp decode_vault_sig(b64_sig, "jws") do
-    Base.url_decode64(b64_sig, padding: false)
-  end
-
   # For "asn1" or default marshaling, OpenBao uses standard Base64 encoding.
-  defp decode_vault_sig(b64_sig, _other) do
-    Base.decode64(b64_sig)
+  defp decode_vault_sig(raw_signature, rsa) when rsa in [:rs256, :rs384], do: {:ok, raw_signature}
+
+  defp decode_vault_sig(raw_signature, ecdh) do
+    size =
+      case ecdh do
+        :es256 -> 32
+        :es384 -> 48
+      end
+
+    {:"ECDSA-Sig-Value", r, s} = :public_key.der_decode(:"ECDSA-Sig-Value", raw_signature)
+    r = pad(r, size)
+    s = pad(s, size)
+    {:ok, r <> s}
+  rescue
+    _ -> :error
   end
 
-  # Translates Astarte/COSE supported algorithms into OpenBao Transit engine parameters.
-  defp map_cose_alg_to_vault_opts(:es256) do
-    [marshaling_algorithm: "jws"]
-  end
+  defp pad(value, size) do
+    bin = :binary.encode_unsigned(value)
+    bin_size = byte_size(bin)
 
-  defp map_cose_alg_to_vault_opts(:es384) do
-    [marshaling_algorithm: "jws"]
-  end
+    case bin_size do
+      ^size ->
+        bin
 
-  defp map_cose_alg_to_vault_opts(:rs256) do
-    [signature_algorithm: "pkcs1v15"]
-  end
+      s when s < size ->
+        padding = :binary.copy(<<0>>, size - bin_size)
+        padding <> bin
 
-  defp map_cose_alg_to_vault_opts(:rs384) do
-    [signature_algorithm: "pkcs1v15"]
-  end
-
-  def get_keys_from_algorithm(realm_name, key_algorithms) when is_list(key_algorithms) do
-    keys_map =
-      Enum.flat_map(key_algorithms, fn key_algorithm ->
-        case Secrets.create_namespace(realm_name, key_algorithm) do
-          {:ok, namespace} ->
-            case Secrets.list_keys_names(namespace: namespace) do
-              {:ok, keys} -> [%{key_algorithm => keys}]
-              _ -> []
-            end
-
-          _ ->
-            []
-        end
-      end)
-
-    {:ok, keys_map}
-  end
-
-  def get_keys_from_algorithm(realm_name, key_algorithm) when is_binary(key_algorithm) do
-    with {:ok, algorithm_atom} <- string_to_key_type(key_algorithm),
-         {:ok, namespace} <- Secrets.create_namespace(realm_name, algorithm_atom),
-         {:ok, keys} <- Secrets.list_keys_names(namespace: namespace) do
-      {:ok, %{key_algorithm => keys}}
+      _ ->
+        binary_part(bin, bin_size - size, size)
     end
   end
 
-  def get_keys_from_algorithm(realm_name, key_algorithm) when is_atom(key_algorithm) do
-    with {:ok, namespace} <- Secrets.create_namespace(realm_name, key_algorithm),
-         {:ok, keys} <- Secrets.list_keys_names(namespace: namespace) do
-      {:ok, %{key_algorithm => keys}}
+  defp map_cose_alg_to_vault_opts(alg) do
+    case alg do
+      :rs256 -> [signature_algorithm: "pkcs1v15"]
+      :rs384 -> [signature_algorithm: "pkcs1v15"]
+      _ -> []
+    end
+  end
+
+  def get_keys(realm_name, key_algorithms) do
+    Enum.reduce_while(key_algorithms, {:ok, %{}}, fn algorithm, {:ok, acc} ->
+      case list_keys_for_algorithm(realm_name, algorithm) do
+        {:ok, keys} -> {:cont, {:ok, Map.put(acc, algorithm, keys)}}
+        error -> {:halt, error}
+      end
+    end)
+  end
+
+  defp list_keys_for_algorithm(realm_name, key_algorithm) do
+    with {:ok, namespace} <- Secrets.create_namespace(realm_name, key_algorithm) do
+      Secrets.list_keys_names(namespace: namespace)
     end
   end
 
@@ -553,8 +551,12 @@ defmodule Astarte.Secrets.Core do
   Looks up a key by name within the namespace for the given algorithm.
   Returns `{:ok, key}` if found, `:not_found` otherwise.
   """
-  def find_key(realm_name, key_algorithm, key_name) do
-    with {:ok, namespace} <- Secrets.create_namespace(realm_name, key_algorithm) do
+  def find_key(realm_name, key_name, key_algorithm) do
+    with {:ok, algorithm} <- key_type_to_string(key_algorithm) do
+      namespace =
+        namespace_tokens(realm_name, nil, algorithm)
+        |> Enum.join("/")
+
       case Secrets.get_key(key_name, namespace: namespace) do
         {:ok, key} -> {:ok, key}
         _ -> :not_found
