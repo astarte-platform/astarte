@@ -25,10 +25,12 @@ defmodule Astarte.FDO.Onboarding.DoneTest do
   alias Astarte.Core.Device, as: CoreDevice
   alias Astarte.DataAccess.Device
   alias Astarte.DataAccess.Devices.Device, as: DeviceDB
+  alias Astarte.DataAccess.FDO.OwnershipVoucher, as: DataAccessOwnershipVoucher
   alias Astarte.DataAccess.Realms.Realm
   alias Astarte.DataAccess.Repo
   alias Astarte.FDO.Core.Hash
   alias Astarte.FDO.Core.OwnerOnboarding.Session
+  alias Astarte.FDO.Core.OwnershipVoucher, as: OVCore
   alias Astarte.FDO.OwnerOnboarding
   alias Astarte.FDO.OwnershipVoucher
 
@@ -83,18 +85,9 @@ defmodule Astarte.FDO.Onboarding.DoneTest do
     } do
       done_msg = [%CBOR.Tag{tag: :bytes, value: session.prove_dv_nonce}]
 
-      {:ok, ownership_voucher} = OwnershipVoucher.fetch(realm_name, session.guid)
-      {:ok, owner_public_key} = OwnershipVoucher.owner_public_key(ownership_voucher)
-      rendezvous_info = ownership_voucher.header.rendezvous_info
       new_hmac = :crypto.strong_rand_bytes(32)
 
-      session = %{
-        session
-        | replacement_guid: session.guid,
-          replacement_hmac: %Hash{type: :hmac_sha256, hash: new_hmac},
-          replacement_rv_info: rendezvous_info,
-          replacement_pub_key: owner_public_key
-      }
+      session = %{session | replacement_hmac: %Hash{type: :hmac_sha256, hash: new_hmac}}
 
       {:ok, done2_msg_cbor} = OwnerOnboarding.done(realm_name, session, done_msg)
 
@@ -109,18 +102,6 @@ defmodule Astarte.FDO.Onboarding.DoneTest do
            realm: realm_name,
            session: session
          } do
-      {:ok, ownership_voucher} = OwnershipVoucher.fetch(realm_name, session.guid)
-      {:ok, owner_public_key} = OwnershipVoucher.owner_public_key(ownership_voucher)
-      rendezvous_info = ownership_voucher.header.rendezvous_info
-
-      session = %{
-        session
-        | replacement_guid: session.guid,
-          replacement_hmac: session.hmac,
-          replacement_rv_info: rendezvous_info,
-          replacement_pub_key: owner_public_key
-      }
-
       done_msg = [%CBOR.Tag{tag: :bytes, value: session.prove_dv_nonce}]
       {:ok, old_voucher} = OwnershipVoucher.fetch(realm_name, session.guid)
       {:ok, _} = OwnerOnboarding.done(realm_name, session, done_msg)
@@ -131,35 +112,41 @@ defmodule Astarte.FDO.Onboarding.DoneTest do
       assert voucher.hmac == old_voucher.hmac
     end
 
-    @tag :skip
-    # TODO: re-enable this test when credential reuse logic is implemented.
     test "ensure old voucher is keep when ProveDv nonces match and TO2.done ends successfully without credential reuse ",
          %{
            realm: realm_name,
            session: session
          } do
-      {:ok, ownership_voucher} = OwnershipVoucher.fetch(realm_name, session.guid)
-      {:ok, owner_public_key} = OwnershipVoucher.owner_public_key(ownership_voucher)
-      rendezvous_info = ownership_voucher.header.rendezvous_info
       new_hmac = :crypto.strong_rand_bytes(32)
 
-      session = %{
-        session
-        | replacement_guid: session.guid,
-          replacement_hmac: %Hash{type: :hmac_sha256, hash: new_hmac},
-          replacement_rv_info: rendezvous_info,
-          replacement_pub_key: owner_public_key
-      }
+      session = %{session | replacement_hmac: %Hash{type: :hmac_sha256, hash: new_hmac}}
 
       done_msg = [%CBOR.Tag{tag: :bytes, value: session.prove_dv_nonce}]
       {:ok, old_voucher} = OwnershipVoucher.fetch(realm_name, session.guid)
+
+      keyspace = Realm.keyspace_name(realm_name)
+
+      ov_record_before = Repo.get!(DataAccessOwnershipVoucher, session.guid, prefix: keyspace)
+
+      Ecto.Changeset.change(ov_record_before, %{
+        replacement_guid: session.guid,
+        replacement_public_key: old_voucher.header.public_key,
+        replacement_rendezvous_info: old_voucher.header.rendezvous_info
+      })
+      |> Repo.update!()
+
       {:ok, _} = OwnerOnboarding.done(realm_name, session, done_msg)
 
-      {:ok, voucher} = OwnershipVoucher.fetch(realm_name, session.guid)
+      ov_record =
+        Repo.get!(DataAccessOwnershipVoucher, session.guid, prefix: keyspace)
 
-      assert voucher.entries == []
+      assert ov_record.output_voucher != nil
 
-      assert voucher.hmac != old_voucher.hmac
+      {:ok, output_voucher} =
+        OVCore.decode_cbor(ov_record.output_voucher)
+
+      assert output_voucher.entries == []
+      assert output_voucher.hmac != old_voucher.hmac
     end
 
     test "returns {:error, :invalid_message} when the ProveDv nonces don't match", %{
@@ -176,18 +163,9 @@ defmodule Astarte.FDO.Onboarding.DoneTest do
       realm: realm_name,
       session: session
     } do
-      {:ok, ownership_voucher} = OwnershipVoucher.fetch(realm_name, session.guid)
-      {:ok, owner_public_key} = OwnershipVoucher.owner_public_key(ownership_voucher)
-      rendezvous_info = ownership_voucher.header.rendezvous_info
       new_hmac = :crypto.strong_rand_bytes(32)
 
-      session = %{
-        session
-        | replacement_guid: session.guid,
-          replacement_hmac: %Hash{type: :hmac_sha256, hash: new_hmac},
-          replacement_rv_info: rendezvous_info,
-          replacement_pub_key: owner_public_key
-      }
+      session = %{session | replacement_hmac: %Hash{type: :hmac_sha256, hash: new_hmac}}
 
       done_msg = [%CBOR.Tag{tag: :bytes, value: session.prove_dv_nonce}]
 

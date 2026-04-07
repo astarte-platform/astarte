@@ -134,20 +134,21 @@ defmodule Astarte.FDO.OwnerOnboarding do
   def prove_device(realm_name, body, session) do
     guid = session.guid
 
-    # TODO: credential reuse requires also Owner2Key and/or rv info to be changed
-    # for credential reuse; so far, there is no API to do so, so it-s limited to the guid
-
     with {:ok, ownership_voucher} <- OwnershipVoucher.fetch(realm_name, guid),
+         {:ok, ov_entry} <- fetch_ov_entry(realm_name, guid),
          {:ok, owner_key} <- Secrets.get_key_for_guid(realm_name, guid),
          {:ok, owner_public_key} <- OwnershipVoucher.owner_public_key(ownership_voucher) do
-      rendezvous_info = ownership_voucher.header.rendezvous_info
+      next_guid = ov_entry.replacement_guid || guid
 
-      # {:ok, private_key} = COSE.Keys.from_pem(private_key)
+      next_rv_info =
+        ov_entry.replacement_rendezvous_info || ownership_voucher.header.rendezvous_info
+
+      next_owner_pub_key = ov_entry.replacement_public_key || owner_public_key
 
       connection_credentials = %{
-        guid: guid,
-        rendezvous_info: rendezvous_info,
-        owner_pub_key: owner_public_key,
+        guid: next_guid,
+        rendezvous_info: next_rv_info,
+        owner_pub_key: next_owner_pub_key,
         owner_private_key: owner_key,
         device_info: "owned by astarte - realm #{realm_name}.#{Config.base_url_domain!()}"
       }
@@ -252,11 +253,13 @@ defmodule Astarte.FDO.OwnerOnboarding do
   end
 
   defp maybe_replace_voucher(realm_name, to2_session) do
-    if not OwnershipVoucher.credential_reuse?(to2_session) do
-      with {:ok, old_voucher} <-
-             OwnershipVoucher.fetch(realm_name, to2_session.guid),
+    {:ok, ov_entry} = fetch_ov_entry(realm_name, to2_session.guid)
+
+    if not OwnershipVoucher.credential_reuse?(ov_entry) do
+      with {:ok, old_voucher} <- OwnershipVoucher.fetch(realm_name, to2_session.guid),
+           # Passiamo sia la ov_entry (per le chiavi) che to2_session (per l'HMAC)
            {:ok, new_voucher} <-
-             OwnershipVoucher.generate_replacement_voucher(old_voucher, to2_session) do
+             OwnershipVoucher.generate_replacement_voucher(old_voucher, ov_entry, to2_session) do
         cbor_voucher = CoreOwnershipVoucher.cbor_encode(new_voucher)
 
         Queries.add_output_voucher(
@@ -291,5 +294,16 @@ defmodule Astarte.FDO.OwnerOnboarding do
 
   defp build_done2_message(setup_dv_nonce) do
     %Done2Payload{:nonce_to2_setup_dv => setup_dv_nonce} |> Done2Payload.encode()
+  end
+
+  defp fetch_ov_entry(realm_name, guid) do
+    keyspace = Astarte.DataAccess.Realms.Realm.keyspace_name(realm_name)
+
+    case Astarte.DataAccess.Repo.get(Astarte.DataAccess.FDO.OwnershipVoucher, guid,
+           prefix: keyspace
+         ) do
+      nil -> {:error, :not_found}
+      entry -> {:ok, entry}
+    end
   end
 end

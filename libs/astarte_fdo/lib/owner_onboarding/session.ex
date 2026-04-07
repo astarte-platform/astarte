@@ -34,8 +34,6 @@ defmodule Astarte.FDO.Core.OwnerOnboarding.Session do
   alias Astarte.FDO.Core.OwnerOnboarding.Session
   alias Astarte.FDO.Core.OwnerOnboarding.SessionKey
   alias Astarte.FDO.Core.OwnerOnboarding.SignatureInfo
-  alias Astarte.FDO.Core.OwnershipVoucher.RendezvousInfo
-  alias Astarte.FDO.Core.PublicKey
   alias Astarte.FDO.OwnerOnboarding.SessionToken
   alias COSE.Messages.Encrypt0
 
@@ -59,9 +57,6 @@ defmodule Astarte.FDO.Core.OwnerOnboarding.Session do
     field :device_service_info, map() | nil
     field :owner_service_info, [binary()] | nil
     field :last_chunk_sent, non_neg_integer() | nil
-    field :replacement_guid, binary() | nil
-    field :replacement_rv_info, RendezvousInfo.t() | nil
-    field :replacement_pub_key, PublicKey.t() | nil
     field :replacement_hmac, Hash.t() | nil
   end
 
@@ -294,9 +289,6 @@ defmodule Astarte.FDO.Core.OwnerOnboarding.Session do
         device_service_info: device_service_info,
         owner_service_info: owner_service_info,
         last_chunk_sent: last_chunk_sent,
-        # replacement_guid: replacement_guid,
-        # replacement_rv_info: replacement_rv_info,
-        # replacement_pub_key: replacement_pub_key,
         replacement_hmac: replacement_hmac
       } = database_session
 
@@ -319,9 +311,6 @@ defmodule Astarte.FDO.Core.OwnerOnboarding.Session do
         device_service_info: device_service_info,
         owner_service_info: owner_service_info,
         last_chunk_sent: last_chunk_sent,
-        # replacement_guid: replacement_guid,
-        # replacement_rv_info: replacement_rv_info,
-        # replacement_pub_key: replacement_pub_key,
         replacement_hmac: replacement_hmac
       }
 

@@ -199,8 +199,6 @@ defmodule Astarte.FDO.OwnerOnboarding.OwnerOnboardingTest do
   end
 
   describe "build_owner_service_info_ready/3" do
-    @tag :skip
-    # TODO: re-enable this test when credential reuse logic is implemented.
     test "successfully processes DeviceServiceInfoReady, creates new voucher, and returns OwnerServiceInfoReady",
          %{
            realm: realm_name,
@@ -221,18 +219,16 @@ defmodule Astarte.FDO.OwnerOnboarding.OwnerOnboardingTest do
                )
 
       assert session.replacement_hmac == new_hmac
-      assert OwnershipVoucher.credential_reuse?(session) == false
+      assert response == [@max_device_service_info_sz]
 
       assert response == [@max_device_service_info_sz]
     end
 
-    test "handles Credential Reuse (nil HMAC) correctly", %{
+    test "handles nil HMAC correctly", %{
       realm_name: realm_name,
       session: session
     } do
-      session = %{session | replacement_guid: session.guid}
-
-      assert {:ok, session, _result} =
+      assert {:ok, _session, _result} =
                OwnerOnboarding.build_owner_service_info_ready(
                  realm_name,
                  session,
@@ -241,8 +237,6 @@ defmodule Astarte.FDO.OwnerOnboarding.OwnerOnboardingTest do
                    max_owner_service_info_sz: 2048
                  }
                )
-
-      assert OwnershipVoucher.credential_reuse?(session) == true
     end
 
     test "handles the default recommended limit(nil info size) correctly", %{
