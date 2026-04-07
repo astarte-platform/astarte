@@ -25,7 +25,6 @@ defmodule Astarte.FDO.Core.OwnerOnboarding.SessionKeyTest do
 
   describe "new/2 for ECDH suites" do
     test "ECDH256 returns random of 16 bytes and xa key exchange material" do
-      key = Keys.generate(:es256)
       assert {:ok, random, xa} = SessionKey.new("ECDH256")
 
       assert byte_size(random) == 16
@@ -33,7 +32,6 @@ defmodule Astarte.FDO.Core.OwnerOnboarding.SessionKeyTest do
     end
 
     test "ECDH384 returns random of 48 bytes and xa key exchange material" do
-      key = Keys.generate(:es384)
       assert {:ok, random, xa} = SessionKey.new("ECDH384")
 
       assert byte_size(random) == 48
@@ -75,7 +73,6 @@ defmodule Astarte.FDO.Core.OwnerOnboarding.SessionKeyTest do
 
   describe "new/2 produces different values on each call" do
     test "ECDH256 generates unique randoms" do
-      key = Keys.generate(:es256)
       {:ok, random1, _xa1} = SessionKey.new("ECDH256")
       {:ok, random2, _xa2} = SessionKey.new("ECDH256")
 
@@ -92,7 +89,6 @@ defmodule Astarte.FDO.Core.OwnerOnboarding.SessionKeyTest do
   describe "compute_shared_secret/4 for ECDH suites" do
     test "ECDH256 computes a shared secret from device xb" do
       owner_key = Keys.generate(:es256)
-      device_key = Keys.generate(:es256)
       {:ok, owner_random, _xa} = SessionKey.new("ECDH256")
       {:ok, _device_random, xb} = SessionKey.new("ECDH256")
 
@@ -104,7 +100,6 @@ defmodule Astarte.FDO.Core.OwnerOnboarding.SessionKeyTest do
 
     test "ECDH384 computes a shared secret from device xb" do
       owner_key = Keys.generate(:es384)
-      device_key = Keys.generate(:es384)
       {:ok, owner_random, _xa} = SessionKey.new("ECDH384")
       {:ok, _device_random, xb} = SessionKey.new("ECDH384")
 
@@ -140,13 +135,11 @@ defmodule Astarte.FDO.Core.OwnerOnboarding.SessionKeyTest do
   describe "derive_key/4" do
     setup do
       owner_key = Keys.generate(:es256)
-      device_key = Keys.generate(:es256)
       {:ok, owner_random, _} = SessionKey.new("ECDH256")
       {:ok, _, xb} = SessionKey.new("ECDH256")
       {:ok, shse256} = SessionKey.compute_shared_secret("ECDH256", owner_key, owner_random, xb)
 
       owner_key384 = Keys.generate(:es384)
-      device_key384 = Keys.generate(:es384)
       {:ok, owner_random384, _} = SessionKey.new("ECDH384")
       {:ok, _, xb384} = SessionKey.new("ECDH384")
 

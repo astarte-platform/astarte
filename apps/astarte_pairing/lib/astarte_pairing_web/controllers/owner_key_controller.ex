@@ -55,8 +55,18 @@ defmodule Astarte.PairingWeb.OwnerKeyController do
         }
       ) do
     with {:ok, keys} <-
-           Secrets.Core.get_keys_from_algorithm(realm_name, @supported_key_algorithms) do
+           Secrets.Core.get_keys(realm_name, @supported_key_algorithms) do
       send_resp(conn, 200, Jason.encode!(keys))
+    end
+  end
+
+  def get_keys_for_algorithm(conn, %{
+        "realm_name" => realm_name,
+        "key_algorithm" => key_algorithm
+      }) do
+    with {:ok, algorithm} <- Secrets.Core.string_to_key_type(key_algorithm),
+         {:ok, keys} <- Secrets.Core.get_keys(realm_name, [algorithm]) do
+      json(conn, %{data: keys})
     end
   end
 
@@ -65,16 +75,17 @@ defmodule Astarte.PairingWeb.OwnerKeyController do
         "key_algorithm" => key_algorithm,
         "key_name" => key_name
       }) do
-    with {:ok, algorithm_atom} <- Secrets.Core.string_to_key_type(key_algorithm) do
-      case Secrets.Core.find_key(realm_name, algorithm_atom, key_name) do
-        {:ok, key} ->
-          json(conn, %{data: %{key_name: key.name, public_key: key.public_pem}})
+    with {:ok, algorithm_atom} <- Secrets.Core.string_to_key_type(key_algorithm),
+         {:ok, key} <- Secrets.Core.find_key(realm_name, key_name, algorithm_atom) do
+      json(conn, %{data: %{key_name: key.name, public_key: key.public_pem}})
+    else
+      :error ->
+        {:error, :unprocessable_key}
 
-        :not_found ->
-          conn
-          |> put_status(:not_found)
-          |> json(%{errors: %{detail: "Key not found"}})
-      end
+      :not_found ->
+        conn
+        |> put_status(:not_found)
+        |> json(%{errors: %{detail: "Key not found"}})
     end
   end
 end

@@ -199,24 +199,29 @@ defmodule Astarte.FDO.Core.OwnerOnboarding.Session do
     end)
   end
 
-  def add_replacement_info(session, realm_name, replacement_guid, rv_info, pub_key, hmac) do
+  def add_replacement_hmac(session, realm_name, hmac) do
     with :ok <-
-           Queries.session_add_replacement_info(
+           Queries.session_add_replacement_hmac(
              realm_name,
              session.guid,
-             replacement_guid,
-             rv_info,
-             pub_key,
              hmac
            ) do
-      {:ok,
-       %{
-         session
-         | replacement_guid: replacement_guid,
-           replacement_rv_info: rv_info,
-           replacement_pub_key: pub_key,
-           replacement_hmac: hmac
-       }}
+      session = %{session | replacement_hmac: hmac}
+      {:ok, session}
+    end
+  end
+
+  def build_session_secret(
+        session = %{kex_suite_name: kex, guid: guid},
+        realm_name,
+        %Astarte.Secrets.Key{} = owner_key,
+        xb
+      )
+      when kex in ["ASYMKEX2048", "ASYMKEX3072"] do
+    with {:ok, secret} <-
+           Astarte.Secrets.decrypt(owner_key.name, xb, namespace: owner_key.namespace),
+         :ok <- Queries.add_session_secret(realm_name, guid, secret) do
+      {:ok, %{session | secret: secret}}
     end
   end
 
@@ -289,9 +294,9 @@ defmodule Astarte.FDO.Core.OwnerOnboarding.Session do
         device_service_info: device_service_info,
         owner_service_info: owner_service_info,
         last_chunk_sent: last_chunk_sent,
-        replacement_guid: replacement_guid,
-        replacement_rv_info: replacement_rv_info,
-        replacement_pub_key: replacement_pub_key,
+        # replacement_guid: replacement_guid,
+        # replacement_rv_info: replacement_rv_info,
+        # replacement_pub_key: replacement_pub_key,
         replacement_hmac: replacement_hmac
       } = database_session
 
@@ -314,9 +319,9 @@ defmodule Astarte.FDO.Core.OwnerOnboarding.Session do
         device_service_info: device_service_info,
         owner_service_info: owner_service_info,
         last_chunk_sent: last_chunk_sent,
-        replacement_guid: replacement_guid,
-        replacement_rv_info: replacement_rv_info,
-        replacement_pub_key: replacement_pub_key,
+        # replacement_guid: replacement_guid,
+        # replacement_rv_info: replacement_rv_info,
+        # replacement_pub_key: replacement_pub_key,
         replacement_hmac: replacement_hmac
       }
 

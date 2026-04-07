@@ -24,11 +24,11 @@ defmodule Astarte.Helpers.FDO do
   import StreamData
 
   alias Astarte.DataAccess.FDO.OwnershipVoucher, as: DBOwnershipVoucher
-  alias Astarte.DataAccess.FDO.OwnershipVoucher.CreateRequest
   alias Astarte.DataAccess.Realms.Realm
   alias Astarte.DataAccess.Repo
   alias Astarte.FDO.Core.Hash
   alias Astarte.FDO.Core.OwnershipVoucher
+  alias Astarte.FDO.Core.OwnershipVoucher.CreateRequest
   alias Astarte.FDO.Core.OwnershipVoucher.RendezvousInfo
   alias Astarte.FDO.Core.OwnershipVoucher.RendezvousInfo.RendezvousDirective
   alias Astarte.FDO.Core.OwnershipVoucher.RendezvousInfo.RendezvousInstr
@@ -169,12 +169,9 @@ defmodule Astarte.Helpers.FDO do
     CBOR.encode([%CBOR.Tag{tag: :bytes, value: nonce}])
   end
 
-  def insert_voucher(realm_name, private_key, cbor_voucher, guid) do
-    %DBOwnershipVoucher{
-      voucher_data: cbor_voucher,
-      private_key: private_key,
-      guid: guid
-    }
+  def insert_voucher(realm_name, attrs) when is_map(attrs) do
+    %DBOwnershipVoucher{}
+    |> DBOwnershipVoucher.changeset(attrs)
     |> Repo.insert(prefix: Realm.keyspace_name(realm_name))
   end
 

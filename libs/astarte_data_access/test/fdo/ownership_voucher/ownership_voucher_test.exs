@@ -16,15 +16,22 @@
 # limitations under the License.
 #
 
-defmodule Astarte.DataAccess.FDO.OwnershipVoucher.DBRecordTest do
+defmodule Astarte.DataAccess.FDO.OwnershipVoucher.OwnershipVoucherTest do
   use ExUnit.Case, async: true
 
   alias Astarte.DataAccess.FDO.OwnershipVoucher
+  alias Astarte.FDO.Core.OwnershipVoucher.RendezvousInfo
+  alias Astarte.FDO.Core.PublicKey
 
   @valid_attrs %{
     guid: :crypto.strong_rand_bytes(16),
     voucher_data: :crypto.strong_rand_bytes(64),
-    private_key: :crypto.strong_rand_bytes(32)
+    key_name: "key",
+    key_algorithm: :es256,
+    replacement_guid: :crypto.strong_rand_bytes(16),
+    replacement_rv_info: %RendezvousInfo{directives: []} |> RendezvousInfo.encode_cbor(),
+    replacement_pub_key:
+      %PublicKey{type: :secp256r1, encoding: :x5chain, body: []} |> PublicKey.encode_cbor()
   }
 
   describe "changeset/2" do
@@ -50,19 +57,27 @@ defmodule Astarte.DataAccess.FDO.OwnershipVoucher.DBRecordTest do
       assert Keyword.has_key?(changeset.errors, :voucher_data)
     end
 
-    test "is invalid when private_key is missing" do
-      attrs = Map.delete(@valid_attrs, :private_key)
+    test "is invalid when key_name is missing" do
+      attrs = Map.delete(@valid_attrs, :key_name)
       changeset = OwnershipVoucher.changeset(%OwnershipVoucher{}, attrs)
 
       refute changeset.valid?
-      assert Keyword.has_key?(changeset.errors, :private_key)
+      assert Keyword.has_key?(changeset.errors, :key_name)
+    end
+
+    test "is invalid when key_algorithm is missing" do
+      attrs = Map.delete(@valid_attrs, :key_algorithm)
+      changeset = OwnershipVoucher.changeset(%OwnershipVoucher{}, attrs)
+
+      refute changeset.valid?
+      assert Keyword.has_key?(changeset.errors, :key_algorithm)
     end
 
     test "applies changes when valid" do
       changeset = OwnershipVoucher.changeset(%OwnershipVoucher{}, @valid_attrs)
 
       assert changeset.changes.voucher_data == @valid_attrs.voucher_data
-      assert changeset.changes.private_key == @valid_attrs.private_key
+      assert changeset.changes.guid == @valid_attrs.guid
     end
   end
 end

@@ -26,17 +26,8 @@ defmodule Astarte.FDO.OwnershipVoucher do
   alias Astarte.FDO.Core.OwnershipVoucher
   alias Astarte.FDO.Core.OwnershipVoucher.Core
 
-  @one_week 604_800
-
-  def save_voucher(realm_name, cbor_ownership_voucher, device_guid, owner_private_key) do
-    with {:ok, _} <-
-           Queries.create_ownership_voucher(
-             realm_name,
-             device_guid,
-             cbor_ownership_voucher,
-             owner_private_key,
-             @one_week
-           ) do
+  def save_voucher(realm_name, attrs) do
+    with {:ok, _} <- Queries.create_ownership_voucher(realm_name, attrs) do
       :ok
     end
   end
@@ -55,7 +46,7 @@ defmodule Astarte.FDO.OwnershipVoucher do
     # N.B.: Checking if there are entries is not necessary,
     # as by spec the ownership voucher will always have at least one entry
     List.last(ownership_voucher.entries)
-    |> Core.entry_private_key()
+    |> Core.entry_public_key()
   end
 
   def get_ov_entry(%OwnershipVoucher{entries: entries}, entry_num) do
@@ -102,17 +93,12 @@ defmodule Astarte.FDO.OwnershipVoucher do
   end
 
   @doc """
-  Returns the key algorithm compatible with `Astarte.Secrets.Core` for the
-  given decoded ownership voucher.
+  Returns the list of key algorithm atoms compatible with the given ownership voucher.
+  Returns an empty list if the key type is unsupported.
   """
-  @spec key_algorithm(OwnershipVoucher.t()) :: atom() | [atom()]
-  def key_algorithm(%OwnershipVoucher{} = voucher) do
-    fdo_type_to_key_algorithm(voucher.header.public_key.type)
+  @spec key_algorithm(OwnershipVoucher.t()) :: [atom()]
+  def key_algorithm(voucher) do
+    {:ok, algorithms} = OwnershipVoucher.key_algorithm_from_type(voucher.header.public_key.type)
+    algorithms
   end
-
-  defp fdo_type_to_key_algorithm(:secp256r1), do: :es256
-  defp fdo_type_to_key_algorithm(:secp384r1), do: :es384
-  defp fdo_type_to_key_algorithm(:rsa2048restr), do: :rs256
-  defp fdo_type_to_key_algorithm(:rsapkcs), do: [:rs256, :rs384]
-  defp fdo_type_to_key_algorithm(:rsapss), do: [:rs256, :rs384]
 end

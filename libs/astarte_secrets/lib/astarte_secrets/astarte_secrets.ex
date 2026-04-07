@@ -2,6 +2,7 @@ defmodule Astarte.Secrets do
   @moduledoc """
   Functionality to interface with OpenBao APIs.
   """
+  alias Astarte.DataAccess.FDO.Queries
   alias Astarte.Secrets.Client
   alias Astarte.Secrets.Core
   alias Astarte.Secrets.Key
@@ -16,6 +17,13 @@ defmodule Astarte.Secrets do
 
     with {:ok, resp} <- Core.get_key(key_name, namespace) do
       Key.parse(key_name, namespace, resp)
+    end
+  end
+
+  def get_key_for_guid(realm_name, user_id \\ nil, guid) do
+    with {:ok, params} <- Queries.get_owner_key_params(realm_name, guid),
+         {:ok, namespace} <- create_namespace(realm_name, user_id, params.algorithm) do
+      get_key(params.name, namespace: namespace)
     end
   end
 
@@ -110,6 +118,42 @@ defmodule Astarte.Secrets do
          {:ok, ciphertext} <-
            Core.prepare_import_ciphertext(Core.encode_key_to_pkcs8(key), wrapping_key_pem) do
       Core.import_key(key_name, key_type_string, ciphertext, opts)
+    end
+  end
+
+  @doc """
+  Decrypts the provided ciphertext using OpenBao Transit Engine.
+  Useful for ASYMKEX where the device encrypts a secret with the owner's RSA public key.
+  """
+  @spec decrypt(String.t(), binary(), list()) :: {:ok, binary()} | :error
+  def decrypt(key_name, ciphertext, options \\ []) do
+    namespace = Keyword.fetch!(options, :namespace)
+    client_opts = [namespace: namespace] ++ Keyword.take(options, [:token])
+
+    req_body =
+      %{
+        ciphertext: "vault:v1:" <> Base.encode64(ciphertext)
+      }
+      |> Jason.encode!()
+
+    headers = [{"Content-Type", "application/json"}]
+
+    case Client.post("/transit/decrypt/#{key_name}", req_body, headers, client_opts) do
+      {:ok, %HTTPoison.Response{status_code: 200, body: body}} ->
+        with {:ok, data} <- Core.parse_json_data(body),
+             plaintext_b64 when is_binary(plaintext_b64) <- Map.get(data, "plaintext"),
+             {:ok, plaintext} <- Base.decode64(plaintext_b64) do
+          {:ok, plaintext}
+        else
+          _ -> :error
+        end
+
+      error_resp ->
+        Logger.error(
+          "Encountered HTTP error while decrypting with key #{key_name}: #{inspect(error_resp)}"
+        )
+
+        :error
     end
   end
 end

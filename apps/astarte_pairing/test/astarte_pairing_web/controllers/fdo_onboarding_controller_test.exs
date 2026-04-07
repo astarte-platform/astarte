@@ -156,13 +156,8 @@ defmodule Astarte.PairingWeb.FDOOnboardingControllerTest do
            conn: conn,
            create_path: path,
            message_id: id,
-           session: session,
-           realm_name: realm,
-           owner_key_pem: owner_key_pem,
-           cbor_ownership_voucher: cbor_ownership_voucher
+           session: session
          } do
-      insert_voucher(realm, owner_key_pem, cbor_ownership_voucher, session.guid)
-
       request_body = Session.encrypt_and_sign(session, CBOR.encode(%{prove: "device"}))
       conn = post(conn, path, request_body)
       assert {100, id} == assert_cbor_error(conn)

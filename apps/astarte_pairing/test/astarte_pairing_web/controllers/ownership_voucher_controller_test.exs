@@ -21,9 +21,7 @@ defmodule Astarte.PairingWeb.Controllers.OwnershipVoucherControllerTest do
   use Astarte.Cases.Data
   use Mimic
 
-  alias Astarte.FDO.Rendezvous
   alias Astarte.Pairing.Config
-  alias Astarte.Pairing.Queries
   alias Astarte.Secrets
   alias Astarte.Secrets.Key
 
@@ -38,80 +36,15 @@ defmodule Astarte.PairingWeb.Controllers.OwnershipVoucherControllerTest do
   -----END PUBLIC KEY-----
   """
 
-  @sample_params %{
-    data: %{
-      "ownership_voucher" => sample_voucher(),
-      "private_key" => sample_private_key()
-    }
-  }
-
   @sample_load_params %{
     data: %{
       "ownership_voucher" => sample_voucher(),
-      "key_name" => @sample_key_name
+      "key_name" => @sample_key_name,
+      "key_algorithm" => "es256"
     }
   }
 
   setup :verify_on_exit!
-
-  describe "/ownership" do
-    setup :ownership
-
-    test "stores the ownership voucher", context do
-      %{auth_conn: conn, create_path: path, realm_name: realm_name} = context
-
-      conn
-      |> post(path, @sample_params)
-      |> response(200)
-
-      assert {:ok, _} = Queries.get_ownership_voucher(realm_name, sample_device_guid())
-    end
-
-    test "stores the owner private key", context do
-      %{auth_conn: conn, create_path: path, realm_name: realm_name} = context
-
-      conn
-      |> post(path, @sample_params)
-      |> response(200)
-
-      assert {:ok, _} = Queries.get_owner_private_key(realm_name, sample_device_guid())
-    end
-
-    test "starts the to0 protocol", context do
-      %{auth_conn: conn, create_path: path} = context
-      sample_nonce = nonce() |> Enum.at(0)
-
-      Rendezvous
-      |> expect(:send_hello, fn -> {:ok, %{nonce: sample_nonce, headers: []}} end)
-      |> expect(:register_ownership, fn _body, _headers -> {:ok, 3600} end)
-
-      conn
-      |> post(path, @sample_params)
-      |> response(200)
-    end
-
-    test "returns a 404 error if FDO feature is disabled", context do
-      %{auth_conn: conn, create_path: path} = context
-
-      stub(Config, :enable_fdo!, fn -> false end)
-
-      conn
-      |> post(path, @sample_params)
-      |> response(404)
-    end
-  end
-
-  defp ownership(context) do
-    %{auth_conn: conn, realm_name: realm_name} = context
-    create_path = ownership_voucher_path(conn, :create, realm_name)
-    sample_nonce = nonce() |> Enum.at(0)
-
-    Rendezvous
-    |> stub(:send_hello, fn -> {:ok, %{nonce: sample_nonce, headers: []}} end)
-    |> stub(:register_ownership, fn _body, _headers -> {:ok, 3600} end)
-
-    %{create_path: create_path}
-  end
 
   describe "/fdo/ownership_vouchers" do
     setup :register_setup
@@ -241,7 +174,7 @@ defmodule Astarte.PairingWeb.Controllers.OwnershipVoucherControllerTest do
       assert %{"es256" => [@sample_key_name, "another_key"]} = get_in(body, ["data"])
     end
 
-    test "returns 200 with an empty list when no keys are registered", context do
+    test "returns 200 with an empty key list when no keys are registered", context do
       %{auth_conn: conn, path: path, realm_name: realm_name} = context
 
       stub(Secrets, :create_namespace, fn ^realm_name, :es256 ->

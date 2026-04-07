@@ -26,7 +26,14 @@ owner_key_pem = File.read!(key_path)
 
 {:ok, owner_key} = COSE.Keys.from_pem(owner_key_pem)
 
-{voucher, _} = Astarte.FDO.Helpers.generate_voucher_data_and_pem(owner_key: owner_key)
+{voucher, _} =
+  case owner_key do
+    %COSE.Keys.RSA{} ->
+      Astarte.FDO.Helpers.generate_rsapss_data_and_pem(owner_key: owner_key)
+
+    %COSE.Keys.ECC{} ->
+      Astarte.FDO.Helpers.generate_voucher_data_and_pem(owner_key: owner_key)
+  end
 
 voucher_pem = Astarte.FDO.Helpers.voucher_to_pem(voucher)
 
