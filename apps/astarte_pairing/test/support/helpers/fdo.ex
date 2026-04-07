@@ -231,22 +231,22 @@ defmodule Astarte.Helpers.FDO do
 
     pub_key_body =
       case encoding do
-        :x5chain -> [cert_der]
-        :x509 -> cert_der
+        :x5chain ->
+          [cert_der]
+
+        :x509 ->
+          :public_key.der_encode(
+            :SubjectPublicKeyInfo,
+            {:SubjectPublicKeyInfo,
+             {:AlgorithmIdentifier, {1, 2, 840, 10_045, 2, 1},
+              :public_key.der_encode(:EcpkParameters, {:namedCurve, oid})}, device_pub_key_point}
+          )
       end
 
     # Entry Payload (COSE Key)
-    entry_payload_bin = create_cose_key_entry_payload(cose_key, curve)
-
     guid_raw = UUID.uuid4(:raw)
 
-    chain_data_to_hash =
-      case pub_key_body do
-        list when is_list(list) -> Enum.join(list)
-        bin -> bin
-      end
-
-    cert_chain_hash_struct = Hash.new(hash_alg, chain_data_to_hash)
+    cert_chain_hash_struct = Hash.new(hash_alg, cert_der)
 
     rv_info = %RendezvousInfo{
       directives: [
@@ -278,6 +278,16 @@ defmodule Astarte.Helpers.FDO do
 
     hmac_bytes = :crypto.strong_rand_bytes(hmac_len)
     hmac_struct = %Hash{type: hmac_type, hash: hmac_bytes}
+
+    header_cbor = OwnershipVoucher.Header.cbor_encode(header_struct)
+    hmac_cbor = Hash.encode_cbor(hmac_struct)
+
+    header_info = guid_raw <> header_struct.device_info
+    hash_hdr = Hash.new(hash_alg, header_info)
+
+    hash_prev = Hash.new(hash_alg, header_cbor <> hmac_cbor)
+
+    entry_payload_bin = create_cose_key_entry_payload(cose_key, curve, hash_prev, hash_hdr)
 
     protected_header = %{alg: cose_alg}
     unprotected_header_map = %{}
@@ -342,7 +352,7 @@ defmodule Astarte.Helpers.FDO do
     :public_key.pkix_sign(tbs_cert, priv_key)
   end
 
-  defp create_cose_key_entry_payload(%ECC{x: x, y: y}, curve) do
+  defp create_cose_key_entry_payload(%ECC{x: x, y: y}, curve, hash_prev, hash_hdr) do
     {cose_crv, cose_alg} =
       if curve == :p256, do: {1, -7}, else: {2, -35}
 
@@ -365,7 +375,7 @@ defmodule Astarte.Helpers.FDO do
       %CBOR.Tag{tag: :bytes, value: key_bytes}
     ]
 
-    entry_list = [<<>>, <<>>, <<>>, fdo_public_key]
+    entry_list = [Hash.encode(hash_prev), Hash.encode(hash_hdr), nil, fdo_public_key]
 
     CBOR.encode(entry_list)
   end
