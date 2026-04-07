@@ -26,50 +26,50 @@ defmodule Astarte.Secrets.Config do
   alias Astarte.Secrets.Config
   alias Astarte.Secrets.Config.AuthenticationMechanism
 
-  @envdoc "The URL to access OpenBao."
+  @envdoc "The URL to access Vault."
   app_env :bao_url, :astarte_secrets, :bao_url,
-    os_env: "ASTARTE_OPENBAO_URL",
+    os_env: "ASTARTE_VAULT_URL",
     type: :binary,
     default: "http://localhost:8200"
 
-  @envdoc "Internal variable used to store bao authentication"
+  @envdoc "Internal variable used to store Vault authentication"
   app_env :bao_authentication, :astarte_secrets, :bao_authentication,
     binding_skip: [:system],
     type: :any
 
-  @envdoc "The mechanism to use for authenticating with OpenBao"
+  @envdoc "The mechanism to use for authenticating with Vault"
   app_env :bao_authentication_mechanism, :astarte_secrets, :bao_authentication_mechanism,
-    os_env: "ASTARTE_OPENBAO_AUTHENTICATION_MECHANISM",
+    os_env: "ASTARTE_VAULT_AUTHENTICATION_MECHANISM",
     type: AuthenticationMechanism
 
-  @envdoc "Token to authenticate with OpenBao"
+  @envdoc "Token to authenticate with Vault"
   app_env :bao_token, :astarte_secrets, :bao_token,
-    os_env: "ASTARTE_OPENBAO_TOKEN",
+    os_env: "ASTARTE_VAULT_TOKEN",
     type: :binary
 
-  @envdoc "Enable SSL for the OpenBao connection. If not specified, SSL is disabled."
+  @envdoc "Enable SSL for the Vault connection. If not specified, SSL is disabled."
   app_env :bao_ssl_enabled, :astarte_secrets, :bao_ssl_enabled,
-    os_env: "ASTARTE_OPENBAO_SSL_ENABLED",
+    os_env: "ASTARTE_VAULT_SSL_ENABLED",
     type: :boolean,
     default: false
 
   @envdoc """
-  Specifies the certificates of the root Certificate Authorities to be trusted for the OpenBao connection. When not specified, the bundled cURL certificate bundle will be used.
+  Specifies the certificates of the root Certificate Authorities to be trusted for the Vault connection. When not specified, the bundled cURL certificate bundle will be used.
   """
   app_env :bao_ssl_ca_file, :astarte_secrets, :bao_ssl_ca_file,
-    os_env: "ASTARTE_OPENBAO_SSL_CA_FILE",
+    os_env: "ASTARTE_VAULT_SSL_CA_FILE",
     type: :binary,
     default: CAStore.file_path()
 
-  @envdoc "Disable Server Name Indication. Defaults to false."
+  @envdoc "Disable Server Name Indication for Vault. Defaults to false."
   app_env :bao_ssl_disable_sni, :astarte_secrets, :bao_ssl_disable_sni,
-    os_env: "ASTARTE_OPENBAO_SSL_DISABLE_SNI",
+    os_env: "ASTARTE_VAULT_SSL_DISABLE_SNI",
     type: :boolean,
     default: false
 
-  @envdoc "Specify the hostname to be used in TLS Server Name Indication extension. If not specified, the amqp consumer host will be used. This value is used only if Server Name Indication is enabled."
+  @envdoc "Specify the hostname to be used in TLS Server Name Indication extension for Vault. If not specified, the Vault host will be used. This value is used only if Server Name Indication is enabled."
   app_env :bao_ssl_custom_sni, :astarte_secrets, :bao_ssl_custom_sni,
-    os_env: "ASTARTE_OPENBAO_SSL_CUSTOM_SNI",
+    os_env: "ASTARTE_VAULT_SSL_CUSTOM_SNI",
     type: :binary
 
   def bao_ssl_options! do
@@ -116,11 +116,11 @@ defmodule Astarte.Secrets.Config do
   defp parse_bao_authentication! do
     case Config.bao_authentication_mechanism!() do
       nil ->
-        raise "OpenBao authentication method not set"
+        raise "Vault authentication method not set"
 
       :token ->
         case Config.bao_token!() do
-          nil -> raise "OpenBao token not set"
+          nil -> raise "Vault token not set"
           token -> {:token, token}
         end
     end
