@@ -22,6 +22,7 @@ defmodule Astarte.PairingWeb.OwnershipVoucherController do
   alias Astarte.FDO.OwnershipVoucher
   alias Astarte.FDO.OwnershipVoucher.LoadRequest
   alias Astarte.FDO.TO0
+  alias Astarte.PairingWeb.OwnershipVoucherView
   alias Astarte.Secrets.Core, as: SecretsCore
 
   action_fallback Astarte.PairingWeb.FallbackController
@@ -57,6 +58,17 @@ defmodule Astarte.PairingWeb.OwnershipVoucherController do
           guid: UUID.binary_to_string!(req.device_guid)
         }
       })
+    end
+  end
+
+  @doc """
+  List ownership vouchers.
+  """
+  def list_ownership_vouchers(conn, %{"realm_name" => realm_name}) do
+    with {:ok, vouchers} <- OwnershipVoucher.list(realm_name) do
+      conn
+      |> put_view(OwnershipVoucherView)
+      |> render("list_vouchers.json", ownership_vouchers: vouchers)
     end
   end
 

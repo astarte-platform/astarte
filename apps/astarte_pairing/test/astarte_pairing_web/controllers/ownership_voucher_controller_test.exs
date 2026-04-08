@@ -232,9 +232,56 @@ defmodule Astarte.PairingWeb.Controllers.OwnershipVoucherControllerTest do
     end
   end
 
+  describe "list_ownership_vouchers/2" do
+    setup :store_sample_voucher
+    setup :add_list_path
+
+    test "returns the list of vouchers for the realm", context do
+      %{auth_conn: conn, path: path} = context
+
+      body =
+        conn
+        |> get(path)
+        |> json_response(200)
+
+      assert [ownership_voucher_result] = body["data"]
+      assert UUID.string_to_binary!(ownership_voucher_result["guid"])
+      assert ownership_voucher_result["status"] == "created"
+      assert ownership_voucher_result["input_voucher"] == @sample_ownership_voucher_pem
+    end
+  end
+
   defp owner_keys_for_voucher_setup(context) do
     %{auth_conn: conn, realm_name: realm_name} = context
     path = ownership_voucher_path(conn, :owner_keys_for_voucher, realm_name)
+    %{path: path}
+  end
+
+  defp store_sample_voucher(context) do
+    %{auth_conn: conn, realm_name: realm_name} = context
+    %{register_path: path} = register_setup(context)
+    {:ok, owner_cose_key} = COSE.Keys.from_pem(@sample_private_key_pem)
+    {:ok, namespace} = Secrets.create_namespace(realm_name, :es256)
+    :ok = Secrets.import_key(@sample_key_name, :es256, owner_cose_key, namespace: namespace)
+
+    params = %{
+      data: %{
+        "ownership_voucher" => @sample_ownership_voucher_pem,
+        "key_name" => @sample_key_name,
+        "key_algorithm" => "es256"
+      }
+    }
+
+    conn
+    |> post(path, params)
+    |> json_response(200)
+
+    :ok
+  end
+
+  defp add_list_path(context) do
+    %{auth_conn: conn, realm_name: realm_name} = context
+    path = ownership_voucher_path(conn, :list_ownership_vouchers, realm_name)
     %{path: path}
   end
 end

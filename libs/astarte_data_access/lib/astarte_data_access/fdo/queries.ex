@@ -58,6 +58,14 @@ defmodule Astarte.DataAccess.FDO.Queries do
     Repo.fetch(query, guid, consistency: consistency)
   end
 
+  def list_ownership_vouchers(realm_name) do
+    keyspace = Realm.keyspace_name(realm_name)
+    consistency = Consistency.domain_model(:read)
+    opts = [consistency: consistency, prefix: keyspace]
+
+    Repo.fetch_all(OwnershipVoucher, opts)
+  end
+
   def get_owner_key_params(realm_name, guid) do
     keyspace_name = Realm.keyspace_name(realm_name)
 
