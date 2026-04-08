@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## Unreleased
 
+## [1.3.0-rc.2] - 2026-04-08
+
+### Added
+
+- [astarte_realm_management] realm migrations now create vhost for amqp triggers
+
 ### Changed
 
 - [astarte_pairing] FDO authentication (EXPERIMENTAL feature, disabled by default). New environment variables are needed in order to use FDO:
