@@ -92,6 +92,7 @@ defmodule Astarte.FDO.Helpers.Database do
       key_name varchar,
       key_algorithm int,
       user_id blob,
+      status int,
       PRIMARY KEY (guid)
    );
   """

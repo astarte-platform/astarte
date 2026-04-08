@@ -20,6 +20,7 @@ defmodule Astarte.FDO.OwnerOnboarding.OwnerOnboardingTest do
   use Astarte.Cases.Data, async: true
   use Astarte.Cases.FDOSession
 
+  alias Astarte.DataAccess.FDO.Queries
   alias Astarte.FDO.Core.Hash
   alias Astarte.FDO.Core.OwnerOnboarding.DeviceServiceInfoReady
   alias Astarte.FDO.Core.OwnerOnboarding.HelloDevice
@@ -53,7 +54,7 @@ defmodule Astarte.FDO.OwnerOnboarding.OwnerOnboardingTest do
       guid: id_p256_x509
     }
 
-    insert_voucher(realm_name, attrs)
+    Queries.create_ownership_voucher(realm_name, attrs)
 
     hello_msg_p256_x509 =
       HelloDevice.generate(guid: id_p256_x509, kex_name: "ECDH256", easig_info: :es256)
@@ -80,7 +81,7 @@ defmodule Astarte.FDO.OwnerOnboarding.OwnerOnboardingTest do
       guid: id_p384_x509
     }
 
-    insert_voucher(realm_name, attrs)
+    Queries.create_ownership_voucher(realm_name, attrs)
 
     hello_msg_p384_x509 =
       HelloDevice.generate(guid: id_p384_x509, kex_name: "ECDH384", easig_info: :es384)
@@ -105,7 +106,7 @@ defmodule Astarte.FDO.OwnerOnboarding.OwnerOnboardingTest do
       guid: id_p256_chain
     }
 
-    insert_voucher(realm_name, attrs)
+    Queries.create_ownership_voucher(realm_name, attrs)
 
     hello_msg_p256_x5chain =
       HelloDevice.generate(guid: id_p256_chain, kex_name: "ECDH256", easig_info: :es256)
@@ -130,7 +131,7 @@ defmodule Astarte.FDO.OwnerOnboarding.OwnerOnboardingTest do
       guid: id_p384_chain
     }
 
-    insert_voucher(realm_name, attrs)
+    Queries.create_ownership_voucher(realm_name, attrs)
 
     hello_msg_p384_x5chain =
       HelloDevice.generate(guid: id_p384_chain, kex_name: "ECDH384", easig_info: :es384)

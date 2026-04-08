@@ -100,7 +100,7 @@ defmodule Astarte.DataAccess.FDO.Queries do
 
     opts = [prefix: keyspace_name, consistency: Consistency.device_info(:write)]
 
-    %OwnershipVoucher{}
+    %OwnershipVoucher{status: :created}
     |> OwnershipVoucher.changeset(attrs)
     |> Repo.insert(opts)
   end
@@ -112,6 +112,19 @@ defmodule Astarte.DataAccess.FDO.Queries do
       guid: guid
     }
     |> Repo.delete(prefix: keyspace)
+  end
+
+  def mark_voucher_as_claimed(realm_name, guid) do
+    keyspace = Realm.keyspace_name(realm_name)
+    consistency = Consistency.device_info(:write)
+    opts = [prefix: keyspace, consistency: consistency]
+
+    result =
+      %OwnershipVoucher{guid: guid}
+      |> Ecto.Changeset.change(status: :claimed)
+      |> Repo.update(opts)
+
+    with {:ok, _} <- result, do: :ok
   end
 
   def add_output_voucher(

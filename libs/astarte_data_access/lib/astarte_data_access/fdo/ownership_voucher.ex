@@ -32,6 +32,7 @@ defmodule Astarte.DataAccess.FDO.OwnershipVoucher do
   @primary_key false
   typed_schema "ownership_vouchers" do
     field :guid, Astarte.DataAccess.UUID, primary_key: true
+    field :status, Ecto.Enum, values: [created: 0, claimed: 1]
     field :voucher_data, :binary
     field :output_voucher, :binary
     field :user_id, :binary

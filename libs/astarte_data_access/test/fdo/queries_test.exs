@@ -201,6 +201,30 @@ defmodule Astarte.DataAccess.FDO.QueriesTest do
     end
   end
 
+  describe "mark_device_as_claimed/2" do
+    setup do
+      guid = :crypto.strong_rand_bytes(16)
+
+      on_exit(fn -> Queries.delete_ownership_voucher(@realm, guid) end)
+
+      Queries.create_ownership_voucher(@realm, %{
+        guid: guid,
+        key_name: "key",
+        key_algorithm: :es256,
+        voucher_data: <<0>>
+      })
+
+      %{guid: guid}
+    end
+
+    test "updates the status of the ownership voucher", %{guid: guid} do
+      opts = [prefix: Realm.keyspace_name(@realm)]
+      assert %{status: :created} = Repo.get(OwnershipVoucher, guid, opts)
+      assert :ok == Queries.mark_voucher_as_claimed(@realm, guid)
+      assert %{status: :claimed} = Repo.get(OwnershipVoucher, guid, opts)
+    end
+  end
+
   describe "remove_device_ttl/2" do
     setup do
       Xandra.Cluster.run(:astarte_data_access_xandra, fn conn ->

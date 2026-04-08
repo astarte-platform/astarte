@@ -35,6 +35,7 @@ defmodule Astarte.Cases.FDOSession do
   use ExUnit.CaseTemplate
 
   alias Astarte.Core.Device
+  alias Astarte.DataAccess.FDO.Queries
   alias Astarte.FDO.Core.OwnerOnboarding.HelloDevice
   alias Astarte.FDO.Core.OwnerOnboarding.Session
   alias Astarte.FDO.Core.OwnerOnboarding.SessionKey
@@ -98,7 +99,7 @@ defmodule Astarte.Cases.FDOSession do
       guid: device_id
     }
 
-    insert_voucher(context.realm_name, attrs)
+    Queries.create_ownership_voucher(context.realm_name, attrs)
 
     %{
       owner_key: owner_key,
