@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## [1.2.2-rc.0] - 2026-04-08
+### Fixed
+- [astarte_data_updater_plant] Increase device process resiliency: avoid restarting the whole supervision tree when one device/amqp connection crashes
+- [astarte_housekeeping] Fix crashes in migrator
+- [astarte_realm_management] Fix corner case during for the installation of interfaces without data retention ttl
+
 ## [1.2.1] - 2026-03-12
 ### Fixed
 - [astarte_realm_management] Insufficient validation for conflicting options in interface aggregate mappings
