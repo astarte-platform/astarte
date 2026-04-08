@@ -22,7 +22,7 @@ defmodule AstarteSecrets.MixProject do
   def project do
     [
       app: :astarte_secrets,
-      version: "1.4.0-dev",
+      version: "1.4.0-rc.0",
       elixir: "~> 1.15",
       test_coverage: [tool: ExCoveralls],
       elixirc_paths: elixirc_paths(Mix.env()),
