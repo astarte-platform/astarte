@@ -23,9 +23,6 @@ defmodule Astarte.FDO.Helpers do
 
   import StreamData
 
-  alias Astarte.DataAccess.FDO.OwnershipVoucher, as: DBOwnershipVoucher
-  alias Astarte.DataAccess.Realms.Realm
-  alias Astarte.DataAccess.Repo
   alias Astarte.FDO.Core.Hash
   alias Astarte.FDO.Core.OwnershipVoucher
   alias Astarte.FDO.Core.OwnershipVoucher.CreateRequest
@@ -168,12 +165,6 @@ defmodule Astarte.FDO.Helpers do
 
   def hello_ack(nonce) do
     CBOR.encode([%CBOR.Tag{tag: :bytes, value: nonce}])
-  end
-
-  def insert_voucher(realm_name, attrs) when is_map(attrs) do
-    %DBOwnershipVoucher{}
-    |> DBOwnershipVoucher.changeset(attrs)
-    |> Repo.insert(prefix: Realm.keyspace_name(realm_name))
   end
 
   def generate_p384_x5chain_data_and_pem do
@@ -394,7 +385,7 @@ defmodule Astarte.FDO.Helpers do
   Encodes an `Astarte.FDO.Core.OwnershipVoucher` struct to a PEM string.
   """
   def voucher_to_pem(voucher) do
-    cbor_bytes = Astarte.FDO.Core.OwnershipVoucher.cbor_encode(voucher)
+    cbor_bytes = OwnershipVoucher.cbor_encode(voucher)
     b64 = Base.encode64(cbor_bytes)
     wrapped = Regex.replace(~r/.{64}/, b64, "\\0\n")
     "-----BEGIN OWNERSHIP VOUCHER-----\n#{wrapped}\n-----END OWNERSHIP VOUCHER-----\n"

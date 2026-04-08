@@ -32,6 +32,10 @@ defmodule Astarte.FDO.OwnershipVoucher do
     end
   end
 
+  def list(realm_name) do
+    Queries.list_ownership_vouchers(realm_name)
+  end
+
   def fetch(realm_name, guid) do
     case Queries.get_ownership_voucher(realm_name, guid) do
       {:ok, ownership_voucher_cbor} ->

@@ -21,6 +21,7 @@ defmodule Astarte.FDO.ServiceInfoTest do
   use Astarte.Cases.Data, async: true
 
   alias Astarte.Core.Device
+  alias Astarte.DataAccess.FDO.Queries
   alias Astarte.FDO.Core.OwnerOnboarding.DeviceServiceInfo
   alias Astarte.FDO.Core.OwnerOnboarding.HelloDevice
   alias Astarte.FDO.Core.OwnerOnboarding.OwnerServiceInfo
@@ -54,7 +55,7 @@ defmodule Astarte.FDO.ServiceInfoTest do
       guid: device_id
     }
 
-    insert_voucher(realm_name, attrs)
+    Queries.create_ownership_voucher(realm_name, attrs)
 
     %{
       device_id: device_id,

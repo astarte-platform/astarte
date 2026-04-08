@@ -68,7 +68,7 @@ services:
       ASTARTE_BASE_URL_PROTOCOL: "http"
       PAIRING_FDO_RENDEZVOUS_URL: "http://rendezvous:8041"
       PAIRING_FDO_ENABLE_CREDENTIAL_REUSE: true
-      ASTARTE_OPENBAO_URL: "http://openbao:8200"
+      ASTARTE_VAULT_URL: "http://openbao:8200"
     restart: on-failure
     # TODO: add a health check for all services
     depends_on:
@@ -231,7 +231,7 @@ services:
       - BAO_ADDR=http://0.0.0.0:8200
     ports:
       - 8200:8200
-    command: server -dev -dev-listen-address="0.0.0.0:8200" -dev-root-token-id="${ASTARTE_OPENBAO_TOKEN}"
+    command: server -dev -dev-listen-address="0.0.0.0:8200" -dev-root-token-id="${ASTARTE_VAULT_TOKEN}"
     healthcheck:
       test: ["CMD", "bao", "status", "-address=http://127.0.0.1:8200"]
       interval: 2s
@@ -247,7 +247,7 @@ services:
         condition: service_healthy
     environment:
       - BAO_ADDR=http://openbao:8200
-      - BAO_TOKEN=${ASTARTE_OPENBAO_TOKEN}
+      - BAO_TOKEN=${ASTARTE_VAULT_TOKEN}
     command: bao secrets enable transit
 
   rendezvous:

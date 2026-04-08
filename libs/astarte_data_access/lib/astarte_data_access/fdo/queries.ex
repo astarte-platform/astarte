@@ -58,6 +58,14 @@ defmodule Astarte.DataAccess.FDO.Queries do
     Repo.fetch(query, guid, consistency: consistency)
   end
 
+  def list_ownership_vouchers(realm_name) do
+    keyspace = Realm.keyspace_name(realm_name)
+    consistency = Consistency.domain_model(:read)
+    opts = [consistency: consistency, prefix: keyspace]
+
+    Repo.fetch_all(OwnershipVoucher, opts)
+  end
+
   def get_owner_key_params(realm_name, guid) do
     keyspace_name = Realm.keyspace_name(realm_name)
 
@@ -100,7 +108,7 @@ defmodule Astarte.DataAccess.FDO.Queries do
 
     opts = [prefix: keyspace_name, consistency: Consistency.device_info(:write)]
 
-    %OwnershipVoucher{}
+    %OwnershipVoucher{status: :created}
     |> OwnershipVoucher.changeset(attrs)
     |> Repo.insert(opts)
   end
@@ -112,6 +120,19 @@ defmodule Astarte.DataAccess.FDO.Queries do
       guid: guid
     }
     |> Repo.delete(prefix: keyspace)
+  end
+
+  def mark_voucher_as_claimed(realm_name, guid) do
+    keyspace = Realm.keyspace_name(realm_name)
+    consistency = Consistency.device_info(:write)
+    opts = [prefix: keyspace, consistency: consistency]
+
+    result =
+      %OwnershipVoucher{guid: guid}
+      |> Ecto.Changeset.change(status: :claimed)
+      |> Repo.update(opts)
+
+    with {:ok, _} <- result, do: :ok
   end
 
   def add_output_voucher(

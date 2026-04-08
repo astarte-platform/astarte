@@ -73,18 +73,18 @@ defmodule Astarte.FDO.Onboarding.DoneTest do
          {:ok, session_with_device_id} <-
            Session.add_device_id(session_with_setup_nonce, realm_name, device_id) do
       encoded_device_id = CoreDevice.encode_device_id(device_id)
+      done_msg = [%CBOR.Tag{tag: :bytes, value: session.prove_dv_nonce}]
       register_device(realm_name, encoded_device_id, unconfirmed: true)
-      %{session: session_with_device_id}
+      %{session: session_with_device_id, done_msg: done_msg}
     end
   end
 
   describe "done/3" do
     test "returns {:ok, cbor_binary} (containing SetupDv nonce) when ProveDv nonces match", %{
       realm: realm_name,
-      session: session
+      session: session,
+      done_msg: done_msg
     } do
-      done_msg = [%CBOR.Tag{tag: :bytes, value: session.prove_dv_nonce}]
-
       new_hmac = :crypto.strong_rand_bytes(32)
 
       session = %{session | replacement_hmac: %Hash{type: :hmac_sha256, hash: new_hmac}}
@@ -100,9 +100,9 @@ defmodule Astarte.FDO.Onboarding.DoneTest do
     test "ensure new voucher is saved when ProveDv nonces match and TO2.done ends successfully ",
          %{
            realm: realm_name,
-           session: session
+           session: session,
+           done_msg: done_msg
          } do
-      done_msg = [%CBOR.Tag{tag: :bytes, value: session.prove_dv_nonce}]
       {:ok, old_voucher} = OwnershipVoucher.fetch(realm_name, session.guid)
       {:ok, _} = OwnerOnboarding.done(realm_name, session, done_msg)
 
@@ -115,13 +115,13 @@ defmodule Astarte.FDO.Onboarding.DoneTest do
     test "ensure old voucher is keep when ProveDv nonces match and TO2.done ends successfully without credential reuse ",
          %{
            realm: realm_name,
-           session: session
+           session: session,
+           done_msg: done_msg
          } do
       new_hmac = :crypto.strong_rand_bytes(32)
 
       session = %{session | replacement_hmac: %Hash{type: :hmac_sha256, hash: new_hmac}}
 
-      done_msg = [%CBOR.Tag{tag: :bytes, value: session.prove_dv_nonce}]
       {:ok, old_voucher} = OwnershipVoucher.fetch(realm_name, session.guid)
 
       keyspace = Realm.keyspace_name(realm_name)
@@ -161,13 +161,12 @@ defmodule Astarte.FDO.Onboarding.DoneTest do
 
     test "removes device TTL when onboarding completes successfully", %{
       realm: realm_name,
-      session: session
+      session: session,
+      done_msg: done_msg
     } do
       new_hmac = :crypto.strong_rand_bytes(32)
 
       session = %{session | replacement_hmac: %Hash{type: :hmac_sha256, hash: new_hmac}}
-
-      done_msg = [%CBOR.Tag{tag: :bytes, value: session.prove_dv_nonce}]
 
       {:ok, device_before} = Device.fetch(realm_name, session.device_id)
       assert device_before.device_id == session.device_id
@@ -186,6 +185,15 @@ defmodule Astarte.FDO.Onboarding.DoneTest do
 
       assert ttl_after == nil,
              "TTL should be nil (no TTL/permanent) after removal, got #{inspect(ttl_after)}"
+    end
+
+    test "marks the voucher as claimed", context do
+      %{realm: realm_name, session: session, done_msg: done_msg} = context
+      guid = session.guid
+      opts = [prefix: Realm.keyspace_name(realm_name)]
+      assert %{status: :created} = Repo.get(DataAccessOwnershipVoucher, guid, opts)
+      assert {:ok, _} = OwnerOnboarding.done(realm_name, session, done_msg)
+      assert %{status: :claimed} = Repo.get(DataAccessOwnershipVoucher, guid, opts)
     end
 
     test "returns error when device doesn't exist in database", %{

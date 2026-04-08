@@ -634,6 +634,7 @@ defmodule Astarte.Housekeeping.Realms.Queries do
       key_name varchar,
       key_algorithm int,
       user_id blob,
+      status int,
       PRIMARY KEY (guid)
     );
     """
