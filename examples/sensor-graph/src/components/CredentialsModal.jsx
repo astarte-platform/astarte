@@ -1,13 +1,6 @@
 import React, { Component } from "react";
 import { Col, Form, Modal } from "react-bootstrap";
-import {
-  getAuthToken,
-  getEndPoint,
-  getRealmName,
-  setAuthToken,
-  setEndPoint,
-  setRealmName,
-} from "../apiHandler";
+import { getAuthToken, getEndPoint, getRealmName, setAuthToken, setEndPoint, setRealmName } from "../apiHandler";
 
 class CredentialsModal extends Component {
   state = {

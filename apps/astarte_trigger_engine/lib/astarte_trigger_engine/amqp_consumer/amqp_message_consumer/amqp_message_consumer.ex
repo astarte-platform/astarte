@@ -17,11 +17,19 @@
 #
 
 defmodule Astarte.TriggerEngine.AMQPConsumer.AMQPMessageConsumer do
+  @moduledoc """
+  AMQP message consumer GenServer.
+  """
+
   defmodule State do
+    @moduledoc """
+    AMQP message consumer state.
+    """
+
     use TypedStruct
 
-    alias Astarte.Core.Triggers.Policy
     alias AMQP.Channel
+    alias Astarte.Core.Triggers.Policy
 
     typedstruct do
       field :channel, Channel.t()
@@ -140,7 +148,7 @@ defmodule Astarte.TriggerEngine.AMQPConsumer.AMQPMessageConsumer do
     {:stop, :normal, state}
   end
 
-  defp schedule_connect() do
+  defp schedule_connect do
     Process.send_after(self(), :connect, @reconnect_interval)
   end
 
@@ -164,7 +172,8 @@ defmodule Astarte.TriggerEngine.AMQPConsumer.AMQPMessageConsumer do
   end
 
   defp get_policy_process(realm_name, policy) do
-    # Link the policy process so we crash if it crashes; in this way unacked messages will be requeued
+    # Link the policy process so we crash if it crashes; in this way unacked
+    # messages will be requeued
     case Policy.start_link(realm_name: realm_name, policy: policy) do
       {:ok, pid} ->
         pid

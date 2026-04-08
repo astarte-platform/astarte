@@ -1,54 +1,54 @@
 {
-    "interface_name": "org.astarte-platform.genericsensors.Geolocation",
-    "version_major": 1,
-    "version_minor": 0,
-    "type": "datastream",
-    "aggregation": "object",
-    "ownership": "device",
-    "description": "Generic Geolocation sampled data.",
-    "doc": "Geolocation allows geolocation sensors to stream location data, such as GPS data. It is usually used in combination with AvailableSensors, which makes API client aware of what sensors are present on devices and what measurement systems are used. sensor_id represents a unique identifier for an individual sensor, and should match sensor_id in AvailableSensors when used in combination.",
-    "mappings": [
-        {
-            "endpoint": "/%{sensor_id}/latitude",
-            "type": "double",
-            "explicit_timestamp": true,
-            "description": "Sampled latitude value."
-        },
-        {
-            "endpoint": "/%{sensor_id}/longitude",
-            "type": "double",
-            "explicit_timestamp": true,
-            "description": "Sampled longitude value."
-        },
-        {
-            "endpoint": "/%{sensor_id}/altitude",
-            "type": "double",
-            "explicit_timestamp": true,
-            "description": "Sampled altitude value."
-        },
-        {
-            "endpoint": "/%{sensor_id}/accuracy",
-            "type": "double",
-            "explicit_timestamp": true,
-            "description": "Sampled accuracy of the latitude and longitude properties."
-        },
-        {
-            "endpoint": "/%{sensor_id}/altitudeAccuracy",
-            "type": "double",
-            "explicit_timestamp": true,
-            "description": "Sampled accuracy of the altitude property."
-        },
-        {
-            "endpoint": "/%{sensor_id}/heading",
-            "type": "double",
-            "explicit_timestamp": true,
-            "description": "Sampled value representing the direction towards which the device is facing."
-        },
-        {
-            "endpoint": "/%{sensor_id}/speed",
-            "type": "double",
-            "explicit_timestamp": true,
-            "description": "Sampled value representing the velocity of the device."
-        }
-    ]
+  "interface_name": "org.astarte-platform.genericsensors.Geolocation",
+  "version_major": 1,
+  "version_minor": 0,
+  "type": "datastream",
+  "aggregation": "object",
+  "ownership": "device",
+  "description": "Generic Geolocation sampled data.",
+  "doc": "Geolocation allows geolocation sensors to stream location data, such as GPS data. It is usually used in combination with AvailableSensors, which makes API client aware of what sensors are present on devices and what measurement systems are used. sensor_id represents a unique identifier for an individual sensor, and should match sensor_id in AvailableSensors when used in combination.",
+  "mappings": [
+    {
+      "endpoint": "/%{sensor_id}/latitude",
+      "type": "double",
+      "explicit_timestamp": true,
+      "description": "Sampled latitude value."
+    },
+    {
+      "endpoint": "/%{sensor_id}/longitude",
+      "type": "double",
+      "explicit_timestamp": true,
+      "description": "Sampled longitude value."
+    },
+    {
+      "endpoint": "/%{sensor_id}/altitude",
+      "type": "double",
+      "explicit_timestamp": true,
+      "description": "Sampled altitude value."
+    },
+    {
+      "endpoint": "/%{sensor_id}/accuracy",
+      "type": "double",
+      "explicit_timestamp": true,
+      "description": "Sampled accuracy of the latitude and longitude properties."
+    },
+    {
+      "endpoint": "/%{sensor_id}/altitudeAccuracy",
+      "type": "double",
+      "explicit_timestamp": true,
+      "description": "Sampled accuracy of the altitude property."
+    },
+    {
+      "endpoint": "/%{sensor_id}/heading",
+      "type": "double",
+      "explicit_timestamp": true,
+      "description": "Sampled value representing the direction towards which the device is facing."
+    },
+    {
+      "endpoint": "/%{sensor_id}/speed",
+      "type": "double",
+      "explicit_timestamp": true,
+      "description": "Sampled value representing the velocity of the device."
+    }
+  ]
 }

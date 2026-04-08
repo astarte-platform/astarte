@@ -17,15 +17,23 @@
 #
 
 defmodule Astarte.TriggerEngine.Policy.State do
+  @moduledoc """
+  State struct for policy process.
+  """
+
   use TypedStruct
 
   alias Astarte.Core.Triggers.Policy
 
   @type message_id() :: term()
+  @type timestamp() :: integer()
   @type retry_map() :: %{message_id() => pos_integer()}
+  @type handle_start_map() :: %{message_id() => timestamp()}
 
   typedstruct do
-    field :retry_map, retry_map()
+    field :retry_map, retry_map(), default: %{}
+    field :handle_start_map, handle_start_map(), default: %{}
     field :policy, Policy.t()
+    field :realm, String.t()
   end
 end

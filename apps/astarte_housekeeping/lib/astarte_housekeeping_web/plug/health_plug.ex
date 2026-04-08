@@ -17,37 +17,30 @@
 #
 
 defmodule Astarte.HousekeepingWeb.HealthPlug do
+  @moduledoc false
+  @behaviour Plug
+
   import Plug.Conn
 
   alias Astarte.DataAccess.Health.Health
 
-  def init(_args), do: nil
+  def init(_opts) do
+    nil
+  end
 
   def call(%{request_path: "/health", method: "GET"} = conn, _opts) do
-    try do
-      case Health.get_health() do
-        {:ok, %{status: status}} when status in [:ready, :degraded] ->
-          :telemetry.execute(
-            [:astarte, :housekeeping, :service],
-            %{health: 1},
-            %{status: status}
-          )
+    case Health.get_health() do
+      status when status in [:ready, :degraded] ->
+        :telemetry.execute(
+          [:astarte, :housekeeping, :service],
+          %{health: 1},
+          %{status: status}
+        )
 
-          conn
-          |> send_resp(:ok, "")
-          |> halt()
+        conn
+        |> send_resp(:ok, "")
+        |> halt()
 
-        _ ->
-          :telemetry.execute(
-            [:astarte, :housekeeping, :service],
-            %{health: 0}
-          )
-
-          conn
-          |> send_resp(:service_unavailable, "")
-          |> halt()
-      end
-    rescue
       _ ->
         :telemetry.execute(
           [:astarte, :housekeeping, :service],
@@ -55,10 +48,22 @@ defmodule Astarte.HousekeepingWeb.HealthPlug do
         )
 
         conn
-        |> send_resp(:internal_server_error, "")
+        |> send_resp(:service_unavailable, "")
         |> halt()
     end
+  rescue
+    _ ->
+      :telemetry.execute(
+        [:astarte, :housekeeping, :service],
+        %{health: 0}
+      )
+
+      conn
+      |> send_resp(:internal_server_error, "")
+      |> halt()
   end
 
-  def call(conn, _opts), do: conn
+  def call(conn, _opts) do
+    conn
+  end
 end

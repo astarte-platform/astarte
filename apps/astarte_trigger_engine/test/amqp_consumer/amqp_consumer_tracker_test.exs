@@ -20,8 +20,8 @@ defmodule Astarte.TriggerEngine.AMQPConsumer.AMQPConsumerTrackerTest do
   use Astarte.Cases.Database, async: true
   use Mimic
 
-  alias Astarte.TriggerEngine.AMQPConsumer.AMQPConsumerTracker
   alias Astarte.Core.Generators.Triggers.Policy, as: PolicyGenerator
+  alias Astarte.TriggerEngine.AMQPConsumer.AMQPConsumerTracker
 
   import Astarte.Helpers.Policy
 

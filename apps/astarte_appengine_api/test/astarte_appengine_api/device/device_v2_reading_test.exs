@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2025 SECO Mind Srl
+# Copyright 2025 - 2026 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -16,15 +16,16 @@
 # limitations under the License.
 
 defmodule Astarte.AppEngine.API.Device.DeviceV2ReadingTest do
+  use ExUnitProperties
+
   use Astarte.Cases.Data, async: true
   use Astarte.Cases.Device
-  use ExUnitProperties
+
+  import Astarte.Helpers.Device
 
   alias Astarte.AppEngine.API.Device
   alias Astarte.AppEngine.API.Device.InterfaceValues
-
-  import Astarte.Helpers.Device
-  import Astarte.InterfaceValuesRetrievealGenerators
+  alias Astarte.Generators.InterfaceValuesRetrieveal, as: InterfaceValuesRetrievealGenerator
 
   setup_all :populate_interfaces
 
@@ -38,9 +39,9 @@ defmodule Astarte.AppEngine.API.Device.DeviceV2ReadingTest do
       } = context
 
       downsampable_interfaces =
-        interfaces_with_data
-        |> Enum.filter(&downsampable?/1)
-        |> Enum.filter(&(&1.aggregation == :individual))
+        Enum.filter(interfaces_with_data, fn interface ->
+          downsampable?(interface) and interface.aggregation == :individual
+        end)
 
       downsampable_paths =
         downsampable_interfaces
@@ -55,7 +56,10 @@ defmodule Astarte.AppEngine.API.Device.DeviceV2ReadingTest do
       check all interface <- member_of(downsampable_interfaces),
                 "/" <> path <- member_of(downsampable_paths[interface]),
                 downsample_to <- integer(3..100),
-                opts <- interface_values_options(downsample_to: downsample_to) do
+                opts <-
+                  InterfaceValuesRetrievealGenerator.interface_values_options(
+                    downsample_to: downsample_to
+                  ) do
         {:ok, %InterfaceValues{data: result}} =
           Device.get_interface_values!(
             realm_name,
@@ -88,7 +92,7 @@ defmodule Astarte.AppEngine.API.Device.DeviceV2ReadingTest do
                 downsample_key <- member_of(object_keys),
                 downsample_to <- integer(3..100),
                 opts <-
-                  interface_values_options(
+                  InterfaceValuesRetrievealGenerator.interface_values_options(
                     downsample_to: downsample_to,
                     downsample_key: downsample_key
                   ) do
@@ -125,7 +129,8 @@ defmodule Astarte.AppEngine.API.Device.DeviceV2ReadingTest do
               lower_limit <- optional(timestamp_at_least(timings.initial_time)),
               to <- optional(timestamp_at_most(timings.last_time)),
               params = [{since_or_after, lower_limit}, to: to],
-              opts <- interface_values_options(params, interface) do
+              opts <-
+                InterfaceValuesRetrievealGenerator.interface_values_options(params, interface) do
       result =
         Device.get_interface_values!(
           realm_name,

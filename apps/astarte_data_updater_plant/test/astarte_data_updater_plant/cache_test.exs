@@ -153,12 +153,10 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.CacheTest do
 
         result = Cache.has_key?(cache, key)
 
-        cond do
-          is_integer(ttl) and ttl <= 0 ->
-            assert result == false
-
-          true ->
-            assert result == true
+        if is_integer(ttl) and ttl <= 0 do
+          assert result == false
+        else
+          assert result == true
         end
       end
     end

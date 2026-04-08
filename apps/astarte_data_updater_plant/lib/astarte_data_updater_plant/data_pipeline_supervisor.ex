@@ -17,11 +17,12 @@
 #
 
 defmodule Astarte.DataUpdaterPlant.DataPipelineSupervisor do
+  @moduledoc """
+  This module is responsible for supervising the data pipeline processes.
+  """
   use Supervisor
 
   alias Astarte.DataUpdaterPlant.ConsumersSupervisor
-  alias Astarte.DataUpdaterPlant.AMQPEventsProducer
-  alias Astarte.DataUpdaterPlant.Config
 
   def start_link(init_arg) do
     Supervisor.start_link(__MODULE__, init_arg, name: __MODULE__)
@@ -29,6 +30,28 @@ defmodule Astarte.DataUpdaterPlant.DataPipelineSupervisor do
 
   @impl true
   def init(_init_arg) do
+    dup_device_triggers = [
+      :DEVICE_CONNECTED,
+      :DEVICE_DISCONNECTED,
+      :DEVICE_EMPTY_CACHE_RECEIVED,
+      :DEVICE_ERROR,
+      :INCOMING_INTROSPECTION,
+      :INTERFACE_ADDED,
+      :INTERFACE_REMOVED,
+      :INTERFACE_MINOR_UPDATED
+    ]
+
+    dup_data_triggers = [
+      :INCOMING_DATA,
+      :VALUE_CHANGE,
+      :VALUE_CHANGE_APPLIED,
+      :PATH_CREATED,
+      :PATH_REMOVED,
+      :VALUE_STORED
+    ]
+
+    trigger_types = Enum.concat(dup_device_triggers, dup_data_triggers)
+
     children = [
       {Horde.Registry, [keys: :unique, name: Registry.MessageTracker, members: :auto]},
       {Horde.Registry, [keys: :unique, name: Registry.DataUpdater, members: :auto]},
@@ -51,11 +74,8 @@ defmodule Astarte.DataUpdaterPlant.DataPipelineSupervisor do
          members: :auto,
          distribution_strategy: Horde.UniformDistribution
        ]},
-      {ExRabbitPool.PoolSupervisor,
-       rabbitmq_config: Config.amqp_producer_options!(),
-       connection_pools: [Config.events_producer_pool_config!()]},
-      AMQPEventsProducer,
       ConsumersSupervisor,
+      {Astarte.RPC.Triggers.Client, types: trigger_types},
       Astarte.DataUpdaterPlant.RPC.Supervisor
     ]
 

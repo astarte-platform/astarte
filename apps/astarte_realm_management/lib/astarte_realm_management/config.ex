@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2017-2025 SECO Mind Srl
+# Copyright 2018 Ispirata Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -18,29 +18,31 @@
 
 defmodule Astarte.RealmManagement.Config do
   @moduledoc """
-  This module helps the access to the runtime configuration of Astarte RealmManagement
+  This module contains functions to access the configuration
   """
 
   use Skogsra
-  alias Astarte.DataAccess.Config, as: DataAccessConfig
 
   @envdoc """
-  Specifies the certificates of the root Certificate Authorities to be trusted.
-  When not specified, the bundled cURL certificate bundle will be used.
+  "Disables the authentication. CHANGING IT TO TRUE IS GENERALLY A REALLY BAD IDEA IN A PRODUCTION ENVIRONMENT, IF YOU DON'T KNOW WHAT YOU ARE DOING.
   """
-  app_env :ssl_ca_file, :astarte_data_access, :ssl_ca_file,
-    os_env: "CASSANDRA_SSL_CA_FILE",
-    type: :binary,
-    default: CAStore.file_path()
+  app_env :disable_authentication, :astarte_realm_management, :disable_authentication,
+    os_env: "REALM_MANAGEMENT_API_DISABLE_AUTHENTICATION",
+    type: :boolean,
+    default: false
 
-  @envdoc "The port where Realm Management metrics will be exposed."
-  app_env :port, :astarte_realm_management, :port,
-    os_env: "REALM_MANAGEMENT_PORT",
-    type: :integer,
-    default: 4000
+  @envdoc """
+  "The handling method for database events. The default is `expose`, which means that the events are exposed trough telemetry. The other possible value, `log`, means that the events are logged instead."
+  """
+  app_env :database_events_handling_method,
+          :astarte_realm_management,
+          :database_events_handling_method,
+          os_env: "DATABASE_EVENTS_HANDLING_METHOD",
+          type: Astarte.RealmManagement.Config.TelemetryType,
+          default: :expose
 
   @doc """
-  Returns Cassandra nodes formatted in the Xandra format.
+  Returns true if the authentication is disabled.
   """
-  defdelegate xandra_options!, to: DataAccessConfig
+  def authentication_disabled?, do: disable_authentication!()
 end

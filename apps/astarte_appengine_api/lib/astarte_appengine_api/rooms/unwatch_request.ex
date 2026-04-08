@@ -17,6 +17,9 @@
 #
 
 defmodule Astarte.AppEngine.API.Rooms.UnwatchRequest do
+  @moduledoc """
+  Schema and validation for a request to unwatch a room.
+  """
   use Ecto.Schema
 
   import Ecto.Changeset

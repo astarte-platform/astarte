@@ -1,21 +1,8 @@
 defmodule Astarte.Export.FetchData.Queries do
+  alias Astarte.Export.Utilities
   alias Astarte.Core.InterfaceDescriptor
   alias Astarte.Core.Mapping
   require Logger
-
-  def get_connection() do
-    host = System.get_env("CASSANDRA_DB_HOST")
-    port = System.get_env("CASSANDRA_DB_PORT")
-    Logger.info("Connecting to #{inspect(host)}:#{inspect(port)} cassandra database.")
-
-    with {:ok, xandra_conn} <- Xandra.start_link(nodes: ["#{host}:#{port}"], atom_keys: true) do
-      Logger.info("Connected to database.")
-      {:ok, xandra_conn}
-    else
-      {:error, reason} ->
-        Logger.error("DB connection setup failed: #{inspect(reason)}", tag: "db_connection_failed")
-    end
-  end
 
   def retrieve_interface_row(conn, realm, interface, major_version, options) do
     interface_statement = """
@@ -51,6 +38,7 @@ defmodule Astarte.Export.FetchData.Queries do
       interface_row
       |> Enum.to_list()
       |> hd()
+      |> Utilities.map_string_to_atom()
       |> InterfaceDescriptor.from_db_result()
     end
   end
@@ -96,9 +84,10 @@ defmodule Astarte.Export.FetchData.Queries do
       mappings =
         result
         |> Enum.to_list()
+        |> Enum.map(&Utilities.map_string_to_atom/1)
+        |> Enum.map(&Mapping.from_db_result!/1)
 
-      mappings_1 = Enum.map(mappings, &Mapping.from_db_result!/1)
-      {:ok, mappings_1}
+      {:ok, mappings}
     else
       {:error, %Xandra.Error{message: message}} ->
         Logger.error("database error: #{inspect(message)}.", tag: "database_error")
@@ -124,8 +113,8 @@ defmodule Astarte.Export.FetchData.Queries do
         options
       ) do
     properties_statement = """
-    SELECT  #{data_type}, reception_timestamp from #{realm}.individual_properties 
-      where device_id=? AND interface_id=? AND endpoint_id=? AND path=? 
+    SELECT  #{data_type}, reception_timestamp from #{realm}.individual_properties
+      where device_id=? AND interface_id=? AND endpoint_id=? AND path=?
     """
 
     params = [{"uuid", device_id}, {"uuid", interface_id}, {"uuid", endpoint_id}, {"text", path}]

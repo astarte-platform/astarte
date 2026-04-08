@@ -19,14 +19,19 @@
 defmodule Astarte.DataUpdaterPlantWeb.Telemetry do
   use Supervisor
   import Telemetry.Metrics
+
   alias Astarte.DataUpdaterPlant.Config
+  alias Astarte.DataUpdaterPlantWeb.Telemetry.DatabaseEvents
 
   def start_link(arg) do
     Supervisor.start_link(__MODULE__, arg, name: __MODULE__)
   end
 
   def init(_arg) do
+    attach_handlers()
+
     children = [
+      {Task.Supervisor, name: Astarte.DataUpdaterPlantWeb.TelemetryTaskSupervisor},
       {:telemetry_poller, measurements: periodic_measurements(), period: 10_000},
       {TelemetryMetricsPrometheus.Core, metrics: metrics()},
       {Plug.Cowboy,
@@ -87,7 +92,7 @@ defmodule Astarte.DataUpdaterPlantWeb.Telemetry do
         tags: [:realm]
       ),
       counter("astarte.data_updater_plant.triggers_handler.published_event.count",
-        tags: [:realm]
+        tags: [:realm, :event_type]
       ),
       counter("astarte.data_updater_plant.data_updater.detected_crash.count"),
       last_value("astarte.data_updater_plant.data_updater.handle_data.duration",
@@ -100,8 +105,130 @@ defmodule Astarte.DataUpdaterPlantWeb.Telemetry do
       ),
       sum("astarte.data_updater_plant.service.connected_devices.duration",
         tags: [:realm]
+      ),
+
+      # ControlHandler specific metrics
+      last_value("astarte.data_updater_plant.control_handler.properties_prune.duration",
+        tags: [:realm, :prune_type],
+        unit: {:native, :millisecond},
+        description: "Time taken to purge device properties"
+      ),
+      sum("astarte.data_updater_plant.control_handler.properties_prune.payload_size",
+        tags: [:realm, :prune_type],
+        description: "Size of properties purge payloads"
+      ),
+      last_value("astarte.data_updater_plant.control_handler.payload_decompression.duration",
+        tags: [:realm, :result],
+        unit: {:native, :microsecond},
+        description: "Time taken to decompress control payloads"
+      ),
+      sum("astarte.data_updater_plant.control_handler.payload_decompression.compressed_size",
+        tags: [:realm, :result],
+        description: "Size of compressed payloads"
+      ),
+      sum("astarte.data_updater_plant.control_handler.payload_decompression.uncompressed_size",
+        tags: [:realm, :result],
+        description: "Size of uncompressed payloads"
+      ),
+      counter("astarte.data_updater_plant.control_handler.unexpected_control.count",
+        tags: [:realm, :control_path],
+        description: "Unexpected control messages received"
+      ),
+      sum("astarte.data_updater_plant.control_handler.unexpected_control.payload_size",
+        tags: [:realm, :control_path],
+        description: "Size of unexpected control message payloads"
+      ),
+      counter("astarte.data_updater_plant.control_handler.interface_loading.count",
+        tags: [:realm, :interface, :result],
+        description: "Interface loading attempts during control processing"
+      ),
+      last_value("astarte.data_updater_plant.control_handler.vmq_publish.duration",
+        tags: [:realm, :result, :matches],
+        unit: {:native, :microsecond},
+        description: "Time taken to publish messages via VMQ"
+      ),
+      sum("astarte.data_updater_plant.control_handler.vmq_publish.payload_size",
+        tags: [:realm, :result, :matches],
+        description: "Size of payloads published via VMQ"
+      ),
+      last_value("astarte.data_updater_plant.control_handler.properties_resend.duration",
+        tags: [:realm, :result],
+        unit: {:native, :millisecond},
+        description: "Time taken to resend device properties"
+      ),
+
+      # DataHandler specific metrics
+      counter("astarte.data_updater_plant.data_handler.interface_cache.count",
+        tags: [:realm, :interface, :result],
+        description: "Interface cache hit/miss/failed lookups"
+      ),
+      counter("astarte.data_updater_plant.data_handler.path_cache.count",
+        tags: [:realm, :result],
+        description: "Path cache hit/miss lookups"
+      ),
+      counter("astarte.data_updater_plant.data_handler.value_change_check.count",
+        tags: [:realm, :has_previous],
+        description: "Value change detection attempts"
+      ),
+
+      # AMQPDataConsumer specific metrics
+      counter("astarte.data_updater_plant.amqp_consumer.channel_crash.count",
+        tags: [:queue_name, :reason],
+        description: "AMQP channel crashes by queue and reason"
+      ),
+      # AMQPEventsProducer specific metrics
+      counter("astarte.data_updater_plant.amqp_events_producer.channel_crash.count",
+        tags: [:reason],
+        description: "AMQP events producer channel crashes by reason"
+      ),
+
+      # Database exception metrics
+      counter("astarte.data_updater_plant.database.execute_query.exception.count",
+        tags: [:query, :reason, :kind],
+        tag_values: &to_valid_values/1,
+        unit: {:native, :second}
+      ),
+      counter("astarte.data_updater_plant.database.execute_query.stop.count",
+        tags: [:query, :reason],
+        tag_values: &to_valid_values/1,
+        unit: {:native, :second}
+      ),
+
+      # Database preparation metrics
+      counter("astarte.data_updater_plant.database.prepare_query.exception.count",
+        tags: [:query, :reason, :kind],
+        tag_values: &to_valid_values/1,
+        unit: {:native, :second}
+      ),
+      counter("astarte.data_updater_plant.database.prepare_query.stop.count",
+        tags: [:query, :reason],
+        tag_values: &to_valid_values/1,
+        unit: {:native, :second}
+      ),
+
+      # Database connection metrics
+      counter(
+        "astarte.data_updater_plant.database.cluster.control_connection.failed_to_connect.count",
+        tag_values: &to_valid_values/1,
+        tags: [:cluster_name, :host, :reason]
+      ),
+      counter("astarte.data_updater_plant.database.failed_to_connect.count",
+        tag_values: &to_valid_values/1,
+        tags: [:connection_name, :address, :port]
       )
     ]
+  end
+
+  defp to_valid_values(%{query: query, reason: reason}) do
+    %{query: query.statement, reason: Xandra.Error.message(reason)}
+  end
+
+  defp to_valid_values(%{cluster_name: cluster_name, host: host, reason: reason}) do
+    %{cluster_name: cluster_name, host: inspect(host), reason: to_string(reason)}
+  end
+
+  defp to_valid_values(%{connection_name: connection_name, address: address, port: port}) do
+    %{connection_name: connection_name, address: inspect(address), port: inspect(port)}
   end
 
   defp periodic_measurements do
@@ -109,6 +236,38 @@ defmodule Astarte.DataUpdaterPlantWeb.Telemetry do
       # A module, function and arguments to be invoked periodically.
       # This function must call :telemetry.execute/3 and a metric must be added above.
       # {MyApp, :count_users, []}
+    ]
+  end
+
+  defp attach_handlers do
+    :telemetry.attach_many(
+      DatabaseEvents,
+      xandra_events(),
+      &DatabaseEvents.handle_event/4,
+      Config.database_events_handling_method!()
+    )
+  end
+
+  defp xandra_events do
+    [
+      [:xandra, :connected],
+      [:xandra, :disconnected],
+      [:xandra, :failed_to_connect],
+      [:xandra, :prepared_cache, :hit],
+      [:xandra, :prepared_cache, :miss],
+      [:xandra, :prepare_query, :stop],
+      [:xandra, :execute_query, :stop],
+      [:xandra, :client_timeout],
+      [:xandra, :timed_out_response],
+      [:xandra, :server_warnings],
+      [:xandra, :cluster, :change_event],
+      [:xandra, :cluster, :control_connection, :connected],
+      [:xandra, :cluster, :control_connection, :disconnected],
+      [:xandra, :cluster, :control_connection, :failed_to_connect],
+      [:xandra, :cluster, :pool, :started],
+      [:xandra, :cluster, :pool, :restarted],
+      [:xandra, :cluster, :pool, :stopped],
+      [:xandra, :cluster, :discovered_peers]
     ]
   end
 end

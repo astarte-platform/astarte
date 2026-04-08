@@ -16,6 +16,12 @@
 # limitations under the License.
 
 defmodule Astarte.AppEngine.API.Device.Attributes do
+  @moduledoc """
+  Handles validation and application of Device Attributes.
+
+  This module manage the update and deletion of Device Attributes (Stored as 
+  key-Value pairs) in an Ecto Changeset while ensuring data integrity through validation.
+  """
   alias Ecto.Changeset
 
   require Logger
@@ -79,7 +85,7 @@ defmodule Astarte.AppEngine.API.Device.Attributes do
   @spec apply_delete(Changeset.t(), [attribute_tag]) :: Changeset.t()
   defp apply_delete(%Changeset{valid?: false} = changeset, _delete_attributes), do: changeset
 
-  defp apply_delete(changeset, delete_attributes) when length(delete_attributes) == 0,
+  defp apply_delete(changeset, delete_attributes) when delete_attributes == [],
     do: changeset
 
   defp apply_delete(changeset, delete_attributes) do
@@ -102,7 +108,7 @@ defmodule Astarte.AppEngine.API.Device.Attributes do
   @spec apply_update(Changeset.t(), [attribute]) :: Changeset.t()
   defp apply_update(%Changeset{valid?: false} = changeset, _update_attributes), do: changeset
 
-  defp apply_update(changeset, update_attributes) when length(update_attributes) == 0,
+  defp apply_update(changeset, update_attributes) when update_attributes == [],
     do: changeset
 
   defp apply_update(changeset, update_attributes) do

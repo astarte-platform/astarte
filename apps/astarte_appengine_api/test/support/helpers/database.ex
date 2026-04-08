@@ -16,19 +16,21 @@
 # limitations under the License.
 
 defmodule Astarte.Helpers.Database do
+  @moduledoc false
   import Ecto.Query
 
-  alias Astarte.DataAccess.Interface
   alias Astarte.Core.Device
-  alias Astarte.Helpers.JWT, as: JWTTestHelper
-  alias Astarte.DataAccess.Realms.Realm
-  alias Astarte.DataAccess.Devices.Device, as: DeviceSchema
-  alias Astarte.DataAccess.KvStore
-  alias Astarte.AppEngine.API.Repo
   alias Astarte.DataAccess.Device.DeletionInProgress
-  alias Astarte.DataAccess.Realms.Interface
+  alias Astarte.DataAccess.Devices.Device, as: DeviceSchema
+  alias Astarte.DataAccess.Interface
+  alias Astarte.DataAccess.KvStore
   alias Astarte.DataAccess.Realms.Endpoint, as: EndpointSchema
+  alias Astarte.DataAccess.Realms.Interface
   alias Astarte.DataAccess.Realms.Name
+  alias Astarte.DataAccess.Realms.Realm
+  alias Astarte.DataAccess.Repo
+  alias Astarte.DataAccess.UUID
+  alias Astarte.Helpers.JWT, as: JWTTestHelper
 
   require Logger
 
@@ -101,6 +103,12 @@ defmodule Astarte.Helpers.Database do
     );
   """
 
+  @create_capabilities_type """
+  CREATE TYPE #{Realm.keyspace_name(@test_realm)}.capabilities (
+    purge_properties_compression_format int
+  );
+  """
+
   @create_devices_table """
       CREATE TABLE #{Realm.keyspace_name(@test_realm)}.devices (
         device_id uuid,
@@ -127,6 +135,7 @@ defmodule Astarte.Helpers.Database do
         last_seen_ip inet,
         attributes map<varchar, varchar>,
         groups map<text, timeuuid>,
+        capabilities capabilities,
 
         PRIMARY KEY (device_id)
       );
@@ -138,6 +147,7 @@ defmodule Astarte.Helpers.Database do
     vmq_ack boolean,
     dup_start_ack boolean,
     dup_end_ack boolean,
+    groups set<text>,
 
     PRIMARY KEY (device_id)
   );
@@ -423,6 +433,8 @@ defmodule Astarte.Helpers.Database do
 
     case Repo.query(@create_autotestrealm) do
       {:ok, _} ->
+        Repo.query!(@create_capabilities_type)
+
         Repo.query!(@create_devices_table)
 
         Repo.query!(@create_deletion_in_progress_table)
@@ -500,7 +512,7 @@ defmodule Astarte.Helpers.Database do
         first_credentials_request: ~U[2016-08-20 09:44:00Z],
         last_seen_ip: {198, 51, 100, 81},
         last_credentials_request_ip: {198, 51, 100, 89},
-        total_received_msgs: 45000,
+        total_received_msgs: 45_000,
         total_received_bytes: total_received_bytes,
         inhibit_credentials_request: false,
         introspection: %{
@@ -666,18 +678,12 @@ defmodule Astarte.Helpers.Database do
   def fake_connect_device(encoded_device_id, connected) when is_boolean(connected) do
     {:ok, device_id} = Astarte.Core.Device.decode_device_id(encoded_device_id)
 
-    Xandra.Cluster.run(:xandra, fn conn ->
-      query = """
-      INSERT INTO #{Realm.keyspace_name(@test_realm)}.devices
-      (device_id, connected) VALUES (:device_id, :connected)
-      """
-
-      params = %{"device_id" => device_id, "connected" => connected}
-      prepared = Xandra.prepare!(conn, query)
-      %Xandra.Void{} = Xandra.execute!(conn, prepared, params)
-    end)
-
-    :ok
+    %DeviceSchema{}
+    |> Ecto.Changeset.change(%{
+      device_id: device_id,
+      connected: connected
+    })
+    |> Repo.insert!(prefix: Realm.keyspace_name(@test_realm))
   end
 
   def create_datastream_receiving_device do
@@ -703,7 +709,7 @@ defmodule Astarte.Helpers.Database do
       first_credentials_request: ~U[2016-08-20 11:05:00Z],
       last_seen_ip: :inet.parse_address(~c"198.51.100.81") |> elem(1),
       last_credentials_request_ip: :inet.parse_address(~c"198.51.100.89") |> elem(1),
-      total_received_msgs: 22000,
+      total_received_msgs: 22_000,
       total_received_bytes: 246,
       inhibit_credentials_request: false,
       introspection: %{"org.ServerOwnedIndividual" => 0},
@@ -714,7 +720,7 @@ defmodule Astarte.Helpers.Database do
     |> Repo.insert!(prefix: keyspace_name)
   end
 
-  defp insert_datastream_receiving_device_endpoints() do
+  defp insert_datastream_receiving_device_endpoints do
     keyspace_name = Realm.keyspace_name(@test_realm)
 
     %EndpointSchema{}
@@ -735,7 +741,7 @@ defmodule Astarte.Helpers.Database do
     |> Repo.insert!(prefix: keyspace_name)
   end
 
-  defp insert_into_interface_datastream() do
+  defp insert_into_interface_datastream do
     keyspace_name = Realm.keyspace_name(@test_realm)
 
     %Interface{}
@@ -762,9 +768,9 @@ defmodule Astarte.Helpers.Database do
   def remove_datastream_receiving_device do
     keyspace_name = Realm.keyspace_name(@test_realm)
 
-    {:ok, device_id} = Astarte.Core.Device.decode_device_id("fmloLzG5T5u0aOUfIkL8KA")
+    {:ok, device_id} = Device.decode_device_id("fmloLzG5T5u0aOUfIkL8KA")
 
-    {:ok, interface_id} = Astarte.DataAccess.UUID.cast("13ccc31d-f911-29df-cbe6-be22635293bd")
+    {:ok, interface_id} = UUID.cast("13ccc31d-f911-29df-cbe6-be22635293bd")
 
     Repo.delete_all(
       from d in DeviceSchema,
@@ -792,7 +798,7 @@ defmodule Astarte.Helpers.Database do
     insert_into_interface_obj_aggregated()
   end
 
-  defp insert_object_receiving_device_endpoints() do
+  defp insert_object_receiving_device_endpoints do
     insert_endpoint_queries = [
       """
       INSERT INTO #{Realm.keyspace_name(@test_realm)}.endpoints(interface_id, endpoint_id, allow_unset, endpoint, expiry, interface_major_version, interface_minor_version, interface_name, interface_type, reliability, retention, value_type) VALUES
@@ -813,7 +819,7 @@ defmodule Astarte.Helpers.Database do
     end)
   end
 
-  defp insert_into_interface_obj_aggregated() do
+  defp insert_into_interface_obj_aggregated do
     keyspace_name = Realm.keyspace_name(@test_realm)
 
     %Interface{}
@@ -837,7 +843,7 @@ defmodule Astarte.Helpers.Database do
     |> Repo.insert!(prefix: keyspace_name)
   end
 
-  defp create_server_owned_aggregated_object_table() do
+  defp create_server_owned_aggregated_object_table do
     create_server_owned_aggregated_object_table_query = """
     CREATE TABLE IF NOT EXISTS #{Realm.keyspace_name(@test_realm)}.com_example_server_owned_aggregated_object_v1 (
     device_id uuid,
@@ -853,7 +859,7 @@ defmodule Astarte.Helpers.Database do
     Repo.query!(create_server_owned_aggregated_object_table_query)
   end
 
-  defp insert_object_receiving_device() do
+  defp insert_object_receiving_device do
     keyspace_name = Realm.keyspace_name(@test_realm)
 
     {:ok, device_id} = Astarte.Core.Device.decode_device_id("fmloLzG5T5u0aOUfIkL8KA")
@@ -870,7 +876,7 @@ defmodule Astarte.Helpers.Database do
       first_credentials_request: ~U[2016-08-20 11:05:00Z],
       last_seen_ip: {198, 51, 100, 81},
       last_credentials_request_ip: {198, 51, 100, 59},
-      total_received_msgs: 45000,
+      total_received_msgs: 45_000,
       total_received_bytes: 1234,
       inhibit_credentials_request: false,
       introspection: %{"org.astarte-platform.genericsensors.ServerOwnedAggregateObj" => 0},

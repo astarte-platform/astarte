@@ -10,7 +10,7 @@ You can browse the source code of the Dashboard software on its
 ## Introduction
 
 The Astarte Dashboard is a Single Page Application that provides users with an overview of their
-Realm and a user-friendy way of managing it on any web browser. The Dashboard is designed to be a
+Realm and a user-friendly way of managing it on any web browser. The Dashboard is designed to be a
 quick and easy way to give you immediate feedback on your work and as a quick and intuitive way to
 configure your realm. It is not designed to be operated by end-users, rather by infrastructure
 maintainers, owners who need information on the system status, and those working on projects based

@@ -18,37 +18,41 @@
 
 defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
   use ExUnit.Case, async: true
+  use Astarte.Cases.Trigger
+  require IEx
   import Mox
 
   import Ecto.Query
 
+  alias Astarte.Core.CQLUtils
   alias Astarte.Core.Device
+  alias Astarte.Core.Mapping.EndpointsAutomaton
   alias Astarte.Core.Triggers.SimpleEvents.DeviceConnectedEvent
   alias Astarte.Core.Triggers.SimpleEvents.DeviceDisconnectedEvent
   alias Astarte.Core.Triggers.SimpleEvents.IncomingDataEvent
+  alias Astarte.Core.Triggers.SimpleEvents.IncomingIntrospectionEvent
+  alias Astarte.Core.Triggers.SimpleEvents.InterfaceAddedEvent
+  alias Astarte.Core.Triggers.SimpleEvents.InterfaceMinorUpdatedEvent
+  alias Astarte.Core.Triggers.SimpleEvents.InterfaceRemovedEvent
+  alias Astarte.Core.Triggers.SimpleEvents.InterfaceVersion
   alias Astarte.Core.Triggers.SimpleEvents.PathRemovedEvent
   alias Astarte.Core.Triggers.SimpleEvents.SimpleEvent
   alias Astarte.Core.Triggers.SimpleEvents.ValueChangeAppliedEvent
-  alias Astarte.Core.Triggers.SimpleEvents.IncomingIntrospectionEvent
-  alias Astarte.Core.Triggers.SimpleEvents.InterfaceAddedEvent
-  alias Astarte.Core.Triggers.SimpleEvents.InterfaceRemovedEvent
-  alias Astarte.Core.Triggers.SimpleEvents.InterfaceMinorUpdatedEvent
-  alias Astarte.Core.Triggers.SimpleEvents.InterfaceVersion
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.AMQPTriggerTarget
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.DataTrigger
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.DeviceTrigger
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.SimpleTriggerContainer
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.TriggerTargetContainer
   alias Astarte.DataAccess.Devices.Device, as: DeviceSchema
-  alias Astarte.DataAccess.Realms.Realm
   alias Astarte.DataAccess.Realms.IndividualDatastream
   alias Astarte.DataAccess.Realms.IndividualProperty
   alias Astarte.DataAccess.Realms.Interface
+  alias Astarte.DataAccess.Realms.Realm
+  alias Astarte.DataAccess.Repo
   alias Astarte.DataUpdaterPlant.AMQPTestHelper
   alias Astarte.DataUpdaterPlant.DatabaseTestHelper
   alias Astarte.DataUpdaterPlant.DataUpdater
-  alias Astarte.DataAccess.Repo
-  alias Astarte.Core.CQLUtils
+  alias Astarte.Events.Triggers.Cache
 
   setup :verify_on_exit!
 
@@ -76,17 +80,17 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
         helper_name: helper_name
       )
 
-    {:ok, %{realm: realm_string, helper_name: helper_name}}
+    {:ok, %{realm: realm_string, realm_name: realm_string, helper_name: helper_name}}
   end
 
   test "simple flow", %{realm: realm, helper_name: helper_name} do
-    AMQPTestHelper.clean_queue(helper_name)
+    # AMQPTestHelper.clean_queue(helper_name)
 
     keyspace_name = Realm.keyspace_name(realm)
     encoded_device_id = "f0VMRgIBAQAAAAAAAAAAAA"
     {:ok, device_id} = Device.decode_device_id(encoded_device_id)
 
-    received_msgs = 45000
+    received_msgs = 45_000
     received_bytes = 4_500_000
     existing_introspection_map = %{"com.test.LCDMonitor" => 1, "com.test.SimpleStreamTest" => 1}
     existing_introspection_string = "com.test.LCDMonitor:1:0;com.test.SimpleStreamTest:1:0"
@@ -135,8 +139,6 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
     assert DataUpdater.handle_install_volatile_trigger(
              realm,
              encoded_device_id,
-             device_id,
-             1,
              volatile_trigger_parent_id,
              volatile_trigger_id,
              simple_trigger_data,
@@ -161,7 +163,35 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
     )
 
     DataUpdater.dump_state(realm, encoded_device_id)
-    {conn_event, conn_headers, _metadata} = AMQPTestHelper.wait_and_get_message(helper_name)
+
+    # Receive both messages without making assumptions on the ordering
+    {conn_event_1, conn_headers_1, _metadata} = AMQPTestHelper.wait_and_get_message(helper_name)
+    {conn_event_2, conn_headers_2, _metadata} = AMQPTestHelper.wait_and_get_message(helper_name)
+
+    group_trigger_id =
+      DatabaseTestHelper.group1_device_connected_trigger_id() |> UUID.binary_to_string!()
+
+    device_trigger_id =
+      DatabaseTestHelper.device_connected_trigger_id() |> UUID.binary_to_string!()
+
+    {event_group, event_device} =
+      case {conn_headers_1["x_astarte_simple_trigger_id"],
+            conn_headers_2["x_astarte_simple_trigger_id"]} do
+        {^group_trigger_id, ^device_trigger_id} ->
+          {%{event: conn_event_1, headers: conn_headers_1},
+           %{event: conn_event_2, headers: conn_headers_2}}
+
+        {^device_trigger_id, ^group_trigger_id} ->
+          {%{event: conn_event_2, headers: conn_headers_2},
+           %{event: conn_event_1, headers: conn_headers_1}}
+
+        _ ->
+          flunk(
+            "unexpected events, expecting device connected events: #{inspect(SimpleEvent.decode(conn_event_1))}, #{inspect(SimpleEvent.decode(conn_event_2))}"
+          )
+      end
+
+    %{event: conn_event, headers: conn_headers} = event_group
     assert conn_headers["x_astarte_event_type"] == "device_connected_event"
     assert conn_headers["x_astarte_realm"] == realm
     assert conn_headers["x_astarte_device_id"] == encoded_device_id
@@ -186,7 +216,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
              simple_trigger_id: DatabaseTestHelper.group1_device_connected_trigger_id()
            }
 
-    {conn_event, conn_headers, _metadata} = AMQPTestHelper.wait_and_get_message(helper_name)
+    %{event: conn_event, headers: conn_headers} = event_device
     assert conn_headers["x_astarte_event_type"] == "device_connected_event"
     assert conn_headers["x_astarte_realm"] == realm
     assert conn_headers["x_astarte_device_id"] == encoded_device_id
@@ -227,7 +257,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
 
     assert device_row == %{
              connected: true,
-             total_received_msgs: 45000,
+             total_received_msgs: 45_000,
              total_received_bytes: 4_500_000,
              exchanged_msgs_by_interface: %{},
              exchanged_bytes_by_interface: %{}
@@ -273,8 +303,6 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
     assert DataUpdater.handle_install_volatile_trigger(
              realm,
              encoded_device_id,
-             :uuid.string_to_uuid("0a0da77d-85b5-93d9-d4d2-bd26dd18c9af"),
-             2,
              incoming_introspection_volatile_trigger_parent_id,
              incoming_introspection_volatile_trigger_id,
              incoming_introspection_trigger_data,
@@ -353,8 +381,6 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
     assert DataUpdater.handle_install_volatile_trigger(
              realm,
              encoded_device_id,
-             :uuid.string_to_uuid("0a0da77d-85b5-93d9-d4d2-bd26dd18c9af"),
-             2,
              interface_added_volatile_trigger_parent_id,
              interface_added_volatile_trigger_id,
              interface_added_trigger_data,
@@ -438,8 +464,6 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
     assert DataUpdater.handle_install_volatile_trigger(
              realm,
              encoded_device_id,
-             :uuid.string_to_uuid("0a0da77d-85b5-93d9-d4d2-bd26dd18c9af"),
-             2,
              interface_minor_updated_volatile_trigger_parent_id,
              interface_minor_updated_volatile_trigger_id,
              interface_minor_updated_trigger_data,
@@ -523,8 +547,6 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
     assert DataUpdater.handle_install_volatile_trigger(
              realm,
              encoded_device_id,
-             :uuid.string_to_uuid("0a0da77d-85b5-93d9-d4d2-bd26dd18c9af"),
-             2,
              interface_removed_volatile_trigger_parent_id,
              interface_removed_volatile_trigger_id,
              interface_removed_trigger_data,
@@ -613,8 +635,6 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
     assert DataUpdater.handle_install_volatile_trigger(
              realm,
              encoded_device_id,
-             :uuid.string_to_uuid("0a0da77d-85b5-93d9-d4d2-bd26dd18c9af"),
-             2,
              volatile_trigger_parent_id,
              volatile_trigger_id,
              simple_trigger_data,
@@ -640,16 +660,15 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
       |> SimpleTriggerContainer.encode()
 
     non_matching_volatile_trigger_parent_id = :crypto.strong_rand_bytes(16)
-    non_matching_volatile_trigger_id = :crypto.strong_rand_bytes(16)
+    non_matching_volatile_trigger_id_1 = :crypto.strong_rand_bytes(16)
+    non_matching_volatile_trigger_id_2 = :crypto.strong_rand_bytes(16)
 
     # Install the non-matching trigger twice to check that this installs 2 trigger_targets
     assert DataUpdater.handle_install_volatile_trigger(
              realm,
              encoded_device_id,
-             :uuid.string_to_uuid("0a0da77d-85b5-93d9-d4d2-bd26dd18c9af"),
-             2,
              non_matching_volatile_trigger_parent_id,
-             non_matching_volatile_trigger_id,
+             non_matching_volatile_trigger_id_1,
              non_matching_simple_trigger_data,
              trigger_target_data
            ) == :ok
@@ -657,10 +676,8 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
     assert DataUpdater.handle_install_volatile_trigger(
              realm,
              encoded_device_id,
-             :uuid.string_to_uuid("0a0da77d-85b5-93d9-d4d2-bd26dd18c9af"),
-             2,
              non_matching_volatile_trigger_parent_id,
-             non_matching_volatile_trigger_id,
+             non_matching_volatile_trigger_id_2,
              non_matching_simple_trigger_data,
              trigger_target_data
            ) == :ok
@@ -797,8 +814,6 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
     assert DataUpdater.handle_install_volatile_trigger(
              realm,
              encoded_device_id,
-             :uuid.string_to_uuid("798b93a5-842e-bbad-2e4d-d20306838051"),
-             2,
              volatile_changed_trigger_parent_id,
              volatile_changed_trigger_id,
              simple_trigger_data,
@@ -826,8 +841,6 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
     assert DataUpdater.handle_install_volatile_trigger(
              realm,
              encoded_device_id,
-             :uuid.string_to_uuid("badb93a5-842e-bbad-2e4d-d20306838051"),
-             2,
              bad_trigger_parent_id,
              bad_trigger_id,
              bad_trigger_data,
@@ -855,8 +868,6 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
     assert DataUpdater.handle_install_volatile_trigger(
              realm,
              encoded_device_id,
-             :uuid.string_to_uuid("798b93a5-842e-bbad-2e4d-d20306838051"),
-             2,
              bad_path_trigger_parent_id,
              bad_path_trigger_id,
              bad_path_trigger_data,
@@ -979,7 +990,15 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
     interface_id = CQLUtils.interface_id("com.test.SimpleStreamTest", 1)
     endpoint_id = retrieve_endpoint_id(realm, "com.test.SimpleStreamTest", 1, "/0/value")
     trigger_key = {:on_incoming_data, interface_id, endpoint_id}
-    incoming_data_0_value_triggers = Map.get(state.data_triggers, trigger_key)
+
+    incoming_data_0_value_triggers =
+      Cache.find_data_triggers(
+        realm,
+        device_id,
+        state.groups,
+        trigger_key,
+        Map.from_struct(state)
+      )
 
     # The length is 2 since greater-then triggers are merged into one because they are congruent
     assert length(incoming_data_0_value_triggers) == 2
@@ -1081,7 +1100,8 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
       make_timestamp("2017-10-26T08:48:51+00:00")
     )
 
-    # we expect only /string to be updated here, we need this to check against accidental NULL insertions, that are bad for tombstones on cassandra.
+    # we expect only /string to be updated here, we need this to check against
+    # accidental NULL insertions, that are bad for tombstones on cassandra.
     payload3 = Cyanide.encode!(%{"string" => "zzz"})
 
     DataUpdater.handle_data(
@@ -1509,13 +1529,10 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
     volatile_trigger_id = :crypto.strong_rand_bytes(16)
 
     fail_encoded_device_id = "f0VMRgIBAQBBBBBBBBBBBB"
-    {:ok, fail_device_id} = Device.decode_device_id(fail_encoded_device_id)
 
     assert DataUpdater.handle_install_volatile_trigger(
              realm,
              fail_encoded_device_id,
-             fail_device_id,
-             1,
              volatile_trigger_parent_id,
              volatile_trigger_id,
              simple_trigger_data,
@@ -1630,7 +1647,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
     realm: realm,
     helper_name: helper_name
   } do
-    AMQPTestHelper.clean_queue(helper_name)
+    # AMQPTestHelper.clean_queue(helper_name)
 
     encoded_device_id =
       :crypto.strong_rand_bytes(16)
@@ -1649,8 +1666,6 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
     assert DataUpdater.handle_install_volatile_trigger(
              realm,
              encoded_device_id,
-             device_id,
-             1,
              volatile_trigger_parent_id,
              volatile_trigger_id,
              generate_disconnection_trigger_data(),
@@ -1663,6 +1678,8 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
       gen_tracking_id(),
       timestamp_us_x_10
     )
+
+    AMQPTestHelper.awaiting_messages_count(helper_name)
 
     # Receive the first disconnection trigger
     {event, headers, _metadata} = AMQPTestHelper.wait_and_get_message(helper_name)
@@ -1698,7 +1715,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
     assert AMQPTestHelper.awaiting_messages_count(helper_name) == 0
   end
 
-  defp generate_disconnection_trigger_data() do
+  defp generate_disconnection_trigger_data do
     %SimpleTriggerContainer{
       simple_trigger: {
         :device_trigger,
@@ -1741,7 +1758,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
       {:erlang.binary_to_term(interface_row[:automaton_transitions]),
        :erlang.binary_to_term(interface_row[:automaton_accepting_states])}
 
-    {:ok, endpoint_id} = Astarte.Core.Mapping.EndpointsAutomaton.resolve_path(path, automaton)
+    {:ok, endpoint_id} = EndpointsAutomaton.resolve_path(path, automaton)
 
     endpoint_id
   end
@@ -1749,10 +1766,10 @@ defmodule Astarte.DataUpdaterPlant.DataUpdaterTest do
   defp make_timestamp(timestamp_string) do
     {:ok, date_time, _} = DateTime.from_iso8601(timestamp_string)
 
-    DateTime.to_unix(date_time, :millisecond) * 10000
+    DateTime.to_unix(date_time, :millisecond) * 10_000
   end
 
-  defp gen_tracking_id() do
+  defp gen_tracking_id do
     message_id = :erlang.unique_integer([:monotonic]) |> Integer.to_string()
     delivery_tag = {:injected_msg, make_ref()}
     {message_id, delivery_tag}

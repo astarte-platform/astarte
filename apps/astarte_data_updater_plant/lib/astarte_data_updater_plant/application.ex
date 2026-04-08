@@ -24,8 +24,8 @@ defmodule Astarte.DataUpdaterPlant.Application do
   use Application
   require Logger
 
-  alias Astarte.DataUpdaterPlant.Config
   alias Astarte.DataAccess.Config, as: DataAccessConfig
+  alias Astarte.DataUpdaterPlant.Config
 
   @app_version Mix.Project.config()[:version]
 
@@ -41,19 +41,12 @@ defmodule Astarte.DataUpdaterPlant.Application do
     Config.validate!()
     DataAccessConfig.validate!()
 
-    xandra_options = Config.xandra_options!()
-
-    data_access_opts = [xandra_options: xandra_options]
-
-    dup_xandra_opts = Keyword.put(xandra_options, :name, :xandra)
-
     children = [
-      {Cluster.Supervisor,
-       [Config.cluster_topologies!(), [name: Astarte.DataUpdaterPlant.ClusterSupervisor]]},
       Astarte.DataUpdaterPlantWeb.Telemetry,
-      {Xandra.Cluster, dup_xandra_opts},
-      {Astarte.DataAccess, data_access_opts},
-      Astarte.DataUpdaterPlant.DataPipelineSupervisor
+      Astarte.DataUpdaterPlant.DataPipelineSupervisor,
+      {Astarte.Events.AMQPEvents.Supervisor, []},
+      {Astarte.Events.AMQPTriggers.Supervisor, []},
+      {Astarte.Events.Triggers.Supervisor, []}
     ]
 
     opts = [strategy: :one_for_one, name: Astarte.DataUpdaterPlant.Supervisor]

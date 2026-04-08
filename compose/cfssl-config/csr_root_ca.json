@@ -1,19 +1,19 @@
 {
-    "CN":"Astarte Root CA",
-    "key":{
-        "algo":"ecdsa",
-        "size":256
-    },
-    "names":[
-        {
-            "C":"IT",
-            "L":"Milan",
-            "O":"Astarte User",
-            "OU":"IoT Division",
-            "ST":"None"
-        }
-    ],
-    "ca":{
-        "expiry":"262800h"
+  "CN": "Astarte Root CA",
+  "key": {
+    "algo": "ecdsa",
+    "size": 256
+  },
+  "names": [
+    {
+      "C": "IT",
+      "L": "Milan",
+      "O": "Astarte User",
+      "OU": "IoT Division",
+      "ST": "None"
     }
+  ],
+  "ca": {
+    "expiry": "262800h"
+  }
 }

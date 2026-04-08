@@ -1,5 +1,5 @@
-import { reverse } from "named-urls";
 import axios from "axios";
+import { reverse } from "named-urls";
 
 export const constant = {
   ID: "id",
@@ -42,13 +42,13 @@ function getDeviceById(id, params = {}) {
 function handleDeviceDataInterfaces(data) {
   const interfaces = Object.keys(data.introspection);
   const availableSensorsInterface = interfaces.find(
-    (key) => key.search(constant.AVAILABLE_SENSORS) > -1
+    (key) => key.search(constant.AVAILABLE_SENSORS) > -1,
   );
   const valuesInterface = interfaces.find(
-    (key) => key.search(constant.VALUES) > -1
+    (key) => key.search(constant.VALUES) > -1,
   );
   const samplingRateInterface = interfaces.find(
-    (key) => key.search(constant.SAMPLING_RATE) > -1
+    (key) => key.search(constant.SAMPLING_RATE) > -1,
   );
   return {
     interfaces,

@@ -3,16 +3,16 @@ name: Docs generation for Github Pages
 on:
   push:
     paths:
-    # Documentation pages
-    - 'doc/**'
-    # Swagger files
-    - 'apps/*/priv/static/*.yaml'
-    # The action itself
-    - '.github/workflows/docs-workflow.yaml'
+      # Documentation pages
+      - "doc/**"
+      # Swagger files
+      - "apps/*/priv/static/*.yaml"
+      # The action itself
+      - ".github/workflows/docs-workflow.yaml"
     branches:
-    # Create the snapshot only when it matters
-    - 'master'
-    - 'release-*'
+      # Create the snapshot only when it matters
+      - "master"
+      - "release-*"
   # Run on branch/tag creation
   create:
 
@@ -20,58 +20,53 @@ jobs:
   docs:
     runs-on: ubuntu-22.04
     steps:
-    # Checkout the source
-    - uses: actions/checkout@v2
-      with:
-        path: astarte
-    # Checkout the docs repository
-    - uses: actions/checkout@v2
-      with:
-        repository: astarte-platform/docs
-        path: docs
-    - uses: erlef/setup-beam@v1.15
-      with:
-        elixir-version: "1.15.7"
-        otp-version: "26.1"
-    - name: Install Dependencies
-      working-directory: ./astarte/doc
-      run: mix deps.get
-    - name: Build Docs
-      working-directory: ./astarte/doc
-      run: mix docs
-    - name: Copy Docs, preserving Device SDK docs
-      run: |
-        export DOCS_DIRNAME="astarte/$(echo ${{ github.ref }} | sed 's,refs/heads/,,' | sed 's/master/snapshot/g' | sed 's/release-//g')"
-        rm -rf docs/$DOCS_DIRNAME
-        mkdir docs/$DOCS_DIRNAME
-        cp -r astarte/doc/doc/* docs/$DOCS_DIRNAME/
-    - name: Checkout Swagger UI
-      uses: actions/checkout@v2
-      with:
-        repository: swagger-api/swagger-ui
-        path: swagger-ui
-        ref: 'v4.9.1'
-    - name: Copy all Swagger UI files
-      run: |
-        export DOCS_DIRNAME="astarte/$(echo ${{ github.ref }} | sed 's,refs/heads/,,' | sed 's/master/snapshot/g' | sed 's/release-//g')"
-        mkdir docs/$DOCS_DIRNAME/api
-        cp swagger-ui/dist/* docs/$DOCS_DIRNAME/api
-        rm docs/$DOCS_DIRNAME/api/index.html
-        cp astarte/doc/swagger-ui-index.html docs/$DOCS_DIRNAME/api/index.html
-    - name: Commit files
-      working-directory: ./docs
-      run: |
-        git config --local user.email "astarte-machine@ispirata.com"
-        git config --local user.name "Astarte Bot"
-        git add .
-        git commit -m "Update Documentation"
-    - name: Push changes
-      working-directory: ./docs
-      run: |
-        eval `ssh-agent -t 60 -s`
-        echo "${{ secrets.DOCS_DEPLOY_KEY }}" | ssh-add -
-        mkdir -p ~/.ssh/
-        ssh-keyscan github.com >> ~/.ssh/known_hosts
-        git remote add topush "git@github.com:astarte-platform/docs.git"
-        git fetch topush
-        git push topush master
+      # Checkout the source
+      - uses: actions/checkout@v2
+        with:
+          path: astarte
+      # Checkout the docs repository
+      - uses: actions/checkout@v2
+        with:
+          repository: astarte-platform/docs
+          path: docs
+      - name: Build Docs
+        uses: team-alembic/staple-actions/actions/mix-docs@a74b3b61209d35d45526df174766632f8aee03ed
+        with:
+          working-directory: ./astarte/doc
+          mix-env: dev
+      - name: Copy Docs, preserving Device SDK docs
+        run: |
+          export DOCS_DIRNAME="astarte/$(echo ${{ github.ref }} | sed 's,refs/heads/,,' | sed 's/master/snapshot/g' | sed 's/release-//g')"
+          rm -rf docs/$DOCS_DIRNAME
+          mkdir docs/$DOCS_DIRNAME
+          cp -r astarte/doc/doc/* docs/$DOCS_DIRNAME/
+      - name: Checkout Swagger UI
+        uses: actions/checkout@v2
+        with:
+          repository: swagger-api/swagger-ui
+          path: swagger-ui
+          ref: "v4.9.1"
+      - name: Copy all Swagger UI files
+        run: |
+          export DOCS_DIRNAME="astarte/$(echo ${{ github.ref }} | sed 's,refs/heads/,,' | sed 's/master/snapshot/g' | sed 's/release-//g')"
+          mkdir docs/$DOCS_DIRNAME/api
+          cp swagger-ui/dist/* docs/$DOCS_DIRNAME/api
+          rm docs/$DOCS_DIRNAME/api/index.html
+          cp astarte/doc/swagger-ui-index.html docs/$DOCS_DIRNAME/api/index.html
+      - name: Commit files
+        working-directory: ./docs
+        run: |
+          git config --local user.email "astarte-machine@ispirata.com"
+          git config --local user.name "Astarte Bot"
+          git add .
+          git commit -m "Update Documentation"
+      - name: Push changes
+        working-directory: ./docs
+        run: |
+          eval `ssh-agent -t 60 -s`
+          echo "${{ secrets.DOCS_DEPLOY_KEY }}" | ssh-add -
+          mkdir -p ~/.ssh/
+          ssh-keyscan github.com >> ~/.ssh/known_hosts
+          git remote add topush "git@github.com:astarte-platform/docs.git"
+          git fetch topush
+          git push topush master

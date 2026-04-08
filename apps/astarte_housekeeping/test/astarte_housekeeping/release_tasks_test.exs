@@ -17,21 +17,28 @@
 #
 
 defmodule Astarte.Housekeeping.ReleaseTasksTest do
-  use ExUnit.Case
+  use ExUnit.Case, async: true
+  use Mimic
 
-  alias Astarte.Housekeeping.Migrator
-  alias Astarte.Housekeeping.Queries
-  alias Astarte.Housekeeping.ReleaseTasks
+  alias Astarte.DataAccess.Consistency
+  alias Astarte.DataAccess.KvStore
+  alias Astarte.DataAccess.Realms.Realm
   alias Astarte.Housekeeping.Helpers.Database
+  alias Astarte.Housekeeping.Migrator
+  alias Astarte.Housekeeping.ReleaseTasks
 
   use Mimic
 
   setup do
+    astarte_instance_id = "astarte#{System.unique_integer([:positive])}"
+    Database.setup_database_access(astarte_instance_id)
+
     on_exit(fn ->
-      Database.destroy_test_astarte_keyspace!(:xandra)
+      Database.setup_database_access(astarte_instance_id)
+      Database.teardown_astarte_keyspace()
     end)
 
-    :ok
+    %{astarte_instance_id: astarte_instance_id}
   end
 
   describe "ensure_migrated!/0" do
@@ -48,15 +55,32 @@ defmodule Astarte.Housekeeping.ReleaseTasksTest do
 
     test "calls the migrator" do
       Migrator
-      |> expect(:run_astarte_keyspace_migrations, fn _ -> :ok end)
-      |> expect(:run_realms_migrations, fn _ -> :ok end)
+      |> expect(:run_astarte_keyspace_migrations, fn -> :ok end)
+      |> expect(:run_realms_migrations, fn -> :ok end)
 
       assert :ok = ReleaseTasks.ensure_migrated!()
     end
   end
 
   defp assert_initialized do
-    assert {:ok, schema_version} = Queries.get_astarte_schema_version()
+    assert {:ok, schema_version} = get_astarte_schema_version()
     assert schema_version == Migrator.latest_astarte_schema_version()
+  end
+
+  defp get_astarte_schema_version do
+    get_schema_version(Realm.astarte_keyspace_name())
+  end
+
+  defp get_schema_version(keyspace_name) do
+    opts = [
+      prefix: keyspace_name,
+      consistency: Consistency.domain_model(:read)
+    ]
+
+    case KvStore.fetch_value("astarte", "schema_version", :big_integer, opts) do
+      {:ok, schema_version} -> {:ok, schema_version}
+      {:error, :not_found} -> {:ok, 0}
+      {:error, reason} -> {:error, reason}
+    end
   end
 end

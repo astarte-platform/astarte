@@ -1,6 +1,6 @@
+import React from "react";
 import { Accordion, Button, Card, ListGroup } from "react-bootstrap";
 import { Images } from "../Images";
-import React from "react";
 
 const _ = require("lodash");
 const moment = require("moment");
@@ -41,7 +41,7 @@ function SensorListItem(props) {
     {
       label: "Last Update",
       value: moment(props.sensorValues.value.timestamp).format(
-        getLocaleFormat()
+        getLocaleFormat(),
       ),
     },
   ];

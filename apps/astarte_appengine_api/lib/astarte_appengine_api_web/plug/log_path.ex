@@ -17,6 +17,9 @@
 #
 
 defmodule Astarte.AppEngine.APIWeb.Plug.LogPath do
+  @moduledoc """
+  Plug that injects the data path into the Logger metadata
+  """
   def init(opts) do
     opts
   end

@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2019 Ispirata Srl
+# Copyright 2019 - 2025 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -17,12 +17,16 @@
 #
 
 defmodule Astarte.AppEngine.API.Stats.Queries do
-  alias Astarte.Core.Device
-  alias Astarte.DataAccess.Realms.Realm
-  alias Astarte.AppEngine.API.Repo
-  alias Astarte.DataAccess.Devices.Device
-  alias Astarte.DataAccess.Consistency
+  @moduledoc """
+  Database queries for retrieving statistics about devices in an Astarte realm.
+  This module handles the aggregation of device data, such as total device count and connected device count.
+  """
   alias Astarte.AppEngine.API.Stats.DevicesStats
+  alias Astarte.Core.Device
+  alias Astarte.DataAccess.Consistency
+  alias Astarte.DataAccess.Devices.Device
+  alias Astarte.DataAccess.Realms.Realm
+  alias Astarte.DataAccess.Repo
 
   require Logger
 

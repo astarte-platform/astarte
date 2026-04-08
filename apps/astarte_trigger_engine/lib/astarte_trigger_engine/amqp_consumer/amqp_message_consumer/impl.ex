@@ -17,10 +17,14 @@
 #
 
 defmodule Astarte.TriggerEngine.AMQPConsumer.AMQPMessageConsumer.Impl do
-  alias AMQP.Channel
+  @moduledoc """
+  Implementation of AMQP message consumer.
+  """
+
   alias AMQP.Basic
-  alias Astarte.TriggerEngine.Config
+  alias AMQP.Channel
   alias Astarte.Core.Triggers.Policy, as: PolicyStruct
+  alias Astarte.TriggerEngine.Config
   alias ExRabbitPool.Consumer
 
   require Logger

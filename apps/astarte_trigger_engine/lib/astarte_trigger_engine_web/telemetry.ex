@@ -20,13 +20,17 @@ defmodule Astarte.TriggerEngineWeb.Telemetry do
   use Supervisor
   import Telemetry.Metrics
   alias Astarte.TriggerEngine.Config
+  alias Astarte.TriggerEngineWeb.Telemetry.DatabaseEvents
 
   def start_link(arg) do
     Supervisor.start_link(__MODULE__, arg, name: __MODULE__)
   end
 
   def init(_arg) do
+    attach_handlers()
+
     children = [
+      {Task.Supervisor, name: Astarte.TriggerEngineWeb.TelemetryTaskSupervisor},
       {:telemetry_poller, measurements: periodic_measurements(), period: 10_000},
       {TelemetryMetricsPrometheus.Core, metrics: metrics()},
       {Plug.Cowboy,
@@ -70,8 +74,63 @@ defmodule Astarte.TriggerEngineWeb.Telemetry do
       ),
       last_value("astarte.trigger_engine.service.health",
         description: "Service state: 1 if good, 0 if not."
+      ),
+      last_value("astarte.trigger_engine.handle_event.start",
+        tags: [:realm],
+        unit: {:native, :millisecond}
+      ),
+      last_value("astarte.trigger_engine.handle_event.duration",
+        tags: [:realm],
+        unit: {:native, :millisecond}
+      ),
+
+      # Database exception metrics
+      counter("astarte.trigger_engine.database.execute_query.exception.count",
+        tags: [:query, :reason, :kind],
+        tag_values: &to_valid_values/1,
+        unit: {:native, :second}
+      ),
+      counter("astarte.trigger_engine.database.execute_query.stop.count",
+        tags: [:query, :reason],
+        tag_values: &to_valid_values/1,
+        unit: {:native, :second}
+      ),
+
+      # Database preparation metrics
+      counter("astarte.trigger_engine.database.prepare_query.exception.count",
+        tags: [:query, :reason, :kind],
+        tag_values: &to_valid_values/1,
+        unit: {:native, :second}
+      ),
+      counter("astarte.trigger_engine.database.prepare_query.stop.count",
+        tags: [:query, :reason],
+        tag_values: &to_valid_values/1,
+        unit: {:native, :second}
+      ),
+
+      # Database connection metrics
+      counter(
+        "astarte.trigger_engine.database.cluster.control_connection.failed_to_connect.count",
+        tag_values: &to_valid_values/1,
+        tags: [:cluster_name, :host, :reason]
+      ),
+      counter("astarte.trigger_engine.database.failed_to_connect.count",
+        tag_values: &to_valid_values/1,
+        tags: [:connection_name, :address, :port]
       )
     ]
+  end
+
+  defp to_valid_values(%{query: query, reason: reason}) do
+    %{query: query.statement, reason: Xandra.Error.message(reason)}
+  end
+
+  defp to_valid_values(%{cluster_name: cluster_name, host: host, reason: reason}) do
+    %{cluster_name: cluster_name, host: inspect(host), reason: to_string(reason)}
+  end
+
+  defp to_valid_values(%{connection_name: connection_name, address: address, port: port}) do
+    %{connection_name: connection_name, address: inspect(address), port: inspect(port)}
   end
 
   defp periodic_measurements do
@@ -79,6 +138,38 @@ defmodule Astarte.TriggerEngineWeb.Telemetry do
       # A module, function and arguments to be invoked periodically.
       # This function must call :telemetry.execute/3 and a metric must be added above.
       # {MyApp, :count_users, []}
+    ]
+  end
+
+  defp attach_handlers do
+    :telemetry.attach_many(
+      DatabaseEvents,
+      xandra_events(),
+      &DatabaseEvents.handle_event/4,
+      Config.database_events_handling_method!()
+    )
+  end
+
+  defp xandra_events do
+    [
+      [:xandra, :connected],
+      [:xandra, :disconnected],
+      [:xandra, :failed_to_connect],
+      [:xandra, :prepared_cache, :hit],
+      [:xandra, :prepared_cache, :miss],
+      [:xandra, :prepare_query, :stop],
+      [:xandra, :execute_query, :stop],
+      [:xandra, :client_timeout],
+      [:xandra, :timed_out_response],
+      [:xandra, :server_warnings],
+      [:xandra, :cluster, :change_event],
+      [:xandra, :cluster, :control_connection, :connected],
+      [:xandra, :cluster, :control_connection, :disconnected],
+      [:xandra, :cluster, :control_connection, :failed_to_connect],
+      [:xandra, :cluster, :pool, :started],
+      [:xandra, :cluster, :pool, :restarted],
+      [:xandra, :cluster, :pool, :stopped],
+      [:xandra, :cluster, :discovered_peers]
     ]
   end
 end

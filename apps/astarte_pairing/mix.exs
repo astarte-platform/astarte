@@ -22,8 +22,8 @@ defmodule Astarte.Pairing.Mixfile do
   def project do
     [
       app: :astarte_pairing,
-      version: "1.2.2-rc.0",
       elixir: "~> 1.15",
+      version: "1.3.0-rc.1",
       elixirc_paths: elixirc_paths(Mix.env()),
       start_permanent: Mix.env() == :prod,
       test_coverage: [tool: ExCoveralls],
@@ -33,73 +33,87 @@ defmodule Astarte.Pairing.Mixfile do
         "coveralls.post": :test,
         "coveralls.html": :test
       ],
-      dialyzer: [plt_core_path: dialyzer_cache_directory(Mix.env())],
+      dialyzer: [plt_add_apps: [:astarte_realm_management, :ex_unit]],
       deps: deps() ++ astarte_required_modules(System.get_env("ASTARTE_IN_UMBRELLA"))
     ]
   end
 
-  # Run "mix help compile.app" to learn about applications.
+  # Configuration for the OTP application.
+  #
+  # Type `mix help compile.app` for more information.
   def application do
     [
-      mod: {Astarte.Pairing, []},
-      extra_applications: [:logger]
+      mod: {Astarte.Pairing.Application, []},
+      extra_applications: [:logger, :runtime_tools]
     ]
   end
 
+  # Specifies which paths to compile per environment.
   defp elixirc_paths(:test), do: ["test/support", "lib"]
   defp elixirc_paths(_), do: ["lib"]
 
-  defp dialyzer_cache_directory(:ci) do
-    "dialyzer_cache"
-  end
-
-  defp dialyzer_cache_directory(_) do
-    nil
-  end
-
   defp astarte_required_modules("true") do
     [
-      {:astarte_core, in_umbrella: true},
-      {:astarte_rpc, in_umbrella: true},
-      {:astarte_data_access, in_umbrella: true}
+      {:astarte_core, in_umbrella: true}
     ]
   end
 
   defp astarte_required_modules(_) do
     [
-      {:astarte_core, "~> 1.2"},
-      {:astarte_data_access, "~> 1.2"},
-      {:astarte_rpc, "~> 1.2"}
+      {:astarte_core,
+       github: "astarte-platform/astarte_core", branch: "release-1.3", override: true},
+      {:astarte_realm_management,
+       path: "../astarte_realm_management", only: :test, runtime: false}
     ]
   end
 
-  # Run "mix help deps" to learn about dependencies.
+  # Specifies your project dependencies.
+  #
+  # Type `mix help deps` for examples and options.
   defp deps do
     [
-      {:cfxxl, github: "ispirata/cfxxl"},
-      {:bcrypt_elixir, "~> 2.2"},
+      {:phoenix, "~> 1.7"},
+      {:gettext, "~> 0.24"},
+      {:plug_cowboy, "~> 2.2"},
+      {:phoenix_ecto, "~> 4.0"},
+      {:phoenix_view, "~> 2.0"},
+      {:jason, "~> 1.2"},
+      {:cbor, "~> 1.0"},
+      {:cose, github: "secomind/cose-elixir"},
+      {:guardian, "~> 2.3.2"},
+      {:remote_ip, "~> 1.0"},
       {:excoveralls, "~> 0.15", only: :test},
-      {:plug_cowboy, "~> 2.1"},
-      {:telemetry_metrics_prometheus_core, "~> 0.4"},
-      {:telemetry_metrics, "~> 0.4"},
-      {:telemetry_poller, "~> 0.4"},
-      {:xandra, "~> 0.19"},
+      {:mox, "~> 0.5", only: :test},
       {:pretty_log, "~> 0.1"},
+      {:plug_logger_with_meta, "~> 0.1"},
+      {:dialyxir, "~> 1.0", only: [:dev, :ci, :test], runtime: false},
       {:skogsra, "~> 2.2"},
-      {:telemetry, "~> 0.4"},
+      {:cors_plug, "~> 2.0"},
+      {:telemetry, "~> 1.3", override: true},
+      {:telemetry_metrics, "~> 1.1"},
+      {:telemetry_poller, "~> 1.3"},
+      {:telemetry_metrics_prometheus_core, "~> 1.2"},
       {:observer_cli, "~> 1.5"},
-      {:dialyxir, "~> 1.0", only: [:dev, :ci], runtime: false},
-      # Workaround for Elixir 1.15 / ssl_verify_fun issue
-      # See also: https://github.com/deadtrickster/ssl_verify_fun.erl/pull/27
-      {:ssl_verify_fun, "~> 1.1.0", manager: :rebar3, override: true},
-      # Fix: could not compile dependency due to an old snappy version (1.2.8).
-      # Delete when updating/removing cqerl from astarte_data_access.
-      {:snappyer, "~> 1.2.10", override: true},
-      {:ecto, "~> 3.12"},
+      {:cfxxl, github: "ispirata/cfxxl"},
+      {:astarte_data_access, path: astarte_lib("astarte_data_access")},
+      {:astarte_generators, path: astarte_lib("astarte_generators"), only: [:dev, :test]},
+      {:bcrypt_elixir, "~> 2.2"},
+      {:xandra, "~> 0.19", override: true},
+      {:ecto, "~> 3.13", override: true},
       {:exandra, "~> 0.13"},
       {:typed_ecto_schema, "~> 0.4"},
-      {:cqex, "~> 1.0", only: :test},
-      {:cqerl, "~> 2.1", override: true, only: :test}
+      {:mimic, "~> 1.11", only: :test},
+      {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
+      {:con_cache, "~> 1.1"},
+      {:astarte_events, path: astarte_lib("astarte_events")},
+      {:astarte_rpc, path: astarte_lib("astarte_rpc")},
+      # HTTP client needed by some tests, override to avoid conflicts with cfxxl
+      {:httpoison, "~> 2.2", override: true}
     ]
+  end
+
+  defp astarte_lib(library_name) do
+    base_directory = System.get_env("ASTARTE_LIBRARIES_PATH", "../../libs")
+    Path.join(base_directory, library_name)
   end
 end

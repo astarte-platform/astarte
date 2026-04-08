@@ -16,6 +16,9 @@
 # limitations under the License.
 
 defmodule Astarte.AppEngine.API.Device.InterfaceValues do
+  @moduledoc """
+  Container for representing interface values along with their metadata.
+  """
   defstruct [
     :data,
     :metadata

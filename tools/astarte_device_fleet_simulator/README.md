@@ -11,7 +11,7 @@ Configuration options are specified via the following environment variables:
 - `DEVICE_FLEET_PUBLICATION_INTERVAL_MILLISECONDS`: Time interval between messages from a single Astarte devices (in milliseconds). Optional, defaults to `1000`;
 - `DEVICE_FLEET_DEVICE_COUNT`: The number of Astarte device forming a test fleet. Optional, defaults to `10`;
 - `DEVICE_FLEET_TEST_DURATION_SECONDS`: The length of the test (in seconds). Optional, defaults to `30`;
-- `DEVICE_FLEET_PATH`: The path of the interface to which data are sent. Optional, defults to `"/streamTest/value"`. The interface is found in the `priv/interfaces` subdirectory;
+- `DEVICE_FLEET_PATH`: The path of the interface to which data are sent. Optional, defaults to `"/streamTest/value"`. The interface is found in the `priv/interfaces` subdirectory;
 - `DEVICE_FLEET_VALUE`: The value to send. Optional, defaults to `0.3`;
 - `DEVICE_FLEET_QOS`: The QoS mode for messages sent from Astarte devices. Optional, defaults to `2`;
 - `DEVICE_FLEET_ALLOW_MESSAGES_WHILE_SPAWNING`: Allow already connected Astarte devices to send messages while others are still connecting. Optional,defaults to `false`.

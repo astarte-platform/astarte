@@ -1,14 +1,14 @@
 import React, { Component } from "react";
 import { Col, ListGroup, Row } from "react-bootstrap";
-import { getSensorValueById } from "../apiHandler";
 import Plot from "react-plotly.js";
+import { getSensorValueById } from "../apiHandler";
 
 const _ = require("lodash");
 
 function SensorValue(props) {
   return (
     <ListGroup.Item className="border-0 py-2 px-3">
-      <strong> {props.label}: </strong>
+      <strong>{props.label}:</strong>
       {props.value} {props.unit}
     </ListGroup.Item>
   );

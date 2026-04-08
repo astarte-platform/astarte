@@ -17,6 +17,9 @@
 #
 
 defmodule Astarte.AppEngine.API.RPC.DataUpdaterPlant.VolatileTrigger do
+  @moduledoc """
+  Data structure representing a volatile trigger in the Data Updater Plant RPC API.
+  """
   @enforce_keys [
     :object_id,
     :object_type,

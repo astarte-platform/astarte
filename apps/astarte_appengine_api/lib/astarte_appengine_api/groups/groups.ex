@@ -22,10 +22,9 @@ defmodule Astarte.AppEngine.API.Groups do
   """
 
   alias Astarte.AppEngine.API.Device.DevicesListOptions
-  alias Astarte.DataAccess.Groups.Group
   alias Astarte.AppEngine.API.Groups.Queries
   alias Astarte.Core.Device
-
+  alias Astarte.DataAccess.Groups.Group
   alias Ecto.Changeset
 
   @default_list_limit 1000

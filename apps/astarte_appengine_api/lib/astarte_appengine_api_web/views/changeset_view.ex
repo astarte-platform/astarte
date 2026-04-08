@@ -17,6 +17,9 @@
 
 # TODO: what should we do here?
 defmodule Astarte.AppEngine.APIWeb.ChangesetView do
+  @moduledoc """
+  View module for rendering changeset errors as JSON.
+  """
   use Astarte.AppEngine.APIWeb, :view
 
   @doc """

@@ -3,8 +3,8 @@ defmodule Astarte.TriggerEngine.AMQPConsumer.AMQPMessageConsumerTest do
   use Astarte.Cases.Policy
   use Mimic
 
-  alias Astarte.TriggerEngine.AMQPConsumer.AMQPMessageConsumer.Impl
   alias AMQP.Channel
+  alias Astarte.TriggerEngine.AMQPConsumer.AMQPMessageConsumer.Impl
 
   import Astarte.Helpers.AMQPMessageConsumer
 

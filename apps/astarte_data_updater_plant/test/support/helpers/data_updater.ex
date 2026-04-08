@@ -16,6 +16,9 @@
 # limitations under the License.
 
 defmodule Astarte.Helpers.DataUpdater do
+  @moduledoc """
+  This module provides helper functions for testing the DataUpdater module.
+  """
   alias Astarte.DataUpdaterPlant.DataUpdater
   import Mimic
 
@@ -34,5 +37,7 @@ defmodule Astarte.Helpers.DataUpdater do
     |> allow(self(), data_updater)
 
     :ok = GenServer.call(data_updater, :start)
+
+    %{message_tracker: message_tracker}
   end
 end

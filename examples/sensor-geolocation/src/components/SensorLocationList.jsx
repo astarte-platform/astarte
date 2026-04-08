@@ -1,6 +1,6 @@
+import moment from "moment";
 import React from "react";
 import { Card, ListGroup } from "react-bootstrap";
-import moment from "moment";
 import "moment/min/locales.min";
 import _ from "lodash";
 

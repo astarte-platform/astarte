@@ -1,1 +1,1 @@
-DROP TABLE if exists astarte_schema;
+DROP TABLE if exists :keyspace.astarte_schema;

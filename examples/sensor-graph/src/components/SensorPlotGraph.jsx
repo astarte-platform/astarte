@@ -1,14 +1,5 @@
 import React, { Component } from "react";
-import {
-  Col,
-  Container,
-  FormControl,
-  InputGroup,
-  Row,
-  Spinner,
-} from "react-bootstrap";
-import CredentialsModal from "./CredentialsModal";
-import GraphComponent from "./GraphComponent";
+import { Col, Container, FormControl, InputGroup, Row, Spinner } from "react-bootstrap";
 import {
   constant,
   getDeviceDataByAlias,
@@ -17,6 +8,8 @@ import {
   getInterfaceById,
   isMissingCredentials,
 } from "../apiHandler";
+import CredentialsModal from "./CredentialsModal";
+import GraphComponent from "./GraphComponent";
 
 class SensorPlotGraph extends Component {
   state = {
@@ -47,7 +40,7 @@ class SensorPlotGraph extends Component {
 
   checkDeviceType = (value) => {
     const expression = new RegExp(/[a-z]?[A-Z]?[0-9]?-?_?/i);
-    if (value.length === 22) if (expression.test(value)) return constant.ID;
+    if (value.length === 22) { if (expression.test(value)) return constant.ID; }
     return constant.ALIAS;
   };
 
@@ -71,8 +64,9 @@ class SensorPlotGraph extends Component {
   };
 
   handleError(err) {
-    if (err.response.status === 403)
+    if (err.response.status === 403) {
       this.setState({ visible: true, loading: false });
+    }
     if (err.response.status === 404) {
       this.setState({ loading: false });
       window.confirm("Device ID Invalid");
@@ -91,12 +85,12 @@ class SensorPlotGraph extends Component {
         getInterfaceById(id, res.interfaces[res.availableIndex]).then(
           (response) => {
             this.setState({ availableSensors: response });
-          }
+          },
         );
         getInterfaceById(id, res.interfaces[res.valueIndex]).then(
           (response) => {
             this.setState({ sensorValues: response });
-          }
+          },
         );
       })
       .catch((err) => {
@@ -116,12 +110,12 @@ class SensorPlotGraph extends Component {
         getInterfaceByAlias(alias, res.interfaces[res.availableIndex]).then(
           (response) => {
             this.setState({ availableSensors: response });
-          }
+          },
         );
         getInterfaceByAlias(alias, res.interfaces[res.valueIndex]).then(
           (response) => {
             this.setState({ sensorValues: response });
-          }
+          },
         );
       })
       .catch((err) => {
@@ -167,17 +161,19 @@ class SensorPlotGraph extends Component {
                           disabled={loading}
                           className="bg-sensor-theme text-white font-14 text-uppercase font-weight-normal px-4 text-decoration-none rounded"
                         >
-                          {loading ? (
-                            <Spinner
-                              as="span"
-                              animation="border"
-                              size="sm"
-                              role="status"
-                              aria-hidden="true"
-                            />
-                          ) : (
-                            "Submit"
-                          )}
+                          {loading
+                            ? (
+                              <Spinner
+                                as="span"
+                                animation="border"
+                                size="sm"
+                                role="status"
+                                aria-hidden="true"
+                              />
+                            )
+                            : (
+                              "Submit"
+                            )}
                         </button>
                       </InputGroup.Append>
                     </InputGroup>
@@ -185,8 +181,8 @@ class SensorPlotGraph extends Component {
                 </Row>
                 <Row className="card-main-row mt-5">
                   <Col xs={12}>
-                    {sensorValues &&
-                      Object.keys(sensorValues).map((data, index) => (
+                    {sensorValues
+                      && Object.keys(sensorValues).map((data, index) => (
                         <GraphComponent
                           key={index}
                           deviceID={deviceID}

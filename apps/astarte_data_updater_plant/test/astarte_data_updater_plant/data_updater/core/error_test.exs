@@ -25,10 +25,10 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ErrorTest do
   use Astarte.Generators.Utilities.ParamsGen
   use Mimic
 
-  alias Astarte.DataUpdaterPlant.DataUpdater.Core.Error
-  alias Astarte.DataUpdaterPlant.MessageTracker
   alias Astarte.DataUpdaterPlant.DataUpdater
   alias Astarte.DataUpdaterPlant.DataUpdater.Core
+  alias Astarte.DataUpdaterPlant.DataUpdater.Core.Error
+  alias Astarte.DataUpdaterPlant.MessageTracker
 
   import Astarte.Helpers.DataUpdater
   import Astarte.InterfaceUpdateGenerators

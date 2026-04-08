@@ -19,9 +19,9 @@
 defmodule Astarte.AppEngine.APIWeb.DeviceStatusByGroupControllerTest do
   use Astarte.Cases.Conn
 
+  alias Astarte.AppEngine.API.Groups
   alias Astarte.Helpers.Database, as: DatabaseTestHelper
   alias Astarte.Helpers.JWT, as: JWTTestHelper
-  alias Astarte.AppEngine.API.Groups
 
   @realm "autotestrealm"
   @group_name "mygroup"
@@ -92,7 +92,7 @@ defmodule Astarte.AppEngine.APIWeb.DeviceStatusByGroupControllerTest do
     "attributes" => %{"attribute_key" => "device_a_attribute"},
     "credentials_inhibited" => false,
     "total_received_bytes" => 4_500_000,
-    "total_received_msgs" => 45000,
+    "total_received_msgs" => 45_000,
     "previous_interfaces" => @expected_previous_interfaces,
     "groups" => [@group_name],
     "deletion_in_progress" => false

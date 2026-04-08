@@ -1,6 +1,6 @@
 # Using Trigger Delivery Policies
 
-*Note: Trigger Delivery Policies are an experimental feature, see [Known Issues](#known-issues) for more information about their current status.*
+_Note: Trigger Delivery Policies are an experimental feature, see [Known Issues](#known-issues) for more information about their current status._
 
 Trigger Delivery Policies allow customizing what Astarte is supposed to do in case of delivery errors on HTTP events
 and how to handle events that have not been delivered. More details on Trigger Delivery Policies can be found in the [Architecture Documentation](062-trigger_delivery_policies.html).
@@ -17,7 +17,7 @@ At any time, you can list existing Trigger Delivery Policies in a Realm and fetc
 
 To list all existing Trigger Delivery Policies in a Realm:
 
-`GET api.<your astarte domain>/realmmanagement/v1/<realm name>/policies`
+`GET <astarte base API URL>/realmmanagement/v1/<realm name>/policies`
 
 ```json
 {
@@ -32,18 +32,18 @@ To list all existing Trigger Delivery Policies in a Realm:
 
 To get a Trigger Delivery Policy definition:
 
-`GET api.<your astarte domain>/realmmanagement/v1/<realm name>/policies/simple_trigger_delivery_policy`
+`GET <astarte base API URL>/realmmanagement/v1/<realm name>/policies/simple_trigger_delivery_policy`
 
 ```json
 {
   "data": {
-    "name" : "simple_trigger_delivery_policy",
-    "maximum_capacity" : 100,
-    "error_handlers" : [
-        {
-            "on" : "any_error",
-            "strategy" : "discard"
-        }
+    "name": "simple_trigger_delivery_policy",
+    "maximum_capacity": 100,
+    "error_handlers": [
+      {
+        "on": "any_error",
+        "strategy": "discard"
+      }
     ]
   }
 }
@@ -57,20 +57,20 @@ The name of the Trigger Delivery Policy must be unique within the Realm, or an e
 
 ### Installing a Trigger Delivery Policy using Realm Management APIs
 
-`POST api.<your astarte domain>/realmmanagement/v1/<realm name>/policies`
+`POST <astarte base API URL>/realmmanagement/v1/<realm name>/policies`
 
 The POST request must have the following request body, with content type `application/json`
 
 ```json
 {
   "data": {
-    "name" : "simple_trigger_delivery_policy",
-    "maximum_capacity" : 100,
-    "error_handlers" : [
-        {
-            "on" : "any_error",
-            "strategy" : "discard"
-        }
+    "name": "simple_trigger_delivery_policy",
+    "maximum_capacity": 100,
+    "error_handlers": [
+      {
+        "on": "any_error",
+        "strategy": "discard"
+      }
     ]
   }
 }
@@ -83,7 +83,7 @@ A Trigger Delivery Policy can be deleted only if no Triggers linked to it are pr
 
 ### Deleting a Trigger Delivery Policy using Realm Management APIs
 
-`DELETE api.<your astarte domain>/realmmanagement/v1/<realm name>/policies/simple_trigger_delivery_policy`
+`DELETE <astarte base API URL>/realmmanagement/v1/<realm name>/policies/simple_trigger_delivery_policy`
 
 ## Trigger Delivery Policy examples
 
@@ -96,42 +96,42 @@ This is the only behaviour previous Astarte versions (i.e. < 1.1) allowed.
 
 ```json
 {
-    "name" : "simple_policy",
-    "maximum_capacity" : 100,
-    "error_handlers" : [
-        {
-            "on" : "any_error",
-            "strategy" : "discard"
-        }
-    ]
+  "name": "simple_policy",
+  "maximum_capacity": 100,
+  "error_handlers": [
+    {
+      "on": "any_error",
+      "strategy": "discard"
+    }
+  ]
 }
 ```
 
 ### A More Complex Trigger Delivery Policy
 
-The following policy has a different behaviour depending on whether the HTTP delivery error is a client or a server one. 
+The following policy has a different behaviour depending on whether the HTTP delivery error is a client or a server one.
 
 ```json
 {
-    "name" : "complex_policy",
-    "maximum_capacity" : 100,
-    "error_handlers" : [
-            {
-                "on" : "server_error",
-                "strategy" : "retry"
-            },
-            {
-                "on" : "client_error",
-                "strategy" : "discard"
-            }
-        ],
-    "retry_times" : 5,
-    "event_ttl" : 10
+  "name": "complex_policy",
+  "maximum_capacity": 100,
+  "error_handlers": [
+    {
+      "on": "server_error",
+      "strategy": "retry"
+    },
+    {
+      "on": "client_error",
+      "strategy": "discard"
+    }
+  ],
+  "retry_times": 5,
+  "event_ttl": 10
 }
 ```
 
 If an HTTP client error occurs, then Astarte will try to resend the event up to 5 times.
-If there occurs an HTTP server error, then Astarte will do nothing. 
+If there occurs an HTTP server error, then Astarte will do nothing.
 At most 100 events can be in the queue at any time; if more than 100 events are present in the queue, the oldest ones will be deleted (even if they were resent less than 5 times in the case of HTTP client errors). If any event lasts for longer than 10 second in the queue, it will be discarded.
 
 ## Known issues

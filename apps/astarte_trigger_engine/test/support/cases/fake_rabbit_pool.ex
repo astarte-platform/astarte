@@ -17,6 +17,10 @@
 #
 
 defmodule Astarte.Cases.FakeRabbitPool do
+  @moduledoc """
+  ExUnit case template for fake RabbitMQ pool setup.
+  """
+
   use ExUnit.CaseTemplate
   use Mimic
 

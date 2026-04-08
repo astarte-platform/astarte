@@ -9,5 +9,5 @@ ReactDOM.render(
   <div>
     <SensorPlotGraph />
   </div>,
-  document.getElementById("root")
+  document.getElementById("root"),
 );

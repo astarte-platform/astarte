@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2025 SECO Mind Srl
+# Copyright 2025 - 2026 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -20,11 +20,11 @@ defmodule Astarte.AppEngine.API.Device.DeviceV2Test do
   use Astarte.Cases.Device
   use ExUnitProperties
 
+  import Astarte.Generators.InterfaceUpdate
+  import Astarte.Helpers.Device
+
   alias Astarte.AppEngine.API.Device
   alias Astarte.AppEngine.API.Device.InterfaceValues
-
-  import Astarte.Helpers.Device
-  import Astarte.InterfaceUpdateGenerators
 
   describe "update_interface_value" do
     property "returns the given value for valid parameters", context do
@@ -136,7 +136,9 @@ defmodule Astarte.AppEngine.API.Device.DeviceV2Test do
     %{realm_name: realm_name, interfaces: interfaces, device: device} = args
 
     valid_interfaces_for_update =
-      interfaces |> Enum.filter(&is_fallible?/1) |> Enum.filter(&(&1.ownership == :server))
+      Enum.filter(interfaces, fn interface ->
+        fallible?(interface) and interface.ownership == :server
+      end)
 
     check all interface <- member_of(valid_interfaces_for_update),
               mapping_update <- valid_fallible_mapping_update_for(interface),

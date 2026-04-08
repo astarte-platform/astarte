@@ -17,12 +17,15 @@
 #
 
 defmodule Astarte.DataUpdaterPlant.ConsumersSupervisor do
+  @moduledoc """
+  This module is responsible for supervising the AMQPDataConsumer processes and the DeletionScheduler.
+  """
   use Supervisor
   require Logger
 
+  alias Astarte.DataUpdater.DeletionScheduler
   alias Astarte.DataUpdaterPlant.AMQPDataConsumer
   alias Astarte.DataUpdaterPlant.Config
-  alias Astarte.DataUpdater.DeletionScheduler
 
   def start_link(init_arg) do
     Supervisor.start_link(__MODULE__, init_arg, name: __MODULE__)
@@ -40,8 +43,6 @@ defmodule Astarte.DataUpdaterPlant.ConsumersSupervisor do
       DeletionScheduler
     ]
 
-    opts = [strategy: :rest_for_one, name: __MODULE__]
-
-    Supervisor.init(children, opts)
+    Supervisor.init(children, strategy: :rest_for_one)
   end
 end

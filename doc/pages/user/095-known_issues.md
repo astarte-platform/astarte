@@ -1,8 +1,7 @@
 # Known issues
 
 This page collects some notable issues which affect Astarte `v1.0`. This is by no means an
-exhaustive list and you should also check [Github
-issues](https://github.com/astarte-platform/astarte/issues) to see if your problem is already
+exhaustive list and you should also check [Github issues](https://github.com/astarte-platform/astarte/issues) to see if your problem is already
 covered there.
 
 ## Realm deletion
@@ -19,10 +18,9 @@ Due to the problems that realm deletion can cause, currently the feature must be
 with a feature gate, i.e. by adding
 
 ```yaml
-  features:
-    realmDeletion: true
-  components:
-    ...
+features:
+  realmDeletion: true
+components: ...
 ```
 
 to the Astarte Custom Resource (which maps to setting the `HOUSEKEEPING_ENABLE_REALM_DELETION`

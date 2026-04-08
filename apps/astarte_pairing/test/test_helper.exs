@@ -16,10 +16,25 @@
 # limitations under the License.
 #
 
+Mimic.copy(Astarte.DataAccess.Config)
+Mimic.copy(Astarte.DataAccess.Health.Health)
+Mimic.copy(Astarte.Events.TriggersHandler)
+Mimic.copy(Astarte.Pairing.Config)
+Mimic.copy(Astarte.Pairing.FDO.OwnerOnboarding)
+Mimic.copy(Astarte.Pairing.FDO.ServiceInfo)
+Mimic.copy(Astarte.Pairing.FDO.OwnerOnboarding.Session)
+Mimic.copy(Astarte.Pairing.FDO.OwnerOnboarding.DeviceServiceInfo)
+Mimic.copy(Astarte.Pairing.FDO.OwnerOnboarding.DeviceServiceInfoReady)
+Mimic.copy(Astarte.Pairing.FDO.OwnershipVoucher.Core)
+Mimic.copy(Astarte.Pairing.FDO.OwnerOnboarding.ProveDevice)
+Mimic.copy(Astarte.Pairing.FDO.Rendezvous)
+Mimic.copy(Astarte.Pairing.FDO.Rendezvous.Client)
+Mimic.copy(Astarte.Pairing.Queries)
+Mimic.copy(DateTime)
+Mimic.copy(HTTPoison)
+Mimic.copy(Astarte.Pairing.FDO.OwnershipVoucher)
+Mimic.copy(Astarte.Pairing.FDO.OwnerOnboarding.Session)
+Mimic.copy(Astarte.Pairing.FDO.OwnerOnboarding.DeviceAttestation)
+Mimic.copy(Astarte.Pairing.FDO.OwnershipVoucher.Core)
+
 ExUnit.start(capture_log: true)
-
-{:ok, files} = File.ls("./test/support")
-
-Enum.each(files, fn file ->
-  Code.require_file("support/#{file}", __DIR__)
-end)

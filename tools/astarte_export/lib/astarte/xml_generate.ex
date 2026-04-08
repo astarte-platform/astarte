@@ -6,6 +6,8 @@ defmodule Astarte.Export.XMLGenerate do
     {:ok, state}
   end
 
+  def xml_write_empty_element(_fd, {_tag, nil, []}, state), do: {:ok, state}
+
   def xml_write_empty_element(fd, {tag, attributes, []}, state) do
     {:ok, empty_tag, state} = XMLStreamWriter.empty_element(state, tag, attributes)
     IO.puts(fd, empty_tag)

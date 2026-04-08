@@ -17,12 +17,16 @@
 #
 
 defmodule Astarte.Helpers.Database do
+  @moduledoc """
+  This module provides helper functions and setup for tests related to the database in the DataUpdaterPlant.
+  """
   alias Astarte.DataAccess.Devices.Device, as: DeviceSchema
-  alias Astarte.DataAccess.Realms.Interface, as: InterfaceSchema
   alias Astarte.DataAccess.Interface
+  alias Astarte.DataAccess.Realms.Interface, as: InterfaceSchema
   alias Astarte.DataAccess.Realms.Realm
   alias Astarte.DataAccess.Repo
   alias Astarte.DataUpdaterPlant.DataUpdater.Core
+  alias Astarte.DataUpdaterPlant.DataUpdater.InsertContext
   alias Astarte.DataUpdaterPlant.DataUpdater.Queries
 
   @create_keyspace """
@@ -33,7 +37,7 @@ defmodule Astarte.Helpers.Database do
   """
 
   @drop_keyspace """
-  DROP KEYSPACE :keyspace
+  DROP KEYSPACE IF EXISTS :keyspace
   """
 
   @create_realms_table """
@@ -65,6 +69,12 @@ defmodule Astarte.Helpers.Database do
   )
   """
 
+  @create_capabilities_type """
+  CREATE TYPE :keyspace.capabilities (
+    purge_properties_compression_format int
+  );
+  """
+
   @create_devices_table """
   CREATE TABLE :keyspace.devices (
     device_id uuid,
@@ -90,7 +100,7 @@ defmodule Astarte.Helpers.Database do
     last_credentials_request_ip inet,
     last_seen_ip inet,
     attributes map<varchar, varchar>,
-
+    capabilities capabilities,
     groups map<text, timeuuid>,
 
     PRIMARY KEY (device_id)
@@ -223,6 +233,7 @@ defmodule Astarte.Helpers.Database do
       vmq_ack boolean,
       dup_start_ack boolean,
       dup_end_ack boolean,
+      groups set<text>,
       PRIMARY KEY ((device_id))
     )
   """
@@ -278,9 +289,9 @@ defmodule Astarte.Helpers.Database do
 
   def setup_astarte_keyspace do
     astarte_keyspace = Realm.astarte_keyspace_name()
-    execute!(astarte_keyspace, @create_keyspace)
-    execute!(astarte_keyspace, @create_kv_store)
-    execute!(astarte_keyspace, @create_realms_table)
+    execute!(astarte_keyspace, @create_keyspace, [], timeout: 60_000)
+    execute!(astarte_keyspace, @create_kv_store, [], timeout: 60_000)
+    execute!(astarte_keyspace, @create_realms_table, [], timeout: 60_000)
   end
 
   def setup!(realm_name) do
@@ -288,27 +299,28 @@ defmodule Astarte.Helpers.Database do
     astarte_keyspace = Realm.astarte_keyspace_name()
 
     %Realm{realm_name: realm_name}
-    |> Repo.insert!(prefix: astarte_keyspace)
+    |> Repo.insert!(prefix: astarte_keyspace, timeout: 60_000)
 
     :ok
   end
 
   def setup_realm_keyspace!(realm_name) do
     realm_keyspace = Realm.keyspace_name(realm_name)
-    execute!(realm_keyspace, @create_keyspace)
-    execute!(realm_keyspace, @create_devices_table)
-    execute!(realm_keyspace, @create_groups_table)
-    execute!(realm_keyspace, @create_names_table)
-    execute!(realm_keyspace, @create_kv_store)
-    execute!(realm_keyspace, @create_endpoints_table)
-    execute!(realm_keyspace, @create_simple_triggers_table)
-    execute!(realm_keyspace, @create_individual_properties_table)
-    execute!(realm_keyspace, @create_individual_datastreams_table)
-    execute!(realm_keyspace, @create_interfaces_table)
-    execute!(realm_keyspace, @create_deletion_in_progress_table)
+    execute!(realm_keyspace, @create_keyspace, [], timeout: 60_000)
+    execute!(realm_keyspace, @create_capabilities_type, [], timeout: 60_000)
+    execute!(realm_keyspace, @create_devices_table, [], timeout: 60_000)
+    execute!(realm_keyspace, @create_groups_table, [], timeout: 60_000)
+    execute!(realm_keyspace, @create_names_table, [], timeout: 60_000)
+    execute!(realm_keyspace, @create_kv_store, [], timeout: 60_000)
+    execute!(realm_keyspace, @create_endpoints_table, [], timeout: 60_000)
+    execute!(realm_keyspace, @create_simple_triggers_table, [], timeout: 60_000)
+    execute!(realm_keyspace, @create_individual_properties_table, [], timeout: 60_000)
+    execute!(realm_keyspace, @create_individual_datastreams_table, [], timeout: 60_000)
+    execute!(realm_keyspace, @create_interfaces_table, [], timeout: 60_000)
+    execute!(realm_keyspace, @create_deletion_in_progress_table, [], timeout: 60_000)
 
     Enum.each(@insert_endpoints, fn query ->
-      execute!(realm_keyspace, query)
+      execute!(realm_keyspace, query, [], timeout: 60_000)
     end)
 
     %InterfaceSchema{}
@@ -331,7 +343,7 @@ defmodule Astarte.Helpers.Database do
       storage_type: :multi_interface_individual_properties_dbtable,
       type: :properties
     })
-    |> Repo.insert!(prefix: realm_keyspace)
+    |> Repo.insert!(prefix: realm_keyspace, timeout: 60_000)
 
     %InterfaceSchema{}
     |> Ecto.Changeset.change(%{
@@ -353,20 +365,20 @@ defmodule Astarte.Helpers.Database do
       storage_type: :multi_interface_individual_datastream_dbtable,
       type: :datastream
     })
-    |> Repo.insert!(prefix: realm_keyspace)
+    |> Repo.insert!(prefix: realm_keyspace, timeout: 60_000)
 
     :ok
   end
 
   def teardown_astarte_keyspace do
     astarte_keyspace = Realm.astarte_keyspace_name()
-    execute!(astarte_keyspace, @drop_keyspace)
+    execute!(astarte_keyspace, @drop_keyspace, [], timeout: 60_000)
     :ok
   end
 
   def teardown_realm_keyspace!(realm_name) do
     realm_keyspace = Realm.keyspace_name(realm_name)
-    execute!(realm_keyspace, @drop_keyspace)
+    execute!(realm_keyspace, @drop_keyspace, [], timeout: 60_000)
     :ok
   end
 
@@ -455,43 +467,53 @@ defmodule Astarte.Helpers.Database do
   def insert_deletion_in_progress(device_id, realm_name) do
     realm_keyspace = Realm.keyspace_name(realm_name)
 
-    execute!(realm_keyspace, @deletion_in_progress_statement, %{
-      "device_id" => device_id
-    })
+    execute!(
+      realm_keyspace,
+      @deletion_in_progress_statement,
+      %{
+        "device_id" => device_id
+      },
+      timeout: 60_000
+    )
   end
 
   def insert_public_key!(realm_name) do
     realm_keyspace = Realm.keyspace_name(realm_name)
 
-    execute!(realm_keyspace, @insert_public_key, %{"pem" => @jwt_public_key_pem})
+    execute!(realm_keyspace, @insert_public_key, %{"pem" => @jwt_public_key_pem}, timeout: 60_000)
   end
 
   def insert_datastream_maximum_storage_retention!(realm_name, max_retention) do
     realm_keyspace = Realm.keyspace_name(realm_name)
 
-    execute!(realm_keyspace, @insert_datastream_maximum_storage_retention, %{
-      "max_retention" => max_retention
-    })
+    execute!(
+      realm_keyspace,
+      @insert_datastream_maximum_storage_retention,
+      %{
+        "max_retention" => max_retention
+      },
+      timeout: 60_000
+    )
   end
 
   def make_timestamp(timestamp_string) do
     {:ok, date_time, _} = DateTime.from_iso8601(timestamp_string)
-    DateTime.to_unix(date_time, :millisecond) * 10000
+    DateTime.to_unix(date_time, :millisecond) * 10_000
   end
 
-  def gen_tracking_id() do
+  def gen_tracking_id do
     message_id = :erlang.unique_integer([:monotonic]) |> Integer.to_string()
     delivery_tag = {:injected_msg, make_ref()}
     {message_id, delivery_tag}
   end
 
-  def random_device_id() do
+  def random_device_id do
     seq = :crypto.strong_rand_bytes(16)
     <<u0::48, _::4, u1::12, _::2, u2::62>> = seq
     <<u0::48, 4::4, u1::12, 2::2, u2::62>>
   end
 
-  defp execute!(keyspace, query, params \\ [], opts \\ []) do
+  defp execute!(keyspace, query, params, opts) do
     String.replace(query, ":keyspace", keyspace)
     |> Repo.query!(params, opts)
   end
@@ -502,11 +524,8 @@ defmodule Astarte.Helpers.Database do
     |> Mimic.stub(:astarte_instance_id!, fn -> astarte_instance_id end)
   end
 
-  def insert_values(realm_name, device, interface, mapping_updates) do
+  def insert_values(realm_name, device, interface, interface_descriptor, mapping_updates) do
     mappings_map = interface.mappings |> Map.new(&{&1.endpoint_id, &1})
-
-    {:ok, interface_descriptor} =
-      Interface.fetch_interface_descriptor(realm_name, interface.name, interface.major_version)
 
     mapping_updates
     |> Enum.scan(initial_timestamp(), fn mapping_update, old_timestamp ->
@@ -515,18 +534,19 @@ defmodule Astarte.Helpers.Database do
       {:ok, mapping} =
         Core.Interface.resolve_path(mapping_update.path, interface_descriptor, mappings_map)
 
-      :ok =
-        Queries.insert_value_into_db(
-          realm_name,
-          device.device_id,
-          interface_descriptor,
-          mapping,
-          mapping_update.path,
-          mapping_update.value,
-          timestamp,
-          timestamp,
-          []
-        )
+      insert_context = %InsertContext{
+        realm: realm_name,
+        device_id: device.device_id,
+        interface_descriptor: interface_descriptor,
+        mapping: mapping,
+        path: mapping_update.path,
+        value: mapping_update.value,
+        value_timestamp: timestamp,
+        reception_timestamp: timestamp,
+        opts: []
+      }
+
+      :ok = Queries.insert_value_into_db(insert_context)
 
       timestamp
     end)

@@ -22,8 +22,8 @@ defmodule Astarte.TriggerEngine.Application do
   use Application
   require Logger
 
-  alias Astarte.TriggerEngine.Config
   alias Astarte.DataAccess.Config, as: DataAccessConfig
+  alias Astarte.TriggerEngine.Config
   alias Astarte.TriggerEngine.DeliverySupervisor
 
   @app_version Mix.Project.config()[:version]
@@ -40,14 +40,8 @@ defmodule Astarte.TriggerEngine.Application do
     Config.validate!()
     DataAccessConfig.validate!()
 
-    xandra_options = Config.xandra_options!()
-    xandra_cluster_options = Keyword.put(xandra_options, :name, :xandra)
-    data_access_opts = [xandra_options: xandra_options]
-
     children = [
       Astarte.TriggerEngineWeb.Telemetry,
-      {Xandra.Cluster, xandra_cluster_options},
-      {Astarte.DataAccess, data_access_opts},
       DeliverySupervisor
     ]
 

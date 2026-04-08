@@ -31,6 +31,8 @@ defmodule Astarte.DataUpdaterPlant.RPC.ServerTest do
     %{rpc_server: rpc_server}
   end
 
+  setup :verify_on_exit!
+
   property ":install_volatile_trigger request gets handled by the Core module", %{
     rpc_server: rpc_server
   } do

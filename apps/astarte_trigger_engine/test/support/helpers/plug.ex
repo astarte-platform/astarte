@@ -17,6 +17,10 @@
 #
 
 defmodule Astarte.Helpers.Plug do
+  @moduledoc """
+  Helper module for Plug testing.
+  """
+
   import Plug.Test
 
   alias Astarte.TriggerEngineWeb.Router

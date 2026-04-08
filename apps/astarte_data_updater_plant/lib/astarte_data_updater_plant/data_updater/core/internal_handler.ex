@@ -22,10 +22,10 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.InternalHandler do
   @moduledoc """
   The `internal` message type handler for Astarte Data Updater.
   """
-  alias Astarte.DataUpdaterPlant.MessageTracker
   alias Astarte.DataUpdaterPlant.DataUpdater.Core
   alias Astarte.DataUpdaterPlant.DataUpdater.Queries
   alias Astarte.DataUpdaterPlant.DataUpdater.State
+  alias Astarte.DataUpdaterPlant.MessageTracker
 
   require Logger
 

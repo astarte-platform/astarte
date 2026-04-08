@@ -2,7 +2,6 @@
 # This file is part of Astarte.
 #
 # Copyright 2017-2018 Ispirata Srl
-# Copyright 2025 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -18,47 +17,11 @@
 #
 
 defmodule Astarte.Pairing do
-  @moduledoc false
+  @moduledoc """
+  Astarte.Pairing keeps the contexts that define your domain
+  and business logic.
 
-  use Application
-  require Logger
-
-  alias Astarte.Pairing.Config
-  alias Astarte.Pairing.RPC.Handler
-
-  alias Astarte.DataAccess.Config, as: DataAccessConfig
-  alias Astarte.RPC.Protocol.Pairing, as: Protocol
-
-  @app_version Mix.Project.config()[:version]
-
-  def start(_type, _args) do
-    # make amqp supervisors logs less verbose
-    :logger.add_primary_filter(
-      :ignore_rabbitmq_progress_reports,
-      {&:logger_filters.domain/2, {:stop, :equal, [:progress]}}
-    )
-
-    Logger.info("Starting application v#{@app_version}.", tag: "pairing_app_start")
-
-    DataAccessConfig.validate!()
-    Config.validate!()
-    Config.init!()
-
-    xandra_options = repo_opts = Config.xandra_options!()
-
-    data_access_opts = [xandra_options: xandra_options]
-
-    pairing_xandra_opts = Keyword.put(xandra_options, :name, :xandra)
-
-    children = [
-      Astarte.PairingWeb.Telemetry,
-      {Xandra.Cluster, pairing_xandra_opts},
-      {Astarte.RPC.AMQP.Server, [amqp_queue: Protocol.amqp_queue(), handler: Handler]},
-      {Astarte.Pairing.CredentialsSecret.Cache, []},
-      {Astarte.DataAccess, data_access_opts},
-      {Astarte.Pairing.Repo, repo_opts}
-    ]
-
-    Supervisor.start_link(children, strategy: :one_for_one)
-  end
+  Contexts are also responsible for managing your data, regardless
+  if it comes from the database, an external API or others.
+  """
 end

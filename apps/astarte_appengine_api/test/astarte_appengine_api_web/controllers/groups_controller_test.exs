@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2019 Ispirata Srl
+# Copyright 2019 - 2026 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -20,13 +20,15 @@ defmodule Astarte.AppEngine.APIWeb.GroupsControllerTest do
   use ExUnitProperties
   use Astarte.Cases.Conn
 
-  alias Astarte.Helpers.Database, as: DatabaseTestHelper
-  alias Astarte.Helpers.JWT, as: JWTTestHelper
+  alias Astarte.Core.Generators.Device, as: DeviceGenerator
+  alias Astarte.Core.Generators.Group, as: GroupGenerator
+
   alias Astarte.AppEngine.API.Device
   alias Astarte.AppEngine.API.Device.DevicesList
   alias Astarte.AppEngine.API.Device.DeviceStatus
   alias Astarte.AppEngine.API.Groups
-  alias Astarte.AppEngine.API.GroupTestGenerator
+  alias Astarte.Helpers.Database, as: DatabaseTestHelper
+  alias Astarte.Helpers.JWT, as: JWTTestHelper
 
   @realm "autotestrealm"
   @group_name "mygroup"
@@ -175,7 +177,7 @@ defmodule Astarte.AppEngine.APIWeb.GroupsControllerTest do
 
     @tag issue: 904
     property "creates the group with / in group name", %{conn: conn} do
-      check all group_name <- GroupTestGenerator.group_name() do
+      check all group_name <- GroupGenerator.name() do
         params = %{
           "group_name" => group_name,
           "devices" => @group_devices
@@ -205,24 +207,22 @@ defmodule Astarte.AppEngine.APIWeb.GroupsControllerTest do
   describe "add device" do
     setup [:create_group]
 
-    test "returns 404 for non-existing group", %{conn: conn} do
-      params = %{
-        "device_id" => "aWag-VlVKC--1S-vfzZ9uQ"
-      }
+    property "returns 404 for non-existing group", %{conn: conn} do
+      check all device_id <- DeviceGenerator.encoded_id(), max_runs: 10 do
+        params = %{"device_id" => device_id}
+        conn = post(conn, groups_path(conn, :add_device, @realm, "nonexisting"), data: params)
 
-      conn = post(conn, groups_path(conn, :add_device, @realm, "nonexisting"), data: params)
-
-      assert json_response(conn, 404)["errors"]["detail"] == "Group not found"
+        assert json_response(conn, 404)["errors"]["detail"] == "Group not found"
+      end
     end
 
-    test "fails with non-existing device", %{conn: conn} do
-      params = %{
-        "device_id" => "X-Qv0zPMRfiWEXUMHZFNVw"
-      }
+    property "fails with non-existing device", %{conn: conn} do
+      check all device_id <- DeviceGenerator.encoded_id(), max_runs: 10 do
+        params = %{"device_id" => device_id}
+        conn = post(conn, groups_path(conn, :add_device, @realm, @group_name), data: params)
 
-      conn = post(conn, groups_path(conn, :add_device, @realm, @group_name), data: params)
-
-      assert json_response(conn, 422)["errors"]["device_id"] != nil
+        assert json_response(conn, 422)["errors"]["device_id"] != nil
+      end
     end
 
     test "returns 409 for duplicate device", %{conn: conn} do
@@ -278,7 +278,7 @@ defmodule Astarte.AppEngine.APIWeb.GroupsControllerTest do
       assert json_response(conn, 404)["errors"]["detail"] == "Device not found"
     end
 
-    test "succesfully delete device", %{conn: conn} do
+    test "successfully delete device", %{conn: conn} do
       delete_conn =
         delete(
           conn,

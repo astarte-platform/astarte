@@ -16,6 +16,10 @@
 # limitations under the License.
 
 defmodule Astarte.AppEngine.API.Device.DevicesListOptions do
+  @moduledoc """
+  Schema and validation for device list filtering options.
+  Defines the parameters that can be used when requesting a list of devices.
+  """
   use Ecto.Schema
   import Ecto.Changeset
   alias Astarte.AppEngine.API.Device.DevicesListOptions

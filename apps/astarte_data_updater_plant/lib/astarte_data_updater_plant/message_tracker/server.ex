@@ -17,6 +17,9 @@
 #
 
 defmodule Astarte.DataUpdaterPlant.MessageTracker.Server do
+  @moduledoc """
+  This module implements the GenServer responsible for tracking the messages.
+  """
   require Logger
   use GenServer, restart: :transient
 
@@ -162,12 +165,12 @@ defmodule Astarte.DataUpdaterPlant.MessageTracker.Server do
         {:track_delivery, message_id, delivery_tag},
         {state, queue, ids, acknowledger}
       ) do
-    unless Map.has_key?(ids, message_id) do
-      {new_queue, new_ids} = enqueue_message(queue, ids, message_id, delivery_tag)
-      {:noreply, {state, new_queue, new_ids, acknowledger}}
-    else
+    if Map.has_key?(ids, message_id) do
       new_ids = Map.put(ids, message_id, delivery_tag)
       {:noreply, {state, queue, new_ids, acknowledger}}
+    else
+      {new_queue, new_ids} = enqueue_message(queue, ids, message_id, delivery_tag)
+      {:noreply, {state, new_queue, new_ids, acknowledger}}
     end
   end
 
@@ -215,7 +218,7 @@ defmodule Astarte.DataUpdaterPlant.MessageTracker.Server do
       ) do
     _ =
       Logger.warning(
-        "Received a :name_confict signal from the outer space, maybe a netsplit occurred? Gracefully shutting down.",
+        "Received a :name_conflict signal from the outer space, maybe a netsplit occurred? Gracefully shutting down.",
         tag: "name_conflict"
       )
 

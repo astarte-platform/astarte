@@ -1,5 +1,5 @@
-import { reverse } from "named-urls";
 import axios from "axios";
+import { reverse } from "named-urls";
 
 const interfaceNames = {
   AVAILABLE_SENSORS: "org.astarte-platform.genericsensors.AvailableSensors",
@@ -57,10 +57,10 @@ function getDevice(aliasOrId, params = {}) {
 function handleDeviceDataInterfaces(device) {
   const interfaces = Object.keys(device.introspection);
   const availableSensorsInterface = interfaces.find(
-    (iface) => iface === interfaceNames.AVAILABLE_SENSORS
+    (iface) => iface === interfaceNames.AVAILABLE_SENSORS,
   );
   const geolocationInterface = interfaces.find(
-    (iface) => iface === interfaceNames.GEOLOCATION
+    (iface) => iface === interfaceNames.GEOLOCATION,
   );
   return {
     device,

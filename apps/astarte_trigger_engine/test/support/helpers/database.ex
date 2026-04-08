@@ -17,8 +17,12 @@
 #
 
 defmodule Astarte.Helpers.Database do
-  alias Astarte.DataAccess.Repo
+  @moduledoc """
+  Helper module for database operations.
+  """
+
   alias Astarte.DataAccess.Realms.Realm
+  alias Astarte.DataAccess.Repo
 
   @create_keyspace """
   CREATE KEYSPACE :keyspace
@@ -37,7 +41,7 @@ defmodule Astarte.Helpers.Database do
     device_registration_limit bigint,
 
     PRIMARY KEY (realm_name)
-  );  
+  );
   """
 
   @create_kv_store """
@@ -58,6 +62,12 @@ defmodule Astarte.Helpers.Database do
 
     PRIMARY KEY ((object_name), object_type)
   )
+  """
+
+  @create_capabilities_type """
+  CREATE TYPE :keyspace.capabilities (
+    purge_properties_compression_format int
+  );
   """
 
   @create_devices_table """
@@ -85,7 +95,7 @@ defmodule Astarte.Helpers.Database do
     last_credentials_request_ip inet,
     last_seen_ip inet,
     attributes map<varchar, varchar>,
-
+    capabilities capabilities,
     groups map<text, timeuuid>,
 
     PRIMARY KEY (device_id)
@@ -146,7 +156,7 @@ defmodule Astarte.Helpers.Database do
     trigger_target blob,
 
     PRIMARY KEY ((object_id, object_type), parent_trigger_id, simple_trigger_id)
-  );  
+  );
   """
 
   @create_individual_properties_table """
@@ -215,6 +225,7 @@ defmodule Astarte.Helpers.Database do
   def setup!(realm_name) do
     realm_keyspace = Realm.keyspace_name(realm_name)
     execute!(realm_keyspace, @create_keyspace)
+    execute!(realm_keyspace, @create_capabilities_type)
     execute!(realm_keyspace, @create_devices_table)
     execute!(realm_keyspace, @create_groups_table)
     execute!(realm_keyspace, @create_names_table)

@@ -17,14 +17,15 @@
 
 defmodule Astarte.AppEngine.API.DeviceTest do
   use ExUnit.Case
-  alias Astarte.Helpers.Database, as: DatabaseTestHelper
+
   alias Astarte.AppEngine.API.Device
-  alias Astarte.AppEngine.API.Device.DeviceStatus
   alias Astarte.AppEngine.API.Device.DevicesList
+  alias Astarte.AppEngine.API.Device.DeviceStatus
   alias Astarte.AppEngine.API.Device.InterfaceInfo
   alias Astarte.AppEngine.API.Device.InterfaceValues
-  alias Astarte.AppEngine.API.Repo
   alias Astarte.DataAccess.Realms.Realm
+  alias Astarte.DataAccess.Repo
+  alias Astarte.Helpers.Database, as: DatabaseTestHelper
 
   import Mox
 
@@ -137,7 +138,7 @@ defmodule Astarte.AppEngine.API.DeviceTest do
     last_seen_ip: "198.51.100.81",
     credentials_inhibited: false,
     total_received_bytes: 4_500_000,
-    total_received_msgs: 45000,
+    total_received_msgs: 45_000,
     previous_interfaces: @expected_previous_interfaces,
     groups: [],
     deletion_in_progress: false

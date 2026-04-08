@@ -17,6 +17,9 @@
 #
 
 defmodule Astarte.DataUpdaterPlant.ValueMatchOperators do
+  @moduledoc """
+  This module provides functions for matching values based on different operators.
+  """
   def value_matches?(_received_value, :ANY, _known_value) do
     true
   end

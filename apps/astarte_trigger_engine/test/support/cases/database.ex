@@ -17,6 +17,10 @@
 #
 
 defmodule Astarte.Cases.Database do
+  @moduledoc """
+  ExUnit case template for database tests.
+  """
+
   use ExUnit.CaseTemplate
   use Mimic
 

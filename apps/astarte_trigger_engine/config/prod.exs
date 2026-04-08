@@ -23,6 +23,4 @@ config :logger,
     [level_lower_than: :info]
   ]
 
-config :logger, :console,
-  format: {PrettyLog.LogfmtFormatter, :format},
-  metadata: [:module, :function, :tag]
+config :logger, :console, format: {PrettyLog.LogfmtFormatter, :format}

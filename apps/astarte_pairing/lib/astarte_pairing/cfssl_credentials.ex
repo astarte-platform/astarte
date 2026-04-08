@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2017-2018 Ispirata Srl
+# Copyright 2017-2025 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -42,12 +42,25 @@ defmodule Astarte.Pairing.CFSSLCredentials do
         cn = CertUtils.common_name!(cert)
 
         if cn == device_common_name do
+          Logger.info(
+            "Certificate issued successfully.",
+            realm: realm,
+            hw_id: encoded_device_id,
+            common_name: cn
+          )
+
           {:ok, %{cert: cert, aki: aki, serial: serial}}
         else
+          "Failed to issue a certificate: Invalid common name"
+          |> Logger.info(realm: realm, hw_id: encoded_device_id, common_name: cn)
+
           {:error, :invalid_common_name}
         end
 
       {:error, reason} ->
+        "Failed to issue a certificate: Couldn't sign the csr"
+        |> Logger.info(realm: realm, hw_id: encoded_device_id, common_name: device_common_name)
+
         {:error, reason}
     end
   end

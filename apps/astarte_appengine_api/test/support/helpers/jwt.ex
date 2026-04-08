@@ -16,6 +16,9 @@
 # limitations under the License.
 
 defmodule Astarte.Helpers.JWT do
+  @moduledoc """
+  Helper module for generating JWT tokens for tests.
+  """
   alias Astarte.AppEngine.API.Auth.User
   alias Astarte.AppEngine.APIWeb.AuthGuardian
 

@@ -17,6 +17,10 @@
 #
 
 defmodule Astarte.TriggerEngine.AMQPConsumer.Queries do
+  @moduledoc """
+  Database queries for AMQP consumer.
+  """
+
   alias Astarte.DataAccess.Consistency
   alias Astarte.DataAccess.KvStore
   alias Astarte.DataAccess.Realms.Realm

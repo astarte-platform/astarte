@@ -17,15 +17,19 @@
 #
 
 defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
-  alias Astarte.DataUpdaterPlant.DataUpdater.Core
-  alias Astarte.DataUpdaterPlant.Config
+  @moduledoc """
+  This module implements the core logic of the DataUpdater process.
+  """
   alias Astarte.Core.Device
-  alias Astarte.DataUpdaterPlant.DataUpdater.State
+  alias Astarte.DataUpdaterPlant.Config
   alias Astarte.DataUpdaterPlant.DataUpdater.Cache
+  alias Astarte.DataUpdaterPlant.DataUpdater.Core
   alias Astarte.DataUpdaterPlant.DataUpdater.Queries
+  alias Astarte.DataUpdaterPlant.DataUpdater.State
   alias Astarte.DataUpdaterPlant.MessageTracker
-  alias Astarte.DataUpdaterPlant.TriggersHandler
   alias Astarte.DataUpdaterPlant.TimeBasedActions
+  alias Astarte.DataUpdaterPlant.TriggersHandler
+
   require Logger
 
   def init_state(realm, device_id, message_tracker) do
@@ -36,38 +40,19 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
       realm: realm,
       device_id: device_id,
       message_tracker: message_tracker,
-      connected: true,
-      groups: [],
-      interfaces: %{},
-      interface_ids_to_name: %{},
-      interfaces_by_expiry: [],
-      mappings: %{},
-      paths_cache: Cache.new(Config.paths_cache_size!()),
-      device_triggers: %{},
-      data_triggers: %{},
-      volatile_triggers: [],
-      interface_exchanged_bytes: %{},
-      interface_exchanged_msgs: %{},
-      last_seen_message: 0,
-      last_device_triggers_refresh: 0,
-      last_groups_refresh: 0,
-      trigger_id_to_policy_name: %{},
-      discard_messages: false,
-      last_deletion_in_progress_refresh: 0,
-      last_datastream_maximum_retention_refresh: 0
+      paths_cache: Cache.new(Config.paths_cache_size!())
     }
 
     encoded_device_id = Device.encode_device_id(device_id)
     Logger.metadata(realm: realm, device_id: encoded_device_id)
     Logger.info("Created device process.", tag: "device_process_created")
 
-    stats_and_introspection =
-      Queries.retrieve_device_stats_and_introspection!(new_state.realm, device_id)
+    device_status = Queries.get_device_status(new_state.realm, device_id)
 
     # TODO this could be a bang!
     {:ok, ttl} = Queries.get_datastream_maximum_storage_retention(new_state.realm)
 
-    Map.merge(new_state, stats_and_introspection)
+    Map.merge(new_state, device_status)
     |> Map.put(:datastream_maximum_storage_retention, ttl)
   end
 
@@ -109,18 +94,10 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
       ip_address
     )
 
-    trigger_target_with_policy_list =
-      Map.get(new_state.device_triggers, :on_device_connection, [])
-      |> Enum.map(fn target ->
-        {target, Map.get(state.trigger_id_to_policy_name, target.parent_trigger_id)}
-      end)
-
-    device_id_string = Device.encode_device_id(new_state.device_id)
-
     TriggersHandler.device_connected(
-      trigger_target_with_policy_list,
       new_state.realm,
-      device_id_string,
+      new_state.device_id,
+      new_state.groups,
       ip_address_string,
       timestamp_ms
     )
@@ -170,6 +147,9 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Impl do
     TimeBasedActions.execute_time_based_actions(state, timestamp)
     |> Core.DataHandler.handle_data(interface, path, payload, message_id, timestamp)
   end
+
+  defdelegate handle_capabilities(state, capabilities, message_id, timestamp),
+    to: Core.CapabilitiesHandler
 
   defdelegate handle_control(state, path, payload, message_id, timestamp), to: Core.ControlHandler
 

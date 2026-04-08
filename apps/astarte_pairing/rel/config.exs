@@ -30,13 +30,13 @@ environment :dev do
   # dev mode.
   set dev_mode: true
   set include_erts: false
-  set cookie: :"b{Ck2b3S^bpEo_86`e2/9OU(v`fbLl3GkDygC&}cmP7*`/wzcWGc|a@%D2u%PpOw"
+  set cookie: :"wbkfM}r6;`RT9NW)eRz9wI[GK0B=Xl/<=6]/[r|uSsHYw;;6QqT)UgPB%.|vGWr|"
 end
 
 environment :prod do
   set include_erts: true
   set include_src: false
-  set cookie: :"|FpP4uDDo_gcgH)<g}pqdHiq]V=9OD?b>uLD,y3WzJSKJxX_g0_.19tV@{|&YB(D"
+  set cookie: :"Hj/Zo`M8(nU$/G0!?)`^RM4vJ{~vFECaBbrU9tYGW$5nqW&r:AJgx]t$e>:jvqyC"
 end
 
 # You may define one or more releases in this file.
@@ -52,4 +52,3 @@ release :astarte_pairing do
 
   plugin Conform.ReleasePlugin
 end
-

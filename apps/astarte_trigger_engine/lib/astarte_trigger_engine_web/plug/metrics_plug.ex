@@ -17,6 +17,10 @@
 #
 
 defmodule Astarte.TriggerEngineWeb.MetricsPlug do
+  @moduledoc """
+  Plug for Prometheus metrics endpoint.
+  """
+
   import Plug.Conn
 
   def init(_args), do: nil
