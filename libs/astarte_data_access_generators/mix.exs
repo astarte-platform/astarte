@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2025 SECO Mind Srl
+# Copyright 2025 - 2026 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -42,9 +42,8 @@ defmodule Astarte.DataAccess.Generators.MixProject do
 
   defp astarte_required_modules() do
     [
-      {:astarte_generators, github: "astarte-platform/astarte_generators"},
-      {:astarte_data_access,
-       github: "astarte-platform/astarte_data_access", branch: "release-1.3"}
+      {:astarte_data_access, path: astarte_lib("astarte_data_access")},
+      {:astarte_generators, path: astarte_lib("astarte_generators")}
     ]
   end
 
@@ -67,9 +66,9 @@ defmodule Astarte.DataAccess.Generators.MixProject do
     [
       {:stream_data, "~> 1.1"},
       # Test section
-      {:dialyxir, "~> 1.4", only: [:dev, :ci], runtime: false},
-      {:credo, "~> 1.7", only: [:dev, :test, :ci], runtime: false},
-      {:excoveralls, "~> 0.15", only: [:test, :ci]},
+      {:dialyxir, "~> 1.4", only: [:dev, :test], runtime: false},
+      {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
+      {:excoveralls, "~> 0.15", only: [:test]},
       {:mox, "~> 0.5", only: :test}
     ]
   end
@@ -84,5 +83,10 @@ defmodule Astarte.DataAccess.Generators.MixProject do
         "GitHub" => "https://github.com/astarte-platform/astarte_data_access_generators"
       }
     ]
+  end
+
+  defp astarte_lib(library_name) do
+    base_directory = System.get_env("ASTARTE_LIBRARIES_PATH", "../../libs")
+    Path.join(base_directory, library_name)
   end
 end
