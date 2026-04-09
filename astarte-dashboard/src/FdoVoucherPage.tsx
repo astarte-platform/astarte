@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import {
+  Alert,
   Container,
   Row,
   Col,
@@ -10,10 +11,33 @@ import {
   Accordion,
   Spinner,
 } from 'react-bootstrap';
+import { useNavigate } from 'react-router-dom';
 import { useFdo } from './hooks/useFdo';
-import { useAlerts } from './AlertManager';
+import { AlertsBanner, useAlerts } from './AlertManager';
 import Icon from './components/Icon';
 import { useAstarte } from './AstarteManager';
+
+const parseApiError = (err: any): string => {
+  let data = err?.response?.data;
+  if (typeof data === 'string') {
+    try {
+      data = JSON.parse(data);
+    } catch {
+      return data.trim() || err.message;
+    }
+  }
+  const errors = data?.errors;
+  if (!errors) {
+    return err?.message || 'An unexpected error occurred.';
+  }
+  if (typeof errors.detail === 'string') {
+    return errors.detail;
+  }
+  const lines = Object.entries(errors as Record<string, string[]>).flatMap(([field, msgs]) =>
+    (msgs as string[]).map((m) => `${field}: ${m}`),
+  );
+  return lines.length ? lines.join('\n') : err?.message || 'An unexpected error occurred.';
+};
 
 const FdoVoucherPage: React.FC = () => {
   // States to handle the dual upload method (File vs Raw Text)
@@ -25,7 +49,9 @@ const FdoVoucherPage: React.FC = () => {
   // States for Key Selection
   const [keyName, setKeyName] = useState('');
   const [selectedAlgorithm, setSelectedAlgorithm] = useState('');
-  const [availableKeys, setAvailableKeys] = useState<{ key_name: string; key_algorithm: string }[]>([]);
+  const [availableKeys, setAvailableKeys] = useState<{ key_name: string; key_algorithm: string }[]>(
+    [],
+  );
   const [isLoadingKeys, setIsLoadingKeys] = useState(false);
 
   // States for new replacement fields (FDO TO2 settings)
@@ -34,8 +60,11 @@ const FdoVoucherPage: React.FC = () => {
   const [replacementPubKey, setReplacementPubKey] = useState('');
 
   const [ovGuid, setOvGuid] = useState<string | null>(null);
+  const [validated, setValidated] = useState(false);
+  const [keysError, setKeysError] = useState<string | null>(null);
   const { uploadVoucher, status } = useFdo();
-  const [, alertsController] = useAlerts();
+  const [alerts, alertsController] = useAlerts();
+  const navigate = useNavigate();
 
   // Helper boolean to check if voucher data is provided
   const isVoucherLoaded =
@@ -75,9 +104,9 @@ const FdoVoucherPage: React.FC = () => {
             setAvailableKeys(keys);
             setIsLoadingKeys(false);
           }
-        } catch (error) {
+        } catch (error: any) {
           if (isMounted) {
-            console.error('Error fetching compatible keys:', error);
+            setKeysError(parseApiError(error));
             setIsLoadingKeys(false);
           }
         }
@@ -86,6 +115,7 @@ const FdoVoucherPage: React.FC = () => {
         setAvailableKeys([]);
         setKeyName('');
         setSelectedAlgorithm('');
+        setKeysError(null);
       }
     };
 
@@ -98,7 +128,12 @@ const FdoVoucherPage: React.FC = () => {
 
   const handleUpload = async (e: React.FormEvent) => {
     e.preventDefault();
+    setValidated(true);
     setOvGuid(null);
+
+    if (!isVoucherLoaded || !keyName) {
+      return;
+    }
 
     let finalVoucherText = '';
 
@@ -143,8 +178,9 @@ const FdoVoucherPage: React.FC = () => {
       setReplacementRvInfo('');
       setReplacementPubKey('');
       setAvailableKeys([]); // Clear keys to reset the flow
+      setValidated(false);
     } catch (err: any) {
-      alertsController.showError(`Error: ${err.message}`);
+      alertsController.showError(parseApiError(err));
     }
   };
 
@@ -157,11 +193,14 @@ const FdoVoucherPage: React.FC = () => {
         <Col>
           <Breadcrumb>
             <Breadcrumb.Item href="/">Astarte</Breadcrumb.Item>
-            <Breadcrumb.Item active>FDO Management</Breadcrumb.Item>
+            <Breadcrumb.Item href="/fdo-vouchers">FDO Vouchers</Breadcrumb.Item>
+            <Breadcrumb.Item active>Upload</Breadcrumb.Item>
           </Breadcrumb>
           <h1 className="mb-4">Upload Ownership Voucher</h1>
         </Col>
       </Row>
+
+      <AlertsBanner alerts={alerts} />
 
       <Row>
         <Col md={8} lg={6}>
@@ -204,8 +243,15 @@ const FdoVoucherPage: React.FC = () => {
                     <Form.Control
                       type="file"
                       accept=".pem,.txt"
-                      onChange={(e: any) => setFile(e.target.files?.[0] || null)}
+                      isInvalid={validated && !file}
+                      onChange={(e: any) => {
+                        setFile(e.target.files?.[0] || null);
+                        setValidated(false);
+                      }}
                     />
+                    <Form.Control.Feedback type="invalid">
+                      Please select a voucher file.
+                    </Form.Control.Feedback>
                   </Form.Group>
                 ) : (
                   <Form.Group className="mb-4">
@@ -214,9 +260,16 @@ const FdoVoucherPage: React.FC = () => {
                       rows={6}
                       placeholder="-----BEGIN OWNERSHIP VOUCHER-----&#10;...&#10;-----END OWNERSHIP VOUCHER-----"
                       value={voucherText}
-                      onChange={(e) => setVoucherText(e.target.value)}
+                      isInvalid={validated && voucherText.trim() === ''}
+                      onChange={(e) => {
+                        setVoucherText(e.target.value);
+                        setValidated(false);
+                      }}
                       style={{ fontFamily: 'monospace', fontSize: '0.85rem' }}
                     />
+                    <Form.Control.Feedback type="invalid">
+                      Please paste the voucher PEM content.
+                    </Form.Control.Feedback>
                   </Form.Group>
                 )}
 
@@ -229,6 +282,12 @@ const FdoVoucherPage: React.FC = () => {
                     <Spinner animation="border" size="sm" className="ms-2" variant="primary" />
                   )}
                 </h5>
+                {keysError && (
+                  <Alert variant="danger" dismissible onClose={() => setKeysError(null)}>
+                    <Alert.Heading className="h6">Failed to load compatible keys</Alert.Heading>
+                    {keysError}
+                  </Alert>
+                )}
                 {(() => {
                   const algorithms = [...new Set(availableKeys.map((k) => k.key_algorithm))];
                   const showAlgorithmPicker = algorithms.length > 1;
@@ -266,14 +325,21 @@ const FdoVoucherPage: React.FC = () => {
                         <Form.Label>Owner Key Name</Form.Label>
                         <Form.Select
                           value={keyName}
+                          isInvalid={validated && isVoucherLoaded && !isLoadingKeys && !keyName}
                           onChange={(e) => {
                             const name = e.target.value;
                             setKeyName(name);
                             // Always track the algorithm of the selected key so it gets sent in the payload
                             const found = availableKeys.find((k) => k.key_name === name);
-                            if (found) { setSelectedAlgorithm(found.key_algorithm); }
+                            if (found) {
+                              setSelectedAlgorithm(found.key_algorithm);
+                            }
                           }}
-                          disabled={!isVoucherLoaded || isLoadingKeys || (showAlgorithmPicker && !selectedAlgorithm)}
+                          disabled={
+                            !isVoucherLoaded ||
+                            isLoadingKeys ||
+                            (showAlgorithmPicker && !selectedAlgorithm)
+                          }
                         >
                           <option value="">
                             {showAlgorithmPicker && !selectedAlgorithm
@@ -286,6 +352,9 @@ const FdoVoucherPage: React.FC = () => {
                             </option>
                           ))}
                         </Form.Select>
+                        <Form.Control.Feedback type="invalid">
+                          Please select an owner key.
+                        </Form.Control.Feedback>
                         <Form.Text className="text-muted">
                           The alias of the OpenBao key to correlate with this voucher.
                         </Form.Text>
@@ -362,11 +431,30 @@ const FdoVoucherPage: React.FC = () => {
                     </h6>
                     <p className="mb-0 text-muted">Device GUID:</p>
                     <p
-                      className="mb-0"
+                      className="mb-0 mb-3"
                       style={{ fontFamily: 'monospace', fontSize: '1.2em', fontWeight: 'bold' }}
                     >
                       {ovGuid}
                     </p>
+                    <div className="d-flex gap-2 justify-content-center mt-3">
+                      <Button variant="primary" onClick={() => navigate('/fdo-vouchers')}>
+                        <Icon icon="devices" className="me-2" />
+                        Go to voucher list
+                      </Button>
+                      <Button
+                        variant="outline-secondary"
+                        onClick={() => {
+                          setOvGuid(null);
+                          setFile(null);
+                          setVoucherText('');
+                          setKeyName('');
+                          setSelectedAlgorithm('');
+                          setAvailableKeys([]);
+                        }}
+                      >
+                        Upload another voucher
+                      </Button>
+                    </div>
                   </div>
                 )}
               </Form>

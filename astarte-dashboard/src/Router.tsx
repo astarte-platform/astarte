@@ -51,6 +51,7 @@ import NewPolicyPage from './NewTriggerDeliveryPolicyPage';
 import TriggerDeliveryPolicyPage from './TriggerDeliveryPolicyPage';
 import DeviceDataStreamValues from 'DeviceDataStreamValues';
 import FdoVoucherPage from './FdoVoucherPage';
+import FdoVouchersPage from './FdoVouchersPage';
 import FdoOwnerKeysPage from './FdoOwnerKeysPage';
 import FdoOwnerKeyPage from './FdoOwnerKeyPage';
 
@@ -125,7 +126,8 @@ const privateRoutes: RouteObject[] = [
   { path: 'devices', element: <DevicesPage /> },
   { path: 'devices/register', element: <RegisterDevicePage /> },
   { path: 'devices/:deviceId/edit', element: <DeviceStatusPage /> },
-  { path: 'fdo-vouchers', element: <FdoVoucherPage /> },
+  { path: 'fdo-vouchers', element: <FdoVouchersPage /> },
+  { path: 'fdo-vouchers/new', element: <FdoVoucherPage /> },
   { path: 'fdo-owner-keys', element: <FdoOwnerKeysPage /> },
   { path: 'fdo-owner-keys/new', element: <FdoOwnerKeyPage /> },
   {
