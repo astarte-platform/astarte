@@ -29,7 +29,9 @@ defmodule Astarte.HousekeepingWeb.Router do
 
     get "/version", VersionController, :show
 
-    resources "/realms", RealmController, except: [:new, :edit, :update]
+    resources "/realms", RealmController,
+      except: [:new, :edit, :update],
+      param: "realm_name"
 
     patch "/realms/:realm_name", RealmController, :update
   end
