@@ -19,7 +19,18 @@
 #
 
 style = "conventional"
-allowed_types = ["fix", "feat", "perf", "chore", "build", "docs", "style", "refactor", "test", "ci"]
+allowed_types = [
+  "fix",
+  "feat",
+  "perf",
+  "chore",
+  "build",
+  "docs",
+  "style",
+  "refactor",
+  "test",
+  "ci",
+]
 allowed_scopes = [
   # services
   "dup",
@@ -33,6 +44,7 @@ allowed_scopes = [
   "events",
   "rpc",
   "generators",
+  "data_access_generators",
   # tools
   "e2e",
   "import",
