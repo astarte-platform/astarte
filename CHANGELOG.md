@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## Unreleased
 
+### Changed
+
+- [astarte_pairing] FDO feature is enabled for all installations, removed environment variable `PAIRING_ENABLE_FDO`.
+
 ## [1.4.0-rc.0] - 2026-04-08
 
 ### Added

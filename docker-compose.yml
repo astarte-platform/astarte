@@ -80,8 +80,6 @@ services:
         condition: service_started
       openbao:
         condition: service_healthy
-      openbao-init:
-        condition: service_completed_successfully
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.astarte-pairing.rule=Host(`api.${DOCKER_COMPOSE_ASTARTE_BASE_DOMAIN}`) && PathPrefix(`/pairing`)"
@@ -238,17 +236,6 @@ services:
       timeout: 2s
       retries: 5
       start_period: 1s
-
-  # additional Bao server to inject runtime configurations in main Bao server
-  openbao-init:
-    image: openbao/openbao:2
-    depends_on:
-      openbao:
-        condition: service_healthy
-    environment:
-      - BAO_ADDR=http://openbao:8200
-      - BAO_TOKEN=${ASTARTE_VAULT_TOKEN}
-    command: bao secrets enable transit
 
   rendezvous:
     image: astarte/go-fdo-server:ade68cda47-20251128
