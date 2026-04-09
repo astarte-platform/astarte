@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2025 SECO Mind Srl
+# Copyright 2025 - 2026 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -34,23 +34,21 @@ defmodule Astarte.DataAccess.Generators.Mapping do
 
   @spec from_core(StreamData.t(Mapping.t())) :: StreamData.t(MappingData.t())
   def from_core(gen) do
-    gen all(
-          %Mapping{
-            endpoint: endpoint,
-            value_type: value_type,
-            reliability: reliability,
-            retention: retention,
-            expiry: expiry,
-            database_retention_policy: database_retention_policy,
-            database_retention_ttl: database_retention_ttl,
-            allow_unset: allow_unset,
-            explicit_timestamp: explicit_timestamp,
-            endpoint_id: endpoint_id,
-            interface_id: interface_id,
-            doc: doc,
-            description: description
-          } <- gen
-        ) do
+    gen all %Mapping{
+              endpoint: endpoint,
+              value_type: value_type,
+              reliability: reliability,
+              retention: retention,
+              expiry: expiry,
+              database_retention_policy: database_retention_policy,
+              database_retention_ttl: database_retention_ttl,
+              allow_unset: allow_unset,
+              explicit_timestamp: explicit_timestamp,
+              endpoint_id: endpoint_id,
+              interface_id: interface_id,
+              doc: doc,
+              description: description
+            } <- gen do
       %MappingData{
         endpoint: endpoint,
         value_type: value_type,

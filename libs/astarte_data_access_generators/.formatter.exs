@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2025 SECO Mind Srl
+# Copyright 2025 - 2026 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -16,26 +16,7 @@
 # limitations under the License.
 #
 
-locals_without_parens = [
-  # stream_data
-  all: :*,
-  check: 1,
-  check: 2,
-  property: 1,
-  property: 2,
-
-  # astarte_generators
-  gen: :*
-]
-
 [
-  inputs: [
-    "lib/**/*.{ex,exs}",
-    "test/**/*.{ex,exs}",
-    "mix.exs",
-    "config/**/*.{ex,exs}",
-    ".credo.exs"
-  ],
-  locals_without_parens: locals_without_parens,
-  export: [locals_without_parens: locals_without_parens]
+  import_deps: [:ecto, :stream_data, :astarte_generators],
+  inputs: ["{mix,.formatter}.exs", "{config,lib,test}/**/*.{ex,exs}"]
 ]
