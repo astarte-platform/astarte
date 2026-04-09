@@ -52,8 +52,6 @@ CASSANDRA_NODES=localhost CFSSL_API_URL=http://localhost:8080 mix test
 
 # Test FDO
 
-> The feature is experimental and PAIRING_ENABLE_FDO must be set to true
-
 To test FDO, the manufacturer and Device CA keys are required and
 can be generated from the following tools:
 
