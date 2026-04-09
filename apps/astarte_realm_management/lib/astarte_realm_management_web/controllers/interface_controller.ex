@@ -18,11 +18,170 @@
 
 defmodule Astarte.RealmManagementWeb.InterfaceController do
   use Astarte.RealmManagementWeb, :controller
+  use OpenApiSpex.ControllerSpecs
 
   alias Astarte.Core.Interface
   alias Astarte.RealmManagement.Interfaces
+  alias OpenApiSpex.{Reference, Schema}
 
   action_fallback Astarte.RealmManagementWeb.FallbackController
+
+  tags ["interface"]
+  security [%{"JWT" => []}]
+
+  operation :index,
+    summary: "Get interface list",
+    description: """
+    Get a list of all installed interfaces. By default a list of interface names
+    is returned. The complete interface definitions list can be optionally retrieved using
+    the `detailed` option.
+    """,
+    operation_id: "getInterfaceList",
+    parameters: [
+      %Reference{"$ref": "#/components/parameters/Realm"},
+      detailed: [
+        in: :query,
+        description: "If true, interface definitions are returned instead of just names.",
+        required: false,
+        schema: %Schema{type: :boolean, default: false}
+      ]
+    ],
+    responses: [
+      ok: %Reference{"$ref": "#/components/responses/GetInterfaceList"},
+      unauthorized: %Reference{"$ref": "#/components/responses/Unauthorized"},
+      forbidden: %Reference{"$ref": "#/components/responses/Forbidden"}
+    ]
+
+  operation :create,
+    summary: "Install a new interface to the realm",
+    description: """
+    Install a new interface, or a newer major version for a given interface.
+    Validation is performed, and an error is returned if interface cannot be
+    installed. The installation is performed asynchronously by default. You
+    can perform the call synchronously by setting the async_operation query
+    param to false.
+    """,
+    operation_id: "installInterface",
+    parameters: [
+      %Reference{"$ref": "#/components/parameters/Realm"},
+      async_operation: [
+        in: :query,
+        description: "Whether the operation should be carried out asynchronously.",
+        required: false,
+        schema: %Schema{type: :boolean, default: true}
+      ]
+    ],
+    request_body: {
+      "A JSON object representing an Astarte Interface.",
+      "application/json",
+      %Schema{
+        type: :object,
+        required: [:data],
+        properties: %{
+          data: %Reference{"$ref": "#/components/schemas/Interface"}
+        }
+      },
+      required: true
+    },
+    responses: [
+      created: %Reference{"$ref": "#/components/responses/InstallInterface"},
+      unauthorized: %Reference{"$ref": "#/components/responses/Unauthorized"},
+      forbidden: %Reference{"$ref": "#/components/responses/Forbidden"},
+      unprocessable_entity: %Reference{"$ref": "#/components/responses/InterfaceValidationError"}
+    ]
+
+  operation :show,
+    summary: "Get an interface",
+    description: """
+    Show a previously installed interface. Previous minor versions for a
+    given major version are not retrieved, only the most recent interface
+    for each interface major is returned.
+    """,
+    operation_id: "getInterface",
+    parameters: [
+      %Reference{"$ref": "#/components/parameters/Realm"},
+      %Reference{"$ref": "#/components/parameters/InterfaceName"},
+      %Reference{"$ref": "#/components/parameters/InterfaceMajor"}
+    ],
+    responses: [
+      ok: %Reference{"$ref": "#/components/responses/GetInterface"},
+      unauthorized: %Reference{"$ref": "#/components/responses/Unauthorized"},
+      forbidden: %Reference{"$ref": "#/components/responses/Forbidden"},
+      not_found: %Reference{"$ref": "#/components/responses/InterfaceNotFound"}
+    ]
+
+  operation :update,
+    summary: "Updates an existing interface to a new minor release",
+    description: """
+    Replace an existing interface with a certain major version with a new
+    one (that must have same major version and a higher minor version).
+    Server side validation is performed. Interface upgrade is performed
+    asynchronously by default. You can perform the call synchronously by
+    setting the async_operation query param to false. For more information
+    about what is allowed when updating an interface, see [the
+    doc](https://docs.astarte-platform.org/astarte/1.0/030-interface.html#versioning).
+    This operation cannot be reverted.
+    """,
+    operation_id: "updateInterface",
+    parameters: [
+      %Reference{"$ref": "#/components/parameters/Realm"},
+      %Reference{"$ref": "#/components/parameters/InterfaceName"},
+      %Reference{"$ref": "#/components/parameters/InterfaceMajor"},
+      async_operation: [
+        in: :query,
+        description: "Whether the operation should be carried out asynchronously.",
+        required: false,
+        schema: %Schema{type: :boolean, default: true}
+      ]
+    ],
+    request_body: {
+      "A JSON object representing the updated Astarte Interface.",
+      "application/json",
+      %Schema{
+        type: :object,
+        required: [:data],
+        properties: %{
+          data: %Reference{"$ref": "#/components/schemas/Interface"}
+        }
+      },
+      required: true
+    },
+    responses: [
+      no_content: {"Success", nil, nil},
+      unauthorized: %Reference{"$ref": "#/components/responses/Unauthorized"},
+      forbidden: %Reference{"$ref": "#/components/responses/Forbidden"},
+      not_found: %Reference{"$ref": "#/components/responses/InterfaceNotFound"},
+      conflict: %Reference{"$ref": "#/components/responses/UpdateConflict"},
+      unprocessable_entity: %Reference{"$ref": "#/components/responses/InterfaceValidationError"}
+    ]
+
+  operation :delete,
+    summary: "Delete a draft interface",
+    description: """
+    Delete an interface draft (a draft is an interface with major version
+    0). An interface with a major version different than 0 should be
+    manually deleted. Interface deletion is performed asynchronously by
+    default. You can perform the call synchronously by setting the
+    async_operation query param to false.
+    """,
+    operation_id: "deleteInterface",
+    parameters: [
+      %Reference{"$ref": "#/components/parameters/Realm"},
+      %Reference{"$ref": "#/components/parameters/InterfaceName"},
+      %Reference{"$ref": "#/components/parameters/InterfaceMajor"},
+      async_operation: [
+        in: :query,
+        description: "Whether the operation should be carried out asynchronously.",
+        required: false,
+        schema: %Schema{type: :boolean, default: true}
+      ]
+    ],
+    responses: [
+      no_content: {"Success", nil, nil},
+      unauthorized: %Reference{"$ref": "#/components/responses/Unauthorized"},
+      forbidden: %Reference{"$ref": "#/components/responses/Forbidden"},
+      not_found: %Reference{"$ref": "#/components/responses/InterfaceNotFound"}
+    ]
 
   def index(conn, %{"realm_name" => realm_name}) do
     with {:ok, interfaces} <- Interfaces.list_interfaces(realm_name) do
@@ -68,9 +227,14 @@ defmodule Astarte.RealmManagementWeb.InterfaceController do
     end
   end
 
-  def show(conn, %{"realm_name" => realm_name, "id" => id, "major_version" => major_version}) do
+  def show(conn, %{
+        "realm_name" => realm_name,
+        "interface_name" => interface_name,
+        "major_version" => major_version
+      }) do
     with {:major_parsing, {parsed_major, ""}} <- {:major_parsing, Integer.parse(major_version)},
-         {:ok, interface_source} <- Interfaces.fetch_interface(realm_name, id, parsed_major) do
+         {:ok, interface_source} <-
+           Interfaces.fetch_interface(realm_name, interface_name, parsed_major) do
       render(conn, "show.json", interface: interface_source)
     else
       {:major_parsing, _} ->
@@ -86,7 +250,7 @@ defmodule Astarte.RealmManagementWeb.InterfaceController do
         conn,
         %{
           "realm_name" => realm_name,
-          "id" => interface_name,
+          "interface_name" => interface_name,
           "major_version" => major_version,
           "data" => %{} = interface_params
         } = params
@@ -160,7 +324,7 @@ defmodule Astarte.RealmManagementWeb.InterfaceController do
         conn,
         %{
           "realm_name" => realm_name,
-          "id" => interface_name,
+          "interface_name" => interface_name,
           "major_version" => major_version
         } = params
       ) do

@@ -38,7 +38,8 @@ defmodule Astarte.RealmManagement.Mixfile do
         "coveralls.html": :test
       ],
       dialyzer: [plt_add_apps: [:ex_unit]],
-      deps: deps() ++ astarte_required_modules(System.get_env("ASTARTE_IN_UMBRELLA"))
+      deps: deps() ++ astarte_required_modules(System.get_env("ASTARTE_IN_UMBRELLA")),
+      description: "Astarte Realm Management API"
     ]
   end
 
@@ -98,7 +99,9 @@ defmodule Astarte.RealmManagement.Mixfile do
       {:ssl_verify_fun, "~> 1.1.7"},
       {:uuid, "~> 2.0", hex: :uuid_erl},
       {:libcluster, "~> 3.3"},
-      {:credo, "~> 1.7", only: [:dev, :test], runtime: false}
+      {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
+      {:open_api_spex, "~> 3.22"},
+      {:ymlr, "~> 5.1"}
     ]
   end
 
