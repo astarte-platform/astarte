@@ -18,6 +18,13 @@
 
 import Config
 
-port = System.get_env("PAIRING_API_PORT", "4003") |> String.to_integer()
+port = System.get_env("HOUSEKEEPING_API_PORT", "4001") |> String.to_integer()
 
-config :astarte_pairing, Astarte.PairingWeb.Endpoint, http: [port: port]
+config :astarte_housekeeping, Astarte.HousekeepingWeb.Endpoint, http: [port: port]
+
+if config_env() == :prod do
+  secret_key_base = System.fetch_env!("SECRET_KEY_BASE")
+
+  config :astarte_housekeeping, Astarte.HousekeepingWeb.Endpoint,
+    secret_key_base: secret_key_base
+end
