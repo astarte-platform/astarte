@@ -25,15 +25,15 @@ import { useFdoOwnerKey } from './hooks/useFdoOwnerKey';
 import Icon from './components/Icon';
 
 const KEY_ALGORITHMS = [
-  { value: 'es256', label: 'ECDSA P-256 (ES256)' },
-  { value: 'es384', label: 'ECDSA P-384 (ES384)' },
-  { value: 'rs256', label: 'RSA 2048 (RS256)' },
-  { value: 'rs384', label: 'RSA 3072 (RS384)' },
+  { value: 'ecdsa-p256', label: 'ECDSA P-256 (ES256)' },
+  { value: 'ecdsa-p384', label: 'ECDSA P-384 (ES384)' },
+  { value: 'rsa-2048', label: 'RSA 2048 (RS256)' },
+  { value: 'rsa-3072', label: 'RSA 3072 (RS384)' },
 ];
 
 export default (): React.ReactElement => {
   const [keyName, setKeyName] = useState('');
-  const [keyAlgorithm, setKeyAlgorithm] = useState('es256');
+  const [keyAlgorithm, setKeyAlgorithm] = useState('ecdsa-p256');
   const [generatedKey, setGeneratedKey] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
 

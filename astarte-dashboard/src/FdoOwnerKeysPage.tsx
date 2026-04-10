@@ -29,7 +29,21 @@ import WaitForData from './components/WaitForData';
 
 type FdoOwnerKey = { key_name: string; key_algorithm: string };
 
-const ALGORITHMS = ['es256', 'es384', 'rs256', 'rs384'] as const;
+const ALGORITHMS = ['ecdsa-p256', 'ecdsa-p384', 'rsa-2048', 'rsa-3072'] as const;
+const normalizeAlgorithm = (algo: string): string => {
+  switch (algo) {
+    case 'es256':
+      return 'ecdsa-p256';
+    case 'es384':
+      return 'ecdsa-p384';
+    case 'rs256':
+      return 'rsa-2048';
+    case 'rs384':
+      return 'rsa-3072';
+    default:
+      return algo;
+  }
+};
 type Algorithm = (typeof ALGORITHMS)[number];
 
 interface AlgorithmFilterProps {
@@ -251,13 +265,18 @@ export default (): React.ReactElement => {
                 }
               >
                 {(keys) => {
-                  const filtered = applyFilters(keys);
+                  const normalizedKeys = keys.map((k) => ({
+                    ...k,
+                    key_algorithm: normalizeAlgorithm(k.key_algorithm),
+                  }));
+
+                  const filtered = applyFilters(normalizedKeys);
                   return (
                     <>
                       <tr>
                         <td colSpan={3} className="border-0 pb-0">
                           <AlgorithmFilter
-                            allKeys={keys}
+                            allKeys={normalizedKeys}
                             activeFilter={activeFilter}
                             onSelect={setActiveFilter}
                           />
