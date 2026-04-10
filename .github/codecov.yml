@@ -21,6 +21,7 @@ coverage:
           - astarte_events
           - astarte_generators
           - astarte_data_access_generators
+          - astarte_test_suite
           - astarte_rpc
 
 ignore:
@@ -83,7 +84,11 @@ flags:
   astarte_data_access_generators:
     carryforward: true
     paths:
-      - libs/astarte_data_access_generators
+      - libs/astarte_generators
+  astarte_test_suite:
+    carryforward: true
+    paths:
+      - libs/astarte_test_suite
   astarte_rpc:
     carryforward: true
     paths:
