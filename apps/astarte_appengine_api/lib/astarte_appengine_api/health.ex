@@ -29,9 +29,9 @@ defmodule Astarte.AppEngine.API.Health do
   Gets the backend health.
   """
   def get_health do
-    with :ready <- database_health(),
+    with :ready <- dup_health(),
          :ready <- vernemq_health() do
-      dup_health()
+      database_health()
     end
   end
 
