@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2017 - 2026 SECO Mind Srl
+# Copyright 2019 - 2025 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -16,19 +16,25 @@
 # limitations under the License.
 #
 
-Mimic.copy(Astarte.DataAccess.Config)
-Mimic.copy(Astarte.DataAccess.Health)
-Mimic.copy(Astarte.DataAccess.Repo)
-Mimic.copy(Astarte.Events.AMQP)
-Mimic.copy(Astarte.Events.AMQP.Vhost)
-Mimic.copy(Astarte.Events.Config)
-Mimic.copy(Astarte.Housekeeping.Config)
-Mimic.copy(Astarte.Housekeeping.Health)
-Mimic.copy(Astarte.Housekeeping.Migrator)
-Mimic.copy(Astarte.Housekeeping.Realms)
-Mimic.copy(Astarte.Housekeeping.Realms.Queries)
-Mimic.copy(HTTPoison)
-Mimic.copy(HTTPoison.Base)
-Mimic.copy(Xandra)
+defmodule Astarte.TriggerEngine.HealthTest do
+  use ExUnit.Case, async: true
+  use Mimic
 
-ExUnit.start(capture_log: true)
+  alias Astarte.TriggerEngine.Health
+
+  describe "rpc_healthcheck/0" do
+    test "returns ok when health is ready" do
+      Health
+      |> expect(:get_health, fn -> :ready end)
+
+      assert Health.rpc_healthcheck() == :ok
+    end
+
+    test "raises when health is bad" do
+      Health
+      |> expect(:get_health, fn -> :bad end)
+
+      assert_raise RuntimeError, fn -> Health.rpc_healthcheck() end
+    end
+  end
+end

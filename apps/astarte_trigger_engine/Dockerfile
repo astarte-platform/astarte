@@ -60,4 +60,6 @@ COPY --from=builder --chown=nobody:nogroup /app/_build/$BUILD_ENV/rel/astarte_tr
 # Change to non-root user
 USER nobody
 
+HEALTHCHECK CMD ./bin/astarte_trigger_engine rpc 'Astarte.TriggerEngine.Health.rpc_healthcheck()'
+
 CMD ["./bin/astarte_trigger_engine", "start"]

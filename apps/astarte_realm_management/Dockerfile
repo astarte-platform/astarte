@@ -63,4 +63,6 @@ COPY --from=builder --chown=nobody:nogroup /app/_build/$BUILD_ENV/rel/astarte_re
 # Change to non-root user
 USER nobody
 
+HEALTHCHECK CMD ./bin/astarte_realm_management rpc 'Astarte.RealmManagement.Health.rpc_healthcheck()'
+
 CMD ["./bin/astarte_realm_management", "start"]
