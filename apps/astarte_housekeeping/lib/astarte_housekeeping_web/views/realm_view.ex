@@ -34,6 +34,10 @@ defmodule Astarte.HousekeepingWeb.RealmView do
     realm.realm_name
   end
 
+  def render("replication.json", %{replication: replication}) do
+    %{data: replication}
+  end
+
   def render("realm.json", %{realm: %Realm{replication_class: "SimpleStrategy"} = realm}) do
     %{
       data: %{

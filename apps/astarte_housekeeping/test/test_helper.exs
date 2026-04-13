@@ -17,12 +17,13 @@
 #
 
 Mimic.copy(Astarte.DataAccess.Config)
-Mimic.copy(Astarte.DataAccess.Health.Health)
+Mimic.copy(Astarte.DataAccess.Health)
 Mimic.copy(Astarte.DataAccess.Repo)
 Mimic.copy(Astarte.Events.AMQP)
 Mimic.copy(Astarte.Events.AMQP.Vhost)
 Mimic.copy(Astarte.Events.Config)
 Mimic.copy(Astarte.Housekeeping.Config)
+Mimic.copy(Astarte.Housekeeping.Health)
 Mimic.copy(Astarte.Housekeeping.Migrator)
 Mimic.copy(Astarte.Housekeeping.Realms)
 Mimic.copy(Astarte.Housekeeping.Realms.Queries)

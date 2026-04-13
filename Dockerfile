@@ -75,4 +75,6 @@ COPY --from=builder --chown=nobody:nogroup /app/_build/$BUILD_ENV/rel/$SERVICE .
 # Change to non-root user
 USER nobody
 
+HEALTHCHECK CMD "./bin/healthcheck"
+
 CMD $SERVICE_CMD

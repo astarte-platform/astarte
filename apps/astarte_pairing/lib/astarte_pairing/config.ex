@@ -23,8 +23,8 @@ defmodule Astarte.Pairing.Config do
 
   use Skogsra
 
+  alias Astarte.FDO.Config, as: FDOConfig
   alias Astarte.Pairing.CFSSLCredentials
-  alias Astarte.Pairing.Config.BaseURLProtocol
   alias Astarte.Pairing.Config.CQExNodes
   alias Astarte.Secrets.Config, as: SecretsConfig
 
@@ -33,30 +33,6 @@ defmodule Astarte.Pairing.Config do
     os_env: "PAIRING_BROKER_URL",
     type: :binary,
     required: true
-
-  @envdoc """
-  Set this variable to 'true' to enable FDO feature as device authentication mechanism.
-  WARNING: this feature is experimental and is not enabled by default
-  """
-  app_env :enable_fdo, :astarte_pairing, :enable_fdo,
-    os_env: "PAIRING_ENABLE_FDO",
-    type: :boolean,
-    default: false
-
-  @envdoc "The port the ingress is listening on, used for FDO authentication mechanism"
-  app_env :base_url_port, :astarte_pairing, :base_url_port,
-    os_env: "ASTARTE_BASE_URL_PORT",
-    type: :integer
-
-  @envdoc "The protocol the ingress is listening on, used for FDO authentication mechanism"
-  app_env :base_url_protocol, :astarte_pairing, :base_url_protocol,
-    os_env: "ASTARTE_BASE_URL_PROTOCOL",
-    type: BaseURLProtocol
-
-  @envdoc "The astarte base domain, used for FDO authentication mechanism"
-  app_env :base_url_domain, :astarte_pairing, :base_url_domain,
-    os_env: "ASTARTE_BASE_URL_DOMAIN",
-    type: :binary
 
   @envdoc "URL to the running CFSSL instance for device certificate generation."
   app_env :cfssl_url, :astarte_pairing, :cfssl_url,
@@ -157,16 +133,8 @@ defmodule Astarte.Pairing.Config do
       end
     end
 
-    if enable_fdo!() do
-      # check that all mandatory FDO variables are configured before starting
-      variables_to_check = [:base_url_port, :base_url_protocol, :base_url_domain]
-
-      if !Enum.all?(variables_to_check, &variable_set?(&1)) do
-        raise "FDO feature is enabled but not all its parameters are configured"
-      end
-
-      SecretsConfig.init()
-    end
+    FDOConfig.init!()
+    SecretsConfig.init()
   end
 
   @envdoc """
@@ -200,27 +168,9 @@ defmodule Astarte.Pairing.Config do
   @spec cassandra_node!() :: {String.t(), integer()}
   def cassandra_node!, do: Enum.random(cqex_nodes!())
 
-  def base_url! do
-    protocol = base_url_protocol!()
-    domain = base_url_domain!()
-    port = base_url_port!()
-
-    "#{protocol}://#{domain}:#{port}"
-  end
-
   @doc """
   Returns true if the authentication for the agent is disabled.
   Credential requests made by devices are always authenticated, even it this is true.
   """
   def authentication_disabled?, do: disable_authentication!()
-
-  defp variable_set?(var_name) do
-    case apply(__MODULE__, var_name, []) do
-      {:ok, val} when not is_nil(val) ->
-        true
-
-      _ ->
-        false
-    end
-  end
 end

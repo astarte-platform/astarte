@@ -16,31 +16,29 @@
 # limitations under the License.
 #
 
-defmodule Astarte.PairingWeb.Plug.FDOGate do
+defmodule Astarte.Housekeeping.Health do
   @moduledoc """
-  Plug for gating access to FDO-related endpoints based on the configuration. If FDO is disabled,
-  this plug will return a 404 response for any request that passes through it.
-  This plug should be used in the router to wrap all FDO-related routes, ensuring that they are only
-  accessible when FDO is enabled.
+  Performs health checks of the Housekeeping service
   """
 
-  use Plug.Builder
+  alias Astarte.DataAccess.Health, as: DatabaseHealth
+  alias Astarte.Housekeeping.Health
 
-  alias Astarte.Pairing.Config
-
-  def init(_opts) do
-    nil
+  @doc """
+  Gets the backend health, and raises if it's not healthy.
+  """
+  def rpc_healthcheck do
+    case Health.get_health() do
+      :ready -> :ok
+      :degraded -> :ok
+      other -> raise RuntimeError, to_string(other)
+    end
   end
 
-  def call(conn, _opts) do
-    case Config.enable_fdo!() do
-      true ->
-        conn
-
-      _ ->
-        conn
-        |> send_resp(404, "")
-        |> halt()
-    end
+  @doc """
+  Gets the backend health.
+  """
+  def get_health do
+    DatabaseHealth.get_health()
   end
 end

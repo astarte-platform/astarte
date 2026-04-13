@@ -1,4 +1,4 @@
 [
-  import_deps: [:ecto, :ecto_sql, :phoenix, :skogsra, :astarte_generators],
+  import_deps: [:ecto, :ecto_sql, :phoenix, :skogsra, :astarte_generators, :open_api_spex],
   inputs: ["{mix,.formatter}.exs", "{config,lib,test}/**/*.{ex,exs}"]
 ]

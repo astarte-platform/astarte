@@ -21,9 +21,20 @@ defmodule Astarte.TriggerEngine.Health do
   Performs health checks of the Pairing service
   """
 
-  alias Astarte.DataAccess.Health.Health, as: DatabaseHealth
+  alias Astarte.DataAccess.Health, as: DatabaseHealth
+  alias Astarte.TriggerEngine.Health
 
   @type health :: :ready | :bad
+
+  @doc """
+  Gets the backend health, and raises if it's not healthy.
+  """
+  def rpc_healthcheck do
+    case Health.get_health() do
+      :ready -> :ok
+      :bad -> raise RuntimeError, "bad"
+    end
+  end
 
   @spec get_health() :: health()
   def get_health do
