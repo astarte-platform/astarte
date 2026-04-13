@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2020 Ispirata Srl
+# Copyright 2019 - 2025 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -16,8 +16,25 @@
 # limitations under the License.
 #
 
-import Config
+defmodule Astarte.TriggerEngine.HealthTest do
+  use ExUnit.Case, async: true
+  use Mimic
 
-port = System.get_env("REALM_MANAGEMENT_API_PORT", "4000") |> String.to_integer()
+  alias Astarte.TriggerEngine.Health
 
-config :astarte_realm_management, Astarte.RealmManagementWeb.Endpoint, http: [port: port]
+  describe "rpc_healthcheck/0" do
+    test "returns ok when health is ready" do
+      Health
+      |> expect(:get_health, fn -> :ready end)
+
+      assert Health.rpc_healthcheck() == :ok
+    end
+
+    test "raises when health is bad" do
+      Health
+      |> expect(:get_health, fn -> :bad end)
+
+      assert_raise RuntimeError, fn -> Health.rpc_healthcheck() end
+    end
+  end
+end

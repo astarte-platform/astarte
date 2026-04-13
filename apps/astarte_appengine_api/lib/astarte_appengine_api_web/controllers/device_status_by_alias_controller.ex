@@ -18,12 +18,103 @@
 
 defmodule Astarte.AppEngine.APIWeb.DeviceStatusByAliasController do
   use Astarte.AppEngine.APIWeb, :controller
+  use OpenApiSpex.ControllerSpecs
 
   alias Astarte.AppEngine.API.Device
   alias Astarte.AppEngine.API.Device.DeviceStatus
+  alias Astarte.AppEngine.APIWeb.ApiSpec.Schemas.DeviceStatusByAlias
+  alias Astarte.AppEngine.APIWeb.ApiSpec.Schemas.Errors
   alias Astarte.AppEngine.APIWeb.DeviceStatusView
+  alias OpenApiSpex.{Reference, Schema}
 
   action_fallback Astarte.AppEngine.APIWeb.FallbackController
+
+  tags ["device"]
+  security [%{"JWT" => []}]
+
+  operation :index,
+    summary: "List devices by alias",
+    description:
+      "Device listing by alias is not supported. This endpoint is exposed for compatibility and returns an error.",
+    operation_id: "getDevicesListByAlias",
+    parameters: [
+      realm_name: [
+        in: :path,
+        description: "The name of the realm the device list would be returned from.",
+        required: true,
+        type: :string
+      ]
+    ],
+    responses: [
+      method_not_allowed:
+        {"Devices listing by alias is not allowed.", "application/json", Errors.UnauthorizedError},
+      unauthorized: %Reference{"$ref": "#/components/responses/Unauthorized"},
+      forbidden:
+        {"Authorization path not matched.", "application/json",
+         Errors.AuthorizationPathNotMatchedError}
+    ]
+
+  operation :show,
+    summary: "Get device general status",
+    description:
+      "A device overview status is returned. Overview includes an array of reported interfaces (introspection), offline/online status, etc...",
+    operation_id: "getDeviceStatusByAlias",
+    parameters: [
+      realm_name: [
+        in: :path,
+        description: "Name of the realm which the device belongs to.",
+        required: true,
+        type: :string
+      ],
+      device_alias: [
+        in: :path,
+        description: "One of the device aliases",
+        required: true,
+        type: :string
+      ]
+    ],
+    responses: [
+      ok: {"Success", "application/json", DeviceStatusByAlias},
+      unauthorized: %Reference{"$ref": "#/components/responses/Unauthorized"},
+      forbidden:
+        {"Authorization path not matched.", "application/json",
+         Errors.AuthorizationPathNotMatchedError},
+      not_found: {"Device not found", "application/json", Errors.NotFoundError}
+    ]
+
+  operation :update,
+    summary: "Update a device writeable property",
+    description:
+      "Update any of the writeable device properties such as device aliases, device attributes or credentials inhibited.",
+    operation_id: "updateDeviceStatusByAlias",
+    parameters: [
+      realm_name: [
+        in: :path,
+        description: "Name of the realm which the device belongs to.",
+        required: true,
+        type: :string
+      ],
+      device_alias: [
+        in: :path,
+        description: "One of the device aliases",
+        required: true,
+        type: :string
+      ]
+    ],
+    request_body: {
+      "A JSON Merge Patch containing the property changes which should be applied to the device.",
+      "application/merge-patch+json",
+      %Schema{type: :object}
+    },
+    responses: [
+      ok: {"Success", "application/json", DeviceStatusByAlias},
+      bad_request: "Bad request",
+      unauthorized: %Reference{"$ref": "#/components/responses/Unauthorized"},
+      forbidden:
+        {"Authorization path not matched.", "application/json",
+         Errors.AuthorizationPathNotMatchedError},
+      not_found: {"Device not found.", "application/json", Errors.NotFoundError}
+    ]
 
   # TODO: should we allow to POST/create device aliases here by posting something
   # like a DeviceAlias JSON object?

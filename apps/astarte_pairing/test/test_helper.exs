@@ -17,7 +17,7 @@
 #
 
 Mimic.copy(Astarte.DataAccess.Config)
-Mimic.copy(Astarte.DataAccess.Health.Health)
+Mimic.copy(Astarte.DataAccess.Health)
 Mimic.copy(Astarte.Events.TriggersHandler)
 Mimic.copy(Astarte.FDO.Core.OwnerOnboarding.DeviceServiceInfo)
 Mimic.copy(Astarte.FDO.Core.OwnerOnboarding.DeviceServiceInfoReady)
@@ -31,8 +31,10 @@ Mimic.copy(Astarte.FDO.Rendezvous.Client)
 Mimic.copy(Astarte.FDO.TO0)
 Mimic.copy(Astarte.FDO.ServiceInfo)
 Mimic.copy(Astarte.Pairing.Config)
+Mimic.copy(Astarte.Pairing.Health)
 Mimic.copy(Astarte.Pairing.Queries)
 Mimic.copy(Astarte.Secrets)
 Mimic.copy(DateTime)
 Mimic.copy(HTTPoison)
+
 ExUnit.start(capture_log: true)

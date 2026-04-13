@@ -16,9 +16,14 @@ services:
       - ./compose/astarte-keys/housekeeping_public.pem:/keys/housekeeping_public.pem:z
     restart: on-failure
     depends_on:
-      - "rabbitmq"
-      - "traefik"
-      - "scylla"
+      openbao:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      scylla:
+        condition: service_healthy
+      traefik:
+        condition: service_started
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.astarte-housekeeping.rule=Host(`api.${DOCKER_COMPOSE_ASTARTE_BASE_DOMAIN}`) && PathPrefix(`/housekeeping`)"
@@ -40,9 +45,12 @@ services:
     environment:
       ASTARTE_EVENTS_PRODUCER_AMQP_HOST: "rabbitmq"
     depends_on:
-      - "rabbitmq"
-      - "traefik"
-      - "scylla"
+      rabbitmq:
+        condition: service_healthy
+      scylla:
+        condition: service_healthy
+      traefik:
+        condition: service_started
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.astarte-realm-management.rule=Host(`api.${DOCKER_COMPOSE_ASTARTE_BASE_DOMAIN}`) && PathPrefix(`/realmmanagement`)"
@@ -73,15 +81,11 @@ services:
     # TODO: add a health check for all services
     depends_on:
       rabbitmq:
-        condition: service_started
+        condition: service_healthy
       scylla:
-        condition: service_started
+        condition: service_healthy
       traefik:
         condition: service_started
-      openbao:
-        condition: service_healthy
-      openbao-init:
-        condition: service_completed_successfully
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.astarte-pairing.rule=Host(`api.${DOCKER_COMPOSE_ASTARTE_BASE_DOMAIN}`) && PathPrefix(`/pairing`)"
@@ -109,9 +113,12 @@ services:
       APPENGINE_API_ROOMS_AMQP_CLIENT_HOST: "rabbitmq"
     restart: on-failure
     depends_on:
-      - "rabbitmq"
-      - "scylla"
-      - "traefik"
+      rabbitmq:
+        condition: service_healthy
+      scylla:
+        condition: service_healthy
+      traefik:
+        condition: service_started
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.astarte-appengine-api.rule=Host(`api.${DOCKER_COMPOSE_ASTARTE_BASE_DOMAIN}`) && PathPrefix(`/appengine`)"
@@ -139,8 +146,10 @@ services:
       DATA_UPDATER_PLANT_AMQP_PRODUCER_VIRTUAL_HOST: "/"
     restart: on-failure
     depends_on:
-      - "rabbitmq"
-      - "scylla"
+      rabbitmq:
+        condition: service_healthy
+      scylla:
+        condition: service_healthy
 
   astarte-trigger-engine:
     image: astarte/astarte_trigger_engine:snapshot
@@ -154,8 +163,10 @@ services:
       TRIGGER_ENGINE_AMQP_CONSUMER_HOST: "rabbitmq"
     restart: on-failure
     depends_on:
-      - "rabbitmq"
-      - "scylla"
+      rabbitmq:
+        condition: service_healthy
+      scylla:
+        condition: service_healthy
 
   astarte-dashboard:
     image: astarte/astarte-dashboard:snapshot
@@ -239,17 +250,6 @@ services:
       retries: 5
       start_period: 1s
 
-  # additional Bao server to inject runtime configurations in main Bao server
-  openbao-init:
-    image: openbao/openbao:2
-    depends_on:
-      openbao:
-        condition: service_healthy
-    environment:
-      - BAO_ADDR=http://openbao:8200
-      - BAO_TOKEN=${ASTARTE_VAULT_TOKEN}
-    command: bao secrets enable transit
-
   rendezvous:
     image: astarte/go-fdo-server:ade68cda47-20251128
     restart: on-failure
@@ -273,6 +273,12 @@ services:
       - 15672:15672
     volumes:
       - rabbitmq-data:/var/lib/rabbitmq
+    healthcheck:
+      test: rabbitmq-diagnostics -q ping
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
 
   # CFSSL
   cfssl:
@@ -288,14 +294,21 @@ services:
   # Scylla
   scylla:
     image: scylladb/scylla:2025.2.2
+    command: --smp 1 --memory 750M --disable-version-check --skip-wait-for-gossip-to-settle 0
     hostname: scylla
     restart: on-failure
     volumes:
       - scylla-data:/var/lib/scylla
+    healthcheck:
+      test: cqlsh -e 'SELECT release_version FROM system.local;'
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
 
   # VerneMQ
   vernemq:
-    image: astarte/vernemq:1.4.0-rc.0
+    image: astarte/vernemq:snapshot
     hostname: vernemq
     env_file:
       - ./.env

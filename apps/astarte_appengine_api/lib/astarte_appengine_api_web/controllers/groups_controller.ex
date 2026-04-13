@@ -18,11 +18,94 @@
 
 defmodule Astarte.AppEngine.APIWeb.GroupsController do
   use Astarte.AppEngine.APIWeb, :controller
+  use OpenApiSpex.ControllerSpecs
 
   alias Astarte.AppEngine.API.Groups
   alias Astarte.DataAccess.Groups.Group
+  alias OpenApiSpex.Reference
 
   action_fallback Astarte.AppEngine.APIWeb.FallbackController
+
+  tags ["groups"]
+  security [%{"JWT" => []}]
+
+  operation :index,
+    summary: "Get groups list",
+    description: "Return the list of device groups that exist in the realm.",
+    operation_id: "indexGroups",
+    parameters: [
+      %Reference{"$ref": "#/components/parameters/RealmName"}
+    ],
+    responses: [
+      ok: %Reference{"$ref": "#/components/responses/IndexGroups"},
+      unauthorized: %Reference{"$ref": "#/components/responses/Unauthorized"},
+      forbidden: %Reference{"$ref": "#/components/responses/AuthorizationPathNotMatched"}
+    ]
+
+  operation :create,
+    summary: "Create new group",
+    description:
+      "Create a new group with a set of devices. Devices must already be registered in the realm.",
+    operation_id: "createGroup",
+    parameters: [
+      %Reference{"$ref": "#/components/parameters/RealmName"}
+    ],
+    request_body: %Reference{"$ref": "#/components/requestBodies/CreateGroup"},
+    responses: [
+      created: %Reference{"$ref": "#/components/responses/GroupCreated"},
+      unauthorized: %Reference{"$ref": "#/components/responses/Unauthorized"},
+      forbidden: %Reference{"$ref": "#/components/responses/AuthorizationPathNotMatched"},
+      unprocessable_entity: %Reference{"$ref": "#/components/responses/InvalidGroupConfig"}
+    ]
+
+  operation :show,
+    summary: "Get group config",
+    description:
+      "Return the configuration of the group. Currently, it just returns the group name, but the call can be used to verify if a group exists.",
+    operation_id: "getGroupConfig",
+    parameters: [
+      %Reference{"$ref": "#/components/parameters/RealmName"},
+      %Reference{"$ref": "#/components/parameters/GroupName"}
+    ],
+    responses: [
+      ok: %Reference{"$ref": "#/components/responses/GetGroup"},
+      unauthorized: %Reference{"$ref": "#/components/responses/Unauthorized"},
+      forbidden: %Reference{"$ref": "#/components/responses/AuthorizationPathNotMatched"},
+      not_found: %Reference{"$ref": "#/components/responses/GroupNotFound"}
+    ]
+
+  operation :add_device,
+    summary: "Add device to group",
+    description: "Add an existing device to a group.",
+    operation_id: "addDeviceToGroup",
+    parameters: [
+      %Reference{"$ref": "#/components/parameters/RealmName"},
+      %Reference{"$ref": "#/components/parameters/GroupName"}
+    ],
+    request_body: %Reference{"$ref": "#/components/requestBodies/AddDeviceToGroup"},
+    responses: [
+      created: "Success",
+      unauthorized: %Reference{"$ref": "#/components/responses/Unauthorized"},
+      forbidden: %Reference{"$ref": "#/components/responses/AuthorizationPathNotMatched"},
+      not_found: %Reference{"$ref": "#/components/responses/GroupNotFound"},
+      unprocessable_entity: %Reference{"$ref": "#/components/responses/InvalidAddGroup"}
+    ]
+
+  operation :remove_device,
+    summary: "Remove device from group",
+    description: "Remove device from group",
+    operation_id: "removeDeviceFromGroup",
+    parameters: [
+      %Reference{"$ref": "#/components/parameters/RealmName"},
+      %Reference{"$ref": "#/components/parameters/GroupName"},
+      %Reference{"$ref": "#/components/parameters/DeviceId"}
+    ],
+    responses: [
+      no_content: "Device removed",
+      unauthorized: %Reference{"$ref": "#/components/responses/Unauthorized"},
+      forbidden: %Reference{"$ref": "#/components/responses/AuthorizationPathNotMatched"},
+      not_found: %Reference{"$ref": "#/components/responses/GroupOrDeviceNotFound"}
+    ]
 
   def index(conn, %{"realm_name" => realm_name}) do
     groups = Groups.list_groups(realm_name)

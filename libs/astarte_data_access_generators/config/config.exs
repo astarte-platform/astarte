@@ -1,7 +1,6 @@
-#
 # This file is part of Astarte.
 #
-# Copyright 2020 Ispirata Srl
+# Copyright 2025 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -18,6 +17,4 @@
 
 import Config
 
-port = System.get_env("PAIRING_API_PORT", "4003") |> String.to_integer()
-
-config :astarte_pairing, Astarte.PairingWeb.Endpoint, http: [port: port]
+import_config "#{config_env()}.exs"

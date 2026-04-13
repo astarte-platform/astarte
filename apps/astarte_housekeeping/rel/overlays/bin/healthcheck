@@ -1,0 +1,3 @@
+#!/bin/sh
+
+exec bin/astarte_housekeeping rpc "Astarte.Housekeeping.Health.rpc_healthcheck()"

@@ -18,42 +18,59 @@
 
 defmodule Astarte.Pairing.HealthTest do
   use Astarte.Cases.Data, async: true
+  use Mimic
 
-  alias Astarte.DataAccess.Health.Health, as: DataAccessHealth
+  alias Astarte.DataAccess.Health, as: DataAccessHealth
   alias Astarte.Pairing.Health
 
   describe "health" do
     test "returns :ready when the database status is ready and cfssl is available" do
-      Mimic.stub(DataAccessHealth, :get_health, fn -> :ready end)
-      Mimic.expect(HTTPoison, :get, fn _ -> {:ok, %HTTPoison.Response{status_code: 200}} end)
+      stub(DataAccessHealth, :get_health, fn -> :ready end)
+      expect(HTTPoison, :get, fn _ -> {:ok, %HTTPoison.Response{status_code: 200}} end)
 
       assert :ready = Health.get_health()
     end
 
     test "returns :bad when the database status is bad" do
-      Mimic.stub(DataAccessHealth, :get_health, fn -> :bad end)
+      stub(DataAccessHealth, :get_health, fn -> :bad end)
 
       assert :bad = Health.get_health()
     end
 
     test "returns :ready when the database status is degraded" do
-      Mimic.stub(DataAccessHealth, :get_health, fn -> :degraded end)
-      Mimic.expect(HTTPoison, :get, fn _ -> {:ok, %HTTPoison.Response{status_code: 200}} end)
+      stub(DataAccessHealth, :get_health, fn -> :degraded end)
+      expect(HTTPoison, :get, fn _ -> {:ok, %HTTPoison.Response{status_code: 200}} end)
 
       assert :ready = Health.get_health()
     end
 
     test "returns :bad when the database returns an error" do
-      Mimic.stub(DataAccessHealth, :get_health, fn -> :error end)
+      stub(DataAccessHealth, :get_health, fn -> :error end)
 
       assert :bad = Health.get_health()
     end
 
     test "returns :bad when cfssl returns an error" do
-      Mimic.stub(DataAccessHealth, :get_health, fn -> :degraded end)
-      Mimic.expect(HTTPoison, :get, fn _ -> {:ok, %HTTPoison.Response{status_code: 500}} end)
+      stub(DataAccessHealth, :get_health, fn -> :degraded end)
+      expect(HTTPoison, :get, fn _ -> {:ok, %HTTPoison.Response{status_code: 500}} end)
 
       assert :bad = Health.get_health()
+    end
+  end
+
+  describe "rpc_healthcheck/0" do
+    test "returns ok when health is ready" do
+      Health
+      |> expect(:get_health, fn -> :ready end)
+
+      assert Health.rpc_healthcheck() == :ok
+    end
+
+    test "raises when health is bad" do
+      Health
+      |> expect(:get_health, fn -> :bad end)
+
+      assert_raise RuntimeError, fn -> Health.rpc_healthcheck() end
     end
   end
 end
