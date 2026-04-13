@@ -60,4 +60,6 @@ COPY --from=builder --chown=nobody:nogroup /app/_build/$BUILD_ENV/rel/astarte_ho
 # Change to non-root user
 USER nobody
 
+HEALTHCHECK CMD ./bin/astarte_housekeeping rpc 'Astarte.Housekeeping.Health.rpc_healthcheck()'
+
 CMD ["./bin/astarte_housekeeping", "start"]

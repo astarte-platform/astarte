@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2026 SECO Mind Srl
+# Copyright 2019 - 2025 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -16,37 +16,11 @@
 # limitations under the License.
 #
 
-defmodule Astarte.AppEngine.API.HealthTest do
+defmodule Astarte.RealmManagement.HealthTest do
   use ExUnit.Case, async: true
   use Mimic
 
-  alias Astarte.AppEngine.API.Health
-  alias Astarte.DataAccess.Health, as: DatabaseHealth
-
-  describe "get_health/0" do
-    @tag :regression
-    test "returns :bad when database health is degraded but vernemq is bad" do
-      Horde.Registry
-      |> expect(:lookup, fn Registry.DataUpdaterRPC, :server -> [{self(), nil}] end)
-      |> expect(:lookup, fn Registry.VMQPluginRPC, :server -> [] end)
-
-      DatabaseHealth
-      |> stub(:get_health, fn -> :degraded end)
-
-      assert :bad == Health.get_health()
-    end
-
-    @tag :regression
-    test "returns :bad when database health is degraded but dup is bad" do
-      Horde.Registry
-      |> expect(:lookup, fn Registry.DataUpdaterRPC, :server -> [] end)
-
-      DatabaseHealth
-      |> stub(:get_health, fn -> :degraded end)
-
-      assert :bad == Health.get_health()
-    end
-  end
+  alias Astarte.RealmManagement.Health
 
   describe "rpc_healthcheck/0" do
     test "returns ok when health is ready" do

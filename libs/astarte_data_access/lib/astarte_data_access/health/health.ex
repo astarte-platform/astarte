@@ -16,7 +16,7 @@
 # limitations under the License.
 #
 
-defmodule Astarte.DataAccess.Health.Health do
+defmodule Astarte.DataAccess.Health do
   @moduledoc """
   This module provides functions to check the health status of the Astarte Data Access
   database by executing specific queries with defined consistency levels.
