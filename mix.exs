@@ -16,6 +16,6 @@ defmodule Astarte.MixProject do
   #
   # Run "mix help deps" for examples and options.
   defp deps do
-    []
+    [{:exandra, github: "noaccOS/exandra", branch: "push-zlnkysuyqwmt", override: true}]
   end
 end

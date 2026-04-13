@@ -60,8 +60,7 @@ defmodule Astarte.AppEngine.API.Mixfile do
   defp astarte_required_modules(_) do
     [
       {:astarte_core, github: "astarte-platform/astarte_core", override: true},
-      {:astarte_realm_management,
-       path: "../astarte_realm_management", only: :test, runtime: false}
+      {:astarte_realm_management, in_umbrella: true, only: :test, runtime: false}
     ]
   end
 
@@ -106,7 +105,7 @@ defmodule Astarte.AppEngine.API.Mixfile do
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
       # Test section
       {:excoveralls, "~> 0.15", only: :test},
-      {:mox, "~> 0.5", only: :test},
+      {:mox, "~> 1.0", only: :test},
       {:mimic, "~> 1.11", only: :test},
       {:ecto, "~> 3.13", override: true}
     ]
