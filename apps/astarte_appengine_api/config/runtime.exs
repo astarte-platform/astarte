@@ -21,3 +21,10 @@ import Config
 port = System.get_env("APPENGINE_API_PORT", "4002") |> String.to_integer()
 
 config :astarte_appengine_api, Astarte.AppEngine.APIWeb.Endpoint, http: [port: port]
+
+if config_env() == :prod do
+  secret_key_base = System.fetch_env!("SECRET_KEY_BASE")
+
+  config :astarte_appengine_api, Astarte.AppEngine.APIWeb.Endpoint,
+    secret_key_base: secret_key_base
+end
