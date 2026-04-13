@@ -157,123 +157,171 @@ defmodule Astarte.Cases.Device do
   end
 
   defp interfaces_for_update do
+    interface_specs = [
+      {:individual_datastream_device,
+       fn acc -> new_interfaces(individual_datastream_device(), acc) end},
+      {:individual_datastream_server,
+       fn acc -> new_interfaces(individual_datastream_server(), acc) end},
+      {:object_datastream_device, fn acc -> new_interfaces(object_datastream_device(), acc) end},
+      {:object_datastream_server, fn acc -> new_interfaces(object_datastream_server(), acc) end},
+      {:properties_device, fn acc -> new_interfaces(properties_device(), acc) end},
+      {:properties_server, fn acc -> new_interfaces(properties_server(), acc) end},
+      {:fallible_interfaces, fn acc -> new_interfaces(fallible_interfaces(), acc) end},
+      {:individual_downsampable, fn acc -> new_interfaces(individual_downsampable(), acc) end},
+      {:object_downsampable, fn acc -> new_interfaces(object_downsampable(), acc) end},
+      {:properties_server_allow_unset,
+       fn acc -> new_interfaces(properties_server_allow_unset(), acc) end},
+      {:properties_server_without_unset,
+       fn acc -> new_interfaces(properties_server_without_unset(), acc) end},
+      {:explicit_timestamps, fn acc -> new_interfaces(explicit_timestamps(), acc) end},
+      {:other_interfaces, fn acc -> new_interfaces(other_interfaces(), acc) end}
+    ]
+
+    {all_interfaces, named_interfaces} =
+      Enum.reduce(interface_specs, {[], %{}}, fn {name, gen_fn}, {acc_interfaces, named} ->
+        new_ifaces = gen_fn.(acc_interfaces)
+        updated_interfaces = Enum.concat(acc_interfaces, new_ifaces)
+        updated_named = Map.put(named, name, new_ifaces)
+        {updated_interfaces, updated_named}
+      end)
+
     interfaces =
       %{
-        individual_datastream_device: individual_datastream_device(),
-        individual_datastream_server: individual_datastream_server(),
-        object_datastream_device: object_datastream_device(),
-        object_datastream_server: object_datastream_server(),
-        properties_device: properties_device(),
-        properties_server: properties_server(),
-        fallible_interfaces: fallible_interfaces(),
-        individual_downsampable: individual_downsampable(),
-        object_downsampable: object_downsampable(),
-        properties_server_allow_unset: properties_server_allow_unset(),
-        properties_server_without_unset: properties_server_without_unset(),
-        explicit_timestamps: explicit_timestamps(),
-        other_interfaces: other_interfaces()
+        individual_datastream_device: named_interfaces.individual_datastream_device,
+        individual_datastream_server: named_interfaces.individual_datastream_server,
+        object_datastream_device: named_interfaces.object_datastream_device,
+        object_datastream_server: named_interfaces.object_datastream_server,
+        properties_device: named_interfaces.properties_device,
+        properties_server: named_interfaces.properties_server,
+        fallible_interfaces: named_interfaces.fallible_interfaces,
+        individual_downsampable: named_interfaces.individual_downsampable,
+        object_downsampable: named_interfaces.object_downsampable,
+        properties_server_allow_unset: named_interfaces.properties_server_allow_unset,
+        properties_server_without_unset: named_interfaces.properties_server_without_unset,
+        explicit_timestamps: named_interfaces.explicit_timestamps,
+        other_interfaces: named_interfaces.other_interfaces
       }
 
     %{
-      interfaces: interfaces |> Map.values() |> Enum.concat(),
+      interfaces: all_interfaces,
       downsampable_individual_interfaces: interfaces.individual_downsampable,
       downsampable_object_interfaces: interfaces.object_downsampable,
       explicit_timestamp_interfaces: interfaces.explicit_timestamps
     }
   end
 
+  defp new_interfaces(interface_gen, previous_interfaces) do
+    installed_interfaces = previous_interfaces |> Enum.map(&{&1.name, &1.major_version})
+
+    installed_normalized_interfaces =
+      previous_interfaces |> Enum.map(&normalize_name(&1.name))
+
+    interface_gen =
+      interface_gen
+      |> filter(fn interface ->
+        name_and_major = {interface.name, interface.major_version}
+        normalized_name = normalize_name(interface.name)
+
+        name_and_major not in installed_interfaces and
+          normalized_name not in installed_normalized_interfaces
+      end)
+
+    interface_gen
+    |> list_of(min_length: 1)
+    |> Enum.at(0)
+    |> cleanup_duplicates()
+  end
+
+  defp cleanup_duplicates(interfaces) do
+    interfaces
+    |> Enum.reduce([], fn new_interface, acc_interfaces ->
+      prev = acc_interfaces |> Enum.map(&{&1.name, &1.major_version})
+      prev_normalized = acc_interfaces |> Enum.map(&normalize_name(&1.name))
+      name_and_major = {new_interface.name, new_interface.major_version}
+      normalized_name = normalize_name(new_interface.name)
+
+      if name_and_major not in prev and normalized_name not in prev_normalized do
+        [new_interface | acc_interfaces]
+      else
+        acc_interfaces
+      end
+    end)
+    |> Enum.reverse()
+  end
+
+  defp normalize_name(interface_name) do
+    interface_name
+    |> String.replace("-", "")
+    |> String.replace(".", "")
+    |> String.downcase()
+  end
+
   defp individual_datastream_device do
     [ownership: :device, aggregation: :individual, type: :datastream]
     |> InterfaceGenerator.interface()
-    |> list_of(min_length: 1)
-    |> Enum.at(0)
   end
 
   defp individual_datastream_server do
     [ownership: :server, aggregation: :individual, type: :datastream]
     |> InterfaceGenerator.interface()
-    |> list_of(min_length: 1)
-    |> Enum.at(0)
   end
 
   defp object_datastream_device do
     [ownership: :device, aggregation: :object, type: :datastream]
     |> InterfaceGenerator.interface()
-    |> list_of(min_length: 1)
-    |> Enum.at(0)
   end
 
   defp object_datastream_server do
     [ownership: :server, aggregation: :object, type: :datastream]
     |> InterfaceGenerator.interface()
-    |> list_of(min_length: 1)
-    |> Enum.at(0)
   end
 
   defp properties_device do
     [ownership: :device, type: :properties]
     |> InterfaceGenerator.interface()
-    |> list_of(min_length: 1)
-    |> Enum.at(0)
   end
 
   defp properties_server do
     [ownership: :server, type: :properties]
     |> InterfaceGenerator.interface()
-    |> list_of(min_length: 1)
-    |> Enum.at(0)
   end
 
   defp properties_server_allow_unset do
     [ownership: :server, type: :properties]
     |> InterfaceGenerator.interface()
-    |> list_of(min_length: 1)
-    |> Enum.at(0)
-    |> customize_mappings(allow_unset: true)
+    |> map(&customize_mappings(&1, allow_unset: true))
   end
 
   defp properties_server_without_unset do
     [ownership: :server, type: :properties]
     |> InterfaceGenerator.interface()
-    |> list_of(min_length: 1)
-    |> Enum.at(0)
-    |> customize_mappings(allow_unset: false)
+    |> map(&customize_mappings(&1, allow_unset: false))
   end
 
   defp fallible_interfaces do
     [ownership: :server]
     |> InterfaceGenerator.interface()
-    |> list_of(min_length: 1)
-    |> Enum.at(0)
-    |> customize_mappings(value_type: Enum.random(fallible_value_types()))
+    |> map(&customize_mappings(&1, value_type: Enum.random(fallible_value_types())))
   end
 
   defp individual_downsampable do
     [aggregation: :individual]
     |> InterfaceGenerator.interface()
-    |> list_of(min_length: 1)
-    |> Enum.at(0)
-    |> customize_mappings(value_type: Enum.random(downsampable_value_types()))
+    |> map(&customize_mappings(&1, value_type: Enum.random(downsampable_value_types())))
   end
 
   defp object_downsampable do
     [type: :datastream, aggregation: :object]
     |> InterfaceGenerator.interface()
-    |> list_of(min_length: 1)
-    |> Enum.at(0)
-    |> customize_mappings(value_type: Enum.random(downsampable_value_types()))
+    |> map(&customize_mappings(&1, value_type: Enum.random(downsampable_value_types())))
   end
 
   defp explicit_timestamps do
     [ownership: :server, type: :datastream, explicit_timestamp: true]
     |> InterfaceGenerator.interface()
-    |> list_of(min_length: 1)
-    |> Enum.at(0)
   end
 
   defp other_interfaces do
     InterfaceGenerator.interface()
-    |> list_of()
-    |> Enum.at(0)
   end
 end

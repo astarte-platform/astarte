@@ -156,16 +156,6 @@ defmodule Astarte.PairingWeb.Controllers.OwnershipVoucherControllerTest do
       |> post(path, @sample_load_params)
       |> response(422)
     end
-
-    test "returns a 404 error if FDO feature is disabled", context do
-      %{auth_conn: conn, register_path: path} = context
-
-      stub(Config, :enable_fdo!, fn -> false end)
-
-      conn
-      |> post(path, @sample_load_params)
-      |> response(404)
-    end
   end
 
   defp register_setup(context) do
@@ -219,16 +209,6 @@ defmodule Astarte.PairingWeb.Controllers.OwnershipVoucherControllerTest do
       conn
       |> post(path, %{data: %{}})
       |> response(422)
-    end
-
-    test "returns 404 when the FDO feature is disabled", context do
-      %{auth_conn: conn, path: path} = context
-
-      stub(Config, :enable_fdo!, fn -> false end)
-
-      conn
-      |> post(path, %{data: %{"ownership_voucher" => sample_voucher()}})
-      |> response(404)
     end
   end
 

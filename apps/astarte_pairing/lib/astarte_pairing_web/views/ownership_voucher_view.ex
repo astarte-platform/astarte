@@ -19,8 +19,8 @@
 defmodule Astarte.PairingWeb.OwnershipVoucherView do
   use Astarte.PairingWeb, :view
 
-  alias Astarte.PairingWeb.OwnershipVoucherView
   alias Astarte.DataAccess.FDO.OwnershipVoucher
+  alias Astarte.PairingWeb.OwnershipVoucherView
 
   def render("list_vouchers.json", %{ownership_vouchers: vouchers}) do
     %{

@@ -175,16 +175,6 @@ defmodule Astarte.PairingWeb.Controllers.OwnerKeyControllerTest do
 
       assert resp_message =~ "has already been imported"
     end
-
-    test "returns a 404 error if FDO feature is disabled", context do
-      %{auth_conn: conn, owner_key_path: path, create_key_payload: payload} = context
-
-      stub(Config, :enable_fdo!, fn -> false end)
-
-      conn
-      |> post(path, payload)
-      |> response(404)
-    end
   end
 
   describe "/fdo/owner_keys listing" do

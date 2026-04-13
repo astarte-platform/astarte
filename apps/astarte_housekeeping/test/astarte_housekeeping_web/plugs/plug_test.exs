@@ -20,7 +20,7 @@ defmodule Astarte.HousekeepingWeb.PlugTest do
   use Astarte.HousekeepingWeb.ConnCase, async: true
   use Mimic
 
-  alias Astarte.DataAccess.Health.Health
+  alias Astarte.DataAccess.Health
   alias Astarte.HousekeepingWeb.HealthPlug
 
   describe "GET /health" do

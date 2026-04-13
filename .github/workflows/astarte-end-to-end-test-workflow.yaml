@@ -1,15 +1,6 @@
 name: Astarte end-to-end test
 
 on:
-  # Run when pushing to stable branches
-  push:
-    paths:
-      - "apps/**"
-      - "tools/astarte_e2e/**"
-      - ".github/workflows/astarte-end-to-end-test-workflow.yaml"
-    branches:
-      - "master"
-      - "release-*"
   # Run on branch/tag creation
   create:
   # Run on pull requests matching apps
@@ -18,6 +9,7 @@ on:
       - "apps/**"
       - "tools/astarte_e2e/**"
       - ".github/workflows/astarte-end-to-end-test-workflow.yaml"
+      - ".github/workflows/astarte-build-workflow.yaml"
   # Allow this workflow to be called  by others
   workflow_call:
 
@@ -144,8 +136,6 @@ jobs:
       - name: Initialize keys
         working-directory: .tmp/repos/astarte
         run: astartectl utils gen-keypair test
-      - name: Enable FDO
-        run: echo "PAIRING_ENABLE_FDO=true" >> .tmp/repos/astarte/.env
       - name: Start all Astarte services
         working-directory: .tmp/repos/astarte
         run: docker compose up --no-build --pull missing -d

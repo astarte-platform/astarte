@@ -16,14 +16,25 @@
 # limitations under the License.
 #
 
-defmodule Astarte.DataUpdaterPlant.Health.Health do
+defmodule Astarte.DataUpdaterPlant.Health do
   @moduledoc """
   Health check module for Data Updater Plant service
   """
 
-  alias Astarte.DataAccess.Health.Health, as: DatabaseHealth
+  alias Astarte.DataAccess.Health, as: DatabaseHealth
+  alias Astarte.DataUpdaterPlant.Health
 
   require Logger
+
+  @doc """
+  Gets the backend health, and raises if it's not healthy.
+  """
+  def rpc_healthcheck do
+    case Health.get_health() do
+      :ready -> :ok
+      other -> raise RuntimeError, to_string(other)
+    end
+  end
 
   @doc """
   Gets the backend health.

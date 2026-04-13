@@ -27,9 +27,6 @@ defmodule Astarte.Housekeeping.Realms.Realm do
 
   require Logger
 
-  @default_replication_factor 1
-  @default_replication_class "SimpleStrategy"
-
   @required_create_fields [:realm_name, :jwt_public_key_pem]
   @allowed_create_fields [
     :replication_factor,
@@ -66,9 +63,8 @@ defmodule Astarte.Housekeeping.Realms.Realm do
     |> validate_change(:realm_name, &validate_realm_name/2)
     |> validate_number(:replication_factor, greater_than: 0)
     |> validate_change(:jwt_public_key_pem, &validate_pem_public_key/2)
-    |> put_default_if_missing(:replication_class, @default_replication_class)
     |> validate_inclusion(:replication_class, [
-      @default_replication_class,
+      "SimpleStrategy",
       "NetworkTopologyStrategy"
     ])
     |> validate_replication()
@@ -125,11 +121,31 @@ defmodule Astarte.Housekeeping.Realms.Realm do
     end
   end
 
+  def apply_replication(%Astarte.Housekeeping.Realms.Realm{} = realm, %{
+        strategy: :network_topology,
+        dc_factors: dc_factors
+      }) do
+    dc_factors_map = Enum.into(Enum.to_list(dc_factors), %{})
+
+    %{
+      realm
+      | replication_class: "NetworkTopologyStrategy",
+        datacenter_replication_factors: dc_factors_map
+    }
+  end
+
+  def apply_replication(%Astarte.Housekeeping.Realms.Realm{} = realm, %{
+        strategy: :simple,
+        factor: factor
+      }) do
+    %{realm | replication_class: "SimpleStrategy", replication_factor: factor}
+  end
+
   defp maybe_put_default_replication_factor(changeset) do
     replication_class = get_field(changeset, :replication_class)
 
-    if replication_class == @default_replication_class do
-      put_default_if_missing(changeset, :replication_factor, @default_replication_factor)
+    if replication_class == "SimpleStrategy" do
+      put_default_if_missing(changeset, :replication_factor, 1)
     else
       changeset
     end

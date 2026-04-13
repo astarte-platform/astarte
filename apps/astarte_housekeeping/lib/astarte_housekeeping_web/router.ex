@@ -28,8 +28,11 @@ defmodule Astarte.HousekeepingWeb.Router do
     pipe_through :api
 
     get "/version", VersionController, :show
+    get "/realm-defaults/replication", RealmController, :get_default_replication
 
-    resources "/realms", RealmController, except: [:new, :edit, :update]
+    resources "/realms", RealmController,
+      except: [:new, :edit, :update],
+      param: "realm_name"
 
     patch "/realms/:realm_name", RealmController, :update
   end

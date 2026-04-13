@@ -192,6 +192,10 @@ defmodule Astarte.AppEngine.APIWeb.GroupsControllerTest do
 
         assert json_response(show_conn, 200)["data"]["group_name"] == group_name,
                "Failed post/get same group_name #{group_name}"
+
+        Enum.each(@group_devices, fn device_id ->
+          Groups.remove_device(@realm, group_name, device_id)
+        end)
       end
     end
   end

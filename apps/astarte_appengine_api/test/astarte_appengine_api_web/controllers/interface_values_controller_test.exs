@@ -95,7 +95,7 @@ defmodule Astarte.AppEngine.APIWeb.InterfaceValuesControllerTest do
           conn,
           interface_values_path(
             conn,
-            :show,
+            :show_values,
             "autotestrealm",
             "f0VMRgIBAQAAAAAAAAAAAA",
             "com.test.LCDMonitor"

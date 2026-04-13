@@ -22,7 +22,7 @@ defmodule Astarte.DataUpdaterPlantWeb.HealthPlug do
   """
   import Plug.Conn
 
-  alias Astarte.DataUpdaterPlant.Health.Health
+  alias Astarte.DataUpdaterPlant.Health
 
   def init(_args), do: nil
 

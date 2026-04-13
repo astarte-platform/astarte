@@ -28,17 +28,20 @@ defmodule Astarte.FDO.Config do
   @envdoc "The port the ingress is listening on, used for FDO authentication mechanism"
   app_env :base_url_port, :astarte_fdo, :base_url_port,
     os_env: "ASTARTE_BASE_URL_PORT",
-    type: :integer
+    type: :integer,
+    required: true
 
   @envdoc "The protocol the ingress is listening on, used for FDO authentication mechanism"
   app_env :base_url_protocol, :astarte_fdo, :base_url_protocol,
     os_env: "ASTARTE_BASE_URL_PROTOCOL",
-    type: BaseURLProtocol
+    type: BaseURLProtocol,
+    required: true
 
   @envdoc "The astarte base domain, used for FDO authentication mechanism"
   app_env :base_url_domain, :astarte_fdo, :base_url_domain,
     os_env: "ASTARTE_BASE_URL_DOMAIN",
-    type: :binary
+    type: :binary,
+    required: true
 
   @envdoc "The FDO Rendezvous Server URL"
   app_env :fdo_rendezvous_url, :astarte_fdo, :fdo_rendezvous_url,
@@ -73,6 +76,11 @@ defmodule Astarte.FDO.Config do
   app_env :fdo_session_endpoint, :astarte_fdo, :endpoint,
     os_env: "FDO_SESSION_ENDPOINT",
     type: :atom
+
+  def init! do
+    # check that all mandatory FDO variables are configured before starting
+    __MODULE__.validate!()
+  end
 
   def base_url! do
     protocol = __MODULE__.base_url_protocol!()

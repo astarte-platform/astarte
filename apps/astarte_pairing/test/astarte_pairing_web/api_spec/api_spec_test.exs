@@ -21,10 +21,7 @@ defmodule Astarte.PairingWeb.ApiSpecTest do
 
   import ExUnit.CaptureIO
 
-  alias Astarte.PairingWeb.{AgentController, ApiSpec, DeviceController, Router}
-
-  # TODO: Remove this once we have all the routes documented
-  @documented_controllers [AgentController, DeviceController]
+  alias Astarte.PairingWeb.{ApiSpec, Router}
 
   test "spec can be generated" do
     spec = ApiSpec.spec()
@@ -47,7 +44,6 @@ defmodule Astarte.PairingWeb.ApiSpecTest do
   test "all documented routes are present in the OpenAPI spec" do
     expected_operations =
       Router.__routes__()
-      |> Enum.filter(&documented_route?/1)
       |> MapSet.new(&normalize_route/1)
 
     actual_operations =
@@ -62,10 +58,6 @@ defmodule Astarte.PairingWeb.ApiSpecTest do
 
     assert MapSet.subset?(expected_operations, actual_operations),
            missing_operations_message(expected_operations, actual_operations)
-  end
-
-  defp documented_route?(route) do
-    route.plug in @documented_controllers
   end
 
   defp normalize_route(route) do

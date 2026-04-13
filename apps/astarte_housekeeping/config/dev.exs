@@ -32,7 +32,7 @@ config :astarte_housekeeping, Astarte.HousekeepingWeb.Endpoint,
 # Do not include metadata nor timestamps in development logs
 config :logger, :console,
   format: {PrettyLog.LogfmtFormatter, :format},
-  metadata: [:function]
+  metadata: [:module, :function, :request_id, :tag, :realm, :datacenter, :replication_factor]
 
 # Set a higher stacktrace during development. Avoid configuring such
 # in production as building large stacktraces may be expensive.

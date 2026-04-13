@@ -20,7 +20,7 @@ defmodule Astarte.RealmManagementWeb.PlugTest do
   use Astarte.RealmManagementWeb.ConnCase, async: true
   use Mimic
 
-  alias Astarte.DataAccess.Health.Health
+  alias Astarte.DataAccess.Health
 
   describe "GET /health" do
     test "returns 200 OK when status is :ready", %{conn: conn} do

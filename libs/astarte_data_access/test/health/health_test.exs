@@ -16,10 +16,10 @@
 # limitations under the License.
 #
 
-defmodule Astarte.DataAccess.Health.HealthTest do
+defmodule Astarte.DataAccess.HealthTest do
   use ExUnit.Case, async: false
   alias Astarte.DataAccess.DatabaseTestHelper
-  alias Astarte.DataAccess.Health.Health
+  alias Astarte.DataAccess.Health
 
   @create_astarte_kv_store """
   CREATE TABLE IF NOT EXISTS astarte.kv_store (

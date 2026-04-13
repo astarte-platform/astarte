@@ -5,7 +5,27 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-## Unreleased
+## [1.3.0] - 2026-05-06
+
+### Changed
+
+- [astarte_housekeeping] When `HOUSEKEEPING_ASTARTE_KEYSPACE_REPLICATION_STRATEGY` is not set, the `astarte` keyspace is now created using `NetworkTopologyStrategy` with a replication map derived from the current ScyllaDB network topology (one replica per node in each datacenter), instead of falling back to `SimpleStrategy` with replication factor 1.
+- [astarte_housekeeping] When creating a realm without specifying its replication strategy, the strategy used in the `astarte` keyspace is applied as default.
+
+### Fixed
+
+- [astarte_housekeeping] Changed logger config to make the metadata fields appear in logfmt log output; in particular the msg field
+- [astarte_pairing] Changed logger config to make the metadata fields appear in logfmt log output; in particular the msg field
+
+## [1.3.0-rc.2] - 2026-04-08
+
+### Added
+
+- [astarte_realm_management] realm migrations now create vhost for amqp triggers
+
+### Changed
+
+- [astarte_pairing] FDO feature is enabled for all installations, removed environment variable `PAIRING_ENABLE_FDO`.
 
 ## [1.4.0-rc.0] - 2026-04-08
 
@@ -126,6 +146,16 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - [astarte_data_updater_plant] Do not crash when transient triggers are installed on devices with outdated introspection
 - [astarte_data_updater_plant] Correctly encode values when sending properties to device on connection
 - [astarte_realm_management] Allow to delete long-disconnected devices. For this to work, Realm Management needs `CLUSTERING_STRATEGY`, `CLUSTERING_KUBERNETES_NAMESPACE` and `DATA_UPDATER_PLANT_CLUSTERING_KUBERNETES_SELECTOR` to be set, just like AppEngine and DUP. Refer to 1.2.1-rc.0 for additional information on the variables.
+
+## [1.2.2] - 2026-04-27
+
+## [1.2.2-rc.0] - 2026-04-08
+
+### Fixed
+
+- [astarte_data_updater_plant] Increase device process resiliency: avoid restarting the whole supervision tree when one device/amqp connection crashes
+- [astarte_housekeeping] Fix crashes in migrator
+- [astarte_realm_management] Fix corner case during for the installation of interfaces without data retention ttl
 
 ## [1.2.1] - 2026-03-12
 

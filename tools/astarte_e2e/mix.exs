@@ -22,7 +22,7 @@ defmodule AstarteE2E.MixProject do
   def project do
     [
       app: :astarte_e2e,
-      version: "1.4.0-rc.0",
+      version: "1.5.0-dev",
       elixir: "~> 1.15",
       start_permanent: Mix.env() == :prod,
       dialyzer: [plt_add_apps: [:ex_unit]],

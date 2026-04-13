@@ -279,21 +279,4 @@ defmodule Astarte.PairingWeb.FDOOnboardingControllerTest do
       assert {100, id} == assert_cbor_error(conn)
     end
   end
-
-  describe "FDO feature disabled" do
-    setup context do
-      setup_authenticated(context, :hello_device, 60)
-    end
-
-    test "makes the /v1/:realm_name/fdo/101 endpoints return a 404 error", %{
-      conn: conn,
-      create_path: path
-    } do
-      stub(Config, :enable_fdo!, fn -> false end)
-
-      conn
-      |> post(path, CBOR.encode(%{hello: "device"}))
-      |> response(404)
-    end
-  end
 end

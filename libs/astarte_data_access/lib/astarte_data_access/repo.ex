@@ -180,7 +180,7 @@ defmodule Astarte.DataAccess.Repo do
     astarte_keyspace = Realm.astarte_keyspace_name()
     %Xandra.Error{message: message} = error
 
-    case Regex.run(~r/Keyspace (.*) does not exist/, message) do
+    case Regex.run(~r/Keyspace (.*) does not exist/, message || "") do
       [_message, ^astarte_keyspace] ->
         Logger.warning("Database error: astarte keyspace does not exist", tag: "database_error")
         {:error, :database_error}

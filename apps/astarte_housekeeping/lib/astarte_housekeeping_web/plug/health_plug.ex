@@ -22,7 +22,7 @@ defmodule Astarte.HousekeepingWeb.HealthPlug do
 
   import Plug.Conn
 
-  alias Astarte.DataAccess.Health.Health
+  alias Astarte.Housekeeping.Health
 
   def init(_opts) do
     nil

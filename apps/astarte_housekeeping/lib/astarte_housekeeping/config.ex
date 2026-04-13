@@ -50,21 +50,24 @@ defmodule Astarte.Housekeeping.Config do
     type: :boolean,
     default: false
 
-  @envdoc "Replication strategy for the `astarte` keyspace, either `simple` or `network`. Defaults to `simple`"
+  @envdoc """
+  Replication strategy for the `astarte` keyspace, either `SimpleStrategy` or
+  `NetworkTopologyStrategy`. When unset, the astarte keyspace defaults to
+  `NetworkTopologyStrategy` using the current ScyllaDB network topology
+  (one replica per node in each datacenter).
+  """
   app_env :astarte_keyspace_replication_strategy,
           :astarte_housekeeping,
           :astarte_keyspace_replication_strategy,
           os_env: "HOUSEKEEPING_ASTARTE_KEYSPACE_REPLICATION_STRATEGY",
-          type: Astarte.Housekeeping.Config.ReplicationStrategy,
-          default: :simple_strategy
+          type: Astarte.Housekeeping.Config.ReplicationStrategy
 
-  @envdoc "Replication factor for the astarte keyspace, used when simple strategy is used for the astarte keyspace. defaults to 1"
+  @envdoc "Replication factor for the astarte keyspace, used when simple strategy is used for the astarte keyspace."
   app_env :astarte_keyspace_replication_factor,
           :astarte_housekeeping,
           :astarte_keyspace_replication_factor,
           os_env: "HOUSEKEEPING_ASTARTE_KEYSPACE_REPLICATION_FACTOR",
-          type: :integer,
-          default: 1
+          type: :integer
 
   @envdoc "Replication map for the astarte keyspace, used when network topology strategy is used for the astarte keyspace."
   app_env :astarte_keyspace_network_replication_map,
@@ -109,13 +112,16 @@ defmodule Astarte.Housekeeping.Config do
   end
 
   @doc """
-  Returns :ok if at least one of HOUSEKEEPING_ASTARTE_KEYSPACE_REPLICATION_FACTOR or HOUSEKEEPING_ASTARTE_KEYSPACE_NETWORK_REPLICATION_MAP is valid, based on HOUSEKEEPING_ASTARTE_KEYSPACE_REPLICATION_STRATEGY value.
+  Returns :ok if the configured astarte keyspace replication settings are
+  consistent. When no replication strategy is explicitly configured, the
+  default behaviour (auto-detecting the ScyllaDB network topology) is applied
+  at keyspace creation time and no validation is required here.
   """
   def validate_astarte_replication! do
     case astarte_keyspace_replication_strategy!() do
       :simple_strategy -> validate_astarte_replication_factor!()
       :network_topology_strategy -> validate_astarte_replication_map!()
-      nil -> raise "Invalid replication strategy set for the astarte keyspace"
+      nil -> :ok
     end
   end
 
