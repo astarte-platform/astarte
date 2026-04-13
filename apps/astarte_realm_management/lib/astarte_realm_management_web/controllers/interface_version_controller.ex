@@ -18,13 +18,34 @@
 
 defmodule Astarte.RealmManagementWeb.InterfaceVersionController do
   use Astarte.RealmManagementWeb, :controller
+  use OpenApiSpex.ControllerSpecs
 
   alias Astarte.RealmManagement.Interfaces
+  alias OpenApiSpex.Reference
 
   action_fallback Astarte.RealmManagementWeb.FallbackController
 
-  def index(conn, %{"realm_name" => realm_name, "id" => id}) do
-    with {:ok, interfaces} <- Interfaces.list_interface_major_versions(realm_name, id) do
+  tags ["interface"]
+  security [%{"JWT" => []}]
+
+  operation :index,
+    summary: "Get interface major versions",
+    description: "An interface might have multiple major versions, list all of them.",
+    operation_id: "getInterfaceMajorVersions",
+    parameters: [
+      %Reference{"$ref": "#/components/parameters/Realm"},
+      %Reference{"$ref": "#/components/parameters/InterfaceName"}
+    ],
+    responses: [
+      ok: %Reference{"$ref": "#/components/responses/GetInterfaceMajorVersions"},
+      unauthorized: %Reference{"$ref": "#/components/responses/Unauthorized"},
+      forbidden: %Reference{"$ref": "#/components/responses/Forbidden"},
+      not_found: %Reference{"$ref": "#/components/responses/InterfaceNotFound"}
+    ]
+
+  def index(conn, %{"realm_name" => realm_name, "interface_name" => interface_name}) do
+    with {:ok, interfaces} <-
+           Interfaces.list_interface_major_versions(realm_name, interface_name) do
       render(conn, "index.json", interfaces: interfaces)
     end
   end

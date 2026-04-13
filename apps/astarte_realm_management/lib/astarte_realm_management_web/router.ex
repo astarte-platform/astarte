@@ -31,16 +31,29 @@ defmodule Astarte.RealmManagementWeb.Router do
 
     get "/version", VersionController, :show
 
-    get "/interfaces/:id", InterfaceVersionController, :index
+    get "/interfaces/:interface_name", InterfaceVersionController, :index
     resources "/interfaces", InterfaceController, only: [:index, :create]
-    get "/interfaces/:id/:major_version", InterfaceController, :show
-    put "/interfaces/:id/:major_version", InterfaceController, :update
-    delete "/interfaces/:id/:major_version", InterfaceController, :delete
-    get "/config/:group", RealmConfigController, :show
-    put "/config/:group", RealmConfigController, :update
+    get "/interfaces/:interface_name/:major_version", InterfaceController, :show
+    put "/interfaces/:interface_name/:major_version", InterfaceController, :update
+    delete "/interfaces/:interface_name/:major_version", InterfaceController, :delete
+    get "/config/auth", RealmConfigController, :show_auth
+    put "/config/auth", RealmConfigController, :update_auth
 
-    resources "/triggers", TriggerController, except: [:new, :edit]
-    resources "/policies", TriggerPolicyController, except: [:new, :edit]
+    get "/config/device_registration_limit",
+        RealmConfigController,
+        :show_device_registration_limit
+
+    get "/config/datastream_maximum_storage_retention",
+        RealmConfigController,
+        :show_datastream_maximum_storage_retention
+
+    resources "/triggers", TriggerController,
+      except: [:new, :edit, :update],
+      param: "trigger_name"
+
+    resources "/policies", TriggerPolicyController,
+      except: [:new, :edit, :update],
+      param: "policy_name"
 
     delete "/devices/:device_id", DeviceController, :delete
   end

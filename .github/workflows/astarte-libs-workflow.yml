@@ -42,6 +42,11 @@ jobs:
     with:
       lib: "astarte_generators"
     secrets: inherit
+  astarte_data_access_generators:
+    uses: ./.github/workflows/astarte-libs-build-workflow.yaml
+    with:
+      lib: "astarte_data_access_generators"
+    secrets: inherit
   astarte_fdo:
     uses: ./.github/workflows/astarte-libs-build-workflow.yaml
     with:

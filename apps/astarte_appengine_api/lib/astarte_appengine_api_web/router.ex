@@ -67,11 +67,13 @@ defmodule Astarte.AppEngine.APIWeb.Router do
       scope "/:device_id/interfaces" do
         pipe_through :interface_value_api
 
-        resources "/", InterfaceValuesController,
-          only: [:index, :show],
-          param: "interface"
+        get "/", InterfaceValuesController, :index
 
-        get "/:interface/*path_tokens", InterfaceValuesController, :show
+        get "/:interface",
+            InterfaceValuesController,
+            :show_values
+
+        get "/:interface/*path_tokens", InterfaceValuesController, :show_value
 
         put "/:interface/*path_tokens",
             InterfaceValuesController,

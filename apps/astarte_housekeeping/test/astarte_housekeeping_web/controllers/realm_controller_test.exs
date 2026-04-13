@@ -387,6 +387,41 @@ defmodule Astarte.HousekeepingWeb.RealmControllerTest do
     end
   end
 
+  describe "get_default_replication" do
+    test "returns simple strategy defaults", %{auth_conn: conn} do
+      Mimic.expect(Config, :astarte_keyspace_replication_strategy!, fn -> :simple_strategy end)
+      Mimic.expect(Config, :astarte_keyspace_replication_factor!, fn -> 3 end)
+
+      conn = get(conn, "/v1/realm-defaults/replication")
+
+      assert json_response(conn, 200) == %{
+               "data" => %{
+                 "replication_class" => "simple_strategy",
+                 "replication_factor" => 3
+               }
+             }
+    end
+
+    test "returns network topology strategy defaults", %{auth_conn: conn} do
+      replication_map = %{"dc1" => 3, "dc2" => 2}
+
+      Mimic.expect(Config, :astarte_keyspace_replication_strategy!, fn ->
+        :network_topology_strategy
+      end)
+
+      Mimic.expect(Config, :astarte_keyspace_network_replication_map!, fn -> replication_map end)
+
+      conn = get(conn, "/v1/realm-defaults/replication")
+
+      assert json_response(conn, 200) == %{
+               "data" => %{
+                 "replication_class" => "network_topology_strategy",
+                 "datacenter_replication_factor" => replication_map
+               }
+             }
+    end
+  end
+
   defp unauthorized_access_message(conn) do
     "Unauthorized access to #{conn.assigns.method} #{conn.assigns.path}. Please verify your permissions"
   end
