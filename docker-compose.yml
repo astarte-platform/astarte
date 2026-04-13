@@ -1,6 +1,6 @@
 services:
   astarte-housekeeping:
-    image: astarte/astarte_housekeeping:snapshot
+    image: astarte/astarte_housekeeping:1.4-snapshot
     build:
       context: .
       args:
@@ -29,7 +29,7 @@ services:
       - "traefik.http.services.astarte-housekeeping.loadbalancer.server.port=4001"
 
   astarte-realm-management:
-    image: astarte/astarte_realm_management:snapshot
+    image: astarte/astarte_realm_management:1.4-snapshot
     build:
       context: .
       args:
@@ -53,7 +53,7 @@ services:
       - "traefik.http.services.astarte-realm-management.loadbalancer.server.port=4000"
 
   astarte-pairing:
-    image: astarte/astarte_pairing:snapshot
+    image: astarte/astarte_pairing:1.4-snapshot
     build:
       context: .
       args:
@@ -96,7 +96,7 @@ services:
       - "traefik.http.middlewares.fdo-rewrite-mid.addprefix.prefix=/v1/${FDO_REALM:-test}"
 
   astarte-appengine-api:
-    image: astarte/astarte_appengine_api:snapshot
+    image: astarte/astarte_appengine_api:1.4-snapshot
     build:
       context: .
       args:
@@ -120,7 +120,7 @@ services:
       - "traefik.http.services.astarte-appengine-api.loadbalancer.server.port=4002"
 
   astarte-data-updater-plant:
-    image: astarte/astarte_data_updater_plant:snapshot
+    image: astarte/astarte_data_updater_plant:1.4-snapshot
     build:
       context: .
       args:
@@ -141,7 +141,7 @@ services:
       - "scylla"
 
   astarte-trigger-engine:
-    image: astarte/astarte_trigger_engine:snapshot
+    image: astarte/astarte_trigger_engine:1.4-snapshot
     build:
       context: .
       args:
@@ -156,7 +156,7 @@ services:
       - "scylla"
 
   astarte-dashboard:
-    image: astarte/astarte-dashboard:snapshot
+    image: astarte/astarte-dashboard:1.4-snapshot
     volumes:
       - ./compose/astarte-dashboard/config.json:/usr/share/nginx/html/user-config/config.json:z
     depends_on:

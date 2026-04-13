@@ -12,22 +12,22 @@ jobs:
         app:
           - name: astarte-housekeeping
             service: astarte_housekeeping
-            tag: astarte/astarte_housekeeping:snapshot
+            tag: astarte/astarte_housekeeping:1.4-snapshot
           - name: astarte-realm-management
             service: astarte_realm_management
-            tag: astarte/astarte_realm_management:snapshot
+            tag: astarte/astarte_realm_management:1.4-snapshot
           - name: astarte-pairing
             service: astarte_pairing
-            tag: astarte/astarte_pairing:snapshot
+            tag: astarte/astarte_pairing:1.4-snapshot
           - name: astarte-appengine-api
             service: astarte_appengine_api
-            tag: astarte/astarte_appengine_api:snapshot
+            tag: astarte/astarte_appengine_api:1.4-snapshot
           - name: astarte-data-updater-plant
             service: astarte_data_updater_plant
-            tag: astarte/astarte_data_updater_plant:snapshot
+            tag: astarte/astarte_data_updater_plant:1.4-snapshot
           - name: astarte-trigger-engine
             service: astarte_trigger_engine
-            tag: astarte/astarte_trigger_engine:snapshot
+            tag: astarte/astarte_trigger_engine:1.4-snapshot
     steps:
       - uses: actions/checkout@ee0669bd1cc54295c223e0bb666b733df41de1c5 # v2
       - name: Setup Docker Buildx
