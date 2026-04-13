@@ -30,7 +30,6 @@ Application.put_env(:astarte_fdo, :base_url_domain, "api.astarte.localhost")
 Application.put_env(:astarte_fdo, :base_url_port, 4003)
 Application.put_env(:astarte_fdo, :base_url_protocol, :http)
 
-Mimic.copy(Astarte.DataAccess.Health.Health)
 Mimic.copy(Astarte.FDO.Core.OwnerOnboarding.DeviceServiceInfo)
 Mimic.copy(Astarte.FDO.Core.OwnerOnboarding.DeviceServiceInfoReady)
 Mimic.copy(Astarte.FDO.Core.OwnerOnboarding.ProveDevice)
