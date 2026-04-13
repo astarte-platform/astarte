@@ -1,15 +1,6 @@
 name: Astarte end-to-end test
 
 on:
-  # Run when pushing to stable branches
-  push:
-    paths:
-      - "apps/**"
-      - "tools/astarte_e2e/**"
-      - ".github/workflows/astarte-end-to-end-test-workflow.yaml"
-    branches:
-      - "master"
-      - "release-*"
   # Run on branch/tag creation
   create:
   # Run on pull requests matching apps
