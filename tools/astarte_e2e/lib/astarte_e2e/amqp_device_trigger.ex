@@ -88,8 +88,11 @@ defmodule AstarteE2E.AmqpDeviceTrigger do
 
     case Consumer.start_link(consumer_opts) do
       {:ok, consumer_pid} ->
-        Logger.info("Device Trigger: consumer started")
-        {:noreply, %{state | consumer_pid: consumer_pid}, {:continue, :publish_events}}
+        case Consumer.await_ready(consumer_pid) do
+          :ok ->
+            Logger.info("Device Trigger: consumer started")
+            {:noreply, %{state | consumer_pid: consumer_pid}, {:continue, :publish_events}}
+        end
 
       {:error, reason} ->
         Logger.error("Device Trigger: consumer failed to start: #{inspect(reason)}")

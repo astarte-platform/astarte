@@ -1,0 +1,23 @@
+{
+  "data": {
+    "interface_name": "test.astarte.PropertiesInterface",
+    "version_major": 1,
+    "version_minor": 0,
+    "type": "properties",
+    "ownership": "device",
+    "mappings": [
+      {
+        "endpoint": "/%{room}/heating/active",
+        "type": "boolean"
+      },
+      {
+        "endpoint": "/lights/bath",
+        "type": "booleanarray"
+      },
+      {
+        "endpoint": "/lights/kitchen",
+        "type": "boolean"
+      }
+    ]
+  }
+}

@@ -112,8 +112,11 @@ defmodule AstarteE2E.AmqpDataTrigger do
 
     case Consumer.start_link(consumer_opts) do
       {:ok, consumer_pid} ->
-        Logger.info("Amqp Data Trigger: consumer started")
-        {:noreply, %{state | consumer_pid: consumer_pid}, {:continue, :publish_data}}
+        case Consumer.await_ready(consumer_pid) do
+          :ok ->
+            Logger.info("Amqp Data Trigger: consumer started")
+            {:noreply, %{state | consumer_pid: consumer_pid}, {:continue, :publish_data}}
+        end
 
       {:error, reason} ->
         "Amqp Data Trigger: stopping due to consumer startup error: #{inspect(reason)}"
@@ -130,6 +133,8 @@ defmodule AstarteE2E.AmqpDataTrigger do
       device_pid: device_pid
     } = state
 
+    Logger.info("AMQP Data Trigger: publishing after consumer ready")
+
     case AstarteE2E.publish_data(device_pid, datastream_interface, properties_interface) do
       {:ok, %{datastreams: datastreams, property: property}} ->
         Logger.debug("AMQP Data Trigger: all messages sent")
@@ -137,6 +142,10 @@ defmodule AstarteE2E.AmqpDataTrigger do
         property = {properties_interface.name, property}
         messages = [property | datastreams]
         new_state = %{state | messages: messages}
+
+        Logger.info("AMQP Data Trigger: expecting #{length(messages)} messages",
+          tag: "amqp_data_trigger_expected_messages"
+        )
 
         {:noreply, new_state}
 
@@ -166,9 +175,19 @@ defmodule AstarteE2E.AmqpDataTrigger do
         {:reply, :ok, %{state | messages: []}, {:continue, :stop}}
 
       {:ok, new_messages} ->
+        Logger.info(
+          "AMQP Data Trigger: #{length(new_messages)} messages still pending: #{inspect(new_messages)}",
+          tag: "amqp_data_trigger_pending_messages"
+        )
+
         {:reply, :ok, %{state | messages: new_messages}}
 
       {:error, :not_found} ->
+        Logger.warning(
+          "AMQP Data Trigger: received unexpected message #{inspect({interface, value})}. Pending messages: #{inspect(state.messages)}",
+          tag: "amqp_data_trigger_unexpected_message"
+        )
+
         {:reply, {:error, :not_founnd}, state}
     end
   end

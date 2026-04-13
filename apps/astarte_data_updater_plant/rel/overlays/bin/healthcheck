@@ -1,0 +1,3 @@
+#!/bin/sh
+
+exec bin/astarte_data_updater_plant rpc "Astarte.DataUpdaterPlant.Health.rpc_healthcheck()"

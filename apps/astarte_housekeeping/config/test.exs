@@ -9,7 +9,7 @@ config :astarte_housekeeping, Astarte.HousekeepingWeb.Endpoint,
 # Print only warnings and errors during test
 config :logger, :console,
   format: {PrettyLog.UserFriendlyFormatter, :format},
-  metadata: [:function]
+  metadata: [:module, :function, :request_id, :tag, :realm, :datacenter, :replication_factor]
 
 config :astarte_housekeeping,
        :test_priv_key,

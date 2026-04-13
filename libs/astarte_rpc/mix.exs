@@ -50,10 +50,10 @@ defmodule Astarte.RPC.MixProject do
 
   defp deps do
     [
-      {:astarte_core, github: "astarte-platform/astarte_core", override: true},
+      {:astarte_core, github: "astarte-platform/astarte_core"},
       {:astarte_data_access, path: "../astarte_data_access"},
       {:astarte_events, path: "../astarte_events", runtime: false},
-      {:astarte_generators, github: "astarte-platform/astarte_generators", only: [:dev, :test]},
+      {:astarte_generators, path: "../astarte_generators", only: [:dev, :test]},
       {:dialyxir, "~> 1.0", only: [:dev, :test], runtime: false},
       {:libcluster, "~> 3.3"},
       {:mimic, "~> 1.11", only: [:test, :dev]},

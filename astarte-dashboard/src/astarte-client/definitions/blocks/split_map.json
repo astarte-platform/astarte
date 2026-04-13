@@ -1,0 +1,37 @@
+{
+  "beam_module": "Elixir.Astarte.Flow.Blocks.MapSplitter",
+  "name": "split_map",
+  "schema": {
+    "$id": "https://astarte-platform.org/specs/astarte_flow/blocks/split_map.json",
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "additionalProperties": false,
+    "description": "Breaks a map message into several messages, one for each map item.",
+    "properties": {
+      "key_action": {
+        "default": "replace",
+        "description": "The action to apply to the message key.",
+        "enum": ["none", "replace", "append", "prepend"],
+        "title": "Key action",
+        "type": "string"
+      },
+      "delimiter": {
+        "title": "Delimiter",
+        "type": "string"
+      },
+      "fallback_action": {
+        "default": "pass_through",
+        "description": "The fallback action that is performed when a message does not have map type.",
+        "enum": ["discard", "replace_key", "pass_through"],
+        "title": "Fallback action",
+        "type": "string"
+      },
+      "fallback_key": {
+        "title": "Fallback key",
+        "type": "string"
+      }
+    },
+    "title": "Split Map options",
+    "type": "object"
+  },
+  "type": "producer_consumer"
+}

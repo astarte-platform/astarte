@@ -22,7 +22,7 @@ defmodule Astarte.DataUpdaterPlantWeb.AstarteDataUpdaterPlantWebTest do
 
   import Plug.Test
 
-  alias Astarte.DataAccess.Health.Health, as: DatabaseHealth
+  alias Astarte.DataAccess.Health, as: DatabaseHealth
   alias Astarte.DataUpdaterPlantWeb.Router
 
   @opts Router.init([])

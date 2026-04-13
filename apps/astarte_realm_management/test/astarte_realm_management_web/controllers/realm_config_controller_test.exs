@@ -63,7 +63,7 @@ defmodule Astarte.RealmManagementWeb.RealmControllerTest do
   end
 
   test "returns the auth config on show", %{conn: conn, realm: realm, jwt_public_key: key} do
-    conn = get(conn, realm_config_path(conn, :show, realm, "auth"))
+    conn = get(conn, realm_config_path(conn, :show_auth, realm))
 
     assert json_response(conn, 200)["data"]["jwt_public_key_pem"] == key
   end
@@ -72,7 +72,7 @@ defmodule Astarte.RealmManagementWeb.RealmControllerTest do
     conn: conn,
     realm: realm
   } do
-    conn = put(conn, realm_config_path(conn, :update, realm, "auth"), data: %{})
+    conn = put(conn, realm_config_path(conn, :update_auth, realm), data: %{})
     assert json_response(conn, 422)["errors"] != %{}
   end
 
@@ -81,7 +81,7 @@ defmodule Astarte.RealmManagementWeb.RealmControllerTest do
     realm: realm
   } do
     conn =
-      put(conn, realm_config_path(conn, :update, realm, "auth"), data: @invalid_pubkey_attrs)
+      put(conn, realm_config_path(conn, :update_auth, realm), data: @invalid_pubkey_attrs)
 
     assert json_response(conn, 422)["errors"] != %{}
   end
@@ -91,28 +91,28 @@ defmodule Astarte.RealmManagementWeb.RealmControllerTest do
     realm: realm
   } do
     conn =
-      put(conn, realm_config_path(conn, :update, realm, "auth"), data: @malformed_pubkey_attrs)
+      put(conn, realm_config_path(conn, :update_auth, realm), data: @malformed_pubkey_attrs)
 
     assert json_response(conn, 422)["errors"] != %{}
   end
 
   test "updates and renders auth config when data is valid", %{conn: conn, realm: realm} do
-    conn = get(conn, realm_config_path(conn, :show, realm, "auth"))
+    conn = get(conn, realm_config_path(conn, :show_auth, realm))
 
     assert json_response(conn, 200)["data"]["jwt_public_key_pem"] ==
              JWTTestHelper.public_key_pem()
 
-    conn = put(conn, realm_config_path(conn, :update, realm, "auth"), data: @update_attrs)
+    conn = put(conn, realm_config_path(conn, :update_auth, realm), data: @update_attrs)
     assert response(conn, 204)
 
-    conn = get(conn, realm_config_path(conn, :show, realm, "auth"))
+    conn = get(conn, realm_config_path(conn, :show_auth, realm))
     assert json_response(conn, 200)["data"]["jwt_public_key_pem"] == @new_pubkey
   end
 
   test "returns the device registration limit on show", %{conn: conn, realm: realm} do
     limit = 10
     Helpers.Database.insert_device_registration_limit!(realm, limit)
-    conn = get(conn, realm_config_path(conn, :show, realm, "device_registration_limit"))
+    conn = get(conn, realm_config_path(conn, :show_device_registration_limit, realm))
 
     assert json_response(conn, 200)["data"] == limit
   end
@@ -122,7 +122,7 @@ defmodule Astarte.RealmManagementWeb.RealmControllerTest do
     Helpers.Database.set_datastream_maximum_storage_retention(realm, retention)
 
     conn =
-      get(conn, realm_config_path(conn, :show, realm, "datastream_maximum_storage_retention"))
+      get(conn, realm_config_path(conn, :show_datastream_maximum_storage_retention, realm))
 
     assert json_response(conn, 200)["data"] == retention
   end

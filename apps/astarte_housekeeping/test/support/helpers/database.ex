@@ -21,6 +21,7 @@ defmodule Astarte.Housekeeping.Helpers.Database do
   alias Astarte.DataAccess.KvStore
   alias Astarte.DataAccess.Realms.Realm
   alias Astarte.DataAccess.Repo
+  alias Astarte.Housekeeping.Realms.Queries
 
   @create_keyspace """
   CREATE KEYSPACE :keyspace
@@ -348,8 +349,13 @@ defmodule Astarte.Housekeeping.Helpers.Database do
     execute(astarte_keyspace, @create_keyspace)
     execute(astarte_keyspace, @create_kv_store)
     execute(astarte_keyspace, @create_realms_table)
+    save_default_replication(%{strategy: :network_topology, dc_factors: %{"datacenter1" => 1}})
 
     :ok
+  end
+
+  def save_default_replication(replication) do
+    Queries.save_keyspace_replication(replication)
   end
 
   def teardown(realm_name) do

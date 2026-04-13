@@ -70,7 +70,8 @@ defmodule Astarte.Housekeeping.Realms do
     changeset = Realm.changeset(%Realm{}, attrs)
 
     with {:ok, %Realm{} = realm} <-
-           Ecto.Changeset.apply_action(changeset, :insert) do
+           Ecto.Changeset.apply_action(changeset, :insert),
+         {:ok, realm} <- resolve_replication(realm) do
       case Core.create_realm(realm, opts) do
         :ok -> {:ok, realm}
         {:ok, :started} -> {:ok, realm}
@@ -78,6 +79,14 @@ defmodule Astarte.Housekeeping.Realms do
       end
     end
   end
+
+  defp resolve_replication(%Realm{replication_class: nil} = realm) do
+    with {:ok, replication} <- Queries.fetch_keyspace_replication() do
+      {:ok, Realm.apply_replication(realm, replication)}
+    end
+  end
+
+  defp resolve_replication(realm), do: {:ok, realm}
 
   @doc """
   Updates a realm with the provided list of attributes.

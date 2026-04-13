@@ -1,0 +1,32 @@
+[
+  {
+    "endpoint": "/humidity/value/current",
+    "timestamp": "2020-10-14T12:26:36.492Z",
+    "type": "double",
+    "value": 70
+  },
+  {
+    "endpoint": "/sensors/light/estimated",
+    "timestamp": "2020-10-14T12:27:13.200Z",
+    "type": "double",
+    "value": 82
+  },
+  {
+    "endpoint": "/sensors/proximity/estimated",
+    "timestamp": "2020-10-14T12:26:54.305Z",
+    "type": "double",
+    "value": -11
+  },
+  {
+    "endpoint": "/temperature",
+    "timestamp": "2020-10-14T12:26:29.797Z",
+    "type": "double",
+    "value": 23
+  },
+  {
+    "endpoint": "/weekend/time",
+    "timestamp": "2020-10-14T12:27:31.017Z",
+    "type": "boolean",
+    "value": true
+  }
+]

@@ -24,6 +24,7 @@ defmodule Astarte.Housekeeping.Realms.QueriesTest do
   alias Astarte.DataAccess.Repo
   alias Astarte.Housekeeping.Config
   alias Astarte.Housekeeping.Helpers.Database
+  alias Astarte.Housekeeping.Migrator
   alias Astarte.Housekeeping.Realms
   alias Astarte.Housekeeping.Realms.Queries
   alias Astarte.Housekeeping.Realms.Realm, as: HKRealm
@@ -93,6 +94,101 @@ defmodule Astarte.Housekeeping.Realms.QueriesTest do
       assert {:ok, _} = Database.lightweight_transaction_check(astarte_keyspace)
     end
 
+    test "defaults to NetworkTopologyStrategy derived from the live Scylla topology when no replication strategy is configured" do
+      # When the replication strategy env var is not set, Config returns `nil`
+      # and `create_astarte_keyspace/0` is expected to derive the replication
+      # map from the actual ScyllaDB network topology, instead of falling back
+      # to SimpleStrategy/RF=1. The test cluster has a single node in
+      # `datacenter1`, so the resulting map must be %{"datacenter1" => 1} and
+      # the keyspace class must be NetworkTopologyStrategy.
+      Config
+      |> expect(:astarte_keyspace_replication_strategy!, fn -> nil end)
+      |> reject(:astarte_keyspace_replication_factor!, 0)
+      |> reject(:astarte_keyspace_network_replication_map!, 0)
+
+      assert :ok = Queries.initialize_database()
+
+      astarte_keyspace = Realm.astarte_keyspace_name()
+
+      replication =
+        from(k in "system_schema.keyspaces", select: k.replication)
+        |> Repo.get_by!(keyspace_name: astarte_keyspace)
+
+      {datacenter_replication, ""} = replication[@datacenter] |> Integer.parse()
+
+      assert replication["class"] == "org.apache.cassandra.locator.NetworkTopologyStrategy"
+      assert datacenter_replication == 1
+    end
+
+    @tag :inspect_replication
+    test "inspects auto-detected replication from live cluster when no strategy is configured" do
+      Config
+      |> expect(:astarte_keyspace_replication_strategy!, fn -> nil end)
+      |> reject(:astarte_keyspace_replication_factor!, 0)
+      |> reject(:astarte_keyspace_network_replication_map!, 0)
+
+      assert :ok = Queries.initialize_database()
+
+      astarte_keyspace = Realm.astarte_keyspace_name()
+
+      Migrator.save_default_replication()
+
+      {:ok, replication_map} = Queries.fetch_keyspace_replication()
+
+      replication =
+        from(k in "system_schema.keyspaces", select: k.replication)
+        |> Repo.get_by!(keyspace_name: astarte_keyspace)
+
+      assert replication["class"] == "org.apache.cassandra.locator.NetworkTopologyStrategy"
+      assert replication_map == %{strategy: :network_topology, dc_factors: %{@datacenter => 1}}
+    end
+
+    @tag :inspect_replication
+    test "inspects replication when simple strategy is configured" do
+      Config
+      |> expect(:astarte_keyspace_replication_strategy!, fn -> :simple_strategy end)
+      |> expect(:astarte_keyspace_replication_factor!, fn -> 1 end)
+      |> reject(:astarte_keyspace_network_replication_map!, 0)
+
+      assert :ok = Queries.initialize_database()
+
+      astarte_keyspace = Realm.astarte_keyspace_name()
+
+      Migrator.save_default_replication()
+
+      {:ok, replication_map} = Queries.fetch_keyspace_replication()
+
+      replication =
+        from(k in "system_schema.keyspaces", select: k.replication)
+        |> Repo.get_by!(keyspace_name: astarte_keyspace)
+
+      assert replication["class"] == "org.apache.cassandra.locator.SimpleStrategy"
+      assert replication_map == %{strategy: :simple, factor: 1}
+    end
+
+    @tag :inspect_replication
+    test "inspects replication when network topology strategy is configured" do
+      Config
+      |> expect(:astarte_keyspace_replication_strategy!, fn -> :network_topology_strategy end)
+      |> reject(:astarte_keyspace_replication_factor!, 0)
+      |> expect(:astarte_keyspace_network_replication_map!, fn -> @map_replication_factor end)
+
+      assert :ok = Queries.initialize_database()
+
+      astarte_keyspace = Realm.astarte_keyspace_name()
+
+      Migrator.save_default_replication()
+
+      {:ok, replication_map} = Queries.fetch_keyspace_replication()
+
+      replication =
+        from(k in "system_schema.keyspaces", select: k.replication)
+        |> Repo.get_by!(keyspace_name: astarte_keyspace)
+
+      assert replication["class"] == "org.apache.cassandra.locator.NetworkTopologyStrategy"
+      assert replication_map == %{strategy: :network_topology, dc_factors: %{"datacenter1" => 1}}
+    end
+
     test "returns database error" do
       Mimic.stub(Xandra, :execute, fn _, _, _, _ -> {:error, %Xandra.Error{}} end)
       assert {:error, :database_error} = Queries.initialize_database()
@@ -117,6 +213,8 @@ defmodule Astarte.Housekeeping.Realms.QueriesTest do
         Database.setup_database_access(astarte_instance_id)
         Database.teardown_realm_keyspace(realm_name)
       end)
+
+      Database.save_default_replication(%{strategy: :simple, factor: 1})
 
       %{realm_name: realm_name}
     end
@@ -474,6 +572,9 @@ defmodule Astarte.Housekeeping.Realms.QueriesTest do
     setup %{astarte_instance_id: astarte_instance_id, realm_name: realm_name} do
       other_realm_name = "realm#{System.unique_integer([:positive])}"
 
+      {:ok, live_topology} = Queries.fetch_network_topology()
+      Database.save_default_replication(%{strategy: :network_topology, dc_factors: live_topology})
+
       on_exit(fn ->
         Database.setup_database_access(astarte_instance_id)
         Queries.set_datastream_maximum_storage_retention(realm_name, 50)
@@ -512,6 +613,43 @@ defmodule Astarte.Housekeeping.Realms.QueriesTest do
                  jwt_public_key_pem: @public_key_pem,
                  replication_factor: nil
                })
+    end
+
+    test "realm created without explicit replication inherits NetworkTopologyStrategy from astarte keyspace",
+         %{
+           other_realm_name: realm_name
+         } do
+      assert {:ok, _} =
+               Realms.create_realm(%{
+                 realm_name: realm_name,
+                 jwt_public_key_pem: @public_key_pem
+               })
+
+      assert {:ok, realm} = Queries.get_realm(realm_name)
+
+      assert realm.replication_class == "NetworkTopologyStrategy"
+      assert map_size(realm.datacenter_replication_factors) > 0
+    end
+
+    @tag :inspect_replication
+    test "realm created without explicit replication inherits replication matching live cluster topology",
+         %{other_realm_name: realm_name} do
+      assert {:ok, live_topology} = Queries.fetch_network_topology()
+
+      assert {:ok, _} =
+               Realms.create_realm(%{
+                 realm_name: realm_name,
+                 jwt_public_key_pem: @public_key_pem
+               })
+
+      assert {:ok, realm} = Queries.get_realm(realm_name)
+
+      assert realm.replication_class == "NetworkTopologyStrategy"
+
+      for {dc, node_count} <- live_topology do
+        assert realm.datacenter_replication_factors[dc] == node_count,
+               "expected #{dc} replication_factor=#{node_count} (nodes in DC), got #{realm.datacenter_replication_factors[dc]}"
+      end
     end
 
     test "Realm creation succeeds when device_registration_limit is nil", %{
@@ -557,6 +695,7 @@ defmodule Astarte.Housekeeping.Realms.QueriesTest do
                Realms.create_realm(%{
                  realm_name: realm_name,
                  jwt_public_key_pem: @public_key_pem,
+                 replication_class: "SimpleStrategy",
                  replication_factor: 9
                })
     end
@@ -571,6 +710,120 @@ defmodule Astarte.Housekeeping.Realms.QueriesTest do
                  replication_class: "NetworkTopologyStrategy",
                  datacenter_replication_factors: [{"imaginarydatacenter", 3}]
                })
+    end
+  end
+
+  describe "get_keyspace_replication/2" do
+    test "returns simple strategy replication factor" do
+      keyspace = "test_simple_ks"
+
+      mock_replication = %{
+        "class" => "org.apache.cassandra.locator.SimpleStrategy",
+        "replication_factor" => "3"
+      }
+
+      expect(Repo, :safe_fetch_one, fn _query, _opts ->
+        {:ok, mock_replication}
+      end)
+
+      assert {:ok, %{strategy: :simple, factor: 3}} =
+               Queries.get_keyspace_replication(keyspace)
+    end
+
+    test "returns network topology strategy factors" do
+      keyspace = "test_network_ks"
+
+      mock_replication = %{
+        "class" => "org.apache.cassandra.locator.NetworkTopologyStrategy",
+        "dc1" => "3",
+        "dc2" => "2"
+      }
+
+      expect(Repo, :safe_fetch_one, fn _query, _opts ->
+        {:ok, mock_replication}
+      end)
+
+      assert {:ok, %{strategy: :network_topology, dc_factors: factors}} =
+               Queries.get_keyspace_replication(keyspace)
+
+      assert factors == %{"dc1" => 3, "dc2" => 2}
+    end
+
+    test "returns error for non-existent keyspace" do
+      expect(Repo, :safe_fetch_one, fn _query, _opts ->
+        {:error, :not_found}
+      end)
+
+      assert {:error, :keyspace_not_found} =
+               Queries.get_keyspace_replication("missing_ks")
+    end
+
+    test "returns error for unknown replication strategy" do
+      mock_replication = %{
+        "class" => "org.apache.cassandra.locator.LocalStrategy"
+      }
+
+      expect(Repo, :safe_fetch_one, fn _query, _opts ->
+        {:ok, mock_replication}
+      end)
+
+      assert {:error, {:unknown_strategy, "org.apache.cassandra.locator.LocalStrategy"}} =
+               Queries.get_keyspace_replication("local_ks")
+    end
+
+    test "handles database error gracefully" do
+      expect(Repo, :safe_fetch_one, fn _query, _opts ->
+        {:error, :timeout}
+      end)
+
+      assert {:error, :timeout} =
+               Queries.get_keyspace_replication("any_ks")
+    end
+  end
+
+  describe "save_keyspace_replication/1" do
+    test "saves and retrieves simple strategy replication" do
+      replication = %{strategy: :simple, factor: 2}
+      assert :ok = Queries.save_keyspace_replication(replication)
+      assert {:ok, ^replication} = Queries.fetch_keyspace_replication()
+    end
+
+    test "saves and retrieves network topology strategy replication" do
+      replication = %{strategy: :network_topology, dc_factors: %{"datacenter1" => 1}}
+      assert :ok = Queries.save_keyspace_replication(replication)
+      assert {:ok, ^replication} = Queries.fetch_keyspace_replication()
+    end
+  end
+
+  describe "fetch_keyspace_replication/0" do
+    test "returns error when replication has not been saved" do
+      Mimic.stub(Astarte.DataAccess.KvStore, :fetch_value, fn _, _, _, _ ->
+        {:error, :replication_not_found}
+      end)
+
+      assert {:error, :replication_not_found} = Queries.fetch_keyspace_replication()
+    end
+
+    test "returns error when stored replication data is corrupted" do
+      Mimic.stub(Astarte.DataAccess.KvStore, :fetch_value, fn _, _, _, _ ->
+        {:ok, <<0xFF, 0x00, 0xAB>>}
+      end)
+
+      assert {:error, :corrupted_replication_data} = Queries.fetch_keyspace_replication()
+    end
+
+    test "returns successfully stored replication after save" do
+      replication = %{strategy: :simple, factor: 1}
+      :ok = Queries.save_keyspace_replication(replication)
+      assert {:ok, ^replication} = Queries.fetch_keyspace_replication()
+    end
+  end
+
+  describe "fetch_network_topology/0" do
+    test "returns ok with a map of datacenters to node counts" do
+      assert {:ok, topology} = Queries.fetch_network_topology()
+      assert is_map(topology)
+      assert Map.has_key?(topology, "datacenter1")
     end
   end
 end

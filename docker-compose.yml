@@ -16,9 +16,14 @@ services:
       - ./compose/astarte-keys/housekeeping_public.pem:/keys/housekeeping_public.pem:z
     restart: on-failure
     depends_on:
-      - "rabbitmq"
-      - "traefik"
-      - "scylla"
+      openbao:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      scylla:
+        condition: service_healthy
+      traefik:
+        condition: service_started
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.astarte-housekeeping.rule=Host(`api.${DOCKER_COMPOSE_ASTARTE_BASE_DOMAIN}`) && PathPrefix(`/housekeeping`)"
@@ -40,9 +45,12 @@ services:
     environment:
       ASTARTE_EVENTS_PRODUCER_AMQP_HOST: "rabbitmq"
     depends_on:
-      - "rabbitmq"
-      - "traefik"
-      - "scylla"
+      rabbitmq:
+        condition: service_healthy
+      scylla:
+        condition: service_healthy
+      traefik:
+        condition: service_started
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.astarte-realm-management.rule=Host(`api.${DOCKER_COMPOSE_ASTARTE_BASE_DOMAIN}`) && PathPrefix(`/realmmanagement`)"
@@ -73,13 +81,11 @@ services:
     # TODO: add a health check for all services
     depends_on:
       rabbitmq:
-        condition: service_started
+        condition: service_healthy
       scylla:
-        condition: service_started
+        condition: service_healthy
       traefik:
         condition: service_started
-      openbao:
-        condition: service_healthy
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.astarte-pairing.rule=Host(`api.${DOCKER_COMPOSE_ASTARTE_BASE_DOMAIN}`) && PathPrefix(`/pairing`)"
@@ -107,9 +113,12 @@ services:
       APPENGINE_API_ROOMS_AMQP_CLIENT_HOST: "rabbitmq"
     restart: on-failure
     depends_on:
-      - "rabbitmq"
-      - "scylla"
-      - "traefik"
+      rabbitmq:
+        condition: service_healthy
+      scylla:
+        condition: service_healthy
+      traefik:
+        condition: service_started
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.astarte-appengine-api.rule=Host(`api.${DOCKER_COMPOSE_ASTARTE_BASE_DOMAIN}`) && PathPrefix(`/appengine`)"
@@ -137,8 +146,10 @@ services:
       DATA_UPDATER_PLANT_AMQP_PRODUCER_VIRTUAL_HOST: "/"
     restart: on-failure
     depends_on:
-      - "rabbitmq"
-      - "scylla"
+      rabbitmq:
+        condition: service_healthy
+      scylla:
+        condition: service_healthy
 
   astarte-trigger-engine:
     image: astarte/astarte_trigger_engine:1.4-snapshot
@@ -152,8 +163,10 @@ services:
       TRIGGER_ENGINE_AMQP_CONSUMER_HOST: "rabbitmq"
     restart: on-failure
     depends_on:
-      - "rabbitmq"
-      - "scylla"
+      rabbitmq:
+        condition: service_healthy
+      scylla:
+        condition: service_healthy
 
   astarte-dashboard:
     image: astarte/astarte-dashboard:1.4-snapshot
@@ -260,6 +273,12 @@ services:
       - 15672:15672
     volumes:
       - rabbitmq-data:/var/lib/rabbitmq
+    healthcheck:
+      test: rabbitmq-diagnostics -q ping
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
 
   # CFSSL
   cfssl:
@@ -275,10 +294,17 @@ services:
   # Scylla
   scylla:
     image: scylladb/scylla:2025.2.2
+    command: --smp 1 --memory 750M --disable-version-check --skip-wait-for-gossip-to-settle 0
     hostname: scylla
     restart: on-failure
     volumes:
       - scylla-data:/var/lib/scylla
+    healthcheck:
+      test: cqlsh -e 'SELECT release_version FROM system.local;'
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
 
   # VerneMQ
   vernemq:

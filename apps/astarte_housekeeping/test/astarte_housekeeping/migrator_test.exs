@@ -163,6 +163,21 @@ defmodule Astarte.Housekeeping.MigratorTest do
     end
   end
 
+  describe "save_default_replication/0" do
+    setup do
+      on_exit(fn ->
+        Database.teardown_astarte_keyspace()
+      end)
+
+      Queries.initialize_database()
+      :ok
+    end
+
+    test "saves the keyspace replication successfully" do
+      assert :ok = Migrator.save_default_replication()
+    end
+  end
+
   defp realm_schema_version(realm_name) do
     keyspace = DatabaseRealm.keyspace_name(realm_name)
 

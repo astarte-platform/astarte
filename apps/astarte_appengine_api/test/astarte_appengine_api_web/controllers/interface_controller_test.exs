@@ -112,7 +112,7 @@ defmodule Astarte.AppEngine.APIWeb.InterfaceControllerTest do
         request_path =
           interface_values_path(
             conn,
-            :show,
+            :show_values,
             realm_name,
             device.encoded_id,
             interface_name,
@@ -204,7 +204,7 @@ defmodule Astarte.AppEngine.APIWeb.InterfaceControllerTest do
         request_path =
           interface_values_path(
             conn,
-            :show,
+            :show_values,
             realm_name,
             device.encoded_id,
             interface_to_update.name,
@@ -263,7 +263,7 @@ defmodule Astarte.AppEngine.APIWeb.InterfaceControllerTest do
       request_path =
         interface_values_path(
           conn,
-          :show,
+          :show_value,
           realm_name,
           device.encoded_id,
           interface.name,
@@ -325,7 +325,7 @@ defmodule Astarte.AppEngine.APIWeb.InterfaceControllerTest do
       request_path =
         interface_values_path(
           conn,
-          :show,
+          :show_value,
           realm_name,
           device.encoded_id,
           interface.name,
@@ -397,7 +397,7 @@ defmodule Astarte.AppEngine.APIWeb.InterfaceControllerTest do
       request_path =
         interface_values_path(
           conn,
-          :show,
+          :show_values,
           realm_name,
           device.encoded_id,
           interface.name,

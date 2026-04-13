@@ -18,7 +18,7 @@
 
 defmodule AstarteE2E.AmqpTriggers.Consumer do
   defmodule State do
-    defstruct [:channel, :realm_name, :routing_key, :message_handler]
+    defstruct [:channel, :realm_name, :routing_key, :message_handler, ready?: false, waiters: []]
   end
 
   use GenServer
@@ -53,11 +53,24 @@ defmodule AstarteE2E.AmqpTriggers.Consumer do
     GenServer.call(server, :stop)
   end
 
+  def await_ready(server, timeout \\ 5_000) do
+    GenServer.call(server, :await_ready, timeout)
+  end
+
   @impl true
   def handle_call(:stop, _from, state) do
     Logger.info("Stopping consumer for routing key #{inspect(state.routing_key)}")
     Channel.close(state.channel)
     {:stop, :normal, :ok, state}
+  end
+
+  @impl true
+  def handle_call(:await_ready, _from, %{ready?: true} = state) do
+    {:reply, :ok, state}
+  end
+
+  def handle_call(:await_ready, from, state) do
+    {:noreply, %{state | waiters: [from | state.waiters]}}
   end
 
   @impl true
@@ -68,7 +81,9 @@ defmodule AstarteE2E.AmqpTriggers.Consumer do
   def handle_info({:basic_consume_ok, _consumer_tag}, state) do
     Logger.debug("AMQP consumer successfully registered")
 
-    {:noreply, state}
+    Enum.each(state.waiters, &GenServer.reply(&1, :ok))
+
+    {:noreply, %{state | ready?: true, waiters: []}}
   end
 
   # This is sent for each message consumed, where `payload` contains the message

@@ -20,10 +20,13 @@ coverage:
           - astarte_data_access
           - astarte_events
           - astarte_generators
+          - astarte_data_access_generators
+          - astarte_test_suite
           - astarte_rpc
           - astarte_fdo
           - astarte_fdo_core
           - astarte_secrets
+          - astarte_adapters
 
 ignore:
   - "apps/*/test"
@@ -82,6 +85,14 @@ flags:
     carryforward: true
     paths:
       - libs/astarte_generators
+  astarte_data_access_generators:
+    carryforward: true
+    paths:
+      - libs/astarte_data_access_generators
+  astarte_test_suite:
+    carryforward: true
+    paths:
+      - libs/astarte_test_suite
   astarte_rpc:
     carryforward: true
     paths:
@@ -98,3 +109,7 @@ flags:
     carryforward: true
     paths:
       - libs/astarte_secrets
+  astarte_adapters:
+    carryforward: true
+    paths:
+      - libs/astarte_adapters

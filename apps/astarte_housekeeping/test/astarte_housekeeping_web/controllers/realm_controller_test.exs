@@ -54,6 +54,14 @@ defmodule Astarte.HousekeepingWeb.RealmControllerTest do
       "replication_factor" => 1
     }
   }
+  @simple_strategy_attrs %{
+    "data" => %{
+      "realm_name" => "testrealm3",
+      "jwt_public_key_pem" => pubkey(),
+      "replication_class" => "SimpleStrategy",
+      "replication_factor" => 1
+    }
+  }
   @network_topology_attrs %{
     "data" => %{
       "realm_name" => "testrealm3",
@@ -126,7 +134,9 @@ defmodule Astarte.HousekeepingWeb.RealmControllerTest do
   end
 
   describe "create realm" do
-    test "renders realm when data is valid", %{auth_conn: conn} do
+    test "renders realm when data is valid and replication is not explicitly set", %{
+      auth_conn: conn
+    } do
       conn = post(conn, realm_path(conn, :create), @create_attrs)
       assert response(conn, 201)
       conn = get(conn, realm_path(conn, :show, @create_attrs["data"]["realm_name"]))
@@ -135,8 +145,8 @@ defmodule Astarte.HousekeepingWeb.RealmControllerTest do
                "data" => %{
                  "realm_name" => @create_attrs["data"]["realm_name"],
                  "jwt_public_key_pem" => @create_attrs["data"]["jwt_public_key_pem"],
-                 "replication_class" => "SimpleStrategy",
-                 "replication_factor" => 1,
+                 "replication_class" => "NetworkTopologyStrategy",
+                 "datacenter_replication_factors" => %{@local_datacenter => 1},
                  "device_registration_limit" => nil,
                  "datastream_maximum_storage_retention" => nil
                }
@@ -145,7 +155,28 @@ defmodule Astarte.HousekeepingWeb.RealmControllerTest do
       Database.teardown_realm_keyspace(@create_attrs["data"]["realm_name"])
     end
 
-    test "renders realm with explicit replication_factor", %{auth_conn: conn} do
+    test "renders realm when data is valid and replication is explicitly set", %{auth_conn: conn} do
+      conn = post(conn, realm_path(conn, :create), @simple_strategy_attrs)
+      assert response(conn, 201)
+      conn = get(conn, realm_path(conn, :show, @simple_strategy_attrs["data"]["realm_name"]))
+
+      assert json_response(conn, 200) == %{
+               "data" => %{
+                 "realm_name" => @simple_strategy_attrs["data"]["realm_name"],
+                 "jwt_public_key_pem" => @simple_strategy_attrs["data"]["jwt_public_key_pem"],
+                 "replication_class" => "SimpleStrategy",
+                 "replication_factor" => @simple_strategy_attrs["data"]["replication_factor"],
+                 "device_registration_limit" => nil,
+                 "datastream_maximum_storage_retention" => nil
+               }
+             }
+
+      Database.teardown_realm_keyspace(@simple_strategy_attrs["data"]["realm_name"])
+    end
+
+    test "renders realm with default replication when only replication_factor is given", %{
+      auth_conn: conn
+    } do
       conn = post(conn, realm_path(conn, :create), @explicit_replication_attrs)
       assert response(conn, 201)
       conn = get(conn, realm_path(conn, :show, @explicit_replication_attrs["data"]["realm_name"]))
@@ -155,9 +186,8 @@ defmodule Astarte.HousekeepingWeb.RealmControllerTest do
                  "realm_name" => @explicit_replication_attrs["data"]["realm_name"],
                  "jwt_public_key_pem" =>
                    @explicit_replication_attrs["data"]["jwt_public_key_pem"],
-                 "replication_class" => "SimpleStrategy",
-                 "replication_factor" =>
-                   @explicit_replication_attrs["data"]["replication_factor"],
+                 "replication_class" => "NetworkTopologyStrategy",
+                 "datacenter_replication_factors" => %{@local_datacenter => 1},
                  "device_registration_limit" => nil,
                  "datastream_maximum_storage_retention" => nil
                }
@@ -384,6 +414,41 @@ defmodule Astarte.HousekeepingWeb.RealmControllerTest do
       realm = realm_fixture()
       conn = delete(conn, realm_path(conn, :delete, realm))
       assert response(conn, 405)
+    end
+  end
+
+  describe "get_default_replication" do
+    test "returns simple strategy defaults", %{auth_conn: conn} do
+      Mimic.expect(Config, :astarte_keyspace_replication_strategy!, fn -> :simple_strategy end)
+      Mimic.expect(Config, :astarte_keyspace_replication_factor!, fn -> 3 end)
+
+      conn = get(conn, "/v1/realm-defaults/replication")
+
+      assert json_response(conn, 200) == %{
+               "data" => %{
+                 "replication_class" => "simple_strategy",
+                 "replication_factor" => 3
+               }
+             }
+    end
+
+    test "returns network topology strategy defaults", %{auth_conn: conn} do
+      replication_map = %{"dc1" => 3, "dc2" => 2}
+
+      Mimic.expect(Config, :astarte_keyspace_replication_strategy!, fn ->
+        :network_topology_strategy
+      end)
+
+      Mimic.expect(Config, :astarte_keyspace_network_replication_map!, fn -> replication_map end)
+
+      conn = get(conn, "/v1/realm-defaults/replication")
+
+      assert json_response(conn, 200) == %{
+               "data" => %{
+                 "replication_class" => "network_topology_strategy",
+                 "datacenter_replication_factor" => replication_map
+               }
+             }
     end
   end
 

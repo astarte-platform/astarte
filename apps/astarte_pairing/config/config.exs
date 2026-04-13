@@ -37,7 +37,7 @@ config :astarte_pairing, Astarte.PairingWeb.Endpoint,
 config :astarte_fdo, :endpoint, Astarte.PairingWeb.Endpoint
 
 # Configures Elixir's Logger
-config :logger, :default_formatter,
+config :logger, :console,
   format: "$time $metadata[$level] $message\n",
   metadata: [:request_id, :tag, :realm, :method, :hw_id, :common_name]
 

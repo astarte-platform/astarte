@@ -18,8 +18,29 @@
 
 defmodule Astarte.HousekeepingWeb.VersionController do
   use Astarte.HousekeepingWeb, :controller
+  use OpenApiSpex.ControllerSpecs
+
+  alias OpenApiSpex.Schema
 
   @version Mix.Project.config()[:version]
+
+  tags ["version"]
+
+  operation :show,
+    summary: "Retrieve API version",
+    description:
+      "Return the Housekeeping API version. This endpoint is available at {base_url}/version (without /v1).",
+    operation_id: "getVersion",
+    responses: [
+      ok:
+        {"Success", "application/json",
+         %Schema{
+           type: :object,
+           properties: %{
+             data: %Schema{type: :string, example: "1.3.0"}
+           }
+         }}
+    ]
 
   def show(conn, _params) do
     render(conn, "show.json", %{version: @version})

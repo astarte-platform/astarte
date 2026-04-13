@@ -16,7 +16,7 @@ config :astarte_housekeeping, Astarte.HousekeepingWeb.Endpoint,
   render_errors: [view: Astarte.HousekeepingWeb.ErrorView, accepts: ~w(json)]
 
 # Configures Elixir's Logger
-config :logger, :default_formatter,
+config :logger, :console,
   format: "$time $metadata[$level] $message\n",
   metadata: [:module, :function, :request_id, :tag, :realm, :datacenter, :replication_factor]
 

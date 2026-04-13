@@ -1,0 +1,36 @@
+name: Test Astarte-Dashboard Container Builds
+on:
+  push:
+    branches:
+      - "master"
+      - "release-*"
+    paths:
+      - "astarte-dashboard/**"
+      - ".github/workflows/astarte-dashboard-docker-build.yml"
+  create:
+  pull_request:
+    paths:
+      - "astarte-dashboard/**"
+      - ".github/workflows/astarte-dashboard-docker-build.yml"
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
+jobs:
+  docker:
+    name: Test Container Build (astarte-dashboard)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build
+        id: docker_build
+        uses: docker/build-push-action@v6
+        with:
+          context: ./astarte-dashboard
+          file: ./astarte-dashboard/Dockerfile
+          push: false

@@ -1,0 +1,5 @@
+{
+  "astarte_api_url": "localhost",
+  "auth": [{ "type": "token" }],
+  "default_auth": "token"
+}

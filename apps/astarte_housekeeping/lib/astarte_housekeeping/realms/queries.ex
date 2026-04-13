@@ -59,6 +59,35 @@ defmodule Astarte.Housekeeping.Realms.Queries do
     end
   end
 
+  def fetch_keyspace_replication do
+    astarte_keyspace = Realm.astarte_keyspace_name()
+    consistency = Consistency.domain_model(:read)
+
+    result =
+      KvStore.fetch_value("astarte", "db_default_replication", :binary,
+        error: :replication_not_found,
+        consistency: consistency,
+        prefix: astarte_keyspace
+      )
+
+    case result do
+      {:ok, binary_replication} ->
+        try do
+          {:ok, :erlang.binary_to_term(binary_replication)}
+        rescue
+          _ ->
+            Logger.error("Failed to deserialize replication data from KvStore",
+              tag: "corrupted_replication_data"
+            )
+
+            {:error, :corrupted_replication_data}
+        end
+
+      {:error, reason} ->
+        {:error, reason}
+    end
+  end
+
   def get_realm(realm_name) do
     keyspace_name = Realm.keyspace_name(realm_name)
     do_get_realm(realm_name, keyspace_name)
@@ -1185,17 +1214,78 @@ defmodule Astarte.Housekeeping.Realms.Queries do
     end
   end
 
+  @doc """
+  Returns the replication strategy and factor for a given keyspace.
+  Returns {:ok, %{strategy: :network_topology, dc_factors: %{"dc1" => 3}}}
+  or {:ok, %{strategy: :simple, factor: 3}}
+  """
+  def get_keyspace_replication(keyspace_name, opts \\ []) do
+    query =
+      from k in "system_schema.keyspaces",
+        where: k.keyspace_name == ^keyspace_name,
+        select: k.replication
+
+    case Repo.safe_fetch_one(query, opts) do
+      {:ok, %{"class" => class} = replication} ->
+        parse_replication(class, replication)
+
+      {:error, :not_found} ->
+        {:error, :keyspace_not_found}
+
+      {:error, reason} ->
+        Logger.error("Failed to fetch keyspace replication: #{inspect(reason)}")
+        {:error, reason}
+    end
+  end
+
+  def save_keyspace_replication(replication) do
+    opts = [
+      consistency: Consistency.domain_model(:write),
+      prefix: Realm.astarte_keyspace_name()
+    ]
+
+    kv_store = %{
+      group: "astarte",
+      key: "db_default_replication",
+      value: :erlang.term_to_binary(replication),
+      value_type: :binary
+    }
+
+    case KvStore.insert(kv_store, opts) do
+      :ok ->
+        :ok
+
+      {:error, xandra_error} ->
+        {:error, xandra_error}
+    end
+  end
+
+  defp parse_replication("org.apache.cassandra.locator.NetworkTopologyStrategy", map) do
+    # Filter out the 'class' key to leave only the DC names and their factors
+    dc_factors =
+      map
+      |> Map.delete("class")
+      |> Map.new(fn {dc, factor} -> {dc, String.to_integer(factor)} end)
+
+    {:ok, %{strategy: :network_topology, dc_factors: dc_factors}}
+  end
+
+  defp parse_replication("org.apache.cassandra.locator.SimpleStrategy", %{
+         "replication_factor" => rf
+       }) do
+    {:ok, %{strategy: :simple, factor: String.to_integer(rf)}}
+  end
+
+  defp parse_replication(unknown_class, _map) do
+    {:error, {:unknown_strategy, unknown_class}}
+  end
+
   defp create_astarte_keyspace do
     keyspace = Realm.astarte_keyspace_name()
     consistency = Consistency.domain_model(:write)
 
-    replication =
-      case Config.astarte_keyspace_replication_strategy!() do
-        :simple_strategy -> Config.astarte_keyspace_replication_factor!()
-        :network_topology_strategy -> Config.astarte_keyspace_network_replication_map!()
-      end
-
-    with {:ok, replication_map_str} <- build_replication_map_str(replication),
+    with {:ok, replication} <- astarte_keyspace_replication(),
+         {:ok, replication_map_str} <- build_replication_map_str(replication),
          :ok <- do_create_astarte_keyspace(keyspace, replication_map_str, consistency) do
       :ok
     else
@@ -1204,6 +1294,52 @@ defmodule Astarte.Housekeeping.Realms.Queries do
           tag: "astarte_keyspace_creation_failed"
         )
 
+        {:error, reason}
+    end
+  end
+
+  defp astarte_keyspace_replication do
+    case Config.astarte_keyspace_replication_strategy!() do
+      :simple_strategy ->
+        {:ok, Config.astarte_keyspace_replication_factor!()}
+
+      :network_topology_strategy ->
+        {:ok, Config.astarte_keyspace_network_replication_map!()}
+
+      nil ->
+        # No explicit replication has been configured, so the replication
+        # map is derived from the current ScyllaDB network topology
+        fetch_network_topology()
+    end
+  end
+
+  def fetch_network_topology do
+    with {:ok, local_datacenter} <- get_local_datacenter(),
+         {:ok, peer_datacenters} <- fetch_peer_datacenters() do
+      peer_counts = Enum.frequencies(peer_datacenters)
+
+      # `system.peers` does not include the local node, so 1 is added to the local
+      # datacenter count to account for it (same as in
+      # `check_replication_for_datacenter/3`).
+      local_dc_node_count = Map.get(peer_counts, local_datacenter, 0) + 1
+      topology = Map.put(peer_counts, local_datacenter, local_dc_node_count)
+
+      {:ok, topology}
+    end
+  end
+
+  defp fetch_peer_datacenters do
+    query =
+      from sp in "system.peers",
+        select: sp.data_center
+
+    opts = [consistency: Consistency.domain_model(:read)]
+
+    case Repo.fetch_all(query, opts) do
+      {:ok, datacenters} ->
+        {:ok, datacenters}
+
+      {:error, reason} ->
         {:error, reason}
     end
   end

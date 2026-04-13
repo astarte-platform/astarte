@@ -23,7 +23,7 @@ defmodule Astarte.RealmManagementWeb.HealthPlug do
   @behaviour Plug
   import Plug.Conn
 
-  alias Astarte.DataAccess.Health.Health
+  alias Astarte.RealmManagement.Health
 
   def init(_opts) do
     nil

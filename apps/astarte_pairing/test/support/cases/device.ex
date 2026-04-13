@@ -19,15 +19,16 @@
 defmodule Astarte.Cases.Device do
   @moduledoc false
   use ExUnit.CaseTemplate
+  use ExUnitProperties
 
   import Astarte.Helpers.Device
 
+  alias Astarte.Core.Generators.Interface, as: InterfaceGenerator
   alias Astarte.DataAccess.Interface, as: InterfaceQueries
   alias Astarte.DataAccess.Realms.Endpoint
   alias Astarte.DataAccess.Realms.Realm
   alias Astarte.DataAccess.Repo
 
-  alias Astarte.Generators.Interface, as: InterfaceGenerator
   alias Astarte.Helpers.Device, as: DeviceHelper
   alias Astarte.Pairing.CredentialsSecret
 
@@ -45,7 +46,7 @@ defmodule Astarte.Cases.Device do
     unconfirmed_credentials_secret2 = CredentialsSecret.generate()
     unregistered_credentials_secret = CredentialsSecret.generate()
 
-    interfaces = InterfaceGenerator.interface_list() |> Enum.at(0)
+    interfaces = interfaces()
 
     device = %{base_device(interfaces) | credentials_secret: credentials_secret}
 
@@ -126,6 +127,83 @@ defmodule Astarte.Cases.Device do
 
   defp base_device(interfaces),
     do: DeviceHelper.sample_device(interfaces) |> Map.put(:credentials_secret, nil)
+
+  defp interfaces do
+    interface_specs = [
+      fn acc -> new_interfaces(individual_datastream(:device), acc) end,
+      fn acc -> new_interfaces(individual_datastream(:server), acc) end,
+      fn acc -> new_interfaces(object_datastream(:device), acc) end,
+      fn acc -> new_interfaces(object_datastream(:server), acc) end,
+      fn acc -> new_interfaces(properties(:device), acc) end,
+      fn acc -> new_interfaces(properties(:server), acc) end,
+      fn acc -> new_interfaces(other(), acc) end
+    ]
+
+    Enum.reduce(interface_specs, [], fn gen_fn, acc_interfaces ->
+      Enum.concat(acc_interfaces, gen_fn.(acc_interfaces))
+    end)
+  end
+
+  defp individual_datastream(ownership) do
+    InterfaceGenerator.interface(
+      ownership: ownership,
+      aggregation: :individual,
+      type: :datastream
+    )
+  end
+
+  defp object_datastream(ownership) do
+    InterfaceGenerator.interface(ownership: ownership, aggregation: :object, type: :datastream)
+  end
+
+  defp properties(ownership) do
+    InterfaceGenerator.interface(ownership: ownership, type: :properties)
+  end
+
+  defp other, do: InterfaceGenerator.interface()
+
+  defp new_interfaces(interface_gen, previous_interfaces) do
+    installed_interfaces = previous_interfaces |> Enum.map(&{&1.name, &1.major_version})
+
+    installed_normalized_interfaces =
+      previous_interfaces |> Enum.map(&normalize_name(&1.name))
+
+    interface_gen =
+      interface_gen
+      |> filter(fn interface ->
+        name_and_major = {interface.name, interface.major_version}
+        normalized_name = normalize_name(interface.name)
+
+        name_and_major not in installed_interfaces and
+          normalized_name not in installed_normalized_interfaces
+      end)
+
+    interface_gen |> list_of(min_length: 1) |> Enum.at(0) |> cleanup_duplicates()
+  end
+
+  defp cleanup_duplicates(interfaces) do
+    interfaces
+    |> Enum.reduce([], fn new_interface, acc_interfaces ->
+      prev = acc_interfaces |> Enum.map(&{&1.name, &1.major_version})
+      prev_normalized = acc_interfaces |> Enum.map(&normalize_name(&1.name))
+      name_and_major = {new_interface.name, new_interface.major_version}
+      normalized_name = normalize_name(new_interface.name)
+
+      if name_and_major not in prev and normalized_name not in prev_normalized do
+        [new_interface | acc_interfaces]
+      else
+        acc_interfaces
+      end
+    end)
+    |> Enum.reverse()
+  end
+
+  defp normalize_name(interface_name) do
+    interface_name
+    |> String.replace("-", "")
+    |> String.replace(".", "")
+    |> String.downcase()
+  end
 
   defp update_interfaces_id(interfaces, interface_descriptors) do
     descriptors_by_key =

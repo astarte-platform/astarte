@@ -49,6 +49,8 @@ A Trigger Delivery Policy is composed of:
   seconds an event is retained in the event queue. When an event expires, it is discarded from the event queue, even if it has not been
   delivered. This is optional.
 
+- Prefetch Count: defines the maximum number of unacknowledged event messages a consumer can hold in its local memory at any given time: if the maximum number of in-flight messages is reached the delivery of new messages will be paused. It acts as a backpressure mechanism protecting the consumers from having to handle too many messages concurrently. It is an optional field. When not set, it defaults to 1 to ensure ordered processing of messages. A value higher than 1 will increase throughput, but lose the ordering of events. Refer to [RabbitMQ documentation of consumer prefetch count](https://www.rabbitmq.com/consumer-prefetch.html) for more information.
+
 ## Known issues
 
 At the moment, Trigger Delivery Policies in general do not provide a guarantee of in-order delivery of events.
@@ -56,6 +58,3 @@ Note that, since previous Astarte versions (i.e. < 1.1) did not provide a retry 
 not impact the expected behaviour if Trigger Delivery Policies are not used.
 
 - If the Astarte Trigger Engine service is replicated, events could be delivered out of order, as data from event queues are delivered to consumers in a round-robin fashion.
-- If the `retry` strategy is specified, in-order delivery cannot be guaranteed because a > 1 [consumer prefetch count](https://www.rabbitmq.com/consumer-prefetch.html) is being used.
-  This allows for higher throughput at the cost of consistency. In the future, the user will be allowed to choose between having an higher number of
-  events handled, but out of order, or ordered event handling at a lower rate.
