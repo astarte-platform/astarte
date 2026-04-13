@@ -248,6 +248,7 @@ services:
   # Scylla
   scylla:
     image: scylladb/scylla:2025.2.2
+    command: --smp 1 --memory 750M --disable-version-check --skip-wait-for-gossip-to-settle 0
     hostname: scylla
     restart: on-failure
     volumes:
