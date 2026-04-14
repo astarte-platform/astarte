@@ -9,10 +9,13 @@
 # move said applications out of the umbrella.
 import Config
 
-# Sample configuration:
-#
-#     config :logger, :console,
-#       level: :info,
-#       format: "$date $time [$level] $metadata$message\n",
-#       metadata: [:user_id]
-#
+for app <- [
+      :astarte_appengine_api,
+      :astarte_data_updater_plant,
+      :astarte_housekeeping,
+      :astarte_pairing,
+      :astarte_realm_management,
+      :astarte_trigger_engine
+    ] do
+  import_config "../apps/#{app}/config/config.exs"
+end
