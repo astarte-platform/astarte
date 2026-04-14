@@ -52,7 +52,7 @@ defmodule Astarte.TriggerEngine.Mixfile do
   defp astarte_required_modules(_) do
     [
       {:astarte_core, github: "astarte-platform/astarte_core", override: true},
-      {:astarte_generators, github: "astarte-platform/astarte_generators", only: [:dev, :test]}
+      {:astarte_generators, path: astarte_lib("astarte_generators"), only: [:dev, :test]}
     ]
   end
 
@@ -69,7 +69,7 @@ defmodule Astarte.TriggerEngine.Mixfile do
       {:bbmustache, "~> 1.9"},
       {:castore, "~> 1.0.0"},
       {:cyanide, "~> 2.0"},
-      {:httpoison, "~> 1.6"},
+      {:httpoison, "~> 2.2"},
       {:jason, "~> 1.2"},
       {:plug_cowboy, "~> 2.1"},
       {:telemetry, "~> 1.0"},
@@ -87,7 +87,7 @@ defmodule Astarte.TriggerEngine.Mixfile do
       {:current_rabbit_pool, "~> 1.1"},
       {:dialyxir, "~> 1.0", only: [:dev, :test], runtime: false},
       {:excoveralls, "~> 0.15", only: :test},
-      {:mox, "~> 0.5", only: :test},
+      {:mox, "~> 1.0", only: :test},
       {:mimic, "~> 1.11", only: :test},
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false}
     ]
