@@ -32,19 +32,11 @@ defmodule Astarte.RealmManagementWeb.InterfaceController do
   operation :index,
     summary: "Get interface list",
     description: """
-    Get a list of all installed interfaces. By default a list of interface names
-    is returned. The complete interface definitions list can be optionally retrieved using
-    the `detailed` option.
+    Get a list of all installed interface names.
     """,
     operation_id: "getInterfaceList",
     parameters: [
-      %Reference{"$ref": "#/components/parameters/Realm"},
-      detailed: [
-        in: :query,
-        description: "If true, interface definitions are returned instead of just names.",
-        required: false,
-        schema: %Schema{type: :boolean, default: false}
-      ]
+      %Reference{"$ref": "#/components/parameters/Realm"}
     ],
     responses: [
       ok: %Reference{"$ref": "#/components/responses/GetInterfaceList"},
