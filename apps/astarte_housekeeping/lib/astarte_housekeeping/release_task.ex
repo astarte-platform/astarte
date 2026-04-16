@@ -46,7 +46,8 @@ defmodule Astarte.Housekeeping.ReleaseTasks do
   defp do_ensure_migrated! do
     with :ok <- Queries.initialize_database(),
          :ok <- Migrator.run_astarte_keyspace_migrations(),
-         :ok <- Migrator.run_realms_migrations() do
+         :ok <- Migrator.run_realms_migrations(),
+         :ok <- Migrator.save_default_replication() do
       "Astarte database correctly initialized"
       |> Logger.info(tag: "astarte_db_initialization_finished")
 

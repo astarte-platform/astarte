@@ -31,6 +31,12 @@ defmodule Astarte.Housekeeping.Migrator do
 
   @query_timeout 60_000
 
+  def save_default_replication do
+    with {:ok, replication} <- Queries.get_keyspace_replication(Realm.astarte_keyspace_name()) do
+      Queries.save_keyspace_replication(replication)
+    end
+  end
+
   def run_astarte_keyspace_migrations do
     _ = Logger.info("Starting to migrate Astarte keyspace.", tag: "astarte_migration_started")
 
