@@ -625,6 +625,22 @@ describe('Trigger builder tests', () => {
         cy.get('#amqpRoutingKey').should('not.have.class', 'is-invalid');
       });
 
+      it('NewHttpHeaderModal: empty required Header field marks input invalid and clears on input', () => {
+        cy.get('#triggerActionType').select('HTTP request');
+        cy.contains('Add custom HTTP headers').click();
+        cy.get('.modal.show').within(() => {
+          cy.get('.modal-header').contains('Add Custom HTTP Header');
+          cy.get('button').contains('Add').click();
+          // The error must appear on the input
+          cy.get('#root_key').should('have.class', 'is-invalid');
+          cy.get('.modal-header').contains('Add Custom HTTP Header').should('exist');
+          // A valid value must clear the error on the next render cycle
+          cy.get('#root_key').type('X-Test');
+          cy.get('#root_key').should('not.have.class', 'is-invalid');
+          cy.get('button').contains('Cancel').click();
+        });
+      });
+
       it('can add, edit, remove HTTP headers', () => {
         cy.get('#triggerActionType').select('HTTP request');
 
@@ -684,6 +700,22 @@ describe('Trigger builder tests', () => {
             const trigger = JSON.parse(triggerSource);
             expect(trigger.action.http_static_headers || {}).to.deep.eq({});
           });
+      });
+
+      it('NewAmqpHeaderModal: empty required Header field marks input invalid and clears on input', () => {
+        cy.get('#triggerActionType').select('AMQP Message');
+        cy.contains('Add static AMQP headers').click();
+        cy.get('.modal.show').within(() => {
+          cy.get('.modal-header').contains('Add Custom AMQP Header');
+          cy.get('button').contains('Add').click();
+          // The error must appear on the input
+          cy.get('#root_key').should('have.class', 'is-invalid');
+          cy.get('.modal-header').contains('Add Custom AMQP Header').should('exist');
+          // A valid value must clear the error on the next render cycle
+          cy.get('#root_key').type('X-Test');
+          cy.get('#root_key').should('not.have.class', 'is-invalid');
+          cy.get('button').contains('Cancel').click();
+        });
       });
 
       it('can add, edit, remove AMQP headers', () => {

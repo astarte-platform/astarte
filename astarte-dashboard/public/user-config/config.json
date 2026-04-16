@@ -8,6 +8,6 @@
         }
     ],
     "ui": {
-        "hideSidebar": true
+        "hideSidebar": false
     }
 }
