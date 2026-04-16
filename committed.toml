@@ -45,6 +45,8 @@ allowed_scopes = [
   "rpc",
   "generators",
   "data_access_generators",
+  "test_suite",
+  "ts",
   # tools
   "e2e",
   "import",
