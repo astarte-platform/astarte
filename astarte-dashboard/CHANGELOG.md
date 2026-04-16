@@ -4,6 +4,9 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## [1.3.0-rc.3] - 2026-04-16
+### Fixed
+- Eliminate `unsafe-eval` requirement in Content Security Policy (CSP) by replacing `ajv` with `@cfworker/json-schema` for JSON Schema validation ([#536](https://github.com/astarte-platform/astarte-dashboard/pull/536)).
 ## [1.3.0-rc.2] - 2026-03-27
 
 ## [1.3.0-rc.1] - 2026-02-17
