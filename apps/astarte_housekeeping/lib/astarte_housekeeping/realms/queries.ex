@@ -1166,6 +1166,50 @@ defmodule Astarte.Housekeeping.Realms.Queries do
     end
   end
 
+  @doc """
+  Returns the replication strategy and factor for a given keyspace.
+  Returns {:ok, %{strategy: :network_topology, dc_factors: %{"dc1" => 3}}}
+  or {:ok, %{strategy: :simple, factor: 3}}
+  """
+  def get_keyspace_replication(keyspace_name, opts \\ []) do
+    query =
+      from k in "system_schema.keyspaces",
+        where: k.keyspace_name == ^keyspace_name,
+        select: k.replication
+
+    case Repo.safe_fetch_one(query, opts) do
+      {:ok, %{"class" => class} = replication} ->
+        parse_replication(class, replication)
+
+      {:error, :not_found} ->
+        {:error, :keyspace_not_found}
+
+      {:error, reason} ->
+        Logger.error("Failed to fetch keyspace replication: #{inspect(reason)}")
+        {:error, reason}
+    end
+  end
+
+  defp parse_replication("org.apache.cassandra.locator.NetworkTopologyStrategy", map) do
+    # Filter out the 'class' key to leave only the DC names and their factors
+    dc_factors =
+      map
+      |> Map.delete("class")
+      |> Map.new(fn {dc, factor} -> {dc, String.to_integer(factor)} end)
+
+    {:ok, %{strategy: :network_topology, dc_factors: dc_factors}}
+  end
+
+  defp parse_replication("org.apache.cassandra.locator.SimpleStrategy", %{
+         "replication_factor" => rf
+       }) do
+    {:ok, %{strategy: :simple, factor: String.to_integer(rf)}}
+  end
+
+  defp parse_replication(unknown_class, _map) do
+    {:error, {:unknown_strategy, unknown_class}}
+  end
+
   defp create_astarte_keyspace do
     keyspace = Realm.astarte_keyspace_name()
     consistency = Consistency.domain_model(:write)

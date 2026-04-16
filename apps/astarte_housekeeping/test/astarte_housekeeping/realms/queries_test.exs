@@ -573,4 +573,72 @@ defmodule Astarte.Housekeeping.Realms.QueriesTest do
                })
     end
   end
+
+  describe "get_keyspace_replication/2" do
+    test "returns simple strategy replication factor" do
+      keyspace = "test_simple_ks"
+
+      mock_replication = %{
+        "class" => "org.apache.cassandra.locator.SimpleStrategy",
+        "replication_factor" => "3"
+      }
+
+      expect(Repo, :safe_fetch_one, fn _query, _opts ->
+        {:ok, mock_replication}
+      end)
+
+      assert {:ok, %{strategy: :simple, factor: 3}} =
+               Queries.get_keyspace_replication(keyspace)
+    end
+
+    test "returns network topology strategy factors" do
+      keyspace = "test_network_ks"
+
+      mock_replication = %{
+        "class" => "org.apache.cassandra.locator.NetworkTopologyStrategy",
+        "dc1" => "3",
+        "dc2" => "2"
+      }
+
+      expect(Repo, :safe_fetch_one, fn _query, _opts ->
+        {:ok, mock_replication}
+      end)
+
+      assert {:ok, %{strategy: :network_topology, dc_factors: factors}} =
+               Queries.get_keyspace_replication(keyspace)
+
+      assert factors == %{"dc1" => 3, "dc2" => 2}
+    end
+
+    test "returns error for non-existent keyspace" do
+      expect(Repo, :safe_fetch_one, fn _query, _opts ->
+        {:error, :not_found}
+      end)
+
+      assert {:error, :keyspace_not_found} =
+               Queries.get_keyspace_replication("missing_ks")
+    end
+
+    test "returns error for unknown replication strategy" do
+      mock_replication = %{
+        "class" => "org.apache.cassandra.locator.LocalStrategy"
+      }
+
+      expect(Repo, :safe_fetch_one, fn _query, _opts ->
+        {:ok, mock_replication}
+      end)
+
+      assert {:error, {:unknown_strategy, "org.apache.cassandra.locator.LocalStrategy"}} =
+               Queries.get_keyspace_replication("local_ks")
+    end
+
+    test "handles database error gracefully" do
+      expect(Repo, :safe_fetch_one, fn _query, _opts ->
+        {:error, :timeout}
+      end)
+
+      assert {:error, :timeout} =
+               Queries.get_keyspace_replication("any_ks")
+    end
+  end
 end
