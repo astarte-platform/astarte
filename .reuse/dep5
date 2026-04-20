@@ -1,0 +1,65 @@
+Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
+Upstream-Name: astarte
+Upstream-Contact: SECO Mind Srl <info@secomind.com>
+Source: https://github.com/astarte-platform/astarte
+
+Files: apps/**
+Copyright: 2017-2026 SECO Mind Srl
+License: Apache-2.0
+
+Files: libs/**
+Copyright: 2017-2026 SECO Mind Srl
+License: Apache-2.0
+
+Files: tools/**
+Copyright: 2017-2026 SECO Mind Srl
+License: Apache-2.0
+
+Files: doc/**
+Copyright: 2017-2026 SECO Mind Srl
+License: CC-BY-4.0
+
+Files: examples/**
+Copyright: 2017-2026 SECO Mind Srl
+License: Apache-2.0
+
+Files: standard-interfaces/**
+Copyright: 2017-2026 SECO Mind Srl
+License: Apache-2.0
+
+Files: compose/**
+Copyright: 2017-2026 SECO Mind Srl
+License: Apache-2.0
+
+Files:
+ .adr-dir
+ .credo.exs
+ .dockerignore
+ .dprint.json
+ .env
+ .gitignore
+ .tool-versions
+ .typos.toml
+ AUTHORS.md
+ CHANGELOG.md
+ Dockerfile
+ README.md
+ docker-compose.dev.yml
+ docker-compose.yml
+ flake.lock
+ flake.nix
+ renovate.json
+Copyright: 2017-2026 SECO Mind Srl
+License: Apache-2.0
+
+Files: .github/**
+Copyright: 2017-2026 SECO Mind Srl
+License: Apache-2.0
+
+Files: .github/pull_request_template.md
+Copyright: 2022 SECO Mind Srl
+License: CC0-1.0
+
+Files: apps/astarte_trigger_engine/coveralls.json
+Copyright: 2025 SECO Mind Srl
+License: CC0-1.0
