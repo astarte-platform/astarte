@@ -26,3 +26,6 @@ ba = "ba"
 
 [default.extend-identifiers]
 OTPs = "OTPs"
+
+[files]
+extend-exclude = ["astarte-dashboard/**"]

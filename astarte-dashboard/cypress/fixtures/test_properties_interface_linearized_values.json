@@ -1,0 +1,7 @@
+[
+  { "endpoint": "/bathroom/heating/active", "value": false, "type": "boolean" },
+  { "endpoint": "/bedroom/heating/active", "value": true, "type": "boolean" },
+  { "endpoint": "/kitchen/heating/active", "value": true, "type": "boolean" },
+  { "endpoint": "/lights/bath", "value": [false, false], "type": "booleanarray" },
+  { "endpoint": "/lights/kitchen", "value": false, "type": "boolean" }
+]

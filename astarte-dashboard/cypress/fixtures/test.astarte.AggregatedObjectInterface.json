@@ -1,0 +1,82 @@
+{
+  "data": {
+    "interface_name": "test.astarte.AggregatedObjectInterface",
+    "version_major": 1,
+    "version_minor": 0,
+    "type": "datastream",
+    "ownership": "device",
+    "aggregation": "object",
+    "mappings": [
+      {
+        "endpoint": "/sensors/%{sensor_id}/value/binaryblob",
+        "type": "binaryblob",
+        "explicit_timestamp": true
+      },
+      {
+        "endpoint": "/sensors/%{sensor_id}/value/boolean",
+        "type": "boolean",
+        "explicit_timestamp": true
+      },
+      {
+        "endpoint": "/sensors/%{sensor_id}/value/datetime",
+        "type": "datetime",
+        "explicit_timestamp": true
+      },
+      {
+        "endpoint": "/sensors/%{sensor_id}/value/double",
+        "type": "double",
+        "explicit_timestamp": true
+      },
+      {
+        "endpoint": "/sensors/%{sensor_id}/value/integer",
+        "type": "integer",
+        "explicit_timestamp": true
+      },
+      {
+        "endpoint": "/sensors/%{sensor_id}/value/longinteger",
+        "type": "longinteger",
+        "explicit_timestamp": true
+      },
+      {
+        "endpoint": "/sensors/%{sensor_id}/value/string",
+        "type": "string",
+        "explicit_timestamp": true
+      },
+      {
+        "endpoint": "/sensors/%{sensor_id}/value/binaryblobarray",
+        "type": "binaryblobarray",
+        "explicit_timestamp": true
+      },
+      {
+        "endpoint": "/sensors/%{sensor_id}/value/booleanarray",
+        "type": "booleanarray",
+        "explicit_timestamp": true
+      },
+      {
+        "endpoint": "/sensors/%{sensor_id}/value/datetimearray",
+        "type": "datetimearray",
+        "explicit_timestamp": true
+      },
+      {
+        "endpoint": "/sensors/%{sensor_id}/value/doublearray",
+        "type": "doublearray",
+        "explicit_timestamp": true
+      },
+      {
+        "endpoint": "/sensors/%{sensor_id}/value/integerarray",
+        "type": "integerarray",
+        "explicit_timestamp": true
+      },
+      {
+        "endpoint": "/sensors/%{sensor_id}/value/longintegerarray",
+        "type": "longintegerarray",
+        "explicit_timestamp": true
+      },
+      {
+        "endpoint": "/sensors/%{sensor_id}/value/stringarray",
+        "type": "stringarray",
+        "explicit_timestamp": true
+      }
+    ]
+  }
+}

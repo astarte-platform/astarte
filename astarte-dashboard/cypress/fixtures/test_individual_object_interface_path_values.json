@@ -1,0 +1,14 @@
+{
+  "data": [
+    {
+      "reception_timestamp": "2020-10-14T12:27:02.331Z",
+      "timestamp": "2020-10-14T12:27:02.331Z",
+      "value": 81.0
+    },
+    {
+      "reception_timestamp": "2020-10-14T12:27:13.200Z",
+      "timestamp": "2020-10-14T12:27:13.200Z",
+      "value": 82.0
+    }
+  ]
+}

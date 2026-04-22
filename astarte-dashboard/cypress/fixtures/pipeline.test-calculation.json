@@ -1,0 +1,8 @@
+{
+  "data": {
+    "description": "",
+    "name": "test-calculation",
+    "schema": {},
+    "source": "http_source\n| http_sink"
+  }
+}

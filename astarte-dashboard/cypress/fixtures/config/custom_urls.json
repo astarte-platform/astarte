@@ -1,0 +1,10 @@
+{
+  "astarte_api_url": "https://api.example.com",
+  "appengine_api_url": "https://api.example.com/custom-appengine/",
+  "realm_management_api_url": "https://api.example.com/custom-realmmanagement/",
+  "pairing_api_url": "https://api.example.com/custom-pairing/",
+  "flow_api_url": "https://api.example.com/custom-flow/",
+  "auth": [{ "type": "token" }],
+  "default_auth": "token",
+  "enable_flow_preview": true
+}
