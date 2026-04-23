@@ -1,0 +1,22 @@
+language: node_js
+node_js:
+  - 20
+
+script:
+  - npm run check-format
+  - npm run check-lint
+  - npm run check-types
+  - npm run build
+
+deploy:
+  provider: pages
+  email: astarte-machine@ispirata.com
+  name: Astarte Bot
+  local_dir: build/
+  repo: astarte-platform/online-interface-builder
+  fqdn: interfaces-editor.astarte-platform.org
+  skip_cleanup: true
+  github_token: $GITHUB_TOKEN
+  keep_history: true
+  on:
+    branch: master

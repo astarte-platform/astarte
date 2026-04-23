@@ -1,0 +1,8 @@
+{
+  "data": {
+    "description": "",
+    "name": "room-occupation",
+    "schema": {},
+    "source": "astarte_devices_source\n    .realm(${$.config.realm})\n    .amqp_exchange(${$.config.amqp_exchange})\n    .target_devices(${$.config.devices})\n| filter\n    .script(\"\"\"\n            return string.find(message.key, \"com.astarte%-platform.examples.AirSensor\") ~= nil;\n            \"\"\")\n| container\n    .image(\"docker-registry.com/occupancy-compute:latest\")\n| virtual_device_pool\n    .pairing_url(\"https://api.domain.com/pairing/v1\")\n    .realms([{realm: ${$.config.realm}, jwt: ${$.config.pairing_jwt}}])\n    .interfaces(${$.config.interfaces})"
+  }
+}

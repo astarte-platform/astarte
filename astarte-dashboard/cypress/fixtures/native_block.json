@@ -1,0 +1,15 @@
+{
+  "data": {
+    "beam_module": "Elixir.Astarte.Flow.Blocks.JsonMapper",
+    "name": "to_json",
+    "schema": {
+      "$id": "https://astarte-platform.org/specs/astarte_flow/blocks/to_json.json",
+      "$schema": "http://json-schema.org/draft-04/schema#",
+      "additionalProperties": false,
+      "properties": {},
+      "title": "ToJSONOptions",
+      "type": "object"
+    },
+    "type": "producer_consumer"
+  }
+}

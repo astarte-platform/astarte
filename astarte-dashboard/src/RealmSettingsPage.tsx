@@ -1,0 +1,198 @@
+/*
+   This file is part of Astarte.
+
+   Copyright 2020 Ispirata Srl
+
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+*/
+
+import React, { useCallback, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Button, Container, Form, ListGroup, Spinner, Stack } from 'react-bootstrap';
+
+import Empty from './components/Empty';
+import ConfirmModal from './components/modals/Confirm';
+import SingleCardPage from './ui/SingleCardPage';
+import { AlertsBanner, useAlerts } from './AlertManager';
+import { useAstarte } from './AstarteManager';
+
+import WaitForData from './components/WaitForData';
+import useFetch from './hooks/useFetch';
+
+type RealmSettings = {
+  publicKey: string;
+};
+
+interface RealmSettingsFormProps {
+  initialValues: RealmSettings;
+  onSubmit: (values: RealmSettings) => void;
+  isUpdatingSettings: boolean;
+}
+
+const RealmSettingsForm = ({
+  initialValues,
+  onSubmit,
+  isUpdatingSettings,
+}: RealmSettingsFormProps) => {
+  const [values, setValues] = useState(initialValues);
+  const canSubmit = values.publicKey.trim() !== '' && values.publicKey !== initialValues.publicKey;
+  const astarte = useAstarte();
+
+  return (
+    <Form>
+      <Stack gap={3}>
+        <Form.Group controlId="public-key">
+          <Form.Label>Public key</Form.Label>
+          <Form.Control
+            as="textarea"
+            className="font-monospace"
+            rows={16}
+            value={values.publicKey}
+            onChange={(e) => setValues({ ...values, publicKey: e.target.value })}
+          />
+        </Form.Group>
+        <div className="d-flex flex-column flex-md-row">
+          <Button
+            variant="danger"
+            disabled={!canSubmit || isUpdatingSettings}
+            hidden={!astarte.token?.can('realmManagement', 'PUT', '/config/auth')}
+            onClick={() => onSubmit(values)}
+          >
+            {isUpdatingSettings && (
+              <Spinner className="me-2" size="sm" animation="border" role="status" />
+            )}
+            Change
+          </Button>
+        </div>
+      </Stack>
+    </Form>
+  );
+};
+
+interface ErrorRowProps {
+  onRetry: () => void;
+  errorMessage?: string;
+}
+
+const ErrorRow = ({ onRetry, errorMessage }: ErrorRowProps): React.ReactElement => (
+  <ListGroup.Item>
+    <Empty
+      title={
+        errorMessage?.includes('401') || errorMessage?.includes('403')
+          ? "The JWT token is invalid or does not match the realm's public key."
+          : "Couldn't load realm settings"
+      }
+      onRetry={onRetry}
+    />
+  </ListGroup.Item>
+);
+
+export default (): React.ReactElement => {
+  const [draftRealmSettings, setDraftRealmSettings] = useState<RealmSettings | null>(null);
+  const [isModalVisible, setIsModalVisible] = useState(false);
+  const [isUpdatingSettings, setIsUpdatingSettings] = useState(false);
+  const [formAlerts, formAlertsController] = useAlerts();
+  const astarte = useAstarte();
+  const navigate = useNavigate();
+
+  const authConfigFetcher = useFetch(astarte.client.getConfigAuth);
+  const deviceRegistrationLimitFetcher = useFetch(
+    astarte.token?.can('realmManagement', 'GET', '/config/device_registration_limit')
+      ? astarte.client.getDeviceRegistrationLimit
+      : async () => null,
+  );
+
+  const showModal = useCallback(() => setIsModalVisible(true), [setIsModalVisible]);
+
+  const dismissModal = useCallback(() => setIsModalVisible(false), [setIsModalVisible]);
+
+  const handleFormSubmit = useCallback(
+    (realmSettings: RealmSettings) => {
+      setDraftRealmSettings(realmSettings);
+      showModal();
+    },
+    [setDraftRealmSettings, showModal],
+  );
+
+  const applyNewSettings = useCallback(() => {
+    if (draftRealmSettings == null) {
+      return;
+    }
+    setIsUpdatingSettings(true);
+    astarte.client
+      .updateConfigAuth({ publicKey: draftRealmSettings.publicKey })
+      .then(() => {
+        navigate('/logout');
+      })
+      .catch((err) => {
+        setIsUpdatingSettings(false);
+        dismissModal();
+        formAlertsController.showError(err.message);
+      });
+  }, [
+    setIsUpdatingSettings,
+    astarte.client,
+    draftRealmSettings,
+    navigate,
+    dismissModal,
+    formAlertsController,
+  ]);
+
+  return (
+    <SingleCardPage title="Realm Settings">
+      <AlertsBanner alerts={formAlerts} />
+      <Form.Group controlId="device-registration-limit">
+        <Form.Label>Device registration limit</Form.Label>
+        <Form.Control value={deviceRegistrationLimitFetcher.value ?? 'No limit'} readOnly />
+      </Form.Group>
+      <WaitForData
+        data={authConfigFetcher.value}
+        status={authConfigFetcher.status}
+        fallback={
+          <Container fluid className="text-center">
+            <Spinner animation="border" role="status" />
+          </Container>
+        }
+        errorFallback={
+          <ErrorRow
+            onRetry={authConfigFetcher.refresh}
+            errorMessage={authConfigFetcher.error?.message}
+          />
+        }
+      >
+        {({ publicKey }) => (
+          <RealmSettingsForm
+            initialValues={{ publicKey }}
+            onSubmit={handleFormSubmit}
+            isUpdatingSettings={isUpdatingSettings}
+          />
+        )}
+      </WaitForData>
+      {isModalVisible && (
+        <ConfirmModal
+          title="Confirm Public Key Update"
+          confirmLabel="Update settings"
+          confirmVariant="danger"
+          onCancel={dismissModal}
+          onConfirm={applyNewSettings}
+          isConfirming={isUpdatingSettings}
+        >
+          <p>
+            Realm public key will be changed, users will not be able to make further API calls using
+            their current auth token. Confirm?
+          </p>
+        </ConfirmModal>
+      )}
+    </SingleCardPage>
+  );
+};
