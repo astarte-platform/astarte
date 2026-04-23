@@ -1,0 +1,13 @@
+{
+  "astarte_api_url": "",
+  "default_auth": "",
+  "enable_flow_preview": false,
+  "auth": [
+    {
+      "type": ""
+    }
+  ],
+  "ui": {
+    "hideSidebar": false
+  }
+}
