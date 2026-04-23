@@ -62,8 +62,7 @@ defmodule Astarte.Pairing.Mixfile do
   defp astarte_required_modules(_) do
     [
       {:astarte_core, github: "astarte-platform/astarte_core"},
-      {:astarte_realm_management,
-       path: "../astarte_realm_management", only: :test, runtime: false}
+      {:astarte_realm_management, in_umbrella: true, only: :test, runtime: false}
     ]
   end
 
@@ -84,7 +83,7 @@ defmodule Astarte.Pairing.Mixfile do
       {:guardian, "~> 2.3.2"},
       {:remote_ip, "~> 1.0"},
       {:excoveralls, "~> 0.15", only: :test},
-      {:mox, "~> 0.5", only: :test},
+      {:mox, "~> 1.0", only: :test},
       {:pretty_log, "~> 0.1"},
       {:plug_logger_with_meta, "~> 0.1"},
       {:dialyxir, "~> 1.0", only: [:dev, :ci, :test], runtime: false},
