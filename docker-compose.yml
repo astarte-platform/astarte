@@ -1,6 +1,6 @@
 services:
   astarte-housekeeping:
-    image: astarte/astarte_housekeeping:1.2-snapshot
+    image: astarte/astarte_housekeeping:1.2.2
     build:
       context: apps/astarte_housekeeping
     env_file:
@@ -11,7 +11,7 @@ services:
       - "scylla"
 
   astarte-housekeeping-api:
-    image: astarte/astarte_housekeeping_api:1.2-snapshot
+    image: astarte/astarte_housekeeping_api:1.2.2
     build:
       context: apps/astarte_housekeeping_api
     env_file:
@@ -36,7 +36,7 @@ services:
       - "traefik.http.services.astarte-housekeeping-api.loadbalancer.server.port=4001"
 
   astarte-realm-management:
-    image: astarte/astarte_realm_management:1.2-snapshot
+    image: astarte/astarte_realm_management:1.2.2
     build:
       context: apps/astarte_realm_management
     env_file:
@@ -47,7 +47,7 @@ services:
       - "scylla"
 
   astarte-realm-management-api:
-    image: astarte/astarte_realm_management_api:1.2-snapshot
+    image: astarte/astarte_realm_management_api:1.2.2
     build:
       context: apps/astarte_realm_management_api
     env_file:
@@ -68,7 +68,7 @@ services:
       - "traefik.http.services.astarte-realm-management-api.loadbalancer.server.port=4000"
 
   astarte-pairing:
-    image: astarte/astarte_pairing:1.2-snapshot
+    image: astarte/astarte_pairing:1.2.2
     build:
       context: apps/astarte_pairing
     env_file:
@@ -81,7 +81,7 @@ services:
       - "scylla"
 
   astarte-pairing-api:
-    image: astarte/astarte_pairing_api:1.2-snapshot
+    image: astarte/astarte_pairing_api:1.2.2
     build:
       context: apps/astarte_pairing_api
     env_file:
@@ -102,7 +102,7 @@ services:
       - "traefik.http.services.astarte-pairing-api.loadbalancer.server.port=4003"
 
   astarte-appengine-api:
-    image: astarte/astarte_appengine_api:1.2-snapshot
+    image: astarte/astarte_appengine_api:1.2.2
     build:
       context: apps/astarte_appengine_api
     env_file:
@@ -126,7 +126,7 @@ services:
       - "traefik.http.services.astarte-appengine-api.loadbalancer.server.port=4002"
 
   astarte-data-updater-plant:
-    image: astarte/astarte_data_updater_plant:1.2-snapshot
+    image: astarte/astarte_data_updater_plant:1.2.2
     build:
       context: apps/astarte_data_updater_plant
     env_file:
@@ -144,7 +144,7 @@ services:
       - "scylla"
 
   astarte-trigger-engine:
-    image: astarte/astarte_trigger_engine:1.2-snapshot
+    image: astarte/astarte_trigger_engine:1.2.2
     build:
       context: apps/astarte_trigger_engine
     env_file:
@@ -157,7 +157,7 @@ services:
       - "scylla"
 
   astarte-dashboard:
-    image: astarte/astarte-dashboard:1.2-snapshot
+    image: astarte/astarte-dashboard:1.2.2
     volumes:
       - ./compose/astarte-dashboard/config.json:/usr/share/nginx/html/user-config/config.json:z
     depends_on:
@@ -245,7 +245,7 @@ services:
 
   # VerneMQ
   vernemq:
-    image: astarte/vernemq:1.2-snapshot
+    image: astarte/vernemq:1.2.2
     env_file:
       - ./.env
     environment:
