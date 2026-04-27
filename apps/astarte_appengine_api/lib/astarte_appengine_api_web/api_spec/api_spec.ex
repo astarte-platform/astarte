@@ -100,6 +100,10 @@ defmodule Astarte.AppEngine.APIWeb.ApiSpec do
         %Tag{
           name: "stats",
           description: "Retrieve stats (e.g. total number of devices, connected devices, etc)."
+        },
+        %Tag{
+          name: "version",
+          description: "Retrieve version information of the API."
         }
       ]
     }

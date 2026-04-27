@@ -52,7 +52,7 @@ defmodule Astarte.AppEngine.APIWeb.Router do
   scope "/v1/:realm_name", Astarte.AppEngine.APIWeb do
     pipe_through :realm_api
 
-    get "/version", VersionController, :show
+    get "/version", VersionController, :show_with_realm
 
     scope "/stats" do
       get "/devices", StatsController, :show_devices_stats
@@ -100,14 +100,15 @@ defmodule Astarte.AppEngine.APIWeb.Router do
       scope "/:device_alias/interfaces" do
         pipe_through :interface_value_api
 
-        resources "/",
-                  InterfaceValuesByDeviceAliasController,
-                  only: [:index, :show],
-                  param: "interface"
+        get "/", InterfaceValuesByDeviceAliasController, :index
+
+        get "/:interface",
+            InterfaceValuesByDeviceAliasController,
+            :show_values
 
         get "/:interface/*path_tokens",
             InterfaceValuesByDeviceAliasController,
-            :show
+            :show_value
 
         put "/:interface/*path_tokens",
             InterfaceValuesByDeviceAliasController,
@@ -150,11 +151,11 @@ defmodule Astarte.AppEngine.APIWeb.Router do
 
             get "/:interface",
                 InterfaceValuesByGroupController,
-                :show
+                :show_values
 
             get "/:interface/*path_tokens",
                 InterfaceValuesByGroupController,
-                :show
+                :show_value
 
             put "/:interface/*path_tokens",
                 InterfaceValuesByGroupController,

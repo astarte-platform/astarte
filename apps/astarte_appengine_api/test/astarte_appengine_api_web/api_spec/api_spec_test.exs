@@ -23,24 +23,8 @@ defmodule Astarte.AppEngine.APIWeb.ApiSpecTest do
 
   alias Astarte.AppEngine.APIWeb.{
     ApiSpec,
-    DeviceStatusByAliasController,
-    DeviceStatusByGroupController,
-    DeviceStatusController,
-    GroupsController,
-    InterfaceValuesController,
-    Router,
-    StatsController
+    Router
   }
-
-  # TODO: Remove this once we have all the routes documented
-  @documented_controllers [
-    DeviceStatusByAliasController,
-    DeviceStatusByGroupController,
-    DeviceStatusController,
-    GroupsController,
-    InterfaceValuesController,
-    StatsController
-  ]
 
   test "spec can be generated" do
     spec = ApiSpec.spec()
@@ -63,8 +47,9 @@ defmodule Astarte.AppEngine.APIWeb.ApiSpecTest do
   test "all documented routes are present in the OpenAPI spec" do
     expected_operations =
       Router.__routes__()
-      |> Enum.filter(&documented_route?/1)
       |> MapSet.new(&normalize_route/1)
+      |> Enum.reject(&ignore_swagger_route/1)
+      |> MapSet.new()
 
     actual_operations =
       ApiSpec.spec().paths
@@ -84,8 +69,8 @@ defmodule Astarte.AppEngine.APIWeb.ApiSpecTest do
     String.replace(path, "/*path_tokens", "/{path}")
   end
 
-  defp documented_route?(route) do
-    route.plug in @documented_controllers
+  defp ignore_swagger_route({path, _verb}) do
+    String.starts_with?(path, "/swagger")
   end
 
   defp normalize_route(route) do

@@ -76,7 +76,7 @@ defmodule Astarte.AppEngine.APIWeb.InterfaceValuesByDeviceAliasControllerTest do
           conn,
           interface_values_by_device_alias_path(
             conn,
-            :show,
+            :show_values,
             "autotestrealm",
             "device_a",
             "com.test.LCDMonitor"
@@ -122,6 +122,23 @@ defmodule Astarte.AppEngine.APIWeb.InterfaceValuesByDeviceAliasControllerTest do
         )
 
       assert json_response(object_conn, 200)["data"] == expected_reply
+    end
+
+    test "get interface value by path", %{conn: conn} do
+      conn =
+        get(
+          conn,
+          interface_values_by_device_alias_path(
+            conn,
+            :show_value,
+            "autotestrealm",
+            "device_a",
+            "com.test.LCDMonitor",
+            ["time", "to"]
+          )
+        )
+
+      assert json_response(conn, 200)["data"] == 20
     end
   end
 

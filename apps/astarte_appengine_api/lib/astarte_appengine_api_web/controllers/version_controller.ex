@@ -18,10 +18,59 @@
 
 defmodule Astarte.AppEngine.APIWeb.VersionController do
   use Astarte.AppEngine.APIWeb, :controller
+  use OpenApiSpex.ControllerSpecs
+
+  alias OpenApiSpex.Schema
 
   @version Mix.Project.config()[:version]
 
+  tags ["version"]
+
+  operation :show,
+    summary: "Retrieve API version",
+    description:
+      "Return the AppEngine API version. This endpoint is available at {base_url}/version (without /v1).",
+    operation_id: "getVersion",
+    responses: [
+      ok:
+        {"Success", "application/json",
+         %Schema{
+           type: :object,
+           properties: %{
+             data: %Schema{type: :string, example: "1.3.0"}
+           }
+         }}
+    ]
+
+  operation :show_with_realm,
+    summary: "Retrieve API version",
+    description: "Return the AppEngine API version.",
+    operation_id: "getVersionWithRealm",
+    security: [%{"JWT" => []}],
+    parameters: [
+      realm_name: [
+        in: :path,
+        description: "Name of the realm.",
+        type: :string,
+        required: true
+      ]
+    ],
+    responses: [
+      ok:
+        {"Success", "application/json",
+         %Schema{
+           type: :object,
+           properties: %{
+             data: %Schema{type: :string, example: "1.3.0"}
+           }
+         }}
+    ]
+
   def show(conn, _params) do
+    render(conn, "show.json", %{version: @version})
+  end
+
+  def show_with_realm(conn, _params) do
     render(conn, "show.json", %{version: @version})
   end
 end
