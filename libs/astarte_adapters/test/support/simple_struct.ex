@@ -18,6 +18,7 @@
 
 defmodule Astarte.Adapters.SimpleStruct do
   @moduledoc false
+
   @enforce_keys [:id, :name]
   @type t :: %__MODULE__{
           id: integer() | nil,
