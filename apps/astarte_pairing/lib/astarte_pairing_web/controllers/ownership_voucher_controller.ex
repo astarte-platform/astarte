@@ -18,12 +18,61 @@
 
 defmodule Astarte.PairingWeb.OwnershipVoucherController do
   use Astarte.PairingWeb, :controller
+  use OpenApiSpex.ControllerSpecs
 
   alias Astarte.Pairing.FDO
   alias Astarte.Pairing.FDO.OwnershipVoucher
   alias Astarte.Pairing.FDO.OwnershipVoucher.CreateRequest
+  alias OpenApiSpex.Schema
 
   action_fallback Astarte.PairingWeb.FallbackController
+
+  tags ["fdo"]
+
+  operation :create,
+    summary: "Create an ownership voucher",
+    description: "Create an ownership voucher for a device and claim it.",
+    operation_id: "createOwnershipVoucher",
+    security: [%{"JWT" => []}],
+    parameters: [
+      realm_name: [
+        in: :path,
+        description: "Name of the realm.",
+        type: :string,
+        required: true
+      ]
+    ],
+    request_body:
+      {"Ownership Voucher Creation Request", "application/json",
+       %Schema{
+         type: :object,
+         properties: %{
+           data: %Schema{
+             type: :object,
+             properties: %{
+               ownership_voucher: %Schema{
+                 type: :string,
+                 description:
+                   "The ownership voucher. It should be a base64-encoded string containing the CBOR representation of the ownership voucher."
+               },
+               private_key: %Schema{
+                 type: :string,
+                 description:
+                   "The private key in PEM format corresponding to the public key used in the ownership voucher."
+               }
+             },
+             required: [:ownership_voucher, :private_key]
+           }
+         },
+         required: [:data]
+       }},
+    responses: [
+      ok: {"Ownership voucher created successfully", nil, nil},
+      bad_request: {"Invalid request body", nil, nil},
+      unauthorized: {"Unauthorized", nil, nil},
+      not_found: {"Realm not found", nil, nil},
+      internal_server_error: {"Internal server error", nil, nil}
+    ]
 
   def create(conn, %{
         "data" => data,

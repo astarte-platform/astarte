@@ -76,7 +76,7 @@ defmodule Astarte.PairingWeb.Router do
   scope "/v1/:realm_name", Astarte.PairingWeb do
     pipe_through :realm_api
 
-    get "/version", VersionController, :show
+    get "/version", VersionController, :show_with_realm
     get "/health", HealthController, :show
 
     scope "/ownership" do

@@ -18,8 +18,28 @@
 
 defmodule Astarte.PairingWeb.HealthController do
   use Astarte.PairingWeb, :controller
+  use OpenApiSpex.ControllerSpecs
 
   alias Astarte.Pairing.Health
+
+  tags ["health"]
+
+  operation :show,
+    summary: "Retrieve API health",
+    description: "Return the health status of the Pairing API.",
+    operation_id: "getHealth",
+    parameters: [
+      realm_name: [
+        in: :path,
+        description: "Name of the realm.",
+        type: :string,
+        required: true
+      ]
+    ],
+    responses: [
+      ok: {"Success", nil, nil},
+      service_unavailable: {"Service unavailable", nil, nil}
+    ]
 
   def show(conn, _params) do
     send_health(conn)

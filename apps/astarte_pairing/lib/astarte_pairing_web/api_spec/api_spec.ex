@@ -123,6 +123,17 @@ defmodule Astarte.PairingWeb.ApiSpec do
             For accessing the device API a valid Credentials Secret must be passed in all the queries in the 'Authorization' header.
             The following syntax must be used in the 'Authorization' header : Bearer xxxxxxxxxxxxxxxxxxxxx
             """
+          },
+          "FDOSessionToken" => %SecurityScheme{
+            type: "apiKey",
+            name: "Authorization",
+            in: "header",
+            description: """
+            FDO session token. Must be provided in the Authorization header as a bearer token.
+            The token is validated and decoded to extract the device GUID and nonce.
+            Example: Authorization: Bearer <FDO-session-token>.
+            Token must match the session and nonce for the device in the current realm.
+            """
           }
         }
       },
@@ -142,6 +153,10 @@ defmodule Astarte.PairingWeb.ApiSpec do
             description: "Find out more",
             url: "https://docs.astarte-platform.org/astarte/1.0/050-pairing_mechanism.html"
           }
+        },
+        %Tag{
+          name: "fdo",
+          description: "FDO onboarding API"
         }
       ]
     }
