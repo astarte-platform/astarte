@@ -325,7 +325,7 @@ export default ({ isReadOnly, initialData, onChange }: Props): React.ReactElemen
             }
             setIsAddingHandler(false);
           }}
-          isReadOnly
+          isReadOnly={isReadOnly}
           showModal={isAddingHandler}
         />
       )}
@@ -342,7 +342,7 @@ export default ({ isReadOnly, initialData, onChange }: Props): React.ReactElemen
             }
             setHandlerToEditIndex(null);
           }}
-          isReadOnly
+          isReadOnly={isReadOnly}
           showModal={handlerToEditIndex != null}
         />
       )}
