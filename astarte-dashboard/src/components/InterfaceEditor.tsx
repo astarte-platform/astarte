@@ -16,7 +16,7 @@
    limitations under the License.
 */
 
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useId, useState } from 'react';
 import {
   Accordion,
   Badge,
@@ -200,6 +200,7 @@ const MappingModal = ({
   }, []);
 
   const isValidMapping = AstarteMapping.validation.isValidSync(mappingDraft);
+  const formID = useId();
 
   return (
     <Modal show size="lg" centered onHide={onCancel}>
@@ -213,17 +214,15 @@ const MappingModal = ({
           interfaceAggregation={interfaceAggregation}
           mapping={mappingDraft}
           onChange={handleChange}
+          formId={formID}
+          onSubmit={() => onConfirm(mappingDraft)}
         />
       </Modal.Body>
       <Modal.Footer>
         <Button variant="secondary" onClick={onCancel}>
           Cancel
         </Button>
-        <Button
-          variant="primary"
-          onClick={() => onConfirm(mappingDraft)}
-          disabled={!isValidMapping}
-        >
+        <Button variant="primary" disabled={!isValidMapping} type="submit" form={formID}>
           {mapping != null ? 'Update' : 'Add'}
         </Button>
       </Modal.Footer>
@@ -372,7 +371,7 @@ const getInitialDatastreamOptions = (iface: AstarteInterface): DatastreamOptions
   options.databaseRetentionPolicy = mapping.databaseRetentionPolicy;
   options.databaseRetentionTtl =
     options.databaseRetentionPolicy === 'use_ttl' ? mapping.databaseRetentionTtl : undefined;
-  options.explicitTimestamp = mapping.explicitTimestamp != null ? mapping.explicitTimestamp : true;
+  options.explicitTimestamp = mapping.explicitTimestamp != null ? mapping.explicitTimestamp : false;
   return options;
 };
 

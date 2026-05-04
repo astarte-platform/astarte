@@ -48,6 +48,8 @@ interface Props {
   interfaceOwner: AstarteInterface['ownership'];
   interfaceType: AstarteInterface['type'];
   interfaceAggregation?: AstarteInterface['aggregation'];
+  onSubmit: React.FormEventHandler<HTMLFormElement>;
+  formId: string;
   mapping?: AstarteMapping;
   onChange: (updatedMapping: AstarteMapping) => unknown;
 }
@@ -58,6 +60,8 @@ export default ({
   interfaceAggregation = 'individual',
   mapping = defaultMapping,
   onChange,
+  onSubmit,
+  formId,
 }: Props): React.ReactElement => {
   const isPropertiesInterface = interfaceType === 'properties';
   const isDatastreamIndividualInterface =
@@ -73,7 +77,13 @@ export default ({
   }
 
   return (
-    <Form>
+    <Form
+      onSubmit={(e) => {
+        e.preventDefault();
+        onSubmit(e);
+      }}
+      id={formId}
+    >
       <Stack gap={3}>
         <Row className="mb-2 g-3">
           <Col sm={12}>
