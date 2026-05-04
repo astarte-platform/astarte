@@ -22,6 +22,11 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ### Changed
 - Adapt Device Stats and PieChart to exclude interfaces with 0 exchanged messages, ([#428](https://github.com/astarte-platform/astarte-dashboard/issues/428)).
 - Persist login using cookies instead of localStorage, ([#419](https://github.com/astarte-platform/astarte-dashboard/issues/419)).
+## [1.2.2] - 2026-04-24
+
+## [1.2.2-rc.0] - 2026-04-09
+
+## [1.2.1] - 2026-03-12
 
 ## [1.2.1-rc.0] - 2025-08-22
 ### Fixed
