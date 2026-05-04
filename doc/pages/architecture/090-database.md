@@ -30,7 +30,9 @@ are automatically applied to ensure compliance.
 
 Astarte needs an `astarte` keyspace to store its own data.
 
-`astarte` keyspace and tables are created with following [CQL](https://docs.datastax.com/en/cql/3.3/index.html) statements:
+The keyspace replication strategy can be of type `SimpleStrategy` or `NetworkTopologyStrategy`, this can be configured via the `HOUSEKEEPING_ASTARTE_KEYSPACE_REPLICATION_STRATEGY` environment variable. If the strategy is not explicitly configured the `NetworkTopologyStrategy` mode will be enforced, with replication map derived from the live database cluster topology.
+
+`astarte` keyspace and tables are created with following [CQL](https://docs.datastax.com/en/cql/3.3/index.html) statements (the examples are given with `SimpleStrategy` settings):
 
 ```sql
 CREATE KEYSPACE astarte
@@ -99,6 +101,8 @@ CREATE KEYSPACE <realm name>
 >     durable_writes = true AND
 >     tablets = { 'enabled': false };
 > ```
+
+If not explicitly stated in the context of the realm creation request, the replication strategy of the realm keyspace is inherited from the `astarte` keyspace configuration.
 
 ```sql
 CREATE TYPE <realm name>.capabilities (
