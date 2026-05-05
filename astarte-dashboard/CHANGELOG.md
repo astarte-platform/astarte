@@ -4,6 +4,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## [1.3.0] - 2026-05-04
+### Added
+- Shift configuration handling to runtime via an NGINX entrypoint script. Environment variables (now prefixed with `DASHBOARD_`) strictly take precedence over the mounted `config.json` ([#538](https://github.com/astarte-platform/astarte-dashboard/pull/538)).
+### Fixed
+- Resolve explicit_timestamp wrongly injected with default value when opening an existing interface ([#541](https://github.com/astarte-platform/astarte-dashboard/issues/541)).
+- Fix MappingModal implicit submission and hard-refresh when pressing 'Enter' key ([#542](https://github.com/astarte-platform/astarte-dashboard/pull/542))
+- Correct readonly state in Trigger Delivery Policy error handler modal to allow selection of 'On' and 'Strategy' ([543](https://github.com/astarte-platform/astarte-dashboard/pull/543)).
 ## [1.3.0-rc.3] - 2026-04-16
 ### Fixed
 - Eliminate `unsafe-eval` requirement in Content Security Policy (CSP) by replacing `ajv` with `@cfworker/json-schema` for JSON Schema validation ([#536](https://github.com/astarte-platform/astarte-dashboard/pull/536)).
