@@ -38,6 +38,11 @@ COPY libs/astarte_generators/mix.exs libraries/astarte_generators/mix.exs
 COPY libs/astarte_generators/mix.lock libraries/astarte_generators/mix.lock
 COPY libs/astarte_secrets/mix.exs libraries/astarte_secrets/mix.exs
 COPY libs/astarte_secrets/mix.lock libraries/astarte_secrets/mix.lock
+COPY libs/astarte_core/mix.exs libraries/astarte_core/mix.exs
+COPY libs/astarte_core/mix.lock libraries/astarte_core/mix.lock
+# apps/*/mix.exs use path: "../../libs/astarte_core" which from WORKDIR /app resolves to
+# /libs/astarte_core. Symlink so Mix can find astarte_core after "COPY libs ./libraries".
+RUN mkdir /libs && ln -s /app/libraries/astarte_core /libs/astarte_core
 RUN mix do deps.get, deps.compile --skip-local-deps
 
 COPY libs ./libraries

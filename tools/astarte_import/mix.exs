@@ -25,7 +25,7 @@ defmodule Astarte.Import.MixProject do
       {:exandra, "~>0.16.0"},
       {:ecto, "~>3.13"},
       {:logfmt, "~> 3.3"},
-      {:astarte_core, github: "astarte-platform/astarte_core"},
+      {:astarte_core, path: astarte_lib("astarte_core"), override: true},
       {:astarte_data_access, path: astarte_lib("astarte_data_access")},
       {:jason, "~> 1.4"},
       {:distillery, "~> 2.0"}

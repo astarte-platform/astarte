@@ -1,0 +1,72 @@
+{
+    "$schema": "http://json-schema.org/draft-04/schema",
+    "title": "Astarte Mapping Schema",
+    "type": "object",
+    "description": "Identifies a mapping for an interface. A mapping must consist at least of an endpoint and a type.",
+    "properties": {
+        "endpoint": {
+            "type": "string",
+            "pattern": "^(/(%{([a-zA-Z_][a-zA-Z0-9_]*)}|[a-zA-Z_][a-zA-Z0-9_]*)){1,64}$",
+            "minLength": 2,
+            "maxLength": 256,
+            "description": "The template of the path. This is a UNIX-like path (e.g. /my/path) and can be parametrized. Parameters are in the %{name} form, and can be used to create interfaces which represent dictionaries of mappings. When the interface aggregation is object, an object is composed by all the mappings for one specific parameter combination. /timestamp is a reserved path for timestamps, so every mapping on a datastream must not have any endpoint that ends with /timestamp."
+        },
+        "type": {
+            "type": "string",
+            "enum": ["double", "integer", "boolean", "longinteger",
+                "string", "binaryblob", "datetime",
+                "doublearray", "integerarray", "booleanarray", "longintegerarray",
+                "stringarray", "binaryblobarray", "datetimearray"],
+                "description": "Defines the type of the mapping."
+        },
+        "reliability": {
+            "type": "string",
+            "enum": ["unreliable", "guaranteed", "unique"],
+            "default": "unreliable",
+            "description": "Useful only with datastream. Defines whether the sent data should be considered delivered when the transport successfully sends the data (unreliable), when we know that the data has been received at least once (guaranteed) or when we know that the data has been received exactly once (unique). unreliable by default. When using reliable data, consider you might incur in additional resource usage on both the transport and the device's end."
+        },
+        "retention": {
+            "type": "string",
+            "enum": ["discard", "volatile", "stored"],
+            "default": "discard",
+            "description": "Useful only with datastream. Defines whether the sent data should be discarded if the transport is temporarily uncapable of delivering it (discard) or should be kept in a cache in memory (volatile) or on disk (stored), and guaranteed to be delivered in the timeframe defined by the expiry. discard by default."
+        },
+        "expiry": {
+            "type": "integer",
+            "default": 0,
+            "minimum": 0,
+            "description": "Useful when retention is stored. Defines after how many seconds a specific data entry should be kept before giving up and erasing it from the persistent cache. A value <= 0 means the persistent cache never expires, and is the default."
+        },
+        "database_retention_policy": {
+            "type": "string",
+            "enum": ["no_ttl", "use_ttl"],
+            "default": "no_ttl",
+            "description": "Useful only with datastream. Defines whether data should expire from the database after a given interval. Valid values are: no_ttl and use_ttl."
+        },
+        "database_retention_ttl": {
+            "type": "integer",
+            "minimum": 60,
+            "maximum": 630719999,
+            "description": "Useful when database_retention_policy is use_ttl. Defines how many seconds a specific data entry should be kept before erasing it from the database."
+        },
+        "allow_unset": {
+            "type": "boolean",
+            "default": false,
+            "description": "Used only with properties. Used with producers, it generates a method to unset the property. Used with consumers, it generates code to call an unset method when an empty payload is received."
+        },
+        "explicit_timestamp": {
+            "type": "boolean",
+            "default": false,
+            "description": "Allow to set a custom timestamp, otherwise a timestamp is added when the message is received. If true explicit timestamp will also be used for sorting. This feature is only supported on datastreams."
+        },
+        "description": {
+            "type": "string",
+            "description": "An optional description of the mapping."
+        },
+        "doc": {
+            "type": "string",
+            "description": "A string containing documentation that will be injected in the generated client code."
+        }
+    },
+    "required": ["endpoint", "type"]
+}

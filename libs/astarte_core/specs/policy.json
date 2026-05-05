@@ -1,0 +1,87 @@
+{
+    "$schema": "http://json-schema.org/draft-04/schema",
+    "title": "Astarte Delivery Policy Schema",
+    "description": "This schema describes how an Astarte delivery policy should be declared.",
+    "type": "object",
+    "properties": {
+        "policy_name": {
+            "type": "string",
+            "pattern": "^(?!@).+$",
+            "minLength": 1,
+            "maxLength": 128,
+            "description": "The name of the delivery policy. This has to be an unique name, shorther than 128 characters."
+        },
+        "handlers": {
+            "type": "array",
+            "items": {
+                "$ref": "#/$defs/handler"
+            },
+            "minItems": 0,
+            "maxItems": 200,
+            "uniqueItems": true,
+            "description": "An handler refers to one or more delivery errors and describes the retry strategy Astarte should take when it/they occur."
+        },
+        "retry_times": {
+            "type": "integer",
+            "description": "The minimum amount of times Astarte will try to send an event (first excluded)."
+        },
+        "maximum_capacity": {
+            "type": "integer",
+            "description": "The maximum amount of events that can be stored in a queue."
+        },
+        "event_ttl": {
+            "type": "integer",
+            "description": "The lifetime of a message, in seconds."
+        }
+    },
+    "required": [
+        "policy_name",
+        "handlers",
+        "maximum_capacity"
+    ],
+    "$defs": {
+        "handler": {
+            "type": "object",
+            "properties": {
+                "on": {
+                    "anyOf": [
+                        {
+                            "type": "array",
+                            "items": {
+                                "type": "number",
+                                "minimum": 400,
+                                "maximum": 599,
+                                "description": "An HTTP error code."
+                            }
+                        },
+                        {
+                            "const": "client_error",
+                            "description": "Matches HTTP client error codes (400-499)."
+                        },
+                        {
+                            "const": "server_error",
+                            "description": "Matches HTTP client error codes (500-599)."
+                        },
+                        {
+                            "const": "any_error",
+                            "description": "Matches HTTP client and server error codes (400-599)."
+                        }
+                    ],
+                    "description": "A class of HTTP errors to which the handler applies."
+                },
+                "strategy": {
+                    "type": "string",
+                    "enum": [
+                        "discard",
+                        "retry"
+                    ],
+                    "description": "Identifies how errors are handled."
+                }
+            },
+            "required": [
+                "on",
+                "strategy"
+            ]
+        }
+    }
+}
