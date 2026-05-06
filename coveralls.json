@@ -6,8 +6,7 @@
     "def.+(.+\/\/.+).+do"
   ],
 
-  "custom_stop_words": [
-  ],
+  "custom_stop_words": [],
 
   "coverage_options": {
     "treat_no_relevant_lines_as_covered": true,

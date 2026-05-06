@@ -30,11 +30,14 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ## [1.2.1] - 2026-03-06
 
 ### Fixed
+
 - [astarte_realm_management] Insufficient validation for conflicting options in interface aggregate mappings
   [#1072](https://github.com/astarte-platform/astarte/issues/1072)
 
 ## [1.2.1-rc.0] - 2025-08-22
+
 ### Added
+
 - Allow `to_int` in custom enum types to be called with valid integers
 - Allow `from_int` in custom enum types to be called with valid atoms
 - Expose a custom `@type` for all structs
