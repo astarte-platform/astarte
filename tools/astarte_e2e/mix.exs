@@ -22,7 +22,7 @@ defmodule AstarteE2E.MixProject do
   def project do
     [
       app: :astarte_e2e,
-      version: "1.3.0-rc.2",
+      version: "1.3.0",
       elixir: "~> 1.15",
       start_permanent: Mix.env() == :prod,
       dialyzer: [plt_add_apps: [:ex_unit]],
@@ -42,8 +42,7 @@ defmodule AstarteE2E.MixProject do
   defp deps do
     [
       {:astarte_device, github: "astarte-platform/astarte-device-sdk-elixir"},
-      {:astarte_core,
-       github: "astarte-platform/astarte_core", tag: "v1.3.0-rc.1", override: true},
+      {:astarte_core, "~> 1.3", override: true},
       {:astarte_generators, path: astarte_lib("astarte_generators")},
       {:phoenix_gen_socket_client, "~> 4.0"},
       {:amqp, "~> 4.0"},

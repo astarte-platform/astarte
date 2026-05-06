@@ -22,7 +22,7 @@ defmodule Astarte.Housekeeping.Mixfile do
   def project do
     [
       app: :astarte_housekeeping,
-      version: "1.3.0-rc.2",
+      version: "1.3.0",
       elixir: "~> 1.15",
       elixirc_paths: elixirc_paths(Mix.env()),
       start_permanent: Mix.env() == :prod,
@@ -61,8 +61,7 @@ defmodule Astarte.Housekeeping.Mixfile do
 
   defp astarte_required_modules(_) do
     [
-      {:astarte_core,
-       github: "astarte-platform/astarte_core", branch: "release-1.3", override: true}
+      {:astarte_core, "~> 1.3", override: true}
     ]
   end
 

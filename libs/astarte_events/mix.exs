@@ -22,7 +22,7 @@ defmodule Astarte.Events.Mixfile do
     [
       app: :astarte_events,
       elixir: "~> 1.15",
-      version: "1.3.0-rc.2",
+      version: "1.3.0",
       build_embedded: Mix.env() == :prod,
       start_permanent: Mix.env() == :prod,
       elixirc_paths: elixirc_paths(Mix.env()),
@@ -60,7 +60,7 @@ defmodule Astarte.Events.Mixfile do
       {:mimic, "~> 1.11", only: [:dev, :test]},
       {:dialyxir, "~> 1.0", only: [:dev, :test], runtime: false},
       {:astarte_data_access, path: "../astarte_data_access"},
-      {:astarte_core, github: "astarte-platform/astarte_core", tag: "v1.3.0-rc.1"},
+      {:astarte_core, "~> 1.3", override: true},
       {:elixir_uuid, "~> 1.2"},
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
       {:astarte_generators, path: "../astarte_generators", only: [:dev, :test]},

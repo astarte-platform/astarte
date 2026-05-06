@@ -22,7 +22,7 @@ defmodule Astarte.RealmManagement.Mixfile do
   def project do
     [
       app: :astarte_realm_management,
-      version: "1.3.0-rc.2",
+      version: "1.3.0",
       build_path: "_build",
       config_path: "config/config.exs",
       deps_path: "deps",
@@ -65,8 +65,7 @@ defmodule Astarte.RealmManagement.Mixfile do
 
   defp astarte_required_modules(_) do
     [
-      {:astarte_core,
-       github: "astarte-platform/astarte_core", branch: "release-1.3", override: true}
+      {:astarte_core, "~> 1.3", override: true}
     ]
   end
 
