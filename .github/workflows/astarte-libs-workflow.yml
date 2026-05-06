@@ -27,6 +27,11 @@ defaults:
     shell: bash
 
 jobs:
+  astarte_core:
+    uses: ./.github/workflows/astarte-libs-build-workflow.yaml
+    with:
+      lib: "astarte_core"
+    secrets: inherit
   astarte_data_access:
     uses: ./.github/workflows/astarte-libs-build-workflow.yaml
     with:
