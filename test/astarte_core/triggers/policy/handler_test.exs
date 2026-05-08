@@ -18,6 +18,7 @@
 
 defmodule Astarte.Core.Triggers.Policy.HandlerTest do
   use ExUnit.Case
+  alias Astarte.Core.Triggers.Policy
   alias Astarte.Core.Triggers.Policy.Handler
 
   test "valid keyword handler" do
@@ -82,5 +83,68 @@ defmodule Astarte.Core.Triggers.Policy.HandlerTest do
 
     assert %Ecto.Changeset{valid?: false, errors: [strategy: _]} =
              Handler.changeset(%Handler{}, params)
+  end
+
+  test "error_set/1 covers all keyword and range branches" do
+    assert MapSet.member?(
+             Handler.error_set(%Handler{
+               on: %Policy.ErrorKeyword{keyword: "any_error"},
+               strategy: "discard"
+             }),
+             500
+           )
+
+    assert MapSet.member?(
+             Handler.error_set(%Handler{
+               on: %Policy.ErrorKeyword{keyword: "client_error"},
+               strategy: "discard"
+             }),
+             404
+           )
+
+    assert MapSet.member?(
+             Handler.error_set(%Handler{
+               on: %Policy.ErrorKeyword{keyword: "server_error"},
+               strategy: "discard"
+             }),
+             503
+           )
+
+    assert MapSet.member?(
+             Handler.error_set(%Handler{
+               on: %Policy.ErrorRange{error_codes: [404]},
+               strategy: "discard"
+             }),
+             404
+           )
+
+    assert MapSet.equal?(Handler.error_set(%Handler{on: nil, strategy: "discard"}), MapSet.new())
+  end
+
+  test "discards?/1 returns true for discard, false for retry" do
+    assert Handler.discards?(%Handler{
+             on: %Policy.ErrorKeyword{keyword: "any_error"},
+             strategy: "discard"
+           })
+
+    refute Handler.discards?(%Handler{
+             on: %Policy.ErrorKeyword{keyword: "any_error"},
+             strategy: "retry"
+           })
+  end
+
+  test "to_handler_proto/from_handler_proto roundtrip covers keyword and range" do
+    keyword_handler = %Handler{
+      on: %Policy.ErrorKeyword{keyword: "server_error"},
+      strategy: "retry"
+    }
+
+    assert keyword_handler ==
+             keyword_handler |> Handler.to_handler_proto() |> Handler.from_handler_proto()
+
+    range_handler = %Handler{on: %Policy.ErrorRange{error_codes: [400, 500]}, strategy: "discard"}
+
+    assert range_handler ==
+             range_handler |> Handler.to_handler_proto() |> Handler.from_handler_proto()
   end
 end

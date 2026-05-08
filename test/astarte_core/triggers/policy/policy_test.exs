@@ -322,4 +322,22 @@ defmodule Astarte.Core.Triggers.PolicyTest do
       Policy.changeset(%Policy{}, params)
       |> Ecto.Changeset.apply_action(:insert)
   end
+
+  test "from_policy_proto/1 preserves non-zero event_ttl" do
+    policy = %Policy{
+      name: "ttlpolicy",
+      maximum_capacity: 100,
+      error_handlers: [
+        %Handler{on: %ErrorKeyword{keyword: "any_error"}, strategy: "discard"}
+      ],
+      event_ttl: 3600
+    }
+
+    proto = Policy.to_policy_proto(policy)
+    assert {:ok, %Policy{event_ttl: 3600}} = Policy.from_policy_proto(proto)
+  end
+
+  test "from_policy_proto!/1 raises on invalid input" do
+    assert_raise FunctionClauseError, fn -> Policy.from_policy_proto!(nil) end
+  end
 end

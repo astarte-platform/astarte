@@ -60,4 +60,14 @@ defmodule Astarte.Core.Device.CapabilitiesTest do
 
     assert %Ecto.Changeset{valid?: false} = changeset
   end
+
+  test "capabilities with no params uses default :zlib" do
+    changeset = Capabilities.changeset(%Capabilities{}, %{})
+
+    assert %Ecto.Changeset{valid?: true} = changeset
+
+    {:ok, capabilities} = Ecto.Changeset.apply_action(changeset, :insert)
+
+    assert %Capabilities{purge_properties_compression_format: :zlib} = capabilities
+  end
 end

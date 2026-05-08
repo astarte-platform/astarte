@@ -47,4 +47,22 @@ defmodule Astarte.Core.DeviceTest do
     assert {:ok, device_id} = Device.decode_device_id(@regular_device_id)
     assert Device.encode_device_id(device_id) == @regular_device_id
   end
+
+  test "random_device_id generates a valid 128-bit binary" do
+    device_id = Device.random_device_id()
+    assert is_binary(device_id)
+    assert byte_size(device_id) == 16
+  end
+
+  test "random_device_id is a valid UUID v4" do
+    <<_::48, version::4, _::12, variant::2, _::62>> = Device.random_device_id()
+    assert version == 4
+    assert variant == 2
+  end
+
+  test "random_device_id can be encoded and decoded" do
+    device_id = Device.random_device_id()
+    encoded = Device.encode_device_id(device_id)
+    assert {:ok, ^device_id} = Device.decode_device_id(encoded)
+  end
 end
