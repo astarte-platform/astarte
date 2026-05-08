@@ -26,14 +26,14 @@ defmodule Astarte.Core.Triggers.SimpleTriggerConfig do
   alias Astarte.Core.CQLUtils
   alias Astarte.Core.Device
   alias Astarte.Core.Group
-  alias Astarte.Core.Mapping
   alias Astarte.Core.Interface
+  alias Astarte.Core.Mapping
   alias Astarte.Core.Triggers.SimpleTriggerConfig
-  alias Astarte.Core.Triggers.SimpleTriggersProtobuf.Utils, as: SimpleTriggersUtils
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.DataTrigger
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.DeviceTrigger
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.SimpleTriggerContainer
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.TaggedSimpleTrigger
+  alias Astarte.Core.Triggers.SimpleTriggersProtobuf.Utils, as: SimpleTriggersUtils
 
   @primary_key false
   typed_embedded_schema do
@@ -493,38 +493,11 @@ defmodule Astarte.Core.Triggers.SimpleTriggerConfig do
     } = config
 
     cond do
-      # Device specific, any interface
-      is_binary(device_id) and device_id != "*" and interface_name == "*" ->
-        {:ok, decoded_device_id} = Device.decode_device_id(device_id)
-        object_id = SimpleTriggersUtils.get_device_and_any_interface_object_id(decoded_device_id)
-        {object_id, SimpleTriggersUtils.object_type_to_int!(:device_and_any_interface)}
+      is_binary(device_id) and device_id != "*" ->
+        get_data_trigger_object_for_device(device_id, interface_name, interface_major)
 
-      # Device specific, specific interface
-      is_binary(device_id) and device_id != "*" and is_binary(interface_name) and
-          is_integer(interface_major) ->
-        {:ok, decoded_device_id} = Device.decode_device_id(device_id)
-
-        interface_id = CQLUtils.interface_id(interface_name, interface_major)
-
-        object_id =
-          SimpleTriggersUtils.get_device_and_interface_object_id(decoded_device_id, interface_id)
-
-        {object_id, SimpleTriggersUtils.object_type_to_int!(:device_and_interface)}
-
-      # Group specific, any interface
-      is_binary(group_name) and Group.valid_name?(group_name) and interface_name == "*" ->
-        object_id = SimpleTriggersUtils.get_group_and_any_interface_object_id(group_name)
-        {object_id, SimpleTriggersUtils.object_type_to_int!(:group_and_any_interface)}
-
-      # Group specific, specific interface
-      is_binary(group_name) and Group.valid_name?(group_name) and is_binary(interface_name) and
-          is_integer(interface_major) ->
-        interface_id = CQLUtils.interface_id(interface_name, interface_major)
-
-        object_id =
-          SimpleTriggersUtils.get_group_and_interface_object_id(group_name, interface_id)
-
-        {object_id, SimpleTriggersUtils.object_type_to_int!(:group_and_interface)}
+      is_binary(group_name) and Group.valid_name?(group_name) ->
+        get_data_trigger_object_for_group(group_name, interface_name, interface_major)
 
       # Any interface
       interface_name == "*" ->
@@ -535,6 +508,40 @@ defmodule Astarte.Core.Triggers.SimpleTriggerConfig do
       is_binary(interface_name) and is_integer(interface_major) ->
         interface_id = CQLUtils.interface_id(interface_name, interface_major)
         {interface_id, SimpleTriggersUtils.object_type_to_int!(:interface)}
+    end
+  end
+
+  defp get_data_trigger_object_for_device(device_id, interface_name, interface_major) do
+    cond do
+      interface_name == "*" ->
+        {:ok, decoded_device_id} = Device.decode_device_id(device_id)
+        object_id = SimpleTriggersUtils.get_device_and_any_interface_object_id(decoded_device_id)
+        {object_id, SimpleTriggersUtils.object_type_to_int!(:device_and_any_interface)}
+
+      is_binary(interface_name) and is_integer(interface_major) ->
+        {:ok, decoded_device_id} = Device.decode_device_id(device_id)
+        interface_id = CQLUtils.interface_id(interface_name, interface_major)
+
+        object_id =
+          SimpleTriggersUtils.get_device_and_interface_object_id(decoded_device_id, interface_id)
+
+        {object_id, SimpleTriggersUtils.object_type_to_int!(:device_and_interface)}
+    end
+  end
+
+  defp get_data_trigger_object_for_group(group_name, interface_name, interface_major) do
+    cond do
+      interface_name == "*" ->
+        object_id = SimpleTriggersUtils.get_group_and_any_interface_object_id(group_name)
+        {object_id, SimpleTriggersUtils.object_type_to_int!(:group_and_any_interface)}
+
+      is_binary(interface_name) and is_integer(interface_major) ->
+        interface_id = CQLUtils.interface_id(interface_name, interface_major)
+
+        object_id =
+          SimpleTriggersUtils.get_group_and_interface_object_id(group_name, interface_id)
+
+        {object_id, SimpleTriggersUtils.object_type_to_int!(:group_and_interface)}
     end
   end
 

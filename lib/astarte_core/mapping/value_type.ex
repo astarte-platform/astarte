@@ -17,6 +17,10 @@
 #
 
 defmodule Astarte.Core.Mapping.ValueType do
+  @moduledoc """
+  Ecto type for Astarte mapping value types.
+  """
+
   use Ecto.Type
 
   @type t ::
@@ -66,11 +70,32 @@ defmodule Astarte.Core.Mapping.ValueType do
     :datetimearray
   ]
 
+  @atom_to_int %{
+    double: @mapping_value_type_double,
+    integer: @mapping_value_type_integer,
+    boolean: @mapping_value_type_boolean,
+    longinteger: @mapping_value_type_longinteger,
+    string: @mapping_value_type_string,
+    binaryblob: @mapping_value_type_binaryblob,
+    datetime: @mapping_value_type_datetime,
+    doublearray: @mapping_value_type_doublearray,
+    integerarray: @mapping_value_type_integerarray,
+    booleanarray: @mapping_value_type_booleanarray,
+    longintegerarray: @mapping_value_type_longintegerarray,
+    stringarray: @mapping_value_type_stringarray,
+    binaryblobarray: @mapping_value_type_binaryblobarray,
+    datetimearray: @mapping_value_type_datetimearray
+  }
+
+  @int_to_atom Map.new(@atom_to_int, fn {k, v} -> {v, k} end)
+
+  @string_to_atom Map.new(@valid_atoms, fn atom -> {Atom.to_string(atom), atom} end)
+
   # The following limits are really conservative,
   # it is always easier to increase them in future releases
-  @blob_size 65536
+  @blob_size 65_536
   @list_len 1024
-  @string_size 65536
+  @string_size 65_536
 
   @impl true
   def type, do: :integer
@@ -87,23 +112,7 @@ defmodule Astarte.Core.Mapping.ValueType do
   end
 
   def cast(string) when is_binary(string) do
-    case string do
-      "double" -> {:ok, :double}
-      "integer" -> {:ok, :integer}
-      "boolean" -> {:ok, :boolean}
-      "longinteger" -> {:ok, :longinteger}
-      "string" -> {:ok, :string}
-      "binaryblob" -> {:ok, :binaryblob}
-      "datetime" -> {:ok, :datetime}
-      "doublearray" -> {:ok, :doublearray}
-      "integerarray" -> {:ok, :integerarray}
-      "booleanarray" -> {:ok, :booleanarray}
-      "longintegerarray" -> {:ok, :longintegerarray}
-      "stringarray" -> {:ok, :stringarray}
-      "binaryblobarray" -> {:ok, :binaryblobarray}
-      "datetimearray" -> {:ok, :datetimearray}
-      _ -> :error
-    end
+    Map.fetch(@string_to_atom, string)
   end
 
   def cast(int) when is_integer(int) do
@@ -124,23 +133,7 @@ defmodule Astarte.Core.Mapping.ValueType do
 
   @impl true
   def dump(value_type) when is_atom(value_type) do
-    case value_type do
-      :double -> {:ok, @mapping_value_type_double}
-      :integer -> {:ok, @mapping_value_type_integer}
-      :boolean -> {:ok, @mapping_value_type_boolean}
-      :longinteger -> {:ok, @mapping_value_type_longinteger}
-      :string -> {:ok, @mapping_value_type_string}
-      :binaryblob -> {:ok, @mapping_value_type_binaryblob}
-      :datetime -> {:ok, @mapping_value_type_datetime}
-      :doublearray -> {:ok, @mapping_value_type_doublearray}
-      :integerarray -> {:ok, @mapping_value_type_integerarray}
-      :booleanarray -> {:ok, @mapping_value_type_booleanarray}
-      :longintegerarray -> {:ok, @mapping_value_type_longintegerarray}
-      :stringarray -> {:ok, @mapping_value_type_stringarray}
-      :binaryblobarray -> {:ok, @mapping_value_type_binaryblobarray}
-      :datetimearray -> {:ok, @mapping_value_type_datetimearray}
-      _ -> :error
-    end
+    Map.fetch(@atom_to_int, value_type)
   end
 
   def dump!(value_type) when is_atom(value_type) do
@@ -152,23 +145,7 @@ defmodule Astarte.Core.Mapping.ValueType do
 
   @impl true
   def load(value_type_int) when is_integer(value_type_int) do
-    case value_type_int do
-      @mapping_value_type_double -> {:ok, :double}
-      @mapping_value_type_integer -> {:ok, :integer}
-      @mapping_value_type_boolean -> {:ok, :boolean}
-      @mapping_value_type_longinteger -> {:ok, :longinteger}
-      @mapping_value_type_string -> {:ok, :string}
-      @mapping_value_type_binaryblob -> {:ok, :binaryblob}
-      @mapping_value_type_datetime -> {:ok, :datetime}
-      @mapping_value_type_doublearray -> {:ok, :doublearray}
-      @mapping_value_type_integerarray -> {:ok, :integerarray}
-      @mapping_value_type_booleanarray -> {:ok, :booleanarray}
-      @mapping_value_type_longintegerarray -> {:ok, :longintegerarray}
-      @mapping_value_type_stringarray -> {:ok, :stringarray}
-      @mapping_value_type_binaryblobarray -> {:ok, :binaryblobarray}
-      @mapping_value_type_datetimearray -> {:ok, :datetimearray}
-      _ -> :error
-    end
+    Map.fetch(@int_to_atom, value_type_int)
   end
 
   def to_int(value_type) when is_atom(value_type) do
@@ -179,84 +156,48 @@ defmodule Astarte.Core.Mapping.ValueType do
     cast!(int)
   end
 
-  def validate_value(expected_type, value) do
-    case {value, expected_type} do
-      {v, :double} when is_number(v) ->
-        :ok
+  def validate_value(:double, v) when is_number(v), do: :ok
+  def validate_value(:integer, v) when is_integer(v) and abs(v) <= 0x7FFFFFFF, do: :ok
+  def validate_value(:boolean, v) when is_boolean(v), do: :ok
+  def validate_value(:longinteger, v) when is_integer(v) and abs(v) <= 0x7FFFFFFFFFFFFFFF, do: :ok
+  def validate_value(:string, v) when is_binary(v), do: validate_string_value(v)
+  def validate_value(:binaryblob, v) when is_binary(v), do: validate_blob_size(v)
 
-      {v, :integer} when is_integer(v) and abs(v) <= 0x7FFFFFFF ->
-        :ok
+  def validate_value(:binaryblob, %Cyanide.Binary{data: bin}) when is_binary(bin),
+    do: validate_blob_size(bin)
 
-      {v, :boolean} when is_boolean(v) ->
-        :ok
+  def validate_value(:binaryblob, {_subtype, bin}) when is_binary(bin),
+    do: validate_blob_size(bin)
 
-      {v, :longinteger} when is_integer(v) and abs(v) <= 0x7FFFFFFFFFFFFFFF ->
-        :ok
+  def validate_value(:datetime, %DateTime{}), do: :ok
+  def validate_value(:datetime, v) when is_integer(v), do: :ok
+  def validate_value(type, v) when is_list(v), do: validate_array_type(type, v)
+  def validate_value(_type, _value), do: {:error, :unexpected_value_type}
 
-      {v, :string} when is_binary(v) ->
-        cond do
-          String.valid?(v) == false ->
-            {:error, :unexpected_value_type}
-
-          byte_size(v) > @string_size ->
-            {:error, :value_size_exceeded}
-
-          true ->
-            :ok
-        end
-
-      {v, :binaryblob} when is_binary(v) ->
-        if byte_size(v) > @blob_size do
-          {:error, :value_size_exceeded}
-        else
-          :ok
-        end
-
-      {%Cyanide.Binary{subtype: _subtype, data: bin}, :binaryblob} when is_binary(bin) ->
-        if byte_size(bin) > @blob_size do
-          {:error, :value_size_exceeded}
-        else
-          :ok
-        end
-
-      {{_subtype, bin}, :binaryblob} when is_binary(bin) ->
-        if byte_size(bin) > @blob_size do
-          {:error, :value_size_exceeded}
-        else
-          :ok
-        end
-
-      {%DateTime{} = _v, :datetime} ->
-        :ok
-
-      {v, :datetime} when is_integer(v) ->
-        :ok
-
-      {v, :doublearray} when is_list(v) ->
-        validate_array_value(:double, v)
-
-      {v, :integerarray} when is_list(v) ->
-        validate_array_value(:integer, v)
-
-      {v, :booleanarray} when is_list(v) ->
-        validate_array_value(:boolean, v)
-
-      {v, :longintegerarray} when is_list(v) ->
-        validate_array_value(:longinteger, v)
-
-      {v, :stringarray} when is_list(v) ->
-        validate_array_value(:string, v)
-
-      {v, :binaryblobarray} when is_list(v) ->
-        validate_array_value(:binaryblob, v)
-
-      {v, :datetimearray} when is_list(v) ->
-        validate_array_value(:datetime, v)
-
-      _ ->
-        {:error, :unexpected_value_type}
+  defp validate_string_value(v) do
+    cond do
+      not String.valid?(v) -> {:error, :unexpected_value_type}
+      byte_size(v) > @string_size -> {:error, :value_size_exceeded}
+      true -> :ok
     end
   end
+
+  defp validate_blob_size(bin) do
+    if byte_size(bin) > @blob_size do
+      {:error, :value_size_exceeded}
+    else
+      :ok
+    end
+  end
+
+  defp validate_array_type(:doublearray, v), do: validate_array_value(:double, v)
+  defp validate_array_type(:integerarray, v), do: validate_array_value(:integer, v)
+  defp validate_array_type(:booleanarray, v), do: validate_array_value(:boolean, v)
+  defp validate_array_type(:longintegerarray, v), do: validate_array_value(:longinteger, v)
+  defp validate_array_type(:stringarray, v), do: validate_array_value(:string, v)
+  defp validate_array_type(:binaryblobarray, v), do: validate_array_value(:binaryblob, v)
+  defp validate_array_type(:datetimearray, v), do: validate_array_value(:datetime, v)
+  defp validate_array_type(_type, _v), do: {:error, :unexpected_value_type}
 
   defp validate_array_value(type, values) do
     cond do

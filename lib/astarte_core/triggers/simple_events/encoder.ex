@@ -17,6 +17,10 @@
 #
 
 defmodule Astarte.Core.Triggers.SimpleEvents.Encoder do
+  @moduledoc """
+  JSON encoding implementations for SimpleEvents structs.
+  """
+
   alias Astarte.Core.Triggers.SimpleEvents
   alias Astarte.Core.Triggers.SimpleEvents.Encoder
 

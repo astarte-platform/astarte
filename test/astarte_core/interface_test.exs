@@ -198,7 +198,8 @@ defmodule Astarte.Core.InterfaceTest do
     assert last_mapping.value_type == :string
     assert last_mapping.allow_unset == true
 
-    # TODO: choose a reasonable default for property interface mappings reliability and retention and test it
+    # TODO: choose a reasonable default for property interface mappings
+    # reliability and retention and test it
 
     assert Kernel.length(interface.mappings) == 1
   end
@@ -223,7 +224,8 @@ defmodule Astarte.Core.InterfaceTest do
     assert last_mapping.value_type == :string
     assert last_mapping.allow_unset == true
 
-    # TODO: choose a reasonable default for property interface mappings reliability and retention and test it
+    # TODO: choose a reasonable default for property interface mappings
+    # reliability and retention and test it
 
     assert Kernel.length(interface.mappings) == 1
   end

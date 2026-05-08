@@ -17,6 +17,10 @@
 #
 
 defmodule Astarte.Core.Mapping.DatabaseRetentionPolicy do
+  @moduledoc """
+  Ecto type for Astarte mapping database retention policies.
+  """
+
   use Ecto.Type
 
   @type t :: :no_ttl | :use_ttl

@@ -17,6 +17,10 @@
 #
 
 defmodule Astarte.Core.Mapping.Retention do
+  @moduledoc """
+  Ecto type for Astarte mapping retention policies.
+  """
+
   use Ecto.Type
 
   @type t :: :discard | :volatile | :stored

@@ -17,6 +17,10 @@
 #
 
 defmodule Astarte.Core.Interface.Type do
+  @moduledoc """
+  Ecto type for Astarte interface types.
+  """
+
   use Ecto.Type
 
   @type t :: :properties | :datastream

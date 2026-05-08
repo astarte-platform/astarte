@@ -17,14 +17,18 @@
 #
 
 defmodule Astarte.Core.Interface do
+  @moduledoc """
+  Defines the schema and changeset for Astarte interfaces.
+  """
+
   use TypedEctoSchema
   import Ecto.Changeset
 
   alias Astarte.Core.CQLUtils
+  alias Astarte.Core.Interface
   alias Astarte.Core.Interface.Aggregation
   alias Astarte.Core.Interface.Ownership
   alias Astarte.Core.Interface.Type
-  alias Astarte.Core.Interface
   alias Astarte.Core.Mapping
 
   @required_fields [
@@ -221,43 +225,26 @@ defmodule Astarte.Core.Interface do
     aggregation = get_field(changeset, :aggregation, :individual)
 
     if aggregation == :object and mappings != [] do
-      %Mapping{
-        retention: retention,
-        reliability: reliability,
-        expiry: expiry,
-        allow_unset: allow_unset,
-        explicit_timestamp: explicit_timestamp,
-        database_retention_policy: database_retention_policy,
-        database_retention_ttl: database_retention_ttl
-      } = List.first(mappings)
+      first = List.first(mappings)
 
-      all_same_attributes =
-        Enum.all?(mappings, fn mapping ->
-          %Mapping{
-            retention: mapping_retention,
-            reliability: mapping_reliability,
-            expiry: mapping_expiry,
-            allow_unset: mapping_allow_unset,
-            explicit_timestamp: mapping_explicit_timestamp,
-            database_retention_policy: mapping_database_retention_policy,
-            database_retention_ttl: mapping_database_retention_ttl
-          } = mapping
-
-          retention == mapping_retention and reliability == mapping_reliability and
-            expiry == mapping_expiry and allow_unset == mapping_allow_unset and
-            explicit_timestamp == mapping_explicit_timestamp and
-            database_retention_policy == mapping_database_retention_policy and
-            database_retention_ttl == mapping_database_retention_ttl
-        end)
-
-      unless all_same_attributes do
-        add_error(changeset, :mappings, "contain conflicting attributes")
-      else
+      if Enum.all?(mappings, &same_object_attributes?(first, &1)) do
         changeset
+      else
+        add_error(changeset, :mappings, "contain conflicting attributes")
       end
     else
       changeset
     end
+  end
+
+  defp same_object_attributes?(%Mapping{} = a, %Mapping{} = b) do
+    a.retention == b.retention and
+      a.reliability == b.reliability and
+      a.expiry == b.expiry and
+      a.allow_unset == b.allow_unset and
+      a.explicit_timestamp == b.explicit_timestamp and
+      a.database_retention_policy == b.database_retention_policy and
+      a.database_retention_ttl == b.database_retention_ttl
   end
 
   defp validate_all_mappings_have_same_prefix(changeset) do
@@ -283,10 +270,10 @@ defmodule Astarte.Core.Interface do
           current_prefix == common_prefix
         end)
 
-      unless all_same_prefix do
-        add_error(changeset, :mappings, "must have the same prefix in endpoints")
-      else
+      if all_same_prefix do
         changeset
+      else
+        add_error(changeset, :mappings, "must have the same prefix in endpoints")
       end
     else
       changeset

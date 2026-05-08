@@ -17,6 +17,10 @@
 #
 
 defmodule Astarte.Core.Interface.Aggregation do
+  @moduledoc """
+  Ecto type for Astarte interface aggregation modes.
+  """
+
   use Ecto.Type
 
   @type t :: :individual | :object

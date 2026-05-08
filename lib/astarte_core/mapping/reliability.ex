@@ -17,6 +17,10 @@
 #
 
 defmodule Astarte.Core.Mapping.Reliability do
+  @moduledoc """
+  Ecto type for Astarte mapping reliability levels.
+  """
+
   use Ecto.Type
 
   @type t :: :unreliable | :guaranteed | :unique

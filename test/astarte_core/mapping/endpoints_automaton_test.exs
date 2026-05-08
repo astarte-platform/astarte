@@ -1,8 +1,8 @@
 defmodule Astarte.Core.Mapping.EndpointsAutomatonTest do
   use ExUnit.Case
+  alias Astarte.Core.Interface
   alias Astarte.Core.Mapping
   alias Astarte.Core.Mapping.EndpointsAutomaton
-  alias Astarte.Core.Interface
 
   @valid_interface """
   {
@@ -262,7 +262,7 @@ defmodule Astarte.Core.Mapping.EndpointsAutomatonTest do
 
     assert {status, automaton} = EndpointsAutomaton.build(document.mappings)
     assert EndpointsAutomaton.lint(document.mappings) == []
-    assert EndpointsAutomaton.is_valid?(automaton, document.mappings) == true
+    assert EndpointsAutomaton.valid?(automaton, document.mappings) == true
     assert status == :ok
 
     assert Enum.count(elem(automaton, 0)) == 5
@@ -286,7 +286,7 @@ defmodule Astarte.Core.Mapping.EndpointsAutomatonTest do
   test "automaton states depend on both tokens and token position" do
     assert {:ok, automaton} = EndpointsAutomaton.build(@endpoint_similar_tokens)
     assert EndpointsAutomaton.lint(@endpoint_similar_tokens) == []
-    assert EndpointsAutomaton.is_valid?(automaton, @endpoint_similar_tokens) == true
+    assert EndpointsAutomaton.valid?(automaton, @endpoint_similar_tokens) == true
   end
 
   test "build endpoints automaton and resolve some endpoints" do
@@ -297,7 +297,7 @@ defmodule Astarte.Core.Mapping.EndpointsAutomatonTest do
       |> Ecto.Changeset.apply_action(:insert)
 
     assert {:ok, automaton} = EndpointsAutomaton.build(document.mappings)
-    assert EndpointsAutomaton.is_valid?(automaton, document.mappings) == true
+    assert EndpointsAutomaton.valid?(automaton, document.mappings) == true
 
     assert Enum.count(elem(automaton, 1)) == length(document.mappings)
 

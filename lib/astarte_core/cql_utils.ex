@@ -21,6 +21,27 @@ defmodule Astarte.Core.CQLUtils do
   This module contains a set of functions that should be used to map Astarte types and concepts to C*
   """
 
+  @value_type_to_db_type %{
+    double: "double",
+    integer: "int",
+    boolean: "boolean",
+    longinteger: "bigint",
+    string: "varchar",
+    binaryblob: "blob",
+    datetime: "timestamp",
+    doublearray: "list<double>",
+    integerarray: "list<int>",
+    booleanarray: "list<boolean>",
+    longintegerarray: "list<bigint>",
+    stringarray: "list<varchar>",
+    binaryblobarray: "list<blob>",
+    datetimearray: "list<timestamp>"
+  }
+
+  @type_to_db_column_name Map.new(@value_type_to_db_type, fn {k, _v} ->
+                            {k, "#{k}_value"}
+                          end)
+
   @interface_descriptor_statement """
     SELECT name, major_version, minor_version, type, ownership, aggregation
     FROM interfaces
@@ -91,7 +112,7 @@ defmodule Astarte.Core.CQLUtils do
   @doc """
   Returns the CQL query statement that should be used to retrieve interface descriptor from the database.
   """
-  def interface_descriptor_statement() do
+  def interface_descriptor_statement do
     @interface_descriptor_statement
   end
 
@@ -99,21 +120,9 @@ defmodule Astarte.Core.CQLUtils do
   Returns a CQL type for a given mapping value type atom
   """
   def mapping_value_type_to_db_type(value_type) do
-    case value_type do
-      :double -> "double"
-      :integer -> "int"
-      :boolean -> "boolean"
-      :longinteger -> "bigint"
-      :string -> "varchar"
-      :binaryblob -> "blob"
-      :datetime -> "timestamp"
-      :doublearray -> "list<double>"
-      :integerarray -> "list<int>"
-      :booleanarray -> "list<boolean>"
-      :longintegerarray -> "list<bigint>"
-      :stringarray -> "list<varchar>"
-      :binaryblobarray -> "list<blob>"
-      :datetimearray -> "list<timestamp>"
+    case Map.fetch(@value_type_to_db_type, value_type) do
+      {:ok, db_type} -> db_type
+      :error -> raise %CaseClauseError{term: value_type}
     end
   end
 
@@ -121,21 +130,9 @@ defmodule Astarte.Core.CQLUtils do
   Returns table column name that stores a certain type.
   """
   def type_to_db_column_name(column_type) do
-    case column_type do
-      :double -> "double_value"
-      :integer -> "integer_value"
-      :boolean -> "boolean_value"
-      :longinteger -> "longinteger_value"
-      :string -> "string_value"
-      :binaryblob -> "binaryblob_value"
-      :datetime -> "datetime_value"
-      :doublearray -> "doublearray_value"
-      :integerarray -> "integerarray_value"
-      :booleanarray -> "booleanarray_value"
-      :longintegerarray -> "longintegerarray_value"
-      :stringarray -> "stringarray_value"
-      :binaryblobarray -> "binaryblobarray_value"
-      :datetimearray -> "datetimearray_value"
+    case Map.fetch(@type_to_db_column_name, column_type) do
+      {:ok, column_name} -> column_name
+      :error -> raise %CaseClauseError{term: column_type}
     end
   end
 

@@ -111,43 +111,43 @@ defmodule CQLUtilsTest do
   end
 
   test "endpoint id generation" do
-    assert Astarte.Core.CQLUtils.endpoint_id("com.foo", 2, "/test/foo") ==
-             Astarte.Core.CQLUtils.endpoint_id("com.foo", 2, "/test/foo")
+    assert CQLUtils.endpoint_id("com.foo", 2, "/test/foo") ==
+             CQLUtils.endpoint_id("com.foo", 2, "/test/foo")
 
-    assert Astarte.Core.CQLUtils.endpoint_id("com.foo", 2, "/test/Foo") !=
-             Astarte.Core.CQLUtils.endpoint_id("com.foo", 2, "/test/foo")
+    assert CQLUtils.endpoint_id("com.foo", 2, "/test/Foo") !=
+             CQLUtils.endpoint_id("com.foo", 2, "/test/foo")
 
-    assert Astarte.Core.CQLUtils.endpoint_id("org.astarte-platform.MyInterface", 0, "/test/foo") !=
-             Astarte.Core.CQLUtils.endpoint_id("org.astarte-platform.myinterface", 0, "/test/foo")
+    assert CQLUtils.endpoint_id("org.astarte-platform.MyInterface", 0, "/test/foo") !=
+             CQLUtils.endpoint_id("org.astarte-platform.myinterface", 0, "/test/foo")
 
-    assert Astarte.Core.CQLUtils.endpoint_id("Test", 10, "/test") !=
-             Astarte.Core.CQLUtils.endpoint_id("test", 10, "/test")
+    assert CQLUtils.endpoint_id("Test", 10, "/test") !=
+             CQLUtils.endpoint_id("test", 10, "/test")
 
-    assert Astarte.Core.CQLUtils.endpoint_id("com.foo", 2, "/test/foo") !=
-             Astarte.Core.CQLUtils.endpoint_id("com.foo", 3, "/test/foo")
+    assert CQLUtils.endpoint_id("com.foo", 2, "/test/foo") !=
+             CQLUtils.endpoint_id("com.foo", 3, "/test/foo")
 
-    assert Astarte.Core.CQLUtils.endpoint_id("com.foo", 1, "/test/foo") !=
-             Astarte.Core.CQLUtils.endpoint_id("com.bar", 1, "/test/foo")
+    assert CQLUtils.endpoint_id("com.foo", 1, "/test/foo") !=
+             CQLUtils.endpoint_id("com.bar", 1, "/test/foo")
 
-    assert Astarte.Core.CQLUtils.endpoint_id("com.foo", 1, "/test/foo") ==
+    assert CQLUtils.endpoint_id("com.foo", 1, "/test/foo") ==
              <<47, 163, 1, 227, 139, 231, 222, 201, 41, 57, 24, 82, 234, 76, 61, 4>>
   end
 
   test "endpoint id generation with normalization" do
-    assert Astarte.Core.CQLUtils.endpoint_id("com.foo", 2, "/a/%{something}") ==
-             Astarte.Core.CQLUtils.endpoint_id("com.foo", 2, "/a/%{different}")
+    assert CQLUtils.endpoint_id("com.foo", 2, "/a/%{something}") ==
+             CQLUtils.endpoint_id("com.foo", 2, "/a/%{different}")
 
-    assert Astarte.Core.CQLUtils.endpoint_id("com.foo", 2, "/a/%{something}") ==
-             Astarte.Core.CQLUtils.endpoint_id("com.foo", 2, "/a/%{SomeThing}")
+    assert CQLUtils.endpoint_id("com.foo", 2, "/a/%{something}") ==
+             CQLUtils.endpoint_id("com.foo", 2, "/a/%{SomeThing}")
 
-    assert Astarte.Core.CQLUtils.endpoint_id("com.foo", 2, "/a/%{something}") !=
-             Astarte.Core.CQLUtils.endpoint_id("com.foo", 2, "/b/%{SomeThing}")
+    assert CQLUtils.endpoint_id("com.foo", 2, "/a/%{something}") !=
+             CQLUtils.endpoint_id("com.foo", 2, "/b/%{SomeThing}")
 
-    assert Astarte.Core.CQLUtils.endpoint_id("com.foo", 10, "/a/%{something}/foo") ==
-             Astarte.Core.CQLUtils.endpoint_id("com.foo", 10, "/a//foo")
+    assert CQLUtils.endpoint_id("com.foo", 10, "/a/%{something}/foo") ==
+             CQLUtils.endpoint_id("com.foo", 10, "/a//foo")
 
-    assert Astarte.Core.CQLUtils.endpoint_id("com.foo", 2, "/a/%{something}/foo") !=
-             Astarte.Core.CQLUtils.endpoint_id("com.foo", 2, "/a/%{something}/bar")
+    assert CQLUtils.endpoint_id("com.foo", 2, "/a/%{something}/foo") !=
+             CQLUtils.endpoint_id("com.foo", 2, "/a/%{something}/bar")
   end
 
   describe "Realm name to keyspace name translation" do

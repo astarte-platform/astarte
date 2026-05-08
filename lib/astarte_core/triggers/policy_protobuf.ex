@@ -17,6 +17,10 @@
 #
 
 defmodule Astarte.Core.Triggers.PolicyProtobuf do
+  @moduledoc """
+  Protobuf definitions for Astarte trigger policies.
+  """
+
   @external_resource Path.expand("/policy_protobuf", __DIR__)
 
   use Protobuf, from: Path.wildcard(Path.expand("policy_protobuf/*.proto", __DIR__))

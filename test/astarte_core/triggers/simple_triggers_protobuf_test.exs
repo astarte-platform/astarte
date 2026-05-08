@@ -74,8 +74,8 @@ defmodule Astarte.Core.Triggers.SimpleTriggersProtobufTest do
     end
 
     test "still works for SimpleTriggerContainer" do
-      alias Astarte.Core.Triggers.SimpleTriggersProtobuf.SimpleTriggerContainer
       alias Astarte.Core.Triggers.SimpleTriggersProtobuf.DeviceTrigger
+      alias Astarte.Core.Triggers.SimpleTriggersProtobuf.SimpleTriggerContainer
 
       container = %SimpleTriggerContainer{
         version: 1,
@@ -95,9 +95,9 @@ defmodule Astarte.Core.Triggers.SimpleTriggersProtobufTest do
     end
 
     test "still works for TaggedSimpleTrigger" do
-      alias Astarte.Core.Triggers.SimpleTriggersProtobuf.TaggedSimpleTrigger
-      alias Astarte.Core.Triggers.SimpleTriggersProtobuf.SimpleTriggerContainer
       alias Astarte.Core.Triggers.SimpleTriggersProtobuf.DeviceTrigger
+      alias Astarte.Core.Triggers.SimpleTriggersProtobuf.SimpleTriggerContainer
+      alias Astarte.Core.Triggers.SimpleTriggersProtobuf.TaggedSimpleTrigger
 
       trigger = %TaggedSimpleTrigger{
         version: 1,
@@ -125,8 +125,8 @@ defmodule Astarte.Core.Triggers.SimpleTriggersProtobufTest do
     end
 
     test "still works for TriggerTargetContainer" do
-      alias Astarte.Core.Triggers.SimpleTriggersProtobuf.TriggerTargetContainer
       alias Astarte.Core.Triggers.SimpleTriggersProtobuf.AMQPTriggerTarget
+      alias Astarte.Core.Triggers.SimpleTriggersProtobuf.TriggerTargetContainer
 
       simple_trigger_id = "c0cd4ff8-1ee1-4162-b654-2697f6af652b"
       parent_trigger_id = "825b42ff-6664-4f67-ac64-71a1865acb05"

@@ -17,6 +17,10 @@
 #
 
 defmodule Astarte.Core.Interface.Ownership do
+  @moduledoc """
+  Ecto type for Astarte interface ownership (device or server).
+  """
+
   use Ecto.Type
 
   @type t :: :device | :server

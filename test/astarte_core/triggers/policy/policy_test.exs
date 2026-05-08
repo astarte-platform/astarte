@@ -19,13 +19,13 @@
 defmodule Astarte.Core.Triggers.PolicyTest do
   use ExUnit.Case
   alias Astarte.Core.Triggers.Policy
-  alias Astarte.Core.Triggers.Policy.Handler
   alias Astarte.Core.Triggers.Policy.ErrorKeyword
   alias Astarte.Core.Triggers.Policy.ErrorRange
-  alias Astarte.Core.Triggers.PolicyProtobuf.Policy, as: PolicyProto
-  alias Astarte.Core.Triggers.PolicyProtobuf.Handler, as: HandlerProto
+  alias Astarte.Core.Triggers.Policy.Handler
   alias Astarte.Core.Triggers.PolicyProtobuf.ErrorKeyword, as: ErrorKeywordProto
   alias Astarte.Core.Triggers.PolicyProtobuf.ErrorRange, as: ErrorRangeProto
+  alias Astarte.Core.Triggers.PolicyProtobuf.Handler, as: HandlerProto
+  alias Astarte.Core.Triggers.PolicyProtobuf.Policy, as: PolicyProto
 
   @a_policy """
     {

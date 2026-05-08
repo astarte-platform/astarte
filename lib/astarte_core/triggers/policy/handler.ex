@@ -17,6 +17,10 @@
 #
 
 defmodule Astarte.Core.Triggers.Policy.Handler do
+  @moduledoc """
+  Defines the schema and changeset for trigger policy handlers.
+  """
+
   use TypedEctoSchema
   import Ecto.Changeset
   alias Astarte.Core.Triggers.Policy
@@ -82,24 +86,23 @@ defmodule Astarte.Core.Triggers.Policy.Handler do
     Enum.any?(errors, &includes?(error_type, &1))
   end
 
-  def includes?(%Handler{on: error_type}, error) do
-    case {error_type, error} do
-      {%Policy.ErrorKeyword{keyword: "any_error"}, e} when e >= 400 and e <= 599 ->
-        true
+  def includes?(%Handler{on: %Policy.ErrorKeyword{keyword: "any_error"}}, e)
+      when e >= 400 and e <= 599,
+      do: true
 
-      {%Policy.ErrorKeyword{keyword: "client_error"}, e} when e >= 400 and e <= 499 ->
-        true
+  def includes?(%Handler{on: %Policy.ErrorKeyword{keyword: "client_error"}}, e)
+      when e >= 400 and e <= 499,
+      do: true
 
-      {%Policy.ErrorKeyword{keyword: "server_error"}, e} when e >= 500 and e <= 599 ->
-        true
+  def includes?(%Handler{on: %Policy.ErrorKeyword{keyword: "server_error"}}, e)
+      when e >= 500 and e <= 599,
+      do: true
 
-      {%Policy.ErrorRange{error_codes: codes}, e} when e >= 400 and e <= 599 ->
-        Enum.member?(codes, error)
+  def includes?(%Handler{on: %Policy.ErrorRange{error_codes: codes}}, e)
+      when e >= 400 and e <= 599,
+      do: Enum.member?(codes, e)
 
-      _ ->
-        false
-    end
-  end
+  def includes?(%Handler{}, _error), do: false
 
   def discards?(%Handler{strategy: "discard"}) do
     true

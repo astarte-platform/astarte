@@ -17,6 +17,10 @@
 #
 
 defmodule Astarte.Core.Triggers.DataTrigger do
+  @moduledoc """
+  Defines the struct and types for Astarte data triggers.
+  """
+
   use TypedStruct
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.AMQPTriggerTarget
 

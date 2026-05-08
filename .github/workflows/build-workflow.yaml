@@ -53,6 +53,16 @@ jobs:
         # FIXME: This should be set to fail when dialyzer issues are fixed
         run: mix dialyzer || exit 0
 
+  test-credo:
+    name: Credo
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+      - uses: team-alembic/staple-actions/actions/mix-credo@a74b3b61209d35d45526df174766632f8aee03ed
+        with:
+          working-directory: .
+          mix-env: dev
+
   test-coverage:
     name: Build and Test
     runs-on: ubuntu-22.04

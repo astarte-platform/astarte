@@ -17,6 +17,10 @@
 #
 
 defmodule Astarte.Core.Triggers.Policy do
+  @moduledoc """
+  Defines the schema and changeset for Astarte trigger policies.
+  """
+
   use TypedEctoSchema
   import Ecto.Changeset
 
@@ -116,32 +120,29 @@ defmodule Astarte.Core.Triggers.Policy do
   Returns `{:ok, %Policy{}}` on success, `{:error, :invalid_policy_data}` on failure
   """
   def from_policy_proto(%PolicyProto{} = policy_proto) do
-    with %PolicyProto{
+    case policy_proto do
+      %PolicyProto{
+        name: name,
+        maximum_capacity: maximum_capacity,
+        retry_times: retry_times,
+        event_ttl: event_ttl,
+        prefetch_count: prefetch_count,
+        error_handlers: error_handlers
+      } ->
+        event_ttl = if event_ttl != 0, do: event_ttl, else: nil
+
+        {:ok,
+         %Policy{
            name: name,
+           error_handlers: Enum.map(error_handlers, &Handler.from_handler_proto/1),
            maximum_capacity: maximum_capacity,
            retry_times: retry_times,
            event_ttl: event_ttl,
-           prefetch_count: prefetch_count,
-           error_handlers: error_handlers
-         } <- policy_proto do
-      event_ttl =
-        if event_ttl != 0 do
-          event_ttl
-        else
-          nil
-        end
+           prefetch_count: prefetch_count
+         }}
 
-      {:ok,
-       %Policy{
-         name: name,
-         error_handlers: Enum.map(error_handlers, &Handler.from_handler_proto/1),
-         maximum_capacity: maximum_capacity,
-         retry_times: retry_times,
-         event_ttl: event_ttl,
-         prefetch_count: prefetch_count
-       }}
-    else
-      _ -> {:error, :invalid_policy_data}
+      _ ->
+        {:error, :invalid_policy_data}
     end
   end
 
@@ -152,11 +153,9 @@ defmodule Astarte.Core.Triggers.Policy do
   raises on failure
   """
   def from_policy_proto!(policy_proto) do
-    with {:ok, policy} <- from_policy_proto(policy_proto) do
-      policy
-    else
-      _ ->
-        raise ArgumentError
+    case from_policy_proto(policy_proto) do
+      {:ok, policy} -> policy
+      _ -> raise ArgumentError
     end
   end
 

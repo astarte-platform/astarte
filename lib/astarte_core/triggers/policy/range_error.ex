@@ -17,6 +17,10 @@
 #
 
 defmodule Astarte.Core.Triggers.Policy.ErrorRange do
+  @moduledoc """
+  Defines the schema and changeset for HTTP error ranges used in trigger policies.
+  """
+
   use TypedEctoSchema
   import Ecto.Changeset
 

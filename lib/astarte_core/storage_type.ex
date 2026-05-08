@@ -17,6 +17,10 @@
 #
 
 defmodule Astarte.Core.StorageType do
+  @moduledoc """
+  Ecto type for Astarte interface storage types.
+  """
+
   use Ecto.Type
 
   @type t ::

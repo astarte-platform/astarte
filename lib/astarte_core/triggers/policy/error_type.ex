@@ -17,6 +17,10 @@
 #
 
 defmodule Astarte.Core.Triggers.Policy.ErrorType do
+  @moduledoc """
+  Ecto type for trigger policy error types.
+  """
+
   use Ecto.Type
   alias Astarte.Core.Triggers.Policy
 

@@ -29,8 +29,8 @@ defmodule Astarte.Core.Triggers.PolicyProtobufTest do
     end
 
     test "still works for Handler" do
-      alias Astarte.Core.Triggers.PolicyProtobuf.Handler
       alias Astarte.Core.Triggers.PolicyProtobuf.ErrorKeyword
+      alias Astarte.Core.Triggers.PolicyProtobuf.Handler
 
       serialized_handler = <<8, 2, 18, 2, 8, 2>>
 
@@ -44,9 +44,9 @@ defmodule Astarte.Core.Triggers.PolicyProtobufTest do
     end
 
     test "still works for Policy" do
-      alias Astarte.Core.Triggers.PolicyProtobuf.Policy
-      alias Astarte.Core.Triggers.PolicyProtobuf.Handler
       alias Astarte.Core.Triggers.PolicyProtobuf.ErrorKeyword
+      alias Astarte.Core.Triggers.PolicyProtobuf.Handler
+      alias Astarte.Core.Triggers.PolicyProtobuf.Policy
 
       serialized_policy =
         <<10, 8, 97, 95, 112, 111, 108, 105, 99, 121, 16, 10, 42, 6, 8, 2, 18, 2, 8, 2>>

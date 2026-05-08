@@ -2,10 +2,10 @@ defmodule Astarte.Core.InterfaceDescriptorTest do
   use ExUnit.Case
 
   alias Astarte.Core.CQLUtils
-  alias Astarte.Core.InterfaceDescriptor
-  alias Astarte.Core.Interface.Type
-  alias Astarte.Core.Interface.Ownership
   alias Astarte.Core.Interface.Aggregation
+  alias Astarte.Core.Interface.Ownership
+  alias Astarte.Core.Interface.Type
+  alias Astarte.Core.InterfaceDescriptor
   alias Astarte.Core.StorageType
 
   @interface_fixture_name "com.ispirata.Hemera.Test"

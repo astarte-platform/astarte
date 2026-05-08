@@ -17,6 +17,10 @@
 #
 
 defmodule Astarte.Core.Triggers.Policy.ErrorKeyword do
+  @moduledoc """
+  Defines the schema and changeset for keyword-based error conditions used in trigger policies.
+  """
+
   use TypedEctoSchema
   import Ecto.Changeset
 

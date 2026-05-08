@@ -68,13 +68,16 @@ defmodule Astarte.Core.Mapping.ValueTypeTest do
 
     longbin =
       Stream.cycle([<<42>>])
-      |> Enum.take(65537)
+      |> Enum.take(65_537)
       |> IO.iodata_to_binary()
 
     assert ValueType.validate_value(:binaryblob, {0, longbin}) ==
              {:error, :value_size_exceeded}
 
-    assert ValueType.validate_value(:binaryblob, %Cyanide.Binary{subtype: :generic, data: longbin}) ==
+    assert ValueType.validate_value(
+             :binaryblob,
+             %Cyanide.Binary{subtype: :generic, data: longbin}
+           ) ==
              {:error, :value_size_exceeded}
 
     assert ValueType.validate_value(:datetime, 22.3) == {:error, :unexpected_value_type}

@@ -17,6 +17,8 @@
 #
 
 defmodule Astarte.Core.InterfaceDescriptor do
+  @moduledoc false
+
   use TypedStruct
 
   alias Astarte.Core.Interface
@@ -53,36 +55,37 @@ defmodule Astarte.Core.InterfaceDescriptor do
   end
 
   def from_db_result(db_result) do
-    with %{
-           name: name,
-           major_version: major_version,
-           minor_version: minor_version,
-           type: type,
-           ownership: ownership,
-           aggregation: aggregation,
-           automaton_accepting_states: automaton_accepting_states,
-           automaton_transitions: automaton_transitions,
-           storage: storage,
-           storage_type: storage_type,
-           interface_id: interface_id
-         } <- db_result do
-      interface_descriptor = %InterfaceDescriptor{
+    case db_result do
+      %{
         name: name,
         major_version: major_version,
         minor_version: minor_version,
-        type: Type.cast!(type),
-        ownership: Ownership.cast!(ownership),
-        aggregation: Aggregation.cast!(aggregation),
+        type: type,
+        ownership: ownership,
+        aggregation: aggregation,
+        automaton_accepting_states: automaton_accepting_states,
+        automaton_transitions: automaton_transitions,
         storage: storage,
-        storage_type: StorageType.cast!(storage_type),
-        automaton:
-          {:erlang.binary_to_term(automaton_transitions),
-           :erlang.binary_to_term(automaton_accepting_states)},
+        storage_type: storage_type,
         interface_id: interface_id
-      }
+      } ->
+        interface_descriptor = %InterfaceDescriptor{
+          name: name,
+          major_version: major_version,
+          minor_version: minor_version,
+          type: Type.cast!(type),
+          ownership: Ownership.cast!(ownership),
+          aggregation: Aggregation.cast!(aggregation),
+          storage: storage,
+          storage_type: StorageType.cast!(storage_type),
+          automaton:
+            {:erlang.binary_to_term(automaton_transitions),
+             :erlang.binary_to_term(automaton_accepting_states)},
+          interface_id: interface_id
+        }
 
-      {:ok, interface_descriptor}
-    else
+        {:ok, interface_descriptor}
+
       _ ->
         {:error, :invalid_interface_descriptor_data}
     end
@@ -96,11 +99,9 @@ defmodule Astarte.Core.InterfaceDescriptor do
   raises on failure
   """
   def from_db_result!(db_result) do
-    with {:ok, interface_descriptor} <- from_db_result(db_result) do
-      interface_descriptor
-    else
-      _ ->
-        raise ArgumentError
+    case from_db_result(db_result) do
+      {:ok, interface_descriptor} -> interface_descriptor
+      _ -> raise ArgumentError
     end
   end
 

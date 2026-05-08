@@ -17,6 +17,10 @@
 #
 
 defmodule Astarte.Core.Mapping.EndpointsAutomaton do
+  @moduledoc """
+  Provides automaton-based endpoint matching for Astarte mappings.
+  """
+
   alias Astarte.Core.Mapping
 
   @doc """
@@ -53,7 +57,7 @@ defmodule Astarte.Core.Mapping.EndpointsAutomaton do
   def build(mappings) do
     nfa = do_build(mappings)
 
-    if is_valid?(nfa, mappings) do
+    if valid?(nfa, mappings) do
       {:ok, nfa}
     else
       {:error, :overlapping_mappings}
@@ -63,7 +67,7 @@ defmodule Astarte.Core.Mapping.EndpointsAutomaton do
   @doc """
   returns true if `nfa` is valid for given `mappings`
   """
-  def is_valid?(nfa, mappings) do
+  def valid?(nfa, mappings) do
     Enum.all?(mappings, fn mapping ->
       resolve_path(mapping.endpoint, nfa) == {:ok, mapping.endpoint}
     end)

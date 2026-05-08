@@ -19,6 +19,10 @@
 #
 
 defmodule Astarte.Core.Device.Capabilities do
+  @moduledoc """
+  Defines the schema and changeset for Astarte device capabilities.
+  """
+
   use TypedEctoSchema
   import Ecto.Changeset
 

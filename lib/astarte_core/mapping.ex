@@ -25,9 +25,9 @@ defmodule Astarte.Core.Mapping do
   alias Astarte.Core.CQLUtils
   alias Astarte.Core.Mapping
   alias Astarte.Core.Mapping.DatabaseRetentionPolicy
-  alias Astarte.Core.Mapping.ValueType
   alias Astarte.Core.Mapping.Reliability
   alias Astarte.Core.Mapping.Retention
+  alias Astarte.Core.Mapping.ValueType
 
   @placeholder_regex ~r/%{[a-zA-Z_]+[a-zA-Z0-9_]*}/
 
@@ -211,18 +211,15 @@ defmodule Astarte.Core.Mapping do
   end
 
   defp validate_not_set_unless(changeset, field, param, values) do
-    unless Enum.member?(values, param) do
-      validate_change(changeset, field, fn field, value ->
-        if value != nil do
-          [{field, "must be blank"}]
-        else
-          []
-        end
-      end)
-    else
+    if Enum.member?(values, param) do
       changeset
+    else
+      validate_change(changeset, field, &validate_field_is_blank/2)
     end
   end
+
+  defp validate_field_is_blank(_field, nil), do: []
+  defp validate_field_is_blank(field, _value), do: [{field, "must be blank"}]
 
   defp validate_database_retention_policy_and_ttl(changeset) do
     case {get_field(changeset, :database_retention_policy),

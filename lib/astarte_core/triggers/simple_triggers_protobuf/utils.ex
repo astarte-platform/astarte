@@ -17,6 +17,10 @@
 #
 
 defmodule Astarte.Core.Triggers.SimpleTriggersProtobuf.Utils do
+  @moduledoc """
+  Utility functions for working with SimpleTriggersProtobuf structures.
+  """
+
   alias Astarte.Core.CQLUtils
   alias Astarte.Core.Mapping
   alias Astarte.Core.Triggers.DataTrigger
@@ -24,8 +28,8 @@ defmodule Astarte.Core.Triggers.SimpleTriggersProtobuf.Utils do
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.DataTrigger,
     as: SimpleTriggersProtobufDataTrigger
 
-  alias Astarte.Core.Triggers.SimpleTriggersProtobuf.TriggerTargetContainer
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.SimpleTriggerContainer
+  alias Astarte.Core.Triggers.SimpleTriggersProtobuf.TriggerTargetContainer
 
   @any_device_object_id <<140, 77, 4, 17, 75, 202, 11, 92, 131, 72, 15, 167, 65, 149, 191, 244>>
   @any_interface_object_id <<247, 238, 60, 243, 184, 175, 236, 43, 25, 242, 126, 91, 253, 141, 17,
