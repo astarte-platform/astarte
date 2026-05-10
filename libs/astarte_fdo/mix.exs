@@ -61,7 +61,7 @@ defmodule Astarte.FDO.MixProject do
       {:dialyxir, "~> 1.4", only: [:dev, :test], runtime: false},
       {:httpoison, "~> 2.2"},
       {:castore, "~> 1.0"},
-      {:mimic, "~> 1.11", only: :test},
+      {:mimic, "~> 2.0", only: :test},
       {:stream_data, "~> 1.1", only: :test},
       {:astarte_generators, path: "../astarte_generators", only: :test},
       {:typedstruct, "~> 0.5"},

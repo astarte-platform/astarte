@@ -52,7 +52,7 @@ defmodule AstarteSecrets.MixProject do
       {:ecto, "~> 3.12"},
       {:excoveralls, "~> 0.15", only: :test},
       {:httpoison, "~> 2.2"},
-      {:mimic, "~> 1.11", only: :test},
+      {:mimic, "~> 2.0", only: :test},
       {:skogsra, "~> 2.2"},
       {:typed_ecto_schema, "~> 0.4"},
       {:x509, "~> 0.8"}
