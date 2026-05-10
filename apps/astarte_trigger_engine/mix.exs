@@ -65,11 +65,11 @@ defmodule Astarte.TriggerEngine.Mixfile do
 
   defp deps do
     [
-      {:amqp, "~> 3.3"},
+      {:amqp, "~> 4.0"},
       {:bbmustache, "~> 1.9"},
       {:castore, "~> 1.0.0"},
       {:cyanide, "~> 2.0"},
-      {:httpoison, "~> 1.6"},
+      {:httpoison, "~> 2.0"},
       {:jason, "~> 1.2"},
       {:plug_cowboy, "~> 2.1"},
       {:telemetry, "~> 1.0"},
@@ -80,15 +80,15 @@ defmodule Astarte.TriggerEngine.Mixfile do
       {:typedstruct, "~> 0.5"},
       {:ecto, "~> 3.12"},
       {:pretty_log, "~> 0.1"},
-      {:exandra, "~> 0.13"},
+      {:exandra, "~> 1.0"},
       {:astarte_data_access, path: astarte_lib("astarte_data_access")},
       {:skogsra, "~> 2.2"},
       {:observer_cli, "~> 1.5"},
       {:current_rabbit_pool, "~> 1.1"},
       {:dialyxir, "~> 1.0", only: [:dev, :test], runtime: false},
       {:excoveralls, "~> 0.15", only: :test},
-      {:mox, "~> 0.5", only: :test},
-      {:mimic, "~> 1.11", only: :test},
+      {:mox, "~> 1.0", only: :test},
+      {:mimic, "~> 2.0", only: :test},
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false}
     ]
   end

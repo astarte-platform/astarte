@@ -68,7 +68,7 @@ defmodule Astarte.DataAccess.Mixfile do
   # Run "mix help deps" to learn about dependencies.
   defp deps do
     [
-      {:exandra, "~> 0.13"},
+      {:exandra, "~> 1.0"},
       {:typed_ecto_schema, "~> 0.4"},
       {:astarte_fdo_core, path: "../astarte_fdo_core"},
       {:cose, github: "secomind/cose-elixir"},
@@ -77,7 +77,7 @@ defmodule Astarte.DataAccess.Mixfile do
       {:castore, "~> 1.0.0"},
       {:ex_doc, ">= 0.0.0", only: :dev, runtime: false},
       {:dialyxir, "~> 1.4", only: [:dev, :test], runtime: false},
-      {:mimic, "~> 1.7.4", only: :test},
+      {:mimic, "~> 2.3.0", only: :test},
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false}
     ]
   end

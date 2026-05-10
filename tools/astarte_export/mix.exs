@@ -29,7 +29,7 @@ defmodule AstarteExport.MixProject do
     [
       {:astarte_core, github: "astarte-platform/astarte_core"},
       {:xandra, "~> 0.19.4"},
-      {:exandra, "~>0.16.0"},
+      {:exandra, "~> 1.0.0"},
       {:distillery, "~> 2.1.1"},
       {:pretty_log, "~> 0.1.0"},
       {:xml_stream_writer, "~> 0.1"},
