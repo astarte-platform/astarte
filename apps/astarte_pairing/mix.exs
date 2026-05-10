@@ -81,7 +81,7 @@ defmodule Astarte.Pairing.Mixfile do
       {:jason, "~> 1.2"},
       {:cbor, "~> 1.0"},
       {:cose, github: "secomind/cose-elixir"},
-      {:guardian, "~> 2.3.2"},
+      {:guardian, "~> 2.4.0"},
       {:remote_ip, "~> 1.0"},
       {:excoveralls, "~> 0.15", only: :test},
       {:mox, "~> 0.5", only: :test},

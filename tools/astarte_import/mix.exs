@@ -23,7 +23,7 @@ defmodule Astarte.Import.MixProject do
     [
       {:xandra, "~> 0.19.4"},
       {:exandra, "~>0.16.0"},
-      {:ecto, "~>3.13"},
+      {:ecto, "~> 3.13"},
       {:logfmt, "~> 3.3"},
       {:astarte_core, github: "astarte-platform/astarte_core"},
       {:astarte_data_access, path: astarte_lib("astarte_data_access")},
