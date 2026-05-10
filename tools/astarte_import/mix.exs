@@ -22,7 +22,7 @@ defmodule Astarte.Import.MixProject do
   defp deps do
     [
       {:xandra, "~> 0.19.4"},
-      {:exandra, "~>0.16.0"},
+      {:exandra, "~> 1.0.0"},
       {:ecto, "~>3.13"},
       {:logfmt, "~> 3.3"},
       {:astarte_core, github: "astarte-platform/astarte_core"},
