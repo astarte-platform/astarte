@@ -6,6 +6,7 @@
 !/apps/
 !/libs/
 !/tools/
+!/astarte-dashboard/
 
 # Standard Elixir gitignore to be applied to all apps
 **/_build/

@@ -1,16 +1,25 @@
-name: Platform build compatibility
+name: Astarte-Dashboard Platform build compatibility
 on:
   push:
     branches:
       - master
-      - 'release-*'
+      - "release-*"
+    paths:
+      - "astarte-dashboard/**"
+      - ".github/workflows/astarte-dashboard-compatibility.yml"
   create:
   pull_request:
+    paths:
+      - "astarte-dashboard/**"
+      - ".github/workflows/astarte-dashboard-compatibility.yml"
 
 jobs:
   build:
     name: Node ${{ matrix.node_version }} on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        working-directory: ./astarte-dashboard
     strategy:
       matrix:
         os:
