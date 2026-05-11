@@ -1,0 +1,82 @@
+{
+  "data": {
+    "sensors": {
+      "sensor-1": {
+        "value": [
+          {
+            "binaryblob": "",
+            "boolean": null,
+            "datetime": null,
+            "double": 0,
+            "integer": 0,
+            "longinteger": null,
+            "string": "",
+            "binaryblobarray": [],
+            "booleanarray": [],
+            "datetimearray": [],
+            "doublearray": [],
+            "integerarray": [1, 2],
+            "longintegerarray": [],
+            "stringarray": [],
+            "timestamp": "2020-09-28T13:38:32+0000"
+          },
+          {
+            "binaryblob": "binaryblob1",
+            "boolean": false,
+            "datetime": "2020-01-01T12:13:14+0000",
+            "double": 1.2,
+            "integer": 1,
+            "longinteger": "987654321",
+            "string": "string",
+            "binaryblobarray": ["binaryblobarray1", "binaryblobarray2"],
+            "booleanarray": [false, true],
+            "datetimearray": ["2020-01-01T12:13:14+0000", "2020-01-01T12:13:14+0000"],
+            "doublearray": [1.1, 2.2],
+            "integerarray": [1, 2],
+            "longintegerarray": ["1234", "5678"],
+            "stringarray": ["stringarray1", "stringarray2"],
+            "timestamp": "2020-09-28T13:38:33+0000"
+          },
+          {
+            "binaryblob": "binaryblob2",
+            "boolean": true,
+            "datetime": "2020-01-01T12:13:15+0000",
+            "double": 1.3,
+            "integer": 2,
+            "longinteger": "98765",
+            "string": "string2",
+            "binaryblobarray": ["binaryblobarray3", "binaryblobarray4"],
+            "booleanarray": [true, true, false, false],
+            "datetimearray": ["2020-01-01T12:13:15+0000"],
+            "doublearray": [3.3, 4.4],
+            "integerarray": [3, 4],
+            "longintegerarray": ["4321", "8765"],
+            "stringarray": ["stringarray3", "stringarray4"],
+            "timestamp": "2020-09-28T13:38:34+0000"
+          }
+        ]
+      },
+      "sensor-2": {
+        "value": [
+          {
+            "binaryblob": "binaryblob1",
+            "boolean": false,
+            "datetime": "2020-01-01T12:13:14+0000",
+            "double": 1.2,
+            "integer": 1,
+            "longinteger": "987654321",
+            "string": "string",
+            "binaryblobarray": ["binaryblobarray1", "binaryblobarray2"],
+            "booleanarray": [false, true],
+            "datetimearray": ["2020-01-01T12:13:14+0000", "2020-01-01T12:13:14+0000"],
+            "doublearray": [1.1, 2.2],
+            "integerarray": [1, 2],
+            "longintegerarray": ["1234", "5678"],
+            "stringarray": ["stringarray1", "stringarray2"],
+            "timestamp": "2020-09-28T13:38:32+0000"
+          }
+        ]
+      }
+    }
+  }
+}

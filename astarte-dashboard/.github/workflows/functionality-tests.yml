@@ -1,0 +1,44 @@
+name: Functionality tests
+on:
+  push:
+    branches:
+      - master
+      - 'release-*'
+  create:
+  pull_request:
+
+jobs:
+  build:
+    name: Run code quality and funcionality tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Setup node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: '.tool-versions'
+      - name: Get Node.js Version
+        id: node-version
+        run: |
+          echo "version=$(node --version)" >> $GITHUB_OUTPUT
+      - name: Cache dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            **/node_modules
+          key: ${{ runner.os }}-${{ steps.node-version.outputs.version }}-${{ hashFiles('**/package-lock.json') }}
+      - name: Install dependencies
+        run: npm ci
+      - name: Check formatting
+        run: npm run check-format
+      - name: Check linting
+        run: npm run check-lint
+      - name: Check Typescript
+        run: npm run check-types
+      - name: Run unit tests
+        run: npm run test
+      - name: Start dev server
+        run: npm run start & npx wait-on http://localhost:8080
+      - name: Run Cypress tests
+        run: npm run cypress:test

@@ -1,0 +1,38 @@
+name: Platform build compatibility
+on:
+  push:
+    branches:
+      - master
+      - 'release-*'
+  create:
+  pull_request:
+
+jobs:
+  build:
+    name: Node ${{ matrix.node_version }} on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os:
+          - ubuntu-latest
+        node_version:
+          - 22
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Use Node.js ${{ matrix.node_version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node_version }}
+      - name: Cache dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            **/node_modules
+          key: ${{ matrix.os }}-${{ matrix.node_version }}-${{ hashFiles('**/package-lock.json') }}
+      - name: Install dependencies
+        run: npm ci --production
+      - name: Check App compilation
+        run: npm run build
+        env:
+          CI: false

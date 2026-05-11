@@ -1,0 +1,12 @@
+{
+  "data": [
+    "test.astarte.FirstInterface",
+    "test.astarte.SecondInterface",
+    "test.astarte.ThirdInterface",
+    "test.astarte.AggregatedObjectInterface",
+    "test.astarte.IndividualObjectInterface",
+    "test.astarte.PropertiesInterface",
+    "com.example.ExampleInterface",
+    "com.test.TestInterface"
+  ]
+}
