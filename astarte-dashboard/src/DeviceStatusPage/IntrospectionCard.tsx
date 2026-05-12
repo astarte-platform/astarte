@@ -1,7 +1,7 @@
 /*
    This file is part of Astarte.
 
-   Copyright 2020 Ispirata Srl
+   Copyright 2020-2026 SECO Mind Srl
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -74,7 +74,9 @@ interface IntrospectionCardProps {
 }
 
 const IntrospectionCard = ({ device }: IntrospectionCardProps): React.ReactElement => {
-  const introspection = Array.from(device.introspection.values());
+  const introspection = Array.from(device.introspection.values()).sort((a, b) =>
+    a.name.localeCompare(b.name),
+  );
 
   return (
     <FullHeightCard xs={12} md={6} className="mb-4">
