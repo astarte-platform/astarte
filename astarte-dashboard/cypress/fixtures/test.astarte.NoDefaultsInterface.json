@@ -1,0 +1,36 @@
+{
+  "data": {
+    "interface_name": "test.astarte.NoDefaultsInterface",
+    "version_major": 2,
+    "version_minor": 2,
+    "type": "datastream",
+    "ownership": "device",
+    "aggregation": "object",
+    "description": "Interface description",
+    "doc": "Interface documentation",
+    "mappings": [
+      {
+        "endpoint": "/objects/boolean",
+        "type": "boolean",
+        "reliability": "guaranteed",
+        "retention": "volatile",
+        "expiry": 120,
+        "database_retention_policy": "use_ttl",
+        "database_retention_ttl": 120,
+        "explicit_timestamp": true
+      },
+      {
+        "endpoint": "/objects/string",
+        "type": "string",
+        "reliability": "guaranteed",
+        "retention": "volatile",
+        "expiry": 120,
+        "database_retention_policy": "use_ttl",
+        "database_retention_ttl": 120,
+        "explicit_timestamp": true,
+        "description": "Mapping description",
+        "doc": "Mapping documentation"
+      }
+    ]
+  }
+}

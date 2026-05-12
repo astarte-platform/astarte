@@ -1,0 +1,27 @@
+{
+  "beam_module": "Elixir.Astarte.Flow.Blocks.Container",
+  "name": "container",
+  "schema": {
+    "$id": "https://astarte-platform.org/specs/astarte_flow/blocks/container.json",
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "additionalProperties": false,
+    "description": "This is a block that sends messages to a Docker container.",
+    "properties": {
+      "image": {
+        "description": "The tag of the docker image that will be used by the block.",
+        "title": "Image",
+        "type": "string"
+      },
+      "type": {
+        "description": "How the block should process messages.",
+        "enum": ["consumer", "producer", "producer_consumer"],
+        "title": "Type",
+        "type": "string"
+      }
+    },
+    "required": ["image"],
+    "title": "Container options",
+    "type": "object"
+  },
+  "type": "producer_consumer"
+}

@@ -15,7 +15,8 @@
   },
   "excludes": [
     "**/node_modules",
-    "**/*-lock.json"
+    "**/*-lock.json",
+    "astarte-dashboard/**"
   ],
   "plugins": [
     "https://plugins.dprint.dev/typescript-0.95.13.wasm",

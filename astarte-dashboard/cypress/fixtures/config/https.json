@@ -1,0 +1,6 @@
+{
+  "astarte_api_url": "https://api.example.com",
+  "auth": [{ "type": "token" }],
+  "default_auth": "token",
+  "enable_flow_preview": true
+}

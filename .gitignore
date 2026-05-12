@@ -54,3 +54,27 @@ apps/*/_checkouts/
 
 examples/*/node_modules/
 examples/*/.idea/
+
+## Astarte Dashboard
+
+# dependencies
+astarte-dashboard/node_modules/
+astarte-dashboard/.pnp
+astarte-dashboard/.pnp.js
+
+# testing
+astarte-dashboard/coverage/
+
+# production
+astarte-dashboard/dist/
+astarte-dashboard/build/
+
+# misc
+astarte-dashboard/.env.local
+astarte-dashboard/.env.development.local
+astarte-dashboard/.env.test.local
+astarte-dashboard/.env.production.local
+
+astarte-dashboard/npm-debug.log*
+astarte-dashboard/yarn-debug.log*
+astarte-dashboard/yarn-error.log*

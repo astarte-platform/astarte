@@ -1,0 +1,158 @@
+{
+  "data": [
+    { "name": "customblock", "schema": {}, "source": "source", "type": "producer" },
+    {
+      "beam_module": "Elixir.Astarte.Flow.Blocks.JsonMapper",
+      "name": "to_json",
+      "schema": {
+        "$id": "https://astarte-platform.org/specs/astarte_flow/blocks/to_json.json",
+        "$schema": "http://json-schema.org/draft-04/schema#",
+        "additionalProperties": false,
+        "properties": {},
+        "title": "ToJSONOptions",
+        "type": "object"
+      },
+      "type": "producer_consumer"
+    },
+    {
+      "beam_module": "Elixir.Astarte.Flow.Blocks.Sorter",
+      "name": "sort",
+      "schema": {
+        "$id": "https://astarte-platform.org/specs/astarte_flow/blocks/sort.json",
+        "$schema": "http://json-schema.org/draft-04/schema#",
+        "additionalProperties": false,
+        "properties": {
+          "deduplicate": {
+            "default": "false",
+            "description": "Duplicated messages are discarded when true.",
+            "type": "boolean"
+          },
+          "window_size_ms": { "description": "Window size in milliseconds.", "type": "integer" }
+        },
+        "required": ["window_size_ms"],
+        "title": "SortOptions",
+        "type": "object"
+      },
+      "type": "producer_consumer"
+    },
+    {
+      "beam_module": "Elixir.Astarte.Flow.Blocks.RandomProducer",
+      "name": "random_source",
+      "schema": {
+        "$id": "https://astarte-platform.org/specs/astarte_flow/blocks/random_source.json",
+        "$schema": "http://json-schema.org/draft-04/schema#",
+        "additionalProperties": false,
+        "properties": {
+          "delay_ms": {
+            "default": 1000,
+            "description": "Delay between 2 consecutive messages.",
+            "type": "integer"
+          },
+          "key": { "description": "Message key.", "type": "string" },
+          "max": { "default": 1, "description": "Random number maximum value.", "type": "number" },
+          "min": { "default": 0, "description": "Random number minimum value.", "type": "number" },
+          "type": {
+            "default": "real",
+            "description": "Value type.",
+            "enum": ["integer", "real", "boolean"],
+            "type": "string"
+          }
+        },
+        "required": ["key"],
+        "title": "RandomSourceOptions",
+        "type": "object"
+      },
+      "type": "producer"
+    },
+    {
+      "beam_module": "Elixir.Astarte.Flow.Blocks.LuaMapper",
+      "name": "lua_map",
+      "schema": {
+        "$id": "https://astarte-platform.org/specs/astarte_flow/blocks/lua_map.json",
+        "$schema": "http://json-schema.org/draft-04/schema#",
+        "additionalProperties": false,
+        "properties": {
+          "config": {
+            "default": {},
+            "description": "Lua script configuration object.",
+            "type": "object"
+          },
+          "script": { "description": "Lua script.", "type": "string" }
+        },
+        "required": ["script"],
+        "title": "LuaMapOptions",
+        "type": "object"
+      },
+      "type": "producer_consumer"
+    },
+    {
+      "beam_module": "Elixir.Astarte.Flow.Blocks.JsonPathMapper",
+      "name": "json_path_map",
+      "schema": {
+        "$id": "https://astarte-platform.org/specs/astarte_flow/blocks/json_path_map.json",
+        "$schema": "http://json-schema.org/draft-04/schema#",
+        "additionalProperties": false,
+        "properties": { "template": { "description": "JSONPath template.", "type": "string" } },
+        "required": ["template"],
+        "title": "JSONPathMapOptions",
+        "type": "object"
+      },
+      "type": "producer_consumer"
+    },
+    {
+      "beam_module": "Elixir.Astarte.Flow.Blocks.HttpSource",
+      "name": "http_source",
+      "schema": {
+        "$id": "https://astarte-platform.org/specs/astarte_flow/blocks/http_source.json",
+        "$schema": "http://json-schema.org/draft-04/schema#",
+        "additionalProperties": false,
+        "properties": {
+          "base_url": { "description": "Target base URL.", "type": "string" },
+          "headers": {
+            "additionalProperties": { "type": "string" },
+            "description": "Http request headers.",
+            "type": "object"
+          },
+          "polling_interval_ms": { "description": "Polling interval.", "type": "integer" },
+          "target_paths": {
+            "description": "Relative paths.",
+            "items": { "type": "string" },
+            "type": "array"
+          }
+        },
+        "required": ["base_url", "target_paths", "polling_interval_ms"],
+        "title": "HttpSourceOptions",
+        "type": "object"
+      },
+      "type": "producer"
+    },
+    {
+      "beam_module": "Elixir.Astarte.Flow.Blocks.HttpSink",
+      "name": "http_sink",
+      "schema": {
+        "$id": "https://astarte-platform.org/specs/astarte_flow/blocks/http_sink.json",
+        "$schema": "http://json-schema.org/draft-04/schema#",
+        "additionalProperties": false,
+        "properties": { "url": { "description": "Target URL.", "type": "string" } },
+        "required": ["url"],
+        "title": "HttpSinkOptions",
+        "type": "object"
+      },
+      "type": "consumer"
+    },
+    {
+      "beam_module": "Elixir.Astarte.Flow.Blocks.JsonMapper",
+      "name": "filter",
+      "schema": {
+        "$id": "https://astarte-platform.org/specs/astarte_flow/blocks/filter.json",
+        "$schema": "http://json-schema.org/draft-04/schema#",
+        "additionalProperties": false,
+        "properties": { "script": { "description": "Lua script filter.", "type": "string" } },
+        "required": ["script"],
+        "title": "FilterOptions",
+        "type": "object"
+      },
+      "type": "producer_consumer"
+    }
+  ]
+}

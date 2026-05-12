@@ -1,0 +1,41 @@
+{
+  "data": {
+    "humidity": {
+      "value": {
+        "current": {
+          "reception_timestamp": "2020-10-14T12:26:36.492Z",
+          "timestamp": "2020-10-14T12:26:36.492Z",
+          "value": 70.0
+        }
+      }
+    },
+    "sensors": {
+      "light": {
+        "estimated": {
+          "reception_timestamp": "2020-10-14T12:27:13.200Z",
+          "timestamp": "2020-10-14T12:27:13.200Z",
+          "value": 82.0
+        }
+      },
+      "proximity": {
+        "estimated": {
+          "reception_timestamp": "2020-10-14T12:26:54.305Z",
+          "timestamp": "2020-10-14T12:26:54.305Z",
+          "value": -11.0
+        }
+      }
+    },
+    "temperature": {
+      "reception_timestamp": "2020-10-14T12:26:29.797Z",
+      "timestamp": "2020-10-14T12:26:29.797Z",
+      "value": 23.0
+    },
+    "weekend": {
+      "time": {
+        "reception_timestamp": "2020-10-14T12:27:31.017Z",
+        "timestamp": "2020-10-14T12:27:31.017Z",
+        "value": true
+      }
+    }
+  }
+}
