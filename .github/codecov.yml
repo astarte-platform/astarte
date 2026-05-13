@@ -23,6 +23,7 @@ coverage:
           - astarte_data_access_generators
           - astarte_test_suite
           - astarte_rpc
+          - astarte_adapters
 
 ignore:
   - "apps/*/test"
@@ -93,3 +94,7 @@ flags:
     carryforward: true
     paths:
       - libs/astarte_rpc
+  astarte_adapters:
+    carryforward: true
+    paths:
+      - libs/astarte_adapters
