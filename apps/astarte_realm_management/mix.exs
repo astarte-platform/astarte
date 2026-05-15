@@ -65,7 +65,7 @@ defmodule Astarte.RealmManagement.Mixfile do
 
   defp astarte_required_modules(_) do
     [
-      {:astarte_core, "~> 1.3", override: true}
+      {:astarte_core, path: astarte_lib("astarte_core"), override: true}
     ]
   end
 

@@ -41,7 +41,7 @@ defmodule Astarte.Core.Generators.MixProject do
 
   defp astarte_required_modules() do
     [
-      {:astarte_core, "~> 1.3", override: true}
+      {:astarte_core, path: "../astarte_core", override: true}
     ]
   end
 

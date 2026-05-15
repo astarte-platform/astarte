@@ -26,10 +26,12 @@ COPY libs/astarte_data_access/mix.exs libraries/astarte_data_access/mix.exs
 COPY libs/astarte_data_access/mix.lock libraries/astarte_data_access/mix.lock
 COPY libs/astarte_events/mix.exs libraries/astarte_events/mix.exs
 COPY libs/astarte_events/mix.lock libraries/astarte_events/mix.lock
-RUN mix do deps.get, deps.compile
+COPY libs/astarte_core/mix.exs libraries/astarte_core/mix.exs
+COPY libs/astarte_core/mix.lock libraries/astarte_core/mix.lock
+RUN mix do deps.get, deps.compile --skip-local-deps
 
 COPY libs ./libraries
-RUN mix do deps.get, deps.compile
+RUN mix deps.compile
 
 # Add all the rest
 COPY apps/astarte_housekeeping .
