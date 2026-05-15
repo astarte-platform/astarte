@@ -178,7 +178,7 @@ defmodule Astarte.AppEngine.APIWeb.Router do
     pipe_through :swagger
 
     get "/openapi", OpenApiSpex.Plug.RenderSpec, []
-    forward "/", OpenApiSpex.Plug.SwaggerUI, path: "/swagger/openapi"
+    get "/", Astarte.AppEngine.APIWeb.Plug.SwaggerUI, path: "/swagger/openapi"
   end
 
   scope "/version", Astarte.AppEngine.APIWeb do
