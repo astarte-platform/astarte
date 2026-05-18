@@ -8,6 +8,7 @@ defmodule Astarte.Secrets do
   alias Astarte.Secrets.Key
   alias COSE.Keys.ECC
   alias COSE.Keys.RSA
+  alias HTTPoison.Response
 
   require Logger
 
@@ -15,8 +16,9 @@ defmodule Astarte.Secrets do
   def get_key(key_name, opts \\ []) do
     namespace = Keyword.fetch!(opts, :namespace)
 
-    with {:ok, resp} <- Core.get_key(key_name, namespace) do
-      Key.parse(key_name, namespace, resp)
+    with {:ok, resp} <- Core.get_key(key_name, namespace),
+         {:ok, data} <- Core.parse_json_data(resp) do
+      Key.parse(key_name, namespace, data)
     end
   end
 
@@ -67,7 +69,7 @@ defmodule Astarte.Secrets do
     headers = [{"Content-Type", "application/json"}]
 
     case Client.post("/transit/keys/#{key_name}/config", req_body, headers, options) do
-      {:ok, %HTTPoison.Response{status_code: 200}} ->
+      {:ok, %Response{status_code: 200}} ->
         :ok
 
       error_resp ->
@@ -84,7 +86,7 @@ defmodule Astarte.Secrets do
     headers = []
 
     case Client.delete("/transit/keys/#{key_name}", headers, options) do
-      {:ok, %HTTPoison.Response{status_code: 204}} ->
+      {:ok, %Response{status_code: 204}} ->
         :ok
 
       error_resp ->
@@ -139,7 +141,7 @@ defmodule Astarte.Secrets do
     headers = [{"Content-Type", "application/json"}]
 
     case Client.post("/transit/decrypt/#{key_name}", req_body, headers, client_opts) do
-      {:ok, %HTTPoison.Response{status_code: 200, body: body}} ->
+      {:ok, %Response{status_code: 200, body: body}} ->
         with {:ok, data} <- Core.parse_json_data(body),
              plaintext_b64 when is_binary(plaintext_b64) <- Map.get(data, "plaintext"),
              {:ok, plaintext} <- Base.decode64(plaintext_b64) do
@@ -152,6 +154,26 @@ defmodule Astarte.Secrets do
         Logger.error(
           "Encountered HTTP error while decrypting with key #{key_name}: #{inspect(error_resp)}"
         )
+
+        :error
+    end
+  end
+
+  @doc """
+  Rotate the given key
+  """
+  def rotate(key_name, namespace) do
+    path = "/transit/keys/#{key_name}/rotate"
+    opts = [namespace: namespace]
+
+    with {:ok, %Response{status_code: 200, body: resp}} <- Client.post(path, "", [], opts),
+         {:ok, data} <- Core.parse_json_data(resp),
+         {:ok, key} <- Key.parse(key_name, namespace, data) do
+      {:ok, key}
+    else
+      error ->
+        "Error while rotating key #{key_name} in namespace #{namespace}: #{inspect(error)}"
+        |> Logger.error()
 
         :error
     end

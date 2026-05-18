@@ -28,6 +28,7 @@ defmodule Astarte.SecretsTest do
   alias COSE.Keys.ECC
 
   import Astarte.Helpers.Namespace
+  import Astarte.Helpers.Key
 
   describe "create_namespace/3" do
     setup :namespace_tokens_setup
@@ -578,6 +579,24 @@ defmodule Astarte.SecretsTest do
 
       assert {:error, :pem_decode_failed} =
                Secrets.import_key("k", :es256, ec_key, namespace: "my-ns")
+    end
+  end
+
+  describe "rotate/2" do
+    setup :key_setup
+
+    test "rotates the key", %{key: key} do
+      assert {:ok, new_key} = Secrets.rotate(key.name, key.namespace)
+      assert Enum.count(new_key.revisions) > Enum.count(key.revisions)
+    end
+
+    test "updates the public pem", %{key: key} do
+      assert {:ok, new_key} = Secrets.rotate(key.name, key.namespace)
+      assert new_key.public_pem != key.public_pem
+    end
+
+    test "returns :error in case of error" do
+      assert :error == Secrets.rotate("invalid-key", "invalid-namespace")
     end
   end
 end

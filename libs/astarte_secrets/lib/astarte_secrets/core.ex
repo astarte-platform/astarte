@@ -36,6 +36,16 @@ defmodule Astarte.Secrets.Core do
   # RFC 5649 AES Key Wrap with Padding magic constant
   @aes_kwp_magic <<0xA6, 0x59, 0x59, 0xA6>>
 
+  @spec asymmetric_key_algorithms() :: [key_algorithm()]
+  def asymmetric_key_algorithms do
+    [
+      :es256,
+      :es384,
+      :rs256,
+      :rs384
+    ]
+  end
+
   @spec key_type_to_string(key_algorithm()) :: {:ok, String.t()} | :error
   def key_type_to_string(key_type) do
     case key_type do

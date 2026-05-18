@@ -21,20 +21,14 @@ defmodule Astarte.Secrets.KeyTest do
   use Mimic
 
   alias Astarte.Secrets
+  alias Astarte.Secrets.Core
   alias Astarte.Secrets.Key
   alias COSE.Keys
   alias COSE.Messages.Sign1
 
-  setup context do
-    realm_name = "realm#{System.unique_integer([:positive])}"
-    key_name = "key#{System.unique_integer()}"
-    key_algorithm = Map.get(context, :key_algorithm, :es256)
-    {:ok, namespace} = Secrets.create_namespace(realm_name, key_algorithm)
-    {:ok, _} = Secrets.create_keypair(key_name, key_algorithm, namespace: namespace)
-    key = %Key{name: key_name, namespace: namespace, alg: key_algorithm}
+  import Astarte.Helpers.Key
 
-    %{key: key}
-  end
+  setup :key_setup
 
   test "can be used for Sign1 messages", %{key: key} do
     phdr = %{alg: key.alg}
@@ -61,5 +55,31 @@ defmodule Astarte.Secrets.KeyTest do
 
   test "verify/4 raises", %{key: key} do
     assert_raise RuntimeError, fn -> Keys.verify(key, :es256, <<>>, <<>>) end
+  end
+
+  test "uses the numerically largest (not alphabetically largest) revision for the public key",
+       %{key: key} do
+    for _ <- 0..9 do
+      {:ok, _} = Secrets.rotate(key.name, key.namespace)
+    end
+
+    {:ok, resp} = Core.get_key(key.name, key.namespace)
+    {:ok, data} = Core.parse_json_data(resp)
+    assert {:ok, key} = Key.parse(key.name, key.namespace, data)
+
+    {_rev, last_revision} =
+      data["keys"]
+      |> Enum.max_by(fn {rev, _} -> String.to_integer(rev) end)
+
+    expected_pem = last_revision["public_key"]
+    assert key.public_pem == expected_pem
+  end
+
+  test "changeset/2 does not include the pem for invalid changesets" do
+    # does not have required params
+    invalid_params = %{}
+    result = Key.changeset(%Key{}, invalid_params)
+    refute result.valid?
+    refute Map.has_key?(result.changes, :public_pem)
   end
 end
