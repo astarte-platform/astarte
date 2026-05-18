@@ -19,6 +19,8 @@
 defmodule Astarte.DataAccess.Realms.Endpoint do
   use TypedEctoSchema
 
+  import Ecto.Changeset
+
   alias Astarte.Core.Interface.Type, as: InterfaceType
   alias Astarte.Core.Mapping.DatabaseRetentionPolicy
   alias Astarte.Core.Mapping.Reliability
@@ -26,7 +28,6 @@ defmodule Astarte.DataAccess.Realms.Endpoint do
   alias Astarte.Core.Mapping.ValueType
 
   alias Astarte.DataAccess.UUID
-  import Ecto.Changeset
 
   @required_fields [:interface_id, :endpoint_id]
   @permitted_fields [
