@@ -12,7 +12,48 @@ defmodule Astarte.Secrets do
 
   require Logger
 
-  @spec get_key(String.t()) :: {:ok, map()} | :error
+  @realm_kek_key_name "realm_kek"
+
+  @doc """
+  Creates the KEK for the given realm.
+  This function is idempotent when called multiple times with the same arguments.
+  """
+  @spec create_realm_kek(String.t(), Core.key_algorithm(), keyword()) :: term()
+  def create_realm_kek(realm_name, key_type \\ :aes256, options \\ []) do
+    namespace_tokens = Core.realm_kek_namespace_tokens(realm_name)
+    allow_key_export_and_backup = Keyword.get(options, :allow_key_export_and_backup, false)
+
+    with {:ok, key_type_string} <- Core.key_type_to_string(key_type),
+         {:ok, namespace} <- Core.create_nested_namespace(namespace_tokens),
+         :ok <- Core.mount_transit_engine(namespace),
+         {:ok, response} <-
+           Core.create_keypair(
+             @realm_kek_key_name,
+             key_type_string,
+             allow_key_export_and_backup,
+             namespace
+           ),
+         {:ok, key} <- Key.parse(@realm_kek_key_name, namespace, response) do
+      {:ok, key}
+    else
+      result ->
+        "Error creating realm kek for #{realm_name}: #{inspect(result)}"
+        |> Logger.error()
+
+        :error
+    end
+  end
+
+  @doc """
+  Returns the KEK for the given realm
+  """
+  @spec fetch_realm_kek(String.t()) :: {:ok, Key.t()} | :error
+  def fetch_realm_kek(realm_name) do
+    namespace = Core.realm_kek_namespace_tokens(realm_name) |> Enum.join("/")
+    get_key(@realm_kek_key_name, namespace: namespace)
+  end
+
+  @spec get_key(String.t()) :: {:ok, Key.t()} | :error
   def get_key(key_name, opts \\ []) do
     namespace = Keyword.fetch!(opts, :namespace)
 

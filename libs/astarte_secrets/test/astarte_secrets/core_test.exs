@@ -141,6 +141,8 @@ defmodule Astarte.Secrets.CoreTest do
 
   describe "key_type_to_string/1" do
     test "converts known key types to their string representation" do
+      assert {:ok, "aes128-gcm96"} = Core.key_type_to_string(:aes128)
+      assert {:ok, "aes256-gcm96"} = Core.key_type_to_string(:aes256)
       assert {:ok, "ecdsa-p256"} = Core.key_type_to_string(:es256)
       assert {:ok, "ecdsa-p384"} = Core.key_type_to_string(:es384)
       assert {:ok, "rsa-2048"} = Core.key_type_to_string(:rs256)
@@ -290,6 +292,8 @@ defmodule Astarte.Secrets.CoreTest do
 
   describe "string_to_key_type/1" do
     test "converts string key types to their atom representation" do
+      assert {:ok, :aes128} = Core.string_to_key_type("aes128-gcm96")
+      assert {:ok, :aes256} = Core.string_to_key_type("aes256-gcm96")
       assert {:ok, :es256} = Core.string_to_key_type("ecdsa-p256")
       assert {:ok, :es384} = Core.string_to_key_type("ecdsa-p384")
       assert {:ok, :rs256} = Core.string_to_key_type("rsa-2048")
@@ -612,6 +616,14 @@ defmodule Astarte.Secrets.CoreTest do
       Secrets.create_keypair("find-me", :es256, namespace: ns)
 
       assert :not_found = Core.find_key(realm_name, "find-me", :es384)
+    end
+  end
+
+  describe "symmetric_key_algorithm/0" do
+    test "returns a list of allowed symmetric key algorithms" do
+      assert is_list(Core.symmetric_key_algorithms())
+      assert Enum.all?(Core.symmetric_key_algorithms(), &is_atom/1)
+      assert :aes256 in Core.symmetric_key_algorithms()
     end
   end
 end

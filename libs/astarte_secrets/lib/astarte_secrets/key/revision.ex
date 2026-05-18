@@ -29,26 +29,29 @@ defmodule Astarte.Secrets.Key.Revision do
   alias Ecto.Changeset
 
   @asymmetric_key_algorithms Core.asymmetric_key_algorithms()
+  @symmetric_key_algorithms Core.symmetric_key_algorithms()
 
   @primary_key false
   typed_embedded_schema do
     field :key_algorithm, Ecto.Enum, values: Core.key_algorithm_enum()
-    field :index, :integer
+    field :revision, :integer
     field :public_key, :string
+    field :creation_timestamp, :integer
   end
 
-  @spec changeset(t(), Core.key_algorithm(), integer(), term()) :: Changeset.t()
-  def changeset(revision, key_algorithm, index, params = %{})
+  @spec changeset(t(), Core.key_algorithm(), term()) :: Changeset.t()
+  def changeset(revision, key_algorithm, %{params: params = %{}, revision: revision_number})
       when key_algorithm in @asymmetric_key_algorithms do
-    attrs = %{key_algorithm: key_algorithm, index: index}
+    attrs = %{key_algorithm: key_algorithm}
 
     revision
     |> cast(params, [:public_key])
+    |> cast(%{revision: revision_number}, [:revision])
     |> validate_required([:public_key])
     |> change(attrs)
   end
 
-  def changeset(revision, key_algorithm, _index, params)
+  def changeset(revision, key_algorithm, params)
       when key_algorithm in @asymmetric_key_algorithms do
     revision
     |> change()
@@ -57,7 +60,25 @@ defmodule Astarte.Secrets.Key.Revision do
     )
   end
 
-  def changeset(revision, key_algorithm, _index, _params) do
+  def changeset(revision, key_algorithm, %{params: timestamp, revision: revision_number})
+      when key_algorithm in @symmetric_key_algorithms and is_integer(timestamp) do
+    attrs = %{key_algorithm: key_algorithm, creation_timestamp: timestamp}
+
+    revision
+    |> cast(%{revision: revision_number}, [:revision])
+    |> change(attrs)
+  end
+
+  def changeset(revision, key_algorithm, params)
+      when key_algorithm in @symmetric_key_algorithms do
+    revision
+    |> change()
+    |> add_error(:key_algorithm, "unknown parameter format for symmetric key algorithm",
+      params: params
+    )
+  end
+
+  def changeset(revision, key_algorithm, _params) do
     revision
     |> change()
     |> add_error(:key_algorithm, "is not supported", key_algorithm: key_algorithm)

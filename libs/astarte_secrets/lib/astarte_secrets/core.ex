@@ -30,7 +30,7 @@ defmodule Astarte.Secrets.Core do
 
   require Logger
 
-  @type key_algorithm() :: :es256 | :es384 | :rs256 | :rs384
+  @type key_algorithm() :: :aes128 | :aes256 | :es256 | :es384 | :rs256 | :rs384
   @type digest_type() :: :crypto.sha1() | :crypto.sha2()
 
   # RFC 5649 AES Key Wrap with Padding magic constant
@@ -46,9 +46,19 @@ defmodule Astarte.Secrets.Core do
     ]
   end
 
+  @spec symmetric_key_algorithms() :: [key_algorithm()]
+  def symmetric_key_algorithms do
+    [
+      :aes128,
+      :aes256
+    ]
+  end
+
   @spec key_type_to_string(key_algorithm()) :: {:ok, String.t()} | :error
   def key_type_to_string(key_type) do
     case key_type do
+      :aes128 -> {:ok, "aes128-gcm96"}
+      :aes256 -> {:ok, "aes256-gcm96"}
       :es256 -> {:ok, "ecdsa-p256"}
       :es384 -> {:ok, "ecdsa-p384"}
       :rs256 -> {:ok, "rsa-2048"}
@@ -60,6 +70,8 @@ defmodule Astarte.Secrets.Core do
   @spec string_to_key_type(String.t()) :: {:ok, key_algorithm()} | :error
   def string_to_key_type(string_key_type) do
     case string_key_type do
+      "aes128-gcm96" -> {:ok, :aes128}
+      "aes256-gcm96" -> {:ok, :aes256}
       "ecdsa-p256" -> {:ok, :es256}
       "ecdsa-p384" -> {:ok, :es384}
       "rsa-2048" -> {:ok, :rs256}
@@ -71,6 +83,8 @@ defmodule Astarte.Secrets.Core do
   @spec key_algorithm_enum :: Keyword.t(String.t())
   def key_algorithm_enum do
     [
+      aes128: "aes128-gcm96",
+      aes256: "aes256-gcm96",
       es256: "ecdsa-p256",
       es384: "ecdsa-p384",
       rs256: "rsa-2048",
@@ -312,6 +326,14 @@ defmodule Astarte.Secrets.Core do
 
         :error
     end
+  end
+
+  @doc """
+  Returns the namespace name for the realm KEKs namespace, represented as a list of tokens
+  """
+  def realm_kek_namespace_tokens(realm_name) do
+    ["astarte_encrypted_messages_kek", instance_tokens(), realm_name]
+    |> List.flatten()
   end
 
   @doc """

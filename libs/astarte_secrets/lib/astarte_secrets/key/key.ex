@@ -43,11 +43,17 @@ defmodule Astarte.Secrets.Key do
   """
   @spec parse(String.t(), String.t(), map()) :: {:ok, t()} | {:error, term()}
   def parse(key_name, namespace, data) do
+    revisions =
+      Map.new(data["keys"], fn {revision, params} ->
+        params = %{params: params, revision: revision}
+        {revision, params}
+      end)
+
     params = %{
       "namespace" => namespace,
       "name" => key_name,
       "alg" => data["type"],
-      "revisions" => data["keys"]
+      "revisions" => revisions
     }
 
     changeset = changeset(%Key{}, params)
@@ -65,7 +71,7 @@ defmodule Astarte.Secrets.Key do
   defp cast_revisions(changeset, key) when changeset.valid? do
     # SAFETY: `:alg` is required and the changeset is valid
     alg = fetch_field!(changeset, :alg)
-    cast_fun = fn revision, params, index -> Revision.changeset(revision, alg, index, params) end
+    cast_fun = fn revision, params -> Revision.changeset(revision, alg, params) end
 
     changeset
     |> cast_embed(key, required: true, with: cast_fun)

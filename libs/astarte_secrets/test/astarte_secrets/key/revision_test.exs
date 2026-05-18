@@ -23,11 +23,17 @@ defmodule Astarte.Secrets.Key.RevisionTest do
 
   describe "changeset/4" do
     test "returns an error when the parameters are in unexpected format for asymmetric keys" do
-      assert %{valid?: false} = Revision.changeset(%Revision{}, :es256, 1, 123)
+      params = %{params: 123, revision: 1}
+      assert %{valid?: false} = Revision.changeset(%Revision{}, :es256, params)
+    end
+
+    test "returns an error when the parameters are in unexpected format for symmetric keys" do
+      params = %{params: %{}, revision: 1}
+      assert %{valid?: false} = Revision.changeset(%Revision{}, :aes256, params)
     end
 
     test "returns an error for invalid key algorithms" do
-      assert %{valid?: false} = Revision.changeset(%Revision{}, :invalid, 1, %{})
+      assert %{valid?: false} = Revision.changeset(%Revision{}, :invalid, %{})
     end
   end
 end
