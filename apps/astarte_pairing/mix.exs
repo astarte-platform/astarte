@@ -61,7 +61,7 @@ defmodule Astarte.Pairing.Mixfile do
 
   defp astarte_required_modules(_) do
     [
-      {:astarte_core, "~> 1.3", override: true},
+      {:astarte_core, path: astarte_lib("astarte_core"), override: true},
       {:astarte_realm_management,
        path: "../astarte_realm_management", only: :test, runtime: false}
     ]

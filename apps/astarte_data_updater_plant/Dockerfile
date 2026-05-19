@@ -28,6 +28,8 @@ COPY libs/astarte_events/mix.exs libraries/astarte_events/mix.exs
 COPY libs/astarte_events/mix.lock libraries/astarte_events/mix.lock
 COPY libs/astarte_rpc/mix.exs libraries/astarte_rpc/mix.exs
 COPY libs/astarte_rpc/mix.lock libraries/astarte_rpc/mix.lock
+COPY libs/astarte_core/mix.exs libraries/astarte_core/mix.exs
+COPY libs/astarte_core/mix.lock libraries/astarte_core/mix.lock
 RUN mix do deps.get, deps.compile --skip-local-deps
 
 COPY libs/ ./libraries

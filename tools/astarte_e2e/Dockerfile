@@ -22,12 +22,11 @@ ENV ASTARTE_LIBRARIES_PATH=libraries
 # Cache elixir deps
 COPY tools/astarte_e2e/mix.exs ./
 COPY tools/astarte_e2e/mix.lock ./
-COPY libs/astarte_generators/mix.exs libraries/astarte_generators/mix.exs
-COPY libs/astarte_generators/mix.lock libraries/astarte_generators/mix.lock
-RUN mix do deps.get, deps.compile --skip-local-deps
-
+# Copy all libs upfront so astarte_core (now a path dep) is available when
+# astarte_device (a remote dep) is compiled. --skip-local-deps is not used
+# because it would skip astarte_core, causing astarte_device to fail.
 COPY libs ./libraries
-RUN mix deps.compile
+RUN mix do deps.get, deps.compile
 
 # Add all the rest
 COPY tools/astarte_e2e .
