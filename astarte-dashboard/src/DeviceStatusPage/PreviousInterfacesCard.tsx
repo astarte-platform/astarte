@@ -1,7 +1,7 @@
 /*
    This file is part of Astarte.
 
-   Copyright 2020-2021 Ispirata Srl
+   Copyright 2020-2026 SECO Mind Srl
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -53,17 +53,23 @@ interface PreviousInterfacesCardProps {
   device: AstarteDevice;
 }
 
-const PreviousInterfacesCard = ({ device }: PreviousInterfacesCardProps): React.ReactElement => (
-  <FullHeightCard className="mb-4">
-    <Card.Header as="h5">Previous Interfaces</Card.Header>
-    <Card.Body className="d-flex flex-column">
-      {device.previousInterfaces.length > 0 ? (
-        <PreviousInterfacesTable interfaces={device.previousInterfaces} />
-      ) : (
-        <p>No previous interfaces info</p>
-      )}
-    </Card.Body>
-  </FullHeightCard>
-);
+const PreviousInterfacesCard = ({ device }: PreviousInterfacesCardProps): React.ReactElement => {
+  const previousInterfaces = [...device.previousInterfaces].sort((a, b) =>
+    a.name.localeCompare(b.name),
+  );
+
+  return (
+    <FullHeightCard className="mb-4">
+      <Card.Header as="h5">Previous Interfaces</Card.Header>
+      <Card.Body className="d-flex flex-column">
+        {previousInterfaces.length > 0 ? (
+          <PreviousInterfacesTable interfaces={previousInterfaces} />
+        ) : (
+          <p>No previous interfaces info</p>
+        )}
+      </Card.Body>
+    </FullHeightCard>
+  );
+};
 
 export default PreviousInterfacesCard;
