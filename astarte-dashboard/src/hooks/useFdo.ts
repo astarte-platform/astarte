@@ -15,6 +15,7 @@ export const useFdo = () => {
       keyName: string,
       voucherText: string,
       options?: {
+        keyAlgorithm?: string;
         replacementGuid?: string;
         replacementRvInfo?: string;
         replacementPubKey?: string;
@@ -39,28 +40,4 @@ export const useFdo = () => {
     status: state.status,
     error: state.error,
   };
-};
-
-export const useFdoKeys = () => {
-  const { client } = useAstarte();
-  const [keys, setKeys] = useState<string[]>([]);
-  const [isLoadingKeys, setIsLoadingKeys] = useState(false);
-
-  // Add the 'voucherText: string' argument to useCallback
-  const fetchKeys = useCallback(
-    async (voucherText: string) => {
-      setIsLoadingKeys(true);
-      try {
-        const fetchedKeys = await client.getCompatibleOwnerKeys(voucherText);
-        setKeys(fetchedKeys);
-      } catch (err) {
-        console.error('Errore nel recupero delle chiavi', err);
-      } finally {
-        setIsLoadingKeys(false);
-      }
-    },
-    [client],
-  );
-
-  return { keys, fetchKeys, isLoadingKeys };
 };
