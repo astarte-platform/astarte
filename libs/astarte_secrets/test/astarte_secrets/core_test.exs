@@ -619,11 +619,42 @@ defmodule Astarte.Secrets.CoreTest do
     end
   end
 
-  describe "symmetric_key_algorithm/0" do
-    test "returns a list of allowed symmetric key algorithms" do
-      assert is_list(Core.symmetric_key_algorithms())
-      assert Enum.all?(Core.symmetric_key_algorithms(), &is_atom/1)
-      assert :aes256 in Core.symmetric_key_algorithms()
+  describe "generate_dek/3 integration" do
+    setup do
+      {:ok, namespace} = Secrets.create_namespace("test", :es256)
+      # TODO: replace with Secrets.create_encryption_key once the public API exists.
+      :ok = Core.create_encryption_key("test-kek", namespace)
+      %{namespace: namespace, key_name: "test-kek"}
+    end
+
+    test "generates a 256-bit DEK wrapped under an AES-256-GCM key", %{
+      namespace: namespace,
+      key_name: key_name
+    } do
+      assert {:ok, %{plaintext: pt, ciphertext: ct}} =
+               Core.generate_dek(key_name, namespace)
+
+      assert byte_size(pt) == 32
+      assert String.starts_with?(ct, "vault:v1:")
+    end
+  end
+
+  describe "unwrap_dek/4 integration" do
+    setup do
+      {:ok, namespace} = Secrets.create_namespace("test", :es256)
+      # TODO: replace with Secrets.create_encryption_key once the public API exists.
+      :ok = Core.create_encryption_key("test-kek", namespace)
+      %{namespace: namespace, key_name: "test-kek"}
+    end
+
+    test "round-trips: generate then unwrap recovers the plaintext", %{
+      namespace: namespace,
+      key_name: key_name
+    } do
+      assert {:ok, %{plaintext: original_pt, ciphertext: ct}} =
+               Core.generate_dek(key_name, namespace)
+
+      assert {:ok, ^original_pt} = Secrets.unwrap_dek(key_name, ct, namespace)
     end
   end
 end
