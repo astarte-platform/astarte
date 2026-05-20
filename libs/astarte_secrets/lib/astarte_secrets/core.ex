@@ -108,6 +108,76 @@ defmodule Astarte.Secrets.Core do
     :error
   end
 
+  # TODO: add a proper public API (Astarte.Secrets) for creating/managing the KEK
+  # (mount transit + create AES-256 key)
+  def create_encryption_key(key_name, namespace) do
+    headers = [{"Content-Type", "application/json"}]
+
+    case Client.post(
+           "/transit/keys/#{key_name}",
+           Jason.encode!(%{type: "aes256-gcm96"}),
+           headers,
+           namespace: namespace
+         ) do
+      {:ok, %{status_code: s}} when s in [200, 204] ->
+        :ok
+
+      {:ok, %{status_code: 400, body: body}} when is_binary(body) ->
+        if body =~ "already in use", do: :ok, else: :error
+
+      other ->
+        Logger.error(
+          "Failed to create KEK #{key_name} in namespace #{namespace}: #{inspect(other)}"
+        )
+
+        :error
+    end
+  end
+
+  @doc """
+  Generates a new Data Encryption Key (DEK) wrapped under the named transit key.
+
+  Returns `{:ok, %{plaintext: binary(), ciphertext: String.t()}}` where:
+  - `plaintext` — raw DEK bytes
+  - `ciphertext` — vault-formatted wrapped DEK
+  """
+  @spec generate_dek(String.t(), String.t(), keyword()) ::
+          {:ok, %{plaintext: binary(), ciphertext: String.t()}} | :error
+  def generate_dek(key_name, namespace, opts \\ []) do
+    bits = Keyword.get(opts, :bits, 256)
+    headers = [{"Content-Type", "application/json"}]
+    client_opts = [namespace: namespace] ++ Keyword.take(opts, [:token])
+
+    with {:ok, %{status_code: 200, body: body}} <-
+           Client.post(
+             "/transit/datakey/plaintext/#{key_name}",
+             Jason.encode!(%{bits: bits}),
+             headers,
+             client_opts
+           ),
+         {:ok, data} <- parse_json_data(body),
+         {:ok, plaintext} <- decode_base64_field(data, "plaintext"),
+         {:ok, ciphertext} <- Map.fetch(data, "ciphertext") do
+      {:ok, %{plaintext: plaintext, ciphertext: ciphertext}}
+    else
+      error ->
+        Logger.error(
+          "Failed to generate DEK with key #{key_name} in namespace #{namespace}: #{inspect(error)}"
+        )
+
+        :error
+    end
+  end
+
+  defp decode_base64_field(data, field) do
+    with b64 when is_binary(b64) <- Map.get(data, field),
+         {:ok, decoded} <- Base.decode64(b64) do
+      {:ok, decoded}
+    else
+      _ -> :error
+    end
+  end
+
   @spec create_keypair(String.t(), String.t(), boolean(), String.t()) ::
           :error | {:error, Jason.DecodeError.t()} | {:ok, any()}
   def create_keypair(key_name, key_type, allow_key_export_and_backup, namespace) do
