@@ -21,6 +21,7 @@ defmodule Astarte.Housekeeping.Realms do
   The boundary for the Realms system.
   """
 
+  alias Astarte.Housekeeping.Config
   alias Astarte.Housekeeping.Realms.Core
   alias Astarte.Housekeeping.Realms.Queries
   alias Astarte.Housekeeping.Realms.Realm
@@ -67,6 +68,7 @@ defmodule Astarte.Housekeeping.Realms do
 
   """
   def create_realm(attrs \\ %{}, opts \\ []) do
+    attrs = maybe_inject_default_retention(attrs)
     changeset = Realm.changeset(%Realm{}, attrs)
 
     with {:ok, %Realm{} = realm} <-
@@ -77,6 +79,16 @@ defmodule Astarte.Housekeeping.Realms do
         {:ok, :started} -> {:ok, realm}
         {:error, reason} -> {:error, reason}
       end
+    end
+  end
+
+  defp maybe_inject_default_retention(attrs) do
+    case Config.default_datastream_maximum_storage_retention() do
+      {:ok, nil} ->
+        attrs
+
+      {:ok, default_retention} ->
+        attrs |> Map.put_new("datastream_maximum_storage_retention", default_retention)
     end
   end
 
