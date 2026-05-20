@@ -57,7 +57,9 @@ defmodule Astarte.DataAccess.Mixfile do
 
   defp astarte_required_modules(_) do
     [
-      {:astarte_core, "~> 1.3", override: true}
+      {:astarte_core, "~> 1.3", override: true},
+      {:astarte_adapters, path: astarte_lib("astarte_adapters")},
+      {:astarte_generators, path: astarte_lib("astarte_generators"), only: [:dev, :test]}
     ]
   end
 
@@ -92,5 +94,10 @@ defmodule Astarte.DataAccess.Mixfile do
         "GitHub" => "https://github.com/astarte-platform/astarte_data_access"
       }
     ]
+  end
+
+  defp astarte_lib(library_name) do
+    base_directory = System.get_env("ASTARTE_LIBRARIES_PATH", "../../libs")
+    Path.join(base_directory, library_name)
   end
 end
