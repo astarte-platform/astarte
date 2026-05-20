@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2025 SECO Mind Srl
+# Copyright 2025 - 2026 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -22,12 +22,15 @@ defmodule Astarte.DataAccess.Realms.Interface do
   """
   use TypedEctoSchema
 
+  import Ecto.Changeset
+
+  alias Astarte.Core.CQLUtils
   alias Astarte.Core.Interface.Aggregation
   alias Astarte.Core.Interface.Ownership
   alias Astarte.Core.Interface.Type
   alias Astarte.Core.StorageType
+
   alias Astarte.DataAccess.UUID
-  import Ecto.Changeset
 
   @required_fields [:name, :major_version]
 
@@ -68,4 +71,36 @@ defmodule Astarte.DataAccess.Realms.Interface do
     |> cast(params, @permitted_fields)
     |> validate_required(@required_fields)
   end
+
+  @spec storage(%{:aggregation => :individual | :object, :type => :datastream | :properties}) ::
+          String.t()
+  def storage(%{type: :properties, aggregation: :individual}),
+    do: "individual_properties"
+
+  def storage(%{type: :datastream, aggregation: :individual}),
+    do: "individual_datastreams"
+
+  def storage(%{
+        type: :datastream,
+        aggregation: :object,
+        name: name,
+        major_version: major_version
+      }),
+      do: CQLUtils.interface_name_to_table_name(name, major_version)
+
+  @spec storage_type(%{
+          :aggregation => :individual | :object,
+          :type => :datastream | :properties
+        }) ::
+          :multi_interface_individual_datastream_dbtable
+          | :multi_interface_individual_properties_dbtable
+          | :one_object_datastream_dbtable
+  def storage_type(%{type: :properties, aggregation: :individual}),
+    do: :multi_interface_individual_properties_dbtable
+
+  def storage_type(%{type: :datastream, aggregation: :individual}),
+    do: :multi_interface_individual_datastream_dbtable
+
+  def storage_type(%{type: :datastream, aggregation: :object}),
+    do: :one_object_datastream_dbtable
 end
