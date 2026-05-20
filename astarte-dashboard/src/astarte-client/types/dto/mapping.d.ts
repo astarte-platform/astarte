@@ -41,6 +41,7 @@ export interface AstarteMappingDTO {
   database_retention_ttl?: number;
   allow_unset?: boolean;
   explicit_timestamp?: boolean;
+  required?: boolean;
   description?: string;
   doc?: string;
 }

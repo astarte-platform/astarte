@@ -43,6 +43,8 @@ interface AstarteMappingObject {
 
   explicitTimestamp?: boolean;
 
+  required?: boolean;
+
   description?: string;
 
   documentation?: string;
@@ -91,6 +93,7 @@ const astarteMappingObjectSchema: yup.ObjectSchema<AstarteMappingObject> = yup
       .notRequired(),
     allowUnset: yup.boolean().notRequired(),
     explicitTimestamp: yup.boolean().notRequired(),
+    required: yup.boolean().notRequired(),
     description: yup.string().max(1000).notRequired(),
     documentation: yup.string().max(100000).notRequired(),
   })
@@ -121,6 +124,8 @@ class AstarteMapping {
 
   explicitTimestamp?: boolean;
 
+  required?: boolean;
+
   description?: string;
 
   documentation?: string;
@@ -136,6 +141,7 @@ class AstarteMapping {
     this.databaseRetentionTtl = validatedObj.databaseRetentionTtl;
     this.allowUnset = validatedObj.allowUnset;
     this.explicitTimestamp = validatedObj.explicitTimestamp;
+    this.required = validatedObj.required;
     this.description = validatedObj.description;
     this.documentation = validatedObj.documentation;
   }
