@@ -62,6 +62,7 @@ export default ({
   const isPropertiesInterface = interfaceType === 'properties';
   const isDatastreamIndividualInterface =
     interfaceType === 'datastream' && interfaceAggregation === 'individual';
+  const isObjectAggregated = interfaceAggregation === 'object';
   const isDevice = interfaceOwner === 'device';
   const showMappingExpiry = mapping.retention === 'volatile' || mapping.retention === 'stored';
   const showInterfaceDatabaseRetentionTtl = mapping.databaseRetentionPolicy === 'use_ttl';
@@ -129,6 +130,26 @@ export default ({
                 />
                 <Form.Control.Feedback type="invalid">
                   {mappingValidationErrors.allowUnset}
+                </Form.Control.Feedback>
+              </Form.Group>
+            </Col>
+          )}
+          {isObjectAggregated && (
+            <Col sm={4}>
+              <Form.Group controlId="mappingRequired">
+                <Form.Label>Mapping options</Form.Label>
+                <Form.Check
+                  type="checkbox"
+                  label="Required"
+                  checked={!!mapping.required}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                    const required = !!e.target.checked;
+                    onChange({ ...mapping, required: required || undefined });
+                  }}
+                  isInvalid={mappingValidationErrors.required != null}
+                />
+                <Form.Control.Feedback type="invalid">
+                  {mappingValidationErrors.required}
                 </Form.Control.Feedback>
               </Form.Group>
             </Col>
