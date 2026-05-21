@@ -170,6 +170,8 @@ services:
 
   astarte-dashboard:
     image: astarte/astarte-dashboard:snapshot
+    build:
+      context: ./astarte-dashboard
     volumes:
       - ./compose/astarte-dashboard/config.json:/usr/share/nginx/html/user-config/config.json:z
     depends_on:

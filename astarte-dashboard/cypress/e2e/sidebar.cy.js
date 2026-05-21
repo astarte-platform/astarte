@@ -41,6 +41,11 @@ describe('Sidebar tests', () => {
           .as('groups')
           .next('.nav-item')
           .next('.nav-link')
+          .as('fdoVouchers')
+          .next('.nav-link')
+          .as('fdoOwnerKeys')
+          .next('.nav-item')
+          .next('.nav-link')
           .as('flows')
           .next('.nav-link')
           .as('pipelines')
@@ -64,6 +69,8 @@ describe('Sidebar tests', () => {
           .contains('Delivery Policies');
         cy.get('@devices').should('have.attr', 'href', '/devices').contains('Devices');
         cy.get('@groups').should('have.attr', 'href', '/groups').contains('Groups');
+        cy.get('@fdoVouchers').should('have.attr', 'href', '/fdo-vouchers').contains('FDO Vouchers');
+        cy.get('@fdoOwnerKeys').should('have.attr', 'href', '/fdo-owner-keys').contains('FDO Owner Keys');
         cy.get('@flows').should('have.attr', 'href', '/flows').contains('Flows');
         cy.get('@pipelines').should('have.attr', 'href', '/pipelines').contains('Pipelines');
         cy.get('@blocks').should('have.attr', 'href', '/blocks').contains('Blocks');
