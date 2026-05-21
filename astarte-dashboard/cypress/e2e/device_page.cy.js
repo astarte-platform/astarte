@@ -288,6 +288,63 @@ describe('Device page tests', () => {
       });
     });
 
+    // These tests verify that the eval-free validator reproduces the runtime behaviours
+    // of @rjsf/validator-ajv8: errors are routed to the correct field label
+    // and that liveValidate clears errors per-field as the user types after the first submit.
+
+    it('AddAliasModal: required-field errors mark the inputs invalid; filling one clears only that error', function () {
+      const device = _.merge({}, this.device);
+      device.data.aliases = {};
+      cy.dynamicIntercept('getDeviceRequest', 'GET', '/appengine/v1/*/devices/*', device);
+      cy.visit(`/devices/${device.data.id}/edit`);
+
+      cy.get('.main-content').within(() => {
+        cy.get('.card-header').contains('Aliases').parents('.card').within(() => {
+          cy.contains('Add alias').click();
+        });
+      });
+
+      cy.get('.modal-dialog').within(() => {
+        cy.get('.modal-header').contains('Add Alias').parents('.modal').within(() => {
+          cy.get('button').contains('Add').click();
+
+          // Both inputs must carry is-invalid individually
+          cy.get('[id$="key"]').should('have.class', 'is-invalid');
+          cy.get('[id$="value"]').should('have.class', 'is-invalid');
+          cy.get('.modal-header').contains('Add Alias').should('exist');
+
+          // Filling Tag only clears Tag, Alias must remain invalid
+          cy.get('[id$="key"]').type('my-tag');
+          cy.get('[id$="key"]').should('not.have.class', 'is-invalid');
+          cy.get('[id$="value"]').should('have.class', 'is-invalid');
+        });
+      });
+    });
+
+    it('AddAttributeModal: required-field errors mark the inputs invalid and block submission', function () {
+      const device = _.merge({}, this.device);
+      device.data.attributes = {};
+      cy.dynamicIntercept('getDeviceRequest', 'GET', '/appengine/v1/*/devices/*', device);
+      cy.visit(`/devices/${device.data.id}/edit`);
+
+      cy.get('.main-content').within(() => {
+        cy.get('.card-header').contains('Attributes').parents('.card').within(() => {
+          cy.contains('Add attribute').click();
+        });
+      });
+
+      cy.get('.modal-dialog').within(() => {
+        cy.get('.modal-header').contains('Add Attribute').parents('.modal').within(() => {
+          cy.get('button').contains('Add').click();
+
+          // Both inputs must carry is-invalid individually
+          cy.get('[id$="key"]').should('have.class', 'is-invalid');
+          cy.get('[id$="value"]').should('have.class', 'is-invalid');
+          cy.get('.modal-header').contains('Add Attribute').should('exist');
+        });
+      });
+    });
+
     it('correctly adds a device alias', function () {
       const device = _.merge({}, this.device);
       device.data.aliases = {};
@@ -388,6 +445,34 @@ describe('Device page tests', () => {
             cy.contains('alias_key1');
             cy.contains('alias_value1');
           });
+      });
+    });
+
+    it('EditAliasModal: clearing the required value field marks the input invalid; filling it clears the error', function () {
+      const device = _.merge({}, this.device);
+      device.data.aliases = { alias_key: 'alias_value' };
+      cy.dynamicIntercept('getDeviceRequest', 'GET', '/appengine/v1/*/devices/*', device);
+      cy.visit(`/devices/${device.data.id}/edit`);
+
+      cy.get('.main-content').within(() => {
+        cy.get('.card-header').contains('Aliases').parents('.card').within(() => {
+          cy.get('table tbody tr:nth(0) i.fa-pencil-alt').click();
+        });
+      });
+
+      cy.get('.modal-dialog').within(() => {
+        cy.get('.modal-header').contains('Edit "alias_key"').parents('.modal').within(() => {
+          cy.get('input#root_value').clear();
+          cy.get('button').contains('Update').click();
+
+          // The error must appear on the input, not a global alert
+          cy.get('input#root_value').should('have.class', 'is-invalid');
+          cy.get('.modal-header').contains('Edit "alias_key"').should('exist');
+
+          // A valid value must clear the error on the next render cycle
+          cy.get('input#root_value').type('new_value');
+          cy.get('input#root_value').should('not.have.class', 'is-invalid');
+        });
       });
     });
 
@@ -548,6 +633,34 @@ describe('Device page tests', () => {
             cy.contains('attribute_key1');
             cy.contains('attribute_value1');
           });
+      });
+    });
+
+    it('EditAttributeModal: clearing the required value field marks the input invalid; filling it clears the error', function () {
+      const device = _.merge({}, this.device);
+      device.data.attributes = { attribute_key: 'attribute_value' };
+      cy.dynamicIntercept('getDeviceRequest', 'GET', '/appengine/v1/*/devices/*', device);
+      cy.visit(`/devices/${device.data.id}/edit`);
+
+      cy.get('.main-content').within(() => {
+        cy.get('.card-header').contains('Attributes').parents('.card').within(() => {
+          cy.get('table tbody tr:nth(0) i.fa-pencil-alt').click();
+        });
+      });
+
+      cy.get('.modal-dialog').within(() => {
+        cy.get('.modal-header').contains('Edit "attribute_key"').parents('.modal').within(() => {
+          cy.get('input#root_value').clear();
+          cy.get('button').contains('Update').click();
+
+          // The error must appear on the input, not a global alert
+          cy.get('input#root_value').should('have.class', 'is-invalid');
+          cy.get('.modal-header').contains('Edit "attribute_key"').should('exist');
+
+          // A valid value must clear the error on the next render cycle
+          cy.get('input#root_value').type('new_value');
+          cy.get('input#root_value').should('not.have.class', 'is-invalid');
+        });
       });
     });
 

@@ -51,6 +51,60 @@ describe('Register device page tests', () => {
       });
     });
 
+    // These tests verify that the eval-free validator reproduces the three runtime
+    // behaviours previously provided by @rjsf/validator-ajv8:
+    //  • transformErrors callbacks rewrite error messages correctly
+    //  • failing fields get their specific label highlighted
+    //  • errors clear per-field on each keystroke after the first submit
+
+    it('NamespaceModal: pattern violation shows the custom transformErrors message and marks the input invalid', () => {
+      cy.get('.btn').contains('Generate from name').click();
+
+      cy.get('.modal').within(() => {
+        cy.get('[id$="userNamespace"]').paste('not-a-uuid');
+        cy.get('.btn').contains('Generate ID').click();
+
+        // transformErrors rewrote the raw pattern message to this string
+        cy.contains('The namespace must be a valid UUID').should('exist');
+
+        // The error must be routed to the input, not a global alert
+        cy.get('[id$="userNamespace"]').should('have.class', 'is-invalid');
+
+        cy.get('.modal-header').contains('Generate from name');
+      });
+
+      cy.get('#deviceIdInput').should('have.value', '');
+    });
+
+    it('NamespaceModal: empty required field shows is-invalid on the input and blocks submission', () => {
+      cy.get('.btn').contains('Generate from name').click();
+
+      cy.get('.modal').within(() => {
+        cy.get('.btn').contains('Generate ID').click();
+
+        // The error must be routed to the input, not a global alert
+        cy.get('[id$="userNamespace"]').should('have.class', 'is-invalid');
+
+        cy.get('.modal-header').contains('Generate from name');
+      });
+
+      cy.get('#deviceIdInput').should('have.value', '');
+    });
+
+    it('NamespaceModal: typing a valid UUID after a failed submit clears the is-invalid state (liveValidate)', () => {
+      cy.get('.btn').contains('Generate from name').click();
+
+      cy.get('.modal').within(() => {
+        // First submit sets hasSubmit=true, switching the form to liveValidate
+        cy.get('.btn').contains('Generate ID').click();
+        cy.get('[id$="userNamespace"]').should('have.class', 'is-invalid');
+
+        // A valid value must clear the error on the next render cycle
+        cy.get('[id$="userNamespace"]').paste('753ffc99-dd9d-4a08-a07e-9b0d6ce0bc82');
+        cy.get('[id$="userNamespace"]').should('not.have.class', 'is-invalid');
+      });
+    });
+
     it('register device to astarte', () => {
       const deviceId = 'Zb0hSFUSVduexJXxXlGvrA';
       const credentialSecret = 'W3Bj5uModtDXSr3lqcjOVuYIRhgdNe1REJKj76v16IM=';
