@@ -61,6 +61,8 @@ allowed_scopes = [
   "credo",
   "nix",
   "deps",
+  # frontend
+  "dashboard",
 ]
 merge_commit = true
 imperative_subject = true

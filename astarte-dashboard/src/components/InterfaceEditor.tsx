@@ -111,6 +111,12 @@ const MappingRow = ({ className, mapping, onEdit, onDelete }: MappingRowProps) =
             <p>True</p>
           </>
         )}
+        {mapping.required && (
+          <>
+            <h5>Required</h5>
+            <p>True</p>
+          </>
+        )}
         {mapping.explicitTimestamp && (
           <>
             <h5>Explicit Timestamp</h5>

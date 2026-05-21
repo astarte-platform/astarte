@@ -9,6 +9,7 @@ const parseMappingOptions = (mapping) => {
     databaseRetention: _.get(mapping, 'database_retention_policy', 'no_ttl'),
     databaseTTL: _.get(mapping, 'database_retention_ttl'),
     allowUnset: _.get(mapping, 'allow_unset', false),
+    required: _.get(mapping, 'required', false),
   };
 };
 
@@ -94,6 +95,7 @@ const setupInterfaceEditorFromUI = (iface) => {
         databaseRetention,
         databaseTTL,
         allowUnset,
+        required,
       } = parseMappingOptions(mapping);
       if (iface.type === 'properties') {
         if (allowUnset) {
@@ -101,7 +103,15 @@ const setupInterfaceEditorFromUI = (iface) => {
         } else {
           cy.get('#mappingAllowUnset').scrollIntoView().uncheck();
         }
-      } else if (iface.type === 'datastream' && iface.aggregation !== 'object') {
+      }
+      if (iface.aggregation === 'object') {
+        if (required) {
+          cy.get('#mappingRequired').scrollIntoView().check();
+        } else {
+          cy.get('#mappingRequired').scrollIntoView().uncheck();
+        }
+      }
+      if (iface.type === 'datastream' && iface.aggregation !== 'object') {
         cy.get('#mappingReliability').scrollIntoView().select(reliability);
         cy.get('#mappingRetention').scrollIntoView().select(retention);
         cy.get('#mappingDatabaseRetention').scrollIntoView().select(databaseRetention);
@@ -152,13 +162,21 @@ const checkMappingEditorUIValues = ({ mapping, type, aggregation = 'individual' 
       databaseRetention,
       databaseTTL,
       allowUnset,
+      required,
     } = parseMappingOptions(mapping);
     if (type === 'properties') {
       cy.get('#mappingAllowUnset')
         .scrollIntoView()
         .should('be.visible')
         .and(allowUnset ? 'be.checked' : 'not.be.checked');
-    } else if (type === 'datastream' && aggregation !== 'object') {
+    }
+    if (aggregation === 'object') {
+      cy.get('#mappingRequired')
+        .scrollIntoView()
+        .should('be.visible')
+        .and(required ? 'be.checked' : 'not.be.checked');
+    }
+    if (type === 'datastream' && aggregation !== 'object') {
       cy.get('#mappingReliability')
         .scrollIntoView()
         .should('be.visible')

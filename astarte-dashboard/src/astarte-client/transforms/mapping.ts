@@ -30,6 +30,7 @@ export const fromAstarteMappingDTO = (dto: AstarteMappingDTO): AstarteMapping =>
     databaseRetentionTtl: dto.database_retention_ttl,
     allowUnset: dto.allow_unset,
     explicitTimestamp: dto.explicit_timestamp,
+    required: dto.required,
     description: dto.description,
     documentation: dto.doc,
   });
@@ -44,6 +45,7 @@ export const toAstarteMappingDTO = (obj: AstarteMapping): AstarteMappingDTO => (
   database_retention_ttl: obj.databaseRetentionTtl,
   allow_unset: obj.allowUnset,
   explicit_timestamp: obj.explicitTimestamp,
+  required: obj.required,
   description: obj.description,
   doc: obj.documentation,
 });
