@@ -53,7 +53,6 @@ const getAstarteClient = (astarteConfig: AstarteConfig): AstarteClient => {
     realmManagementApiUrl: astarteConfig.realmManagementApiUrl,
     pairingApiUrl: '',
     flowApiUrl: '',
-    fdoApiUrl: '',
   });
   astarteClient.setCredentials({
     token: astarteConfig.token,

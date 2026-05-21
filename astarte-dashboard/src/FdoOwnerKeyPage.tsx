@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Container, Row, Col, Card, Form, Button, Breadcrumb } from 'react-bootstrap';
+import { useNavigate } from 'react-router-dom';
 import { useFdoOwnerKey } from './hooks/useFdoOwnerKey';
 import { useAlerts } from './AlertManager';
 import Icon from './components/Icon';
@@ -16,9 +17,11 @@ const FdoOwnerKeyPage: React.FC = () => {
   const [uploadMethod, setUploadMethod] = useState<'file' | 'text'>('file');
   const [file, setFile] = useState<File | null>(null);
   const [privateKeyText, setPrivateKeyText] = useState('');
+  const [copied, setCopied] = useState(false);
 
   const { manageOwnerKey, status, generatedKey } = useFdoOwnerKey();
   const [, alertsController] = useAlerts();
+  const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -79,7 +82,8 @@ const FdoOwnerKeyPage: React.FC = () => {
         <Col>
           <Breadcrumb>
             <Breadcrumb.Item href="/">Astarte</Breadcrumb.Item>
-            <Breadcrumb.Item active>FDO Management</Breadcrumb.Item>
+            <Breadcrumb.Item href="/fdo-owner-keys">FDO Owner Keys</Breadcrumb.Item>
+            <Breadcrumb.Item active>New</Breadcrumb.Item>
           </Breadcrumb>
           <h1 className="mb-4">Owner Key Management</h1>
         </Col>
@@ -212,7 +216,7 @@ const FdoOwnerKeyPage: React.FC = () => {
                 </div>
 
                 {/* --- SUCCESS BOX (Only shows if there's a returned key payload) --- */}
-                {generatedKey && (
+                {status === 'success' && (
                   <div className="mt-4 p-3 bg-light border rounded">
                     <h6 className="text-success mb-2">
                       <Icon icon="statusOK" className="me-2" />
@@ -220,13 +224,50 @@ const FdoOwnerKeyPage: React.FC = () => {
                         ? 'Generated public key'
                         : 'Key uploaded successfully'}
                     </h6>
-                    <Form.Control
-                      as="textarea"
-                      rows={8}
-                      readOnly
-                      value={generatedKey}
-                      style={{ fontFamily: 'monospace', fontSize: '0.85rem' }}
-                    />
+                    {actionType === 'create' && (
+                      <>
+                        <div className="d-flex justify-content-end mb-2">
+                          <Button
+                            variant={copied ? 'success' : 'outline-secondary'}
+                            size="sm"
+                            onClick={() => {
+                              navigator.clipboard.writeText(generatedKey ?? '').then(() => {
+                                setCopied(true);
+                                setTimeout(() => setCopied(false), 2000);
+                              });
+                            }}
+                          >
+                            <Icon icon="copyPaste" className="me-1" />
+                            {copied ? 'Copied!' : 'Copy'}
+                          </Button>
+                        </div>
+                        <Form.Control
+                          as="textarea"
+                          rows={8}
+                          readOnly
+                          value={generatedKey ?? ''}
+                          style={{ fontFamily: 'monospace', fontSize: '0.85rem' }}
+                          className="mb-3"
+                        />
+                      </>
+                    )}
+                    <div className="d-flex gap-2 mt-3">
+                      <Button variant="primary" onClick={() => navigate('/fdo-owner-keys')}>
+                        <Icon icon="key" className="me-2" />
+                        Go to key list
+                      </Button>
+                      <Button
+                        variant="outline-secondary"
+                        onClick={() => {
+                          setKeyName('');
+                          setFile(null);
+                          setPrivateKeyText('');
+                          setCopied(false);
+                        }}
+                      >
+                        Create another key
+                      </Button>
+                    </div>
                   </div>
                 )}
               </Form>

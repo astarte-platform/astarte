@@ -47,6 +47,7 @@ const iconToClassName = {
   statusInDeletion: 'fas fa-circle color-grey',
   triggers: 'fas fa-bolt',
   policy: 'fas fa-file-invoice',
+  key: 'fas fa-key',
 };
 
 type Icon = keyof typeof iconToClassName;

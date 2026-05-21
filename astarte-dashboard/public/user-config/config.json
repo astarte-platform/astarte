@@ -1,6 +1,6 @@
 {
     "astarte_api_url": "http://api.astarte.localhost",
-    "fdo_api_url": "http://api.astarte.localhost",
+    "fdo_api_url": "http://api.astarte.localhost/pairing/",
     "default_auth": "token",
     "enable_flow_preview": false,
     "auth": [
