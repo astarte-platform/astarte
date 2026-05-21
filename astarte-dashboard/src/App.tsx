@@ -1,7 +1,7 @@
 /*
    This file is part of Astarte.
 
-   Copyright 2020-2021 Ispirata Srl
+   Copyright 2020-2026 SECO Mind Srl
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -35,7 +35,7 @@ const DashboardSidebar = () => {
   const config = useConfig();
   const astarte = useAstarte();
   const { triggerDeliveryPoliciesSupported } = useAstarte();
-  const isSidebarHidden = config.ui.hideSidebar;
+  const isSidebarHidden = config?.ui?.hideSidebar || false;
 
   if (!astarte.isAuthenticated || isSidebarHidden) {
     return null;
@@ -72,7 +72,11 @@ const DashboardSidebar = () => {
         )}
         {(astarte.token?.can('appEngine', 'GET', '/devices') ||
           astarte.token?.can('appEngine', 'GET', '/groups')) && <Sidebar.Separator />}
-        {config.features.flow && (
+        <Sidebar.Item label="FDO Vouchers" link="/fdo-vouchers" icon="devices" />
+        <Sidebar.Item label="FDO Owner Keys" link="/fdo-owner-keys" icon="settings" />
+        <Sidebar.Separator />
+
+        {config.features?.flow && (
           <>
             {astarte.token?.can('flow', 'GET', '/flows') && (
               <Sidebar.Item label="Flows" link="/flows" icon="flows" />
@@ -106,6 +110,7 @@ const DashboardSidebar = () => {
 const Dashboard = () => {
   const astarte = useAstarte();
   const reduxStore = useMemo(() => createReduxStore(astarte.client), [astarte.client]);
+
   return (
     <ReduxProvider store={reduxStore}>
       <Container fluid className="px-0">

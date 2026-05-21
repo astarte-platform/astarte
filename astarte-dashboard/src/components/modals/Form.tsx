@@ -22,7 +22,7 @@ import type { ModalProps } from 'react-bootstrap';
 // TODO: use @rjsf/react-bootstrap when @rjsf publishes v6 with support for
 // Bootstrap 5: https://github.com/rjsf-team/react-jsonschema-form/issues/4162
 import JsonSchemaForm from '@astarte-platform/react-bootstrap';
-import validator from '@rjsf/validator-ajv8';
+import evalFreeValidator from './EvalFreeValidator';
 import type { IChangeEvent } from '@rjsf/core';
 import type { WidgetProps } from '@rjsf/utils';
 import type { ComponentProps } from 'react';
@@ -57,9 +57,9 @@ const TextWidget = ({
 
   return (
     <Form.Group className="mb-0">
-      <Form.Label className={rawErrors.length > 0 ? 'text-danger' : ''}>
-        {label || schema.title}
-      </Form.Label>
+      {/* <Form.Label className={rawErrors.length > 0 ? 'text-danger' : ''}> */}
+      {/*   {label || schema.title} */}
+      {/* </Form.Label> */}
       <Form.Control
         id={id}
         autoFocus={autofocus}
@@ -151,7 +151,7 @@ const FormModal = ({
         <div>
           <JsonSchemaForm
             schema={schema}
-            validator={validator}
+            validator={evalFreeValidator}
             uiSchema={uiSchema}
             widgets={widgets}
             formData={formData}
