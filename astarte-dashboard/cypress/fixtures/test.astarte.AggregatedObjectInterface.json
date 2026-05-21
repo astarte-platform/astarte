@@ -10,7 +10,8 @@
       {
         "endpoint": "/sensors/%{sensor_id}/value/binaryblob",
         "type": "binaryblob",
-        "explicit_timestamp": true
+        "explicit_timestamp": true,
+        "required": true
       },
       {
         "endpoint": "/sensors/%{sensor_id}/value/boolean",
