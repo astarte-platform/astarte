@@ -190,5 +190,106 @@ describe('New Pipeline page tests', () => {
         cy.location('pathname').should('eq', '/pipelines');
       });
     });
+
+    // These tests verify the two AJV replacements in the pipeline page:
+    //
+    // 1. isValidSchema check (replaced ajv.compile): typing text into the
+    //    #pipeline-schema field should flip the Bootstrap is-valid / is-invalid
+    //    class as the jsonschema-based check parses the content.
+    //
+    // 2. Block settings FormModal (replaced @rjsf/validator-ajv8): blocks with
+    //    required fields must reject empty submissions and show inline errors.
+
+    it('schema field marks content as valid for a well-formed JSON Schema and invalid for garbage', function () {
+      // Reach the post-generation state where the schema field is visible
+      cy.get('.main-content').within(() => {
+        cy.get('.flow-editor .block-item')
+          .contains(this.producerBlocks[0].name)
+          .dragOnto('.flow-editor .canvas-container');
+        cy.get('.canvas-container .node .producer').parents('.node').moveTo(-50, -50);
+        cy.get('.flow-editor .block-item')
+          .contains(this.consumerBlocks[0].name)
+          .dragOnto('.flow-editor .canvas-container');
+        cy.get('.canvas-container .node .consumer').parents('.node').moveTo(50, 50);
+        cy.get('.canvas-container .node .producer .port[data-name="Out"] > div').moveOnto(
+          '.canvas-container .node .consumer .port[data-name="In"] > div',
+        );
+        cy.get('button').contains('Generate pipeline source').scrollIntoView().click();
+
+        // Valid JSON Schema, field must have is-valid class
+        const validSchema = JSON.stringify({ type: 'object', properties: { x: { type: 'string' } } });
+        cy.get('#pipeline-schema').scrollIntoView().type('{selectall}').type(validSchema, { parseSpecialCharSequences: false });
+        cy.get('#pipeline-schema').should('have.class', 'is-valid');
+        cy.get('#pipeline-schema').should('not.have.class', 'is-invalid');
+
+        // Syntactically invalid JSON, field must have is-invalid class
+        cy.get('#pipeline-schema').clear().type('not valid json {{}');
+        cy.get('#pipeline-schema').should('have.class', 'is-invalid');
+        cy.get('#pipeline-schema').should('not.have.class', 'is-valid');
+
+        // Clear back to empty, neither class (field is neutral when empty)
+        cy.get('#pipeline-schema').clear();
+        cy.get('#pipeline-schema').should('not.have.class', 'is-valid');
+        cy.get('#pipeline-schema').should('not.have.class', 'is-invalid');
+      });
+    });
+
+    it('block settings FormModal: blocks with required fields show validation errors on empty submit; filling the field clears the error', function () {
+      // These tests verify the following behaviours in the eval-free validator:
+      // field-level input must carry is-invalid (error is routed to the correct widget)
+      // typing a valid value while liveValidate is active (i.e. after the first failed
+      // submit) must clear the error without a second submit cycle.
+      const sortBlock = this.blocks.data.find((b) => b.name === 'sort');
+      if (!sortBlock) {
+        // Skip gracefully if fixture ever changes
+        cy.log('sort block not found in fixture, skipping');
+        return;
+      }
+
+      cy.get('.main-content').within(() => {
+        cy.get('.flow-editor .block-item')
+          .contains(this.producerBlocks[0].name)
+          .dragOnto('.flow-editor .canvas-container');
+        cy.get('.canvas-container .node .producer').parents('.node').moveTo(-100, -80);
+
+        cy.get('.flow-editor .block-item')
+          .contains('sort')
+          .dragOnto('.flow-editor .canvas-container');
+        cy.get('.canvas-container .node .producer_consumer').parents('.node').moveTo(0, 0);
+
+        cy.get('.flow-editor .block-item')
+          .contains(this.consumerBlocks[0].name)
+          .dragOnto('.flow-editor .canvas-container');
+        cy.get('.canvas-container .node .consumer').parents('.node').moveTo(100, 80);
+
+        // Connect producer → sort → consumer
+        cy.get('.canvas-container .node .producer .port[data-name="Out"] > div').moveOnto(
+          '.canvas-container .node .producer_consumer .port[data-name="In"] > div',
+        );
+        cy.get('.canvas-container .node .producer_consumer .port[data-name="Out"] > div').moveOnto(
+          '.canvas-container .node .consumer .port[data-name="In"] > div',
+        );
+
+        // Click the settings icon on the sort node to open the settings modal
+        cy.get('.canvas-container .node .producer_consumer').parents('.node').find('.node-header-icon').first().click();
+      });
+
+      cy.get('.modal-dialog').within(() => {
+        cy.get('.modal-header').contains('Settings for sort');
+
+        // window_size_ms is required, submit with the field left empty
+        cy.get('button').contains('Apply settings').click();
+
+        // the error must be routed to the field input, proving
+        // the validator correctly populated rawErrors for the widget.
+        cy.get('.form-control.is-invalid').should('exist');
+        cy.get('.modal-header').contains('Settings for sort').should('exist');
+
+        // liveValidate is now active (hasSubmit = true).
+        // Typing a valid integer must immediately clear the input error.
+        cy.get('[id$="window_size_ms"]').type('1000');
+        cy.get('.form-control.is-invalid').should('not.exist');
+      });
+    });
   });
 });
