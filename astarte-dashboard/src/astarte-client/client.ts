@@ -145,7 +145,6 @@ interface AstarteClientConfig {
   realm?: string;
   realmManagementApiUrl: string;
   token?: string;
-  fdoApiUrl: string;
 }
 
 class AstarteClient {
@@ -203,52 +202,57 @@ class AstarteClient {
     this.getUnauthenticatedPairingVersion = this.getUnauthenticatedPairingVersion.bind(this);
     this.getPairingVersion = this.getPairingVersion.bind(this);
     this.uploadFdoVoucher = this.uploadFdoVoucher.bind(this);
-
-    // prettier-ignore
+    this.manageFdoOwnerKey = this.manageFdoOwnerKey.bind(this);
+    this.createFdoOwnerKey = this.createFdoOwnerKey.bind(this);
+    this.listFdoOwnerKeys = this.listFdoOwnerKeys.bind(this);
+    this.getFdoOwnerKey = this.getFdoOwnerKey.bind(this);
+    this.listFdoVouchers = this.listFdoVouchers.bind(this);
     this.apiConfig = {
       realmManagementHealth: astarteAPIurl`${config.realmManagementApiUrl}health`,
       unAuthenticatedRealmManagementVersion: astarteAPIurl`${config.realmManagementApiUrl}version`,
-      realmManagementVersion:astarteAPIurl`${config.realmManagementApiUrl}v1/${'realm'}/version`,
-      auth:                  astarteAPIurl`${config.realmManagementApiUrl}v1/${'realm'}/config/auth`,
+      realmManagementVersion: astarteAPIurl`${config.realmManagementApiUrl}v1/${'realm'}/version`,
+      auth: astarteAPIurl`${config.realmManagementApiUrl}v1/${'realm'}/config/auth`,
       deviceRegistrationLimit: astarteAPIurl`${config.realmManagementApiUrl}v1/${'realm'}/config/device_registration_limit`,
-      interfaces:            astarteAPIurl`${config.realmManagementApiUrl}v1/${'realm'}/interfaces`,
-      interfaceMajors:       astarteAPIurl`${config.realmManagementApiUrl}v1/${'realm'}/interfaces/${'interfaceName'}`,
-      interface:             astarteAPIurl`${config.realmManagementApiUrl}v1/${'realm'}/interfaces/${'interfaceName'}/${'interfaceMajor'}`,
-      interfaceData: 
-      astarteAPIurl`${config.realmManagementApiUrl}v1/${'realm'}/interfaces/${'interfaceName'}/${'interfaceMajor'}`,
-      trigger:               astarteAPIurl`${config.realmManagementApiUrl}v1/${'realm'}/triggers/${'triggerName'}`,
-      triggers:              astarteAPIurl`${config.realmManagementApiUrl}v1/${'realm'}/triggers`,
-      policies:              astarteAPIurl`${config.realmManagementApiUrl}v1/${'realm'}/policies`,
-      policy:                astarteAPIurl`${config.realmManagementApiUrl}v1/${'realm'}/policies/${'policyName'}`,
-      device:                astarteAPIurl`${config.realmManagementApiUrl}v1/${'realm'}/devices/${'deviceId'}`,
-      appengineHealth:       astarteAPIurl`${config.appEngineApiUrl}health`,
+      interfaces: astarteAPIurl`${config.realmManagementApiUrl}v1/${'realm'}/interfaces`,
+      interfaceMajors: astarteAPIurl`${config.realmManagementApiUrl}v1/${'realm'}/interfaces/${'interfaceName'}`,
+      interface: astarteAPIurl`${config.realmManagementApiUrl}v1/${'realm'}/interfaces/${'interfaceName'}/${'interfaceMajor'}`,
+      interfaceData: astarteAPIurl`${config.realmManagementApiUrl}v1/${'realm'}/interfaces/${'interfaceName'}/${'interfaceMajor'}`,
+      trigger: astarteAPIurl`${config.realmManagementApiUrl}v1/${'realm'}/triggers/${'triggerName'}`,
+      triggers: astarteAPIurl`${config.realmManagementApiUrl}v1/${'realm'}/triggers`,
+      policies: astarteAPIurl`${config.realmManagementApiUrl}v1/${'realm'}/policies`,
+      policy: astarteAPIurl`${config.realmManagementApiUrl}v1/${'realm'}/policies/${'policyName'}`,
+      device: astarteAPIurl`${config.realmManagementApiUrl}v1/${'realm'}/devices/${'deviceId'}`,
+      appengineHealth: astarteAPIurl`${config.appEngineApiUrl}health`,
       unAuthenticatedAppEngineVersion: astarteAPIurl`${config.appEngineApiUrl}version`,
-      appengineVersion:      astarteAPIurl`${config.appEngineApiUrl}v1/${'realm'}/version`,
-      devicesStats:          astarteAPIurl`${config.appEngineApiUrl}v1/${'realm'}/stats/devices`,
-      devices:               astarteAPIurl`${config.appEngineApiUrl}v1/${'realm'}/devices`,
-      deviceInfo:            astarteAPIurl`${config.appEngineApiUrl}v1/${'realm'}/devices/${'deviceId'}`,
-      deviceData:            astarteAPIurl`${config.appEngineApiUrl}v1/${'realm'}/devices/${'deviceId'}/interfaces/${'interfaceName'}${'path'}?since=${'since'}&since_after=${'sinceAfter'}&to=${'to'}&limit=${'limit'}`,
-      groups:                astarteAPIurl`${config.appEngineApiUrl}v1/${'realm'}/groups`,
-      groupDevices:          astarteAPIurl`${config.appEngineApiUrl}v1/${'realm'}/groups/${'groupName'}/devices`,
-      deviceInGroup:         astarteAPIurl`${config.appEngineApiUrl}v1/${'realm'}/groups/${'groupName'}/devices/${'deviceId'}`,
-      phoenixSocket:         astarteAPIurl`${config.appEngineApiUrl}v1/socket`,
-      sendInterfaceData:     astarteAPIurl`${config.appEngineApiUrl}v1/${'realm'}/devices/${'deviceId'}/interfaces/${'interfaceName'}${'path'}`,      
-      pairingHealth:         astarteAPIurl`${config.pairingApiUrl}health`,
+      appengineVersion: astarteAPIurl`${config.appEngineApiUrl}v1/${'realm'}/version`,
+      devicesStats: astarteAPIurl`${config.appEngineApiUrl}v1/${'realm'}/stats/devices`,
+      devices: astarteAPIurl`${config.appEngineApiUrl}v1/${'realm'}/devices`,
+      deviceInfo: astarteAPIurl`${config.appEngineApiUrl}v1/${'realm'}/devices/${'deviceId'}`,
+      deviceData: astarteAPIurl`${config.appEngineApiUrl}v1/${'realm'}/devices/${'deviceId'}/interfaces/${'interfaceName'}${'path'}?since=${'since'}&since_after=${'sinceAfter'}&to=${'to'}&limit=${'limit'}`,
+      groups: astarteAPIurl`${config.appEngineApiUrl}v1/${'realm'}/groups`,
+      groupDevices: astarteAPIurl`${config.appEngineApiUrl}v1/${'realm'}/groups/${'groupName'}/devices`,
+      deviceInGroup: astarteAPIurl`${config.appEngineApiUrl}v1/${'realm'}/groups/${'groupName'}/devices/${'deviceId'}`,
+      phoenixSocket: astarteAPIurl`${config.appEngineApiUrl}v1/socket`,
+      sendInterfaceData: astarteAPIurl`${config.appEngineApiUrl}v1/${'realm'}/devices/${'deviceId'}/interfaces/${'interfaceName'}${'path'}`,
+      pairingHealth: astarteAPIurl`${config.pairingApiUrl}health`,
       unAuthenticatedPairingVersion: astarteAPIurl`${config.pairingApiUrl}version`,
-      pairingVersion:        astarteAPIurl`${config.pairingApiUrl}v1/${'realm'}/version`,
-      registerDevice:        astarteAPIurl`${config.pairingApiUrl}v1/${'realm'}/agent/devices`,
-      deviceAgent:           astarteAPIurl`${config.pairingApiUrl}v1/${'realm'}/agent/devices/${'deviceId'}`,
-      flowHealth:            astarteAPIurl`${config.flowApiUrl}health`,
-      flows:                 astarteAPIurl`${config.flowApiUrl}v1/${'realm'}/flows`,
-      flowInstance:          astarteAPIurl`${config.flowApiUrl}v1/${'realm'}/flows/${'instanceName'}`,
-      pipelines:             astarteAPIurl`${config.flowApiUrl}v1/${'realm'}/pipelines`,
-      pipelineSource:        astarteAPIurl`${config.flowApiUrl}v1/${'realm'}/pipelines/${'pipelineId'}`,
-      blocks:                astarteAPIurl`${config.flowApiUrl}v1/${'realm'}/blocks`,
-      blockSource:           astarteAPIurl`${config.flowApiUrl}v1/${'realm'}/blocks/${'blockId'}`,
-      fdoOwnerKey:           astarteAPIurl`${config.pairingApiUrl}v1/${'realm'}/fdo/owner_key`,
-      fdoOwnershipVoucher:   astarteAPIurl`${config.pairingApiUrl}v1/${'realm'}/fdo/ownership_voucher`,
-      fdoCompatibleKeys: astarteAPIurl`${config.pairingApiUrl}v1/${'realm'}/ownership/compatible_keys`,
-      fdoLoadVoucher:    astarteAPIurl`${config.pairingApiUrl}v1/${'realm'}/ownership/load`,
+      pairingVersion: astarteAPIurl`${config.pairingApiUrl}v1/${'realm'}/version`,
+      registerDevice: astarteAPIurl`${config.pairingApiUrl}v1/${'realm'}/agent/devices`,
+      deviceAgent: astarteAPIurl`${config.pairingApiUrl}v1/${'realm'}/agent/devices/${'deviceId'}`,
+      flowHealth: astarteAPIurl`${config.flowApiUrl}health`,
+      flows: astarteAPIurl`${config.flowApiUrl}v1/${'realm'}/flows`,
+      flowInstance: astarteAPIurl`${config.flowApiUrl}v1/${'realm'}/flows/${'instanceName'}`,
+      pipelines: astarteAPIurl`${config.flowApiUrl}v1/${'realm'}/pipelines`,
+      pipelineSource: astarteAPIurl`${config.flowApiUrl}v1/${'realm'}/pipelines/${'pipelineId'}`,
+      blocks: astarteAPIurl`${config.flowApiUrl}v1/${'realm'}/blocks`,
+      blockSource: astarteAPIurl`${config.flowApiUrl}v1/${'realm'}/blocks/${'blockId'}`,
+      // Owner Keys (OpenBao-backed, agent API)
+      fdoOwnerKeys: astarteAPIurl`${config.pairingApiUrl}v1/${'realm'}/fdo/owner_keys`,
+      fdoOwnerKeysByAlgorithm: astarteAPIurl`${config.pairingApiUrl}v1/${'realm'}/fdo/owner_keys/${'keyAlgorithm'}`,
+      fdoOwnerKeyDetail: astarteAPIurl`${config.pairingApiUrl}v1/${'realm'}/fdo/owner_keys/${'keyAlgorithm'}/${'keyName'}`,
+      // Ownership Vouchers (OpenBao-backed, agent API)
+      fdoOwnerKeysForVoucher: astarteAPIurl`${config.pairingApiUrl}v1/${'realm'}/fdo/owner_keys_for_voucher`,
+      fdoOwnershipVouchers: astarteAPIurl`${config.pairingApiUrl}v1/${'realm'}/fdo/ownership_vouchers`,
     };
   }
 
@@ -788,7 +792,12 @@ class AstarteClient {
   async uploadFdoVoucher(
     keyName: string,
     voucherText: string,
-    options?: { replacementGuid?: string; replacementRvInfo?: string; replacementPubKey?: string },
+    options?: {
+      keyAlgorithm?: string;
+      replacementGuid?: string;
+      replacementRvInfo?: string;
+      replacementPubKey?: string;
+    },
   ): Promise<any> {
     const payloadData: any = {
       ownership_voucher: voucherText,
@@ -796,6 +805,10 @@ class AstarteClient {
 
     if (keyName.trim() !== '') {
       payloadData.key_name = keyName;
+    }
+
+    if (options?.keyAlgorithm?.trim()) {
+      payloadData.key_algorithm = options.keyAlgorithm;
     }
 
     if (options?.replacementGuid?.trim()) {
@@ -810,7 +823,7 @@ class AstarteClient {
 
     return axios({
       method: 'post',
-      url: this.apiConfig.fdoLoadVoucher(this.config),
+      url: this.apiConfig.fdoOwnershipVouchers(this.config),
       headers: {
         Authorization: `Bearer ${this.token}`,
         'Content-Type': 'application/json',
@@ -821,10 +834,12 @@ class AstarteClient {
     }).then((response) => response.data);
   }
 
-  async getCompatibleOwnerKeys(voucherText: string): Promise<string[]> {
+  async getCompatibleOwnerKeys(
+    voucherText: string,
+  ): Promise<{ key_name: string; key_algorithm: string }[]> {
     return axios({
       method: 'post',
-      url: this.apiConfig.fdoCompatibleKeys(this.config),
+      url: this.apiConfig.fdoOwnerKeysForVoucher(this.config),
       headers: {
         Authorization: `Bearer ${this.token}`,
         'Content-Type': 'application/json',
@@ -835,16 +850,24 @@ class AstarteClient {
         },
       },
     }).then((response) => {
-      // response.data.data is an object: {"es256":["abcd","ec256"], "rs256": ["other-key"]}
       const rawData = response.data.data;
-
-      // extract all keys and put the on into a unique array
-      if (rawData && typeof rawData === 'object') {
-        const flatKeys = Object.values(rawData).flat() as string[];
-        return flatKeys;
+      if (!rawData) {
+        return [];
       }
 
-      return []; // Fallback
+      // Handle both shapes the API might return:
+      // 1. flat object:  {"es256":["key1","key2"], "rs256":["key3"]}
+      // 2. array of objects: [{"es256":["key1"]},{"rs256":["key2"]}]
+      const entries: [string, unknown][] = Array.isArray(rawData)
+        ? (rawData as Record<string, unknown>[]).flatMap((obj) => Object.entries(obj))
+        : Object.entries(rawData);
+
+      return entries.flatMap(([key_algorithm, keyNames]) => {
+        if (!Array.isArray(keyNames)) {
+          return [];
+        }
+        return (keyNames as string[]).map((key_name) => ({ key_name, key_algorithm }));
+      });
     });
   }
 
@@ -867,7 +890,7 @@ class AstarteClient {
 
     return axios({
       method: 'post',
-      url: this.apiConfig.fdoOwnerKey(this.config),
+      url: this.apiConfig.fdoOwnerKeys(this.config),
       headers: {
         Authorization: `Bearer ${this.token}`,
         'Content-Type': 'application/json',
@@ -877,6 +900,56 @@ class AstarteClient {
         data: payloadData,
       },
     }).then((response) => response.data);
+  }
+
+  async createFdoOwnerKey(keyName: string, keyAlgorithm: string): Promise<string> {
+    return this.manageFdoOwnerKey({ action: 'create', keyName, keyAlgorithm });
+  }
+
+  async listFdoOwnerKeys(): Promise<{ key_name: string; key_algorithm: string }[]> {
+    return axios({
+      method: 'get',
+      url: this.apiConfig.fdoOwnerKeys(this.config),
+      headers: {
+        Authorization: `Bearer ${this.token}`,
+      },
+    }).then((response) => {
+      // API returns: {"es256":["key1","key2"],"es384":[],...}
+      const grouped: Record<string, string[]> = response.data ?? {};
+      return Object.entries(grouped).flatMap(([algorithm, keyNames]) =>
+        keyNames
+          .map((key_name) => key_name.replace(/^import\//, ''))
+          .filter((key_name) => key_name !== '')
+          .map((key_name) => ({ key_name, key_algorithm: algorithm })),
+      );
+    });
+  }
+
+  async getFdoOwnerKey(
+    keyAlgorithm: string,
+    keyName: string,
+  ): Promise<{ key_name: string; public_key: string }> {
+    return axios({
+      method: 'get',
+      url: this.apiConfig.fdoOwnerKeyDetail({ ...this.config, keyAlgorithm, keyName }),
+      headers: { Authorization: `Bearer ${this.token}` },
+    }).then((response) => response.data.data);
+  }
+
+  async listFdoVouchers(): Promise<
+    {
+      guid: string;
+      status: 'created' | 'claimed' | null;
+      input_voucher: string | null;
+      output_voucher: string | null;
+      output_guid: string | null;
+    }[]
+  > {
+    return axios({
+      method: 'get',
+      url: this.apiConfig.fdoOwnershipVouchers(this.config),
+      headers: { Authorization: `Bearer ${this.token}` },
+    }).then((response) => response.data.data ?? []);
   }
 
   private async $get(url: string) {

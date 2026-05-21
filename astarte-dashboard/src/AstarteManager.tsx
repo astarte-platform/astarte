@@ -30,20 +30,17 @@ const parseAstarteApiUrls = (params: DashboardConfig) => {
   let realmManagementApiUrl: URL;
   let pairingApiUrl: URL;
   let flowApiUrl: URL;
-  let fdoApiUrl: URL;
 
   if (astarteApiUrl === 'localhost') {
     appEngineApiUrl = new URL('http://localhost:4002');
     realmManagementApiUrl = new URL('http://localhost:4000');
     pairingApiUrl = new URL('http://localhost:4003');
     flowApiUrl = new URL('http://localhost:4009');
-    fdoApiUrl = new URL('http://localhost:4008');
   } else {
     appEngineApiUrl = new URL('appengine/', astarteApiUrl);
     realmManagementApiUrl = new URL('realmmanagement/', astarteApiUrl);
     pairingApiUrl = new URL('pairing/', astarteApiUrl);
     flowApiUrl = new URL('flow/', astarteApiUrl);
-    fdoApiUrl = new URL('fdo/', astarteApiUrl);
   }
 
   if (params.appEngineApiUrl) {
@@ -59,16 +56,11 @@ const parseAstarteApiUrls = (params: DashboardConfig) => {
     flowApiUrl = new URL(params.flowApiUrl);
   }
 
-  if (params.fdoApiUrl) {
-    fdoApiUrl = new URL(params.fdoApiUrl);
-  }
-
   return {
     appEngineApiUrl: appEngineApiUrl.toString(),
     realmManagementApiUrl: realmManagementApiUrl.toString(),
     pairingApiUrl: pairingApiUrl.toString(),
     flowApiUrl: flowApiUrl.toString(),
-    fdoApiUrl: fdoApiUrl.toString(),
   };
 };
 
@@ -120,7 +112,6 @@ type AstarteContextValue = {
   ) => boolean;
   logout: () => void;
   triggerDeliveryPoliciesSupported: boolean;
-  fdoApiUrl: string | null;
 };
 
 const AstarteContext = createContext<AstarteContextValue | null>(null);
@@ -229,7 +220,6 @@ const AstarteProvider = ({
       login,
       logout,
       triggerDeliveryPoliciesSupported,
-      fdoApiUrl: parseAstarteApiUrls(config).fdoApiUrl,
     }),
     [client, login, logout, session, triggerDeliveryPoliciesSupported],
   );
