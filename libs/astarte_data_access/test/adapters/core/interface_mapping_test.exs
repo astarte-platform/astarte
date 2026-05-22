@@ -42,7 +42,7 @@ defmodule Astarte.DataAccess.Adapters.Core.InterfaceMappingTest do
   describe "from core interface" do
     property "ensure all changesets are valid" do
       check all interface <- interface() do
-        %{interface: interface, endpoints: endpoints} = from_core(interface)
+        %{interface: interface, endpoints: endpoints} = from_core_interface(interface)
 
         assert interface.valid?
         assert Enum.all?(endpoints, & &1.valid?)
@@ -52,7 +52,7 @@ defmodule Astarte.DataAccess.Adapters.Core.InterfaceMappingTest do
     property "ensure all changesets have source fields data" do
       check all %InterfaceCore{} = interface_core <- interface() |> filter(&valid_interface?/1) do
         %{interface: interface_changeset, endpoints: endpoint_changesets} =
-          from_core(interface_core)
+          from_core_interface(interface_core)
 
         assert interface_core.interface_id ==
                  Changeset.get_field(interface_changeset, :interface_id)

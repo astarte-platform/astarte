@@ -149,7 +149,7 @@ defmodule Astarte.AdaptersTest do
       code = """
       defmodule TestPreProcessFail do
         use Astarte.Adapters
-        transform :fail do
+        transform fail do
           keep :a
           pre_process fn x -> x end
         end
@@ -165,7 +165,7 @@ defmodule Astarte.AdaptersTest do
       code = """
       defmodule TestKeepFail do
         use Astarte.Adapters
-        transform :fail do
+        transform fail do
           keep :a
           keep :b
         end
@@ -181,8 +181,8 @@ defmodule Astarte.AdaptersTest do
       code = """
       defmodule TestKeepAfterFieldFail do
         use Astarte.Adapters
-        transform :fail do
-          field :b, :c
+        transform fail do
+          field :b <- :c
           keep :a
         end
       end
@@ -199,9 +199,9 @@ defmodule Astarte.AdaptersTest do
       code = """
       defmodule TestFieldAfterPostProcessFail do
         use Astarte.Adapters
-        transform :fail do
+        transform fail do
           post_process fn x -> x end
-          field :a, :b
+          field :a <- :b
         end
       end
       """
@@ -215,7 +215,7 @@ defmodule Astarte.AdaptersTest do
       code = """
       defmodule TestPostProcessFail do
         use Astarte.Adapters
-        transform :fail do
+        transform fail do
           post_process fn x -> x end
           post_process fn x -> x end
         end
@@ -231,7 +231,7 @@ defmodule Astarte.AdaptersTest do
       code = """
       defmodule TestInvalidConstruct do
         use Astarte.Adapters
-        transform :fail do
+        transform fail do
           :invalid_atom
         end
       end
@@ -244,11 +244,57 @@ defmodule Astarte.AdaptersTest do
   end
 
   describe "Astarte.Adapters edge cases for 100% coverage" do
+    test "parses @source and @returns correctly" do
+      code = """
+      defmodule TestAttrs do
+        use Astarte.Adapters
+        transform run do
+          @source map()
+          @returns map()
+          field :a <- :b
+        end
+      end
+      """
+
+      assert {{:module, _, _, _}, _} = Code.eval_string(code)
+    end
+
+    test "covers all field parse combinations and path normalizations" do
+      code = """
+      defmodule TestFieldCombos do
+        use Astarte.Adapters
+        transform run do
+          field [:dest, :path] <- ["source", "path"], fn x, _ -> x end, required: false
+          field :f2 <- :s2, required: false
+          field :f3 <- :s3, fn x, _ -> x end
+          field :f4 <- :s4
+          field :f5, fn x -> x end, required: false
+          field :f6, required: false
+          field :f7, fn x -> x end
+          field :f8
+        end
+      end
+      """
+
+      assert {{:module, _, _, _}, _} = Code.eval_string(code)
+    end
+
+    test "handles inline single statement block" do
+      code = """
+      defmodule TestInline do
+        use Astarte.Adapters
+        transform run, do: field(:a <- :b)
+      end
+      """
+
+      assert {{:module, _, _, _}, _} = Code.eval_string(code)
+    end
+
     test "keep accepts a list of keys" do
       code = """
       defmodule TestKeepList do
         use Astarte.Adapters
-        transform :run do
+        transform run do
           keep [:a, :b]
         end
       end
@@ -262,7 +308,7 @@ defmodule Astarte.AdaptersTest do
       code = """
       defmodule TestKeepSingle do
         use Astarte.Adapters
-        transform :run do
+        transform run do
           keep :a
         end
       end
@@ -276,7 +322,7 @@ defmodule Astarte.AdaptersTest do
       code = """
       defmodule TestComputedNoCustom do
         use Astarte.Adapters
-        transform :run do
+        transform run do
           field :a, required: false
         end
       end
@@ -286,24 +332,40 @@ defmodule Astarte.AdaptersTest do
       assert %{a: %{b: 1}} == mod.run(%{b: 1})
     end
 
-    test "empty block returns empty map" do
+    test "raises CompileError on empty block" do
       code = """
       defmodule TestEmpty do
         use Astarte.Adapters
-        transform :run do
+        transform run do
         end
       end
       """
 
-      {{:module, mod, _, _}, _} = Code.eval_string(code)
-      assert %{} == mod.run(%{a: 1, b: 2})
+      assert_raise CompileError, ~r/Invalid construct in transform block: nil/, fn ->
+        Code.eval_string(code)
+      end
+    end
+
+    test "single statement None value raises CompileError" do
+      code = """
+      defmodule TestSingleNil do
+        use Astarte.Adapters
+        transform run do
+          nil
+        end
+      end
+      """
+
+      assert_raise CompileError, ~r/Invalid construct in transform block: nil/, fn ->
+        Code.eval_string(code)
+      end
     end
 
     test "allows only pre_process" do
       code = """
       defmodule TestPreOnly do
         use Astarte.Adapters
-        transform :run do
+        transform run do
           pre_process fn x -> %{x: x} end
         end
       end
@@ -317,7 +379,7 @@ defmodule Astarte.AdaptersTest do
       code = """
       defmodule TestPostOnly do
         use Astarte.Adapters
-        transform :run do
+        transform run do
           post_process fn x -> Map.put(x, :ok, true) end
         end
       end
@@ -326,24 +388,17 @@ defmodule Astarte.AdaptersTest do
       {{:module, mod, _, _}, _} = Code.eval_string(code)
       assert %{ok: true} == mod.run(%{})
     end
-  end
 
-  describe "Astarte.Adapters.Engine runtime constraints" do
-    test "raises ArgumentError when custom option is invalid" do
+    test "transform macro with pure atom name" do
       code = """
-      defmodule TestRuntimeArity do
+      defmodule TestPureAtomName do
         use Astarte.Adapters
-        transform :run do
-          field :a, :b, custom: "not a function"
-        end
+        transform(:run_pure, do: field(:a <- :b))
       end
       """
 
       {{:module, mod, _, _}, _} = Code.eval_string(code)
-
-      assert_raise ArgumentError, ~r/Invalid :custom option for field :a/, fn ->
-        mod.run(%{b: 1})
-      end
+      assert mod.run_pure(%{b: 1}) == %{a: 1}
     end
   end
 end

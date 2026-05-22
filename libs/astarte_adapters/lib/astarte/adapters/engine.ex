@@ -108,18 +108,30 @@ defmodule Astarte.Adapters.Engine do
 
   defp handle_fetched(
          {:ok, _val},
-         _acc,
-         _source_map,
-         _dest_path,
-         _source_path,
-         dest_field_name,
+         acc,
+         source_map,
+         dest_path,
+         [],
+         _dest_field_name,
          _req,
-         invalid_custom
+         custom_fun
        )
-       when not is_nil(invalid_custom) do
-    raise ArgumentError,
-          "Invalid :custom option for field #{inspect(dest_field_name)}. " <>
-            "Expected a function of exactly arity 2"
+       when is_function(custom_fun, 1) do
+    deep_put(acc, dest_path, custom_fun.(source_map))
+  end
+
+  defp handle_fetched(
+         {:ok, val},
+         acc,
+         _source_map,
+         dest_path,
+         _source_path,
+         _dest_field_name,
+         _req,
+         custom_fun
+       )
+       when is_function(custom_fun, 1) do
+    deep_put(acc, dest_path, custom_fun.(val))
   end
 
   defp handle_fetched(
@@ -158,5 +170,27 @@ defmodule Astarte.Adapters.Engine do
          nil
        ) do
     deep_put(acc, dest_path, val)
+  end
+
+  defp handle_fetched(
+         {:ok, _val},
+         _acc,
+         _source_map,
+         _dest_path,
+         _source_path,
+         dest_field_name,
+         _req,
+         invalid_custom
+       )
+       when not is_nil(invalid_custom) do
+    received =
+      if is_function(invalid_custom) do
+        "arity #{:erlang.fun_info(invalid_custom, :arity) |> elem(1)}"
+      else
+        inspect(invalid_custom)
+      end
+
+    raise ArgumentError,
+          "Invalid compute function for field #{inspect(dest_field_name)}. Expected arity 1 or 2, got: #{received}"
   end
 end

@@ -30,47 +30,40 @@ defmodule Astarte.DataAccess.Adapters.Core.InterfaceMapping do
   alias Astarte.DataAccess.Realms.Endpoint
   alias Astarte.DataAccess.Realms.Interface
 
-  @type interface_core :: InterfaceCore.t()
-  @type mapping_core :: MappingCore.t()
-
-  @type from_core_source :: interface_core()
-  @type from_core_returns :: %{interface: Changeset.t(), endpoints: list(Changeset.t())}
-  transform :from_core,
-    source: from_core_source(),
-    returns: from_core_returns() do
-    field [:interface, :interface_id], :interface_id
-    field [:interface, :name], :name
-    field [:interface, :major_version], :major_version
-    field [:interface, :minor_version], :minor_version
-    field [:interface, :aggregation], :aggregation
-    field [:interface, :ownership], :ownership
-    field [:interface, :type], :type
-    field [:interface, :storage], custom: &Interface.storage/1
-    field [:interface, :storage_type], custom: &Interface.storage_type/1
-    field [:interface, :doc], :doc, required: false
-    field [:interface, :description], :description, required: false
-    field :endpoints, :mappings, custom: &from_core_mappings/2
+  transform from_core_interface do
+    @source InterfaceCore.t()
+    @returns %{interface: Changeset.t(), endpoints: list(Changeset.t())}
+    field [:interface, :interface_id] <- :interface_id
+    field [:interface, :name] <- :name
+    field [:interface, :major_version] <- :major_version
+    field [:interface, :minor_version] <- :minor_version
+    field [:interface, :aggregation] <- :aggregation
+    field [:interface, :ownership] <- :ownership
+    field [:interface, :type] <- :type
+    field [:interface, :storage], &Interface.storage/1
+    field [:interface, :storage_type], &Interface.storage_type/1
+    field [:interface, :doc] <- :doc, required: false
+    field [:interface, :description] <- :description, required: false
+    field :endpoints <- :mappings, &from_core_mappings/2
     post_process &from_core_post_process/1
   end
 
-  @type from_core_mapping_source :: %{interface_id: String.t(), mapping: mapping_core()}
-  @type from_core_mapping_returns :: Changeset.t()
-  transform :from_core_mapping,
-    source: from_core_mapping_source(),
-    results: from_core_mapping_returns do
+  transform from_core_mapping do
+    @source %{interface_id: String.t(), mapping: MappingCore.t()}
+    @returns Changeset.t()
     keep :interface_id
-    field :endpoint, [:mapping, :endpoint]
-    field :value_type, [:mapping, :value_type]
-    field :reliability, [:mapping, :reliability]
-    field :retention, [:mapping, :retention]
-    field :expiry, [:mapping, :expiry]
-    field :database_retention_policy, [:mapping, :database_retention_policy]
-    field :database_retention_ttl, [:mapping, :database_retention_ttl], required: false
-    field :allow_unset, [:mapping, :allow_unset]
-    field :explicit_timestamp, [:mapping, :explicit_timestamp]
-    field :endpoint_id, [:mapping, :endpoint_id]
-    field :doc, [:mapping, :doc], required: false
-    field :description, [:mapping, :description], required: false
+    field :endpoint <- [:mapping, :endpoint]
+    field :value_type <- [:mapping, :value_type]
+    field :reliability <- [:mapping, :reliability]
+    field :retention <- [:mapping, :retention]
+    field :expiry <- [:mapping, :expiry]
+    field :database_retention_policy <- [:mapping, :database_retention_policy]
+    field :database_retention_ttl <- [:mapping, :database_retention_ttl], required: false
+    field :allow_unset <- [:mapping, :allow_unset]
+    field :explicit_timestamp <- [:mapping, :explicit_timestamp]
+    field :endpoint_id <- [:mapping, :endpoint_id]
+    field :doc <- [:mapping, :doc], required: false
+    field :description <- [:mapping, :description], required: false
     post_process &from_core_mapping_post_process/1
   end
 

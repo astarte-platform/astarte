@@ -31,13 +31,13 @@ defmodule Astarte.Adapters do
   import the `transform` macro.
 
   A transformation is defined using `transform`, which takes a name for the generated
-  function, an optional keyword list of configuration options, and a `do` block containing
-  the transformation rules.
+  function and a `do` block containing the transformation rules.
 
   ### Mapping Options
 
-  * `:source` - The expected input type (defaults to `any()`).
-  * `:returns` - The expected output type (defaults to `map()`).
+  Optional module attributes can be declared at the top of the block:
+  * `@source` - The expected input type (defaults to `any()`).
+  * `@returns` - The expected output type (defaults to `map()`).
 
   ### Rules
 
@@ -48,9 +48,11 @@ defmodule Astarte.Adapters do
       that receives the raw input data and must return a map for the engine to process.
   2. `keep path1, path2, ...`: (Optional) Syntactic sugar for 1-to-1 mappings. Maps
       an arbitrary number of listed keys without modifications. It must appear at most once.
-  3. `field destination, source, options`: Defines how to map a field.
-      * Standard field: `field :dest, :source, opts`
-      * Computed field: `field :dest, custom: fn source -> ... end`
+  3. `field`: Defines how to map a field.
+      * Standard field: `field :dest <- :source`
+      * Standard field with options: `field :dest <- :source, required: false`
+      * Computed field (Arity 2): `field :dest <- :source, fn val, source -> ... end, opts`
+      * Full source computed field (Arity 1): `field :dest, fn source -> ... end, opts`
   4. `post_process function`: (Optional) The last statement. A function of arity 1
       that will be called with the final mapped structure.
 
@@ -61,12 +63,15 @@ defmodule Astarte.Adapters do
 
         @type string_payload :: String.t()
 
-        transform :json_to_struct, source: string_payload() do
+        transform map_payload do
+          @source string_payload()
+          @returns map()
+
           pre_process &Jason.decode!/1
-          keep "id", "version"
-          field :name, ["data", "attributes", "name"]
-          field :type, "type", custom: fn type, _source -> String.upcase(type) end
-          field :full_name, custom: fn source -> source["first"] <> " " <> source["last"] end
+          keep ["id", "version"]
+          field :name <- ["data", "attributes", "name"]
+          field :type <- "type", fn type, _source -> String.upcase(type) end, required: false
+          field :full_name, fn source -> source["first"] <> " " <> source["last"] end
           post_process &struct!(MyStruct, &1)
         end
       end
@@ -82,26 +87,28 @@ defmodule Astarte.Adapters do
   @doc """
   Defines a transformation ruleset.
   """
-  defmacro transform(name, opts \\ [], do: block) do
-    source_type = Keyword.get(opts, :source, quote(do: any()))
-    return_type = Keyword.get(opts, :returns, quote(do: map()))
+  defmacro transform(name, do: block) do
+    %{
+      pre: pre,
+      fields: fields,
+      post: post,
+      source_type: source_type,
+      return_type: return_type
+    } = parse_block(block, __ENV__)
 
-    %{pre: pre, fields: fields, post: post} = parse_block(block, __ENV__)
+    fun_name =
+      case name do
+        {atom, _, _} when is_atom(atom) -> atom
+        atom when is_atom(atom) -> atom
+      end
 
     source_data_var = Macro.var(:source_data, nil)
     processed_source_var = Macro.var(:processed_source, nil)
 
     pre_ast =
       case pre do
-        nil ->
-          quote do
-            unquote(processed_source_var) = unquote(source_data_var)
-          end
-
-        fun ->
-          quote do
-            unquote(processed_source_var) = unquote(fun).(unquote(source_data_var))
-          end
+        nil -> quote(do: unquote(processed_source_var) = unquote(source_data_var))
+        fun -> quote(do: unquote(processed_source_var) = unquote(fun).(unquote(source_data_var)))
       end
 
     pipeline =
@@ -125,24 +132,26 @@ defmodule Astarte.Adapters do
 
     final_ast =
       case post do
-        nil ->
-          pipeline
-
-        fun ->
-          quote do
-            unquote(fun).(unquote(pipeline))
-          end
+        nil -> pipeline
+        fun -> quote(do: unquote(fun).(unquote(pipeline)))
       end
 
     quote do
-      @doc "Transforms source data using the `#{unquote(name)}` ruleset."
-      @spec unquote(name)(unquote(source_type)) :: unquote(return_type)
-      def unquote(name)(unquote(source_data_var)) do
+      @doc "Transforms source data using the `#{unquote(fun_name)}` ruleset."
+      @spec unquote(fun_name)(unquote(source_type)) :: unquote(return_type)
+      def unquote(fun_name)(unquote(source_data_var)) do
         unquote(pre_ast)
         _ = unquote(processed_source_var)
         unquote(final_ast)
       end
     end
+  end
+
+  defp parse_block({:__block__, _, []}, env) do
+    raise CompileError,
+      file: env.file,
+      line: env.line,
+      description: "Invalid construct in transform block: nil"
   end
 
   defp parse_block({:__block__, _, statements}, env), do: parse_statements(statements, env)
@@ -152,12 +161,25 @@ defmodule Astarte.Adapters do
     result =
       Enum.reduce(
         statements,
-        %{state: :start, pre: nil, fields: [], post: nil},
+        %{
+          state: :start,
+          pre: nil,
+          fields: [],
+          post: nil,
+          source_type: quote(do: any()),
+          return_type: quote(do: %{})
+        },
         &reduce_statement(&1, &2, env)
       )
 
     %{result | fields: Enum.reverse(result.fields)}
   end
+
+  defp reduce_statement({:@, _, [{:source, _, [type]}]}, acc, _env),
+    do: %{acc | source_type: type}
+
+  defp reduce_statement({:@, _, [{:returns, _, [type]}]}, acc, _env),
+    do: %{acc | return_type: type}
 
   defp reduce_statement({:pre_process, _, [fun]}, %{state: :start} = acc, _env),
     do: %{acc | state: :pre_process, pre: fun}
@@ -191,9 +213,8 @@ defmodule Astarte.Adapters do
       )
 
   defp reduce_statement({:field, _, args}, %{state: state} = acc, _env)
-       when state in [:start, :pre_process, :keep, :field] do
-    %{acc | state: :field, fields: [parse_field_args(args) | acc.fields]}
-  end
+       when state in [:start, :pre_process, :keep, :field],
+       do: %{acc | state: :field, fields: [parse_field_args(args) | acc.fields]}
 
   defp reduce_statement({:field, _, _}, %{state: _}, env),
     do:
@@ -204,9 +225,8 @@ defmodule Astarte.Adapters do
       )
 
   defp reduce_statement({:post_process, _, [fun]}, %{state: state} = acc, _env)
-       when state != :post_process do
-    %{acc | state: :post_process, post: fun}
-  end
+       when state != :post_process,
+       do: %{acc | state: :post_process, post: fun}
 
   defp reduce_statement({:post_process, _, _}, %{state: _}, env),
     do:
@@ -224,23 +244,23 @@ defmodule Astarte.Adapters do
         description: "Invalid construct in transform block: #{inspect(invalid_node)}"
       )
 
-  defp parse_field_args([dest, [{key, _} | _] = opts]) when is_atom(key) do
-    adapted_fun =
-      case Keyword.get(opts, :custom) do
-        nil -> nil
-        fun -> quote do: fn _val, source -> unquote(fun).(source) end
-      end
+  defp parse_field_args([{:<-, _, [dest, source]}, func, opts]) when is_list(opts),
+    do: {dest, source, Keyword.get(opts, :required, true), func}
 
-    {dest, [], false, adapted_fun}
-  end
+  defp parse_field_args([{:<-, _, [dest, source]}, opts]) when is_list(opts),
+    do: {dest, source, Keyword.get(opts, :required, true), nil}
 
-  defp parse_field_args([dest, source]) do
-    {dest, source, true, nil}
-  end
+  defp parse_field_args([{:<-, _, [dest, source]}, func]), do: {dest, source, true, func}
+  defp parse_field_args([{:<-, _, [dest, source]}]), do: {dest, source, true, nil}
 
-  defp parse_field_args([dest, source, opts]) when is_list(opts) do
-    {dest, source, Keyword.get(opts, :required, true), Keyword.get(opts, :custom)}
-  end
+  defp parse_field_args([dest, func, opts]) when is_list(opts),
+    do: {dest, [], Keyword.get(opts, :required, true), func}
+
+  defp parse_field_args([dest, opts]) when is_list(opts),
+    do: {dest, [], Keyword.get(opts, :required, true), nil}
+
+  defp parse_field_args([dest, func]), do: {dest, [], true, func}
+  defp parse_field_args([dest]), do: {dest, [], true, nil}
 
   defp normalize_path(path) when is_atom(path) or is_binary(path), do: [path]
   defp normalize_path(path) when is_list(path), do: path

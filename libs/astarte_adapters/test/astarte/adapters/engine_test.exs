@@ -18,116 +18,133 @@
 
 defmodule Astarte.Adapters.EngineTest do
   use ExUnit.Case, async: true
+  use ExUnitProperties
 
-  alias Astarte.Adapters.Engine
+  import Astarte.Adapters.Engine
+
   alias Astarte.Adapters.MissingFieldError
 
   describe "deep_get/2" do
-    test "extracts value using an atom path" do
-      assert Engine.deep_get(%{a: 42}, :a) == {:ok, 42}
+    test "returns ok with data when path is empty list" do
+      assert {:ok, %{a: 1}} == deep_get(%{a: 1}, [])
     end
 
-    test "returns the original map when path is empty" do
-      assert Engine.deep_get(%{a: 42}, []) == {:ok, %{a: 42}}
+    test "handles atom and binary paths" do
+      assert {:ok, 1} == deep_get(%{a: 1}, :a)
+      assert {:ok, 2} == deep_get(%{"b" => 2}, "b")
     end
 
-    test "extracts value using a single-element list path" do
-      assert Engine.deep_get(%{a: 42}, [:a]) == {:ok, 42}
+    test "returns value for single key" do
+      assert {:ok, 1} == deep_get(%{a: 1}, [:a])
+      assert :error == deep_get(%{a: 1}, [:b])
     end
 
-    test "extracts value deep inside nested maps" do
-      assert Engine.deep_get(%{a: %{b: %{c: 42}}}, [:a, :b, :c]) == {:ok, 42}
+    test "returns value for nested keys" do
+      assert {:ok, 1} == deep_get(%{a: %{b: 1}}, [:a, :b])
     end
 
-    test "returns :error when the root key is missing" do
-      assert Engine.deep_get(%{a: 42}, [:b]) == :error
+    test "returns error when intermediate key is missing" do
+      assert :error == deep_get(%{a: %{}}, [:a, :b, :c])
     end
 
-    test "returns :error when a nested key is missing" do
-      assert Engine.deep_get(%{a: %{}}, [:a, :b]) == :error
-    end
-
-    test "returns :error when encountering a non-map node midway" do
-      assert Engine.deep_get(%{a: "string"}, [:a, :b]) == :error
-    end
-
-    test "returns :error when the source is entirely nil or not a map" do
-      assert Engine.deep_get(nil, [:a]) == :error
-      assert Engine.deep_get([a: 1], [:a]) == :error
+    test "returns error when trying to get from a non-map" do
+      assert :error == deep_get("not_a_map", [:a])
+      assert :error == deep_get(%{a: "not_a_map"}, [:a, :b])
     end
   end
 
   describe "deep_put/3" do
-    test "inserts value using an atom path" do
-      assert Engine.deep_put(%{}, :a, 42) == %{a: 42}
+    test "handles atom and binary paths" do
+      assert %{a: 1} == deep_put(%{}, :a, 1)
+      assert %{"b" => 2} == deep_put(%{}, "b", 2)
     end
 
-    test "inserts value using a single-element list path" do
-      assert Engine.deep_put(%{}, [:a], 42) == %{a: 42}
+    test "puts value for single key" do
+      assert %{a: 1} == deep_put(%{}, [:a], 1)
     end
 
-    test "inserts value deep into an existing nested structure" do
-      assert Engine.deep_put(%{a: %{b: 1}}, [:a, :c], 42) == %{a: %{b: 1, c: 42}}
+    test "puts value for nested keys" do
+      assert %{a: %{b: %{c: 1}}} == deep_put(%{}, [:a, :b, :c], 1)
     end
 
-    test "creates intermediate empty maps when path goes deeper than existing structure" do
-      assert Engine.deep_put(%{}, [:a, :b, :c], 42) == %{a: %{b: %{c: 42}}}
-    end
-
-    test "overwrites non-map nodes with a new map to proceed with insertion" do
-      assert Engine.deep_put(%{a: "old_string"}, [:a, :b], 42) == %{a: %{b: 42}}
+    test "overwrites scalar value with map via ensure_map/1" do
+      assert %{a: %{b: 2}} == deep_put(%{a: 1}, [:a, :b], 2)
     end
   end
 
-  describe "process_field/7" do
-    test "raises MissingFieldError when a strictly missing key is required" do
+  describe "process_field/7 and handle_fetched/8" do
+    test "raises MissingFieldError when required field is missing" do
       assert_raise MissingFieldError, fn ->
-        Engine.process_field(%{}, %{}, [:dest], [:src], :dest, true, nil)
+        process_field(%{}, %{}, [:dest], [:src], :dest, true, nil)
       end
     end
 
-    test "returns accumulator unchanged when a strictly missing key is optional" do
-      assert Engine.process_field(%{keep: 1}, %{}, [:dest], [:src], :dest, false, nil) == %{
-               keep: 1
-             }
+    test "returns accumulator when optional field is missing" do
+      acc = %{kept: 1}
+      assert acc == process_field(acc, %{}, [:dest], [:src], :dest, false, nil)
     end
 
-    test "raises MissingFieldError when an existing key has a nil value and is required" do
+    test "applies arity 2 custom function" do
+      fun = fn val, source -> val + source.offset end
+      source = %{src: 10, offset: 5}
+      expected = %{dest: 15}
+      assert expected == process_field(%{}, source, [:dest], [:src], :dest, true, fun)
+    end
+
+    test "applies arity 1 custom function with empty source path (entire source passed)" do
+      fun = fn source -> source.a + source.b end
+      source = %{a: 10, b: 5}
+      expected = %{dest: 15}
+      assert expected == process_field(%{}, source, [:dest], [], :dest, true, fun)
+    end
+
+    test "applies arity 1 custom function with specific source path" do
+      fun = fn val -> val * 2 end
+      source = %{src: 10}
+      expected = %{dest: 20}
+      assert expected == process_field(%{}, source, [:dest], [:src], :dest, true, fun)
+    end
+
+    test "raises MissingFieldError when required field is nil and no custom fun" do
       assert_raise MissingFieldError, fn ->
-        Engine.process_field(%{}, %{src: nil}, [:dest], [:src], :dest, true, nil)
+        process_field(%{}, %{src: nil}, [:dest], [:src], :dest, true, nil)
       end
     end
 
-    test "returns accumulator unchanged when an existing key has a nil value and is optional" do
-      assert Engine.process_field(%{keep: 1}, %{src: nil}, [:dest], [:src], :dest, false, nil) ==
-               %{keep: 1}
+    test "returns accumulator when optional field is nil and no custom fun" do
+      acc = %{kept: 1}
+      assert acc == process_field(acc, %{src: nil}, [:dest], [:src], :dest, false, nil)
     end
 
-    test "inserts the extracted value directly when no custom function is provided" do
-      assert Engine.process_field(%{}, %{src: 42}, [:dest], [:src], :dest, true, nil) == %{
-               dest: 42
-             }
+    test "puts value directly when no custom function is provided" do
+      source = %{src: 10}
+      expected = %{dest: 10}
+      assert expected == process_field(%{}, source, [:dest], [:src], :dest, true, nil)
     end
 
-    test "executes the custom function with extracted value and full source map" do
-      custom_fun = fn val, source_map ->
-        assert source_map == %{src: 10, other: 5}
-        val * 2
+    test "raises ArgumentError with arity info when custom function has invalid arity" do
+      fun = fn a, b, c -> a + b + c end
+
+      assert_raise ArgumentError, ~r/Expected arity 1 or 2, got: arity 3/, fn ->
+        process_field(%{}, %{src: 1}, [:dest], [:src], :dest, true, fun)
       end
-
-      assert Engine.process_field(
-               %{},
-               %{src: 10, other: 5},
-               [:dest],
-               [:src],
-               :dest,
-               true,
-               custom_fun
-             ) == %{dest: 20}
     end
 
-    test "returns :error when the first key of a multi-part path is missing (triggers continue_get error fallback)" do
-      assert Engine.deep_get(%{}, [:a, :b]) == :error
+    test "raises ArgumentError with inspect info when custom function is not a function" do
+      assert_raise ArgumentError, ~r/Expected arity 1 or 2, got: "not a function"/, fn ->
+        process_field(%{}, %{src: 1}, [:dest], [:src], :dest, true, "not a function")
+      end
+    end
+  end
+
+  describe "Properties" do
+    property "deep_put followed by deep_get retrieves the exact value" do
+      check all path <- list_of(one_of([atom(:alphanumeric), string(:ascii)]), min_length: 1),
+                value <- term(),
+                map <- map_of(atom(:alphanumeric), term()) do
+        updated_map = deep_put(map, path, value)
+        assert {:ok, value} == deep_get(updated_map, path)
+      end
     end
   end
 end

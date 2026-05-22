@@ -1,9 +1,9 @@
 # Used by "mix format"
 locals_without_parens = [
-  transform: 2,
-  transform: 3,
+  transform: 1,
   pre_process: 1,
   keep: :*,
+  field: 1,
   field: 2,
   field: 3,
   post_process: 1

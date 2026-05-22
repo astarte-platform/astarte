@@ -23,63 +23,75 @@ defmodule Astarte.Adapters.Mappings do
   alias Astarte.Adapters.ComplexStruct
   alias Astarte.Adapters.SimpleStruct
 
-  transform :map_to_simple_struct, returns: SimpleStruct.t() do
-    field :id, :id
-    field :name, :name, required: false
+  transform map_to_simple_struct do
+    @source map()
+    @returns SimpleStruct.t()
+    field :id <- :id
+    field :name <- :name, required: false
     post_process &struct!(SimpleStruct, &1)
   end
 
-  @type my_source :: %{a: %{id: integer(), name: String.t() | nil}, b: [map()]}
-  transform :map_to_complex_struct, source: my_source(), returns: ComplexStruct.t() do
-    field :id, [:a, :id]
-    field :name, [:a, :name], required: false
+  transform map_to_complex_struct do
+    @source %{a: %{id: integer(), name: String.t() | nil}, b: [map()]}
+    @returns ComplexStruct.t()
 
-    field :children, :b,
-      custom: fn children, _source ->
-        Enum.map(children, &map_to_simple_struct/1)
-      end
+    field :id <- [:a, :id]
+    field :name <- [:a, :name], required: false
+
+    field :children <- :b, fn children, _source -> Enum.map(children, &map_to_simple_struct/1) end
 
     post_process &struct!(ComplexStruct, &1)
   end
 
-  transform :complex_struct_to_map do
-    field [:a, :id], :id
-    field [:a, :name], :name, required: false
+  transform complex_struct_to_map do
+    @source ComplexStruct.t()
+    @returns %{a: %{id: integer(), name: String.t()}, b: [%{id: integer(), name: String.t()}]}
 
-    field :b, :children,
-      custom: fn children, _source ->
-        Enum.map(children, &Map.from_struct/1)
-      end
+    field [:a, :id] <- :id
+    field [:a, :name] <- :name, required: false
+
+    field :b <- :children, fn children, _source -> Enum.map(children, &Map.from_struct/1) end
   end
 
-  @type string_source :: %{
-          required(String.t()) => String.t(),
-          required(String.t()) => String.t()
-        }
-  @type string_result :: String.t()
-  transform :string_map_to_string, source: string_source(), returns: string_result() do
+  transform string_map_to_string do
+    @source %{required(String.t()) => String.t(), required(String.t()) => String.t()}
+    @returns String.t()
     keep "a", "b"
     post_process fn %{"a" => a, "b" => b} -> a <> b end
   end
 
-  transform :full_dsl_test do
+  transform full_dsl_test do
+    @source {integer(), String.t(), String.t(), String.t()}
+    @returns %{
+      id: integer(),
+      role: String.t(),
+      is_active: bool(),
+      role_upper: String.t(),
+      full_name: String.t(),
+      processed_at: atom()
+    }
+
     pre_process fn {id, first, last, role} ->
       %{id: id, first: first, last: last, role: role, meta: %{active: true}}
     end
 
     keep :id, :role
-    field :is_active, [:meta, :active]
-    field :role_upper, :role, custom: fn role, _source -> String.upcase(role) end
-    field :full_name, custom: fn source -> "#{source.first} #{source.last}" end
+    field :is_active <- [:meta, :active]
+    field :role_upper <- :role, fn role, _source -> String.upcase(role) end
+    field :full_name, fn source -> "#{source.first} #{source.last}" end
     post_process fn result -> Map.put(result, :processed_at, :now) end
   end
 
-  transform :computed_fields_only do
-    field :combined, custom: fn src -> src.x + src.y end
-    field :static, custom: fn _src -> "always_this" end
+  transform computed_fields_only do
+    @source %{x: integer(), y: integer()}
+    @source %{combined: integer(), static: String.t()}
+    field :combined, fn src -> src.x + src.y end
+    field :static, fn _src -> "always_this" end
   end
 
-  transform :mixed_keep_test do
+  transform mixed_keep_test do
+    @source %{x: integer(), y: integer()}
+    @source %{combined: integer(), static: String.t()}
     keep :atom_key, "string_key", :another_atom
   end
 end
