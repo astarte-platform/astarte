@@ -58,8 +58,8 @@ defmodule Astarte.DataAccess.Mixfile do
   defp astarte_required_modules(_) do
     [
       {:astarte_core, "~> 1.3", override: true},
-      {:astarte_adapters, path: astarte_lib("astarte_adapters")},
-      {:astarte_generators, path: astarte_lib("astarte_generators"), only: [:dev, :test]}
+      {:astarte_adapters, path: "../astarte_adapters"},
+      {:astarte_generators, path: "../astarte_generators", only: [:dev, :test]}
     ]
   end
 
