@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2018 - 2025 SECO Mind Srl
+# Copyright 2018 - 2026 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -18,9 +18,12 @@
 
 defmodule Astarte.DataAccess.Interfaces.XandraTest do
   use ExUnit.Case
+
   alias Astarte.Core.InterfaceDescriptor
+
   alias Astarte.DataAccess.DatabaseTestHelper
   alias Astarte.DataAccess.Interface
+  alias Astarte.DataAccess.Realms.Interface, as: InterfaceData
 
   @simplestreamtest_interface_id <<10, 13, 167, 125, 133, 181, 147, 217, 212, 210, 189, 38, 221,
                                    24, 201, 175>>
@@ -77,6 +80,54 @@ defmodule Astarte.DataAccess.Interfaces.XandraTest do
     end)
 
     :ok
+  end
+
+  describe "storage/1" do
+    test "returns individual_properties if aggregation = individual and type = properties" do
+      interface_chunk = %{aggregation: :individual, type: :properties}
+
+      assert InterfaceData.storage(interface_chunk) == "individual_properties"
+    end
+
+    test "returns individual_datastream if aggregation = individual and type = datastream" do
+      interface_chunk = %{aggregation: :individual, type: :datastream}
+
+      assert InterfaceData.storage(interface_chunk) == "individual_datastreams"
+    end
+
+    test "returns interface_name_to_table_name if aggregation = object and type = datastream" do
+      interface_chunk = %{
+        aggregation: :object,
+        type: :datastream,
+        name: "com.test.SimpleStreamTest",
+        major_version: 1
+      }
+
+      assert InterfaceData.storage(interface_chunk) == "com_test_simplestreamtest_v1"
+    end
+  end
+
+  describe "storage_type/1" do
+    test "returns multi_interface_individual_properties_dbtable if aggregation = individual and type = properties" do
+      interface_chunk = %{aggregation: :individual, type: :properties}
+
+      assert InterfaceData.storage_type(interface_chunk) ==
+               :multi_interface_individual_properties_dbtable
+    end
+
+    test "returns multi_interface_individual_datastream_dbtable if aggregation = individual and type = datastream" do
+      interface_chunk = %{aggregation: :individual, type: :datastream}
+
+      assert InterfaceData.storage_type(interface_chunk) ==
+               :multi_interface_individual_datastream_dbtable
+    end
+
+    test "returns one_object_datastream_dbtable if aggregation = object and type = datastream" do
+      interface_chunk = %{aggregation: :object, type: :datastream}
+
+      assert InterfaceData.storage_type(interface_chunk) ==
+               :one_object_datastream_dbtable
+    end
   end
 
   test "check if interfaces exists" do
