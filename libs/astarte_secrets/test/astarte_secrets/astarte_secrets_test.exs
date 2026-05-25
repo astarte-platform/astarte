@@ -639,4 +639,51 @@ defmodule Astarte.SecretsTest do
       assert :error == Secrets.rotate("invalid-key", "invalid-namespace")
     end
   end
+
+  describe "encrypt_device_data/3" do
+    test "successfully encrypts a plaintext binary" do
+      plaintext = "telemetry_data_12345"
+      # Generate a valid AES-256 session key
+      session_key = :crypto.strong_rand_bytes(32)
+
+      assert {:ok, result} = Secrets.encrypt_device_data(plaintext, session_key)
+      # Verify the structure of the returned map
+      assert %{ciphertext: ciphertext, tag: tag, iv: iv} = result
+
+      # Ensure IV is 12 bytes as required for GCM
+      assert is_binary(iv)
+      assert byte_size(iv) == 12
+
+      # Ensure tag is generated
+      assert is_binary(tag)
+      assert byte_size(tag) == 16
+
+      # Ensure the plaintext was actually encrypted
+      assert is_binary(ciphertext)
+      assert ciphertext != plaintext
+    end
+
+    test "includes AAD in the encryption process when provided" do
+      plaintext = "telemetry_data_12345"
+      session_key = :crypto.strong_rand_bytes(32)
+      aad = "device_id_99"
+
+      assert {:ok, result} = Secrets.encrypt_device_data(plaintext, session_key, aad)
+      assert %{ciphertext: _ct, tag: _tag, iv: _iv} = result
+    end
+
+    test "returns :error when session_key is not 32 bytes" do
+      plaintext = "telemetry_data_12345"
+      # Invalid key size (16 bytes instead of 32)
+      invalid_key = :crypto.strong_rand_bytes(16)
+
+      assert {:error, :invalid_key_size} = Secrets.encrypt_device_data(plaintext, invalid_key)
+    end
+
+    test "returns :error when arguments are not binaries" do
+      session_key = :crypto.strong_rand_bytes(32)
+
+      assert {:error, :invalid_arguments} = Secrets.encrypt_device_data(nil, session_key)
+    end
+  end
 end

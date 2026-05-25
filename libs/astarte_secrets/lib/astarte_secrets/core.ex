@@ -108,6 +108,41 @@ defmodule Astarte.Secrets.Core do
     :error
   end
 
+  @doc """
+  Encrypts `plaintext` using AES-256-GCM with the provided DEK.
+  Returns `{:ok, blob}` where `blob` is `iv <> tag <> ciphertext`.
+
+  The 12-byte IV and 16-byte authentication tag are prepended to the ciphertext
+  so decryption only requires the single blob and the DEK.
+  """
+  @spec encrypt_with_dek(binary(), binary()) :: {:ok, binary()}
+  def encrypt_with_dek(plaintext, dek) do
+    iv = :crypto.strong_rand_bytes(12)
+
+    {ciphertext, tag} =
+      :crypto.crypto_one_time_aead(:aes_256_gcm, dek, iv, plaintext, <<>>, true)
+
+    {:ok, iv <> tag <> ciphertext}
+  end
+
+  @doc """
+  Decrypts a blob produced by `encrypt_with_dek/2`.
+
+  Expects `blob` to be `iv (12 bytes) <> tag (16 bytes) <> ciphertext`.
+  Returns `{:ok, plaintext}` on success or `:error` if authentication fails.
+  """
+  @spec decrypt_with_dek(binary(), binary()) :: {:ok, binary()} | :error
+  def decrypt_with_dek(<<iv::binary-12, tag::binary-16, ciphertext::binary>>, dek) do
+    case :crypto.crypto_one_time_aead(:aes_256_gcm, dek, iv, ciphertext, <<>>, tag, false) do
+      :error ->
+        Logger.warning("AES-256-GCM decryption failed: authentication tag mismatch")
+        :error
+
+      plaintext when is_binary(plaintext) ->
+        {:ok, plaintext}
+    end
+  end
+
   # TODO: add a proper public API (Astarte.Secrets) for creating/managing the KEK
   # (mount transit + create AES-256 key)
   def create_encryption_key(key_name, namespace) do
@@ -170,7 +205,7 @@ defmodule Astarte.Secrets.Core do
   end
 
   defp decode_base64_field(data, field) do
-    with b64 when is_binary(b64) <- Map.get(data, field),
+    with {:ok, b64} <- Map.fetch(data, field),
          {:ok, decoded} <- Base.decode64(b64) do
       {:ok, decoded}
     else

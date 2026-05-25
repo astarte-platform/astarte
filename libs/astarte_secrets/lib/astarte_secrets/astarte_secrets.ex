@@ -182,28 +182,45 @@ defmodule Astarte.Secrets do
     client_opts = [namespace: namespace] ++ Keyword.take(opts, [:token])
     headers = [{"Content-Type", "application/json"}]
 
-    case Client.post(
-           "/transit/decrypt/#{key_name}",
-           Jason.encode!(%{ciphertext: ciphertext}),
-           headers,
-           client_opts
-         ) do
-      {:ok, %HTTPoison.Response{status_code: 200, body: body}} ->
-        with {:ok, data} <- Core.parse_json_data(body),
-             plaintext_b64 when is_binary(plaintext_b64) <- Map.get(data, "plaintext"),
-             {:ok, plaintext} <- Base.decode64(plaintext_b64) do
-          {:ok, plaintext}
-        else
-          _ -> :error
-        end
-
-      error_resp ->
+    with {:ok, %HTTPoison.Response{status_code: 200, body: body}} <-
+           Client.post(
+             "/transit/decrypt/#{key_name}",
+             Jason.encode!(%{ciphertext: ciphertext}),
+             headers,
+             client_opts
+           ),
+         {:ok, data} <- Core.parse_json_data(body),
+         plaintext_b64 when is_binary(plaintext_b64) <- Map.get(data, "plaintext"),
+         {:ok, plaintext} <- Base.decode64(plaintext_b64) do
+      {:ok, plaintext}
+    else
+      reason ->
         Logger.error(
-          "Failed to unwrap DEK with key #{key_name} in namespace #{namespace}: #{inspect(error_resp)}"
+          "Failed to unwrap DEK with key #{key_name} in namespace #{namespace}: #{inspect(reason)}"
         )
 
         :error
     end
+  end
+
+  @doc """
+  Encrypts `payload` using AES-256-GCM with the provided plaintext DEK.
+  Returns `{:ok, blob}` where `blob` is an opaque binary containing the IV,
+  authentication tag, and ciphertext. Pass the blob and DEK to `decrypt_with_dek/2`
+  to recover the original payload.
+  """
+  @spec encrypt_with_dek(binary(), binary()) :: {:ok, binary()}
+  def encrypt_with_dek(payload, dek) do
+    Core.encrypt_with_dek(payload, dek)
+  end
+
+  @doc """
+  Decrypts a blob produced by `encrypt_with_dek/2` using the provided plaintext DEK.
+  Returns `{:ok, plaintext}` on success, or `:error` if authentication fails.
+  """
+  @spec decrypt_with_dek(binary(), binary()) :: {:ok, binary()} | :error
+  def decrypt_with_dek(blob, dek) do
+    Core.decrypt_with_dek(blob, dek)
   end
 
   @doc """
@@ -260,5 +277,40 @@ defmodule Astarte.Secrets do
 
         :error
     end
+  end
+
+  @doc """
+  Encrypts device data using AES-256-GCM with shared `session_key`.
+  """
+  @spec encrypt_device_data(binary(), binary(), binary()) ::
+          {:ok, %{ciphertext: binary(), tag: binary(), iv: binary()}}
+  def encrypt_device_data(plaintext, session_key, aad \\ <<>>)
+
+  def encrypt_device_data(plaintext, session_key, aad)
+      when is_binary(plaintext) and byte_size(session_key) == 32 and is_binary(aad) do
+    try do
+      iv = :crypto.strong_rand_bytes(12)
+
+      {ciphertext, tag} =
+        :crypto.crypto_one_time_aead(:aes_256_gcm, session_key, iv, plaintext, aad, true)
+
+      {:ok, %{ciphertext: ciphertext, tag: tag, iv: iv}}
+    rescue
+      e ->
+        require Logger
+        Logger.error("Crypto module failed during AES-GCM encryption: #{inspect(e)}")
+        {:error, :encryption_failed}
+    end
+  end
+
+  # The provided key is not 32 bytes long
+  def encrypt_device_data(plaintext, session_key, aad)
+      when is_binary(plaintext) and is_binary(session_key) and is_binary(aad) do
+    {:error, :invalid_key_size}
+  end
+
+  # Invalid data types (e.g., passing `nil` or a map instead of a binary)
+  def encrypt_device_data(_plaintext, _session_key, _aad) do
+    {:error, :invalid_arguments}
   end
 end
