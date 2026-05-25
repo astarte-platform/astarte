@@ -1,5 +1,6 @@
 modules = [
   Astarte.DataAccess.Config,
+  Astarte.DataAccess.Database,
   Astarte.DataAccess.Realms.Realm,
   Astarte.DataAccess.Repo,
   Xandra

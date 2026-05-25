@@ -14,6 +14,8 @@ config :logger, :console,
   format: {PrettyLog.UserFriendlyFormatter, :format},
   metadata: [:module, :function, :request_id, :tag, :realm, :datacenter, :replication_factor]
 
+config :astarte_data_access, Astarte.DataAccess.Repo, log: false
+
 config :astarte_housekeeping,
        :test_priv_key,
        {%{kty: :jose_jwk_kty_rsa},

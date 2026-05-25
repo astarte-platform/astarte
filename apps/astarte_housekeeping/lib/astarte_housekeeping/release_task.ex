@@ -21,6 +21,7 @@ defmodule Astarte.Housekeeping.ReleaseTasks do
 
   use Task, restart: :transient
 
+  alias Astarte.DataAccess.Database
   alias Astarte.DataAccess.Repo
   alias Astarte.Housekeeping.Migrator
   alias Astarte.Housekeeping.Realms.Queries
@@ -47,8 +48,9 @@ defmodule Astarte.Housekeeping.ReleaseTasks do
     with {:ok, network_topology} <- Queries.fetch_network_topology(),
          default_replication = {:network_topology_strategy, network_topology},
          :ok <- Queries.initialize_database(default_replication),
-         :ok <- Migrator.run_astarte_keyspace_migrations(),
-         :ok <- Migrator.run_realms_migrations() do
+         :ok <- Database.migrate_realms(),
+         :ok <- Migrator.run_realms_migrations(),
+         :ok <- Queries.save_keyspace_replication(default_replication) do
       "Astarte database correctly initialized"
       |> Logger.info(tag: "astarte_db_initialization_finished")
 

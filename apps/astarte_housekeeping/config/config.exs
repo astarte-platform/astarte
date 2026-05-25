@@ -7,7 +7,11 @@ import Config
 
 # General application configuration
 config :astarte_housekeeping,
+  ecto_repos: [Astarte.DataAccess.Repo],
   namespace: Astarte.Housekeeping
+
+config :astarte_housekeeping, Astarte.DataAccess.Repo,
+  migration_primary_key: [name: :id, type: :integer]
 
 # Configures the endpoint
 config :astarte_housekeeping, Astarte.HousekeepingWeb.Endpoint,

@@ -20,12 +20,11 @@ defmodule Astarte.Housekeeping.ReleaseTasksTest do
   use ExUnit.Case, async: true
   use Mimic
 
-  alias Astarte.DataAccess.Consistency
-  alias Astarte.DataAccess.KvStore
+  alias Astarte.DataAccess.Database
   alias Astarte.DataAccess.Realms.Realm
   alias Astarte.DataAccess.Repo
   alias Astarte.Housekeeping.Config
-  alias Astarte.Housekeeping.Helpers.Database
+  alias Astarte.Housekeeping.Helpers.Database, as: DatabaseHelper
   alias Astarte.Housekeeping.Migrator
   alias Astarte.Housekeeping.Realms.Queries
   alias Astarte.Housekeeping.ReleaseTasks
@@ -36,11 +35,11 @@ defmodule Astarte.Housekeeping.ReleaseTasksTest do
 
   setup do
     astarte_instance_id = "astarte#{System.unique_integer([:positive])}"
-    Database.setup_database_access(astarte_instance_id)
+    DatabaseHelper.setup_database_access(astarte_instance_id)
 
     on_exit(fn ->
-      Database.setup_database_access(astarte_instance_id)
-      Database.teardown_astarte_keyspace()
+      DatabaseHelper.setup_database_access(astarte_instance_id)
+      DatabaseHelper.teardown_astarte_keyspace()
     end)
 
     %{astarte_instance_id: astarte_instance_id}
@@ -49,19 +48,32 @@ defmodule Astarte.Housekeeping.ReleaseTasksTest do
   describe "ensure_migrated!/0" do
     test "initializes the database" do
       assert :ok = ReleaseTasks.ensure_migrated!()
-      assert_initialized()
+      assert Database.astarte_initialized?()
     end
 
     test "can be run multiple times" do
       assert :ok = ReleaseTasks.ensure_migrated!()
       assert :ok = ReleaseTasks.ensure_migrated!()
-      assert_initialized()
+      assert Database.astarte_initialized?()
     end
 
     test "calls the migrator" do
       Migrator
-      |> expect(:run_astarte_keyspace_migrations, fn -> :ok end)
       |> expect(:run_realms_migrations, fn -> :ok end)
+
+      assert :ok = ReleaseTasks.ensure_migrated!()
+    end
+
+    test "calls data_access for database migrations" do
+      Migrator
+      |> stub(:run_realms_migrations, fn -> :ok end)
+
+      Queries
+      |> stub(:save_keyspace_replication, fn _ -> :ok end)
+
+      Database
+      |> expect(:migrate_astarte, fn -> :ok end)
+      |> expect(:migrate_realms, fn -> :ok end)
 
       assert :ok = ReleaseTasks.ensure_migrated!()
     end
@@ -90,28 +102,6 @@ defmodule Astarte.Housekeeping.ReleaseTasksTest do
       :ok = ReleaseTasks.ensure_migrated!()
       assert astarte_replication_class() == :simple_strategy
       assert realm_default_replication_strategy() == :network_topology
-    end
-  end
-
-  defp assert_initialized do
-    assert {:ok, schema_version} = get_astarte_schema_version()
-    assert schema_version == Migrator.latest_astarte_schema_version()
-  end
-
-  defp get_astarte_schema_version do
-    get_schema_version(Realm.astarte_keyspace_name())
-  end
-
-  defp get_schema_version(keyspace_name) do
-    opts = [
-      prefix: keyspace_name,
-      consistency: Consistency.domain_model(:read)
-    ]
-
-    case KvStore.fetch_value("astarte", "schema_version", :big_integer, opts) do
-      {:ok, schema_version} -> {:ok, schema_version}
-      {:error, :not_found} -> {:ok, 0}
-      {:error, reason} -> {:error, reason}
     end
   end
 

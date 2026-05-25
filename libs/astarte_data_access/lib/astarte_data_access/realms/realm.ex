@@ -24,6 +24,10 @@ defmodule Astarte.DataAccess.Realms.Realm do
   alias Astarte.Core.CQLUtils
   alias Astarte.Core.Realm
   alias Astarte.DataAccess.Config
+  alias Astarte.DataAccess.Consistency
+  alias Astarte.DataAccess.Repo
+
+  import Ecto.Query
 
   @primary_key {:realm_name, :string, autogenerate: false}
   typed_schema "realms" do
@@ -31,7 +35,6 @@ defmodule Astarte.DataAccess.Realms.Realm do
   end
 
   @spec keyspace_name(String.t()) :: String.t()
-
   def keyspace_name(realm_name) do
     case Realm.valid_name?(realm_name) do
       true -> CQLUtils.realm_name_to_keyspace_name(realm_name, Config.astarte_instance_id!())
@@ -39,7 +42,16 @@ defmodule Astarte.DataAccess.Realms.Realm do
     end
   end
 
+  @spec astarte_keyspace_name() :: String.t()
   def astarte_keyspace_name do
     CQLUtils.realm_name_to_keyspace_name("astarte", Config.astarte_instance_id!())
+  end
+
+  @spec list_realm_names() :: [String.t()]
+  def list_realm_names do
+    query = from r in __MODULE__, select: r.realm_name
+    opts = [prefix: astarte_keyspace_name(), consistency: Consistency.domain_model(:read)]
+
+    Repo.all(query, opts)
   end
 end

@@ -16,20 +16,27 @@
 # limitations under the License.
 #
 
-Mimic.copy(Astarte.DataAccess.Config)
-Mimic.copy(Astarte.DataAccess.Health)
-Mimic.copy(Astarte.DataAccess.KvStore)
-Mimic.copy(Astarte.DataAccess.Repo)
-Mimic.copy(Astarte.Events.AMQP)
-Mimic.copy(Astarte.Events.AMQP.Vhost)
-Mimic.copy(Astarte.Events.Config)
-Mimic.copy(Astarte.Housekeeping.Config)
-Mimic.copy(Astarte.Housekeeping.Health)
-Mimic.copy(Astarte.Housekeeping.Migrator)
-Mimic.copy(Astarte.Housekeeping.Realms)
-Mimic.copy(Astarte.Housekeeping.Realms.Queries)
-Mimic.copy(HTTPoison)
-Mimic.copy(HTTPoison.Base)
-Mimic.copy(Xandra)
+modules = [
+  Astarte.DataAccess.Config,
+  Astarte.DataAccess.Database,
+  Astarte.DataAccess.Health,
+  Astarte.DataAccess.KvStore,
+  Astarte.DataAccess.Realms.Realm,
+  Astarte.DataAccess.Repo,
+  Astarte.Events.AMQP,
+  Astarte.Events.AMQP.Vhost,
+  Astarte.Events.Config,
+  Astarte.Housekeeping.Config,
+  Astarte.Housekeeping.Health,
+  Astarte.Housekeeping.Migrator,
+  Astarte.Housekeeping.Realms,
+  Astarte.Housekeeping.Realms.Queries,
+  Astarte.Secrets,
+  HTTPoison,
+  HTTPoison.Base,
+  Xandra
+]
+
+for module <- modules, do: Mimic.copy(module)
 
 ExUnit.start(capture_log: true)

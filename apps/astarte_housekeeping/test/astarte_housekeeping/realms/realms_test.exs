@@ -331,7 +331,7 @@ defmodule Astarte.Housekeeping.RealmsTest do
 
   describe "delete_realm/2" do
     setup %{realm_name: realm_name} do
-      Database.setup(realm_name)
+      Database.setup_database(realm_name)
     end
 
     test "succeeds using a synchronous call", %{realm_name: realm_name} do

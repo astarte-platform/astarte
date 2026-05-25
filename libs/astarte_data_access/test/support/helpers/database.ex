@@ -22,7 +22,9 @@ defmodule Astarte.DataAccess.Helpers.Database do
   """
 
   alias Astarte.Core.Device, as: DeviceCore
+  alias Astarte.DataAccess.Database
   alias Astarte.DataAccess.Devices.Device
+  alias Astarte.DataAccess.KvStore
   alias Astarte.DataAccess.Realms.Endpoint
   alias Astarte.DataAccess.Realms.Interface
   alias Astarte.DataAccess.Realms.Name
@@ -53,17 +55,17 @@ defmodule Astarte.DataAccess.Helpers.Database do
 
   @create_ownership_vouchers_table """
   CREATE TABLE :keyspace.ownership_vouchers (
-     guid blob,
-      voucher_data blob,
-      output_voucher blob,
-      replacement_guid blob,
-      replacement_rendezvous_info blob,
-      replacement_public_key blob,
-      key_name varchar,
-      key_algorithm int,
-      user_id blob,
-      status int,
-      PRIMARY KEY (guid)
+    guid blob,
+    voucher_data blob,
+    output_voucher blob,
+    replacement_guid blob,
+    replacement_rendezvous_info blob,
+    replacement_public_key blob,
+    key_name varchar,
+    key_algorithm int,
+    user_id blob,
+    status int,
+    PRIMARY KEY (guid)
   );
   """
 
@@ -83,20 +85,18 @@ defmodule Astarte.DataAccess.Helpers.Database do
     max_owner_service_info_size int,
     owner_random blob,
     secret blob,
-    sevk frozen<session_key>,
-    svk frozen<session_key>,
-    sek frozen<session_key>,
-    device_service_info map<frozen<tuple<text, text>>, blob>,
+    sevk session_key,
+    svk session_key,
+    sek session_key,
+    device_service_info map<tuple<text, text>, blob>,
     owner_service_info list<blob>,
     last_chunk_sent int,
-    replacement_guid blob,
-    replacement_rv_info blob,
-    replacement_pub_key blob,
     replacement_hmac blob,
     PRIMARY KEY (guid)
   )
   WITH default_time_to_live = 7200;
   """
+
   @create_realms_table """
   CREATE TABLE :keyspace.realms (
     realm_name varchar,
@@ -104,6 +104,14 @@ defmodule Astarte.DataAccess.Helpers.Database do
     PRIMARY KEY (realm_name)
   );
   """
+
+  @create_realms_1_1_0_table """
+  CREATE TABLE :keyspace.realms (
+    realm_name varchar,
+    PRIMARY KEY (realm_name)
+  );
+  """
+
   @create_kv_store """
     CREATE TABLE :keyspace.kv_store (
       group varchar,
@@ -121,6 +129,41 @@ defmodule Astarte.DataAccess.Helpers.Database do
       object_uuid uuid,
 
       PRIMARY KEY ((object_name), object_type)
+    );
+  """
+
+  @create_simple_triggers_table """
+    CREATE TABLE :keyspace.simple_triggers (
+      object_id uuid,
+      object_type int,
+      parent_trigger_id uuid,
+      simple_trigger_id uuid,
+      trigger_data blob,
+      trigger_target blob,
+
+      PRIMARY KEY ((object_id, object_type), parent_trigger_id, simple_trigger_id)
+    );
+  """
+
+  @create_grouped_devices_table """
+    CREATE TABLE :keyspace.grouped_devices (
+      group_name varchar,
+      insertion_uuid timeuuid,
+      device_id uuid,
+
+      PRIMARY KEY ((group_name), insertion_uuid, device_id)
+    );
+  """
+
+  @create_deletion_in_progress_table """
+    CREATE TABLE :keyspace.deletion_in_progress (
+      device_id uuid,
+      vmq_ack boolean,
+      dup_start_ack boolean,
+      dup_end_ack boolean,
+      groups set<text>,
+
+      PRIMARY KEY (device_id)
     );
   """
 
@@ -149,8 +192,40 @@ defmodule Astarte.DataAccess.Helpers.Database do
         last_credentials_request_ip inet,
         last_seen_ip inet,
         attributes map<varchar, varchar>,
+        groups map<varchar, timeuuid>,
+        capabilities capabilities,
+
+        PRIMARY KEY (device_id)
+      );
+  """
+
+  @create_devices_1_1_0_table """
+      CREATE TABLE :keyspace.devices (
+        device_id uuid,
+        aliases map<ascii, varchar>,
+        introspection map<ascii, int>,
+        introspection_minor map<ascii, int>,
+        old_introspection map<frozen<tuple<ascii, int>>, int>,
+        protocol_revision int,
+        first_registration timestamp,
+        credentials_secret ascii,
+        inhibit_credentials_request boolean,
+        cert_serial ascii,
+        cert_aki ascii,
+        first_credentials_request timestamp,
+        last_connection timestamp,
+        last_disconnection timestamp,
+        connected boolean,
+        pending_empty_cache boolean,
+        total_received_msgs bigint,
+        total_received_bytes bigint,
+        exchanged_bytes_by_interface map<frozen<tuple<ascii, int>>, bigint>,
+        exchanged_msgs_by_interface map<frozen<tuple<ascii, int>>, bigint>,
+        last_credentials_request_ip inet,
+        last_seen_ip inet,
+        attributes map<varchar, varchar>,
+
         groups map<text, timeuuid>,
-        capabilities frozen<capabilities>,
 
         PRIMARY KEY (device_id)
       );
@@ -188,15 +263,39 @@ defmodule Astarte.DataAccess.Helpers.Database do
         value_type int,
         reliability int,
         retention int,
-        database_retention_policy int,
-        database_retention_ttl int,
         expiry int,
+        database_retention_ttl int,
+        database_retention_policy int,
         allow_unset boolean,
         explicit_timestamp boolean,
         description varchar,
         doc varchar,
         required boolean,
         encrypted boolean,
+
+        PRIMARY KEY ((interface_id), endpoint_id)
+      );
+  """
+
+  @create_endpoints_1_1_0_table """
+      CREATE TABLE :keyspace.endpoints (
+        interface_id uuid,
+        endpoint_id uuid,
+        interface_name ascii,
+        interface_major_version int,
+        interface_minor_version int,
+        interface_type int,
+        endpoint ascii,
+        value_type int,
+        reliability int,
+        retention int,
+        expiry int,
+        database_retention_ttl int,
+        database_retention_policy int,
+        allow_unset boolean,
+        explicit_timestamp boolean,
+        description varchar,
+        doc varchar,
 
         PRIMARY KEY ((interface_id), endpoint_id)
       );
@@ -227,6 +326,34 @@ defmodule Astarte.DataAccess.Helpers.Database do
       datetimearray_value list<timestamp>,
       encryptedblob_value blob,
       encrypted_dek blob,
+
+      PRIMARY KEY((device_id, interface_id), endpoint_id, path)
+    );
+  """
+
+  @create_individual_properties_1_1_0_table """
+    CREATE TABLE :keyspace.individual_properties (
+      device_id uuid,
+      interface_id uuid,
+      endpoint_id uuid,
+      path varchar,
+      reception_timestamp timestamp,
+      reception_timestamp_submillis smallint,
+
+      double_value double,
+      integer_value int,
+      boolean_value boolean,
+      longinteger_value bigint,
+      string_value varchar,
+      binaryblob_value blob,
+      datetime_value timestamp,
+      doublearray_value list<double>,
+      integerarray_value list<int>,
+      booleanarray_value list<boolean>,
+      longintegerarray_value list<bigint>,
+      stringarray_value list<varchar>,
+      binaryblobarray_value list<blob>,
+      datetimearray_value list<timestamp>,
 
       PRIMARY KEY((device_id, interface_id), endpoint_id, path)
     );
@@ -367,27 +494,144 @@ defmodule Astarte.DataAccess.Helpers.Database do
     keyspace = Realm.keyspace_name(realm_name)
 
     execute_query(@create_keyspace, keyspace)
-    execute_query(@create_capabilities_type, keyspace)
-    execute_query(@create_devices_table, keyspace)
-    execute_query(@create_names_table, keyspace)
-    execute_query(@create_kv_store, keyspace)
-    execute_query(@create_endpoints_table, keyspace)
-    execute_query(@create_individual_properties_table, keyspace)
+    Database.migrate_realm(realm_name)
+
+    # add datastream interfaces
     execute_query(@create_individual_datastreams_table, keyspace)
     execute_query(@create_test_object_table, keyspace)
-    execute_query(@create_interfaces_table, keyspace)
-    execute_query(@create_session_key_type, keyspace)
-    execute_query(@create_ownership_vouchers_table, keyspace)
-    execute_query(@create_to2_sessions_table, keyspace)
-    :ok
   end
 
   def setup_astarte_keyspace do
     keyspace = Realm.astarte_keyspace_name()
 
     execute_query(@create_keyspace, keyspace)
+    Database.migrate_astarte()
+  end
+
+  def create_realm_keyspace(realm_name \\ @test_realm) do
+    execute_query(@create_keyspace, Realm.keyspace_name(realm_name))
+  end
+
+  def create_astarte_keyspace do
+    execute_query(@create_keyspace, Realm.astarte_keyspace_name())
+  end
+
+  @doc """
+  Creates a realm as it was created by Astarte Housekeeping on old versions of Astarte
+  """
+  def create_housekeeping_realm(realm_name \\ @test_realm, public_key_pem \\ "") do
+    keyspace = Realm.keyspace_name(realm_name)
+    latest_schema_version = 21
+
+    execute_query(@create_keyspace, keyspace)
+    execute_query(@create_kv_store, keyspace)
+    execute_query(@create_names_table, keyspace)
+    execute_query(@create_capabilities_type, keyspace)
+    execute_query(@create_session_key_type, keyspace)
+    execute_query(@create_devices_table, keyspace)
+    execute_query(@create_endpoints_table, keyspace)
+    execute_query(@create_interfaces_table, keyspace)
+    execute_query(@create_individual_properties_table, keyspace)
+    execute_query(@create_simple_triggers_table, keyspace)
+    execute_query(@create_grouped_devices_table, keyspace)
+    execute_query(@create_deletion_in_progress_table, keyspace)
+    execute_query(@create_ownership_vouchers_table, keyspace)
+    execute_query(@create_to2_sessions_table, keyspace)
+
+    %{
+      group: "auth",
+      key: "jwt_public_key_pem",
+      value: public_key_pem,
+      value_type: :string
+    }
+    |> KvStore.insert(prefix: keyspace)
+
+    %{
+      group: "astarte",
+      key: "schema_version",
+      value: latest_schema_version,
+      value_type: :big_integer
+    }
+    |> KvStore.insert(prefix: keyspace)
+
+    :ok
+  end
+
+  @doc """
+  Creates a realm as it was created by Astarte Housekeeping on Astarte v1.1.0
+  """
+  def create_housekeeping_1_1_0_realm(realm_name \\ @test_realm, public_key_pem \\ "") do
+    keyspace = Realm.keyspace_name(realm_name)
+    schema_1_1_0 = 4
+
+    execute_query(@create_keyspace, keyspace)
+    execute_query(@create_kv_store, keyspace)
+    execute_query(@create_names_table, keyspace)
+    execute_query(@create_devices_1_1_0_table, keyspace)
+    execute_query(@create_endpoints_1_1_0_table, keyspace)
+    execute_query(@create_interfaces_table, keyspace)
+    execute_query(@create_individual_properties_1_1_0_table, keyspace)
+    execute_query(@create_simple_triggers_table, keyspace)
+    execute_query(@create_grouped_devices_table, keyspace)
+
+    %{
+      group: "auth",
+      key: "jwt_public_key_pem",
+      value: public_key_pem,
+      value_type: :string
+    }
+    |> KvStore.insert(prefix: keyspace)
+
+    %{group: "astarte", key: "schema_version", value: schema_1_1_0, value_type: :big_integer}
+    |> KvStore.insert(prefix: keyspace)
+
+    :ok
+  end
+
+  @doc """
+  Creates the astarte keyspace as it was created by Astarte Housekeeping on old versions of Astarte
+  """
+  def create_housekeeping_astarte do
+    keyspace = Realm.astarte_keyspace_name()
+    latest_schema_version = 3
+    replication = %{strategy: :simple, factor: 1} |> :erlang.term_to_binary()
+
+    execute_query(@create_keyspace, keyspace)
     execute_query(@create_realms_table, keyspace)
     execute_query(@create_kv_store, keyspace)
+
+    %{
+      group: "astarte",
+      key: "schema_version",
+      value: latest_schema_version,
+      value_type: :big_integer
+    }
+    |> KvStore.insert(prefix: keyspace)
+
+    %{
+      group: "astarte",
+      key: "db_default_replication",
+      value: replication
+    }
+    |> KvStore.insert(prefix: keyspace)
+
+    :ok
+  end
+
+  @doc """
+  Creates the astarte keyspace as it was created by Astarte Housekeeping on old versions of Astarte
+  """
+  def create_housekeeping_1_1_0_astarte do
+    keyspace = Realm.astarte_keyspace_name()
+    schema_1_1_0 = 2
+
+    execute_query(@create_keyspace, keyspace)
+    execute_query(@create_realms_1_1_0_table, keyspace)
+    execute_query(@create_kv_store, keyspace)
+
+    %{group: "astarte", key: "schema_version", value: schema_1_1_0, value_type: :big_integer}
+    |> KvStore.insert(prefix: keyspace)
+
     :ok
   end
 
@@ -404,7 +648,7 @@ defmodule Astarte.DataAccess.Helpers.Database do
     execute_query("TRUNCATE :keyspace.#{table}", keyspace_name)
   end
 
-  def execute_query(query, keyspace, params \\ %{}, opts \\ []) do
+  def execute_query(query, keyspace, params \\ [], opts \\ []) do
     String.replace(query, ":keyspace", keyspace)
     |> Repo.query!(params, opts)
 
@@ -807,7 +1051,7 @@ defmodule Astarte.DataAccess.Helpers.Database do
   end
 
   defp teardown_keyspace(keyspace) do
-    execute_query("DROP KEYSPACE :keyspace;", keyspace)
+    execute_query("DROP KEYSPACE IF EXISTS :keyspace;", keyspace)
     :ok
   end
 

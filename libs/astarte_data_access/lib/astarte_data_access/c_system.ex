@@ -113,16 +113,6 @@ defmodule Astarte.DataAccess.CSystem do
           message: "Statement did not change the schema_version."
         }
 
-      {:error, %Xandra.Error{reason: :invalid, message: err_message}} ->
-        # trying to ALTER a table which does not exist: skip the migration
-        # (Scylla does not support the ALTER IF EXISTS syntax)
-        # TODO: this is a workaround. Implement proper migrations
-        if query =~ "ALTER TABLE" and err_message =~ "unconfigured table" do
-          {:ok, %{}}
-        else
-          result
-        end
-
       any ->
         any
     end

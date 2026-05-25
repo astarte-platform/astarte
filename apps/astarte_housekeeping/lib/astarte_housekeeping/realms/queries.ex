@@ -22,12 +22,12 @@ defmodule Astarte.Housekeeping.Realms.Queries do
 
   alias Astarte.DataAccess.Consistency
   alias Astarte.DataAccess.CSystem
+  alias Astarte.DataAccess.Database
   alias Astarte.DataAccess.Devices.Device
   alias Astarte.DataAccess.KvStore
   alias Astarte.DataAccess.Realms.Realm
   alias Astarte.DataAccess.Repo
   alias Astarte.Housekeeping.Config
-  alias Astarte.Housekeeping.Migrator
   alias Astarte.Housekeeping.Realms.Realm, as: HKRealm
 
   require Logger
@@ -299,21 +299,8 @@ defmodule Astarte.Housekeeping.Realms.Queries do
          max_retention
        ) do
     with :ok <- create_realm_keyspace(keyspace_name, replication_map_str),
-         :ok <- create_realm_kv_store(keyspace_name),
-         :ok <- create_names_table(keyspace_name),
-         :ok <- create_capabilities_type(keyspace_name),
-         :ok <- create_session_key_type(keyspace_name),
-         :ok <- create_devices_table(keyspace_name),
-         :ok <- create_endpoints_table(keyspace_name),
-         :ok <- create_interfaces_table(keyspace_name),
-         :ok <- create_individual_properties_table(keyspace_name),
-         :ok <- create_simple_triggers_table(keyspace_name),
-         :ok <- create_grouped_devices_table(keyspace_name),
-         :ok <- create_deletion_in_progress_table(keyspace_name),
-         :ok <- create_ownership_vouchers_table(keyspace_name),
-         :ok <- create_to2_sessions_table(keyspace_name),
+         :ok <- Database.migrate_realm(realm_name),
          :ok <- insert_realm_public_key(keyspace_name, public_key_pem),
-         :ok <- insert_realm_astarte_schema_version(keyspace_name),
          :ok <- insert_realm(realm_name, device_limit),
          :ok <- insert_datastream_max_retention(keyspace_name, max_retention) do
       :ok
@@ -512,24 +499,6 @@ defmodule Astarte.Housekeeping.Realms.Queries do
     end
   end
 
-  defp insert_realm_astarte_schema_version(keyspace_name) do
-    consistency = Consistency.domain_model(:write)
-
-    opts = [
-      consistency: consistency,
-      prefix: keyspace_name
-    ]
-
-    kv_store_map = %{
-      group: "astarte",
-      key: "schema_version",
-      value: Migrator.latest_realm_schema_version(),
-      value_type: :big_integer
-    }
-
-    KvStore.insert(kv_store_map, opts)
-  end
-
   defp insert_realm_public_key(keyspace_name, public_key_pem) do
     consistency = Consistency.domain_model(:write)
 
@@ -628,312 +597,6 @@ defmodule Astarte.Housekeeping.Realms.Queries do
         )
 
         {:error, reason}
-    end
-  end
-
-  defp create_deletion_in_progress_table(keyspace_name) do
-    query = """
-    CREATE TABLE #{keyspace_name}.deletion_in_progress (
-      device_id uuid,
-      vmq_ack boolean,
-      dup_start_ack boolean,
-      dup_end_ack boolean,
-      groups set<text>,
-
-      PRIMARY KEY (device_id)
-    );
-    """
-
-    with {:ok, %{rows: nil, num_rows: 1}} <- CSystem.execute_schema_change(query) do
-      :ok
-    end
-  end
-
-  defp create_ownership_vouchers_table(keyspace_name) do
-    query = """
-    CREATE TABLE #{keyspace_name}.ownership_vouchers (
-      guid blob,
-      voucher_data blob,
-      output_voucher blob,
-      replacement_guid blob,
-      replacement_rendezvous_info blob,
-      replacement_public_key blob,
-      key_name varchar,
-      key_algorithm int,
-      user_id blob,
-      status int,
-      PRIMARY KEY (guid)
-    );
-    """
-
-    with {:ok, %{rows: nil, num_rows: 1}} <- CSystem.execute_schema_change(query) do
-      :ok
-    end
-  end
-
-  defp create_session_key_type(keyspace_name) do
-    query = """
-    CREATE TYPE #{keyspace_name}.session_key (
-      alg int,
-      k blob
-    );
-    """
-
-    with {:ok, %{rows: nil, num_rows: 1}} <- CSystem.execute_schema_change(query) do
-      :ok
-    end
-  end
-
-  defp create_to2_sessions_table(keyspace_name) do
-    query = """
-    CREATE TABLE #{keyspace_name}.to2_sessions (
-      guid blob,
-      device_id uuid,
-      hmac blob,
-      nonce blob,
-      sig_type int,
-      epid_group blob,
-      device_public_key blob,
-      prove_dv_nonce blob,
-      setup_dv_nonce blob,
-      kex_suite_name ascii,
-      cipher_suite_name int,
-      max_owner_service_info_size int,
-      owner_random blob,
-      secret blob,
-      sevk session_key,
-      svk session_key,
-      sek session_key,
-      device_service_info map<tuple<text, text>, blob>,
-      owner_service_info list<blob>,
-      last_chunk_sent int,
-      replacement_hmac blob,
-      PRIMARY KEY (guid)
-    )
-    WITH default_time_to_live = 7200;
-    """
-
-    with {:ok, %{rows: nil, num_rows: 1}} <- CSystem.execute_schema_change(query) do
-      :ok
-    end
-  end
-
-  defp create_grouped_devices_table(keyspace_name) do
-    query = """
-    CREATE TABLE #{keyspace_name}.grouped_devices (
-      group_name varchar,
-      insertion_uuid timeuuid,
-      device_id uuid,
-
-      PRIMARY KEY ((group_name), insertion_uuid, device_id)
-    );
-    """
-
-    with {:ok, %{rows: nil, num_rows: 1}} <- CSystem.execute_schema_change(query) do
-      :ok
-    end
-  end
-
-  defp create_individual_properties_table(keyspace_name) do
-    query = """
-    CREATE TABLE #{keyspace_name}.individual_properties (
-      device_id uuid,
-      interface_id uuid,
-      endpoint_id uuid,
-      path varchar,
-      reception_timestamp timestamp,
-      reception_timestamp_submillis smallint,
-      double_value double,
-      integer_value int,
-      boolean_value boolean,
-      longinteger_value bigint,
-      string_value varchar,
-      binaryblob_value blob,
-      datetime_value timestamp,
-      doublearray_value list<double>,
-      integerarray_value list<int>,
-      booleanarray_value list<boolean>,
-      longintegerarray_value list<bigint>,
-      stringarray_value list<varchar>,
-      binaryblobarray_value list<blob>,
-      datetimearray_value list<timestamp>,
-      encryptedblob_value blob,
-      encrypted_dek blob,
-
-      PRIMARY KEY((device_id, interface_id), endpoint_id, path)
-    )
-    """
-
-    with {:ok, %{rows: nil, num_rows: 1}} <- CSystem.execute_schema_change(query) do
-      :ok
-    end
-  end
-
-  defp create_simple_triggers_table(keyspace_name) do
-    query = """
-    CREATE TABLE #{keyspace_name}.simple_triggers (
-      object_id uuid,
-      object_type int,
-      parent_trigger_id uuid,
-      simple_trigger_id uuid,
-      trigger_data blob,
-      trigger_target blob,
-
-      PRIMARY KEY ((object_id, object_type), parent_trigger_id, simple_trigger_id)
-    );
-    """
-
-    with {:ok, %{rows: nil, num_rows: 1}} <- CSystem.execute_schema_change(query) do
-      :ok
-    end
-  end
-
-  defp create_names_table(keyspace_name) do
-    query = """
-    CREATE TABLE #{keyspace_name}.names (
-      object_name varchar,
-      object_type int,
-      object_uuid uuid,
-
-      PRIMARY KEY ((object_name), object_type)
-    );
-    """
-
-    with {:ok, %{rows: nil, num_rows: 1}} <- CSystem.execute_schema_change(query) do
-      :ok
-    end
-  end
-
-  defp create_capabilities_type(keyspace_name) do
-    query = """
-    CREATE TYPE #{keyspace_name}.capabilities (
-      purge_properties_compression_format int
-    );
-    """
-
-    with {:ok, %{rows: nil, num_rows: 1}} <- CSystem.execute_schema_change(query) do
-      :ok
-    end
-  end
-
-  defp create_devices_table(keyspace_name) do
-    query = """
-    CREATE TABLE #{keyspace_name}.devices (
-      device_id uuid,
-      aliases map<ascii, varchar>,
-      introspection map<ascii, int>,
-      introspection_minor map<ascii, int>,
-      old_introspection map<frozen<tuple<ascii, int>>, int>,
-      protocol_revision int,
-      first_registration timestamp,
-      credentials_secret ascii,
-      inhibit_credentials_request boolean,
-      cert_serial ascii,
-      cert_aki ascii,
-      first_credentials_request timestamp,
-      last_connection timestamp,
-      last_disconnection timestamp,
-      connected boolean,
-      pending_empty_cache boolean,
-      total_received_msgs bigint,
-      total_received_bytes bigint,
-      exchanged_bytes_by_interface map<frozen<tuple<ascii, int>>, bigint>,
-      exchanged_msgs_by_interface map<frozen<tuple<ascii, int>>, bigint>,
-      last_credentials_request_ip inet,
-      last_seen_ip inet,
-      attributes map<varchar, varchar>,
-      groups map<varchar, timeuuid>,
-      capabilities capabilities,
-
-      PRIMARY KEY (device_id)
-    );
-    """
-
-    with {:ok, %{rows: nil, num_rows: 1}} <- CSystem.execute_schema_change(query) do
-      :ok
-    end
-  end
-
-  defp create_endpoints_table(keyspace_name) do
-    query = """
-    CREATE TABLE #{keyspace_name}.endpoints (
-      interface_id uuid,
-      endpoint_id uuid,
-      interface_name ascii,
-      interface_major_version int,
-      interface_minor_version int,
-      interface_type int,
-      endpoint ascii,
-      value_type int,
-      reliability int,
-      retention int,
-      expiry int,
-      database_retention_ttl int,
-      database_retention_policy int,
-      allow_unset boolean,
-      explicit_timestamp boolean,
-      description varchar,
-      doc varchar,
-      required boolean,
-      encrypted boolean,
-
-      PRIMARY KEY ((interface_id), endpoint_id)
-    );
-    """
-
-    with {:ok, %{rows: nil, num_rows: 1}} <- CSystem.execute_schema_change(query) do
-      :ok
-    end
-  end
-
-  defp create_realm_kv_store(keyspace_name) do
-    query = """
-    CREATE TABLE #{keyspace_name}.kv_store (
-      group varchar,
-      key varchar,
-      value blob,
-
-      PRIMARY KEY ((group), key)
-    );
-    """
-
-    case CSystem.execute_schema_change(query) do
-      {:ok, %{rows: nil, num_rows: 1}} ->
-        :ok
-
-      {:error, reason} ->
-        Logger.warning("Cannot create kv_store: #{inspect(reason)}.",
-          tag: "build_kv_store_error",
-          realm: keyspace_name
-        )
-
-        {:error, reason}
-    end
-  end
-
-  defp create_interfaces_table(keyspace_name) do
-    query = """
-    CREATE TABLE #{keyspace_name}.interfaces (
-      name ascii,
-      major_version int,
-      minor_version int,
-      interface_id uuid,
-      storage_type int,
-      storage ascii,
-      type int,
-      ownership int,
-      aggregation int,
-      automaton_transitions blob,
-      automaton_accepting_states blob,
-      description varchar,
-      doc varchar,
-
-      PRIMARY KEY (name, major_version)
-    );
-    """
-
-    with {:ok, %{rows: nil, num_rows: 1}} <- CSystem.execute_schema_change(query) do
-      :ok
     end
   end
 
@@ -1184,11 +847,7 @@ defmodule Astarte.Housekeeping.Realms.Queries do
     Logger.info("Starting Astarte keyspace initialization")
 
     with :ok <- create_astarte_keyspace(default_replication),
-         :ok <- create_realms_table(),
-         :ok <- create_astarte_kv_store(),
-         :ok <- insert_astarte_schema_version(),
-         keyspace_replication_map = keyspace_replication_map(default_replication),
-         :ok <- save_keyspace_replication(keyspace_replication_map) do
+         :ok <- Database.migrate_astarte() do
       :ok
     else
       {:error, %Xandra.Error{} = err} ->
@@ -1237,20 +896,16 @@ defmodule Astarte.Housekeeping.Realms.Queries do
       prefix: Realm.astarte_keyspace_name()
     ]
 
+    replication = replication |> keyspace_replication_map() |> :erlang.term_to_binary()
+
     kv_store = %{
       group: "astarte",
       key: "db_default_replication",
-      value: :erlang.term_to_binary(replication),
+      value: replication,
       value_type: :binary
     }
 
-    case KvStore.insert(kv_store, opts) do
-      :ok ->
-        :ok
-
-      {:error, xandra_error} ->
-        {:error, xandra_error}
-    end
+    KvStore.insert(kv_store, opts)
   end
 
   defp create_astarte_keyspace(default_replication) do
@@ -1349,77 +1004,5 @@ defmodule Astarte.Housekeeping.Realms.Queries do
             error
         end
     end
-  end
-
-  defp create_realms_table do
-    query = """
-    CREATE TABLE #{Realm.astarte_keyspace_name()}.realms (
-      realm_name varchar,
-      device_registration_limit bigint,
-      PRIMARY KEY (realm_name)
-    );
-    """
-
-    consistency = Consistency.domain_model(:write)
-    opts = [consistency: consistency]
-
-    case Repo.query(query, [], opts) do
-      {:ok, _} ->
-        Logger.info("Created Astarte realms table")
-        :ok
-
-      {:error, %Xandra.Error{reason: :already_exists}} ->
-        :ok
-
-      error ->
-        error
-    end
-  end
-
-  defp create_astarte_kv_store do
-    query = """
-    CREATE TABLE #{Realm.astarte_keyspace_name()}.kv_store (
-      group varchar,
-      key varchar,
-      value blob,
-
-      PRIMARY KEY ((group), key)
-    );
-    """
-
-    consistency = Consistency.domain_model(:write)
-    opts = [consistency: consistency]
-
-    case Repo.query(query, [], opts) do
-      {:ok, _} ->
-        Logger.info("Initialized Astarte KV Store")
-        :ok
-
-      {:error, %Xandra.Error{reason: :already_exists}} ->
-        :ok
-
-      error ->
-        error
-    end
-  end
-
-  defp insert_astarte_schema_version do
-    keyspace_name = Realm.astarte_keyspace_name()
-
-    consistency = Consistency.domain_model(:write)
-
-    opts = [
-      consistency: consistency,
-      prefix: keyspace_name
-    ]
-
-    kv_store_map = %{
-      group: "astarte",
-      key: "schema_version",
-      value: Migrator.latest_astarte_schema_version(),
-      value_type: :big_integer
-    }
-
-    KvStore.insert(kv_store_map, opts)
   end
 end
