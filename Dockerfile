@@ -24,20 +24,26 @@ ENV ASTARTE_LIBRARIES_PATH=libraries
 # Cache elixir deps
 COPY apps/$SERVICE/mix.exs ./
 COPY apps/$SERVICE/mix.lock ./
+COPY libs/astarte_adapters/mix.exs libraries/astarte_adapters/mix.exs
+COPY libs/astarte_adapters/mix.lock libraries/astarte_adapters/mix.lock
 COPY libs/astarte_data_access/mix.exs libraries/astarte_data_access/mix.exs
 COPY libs/astarte_data_access/mix.lock libraries/astarte_data_access/mix.lock
+COPY libs/astarte_data_access_generators/mix.exs libraries/astarte_data_access_generators/mix.exs
+COPY libs/astarte_data_access_generators/mix.lock libraries/astarte_data_access_generators/mix.lock
 COPY libs/astarte_events/mix.exs libraries/astarte_events/mix.exs
 COPY libs/astarte_events/mix.lock libraries/astarte_events/mix.lock
-COPY libs/astarte_rpc/mix.exs libraries/astarte_rpc/mix.exs
-COPY libs/astarte_rpc/mix.lock libraries/astarte_rpc/mix.lock
-COPY libs/astarte_fdo_core/mix.exs libraries/astarte_fdo_core/mix.exs
-COPY libs/astarte_fdo_core/mix.lock libraries/astarte_fdo_core/mix.lock
 COPY libs/astarte_fdo/mix.exs libraries/astarte_fdo/mix.exs
 COPY libs/astarte_fdo/mix.lock libraries/astarte_fdo/mix.lock
+COPY libs/astarte_fdo_core/mix.exs libraries/astarte_fdo_core/mix.exs
+COPY libs/astarte_fdo_core/mix.lock libraries/astarte_fdo_core/mix.lock
 COPY libs/astarte_generators/mix.exs libraries/astarte_generators/mix.exs
 COPY libs/astarte_generators/mix.lock libraries/astarte_generators/mix.lock
+COPY libs/astarte_rpc/mix.exs libraries/astarte_rpc/mix.exs
+COPY libs/astarte_rpc/mix.lock libraries/astarte_rpc/mix.lock
 COPY libs/astarte_secrets/mix.exs libraries/astarte_secrets/mix.exs
 COPY libs/astarte_secrets/mix.lock libraries/astarte_secrets/mix.lock
+COPY libs/astarte_test_suite/mix.exs libraries/astarte_test_suite/mix.exs
+COPY libs/astarte_test_suite/mix.lock libraries/astarte_test_suite/mix.lock
 RUN mix do deps.get, deps.compile --skip-local-deps
 
 COPY libs ./libraries
