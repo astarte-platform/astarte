@@ -27,6 +27,7 @@ defmodule Astarte.Secrets.CoreTest do
   alias COSE.Keys.ECC
   alias COSE.Keys.RSA
 
+  import Astarte.Helpers.EncryptionKey
   import Astarte.Helpers.Namespace
 
   describe "namespace_tokens/3" do
@@ -622,8 +623,7 @@ defmodule Astarte.Secrets.CoreTest do
   describe "generate_dek/3 integration" do
     setup do
       {:ok, namespace} = Secrets.create_namespace("test", :es256)
-      # TODO: replace with Secrets.create_encryption_key once the public API exists.
-      :ok = Core.create_encryption_key("test-kek", namespace)
+      :ok = create_encryption_key("test-kek", namespace)
       %{namespace: namespace, key_name: "test-kek"}
     end
 
@@ -635,15 +635,15 @@ defmodule Astarte.Secrets.CoreTest do
                Core.generate_dek(key_name, namespace)
 
       assert byte_size(pt) == 32
-      assert String.starts_with?(ct, "vault:v1:")
+      refute String.starts_with?(ct, "vault:")
+      refute String.starts_with?(ct, "v1:")
     end
   end
 
   describe "unwrap_dek/4 integration" do
     setup do
       {:ok, namespace} = Secrets.create_namespace("test", :es256)
-      # TODO: replace with Secrets.create_encryption_key once the public API exists.
-      :ok = Core.create_encryption_key("test-kek", namespace)
+      :ok = create_encryption_key("test-kek", namespace)
       %{namespace: namespace, key_name: "test-kek"}
     end
 
@@ -655,6 +655,27 @@ defmodule Astarte.Secrets.CoreTest do
                Core.generate_dek(key_name, namespace)
 
       assert {:ok, ^original_pt} = Secrets.unwrap_dek(key_name, ct, namespace)
+    end
+  end
+
+  describe "encrypt_with_dek/2 and decrypt_with_dek/2" do
+    test "round-trips: decrypt recovers the original plaintext" do
+      dek = :crypto.strong_rand_bytes(32)
+      plaintext = "my device payload"
+      {:ok, blob} = Core.encrypt_with_dek(plaintext, dek)
+      assert {:ok, ^plaintext} = Core.decrypt_with_dek(blob, dek)
+    end
+
+    test "blob is at least 29 bytes (12 IV + 16 tag + 1 payload)" do
+      dek = :crypto.strong_rand_bytes(32)
+      {:ok, blob} = Core.encrypt_with_dek("hello", dek)
+      assert byte_size(blob) >= 29
+    end
+
+    test "returns :error when blob is tampered" do
+      dek = :crypto.strong_rand_bytes(32)
+      {:ok, <<first, rest::binary>>} = Core.encrypt_with_dek("data", dek)
+      assert :error = Core.decrypt_with_dek(<<Bitwise.bxor(first, 0xFF), rest::binary>>, dek)
     end
   end
 end

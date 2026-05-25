@@ -182,28 +182,45 @@ defmodule Astarte.Secrets do
     client_opts = [namespace: namespace] ++ Keyword.take(opts, [:token])
     headers = [{"Content-Type", "application/json"}]
 
-    case Client.post(
-           "/transit/decrypt/#{key_name}",
-           Jason.encode!(%{ciphertext: ciphertext}),
-           headers,
-           client_opts
-         ) do
-      {:ok, %HTTPoison.Response{status_code: 200, body: body}} ->
-        with {:ok, data} <- Core.parse_json_data(body),
-             plaintext_b64 when is_binary(plaintext_b64) <- Map.get(data, "plaintext"),
-             {:ok, plaintext} <- Base.decode64(plaintext_b64) do
-          {:ok, plaintext}
-        else
-          _ -> :error
-        end
-
-      error_resp ->
+    with {:ok, %HTTPoison.Response{status_code: 200, body: body}} <-
+           Client.post(
+             "/transit/decrypt/#{key_name}",
+             Jason.encode!(%{ciphertext: "vault:v1:" <> ciphertext}),
+             headers,
+             client_opts
+           ),
+         {:ok, data} <- Core.parse_json_data(body),
+         plaintext_b64 when is_binary(plaintext_b64) <- Map.get(data, "plaintext"),
+         {:ok, plaintext} <- Base.decode64(plaintext_b64) do
+      {:ok, plaintext}
+    else
+      reason ->
         Logger.error(
-          "Failed to unwrap DEK with key #{key_name} in namespace #{namespace}: #{inspect(error_resp)}"
+          "Failed to unwrap DEK with key #{key_name} in namespace #{namespace}: #{inspect(reason)}"
         )
 
         :error
     end
+  end
+
+  @doc """
+  Encrypts `payload` using AES-256-GCM with the provided plaintext DEK.
+  Returns `{:ok, blob}` where `blob` is an opaque binary containing the IV,
+  authentication tag, and ciphertext. Pass the blob and DEK to `decrypt_with_dek/2`
+  to recover the original payload.
+  """
+  @spec encrypt_with_dek(binary(), binary()) :: {:ok, binary()}
+  def encrypt_with_dek(payload, dek) do
+    Core.encrypt_with_dek(payload, dek)
+  end
+
+  @doc """
+  Decrypts a blob produced by `encrypt_with_dek/2` using the provided plaintext DEK.
+  Returns `{:ok, plaintext}` on success, or `:error` if authentication fails.
+  """
+  @spec decrypt_with_dek(binary(), binary()) :: {:ok, binary()} | :error
+  def decrypt_with_dek(blob, dek) do
+    Core.decrypt_with_dek(blob, dek)
   end
 
   @doc """
