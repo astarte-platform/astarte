@@ -121,7 +121,8 @@ jobs:
         image: astarte/go-fdo-server:ade68cda47-20251128
         ports:
           - 8041:8041
-        restart: on-failure
+        options: >-
+          --restart on-failure
         command: '--log-level=debug rendezvous 0.0.0.0:8041 --db-type sqlite --db-dsn "file:/var/lib/fdo/rendezvous.db"'
 
     steps:
