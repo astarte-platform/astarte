@@ -26,6 +26,7 @@ defmodule Astarte.SecretsTest do
   alias Astarte.Secrets.Core
   alias Astarte.Secrets.Key
   alias COSE.Keys.ECC
+  alias COSE.Messages.Encrypt0
 
   import Astarte.Helpers.Namespace
   import Astarte.Helpers.Key
@@ -637,6 +638,56 @@ defmodule Astarte.SecretsTest do
 
     test "returns :error in case of error" do
       assert :error == Secrets.rotate("invalid-key", "invalid-namespace")
+    end
+  end
+
+  describe "encrypt_device_data/3" do
+    test "successfully encrypts a plaintext binary into a COSE structure using AES-256-GCM" do
+      plaintext = "device_data_256"
+      session_key = :crypto.strong_rand_bytes(32)
+
+      # Pass :aes_256_gcm as the third argument
+      assert cbor_binary = Secrets.encrypt_device_data(plaintext, session_key, :aes_256_gcm)
+
+      assert is_binary(cbor_binary)
+      assert cbor_binary != plaintext
+
+      assert {:ok, decoded_msg} = Encrypt0.decode_cbor(cbor_binary)
+      assert decoded_msg.ciphertext != nil
+      assert is_binary(decoded_msg.uhdr.iv)
+    end
+
+    test "successfully encrypts a plaintext binary into a COSE structure using AES-128-GCM" do
+      plaintext = "device_data_128"
+      session_key = :crypto.strong_rand_bytes(16)
+
+      # Pass :aes_128_gcm as the third argument
+      assert cbor_binary = Secrets.encrypt_device_data(plaintext, session_key, :aes_128_gcm)
+
+      assert is_binary(cbor_binary)
+      assert cbor_binary != plaintext
+
+      assert {:ok, decoded_msg} = Encrypt0.decode_cbor(cbor_binary)
+      assert decoded_msg.ciphertext != nil
+      assert is_binary(decoded_msg.uhdr.iv)
+    end
+
+    test "raises an error when session_key size is invalid" do
+      plaintext = "telemetry_data_12345"
+      invalid_key = :crypto.strong_rand_bytes(24)
+
+      # ExUnit asserts that this function execution crashes with an ArgumentError
+      assert_raise ErlangError, fn ->
+        Secrets.encrypt_device_data(plaintext, invalid_key, :aes_256_gcm)
+      end
+    end
+
+    test "raises an error when arguments are not binaries" do
+      session_key = :crypto.strong_rand_bytes(32)
+
+      assert_raise ErlangError, fn ->
+        Secrets.encrypt_device_data(nil, session_key, :aes_256_gcm)
+      end
     end
   end
 end

@@ -26,6 +26,7 @@ defmodule Astarte.Secrets.Core do
   alias Astarte.Secrets.Client
   alias COSE.Keys.ECC
   alias COSE.Keys.RSA
+  alias COSE.Messages.Encrypt0
   alias HTTPoison.Response
 
   require Logger
@@ -601,5 +602,19 @@ defmodule Astarte.Secrets.Core do
     # but is actually an operational endpoint
     keys = Enum.reject(keys, fn key -> key == "import/" end)
     {:ok, keys}
+  end
+
+  @doc """
+  Encrypts device data wrapping it into a COSE binary payload.
+  The `key_type` represents the cipher suite determined during the handshake (e.g., :aes_128_gcm, :aes_256_gcm).
+  """
+  @spec encrypt_device_data(binary(), binary(), atom()) :: {:ok, binary()}
+  def encrypt_device_data(plaintext, session_key, key_type) do
+    iv = :crypto.strong_rand_bytes(12)
+    uhdr = %{iv: iv}
+    msg = Encrypt0.build(plaintext, %{}, uhdr)
+    key = %{k: session_key}
+
+    Encrypt0.encrypt_encode(msg, key_type, key, iv)
   end
 end
