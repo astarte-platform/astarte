@@ -55,7 +55,8 @@ defmodule AstarteSecrets.MixProject do
       {:mimic, "~> 1.11", only: :test},
       {:skogsra, "~> 2.2"},
       {:typed_ecto_schema, "~> 0.4"},
-      {:x509, "~> 0.8"}
+      {:x509, "~> 0.8"},
+      {:mix_audit, "~> 2.1", only: [:dev, :test], runtime: false}
     ]
   end
 end

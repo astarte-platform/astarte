@@ -111,7 +111,8 @@ defmodule Astarte.AppEngine.API.Mixfile do
       {:excoveralls, "~> 0.15", only: :test},
       {:mox, "~> 0.5", only: :test},
       {:mimic, "~> 1.11", only: :test},
-      {:ecto, "~> 3.13", override: true}
+      {:ecto, "~> 3.13", override: true},
+      {:mix_audit, "~> 2.1", only: [:dev, :test], runtime: false}
     ]
   end
 

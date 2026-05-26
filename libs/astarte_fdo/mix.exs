@@ -66,7 +66,8 @@ defmodule Astarte.FDO.MixProject do
       {:astarte_generators, path: "../astarte_generators", only: :test},
       {:typedstruct, "~> 0.5"},
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
-      {:phoenix, "~> 1.7"}
+      {:phoenix, "~> 1.7"},
+      {:mix_audit, "~> 2.1", only: [:dev, :test], runtime: false}
     ]
   end
 

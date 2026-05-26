@@ -96,7 +96,8 @@ defmodule Astarte.Housekeeping.Mixfile do
       {:astarte_events, path: astarte_lib("astarte_events")},
       {:castore, "~> 1.0.0"},
       {:open_api_spex, "~> 3.22"},
-      {:ymlr, "~> 5.1"}
+      {:ymlr, "~> 5.1"},
+      {:mix_audit, "~> 2.1", only: [:dev, :test], runtime: false}
     ]
   end
 

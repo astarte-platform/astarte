@@ -113,7 +113,8 @@ defmodule Astarte.Pairing.Mixfile do
       # HTTP client needed by some tests, override to avoid conflicts with cfxxl
       {:httpoison, "~> 2.2", override: true},
       {:open_api_spex, "~> 3.22"},
-      {:ymlr, "~> 5.1"}
+      {:ymlr, "~> 5.1"},
+      {:mix_audit, "~> 2.1", only: [:dev, :test], runtime: false}
     ]
   end
 
