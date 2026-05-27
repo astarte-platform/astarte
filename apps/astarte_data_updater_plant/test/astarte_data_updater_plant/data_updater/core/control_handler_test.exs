@@ -220,4 +220,27 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandlerTest do
     assert log =~ "Unexpected control"
     assert new_state.total_received_msgs > state.total_received_msgs
   end
+
+  describe "/keyAgreement" do
+    test "acks any payload and increments message counters", context do
+      %{state: state} = context
+
+      payload = <<1, 2, 3>>
+
+      assert {:ack, :ok, new_state} =
+               ControlHandler.handle_control(state, "/keyAgreement", payload, 0)
+
+      assert new_state.total_received_msgs == state.total_received_msgs + 1
+      assert new_state.total_received_bytes == state.total_received_bytes + byte_size(payload)
+    end
+
+    test "discards the message if discard_messages is set", context do
+      %{state: state} = context
+
+      state = %{state | discard_messages: true}
+
+      assert {:discard, _result, ^state} =
+               ControlHandler.handle_control(state, "/keyAgreement", <<1>>, 0)
+    end
+  end
 end

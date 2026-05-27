@@ -149,6 +149,25 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandler do
     end
   end
 
+  @doc """
+  Handles the `/keyAgreement` control topic.
+
+  TODO: implement the key-agreement handshake protocol.
+  For now this clause simply acknowledges the message so routing is confirmed
+  to work end-to-end before the cryptographic logic is added.
+  """
+  def handle_control(state, "/keyAgreement", payload, timestamp) do
+    new_state = TimeBasedActions.execute_time_based_actions(state, timestamp)
+
+    final_state = %{
+      new_state
+      | total_received_msgs: new_state.total_received_msgs + 1,
+        total_received_bytes: new_state.total_received_bytes + byte_size(payload)
+    }
+
+    {:ack, :ok, final_state}
+  end
+
   def handle_control(state, path, payload, timestamp) do
     # Track unexpected control messages
     :telemetry.execute(
