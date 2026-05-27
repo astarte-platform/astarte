@@ -50,6 +50,8 @@ defmodule Astarte.DataAccess.Realms.IndividualProperty do
     field :stringarray_value, {:array, :string}
     field :binaryblobarray_value, {:array, :binary}
     field :datetimearray_value, {:array, DateTimeMs}
+    field :encryptedblob_value, :binary
+    field :encrypted_dek, :binary
   end
 
   def reception(individual_property) do

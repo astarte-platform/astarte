@@ -43,7 +43,8 @@ defmodule Astarte.DataAccess.Mappings do
     :explicit_timestamp,
     :endpoint_id,
     :interface_id,
-    :required
+    :required,
+    :encrypted
   ]
 
   @spec fetch_interface_mappings(String.t(), binary, keyword) ::
