@@ -10,6 +10,7 @@ on:
       - "libs/**"
       - "tools/astarte_e2e/**"
       - ".github/workflows/astarte-end-to-end-test-workflow.yaml"
+      - "docker-compose.yml"
   # Allow this workflow to be called  by others
   workflow_call:
 
