@@ -25,6 +25,5 @@ config :astarte_pairing, Astarte.PairingWeb.Endpoint, http: [port: port]
 if config_env() == :prod do
   secret_key_base = System.fetch_env!("SECRET_KEY_BASE")
 
-  config :astarte_pairing, Astarte.PairingWeb.Endpoint,
-    secret_key_base: secret_key_base
+  config :astarte_pairing, Astarte.PairingWeb.Endpoint, secret_key_base: secret_key_base
 end
