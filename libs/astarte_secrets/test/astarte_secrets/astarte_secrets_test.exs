@@ -690,4 +690,65 @@ defmodule Astarte.SecretsTest do
       end
     end
   end
+
+  describe "device data encryption and decryption" do
+    test "successfully encrypts and decrypts a payload using AES-256-GCM (32-byte key)" do
+      plaintext = "confidential_telemetry_256"
+      session_key = :crypto.strong_rand_bytes(32)
+
+      assert cbor_binary = Secrets.encrypt_device_data(plaintext, session_key, :aes_256_gcm)
+      assert is_binary(cbor_binary)
+
+      assert decrypted_plaintext =
+               Secrets.decrypt_device_data(cbor_binary, session_key, :aes_256_gcm)
+
+      assert decrypted_plaintext == {:ok, plaintext}
+    end
+
+    test "successfully encrypts and decrypts a payload using AES-128-GCM (16-byte key)" do
+      plaintext = "confidential_telemetry_128"
+      session_key = :crypto.strong_rand_bytes(16)
+
+      assert cbor_binary = Secrets.encrypt_device_data(plaintext, session_key, :aes_128_gcm)
+      assert is_binary(cbor_binary)
+
+      assert decrypted_plaintext =
+               Secrets.decrypt_device_data(cbor_binary, session_key, :aes_128_gcm)
+
+      assert decrypted_plaintext == {:ok, plaintext}
+    end
+
+    test "returns an error on decrypt when using a wrong session key" do
+      plaintext = "secure_payload"
+      session_key_correct = :crypto.strong_rand_bytes(32)
+      session_key_wrong = :crypto.strong_rand_bytes(32)
+
+      cbor_binary = Secrets.encrypt_device_data(plaintext, session_key_correct, :aes_256_gcm)
+
+      # A wrong key makes Encrypt0.decrypt return :error
+      assert {:error, :decryption_failed} =
+               Secrets.decrypt_device_data(cbor_binary, session_key_wrong, :aes_256_gcm)
+    end
+
+    test "raises an error when decrypting with an invalid key size" do
+      plaintext = "test_data"
+      valid_key = :crypto.strong_rand_bytes(32)
+      # 24 bytes is unsupported
+      invalid_key = :crypto.strong_rand_bytes(24)
+
+      cbor_binary = Secrets.encrypt_device_data(plaintext, valid_key, :aes_256_gcm)
+
+      # Passing an invalid key size to the underlying Erlang crypto will raise an ErlangError
+      assert_raise ErlangError, fn ->
+        Secrets.decrypt_device_data(cbor_binary, invalid_key, :aes_256_gcm)
+      end
+    end
+
+    test "returns an error when decrypt arguments are not binaries" do
+      session_key = :crypto.strong_rand_bytes(32)
+
+      assert {:error, :decryption_failed} =
+               Secrets.decrypt_device_data(nil, session_key, :aes_256_gcm)
+    end
+  end
 end

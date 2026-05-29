@@ -617,4 +617,23 @@ defmodule Astarte.Secrets.Core do
 
     Encrypt0.encrypt_encode(msg, key_type, key, iv)
   end
+
+  @doc """
+  Decrypts a COSE Encrypt0 binary payload using the shared `session_key`.
+  The `key_type` represents the cipher suite determined during the handshake (e.g., :aes_128_gcm, :aes_256_gcm).
+  """
+  @spec decrypt_device_data(binary(), binary(), atom()) :: {:ok, binary()} | {:error, atom()}
+  def decrypt_device_data(cbor_binary, session_key, key_type) do
+    key = %{k: session_key}
+
+    with {:ok, msg} <- Encrypt0.decode_cbor(cbor_binary),
+         iv when is_binary(iv) <- msg.uhdr.iv,
+         {:ok, decrypted_msg} <- Encrypt0.decrypt(msg, key_type, key, iv) do
+      {:ok, decrypted_msg.payload}
+    else
+      error ->
+        Logger.error("Failed to decrypt device data: #{inspect(error)}")
+        {:error, :decryption_failed}
+    end
+  end
 end
