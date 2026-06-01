@@ -21,7 +21,6 @@ defmodule Astarte.PairingWeb.Controllers.OwnershipVoucherControllerTest do
   use Astarte.Cases.Data
   use Mimic
 
-  alias Astarte.Pairing.Config
   alias Astarte.Secrets
   alias Astarte.Secrets.Key
 
@@ -66,16 +65,24 @@ defmodule Astarte.PairingWeb.Controllers.OwnershipVoucherControllerTest do
     }
   }
 
+  setup context do
+    realm_name = Map.fetch!(context, :realm_name)
+    alg = Map.get(context, :key_algorithm, :es256)
+    {:ok, namespace} = Secrets.create_namespace(realm_name, alg)
+    on_exit(fn -> cleanup_namespace(namespace) end)
+
+    %{namespace: namespace}
+  end
+
   setup :verify_on_exit!
 
   describe "/fdo/ownership_vouchers" do
     setup :register_setup
 
     test "returns 200 with the owner public key on a valid matching key", context do
-      %{auth_conn: conn, register_path: path, realm_name: realm_name} = context
+      %{auth_conn: conn, register_path: path, namespace: namespace} = context
 
       {:ok, owner_cose_key} = COSE.Keys.from_pem(@sample_private_key_pem)
-      {:ok, namespace} = Secrets.create_namespace(realm_name, :es256)
       :ok = Secrets.import_key(@sample_key_name, :es256, owner_cose_key, namespace: namespace)
 
       {:ok, %Key{public_pem: expected_public_key}} =
@@ -238,10 +245,9 @@ defmodule Astarte.PairingWeb.Controllers.OwnershipVoucherControllerTest do
   end
 
   defp store_sample_voucher(context) do
-    %{auth_conn: conn, realm_name: realm_name} = context
+    %{auth_conn: conn, namespace: namespace} = context
     %{register_path: path} = register_setup(context)
     {:ok, owner_cose_key} = COSE.Keys.from_pem(@sample_private_key_pem)
-    {:ok, namespace} = Secrets.create_namespace(realm_name, :es256)
     :ok = Secrets.import_key(@sample_key_name, :es256, owner_cose_key, namespace: namespace)
 
     params = %{
@@ -263,5 +269,14 @@ defmodule Astarte.PairingWeb.Controllers.OwnershipVoucherControllerTest do
     %{auth_conn: conn, realm_name: realm_name} = context
     path = ownership_voucher_path(conn, :list_ownership_vouchers, realm_name)
     %{path: path}
+  end
+
+  defp cleanup_namespace(namespace) do
+    {:ok, keys_to_delete} = Secrets.list_keys_names(namespace: namespace)
+
+    Enum.each(keys_to_delete, fn key ->
+      Secrets.enable_key_deletion(key, namespace: namespace)
+      Secrets.delete_key(key, namespace: namespace)
+    end)
   end
 end
