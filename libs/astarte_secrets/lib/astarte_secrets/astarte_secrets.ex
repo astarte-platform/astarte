@@ -278,20 +278,4 @@ defmodule Astarte.Secrets do
         :error
     end
   end
-
-  @doc """
-  Encrypts device data wrapping it into a COSE binary payload.
-  """
-  @spec encrypt_device_data(binary(), binary(), atom()) :: {:ok, binary()}
-  def encrypt_device_data(plaintext, session_key, key_type) do
-    Core.encrypt_device_data(plaintext, session_key, key_type)
-  end
-
-  @doc """
-  Decrypts a COSE Encrypt0 binary payload using the shared `session_key`.
-  """
-  @spec decrypt_device_data(binary(), binary(), atom()) :: {:ok, binary()}
-  def decrypt_device_data(cbor_binary, session_key, key_type) do
-    Core.decrypt_device_data(cbor_binary, session_key, key_type)
-  end
 end

@@ -26,7 +26,6 @@ defmodule Astarte.Secrets.Core do
   alias Astarte.Secrets.Client
   alias COSE.Keys.ECC
   alias COSE.Keys.RSA
-  alias COSE.Messages.Encrypt0
   alias HTTPoison.Response
 
   require Logger
@@ -681,38 +680,5 @@ defmodule Astarte.Secrets.Core do
     # but is actually an operational endpoint
     keys = Enum.reject(keys, fn key -> key == "import/" end)
     {:ok, keys}
-  end
-
-  @doc """
-  Encrypts device data wrapping it into a COSE binary payload.
-  The `key_type` represents the cipher suite determined during the handshake (e.g., :aes_128_gcm, :aes_256_gcm).
-  """
-  @spec encrypt_device_data(binary(), binary(), atom()) :: {:ok, binary()}
-  def encrypt_device_data(plaintext, session_key, key_type) do
-    iv = :crypto.strong_rand_bytes(12)
-    uhdr = %{iv: iv}
-    msg = Encrypt0.build(plaintext, %{}, uhdr)
-    key = %{k: session_key}
-
-    Encrypt0.encrypt_encode(msg, key_type, key, iv)
-  end
-
-  @doc """
-  Decrypts a COSE Encrypt0 binary payload using the shared `session_key`.
-  The `key_type` represents the cipher suite determined during the handshake (e.g., :aes_128_gcm, :aes_256_gcm).
-  """
-  @spec decrypt_device_data(binary(), binary(), atom()) :: {:ok, binary()} | {:error, atom()}
-  def decrypt_device_data(cbor_binary, session_key, key_type) do
-    key = %{k: session_key}
-
-    with {:ok, msg} <- Encrypt0.decode_cbor(cbor_binary),
-         iv when is_binary(iv) <- msg.uhdr.iv,
-         {:ok, decrypted_msg} <- Encrypt0.decrypt(msg, key_type, key, iv) do
-      {:ok, decrypted_msg.payload}
-    else
-      error ->
-        Logger.error("Failed to decrypt device data: #{inspect(error)}")
-        {:error, :decryption_failed}
-    end
   end
 end
