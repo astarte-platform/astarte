@@ -213,6 +213,7 @@ defmodule Astarte.DataAccess.DatabaseTestHelper do
         description varchar,
         doc varchar,
         required boolean,
+        encrypted boolean,
 
         PRIMARY KEY ((interface_id), endpoint_id)
       );
@@ -267,6 +268,11 @@ defmodule Astarte.DataAccess.DatabaseTestHelper do
     INSERT INTO autotestrealm.endpoints (interface_id, endpoint_id, allow_unset, endpoint, expiry, interface_major_version, interface_minor_version, interface_name, interface_type, reliability, retention, value_type) VALUES
         (0a0da77d-85b5-93d9-d4d2-bd26dd18c9af, 346c80e4-ca99-6274-81f6-7b1c1be59521, False, '/foo/%{param}/timestampValue', 0, 1, 0, 'com.test.SimpleStreamTest', 2, 3, 1, 13);
     """,
+    # explicitly set endpoint encryption to True
+    """
+    INSERT INTO autotestrealm.endpoints (interface_id, endpoint_id, allow_unset, endpoint, expiry, interface_major_version, interface_minor_version, interface_name, interface_type, reliability, retention, value_type, encrypted) VALUES
+        (0a0da77d-85b5-93d9-d4d2-bd26dd18c9af, 3b39fd3a-f496-26ff-81f6-4c2dd150b864, False, '/encrypted/value', 0, 1, 0, 'com.test.SimpleStreamTest', 2, 3, 1, 13, True);
+    """,
     """
     INSERT INTO autotestrealm.endpoints (interface_id, endpoint_id, allow_unset, endpoint, expiry, interface_major_version, interface_minor_version, interface_name, interface_type, reliability, retention, value_type) VALUES
         (db576345-80b1-5358-f305-d77ec39b3d84, 7c9f14e8-4f2f-977f-c126-d5e1bb9876e7, False, '/string', 0, 1, 5, 'com.example.TestObject', 2, 2, 3, 7);
@@ -311,6 +317,8 @@ defmodule Astarte.DataAccess.DatabaseTestHelper do
       stringarray_value list<varchar>,
       binaryblobarray_value list<blob>,
       datetimearray_value list<timestamp>,
+      encryptedblob_value blob,
+      encrypted_dek blob,
 
       PRIMARY KEY((device_id, interface_id), endpoint_id, path)
     );
@@ -340,6 +348,8 @@ defmodule Astarte.DataAccess.DatabaseTestHelper do
       stringarray_value list<varchar>,
       binaryblobarray_value list<blob>,
       datetimearray_value list<timestamp>,
+      encryptedblob_value blob,
+      encrypted_dek blob,
 
       PRIMARY KEY((device_id, interface_id, endpoint_id, path), value_timestamp, reception_timestamp, reception_timestamp_submillis)
     );

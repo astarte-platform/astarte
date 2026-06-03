@@ -112,7 +112,8 @@ defmodule Astarte.AppEngine.API.Device.Queries do
           :allow_unset,
           :endpoint_id,
           :interface_id,
-          :explicit_timestamp
+          :explicit_timestamp,
+          :encrypted
         ]
 
     opts = [

@@ -140,6 +140,7 @@ defmodule Astarte.Helpers.Database do
     description text,
     doc text,
     required boolean,
+    encrypted boolean,
 
     PRIMARY KEY ((interface_id), endpoint_id)
   )
@@ -180,6 +181,8 @@ defmodule Astarte.Helpers.Database do
     stringarray_value list<text>,
     binaryblobarray_value list<blob>,
     datetimearray_value list<timestamp>,
+    encryptedblob_value blob,
+    encrypted_dek blob,
 
     PRIMARY KEY((device_id, interface_id), endpoint_id, path)
   );
@@ -208,6 +211,9 @@ defmodule Astarte.Helpers.Database do
       longintegerarray_value list<bigint>,
       string_value text,
       stringarray_value list<text>,
+      encryptedblob_value blob,
+      encrypted_dek blob,
+
       PRIMARY KEY ((device_id, interface_id, endpoint_id, path), value_timestamp, reception_timestamp, reception_timestamp_submillis)
   )
   """

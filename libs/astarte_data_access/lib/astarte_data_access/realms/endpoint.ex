@@ -45,7 +45,8 @@ defmodule Astarte.DataAccess.Realms.Endpoint do
                       :reliability,
                       :retention,
                       :value_type,
-                      :required
+                      :required,
+                      :encrypted
                     ] ++ @required_fields
 
   @primary_key false
@@ -68,6 +69,7 @@ defmodule Astarte.DataAccess.Realms.Endpoint do
     field :retention, Retention
     field :value_type, ValueType
     field :required, :boolean
+    field :encrypted, :boolean
   end
 
   def changeset(endpoint, params \\ %{}) do

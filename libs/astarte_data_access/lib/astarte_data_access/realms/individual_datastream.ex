@@ -53,5 +53,7 @@ defmodule Astarte.DataAccess.Realms.IndividualDatastream do
     field :longintegerarray_value, {:array, BigInt}
     field :string_value, :string
     field :stringarray_value, {:array, :string}
+    field :encryptedblob_value, :binary
+    field :encrypted_dek, :binary
   end
 end
