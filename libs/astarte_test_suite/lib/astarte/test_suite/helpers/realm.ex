@@ -225,6 +225,7 @@ defmodule Astarte.TestSuite.Helpers.Realm do
       expiry int,
       allow_unset boolean,
       explicit_timestamp boolean,
+      encrypted boolean,
       description varchar,
       doc varchar,
       PRIMARY KEY ((interface_id), endpoint_id)
