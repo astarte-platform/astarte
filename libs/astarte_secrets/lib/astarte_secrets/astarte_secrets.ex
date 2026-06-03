@@ -165,6 +165,65 @@ defmodule Astarte.Secrets do
   end
 
   @doc """
+  Generates a new Data Encryption Key (DEK) wrapped under the named transit key.
+  Optional `:bits` (128 or 256, default 256).
+  """
+  @spec generate_dek(String.t(), String.t(), keyword()) ::
+          {:ok, %{plaintext: binary(), ciphertext: String.t()}} | :error
+  def generate_dek(key_name, namespace, opts \\ []) do
+    Core.generate_dek(key_name, namespace, opts)
+  end
+
+  @doc """
+  Unwraps a DEK ciphertext using the named transit key.
+  """
+  @spec unwrap_dek(String.t(), String.t(), String.t(), keyword()) :: {:ok, binary()} | :error
+  def unwrap_dek(key_name, ciphertext, namespace, opts \\ []) do
+    client_opts = [namespace: namespace] ++ Keyword.take(opts, [:token])
+    headers = [{"Content-Type", "application/json"}]
+
+    with {:ok, %HTTPoison.Response{status_code: 200, body: body}} <-
+           Client.post(
+             "/transit/decrypt/#{key_name}",
+             Jason.encode!(%{ciphertext: "vault:v1:" <> ciphertext}),
+             headers,
+             client_opts
+           ),
+         {:ok, data} <- Core.parse_json_data(body),
+         plaintext_b64 when is_binary(plaintext_b64) <- Map.get(data, "plaintext"),
+         {:ok, plaintext} <- Base.decode64(plaintext_b64) do
+      {:ok, plaintext}
+    else
+      reason ->
+        Logger.error(
+          "Failed to unwrap DEK with key #{key_name} in namespace #{namespace}: #{inspect(reason)}"
+        )
+
+        :error
+    end
+  end
+
+  @doc """
+  Encrypts `payload` using AES-256-GCM with the provided plaintext DEK.
+  Returns `{:ok, blob}` where `blob` is an opaque binary containing the IV,
+  authentication tag, and ciphertext. Pass the blob and DEK to `decrypt_with_dek/2`
+  to recover the original payload.
+  """
+  @spec encrypt_with_dek(binary(), binary()) :: {:ok, binary()}
+  def encrypt_with_dek(payload, dek) do
+    Core.encrypt_with_dek(payload, dek)
+  end
+
+  @doc """
+  Decrypts a blob produced by `encrypt_with_dek/2` using the provided plaintext DEK.
+  Returns `{:ok, plaintext}` on success, or `:error` if authentication fails.
+  """
+  @spec decrypt_with_dek(binary(), binary()) :: {:ok, binary()} | :error
+  def decrypt_with_dek(blob, dek) do
+    Core.decrypt_with_dek(blob, dek)
+  end
+
+  @doc """
   Decrypts the provided ciphertext using OpenBao Transit Engine.
   Useful for ASYMKEX where the device encrypts a secret with the owner's RSA public key.
   """

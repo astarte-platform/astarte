@@ -109,6 +109,85 @@ defmodule Astarte.Secrets.Core do
     :error
   end
 
+  @doc """
+  Encrypts `plaintext` using AES-256-GCM with the provided DEK.
+  Returns `{:ok, blob}` where `blob` is `iv <> tag <> ciphertext`.
+
+  The 12-byte IV and 16-byte authentication tag are prepended to the ciphertext
+  so decryption only requires the single blob and the DEK.
+  """
+  @spec encrypt_with_dek(binary(), binary()) :: {:ok, binary()}
+  def encrypt_with_dek(plaintext, dek) do
+    iv = :crypto.strong_rand_bytes(12)
+
+    {ciphertext, tag} =
+      :crypto.crypto_one_time_aead(:aes_256_gcm, dek, iv, plaintext, <<>>, true)
+
+    {:ok, iv <> tag <> ciphertext}
+  end
+
+  @doc """
+  Decrypts a blob produced by `encrypt_with_dek/2`.
+
+  Expects `blob` to be `iv (12 bytes) <> tag (16 bytes) <> ciphertext`.
+  Returns `{:ok, plaintext}` on success or `:error` if authentication fails.
+  """
+  @spec decrypt_with_dek(binary(), binary()) :: {:ok, binary()} | :error
+  def decrypt_with_dek(<<iv::binary-12, tag::binary-16, ciphertext::binary>>, dek) do
+    case :crypto.crypto_one_time_aead(:aes_256_gcm, dek, iv, ciphertext, <<>>, tag, false) do
+      :error ->
+        Logger.warning("AES-256-GCM decryption failed: authentication tag mismatch")
+        :error
+
+      plaintext when is_binary(plaintext) ->
+        {:ok, plaintext}
+    end
+  end
+
+  @doc """
+  Generates a new Data Encryption Key (DEK) wrapped under the named transit key.
+
+  Returns `{:ok, %{plaintext: binary(), ciphertext: String.t()}}` where:
+  - `plaintext` — raw DEK bytes
+  - `ciphertext` — vault-formatted wrapped DEK
+  """
+  @spec generate_dek(String.t(), String.t(), keyword()) ::
+          {:ok, %{plaintext: binary(), ciphertext: String.t()}} | :error
+  def generate_dek(key_name, namespace, opts \\ []) do
+    bits = Keyword.get(opts, :bits, 256)
+    headers = [{"Content-Type", "application/json"}]
+    client_opts = [namespace: namespace] ++ Keyword.take(opts, [:token])
+
+    with {:ok, %{status_code: 200, body: body}} <-
+           Client.post(
+             "/transit/datakey/plaintext/#{key_name}",
+             Jason.encode!(%{bits: bits}),
+             headers,
+             client_opts
+           ),
+         {:ok, data} <- parse_json_data(body),
+         {:ok, plaintext} <- decode_base64_field(data, "plaintext"),
+         {:ok, "vault:v1:" <> ciphertext} <- Map.fetch(data, "ciphertext") do
+      {:ok, %{plaintext: plaintext, ciphertext: ciphertext}}
+    else
+      error ->
+        Logger.error(
+          "Failed to generate DEK with key #{key_name} in namespace #{namespace}: #{inspect(error)}"
+        )
+
+        :error
+    end
+  end
+
+  defp decode_base64_field(data, field) do
+    with {:ok, b64} <- Map.fetch(data, field),
+         {:ok, decoded} <- Base.decode64(b64) do
+      {:ok, decoded}
+    else
+      _ -> :error
+    end
+  end
+
   @spec create_keypair(String.t(), String.t(), boolean(), String.t()) ::
           :error | {:error, Jason.DecodeError.t()} | {:ok, any()}
   def create_keypair(key_name, key_type, allow_key_export_and_backup, namespace) do
