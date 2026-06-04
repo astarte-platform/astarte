@@ -17,53 +17,33 @@
 #
 
 defmodule Astarte.DataAccess.KvStoreTest do
-  use ExUnit.Case
-  alias Astarte.DataAccess.DatabaseTestHelper
+  use Astarte.DataAccess.Cases.Database, async: true
+
   alias Astarte.DataAccess.KvStore
+  alias Astarte.DataAccess.Realms.Realm
 
-  @test_realm "autotestrealm"
-  @opts [prefix: @test_realm]
-
-  setup_all do
-    on_exit(fn ->
-      Xandra.Cluster.run(:astarte_data_access_xandra, fn conn ->
-        DatabaseTestHelper.destroy_local_test_keyspace(conn)
-      end)
-    end)
-
-    Xandra.Cluster.run(:astarte_data_access_xandra, fn conn ->
-      DatabaseTestHelper.create_test_keyspace(conn)
-    end)
-
-    :ok
-  end
-
-  setup do
-    Xandra.Cluster.run(:astarte_data_access_xandra, fn conn ->
-      Xandra.execute!(conn, "TRUNCATE #{@test_realm}.kv_store")
-    end)
-
-    :ok
+  setup_all %{realm_name: realm_name} do
+    %{opts: [prefix: Realm.keyspace_name(realm_name)]}
   end
 
   describe "insert/2" do
-    test "inserts a binary value" do
+    test "inserts a binary value", %{opts: opts} do
       assert :ok =
                KvStore.insert(
                  %{group: "test_group", key: "bin_key", value: <<1, 2, 3>>},
-                 @opts
+                 opts
                )
     end
 
-    test "inserts an integer value" do
+    test "inserts an integer value", %{opts: opts} do
       assert :ok =
                KvStore.insert(
                  %{group: "test_group", key: "int_key", value: 42, value_type: :integer},
-                 @opts
+                 opts
                )
     end
 
-    test "inserts a big integer value" do
+    test "inserts a big integer value", %{opts: opts} do
       assert :ok =
                KvStore.insert(
                  %{
@@ -72,19 +52,19 @@ defmodule Astarte.DataAccess.KvStoreTest do
                    value: 9_999_999_999,
                    value_type: :big_integer
                  },
-                 @opts
+                 opts
                )
     end
 
-    test "inserts a string value" do
+    test "inserts a string value", %{opts: opts} do
       assert :ok =
                KvStore.insert(
                  %{group: "test_group", key: "str_key", value: "hello", value_type: :string},
-                 @opts
+                 opts
                )
     end
 
-    test "inserts a uuid value" do
+    test "inserts a uuid value", %{opts: opts} do
       assert :ok =
                KvStore.insert(
                  %{
@@ -93,48 +73,48 @@ defmodule Astarte.DataAccess.KvStoreTest do
                    value: Ecto.UUID.generate(),
                    value_type: :uuid
                  },
-                 @opts
+                 opts
                )
     end
 
-    test "defaults to binary value_type when not specified" do
+    test "defaults to binary value_type when not specified", %{opts: opts} do
       assert :ok =
                KvStore.insert(
                  %{group: "test_group", key: "default_key", value: <<0xFF>>},
-                 @opts
+                 opts
                )
     end
   end
 
   describe "fetch_value/4" do
-    test "fetches a binary value" do
-      KvStore.insert(%{group: "g", key: "k", value: <<1, 2, 3>>}, @opts)
+    test "fetches a binary value", %{opts: opts} do
+      KvStore.insert(%{group: "g", key: "k", value: <<1, 2, 3>>}, opts)
 
-      assert {:ok, <<1, 2, 3>>} = KvStore.fetch_value("g", "k", :binary, @opts)
+      assert {:ok, <<1, 2, 3>>} = KvStore.fetch_value("g", "k", :binary, opts)
     end
 
-    test "fetches an integer value" do
-      KvStore.insert(%{group: "g", key: "int", value: 99, value_type: :integer}, @opts)
+    test "fetches an integer value", %{opts: opts} do
+      KvStore.insert(%{group: "g", key: "int", value: 99, value_type: :integer}, opts)
 
-      assert {:ok, 99} = KvStore.fetch_value("g", "int", :integer, @opts)
+      assert {:ok, 99} = KvStore.fetch_value("g", "int", :integer, opts)
     end
 
-    test "fetches a big integer value" do
+    test "fetches a big integer value", %{opts: opts} do
       KvStore.insert(
         %{group: "g", key: "bigint", value: 9_999_999_999, value_type: :big_integer},
-        @opts
+        opts
       )
 
-      assert {:ok, 9_999_999_999} = KvStore.fetch_value("g", "bigint", :big_integer, @opts)
+      assert {:ok, 9_999_999_999} = KvStore.fetch_value("g", "bigint", :big_integer, opts)
     end
 
-    test "fetches a string value" do
-      KvStore.insert(%{group: "g", key: "str", value: "world", value_type: :string}, @opts)
+    test "fetches a string value", %{opts: opts} do
+      KvStore.insert(%{group: "g", key: "str", value: "world", value_type: :string}, opts)
 
-      assert {:ok, "world"} = KvStore.fetch_value("g", "str", :string, @opts)
+      assert {:ok, "world"} = KvStore.fetch_value("g", "str", :string, opts)
     end
 
-    test "fetches a uuid value" do
+    test "fetches a uuid value", %{opts: opts} do
       expected_uuid = Ecto.UUID.generate()
 
       KvStore.insert(
@@ -144,16 +124,16 @@ defmodule Astarte.DataAccess.KvStoreTest do
           value: expected_uuid,
           value_type: :uuid
         },
-        @opts
+        opts
       )
 
-      {:ok, uuid} = KvStore.fetch_value("test_group", "uuid_key", :uuid, @opts)
+      {:ok, uuid} = KvStore.fetch_value("test_group", "uuid_key", :uuid, opts)
 
       assert {:ok, ^expected_uuid} = Ecto.UUID.cast(uuid)
     end
 
-    test "returns error when key does not exist" do
-      assert {:error, _} = KvStore.fetch_value("missing_group", "missing_key", :binary, @opts)
+    test "returns error when key does not exist", %{opts: opts} do
+      assert {:error, _} = KvStore.fetch_value("missing_group", "missing_key", :binary, opts)
     end
   end
 end

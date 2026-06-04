@@ -17,31 +17,23 @@
 #
 
 defmodule Astarte.DataAccess.HealthTest do
-  use ExUnit.Case, async: false
-  alias Astarte.DataAccess.DatabaseTestHelper
+  use ExUnit.Case, async: true
+
   alias Astarte.DataAccess.Health
 
-  @create_astarte_kv_store """
-  CREATE TABLE IF NOT EXISTS astarte.kv_store (
-    group varchar,
-    key varchar,
-    value blob,
-    PRIMARY KEY ((group), key)
-  )
-  """
+  import Astarte.DataAccess.Helpers.Database
+  import Astarte.DataAccess.Cases.Database
+
+  setup do
+    astarte_instance_id = "test#{System.unique_integer([:positive])}"
+    setup_database_access(astarte_instance_id)
+    %{astarte_instance_id: astarte_instance_id}
+  end
 
   describe "get_health/0" do
-    test "returns :ready when the astarte keyspace and required tables are available" do
-      on_exit(fn ->
-        Xandra.Cluster.run(:astarte_data_access_xandra, fn conn ->
-          DatabaseTestHelper.destroy_astarte_keyspace(conn)
-        end)
-      end)
-
-      Xandra.Cluster.run(:astarte_data_access_xandra, fn conn ->
-        DatabaseTestHelper.create_astarte_keyspace(conn)
-        Xandra.execute!(conn, @create_astarte_kv_store)
-      end)
+    test "returns :ready when the astarte keyspace and required tables are available", context do
+      %{astarte_instance_id: astarte_instance_id} = context
+      setup_instance(astarte_instance_id, [])
 
       assert Health.get_health() == :ready
     end

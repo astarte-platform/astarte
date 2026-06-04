@@ -17,45 +17,25 @@
 #
 
 defmodule Astarte.DataAccess.Data.XandraTest do
-  use ExUnit.Case
+  use Astarte.DataAccess.Cases.Database, async: true
+
   alias Astarte.Core.Device, as: CoreDevice
   alias Astarte.Core.InterfaceDescriptor
   alias Astarte.DataAccess.Data
-  alias Astarte.DataAccess.DatabaseTestHelper
   alias Astarte.DataAccess.Interface
   alias Astarte.DataAccess.Mappings
 
-  @test_realm "autotestrealm"
+  setup :seed_data
 
-  setup do
-    Xandra.Cluster.run(:astarte_data_access_xandra, fn conn ->
-      DatabaseTestHelper.seed_data(conn)
-    end)
-  end
-
-  setup_all do
-    on_exit(fn ->
-      Xandra.Cluster.run(:astarte_data_access_xandra, fn conn ->
-        DatabaseTestHelper.destroy_local_test_keyspace(conn)
-      end)
-    end)
-
-    Xandra.Cluster.run(:astarte_data_access_xandra, fn conn ->
-      DatabaseTestHelper.create_test_keyspace(conn)
-    end)
-
-    :ok
-  end
-
-  test "check if path exists" do
+  test "check if path exists", %{realm_name: realm_name} do
     {:ok, device_id} = CoreDevice.decode_device_id("f0VMRgIBAQAAAAAAAAAAAA")
 
     {:ok, descriptor} =
-      Interface.fetch_interface_descriptor(@test_realm, "com.test.LCDMonitor", 1)
+      Interface.fetch_interface_descriptor(realm_name, "com.test.LCDMonitor", 1)
 
     %InterfaceDescriptor{interface_id: interface_id} = descriptor
 
-    {:ok, mappings} = Mappings.fetch_interface_mappings_map(@test_realm, interface_id)
+    {:ok, mappings} = Mappings.fetch_interface_mappings_map(realm_name, interface_id)
 
     mapping =
       mappings
@@ -63,7 +43,7 @@ defmodule Astarte.DataAccess.Data.XandraTest do
       |> Enum.find(fn mapping -> mapping.endpoint == "/weekSchedule/%{day}/stop" end)
 
     assert Data.path_exists?(
-             @test_realm,
+             realm_name,
              device_id,
              descriptor,
              mapping,
@@ -72,7 +52,7 @@ defmodule Astarte.DataAccess.Data.XandraTest do
              {:ok, true}
 
     assert Data.path_exists?(
-             @test_realm,
+             realm_name,
              device_id,
              descriptor,
              mapping,
@@ -81,15 +61,15 @@ defmodule Astarte.DataAccess.Data.XandraTest do
              {:ok, false}
   end
 
-  test "fetch property value on a certain interface" do
+  test "fetch property value on a certain interface", %{realm_name: realm_name} do
     {:ok, device_id} = CoreDevice.decode_device_id("f0VMRgIBAQAAAAAAAAAAAA")
 
     {:ok, descriptor} =
-      Interface.fetch_interface_descriptor(@test_realm, "com.test.LCDMonitor", 1)
+      Interface.fetch_interface_descriptor(realm_name, "com.test.LCDMonitor", 1)
 
     %InterfaceDescriptor{interface_id: interface_id} = descriptor
 
-    {:ok, mappings} = Mappings.fetch_interface_mappings_map(@test_realm, interface_id)
+    {:ok, mappings} = Mappings.fetch_interface_mappings_map(realm_name, interface_id)
 
     mapping =
       mappings
@@ -97,7 +77,7 @@ defmodule Astarte.DataAccess.Data.XandraTest do
       |> Enum.find(fn mapping -> mapping.endpoint == "/weekSchedule/%{day}/stop" end)
 
     assert Data.fetch_property(
-             @test_realm,
+             realm_name,
              device_id,
              descriptor,
              mapping,
@@ -106,7 +86,7 @@ defmodule Astarte.DataAccess.Data.XandraTest do
              {:ok, 16}
 
     assert Data.fetch_property(
-             @test_realm,
+             realm_name,
              device_id,
              descriptor,
              mapping,
@@ -115,19 +95,19 @@ defmodule Astarte.DataAccess.Data.XandraTest do
              {:error, :property_not_set}
   end
 
-  test "fetch last path update" do
+  test "fetch last path update", %{realm_name: realm_name} do
     {:ok, device_id} = CoreDevice.decode_device_id("f0VMRgIBAQAAAAAAAAAAAA")
 
     {:ok, descriptor} =
       Interface.fetch_interface_descriptor(
-        @test_realm,
+        realm_name,
         "com.test.SimpleStreamTest",
         1
       )
 
     %InterfaceDescriptor{interface_id: interface_id} = descriptor
 
-    {:ok, mappings} = Mappings.fetch_interface_mappings_map(@test_realm, interface_id)
+    {:ok, mappings} = Mappings.fetch_interface_mappings_map(realm_name, interface_id)
 
     mapping =
       mappings
@@ -138,7 +118,7 @@ defmodule Astarte.DataAccess.Data.XandraTest do
     {:ok, value_timestamp, _} = DateTime.from_iso8601("2017-09-30 07:11:00.000Z")
 
     assert Data.fetch_last_path_update(
-             @test_realm,
+             realm_name,
              device_id,
              descriptor,
              mapping,
