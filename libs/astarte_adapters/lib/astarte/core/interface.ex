@@ -53,6 +53,7 @@ defmodule Astarte.Core.Adapters.Interface do
 
     field :database_retention_ttl <- :database_retention_ttl, required: false
     field :description <- :description, required: false
+    field :encrypted <- :encrypted, required: false
     field :doc <- :doc, required: false
   end
 

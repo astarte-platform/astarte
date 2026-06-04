@@ -27,6 +27,7 @@ defmodule Astarte.DataAccess.Mappings.XandraTest do
   @test_mapping %{
     <<102, 99, 106, 232, 232, 167, 20, 89, 90, 33, 238, 64, 182, 95, 205, 244>> => %Mapping{
       allow_unset: false,
+      encrypted: false,
       database_retention_policy: :no_ttl,
       database_retention_ttl: nil,
       description: "The description.",
@@ -50,6 +51,7 @@ defmodule Astarte.DataAccess.Mappings.XandraTest do
   @simplestreamtest_mappings %{
     <<52, 108, 128, 228, 202, 153, 98, 116, 129, 246, 123, 28, 27, 229, 149, 33>> => %Mapping{
       allow_unset: false,
+      encrypted: false,
       database_retention_policy: :no_ttl,
       database_retention_ttl: nil,
       description: nil,
@@ -69,6 +71,7 @@ defmodule Astarte.DataAccess.Mappings.XandraTest do
     },
     <<57, 7, 212, 29, 91, 202, 50, 157, 158, 81, 76, 234, 42, 84, 169, 154>> => %Mapping{
       allow_unset: false,
+      encrypted: false,
       database_retention_policy: :no_ttl,
       database_retention_ttl: nil,
       description: nil,
@@ -88,6 +91,7 @@ defmodule Astarte.DataAccess.Mappings.XandraTest do
     },
     <<117, 1, 14, 27, 25, 158, 238, 252, 221, 53, 210, 84, 176, 226, 9, 36>> => %Mapping{
       allow_unset: false,
+      encrypted: false,
       database_retention_policy: :use_ttl,
       database_retention_ttl: 120,
       description: nil,
@@ -107,6 +111,7 @@ defmodule Astarte.DataAccess.Mappings.XandraTest do
     },
     <<122, 164, 76, 17, 34, 115, 71, 217, 230, 36, 74, 224, 41, 222, 222, 170>> => %Mapping{
       allow_unset: false,
+      encrypted: false,
       database_retention_policy: :no_ttl,
       database_retention_ttl: nil,
       description: nil,
@@ -126,6 +131,7 @@ defmodule Astarte.DataAccess.Mappings.XandraTest do
     },
     <<239, 249, 87, 207, 3, 223, 222, 237, 151, 132, 168, 112, 142, 61, 140, 185>> => %Mapping{
       allow_unset: false,
+      encrypted: false,
       database_retention_policy: :no_ttl,
       database_retention_ttl: nil,
       description: nil,

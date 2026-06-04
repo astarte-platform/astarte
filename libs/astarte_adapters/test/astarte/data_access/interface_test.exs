@@ -94,6 +94,7 @@ defmodule Astarte.DataAccess.Adapters.InterfaceTest do
           assert mapping_core.endpoint_id == endpoint.endpoint_id
           assert mapping_core.doc == normalize_empty(endpoint, :doc)
           assert mapping_core.description == normalize_empty(endpoint, :description)
+          assert mapping_core.encrypted == endpoint.encrypted
         end
       end
     end
