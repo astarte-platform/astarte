@@ -71,6 +71,9 @@ defmodule Astarte.DataAccess.Mixfile do
   defp deps do
     [
       {:exandra, "~> 0.13"},
+      # TODO: Remove override when exandra includes the fix for the issue with decimal 2.0
+      {:xandra, github: "whatyouhide/xandra", override: true},
+      {:decimal, "~> 3.0", override: true},
       {:typed_ecto_schema, "~> 0.4"},
       {:astarte_fdo_core, path: "../astarte_fdo_core"},
       {:cose, github: "secomind/cose-elixir"},

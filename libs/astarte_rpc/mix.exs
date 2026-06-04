@@ -62,7 +62,9 @@ defmodule Astarte.RPC.MixProject do
       {:typedstruct, "~> 0.5"},
       {:excoveralls, "~> 0.15", only: :test},
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
-      {:mix_audit, "~> 2.1", only: [:dev, :test], runtime: false}
+      {:mix_audit, "~> 2.1", only: [:dev, :test], runtime: false},
+      # TODO: Remove override when exandra includes the fix for the issue with decimal 2.0
+      {:decimal, "~> 3.0", override: true}
     ]
   end
 end

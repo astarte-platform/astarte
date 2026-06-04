@@ -56,7 +56,9 @@ defmodule AstarteSecrets.MixProject do
       {:skogsra, "~> 2.2"},
       {:typed_ecto_schema, "~> 0.4"},
       {:x509, "~> 0.8"},
-      {:mix_audit, "~> 2.1", only: [:dev, :test], runtime: false}
+      {:mix_audit, "~> 2.1", only: [:dev, :test], runtime: false},
+      # TODO: Remove override when exandra includes the fix for the issue with decimal 2.0
+      {:decimal, "~> 3.0", override: true}
     ]
   end
 end

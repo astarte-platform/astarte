@@ -70,6 +70,8 @@ defmodule Astarte.DataAccess.Generators.MixProject do
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
       {:excoveralls, "~> 0.15", only: [:test]},
       {:mox, "~> 0.5", only: :test},
+      # TODO: Remove override when exandra includes the fix for the issue with decimal 2.0
+      {:decimal, "~> 3.0", override: true},
       {:mix_audit, "~> 2.1", only: [:dev, :test], runtime: false}
     ]
   end

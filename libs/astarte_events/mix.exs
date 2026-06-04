@@ -66,7 +66,9 @@ defmodule Astarte.Events.Mixfile do
       {:astarte_generators, path: "../astarte_generators", only: [:dev, :test]},
       {:typedstruct, "~> 0.5"},
       {:httpoison, "~> 2.2"},
-      {:mix_audit, "~> 2.1", only: [:dev, :test], runtime: false}
+      {:mix_audit, "~> 2.1", only: [:dev, :test], runtime: false},
+      # TODO: Remove override when exandra includes the fix for the issue with decimal 2.0
+      {:decimal, "~> 3.0", override: true}
     ]
   end
 end
