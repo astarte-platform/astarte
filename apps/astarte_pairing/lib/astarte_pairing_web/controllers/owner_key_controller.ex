@@ -18,14 +18,170 @@
 
 defmodule Astarte.PairingWeb.OwnerKeyController do
   use Astarte.PairingWeb, :controller
+  use OpenApiSpex.ControllerSpecs
 
+  alias Astarte.PairingWeb.ApiSpec.Schemas.OwnerKey
   alias Astarte.Secrets
   alias Astarte.Secrets.OwnerKeyInitialization
   alias Astarte.Secrets.OwnerKeyInitializationOptions
+  alias OpenApiSpex.Schema
 
   require Logger
 
   action_fallback Astarte.PairingWeb.FallbackController
+
+  tags ["fdo"]
+
+  operation :create_or_upload_key,
+    summary: "Create or upload an owner key",
+    description:
+      "Creates a new owner key with the given algorithm, or uploads an existing private key.",
+    operation_id: "createOrUploadOwnerKey",
+    security: [%{"JWT" => []}],
+    parameters: [
+      realm_name: [
+        in: :path,
+        description: "Name of the realm.",
+        type: :string,
+        required: true
+      ]
+    ],
+    request_body:
+      {"Create or Upload Owner Key Request", "application/json",
+       OwnerKey.CreateOrUploadOwnerKeyRequest},
+    responses: [
+      ok:
+        {"Owner key created or uploaded successfully", "text/plain",
+         %Schema{
+           type: :string,
+           description:
+             "The PEM-encoded public key when action is \"create\", or an empty string when action is \"upload\"."
+         }},
+      bad_request: {"Invalid request body", nil, nil},
+      unauthorized: {"Unauthorized", nil, nil},
+      not_found: {"Realm not found", nil, nil},
+      unprocessable_entity: {"Validation error", nil, nil},
+      internal_server_error: {"Internal server error", nil, nil}
+    ]
+
+  operation :list_keys,
+    summary: "List owner keys",
+    description: "Returns all registered owner keys grouped by algorithm.",
+    operation_id: "listOwnerKeys",
+    security: [%{"JWT" => []}],
+    parameters: [
+      realm_name: [
+        in: :path,
+        description: "Name of the realm.",
+        type: :string,
+        required: true
+      ]
+    ],
+    responses: [
+      ok:
+        {"Owner keys grouped by algorithm", "application/json",
+         %Schema{
+           type: :object,
+           description: "A map from algorithm name to list of key names.",
+           additionalProperties: %Schema{
+             type: :array,
+             items: %Schema{type: :string}
+           }
+         }},
+      unauthorized: {"Unauthorized", nil, nil},
+      not_found: {"Realm not found", nil, nil},
+      internal_server_error: {"Internal server error", nil, nil}
+    ]
+
+  operation :get_keys_for_algorithm,
+    summary: "List owner keys for an algorithm",
+    description: "Returns all registered owner keys for the specified algorithm.",
+    operation_id: "getOwnerKeysForAlgorithm",
+    security: [%{"JWT" => []}],
+    parameters: [
+      realm_name: [
+        in: :path,
+        description: "Name of the realm.",
+        type: :string,
+        required: true
+      ],
+      key_algorithm: [
+        in: :path,
+        description: "The key algorithm (e.g. es256, es384, rs256, rs384).",
+        type: :string,
+        required: true
+      ]
+    ],
+    responses: [
+      ok:
+        {"Owner keys for the algorithm", "application/json",
+         %Schema{
+           type: :object,
+           properties: %{
+             data: %Schema{
+               type: :object,
+               description: "A map from algorithm name to list of key names.",
+               additionalProperties: %Schema{
+                 type: :array,
+                 items: %Schema{type: :string}
+               }
+             }
+           }
+         }},
+      unauthorized: {"Unauthorized", nil, nil},
+      not_found: {"Realm not found", nil, nil},
+      unprocessable_entity: {"Unknown key algorithm", nil, nil},
+      internal_server_error: {"Internal server error", nil, nil}
+    ]
+
+  operation :get_key,
+    summary: "Get an owner key",
+    description: "Returns a specific owner key by algorithm and name.",
+    operation_id: "getOwnerKey",
+    security: [%{"JWT" => []}],
+    parameters: [
+      realm_name: [
+        in: :path,
+        description: "Name of the realm.",
+        type: :string,
+        required: true
+      ],
+      key_algorithm: [
+        in: :path,
+        description: "The key algorithm (e.g. es256, es384, rs256, rs384).",
+        type: :string,
+        required: true
+      ],
+      key_name: [
+        in: :path,
+        description: "The name of the key.",
+        type: :string,
+        required: true
+      ]
+    ],
+    responses: [
+      ok:
+        {"Owner key details", "application/json",
+         %Schema{
+           type: :object,
+           properties: %{
+             data: %Schema{
+               type: :object,
+               properties: %{
+                 key_name: %Schema{type: :string, description: "The name of the key."},
+                 public_key: %Schema{
+                   type: :string,
+                   description: "The PEM-encoded public key."
+                 }
+               }
+             }
+           }
+         }},
+      unauthorized: {"Unauthorized", nil, nil},
+      not_found: {"Key not found", nil, nil},
+      unprocessable_entity: {"Unknown key algorithm", nil, nil},
+      internal_server_error: {"Internal server error", nil, nil}
+    ]
 
   def create_or_upload_key(
         conn,
