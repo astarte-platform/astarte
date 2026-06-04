@@ -238,12 +238,12 @@ defmodule Astarte.RealmManagement.Interfaces.Queries do
     (
       interface_id, endpoint_id, interface_name, interface_major_version, interface_minor_version,
       interface_type, endpoint, value_type, reliability, retention, database_retention_policy,
-      database_retention_ttl, expiry, allow_unset, explicit_timestamp, description, doc, required
+      database_retention_ttl, expiry, allow_unset, explicit_timestamp, description, doc, required, encrypted
     )
     VALUES (
       ?, ?, ?, ?, ?,
       ?, ?, ?, ?, ?, ?,
-      ?, ?, ?, ?, ?, ?, ?
+      ?, ?, ?, ?, ?, ?, ?, ?
     )
     """
 
@@ -265,7 +265,8 @@ defmodule Astarte.RealmManagement.Interfaces.Queries do
       mapping.explicit_timestamp,
       mapping.description,
       mapping.doc,
-      mapping.required
+      mapping.required,
+      mapping.encrypted
     ]
 
     {insert_mapping_statement, params}

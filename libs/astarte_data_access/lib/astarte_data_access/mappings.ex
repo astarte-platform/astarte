@@ -40,6 +40,7 @@ defmodule Astarte.DataAccess.Mappings do
     :database_retention_ttl,
     :expiry,
     :allow_unset,
+    :encrypted,
     :explicit_timestamp,
     :endpoint_id,
     :interface_id,

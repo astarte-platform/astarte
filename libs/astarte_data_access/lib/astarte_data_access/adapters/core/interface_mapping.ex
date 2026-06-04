@@ -64,6 +64,7 @@ defmodule Astarte.DataAccess.Adapters.Core.InterfaceMapping do
     field :endpoint_id <- [:mapping, :endpoint_id]
     field :doc <- [:mapping, :doc], required: false
     field :description <- [:mapping, :description], required: false
+    field :encrypted <- [:mapping, :encrypted], required: false
     post_process &from_core_mapping_post_process/1
   end
 
