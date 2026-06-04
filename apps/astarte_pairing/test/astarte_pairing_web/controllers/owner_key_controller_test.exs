@@ -21,7 +21,6 @@ defmodule Astarte.PairingWeb.Controllers.OwnerKeyControllerTest do
   use Astarte.Cases.Data
   use Mimic
 
-  alias Astarte.Pairing.Config
   alias Astarte.Secrets
   alias Astarte.Secrets.Key
   alias Astarte.Secrets.OwnerKeyInitialization

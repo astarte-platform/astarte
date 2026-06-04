@@ -122,6 +122,7 @@ jobs:
         ports:
           - 8041:8041
         options: >-
+          --tmpfs /var/lib/fdo
           --restart on-failure
         command: '--log-level=debug rendezvous 0.0.0.0:8041 --db-type sqlite --db-dsn "file:/var/lib/fdo/rendezvous.db"'
 

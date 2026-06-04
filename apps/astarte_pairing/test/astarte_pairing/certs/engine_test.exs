@@ -53,8 +53,6 @@ defmodule Astarte.Pairing.EngineTest do
 
   describe "get_agent_public_key_pem" do
     test "fails with non-existing realm" do
-      realm_keyspace = Realm.keyspace_name("nonexisting")
-
       assert {:error, :realm_not_found} == Engine.get_agent_public_key_pems("nonexisting")
     end
 
