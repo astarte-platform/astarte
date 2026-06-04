@@ -635,8 +635,7 @@ defmodule Astarte.Secrets.CoreTest do
                Core.generate_dek(key_name, namespace)
 
       assert byte_size(pt) == 32
-      refute String.starts_with?(ct, "vault:")
-      refute String.starts_with?(ct, "v1:")
+      assert String.starts_with?(ct, "vault:v1:")
     end
   end
 

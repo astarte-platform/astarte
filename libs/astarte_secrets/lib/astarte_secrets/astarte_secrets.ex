@@ -185,7 +185,7 @@ defmodule Astarte.Secrets do
     with {:ok, %HTTPoison.Response{status_code: 200, body: body}} <-
            Client.post(
              "/transit/decrypt/#{key_name}",
-             Jason.encode!(%{ciphertext: "vault:v1:" <> ciphertext}),
+             Jason.encode!(%{ciphertext: ciphertext}),
              headers,
              client_opts
            ),

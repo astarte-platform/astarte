@@ -166,7 +166,7 @@ defmodule Astarte.Secrets.Core do
            ),
          {:ok, data} <- parse_json_data(body),
          {:ok, plaintext} <- decode_base64_field(data, "plaintext"),
-         {:ok, "vault:v1:" <> ciphertext} <- Map.fetch(data, "ciphertext") do
+         {:ok, ciphertext} <- Map.fetch(data, "ciphertext") do
       {:ok, %{plaintext: plaintext, ciphertext: ciphertext}}
     else
       error ->
