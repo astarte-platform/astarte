@@ -44,7 +44,6 @@ allowed_scopes = [
   "events",
   "rpc",
   "generators",
-  "data_access_generators",
   "test_suite",
   "ts",
   "adapters",

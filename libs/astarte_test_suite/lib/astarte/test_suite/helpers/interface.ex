@@ -20,12 +20,16 @@ defmodule Astarte.TestSuite.Helpers.Interface do
   @moduledoc false
 
   import ExUnit.Callbacks, only: [on_exit: 1]
-  import Astarte.Core.Generators.Interface, only: [interface: 0]
-  import Astarte.DataAccess.Generators.Interface, only: [from_core: 1]
-  import Astarte.TestSuite.CaseContext, only: [get!: 3, put!: 5, put_fixture: 3, reduce: 4]
   import Ecto.Query
 
+  import Astarte.Core.Generators.Interface, only: [interface: 0]
+  import Astarte.DataAccess.Adapters.Core.InterfaceMapping
+
+  import Astarte.TestSuite.CaseContext, only: [get!: 3, put!: 5, put_fixture: 3, reduce: 4]
+
   alias Astarte.Core.Interface
+
+  alias Astarte.DataAccess.Realms.Endpoint, as: EndpointData
   alias Astarte.DataAccess.Realms.Interface, as: InterfaceData
   alias Astarte.DataAccess.Repo
 
@@ -42,23 +46,9 @@ defmodule Astarte.TestSuite.Helpers.Interface do
   def data(context) do
     entries_by_keyspace = entries_by_keyspace(context)
 
-    results =
-      Enum.map(entries_by_keyspace, fn {keyspace, entries} ->
-        case Repo.safe_insert_all(InterfaceData, entries, prefix: keyspace) do
-          {:ok, result} ->
-            %{keyspace: keyspace, result: result}
+    results = insert_entries(entries_by_keyspace)
 
-          {:error, reason} ->
-            raise RuntimeError,
-                  "failed to insert interfaces into #{keyspace}: #{inspect(reason)}"
-        end
-      end)
-
-    on_exit(fn ->
-      Enum.each(entries_by_keyspace, fn {keyspace, _entries} ->
-        delete_interfaces(keyspace, Map.fetch!(entries_by_keyspace, keyspace))
-      end)
-    end)
+    on_exit(fn -> delete_entries(entries_by_keyspace) end)
 
     context
     |> put_fixture(:interface_data, %{
@@ -79,17 +69,68 @@ defmodule Astarte.TestSuite.Helpers.Interface do
 
   defp interface_entry(interface) do
     interface
-    |> from_core()
-    |> Enum.at(0)
-    |> Map.from_struct()
-    |> Map.delete(:__meta__)
+    |> from_core_interface()
   end
 
-  defp delete_interfaces(keyspace, entries) do
-    Enum.each(entries, fn %{name: name, major_version: major_version} ->
-      InterfaceData
-      |> where([interface], interface.name == ^name and interface.major_version == ^major_version)
-      |> Repo.safe_delete_all(prefix: keyspace)
+  defp insert_entries(entries_by_keyspace) do
+    Enum.map(entries_by_keyspace, fn {keyspace, entries} ->
+      interfaces = Enum.map(entries, &Map.fetch!(&1, :interface))
+      endpoints = Enum.flat_map(entries, &Map.fetch!(&1, :endpoints))
+
+      endpoint_result = Enum.map(endpoints, &insert_endpoint(&1, keyspace))
+      interface_result = Enum.map(interfaces, &insert_interface(&1, keyspace))
+
+      %{keyspace: keyspace, result: {endpoint_result, interface_result}}
     end)
+  end
+
+  defp insert_endpoint(changeset, keyspace) do
+    case Repo.insert(changeset, prefix: keyspace) do
+      {:ok, struct} ->
+        struct
+
+      {:error, reason} ->
+        raise RuntimeError, "failed to insert endpoint into #{keyspace}: #{inspect(reason)}"
+    end
+  end
+
+  defp insert_interface(changeset, keyspace) do
+    case Repo.insert(changeset, prefix: keyspace) do
+      {:ok, struct} ->
+        struct
+
+      {:error, reason} ->
+        raise RuntimeError, "failed to insert interface into #{keyspace}: #{inspect(reason)}"
+    end
+  end
+
+  defp delete_entries(entries_by_keyspace) do
+    Enum.each(entries_by_keyspace, fn {keyspace, entries} ->
+      interfaces = Enum.map(entries, &Map.fetch!(&1, :interface))
+      endpoints = Enum.flat_map(entries, &Map.fetch!(&1, :endpoints))
+
+      Enum.each(interfaces, &delete_interface(&1, keyspace))
+      Enum.each(endpoints, &delete_endpoint(&1, keyspace))
+    end)
+  end
+
+  defp delete_interface(changeset, keyspace) do
+    name = Ecto.Changeset.get_field(changeset, :name)
+    major_version = Ecto.Changeset.get_field(changeset, :major_version)
+
+    from(i in InterfaceData,
+      where: i.name == ^name and i.major_version == ^major_version
+    )
+    |> Repo.safe_delete_all(prefix: keyspace)
+  end
+
+  defp delete_endpoint(changeset, keyspace) do
+    interface_id = Ecto.Changeset.get_field(changeset, :interface_id)
+    endpoint_id = Ecto.Changeset.get_field(changeset, :endpoint_id)
+
+    from(e in EndpointData,
+      where: e.interface_id == ^interface_id and e.endpoint_id == ^endpoint_id
+    )
+    |> Repo.safe_delete_all(prefix: keyspace)
   end
 end
