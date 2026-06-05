@@ -11,6 +11,7 @@ config :astarte_housekeeping,
 
 # Configures the endpoint
 config :astarte_housekeeping, Astarte.HousekeepingWeb.Endpoint,
+  adapter: Bandit.PhoenixAdapter,
   url: [host: "localhost"],
   secret_key_base: "Nxme5JSsvLykfa6sSoC+7cy9f3ycI8No2T1pwqFpB47KAt6tK/61jGpB+TIhNdjl",
   render_errors: [view: Astarte.HousekeepingWeb.ErrorView, accepts: ~w(json)]

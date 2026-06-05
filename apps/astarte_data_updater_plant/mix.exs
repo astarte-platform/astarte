@@ -85,7 +85,7 @@ defmodule Astarte.DataUpdaterPlant.Mixfile do
       {:libcluster, "~> 3.3"},
       {:horde, "~> 0.9", override: true},
       {:pretty_log, "~> 0.1"},
-      {:plug_cowboy, "~> 2.1"},
+      {:bandit, "~> 1.11"},
       {:typed_ecto_schema, "~> 0.4"},
       {:astarte_data_access, path: astarte_lib("astarte_data_access"), override: true},
       {:astarte_rpc, path: astarte_lib("astarte_rpc")},

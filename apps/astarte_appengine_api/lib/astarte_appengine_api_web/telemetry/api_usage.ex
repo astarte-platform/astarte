@@ -19,14 +19,14 @@ defmodule Astarte.AppEngine.APIWeb.Telemetry.APIUsage do
   @moduledoc """
   Telemetry handler for API usage metrics.
 
-  This module hooks into Cowboy request events to measure the data transferred
+  This module hooks into Bandit request events to measure the data transferred
   (request and response size) and attributes it to the appropriate Realm.
   """
   alias Astarte.AppEngine.APIWeb.TelemetryTaskSupervisor
 
   @api_prefix "v1"
 
-  def handle_event([:cowboy, :request, :stop], measurements, metadata, _config) do
+  def handle_event([:bandit, :request, :stop], measurements, metadata, _config) do
     %{req_body_length: req_body_length, resp_body_length: resp_body_length} = measurements
     %{req: %{path: path}} = metadata
 
