@@ -63,7 +63,8 @@ defmodule Astarte.DataUpdaterPlant.Mixfile do
       {:astarte_generators, github: "astarte-platform/astarte_generators", only: [:dev, :test]},
       {:astarte_realm_management,
        path: "../astarte_realm_management", only: :test, runtime: false},
-      {:astarte_events, path: astarte_lib("astarte_events")}
+      {:astarte_events, path: astarte_lib("astarte_events")},
+      {:astarte_secrets, path: astarte_lib("astarte_secrets")}
     ]
   end
 
@@ -73,6 +74,7 @@ defmodule Astarte.DataUpdaterPlant.Mixfile do
       {:amqp, "~> 3.3"},
       {:castore, "~> 1.0.0"},
       {:cbor, "~> 1.0"},
+      {:con_cache, "~> 1.0"},
       {:cose, github: "secomind/cose-elixir"},
       {:cyanide, "~> 2.0"},
       {:excoveralls, "~> 0.15", only: :test},

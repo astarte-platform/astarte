@@ -37,14 +37,14 @@ defmodule Astarte.Secrets.CoreTest do
       %{realm_name: realm_name, user_id: user_id, key_algorithm: key_algorithm} = context
 
       assert ["fdo_owner_keys" | _] =
-               Core.namespace_tokens(realm_name, user_id, key_algorithm)
+               Core.fdo_keys_namespace_tokens(realm_name, user_id, key_algorithm)
     end
 
     test "uses default_instance for empty astarte_instance_id", context do
       %{realm_name: realm_name, user_id: user_id, key_algorithm: key_algorithm} = context
 
       assert [_, "default_instance" | _] =
-               Core.namespace_tokens(realm_name, user_id, key_algorithm)
+               Core.fdo_keys_namespace_tokens(realm_name, user_id, key_algorithm)
     end
 
     @tag instance: "someinstance"
@@ -57,21 +57,21 @@ defmodule Astarte.Secrets.CoreTest do
       } = context
 
       assert [_, "instance", ^instance | _] =
-               Core.namespace_tokens(realm_name, user_id, key_algorithm)
+               Core.fdo_keys_namespace_tokens(realm_name, user_id, key_algorithm)
     end
 
     test "places realm name after instance", context do
       %{realm_name: realm_name, user_id: user_id, key_algorithm: key_algorithm} = context
 
       assert [_, _, ^realm_name | _] =
-               Core.namespace_tokens(realm_name, user_id, key_algorithm)
+               Core.fdo_keys_namespace_tokens(realm_name, user_id, key_algorithm)
     end
 
     test "uses default_user for empty user id", context do
       %{realm_name: realm_name, key_algorithm: key_algorithm} = context
 
       assert [_, _, _, "default_user" | _] =
-               Core.namespace_tokens(realm_name, nil, key_algorithm)
+               Core.fdo_keys_namespace_tokens(realm_name, nil, key_algorithm)
     end
 
     @tag user_id: "userid"
@@ -79,14 +79,14 @@ defmodule Astarte.Secrets.CoreTest do
       %{realm_name: realm_name, user_id: user_id, key_algorithm: key_algorithm} = context
 
       assert [_, _, _, "user_id", ^user_id | _] =
-               Core.namespace_tokens(realm_name, user_id, key_algorithm)
+               Core.fdo_keys_namespace_tokens(realm_name, user_id, key_algorithm)
     end
 
     test "ends with key algorithm", context do
       %{realm_name: realm_name, user_id: user_id, key_algorithm: key_algorithm} = context
 
       assert [_, _, _, _, ^key_algorithm] =
-               Core.namespace_tokens(realm_name, user_id, key_algorithm)
+               Core.fdo_keys_namespace_tokens(realm_name, user_id, key_algorithm)
     end
 
     @tag instance: "someinstance"
@@ -107,7 +107,7 @@ defmodule Astarte.Secrets.CoreTest do
                "user_id",
                user_id,
                key_algorithm
-             ] == Core.namespace_tokens(realm_name, user_id, key_algorithm)
+             ] == Core.fdo_keys_namespace_tokens(realm_name, user_id, key_algorithm)
     end
   end
 
@@ -200,7 +200,7 @@ defmodule Astarte.Secrets.CoreTest do
       unique_id = System.unique_integer([:positive])
       realm_name = "test_realm_#{unique_id}"
 
-      {:ok, namespace} = Secrets.create_namespace(realm_name, nil, :es256)
+      {:ok, namespace} = Secrets.create_fdo_namespace(realm_name, nil, :es256)
 
       opts = [token: token, namespace: namespace]
 
@@ -574,7 +574,7 @@ defmodule Astarte.Secrets.CoreTest do
       unique_id = System.unique_integer([:positive])
       realm_name = "listtest_#{unique_id}"
 
-      {:ok, ns} = Secrets.create_namespace(realm_name, :es256)
+      {:ok, ns} = Secrets.create_fdo_namespace(realm_name, :es256)
 
       Secrets.create_keypair("k1", :es256, namespace: ns)
       Secrets.create_keypair("k2", :es256, namespace: ns)
@@ -591,7 +591,7 @@ defmodule Astarte.Secrets.CoreTest do
       unique_id = System.unique_integer([:positive])
       realm_name = "findtest_#{unique_id}"
 
-      {:ok, ns} = Secrets.create_namespace(realm_name, :es256)
+      {:ok, ns} = Secrets.create_fdo_namespace(realm_name, :es256)
 
       Secrets.create_keypair("find-me", :es256, namespace: ns)
 
@@ -603,7 +603,7 @@ defmodule Astarte.Secrets.CoreTest do
       unique_id = System.unique_integer([:positive])
       realm_name = "findtest_missing_#{unique_id}"
 
-      {:ok, _} = Secrets.create_namespace(realm_name, :es256)
+      {:ok, _} = Secrets.create_fdo_namespace(realm_name, :es256)
 
       assert :not_found = Core.find_key(realm_name, "no-such-key", :es256)
     end
@@ -612,7 +612,7 @@ defmodule Astarte.Secrets.CoreTest do
       unique_id = System.unique_integer([:positive])
       realm_name = "findtest_alg_#{unique_id}"
 
-      {:ok, ns} = Secrets.create_namespace(realm_name, :es256)
+      {:ok, ns} = Secrets.create_fdo_namespace(realm_name, :es256)
 
       Secrets.create_keypair("find-me", :es256, namespace: ns)
 
@@ -622,7 +622,7 @@ defmodule Astarte.Secrets.CoreTest do
 
   describe "generate_dek/3 integration" do
     setup do
-      {:ok, namespace} = Secrets.create_namespace("test", :es256)
+      {:ok, namespace} = Secrets.create_fdo_namespace("test", :es256)
       :ok = create_encryption_key("test-kek", namespace)
       %{namespace: namespace, key_name: "test-kek"}
     end
@@ -641,7 +641,7 @@ defmodule Astarte.Secrets.CoreTest do
 
   describe "unwrap_dek/4 integration" do
     setup do
-      {:ok, namespace} = Secrets.create_namespace("test", :es256)
+      {:ok, namespace} = Secrets.create_fdo_namespace("test", :es256)
       :ok = create_encryption_key("test-kek", namespace)
       %{namespace: namespace, key_name: "test-kek"}
     end

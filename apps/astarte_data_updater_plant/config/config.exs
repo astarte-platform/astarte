@@ -36,4 +36,6 @@ config :astarte_events, :connection_backoff, 10_000
 
 config :astarte_rpc, :astarte_services, [:astarte_data_updater_plant, :astarte_vmq_plugin]
 
+config :astarte_data_updater_plant, :dek_cache_ttl_seconds, 5 * 60
+
 import_config "#{config_env()}.exs"

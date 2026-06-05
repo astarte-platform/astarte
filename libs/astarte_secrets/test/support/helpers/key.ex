@@ -26,7 +26,7 @@ defmodule Astarte.Helpers.Key do
     realm_name = "realm#{System.unique_integer([:positive])}"
     key_name = "key#{System.unique_integer()}"
     key_algorithm = Map.get(context, :key_algorithm, :es256)
-    {:ok, namespace} = Secrets.create_namespace(realm_name, key_algorithm)
+    {:ok, namespace} = Secrets.create_fdo_namespace(realm_name, key_algorithm)
     {:ok, data} = Secrets.create_keypair(key_name, key_algorithm, namespace: namespace)
     {:ok, key} = Key.parse(key_name, namespace, data)
 

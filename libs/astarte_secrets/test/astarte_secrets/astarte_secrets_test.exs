@@ -30,7 +30,7 @@ defmodule Astarte.SecretsTest do
   import Astarte.Helpers.Namespace
   import Astarte.Helpers.Key
 
-  describe "create_namespace/3" do
+  describe "create_fdo_namespace/3" do
     setup :namespace_tokens_setup
 
     test "calls core functions", context do
@@ -40,10 +40,12 @@ defmodule Astarte.SecretsTest do
       ref = System.unique_integer()
 
       Core
-      |> expect(:namespace_tokens, fn ^realm_name, ^user_id, ^key_algorithm_str -> ref end)
+      |> expect(:fdo_keys_namespace_tokens, fn ^realm_name, ^user_id, ^key_algorithm_str ->
+        ref
+      end)
       |> expect(:create_nested_namespace, fn ^ref -> {:ok, ""} end)
 
-      assert {:ok, _} = Secrets.create_namespace(realm_name, user_id, key_algorithm)
+      assert {:ok, _} = Secrets.create_fdo_namespace(realm_name, user_id, key_algorithm)
     end
   end
 
@@ -52,7 +54,7 @@ defmodule Astarte.SecretsTest do
       key_type = Map.get(context, :key_type)
       {:ok, key_type_to_string} = Core.key_type_to_string(key_type)
       realm_name = "realm#{System.unique_integer([:positive])}"
-      {:ok, namespace} = Secrets.create_namespace(realm_name, key_type)
+      {:ok, namespace} = Secrets.create_fdo_namespace(realm_name, key_type)
       key_name = "some_key_#{key_type_to_string}"
       allow_key_export_and_backup = true
 
@@ -160,7 +162,7 @@ defmodule Astarte.SecretsTest do
       unique_id = System.unique_integer([:positive])
       realm_name = "test_realm_#{unique_id}"
 
-      {:ok, namespace} = Secrets.create_namespace(realm_name, nil, :es256)
+      {:ok, namespace} = Secrets.create_fdo_namespace(realm_name, nil, :es256)
 
       ecdsa_key = "ecdsa_#{unique_id}"
       ecdsa384_key = "ecdsa384_#{unique_id}"
@@ -277,7 +279,7 @@ defmodule Astarte.SecretsTest do
       key_type = Map.get(context, :key_type)
       {:ok, key_type_to_string} = Core.key_type_to_string(key_type)
       realm_name = "realm#{System.unique_integer([:positive])}"
-      {:ok, namespace} = Secrets.create_namespace(realm_name, key_type)
+      {:ok, namespace} = Secrets.create_fdo_namespace(realm_name, key_type)
       key_name = "some_key_#{key_type_to_string}"
       allow_key_export_and_backup = true
 
@@ -391,7 +393,7 @@ defmodule Astarte.SecretsTest do
       key_type = Map.get(context, :key_type)
       {:ok, key_type_to_string} = Core.key_type_to_string(key_type)
       realm_name = "realm#{System.unique_integer([:positive])}"
-      {:ok, namespace} = Secrets.create_namespace(realm_name, key_type)
+      {:ok, namespace} = Secrets.create_fdo_namespace(realm_name, key_type)
       key_name = "some_key_#{key_type_to_string}"
       key_name1 = "some_key_#{key_type_to_string}1"
       key_name2 = "some_key_#{key_type_to_string}2"

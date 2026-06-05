@@ -42,7 +42,7 @@ defmodule Astarte.FDO.OwnerOnboarding.OwnerOnboardingTest do
     id_p256_x509 = voucher_p256_x509.header.guid
     key_alg = :es256
     key_name = "ECDH256_X509_#{System.unique_integer([:positive])}"
-    {:ok, namespace} = Secrets.create_namespace(realm_name, key_alg)
+    {:ok, namespace} = Secrets.create_fdo_namespace(realm_name, key_alg)
 
     :ok = Secrets.import_key(key_name, key_alg, key_p256_x509, namespace: namespace)
     {:ok, _key_p256_x509} = Secrets.get_key(key_name, namespace: namespace)
@@ -69,7 +69,7 @@ defmodule Astarte.FDO.OwnerOnboarding.OwnerOnboardingTest do
     cbor_p384_x509 = OVCore.cbor_encode(voucher_p384_x509)
     id_p384_x509 = voucher_p384_x509.header.guid
 
-    {:ok, namespace} = Secrets.create_namespace(realm_name, key_alg)
+    {:ok, namespace} = Secrets.create_fdo_namespace(realm_name, key_alg)
 
     :ok = Secrets.import_key(key_name, key_alg, key_p384_x509, namespace: namespace)
     {:ok, _key_p384_x509} = Secrets.get_key(key_name, namespace: namespace)
@@ -94,7 +94,7 @@ defmodule Astarte.FDO.OwnerOnboarding.OwnerOnboardingTest do
     {:ok, key_p256_chain} = Keys.from_pem(key_p256_chain)
     cbor_p256_chain = OVCore.cbor_encode(voucher_p256_chain)
     id_p256_chain = voucher_p256_chain.header.guid
-    {:ok, namespace} = Astarte.Secrets.create_namespace(realm_name, key_alg)
+    {:ok, namespace} = Astarte.Secrets.create_fdo_namespace(realm_name, key_alg)
 
     :ok = Secrets.import_key(key_name, key_alg, key_p256_chain, namespace: namespace)
     {:ok, _key_p256_chain} = Secrets.get_key(key_name, namespace: namespace)
@@ -119,7 +119,7 @@ defmodule Astarte.FDO.OwnerOnboarding.OwnerOnboardingTest do
     {:ok, key_p384_chain} = Keys.from_pem(key_p384_chain)
     cbor_p384_chain = OVCore.cbor_encode(voucher_p384_chain)
     id_p384_chain = voucher_p384_chain.header.guid
-    {:ok, namespace} = Astarte.Secrets.create_namespace(realm_name, key_alg)
+    {:ok, namespace} = Astarte.Secrets.create_fdo_namespace(realm_name, key_alg)
 
     :ok = Secrets.import_key(key_name, key_alg, key_p384_chain, namespace: namespace)
     {:ok, _key_p384_chain} = Secrets.get_key(key_name, namespace: namespace)

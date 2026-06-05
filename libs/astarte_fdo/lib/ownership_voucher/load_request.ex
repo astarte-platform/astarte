@@ -221,7 +221,7 @@ defmodule Astarte.FDO.OwnershipVoucher.LoadRequest do
   end
 
   defp fetch_key_for_algorithm(realm_name, key_name, key_algorithm) do
-    with {:ok, namespace} <- Secrets.create_namespace(realm_name, key_algorithm),
+    with {:ok, namespace} <- Secrets.create_fdo_namespace(realm_name, key_algorithm),
          {:ok, key} <- Secrets.get_key(key_name, namespace: namespace) do
       {:ok, key}
     else

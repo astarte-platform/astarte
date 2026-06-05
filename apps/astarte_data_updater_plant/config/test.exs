@@ -16,3 +16,7 @@ config :astarte_data_updater_plant, :amqp_data_queue_range_end, 0
 config :astarte_data_updater_plant, :amqp_data_queue_range_start, 0
 
 config :astarte_events, :connection_backoff, 0
+
+config :astarte_secrets, bao_authentication_mechanism: :token
+config :astarte_secrets, bao_token: "astarte_token"
+config :astarte_secrets, bao_url: "http://localhost:8200"

@@ -84,7 +84,7 @@ defmodule Astarte.Cases.FDOSession do
         "RSA3072" -> :rs384
       end
 
-    {:ok, namespace} = Secrets.create_namespace(context.realm_name, key_alg)
+    {:ok, namespace} = Secrets.create_fdo_namespace(context.realm_name, key_alg)
 
     Secrets.import_key(key_type, key_alg, owner_key_struct, namespace: namespace)
 

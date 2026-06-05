@@ -31,6 +31,7 @@ defmodule Astarte.Cases.Data do
   import Astarte.Helpers.Database
 
   alias Astarte.Events.AMQP.Vhost
+  alias Astarte.Secrets
 
   using opts do
     astarte_instance_id = Keyword.get_lazy(opts, :astarte_instance_id, &astarte_instance_id/0)
@@ -48,6 +49,7 @@ defmodule Astarte.Cases.Data do
   setup_all %{realm_name: realm, astarte_instance_id: astarte_instance_id} do
     setup_instance(astarte_instance_id, [realm])
     Vhost.create_vhost(realm)
+    Secrets.create_realm_kek(realm)
     %{realm: realm, astarte_instance_id: astarte_instance_id}
   end
 

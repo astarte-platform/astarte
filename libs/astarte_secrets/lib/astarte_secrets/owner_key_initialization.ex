@@ -36,7 +36,7 @@ defmodule Astarte.Secrets.OwnerKeyInitialization do
         realm_name
       ) do
     {:ok, key_algorithm} = Core.string_to_key_type(key_algorithm)
-    {:ok, namespace} = Secrets.create_namespace(realm_name, key_algorithm)
+    {:ok, namespace} = Secrets.create_fdo_namespace(realm_name, key_algorithm)
     do_create_key(key_name, key_algorithm, namespace)
   end
 
@@ -51,7 +51,7 @@ defmodule Astarte.Secrets.OwnerKeyInitialization do
     case Keys.from_pem(key_data) do
       {:ok, decoded_key_data} ->
         key_algorithm = decoded_key_data.alg
-        {:ok, namespace} = Secrets.create_namespace(realm_name, key_algorithm)
+        {:ok, namespace} = Secrets.create_fdo_namespace(realm_name, key_algorithm)
         do_upload_key(key_name, key_algorithm, decoded_key_data, namespace)
 
       :error ->

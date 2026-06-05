@@ -60,7 +60,7 @@ defmodule Astarte.FDO.OwnershipVoucher.LoadRequestTest do
 
   describe "changeset/2 with valid params" do
     setup do
-      stub(Secrets, :create_namespace, fn _realm, _alg ->
+      stub(Secrets, :create_fdo_namespace, fn _realm, _alg ->
         {:ok, "fdo_owner_keys/test_realm/ecdsa-p256"}
       end)
 
@@ -90,8 +90,8 @@ defmodule Astarte.FDO.OwnershipVoucher.LoadRequestTest do
       assert key == @sample_secrets_key
     end
 
-    test "calls Secrets.create_namespace with the realm and :es256 algorithm" do
-      expect(Secrets, :create_namespace, fn realm, alg ->
+    test "calls Secrets.create_fdo_namespace with the realm and :es256 algorithm" do
+      expect(Secrets, :create_fdo_namespace, fn realm, alg ->
         assert realm == @sample_realm
         assert alg == :es256
         {:ok, "fdo_owner_keys/test_realm/ecdsa-p256"}
@@ -103,7 +103,7 @@ defmodule Astarte.FDO.OwnershipVoucher.LoadRequestTest do
     end
 
     test "calls Secrets.get_key with the provided key_name" do
-      stub(Secrets, :create_namespace, fn _realm, _alg ->
+      stub(Secrets, :create_fdo_namespace, fn _realm, _alg ->
         {:ok, "fdo_owner_keys/test_realm/ecdsa-p256"}
       end)
 
@@ -154,7 +154,7 @@ defmodule Astarte.FDO.OwnershipVoucher.LoadRequestTest do
     end
 
     test "a voucher whose key_name does not exist in the secrets store" do
-      stub(Secrets, :create_namespace, fn _realm, _alg ->
+      stub(Secrets, :create_fdo_namespace, fn _realm, _alg ->
         {:ok, "fdo_owner_keys/test_realm/ecdsa-p256"}
       end)
 
@@ -178,7 +178,7 @@ defmodule Astarte.FDO.OwnershipVoucher.LoadRequestTest do
         """
       }
 
-      stub(Secrets, :create_namespace, fn _realm, _alg ->
+      stub(Secrets, :create_fdo_namespace, fn _realm, _alg ->
         {:ok, "fdo_owner_keys/test_realm/ecdsa-p256"}
       end)
 
@@ -217,7 +217,7 @@ defmodule Astarte.FDO.OwnershipVoucher.LoadRequestTest do
 
   describe "changeset/2 with replacement fields" do
     setup do
-      stub(Secrets, :create_namespace, fn _realm, _alg ->
+      stub(Secrets, :create_fdo_namespace, fn _realm, _alg ->
         {:ok, "fdo_owner_keys/test_realm/ecdsa-p256"}
       end)
 
@@ -301,7 +301,7 @@ defmodule Astarte.FDO.OwnershipVoucher.LoadRequestTest do
         public_pem: public_pem
       }
 
-      stub(Secrets, :create_namespace, fn _realm, :es384 ->
+      stub(Secrets, :create_fdo_namespace, fn _realm, :es384 ->
         {:ok, "fdo_owner_keys/#{@sample_realm}/ecdsa-p384"}
       end)
 
@@ -329,7 +329,7 @@ defmodule Astarte.FDO.OwnershipVoucher.LoadRequestTest do
         public_pem: public_pem
       }
 
-      stub(Secrets, :create_namespace, fn _realm, :es256 ->
+      stub(Secrets, :create_fdo_namespace, fn _realm, :es256 ->
         {:ok, "fdo_owner_keys/#{@sample_realm}/ecdsa-p256"}
       end)
 
@@ -362,7 +362,7 @@ defmodule Astarte.FDO.OwnershipVoucher.LoadRequestTest do
         public_pem: public_pem
       }
 
-      stub(Secrets, :create_namespace, fn _realm, :es256 ->
+      stub(Secrets, :create_fdo_namespace, fn _realm, :es256 ->
         {:ok, "fdo_owner_keys/#{@sample_realm}/ecdsa-p256"}
       end)
 
@@ -389,7 +389,7 @@ defmodule Astarte.FDO.OwnershipVoucher.LoadRequestTest do
         public_pem: wrong_public_pem
       }
 
-      stub(Secrets, :create_namespace, fn _realm, :es256 ->
+      stub(Secrets, :create_fdo_namespace, fn _realm, :es256 ->
         {:ok, "fdo_owner_keys/#{@sample_realm}/ecdsa-p256"}
       end)
 
@@ -415,7 +415,7 @@ defmodule Astarte.FDO.OwnershipVoucher.LoadRequestTest do
         public_pem: public_pem
       }
 
-      stub(Secrets, :create_namespace, fn _realm, :es384 ->
+      stub(Secrets, :create_fdo_namespace, fn _realm, :es384 ->
         {:ok, "fdo_owner_keys/#{@sample_realm}/ecdsa-p384"}
       end)
 
@@ -443,7 +443,7 @@ defmodule Astarte.FDO.OwnershipVoucher.LoadRequestTest do
         public_pem: wrong_public_pem
       }
 
-      stub(Secrets, :create_namespace, fn _realm, :es384 ->
+      stub(Secrets, :create_fdo_namespace, fn _realm, :es384 ->
         {:ok, "fdo_owner_keys/#{@sample_realm}/ecdsa-p384"}
       end)
 
@@ -510,7 +510,7 @@ defmodule Astarte.FDO.OwnershipVoucher.LoadRequestTest do
 
   describe "changeset/2 replacement_public_key validation" do
     setup do
-      stub(Secrets, :create_namespace, fn _realm, _alg ->
+      stub(Secrets, :create_fdo_namespace, fn _realm, _alg ->
         {:ok, "fdo_owner_keys/test_realm/ecdsa-p256"}
       end)
 

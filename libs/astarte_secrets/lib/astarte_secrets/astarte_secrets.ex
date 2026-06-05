@@ -18,10 +18,10 @@ defmodule Astarte.Secrets do
   Creates the KEK for the given realm.
   This function is idempotent when called multiple times with the same arguments.
   """
-  @spec create_realm_kek(String.t(), Core.key_algorithm(), keyword()) :: term()
+  @spec create_realm_kek(String.t(), Core.key_algorithm(), keyword()) :: {:ok, term()} | :error
   def create_realm_kek(realm_name, key_type \\ :aes256, options \\ []) do
-    namespace_tokens = Core.realm_kek_namespace_tokens(realm_name)
     allow_key_export_and_backup = Keyword.get(options, :allow_key_export_and_backup, false)
+    namespace_tokens = Core.realm_kek_namespace_tokens(realm_name)
 
     with {:ok, key_type_string} <- Core.key_type_to_string(key_type),
          {:ok, namespace} <- Core.create_nested_namespace(namespace_tokens),
@@ -65,7 +65,7 @@ defmodule Astarte.Secrets do
 
   def get_key_for_guid(realm_name, user_id \\ nil, guid) do
     with {:ok, params} <- Queries.get_owner_key_params(realm_name, guid),
-         {:ok, namespace} <- create_namespace(realm_name, user_id, params.algorithm) do
+         {:ok, namespace} <- create_fdo_namespace(realm_name, user_id, params.algorithm) do
       get_key(params.name, namespace: namespace)
     end
   end
@@ -77,9 +77,9 @@ defmodule Astarte.Secrets do
     Core.list_keys(namespace)
   end
 
-  def create_namespace(realm_name, user_id \\ nil, key_algorithm) do
+  def create_fdo_namespace(realm_name, user_id \\ nil, key_algorithm) do
     with {:ok, algorithm} <- Core.key_type_to_string(key_algorithm),
-         namespace_tokens = Core.namespace_tokens(realm_name, user_id, algorithm),
+         namespace_tokens = Core.fdo_keys_namespace_tokens(realm_name, user_id, algorithm),
          {:ok, namespace} <- Core.create_nested_namespace(namespace_tokens),
          :ok <- Core.mount_transit_engine(namespace) do
       {:ok, namespace}
@@ -165,13 +165,13 @@ defmodule Astarte.Secrets do
   end
 
   @doc """
-  Generates a new Data Encryption Key (DEK) wrapped under the named transit key.
+  Generates a new Data Encryption Key (DEK) wrapped under the named transit key (KEK).
   Optional `:bits` (128 or 256, default 256).
   """
   @spec generate_dek(String.t(), String.t(), keyword()) ::
           {:ok, %{plaintext: binary(), ciphertext: String.t()}} | :error
-  def generate_dek(key_name, namespace, opts \\ []) do
-    Core.generate_dek(key_name, namespace, opts)
+  def generate_dek(kek_key_name, namespace, opts \\ []) do
+    Core.generate_dek(kek_key_name, namespace, opts)
   end
 
   @doc """

@@ -42,7 +42,7 @@ defmodule Astarte.FDO.ServiceInfoTest do
 
     key_alg = :es256
     key_name = "default"
-    {:ok, namespace} = Astarte.Secrets.create_namespace(realm_name, key_alg)
+    {:ok, namespace} = Astarte.Secrets.create_fdo_namespace(realm_name, key_alg)
 
     Astarte.Secrets.import_key(key_name, key_alg, owner_key, namespace: namespace)
 

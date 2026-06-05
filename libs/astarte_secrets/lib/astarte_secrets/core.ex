@@ -144,7 +144,7 @@ defmodule Astarte.Secrets.Core do
   end
 
   @doc """
-  Generates a new Data Encryption Key (DEK) wrapped under the named transit key.
+  Generates a new Data Encryption Key (DEK) wrapped under the named transit key (KEK).
 
   Returns `{:ok, %{plaintext: binary(), ciphertext: String.t()}}` where:
   - `plaintext` — raw DEK bytes
@@ -152,14 +152,14 @@ defmodule Astarte.Secrets.Core do
   """
   @spec generate_dek(String.t(), String.t(), keyword()) ::
           {:ok, %{plaintext: binary(), ciphertext: String.t()}} | :error
-  def generate_dek(key_name, namespace, opts \\ []) do
+  def generate_dek(kek_key_name, namespace, opts \\ []) do
     bits = Keyword.get(opts, :bits, 256)
     headers = [{"Content-Type", "application/json"}]
     client_opts = [namespace: namespace] ++ Keyword.take(opts, [:token])
 
     with {:ok, %{status_code: 200, body: body}} <-
            Client.post(
-             "/transit/datakey/plaintext/#{key_name}",
+             "/transit/datakey/plaintext/#{kek_key_name}",
              Jason.encode!(%{bits: bits}),
              headers,
              client_opts
@@ -171,7 +171,7 @@ defmodule Astarte.Secrets.Core do
     else
       error ->
         Logger.error(
-          "Failed to generate DEK with key #{key_name} in namespace #{namespace}: #{inspect(error)}"
+          "Failed to generate DEK with key #{kek_key_name} in namespace #{namespace}: #{inspect(error)}"
         )
 
         :error
@@ -416,9 +416,9 @@ defmodule Astarte.Secrets.Core do
   end
 
   @doc """
-  Returns the namespace name for the given params, represented as a list of tokens
+  Returns the FDO namespace name for the given params, represented as a list of tokens
   """
-  def namespace_tokens(realm_name, user_id, key_algorithm) do
+  def fdo_keys_namespace_tokens(realm_name, user_id, key_algorithm) do
     ["fdo_owner_keys", instance_tokens(), realm_name, user_tokens(user_id), key_algorithm]
     |> List.flatten()
   end
@@ -653,7 +653,7 @@ defmodule Astarte.Secrets.Core do
   end
 
   defp list_keys_for_algorithm(realm_name, key_algorithm) do
-    with {:ok, namespace} <- Secrets.create_namespace(realm_name, key_algorithm) do
+    with {:ok, namespace} <- Secrets.create_fdo_namespace(realm_name, key_algorithm) do
       Secrets.list_keys_names(namespace: namespace)
     end
   end
@@ -665,7 +665,7 @@ defmodule Astarte.Secrets.Core do
   def find_key(realm_name, key_name, key_algorithm) do
     with {:ok, algorithm} <- key_type_to_string(key_algorithm) do
       namespace =
-        namespace_tokens(realm_name, nil, algorithm)
+        fdo_keys_namespace_tokens(realm_name, nil, algorithm)
         |> Enum.join("/")
 
       case Secrets.get_key(key_name, namespace: namespace) do

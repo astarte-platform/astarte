@@ -51,7 +51,7 @@ defmodule Astarte.Secrets.OwnerKeyInitializationTest do
 
   describe "create_or_upload/2 with action: \"create\"" do
     setup do
-      stub(Secrets, :create_namespace, fn _realm, _alg ->
+      stub(Secrets, :create_fdo_namespace, fn _realm, _alg ->
         {:ok, @sample_namespace}
       end)
 
@@ -74,12 +74,12 @@ defmodule Astarte.Secrets.OwnerKeyInitializationTest do
       assert {:ok, ^public_key_pem} = OwnerKeyInitialization.create_or_upload(opts, @sample_realm)
     end
 
-    test "calls create_namespace with the realm name and resolved algorithm" do
+    test "calls create_fdo_namespace with the realm name and resolved algorithm" do
       stub(Secrets, :create_keypair, fn _key_name, _alg, _opts ->
         {:ok, %{"keys" => %{"1" => %{"public_key" => "some_pem"}}}}
       end)
 
-      expect(Secrets, :create_namespace, fn realm, alg ->
+      expect(Secrets, :create_fdo_namespace, fn realm, alg ->
         assert realm == @sample_realm
         assert alg == :es256
         {:ok, @sample_namespace}
@@ -113,7 +113,7 @@ defmodule Astarte.Secrets.OwnerKeyInitializationTest do
     test "works with ecdsa-p384 algorithm" do
       public_key_pem = "-----BEGIN PUBLIC KEY-----\np384pem\n-----END PUBLIC KEY-----\n"
 
-      expect(Secrets, :create_namespace, fn _realm, alg ->
+      expect(Secrets, :create_fdo_namespace, fn _realm, alg ->
         assert alg == :es384
         {:ok, "fdo_owner_keys/test_realm/ecdsa-p384"}
       end)
@@ -134,7 +134,7 @@ defmodule Astarte.Secrets.OwnerKeyInitializationTest do
     test "works with rsa-2048 algorithm" do
       public_key_pem = "-----BEGIN PUBLIC KEY-----\nrsapem\n-----END PUBLIC KEY-----\n"
 
-      expect(Secrets, :create_namespace, fn _realm, alg ->
+      expect(Secrets, :create_fdo_namespace, fn _realm, alg ->
         assert alg == :rs256
         {:ok, "fdo_owner_keys/test_realm/rsa-2048"}
       end)
@@ -170,7 +170,7 @@ defmodule Astarte.Secrets.OwnerKeyInitializationTest do
 
   describe "create_or_upload/2 with action: \"upload\", key not yet stored" do
     setup do
-      stub(Secrets, :create_namespace, fn _realm, _alg ->
+      stub(Secrets, :create_fdo_namespace, fn _realm, _alg ->
         {:ok, @sample_namespace}
       end)
 
@@ -195,8 +195,8 @@ defmodule Astarte.Secrets.OwnerKeyInitializationTest do
       assert {:ok, ""} = OwnerKeyInitialization.create_or_upload(opts, @sample_realm)
     end
 
-    test "calls create_namespace with the realm and the algorithm from the decoded key" do
-      expect(Secrets, :create_namespace, fn realm, alg ->
+    test "calls create_fdo_namespace with the realm and the algorithm from the decoded key" do
+      expect(Secrets, :create_fdo_namespace, fn realm, alg ->
         assert realm == @sample_realm
         assert alg == :es256
         {:ok, @sample_namespace}
@@ -245,7 +245,7 @@ defmodule Astarte.Secrets.OwnerKeyInitializationTest do
 
   describe "create_or_upload/2 with action: \"upload\", key already stored" do
     setup do
-      stub(Secrets, :create_namespace, fn _realm, _alg ->
+      stub(Secrets, :create_fdo_namespace, fn _realm, _alg ->
         {:ok, @sample_namespace}
       end)
 
