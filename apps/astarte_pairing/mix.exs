@@ -100,9 +100,11 @@ defmodule Astarte.Pairing.Mixfile do
       {:astarte_generators, path: astarte_lib("astarte_generators"), only: [:dev, :test]},
       {:astarte_secrets, path: astarte_lib("astarte_secrets"), override: true},
       {:bcrypt_elixir, "~> 2.2"},
-      {:xandra, "~> 0.19", override: true},
       {:ecto, "~> 3.13", override: true},
       {:exandra, "~> 0.13"},
+      # TODO: Remove override when exandra includes the fix for the issue with decimal 2.0
+      {:xandra, github: "whatyouhide/xandra", override: true},
+      {:decimal, "~> 3.0", override: true},
       {:mimic, "~> 1.11", only: :test},
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
       {:con_cache, "~> 1.1"},
@@ -113,7 +115,8 @@ defmodule Astarte.Pairing.Mixfile do
       # HTTP client needed by some tests, override to avoid conflicts with cfxxl
       {:httpoison, "~> 2.2", override: true},
       {:open_api_spex, "~> 3.22"},
-      {:ymlr, "~> 5.1"}
+      {:ymlr, "~> 5.1"},
+      {:mix_audit, "~> 2.1", only: [:dev, :test], runtime: false}
     ]
   end
 

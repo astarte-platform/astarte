@@ -88,6 +88,9 @@ defmodule Astarte.AppEngine.API.Mixfile do
       {:current_rabbit_pool, "~> 1.1"},
       {:phoenix_swagger, "~> 0.8"},
       {:exandra, "~> 0.13"},
+      # TODO: Remove override when exandra includes the fix for the issue with decimal 2.0
+      {:xandra, github: "whatyouhide/xandra", override: true},
+      {:decimal, "~> 3.0", override: true},
       {:typed_ecto_schema, "~> 0.4"},
       {:pretty_log, "~> 0.1"},
       {:plug_logger_with_meta, "~> 0.1"},
@@ -111,7 +114,8 @@ defmodule Astarte.AppEngine.API.Mixfile do
       {:excoveralls, "~> 0.15", only: :test},
       {:mox, "~> 0.5", only: :test},
       {:mimic, "~> 1.11", only: :test},
-      {:ecto, "~> 3.13", override: true}
+      {:ecto, "~> 3.13", override: true},
+      {:mix_audit, "~> 2.1", only: [:dev, :test], runtime: false}
     ]
   end
 

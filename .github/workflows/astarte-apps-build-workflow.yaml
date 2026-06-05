@@ -50,6 +50,19 @@ jobs:
           working-directory: apps/${{ inputs.app }}
           mix-env: test
 
+  deps_audit:
+    name: Deps Audit
+    runs-on: ubuntu-22.04
+    needs:
+      - warmup
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+      - uses: team-alembic/staple-actions/actions/mix-task@a74b3b61209d35d45526df174766632f8aee03ed
+        with:
+          working-directory: apps/${{ inputs.app }}
+          mix-env: test
+          task: deps.audit
+
   dialyzer:
     name: Dialyzer
     runs-on: ubuntu-22.04

@@ -78,13 +78,15 @@ defmodule Astarte.DataUpdaterPlant.Mixfile do
       {:mox, "~> 1.0", only: :test},
       {:mimic, "~> 1.11", only: [:dev, :test]},
       {:exandra, "~> 0.13"},
+      # TODO: Remove override when exandra includes the fix for the issue with decimal 2.0
+      {:xandra, github: "whatyouhide/xandra", override: true},
+      {:decimal, "~> 3.0", override: true},
       {:current_rabbit_pool, "~> 1.1"},
       {:libcluster, "~> 3.3"},
       {:horde, "~> 0.9", override: true},
       {:pretty_log, "~> 0.1"},
       {:plug_cowboy, "~> 2.1"},
       {:typed_ecto_schema, "~> 0.4"},
-      {:xandra, "~> 0.13"},
       {:astarte_data_access, path: astarte_lib("astarte_data_access"), override: true},
       {:astarte_rpc, path: astarte_lib("astarte_rpc")},
       {:skogsra, "~> 2.2"},
@@ -96,7 +98,8 @@ defmodule Astarte.DataUpdaterPlant.Mixfile do
       {:dialyxir, "~> 1.0", only: [:dev, :test], runtime: false},
       {:uuid, "~> 2.0", hex: :uuid_erl},
       {:typedstruct, "~> 0.5"},
-      {:credo, "~> 1.7", only: [:dev, :test], runtime: false}
+      {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
+      {:mix_audit, "~> 2.1", only: [:dev, :test], runtime: false}
     ]
   end
 
