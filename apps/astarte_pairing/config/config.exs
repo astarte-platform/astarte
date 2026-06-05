@@ -29,6 +29,7 @@ config :astarte_pairing,
 
 # Configures the endpoint
 config :astarte_pairing, Astarte.PairingWeb.Endpoint,
+  adapter: Bandit.PhoenixAdapter,
   url: [host: "localhost"],
   secret_key_base: "LXWGqSIaFRDtOaX5Qgfw5TrSAsWQs6V8OkXEsGuuqRhc1oFvrGax/SfP7F7gAIcX",
   render_errors: [view: Astarte.PairingWeb.ErrorView, accepts: ~w(json)]

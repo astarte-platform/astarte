@@ -72,7 +72,7 @@ defmodule Astarte.RealmManagement.Mixfile do
   defp deps do
     [
       {:phoenix, "~> 1.7"},
-      {:plug_cowboy, "~> 2.1"},
+      {:bandit, "~> 1.11"},
       {:gettext, "~> 0.24"},
       {:phoenix_ecto, "~> 4.0"},
       {:phoenix_view, "~> 2.0"},

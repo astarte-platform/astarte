@@ -168,7 +168,7 @@ defmodule Astarte.HousekeepingWeb.Telemetry do
   end
 
   defp attach_handlers do
-    :telemetry.attach(APIUsage, [:cowboy, :request, :stop], &APIUsage.handle_event/4, nil)
+    :telemetry.attach(APIUsage, [:bandit, :request, :stop], &APIUsage.handle_event/4, nil)
 
     :telemetry.attach_many(
       DatabaseEvents,

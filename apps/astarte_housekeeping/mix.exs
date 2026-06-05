@@ -76,7 +76,7 @@ defmodule Astarte.Housekeeping.Mixfile do
       {:phoenix_view, "~> 2.0"},
       {:gettext, "~> 0.24"},
       {:cors_plug, "~> 2.0"},
-      {:plug_cowboy, "~> 2.1"},
+      {:bandit, "~> 1.11"},
       {:guardian, "~> 2.3.2"},
       {:excoveralls, "~> 0.15", only: :test},
       {:exandra, github: "vinniefranco/exandra", override: true},

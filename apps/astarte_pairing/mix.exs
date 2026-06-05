@@ -75,7 +75,7 @@ defmodule Astarte.Pairing.Mixfile do
       {:castore, "~> 1.0.0"},
       {:phoenix, "~> 1.7"},
       {:gettext, "~> 0.24"},
-      {:plug_cowboy, "~> 2.2"},
+      {:bandit, "~> 1.11"},
       {:phoenix_ecto, "~> 4.0"},
       {:phoenix_view, "~> 2.0"},
       {:jason, "~> 1.2"},

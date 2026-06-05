@@ -71,7 +71,7 @@ defmodule Astarte.TriggerEngine.Mixfile do
       {:cyanide, "~> 2.0"},
       {:httpoison, "~> 1.6"},
       {:jason, "~> 1.2"},
-      {:plug_cowboy, "~> 2.1"},
+      {:bandit, "~> 1.11"},
       {:telemetry, "~> 1.0"},
       {:telemetry_metrics, "~> 1.1"},
       {:telemetry_poller, "~> 1.3"},
