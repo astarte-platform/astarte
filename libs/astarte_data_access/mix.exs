@@ -95,9 +95,4 @@ defmodule Astarte.DataAccess.Mixfile do
       }
     ]
   end
-
-  defp astarte_lib(library_name) do
-    base_directory = System.get_env("ASTARTE_LIBRARIES_PATH", "../../libs")
-    Path.join(base_directory, library_name)
-  end
 end
