@@ -21,6 +21,7 @@ defmodule Astarte.Helpers.Namespace do
   import Mimic
 
   alias Astarte.DataAccess.Config, as: DataAccessConfig
+  alias Astarte.Secrets
 
   def namespace_tokens_setup(context) do
     realm_name = "realm#{System.unique_integer([:positive])}"
@@ -33,5 +34,23 @@ defmodule Astarte.Helpers.Namespace do
     stub(DataAccessConfig, :astarte_instance_id!, fn -> instance end)
 
     %{realm_name: realm_name, user_id: user_id, key_algorithm: key_algorithm, instance: instance}
+  end
+
+  def realm_kek_setup(context) do
+    realm_name = "realm#{System.unique_integer([:positive])}"
+    key_name = "realm_kek"
+    key_algorithm = [:aes256] |> Enum.random()
+    instance = Map.get(context, :instance, "")
+
+    stub(DataAccessConfig, :astarte_instance_id, fn -> {:ok, instance} end)
+    stub(DataAccessConfig, :astarte_instance_id!, fn -> instance end)
+
+    %{realm_name: realm_name, key_name: key_name, key_algorithm: key_algorithm}
+  end
+
+  def create_realm_kek(context) do
+    %{realm_name: realm_name, key_algorithm: key_algorithm} = context
+    {:ok, key} = Secrets.create_realm_kek(realm_name, key_algorithm)
+    %{key: key}
   end
 end

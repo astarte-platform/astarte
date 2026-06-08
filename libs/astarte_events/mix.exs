@@ -22,7 +22,7 @@ defmodule Astarte.Events.Mixfile do
     [
       app: :astarte_events,
       elixir: "~> 1.15",
-      version: "1.4.0-rc.0",
+      version: "1.5.0-dev",
       build_embedded: Mix.env() == :prod,
       start_permanent: Mix.env() == :prod,
       elixirc_paths: elixirc_paths(Mix.env()),
@@ -65,7 +65,10 @@ defmodule Astarte.Events.Mixfile do
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
       {:astarte_generators, path: "../astarte_generators", only: [:dev, :test]},
       {:typedstruct, "~> 0.5"},
-      {:httpoison, "~> 2.2"}
+      {:httpoison, "~> 2.2"},
+      {:mix_audit, "~> 2.1", only: [:dev, :test], runtime: false},
+      # TODO: Remove override when exandra includes the fix for the issue with decimal 2.0
+      {:decimal, "~> 3.0", override: true}
     ]
   end
 end

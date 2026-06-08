@@ -30,7 +30,7 @@ defmodule Astarte.Secrets.Core do
 
   require Logger
 
-  @type key_algorithm() :: :es256 | :es384 | :rs256 | :rs384
+  @type key_algorithm() :: :aes128 | :aes256 | :es256 | :es384 | :rs256 | :rs384
   @type digest_type() :: :crypto.sha1() | :crypto.sha2()
 
   # RFC 5649 AES Key Wrap with Padding magic constant
@@ -46,9 +46,19 @@ defmodule Astarte.Secrets.Core do
     ]
   end
 
+  @spec symmetric_key_algorithms() :: [key_algorithm()]
+  def symmetric_key_algorithms do
+    [
+      :aes128,
+      :aes256
+    ]
+  end
+
   @spec key_type_to_string(key_algorithm()) :: {:ok, String.t()} | :error
   def key_type_to_string(key_type) do
     case key_type do
+      :aes128 -> {:ok, "aes128-gcm96"}
+      :aes256 -> {:ok, "aes256-gcm96"}
       :es256 -> {:ok, "ecdsa-p256"}
       :es384 -> {:ok, "ecdsa-p384"}
       :rs256 -> {:ok, "rsa-2048"}
@@ -60,6 +70,8 @@ defmodule Astarte.Secrets.Core do
   @spec string_to_key_type(String.t()) :: {:ok, key_algorithm()} | :error
   def string_to_key_type(string_key_type) do
     case string_key_type do
+      "aes128-gcm96" -> {:ok, :aes128}
+      "aes256-gcm96" -> {:ok, :aes256}
       "ecdsa-p256" -> {:ok, :es256}
       "ecdsa-p384" -> {:ok, :es384}
       "rsa-2048" -> {:ok, :rs256}
@@ -71,6 +83,8 @@ defmodule Astarte.Secrets.Core do
   @spec key_algorithm_enum :: Keyword.t(String.t())
   def key_algorithm_enum do
     [
+      aes128: "aes128-gcm96",
+      aes256: "aes256-gcm96",
       es256: "ecdsa-p256",
       es384: "ecdsa-p384",
       rs256: "rsa-2048",
@@ -92,6 +106,85 @@ defmodule Astarte.Secrets.Core do
   def digest_type(digest_type) do
     Logger.warning("Invalid digest type: #{inspect(digest_type)}")
     :error
+  end
+
+  @doc """
+  Encrypts `plaintext` using AES-256-GCM with the provided DEK.
+  Returns `{:ok, blob}` where `blob` is `iv <> tag <> ciphertext`.
+
+  The 12-byte IV and 16-byte authentication tag are prepended to the ciphertext
+  so decryption only requires the single blob and the DEK.
+  """
+  @spec encrypt_with_dek(binary(), binary()) :: {:ok, binary()}
+  def encrypt_with_dek(plaintext, dek) do
+    iv = :crypto.strong_rand_bytes(12)
+
+    {ciphertext, tag} =
+      :crypto.crypto_one_time_aead(:aes_256_gcm, dek, iv, plaintext, <<>>, true)
+
+    {:ok, iv <> tag <> ciphertext}
+  end
+
+  @doc """
+  Decrypts a blob produced by `encrypt_with_dek/2`.
+
+  Expects `blob` to be `iv (12 bytes) <> tag (16 bytes) <> ciphertext`.
+  Returns `{:ok, plaintext}` on success or `:error` if authentication fails.
+  """
+  @spec decrypt_with_dek(binary(), binary()) :: {:ok, binary()} | :error
+  def decrypt_with_dek(<<iv::binary-12, tag::binary-16, ciphertext::binary>>, dek) do
+    case :crypto.crypto_one_time_aead(:aes_256_gcm, dek, iv, ciphertext, <<>>, tag, false) do
+      :error ->
+        Logger.warning("AES-256-GCM decryption failed: authentication tag mismatch")
+        :error
+
+      plaintext when is_binary(plaintext) ->
+        {:ok, plaintext}
+    end
+  end
+
+  @doc """
+  Generates a new Data Encryption Key (DEK) wrapped under the named transit key.
+
+  Returns `{:ok, %{plaintext: binary(), ciphertext: String.t()}}` where:
+  - `plaintext` — raw DEK bytes
+  - `ciphertext` — vault-formatted wrapped DEK
+  """
+  @spec generate_dek(String.t(), String.t(), keyword()) ::
+          {:ok, %{plaintext: binary(), ciphertext: String.t()}} | :error
+  def generate_dek(key_name, namespace, opts \\ []) do
+    bits = Keyword.get(opts, :bits, 256)
+    headers = [{"Content-Type", "application/json"}]
+    client_opts = [namespace: namespace] ++ Keyword.take(opts, [:token])
+
+    with {:ok, %{status_code: 200, body: body}} <-
+           Client.post(
+             "/transit/datakey/plaintext/#{key_name}",
+             Jason.encode!(%{bits: bits}),
+             headers,
+             client_opts
+           ),
+         {:ok, data} <- parse_json_data(body),
+         {:ok, plaintext} <- decode_base64_field(data, "plaintext"),
+         {:ok, ciphertext} <- Map.fetch(data, "ciphertext") do
+      {:ok, %{plaintext: plaintext, ciphertext: ciphertext}}
+    else
+      error ->
+        Logger.error(
+          "Failed to generate DEK with key #{key_name} in namespace #{namespace}: #{inspect(error)}"
+        )
+
+        :error
+    end
+  end
+
+  defp decode_base64_field(data, field) do
+    with {:ok, b64} <- Map.fetch(data, field),
+         {:ok, decoded} <- Base.decode64(b64) do
+      {:ok, decoded}
+    else
+      _ -> :error
+    end
   end
 
   @spec create_keypair(String.t(), String.t(), boolean(), String.t()) ::
@@ -312,6 +405,14 @@ defmodule Astarte.Secrets.Core do
 
         :error
     end
+  end
+
+  @doc """
+  Returns the namespace name for the realm KEKs namespace, represented as a list of tokens
+  """
+  def realm_kek_namespace_tokens(realm_name) do
+    ["astarte_encrypted_messages_kek", instance_tokens(), realm_name]
+    |> List.flatten()
   end
 
   @doc """

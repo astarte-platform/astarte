@@ -232,6 +232,46 @@ defmodule Astarte.SecretsTest do
     end
   end
 
+  describe "create_realm_kek/3" do
+    setup :realm_kek_setup
+
+    test "returns an `%Astarte.Secrets.Key{}`", context do
+      %{realm_name: realm_name, key_name: key_name, key_algorithm: key_algorithm} = context
+      assert {:ok, %Key{name: ^key_name}} = Secrets.create_realm_kek(realm_name, key_algorithm)
+    end
+
+    test "is idepmotent when called multiple times", context do
+      %{realm_name: realm_name, key_algorithm: key_algorithm} = context
+      opts = [allow_key_export_and_backup: true]
+
+      assert {:ok, key} = Secrets.create_realm_kek(realm_name, key_algorithm, opts)
+
+      # key has more than one revision
+      assert [_ | _] = key.revisions
+
+      assert {:ok, ^key} = Secrets.create_realm_kek(realm_name, key_algorithm, opts)
+    end
+
+    test "returns :error in case of error", context do
+      %{realm_name: realm_name, key_algorithm: key_algorithm} = context
+
+      Core
+      |> expect(:create_keypair, fn _key_name, _key_type, _allow_export, _namespace -> :error end)
+
+      assert :error = Secrets.create_realm_kek(realm_name, key_algorithm)
+    end
+  end
+
+  describe "fetch_realm_kek/1" do
+    setup :realm_kek_setup
+    setup :create_realm_kek
+
+    test "returns the realm kek", context do
+      %{realm_name: realm_name, key: key} = context
+      assert {:ok, ^key} = Secrets.fetch_realm_kek(realm_name)
+    end
+  end
+
   describe "successfully create and fetch a key pair in Secrets" do
     setup context do
       key_type = Map.get(context, :key_type)

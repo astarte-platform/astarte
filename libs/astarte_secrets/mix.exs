@@ -22,7 +22,7 @@ defmodule AstarteSecrets.MixProject do
   def project do
     [
       app: :astarte_secrets,
-      version: "1.4.0-rc.0",
+      version: "1.5.0-dev",
       elixir: "~> 1.15",
       test_coverage: [tool: ExCoveralls],
       elixirc_paths: elixirc_paths(Mix.env()),
@@ -55,7 +55,10 @@ defmodule AstarteSecrets.MixProject do
       {:mimic, "~> 1.11", only: :test},
       {:skogsra, "~> 2.2"},
       {:typed_ecto_schema, "~> 0.4"},
-      {:x509, "~> 0.8"}
+      {:x509, "~> 0.8"},
+      {:mix_audit, "~> 2.1", only: [:dev, :test], runtime: false},
+      # TODO: Remove override when exandra includes the fix for the issue with decimal 2.0
+      {:decimal, "~> 3.0", override: true}
     ]
   end
 end

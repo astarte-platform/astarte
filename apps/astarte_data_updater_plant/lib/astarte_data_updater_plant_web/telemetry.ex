@@ -34,8 +34,7 @@ defmodule Astarte.DataUpdaterPlantWeb.Telemetry do
       {Task.Supervisor, name: Astarte.DataUpdaterPlantWeb.TelemetryTaskSupervisor},
       {:telemetry_poller, measurements: periodic_measurements(), period: 10_000},
       {TelemetryMetricsPrometheus.Core, metrics: metrics()},
-      {Plug.Cowboy,
-       scheme: :http, plug: Astarte.DataUpdaterPlantWeb.Router, options: [port: Config.port!()]}
+      {Bandit, scheme: :http, plug: Astarte.DataUpdaterPlantWeb.Router, port: Config.port!()}
     ]
 
     Supervisor.init(children, strategy: :one_for_one)

@@ -12,7 +12,48 @@ defmodule Astarte.Secrets do
 
   require Logger
 
-  @spec get_key(String.t()) :: {:ok, map()} | :error
+  @realm_kek_key_name "realm_kek"
+
+  @doc """
+  Creates the KEK for the given realm.
+  This function is idempotent when called multiple times with the same arguments.
+  """
+  @spec create_realm_kek(String.t(), Core.key_algorithm(), keyword()) :: term()
+  def create_realm_kek(realm_name, key_type \\ :aes256, options \\ []) do
+    namespace_tokens = Core.realm_kek_namespace_tokens(realm_name)
+    allow_key_export_and_backup = Keyword.get(options, :allow_key_export_and_backup, false)
+
+    with {:ok, key_type_string} <- Core.key_type_to_string(key_type),
+         {:ok, namespace} <- Core.create_nested_namespace(namespace_tokens),
+         :ok <- Core.mount_transit_engine(namespace),
+         {:ok, response} <-
+           Core.create_keypair(
+             @realm_kek_key_name,
+             key_type_string,
+             allow_key_export_and_backup,
+             namespace
+           ),
+         {:ok, key} <- Key.parse(@realm_kek_key_name, namespace, response) do
+      {:ok, key}
+    else
+      result ->
+        "Error creating realm kek for #{realm_name}: #{inspect(result)}"
+        |> Logger.error()
+
+        :error
+    end
+  end
+
+  @doc """
+  Returns the KEK for the given realm
+  """
+  @spec fetch_realm_kek(String.t()) :: {:ok, Key.t()} | :error
+  def fetch_realm_kek(realm_name) do
+    namespace = Core.realm_kek_namespace_tokens(realm_name) |> Enum.join("/")
+    get_key(@realm_kek_key_name, namespace: namespace)
+  end
+
+  @spec get_key(String.t()) :: {:ok, Key.t()} | :error
   def get_key(key_name, opts \\ []) do
     namespace = Keyword.fetch!(opts, :namespace)
 
@@ -121,6 +162,65 @@ defmodule Astarte.Secrets do
            Core.prepare_import_ciphertext(Core.encode_key_to_pkcs8(key), wrapping_key_pem) do
       Core.import_key(key_name, key_type_string, ciphertext, opts)
     end
+  end
+
+  @doc """
+  Generates a new Data Encryption Key (DEK) wrapped under the named transit key.
+  Optional `:bits` (128 or 256, default 256).
+  """
+  @spec generate_dek(String.t(), String.t(), keyword()) ::
+          {:ok, %{plaintext: binary(), ciphertext: String.t()}} | :error
+  def generate_dek(key_name, namespace, opts \\ []) do
+    Core.generate_dek(key_name, namespace, opts)
+  end
+
+  @doc """
+  Unwraps a DEK ciphertext using the named transit key.
+  """
+  @spec unwrap_dek(String.t(), String.t(), String.t(), keyword()) :: {:ok, binary()} | :error
+  def unwrap_dek(key_name, ciphertext, namespace, opts \\ []) do
+    client_opts = [namespace: namespace] ++ Keyword.take(opts, [:token])
+    headers = [{"Content-Type", "application/json"}]
+
+    with {:ok, %HTTPoison.Response{status_code: 200, body: body}} <-
+           Client.post(
+             "/transit/decrypt/#{key_name}",
+             Jason.encode!(%{ciphertext: ciphertext}),
+             headers,
+             client_opts
+           ),
+         {:ok, data} <- Core.parse_json_data(body),
+         plaintext_b64 when is_binary(plaintext_b64) <- Map.get(data, "plaintext"),
+         {:ok, plaintext} <- Base.decode64(plaintext_b64) do
+      {:ok, plaintext}
+    else
+      reason ->
+        Logger.error(
+          "Failed to unwrap DEK with key #{key_name} in namespace #{namespace}: #{inspect(reason)}"
+        )
+
+        :error
+    end
+  end
+
+  @doc """
+  Encrypts `payload` using AES-256-GCM with the provided plaintext DEK.
+  Returns `{:ok, blob}` where `blob` is an opaque binary containing the IV,
+  authentication tag, and ciphertext. Pass the blob and DEK to `decrypt_with_dek/2`
+  to recover the original payload.
+  """
+  @spec encrypt_with_dek(binary(), binary()) :: {:ok, binary()}
+  def encrypt_with_dek(payload, dek) do
+    Core.encrypt_with_dek(payload, dek)
+  end
+
+  @doc """
+  Decrypts a blob produced by `encrypt_with_dek/2` using the provided plaintext DEK.
+  Returns `{:ok, plaintext}` on success, or `:error` if authentication fails.
+  """
+  @spec decrypt_with_dek(binary(), binary()) :: {:ok, binary()} | :error
+  def decrypt_with_dek(blob, dek) do
+    Core.decrypt_with_dek(blob, dek)
   end
 
   @doc """

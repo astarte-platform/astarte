@@ -22,7 +22,7 @@ defmodule Astarte.Housekeeping.Mixfile do
   def project do
     [
       app: :astarte_housekeeping,
-      version: "1.4.0-rc.0",
+      version: "1.5.0-dev",
       elixir: "~> 1.15",
       elixirc_paths: elixirc_paths(Mix.env()),
       start_permanent: Mix.env() == :prod,
@@ -76,7 +76,7 @@ defmodule Astarte.Housekeeping.Mixfile do
       {:phoenix_view, "~> 2.0"},
       {:gettext, "~> 0.24"},
       {:cors_plug, "~> 2.0"},
-      {:plug_cowboy, "~> 2.1"},
+      {:bandit, "~> 1.11"},
       {:guardian, "~> 2.3.2"},
       {:excoveralls, "~> 0.15", only: :test},
       {:exandra, github: "vinniefranco/exandra", override: true},
@@ -96,7 +96,11 @@ defmodule Astarte.Housekeeping.Mixfile do
       {:astarte_events, path: astarte_lib("astarte_events")},
       {:castore, "~> 1.0.0"},
       {:open_api_spex, "~> 3.22"},
-      {:ymlr, "~> 5.1"}
+      {:ymlr, "~> 5.1"},
+      {:mix_audit, "~> 2.1", only: [:dev, :test], runtime: false},
+      # TODO: Remove override when exandra includes the fix for the issue with decimal 2.0
+      {:xandra, github: "whatyouhide/xandra", override: true},
+      {:decimal, "~> 3.0", override: true}
     ]
   end
 

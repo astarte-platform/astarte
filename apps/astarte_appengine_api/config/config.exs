@@ -12,6 +12,7 @@ config :astarte_appengine_api, ecto_repos: [Astarte.DataAccess.Repo]
 
 # Configures the endpoint
 config :astarte_appengine_api, Astarte.AppEngine.APIWeb.Endpoint,
+  adapter: Bandit.PhoenixAdapter,
   url: [host: "localhost"],
   secret_key_base: "oLTSqHyMVoBtu3Gu504Dn6HFN1qdFXtkJ0yFViRDbXckOHgTjFs1XaRS0QaKZ8KL",
   render_errors: [view: Astarte.AppEngine.APIWeb.ErrorView, accepts: ~w(json)],

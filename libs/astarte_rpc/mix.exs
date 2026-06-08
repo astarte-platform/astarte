@@ -22,7 +22,7 @@ defmodule Astarte.RPC.MixProject do
   def project do
     [
       app: :astarte_rpc,
-      version: "1.4.0-rc.0",
+      version: "1.5.0-dev",
       elixir: "~> 1.15",
       start_permanent: Mix.env() == :prod,
       test_coverage: [tool: ExCoveralls],
@@ -61,7 +61,10 @@ defmodule Astarte.RPC.MixProject do
       {:skogsra, "~> 2.0"},
       {:typedstruct, "~> 0.5"},
       {:excoveralls, "~> 0.15", only: :test},
-      {:credo, "~> 1.7", only: [:dev, :test], runtime: false}
+      {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
+      {:mix_audit, "~> 2.1", only: [:dev, :test], runtime: false},
+      # TODO: Remove override when exandra includes the fix for the issue with decimal 2.0
+      {:decimal, "~> 3.0", override: true}
     ]
   end
 end

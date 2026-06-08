@@ -168,6 +168,7 @@ defmodule Astarte.Housekeeping.Helpers.Database do
     description text,
     doc text,
     required boolean,
+    encrypted boolean,
 
     PRIMARY KEY ((interface_id), endpoint_id)
   )

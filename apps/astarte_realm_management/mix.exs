@@ -22,7 +22,7 @@ defmodule Astarte.RealmManagement.Mixfile do
   def project do
     [
       app: :astarte_realm_management,
-      version: "1.4.0-rc.0",
+      version: "1.5.0-dev",
       build_path: "_build",
       config_path: "config/config.exs",
       deps_path: "deps",
@@ -72,7 +72,7 @@ defmodule Astarte.RealmManagement.Mixfile do
   defp deps do
     [
       {:phoenix, "~> 1.7"},
-      {:plug_cowboy, "~> 2.1"},
+      {:bandit, "~> 1.11"},
       {:gettext, "~> 0.24"},
       {:phoenix_ecto, "~> 4.0"},
       {:phoenix_view, "~> 2.0"},
@@ -100,7 +100,11 @@ defmodule Astarte.RealmManagement.Mixfile do
       {:libcluster, "~> 3.3"},
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
       {:open_api_spex, "~> 3.22"},
-      {:ymlr, "~> 5.1"}
+      {:ymlr, "~> 5.1"},
+      {:mix_audit, "~> 2.1", only: [:dev, :test], runtime: false},
+      # TODO: Remove override when exandra includes the fix for the issue with decimal 2.0
+      {:xandra, github: "whatyouhide/xandra", override: true},
+      {:decimal, "~> 3.0", override: true}
     ]
   end
 
