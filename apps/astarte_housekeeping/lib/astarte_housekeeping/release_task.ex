@@ -44,10 +44,11 @@ defmodule Astarte.Housekeeping.ReleaseTasks do
   end
 
   defp do_ensure_migrated! do
-    with :ok <- Queries.initialize_database(),
+    with {:ok, network_topology} <- Queries.fetch_network_topology(),
+         default_replication = {:network_topology_strategy, network_topology},
+         :ok <- Queries.initialize_database(default_replication),
          :ok <- Migrator.run_astarte_keyspace_migrations(),
-         :ok <- Migrator.run_realms_migrations(),
-         :ok <- Migrator.save_default_replication() do
+         :ok <- Migrator.run_realms_migrations() do
       "Astarte database correctly initialized"
       |> Logger.info(tag: "astarte_db_initialization_finished")
 
