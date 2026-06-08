@@ -24,21 +24,20 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.Device do
 
   This module contains functions and utilities to process devices.
   """
+  alias Astarte.Core.CQLUtils
   alias Astarte.Core.Device
   alias Astarte.Core.InterfaceDescriptor
   alias Astarte.Core.Mapping
-  alias Astarte.DataUpdaterPlant.TimeBasedActions
   alias Astarte.DataUpdaterPlant.Config
-  alias Astarte.DataUpdaterPlant.MessageTracker
   alias Astarte.DataUpdaterPlant.DataUpdater.Cache
   alias Astarte.DataUpdaterPlant.DataUpdater.Core
   alias Astarte.DataUpdaterPlant.DataUpdater.PayloadsDecoder
-  alias Astarte.DataUpdaterPlant.DataUpdater.State
-  alias Astarte.DataUpdaterPlant.RPC.VMQPlugin
-  alias Astarte.Core.CQLUtils
   alias Astarte.DataUpdaterPlant.DataUpdater.Queries
+  alias Astarte.DataUpdaterPlant.DataUpdater.State
+  alias Astarte.DataUpdaterPlant.MessageTracker
+  alias Astarte.DataUpdaterPlant.RPC.VMQPlugin
+  alias Astarte.DataUpdaterPlant.TimeBasedActions
   alias Astarte.DataUpdaterPlant.TriggersHandler
-  alias Astarte.Core.Triggers.SimpleTriggersProtobuf
 
   require Logger
 
@@ -57,29 +56,20 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.Device do
         {introspection_map, introspection_minor_map}
       end)
 
-    any_interface_id = SimpleTriggersProtobuf.Utils.any_interface_object_id()
     realm = new_state.realm
-
-    %{device_triggers: device_triggers} =
-      Core.Trigger.populate_triggers_for_object!(state, any_interface_id, :any_interface)
-
-    device_id_string = Astarte.Core.Device.encode_device_id(new_state.device_id)
-
-    on_introspection_target_with_policy_list =
-      Map.get(device_triggers, :on_incoming_introspection, [])
-      |> Enum.map(fn target ->
-        {target, Map.get(state.trigger_id_to_policy_name, target.parent_trigger_id)}
-      end)
+    device_id = new_state.device_id
+    groups = new_state.groups
 
     TriggersHandler.incoming_introspection(
-      on_introspection_target_with_policy_list,
       realm,
-      device_id_string,
+      device_id,
+      groups,
       payload,
       timestamp_ms
     )
 
-    # TODO: implement here object_id handling for a certain interface name. idea: introduce interface_family_id
+    # TODO: implement here object_id handling for a certain interface name. idea: introduce
+    # interface_family_id
 
     current_sorted_introspection =
       new_state.introspection
@@ -93,89 +83,15 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.Device do
 
     diff = List.myers_difference(current_sorted_introspection, new_sorted_introspection)
 
-    Enum.each(diff, fn {change_type, changed_interfaces} ->
-      case change_type do
-        :ins ->
-          Logger.debug("Adding interfaces to introspection: #{inspect(changed_interfaces)}.")
-
-          Enum.each(changed_interfaces, fn {interface_name, interface_major} ->
-            :ok =
-              if interface_major == 0 do
-                Queries.register_device_with_interface(
-                  realm,
-                  state.device_id,
-                  interface_name,
-                  0
-                )
-              else
-                :ok
-              end
-
-            minor = Map.get(db_introspection_minor_map, interface_name)
-
-            interface_added_target_with_policy_list =
-              (Map.get(
-                 device_triggers,
-                 {:on_interface_added, CQLUtils.interface_id(interface_name, interface_major)},
-                 []
-               ) ++
-                 Map.get(device_triggers, {:on_interface_added, :any_interface}, []))
-              |> Enum.map(fn target ->
-                {target, Map.get(state.trigger_id_to_policy_name, target.parent_trigger_id)}
-              end)
-
-            TriggersHandler.interface_added(
-              interface_added_target_with_policy_list,
-              realm,
-              device_id_string,
-              interface_name,
-              interface_major,
-              minor,
-              timestamp_ms
-            )
-          end)
-
-        :del ->
-          Logger.debug("Removing interfaces from introspection: #{inspect(changed_interfaces)}.")
-
-          Enum.each(changed_interfaces, fn {interface_name, interface_major} ->
-            :ok =
-              if interface_major == 0 do
-                Queries.unregister_device_with_interface(
-                  realm,
-                  state.device_id,
-                  interface_name,
-                  0
-                )
-              else
-                :ok
-              end
-
-            interface_removed_target_with_policy_list =
-              (Map.get(
-                 device_triggers,
-                 {:on_interface_removed, CQLUtils.interface_id(interface_name, interface_major)},
-                 []
-               ) ++
-                 Map.get(device_triggers, {:on_interface_removed, :any_interface}, []))
-              |> Enum.map(fn target ->
-                {target, Map.get(state.trigger_id_to_policy_name, target.parent_trigger_id)}
-              end)
-
-            TriggersHandler.interface_removed(
-              interface_removed_target_with_policy_list,
-              realm,
-              device_id_string,
-              interface_name,
-              interface_major,
-              timestamp_ms
-            )
-          end)
-
-        :eq ->
-          Logger.debug("#{inspect(changed_interfaces)} are already on device introspection.")
-      end
-    end)
+    handle_introspection_diff(
+      diff,
+      realm,
+      device_id,
+      groups,
+      state.device_id,
+      db_introspection_minor_map,
+      timestamp_ms
+    )
 
     {added_interfaces, removed_interfaces} =
       Enum.reduce(diff, {%{}, %{}}, fn {change_type, changed_interfaces}, {add_acc, rm_acc} ->
@@ -212,7 +128,6 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.Device do
       new_state,
       db_introspection_map,
       db_introspection_minor_map,
-      device_triggers,
       old_minors,
       timestamp_ms
     )
@@ -251,11 +166,117 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.Device do
     }
   end
 
+  defp handle_introspection_diff(
+         diff,
+         realm,
+         device_id,
+         groups,
+         device_db_id,
+         db_introspection_minor_map,
+         timestamp_ms
+       ) do
+    Enum.each(diff, fn {change_type, changed_interfaces} ->
+      handle_introspection_change(
+        change_type,
+        changed_interfaces,
+        realm,
+        device_id,
+        groups,
+        device_db_id,
+        db_introspection_minor_map,
+        timestamp_ms
+      )
+    end)
+  end
+
+  defp handle_introspection_change(
+         :ins,
+         changed_interfaces,
+         realm,
+         device_id,
+         groups,
+         device_db_id,
+         db_introspection_minor_map,
+         timestamp_ms
+       ) do
+    Logger.debug("Adding interfaces to introspection: #{inspect(changed_interfaces)}.")
+
+    Enum.each(changed_interfaces, fn {interface_name, interface_major} ->
+      maybe_register_interface(realm, device_db_id, interface_name, interface_major)
+
+      minor = Map.get(db_introspection_minor_map, interface_name)
+
+      TriggersHandler.interface_added(
+        realm,
+        device_id,
+        groups,
+        interface_name,
+        interface_major,
+        minor,
+        timestamp_ms
+      )
+    end)
+  end
+
+  defp handle_introspection_change(
+         :del,
+         changed_interfaces,
+         realm,
+         device_id,
+         groups,
+         device_db_id,
+         _db_introspection_minor_map,
+         timestamp_ms
+       ) do
+    Logger.debug("Removing interfaces from introspection: #{inspect(changed_interfaces)}.")
+
+    Enum.each(changed_interfaces, fn {interface_name, interface_major} ->
+      maybe_unregister_interface(realm, device_db_id, interface_name, interface_major)
+
+      TriggersHandler.interface_removed(
+        realm,
+        device_id,
+        groups,
+        interface_name,
+        interface_major,
+        timestamp_ms
+      )
+    end)
+  end
+
+  defp handle_introspection_change(
+         :eq,
+         changed_interfaces,
+         _realm,
+         _device_id,
+         _groups,
+         _device_db_id,
+         _db_introspection_minor_map,
+         _timestamp_ms
+       ) do
+    Logger.debug("#{inspect(changed_interfaces)} are already on device introspection.")
+  end
+
+  defp maybe_register_interface(realm, device_db_id, interface_name, interface_major)
+       when interface_major == 0 do
+    Queries.register_device_with_interface(realm, device_db_id, interface_name, 0)
+  end
+
+  defp maybe_register_interface(_realm, _device_db_id, _interface_name, _interface_major),
+    do: :ok
+
+  defp maybe_unregister_interface(realm, device_db_id, interface_name, interface_major)
+       when interface_major == 0 do
+    Queries.unregister_device_with_interface(realm, device_db_id, interface_name, 0)
+  end
+
+  defp maybe_unregister_interface(_realm, _device_db_id, _interface_name, _interface_major),
+    do: :ok
+
   defp maybe_deliver_interface_minor_updated_triggers(
          state,
          db_introspection_map,
          db_introspection_minor_map,
-         device_triggers,
          old_minors,
          timestamp_ms
        ) do
@@ -264,18 +285,10 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.Device do
              major_in_introspection?(state, db_introspection_map, interface_name),
            {:ok, new_minor} <-
              new_minor_different?(db_introspection_minor_map, interface_name, old_minor) do
-        interface_id = CQLUtils.interface_id(interface_name, interface_major)
-
-        interface_minor_updated_target_with_policy_list =
-          Map.get(device_triggers, {:on_interface_minor_updated, interface_id}, [])
-          |> Enum.map(fn target ->
-            {target, Map.get(state.trigger_id_to_policy_name, target.parent_trigger_id)}
-          end)
-
         TriggersHandler.interface_minor_updated(
-          interface_minor_updated_target_with_policy_list,
           state.realm,
-          Astarte.Core.Device.encode_device_id(state.device_id),
+          state.device_id,
+          state.groups,
           interface_name,
           interface_major,
           old_minor,
@@ -358,18 +371,10 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.Device do
   defp maybe_execute_device_disconnected_trigger(%State{connected: false}, _), do: :ok
 
   defp maybe_execute_device_disconnected_trigger(state, timestamp_ms) do
-    trigger_target_with_policy_list =
-      Map.get(state.device_triggers, :on_device_disconnection, [])
-      |> Enum.map(fn target ->
-        {target, Map.get(state.trigger_id_to_policy_name, target.parent_trigger_id)}
-      end)
-
-    device_id_string = Device.encode_device_id(state.device_id)
-
     TriggersHandler.device_disconnected(
-      trigger_target_with_policy_list,
       state.realm,
-      device_id_string,
+      state.device_id,
+      state.groups,
       timestamp_ms
     )
 
@@ -422,9 +427,6 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.Device do
         {:error, :interface_loading_failed} ->
           Logger.warning("Failed #{interface} interface loading.")
           {:halt, {:error, :sending_properties_to_interface_failed}}
-
-        {:error, reason} ->
-          {:halt, {:error, reason}}
       end
     end)
   end
@@ -436,22 +438,13 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.Device do
     encoded_device_id = Device.encode_device_id(device_id)
 
     Core.Interface.each_interface_mapping(mappings, interface_descriptor, fn mapping ->
-      %Mapping{value_type: value_type} = mapping
-
-      column_name =
-        CQLUtils.type_to_db_column_name(value_type) |> String.to_existing_atom()
-
-      Queries.retrieve_property_values(realm, device_id, interface_descriptor, mapping)
-      |> Enum.reduce_while(:ok, fn %{:path => path, ^column_name => value}, _acc ->
-        case send_value(realm, encoded_device_id, interface_descriptor.name, path, value) do
-          {:ok, _bytes} ->
-            # TODO: use the returned bytes count in stats
-            {:cont, :ok}
-
-          {:error, reason} ->
-            {:halt, {:error, reason}}
-        end
-      end)
+      resend_interface_mapping_properties(
+        realm,
+        device_id,
+        encoded_device_id,
+        interface_descriptor,
+        mapping
+      )
     end)
   end
 
@@ -459,9 +452,50 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.Device do
     :ok
   end
 
-  defp send_value(realm, device_id_string, interface_name, path, value) do
+  defp resend_interface_mapping_properties(
+         realm,
+         device_id,
+         encoded_device_id,
+         interface_descriptor,
+         %Mapping{value_type: value_type} = mapping
+       ) do
+    column_name =
+      CQLUtils.type_to_db_column_name(value_type) |> String.to_existing_atom()
+
+    Queries.retrieve_property_values(realm, device_id, interface_descriptor, mapping)
+    |> Enum.reduce_while(:ok, fn %{:path => path, ^column_name => value}, _acc ->
+      handle_property_send(
+        realm,
+        encoded_device_id,
+        interface_descriptor.name,
+        path,
+        value_type,
+        value
+      )
+    end)
+  end
+
+  defp handle_property_send(realm, encoded_device_id, interface_name, path, value_type, value) do
+    case send_value(
+           realm,
+           encoded_device_id,
+           interface_name,
+           path,
+           value_type,
+           value
+         ) do
+      {:ok, _bytes} ->
+        # TODO: use the returned bytes count in stats
+        {:cont, :ok}
+
+      {:error, reason} ->
+        {:halt, {:error, reason}}
+    end
+  end
+
+  defp send_value(realm, device_id_string, interface_name, path, value_type, value) do
     topic = "#{realm}/#{device_id_string}/#{interface_name}#{path}"
-    encapsulated_value = %{v: value}
+    encapsulated_value = %{v: cast_bson_value(value_type, value)}
 
     bson_value = Cyanide.encode!(encapsulated_value)
 
@@ -472,7 +506,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.Device do
         {:ok, byte_size(topic) + byte_size(bson_value)}
 
       {:ok, %{local_matches: local, remote_matches: remote}} when local + remote > 1 ->
-        # This should not happen so we print a warning, but we consider it a succesful publish
+        # This should not happen so we print a warning, but we consider it a successful publish
         Logger.warning(
           "Multiple match while publishing #{inspect(encapsulated_value)} on #{topic}.",
           tag: "publish_multiple_matches"
@@ -487,4 +521,11 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.Device do
         {:error, reason}
     end
   end
+
+  defp cast_bson_value(:binaryblob, value), do: %Cyanide.Binary{subtype: :generic, data: value}
+
+  defp cast_bson_value(:binaryblobarray, value),
+    do: Enum.map(value, &cast_bson_value(:binaryblob, &1))
+
+  defp cast_bson_value(_value_type, value), do: value
 end

@@ -17,6 +17,10 @@
 #
 
 defmodule Astarte.Helpers.EventsConsumer do
+  @moduledoc """
+  Helper module for events consumer test utilities.
+  """
+
   alias Astarte.Core.Triggers.SimpleEvents.SimpleEvent
   alias Astarte.TriggerEngine.EventsConsumer
   def stub_http(validation_function), do: Mimic.stub(HTTPoison, :request, validation_function)

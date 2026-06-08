@@ -18,11 +18,17 @@
 # NOTE: copied from `appengine_api`, this should be moved to
 # `astarte_generators`. Remove and update aliases once moved.
 defmodule Astarte.InterfaceUpdateGenerators do
+  @moduledoc """
+  This module provides generators for creating valid and invalid interface updates for testing purposes.
+  """
+
   # TODO: move all these generators to astarte_generators
 
   use ExUnitProperties
+  import Astarte.Generators.Utilities.ParamsGen
   import Astarte.Helpers.Device
   alias Astarte.Common.Generators.Timestamp, as: TimestampGenerator
+  alias Astarte.Core.Mapping
 
   def valid_fallible_mapping_update_for(interface) when interface.aggregation == :individual,
     do: valid_mapping_update_for(interface)
@@ -148,9 +154,10 @@ defmodule Astarte.InterfaceUpdateGenerators do
         :properties -> fn _ -> :unique end
       end
 
-    gen all mapping <- member_of(interface.mappings),
-            path <- path_from_endpoint(mapping.endpoint),
-            value <- valid_update_value_for(mapping.value_type, params) do
+    params gen all mapping <- member_of(interface.mappings),
+                   path <- path_from_endpoint(mapping.endpoint),
+                   value <- valid_update_value_for(mapping.value_type, params),
+                   params: params do
       %{
         path: path,
         aggregation: :individual,
@@ -180,7 +187,7 @@ defmodule Astarte.InterfaceUpdateGenerators do
     prefix
     |> String.split("/")
     |> Enum.map(fn token ->
-      case Astarte.Core.Mapping.is_placeholder?(token) do
+      case Mapping.is_placeholder?(token) do
         true -> string(:alphanumeric, min_length: 1)
         false -> constant(token)
       end
@@ -197,13 +204,13 @@ defmodule Astarte.InterfaceUpdateGenerators do
   def invalid_value(:string) do
     one_of([
       binary() |> filter(fn value -> not String.valid?(value) end),
-      integer(65537..120_000)
+      integer(65_537..120_000)
       |> map(&String.duplicate("a", &1))
     ])
   end
 
   def invalid_value(:binaryblob),
-    do: integer(65537..120_000) |> map(&String.duplicate("a", &1)) |> map(&Base.encode64/1)
+    do: integer(65_537..120_000) |> map(&String.duplicate("a", &1)) |> map(&Base.encode64/1)
 
   def invalid_value(:doublearray), do: too_large_array(float())
 
@@ -254,24 +261,20 @@ defmodule Astarte.InterfaceUpdateGenerators do
     one_of([invalid_map(value_types), random_except([])])
   end
 
-  def invalid_type(value_type) do
-    case value_type do
-      :double -> invalid_number()
-      :integer -> invalid_number()
-      :boolean -> invalid_boolean()
-      :longinteger -> invalid_number()
-      :string -> invalid_string()
-      :binaryblob -> invalid_binary()
-      :datetime -> invalid_datetime()
-      :doublearray -> invalid_list_or(invalid_number())
-      :integerarray -> invalid_list_or(invalid_number())
-      :booleanarray -> invalid_list_or(invalid_boolean())
-      :longintegerarray -> invalid_list_or(invalid_number())
-      :stringarray -> invalid_list_or(invalid_string())
-      :binaryblobarray -> invalid_list_or(invalid_binary())
-      :datetimearray -> invalid_list_or(invalid_datetime())
-    end
-  end
+  def invalid_type(:double), do: invalid_number()
+  def invalid_type(:integer), do: invalid_number()
+  def invalid_type(:longinteger), do: invalid_number()
+  def invalid_type(:boolean), do: invalid_boolean()
+  def invalid_type(:string), do: invalid_string()
+  def invalid_type(:binaryblob), do: invalid_binary()
+  def invalid_type(:datetime), do: invalid_datetime()
+  def invalid_type(:doublearray), do: invalid_list_or(invalid_number())
+  def invalid_type(:integerarray), do: invalid_list_or(invalid_number())
+  def invalid_type(:booleanarray), do: invalid_list_or(invalid_boolean())
+  def invalid_type(:longintegerarray), do: invalid_list_or(invalid_number())
+  def invalid_type(:stringarray), do: invalid_list_or(invalid_string())
+  def invalid_type(:binaryblobarray), do: invalid_list_or(invalid_binary())
+  def invalid_type(:datetimearray), do: invalid_list_or(invalid_datetime())
 
   defp invalid_map(value_types) do
     invalid_key_subset =
@@ -356,7 +359,7 @@ defmodule Astarte.InterfaceUpdateGenerators do
     integer = integer(-0x7FFFFFFF..0x7FFFFFFF)
     longinteger = integer(-0x7FFFFFFFFFFFFFFF..0x7FFFFFFFFFFFFFFF)
     min_length = if allow_unset, do: 0, else: 1
-    str = string(:utf8, max_length: 65535, min_length: min_length)
+    str = string(:utf8, max_length: 65_535, min_length: min_length)
 
     datetime =
       one_of([
@@ -365,24 +368,31 @@ defmodule Astarte.InterfaceUpdateGenerators do
         |> map(&DateTime.from_unix!/1)
       ])
 
-    binaryblob = binary(max_length: 65535, min_length: min_length)
+    binaryblob = binary(max_length: 65_535, min_length: min_length)
 
-    case value_type do
-      :double -> float()
-      :integer -> integer
-      :boolean -> boolean()
-      :longinteger -> longinteger
-      :string -> str
-      :binaryblob -> binaryblob
-      :datetime -> datetime
-      :doublearray -> list_of(float(), max_length: 1023, min_length: min_length)
-      :integerarray -> list_of(integer, max_length: 1023, min_length: min_length)
-      :booleanarray -> list_of(boolean(), max_length: 1023, min_length: min_length)
-      :longintegerarray -> list_of(longinteger, max_length: 1023, min_length: min_length)
-      :stringarray -> list_of(str, max_length: 1023, min_length: min_length)
-      :binaryblobarray -> list_of(binaryblob, max_length: 1023, min_length: min_length)
-      :datetimearray -> list_of(datetime, max_length: 1023, min_length: min_length)
-    end
+    scalar_generators = %{
+      double: float(),
+      integer: integer,
+      boolean: boolean(),
+      longinteger: longinteger,
+      string: str,
+      binaryblob: binaryblob,
+      datetime: datetime
+    }
+
+    array_generators = %{
+      doublearray: list_of(float(), max_length: 1023, min_length: min_length),
+      integerarray: list_of(integer, max_length: 1023, min_length: min_length),
+      booleanarray: list_of(boolean(), max_length: 1023, min_length: min_length),
+      longintegerarray: list_of(longinteger, max_length: 1023, min_length: min_length),
+      stringarray: list_of(str, max_length: 1023, min_length: min_length),
+      binaryblobarray: list_of(binaryblob, max_length: 1023, min_length: min_length),
+      datetimearray: list_of(datetime, max_length: 1023, min_length: min_length)
+    }
+
+    all_generators = Map.merge(scalar_generators, array_generators)
+
+    Map.fetch!(all_generators, value_type)
   end
 
   defp object_interface_value_types(interface) do

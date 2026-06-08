@@ -17,6 +17,12 @@
 #
 
 defmodule Astarte.AppEngine.APIWeb.RoomsChannel do
+  @moduledoc """
+  Phoenix Channel handler for real-time Astarte Rooms.
+
+  This module handles the Websocket communication for Romms, performing autherntication
+  and authorization checks for joining rooms and managing watch requests (Triggers).
+  """
   use Astarte.AppEngine.APIWeb, :channel
 
   alias Astarte.AppEngine.API.Auth.RoomsUser

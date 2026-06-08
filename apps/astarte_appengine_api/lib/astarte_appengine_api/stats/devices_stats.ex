@@ -17,6 +17,11 @@
 #
 
 defmodule Astarte.AppEngine.API.Stats.DevicesStats do
+  @moduledoc """
+  Data Structure representing statistics about devices in an Astarte realm.
+
+  This struct aggregates the count of all devices and the count of currently connected devices.
+  """
   defstruct [
     :total_devices,
     :connected_devices

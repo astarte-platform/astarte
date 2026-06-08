@@ -23,26 +23,53 @@ defmodule AstarteE2E do
 
   require Logger
 
+  use ExUnitProperties
+
+  alias Astarte.Core.Mapping
   alias Astarte.Device
-  alias AstarteE2E.{Client, Config, Utils}
+  alias AstarteE2E.{Client, Utils}
 
-  def perform_check do
-    realm = Config.realm!()
-    device_id = Config.device_id!()
+  def publish_data(device_pid, datastream_interface, properties_interface) do
+    datastream_name = datastream_interface.name
+    properties_name = properties_interface.name
 
+    datastreams = Enum.map(1..5, fn _ -> Utils.random_string() end)
+    property = Utils.random_string()
+
+    datastream_path =
+      datastream_interface.mappings |> hd() |> Map.fetch!(:endpoint) |> path_from_endpoint()
+
+    properties_path =
+      properties_interface.mappings |> hd() |> Map.fetch!(:endpoint) |> path_from_endpoint()
+
+    with :ok <- publish_datastreams(device_pid, datastream_name, datastream_path, datastreams),
+         :ok <- Device.set_property(device_pid, properties_name, properties_path, property) do
+      {:ok, %{datastreams: datastreams, property: property}}
+    end
+  end
+
+  defp publish_datastreams(device_pid, datastream_interface, path, datastreams) do
+    Enum.reduce_while(datastreams, :ok, fn datastream, :ok ->
+      case Device.send_datastream(device_pid, datastream_interface, path, datastream) do
+        :ok -> {:cont, :ok}
+        error -> {:halt, error}
+      end
+    end)
+  end
+
+  def perform_check(realm, device_id, interfaces) do
     with {:ok, device_pid} <- fetch_device_pid(realm, device_id),
-         {:ok, interface_names} <- fetch_interface_names(),
          :ok <- Device.wait_for_connection(device_pid),
          :ok <- Client.wait_for_connection(realm, device_id) do
       timestamp = :erlang.monotonic_time(:millisecond)
-      path = "/correlationId"
 
       task_list =
-        Enum.map(interface_names, fn interface_name ->
+        Enum.map(interfaces, fn interface ->
           value = Utils.random_string()
+          path = interface.mappings |> hd() |> Map.fetch!(:endpoint) |> path_from_endpoint()
 
           args = [
-            interface_name: interface_name,
+            interface: interface,
             device_id: device_id,
             device_pid: device_pid,
             path: path,
@@ -75,7 +102,7 @@ defmodule AstarteE2E do
   end
 
   def push_and_verify(args) do
-    interface_name = Keyword.fetch!(args, :interface_name)
+    interface = Keyword.fetch!(args, :interface)
     device_id = Keyword.fetch!(args, :device_id)
     device_pid = Keyword.fetch!(args, :device_pid)
     path = Keyword.fetch!(args, :path)
@@ -83,7 +110,9 @@ defmodule AstarteE2E do
     timestamp = Keyword.fetch!(args, :timestamp)
     realm = Keyword.fetch!(args, :realm)
 
-    with :ok <- push_data(device_pid, interface_name, path, value),
+    interface_name = interface.name
+
+    with :ok <- push_data(device_pid, interface, path, value),
          :telemetry.execute([:astarte_end_to_end, :messages, :sent], %{}, %{}),
          :ok <-
            Client.verify_device_payload(
@@ -100,20 +129,20 @@ defmodule AstarteE2E do
 
   defp push_data(
          device_pid,
-         "org.astarte-platform.e2etest.SimpleDatastream" = interface_name,
+         %{type: :datastream, name: name},
          path,
          value
        ) do
-    Device.send_datastream(device_pid, interface_name, path, value)
+    Device.send_datastream(device_pid, name, path, value)
   end
 
   defp push_data(
          device_pid,
-         "org.astarte-platform.e2etest.SimpleProperties" = interface_name,
+         %{type: :properties, name: name},
          path,
          value
        ) do
-    Device.set_property(device_pid, interface_name, path, value)
+    Device.set_property(device_pid, name, path, value)
   end
 
   defp fetch_device_pid(realm, device_id) do
@@ -123,22 +152,16 @@ defmodule AstarteE2E do
     end
   end
 
-  defp fetch_interface_names do
-    with {:ok, interface_path} <- Config.standard_interface_provider(),
-         {:ok, raw_interfaces_list} <- File.ls(interface_path) do
-      interface_names =
-        Enum.reduce(raw_interfaces_list, [], fn raw_interface, acc ->
-          interface_name =
-            raw_interface
-            |> String.trim(".json")
-
-          [interface_name | acc]
-        end)
-
-      {:ok, interface_names}
-    else
-      error ->
-        Logger.error("Interfaces names cannot be retrieved. Reason: #{inspect(error)}")
-    end
+  defp path_from_endpoint(endpoint) do
+    endpoint
+    |> String.split("/")
+    |> Enum.map(fn token ->
+      if Mapping.is_placeholder?(token) do
+        Utils.random_string()
+      else
+        token
+      end
+    end)
+    |> Enum.join("/")
   end
 end

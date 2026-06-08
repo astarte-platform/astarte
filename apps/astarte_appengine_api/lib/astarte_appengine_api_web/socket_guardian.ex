@@ -16,6 +16,13 @@
 # limitations under the License.
 
 defmodule Astarte.AppEngine.APIWeb.SocketGuardian do
+  @moduledoc """
+  Guardian implementation for Astarte Channels (WebSockets).
+
+  This modules is responsible for handling tokens for the Romms API, extracting 
+  specific channel authorizations (JOIN and WATCH) from the token claims to populate
+  a RoomsUser struct.
+  """
   use Guardian, otp_app: :astarte_appengine_api
 
   alias Astarte.AppEngine.API.Auth.RoomsUser
@@ -45,9 +52,10 @@ defmodule Astarte.AppEngine.APIWeb.SocketGuardian do
 
   defp extract_authorization_paths(authorizations, match_prefix) do
     Enum.reduce(authorizations, [], fn authorization, acc ->
-      with [^match_prefix, _opts, auth_path] <- String.split(authorization, ":", parts: 3) do
-        [auth_path | acc]
-      else
+      case String.split(authorization, ":", parts: 3) do
+        [^match_prefix, _opts, auth_path] ->
+          [auth_path | acc]
+
         _ ->
           acc
       end

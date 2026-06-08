@@ -145,24 +145,22 @@ defmodule Astarte.Pairing.Engine do
   end
 
   defp verify_can_register_device(realm_name, device_id) do
-    try do
-      if Queries.check_already_registered_device(realm_name, device_id) do
-        # An already existing device should always be able to retrieve a new credentials secret
-        :ok
-      else
-        verify_can_register_new_device(realm_name)
-      end
-    rescue
-      err ->
-        # Consider a failing database as a negative answer
-        _ =
-          Logger.warning(
-            "Failed to verify if unconfirmed device #{Device.encode_device_id(device_id)} exists, reason: #{Exception.message(err)}",
-            realm_name: realm_name
-          )
-
-        verify_can_register_new_device(realm_name)
+    if Queries.check_already_registered_device(realm_name, device_id) do
+      # An already existing device should always be able to retrieve a new credentials secret
+      :ok
+    else
+      verify_can_register_new_device(realm_name)
     end
+  rescue
+    err ->
+      # Consider a failing database as a negative answer
+      _ =
+        Logger.warning(
+          "Failed to verify if unconfirmed device #{Device.encode_device_id(device_id)} exists, reason: #{Exception.message(err)}",
+          realm: realm_name
+        )
+
+      verify_can_register_new_device(realm_name)
   end
 
   defp verify_can_register_new_device(realm_name) do
@@ -171,7 +169,7 @@ defmodule Astarte.Pairing.Engine do
       if registration_limit != nil and registered_devices_count >= registration_limit do
         _ =
           Logger.warning("Cannot register device: reached device registration limit",
-            realm_name: realm_name,
+            realm: realm_name,
             tag: "device_registration_limit_reached"
           )
 
@@ -188,9 +186,8 @@ defmodule Astarte.Pairing.Engine do
         "in realm #{inspect(realm)}"
     )
 
-    with {:ok, device_id} <- Device.decode_device_id(encoded_device_id),
-         :ok <- Queries.unregister_device(realm, device_id) do
-      :ok
+    with {:ok, device_id} <- Device.decode_device_id(encoded_device_id) do
+      Queries.unregister_device(realm, device_id)
     end
   end
 

@@ -17,48 +17,20 @@
 #
 
 defmodule Astarte.PairingWeb.HealthPlug do
-  import Plug.Conn
+  @moduledoc false
+  @behaviour Plug
 
-  alias Astarte.DataAccess.Health.Health
+  alias Astarte.PairingWeb.HealthController
 
-  def init(_args), do: nil
-
-  def call(%{request_path: "/health", method: "GET"} = conn, _opts) do
-    try do
-      case Health.get_health() do
-        {:ok, %{status: status}} when status in [:ready, :degraded] ->
-          :telemetry.execute(
-            [:astarte, :pairing, :service],
-            %{health: 1},
-            %{status: status}
-          )
-
-          conn
-          |> send_resp(:ok, "")
-          |> halt()
-
-        _ ->
-          :telemetry.execute(
-            [:astarte, :pairing, :service],
-            %{health: 0}
-          )
-
-          conn
-          |> send_resp(:service_unavailable, "")
-          |> halt()
-      end
-    rescue
-      _ ->
-        :telemetry.execute(
-          [:astarte, :pairing, :service],
-          %{health: 0}
-        )
-
-        conn
-        |> send_resp(:internal_server_error, "")
-        |> halt()
-    end
+  def init(_opts) do
+    nil
   end
 
-  def call(conn, _opts), do: conn
+  def call(%{request_path: "/health", method: "GET"} = conn, _opts) do
+    HealthController.send_health(conn)
+  end
+
+  def call(conn, _opts) do
+    conn
+  end
 end

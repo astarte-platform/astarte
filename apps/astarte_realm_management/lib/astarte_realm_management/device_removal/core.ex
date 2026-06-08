@@ -25,7 +25,8 @@ defmodule Astarte.RealmManagement.DeviceRemoval.Core do
   alias Astarte.Core.CQLUtils
   alias Astarte.Core.InterfaceDescriptor
   alias Astarte.DataAccess.Interface
-  alias Astarte.RealmManagement.Queries
+  alias Astarte.RealmManagement.DeviceRemoval.Queries, as: DeviceRemovalQueries
+  alias Astarte.RealmManagement.TriggersHandler
 
   @doc """
   Deletes individual datastreams for a device in a realm.
@@ -36,8 +37,8 @@ defmodule Astarte.RealmManagement.DeviceRemoval.Core do
   end
 
   defp retrieve_individual_datastreams_keys!(realm_name, device_id) do
-    if Queries.table_exist?(realm_name, "individual_datastreams") do
-      Queries.retrieve_individual_datastreams_keys!(realm_name, device_id)
+    if DeviceRemovalQueries.table_exist?(realm_name, "individual_datastreams") do
+      DeviceRemovalQueries.retrieve_individual_datastreams_keys!(realm_name, device_id)
     else
       []
     end
@@ -51,7 +52,7 @@ defmodule Astarte.RealmManagement.DeviceRemoval.Core do
       path: path
     } = key
 
-    Queries.delete_individual_datastream_values!(
+    DeviceRemovalQueries.delete_individual_datastream_values!(
       realm_name,
       device_id,
       interface_id,
@@ -69,8 +70,8 @@ defmodule Astarte.RealmManagement.DeviceRemoval.Core do
   end
 
   defp retrieve_individual_properties_keys!(realm_name, device_id) do
-    if Queries.table_exist?(realm_name, "individual_properties") do
-      Queries.retrieve_individual_properties_keys!(realm_name, device_id)
+    if DeviceRemovalQueries.table_exist?(realm_name, "individual_properties") do
+      DeviceRemovalQueries.retrieve_individual_properties_keys!(realm_name, device_id)
     else
       []
     end
@@ -82,7 +83,7 @@ defmodule Astarte.RealmManagement.DeviceRemoval.Core do
       interface_id: interface_id
     } = key
 
-    Queries.delete_individual_properties_values!(realm_name, device_id, interface_id)
+    DeviceRemovalQueries.delete_individual_properties_values!(realm_name, device_id, interface_id)
   end
 
   @doc """
@@ -94,7 +95,7 @@ defmodule Astarte.RealmManagement.DeviceRemoval.Core do
   end
 
   defp retrieve_object_datastream_keys!(realm_name, device_id) do
-    Queries.retrieve_device_introspection_map!(realm_name, device_id)
+    DeviceRemovalQueries.retrieve_device_introspection_map!(realm_name, device_id)
     |> Enum.filter(&check_interface_has_object_aggregation!(realm_name, &1))
     |> Enum.map(&object_interface_to_table_name/1)
     |> Enum.flat_map(&retrieve_object_datastream_table_keys!(realm_name, device_id, &1))
@@ -112,7 +113,7 @@ defmodule Astarte.RealmManagement.DeviceRemoval.Core do
   end
 
   defp retrieve_object_datastream_table_keys!(realm_name, device_id, table_name) do
-    Queries.retrieve_object_datastream_keys!(
+    DeviceRemovalQueries.retrieve_object_datastream_keys!(
       realm_name,
       device_id,
       table_name
@@ -127,7 +128,7 @@ defmodule Astarte.RealmManagement.DeviceRemoval.Core do
       table_name: table_name
     } = key
 
-    Queries.delete_object_datastream_values!(realm_name, device_id, path, table_name)
+    DeviceRemovalQueries.delete_object_datastream_values!(realm_name, device_id, path, table_name)
   end
 
   @doc """
@@ -135,11 +136,11 @@ defmodule Astarte.RealmManagement.DeviceRemoval.Core do
   """
   def delete_aliases!(realm_name, device_id) do
     retrieve_aliases_for_device!(realm_name, device_id)
-    |> Enum.each(&Queries.delete_alias_values!(realm_name, &1))
+    |> Enum.each(&DeviceRemovalQueries.delete_alias_values!(realm_name, &1))
   end
 
   defp retrieve_aliases_for_device!(realm_name, device_id) do
-    Queries.retrieve_aliases!(realm_name, device_id)
+    DeviceRemovalQueries.retrieve_aliases!(realm_name, device_id)
     |> Enum.map(fn %{object_name: device_alias} -> device_alias end)
   end
 
@@ -147,7 +148,7 @@ defmodule Astarte.RealmManagement.DeviceRemoval.Core do
   Deletes all groups associated with a device from the KvStore for a realm.
   """
   def delete_groups!(realm_name, device_id) do
-    Queries.retrieve_groups_keys!(realm_name, device_id)
+    DeviceRemovalQueries.retrieve_groups_keys!(realm_name, device_id)
     |> Enum.each(&delete_group_from_key!(realm_name, &1))
   end
 
@@ -158,14 +159,14 @@ defmodule Astarte.RealmManagement.DeviceRemoval.Core do
       insertion_uuid: insertion_uuid
     } = key
 
-    Queries.delete_group_values!(realm_name, device_id, group_name, insertion_uuid)
+    DeviceRemovalQueries.delete_group_values!(realm_name, device_id, group_name, insertion_uuid)
   end
 
   @doc """
   Deletes al KvStore entries for a device in a realm.
   """
   def delete_kv_store_entries!(realm_name, encoded_device_id) do
-    Queries.retrieve_kv_store_entries!(realm_name, encoded_device_id)
+    DeviceRemovalQueries.retrieve_kv_store_entries!(realm_name, encoded_device_id)
     |> Enum.each(&delete_kv_store_entry!(realm_name, &1))
   end
 
@@ -175,14 +176,24 @@ defmodule Astarte.RealmManagement.DeviceRemoval.Core do
       key: key
     } = entry
 
-    Queries.delete_kv_store_entry!(realm_name, group_name, key)
+    DeviceRemovalQueries.delete_kv_store_entry!(realm_name, group_name, key)
   end
 
   @doc """
-  Removes a device from the databse and from the deletion_in_progress table.
+  Removes a device from the database.
   """
   def delete_device!(realm_name, device_id) do
-    Queries.delete_device!(realm_name, device_id)
-    Queries.remove_device_from_deletion_in_progress!(realm_name, device_id)
+    DeviceRemovalQueries.delete_device!(realm_name, device_id)
+  end
+
+  @doc """
+    Generate deletion finished triggers and remove deletion_in_progress entry
+  """
+  def complete_deletion(realm_name, device_id) do
+    with {:ok, groups} <- DeviceRemovalQueries.fetch_device_groups(realm_name, device_id) do
+      TriggersHandler.device_deletion_finished(realm_name, device_id, groups)
+    end
+
+    DeviceRemovalQueries.remove_device_from_deletion_in_progress!(realm_name, device_id)
   end
 end

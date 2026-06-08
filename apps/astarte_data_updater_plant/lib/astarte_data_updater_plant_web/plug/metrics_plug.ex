@@ -17,6 +17,9 @@
 #
 
 defmodule Astarte.DataUpdaterPlantWeb.MetricsPlug do
+  @moduledoc """
+  This plug is responsible for exposing the metrics endpoint for Prometheus.
+  """
   import Plug.Conn
 
   def init(_args), do: nil

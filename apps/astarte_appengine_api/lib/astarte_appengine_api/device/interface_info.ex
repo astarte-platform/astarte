@@ -16,6 +16,11 @@
 # limitations under the License.
 
 defmodule Astarte.AppEngine.API.Device.InterfaceInfo do
+  @moduledoc """
+  Data structure representing information about a device interface.
+  This struct tracks the versioning (major and minor) of the interface,
+  as well as statistics on exchanged messages and bytes for a specific interface associated with a device.
+  """
   defstruct [
     :name,
     :major,

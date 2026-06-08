@@ -16,17 +16,19 @@
 # limitations under the License.
 
 defmodule Astarte.Helpers.Device do
+  @moduledoc false
   alias Astarte.AppEngine.API.Device, as: Core
   alias Astarte.AppEngine.API.Device.InterfaceValue
-  alias Astarte.AppEngine.API.Repo
-  alias Astarte.DataAccess.Devices.Device
-  alias Astarte.DataAccess.Realms.Interface
-  alias Astarte.DataAccess.Realms.Realm
-  alias Astarte.RealmManagement.Engine, as: RealmManagement
   alias Astarte.Common.Generators.Timestamp, as: TimestampGenerator
   alias Astarte.Core.Mapping.EndpointsAutomaton
+  alias Astarte.Core.Mapping.EndpointsAutomaton
+  alias Astarte.DataAccess.Devices.Device
   alias Astarte.DataAccess.Interface, as: InterfaceQueries
   alias Astarte.DataAccess.Mappings, as: MappingsQueries
+  alias Astarte.DataAccess.Realms.Interface
+  alias Astarte.DataAccess.Realms.Realm
+  alias Astarte.DataAccess.Repo
+  alias Astarte.RealmManagement.Interfaces, as: RMInterfaces
 
   import ExUnit.CaptureLog
   import StreamData
@@ -54,11 +56,11 @@ defmodule Astarte.Helpers.Device do
   def insert_interface_cleanly(realm_name, interface) do
     keyspace = Realm.keyspace_name(realm_name)
     interface_db = %Interface{name: interface.name, major_version: interface.major_version}
-    interface_json = Jason.encode!(interface)
+    interface_params = interface |> Jason.encode!() |> Jason.decode!()
 
     Repo.delete(interface_db, prefix: keyspace)
 
-    capture_log(fn -> RealmManagement.install_interface(realm_name, interface_json) end)
+    capture_log(fn -> RMInterfaces.install_interface(realm_name, interface_params) end)
   end
 
   def insert_device_cleanly(realm_name, device, interfaces) do
@@ -100,26 +102,34 @@ defmodule Astarte.Helpers.Device do
         end
 
       {last_time, _} =
-        for mapping_update <- mapping_updates, reduce: {nil, initial_time} do
-          {_prev, time} ->
-            Mimic.expect(DateTime, :utc_now, fn -> time end)
-
-            update_function.(
-              realm_name,
-              device_id,
-              interface_descriptor,
-              mapping_update.path,
-              mapping_update.value
-            )
-
-            seconds_increment = :rand.uniform(60) + 5
-            next = DateTime.add(time, seconds_increment, :second)
-            {time, next}
-        end
+        perform_updates(mapping_updates, initial_time, update_function, %{
+          realm_name: realm_name,
+          device_id: device_id,
+          interface_descriptor: interface_descriptor
+        })
 
       %{initial_time: initial_time, last_time: last_time}
     end)
     |> Task.await()
+  end
+
+  defp perform_updates(updates, start_time, update_fn, context) do
+    for mapping_update <- updates, reduce: {nil, start_time} do
+      {_prev, time} ->
+        Mimic.expect(DateTime, :utc_now, fn -> time end)
+
+        update_fn.(
+          context.realm_name,
+          context.device_id,
+          context.interface_descriptor,
+          mapping_update.path,
+          mapping_update.value
+        )
+
+        seconds_increment = :rand.uniform(60) + 5
+        next = DateTime.add(time, seconds_increment, :second)
+        {time, next}
+    end
   end
 
   def publish_result_ok(interface, mapping_update, validation_function) do
@@ -140,7 +150,7 @@ defmodule Astarte.Helpers.Device do
     )
   end
 
-  def is_fallible?(interface) do
+  def fallible?(interface) do
     interface.mappings
     |> Enum.any?(&(&1.value_type in @fallible_value_type))
   end
@@ -186,11 +196,18 @@ defmodule Astarte.Helpers.Device do
   end
 
   def valid_result?(result, interface, value)
-      when interface.aggregation == :individual and is_map(value) do
+      when interface.aggregation == :individual and is_list(result) do
+    similar?(result, value) or Enum.any?(result, &valid_result?(&1, interface, value))
+  end
+
+  def valid_result?(result, interface, value)
+      when interface.aggregation == :individual and is_map(value) and
+             not is_struct(value, DateTime) and not is_list(result) do
     similar?(result, value)
   end
 
-  def valid_result?(result, _interface, value) when is_map(result) and is_map(value) do
+  def valid_result?(result, _interface, value)
+      when is_map(result) and is_map(value) and not is_struct(value, DateTime) do
     Map.intersect(value, result)
     |> Enum.all?(fn {key, result_value} -> similar?(result_value, Map.fetch!(value, key)) end)
   end
@@ -219,9 +236,12 @@ defmodule Astarte.Helpers.Device do
     do: result == to_string(value)
 
   defp similar?(result, value) when is_list(result) and is_list(value) do
-    Enum.zip(result, value)
-    |> Enum.map(fn {result, value} -> similar?(result, value) end)
-    |> Enum.all?()
+    if length(result) == length(value) do
+      Enum.zip(result, value)
+      |> Enum.all?(fn {r, v} -> similar?(r, v) end)
+    else
+      false
+    end
   end
 
   defp similar?(result, value) when is_binary(result) and is_struct(value, DateTime),

@@ -9,6 +9,7 @@ defmodule Mix.Tasks.Astarte.Export do
   def run([realm, filename]) do
     case Application.ensure_all_started(:astarte_export) do
       {:ok, _} ->
+        :ok = Astarte.Export.Cluster.ensure_registered()
         Export.export_realm_data(realm, filename)
 
       {:error, reason} ->

@@ -17,33 +17,26 @@
 #
 
 defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
+  @moduledoc """
+  This module provides functions for querying the database related to device properties and interfaces.
+  """
   alias Astarte.Core.CQLUtils
   alias Astarte.Core.Device, as: CoreDevice
+  alias Astarte.Core.Device.Capabilities
   alias Astarte.Core.InterfaceDescriptor
   alias Astarte.Core.Mapping
   alias Astarte.DataAccess.Consistency
-  alias Astarte.DataUpdaterPlant.Config
-  alias Astarte.DataAccess.Realms.SimpleTrigger
   alias Astarte.DataAccess.Device.DeletionInProgress
   alias Astarte.DataAccess.Devices.Device
+  alias Astarte.DataAccess.KvStore
   alias Astarte.DataAccess.Realms.Endpoint
   alias Astarte.DataAccess.Realms.IndividualProperty
-  alias Astarte.DataAccess.KvStore
   alias Astarte.DataAccess.Realms.Realm
   alias Astarte.DataAccess.Repo
+  alias Astarte.DataUpdaterPlant.Config
+  alias Astarte.DataUpdaterPlant.DataUpdater.InsertContext
   import Ecto.Query
   require Logger
-
-  def query_simple_triggers!(realm, object_id, object_type_int) do
-    keyspace_name = Realm.keyspace_name(realm)
-
-    query =
-      SimpleTrigger
-      |> where(object_id: ^object_id, object_type: ^object_type_int)
-      |> put_query_prefix(keyspace_name)
-
-    Repo.all(query, consistency: Consistency.domain_model(:read))
-  end
 
   def all_device_owned_property_endpoint_paths!(
         realm,
@@ -90,17 +83,23 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
   end
 
   def insert_value_into_db(
-        realm,
-        device_id,
-        %InterfaceDescriptor{storage_type: :multi_interface_individual_properties_dbtable} =
-          interface_descriptor,
-        %Mapping{allow_unset: true} = mapping,
-        path,
-        nil,
-        _value_timestamp,
-        _reception_timestamp,
-        opts
+        %{
+          interface_descriptor: %InterfaceDescriptor{
+            storage_type: :multi_interface_individual_properties_dbtable
+          },
+          mapping: %Mapping{allow_unset: true},
+          value: nil
+        } = context
       ) do
+    %InsertContext{
+      realm: realm,
+      device_id: device_id,
+      interface_descriptor: interface_descriptor,
+      mapping: mapping,
+      path: path,
+      opts: opts
+    } = context
+
     %InterfaceDescriptor{storage: storage, interface_id: interface_id} = interface_descriptor
     %Mapping{endpoint_id: endpoint_id} = mapping
     keyspace = Realm.keyspace_name(realm)
@@ -112,17 +111,18 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
   end
 
   def insert_value_into_db(
-        realm,
-        device_id,
-        %InterfaceDescriptor{storage_type: :multi_interface_individual_properties_dbtable} =
-          _interface_descriptor,
-        _mapping,
-        _path,
-        nil,
-        _value_timestamp,
-        _reception_timestamp,
-        _opts
+        %{
+          interface_descriptor: %InterfaceDescriptor{
+            storage_type: :multi_interface_individual_properties_dbtable
+          },
+          value: nil
+        } = context
       ) do
+    %InsertContext{
+      realm: realm,
+      device_id: device_id
+    } = context
+
     _ =
       Logger.warning(
         "Device #{inspect(device_id)} in realm #{realm} tried to unset an unsettable property.",
@@ -133,22 +133,27 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
   end
 
   def insert_value_into_db(
-        realm,
-        device_id,
-        %InterfaceDescriptor{storage_type: :multi_interface_individual_properties_dbtable} =
-          interface_descriptor,
-        mapping,
-        path,
-        value,
-        _value_timestamp,
-        reception_timestamp,
-        _opts
+        %{
+          interface_descriptor: %InterfaceDescriptor{
+            storage_type: :multi_interface_individual_properties_dbtable
+          }
+        } = context
       ) do
+    %InsertContext{
+      realm: realm,
+      device_id: device_id,
+      interface_descriptor: interface_descriptor,
+      mapping: mapping,
+      path: path,
+      value: value,
+      reception_timestamp: reception_timestamp
+    } = context
+
     %InterfaceDescriptor{interface_id: interface_id, storage: storage} = interface_descriptor
     %Mapping{endpoint_id: endpoint_id, value_type: value_type} = mapping
     keyspace_name = Realm.keyspace_name(realm)
-    timestamp = div(reception_timestamp, 10000)
-    reception_timestamp_submillis = rem(reception_timestamp, 10000)
+    timestamp = div(reception_timestamp, 10_000)
+    reception_timestamp_submillis = rem(reception_timestamp, 10_000)
     column_name = CQLUtils.type_to_db_column_name(value_type)
     db_value = to_db_friendly_type(value)
 
@@ -173,22 +178,29 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
   end
 
   def insert_value_into_db(
-        realm,
-        device_id,
-        %InterfaceDescriptor{storage_type: :multi_interface_individual_datastream_dbtable} =
-          interface_descriptor,
-        mapping,
-        path,
-        value,
-        value_timestamp,
-        reception_timestamp,
-        opts
+        %{
+          interface_descriptor: %InterfaceDescriptor{
+            storage_type: :multi_interface_individual_datastream_dbtable
+          }
+        } = context
       ) do
+    %InsertContext{
+      realm: realm,
+      device_id: device_id,
+      interface_descriptor: interface_descriptor,
+      mapping: mapping,
+      path: path,
+      value: value,
+      value_timestamp: value_timestamp,
+      reception_timestamp: reception_timestamp,
+      opts: opts
+    } = context
+
     %InterfaceDescriptor{interface_id: interface_id, storage: storage} = interface_descriptor
     %Mapping{endpoint_id: endpoint_id, value_type: value_type} = mapping
     keyspace_name = Realm.keyspace_name(realm)
-    timestamp = div(reception_timestamp, 10000)
-    reception_timestamp_submillis = rem(reception_timestamp, 10000)
+    timestamp = div(reception_timestamp, 10_000)
+    reception_timestamp_submillis = rem(reception_timestamp, 10_000)
     column_name = CQLUtils.type_to_db_column_name(value_type)
     db_value = to_db_friendly_type(value)
 
@@ -216,21 +228,27 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
   end
 
   def insert_value_into_db(
-        realm,
-        device_id,
-        %InterfaceDescriptor{storage_type: :one_object_datastream_dbtable} = interface_descriptor,
-        mapping,
-        path,
-        value,
-        value_timestamp,
-        reception_timestamp,
-        opts
+        %{
+          interface_descriptor: %InterfaceDescriptor{storage_type: :one_object_datastream_dbtable}
+        } = context
       ) do
+    %InsertContext{
+      realm: realm,
+      device_id: device_id,
+      interface_descriptor: interface_descriptor,
+      mapping: mapping,
+      path: path,
+      value: value,
+      value_timestamp: value_timestamp,
+      reception_timestamp: reception_timestamp,
+      opts: opts
+    } = context
+
     %InterfaceDescriptor{interface_id: interface_id, storage: storage} = interface_descriptor
 
     keyspace_name = Realm.keyspace_name(realm)
-    timestamp = div(reception_timestamp, 10000)
-    reception_timestamp_submillis = rem(reception_timestamp, 10000)
+    timestamp = div(reception_timestamp, 10_000)
+    reception_timestamp_submillis = rem(reception_timestamp, 10_000)
 
     # TODO: we should cache endpoints by interface_id
     column_info =
@@ -388,8 +406,8 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
     %InterfaceDescriptor{interface_id: interface_id} = interface_descriptor
     %Mapping{endpoint_id: endpoint_id} = mapping
     keyspace_name = Realm.keyspace_name(realm)
-    timestamp = div(reception_timestamp, 10000) |> DateTime.from_unix!(:microsecond)
-    reception_timestamp_submillis = rem(reception_timestamp, 10000)
+    timestamp = div(reception_timestamp, 10_000) |> DateTime.from_unix!(:microsecond)
+    reception_timestamp_submillis = rem(reception_timestamp, 10_000)
 
     # TODO: :reception_timestamp_submillis is just a place holder right now
     entry = %{
@@ -428,13 +446,14 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
     :ok
   end
 
-  def retrieve_device_stats_and_introspection!(realm, device_id) do
+  def get_device_status(realm, device_id) do
     keyspace_name = Realm.keyspace_name(realm)
 
     stats =
       Device
       |> where(device_id: ^device_id)
       |> select([
+        :capabilities,
         :total_received_msgs,
         :total_received_bytes,
         :introspection,
@@ -444,7 +463,13 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
       |> put_query_prefix(keyspace_name)
       |> Repo.one(consistency: Consistency.device_info(:read))
 
+    # When adding a new capability, it appears as `nil` when read from the db
+    # we normalize it to make sure we get back a capabilities struct with the default values
+    # for unset capabilities
+    capabilities = normalize_capabilities(stats.capabilities)
+
     %{
+      capabilities: capabilities,
       introspection: stats.introspection,
       total_received_msgs: stats.total_received_msgs,
       total_received_bytes: stats.total_received_bytes,
@@ -497,7 +522,8 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
 
     opts = [prefix: keyspace_name, ttl: ttl, consistency: Consistency.device_info(:write)]
 
-    # We use `insert` here becuase Exandra does not support ttl on updates. However, this is an upsert in Scylla.
+    # We use `insert` here because Exandra does not support ttl on updates.
+    # However, this is an upsert in Scylla.
     Repo.insert!(changeset, opts)
   end
 
@@ -575,9 +601,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
 
     consistency = Consistency.device_info(:read)
 
-    with {:ok, minors} <- Repo.safe_fetch_one(query, consistency: consistency) do
-      {:ok, minors}
-    end
+    Repo.safe_fetch_one(query, consistency: consistency)
   end
 
   def get_device_groups(realm, device_id) do
@@ -735,6 +759,20 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
     end
   end
 
+  def set_device_capabilities(realm_name, device_id, capabilities) do
+    keyspace_name = Realm.keyspace_name(realm_name)
+
+    device =
+      %Device{device_id: device_id}
+      |> Ecto.Changeset.change(%{capabilities: capabilities})
+
+    opts = [prefix: keyspace_name, consistency: Consistency.device_info(:write)]
+
+    with {:ok, _device} <- Repo.update(device, opts) do
+      :ok
+    end
+  end
+
   defp to_db_friendly_type(array) when is_list(array) do
     # If we have an array, we convert its elements to a db friendly type
     Enum.map(array, &to_db_friendly_type/1)
@@ -878,84 +916,79 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Queries do
   end
 
   def check_device_deletion_in_progress(realm_name, device_id) do
-    keyspace_name = Realm.keyspace_name(realm_name)
+    keyspace = Realm.keyspace_name(realm_name)
 
-    Xandra.Cluster.run(
-      :xandra,
-      &do_check_device_deletion_in_progress(&1, keyspace_name, device_id)
-    )
-  end
+    query =
+      from d in DeletionInProgress,
+        prefix: ^keyspace,
+        where: d.device_id == ^device_id
 
-  defp do_check_device_deletion_in_progress(conn, realm_name, device_id) do
-    statement = """
-    SELECT *
-    FROM #{realm_name}.deletion_in_progress
-    WHERE device_id = :device_id
-    """
+    consistency = Consistency.device_info(:read)
 
-    opts = [
-      consistency: Consistency.device_info(:read),
-      uuid_format: :binary
-    ]
-
-    with {:ok, prepared} <- Xandra.prepare(conn, statement),
-         {:ok, %Xandra.Page{} = page} <-
-           Xandra.execute(conn, prepared, %{"device_id" => device_id}, opts) do
-      result_not_empty? = not Enum.empty?(page)
-      {:ok, result_not_empty?}
-    else
-      {:error, %Xandra.Error{} = error} ->
-        _ =
-          Logger.warning(
-            "Database error while checking device deletion in progress: #{Exception.message(error)}"
-          )
-
-        {:error, :database_error}
-
-      {:error, %Xandra.ConnectionError{} = error} ->
-        _ =
-          Logger.warning(
-            "Database connection error while checking device deletion in progress: #{Exception.message(error)}"
-          )
-
-        {:error, :database_connection_error}
+    case Repo.safe_fetch_one(query, consistency: consistency) do
+      {:ok, _item} -> {:ok, true}
+      {:error, :not_found} -> {:ok, false}
+      {:error, error} -> {:error, error}
     end
   end
 
+  def ensure_replicated_group_information(realm_name, device_id) do
+    keyspace = Realm.keyspace_name(realm_name)
+
+    fetch_group_opts = [prefix: keyspace, consistency: Consistency.device_info(:read)]
+
+    store_group_opts = [
+      prefix: keyspace,
+      consistency: Consistency.device_info(:write),
+      allow_insert: false,
+      allow_stale: true
+    ]
+
+    groups =
+      Device
+      |> select([d], d.groups)
+      |> Repo.fetch(device_id, fetch_group_opts)
+      |> case do
+        {:ok, groups} -> groups |> Map.keys() |> MapSet.new()
+        {:error, :not_found} -> MapSet.new()
+      end
+
+    %DeletionInProgress{device_id: device_id}
+    |> Ecto.Changeset.change(groups: groups)
+    |> Repo.update(store_group_opts)
+
+    :ok
+  end
+
   def retrieve_realms! do
-    statement = """
-    SELECT *
-    FROM #{CQLUtils.realm_name_to_keyspace_name("astarte", Config.astarte_instance_id!())}.realms
-    """
+    keyspace_name = Realm.astarte_keyspace_name()
+    consistency = Consistency.domain_model(:read)
 
-    realms =
-      Xandra.Cluster.run(
-        :xandra,
-        &Xandra.execute!(&1, statement, %{}, consistency: Consistency.domain_model(:read))
-      )
-
-    Enum.to_list(realms)
+    Repo.all(Realm, prefix: keyspace_name, consistency: consistency)
   end
 
   def retrieve_devices_waiting_to_start_deletion!(realm_name) do
     keyspace_name = Realm.keyspace_name(realm_name)
+    consistency = Consistency.domain_model(:read)
 
-    Xandra.Cluster.run(
-      :xandra,
-      &do_retrieve_devices_waiting_to_start_deletion!(&1, keyspace_name)
-    )
+    Repo.all(DeletionInProgress, prefix: keyspace_name, consistency: consistency)
   end
 
-  defp do_retrieve_devices_waiting_to_start_deletion!(conn, realm_name) do
-    statement = """
-    SELECT *
-    FROM #{realm_name}.deletion_in_progress
-    """
+  @spec normalize_capabilities(nil | Capabilities.t()) :: Capabilities.t()
+  defp normalize_capabilities(nil), do: %Capabilities{}
 
-    Xandra.execute!(conn, statement, %{},
-      consistency: Consistency.device_info(:read),
-      uuid_format: :binary
-    )
-    |> Enum.to_list()
+  defp normalize_capabilities(capabilities) do
+    nil_keys =
+      capabilities
+      |> Map.from_struct()
+      |> Enum.filter(fn {_key, value} -> value == nil end)
+      |> Enum.map(fn {key, nil} -> key end)
+
+    defaults =
+      %Capabilities{}
+      |> Map.from_struct()
+      |> Map.take(nil_keys)
+
+    Map.merge(capabilities, defaults)
   end
 end

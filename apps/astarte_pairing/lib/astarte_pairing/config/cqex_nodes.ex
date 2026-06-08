@@ -17,6 +17,7 @@
 #
 
 defmodule Astarte.Pairing.Config.CQExNodes do
+  @moduledoc false
   use Skogsra.Type
 
   @default_port 9042

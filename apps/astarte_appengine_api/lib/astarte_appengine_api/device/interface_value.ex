@@ -17,6 +17,12 @@
 #
 
 defmodule Astarte.AppEngine.API.Device.InterfaceValue do
+  @moduledoc """
+  Provide casting and normalizzation logic for incoming interface data.
+
+  This module ensures that data received matches the expected types defined before
+  it is processed further.
+  """
   def cast_value(expected_types, object) when is_map(expected_types) and is_map(object) do
     Enum.reduce_while(object, {:ok, %{}}, fn {key, value}, {:ok, acc} ->
       with {:ok, expected_type} <- Map.fetch(expected_types, key),
@@ -33,18 +39,20 @@ defmodule Astarte.AppEngine.API.Device.InterfaceValue do
   end
 
   def cast_value(:datetime, value) when is_binary(value) do
-    with {:ok, datetime, _utc_off} <- DateTime.from_iso8601(value) do
-      {:ok, datetime}
-    else
+    case DateTime.from_iso8601(value) do
+      {:ok, datetime, _utc_offset} ->
+        {:ok, datetime}
+
       {:error, _reason} ->
         {:error, :unexpected_value_type, expected: :datetime}
     end
   end
 
   def cast_value(:datetime, value) when is_integer(value) do
-    with {:ok, datetime} <- DateTime.from_unix(value, :millisecond) do
-      {:ok, datetime}
-    else
+    case DateTime.from_unix(value, :millisecond) do
+      {:ok, datetime} ->
+        {:ok, datetime}
+
       {:error, _reason} ->
         {:error, :unexpected_value_type, expected: :datetime}
     end
@@ -55,9 +63,10 @@ defmodule Astarte.AppEngine.API.Device.InterfaceValue do
   end
 
   def cast_value(:binaryblob, value) when is_binary(value) do
-    with {:ok, binvalue} <- Base.decode64(value) do
-      {:ok, binvalue}
-    else
+    case Base.decode64(value) do
+      {:ok, binvalue} ->
+        {:ok, binvalue}
+
       :error ->
         {:error, :unexpected_value_type, expected: :binaryblob}
     end

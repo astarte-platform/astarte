@@ -20,18 +20,20 @@ defmodule Astarte.TriggerEngine.PolicyTest do
   use Astarte.Cases.Policy, async: true
   use ExUnitProperties
 
+  import Mox
   import StreamData
   require Logger
-  import Mox
-  alias Astarte.Core.Generators.Triggers.Policy, as: PolicyGenerator
-  alias Astarte.TriggerEngine.Config
+
   alias AMQP.Basic
-  alias Astarte.TriggerEngine.Policy, as: PolicyProcess
-  alias Astarte.TriggerEngine.Policy.Impl
+  alias Astarte.Core.Generators.Triggers.Policy, as: PolicyGenerator
   alias Astarte.Core.Triggers.Policy
-  alias Astarte.Core.Triggers.Policy.Handler
   alias Astarte.Core.Triggers.Policy.ErrorKeyword
   alias Astarte.Core.Triggers.Policy.ErrorRange
+  alias Astarte.Core.Triggers.Policy.Handler
+  alias Astarte.TriggerEngine.Config
+  alias Astarte.TriggerEngine.Policy, as: PolicyProcess
+  alias Astarte.TriggerEngine.Policy.Impl
+  alias Astarte.TriggerEngine.Policy.State
 
   import Astarte.Fixtures.Policy
 
@@ -45,11 +47,12 @@ defmodule Astarte.TriggerEngine.PolicyTest do
   @tag :unit
   property "Deliveries are acked on successful consume", %{payload: payload, channel: channel} do
     check all policy <- PolicyGenerator.policy(), meta <- meta(), retry_map <- retry_map() do
+      policy_state = %State{policy: policy, retry_map: retry_map}
       delivery_tag = meta.delivery_tag
       Mox.expect(MockEventsConsumer, :consume, fn ^payload, _headers -> :ok end)
       Mimic.expect(Basic, :ack, fn ^channel, ^delivery_tag -> :ok end)
 
-      result = Impl.handle_event(policy, retry_map, channel, payload, meta)
+      result = Impl.handle_event(policy_state, channel, payload, meta)
       assert result.policy == policy
       assert result.retry_map == Map.delete(retry_map, meta.message_id)
     end
@@ -65,6 +68,7 @@ defmodule Astarte.TriggerEngine.PolicyTest do
               attempts <- integer(0..(policy.retry_times - 2)),
               retry_map <- retry_map_with_optional(meta.message_id, attempts),
               consume_error <- retry_error() do
+      policy_state = %State{policy: policy, retry_map: retry_map}
       delivery_tag = meta.delivery_tag
       expected_retry_count = Map.get(retry_map, meta.message_id, 0) + 1
 
@@ -75,7 +79,7 @@ defmodule Astarte.TriggerEngine.PolicyTest do
         :ok
       end)
 
-      %{retry_map: retry_map} = Impl.handle_event(policy, retry_map, channel, payload, meta)
+      %{retry_map: retry_map} = Impl.handle_event(policy_state, channel, payload, meta)
       assert Map.fetch!(retry_map, meta.message_id) == expected_retry_count
     end
   end
@@ -89,6 +93,7 @@ defmodule Astarte.TriggerEngine.PolicyTest do
               attempts <- integer((policy.retry_times - 1)..100),
               retry_map <- retry_map_with(meta.message_id, attempts),
               consume_error <- retry_error() do
+      policy_state = %State{policy: policy, retry_map: retry_map}
       delivery_tag = meta.delivery_tag
 
       Mox.expect(MockEventsConsumer, :consume, fn ^payload, _headers -> consume_error end)
@@ -98,7 +103,7 @@ defmodule Astarte.TriggerEngine.PolicyTest do
         :ok
       end)
 
-      %{retry_map: retry_map} = Impl.handle_event(policy, retry_map, channel, payload, meta)
+      %{retry_map: retry_map} = Impl.handle_event(policy_state, channel, payload, meta)
       refute Map.has_key?(retry_map, meta.message_id)
     end
   end
@@ -108,6 +113,7 @@ defmodule Astarte.TriggerEngine.PolicyTest do
     %{payload: payload, channel: channel} = args
 
     check all policy <- PolicyGenerator.policy(), meta <- meta(), retry_map <- retry_map() do
+      policy_state = %State{policy: policy, retry_map: retry_map}
       delivery_tag = meta.delivery_tag
 
       Mox.expect(MockEventsConsumer, :consume, fn ^payload, _headers ->
@@ -119,7 +125,7 @@ defmodule Astarte.TriggerEngine.PolicyTest do
         :ok
       end)
 
-      %{retry_map: retry_map} = Impl.handle_event(policy, retry_map, channel, payload, meta)
+      %{retry_map: retry_map} = Impl.handle_event(policy_state, channel, payload, meta)
       refute Map.has_key?(retry_map, meta.message_id)
     end
   end
@@ -152,7 +158,7 @@ defmodule Astarte.TriggerEngine.PolicyTest do
     )
   end
 
-  defp retry_map() do
+  defp retry_map do
     map_of(string(:alphanumeric), integer(1..100))
   end
 

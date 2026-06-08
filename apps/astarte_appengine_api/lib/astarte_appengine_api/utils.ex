@@ -21,7 +21,7 @@ defmodule Astarte.AppEngine.API.Utils do
   Utility module
   """
 
-  def get_uuid() do
+  def get_uuid do
     :uuid.get_v4()
   end
 

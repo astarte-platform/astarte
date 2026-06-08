@@ -1,4 +1,4 @@
-ALTER TABLE devices
+ALTER TABLE :keyspace.devices
 ADD (
   groups map<text, timeuuid>,
   exchanged_bytes_by_interface map<frozen<tuple<ascii, int>>, bigint>,

@@ -3,7 +3,7 @@
 This section provides guidance on some delicate operations that must be performed manually as they
 could potentially result in data loss or other types of irrecoverable damage.
 
-*Always be careful while performing these operations!*
+_Always be careful while performing these operations!_
 
 ## Manual deletion of interfaces
 
@@ -43,9 +43,9 @@ cqlsh:test> SELECT interface_id FROM interfaces
 
 ### Delete the interface
 
-*WARNING: This is a destructive step that will erase the correlation between the Interface name and
+_WARNING: This is a destructive step that will erase the correlation between the Interface name and
 internal ID. Before proceeding, ensure you saved the interface ID, or you will end up with dangling
-data. Further steps in this guide will require the interface ID.*
+data. Further steps in this guide will require the interface ID._
 
 To delete the interface,
 
@@ -55,8 +55,8 @@ cqlsh:test> DELETE FROM interfaces
   AND major_version = 1;
 ```
 
-*Keep in mind that after this step, all existing devices that attempt to publish on this interface
-will be disconnected as soon as they try to do so.*
+_Keep in mind that after this step, all existing devices that attempt to publish on this interface
+will be disconnected as soon as they try to do so._
 
 ### Delete interface data
 
@@ -139,8 +139,8 @@ cqlsh:test> DELETE FROM kv_store WHERE group='devices-by-interface-org.astarte-p
 After performing all the steps above, the interface will be completely removed from Astarte. You can
 then proceed to install a new interface with the same name and major version without any conflict.
 
-*Remember to remove the interface also on the device side, otherwise devices will keep getting
-disconnected if they try to publish on the deleted interface.*
+_Remember to remove the interface also on the device side, otherwise devices will keep getting
+disconnected if they try to publish on the deleted interface._
 
 ---
 
@@ -150,11 +150,12 @@ Starting from Astarte 1.2, a device can be deleted using Realm Management API (s
 The following manual procedure remains for historical reasons.
 
 This section assumes:
+
 - that `cqlsh` is connected to the Cassandra/ScyllaDB instance that your Astarte is using;
 - that `astartectl` is installed on your machine.
 
-***Please keep in mind that this is a destructive procedure. Before moving on, ensure you saved your
-device ID or you might end up with dangling data and possibly a damaged Astarte deployment.***
+**_Please keep in mind that this is a destructive procedure. Before moving on, ensure you saved your
+device ID or you might end up with dangling data and possibly a damaged Astarte deployment._**
 
 ### Retrieve the device uuid
 
@@ -202,6 +203,7 @@ cqlsh:test> SELECT DISTINCT device_id, interface_id, endpoint_id, path FROM indi
 ```
 
 The output will show a set of primary keys of data belonging to your device:
+
 ```
  device_id                            | interface_id                         | endpoint_id                          | path
 --------------------------------------|--------------------------------------|--------------------------------------|-------------
@@ -213,6 +215,7 @@ The output will show a set of primary keys of data belonging to your device:
 It is now time to perform the actual data deletion: to do so, repeat the following instruction
 iterating over every combination of primary keys as obtained from the output of the previous
 command:
+
 ```
 cqlsh:test> DELETE FROM individual_datastreams
   WHERE device_id=937a0f4d-7686-1861-8618-618618618618
@@ -231,6 +234,7 @@ cqlsh:test> SELECT DISTINCT device_id, interface_id FROM individual_properties
 ```
 
 The output will be similar to the following one:
+
 ```
  device_id                            | interface_id
 --------------------------------------+--------------------------------------
@@ -241,6 +245,7 @@ The output will be similar to the following one:
 
 To perform the actual data deletion, run the following query for each pair of `device_id` and
 `interface_id` obtained from the previous query:
+
 ```
 cqlsh:test> DELETE FROM individual_properties
   WHERE device_id = 937a0f4d-7686-1861-8618-618618618618
@@ -259,6 +264,7 @@ cqlsh:test> SELECT DISTINCT device_id, path FROM com_test_sensors_v1 WHERE
 ```
 
 The output will show something like:
+
 ```
  device_id                            | path
 --------------------------------------+------
@@ -286,6 +292,7 @@ cqlsh:test> SELECT object_name FROM names
 ```
 
 If your device has any aliases, the output will show
+
 ```
  object_name
 ----------------
@@ -294,6 +301,7 @@ If your device has any aliases, the output will show
 ```
 
 Thus, you can delete the alias simply executing:
+
 ```
 cqlsh:test> DELETE FROM names WHERE object_name='my-device-alias';
 ```
@@ -301,6 +309,7 @@ cqlsh:test> DELETE FROM names WHERE object_name='my-device-alias';
 ### Delete the device from groups
 
 To delete the device from a device group let's find the needed keys:
+
 ```
 SELECT group_name, insertion_uuid, device_id
   FROM grouped_devices
@@ -318,6 +327,7 @@ If the device is contained in one or more groups, the output will be:
 ```
 
 The actual deletion can be performed with:
+
 ```
 cqlsh:test> DELETE FROM grouped_devices
   WHERE group_name='my-group'

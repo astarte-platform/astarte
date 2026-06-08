@@ -16,8 +16,45 @@
 # limitations under the License.
 #
 
-defmodule Astarte.Fixtures.Trigger do
+defmodule Astarte.RealmManagement.Fixtures.Trigger do
+  @moduledoc false
   alias Astarte.Core.Triggers.Trigger
+
+  @valid_attrs %{
+    "name" => "test_trigger",
+    "simple_triggers" => [
+      %{
+        "type" => "device_trigger",
+        "device_id" => "*",
+        "on" => "device_connected",
+        "interface_major" => 0
+      }
+    ],
+    "action" => %{
+      "http_url" => "http://www.example.com",
+      "http_method" => "delete",
+      "ignore_ssl_errors" => false
+    }
+  }
+  @invalid_attrs %{
+    "name" => 5,
+    "action" => %{
+      "http_url" => "http://www.example.com",
+      "http_method" => "delete",
+      "ignore_ssl_errors" => false
+    }
+  }
+  @invalid_http_method %{
+    "name" => "invalid_test_trigger",
+    "action" => %{
+      "http_url" => "http://www.example.com",
+      "http_method" => "not_existing_method",
+      "ignore_ssl_errors" => false
+    }
+  }
+  def valid_trigger_attrs(attrs \\ %{}), do: Enum.into(attrs, @valid_attrs)
+  def invalid_trigger_attrs(attrs \\ %{}), do: Enum.into(attrs, @invalid_attrs)
+  def invalid_http_method, do: @invalid_http_method
 
   def triggers(name_gen) do
     default_action_triggers(name_gen) ++
@@ -95,7 +132,7 @@ defmodule Astarte.Fixtures.Trigger do
     ]
   end
 
-  def invalid_triggers() do
+  def invalid_triggers do
     action_1 = """
     {
       "http_url": "http://hello.world.ai",

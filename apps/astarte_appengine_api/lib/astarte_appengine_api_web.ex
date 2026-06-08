@@ -37,7 +37,7 @@ defmodule Astarte.AppEngine.APIWeb do
 
   def controller do
     quote do
-      use Phoenix.Controller, namespace: Astarte.AppEngine.APIWeb
+      use Phoenix.Controller, formats: [json: "View"]
       import Plug.Conn
       import Astarte.AppEngine.APIWeb.Router.Helpers
       use Gettext, backend: Astarte.AppEngine.APIWeb.Gettext

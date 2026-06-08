@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2019 Ispirata Srl
+# Copyright 2019 - 2025 Seco Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -17,16 +17,26 @@
 #
 
 defmodule Astarte.AppEngine.API.Groups.Queries do
-  alias Astarte.DataAccess.Groups.GroupedDevice
-  alias Astarte.DataAccess.Groups.Group
-  alias Astarte.AppEngine.API.Device.DeviceStatus
+  @moduledoc """
+  Database query logic for Devices Groups. 
+
+  This module manages the relationship between devices and groups ensuring
+  consistency across the denormalized storage. It provides functionaliies for:
+  * Listing devices in a group
+  * Adding/removing devices to/from a group
+  * Validating device and group existence
+  * Listing all available groups in a realm
+  """
   alias Astarte.AppEngine.API.Device.DevicesList
+  alias Astarte.AppEngine.API.Device.DeviceStatus
+  alias Astarte.Core.Device
+  alias Astarte.DataAccess.Consistency
   alias Astarte.DataAccess.Device.DeletionInProgress
   alias Astarte.DataAccess.Devices.Device, as: DataBaseDevice
+  alias Astarte.DataAccess.Groups.Group
+  alias Astarte.DataAccess.Groups.GroupedDevice
   alias Astarte.DataAccess.Realms.Realm
-  alias Astarte.DataAccess.Consistency
-  alias Astarte.Core.Device
-  alias Astarte.AppEngine.API.Repo
+  alias Astarte.DataAccess.Repo
   alias Ecto.Changeset
 
   require Logger
@@ -272,9 +282,8 @@ defmodule Astarte.AppEngine.API.Groups.Queries do
   end
 
   defp check_valid_device_for_group(keyspace, group_name, device_id) do
-    with {:ok, groups} <- fetch_device_groups(keyspace, device_id),
-         :ok <- check_device_not_in_group(groups, group_name) do
-      :ok
+    with {:ok, groups} <- fetch_device_groups(keyspace, device_id) do
+      check_device_not_in_group(groups, group_name)
     end
   end
 

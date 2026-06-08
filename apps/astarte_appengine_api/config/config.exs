@@ -8,7 +8,7 @@ import Config
 # General application configuration
 config :astarte_appengine_api, namespace: Astarte.AppEngine.API
 
-config :astarte_appengine_api, ecto_repos: [Astarte.AppEngine.API.Repo]
+config :astarte_appengine_api, ecto_repos: [Astarte.DataAccess.Repo]
 
 # Configures the endpoint
 config :astarte_appengine_api, Astarte.AppEngine.APIWeb.Endpoint,
@@ -58,6 +58,8 @@ config :phoenix, :logger, false
 config :astarte_appengine_api, swagger_ui: true
 
 config :astarte_appengine_api, :max_results_limit, 10000
+
+config :astarte_rpc, :astarte_services, [:astarte_data_updater_plant, :astarte_vmq_plugin]
 
 # Import environment specific config. This must remain at the bottom
 # of this file so it overrides the configuration defined above.

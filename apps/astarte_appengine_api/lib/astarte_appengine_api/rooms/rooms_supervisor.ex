@@ -17,6 +17,12 @@
 #
 
 defmodule Astarte.AppEngine.API.Rooms.RoomsSupervisor do
+  @moduledoc """
+  DynamicSupervisor responsible for managing individual Room processes.
+
+  This supervisor allows for the dynamic creation and monitoring of rooms as they are requested by clients,
+  ensuyring that each room runs in its own isolated process.
+  """
   use DynamicSupervisor
 
   alias Astarte.AppEngine.API.Rooms.Room

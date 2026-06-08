@@ -17,23 +17,25 @@
 #
 
 defmodule Astarte.DataUpdaterPlant.TimeBasedActions do
+  @moduledoc """
+  This module implements the time-based actions that need to be executed periodically for each device in the DataUpdaterPlant.
+  """
   alias Astarte.Core.Device
-  alias Astarte.Core.Triggers.SimpleTriggersProtobuf.Utils, as: SimpleTriggersProtobufUtils
   alias Astarte.DataUpdaterPlant.DataUpdater.Core
-  alias Astarte.DataUpdaterPlant.DataUpdater.State
   alias Astarte.DataUpdaterPlant.DataUpdater.Queries
+  alias Astarte.DataUpdaterPlant.DataUpdater.State
   alias Astarte.DataUpdaterPlant.RPC.VMQPlugin
 
   require Logger
 
-  @groups_lifespan_decimicroseconds 60 * 10 * 1000 * 10000
-  @device_triggers_lifespan_decimicroseconds 60 * 10 * 1000 * 10000
-  @deletion_refresh_lifespan_decimicroseconds 60 * 10 * 1000 * 10000
-  @datastream_maximum_retention_refresh_lifespan_decimicroseconds 60 * 10 * 1000 * 10000
+  @groups_lifespan_decimicroseconds 60 * 10 * 1000 * 10_000
+  @deletion_refresh_lifespan_decimicroseconds 60 * 10 * 1000 * 10_000
+  @datastream_maximum_retention_refresh_lifespan_decimicroseconds 60 * 10 * 1000 * 10_000
 
   def execute_time_based_actions(state, timestamp) do
     if state.connected && state.last_seen_message > 0 do
-      # timestamps are handled as microseconds*10, so we need to divide by 10 when saving as a metric for a coherent data
+      # timestamps are handled as microseconds*10, so we need to divide by 10 when saving as a
+      # metric for a coherent data
       :telemetry.execute(
         [:astarte, :data_updater_plant, :service, :connected_devices],
         %{duration: Integer.floor_div(timestamp - state.last_seen_message, 10)},
@@ -45,7 +47,6 @@ defmodule Astarte.DataUpdaterPlant.TimeBasedActions do
     |> Map.put(:last_seen_message, timestamp)
     |> reload_groups_on_expiry(timestamp)
     |> purge_expired_interfaces(timestamp)
-    |> reload_device_triggers_on_expiry(timestamp)
     |> reload_device_deletion_status_on_expiry(timestamp)
     |> reload_datastream_maximum_storage_retention_on_expiry(timestamp)
   end
@@ -79,61 +80,6 @@ defmodule Astarte.DataUpdaterPlant.TimeBasedActions do
     |> Map.put(:interfaces_by_expiry, new_interfaces_by_expiry)
   end
 
-  def reload_device_triggers_on_expiry(state, timestamp) do
-    if state.last_device_triggers_refresh + @device_triggers_lifespan_decimicroseconds <=
-         timestamp do
-      any_device_id = SimpleTriggersProtobufUtils.any_device_object_id()
-
-      any_interface_id = SimpleTriggersProtobufUtils.any_interface_object_id()
-
-      device_and_any_interface_object_id =
-        SimpleTriggersProtobufUtils.get_device_and_any_interface_object_id(state.device_id)
-
-      # TODO when introspection triggers are supported, we should also forget any_interface
-      # introspection triggers here, or handle them separately
-
-      state
-      |> Map.put(:last_device_triggers_refresh, timestamp)
-      |> Map.put(:device_triggers, %{})
-      |> forget_any_interface_data_triggers()
-      |> Core.Trigger.populate_triggers_for_object!(any_device_id, :any_device)
-      |> Core.Trigger.populate_triggers_for_object!(state.device_id, :device)
-      |> Core.Trigger.populate_triggers_for_object!(any_interface_id, :any_interface)
-      |> Core.Trigger.populate_triggers_for_object!(
-        device_and_any_interface_object_id,
-        :device_and_any_interface
-      )
-      |> populate_group_device_triggers!()
-      |> populate_group_and_any_interface_triggers!()
-    else
-      state
-    end
-  end
-
-  defp forget_any_interface_data_triggers(state) do
-    updated_data_triggers =
-      for {{_type, iface_id, _endpoint} = key, value} <- state.data_triggers,
-          iface_id != :any_interface,
-          into: %{} do
-        {key, value}
-      end
-
-    %{state | data_triggers: updated_data_triggers}
-  end
-
-  defp populate_group_device_triggers!(state) do
-    Enum.map(state.groups, &SimpleTriggersProtobufUtils.get_group_object_id/1)
-    |> Enum.reduce(state, &Core.Trigger.populate_triggers_for_object!(&2, &1, :group))
-  end
-
-  defp populate_group_and_any_interface_triggers!(state) do
-    Enum.map(state.groups, &SimpleTriggersProtobufUtils.get_group_and_any_interface_object_id/1)
-    |> Enum.reduce(
-      state,
-      &Core.Trigger.populate_triggers_for_object!(&2, &1, :group_and_any_interface)
-    )
-  end
-
   def reload_device_deletion_status_on_expiry(state, timestamp) do
     if state.last_deletion_in_progress_refresh + @deletion_refresh_lifespan_decimicroseconds <=
          timestamp do
@@ -154,6 +100,8 @@ defmodule Astarte.DataUpdaterPlant.TimeBasedActions do
       new_state = Core.Device.set_device_disconnected(state, timestamp)
 
       Logger.info("Stop handling data from device in deletion, device_id #{encoded_device_id}")
+
+      Queries.ensure_replicated_group_information(realm, device_id)
 
       # It's ok to repeat that, as we always write ⊤
       Queries.ack_start_device_deletion(realm, device_id)

@@ -20,8 +20,8 @@ AppEngine is Astarte's main API endpoint for end users. AppEngine exposes a REST
 
 ## Realm Management
 
-Realm Management is an *administrator-like* API for configuring a Realm. It is used for managing Interfaces and Triggers.
+Realm Management is an _administrator-like_ API for configuring a Realm. It is used for managing Interfaces and Triggers.
 
 ## Housekeeping
 
-Housekeeping is the equivalent of a *superadmin* API. It is usually not accessible to the end user but rather to Astarte's administrator who, in most cases, might deny overall outside access. It allows to manage and create Realms, and perform cluster-wide maintenance actions.
+Housekeeping is the equivalent of a _superadmin_ API. It is usually not accessible to the end user but rather to Astarte's administrator who, in most cases, might deny overall outside access. It allows to manage and create Realms, and perform cluster-wide maintenance actions.

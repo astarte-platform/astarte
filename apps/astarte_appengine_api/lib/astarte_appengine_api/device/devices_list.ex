@@ -16,6 +16,9 @@
 # limitations under the License.
 
 defmodule Astarte.AppEngine.API.Device.DevicesList do
+  @moduledoc """
+    Data structure representing a paginated list of devices.
+  """
   defstruct [
     :devices,
     :last_token

@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2020 Ispirata Srl
+# Copyright 2017 - 2023 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -17,17 +17,48 @@
 #
 
 defmodule Astarte.RealmManagementWeb.Router do
-  @moduledoc false
+  use Astarte.RealmManagementWeb, :router
 
-  use Plug.Router
+  pipeline :api do
+    plug :accepts, ["json"]
+    plug Astarte.RealmManagementWeb.Plug.LogRealm
+    plug Astarte.RealmManagementWeb.Plug.VerifyRealmExists
+    plug Astarte.RealmManagementWeb.Plug.AuthorizePath
+  end
 
-  plug Astarte.RealmManagementWeb.HealthPlug
-  plug Astarte.RealmManagementWeb.MetricsPlug
+  scope "/v1/:realm_name", Astarte.RealmManagementWeb do
+    pipe_through :api
 
-  plug :match
-  plug :dispatch
+    get "/version", VersionController, :show_with_realm
 
-  match _ do
-    send_resp(conn, 404, "Not found")
+    get "/interfaces/:interface_name", InterfaceVersionController, :index
+    resources "/interfaces", InterfaceController, only: [:index, :create]
+    get "/interfaces/:interface_name/:major_version", InterfaceController, :show
+    put "/interfaces/:interface_name/:major_version", InterfaceController, :update
+    delete "/interfaces/:interface_name/:major_version", InterfaceController, :delete
+    get "/config/auth", RealmConfigController, :show_auth
+    put "/config/auth", RealmConfigController, :update_auth
+
+    get "/config/device_registration_limit",
+        RealmConfigController,
+        :show_device_registration_limit
+
+    get "/config/datastream_maximum_storage_retention",
+        RealmConfigController,
+        :show_datastream_maximum_storage_retention
+
+    resources "/triggers", TriggerController,
+      except: [:new, :edit, :update],
+      param: "trigger_name"
+
+    resources "/policies", TriggerPolicyController,
+      except: [:new, :edit, :update],
+      param: "policy_name"
+
+    delete "/devices/:device_id", DeviceController, :delete
+  end
+
+  scope "/version", Astarte.RealmManagementWeb do
+    get "/", VersionController, :show
   end
 end

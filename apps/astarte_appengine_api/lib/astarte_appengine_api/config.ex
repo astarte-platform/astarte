@@ -20,7 +20,6 @@ defmodule Astarte.AppEngine.API.Config do
   This module contains functions to access the configuration
   """
 
-  alias Astarte.DataAccess.Config, as: DataAccessConfig
   alias Astarte.AppEngine.API.Config.NonNegativeInteger
 
   use Skogsra
@@ -31,7 +30,7 @@ defmodule Astarte.AppEngine.API.Config do
   app_env :max_results_limit, :astarte_appengine_api, :max_results_limit,
     os_env: "APPENGINE_API_MAX_RESULTS_LIMIT",
     type: NonNegativeInteger,
-    default: 10000
+    default: 10_000
 
   @envdoc "The host for the AMQP consumer connection."
   app_env :rooms_amqp_client_host, :astarte_appengine_api, :rooms_amqp_client_host,
@@ -121,45 +120,15 @@ defmodule Astarte.AppEngine.API.Config do
           os_env: "APPENGINE_API_ROOMS_AMQP_CLIENT_SSL_CUSTOM_SNI",
           type: :binary
 
-  @envdoc "The Erlang cluster strategy to use. One of `none`, `kubernetes`. Defaults to `none`."
-  app_env :clustering_strategy,
+  @envdoc """
+  "The handling method for database events. The default is `expose`, which means that the events are exposed trough telemetry. The other possible value, `log`, means that the events are logged instead."
+  """
+  app_env :database_events_handling_method,
           :astarte_appengine_api,
-          :clustering_strategy,
-          os_env: "CLUSTERING_STRATEGY",
-          type: Astarte.AppEngine.API.Config.ClusteringStrategy,
-          default: "none"
-
-  @envdoc "The Endpoint label to use to query Kubernetes to find data updater plant instances. Defaults to `app=astarte-data-updater-plant`."
-  app_env :dup_clustering_kubernetes_selector,
-          :astarte_appengine_api,
-          :dup_clustering_kubernetes_selector,
-          os_env: "DATA_UPDATER_PLANT_CLUSTERING_KUBERNETES_SELECTOR",
-          type: :binary,
-          default: "app=astarte-data-updater-plant"
-
-  @envdoc "The Pod label to use to query Kubernetes to find vernemq instances. Defaults to `app=astarte-vernemq`."
-  app_env :vernemq_clustering_kubernetes_selector,
-          :astarte_appengine_api,
-          :vernemq_clustering_kubernetes_selector,
-          os_env: "VERNEMQ_CLUSTERING_KUBERNETES_SELECTOR",
-          type: :binary,
-          default: "app=astarte-vernemq"
-
-  @envdoc "The name of the Kubernetes service to use to query Kubernetes to find vernemq instances. Defaults to `astarte-vernemq`."
-  app_env :vernemq_clustering_kubernetes_service_name,
-          :astarte_appengine_api,
-          :vernemq_clustering_kubernetes_service_name,
-          os_env: "VERNEMQ_CLUSTERING_KUBERNETES_SERVICE_NAME",
-          type: :binary,
-          default: "astarte-vernemq"
-
-  @envdoc "The Kubernetes namespace to use when `kubernetes` Erlang clustering strategy is used. Defaults to `astarte`."
-  app_env :clustering_kubernetes_namespace,
-          :astarte_appengine_api,
-          :clustering_kubernetes_namespace,
-          os_env: "CLUSTERING_KUBERNETES_NAMESPACE",
-          type: :binary,
-          default: "astarte"
+          :database_events_handling_method,
+          os_env: "DATABASE_EVENTS_HANDLING_METHOD",
+          type: Astarte.AppEngine.API.Config.TelemetryType,
+          default: :expose
 
   @doc """
   Returns the routing key used for Rooms AMQP events consumer. A constant for now.
@@ -217,7 +186,7 @@ defmodule Astarte.AppEngine.API.Config do
     end
   end
 
-  defp build_ssl_options() do
+  defp build_ssl_options do
     [
       cacertfile: rooms_amqp_client_ssl_ca_file!() || CAStore.file_path(),
       verify: :verify_peer,
@@ -234,71 +203,4 @@ defmodule Astarte.AppEngine.API.Config do
       Keyword.put(ssl_options, :server_name_indication, to_charlist(server_name))
     end
   end
-
-  def cluster_topologies!() do
-    case clustering_strategy!() do
-      "none" ->
-        []
-
-      "kubernetes" ->
-        [
-          data_updater_plant_k8s: [
-            strategy: Elixir.Cluster.Strategy.Kubernetes,
-            config: [
-              mode: :ip,
-              kubernetes_node_basename: "astarte_data_updater_plant",
-              kubernetes_selector: dup_clustering_kubernetes_selector!(),
-              kubernetes_namespace: clustering_kubernetes_namespace!(),
-              polling_interval: 10_000
-            ]
-          ],
-          vernemq_k8s: [
-            strategy: Elixir.Cluster.Strategy.Kubernetes,
-            config: [
-              mode: :hostname,
-              kubernetes_service_name: vernemq_clustering_kubernetes_service_name!(),
-              kubernetes_node_basename: "VerneMQ",
-              kubernetes_ip_lookup_mode: :pods,
-              kubernetes_selector: vernemq_clustering_kubernetes_selector!(),
-              kubernetes_namespace: clustering_kubernetes_namespace!(),
-              polling_interval: 10_000
-            ]
-          ]
-        ]
-
-      "docker-compose" ->
-        [
-          data_updater_plant: [
-            strategy: Elixir.Cluster.Strategy.DNSPoll,
-            config: [
-              polling_interval: 5_000,
-              query: "astarte-data-updater-plant",
-              node_basename: "astarte_data_updater_plant"
-            ]
-          ],
-          vernemq: [
-            strategy: Elixir.Cluster.Strategy.DNSPoll,
-            config: [
-              polling_interval: 5_000,
-              query: "vernemq",
-              node_basename: "VerneMQ"
-            ]
-          ]
-        ]
-    end
-  end
-
-  @doc """
-  Returns cassandra nodes formatted in the Xandra format
-  """
-  defdelegate xandra_nodes, to: DataAccessConfig
-  defdelegate xandra_nodes!, to: DataAccessConfig
-
-  @doc """
-  Returns cassandra nodes formatted in the CQEx format
-  """
-  defdelegate xandra_options!, to: DataAccessConfig
-
-  defdelegate astarte_instance_id!, to: DataAccessConfig
-  defdelegate astarte_instance_id, to: DataAccessConfig
 end

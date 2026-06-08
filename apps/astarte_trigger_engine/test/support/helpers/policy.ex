@@ -17,6 +17,10 @@
 #
 
 defmodule Astarte.Helpers.Policy do
+  @moduledoc """
+  Helper module for policy test fixtures.
+  """
+
   alias Astarte.Core.Triggers.Policy
   alias Astarte.Core.Triggers.PolicyProtobuf.Policy, as: PolicyProto
   alias Astarte.DataAccess.KvStore

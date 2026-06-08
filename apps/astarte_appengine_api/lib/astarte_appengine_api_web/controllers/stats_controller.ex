@@ -18,10 +18,28 @@
 
 defmodule Astarte.AppEngine.APIWeb.StatsController do
   use Astarte.AppEngine.APIWeb, :controller
+  use OpenApiSpex.ControllerSpecs
 
   alias Astarte.AppEngine.API.Stats
+  alias OpenApiSpex.Reference
 
   action_fallback Astarte.AppEngine.APIWeb.FallbackController
+
+  tags ["stats"]
+  security [%{"JWT" => []}]
+
+  operation :show_devices_stats,
+    summary: "Retrieve devices stats",
+    description: "Return stats regarding devices in a Realm",
+    operation_id: "getDevicesStats",
+    parameters: [
+      %Reference{"$ref": "#/components/parameters/RealmName"}
+    ],
+    responses: [
+      ok: %Reference{"$ref": "#/components/responses/GetDevicesStats"},
+      unauthorized: %Reference{"$ref": "#/components/responses/Unauthorized"},
+      forbidden: %Reference{"$ref": "#/components/responses/AuthorizationPathNotMatched"}
+    ]
 
   def show_devices_stats(conn, %{"realm_name" => realm_name}) do
     devices_stats = Stats.get_devices_stats(realm_name)

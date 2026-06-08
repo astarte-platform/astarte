@@ -17,12 +17,14 @@
 #
 
 defmodule Astarte.DataUpdaterPlant.DataUpdater.Server do
+  @moduledoc """
+  This module implements the GenServer responsible for managing the state of a single device in the DataUpdaterPlant.
+  """
   use GenServer, restart: :transient
-  alias Astarte.DataUpdaterPlant.DataUpdater.Core
   alias Astarte.DataUpdaterPlant.Config
+  alias Astarte.DataUpdaterPlant.DataUpdater.Core
   alias Astarte.DataUpdaterPlant.DataUpdater.Impl
   alias Astarte.DataUpdaterPlant.MessageTracker
-  alias Astarte.DataUpdaterPlant.DataUpdater.Core
 
   require Logger
 
@@ -152,9 +154,20 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Server do
   end
 
   @impl GenServer
+  def handle_cast({:handle_capabilities, payload, message_id, timestamp}, state) do
+    timeout = Config.data_updater_deactivation_interval_ms!()
+
+    if MessageTracker.can_process_message(state.message_tracker, message_id) do
+      new_state = Impl.handle_capabilities(state, payload, message_id, timestamp)
+      {:no_reply, new_state}
+    else
+      {:noreply, state, timeout}
+    end
+  end
+
+  @impl GenServer
   def handle_call(
-        {:handle_install_volatile_trigger, object_id, object_type, parent_id, trigger_id,
-         simple_trigger, trigger_target},
+        {:handle_install_volatile_trigger, parent_id, trigger_id, simple_trigger, trigger_target},
         _from,
         state
       ) do
@@ -163,8 +176,6 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Server do
     {return_value, new_state} =
       Core.Trigger.handle_install_volatile_trigger(
         state,
-        object_id,
-        object_type,
         parent_id,
         trigger_id,
         simple_trigger,
@@ -185,9 +196,9 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Server do
   def handle_call({:handle_delete_volatile_trigger, trigger_id}, _from, state) do
     timeout = Config.data_updater_deactivation_interval_ms!()
 
-    {result, new_state} = Core.Trigger.handle_delete_volatile_trigger(state, trigger_id)
+    Core.Trigger.handle_delete_volatile_trigger(state, trigger_id)
 
-    {:reply, result, new_state, timeout}
+    {:reply, :ok, state, timeout}
   end
 
   @impl GenServer
@@ -230,7 +241,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Server do
       ) do
     _ =
       Logger.warning(
-        "Received a :name_confict signal from the outer space, maybe a netsplit occurred? Gracefully shutting down.",
+        "Received a :name_conflict signal from the outer space, maybe a netsplit occurred? Gracefully shutting down.",
         tag: "name_conflict"
       )
 

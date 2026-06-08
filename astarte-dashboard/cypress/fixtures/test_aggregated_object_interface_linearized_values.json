@@ -1,0 +1,338 @@
+[
+  {
+    "endpoint": "/sensors/sensor-1/value/binaryblob",
+    "timestamp": "2020-09-28T13:38:32+0000",
+    "value": "",
+    "type": "binaryblob"
+  },
+  {
+    "endpoint": "/sensors/sensor-1/value/boolean",
+    "timestamp": "2020-09-28T13:38:32+0000",
+    "value": null,
+    "type": "boolean"
+  },
+  {
+    "endpoint": "/sensors/sensor-1/value/datetime",
+    "timestamp": "2020-09-28T13:38:32+0000",
+    "value": null,
+    "type": "datetime"
+  },
+  {
+    "endpoint": "/sensors/sensor-1/value/double",
+    "timestamp": "2020-09-28T13:38:32+0000",
+    "value": 0,
+    "type": "double"
+  },
+  {
+    "endpoint": "/sensors/sensor-1/value/integer",
+    "timestamp": "2020-09-28T13:38:32+0000",
+    "value": 0,
+    "type": "integer"
+  },
+  {
+    "endpoint": "/sensors/sensor-1/value/longinteger",
+    "timestamp": "2020-09-28T13:38:32+0000",
+    "value": null,
+    "type": "longinteger"
+  },
+  {
+    "endpoint": "/sensors/sensor-1/value/string",
+    "timestamp": "2020-09-28T13:38:32+0000",
+    "value": "",
+    "type": "string"
+  },
+  {
+    "endpoint": "/sensors/sensor-1/value/binaryblobarray",
+    "timestamp": "2020-09-28T13:38:32+0000",
+    "value": [],
+    "type": "binaryblobarray"
+  },
+  {
+    "endpoint": "/sensors/sensor-1/value/booleanarray",
+    "timestamp": "2020-09-28T13:38:32+0000",
+    "value": [],
+    "type": "booleanarray"
+  },
+  {
+    "endpoint": "/sensors/sensor-1/value/datetimearray",
+    "timestamp": "2020-09-28T13:38:32+0000",
+    "value": [],
+    "type": "datetimearray"
+  },
+  {
+    "endpoint": "/sensors/sensor-1/value/doublearray",
+    "timestamp": "2020-09-28T13:38:32+0000",
+    "value": [],
+    "type": "doublearray"
+  },
+  {
+    "endpoint": "/sensors/sensor-1/value/integerarray",
+    "timestamp": "2020-09-28T13:38:32+0000",
+    "value": [1, 2],
+    "type": "integerarray"
+  },
+  {
+    "endpoint": "/sensors/sensor-1/value/longintegerarray",
+    "timestamp": "2020-09-28T13:38:32+0000",
+    "value": [],
+    "type": "longintegerarray"
+  },
+  {
+    "endpoint": "/sensors/sensor-1/value/stringarray",
+    "timestamp": "2020-09-28T13:38:32+0000",
+    "value": [],
+    "type": "stringarray"
+  },
+  {
+    "endpoint": "/sensors/sensor-1/value/binaryblob",
+    "timestamp": "2020-09-28T13:38:33+0000",
+    "value": "binaryblob1",
+    "type": "binaryblob"
+  },
+  {
+    "endpoint": "/sensors/sensor-1/value/boolean",
+    "timestamp": "2020-09-28T13:38:33+0000",
+    "value": false,
+    "type": "boolean"
+  },
+  {
+    "endpoint": "/sensors/sensor-1/value/datetime",
+    "timestamp": "2020-09-28T13:38:33+0000",
+    "value": "2020-01-01T12:13:14+0000",
+    "type": "datetime"
+  },
+  {
+    "endpoint": "/sensors/sensor-1/value/double",
+    "timestamp": "2020-09-28T13:38:33+0000",
+    "value": 1.2,
+    "type": "double"
+  },
+  {
+    "endpoint": "/sensors/sensor-1/value/integer",
+    "timestamp": "2020-09-28T13:38:33+0000",
+    "value": 1,
+    "type": "integer"
+  },
+  {
+    "endpoint": "/sensors/sensor-1/value/longinteger",
+    "timestamp": "2020-09-28T13:38:33+0000",
+    "value": "987654321",
+    "type": "longinteger"
+  },
+  {
+    "endpoint": "/sensors/sensor-1/value/string",
+    "timestamp": "2020-09-28T13:38:33+0000",
+    "value": "string",
+    "type": "string"
+  },
+  {
+    "endpoint": "/sensors/sensor-1/value/binaryblobarray",
+    "timestamp": "2020-09-28T13:38:33+0000",
+    "value": ["binaryblobarray1", "binaryblobarray2"],
+    "type": "binaryblobarray"
+  },
+  {
+    "endpoint": "/sensors/sensor-1/value/booleanarray",
+    "timestamp": "2020-09-28T13:38:33+0000",
+    "value": [false, true],
+    "type": "booleanarray"
+  },
+  {
+    "endpoint": "/sensors/sensor-1/value/datetimearray",
+    "timestamp": "2020-09-28T13:38:33+0000",
+    "value": ["2020-01-01T12:13:14+0000", "2020-01-01T12:13:14+0000"],
+    "type": "datetimearray"
+  },
+  {
+    "endpoint": "/sensors/sensor-1/value/doublearray",
+    "timestamp": "2020-09-28T13:38:33+0000",
+    "value": [1.1, 2.2],
+    "type": "doublearray"
+  },
+  {
+    "endpoint": "/sensors/sensor-1/value/integerarray",
+    "timestamp": "2020-09-28T13:38:33+0000",
+    "value": [1, 2],
+    "type": "integerarray"
+  },
+  {
+    "endpoint": "/sensors/sensor-1/value/longintegerarray",
+    "timestamp": "2020-09-28T13:38:33+0000",
+    "value": ["1234", "5678"],
+    "type": "longintegerarray"
+  },
+  {
+    "endpoint": "/sensors/sensor-1/value/stringarray",
+    "timestamp": "2020-09-28T13:38:33+0000",
+    "value": ["stringarray1", "stringarray2"],
+    "type": "stringarray"
+  },
+  {
+    "endpoint": "/sensors/sensor-1/value/binaryblob",
+    "timestamp": "2020-09-28T13:38:34+0000",
+    "value": "binaryblob2",
+    "type": "binaryblob"
+  },
+  {
+    "endpoint": "/sensors/sensor-1/value/boolean",
+    "timestamp": "2020-09-28T13:38:34+0000",
+    "value": true,
+    "type": "boolean"
+  },
+  {
+    "endpoint": "/sensors/sensor-1/value/datetime",
+    "timestamp": "2020-09-28T13:38:34+0000",
+    "value": "2020-01-01T12:13:15+0000",
+    "type": "datetime"
+  },
+  {
+    "endpoint": "/sensors/sensor-1/value/double",
+    "timestamp": "2020-09-28T13:38:34+0000",
+    "value": 1.3,
+    "type": "double"
+  },
+  {
+    "endpoint": "/sensors/sensor-1/value/integer",
+    "timestamp": "2020-09-28T13:38:34+0000",
+    "value": 2,
+    "type": "integer"
+  },
+  {
+    "endpoint": "/sensors/sensor-1/value/longinteger",
+    "timestamp": "2020-09-28T13:38:34+0000",
+    "value": "98765",
+    "type": "longinteger"
+  },
+  {
+    "endpoint": "/sensors/sensor-1/value/string",
+    "timestamp": "2020-09-28T13:38:34+0000",
+    "value": "string2",
+    "type": "string"
+  },
+  {
+    "endpoint": "/sensors/sensor-1/value/binaryblobarray",
+    "timestamp": "2020-09-28T13:38:34+0000",
+    "value": ["binaryblobarray3", "binaryblobarray4"],
+    "type": "binaryblobarray"
+  },
+  {
+    "endpoint": "/sensors/sensor-1/value/booleanarray",
+    "timestamp": "2020-09-28T13:38:34+0000",
+    "value": [true, true, false, false],
+    "type": "booleanarray"
+  },
+  {
+    "endpoint": "/sensors/sensor-1/value/datetimearray",
+    "timestamp": "2020-09-28T13:38:34+0000",
+    "value": ["2020-01-01T12:13:15+0000"],
+    "type": "datetimearray"
+  },
+  {
+    "endpoint": "/sensors/sensor-1/value/doublearray",
+    "timestamp": "2020-09-28T13:38:34+0000",
+    "value": [3.3, 4.4],
+    "type": "doublearray"
+  },
+  {
+    "endpoint": "/sensors/sensor-1/value/integerarray",
+    "timestamp": "2020-09-28T13:38:34+0000",
+    "value": [3, 4],
+    "type": "integerarray"
+  },
+  {
+    "endpoint": "/sensors/sensor-1/value/longintegerarray",
+    "timestamp": "2020-09-28T13:38:34+0000",
+    "value": ["4321", "8765"],
+    "type": "longintegerarray"
+  },
+  {
+    "endpoint": "/sensors/sensor-1/value/stringarray",
+    "timestamp": "2020-09-28T13:38:34+0000",
+    "value": ["stringarray3", "stringarray4"],
+    "type": "stringarray"
+  },
+  {
+    "endpoint": "/sensors/sensor-2/value/binaryblob",
+    "timestamp": "2020-09-28T13:38:32+0000",
+    "value": "binaryblob1",
+    "type": "binaryblob"
+  },
+  {
+    "endpoint": "/sensors/sensor-2/value/boolean",
+    "timestamp": "2020-09-28T13:38:32+0000",
+    "value": false,
+    "type": "boolean"
+  },
+  {
+    "endpoint": "/sensors/sensor-2/value/datetime",
+    "timestamp": "2020-09-28T13:38:32+0000",
+    "value": "2020-01-01T12:13:14+0000",
+    "type": "datetime"
+  },
+  {
+    "endpoint": "/sensors/sensor-2/value/double",
+    "timestamp": "2020-09-28T13:38:32+0000",
+    "value": 1.2,
+    "type": "double"
+  },
+  {
+    "endpoint": "/sensors/sensor-2/value/integer",
+    "timestamp": "2020-09-28T13:38:32+0000",
+    "value": 1,
+    "type": "integer"
+  },
+  {
+    "endpoint": "/sensors/sensor-2/value/longinteger",
+    "timestamp": "2020-09-28T13:38:32+0000",
+    "value": "987654321",
+    "type": "longinteger"
+  },
+  {
+    "endpoint": "/sensors/sensor-2/value/string",
+    "timestamp": "2020-09-28T13:38:32+0000",
+    "value": "string",
+    "type": "string"
+  },
+  {
+    "endpoint": "/sensors/sensor-2/value/binaryblobarray",
+    "timestamp": "2020-09-28T13:38:32+0000",
+    "value": ["binaryblobarray1", "binaryblobarray2"],
+    "type": "binaryblobarray"
+  },
+  {
+    "endpoint": "/sensors/sensor-2/value/booleanarray",
+    "timestamp": "2020-09-28T13:38:32+0000",
+    "value": [false, true],
+    "type": "booleanarray"
+  },
+  {
+    "endpoint": "/sensors/sensor-2/value/datetimearray",
+    "timestamp": "2020-09-28T13:38:32+0000",
+    "value": ["2020-01-01T12:13:14+0000", "2020-01-01T12:13:14+0000"],
+    "type": "datetimearray"
+  },
+  {
+    "endpoint": "/sensors/sensor-2/value/doublearray",
+    "timestamp": "2020-09-28T13:38:32+0000",
+    "value": [1.1, 2.2],
+    "type": "doublearray"
+  },
+  {
+    "endpoint": "/sensors/sensor-2/value/integerarray",
+    "timestamp": "2020-09-28T13:38:32+0000",
+    "value": [1, 2],
+    "type": "integerarray"
+  },
+  {
+    "endpoint": "/sensors/sensor-2/value/longintegerarray",
+    "timestamp": "2020-09-28T13:38:32+0000",
+    "value": ["1234", "5678"],
+    "type": "longintegerarray"
+  },
+  {
+    "endpoint": "/sensors/sensor-2/value/stringarray",
+    "timestamp": "2020-09-28T13:38:32+0000",
+    "value": ["stringarray1", "stringarray2"],
+    "type": "stringarray"
+  }
+]

@@ -22,7 +22,7 @@ path format or it's not a valid UTF-8 string.
 ## `mapping_not_found`
 
 The path received in the message can't be found in the interface mappings. This could be the result
-of the device having a more recent version of the inteface than the one installed in the realm or an
+of the device having a more recent version of the interface than the one installed in the realm or an
 interface with the same name and version but different contents.
 
 ## `interface_loading_failed`

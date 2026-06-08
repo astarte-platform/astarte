@@ -16,6 +16,12 @@
 # limitations under the License.
 
 defmodule Astarte.AppEngine.APIWeb.Telemetry.APIUsage do
+  @moduledoc """
+  Telemetry handler for API usage metrics.
+
+  This module hooks into Cowboy request events to measure the data transferred
+  (request and response size) and attributes it to the appropriate Realm.
+  """
   alias Astarte.AppEngine.APIWeb.TelemetryTaskSupervisor
 
   @api_prefix "v1"

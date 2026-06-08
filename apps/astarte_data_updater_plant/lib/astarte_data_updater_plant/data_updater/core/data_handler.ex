@@ -19,28 +19,44 @@
 #
 
 defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DataHandler do
+  @moduledoc """
+  This module is responsible for handling the messages received from the AMQPDataConsumer.
+  """
+  alias Astarte.Core.Device
   alias Astarte.Core.InterfaceDescriptor
   alias Astarte.Core.Mapping.ValueType
-  alias Astarte.DataUpdaterPlant.DataUpdater.State
-  alias Astarte.DataUpdaterPlant.DataUpdater.CachedPath
-  alias Astarte.DataUpdaterPlant.DataUpdater.Cache
-  alias Astarte.DataUpdaterPlant.DataUpdater.Queries
-  alias Astarte.DataUpdaterPlant.MessageTracker
   alias Astarte.DataAccess.Data
-  alias Astarte.Core.Device
-  alias Astarte.DataUpdaterPlant.DataUpdater.PayloadsDecoder
+  alias Astarte.DataUpdaterPlant.DataUpdater.Cache
+  alias Astarte.DataUpdaterPlant.DataUpdater.CachedPath
   alias Astarte.DataUpdaterPlant.DataUpdater.Core
+  alias Astarte.DataUpdaterPlant.DataUpdater.InsertContext
+  alias Astarte.DataUpdaterPlant.DataUpdater.PayloadsDecoder
+  alias Astarte.DataUpdaterPlant.DataUpdater.Queries
+  alias Astarte.DataUpdaterPlant.DataUpdater.State
+  alias Astarte.DataUpdaterPlant.MessageTracker
+  alias Astarte.DataUpdaterPlant.TriggersHandler
 
   require Logger
 
   def handle_data(state, interface, path, payload, message_id, timestamp) do
+    hw_id = Device.encode_device_id(state.device_id)
+
     context = %{
       state: state,
       interface: interface,
       path: path,
       payload: payload,
       message_id: message_id,
-      timestamp: timestamp
+      timestamp: timestamp,
+      hardware_id: hw_id,
+      value_timestamp: nil,
+      value: nil,
+      previous_value: nil,
+      db_max_ttl: nil,
+      interface_descriptor: nil,
+      interface_id: nil,
+      mapping: nil,
+      endpoint_id: nil
     }
 
     with :ok <- validate_interface(context),
@@ -49,129 +65,86 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DataHandler do
          :ok <- can_write_on_interface?(context, interface_descriptor.ownership),
          {:ok, mapping} <- resolve_path(context, interface_descriptor),
          {value, value_timestamp, _metadata} <- decode_bson_payload(context),
-         :ok <- validate_value_type(context, interface_descriptor, mapping, value),
-         :ok <- can_set_to_value(context, interface_descriptor, mapping, value, value_timestamp) do
-      execute_incoming_data_triggers(
-        context,
-        interface_descriptor,
-        mapping,
-        value,
-        value_timestamp
-      )
-
+         :ok <- validate_value_type(context, interface_descriptor, mapping, value) do
       maybe_explicit_value_timestamp =
         if mapping.explicit_timestamp,
           do: value_timestamp,
-          else: div(timestamp, 10000)
+          else: div(timestamp, 10_000)
 
-      context = Map.put(context, :explicit_value_timestamp, maybe_explicit_value_timestamp)
-
-      maybe_change_triggers =
-        Core.Interface.get_value_change_triggers(
-          context.state,
-          interface_descriptor.interface_id,
-          mapping.endpoint_id,
-          path,
-          value
-        )
-
-      previous_value =
-        get_previous_value(context, interface_descriptor, mapping, maybe_change_triggers)
-
-      context = Map.put(context, :previous_value, previous_value)
-
-      :ok =
-        maybe_execute_pre_change_triggers(
-          context,
-          interface_descriptor,
-          value,
-          maybe_change_triggers
-        )
+      previous_value = get_previous_value(context, interface_descriptor, mapping)
 
       realm_max_ttl = context.state.datastream_maximum_storage_retention
 
       db_max_ttl =
-        max_ttl(mapping.database_retention_policy, realm_max_ttl, mapping.database_retention_ttl)
+        max_ttl(
+          mapping.database_retention_policy,
+          realm_max_ttl,
+          mapping.database_retention_ttl
+        )
 
-      context = Map.put(context, :db_max_ttl, db_max_ttl)
+      context = %{
+        context
+        | interface_descriptor: interface_descriptor,
+          interface_id: interface_descriptor.interface_id,
+          mapping: mapping,
+          endpoint_id: mapping.endpoint_id,
+          db_max_ttl: db_max_ttl,
+          value: value,
+          previous_value: previous_value,
+          value_timestamp: maybe_explicit_value_timestamp
+      }
 
-      # Here value cannot be nil, otherwise `can_set_to_value/5` would have not
-      # been :ok
-      if interface_descriptor.type == :datastream,
-        do: maybe_insert_path(context, interface_descriptor, mapping)
+      # We want to execute incoming data triggers even if we can't set to value
+      execute_incoming_data_triggers(context)
 
-      Queries.insert_value_into_db(
-        context.state.realm,
-        context.state.device_id,
-        interface_descriptor,
-        mapping,
-        path,
-        value,
-        maybe_explicit_value_timestamp,
-        timestamp,
-        ttl: db_max_ttl
-      )
-      |> handle_result(context, maybe_change_triggers, interface_descriptor, value)
+      with :ok <- can_set_to_value(context, interface_descriptor, value) do
+        set_value(context)
+      end
     end
   end
 
-  defp maybe_execute_pre_change_triggers(
-         context,
-         interface_descriptor,
-         value,
-         {:ok, change_triggers}
-       ) do
+  defp set_value(context) do
     %{
-      state: state,
+      db_max_ttl: db_max_ttl,
+      interface_descriptor: interface_descriptor,
+      mapping: mapping,
       path: path,
-      previous_value: previous_value,
-      explicit_value_timestamp: explicit_value_timestamp
+      state: state,
+      timestamp: timestamp,
+      value_timestamp: maybe_explicit_value_timestamp,
+      value: value
     } = context
 
-    Core.Trigger.execute_pre_change_triggers(
-      change_triggers,
-      state.realm,
-      Device.encode_device_id(state.device_id),
-      interface_descriptor.name,
-      path,
-      previous_value,
-      value,
-      explicit_value_timestamp,
-      state.trigger_id_to_policy_name
-    )
-  end
+    %{realm: realm, device_id: device_id} = state
 
-  defp maybe_execute_pre_change_triggers(_, _, _, _), do: :ok
+    if interface_descriptor.type == :properties do
+      :ok = Core.Trigger.execute_pre_change_triggers(context)
+    end
 
-  defp maybe_execute_post_change_triggers(
-         context,
-         interface_descriptor,
-         value,
-         {:ok, change_triggers}
-       ) do
-    %{
-      state: state,
+    # Here value cannot be nil, otherwise `can_set_to_value/5` would have not
+    # been :ok
+    if interface_descriptor.type == :datastream do
+      maybe_insert_path(context, interface_descriptor, mapping)
+    end
+
+    insert_context = %InsertContext{
+      realm: realm,
+      device_id: device_id,
+      interface_descriptor: interface_descriptor,
+      mapping: mapping,
       path: path,
-      previous_value: previous_value,
-      explicit_value_timestamp: explicit_value_timestamp
-    } = context
+      value: value,
+      value_timestamp: maybe_explicit_value_timestamp,
+      reception_timestamp: timestamp,
+      opts: [ttl: db_max_ttl]
+    }
 
-    Core.Trigger.execute_post_change_triggers(
-      change_triggers,
-      state.realm,
-      Device.encode_device_id(state.device_id),
-      interface_descriptor.name,
-      path,
-      previous_value,
-      value,
-      explicit_value_timestamp,
-      state.trigger_id_to_policy_name
-    )
+    Queries.insert_value_into_db(insert_context)
+    |> handle_result(context)
   end
 
-  defp maybe_execute_post_change_triggers(_, _, _, _), do: :ok
-
-  defp get_previous_value(context, interface_descriptor, mapping, {:ok, _change_triggers}) do
+  defp get_previous_value(context, interface_descriptor, mapping)
+       when interface_descriptor.type == :properties do
     %{state: state, path: path} = context
 
     case Data.fetch_property(state.realm, state.device_id, interface_descriptor, mapping, path) do
@@ -180,9 +153,9 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DataHandler do
     end
   end
 
-  defp get_previous_value(_, _, _, _), do: nil
+  defp get_previous_value(_, _, _), do: nil
 
-  defp handle_result({:error, :unset_not_allowed}, context, _, _, _) do
+  defp handle_result({:error, :unset_not_allowed}, context) do
     error = %{
       message: "Tried to unset a property with `allow_unset`=false.",
       logger_metadata: [tag: "unset_not_allowed"],
@@ -193,22 +166,20 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DataHandler do
     Core.Error.handle_error(context, error, update_stats: false)
   end
 
-  defp handle_result(:ok, context, maybe_change_triggers, interface_descriptor, value) do
+  defp handle_result(:ok, context) do
     %{
       state: state,
       path: path,
       payload: payload,
       interface: interface,
       message_id: message_id,
+      interface_descriptor: interface_descriptor,
       db_max_ttl: db_max_ttl
     } = context
 
-    maybe_execute_post_change_triggers(
-      context,
-      interface_descriptor,
-      value,
-      maybe_change_triggers
-    )
+    if interface_descriptor.type == :properties do
+      Core.Trigger.execute_post_change_triggers(context)
+    end
 
     paths_cache = Cache.put(state.paths_cache, {interface, path}, %CachedPath{}, db_max_ttl)
     state = %{state | paths_cache: paths_cache}
@@ -233,11 +204,20 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DataHandler do
       interface: interface,
       path: path,
       timestamp: timestamp,
-      explicit_value_timestamp: explicit_value_timestamp,
+      value_timestamp: explicit_value_timestamp,
       db_max_ttl: db_max_ttl
     } = context
 
-    with false <- Cache.has_key?(state.paths_cache, {interface, path}),
+    cache_hit = Cache.has_key?(state.paths_cache, {interface, path})
+
+    # Track path cache performance
+    :telemetry.execute(
+      [:astarte, :data_updater_plant, :data_handler, :path_cache],
+      %{},
+      %{realm: state.realm, result: if(cache_hit, do: "hit", else: "miss")}
+    )
+
+    with false <- cache_hit,
          false <-
            Queries.fetch_path_expiry(
              state.realm,
@@ -246,7 +226,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DataHandler do
              mapping,
              path
            )
-           |> is_still_valid?(db_max_ttl) do
+           |> still_valid?(db_max_ttl) do
       Queries.insert_path_into_db(
         state.realm,
         state.device_id,
@@ -262,14 +242,9 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DataHandler do
 
   defp can_set_to_value(
          context,
-         %InterfaceDescriptor{type: :datastream} = interface_descriptor,
-         mapping,
-         nil,
-         value_timestamp
+         %InterfaceDescriptor{type: :datastream},
+         nil
        ) do
-    # We still want to execute incoming data triggers
-    execute_incoming_data_triggers(context, interface_descriptor, mapping, nil, value_timestamp)
-
     error = %{
       message: "Tried to unset a datastream.",
       error_name: "unset_on_datastream",
@@ -279,34 +254,10 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DataHandler do
     Core.Error.handle_error(context, error, ask_clean_session: false, update_stats: false)
   end
 
-  defp can_set_to_value(_context, _descriptor, _mapping, _value, _value_timestamp), do: :ok
+  defp can_set_to_value(_context, _descriptor, _value), do: :ok
 
-  defp execute_incoming_data_triggers(
-         context,
-         interface_descriptor,
-         mapping,
-         value,
-         value_timestamp
-       ) do
-    %{state: state, path: path, payload: payload} = context
-    interface_id = interface_descriptor.interface_id
-
-    maybe_explicit_value_timestamp =
-      if mapping.explicit_timestamp,
-        do: value_timestamp,
-        else: div(context.timestamp, 10000)
-
-    Core.DataTrigger.execute_incoming_data_triggers(
-      state,
-      Device.encode_device_id(state.device_id),
-      interface_descriptor.name,
-      interface_id,
-      path,
-      mapping.endpoint_id,
-      payload,
-      value,
-      maybe_explicit_value_timestamp
-    )
+  defp execute_incoming_data_triggers(context) do
+    TriggersHandler.incoming_data(context)
   end
 
   defp maybe_handle_cache_miss(context) do
@@ -319,6 +270,13 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DataHandler do
 
     case cache_miss do
       {:error, :interface_loading_failed} ->
+        # Track interface cache miss
+        :telemetry.execute(
+          [:astarte, :data_updater_plant, :data_handler, :interface_cache_miss],
+          %{},
+          %{realm: state.realm, interface: interface, result: "failed"}
+        )
+
         error = %{
           message: "Cannot load interface: #{interface}.",
           logger_metadata: [tag: "interface_loading_failed"],
@@ -328,6 +286,16 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DataHandler do
         Core.Error.handle_error(context, error)
 
       {:ok, descriptor, state} ->
+        # Track successful interface cache hit or successful load
+        cache_result =
+          if Map.has_key?(state.interfaces, interface), do: "hit", else: "miss_resolved"
+
+        :telemetry.execute(
+          [:astarte, :data_updater_plant, :data_handler, :interface_cache],
+          %{},
+          %{realm: state.realm, interface: interface, result: cache_result}
+        )
+
         new_context = Map.put(context, :state, state)
         {:ok, descriptor, new_context}
     end
@@ -380,11 +348,11 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DataHandler do
   defp path_ttl(nil), do: nil
   defp path_ttl(retention_secs), do: retention_secs * 2 + div(retention_secs, 2)
 
-  defp is_still_valid?({:error, :property_not_set}, _ttl), do: false
-  defp is_still_valid?({:ok, :no_expiry}, _ttl), do: true
-  defp is_still_valid?({:ok, _expiry_date}, nil), do: false
+  defp still_valid?({:error, :property_not_set}, _ttl), do: false
+  defp still_valid?({:ok, :no_expiry}, _ttl), do: true
+  defp still_valid?({:ok, _expiry_date}, nil), do: false
 
-  defp is_still_valid?({:ok, expiry_date}, ttl) do
+  defp still_valid?({:ok, expiry_date}, ttl) do
     expiry_secs = DateTime.to_unix(expiry_date)
 
     now_secs =

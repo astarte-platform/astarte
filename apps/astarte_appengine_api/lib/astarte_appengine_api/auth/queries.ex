@@ -16,10 +16,16 @@
 # limitations under the License.
 
 defmodule Astarte.AppEngine.API.Auth.Queries do
+  @moduledoc """
+  Database queries for authentication data.
+
+  This module handles the retrieval of security-related configuration 
+  from the realm's Key-Value store.
+  """
+  alias Astarte.DataAccess.Consistency
   alias Astarte.DataAccess.KvStore
   alias Astarte.DataAccess.Realms.Realm
   alias Astarte.DataAccess.Repo
-  alias Astarte.DataAccess.Consistency
 
   import Ecto.Query
 

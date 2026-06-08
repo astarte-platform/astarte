@@ -1,10 +1,10 @@
 {
-    "astarte_api_url": "http://api.astarte.localhost",
-    "default_auth": "token",
-    "enable_flow_preview": false,
-    "auth": [
-        {
-            "type": "token"
-        }
-    ]
+  "astarte_api_url": "http://api.astarte.localhost",
+  "default_auth": "token",
+  "enable_flow_preview": false,
+  "auth": [
+    {
+      "type": "token"
+    }
+  ]
 }

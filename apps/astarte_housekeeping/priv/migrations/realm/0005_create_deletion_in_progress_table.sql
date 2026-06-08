@@ -1,4 +1,4 @@
-CREATE TABLE deletion_in_progress (
+CREATE TABLE :keyspace.deletion_in_progress (
   device_id uuid,
   vmq_ack boolean,
   dup_start_ack boolean,

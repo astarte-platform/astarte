@@ -1,0 +1,273 @@
+/*
+   This file is part of Astarte.
+
+   Copyright 2017-2021 Ispirata Srl
+
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+*/
+
+$green: #33a344;
+$red: #dc3545;
+$dark-blue: #27303d;
+$grey: #7f7f7e;
+$black: #000;
+
+$primary: #3862b7;
+
+$navbar-width: 13em;
+$navbar-color: $dark-blue;
+$navbar-padding-y: 0rem;
+$navbar-padding-x: 0rem;
+$nav-link-padding-y: 1rem;
+$nav-link-padding-x: 1.3rem;
+$code-color: $dark-blue;
+
+$form-feedback-icon-valid: none;
+
+@import 'bootstrap/scss/bootstrap.scss';
+
+$fa-font-path: '@fortawesome/fontawesome-free/webfonts';
+
+@import '@fortawesome/fontawesome-free/scss/fontawesome';
+@import '@fortawesome/fontawesome-free/scss/solid';
+@import '@fortawesome/fontawesome-free/scss/regular';
+
+@import './flow-editor';
+
+// Custom components
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+.h1,
+.h2,
+.h3,
+.h4,
+.h5,
+.h6 {
+  color: $black;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+.h1,
+.h2,
+.h3,
+.h4,
+.h5 {
+  margin-bottom: 0.75rem;
+}
+
+h6,
+.h6 {
+  margin-bottom: 0.1em;
+}
+
+.form-control-label {
+  color: $black;
+}
+
+.color-green {
+  color: $green;
+}
+
+.color-grey {
+  color: $grey;
+}
+
+.color-red {
+  color: $red;
+}
+
+.color-yellow {
+  color: $yellow;
+}
+
+.login-form {
+  max-width: 50rem;
+}
+
+.login-image-container {
+  height: 100vh;
+  background-color: $dark-blue;
+
+  .top-background-image {
+    top: 0;
+  }
+
+  .bottom-background-image {
+    bottom: 0;
+  }
+
+  .logo {
+    width: 26rem;
+  }
+
+  .mascotte {
+    width: 19rem;
+  }
+}
+
+.nav-col {
+  width: $navbar-width;
+  background-color: $navbar-color;
+  min-height: 100vh;
+}
+
+.nav-brand {
+  width: 100%;
+  padding: 0.7rem 1rem;
+  margin: 0;
+  text-align: center;
+  background-color: darken($navbar-color, 5%);
+}
+
+.brand-logo {
+  width: 100%;
+  margin: auto;
+}
+
+.nav-link {
+  color: $navbar-dark-color;
+
+  &.active {
+    color: $navbar-dark-active-color;
+    background-color: lighten($navbar-color, 25%);
+  }
+
+  &:hover {
+    color: $navbar-dark-active-color;
+  }
+}
+
+.nav-item {
+  color: $navbar-dark-color;
+
+  hr {
+    margin: 1rem 0.5rem;
+    border-color: rgba($navbar-dark-color, 0.2);
+  }
+}
+
+.dashboard-version {
+  font-size: 0.65rem;
+  color: $navbar-dark-color;
+  padding: 1.2rem 0 1rem $nav-link-padding-x;
+}
+
+.nav-status {
+  font-size: 0.9rem;
+
+  b {
+    color: rgba($navbar-dark-active-color, 0.7);
+  }
+
+  p {
+    margin-bottom: 0.5rem;
+  }
+}
+
+.icon-spacer {
+  width: 1.7rem;
+  display: inline-block;
+  text-align: center;
+}
+
+.login-logo {
+  position: relative;
+  top: 10px;
+  z-index: 2;
+}
+
+.warning-feedback {
+  display: block;
+  width: 100%;
+  margin-top: 0.25rem;
+  font-size: 70%;
+  color: $warning;
+}
+
+.suggestion {
+  position: absolute;
+  top: 2.4rem;
+  right: 1.4rem;
+}
+
+.suggestion-icon {
+  color: $warning;
+}
+
+.suggestion-bubble {
+  position: absolute;
+  top: 2.2rem;
+  right: -1.5rem;
+  background-color: white;
+  border: 1px solid $warning;
+  border-radius: 3px;
+  padding: 0.6rem;
+  max-width: 20rem;
+  min-width: 14rem;
+  z-index: $zindex-popover;
+
+  &::before {
+    content: ' ';
+    position: absolute;
+    top: -0.5rem;
+    right: 1.4rem;
+    width: 1rem;
+    height: 1rem;
+    background-color: white;
+    border-top: 1.4px solid $warning;
+    border-left: 1.4px solid $warning;
+    transform: rotate(45deg);
+  }
+}
+
+.device-data-piechart {
+  max-height: 20em;
+  height: 100%;
+}
+
+.square {
+  display: inline-block;
+  width: 1em;
+  height: 1em;
+  vertical-align: middle;
+}
+
+.device-event-container {
+  height: 50em;
+  overflow-y: scroll;
+  background-color: #fbfbfb;
+}
+
+.status-column,
+.action-column {
+  width: 4em;
+}
+
+.action-icon {
+  cursor: pointer;
+}
+
+/* Bootstrap overwrite */
+
+.table th {
+  border-top: 0;
+}

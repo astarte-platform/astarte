@@ -17,6 +17,12 @@
 #
 
 defmodule Astarte.AppEngine.API.Rooms.MasterSupervisor do
+  @moduledoc """
+  Supervisor for Astarte Rooms.
+  This supervisor manages the Registry for Rooms and the RoomsSupervisor.
+  It uses a :rest_for_one strategy to ensure that if the Registry crashes,
+  all Rooms are also restarted.
+  """
   use Supervisor
 
   def start_link(args) do

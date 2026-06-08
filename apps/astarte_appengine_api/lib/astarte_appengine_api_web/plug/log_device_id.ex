@@ -17,6 +17,9 @@
 #
 
 defmodule Astarte.AppEngine.APIWeb.Plug.LogDeviceId do
+  @moduledoc """
+  Plug that injects the device_id into the Logger metadata.
+  """
   def init(opts) do
     opts
   end

@@ -16,6 +16,9 @@
 # limitations under the License.
 
 defmodule Astarte.AppEngine.API.Auth.User do
+  @moduledoc """
+  this module defines the User struct used in Astarte AppEngine API authentication.
+  """
   @enforce_keys [:id]
   defstruct [
     :id,

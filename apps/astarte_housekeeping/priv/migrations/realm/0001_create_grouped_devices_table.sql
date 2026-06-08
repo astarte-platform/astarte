@@ -1,4 +1,4 @@
-CREATE TABLE grouped_devices (
+CREATE TABLE :keyspace.grouped_devices (
   group_name varchar,
   insertion_uuid timeuuid,
   device_id uuid,

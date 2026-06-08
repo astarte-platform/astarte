@@ -34,5 +34,5 @@ defmodule Astarte.AppEngine.API.RPC.DataUpdaterPlant.Client do
     |> GenServer.call({:delete_volatile_trigger, request_data})
   end
 
-  defp server_via_tuple(), do: {:via, Horde.Registry, {Registry.DataUpdaterRPC, :server}}
+  defp server_via_tuple, do: {:via, Horde.Registry, {Registry.DataUpdaterRPC, :server}}
 end

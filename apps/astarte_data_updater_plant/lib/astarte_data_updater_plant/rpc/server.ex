@@ -23,7 +23,7 @@ defmodule Astarte.DataUpdaterPlant.RPC.Server do
   This server receives incoming calls from other astarte services and queues the
   calls to the appropriate dup services to handle the calls.
   """
-
+  alias Astarte.DataUpdaterPlant.DataUpdater
   alias Astarte.DataUpdaterPlant.RPC.Server.Core
 
   use GenServer, restart: :transient
@@ -42,6 +42,13 @@ defmodule Astarte.DataUpdaterPlant.RPC.Server do
   def init(_args) do
     Process.flag(:trap_exit, true)
     {:ok, []}
+  end
+
+  @impl GenServer
+  def handle_call({:start_device_deletion, {realm_name, hw_id}}, _from, state) do
+    now = DateTime.utc_now() |> DateTime.to_unix(:microsecond) |> Kernel.*(10)
+    DataUpdater.start_device_deletion(realm_name, hw_id, now)
+    {:reply, :ok, state}
   end
 
   @impl GenServer

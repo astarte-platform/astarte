@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2020 Ispirata Srl
+# Copyright 2020 - 2025 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -17,9 +17,14 @@
 #
 
 defmodule Astarte.HousekeepingWeb.MetricsPlug do
+  @moduledoc false
+  @behaviour Plug
+
   import Plug.Conn
 
-  def init(_args), do: nil
+  def init(_opts) do
+    nil
+  end
 
   def call(%{request_path: "/metrics", method: "GET"} = conn, _opts) do
     metrics = TelemetryMetricsPrometheus.Core.scrape()
@@ -30,5 +35,7 @@ defmodule Astarte.HousekeepingWeb.MetricsPlug do
     |> halt()
   end
 
-  def call(conn, _opts), do: conn
+  def call(conn, _opts) do
+    conn
+  end
 end

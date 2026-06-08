@@ -17,6 +17,9 @@
 #
 
 defmodule Astarte.DataUpdaterPlant.MessageTracker do
+  @moduledoc """
+  This module implements the GenServer responsible for tracking the messages.
+  """
   def track_delivery(message_tracker, message_id, delivery_tag) do
     GenServer.cast(message_tracker, {:track_delivery, message_id, delivery_tag})
   end

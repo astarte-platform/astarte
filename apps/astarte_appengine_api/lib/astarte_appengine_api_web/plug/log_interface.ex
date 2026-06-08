@@ -17,6 +17,9 @@
 #
 
 defmodule Astarte.AppEngine.APIWeb.Plug.LogInterface do
+  @moduledoc """
+  Plug that injects the interface name into the Logger metadata
+  """
   def init(opts) do
     opts
   end

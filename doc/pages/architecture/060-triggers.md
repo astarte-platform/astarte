@@ -8,8 +8,7 @@ HTTP.
 Given this kind of flexibility, triggers are the most powerful way to push data to an external
 service, potentially without any additional customization.
 
-Triggers can be managed from [Realm Management
-API](api/index.html?urls.primaryName=Realm%20Management%20API#/trigger), `astartectl` with the
+Triggers can be managed from [Realm Management API](api/index.html?urls.primaryName=Realm%20Management%20API#/trigger), `astartectl` with the
 `astartectl realm-management triggers` subcommand, or Astarte Dashboard in the `Triggers` page.
 
 ## Building Triggers
@@ -82,8 +81,7 @@ A condition defines the event upon which an action is triggered. Conditions are 
 simple triggers. Astarte monitors incoming events and triggers a corresponding action whenever there
 is a match.
 
-Simple triggers are divided into two types: [Device Triggers](#device-triggers) and [Data
-Triggers](#data-triggers).
+Simple triggers are divided into two types: [Device Triggers](#device-triggers) and [Data Triggers](#data-triggers).
 
 ### Device Triggers
 
@@ -107,6 +105,13 @@ This is the generic representation of a Device Trigger:
 - `device_connected`: triggered when a device connects to its transport.
 - `device_disconnected`: triggered when a device disconnects from its transport.
 - `device_error`: triggered when data from a device causes an error.
+- `device_registered`: triggered when a device is registered to Astarte.
+- `device_deletion_started`: triggered when the deletion of a device is started.
+- `device_deletion_finished`: triggered when the deletion of a device is finished.
+- `incoming_introspection`: triggered when Astarte receives an [introspection message](080-mqtt-v1-protocol.md.html#introspection) from the device.
+- `interface_added`: triggered when an interface is added to the device introspection.
+- `interface_removed`: triggered when an interface is removed from the device introspection.
+- `interface_minor_updated`: triggered when the device introspection contains a new minor version of an interface.
 
 `device_id` can be used to pass a specific Device ID to restrict the trigger to a single device. `*`
 is also accepted as `device_id` to maintain backwards compatibility and it is considered equivalent
@@ -292,12 +297,108 @@ Additionally, the realm that originated the trigger is available in the request 
 }
 ```
 
-`error_name` is a string identifying the error. More details can be found in the [device errors
-documentation](045-device_errors.html)
+`error_name` is a string identifying the error. More details can be found in the [device errors documentation](045-device_errors.html)
 
 `metadata` is a map with string key and string values that may contain additional information about
 the error. Some metadata (_e.g._ binary payloads) might be encoded in base64 if they cannot be
 represented as string. In that case, the key is prepended with the `base64_` prefix.
+
+###### DeviceRegisteredEvent
+
+```json
+{
+  "type": "device_registered"
+}
+```
+
+###### DeviceDeletionStartedEvent
+
+```json
+{
+  "type": "device_deletion_started"
+}
+```
+
+###### DeviceDeletionFinishedEvent
+
+```json
+{
+  "type": "device_deletion_finished"
+}
+```
+
+###### IncomingIntrospectionEvent
+
+```json
+{
+  "type": "incoming_introspection",
+  "introspection_map": {
+    "<interface_name>": {
+      "major": <major_value>,
+      "minor":  <minor_value>
+    },
+    ...
+  }
+}
+```
+
+`interface_name` is the name of an interface. There is one map entry for each interface in the introspection.
+
+`<major_value>` is the major version of the interface.
+
+`<minor_value>` is the minor version of the interface.
+
+###### InterfaceAddedEvent
+
+```json
+{
+  "type": "interface_added",
+  "interface": "<interface_name>",
+  "major_version": <major_value>,
+  "minor_version":  <minor_value>
+}
+```
+
+`interface_name` is the name of the interface.
+
+`<major_value>` is the major version of the interface.
+
+`<minor_value>` is the minor version of the interface.
+
+###### InterfaceRemovedEvent
+
+```json
+{
+  "type": "interface_removed",
+  "interface": "<interface_name>",
+  "major_version": <major_value>
+}
+```
+
+`interface_name` is the name of the interface.
+
+`<major_value>` is the major version of the interface.
+
+###### InterfaceMinorUpdatedEvent
+
+```json
+{
+  "type": "interface_minor_updated",
+  "interface": "<interface_name>",
+  "major_version": <major_value>,
+  "old_minor_version":  <old_minor_value>,
+  "new_minor_version":  <new_minor_value>
+
+}
+```
+
+`interface_name` is the name of the interface.
+
+`<major_value>` is the major version of the interface.
+
+`<old_minor_value>` is the old, outdated minor version of the interface declared by the device.
+
+`<new_minor_value>` is the new minor version of the interface declared by the device.
 
 ###### IncomingDataEvent
 
@@ -441,8 +542,7 @@ The `ignore_ssl_errors` key is optional and defaults to `false`. If set to `true
 encountered while doing the HTTP request will be ignored. This can be useful if the trigger must
 ignore self-signed or expired certificates.
 
-Moreover, depending on the event type, all keys that are contained in the events [described in the
-previous section](#event-objects) are available, always by wrapping them in `{{ }}`.
+Moreover, depending on the event type, all keys that are contained in the events [described in the previous section](#event-objects) are available, always by wrapping them in `{{ }}`.
 
 The realm is also sent in the `Astarte-Realm` header.
 
@@ -484,6 +584,7 @@ Device ydqBlFsGQ--xZ-_efQxuLw just connected from IP 172.18.0.1
 ```
 
 ### Trigger Delivery Policies
+
 When an [HTTP action](060-triggers.html#http-actions) is triggered, an event is sent to a specific URL.
 However, it is possible that the request is not successfully completed, e.g. the required resource is momentarily not available.
 [Trigger Delivery Policies](062-trigger_delivery_policies.html) specify what to do in case of delivery errors and
@@ -525,15 +626,32 @@ It is possible to configure more advanced AMQP 0-9-1 actions:
   },
   "amqp_message_expiration_ms": 10000,
   "amqp_message_priority": 0,
-  "amqp_message_persistent": true,
+  "amqp_message_persistent": true
 }
 ```
 
 Some Astarte specific restrictions apply:
-* `amqp_exchange` must have `astarte_events_<realm-name>_<any-allowed-string>` format.
-* `amqp_routing_key` must not contain `{` and `}`, which are reserved for future uses.
+
+- `amqp_exchange` must have `astarte_events_<realm-name>_<any-allowed-string>` format.
+- `amqp_routing_key` must not contain `{` and `}`, which are reserved for future uses.
 
 For further details [RabbitMQ documentation](https://www.rabbitmq.com/amqp-0-9-1-reference.html) is suggested.
+
+Starting from version v1.3.0, AMQP exchanges for AMQP actions are declared inside a dedicated RabbitMQ vhost associated with the target realm. The vhost naming convention is:
+
+```
+/[astarte_instance_id]_[realm_name]
+```
+
+but under normal circumstances, astarte_instance_id is not set, so it becomes:
+
+```
+/_[realm_name]
+```
+
+As a result, the action will now refer to the exchange within the realm-specific vhost, rather than under the default `/` vhost as in the previous logic.
+
+For additional details regarding the Astarte Instance ID, you can refer to [its documentation](090-database.html#astarte-instance-id)
 
 ## Relationship with Channels
 

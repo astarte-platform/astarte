@@ -1,25 +1,25 @@
 {
-    "interface_name": "org.astarte-platform.genericsensors.SamplingRate",
-    "version_major": 1,
-    "version_minor": 0,
-    "type": "properties",
-    "ownership": "server",
-    "description": "Configure sensors sampling rate and enable/disable.",
-    "doc": "This interface allows to set generic sensors sampling rate and enable/disable policies for each sensor. Sensors are identified by their sensor_id. See also org.astarte-platform.genericsensors.AvailableSensors.",
-    "mappings": [
-        {
-            "endpoint": "/%{sensor_id}/enable",
-            "type": "boolean",
-            "allow_unset": true,
-            "description": "Enable/disable sensor data transmission.",
-            "doc": "When true sampled data transmission is always on, otherwise when false is off. When unset data transmission policy is up to the sensor."
-        },
-        {
-            "endpoint": "/%{sensor_id}/samplingPeriod",
-            "type": "integer",
-            "allow_unset": true,
-            "description": "Sensor sample transmission period.",
-            "doc": "Send a sampled value every samplingPeriod seconds. When unset sampling period is up to the sensor."
-        }
-    ]
+  "interface_name": "org.astarte-platform.genericsensors.SamplingRate",
+  "version_major": 1,
+  "version_minor": 0,
+  "type": "properties",
+  "ownership": "server",
+  "description": "Configure sensors sampling rate and enable/disable.",
+  "doc": "This interface allows to set generic sensors sampling rate and enable/disable policies for each sensor. Sensors are identified by their sensor_id. See also org.astarte-platform.genericsensors.AvailableSensors.",
+  "mappings": [
+    {
+      "endpoint": "/%{sensor_id}/enable",
+      "type": "boolean",
+      "allow_unset": true,
+      "description": "Enable/disable sensor data transmission.",
+      "doc": "When true sampled data transmission is always on, otherwise when false is off. When unset data transmission policy is up to the sensor."
+    },
+    {
+      "endpoint": "/%{sensor_id}/samplingPeriod",
+      "type": "integer",
+      "allow_unset": true,
+      "description": "Sensor sample transmission period.",
+      "doc": "Send a sampled value every samplingPeriod seconds. When unset sampling period is up to the sensor."
+    }
+  ]
 }

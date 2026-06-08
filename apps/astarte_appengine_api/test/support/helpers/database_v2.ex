@@ -17,9 +17,11 @@
 #
 
 defmodule Astarte.Helpers.DatabaseV2 do
+  @moduledoc false
+
   alias Astarte.Core.Realm
-  alias Astarte.DataAccess.Repo
   alias Astarte.DataAccess.Realms.Realm
+  alias Astarte.DataAccess.Repo
 
   @create_keyspace """
   CREATE KEYSPACE :keyspace
@@ -29,7 +31,7 @@ defmodule Astarte.Helpers.DatabaseV2 do
   """
 
   @drop_keyspace """
-  DROP KEYSPACE :keyspace
+  DROP KEYSPACE IF EXISTS :keyspace
   """
 
   @create_realms_table """
@@ -61,6 +63,12 @@ defmodule Astarte.Helpers.DatabaseV2 do
   )
   """
 
+  @create_capabilities_type """
+  CREATE TYPE :keyspace.capabilities (
+    purge_properties_compression_format int
+  );
+  """
+
   @create_devices_table """
   CREATE TABLE :keyspace.devices (
     device_id uuid,
@@ -86,6 +94,7 @@ defmodule Astarte.Helpers.DatabaseV2 do
     last_credentials_request_ip inet,
     last_seen_ip inet,
     attributes map<varchar, varchar>,
+    capabilities capabilities,
 
     groups map<text, timeuuid>,
 
@@ -219,6 +228,7 @@ defmodule Astarte.Helpers.DatabaseV2 do
       vmq_ack boolean,
       dup_start_ack boolean,
       dup_end_ack boolean,
+      groups set<text>,
       PRIMARY KEY ((device_id))
     )
   """
@@ -238,6 +248,7 @@ defmodule Astarte.Helpers.DatabaseV2 do
   def setup!(realm_name) do
     realm_keyspace = Realm.keyspace_name(realm_name)
     execute!(realm_keyspace, @create_keyspace)
+    execute!(realm_keyspace, @create_capabilities_type)
     execute!(realm_keyspace, @create_devices_table)
     execute!(realm_keyspace, @create_groups_table)
     execute!(realm_keyspace, @create_names_table)
@@ -264,8 +275,8 @@ defmodule Astarte.Helpers.DatabaseV2 do
     realm_keyspace = Realm.keyspace_name(realm_name)
     astarte_keyspace = Realm.astarte_keyspace_name()
 
-    execute!(realm_keyspace, @drop_keyspace)
-    execute!(astarte_keyspace, @drop_keyspace)
+    execute!(realm_keyspace, @drop_keyspace, [], timeout: 60_000)
+    execute!(astarte_keyspace, @drop_keyspace, [], timeout: 60_000)
 
     :ok
   end

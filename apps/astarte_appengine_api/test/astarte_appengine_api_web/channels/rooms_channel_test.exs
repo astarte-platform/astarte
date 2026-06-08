@@ -26,6 +26,7 @@ defmodule Astarte.AppEngine.APIWeb.RoomsChannelTest do
   alias Astarte.AppEngine.API.Utils
   alias Astarte.AppEngine.APIWeb.RoomsChannel
   alias Astarte.AppEngine.APIWeb.UserSocket
+  alias Astarte.Core.Device
   alias Astarte.Core.Triggers.SimpleEvents.IncomingDataEvent
   alias Astarte.Core.Triggers.SimpleEvents.SimpleEvent
   alias Astarte.Helpers.Database, as: DatabaseTestHelper
@@ -338,30 +339,32 @@ defmodule Astarte.AppEngine.APIWeb.RoomsChannelTest do
       watch_cleanup(socket, @name)
     end
 
-    test "fails on device_trigger with conflicting device_ids", %{socket: socket} do
+    test "the device_id in the request dictates the target", %{socket: socket, room_process: pid} do
+      Astarte.AppEngine.API.RPC.DataUpdaterPlant.ClientMock
+      |> allow(self(), pid)
+      |> expect(:install_volatile_trigger, fn volatile_trigger ->
+        assert %{realm_name: @realm, device_id: @device_id} = volatile_trigger
+        :ok
+      end)
+      |> expect(:delete_volatile_trigger, fn _ -> :ok end)
+
       other_device_id = "0JS2C1qlTiS0JTmUC4vCKQ"
 
       wrong_device_id_trigger =
         @device_simple_trigger
         |> Map.put("device_id", other_device_id)
 
-      conflicting_device_id_payload_1 = %{
+      watch_payload = %{
         "device_id" => @device_id,
         "name" => @name,
         "simple_trigger" => wrong_device_id_trigger
       }
 
-      ref = push(socket, "watch", conflicting_device_id_payload_1)
-      assert_reply(ref, :error, @unauthorized_reason)
+      ref = push(socket, "watch", watch_payload)
+      assert_broadcast("watch_added", _)
+      assert_reply(ref, :ok, %{})
 
-      conflicting_device_id_payload_2 = %{
-        "device_id" => other_device_id,
-        "name" => @name,
-        "simple_trigger" => @device_simple_trigger
-      }
-
-      ref = push(socket, "watch", conflicting_device_id_payload_2)
-      assert_reply(ref, :error, @unauthorized_reason)
+      watch_cleanup(socket, @name)
     end
 
     test "succeeds on authorized device_id", %{socket: socket, room_process: room_process} do
@@ -685,7 +688,7 @@ defmodule Astarte.AppEngine.APIWeb.RoomsChannelTest do
   end
 
   defp insert_device_id(device_id) do
-    {:ok, decoded_device_id} = Astarte.Core.Device.decode_device_id(device_id)
+    {:ok, decoded_device_id} = Device.decode_device_id(device_id)
     DatabaseTestHelper.insert_empty_device(decoded_device_id)
   end
 

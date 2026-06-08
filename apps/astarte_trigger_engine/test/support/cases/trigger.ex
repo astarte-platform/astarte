@@ -17,6 +17,10 @@
 #
 
 defmodule Astarte.Cases.Trigger do
+  @moduledoc """
+  ExUnit case template for trigger tests.
+  """
+
   use ExUnit.CaseTemplate
   use Mimic
 

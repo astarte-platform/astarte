@@ -17,7 +17,11 @@
 #
 
 defmodule Astarte.DataUpdaterPlant.AMQPDataConsumer do
+  @moduledoc """
+  This module is responsible for consuming messages from the AMQP broker.
+  """
   defmodule State do
+    @moduledoc false
     defstruct [
       :channel,
       :monitor,
@@ -100,6 +104,13 @@ defmodule Astarte.DataUpdaterPlant.AMQPDataConsumer do
         {:DOWN, monitor, :process, chan_pid, reason},
         %{monitor: monitor, channel: %{pid: chan_pid}} = state
       ) do
+    # Track channel crash
+    :telemetry.execute(
+      [:astarte, :data_updater_plant, :amqp_consumer, :channel_crash],
+      %{},
+      %{queue_name: state.queue_name, reason: inspect(reason)}
+    )
+
     # Channel went down, stop the process
     Logger.warning("AMQP data consumer crashed, reason: #{inspect(reason)}",
       tag: "data_consumer_chan_crash"
@@ -144,7 +155,7 @@ defmodule Astarte.DataUpdaterPlant.AMQPDataConsumer do
     {:noreply, state}
   end
 
-  defp schedule_connect() do
+  defp schedule_connect do
     Process.send_after(self(), :init_consume, @reconnect_interval)
   end
 
@@ -327,6 +338,19 @@ defmodule Astarte.DataUpdaterPlant.AMQPDataConsumer do
         tracking_id,
         timestamp
       )
+    else
+      _ -> handle_invalid_msg(payload, headers, timestamp, meta)
+    end
+  end
+
+  defp handle_consume("capabilities", payload, headers, timestamp, meta) do
+    with %{
+           @realm_header => realm,
+           @device_id_header => device_id
+         } <- headers,
+         {:ok, tracking_id} <- get_tracking_id(meta) do
+      # Following call might spawn processes and implicitly monitor them
+      DataUpdater.handle_capabilities(realm, device_id, payload, tracking_id, timestamp)
     else
       _ -> handle_invalid_msg(payload, headers, timestamp, meta)
     end

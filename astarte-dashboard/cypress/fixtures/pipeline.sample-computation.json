@@ -1,0 +1,8 @@
+{
+  "data": {
+    "description": "Sample computation",
+    "name": "sample-computation",
+    "schema": {},
+    "source": "http_source\n| http_sink"
+  }
+}

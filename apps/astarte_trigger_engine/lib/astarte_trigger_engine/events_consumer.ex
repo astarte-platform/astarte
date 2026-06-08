@@ -17,18 +17,26 @@
 #
 
 defmodule Astarte.TriggerEngine.EventsConsumer do
+  @moduledoc """
+  Consumer for trigger events.
+  """
+
   require Logger
 
   import Ecto.Query
 
   alias Astarte.Core.Triggers.SimpleEvents.SimpleEvent
   alias Astarte.Core.Triggers.Trigger
-  alias Astarte.DataAccess.Repo
   alias Astarte.DataAccess.Consistency
   alias Astarte.DataAccess.KvStore
   alias Astarte.DataAccess.Realms.Realm
+  alias Astarte.DataAccess.Repo
 
   defmodule Behaviour do
+    @moduledoc """
+    Behaviour for events consumer implementations.
+    """
+
     @callback consume(payload :: binary, headers :: map) :: :ok | {:error, reason :: atom}
   end
 

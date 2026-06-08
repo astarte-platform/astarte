@@ -16,6 +16,10 @@
 # limitations under the License.
 
 defmodule Astarte.AppEngine.API.Device.Aliases do
+  @moduledoc """
+    Handles validation and application of device aliases.
+  """
+
   alias Astarte.DataAccess.Devices.Device
   alias Ecto.Changeset
 
@@ -124,7 +128,7 @@ defmodule Astarte.AppEngine.API.Device.Aliases do
   defp apply_delete(%Changeset{valid?: false} = changeset, _delete_aliases),
     do: changeset
 
-  defp apply_delete(changeset, delete_aliases) when length(delete_aliases) == 0,
+  defp apply_delete(changeset, [] = _delete_aliases),
     do: changeset
 
   defp apply_delete(changeset, delete_aliases) do
@@ -148,7 +152,7 @@ defmodule Astarte.AppEngine.API.Device.Aliases do
   defp apply_update(%Changeset{valid?: false} = changeset, _update_aliases),
     do: changeset
 
-  defp apply_update(changeset, update_aliases) when length(update_aliases) == 0,
+  defp apply_update(changeset, update_aliases) when update_aliases == [],
     do: changeset
 
   defp apply_update(changeset, update_aliases) do

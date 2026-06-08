@@ -19,9 +19,9 @@
 defmodule Astarte.AppEngine.APIWeb.InterfaceValuesByGroupControllerTest do
   use Astarte.Cases.Conn
 
+  alias Astarte.AppEngine.API.Groups
   alias Astarte.Helpers.Database, as: DatabaseTestHelper
   alias Astarte.Helpers.JWT, as: JWTTestHelper
-  alias Astarte.AppEngine.API.Groups
 
   @realm "autotestrealm"
   @group_name "test-group"
@@ -119,7 +119,7 @@ defmodule Astarte.AppEngine.APIWeb.InterfaceValuesByGroupControllerTest do
           conn,
           interface_values_by_group_path(
             conn,
-            :show,
+            :show_values,
             @realm,
             @group_name,
             "nwsmmgqkQiODs9IWBz3yRw",
@@ -136,7 +136,7 @@ defmodule Astarte.AppEngine.APIWeb.InterfaceValuesByGroupControllerTest do
           conn,
           interface_values_by_group_path(
             conn,
-            :show,
+            :show_values,
             @realm,
             @group_name,
             @device_id_not_in_group,
@@ -163,7 +163,7 @@ defmodule Astarte.AppEngine.APIWeb.InterfaceValuesByGroupControllerTest do
           conn,
           interface_values_by_group_path(
             conn,
-            :show,
+            :show_values,
             @realm,
             @group_name,
             @device_id,

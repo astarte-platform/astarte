@@ -17,6 +17,9 @@
 #
 
 defmodule Astarte.AppEngine.APIWeb.Plug.LogGroupName do
+  @moduledoc """
+  Plug that injects the group name into the Logger metadata.
+  """
   def init(opts) do
     opts
   end

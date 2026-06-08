@@ -24,23 +24,21 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.Interface do
 
   This module contains functions and utilities to process interfaces.
   """
-  alias Astarte.Core.Mapping
   alias Astarte.Core.CQLUtils
-  alias Astarte.DataUpdaterPlant.ValueMatchOperators
-  alias Astarte.Core.Triggers.SimpleTriggersProtobuf
-  alias Astarte.Core.Mapping.EndpointsAutomaton
-  alias Astarte.DataUpdaterPlant.DataUpdater.Core
-  alias Astarte.DataUpdaterPlant.DataUpdater.State
+  alias Astarte.Core.Device, as: CoreDevice
   alias Astarte.Core.InterfaceDescriptor
-  alias Astarte.DataUpdaterPlant.DataUpdater.Queries
-  alias Astarte.DataUpdaterPlant.TriggersHandler
-  alias Astarte.DataAccess.Mappings
-  alias Astarte.DataAccess.Interface
+  alias Astarte.Core.Mapping
+  alias Astarte.Core.Mapping.EndpointsAutomaton
   alias Astarte.DataAccess.Device
+  alias Astarte.DataAccess.Interface
+  alias Astarte.DataAccess.Mappings
+  alias Astarte.DataUpdaterPlant.DataUpdater.Queries
+  alias Astarte.DataUpdaterPlant.DataUpdater.State
+  alias Astarte.DataUpdaterPlant.TriggersHandler
 
   require Logger
 
-  @interface_lifespan_decimicroseconds 60 * 10 * 1000 * 10000
+  @interface_lifespan_decimicroseconds 60 * 10 * 1000 * 10_000
 
   def maybe_handle_cache_miss(nil, interface_name, state) do
     with {:ok, major_version} <-
@@ -50,44 +48,24 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.Interface do
          %InterfaceDescriptor{interface_id: interface_id} = interface_descriptor <-
            InterfaceDescriptor.from_db_result!(interface_row),
          {:ok, mappings} <-
-           Mappings.fetch_interface_mappings_map(state.realm, interface_id),
-         new_interfaces_by_expiry <-
-           state.interfaces_by_expiry ++
-             [{state.last_seen_message + @interface_lifespan_decimicroseconds, interface_name}],
-         new_state <- %State{
-           state
-           | interfaces: Map.put(state.interfaces, interface_name, interface_descriptor),
-             interface_ids_to_name:
-               Map.put(
-                 state.interface_ids_to_name,
-                 interface_id,
-                 interface_name
-               ),
-             interfaces_by_expiry: new_interfaces_by_expiry,
-             mappings: Map.merge(state.mappings, mappings)
-         },
-         new_state <-
-           Core.Trigger.populate_triggers_for_object!(
-             new_state,
-             interface_descriptor.interface_id,
-             :interface
-           ),
-         device_and_interface_object_id =
-           SimpleTriggersProtobuf.Utils.get_device_and_interface_object_id(
-             state.device_id,
-             interface_id
-           ),
-         new_state =
-           Core.Trigger.populate_triggers_for_object!(
-             new_state,
-             device_and_interface_object_id,
-             :device_and_interface
-           ),
-         new_state =
-           Core.Trigger.populate_triggers_for_group_and_interface!(
-             new_state,
-             interface_id
-           ) do
+           Mappings.fetch_interface_mappings_map(state.realm, interface_id) do
+      new_interfaces_by_expiry =
+        state.interfaces_by_expiry ++
+          [{state.last_seen_message + @interface_lifespan_decimicroseconds, interface_name}]
+
+      new_state = %State{
+        state
+        | interfaces: Map.put(state.interfaces, interface_name, interface_descriptor),
+          interface_ids_to_name:
+            Map.put(
+              state.interface_ids_to_name,
+              interface_id,
+              interface_name
+            ),
+          interfaces_by_expiry: new_interfaces_by_expiry,
+          mappings: Map.merge(state.mappings, mappings)
+      }
+
       # TODO: make everything with-friendly
       {:ok, interface_descriptor, new_state}
     else
@@ -139,132 +117,82 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.Interface do
   end
 
   defp do_prune(state, interface_descriptor, all_paths_set, timestamp) do
-    each_interface_mapping(state.mappings, interface_descriptor, fn mapping ->
-      endpoint_id = mapping.endpoint_id
+    hw_id = CoreDevice.encode_device_id(state.device_id)
 
+    context = %{
+      state: state,
+      hardware_id: hw_id,
+      interface_id: interface_descriptor.interface_id,
+      interface: interface_descriptor.name,
+      value_timestamp: timestamp,
+      endpoint_id: nil,
+      path: nil
+    }
+
+    each_interface_mapping(state.mappings, interface_descriptor, fn mapping ->
+      prune_mapping_paths(
+        state,
+        interface_descriptor,
+        mapping.endpoint_id,
+        all_paths_set,
+        context
+      )
+    end)
+  end
+
+  defp prune_mapping_paths(
+         state,
+         interface_descriptor,
+         endpoint_id,
+         all_paths_set,
+         context
+       ) do
+    database_paths =
       Queries.all_device_owned_property_endpoint_paths!(
         state.realm,
         state.device_id,
         interface_descriptor,
         endpoint_id
       )
-      |> Enum.each(fn path ->
-        if not MapSet.member?(all_paths_set, {interface_descriptor.name, path}) do
-          device_id_string = Astarte.Core.Device.encode_device_id(state.device_id)
 
-          {:ok, endpoint_id} =
-            EndpointsAutomaton.resolve_path(path, interface_descriptor.automaton)
+    interface_name = interface_descriptor.name
+    paths = database_paths |> Enum.map(&{interface_name, &1}) |> MapSet.new()
+    unset_paths = MapSet.difference(paths, all_paths_set)
 
-          Queries.delete_property_from_db(
-            state.realm,
-            state.device_id,
-            interface_descriptor,
-            endpoint_id,
-            path
-          )
-
-          interface_id = interface_descriptor.interface_id
-
-          path_removed_triggers =
-            get_on_data_triggers(state, :on_path_removed, interface_id, endpoint_id, path)
-
-          i_name = interface_descriptor.name
-
-          Enum.each(path_removed_triggers, fn trigger ->
-            target_with_policy_list =
-              trigger.trigger_targets
-              |> Enum.map(fn target ->
-                {target, Map.get(state.trigger_id_to_policy_name, target.parent_trigger_id)}
-              end)
-
-            TriggersHandler.path_removed(
-              target_with_policy_list,
-              state.realm,
-              device_id_string,
-              i_name,
-              path,
-              timestamp
-            )
-          end)
-        end
-      end)
+    unset_paths
+    |> Enum.each(fn {_interface_name, path} ->
+      prune_path(
+        state,
+        interface_descriptor,
+        endpoint_id,
+        path,
+        context
+      )
     end)
   end
 
-  def get_on_data_triggers(state, event, interface_id, endpoint_id) do
-    key = {event, interface_id, endpoint_id}
+  defp prune_path(
+         state,
+         interface_descriptor,
+         endpoint_id,
+         path,
+         context
+       ) do
+    Queries.delete_property_from_db(
+      state.realm,
+      state.device_id,
+      interface_descriptor,
+      endpoint_id,
+      path
+    )
 
-    Map.get(state.data_triggers, key, [])
-  end
-
-  def get_on_data_triggers(state, event, interface_id, endpoint_id, path, value \\ nil) do
-    key = {event, interface_id, endpoint_id}
-
-    candidate_triggers = Map.get(state.data_triggers, key, nil)
-
-    if candidate_triggers do
-      ["" | path_tokens] = String.split(path, "/")
-
-      for trigger <- candidate_triggers,
-          path_matches?(path_tokens, trigger.path_match_tokens) and
-            ValueMatchOperators.value_matches?(
-              value,
-              trigger.value_match_operator,
-              trigger.known_value
-            ) do
-        trigger
-      end
-    else
-      []
-    end
-  end
-
-  def get_value_change_triggers(state, interface_id, endpoint_id, path, value) do
-    value_change_triggers =
-      get_on_data_triggers(state, :on_value_change, interface_id, endpoint_id, path, value)
-
-    value_change_applied_triggers =
-      get_on_data_triggers(
-        state,
-        :on_value_change_applied,
-        interface_id,
-        endpoint_id,
-        path,
-        value
-      )
-
-    path_created_triggers =
-      get_on_data_triggers(state, :on_path_created, interface_id, endpoint_id, path, value)
-
-    path_removed_triggers =
-      get_on_data_triggers(state, :on_path_removed, interface_id, endpoint_id, path)
-
-    all_empty? =
-      [value_change_triggers, value_change_applied_triggers, path_created_triggers]
-      |> Enum.all?(&Enum.empty?/1)
-
-    triggers_tuple = {
-      value_change_triggers,
-      value_change_applied_triggers,
-      path_created_triggers,
-      path_removed_triggers
+    context = %{
+      context
+      | endpoint_id: endpoint_id,
+        path: path
     }
 
-    if all_empty?,
-      do: {:no_value_change_triggers, nil},
-      else: {:ok, triggers_tuple}
-  end
-
-  defp path_matches?([], []) do
-    true
-  end
-
-  defp path_matches?([path_token | path_tokens], [path_match_token | path_match_tokens]) do
-    if path_token == path_match_token or path_match_token == "" do
-      path_matches?(path_tokens, path_match_tokens)
-    else
-      false
-    end
+    TriggersHandler.path_removed(context)
   end
 
   def each_interface_mapping(mappings, interface_descriptor, fun) do
@@ -321,8 +249,17 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.Interface do
 
           {:ok, %{first_mapping | endpoint_id: endpoint_id}}
         else
+          :error ->
+            # Map.fetch failed
+            Logger.warning(
+              "endpoint_id for path #{inspect(path)} not found in mappings #{inspect(mappings)}."
+            )
+
+            {:error, :mapping_not_found}
+
           {:ok, _endpoint_id} ->
-            # This is invalid here, publish doesn't happen on endpoints in object aggregated interfaces
+            # This is invalid here, publish doesn't happen on endpoints
+            # in object aggregated interfaces
             Logger.warning(
               "Tried to publish on endpoint #{inspect(path)} for object aggregated " <>
                 "interface #{inspect(interface_descriptor.name)}. You should publish on " <>
@@ -380,22 +317,29 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.Interface do
         endpoint.value_type
 
       :object ->
-        # TODO: we should probably cache this
-        Enum.flat_map(mappings, fn {_id, mapping} ->
-          if mapping.interface_id == interface_descriptor.interface_id do
-            expected_key =
-              mapping.endpoint
-              |> String.split("/")
-              |> List.last()
-
-            [{expected_key, mapping.value_type}]
-          else
-            []
-          end
-        end)
-        |> Enum.into(%{})
+        expected_object_types(interface_descriptor, mappings)
     end
   end
+
+  defp expected_object_types(interface_descriptor, mappings) do
+    # TODO: we should probably cache this
+    mappings
+    |> Enum.flat_map(fn {_id, mapping} ->
+      mapping_to_expected_type(interface_descriptor.interface_id, mapping)
+    end)
+    |> Enum.into(%{})
+  end
+
+  defp mapping_to_expected_type(interface_id, %Mapping{interface_id: interface_id} = mapping) do
+    expected_key =
+      mapping.endpoint
+      |> String.split("/")
+      |> List.last()
+
+    [{expected_key, mapping.value_type}]
+  end
+
+  defp mapping_to_expected_type(_interface_id, %Mapping{}), do: []
 
   def forget_interfaces(state, []) do
     state

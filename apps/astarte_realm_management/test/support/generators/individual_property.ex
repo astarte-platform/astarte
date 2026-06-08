@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2025 SECO Mind Srl
+# Copyright 2025 SECO - 2026 Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -22,28 +22,32 @@ defmodule Astarte.RealmManagement.Generators.IndividualProperty do
   @moduledoc """
   Generators of `IndividualProperty`es
   """
-  alias Astarte.Generators.Utilities.ParamsGen
-  alias Astarte.DataAccess.Realms.IndividualProperty
-  alias Ecto.UUID
-
   use ExUnitProperties
 
-  import ParamsGen
+  import Astarte.Generators.Utilities.ParamsGen
 
+  alias Astarte.Core.Interface
+  alias Astarte.Core.Mapping
+
+  alias Astarte.DataAccess.Realms.IndividualProperty
+
+  alias Astarte.Core.Generators.Device, as: DeviceGenerator
+  alias Astarte.Core.Generators.Interface, as: InterfaceGenerator
+  alias Astarte.Core.Generators.Mapping.Value, as: ValueGenerator
+
+  @doc false
+  @spec individual_property(params :: keyword()) :: StreamData.t(IndividualProperty.t())
   def individual_property(params \\ []) do
-    params gen(
-             all(
-               interface_id <- repeatedly(&UUID.bingenerate/0),
-               device_id <- repeatedly(&UUID.bingenerate/0),
-               endpoint_id <- repeatedly(&UUID.bingenerate/0),
-               path <-
-                 :ascii
-                 |> string(length: 1..10)
-                 |> list_of(length: 1..5)
-                 |> map(fn paths -> "/" <> Enum.join(paths, "/") end),
-               params: params
-             )
-           ) do
+    params gen all interface <-
+                     InterfaceGenerator.interface(aggregation: :individual, type: :properties),
+                   value <- ValueGenerator.value(interface: interface),
+                   device_id <- DeviceGenerator.id(),
+                   %Interface{
+                     interface_id: interface_id,
+                     mappings: [%Mapping{endpoint_id: endpoint_id} | _]
+                   } = interface,
+                   %{path: path} = value,
+                   params: params do
       %IndividualProperty{
         device_id: device_id,
         interface_id: interface_id,

@@ -37,11 +37,11 @@ with a similar payload:
 
 ```json
 {
-    "device_id": "f0VMRgIBAQAAAAAAAAAAAA",
-    "event": {
-        "type": "device_connected",
-        "device_ip_address": "1.2.3.4"
-    }
+  "device_id": "f0VMRgIBAQAAAAAAAAAAAA",
+  "event": {
+    "type": "device_connected",
+    "device_ip_address": "1.2.3.4"
+  }
 }
 ```
 
@@ -66,17 +66,17 @@ looks like this:
 
 ```json
 {
-    "name": "datatrigger",
-    "device_id": "f0VMRgIBAQAAAAAAAAAAAA",
-    "simple_trigger": {
-        "type": "data_trigger",
-        "on": "incoming_data",
-        "interface_name": "org.astarte-platform.genericsensors.Values",
-        "interface_major": 0,
-        "match_path": "/streamTest/value",
-        "value_match_operator": ">",
-        "known_value": 0.6
-    }
+  "name": "datatrigger",
+  "device_id": "f0VMRgIBAQAAAAAAAAAAAA",
+  "simple_trigger": {
+    "type": "data_trigger",
+    "on": "incoming_data",
+    "interface_name": "org.astarte-platform.genericsensors.Values",
+    "interface_major": 0,
+    "match_path": "/streamTest/value",
+    "value_match_operator": ">",
+    "known_value": 0.6
+  }
 }
 ```
 
@@ -99,17 +99,17 @@ devices that are in the group `mygroup`.
 
 ```json
 {
-    "name": "groupdevicetrigger",
-    "group_name": "mygroup",
-    "simple_trigger": {
-        "type": "data_trigger",
-        "on": "incoming_data",
-        "interface_name": "org.astarte-platform.genericsensors.Values",
-        "interface_major": 0,
-        "match_path": "/streamTest/value",
-        "value_match_operator": ">",
-        "known_value": 0.6
-    }
+  "name": "groupdevicetrigger",
+  "group_name": "mygroup",
+  "simple_trigger": {
+    "type": "data_trigger",
+    "on": "incoming_data",
+    "interface_name": "org.astarte-platform.genericsensors.Values",
+    "interface_major": 0,
+    "match_path": "/streamTest/value",
+    "value_match_operator": ">",
+    "known_value": 0.6
+  }
 }
 ```
 
@@ -127,7 +127,7 @@ different verbs.
 ### JOIN
 
 The `JOIN` verb implies that a user can join a room. This only allows him to receive events and to
-interact in a *read-only* fashion with the room itself. There is no restriction to which events a
+interact in a _read-only_ fashion with the room itself. There is no restriction to which events a
 user sees - if he is authorized to enter in a room, he will be capable of seeing all events flowing
 in. More granular permissions can be done simply by creating more rooms in which different triggers
 will be installed.

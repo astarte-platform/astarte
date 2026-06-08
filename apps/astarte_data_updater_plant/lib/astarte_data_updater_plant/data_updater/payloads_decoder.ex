@@ -17,6 +17,9 @@
 #
 
 defmodule Astarte.DataUpdaterPlant.DataUpdater.PayloadsDecoder do
+  @moduledoc """
+  This module is responsible for decoding the payloads received from the AMQPDataConsumer.
+  """
   require Logger
   alias Astarte.Core.Interface
 
@@ -26,7 +29,9 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.PayloadsDecoder do
   Decode a BSON payload a returns a tuple containing the decoded value, the timestamp and metadata.
   reception_timestamp is used if no timestamp has been sent with the payload.
   """
-  @spec decode_bson_payload(binary, integer) :: {map, integer, map}
+  @spec decode_bson_payload(binary, integer) ::
+          {map, integer, map} | {:error, :undecodable_bson_payload} | {nil, nil, nil}
+
   def decode_bson_payload(payload, reception_timestamp) do
     if byte_size(payload) != 0 do
       case Cyanide.decode(payload) do
@@ -35,7 +40,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.PayloadsDecoder do
           {bson_value, bson_timestamp, metadata}
 
         {:ok, %{"v" => bson_value, "m" => %{} = metadata}} ->
-          {bson_value, div(reception_timestamp, 10000), metadata}
+          {bson_value, div(reception_timestamp, 10_000), metadata}
 
         {:ok, %{"v" => bson_value, "t" => %DateTime{} = timestamp}} ->
           bson_timestamp = DateTime.to_unix(timestamp, :millisecond)
@@ -45,16 +50,13 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.PayloadsDecoder do
           {nil, nil, nil}
 
         {:ok, %{"v" => bson_value}} ->
-          {bson_value, div(reception_timestamp, 10000), %{}}
+          {bson_value, div(reception_timestamp, 10_000), %{}}
 
         {:ok, %{} = bson_value} ->
           # Handling old format object aggregation
-          {bson_value, div(reception_timestamp, 10000), %{}}
+          {bson_value, div(reception_timestamp, 10_000), %{}}
 
         {:error, _reason} ->
-          {:error, :undecodable_bson_payload}
-
-        _ ->
           {:error, :undecodable_bson_payload}
       end
     else
@@ -152,20 +154,25 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.PayloadsDecoder do
       decoded_payload
       |> String.split(";")
       |> List.foldl(MapSet.new(), fn property_full_path, paths_acc ->
-        with [interface, path] <- String.split(property_full_path, "/", parts: 2) do
-          if Map.has_key?(introspection, interface) do
-            MapSet.put(paths_acc, {interface, "/" <> path})
-          else
-            paths_acc
-          end
-        else
-          _ ->
-            # TODO: we should print a warning, or return a :issues_found status
-            paths_acc
-        end
+        add_property_path(paths_acc, property_full_path, introspection)
       end)
 
     {:ok, paths_list}
+  end
+
+  defp add_property_path(paths_acc, property_full_path, introspection) do
+    case String.split(property_full_path, "/", parts: 2) do
+      [interface, path] ->
+        if Map.has_key?(introspection, interface) do
+          MapSet.put(paths_acc, {interface, "/" <> path})
+        else
+          paths_acc
+        end
+
+      _ ->
+        # TODO: we should print a warning, or return a :issues_found status
+        paths_acc
+    end
   end
 
   @doc """
@@ -189,29 +196,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.PayloadsDecoder do
     introspection_tokens = String.split(introspection_payload, ";")
 
     all_tokens_are_good =
-      Enum.all?(introspection_tokens, fn token ->
-        with [interface_name, major_version_string, minor_version_string] <-
-               String.split(token, ":"),
-             {major_version, ""} <- Integer.parse(major_version_string),
-             {minor_version, ""} <- Integer.parse(minor_version_string) do
-          cond do
-            String.match?(interface_name, Interface.interface_name_regex()) == false ->
-              false
-
-            major_version < 0 ->
-              false
-
-            minor_version < 0 ->
-              false
-
-            true ->
-              true
-          end
-        else
-          _not_expected ->
-            false
-        end
-      end)
+      Enum.all?(introspection_tokens, &token_good?/1)
 
     if all_tokens_are_good do
       parsed_introspection =
@@ -227,6 +212,30 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.PayloadsDecoder do
       {:ok, parsed_introspection}
     else
       {:error, :invalid_introspection}
+    end
+  end
+
+  defp token_good?(token) do
+    with [interface_name, major_version_string, minor_version_string] <-
+           String.split(token, ":"),
+         {major_version, ""} <- Integer.parse(major_version_string),
+         {minor_version, ""} <- Integer.parse(minor_version_string) do
+      cond do
+        String.match?(interface_name, Interface.interface_name_regex()) == false ->
+          false
+
+        major_version < 0 ->
+          false
+
+        minor_version < 0 ->
+          false
+
+        true ->
+          true
+      end
+    else
+      _not_expected ->
+        false
     end
   end
 end

@@ -17,14 +17,111 @@
 #
 defmodule Astarte.AppEngine.APIWeb.DeviceStatusByGroupController do
   use Astarte.AppEngine.APIWeb, :controller
+  use OpenApiSpex.ControllerSpecs
 
   alias Astarte.AppEngine.API.Device
   alias Astarte.AppEngine.API.Device.DevicesList
   alias Astarte.AppEngine.API.Device.DeviceStatus
   alias Astarte.AppEngine.API.Groups
+  alias Astarte.AppEngine.APIWeb.ApiSpec.Schemas.DeviceStatus, as: DeviceStatusSchema
   alias Astarte.AppEngine.APIWeb.DeviceStatusView
+  alias OpenApiSpex.{Reference, Schema}
+
+  @device_status_response_schema %Schema{
+    type: :object,
+    properties: %{
+      data: DeviceStatusSchema
+    }
+  }
 
   action_fallback Astarte.AppEngine.APIWeb.FallbackController
+
+  tags ["groups"]
+  security [%{"JWT" => []}]
+
+  operation :index,
+    summary: "List devices in a group",
+    description: "Return the list of devices in a group.",
+    operation_id: "indexGroupDevices",
+    parameters: [
+      realm_name: [
+        in: :path,
+        description: "The name of the realm the device list will be returned from.",
+        required: true,
+        type: :string
+      ],
+      group_name: [
+        in: :path,
+        description: "The name of the group.",
+        required: true,
+        type: :string
+      ]
+    ],
+    responses: [
+      ok: %Reference{"$ref": "#/components/responses/IndexGroupDevices"},
+      unauthorized: %Reference{"$ref": "#/components/responses/Unauthorized"},
+      forbidden: %Reference{"$ref": "#/components/responses/AuthorizationPathNotMatched"},
+      not_found: %Reference{"$ref": "#/components/responses/GroupNotFound"}
+    ]
+
+  operation :show,
+    summary: "Get device general status",
+    description: "Return the status of a device that belongs to a group.",
+    operation_id: "getGroupDeviceStatus",
+    parameters: [
+      realm_name: [
+        in: :path,
+        description: "The name of the realm the device belongs to.",
+        required: true,
+        type: :string
+      ],
+      group_name: [
+        in: :path,
+        description: "The name of the group.",
+        required: true,
+        type: :string
+      ],
+      device_id: [in: :path, description: "Device ID", required: true, type: :string]
+    ],
+    responses: [
+      ok: {"Success", "application/json", @device_status_response_schema},
+      unauthorized: %Reference{"$ref": "#/components/responses/Unauthorized"},
+      forbidden: %Reference{"$ref": "#/components/responses/AuthorizationPathNotMatched"},
+      not_found: %Reference{"$ref": "#/components/responses/GroupOrDeviceNotFound"}
+    ]
+
+  operation :update,
+    summary: "Update a device writeable property",
+    description:
+      "Update any of the writeable device properties for a device that belongs to a group.",
+    operation_id: "updateGroupDeviceStatus",
+    parameters: [
+      realm_name: [
+        in: :path,
+        description: "The name of the realm the device belongs to.",
+        required: true,
+        type: :string
+      ],
+      group_name: [
+        in: :path,
+        description: "The name of the group.",
+        required: true,
+        type: :string
+      ],
+      device_id: [in: :path, description: "Device ID", required: true, type: :string]
+    ],
+    request_body: {
+      "A JSON Merge Patch containing the property changes which should be applied to the device.",
+      "application/merge-patch+json",
+      %Schema{type: :object}
+    },
+    responses: [
+      ok: {"Success", "application/json", @device_status_response_schema},
+      bad_request: "Bad request",
+      unauthorized: %Reference{"$ref": "#/components/responses/Unauthorized"},
+      forbidden: %Reference{"$ref": "#/components/responses/AuthorizationPathNotMatched"},
+      not_found: %Reference{"$ref": "#/components/responses/GroupOrDeviceNotFound"}
+    ]
 
   def index(
         conn,

@@ -19,10 +19,13 @@
 #
 
 defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.IntrospectionHandler do
+  @moduledoc """
+  This module is responsible for handling introspection messages.
+  """
   alias Astarte.DataUpdaterPlant.DataUpdater.Core
   alias Astarte.DataUpdaterPlant.DataUpdater.PayloadsDecoder
-  alias Astarte.DataUpdaterPlant.MessageTracker
   alias Astarte.DataUpdaterPlant.DataUpdater.State
+  alias Astarte.DataUpdaterPlant.MessageTracker
 
   require Logger
 
@@ -32,15 +35,16 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.IntrospectionHandler do
   end
 
   def handle_introspection(state, payload, message_id, timestamp) do
-    with {:ok, new_introspection_list} <- PayloadsDecoder.parse_introspection(payload) do
-      Core.Device.process_introspection(
-        state,
-        new_introspection_list,
-        payload,
-        message_id,
-        timestamp
-      )
-    else
+    case PayloadsDecoder.parse_introspection(payload) do
+      {:ok, new_introspection_list} ->
+        Core.Device.process_introspection(
+          state,
+          new_introspection_list,
+          payload,
+          message_id,
+          timestamp
+        )
+
       {:error, :invalid_introspection} ->
         Logger.warning("Discarding invalid introspection: #{inspect(Base.encode64(payload))}.",
           tag: "invalid_introspection"
