@@ -57,6 +57,7 @@ allowed_scopes = [
   "docker",
   "credo",
   "nix",
+  "deps",
 ]
 merge_commit = true
 imperative_subject = true
