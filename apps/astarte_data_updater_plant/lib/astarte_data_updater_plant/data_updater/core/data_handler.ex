@@ -24,6 +24,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DataHandler do
   """
   alias Astarte.Core.Device
   alias Astarte.Core.InterfaceDescriptor
+  alias Astarte.Core.Mapping
   alias Astarte.Core.Mapping.ValueType
   alias Astarte.DataAccess.Data
   alias Astarte.DataUpdaterPlant.DataUpdater.Cache
@@ -33,12 +34,11 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DataHandler do
   alias Astarte.DataUpdaterPlant.DataUpdater.PayloadsDecoder
   alias Astarte.DataUpdaterPlant.DataUpdater.Queries
   alias Astarte.DataUpdaterPlant.DataUpdater.State
-  alias Astarte.DataUpdaterPlant.MessageTracker
   alias Astarte.DataUpdaterPlant.TriggersHandler
 
   require Logger
 
-  def handle_data(state, interface, path, payload, message_id, timestamp) do
+  def handle_data(state, interface, path, payload, timestamp, start) do
     hw_id = Device.encode_device_id(state.device_id)
 
     context = %{
@@ -46,7 +46,6 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DataHandler do
       interface: interface,
       path: path,
       payload: payload,
-      message_id: message_id,
       timestamp: timestamp,
       hardware_id: hw_id,
       value_timestamp: nil,
@@ -64,8 +63,8 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DataHandler do
          {:ok, interface_descriptor, context} <- maybe_handle_cache_miss(context),
          :ok <- can_write_on_interface?(context, interface_descriptor.ownership),
          {:ok, mapping} <- resolve_path(context, interface_descriptor),
-         {value, value_timestamp, _metadata} <- decode_bson_payload(context),
-         :ok <- validate_value_type(context, interface_descriptor, mapping, value) do
+         {:ok, {value, value_timestamp, _metadata}} <- decode_bson_payload(context),
+         :ok <- validate_value(context, interface_descriptor, mapping, value) do
       maybe_explicit_value_timestamp =
         if mapping.explicit_timestamp,
           do: value_timestamp,
@@ -98,12 +97,12 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DataHandler do
       execute_incoming_data_triggers(context)
 
       with :ok <- can_set_to_value(context, interface_descriptor, value) do
-        set_value(context)
+        set_value(context, start)
       end
     end
   end
 
-  defp set_value(context) do
+  defp set_value(context, start) do
     %{
       db_max_ttl: db_max_ttl,
       interface_descriptor: interface_descriptor,
@@ -140,7 +139,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DataHandler do
     }
 
     Queries.insert_value_into_db(insert_context)
-    |> handle_result(context)
+    |> handle_result(context, start)
   end
 
   defp get_previous_value(context, interface_descriptor, mapping)
@@ -155,24 +154,23 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DataHandler do
 
   defp get_previous_value(_, _, _), do: nil
 
-  defp handle_result({:error, :unset_not_allowed}, context) do
+  defp handle_result({:error, :unset_not_allowed}, context, _start) do
     error = %{
       message: "Tried to unset a property with `allow_unset`=false.",
       logger_metadata: [tag: "unset_not_allowed"],
-      error_name: "unset_not_allowed"
+      error_name: "unset_not_allowed",
+      error: :unset_not_allowed
     }
 
     # with `unset_not_allowed` we do not want to update the stats
     Core.Error.handle_error(context, error, update_stats: false)
   end
 
-  defp handle_result(:ok, context) do
+  defp handle_result(:ok, context, start) do
     %{
       state: state,
       path: path,
-      payload: payload,
       interface: interface,
-      message_id: message_id,
       interface_descriptor: interface_descriptor,
       db_max_ttl: db_max_ttl
     } = context
@@ -184,18 +182,8 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DataHandler do
     paths_cache = Cache.put(state.paths_cache, {interface, path}, %CachedPath{}, db_max_ttl)
     state = %{state | paths_cache: paths_cache}
 
-    MessageTracker.ack_delivery(state.message_tracker, message_id)
-
-    :telemetry.execute(
-      [:astarte, :data_updater_plant, :data_updater, :processed_message],
-      %{},
-      %{
-        realm: state.realm,
-        interface_type: interface_descriptor.type
-      }
-    )
-
-    update_stats(state, interface, interface_descriptor.major_version, path, payload)
+    continue_arg = {:processed_message, context, start}
+    {:ack, :ok, state, {:continue, continue_arg}}
   end
 
   defp maybe_insert_path(context, interface_descriptor, mapping) do
@@ -240,6 +228,44 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DataHandler do
     end
   end
 
+  defp validate_value(context, interface_descriptor, mapping, value) do
+    %{state: state} = context
+
+    mappings = Core.Interface.extract_mappings(interface_descriptor, mapping, state.mappings)
+
+    with :ok <- validate_value_type(context, mappings, value) do
+      validate_required_mappings(context, interface_descriptor, mappings, value)
+    end
+  end
+
+  defp validate_required_mappings(
+         context,
+         %InterfaceDescriptor{aggregation: :object},
+         %{} = mappings_by_key,
+         %{} = value
+       ) do
+    case Enum.find(mappings_by_key, fn {key, mapping} ->
+           mapping.required and not Map.has_key?(value, key)
+         end) do
+      nil ->
+        :ok
+
+      _missing ->
+        %{interface: interface, path: path} = context
+
+        error = %{
+          message: "Missing required mapping key in object sent to #{interface}#{path}.",
+          logger_metadata: [tag: "missing_required_mapping"],
+          error_name: "missing_required_mapping",
+          error: :missing_required_mapping
+        }
+
+        Core.Error.handle_error(context, error)
+    end
+  end
+
+  defp validate_required_mappings(_context, _interface_descriptor, _mappings, _value), do: :ok
+
   defp can_set_to_value(
          context,
          %InterfaceDescriptor{type: :datastream},
@@ -248,10 +274,14 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DataHandler do
     error = %{
       message: "Tried to unset a datastream.",
       error_name: "unset_on_datastream",
-      logger_metadata: [tag: "unset_on_datastream"]
+      logger_metadata: [tag: "unset_on_datastream"],
+      error: :unset_on_datastream
     }
 
-    Core.Error.handle_error(context, error, ask_clean_session: false, update_stats: false)
+    Core.Error.handle_error(context, error,
+      ask_clean_session: false,
+      update_stats: false
+    )
   end
 
   defp can_set_to_value(_context, _descriptor, _value), do: :ok
@@ -270,18 +300,18 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DataHandler do
 
     case cache_miss do
       {:error, :interface_loading_failed} ->
-        # Track interface cache miss
+        error = %{
+          message: "Cannot load interface: #{interface}.",
+          logger_metadata: [tag: "interface_loading_failed"],
+          error_name: "interface_loading_failed",
+          error: :interface_loading_failed
+        }
+
         :telemetry.execute(
           [:astarte, :data_updater_plant, :data_handler, :interface_cache_miss],
           %{},
           %{realm: state.realm, interface: interface, result: "failed"}
         )
-
-        error = %{
-          message: "Cannot load interface: #{interface}.",
-          logger_metadata: [tag: "interface_loading_failed"],
-          error_name: "interface_loading_failed"
-        }
 
         Core.Error.handle_error(context, error)
 
@@ -310,7 +340,8 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DataHandler do
         error = %{
           message: "Mapping not found for #{interface}#{path}. Maybe outdated introspection?",
           logger_metadata: [tag: "mapping_not_found"],
-          error_name: "mapping_not_found"
+          error_name: "mapping_not_found",
+          error: :mapping_not_found
         }
 
         Core.Error.handle_error(context, error)
@@ -319,7 +350,8 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DataHandler do
         error = %{
           message: "Mapping guessed for #{interface}#{path}. Maybe outdated introspection?",
           logger_metadata: [tag: "ambiguous_path"],
-          error_name: "ambiguous_path"
+          error_name: "ambiguous_path",
+          error: :ambiguous_path
         }
 
         Core.Error.handle_error(context, error)
@@ -338,7 +370,8 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DataHandler do
         message:
           "Invalid BSON base64-encoded payload: #{inspect(Base.encode64(payload))} sent to #{interface}#{path}.",
         logger_metadata: [tag: "undecodable_bson_payload"],
-        error_name: "undecodable_bson_payload"
+        error_name: "undecodable_bson_payload",
+        error: :undecodable_bson_payload
       }
 
       Core.Error.handle_error(context, error)
@@ -376,6 +409,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DataHandler do
       %{
         message: "Received invalid interface: #{inspect(interface)}.",
         logger_metadata: [tag: "invalid_interface"],
+        error: :invalid_interface,
         error_name: "invalid_interface"
       }
 
@@ -391,6 +425,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DataHandler do
     error = %{
       message: "Received invalid path: #{inspect(path)}.",
       logger_metadata: [tag: "invalid_path"],
+      error: :invalid_path,
       error_name: "invalid_path"
     }
 
@@ -413,24 +448,17 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DataHandler do
     error = %{
       message: message,
       logger_metadata: [tag: tag],
-      error_name: error_name
+      error_name: error_name,
+      error: :cannot_write_on_server_owned_interface
     }
 
     Core.Error.handle_error(context, error)
   end
 
-  defp validate_value_type(context, interface_descriptor, mapping, value) do
-    %{interface: interface, path: path, payload: payload, state: state} = context
+  defp validate_value_type(context, mappings, value) do
+    %{interface: interface, path: path, payload: payload} = context
 
-    expected_types =
-      Core.Interface.extract_expected_types(
-        path,
-        interface_descriptor,
-        mapping,
-        state.mappings
-      )
-
-    validation = validate_value_type(expected_types, value)
+    validation = validate_value_type(mappings, value)
 
     case validation do
       {:error, :unexpected_value_type} ->
@@ -438,7 +466,8 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DataHandler do
           message:
             "Received invalid value: #{inspect(Base.encode64(payload))} sent to #{interface}#{path}.",
           logger_metadata: [tag: "unexpected_value_type"],
-          error_name: "unexpected_value_type"
+          error_name: "unexpected_value_type",
+          error: :unexpected_value_type
         }
 
         Core.Error.handle_error(context, error)
@@ -447,8 +476,9 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DataHandler do
         error = %{
           message:
             "Received object with unexpected key, object base64 is: #{inspect(Base.encode64(payload))} sent to #{interface}#{path}.",
-          logger_metadata: [tag: "unexpected_value_type"],
-          error_name: "unexpected_value_type"
+          logger_metadata: [tag: "unexpected_object_key"],
+          error_name: "unexpected_object_key",
+          error: :unexpected_value_type
         }
 
         Core.Error.handle_error(context, error)
@@ -458,7 +488,8 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DataHandler do
           message:
             "Received huge base64-encoded payload: #{inspect(Base.encode64(payload))} sent to #{interface}#{path}.",
           logger_metadata: [tag: "value_size_exceeded"],
-          error_name: "value_size_exceeded"
+          error_name: "value_size_exceeded",
+          error: :value_size_exceeded
         }
 
         Core.Error.handle_error(context, error)
@@ -484,9 +515,13 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DataHandler do
     {:error, :unexpected_value_type}
   end
 
-  def validate_value_type(%{} = expected_types, %{} = object) do
+  def validate_value_type(%Mapping{value_type: expected_type}, value) do
+    validate_value_type(expected_type, value)
+  end
+
+  def validate_value_type(%{} = mappings_by_key, %{} = object) do
     Enum.reduce_while(object, :ok, fn {key, value}, _acc ->
-      with {:ok, expected_type} <- Map.fetch(expected_types, key),
+      with {:ok, %Mapping{value_type: expected_type}} <- Map.fetch(mappings_by_key, key),
            :ok <- ValueType.validate_value(expected_type, value) do
         {:cont, :ok}
       else

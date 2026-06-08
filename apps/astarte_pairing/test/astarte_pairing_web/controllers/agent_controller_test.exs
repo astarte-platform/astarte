@@ -137,7 +137,7 @@ defmodule Astarte.PairingWeb.AgentControllerTest do
         |> delete_req_header("authorization")
         |> post(agent_path(conn, :create, realm_name), data: @create_attrs)
 
-      assert json_response(conn, 401)["errors"] == %{"detail" => "Unauthorized"}
+      assert json_response(conn, 401)["errors"] == %{"detail" => "Missing authorization token"}
     end
 
     test "renders forbidden error when realm does not exist", ctx do
@@ -175,7 +175,7 @@ defmodule Astarte.PairingWeb.AgentControllerTest do
         |> delete_req_header("authorization")
         |> delete(agent_path(conn, :delete, realm_name, device.encoded_id))
 
-      assert json_response(conn, 401)["errors"] == %{"detail" => "Unauthorized"}
+      assert json_response(conn, 401)["errors"] == %{"detail" => "Missing authorization token"}
     end
 
     test "renders forbidden error when realm does not exist", ctx do

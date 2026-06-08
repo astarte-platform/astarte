@@ -27,6 +27,8 @@ defmodule Astarte.Import do
       :chars_acc,
       :object_data,
       :current_object_item,
+      :value,
+      :element_data,
       :got_device_end_fun,
       :got_end_of_value_fun,
       :got_end_of_object_fun,
@@ -332,7 +334,7 @@ defmodule Astarte.Import do
     {:ok, reception_timestamp} = fetch_attribute(attributes, ~c"reception_timestamp")
     {:ok, datetime, 0} = DateTime.from_iso8601(reception_timestamp)
 
-    %State{state | reception_timestamp: datetime}
+    %State{state | reception_timestamp: datetime, element_data: []}
   end
 
   defp xml_event({:startElement, _uri, _l_name, {_prefix, ~c"object"}, attributes}, _loc, state) do
@@ -344,7 +346,7 @@ defmodule Astarte.Import do
 
   defp xml_event({:startElement, _uri, _l_name, {_prefix, ~c"item"}, attributes}, _loc, state) do
     with {:ok, item_name} <- fetch_attribute(attributes, ~c"name") do
-      %State{state | current_object_item: item_name}
+      %State{state | current_object_item: item_name, element_data: []}
     else
       _any ->
         throw({:error, :invalid_object_item})
@@ -355,20 +357,36 @@ defmodule Astarte.Import do
     with {:ok, path} <- fetch_attribute(attributes, ~c"path"),
          {:ok, reception_timestamp} <- fetch_attribute(attributes, ~c"reception_timestamp"),
          {:ok, datetime, 0} <- DateTime.from_iso8601(reception_timestamp) do
-      %State{state | path: path, reception_timestamp: datetime}
+      %State{state | path: path, reception_timestamp: datetime, element_data: []}
     else
       _any ->
         throw({:error, :invalid_property})
     end
   end
 
+  defp xml_event({:startElement, _uri, _l_name, {_prefix, 'element'}, attributes}, _loc, state) do
+    state
+  end
+
+  defp xml_event({:endElement, _uri, _l_name, {_prefix, 'element'}}, _loc, state) do
+    %State{
+      chars_acc: chars_acc,
+      element_data: element_data
+    } = state
+
+    element_data = element_data ++ [chars_acc]
+
+    %State{state | chars_acc: nil, element_data: element_data}
+  end
+
   defp xml_event({:endElement, _uri, _l_name, {_prefix, ~c"property"}}, _loc, state) do
     %State{
       chars_acc: chars_acc,
+      element_data: element_data,
       got_end_of_property_fun: got_end_of_property_fun
     } = state
 
-    normalized_chars = normalize(chars_acc)
+    normalized_chars = normalize(chars_acc, element_data)
     state = got_end_of_property_fun.(state, normalized_chars)
 
     %State{state | chars_acc: nil, reception_timestamp: nil}
@@ -378,10 +396,11 @@ defmodule Astarte.Import do
     %State{
       chars_acc: chars_acc,
       object_data: object_data,
+      element_data: element_data,
       current_object_item: current_object_item
     } = state
 
-    normalized_chars = normalize(chars_acc)
+    normalized_chars = normalize(chars_acc, element_data)
 
     object_data = Map.put(object_data, current_object_item, normalized_chars)
 
@@ -396,18 +415,19 @@ defmodule Astarte.Import do
 
     state = got_end_of_object_fun.(state, object_data)
 
-    %State{state | reception_timestamp: nil, object_data: nil}
+    %State{state | reception_timestamp: nil, object_data: nil, element_data: nil}
   end
 
   defp xml_event({:endElement, _uri, _l_name, {_prefix, ~c"value"}}, _loc, state) do
     %State{
       chars_acc: chars_acc,
+      element_data: element_data,
       got_end_of_value_fun: got_end_of_value_fun
     } = state
 
-    state = got_end_of_value_fun.(state, chars_acc)
+    state = got_end_of_value_fun.(state, chars_acc || element_data)
 
-    %State{state | chars_acc: nil, reception_timestamp: nil}
+    %State{state | chars_acc: nil, reception_timestamp: nil, element_data: nil}
   end
 
   defp xml_event({:endElement, _uri, _l_name, {_prefix, ~c"datastream"}}, _loc, state) do
@@ -587,7 +607,9 @@ defmodule Astarte.Import do
     |> :inet.parse_address()
   end
 
-  defp normalize(chars) do
+  defp normalize(nil, element_data), do: element_data 
+
+  defp normalize(chars, _) do
     chars
     |> to_string()
     |> String.trim()

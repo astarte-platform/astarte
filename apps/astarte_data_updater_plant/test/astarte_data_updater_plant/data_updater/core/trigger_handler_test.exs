@@ -6,23 +6,15 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.TriggerHandlerTest do
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.SimpleTriggerContainer
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.TriggerTargetContainer
   alias Astarte.DataUpdaterPlant.AMQPTestHelper
-  alias Astarte.DataUpdaterPlant.DataUpdater
   alias Astarte.DataUpdaterPlant.DataUpdater.Core.Trigger
 
   use Astarte.Cases.Data, async: true
   use Astarte.Cases.Device
+  use Astarte.Cases.DataUpdater
   use ExUnitProperties
 
   use Mimic
-  import Astarte.Helpers.DataUpdater
   setup_all :populate_interfaces
-
-  setup_all %{realm_name: realm_name, device: device} do
-    setup_data_updater(realm_name, device.encoded_id)
-    state = DataUpdater.dump_state(realm_name, device.encoded_id)
-
-    %{state: state}
-  end
 
   property "successfully install volatile device trigger", %{
     state: state,

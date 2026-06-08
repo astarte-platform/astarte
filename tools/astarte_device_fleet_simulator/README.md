@@ -16,6 +16,8 @@ Configuration options are specified via the following environment variables:
 - `DEVICE_FLEET_QOS`: The QoS mode for messages sent from Astarte devices. Optional, defaults to `2`;
 - `DEVICE_FLEET_ALLOW_MESSAGES_WHILE_SPAWNING`: Allow already connected Astarte devices to send messages while others are still connecting. Optional,defaults to `false`.
 - `DEVICE_FLEET_INSTANCE_ID`: Fleet simulator instance ID. Must be unique for each instance when deploying multiple fleet simulator instances. Defaults to `astarte-fleet-simulator`.
+- `DEVICE_FLEET_AVOID_REGISTRATION`: Avoid registration for already registered devices. The first time running with this option `true`, the devices will be (re)registered so that their credentials can be stored. Defaults to `false`.
+- `DEVICE_FLEET_CREDENTIALS_SECRETS_LOCATION`: Location of the registered devices cache for `$DEVICE_FLEET_AVOID_REGISTRATION`. Defaults to `".credentials-secrets"`.
 
 **Keep in mind that this tool is in WIP state.**
 

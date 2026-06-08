@@ -28,28 +28,19 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.TriggerTest do
   alias Astarte.Core.InterfaceDescriptor
   alias Astarte.Core.Mapping
   alias Astarte.Core.Triggers.SimpleTriggersProtobuf.DeviceTrigger
-  alias Astarte.DataUpdaterPlant.DataUpdater
   alias Astarte.DataUpdaterPlant.DataUpdater.Core.Trigger
   alias Astarte.DataUpdaterPlant.DataUpdater.State
   alias Astarte.DataUpdaterPlant.TriggersHandler
 
   use Astarte.Cases.Data, async: true
   use Astarte.Cases.Device
+  use Astarte.Cases.DataUpdater
   use Astarte.Cases.Trigger
   use ExUnitProperties
-
-  import Astarte.Helpers.DataUpdater
 
   @moduletag :data_updater
 
   setup_all :populate_interfaces
-
-  setup_all %{realm_name: realm_name, device: device} do
-    setup_data_updater(realm_name, device.encoded_id)
-    state = DataUpdater.dump_state(realm_name, device.encoded_id)
-
-    %{state: state}
-  end
 
   defp interface_descriptor(interface, major) do
     interface_id = CQLUtils.interface_id(interface, major)

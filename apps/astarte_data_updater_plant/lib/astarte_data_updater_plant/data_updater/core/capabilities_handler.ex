@@ -36,7 +36,6 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.CapabilitiesHandler do
   ## Parameters
   - `state`: The current state of the data updater.
   - `payload`: The binary payload containing the capabilities data.
-  - `message_id`: The ID of the message being processed.
   - `timestamp`: The timestamp of the message.
 
   ## Returns
@@ -45,35 +44,35 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.CapabilitiesHandler do
   @spec handle_capabilities(
           state :: State.t(),
           payload :: binary(),
-          message_id :: binary(),
           timestamp :: integer()
-        ) :: State.t()
-  def handle_capabilities(state, payload, message_id, timestamp) do
+        ) :: {:ack, :ok, State.t()} | Error.error_result()
+  def handle_capabilities(state, payload, timestamp) do
     %State{device_id: device_id, realm: realm} = state
 
     case parse_capabilities(payload, state) do
       {:ok, capabilities} ->
         Queries.set_device_capabilities(realm, device_id, capabilities)
+        state = %State{state | capabilities: capabilities}
 
-        %State{state | capabilities: capabilities}
+        {:ack, :ok, state}
 
       {:error, error} ->
-        handle_error(state, error, payload, message_id, timestamp)
+        handle_error(state, error, payload, timestamp)
     end
   end
 
-  defp handle_error(state, error, payload, message_id, timestamp) do
+  defp handle_error(state, error, payload, timestamp) do
     error = %{
       message:
         "Unexpected error while processing payload #{inspect(Base.encode64(payload))}: #{error}",
       logger_metadata: [tag: "malformed_capabilities_message"],
-      error_name: "malformed_capabilities_message"
+      error_name: "malformed_capabilities_message",
+      error: :malformed_capabilities_message
     }
 
     context = %{
       state: state,
       payload: payload,
-      message_id: message_id,
       timestamp: timestamp
     }
 

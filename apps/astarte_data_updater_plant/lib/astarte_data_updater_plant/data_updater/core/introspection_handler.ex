@@ -25,54 +25,39 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.IntrospectionHandler do
   alias Astarte.DataUpdaterPlant.DataUpdater.Core
   alias Astarte.DataUpdaterPlant.DataUpdater.PayloadsDecoder
   alias Astarte.DataUpdaterPlant.DataUpdater.State
-  alias Astarte.DataUpdaterPlant.MessageTracker
 
   require Logger
 
-  def handle_introspection(%State{discard_messages: true} = state, _, message_id, _) do
-    MessageTracker.discard(state.message_tracker, message_id)
-    state
+  def handle_introspection(%State{discard_messages: true} = state, _, _) do
+    {:ack, :discard_messages, state}
   end
 
-  def handle_introspection(state, payload, message_id, timestamp) do
+  def handle_introspection(state, payload, timestamp) do
     case PayloadsDecoder.parse_introspection(payload) do
       {:ok, new_introspection_list} ->
         Core.Device.process_introspection(
           state,
           new_introspection_list,
           payload,
-          message_id,
           timestamp
         )
 
       {:error, :invalid_introspection} ->
-        Logger.warning("Discarding invalid introspection: #{inspect(Base.encode64(payload))}.",
-          tag: "invalid_introspection"
-        )
-
-        {:ok, new_state} = Core.Device.ask_clean_session(state, timestamp)
-        MessageTracker.discard(new_state.message_tracker, message_id)
-
-        :telemetry.execute(
-          [:astarte, :data_updater_plant, :data_updater, :discarded_introspection],
-          %{},
-          %{realm: new_state.realm}
-        )
-
-        base64_payload = Base.encode64(payload)
-
-        error_metadata = %{
-          "base64_payload" => base64_payload
+        context = %{
+          state: state,
+          payload: payload,
+          timestamp: timestamp
         }
 
-        Core.Trigger.execute_device_error_triggers(
-          new_state,
-          "invalid_introspection",
-          error_metadata,
-          timestamp
-        )
+        error = %{
+          message: "Discarding invalid introspection: #{inspect(Base.encode64(payload))}.",
+          logger_metadata: [tag: "invalid_introspection"],
+          error_name: "invalid_introspection",
+          error: :invalid_introspection,
+          telemetry_name: [:astarte, :data_updater_plant, :data_updater, :discarded_introspection]
+        }
 
-        Core.DataHandler.update_stats(new_state, "", nil, "", payload)
+        Core.Error.handle_error(context, error)
     end
   end
 end

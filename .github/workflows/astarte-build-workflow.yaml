@@ -11,27 +11,27 @@ jobs:
       matrix:
         app:
           - name: astarte-housekeeping
-            dockerfile: apps/astarte_housekeeping/Dockerfile
-            tag: astarte/astarte_housekeeping:1.3-snapshot
+            service: astarte_housekeeping
+            tag: astarte/astarte_housekeeping:1.4-snapshot
           - name: astarte-realm-management
-            dockerfile: apps/astarte_realm_management/Dockerfile
-            tag: astarte/astarte_realm_management:1.3-snapshot
+            service: astarte_realm_management
+            tag: astarte/astarte_realm_management:1.4-snapshot
           - name: astarte-pairing
-            dockerfile: apps/astarte_pairing/Dockerfile
-            tag: astarte/astarte_pairing:1.3-snapshot
+            service: astarte_pairing
+            tag: astarte/astarte_pairing:1.4-snapshot
           - name: astarte-appengine-api
-            dockerfile: apps/astarte_appengine_api/Dockerfile
-            tag: astarte/astarte_appengine_api:1.3-snapshot
+            service: astarte_appengine_api
+            tag: astarte/astarte_appengine_api:1.4-snapshot
           - name: astarte-data-updater-plant
-            dockerfile: apps/astarte_data_updater_plant/Dockerfile
-            tag: astarte/astarte_data_updater_plant:1.3-snapshot
+            service: astarte_data_updater_plant
+            tag: astarte/astarte_data_updater_plant:1.4-snapshot
           - name: astarte-trigger-engine
-            dockerfile: apps/astarte_trigger_engine/Dockerfile
-            tag: astarte/astarte_trigger_engine:1.3-snapshot
+            service: astarte_trigger_engine
+            tag: astarte/astarte_trigger_engine:1.4-snapshot
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@ee0669bd1cc54295c223e0bb666b733df41de1c5 # v2
       - name: Setup Docker Buildx
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3
       - name: Build branch slug env variable (job-scoped)
         run: |
           # Slugify branch/tag name for Docker tag safety and consistency
@@ -39,10 +39,10 @@ jobs:
       # Build and save each Astarte app Docker image in parallel
       # and use build cache from GitHub Container Registry (isolated per app and branch to avoid cache thrashing)
       - name: Build ${{ matrix.app.name }}
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6
         with:
           context: .
-          file: ${{ matrix.app.dockerfile }}
+          build-args: SERVICE=${{ matrix.app.service }}
           push: false
           cache-from: type=gha,scope=${{ matrix.app.name }}-${{ env.BRANCH_SLUG }}
           cache-to: type=gha,mode=max,scope=${{ matrix.app.name }}-${{ env.BRANCH_SLUG }}
@@ -51,7 +51,7 @@ jobs:
       # Upload the built image as an artifact to be shared with other workflows
       # we use the commit SHA to avoid collisions between different workflow runs
       - name: Upload ${{ matrix.app.name }} artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           # Give each image a unique artifact name to avoid clashes across matrix jobs
           name: astarte-images-${{ matrix.app.name }}

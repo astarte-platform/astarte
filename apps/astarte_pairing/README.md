@@ -33,6 +33,8 @@ database, (we suggest scylla)
 docker run --rm -d -p 9042:9042 --name scylla scylladb/scylla
 docker run --rm  -d -p 5672:5672 -p 15672:15672 --name rabbit rabbitmq:3.12.0-management
 docker run --rm -d --net=host -p 8080/tcp ispirata/docker-alpine-cfssl-autotest:astarte
+docker run --rm -d -p 8200:8200 --name openbao openbao/openbao:latest server -dev -dev-root-token-id=astarte_token
+docker run --rm -d -p 8041:8041 --name rendezvous astarte/go-fdo-server:ade68cda47-20251128 --log-level=debug rendezvous 0.0.0.0:8041 --db-type sqlite --db-dsn "file:/tmp/rendezvous.db"
 ```
 
 by default `CASSANDRA_NODES` and `CFSSL_API_URL` environment variables map to localhost, so that
@@ -49,8 +51,6 @@ CASSANDRA_NODES=localhost CFSSL_API_URL=http://localhost:8080 mix test
 ```
 
 # Test FDO
-
-> The feature is experimental and PAIRING_ENABLE_FDO must be set to true
 
 To test FDO, the manufacturer and Device CA keys are required and
 can be generated from the following tools:

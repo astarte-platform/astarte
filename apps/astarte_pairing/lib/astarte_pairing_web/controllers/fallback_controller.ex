@@ -70,17 +70,71 @@ defmodule Astarte.PairingWeb.FallbackController do
     |> render(:"403")
   end
 
-  # This is the final call made by EnsureAuthenticated
-  def auth_error(conn, {:unauthenticated, reason}, _opts) do
-    _ =
-      Logger.info("Refusing unauthenticated request: #{inspect(reason)}.", tag: "unauthenticated")
+  # Invalid authorized path
+  def call(conn, {:error, :invalid_auth_path}) do
+    conn
+    |> put_status(:unauthorized)
+    |> put_view(Astarte.PairingWeb.ErrorView)
+    |> render(:invalid_auth_path)
+  end
 
+  # The format of the uploaded (FDO) key is not the expected one
+  def call(conn, {:error, :unprocessable_key}) do
+    conn
+    |> put_status(:unprocessable_entity)
+    |> put_view(Astarte.PairingWeb.ErrorView)
+    |> render(:unprocessable_key)
+  end
+
+  # A key with the same name has already been imported in OpenBao
+  def call(conn, {:error, :key_already_imported}) do
+    conn
+    |> put_status(:conflict)
+    |> put_view(Astarte.PairingWeb.ErrorView)
+    |> render(:key_already_imported)
+  end
+
+  # The ownership_voucher parameter was missing from the request
+  def call(conn, {:error, :missing_ownership_voucher}) do
+    conn
+    |> put_status(:unprocessable_entity)
+    |> put_view(Astarte.PairingWeb.ErrorView)
+    |> render(:missing_ownership_voucher)
+  end
+
+  # This is called when no JWT token is present
+  def auth_error(conn, {:unauthenticated, :unauthenticated}, _opts) do
+    conn
+    |> put_status(:unauthorized)
+    |> put_view(Astarte.PairingWeb.ErrorView)
+    |> render(:missing_token)
+  end
+
+  # Invalid JWT token
+  def auth_error(conn, {:invalid_token, :invalid_token}, _opts) do
+    conn
+    |> put_status(:unauthorized)
+    |> put_view(Astarte.PairingWeb.ErrorView)
+    |> render(:invalid_token)
+  end
+
+  # Path not authorized
+  def auth_error(conn, {:unauthorized, :authorization_path_not_matched}, _opts) do
+    conn
+    |> put_status(:forbidden)
+    |> put_view(Astarte.PairingWeb.ErrorView)
+    |> render(:authorization_path_not_matched, %{method: conn.method, path: conn.request_path})
+  end
+
+  # This is the final call made by EnsureAuthenticated
+  def auth_error(conn, {:unauthenticated, _reason}, _opts) do
     conn
     |> put_status(:unauthorized)
     |> put_view(Astarte.PairingWeb.ErrorView)
     |> render(:"401")
   end
 
+  # In all other cases, we reply with 403
   def auth_error(conn, _reason, _opts) do
     conn
     |> put_status(:forbidden)

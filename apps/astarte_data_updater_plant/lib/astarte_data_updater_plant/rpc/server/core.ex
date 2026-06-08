@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2025 SECO Mind Srl
+# Copyright 2025 - 2026 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -24,47 +24,65 @@ defmodule Astarte.DataUpdaterPlant.RPC.Server.Core do
   """
   require Logger
 
-  alias Astarte.DataUpdaterPlant.DataUpdater
+  alias Astarte.Core.Device
+  alias Astarte.DataUpdaterPlant.DataUpdater.Queries
+  alias Mississippi.Consumer.DataUpdater
 
   def install_volatile_trigger(volatile_trigger) do
     %{
       realm_name: realm,
-      device_id: device_id,
+      device_id: encoded_device_id,
       parent_id: parent_id,
       simple_trigger_id: trigger_id,
       simple_trigger: simple_trigger,
       trigger_target: trigger_target
     } = volatile_trigger
 
-    DataUpdater.with_dup_and_message_tracker(
-      realm,
-      device_id,
-      fn dup, _message_tracker ->
-        GenServer.call(
-          dup,
-          {:handle_install_volatile_trigger, parent_id, trigger_id, simple_trigger,
-           trigger_target}
-        )
-      end
-    )
+    signal =
+      {:install_volatile_trigger, parent_id, trigger_id, simple_trigger, trigger_target}
+
+    signal_existing_device(realm, encoded_device_id, signal)
   end
 
   def delete_volatile_trigger(delete_request) do
     %{
       realm_name: realm,
-      device_id: device_id,
+      device_id: encoded_device_id,
       trigger_id: trigger_id
     } = delete_request
 
-    DataUpdater.with_dup_and_message_tracker(
-      realm,
-      device_id,
-      fn dup, _message_tracker ->
-        GenServer.call(
-          dup,
-          {:handle_delete_volatile_trigger, trigger_id}
-        )
-      end
-    )
+    signal = {:delete_volatile_trigger, trigger_id}
+    signal_existing_device(realm, encoded_device_id, signal)
+  end
+
+  def start_device_deletion(realm, encoded_device_id, timestamp) do
+    signal = {:start_device_deletion, timestamp}
+    signal_existing_device(realm, encoded_device_id, signal)
+  end
+
+  defp signal_existing_device(realm, encoded_device_id, signal) do
+    with {:ok, device_id} <- Device.decode_device_id(encoded_device_id),
+         :ok <- verify_device_exists(realm, device_id),
+         {:ok, dup} <- DataUpdater.get_data_updater_process({realm, device_id}) do
+      DataUpdater.handle_signal(dup, signal)
+    end
+  end
+
+  defp verify_device_exists(realm_name, device_id) do
+    case Queries.check_device_exists(realm_name, device_id) do
+      {:ok, true} ->
+        :ok
+
+      {:ok, false} ->
+        encoded_device_id = Device.encode_device_id(device_id)
+
+        "Device #{encoded_device_id} in realm #{realm_name} does not exist."
+        |> Logger.warning(tag: "device_does_not_exist")
+
+        {:error, :device_does_not_exist}
+
+      error ->
+        error
+    end
   end
 end

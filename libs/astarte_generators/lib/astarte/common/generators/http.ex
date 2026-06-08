@@ -136,7 +136,7 @@ defmodule Astarte.Common.Generators.HTTP do
   # end
 
   defp reg_name do
-    mixed(@reg_name_charset)
+    mixed(@reg_name_charset, min_length: 1)
   end
 
   defp path do

@@ -26,7 +26,7 @@ defmodule Astarte.DataUpdaterPlant.DeviceDisconnectionTest do
   alias Astarte.DataAccess.Repo
   alias Astarte.DataUpdaterPlant.AMQPTestHelper
   alias Astarte.DataUpdaterPlant.DatabaseTestHelper
-  alias Astarte.DataUpdaterPlant.DataUpdater
+  alias Astarte.Helpers.DataUpdater
 
   import Ecto.Query
 
@@ -79,7 +79,6 @@ defmodule Astarte.DataUpdaterPlant.DeviceDisconnectionTest do
     DataUpdater.handle_disconnection(
       realm,
       encoded_device_id,
-      gen_tracking_id(),
       make_timestamp("2017-10-09T14:30:45+00:00")
     )
 
@@ -108,12 +107,6 @@ defmodule Astarte.DataUpdaterPlant.DeviceDisconnectionTest do
            }
 
     assert AMQPTestHelper.awaiting_messages_count(helper_name) == 0
-  end
-
-  defp gen_tracking_id do
-    message_id = :erlang.unique_integer([:monotonic]) |> Integer.to_string()
-    delivery_tag = {:injected_msg, make_ref()}
-    {message_id, delivery_tag}
   end
 
   defp make_timestamp(timestamp_string) do

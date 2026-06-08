@@ -146,6 +146,7 @@ defmodule Astarte.Helpers.Database do
     explicit_timestamp boolean,
     description text,
     doc text,
+    required boolean,
 
     PRIMARY KEY ((interface_id), endpoint_id)
   )
@@ -499,12 +500,6 @@ defmodule Astarte.Helpers.Database do
   def make_timestamp(timestamp_string) do
     {:ok, date_time, _} = DateTime.from_iso8601(timestamp_string)
     DateTime.to_unix(date_time, :millisecond) * 10_000
-  end
-
-  def gen_tracking_id do
-    message_id = :erlang.unique_integer([:monotonic]) |> Integer.to_string()
-    delivery_tag = {:injected_msg, make_ref()}
-    {message_id, delivery_tag}
   end
 
   def random_device_id do

@@ -22,8 +22,9 @@ defmodule Astarte.DataAccess.Mixfile do
   def project do
     [
       app: :astarte_data_access,
-      version: "1.3.0",
+      version: "1.4.0-rc.0",
       elixir: "~> 1.15",
+      elixirc_paths: elixirc_paths(Mix.env()),
       start_permanent: Mix.env() == :prod,
       test_coverage: [tool: ExCoveralls],
       preferred_cli_env: [
@@ -41,6 +42,9 @@ defmodule Astarte.DataAccess.Mixfile do
     ]
   end
 
+  defp elixirc_paths(:test), do: ["test/support", "lib"]
+  defp elixirc_paths(_), do: ["lib"]
+
   # Run "mix help compile.app" to learn about applications.
   def application do
     [
@@ -57,7 +61,7 @@ defmodule Astarte.DataAccess.Mixfile do
 
   defp astarte_required_modules(_) do
     [
-      {:astarte_core, "~> 1.3", override: true},
+      {:astarte_core, github: "astarte-platform/astarte_core"},
       {:astarte_adapters, path: "../astarte_adapters"},
       {:astarte_generators, path: "../astarte_generators", only: [:dev, :test]}
     ]
@@ -68,6 +72,8 @@ defmodule Astarte.DataAccess.Mixfile do
     [
       {:exandra, "~> 0.13"},
       {:typed_ecto_schema, "~> 0.4"},
+      {:astarte_fdo_core, path: "../astarte_fdo_core"},
+      {:cose, github: "secomind/cose-elixir"},
       {:skogsra, "~> 2.2"},
       {:excoveralls, "~> 0.15", only: :test},
       {:castore, "~> 1.0.0"},

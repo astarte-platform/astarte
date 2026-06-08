@@ -124,6 +124,7 @@ defmodule Astarte.DatabaseTestdata do
     reliability int,
     retention int,
     value_type int,
+    required boolean,
     PRIMARY KEY (interface_id, endpoint_id)
   )
   """

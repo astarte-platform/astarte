@@ -47,6 +47,13 @@ defmodule Astarte.HousekeepingWeb.RealmControllerTest do
   @local_datacenter Repo.one!(from(l in "system.local", select: l.data_center))
 
   @create_attrs %{"data" => %{"realm_name" => "testrealm", "jwt_public_key_pem" => pubkey()}}
+  @create_attrs_with_retention %{
+    "data" => %{
+      "realm_name" => "testrealm",
+      "jwt_public_key_pem" => pubkey(),
+      "datastream_maximum_storage_retention" => 67_000
+    }
+  }
   @explicit_replication_attrs %{
     "data" => %{
       "realm_name" => "testrealm2",
@@ -99,20 +106,19 @@ defmodule Astarte.HousekeepingWeb.RealmControllerTest do
 
   test "does not allow unauthenticated connections", %{conn: conn} do
     response = conn |> get(realm_path(conn, :index)) |> json_response(401)
-    assert response["errors"]["detail"] == "Unauthorized"
+    assert response["errors"]["detail"] == "Missing authorization token"
   end
 
   test "does not allow unauthorized connections", %{conn: conn} do
     token = JWTTestHelper.gen_jwt_token([])
 
-    response =
+    conn =
       conn
       |> put_req_header("accept", "application/json")
       |> put_req_header("authorization", "Bearer #{token}")
       |> get(realm_path(conn, :index))
-      |> json_response(403)
 
-    assert response["errors"]["detail"] == "Forbidden"
+    assert json_response(conn, 403)["errors"]["detail"] == unauthorized_access_message(conn)
   end
 
   describe "index" do
@@ -150,6 +156,53 @@ defmodule Astarte.HousekeepingWeb.RealmControllerTest do
                  "datacenter_replication_factors" => %{@local_datacenter => 1},
                  "device_registration_limit" => nil,
                  "datastream_maximum_storage_retention" => nil
+               }
+             }
+
+      Database.teardown_realm_keyspace(@create_attrs["data"]["realm_name"])
+    end
+
+    test "renders realm when data is valid and retention is set as default for instance", %{
+      auth_conn: conn
+    } do
+      Mimic.stub(Config, :default_datastream_maximum_storage_retention, fn -> {:ok, 30_000} end)
+
+      conn = post(conn, realm_path(conn, :create), @create_attrs)
+      assert response(conn, 201)
+      conn = get(conn, realm_path(conn, :show, @create_attrs["data"]["realm_name"]))
+
+      assert json_response(conn, 200) == %{
+               "data" => %{
+                 "realm_name" => @create_attrs["data"]["realm_name"],
+                 "jwt_public_key_pem" => @create_attrs["data"]["jwt_public_key_pem"],
+                 "replication_class" => "NetworkTopologyStrategy",
+                 "datacenter_replication_factors" => %{@local_datacenter => 1},
+                 "device_registration_limit" => nil,
+                 "datastream_maximum_storage_retention" => 30_000
+               }
+             }
+
+      Database.teardown_realm_keyspace(@create_attrs["data"]["realm_name"])
+    end
+
+    test "renders realm when data is valid and contains retention override, retention is set as default for instance",
+         %{
+           auth_conn: conn
+         } do
+      Mimic.stub(Config, :default_datastream_maximum_storage_retention, fn -> {:ok, 30_000} end)
+
+      conn = post(conn, realm_path(conn, :create), @create_attrs_with_retention)
+      assert response(conn, 201)
+      conn = get(conn, realm_path(conn, :show, @create_attrs["data"]["realm_name"]))
+
+      assert json_response(conn, 200) == %{
+               "data" => %{
+                 "realm_name" => @create_attrs["data"]["realm_name"],
+                 "jwt_public_key_pem" => @create_attrs["data"]["jwt_public_key_pem"],
+                 "replication_class" => "NetworkTopologyStrategy",
+                 "datacenter_replication_factors" => %{@local_datacenter => 1},
+                 "device_registration_limit" => nil,
+                 "datastream_maximum_storage_retention" => 67_000
                }
              }
 
@@ -451,5 +504,9 @@ defmodule Astarte.HousekeepingWeb.RealmControllerTest do
                }
              }
     end
+  end
+
+  defp unauthorized_access_message(conn) do
+    "Unauthorized access to #{conn.assigns.method} #{conn.assigns.path}. Please verify your permissions"
   end
 end

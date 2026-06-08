@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2025 SECO Mind Srl
+# Copyright 2025 - 2026 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -20,73 +20,62 @@
 
 defmodule Astarte.DataUpdaterPlant.RPC.CoreTest do
   @moduledoc false
-  alias Astarte.DataUpdaterPlant.DataUpdater
+  alias Astarte.DataUpdaterPlant.DataUpdater.Impl
   alias Astarte.DataUpdaterPlant.RPC.Server.Core
 
   use Astarte.Cases.Data, async: true
   use Astarte.Cases.Trigger
   use Astarte.Cases.Device
+  use Astarte.Cases.DataUpdater
   use ExUnitProperties
 
   use Mimic
 
-  setup_all %{realm_name: realm_name, device: device} do
-    {:ok, message_tracker} = DataUpdater.fetch_message_tracker(realm_name, device.encoded_id)
-
-    {:ok, dup} =
-      DataUpdater.fetch_data_updater_process(realm_name, device.encoded_id, message_tracker, true)
-
-    Astarte.DataAccess.Config
-    |> allow(self(), dup)
-
-    GenServer.call(dup, :start)
-
-    %{data_updater: dup}
-  end
-
-  property "install_volatile_trigger/1 calls the `data_updater` server", context do
-    %{realm_name: realm_name, device: device, data_updater: data_updater} = context
+  property "install_volatile_trigger/1 calls the `data_updater`", context do
+    %{realm_name: realm_name, device: device} = context
 
     check all volatile_trigger <- volatile_trigger(realm_name, device.encoded_id) do
-      expected_request =
-        {:handle_install_volatile_trigger, volatile_trigger.parent_id,
+      expected_signal =
+        {:install_volatile_trigger, volatile_trigger.parent_id,
          volatile_trigger.simple_trigger_id, volatile_trigger.simple_trigger,
          volatile_trigger.trigger_target}
 
-      expected_pid = self()
+      Impl
+      |> expect(:handle_signal, fn ^expected_signal, state -> {:ok, state} end)
 
-      DataUpdater.Server
-      |> allow(self(), data_updater)
-      |> expect(:handle_call, fn ^expected_request, {^expected_pid, _}, state ->
-        {:reply, {:ok, true}, state}
-      end)
-
-      assert {:ok, _} = Core.install_volatile_trigger(volatile_trigger)
+      assert :ok = Core.install_volatile_trigger(volatile_trigger)
     end
   end
 
   property "delete_volatile_trigger/1 calls the `data_updater` server", context do
-    %{realm_name: realm_name, device: device, data_updater: data_updater} = context
+    %{realm_name: realm_name, device: device} = context
 
     check all trigger_id <- binary() do
-      expected_request =
-        {:handle_delete_volatile_trigger, trigger_id}
+      expected_signal =
+        {:delete_volatile_trigger, trigger_id}
 
-      expected_pid = self()
+      Impl
+      |> expect(:handle_signal, fn ^expected_signal, state -> {:ok, state} end)
 
-      DataUpdater.Server
-      |> allow(self(), data_updater)
-      |> expect(:handle_call, fn ^expected_request, {^expected_pid, _}, state ->
-        {:reply, {:ok, true}, state}
-      end)
-
-      assert {:ok, _} =
+      assert :ok =
                Core.delete_volatile_trigger(%{
                  realm_name: realm_name,
                  device_id: device.encoded_id,
                  trigger_id: trigger_id
                })
     end
+  end
+
+  test "start_device_deletion/3 calls the `data_updater` server", context do
+    %{realm_name: realm_name, device: device} = context
+    encoded_device_id = device.encoded_id
+    timestamp = DateTime.utc_now() |> DateTime.to_unix(:microsecond) |> Kernel.*(10)
+    expected_signal = {:start_device_deletion, timestamp}
+
+    Impl
+    |> expect(:handle_signal, fn ^expected_signal, state -> {:ok, state} end)
+
+    assert :ok = Core.start_device_deletion(realm_name, encoded_device_id, timestamp)
   end
 
   defp volatile_trigger(realm_name, device_id) do

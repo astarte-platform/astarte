@@ -24,25 +24,24 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.HeartbeatHandler do
   """
   alias Astarte.DataUpdaterPlant.DataUpdater.Queries
   alias Astarte.DataUpdaterPlant.DataUpdater.State
-  alias Astarte.DataUpdaterPlant.MessageTracker
   alias Astarte.DataUpdaterPlant.TimeBasedActions
 
   require Logger
 
-  def handle_heartbeat(%State{discard_messages: true} = state, message_id, _) do
-    MessageTracker.discard(state.message_tracker, message_id)
-    state
+  def handle_heartbeat(%State{discard_messages: true} = state, _) do
+    # Don't care
+    {:ack, :discard_messages, state}
   end
 
   # TODO make this private when all heartbeats will be moved to internal
-  def handle_heartbeat(state, message_id, timestamp) do
+  def handle_heartbeat(state, timestamp) do
     new_state = TimeBasedActions.execute_time_based_actions(state, timestamp)
+    new_state = %{new_state | connected: true, last_seen_message: timestamp}
 
     Queries.maybe_refresh_device_connected!(new_state.realm, new_state.device_id)
 
-    MessageTracker.ack_delivery(new_state.message_tracker, message_id)
     Logger.info("Device heartbeat.", tag: "device_heartbeat")
 
-    %{new_state | connected: true, last_seen_message: timestamp}
+    {:ack, :ok, new_state}
   end
 end

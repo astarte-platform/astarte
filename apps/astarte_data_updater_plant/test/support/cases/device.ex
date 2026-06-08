@@ -60,6 +60,7 @@ defmodule Astarte.Cases.Device do
     interfaces_data
     |> Map.put(:interfaces, interfaces)
     |> Map.put(:device, device)
+    |> Map.put(:device_id, device.device_id)
     |> Map.put(:interface_descriptors, interface_descriptors)
     |> Map.put(:endpoints, endpoints)
   end

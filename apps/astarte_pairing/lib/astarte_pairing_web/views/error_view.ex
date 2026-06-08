@@ -47,6 +47,62 @@ defmodule Astarte.PairingWeb.ErrorView do
     %{errors: %{detail: "Internal server error"}}
   end
 
+  def render("missing_token.json", _assigns) do
+    %{errors: %{detail: "Missing authorization token"}}
+  end
+
+  def render("invalid_token.json", _assigns) do
+    %{errors: %{detail: "Invalid JWT token"}}
+  end
+
+  def render("invalid_auth_path.json", _assigns) do
+    %{
+      errors: %{
+        detail: "Authorization failed due to an invalid path"
+      }
+    }
+  end
+
+  def render("authorization_path_not_matched.json", %{method: method, path: path}) do
+    %{
+      errors: %{
+        detail: "Unauthorized access to #{method} #{path}. Please verify your permissions"
+      }
+    }
+  end
+
+  def render("unprocessable_key.json", _assigns) do
+    %{
+      errors: %{
+        detail: "The provided key format is invalid or cannot be processed."
+      }
+    }
+  end
+
+  def render("key_already_imported.json", _assigns) do
+    %{
+      errors: %{
+        detail: "A key with this name has already been imported"
+      }
+    }
+  end
+
+  def render("missing_ownership_voucher.json", _assigns) do
+    %{
+      errors: %{
+        detail: "The ownership_voucher parameter is required"
+      }
+    }
+  end
+
+  def render("422.json", _assigns) do
+    %{
+      errors: %{
+        detail: "Unprocessable entity"
+      }
+    }
+  end
+
   # In case no render clause matches or no
   # template is found, let's render it as 500
   def template_not_found(_template, assigns) do

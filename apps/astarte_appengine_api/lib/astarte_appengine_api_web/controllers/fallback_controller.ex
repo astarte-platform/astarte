@@ -212,18 +212,53 @@ defmodule Astarte.AppEngine.APIWeb.FallbackController do
     |> render(:"422_unset_not_allowed")
   end
 
+  def call(conn, {:error, :missing_required_mapping}) do
+    conn
+    |> put_status(:unprocessable_entity)
+    |> put_view(Astarte.AppEngine.APIWeb.ErrorView)
+    |> render(:"422_missing_required_mapping")
+  end
+
   def call(conn, {:error, :realm_not_found}) do
     conn
     |> put_status(:unauthorized)
     |> put_view(Astarte.AppEngine.APIWeb.ErrorView)
-    |> render(:"401")
+    |> render(:invalid_token)
+  end
+
+  # Invalid authorized path
+  def call(conn, {:error, :invalid_auth_path}) do
+    conn
+    |> put_status(:unauthorized)
+    |> put_view(Astarte.AppEngine.APIWeb.ErrorView)
+    |> render(:invalid_auth_path)
   end
 
   # This is called when no JWT token is present
-  def auth_error(conn, {:unauthenticated, reason}, _opts) do
-    _ =
-      Logger.info("Refusing unauthenticated request: #{inspect(reason)}.", tag: "unauthenticated")
+  def auth_error(conn, {:unauthenticated, :unauthenticated}, _opts) do
+    conn
+    |> put_status(:unauthorized)
+    |> put_view(Astarte.AppEngine.APIWeb.ErrorView)
+    |> render(:missing_token)
+  end
 
+  # Invalid JWT token
+  def auth_error(conn, {:invalid_token, :invalid_token}, _opts) do
+    conn
+    |> put_status(:unauthorized)
+    |> put_view(Astarte.AppEngine.APIWeb.ErrorView)
+    |> render(:invalid_token)
+  end
+
+  # Path not authorized
+  def auth_error(conn, {:unauthorized, :authorization_path_not_matched}, _opts) do
+    conn
+    |> put_status(:forbidden)
+    |> put_view(Astarte.AppEngine.APIWeb.ErrorView)
+    |> render(:authorization_path_not_matched, %{method: conn.method, path: conn.request_path})
+  end
+
+  def auth_error(conn, {:unauthenticated, _reason}, _opts) do
     conn
     |> put_status(:unauthorized)
     |> put_view(Astarte.AppEngine.APIWeb.ErrorView)

@@ -21,33 +21,23 @@
 defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.IntrospectionHandlerTest do
   use Astarte.Cases.Data, async: true
   use Astarte.Cases.Device
-  use Mimic
-  use ExUnitProperties
 
-  import StreamData
-  import Astarte.Helpers.DataUpdater
+  use Astarte.Cases.DataUpdater
+
+  use ExUnitProperties
+  use Mimic
 
   alias Astarte.Common.Generators.Timestamp
-  alias Astarte.DataUpdaterPlant.DataUpdater
   alias Astarte.DataUpdaterPlant.DataUpdater.Core
   alias Astarte.DataUpdaterPlant.DataUpdater.Core.IntrospectionHandler
+  alias Astarte.DataUpdaterPlant.DataUpdater.Impl
   alias Astarte.DataUpdaterPlant.DataUpdater.PayloadsDecoder
-  alias Astarte.DataUpdaterPlant.MessageTracker
-
-  setup_all %{realm_name: realm_name, device: device} do
-    setup_data_updater(realm_name, device.encoded_id)
-    state = DataUpdater.dump_state(realm_name, device.encoded_id)
-
-    %{state: state, message_tracker: state.message_tracker}
-  end
 
   setup do
-    message_id = System.unique_integer()
     timestamp = System.system_time(:second)
     payload = System.unique_integer() |> to_string()
 
     %{
-      message_id: message_id,
       payload: payload,
       timestamp: timestamp
     }
@@ -56,30 +46,25 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.IntrospectionHandlerTest do
   describe "handle_introspection tests" do
     test "discards messages if discard_messages is enabled", context do
       %{
-        state: state,
-        message_id: message_id,
-        message_tracker: message_tracker
+        state: state
       } = context
 
       state = %{state | discard_messages: true}
 
-      expect(MessageTracker, :discard, fn ^message_tracker, ^message_id -> :ok end)
-
-      new_state = IntrospectionHandler.handle_introspection(state, "", message_id, 0)
-
-      assert new_state == state
+      assert {:ack, :discard_messages, ^state} =
+               IntrospectionHandler.handle_introspection(state, "", 0)
     end
 
     test "processes valid introspection", context do
       %{
         state: state,
-        message_id: message_id,
         timestamp: timestamp,
         payload: payload
       } = context
 
       decoded_introspection = [%{interface: "com.test.testInterface", major: 1, minor: 0}]
       new_state = Map.put(state, :introspection, %{"com.test.testInterface" => 1})
+      return = {:ack, :ok, new_state}
 
       expect(PayloadsDecoder, :parse_introspection, fn ^payload ->
         {:ok, decoded_introspection}
@@ -88,21 +73,18 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.IntrospectionHandlerTest do
       expect(Core.Device, :process_introspection, fn ^state,
                                                      ^decoded_introspection,
                                                      ^payload,
-                                                     ^message_id,
                                                      ^timestamp ->
-        new_state
+        return
       end)
 
-      assert IntrospectionHandler.handle_introspection(state, payload, message_id, timestamp) ==
-               new_state
+      assert return ==
+               IntrospectionHandler.handle_introspection(state, payload, timestamp)
     end
 
     test "returns error on invalid introspection", context do
       %{
         state: state,
-        message_id: message_id,
-        timestamp: timestamp,
-        message_tracker: message_tracker
+        timestamp: timestamp
       } = context
 
       payload = "invalid_payload"
@@ -114,10 +96,6 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.IntrospectionHandlerTest do
 
       expect(Core.Device, :ask_clean_session, fn ^state, ^timestamp ->
         {:ok, new_state}
-      end)
-
-      expect(MessageTracker, :discard, fn ^message_tracker, ^message_id ->
-        :ok
       end)
 
       expect(Core.Trigger, :execute_device_error_triggers, fn ^new_state,
@@ -134,7 +112,10 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.IntrospectionHandlerTest do
         :ok
       end)
 
-      IntrospectionHandler.handle_introspection(state, payload, message_id, timestamp)
+      assert {:discard, _reason, new_state, {:continue, continue_arg}} =
+               IntrospectionHandler.handle_introspection(state, payload, timestamp)
+
+      Impl.handle_continue(continue_arg, new_state)
     end
   end
 
@@ -146,18 +127,14 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.IntrospectionHandlerTest do
       check all interfaces <- random_interfaces(interfaces),
                 introspection <- gen_introspection(interfaces),
                 time <- Timestamp.timestamp() do
-        DataUpdater.handle_introspection(
+        handle_introspection(
           realm_name,
           device.encoded_id,
           introspection,
-          gen_tracking_id(),
           time
         )
 
-        # WARNING: This test assumes that the introspection is processed immediately.
-        # Which does not hold true but it seems to be working anyway.
-        # This may lead to race conditions
-        state = DataUpdater.dump_state(realm_name, device.encoded_id)
+        state = dump_state(realm_name, device.encoded_id)
 
         assert interfaces_to_introspection(interfaces) == state.introspection
       end

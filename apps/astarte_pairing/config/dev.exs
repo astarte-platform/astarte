@@ -71,7 +71,11 @@ config :astarte_pairing, :broker_url, "mqtts://broker.beta.astarte.cloud:8883/"
 
 config :astarte_pairing, :cfssl_url, "http://localhost:8888"
 
-config :astarte_pairing, :base_url_domain, "api.astarte.localhost"
-config :astarte_pairing, :base_url_port, 4003
-config :astarte_pairing, :base_url_protocol, :http
+config :astarte_fdo, :base_url_domain, "api.astarte.localhost"
+config :astarte_fdo, :base_url_port, 4003
+config :astarte_fdo, :base_url_protocol, :http
 config :astarte_pairing, :enable_credential_reuse, true
+
+config :astarte_pairing, bao_authentication_mechanism: :token
+config :astarte_pairing, bao_token: "astarte_token"
+config :astarte_pairing, bao_url: "http://localhost:8200"

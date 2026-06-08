@@ -1,0 +1,3 @@
+#!/bin/sh
+
+exec bin/astarte_appengine_api rpc "Astarte.AppEngine.API.Health.rpc_healthcheck()"

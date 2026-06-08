@@ -11,4 +11,8 @@ config :astarte_data_updater_plant,
        :vernemq_plugin_rpc_client,
        Astarte.DataUpdaterPlant.RPC.VMQPlugin.ClientMock
 
+config :astarte_data_updater_plant, :amqp_data_queue_total_count, 1
+config :astarte_data_updater_plant, :amqp_data_queue_range_end, 0
+config :astarte_data_updater_plant, :amqp_data_queue_range_start, 0
+
 config :astarte_events, :connection_backoff, 0

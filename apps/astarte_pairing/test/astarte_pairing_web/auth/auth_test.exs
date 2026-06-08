@@ -34,6 +34,11 @@ defmodule Astarte.PairingWeb.AuthTest do
       {:ok, conn: conn}
     end
 
+    test "no token returns 401", %{conn: conn, realm_name: realm_name} do
+      conn = post(conn, agent_path(conn, :create, realm_name), data: @create_attrs)
+      assert json_response(conn, 401)["errors"]["detail"] == "Missing authorization token"
+    end
+
     test "succeeds with specific authorizations", %{conn: conn, realm_name: realm_name} do
       register_authorizations = ["POST::agent/devices"]
 
@@ -81,7 +86,7 @@ defmodule Astarte.PairingWeb.AuthTest do
         |> authorize_conn(register_authorizations)
         |> post(agent_path(conn, :create, realm_name), data: @create_attrs)
 
-      assert json_response(conn, 403)["errors"]["detail"] == "Forbidden"
+      assert json_response(conn, 403)["errors"]["detail"] == unauthorized_access_message(conn)
     end
 
     test "fails with authorization for different method", %{conn: conn, realm_name: realm_name} do
@@ -92,12 +97,38 @@ defmodule Astarte.PairingWeb.AuthTest do
         |> authorize_conn(register_authorizations)
         |> post(agent_path(conn, :create, realm_name), data: @create_attrs)
 
-      assert json_response(conn, 403)["errors"]["detail"] == "Forbidden"
+      assert json_response(conn, 403)["errors"]["detail"] == unauthorized_access_message(conn)
+    end
+
+    test "invalid JWT token returns 401", %{conn: conn, realm_name: realm_name} do
+      conn =
+        put_req_header(
+          conn,
+          "authorization",
+          "bearer invalid_token"
+        )
+        |> post(agent_path(conn, :create, realm_name), data: @create_attrs)
+
+      assert json_response(conn, 401)["errors"]["detail"] == "Invalid JWT token"
+    end
+
+    test "token with mismatched signature returns 401", %{conn: conn, realm_name: realm_name} do
+      token = JWTTestHelper.gen_jwt_token_with_wrong_signature(["^POST$::agent/devices"])
+
+      conn =
+        put_req_header(conn, "authorization", "bearer #{token}")
+        |> post(agent_path(conn, :create, realm_name), data: @create_attrs)
+
+      assert json_response(conn, 401)["errors"]["detail"] == "Invalid JWT token"
     end
   end
 
   defp authorize_conn(conn, authorizations) when is_list(authorizations) do
     token = JWTTestHelper.gen_jwt_token(authorizations)
     put_req_header(conn, "authorization", "bearer #{token}")
+  end
+
+  defp unauthorized_access_message(conn) do
+    "Unauthorized access to #{conn.assigns.method} #{conn.assigns.path}. Please verify your permissions"
   end
 end

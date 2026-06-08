@@ -21,24 +21,18 @@
 defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ErrorTest do
   use Astarte.Cases.Data, async: true
   use Astarte.Cases.Device
-  use ExUnitProperties
+
+  use Astarte.Cases.DataUpdater
+
   use Astarte.Generators.Utilities.ParamsGen
+  use ExUnitProperties
   use Mimic
 
-  alias Astarte.DataUpdaterPlant.DataUpdater
   alias Astarte.DataUpdaterPlant.DataUpdater.Core
   alias Astarte.DataUpdaterPlant.DataUpdater.Core.Error
-  alias Astarte.DataUpdaterPlant.MessageTracker
+  alias Astarte.DataUpdaterPlant.DataUpdater.Impl
 
-  import Astarte.Helpers.DataUpdater
   import Astarte.InterfaceUpdateGenerators
-
-  setup_all %{realm_name: realm_name, device: device} do
-    setup_data_updater(realm_name, device.encoded_id)
-    state = DataUpdater.dump_state(realm_name, device.encoded_id)
-
-    %{state: state}
-  end
 
   describe "handle_error/2" do
     property "handle_error/2 resets connection and discards the message, updating stats by default",
@@ -46,9 +40,10 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ErrorTest do
       %{state: state, interfaces: interfaces} = context
 
       check all context <- gen_context(state, interfaces),
-                error <- gen_error() do
+                error <- gen_error(),
+                max_runs: 10 do
         set_expectations(context, error)
-        assert ^state = Error.handle_error(context, error)
+        assert ^state = handle_error(context, error)
       end
     end
 
@@ -57,20 +52,28 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ErrorTest do
       %{state: state, interfaces: interfaces} = context
 
       check all context <- gen_context(state, interfaces),
-                error <- gen_error() do
+                error <- gen_error(),
+                max_runs: 10 do
         opts = [update_stats: false]
         set_expectations(context, error, opts)
 
-        assert ^state = Error.handle_error(context, error, opts)
+        assert ^state = handle_error(context, error, opts)
       end
     end
+  end
+
+  defp handle_error(context, error, opts \\ []) do
+    assert {:discard, _reason, new_state, {:continue, continue_arg}} =
+             Error.handle_error(context, error, opts)
+
+    assert {:ok, new_state} = Impl.handle_continue(continue_arg, new_state)
+    new_state
   end
 
   defp set_expectations(context, error, opts \\ []) do
     %{
       state: state,
       interface: interface,
-      message_id: message_id,
       path: path,
       timestamp: timestamp,
       payload: payload
@@ -80,7 +83,6 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ErrorTest do
       error_name: error_name
     } = error
 
-    message_tracker = state.message_tracker
     update_stats = Keyword.get(opts, :update_stats, true)
     ask_clean_session = Keyword.get(opts, :ask_clean_session, true)
     execute_error_triggers = Keyword.get(opts, :execute_error_triggers, true)
@@ -113,13 +115,10 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ErrorTest do
         expect(Core.DataHandler, :update_stats, fn ^state, ^interface, nil, ^path, ^payload ->
           state
         end)
-
-    expect(MessageTracker, :discard, fn ^message_tracker, ^message_id -> :ok end)
   end
 
   defp gen_context(state, interfaces) do
     gen all interface <- member_of(interfaces),
-            message_id <- repeatedly(&gen_message_id/0),
             mapping <- member_of(interface.mappings),
             path <- path_from_endpoint(mapping.endpoint),
             timestamp <- repeatedly(&DateTime.utc_now/0),
@@ -127,7 +126,6 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ErrorTest do
       %{
         state: state,
         interface: interface,
-        message_id: message_id,
         path: path,
         timestamp: timestamp,
         payload: payload
@@ -138,15 +136,15 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ErrorTest do
   defp gen_error(params \\ []) do
     params gen all message <- string(:utf8),
                    tag <- string(:utf8),
+                   error <- atom(:alphanumeric),
                    error_name <- string(:utf8),
                    params: params do
       %{
         message: message,
         logger_metadata: [tag: tag],
+        error: error,
         error_name: error_name
       }
     end
   end
-
-  defp gen_message_id, do: :erlang.unique_integer([:monotonic]) |> Integer.to_string()
 end

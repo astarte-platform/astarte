@@ -26,6 +26,8 @@ defmodule Astarte.DataUpdaterPlant.Application do
 
   alias Astarte.DataAccess.Config, as: DataAccessConfig
   alias Astarte.DataUpdaterPlant.Config
+  alias Astarte.DataUpdaterPlant.DataUpdater.Impl
+  alias Astarte.Events.Config, as: EventsConfig
 
   @app_version Mix.Project.config()[:version]
 
@@ -43,13 +45,31 @@ defmodule Astarte.DataUpdaterPlant.Application do
 
     children = [
       Astarte.DataUpdaterPlantWeb.Telemetry,
-      Astarte.DataUpdaterPlant.DataPipelineSupervisor,
       {Astarte.Events.AMQPEvents.Supervisor, []},
       {Astarte.Events.AMQPTriggers.Supervisor, []},
-      {Astarte.Events.Triggers.Supervisor, []}
+      {Astarte.Events.Triggers.Supervisor, []},
+      Astarte.DataUpdaterPlant.DataPipelineSupervisor,
+      {Mississippi.Consumer, mississippi_consumer_opts!()}
     ]
 
     opts = [strategy: :one_for_one, name: Astarte.DataUpdaterPlant.Supervisor]
     Supervisor.start_link(children, opts)
+  end
+
+  defp mississippi_consumer_opts! do
+    [
+      amqp_consumer_options: Config.amqp_consumer_options!(),
+      mississippi_config: [
+        queues: [
+          events_exchange_name: EventsConfig.amqp_events_exchange_name!(),
+          prefix: Config.data_queue_prefix!(),
+          range_start: Config.data_queue_range_start!(),
+          range_end: Config.data_queue_range_end!(),
+          total_count: Config.data_queue_total_count!()
+        ],
+        message_handler: Impl,
+        cluster_distribution_strategy: :uniform
+      ]
+    ]
   end
 end

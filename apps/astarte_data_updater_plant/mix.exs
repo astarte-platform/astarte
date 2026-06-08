@@ -23,7 +23,7 @@ defmodule Astarte.DataUpdaterPlant.Mixfile do
     [
       app: :astarte_data_updater_plant,
       elixir: "~> 1.15",
-      version: "1.3.0",
+      version: "1.4.0-rc.0",
       build_embedded: Mix.env() == :prod,
       start_permanent: Mix.env() == :prod,
       elixirc_paths: elixirc_paths(Mix.env()),
@@ -59,7 +59,7 @@ defmodule Astarte.DataUpdaterPlant.Mixfile do
 
   defp astarte_required_modules(_) do
     [
-      {:astarte_core, "~> 1.3", override: true},
+      {:astarte_core, github: "astarte-platform/astarte_core", override: true},
       {:astarte_generators, github: "astarte-platform/astarte_generators", only: [:dev, :test]},
       {:astarte_realm_management,
        path: "../astarte_realm_management", only: :test, runtime: false},
@@ -74,14 +74,13 @@ defmodule Astarte.DataUpdaterPlant.Mixfile do
       {:castore, "~> 1.0.0"},
       {:cyanide, "~> 2.0"},
       {:excoveralls, "~> 0.15", only: :test},
+      {:mississippi, github: "secomind/mississippi"},
       {:mox, "~> 1.0", only: :test},
       {:mimic, "~> 1.11", only: [:dev, :test]},
       {:exandra, "~> 0.13"},
-      # hex.pm package and esl/ex_rabbit_pool do not support amqp version 2.1.
-      # This fork is supporting amqp ~> 2.0 and also ~> 3.0.
-      {:ex_rabbit_pool, github: "leductam/ex_rabbit_pool"},
+      {:current_rabbit_pool, "~> 1.1"},
       {:libcluster, "~> 3.3"},
-      {:horde, "~> 0.9"},
+      {:horde, "~> 0.9", override: true},
       {:pretty_log, "~> 0.1"},
       {:plug_cowboy, "~> 2.1"},
       {:typed_ecto_schema, "~> 0.4"},

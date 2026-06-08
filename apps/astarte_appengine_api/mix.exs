@@ -22,7 +22,7 @@ defmodule Astarte.AppEngine.API.Mixfile do
     [
       app: :astarte_appengine_api,
       elixir: "~> 1.15",
-      version: "1.3.0",
+      version: "1.4.0-rc.0",
       elixirc_paths: elixirc_paths(Mix.env()),
       start_permanent: Mix.env() == :prod,
       test_coverage: [tool: ExCoveralls],
@@ -60,7 +60,7 @@ defmodule Astarte.AppEngine.API.Mixfile do
 
   defp astarte_required_modules(_) do
     [
-      {:astarte_core, "~> 1.3", override: true},
+      {:astarte_core, github: "astarte-platform/astarte_core"},
       {:astarte_realm_management,
        path: "../astarte_realm_management", only: :test, runtime: false}
     ]
@@ -85,7 +85,7 @@ defmodule Astarte.AppEngine.API.Mixfile do
       {:uuid, "~> 2.0", hex: :uuid_erl},
       # Required by :phoenix_swagger, otherwise it fails finding ex_json_schema.app
       {:ex_json_schema, "~> 0.9"},
-      {:ex_rabbit_pool, github: "leductam/ex_rabbit_pool"},
+      {:current_rabbit_pool, "~> 1.1"},
       {:phoenix_swagger, "~> 0.8"},
       {:exandra, "~> 0.13"},
       {:typed_ecto_schema, "~> 0.4"},

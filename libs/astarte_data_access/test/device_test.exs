@@ -93,4 +93,88 @@ defmodule Astarte.DataAccess.Device.XandraTest do
              "com.test.SimpleStreamTest"
            ) == {:error, :interface_not_in_introspection}
   end
+
+  describe "fetch/2" do
+    test "returns an existing device" do
+      {:ok, device_id} = CoreDevice.decode_device_id("f0VMRgIBAQAAAAAAAAAAAA")
+
+      assert {:ok, device} = Device.fetch("autotestrealm", device_id)
+      assert device.device_id == device_id
+    end
+
+    test "returns error for a missing device" do
+      missing_id = :crypto.strong_rand_bytes(16)
+
+      assert {:error, :device_not_found} = Device.fetch("autotestrealm", missing_id)
+    end
+  end
+
+  describe "register/5" do
+    test "registers a new device" do
+      new_device_id = :crypto.strong_rand_bytes(16)
+      credentials_secret = "test_secret_#{System.unique_integer()}"
+
+      assert {:ok, _device} =
+               Device.register(
+                 "autotestrealm",
+                 new_device_id,
+                 "base64encodedid",
+                 credentials_secret
+               )
+    end
+
+    test "returns error when registering an already-confirmed device" do
+      {:ok, device_id} = CoreDevice.decode_device_id("f0VMRgIBAQAAAAAAAAAAAA")
+
+      assert {:error, :device_already_registered} =
+               Device.register(
+                 "autotestrealm",
+                 device_id,
+                 "f0VMRgIBAQAAAAAAAAAAAA",
+                 "some_secret"
+               )
+    end
+
+    test "re-registers an existing unconfirmed device" do
+      device_id = :crypto.strong_rand_bytes(16)
+
+      assert {:ok, _} = Device.register("autotestrealm", device_id, "extid", "secret_v1")
+
+      assert {:ok, device} =
+               Device.register("autotestrealm", device_id, "extid", "secret_v2")
+
+      assert device.credentials_secret == "secret_v2"
+    end
+
+    test "re-registers an unconfirmed device with unconfirmed: true sets a TTL" do
+      device_id = :crypto.strong_rand_bytes(16)
+
+      assert {:ok, _} = Device.register("autotestrealm", device_id, "extid", "secret_v1")
+
+      assert {:ok, device} =
+               Device.register("autotestrealm", device_id, "extid", "secret_v2",
+                 unconfirmed: true
+               )
+
+      assert device.credentials_secret == "secret_v2"
+    end
+
+    test "re-registers an unconfirmed device with initial_introspection" do
+      device_id = :crypto.strong_rand_bytes(16)
+
+      assert {:ok, _} = Device.register("autotestrealm", device_id, "extid", "secret_v1")
+
+      introspection = [
+        %{interface_name: "com.example.Foo", major_version: 1, minor_version: 2}
+      ]
+
+      assert {:ok, device} =
+               Device.register("autotestrealm", device_id, "extid", "secret_v2",
+                 initial_introspection: introspection
+               )
+
+      assert device.introspection == [{"com.example.Foo", 1}]
+      assert device.introspection_minor == [{"com.example.Foo", 2}]
+    end
+  end
 end

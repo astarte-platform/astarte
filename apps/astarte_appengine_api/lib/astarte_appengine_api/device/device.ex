@@ -361,6 +361,33 @@ defmodule Astarte.AppEngine.API.Device do
     end
   end
 
+  defp validate_value(mappings_by_key, value) when is_map(value) do
+    with :ok <- validate_value_type(mappings_by_key, value) do
+      validate_required_mappings(mappings_by_key, value)
+    end
+  end
+
+  defp validate_value(_mappings_by_key, _value) do
+    {:error, :unexpected_value_type, expected: :object}
+  end
+
+  defp validate_required_mappings(mappings_by_key, value) when is_map(value) do
+    case Enum.find(mappings_by_key, fn {key, mapping} ->
+           mapping.required and not Map.has_key?(value, key)
+         end) do
+      nil ->
+        :ok
+
+      {key, _mapping} ->
+        Logger.warning(
+          "Missing required mapping key #{inspect(key)} in object interface value.",
+          tag: "missing_required_mapping"
+        )
+
+        {:error, :missing_required_mapping}
+    end
+  end
+
   @doc false
   def update_object_interface_values(
         realm_name,
@@ -379,9 +406,11 @@ defmodule Astarte.AppEngine.API.Device do
          {:ok, endpoint} <-
            resolve_object_aggregation_path(path, interface_descriptor, mappings),
          endpoint_id <- endpoint.endpoint_id,
-         expected_types <- extract_expected_types(mappings),
+         mappings_by_key = extract_mappings(mappings),
+         expected_types =
+           Map.new(mappings_by_key, fn {k, %Mapping{value_type: t}} -> {k, t} end),
          {:ok, value} <- InterfaceValue.cast_value(expected_types, raw_value),
-         :ok <- validate_value_type(expected_types, value),
+         :ok <- validate_value(mappings_by_key, value),
          wrapped_value = wrap_to_bson_struct(expected_types, value),
          reliability = extract_aggregate_reliability(mappings),
          interface_type = interface_descriptor.type,
@@ -450,6 +479,13 @@ defmodule Astarte.AppEngine.API.Device do
       {:error, :mapping_not_found} ->
         {:error, :mapping_not_found}
 
+      {:error, :missing_required_mapping} ->
+        Logger.warning("Missing required mapping in object interface update.",
+          tag: "missing_required_mapping"
+        )
+
+        {:error, :missing_required_mapping}
+
       {:error, :database_error} ->
         Logger.warning("Error while trying to retrieve ttl.", tag: "database_error")
         {:error, :database_error}
@@ -507,14 +543,10 @@ defmodule Astarte.AppEngine.API.Device do
     end
   end
 
-  defp extract_expected_types(mappings) do
-    Enum.into(mappings, %{}, fn mapping ->
-      expected_key =
-        mapping.endpoint
-        |> String.split("/")
-        |> List.last()
-
-      {expected_key, mapping.value_type}
+  defp extract_mappings(mappings) do
+    Map.new(mappings, fn m ->
+      key = m.endpoint |> String.split("/") |> List.last()
+      {key, m}
     end)
   end
 
@@ -615,10 +647,10 @@ defmodule Astarte.AppEngine.API.Device do
     end
   end
 
-  defp validate_value_type(expected_types, object)
-       when is_map(expected_types) and is_map(object) do
+  defp validate_value_type(mappings_by_key, object)
+       when is_map(mappings_by_key) and is_map(object) do
     Enum.reduce_while(object, :ok, fn {key, value}, _acc ->
-      with {:ok, expected_type} <- Map.fetch(expected_types, key),
+      with {:ok, %Mapping{value_type: expected_type}} <- Map.fetch(mappings_by_key, key),
            :ok <- validate_value_type(expected_type, value) do
         {:cont, :ok}
       else

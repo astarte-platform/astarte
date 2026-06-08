@@ -22,6 +22,7 @@ defmodule Astarte.RealmManagementWeb.InterfaceController do
 
   alias Astarte.Core.Interface
   alias Astarte.RealmManagement.Interfaces
+  alias Astarte.RealmManagement.Interfaces.InterfacesListOptions
   alias OpenApiSpex.{Reference, Schema}
 
   action_fallback Astarte.RealmManagementWeb.FallbackController
@@ -32,11 +33,19 @@ defmodule Astarte.RealmManagementWeb.InterfaceController do
   operation :index,
     summary: "Get interface list",
     description: """
-    Get a list of all installed interface names.
+    Get a list of all installed interfaces. By default a list of interface names
+    is returned. The complete interface definitions list can be optionally retrieved using
+    the `detailed` option.
     """,
     operation_id: "getInterfaceList",
     parameters: [
-      %Reference{"$ref": "#/components/parameters/Realm"}
+      %Reference{"$ref": "#/components/parameters/Realm"},
+      detailed: [
+        in: :query,
+        description: "If true, interface definitions are returned instead of just names.",
+        required: false,
+        schema: %Schema{type: :boolean, default: false}
+      ]
     ],
     responses: [
       ok: %Reference{"$ref": "#/components/responses/GetInterfaceList"},
@@ -175,8 +184,9 @@ defmodule Astarte.RealmManagementWeb.InterfaceController do
       not_found: %Reference{"$ref": "#/components/responses/InterfaceNotFound"}
     ]
 
-  def index(conn, %{"realm_name" => realm_name}) do
-    with {:ok, interfaces} <- Interfaces.list_interfaces(realm_name) do
+  def index(conn, %{"realm_name" => realm_name} = params) do
+    with {:ok, opts} <- InterfacesListOptions.from_params(params),
+         {:ok, interfaces} <- Interfaces.list_interfaces(realm_name, opts) do
       render(conn, "index.json", interfaces: interfaces)
     end
   end

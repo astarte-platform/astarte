@@ -22,12 +22,11 @@ defmodule Astarte.PairingWeb.FDOOnboardingControllerTest do
   use Astarte.Cases.FDOSession
   use Mimic
 
-  alias Astarte.Pairing.Config
-  alias Astarte.Pairing.FDO.OwnerOnboarding
-  alias Astarte.Pairing.FDO.OwnerOnboarding.DeviceServiceInfo
-  alias Astarte.Pairing.FDO.OwnerOnboarding.DeviceServiceInfoReady
-  alias Astarte.Pairing.FDO.OwnerOnboarding.Session
-  alias Astarte.Pairing.FDO.ServiceInfo
+  alias Astarte.FDO.Core.OwnerOnboarding.DeviceServiceInfo
+  alias Astarte.FDO.Core.OwnerOnboarding.DeviceServiceInfoReady
+  alias Astarte.FDO.Core.OwnerOnboarding.Session
+  alias Astarte.FDO.OwnerOnboarding
+  alias Astarte.FDO.ServiceInfo
 
   setup :verify_on_exit!
 
@@ -156,13 +155,8 @@ defmodule Astarte.PairingWeb.FDOOnboardingControllerTest do
            conn: conn,
            create_path: path,
            message_id: id,
-           session: session,
-           realm_name: realm,
-           owner_key_pem: owner_key_pem,
-           cbor_ownership_voucher: cbor_ownership_voucher
+           session: session
          } do
-      insert_voucher(realm, owner_key_pem, cbor_ownership_voucher, session.guid)
-
       request_body = Session.encrypt_and_sign(session, CBOR.encode(%{prove: "device"}))
       conn = post(conn, path, request_body)
       assert {100, id} == assert_cbor_error(conn)
@@ -224,7 +218,7 @@ defmodule Astarte.PairingWeb.FDOOnboardingControllerTest do
 
       expect(DeviceServiceInfo, :decode, fn _ -> {:ok, decoded} end)
 
-      expect(ServiceInfo, :build_owner_service_info, fn _, _, _ ->
+      expect(ServiceInfo, :build_owner_service_info, fn _, _, _, _, _ ->
         {:ok, CBOR.encode(expected_response)}
       end)
 
@@ -282,23 +276,6 @@ defmodule Astarte.PairingWeb.FDOOnboardingControllerTest do
 
       conn = post(conn, path, request_body)
       assert {100, id} == assert_cbor_error(conn)
-    end
-  end
-
-  describe "FDO feature disabled" do
-    setup context do
-      setup_authenticated(context, :hello_device, 60)
-    end
-
-    test "makes the /v1/:realm_name/fdo/101 endpoints return a 404 error", %{
-      conn: conn,
-      create_path: path
-    } do
-      stub(Config, :enable_fdo!, fn -> false end)
-
-      conn
-      |> post(path, CBOR.encode(%{hello: "device"}))
-      |> response(404)
     end
   end
 end

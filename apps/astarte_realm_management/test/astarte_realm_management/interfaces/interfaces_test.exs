@@ -35,6 +35,7 @@ defmodule Astarte.RealmManagement.InterfacesTest do
 
   alias Astarte.RealmManagement.Interfaces
   alias Astarte.RealmManagement.Interfaces.Core
+  alias Astarte.RealmManagement.Interfaces.InterfacesListOptions
 
   @moduletag :interfaces
 
@@ -66,6 +67,54 @@ defmodule Astarte.RealmManagement.InterfacesTest do
       }
     ]
   }
+
+  describe "list_interfaces/2" do
+    setup %{realm_name: realm_name, astarte_instance_id: astarte_instance_id} do
+      interfaces =
+        InterfaceGenerator.interface()
+        |> StreamData.list_of(length: 3..10)
+        |> Enum.at(0)
+        |> Enum.uniq_by(& &1.interface_name)
+
+      on_exit(fn ->
+        Database.setup_database_access(astarte_instance_id)
+
+        for interface <- interfaces do
+          capture_log(fn ->
+            Core.delete_interface(realm_name, interface.name, interface.major_version)
+          end)
+        end
+      end)
+
+      installed_interfaces =
+        for interface <- interfaces do
+          {:ok, interface} = insert_interface_cleanly(realm_name, interface)
+          interface
+        end
+
+      %{interfaces: installed_interfaces}
+    end
+
+    test "returns the names of the installed interfaces", context do
+      %{realm_name: realm_name, interfaces: interfaces} = context
+      expected_names = interfaces |> Enum.map(& &1.name) |> MapSet.new()
+
+      assert {:ok, names} = Interfaces.list_interfaces(realm_name)
+      names = MapSet.new(names)
+
+      assert names == expected_names
+    end
+
+    test "returns the list of installed interfaces with the detailed option", context do
+      %{realm_name: realm_name, interfaces: interfaces} = context
+      opts = %InterfacesListOptions{detailed: true}
+      expected = interfaces |> MapSet.new()
+      assert {:ok, result} = Interfaces.list_interfaces(realm_name, opts)
+      result = MapSet.new(result)
+
+      assert expected == result
+    end
+  end
 
   describe "list_interface_major_versions/2" do
     setup %{realm_name: realm_name, astarte_instance_id: astarte_instance_id} do

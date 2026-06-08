@@ -291,7 +291,7 @@ defmodule Astarte.Events.Config do
 
   def events_pool_config! do
     [
-      name: {:local, :events_producer_pool},
+      name: {:local, :astarte_events_producer_pool},
       worker_module: ExRabbitPool.Worker.RabbitConnection,
       size: events_connection_number!(),
       max_overflow: 0

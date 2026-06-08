@@ -71,46 +71,8 @@ defmodule Astarte.Pairing.Queries do
     end
   end
 
-  def register_device(realm_name, device_id, extended_id, credentials_secret, opts \\ []) do
-    case fetch_device(realm_name, device_id) do
-      {:error, :device_not_found} ->
-        Logger.info("register request for new device: #{inspect(extended_id)}")
-
-        registration_timestamp = DateTime.utc_now()
-
-        do_register_device(
-          realm_name,
-          device_id,
-          credentials_secret,
-          registration_timestamp,
-          opts
-        )
-
-      {:ok, device} ->
-        if is_nil(device.first_credentials_request) do
-          Logger.info("register request for existing unconfirmed device: #{inspect(extended_id)}")
-
-          do_register_unconfirmed_device(
-            realm_name,
-            device,
-            credentials_secret,
-            opts
-          )
-        else
-          Logger.warning(
-            "register request for existing confirmed device: #{inspect(extended_id)}"
-          )
-
-          {:error, :device_already_registered}
-        end
-
-      {:error, reason} ->
-        {:error, reason}
-    end
-  end
-
   def unregister_device(realm_name, device_id) do
-    with {:ok, device} <- fetch_device(realm_name, device_id),
+    with {:ok, device} <- Astarte.DataAccess.Device.fetch(realm_name, device_id),
          {:ok, _device} <- do_unregister_device(realm_name, device) do
       :ok
     else
@@ -142,18 +104,6 @@ defmodule Astarte.Pairing.Queries do
       credentials_secret: nil
     )
     |> Repo.update(prefix: keyspace_name, consistency: consistency)
-  end
-
-  def fetch_device(realm_name, device_id) do
-    keyspace_name = Realm.keyspace_name(realm_name)
-
-    consistency = Consistency.device_info(:read)
-
-    Repo.fetch(Device, device_id,
-      prefix: keyspace_name,
-      consistency: consistency,
-      error: :device_not_found
-    )
   end
 
   def update_device_after_credentials_request(realm_name, device, cert_data, device_ip, nil) do
@@ -193,7 +143,7 @@ defmodule Astarte.Pairing.Queries do
     keyspace_name = Realm.keyspace_name(realm_name)
     consistency = Consistency.device_info(:write)
 
-    with {:ok, device} <- fetch_device(realm_name, device_id) do
+    with {:ok, device} <- Astarte.DataAccess.Device.fetch(realm_name, device_id) do
       device
       |> Repo.insert(
         prefix: keyspace_name,
@@ -257,7 +207,7 @@ defmodule Astarte.Pairing.Queries do
     query =
       from o in OwnershipVoucher,
         prefix: ^keyspace_name,
-        select: o.private_key
+        select: o.key_name
 
     consistency = Consistency.domain_model(:read)
 
@@ -268,7 +218,7 @@ defmodule Astarte.Pairing.Queries do
         realm_name,
         guid,
         cbor_ownership_voucher,
-        owner_private_key,
+        key_name,
         ttl
       ) do
     keyspace_name = Realm.keyspace_name(realm_name)
@@ -277,7 +227,7 @@ defmodule Astarte.Pairing.Queries do
 
     %OwnershipVoucher{
       voucher_data: cbor_ownership_voucher,
-      private_key: owner_private_key,
+      key_name: key_name,
       guid: guid
     }
     |> Repo.insert(opts)
@@ -295,13 +245,15 @@ defmodule Astarte.Pairing.Queries do
   def replace_ownership_voucher(
         realm_name,
         guid,
-        new_voucher,
-        owner_private_key,
-        ttl
+        new_voucher
       ) do
-    with {:ok, _} <- delete_ownership_voucher(realm_name, guid) do
-      create_ownership_voucher(realm_name, guid, new_voucher, owner_private_key, ttl)
-    end
+    keyspace = Realm.keyspace_name(realm_name)
+    consistency = Consistency.device_info(:write)
+    opts = [prefix: keyspace, consistency: consistency]
+
+    %OwnershipVoucher{guid: guid}
+    |> Ecto.Changeset.change(output_voucher: new_voucher)
+    |> Repo.update(opts)
   end
 
   def store_session(realm_name, guid, session) do
@@ -386,88 +338,5 @@ defmodule Astarte.Pairing.Queries do
     consistency = Consistency.device_info(:read)
     opts = [prefix: keyspace, consistency: consistency]
     Repo.fetch(TO2Session, guid, opts)
-  end
-
-  defp do_register_device(
-         realm_name,
-         device_id,
-         credentials_secret,
-         %DateTime{} = registration_timestamp,
-         opts
-       ) do
-    {introspection, introspection_minor} =
-      opts
-      |> Keyword.get(:initial_introspection, [])
-      |> build_initial_introspection_maps()
-
-    keyspace_name = Realm.keyspace_name(realm_name)
-
-    consistency = Consistency.device_info(:write)
-
-    repo_opts =
-      if Keyword.get(opts, :unconfirmed, false) do
-        [prefix: keyspace_name, consistency: consistency, ttl: 7200]
-      else
-        [prefix: keyspace_name, consistency: consistency]
-      end
-
-    %Device{}
-    |> Ecto.Changeset.change(%{
-      device_id: device_id,
-      first_registration: registration_timestamp,
-      credentials_secret: credentials_secret,
-      inhibit_credentials_request: false,
-      protocol_revision: 0,
-      total_received_bytes: 0,
-      total_received_msgs: 0,
-      introspection: introspection,
-      introspection_minor: introspection_minor
-    })
-    |> Repo.insert(repo_opts)
-  end
-
-  defp do_register_unconfirmed_device(
-         realm_name,
-         %Device{} = device,
-         credentials_secret,
-         opts
-       ) do
-    {introspection, introspection_minor} =
-      opts
-      |> Keyword.get(:initial_introspection, [])
-      |> build_initial_introspection_maps()
-
-    keyspace_name = Realm.keyspace_name(realm_name)
-
-    consistency = Consistency.device_info(:write)
-
-    repo_opts =
-      if Keyword.get(opts, :unconfirmed, false) do
-        [prefix: keyspace_name, consistency: consistency, ttl: 7200]
-      else
-        [prefix: keyspace_name, consistency: consistency]
-      end
-
-    device
-    |> Ecto.Changeset.change(%{
-      credentials_secret: credentials_secret,
-      inhibit_credentials_request: false,
-      protocol_revision: 0,
-      introspection: introspection,
-      introspection_minor: introspection_minor
-    })
-    |> Repo.insert(repo_opts)
-  end
-
-  defp build_initial_introspection_maps(initial_introspection) do
-    Enum.reduce(initial_introspection, {[], []}, fn introspection_entry, {majors, minors} ->
-      %{
-        interface_name: interface_name,
-        major_version: major_version,
-        minor_version: minor_version
-      } = introspection_entry
-
-      {[{interface_name, major_version} | majors], [{interface_name, minor_version} | minors]}
-    end)
   end
 end

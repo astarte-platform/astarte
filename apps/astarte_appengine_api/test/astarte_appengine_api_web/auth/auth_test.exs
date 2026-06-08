@@ -54,7 +54,7 @@ defmodule Astarte.AppEngine.APIWeb.AuthTest do
   describe "JWT" do
     test "no token returns 401", %{conn: conn} do
       conn = get(conn, @request_path)
-      assert json_response(conn, 401)["errors"]["detail"] == "Unauthorized"
+      assert json_response(conn, 401)["errors"]["detail"] == "Missing authorization token"
     end
 
     test "invalid realm returns 401", %{conn: conn} do
@@ -66,7 +66,7 @@ defmodule Astarte.AppEngine.APIWeb.AuthTest do
         )
         |> get(@invalid_realm_request_path)
 
-      assert json_response(conn, 401)["errors"]["detail"] == "Unauthorized"
+      assert json_response(conn, 401)["errors"]["detail"] == "Invalid JWT token"
     end
 
     test "all access token returns the data", %{conn: conn} do
@@ -126,7 +126,7 @@ defmodule Astarte.AppEngine.APIWeb.AuthTest do
         )
         |> get("#{@request_path}/with/suffix")
 
-      assert json_response(conn, 403)["errors"]["detail"] == "Forbidden"
+      assert json_response(conn, 403)["errors"]["detail"] == unauthorized_access_message(conn)
     end
 
     test "token for another device returns 403", %{conn: conn} do
@@ -138,7 +138,7 @@ defmodule Astarte.AppEngine.APIWeb.AuthTest do
         )
         |> get(@request_path)
 
-      assert json_response(conn, 403)["errors"]["detail"] == "Forbidden"
+      assert json_response(conn, 403)["errors"]["detail"] == unauthorized_access_message(conn)
     end
 
     test "token for both devices returns the data", %{conn: conn} do
@@ -162,7 +162,7 @@ defmodule Astarte.AppEngine.APIWeb.AuthTest do
         )
         |> get(@request_path)
 
-      assert json_response(conn, 403)["errors"]["detail"] == "Forbidden"
+      assert json_response(conn, 403)["errors"]["detail"] == unauthorized_access_message(conn)
     end
 
     test "token with generic matching regexp returns the data", %{conn: conn} do
@@ -190,5 +190,31 @@ defmodule Astarte.AppEngine.APIWeb.AuthTest do
 
       assert json_response(conn, 200)["data"] == @expected_data
     end
+
+    test "invalid JWT token returns 401", %{conn: conn} do
+      conn =
+        put_req_header(
+          conn,
+          "authorization",
+          "bearer invalid_token"
+        )
+        |> get(@request_path)
+
+      assert json_response(conn, 401)["errors"]["detail"] == "Invalid JWT token"
+    end
+
+    test "token with mismatched signature returns 401", %{conn: conn} do
+      token = JWTTestHelper.gen_jwt_token_with_wrong_signature(["^GET$::#{@valid_auth_path}"])
+
+      conn =
+        put_req_header(conn, "authorization", "bearer #{token}")
+        |> get(@request_path)
+
+      assert json_response(conn, 401)["errors"]["detail"] == "Invalid JWT token"
+    end
+  end
+
+  defp unauthorized_access_message(conn) do
+    "Unauthorized access to #{conn.assigns.method} #{conn.assigns.path}. Please verify your permissions"
   end
 end

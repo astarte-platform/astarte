@@ -30,7 +30,8 @@ defmodule Astarte.DataUpdaterPlant.DeviceDeleteTest do
   alias Astarte.DataAccess.Repo
   alias Astarte.DataUpdaterPlant.AMQPTestHelper
   alias Astarte.DataUpdaterPlant.DatabaseTestHelper
-  alias Astarte.DataUpdaterPlant.DataUpdater
+  alias Astarte.DataUpdaterPlant.RPC.Server.Core
+  alias Astarte.Helpers.DataUpdater
 
   setup :verify_on_exit!
   setup :set_mox_global
@@ -98,7 +99,7 @@ defmodule Astarte.DataUpdaterPlant.DeviceDeleteTest do
       :ok
     end)
 
-    DataUpdater.start_device_deletion(realm, encoded_device_id, timestamp_ms)
+    Core.start_device_deletion(realm, encoded_device_id, timestamp_ms)
 
     deletion_status = DeletionInProgress |> Repo.get!(device_id, prefix: keyspace_name)
 
@@ -129,7 +130,6 @@ defmodule Astarte.DataUpdaterPlant.DeviceDeleteTest do
     ]
 
     DatabaseTestHelper.insert_device(realm, device_id, insert_opts)
-
     keyspace_name = Realm.keyspace_name(realm)
 
     %DeletionInProgress{device_id: device_id}
@@ -139,11 +139,12 @@ defmodule Astarte.DataUpdaterPlant.DeviceDeleteTest do
     timestamp_ms = div(timestamp_us_x_10, 10_000)
 
     Astarte.DataUpdaterPlant.RPC.VMQPlugin.ClientMock
+    |> allow(self(), DataUpdater.get_data_updater_process!(realm, device_id))
     |> expect(:delete, fn %{realm_name: ^realm, device_id: ^encoded_device_id} ->
       :ok
     end)
 
-    DataUpdater.start_device_deletion(realm, encoded_device_id, timestamp_ms)
+    Core.start_device_deletion(realm, encoded_device_id, timestamp_ms)
 
     # Check DUP start ack in deleted_devices table
     dup_start_ack_query =
@@ -162,8 +163,7 @@ defmodule Astarte.DataUpdaterPlant.DeviceDeleteTest do
       encoded_device_id,
       "this.interface.does.not.Exist",
       "/don/t/care",
-      :dontcare,
-      gen_tracking_id(),
+      <<>>,
       make_timestamp("2017-10-09T14:30:15+00:00")
     )
 
@@ -190,13 +190,9 @@ defmodule Astarte.DataUpdaterPlant.DeviceDeleteTest do
       realm,
       encoded_device_id,
       "/f",
-      :dontcare,
-      gen_tracking_id(),
+      <<>>,
       timestamp_us_x_10
     )
-
-    # Let the process handle device's last message
-    Process.sleep(100)
 
     # Check DUP end ack in deleted_devices table
     dup_end_ack_query =
@@ -210,18 +206,13 @@ defmodule Astarte.DataUpdaterPlant.DeviceDeleteTest do
     assert [true] = dup_end_ack_result
 
     # Finally, check that the related DataUpdater process exists no more
-    assert [] = Horde.Registry.lookup(Registry.DataUpdater, {realm, device_id})
+    assert [] =
+             Horde.Registry.lookup(Mississippi.Consumer.DataUpdater.Registry, {realm, device_id})
   end
 
   defp make_timestamp(timestamp_string) do
     {:ok, date_time, _} = DateTime.from_iso8601(timestamp_string)
 
     DateTime.to_unix(date_time, :millisecond) * 10_000
-  end
-
-  defp gen_tracking_id do
-    message_id = :erlang.unique_integer([:monotonic]) |> Integer.to_string()
-    delivery_tag = {:injected_msg, make_ref()}
-    {message_id, delivery_tag}
   end
 end

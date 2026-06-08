@@ -1,0 +1,4 @@
+services:
+  astarte-housekeeping:
+    volumes:
+      - ../../../:/workspace/astarte

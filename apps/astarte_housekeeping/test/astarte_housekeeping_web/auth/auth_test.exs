@@ -37,7 +37,7 @@ defmodule Astarte.HousekeepingWeb.AuthTest do
   describe "JWT" do
     test "no token returns 401", %{conn: conn} do
       conn = get(conn, @request_path)
-      assert json_response(conn, 401)["errors"]["detail"] == "Unauthorized"
+      assert json_response(conn, 401)["errors"]["detail"] == "Missing authorization token"
     end
 
     test "all access token returns the data", %{conn: conn} do
@@ -85,7 +85,7 @@ defmodule Astarte.HousekeepingWeb.AuthTest do
         )
         |> get("#{@request_path}/suffix")
 
-      assert json_response(conn, 403)["errors"]["detail"] == "Forbidden"
+      assert json_response(conn, 403)["errors"]["detail"] == unauthorized_access_message(conn)
     end
 
     test "token for another path returns 403", %{conn: conn} do
@@ -97,7 +97,7 @@ defmodule Astarte.HousekeepingWeb.AuthTest do
         )
         |> get(@request_path)
 
-      assert json_response(conn, 403)["errors"]["detail"] == "Forbidden"
+      assert json_response(conn, 403)["errors"]["detail"] == unauthorized_access_message(conn)
     end
 
     test "token for both paths returns the data", %{conn: conn} do
@@ -121,7 +121,7 @@ defmodule Astarte.HousekeepingWeb.AuthTest do
         )
         |> get(@request_path)
 
-      assert json_response(conn, 403)["errors"]["detail"] == "Forbidden"
+      assert json_response(conn, 403)["errors"]["detail"] == unauthorized_access_message(conn)
     end
 
     test "token for both methods returns the data", %{conn: conn} do
@@ -147,5 +147,31 @@ defmodule Astarte.HousekeepingWeb.AuthTest do
 
       assert json_response(conn, 200) == @expected_data
     end
+
+    test "invalid JWT token returns 401", %{conn: conn} do
+      conn =
+        put_req_header(
+          conn,
+          "authorization",
+          "bearer invalid_token"
+        )
+        |> get(@request_path)
+
+      assert json_response(conn, 401)["errors"]["detail"] == "Invalid JWT token"
+    end
+
+    test "token with mismatched signature returns 401", %{conn: conn} do
+      token = JWTTestHelper.gen_jwt_token_with_wrong_signature(["^GET$::#{@valid_auth_path}"])
+
+      conn =
+        put_req_header(conn, "authorization", "bearer #{token}")
+        |> get(@request_path)
+
+      assert json_response(conn, 401)["errors"]["detail"] == "Invalid JWT token"
+    end
+  end
+
+  defp unauthorized_access_message(conn) do
+    "Unauthorized access to #{conn.assigns.method} #{conn.assigns.path}. Please verify your permissions"
   end
 end

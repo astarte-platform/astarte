@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2021 Ispirata Srl
+# Copyright 2021-2024 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -22,7 +22,9 @@ defmodule AstarteDeviceFleetSimulator.Scheduler do
   require Logger
 
   alias AstarteDeviceFleetSimulator.Device
+  alias AstarteDeviceFleetSimulator.DeviceNameUtils
   alias AstarteDeviceFleetSimulator.Config
+  alias AstarteDeviceFleetSimulator.CredentialsSecrets
 
   def start_link(args) do
     GenServer.start_link(__MODULE__, args, name: __MODULE__)
@@ -30,7 +32,23 @@ defmodule AstarteDeviceFleetSimulator.Scheduler do
 
   @impl true
   def init(_args) do
-    {:ok, Enum.into(Config.scheduler_opts(), %{}), {:continue, :init_messages}}
+    config = Map.new(Config.scheduler_opts())
+    device_ids = 1..config.device_count |> Enum.map(&DeviceNameUtils.generate_device_name/1)
+    stored_devices = CredentialsSecrets.fetch()
+
+    credentials_secrets =
+      case config.avoid_registration do
+        true -> device_ids |> Enum.map(&Map.get(stored_devices, &1))
+        false -> device_ids |> Enum.map(fn _ -> nil end)
+      end
+
+    devices = Enum.zip(device_ids, credentials_secrets)
+
+    state =
+      config
+      |> Map.put(:devices, devices)
+
+    {:ok, state, {:continue, :init_messages}}
   end
 
   @impl true
@@ -65,14 +83,15 @@ defmodule AstarteDeviceFleetSimulator.Scheduler do
   end
 
   @impl true
-  def handle_info(:spawn, %{device_count: 0} = state) do
+  def handle_info(:spawn, %{devices: []} = state) do
     {:noreply, state}
   end
 
   def handle_info(:spawn, state) do
     Process.send_after(self(), :spawn, state.spawn_interval_ms)
-    spawn_device(state.device_count, state.allow_messages_while_spawning)
-    {:noreply, %{state | device_count: state.device_count - 1}}
+    [{device_id, credentials_secret} | devices] = state.devices
+    spawn_device(device_id, credentials_secret, state.allow_messages_while_spawning)
+    {:noreply, %{state | devices: devices}}
   end
 
   def handle_info(:terminate, _state) do
@@ -81,8 +100,17 @@ defmodule AstarteDeviceFleetSimulator.Scheduler do
     {:stop, {:shutdown, :simulation_ended}, %{}}
   end
 
-  defp spawn_device(device_count, skip_waiting) do
-    child = {Device, %{device_count: device_count, skip_waiting: skip_waiting}}
+  defp spawn_device(device_id, credentials_secret, skip_waiting) do
+    child =
+      {
+        Device,
+        %{
+          device_id: device_id,
+          credentials_secret: credentials_secret,
+          skip_waiting: skip_waiting
+        }
+      }
+
     DynamicSupervisor.start_child(DeviceSupervisor, child)
   end
 

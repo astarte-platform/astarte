@@ -24,7 +24,6 @@ defmodule Astarte.Pairing.EngineTest do
   alias Astarte.Helpers.Database, as: DatabaseTestHelper
   alias Astarte.Pairing.CredentialsSecret
   alias Astarte.Pairing.Engine
-  alias Astarte.Pairing.Queries
   alias CFXXL.CertUtils
 
   @test_csr """
@@ -54,8 +53,6 @@ defmodule Astarte.Pairing.EngineTest do
 
   describe "get_agent_public_key_pem" do
     test "fails with non-existing realm" do
-      realm_keyspace = Realm.keyspace_name("nonexisting")
-
       assert {:error, :realm_not_found} == Engine.get_agent_public_key_pems("nonexisting")
     end
 
@@ -354,7 +351,7 @@ defmodule Astarte.Pairing.EngineTest do
 
       {:ok, device_id} = Device.decode_device_id(hw_id, allow_extended_id: true)
 
-      {:ok, device} = Queries.fetch_device(realm, device_id)
+      {:ok, device} = Astarte.DataAccess.Device.fetch(realm, device_id)
 
       assert device.cert_aki == second_aki
       assert device.cert_serial == second_serial

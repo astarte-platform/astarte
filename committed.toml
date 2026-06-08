@@ -43,8 +43,11 @@ allowed_scopes = [
   "data_access",
   "events",
   "rpc",
+  "fdo",
+  "fdo_core",
   "generators",
   "data_access_generators",
+  "secrets",
   "test_suite",
   "ts",
   "adapters",
@@ -57,6 +60,9 @@ allowed_scopes = [
   "docker",
   "credo",
   "nix",
+  "deps",
+  # frontend
+  "dashboard",
 ]
 merge_commit = true
 imperative_subject = true

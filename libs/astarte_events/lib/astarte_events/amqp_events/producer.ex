@@ -110,7 +110,7 @@ defmodule Astarte.Events.AMQPEvents.Producer do
   def handle_info(:init, chan), do: {:noreply, chan}
 
   defp init_producer do
-    conn = ExRabbitPool.get_connection_worker(:events_producer_pool)
+    conn = ExRabbitPool.get_connection_worker(:astarte_events_producer_pool)
 
     with {:ok, channel} <- checkout_channel(conn),
          :ok <- declare_default_events_exchange(channel, conn) do

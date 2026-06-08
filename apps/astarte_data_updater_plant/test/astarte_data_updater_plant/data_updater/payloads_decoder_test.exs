@@ -27,7 +27,7 @@ defmodule Astarte.DataUpdaterPlant.PayloadsDecoderTest do
   test "unset" do
     timestamp = decimicrosecond_timestamp() |> Enum.at(0)
 
-    assert PayloadsDecoder.decode_bson_payload(<<>>, timestamp) == {nil, nil, nil}
+    assert PayloadsDecoder.decode_bson_payload(<<>>, timestamp) == {:ok, {nil, nil, nil}}
   end
 
   test "deprecated unset" do
@@ -35,7 +35,7 @@ defmodule Astarte.DataUpdaterPlant.PayloadsDecoderTest do
 
     unset_payload = %{"v" => %Cyanide.Binary{data: <<>>, subtype: :generic}} |> Cyanide.encode!()
 
-    assert PayloadsDecoder.decode_bson_payload(unset_payload, timestamp) == {nil, nil, nil}
+    assert PayloadsDecoder.decode_bson_payload(unset_payload, timestamp) == {:ok, {nil, nil, nil}}
   end
 
   property "individual value payloads optional metadata and timestamp" do
@@ -55,7 +55,7 @@ defmodule Astarte.DataUpdaterPlant.PayloadsDecoderTest do
       expected_metadata = Map.get(payload, "m", %{})
 
       assert PayloadsDecoder.decode_bson_payload(encoded_payload, timestamp) ==
-               {value, expected_timestamp, expected_metadata}
+               {:ok, {value, expected_timestamp, expected_metadata}}
     end
   end
 
@@ -66,7 +66,7 @@ defmodule Astarte.DataUpdaterPlant.PayloadsDecoderTest do
     case Cyanide.encode(payload) do
       {:ok, encoded} ->
         assert PayloadsDecoder.decode_bson_payload(encoded, reception_timestamp) ==
-                 {true, reception_timestamp, %{}}
+                 {:ok, {true, reception_timestamp, %{}}}
     end
   end
 
@@ -77,7 +77,7 @@ defmodule Astarte.DataUpdaterPlant.PayloadsDecoderTest do
     case Cyanide.encode(payload) do
       {:ok, encoded} ->
         assert PayloadsDecoder.decode_bson_payload(encoded, reception_timestamp) ==
-                 {true, reception_timestamp, %{"good_key" => "x"}}
+                 {:ok, {true, reception_timestamp, %{"good_key" => "x"}}}
     end
   end
 
@@ -91,7 +91,7 @@ defmodule Astarte.DataUpdaterPlant.PayloadsDecoderTest do
       |> Enum.at(0)
 
     assert PayloadsDecoder.decode_bson_payload(Cyanide.encode!(object_payload), timestamp) ==
-             {object_payload, expected_timestamp, %{}}
+             {:ok, {object_payload, expected_timestamp, %{}}}
   end
 
   property "zlib compressed payload inflate" do

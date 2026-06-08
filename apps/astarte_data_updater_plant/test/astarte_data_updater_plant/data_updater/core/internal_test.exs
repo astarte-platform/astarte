@@ -21,63 +21,50 @@
 defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.InternalTest do
   use Astarte.Cases.Data, async: true
   use Astarte.Cases.Device
+  use Astarte.Cases.DataUpdater
   use ExUnitProperties
   use Mimic
 
-  alias Astarte.DataUpdaterPlant.DataUpdater
   alias Astarte.DataUpdaterPlant.DataUpdater.Core
   alias Astarte.DataUpdaterPlant.DataUpdater.Queries
   alias Astarte.DataUpdaterPlant.DataUpdater.State
-  alias Astarte.DataUpdaterPlant.MessageTracker
 
-  import Astarte.Helpers.DataUpdater
   import Astarte.InterfaceUpdateGenerators
 
-  setup_all %{realm_name: realm_name, device: device} do
-    setup_data_updater(realm_name, device.encoded_id)
-    state = DataUpdater.dump_state(realm_name, device.encoded_id)
-
-    %{state: state}
-  end
-
-  describe "handle_internal/5" do
+  describe "handle_internal/4" do
     test "handles heartbeat messages", test_context do
       %{state: state, interfaces: interfaces} = test_context
 
-      %{state: state, message_id: message_id, timestamp: timestamp} =
+      %{state: state, timestamp: timestamp} =
         gen_context(state, interfaces)
         |> Enum.at(0)
 
-      expect(Core.HeartbeatHandler, :handle_heartbeat, fn ^state, ^message_id, ^timestamp ->
-        state
+      expect(Core.HeartbeatHandler, :handle_heartbeat, fn ^state, ^timestamp ->
+        Core.HeartbeatHandler.handle_heartbeat(state, timestamp)
       end)
 
-      assert {:continue, ^state} =
+      assert {:ack, :ok, _new_state} =
                Core.InternalHandler.handle_internal(
                  state,
                  "/heartbeat",
                  :dontcare,
-                 message_id,
                  timestamp
                )
     end
 
     test "acks device deletion with a message on `/f` path", test_context do
-      %{state: state, interfaces: interfaces} = test_context
-      %State{realm: realm, device_id: device_id, message_tracker: message_tracker} = state
-      %{message_id: message_id} = gen_context(state, interfaces) |> Enum.at(0)
+      %{state: state} = test_context
+      %State{realm: realm, device_id: device_id} = state
 
       state = Map.put(state, :discard_messages, true)
 
       expect(Queries, :ack_end_device_deletion, fn ^realm, ^device_id -> :ok end)
-      expect(MessageTracker, :ack_delivery, fn ^message_tracker, ^message_id -> :ok end)
 
-      assert {:stop, ^state} =
+      assert {:stop, :ack_end_device_deletion, :ack, ^state} =
                Core.InternalHandler.handle_internal(
                  state,
                  "/f",
                  :dontcare,
-                 message_id,
                  :dontcare
                )
     end
@@ -85,7 +72,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.InternalTest do
     test "errors in case of an unexpected internal message", test_context do
       %{state: state, interfaces: interfaces} = test_context
 
-      %{state: state, path: path, payload: payload, message_id: message_id, timestamp: timestamp} =
+      %{state: state, path: path, payload: payload, timestamp: timestamp} =
         context =
         gen_context(state, interfaces)
         |> filter(fn context -> not (context.state.discard_messages and context.path == "/f") end)
@@ -93,15 +80,14 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.InternalTest do
 
       expect(Core.Error, :handle_error, fn error_context, _error ->
         assert error_context == %{context | interface: ""}
-        error_context.state
+        {:discard, :reason, error_context.state, {:continue, :continue_arg}}
       end)
 
-      assert {:continue, ^state} =
+      assert {:discard, _reason, ^state, _continue_arg} =
                Core.InternalHandler.handle_internal(
                  state,
                  path,
                  payload,
-                 message_id,
                  timestamp
                )
     end
@@ -109,7 +95,6 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.InternalTest do
 
   defp gen_context(state, interfaces) do
     gen all interface <- member_of(interfaces),
-            message_id <- repeatedly(&gen_message_id/0),
             update <- valid_mapping_update_for(interface),
             timestamp <- repeatedly(fn -> DateTime.utc_now(:millisecond) end) do
       payload =
@@ -122,13 +107,10 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.InternalTest do
       %{
         state: state,
         interface: interface.name,
-        message_id: message_id,
         path: update.path,
         timestamp: timestamp,
         payload: payload
       }
     end
   end
-
-  defp gen_message_id, do: :erlang.unique_integer([:monotonic]) |> Integer.to_string()
 end

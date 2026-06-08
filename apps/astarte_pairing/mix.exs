@@ -23,7 +23,7 @@ defmodule Astarte.Pairing.Mixfile do
     [
       app: :astarte_pairing,
       elixir: "~> 1.15",
-      version: "1.3.0",
+      version: "1.4.0-rc.0",
       elixirc_paths: elixirc_paths(Mix.env()),
       start_permanent: Mix.env() == :prod,
       test_coverage: [tool: ExCoveralls],
@@ -61,7 +61,7 @@ defmodule Astarte.Pairing.Mixfile do
 
   defp astarte_required_modules(_) do
     [
-      {:astarte_core, "~> 1.3", override: true},
+      {:astarte_core, github: "astarte-platform/astarte_core"},
       {:astarte_realm_management,
        path: "../astarte_realm_management", only: :test, runtime: false}
     ]
@@ -72,6 +72,7 @@ defmodule Astarte.Pairing.Mixfile do
   # Type `mix help deps` for examples and options.
   defp deps do
     [
+      {:castore, "~> 1.0.0"},
       {:phoenix, "~> 1.7"},
       {:gettext, "~> 0.24"},
       {:plug_cowboy, "~> 2.2"},
@@ -97,15 +98,17 @@ defmodule Astarte.Pairing.Mixfile do
       {:cfxxl, github: "ispirata/cfxxl"},
       {:astarte_data_access, path: astarte_lib("astarte_data_access")},
       {:astarte_generators, path: astarte_lib("astarte_generators"), only: [:dev, :test]},
+      {:astarte_secrets, path: astarte_lib("astarte_secrets"), override: true},
       {:bcrypt_elixir, "~> 2.2"},
       {:xandra, "~> 0.19", override: true},
       {:ecto, "~> 3.13", override: true},
       {:exandra, "~> 0.13"},
-      {:typed_ecto_schema, "~> 0.4"},
       {:mimic, "~> 1.11", only: :test},
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
       {:con_cache, "~> 1.1"},
       {:astarte_events, path: astarte_lib("astarte_events")},
+      {:astarte_fdo, path: astarte_lib("astarte_fdo")},
+      {:astarte_fdo_core, path: astarte_lib("astarte_fdo_core")},
       {:astarte_rpc, path: astarte_lib("astarte_rpc")},
       # HTTP client needed by some tests, override to avoid conflicts with cfxxl
       {:httpoison, "~> 2.2", override: true},

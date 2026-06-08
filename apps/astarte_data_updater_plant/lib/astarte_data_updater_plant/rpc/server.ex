@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2025 SECO Mind Srl
+# Copyright 2025 - 2026 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -23,7 +23,6 @@ defmodule Astarte.DataUpdaterPlant.RPC.Server do
   This server receives incoming calls from other astarte services and queues the
   calls to the appropriate dup services to handle the calls.
   """
-  alias Astarte.DataUpdaterPlant.DataUpdater
   alias Astarte.DataUpdaterPlant.RPC.Server.Core
 
   use GenServer, restart: :transient
@@ -45,9 +44,10 @@ defmodule Astarte.DataUpdaterPlant.RPC.Server do
   end
 
   @impl GenServer
-  def handle_call({:start_device_deletion, {realm_name, hw_id}}, _from, state) do
+  def handle_call({:start_device_deletion, {realm_name, encoded_device_id}}, _from, state) do
     now = DateTime.utc_now() |> DateTime.to_unix(:microsecond) |> Kernel.*(10)
-    DataUpdater.start_device_deletion(realm_name, hw_id, now)
+    :ok = Core.start_device_deletion(realm_name, encoded_device_id, now)
+
     {:reply, :ok, state}
   end
 

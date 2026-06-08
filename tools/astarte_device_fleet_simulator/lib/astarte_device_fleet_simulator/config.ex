@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2021 Ispirata Srl
+# Copyright 2021-2024 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -25,6 +25,7 @@ defmodule AstarteDeviceFleetSimulator.Config do
           | {:test_duration_s, integer()}
           | {:spawn_interval_ms, integer()}
           | {:allow_messages_while_spawning, boolean()}
+          | {:avoid_registration, boolean()}
 
   @type message_option ::
           {:path, binary()}
@@ -82,6 +83,23 @@ defmodule AstarteDeviceFleetSimulator.Config do
     os_env: "DEVICE_FLEET_DEVICE_COUNT",
     type: :pos_integer,
     default: 10
+  )
+
+  @envdoc "Avoid re-registering the devices when possible."
+  app_env(:avoid_registration, :astarte_device_fleet_simulator, :avoid_registration,
+    os_env: "DEVICE_FLEET_AVOID_REGISTRATION",
+    type: :boolean,
+    default: false
+  )
+
+  @envdoc "Location of the file containing the saved credentials secrets."
+  app_env(
+    :credentials_secrets_location,
+    :astarte_device_fleet_simulator,
+    :credentials_secrets_location,
+    os_env: "DEVICE_FLEET_CREDENTIALS_SECRETS_LOCATION",
+    type: :binary,
+    default: ".credentials-secrets"
   )
 
   @envdoc "The duration of the test (in seconds)."
@@ -147,6 +165,7 @@ defmodule AstarteDeviceFleetSimulator.Config do
       device_count: device_count!(),
       test_duration_s: test_duration_s!(),
       spawn_interval_ms: spawn_interval_ms!(),
+      avoid_registration: avoid_registration!(),
       allow_messages_while_spawning: allow_messages_while_spawning!()
     ]
   end
@@ -169,5 +188,23 @@ defmodule AstarteDeviceFleetSimulator.Config do
   def standard_interface_provider! do
     :code.priv_dir(:astarte_device_fleet_simulator)
     |> Path.join("interfaces")
+  end
+
+  @spec stored_devices() :: [%{device_id: String.t(), credentials_secret: String.t()}]
+  def stored_devices do
+    case File.exists?(credentials_secrets_location!()) do
+      true -> stored_devices!()
+      false -> []
+    end
+  end
+
+  defp stored_devices! do
+    credentials_secrets_location!()
+    |> File.stream!()
+    |> Stream.map(&String.split(&1, ";"))
+    |> Stream.filter(fn [url, saved_realm, _device_id, _credentials_secret] ->
+      url == pairing_url!() and saved_realm == realm!()
+    end)
+    |> Enum.map(fn [_, _, device_id, credentials_secret] -> {device_id, credentials_secret} end)
   end
 end

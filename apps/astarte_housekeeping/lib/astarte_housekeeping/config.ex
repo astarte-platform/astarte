@@ -51,6 +51,17 @@ defmodule Astarte.Housekeeping.Config do
     default: false
 
   @envdoc """
+  Default maximum storage retention for new realms (in seconds).
+  Can be overridden at any time during realm creation or update
+  [Check docs for more info](https://docs.astarte-platform.org/astarte/latest/030-interface.html#datastream-specific-features)
+  """
+  app_env :default_datastream_maximum_storage_retention,
+          :astarte_housekeeping,
+          :default_datastream_maximum_storage_retention,
+          os_env: "HOUSEKEEPING_DEFAULT_DATASTREAM_MAXIMUM_STORAGE_RETENTION",
+          type: :integer
+
+  @envdoc """
   Replication strategy for the `astarte` keyspace, either `SimpleStrategy` or
   `NetworkTopologyStrategy`. When unset, the astarte keyspace defaults to
   `NetworkTopologyStrategy` using the current ScyllaDB network topology

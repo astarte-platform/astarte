@@ -22,7 +22,6 @@ defmodule Astarte.DataUpdaterPlant.TimeBasedActionsTest do
   import Astarte.Helpers.DataUpdater
 
   alias Astarte.Core.Device
-  alias Astarte.DataUpdaterPlant.DataUpdater
   alias Astarte.DataUpdaterPlant.TimeBasedActions
   alias Astarte.Helpers.Database
 
@@ -154,7 +153,7 @@ defmodule Astarte.DataUpdaterPlant.TimeBasedActionsTest do
       # Insert initial device state
       insert_device_and_start_data_updater(realm, device_id, introspection: %{})
 
-      state = DataUpdater.dump_state(realm, encoded_device_id)
+      state = dump_state(realm, encoded_device_id)
 
       assert state.interfaces == %{}
       assert state.interface_ids_to_name == %{}
@@ -488,15 +487,14 @@ defmodule Astarte.DataUpdaterPlant.TimeBasedActionsTest do
        ) do
     insert_device_and_start_data_updater(realm, device_id, insert_opts)
 
-    DataUpdater.handle_connection(
+    handle_connection(
       realm,
       encoded_device_id,
       "10.0.0.1",
-      Database.gen_tracking_id(),
       timestamp
     )
 
-    DataUpdater.dump_state(realm, encoded_device_id)
+    dump_state(realm, encoded_device_id)
   end
 
   defp setup_device_interfaces_state(
@@ -510,25 +508,23 @@ defmodule Astarte.DataUpdaterPlant.TimeBasedActionsTest do
     insert_device_and_start_data_updater(realm, device_id, introspection: introspection_map)
 
     Enum.each(interface_data, fn {interface, path, value, ts} ->
-      DataUpdater.handle_data(
+      handle_data(
         realm,
         encoded_device_id,
         interface,
         path,
         Cyanide.encode!(%{"v" => value}),
-        Database.gen_tracking_id(),
         ts || timestamp
       )
     end)
 
-    DataUpdater.dump_state(realm, encoded_device_id)
+    dump_state(realm, encoded_device_id)
   end
 
   defp insert_device_and_start_data_updater(realm_name, device_id, params) do
-    encoded_device_id = Device.encode_device_id(device_id)
     Database.insert_device(device_id, realm_name, params)
 
-    setup_data_updater(realm_name, encoded_device_id)
+    setup_data_updater(realm_name, device_id)
     :ok
   end
 end

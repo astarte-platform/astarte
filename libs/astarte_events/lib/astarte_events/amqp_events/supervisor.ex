@@ -35,7 +35,7 @@ defmodule Astarte.Events.AMQPEvents.Supervisor do
       Supervisor.child_spec(
         {ExRabbitPool.PoolSupervisor,
          rabbitmq_config: Config.amqp_options!(), connection_pools: [Config.events_pool_config!()]},
-        id: :events_producer_pool
+        id: :astarte_events_producer_pool
       )
 
     [

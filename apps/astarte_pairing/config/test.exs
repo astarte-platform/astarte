@@ -101,7 +101,15 @@ config :astarte_pairing, :enable_fdo, true
 config :astarte_pairing, :base_url_domain, "api.astarte.localhost"
 config :astarte_pairing, :base_url_port, 4003
 config :astarte_pairing, :base_url_protocol, :http
+config :astarte_fdo, :base_url_domain, "api.astarte.localhost"
+config :astarte_fdo, :base_url_port, 4003
+config :astarte_fdo, :base_url_protocol, :http
 config :astarte_pairing, :enable_credential_reuse, true
+
+config :astarte_secrets, bao_authentication_mechanism: :token
+config :astarte_secrets, bao_token: "astarte_token"
+
+config :astarte_fdo, fdo_rendezvous_url: "http://localhost:8041"
 
 config :bcrypt_elixir,
   log_rounds: 4

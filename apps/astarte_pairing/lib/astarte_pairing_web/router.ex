@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2017-2025 SECO Mind Srl
+# Copyright 2017-2026 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -33,10 +33,6 @@ defmodule Astarte.PairingWeb.Router do
     plug Astarte.PairingWeb.Plug.LogHwId
   end
 
-  pipeline :fdo_feature_gate do
-    plug Astarte.PairingWeb.Plug.FDOGate
-  end
-
   pipeline :fdo do
     plug :accepts, ["cbor"]
     plug :put_view, Astarte.PairingWeb.FDOView
@@ -54,8 +50,6 @@ defmodule Astarte.PairingWeb.Router do
   end
 
   scope "/v1/:realm_name/fdo/101", Astarte.PairingWeb do
-    pipe_through :fdo_feature_gate
-
     pipe_through :fdo
 
     post "/msg/60", FDOOnboardingController, :hello_device
@@ -79,12 +73,6 @@ defmodule Astarte.PairingWeb.Router do
     get "/version", VersionController, :show_with_realm
     get "/health", HealthController, :show
 
-    scope "/ownership" do
-      pipe_through :fdo_feature_gate
-      pipe_through :agent_api
-      post "/", OwnershipVoucherController, :create
-    end
-
     scope "/agent" do
       pipe_through :agent_api
 
@@ -101,6 +89,18 @@ defmodule Astarte.PairingWeb.Router do
       post "/:hw_id/protocols/:protocol/credentials/verify",
            DeviceController,
            :verify_credentials
+    end
+
+    scope "/fdo" do
+      pipe_through :agent_api
+
+      post "/owner_keys", OwnerKeyController, :create_or_upload_key
+      get "/owner_keys", OwnerKeyController, :list_keys
+      get "/owner_keys/:key_algorithm", OwnerKeyController, :get_keys_for_algorithm
+      get "/owner_keys/:key_algorithm/:key_name", OwnerKeyController, :get_key
+      post "/owner_keys_for_voucher", OwnershipVoucherController, :owner_keys_for_voucher
+      get "/ownership_vouchers", OwnershipVoucherController, :list_ownership_vouchers
+      post "/ownership_vouchers", OwnershipVoucherController, :register
     end
   end
 

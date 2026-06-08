@@ -27,28 +27,20 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.InterfaceTest do
   alias Astarte.DataAccess.Realms.Interface, as: InterfaceData
   alias Astarte.DataAccess.Realms.Realm
   alias Astarte.DataAccess.Repo
-  alias Astarte.DataUpdaterPlant.DataUpdater
   alias Astarte.DataUpdaterPlant.DataUpdater.Core
   alias Astarte.Helpers
 
   use Astarte.Cases.Data, async: true
   use Astarte.Cases.Device
+  use Astarte.Cases.DataUpdater
   use ExUnitProperties
 
   import Ecto.Query
   import Astarte.InterfaceUpdateGenerators
-  import Astarte.Helpers.DataUpdater
 
   @interface_lifespan_decimicroseconds 60 * 10 * 1000 * 10_000
 
   setup_all :populate_interfaces
-
-  setup_all %{realm_name: realm_name, device: device} do
-    setup_data_updater(realm_name, device.encoded_id)
-    state = DataUpdater.dump_state(realm_name, device.encoded_id)
-
-    %{state: state}
-  end
 
   describe "maybe_handle_cache_miss/3" do
     test "updates device state on miss", context do
@@ -185,7 +177,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.InterfaceTest do
       end
     end
 
-    property "extract_expected_types/3 extracts types from endpoint", context do
+    property "extract_mappings/3 extracts mappings from endpoint", context do
       %{
         interfaces: interfaces,
         state: state,
@@ -193,8 +185,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.InterfaceTest do
       } = context
 
       check all interface <- member_of(interfaces),
-                mapping <- member_of(interface.mappings),
-                path <- path_from_endpoint(mapping.endpoint) do
+                mapping <- member_of(interface.mappings) do
         descriptor = state.interfaces[interface.name]
 
         keyspace = Realm.keyspace_name(realm_name)
@@ -208,8 +199,7 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.InterfaceTest do
         endpoint = Repo.one(query, prefix: keyspace)
 
         expected_type =
-          Core.Interface.extract_expected_types(
-            path,
+          Core.Interface.extract_mappings(
             descriptor,
             endpoint,
             state.mappings
@@ -309,13 +299,16 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.InterfaceTest do
     end
   end
 
-  defp valid_type?(mapping, expected_type, :individual), do: mapping.value_type == expected_type
+  defp valid_type?(mapping, %Endpoint{value_type: value_type}, :individual),
+    do: mapping.value_type == value_type
 
-  defp valid_type?(mapping, expected_type, :object) do
+  defp valid_type?(mapping, %{} = mappings_by_key, :object) do
     key = mapping.endpoint |> String.split("/") |> List.last()
-    value = mapping.value_type
 
-    %{key => value} == expected_type
+    case Map.fetch(mappings_by_key, key) do
+      {:ok, %Mapping{value_type: value_type}} -> mapping.value_type == value_type
+      :error -> false
+    end
   end
 
   defp matches?(endpoint, path, aggregation) do

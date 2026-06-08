@@ -1,0 +1,4 @@
+services:
+  astarte-trigger-engine:
+    volumes:
+      - ../../../:/workspace/astarte

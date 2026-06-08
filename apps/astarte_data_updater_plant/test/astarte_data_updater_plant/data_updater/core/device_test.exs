@@ -19,12 +19,14 @@
 defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DeviceTest do
   use Astarte.Cases.Data, async: true
   use Astarte.Cases.Device
+
+  use Astarte.Cases.DataUpdater
+
   use ExUnitProperties
   use Mimic
 
   @moduletag timeout: 180_000
 
-  import Astarte.Helpers.DataUpdater
   import Astarte.InterfaceUpdateGenerators
   import Ecto.Query
 
@@ -36,7 +38,6 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DeviceTest do
   alias Astarte.DataAccess.Interface, as: InterfaceQueries
   alias Astarte.DataAccess.Realms.Realm
   alias Astarte.DataAccess.Repo
-  alias Astarte.DataUpdaterPlant.DataUpdater
   alias Astarte.DataUpdaterPlant.DataUpdater.Core
   alias Astarte.DataUpdaterPlant.DataUpdater.Queries
   alias Astarte.DataUpdaterPlant.RPC.VMQPlugin
@@ -45,13 +46,6 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.DeviceTest do
   @timestamp_us_x_10 Database.make_timestamp("2025-05-14T14:00:32+00:00")
 
   setup_all :populate_interfaces
-
-  setup_all %{realm_name: realm_name, device: device} do
-    setup_data_updater(realm_name, device.encoded_id)
-    state = DataUpdater.dump_state(realm_name, device.encoded_id)
-
-    %{state: state}
-  end
 
   describe "ask_clean_session/2" do
     test "disconnects device and clears cache on successful disconnect", %{

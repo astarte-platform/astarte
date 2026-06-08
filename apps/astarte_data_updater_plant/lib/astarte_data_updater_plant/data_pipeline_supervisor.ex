@@ -22,7 +22,7 @@ defmodule Astarte.DataUpdaterPlant.DataPipelineSupervisor do
   """
   use Supervisor
 
-  alias Astarte.DataUpdaterPlant.ConsumersSupervisor
+  alias Astarte.DataUpdater.DeletionScheduler
 
   def start_link(init_arg) do
     Supervisor.start_link(__MODULE__, init_arg, name: __MODULE__)
@@ -53,29 +53,10 @@ defmodule Astarte.DataUpdaterPlant.DataPipelineSupervisor do
     trigger_types = Enum.concat(dup_device_triggers, dup_data_triggers)
 
     children = [
-      {Horde.Registry, [keys: :unique, name: Registry.MessageTracker, members: :auto]},
-      {Horde.Registry, [keys: :unique, name: Registry.DataUpdater, members: :auto]},
       {Horde.Registry, [keys: :unique, name: Registry.DataUpdaterRPC, members: :auto]},
-      {Horde.Registry, [keys: :unique, name: Registry.AMQPDataConsumer, members: :auto]},
       {Horde.Registry, [keys: :unique, name: Registry.VMQPluginRPC, members: :auto]},
-      {Horde.DynamicSupervisor,
-       [
-         name: Supervisor.MessageTracker,
-         strategy: :one_for_one,
-         restart: :transient,
-         members: :auto,
-         distribution_strategy: Horde.UniformDistribution
-       ]},
-      {Horde.DynamicSupervisor,
-       [
-         name: Supervisor.DataUpdater,
-         strategy: :one_for_one,
-         restart: :transient,
-         members: :auto,
-         distribution_strategy: Horde.UniformDistribution
-       ]},
-      ConsumersSupervisor,
       {Astarte.RPC.Triggers.Client, types: trigger_types},
+      DeletionScheduler,
       Astarte.DataUpdaterPlant.RPC.Supervisor
     ]
 

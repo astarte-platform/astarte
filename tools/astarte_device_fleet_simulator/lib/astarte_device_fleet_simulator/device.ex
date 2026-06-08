@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2021 Ispirata Srl
+# Copyright 2021-2024 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -17,7 +17,7 @@
 #
 
 defmodule AstarteDeviceFleetSimulator.Device do
-  use Bitwise, operators_only: true
+  import Bitwise
 
   @behaviour :gen_statem
 
@@ -25,8 +25,8 @@ defmodule AstarteDeviceFleetSimulator.Device do
 
   alias Astarte.Device
   alias AstarteDeviceFleetSimulator.Config
+  alias AstarteDeviceFleetSimulator.CredentialsSecrets
   alias AstarteDeviceFleetSimulator.Scheduler
-  alias AstarteDeviceFleetSimulator.DeviceNameUtils
   alias Astarte.API.Pairing
   alias Astarte.API.Pairing.Agent
 
@@ -72,8 +72,6 @@ defmodule AstarteDeviceFleetSimulator.Device do
     pairing_url = Config.pairing_url!()
     ignore_ssl_errors = Config.ignore_ssl_errors!()
 
-    device_id = DeviceNameUtils.generate_device_name(data.device_count)
-
     client =
       Pairing.client(pairing_url, realm,
         auth_token: auth_token,
@@ -86,12 +84,22 @@ defmodule AstarteDeviceFleetSimulator.Device do
         interface_provider: interface_provider,
         path: path,
         pairing_url: pairing_url,
-        device_id: device_id,
         client: client
       })
 
-    actions = [{:next_event, :internal, :unregister}]
-    {:keep_state, new_data, actions}
+    if data.credentials_secret == nil do
+      actions = [{:next_event, :internal, :unregister}]
+      {:keep_state, new_data, actions}
+    else
+      device_opts =
+        data
+        |> Map.take([:device_id, :credentials_secret])
+        |> Keyword.new()
+        |> Keyword.merge(Config.device_opts())
+
+      {:ok, _} = Astarte.Device.start_link(device_opts)
+      {:keep_state, new_data, [connecting_action()]}
+    end
   end
 
   def setup(:internal, :unregister, data) do
@@ -176,6 +184,10 @@ defmodule AstarteDeviceFleetSimulator.Device do
              Config.device_opts() ++
                [device_id: data.device_id, credentials_secret: credentials_secret]
            ) do
+      if Config.avoid_registration!() do
+        CredentialsSecrets.store(data.device_id, credentials_secret)
+      end
+
       {:keep_state,
        %{
          client: data.client,

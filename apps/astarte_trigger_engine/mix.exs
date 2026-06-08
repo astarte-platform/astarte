@@ -23,7 +23,7 @@ defmodule Astarte.TriggerEngine.Mixfile do
     [
       app: :astarte_trigger_engine,
       elixir: "~> 1.15",
-      version: "1.3.0",
+      version: "1.4.0-rc.0",
       elixirc_paths: elixirc_paths(Mix.env()),
       build_embedded: Mix.env() == :prod,
       start_permanent: Mix.env() == :prod,
@@ -51,7 +51,7 @@ defmodule Astarte.TriggerEngine.Mixfile do
 
   defp astarte_required_modules(_) do
     [
-      {:astarte_core, "~> 1.3", override: true},
+      {:astarte_core, github: "astarte-platform/astarte_core", override: true},
       {:astarte_generators, github: "astarte-platform/astarte_generators", only: [:dev, :test]}
     ]
   end
@@ -84,9 +84,7 @@ defmodule Astarte.TriggerEngine.Mixfile do
       {:astarte_data_access, path: astarte_lib("astarte_data_access")},
       {:skogsra, "~> 2.2"},
       {:observer_cli, "~> 1.5"},
-      # hex.pm package and esl/ex_rabbit_pool do not support amqp version 2.1.
-      # This fork is supporting amqp ~> 2.0 and also ~> 3.0.
-      {:ex_rabbit_pool, github: "leductam/ex_rabbit_pool"},
+      {:current_rabbit_pool, "~> 1.1"},
       {:dialyxir, "~> 1.0", only: [:dev, :test], runtime: false},
       {:excoveralls, "~> 0.15", only: :test},
       {:mox, "~> 0.5", only: :test},

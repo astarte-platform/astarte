@@ -21,43 +21,30 @@
 defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.CapabilitiesHandlerTest do
   use Astarte.Cases.Data, async: true
   use Astarte.Cases.Device
+  use Astarte.Cases.DataUpdater
   use ExUnitProperties
 
   alias Astarte.Common.Generators.Timestamp
   alias Astarte.Core.Device.Capabilities
-  alias Astarte.DataUpdaterPlant.DataUpdater
   alias Astarte.DataUpdaterPlant.DataUpdater.Core.CapabilitiesHandler
   alias Astarte.DataUpdaterPlant.DataUpdater.Queries
-
-  import Astarte.Helpers.DataUpdater
-
-  setup_all %{realm_name: realm_name, device: device} do
-    setup_data_updater(realm_name, device.encoded_id)
-    state = DataUpdater.dump_state(realm_name, device.encoded_id)
-
-    %{state: state}
-  end
 
   describe "handle_capabilities/4" do
     property "updates valid capabilities", %{realm_name: realm_name, state: state, device: device} do
       check all capabilities <- gen_capabilities(),
-                timestamp <- Timestamp.timestamp(),
-                tracking_id <- repeatedly(&gen_tracking_id/0) do
-        {message_id, _} = tracking_id
-
+                timestamp <- Timestamp.timestamp() do
         payload =
           capabilities
           |> Map.from_struct()
           |> Map.new(fn {key, value} -> {to_string(key), to_string(value)} end)
           |> Cyanide.encode!()
 
-        updated_state =
-          CapabilitiesHandler.handle_capabilities(
-            state,
-            payload,
-            message_id,
-            timestamp
-          )
+        assert {:ack, :ok, updated_state} =
+                 CapabilitiesHandler.handle_capabilities(
+                   state,
+                   payload,
+                   timestamp
+                 )
 
         %{capabilities: db_capabilities} = Queries.get_device_status(realm_name, device.device_id)
 

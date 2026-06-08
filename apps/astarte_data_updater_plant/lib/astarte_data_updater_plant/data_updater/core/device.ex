@@ -34,14 +34,13 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.Device do
   alias Astarte.DataUpdaterPlant.DataUpdater.PayloadsDecoder
   alias Astarte.DataUpdaterPlant.DataUpdater.Queries
   alias Astarte.DataUpdaterPlant.DataUpdater.State
-  alias Astarte.DataUpdaterPlant.MessageTracker
   alias Astarte.DataUpdaterPlant.RPC.VMQPlugin
   alias Astarte.DataUpdaterPlant.TimeBasedActions
   alias Astarte.DataUpdaterPlant.TriggersHandler
 
   require Logger
 
-  def process_introspection(state, new_introspection_list, payload, message_id, timestamp) do
+  def process_introspection(state, new_introspection_list, payload, timestamp) do
     new_state = TimeBasedActions.execute_time_based_actions(state, timestamp)
 
     timestamp_ms = div(timestamp, 10_000)
@@ -149,21 +148,21 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.Device do
       db_introspection_minor_map
     )
 
-    MessageTracker.ack_delivery(new_state.message_tracker, message_id)
-
     :telemetry.execute(
       [:astarte, :data_updater_plant, :data_updater, :processed_introspection],
       %{},
       %{realm: realm}
     )
 
-    %{
+    final_state = %{
       new_state
       | introspection: db_introspection_map,
         paths_cache: Cache.new(Config.paths_cache_size!()),
         total_received_msgs: new_state.total_received_msgs + 1,
         total_received_bytes: new_state.total_received_bytes + byte_size(payload)
     }
+
+    {:ack, :ok, final_state}
   end
 
   defp handle_introspection_diff(

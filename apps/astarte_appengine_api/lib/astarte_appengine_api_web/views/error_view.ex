@@ -102,6 +102,10 @@ defmodule Astarte.AppEngine.APIWeb.ErrorView do
     %{errors: %{detail: "Unexpected object key"}}
   end
 
+  def render("422_missing_required_mapping.json", _assigns) do
+    %{errors: %{detail: "Missing required mapping key"}}
+  end
+
   def render("500.json", %{conn: %{assigns: %{reason: %Xandra.ConnectionError{}}}}) do
     %{errors: %{detail: "Database connection error"}}
   end
@@ -128,6 +132,30 @@ defmodule Astarte.AppEngine.APIWeb.ErrorView do
 
   def render("503_service_unavailable.json", _assigns) do
     %{errors: %{detail: "Service unavailable"}}
+  end
+
+  def render("missing_token.json", _assigns) do
+    %{errors: %{detail: "Missing authorization token"}}
+  end
+
+  def render("invalid_token.json", _assigns) do
+    %{errors: %{detail: "Invalid JWT token"}}
+  end
+
+  def render("invalid_auth_path.json", _assigns) do
+    %{
+      errors: %{
+        detail: "Authorization failed due to an invalid path"
+      }
+    }
+  end
+
+  def render("authorization_path_not_matched.json", %{method: method, path: path}) do
+    %{
+      errors: %{
+        detail: "Unauthorized access to #{method} #{path}. Please verify your permissions"
+      }
+    }
   end
 
   # In case no render clause matches or no

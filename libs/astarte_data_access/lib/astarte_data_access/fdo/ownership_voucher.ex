@@ -18,24 +18,43 @@
 
 defmodule Astarte.DataAccess.FDO.OwnershipVoucher do
   @moduledoc """
-  Ownership Voucher information uploaded by the owner.
+  Ecto schema for persisting ownership voucher binary data to the database.
   """
-
   use TypedEctoSchema
+
   import Ecto.Changeset
+
+  alias Astarte.DataAccess.FDO.CBOR.Encoded, as: CBOREncoded
   alias Astarte.DataAccess.FDO.OwnershipVoucher
+  alias Astarte.FDO.Core.OwnershipVoucher.RendezvousInfo
+  alias Astarte.FDO.Core.PublicKey
 
   @primary_key false
   typed_schema "ownership_vouchers" do
-    field :private_key, :binary
-    field :voucher_data, :binary
     field :guid, Astarte.DataAccess.UUID, primary_key: true
+    field :status, Ecto.Enum, values: [created: 0, claimed: 1]
+    field :voucher_data, :binary
+    field :output_voucher, :binary
+    field :user_id, :binary
+    field :key_name, :string
+    field :key_algorithm, Ecto.Enum, values: [es256: 0, es384: 1, rs256: 10, rs384: 11]
+    field :replacement_guid, :binary
+    field :replacement_rendezvous_info, CBOREncoded, using: RendezvousInfo
+    field :replacement_public_key, CBOREncoded, using: PublicKey
   end
 
   @doc false
-  def changeset(%OwnershipVoucher{} = ownership_voucher, attrs) do
-    ownership_voucher
-    |> cast(attrs, [:private_key, :voucher_data, :guid])
-    |> validate_required([:private_key, :voucher_data, :guid])
+  def changeset(%OwnershipVoucher{} = record, attrs) do
+    record
+    |> cast(attrs, [
+      :key_name,
+      :voucher_data,
+      :guid,
+      :key_algorithm,
+      :replacement_guid,
+      :replacement_rendezvous_info,
+      :replacement_public_key
+    ])
+    |> validate_required([:key_name, :key_algorithm, :voucher_data, :guid])
   end
 end

@@ -20,8 +20,11 @@ defmodule Astarte.DataAccess.FDO.TO2Session do
   @moduledoc """
   Identifies a session in the TO2 protocol
   """
-
   use TypedEctoSchema
+
+  alias Astarte.DataAccess.FDO.CBOR.Encoded, as: CBOREncoded
+  alias Astarte.FDO.Core.Hash
+  alias COSE.Keys.Symmetric
 
   @ciphers [
     aes_128_gcm: 1,
@@ -45,7 +48,7 @@ defmodule Astarte.DataAccess.FDO.TO2Session do
   typed_schema "to2_sessions" do
     field :guid, :binary, primary_key: true
     field :device_id, Astarte.DataAccess.UUID
-    field :hmac, :binary
+    field :hmac, CBOREncoded, using: Hash
     field :nonce, :binary
     field :sig_type, Ecto.Enum, values: [es256: -7, es384: -35, eipd10: 90, eipd11: 91]
     field :epid_group, :binary
@@ -56,9 +59,9 @@ defmodule Astarte.DataAccess.FDO.TO2Session do
     field :cipher_suite_name, Ecto.Enum, values: @ciphers
     field :owner_random, :binary
     field :secret, :binary
-    field :sevk, :binary
-    field :svk, :binary
-    field :sek, :binary
+    field :sevk, Exandra.EmbeddedType, using: Symmetric
+    field :svk, Exandra.EmbeddedType, using: Symmetric
+    field :sek, Exandra.EmbeddedType, using: Symmetric
     field :max_owner_service_info_size, :integer
 
     field :device_service_info, Exandra.Map,
@@ -68,9 +71,6 @@ defmodule Astarte.DataAccess.FDO.TO2Session do
 
     field :owner_service_info, {:array, :binary}
     field :last_chunk_sent, :integer
-    field :replacement_guid, :binary
-    field :replacement_rv_info, :binary
-    field :replacement_pub_key, :binary
-    field :replacement_hmac, :binary
+    field :replacement_hmac, CBOREncoded, using: Hash
   end
 end

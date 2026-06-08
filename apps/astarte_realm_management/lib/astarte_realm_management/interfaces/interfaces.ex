@@ -32,13 +32,17 @@ defmodule Astarte.RealmManagement.Interfaces do
   alias Astarte.DataAccess.Interface, as: DataAccessInterface
   alias Astarte.DataAccess.Mappings
   alias Astarte.RealmManagement.Interfaces.Core
+  alias Astarte.RealmManagement.Interfaces.InterfacesListOptions
   alias Astarte.RealmManagement.Interfaces.MappingUpdates
   alias Astarte.RealmManagement.Interfaces.Queries
 
   require Logger
 
-  def list_interfaces(realm_name) do
-    Queries.get_interfaces_list(realm_name)
+  def list_interfaces(realm_name, opts \\ %InterfacesListOptions{}) do
+    case opts.detailed do
+      true -> Queries.get_detailed_interfaces_list(realm_name)
+      false -> Queries.get_interfaces_list(realm_name)
+    end
   end
 
   def list_interface_major_versions(realm_name, id) do

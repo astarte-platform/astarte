@@ -25,27 +25,25 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.InternalHandler do
   alias Astarte.DataUpdaterPlant.DataUpdater.Core
   alias Astarte.DataUpdaterPlant.DataUpdater.Queries
   alias Astarte.DataUpdaterPlant.DataUpdater.State
-  alias Astarte.DataUpdaterPlant.MessageTracker
 
   require Logger
 
-  def handle_internal(state, "/heartbeat", _payload, message_id, timestamp) do
-    {:continue, Core.HeartbeatHandler.handle_heartbeat(state, message_id, timestamp)}
+  def handle_internal(state, "/heartbeat", _payload, timestamp) do
+    Core.HeartbeatHandler.handle_heartbeat(state, timestamp)
   end
 
-  def handle_internal(%State{discard_messages: true} = state, "/f", _, message_id, _) do
+  def handle_internal(%State{discard_messages: true} = state, "/f", _, _) do
     :ok = Queries.ack_end_device_deletion(state.realm, state.device_id)
     _ = Logger.info("End device deletion acked.", tag: "device_delete_ack")
-    MessageTracker.ack_delivery(state.message_tracker, message_id)
-    {:stop, state}
+
+    {:stop, :ack_end_device_deletion, :ack, state}
   end
 
-  def handle_internal(state, path, payload, message_id, timestamp) do
+  def handle_internal(state, path, payload, timestamp) do
     context = %{
       state: state,
       path: path,
       payload: payload,
-      message_id: message_id,
       timestamp: timestamp,
       interface: ""
     }
@@ -53,13 +51,11 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.InternalHandler do
     error = %{
       message:
         "Unexpected internal message on #{path}, base64-encoded payload: #{inspect(Base.encode64(payload))}",
+      error: :unexpected_internal_message,
       logger_metadata: [tag: "unexpected_internal_message"],
       error_name: "unexpected_internal_message"
     }
 
-    # TODO maybe we don't want triggers on unexpected internal messages?
-    new_state = Core.Error.handle_error(context, error)
-
-    {:continue, new_state}
+    Core.Error.handle_error(context, error)
   end
 end
