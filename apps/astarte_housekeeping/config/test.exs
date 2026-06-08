@@ -6,6 +6,9 @@ config :astarte_housekeeping, Astarte.HousekeepingWeb.Endpoint,
   http: [port: 4001],
   server: false
 
+config :astarte_secrets, bao_authentication_mechanism: :token
+config :astarte_secrets, bao_token: "astarte_token"
+
 # Print only warnings and errors during test
 config :logger, :console,
   format: {PrettyLog.UserFriendlyFormatter, :format},

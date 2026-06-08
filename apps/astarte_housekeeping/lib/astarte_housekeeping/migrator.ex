@@ -26,6 +26,7 @@ defmodule Astarte.Housekeeping.Migrator do
   alias Astarte.Events.AMQP.Vhost
   alias Astarte.Housekeeping.Realms.Queries
   alias Astarte.Housekeeping.Realms.Realm, as: HKRealm
+  alias Astarte.Secrets
 
   require Logger
 
@@ -86,7 +87,8 @@ defmodule Astarte.Housekeeping.Migrator do
 
     with {:ok, realm_astarte_schema_version} <- get_realm_astarte_schema_version(realm_name),
          :ok <- migrate_realm_from_version(realm_name, realm_astarte_schema_version),
-         :ok <- Vhost.create_vhost(realm_name) do
+         :ok <- Vhost.create_vhost(realm_name),
+         :ok <- ensure_realm_kek(realm_name) do
       migrate_realms(tail)
     end
   end
@@ -239,5 +241,20 @@ defmodule Astarte.Housekeeping.Migrator do
     }
 
     KvStore.insert(kv_store_map, opts)
+  end
+
+  defp ensure_realm_kek(realm_name) do
+    case Secrets.create_realm_kek(realm_name) do
+      {:ok, _key} ->
+        :ok
+
+      :error ->
+        Logger.error("Failed to create realm KEK for realm #{realm_name}",
+          tag: "realm_kek_creation_failed",
+          realm: realm_name
+        )
+
+        {:error, :realm_kek_creation_failed}
+    end
   end
 end

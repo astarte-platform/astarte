@@ -94,6 +94,7 @@ defmodule Astarte.Housekeeping.Mixfile do
       {:httpoison, "~> 2.0"},
       {:astarte_data_access, path: astarte_lib("astarte_data_access")},
       {:astarte_events, path: astarte_lib("astarte_events")},
+      {:astarte_secrets, path: astarte_lib("astarte_secrets")},
       {:castore, "~> 1.0.0"},
       {:open_api_spex, "~> 3.22"},
       {:ymlr, "~> 5.1"},
