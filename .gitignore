@@ -1,8 +1,9 @@
 # Ignore compose files
 compose/astarte-keys/*
-compose/vernemq-certs/*
-compose/cfssl-config/*.pem
+compose/certificates/
 compose/cfssl-config/*.csr
+compose/cfssl-config/*.pem
+compose/vernemq-certs/*
 compose_generated.env
 
 # Ignore all keys
