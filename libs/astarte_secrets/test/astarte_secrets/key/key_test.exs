@@ -57,6 +57,10 @@ defmodule Astarte.Secrets.KeyTest do
     assert_raise RuntimeError, fn -> Keys.verify(key, :es256, <<>>, <<>>) end
   end
 
+  test "encode/1 raises", %{key: key} do
+    assert_raise RuntimeError, fn -> Keys.encode(key) end
+  end
+
   test "uses the numerically largest (not alphabetically largest) revision for the public key",
        %{key: key} do
     for _ <- 0..9 do

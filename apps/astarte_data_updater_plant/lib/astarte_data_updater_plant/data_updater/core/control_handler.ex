@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2025 SECO Mind Srl
+# Copyright 2025 - 2026 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -22,10 +22,9 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandler do
   @moduledoc """
   This module is responsible for handling the control messages.
   """
-  alias Astarte.DataUpdaterPlant.DataUpdater.Core
-
   alias Astarte.Core.Device
   alias Astarte.DataUpdaterPlant.DataUpdater.Core
+  alias Astarte.DataUpdaterPlant.DataUpdater.Core.KeyAgreement.InitExchange
   alias Astarte.DataUpdaterPlant.DataUpdater.PayloadsDecoder
   alias Astarte.DataUpdaterPlant.DataUpdater.Queries
   alias Astarte.DataUpdaterPlant.DataUpdater.State
@@ -150,22 +149,54 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandler do
   end
 
   @doc """
-  Handles the `/keyAgreement` control topic.
+  Handles the `/keyAgreement` control topic (Device to Astarte direction).
 
-  TODO: implement the key-agreement handshake protocol.
-  For now this clause simply acknowledges the message so routing is confirmed
-  to work end-to-end before the cryptographic logic is added.
+  Performs full payload parsing and validation per the InitExchange protocol.
   """
   def handle_control(state, "/keyAgreement", payload, timestamp) do
     new_state = TimeBasedActions.execute_time_based_actions(state, timestamp)
 
-    final_state = %{
-      new_state
-      | total_received_msgs: new_state.total_received_msgs + 1,
-        total_received_bytes: new_state.total_received_bytes + byte_size(payload)
-    }
+    case InitExchange.decode(payload) do
+      # TODO: use init_exchange for shared-secret derivation (ECDH + HKDF step)
+      {:ok, _init_exchange} ->
+        :telemetry.execute(
+          [:astarte, :data_updater_plant, :control_handler, :key_agreement_init],
+          %{payload_size: byte_size(payload)},
+          %{realm: new_state.realm}
+        )
 
-    {:ack, :ok, final_state}
+        final_state = %{
+          new_state
+          | total_received_msgs: new_state.total_received_msgs + 1,
+            total_received_bytes: new_state.total_received_bytes + byte_size(payload)
+        }
+
+        {:ack, :ok, final_state}
+
+      {:error, reason} ->
+        Logger.warning(
+          "[keyAgreement] payload validation failed: #{inspect(reason)}",
+          tag: "key_agreement_invalid_payload"
+        )
+
+        context = %{
+          state: new_state,
+          payload: payload,
+          path: "/keyAgreement",
+          timestamp: timestamp
+        }
+
+        error = %{
+          message:
+            "Invalid keyAgreement payload (#{inspect(reason)}): " <>
+              inspect(Base.encode64(payload)),
+          logger_metadata: [tag: "key_agreement_error"],
+          error_name: "key_agreement_error",
+          error: :key_agreement_error
+        }
+
+        Core.Error.handle_error(context, error)
+    end
   end
 
   def handle_control(state, path, payload, timestamp) do
@@ -188,6 +219,69 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandler do
     }
 
     Core.Error.handle_error(context, error)
+  end
+
+  @doc """
+  Sends an `InitExchange` message from Astarte to a device to trigger
+  a new key-agreement handshake
+
+  Generates a fresh ephemeral X25519 key pair, a random HKDF
+  salt, and a random AES-256-GCM nonce, CBOR-encodes the `InitExchange`
+  struct, and publishes it on: `<realm>/<device_id>/control/keyAgreement`
+  """
+  @spec send_init_exchange(String.t(), binary()) ::
+          {:ok, InitExchange.t()} | {:error, term()}
+  def send_init_exchange(realm, device_id) do
+    init_exchange = InitExchange.new()
+
+    with :ok <- publish_init_exchange(realm, device_id, init_exchange) do
+      {:ok, init_exchange}
+    end
+  end
+
+  defp publish_init_exchange(realm, device_id, %InitExchange{} = init_exchange) do
+    topic = "#{realm}/#{Device.encode_device_id(device_id)}/control/keyAgreement"
+    payload = InitExchange.cbor_encode(init_exchange)
+
+    publish_start = System.monotonic_time()
+
+    case VMQPlugin.publish(topic, payload, 2) do
+      {:ok, %{local_matches: local, remote_matches: remote}} when local + remote >= 1 ->
+        :telemetry.execute(
+          [:astarte, :data_updater_plant, :control_handler, :key_agreement_send],
+          %{
+            duration: System.monotonic_time() - publish_start,
+            payload_size: byte_size(payload)
+          },
+          %{realm: realm, result: "success"}
+        )
+
+        :ok
+
+      {:ok, %{local_matches: 0, remote_matches: 0}} ->
+        :telemetry.execute(
+          [:astarte, :data_updater_plant, :control_handler, :key_agreement_send],
+          %{
+            duration: System.monotonic_time() - publish_start,
+            payload_size: byte_size(payload)
+          },
+          %{realm: realm, result: "no_matches"}
+        )
+
+        {:error, :session_not_found}
+
+      {:error, reason} ->
+        :telemetry.execute(
+          [:astarte, :data_updater_plant, :control_handler, :key_agreement_send],
+          %{
+            duration: System.monotonic_time() - publish_start,
+            payload_size: byte_size(payload)
+          },
+          %{realm: realm, result: "error"}
+        )
+
+        {:error, reason}
+    end
   end
 
   defp decode_payload(%State{capabilities: capabilities} = _state, payload) do

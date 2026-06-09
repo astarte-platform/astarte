@@ -116,4 +116,8 @@ defimpl COSE.Keys.Key, for: Astarte.Secrets.Key do
   def verify(_key, _digest_type, _to_be_verified, _signature) do
     raise "`Astarte.Secrets.Key.verify/4`: Not yet implemented"
   end
+
+  def encode(_key) do
+    raise "`Astarte.Secrets.Key.encode/1`: Not yet implemented"
+  end
 end

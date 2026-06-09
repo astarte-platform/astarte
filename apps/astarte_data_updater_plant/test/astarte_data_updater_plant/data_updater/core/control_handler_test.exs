@@ -1,7 +1,7 @@
 #
 # This file is part of Astarte.
 #
-# Copyright 2025 SECO Mind Srl
+# Copyright 2025-2026 SECO Mind Srl
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -30,8 +30,10 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandlerTest do
 
   alias Astarte.DataUpdaterPlant.DataUpdater.Core
   alias Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandler
+  alias Astarte.DataUpdaterPlant.DataUpdater.Core.KeyAgreement.InitExchange
   alias Astarte.DataUpdaterPlant.DataUpdater.Impl
   alias Astarte.DataUpdaterPlant.DataUpdater.PayloadsDecoder
+  alias Astarte.DataUpdaterPlant.RPC.VMQPlugin
   alias Astarte.DataUpdaterPlant.RPC.VMQPlugin.ClientMock
 
   setup do
@@ -49,6 +51,71 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandlerTest do
       payload: payload,
       encoded_payload: encoded_payload,
       decoded_payload: decoded_payload
+    }
+  end
+
+  setup_all do
+    init_exchange = InitExchange.new()
+    init_exchange_payload = InitExchange.cbor_encode(init_exchange)
+
+    p256_init_exchange = InitExchange.new(:ecdh_p256_hkdf_sha256_aes_256_gcm)
+    p256_init_exchange_payload = InitExchange.cbor_encode(p256_init_exchange)
+
+    invalid_key_type_payload =
+      CBOR.encode([
+        99,
+        %CBOR.Tag{tag: :bytes, value: :crypto.strong_rand_bytes(32)},
+        %CBOR.Tag{tag: :bytes, value: :crypto.strong_rand_bytes(32)},
+        %CBOR.Tag{tag: :bytes, value: :crypto.strong_rand_bytes(12)}
+      ])
+
+    wrong_okp_key_payload =
+      CBOR.encode([
+        0,
+        # COSE_Key map with a 16-byte x coordinate instead of the required 32
+        %CBOR.Tag{
+          tag: :bytes,
+          value: CBOR.encode(%{1 => 1, -1 => 4, -2 => :crypto.strong_rand_bytes(16)})
+        },
+        %CBOR.Tag{tag: :bytes, value: :crypto.strong_rand_bytes(32)},
+        %CBOR.Tag{tag: :bytes, value: :crypto.strong_rand_bytes(12)}
+      ])
+
+    wrong_hkdf_salt_payload =
+      CBOR.encode([
+        0,
+        # valid 32-byte X25519 COSE_Key, so parsing proceeds to the salt check
+        %CBOR.Tag{
+          tag: :bytes,
+          value: CBOR.encode(%{1 => 1, -1 => 4, -2 => :crypto.strong_rand_bytes(32)})
+        },
+        # 16 bytes instead of the required 32
+        %CBOR.Tag{tag: :bytes, value: :crypto.strong_rand_bytes(16)},
+        %CBOR.Tag{tag: :bytes, value: :crypto.strong_rand_bytes(12)}
+      ])
+
+    wrong_nonce_payload =
+      CBOR.encode([
+        0,
+        # valid 32-byte X25519 COSE_Key, so parsing proceeds to the nonce check
+        %CBOR.Tag{
+          tag: :bytes,
+          value: CBOR.encode(%{1 => 1, -1 => 4, -2 => :crypto.strong_rand_bytes(32)})
+        },
+        %CBOR.Tag{tag: :bytes, value: :crypto.strong_rand_bytes(32)},
+        # 8 bytes instead of the required 12
+        %CBOR.Tag{tag: :bytes, value: :crypto.strong_rand_bytes(8)}
+      ])
+
+    %{
+      init_exchange: init_exchange,
+      init_exchange_payload: init_exchange_payload,
+      p256_init_exchange: p256_init_exchange,
+      p256_init_exchange_payload: p256_init_exchange_payload,
+      invalid_key_type_payload: invalid_key_type_payload,
+      wrong_okp_key_payload: wrong_okp_key_payload,
+      wrong_hkdf_salt_payload: wrong_hkdf_salt_payload,
+      wrong_nonce_payload: wrong_nonce_payload
     }
   end
 
@@ -222,16 +289,140 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandlerTest do
   end
 
   describe "/keyAgreement" do
-    test "acks any payload and increments message counters", context do
-      %{state: state} = context
-
-      payload = <<1, 2, 3>>
+    test "acks a valid CBOR InitExchange payload and increments message counters",
+         context do
+      %{state: state, init_exchange_payload: payload} = context
 
       assert {:ack, :ok, new_state} =
                ControlHandler.handle_control(state, "/keyAgreement", payload, 0)
 
       assert new_state.total_received_msgs == state.total_received_msgs + 1
       assert new_state.total_received_bytes == state.total_received_bytes + byte_size(payload)
+    end
+
+    test "acks a valid CBOR InitExchange payload with a P-256 key",
+         context do
+      %{state: state, p256_init_exchange_payload: payload} = context
+
+      assert {:ack, :ok, new_state} =
+               ControlHandler.handle_control(state, "/keyAgreement", payload, 0)
+
+      assert new_state.total_received_msgs == state.total_received_msgs + 1
+      assert new_state.total_received_bytes == state.total_received_bytes + byte_size(payload)
+    end
+
+    test "discards a payload whose key_type integer is not a supported suite",
+         context do
+      %{state: state, invalid_key_type_payload: payload} = context
+
+      expect(Core.Device, :ask_clean_session, fn _state, _ts -> {:ok, state} end)
+
+      expect(Core.Trigger, :execute_device_error_triggers, fn _state,
+                                                              "key_agreement_error",
+                                                              _meta,
+                                                              _ts ->
+        :ok
+      end)
+
+      assert {:discard, _result, new_state, {:continue, continue_arg}} =
+               ControlHandler.handle_control(state, "/keyAgreement", payload, 0)
+
+      assert {:ok, _} = Impl.handle_continue(continue_arg, new_state)
+    end
+
+    test "discards a payload with a wrong-size OKP public key", context do
+      %{state: state, wrong_okp_key_payload: payload} = context
+
+      expect(Core.Device, :ask_clean_session, fn _state, _ts -> {:ok, state} end)
+
+      expect(Core.Trigger, :execute_device_error_triggers, fn _state,
+                                                              "key_agreement_error",
+                                                              _meta,
+                                                              _ts ->
+        :ok
+      end)
+
+      assert {:discard, _result, new_state, {:continue, continue_arg}} =
+               ControlHandler.handle_control(state, "/keyAgreement", payload, 0)
+
+      assert {:ok, _} = Impl.handle_continue(continue_arg, new_state)
+    end
+
+    test "discards a payload with a wrong-size HKDF salt", context do
+      %{state: state, wrong_hkdf_salt_payload: payload} = context
+
+      expect(Core.Device, :ask_clean_session, fn _state, _ts -> {:ok, state} end)
+
+      expect(Core.Trigger, :execute_device_error_triggers, fn _state,
+                                                              "key_agreement_error",
+                                                              _meta,
+                                                              _ts ->
+        :ok
+      end)
+
+      assert {:discard, _result, new_state, {:continue, continue_arg}} =
+               ControlHandler.handle_control(state, "/keyAgreement", payload, 0)
+
+      assert {:ok, _} = Impl.handle_continue(continue_arg, new_state)
+    end
+
+    test "discards a payload with a wrong-size nonce", context do
+      %{state: state, wrong_nonce_payload: payload} = context
+
+      expect(Core.Device, :ask_clean_session, fn _state, _ts -> {:ok, state} end)
+
+      expect(Core.Trigger, :execute_device_error_triggers, fn _state,
+                                                              "key_agreement_error",
+                                                              _meta,
+                                                              _ts ->
+        :ok
+      end)
+
+      assert {:discard, _result, new_state, {:continue, continue_arg}} =
+               ControlHandler.handle_control(state, "/keyAgreement", payload, 0)
+
+      assert {:ok, _} = Impl.handle_continue(continue_arg, new_state)
+    end
+
+    test "discards a valid CBOR payload that is not a 4-element list", context do
+      %{state: state} = context
+
+      # CBOR-valid but wrong structure, hits the parse(_) fallback
+      payload = CBOR.encode(%{"key_type" => 0})
+
+      expect(Core.Device, :ask_clean_session, fn _state, _ts -> {:ok, state} end)
+
+      expect(Core.Trigger, :execute_device_error_triggers, fn _state,
+                                                              "key_agreement_error",
+                                                              _meta,
+                                                              _ts ->
+        :ok
+      end)
+
+      assert {:discard, _result, new_state, {:continue, continue_arg}} =
+               ControlHandler.handle_control(state, "/keyAgreement", payload, 0)
+
+      assert {:ok, _} = Impl.handle_continue(continue_arg, new_state)
+    end
+
+    test "discards a non-CBOR binary payload", context do
+      %{state: state} = context
+
+      payload = <<0xFF, 0xFE, 0x00, 0x01>>
+
+      expect(Core.Device, :ask_clean_session, fn _state, _ts -> {:ok, state} end)
+
+      expect(Core.Trigger, :execute_device_error_triggers, fn _state,
+                                                              "key_agreement_error",
+                                                              _meta,
+                                                              _ts ->
+        :ok
+      end)
+
+      assert {:discard, _result, new_state, {:continue, continue_arg}} =
+               ControlHandler.handle_control(state, "/keyAgreement", payload, 0)
+
+      assert {:ok, _} = Impl.handle_continue(continue_arg, new_state)
     end
 
     test "discards the message if discard_messages is set", context do
@@ -241,6 +432,55 @@ defmodule Astarte.DataUpdaterPlant.DataUpdater.Core.ControlHandlerTest do
 
       assert {:discard, _result, ^state} =
                ControlHandler.handle_control(state, "/keyAgreement", <<1>>, 0)
+    end
+  end
+
+  describe "send_init_exchange/2" do
+    test "publishes a well-formed CBOR InitExchange to the device and returns the message",
+         context do
+      %{state: state} = context
+
+      realm = state.realm
+      device_id = state.device_id
+
+      expect(VMQPlugin, :publish, fn topic, payload_bytes, qos ->
+        encoded_device_id = Astarte.Core.Device.encode_device_id(device_id)
+
+        assert topic == "#{realm}/#{encoded_device_id}/control/keyAgreement"
+        assert qos == 2
+        assert {:ok, _} = InitExchange.decode(payload_bytes)
+
+        {:ok, %{local_matches: 1, remote_matches: 0}}
+      end)
+
+      assert {:ok, %InitExchange{} = msg} =
+               ControlHandler.send_init_exchange(realm, device_id)
+
+      assert msg.key_type == :ecdh_x25519_hkdf_sha256_aes_256_gcm
+      assert %COSE.Keys.OKP{} = msg.public_key
+      assert byte_size(msg.hkdf_salt) == 32
+      assert byte_size(msg.nonce) == 12
+    end
+
+    test "returns {:error, :session_not_found} when the device has no active session",
+         context do
+      %{state: state} = context
+
+      expect(VMQPlugin, :publish, fn _topic, _payload, _qos ->
+        {:ok, %{local_matches: 0, remote_matches: 0}}
+      end)
+
+      assert {:error, :session_not_found} =
+               ControlHandler.send_init_exchange(state.realm, state.device_id)
+    end
+
+    test "returns {:error, reason} on VMQ publish failure", context do
+      %{state: state} = context
+
+      expect(VMQPlugin, :publish, fn _topic, _payload, _qos -> {:error, :transport_failure} end)
+
+      assert {:error, :transport_failure} =
+               ControlHandler.send_init_exchange(state.realm, state.device_id)
     end
   end
 end
