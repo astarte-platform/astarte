@@ -23,6 +23,7 @@ defmodule Astarte.Housekeeping.Application do
   alias Astarte.DataAccess.Config, as: DataAccessConfig
   alias Astarte.Housekeeping.Config
   alias Astarte.Housekeeping.ReleaseTasks
+  alias Astarte.Secrets.Config, as: SecretsConfig
 
   require Logger
 
@@ -43,6 +44,7 @@ defmodule Astarte.Housekeeping.Application do
     DataAccessConfig.validate!()
     Config.validate_jwt_public_key_pem!()
     Config.validate_astarte_replication!()
+    SecretsConfig.init()
 
     # Define workers and child supervisors to be supervised
     children = [
